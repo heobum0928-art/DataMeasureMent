@@ -1,0 +1,39 @@
+﻿<Window x:Class="ReringProject.UI.LightHandlerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:propTools="clr-namespace:PropertyTools.Wpf;assembly=PropertyTools.Wpf"
+        xmlns:local="clr-namespace:ReringProject.UI"       
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterOwner" 
+        Title="Light Controller" Height="600" Width="460" Closed="Window_Closed">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="9*"></RowDefinition>
+            <RowDefinition Height="1*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <TabControl x:Name="tabControl_content" Grid.Column="0" Grid.Row="0" SelectionChanged="TabControl_content_SelectionChanged">
+            <TabItem Header="{Binding [Control], Source={StaticResource DR}}">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
+                    <StackPanel x:Name="panel_control"></StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="{Binding [Setting], Source={StaticResource DR}}">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
+                    <StackPanel x:Name="panel_setting"></StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+        
+
+        <DockPanel Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" Margin="4,4,4,4">
+            <Button x:Name="btn_cancel" Width="100" Margin="0,0,2,0" FontSize="14" Click="Btn_cancel_Click" Content="{Binding [CANCEL], Source={StaticResource DR}}"></Button>
+            <Button x:Name="btn_ok" Width="100" Click="Btn_ok_Click" FontSize="14" Content="{Binding [OK], Source={StaticResource DR}}"></Button>
+        </DockPanel>
+    </Grid>
+</Window>

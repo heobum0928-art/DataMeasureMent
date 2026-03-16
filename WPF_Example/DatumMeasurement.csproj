@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props" Condition="Exists('..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A0A2C708-7FCA-47F5-A4F3-282483505C96}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>ReringProject</RootNamespace>
+    <AssemblyName>DatumMeasurement</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp></NuGetPackageImportStamp>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;SIMUL_MODE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>7.2</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>7.2</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;SIMUL_MODE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>..\..\..\..\Data\</OutputPath>
+    <DefineConstants>TRACE;SIMUL_MODE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Camera_DDA.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Basler.Pylon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=e389355f398382ab, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\x64\Debug\Basler.Pylon.dll</HintPath>
+    </Reference>
+    <Reference Include="ChartDirector.Net.Desktop.Controls, Version=7.1.0.0, Culture=neutral, PublicKeyToken=2db5fc05de12e204, processorArchitecture=MSIL">
+      <HintPath>..\packages\ChartDirector.Net.Desktop.Controls.7.1.0\lib\net40\ChartDirector.Net.Desktop.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="ImageGlass.ImageBox">
+      <HintPath>bin\x64\Debug\dll\x64\ImageGlass.ImageBox.dll</HintPath>
+    </Reference>
+    <Reference Include="MathNet.Numerics, Version=5.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathNet.Numerics.5.0.0\lib\net48\MathNet.Numerics.dll</HintPath>
+    </Reference>
+    <Reference Include="MvCamCtrl.Net, Version=4.1.0.3, Culture=neutral, PublicKeyToken=52fddfb3f94be800, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\x64\Debug\MvCamCtrl.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="netchartdir, Version=7.1.0.0, Culture=neutral, PublicKeyToken=2db5fc05de12e204, processorArchitecture=MSIL">
+      <HintPath>..\packages\ChartDirector.Net.7.1.0\lib\net40\netchartdir.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Ookii.Dialogs.Wpf, Version=5.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ookii.Dialogs.Wpf.5.0.1\lib\net462\Ookii.Dialogs.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenCvSharp, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.4.8.0.20230708\lib\net48\OpenCvSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenCvSharp.Extensions, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.Extensions.4.8.0.20230708\lib\net48\OpenCvSharp.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenCvSharp.WpfExtensions, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenCvSharp4.WpfExtensions.4.8.0.20230708\lib\net48\OpenCvSharp.WpfExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="PropertyTools, Version=0.0.1.0, Culture=neutral, PublicKeyToken=ea0c9f2b460934d0, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\x64\Debug\PropertyTools.dll</HintPath>
+    </Reference>
+    <Reference Include="PropertyTools.Wpf, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\x64\Debug\PropertyTools.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Drawing.Common, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Drawing.Common.7.0.0\lib\net462\System.Drawing.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Controls.Ribbon" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="UIAutomationProvider" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsFormsIntegration" />
+    <Reference Include="WPF.MDI, Version=1.1.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\x64\Debug\WPF.MDI.dll</HintPath>
+    </Reference>
+    <Reference Include="zxing, Version=0.16.9.0, Culture=neutral, PublicKeyToken=4e88037ac681fe60, processorArchitecture=MSIL">
+      <HintPath>..\packages\ZXing.Net.0.16.9\lib\net48\zxing.dll</HintPath>
+    </Reference>
+    <Reference Include="zxing.presentation, Version=0.16.9.0, Culture=neutral, PublicKeyToken=4e88037ac681fe60, processorArchitecture=MSIL">
+      <HintPath>..\packages\ZXing.Net.0.16.9\lib\net48\zxing.presentation.dll</HintPath>
+    </Reference>
+    <Reference Include="halcondotnet">
+      <HintPath>C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\bin\dotnet35\halcondotnet.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="Custom\ErrorCode\ErrorCode.cs" />
+    <Compile Include="Custom\Sequence\Bottom\Action_BottomCalibration.cs" />
+           <Compile Include="Custom\UI\MainWindow.cs" />
+    <Compile Include="Device\Camera\Hik\HikCamera.cs" />
+    <Compile Include="Device\Camera\Hik\HikCameraProperty.cs" />
+    <Compile Include="Device\LightController\JPFLightController.cs" />
+                <Compile Include="Login\LoginManager.cs" />
+    <Compile Include="Custom\Sequence\Bottom\Action_BottomInspection.cs" />
+    <Compile Include="Custom\Define\ID.cs" />
+    <Compile Include="Custom\Device\DeviceHandler.cs" />
+    <Compile Include="Custom\Device\LightHandler.cs" />
+    <Compile Include="Custom\Sequence\Top\Action_TopCalibration.cs" />
+    <Compile Include="Custom\Sequence\Top\Action_TopInspection.cs" />
+    <Compile Include="Custom\Sequence\Bottom\Sequence_Bottom.cs" />
+    <Compile Include="Custom\Sequence\Top\Sequence_Top.cs" />
+    <Compile Include="Custom\TcpServer\ResourceMap.cs" />
+    <Compile Include="Custom\SystemHandler.cs" />
+    <Compile Include="Custom\Sequence\SequenceHandler.cs" />
+    <Compile Include="Custom\SystemSetting.cs" />
+    <Compile Include="Custom\UserData\GlobalUserData.cs" />
+    <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />
+    <Compile Include="Device\Camera\Basler\BaslerCameraProperty.cs" />
+    <Compile Include="Device\Camera\VirtualCameraProperty.cs" />
+    <Compile Include="Device\Camera\VirtualCamera.cs" />
+    <Compile Include="Device\DeviceHandler.cs" />
+    <Compile Include="Device\DisplayConfig.cs" />
+    <Compile Include="Device\LightController\LightGroup.cs" />
+    <Compile Include="Device\LightController\PamtekLightController.cs" />
+    <Compile Include="Device\LightController\VirtualLightController.cs" />
+    <Compile Include="Device\LightController\LightHandler.cs" />
+    <Compile Include="Properties\DynamicResource.cs" />
+    <Compile Include="Sequence\Param\CameraMasterParam.cs" />
+    <Compile Include="Sequence\Param\CameraSlaveParam.cs" />
+    <Compile Include="Sequence\SequenceBuilder.cs" />
+    <Compile Include="TcpServer\ResourceMap.cs" />
+    <Compile Include="TcpServer\VisionServer.cs" />
+    <Compile Include="UI\ContentItem\IMainView.cs" />
+    <Compile Include="UI\ContentItem\RuntimeResizer\DrawableCircle.cs" />
+    <Compile Include="UI\ContentItem\RuntimeResizer\DrawableItem.cs" />
+    <Compile Include="UI\ContentItem\RuntimeResizer\DrawableLine.cs" />
+    <Compile Include="UI\ContentItem\RuntimeResizer\RuntimeResizer.cs" />
+    <Compile Include="UI\ContentItem\RuntimeResizer\DrawableRectangle.cs" />
+    <Compile Include="UI\ContentItem\LogView.xaml.cs">
+      <DependentUpon>LogView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ControlItem\CalibrationView.xaml.cs">
+      <DependentUpon>CalibrationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ControlItem\ModelFinderView.xaml.cs">
+      <DependentUpon>ModelFinderView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ControlItem\InspectionListViewModel.cs" />
+    <Compile Include="Sequence\Sequence\SequenceBase.cs" />
+    <Compile Include="Sequence\Sequence\SequenceContext.cs" />
+    <Compile Include="SystemHandler.cs" />
+    <Compile Include="Sequence\Action\ActionBase.cs" />
+    <Compile Include="Sequence\Param\CameraParam.cs" />
+    <Compile Include="Sequence\Param\ParamBase.cs" />
+    <Compile Include="UI\Device\CanvasViewer.cs" />
+    <Compile Include="UI\Dialog\TextInputBox.cs" />
+    <Compile Include="UI\Dialog\TextInputBoxWindow.xaml.cs">
+      <DependentUpon>TextInputBoxWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Login\AccountManagerWindow.xaml.cs">
+      <DependentUpon>AccountManagerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Login\AccountManagerViewModel.cs" />
+    <Compile Include="UI\Log\LogViewChildWindow.cs" />
+    <Compile Include="UI\Log\LogViewWindow.xaml.cs">
+      <DependentUpon>LogViewWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\TcpServer\TcpServerWindow.xaml.cs">
+      <DependentUpon>TcpServerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ViewModel\CalibrationViewModel.cs" />
+    <Compile Include="UI\ViewModel\ModelFinderViewModel.cs" />
+    <Compile Include="Utility\RecipeFileHelper.cs" />
+    <Compile Include="Sequence\SequenceHandler.cs" />
+    <Compile Include="UI\ControlItem\Node.cs" />
+    <Compile Include="UI\ControlItem\NodeViewModel.cs" />
+    <Compile Include="UI\Device\DeviceSelector.xaml.cs">
+      <DependentUpon>DeviceSelector.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Device\DeviceSelectorModelView.cs" />
+    <Compile Include="UI\Light\LightChannelView.xaml.cs">
+      <DependentUpon>LightChannelView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Light\LightControllerView.xaml.cs">
+      <DependentUpon>LightControllerView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Light\LightHandlerWindow.xaml.cs">
+      <DependentUpon>LightHandlerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Light\LightHandlerWindowModel.cs" />
+    <Compile Include="UI\Light\LightGroupView.xaml.cs">
+      <DependentUpon>LightGroupView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Login\LoginWindow.xaml.cs">
+      <DependentUpon>LoginWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Dialog\CustomMessageBox.cs" />
+    <Compile Include="UI\Dialog\MessageBoxWindow.xaml.cs">
+      <DependentUpon>MessageBoxWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ProcessMonitor\ProcessMonitorWindow.xaml.cs">
+      <DependentUpon>ProcessMonitorWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
+      <DependentUpon>OpenRecipeWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Recipe\RecipeListViewModel.cs" />
+    <Compile Include="UI\Setting\SettingWindow.xaml.cs">
+      <DependentUpon>SettingWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\StatusBarModel.cs" />
+    <Compile Include="UI\ViewModel\Observable.cs" />
+    <Compile Include="UI\Theme\OutlinedTextBlock.cs" />
+    <Compile Include="UI\ViewModel\Attributes.cs" />
+    <Compile Include="Utility\Ini.cs" />
+    <Compile Include="Utility\Logging.cs" />
+    <Compile Include="Setting\SystemSetting.cs" />
+    <Compile Include="TcpServer\VisionRequestPacket.cs" />
+    <Compile Include="TcpServer\VisionResponsePacket.cs" />
+    <Compile Include="TcpServer\TcpServer.cs" />
+    <Compile Include="UI\ContentItem\MainView.xaml.cs">
+      <DependentUpon>MainView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ContentItem\MainResultViewerControl.xaml.cs">
+      <DependentUpon>MainResultViewerControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ControlItem\InspectionListView.xaml.cs">
+      <DependentUpon>InspectionListView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MenuBar.xaml.cs">
+      <DependentUpon>MenuBar.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\StatusBar.xaml.cs">
+      <DependentUpon>StatusBar.xaml</DependentUpon>
+    </Compile>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="UI\ContentItem\LogView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\ContentItem\MainView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\ContentItem\MainResultViewerControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\ControlItem\CalibrationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\ControlItem\ModelFinderView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\ControlItem\InspectionListView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Device\DeviceSelector.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Light\LightChannelView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Light\LightControllerView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Light\LightHandlerWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Light\LightGroupView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Login\AccountManagerWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Login\LoginWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Dialog\MessageBoxWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Log\LogViewWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\ProcessMonitor\ProcessMonitorWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Recipe\OpenRecipeWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Dialog\TextInputBoxWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Setting\SettingWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\MenuBar.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\StatusBar.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\TcpServer\TcpServerWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Compile Include="Halcon\Algorithms\MeasurementAlgorithm.cs" />
+    <Compile Include="Halcon\Algorithms\RoiLineIntersectionAlgorithm.cs" />
+    <Compile Include="Halcon\Display\HalconDisplayService.cs" />
+    <Compile Include="Halcon\HalconImageBridge.cs" />
+    <Compile Include="Halcon\Models\EdgeInspectionOverlay.cs" />
+    <Compile Include="Halcon\Models\JobPosition.cs" />
+    <Compile Include="Halcon\Models\RoiDefinition.cs" />
+    <Compile Include="Halcon\Models\RoiLineInspectionResult.cs" />
+    <Compile Include="Halcon\Models\TeachingJob.cs" />
+    <Compile Include="Halcon\Services\TeachingStorageService.cs" />
+    <Compile Include="UI\Dialog\TeachingWindow.xaml.cs">
+      <DependentUpon>TeachingWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ContentItem\HalconViewerControl.xaml.cs">
+      <DependentUpon>HalconViewerControl.xaml</DependentUpon>
+    </Compile>
+
+    <Page Include="UI\Dialog\TeachingWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UI\ContentItem\HalconViewerControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.en-US.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.vi-VN.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.ko-KR.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="ReadMe" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\focus.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.8%28x86 諛?x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\category.png" />
+    <Resource Include="Resource\chart.png" />
+    <Resource Include="Resource\copy.png" />
+    <Resource Include="Resource\error.png" />
+    <Resource Include="Resource\home.png" />
+    <Resource Include="Resource\information.png" />
+    <Resource Include="Resource\layout.png" />
+    <Resource Include="Resource\lightbulb.png" />
+    <Resource Include="Resource\paste.png" />
+    <Resource Include="Resource\process.png" />
+    <Resource Include="Resource\roi.png" />
+    <Resource Include="Resource\save.png" />
+    <Resource Include="Resource\TIS_Logo.png" />
+    <Resource Include="Resource\zoom.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\camera.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\connect.png" />
+    <Resource Include="Resource\dialog.png" />
+    <Resource Include="Resource\log.png" />
+    <Resource Include="Resource\login.png" />
+    <Resource Include="Resource\setting.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\split.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\exit.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\saveas.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\light.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\Minimize.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="UI\ReleaseNote\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resource\main_icon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\CTST_Logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\repair.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Camera_DDA.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resource\Camera_DDA.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>???꾨줈?앺듃????而댄벂?곗뿉 ?녿뒗 NuGet ?⑦궎吏瑜?李몄“?⑸땲?? ?대떦 ?⑦궎吏瑜??ㅼ슫濡쒕뱶?섎젮硫?NuGet ?⑦궎吏 蹂듭썝???ъ슜?섏떗?쒖삤. ?먯꽭???댁슜? http://go.microsoft.com/fwlink/?LinkID=322105瑜?李몄“?섏떗?쒖삤. ?꾨씫???뚯씪? {0}?낅땲??</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props'))" />
+  </Target>
+</Project>
+
+
+
+
+

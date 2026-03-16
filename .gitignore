@@ -1,0 +1,27 @@
+.vs/
+.vscode/
+
+# Build outputs
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# Archives and backups
+*.zip
+*.bak
+*.tmp
+
+# Test and IDE artifacts
+TestResults/

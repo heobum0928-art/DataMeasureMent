@@ -1,0 +1,133 @@
+﻿using ReringProject.Define;
+using ReringProject.Device;
+using ReringProject.Network;
+using ReringProject.UI;
+using System.Windows;
+using System.Windows.Media;
+
+namespace ReringProject.Sequence {
+    public enum ETopActionType {
+        Calibration,
+        Carrier,
+        Socket,
+    }
+
+    public class TopSequenceContext : SequenceContext {
+        public double CenterOffsetXmm { get; set; }
+        public double CenterOffsetYmm { get; set; }
+        public double dAngle { get; set; }
+        public bool bFoundCircle { get; set; }
+        public double dCenterX { get; set; }
+        public double dCenterY { get; set; }
+        public double dRad { get; set; }
+        public double dDistX { get; set; }
+        public double dDistY { get; set; }
+        public EVisionResultType ResultInfo { get; set; }
+
+        public TopSequenceContext(TopSequence source) : base(source) { }
+
+        public override void Clear() {
+            CenterOffsetXmm = 0;
+            CenterOffsetYmm = 0;
+            dAngle = 0;
+            bFoundCircle = false;
+            dCenterX = 0;
+            dCenterY = 0;
+            dRad = 0;
+            dDistX = 0;
+            dDistY = 0;
+            ResultInfo = EVisionResultType.NG;
+            base.Clear();
+        }
+
+        public override void RenderResult(DrawingContext dc) {
+            base.RenderResult(dc);
+            if (!bFoundCircle) {
+                return;
+            }
+
+            var pen = new Pen(Brushes.Lime, 3);
+            dc.DrawLine(pen, new System.Windows.Point(dCenterX - 40, dCenterY), new System.Windows.Point(dCenterX + 40, dCenterY));
+            dc.DrawLine(pen, new System.Windows.Point(dCenterX, dCenterY - 40), new System.Windows.Point(dCenterX, dCenterY + 40));
+        }
+
+        public override void CopyFrom(ActionContext actionContext) {
+            base.CopyFrom(actionContext);
+            Result = actionContext.Result;
+            if (actionContext is TopCalibrationContext calibration) {
+                bFoundCircle = calibration.bFoundCircle;
+                dCenterX = calibration.CircleCenter_X;
+                dCenterY = calibration.CircleCenter_Y;
+                dRad = calibration.Radius;
+                dDistX = CenterOffsetXmm = calibration.CenterOffsetXmm;
+                dDistY = CenterOffsetYmm = calibration.CenterOffsetYmm;
+                ResultInfo = calibration.CalibrationResult;
+            }
+            else if (actionContext is TopInspectionContext inspection) {
+                CenterOffsetXmm = inspection.CenterOffsetXmm;
+                CenterOffsetYmm = inspection.CenterOffsetYmm;
+                dAngle = inspection.AngleDeg;
+                ResultInfo = inspection.InspectResult;
+            }
+        }
+    }
+
+    public class TopSequence : SequenceBase {
+        private readonly DeviceHandler pDevs;
+        private readonly TopSequenceContext pMyContext;
+        private readonly CameraMasterParam pMyParam;
+        private readonly string DefaultCamera;
+        private readonly string DefaultLight;
+
+        public TopSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
+            pDevs = SystemHandler.Handle.Devices;
+            Context = new TopSequenceContext(this);
+            pMyContext = Context as TopSequenceContext;
+            Param = new CameraMasterParam(this);
+            pMyParam = Param as CameraMasterParam;
+            DefaultCamera = defaultCamera;
+            DefaultLight = defaultLight;
+        }
+
+        protected override void AddResponse() {
+            if (RequestPacket == null) return;
+
+            var responsePacket = new TestResultPacket {
+                Target = RequestPacket.Sender,
+                Site = RequestPacket.Site,
+                InspectionType = RequestPacket.TestType,
+                Result = pMyContext.ResultInfo,
+                Angle = pMyContext.dAngle,
+                X = pMyContext.CenterOffsetXmm,
+                Y = pMyContext.CenterOffsetYmm,
+            };
+            ResponseQueue.Enqueue(responsePacket);
+        }
+
+        public override void OnCreate() {
+            pMyParam.LightGroupName = DefaultLight;
+            pMyParam.DeviceName = DefaultCamera;
+
+            var camera = pDevs[pMyParam.DeviceName];
+            if (camera == null || camera.Properties == null) {
+                CustomMessageBox.Show("Error", $"Camera {pMyParam.DeviceName} - Initialize Fail", MessageBoxImage.Error);
+                IsInitialized = false;
+                Context.State = EContextState.Error;
+                return;
+            }
+
+            IsInitialized = true;
+            base.OnCreate();
+        }
+
+        public override void OnLoad() {
+            SystemHandler.Handle.Lights.ApplyLight(pMyParam);
+            base.OnLoad();
+        }
+
+        public override void OnRelease() {
+            IsInitialized = false;
+            base.OnRelease();
+        }
+    }
+}

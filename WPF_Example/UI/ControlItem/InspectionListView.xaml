@@ -1,0 +1,243 @@
+﻿<UserControl x:Class="ReringProject.UI.InspectionListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             xmlns:local="clr-namespace:ReringProject.UI"
+             xmlns:propToolsWpf="clr-namespace:PropertyTools.Wpf;assembly=PropertyTools.Wpf"
+             xmlns:propTools="clr-namespace:PropertyTools;assembly=PropertyTools"
+             
+             d:DesignHeight="800" d:DesignWidth="400" MinWidth="200" Loaded="ListView_Loaded">
+    <UserControl.Resources>
+        <Style TargetType="Button" x:Key="disalbedStyle">
+            <Setter Property="Background" Value="Transparent"></Setter>
+            <Setter Property="BorderThickness" Value="0"></Setter>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter x:Name="MyContentPresenter" 
+                                        Content="{TemplateBinding Content}"
+                                        HorizontalAlignment="Center" 
+                                        VerticalAlignment="Center" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"></Setter>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="True">
+                    <Setter Property="Opacity" Value="1"></Setter>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="LightSkyBlue"></Setter>
+                    <Setter Property="BorderThickness" Value="1"></Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate DataType="{x:Type local:NodeViewModel}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Image Grid.Column="0" Source="{Binding ImageSource}" Width="32" Height="32" Margin="0 0 4 0"/>
+                <propToolsWpf:EditableTextBlock Grid.Column="1" Text="{Binding Name}" IsEditing="{Binding IsEditing}"/>
+            </Grid>
+        </DataTemplate>
+        <!-- property grid customize-->
+        <!-- Category Header -->
+        <DataTemplate x:Key="HeaderTemplate1">
+            <StackPanel Orientation="Horizontal">
+                <propToolsWpf:Bitmap Source="/Resource/home.png"/>
+                <TextBlock Text="{Binding}" FontSize="14" FontWeight="Bold" Margin="4,0,0,0"/>
+            </StackPanel>
+        </DataTemplate>
+        <!-- Unused : TabPageHeader -->
+        <DataTemplate x:Key="PageHeaderTemplate1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding }" FontSize="18" FontWeight="Bold" Margin="0 0 8 0"/>
+                <propToolsWpf:Bitmap Source="/Resource/home.png" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
+        <!-- Error Style-->
+        <Style x:Key="TabHeaderErrorsStyle">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasWarnings}" Value="True">
+                    <Setter Property="TextBlock.Foreground" Value="Orange"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasErrors}" Value="True">
+                    <Setter Property="TextBlock.Foreground" Value="Red"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Tab Header -->
+        <DataTemplate x:Key="HeaderTemplate2" DataType="propTools:Tab">
+            <StackPanel Orientation="Horizontal">
+                <propToolsWpf:Bitmap Source="/Resource/chart.png" Margin="0 0 4 0"/>
+                <TextBlock Text="{Binding Header}" Margin="4 0 0 0" Style="{StaticResource TabHeaderErrorsStyle}"/>
+            </StackPanel>
+        </DataTemplate>
+        <!-- CategoryControl -->
+        <ControlTemplate x:Key="CategoryControlTemplate1"  TargetType="{x:Type HeaderedContentControl}">
+            <Grid Margin="0 8 0 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                <Separator Grid.Column="1" Margin="4 3 0 0"/>
+                <ContentPresenter Grid.Row="1" Grid.ColumnSpan="2"/>
+            </Grid>
+        </ControlTemplate>
+        <!-- control Context menu -->
+        <ContextMenu x:Key="menu_control" FontSize="18">
+            <MenuItem Header="Save" Height="36" MinHeight="36" Click="MenuItem_Save_Click">
+                <MenuItem.Icon>
+                    <Image Source="/Resource/save.png"></Image>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Save As" Height="36" MinHeight="36" Click="MenuItem_Save_As_Click">
+                <MenuItem.Icon>
+                    <Image Source="/Resource/saveas.png"></Image>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator></Separator>
+            <MenuItem Header="Open Recipe" Height="36" MinHeight="36" Click="MenuItem_open_Click">
+                <MenuItem.Icon>
+                    <Image Source="/Resource/folder.png"></Image>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+        
+        <!-- Edit Context menu -->
+        <ContextMenu x:Key="menu_customConfig" FontSize="18">
+        </ContextMenu>
+
+    </UserControl.Resources>
+    <Border BorderThickness="1" BorderBrush="Gray">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="4*"></ColumnDefinition>
+                <ColumnDefinition Width="5"></ColumnDefinition>
+                <ColumnDefinition x:Name="colDefinition_editor" Width="6*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="36"></RowDefinition>
+                <RowDefinition Height="60*"></RowDefinition>
+                <RowDefinition Height="5"></RowDefinition>
+            </Grid.RowDefinitions>
+
+            <!-- Recipe Name -->
+            <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="6*"></ColumnDefinition>
+                    <ColumnDefinition Width="3*"></ColumnDefinition>
+                    <ColumnDefinition Width="2*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <TextBox x:Name="tb_RecipeName" Grid.Column="0" Grid.Row="0" Margin="0,2,2,2" FontSize="19" IsReadOnly="True" Text="{Binding CurrentRecipe}"></TextBox>
+
+                <Button x:Name="btn_start" Grid.Column="1" Grid.Row="0" Margin="0,2,0,2" FontSize="18" Click="Btn_start_Click">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Image Source="/resource/process.png"></Image>
+                        <TextBlock Text="RUN"></TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="btn_RecipeSelect" Grid.Column="2" Grid.Row="0" Margin="2,2,2,2" FontSize="18" Content="..." ContextMenu="{StaticResource menu_control}" Click="Btn_RecipeSelect_Click">
+                </Button>
+            </Grid>
+            
+            
+            <!-- Inspection Group List -->
+            <propToolsWpf:TreeListBox x:Name="treeListBox_sequence" Grid.Column="0" Grid.Row="1" Margin="0,2,0,0" BorderThickness="1" BorderBrush="Gray" HierarchySource="{Binding Root}" Indentation="12" AllowDrop="False" ScrollViewer.IsDeferredScrollingEnabled="True"
+                                      SelectionChanged="InspectionList_SelectionChanged">
+            </propToolsWpf:TreeListBox>
+            
+            <!-- Splitter -->
+            <GridSplitter x:Name="gridSplitter_editor" Width="5" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" ShowsPreview="True" BorderThickness="1" BorderBrush="Gray"></GridSplitter>
+
+            <!-- Inspection Editor -->
+            <Grid x:Name="grid_editor" Grid.Column="2" Grid.Row="1" Visibility="Visible">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="52"></ColumnDefinition>
+                    <ColumnDefinition Width="10*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="10*"></RowDefinition>
+                </Grid.RowDefinitions>
+
+                <ToolBarTray x:Name="toolbar_tray" Grid.Column="0" Grid.Row="0" IsLocked="True" Orientation="Vertical">
+                    <ToolBar>
+                        <Button x:Name="button_grab" Click="button_grab_Click" IsEnabled="False"  Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical" >
+                                <Image Source="/Resource/camera.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="Grab" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="button_loadImage" Click="button_loadImage_Click" IsEnabled="False" Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/folder.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="Load" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="button_light" Click="button_light_Click" IsEnabled="False"  Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical" >
+                                <Image Source="/Resource/light.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="Light" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Separator></Separator>
+                    </ToolBar>
+                    <!--
+                    <ToolBar>
+                        <Button x:Name="button_showConfig" IsEnabled="False" Click="Button_showConfig_Click" Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/dialog.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="Model" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
+                        <Separator></Separator>
+                    </ToolBar>
+                    -->
+                    <ToolBar>
+                        <Button x:Name="button_copy" Click="button_copy_Click"  Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/copy.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="Copy" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="button_paste" Click="button_paste_Click" IsEnabled="False"  Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/paste.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="paste" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
+                    </ToolBar>
+                </ToolBarTray>
+
+                <propToolsWpf:PropertyGrid x:Name="ParamEditor" Grid.Column="1" Grid.Row="0" Margin="0" BorderThickness="0" BorderBrush="Gray" 
+                                        CategoryControlTemplate="{StaticResource CategoryControlTemplate1}"
+                                        CategoryHeaderTemplate="{StaticResource HeaderTemplate1}"
+                                        TabHeaderTemplate="{StaticResource HeaderTemplate2}"
+                                        DescriptionIcon="/Resource/lightbulb.png"
+                                        SelectedObject="{Binding SelectedItem.Param, ElementName=treeListBox_sequence}">
+                </propToolsWpf:PropertyGrid>
+            </Grid>
+
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,0 +1,287 @@
+************************************************************
+Date:
+Author:
+Version:
+Zip Ver:
+Backup Code:
+Description:
+************************************************************
+
+Date: 2024.12.17
+Author: HJD
+Version: 
+Zip Ver:
+Backup Code:
+Description:
+	1. Action_WaferScanInspection.cs 파일내에 ScreenCenter_Xmm/ScreenCenter_Ymm 두 개의 변수를 pMyContext 변수로 선언하고, Calibration 데이터 읽어 올때 해당 값을 계산하여 넣을 수 있도록 추가함.
+	2. Sequence_Wafer.cs 내에 ScreenCenter_Xmm/ScreenCenter_Ymm 변수 추가하여 Action_WaferScanInspection.cs 값을 가져오게 추가함.
+	3. WaferMapView.xaml.cs 내에 GetXYCenterTomm() 함수 추가. (Left Zone 만 적용.)
+	마우스 움직임에 따른 실시간 mm 좌표 값 표시.
+
+Date: 2024.12.10
+Author: HJD
+Version: 24.12.10.01
+Zip Ver:
+Backup Code:
+Description:
+	1. MapfileSave() 함수내에 mapfile에 존재하지만, ModelFinder를 통해 찾지 못한 Die 위치 정보를 찾는 알고리즘 수정.
+	기존 : ModelFinder 에서 찾은 Die 위치에 대해 mapfile matrix 내의 행과열에 대한 대표 값을 저장하고, 그것을 사용하도록 함.
+	변경 : 우선적으로, mapfile에는 존재하지만 ModelFinder에서 찾지 못한 Die에 대한 현재 행렬 인덱스를 기준으로
+		X 좌표는 상/하 행렬 인덱스를 증가/감소하여 ModelFinder에서 찾은 행렬의 X 좌표 값을 사용. (Y 좌표는 좌/우)
+		이방법으로 찾지 못한 경우, 기존 방법의 대표 행렬 값을 이용하도록 함.
+
+	2. CreateVM() 함수 호출 부분은 주석 처리.
+
+
+Date: 2024.12.09
+Author: HJD
+Version: 
+Zip Ver:
+Backup Code:
+Description:
+	1. Action_WaferScanInspection.cs 내의 MapfileSave() 함수에서 VM 찾아 가는 방식을 수정 진행 중에 있음.
+	기존 코드는 매트릭스의 행과열에 대한 대표 좌표 값을 저장하고 찾아 가는 방식이였는데, 맵파일에는 존재하지만 모델파인더에서 찾지 못한 경우,
+	대표행렬을 통해 값을 찾아 갔지만, 이렇게 할대 현재 인덱스에서 멀리 있는 값을 대표행렬 값으로 치환하면 Expanding 된 웨이퍼가 사방으로 모두
+	동일하게 늘어나는 것이 아니라서 중심값이 틀어지는 경우가 발생함.
+	따라서, 찾지 못한 맵파일에 존재하는 die의 중심 값을 경우, X좌표는 상/하/좌/우로 찾아 순서로 찾아 가고, Y좌표는 좌/우/상/하로 찾아가게 수정 중에 있음.
+	금일 진행한 내용은 일부 테스트 코드로 맵파일에 존재하지만 찾지 못한 Die를 아래쪽으로 1 증가해 존재 여부를 확인 해서 존재한다면 그값을 사용하도록 한 테스트 코드 임.
+
+	                       #region Find VirtualMap Start
+                            // 12.09 Test 진행 중.
+                            System.Drawing.Point _poTrans = new System.Drawing.Point(); // 현재 인덱스에서 상/하 인덱스 변환 값을 가져오기 위한 변수.
+                            Found_Die_Info tempDie = new Found_Die_Info();              // Model Finder 에서 이미지 찾은 상/하 인덱스가 가진 데이터를 가져오기 위한 변수
+                            _poTrans.X = poTrans.X;
+                            _poTrans.Y = poTrans.Y + 1;
+                            if(OriginPoint[_poTrans].Status == 1)
+                            {
+                                pMyContext.Found_Die.TryGetValue(_poTrans, out tempDie);
+                                //VMDie_CenterXW = OriginPoint[_poTrans].X;
+                                VMDie_CenterXW = tempDie.WX_Pos;
+                                VMDie_CenterX = tempDie.X_Pos;
+                                //VM_COLS.TryGetValue(_poTrans.X, out VMDie_CenterX);
+                                //VM_COLSW.TryGetValue(_poTrans.X, out VMDie_CenterXW);
+                            }
+
+
+
+Date: 2024.12.06
+Author: HJD
+Version: 24.12.06.01
+Zip Ver:
+Backup Code:
+Description:
+	1. Action_WaferScanInspection.cs 의 CopyTo 함수내에 WaferThreshold 와 WaferTHEnable 파라메터를 복사하여 붙여넣을 수 있도록 수정함.
+		WaferParam.WaferThreshold = WaferThreshold; // 12.06 Insert
+		WaferParam.WaferTHEnable = WaferTHEnable;   // 12.06
+
+
+Date: 2024.11.25
+Author: HJD
+Version: 24.11.25.02
+Zip Name:
+Description:
+	1. Parameter (pMyParam.WaferTHEnable) 추가.
+	WaferThreshold 값이 0이 아니고, WaferTHEnable 이 체크되어 있다면 UI 에 WaferThreshold 가 적용된 이미지를 보여 주게 수정함.
+	Main 이미지창과 Left/Right 이미지창에도 반영되게 하였으며, 개별 Die 검사는 원본이미지의 GrayImage 를 가지고 Die 검사를 진행.
+	// 11.22 Insert
+    if(pMyParam.TeachingImage == true)
+		Context.ResultImage = GrabToThresholdImage;    // 11.22 메인 화면에 표시되는 데이터를 WaferThreshold 값이 적용된 이미지 파일.
+    else
+    {
+		// 11.25 Insert
+		if ((pMyParam.WaferTHEnable == true) && (pMyParam.WaferThreshold != 0))
+		{
+			Context.ResultImage = GrabToThresholdImage;
+			pMyContext.CrobImage = GrabToThresholdImage.Clone();       // Crob 하기 위한 이미지 복사
+		}
+		else
+		{
+			Context.ResultImage = GrayImage;
+			pMyContext.CrobImage = GrayImage.Clone();       // Crob 하기 위한 이미지 복사
+		}
+    }
+	
+
+Date: 2024.11.25
+Author: HJD
+Version: 24.11.25.01
+Zip Name:
+Description:
+	1. Action_WaferScanInspection.cs 파일에서 DieInspection 함수 내용 중 Contour 이후 Area 검사 범위를 수정함.
+	수정한 이유는 11.22 으로 레시피를 등록 하고 검사 시 내부 깨짐 불량을 찾지 못해 수정하게 됨. (기존에는 0.7 상수 값이였으나, area_threshold_min으로 변경.)
+	Line Number: 2510
+	//if ((pMyParam.MapCheck == false) && (ContourCount == 1) && (ContourArea >= (roi.Width * roi.Height * 0.7)) && (Convex == false) && (ApexCount == 4)) // Delete new_contours.Count  11.25
+	if ((pMyParam.MapCheck == false) && (ContourCount == 1) && (ContourArea >= area_threshold_min) && (Convex == false) && (ApexCount == 4)) // 11.25 Insert
+
+Date: 2024.11.22
+Author: HJD
+Version: 24.11.22.01
+Zip Name:
+Description:
+	1. 이미지 그랩 후 그레이 이미지로 변환 하고 이것을 Threshold parameter 를 적용한 Binary이미지 변수 선언.
+	그랩 이미지에서 모델 파인더의 이미지를 등록하는데 이것을 적용하면 다이싱 라인이 보이지 않는 경우, 제대로 찾지 못하는 문제가 발생 (BUFZ 모델)
+	private Mat GrabToThresholdImage = null;   // Convert Grab Image to ThresholdImage 11.22  
+
+	2. Action Sequence Process 에서 Grab 진행 시 코드 수정함. 
+	Teaching 모드에서는 pMyParam.Binary_Threshold(->pMyParam.WaferThreshold) 값이 적용된 바이너리 이미지를 화면에 보여지게 함. 경계값이 적용된 이미지에서 모델 파인더의 모델을 등록하도록 변경.
+	모델 파인더를 통한 이미지는 앞으로 GrabToThresholdImage 를 이용하여 등록된 모델을 찾게됨.
+
+	(pMyParam.WaferThreshold 선언하여 사용하는 것으로 변경: pMyParam.Binary_Threshold 는 개별 Die에 대한 Threshold 값으로 사용되기 때문에 Wafer 상태에서의 Threshold 변수 필요.)
+	
+	Teaching 모드가 선택된 상태에서만 경계값이 적용된 이미지가 보이고, 선택되지 않은 상태에서는 UI에 최초 카메라에서 그랩된 이미지의 그레이 영상만 보임.
+	pMyParam.Binary_Threshold 가 0이면 원본이미지 그대로 사용.
+	(검사 진행 시에는 경계값이 적용된 이미지를 이용해서 검사함. 보여지는것만 원본 이미지를 보게됨.)
+
+	#region GrabToThresholdBinaryImage Start 11.22
+    if (pMyParam.Binary_Threshold != 0) -> if (pMyParam.WaferThreshold != 0)
+		Cv2.Threshold(GrayImage, GrabToThresholdImage, pMyParam.Binary_Threshold, 255, ThresholdTypes.Binary);  // 11.22
+		=> Cv2.Threshold(GrayImage, GrabToThresholdImage, pMyParam.WaferThreshold, 255, ThresholdTypes.Binary);  // 11.22
+    else
+		GrabToThresholdImage = GrayImage; => GrabToThresholdImage = GrayImage.Clone(); 
+
+    // 11.22 Insert
+    if(pMyParam.TeachingImage == true)
+		Context.ResultImage = GrabToThresholdImage;    // 11.22
+    #endregion
+
+	3. 저장 코드도 조건 문 추가함. (Teaching 모드에서는 저장 모드가 켜져 있을 때, 경계값 처리된 이미지를 저장하고, 아닌 경우에는 원본이미지로 저장)
+	//Cv2.ImWrite(strFileName, Context.ResultImage);    // Origin 11.22 주석 처리.
+                        
+    // 11.22 조건문 추가
+    if (pMyParam.TeachingImage)
+		Cv2.ImWrite(strFileName, Context.ResultImage);
+    else
+		Cv2.ImWrite(strFileName, GrayImage);
+
+
+Date: 2024.11.06
+Author: HJD
+Version:
+Zip Name:
+Description:
+	1. PlatForm 넘버 생성 변경
+		[assembly: AssemblyVersion("24.11.6.1")]
+		"년.월.일.빌드번호"
+	2. Wafer Angle Error MessageBox 주석 처리함. (제어에서 Re-Try 할때 마다 MessageBox 가 생성 되기 때문에 주석 처리함.)
+
+Date: 2024.11.04
+Author: HJD
+Version:
+Zip Name:
+Description:
+	1. WaferScanInspection.cs 에 Dist SC To CC 관련 Parameter 변수 추가.
+		Screen Center 와 Wafer Circle Center 간의 X, Y 각각에 대한 거리가 설정된 Parameter 값보다 작다면 Wafer Inspection Fail 처리 (Vision Fail 처리)
+	2. 1번을 추가하기 위해 기존 레시피 내용에는 해당 변수 값이 없으므로, 레시피 불러올때와 검사 시작할때 호출되는 함수(OnLoad, OnBeing) 내에 값이 없다면 해당 값을 6.0 으로 설정.
+	3. Wafer Inspection 검사 시 Result 값으로 사용되는 부분은 대부분 pMyContext.ModelFinderResult = EVisionResultType.NG;  를 사용함. 추가로 Error 발생에 따른 구분을 위해 Angle 과 Circle 관련 값이 있었지만,
+	Angle 만 사용되고 나머지는 사용되지 않고 있었음.
+	따라서 Dist SC To CC 관련 에러 발생 시  pMyContext.ModelFinderResult = EVisionResultType.NG; 사용하지 않으면 제어로 넘기는 부분에 Vision FAIL 을 넘기지 못함.
+	(만약 Vision FAIL 에 대한 전체적인 구분된 내용이 필요하다면, Sequence_Wafer.cs 파일내에 Reponse.Result 값을 검사하고, 넣는 부분에 대한 수정이 필요함.)
+	4. Vision Error 발생하는 부분에 대한 Custom messageBox 가 표시되게 추가 및 내용 수정 함.
+
+
+
+Date: 2024.11.01
+Author: HJD
+Version:
+Zip Name:
+Description:
+	1. WaferMapView.xaml/WaferMapRightView.xaml 에서 마우스 움직임에 따른 좌표 데이터 및 픽셀 데이터 표현 위치를 Center에서 TopLeft 로 변경.
+
+
+
+Date: 2024.10.31
+Author: HJD
+Version:
+Zip Name:
+Description:
+	1. RRA 에서 Wafer 쏠림으로 제작된 Wafer 의 경우, 왼쪽 쏠림의 X 이동 방향이 부호가 반대로 나타나 해당 값을 수정 함.
+		Action_WaferScanInspection.cs 의 case EStep.CircleFind: 부분에서 
+		if (pMyContext.dFoundCenterXWorld < 0)
+			//pMyContext.CenterOffsetXmm= pMyContext.dFoundCenterXWorld;        // Origin
+			pMyContext.CenterOffsetXmm= -1 * pMyContext.dFoundCenterXWorld;     // 10.31
+        else
+			pMyContext.CenterOffsetXmm = -1 * pMyContext.dFoundCenterXWorld;    // Origin
+			//pMyContext.CenterOffsetXmm = pMyContext.dFoundCenterXWorld;    // 10.31
+
+	2. 오른쪽으로 쏠림 제작된 Wafer 의 경우, Circle을 정상적으로 찾지 못하는 문제가 발생함. 더 크게 잡는 문제 발생. 
+		더 크게 잡으면 중심값이 달라져 Die의 중심 값이 많이 빗나가서 찾게 됨.
+		화면 중심에서 0.5mm 이상 틀어 지면 Fail 처리 후 Error 처리 알림이 필요해 보임. (아직 해결 안됨.)
+
+
+Date: 2024.10.23
+Author: HJD
+Site: Debugging
+Zip Ver:
+Backup Code:
+Description:
+	1. Bottom Inspection Trigger 진행에 따른 Empty 처리.
+
+
+Date: 10.10
+Author: HJD
+Site: Debugging
+Zip Ver:
+Backup Code:
+Description:
+	1. class BottomDieInfo 멤버변수에 newJugment 추가함. 
+	해당 변수는 Jugment가 Fail 일때, Die 에 대한 Fail 인지 또는 Picker가 Die를 Detach 하지 못한 Fail 인지 구분하기 위해 추가함.
+	2. Sequence_Bottom.cs 내에 ResponsePacket 전달 부분에 Jugment 및 newJugment 의 조건에 따른 전달 내용으로 변경.
+	3. WaferMapView.xaml.cs 파일내에 Bottom 결과 ListView 의 ST 관련 내용을 Jugment 및 newJugment 의 조건으로 분기하여 Empty 문자열 코드 추가.
+	4. WaferMapView.xaml 의 ListView 에서 ST 관련 색상 부분을 Empty 문자열 색상 추가.
+
+
+Date: 10.08
+Author: HJD
+Site: Debugging
+Zip Ver:
+Backup Code: 1008_backup.zip
+Description:
+	1. Bottom Die 검사에서 Picker 에 Die가 없는 경우 이것을 Empty 처리하여 Fail 처리 되지 않도록 요청 (김종관 책임.)
+	2. Action_BottomInspection.cs 소스에서 Debuggin 코드만 추가하고 1번 처리는 하지 않은 상태. (Line Num: 940)
+	Debug.WriteLine($"Empty Picker:{ImageGrabIndex}");  // 10.08 Empty Die 테스트용 추가 코드.
+	3. 통신 테스트 필요.
+
+
+
+
+Date: 08.12
+Author: HJD
+Site: Debuging
+Zip Ver:
+Backup Code: Action_WaferScanInspection_Backup_0812.cs (Pre-Version)
+Description:
+	1. MapfileSave() 함수내에 VM_COLS와 VM_COLSW 의 Dictionary 변수에 저장되어 있지 않은 poTrans.X/Y 가 없다면, 
+	poTrans.X - 1 또는 poTrans.X + 1 을 다시 검색해서 해당 값을 이용하여 Die 위치 값을 계산하도록 수정함.
+
+	#region Find VirtualMap Start/End 
+
+	VMDie_CenterXW, VMDie_CenterYW 추가 선언.
+
+	//VM_Die_Info.WX_Pos = value.X = VMdataList[i].XP;   //08.12 주석처리.
+	//VM_Die_Info.WY_Pos = value.Y = VMdataList[i].YP;  // 08.12 주석 처리.
+	VM_Die_Info.WX_Pos = value.X = VMDie_CenterXW;   //08.12 Insert World Coordination
+	VM_Die_Info.WY_Pos = value.Y = VMDie_CenterYW;  // 08.12 Insert World Coordination 
+
+
+Date: 08.05
+Author: HJD
+Site: CTST
+Zip Ver:
+Description:
+	1. Action_BottomCalibration.cs 수정 진행. (Line Number: 900)
+	//calAngle = (-1) * calAngle;   // 01.17 ====> 08.05 해당 부분 주석처리함. 제어부와 회전방향이 서로 맞지 않아 긴급 주석 처리하여 적용함.
+
+
+Date: 07.31
+Author: HJD
+Description:
+    1. WPF_Example_0621_Early.zip 파일이 현재 CTST 에 적용.
+    2. Build 날짜는 07.05 (CTST 현장 기준)
+    3. MapFile 없을 때 이미지 기준으로 Die를 찾아 모두 10번 처리하도록 수정되어 적용됨.
+
+    4. WPF_Example_0730.zip 파일은 내부 수정용으로 작업한 파일로, 
+    Camera 및 Light Controller Error 발생 시 Modal 윈도우를 띄우고 사용자 확인 버튼이 눌러 질때 까지 종료되지 않게 함.
+    5. Action_BottomInspection.cs 파일내에 오타 수정.
+        [DisplayName("Paticle Size(Pixel)"] -> [DisplayName("Particle Size(Pixel)"]
+    6. WPF_Example_0731.zip 박종관 책임 전달. (5번까지 수정 사항 적용)
+

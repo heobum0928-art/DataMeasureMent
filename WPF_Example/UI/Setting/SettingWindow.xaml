@@ -1,0 +1,84 @@
+﻿<Window x:Class="ReringProject.UI.SettingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ReringProject.UI"
+        xmlns:propTools="clr-namespace:PropertyTools.Wpf;assembly=PropertyTools.Wpf"
+        mc:Ignorable="d"
+        Title="Setting" Height="700" Width="450"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="ToolWindow" ContentRendered="Window_ContentRendered">
+    <Window.Resources>
+    <!-- property grid customize-->
+    <!-- Category Header -->
+    <DataTemplate x:Key="HeaderTemplate1">
+        <StackPanel Orientation="Horizontal">
+            <propTools:Bitmap Source="/Resource/home.png"/>
+            <TextBlock Text="{Binding}" FontSize="14" FontWeight="Bold" Margin="4,0,0,0"/>
+        </StackPanel>
+    </DataTemplate>
+    <!-- Unused : TabPageHeader -->
+    <DataTemplate x:Key="PageHeaderTemplate1">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding}" FontSize="18" FontWeight="Bold" Margin="0 0 8 0"/>
+            <propTools:Bitmap Source="/Resource/home.png" VerticalAlignment="Center"/>
+        </StackPanel>
+    </DataTemplate>
+    <!-- Error Style-->
+    <Style x:Key="TabHeaderErrorsStyle">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasWarnings}" Value="True">
+                <Setter Property="TextBlock.Foreground" Value="Orange"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding HasErrors}" Value="True">
+                <Setter Property="TextBlock.Foreground" Value="Red"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <!-- Tab Header -->
+    <DataTemplate x:Key="HeaderTemplate2" DataType="propTools:Tab">
+        <StackPanel Orientation="Horizontal">
+            <propTools:Bitmap Source="/Resource/chart.png" Margin="0 0 4 0"/>
+            <TextBlock Text="{Binding Header}" Margin="4 0 0 0" Style="{StaticResource TabHeaderErrorsStyle}"/>
+        </StackPanel>
+    </DataTemplate>
+    <!-- CategoryControl -->
+    <ControlTemplate x:Key="CategoryControlTemplate1"  TargetType="{x:Type HeaderedContentControl}">
+        <Grid Margin="0 8 0 0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+            <Separator Grid.Column="1" Margin="4 3 0 0"/>
+            <ContentPresenter Grid.Row="1" Grid.ColumnSpan="2"/>
+        </Grid>
+    </ControlTemplate>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions></Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="9*"></RowDefinition>
+            <RowDefinition Height="1*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <propTools:PropertyGrid Grid.Column="0" Grid.Row="0"
+            CategoryControlTemplate="{StaticResource CategoryControlTemplate1}"
+            CategoryHeaderTemplate="{StaticResource HeaderTemplate1}"
+            TabHeaderTemplate="{StaticResource HeaderTemplate2}"
+            DescriptionIcon="/Resource/lightbulb.png"
+            SelectedObject="{Binding Setting}">
+        </propTools:PropertyGrid>
+
+        <DockPanel Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" Margin="4,4,4,4">
+            <Button x:Name="btn_cancel" Width="100" Margin="0,0,2,0" FontSize="14" Click="Btn_cancel_Click" Content="{Binding [CANCEL], Source={StaticResource DR}}"></Button>
+            <Button x:Name="btn_ok" Width="100" Click="Btn_ok_Click" FontSize="14" Content="{Binding [OK], Source={StaticResource DR}}"></Button>
+        </DockPanel>
+        
+    </Grid>
+</Window>

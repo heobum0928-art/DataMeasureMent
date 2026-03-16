@@ -1,0 +1,173 @@
+﻿<Window x:Class="ReringProject.UI.TeachingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewers="clr-namespace:ReringProject.UI"
+        mc:Ignorable="d"
+        Title="HALCON Teaching"
+        Height="860"
+        Width="1400"
+        WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style x:Key="TeachingActionButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="BorderBrush" Value="#1D4ED8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#1D4ED8"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#1E40AF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#1E3A8A"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#172554"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="#CBD5E1"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#CBD5E1"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Background="#E2E8F0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="430"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Margin="12" Padding="12" Background="#F8FAFC" CornerRadius="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="ROI Teaching"/>
+                    <TextBlock Margin="0,4,0,0" Foreground="#475569" Text="HALCON ROI / Parameter / Run"/>
+                </StackPanel>
+                <Grid Grid.Row="1" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="ROI Count"/>
+                        <TextBox x:Name="RoiCountTextBox" Margin="0,4,0,0" Text="1"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Teaching Value"/>
+                        <TextBox x:Name="TeachingValueTextBox" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+                <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Apply ROI Count" Click="ApplyCountButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Draw / Re-Teach ROI" Click="DrawRoiButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Commit ROI" Click="CommitRoiButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Run Edge Inspect" Click="RunEdgeInspectButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Run Line + Intersection" Click="RunLineIntersectButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Load Image" Click="LoadImageButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Grab Image" Click="GrabImageButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Load Teaching" Click="LoadTeachingButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Save Teaching" Click="SaveTeachingButton_Click"/>
+                    <Button Style="{StaticResource TeachingActionButtonStyle}" Content="Apply To Main" Click="ApplyToMainButton_Click"/>
+                </WrapPanel>
+                <GroupBox Grid.Row="3" Header="Edge Parameters" Margin="0,0,0,8">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Sigma" Margin="0,0,8,4"/>
+                        <TextBox x:Name="SigmaTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="1.0" LostFocus="SigmaTextBox_LostFocus"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Edge Threshold" Margin="0,0,8,4"/>
+                        <TextBox x:Name="EdgeThresholdTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4" Text="10" LostFocus="EdgeThresholdTextBox_LostFocus"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Sample Count" Margin="0,0,8,4"/>
+                        <TextBox x:Name="EdgeSampleCountTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,4" Text="20" LostFocus="EdgeSampleCountTextBox_LostFocus"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Outlier Trim Count" Margin="0,0,8,4"/>
+                        <TextBox x:Name="EdgeTrimCountTextBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,4" Text="10" LostFocus="EdgeTrimCountTextBox_LostFocus"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Edge Direction" Margin="0,0,8,4"/>
+                        <ComboBox x:Name="EdgeDirectionComboBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,4" SelectionChanged="EdgeDirectionComboBox_SelectionChanged"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Edge Polarity" Margin="0,0,8,4"/>
+                        <ComboBox x:Name="EdgePolarityComboBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,4" SelectionChanged="EdgePolarityComboBox_SelectionChanged"/>
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Edge Selection" Margin="0,0,8,4"/>
+                        <ComboBox x:Name="EdgeSelectionComboBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,4" SelectionChanged="EdgeSelectionComboBox_SelectionChanged"/>
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Line Orientation" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="LineOrientationComboBox" Grid.Row="7" Grid.Column="1" SelectionChanged="LineOrientationComboBox_SelectionChanged"/>
+                    </Grid>
+                </GroupBox>
+                <ListBox x:Name="RoiListBox" Grid.Row="4" Margin="0,0,0,8" SelectionChanged="RoiListBox_SelectionChanged"/>
+                <GroupBox Grid.Row="5" Header="ROI Coordinates / Resolution">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="RoiCoordinateTextBlock" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,6" TextWrapping="Wrap" Foreground="#334155" Text="No ROI coordinates."/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Pixel Resolution X" Margin="0,0,8,4"/>
+                        <TextBox x:Name="PixelResolutionXTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4" Text="1.0" LostFocus="PixelResolutionXTextBox_LostFocus"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Pixel Resolution Y" Margin="0,0,8,0"/>
+                        <TextBox x:Name="PixelResolutionYTextBox" Grid.Row="2" Grid.Column="1" Text="1.0" LostFocus="PixelResolutionYTextBox_LostFocus"/>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </Border>
+        <Grid Grid.Column="1" Margin="0,12,12,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <viewers:HalconViewerControl x:Name="TeachingViewer"/>
+            <StatusBar Grid.Row="1" Margin="0,8,0,0">
+                <StatusBarItem>
+                    <TextBlock x:Name="TeachingStatusTextBlock" Text="Ready"/>
+                </StatusBarItem>
+            </StatusBar>
+        </Grid>
+    </Grid>
+</Window>
+
+

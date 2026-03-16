@@ -1,0 +1,328 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Window_Title" xml:space="preserve">
+    <value>DDA Vision Inspector</value>
+    <comment>메인 윈도우의 타이틀</comment>
+  </data>
+  <data name="fail to load recipe" xml:space="preserve">
+    <value>레시피 로드에 실패하였습니다.</value>
+  </data>
+  <data name="fail to save recipe" xml:space="preserve">
+    <value>레시피 저장에 실패하였습니다.</value>
+  </data>
+  <data name="Login Fail" xml:space="preserve">
+    <value>로그인 실패!</value>
+  </data>
+  <data name="LogOut" xml:space="preserve">
+    <value>로그아웃</value>
+  </data>
+  <data name="Not Login" xml:space="preserve">
+    <value>로그아웃됨</value>
+  </data>
+  <data name="password does not match." xml:space="preserve">
+    <value>비밀번호가 일치하지 않습니다.</value>
+  </data>
+  <data name="Save Recipe Success" xml:space="preserve">
+    <value>레시피 저장됨</value>
+  </data>
+  <data name="Sequence is Running" xml:space="preserve">
+    <value>시퀀스가 동작 중에 있습니다.</value>
+  </data>
+  <data name="System Is Running" xml:space="preserve">
+    <value>시스템이 Running 중입니다.</value>
+  </data>
+  <data name="window cannot be displayed.\nWait until the sequence is completed." xml:space="preserve">
+    <value>윈도우를 표시할 수 없습니다. 모든 시퀀스 동작이 종료될 때까지 대기하여 주십시오.</value>
+  </data>
+  <data name="Are you sure you want to delete the recipe directory?\nCancellation is not possible." xml:space="preserve">
+    <value>정말로 레시피를 삭제하시겠습니까?\n삭제된 레시피는 복구할 수 없습니다.</value>
+  </data>
+  <data name="Are you sure you want to delete {0} account?" xml:space="preserve">
+    <value>정말로 {0} 계정을 삭제하시겠습니까?</value>
+  </data>
+  <data name="Are you sure you want to exit program?" xml:space="preserve">
+    <value>정말로 프로그램을 종료하시겠습니까?</value>
+  </data>
+  <data name="Are you sure you want to overwrite the existing directory?" xml:space="preserve">
+    <value>이미 존재하는 경로에 덮어쓰시겠습니까?</value>
+  </data>
+  <data name="CAMERA" xml:space="preserve">
+    <value>카메라</value>
+  </data>
+  <data name="CANCEL" xml:space="preserve">
+    <value>취소</value>
+  </data>
+  <data name="Confirm Delete Account" xml:space="preserve">
+    <value>계정 삭제 확인</value>
+  </data>
+  <data name="CONNECT" xml:space="preserve">
+    <value>연결</value>
+  </data>
+  <data name="CONTROL" xml:space="preserve">
+    <value>제어</value>
+  </data>
+  <data name="COPY" xml:space="preserve">
+    <value>복사</value>
+  </data>
+  <data name="copy fail recipe {0} to {1}." xml:space="preserve">
+    <value>레시피 {0} 에서 {1} 로 복사하는데 실패하였습니다.</value>
+  </data>
+  <data name="copy fail recipe {0} to {1}. ({2})" xml:space="preserve">
+    <value>레시피 {0} 에서 {1} 로 복사하는데 실패하였습니다. ({2})</value>
+  </data>
+  <data name="Created a New Account" xml:space="preserve">
+    <value>새 계정이 추가됨</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>삭제</value>
+  </data>
+  <data name="delete fail recipe {0}. ({1})" xml:space="preserve">
+    <value>레시피 삭제 실패 : {0}. ({1})</value>
+  </data>
+  <data name="Delete recipe" xml:space="preserve">
+    <value>레시피 삭제</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>편집</value>
+  </data>
+  <data name="Enter the name of new recipe to copy." xml:space="preserve">
+    <value>복사할 레시피 이름을 입력하십시오.</value>
+  </data>
+  <data name="Fail to copy recipe" xml:space="preserve">
+    <value>레시피 복사 실패</value>
+  </data>
+  <data name="Fail to delete recipe" xml:space="preserve">
+    <value>레시피 삭제 실패</value>
+  </data>
+  <data name="fail to load thumbnail" xml:space="preserve">
+    <value>썸네일 불러오기 실패</value>
+  </data>
+  <data name="fail to save summary" xml:space="preserve">
+    <value>요약정보 저장 실패</value>
+  </data>
+  <data name="Fail to Summary file read. Path : {0} ({1})" xml:space="preserve">
+    <value>요약 정보 파일을 읽을 수 없습니다 : {0}, ({1})</value>
+  </data>
+  <data name="Fail to Summary file write. Path : {0} ({1})" xml:space="preserve">
+    <value>요약 정보 파일을 저장할 수 없습니다 : {0}, ({1})</value>
+  </data>
+  <data name="Has Already Exists." xml:space="preserve">
+    <value> 이미 존재합니다.</value>
+  </data>
+  <data name="ID" xml:space="preserve">
+    <value>ID</value>
+  </data>
+  <data name="Last Date" xml:space="preserve">
+    <value>마지막 수정일자</value>
+  </data>
+  <data name="LIGHT" xml:space="preserve">
+    <value>조명</value>
+  </data>
+  <data name="load Fail : {0}, ({1})" xml:space="preserve">
+    <value>불러오기 실패 : {0}, ({1})</value>
+  </data>
+  <data name="LOG" xml:space="preserve">
+    <value>로그</value>
+  </data>
+  <data name="LogIn" xml:space="preserve">
+    <value>로그인</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>이름</value>
+  </data>
+  <data name="New" xml:space="preserve">
+    <value>새로 추가</value>
+  </data>
+  <data name="New Account" xml:space="preserve">
+    <value>새로운 계정</value>
+  </data>
+  <data name="New Account : {0}" xml:space="preserve">
+    <value>새 계정 : {0}</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>확인</value>
+  </data>
+  <data name="OPEN DIR" xml:space="preserve">
+    <value>경로 열기</value>
+  </data>
+  <data name="OPERATION" xml:space="preserve">
+    <value>동작</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>비밀번호</value>
+  </data>
+  <data name="Permission denied" xml:space="preserve">
+    <value>접근 거부됨</value>
+  </data>
+  <data name="RECIPE" xml:space="preserve">
+    <value>레시피</value>
+  </data>
+  <data name="Recipe name to be copied must be different." xml:space="preserve">
+    <value>복사할 레시피 이름은 현재 레시피 이름과 달라야 합니다.</value>
+  </data>
+  <data name="Requires admin privileges." xml:space="preserve">
+    <value>admin 권한이 필요합니다.</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>저장</value>
+  </data>
+  <data name="save Fail : {0}" xml:space="preserve">
+    <value>저장 실패 : {0}</value>
+  </data>
+  <data name="Save Summary" xml:space="preserve">
+    <value>요약정보 저장</value>
+  </data>
+  <data name="Saved : {0}" xml:space="preserve">
+    <value>저장됨 : {0}</value>
+  </data>
+  <data name="saved Summary Text" xml:space="preserve">
+    <value>요약정보 저장됨</value>
+  </data>
+  <data name="Set Thumbnail" xml:space="preserve">
+    <value>썸네일 지정</value>
+  </data>
+  <data name="SETTING" xml:space="preserve">
+    <value>설정</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>유형</value>
+  </data>
+  <data name="Updated : {0}" xml:space="preserve">
+    <value>수정됨 : {0}</value>
+  </data>
+  <data name="Updated Selected Account" xml:space="preserve">
+    <value>선택된 계정 정보가 수정됨</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>사용자</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>닫기</value>
+  </data>
+  <data name="Fail to open Light Controller" xml:space="preserve">
+    <value>조명 컨트롤러와 연결할 수 없습니다.</value>
+  </data>
+  <data name="ON" xml:space="preserve">
+    <value>켜기</value>
+  </data>
+  <data name="Open" xml:space="preserve">
+    <value>열기</value>
+  </data>
+</root>

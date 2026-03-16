@@ -1,0 +1,229 @@
+﻿<UserControl x:Class="ReringProject.UI.MenuBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ReringProject.UI"
+             mc:Ignorable="d"
+             d:DesignWidth="1280" Loaded="MenuBar_Loaded">
+    <UserControl.Resources>
+        <Style TargetType="Button" x:Key="disalbedStyle">
+            <Setter Property="Background" Value="Transparent"></Setter>
+            <Setter Property="BorderThickness" Value="0"></Setter>
+            
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter x:Name="MyContentPresenter" 
+                                          Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Center" 
+                                          VerticalAlignment="Center" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"></Setter>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="True">
+                    <Setter Property="Opacity" Value="1"></Setter>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="LightSkyBlue"></Setter>
+                    <Setter Property="BorderThickness" Value="1"></Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Border BorderBrush="Gray" BorderThickness="1">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0 1" EndPoint="0 0">
+                <LinearGradientBrush.GradientStops>
+                    <GradientStop Offset="0.0" Color="White" />
+                    <GradientStop Offset="1.0" Color="#c7e6fd" />
+                </LinearGradientBrush.GradientStops>
+            </LinearGradientBrush>
+        </Border.Background>
+        <Grid x:Name="MenuContainer" ShowGridLines="False">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="80"></RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="1"/>
+                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="1"/>
+                <ColumnDefinition Width="240"/>
+                <ColumnDefinition Width="1"/>
+                <ColumnDefinition Width="100*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- CI -->
+            <Button x:Name="Button_CI" Grid.Column="0" Grid.Row="0" Margin="0,1,0,1" Background="Transparent" BorderThickness="0" Click="Button_CI_Click">
+                <!--<Image Source="/Resource/TIS_Logo.png" Stretch="Fill"></Image>-->
+                <Image Source="/Resource/CTST_LOgo.png" Stretch="Fill"></Image>
+            </Button>
+
+            <Label Grid.Column="1" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
+
+            <!-- Title -->
+            <local:OutlinedTextBlock x:Name="label_title" Grid.Column="2" Grid.Row="0" Margin="0,1,0,1" HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" FontFamily="Verdana" FontSize="20pt" FontWeight="ExtraBold" TextWrapping="Wrap" StrokeThickness="2" Stroke="Blue" Fill="AliceBlue">
+                Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit
+            </local:OutlinedTextBlock>
+
+            <Label Grid.Column="3" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
+
+            <!-- Status -->
+            <StackPanel Grid.Column="4" Grid.Row="0" Orientation="Vertical">
+                <Label x:Name="label_seqName" HorizontalContentAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontSize="12" Background="Transparent" BorderThickness="0">Sequences</Label>
+                <Button x:Name="label_status" HorizontalContentAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontSize="32" Background="Transparent" BorderThickness="0" Click="Label_status_Click">Loading</Button>
+            </StackPanel>
+
+            <Label Grid.Column="5" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
+
+            <!--- Controls -->
+            <Grid Grid.Column="6" Grid.Row="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*"></ColumnDefinition>
+                    <ColumnDefinition Width="1"></ColumnDefinition>
+                    <ColumnDefinition Width="4*"></ColumnDefinition>
+                    <ColumnDefinition Width="1"></ColumnDefinition>
+                    <ColumnDefinition Width="2*"></ColumnDefinition>
+
+                </Grid.ColumnDefinitions>
+                
+                <!-- Operation -->
+                <Grid Grid.Column="0" Grid.Row="0" Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"></ColumnDefinition>
+                        <ColumnDefinition Width="2*"></ColumnDefinition>
+                        <ColumnDefinition Width="0"></ColumnDefinition>
+                        <ColumnDefinition Width="2*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="3*"></RowDefinition>
+                        <RowDefinition Height="9*"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="4" 
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="12" Foreground="Black" Text="{Binding [OPERATION], Source={StaticResource DR}}">
+                        
+                    </TextBlock>
+                    
+                    <!-- Login -->
+                    <Button x:Name="Button_Login" Grid.Column="0" Grid.Row="1" HorizontalContentAlignment="Center" 
+                            VerticalContentAlignment="Center" Click="Button_Login_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Source="/Resource/login.png" Height="32" Width="32"></Image>
+                            <TextBlock x:Name="textBlock_login" Text="LOGIN" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!-- Recipe -->
+                    <Button x:Name="Button_Recipe" Grid.Column="1" Grid.Row="1" HorizontalContentAlignment="Center" 
+                VerticalContentAlignment="Center" Click="Button_Recipe_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Source="/Resource/folder.png" Height="32" Width="32"></Image>
+                            <TextBlock Text="{Binding [RECIPE], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <!-- Log -->
+                    <Button x:Name="Button_Log" Grid.Column="2" Grid.Row="1" HorizontalContentAlignment="Center"  Visibility="Hidden"
+                VerticalContentAlignment="Center" Click="Button_Log_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Source="/Resource/log.png" Height="32" Width="32"></Image>
+                            <TextBlock Text="{Binding [LOG], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Setting -->
+                    <Button x:Name="ButtonSetting" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Center" 
+                VerticalContentAlignment="Center" Click="ButtonSetting_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Width="32" Source="/Resource/setting.png"></Image>
+                            <TextBlock Text="{Binding [SETTING], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <Label Grid.Column="1" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
+
+                <!-- Control -->
+                <Grid Grid.Column="2" Grid.Row="0" Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="3*"></RowDefinition>
+                        <RowDefinition Height="9*"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" 
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="12" Foreground="Black" Text="{Binding [CONTROL], Source={StaticResource DR}}">
+                        
+                    </TextBlock>
+                    
+                    <!-- Single -->
+                    <Button x:Name="Button_Camera" Grid.Column="0" Grid.Row="1" HorizontalContentAlignment="Center" 
+                VerticalContentAlignment="Center" Click="Button_Camera_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Source="/Resource/camera.png" Height="32" Width="32"></Image>
+                            <TextBlock Text="{Binding [CAMERA], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <!-- 4ea -->
+                    <Button x:Name="Button_Light" Grid.Column="1" Grid.Row="1" HorizontalContentAlignment="Center" 
+                VerticalContentAlignment="Center" Click="Button_Light_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Source="/Resource/light.png" Height="32" Width="32"></Image>
+                            <TextBlock Text="{Binding [LIGHT], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <!-- All -->
+                    <Button x:Name="Button_Connect" Grid.Column="2" Grid.Row="1" HorizontalContentAlignment="Center" 
+                VerticalContentAlignment="Center" Click="Button_Connect_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <Image Source="/Resource/connect.png" Height="32" Width="32"></Image>
+                            <TextBlock Text="{Binding [CONNECT], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <Label Grid.Column="3" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
+
+
+                <!-- Data & Version -->
+                <Grid Grid.Column="4" Grid.Row="0" Margin="5,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="3*"></RowDefinition>
+                        <RowDefinition Height="1"></RowDefinition>
+                        <RowDefinition Height="2*"></RowDefinition>
+                        <RowDefinition Height="2*"></RowDefinition>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="label_DateTime" Grid.Column="0" Grid.Row="0" FontSize="14" TextAlignment="Right" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,4,0">2023-05-25</TextBlock>
+                    <Label Grid.Column="0" Grid.Row="1" BorderBrush="Gray" BorderThickness="1" Height="1" Margin="2,0,2,0"></Label>
+                    <TextBlock x:Name="label_Version" Grid.Column="0" Grid.Row="2" FontSize="13" TextAlignment="Right" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,4,0">Platform Ver 0.1</TextBlock>
+                    <TextBlock x:Name="label_DLLVersion" Grid.Column="0" Grid.Row="3" FontSize="13" TextAlignment="Right" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,4,0">DLL Ver 0.1</TextBlock>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+
+</UserControl>

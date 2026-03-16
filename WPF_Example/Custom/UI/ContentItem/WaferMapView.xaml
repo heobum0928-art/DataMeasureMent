@@ -1,0 +1,557 @@
+﻿<UserControl x:Class="ReringProject.UI.WaferMapView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ReringProject.UI"
+             xmlns:chartDir="clr-namespace:ChartDirector;assembly=netchartdir"
+             mc:Ignorable="d" 
+             
+             UseLayoutRounding="True"
+
+             d:DesignHeight="800" d:DesignWidth="1400">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="7*"></ColumnDefinition>
+            <ColumnDefinition Width="3"></ColumnDefinition>
+            <ColumnDefinition Width="4*"></ColumnDefinition>
+            <ColumnDefinition Width="5"></ColumnDefinition>
+            <ColumnDefinition Width="3*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        
+        <GroupBox Grid.Column="0" BorderBrush="Black">
+            
+            <GroupBox.Header>
+                <Label x:Name="PSName_Label" Content="{Binding PSName}" FontSize="20" 
+                       HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic"
+                       Foreground="BlueViolet"/>
+            </GroupBox.Header>
+
+            <!--<TabControl BorderBrush="Black"> Origin 아래의 ItemContainerStyle 는 App.xaml에 추가. -->
+            <TabControl BorderBrush="Black" ItemContainerStyle="{StaticResource FixTabStripTabItemStyle}">
+                
+                <!--<TabItem Header="WaferImage" BorderBrush="Black" Background="LawnGreen" TabIndex="0">-->
+                <TabItem Header="WaferImage" BorderBrush="Black" Background="#dfffff" TabIndex="0">
+                    <WindowsFormsHost x:Name="WaferImage" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Black" Margin="0"/>
+                </TabItem>
+
+                <!--<TabItem Header="WaferMap" BorderBrush="Black" Background="LawnGreen" TabIndex="1">-->
+                <TabItem Header="WaferMap" BorderBrush="Black" Background="#dfffff" TabIndex="1">
+                    <Border Background="White">
+                        <Border SizeChanged="chartBorder_SizeChanged">
+                            <ScrollViewer x:Name="WaferMapScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+                                          PreviewMouseLeftButtonDown="ScrollViewer_PreviewMouseLeftButtonDown"
+                                          PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
+                                          PreviewMouseMove="ScrollViewer_PreviewMouseMove"
+                                          PreviewMouseLeftButtonUp="ScrollView_PreviewMouseLeftButtonUp">
+                                
+                                <!-- wafer map -->
+                                <chartDir:WPFChartViewer x:Name="chart_waferMap" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ChartSizeMode="AutoSize">
+                                    <chartDir:WPFChartViewer.LayoutTransform>
+                                        <ScaleTransform x:Name="MapSacleTrans" ScaleX="1.0" ScaleY="1.0"></ScaleTransform>
+                                    </chartDir:WPFChartViewer.LayoutTransform>
+                                </chartDir:WPFChartViewer>
+                                
+                            </ScrollViewer>
+                        </Border>
+                    </Border>
+                </TabItem>
+            </TabControl>
+
+        </GroupBox>
+        
+        <GridSplitter Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Center" ShowsPreview="True" BorderThickness="1" BorderBrush="Gray"></GridSplitter>
+
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="3*"></RowDefinition>
+                <RowDefinition Height="8*"></RowDefinition>
+                <RowDefinition Height="3*"></RowDefinition>
+            </Grid.RowDefinitions>
+
+            <GroupBox Grid.Row="0">
+                <GroupBox.Header>
+                    <Label x:Name="Info_Label" Content="{Binding PSName}" FontSize="20" 
+                       HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" 
+                       Foreground="BlueViolet"/>
+                </GroupBox.Header>
+                
+                <!-- wafer info -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    
+                    <DockPanel Grid.Column="0" Grid.Row="0" Margin="3">
+                        <!--<TextBlock Text="{Binding [Wafer Degree], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>-->
+                        <TextBlock Text="{Binding [Wafer Degree], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+                        <!--<TextBox x:Name="textBox_waferDegree" FontSize="14" TextAlignment="Center" Text="0" ></TextBox>-->
+                        <TextBox x:Name="textBox_waferDegree" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+
+                    <DockPanel Grid.Column="0" Grid.Row="1" Margin="3">
+                        <TextBlock Text="{Binding [Die Total], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_dieTotal" FontSize="14" TextAlignment="Center" Text="0"></TextBox>-->
+                        <TextBox x:Name="textBox_dieTotal" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+
+                    <DockPanel Grid.Column="0" Grid.Row="2" Margin="3">
+                        <TextBlock Text="{Binding [Valued Dies], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_valuedDies" FontSize="14" TextAlignment="Center" Text="0"></TextBox>-->
+                        <TextBox x:Name="textBox_valuedDies" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+
+                    <DockPanel Grid.Column="0" Grid.Row="3" Margin="3">
+                        <TextBlock Text="{Binding [MAP COL], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_MaxCol" FontSize="14" TextAlignment="Center" Text="0"></TextBox>-->
+                        <TextBox x:Name="textBox_MaxCol" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+
+                    <DockPanel Grid.Column="1" Grid.Row="0" Margin="3">
+                        <TextBlock Text="{Binding [Wafer CenterX], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_centerX" FontSize="12" TextAlignment="Center" Text="0"></TextBox>-->
+                        <TextBox x:Name="textBox_centerX" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+
+                    <DockPanel Grid.Column="1" Grid.Row="1" Margin="3">
+                        <TextBlock Text="{Binding [Wafer CenterY], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_centerY" FontSize="12" TextAlignment="Center" Text="0"></TextBox>-->
+                        <TextBox x:Name="textBox_centerY" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+
+                    <!--03.20 Insert Start-->
+                    <DockPanel Grid.Column="1" Grid.Row="2" Margin="3">
+                        <TextBlock Text="{Binding [Wafer Name], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_Name" FontSize="12" TextAlignment="Center" Text="None"></TextBox>-->
+                        <TextBox x:Name="textBox_Name" FontSize="12" TextAlignment="Center" Text="None" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+                    <!--03.20 Insert End-->
+
+                    <DockPanel Grid.Column="1" Grid.Row="3" Margin="3">
+                        <TextBlock Text="{Binding [MAP ROW], Source={StaticResource DR}}" Width="110" VerticalAlignment="Center"></TextBlock>
+                        <!--<TextBox x:Name="textBox_MaxRow" FontSize="14" TextAlignment="Center" Text="0"></TextBox>-->
+                        <TextBox x:Name="textBox_MaxRow" FontSize="12" TextAlignment="Center" Text="0" FontWeight="Bold"
+                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+                    </DockPanel>
+                    
+                </Grid>
+            </GroupBox>
+            
+            <!-- Die List -->
+            <GroupBox Grid.Row="1">
+                <GroupBox.Header>
+                    <Label x:Name="Die_Info" Content="{Binding PSName}" FontSize="20" 
+                       HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" 
+                       Foreground="BlueViolet"/>
+                </GroupBox.Header>
+                
+                <ListView x:Name="listView_dieInfo" FontSize="14" MouseDoubleClick="ListView_dieInfo_MouseDoubleClick">
+                   <ListView.View>
+                        <GridView>
+                            <GridViewColumn DisplayMemberBinding="{Binding NUM, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="30">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="NUM" Click="GridViewColumnHeader_Click">NUM</GridViewColumnHeader>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+                            <GridViewColumn Width="30">
+                                
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="ST" Click="GridViewColumnHeader_Click">ST</GridViewColumnHeader>
+                                </GridViewColumn.Header>
+                                
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ST, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" Width="65">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Width" Value="50"/>
+                                                    <Setter Property="FontSize" Value="14"/>
+                                                    <Setter Property="FontStyle" Value="Normal"/>
+                                                    <Setter Property="Foreground" Value="Black"/>
+                                                    <Setter Property="Background" Value="White"/>
+
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ST}" Value="BAD">
+                                                            <Setter Property="FontStyle" Value="Italic"/>
+                                                            <Setter Property="Foreground" Value="Red"/>
+                                                            <Setter Property="Background" Value="Yellow"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+
+                            <GridViewColumn DisplayMemberBinding="{Binding OX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="OX" Click="GridViewColumnHeader_Click">OX</GridViewColumnHeader>
+                                </GridViewColumn.Header> 
+                            </GridViewColumn>
+                            
+                            <GridViewColumn DisplayMemberBinding="{Binding OY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="OY" Click="GridViewColumnHeader_Click">OY</GridViewColumnHeader>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                            
+                            <GridViewColumn DisplayMemberBinding="{Binding BIN, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="BIN" Click="GridViewColumnHeader_Click">BIN</GridViewColumnHeader>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+                            <GridViewColumn DisplayMemberBinding="{Binding TX}" Width="65">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="TX" Click="GridViewColumnHeader_Click">TX</GridViewColumnHeader>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+
+
+                            <GridViewColumn DisplayMemberBinding="{Binding TY}" Width="65">
+                                <GridViewColumn.Header>
+                                    <GridViewColumnHeader Tag="TY" Click="GridViewColumnHeader_Click">TY</GridViewColumnHeader>
+                                </GridViewColumn.Header>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </GroupBox>
+            
+            <!-- selected die image -->
+            <GroupBox Grid.Row="2" Header="{Binding [Selected Die], Source={StaticResource DR}}">
+                <WindowsFormsHost x:Name="SelectedDie" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Black"/>
+                <!--<Image x:Name="image_selectedDie" Stretch="Fill" Margin="2"></Image>-->
+            </GroupBox>
+        </Grid>
+
+        <GridSplitter Grid.Column="3" VerticalAlignment="Stretch" HorizontalAlignment="Center" ShowsPreview="True" BorderThickness="1" BorderBrush="Gray"></GridSplitter>
+
+        <GroupBox Grid.Column="4">
+            <GroupBox.Header>
+                <!--<Label x:Name="Bottom_Inspection" Content="{Binding PSName}" FontSize="20"-->
+                <Label x:Name="Bottom_Inspection" Content="Bottom Inspection" FontSize="20"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic"
+                       Foreground="BlueViolet"/>
+            </GroupBox.Header>
+            <Grid Background="Black" Margin="0, 1, 0, 1">
+                <Grid.RowDefinitions>
+                    <!-- Bottom Front Inspection Image Area -->
+                    <RowDefinition Height="7*"></RowDefinition>
+                    <!--splitter1-->
+                    <RowDefinition Height="auto"></RowDefinition>
+                    <!-- Bottom Front Inspection ListView Area-->
+                    <RowDefinition Height="6*"></RowDefinition>
+                    <!--splitter2-->
+                    <RowDefinition Height="auto"></RowDefinition>
+                    <!-- Bottom Rear Inspection Image Area -->
+                    <RowDefinition Height="7*"></RowDefinition>
+                    <!--splitter3-->
+                    <RowDefinition Height="auto"></RowDefinition>
+                    <!-- Bottom Rear Inspection ListView Area -->
+                    <RowDefinition Height="6*"></RowDefinition>
+                </Grid.RowDefinitions>
+
+                <GroupBox Grid.Row="0">
+                    <GroupBox.Header>
+                        <Label x:Name="BotFontImage" Content="Bottom Front Image" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" Foreground="BlueViolet"/>
+                    </GroupBox.Header>
+                    
+                    <!--<WindowsFormsHost x:Name="image_Front_bottom" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Black" Margin="1"/>-->
+                    <ScrollViewer x:Name="ScrollImage0" Grid.Row="0" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+                              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
+                              PreviewMouseLeftButtonDown="ScrollViewer_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ScrollViewer_PreviewMouseMove"
+                              PreviewMouseLeftButtonUp="ScrollView_PreviewMouseLeftButtonUp">
+
+                        <Image x:Name="image_Front_bottom" Grid.Row ="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Stretch="Fill" Margin="1" Width="auto" Height="auto">
+                            <Image.LayoutTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="ScaleImg0" ScaleX="0.2" ScaleY="0.2"/>
+                                </TransformGroup>
+                            </Image.LayoutTransform>
+                        </Image>
+                    </ScrollViewer>
+                    
+                </GroupBox>
+
+                <GridSplitter Grid.Row="1" 
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Center"
+                              Background="White"
+                              ShowsPreview="False"
+                              Height="3"/>
+
+                <GroupBox Grid.Row="2">
+                    <GroupBox.Header>
+                        <!--<Label x:Name="BottomDieInfo" Content="{Binding PSName}" FontSize="20"-->
+                        <Label x:Name="BottomFrontDieInfo" Content="Bottom Front Info" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic"
+                               Foreground="BlueViolet"/>
+                    </GroupBox.Header>
+
+                    <ListView x:Name="listView_FrontBotInfo" FontSize="12" Width ="auto" MouseDoubleClick="ListView_BotInfo_MouseDoubleClick">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn DisplayMemberBinding="{Binding NUM, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="NUM">NUM</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <GridViewColumn DisplayMemberBinding="{Binding X_POS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="XPOS">XPOS</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <GridViewColumn DisplayMemberBinding="{Binding Y_POS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="YPOS">YPOS</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <GridViewColumn DisplayMemberBinding="{Binding ROT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="ROT">ROT</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <!--<GridViewColumn DisplayMemberBinding="{Binding STATUS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="65">-->
+                                <GridViewColumn Width="65">
+
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="STATUS">STATUS</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding ST, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" Width="65">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Width" Value="50"/>
+                                                        <Setter Property="FontSize" Value="14"/>
+                                                        <Setter Property="FontStyle" Value="Normal"/>
+                                                        <Setter Property="Foreground" Value="Black"/>
+                                                        <Setter Property="Background" Value="White"/>
+
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ST}" Value="BAD">
+                                                                <Setter Property="FontStyle" Value="Italic"/>
+                                                                <Setter Property="Foreground" Value="Red"/>
+                                                                <Setter Property="Background" Value="Yellow"/>
+                                                            </DataTrigger>
+                                                            
+                                                            <!--10.10 Insert Picker Not die deteach--> 
+                                                            <DataTrigger Binding="{Binding ST}" Value="Empty"> 
+                                                                <Setter Property="FontStyle" Value="Normal"/>
+                                                                <Setter Property="Foreground" Value="Blue"/>
+                                                                <Setter Property="Background" Value="White"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+
+                                </GridViewColumn>
+
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </GroupBox>
+
+                <GridSplitter Grid.Row="3"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Center"
+                              Background="White"
+                              ShowsPreview="False"
+                              Height="3"/>
+                
+                <GroupBox Grid.Row="4">
+                    <GroupBox.Header>
+                        <Label x:Name="BotRearImage" Content="Bottom Rear Image" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" Foreground="BlueViolet"/>
+                    </GroupBox.Header>
+
+                    <!--<WindowsFormsHost x:Name="image_Rear_bottom" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Black" Margin="1"/>-->
+                    <ScrollViewer x:Name="ScrollImage1" Grid.Row="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+                              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
+                              PreviewMouseLeftButtonDown="ScrollViewer_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="ScrollViewer_PreviewMouseMove"
+                              PreviewMouseLeftButtonUp="ScrollView_PreviewMouseLeftButtonUp">
+
+                        <Image x:Name="image_Rear_bottom" Grid.Row="2" Stretch="Fill" Margin="1" Width="auto" Height="auto">
+                            <Image.LayoutTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="ScaleImg1" ScaleX="0.2" ScaleY="0.2"/>
+                                </TransformGroup>
+                            </Image.LayoutTransform>
+                        </Image>
+                    </ScrollViewer>
+                    
+                </GroupBox>
+                
+                <GridSplitter Grid.Row="5"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Center"
+                              Background="White"
+                              ShowsPreview="False"
+                              Height="3"/>
+
+                <GroupBox Grid.Row="6">
+                    <GroupBox.Header>
+                        <Label x:Name="BottomRearDieInfo" Content="Bottom Rear Info" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic"
+                               Foreground="BlueViolet"/>
+                    </GroupBox.Header>
+
+                    <ListView x:Name="listView_RearBotInfo" FontSize="12" Width ="auto" MouseDoubleClick="ListView_BotInfo_MouseDoubleClick">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn DisplayMemberBinding="{Binding NUM, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="NUM">NUM</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <GridViewColumn DisplayMemberBinding="{Binding X_POS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="XPOS">XPOS</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <GridViewColumn DisplayMemberBinding="{Binding Y_POS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="YPOS">YPOS</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <GridViewColumn DisplayMemberBinding="{Binding ROT, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="ROT">ROT</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+
+                                <!--<GridViewColumn DisplayMemberBinding="{Binding STATUS, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="65">-->
+                                <GridViewColumn Width="65">
+
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="STATUS">STATUS</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding ST, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" Width="65">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Width" Value="50"/>
+                                                        <Setter Property="FontSize" Value="14"/>
+                                                        <Setter Property="FontStyle" Value="Normal"/>
+                                                        <Setter Property="Foreground" Value="Black"/>
+                                                        <Setter Property="Background" Value="White"/>
+
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding ST}" Value="BAD">
+                                                                <Setter Property="FontStyle" Value="Italic"/>
+                                                                <Setter Property="Foreground" Value="Red"/>
+                                                                <Setter Property="Background" Value="Yellow"/>
+                                                            </DataTrigger>
+
+                                                            <!--10.10 Insert Picker Not die deteach-->
+                                                            <DataTrigger Binding="{Binding ST}" Value="Empty">
+                                                                <Setter Property="FontStyle" Value="Normal"/>
+                                                                <Setter Property="Foreground" Value="Blue"/>
+                                                                <Setter Property="Background" Value="White"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+
+                                </GridViewColumn>
+
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+
+                </GroupBox>
+
+            </Grid>
+        </GroupBox>
+        
+        
+    </Grid>
+</UserControl>

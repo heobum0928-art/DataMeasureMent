@@ -1,0 +1,2579 @@
+﻿DDA
+ VISION
+<w:tab w:val="left" w:pos="0"/><w:tab w:val="left" w:pos="800"/><w:tab w:val="left" w:pos="1600"/><w:tab w:val="left" w:pos="2400"/><w:tab w:val="left" w:pos="3200"/><w:tab w:val="left" w:pos="4000"/><w:tab w:val="left" w:pos="4800"/><w:tab w:val="left" w:pos="5600"/><w:tab w:val="left" w:pos="6400"/><w:tab w:val="left" w:pos="7200"/><w:tab w:val="left" w:pos="8000"/><w:tab w:val="left" w:pos="8800"/><w:tab w:val="left" w:pos="9600"/><w:tab w:val="left" w:pos="10400"/><w:tab w:val="left" w:pos="11200"/><w:tab w:val="left" w:pos="12000"/><w:tab w:val="left" w:pos="12800"/><w:tab w:val="left" w:pos="13600"/><w:tab w:val="left" w:pos="14400"/><w:tab w:val="left" w:pos="15200"/><w:tab w:val="left" w:pos="16000"/><w:tab w:val="left" w:pos="16800"/><w:tab w:val="left" w:pos="17600"/><w:tab w:val="left" w:pos="18400"/><w:tab w:val="left" w:pos="19200"/><w:tab w:val="left" w:pos="20000"/><w:tab w:val="left" w:pos="20800"/><w:tab w:val="left" w:pos="21600"/><w:tab w:val="left" w:pos="22400"/><w:tab w:val="left" w:pos="23200"/><w:tab w:val="left" w:pos="24000"/></w:tabs><w:spacing w:after="0" w:line="360" w:lineRule="auto"/><w:ind w:left="221"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:cs="Arial"/><w:b/><w:color w:val="000000"/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr></w:pPr><w:r w:rsidRPr="00833490"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:cs="Arial"/><w:b/><w:color w:val="000000"/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr><w:t>User’s Manual
+- 개 요 
+–
+당사의 장비를 구입 하여 주신 것에 대해 깊은 감사 드립니다.
+이 매뉴얼은 
+DDA
+ 
+장비의 
+Vision Program
+을 통하여 
+Wafer
+의 
+Map Matching, Die
+를 떼어내기 전
+ 
+상부 
+검사,
+ 
+Die 
+하부 검사를 하는 장비로서,
+ 
+Wafer
+에 존재하는
+ 
+Die
+에 대한
+ 불량
+을
+ 검출 
+하기 위함에 있습니다.
+이
+ 
+매뉴얼
+은 장비의 기본적인 조작
+ 
+방법, 기능에 대하여 설명하고 있습니다.
+작업자가 숙지해야 할 사항을 기재하고 있으니 이를 준수하시기 바랍니다.
+기타 준비 작업과 취급
+ 
+방법에 대해서는 본 매뉴얼을 참고 하십시오.
+본 장비는 장비에 대한 교육을 이수한 작업자만이 작동시켜야 하며 수리를 요하는 부분이
+발생할 경우 본사 A/S 직원에게 연락하여 조치를 받으시기 바랍니다.
+만약 제품 및 기타 문의사항이 발생하면 아래의 연락처로 연락 주시기 바랍니다.
+제품의 사양 및 본 매뉴얼은 제품 성능을 위하여 예고 없이 변경될 수 있습니다.
+제조 및 
+판매원
+:
+ 
+T
+IS
+주식회사
+주소
+:
+ 경기도 화성시 
+동탄산단
+ 
+6
+길 
+15
+-
+33
+전화번호
+:
+ 031-
+216
+-
+3102
+ / 
+팩스
+:
+ 031-
+374
+-
+3109
+http://www.
+techinspirit.co.kr
+목차
+목차
+</w:r><w:r w:rsidR="00ED1483"><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r w:rsidR="00ED1483"><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082858 \h </w:instrText></w:r><w:r w:rsidR="00ED1483"><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r w:rsidR="00ED1483"><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r w:rsidR="00ED1483"><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>3
+1. 화면 구성 및 설명
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082859 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>4
+1-1. 메인 화면
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082861 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>4
+1-1-1. 메인 화면 제어
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082862 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>4
+1-2. 각 부분 상세
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082863 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>6
+1-2-1. State Check
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082864 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>6
+1-2-2. Main Viewer
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082865 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>7
+1-2-3. Wafer View Left (Right)
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082866 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>8
+1-2-4. Log Viewer
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082867 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>11
+1-2-5. Recipe Viewer
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082868 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>12
+1-2-6. Manual Run
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082869 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>14
+1-3. Log In 방법
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082870 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>15
+1-3-2. Recipe Setting
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082871 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>17
+1-3-3 Recipe 저장
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082872 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>29
+1-4. 기타 부가 사항
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082873 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>31
+1-4-1. Log In 계정 추가
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082874 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>31
+1-4-2. Recipe 변경
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082875 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>33
+1-4-3. Setting 값 변경
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082876 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>35
+1-4-4. Camera Check
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082877 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>37
+1-4-5. Light Check
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082878 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>39
+1-4-6. Connect Check
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082879 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>40
+1-5. 문제 해결
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082880 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>41
+1-5-1. 통신 문제
+</w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:instrText xml:space="preserve"> PAGEREF _Toc164082881 \h </w:instrText></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:noProof/><w:webHidden/></w:rPr><w:t>41
+1
+. 
+화면 구성 및 설명
+1
+-1. 
+메인 화면
+1
+-1-1. 메인 화면 
+제어
+메인 
+UI 
+화면
+메인 화면은 모든 것을 바로 처리 할 수 있도록 구성되어 있습니다.
+ 
+M
+ain Menu, 
+C
+amera Viewer, Recipe 
+등을 바로 처리 할 수 있도록 되어 있습니다.
+ 
+사용자가 최소한의 동작으로 최대한 효과를 내기 위한 구조로 구현하였습니다.
+S
+tate 
+Check :
+ 
+카메라의 상태 및 현재 건강 상태를 확인 할 수 있습니다.
+M
+ain 
+Menu :
+ 
+V
+ision 
+프로그램의 구동
+ 
+및 설정을 할 수 있습니다.
+C
+amera 
+Viewer :
+ 
+검사
+ 
+할 영상을 보여줍니다.
+Recipe 
+Viewer :
+ 
+현재 불러 온 
+Recipe
+의 이름을 보여줍니다.
+M
+anual 
+Inspection :
+ 
+수동으로 검사 할 수 있습니다.
+S
+ave 
+Recipe :
+ 
+현재 
+Recipe
+를 저장 하거나 다른 이름으로 저장 할 수 있습니다.
+Setting 
+Recipe :
+ 
+각 카메라 별 
+ 
+검사 값을 변경 하고 확인 할 수 있습니다.
+OPERATOR
+ :
+ 
+로그인 화면으로 전환합니다.
+* 
+L
+og
+ 
+In
+시 
+Mode
+는
+ Operator, Enginee
+r
+, Admin
+으로 등급을 정할 수 있다.
+R
+ECIPE
+ :
+ 제품의 종류에 따라 검사 세팅 값을 불러옵니다.
+S
+ETTING
+ :
+ 
+PC
+의 통신 
+Port 
+등 프로그램 운용에 관련 된 설정을 합니다.
+CAMERA
+ :
+ 카메라
+Live 
+영상 또는 이미지를 불러올 수 있습니다.
+LIGHT
+ :
+ 조명의 
+On / Off
+나 조명 값을 변경 합니다.
+CONNECT
+ :
+ 제어 
+PC
+와의 통신 패킷을 확인 할 수 있습니다.
+RUN
+ :
+ M
+anual 로 
+ 
+Vision 
+검사를 실시합니다.
+…
+ :
+ 현재 선택 된 
+R
+e
+cipe
+의 설정 값을 저장 하거나 다른 이름으로 저장합니다.
+1
+-
+2
+. 
+각 
+부분 상세
+1
+-
+2
+-1. 
+S
+tate Check
+ 
+카메라의 상태 및 현재 검사 상태를 확인 할 수 있습니다.
+카메라 이름,
+ 
+상태 현재 검사 중인지
+ 
+등이 확인 가능합니다.
+<w:p w:rsidR="00970CF0" w:rsidRDefault="00970CF0" w:rsidP="00F32D34"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman" w:hint="eastAsia"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRDefault="00970CF0" w:rsidP="00F32D34"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman" w:hint="eastAsia"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>①
+1
+-
+2
+-
+2
+. 
+M
+ain
+ Viewer
+<w:p w:rsidR="00970CF0" w:rsidRPr="00EB3973" w:rsidRDefault="00970CF0" w:rsidP="00D5339A"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>④
+ㅇ
+③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00EB3973" w:rsidRDefault="00970CF0" w:rsidP="00D5339A"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>④
+ㅇ
+③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00EB3973" w:rsidRDefault="00970CF0" w:rsidP="00EB3973"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:pPr><w:r w:rsidRPr="00EB3973"><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00EB3973" w:rsidRDefault="00970CF0" w:rsidP="00EB3973"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:pPr><w:r w:rsidRPr="00EB3973"><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRDefault="00970CF0" w:rsidP="00F32D34"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman" w:hint="eastAsia"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRDefault="00970CF0" w:rsidP="00F32D34"><w:pPr><w:pStyle w:val="a5"/><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman" w:hint="eastAsia"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr><w:t>②
+M
+ain View 
+탭
+은 
+모델 별 레시피를 등록을 하거나,
+ 
+실시간 영상 처리가 진행 될 때 활성화된 카메라의 검사 영상을 확인할 수 있습니다.
+ 
+D
+ie
+의 
+Bottom 
+검사 진행 시 매우 빠르게 영상이 전환 되기 때문에 레시피 등록과 
+Wafer 
+검사 이외에는 
+Wafer View Left 
+또는 
+Wafer View Right 
+탭을 선택하는 것을 추천 합니다.
+선택 된 카메라의 영상을 골라서 볼 수 있습니다.
+결과 이미지와 원본 이미지를 선택 할 수 있습니다.
+이미지 영상 비율을 줄이거나 늘릴 수 있습니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="08AAE94D" id="_x0000_s1030" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:33pt;margin-top:17.35pt;width:40.2pt;height:22.8pt;z-index:252708864;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+SwUGAAAAAAQABADzAAAAgQUAAAAA
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00833490"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:b/></w:rPr><w:t>1
+-
+2
+-
+3
+. 
+W
+afer View Left (Right)
+<w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="60A8B681" id="_x0000_s1031" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:343.2pt;margin-top:216.65pt;width:40.2pt;height:22.8pt;z-index:252710912;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+eG1sUEsFBgAAAAAEAAQA8wAAAIUFAAAAAA==
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252712960" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="7EC58A68" wp14:editId="7B5BA8EB"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>4297680</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>1981835</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="46" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="7EC58A68" id="_x0000_s1032" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:338.4pt;margin-top:156.05pt;width:40.2pt;height:22.8pt;z-index:252712960;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+eG1sUEsFBgAAAAAEAAQA8wAAAIUFAAAAAA==
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252715008" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="066C4A5E" wp14:editId="036DA988"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>4274820</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>1303655</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="47" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="066C4A5E" id="_x0000_s1033" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:336.6pt;margin-top:102.65pt;width:40.2pt;height:22.8pt;z-index:252715008;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+eG1sUEsFBgAAAAAEAAQA8wAAAIUFAAAAAA==
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252717056" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="210D6E6C" wp14:editId="1B51D890"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>4328160</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>541655</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="48" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="210D6E6C" id="_x0000_s1034" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:340.8pt;margin-top:42.65pt;width:40.2pt;height:22.8pt;z-index:252717056;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+UEsFBgAAAAAEAAQA8wAAAIIFAAAAAA==
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252719104" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="2DEDD00D" wp14:editId="17533DFE"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>3436620</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>2751455</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="51" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="2DEDD00D" id="_x0000_s1035" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:270.6pt;margin-top:216.65pt;width:40.2pt;height:22.8pt;z-index:252719104;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+bFBLBQYAAAAABAAEAPMAAACDBQAAAAA=
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252721152" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="6F7E06BF" wp14:editId="50D5C68C"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>3413760</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>785495</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="54" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="6F7E06BF" id="_x0000_s1036" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:268.8pt;margin-top:61.85pt;width:40.2pt;height:22.8pt;z-index:252721152;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+bWxQSwUGAAAAAAQABADzAAAAhAUAAAAA
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252723200" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="342EB7C3" wp14:editId="7F4C7194"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>3276600</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>130175</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="55" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="342EB7C3" id="_x0000_s1037" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:258pt;margin-top:10.25pt;width:40.2pt;height:22.8pt;z-index:252723200;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+bFBLBQYAAAAABAAEAPMAAACDBQAAAAA=
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252725248" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="32AE2E62" wp14:editId="5F362391"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>358140</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>404495</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="56" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="32AE2E62" id="_x0000_s1038" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:28.2pt;margin-top:31.85pt;width:40.2pt;height:22.8pt;z-index:252725248;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+UEsFBgAAAAAEAAQA8wAAAIIFAAAAAA==
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00AC49C7"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252727296" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="3AFF53D5" wp14:editId="703FEA44"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:align>left</wp:align></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>404495</wp:posOffset></wp:positionV><wp:extent cx="510540" cy="289560"/><wp:effectExtent l="0" t="0" r="3810" b="15240"/><wp:wrapNone/><wp:docPr id="28683" name="Text Box 63"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="510540" cy="289560"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vert="horz" wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="3AFF53D5" id="_x0000_s1039" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:0;margin-top:31.85pt;width:40.2pt;height:22.8pt;z-index:252727296;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:left;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+bFBLBQYAAAAABAAEAPMAAACDBQAAAAA=
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox inset="0,0,0,0"><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00AC49C7" w:rsidRDefault="00970CF0" w:rsidP="00AC49C7"><w:pPr><w:pStyle w:val="a5"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="24"/></w:numPr><w:wordWrap w:val="0"/><w:spacing w:before="0" w:beforeAutospacing="0" w:after="160" w:afterAutospacing="0" w:line="256" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="Times New Roman"/><w:b/><w:bCs/><w:color w:val="FF0000"/><w:kern w:val="2"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidR="00BD6229" w:rsidRPr="00BD6229"><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" wp14:anchorId="5F0B3560" wp14:editId="4C0B9BAF"><wp:extent cx="5731510" cy="3196590"/><wp:effectExtent l="0" t="0" r="2540" b="3810"/><wp:docPr id="42" name="그림 42"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name=""/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId20"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="5731510" cy="3196590"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p><w:p w:rsidR="00BD6229" w:rsidRDefault="00642457" w:rsidP="00DA5C22"><w:pPr><w:widowControl/><w:wordWrap/><w:autoSpaceDE/><w:autoSpaceDN/><w:ind w:leftChars="100" w:left="200"/></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+ 
+W
+afer View Left(Right 
+동일
+)
+는 D
+DA 
+장비에서 왼쪽 영역에 웨이퍼가 투입되었을 때,
+ 
+웨이퍼에 대한 검사 내용을 보여 주기 위한 탭입니다.
+ (Right 
+탭은 L
+eft 
+영역의 내용과 동일합니다.
+)
+②
+ 
+WaferImage
+ 
+탭은 투입된 
+Wafer
+의 검사 영역을 보여 주며,
+ 
+맵 파일에 존재 하는 
+Die
+를 찾았을 때 D
+ie
+의 중
+심과 
+Wafer 
+의 중심을 표시 합니다.
+③
+ 
+WaferMap
+ 
+탭은 W
+afer 
+이미지에서 찾은 
+Die
+를 아래와 같이 행렬의 형태로 보여 줍니다.
+④
+ Left(
+R
+ight) WAFER Information 
+영역은 현재 
+Left(Right) 
+영역에서 검사한 
+Wafer 
+의 정보를 나타냅니다.
+ 
+Wafer Degree: 
+투입된 웨이퍼의 회전된 각도.
+Wafer 
+CenterX
+: 
+웨이퍼의 외곽 원의 중심이 화면 중심에서 
+X
+축으로 떨어진 거리를 
+mm 
+값으로 표현.
+Wafer 
+CenterY
+: 
+웨이퍼의 외곽 원의 중심이 화면 중심에서 
+Y
+축으로 떨어진 거리를 m
+m 
+값으로 표현.
+Die Total: 
+맵 파일을 참조하지 않고,
+ 
+영상에서 
+Die
+로 판별할 수 있는 
+레시피와 유사한 
+Die
+의 개수.
+Valued Dies: 
+맵 파일을 참조하여 W
+afer 
+영상에서 찾은 
+Die
+의 개수.
+Wafer Name: 
+M
+ap File name
+으로 상위 시스템으로부터 전달 받은 파일 명.
+M
+A
+P COL: 
+M
+ap File
+에서 
+Die 
+C
+olum 
+방향의 개수.
+MAP ROW: 
+M
+ap File
+에서 
+Die 
+R
+ow 
+방향의 개수.
+⑤
+ 
+L
+eft(Right) WAFER Die Information 
+영역은 투입된 웨이퍼를 영상처리 검사를 수행한 후 양/불 판정,
+ 
+행렬의 인덱스,
+ 
+찾은 
+Die
+의 B
+IN 
+번호,
+ 
+개별 
+Die
+의 중심 값을 
+mm 
+단위로 표현하여 
+ListView
+ 
+로 표현 되어 있습니다.
+⑥
+ 
+s
+elected Die 
+영역은 
+ListView
+ 
+에서 선택한 아이템에 해당하는 
+Die
+의 이미지를 나타냅니다.
+ 
+불량으로 판정된 경우,
+ 
+불량 내용과 영역을 표시합니다.
+⑦
+ Bottom Front(
+⑨
+Rear) 
+I
+mage 
+영역은 W
+afer
+에서 떼어낸 
+Die
+의 
+Bottom 
+영역을 검사하여 
+⑧
+, 
+⑩
+의 
+L
+istView
+에서 선택된 아이템의 개별 
+Die
+의 양/불 상태,
+ 
+D
+ie
+의 회전 각,
+ 
+중심에서 떨어진 거리를 나타내어 화면에 표시 합니다.
+B
+ottom Inspection
+1
+-
+2
+-
+4
+. 
+Log Viewer
+T
+race :
+ 비전 
+프로그램의 구동에 대한 로그를 보여줍니다.
+Camera :
+ 
+카메라 영상에 대한 로그를 보여줍니다.
+TcpConnection
+ :
+ 
+제어 
+PC
+와의 통신 로그를 보여줍니다.
+R
+esult :
+ 
+검사 결과 로그를 보여줍니다.
+E
+rror :
+ 
+프로그램 
+Error 
+로그를 보여줍니다.
+LightController
+ :
+ 
+조명 제어 로그를 보여줍니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="008044D4" w:rsidRDefault="00970CF0" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="8"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="63479203" id="Text Box 50" o:spid="_x0000_s1040" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:219.35pt;margin-top:12.55pt;width:37.15pt;height:33.15pt;z-index:252442624;visibility:visible;mso-wrap-style:square;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:left-margin-area;mso-position-vertical:absolute;mso-position-vertical-relative:text;v-text-anchor:top" o:gfxdata="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
+AAAA5wUAAAAA
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="008044D4" w:rsidRDefault="00970CF0" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="8"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidR="00A0349D" w:rsidRPr="00833490"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:hint="eastAsia"/><w:noProof/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252444672" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="251422EA" wp14:editId="108C230F"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="leftMargin"><wp:posOffset>5257800</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>205105</wp:posOffset></wp:positionV><wp:extent cx="287655" cy="401955"/><wp:effectExtent l="0" t="0" r="0" b="1270"/><wp:wrapNone/><wp:docPr id="52" name="Text Box 52"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="287655" cy="401955"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:style><a:lnRef idx="0"><a:schemeClr val="accent1"/></a:lnRef><a:fillRef idx="0"><a:schemeClr val="accent1"/></a:fillRef><a:effectRef idx="0"><a:schemeClr val="accent1"/></a:effectRef><a:fontRef idx="minor"><a:schemeClr val="dk1"/></a:fontRef></wps:style><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00367083" w:rsidRDefault="00970CF0" w:rsidP="008044D4"><w:pPr><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="00367083" w:rsidRDefault="00970CF0" w:rsidP="008044D4"><w:pPr><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+1
+-
+2
+-
+5
+. 
+R
+ecipe Viewer
+<w:p w:rsidR="00970CF0" w:rsidRPr="00367083" w:rsidRDefault="00970CF0" w:rsidP="008044D4"><w:pPr><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00367083" w:rsidRDefault="00970CF0" w:rsidP="008044D4"><w:pPr><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>③
+현재 선택 된 
+Recipe
+를 보여줍니다.
+레시피를 저장,
+ 
+다른 이름으로 저장,
+ 
+불러오기를 합니다.
+레시피를 설정 할 수 있습니다.
+레시피를 설정 할 때에는 
+Admin 
+계정이 필요합니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="008044D4" w:rsidRDefault="00970CF0" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="3E8010AF" id="Text Box 60" o:spid="_x0000_s1043" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:321.35pt;margin-top:12.55pt;width:37.15pt;height:33.15pt;z-index:252505088;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:left-margin-area;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+AAAA5wUAAAAA
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="008044D4" w:rsidRDefault="00970CF0" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="11"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidR="00F11601"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:hint="eastAsia"/><w:b/></w:rPr><w:t>1-2-
+6
+.
+ 
+M
+anual Run
+<w:p w:rsidR="00970CF0" w:rsidRPr="008044D4" w:rsidRDefault="00970CF0" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="8"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="6FB1F10D" id="Text Box 59" o:spid="_x0000_s1044" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:196.85pt;margin-top:88.5pt;width:37.15pt;height:33.15pt;z-index:252504064;visibility:visible;mso-wrap-style:square;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:left-margin-area;mso-position-vertical:absolute;mso-position-vertical-relative:text;v-text-anchor:top" o:gfxdata="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
+BAAEAPMAAADsBQAAAAA=
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="008044D4" w:rsidRDefault="00970CF0" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="8"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidR="00A75E0C" w:rsidRPr="00A75E0C"><w:rPr><w:noProof/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" wp14:anchorId="06366F68" wp14:editId="715C9416"><wp:extent cx="4474648" cy="3502234"/><wp:effectExtent l="0" t="0" r="2540" b="3175"/><wp:docPr id="28698" name="그림 2"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="3" name="그림 2"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill rotWithShape="1"><a:blip r:embed="rId26"/><a:srcRect l="64932" t="9104" r="-168" b="41871"/><a:stretch/></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="4474648" cy="3502234"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p><w:p w:rsidR="008D4853" w:rsidRDefault="00A75E0C" w:rsidP="0011616A"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="10"/></w:numPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:szCs w:val="20"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:hint="eastAsia"/><w:szCs w:val="20"/></w:rPr><w:t>선택 된 항목을 수동으로 테스트 할 수 있습니다.
+수동 테스트를 하기 위해서는 각 항목을 반드시 선택 해야 합니다.
+1
+-3
+. 
+L
+og In 
+방법
+L
+og In 
+위치
+1
+-3
+-1. 
+O
+PERATOR 
+버튼 클릭
+O
+perator
+는 
+Log In
+의 상태에 따라 달라집니다.
+ 
+L
+og In
+을 하지 않았을 경우에는 
+Operator
+로 되어 있습니다.
+ Log In 
+방식은 
+Admin, Engineer
+로 
+Log In
+을 할 수 있게 되어 있습니다.
+ 
+이는 세부 설정 관련 되어 특정
+ 
+인원만 설정 및 제어를 할 수 있게 하기 위함입니다.
+OPERATOR
+로 되어 있는 아이콘을 클릭합니다.
+User
+를 a
+dmin
+으로 선택 하여 주시고 
+Password
+를 넣어 주시기 바랍니다.
+초기 
+Password
+는 a
+dmin 
+입니다.
+User
+가 변경 됨을 확인 하실 수 있습니다.
+또한 
+Main Menu
+에서 비활성화 되어 있는 버튼이 활성화 되며 다른 기능까지 사용 할 수 있게 됩니다.
+ 
+비활성 되어 잇는 버튼은 
+User
+의 등급에 따라 바뀌게 됩니다.
+1
+-3-2
+. 
+R
+ecipe Setting
+A
+dmin 
+계정으로 
+Log In 
+이후 진행 해야 합니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="00104F0B" w:rsidRDefault="00970CF0" w:rsidP="00104F0B"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="25"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="6A92FB07" id="Text Box 68" o:spid="_x0000_s1045" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:29.2pt;margin-top:162.8pt;width:80.4pt;height:54pt;z-index:252733440;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:right;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="UEsDBBQABgAIAAAAIQC2gziS/gAAAOEBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbJSRQU7DMBBF
+90jcwfIWJU67QAgl6YK0S0CoHGBkTxKLZGx5TGhvj5O2G0SRWNoz/78nu9wcxkFMGNg6quQqL6RA
+0s5Y6ir5vt9lD1JwBDIwOMJKHpHlpr69KfdHjyxSmriSfYz+USnWPY7AufNIadK6MEJMx9ApD/oD
+OlTrorhX2lFEilmcO2RdNtjC5xDF9pCuTyYBB5bi6bQ4syoJ3g9WQ0ymaiLzg5KdCXlKLjvcW893
+SUOqXwnz5DrgnHtJTxOsQfEKIT7DmDSUCaxw7Rqn8787ZsmRM9e2VmPeBN4uqYvTtW7jvijg9N/y
+JsXecLq0q+WD6m8AAAD//wMAUEsDBBQABgAIAAAAIQA4/SH/1gAAAJQBAAALAAAAX3JlbHMvLnJl
+bHOkkMFqwzAMhu+DvYPRfXGawxijTi+j0GvpHsDYimMaW0Yy2fr2M4PBMnrbUb/Q94l/f/hMi1qR
+JVI2sOt6UJgd+ZiDgffL8ekFlFSbvV0oo4EbChzGx4f9GRdb25HMsYhqlCwG5lrLq9biZkxWOiqY
+22YiTra2kYMu1l1tQD30/bPm3wwYN0x18gb45AdQl1tp5j/sFB2T0FQ7R0nTNEV3j6o9feQzro1i
+OWA14Fm+Q8a1a8+Bvu/d/dMb2JY5uiPbhG/ktn4cqGU/er3pcvwCAAD//wMAUEsDBBQABgAIAAAA
+IQAMfi54gAIAAGwFAAAOAAAAZHJzL2Uyb0RvYy54bWysVE1PGzEQvVfqf7B8L7tJgYaIDUpBVJUQ
+oELF2fHaZFWvx7WdZNNf32dvNkS0F6pe7PHMm/F8n190rWFr5UNDtuKjo5IzZSXVjX2u+PfH6w8T
+zkIUthaGrKr4VgV+MXv/7nzjpmpMSzK18gxGbJhuXMWXMbppUQS5VK0IR+SUhVCTb0XE0z8XtRcb
+WG9NMS7L02JDvnaepAoB3KteyGfZvtZKxjutg4rMVBy+xXz6fC7SWczOxfTZC7ds5M4N8Q9etKKx
++HRv6kpEwVa++cNU20hPgXQ8ktQWpHUjVY4B0YzKV9E8LIVTORYkJ7h9msL/Mytv1/eeNXXFT1Ep
+K1rU6FF1kX2mjoGF/GxcmAL24ACMHfio88APYKawO+3bdCMgBjkyvd1nN1mTSakcj8oJRBKy08nJ
+pMzpL160nQ/xi6KWJaLiHtXLSRXrmxDhCaADJH1m6boxJlfQWLaB0Y8nZVbYS6BhbMKq3As7Mymi
+3vNMxa1RCWPsN6WRixxAYuQuVJfGs7VA/wgplY059mwX6ITScOItijv8i1dvUe7jGH4mG/fKbWPJ
+5+hfuV3/GFzWPR6JPIg7kbFbdLkJRmdDZRdUb1FwT/3IBCevG1TlRoR4LzxmBIXE3Mc7HNoQsk87
+irMl+V9/4yc8WhdSzjaYuYqHnyvhFWfmq0VTn42Oj9OQ5sfxyacxHv5QsjiU2FV7SSjLCBvGyUwm
+fDQDqT21T1gP8/QrRMJK/F3xOJCXsd8EWC9SzecZhLF0It7YByeT6VSl1HOP3ZPwbteYES19S8N0
+iumr/uyxSdPSfBVJN7l5U6L7rO4KgJHOPb1bP2lnHL4z6mVJzn4DAAD//wMAUEsDBBQABgAIAAAA
+IQBLhHwa4AAAAAgBAAAPAAAAZHJzL2Rvd25yZXYueG1sTI9BS8NAEIXvgv9hmYI3u2liQ4mZlBIo
+guihtRdvk+w0CWZ3Y3bbRn+925M9Dm947/vy9aR7cebRddYgLOYRCDa1VZ1pEA4f28cVCOfJKOqt
+YYQfdrAu7u9yypS9mB2f974RocS4jBBa74dMSle3rMnN7cAmZEc7avLhHBupRrqEct3LOIpSqakz
+YaGlgcuW66/9SSO8ltt32lWxXv325cvbcTN8Hz6XiA+zafMMwvPk/5/hih/QoQhMlT0Z5USPEEQ8
+QhIvUxDXOI2CSYXwlCQpyCKXtwLFHwAAAP//AwBQSwECLQAUAAYACAAAACEAtoM4kv4AAADhAQAA
+EwAAAAAAAAAAAAAAAAAAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQItABQABgAIAAAAIQA4/SH/
+1gAAAJQBAAALAAAAAAAAAAAAAAAAAC8BAABfcmVscy8ucmVsc1BLAQItABQABgAIAAAAIQAMfi54
+gAIAAGwFAAAOAAAAAAAAAAAAAAAAAC4CAABkcnMvZTJvRG9jLnhtbFBLAQItABQABgAIAAAAIQBL
+hHwa4AAAAAgBAAAPAAAAAAAAAAAAAAAAANoEAABkcnMvZG93bnJldi54bWxQSwUGAAAAAAQABADz
+AAAA5wUAAAAA
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00104F0B" w:rsidRDefault="00970CF0" w:rsidP="00104F0B"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="25"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00833490"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:hint="eastAsia"/><w:noProof/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252731392" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="76E22CAC" wp14:editId="5DD8C48F"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>3802380</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>535940</wp:posOffset></wp:positionV><wp:extent cx="1021080" cy="685800"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="65" name="Text Box 65"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1021080" cy="685800"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:style><a:lnRef idx="0"><a:schemeClr val="accent1"/></a:lnRef><a:fillRef idx="0"><a:schemeClr val="accent1"/></a:fillRef><a:effectRef idx="0"><a:schemeClr val="accent1"/></a:effectRef><a:fontRef idx="minor"><a:schemeClr val="dk1"/></a:fontRef></wps:style><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00104F0B" w:rsidRDefault="00970CF0" w:rsidP="00104F0B"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="25"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="76E22CAC" id="Text Box 65" o:spid="_x0000_s1046" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:299.4pt;margin-top:42.2pt;width:80.4pt;height:54pt;z-index:252731392;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+8wAAAOgFAAAAAA==
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00104F0B" w:rsidRDefault="00970CF0" w:rsidP="00104F0B"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="25"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00833490"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:hint="eastAsia"/><w:noProof/></w:rPr><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="252729344" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:anchorId="5FF98860" wp14:editId="02F1B055"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>-259080</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>734060</wp:posOffset></wp:positionV><wp:extent cx="1021080" cy="685800"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="28735" name="Text Box 28735"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1021080" cy="685800"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln w="6350"><a:noFill/></a:ln><a:effectLst/></wps:spPr><wps:style><a:lnRef idx="0"><a:schemeClr val="accent1"/></a:lnRef><a:fillRef idx="0"><a:schemeClr val="accent1"/></a:fillRef><a:effectRef idx="0"><a:schemeClr val="accent1"/></a:effectRef><a:fontRef idx="minor"><a:schemeClr val="dk1"/></a:fontRef></wps:style><wps:txbx><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00104F0B" w:rsidRDefault="00970CF0" w:rsidP="00104F0B"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="25"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></wps:txbx><wps:bodyPr rot="0" spcFirstLastPara="0" vertOverflow="overflow" horzOverflow="overflow" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" spcCol="0" rtlCol="0" fromWordArt="0" anchor="t" anchorCtr="0" forceAA="0" compatLnSpc="1"><a:prstTxWarp prst="textNoShape"><a:avLst/></a:prstTxWarp><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic><wp14:sizeRelH relativeFrom="margin"><wp14:pctWidth>0</wp14:pctWidth></wp14:sizeRelH><wp14:sizeRelV relativeFrom="margin"><wp14:pctHeight>0</wp14:pctHeight></wp14:sizeRelV></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape w14:anchorId="5FF98860" id="Text Box 28735" o:spid="_x0000_s1047" type="#_x0000_t202" style="position:absolute;left:0;text-align:left;margin-left:-20.4pt;margin-top:57.8pt;width:80.4pt;height:54pt;z-index:252729344;visibility:visible;mso-wrap-style:square;mso-width-percent:0;mso-height-percent:0;mso-wrap-distance-left:9pt;mso-wrap-distance-top:0;mso-wrap-distance-right:9pt;mso-wrap-distance-bottom:0;mso-position-horizontal:absolute;mso-position-horizontal-relative:margin;mso-position-vertical:absolute;mso-position-vertical-relative:text;mso-width-percent:0;mso-height-percent:0;mso-width-relative:margin;mso-height-relative:margin;v-text-anchor:top" o:gfxdata="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
+BADzAAAA6gUAAAAA
+" filled="f" stroked="f" strokeweight=".5pt"><v:textbox><w:txbxContent><w:p w:rsidR="00970CF0" w:rsidRPr="00104F0B" w:rsidRDefault="00970CF0" w:rsidP="00104F0B"><w:pPr><w:pStyle w:val="a4"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="25"/></w:numPr><w:ind w:leftChars="0"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr></w:p></w:txbxContent></v:textbox><w10:wrap anchorx="margin"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r><w:r w:rsidRPr="00104F0B"><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:noProof/><w:szCs w:val="20"/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" wp14:anchorId="0D065E1C" wp14:editId="4855189D"><wp:extent cx="5731510" cy="3096260"/><wp:effectExtent l="0" t="0" r="2540" b="8890"/><wp:docPr id="28726" name="그림 28726"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name=""/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId32"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="5731510" cy="3096260"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p><w:p w:rsidR="00585FCD" w:rsidRDefault="004F7BDD" w:rsidP="00585FCD"><w:pPr><w:widowControl/><w:wordWrap/><w:autoSpaceDE/><w:autoSpaceDN/><w:spacing w:after="0" w:line="360" w:lineRule="auto"/><w:jc w:val="left"/><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia"/><w:szCs w:val="20"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:asciiTheme="majorEastAsia" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorEastAsia" w:hint="eastAsia"/><w:szCs w:val="20"/></w:rPr><w:t>A
+dmin 
+계정으로 
+Log In
+을 하게 되면 
+①
+과 
+같이 
+Recipe
+를 설정 할 수 있는 창이 생깁니다.
+각 
+Camera 
+별,
+ 
+항목 별로 설정을 할 수 있으며,
+ 
+설정 된 값은 현재 선택되어 있는 
+recipe
+에 저장할 수 있습니다.
+ 
+먼저 
+Wafer 
+검사를 위해 
+Calibration
+과 
+Inspection(
+L
+eft/Right)
+를 설정하여 레시피를 등록하는 방법을 아래와 같이 진행 합니다.
+①
+ WAFER
+검사를 위해서는 먼저 
+Calibration
+이 선행되어 있어야 합니다.
+ Wafer 
+에 대한 
+Calibration
+은 
+체커보드를
+ 이용하여
+ 
+이미지
+ 
+촬상이
+ 되었을 때,
+ 
+이미지의 원점과 픽셀 값을 
+mm 
+단위의 변환을 위해 검사 설비 운영 전에 반드시 한번은 진행 되어야 합니다.
+ 
+체커
+ 보드의 이미지는 왼쪽영역에서 찍은 이미지와 오른쪽에서 찍은 이미지 두
+ 
+장이 필요합니다.
+ 
+기구적으로
+ 영상을 획득하는 높이와 위치가 다를 수 있기 때문에 구분하여 준비하여야 합니다.
+②
+ Wafer 
+시퀀스의 
+Calibration
+을 선택하면,
+ 
+①
+ 
+과 같은 C
+alibration 
+진행 시 설정하여야 하는 항목을 표시하는 창이 열립니다.
+ 
+여기에서 
+Calibration 
+체크 박스를 체크하고,
+ Grid Colum Number
+와 
+Grid Row Number
+를 모두 
+23
+으로 기입합니다.
+ (
+체커보드의
+ 교차점의 개수)
+Z
+one selector 
+라는 라디오 버튼에서 불러온 
+체커보드의
+ 이미지가 왼쪽에서 찍은 이미지라면,
+ Left
+를 
+선택고
+,
+ 
+오른쪽에서 찍은 이미지라면 
+Right
+를 선택합니다.
+그리고,
+ RUN 
+버튼을 눌러 진행하고,
+ Calibration 
+O
+K 
+라는 메시지가 
+Main View 
+오른쪽에 표시가 되면 
+Calibration
+이 완료된 것이며,
+ 
+mmPerPixel
+-
+X와 
+mmPerPixel
+-Y
+의 텍스트 박스에 파란색으로 표기됩니다.
+ 
+파란색으로 표기된 내용은 읽기 전용이므로,
+ 
+사용자가 기입할 수 없습니다.
+ 
+Right 
+C
+alibration 
+역시 위와 동일한 방법으로 진행하여 완료 합니다.
+C
+alibration Setting
+체커보드를
+ 이용한 
+Calibration
+이 준비가 되었다면,
+ 
+W
+afer 
+맵 
+매칭과
+ 검사를 위한
+ 
+설정을 위해 등록하려는 모델의 이미지를 불러오고 M
+ain View 
+탭을 선택하면 아래
+의 
+①
+ 같은 화면처럼 보이게 되며,
+ 
+②
+ 
+의 
+W
+AFER 
+시퀀스 아래에 
+Inspect_Left
+를 선택하면 아래
+의 
+③
+ 같은 설정 화면이 활성화 됩니다.
+ (
+사용자 계정은 반드시 
+Admin 
+이어야 합니다.
+)
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="008179B5"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="008179B5"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="008179B5"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="008179B5"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="008179B5"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="008179B5"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+I
+nspect Settin
+g
+먼저 웨이퍼의 중심을 찾기 위해 
+③
+ 
+항목의 
+Circle Finder
+를 설정하여야 합니다.
+ 
+숫자로 입력하는 것이 아니며,
+ 
+①
+ 화면에 로딩된 웨이퍼 이미지에서 웨이퍼에 존재하는 D
+ie 
+최외각을
+ 감싸는 원을 붉은색으로 표시된 네 영역(
+Picker 
+영역
+)
+을 이용 마우스로 조절하여 위치하도록 하면,
+ 
+자동으로 해당 값이 기입이 됩니다.
+다음으로 웨이퍼 이미지에서 
+검사하려는 
+Die
+ 
+정보를 
+③
+에 있는 
+WAFER Model Finder 
+에 등록하여야 합니다.
+ 
+③
+ 
+설정 내용이 많기 때문에 구분하여 아래와 같은 절차로 등록 합니다.
+모듈을 등록하는 방법은 이미지로 등록하는 방법과 D
+ie 
+정보를 텍스트로 입력하는 두 가지 방법이 있습니다. 두 방법 모두 
+MIL
+에서 제공하는 
+MODEL Finder 
+화면에서 진행되며,
+ Main View 
+화면에서 
+Module 
+이라는 하늘 색 사각형을 이용합니다.
+ 
+M
+odule 
+사각형의 중심을 이동하여 
+Die
+를 감싸도록 아래 그림과 같이 마우스로 조정합니다.
+W
+AFER Model Finder
+의 M
+odule 
+에서 
+New 
+버튼을 클릭하면 아래와 같은 윈도우 창이 
+활성화 됩니다.
+ 
+등록하려는 이미지영역이 D
+ie
+들이 밀집되어 있다면,
+ 
+D
+ie
+와 
+Die 
+사이의 여백이 포함이 되도록 이미지 영역을 설정하도록 합니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00A43C1A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2464"/></mc:Choice><mc:Fallback><w:t>⑤
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00A43C1A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2464"/></mc:Choice><mc:Fallback><w:t>⑤
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00A43C1A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2463"/></mc:Choice><mc:Fallback><w:t>④
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00A43C1A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2463"/></mc:Choice><mc:Fallback><w:t>④
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00F22613"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00F22613"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00F22613"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00F22613"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00F22613"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00F22613"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+M
+odule
+은 이미지로 등록을 하기 때문에 
+①
+에서 
+이미지를 선택하고,
+ 
+②
+에서 
+이미지를 확인 합니다.
+ 
+③
+은 
+검사 진행 시 등록한 이미지와 유사한 이미지를 웨이퍼 이미지에서 모두 찾을 것이기 때문에 
+All
+로 선택을 합니다.
+ 
+④
+은 
+등록한 이미지의 정확도를 나타내며,
+ 85
+와 
+90을 
+선택합니다.
+ 
+만약 해당 값이 낮다면,
+ 
+유사도가
+ 낮아 지기 때문에 정확도가 떨어져 찾으려는 
+Die 
+이미지와 조금만 비슷하더라도 유사하다고 찾게 됩니다.
+ 
+⑤
+의 Scaling
+은 등록한 이미지의 허용하는 최소/최대 크기를 나타내며,
+ 
+R
+otation
+은 시계 방향과 반 시계 방향으로 허용하는 기울어진 각도를 설정합니다.
+ 
+위 그림에서 표현한 것과 같이 일반적으로 
+Scaling 
+은 
+0.9/1.1, Rotation
+은 
+2
+로 설정하여 사용합니다.
+ 
+마지막으로 
+OK
+를 눌러 
+MIL Model Finder
+설정을 마무리 합니다.
+W
+AFER Model Finder 
+항목 아래에 텍스트 박스 내용은 아래와 같이 기입합니다.
+Process Name: Left WAFER/Right WAFER 
+로 자동으로 기입되며,
+ 
+읽기 전용입니다.
+Die Width(um): 
+등록하려는 웨이퍼의 맵 파일을 오픈하여 
+Die 
+의 
+Width
+를 u
+m 
+단위로 기입.
+Die Height(um): 
+등록하려는 웨이퍼의 맵 파일을 오픈하여 
+Die
+의 
+Height
+를 
+um 
+단위로 기임.
+Scrib
+ X(Pixel): 
+불러온 웨이퍼 이미지를 확대 하여 
+X
+방향으로 
+Die to Die
+의 픽셀 개수 기입.
+Scrib
+ Y(Pixel): 
+불러온 웨이퍼 이미지를 확대 하여 
+Y
+방향으로 
+Die to Die
+의 픽셀 개수 기입.
+Rotate Wafer: 0, 180 
+만 가능하며,
+ 
+웨이퍼 투입 후 검사 할 때 회전된 각도
+.
+Save Wafer Image: 
+해당 메뉴를 선택하면 지정된 경로에 검사 진행 시
+Wafer Image
+가 저장.
+VM Die BIN#1: 
+촬상한
+ 이미지와 
+맵파일을
+ 분석하여 
+맵파일에는
+ 존재하지만 찾지 못한 B
+IN 
+번호의 
+Die
+를 한번 더 검색하여 찾도록 확장하는 옵션.
+VM View Enable: 
+해당 메뉴가 선택되면,
+ 
+V
+M Die BIN#1
+에서 기입한 
+Bin 
+번호의 
+Die
+를 맵
+ 파일 기준으로 
+Wafer Image
+위에 
+Die 
+위치를 
+표시
+하며,
+ 
+실제 존재하지 않더라도 빈 공간에 해당 영역을 표시.
+M
+odel 
+ArcLength
+: 
+등록한
+ 
+M
+odule
+의 둘레
+ 
+값.
+Min 
+ArcLength
+: 
+검사 진행 시 해당 값 이하의 값은 검사에서 제외
+.
+D
+ie Inspect 
+와 
+Teaching & Debug Condition
+의 설정 화면은 아래와 같습니다.
+D
+ie Width Ratio(%): WAFER 
+M
+odel Finder
+항목 중 
+Die Width(um)
+에 등록한 
+Die 
+크기의 비율 값으로 D
+ie 
+면적의 양/불 판정 기준이 됩니다.
+ 0.8로 
+설정 시 
+Die Width
+의 
+0.8~1.2 의 
+범위가 W
+idth
+의 양품 범위.
+Die Height Ratio(%): 
+W
+afer Model Finder 
+항목 중 
+Die 
+H
+eight(
+um)
+에 
+등록한 
+Die 
+크기의 비율 값으로 D
+ie 
+면적의 양/불 판정 기준이 됩니다.
+ 0.8로 
+설정 시 
+Die Height 
+의 
+0.8 ~ 1.2의 
+범위가 
+Height
+의 양품 범위.
+Die Area Ratio(%): Die 
+면적의 양품의 최소 값을 등록된 
+Die Width
+와 
+Die Height 
+곱의 비율 값.
+Inspection ROI: 
+I
+nnerROI
+는 D
+ie Width Ratio
+와 
+Die Height Ratio
+의 최소 값의 범위로 
+Die
+를 잘라 검사를 진행.
+ (Die 
+내부의 깨짐 검출 및 
+과검
+(
+Over-Kill)
+을 진행하지 않음)
+OuterROI
+는 
+Die Width Ratio
+와 
+Die Height Ratio
+의 최대 값을 범위로 
+Die
+를 잘라 검사를 진행.
+ (
+D
+ie 
+외부의 
+겹칩
+, 
+올라탐 검출 및 
+과검
+ 진행.
+)
+Both: 
+I
+nnerROI
+를 통해 통과된 
+Die
+에 대해 
+OuterROI
+를 진행하도록 설정.
+Morphology Enable: 
+이미지에서D
+ie
+와 
+Die 
+사이의 벌어짐 정도에 따라 해당 알고리즘 적용 유/무 설정.
+Morphology Save: 
+M
+orphology Enable
+를 사용하도록 설정하였을 때 
+적용된 이미지 저장 유/무 설정.
+Map Name: 
+실시간 검사가 아닌 저장된 이미지를 불러와 맵 매칭 테스트를 진행 시 맵 파일의 이름을 설정.
+Teaching image: 
+저장된 이미지가 아닌 동작 중에 
+촬상한
+ 이미지를 가지고 레시피 등록 시 다음 동작
+ 
+진행을 하지 않도록 하는 설정.
+D
+evice 
+탭을 선택하면 조명 설정에 대한 항목들이 아래와 같이 나타난다.
+W
+afer 
+검사 진행 시 원형 조명은
+ 
+지금의 이등분 하여 
+Inner 
+조명과 
+Outer 
+조명으로 분리되어 있으며,
+ Inner 
+조명은 기본 
+Light 
+항목을 나타낸다.
+ 
+조명의 레벨은 
+0 ~ 255
+까지 조절이 가능하다.
+ 
+일반적으로 내부 조명은 외부 조명에 비해 어둡게 설정하도록 합니다.
+C
+amera
+ 항목은 노출 시간을 나타내는 
+Exposure time
+과 노이즈 제거
+ 
+목적의 
+Gamma
+와 
+Gain 
+항목 설정이 가능합니다.
+WA
+FER 
+검사에서 
+General 
+항목은 
+Pixel to UM offset 
+이외는 예약 상태로 사용하지 않음.
+ F
+ront TOP
+과 
+Rear Top
+의 경우,
+ Die 
+중심점 확인용으로만 사용되므로,
+ 
+모델에 따른 
+Recipe
+를 설정하지 않으며,
+ 
+향후 
+TOP Camera
+에 대한 기능이 필요한 경우에 사용될 수 있습니다.
+Bottom
+은 
+Wafer 
+에서 떼어낸 
+Die 
+각각에 대하여 바닥 면을 검사합니다.
+ F
+r
+ont
+와 R
+ear
+는 각 
+10
+개씩 
+Picker
+를 가지고 있으며,
+ 
+D
+ie 
+바닥 면에 대한 양/불 검사를 수행합니다.
+ 
+B
+ottom 
+검사를 위해서는 
+Calibration
+이 필요하며,
+ Bottom
+ 
+Calibration
+는 
+Picker
+의 중심을 기준으로 떼어낸 
+Die
+의 중심과의 오차를 계산하게 됩니다.
+ 
+Admin 
+계정으로 로그인 후 
+Calibration
+하려는 
+Picker
+의 이미지를 
+①
+과 같이 
+로딩하고,
+ 
+②
+에서 
+Front Bottom 
+시퀀스의 
+Calibration 
+을 클릭하면,
+ 
+③
+과 
+같은 
+C
+alibration 
+설정 화면이 보이게 됩니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="003D1066"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="003D1066"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="003D1066"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="003D1066"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="003D1066"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="003D1066"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+B
+ottom Calibration
+Manual 
+방식으로 
+Bottom 
+C
+alibration
+은 먼저 
+①
+에서 불러온 
+Picker 
+이미지에서 
+Module 
+영역을 설정합니다.
+ 
+③
+의 
+Picker Selection
+의 
+드랍다운
+ 메뉴에서 불러온 이미지가 
+Picker 
+몇 번에 해당하는지를 선택합니다.
+ 
+P
+icker
+중심의 작은 원을 
+Module 
+로 사용하게 되며,
+ 
+이미지의 전경과 배경의 밝기 차이가 크지 않기 때문에 
+Calibration
+이 정상적으로 동작하지 않을 수 있으며,
+ 
+이때에는 조명의 밝기와 
+Camera
+의 노출시간,
+ 
+게인 값 등을 조절하면서 반복적으로 
+Calibration
+을 수행해야 합니다.
+ Picker 
+번호는 
+0~9으로
+ 앞서 진행한 것과 같이 각각의
+ 
+P
+icker 
+번호를 
+드랍다운
+ 메뉴에서 선택 후 
+Calibration
+을 모두 진행 합니다.
+ 
+설정 항목 중 파란 색의 값들은 읽기 전용이므로,
+ Calibration
+진행이 완료되거나,
+ 
+이미 진행이 완료 상황에서 표시되게 됩니다.
+ 
+설정 항목 
+중 
+사용자가 기입하여야 하는 항목은 아래와 같습니다.
+Circle Radius: 
+찾고자 하는 원(
+Picker
+의 중심 원)
+의 
+픽셀 단위의 대략적 크기.
+Picker Count: Picker 
+의 개수.
+Display Picker 
+Num
+: Flying 
+방식의 
+Auto 
+C
+alibration 
+진행 시 표시 할 
+Picker 
+번호.
+Threshold Value: 
+P
+icker 
+중심을 찾기 위해 이미지에서 전경과 배경을 분리하기 위한 
+경계 값
+.
+Origin Image Save: 
+이미지 저장 여부.
+Camera Grab Debug: 
+M
+anual 
+방식으로 개별 이미지를 사용할 때 선택.
+Debug Image Save: Threshold Value
+ 값이 적용된 이미지 저장 여부.
+F
+lying 
+방식의 
+Auto Calibration 
+진행 시에는
+ Picker 
+번호에 대한 구분을 자동으로 진행 하기 때문에 
+Camera Grab Debug 
+체크 박스를 반드시 사용하지 않도록 체크하지 않아야 합니다.
+B
+ottom 
+C
+alibration 
+설정 항목 중 
+General 
+탭은 
+Bottom Camera
+의 
+Pixel 
+당 
+mm 
+단위의 크기 지정이 필요하며,
+ 
+나머지 항목에 대해서는 예약된 영역으로 사용하지 않습니다.
+ 
+아래의 
+General 
+탭 이미지를 참조하여 주시기 바랍니다.
+G
+eneral 
+항목
+Bottom 
+C
+alibration 
+설정 항목 중 
+Device 
+탭은 조명 레벨과 
+Camera
+의 노출 시간
+, 
+게인 값 
+지정이 가능합니다.
+ 
+해당 항목은 
+Picker 
+별로 중심
+ 
+원을 정상적으로 찾지 못할 때 해당 값을 조절하면서 
+Picker 
+중심 원을 찾도록 설정할 수 있습니다.
+ (
+정상적으로 찾지 못할 경우,
+ 
+반복적 테스트가 필요합니다.
+)
+D
+evice 
+항목
+B
+ottom 
+I
+nspect 
+시퀀스는 
+Wafer
+에서 떼어낸 개별 
+Die
+의 바닥 면에 대한 양/불 판정 수행합니다.
+B
+ottom Inspect
+는 
+10
+개의 
+Picker
+에 흡착되어 있는 
+Die
+를 
+Flying 
+영상 처리를 진행 하기 때문에 매우 빠른 속도로 
+Bottom Camera
+ 위를 지나가게 됩니다.
+  
+아래의 이미지는 
+Bottom 
+I
+nspect 
+의 검사 레시피 등록을 위한 M
+ain UI 
+화면을 보여 줍니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00326C5A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00326C5A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00326C5A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00326C5A"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00E8745C"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00E8745C"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+B
+ottom Inspect 
+M
+ain UI (
+레시피 등
+록 진행
+)
+①
+ 과 같이 
+M
+ain View 
+윈도우에 레시피로 등록하려는 D
+ie 
+이미지를 불러오고,
+ Die
+를 감싸는 
+ROI 
+영역을 
+설정합니다.
+ ROI 
+영역은 
+Die
+가 
+45
+도 회전하였을 때 해당 영역이 포함될 정도로 충분한 
+영역을 잡습니다.
+ 
+이미지의 상단과 하단의 흐릿한 
+8
+개의 영역은
+ 
+조명에 의한 난반사 된 영역으로 해당 영역이 
+ROI 
+영역에 영향을 줘서는 안됩니다. 검사 설정
+ 
+내용
+은
+ 아래와 같습니다.
+Die Width(um): 
+맵
+ 
+파일에 기재된 
+Die
+의 폭을 
+um
+단위로 설정.
+D
+ie Height(um): 
+맵
+ 
+파일에 기재된 
+Die
+의 높이를 
+um 
+단위로 설정.
+Die Area(pixel): 
+D
+ie Width
+와 
+Die Height 
+로 기재된 값을 이용하여 계산한 
+Area 
+값입니다.
+Die Width Ratio(%): 
+검사 진행 시 
+Die 
+W
+idth 
+최소
+/
+최대 비율 값.
+Die Height Ratio(%): 
+검사 진행 시 
+Die Height 
+최소/최대값 비율 값.
+D
+ie Area Ratio(%): 
+검사 진행 시 면적의 최소 비율 값.
+XBase
+: 
+원점으로 설정된 영역의 
+X
+축 중심 값.
+YBase
+: 
+원점으로 설정된 영역의 Y
+ 
+축 중심 값.
+Tolerance Angle: 
+D
+ie 
+검사 시 최대 회전 값.
+Picker Count: 
+D
+ie
+를 떼어내는 P
+icker 
+최대 값.
+Display Picker 
+Num
+: 
+화면에 표시될 
+Picker 
+번호.
+Threshold Value: 
+D
+ie
+의 전경과 배경을 분리하는
+ 
+경계 값.
+C
+anny Threshold LOW: 
+D
+ie 
+내부 검사 진행 시 
+Canny Edge Detect
+를 위한
+ 
+L
+OW 
+경계 값.
+Canny Threshold HIGH: 
+D
+ie 
+내부 검사 진행 시 
+Canny Edge Detect 
+를 위한 
+HIGH 
+경계 값.
+U
+se Morphology(Dilate): 
+M
+orphology 
+사용 유/무 설정.
+Camera Grab Debug: 
+실시간 처리를 사용하지 않고 저장된 이미지의 사용 유/무 설정.
+Origin Image Save: 
+검사 진행 시 실시간 이미지의 저장 유/무 설정.
+Inspection Image Save: 
+검사 진행에 따른 양/불 판정 이미지 정보의 저장 유/무.
+Debug Image Save: 
+바이너리 처리 영상 및 
+Canny Edge 
+처리 영상 이미지의 저장 유/무.
+C
+al Selector: 
+만약 
+Screen 
+아이템으로 선택 후 검사 진행 시 
+Picker
+의 중심이 아닌,
+ 
+화면 정 중앙이 원점으로 사용되며,
+ 
+P
+icker 
+아이템으로 선택 시 
+Picker 
+중심이 원점으로 사용.
+ (아래 
+이미지)
+C
+al Selector
+1
+-3
+-
+3 
+R
+ecipe 
+저장
+설정한 
+Recipe
+ 파일은 레시피
+ 
+고유의 이름을 부여하여 저장하여야 한다.
+ 
+관리자 권한의 레시피 등록 과정을 수행 하고 있다면,
+ 
+①
+ 
+영역을 누르면 
+②
+과 같은 메뉴가 
+드랍
+ 다운된다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="007F3C15"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="007F3C15"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="007F3C15"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="007F3C15"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+R
+ecipe Save
+S
+ave 
+메뉴는 현재 불러온 
+Recipe(
+e
+x: GJDO)
+에 덮어 쓰게 된다.
+ 
+S
+ave A
+s의 경우,
+ 
+아래의 그림과 같은
+ 
+윈도우 열리고,
+ 
+다른 이름으로 저장하기 위해 모델 명을 기입한다.
+ 
+일반적으로 비슷한 설정의 모델을 불러와 신규 모델을 등록하는 것이 편리하게 레시피를 등록할 수 있다.
+S
+ave As (
+레시피 변경/등록)
+레시피를 불러 오거나,
+ 
+저장된 레시피 목록을 확인하기 위해서 아래와 같이 진
+행하도록 합니다.
+ 
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00B377DC"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00B377DC"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00B377DC"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="008179B5" w:rsidRDefault="00970CF0" w:rsidP="00B377DC"><w:pPr><w:ind w:left="400"/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+Recipe 
+불러오기/확인하기
+①
+ 
+번 
+Recipe 
+버튼을 클릭하면 
+②
+ 과 
+같은 윈도우 창이 보이게 되며,
+ 
+레시피 목록에서 저장된 레시피가 있는지 확인하고,
+ 
+해당 모델을 적용하려면 선택 후 
+OK 
+버튼을 누르면 해당 모델의 레시피를 불러오게 된다.
+1
+-
+4
+. 
+기타 부가 사항
+기타 사항에서는 검사에는 필요하지 않는 사항이지만
+ 
+프로그램 구동에 필요한 항목에 대한 설명입니다.
+ 
+L
+og In 
+계정 추가 방법과,
+ Recipe 
+변경 방법,
+ 
+기본 
+Setting 
+값 변경 방법 등을 나열하고 있습니다.
+1
+-4
+-1. 
+L
+og In 
+계정 추가
+A
+dmin 
+계정으로 
+Log In 
+합니다.
+ 
+O
+perator 
+또는 
+Engineer
+로 할 경우에는 추가 할 수 없습니다.
+E
+dit 
+버튼이 활성화 되면 클릭 하시어 계정 추가
+ 
+시작 합니다.
+모터 
+선택
+:
+ 
+콤보 박스를 사용자가 클릭 시 
+위
+ 그림과 같이 목록이 나타납니다.
+ 
+목록 중 사용자가 제어하고 싶은 모터를 선택할 수 있습니다.
+ 
+제어할 모터를 선택 시 ③ 항목
+에
+ 사용자가 이전에 설정한 값으로 변경됩니다.
+ID, Type, Password
+를 정한 후 
+Save 
+버튼을 클릭합니다.
+ Save 
+버튼을 클릭하지 않으면,
+ 
+해당 
+ID
+가 저장 되지 않습니다.
+S
+ave 
+버튼을 클릭하면 해당 메시지가 생성되며 계정이 추가 됩니다.
+ 
+계정이 추가 된 후 
+OK
+버튼을 누르고 창을 빠져나갑니다.
+다시 
+Log In
+을 하실 때에 저장 하신 
+User
+를 선택 하신 후 
+Log In
+을 하시면 됩니다.
+1
+-4
+-2. 
+R
+ecipe 
+변경
+Main Menu
+에서 
+R
+ecipe 
+버튼을 클릭하여 
+Recipe 
+창을 
+Open 
+합니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="0089475A"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="0089475A"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="0089475A"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="0089475A"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="0089475A"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="0089475A"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+원하는 
+Recipe
+를 선택 한 후 
+OK 
+버튼을 클릭하여 해당 
+Recipe
+를 불러옵니다.
+O
+PEN 
+DIR :
+  
+R
+ecipe
+가 저장되어 있는 창을 보여줍니다.
+ 
+해당 경로는 기본적으로 
+D:\Data\Recipe 
+위치를 열게 되어 있으며,
+ 
+경로는 
+Setting
+에서 변경이 가능합니다.
+COPY :
+ 
+복사 할 
+Recipe
+를 선택 후 
+Copy 
+버튼을 클릭합니다.
+ 
+이 후 원하시는 
+Recipe 
+이름을 기재 한 후 
+OK 
+버튼을 클릭하면 
+Recipe
+가 복사 됩니다.
+DELETE :
+ 
+삭제 할 
+Recipe
+를 선택 후 
+Delete 
+버튼을 클릭하면 메시지가 발생이 되며
+, 
+메시지
+에서 
+OK 
+버튼을 클릭하면 해당 
+Recipe
+는 삭제 됩니다.
+ 
+삭제 하실 때에는 신중히 확인 후 삭제 하시기 바랍니다.
+1
+-
+4
+-
+3
+. 
+S
+etting 
+값 변경
+S
+etting 
+버튼을 클릭하여 창을 열어서 프로그램의 전반적인 
+Setting
+을 하게 됩니다.
+총 
+3
+분류로 되어 있으며,
+ 
+통신,
+ 
+경로
+, System
+으로 되어 있습니다.
+제어 
+PC
+와의 통신
+제어 
+PC
+와의 통신을 위해 
+Server Port
+를 설정합니다.
+ 
+통신이 되지 않을 경우 제어P
+C
+와 
+Port
+를 비교하여 동일한 
+Port
+로 설정 해 주시기 바랍니다.
+경로 설정
+이미지,
+ Recipe, Log 
+등 모든 저장 되는 경로를 관리 합니다.
+ 
+또한 
+Log 
+저장 날짜를 정하여 해당 날짜보다 오래 된 
+Log 
+파일은 삭제를 할 수 있도록 합니다.
+System 
+설정
+T
+ime Out
+프로그램 언어 등을 설정 할 수 있습니다.
+ 
+또한,
+ 
+검사 시 이미지 저장 여부를 설정 할 수 있으며,
+ OK 
+이미지까지 저장 할 것인지,
+ NG 
+이미지만 저장 할 것인지 선택 가능합니다.
+1
+-
+4
+-
+4
+. 
+Camera Check
+Camera
+의 실시간 영상 및 저장 되어 있는 이미지를 불러옵니다.
+C
+amera
+가 연결 되어 있을 경우 
+Live
+ 영상으로 보여 줍니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2463"/></mc:Choice><mc:Fallback><w:t>④
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2463"/></mc:Choice><mc:Fallback><w:t>④
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2462"/></mc:Choice><mc:Fallback><w:t>③
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2461"/></mc:Choice><mc:Fallback><w:t>②
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w:rFonts w:hint="eastAsia"/></mc:Choice><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2460"/></mc:Choice><mc:Fallback><w:t>①
+해당 기능은 다음과 같습니다.
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2464"/></mc:Choice><mc:Fallback><w:t>⑤
+<w:p w:rsidR="00970CF0" w:rsidRPr="00C9636E" w:rsidRDefault="00970CF0" w:rsidP="00326F1E"><w:pPr><w:spacing w:after="0" w:line="0" w:lineRule="atLeast"/><w:contextualSpacing/><w:jc w:val="left"/><w:rPr><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr></w:pPr><w:r><w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"/><mc:Fallback><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕" w:cs="맑은 고딕" w:hint="eastAsia"/></mc:Fallback></mc:AlternateContent><w:b/><w:color w:val="FF0000"/><w:sz w:val="36"/></w:rPr><mc:AlternateContent><mc:Choice Requires="w16se"><w16se:symEx w16se:font="맑은 고딕" w16se:char="2464"/></mc:Choice><mc:Fallback><w:t>⑤
+현재 선택 된 
+Camera
+를 보여주며 클릭하면 영상을 볼 수 있는 
+Camera
+의 
+List
+가 보여지며 선택 된 
+Camera
+의 영상을 볼 수 있습니다.
+보여지는 영상의 배율을 선택하여 보여줍니다.
+카메라의 기능을 보여줍니다.
+ 
+이미지 저장 및 
+Streaming 
+등을 선택하여 보여줍니다.
+Save 
+Image :
+ 
+현재 영상을 저장 합니다.
+Open Image 
+Dir :
+ 
+이미지가 저장 된 폴더를 엽니다.
+Load Image In 
+Directory :
+ 
+이미지를 보여 줄 경로를 설정합니다.
+Next 
+Image :
+ 
+폴더 내 다음 이미지를 불러옵니다.
+Prev
+ 
+Image :
+ 
+이전 이미지를 불러옵니다.
+Streaming :
+ 
+실시간 카메라 영상을 보여준다.
+Load 
+된 이미지 경로와 파일 이름을 보여줍니다.
+영상의 
+Pixel Size
+를 보여줍니다.
+1
+-
+4
+-
+5
+. 
+Light Check
+조명 값을 변경 및 
+Setting
+을 하도록 합니다.
+현재 조명 상태 및 조명 값을
+ 
+검사와 상관 없이 조정하며 볼 수 있으며,
+ 
+또한 통신 포트를 확인 및 연결
+/
+종료를 할 수 있습니다.
+C
+ontrol
+은 현재 조명을 
+On/Off 
+할 수 있으며 조명 값을 변경 시킬 수 있습니다.
+S
+etting
+은 
+조
+명 
+Control
+의 연결 
+Port
+와 
+Boudrate
+를 설정 할 수 있으며 
+Port
+를 연결 또는 끊을 수 있습니다.
+1
+-
+4
+-
+6
+. 
+C
+onnect Check
+C
+amera
+의 실시간 영상 및 저장 되어 있는 이미지를 불러옵니다.
+제어 
+PC
+와의 통신 
+Log
+를 확인 할 수 있습니다.
+이 창이 열려 있는 동안에만 확인을 할 수 있습니다.
+ 
+실시간으로 보기 위해서는 
+Log 
+창의 
+Tcp
+ Connection
+을 확인
+ 
+합니다.
+또한,
+ 
+제어 
+PC
+와 간단한 통신 조작을 할 수 있습니다.
+1
+-
+5
+. 
+문제 해결
+1
+-
+5
+-
+1
+. 
+통신 문제
+조명컨트롤러 동작 안됨.
+장비 하단 부에 컨트롤러 전원을 확인 합니다.
+현재 
+PC
+와의 연결 
+Port
+는 
+2
+번에 연결 되어 있습니다.
+해당 
+Port 
+번호를 
+2
+번으로 맞춰 주신 후 
+Baud Rate
+를 
+19200
+으로 맞추셔야 합니다.
+ 
+이 후 
+Close
+를 클릭 후 
+Open 
+버튼을 클릭 해 주시기 바랍니다.
+제어P
+C
+와의 통신 불량
+제어 
+PC
+와는 
+Ethernet 
+통신을 진행 합니다.
+ 
+본 프로그램이 서버로 되어 있으며,
+ 
+제어 
+PC
+는 클라이언트 입니다.
+제어P
+C
+와 서버의 통신 
+Port
+가 맞는지 확인 합니다.
+ 
+현재 
+Port
+는
+ 
+7701
+로 설정 되어 있습니다.
+제어 
+PC
+에서 통신 
+재연결을
+ 클릭 합니다.

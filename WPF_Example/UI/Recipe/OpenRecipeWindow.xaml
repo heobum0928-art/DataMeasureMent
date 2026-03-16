@@ -1,0 +1,70 @@
+﻿<Window x:Class="ReringProject.UI.OpenRecipeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ReringProject.UI"
+        mc:Ignorable="d"
+        Title="Recipe" Height="680" Width="860" 
+        WindowStartupLocation="CenterOwner" 
+        Loaded="Window_Loaded">
+    <Window.Resources>
+        <local:ImageLoaderConverter x:Key="imageLoaderConverter"></local:ImageLoaderConverter>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*"></ColumnDefinition>
+            <ColumnDefinition Width="5"></ColumnDefinition>
+            <ColumnDefinition Width="5*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="5*"></RowDefinition>
+            <RowDefinition Height="5*"></RowDefinition>
+            <RowDefinition Height="1*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <!-- recipe list -->
+        <ListView x:Name="listView_Recipe" Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" FontSize="20" ItemsSource="{Binding Items, Mode=OneWay}" SelectedIndex="{Binding SelectedIndex}" SelectedItem="{Binding SelectedItem}" SelectionChanged="ListView_Recipe_SelectionChanged">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="{Binding [Name], Source={StaticResource DR}}" DisplayMemberBinding="{Binding Name}" Width="220"/>
+                    <GridViewColumn Header="{Binding [Last Date], Source={StaticResource DR}}" DisplayMemberBinding="{Binding UpdateDateString}" Width="200"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        
+        <!-- splitter -->
+        <GridSplitter Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Stretch" ShowsPreview="True" BorderThickness="1" BorderBrush="Gray"></GridSplitter>
+        
+        <!-- selected recipe info -->
+        <Image x:Name="img_Selected" Grid.Column="2" Grid.Row="0" Cursor="Hand" Source="{Binding ThumbnailPath, Mode=OneWay, Converter={StaticResource imageLoaderConverter}}" MouseLeftButtonUp="Img_Selected_MouseLeftButtonUp">
+        </Image>
+        <Grid Grid.Column="2" Grid.Row="1" >
+            <Grid.ColumnDefinitions>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="9*"></RowDefinition>
+                <RowDefinition Height="1*"></RowDefinition>
+            </Grid.RowDefinitions>
+            <TextBox x:Name="textBox_Summary" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" FontSize="14" Margin="2,2,2,2" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding SummaryText}"></TextBox>
+           
+            <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Right">
+                <Button x:Name="button_importThumbnail" FontSize="14" Margin="2,2,2,2" Click="Button_importThumbnail_Click" Content="{Binding [Set Thumbnail], Source={StaticResource DR}}"></Button>
+                <Button x:Name="button_save" FontSize="14" Margin="2,2,2,2" Click="Button_save_Click" Content="{Binding [Save Summary], Source={StaticResource DR}}"></Button>
+            </StackPanel>
+        </Grid>
+        <!-- menu -->
+        <DockPanel Grid.Column="0" Grid.Row="2" HorizontalAlignment="Left" Margin="4,4,4,4">
+            <Button x:Name="btn_openDir" Width="110" FontSize="18" Margin="2,0,2,0" Click="Btn_openDir_Click" Content="{Binding [OPEN DIR], Source={StaticResource DR}}"></Button>
+            <Button x:Name="btn_Copy" Width="110" FontSize="18" Margin="2,0,2,0" IsEnabled="{Binding SelectedItems.Count, ElementName=listView_Recipe}" Click="Btn_Copy_Click" Content="{Binding [COPY], Source={StaticResource DR}}"></Button>
+            <Button x:Name="btn_Delete" Width="110" FontSize="18" IsEnabled="{Binding SelectedItems.Count, ElementName=listView_Recipe}" Click="Btn_Delete_Click" Content="{Binding [Delete], Source={StaticResource DR}}"></Button>
+        </DockPanel>
+
+        <DockPanel Grid.Column="2" Grid.Row="2" HorizontalAlignment="Right" Margin="4,4,4,4">
+            <Button x:Name="btn_Cancel" Width="110" FontSize="18" Margin="0,0,2,0" Click="Btn_Cancel_Click" Content="{Binding [CANCEL], Source={StaticResource DR}}"></Button>
+            <Button x:Name="btn_Ok" Width="110" FontSize="18" Click="Btn_Ok_Click" IsEnabled="{Binding SelectedItems.Count, ElementName=listView_Recipe}" Content="{Binding [OK], Source={StaticResource DR}}"></Button>
+        </DockPanel>
+    </Grid>
+</Window>

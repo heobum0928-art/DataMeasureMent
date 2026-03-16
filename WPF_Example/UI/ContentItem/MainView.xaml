@@ -1,0 +1,68 @@
+﻿<UserControl x:Class="ReringProject.UI.MainView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:dmv="clr-namespace:ReringProject.UI"
+             mc:Ignorable="d" Loaded="MainView_Loaded" d:DesignWidth="600" d:DesignHeight="400">
+    <TabControl x:Name="tabControl_view" TabStripPlacement="Top" FontSize="16">
+        <TabItem Header="Main View">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="42"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48"/>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Grid.Column="0" Source="/Resource/focus.png"/>
+                    <ComboBox x:Name="comboBox_sequence" Grid.Column="1" Margin="0,2,2,2" FontSize="24" SelectionChanged="ComboBox_sequence_SelectionChanged" SelectedItem="{Binding SelectedSeqName}" SelectedIndex="{Binding SelectedSeqIndex}"/>
+                    <ComboBox x:Name="comboBox_viewMode" Grid.Column="2" Margin="2" FontSize="24" SelectionChanged="ComboBox_viewMode_SelectionChanged" SelectedItem="{Binding SelectedViewMode}" SelectedIndex="{Binding SelectedViewIndex}"/>
+
+                    <StackPanel Orientation="Vertical" Grid.Column="3">
+                        <Slider x:Name="slider_scale" Value="100" Minimum="20" Maximum="200" Thumb.DragStarted="Slider_DragStarted" Thumb.DragCompleted="Slider_DragCompleted" ValueChanged="Slider_scale_ValueChanged" TickFrequency="5"/>
+                        <TextBlock x:Name="textBlock_scale" TextAlignment="Center" Text="{Binding Value, ElementName=slider_scale, StringFormat={}{0:0} %}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Row="1" Background="#FF303030">
+                    <dmv:MainResultViewerControl x:Name="halconViewer"/>
+                </Grid>
+
+                <Border Grid.Row="2" Background="#111827" Padding="12,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Label x:Name="label_message"
+                               Grid.Column="0"
+                               FontSize="20"
+                               Foreground="Red"
+                               HorizontalContentAlignment="Left"
+                               HorizontalAlignment="Stretch"
+                               Content="NO Image"/>
+
+                        <Label x:Name="label_pos"
+                               Grid.Column="1"
+                               FontSize="16"
+                               Foreground="LightGray"
+                               HorizontalContentAlignment="Right"
+                               HorizontalAlignment="Right"
+                               Content="X:0.0, Y:0.0, G:-"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</UserControl>
+

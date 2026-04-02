@@ -65,8 +65,7 @@
 
             <!-- CI -->
             <Button x:Name="Button_CI" Grid.Column="0" Grid.Row="0" Margin="0,1,0,1" Background="Transparent" BorderThickness="0" Click="Button_CI_Click">
-                <!--<Image Source="/Resource/TIS_Logo.png" Stretch="Fill"></Image>-->
-                <Image Source="/Resource/CTST_LOgo.png" Stretch="Fill"></Image>
+                <Image Source="pack://application:,,,/Resource/pamtek_logo.png" Stretch="Fill" Margin="1"></Image>
             </Button>
 
             <Label Grid.Column="1" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>

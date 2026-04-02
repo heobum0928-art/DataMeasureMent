@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using HalconDotNet;
 using Microsoft.Win32;
@@ -64,22 +63,15 @@ namespace ReringProject.UI {
         private readonly object mDrawInterlock = new object();
         private Dictionary<string, SequenceContext> ContextList;
         private Task GrabTask;
-        private bool dragStarted;
         private MainViewModel Model;
         private readonly List<IMainView> CustomViewList = new List<IMainView>();
         private string _lastRenderedImagePath;
         private double _drawScale = 1.0;
 
         public bool IsEditable { get; set; }
-
         public double DrawScale {
             get { return _drawScale; }
-            set {
-                _drawScale = value;
-                if (slider_scale != null) {
-                    slider_scale.Value = Math.Max(slider_scale.Minimum, Math.Min(slider_scale.Maximum, value * 100));
-                }
-            }
+            set { _drawScale = value; }
         }
 
         public MainView() {
@@ -421,19 +413,7 @@ namespace ReringProject.UI {
         private void ComboBox_viewMode_SelectionChanged(object sender, SelectionChangedEventArgs e) {
         }
 
-        private void Slider_DragCompleted(object sender, DragCompletedEventArgs e) {
-            DrawScale = slider_scale.Value / 100.0;
-            dragStarted = false;
-        }
 
-        private void Slider_DragStarted(object sender, DragStartedEventArgs e) {
-            dragStarted = true;
-        }
-
-        private void Slider_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
-            if (!IsLoaded || dragStarted) return;
-            DrawScale = slider_scale.Value / 100.0;
-        }
     }
 }
 

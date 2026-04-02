@@ -48,6 +48,9 @@ namespace ReringProject {
         // Shared user data container.
         public GlobalUserData UserData { get; private set; }
 
+        //260317 raw image save worker for inspection flow
+        public RawImageSaveService RawImageSaver { get; private set; }
+
         // Localization resource (UI strings).
         public LocalizationResource Localize { get; set; }
 
@@ -111,6 +114,10 @@ namespace ReringProject {
             // 3) TCP server
             //    External command/monitoring interface.
             Server = new VisionServer();
+
+            //260317 raw image save worker for inspection flow
+            RawImageSaver = new RawImageSaveService();
+            RawImageSaver.Start();
             
             // 4) System main loop thread
             //    Runs SystemProcess -> MainRun() in a tight loop.
@@ -162,6 +169,10 @@ namespace ReringProject {
 
             // Release sequences.
             Sequences.Dispose();
+
+            //260317 raw image save worker for inspection flow
+            RawImageSaver?.Dispose();
+            RawImageSaver = null;
             
             // Stop TCP server.
             Server.Dispose();

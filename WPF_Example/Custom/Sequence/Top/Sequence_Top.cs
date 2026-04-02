@@ -3,11 +3,9 @@ using ReringProject.Device;
 using ReringProject.Network;
 using ReringProject.UI;
 using System.Windows;
-using System.Windows.Media;
 
 namespace ReringProject.Sequence {
     public enum ETopActionType {
-        Calibration,
         Carrier,
         Socket,
     }
@@ -16,12 +14,6 @@ namespace ReringProject.Sequence {
         public double CenterOffsetXmm { get; set; }
         public double CenterOffsetYmm { get; set; }
         public double dAngle { get; set; }
-        public bool bFoundCircle { get; set; }
-        public double dCenterX { get; set; }
-        public double dCenterY { get; set; }
-        public double dRad { get; set; }
-        public double dDistX { get; set; }
-        public double dDistY { get; set; }
         public EVisionResultType ResultInfo { get; set; }
 
         public TopSequenceContext(TopSequence source) : base(source) { }
@@ -30,40 +22,14 @@ namespace ReringProject.Sequence {
             CenterOffsetXmm = 0;
             CenterOffsetYmm = 0;
             dAngle = 0;
-            bFoundCircle = false;
-            dCenterX = 0;
-            dCenterY = 0;
-            dRad = 0;
-            dDistX = 0;
-            dDistY = 0;
             ResultInfo = EVisionResultType.NG;
             base.Clear();
-        }
-
-        public override void RenderResult(DrawingContext dc) {
-            base.RenderResult(dc);
-            if (!bFoundCircle) {
-                return;
-            }
-
-            var pen = new Pen(Brushes.Lime, 3);
-            dc.DrawLine(pen, new System.Windows.Point(dCenterX - 40, dCenterY), new System.Windows.Point(dCenterX + 40, dCenterY));
-            dc.DrawLine(pen, new System.Windows.Point(dCenterX, dCenterY - 40), new System.Windows.Point(dCenterX, dCenterY + 40));
         }
 
         public override void CopyFrom(ActionContext actionContext) {
             base.CopyFrom(actionContext);
             Result = actionContext.Result;
-            if (actionContext is TopCalibrationContext calibration) {
-                bFoundCircle = calibration.bFoundCircle;
-                dCenterX = calibration.CircleCenter_X;
-                dCenterY = calibration.CircleCenter_Y;
-                dRad = calibration.Radius;
-                dDistX = CenterOffsetXmm = calibration.CenterOffsetXmm;
-                dDistY = CenterOffsetYmm = calibration.CenterOffsetYmm;
-                ResultInfo = calibration.CalibrationResult;
-            }
-            else if (actionContext is TopInspectionContext inspection) {
+            if (actionContext is TopInspectionContext inspection) {
                 CenterOffsetXmm = inspection.CenterOffsetXmm;
                 CenterOffsetYmm = inspection.CenterOffsetYmm;
                 dAngle = inspection.AngleDeg;

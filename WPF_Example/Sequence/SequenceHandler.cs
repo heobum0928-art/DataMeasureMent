@@ -193,6 +193,13 @@ namespace ReringProject.Sequence {
                 //not matched version
                 
             }
+            // 신규 SHOTS 포맷 감지 시 동적 로드
+            if (TryLoadNewFormat(loadFile)) {
+                pSetting.CurrentRecipeName = name;
+                return true;
+            }
+
+            // 기존 Param0~N 방식
             int m = 0;
             for (int i = 0; i < Sequences.Count; i++) {
                 for (int j = 0; j < this[i].ActionCount; j++) {
@@ -221,7 +228,12 @@ namespace ReringProject.Sequence {
             saveFile["Info"]["ModelName"] = ModelName;
             saveFile["Info"]["Version"] = Version;
 
-            //saveFile["Params"]["Count"] = Params.Count; (개수는 고정되어 있으므로 저장할 필요가 없음)
+            // 동적 FAI 모드면 신규 포맷으로 저장
+            if (IsDynamicFAIMode) {
+                SaveNewFormat(saveFile);
+            }
+
+            // 기존 Param0~N 방식도 항상 저장 (하위 호환)
             int m = 0;
             for (int i = 0; i < Sequences.Count; i++) {
                 for (int j = 0; j < this[i].ActionCount; j++) {
@@ -318,6 +330,11 @@ namespace ReringProject.Sequence {
         
 
         public bool Start(TestPacket packet) {
+            if (packet == null) return false;
+            if ((ETestType)packet.TestType == ETestType.Calibration) {
+                Logging.PrintLog((int)ELogType.Trace, "Calibration test requests are blocked from automatic sequence execution.");
+                return false;
+            }
             string seqName = packet.Identifier;
             SequenceBase seq = this[seqName];
             if (seq == null) return false;

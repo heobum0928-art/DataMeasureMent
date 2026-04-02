@@ -55,6 +55,11 @@ namespace ReringProject.Device {
     public sealed partial class DeviceHandler : IDisposable {
         public static DeviceHandler Handle { get; } = new DeviceHandler();
 
+#if SIMUL_MODE
+        //260317 offline auto-run test image
+        private const string SimulatedImagePath = @"D:\1.bmp";
+#endif
+
         private List<DeviceInfo> IDList = new List<DeviceInfo>();
 
         private Dictionary<string, VirtualCamera> Devices = new Dictionary<string, VirtualCamera>();
@@ -268,6 +273,10 @@ namespace ReringProject.Device {
             if (String.IsNullOrEmpty(id.Identifier)) id.Identifier = string.Format("Virtual Camera {0}", GetCount(ECameraType.Virtual) + 1);
             VirtualCamera vCam = new VirtualCamera(Config, id);
             vCam.Open(id.Width, id.Height);
+#if SIMUL_MODE
+            //260317 offline auto-run test image
+            vCam.BackgroundImagePath = SimulatedImagePath;
+#endif
             Devices.Add(id.Identifier, vCam);
         }
         

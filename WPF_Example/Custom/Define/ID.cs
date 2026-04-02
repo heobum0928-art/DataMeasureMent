@@ -19,12 +19,11 @@ namespace ReringProject.Define {
     /// 각 시퀀스에 종속되는 action의 ID (쓰레드가 수행할 수 있는 동작 단위)
     /// </summary>
     public enum EAction : int {
-        Top_Calibration = 1,
         Top_Inspection = 2,
-        Side_Calibration = 3,
         Side_Inspection = 4,
-        Bottom_Calibration = 5,
         Bottom_Inspection = 6,
+
+        FAI_Base = 100,
 
         Unknown = Int32.MaxValue
     }

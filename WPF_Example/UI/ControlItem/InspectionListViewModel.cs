@@ -64,29 +64,10 @@ namespace ReringProject.UI {
                 //action
                 for (int j = 0; j < seq.ActionCount; j++) {
                     ActionBase act = seq[j];
-                    if (!ShouldShowAction(act.ID))
-                    {
-                        continue;
-                    }
-
                     var actNode = new CompositeNode { Name = act.Name, NodeType = ENodeType.Action, ParamData = act.Param, SequenceName = seq.Name, SequenceID = seq.ID, ActionID = act.ID };
                     seqNode.Children.Add(actNode);
                     this.Count++;
                 }
-            }
-        }
-
-        private static bool ShouldShowAction(EAction actionId)
-        {
-            switch (actionId)
-            {
-                case EAction.Top_Calibration:
-                case EAction.Side_Calibration:
-                case EAction.Bottom_Calibration:
-                    return false;
-
-                default:
-                    return true;
             }
         }
         

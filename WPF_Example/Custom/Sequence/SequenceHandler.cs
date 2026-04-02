@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using ReringProject.Define;
 using ReringProject.Device;
+using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
     public sealed partial class SequenceHandler {
@@ -9,7 +12,6 @@ namespace ReringProject.Sequence {
         public const string SEQ_SIDE = "SIDE";
         public const string SEQ_BOTTOM = "BOTTOM";
 
-        public const string ACT_CALIB = "Calibration";
         public const string ACT_INSPECT = "Inspect";
         public const string ACT_SCAN = "SCAN";
 
@@ -18,7 +20,10 @@ namespace ReringProject.Sequence {
         public const int Bottom_Alg_Index = 2;
 
         public const int Inspection_Model_Index = 0;
-        public const int Calibration_Model_Index = 1;
+
+        public InspectionRecipeManager RecipeManager { get; } = new InspectionRecipeManager(Handle);
+
+        public bool IsDynamicFAIMode { get; private set; } = false;
 
         private void RegisterSequences() {
             SequenceBuilder.RegisterSequence(
@@ -30,11 +35,8 @@ namespace ReringProject.Sequence {
 
         private void RegisterActions() {
             SequenceBuilder.RegisterAction(
-                new TopCalibrationAction(EAction.Top_Calibration, ACT_CALIB, Top_Alg_Index, Calibration_Model_Index),
                 new TopInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index),
-                new TopCalibrationAction(EAction.Side_Calibration, ACT_CALIB, Side_Alg_Index, Calibration_Model_Index),
                 new TopInspectionAction(EAction.Side_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index),
-                new BottomCalibrationAction(EAction.Bottom_Calibration, ACT_CALIB, Bottom_Alg_Index, Calibration_Model_Index),
                 new BottomInspectionAction(EAction.Bottom_Inspection, ACT_INSPECT, Bottom_Alg_Index, Inspection_Model_Index)
             );
         }
@@ -53,6 +55,58 @@ namespace ReringProject.Sequence {
             seq = SequenceBuilder.CreateSequence(ESequence.Bottom);
             seq.AddAction(EAction.Bottom_Inspection);
             RegisterSequence(seq);
+        }
+
+        /// <summary>
+        /// RecipeManager의 Shot 목록 기반으로 시퀀스의 Action을 재구축한다.
+        /// </summary>
+        public void RebuildInspectionActions(ESequence seqId) {
+            SequenceBase seq = this[seqId];
+            if (seq == null) return;
+
+            // CameraMasterParam의 기존 child 정리
+            if (seq.Param is CameraMasterParam masterParam) {
+                masterParam.ClearChildren();
+            }
+
+            // Shot별로 Action_FAIMeasurement 생성
+            var actions = new List<ActionBase>();
+            for (int i = 0; i < RecipeManager.ShotCount; i++) {
+                ShotConfig shot = RecipeManager.Shots[i];
+                EAction actionId = (EAction)((int)EAction.FAI_Base + i);
+                string actionName = shot.ShotName ?? $"SHOT_{i}";
+                var action = new Action_FAIMeasurement(actionId, actionName, shot);
+                actions.Add(action);
+            }
+
+            if (actions.Count > 0) {
+                seq.AddAction(actions.ToArray());
+            }
+        }
+
+        /// <summary>
+        /// INI 파일에서 신규 SHOTS 포맷 로드 시도. 성공하면 IsDynamicFAIMode = true.
+        /// </summary>
+        public bool TryLoadNewFormat(IniFile loadFile) {
+            if (!RecipeManager.HasNewFormatData(loadFile)) {
+                IsDynamicFAIMode = false;
+                return false;
+            }
+
+            RecipeManager.Load(loadFile);
+            IsDynamicFAIMode = true;
+
+            // 첫 번째 시퀀스(Top)에 대해 Shot 기반 Action 재구축
+            RebuildInspectionActions(ESequence.Top);
+            return true;
+        }
+
+        /// <summary>
+        /// 신규 SHOTS 포맷으로 INI에 저장.
+        /// </summary>
+        public bool SaveNewFormat(IniFile saveFile) {
+            if (!IsDynamicFAIMode) return false;
+            return RecipeManager.Save(saveFile);
         }
     }
 }

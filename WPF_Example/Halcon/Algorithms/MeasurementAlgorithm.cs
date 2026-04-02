@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HalconDotNet;
@@ -11,41 +11,64 @@ namespace ReringProject.Halcon.Algorithms
         public string Run(string imagePath, IEnumerable<RoiDefinition> rois)
         {
             var allRois = rois == null ? new List<RoiDefinition>() : rois.ToList();
-            var taughtRois = allRois.Where(roi => roi.IsTaught).ToList();
-
             if (string.IsNullOrWhiteSpace(imagePath))
             {
                 return "Image: None | No inspection executed.";
-            }
-
-            if (!taughtRois.Any())
-            {
-                return string.Format("Image: {0} | ROI: 0/{1} taught", imagePath, allRois.Count);
             }
 
             try
             {
                 using (var image = new HImage(imagePath))
                 {
-                    var summaries = new List<string>();
-                    foreach (var roi in taughtRois)
-                    {
-                        EdgeInspectionOverlay overlay;
-                        if (!TryInspectSingleEdgeInternal(image, roi, out overlay))
-                        {
-                            summaries.Add(string.Format("{0}: NG", roi.Name));
-                            continue;
-                        }
-
-                        summaries.Add(string.Format("{0}: OK pts={1}", roi.Name, overlay.Points.Count));
-                    }
-
-                    return string.Format("Image: {0} | ROI: {1}/{2} taught | {3}", imagePath, taughtRois.Count, allRois.Count, string.Join(" | ", summaries));
+                    return Run(image, allRois, imagePath);
                 }
             }
             catch
             {
                 return string.Format("Image: {0} | inspection failed.", imagePath);
+            }
+        }
+
+        public string Run(HImage image, IEnumerable<RoiDefinition> rois)
+        {
+            var allRois = rois == null ? new List<RoiDefinition>() : rois.ToList();
+            return Run(image, allRois, "(memory)");
+        }
+
+        private string Run(HImage image, List<RoiDefinition> allRois, string imageLabel)
+        {
+            var taughtRois = allRois.Where(roi => roi.IsTaught).ToList();
+
+            if (image == null)
+            {
+                return "Image: None | No inspection executed.";
+            }
+
+            if (!taughtRois.Any())
+            {
+                return string.Format("Image: {0} | ROI: 0/{1} taught", imageLabel, allRois.Count);
+            }
+
+            try
+            {
+                var summaries = new List<string>();
+                foreach (var roi in taughtRois)
+                {
+                    EdgeInspectionOverlay overlay;
+                    if (!TryInspectSingleEdgeInternal(image, roi, out overlay))
+                    {
+                        summaries.Add(string.Format("{0}: NG", roi.Name));
+                        continue;
+                    }
+
+                    summaries.Add(string.Format("{0}: OK pts={1}", roi.Name, overlay.Points.Count));
+                }
+
+                return string.Format("Image: {0} | ROI: {1}/{2} taught | {3}", imageLabel, taughtRois.Count, allRois.Count, string.Join(" | ", summaries));
+            }
+            catch
+            {
+                return string.Format("Image: {0} | inspection failed.", imageLabel);
             }
         }
 
@@ -61,8 +84,26 @@ namespace ReringProject.Halcon.Algorithms
             {
                 using (var image = new HImage(imagePath))
                 {
-                    return TryInspectSingleEdgeInternal(image, roi, out overlay);
+                    return TryInspectSingleEdge(image, roi, out overlay);
                 }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool TryInspectSingleEdge(HImage image, RoiDefinition roi, out EdgeInspectionOverlay overlay)
+        {
+            overlay = null;
+            if (image == null || roi == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                return TryInspectSingleEdgeInternal(image, roi, out overlay);
             }
             catch
             {
@@ -225,5 +266,3 @@ namespace ReringProject.Halcon.Algorithms
         }
     }
 }
-
-

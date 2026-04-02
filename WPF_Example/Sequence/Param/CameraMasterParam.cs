@@ -68,6 +68,10 @@ namespace ReringProject.Sequence
             ChildList.Add(child);
         }
 
+        public void ClearChildren() {
+            ChildList.Clear();
+        }
+
         public override bool Load(IniFile loadFile, string groupName) {
             return base.Load(loadFile, groupName);
         }

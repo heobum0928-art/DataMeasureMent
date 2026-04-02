@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -118,16 +118,45 @@ namespace ReringProject.Halcon.Services
             {
                 return null;
             }
+
             var safeKey = string.IsNullOrWhiteSpace(key) ? "halcon" : string.Concat(key.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)));
             if (string.IsNullOrWhiteSpace(safeKey))
             {
                 safeKey = "halcon";
             }
-            var directory = Path.Combine(Path.GetTempPath(), "DatumMeasurementViewer");
+
+            var directory = Path.Combine(Path.GetTempPath(), "DatumMeasurementViewer", safeKey);
             Directory.CreateDirectory(directory);
-            var path = Path.Combine(directory, safeKey + ".png");
+
+            CleanupTempImages(directory, 20);
+
+            var fileName = string.Format(
+                "{0}_{1}.png",
+                DateTime.Now.ToString("yyyyMMdd_HHmmssfff"),
+                Guid.NewGuid().ToString("N"));
+            var path = Path.Combine(directory, fileName);
             image.WriteImage("png", 0, path);
             return path;
+        }
+
+        private static void CleanupTempImages(string directory, int keepCount)
+        {
+            try
+            {
+                var files = new DirectoryInfo(directory)
+                    .GetFiles("*.png")
+                    .OrderByDescending(file => file.CreationTimeUtc)
+                    .ToList();
+
+                for (var i = keepCount; i < files.Count; i++)
+                {
+                    files[i].Delete();
+                }
+            }
+            catch
+            {
+                // Temp image cleanup should never block inspection.
+            }
         }
         public static TeachingJob CreateDefaultJob(string jobName, System.Windows.Rect fallbackRect)
         {

@@ -336,6 +336,7 @@ namespace ReringProject.Sequence {
         }
 
         //생성된 파일명을 반환한다.
+        // Save the result image and record the generated file name.
         protected void SaveResultImage(string actionName) {
             if (SystemHandler.Handle.Setting.SaveFailImage == false) {
                 Context.ResultImageFileName = null;

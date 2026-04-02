@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props" Condition="Exists('..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
@@ -16,7 +16,8 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
-    <NuGetPackageImportStamp></NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -188,23 +189,25 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Custom\ErrorCode\ErrorCode.cs" />
-    <Compile Include="Custom\Sequence\Bottom\Action_BottomCalibration.cs" />
-           <Compile Include="Custom\UI\MainWindow.cs" />
+    <Compile Include="Custom\UI\MainWindow.cs" />
     <Compile Include="Device\Camera\Hik\HikCamera.cs" />
     <Compile Include="Device\Camera\Hik\HikCameraProperty.cs" />
     <Compile Include="Device\LightController\JPFLightController.cs" />
-                <Compile Include="Login\LoginManager.cs" />
+    <Compile Include="Login\LoginManager.cs" />
     <Compile Include="Custom\Sequence\Bottom\Action_BottomInspection.cs" />
     <Compile Include="Custom\Define\ID.cs" />
     <Compile Include="Custom\Device\DeviceHandler.cs" />
     <Compile Include="Custom\Device\LightHandler.cs" />
-    <Compile Include="Custom\Sequence\Top\Action_TopCalibration.cs" />
     <Compile Include="Custom\Sequence\Top\Action_TopInspection.cs" />
     <Compile Include="Custom\Sequence\Bottom\Sequence_Bottom.cs" />
     <Compile Include="Custom\Sequence\Top\Sequence_Top.cs" />
     <Compile Include="Custom\TcpServer\ResourceMap.cs" />
     <Compile Include="Custom\SystemHandler.cs" />
     <Compile Include="Custom\Sequence\SequenceHandler.cs" />
+    <Compile Include="Custom\Sequence\Inspection\FAIConfig.cs" />
+    <Compile Include="Custom\Sequence\Inspection\ShotConfig.cs" />
+    <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />
@@ -264,6 +267,7 @@
     <Compile Include="UI\ViewModel\CalibrationViewModel.cs" />
     <Compile Include="UI\ViewModel\ModelFinderViewModel.cs" />
     <Compile Include="Utility\RecipeFileHelper.cs" />
+    <Compile Include="Utility\RawImageSaveService.cs" />
     <Compile Include="Sequence\SequenceHandler.cs" />
     <Compile Include="UI\ControlItem\Node.cs" />
     <Compile Include="UI\ControlItem\NodeViewModel.cs" />
@@ -442,7 +446,6 @@
     <Compile Include="UI\ContentItem\HalconViewerControl.xaml.cs">
       <DependentUpon>HalconViewerControl.xaml</DependentUpon>
     </Compile>
-
     <Page Include="UI\Dialog\TeachingWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -560,14 +563,12 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resource\CTST_Logo.png">
+    <Resource Include="Resource\repair.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resource\repair.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    <Resource Include="Resource\pamtek_logo.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Camera_DDA.ico" />
@@ -583,8 +584,3 @@
     <Error Condition="!Exists('..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCvSharp4.runtime.win.4.8.0.20230708\build\net48\OpenCvSharp4.runtime.win.props'))" />
   </Target>
 </Project>
-
-
-
-
-

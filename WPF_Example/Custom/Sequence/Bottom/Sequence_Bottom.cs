@@ -8,15 +8,6 @@ using System.Windows.Media;
 namespace ReringProject.Sequence {
     public class BottomSequenceContext : SequenceContext {
         public double dAngle { get; set; }
-        public bool[] bFoundCircle = new bool[10];
-        public double[] dCenterX = new double[10];
-        public double[] dCenterY = new double[10];
-        public double[] CenterOffsetXmm = new double[10];
-        public double[] CenterOffsetYmm = new double[10];
-        public double[] dRad = new double[10];
-        public double[] dRadmm = new double[10];
-        public double[] dDistX = new double[10];
-        public double[] dDistY = new double[10];
         public bool bfinish { get; set; }
         public string ProcessName { get; set; }
         public EVisionResultType ResultInfo { get; set; }
@@ -36,8 +27,6 @@ namespace ReringProject.Sequence {
         public double Cal_Ybase { get; set; }
         public double ScreenCenter_X { get; set; }
         public double ScreenCenter_Y { get; set; }
-        public EVisionResultType[] CalibrationResultArray { get; set; } = new EVisionResultType[10];
-
         public BottomSequenceContext(BottomSequence source) : base(source) { }
 
         public override void Clear() {
@@ -49,15 +38,6 @@ namespace ReringProject.Sequence {
             BottomDie.Clear();
             PickerNum = 0;
             for (var i = 0; i < 10; i++) {
-                bFoundCircle[i] = false;
-                dCenterX[i] = 0;
-                dCenterY[i] = 0;
-                CenterOffsetXmm[i] = 0;
-                CenterOffsetYmm[i] = 0;
-                dRad[i] = 0;
-                dRadmm[i] = 0;
-                dDistX[i] = 0;
-                dDistY[i] = 0;
                 CenterOffsetXmmArray[i] = 0;
                 CenterOffsetYmmArray[i] = 0;
                 dAngleArray[i] = 0;
@@ -65,41 +45,23 @@ namespace ReringProject.Sequence {
                 DieCenter_YArray[i] = 0;
                 X_Picker[i] = 0;
                 Y_Picker[i] = 0;
-                CalibrationResultArray[i] = EVisionResultType.NotExist;
             }
             base.Clear();
         }
 
         public override void RenderResult(DrawingContext dc) {
             base.RenderResult(dc);
-            var pen = new Pen(Brushes.Lime, 3);
             if (bfinish) {
+                var pen = new Pen(Brushes.Lime, 3);
                 dc.DrawLine(pen, new System.Windows.Point(DieCenter_XArray[PickerNum] - 40, DieCenter_YArray[PickerNum]), new System.Windows.Point(DieCenter_XArray[PickerNum] + 40, DieCenter_YArray[PickerNum]));
                 dc.DrawLine(pen, new System.Windows.Point(DieCenter_XArray[PickerNum], DieCenter_YArray[PickerNum] - 40), new System.Windows.Point(DieCenter_XArray[PickerNum], DieCenter_YArray[PickerNum] + 40));
-            } else if (bFoundCircle[PickerNum]) {
-                dc.DrawLine(pen, new System.Windows.Point(dCenterX[PickerNum] - 40, dCenterY[PickerNum]), new System.Windows.Point(dCenterX[PickerNum] + 40, dCenterY[PickerNum]));
-                dc.DrawLine(pen, new System.Windows.Point(dCenterX[PickerNum], dCenterY[PickerNum] - 40), new System.Windows.Point(dCenterX[PickerNum], dCenterY[PickerNum] + 40));
             }
         }
 
         public override void CopyFrom(ActionContext actionContext) {
             base.CopyFrom(actionContext);
             Result = actionContext.Result;
-            if (actionContext is BottomCalibrationContext calibration) {
-                strActionBaseName = calibration.strActionBaseName;
-                ResultInfo = calibration.CalibrationResult;
-                PickerNum = calibration.PickerNum;
-                for (var i = 0; i < 10; i++) {
-                    bFoundCircle[i] = calibration.bFoundCircle[i];
-                    dRad[i] = calibration.Radius[i];
-                    dRadmm[i] = calibration.dRadmm[i];
-                    dDistX[i] = CenterOffsetXmm[i] = calibration.CenterOffsetXmm[i];
-                    dDistY[i] = CenterOffsetYmm[i] = calibration.CenterOffsetYmm[i];
-                    dCenterX[i] = calibration.CircleCenter_X[i];
-                    dCenterY[i] = calibration.CircleCenter_Y[i];
-                    CalibrationResultArray[i] = calibration.CalibrationResultArray[i];
-                }
-            } else if (actionContext is BottomInspectionContext inspection) {
+            if (actionContext is BottomInspectionContext inspection) {
                 BottomDie = inspection.BottomDie;
                 ResultInfo = inspection.InspectResult;
                 bfinish = inspection.bFinish;
@@ -150,14 +112,7 @@ namespace ReringProject.Sequence {
                 InspectionType = RequestPacket.TestType,
             };
 
-            if (responsePacket.InspectionType == (int)ETestType.Calibration) {
-                for (var i = 0; i < 10; i++) {
-                    responsePacket.visionResults[i].Angle = i;
-                    responsePacket.visionResults[i].X = pMyContext.CenterOffsetXmm[i];
-                    responsePacket.visionResults[i].Y = pMyContext.CenterOffsetYmm[i];
-                    responsePacket.visionResults[i].Result = pMyContext.CalibrationResultArray[i];
-                }
-            } else if (responsePacket.InspectionType == (int)ETestType.Inspection) {
+            if (responsePacket.InspectionType == (int)ETestType.Inspection) {
                 var index = 0;
                 foreach (var item in pMyContext.BottomDie) {
                     if (index >= TestResultPacket.MaxListCount) break;

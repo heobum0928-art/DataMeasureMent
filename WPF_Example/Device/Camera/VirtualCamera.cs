@@ -146,7 +146,10 @@ namespace ReringProject.Device {
 
                     //path ??곷퓠 鈺곕똻???롫뮉 image ???뵬??嚥≪뮆諭?
                     string[] extensions = { ".bmp", ".jpg", ".jpeg", ".png", ".tiff" };
-                    if (Directory.Exists(_BackgroundImagePath)) {
+                    if (File.Exists(_BackgroundImagePath) && extensions.Any(ext => ext.Equals(Path.GetExtension(_BackgroundImagePath), StringComparison.OrdinalIgnoreCase))) {
+                        BackgroundImageFileList.Add(_BackgroundImagePath);
+                    }
+                    else if (Directory.Exists(_BackgroundImagePath)) {
                         IEnumerable<string> fileList = Directory.EnumerateFiles(_BackgroundImagePath, "*.*", SearchOption.TopDirectoryOnly)
                             .Where(s => extensions.Any(ext => ext == Path.GetExtension(s)));
 
@@ -254,6 +257,12 @@ namespace ReringProject.Device {
             }
 
             normalizedImage.GetImageSize(out HTuple width, out HTuple height);
+#if SIMUL_MODE
+            //260317 keep offline source resolution in simulation mode
+            Properties.Width = width.I;
+            Properties.Height = height.I;
+            return normalizedImage;
+#endif
             if ((width.I == Properties.Width) && (height.I == Properties.Height)) {
                 return normalizedImage;
             }

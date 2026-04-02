@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HalconDotNet;
@@ -18,6 +18,28 @@ namespace ReringProject.Halcon.Algorithms
                 return false;
             }
 
+            try
+            {
+                using (var image = new HImage(imagePath))
+                {
+                    return TryRun(image, rois, out result);
+                }
+            }
+            catch
+            {
+                result = new RoiLineInspectionResult();
+                return false;
+            }
+        }
+
+        public bool TryRun(HImage image, IEnumerable<RoiDefinition> rois, out RoiLineInspectionResult result)
+        {
+            result = new RoiLineInspectionResult();
+            if (image == null || rois == null)
+            {
+                return false;
+            }
+
             var taught = rois.Where(roi => roi.IsTaught).ToList();
             if (!taught.Any())
             {
@@ -32,7 +54,7 @@ namespace ReringProject.Halcon.Algorithms
             foreach (var roi in taught)
             {
                 EdgeInspectionOverlay overlay;
-                if (!_edgeAlgorithm.TryInspectSingleEdge(imagePath, roi, out overlay))
+                if (!_edgeAlgorithm.TryInspectSingleEdge(image, roi, out overlay))
                 {
                     result.ReteachMessages.Add(string.Format("{0}: edge detect failed. Re-teach.", roi.Name));
                     continue;
@@ -203,6 +225,3 @@ namespace ReringProject.Halcon.Algorithms
         }
     }
 }
-
-
-

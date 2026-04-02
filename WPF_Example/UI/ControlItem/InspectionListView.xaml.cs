@@ -112,7 +112,7 @@ namespace ReringProject.UI {
                 }
                 else if(node.NodeType == ENodeType.Sequence) {
                     seqID = node.SequenceID;
-                    // Run the first inspect action exposed in the UI, not calibration.
+                    // Run the first action exposed in the UI.
                     SequenceBase seq = SystemHandler.Handle.Sequences[seqID];
                     if(seq != null) {
                         actID = GetDefaultRunnableAction(seq);
@@ -127,39 +127,16 @@ namespace ReringProject.UI {
             }
         }
 
-        private static EAction GetDefaultRunnableAction(SequenceBase sequence)
-        {
-            if (sequence == null)
-            {
+        private static EAction GetDefaultRunnableAction(SequenceBase sequence) {
+            if (sequence == null) {
                 return EAction.Unknown;
             }
 
-            for (var i = 0; i < sequence.ActionCount; i++)
-            {
-                var actionId = sequence[i].ID;
-                if (IsCalibrationAction(actionId))
-                {
-                    continue;
-                }
-
-                return actionId;
+            for (var i = 0; i < sequence.ActionCount; i++) {
+                return sequence[i].ID;
             }
 
             return EAction.Unknown;
-        }
-
-        private static bool IsCalibrationAction(EAction actionId)
-        {
-            switch (actionId)
-            {
-                case EAction.Top_Calibration:
-                case EAction.Side_Calibration:
-                case EAction.Bottom_Calibration:
-                    return true;
-
-                default:
-                    return false;
-            }
         }
 
         public void SetSelectionChange(string seqName) {

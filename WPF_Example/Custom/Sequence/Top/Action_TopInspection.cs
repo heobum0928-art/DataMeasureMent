@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Linq;
@@ -38,6 +38,7 @@ namespace ReringProject.Sequence {
     public class TopInspectionParam : CameraSlaveParam, IHalconTeachingProvider, IOfflineImageParam {
         private readonly string _jobName;
         private string _latestImagePath;
+        private HImage _latestHalconImage;
         private TeachingJob _teachingJob;
 
         [Category("Top Inspection")]
@@ -98,22 +99,28 @@ namespace ReringProject.Sequence {
         }
 
         public override void PutImage(HImage image) {
-            var savedImagePath = HalconTeachingHelper.SaveTempImage(SequenceName + "_" + ActionName, image);
-            if (string.IsNullOrWhiteSpace(savedImagePath)) {
-                return;
-            }
-
-            _latestImagePath = savedImagePath;
+            _latestHalconImage?.Dispose();
+            _latestHalconImage = image == null ? null : image.CopyImage();
+            _latestImagePath = null;
             if (_teachingJob != null) {
-                _teachingJob.ImagePath = _latestImagePath;
+                _teachingJob.ImagePath = null;
             }
         }
 
         public string GetLatestImagePath() {
+            if (string.IsNullOrWhiteSpace(_latestImagePath) && _latestHalconImage != null) {
+                _latestImagePath = HalconTeachingHelper.SaveTempImage(SequenceName + "_" + ActionName, _latestHalconImage);
+                if (_teachingJob != null) {
+                    _teachingJob.ImagePath = _latestImagePath;
+                }
+            }
+
             return _latestImagePath;
         }
 
         public void SetLatestImagePath(string imagePath) {
+            _latestHalconImage?.Dispose();
+            _latestHalconImage = null;
             _latestImagePath = imagePath;
             if (_teachingJob != null) {
                 _teachingJob.ImagePath = _latestImagePath;
@@ -125,7 +132,6 @@ namespace ReringProject.Sequence {
             PutImage(image);
             return GetLatestImagePath();
         }
-
         private void OpenTeachingButton_Click(object sender, RoutedEventArgs e) {
             var window = new TeachingWindow { Owner = Application.Current?.MainWindow };
             window.ImageGrabber = GrabTeachingImage;
@@ -218,37 +224,73 @@ namespace ReringProject.Sequence {
                 SystemHandler.Handle.Lights.ApplyLight(pMyParam);
             }
             var image = SystemHandler.Handle.Devices.GrabHalconImage(pMyParam);
-            pMyParam.PutImage(image);
-            pMyContext.ResultHalconImage?.Dispose();
-            pMyContext.ResultHalconImage = image == null ? null : image.CopyImage();
-            var imagePath = pMyParam.GetLatestImagePath();
-            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath)) {
-                pMyContext.InspectResult = EVisionResultType.NG;
-                FinishAction(EContextResult.Error);
+            // 260317 queue raw input image save outside the inspection thread
+            // image는 TryRun / GetImageSize 까지 사용되므로 try/finally로 감싸
+            // 어느 경로로 return 되더라도 원본 HImage가 반드시 해제되도록 보장한다.
+            try {
+                QueueRawImageSave(image);                                               // 내부 CopyImage → 저장 완료 후 Dispose
+                pMyParam.PutImage(image);                                               // 내부 CopyImage → 다음 PutImage 시 Dispose
+                pMyContext.ResultHalconImage?.Dispose();
+                pMyContext.ResultHalconImage = image == null ? null : image.CopyImage(); // 내부 CopyImage → 다음 Run 시 Dispose
+
+                string imagePath = null;
+                if (image == null) {
+                    imagePath = pMyParam.GetLatestImagePath();
+                    if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath)) {
+                        pMyContext.InspectResult = EVisionResultType.NG;
+                        FinishAction(EContextResult.Error);
+                        return Context;
+                    }
+                }
+
+                RoiLineInspectionResult result;
+                bool isSuccess = image != null
+                    ? _algorithm.TryRun(image, pMyParam.TeachingJob?.Rois, out result)
+                    : _algorithm.TryRun(imagePath, pMyParam.TeachingJob?.Rois, out result);
+                if (!isSuccess || !result.HasIntersection) {
+                    pMyContext.InspectResult = pMyParam.TeachingJob?.Rois?.Any() == true ? EVisionResultType.NG : EVisionResultType.TECHING;
+                    FinishAction(EContextResult.Fail);
+                    return Context;
+                }
+
+                HTuple widthValue;
+                HTuple heightValue;
+                if (image != null) {
+                    image.GetImageSize(out widthValue, out heightValue);
+                }
+                else {
+                    using (var loadedImage = new HImage(imagePath)) {
+                        loadedImage.GetImageSize(out widthValue, out heightValue);
+                    }
+                }
+
+                pMyContext.CenterOffsetXmm = ((result.IntersectionColumn - (widthValue.D / 2.0)) * pMyParam.PixelToUM_Offset / 1000.0) + pMyParam.TeachingJob.OutputOffsetX;
+                pMyContext.CenterOffsetYmm = ((result.IntersectionRow - (heightValue.D / 2.0)) * pMyParam.PixelToUM_Offset / 1000.0) + pMyParam.TeachingJob.OutputOffsetY;
+                pMyContext.AngleDeg = result.CrossAngleDeg + pMyParam.TeachingJob.OutputOffsetTheta;
+                pMyContext.InspectResult = EVisionResultType.OK;
+                pMyContext.ResultImagePath = imagePath;
+                pMyContext.InspectionOverlays = result.Overlays.Select(overlay => overlay.Clone()).ToList();
+                FinishAction(EContextResult.Pass);
                 return Context;
             }
+            finally {
+                image?.Dispose(); // 원본 해제 - 모든 return/예외 경로에서 보장
+            }
+        }
 
-            RoiLineInspectionResult result;
-            if (!_algorithm.TryRun(imagePath, pMyParam.TeachingJob?.Rois, out result) || !result.HasIntersection) {
-                pMyContext.InspectResult = pMyParam.TeachingJob?.Rois?.Any() == true ? EVisionResultType.NG : EVisionResultType.TECHING;
-                FinishAction(EContextResult.Fail);
-                return Context;
+        private void QueueRawImageSave(HImage image) {
+            if (image == null || SystemHandler.Handle.RawImageSaver == null) {
+                return;
             }
 
-            HTuple widthValue;
-            HTuple heightValue;
-            using (var loadedImage = new HImage(imagePath)) {
-                loadedImage.GetImageSize(out widthValue, out heightValue);
-            }
-
-            pMyContext.CenterOffsetXmm = ((result.IntersectionColumn - (widthValue.D / 2.0)) * pMyParam.PixelToUM_Offset / 1000.0) + pMyParam.TeachingJob.OutputOffsetX;
-            pMyContext.CenterOffsetYmm = ((result.IntersectionRow - (heightValue.D / 2.0)) * pMyParam.PixelToUM_Offset / 1000.0) + pMyParam.TeachingJob.OutputOffsetY;
-            pMyContext.AngleDeg = result.CrossAngleDeg + pMyParam.TeachingJob.OutputOffsetTheta;
-            pMyContext.InspectResult = EVisionResultType.OK;
-            pMyContext.ResultImagePath = imagePath;
-            pMyContext.InspectionOverlays = result.Overlays.Select(overlay => overlay.Clone()).ToList();
-            FinishAction(EContextResult.Pass);
-            return Context;
+            TestPacket requestPacket = pMyParam.Parent?.RequestPacket;
+            SystemHandler.Handle.RawImageSaver.Enqueue(new RawImageSaveRequest {
+                Image = image.CopyImage(),
+                SequenceName = pMyParam.SequenceName,
+                ActionName = pMyParam.ActionName,
+                TestId = requestPacket?.TestID,
+                TargetCode = pMyParam.Parent?.TargetID
+            });
         }
     }
 }

@@ -47,13 +47,10 @@ namespace ReringProject.Network {
             Add(EResource.Sequence, ESite.Bottom, SequenceHandler.SEQ_BOTTOM);
 
 
-            Add(EResource.Action, ESite.Top, ETestType.Calibration, SequenceHandler.ACT_CALIB);
             Add(EResource.Action, ESite.Top, ETestType.Inspection, SequenceHandler.ACT_INSPECT);
 
-            Add(EResource.Action, ESite.Side, ETestType.Calibration, SequenceHandler.ACT_CALIB);
             Add(EResource.Action, ESite.Side, ETestType.Inspection, SequenceHandler.ACT_INSPECT);
 
-            Add(EResource.Action, ESite.Bottom, ETestType.Calibration, SequenceHandler.ACT_CALIB);
             Add(EResource.Action, ESite.Bottom, ETestType.Inspection, SequenceHandler.ACT_INSPECT);
         }
 
@@ -79,6 +76,11 @@ namespace ReringProject.Network {
                     break;
                 case VisionRequestType.Test:
                     TestPacket testPacket = packet.AsTest();
+                    if ((ETestType)testPacket.TestType == ETestType.Calibration) {
+                        testPacket.Identifier = null;
+                        testPacket.Identifier2 = null;
+                        return false;
+                    }
                     testPacket.Identifier = Find(EResource.Sequence, (ESite)testPacket.Site);
                     testPacket.Identifier2 = Find(EResource.Action, (ESite)testPacket.Site, (ETestType)testPacket.TestType);
                     break;

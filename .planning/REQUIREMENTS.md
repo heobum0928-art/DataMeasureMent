@@ -62,27 +62,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
-| UI-05 | — | Pending |
-| TCH-01 | — | Pending |
-| TCH-02 | — | Pending |
-| ALG-01 | — | Pending |
-| ALG-02 | — | Pending |
-| ALG-03 | — | Pending |
-| ALG-04 | — | Pending |
-| SEQ-01 | — | Pending |
-| SEQ-02 | — | Pending |
-| SEQ-03 | — | Pending |
-| SEQ-04 | — | Pending |
+| UI-01 | Phase 1 | Pending |
+| UI-02 | Phase 1 | Pending |
+| UI-03 | Phase 1 | Pending |
+| UI-04 | Phase 1 | Pending |
+| UI-05 | Phase 1 | Pending |
+| TCH-01 | Phase 2 | Pending |
+| TCH-02 | Phase 2 | Pending |
+| ALG-03 | Phase 2 | Pending |
+| ALG-01 | Phase 3 | Pending |
+| ALG-02 | Phase 3 | Pending |
+| ALG-04 | Phase 3 | Pending |
+| SEQ-01 | Phase 4 | Pending |
+| SEQ-02 | Phase 4 | Pending |
+| SEQ-03 | Phase 4 | Pending |
+| SEQ-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15
+- Mapped to phases: 15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 after roadmap creation (traceability complete)*

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,42 +18,7 @@ using ReringProject.Utility;
 
 namespace ReringProject.UI {
 
-    public enum MainViewMode {
-        All,
-        Original,
-        Result,
-    }
-
-    public class MainViewModel : INotifyPropertyChanged {
-        private string _SelectedSeqName;
-        public string SelectedSeqName {
-            get { return _SelectedSeqName; }
-            set { _SelectedSeqName = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SelectedSeqName")); }
-        }
-
-        private int _SelectedSeqIndex;
-        public int SelectedSeqIndex {
-            get { return _SelectedSeqIndex; }
-            set { _SelectedSeqIndex = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SelectedSeqIndex")); }
-        }
-
-        private string _SelectedViewMode;
-        public string SelectedViewMode {
-            get { return _SelectedViewMode; }
-            set { _SelectedViewMode = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SelectedViewMode")); }
-        }
-
-        private int _SelectedViewIndex;
-        public int SelectedViewIndex {
-            get { return _SelectedViewIndex; }
-            set { _SelectedViewIndex = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SelectedViewIndex")); }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-    }
-
     public partial class MainView : UserControl {
-        private const string COMBOBOX_SEQUENCE_ALL = "All";
         private const string ViewerMemoryImageLabel = "(memory)";
         private MainWindow mParentWindow;
         private DeviceHandler pDev;
@@ -63,10 +27,10 @@ namespace ReringProject.UI {
         private readonly object mDrawInterlock = new object();
         private Dictionary<string, SequenceContext> ContextList;
         private Task GrabTask;
-        private MainViewModel Model;
         private readonly List<IMainView> CustomViewList = new List<IMainView>();
         private string _lastRenderedImagePath;
         private double _drawScale = 1.0;
+        private InspectionViewModel _viewModel;
 
         public bool IsEditable { get; set; }
         public double DrawScale {
@@ -76,8 +40,6 @@ namespace ReringProject.UI {
 
         public MainView() {
             InitializeComponent();
-            Model = new MainViewModel();
-            DataContext = Model;
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
             Unloaded += MainView_Unloaded;
         }
@@ -95,41 +57,101 @@ namespace ReringProject.UI {
                 customView.ContextList = ContextList;
             }
 
-            comboBox_viewMode.Items.Clear();
-            foreach (var name in Enum.GetNames(typeof(MainViewMode))) {
-                comboBox_viewMode.Items.Add(name.Replace("_", " "));
-            }
-            if (comboBox_viewMode.Items.Count > 0) comboBox_viewMode.SelectedIndex = 0;
-
-            comboBox_sequence.Items.Clear();
-            comboBox_sequence.Items.Add(COMBOBOX_SEQUENCE_ALL);
-            for (int i = 0; i < pSeq.Count; i++) {
-                comboBox_sequence.Items.Add(pSeq[i].Name);
-            }
-            if (comboBox_sequence.Items.Count > 0) comboBox_sequence.SelectedIndex = 0;
-
             DrawScale = pDev.Config.DrawScale;
             UpdatePointerLabel(0, 0, null);
+
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            _viewModel = new InspectionViewModel(recipeManager);
+            DataContext = _viewModel;
         }
 
+        private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) {
+            if (_viewModel == null) return;
+            _viewModel.SelectedNode = e.NewValue;
+
+            // Canvas update (per D-02)
+            if (e.NewValue is ShotNodeViewModel shotVm) {
+                DisplayShotImage(shotVm);
+            } else if (e.NewValue is FAINodeViewModel faiVm) {
+                // Find parent shot and display its image
+                foreach (var shot in _viewModel.Shots) {
+                    if (shot.FAIItems.Contains(faiVm)) {
+                        DisplayShotImage(shot);
+                        break;
+                    }
+                }
+            } else {
+                label_message.Content = "NO Image";
+                label_message.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>Displays the image for the selected Shot node. LoadImage clones the HImage internally so disposal is safe.</summary>
+        private void DisplayShotImage(ShotNodeViewModel shotVm) {
+            if (shotVm.ShotConfig.HasImage) {
+                HImage img = null;
+                try {
+                    img = shotVm.ShotConfig.GetImage();
+                    if (img != null) {
+                        halconViewer.LoadImage(img);
+                        label_message.Visibility = Visibility.Collapsed;
+                    } else {
+                        label_message.Content = "이미지 로드 실패";
+                        label_message.Visibility = Visibility.Visible;
+                    }
+                } finally {
+                    img?.Dispose();
+                }
+            } else {
+                label_message.Content = "NO Image";
+                label_message.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void Btn_Add_Click(object sender, RoutedEventArgs e) {
+            if (_viewModel == null) return;
+            if (_viewModel.SelectedNode is ShotNodeViewModel || _viewModel.SelectedNode is FAINodeViewModel) {
+                _viewModel.AddFAIToSelectedShot();
+            } else {
+                _viewModel.AddShot();
+            }
+        }
+
+        private void Btn_Remove_Click(object sender, RoutedEventArgs e) {
+            if (_viewModel == null) return;
+            _viewModel.RemoveSelected();
+        }
+
+        private void Btn_Edit_Click(object sender, RoutedEventArgs e) {
+            if (_viewModel == null) return;
+            _viewModel.RenameSelected();
+        }
+
+        private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            // Phase 2: ROI highlight will be implemented here once RoiDefinition teaching data exists
+        }
+
+        // Keep public methods called by MainWindow and InspectionListView
+
         public void AddCustomControl(string name, UserControl control) {
-            var item = new TabItem { Header = name, Visibility = Visibility.Visible, Height = 42, Content = control };
-            tabControl_view.Items.Add(item);
+            // TabControl no longer present — custom views are not shown in Phase 1 UI.
+            // Phase 2 will provide a dedicated panel for custom views.
             if (control is IMainView mainView) {
                 CustomViewList.Add(mainView);
-                mainView.ContextList = ContextList;
+                if (ContextList != null) {
+                    mainView.ContextList = ContextList;
+                }
             }
         }
 
         public void ChangeTabPage(int index) {
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => { tabControl_view.SelectedIndex = index; }));
+            // TabControl removed in Phase 1 UI redesign. No-op.
         }
 
         public void SetParam(ESequence seqID, ParamBase param) {
-            if (pSeq[seqID] == null) return;
+            if (pSeq == null || pSeq[seqID] == null) return;
             string selectedSeq = pSeq[seqID].Name;
-            Model.SelectedSeqIndex = comboBox_sequence.Items.IndexOf(COMBOBOX_SEQUENCE_ALL);
-            if (Model.SelectedSeqName == COMBOBOX_SEQUENCE_ALL) {
+            if (ContextList != null && ContextList.ContainsKey(selectedSeq)) {
                 DisplayParam(ContextList[selectedSeq], param);
             }
         }
@@ -164,6 +186,7 @@ namespace ReringProject.UI {
                                 _lastRenderedImagePath,
                                 ConvertParamRects(param as ParamBase),
                                 null));
+                        label_message.Visibility = Visibility.Visible;
 
                         foreach (IMainView customView in CustomViewList) {
                             customView.Display(param.SequenceName, resultStr, brush, param.ActionName);
@@ -203,6 +226,7 @@ namespace ReringProject.UI {
                         dialog.FileName,
                         ConvertParamRects(param as ParamBase),
                         null));
+                label_message.Visibility = Visibility.Visible;
 
                 foreach (IMainView customView in CustomViewList) {
                     customView.Display(param.SequenceName, "Loaded Image", label_message.Foreground, param.ActionName);
@@ -212,6 +236,7 @@ namespace ReringProject.UI {
                 Logging.PrintErrLog((int)ELogType.Error, ex.Message);
                 label_message.Foreground = Brushes.Red;
                 label_message.Content = string.Format("{0}\nLoad Fail", param.DeviceName);
+                label_message.Visibility = Visibility.Visible;
             }
         }
 
@@ -225,6 +250,7 @@ namespace ReringProject.UI {
                         resultStr,
                         BuildViewerStateSummary(context.ResultImagePath, ConvertParamRects(param), context.InspectionOverlays));
                     label_message.Foreground = GetResultBrush(context.Result);
+                    label_message.Visibility = Visibility.Visible;
 
                     foreach (IMainView customView in CustomViewList) {
                         customView.Display(param.Parent.Name, resultStr, label_message.Foreground, param.OwnerName);
@@ -234,11 +260,6 @@ namespace ReringProject.UI {
         }
 
         public void DisplaySequenceContext(SequenceContext context) {
-            string selectedItem = Model.SelectedSeqName;
-            if ((selectedItem != COMBOBOX_SEQUENCE_ALL) && (selectedItem != context.Source.Name)) {
-                return;
-            }
-
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {
                     DisplayContextToViewer(context, ConvertParamRects(context.ActionParam));
@@ -249,6 +270,7 @@ namespace ReringProject.UI {
                         resultStr,
                         BuildViewerStateSummary(context.ResultImagePath, ConvertParamRects(context.ActionParam), context.InspectionOverlays));
                     label_message.Foreground = GetResultBrush(context.Result);
+                    label_message.Visibility = Visibility.Visible;
 
                     foreach (IMainView customView in CustomViewList) {
                         if (context.ActionParam != null)
@@ -260,8 +282,7 @@ namespace ReringProject.UI {
             }
         }
 
-        public void SetManualToolsEnabled(bool enabled)
-        {
+        public void SetManualToolsEnabled(bool enabled) {
             halconViewer.SetManualToolsEnabled(enabled);
         }
 
@@ -274,15 +295,12 @@ namespace ReringProject.UI {
             Dispatcher.Invoke(action);
         }
 
-        private void HalconViewer_PointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e)
-        {
+        private void HalconViewer_PointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e) {
             UpdatePointerLabel(e.X, e.Y, e.GrayValue);
         }
 
-        private void UpdatePointerLabel(double x, double y, double? grayValue)
-        {
-            if (label_pos == null)
-            {
+        private void UpdatePointerLabel(double x, double y, double? grayValue) {
+            if (label_pos == null) {
                 return;
             }
 
@@ -309,7 +327,6 @@ namespace ReringProject.UI {
                 return false;
             }
         }
-
 
         private bool DisplayContextToViewer(SequenceContext context, IEnumerable<RoiDefinition> rois) {
             if (context == null) {
@@ -345,8 +362,8 @@ namespace ReringProject.UI {
             halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, null);
             return true;
         }
-        private void MainView_Unloaded(object sender, RoutedEventArgs e)
-        {
+
+        private void MainView_Unloaded(object sender, RoutedEventArgs e) {
             halconViewer.PointerInfoChanged -= HalconViewer_PointerInfoChanged;
         }
 
@@ -402,29 +419,5 @@ namespace ReringProject.UI {
                 roiCount,
                 overlayCount);
         }
-
-        private void ComboBox_sequence_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            if (Model.SelectedSeqIndex < 0) return;
-            string selectedName = Model.SelectedSeqName;
-            if (selectedName == COMBOBOX_SEQUENCE_ALL) return;
-            DisplaySequenceContext(ContextList[selectedName]);
-        }
-
-        private void ComboBox_viewMode_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-        }
-
-
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -24,7 +24,6 @@ Shot/FAI 2계층 TreeView 탐색 구조 + 단일 캔버스 이미지 뷰어 + FA
 ### 결과 테이블 형식
 - **D-05:** 결과 테이블 컬럼: FAI 이름 | 거리(mm) | Spec(Min/Max) | 판정(OK/NG).
 - **D-06:** OK은 초록, NG는 빨강 색상 코딩을 적용한다.
-- **D-07:** 테이블 행 선택 시 캔버스에서 해당 FAI의 ROI가 하이라이트 표시된다.
 
 ### CRUD 인터페이스
 - **D-08:** TreeView 상단에 툴바를 배치하고 추가(+)/삭제(−)/편집 버튼을 둔다. 선택된 노드 기준으로 동작한다.
@@ -91,7 +90,7 @@ No specific requirements — open to standard approaches
 <deferred>
 ## Deferred Ideas
 
-None — discussion stayed within phase scope
+- **D-07 (테이블 행 선택 시 캔버스에서 해당 FAI의 ROI 하이라이트):** Phase 2로 이관. ROI 티칭 데이터(RoiDefinition)가 Phase 2에서 생성되므로, ROI 하이라이트 기능은 Phase 2 이후에만 구현 가능하다.
 
 </deferred>
 

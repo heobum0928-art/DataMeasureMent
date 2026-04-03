@@ -63,18 +63,17 @@ WPF uses device-independent pixels (DIPs). All values are multiples of 4.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon-to-text gap in tree nodes, toolbar button inner padding |
-| sm | 8px | DataGrid row padding, toolbar separator margin |
-| md | 12px | Canvas border Padding (matches existing MainResultViewerControl Padding="4"; toolbar Margin) |
-| lg | 16px | Tree panel outer margin, DataGrid column header padding |
+| xs | 4px | Icon-to-text gap in tree nodes; toolbar button inner padding; canvas border Padding (matches existing `MainResultViewerControl.xaml` `Padding="4"`) |
+| sm | 8px | DataGrid row padding; toolbar separator margin; toolbar outer Margin |
+| lg | 16px | Tree panel outer margin; DataGrid column header padding |
 | xl | 24px | Section separation between toolbar and tree body |
 | 2xl | 32px | Not used in Phase 1 |
 | 3xl | 64px | Not used in Phase 1 |
 
-**Exceptions:**
+**Exceptions (values that do not fit the standard set but match existing XAML exactly):**
 - Toolbar button icons: Width=32 Height=32 (matches existing `/Resource/` icon buttons in InspectionListView — maintains visual consistency)
 - Toolbar row Height=36 (matches existing InspectionListView toolbar row: `<RowDefinition Height="36">`)
-- GridSplitter width/height=5 (matches existing MainWindow.xaml GridSplitter Width="5" / Height="5")
+- GridSplitter width/height=5 (matches existing `MainWindow.xaml` `GridSplitter Width="5"` / `Height="5"`)
 
 Source: Extracted from `InspectionListView.xaml`, `MainWindow.xaml`, `MainResultViewerControl.xaml`.
 
@@ -197,6 +196,9 @@ Source: CONTEXT.md D-08, D-09, D-10; RESEARCH.md Pattern 4.
 |---------|-------------|--------------|-------|
 | Add Shot button tooltip | Shot 추가 | Add Shot | Toolbar Add button, when no node or Shot selected |
 | Add FAI button tooltip | FAI 추가 | Add FAI | Toolbar Add button, when FAI or Shot selected |
+| Remove Shot button tooltip | Shot 삭제 | Remove Shot | Toolbar Remove button, when Shot node selected |
+| Remove FAI button tooltip | FAI 삭제 | Remove FAI | Toolbar Remove button, when FAI node selected |
+| Edit button tooltip | 이름 수정 | Rename | Toolbar Edit (pencil) button, when Shot or FAI selected |
 | Shot name input dialog title | Shot 이름 입력 | — | `TextInputBox.Show` title argument |
 | FAI name input dialog title | FAI 이름 입력 | — | `TextInputBox.Show` title argument |
 | Shot name edit dialog title | Shot 이름 수정 | — | `TextInputBox.Show` title argument |

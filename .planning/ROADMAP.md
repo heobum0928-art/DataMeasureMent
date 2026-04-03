@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. FAI 추가/삭제/수정 버튼이 동작하고 선택된 Shot 아래에 즉시 반영된다
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — ViewModel 계층 생성 (ShotNodeViewModel, FAINodeViewModel, FAIResultRow, InspectionViewModel)
+- [x] 01-01-PLAN.md — ViewModel 계층 생성 (ShotNodeViewModel, FAINodeViewModel, FAIResultRow, InspectionViewModel)
 - [ ] 01-02-PLAN.md — MainView.xaml 3영역 레이아웃 + 코드비하인드 + csproj 업데이트 + UI 검증
 **UI hint**: yes
 

@@ -29,7 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 검사 실행 후 FAI별 거리(mm)와 OK/NG 판정이 테이블 행으로 표시된다
   4. Shot 추가/삭제/수정 버튼이 동작하고 TreeView에 즉시 반영된다
   5. FAI 추가/삭제/수정 버튼이 동작하고 선택된 Shot 아래에 즉시 반영된다
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — ViewModel 계층 생성 (ShotNodeViewModel, FAINodeViewModel, FAIResultRow, InspectionViewModel)
+- [ ] 01-02-PLAN.md — MainView.xaml 3영역 레이아웃 + 코드비하인드 + csproj 업데이트 + UI 검증
 **UI hint**: yes
 
 ### Phase 2: 티칭 & 캘리브레이션
@@ -71,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. UI 재설계 | 0/? | Not started | - |
+| 1. UI 재설계 | 0/2 | Planning complete | - |
 | 2. 티칭 & 캘리브레이션 | 0/? | Not started | - |
 | 3. 에지 측정 알고리즘 | 0/? | Not started | - |
 | 4. 검사 시퀀스 & TCP | 0/? | Not started | - |

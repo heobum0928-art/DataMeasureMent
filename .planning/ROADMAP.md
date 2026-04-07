@@ -43,7 +43,10 @@ Plans:
   1. 캔버스에 FAI의 ROI 오버레이(에지 방향, 측정 범위)가 시각적으로 표시된다
   2. "저장" 실행 후 앱을 재시작해도 ROI 데이터가 유지된다
   3. 캘리브레이션 실행 후 픽셀-mm 변환 계수가 시스템에 적용된다
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — 데이터 모델 확장 (FAIConfig.ToRoiDefinition + PolygonPoints + PixelResolution) + ROI 오버레이 렌더링 파이프라인 + FAI 선택 하이라이트
+- [ ] 02-02-PLAN.md — 캔버스 툴바 UI + Rect ROI 드래그 설정 + Polygon ROI 점 클릭 생성 + 2점 캘리브레이션 플로우
 **UI hint**: yes
 
 ### Phase 3: 에지 측정 알고리즘
@@ -75,6 +78,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. UI 재설계 | 2/2 | Complete   | 2026-04-07 |
-| 2. 티칭 & 캘리브레이션 | 0/? | Not started | - |
+| 2. 티칭 & 캘리브레이션 | 0/2 | Planning complete | - |
 | 3. 에지 측정 알고리즘 | 0/? | Not started | - |
 | 4. 검사 시퀀스 & TCP | 0/? | Not started | - |

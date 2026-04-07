@@ -43,10 +43,8 @@ Declared values (WPF Margin/Padding; align to 4-unit scale):
 
 Exceptions:
 - Canvas toolbar buttons: MinHeight 36px (touch-safe vertical target — existing TeachingWindow pattern)
-- Toolbar icon buttons in InspectionListView: Width=42, Height=42 (existing pattern — maintain for Rect ROI / Polygon ROI buttons)
-- GridSplitter: fixed 5px (existing project-wide pattern)
 
-> Source: Measured from existing XAML: TeachingWindow.xaml `Padding="14,8"`, InspectionListView.xaml toolbar `Width="42" Height="42"`, MainView.xaml `Padding="12,6"`.
+> Source: Measured from existing XAML: TeachingWindow.xaml `Padding="14,8"`, MainView.xaml `Padding="12,6"`.
 
 ---
 
@@ -174,13 +172,14 @@ While drawing a Polygon ROI (point-by-point mode):
 
 ### Existing Components (reused unchanged)
 
-| Component | Location | Phase 2 Usage |
-|-----------|----------|--------------|
-| `MainResultViewerControl` | `UI/ContentItem/MainResultViewerControl.xaml` | Receives ROI list + selectedRoiId via UpdateDisplayState |
-| `HalconViewerControl` | `UI/ContentItem/HalconViewerControl.xaml` | StartRectangleDrawing / CommitActiveRectangle for Rect ROI |
-| `InspectionListView` | `UI/ControlItem/InspectionListView.xaml` | Tree selection drives ROI highlight |
-| `TeachingWindow` | `UI/Dialog/TeachingWindow.xaml` | Reference only — not reused in Phase 2 (inline canvas approach per D-10) |
-| `TextInputBoxWindow` | `UI/Dialog/TextInputBoxWindow.xaml` | Reused for calibration real-distance input dialog |
+| Component | Location | Phase 2 Usage | Notes |
+|-----------|----------|--------------|-------|
+| `MainResultViewerControl` | `UI/ContentItem/MainResultViewerControl.xaml` | Receives ROI list + selectedRoiId via UpdateDisplayState | — |
+| `HalconViewerControl` | `UI/ContentItem/HalconViewerControl.xaml` | StartRectangleDrawing / CommitActiveRectangle for Rect ROI | — |
+| `InspectionListView` | `UI/ControlItem/InspectionListView.xaml` | Tree selection drives ROI highlight | Toolbar icon buttons: Width=42, Height=42 — existing fixed dimensions, not spacing tokens |
+| `TeachingWindow` | `UI/Dialog/TeachingWindow.xaml` | Reference only — not reused in Phase 2 (inline canvas approach per D-10) | — |
+| `TextInputBoxWindow` | `UI/Dialog/TextInputBoxWindow.xaml` | Reused for calibration real-distance input dialog | — |
+| GridSplitter | MainView.xaml (existing) | Divides canvas and inspection list panes | Fixed 5px width — existing codebase dimension, not a spacing token |
 
 ### New Components (Phase 2)
 

@@ -212,6 +212,12 @@ namespace ReringProject.UI {
                             _inspectionVm.OnActionSelected(item);
                         }
                     }
+                    else if (item.NodeType == ENodeType.Sequence) {
+                        button_addFAI.IsEnabled = true;
+                        button_removeFAI.IsEnabled = false;
+                        button_renameFAI.IsEnabled = false;
+                        _inspectionVm?.ClearResults();
+                    }
                     else {
                         button_addFAI.IsEnabled = false;
                         button_removeFAI.IsEnabled = false;
@@ -293,6 +299,23 @@ namespace ReringProject.UI {
         private void Btn_AddFAI_Click(object sender, RoutedEventArgs e) {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
+
+                // Sequence 노드 선택 시: Shot 생성 (Dynamic FAI 모드 전환)
+                if (selectedNode.NodeType == ENodeType.Sequence) {
+                    AddShotToSequence(selectedNode);
+                    return;
+                }
+
+                // Action 노드에서 ShotConfig가 아닌 경우: Shot 생성으로 전환
+                if (selectedNode.NodeType == ENodeType.Action && !(selectedNode.Param is ShotConfig)) {
+                    NodeViewModel seqNode = selectedNode.Parent;
+                    if (seqNode != null && seqNode.NodeType == ENodeType.Sequence) {
+                        AddShotToSequence(seqNode);
+                    }
+                    return;
+                }
+
+                // FAI/Action(ShotConfig) 노드: FAI 추가
                 NodeViewModel actionNode = selectedNode;
                 if (selectedNode.NodeType == ENodeType.FAI) {
                     actionNode = selectedNode.Parent;
@@ -311,6 +334,43 @@ namespace ReringProject.UI {
             catch (Exception ex) {
                 CustomMessageBox.Show("FAI 추가 오류", ex.Message, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>Sequence에 새 Shot(+기본FAI)을 추가하고 트리에 노드를 직접 삽입한다.
+        /// 시퀀스 Action 교체 없이 데이터만 추가하여 런타임 안전성 확보.</summary>
+        private void AddShotToSequence(NodeViewModel seqNode) {
+            var seqHandler = SystemHandler.Handle.Sequences;
+            string defaultName = "SHOT_" + seqHandler.RecipeManager.ShotCount;
+            if (!TextInputBox.Show("Shot 이름 입력", defaultName, out string shotName)) return;
+
+            // 데이터만 추가 (시퀀스 Action 교체 안 함 — 런타임 안전)
+            ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName);
+            FAIConfig fai = shot.AddFAI("FAI_0");
+            // IsDynamicFAIMode는 private set → CreateShot 경유하지 않고 직접 설정 불가
+            // 레시피 저장 시 TryLoadNewFormat에서 자동으로 활성화됨
+
+            // 트리에 Shot 노드(Action 타입) + FAI 자식 노드 직접 삽입
+            var shotNode = new CompositeNode {
+                Name = shot.ShotName,
+                NodeType = ENodeType.Action,
+                ParamData = shot,
+                SequenceName = seqNode.SequenceName,
+                SequenceID = seqNode.SequenceID,
+                ActionID = EAction.Unknown
+            };
+            var faiChildNode = new CompositeNode {
+                Name = fai.FAIName,
+                NodeType = ENodeType.FAI,
+                ParamData = fai,
+                SequenceName = seqNode.SequenceName,
+                SequenceID = seqNode.SequenceID,
+                ActionID = EAction.Unknown
+            };
+            shotNode.Children.Add(faiChildNode);
+
+            var shotVm = new NodeViewModel(shotNode, seqNode);
+            seqNode.Children.Add(shotVm);
+            seqNode.IsExpanded = true;
         }
 
         private void Btn_RemoveFAI_Click(object sender, RoutedEventArgs e) {

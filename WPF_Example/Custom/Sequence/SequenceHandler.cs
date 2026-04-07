@@ -85,6 +85,17 @@ namespace ReringProject.Sequence {
         }
 
         /// <summary>
+        /// UI에서 Shot을 추가하고 Dynamic FAI 모드를 활성화한다.
+        /// Sequence의 기존 Action을 Shot 기반 Action_FAIMeasurement로 교체한다.
+        /// </summary>
+        public ShotConfig CreateShot(ESequence seqId, string shotName = null) {
+            ShotConfig shot = RecipeManager.AddShot(shotName);
+            IsDynamicFAIMode = true;
+            RebuildInspectionActions(seqId);
+            return shot;
+        }
+
+        /// <summary>
         /// INI 파일에서 신규 SHOTS 포맷 로드 시도. 성공하면 IsDynamicFAIMode = true.
         /// </summary>
         public bool TryLoadNewFormat(IniFile loadFile) {

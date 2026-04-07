@@ -99,6 +99,15 @@ namespace ReringProject.UI {
             cn.Add(faiVm);
         }
         
+        /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.</summary>
+        public void RebuildTree() {
+            this.Model.Children.Clear();
+            this.Count = 0;
+            CreateSequenceNode(this.Model);
+            RootModel = new NodeViewModel(this.Model, null);
+            RaisePropertyChanged("Root");
+        }
+
         public void Select(int count) {
             var children = this.RootModel.Children as IList<NodeViewModel>;
             for (int i = 0; i < count; i++) {

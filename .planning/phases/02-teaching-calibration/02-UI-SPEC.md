@@ -37,8 +37,8 @@ Declared values (WPF Margin/Padding; align to 4-unit scale):
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline cell padding (DataGrid CellStyle `Padding="4,2"`) |
 | sm | 8px | Toolbar button padding (`Padding="14,8"` — 8 vertical), compact spacing |
-| md | 12px | Panel padding (TeachingWindow Border `Padding="12"`, StatusBar bottom padding) |
-| lg | 16px | Canvas bottom bar padding (`Padding="12,6"` → nearest: 16), section margins |
+| md | 16px | Panel padding (TeachingWindow Border `Padding="16"`, StatusBar bottom padding) |
+| lg | 16px | Canvas bottom bar padding, section margins |
 | xl | 24px | Major section separation (TreeView margin from toolbar) |
 
 Exceptions:
@@ -63,7 +63,6 @@ Rules:
 - Toolbar button text (Grab, Load, Rect ROI, Polygon ROI): 13px, SemiBold.
 - PropertyGrid labels: 13px Regular — PropertyTools.Wpf controls own sizing.
 - DataGrid headers: SemiBold (`FontWeight="SemiBold"` in ColumnHeaderStyle — existing MainView.xaml).
-- Dialog title in calibration input popup: 18px Regular (matches existing TextInputBoxWindow pattern).
 - "NO Image" / "No ROI" placeholder text: 24px, color `#FFAAAAAA`.
 
 > Source: TeachingWindow.xaml `FontSize="20"` heading, `FontSize="13"` button; MainView.xaml `FontSize="24"` canvas label, `FontSize="16"` position label; InspectionListView.xaml `FontSize="18"` recipe name, `FontSize="19"` TextBox.

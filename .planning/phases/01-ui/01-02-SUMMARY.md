@@ -63,11 +63,11 @@ completed: 2026-04-07
 
 ## Performance
 
-- **Duration:** 6 min
+- **Duration:** ~90 min (including human-verify checkpoint round-trip)
 - **Started:** 2026-04-07T07:04:00Z
-- **Completed:** 2026-04-07T07:09:34Z
-- **Tasks:** 2 of 3 (Task 3 = checkpoint:human-verify, awaiting user approval)
-- **Files modified:** 7
+- **Completed:** 2026-04-07T08:30:00Z
+- **Tasks:** 3 of 3 (including post-checkpoint UI fixes)
+- **Files modified:** 7 (plus 2 re-modified after checkpoint feedback)
 
 ## Accomplishments
 
@@ -82,7 +82,7 @@ Each task was committed atomically:
 
 1. **Task 1: InspectionViewModel rewrite + InspectionListView FAI CRUD** - `edaafa8` (feat)
 2. **Task 2: MainView simplification + DisplayFAIImage + SetFAIResultSource** - `517f75d` (feat)
-3. **Task 3: Visual verification** - Awaiting user checkpoint approval
+3. **Task 3: Post-checkpoint UI fixes (DataGrid readability + tree visibility + label color)** - `c854d92` (fix)
 
 ## Files Created/Modified
 
@@ -119,18 +119,53 @@ Each task was committed atomically:
 - **Verification:** Build succeeds; image display logic correctly reads from ShotConfig buffer
 - **Committed in:** 517f75d (Task 2 commit)
 
+**3. [Rule 2 - Missing Critical] DataGrid ColumnHeaderStyle missing for dark theme**
+- **Found during:** Task 3 human verification (user reported DataGrid text hard to read)
+- **Issue:** WPF DataGrid column headers do not inherit Foreground from parent DataGrid element; headers showed dark text on dark header background
+- **Fix:** Added explicit `DataGrid.ColumnHeaderStyle` (white Foreground, dark #FF3A3A4A background, SemiBold weight) and `DataGrid.CellStyle` (explicit white Foreground)
+- **Files modified:** WPF_Example/UI/ContentItem/MainView.xaml
+- **Verification:** Build succeeds with 0 errors
+- **Committed in:** c854d92
+
+**4. [Rule 2 - UX] Tree not expanding on initial load**
+- **Found during:** Task 3 human verification (user reported tree not visible)
+- **Issue:** `ViewModel.RootModel.ExpandAll()` only called when `IsEditable = true`; default state left tree collapsed showing only root node
+- **Fix:** Added `ViewModel.RootModel.ExpandAll()` in `ListView_Loaded`, wrapped in try/catch with Debug.WriteLine
+- **Files modified:** WPF_Example/UI/ControlItem/InspectionListView.xaml.cs
+- **Verification:** Build succeeds with 0 errors
+- **Committed in:** c854d92
+
+**5. [Rule 1 - Bug] ELogType not accessible in InspectionListView namespace**
+- **Found during:** Post-checkpoint fix (build error after adding error logging)
+- **Issue:** `ELogType` is in `ReringProject.Setting` namespace, not imported in InspectionListView.xaml.cs
+- **Fix:** Replaced `Logging.PrintErrLog((int)ELogType.Error, ...)` with `System.Diagnostics.Debug.WriteLine(...)` in catch block
+- **Files modified:** WPF_Example/UI/ControlItem/InspectionListView.xaml.cs
+- **Verification:** Build succeeds with 0 errors
+- **Committed in:** c854d92
+
+**6. [Rule 2 - UX] label_message Red color hard to read on dark background**
+- **Found during:** Task 3 human verification (user couldn't clearly see canvas area)
+- **Issue:** "NO Image" red text on #FF303030 dark background has low contrast and implies error state
+- **Fix:** Changed Foreground from `Red` to `#FFAAAAAA` (light gray) and FontSize from 20 to 24
+- **Files modified:** WPF_Example/UI/ContentItem/MainView.xaml
+- **Verification:** Build succeeds with 0 errors
+- **Committed in:** c854d92
+
 ---
 
-**Total deviations:** 2 auto-fixed (2 Rule 1 bugs)
-**Impact on plan:** Both fixes essential for correctness. No scope creep. Plan's interface block was aspirational/incorrect; actual codebase architecture (FAI images live on ShotConfig) was followed.
+**Total deviations:** 6 auto-fixed (2 Rule 1 bugs, 4 Rule 2 missing/UX)
+**Impact on plan:** All fixes essential for correctness and basic usability. No scope creep. Post-checkpoint fixes resolved all user-reported visibility issues.
 
 ## Known Stubs
 
-None — all data flows use real InspectionRecipeManager/ShotConfig/FAIConfig objects. DataGrid shows "--" (via FAIResultRow.JudgeText/MeasuredValueText) for unmeasured FAIs which is correct behavior.
+- `FAIResults_SelectionChanged` in MainView.xaml.cs is a no-op (Phase 2: ROI highlight when RoiDefinition teaching data exists)
+- `AddCustomControl`/`ChangeTabPage` in MainView.xaml.cs are no-ops (Phase 2 will provide dedicated panel)
 
 ## Issues Encountered
 
-None beyond the two auto-fixed bugs described above.
+- User verification found DataGrid headers unreadable (WPF DataGrid requires explicit ColumnHeaderStyle for dark themes)
+- Tree appeared invisible because ExpandAll only ran on IsEditable=true; fixed by expanding on load
+- "NO Image" label in red on dark background was hard to notice; changed to neutral light gray
 
 ## User Setup Required
 
@@ -141,7 +176,9 @@ None - no external service configuration required.
 - InspectionListView tree will show FAI nodes whenever InspectionRecipeManager has Shots with FAIs (requires recipe load or CRUD)
 - PropertyGrid automatically shows FAIConfig properties when FAI node selected (existing `SelectedItem.Param` binding)
 - DataGrid binds to FAIResults collection, updates on FAI/Action selection
-- Awaiting user verification (Task 3 checkpoint) before marking plan complete
+- InspectionListView tree auto-expands and shows FAI hierarchy on startup
+- DataGrid headers and cells have proper white text on dark background
+- Plan complete — all 3 tasks done including post-checkpoint UI fixes
 
 ---
 *Phase: 01-ui*

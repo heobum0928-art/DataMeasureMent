@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 01-ui-01-01-PLAN.md
-last_updated: "2026-04-03T06:38:35.342Z"
+stopped_at: "Checkpoint 01-ui-02 Task3 human-verify: FAI UI integration awaiting visual verification"
+last_updated: "2026-04-07T07:11:02.956Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -47,6 +47,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 01-ui P01 | 2 | 2 tasks | 4 files |
+| Phase 01-ui P02 | 6 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,9 @@ Recent decisions affecting current work:
 - Phase 5 (prior): IsDynamicFAIMode로 기존/신규 INI 포맷 자동 감지
 - [Phase 01-ui]: SelectedNode typed as object for direct WPF TreeView.SelectedItem binding — no type converter needed in XAML
 - [Phase 01-ui]: FAIResultRow.HasResult uses MeasuredValue > 0 sentinel (matches FAIConfig.ClearResult contract)
+- [Phase 01-ui]: DisplayFAIImage uses fai.Owner cast to ShotConfig (FAIConfig has no image storage)
+- [Phase 01-ui]: InspectionViewModel.AddFAI/RemoveFAI accept ShotConfig parameter explicitly (InspectionRecipeManager has no AddFAI)
+- [Phase 01-ui]: FAI CRUD wired in InspectionListView (not MainView) — MainView is display-only, no tree logic
 
 ### Pending Todos
 
@@ -71,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T06:38:35.335Z
-Stopped at: Completed 01-ui-01-01-PLAN.md
+Last session: 2026-04-07T07:10:38.385Z
+Stopped at: Checkpoint 01-ui-02 Task3 human-verify: FAI UI integration awaiting visual verification
 Resume file: None

@@ -12,7 +12,7 @@ Phase 5에서 완성된 Shot-FAI 2계층 데이터 모델 위에 4개 단계로 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: UI 재설계** - FAI-centric 트리 통합 + 단일 캔버스 + FAI 결과 테이블 + CRUD
+- [x] **Phase 1: UI 재설계** - FAI-centric 트리 통합 + 단일 캔버스 + FAI 결과 테이블 + CRUD (completed 2026-04-07)
 - [ ] **Phase 2: 티칭 & 캘리브레이션** - ROI 시각화 + 저장/로드 + 픽셀-mm 캘리브레이션
 - [ ] **Phase 3: 에지 측정 알고리즘** - Halcon MeasurePos 거리 측정 + 공차 판정 + 결과 오버레이
 - [ ] **Phase 4: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답
@@ -29,10 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 검사 실행 후 FAI별 거리(mm)와 OK/NG 판정이 테이블 행으로 표시된다
   4. FAI 추가/삭제/수정 버튼이 동작하고 트리에 즉시 반영된다
   5. FAI 삭제 시 확인 다이얼로그가 표시된다
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 01-01-PLAN.md — FAIConfig->CameraSlaveParam 리팩터링 + ENodeType.FAI + InspectionRecipeManager FAI-centric CRUD
-- [ ] 01-02-PLAN.md — InspectionListView FAI 통합 + MainView 캔버스/테이블 + CRUD UI + 검증
+- [x] 01-01-PLAN.md — FAIConfig->CameraSlaveParam 리팩터링 + ENodeType.FAI + InspectionRecipeManager FAI-centric CRUD
+- [x] 01-02-PLAN.md — InspectionListView FAI 통합 + MainView 캔버스/테이블 + CRUD UI + 검증
 **UI hint**: yes
 
 ### Phase 2: 티칭 & 캘리브레이션
@@ -74,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. UI 재설계 | 0/2 | Re-planning complete | - |
+| 1. UI 재설계 | 2/2 | Complete   | 2026-04-07 |
 | 2. 티칭 & 캘리브레이션 | 0/? | Not started | - |
 | 3. 에지 측정 알고리즘 | 0/? | Not started | - |
 | 4. 검사 시퀀스 & TCP | 0/? | Not started | - |

@@ -12,7 +12,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UI-01**: TreeView에서 Shot/FAI 2계층 구조를 탐색할 수 있다
 - [x] **UI-02**: 단일 캔버스에서 선택된 Shot의 이미지를 표시한다 (기존 5탭 제거)
 - [x] **UI-03**: FAI 측정 결과(거리 mm, OK/NG 판정)를 테이블로 표시한다
-- [x] **UI-04**: Shot을 추가/삭제/수정할 수 있다
+- [x] **UI-04**: FAI를 추가/삭제/수정할 수 있다 (Shot 계층 제거됨, UI-05와 통합)
 - [x] **UI-05**: FAI를 추가/삭제/수정할 수 있다
 
 ### 티칭

@@ -12,6 +12,7 @@ namespace ReringProject.UI {
         Sequence,
         Action,
         SubSequence,
+        FAI,
     }
 
     public class Node {
@@ -38,6 +39,8 @@ namespace ReringProject.UI {
                         return "/Resource/layout.png";
                     case ENodeType.SubSequence:
                         return "/Resource/split.png";
+                    case ENodeType.FAI:
+                        return "/Resource/chart.png";
                 }
                 return "/Resource/process.png";
             }

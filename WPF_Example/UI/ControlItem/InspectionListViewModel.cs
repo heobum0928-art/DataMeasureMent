@@ -51,14 +51,14 @@ namespace ReringProject.UI {
         }
 
         private void CreateSequenceNode(CompositeNode model) {
-            
+
             //sequence
             for(int i = 0; i < pSystemHandle.Sequences.Count; i++) {
                 SequenceBase seq = pSystemHandle.Sequences[i];
 
                 var seqNode = new CompositeNode { Name = seq.Name, NodeType = ENodeType.Sequence, ParamData = seq.Param, SequenceName = seq.Name, SequenceID = seq.ID };
                 model.Children.Add(seqNode);
-                
+
                 this.Count++;
 
                 //action
@@ -67,8 +67,36 @@ namespace ReringProject.UI {
                     var actNode = new CompositeNode { Name = act.Name, NodeType = ENodeType.Action, ParamData = act.Param, SequenceName = seq.Name, SequenceID = seq.ID, ActionID = act.ID };
                     seqNode.Children.Add(actNode);
                     this.Count++;
+
+                    // FAI child nodes: shown when action param is ShotConfig (IsDynamicFAIMode)
+                    if (act.Param is ShotConfig shot) {
+                        foreach (FAIConfig fai in shot.FAIList) {
+                            var faiNode = new CompositeNode { Name = fai.FAIName, NodeType = ENodeType.FAI, ParamData = fai, SequenceName = seq.Name, SequenceID = seq.ID, ActionID = act.ID };
+                            actNode.Children.Add(faiNode);
+                            this.Count++;
+                        }
+                    }
                 }
             }
+        }
+
+        /// <summary>Adds a FAI child node under the given action NodeViewModel at runtime.</summary>
+        public void AddFAINode(NodeViewModel actionNode, FAIConfig fai, ESequence seqID, EAction actID) {
+            if (actionNode == null || fai == null) return;
+            var cn = actionNode.Children;
+            var faiNode = new CompositeNode {
+                Name = fai.FAIName,
+                NodeType = ENodeType.FAI,
+                ParamData = fai,
+                SequenceName = actionNode.SequenceName,
+                SequenceID = seqID,
+                ActionID = actID
+            };
+            // Add to the underlying composite node's children list
+            // NodeViewModel.Children are backed by the composite node's Children list via LoadChildren
+            // We need to add to the vm's children collection directly
+            var faiVm = new NodeViewModel(faiNode, actionNode);
+            cn.Add(faiVm);
         }
         
         public void Select(int count) {

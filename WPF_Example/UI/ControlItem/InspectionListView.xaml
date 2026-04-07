@@ -227,6 +227,26 @@
                             </StackPanel>
                         </Button>
                     </ToolBar>
+                    <ToolBar>
+                        <Button x:Name="button_addFAI" Click="Btn_AddFAI_Click" IsEnabled="False" Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/layout.png" Stretch="Uniform" Width="42" Height="42"/>
+                                <TextBlock Text="Add" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="button_removeFAI" Click="Btn_RemoveFAI_Click" IsEnabled="False" Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/layout.png" Stretch="Uniform" Width="42" Height="42"/>
+                                <TextBlock Text="Del" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="button_renameFAI" Click="Btn_RenameFAI_Click" IsEnabled="False" Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/layout.png" Stretch="Uniform" Width="42" Height="42"/>
+                                <TextBlock Text="Edit" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </ToolBar>
                 </ToolBarTray>
 
                 <propToolsWpf:PropertyGrid x:Name="ParamEditor" Grid.Column="1" Grid.Row="0" Margin="0" BorderThickness="0" BorderBrush="Gray" 

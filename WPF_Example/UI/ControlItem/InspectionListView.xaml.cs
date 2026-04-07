@@ -16,9 +16,10 @@ namespace ReringProject.UI {
     public partial class InspectionListView : UserControl {
         private MainWindow mParentWindow;
         private InspectionListViewModel ViewModel;
+        private InspectionViewModel _inspectionVm;
         public ParamBase SelectedParam { get; private set; } = null;
         private ParamBase CopiedParam = null;
-        
+
         public InspectionListView() {
             InitializeComponent();
             ViewModel = new InspectionListViewModel();
@@ -54,6 +55,9 @@ namespace ReringProject.UI {
 
         private void ListView_Loaded(object sender, RoutedEventArgs e) {
             mParentWindow = (MainWindow)Window.GetWindow(this);
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            _inspectionVm = new InspectionViewModel(recipeManager);
+            mParentWindow.mainView.SetFAIResultSource(_inspectionVm);
         }
 
         private void Btn_RecipeSelect_Click(object sender, RoutedEventArgs e) {
@@ -167,8 +171,8 @@ namespace ReringProject.UI {
                     NodeViewModel item = list.SelectedItem as NodeViewModel;
                     object itemParam = item.Param;
 
-                    //param 
-                    if (itemParam is ParamBase) { //action
+                    //param
+                    if (itemParam is ParamBase) { //action or FAI
                         ParamBase param = itemParam as ParamBase;
                         if (itemParam is ICameraParam) {
                             button_grab.IsEnabled = true;
@@ -181,6 +185,31 @@ namespace ReringProject.UI {
                     else { //recipe
                         mParentWindow.mainView.SetParam(item.SequenceID, null);
                         SelectedParam = null;
+                    }
+
+                    // FAI CRUD button state + InspectionViewModel update
+                    if (item.NodeType == ENodeType.FAI) {
+                        button_addFAI.IsEnabled = true;
+                        button_removeFAI.IsEnabled = true;
+                        button_renameFAI.IsEnabled = true;
+                        if (_inspectionVm != null && itemParam is FAIConfig faiConfig) {
+                            _inspectionVm.OnFAISelected(faiConfig);
+                            mParentWindow.mainView.DisplayFAIImage(faiConfig);
+                        }
+                    }
+                    else if (item.NodeType == ENodeType.Action) {
+                        button_addFAI.IsEnabled = true;
+                        button_removeFAI.IsEnabled = false;
+                        button_renameFAI.IsEnabled = false;
+                        if (_inspectionVm != null) {
+                            _inspectionVm.OnActionSelected(item);
+                        }
+                    }
+                    else {
+                        button_addFAI.IsEnabled = false;
+                        button_removeFAI.IsEnabled = false;
+                        button_renameFAI.IsEnabled = false;
+                        _inspectionVm?.ClearResults();
                     }
                 }
             }
@@ -252,6 +281,71 @@ namespace ReringProject.UI {
             ICameraParam camParam = SelectedParam as ICameraParam;
             SystemHandler.Handle.Lights.SetLevel(camParam.LightGroupName, camParam.LightLevel);
             SystemHandler.Handle.Lights.SetOnOff(camParam.LightGroupName, true);
+        }
+
+        private void Btn_AddFAI_Click(object sender, RoutedEventArgs e) {
+            try {
+                if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
+                NodeViewModel actionNode = selectedNode;
+                if (selectedNode.NodeType == ENodeType.FAI) {
+                    actionNode = selectedNode.Parent;
+                }
+                if (actionNode == null || actionNode.NodeType != ENodeType.Action) return;
+                if (!(actionNode.Param is ShotConfig shot)) return;
+
+                string defaultName = "FAI_" + shot.FAIList.Count;
+                if (!TextInputBox.Show("FAI 이름 입력", defaultName, out string name)) return;
+
+                FAIConfig newFai = _inspectionVm.AddFAI(shot, name);
+                if (newFai != null) {
+                    ViewModel.AddFAINode(actionNode, newFai, actionNode.SequenceID, actionNode.ActionID);
+                }
+            }
+            catch (Exception ex) {
+                CustomMessageBox.Show("FAI 추가 오류", ex.Message, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void Btn_RemoveFAI_Click(object sender, RoutedEventArgs e) {
+            try {
+                if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
+                if (selectedNode.NodeType != ENodeType.FAI) return;
+                if (!(selectedNode.Param is FAIConfig fai)) return;
+                NodeViewModel actionNode = selectedNode.Parent;
+                if (actionNode == null || !(actionNode.Param is ShotConfig shot)) return;
+
+                // Per D-10: confirmation dialog
+                MessageBoxResult result = CustomMessageBox.ShowConfirmation(
+                    "FAI 삭제",
+                    string.Format("FAI \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?", fai.FAIName),
+                    MessageBoxButton.YesNo);
+                if (result != MessageBoxResult.Yes) return;
+
+                int index = shot.FAIList.IndexOf(fai);
+                if (index >= 0) {
+                    _inspectionVm.RemoveFAI(shot, index);
+                    selectedNode.Detach();
+                }
+                _inspectionVm?.ClearResults();
+            }
+            catch (Exception ex) {
+                CustomMessageBox.Show("FAI 삭제 오류", ex.Message, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void Btn_RenameFAI_Click(object sender, RoutedEventArgs e) {
+            try {
+                if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
+                if (selectedNode.NodeType != ENodeType.FAI) return;
+                if (!(selectedNode.Param is FAIConfig fai)) return;
+
+                if (!TextInputBox.Show("FAI 이름 수정", fai.FAIName, out string newName)) return;
+                fai.FAIName = newName;
+                selectedNode.Name = newName;
+            }
+            catch (Exception ex) {
+                CustomMessageBox.Show("FAI 이름 수정 오류", ex.Message, System.Windows.MessageBoxImage.Error);
+            }
         }
     }
 }

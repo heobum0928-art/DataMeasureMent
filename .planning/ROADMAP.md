@@ -12,7 +12,7 @@ Phase 5에서 완성된 Shot-FAI 2계층 데이터 모델 위에 4개 단계로 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: UI 재설계** - TreeView 2계층(Shot/FAI) + 단일 캔버스 + FAI 결과 테이블 + CRUD
+- [ ] **Phase 1: UI 재설계** - FAI-centric 트리 통합 + 단일 캔버스 + FAI 결과 테이블 + CRUD
 - [ ] **Phase 2: 티칭 & 캘리브레이션** - ROI 시각화 + 저장/로드 + 픽셀-mm 캘리브레이션
 - [ ] **Phase 3: 에지 측정 알고리즘** - Halcon MeasurePos 거리 측정 + 공차 판정 + 결과 오버레이
 - [ ] **Phase 4: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답
@@ -20,19 +20,19 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: UI 재설계
-**Goal**: 사용자가 Shot/FAI 2계층 구조를 탐색하고, 단일 캔버스에서 이미지를 보며, 결과 테이블을 확인하고, Shot/FAI를 추가·삭제·수정할 수 있다
+**Goal**: 사용자가 기존 InspectionListView 트리에서 FAI 노드를 탐색하고, PropertyGrid로 FAI 속성을 편집하며, 캔버스에서 FAI 이미지를 보고, 결과 테이블을 확인하며, FAI를 추가/삭제/수정할 수 있다
 **Depends on**: Nothing (first phase)
 **Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05
 **Success Criteria** (what must be TRUE):
-  1. TreeView에서 Shot 노드를 펼치면 해당 Shot의 FAI 목록이 표시된다
-  2. TreeView에서 Shot을 선택하면 단일 캔버스에 해당 Shot의 이미지가 표시된다 (기존 5탭 없음)
+  1. InspectionListView 트리에서 Action 노드 아래에 FAI 노드가 표시된다
+  2. FAI 노드 선택 시 PropertyGrid에 FAIConfig 속성이 표시되고 캔버스에 해당 FAI 이미지가 표시된다
   3. 검사 실행 후 FAI별 거리(mm)와 OK/NG 판정이 테이블 행으로 표시된다
-  4. Shot 추가/삭제/수정 버튼이 동작하고 TreeView에 즉시 반영된다
-  5. FAI 추가/삭제/수정 버튼이 동작하고 선택된 Shot 아래에 즉시 반영된다
+  4. FAI 추가/삭제/수정 버튼이 동작하고 트리에 즉시 반영된다
+  5. FAI 삭제 시 확인 다이얼로그가 표시된다
 **Plans:** 2 plans
 Plans:
-- [x] 01-01-PLAN.md — ViewModel 계층 생성 (ShotNodeViewModel, FAINodeViewModel, FAIResultRow, InspectionViewModel)
-- [ ] 01-02-PLAN.md — MainView.xaml 3영역 레이아웃 + 코드비하인드 + csproj 업데이트 + UI 검증
+- [ ] 01-01-PLAN.md — FAIConfig->CameraSlaveParam 리팩터링 + ENodeType.FAI + InspectionRecipeManager FAI-centric CRUD
+- [ ] 01-02-PLAN.md — InspectionListView FAI 통합 + MainView 캔버스/테이블 + CRUD UI + 검증
 **UI hint**: yes
 
 ### Phase 2: 티칭 & 캘리브레이션
@@ -74,7 +74,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. UI 재설계 | 0/2 | Planning complete | - |
+| 1. UI 재설계 | 0/2 | Re-planning complete | - |
 | 2. 티칭 & 캘리브레이션 | 0/? | Not started | - |
 | 3. 에지 측정 알고리즘 | 0/? | Not started | - |
 | 4. 검사 시퀀스 & TCP | 0/? | Not started | - |

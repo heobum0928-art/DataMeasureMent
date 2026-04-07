@@ -15,7 +15,7 @@
         <!-- Canvas area -->
         <Grid Grid.Row="0" Background="#FF303030">
             <dmv:MainResultViewerControl x:Name="halconViewer"/>
-            <Label x:Name="label_message" FontSize="20" Foreground="Red"
+            <Label x:Name="label_message" FontSize="24" Foreground="#FFAAAAAA"
                    Content="NO Image"
                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -46,6 +46,23 @@
                   SelectionChanged="FAIResults_SelectionChanged"
                   Background="#FF1A202C" Foreground="#FFFFFFFF"
                   HeadersVisibility="Column" GridLinesVisibility="None">
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#FF3A3A4A"/>
+                    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Padding" Value="8,4"/>
+                    <Setter Property="BorderBrush" Value="#FF555555"/>
+                    <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Padding" Value="4,2"/>
+                </Style>
+            </DataGrid.CellStyle>
             <!-- Per D-06/D-11: OK/NG color coding -->
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">

@@ -54,10 +54,17 @@ namespace ReringProject.UI {
         }
 
         private void ListView_Loaded(object sender, RoutedEventArgs e) {
-            mParentWindow = (MainWindow)Window.GetWindow(this);
-            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
-            _inspectionVm = new InspectionViewModel(recipeManager);
-            mParentWindow.mainView.SetFAIResultSource(_inspectionVm);
+            try {
+                mParentWindow = (MainWindow)Window.GetWindow(this);
+                var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+                _inspectionVm = new InspectionViewModel(recipeManager);
+                mParentWindow.mainView.SetFAIResultSource(_inspectionVm);
+                // Auto-expand tree so nodes are visible even when IsEditable == false
+                ViewModel.RootModel.ExpandAll();
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine("InspectionListView.ListView_Loaded error: " + ex.Message);
+            }
         }
 
         private void Btn_RecipeSelect_Click(object sender, RoutedEventArgs e) {

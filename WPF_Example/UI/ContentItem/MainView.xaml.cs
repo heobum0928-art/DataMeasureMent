@@ -30,8 +30,6 @@ namespace ReringProject.UI {
         private readonly List<IMainView> CustomViewList = new List<IMainView>();
         private string _lastRenderedImagePath;
         private double _drawScale = 1.0;
-        private InspectionViewModel _viewModel;
-
         public bool IsEditable { get; set; }
         public double DrawScale {
             get { return _drawScale; }
@@ -59,39 +57,27 @@ namespace ReringProject.UI {
 
             DrawScale = pDev.Config.DrawScale;
             UpdatePointerLabel(0, 0, null);
-
-            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
-            _viewModel = new InspectionViewModel(recipeManager);
-            DataContext = _viewModel;
         }
 
-        private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) {
-            if (_viewModel == null) return;
-            _viewModel.SelectedNode = e.NewValue;
-
-            // Canvas update (per D-02)
-            if (e.NewValue is ShotNodeViewModel shotVm) {
-                DisplayShotImage(shotVm);
-            } else if (e.NewValue is FAINodeViewModel faiVm) {
-                // Find parent shot and display its image
-                foreach (var shot in _viewModel.Shots) {
-                    if (shot.FAIItems.Contains(faiVm)) {
-                        DisplayShotImage(shot);
-                        break;
-                    }
-                }
-            } else {
+        /// <summary>Displays the shot image associated with the selected FAIConfig. Per D-12.
+        /// FAIConfig itself does not store an image; the parent ShotConfig holds it.</summary>
+        public void DisplayFAIImage(FAIConfig fai) {
+            if (fai == null) {
                 label_message.Content = "NO Image";
                 label_message.Visibility = Visibility.Visible;
+                return;
             }
+            // FAIConfig owner is the ShotConfig that was passed as owner at construction
+            ShotConfig shot = fai.Owner as ShotConfig;
+            DisplayShotImage(shot);
         }
 
-        /// <summary>Displays the image for the selected Shot node. LoadImage clones the HImage internally so disposal is safe.</summary>
-        private void DisplayShotImage(ShotNodeViewModel shotVm) {
-            if (shotVm.ShotConfig.HasImage) {
+        /// <summary>Displays the image stored in the given ShotConfig on the canvas.</summary>
+        private void DisplayShotImage(ShotConfig shot) {
+            if (shot != null && shot.HasImage) {
                 HImage img = null;
                 try {
-                    img = shotVm.ShotConfig.GetImage();
+                    img = shot.GetImage();
                     if (img != null) {
                         halconViewer.LoadImage(img);
                         label_message.Visibility = Visibility.Collapsed;
@@ -108,23 +94,11 @@ namespace ReringProject.UI {
             }
         }
 
-        private void Btn_Add_Click(object sender, RoutedEventArgs e) {
-            if (_viewModel == null) return;
-            if (_viewModel.SelectedNode is ShotNodeViewModel || _viewModel.SelectedNode is FAINodeViewModel) {
-                _viewModel.AddFAIToSelectedShot();
-            } else {
-                _viewModel.AddShot();
-            }
-        }
-
-        private void Btn_Remove_Click(object sender, RoutedEventArgs e) {
-            if (_viewModel == null) return;
-            _viewModel.RemoveSelected();
-        }
-
-        private void Btn_Edit_Click(object sender, RoutedEventArgs e) {
-            if (_viewModel == null) return;
-            _viewModel.RenameSelected();
+        /// <summary>Binds DataGrid to the InspectionViewModel's FAIResults collection.</summary>
+        public void SetFAIResultSource(InspectionViewModel vm) {
+            dataGrid_faiResults.SetBinding(
+                System.Windows.Controls.DataGrid.ItemsSourceProperty,
+                new System.Windows.Data.Binding("FAIResults") { Source = vm });
         }
 
         private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {

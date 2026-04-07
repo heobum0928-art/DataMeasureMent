@@ -6,160 +6,80 @@
              xmlns:dmv="clr-namespace:ReringProject.UI"
              mc:Ignorable="d" Loaded="MainView_Loaded" d:DesignWidth="1200" d:DesignHeight="800">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="25*"/>
-            <ColumnDefinition Width="5"/>
-            <ColumnDefinition Width="75*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="6*"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="4*"/>
+        </Grid.RowDefinitions>
 
-        <!-- Left column: TreeView panel -->
-        <Grid Grid.Column="0" Background="#FF2D3748">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="36"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Toolbar row -->
-            <ToolBarTray Grid.Row="0" Background="#FF2D3748">
-                <ToolBar Background="#FF2D3748" BorderThickness="0">
-                    <Button x:Name="Btn_Add" Width="32" Height="32" Margin="4,0"
-                            Content="+" FontSize="16" FontWeight="Bold"
-                            ToolTip="Shot 추가"
-                            Click="Btn_Add_Click"/>
-                    <Button x:Name="Btn_Remove" Width="32" Height="32" Margin="4,0"
-                            Content="-" FontSize="16" FontWeight="Bold"
-                            ToolTip="Shot/FAI 삭제"
-                            IsEnabled="{Binding CanRemove}"
-                            Click="Btn_Remove_Click"/>
-                    <Button x:Name="Btn_Edit" Width="32" Height="32" Margin="4,0"
-                            Content="E" FontSize="14"
-                            ToolTip="이름 수정"
-                            IsEnabled="{Binding CanRename}"
-                            Click="Btn_Edit_Click"/>
-                </ToolBar>
-            </ToolBarTray>
-
-            <!-- TreeView row -->
-            <TreeView x:Name="treeView_shots" Grid.Row="1"
-                      ItemsSource="{Binding Shots}"
-                      SelectedItemChanged="TreeView_SelectedItemChanged"
-                      Background="Transparent" BorderThickness="0"
-                      Foreground="#FFFFFFFF">
-                <TreeView.Resources>
-                    <HierarchicalDataTemplate DataType="{x:Type dmv:ShotNodeViewModel}"
-                                              ItemsSource="{Binding FAIItems}">
-                        <TextBlock Text="{Binding Name}" Padding="2,2"/>
-                    </HierarchicalDataTemplate>
-                    <DataTemplate DataType="{x:Type dmv:FAINodeViewModel}">
-                        <TextBlock Text="{Binding Name}" Padding="2,2"/>
-                    </DataTemplate>
-                </TreeView.Resources>
-                <TreeView.ItemContainerStyle>
-                    <Style TargetType="TreeViewItem">
-                        <Setter Property="Foreground" Value="#FFFFFFFF"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#FFc7e6fd"/>
-                                <Setter Property="Foreground" Value="#FF000000"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </TreeView.ItemContainerStyle>
-            </TreeView>
+        <!-- Canvas area -->
+        <Grid Grid.Row="0" Background="#FF303030">
+            <dmv:MainResultViewerControl x:Name="halconViewer"/>
+            <Label x:Name="label_message" FontSize="20" Foreground="Red"
+                   Content="NO Image"
+                   HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                   IsHitTestVisible="False"/>
+            <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Label x:Name="label_pos" Grid.Column="1"
+                           FontSize="16" Foreground="LightGray"
+                           HorizontalContentAlignment="Right" HorizontalAlignment="Right"
+                           Content="X:0.0, Y:0.0, G:-"/>
+                </Grid>
+            </Border>
         </Grid>
 
-        <!-- Vertical GridSplitter -->
-        <GridSplitter Grid.Column="1" Width="5"
-                      HorizontalAlignment="Center" VerticalAlignment="Stretch"
+        <!-- Horizontal GridSplitter -->
+        <GridSplitter Grid.Row="1" Height="5"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Center"
                       Background="#FF555555"/>
 
-        <!-- Right column: canvas + table -->
-        <Grid Grid.Column="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="6*"/>
-                <RowDefinition Height="5"/>
-                <RowDefinition Height="4*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Canvas area -->
-            <Grid Grid.Row="0" Background="#FF303030">
-                <dmv:MainResultViewerControl x:Name="halconViewer"/>
-                <Label x:Name="label_message"
-                       FontSize="20"
-                       Foreground="Red"
-                       Content="NO Image"
-                       HorizontalContentAlignment="Center"
-                       VerticalContentAlignment="Center"
-                       HorizontalAlignment="Stretch"
-                       VerticalAlignment="Stretch"
-                       IsHitTestVisible="False"/>
-                <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Label x:Name="label_pos"
-                               Grid.Column="1"
-                               FontSize="16"
-                               Foreground="LightGray"
-                               HorizontalContentAlignment="Right"
-                               HorizontalAlignment="Right"
-                               Content="X:0.0, Y:0.0, G:-"/>
-                    </Grid>
-                </Border>
-            </Grid>
-
-            <!-- Horizontal GridSplitter -->
-            <GridSplitter Grid.Row="1" Height="5"
-                          HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                          Background="#FF555555"/>
-
-            <!-- DataGrid result table -->
-            <DataGrid x:Name="dataGrid_faiResults" Grid.Row="2"
-                      ItemsSource="{Binding SelectedShotFAIResults}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      SelectionUnit="FullRow"
-                      SelectionChanged="FAIResults_SelectionChanged"
-                      Background="#FF1A202C"
-                      Foreground="#FFFFFFFF"
-                      HeadersVisibility="Column"
-                      GridLinesVisibility="None">
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow">
-                        <Setter Property="Background" Value="#FF2D2D2D"/>
-                        <Setter Property="Foreground" Value="#FFFFFFFF"/>
-                        <Style.Triggers>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding IsPass}" Value="True"/>
-                                    <Condition Binding="{Binding HasResult}" Value="True"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="Background" Value="#FF204020"/>
-                            </MultiDataTrigger>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding IsPass}" Value="False"/>
-                                    <Condition Binding="{Binding HasResult}" Value="True"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="Background" Value="#FF402020"/>
-                            </MultiDataTrigger>
-                            <DataTrigger Binding="{Binding HasResult}" Value="False">
-                                <Setter Property="Background" Value="#FF2D2D2D"/>
-                                <Setter Property="Foreground" Value="#FF8899AA"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.RowStyle>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="FAI" Binding="{Binding FAIName}" Width="*"/>
-                    <DataGridTextColumn Header="거리(mm)" Binding="{Binding MeasuredValueText}" Width="Auto"/>
-                    <DataGridTextColumn Header="Spec(Min)" Binding="{Binding SpecMinText}" Width="Auto"/>
-                    <DataGridTextColumn Header="Spec(Max)" Binding="{Binding SpecMaxText}" Width="Auto"/>
-                    <DataGridTextColumn Header="판정" Binding="{Binding JudgeText}" Width="Auto"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Grid>
+        <!-- DataGrid result table -->
+        <DataGrid x:Name="dataGrid_faiResults" Grid.Row="2"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionUnit="FullRow"
+                  SelectionChanged="FAIResults_SelectionChanged"
+                  Background="#FF1A202C" Foreground="#FFFFFFFF"
+                  HeadersVisibility="Column" GridLinesVisibility="None">
+            <!-- Per D-06/D-11: OK/NG color coding -->
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="#FF2D2D2D"/>
+                    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsPass}" Value="True"/>
+                                <Condition Binding="{Binding HasResult}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FF204020"/>
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsPass}" Value="False"/>
+                                <Condition Binding="{Binding HasResult}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FF402020"/>
+                        </MultiDataTrigger>
+                        <DataTrigger Binding="{Binding HasResult}" Value="False">
+                            <Setter Property="Background" Value="#FF2D2D2D"/>
+                            <Setter Property="Foreground" Value="#FF8899AA"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="FAI" Binding="{Binding FAIName}" Width="*"/>
+                <DataGridTextColumn Header="거리(mm)" Binding="{Binding MeasuredValueText}" Width="Auto"/>
+                <DataGridTextColumn Header="Spec(Min)" Binding="{Binding SpecMinText}" Width="Auto"/>
+                <DataGridTextColumn Header="Spec(Max)" Binding="{Binding SpecMaxText}" Width="Auto"/>
+                <DataGridTextColumn Header="판정" Binding="{Binding JudgeText}" Width="Auto"/>
+            </DataGrid.Columns>
+        </DataGrid>
     </Grid>
 </UserControl>

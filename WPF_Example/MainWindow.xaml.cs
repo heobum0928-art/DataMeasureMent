@@ -79,7 +79,7 @@ namespace ReringProject {
             InitializeComponent();
             //ComboLanguage.ItemsSource = Enum.GetValues(typeof(ELanguageType)).Cast<ELanguageType>();
             
-            //register            mSystemHandler.Sequences.OnRecipeChanged += this.OnLoadRecipe;
+            mSystemHandler.Sequences.OnRecipeChanged += this.OnLoadRecipe;
 
             mSystemHandler.Login.OnLoginStateChanged += this.OnLoginChanged;
 

@@ -99,13 +99,14 @@ namespace ReringProject.UI {
             cn.Add(faiVm);
         }
         
-        /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.</summary>
+        /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.
+        /// Root 교체 대신 ObservableCollection in-place 갱신으로 TreeListBox NullRef 방지.</summary>
+        //260408 hbk RaisePropertyChanged("Root") 제거 — TreeListBox 내부 NullRef 원인
         public void RebuildTree() {
             this.Model.Children.Clear();
             this.Count = 0;
             CreateSequenceNode(this.Model);
-            RootModel = new NodeViewModel(this.Model, null);
-            RaisePropertyChanged("Root");
+            RootModel.ReloadChildren();
         }
 
         public void Select(int count) {

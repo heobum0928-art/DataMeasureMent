@@ -28,27 +28,35 @@ namespace ReringProject.UI {
         }
 
         private static bool Show(MessageBoxModel model, bool isModal=true) {
-            
+
             bool dialogResult = false;
 
             try {
                 // App.Current.Dispatcher ... 주석처리 해제 02.19
                 App.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
-                    Close();
+                    try { //260408 hbk BeginInvoke 람다 내부 예외 방어
+                        Close();
 
-                    _MessageBox = new MessageBoxWindow(model);
-                    _MessageBox.Owner = Parent;
-                    _MessageBox.Topmost = true;
+                        _MessageBox = new MessageBoxWindow(model);
+                        if (Parent != null && Parent.IsLoaded) {
+                            _MessageBox.Owner = Parent;
+                        }
+                        _MessageBox.Topmost = true;
 
-                    if (Parent == null) {
-                        _MessageBox.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                        if (Parent == null || !Parent.IsLoaded) {
+                            _MessageBox.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                        }
+                        if (isModal) {
+                            var result = _MessageBox.ShowDialog();
+                            dialogResult = result == true;
+                        }
+                        else {
+                            _MessageBox.Show();
+                            dialogResult = true;
+                        }
                     }
-                    if (isModal) {
-                        dialogResult = (bool)_MessageBox.ShowDialog();
-                    }
-                    else {
-                        _MessageBox.Show();
-                        dialogResult = true;
+                    catch (Exception ex) {
+                        Logging.PrintErrLog((int)ELogType.Error, "CustomMessageBox.Show lambda: " + ex.Message);
                     }
                 }));
                 // App.Current.Dispatcher ... 주석처리 해제 02.19
@@ -61,22 +69,30 @@ namespace ReringProject.UI {
         }
 
         public static MessageBoxResult ShowConfirmation(string title, string message, MessageBoxButton buttons) {
-            Close();
-            MessageBoxModel model = new MessageBoxModel(title, message, buttons, false);
+            try { //260408 hbk 앱 종료/에러 중 호출 시 예외 방어
+                Close();
+                MessageBoxModel model = new MessageBoxModel(title, message, buttons, false);
 
-            _MessageBox = new MessageBoxWindow(model);
-            _MessageBox.Owner = Parent;
-            _MessageBox.Topmost = true;
+                _MessageBox = new MessageBoxWindow(model);
+                if (Parent != null && Parent.IsLoaded) {
+                    _MessageBox.Owner = Parent;
+                }
+                _MessageBox.Topmost = true;
 
-            MessageBoxResult result = MessageBoxResult.None;
-            if(Parent == null) {
-                _MessageBox.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                MessageBoxResult result = MessageBoxResult.None;
+                if (Parent == null || !Parent.IsLoaded) {
+                    _MessageBox.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                }
+
+                _MessageBox.ShowDialog();
+                result = _MessageBox.Result;
+                Logging.PrintLog((int)ELogType.Trace, string.Format("{0} => {1}", model.ToString(), result.ToString()));
+                return result;
             }
-
-            _MessageBox.ShowDialog();
-            result = _MessageBox.Result;
-            Logging.PrintLog((int)ELogType.Trace, string.Format("{0} => {1}", model.ToString(), result.ToString()));
-            return result;
+            catch (Exception e) {
+                Logging.PrintErrLog((int)ELogType.Error, "ShowConfirmation: " + e.Message);
+                return MessageBoxResult.None;
+            }
         }
     }
 }

@@ -83,7 +83,9 @@ namespace ReringProject.Sequence {
         /// </summary>
         public RoiDefinition ToRoiDefinition()
         {
-            bool isTaught = ROI_Length1 > 0 && ROI_Length2 > 0;
+            bool hasRect = ROI_Length1 > 0 && ROI_Length2 > 0;
+            bool hasPolygon = !string.IsNullOrEmpty(PolygonPoints); //260408 hbk Polygon ROI 지원
+            bool isTaught = hasRect || hasPolygon;
             if (!isTaught)
             {
                 return new RoiDefinition
@@ -94,25 +96,34 @@ namespace ReringProject.Sequence {
                 };
             }
 
-            double sinPhi = Math.Sin(ROI_Phi);
-            double cosPhi = Math.Cos(ROI_Phi);
-            double dRow = Math.Abs(ROI_Length1 * cosPhi) + Math.Abs(ROI_Length2 * sinPhi);
-            double dCol = Math.Abs(ROI_Length1 * sinPhi) + Math.Abs(ROI_Length2 * cosPhi);
+            double row1 = 0, col1 = 0, row2 = 0, col2 = 0;
+            if (hasRect)
+            {
+                double sinPhi = Math.Sin(ROI_Phi);
+                double cosPhi = Math.Cos(ROI_Phi);
+                double dRow = Math.Abs(ROI_Length1 * cosPhi) + Math.Abs(ROI_Length2 * sinPhi);
+                double dCol = Math.Abs(ROI_Length1 * sinPhi) + Math.Abs(ROI_Length2 * cosPhi);
+                row1 = ROI_Row - dRow;
+                col1 = ROI_Col - dCol;
+                row2 = ROI_Row + dRow;
+                col2 = ROI_Col + dCol;
+            }
 
             return new RoiDefinition
             {
                 Id = FAIName ?? "FAI",
                 Name = FAIName ?? "FAI",
-                Row1 = ROI_Row - dRow,
-                Column1 = ROI_Col - dCol,
-                Row2 = ROI_Row + dRow,
-                Column2 = ROI_Col + dCol,
+                Row1 = row1,
+                Column1 = col1,
+                Row2 = row2,
+                Column2 = col2,
                 IsTaught = true,
                 Sigma = Sigma,
                 EdgeThreshold = (int)Threshold,
                 EdgeDirection = "LtoR",
                 PixelResolutionX = PixelResolutionX,
-                PixelResolutionY = PixelResolutionY
+                PixelResolutionY = PixelResolutionY,
+                PolygonPoints = PolygonPoints ?? "" //260408 hbk
             };
         }
     }

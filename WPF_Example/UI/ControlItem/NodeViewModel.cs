@@ -86,6 +86,21 @@ namespace ReringProject.UI {
             }
         }
 
+        /// <summary>기존 children 컬렉션을 비우고 Node의 현재 Children으로 다시 채운다.
+        /// ObservableCollection 이벤트를 통해 TreeListBox가 안전하게 갱신된다.</summary>
+        //260408 hbk RebuildTree에서 Root 교체 대신 in-place 갱신용
+        public void ReloadChildren() {
+            var col = this.Children; // LoadChildren 보장
+            col.Clear();
+            var cc = this.Node as CompositeNode;
+            if (cc != null) {
+                foreach (var child in cc.Children) {
+                    col.Add(new NodeViewModel(child, this));
+                }
+            }
+            RaisePropertyChanged("HasItems");
+        }
+
         public string ImageSource {
             get { return this.Node.ImageSource; }
             set { this.Node.ImageSource = value; RaisePropertyChanged("ImageSource"); }

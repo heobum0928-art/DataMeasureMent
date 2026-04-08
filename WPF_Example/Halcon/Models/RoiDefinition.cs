@@ -53,6 +53,10 @@ namespace ReringProject.Halcon.Models
         [DataMember]
         public string LineOrientation { get; set; } = "Horizontal";
 
+        //260408 hbk Polygon ROI 좌표 ("x1,y1;x2,y2;..." 포맷)
+        [DataMember]
+        public string PolygonPoints { get; set; } = "";
+
         [DataMember]
         public double PixelResolutionX { get; set; } = 1.0;
 

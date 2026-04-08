@@ -19,6 +19,8 @@ namespace ReringProject.UI {
         private InspectionViewModel _inspectionVm;
         public ParamBase SelectedParam { get; private set; } = null;
         private ParamBase CopiedParam = null;
+        private bool _isControlLoaded = false; //260408 hbk UI 초기화 완료 플래그
+        private string _pendingRecipeName = null; //260408 hbk 초기화 전 수신된 레시피명
 
         public InspectionListView() {
             InitializeComponent();
@@ -60,13 +62,16 @@ namespace ReringProject.UI {
                 _inspectionVm = new InspectionViewModel(recipeManager);
                 mParentWindow.mainView.SetFAIResultSource(_inspectionVm);
 
-                //260408 hbk 초기 Recipe명 표시 (OnLoadRecipe 이전에 이미 로드된 경우 대비)
-                string curRecipe = SystemHandler.Handle.Setting.CurrentRecipeName;
-                if (!string.IsNullOrEmpty(curRecipe)) {
-                    ViewModel.CurrentRecipe = curRecipe;
+                _isControlLoaded = true; //260408 hbk
+
+                //260408 hbk 초기화 전에 OnLoadRecipe가 먼저 호출된 경우 여기서 트리 재구축
+                string recipeName = _pendingRecipeName
+                    ?? SystemHandler.Handle.Setting.CurrentRecipeName;
+                if (!string.IsNullOrEmpty(recipeName)) {
+                    ViewModel.CurrentRecipe = recipeName;
+                    ViewModel.RebuildTree();
                 }
 
-                // Auto-expand tree so nodes are visible even when IsEditable == false
                 ViewModel.RootModel.ExpandAll();
             }
             catch (Exception ex) {
@@ -109,9 +114,15 @@ namespace ReringProject.UI {
         }
 
         public void OnLoadRecipe(string name) {
+            //260408 hbk UI 초기화 전이면 보류, ListView_Loaded에서 처리
+            if (!_isControlLoaded) {
+                _pendingRecipeName = name;
+                return;
+            }
+
             ViewModel.CurrentRecipe = name;
-            NodeViewModel root = treeListBox_sequence.Items[0] as NodeViewModel;
-            root.Name = name;
+            ViewModel.RebuildTree();
+            ViewModel.RootModel?.ExpandAll();
         }
 
         private void Btn_start_Click(object sender, RoutedEventArgs e) {

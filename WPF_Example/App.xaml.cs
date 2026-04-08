@@ -50,16 +50,24 @@ namespace ReringProject {
             base.OnStartup(e);
         }
 
+        private bool _isHandlingException = false; //260408 hbk 재진입 방지 플래그
+
         private void Dispatcher_UnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e) {
-            CustomMessageBox.Show("Unhandled Exception", e.Exception.ToString(), MessageBoxImage.Error, true, false);
             e.Handled = true;
-            
-            if (SystemHandler.Handle.IsReleased == false) {
-                if (MainWindow != null) {
-                    MainWindow.Close();
-                }
-                
+
+            //260408 hbk 재진입 방지: 예외 처리 중 또 다른 예외 발생 시 무한 루프 차단
+            if (_isHandlingException) return;
+            _isHandlingException = true;
+
+            try {
+                Logging.PrintErrLog((int)ELogType.Error, "Unhandled: " + e.Exception.ToString());
+                CustomMessageBox.Show("Unhandled Exception", e.Exception.ToString(), MessageBoxImage.Error, true, false);
             }
+            catch {
+                // 메시지 박스 표시 실패 — 무시
+            }
+
+            _isHandlingException = false;
         }
     }
 }

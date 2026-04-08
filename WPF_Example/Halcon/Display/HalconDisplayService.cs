@@ -41,9 +41,23 @@ namespace ReringProject.Halcon.Display
             {
                 foreach (var roi in rois)
                 {
-                    window.SetColor(roi.Id == selectedRoiId ? "yellow" : "green");
-                    window.SetLineWidth(roi.Id == selectedRoiId ? 3 : 2);
-                    DrawRectangleOutline(window, roi.Row1, roi.Column1, roi.Row2, roi.Column2);
+                    string roiColor = roi.Id == selectedRoiId ? "yellow" : "green";
+                    int roiWidth = roi.Id == selectedRoiId ? 3 : 2;
+                    window.SetColor(roiColor);
+                    window.SetLineWidth(roiWidth);
+
+                    //260408 hbk Polygon ROI 렌더링 지원
+                    if (!string.IsNullOrEmpty(roi.PolygonPoints))
+                    {
+                        var pts = ParsePolygonPoints(roi.PolygonPoints);
+                        if (pts != null && pts.Count >= 3)
+                            RenderPolygon(window, pts, roiColor, roiWidth);
+                    }
+                    else if (roi.Row1 != 0 || roi.Column1 != 0 || roi.Row2 != 0 || roi.Column2 != 0)
+                    {
+                        DrawRectangleOutline(window, roi.Row1, roi.Column1, roi.Row2, roi.Column2);
+                    }
+
                     if (roi.Id == selectedRoiId && roi.IsTaught)
                     {
                         DrawDirectionArrow(window, roi);
@@ -280,6 +294,25 @@ namespace ReringProject.Halcon.Display
                              endRow + headLen * Math.Sin(a1), endCol + headLen * Math.Cos(a1));
             window.DispLine(endRow, endCol,
                              endRow + headLen * Math.Sin(a2), endCol + headLen * Math.Cos(a2));
+        }
+
+        //260408 hbk PolygonPoints 문자열 파싱 ("x1,y1;x2,y2;..." → List<Point>)
+        private static IList<Point> ParsePolygonPoints(string polygonPoints)
+        {
+            if (string.IsNullOrEmpty(polygonPoints)) return null;
+            var result = new List<Point>();
+            var pairs = polygonPoints.Split(';');
+            foreach (var pair in pairs)
+            {
+                var parts = pair.Split(',');
+                if (parts.Length >= 2 &&
+                    double.TryParse(parts[0], out double x) &&
+                    double.TryParse(parts[1], out double y))
+                {
+                    result.Add(new Point(x, y));
+                }
+            }
+            return result;
         }
     }
 }

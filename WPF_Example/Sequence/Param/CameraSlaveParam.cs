@@ -22,6 +22,8 @@ namespace ReringProject.Sequence {
         [Category("General|AOI")]
         //public double PixelToMM_Offset { get; set; }
         public double PixelToUM_Offset { get; set; }    // 02.14 Insert
+        [System.ComponentModel.Description("mm/pixel calibration factor for this camera")]
+        public double PixelResolution { get; set; } = 1.0;  // mm/pixel (per D-12)
 
         public double MotorXPos { get; set; }
         public double MotorYPos { get; set; }
@@ -127,7 +129,7 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public string SequenceName {
             get {
-                return Parent.Name;
+                return Parent?.Name; //260407 hbk 동적 생성 Param은 Parent가 null일 수 있으므로 null 안전 접근
             }
         }
 

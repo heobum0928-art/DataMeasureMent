@@ -10,6 +10,10 @@ namespace ReringProject.UI
 
         public string FAIName => _fai.FAIName;
 
+        /// <summary>Underlying FAIConfig for ROI access (used by Plan 02 drawing/calibration).</summary>
+        [System.ComponentModel.Browsable(false)]
+        public FAIConfig SourceFAI => _fai;
+
         public double MeasuredValue => _fai.MeasuredValue;
 
         public double SpecMin => _fai.NominalValue - Math.Abs(_fai.LowerTolerance);

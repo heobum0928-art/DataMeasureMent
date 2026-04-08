@@ -59,6 +59,13 @@ namespace ReringProject.UI {
                 var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
                 _inspectionVm = new InspectionViewModel(recipeManager);
                 mParentWindow.mainView.SetFAIResultSource(_inspectionVm);
+
+                //260408 hbk 초기 Recipe명 표시 (OnLoadRecipe 이전에 이미 로드된 경우 대비)
+                string curRecipe = SystemHandler.Handle.Setting.CurrentRecipeName;
+                if (!string.IsNullOrEmpty(curRecipe)) {
+                    ViewModel.CurrentRecipe = curRecipe;
+                }
+
                 // Auto-expand tree so nodes are visible even when IsEditable == false
                 ViewModel.RootModel.ExpandAll();
             }
@@ -206,7 +213,7 @@ namespace ReringProject.UI {
                     }
                     else if (item.NodeType == ENodeType.Action) {
                         button_addFAI.IsEnabled = true;
-                        button_removeFAI.IsEnabled = false;
+                        button_removeFAI.IsEnabled = (item.Param is ShotConfig); //260408 hbk Shot 노드면 삭제 가능
                         button_renameFAI.IsEnabled = false;
                         if (_inspectionVm != null) {
                             _inspectionVm.OnActionSelected(item);
@@ -346,8 +353,7 @@ namespace ReringProject.UI {
             // 데이터만 추가 (시퀀스 Action 교체 안 함 — 런타임 안전)
             ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName);
             FAIConfig fai = shot.AddFAI("FAI_0");
-            // IsDynamicFAIMode는 private set → CreateShot 경유하지 않고 직접 설정 불가
-            // 레시피 저장 시 TryLoadNewFormat에서 자동으로 활성화됨
+            seqHandler.EnableDynamicFAIMode(); //260408 hbk 저장 시 SHOTS 포맷으로 기록되도록 활성화
 
             // 트리에 Shot 노드(Action 타입) + FAI 자식 노드 직접 삽입
             var shotNode = new CompositeNode {
@@ -376,6 +382,25 @@ namespace ReringProject.UI {
         private void Btn_RemoveFAI_Click(object sender, RoutedEventArgs e) {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
+
+                //260408 hbk Shot(Action) 노드 선택 시 Shot 삭제
+                if (selectedNode.NodeType == ENodeType.Action && selectedNode.Param is ShotConfig shotToRemove) {
+                    var seqHandler = SystemHandler.Handle.Sequences;
+                    int shotIndex = seqHandler.RecipeManager.Shots.IndexOf(shotToRemove);
+                    if (shotIndex < 0) return;
+
+                    MessageBoxResult shotResult = CustomMessageBox.ShowConfirmation(
+                        "Shot 삭제",
+                        string.Format("Shot \"{0}\"과 하위 FAI를 모두 삭제합니다. 계속하시겠습니까?", shotToRemove.ShotName),
+                        MessageBoxButton.YesNo);
+                    if (shotResult != MessageBoxResult.Yes) return;
+
+                    seqHandler.RecipeManager.RemoveShot(shotIndex);
+                    selectedNode.Detach();
+                    _inspectionVm?.ClearResults();
+                    return;
+                }
+
                 if (selectedNode.NodeType != ENodeType.FAI) return;
                 if (!(selectedNode.Param is FAIConfig fai)) return;
                 NodeViewModel actionNode = selectedNode.Parent;
@@ -396,7 +421,7 @@ namespace ReringProject.UI {
                 _inspectionVm?.ClearResults();
             }
             catch (Exception ex) {
-                CustomMessageBox.Show("FAI 삭제 오류", ex.Message, System.Windows.MessageBoxImage.Error);
+                CustomMessageBox.Show("삭제 오류", ex.Message, System.Windows.MessageBoxImage.Error);
             }
         }
 

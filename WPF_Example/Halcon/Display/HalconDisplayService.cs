@@ -189,17 +189,59 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        //260408 hbk RenderPolygonPoints 추가 (드로잉 모드 점 표시)
-        /// <summary>Renders polygon draft points (cross marks during drawing).</summary>
+        //260408 hbk RenderPolygonPoints — 큰 + 표시 + 점 사이 라인
+        /// <summary>Renders polygon draft points (large cross marks + connecting lines during drawing).</summary>
         public void RenderPolygonPoints(HWindow window, IList<Point> points, string color)
         {
             if (window == null || points == null) return;
+            int crossSize = 12;
+
+            // 점 사이 연결선
+            if (points.Count >= 2)
+            {
+                window.SetColor("cyan");
+                window.SetLineWidth(1);
+                for (int i = 0; i < points.Count - 1; i++)
+                {
+                    window.DispLine(points[i].Y, points[i].X, points[i + 1].Y, points[i + 1].X);
+                }
+            }
+
+            // 각 점에 큰 + 표시
             window.SetColor(color);
+            window.SetLineWidth(2);
             foreach (var pt in points)
             {
-                // Small cross at each point (radius 4px)
-                window.DispLine(pt.Y - 4, pt.X, pt.Y + 4, pt.X);
-                window.DispLine(pt.Y, pt.X - 4, pt.Y, pt.X + 4);
+                window.DispLine(pt.Y - crossSize, pt.X, pt.Y + crossSize, pt.X);
+                window.DispLine(pt.Y, pt.X - crossSize, pt.Y, pt.X + crossSize);
+            }
+        }
+
+        //260408 hbk Calibration 십자 + 라인 렌더링
+        /// <summary>Renders calibration crosshairs and connecting line.</summary>
+        public void RenderCalibrationOverlay(HWindow window, IList<Point> points)
+        {
+            if (window == null || points == null || points.Count == 0) return;
+            int crossSize = 20;
+
+            window.SetColor("yellow");
+            window.SetLineWidth(2);
+            // 첫 번째 점 십자
+            var p1 = points[0];
+            window.DispLine(p1.Y - crossSize, p1.X, p1.Y + crossSize, p1.X);
+            window.DispLine(p1.Y, p1.X - crossSize, p1.Y, p1.X + crossSize);
+
+            if (points.Count >= 2)
+            {
+                // 두 번째 점 십자
+                var p2 = points[1];
+                window.DispLine(p2.Y - crossSize, p2.X, p2.Y + crossSize, p2.X);
+                window.DispLine(p2.Y, p2.X - crossSize, p2.Y, p2.X + crossSize);
+
+                // 두 점 사이 연결선
+                window.SetColor("green");
+                window.SetLineWidth(1);
+                window.DispLine(p1.Y, p1.X, p2.Y, p2.X);
             }
         }
 

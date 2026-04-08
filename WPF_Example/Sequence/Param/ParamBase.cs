@@ -439,8 +439,9 @@ namespace ReringProject.Sequence {
                     ActionBase action = Owner as ActionBase;
                     return action.ID.ToString();
                 }
+                return Owner.ToString(); //260407 hbk Owner가 ActionBase가 아닌 경우 Owner.ToString() 반환
             }
-            return this.Owner.ToString();
+            return GetType().Name; //260407 hbk Owner가 null인 경우 클래스명 반환 (NullRef 방지)
         }
     }
 }

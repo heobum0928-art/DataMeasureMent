@@ -95,6 +95,11 @@ namespace ReringProject.Sequence {
             return shot;
         }
 
+        //260408 hbk UI에서 Shot 추가 시 Action 재구축 없이 IsDynamicFAIMode만 활성화
+        public void EnableDynamicFAIMode() {
+            IsDynamicFAIMode = true;
+        }
+
         /// <summary>
         /// INI 파일에서 신규 SHOTS 포맷 로드 시도. 성공하면 IsDynamicFAIMode = true.
         /// </summary>

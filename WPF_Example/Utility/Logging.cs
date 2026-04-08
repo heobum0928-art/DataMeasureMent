@@ -291,8 +291,8 @@ namespace ReringProject.Utility {
                 }
             }
 
-            WaitObject.Set();
-            
+            WaitObject.Set(); //260408 hbk Start() 전 PrintLog 호출 시 NullRef 방지
+
             return true;
         }
         /// <summary>

@@ -58,9 +58,15 @@ namespace ReringProject.UI
         private Point _rectDragStart;
         private RoiDefinition _rectDraftRoi;
 
+        //260408 hbk Rect 드래그 완료 시 자동 커밋 이벤트
+        public event EventHandler RectDrawingCompleted;
+
         //260408 hbk Polygon draft rendering state
         private IList<Point> _polygonDraftPoints;
         private string _polygonColor = "blue";
+
+        //260408 hbk Calibration 오버레이 상태
+        private IList<Point> _calibrationPoints;
 
         public MainResultViewerControl()
         {
@@ -84,6 +90,11 @@ namespace ReringProject.UI
         }
 
         public event EventHandler<MainViewerPointerChangedEventArgs> PointerInfoChanged;
+
+        //260408 hbk HWindowControlWPF는 Win32 호스팅이라 WPF MouseLeftButtonDown이 전달 안됨
+        //Halcon HMouseDown에서 이미지 좌표 클릭 이벤트를 브릿지
+        public event EventHandler<MainViewerPointerChangedEventArgs> ImageLeftClicked;
+        public event EventHandler ImageRightClicked;
 
         public HImage CurrentImage { get; private set; }
 
@@ -207,6 +218,19 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260408 hbk Calibration 십자+라인 오버레이
+        public void SetCalibrationOverlay(IList<Point> points)
+        {
+            _calibrationPoints = points != null ? new List<Point>(points) : null;
+            Render();
+        }
+
+        public void ClearCalibrationOverlay()
+        {
+            _calibrationPoints = null;
+            Render();
+        }
+
         /// <summary>Clears the polygon draft overlay.</summary>
         public void ClearPolygonDraft()
         {
@@ -265,6 +289,12 @@ namespace ReringProject.UI
                     _displayService.RenderPolygon(ViewerHost.HalconWindow, _polygonDraftPoints, _polygonColor, 2);
                 _displayService.RenderPolygonPoints(ViewerHost.HalconWindow, _polygonDraftPoints, "red");
             }
+
+            //260408 hbk Render calibration overlay
+            if (_calibrationPoints != null && _calibrationPoints.Count > 0)
+            {
+                _displayService.RenderCalibrationOverlay(ViewerHost.HalconWindow, _calibrationPoints);
+            }
         }
 
         private void ViewerHost_HInitWindow(object sender, EventArgs e)
@@ -318,6 +348,13 @@ namespace ReringProject.UI
             _lastMouseImagePoint = mouseState.ImagePoint;
             if ((mouseState.Buttons & HalconRightButton) == HalconRightButton)
             {
+                //260408 hbk 우클릭 이벤트 브릿지 (Polygon 완성용)
+                if (ImageRightClicked != null)
+                {
+                    ImageRightClicked?.Invoke(this, EventArgs.Empty);
+                    PublishPointerInfo();
+                    return;
+                }
                 OpenContextMenu();
                 PublishPointerInfo();
                 return;
@@ -341,6 +378,15 @@ namespace ReringProject.UI
                     Column2 = _rectDragStart.X,
                     IsTaught = false
                 };
+                PublishPointerInfo();
+                return;
+            }
+
+            //260408 hbk 좌클릭 이벤트 브릿지 (Polygon 점 추가, Calibration 점 선택용)
+            if (ImageLeftClicked != null && HasImage)
+            {
+                var pt = mouseState.ImagePoint;
+                ImageLeftClicked?.Invoke(this, new MainViewerPointerChangedEventArgs(pt.X, pt.Y, null));
                 PublishPointerInfo();
                 return;
             }
@@ -421,11 +467,12 @@ namespace ReringProject.UI
 
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
-            //260408 hbk On mouse up during rect drawing, finalize the draft
+            //260408 hbk On mouse up during rect drawing, finalize and notify
             if (_isDrawingRect && _rectDraftRoi != null)
             {
-                // Draft is now ready — MainView will call CommitActiveRectangle on button toggle
+                _isDrawingRect = false;
                 Render();
+                RectDrawingCompleted?.Invoke(this, EventArgs.Empty);
                 return;
             }
 

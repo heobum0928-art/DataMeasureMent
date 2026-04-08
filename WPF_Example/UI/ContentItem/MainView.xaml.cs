@@ -455,9 +455,10 @@ namespace ReringProject.UI {
 
         //260408 hbk 드로잉 모드 종료 + 상태 초기화
         private void ExitCanvasMode() {
-            // Unsubscribe polygon mouse handlers (safe to call even if not subscribed)
-            halconViewer.MouseLeftButtonDown -= HalconViewer_PolygonMouseDown;
-            halconViewer.MouseRightButtonDown -= HalconViewer_PolygonRightClick;
+            // Unsubscribe Halcon 브릿지 이벤트 (safe to call even if not subscribed)
+            halconViewer.ImageLeftClicked -= HalconViewer_PolygonMouseDown;
+            halconViewer.ImageRightClicked -= HalconViewer_PolygonRightClick;
+            halconViewer.RectDrawingCompleted -= HalconViewer_RectDrawingCompleted;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
@@ -468,8 +469,9 @@ namespace ReringProject.UI {
             halconViewer.ClearPolygonDraft();
             _polygonPoints.Clear();
 
-            // Calibration cleanup (added in Task 3)
-            halconViewer.MouseLeftButtonDown -= HalconViewer_CalibrationMouseDown;
+            // Calibration cleanup
+            halconViewer.ImageLeftClicked -= HalconViewer_CalibrationMouseDown;
+            halconViewer.ClearCalibrationOverlay(); //260408 hbk
             btn_calibrate.Content = "Calibrate";
             _calibrationPoints.Clear();
         }
@@ -491,11 +493,18 @@ namespace ReringProject.UI {
 
                 label_drawHint.Content = "드래그하여 ROI를 설정하세요";
                 label_drawHint.Visibility = Visibility.Visible;
+                halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260408 hbk 마우스업 자동커밋
                 halconViewer.StartRectangleDrawing();
             }
             else {
                 CommitRectRoi();
             }
+        }
+
+        //260408 hbk 마우스 업 시 Rect ROI 자동 커밋
+        private void HalconViewer_RectDrawingCompleted(object sender, EventArgs e) {
+            halconViewer.RectDrawingCompleted -= HalconViewer_RectDrawingCompleted;
+            CommitRectRoi();
         }
 
         private void CommitRectRoi() {
@@ -541,15 +550,16 @@ namespace ReringProject.UI {
                 label_pointCount.Content = "0 / 20 pts";
                 label_pointCount.Visibility = Visibility.Visible;
 
-                halconViewer.MouseLeftButtonDown += HalconViewer_PolygonMouseDown;
-                halconViewer.MouseRightButtonDown += HalconViewer_PolygonRightClick;
+                halconViewer.ImageLeftClicked += HalconViewer_PolygonMouseDown; //260408 hbk Halcon HMouseDown 브릿지
+                halconViewer.ImageRightClicked += HalconViewer_PolygonRightClick;
             }
             else {
                 ExitCanvasMode();
             }
         }
 
-        private void HalconViewer_PolygonMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) {
+        //260408 hbk Halcon HMouseDown 브릿지 이벤트 핸들러 (WPF MouseButtonEventArgs → MainViewerPointerChangedEventArgs)
+        private void HalconViewer_PolygonMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
             if (_canvasMode != ECanvasMode.PolygonRoi) return;
 
             if (_polygonPoints.Count >= 20) {
@@ -557,21 +567,19 @@ namespace ReringProject.UI {
                 return;
             }
 
-            var imagePoint = new System.Windows.Point(_lastPointerCol, _lastPointerRow);
+            var imagePoint = new System.Windows.Point(e.X, e.Y);
             _polygonPoints.Add(imagePoint);
             label_pointCount.Content = string.Format("{0} / 20 pts", _polygonPoints.Count);
 
             halconViewer.SetPolygonDraft(_polygonPoints, "red");
-            e.Handled = true;
         }
 
-        private void HalconViewer_PolygonRightClick(object sender, System.Windows.Input.MouseButtonEventArgs e) {
+        private void HalconViewer_PolygonRightClick(object sender, EventArgs e) {
             if (_canvasMode != ECanvasMode.PolygonRoi) return;
 
             if (_polygonPoints.Count >= 3) {
                 CompletePolygon();
             }
-            e.Handled = true;
         }
 
         private void CompletePolygon() {
@@ -602,22 +610,23 @@ namespace ReringProject.UI {
             label_drawHint.Content = "캔버스에서 첫 번째 점을 클릭하세요";
             label_drawHint.Visibility = Visibility.Visible;
 
-            halconViewer.MouseLeftButtonDown += HalconViewer_CalibrationMouseDown;
+            halconViewer.ImageLeftClicked += HalconViewer_CalibrationMouseDown; //260408 hbk Halcon 브릿지
         }
 
-        private void HalconViewer_CalibrationMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) {
+        //260408 hbk Halcon HMouseDown 브릿지 이벤트 핸들러
+        private void HalconViewer_CalibrationMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
             if (_canvasMode != ECanvasMode.Calibration) return;
 
-            var pos = new System.Windows.Point(_lastPointerCol, _lastPointerRow);
+            var pos = new System.Windows.Point(e.X, e.Y);
             _calibrationPoints.Add(pos);
-            e.Handled = true;
+            halconViewer.SetCalibrationOverlay(_calibrationPoints); //260408 hbk 십자+라인 오버레이 업데이트
 
             if (_calibrationPoints.Count == 1) {
                 btn_calibrate.Content = "Pick Point 2";
                 label_drawHint.Content = "캔버스에서 두 번째 점을 클릭하세요";
             }
             else if (_calibrationPoints.Count == 2) {
-                halconViewer.MouseLeftButtonDown -= HalconViewer_CalibrationMouseDown;
+                halconViewer.ImageLeftClicked -= HalconViewer_CalibrationMouseDown;
                 FinishCalibration();
             }
         }

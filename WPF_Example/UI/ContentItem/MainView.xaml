@@ -51,24 +51,22 @@
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- //260408 hbk 툴바 Row 분리 (HWindowControlWPF airspace 문제) -->
             <RowDefinition Height="6*"/>
             <RowDefinition Height="5"/>
             <RowDefinition Height="4*"/>
         </Grid.RowDefinitions>
 
-        <!-- Canvas area -->
-        <Grid Grid.Row="0" Background="#FF303030">
-            <dmv:MainResultViewerControl x:Name="halconViewer"/>
-            <Label x:Name="label_message" FontSize="24" Foreground="#FFAAAAAA"
-                   Content="NO Image"
-                   HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                   IsHitTestVisible="False"/>
-
-            <!-- Phase 2 Canvas Toolbar (per D-09, D-10, D-11, UI-SPEC toolbar) -->
-            <Border x:Name="canvasToolbar" VerticalAlignment="Top" Background="#111827"
-                    Padding="8,4" Height="36" Panel.ZIndex="10">
-                <StackPanel Orientation="Horizontal">
+        <!-- Phase 2 Canvas Toolbar — Row 분리 (HWindowControlWPF는 Win32 호스팅이라 ZIndex 오버레이 불가) -->
+        <Border x:Name="canvasToolbar" Grid.Row="0" Background="#111827"
+                Padding="8,4" Height="36">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <ToggleButton x:Name="btn_rectRoi" Content="Rect ROI"
                         Click="RectRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
@@ -102,19 +100,24 @@
                         </Button.Template>
                     </Button>
                 </StackPanel>
-            </Border>
+                <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
+                <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"
+                       HorizontalAlignment="Center" VerticalContentAlignment="Center"
+                       FontSize="13" Foreground="#FFAAAAAA"/>
+                <Label x:Name="label_pointCount" Grid.Column="2" Visibility="Collapsed"
+                       HorizontalAlignment="Right" VerticalContentAlignment="Center"
+                       FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,8,0"/>
+            </Grid>
+        </Border>
 
-            <!-- Phase 2: Drawing mode hint text -->
-            <Label x:Name="label_drawHint" Visibility="Collapsed"
-                   VerticalAlignment="Top" HorizontalAlignment="Center"
-                   Margin="0,40,0,0" FontSize="13"
-                   Foreground="#FFAAAAAA" IsHitTestVisible="False" Panel.ZIndex="5"/>
-
-            <!-- Phase 2: Polygon point count badge -->
-            <Label x:Name="label_pointCount" Visibility="Collapsed"
-                   VerticalAlignment="Top" HorizontalAlignment="Right"
-                   Margin="0,40,8,0" FontSize="13"
-                   Foreground="#FFAAAAAA" IsHitTestVisible="False" Panel.ZIndex="5"/>
+        <!-- Canvas area -->
+        <Grid Grid.Row="1" Background="#FF303030">
+            <dmv:MainResultViewerControl x:Name="halconViewer"/>
+            <Label x:Name="label_message" FontSize="24" Foreground="#FFAAAAAA"
+                   Content="NO Image"
+                   HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                   IsHitTestVisible="False"/>
 
             <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
                 <Grid>
@@ -131,12 +134,12 @@
         </Grid>
 
         <!-- Horizontal GridSplitter -->
-        <GridSplitter Grid.Row="1" Height="5"
+        <GridSplitter Grid.Row="2" Height="5"
                       HorizontalAlignment="Stretch" VerticalAlignment="Center"
                       Background="#FF555555"/>
 
         <!-- DataGrid result table -->
-        <DataGrid x:Name="dataGrid_faiResults" Grid.Row="2"
+        <DataGrid x:Name="dataGrid_faiResults" Grid.Row="3"
                   AutoGenerateColumns="False" IsReadOnly="True"
                   SelectionUnit="FullRow"
                   SelectionChanged="FAIResults_SelectionChanged"

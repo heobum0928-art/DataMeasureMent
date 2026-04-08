@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -36,6 +37,16 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
+        // Phase 2: Drawing mode state
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, Calibration }
+        private ECanvasMode _canvasMode = ECanvasMode.None;
+        private FAIConfig _editingFai;
+        private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
+        private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
+
+        // Track last known image coordinates from PointerInfoChanged (used for polygon/calibration clicks)
+        private double _lastPointerRow, _lastPointerCol;
+
         public MainView() {
             InitializeComponent();
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
@@ -57,6 +68,7 @@ namespace ReringProject.UI {
 
             DrawScale = pDev.Config.DrawScale;
             UpdatePointerLabel(0, 0, null);
+            PreviewKeyDown += MainView_PreviewKeyDown;
         }
 
         /// <summary>Displays the shot image associated with the selected FAIConfig. Per D-12.
@@ -308,6 +320,9 @@ namespace ReringProject.UI {
 
         private void HalconViewer_PointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e) {
             UpdatePointerLabel(e.X, e.Y, e.GrayValue);
+            // Phase 2: Track last known image coordinates for polygon/calibration click handlers
+            _lastPointerRow = e.Y;
+            _lastPointerCol = e.X;
         }
 
         private void UpdatePointerLabel(double x, double y, double? grayValue) {
@@ -429,6 +444,253 @@ namespace ReringProject.UI {
                 string.IsNullOrWhiteSpace(imagePath) ? "null" : Path.GetFileName(imagePath),
                 roiCount,
                 overlayCount);
+        }
+
+        // Phase 2: Escape key cancels any active drawing mode
+        private void MainView_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
+            if (e.Key == System.Windows.Input.Key.Escape && _canvasMode != ECanvasMode.None) {
+                ExitCanvasMode();
+                e.Handled = true;
+            }
+        }
+
+        // Phase 2: Exit drawing mode and reset all state (rect + polygon; calibration cleanup added in Task 3)
+        private void ExitCanvasMode() {
+            // Unsubscribe polygon mouse handlers (safe to call even if not subscribed)
+            halconViewer.MouseLeftButtonDown -= HalconViewer_PolygonMouseDown;
+            halconViewer.MouseRightButtonDown -= HalconViewer_PolygonRightClick;
+
+            _canvasMode = ECanvasMode.None;
+            _editingFai = null;
+            btn_rectRoi.IsChecked = false;
+            btn_polygonRoi.IsChecked = false;
+            label_drawHint.Visibility = Visibility.Collapsed;
+            label_pointCount.Visibility = Visibility.Collapsed;
+            halconViewer.ClearPolygonDraft();
+            _polygonPoints.Clear();
+
+            // Calibration cleanup (added in Task 3)
+            halconViewer.MouseLeftButtonDown -= HalconViewer_CalibrationMouseDown;
+            btn_calibrate.Content = "Calibrate";
+            _calibrationPoints.Clear();
+        }
+
+        // Phase 2: Task 1 — Rect ROI drawing mode
+        private void RectRoiButton_Click(object sender, RoutedEventArgs e) {
+            if (btn_rectRoi.IsChecked == true) {
+                ExitCanvasMode();
+                _canvasMode = ECanvasMode.RectRoi;
+                btn_rectRoi.IsChecked = true;
+
+                var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
+                if (selectedRow?.SourceFAI == null) {
+                    CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Rect ROI");
+                    ExitCanvasMode();
+                    return;
+                }
+                _editingFai = selectedRow.SourceFAI;
+
+                label_drawHint.Content = "드래그하여 ROI를 설정하세요";
+                label_drawHint.Visibility = Visibility.Visible;
+                halconViewer.StartRectangleDrawing();
+            }
+            else {
+                CommitRectRoi();
+            }
+        }
+
+        private void CommitRectRoi() {
+            if (_canvasMode != ECanvasMode.RectRoi || _editingFai == null) {
+                ExitCanvasMode();
+                return;
+            }
+
+            var roi = halconViewer.CommitActiveRectangle();
+            if (roi != null) {
+                // Convert RoiDefinition bounding box back to center+half-lengths (per D-05: phi=0 for new ROI)
+                _editingFai.ROI_Row = (roi.Row1 + roi.Row2) / 2.0;
+                _editingFai.ROI_Col = (roi.Column1 + roi.Column2) / 2.0;
+                _editingFai.ROI_Phi = 0.0;  // Always 0 for new ROI (per D-05: no Rectangle2)
+                _editingFai.ROI_Length1 = (roi.Row2 - roi.Row1) / 2.0;
+                _editingFai.ROI_Length2 = (roi.Column2 - roi.Column1) / 2.0;
+
+                // Refresh canvas to show new ROI
+                var rois = GetCurrentFAIRois();
+                halconViewer.UpdateDisplayState(rois, _editingFai.FAIName, null, null);
+            }
+            ExitCanvasMode();
+        }
+
+        // Phase 2: Task 2 — Polygon ROI drawing mode
+        private void PolygonRoiButton_Click(object sender, RoutedEventArgs e) {
+            if (btn_polygonRoi.IsChecked == true) {
+                ExitCanvasMode();
+                _canvasMode = ECanvasMode.PolygonRoi;
+                btn_polygonRoi.IsChecked = true;
+
+                var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
+                if (selectedRow?.SourceFAI == null) {
+                    CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Polygon ROI");
+                    ExitCanvasMode();
+                    return;
+                }
+                _editingFai = selectedRow.SourceFAI;
+                _polygonPoints.Clear();
+
+                label_drawHint.Content = "점을 클릭, 우클릭으로 완성 (최소 3점)";
+                label_drawHint.Visibility = Visibility.Visible;
+                label_pointCount.Content = "0 / 20 pts";
+                label_pointCount.Visibility = Visibility.Visible;
+
+                halconViewer.MouseLeftButtonDown += HalconViewer_PolygonMouseDown;
+                halconViewer.MouseRightButtonDown += HalconViewer_PolygonRightClick;
+            }
+            else {
+                ExitCanvasMode();
+            }
+        }
+
+        private void HalconViewer_PolygonMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) {
+            if (_canvasMode != ECanvasMode.PolygonRoi) return;
+
+            if (_polygonPoints.Count >= 20) {
+                label_pointCount.Content = "20 / 20 pts MAX";
+                return;
+            }
+
+            var imagePoint = new System.Windows.Point(_lastPointerCol, _lastPointerRow);
+            _polygonPoints.Add(imagePoint);
+            label_pointCount.Content = string.Format("{0} / 20 pts", _polygonPoints.Count);
+
+            halconViewer.SetPolygonDraft(_polygonPoints, "red");
+            e.Handled = true;
+        }
+
+        private void HalconViewer_PolygonRightClick(object sender, System.Windows.Input.MouseButtonEventArgs e) {
+            if (_canvasMode != ECanvasMode.PolygonRoi) return;
+
+            if (_polygonPoints.Count >= 3) {
+                CompletePolygon();
+            }
+            e.Handled = true;
+        }
+
+        private void CompletePolygon() {
+            if (_editingFai == null || _polygonPoints.Count < 3) return;
+
+            var sb = new StringBuilder();
+            for (int i = 0; i < _polygonPoints.Count; i++) {
+                if (i > 0) sb.Append(";");
+                sb.AppendFormat("{0:F1},{1:F1}", _polygonPoints[i].X, _polygonPoints[i].Y);
+            }
+            _editingFai.PolygonPoints = sb.ToString();
+
+            halconViewer.SetPolygonDraft(_polygonPoints, "blue");
+
+            var rois = GetCurrentFAIRois();
+            halconViewer.UpdateDisplayState(rois, _editingFai.FAIName, null, null);
+
+            ExitCanvasMode();
+        }
+
+        // Phase 2: Task 3 — 2-point calibration flow
+        private void CalibrateButton_Click(object sender, RoutedEventArgs e) {
+            ExitCanvasMode();
+            _canvasMode = ECanvasMode.Calibration;
+            _calibrationPoints.Clear();
+
+            btn_calibrate.Content = "Pick Point 1";
+            label_drawHint.Content = "캔버스에서 첫 번째 점을 클릭하세요";
+            label_drawHint.Visibility = Visibility.Visible;
+
+            halconViewer.MouseLeftButtonDown += HalconViewer_CalibrationMouseDown;
+        }
+
+        private void HalconViewer_CalibrationMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) {
+            if (_canvasMode != ECanvasMode.Calibration) return;
+
+            var pos = new System.Windows.Point(_lastPointerCol, _lastPointerRow);
+            _calibrationPoints.Add(pos);
+            e.Handled = true;
+
+            if (_calibrationPoints.Count == 1) {
+                btn_calibrate.Content = "Pick Point 2";
+                label_drawHint.Content = "캔버스에서 두 번째 점을 클릭하세요";
+            }
+            else if (_calibrationPoints.Count == 2) {
+                halconViewer.MouseLeftButtonDown -= HalconViewer_CalibrationMouseDown;
+                FinishCalibration();
+            }
+        }
+
+        private void FinishCalibration() {
+            var p1 = _calibrationPoints[0];
+            var p2 = _calibrationPoints[1];
+
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double pixelDistance = Math.Sqrt(dx * dx + dy * dy);
+
+            if (pixelDistance < 1.0) {
+                CustomMessageBox.Show("두 점 사이의 거리가 너무 가깝습니다.", "캘리브레이션");
+                ExitCanvasMode();
+                return;
+            }
+
+            // NOTE: class name typo in original code: TextInputBoxWinidow (not Window)
+            var dlg = new TextInputBoxWinidow(
+                string.Format("두 점 사이의 실제 거리(mm)를 입력하세요:\n(픽셀 거리: {0:F1} px)", pixelDistance),
+                "");
+            dlg.Title = "실제 거리 입력";
+            dlg.Owner = Window.GetWindow(this);
+
+            if (dlg.ShowDialog() == true) {
+                double realMm;
+                if (double.TryParse(dlg.Text, out realMm) && realMm > 0) {
+                    double mmPerPixel = realMm / pixelDistance;
+
+                    ApplyCalibrationResult(mmPerPixel);
+
+                    // Show confirmation for 3 seconds (per UI-SPEC)
+                    label_message.Content = string.Format("1 px = {0:F4} mm 적용됨", mmPerPixel);
+                    label_message.Foreground = new SolidColorBrush(Colors.White);
+                    label_message.Visibility = Visibility.Visible;
+
+                    var timer = new System.Windows.Threading.DispatcherTimer();
+                    timer.Interval = TimeSpan.FromSeconds(3);
+                    timer.Tick += (s, args) => {
+                        timer.Stop();
+                        label_message.Visibility = Visibility.Collapsed;
+                    };
+                    timer.Start();
+                }
+                else {
+                    CustomMessageBox.Show("유효한 숫자를 입력하세요.", "캘리브레이션");
+                }
+            }
+
+            ExitCanvasMode();
+        }
+
+        /// <summary>Applies mm/pixel calibration to the current camera's CameraSlaveParam and all FAIs (per D-12).</summary>
+        private void ApplyCalibrationResult(double mmPerPixel) {
+            var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
+            if (selectedRow?.SourceFAI != null) {
+                var shot = selectedRow.SourceFAI.Owner as ShotConfig;
+                if (shot == null) {
+                    CustomMessageBox.Show("샷 정보를 찾을 수 없습니다.", "캘리브레이션");
+                    return;
+                }
+
+                // CameraSlaveParam is the shot itself (ShotConfig extends CameraSlaveParam)
+                shot.PixelResolution = mmPerPixel;
+
+                // Also update all FAIs under this shot for RoiDefinition compatibility
+                foreach (FAIConfig fai in shot.FAIList) {
+                    fai.PixelResolutionX = mmPerPixel;
+                    fai.PixelResolutionY = mmPerPixel;
+                }
+            }
         }
     }
 }

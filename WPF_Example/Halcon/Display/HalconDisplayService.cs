@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using HalconDotNet;
 using ReringProject.Halcon.Models;
 
@@ -172,6 +173,32 @@ namespace ReringProject.Halcon.Display
             window.DispLine(row1, col2, row2, col2);
             window.DispLine(row2, col2, row2, col1);
             window.DispLine(row2, col1, row1, col1);
+        }
+
+        /// <summary>Renders a polygon outline on the HWindow. Points as (col, row) pairs (X=col, Y=row).</summary>
+        public void RenderPolygon(HWindow window, IList<Point> points, string color, int lineWidth)
+        {
+            if (window == null || points == null || points.Count < 3) return;
+            window.SetColor(color);
+            window.SetLineWidth(lineWidth);
+            for (int i = 0; i < points.Count; i++)
+            {
+                int next = (i + 1) % points.Count;
+                window.DispLine(points[i].Y, points[i].X, points[next].Y, points[next].X);
+            }
+        }
+
+        /// <summary>Renders polygon draft points (cross marks during drawing).</summary>
+        public void RenderPolygonPoints(HWindow window, IList<Point> points, string color)
+        {
+            if (window == null || points == null) return;
+            window.SetColor(color);
+            foreach (var pt in points)
+            {
+                // Small cross at each point (radius 4px)
+                window.DispLine(pt.Y - 4, pt.X, pt.Y + 4, pt.X);
+                window.DispLine(pt.Y, pt.X - 4, pt.Y, pt.X + 4);
+            }
         }
 
         /// <summary>Draws edge search direction arrow at ROI center (per D-02). White, 2px line + arrowhead.</summary>

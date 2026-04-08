@@ -5,6 +5,50 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:dmv="clr-namespace:ReringProject.UI"
              mc:Ignorable="d" Loaded="MainView_Loaded" d:DesignWidth="1200" d:DesignHeight="800">
+    <UserControl.Resources>
+        <!-- Phase 2: Shared ToggleButton style for ROI toolbar buttons (D-09, D-10, UI-SPEC toolbar) -->
+        <Style x:Key="RoiToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#FFAAAAAA"/>
+            <Setter Property="BorderBrush" Value="#FF555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2563EB"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A4A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#2563EB"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF444444"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="6*"/>
@@ -20,6 +64,58 @@
                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                    IsHitTestVisible="False"/>
+
+            <!-- Phase 2 Canvas Toolbar (per D-09, D-10, D-11, UI-SPEC toolbar) -->
+            <Border x:Name="canvasToolbar" VerticalAlignment="Top" Background="#111827"
+                    Padding="8,4" Height="36" Panel.ZIndex="10">
+                <StackPanel Orientation="Horizontal">
+                    <ToggleButton x:Name="btn_rectRoi" Content="Rect ROI"
+                        Click="RectRoiButton_Click"
+                        Style="{StaticResource RoiToggleButtonStyle}"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
+
+                    <ToggleButton x:Name="btn_polygonRoi" Content="Polygon ROI"
+                        Click="PolygonRoiButton_Click"
+                        Style="{StaticResource RoiToggleButtonStyle}"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
+
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                               Margin="4,4"/>
+
+                    <Button x:Name="btn_calibrate" Content="Calibrate"
+                        Click="CalibrateButton_Click"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#2563EB" Foreground="White"
+                        BorderBrush="#1D4ED8" BorderThickness="1">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Phase 2: Drawing mode hint text -->
+            <Label x:Name="label_drawHint" Visibility="Collapsed"
+                   VerticalAlignment="Top" HorizontalAlignment="Center"
+                   Margin="0,40,0,0" FontSize="13"
+                   Foreground="#FFAAAAAA" IsHitTestVisible="False" Panel.ZIndex="5"/>
+
+            <!-- Phase 2: Polygon point count badge -->
+            <Label x:Name="label_pointCount" Visibility="Collapsed"
+                   VerticalAlignment="Top" HorizontalAlignment="Right"
+                   Margin="0,40,8,0" FontSize="13"
+                   Foreground="#FFAAAAAA" IsHitTestVisible="False" Panel.ZIndex="5"/>
+
             <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
                 <Grid>
                     <Grid.ColumnDefinitions>

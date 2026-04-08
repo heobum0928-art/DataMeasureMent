@@ -53,6 +53,15 @@ namespace ReringProject.UI
         private Point? _manualMeasureStartPoint;
         private Point? _manualMeasureEndPoint;
 
+        // Phase 2: Rect ROI drawing state
+        private bool _isDrawingRect;
+        private Point _rectDragStart;
+        private RoiDefinition _rectDraftRoi;
+
+        // Phase 2: Polygon draft rendering state
+        private IList<Point> _polygonDraftPoints;
+        private string _polygonColor = "blue";
+
         public MainResultViewerControl()
         {
             InitializeComponent();
@@ -167,6 +176,40 @@ namespace ReringProject.UI
             SetImagePartExact(CreateFitToWindowImagePart());
         }
 
+        /// <summary>Enters rect drag-to-draw mode. User drags on canvas to define a rectangle ROI.</summary>
+        public void StartRectangleDrawing()
+        {
+            _isDrawingRect = true;
+            _rectDraftRoi = null;
+            _rectDragStart = new Point(0, 0);
+            Render();
+        }
+
+        /// <summary>Commits the currently drawn rectangle draft and exits draw mode. Returns the RoiDefinition or null.</summary>
+        public RoiDefinition CommitActiveRectangle()
+        {
+            _isDrawingRect = false;
+            var roi = _rectDraftRoi;
+            _rectDraftRoi = null;
+            Render();
+            return roi;
+        }
+
+        /// <summary>Sets the polygon draft points for rendering during polygon drawing mode.</summary>
+        public void SetPolygonDraft(IList<Point> points, string color)
+        {
+            _polygonDraftPoints = points != null ? new List<Point>(points) : null;
+            _polygonColor = color ?? "blue";
+            Render();
+        }
+
+        /// <summary>Clears the polygon draft overlay.</summary>
+        public void ClearPolygonDraft()
+        {
+            _polygonDraftPoints = null;
+            Render();
+        }
+
         public void Dispose()
         {
             DisposeImage();
@@ -207,9 +250,17 @@ namespace ReringProject.UI
                 CurrentImage,
                 _rois,
                 _selectedRoiId,
-                null,
+                _rectDraftRoi,
                 _inspectionOverlays.Concat(BuildTransientOverlays()).ToList(),
                 _displayMessages.Concat(BuildTransientMessages()).ToList());
+
+            // Phase 2: Render polygon draft overlay after main render
+            if (_polygonDraftPoints != null && _polygonDraftPoints.Count > 0)
+            {
+                if (_polygonDraftPoints.Count >= 3)
+                    _displayService.RenderPolygon(ViewerHost.HalconWindow, _polygonDraftPoints, _polygonColor, 2);
+                _displayService.RenderPolygonPoints(ViewerHost.HalconWindow, _polygonDraftPoints, "red");
+            }
         }
 
         private void ViewerHost_HInitWindow(object sender, EventArgs e)
@@ -273,6 +324,23 @@ namespace ReringProject.UI
                 return;
             }
 
+            // Phase 2: Rect drawing mode — start drag
+            if (_isDrawingRect && HasImage)
+            {
+                _rectDragStart = mouseState.ImagePoint;
+                _rectDraftRoi = new RoiDefinition
+                {
+                    Id = "draft",
+                    Row1 = _rectDragStart.Y,
+                    Column1 = _rectDragStart.X,
+                    Row2 = _rectDragStart.Y,
+                    Column2 = _rectDragStart.X,
+                    IsTaught = false
+                };
+                PublishPointerInfo();
+                return;
+            }
+
             if (_manualMeasureMode && _manualToolsEnabled && HasImage)
             {
                 ApplyManualMeasurePoint(mouseState.ImagePoint);
@@ -304,6 +372,23 @@ namespace ReringProject.UI
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
 
+            // Phase 2: Update rect draft while dragging
+            if (_isDrawingRect && _rectDraftRoi != null)
+            {
+                _rectDraftRoi = new RoiDefinition
+                {
+                    Id = "draft",
+                    Row1 = Math.Min(_rectDragStart.Y, mouseState.ImagePoint.Y),
+                    Column1 = Math.Min(_rectDragStart.X, mouseState.ImagePoint.X),
+                    Row2 = Math.Max(_rectDragStart.Y, mouseState.ImagePoint.Y),
+                    Column2 = Math.Max(_rectDragStart.X, mouseState.ImagePoint.X),
+                    IsTaught = true
+                };
+                Render();
+                PublishPointerInfo();
+                return;
+            }
+
             if (!_isPanningImage)
             {
                 SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
@@ -332,6 +417,14 @@ namespace ReringProject.UI
 
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
+            // Phase 2: On mouse up during rect drawing, finalize the draft (keep it for CommitActiveRectangle)
+            if (_isDrawingRect && _rectDraftRoi != null)
+            {
+                // Draft is now ready — MainView will call CommitActiveRectangle on button toggle
+                Render();
+                return;
+            }
+
             EndPan();
         }
 

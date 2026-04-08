@@ -23,7 +23,7 @@ namespace ReringProject.Sequence {
         //public double PixelToMM_Offset { get; set; }
         public double PixelToUM_Offset { get; set; }    // 02.14 Insert
         [System.ComponentModel.Description("mm/pixel calibration factor for this camera")]
-        public double PixelResolution { get; set; } = 1.0;  // mm/pixel (per D-12)
+        public double PixelResolution { get; set; } = 1.0;  //260408 hbk mm/pixel (per D-12)
 
         public double MotorXPos { get; set; }
         public double MotorYPos { get; set; }

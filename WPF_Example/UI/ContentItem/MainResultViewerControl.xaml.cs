@@ -38,7 +38,7 @@ namespace ReringProject.UI
         private readonly List<RoiDefinition> _rois = new List<RoiDefinition>();
         private readonly List<EdgeInspectionOverlay> _inspectionOverlays = new List<EdgeInspectionOverlay>();
         private readonly List<string> _displayMessages = new List<string>();
-        private string _selectedRoiId;
+        private string _selectedRoiId; //260408 hbk 선택 ROI 하이라이트용
         private bool _isWindowInitialized;
         private bool _isPanningImage;
         private bool _renderPending;
@@ -53,12 +53,12 @@ namespace ReringProject.UI
         private Point? _manualMeasureStartPoint;
         private Point? _manualMeasureEndPoint;
 
-        // Phase 2: Rect ROI drawing state
+        //260408 hbk Rect ROI drawing state
         private bool _isDrawingRect;
         private Point _rectDragStart;
         private RoiDefinition _rectDraftRoi;
 
-        // Phase 2: Polygon draft rendering state
+        //260408 hbk Polygon draft rendering state
         private IList<Point> _polygonDraftPoints;
         private string _polygonColor = "blue";
 
@@ -135,6 +135,7 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260408 hbk UpdateDisplayState 4인자 오버로드 추가 (selectedRoiId 지원)
         /// <summary>Updates display with ROI highlight support (per D-01, D-03).</summary>
         public void UpdateDisplayState(IEnumerable<RoiDefinition> rois, string selectedRoiId,
             IEnumerable<EdgeInspectionOverlay> overlays, IEnumerable<string> messages)
@@ -176,6 +177,7 @@ namespace ReringProject.UI
             SetImagePartExact(CreateFitToWindowImagePart());
         }
 
+        //260408 hbk StartRectangleDrawing 추가 (Rect ROI 드래그 모드)
         /// <summary>Enters rect drag-to-draw mode. User drags on canvas to define a rectangle ROI.</summary>
         public void StartRectangleDrawing()
         {
@@ -185,6 +187,7 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260408 hbk CommitActiveRectangle 추가
         /// <summary>Commits the currently drawn rectangle draft and exits draw mode. Returns the RoiDefinition or null.</summary>
         public RoiDefinition CommitActiveRectangle()
         {
@@ -195,6 +198,7 @@ namespace ReringProject.UI
             return roi;
         }
 
+        //260408 hbk SetPolygonDraft/ClearPolygonDraft 추가 (Polygon ROI 드로잉)
         /// <summary>Sets the polygon draft points for rendering during polygon drawing mode.</summary>
         public void SetPolygonDraft(IList<Point> points, string color)
         {
@@ -254,7 +258,7 @@ namespace ReringProject.UI
                 _inspectionOverlays.Concat(BuildTransientOverlays()).ToList(),
                 _displayMessages.Concat(BuildTransientMessages()).ToList());
 
-            // Phase 2: Render polygon draft overlay after main render
+            //260408 hbk Render polygon draft overlay after main render
             if (_polygonDraftPoints != null && _polygonDraftPoints.Count > 0)
             {
                 if (_polygonDraftPoints.Count >= 3)
@@ -324,7 +328,7 @@ namespace ReringProject.UI
                 return;
             }
 
-            // Phase 2: Rect drawing mode — start drag
+            //260408 hbk Rect drawing mode — start drag
             if (_isDrawingRect && HasImage)
             {
                 _rectDragStart = mouseState.ImagePoint;
@@ -372,7 +376,7 @@ namespace ReringProject.UI
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
 
-            // Phase 2: Update rect draft while dragging
+            //260408 hbk Update rect draft while dragging
             if (_isDrawingRect && _rectDraftRoi != null)
             {
                 _rectDraftRoi = new RoiDefinition
@@ -417,7 +421,7 @@ namespace ReringProject.UI
 
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
-            // Phase 2: On mouse up during rect drawing, finalize the draft (keep it for CommitActiveRectangle)
+            //260408 hbk On mouse up during rect drawing, finalize the draft
             if (_isDrawingRect && _rectDraftRoi != null)
             {
                 // Draft is now ready — MainView will call CommitActiveRectangle on button toggle

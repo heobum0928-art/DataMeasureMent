@@ -37,15 +37,13 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        // Phase 2: Drawing mode state
+        //260408 hbk Drawing mode state (ROI 편집 + 캘리브레이션)
         private enum ECanvasMode { None, RectRoi, PolygonRoi, Calibration }
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
-
-        // Track last known image coordinates from PointerInfoChanged (used for polygon/calibration clicks)
-        private double _lastPointerRow, _lastPointerCol;
+        private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
 
         public MainView() {
             InitializeComponent();
@@ -113,6 +111,7 @@ namespace ReringProject.UI {
                 new System.Windows.Data.Binding("FAIResults") { Source = vm });
         }
 
+        //260408 hbk FAI 선택 시 ROI 하이라이트 + 'ROI not set' 힌트
         private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
             if (selectedRow == null) {
@@ -137,6 +136,7 @@ namespace ReringProject.UI {
             }
         }
 
+        //260408 hbk GetCurrentFAIRois 추가 (전체 FAI ROI 수집)
         /// <summary>Collects RoiDefinitions from all FAIs of the currently displayed shot.</summary>
         private List<RoiDefinition> GetCurrentFAIRois() {
             var result = new List<RoiDefinition>();
@@ -320,9 +320,8 @@ namespace ReringProject.UI {
 
         private void HalconViewer_PointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e) {
             UpdatePointerLabel(e.X, e.Y, e.GrayValue);
-            // Phase 2: Track last known image coordinates for polygon/calibration click handlers
-            _lastPointerRow = e.Y;
-            _lastPointerCol = e.X;
+            _lastPointerRow = e.Y; //260408 hbk
+            _lastPointerCol = e.X; //260408 hbk
         }
 
         private void UpdatePointerLabel(double x, double y, double? grayValue) {
@@ -446,7 +445,7 @@ namespace ReringProject.UI {
                 overlayCount);
         }
 
-        // Phase 2: Escape key cancels any active drawing mode
+        //260408 hbk Escape 키 → 드로잉 모드 취소
         private void MainView_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
             if (e.Key == System.Windows.Input.Key.Escape && _canvasMode != ECanvasMode.None) {
                 ExitCanvasMode();
@@ -454,7 +453,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // Phase 2: Exit drawing mode and reset all state (rect + polygon; calibration cleanup added in Task 3)
+        //260408 hbk 드로잉 모드 종료 + 상태 초기화
         private void ExitCanvasMode() {
             // Unsubscribe polygon mouse handlers (safe to call even if not subscribed)
             halconViewer.MouseLeftButtonDown -= HalconViewer_PolygonMouseDown;
@@ -475,7 +474,7 @@ namespace ReringProject.UI {
             _calibrationPoints.Clear();
         }
 
-        // Phase 2: Task 1 — Rect ROI drawing mode
+        //260408 hbk Rect ROI 드로잉 모드
         private void RectRoiButton_Click(object sender, RoutedEventArgs e) {
             if (btn_rectRoi.IsChecked == true) {
                 ExitCanvasMode();
@@ -521,7 +520,7 @@ namespace ReringProject.UI {
             ExitCanvasMode();
         }
 
-        // Phase 2: Task 2 — Polygon ROI drawing mode
+        //260408 hbk Polygon ROI 드로잉 모드
         private void PolygonRoiButton_Click(object sender, RoutedEventArgs e) {
             if (btn_polygonRoi.IsChecked == true) {
                 ExitCanvasMode();
@@ -593,7 +592,7 @@ namespace ReringProject.UI {
             ExitCanvasMode();
         }
 
-        // Phase 2: Task 3 — 2-point calibration flow
+        //260408 hbk 2점 캘리브레이션 플로우
         private void CalibrateButton_Click(object sender, RoutedEventArgs e) {
             ExitCanvasMode();
             _canvasMode = ECanvasMode.Calibration;

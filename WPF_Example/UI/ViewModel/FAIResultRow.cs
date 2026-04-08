@@ -10,6 +10,7 @@ namespace ReringProject.UI
 
         public string FAIName => _fai.FAIName;
 
+        //260408 hbk SourceFAI 프로퍼티 추가 (ROI 접근용)
         /// <summary>Underlying FAIConfig for ROI access (used by Plan 02 drawing/calibration).</summary>
         [System.ComponentModel.Browsable(false)]
         public FAIConfig SourceFAI => _fai;

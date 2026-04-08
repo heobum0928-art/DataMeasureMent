@@ -28,15 +28,15 @@ namespace ReringProject.Sequence {
         public double Threshold { get; set; } = 30.0;
         public double Sigma { get; set; } = 1.0;
 
-        // Calibration (per D-12, D-16: camera-level calibration stored in CameraSlaveParam,
+        //260408 hbk Calibration (per D-12, D-16: camera-level calibration stored in CameraSlaveParam,
         // but FAIConfig also carries PixelResolution for RoiDefinition compatibility)
         [Category("Calibration")]
-        public double PixelResolutionX { get; set; } = 1.0;  // mm/pixel
-        public double PixelResolutionY { get; set; } = 1.0;  // mm/pixel
+        public double PixelResolutionX { get; set; } = 1.0;  //260408 hbk mm/pixel
+        public double PixelResolutionY { get; set; } = 1.0;  //260408 hbk mm/pixel
 
-        // Polygon ROI (per D-15: serialized as "x1,y1;x2,y2;x3,y3" string for INI storage)
+        //260408 hbk Polygon ROI (per D-15: serialized as "x1,y1;x2,y2;x3,y3" string for INI storage)
         [Category("ROI")]
-        public string PolygonPoints { get; set; } = "";
+        public string PolygonPoints { get; set; } = "";  //260408 hbk
 
         // Tolerance
         [Category("Tolerance")]
@@ -73,6 +73,7 @@ namespace ReringProject.Sequence {
             IsPass = false;
         }
 
+        //260408 hbk ToRoiDefinition() 추가
         /// <summary>
         /// Converts FAIConfig Rectangle2 params (center+half-lengths+phi) to RoiDefinition bounding box.
         /// NOTE on D-05 compatibility: ROI_Phi exists in legacy INI data from Rectangle2 era.

@@ -175,6 +175,7 @@ namespace ReringProject.Halcon.Display
             window.DispLine(row2, col1, row1, col1);
         }
 
+        //260408 hbk RenderPolygon 추가 (Polygon ROI 렌더링)
         /// <summary>Renders a polygon outline on the HWindow. Points as (col, row) pairs (X=col, Y=row).</summary>
         public void RenderPolygon(HWindow window, IList<Point> points, string color, int lineWidth)
         {
@@ -188,6 +189,7 @@ namespace ReringProject.Halcon.Display
             }
         }
 
+        //260408 hbk RenderPolygonPoints 추가 (드로잉 모드 점 표시)
         /// <summary>Renders polygon draft points (cross marks during drawing).</summary>
         public void RenderPolygonPoints(HWindow window, IList<Point> points, string color)
         {
@@ -201,6 +203,7 @@ namespace ReringProject.Halcon.Display
             }
         }
 
+        //260408 hbk DrawDirectionArrow 추가 (에지 방향 화살표)
         /// <summary>Draws edge search direction arrow at ROI center (per D-02). White, 2px line + arrowhead.</summary>
         private static void DrawDirectionArrow(HWindow window, RoiDefinition roi)
         {

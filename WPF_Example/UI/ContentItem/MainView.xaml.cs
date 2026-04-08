@@ -102,7 +102,42 @@ namespace ReringProject.UI {
         }
 
         private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            // Phase 2: ROI highlight will be implemented here once RoiDefinition teaching data exists
+            var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
+            if (selectedRow == null) {
+                // No selection: show all ROIs without highlight
+                var allRois = GetCurrentFAIRois();
+                if (allRois.Count > 0)
+                    halconViewer.UpdateDisplayState(allRois, null, null, null);
+                return;
+            }
+
+            // Show all ROIs, highlight selected FAI's ROI (per D-01, D-03)
+            var rois = GetCurrentFAIRois();
+            string selectedRoiId = selectedRow.FAIName;
+            halconViewer.UpdateDisplayState(rois, selectedRoiId, null, null);
+
+            // If selected FAI has no ROI taught, show hint text
+            var selectedFai = selectedRow.SourceFAI;
+            if (selectedFai != null && (selectedFai.ROI_Length1 <= 0 || selectedFai.ROI_Length2 <= 0)) {
+                label_message.Content = "ROI not set";
+                label_message.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
+                label_message.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>Collects RoiDefinitions from all FAIs of the currently displayed shot.</summary>
+        private List<RoiDefinition> GetCurrentFAIRois() {
+            var result = new List<RoiDefinition>();
+            // Iterate through all rows in the DataGrid (each row = one FAI)
+            foreach (var item in dataGrid_faiResults.Items) {
+                var row = item as FAIResultRow;
+                if (row?.SourceFAI != null) {
+                    var roi = row.SourceFAI.ToRoiDefinition();
+                    if (roi.IsTaught)
+                        result.Add(roi);
+                }
+            }
+            return result;
         }
 
         // Keep public methods called by MainWindow and InspectionListView
@@ -218,7 +253,8 @@ namespace ReringProject.UI {
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {
                     DisplayContextToViewer(context, ConvertParamRects(param));
-                    var resultStr = string.Format("{0}\n{1} ({2:0.00}s)", param, context.ResultString, context.Timer.Elapsed.TotalMilliseconds / 1000.0);
+                    var elapsed = context.Timer != null ? context.Timer.Elapsed.TotalMilliseconds / 1000.0 : 0; //260407 hbk Timer null 체크 추가
+                    var resultStr = string.Format("{0}\n{1} ({2:0.00}s)", param, context.ResultString, elapsed);
                     label_message.Content = string.Format(
                         "{0}\n{1}",
                         resultStr,
@@ -226,8 +262,9 @@ namespace ReringProject.UI {
                     label_message.Foreground = GetResultBrush(context.Result);
                     label_message.Visibility = Visibility.Visible;
 
+                    string seqName = param.Parent?.Name ?? context.Source?.Name ?? ""; //260407 hbk Parent null 안전 처리 (동적 Shot/FAI 대응)
                     foreach (IMainView customView in CustomViewList) {
-                        customView.Display(param.Parent.Name, resultStr, label_message.Foreground, param.OwnerName);
+                        customView.Display(seqName, resultStr, label_message.Foreground, param.OwnerName);
                     }
                 });
             }

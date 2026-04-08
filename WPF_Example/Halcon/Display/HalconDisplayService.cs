@@ -43,6 +43,10 @@ namespace ReringProject.Halcon.Display
                     window.SetColor(roi.Id == selectedRoiId ? "yellow" : "green");
                     window.SetLineWidth(roi.Id == selectedRoiId ? 3 : 2);
                     DrawRectangleOutline(window, roi.Row1, roi.Column1, roi.Row2, roi.Column2);
+                    if (roi.Id == selectedRoiId && roi.IsTaught)
+                    {
+                        DrawDirectionArrow(window, roi);
+                    }
                 }
             }
 
@@ -168,6 +172,42 @@ namespace ReringProject.Halcon.Display
             window.DispLine(row1, col2, row2, col2);
             window.DispLine(row2, col2, row2, col1);
             window.DispLine(row2, col1, row1, col1);
+        }
+
+        /// <summary>Draws edge search direction arrow at ROI center (per D-02). White, 2px line + arrowhead.</summary>
+        private static void DrawDirectionArrow(HWindow window, RoiDefinition roi)
+        {
+            double centerRow = (roi.Row1 + roi.Row2) / 2.0;
+            double centerCol = (roi.Column1 + roi.Column2) / 2.0;
+            double arrowLength = 15.0;
+
+            // Determine arrow direction from EdgeDirection
+            double dRow = 0, dCol = 0;
+            switch (roi.EdgeDirection)
+            {
+                case "LtoR": dCol = arrowLength; break;
+                case "RtoL": dCol = -arrowLength; break;
+                case "TtoB": dRow = arrowLength; break;
+                case "BtoT": dRow = -arrowLength; break;
+                default: dCol = arrowLength; break;
+            }
+
+            window.SetColor("white");
+            window.SetLineWidth(2);
+            // Main line
+            window.DispLine(centerRow - dRow / 2, centerCol - dCol / 2,
+                             centerRow + dRow / 2, centerCol + dCol / 2);
+            // Arrowhead (two short lines at 30-degree angle)
+            double headLen = 5.0;
+            double endRow = centerRow + dRow / 2;
+            double endCol = centerCol + dCol / 2;
+            double angle = Math.Atan2(dRow, dCol);
+            double a1 = angle + 2.5;  // ~143 degrees
+            double a2 = angle - 2.5;  // ~-143 degrees
+            window.DispLine(endRow, endCol,
+                             endRow + headLen * Math.Sin(a1), endCol + headLen * Math.Cos(a1));
+            window.DispLine(endRow, endCol,
+                             endRow + headLen * Math.Sin(a2), endCol + headLen * Math.Cos(a2));
         }
     }
 }

@@ -38,6 +38,7 @@ namespace ReringProject.UI
         private readonly List<RoiDefinition> _rois = new List<RoiDefinition>();
         private readonly List<EdgeInspectionOverlay> _inspectionOverlays = new List<EdgeInspectionOverlay>();
         private readonly List<string> _displayMessages = new List<string>();
+        private string _selectedRoiId;
         private bool _isWindowInitialized;
         private bool _isPanningImage;
         private bool _renderPending;
@@ -125,6 +126,14 @@ namespace ReringProject.UI
             Render();
         }
 
+        /// <summary>Updates display with ROI highlight support (per D-01, D-03).</summary>
+        public void UpdateDisplayState(IEnumerable<RoiDefinition> rois, string selectedRoiId,
+            IEnumerable<EdgeInspectionOverlay> overlays, IEnumerable<string> messages)
+        {
+            _selectedRoiId = selectedRoiId;
+            UpdateDisplayState(rois, overlays, messages);
+        }
+
         public void UpdateDisplayState(IEnumerable<RoiDefinition> rois, IEnumerable<EdgeInspectionOverlay> overlays, IEnumerable<string> messages)
         {
             _rois.Clear();
@@ -197,7 +206,7 @@ namespace ReringProject.UI
                 ViewerHost.HalconWindow,
                 CurrentImage,
                 _rois,
-                null,
+                _selectedRoiId,
                 null,
                 _inspectionOverlays.Concat(BuildTransientOverlays()).ToList(),
                 _displayMessages.Concat(BuildTransientMessages()).ToList());

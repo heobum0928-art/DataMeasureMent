@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
 stopped_at: Completed 03-02-PLAN.md (Task 2 human-verify pending)
-last_updated: "2026-04-09T01:00:00.000Z"
+last_updated: "2026-04-09T01:15:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -72,6 +72,14 @@ Recent decisions affecting current work:
 - [Phase 01-ui]: Tree auto-expand in ListView_Loaded required for visibility in both editable and read-only modes
 - [Phase 03]: FAIConfig ROI 직접 사용 (ToRoiDefinition 우회), ROI_Phi 기반 mm 변환
 - [Phase 03]: RoiId -OK/-NG suffix를 Action_FAIMeasurement에서 SetResult 후 추가 (판정 시점 보장)
+- [Quick 260409-e3v]: EEdgeMeasureType 삭제 → EdgeDirection/EdgeSelection/EdgeSampleCount/EdgeTrimCount/EdgePolarity로 교체 (MeasurementAlgorithm 패턴 일치)
+- [Quick 260409-e3v]: FAIEdgeMeasurementService를 샘플 스트립 + FitLineContourXld 기반으로 재작성
+
+### Quick Tasks Completed
+
+| ID | Date | Description | Commits |
+|----|------|-------------|---------|
+| 260409-e3v | 2026-04-09 | Phase 3 에지 측정 파라미터 수정 (EEdgeMeasureType → EdgeDirection/Selection/SampleCount/TrimCount/Polarity) | 9599bbf, a65585f |
 
 ### Pending Todos
 

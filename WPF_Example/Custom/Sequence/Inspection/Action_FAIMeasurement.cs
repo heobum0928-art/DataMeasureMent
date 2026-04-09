@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using HalconDotNet;
 using ReringProject.Define;
 using ReringProject.Device;
+using ReringProject.Halcon.Algorithms;
+using ReringProject.Halcon.Models;
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -67,15 +70,28 @@ namespace ReringProject.Sequence {
                     break;
 
                 case EStep.Measure:
-                    // Phase 8: Halcon edge measurement will be implemented here
-                    // For now, mark all FAIs as measured with stub values
+                    //260409 hbk Phase 3: FAIEdgeMeasurementService로 실제 에지 측정
                     if (ShotParam != null) {
-                        pMyContext.MeasuredCount = ShotParam.FAIList.Count;
-                        pMyContext.AllPass = true;
-                        foreach (var fai in ShotParam.FAIList) {
-                            fai.SetResult(fai.NominalValue); // stub: nominal = pass
-                            if (!fai.IsPass) pMyContext.AllPass = false;
+                        var service = new FAIEdgeMeasurementService();
+                        bool allPass = true;
+                        var overlays = new List<EdgeInspectionOverlay>();
+                        using (var image = ShotParam.GetImage()) {
+                            if (image != null) {
+                                foreach (var fai in ShotParam.FAIList) {
+                                    FAIEdgeMeasurementResult r;
+                                    if (service.TryMeasure(image, fai, out r)) {
+                                        fai.SetResult(r.DistanceMm);
+                                        overlays.AddRange(r.Overlays);
+                                    } else {
+                                        fai.ClearResult();
+                                    }
+                                    if (!fai.IsPass) allPass = false;
+                                }
+                            }
                         }
+                        pMyContext.AllPass = allPass;
+                        pMyContext.MeasuredCount = ShotParam.FAIList.Count;
+                        pMyContext.InspectionOverlays = overlays;
                     }
                     Step = (int)EStep.End;
                     break;

@@ -237,8 +237,11 @@ namespace ReringProject.Sequence {
                 
                 if (CurrentActionIndex >= EndActionIndex) {
                     Context.Result = actionContext.Result;
-                    
                     Finish();
+                } else {
+                    //260409 hbk Phase 5: 다음 Action으로 진행 (D-02)
+                    CurrentActionIndex++;
+                    CurAction = Actions[CurrentActionIndex];
                 }
             }
         }
@@ -313,10 +316,27 @@ namespace ReringProject.Sequence {
 
         protected bool Start(int actionIndex = 0) {
             if (State != EContextState.Idle) return false;
-         
+
             CurrentActionIndex = actionIndex;
             EndActionIndex = actionIndex;
-            
+
+            Context.Clear();
+            Command = ESequenceCommmand.Start;
+            IsFinished = false;
+
+            OnStart?.Invoke(Context);
+            return true;
+        }
+
+        //260409 hbk Phase 5: 모든 Action 순차 실행 (D-01)
+        public bool StartAll(TestPacket packet) {
+            if (State != EContextState.Idle) return false;
+            if (Actions == null || Actions.Length == 0) return false;
+
+            RequestPacket = packet;
+            CurrentActionIndex = 0;
+            EndActionIndex = Actions.Length - 1;
+
             Context.Clear();
             Command = ESequenceCommmand.Start;
             IsFinished = false;

@@ -22,8 +22,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 에지 측정 알고리즘
 
-- [ ] **ALG-01**: FAI ROI 내에서 Halcon MeasurePos로 에지 페어 거리(mm)를 계산한다
-- [ ] **ALG-02**: FAIConfig의 Tolerance 기준으로 OK/NG 판정을 수행한다
+- [x] **ALG-01**: FAI ROI 내에서 Halcon MeasurePos로 에지 페어 거리(mm)를 계산한다
+- [x] **ALG-02**: FAIConfig의 Tolerance 기준으로 OK/NG 판정을 수행한다
 - [ ] **ALG-03**: 픽셀→mm 변환을 위한 캘리브레이션 기능을 제공한다
 - [ ] **ALG-04**: 측정 결과(에지 위치, 거리, 판정)를 캔버스에 오버레이로 표시한다
 
@@ -70,8 +70,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TCH-01 | Phase 2 | Pending |
 | TCH-02 | Phase 2 | Pending |
 | ALG-03 | Phase 2 | Pending |
-| ALG-01 | Phase 3 | Pending |
-| ALG-02 | Phase 3 | Pending |
+| ALG-01 | Phase 3 | Complete |
+| ALG-02 | Phase 3 | Complete |
 | ALG-04 | Phase 3 | Pending |
 | SEQ-01 | Phase 4 | Pending |
 | SEQ-02 | Phase 4 | Pending |

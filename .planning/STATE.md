@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Phase 2 context gathered
-last_updated: "2026-04-09T00:12:32.672Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-04-09T00:35:05.629Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -50,6 +50,7 @@ Plan: Not started
 | Phase 01-ui P01 | 2 | 2 tasks | 4 files |
 | Phase 01-ui P02 | 6 | 2 tasks | 7 files |
 | Phase 01-ui P02 | 90 | 3 tasks | 7 files |
+| Phase 03 P01 | 150 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Recent decisions affecting current work:
 - [Phase 01-ui]: FAI CRUD wired in InspectionListView (not MainView) — MainView is display-only, no tree logic
 - [Phase 01-ui]: DataGrid dark theme requires explicit ColumnHeaderStyle + CellStyle — WPF parent Foreground not inherited by headers
 - [Phase 01-ui]: Tree auto-expand in ListView_Loaded required for visibility in both editable and read-only modes
+- [Phase 03]: FAIConfig ROI 직접 사용 (ToRoiDefinition 우회), ROI_Phi 기반 mm 변환
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-07T10:07:24.745Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-teaching-calibration/02-CONTEXT.md
+Last session: 2026-04-09T00:35:05.623Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None

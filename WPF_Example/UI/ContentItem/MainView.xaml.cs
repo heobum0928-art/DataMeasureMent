@@ -283,6 +283,13 @@ namespace ReringProject.UI {
             }
         }
 
+        //260409 hbk Phase 5: Shot별 Action 완료 시 실시간 FAI 결과 갱신 (D-12)
+        public void DisplayActionContext(ActionContext context) {
+            ExecuteOnUi(() => {
+                RefreshFAIResultRows();
+            });
+        }
+
         public void DisplaySequenceContext(SequenceContext context) {
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {

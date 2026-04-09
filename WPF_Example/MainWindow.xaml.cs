@@ -88,6 +88,8 @@ namespace ReringProject {
                 mSystemHandler.Sequences[i].OnStop += OnSequenceStop;
                 mSystemHandler.Sequences[i].OnError += OnSequenceError;
                 mSystemHandler.Sequences[i].OnFinish += OnSequenceFinish;
+                //260409 hbk Phase 5: Shot별 실시간 UI 갱신 (D-12)
+                mSystemHandler.Sequences[i].OnActionChanged += OnActionChanged;
             }
             mTimer.Dispatcher.Thread.Priority = System.Threading.ThreadPriority.AboveNormal;
             mTimer.Interval = TimeSpan.FromMilliseconds(constantInterval);
@@ -154,12 +156,23 @@ namespace ReringProject {
             statusBar.Model.SetText(string.Format("{0} Error.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString()));
         }
 
+        //260409 hbk Phase 5: Shot별 Action 완료 시 실시간 UI 갱신 (D-12)
+        private void OnActionChanged(ActionContext context) {
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
+                mainView.DisplayActionContext(context);
+            }));
+        }
+
         private void OnSequenceFinish(SequenceContext context) {
             //context.InputImage
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.SetManualToolsEnabled(true);
             }));
             mainView.DisplaySequenceContext(context);
+
+            //260409 hbk Phase 5: 최종 종합 판정 로그 (D-13)
+            Logging.PrintLog((int)ELogType.Result, "Sequence {0} Final Result: {1} ({2}ms)",
+                context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds);
 
             Logging.PrintLog((int)ELogType.Result, context.ToString());
 
@@ -344,6 +357,8 @@ namespace ReringProject {
                 mSystemHandler.Sequences[i].OnStop -= OnSequenceStop;
                 mSystemHandler.Sequences[i].OnError -= OnSequenceError;
                 mSystemHandler.Sequences[i].OnFinish -= OnSequenceFinish;
+                //260409 hbk Phase 5: Shot별 실시간 UI 갱신 해제 (D-12)
+                mSystemHandler.Sequences[i].OnActionChanged -= OnActionChanged;
             }
             mSystemHandler.Release();
         }

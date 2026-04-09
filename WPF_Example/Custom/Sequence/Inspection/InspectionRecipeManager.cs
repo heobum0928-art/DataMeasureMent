@@ -21,6 +21,7 @@ namespace ReringProject.Sequence {
         public ShotConfig AddShot(string name = null) {
             string shotName = name ?? $"SHOT_{Shots.Count}";
             var shot = new ShotConfig(_owner, shotName);
+            shot.Datum = new DatumConfig(shot); //260409 hbk Phase 4: Datum 자동 생성 (미설정 상태)
             Shots.Add(shot);
             return shot;
         }
@@ -80,6 +81,13 @@ namespace ReringProject.Sequence {
                     fai.Save(saveFile, faiSection);
                     saveFile[faiSection]["FAIName"] = fai.FAIName ?? $"FAI_{f}";
                 }
+
+                //260409 hbk Phase 4: Datum config 저장 (D-04)
+                if (shot.Datum != null) {
+                    string datumSection = $"SHOT_{s}_DATUM";
+                    shot.Datum.Save(saveFile, datumSection);
+                    saveFile[datumSection]["HasDatum"] = true;
+                }
             }
             return true;
         }
@@ -115,6 +123,13 @@ namespace ReringProject.Sequence {
                     FAIConfig fai = shot.AddFAI();
                     fai.Load(loadFile, faiSection);
                     fai.FAIName = loadFile[faiSection]["FAIName"].ToString();
+                }
+
+                //260409 hbk Phase 4: Datum config 로드 (하위 호환 — 섹션 없으면 null 유지)
+                string datumSection = $"SHOT_{s}_DATUM";
+                if (loadFile.ContainsSection(datumSection)) {
+                    shot.Datum = new DatumConfig(shot);
+                    shot.Datum.Load(loadFile, datumSection);
                 }
             }
             return true;

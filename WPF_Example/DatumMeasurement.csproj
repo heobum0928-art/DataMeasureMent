@@ -435,6 +435,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Compile Include="Halcon\Algorithms\DatumFindingService.cs" />
     <Compile Include="Halcon\Algorithms\FAIEdgeMeasurementService.cs" />
     <Compile Include="Halcon\Algorithms\MeasurementAlgorithm.cs" />
     <Compile Include="Halcon\Algorithms\RoiLineIntersectionAlgorithm.cs" />

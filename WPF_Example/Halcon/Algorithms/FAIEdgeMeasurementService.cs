@@ -18,8 +18,20 @@ namespace ReringProject.Halcon.Algorithms
         /// FAIConfig ROI 영역에서 샘플 스트립 방식으로 에지를 측정한다.
         /// EdgeSelection=Both: 두 피팅 라인 간 수직 거리를 산출.
         /// EdgeSelection=First/Last: 단일 피팅 라인, distance=0.
+        /// transform=null이면 원본 ROI 좌표 그대로 사용 (Phase 3 하위 호환).
         /// </summary>
         public bool TryMeasure(HImage image, FAIConfig fai, out FAIEdgeMeasurementResult result) //260409 hbk
+        {
+            //260409 hbk Phase 4: null transform -> identity (D-08 backward compat)
+            return TryMeasure(image, fai, null, out result);
+        }
+
+        /// <summary>
+        /// FAIConfig ROI 영역에서 샘플 스트립 방식으로 에지를 측정한다.
+        /// transform: Datum hom_mat2d 변환 행렬. null이면 원본 ROI 좌표 사용.
+        /// </summary>
+        //260409 hbk Phase 4: TryMeasure overload with Datum transform (D-07)
+        public bool TryMeasure(HImage image, FAIConfig fai, HTuple transform, out FAIEdgeMeasurementResult result) //260409 hbk
         {
             result = null; //260409 hbk
 
@@ -36,6 +48,31 @@ namespace ReringProject.Halcon.Algorithms
 
             try
             {
+                //260409 hbk Phase 4: Datum transform 적용 ROI 좌표 초기화 (D-07)
+                double roiRow = fai.ROI_Row;
+                double roiCol = fai.ROI_Col;
+                double roiPhi = fai.ROI_Phi;
+
+                //260409 hbk Phase 4: apply Datum hom_mat2d transform to ROI (D-07 step 4, T-04-05)
+                if (transform != null && transform.Length > 0)
+                {
+                    try
+                    {
+                        HTuple transRow, transCol;
+                        HOperatorSet.AffineTransPoint2d(transform, fai.ROI_Row, fai.ROI_Col, out transRow, out transCol);
+                        roiRow = transRow.D;
+                        roiCol = transCol.D;
+
+                        // Extract rotation component: transform[0]=cos(theta), transform[1]=-sin(theta)
+                        double rotAngle = Math.Atan2(-transform[1].D, transform[0].D);
+                        roiPhi = fai.ROI_Phi + rotAngle;
+                    }
+                    catch
+                    {
+                        // Transform failed — use original ROI coordinates (T-04-05 fallback)
+                    }
+                }
+
                 //260409 hbk 이미지 크기 취득
                 HTuple imageWidth, imageHeight;
                 image.GetImageSize(out imageWidth, out imageHeight);
@@ -63,6 +100,9 @@ namespace ReringProject.Halcon.Algorithms
                     measurePhi = 0.0; //260409 hbk LtoR (default)
                 }
 
+                //260409 hbk Phase 4: roiPhi 기반 measurePhi 회전 보정 적용
+                measurePhi = measurePhi + (roiPhi - fai.ROI_Phi);
+
                 int sampleCount = Math.Max(1, fai.EdgeSampleCount); //260409 hbk
                 double sigma = Math.Max(0.4, fai.Sigma); //260409 hbk
                 int threshold = Math.Max(1, fai.EdgeThreshold); //260409 hbk
@@ -71,15 +111,15 @@ namespace ReringProject.Halcon.Algorithms
                 string polarity = string.Equals(fai.EdgePolarity, "LightToDark", StringComparison.OrdinalIgnoreCase)
                     ? "negative" : "positive"; //260409 hbk
 
-                //260409 hbk ROI 바운딩 박스 계산 (Rectangle2 -> AABB)
-                double sinPhi = Math.Sin(fai.ROI_Phi); //260409 hbk
-                double cosPhi = Math.Cos(fai.ROI_Phi); //260409 hbk
+                //260409 hbk ROI 바운딩 박스 계산 (Rectangle2 -> AABB), roiRow/roiCol/roiPhi 사용
+                double sinPhi = Math.Sin(roiPhi); //260409 hbk
+                double cosPhi = Math.Cos(roiPhi); //260409 hbk
                 double dRow = Math.Abs(fai.ROI_Length1 * cosPhi) + Math.Abs(fai.ROI_Length2 * sinPhi); //260409 hbk
                 double dCol = Math.Abs(fai.ROI_Length1 * sinPhi) + Math.Abs(fai.ROI_Length2 * cosPhi); //260409 hbk
-                double top = fai.ROI_Row - dRow; //260409 hbk
-                double bottom = fai.ROI_Row + dRow; //260409 hbk
-                double left = fai.ROI_Col - dCol; //260409 hbk
-                double right = fai.ROI_Col + dCol; //260409 hbk
+                double top = roiRow - dRow; //260409 hbk
+                double bottom = roiRow + dRow; //260409 hbk
+                double left = roiCol - dCol; //260409 hbk
+                double right = roiCol + dCol; //260409 hbk
 
                 if ((bottom - top) < 2.0 || (right - left) < 2.0) //260409 hbk
                 {

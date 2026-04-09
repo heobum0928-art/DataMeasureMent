@@ -26,8 +26,9 @@ namespace ReringProject.Sequence {
         public bool IsDynamicFAIMode { get; private set; } = false;
 
         private void RegisterSequences() {
+            //260409 hbk Phase 5: 동적 FAI 모드용 InspectionSequence (D-07)
             SequenceBuilder.RegisterSequence(
-                new TopSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_TOP),
+                new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_TOP),
                 new TopSequence(ESequence.Side, SEQ_SIDE, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_SIDE),
                 new BottomSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BOTTOM)
             );

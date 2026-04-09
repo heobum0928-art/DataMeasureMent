@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ReringProject.Define;
+using ReringProject.Sequence; //260409 hbk Phase 5: FAIConfig 참조
 
 namespace ReringProject.Network {
     public enum EVisionResponseType {
@@ -349,7 +350,20 @@ namespace ReringProject.Network {
                     msg += testPacket.InspectionType.ToString();
                     msg += VisionServer.MSG_CONTENTS_SEPERATOR;
 
-                    if ((testPacket.InspectionType == (int)ETestType.Inspection) && testPacket.Site == (int)ESequence.Bottom)
+                    //260409 hbk Phase 5: 동적 FAI 모드 직렬화 (D-05)
+                    if (testPacket.IsDynamicFAI) {
+                        msg += testPacket.GetResultString();
+                        msg += VisionServer.MSG_CONTENTS_SEPERATOR;
+                        msg += testPacket.FAICount.ToString();
+                        for (int i = 0; i < testPacket.FAICount; i++) {
+                            msg += VisionServer.MSG_CONTENTS_SEPERATOR;
+                            var faiData = testPacket.FAIResults[i];
+                            msg += (faiData.Result == EVisionResultType.OK) ? TEST_RESULT_PASS : TEST_RESULT_FAIL;
+                            msg += VisionServer.MSG_CONTENTS_SEPERATOR;
+                            msg += faiData.DistanceMm.ToString("0.000");
+                        }
+                    }
+                    else if ((testPacket.InspectionType == (int)ETestType.Inspection) && testPacket.Site == (int)ESequence.Bottom)
                     {
                         for (int i = 0; i < 10; i++)
                         {
@@ -493,12 +507,35 @@ namespace ReringProject.Network {
     }
 
 
+    //260409 hbk Phase 5: FAI별 개별 측정 결과 (D-04, D-05)
+    public class FAIResultData {
+        public string FAIName { get; set; }
+        public EVisionResultType Result { get; set; }
+        public double DistanceMm { get; set; }
+
+        public FAIResultData() {
+            Result = EVisionResultType.NG;
+            DistanceMm = 0;
+        }
+
+        public FAIResultData(string name, bool isPass, double distMm) {
+            FAIName = name;
+            Result = isPass ? EVisionResultType.OK : EVisionResultType.NG;
+            DistanceMm = distMm;
+        }
+    }
+
     public class TestResultPacket : VisionResponsePacket {
         public int InspectionType { get; set; }
         public EVisionResultType Result { get; set; }
         public double Angle { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
+
+        //260409 hbk Phase 5: FAI별 동적 결과 리스트 (D-04)
+        public List<FAIResultData> FAIResults { get; set; } = new List<FAIResultData>();
+        public int FAICount => FAIResults.Count;
+        public bool IsDynamicFAI { get; set; } = false;
 
         // 비전 결과 데이터를 저장할 List 생성
         public const int MaxListCount = 10;

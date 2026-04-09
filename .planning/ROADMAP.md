@@ -90,7 +90,10 @@ Plans:
   2. 각 Shot의 모든 FAI에 대해 에지 측정이 자동으로 수행되고 결과가 테이블에 채워진다
   3. 전체 FAI 결과를 종합한 최종 OK/NG 판정이 산출된다
   4. 측정 완료 후 결과 데이터가 TCP 패킷으로 호스트에 전송된다
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — 시퀀스 프레임워크 확장 (StartAll + ExecuteAction 다중 Action + MoveZ + IAxisController + SimulImagePath)
+- [ ] 05-02-PLAN.md — TCP 응답 FAI 동적 결과 + InspectionSequence 종합 판정 + UI 실시간 갱신
 
 ## Progress
 
@@ -103,4 +106,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. 티칭 & 캘리브레이션 | 0/2 | Planning complete | - |
 | 3. 에지 측정 알고리즘 | 1/2 | In Progress|  |
 | 4. Datum 기준좌표계 | 2/3 | Gap closure | - |
-| 5. 검사 시퀀스 & TCP | 0/? | Not started | - |
+| 5. 검사 시퀀스 & TCP | 0/2 | Planning complete | - |

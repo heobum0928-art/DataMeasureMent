@@ -229,17 +229,14 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //검사 시작 명령 후, 검사 완료까지 대기,
+        //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
         private bool ProcessTest(TestPacket packet) {
-            //TestResultPacket resultPacket = new TestResultPacket();
-
-            //resultPacket.Target = packet.Sender;
-            //resultPacket.Zone = packet.Zone;
-            //resultPacket.Site = packet.Site;
-
-            //Sequences[]
-
-            //return resultPacket;
+            if (Sequences.IsDynamicFAIMode) {
+                string seqName = packet.Identifier;
+                SequenceBase seq = Sequences[seqName];
+                if (seq == null) return false;
+                return seq.StartAll(packet);
+            }
             return Sequences.Start(packet);
         }
 

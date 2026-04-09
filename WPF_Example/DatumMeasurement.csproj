@@ -216,6 +216,7 @@
     <Compile Include="Device\Camera\VirtualCameraProperty.cs" />
     <Compile Include="Device\Camera\VirtualCamera.cs" />
     <Compile Include="Device\DeviceHandler.cs" />
+    <Compile Include="Device\IAxisController.cs" />
     <Compile Include="Device\DisplayConfig.cs" />
     <Compile Include="Device\LightController\LightGroup.cs" />
     <Compile Include="Device\LightController\PamtekLightController.cs" />

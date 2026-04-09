@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using HalconDotNet;
 using ReringProject.Define;
 using ReringProject.Device;
@@ -27,6 +28,7 @@ namespace ReringProject.Sequence {
 
         private enum EStep {
             Init,
+            MoveZ,    //260409 hbk Phase 5: Z축 이동 스텝 (D-08)
             Grab,
             Measure,
             End
@@ -54,12 +56,40 @@ namespace ReringProject.Sequence {
             switch ((EStep)Step) {
                 case EStep.Init:
                     ShotParam?.ClearAllResults();
+                    Step = (int)EStep.MoveZ;
+                    break;
+
+                //260409 hbk Phase 5: Z축 이동 + SIMUL 이미지 준비 (D-08, D-10, D-11)
+                case EStep.MoveZ:
+                    #if SIMUL_MODE
+                    // SIMUL: Z축 이동 건너뜀, DelayMs 무시
+                    #else
+                    // 실 장비: IAxisController 구현 후 연동 예정
+                    if (ShotParam != null && ShotParam.DelayMs > 0) {
+                        System.Threading.Thread.Sleep(ShotParam.DelayMs);
+                    }
+                    #endif
                     Step = (int)EStep.Grab;
                     break;
 
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
-                        HImage image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                        HImage image = null;
+                        //260409 hbk Phase 5: SimulImagePath 이미지 로드 (D-10)
+                        #if SIMUL_MODE
+                        if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
+                            try {
+                                image = new HImage(ShotParam.SimulImagePath);
+                            } catch {
+                                image = null;
+                            }
+                        }
+                        if (image == null) {
+                            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                        }
+                        #else
+                        image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                        #endif
                         if (image != null) {
                             ShotParam.SetImage(image);
                             pMyContext.ResultHalconImage?.Dispose();

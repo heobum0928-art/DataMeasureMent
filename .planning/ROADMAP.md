@@ -75,10 +75,11 @@ Plans:
   4. 변환 행렬이 하위 FAI의 ROI에 적용되어 보정된 위치에서 에지 측정이 수행된다
   5. Datum 미설정 상태에서는 무보정(Identity)으로 기존 Phase 3 흐름이 그대로 동작한다
   6. InspectionListView 트리에 Datum 노드가 표시되고 PropertyGrid에서 편집 가능하다
-**Plans:** 2 plans
+**Plans:** 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — DatumConfig 모델 + DatumFindingService + ShotConfig 통합 + INI Save/Load
-- [ ] 04-02-PLAN.md — 측정 파이프라인 Datum 통합 + UI 트리 Datum 노드 + PropertyGrid + 캔버스 오버레이
+- [x] 04-01-PLAN.md — DatumConfig 모델 + DatumFindingService + ShotConfig 통합 + INI Save/Load
+- [x] 04-02-PLAN.md — 측정 파이프라인 Datum 통합 + UI 트리 Datum 노드 + PropertyGrid + 캔버스 오버레이
+- [ ] 04-03-PLAN.md — Gap closure: RenderDatumOverlay 호출 연결 + AddShotToSequence Datum 노드 + ALG-05 요구사항 등록
 
 ### Phase 5: 검사 시퀀스 & TCP
 **Goal**: 사용자가 검사 시작 버튼 한 번으로 전체 Shot 순회 Grab과 FAI 측정이 자동 실행되고, 최종 판정 결과가 TCP로 호스트에 전송된다
@@ -101,5 +102,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. UI 재설계 | 2/2 | Complete   | 2026-04-07 |
 | 2. 티칭 & 캘리브레이션 | 0/2 | Planning complete | - |
 | 3. 에지 측정 알고리즘 | 1/2 | In Progress|  |
-| 4. Datum 기준좌표계 | 0/2 | Planning complete | - |
+| 4. Datum 기준좌표계 | 2/3 | Gap closure | - |
 | 5. 검사 시퀀스 & TCP | 0/? | Not started | - |

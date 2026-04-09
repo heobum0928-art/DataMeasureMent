@@ -108,6 +108,10 @@ namespace ReringProject.Sequence {
                     CameraMasterParam masterParam = Param as CameraMasterParam; 
                     if (act.Param is CameraSlaveParam) {
                         CameraSlaveParam camParam = act.Param as CameraSlaveParam;
+                        //260409 hbk Phase 5: ShotConfig 등 Slave에 Master DeviceName 전파
+                        if (string.IsNullOrEmpty(camParam.DeviceName)) {
+                            camParam.DeviceName = masterParam.DeviceName;
+                        }
                         masterParam.AddChild(camParam);
                     }
                 }

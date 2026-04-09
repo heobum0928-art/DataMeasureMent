@@ -5,6 +5,7 @@ using ReringProject.Define;
 using ReringProject.Device;
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Halcon.Models;
+using ReringProject.Setting; //260409 hbk Phase 4: ELogType for Datum error logging
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -75,6 +76,8 @@ namespace ReringProject.Sequence {
                         var service = new FAIEdgeMeasurementService();
                         bool allPass = true;
                         var overlays = new List<EdgeInspectionOverlay>();
+                        //260409 hbk Phase 4: Datum fail flag for early exit (D-17)
+                        bool datumFailed = false;
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
                                 //260409 hbk Phase 4: FindDatum before FAI measurement loop (D-02, D-07, D-17)
@@ -90,13 +93,14 @@ namespace ReringProject.Sequence {
                                         }
                                         pMyContext.AllPass = false;
                                         pMyContext.MeasuredCount = ShotParam.FAIList.Count;
-                                        Step = (int)EStep.End;
-                                        break;
+                                        datumFailed = true;
+                                    } else {
+                                        ShotParam.Datum.LastFindSucceeded = true;
+                                        ShotParam.Datum.CurrentTransform = datumTransform;
                                     }
-                                    ShotParam.Datum.LastFindSucceeded = true;
-                                    ShotParam.Datum.CurrentTransform = datumTransform;
                                 }
 
+                                if (!datumFailed) {
                                 foreach (var fai in ShotParam.FAIList) {
                                     FAIEdgeMeasurementResult r;
                                     //260409 hbk Phase 4: pass datumTransform to TryMeasure (D-07, D-08)
@@ -114,6 +118,7 @@ namespace ReringProject.Sequence {
                                     }
                                     if (!fai.IsPass) allPass = false;
                                 }
+                                } //260409 hbk end if (!datumFailed)
                             }
                         }
                         pMyContext.AllPass = allPass;

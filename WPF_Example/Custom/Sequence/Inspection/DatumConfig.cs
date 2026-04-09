@@ -1,5 +1,4 @@
 //260409 hbk Phase 4: Datum 데이터 모델 — D-01, D-04, D-05, D-11
-using System.ComponentModel;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Utility;
@@ -18,16 +17,16 @@ namespace ReringProject.Sequence {
         public double Line1_Row { get; set; } = 0;
         public double Line1_Col { get; set; } = 0;
         public double Line1_Phi { get; set; } = 0;
-        public double Line1_Length1 { get; set; } = 100;
-        public double Line1_Length2 { get; set; } = 10;
+        public double Line1_Length1 { get; set; } = 0;
+        public double Line1_Length2 { get; set; } = 0;
 
         //260409 hbk Phase 4: Line2 ROI (기준 Y축 방향 에지 라인, 기본값 PI/2 = 수직)
         [Category("Datum|Line2 ROI")]
         public double Line2_Row { get; set; } = 0;
         public double Line2_Col { get; set; } = 0;
-        public double Line2_Phi { get; set; } = 1.5708; // Math.PI / 2 — 기본 수직 방향
-        public double Line2_Length1 { get; set; } = 100;
-        public double Line2_Length2 { get; set; } = 10;
+        public double Line2_Phi { get; set; } = 0;
+        public double Line2_Length1 { get; set; } = 0;
+        public double Line2_Length2 { get; set; } = 0;
 
         //260409 hbk Phase 4: 기준 원점 및 각도 (티칭 시 저장)
         [Category("Datum|Reference")]

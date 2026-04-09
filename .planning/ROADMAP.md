@@ -57,7 +57,11 @@ Plans:
   1. FAI 측정 실행 시 ROI 내 에지 페어 거리가 mm 단위로 계산된다
   2. 계산된 거리가 FAIConfig의 Tolerance 범위 내이면 OK, 벗어나면 NG로 판정된다
   3. 측정 후 캔버스에 에지 위치, 거리 값, 판정 결과가 오버레이로 표시된다
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — FAIEdgeMeasurementResult 모델 + FAIEdgeMeasurementService 측정 서비스 + Action_FAIMeasurement 스텁 교체
+- [ ] 03-02-PLAN.md — HalconDisplayService FAI 오버레이 색상 + DisplayMessages 파이프라인 + FAIResultRow 갱신 + 시각 검증
+**UI hint**: yes
 
 ### Phase 4: 검사 시퀀스 & TCP
 **Goal**: 사용자가 검사 시작 버튼 한 번으로 전체 Shot 순회 Grab과 FAI 측정이 자동 실행되고, 최종 판정 결과가 TCP로 호스트에 전송된다
@@ -79,5 +83,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. UI 재설계 | 2/2 | Complete   | 2026-04-07 |
 | 2. 티칭 & 캘리브레이션 | 0/2 | Planning complete | - |
-| 3. 에지 측정 알고리즘 | 0/? | Not started | - |
+| 3. 에지 측정 알고리즘 | 0/2 | Planning complete | - |
 | 4. 검사 시퀀스 & TCP | 0/? | Not started | - |

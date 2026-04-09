@@ -21,6 +21,10 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public string ShotName { get; set; }
 
+        //260409 hbk Phase 4: Datum config owned by ShotConfig (D-01)
+        [Browsable(false)]
+        public DatumConfig Datum { get; set; }
+
         // Thread-safe image buffer
         private readonly object _imageLock = new object();
         private HImage _image;
@@ -76,6 +80,11 @@ namespace ReringProject.Sequence {
 
         public void ClearAllResults() {
             ClearImage();
+            //260409 hbk Phase 4: Datum 런타임 상태 초기화
+            if (Datum != null) {
+                Datum.CurrentTransform = null;
+                Datum.LastFindSucceeded = false;
+            }
             foreach (var fai in FAIList) {
                 fai.ClearResult();
             }

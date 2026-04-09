@@ -204,6 +204,7 @@
     <Compile Include="Custom\TcpServer\ResourceMap.cs" />
     <Compile Include="Custom\SystemHandler.cs" />
     <Compile Include="Custom\Sequence\SequenceHandler.cs" />
+    <Compile Include="Custom\Sequence\Inspection\DatumConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\FAIConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\ShotConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />

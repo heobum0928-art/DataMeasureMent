@@ -77,9 +77,30 @@ namespace ReringProject.Sequence {
                         var overlays = new List<EdgeInspectionOverlay>();
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
+                                //260409 hbk Phase 4: FindDatum before FAI measurement loop (D-02, D-07, D-17)
+                                HTuple datumTransform = null;
+                                if (ShotParam.Datum != null && ShotParam.Datum.IsConfigured) {
+                                    var datumService = new DatumFindingService();
+                                    string datumError;
+                                    if (!datumService.TryFindDatum(image, ShotParam.Datum, out datumTransform, out datumError)) {
+                                        //260409 hbk Phase 4: Datum fail -> all FAI NG (D-17)
+                                        Logging.PrintLog((int)ELogType.Error, "Datum find failed: " + datumError);
+                                        foreach (var fai in ShotParam.FAIList) {
+                                            fai.ClearResult();
+                                        }
+                                        pMyContext.AllPass = false;
+                                        pMyContext.MeasuredCount = ShotParam.FAIList.Count;
+                                        Step = (int)EStep.End;
+                                        break;
+                                    }
+                                    ShotParam.Datum.LastFindSucceeded = true;
+                                    ShotParam.Datum.CurrentTransform = datumTransform;
+                                }
+
                                 foreach (var fai in ShotParam.FAIList) {
                                     FAIEdgeMeasurementResult r;
-                                    if (service.TryMeasure(image, fai, out r)) {
+                                    //260409 hbk Phase 4: pass datumTransform to TryMeasure (D-07, D-08)
+                                    if (service.TryMeasure(image, fai, datumTransform, out r)) {
                                         fai.SetResult(r.DistanceMm);
                                         //260409 hbk Phase 3: overlay RoiId에 OK/NG 접미사 추가 (HalconDisplayService 색상 분기용)
                                         string suffix = fai.IsPass ? "-OK" : "-NG";

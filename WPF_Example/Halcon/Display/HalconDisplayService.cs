@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using HalconDotNet;
 using ReringProject.Halcon.Models;
+using ReringProject.Sequence;
 
 namespace ReringProject.Halcon.Display
 {
@@ -306,6 +307,63 @@ namespace ReringProject.Halcon.Display
                              endRow + headLen * Math.Sin(a1), endCol + headLen * Math.Cos(a1));
             window.DispLine(endRow, endCol,
                              endRow + headLen * Math.Sin(a2), endCol + headLen * Math.Cos(a2));
+        }
+
+        //260409 hbk Phase 4: render Datum Line ROI overlays on canvas (D-12)
+        /// <summary>Renders Datum Line1/Line2 ROI rectangles and reference origin cross on HWindow.</summary>
+        public void RenderDatumOverlay(HWindow window, DatumConfig datum, bool isSelected)
+        {
+            if (datum == null) return;
+
+            string color = isSelected ? "cyan" : "blue";
+            int lineWidth = isSelected ? 3 : 2;
+
+            try
+            {
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, lineWidth);
+
+                // Draw Line1 ROI as Rectangle2
+                if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
+                {
+                    HOperatorSet.DispRectangle2(window,
+                        datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
+                        datum.Line1_Length1, datum.Line1_Length2);
+                }
+
+                // Draw Line2 ROI as Rectangle2
+                if (datum.Line2_Length1 > 0 && datum.Line2_Length2 > 0)
+                {
+                    HOperatorSet.DispRectangle2(window,
+                        datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
+                        datum.Line2_Length1, datum.Line2_Length2);
+                }
+
+                // Draw reference origin cross if configured
+                if (datum.IsConfigured)
+                {
+                    HOperatorSet.SetColor(window, "magenta");
+                    HOperatorSet.SetLineWidth(window, 2);
+                    double crossSize = 15;
+                    // Horizontal line
+                    HOperatorSet.DispLine(window,
+                        datum.RefOriginRow, datum.RefOriginCol - crossSize,
+                        datum.RefOriginRow, datum.RefOriginCol + crossSize);
+                    // Vertical line
+                    HOperatorSet.DispLine(window,
+                        datum.RefOriginRow - crossSize, datum.RefOriginCol,
+                        datum.RefOriginRow + crossSize, datum.RefOriginCol);
+                    // Label
+                    HOperatorSet.SetColor(window, "magenta");
+                    EnsureFontInitialized(window);
+                    HOperatorSet.SetTposition(window, datum.RefOriginRow - crossSize - 15, datum.RefOriginCol + 5);
+                    HOperatorSet.WriteString(window, "Datum Origin");
+                }
+            }
+            catch
+            {
+                // Suppress display errors
+            }
         }
 
         //260408 hbk PolygonPoints 문자열 파싱 ("x1,y1;x2,y2;..." → List<Point>)

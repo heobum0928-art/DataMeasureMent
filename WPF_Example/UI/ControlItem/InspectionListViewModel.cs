@@ -70,6 +70,18 @@ namespace ReringProject.UI {
 
                     // FAI child nodes: shown when action param is ShotConfig (IsDynamicFAIMode)
                     if (act.Param is ShotConfig shot) {
+                        //260409 hbk Phase 4: Datum child node (D-09)
+                        if (shot.Datum != null) {
+                            var datumNode = new CompositeNode {
+                                Name = "Datum",
+                                NodeType = ENodeType.Datum,
+                                ParamData = shot.Datum,
+                                SequenceName = seq.Name,
+                                SequenceID = seq.ID,
+                                ActionID = act.ID
+                            };
+                            actNode.Children.Add(datumNode);
+                        }
                         foreach (FAIConfig fai in shot.FAIList) {
                             var faiNode = new CompositeNode { Name = fai.FAIName, NodeType = ENodeType.FAI, ParamData = fai, SequenceName = seq.Name, SequenceID = seq.ID, ActionID = act.ID };
                             actNode.Children.Add(faiNode);

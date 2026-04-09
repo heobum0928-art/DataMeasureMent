@@ -213,7 +213,15 @@ namespace ReringProject.UI {
                     }
 
                     // FAI CRUD button state + InspectionViewModel update
-                    if (item.NodeType == ENodeType.FAI) {
+                    //260409 hbk Phase 4: Datum node selection -> PropertyGrid binding (D-10)
+                    if (item.NodeType == ENodeType.Datum) {
+                        button_addFAI.IsEnabled = false;
+                        button_removeFAI.IsEnabled = false;
+                        button_renameFAI.IsEnabled = false;
+                        // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
+                        _inspectionVm?.ClearResults();
+                    }
+                    else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;

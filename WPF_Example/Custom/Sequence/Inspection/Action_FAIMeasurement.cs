@@ -81,6 +81,12 @@ namespace ReringProject.Sequence {
                                     FAIEdgeMeasurementResult r;
                                     if (service.TryMeasure(image, fai, out r)) {
                                         fai.SetResult(r.DistanceMm);
+                                        //260409 hbk Phase 3: overlay RoiId에 OK/NG 접미사 추가 (HalconDisplayService 색상 분기용)
+                                        string suffix = fai.IsPass ? "-OK" : "-NG";
+                                        foreach (var ov in r.Overlays) {
+                                            if (ov.RoiId != null && ov.RoiId.StartsWith("FAI-Edge"))
+                                                ov.RoiId = ov.RoiId + suffix;
+                                        }
                                         overlays.AddRange(r.Overlays);
                                     } else {
                                         fai.ClearResult();

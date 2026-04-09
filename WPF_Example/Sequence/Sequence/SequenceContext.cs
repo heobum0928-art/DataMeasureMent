@@ -38,6 +38,8 @@ namespace ReringProject.Sequence {
 
         public List<EdgeInspectionOverlay> InspectionOverlays { get; set; } = new List<EdgeInspectionOverlay>();
 
+        public List<string> DisplayMessages { get; set; } = new List<string>(); //260409 hbk
+
         public EContextState State { get; set; }
 
         public EContextResult Result { get; set; }
@@ -58,6 +60,7 @@ namespace ReringProject.Sequence {
             ResultHalconImage = null;
             ResultImagePath = null;
             InspectionOverlays.Clear();
+            DisplayMessages.Clear(); //260409 hbk
         }
 
         public string GetStateString => Enum.GetName(typeof(EContextState), State);
@@ -72,6 +75,9 @@ namespace ReringProject.Sequence {
             InspectionOverlays = seqContext.InspectionOverlays == null
                 ? new List<EdgeInspectionOverlay>()
                 : seqContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
+            DisplayMessages = seqContext.DisplayMessages == null
+                ? new List<string>()
+                : new List<string>(seqContext.DisplayMessages); //260409 hbk
         }
     }
 
@@ -85,6 +91,8 @@ namespace ReringProject.Sequence {
         public string ResultImagePath { get; set; }
 
         public List<EdgeInspectionOverlay> InspectionOverlays { get; set; } = new List<EdgeInspectionOverlay>();
+
+        public List<string> DisplayMessages { get; set; } = new List<string>(); //260409 hbk
 
         public string TargetCode { get; set; }
 
@@ -139,6 +147,7 @@ namespace ReringProject.Sequence {
             ResultHalconImage = null;
             ResultImagePath = null;
             InspectionOverlays.Clear();
+            DisplayMessages.Clear(); //260409 hbk
 
             Timer.Restart();
             State = EContextState.Idle;
@@ -153,6 +162,9 @@ namespace ReringProject.Sequence {
             InspectionOverlays = actionContext.InspectionOverlays == null
                 ? new List<EdgeInspectionOverlay>()
                 : actionContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
+            DisplayMessages = actionContext.DisplayMessages == null
+                ? new List<string>()
+                : new List<string>(actionContext.DisplayMessages); //260409 hbk
         }
     }
 }

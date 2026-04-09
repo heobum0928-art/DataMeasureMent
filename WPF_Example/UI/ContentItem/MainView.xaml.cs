@@ -278,6 +278,7 @@ namespace ReringProject.UI {
                     foreach (IMainView customView in CustomViewList) {
                         customView.Display(seqName, resultStr, label_message.Foreground, param.OwnerName);
                     }
+                    RefreshFAIResultRows(); //260409 hbk Phase 3
                 });
             }
         }
@@ -301,6 +302,7 @@ namespace ReringProject.UI {
                         else
                             customView.Display(context.Source.Name, resultStr, label_message.Foreground);
                     }
+                    RefreshFAIResultRows(); //260409 hbk Phase 3
                 });
             }
         }
@@ -363,7 +365,7 @@ namespace ReringProject.UI {
             if (context.ResultHalconImage != null) {
                 try {
                     halconViewer.LoadImage(context.ResultHalconImage);
-                    halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, null);
+                    halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, context.DisplayMessages); //260409 hbk
                     return true;
                 }
                 catch (Exception ex) {
@@ -376,7 +378,7 @@ namespace ReringProject.UI {
                     if (!string.Equals(halconViewer.CurrentImagePath, context.ResultImagePath, StringComparison.OrdinalIgnoreCase)) {
                         halconViewer.LoadImage(context.ResultImagePath);
                     }
-                    halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, null);
+                    halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, context.DisplayMessages); //260409 hbk
                     return true;
                 }
                 catch (Exception ex) {
@@ -384,7 +386,7 @@ namespace ReringProject.UI {
                 }
             }
 
-            halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, null);
+            halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, context.DisplayMessages); //260409 hbk
             return true;
         }
 
@@ -422,6 +424,15 @@ namespace ReringProject.UI {
             }
 
             return rois;
+        }
+
+        //260409 hbk Phase 3: refresh FAI result rows after measurement
+        private void RefreshFAIResultRows() {
+            if (dataGrid_faiResults == null || dataGrid_faiResults.ItemsSource == null) return;
+            foreach (var item in dataGrid_faiResults.ItemsSource) {
+                var row = item as FAIResultRow;
+                if (row != null) row.Refresh();
+            }
         }
 
         private static Brush GetResultBrush(EContextResult result) {

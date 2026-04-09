@@ -122,6 +122,18 @@ namespace ReringProject.Halcon.Display
                         window.SetColor("red");
                         window.SetLineWidth(3);
                     }
+                    //260409 hbk Phase 3: FAI edge measurement result overlay colors
+                    else if (overlay.RoiId != null && overlay.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase))
+                    {
+                        bool isNG = overlay.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase);
+                        window.SetColor(isNG ? "red" : "green");
+                        window.SetLineWidth(2);
+                    }
+                    else if (string.Equals(overlay.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
+                    {
+                        window.SetColor("cyan");
+                        window.SetLineWidth(1);
+                    }
                     else
                     {
                         window.SetColor("blue");

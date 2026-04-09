@@ -9,13 +9,28 @@ namespace ReringProject.Halcon.Models
     /// </summary>
     public class FAIEdgeMeasurementResult
     {
-        /// <summary>에지 1 위치 (이미지 픽셀 좌표)</summary>
+        /// <summary>에지 1 위치 — 피팅 라인 1 중점 (이미지 픽셀 좌표)</summary>
         public double Edge1Row { get; set; }
         public double Edge1Column { get; set; }
 
-        /// <summary>에지 2 위치 (이미지 픽셀 좌표)</summary>
+        /// <summary>에지 2 위치 — 피팅 라인 2 중점 (이미지 픽셀 좌표, Both 모드 전용)</summary>
         public double Edge2Row { get; set; }
         public double Edge2Column { get; set; }
+
+        //260409 hbk 피팅 라인 1 양 끝점
+        public double Line1Row1 { get; set; } //260409 hbk
+        public double Line1Column1 { get; set; } //260409 hbk
+        public double Line1Row2 { get; set; } //260409 hbk
+        public double Line1Column2 { get; set; } //260409 hbk
+
+        //260409 hbk 피팅 라인 2 양 끝점 (Both 모드에서만 사용)
+        public double Line2Row1 { get; set; } //260409 hbk
+        public double Line2Column1 { get; set; } //260409 hbk
+        public double Line2Row2 { get; set; } //260409 hbk
+        public double Line2Column2 { get; set; } //260409 hbk
+
+        //260409 hbk 트림 전 총 에지 포인트 수
+        public int EdgePointCount { get; set; } //260409 hbk
 
         /// <summary>에지 간 픽셀 거리</summary>
         public double DistancePixel { get; set; }

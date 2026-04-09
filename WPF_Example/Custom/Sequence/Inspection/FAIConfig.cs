@@ -5,13 +5,6 @@ using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
 
-    public enum EEdgeMeasureType {
-        FirstToFirst,
-        FirstToLast,
-        LastToFirst,
-        LastToLast
-    }
-
     public class FAIConfig : ParamBase {
 
         // ROI
@@ -22,11 +15,15 @@ namespace ReringProject.Sequence {
         public double ROI_Length1 { get; set; }
         public double ROI_Length2 { get; set; }
 
-        // Edge Measurement
+        // Edge Measurement //260409 hbk
         [Category("Edge|Measurement")]
-        public EEdgeMeasureType MeasureType { get; set; } = EEdgeMeasureType.FirstToFirst;
-        public double Threshold { get; set; } = 30.0;
+        public int EdgeThreshold { get; set; } = 10; //260409 hbk RoiDefinition 호환
         public double Sigma { get; set; } = 1.0;
+        public string EdgeDirection { get; set; } = "LtoR"; //260409 hbk LtoR, RtoL, TtoB, BtoT
+        public string EdgeSelection { get; set; } = "First"; //260409 hbk First, Last, Both
+        public int EdgeSampleCount { get; set; } = 20; //260409 hbk 샘플 스트립 수
+        public int EdgeTrimCount { get; set; } = 10; //260409 hbk 극값 제거 수
+        public string EdgePolarity { get; set; } = "DarkToLight"; //260409 hbk DarkToLight, LightToDark
 
         //260408 hbk Calibration (per D-12, D-16: camera-level calibration stored in CameraSlaveParam,
         // but FAIConfig also carries PixelResolution for RoiDefinition compatibility)
@@ -109,7 +106,7 @@ namespace ReringProject.Sequence {
                 col2 = ROI_Col + dCol;
             }
 
-            return new RoiDefinition
+            return new RoiDefinition //260409 hbk 에지 파라미터 전달
             {
                 Id = FAIName ?? "FAI",
                 Name = FAIName ?? "FAI",
@@ -119,8 +116,12 @@ namespace ReringProject.Sequence {
                 Column2 = col2,
                 IsTaught = true,
                 Sigma = Sigma,
-                EdgeThreshold = (int)Threshold,
-                EdgeDirection = "LtoR",
+                EdgeThreshold = EdgeThreshold, //260409 hbk
+                EdgeDirection = EdgeDirection ?? "LtoR", //260409 hbk
+                EdgeSelection = EdgeSelection ?? "First", //260409 hbk
+                EdgeSampleCount = EdgeSampleCount, //260409 hbk
+                EdgeTrimCount = EdgeTrimCount, //260409 hbk
+                EdgePolarity = EdgePolarity ?? "DarkToLight", //260409 hbk
                 PixelResolutionX = PixelResolutionX,
                 PixelResolutionY = PixelResolutionY,
                 PolygonPoints = PolygonPoints ?? "" //260408 hbk

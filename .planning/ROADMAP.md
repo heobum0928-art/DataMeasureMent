@@ -17,6 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: 에지 측정 알고리즘** - Halcon MeasurePos 거리 측정 + 공차 판정 + 결과 오버레이 (completed 2026-04-09)
 - [x] **Phase 4: Datum 기준좌표계** - Datum Line 2개 → 교점/기준각 티칭 + 런타임 hom_mat2d ROI 보정 (completed 2026-04-10)
 - [x] **Phase 5: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답 (completed 2026-04-09)
+- [ ] **Phase 6: Rapid City 확장** - Fixture/Multi-Datum 구조 + Multi-Algorithm 측정 + 조명 필드 + 새 INI 포맷
 
 ## Phase Details
 
@@ -95,10 +96,30 @@ Plans:
 - [x] 05-01-PLAN.md — 시퀀스 프레임워크 확장 (StartAll + ExecuteAction 다중 Action + MoveZ + IAxisController + SimulImagePath)
 - [x] 05-02-PLAN.md — TCP 응답 FAI 동적 결과 + InspectionSequence 종합 판정 + UI 실시간 갱신
 
+### Phase 6: Rapid City 확장
+**Goal**: Rapid City Z-Stopper A8.1 제품 대응을 위해 Fixture/Multi-Datum 구조, 6종 측정 알고리즘, 조명 필드, 새 INI 포맷을 구현하여 75개+ FAI 검사를 지원한다
+**Depends on**: Phase 5
+**Requirements**: RC-01, RC-02, RC-03, RC-04, RC-05, RC-06
+**Success Criteria** (what must be TRUE):
+  1. Sequence가 Fixture(한 면)로 동작하며 List<DatumConfig>를 소유한다
+  2. DatumConfig가 ShotConfig에서 Sequence 레벨로 승격되어 Multi-Datum을 지원한다
+  3. MeasurementBase 파생 클래스 6종이 각각 TryExecute()로 측정을 수행한다
+  4. ShotConfig에 Ring/Back/Coax/Side 조명 필드가 추가되고 INI로 저장/로드된다
+  5. 새 INI 포맷으로 레시피 저장/로드가 동작하고, 기존 포맷은 안내 메시지를 표시한다
+  6. UI 트리에서 Sequence > Datum + Shot > FAI > Measurement 구조를 탐색할 수 있다
+  7. 결과 테이블이 Measurement 단위로 한 행씩 표시된다
+**Plans:** 4 plans
+Plans:
+- [ ] 06-01-PLAN.md — MeasurementBase 6종 파생 클래스 + VisionAlgorithmService + MeasurementFactory + FAIConfig.Measurements
+- [ ] 06-02-PLAN.md — Datum 승격 (ShotConfig -> Sequence) + InspectionSequence Fixture 구조 + DatumConfig 확장 + 조명 필드
+- [ ] 06-03-PLAN.md — Action_FAIMeasurement Datum+Measurement 실행 흐름 재설계 + INI Phase 6 새 포맷
+- [ ] 06-04-PLAN.md — UI 트리 Sequence > Datum + Shot > FAI > Measurement 재구성 + 결과 테이블 Measurement 단위
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -107,3 +128,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. 에지 측정 알고리즘 | 2/2 | Complete | 2026-04-09 |
 | 4. Datum 기준좌표계 | 3/3 | Complete | 2026-04-10 |
 | 5. 검사 시퀀스 & TCP | 2/2 | Complete | 2026-04-09 |
+| 6. Rapid City 확장 | 0/4 | Planning complete | - |

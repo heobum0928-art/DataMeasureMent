@@ -196,6 +196,9 @@ namespace ReringProject.UI {
                     NodeViewModel item = list.SelectedItem as NodeViewModel;
                     object itemParam = item.Param;
 
+                    //260410 hbk Phase 4 gap fix: clear Datum overlay on any node change
+                    mParentWindow.mainView.halconViewer.ClearDatumOverlay();
+
                     //param
                     if (itemParam is ParamBase) { //action or FAI
                         ParamBase param = itemParam as ParamBase;
@@ -220,6 +223,10 @@ namespace ReringProject.UI {
                         button_renameFAI.IsEnabled = false;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
                         _inspectionVm?.ClearResults();
+                        //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
+                        if (itemParam is DatumConfig datumCfg) {
+                            mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
+                        }
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
@@ -391,6 +398,18 @@ namespace ReringProject.UI {
                 SequenceID = seqNode.SequenceID,
                 ActionID = EAction.Unknown
             };
+            //260410 hbk Phase 4 gap fix: add Datum child node matching CreateSequenceNode pattern
+            if (shot.Datum != null) {
+                var datumChildNode = new CompositeNode {
+                    Name = "Datum",
+                    NodeType = ENodeType.Datum,
+                    ParamData = shot.Datum,
+                    SequenceName = seqNode.SequenceName,
+                    SequenceID = seqNode.SequenceID,
+                    ActionID = EAction.Unknown
+                };
+                shotNode.Children.Add(datumChildNode);
+            }
             shotNode.Children.Add(faiChildNode);
 
             var shotVm = new NodeViewModel(shotNode, seqNode);

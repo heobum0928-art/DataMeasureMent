@@ -10,6 +10,7 @@ using HalconDotNet;
 using ReringProject.Halcon;
 using ReringProject.Halcon.Display;
 using ReringProject.Halcon.Models;
+using ReringProject.Sequence;
 
 namespace ReringProject.UI
 {
@@ -218,6 +219,25 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260410 hbk Phase 4 gap fix: Datum overlay state
+        private DatumConfig _datumConfig;
+        private bool _datumSelected;
+
+        //260410 hbk Phase 4 gap fix: set Datum for overlay rendering
+        public void SetDatumOverlay(DatumConfig datum, bool isSelected)
+        {
+            _datumConfig = datum;
+            _datumSelected = isSelected;
+            Render();
+        }
+
+        //260410 hbk Phase 4 gap fix: clear Datum overlay
+        public void ClearDatumOverlay()
+        {
+            _datumConfig = null;
+            _datumSelected = false;
+        }
+
         //260408 hbk Calibration 십자+라인 오버레이
         public void SetCalibrationOverlay(IList<Point> points)
         {
@@ -294,6 +314,12 @@ namespace ReringProject.UI
             if (_calibrationPoints != null && _calibrationPoints.Count > 0)
             {
                 _displayService.RenderCalibrationOverlay(ViewerHost.HalconWindow, _calibrationPoints);
+            }
+
+            //260410 hbk Phase 4 gap fix: render Datum Line ROI overlay
+            if (_datumConfig != null)
+            {
+                _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected);
             }
         }
 

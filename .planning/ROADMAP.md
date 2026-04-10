@@ -13,10 +13,10 @@ Phase 5에서 완성된 Shot-FAI 2계층 데이터 모델 위에 5개 단계로 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: UI 재설계** - FAI-centric 트리 통합 + 단일 캔버스 + FAI 결과 테이블 + CRUD (completed 2026-04-07)
-- [ ] **Phase 2: 티칭 & 캘리브레이션** - ROI 시각화 + 저장/로드 + 픽셀-mm 캘리브레이션
-- [ ] **Phase 3: 에지 측정 알고리즘** - Halcon MeasurePos 거리 측정 + 공차 판정 + 결과 오버레이
-- [ ] **Phase 4: Datum 기준좌표계** - Datum Line 2개 → 교점/기준각 티칭 + 런타임 hom_mat2d ROI 보정
-- [ ] **Phase 5: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답
+- [x] **Phase 2: 티칭 & 캘리브레이션** - ROI 시각화 + 저장/로드 + 픽셀-mm 캘리브레이션 (completed 2026-04-08)
+- [x] **Phase 3: 에지 측정 알고리즘** - Halcon MeasurePos 거리 측정 + 공차 판정 + 결과 오버레이 (completed 2026-04-09)
+- [x] **Phase 4: Datum 기준좌표계** - Datum Line 2개 → 교점/기준각 티칭 + 런타임 hom_mat2d ROI 보정 (completed 2026-04-10)
+- [x] **Phase 5: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답 (completed 2026-04-09)
 
 ## Phase Details
 
@@ -79,7 +79,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — DatumConfig 모델 + DatumFindingService + ShotConfig 통합 + INI Save/Load
 - [x] 04-02-PLAN.md — 측정 파이프라인 Datum 통합 + UI 트리 Datum 노드 + PropertyGrid + 캔버스 오버레이
-- [ ] 04-03-PLAN.md — Gap closure: RenderDatumOverlay 호출 연결 + AddShotToSequence Datum 노드 + ALG-05 요구사항 등록
+- [x] 04-03-PLAN.md — Gap closure: RenderDatumOverlay 호출 연결 + AddShotToSequence Datum 노드 + ALG-05 요구사항 등록
 
 ### Phase 5: 검사 시퀀스 & TCP
 **Goal**: 사용자가 검사 시작 버튼 한 번으로 전체 Shot 순회 Grab과 FAI 측정이 자동 실행되고, 최종 판정 결과가 TCP로 호스트에 전송된다
@@ -92,8 +92,8 @@ Plans:
   4. 측정 완료 후 결과 데이터가 TCP 패킷으로 호스트에 전송된다
 **Plans:** 2 plans
 Plans:
-- [ ] 05-01-PLAN.md — 시퀀스 프레임워크 확장 (StartAll + ExecuteAction 다중 Action + MoveZ + IAxisController + SimulImagePath)
-- [ ] 05-02-PLAN.md — TCP 응답 FAI 동적 결과 + InspectionSequence 종합 판정 + UI 실시간 갱신
+- [x] 05-01-PLAN.md — 시퀀스 프레임워크 확장 (StartAll + ExecuteAction 다중 Action + MoveZ + IAxisController + SimulImagePath)
+- [x] 05-02-PLAN.md — TCP 응답 FAI 동적 결과 + InspectionSequence 종합 판정 + UI 실시간 갱신
 
 ## Progress
 
@@ -102,8 +102,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. UI 재설계 | 2/2 | Complete   | 2026-04-07 |
-| 2. 티칭 & 캘리브레이션 | 0/2 | Planning complete | - |
-| 3. 에지 측정 알고리즘 | 1/2 | In Progress|  |
-| 4. Datum 기준좌표계 | 2/3 | Gap closure | - |
-| 5. 검사 시퀀스 & TCP | 0/2 | Planning complete | - |
+| 1. UI 재설계 | 2/2 | Complete | 2026-04-07 |
+| 2. 티칭 & 캘리브레이션 | 2/2 | Complete | 2026-04-08 |
+| 3. 에지 측정 알고리즘 | 2/2 | Complete | 2026-04-09 |
+| 4. Datum 기준좌표계 | 3/3 | Complete | 2026-04-10 |
+| 5. 검사 시퀀스 & TCP | 2/2 | Complete | 2026-04-09 |

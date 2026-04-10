@@ -26,6 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ALG-02**: FAIConfig의 Tolerance 기준으로 OK/NG 판정을 수행한다
 - [ ] **ALG-03**: 픽셀→mm 변환을 위한 캘리브레이션 기능을 제공한다
 - [ ] **ALG-04**: 측정 결과(에지 위치, 거리, 판정)를 캔버스에 오버레이로 표시한다
+- [x] **ALG-05**: Datum 기준좌표계로 제품 위치/회전 편차를 자동 보정한다 (hom_mat2d 변환)
 
 ### 검사 시퀀스
 
@@ -73,14 +74,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALG-01 | Phase 3 | Complete |
 | ALG-02 | Phase 3 | Complete |
 | ALG-04 | Phase 3 | Pending |
-| SEQ-01 | Phase 4 | Pending |
-| SEQ-02 | Phase 4 | Pending |
-| SEQ-03 | Phase 4 | Pending |
-| SEQ-04 | Phase 4 | Pending |
+| ALG-05 | Phase 4 | Complete |
+| SEQ-01 | Phase 5 | Pending |
+| SEQ-02 | Phase 5 | Pending |
+| SEQ-03 | Phase 5 | Pending |
+| SEQ-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 15 total
-- Mapped to phases: 15
+- v1 requirements: 16 total
+- Mapped to phases: 16
 - Unmapped: 0
 
 ---

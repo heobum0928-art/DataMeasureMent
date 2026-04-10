@@ -764,22 +764,19 @@ Step 2.6: 이 Phase는 기존 코드베이스 변경만 포함. 외부 의존성
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Datum Dedicated 모드의 캡처 조건 저장 위치**
-   - What we know: D-07에서 `Dedicated` 모드는 별도 Z+조명+노출 조건을 보유한다고 명시됨.
-   - What's unclear: 이 조건을 DatumConfig 내부에 Z/조명 필드로 추가할지, 별도 ShotConfig 인스턴스로 구성할지 결정되지 않음 (Claude's Discretion).
-   - Recommendation: DatumConfig 내부에 단순 필드(DedicatedZPosition: double, DedicatedLightLevel: int)를 추가하는 것이 INI 구조를 단순하게 유지함. 단, 조명 하드웨어 연동이 Phase 6 범위 외이므로 필드 추가만 하고 실제 제어는 이후 Phase에서 구현.
+1. **RESOLVED: Datum Dedicated 모드의 캡처 조건 저장 위치**
+   - Decision: DatumConfig 내부에 단순 필드(DedicatedZPosition: double, DedicatedLightLevel: int) 추가. INI 구조 단순화. 조명 하드웨어 연동은 Phase 6 범위 외이므로 필드 저장만.
+   - Adopted in: Plan 02 Task 1
 
-2. **FAIConfig 기존 에지 파라미터 처리**
-   - What we know: Phase 6에서 FAIConfig의 측정 모델이 `List<MeasurementBase>`로 교체됨(D-20). FAIConfig에는 현재 `ROI_Row`, `EdgeThreshold` 등 에지 측정 필드가 있음.
-   - What's unclear: 기존 FAIConfig 에지 파라미터 필드를 그대로 두면 혼란스러움. 제거하면 기존 INI 로드 시(Phase 5 레시피) 필드가 누락됨.
-   - Recommendation: D-22(기존 포맷 거부)에 따라 Phase 5 INI 레시피는 로드하지 않으므로, FAIConfig의 에지 측정 필드를 제거하거나 `[Browsable(false)]` + `[Obsolete]`로 표시. 단, `ToRoiDefinition()`은 `EdgePairDistanceMeasurement`에서 필요하므로 내부적으로 유지.
+2. **RESOLVED: FAIConfig 기존 에지 파라미터 처리**
+   - Decision: D-22(기존 포맷 거부)에 따라 기존 에지 측정 필드는 `[Browsable(false)]`로 숨기고 유지. `EdgePairDistanceMeasurement`에서 내부적으로 재사용.
+   - Adopted in: Plan 01 Task 2
 
-3. **Action_FAIMeasurement의 Datum 이미지 취득 시점**
-   - What we know: D-09에서 "Fixture 진입 → Datum 단계 → Shot 루프" 순서. Dedicated 모드이면 별도 캡처.
-   - What's unclear: `Action_FAIMeasurement`는 Shot 단위 Action이다. Datum 단계는 Shot 루프 전에 실행되어야 하는데, 여러 Shot Action 중 **첫 번째 Shot Action**에서 Datum 단계를 실행해야 하는지, 아니면 별도 `Action_DatumFinding` Action을 추가해야 하는지.
-   - Recommendation: `InspectionSequence.OnLoad()` 또는 `OnBegin()`에서 Datum 단계를 실행하는 것이 가장 깔끔함. 각 Shot Action은 `Param.Parent as InspectionSequence`에서 이미 계산된 `_datumTransforms`를 꺼내 사용. 이 방식이면 별도 Action 추가 없이 기존 구조 유지 가능. [ASSUMED — SequenceBase.OnBegin()의 호출 타이밍 확인 필요]
+3. **RESOLVED: Action_FAIMeasurement의 Datum 이미지 취득 시점**
+   - Decision: 첫 번째 Shot Action의 EStep.Datum 단계에서 InspectionSequence.TryRunDatumPhase() 호출. 이미 실행된 경우 캐시된 _datumTransforms 재사용.
+   - Adopted in: Plan 03 Task 1
 
 ---
 

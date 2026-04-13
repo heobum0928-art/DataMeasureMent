@@ -1,11 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Windows;
+using ReringProject.Define;
+using ReringProject.Setting;
+using ReringProject.UI;
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
 
+    //260413 hbk Phase 6: Multi-Algorithm + Fixture-Datum 계층 INI 포맷으로 전면 재작성 (D-17, D-22, RC-05)
     public class InspectionRecipeManager {
+
+        //260413 hbk Phase 6: 지원 포맷 버전 (D-22)
+        private enum ERecipeFormatVersion {
+            Unknown = 0,
+            Phase5 = 5,
+            Phase6 = 6
+        }
+
+        //260413 hbk Phase 6: 현재 지원 포맷 버전
+        public const int CurrentFormatVersion = 6;
 
         public List<ShotConfig> Shots { get; private set; } = new List<ShotConfig>();
 
@@ -40,25 +55,61 @@ namespace ReringProject.Sequence {
             Shots.Clear();
         }
 
-        // INI Structure:
-        // [SHOTS]
-        //   Count = 2
-        // [SHOT_0]
-        //   ShotName = SHOT_0
-        //   ZPosition = 0
-        //   DelayMs = 0
-        //   SimulImagePath =
-        //   FAICount = 2
-        // [SHOT_0_FAI_0]
-        //   FAIName = FAI_0
-        //   ROI_Row = ...
-        //   ...
-        // [SHOT_0_FAI_1]
-        //   ...
-        // [SHOT_1]
-        //   ...
+        //260413 hbk Phase 6: 현재 Fixture(InspectionSequence) 해석 — 기본 Top 시퀀스를 사용 (D-04)
+        private InspectionSequence ResolveFixtureSequence() {
+            try {
+                var seq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                return seq;
+            } catch {
+                return null;
+            }
+        }
+
+        //260413 hbk Phase 6: INI 포맷 버전 감지 (D-22, T-06-08)
+        private ERecipeFormatVersion DetectFormatVersion(IniFile iniFile) {
+            if (iniFile.ContainsSection("FORMAT")) {
+                int version = iniFile["FORMAT"]["Version"].ToInt();
+                if (version >= 6) return ERecipeFormatVersion.Phase6;
+                if (version >= 1 && version <= 5) return ERecipeFormatVersion.Phase5;
+                return ERecipeFormatVersion.Unknown;
+            }
+            if (iniFile.ContainsSection("SHOTS")) {
+                return ERecipeFormatVersion.Phase5;
+            }
+            return ERecipeFormatVersion.Unknown;
+        }
+
+        // INI Structure (Phase 6):
+        // [FORMAT] Version=6
+        // [FIXTURE] DisplayName=..., DatumCount=N
+        // [FIXTURE_DATUM_{d}] (DatumConfig 자동 직렬화)
+        // [SHOTS] Count=N
+        // [SHOT_{s}] ShotName=..., ZPosition=..., FAICount=N
+        // [SHOT_{s}_CAM] (CameraSlaveParam/ShotConfig 자동 직렬화 — 조명 포함)
+        // [SHOT_{s}_FAI_{f}] FAIName=..., MeasurementCount=N (FAIConfig 자동 직렬화)
+        // [SHOT_{s}_FAI_{f}_MEAS_{m}] Type=..., (MeasurementBase 파생 자동 직렬화)
 
         public bool Save(IniFile saveFile) {
+            return SavePhase6Format(saveFile);
+        }
+
+        //260413 hbk Phase 6: Fixture-Datum-Shot-FAI-Measurement 전체 계층 저장 (D-17, RC-05)
+        private bool SavePhase6Format(IniFile saveFile) {
+            saveFile["FORMAT"]["Version"] = CurrentFormatVersion;
+
+            var fixtureSeq = ResolveFixtureSequence();
+            if (fixtureSeq != null) {
+                saveFile["FIXTURE"]["DisplayName"] = fixtureSeq.GetDisplayName() ?? "";
+                saveFile["FIXTURE"]["DatumCount"] = fixtureSeq.DatumConfigs.Count;
+                for (int d = 0; d < fixtureSeq.DatumConfigs.Count; d++) {
+                    string datumSection = $"FIXTURE_DATUM_{d}";
+                    fixtureSeq.DatumConfigs[d].Save(saveFile, datumSection);
+                }
+            } else {
+                saveFile["FIXTURE"]["DisplayName"] = "";
+                saveFile["FIXTURE"]["DatumCount"] = 0;
+            }
+
             saveFile["SHOTS"]["Count"] = Shots.Count;
 
             for (int s = 0; s < Shots.Count; s++) {
@@ -71,7 +122,7 @@ namespace ReringProject.Sequence {
                 saveFile[shotSection]["SimulImagePath"] = shot.SimulImagePath ?? "";
                 saveFile[shotSection]["FAICount"] = shot.FAIList.Count;
 
-                // Save shot camera params
+                // Camera/ShotConfig 필드 (조명 8필드 포함) 자동 직렬화
                 shot.Save(saveFile, shotSection + "_CAM");
 
                 for (int f = 0; f < shot.FAIList.Count; f++) {
@@ -80,19 +131,59 @@ namespace ReringProject.Sequence {
 
                     fai.Save(saveFile, faiSection);
                     saveFile[faiSection]["FAIName"] = fai.FAIName ?? $"FAI_{f}";
-                }
+                    saveFile[faiSection]["MeasurementCount"] = fai.Measurements.Count;
 
-                //260413 hbk Phase 6: SHOT_{s}_DATUM 섹션 제거 — Datum은 Fixture 레벨 (D-04).
-                // TODO: Phase 6 Plan 03에서 SEQUENCE_{seq}_DATUM_{i} 포맷으로 재설계.
+                    //260413 hbk Phase 6: Measurement 파생 클래스 저장 — Type 필드로 Factory 키 지정 (D-17)
+                    for (int m = 0; m < fai.Measurements.Count; m++) {
+                        string measSection = $"SHOT_{s}_FAI_{f}_MEAS_{m}";
+                        var meas = fai.Measurements[m];
+                        meas.Save(saveFile, measSection);
+                        // TypeName은 ParamBase.Save가 처리하지 못하므로 수동 저장
+                        saveFile[measSection]["Type"] = meas.TypeName ?? "";
+                    }
+                }
             }
             return true;
         }
 
         public bool Load(IniFile loadFile) {
-            if (!loadFile.ContainsSection("SHOTS")) return false;
+            //260413 hbk Phase 6: 포맷 버전 감지 후 분기 (D-22)
+            ERecipeFormatVersion version = DetectFormatVersion(loadFile);
+            if (version != ERecipeFormatVersion.Phase6) {
+                //260413 hbk Phase 6: 기존 포맷 거부 — 안내 메시지 표시 (D-22)
+                CustomMessageBox.Show(
+                    "Legacy Recipe",
+                    "이 레시피는 이전 포맷(Phase 1~5)입니다.\n새 Phase 6 레시피로 작성하세요.",
+                    MessageBoxImage.Information);
+                Logging.PrintLog((int)ELogType.Trace, $"[InspectionRecipeManager] Legacy recipe rejected (version={version})");
+                return false;
+            }
+            return LoadPhase6Format(loadFile);
+        }
 
-            int shotCount = loadFile["SHOTS"]["Count"].ToInt();
+        //260413 hbk Phase 6: Fixture-Datum-Shot-FAI-Measurement 전체 계층 로드 (D-17, T-06-07)
+        private bool LoadPhase6Format(IniFile loadFile) {
             ClearShots();
+
+            // --- Fixture (InspectionSequence) ---
+            var fixtureSeq = ResolveFixtureSequence();
+            if (fixtureSeq != null && loadFile.ContainsSection("FIXTURE")) {
+                fixtureSeq.DisplayName = loadFile["FIXTURE"]["DisplayName"].ToString() ?? "";
+                int datumCount = loadFile["FIXTURE"]["DatumCount"].ToInt();
+                if (datumCount < 0) datumCount = 0; //260413 hbk T-06-07: 음수 clamp
+                fixtureSeq.DatumConfigs.Clear();
+                for (int d = 0; d < datumCount; d++) {
+                    string datumSection = $"FIXTURE_DATUM_{d}";
+                    if (!loadFile.ContainsSection(datumSection)) continue;
+                    var datum = fixtureSeq.AddDatum();
+                    datum.Load(loadFile, datumSection);
+                }
+            }
+
+            // --- Shots ---
+            if (!loadFile.ContainsSection("SHOTS")) return true;
+            int shotCount = loadFile["SHOTS"]["Count"].ToInt();
+            if (shotCount < 0) shotCount = 0; //260413 hbk T-06-07
 
             for (int s = 0; s < shotCount; s++) {
                 string shotSection = $"SHOT_{s}";
@@ -105,8 +196,9 @@ namespace ReringProject.Sequence {
                 shot.SimulImagePath = loadFile[shotSection]["SimulImagePath"].ToString();
 
                 int faiCount = loadFile[shotSection]["FAICount"].ToInt();
+                if (faiCount < 0) faiCount = 0; //260413 hbk T-06-07
 
-                // Load shot camera params
+                // Camera/ShotConfig 필드 (조명 8필드 포함) 자동 로드
                 string camSection = shotSection + "_CAM";
                 if (loadFile.ContainsSection(camSection)) {
                     shot.Load(loadFile, camSection);
@@ -119,16 +211,34 @@ namespace ReringProject.Sequence {
                     FAIConfig fai = shot.AddFAI();
                     fai.Load(loadFile, faiSection);
                     fai.FAIName = loadFile[faiSection]["FAIName"].ToString();
-                }
 
-                //260413 hbk Phase 6: SHOT_{s}_DATUM 섹션 로드 제거 — Datum은 Fixture 레벨 (D-04).
-                // TODO: Phase 6 Plan 03에서 Fixture 단위 Datum 로드로 재설계.
+                    int measCount = loadFile[faiSection]["MeasurementCount"].ToInt();
+                    if (measCount < 0) measCount = 0; //260413 hbk T-06-07
+
+                    //260413 hbk Phase 6: Measurement 파생 클래스 로드 — Factory로 다형성 생성 (D-17, T-06-07)
+                    for (int m = 0; m < measCount; m++) {
+                        string measSection = $"SHOT_{s}_FAI_{f}_MEAS_{m}";
+                        if (!loadFile.ContainsSection(measSection)) continue;
+                        string typeName = loadFile[measSection]["Type"].ToString();
+                        var meas = MeasurementFactory.Create(typeName, fai);
+                        if (meas == null) {
+                            //260413 hbk T-06-07: 미등록 타입 — 로그 후 skip
+                            Logging.PrintLog((int)ELogType.Trace,
+                                $"[InspectionRecipeManager] Unknown Measurement type '{typeName}' at {measSection} — skipped");
+                            continue;
+                        }
+                        meas.Load(loadFile, measSection);
+                        fai.Measurements.Add(meas);
+                    }
+                }
             }
             return true;
         }
 
+        //260413 hbk Phase 6: HasNewFormatData — Phase 6 포맷 탐지 (SHOTS 섹션 존재 + FORMAT Version=6)
         public bool HasNewFormatData(IniFile iniFile) {
-            return iniFile.ContainsSection("SHOTS");
+            // Phase 6: [FORMAT] Version=6 이어야 신규 포맷. 그 외(Phase5 SHOTS-only 포함)는 더 이상 신규로 인정하지 않음.
+            return DetectFormatVersion(iniFile) == ERecipeFormatVersion.Phase6;
         }
     }
 }

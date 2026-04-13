@@ -26,9 +26,11 @@ namespace ReringProject.Sequence {
 
     public class Action_FAIMeasurement : ActionBase {
 
+        //260413 hbk Phase 6: DatumPhase 스텝 추가 — Fixture TryRunDatumPhase 실행 위치 (D-09)
         private enum EStep {
             Init,
-            MoveZ,    //260409 hbk Phase 5: Z축 이동 스텝 (D-08)
+            MoveZ,       //260409 hbk Phase 5: Z축 이동 스텝 (D-08)
+            DatumPhase,  //260413 hbk Phase 6: Multi-Datum 실행 (D-09)
             Grab,
             Measure,
             End
@@ -69,8 +71,36 @@ namespace ReringProject.Sequence {
                         System.Threading.Thread.Sleep(ShotParam.DelayMs);
                     }
                     #endif
+                    Step = (int)EStep.DatumPhase;
+                    break;
+
+                //260413 hbk Phase 6: Fixture Multi-Datum 실행 단계 (D-04, D-09, D-10)
+                case EStep.DatumPhase: {
+                    var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
+                    if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
+                        HImage datumImage = GrabOrLoadDatumImage(parentSeq);
+                        if (datumImage == null) {
+                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum image acquisition failed");
+                            pMyContext.AllPass = false;
+                            FinishAction(EContextResult.Error);
+                            break;
+                        }
+                        try {
+                            string datumError;
+                            if (!parentSeq.TryRunDatumPhase(datumImage, out datumError)) {
+                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum failed: " + datumError);
+                                pMyContext.AllPass = false;
+                                FinishAction(EContextResult.Error);
+                                break;
+                            }
+                        } finally {
+                            datumImage.Dispose();
+                        }
+                    }
+                    // DatumConfigs 비어있으면 → 무보정 pass-through (D-10)
                     Step = (int)EStep.Grab;
                     break;
+                }
 
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
@@ -100,55 +130,95 @@ namespace ReringProject.Sequence {
                     Step = (int)EStep.Measure;
                     break;
 
-                case EStep.Measure:
-                    //260409 hbk Phase 3: FAIEdgeMeasurementService로 실제 에지 측정
+                //260413 hbk Phase 6: FAI 루프 → Measurement 루프로 재설계 (D-09, D-10, D-20)
+                case EStep.Measure: {
+                    var parentSeq2 = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
+                    bool allPass = true;
+                    int measuredCount = 0;
                     if (ShotParam != null) {
-                        var service = new FAIEdgeMeasurementService();
-                        bool allPass = true;
-                        var overlays = new List<EdgeInspectionOverlay>();
-                        //260409 hbk Phase 4: Datum fail flag for early exit (D-17)
-                        bool datumFailed = false;
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
-                                //260413 hbk Phase 6: Datum 실행은 InspectionSequence.TryRunDatumPhase로 이전 (D-04, D-09).
-                                // Plan 03에서 부모 Fixture의 Datum transform dictionary를 주입하도록 재설계한다.
-                                // 현재는 identity transform fallback으로 기존 측정 흐름 유지.
-                                HTuple datumTransform;
-                                HOperatorSet.HomMat2dIdentity(out datumTransform);
-
-                                if (!datumFailed) {
                                 foreach (var fai in ShotParam.FAIList) {
-                                    FAIEdgeMeasurementResult r;
-                                    //260409 hbk Phase 4: pass datumTransform to TryMeasure (D-07, D-08)
-                                    if (service.TryMeasure(image, fai, datumTransform, out r)) {
-                                        fai.SetResult(r.DistanceMm);
-                                        //260409 hbk Phase 3: overlay RoiId에 OK/NG 접미사 추가 (HalconDisplayService 색상 분기용)
-                                        string suffix = fai.IsPass ? "-OK" : "-NG";
-                                        foreach (var ov in r.Overlays) {
-                                            if (ov.RoiId != null && ov.RoiId.StartsWith("FAI-Edge"))
-                                                ov.RoiId = ov.RoiId + suffix;
+                                    bool faiAllPass = true;
+                                    foreach (var meas in fai.Measurements) {
+                                        HTuple transform;
+                                        if (parentSeq2 == null || !parentSeq2.TryGetDatumTransform(meas.DatumRef, out transform)) {
+                                            //260413 hbk Fixture 미존재 또는 미지정 DatumRef → identity fallback
+                                            try {
+                                                HOperatorSet.HomMat2dIdentity(out transform);
+                                            } catch {
+                                                transform = new HTuple();
+                                            }
                                         }
-                                        overlays.AddRange(r.Overlays);
+                                        double resultValue;
+                                        string measError;
+                                        bool ok = false;
+                                        try {
+                                            ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError);
+                                        } catch (Exception ex) {
+                                            ok = false;
+                                            resultValue = 0;
+                                            measError = ex.Message;
+                                        }
+                                        if (ok) {
+                                            meas.EvaluateJudgement(resultValue);
+                                        } else {
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' failed: " + (measError ?? ""));
+                                            meas.ClearResult();
+                                            meas.LastJudgement = false;
+                                        }
+                                        if (!meas.LastJudgement) {
+                                            faiAllPass = false;
+                                        }
+                                        measuredCount++;
+                                    }
+                                    //260413 hbk FAIConfig legacy 필드(IsPass/MeasuredValue)에 대표 결과 집계 —
+                                    // 첫 Measurement 결과를 사용해 UI/TCP 호환 유지
+                                    if (fai.Measurements.Count > 0) {
+                                        fai.IsPass = faiAllPass;
+                                        fai.MeasuredValue = fai.Measurements[0].LastMeasuredValue;
                                     } else {
                                         fai.ClearResult();
                                     }
-                                    if (!fai.IsPass) allPass = false;
+                                    if (!faiAllPass) allPass = false;
                                 }
-                                } //260409 hbk end if (!datumFailed)
                             }
                         }
-                        pMyContext.AllPass = allPass;
-                        pMyContext.MeasuredCount = ShotParam.FAIList.Count;
-                        pMyContext.InspectionOverlays = overlays;
                     }
+                    pMyContext.AllPass = allPass;
+                    pMyContext.MeasuredCount = measuredCount;
+                    pMyContext.InspectionOverlays = new List<EdgeInspectionOverlay>();
                     Step = (int)EStep.End;
                     break;
+                }
 
                 case EStep.End:
                     FinishAction(pMyContext.AllPass ? EContextResult.Pass : EContextResult.Fail);
                     break;
             }
             return Context;
+        }
+
+        //260413 hbk Phase 6: Datum 이미지 취득 — Dedicated만 우선 지원 (D-07, D-08)
+        // ReuseFromShot 모드는 향후 Plan 04 UI 작업과 함께 구현.
+        private HImage GrabOrLoadDatumImage(InspectionSequence parentSeq) {
+            if (ShotParam == null) return null;
+            HImage image = null;
+            #if SIMUL_MODE
+            if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
+                try {
+                    image = new HImage(ShotParam.SimulImagePath);
+                } catch {
+                    image = null;
+                }
+            }
+            if (image == null) {
+                image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+            }
+            #else
+            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+            #endif
+            return image;
         }
     }
 }

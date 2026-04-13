@@ -1,9 +1,14 @@
 //260409 hbk Phase 5: 동적 FAI 검사 시퀀스 (D-07)
+//260413 hbk Phase 6: Fixture 역할 확장 — DisplayName + Multi-Datum (D-01, D-04, D-09, D-10)
+using System.Collections.Generic;
+using System.Windows;
+using HalconDotNet;
+using PropertyTools.DataAnnotations;
 using ReringProject.Define;
 using ReringProject.Device;
+using ReringProject.Halcon.Algorithms;
 using ReringProject.Network;
 using ReringProject.UI;
-using System.Windows;
 
 namespace ReringProject.Sequence {
 
@@ -35,6 +40,16 @@ namespace ReringProject.Sequence {
         private readonly CameraMasterParam pMyParam;
         private readonly string DefaultCamera;
         private readonly string DefaultLight;
+
+        //260413 hbk Phase 6: Fixture DisplayName — 사용자 편집 가능 (D-01)
+        public string DisplayName { get; set; } = "";
+
+        //260413 hbk Phase 6: Multi-Datum — Fixture 레벨 Datum 소유 (D-04)
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<DatumConfig> DatumConfigs { get; private set; } = new List<DatumConfig>();
+
+        //260413 hbk Phase 6: 런타임 transform 캐시 (D-09)
+        private readonly Dictionary<string, HTuple> _datumTransforms = new Dictionary<string, HTuple>();
 
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
             pDevs = SystemHandler.Handle.Devices;
@@ -102,6 +117,65 @@ namespace ReringProject.Sequence {
         public override void OnRelease() {
             IsInitialized = false;
             base.OnRelease();
+        }
+
+        //260413 hbk Phase 6: Fixture API — DisplayName 폴백 (D-01)
+        public string GetDisplayName() {
+            return string.IsNullOrEmpty(DisplayName) ? Name : DisplayName;
+        }
+
+        //260413 hbk Phase 6: Multi-Datum add (D-04)
+        public DatumConfig AddDatum(string name = null) {
+            string datumName = string.IsNullOrEmpty(name) ? $"Datum_{DatumConfigs.Count + 1}" : name;
+            var datum = new DatumConfig(this);
+            datum.DatumName = datumName;
+            DatumConfigs.Add(datum);
+            return datum;
+        }
+
+        public bool RemoveDatum(int index) {
+            if (index < 0 || index >= DatumConfigs.Count) return false;
+            DatumConfigs.RemoveAt(index);
+            return true;
+        }
+
+        //260413 hbk Phase 6: Datum phase 실행 — 모든 DatumConfig 순회 (D-09)
+        public bool TryRunDatumPhase(HImage image, out string error) {
+            error = null;
+            _datumTransforms.Clear();
+
+            if (DatumConfigs.Count == 0) {
+                return true; // D-10: Datum 미설정 Fixture는 무보정 pass-through
+            }
+
+            if (image == null) {
+                error = "image is null";
+                return false;
+            }
+
+            var service = new DatumFindingService();
+            foreach (var datum in DatumConfigs) {
+                HTuple transform;
+                string datumError;
+                if (!service.TryFindDatum(image, datum, out transform, out datumError)) {
+                    error = $"Datum '{datum.DatumName}' failed: {datumError}";
+                    datum.LastFindSucceeded = false;
+                    return false;
+                }
+                datum.LastFindSucceeded = true;
+                datum.CurrentTransform = transform;
+                _datumTransforms[datum.DatumName ?? ""] = transform;
+            }
+            return true;
+        }
+
+        //260413 hbk Phase 6: DatumRef → transform 조회 (D-10)
+        public bool TryGetDatumTransform(string datumRef, out HTuple transform) {
+            if (string.IsNullOrEmpty(datumRef)) {
+                HOperatorSet.HomMat2dIdentity(out transform);
+                return true;
+            }
+            return _datumTransforms.TryGetValue(datumRef, out transform);
         }
     }
 }

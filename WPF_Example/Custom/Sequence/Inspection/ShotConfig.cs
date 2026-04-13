@@ -21,9 +21,24 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public string ShotName { get; set; }
 
-        //260409 hbk Phase 4: Datum config owned by ShotConfig (D-01)
-        [Browsable(false)]
-        public DatumConfig Datum { get; set; }
+        //260413 hbk Phase 6: Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (D-11)
+        [Category("Light|Ring")]
+        public bool RingLight_Enabled { get; set; }
+        public int RingLight_Brightness { get; set; }
+
+        [Category("Light|Back")]
+        public bool BackLight_Enabled { get; set; }
+        public int BackLight_Brightness { get; set; }
+
+        [Category("Light|Coax")]
+        public bool CoaxLight_Enabled { get; set; }
+        public int CoaxLight_Brightness { get; set; }
+
+        [Category("Light|Side")]
+        public bool SideLight_Enabled { get; set; }
+        public int SideLight_Brightness { get; set; }
+
+        //260413 hbk Phase 6: Datum 소유 제거 (D-04, D-25). Fixture(InspectionSequence) 레벨로 이전.
 
         // Thread-safe image buffer
         private readonly object _imageLock = new object();
@@ -80,11 +95,7 @@ namespace ReringProject.Sequence {
 
         public void ClearAllResults() {
             ClearImage();
-            //260409 hbk Phase 4: Datum 런타임 상태 초기화
-            if (Datum != null) {
-                Datum.CurrentTransform = null;
-                Datum.LastFindSucceeded = false;
-            }
+            //260413 hbk Phase 6: Datum 초기화는 InspectionSequence(Fixture) 레벨에서 수행 (D-04)
             foreach (var fai in FAIList) {
                 fai.ClearResult();
             }

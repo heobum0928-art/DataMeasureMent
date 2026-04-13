@@ -12,6 +12,18 @@ namespace ReringProject.Sequence {
     /// </summary>
     public class DatumConfig : ParamBase {
 
+        //260413 hbk Phase 6: DatumName — 사용자가 지정하는 식별자 (D-06)
+        [Category("Datum|Identity")]
+        public string DatumName { get; set; } = "Datum_1";
+
+        //260413 hbk Phase 6: 이미지 소스 모드 — "Dedicated" 또는 "ReuseFromShot" (D-07, D-08)
+        [Category("Datum|ImageSource")]
+        public string ImageSourceMode { get; set; } = "Dedicated";
+
+        //260413 hbk Phase 6: ReuseFromShot 모드일 때 재사용할 Shot 이름 (D-07)
+        [Category("Datum|ImageSource")]
+        public string ReuseFromShotName { get; set; } = "";
+
         //260409 hbk Phase 4: Line1 ROI (기준 X축 방향 에지 라인)
         [Category("Datum|Line1 ROI")]
         public double Line1_Row { get; set; } = 0;

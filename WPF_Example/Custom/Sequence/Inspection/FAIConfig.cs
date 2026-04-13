@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic; //260413 hbk Phase 6: Measurements 리스트
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Models;
 using ReringProject.Utility;
@@ -6,6 +7,32 @@ using ReringProject.Utility;
 namespace ReringProject.Sequence {
 
     public class FAIConfig : ParamBase {
+
+        //260413 hbk Phase 6: Multi-Algorithm Measurements (D-20) — 수동 직렬화, ParamBase 자동 Save/Load 제외
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<MeasurementBase> Measurements { get; private set; } = new List<MeasurementBase>();
+
+        //260413 hbk Phase 6: Factory를 통한 Measurement 추가
+        public MeasurementBase AddMeasurement(string typeName)
+        {
+            var m = MeasurementFactory.Create(typeName, this);
+            if (m != null) Measurements.Add(m);
+            return m;
+        }
+
+        //260413 hbk Phase 6: 인덱스로 제거
+        public bool RemoveMeasurement(int index)
+        {
+            if (index < 0 || index >= Measurements.Count) return false;
+            Measurements.RemoveAt(index);
+            return true;
+        }
+
+        //260413 hbk Phase 6: 전체 제거
+        public void ClearMeasurements()
+        {
+            Measurements.Clear();
+        }
 
         // ROI
         [Category("ROI")]

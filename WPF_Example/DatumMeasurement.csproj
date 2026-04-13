@@ -210,6 +210,14 @@
     <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />
     <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionSequence.cs" />
+    <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
+    <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgePairDistanceMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\PointToLineDistanceMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\PointToPointDistanceMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineAngleMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CircleDiameterMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />
@@ -439,6 +447,7 @@
     </Page>
     <Compile Include="Halcon\Algorithms\DatumFindingService.cs" />
     <Compile Include="Halcon\Algorithms\FAIEdgeMeasurementService.cs" />
+    <Compile Include="Halcon\Algorithms\VisionAlgorithmService.cs" />
     <Compile Include="Halcon\Algorithms\MeasurementAlgorithm.cs" />
     <Compile Include="Halcon\Algorithms\RoiLineIntersectionAlgorithm.cs" />
     <Compile Include="Halcon\Display\HalconDisplayService.cs" />

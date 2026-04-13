@@ -1,0 +1,305 @@
+//260413 hbk Phase 6: Halcon 빌딩 블록 서비스 — FitLine, FindCircle, 기하 유틸 (D-18)
+using System;
+using HalconDotNet;
+
+namespace ReringProject.Halcon.Algorithms
+{
+    /// <summary>
+    /// Phase 6 Multi-Algorithm 측정 클래스들이 공용으로 사용하는 Halcon 빌딩 블록.
+    /// 모든 Halcon 호출은 try { ... } catch { return false; } 패턴 (프로젝트 컨벤션).
+    /// 순수 수학 연산은 static 메서드로 제공한다.
+    /// </summary>
+    public class VisionAlgorithmService //260413 hbk
+    {
+        /// <summary>
+        /// ROI(Rectangle2) 내부에서 에지 포인트를 검출하고 FitLineContourXld로 직선을 피팅한다.
+        /// datumTransform이 유효하면 ROI 좌표를 변환한 뒤 피팅한다(Datum 런타임 보정).
+        /// </summary>
+        public bool TryFitLine( //260413 hbk
+            HImage image,
+            double roiRow, double roiCol, double roiPhi,
+            double roiLength1, double roiLength2,
+            HTuple datumTransform,
+            int sampleCount, int trimCount, double sigma, int threshold,
+            string direction, string polarity,
+            out double row1, out double col1, out double row2, out double col2,
+            out string error)
+        {
+            row1 = col1 = row2 = col2 = 0;
+            error = null;
+
+            if (image == null)
+            {
+                error = "image is null";
+                return false;
+            }
+
+            HTuple measureHandle = null;
+            HObject contour = null;
+            try
+            {
+                double rRow = roiRow, rCol = roiCol, rPhi = roiPhi;
+
+                if (datumTransform != null && datumTransform.Length > 0)
+                {
+                    try
+                    {
+                        HTuple tRow, tCol;
+                        HOperatorSet.AffineTransPoint2d(datumTransform, roiRow, roiCol, out tRow, out tCol);
+                        rRow = tRow.D;
+                        rCol = tCol.D;
+                        double rotAngle = Math.Atan2(-datumTransform[1].D, datumTransform[0].D);
+                        rPhi = roiPhi + rotAngle;
+                    }
+                    catch
+                    {
+                        // transform 실패 시 원본 좌표 사용
+                    }
+                }
+
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                double measurePhi;
+                bool scanHorizontal = true;
+                if (string.Equals(direction, "TtoB", StringComparison.OrdinalIgnoreCase))
+                { measurePhi = -Math.PI / 2.0; scanHorizontal = false; }
+                else if (string.Equals(direction, "BtoT", StringComparison.OrdinalIgnoreCase))
+                { measurePhi = Math.PI / 2.0; scanHorizontal = false; }
+                else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase))
+                { measurePhi = Math.PI; }
+                else
+                { measurePhi = 0.0; }
+
+                measurePhi = measurePhi + (rPhi - roiPhi);
+
+                string pol = string.Equals(polarity, "LightToDark", StringComparison.OrdinalIgnoreCase)
+                    ? "negative" : "positive";
+
+                HOperatorSet.GenMeasureRectangle2(
+                    rRow, rCol, rPhi, roiLength1, roiLength2,
+                    imageWidth, imageHeight, "nearest_neighbor",
+                    out measureHandle);
+
+                HTuple rows, cols, amp, dist;
+                HOperatorSet.MeasurePos(image, measureHandle,
+                    Math.Max(0.4, sigma), Math.Max(1, threshold),
+                    pol, "all", out rows, out cols, out amp, out dist);
+
+                int edgeCount = rows.TupleLength();
+                if (edgeCount < 2)
+                {
+                    error = "insufficient edge points (" + edgeCount + ")";
+                    return false;
+                }
+
+                HOperatorSet.GenContourPolygonXld(out contour, rows, cols);
+                HTuple lr1, lc1, lr2, lc2, nr, nc, df;
+                HOperatorSet.FitLineContourXld(contour, "tukey", -1, 0, 5, 2,
+                    out lr1, out lc1, out lr2, out lc2, out nr, out nc, out df);
+
+                row1 = lr1.D; col1 = lc1.D;
+                row2 = lr2.D; col2 = lc2.D;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (measureHandle != null) { try { HOperatorSet.CloseMeasure(measureHandle); } catch { } }
+                if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        /// <summary>
+        /// 원형 ROI에서 에지 포인트를 검출하고 FitCircleContourXld로 원을 피팅한다.
+        /// </summary>
+        public bool TryFindCircle( //260413 hbk
+            HImage image,
+            double centerRow, double centerCol, double radius,
+            HTuple datumTransform,
+            double sigma, int threshold, string polarity,
+            out double foundRow, out double foundCol, out double foundRadius,
+            out string error)
+        {
+            foundRow = foundCol = foundRadius = 0;
+            error = null;
+
+            if (image == null)
+            {
+                error = "image is null";
+                return false;
+            }
+
+            HObject circleRegion = null;
+            HObject circleBorder = null;
+            HObject edges = null;
+            try
+            {
+                double cRow = centerRow, cCol = centerCol;
+                if (datumTransform != null && datumTransform.Length > 0)
+                {
+                    try
+                    {
+                        HTuple tRow, tCol;
+                        HOperatorSet.AffineTransPoint2d(datumTransform, centerRow, centerCol, out tRow, out tCol);
+                        cRow = tRow.D;
+                        cCol = tCol.D;
+                    }
+                    catch { }
+                }
+
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                HOperatorSet.GenCircle(out circleRegion, cRow, cCol, radius);
+                HObject imageReduced;
+                HOperatorSet.ReduceDomain(image, circleRegion, out imageReduced);
+
+                try
+                {
+                    HOperatorSet.EdgesSubPix(imageReduced, out edges,
+                        "canny", Math.Max(0.4, sigma), Math.Max(1, threshold / 2), Math.Max(2, threshold));
+                    imageReduced.Dispose();
+                }
+                catch
+                {
+                    imageReduced.Dispose();
+                    throw;
+                }
+
+                HTuple row, column, rad, startPhi, endPhi, pointOrder;
+                HOperatorSet.FitCircleContourXld(edges, "atukey", -1, 2, 0, 5, 2,
+                    out row, out column, out rad, out startPhi, out endPhi, out pointOrder);
+
+                if (row.Length == 0)
+                {
+                    error = "no circle fitted";
+                    return false;
+                }
+
+                foundRow = row[0].D;
+                foundCol = column[0].D;
+                foundRadius = rad[0].D;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (circleRegion != null) { try { circleRegion.Dispose(); } catch { } }
+                if (circleBorder != null) { try { circleBorder.Dispose(); } catch { } }
+                if (edges != null) { try { edges.Dispose(); } catch { } }
+            }
+        }
+
+        /// <summary>
+        /// 점과 직선 사이의 수직 거리(픽셀). 순수 수학 — 교차곱 기반.
+        /// </summary>
+        public static double DistancePointToLine( //260413 hbk
+            double pRow, double pCol,
+            double lRow1, double lCol1, double lRow2, double lCol2)
+        {
+            double dx = lCol2 - lCol1;
+            double dy = lRow2 - lRow1;
+            double len = Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1e-9) return 0.0;
+            double cross = Math.Abs(dx * (lRow1 - pRow) - dy * (lCol1 - pCol));
+            return cross / len;
+        }
+
+        /// <summary>
+        /// 두 점 사이의 유클리드 거리(픽셀).
+        /// </summary>
+        public static double DistancePointToPoint( //260413 hbk
+            double row1, double col1, double row2, double col2)
+        {
+            double dr = row2 - row1;
+            double dc = col2 - col1;
+            return Math.Sqrt(dr * dr + dc * dc);
+        }
+
+        /// <summary>
+        /// 두 직선 사이의 각도(degree, 0~180). Halcon AngleLl 사용.
+        /// </summary>
+        public static double AngleLineLine( //260413 hbk
+            double row1a, double col1a, double row1b, double col1b,
+            double row2a, double col2a, double row2b, double col2b)
+        {
+            try
+            {
+                HTuple angleRad;
+                HOperatorSet.AngleLl(row1a, col1a, row1b, col1b, row2a, col2a, row2b, col2b, out angleRad);
+                double deg = angleRad.D * 180.0 / Math.PI;
+                if (deg < 0) deg = -deg;
+                if (deg > 180.0) deg = 360.0 - deg;
+                return deg;
+            }
+            catch
+            {
+                double dx1 = col1b - col1a, dy1 = row1b - row1a;
+                double dx2 = col2b - col2a, dy2 = row2b - row2a;
+                double dot = dx1 * dx2 + dy1 * dy2;
+                double m1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+                double m2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+                if (m1 < 1e-9 || m2 < 1e-9) return 0.0;
+                double c = dot / (m1 * m2);
+                if (c > 1) c = 1; if (c < -1) c = -1;
+                return Math.Acos(c) * 180.0 / Math.PI;
+            }
+        }
+
+        /// <summary>
+        /// 두 직선의 교점을 구한다. 평행이면 false.
+        /// </summary>
+        public static bool IntersectLines( //260413 hbk
+            double row1a, double col1a, double row1b, double col1b,
+            double row2a, double col2a, double row2b, double col2b,
+            out double intRow, out double intCol)
+        {
+            intRow = 0; intCol = 0;
+            try
+            {
+                HTuple iRow, iCol, isOverlapping;
+                HOperatorSet.IntersectionLl(
+                    row1a, col1a, row1b, col1b,
+                    row2a, col2a, row2b, col2b,
+                    out iRow, out iCol, out isOverlapping);
+                if (isOverlapping.I == 1) return false;
+                intRow = iRow.D;
+                intCol = iCol.D;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 점(row,col)에 hom_mat2d 변환을 적용한다.
+        /// </summary>
+        public static void AffineTransformPoint( //260413 hbk
+            HTuple homMat2D, double row, double col,
+            out double transRow, out double transCol)
+        {
+            transRow = row;
+            transCol = col;
+            if (homMat2D == null || homMat2D.Length == 0) return;
+            try
+            {
+                HTuple tr, tc;
+                HOperatorSet.AffineTransPoint2d(homMat2D, row, col, out tr, out tc);
+                transRow = tr.D;
+                transCol = tc.D;
+            }
+            catch { }
+        }
+    }
+}

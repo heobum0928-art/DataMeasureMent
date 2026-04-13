@@ -21,7 +21,7 @@ namespace ReringProject.Sequence {
         public ShotConfig AddShot(string name = null) {
             string shotName = name ?? $"SHOT_{Shots.Count}";
             var shot = new ShotConfig(_owner, shotName);
-            shot.Datum = new DatumConfig(shot); //260409 hbk Phase 4: Datum 자동 생성 (미설정 상태)
+            //260413 hbk Phase 6: ShotConfig.Datum 제거 — Datum은 Fixture(Sequence) 레벨 소유 (D-04)
             Shots.Add(shot);
             return shot;
         }
@@ -82,12 +82,8 @@ namespace ReringProject.Sequence {
                     saveFile[faiSection]["FAIName"] = fai.FAIName ?? $"FAI_{f}";
                 }
 
-                //260409 hbk Phase 4: Datum config 저장 (D-04)
-                if (shot.Datum != null) {
-                    string datumSection = $"SHOT_{s}_DATUM";
-                    shot.Datum.Save(saveFile, datumSection);
-                    saveFile[datumSection]["HasDatum"] = true;
-                }
+                //260413 hbk Phase 6: SHOT_{s}_DATUM 섹션 제거 — Datum은 Fixture 레벨 (D-04).
+                // TODO: Phase 6 Plan 03에서 SEQUENCE_{seq}_DATUM_{i} 포맷으로 재설계.
             }
             return true;
         }
@@ -125,12 +121,8 @@ namespace ReringProject.Sequence {
                     fai.FAIName = loadFile[faiSection]["FAIName"].ToString();
                 }
 
-                //260409 hbk Phase 4: Datum config 로드 (하위 호환 — 섹션 없으면 null 유지)
-                string datumSection = $"SHOT_{s}_DATUM";
-                if (loadFile.ContainsSection(datumSection)) {
-                    shot.Datum = new DatumConfig(shot);
-                    shot.Datum.Load(loadFile, datumSection);
-                }
+                //260413 hbk Phase 6: SHOT_{s}_DATUM 섹션 로드 제거 — Datum은 Fixture 레벨 (D-04).
+                // TODO: Phase 6 Plan 03에서 Fixture 단위 Datum 로드로 재설계.
             }
             return true;
         }

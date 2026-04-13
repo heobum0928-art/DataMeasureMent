@@ -70,18 +70,8 @@ namespace ReringProject.UI {
 
                     // FAI child nodes: shown when action param is ShotConfig (IsDynamicFAIMode)
                     if (act.Param is ShotConfig shot) {
-                        //260409 hbk Phase 4: Datum child node (D-09)
-                        if (shot.Datum != null) {
-                            var datumNode = new CompositeNode {
-                                Name = "Datum",
-                                NodeType = ENodeType.Datum,
-                                ParamData = shot.Datum,
-                                SequenceName = seq.Name,
-                                SequenceID = seq.ID,
-                                ActionID = act.ID
-                            };
-                            actNode.Children.Add(datumNode);
-                        }
+                        //260413 hbk Phase 6: Datum 노드는 Fixture(Sequence) 레벨로 이전 (D-25).
+                        // TODO: Phase 6 Plan 04에서 Sequence 자식으로 Datum 노드 추가.
                         foreach (FAIConfig fai in shot.FAIList) {
                             var faiNode = new CompositeNode { Name = fai.FAIName, NodeType = ENodeType.FAI, ParamData = fai, SequenceName = seq.Name, SequenceID = seq.ID, ActionID = act.ID };
                             actNode.Children.Add(faiNode);

@@ -110,25 +110,11 @@ namespace ReringProject.Sequence {
                         bool datumFailed = false;
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
-                                //260409 hbk Phase 4: FindDatum before FAI measurement loop (D-02, D-07, D-17)
-                                HTuple datumTransform = null;
-                                if (ShotParam.Datum != null && ShotParam.Datum.IsConfigured) {
-                                    var datumService = new DatumFindingService();
-                                    string datumError;
-                                    if (!datumService.TryFindDatum(image, ShotParam.Datum, out datumTransform, out datumError)) {
-                                        //260409 hbk Phase 4: Datum fail -> all FAI NG (D-17)
-                                        Logging.PrintLog((int)ELogType.Error, "Datum find failed: " + datumError);
-                                        foreach (var fai in ShotParam.FAIList) {
-                                            fai.ClearResult();
-                                        }
-                                        pMyContext.AllPass = false;
-                                        pMyContext.MeasuredCount = ShotParam.FAIList.Count;
-                                        datumFailed = true;
-                                    } else {
-                                        ShotParam.Datum.LastFindSucceeded = true;
-                                        ShotParam.Datum.CurrentTransform = datumTransform;
-                                    }
-                                }
+                                //260413 hbk Phase 6: Datum 실행은 InspectionSequence.TryRunDatumPhase로 이전 (D-04, D-09).
+                                // Plan 03에서 부모 Fixture의 Datum transform dictionary를 주입하도록 재설계한다.
+                                // 현재는 identity transform fallback으로 기존 측정 흐름 유지.
+                                HTuple datumTransform;
+                                HOperatorSet.HomMat2dIdentity(out datumTransform);
 
                                 if (!datumFailed) {
                                 foreach (var fai in ShotParam.FAIList) {

@@ -398,18 +398,8 @@ namespace ReringProject.UI {
                 SequenceID = seqNode.SequenceID,
                 ActionID = EAction.Unknown
             };
-            //260410 hbk Phase 4 gap fix: add Datum child node matching CreateSequenceNode pattern
-            if (shot.Datum != null) {
-                var datumChildNode = new CompositeNode {
-                    Name = "Datum",
-                    NodeType = ENodeType.Datum,
-                    ParamData = shot.Datum,
-                    SequenceName = seqNode.SequenceName,
-                    SequenceID = seqNode.SequenceID,
-                    ActionID = EAction.Unknown
-                };
-                shotNode.Children.Add(datumChildNode);
-            }
+            //260413 hbk Phase 6: Datum 노드 제거 — Datum은 Fixture(Sequence) 레벨로 이전 (D-25).
+            // TODO: Phase 6 Plan 04에서 Sequence 자식으로 Datum 노드 추가.
             shotNode.Children.Add(faiChildNode);
 
             var shotVm = new NodeViewModel(shotNode, seqNode);

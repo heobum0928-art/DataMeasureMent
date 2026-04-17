@@ -80,6 +80,7 @@ Recent decisions affecting current work:
 | ID | Date | Description | Commits |
 |----|------|-------------|---------|
 | 260409-e3v | 2026-04-09 | Phase 3 에지 측정 파라미터 수정 (EEdgeMeasureType → EdgeDirection/Selection/SampleCount/TrimCount/Polarity) | 9599bbf, a65585f |
+| 260417-ou8 | 2026-04-17 | EdgePairDistanceMeasurement ROI 필드 제거 — FAIConfig 단일 소스화 (노란≠빨강 ROI 버그 구조적 제거) | — |
 
 ### Pending Todos
 

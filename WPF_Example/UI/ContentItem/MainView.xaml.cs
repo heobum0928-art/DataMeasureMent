@@ -568,16 +568,8 @@ namespace ReringProject.UI {
                 _editingFai.ROI_Length1 = halfHeight;
                 _editingFai.ROI_Length2 = halfWidth;
 
-                //260417 hbk ROI 좌표 불일치 수정: Measurement 자체 ROI도 동기화
-                // FAIConfig.ROI_*는 표시용, Measurement.ROI_*는 실제 측정용 — 둘 다 동일하게 설정
-                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                if (selectedRow?.SourceMeasurement is EdgePairDistanceMeasurement edgeMeas) {
-                    edgeMeas.ROI_Row = centerRow;
-                    edgeMeas.ROI_Col = centerCol;
-                    edgeMeas.ROI_Phi = 0.0;
-                    edgeMeas.ROI_Length1 = halfHeight;
-                    edgeMeas.ROI_Length2 = halfWidth;
-                }
+                //260417 hbk Measurement.ROI_* 동기화 블록 제거 — EdgePairDistanceMeasurement가
+                // Owner(FAIConfig).ROI_*를 직접 참조하도록 변경되어 중복 저장이 사라짐.
 
                 // Refresh canvas to show new ROI
                 var rois = GetCurrentFAIRois();

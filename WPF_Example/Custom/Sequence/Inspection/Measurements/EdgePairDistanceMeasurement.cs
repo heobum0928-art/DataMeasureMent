@@ -14,12 +14,10 @@ namespace ReringProject.Sequence
     {
         public override string TypeName { get { return "EdgePairDistance"; } }
 
-        [Category("EdgePair|ROI")]
-        public double ROI_Row { get; set; }
-        public double ROI_Col { get; set; }
-        public double ROI_Phi { get; set; }
-        public double ROI_Length1 { get; set; }
-        public double ROI_Length2 { get; set; }
+        //260417 hbk ROI 필드 제거 — Owner(FAIConfig).ROI_*를 단일 소스로 사용
+        // 기존 EdgePair 자체 ROI_Row/Col/Phi/Length1/Length2 필드는 FAIConfig와 중복되어
+        // 동기화 누락 시 표시 ROI와 측정 ROI가 달라지는 버그의 원인이었음. INI에 해당 키가
+        // 남아있어도 ParamBase.Load 리플렉션이 미존재 프로퍼티를 무시하므로 하위호환 OK.
 
         [Category("EdgePair|Edge")]
         public int EdgeThreshold { get; set; } = 10;
@@ -52,14 +50,23 @@ namespace ReringProject.Sequence
                 return false;
             }
 
+            //260417 hbk ROI 단일 소스: Owner(FAIConfig)에서 직접 참조 — 중복 저장 제거
+            var ownerFai = Owner as FAIConfig;
+            if (ownerFai == null)
+            {
+                error = "Owner is not FAIConfig";
+                return false;
+            }
+
             // 래퍼용 임시 FAIConfig 구성 (D-19: FAIEdgeMeasurementService 재사용)
+            // ROI는 Owner에서, Edge/Calibration 파라미터는 self에서
             var temp = new FAIConfig(Owner)
             {
-                ROI_Row = ROI_Row,
-                ROI_Col = ROI_Col,
-                ROI_Phi = ROI_Phi,
-                ROI_Length1 = ROI_Length1,
-                ROI_Length2 = ROI_Length2,
+                ROI_Row = ownerFai.ROI_Row,       //260417 hbk
+                ROI_Col = ownerFai.ROI_Col,       //260417 hbk
+                ROI_Phi = ownerFai.ROI_Phi,       //260417 hbk
+                ROI_Length1 = ownerFai.ROI_Length1, //260417 hbk
+                ROI_Length2 = ownerFai.ROI_Length2, //260417 hbk
                 EdgeThreshold = EdgeThreshold,
                 Sigma = Sigma,
                 EdgeDirection = EdgeDirection,

@@ -125,47 +125,90 @@ namespace ReringProject.UI {
             ViewModel.RootModel?.ExpandAll();
         }
 
+        //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 모두 Start 가능 + Shot→Action 지연 동기화
         private void Btn_start_Click(object sender, RoutedEventArgs e) {
             if (treeListBox_sequence.SelectedIndex < 0) return;
-            //get selected sequence
-            if (treeListBox_sequence.SelectedItem is NodeViewModel) {
-                NodeViewModel node = treeListBox_sequence.SelectedItem as NodeViewModel;
+            if (!(treeListBox_sequence.SelectedItem is NodeViewModel node)) return;
 
-                ESequence seqID;
-                EAction actID;
-                if (node.NodeType == ENodeType.Action) {
-                    seqID = node.SequenceID;
-                    actID = node.ActionID;
-                    mParentWindow.StartSequence(seqID, actID);
-                    return;
-                }
-                else if(node.NodeType == ENodeType.Sequence) {
-                    seqID = node.SequenceID;
-                    // Run the first action exposed in the UI.
-                    SequenceBase seq = SystemHandler.Handle.Sequences[seqID];
-                    if(seq != null) {
-                        actID = GetDefaultRunnableAction(seq);
-                        if (actID != EAction.Unknown) {
-                            mParentWindow.StartSequence(seqID, actID);
-                            return;
-                        }
-                    }
-                }
-                //show error msg
-                CustomMessageBox.Show("Error", "There is no action to run.\nSelect the sequence or action you want to perform.", MessageBoxImage.Error);
+            // Sequence/Shot/Action 외 노드는 실행 불가
+            if (node.NodeType != ENodeType.Sequence && node.NodeType != ENodeType.Action) {
+                CustomMessageBox.Show("Error",
+                    "Select a Sequence or Shot/Action node to run.",
+                    MessageBoxImage.Error);
+                return;
             }
+
+            ESequence seqID = node.SequenceID;
+            SequenceBase seq = SystemHandler.Handle.Sequences[seqID];
+            if (seq == null) {
+                CustomMessageBox.Show("Error", "Sequence not found.", MessageBoxImage.Error);
+                return;
+            }
+
+            //260417 hbk Phase 6-04 UAT: 이미 실행 중일 때 재실행 차단
+            if (!SystemHandler.Handle.Sequences.IsIdle) {
+                CustomMessageBox.Show("Error", "Sequence is already running.", MessageBoxImage.Error);
+                return;
+            }
+
+            if (!ResolveRunnableAction(node, seq, out EAction actID)) {
+                CustomMessageBox.Show("Error",
+                    "There is no action to run.\nSelect a Sequence or Shot node that has a registered action.",
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            mParentWindow.StartSequence(seqID, actID);
         }
 
-        private static EAction GetDefaultRunnableAction(SequenceBase sequence) {
-            if (sequence == null) {
-                return EAction.Unknown;
+        //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 → 실행 Action ID 해석 (+ 지연 동기화)
+        private bool ResolveRunnableAction(NodeViewModel node, SequenceBase seq, out EAction actID) {
+            actID = EAction.Unknown;
+            if (seq == null) return false;
+
+            // Shot 노드 (Action 타입 + ShotConfig Param): RecipeManager.Shots 인덱스 → seq[i].ID 매핑
+            if (node.NodeType == ENodeType.Action && node.Param is ShotConfig shotCfg) {
+                var seqHandler = SystemHandler.Handle.Sequences;
+                int shotIdx = seqHandler.RecipeManager.Shots.IndexOf(shotCfg);
+                if (shotIdx < 0) return false;
+
+                if (shotIdx < seq.ActionCount) {
+                    // RebuildInspectionActions 가 호출된 정상 상태: seq[shotIdx] 가 이 Shot의 Action
+                    actID = seq[shotIdx].ID;
+                    return true;
+                }
+
+                // 매핑 실패 (UI에서 Shot 추가 후 RebuildInspectionActions 미호출) → 지연 동기화
+                if (seqHandler.IsIdle) {
+                    seqHandler.EnableDynamicFAIMode();
+                    seqHandler.RebuildInspectionActions(seq.ID);
+                    if (shotIdx < seq.ActionCount) {
+                        actID = seq[shotIdx].ID;
+                        return true;
+                    }
+                }
+                return false;
             }
 
-            for (var i = 0; i < sequence.ActionCount; i++) {
-                return sequence[i].ID;
+            // Action 노드 (일반 Action: ShotConfig 아님) — 기존 경로
+            if (node.NodeType == ENodeType.Action) {
+                if (seq.ActionCount == 0) return false;
+                if (node.ActionID != EAction.Unknown) {
+                    actID = node.ActionID;
+                    return true;
+                }
+                actID = seq[0].ID;
+                return true;
             }
 
-            return EAction.Unknown;
+            // Sequence 노드 → 첫 Action 실행
+            if (node.NodeType == ENodeType.Sequence) {
+                if (seq.ActionCount == 0) return false;
+                actID = seq[0].ID;
+                return true;
+            }
+
+            return false;
         }
 
         public void SetSelectionChange(string seqName) {
@@ -480,6 +523,8 @@ namespace ReringProject.UI {
             };
             //260413 hbk Phase 6: Datum 노드 제거 — Datum은 Fixture(Sequence) 레벨로 이전 (D-25).
             // TODO: Phase 6 Plan 04에서 Sequence 자식으로 Datum 노드 추가.
+            //260417 hbk Phase 6-04 UAT 후속: 여기서 RebuildInspectionActions를 호출하지 않아도,
+            // 실행 시 Btn_start_Click → ResolveRunnableAction 이 지연 동기화로 Shot→Action 매핑을 복구한다.
             shotNode.Children.Add(faiChildNode);
 
             var shotVm = new NodeViewModel(shotNode, seqNode);

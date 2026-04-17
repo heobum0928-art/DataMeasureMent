@@ -110,10 +110,10 @@ Plans:
   7. 결과 테이블이 Measurement 단위로 한 행씩 표시된다
 **Plans:** 4 plans
 Plans:
-- [ ] 06-01-PLAN.md — MeasurementBase 6종 파생 클래스 + VisionAlgorithmService + MeasurementFactory + FAIConfig.Measurements
-- [ ] 06-02-PLAN.md — Datum 승격 (ShotConfig -> Sequence) + InspectionSequence Fixture 구조 + DatumConfig 확장 + 조명 필드
-- [ ] 06-03-PLAN.md — Action_FAIMeasurement Datum+Measurement 실행 흐름 재설계 + INI Phase 6 새 포맷
-- [ ] 06-04-PLAN.md — UI 트리 Sequence > Datum + Shot > FAI > Measurement 재구성 + 결과 테이블 Measurement 단위
+- [x] 06-01-PLAN.md — MeasurementBase 6종 파생 클래스 + VisionAlgorithmService + MeasurementFactory + FAIConfig.Measurements
+- [x] 06-02-PLAN.md — Datum 승격 (ShotConfig -> Sequence) + InspectionSequence Fixture 구조 + DatumConfig 확장 + 조명 필드
+- [x] 06-03-PLAN.md — Action_FAIMeasurement Datum+Measurement 실행 흐름 재설계 + INI Phase 6 새 포맷
+- [x] 06-04-PLAN.md — UI 트리 Sequence > Datum + Shot > FAI > Measurement 재구성 + 결과 테이블 Measurement 단위
 **UI hint**: yes
 
 ## Progress

@@ -104,32 +104,32 @@ namespace ReringProject.UI {
             }
         }
 
-        /// <summary>Binds DataGrid to the InspectionViewModel's FAIResults collection.</summary>
+        /// <summary>Binds DataGrid to the InspectionViewModel's MeasurementResults collection.</summary>
+        //260417 hbk Phase 6 Plan 04: FAIResults → MeasurementResults 바인딩 (D-21)
         public void SetFAIResultSource(InspectionViewModel vm) {
             dataGrid_faiResults.SetBinding(
                 System.Windows.Controls.DataGrid.ItemsSourceProperty,
-                new System.Windows.Data.Binding("FAIResults") { Source = vm });
+                new System.Windows.Data.Binding("MeasurementResults") { Source = vm });
         }
 
         //260408 hbk FAI 선택 시 ROI 하이라이트 + 'ROI not set' 힌트
+        //260417 hbk Phase 6 Plan 04: MeasurementResultRow 기준으로 마이그레이션 — FAIName으로 ROI 조회 (D-21)
         private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
+            var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             if (selectedRow == null) {
-                // No selection: show all ROIs without highlight
                 var allRois = GetCurrentFAIRois();
                 if (allRois.Count > 0)
                     halconViewer.UpdateDisplayState(allRois, null, null, null);
                 return;
             }
 
-            // Show all ROIs, highlight selected FAI's ROI (per D-01, D-03)
             var rois = GetCurrentFAIRois();
             string selectedRoiId = selectedRow.FAIName;
             halconViewer.UpdateDisplayState(rois, selectedRoiId, null, null);
 
-            // If selected FAI has no ROI taught, show hint text
-            var selectedFai = selectedRow.SourceFAI;
-            if (selectedFai != null && (selectedFai.ROI_Length1 <= 0 || selectedFai.ROI_Length2 <= 0)) {
+            //260417 hbk Phase 6 Plan 04: 선택된 행의 FAIConfig를 트리에서 조회해 ROI hint 표시
+            FAIConfig parentFai = FindFAIByName(selectedRow.FAIName);
+            if (parentFai != null && (parentFai.ROI_Length1 <= 0 || parentFai.ROI_Length2 <= 0)) {
                 label_message.Content = "ROI not set";
                 label_message.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
                 label_message.Visibility = Visibility.Visible;
@@ -137,19 +137,39 @@ namespace ReringProject.UI {
         }
 
         //260408 hbk GetCurrentFAIRois 추가 (전체 FAI ROI 수집)
+        //260417 hbk Phase 6 Plan 04: MeasurementResultRow.FAIName 기준 중복 제거 + FindFAIByName 사용 (D-21)
         /// <summary>Collects RoiDefinitions from all FAIs of the currently displayed shot.</summary>
         private List<RoiDefinition> GetCurrentFAIRois() {
             var result = new List<RoiDefinition>();
-            // Iterate through all rows in the DataGrid (each row = one FAI)
+            var seen = new HashSet<string>();
             foreach (var item in dataGrid_faiResults.Items) {
-                var row = item as FAIResultRow;
-                if (row?.SourceFAI != null) {
-                    var roi = row.SourceFAI.ToRoiDefinition();
-                    if (roi.IsTaught)
-                        result.Add(roi);
-                }
+                var row = item as MeasurementResultRow;
+                if (row == null || string.IsNullOrEmpty(row.FAIName)) continue;
+                if (!seen.Add(row.FAIName)) continue;
+                FAIConfig fai = FindFAIByName(row.FAIName);
+                if (fai == null) continue;
+                var roi = fai.ToRoiDefinition();
+                if (roi.IsTaught) result.Add(roi);
             }
             return result;
+        }
+
+        //260417 hbk Phase 6 Plan 04: 모든 시퀀스/Shot에서 FAIName으로 FAIConfig 조회 (D-21)
+        private FAIConfig FindFAIByName(string faiName) {
+            if (string.IsNullOrEmpty(faiName) || pSeq == null) return null;
+            for (int i = 0; i < pSeq.Count; i++) {
+                var seq = pSeq[i];
+                if (seq == null) continue;
+                for (int j = 0; j < seq.ActionCount; j++) {
+                    var act = seq[j];
+                    if (act?.Param is ShotConfig shot) {
+                        foreach (FAIConfig fai in shot.FAIList) {
+                            if (string.Equals(fai.FAIName, faiName, StringComparison.Ordinal)) return fai;
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         // Keep public methods called by MainWindow and InspectionListView
@@ -434,10 +454,11 @@ namespace ReringProject.UI {
         }
 
         //260409 hbk Phase 3: refresh FAI result rows after measurement
+        //260417 hbk Phase 6 Plan 04: MeasurementResultRow로 마이그레이션 (D-21)
         private void RefreshFAIResultRows() {
             if (dataGrid_faiResults == null || dataGrid_faiResults.ItemsSource == null) return;
             foreach (var item in dataGrid_faiResults.ItemsSource) {
-                var row = item as FAIResultRow;
+                var row = item as MeasurementResultRow;
                 if (row != null) row.Refresh();
             }
         }
@@ -495,19 +516,21 @@ namespace ReringProject.UI {
         }
 
         //260408 hbk Rect ROI 드로잉 모드
+        //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FAIName으로 FAIConfig 조회 (D-21)
         private void RectRoiButton_Click(object sender, RoutedEventArgs e) {
             if (btn_rectRoi.IsChecked == true) {
                 ExitCanvasMode();
                 _canvasMode = ECanvasMode.RectRoi;
                 btn_rectRoi.IsChecked = true;
 
-                var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
-                if (selectedRow?.SourceFAI == null) {
+                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                FAIConfig faiToEdit = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+                if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Rect ROI");
                     ExitCanvasMode();
                     return;
                 }
-                _editingFai = selectedRow.SourceFAI;
+                _editingFai = faiToEdit;
 
                 label_drawHint.Content = "드래그하여 ROI를 설정하세요";
                 label_drawHint.Visibility = Visibility.Visible;
@@ -554,13 +577,15 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.PolygonRoi;
                 btn_polygonRoi.IsChecked = true;
 
-                var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
-                if (selectedRow?.SourceFAI == null) {
+                //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FAIName으로 FAIConfig 조회 (D-21)
+                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                FAIConfig faiToEdit = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+                if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Polygon ROI");
                     ExitCanvasMode();
                     return;
                 }
-                _editingFai = selectedRow.SourceFAI;
+                _editingFai = faiToEdit;
                 _polygonPoints.Clear();
 
                 label_drawHint.Content = "점을 클릭, 우클릭으로 완성 (최소 3점)";
@@ -699,10 +724,12 @@ namespace ReringProject.UI {
         }
 
         /// <summary>Applies mm/pixel calibration to the current camera's CameraSlaveParam and all FAIs (per D-12).</summary>
+        //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FindFAIByName (D-21)
         private void ApplyCalibrationResult(double mmPerPixel) {
-            var selectedRow = dataGrid_faiResults.SelectedItem as FAIResultRow;
-            if (selectedRow?.SourceFAI != null) {
-                var shot = selectedRow.SourceFAI.Owner as ShotConfig;
+            var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+            FAIConfig anchorFai = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+            if (anchorFai != null) {
+                var shot = anchorFai.Owner as ShotConfig;
                 if (shot == null) {
                     CustomMessageBox.Show("샷 정보를 찾을 수 없습니다.", "캘리브레이션");
                     return;

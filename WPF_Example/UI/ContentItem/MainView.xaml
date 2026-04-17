@@ -189,11 +189,16 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
+            <!--260417 hbk Phase 6 Plan 04: Measurement 단위 컬럼 (FAI/Measurement/Type/DatumRef/공차/측정값/판정)-->
             <DataGrid.Columns>
                 <DataGridTextColumn Header="FAI" Binding="{Binding FAIName}" Width="*"/>
-                <DataGridTextColumn Header="거리(mm)" Binding="{Binding MeasuredValueText}" Width="Auto"/>
-                <DataGridTextColumn Header="Spec(Min)" Binding="{Binding SpecMinText}" Width="Auto"/>
-                <DataGridTextColumn Header="Spec(Max)" Binding="{Binding SpecMaxText}" Width="Auto"/>
+                <DataGridTextColumn Header="Measurement" Binding="{Binding MeasurementName}" Width="*"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="Auto"/>
+                <DataGridTextColumn Header="DatumRef" Binding="{Binding DatumRef}" Width="Auto"/>
+                <DataGridTextColumn Header="Nominal" Binding="{Binding NominalValue}" Width="Auto"/>
+                <DataGridTextColumn Header="Tol+" Binding="{Binding TolerancePlus}" Width="Auto"/>
+                <DataGridTextColumn Header="Tol-" Binding="{Binding ToleranceMinus}" Width="Auto"/>
+                <DataGridTextColumn Header="측정값" Binding="{Binding MeasuredValueText}" Width="Auto"/>
                 <DataGridTextColumn Header="판정" Binding="{Binding JudgeText}" Width="Auto"/>
             </DataGrid.Columns>
         </DataGrid>

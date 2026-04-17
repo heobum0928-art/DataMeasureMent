@@ -218,15 +218,24 @@ namespace ReringProject.UI {
                     // FAI CRUD button state + InspectionViewModel update
                     //260409 hbk Phase 4: Datum node selection -> PropertyGrid binding (D-10)
                     if (item.NodeType == ENodeType.Datum) {
-                        button_addFAI.IsEnabled = false;
-                        button_removeFAI.IsEnabled = false;
-                        button_renameFAI.IsEnabled = false;
+                        //260417 hbk Phase 6 Plan 04: Datum CRUD 활성화 (D-25)
+                        button_addFAI.IsEnabled = true;
+                        button_removeFAI.IsEnabled = true;
+                        button_renameFAI.IsEnabled = true;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
                         _inspectionVm?.ClearResults();
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
                         if (itemParam is DatumConfig datumCfg) {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
                         }
+                    }
+                    //260417 hbk Phase 6 Plan 04: Measurement node selection (D-24)
+                    else if (item.NodeType == ENodeType.Measurement) {
+                        button_addFAI.IsEnabled = true;
+                        button_removeFAI.IsEnabled = true;
+                        button_renameFAI.IsEnabled = true;
+                        // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)
+                        _inspectionVm?.ClearResults();
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
@@ -333,9 +342,37 @@ namespace ReringProject.UI {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
 
-                // Sequence 노드 선택 시: Shot 생성 (Dynamic FAI 모드 전환)
+                //260417 hbk Phase 6 Plan 04: Datum 노드 선택 시 Datum 형제 추가 (D-25)
+                if (selectedNode.NodeType == ENodeType.Datum) {
+                    NodeViewModel seqNodeForDatum = selectedNode.Parent;
+                    if (seqNodeForDatum != null && seqNodeForDatum.NodeType == ENodeType.Sequence) {
+                        AddDatumToSequence(seqNodeForDatum);
+                    }
+                    return;
+                }
+
+                //260417 hbk Phase 6 Plan 04: Measurement 노드 선택 시 Measurement 형제 추가 (D-24)
+                if (selectedNode.NodeType == ENodeType.Measurement) {
+                    NodeViewModel faiNodeForMeas = selectedNode.Parent;
+                    if (faiNodeForMeas != null && faiNodeForMeas.NodeType == ENodeType.FAI && faiNodeForMeas.Param is FAIConfig faiOwner) {
+                        AddMeasurementToFAI(faiNodeForMeas, faiOwner);
+                    }
+                    return;
+                }
+
+                // Sequence 노드 선택 시: Shot 또는 Datum 추가 선택 (D-25)
                 if (selectedNode.NodeType == ENodeType.Sequence) {
-                    AddShotToSequence(selectedNode);
+                    //260417 hbk Phase 6 Plan 04: Yes=Shot, No=Datum
+                    MessageBoxResult choice = CustomMessageBox.ShowConfirmation(
+                        "추가 항목 선택",
+                        "Shot을 추가하려면 Yes, Datum을 추가하려면 No를 누르세요.",
+                        MessageBoxButton.YesNoCancel);
+                    if (choice == MessageBoxResult.Yes) {
+                        AddShotToSequence(selectedNode);
+                    }
+                    else if (choice == MessageBoxResult.No) {
+                        AddDatumToSequence(selectedNode);
+                    }
                     return;
                 }
 
@@ -348,11 +385,14 @@ namespace ReringProject.UI {
                     return;
                 }
 
-                // FAI/Action(ShotConfig) 노드: FAI 추가
-                NodeViewModel actionNode = selectedNode;
-                if (selectedNode.NodeType == ENodeType.FAI) {
-                    actionNode = selectedNode.Parent;
+                //260417 hbk Phase 6 Plan 04: FAI 노드 선택 시 Measurement 추가 (D-24)
+                if (selectedNode.NodeType == ENodeType.FAI && selectedNode.Param is FAIConfig faiSel) {
+                    AddMeasurementToFAI(selectedNode, faiSel);
+                    return;
                 }
+
+                // Action(ShotConfig) 노드: FAI 추가
+                NodeViewModel actionNode = selectedNode;
                 if (actionNode == null || actionNode.NodeType != ENodeType.Action) return;
                 if (!(actionNode.Param is ShotConfig shot)) return;
 
@@ -367,6 +407,46 @@ namespace ReringProject.UI {
             catch (Exception ex) {
                 CustomMessageBox.Show("FAI 추가 오류", ex.Message, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        //260417 hbk Phase 6 Plan 04: Sequence에 Datum을 추가하고 트리에 노드 직접 삽입 (D-25)
+        private void AddDatumToSequence(NodeViewModel seqNode) {
+            if (!(seqNode.Param is CameraMasterParam)) {
+                // Param 검사 — InspectionSequence가 아니면 무시
+            }
+            SequenceBase seq = SystemHandler.Handle.Sequences[seqNode.SequenceID];
+            if (!(seq is InspectionSequence inspSeq)) return;
+
+            string defaultName = "Datum_" + (inspSeq.DatumConfigs.Count + 1);
+            if (!TextInputBox.Show("Datum 이름 입력", defaultName, out string datumName)) return;
+
+            DatumConfig newDatum = inspSeq.AddDatum(datumName);
+            if (newDatum == null) return;
+
+            ViewModel.AddDatumNode(seqNode, newDatum);
+            seqNode.IsExpanded = true;
+        }
+
+        //260417 hbk Phase 6 Plan 04: FAI에 Measurement를 추가하고 트리에 노드 직접 삽입 (D-24)
+        private void AddMeasurementToFAI(NodeViewModel faiNode, FAIConfig fai) {
+            string[] typeNames = MeasurementFactory.GetTypeNames();
+            string typeListHint = "사용 가능한 타입: " + string.Join(", ", typeNames);
+            string defaultType = typeNames.Length > 0 ? typeNames[0] : "EdgePairDistance";
+
+            if (!TextInputBox.Show("Measurement 타입 입력 (" + typeListHint + ")", defaultType, out string typeName)) return;
+
+            MeasurementBase newMeas = fai.AddMeasurement(typeName);
+            if (newMeas == null) {
+                CustomMessageBox.Show("오류", "유효하지 않은 Measurement 타입: " + typeName, System.Windows.MessageBoxImage.Error);
+                return;
+            }
+            string defaultMeasName = typeName + "_" + fai.Measurements.Count;
+            if (TextInputBox.Show("Measurement 이름 입력", defaultMeasName, out string measName)) {
+                newMeas.MeasurementName = measName;
+            }
+
+            ViewModel.AddMeasurementNode(faiNode, newMeas);
+            faiNode.IsExpanded = true;
         }
 
         /// <summary>Sequence에 새 Shot(+기본FAI)을 추가하고 트리에 노드를 직접 삽입한다.
@@ -410,6 +490,47 @@ namespace ReringProject.UI {
         private void Btn_RemoveFAI_Click(object sender, RoutedEventArgs e) {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
+
+                //260417 hbk Phase 6 Plan 04: Datum 노드 삭제 (D-25)
+                if (selectedNode.NodeType == ENodeType.Datum && selectedNode.Param is DatumConfig datumToRemove) {
+                    SequenceBase seq = SystemHandler.Handle.Sequences[selectedNode.SequenceID];
+                    if (!(seq is InspectionSequence inspSeq)) return;
+                    int datumIdx = inspSeq.DatumConfigs.IndexOf(datumToRemove);
+                    if (datumIdx < 0) return;
+
+                    MessageBoxResult dr = CustomMessageBox.ShowConfirmation(
+                        "Datum 삭제",
+                        string.Format("Datum \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?", datumToRemove.DatumName),
+                        MessageBoxButton.YesNo);
+                    if (dr != MessageBoxResult.Yes) return;
+
+                    if (inspSeq.RemoveDatum(datumIdx)) {
+                        selectedNode.Detach();
+                    }
+                    _inspectionVm?.ClearResults();
+                    return;
+                }
+
+                //260417 hbk Phase 6 Plan 04: Measurement 노드 삭제 (D-24)
+                if (selectedNode.NodeType == ENodeType.Measurement && selectedNode.Param is MeasurementBase measToRemove) {
+                    NodeViewModel faiParent = selectedNode.Parent;
+                    if (faiParent == null || !(faiParent.Param is FAIConfig faiOwner)) return;
+                    int measIdx = faiOwner.Measurements.IndexOf(measToRemove);
+                    if (measIdx < 0) return;
+
+                    MessageBoxResult mr = CustomMessageBox.ShowConfirmation(
+                        "Measurement 삭제",
+                        string.Format("Measurement \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?",
+                            string.IsNullOrEmpty(measToRemove.MeasurementName) ? measToRemove.TypeName : measToRemove.MeasurementName),
+                        MessageBoxButton.YesNo);
+                    if (mr != MessageBoxResult.Yes) return;
+
+                    if (faiOwner.RemoveMeasurement(measIdx)) {
+                        selectedNode.Detach();
+                    }
+                    _inspectionVm?.ClearResults();
+                    return;
+                }
 
                 //260408 hbk Shot(Action) 노드 선택 시 Shot 삭제
                 if (selectedNode.NodeType == ENodeType.Action && selectedNode.Param is ShotConfig shotToRemove) {

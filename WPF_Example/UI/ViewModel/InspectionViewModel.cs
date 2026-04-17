@@ -4,52 +4,75 @@ using ReringProject.UI;
 
 namespace ReringProject.UI
 {
-    /// <summary>FAI-centric ViewModel. Manages result table rows for the selected FAI or Action node.</summary>
+    /// <summary>Measurement-centric ViewModel. Manages result table rows for the selected FAI or Action node.</summary>
+    //260417 hbk Phase 6 Plan 04: FAIResults → MeasurementResults (D-21)
     public class InspectionViewModel : Observable
     {
         private readonly InspectionRecipeManager _recipeManager;
-        private ObservableCollection<FAIResultRow> _faiResults;
 
-        public ObservableCollection<FAIResultRow> FAIResults
+        //260417 hbk Phase 6 Plan 04: Measurement 단위 결과 컬렉션 (D-21)
+        private ObservableCollection<MeasurementResultRow> _measurementResults;
+
+        public ObservableCollection<MeasurementResultRow> MeasurementResults
         {
-            get { return _faiResults; }
-            set { _faiResults = value; RaisePropertyChanged("FAIResults"); }
+            get { return _measurementResults; }
+            set { _measurementResults = value; RaisePropertyChanged("MeasurementResults"); }
         }
 
         public InspectionViewModel(InspectionRecipeManager recipeManager)
         {
             _recipeManager = recipeManager;
-            _faiResults = new ObservableCollection<FAIResultRow>();
+            _measurementResults = new ObservableCollection<MeasurementResultRow>();
         }
 
-        /// <summary>Called when a FAI node is selected in InspectionListView. Updates result table with this FAI's row.</summary>
+        /// <summary>Called when a FAI node is selected. Shows all Measurements under this FAI as rows.</summary>
+        //260417 hbk Phase 6 Plan 04: FAI 하위 모든 Measurement 행 표시 (D-21, D-24)
         public void OnFAISelected(FAIConfig fai)
         {
-            var rows = new ObservableCollection<FAIResultRow>();
+            var rows = new ObservableCollection<MeasurementResultRow>();
             if (fai != null)
             {
-                rows.Add(new FAIResultRow(fai));
+                string faiName = fai.FAIName ?? "FAI";
+                foreach (MeasurementBase meas in fai.Measurements)
+                {
+                    rows.Add(new MeasurementResultRow(meas, faiName));
+                }
             }
-            FAIResults = rows;
+            MeasurementResults = rows;
         }
 
-        /// <summary>Called when an Action node is selected. Shows all FAIs under that action's ShotConfig.</summary>
+        /// <summary>Called when an Action node is selected. Shows all Measurements across all FAIs under that ShotConfig.</summary>
+        //260417 hbk Phase 6 Plan 04: ShotConfig.FAIList 순회 → 각 FAI의 Measurements 펼치기 (D-21)
         public void OnActionSelected(NodeViewModel actionNode)
         {
-            var rows = new ObservableCollection<FAIResultRow>();
+            var rows = new ObservableCollection<MeasurementResultRow>();
             if (actionNode != null && actionNode.Param is ShotConfig shot)
             {
                 foreach (FAIConfig fai in shot.FAIList)
                 {
-                    rows.Add(new FAIResultRow(fai));
+                    string faiName = fai.FAIName ?? "FAI";
+                    foreach (MeasurementBase meas in fai.Measurements)
+                    {
+                        rows.Add(new MeasurementResultRow(meas, faiName));
+                    }
                 }
             }
-            FAIResults = rows;
+            MeasurementResults = rows;
         }
 
         public void ClearResults()
         {
-            FAIResults = new ObservableCollection<FAIResultRow>();
+            MeasurementResults = new ObservableCollection<MeasurementResultRow>();
+        }
+
+        //260417 hbk Phase 6 Plan 04: 측정 완료 후 모든 행 갱신 (D-21)
+        public void RefreshResults()
+        {
+            if (_measurementResults == null) return;
+            foreach (var row in _measurementResults)
+            {
+                row.Refresh();
+            }
         }
 
         /// <summary>Adds a new FAI to the given ShotConfig.</summary>

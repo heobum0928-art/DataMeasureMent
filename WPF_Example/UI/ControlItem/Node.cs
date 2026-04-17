@@ -14,6 +14,7 @@ namespace ReringProject.UI {
         SubSequence,
         FAI,
         Datum, //260409 hbk Phase 4: Datum node type (D-09)
+        Measurement, //260417 hbk Phase 6 Plan 04: FAI 하위 Measurement node (D-24)
     }
 
     public class Node {
@@ -44,6 +45,8 @@ namespace ReringProject.UI {
                         return "/Resource/chart.png";
                     case ENodeType.Datum:
                         return "/Resource/layout.png"; //260409 hbk Phase 4: reuse layout icon for Datum (D-09)
+                    case ENodeType.Measurement:
+                        return "/Resource/chart.png"; //260417 hbk Phase 6 Plan 04: reuse chart icon for Measurement (D-24)
                 }
                 return "/Resource/process.png";
             }

@@ -136,6 +136,8 @@ namespace ReringProject {
         private void OnSequenceStart(SequenceContext context) {
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.SetManualToolsEnabled(false);
+                //260417 hbk diag: OnSequenceStart 이벤트 발생 확인
+                statusBar.Model.SetText(string.Format("[DIAG] Start fired: {0}", context.Source.Name));
             }));
         }
 
@@ -160,6 +162,9 @@ namespace ReringProject {
         private void OnActionChanged(ActionContext context) {
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.DisplayActionContext(context);
+                //260417 hbk diag: OnActionChanged 이벤트 발생 + 결과 확인
+                string actName = context.Source != null ? context.Source.Name : "?";
+                statusBar.Model.SetText(string.Format("[DIAG] Action done: {0} result={1}", actName, context.Result));
             }));
         }
 

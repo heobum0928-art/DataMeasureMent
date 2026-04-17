@@ -557,11 +557,27 @@ namespace ReringProject.UI {
             var roi = halconViewer.CommitActiveRectangle();
             if (roi != null) {
                 // Convert RoiDefinition bounding box back to center+half-lengths (per D-05: phi=0 for new ROI)
-                _editingFai.ROI_Row = (roi.Row1 + roi.Row2) / 2.0;
-                _editingFai.ROI_Col = (roi.Column1 + roi.Column2) / 2.0;
-                _editingFai.ROI_Phi = 0.0;  // Always 0 for new ROI (per D-05: no Rectangle2)
-                _editingFai.ROI_Length1 = (roi.Row2 - roi.Row1) / 2.0;
-                _editingFai.ROI_Length2 = (roi.Column2 - roi.Column1) / 2.0;
+                double centerRow = (roi.Row1 + roi.Row2) / 2.0;
+                double centerCol = (roi.Column1 + roi.Column2) / 2.0;
+                double halfHeight = (roi.Row2 - roi.Row1) / 2.0;
+                double halfWidth = (roi.Column2 - roi.Column1) / 2.0;
+
+                _editingFai.ROI_Row = centerRow;
+                _editingFai.ROI_Col = centerCol;
+                _editingFai.ROI_Phi = 0.0;
+                _editingFai.ROI_Length1 = halfHeight;
+                _editingFai.ROI_Length2 = halfWidth;
+
+                //260417 hbk ROI 좌표 불일치 수정: Measurement 자체 ROI도 동기화
+                // FAIConfig.ROI_*는 표시용, Measurement.ROI_*는 실제 측정용 — 둘 다 동일하게 설정
+                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                if (selectedRow?.SourceMeasurement is EdgePairDistanceMeasurement edgeMeas) {
+                    edgeMeas.ROI_Row = centerRow;
+                    edgeMeas.ROI_Col = centerCol;
+                    edgeMeas.ROI_Phi = 0.0;
+                    edgeMeas.ROI_Length1 = halfHeight;
+                    edgeMeas.ROI_Length2 = halfWidth;
+                }
 
                 // Refresh canvas to show new ROI
                 var rois = GetCurrentFAIRois();

@@ -158,7 +158,17 @@ namespace ReringProject.UI {
                 return;
             }
 
-            mParentWindow.StartSequence(seqID, actID);
+            //260417 hbk Phase 6-04 UAT: Start 실패 시 침묵 방지 — 실패 원인 진단
+            bool started = SystemHandler.Handle.Sequences.Start(seqID, actID);
+            if (!started) {
+                string diag = string.Format(
+                    "Sequence '{0}' failed to start.\n\nAction ID: {1}\nActionCount: {2}\nState: {3}\n\n" +
+                    "가능한 원인:\n- Action ID가 등록된 Action 목록에 없음 (GetIndexOf=-1)\n- Sequence가 이미 Idle이 아닌 상태\n- Actions 배열 비어있음",
+                    seq.Name, actID, seq.ActionCount, seq.State);
+                CustomMessageBox.Show("Start Failed", diag, MessageBoxImage.Error);
+                Debug.WriteLine(string.Format("Btn_start_Click: Start failed seq={0} actID={1} count={2} state={3}",
+                    seq.Name, actID, seq.ActionCount, seq.State));
+            }
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 → 실행 Action ID 해석 (+ 지연 동기화)

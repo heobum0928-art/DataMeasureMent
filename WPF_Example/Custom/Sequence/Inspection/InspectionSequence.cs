@@ -55,7 +55,8 @@ namespace ReringProject.Sequence {
             pDevs = SystemHandler.Handle.Devices;
             Context = new InspectionSequenceContext(this);
             pMyContext = Context as InspectionSequenceContext;
-            Param = new CameraMasterParam(this);
+            //260417 hbk Phase 6-04 UAT: CameraMasterParam → InspectionMasterParam 교체 (DisplayName 편집 UI 노출, D-01)
+            Param = new InspectionMasterParam(this);
             pMyParam = Param as CameraMasterParam;
             DefaultCamera = defaultCamera;
             DefaultLight = defaultLight;

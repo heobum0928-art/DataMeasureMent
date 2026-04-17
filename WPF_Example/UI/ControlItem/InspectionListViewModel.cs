@@ -44,10 +44,12 @@ namespace ReringProject.UI {
 
         public InspectionListViewModel() {
             pSystemHandle = SystemHandler.Handle;
-            
+
             this.Model = new CompositeNode { Name = CurrentRecipe, NodeType = ENodeType.Recipe, ParamData = SystemHandler.Handle.Sequences };
             CreateSequenceNode(this.Model);
             this.RootModel = new NodeViewModel(this.Model, null);
+            //260417 hbk Phase 6-04 UAT: 최초 트리 생성 후 DisplayName 편집 훅 연결 (D-01)
+            HookSequenceDisplayNameUpdates();
         }
 
         private void CreateSequenceNode(CompositeNode model) {
@@ -167,6 +169,39 @@ namespace ReringProject.UI {
             this.Count = 0;
             CreateSequenceNode(this.Model);
             RootModel.ReloadChildren();
+            //260417 hbk Phase 6-04 UAT: 트리 재구축 후 DisplayName 편집 훅 재연결 + 초기 라벨 동기화 (D-01)
+            HookSequenceDisplayNameUpdates();
+        }
+
+        //260417 hbk Phase 6-04 UAT: Sequence 노드의 InspectionMasterParam.DisplayName 변경 시 트리 라벨 즉시 갱신 (D-01)
+        private void HookSequenceDisplayNameUpdates() {
+            if (RootModel == null) return;
+            foreach (var child in RootModel.Children) {
+                if (child.NodeType != ENodeType.Sequence) continue;
+                if (!(child.Param is InspectionMasterParam master)) continue;
+
+                // 중복 구독 방지
+                master.PropertyChanged -= OnSequenceMasterPropertyChanged;
+                master.PropertyChanged += OnSequenceMasterPropertyChanged;
+
+                // 초기 라벨 동기화 (DisplayName 비어있으면 SequenceName 폴백)
+                child.Name = string.IsNullOrEmpty(master.DisplayName) ? child.SequenceName : master.DisplayName;
+            }
+        }
+
+        //260417 hbk Phase 6-04 UAT: DisplayName PropertyChanged 핸들러 (D-01)
+        private void OnSequenceMasterPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) {
+            if (e.PropertyName != "DisplayName") return;
+            if (!(sender is InspectionMasterParam master)) return;
+
+            foreach (var child in RootModel.Children) {
+                if (child.NodeType != ENodeType.Sequence) continue;
+                if (ReferenceEquals(child.Param, master)) {
+                    string newLabel = string.IsNullOrEmpty(master.DisplayName) ? child.SequenceName : master.DisplayName;
+                    child.Name = newLabel; // NodeViewModel.Name setter 가 RaisePropertyChanged("Name") 발생
+                    break;
+                }
+            }
         }
 
         public void Select(int count) {

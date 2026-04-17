@@ -210,6 +210,7 @@
     <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />
     <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionSequence.cs" />
+    <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgePairDistanceMeasurement.cs" />

@@ -62,13 +62,10 @@ namespace ReringProject.Sequence {
         [Category("ROI")]
         public string PolygonPoints { get; set; } = "";  //260408 hbk
 
-        // Tolerance
-        [Category("Tolerance")]
-        public double NominalValue { get; set; }
-        public double UpperTolerance { get; set; }
-        public double LowerTolerance { get; set; }
+        //260420 hbk Phase 6-04: 공차/기준값은 MeasurementBase로 단일 소스화 — FAI 레벨 중복 필드 제거
+        // (NominalValue / UpperTolerance / LowerTolerance / SetResult() deleted — 판정은 MeasurementBase.EvaluateJudgement)
 
-        // Result (runtime, not saved)
+        // Result (runtime, not saved) — Action_FAIMeasurement가 Measurement 집계 결과를 써주고, TCP 응답(FAIResultData)이 읽어간다
         [Browsable(false)]
         public double MeasuredValue { get; set; }
 
@@ -85,12 +82,7 @@ namespace ReringProject.Sequence {
             FAIName = name;
         }
 
-        public void SetResult(double measuredValue) {
-            MeasuredValue = measuredValue;
-            double lower = NominalValue - Math.Abs(LowerTolerance);
-            double upper = NominalValue + Math.Abs(UpperTolerance);
-            IsPass = (measuredValue >= lower) && (measuredValue <= upper);
-        }
+        //260420 hbk Phase 6-04: SetResult() 제거 — 판정은 MeasurementBase.EvaluateJudgement, 집계는 Action_FAIMeasurement가 직접 수행
 
         public void ClearResult() {
             MeasuredValue = 0;

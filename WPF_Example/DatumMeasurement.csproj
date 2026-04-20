@@ -321,7 +321,6 @@
     <Compile Include="UI\ViewModel\Observable.cs" />
     <Compile Include="UI\ViewModel\ShotNodeViewModel.cs" />
     <Compile Include="UI\ViewModel\FAINodeViewModel.cs" />
-    <Compile Include="UI\ViewModel\FAIResultRow.cs" />
     <Compile Include="UI\ViewModel\MeasurementResultRow.cs" />
     <Compile Include="UI\ViewModel\InspectionViewModel.cs" />
     <Compile Include="UI\Theme\OutlinedTextBlock.cs" />

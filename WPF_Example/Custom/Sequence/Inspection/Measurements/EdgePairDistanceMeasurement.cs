@@ -1,4 +1,5 @@
 //260413 hbk Phase 6: 에지 페어 거리 측정 — FAIEdgeMeasurementService 래핑 (D-15, D-19)
+using System.Collections.Generic; //260422 hbk Phase 7: List<T> (D-01)
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Algorithms;
@@ -34,15 +35,17 @@ namespace ReringProject.Sequence
 
         public EdgePairDistanceMeasurement(object owner) : base(owner) { } //260413 hbk
 
-        public override bool TryExecute( //260413 hbk
+        public override bool TryExecute( //260413 hbk //260422 hbk Phase 7: out overlays 추가 (D-01)
             HImage image,
             HTuple datumTransform,
             double pixelResolution,
             out double resultValue,
-            out string error)
+            out string error,
+            out List<EdgeInspectionOverlay> overlays)
         {
             resultValue = 0;
             error = null;
+            overlays = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: 실패 경로에서도 non-null (D-02)
 
             if (image == null)
             {
@@ -88,6 +91,7 @@ namespace ReringProject.Sequence
             }
 
             resultValue = result.DistanceMm;
+            if (result.Overlays != null) overlays = result.Overlays; //260422 hbk Phase 7: service 산출 overlay 전달 (D-09, D-10)
             return true;
         }
     }

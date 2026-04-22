@@ -129,6 +129,10 @@ Plans:
   1. `MeasurementBase.TryExecute`가 측정별 `EdgeInspectionOverlay`를 기여할 수 있다 (시그니처 확장 또는 수집자 파라미터)
   2. `Action_FAIMeasurement.Run`의 Measure 루프가 오버레이를 초기화하지 않고 누적한다
   3. Phase 6 트리/캔버스에서 FAI-Edge-OK/NG(녹/적) 및 FAI-DistLine(청록)이 `HalconDisplayService`에 도달해 표시된다
+**Plans:** 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — MeasurementBase.TryExecute 시그니처 확장(out overlays) + 6개 파생 클래스 override 갱신
+- [ ] 07-02-PLAN.md — Action_FAIMeasurement Measure 루프 overlay 누적 + 판정 suffix 부여 + SIMUL_MODE 육안 검증
 **UI hint**: yes
 
 ### Phase 8: 요구사항 & 트레이서빌리티 동기화

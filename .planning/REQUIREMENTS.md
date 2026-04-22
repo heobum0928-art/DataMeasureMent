@@ -73,18 +73,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALG-03 | Phase 2 | Pending |
 | ALG-01 | Phase 3 | Complete |
 | ALG-02 | Phase 3 | Complete |
-| ALG-04 | Phase 3 | Pending |
+| ALG-04 | Phase 3 → Phase 7 (gap closure) | Pending |
 | ALG-05 | Phase 4 | Complete |
 | SEQ-01 | Phase 5 | Pending |
 | SEQ-02 | Phase 5 | Pending |
 | SEQ-03 | Phase 5 | Pending |
 | SEQ-04 | Phase 5 | Pending |
+| RC-01 | Phase 6 (등록은 Phase 8) | Pending |
+| RC-02 | Phase 6 (등록은 Phase 8) | Pending |
+| RC-03 | Phase 6 (등록은 Phase 8) | Pending |
+| RC-04 | Phase 6 (등록은 Phase 8) | Pending |
+| RC-05 | Phase 6 (등록은 Phase 8) | Pending |
+| RC-06 | Phase 6 (등록은 Phase 8) | Pending |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: 16
+- v1 requirements: 22 total (UI-01..UI-05, TCH-01..TCH-02, ALG-01..ALG-05, SEQ-01..SEQ-04, RC-01..RC-06)
+- Mapped to phases: 22
 - Unmapped: 0
+- 참고: RC-01..RC-06은 Phase 6에서 구현되었으나 본 문서 정의/본문 체크박스 등록은 Phase 8(요구사항 동기화)에서 수행된다.
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after roadmap creation (traceability complete)*
+*Last updated: 2026-04-22 — gap closure phase 7~10 배정 (full sync in Phase 8)*

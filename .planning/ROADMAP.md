@@ -18,6 +18,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Datum 기준좌표계** - Datum Line 2개 → 교점/기준각 티칭 + 런타임 hom_mat2d ROI 보정 (completed 2026-04-10)
 - [x] **Phase 5: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답 (completed 2026-04-09)
 - [ ] **Phase 6: Rapid City 확장** - Fixture/Multi-Datum 구조 + Multi-Algorithm 측정 + 조명 필드 + 새 INI 포맷
+- [ ] **Phase 7: Measurement 오버레이 회귀 수정** - `Action_FAIMeasurement` Measure 루프에서 에지 오버레이 누적 (I1 블로커)
+- [ ] **Phase 8: 요구사항 & 트레이서빌리티 동기화** - RC-01..RC-06 등록 + Phase 2/3/5 트레이서빌리티 정합화
+- [ ] **Phase 9: VERIFICATION 문서 보강** - Phase 1/3/6 VERIFICATION 산출 + Phase 2/5 UAT 사인오프 기록
+- [ ] **Phase 10: Datum 정확성 결함 수정** - WR-01/WR-03/WR-05 해소 (Phase 4 tech debt)
 
 ## Phase Details
 
@@ -116,10 +120,52 @@ Plans:
 - [x] 06-04-PLAN.md — UI 트리 Sequence > Datum + Shot > FAI > Measurement 재구성 + 결과 테이블 Measurement 단위
 **UI hint**: yes
 
+### Phase 7: Measurement 오버레이 회귀 수정
+**Goal**: Phase 6 Measure 루프가 `InspectionOverlays`를 초기화하여 Phase 3의 에지 시각화가 사라진 회귀를 복구한다. Measurement 단위로 오버레이가 누적되어 녹/적 에지선 + 청록 DistLine이 다시 표시된다
+**Depends on**: Phase 6
+**Requirements**: ALG-04 (시각화 회귀 복구)
+**Gap Closure**: 감사 Gap I1 — `WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs:190`
+**Success Criteria** (what must be TRUE):
+  1. `MeasurementBase.TryExecute`가 측정별 `EdgeInspectionOverlay`를 기여할 수 있다 (시그니처 확장 또는 수집자 파라미터)
+  2. `Action_FAIMeasurement.Run`의 Measure 루프가 오버레이를 초기화하지 않고 누적한다
+  3. Phase 6 트리/캔버스에서 FAI-Edge-OK/NG(녹/적) 및 FAI-DistLine(청록)이 `HalconDisplayService`에 도달해 표시된다
+**UI hint**: yes
+
+### Phase 8: 요구사항 & 트레이서빌리티 동기화
+**Goal**: Phase 6 에서 도입되었으나 REQUIREMENTS.md에 정의되지 않은 RC-01..RC-06을 정식 등록하고, Phase 2/3/5 완료 이후에도 "Pending"으로 남아있는 트레이서빌리티 행을 실제 상태와 맞춘다
+**Depends on**: (독립) — Phase 7과 병렬 가능
+**Requirements**: RC-01, RC-02, RC-03, RC-04, RC-05, RC-06 (정의 등록)
+**Gap Closure**: 감사 Gap G1 (RC-01..RC-06 orphan) + G2 (stale traceability)
+**Success Criteria** (what must be TRUE):
+  1. REQUIREMENTS.md에 "Rapid City 확장" 섹션이 추가되고 RC-01..RC-06 정의가 기재된다
+  2. Traceability 표 Status 및 본문 체크박스가 Phase 2/3/4/5/6의 실제 상태와 일치한다
+  3. Coverage 총계가 갱신된다 (v1: 16 → 22)
+
+### Phase 9: VERIFICATION 문서 보강
+**Goal**: Phase 1/3/6에 누락된 VERIFICATION.md를 생성하고, Phase 2/5의 human-needed UAT 사인오프를 문서화하여 감사 통과 가능한 상태로 만든다
+**Depends on**: Phase 7 (ALG-04 시각화 회귀 복구 후 Phase 3/6 VERIFICATION 진행), Phase 8 (갱신된 트레이서빌리티 참조)
+**Requirements**: 해당 없음 (문서 산출물)
+**Gap Closure**: 감사 Gap G3 (01-VERIFICATION 누락) + G4 (03-VERIFICATION 누락) + G5 (06-VERIFICATION 누락) + G7 (UAT 사인오프 미기재)
+**Success Criteria** (what must be TRUE):
+  1. `01-VERIFICATION.md`가 생성되어 UI-01..UI-05 Observable Truth를 기록한다
+  2. `03-VERIFICATION.md`가 생성되어 ALG-01/ALG-02/ALG-04를 코드 기반으로 검증한다 (Phase 7 수정 반영)
+  3. `06-VERIFICATION.md`가 생성되어 RC-01..RC-06 및 quick 260417-kzd UAT 결과를 통합한다
+  4. Phase 2 (5건) + Phase 5 (4건) human-needed UAT 사인오프가 기록된다
+
+### Phase 10: Datum 정확성 결함 수정
+**Goal**: Phase 4 code review 에서 제기된 3건의 미해결 경고를 코드 수준에서 해소한다
+**Depends on**: (독립)
+**Requirements**: ALG-05 (Datum 정확성 보강)
+**Gap Closure**: 감사 tech_debt Phase 4 — WR-01, WR-03, WR-05
+**Success Criteria** (what must be TRUE):
+  1. `DatumFindingService` 평행선 검출이 올바른 `isOverlapping` 분기를 사용하여 무한 좌표를 걸러낸다
+  2. `FAIEdgeMeasurementService`의 hom_mat2d 회전 추출이 올바른 행렬 인덱스를 사용하여 병진 성분과 무관하게 회전각이 복원된다
+  3. Datum 실패 경로에서 `LastFindSucceeded`가 `false`로 리셋된다
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -128,4 +174,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. 에지 측정 알고리즘 | 2/2 | Complete | 2026-04-09 |
 | 4. Datum 기준좌표계 | 3/3 | Complete | 2026-04-10 |
 | 5. 검사 시퀀스 & TCP | 2/2 | Complete | 2026-04-09 |
-| 6. Rapid City 확장 | 0/4 | Planning complete | - |
+| 6. Rapid City 확장 | 4/4 | Complete (UAT 260417-kzd, 2026-04-22) | 2026-04-22 |
+| 7. 오버레이 회귀 수정 (gap closure) | 0/? | Pending plan | - |
+| 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
+| 9. VERIFICATION 문서 보강 (gap closure) | 0/? | Pending plan | - |
+| 10. Datum 정확성 결함 수정 (gap closure) | 0/? | Pending plan | - |

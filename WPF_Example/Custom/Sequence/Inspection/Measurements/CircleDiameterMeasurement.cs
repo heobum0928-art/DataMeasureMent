@@ -1,7 +1,9 @@
 //260413 hbk Phase 6: 원 직경 측정 (D-15)
+using System.Collections.Generic; //260422 hbk Phase 7: List<T> (D-01)
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Algorithms;
+using ReringProject.Halcon.Models; //260422 hbk Phase 7: EdgeInspectionOverlay (D-01)
 
 namespace ReringProject.Sequence
 {
@@ -25,15 +27,17 @@ namespace ReringProject.Sequence
 
         public CircleDiameterMeasurement(object owner) : base(owner) { } //260413 hbk
 
-        public override bool TryExecute( //260413 hbk
+        public override bool TryExecute( //260413 hbk //260422 hbk Phase 7: out overlays 추가 (D-01)
             HImage image,
             HTuple datumTransform,
             double pixelResolution,
             out double resultValue,
-            out string error)
+            out string error,
+            out List<EdgeInspectionOverlay> overlays)
         {
             resultValue = 0;
             error = null;
+            overlays = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: 5종 overlay 미구현 — 빈 리스트 반환 (D-03)
 
             var svc = new VisionAlgorithmService();
             double foundRow, foundCol, foundRadius;

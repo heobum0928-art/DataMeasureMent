@@ -131,7 +131,7 @@ Plans:
   3. Phase 6 트리/캔버스에서 FAI-Edge-OK/NG(녹/적) 및 FAI-DistLine(청록)이 `HalconDisplayService`에 도달해 표시된다
 **Plans:** 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — MeasurementBase.TryExecute 시그니처 확장(out overlays) + 6개 파생 클래스 override 갱신
+- [x] 07-01-PLAN.md — MeasurementBase.TryExecute 시그니처 확장(out overlays) + 6개 파생 클래스 override 갱신
 - [ ] 07-02-PLAN.md — Action_FAIMeasurement Measure 루프 overlay 누적 + 판정 suffix 부여 + SIMUL_MODE 육안 검증
 **UI hint**: yes
 
@@ -179,7 +179,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 4. Datum 기준좌표계 | 3/3 | Complete | 2026-04-10 |
 | 5. 검사 시퀀스 & TCP | 2/2 | Complete | 2026-04-09 |
 | 6. Rapid City 확장 | 4/4 | Complete (UAT 260417-kzd, 2026-04-22) | 2026-04-22 |
-| 7. 오버레이 회귀 수정 (gap closure) | 0/? | Pending plan | - |
+| 7. 오버레이 회귀 수정 (gap closure) | 1/2 | In progress | - |
 | 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
 | 9. VERIFICATION 문서 보강 (gap closure) | 0/? | Pending plan | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 0/? | Pending plan | - |

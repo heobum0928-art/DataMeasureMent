@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 7 context gathered
-last_updated: "2026-04-22T08:03:50.644Z"
+status: executing
+stopped_at: Phase 7 Plan 01 complete — Plan 02 next
+last_updated: "2026-04-22T08:11:22Z"
 progress:
   total_phases: 10
   completed_phases: 6
-  total_plans: 17
-  completed_plans: 15
-  percent: 88
+  total_plans: 19
+  completed_plans: 16
+  percent: 84
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase 06 UAT closeout → milestone audit
+**Current focus:** Phase 07 — overlay-regression-fix
 
 ## Current Position
 
-Phase: 06 (rapid-city) — PLAN COMPLETE, UAT PASSED
-Plan: 4 of 4 (all plans executed + UAT follow-ups landed)
-Next: /gsd:audit-milestone or /gsd:verify-work for milestone closeout
+Phase: 07 (overlay-regression-fix) — EXECUTING
+Plan: 2 of 2
+Next: execute 07-02-PLAN.md (Action_FAIMeasurement Measure 루프 overlay 누적 + SIMUL_MODE 육안 검증)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Next: /gsd:audit-milestone or /gsd:verify-work for milestone closeout
 | Phase 01-ui P02 | 90 | 3 tasks | 7 files |
 | Phase 03 P01 | 150 | 2 tasks | 4 files |
 | Phase 03 P02 | 180 | 1 tasks | 4 files |
+| Phase 07 P01 | 4 | 4 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,10 @@ Recent decisions affecting current work:
 - [Phase 03]: RoiId -OK/-NG suffix를 Action_FAIMeasurement에서 SetResult 후 추가 (판정 시점 보장)
 - [Quick 260409-e3v]: EEdgeMeasureType 삭제 → EdgeDirection/EdgeSelection/EdgeSampleCount/EdgeTrimCount/EdgePolarity로 교체 (MeasurementAlgorithm 패턴 일치)
 - [Quick 260409-e3v]: FAIEdgeMeasurementService를 샘플 스트립 + FitLineContourXld 기반으로 재작성
+- [Phase 07-01]: MeasurementBase.TryExecute 시그니처에 out List<EdgeInspectionOverlay> overlays 6번째 파라미터 추가 (D-01)
+- [Phase 07-01]: EdgePairDistanceMeasurement만 FAIEdgeMeasurementService.result.Overlays 전달, 나머지 5종은 빈 리스트 (D-03, D-09)
+- [Phase 07-01]: EdgeInspectionOverlay/HalconDisplayService/FAIEdgeMeasurementService 미수정 (D-11/D-12/D-13 anti-goal 준수)
+- [Phase 07-01]: Action_FAIMeasurement.cs:157 CS7036 call-site 오류는 Plan 02 범위로 인계
 
 ### Quick Tasks Completed
 
@@ -94,9 +99,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 7 context gathered
-Resume file: --resume-file
-Next action: milestone audit (/gsd:audit-milestone) or Phase 6 verify (/gsd:verify-work)
+Last session: 2026-04-22T08:11:22Z
+Stopped at: Phase 7 Plan 01 complete (signature rollout — CS0534 count: 0)
+Resume file: .planning/phases/07-overlay-regression-fix/07-02-PLAN.md
+Next action: execute 07-02-PLAN.md — Action_FAIMeasurement Measure 루프 overlay 누적 + SIMUL_MODE 육안 검증
 
 **Planned Phase:** 07 (overlay-regression-fix) — 2 plans — 2026-04-22T08:03:50.635Z
+**Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265

@@ -1,7 +1,9 @@
 //260413 hbk Phase 6: Multi-Algorithm 구조를 위한 Measurement 추상 기반 클래스 (D-14)
 using System;
+using System.Collections.Generic; //260422 hbk Phase 7: List<T> (D-01)
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
+using ReringProject.Halcon.Models; //260422 hbk Phase 7: EdgeInspectionOverlay (D-01)
 
 namespace ReringProject.Sequence
 {
@@ -42,12 +44,13 @@ namespace ReringProject.Sequence
         /// 측정을 실행한다. datumTransform은 DatumFindingService.TryFindDatum 결과(hom_mat2d)로
         /// null/empty이면 identity. 결과 단위는 측정 유형별(길이=mm, 각도=deg).
         /// </summary>
-        public abstract bool TryExecute( //260413 hbk
+        public abstract bool TryExecute( //260413 hbk //260422 hbk Phase 7: out overlays 추가 (D-01)
             HImage image,
             HTuple datumTransform,
             double pixelResolution,
             out double resultValue,
-            out string error);
+            out string error,
+            out List<EdgeInspectionOverlay> overlays);
 
         /// <summary>
         /// 공차 판정: lower = Nominal + ToleranceMinus (음수 허용), upper = Nominal + TolerancePlus.

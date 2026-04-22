@@ -1,0 +1,6 @@
+msbuild 버전 17.14.40+3e7442088(.NET Framework용)
+
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: 규칙 집합 파일 "MinimumRecommendedRules.ruleset"을(를) 찾을 수 없습니다. [C:\Info\Project\DataMeasurement\WPF_Example\DatumMeasurement_berpkqq2_wpftmp.csproj]
+C:\Info\Project\DataMeasurement\WPF_Example\Halcon\Algorithms\VisionAlgorithmService.cs(64,22): warning CS0219: 'scanHorizontal' 할당되었지만 사용되지 않았습니다. [C:\Info\Project\DataMeasurement\WPF_Example\DatumMeasurement_berpkqq2_wpftmp.csproj]
+C:\Info\Project\DataMeasurement\WPF_Example\Device\Camera\VirtualCamera.cs(266,13): warning CS0162: 접근할 수 없는 코드가 있습니다. [C:\Info\Project\DataMeasurement\WPF_Example\DatumMeasurement_berpkqq2_wpftmp.csproj]
+C:\Info\Project\DataMeasurement\WPF_Example\Custom\Sequence\Inspection\Action_FAIMeasurement.cs(157,55): error CS7036: 'MeasurementBase.TryExecute(HImage, HTuple, double, out double, out string, out List<EdgeInspectionOverlay>)'의 필수 매개 변수 'overlays'에 해당하는 인수가 없습니다. [C:\Info\Project\DataMeasurement\WPF_Example\DatumMeasurement_berpkqq2_wpftmp.csproj]

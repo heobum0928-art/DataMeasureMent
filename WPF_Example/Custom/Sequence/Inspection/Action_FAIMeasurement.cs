@@ -131,10 +131,12 @@ namespace ReringProject.Sequence {
                     break;
 
                 //260413 hbk Phase 6: FAI 루프 → Measurement 루프로 재설계 (D-09, D-10, D-20)
+                //260422 hbk Phase 7: overlay 누적 + 판정 suffix 부여 (D-04 ~ D-08)
                 case EStep.Measure: {
                     var parentSeq2 = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
                     bool allPass = true;
                     int measuredCount = 0;
+                    var overlayAcc = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: Shot 단위 overlay 누적 (D-04, D-05)
                     if (ShotParam != null) {
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
@@ -152,13 +154,15 @@ namespace ReringProject.Sequence {
                                         }
                                         double resultValue;
                                         string measError;
+                                        List<EdgeInspectionOverlay> measOverlays; //260422 hbk Phase 7: (D-01)
                                         bool ok = false;
                                         try {
-                                            ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError);
+                                            ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays); //260422 hbk Phase 7: 6-param (D-01)
                                         } catch (Exception ex) {
                                             ok = false;
                                             resultValue = 0;
                                             measError = ex.Message;
+                                            measOverlays = null; //260422 hbk Phase 7: 예외 경로 null-safe (D-02)
                                         }
                                         if (ok) {
                                             meas.EvaluateJudgement(resultValue);
@@ -166,6 +170,19 @@ namespace ReringProject.Sequence {
                                             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' failed: " + (measError ?? ""));
                                             meas.ClearResult();
                                             meas.LastJudgement = false;
+                                        }
+                                        //260422 hbk Phase 7: FAI-Edge* overlay에 판정 suffix 부여 (D-06, D-07, D-08)
+                                        if (measOverlays != null) {
+                                            string suffix = meas.LastJudgement ? "-OK" : "-NG";
+                                            foreach (var ov in measOverlays) {
+                                                if (ov == null) continue;
+                                                if (string.IsNullOrEmpty(ov.RoiId)) continue;
+                                                if (ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) {
+                                                    ov.RoiId = ov.RoiId + suffix;
+                                                }
+                                                //260422 hbk FAI-DistLine 등은 suffix 미부여 — 청록 고정 (D-07)
+                                            }
+                                            overlayAcc.AddRange(measOverlays); //260422 hbk Phase 7: Shot 단위 누적 (D-04)
                                         }
                                         if (!meas.LastJudgement) {
                                             faiAllPass = false;
@@ -187,7 +204,7 @@ namespace ReringProject.Sequence {
                     }
                     pMyContext.AllPass = allPass;
                     pMyContext.MeasuredCount = measuredCount;
-                    pMyContext.InspectionOverlays = new List<EdgeInspectionOverlay>();
+                    pMyContext.InspectionOverlays = overlayAcc; //260422 hbk Phase 7: 초기화 라인 교체 — overlay 누적 결과 반영 (D-04, Gap I1)
                     Step = (int)EStep.End;
                     break;
                 }

@@ -47,6 +47,23 @@ namespace ReringProject.Halcon.Display
                     window.SetColor(roiColor);
                     window.SetLineWidth(roiWidth);
 
+                    //260423 hbk Phase 11 D-19 — Circle ROI 렌더링 (명시 Shape이 Polygon 감지보다 우선)
+                    if (roi.Shape == RoiShape.Circle)
+                    {
+                        string circleColor = roi.Id == selectedRoiId ? "yellow" : "lime green";
+                        int circleWidth = roi.Id == selectedRoiId ? 3 : 2;
+                        window.SetColor(circleColor);
+                        window.SetLineWidth(circleWidth);
+                        HOperatorSet.DispCircle(window, roi.CenterRow, roi.CenterCol, roi.Radius);
+
+                        // Center cross marker (6px, red) — UI-SPEC Circle ROI center marker
+                        window.SetColor("red");
+                        window.SetLineWidth(2);
+                        window.DispLine(roi.CenterRow - 6, roi.CenterCol, roi.CenterRow + 6, roi.CenterCol);
+                        window.DispLine(roi.CenterRow, roi.CenterCol - 6, roi.CenterRow, roi.CenterCol + 6);
+                        continue;
+                    }
+
                     //260408 hbk Polygon ROI 렌더링 지원
                     if (!string.IsNullOrEmpty(roi.PolygonPoints))
                     {
@@ -171,6 +188,25 @@ namespace ReringProject.Halcon.Display
 
                 window.DispText(message, "window", 12 + (line * 28), 12, "yellow", MessageTextParamNames, MessageTextParamValues);
                 line++;
+            }
+        }
+
+        //260423 hbk Phase 11 D-14 — Circle 드래그 미리보기 (rubber-band, 빨강)
+        public void RenderCircleDraft(HWindow window, double centerRow, double centerCol, double radius)
+        {
+            if (window == null || radius <= 0) return;
+            try
+            {
+                window.SetColor("red");
+                window.SetLineWidth(3);
+                HOperatorSet.DispCircle(window, centerRow, centerCol, radius);
+                // draft center cross (6px, red)
+                window.DispLine(centerRow - 6, centerCol, centerRow + 6, centerCol);
+                window.DispLine(centerRow, centerCol - 6, centerRow, centerCol + 6);
+            }
+            catch
+            {
+                // suppress display errors per existing HalconDisplayService pattern
             }
         }
 

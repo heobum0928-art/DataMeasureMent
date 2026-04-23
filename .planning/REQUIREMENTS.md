@@ -35,6 +35,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SEQ-03**: 전체 FAI 결과를 종합하여 최종 OK/NG 판정을 산출한다
 - [ ] **SEQ-04**: 측정 결과를 TCP 패킷으로 호스트에 전송한다
 
+### Rapid City 확장
+
+- [x] **RC-01**: Sequence가 Fixture(한 면)로 동작하며 List<DatumConfig>를 소유한다
+- [x] **RC-02**: DatumConfig가 ShotConfig에서 Sequence 레벨로 승격되어 Multi-Datum을 지원한다
+- [x] **RC-03**: MeasurementBase 파생 클래스 6종이 각각 TryExecute()로 측정을 수행한다
+- [x] **RC-04**: ShotConfig에 Ring/Back/Coax/Side 조명 필드가 추가되고 INI로 저장/로드된다
+- [x] **RC-05**: 새 INI 포맷으로 레시피 저장/로드가 동작하고, 기존 포맷은 안내 메시지를 표시한다
+- [x] **RC-06**: UI 트리에서 Sequence > Datum + Shot > FAI > Measurement 구조를 탐색할 수 있고, 결과 테이블이 Measurement 단위로 표시된다
+
 ## v2 Requirements
 
 ### 티칭 고도화

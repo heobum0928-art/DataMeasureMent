@@ -108,9 +108,19 @@ namespace ReringProject.Sequence {
         /// </summary>
         public RoiDefinition ToRoiDefinition()
         {
+            //260423 hbk Phase 11 D-16 — Circle ROI 렌더링 (committed circle → RoiDefinition Shape=Circle)
+            // Precedence: Circle takes priority over Rect/Polygon when present.
+            CircleDiameterMeasurement firstCircle = null;
+            foreach (var m in Measurements)
+            {
+                var c = m as CircleDiameterMeasurement;
+                if (c != null && c.Circle_Radius > 0) { firstCircle = c; break; }
+            }
+            bool hasCircle = firstCircle != null;
+
             bool hasRect = ROI_Length1 > 0 && ROI_Length2 > 0;
             bool hasPolygon = !string.IsNullOrEmpty(PolygonPoints); //260408 hbk Polygon ROI 지원
-            bool isTaught = hasRect || hasPolygon;
+            bool isTaught = hasRect || hasPolygon || hasCircle; //260423 hbk Phase 11 D-16 — Circle 포함
             if (!isTaught)
             {
                 return new RoiDefinition
@@ -118,6 +128,23 @@ namespace ReringProject.Sequence {
                     Id = FAIName ?? "FAI",
                     Name = FAIName ?? "FAI",
                     IsTaught = false
+                };
+            }
+
+            //260423 hbk Phase 11 D-16 — Circle 우선 반환 (Rect/Polygon 필드와 무관)
+            if (hasCircle)
+            {
+                return new RoiDefinition
+                {
+                    Id = FAIName ?? "FAI",
+                    Name = FAIName ?? "FAI",
+                    Shape = RoiShape.Circle,
+                    CenterRow = firstCircle.Circle_Row,
+                    CenterCol = firstCircle.Circle_Col,
+                    Radius = firstCircle.Circle_Radius,
+                    IsTaught = true,
+                    PixelResolutionX = PixelResolutionX,
+                    PixelResolutionY = PixelResolutionY
                 };
             }
 

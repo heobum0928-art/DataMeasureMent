@@ -158,6 +158,13 @@ Plans:
   2. `03-VERIFICATION.md`가 생성되어 ALG-01/ALG-02/ALG-04를 코드 기반으로 검증한다 (Phase 7 수정 반영)
   3. `06-VERIFICATION.md`가 생성되어 RC-01..RC-06 및 quick 260417-kzd UAT 결과를 통합한다
   4. Phase 2 (5건) + Phase 5 (4건) human-needed UAT 사인오프가 기록된다
+**Plans:** 5 plans
+Plans:
+- [ ] 09-01-PLAN.md — Create 01-VERIFICATION.md (UI-01..UI-05) [G3]
+- [ ] 09-02-PLAN.md — Create 03-VERIFICATION.md (ALG-01/02/04 + Phase 7 recovery) [G4]
+- [ ] 09-03-PLAN.md — Create 06-VERIFICATION.md (RC-01..RC-06 + quick 260417-kzd UAT + Phase 7 timeline + Runtime lighting backlog) [G5, I1]
+- [ ] 09-04-PLAN.md — Sign off 02-HUMAN-UAT.md (5 tests, 2026-04-23) [G7]
+- [ ] 09-05-PLAN.md — Create + sign off 05-HUMAN-UAT.md (4 tests, 2026-04-23) [G7]
 
 ### Phase 10: Datum 정확성 결함 수정
 **Goal**: Phase 4 code review 에서 제기된 3건의 미해결 경고를 코드 수준에서 해소한다
@@ -184,5 +191,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Rapid City 확장 | 4/4 | Complete (UAT 260417-kzd, 2026-04-22) | 2026-04-22 |
 | 7. 오버레이 회귀 수정 (gap closure) | 1/2 | In progress | - |
 | 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
-| 9. VERIFICATION 문서 보강 (gap closure) | 0/? | Pending plan | - |
+| 9. VERIFICATION 문서 보강 (gap closure) | 0/5 | Planned | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 0/? | Pending plan | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 11 context gathered
-last_updated: "2026-04-23T04:45:52.065Z"
+stopped_at: Completed 11-01
+last_updated: "2026-04-23T06:21:57.808Z"
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 10
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_plans: 30
+  completed_plans: 26
+  percent: 87
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase 09 — verification-backfill
+**Current focus:** Phase --phase — 11
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
+Phase: --phase (11) — EXECUTING
+Plan: 1 of --name
 Next: Phase 09 (VERIFICATION 문서 보강) — run /gsd-discuss-phase 9 or /gsd-plan-phase 9
 
 ## Performance Metrics
@@ -61,6 +61,7 @@ Next: Phase 09 (VERIFICATION 문서 보강) — run /gsd-discuss-phase 9 or /gsd
 | Phase 09-verification-backfill P03 | 5 | 1 tasks | 1 files |
 | Phase 09-verification-backfill P04 | 2 | 1 tasks | 1 files |
 | Phase 09-verification-backfill P05 | 1 | 1 tasks | 1 files |
+| Phase 11 P01 | 12 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase 09-03]: Created 06-VERIFICATION.md backfill — 6/6 RC truths VERIFIED via code grep, integrates quick 260417-kzd UAT (2026-04-22 user-approved) + Phase 7-02 per-Measurement overlay recovery timeline (Action_FAIMeasurement.cs:190 cleared) + Runtime lighting consumer 0-wiring backlog note (D-12); status=verified, gap_closure=[I1] (G5 closed, zero code change)
 - [Phase 09-04]: Signed off 02-HUMAN-UAT.md in place per D-03 — frontmatter status partial→signed_off, updated:2026-04-23, all 5 tests carry result: PASS (2026-04-23 user-confirmed), Summary passed:5/pending:0; G7 Phase 2 half closed, zero code change (D-07)
 - [Phase 09-05]: Created 05-HUMAN-UAT.md as born-signed_off file (file did not previously exist); promoted 05-VERIFICATION.md frontmatter human_verification[] 4 entries into 4 Test entries each marked result: PASS (2026-04-23 user-confirmed); Summary total:4/passed:4/pending:0; format mirrors 02-HUMAN-UAT.md; G7 Phase 5 portion closed — together with 09-04 fully closes audit Gap G7; zero code change (D-07)
+- [Phase 11-01]: RoiShape enum placed as sibling type in RoiDefinition.cs (locality); RoiDefinition Shape/CenterRow/CenterCol/Radius added with backward-compat default; HalconDisplayService Circle branch short-circuits polygon check via continue; MainResultViewerControl follows file's actual Allman style over PATTERNS.md K&R guidance
 
 ### Quick Tasks Completed
 
@@ -121,12 +123,12 @@ None yet.
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 11 context gathered
-Resume file: --resume-file
+Last session: 2026-04-23T06:21:47.803Z
+Stopped at: Completed 11-01
+Resume file: None
 Next action: Phase 09 (VERIFICATION 문서 보강) — /gsd-discuss-phase 9 or /gsd-plan-phase 9
 
-**Planned Phase:** 10 (datum-defects) — 2 plans — 2026-04-23T02:09:19.226Z
+**Planned Phase:** 11 (datum-teaching-ui-roi) — 5 plans — 2026-04-23T06:11:50.452Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
 **Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT
 **Phase 08 / Plan 08-01 Execution:** 2026-04-23 — 3 tasks / 1 file (.planning/REQUIREMENTS.md) / 3 commits — RC-01..RC-06 섹션 신설 + Traceability Status Complete 10행 + 본문 체크박스 동기화 + Coverage 주석 제거 + Last-updated 갱신 (코드 변경 0건)

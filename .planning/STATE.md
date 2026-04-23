@@ -115,6 +115,10 @@ None yet.
 
 None yet.
 
+### Roadmap Evolution
+
+- 2026-04-23: Phase 11 added — datum-teaching-ui-roi (WR-RT-01/03/04 묶음 예정, bugs.md 로드맵 기반)
+
 ## Session Continuity
 
 Last session: --stopped-at

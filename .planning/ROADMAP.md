@@ -197,3 +197,13 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
 | 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 2/2 | Complete    | 2026-04-23 |
+
+### Phase 11: datum-teaching-ui-roi
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 11 to break down)

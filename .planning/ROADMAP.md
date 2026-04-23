@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 2/2 | Complete    | 2026-04-23 |
 | 11. Datum 티칭 UI + ROI 보강 (defect bundle) | 0/4 | Planned | - |
-| 12. Datum 신규 알고리즘 2종 (Circle+2H, Vertical+2H) | 0/? | Spec locked | - |
+| 12. Datum 신규 알고리즘 2종 (Circle+2H, Vertical+2H) | 0/3 | Planned | - |
 | 13. Datum 알고리즘 확장성 (strategy pattern) | 0/3 | Planned | - |
 
 ### Phase 11: datum-teaching-ui-roi
@@ -225,7 +225,11 @@ Plans:
 **Depends on**: Phase 11
 **Requirements**: SPEC.md (7 requirements locked, ambiguity 0.17)
 **Success Criteria** (what must be TRUE): SPEC.md의 Acceptance Criteria 참조
-**Plans:** 0 plans (pending discuss-phase)
+**Plans:** 3 plans
+Plans:
+- [ ] 12-01-PLAN.md — EDatumAlgorithm enum + DatumConfig data-model extension (AlgorithmType string + Circle/Horizontal ROI fields + volatile Circle detection fields) + INI round-trip sanity
+- [ ] 12-02-PLAN.md — DatumFindingService 3-way dispatch + TryTeachCircleTwoHorizontal + TryTeachVerticalTwoHorizontal + TryExtractEdgePoints helper + MIN_HORIZONTAL_EDGES threshold + SPEC AC error literals (Req 5d deferred to Phase 13)
+- [ ] 12-03-PLAN.md — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep state machine + InvokeTryTeachDatum auto-call + InspectionListView Datum node enable + HalconDisplayService algorithm-aware overlay branches + SIMUL_MODE 3-way visual verification
 **UI hint**: yes
 
 ### Phase 13: datum-algorithm-extensibility

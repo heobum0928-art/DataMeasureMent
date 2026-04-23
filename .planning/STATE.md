@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 7 Plan 01 complete — Plan 02 next
-last_updated: "2026-04-22T08:11:22Z"
+stopped_at: Phase 7 complete — Phase 8 next (requirements-sync)
+last_updated: "2026-04-23T00:00:00Z"
 progress:
   total_phases: 10
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 19
-  completed_plans: 16
-  percent: 84
+  completed_plans: 18
+  percent: 95
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase 07 — overlay-regression-fix
+**Current focus:** Phase 08 — requirements-sync (next)
 
 ## Current Position
 
-Phase: 07 (overlay-regression-fix) — EXECUTING
-Plan: 2 of 2
-Next: execute 07-02-PLAN.md (Action_FAIMeasurement Measure 루프 overlay 누적 + SIMUL_MODE 육안 검증)
+Phase: 07 (overlay-regression-fix) — COMPLETE
+Plan: 2 of 2 — DONE (user-approved SIMUL_MODE UAT 2026-04-23)
+Next: Phase 08 (requirements-sync) — run /gsd-discuss-phase 8 or /gsd-plan-phase 8
 
 ## Performance Metrics
 
@@ -80,6 +80,10 @@ Recent decisions affecting current work:
 - [Phase 07-01]: EdgePairDistanceMeasurement만 FAIEdgeMeasurementService.result.Overlays 전달, 나머지 5종은 빈 리스트 (D-03, D-09)
 - [Phase 07-01]: EdgeInspectionOverlay/HalconDisplayService/FAIEdgeMeasurementService 미수정 (D-11/D-12/D-13 anti-goal 준수)
 - [Phase 07-01]: Action_FAIMeasurement.cs:157 CS7036 call-site 오류는 Plan 02 범위로 인계
+- [Phase 07-02]: Measure 루프 overlay 누적 구조 — overlayAcc shot-scoped List + AddRange per Measurement (D-04, D-05)
+- [Phase 07-02]: Judgement suffix 부여는 meas.LastJudgement 기준, FAI-Edge* 에만 적용 (D-06, D-07, D-08)
+- [Phase 07-02]: L190 블로커 라인 (InspectionOverlays = new List<>()) 제거 → overlayAcc 대입으로 교체 (Gap I1 해소)
+- [Phase 07-02]: SIMUL_MODE 육안 검증 사용자 승인 (2026-04-23) — 녹/적 에지 + 청록 DistLine 복구 확인
 
 ### Quick Tasks Completed
 
@@ -99,10 +103,11 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-22T08:11:22Z
-Stopped at: Phase 7 Plan 01 complete (signature rollout — CS0534 count: 0)
-Resume file: .planning/phases/07-overlay-regression-fix/07-02-PLAN.md
-Next action: execute 07-02-PLAN.md — Action_FAIMeasurement Measure 루프 overlay 누적 + SIMUL_MODE 육안 검증
+Last session: 2026-04-23T00:00:00Z
+Stopped at: Phase 7 complete — Plan 02 executed, SIMUL_MODE UAT user-approved
+Resume file: .planning/ROADMAP.md (Phase 8 entry)
+Next action: Phase 08 (requirements-sync) — /gsd-discuss-phase 8 or /gsd-plan-phase 8
 
 **Planned Phase:** 07 (overlay-regression-fix) — 2 plans — 2026-04-22T08:03:50.635Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
+**Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT

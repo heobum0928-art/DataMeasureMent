@@ -161,10 +161,10 @@ Plans:
 **Plans:** 5 plans
 Plans:
 - [x] 09-01-PLAN.md — Create 01-VERIFICATION.md (UI-01..UI-05) [G3]
-- [ ] 09-02-PLAN.md — Create 03-VERIFICATION.md (ALG-01/02/04 + Phase 7 recovery) [G4]
-- [ ] 09-03-PLAN.md — Create 06-VERIFICATION.md (RC-01..RC-06 + quick 260417-kzd UAT + Phase 7 timeline + Runtime lighting backlog) [G5, I1]
-- [ ] 09-04-PLAN.md — Sign off 02-HUMAN-UAT.md (5 tests, 2026-04-23) [G7]
-- [ ] 09-05-PLAN.md — Create + sign off 05-HUMAN-UAT.md (4 tests, 2026-04-23) [G7]
+- [x] 09-02-PLAN.md — Create 03-VERIFICATION.md (ALG-01/02/04 + Phase 7 recovery) [G4]
+- [x] 09-03-PLAN.md — Create 06-VERIFICATION.md (RC-01..RC-06 + quick 260417-kzd UAT + Phase 7 timeline + Runtime lighting backlog) [G5, I1]
+- [x] 09-04-PLAN.md — Sign off 02-HUMAN-UAT.md (5 tests, 2026-04-23) [G7]
+- [x] 09-05-PLAN.md — Create + sign off 05-HUMAN-UAT.md (4 tests, 2026-04-23) [G7]
 
 ### Phase 10: Datum 정확성 결함 수정
 **Goal**: Phase 4 code review 에서 제기된 3건의 미해결 경고를 코드 수준에서 해소한다

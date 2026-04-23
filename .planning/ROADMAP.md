@@ -183,7 +183,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -197,13 +197,23 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
 | 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 2/2 | Complete    | 2026-04-23 |
+| 11. Datum 티칭 UI + ROI 보강 (defect bundle) | 0/4 | Planned | - |
 
 ### Phase 11: datum-teaching-ui-roi
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 10
-**Plans:** 0 plans
-
+**Goal**: Datum을 실사용 가능한 UI로 완성하고 Circle ROI를 지원하여 RC-03 CircleDiameterMeasurement를 현실 운용 가능하게 만든다. WR-RT-01/03/04를 공통 캔버스/ROI/티칭 인프라 위에서 한 번에 해소한다
+**Depends on**: Phase 10
+**Defects**: WR-RT-01 (Circle ROI), WR-RT-03 (Datum teaching UI blocker), WR-RT-04 (workflow guidance)
+**Requirements**: (gap-closure phase — maps to defects + D-01..D-26 locked decisions, no ROADMAP Requirement IDs)
+**Success Criteria** (what must be TRUE):
+  1. 사용자가 Datum 노드 선택 → Grab → btn_teachDatum → Line1/Line2 드래그로 Datum을 티칭할 수 있고 검출 라인/교점 오버레이가 표시된다
+  2. 사용자가 CircleDiameterMeasurement를 가진 FAI를 선택하여 캔버스에서 중심+반지름 드래그로 Circle ROI를 설정할 수 있다
+  3. 모든 트리 노드에 8x8 상태 배지가 표시되고 선택 노드에 따라 상태바에 다음 단계 힌트가 노출된다
+  4. Test FAI 버튼으로 선택된 FAI를 Datum Transform과 함께 단독 실행/오버레이 확인이 가능하다 (Recipe Save 없음)
+  5. 기존 Phase 6/7 INI 레시피가 그대로 로드된다 (RoiShape 미존재 시 Rect, SourceShotName 미존재 시  폴백)
+**Plans:** 4 plans
 Plans:
-- [ ] TBD (run /gsd-plan-phase 11 to break down)
+- [ ] 11-01-PLAN.md — RoiDefinition Shape/Center/Radius + HalconDisplayService Circle 렌더링 + MainResultViewerControl Circle 드로잉 API (infra)
+- [ ] 11-02-PLAN.md — btn_circleRoi + ECanvasMode.CircleRoi + CommitCircleRoi → CircleDiameterMeasurement 필드 바인딩 (WR-RT-01)
+- [ ] 11-03-PLAN.md — DatumConfig SourceShotName + DatumFindingService writeback + Datum Grab 활성화 + btn_teachDatum 2단계 Rect + 자동 TryTeachDatum + 오버레이 (WR-RT-03 Blocker)
+- [ ] 11-04-PLAN.md — NodeViewModel.StatusColor 배지 + 상태바 다음 단계 힌트 + btn_testFai 하드 검증/리허설 + bugs.md Fixed 이동 (WR-RT-04)
+**UI hint**: yes

@@ -28,6 +28,14 @@ namespace ReringProject.UI
         public double? GrayValue { get; }
     }
 
+    //260423 hbk Phase 11 D-14 — Circle 드래그 완료 인자
+    public class CircleDrawCompletedArgs : EventArgs
+    {
+        public double CenterRow { get; set; }
+        public double CenterCol { get; set; }
+        public double Radius { get; set; }
+    }
+
     public partial class MainResultViewerControl : UserControl, IDisposable
     {
         private const double ZoomInScaleFactor = 0.65;
@@ -61,6 +69,14 @@ namespace ReringProject.UI
 
         //260408 hbk Rect 드래그 완료 시 자동 커밋 이벤트
         public event EventHandler RectDrawingCompleted;
+
+        //260423 hbk Phase 11 D-14 — Circle ROI drawing state
+        private bool _isDrawingCircle;
+        private Point _circleDraftCenter;
+        private double _circleDraftRadius;
+
+        //260423 hbk Phase 11 D-14 — Circle 드래그 완료 이벤트
+        public event EventHandler<CircleDrawCompletedArgs> CircleDrawingCompleted;
 
         //260408 hbk Polygon draft rendering state
         private IList<Point> _polygonDraftPoints;
@@ -210,6 +226,23 @@ namespace ReringProject.UI
             return roi;
         }
 
+        //260423 hbk Phase 11 D-14 — Circle ROI 드래그 모드 진입
+        public void StartCircleDrawing()
+        {
+            _isDrawingCircle = true;
+            _circleDraftCenter = new Point(0, 0);
+            _circleDraftRadius = 0;
+            Render();
+        }
+
+        //260423 hbk Phase 11 D-14 — Circle 드래그 취소/종료용 (대칭성 유지)
+        public void CommitActiveCircle()
+        {
+            _isDrawingCircle = false;
+            _circleDraftRadius = 0;
+            Render();
+        }
+
         //260408 hbk SetPolygonDraft/ClearPolygonDraft 추가 (Polygon ROI 드로잉)
         /// <summary>Sets the polygon draft points for rendering during polygon drawing mode.</summary>
         public void SetPolygonDraft(IList<Point> points, string color)
@@ -321,6 +354,12 @@ namespace ReringProject.UI
             {
                 _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected);
             }
+
+            //260423 hbk Phase 11 D-14 — Circle 드래그 미리보기 렌더
+            if (_isDrawingCircle && _circleDraftRadius > 0)
+            {
+                _displayService.RenderCircleDraft(ViewerHost.HalconWindow, _circleDraftCenter.Y, _circleDraftCenter.X, _circleDraftRadius);
+            }
         }
 
         private void ViewerHost_HInitWindow(object sender, EventArgs e)
@@ -408,6 +447,15 @@ namespace ReringProject.UI
                 return;
             }
 
+            //260423 hbk Phase 11 D-14 — Circle drawing mode: start drag (center click)
+            if (_isDrawingCircle && HasImage)
+            {
+                _circleDraftCenter = mouseState.ImagePoint;
+                _circleDraftRadius = 0;
+                PublishPointerInfo();
+                return;
+            }
+
             //260408 hbk 좌클릭 이벤트 브릿지 (Polygon 점 추가, Calibration 점 선택용)
             if (ImageLeftClicked != null && HasImage)
             {
@@ -465,6 +513,17 @@ namespace ReringProject.UI
                 return;
             }
 
+            //260423 hbk Phase 11 D-14 — Circle drawing mode: update radius while dragging
+            if (_isDrawingCircle && HasImage)
+            {
+                double dx = mouseState.ImagePoint.X - _circleDraftCenter.X;
+                double dy = mouseState.ImagePoint.Y - _circleDraftCenter.Y;
+                _circleDraftRadius = Math.Sqrt(dx * dx + dy * dy);
+                Render();
+                PublishPointerInfo();
+                return;
+            }
+
             if (!_isPanningImage)
             {
                 SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
@@ -499,6 +558,19 @@ namespace ReringProject.UI
                 _isDrawingRect = false;
                 Render();
                 RectDrawingCompleted?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            //260423 hbk Phase 11 D-14 — Circle drawing finalize: raise CircleDrawingCompleted
+            if (_isDrawingCircle && _circleDraftRadius > 0)
+            {
+                _isDrawingCircle = false;
+                double cr = _circleDraftCenter.Y;  // image Row = Y
+                double cc = _circleDraftCenter.X;  // image Col = X
+                double rad = _circleDraftRadius;
+                Render();
+                CircleDrawingCompleted?.Invoke(this, new CircleDrawCompletedArgs { CenterRow = cr, CenterCol = cc, Radius = rad });
+                _circleDraftRadius = 0;
                 return;
             }
 

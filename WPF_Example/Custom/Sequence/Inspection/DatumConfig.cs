@@ -25,6 +25,10 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string ReuseFromShotName { get; set; } = "";
 
+        //260423 hbk Phase 11 D-08 — 카메라/Z/조명을 상속할 Shot 이름 (빈 문자열이면 Sequence 첫 Shot fallback)
+        [Category("Datum|ImageSource")]
+        public string SourceShotName { get; set; } = "";
+
         //260409 hbk Phase 4: Line1 ROI (기준 X축 방향 에지 라인)
         [Category("Datum|Line1 ROI")]
         public double Line1_Row { get; set; } = 0;
@@ -68,6 +72,26 @@ namespace ReringProject.Sequence {
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public bool LastFindSucceeded { get; set; }
+
+        //260423 hbk Phase 11 D-11 — 검출 라인 오버레이용 휘발성 필드 (TryTeachDatum 성공 시 DatumFindingService가 기록)
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line1Detected_RBegin { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line1Detected_CBegin { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line1Detected_REnd { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line1Detected_CEnd { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line2Detected_RBegin { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line2Detected_CBegin { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line2Detected_REnd { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Line2Detected_CEnd { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public bool LastTeachSucceeded { get; set; }
 
         public DatumConfig(object owner) : base(owner) {
         }

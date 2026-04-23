@@ -38,9 +38,12 @@ namespace ReringProject.UI {
         }
 
         //260408 hbk Drawing mode state (ROI 편집 + 캘리브레이션)
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, Calibration }
+        //260423 hbk Phase 11 D-15 — CircleRoi 모드 추가
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, Calibration }
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
+        //260423 hbk Phase 11 D-17 — Circle ROI 편집 대상 Measurement
+        private CircleDiameterMeasurement _editingCircleMeasurement;
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -498,11 +501,17 @@ namespace ReringProject.UI {
             halconViewer.ImageLeftClicked -= HalconViewer_PolygonMouseDown;
             halconViewer.ImageRightClicked -= HalconViewer_PolygonRightClick;
             halconViewer.RectDrawingCompleted -= HalconViewer_RectDrawingCompleted;
+            //260423 hbk Phase 11 — Circle ROI 모드 정리
+            halconViewer.CircleDrawingCompleted -= HalconViewer_CircleDrawingCompleted;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
+            //260423 hbk Phase 11 — Circle ROI 편집 대상 해제
+            _editingCircleMeasurement = null;
             btn_rectRoi.IsChecked = false;
             btn_polygonRoi.IsChecked = false;
+            //260423 hbk Phase 11 — Circle ROI 토글 해제
+            btn_circleRoi.IsChecked = false;
             label_drawHint.Visibility = Visibility.Collapsed;
             label_pointCount.Visibility = Visibility.Collapsed;
             halconViewer.ClearPolygonDraft();
@@ -575,6 +584,79 @@ namespace ReringProject.UI {
                 var rois = GetCurrentFAIRois();
                 halconViewer.UpdateDisplayState(rois, _editingFai.FAIName, null, null);
             }
+            ExitCanvasMode();
+        }
+
+        //260423 hbk Phase 11 D-14/D-15 — Circle ROI 드로잉 진입/취소
+        private void CircleRoiButton_Click(object sender, RoutedEventArgs e) {
+            if (btn_circleRoi.IsChecked == true) {
+                ExitCanvasMode();
+                _canvasMode = ECanvasMode.CircleRoi;
+                btn_circleRoi.IsChecked = true;
+
+                //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
+                CircleDiameterMeasurement target = FindSelectedCircleMeasurement();
+                if (target == null) {
+                    CustomMessageBox.Show("Circle ROI", "CircleDiameterMeasurement을 포함한 FAI를 선택하세요.");
+                    ExitCanvasMode();
+                    return;
+                }
+                _editingCircleMeasurement = target;
+
+                label_drawHint.Content = "중심을 클릭 후 드래그하여 반지름을 지정하세요";
+                label_drawHint.Foreground = new SolidColorBrush(
+                    (Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
+                label_drawHint.Visibility = Visibility.Visible;
+
+                halconViewer.CircleDrawingCompleted += HalconViewer_CircleDrawingCompleted;
+                halconViewer.StartCircleDrawing();
+            }
+            else {
+                // Manual toggle off = cancel draft
+                halconViewer.CommitActiveCircle();
+                ExitCanvasMode();
+            }
+        }
+
+        //260423 hbk Phase 11 — Circle 드래그 완료 수신 → CommitCircleRoi로 위임
+        private void HalconViewer_CircleDrawingCompleted(object sender, CircleDrawCompletedArgs e) {
+            CommitCircleRoi(e.CenterRow, e.CenterCol, e.Radius);
+        }
+
+        //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
+        private CircleDiameterMeasurement FindSelectedCircleMeasurement() {
+            var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+            if (selectedRow != null) {
+                FAIConfig fai = FindFAIByName(selectedRow.FAIName);
+                if (fai != null) {
+                    foreach (var m in fai.Measurements) {
+                        var circle = m as CircleDiameterMeasurement;
+                        if (circle != null) return circle;
+                    }
+                }
+            }
+            return null;
+        }
+
+        //260423 hbk Phase 11 D-17 — Circle 드래그 결과를 Measurement에 기록
+        private void CommitCircleRoi(double centerRow, double centerCol, double radius) {
+            if (_canvasMode != ECanvasMode.CircleRoi || _editingCircleMeasurement == null || radius <= 0) {
+                ExitCanvasMode();
+                return;
+            }
+
+            // D-17: write to the Measurement's own fields (authoritative for Halcon call)
+            _editingCircleMeasurement.Circle_Row = centerRow;
+            _editingCircleMeasurement.Circle_Col = centerCol;
+            _editingCircleMeasurement.Circle_Radius = radius;
+
+            // Refresh canvas using GetCurrentFAIRois — FAIConfig.ToRoiDefinition() Circle branch (Task 3)
+            // emits Shape=Circle so HalconDisplayService (Plan 01) renders committed circle.
+            var rois = GetCurrentFAIRois();
+            string selId = _editingCircleMeasurement.MeasurementName;
+            if (string.IsNullOrEmpty(selId)) selId = "Circle";
+            halconViewer.UpdateDisplayState(rois, selId, null, null);
+
             ExitCanvasMode();
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic; //260413 hbk Phase 6: Measurements 리스트
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Models;
 using ReringProject.Utility;
+//260423 hbk WR-RT-02 ComboBox 옵션 소스
 
 namespace ReringProject.Sequence {
 
@@ -46,11 +47,19 @@ namespace ReringProject.Sequence {
         [Category("Edge|Measurement")]
         public int EdgeThreshold { get; set; } = 10; //260409 hbk RoiDefinition 호환
         public double Sigma { get; set; } = 1.0;
+        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgeDirection { get; set; } = "LtoR"; //260409 hbk LtoR, RtoL, TtoB, BtoT
         public string EdgeSelection { get; set; } = "First"; //260409 hbk First, Last, Both
         public int EdgeSampleCount { get; set; } = 20; //260409 hbk 샘플 스트립 수
         public int EdgeTrimCount { get; set; } = 10; //260409 hbk 극값 제거 수
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgePolarity { get; set; } = "DarkToLight"; //260409 hbk DarkToLight, LightToDark
+
+        //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼 — 공용 소스 참조
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
         //260408 hbk Calibration (per D-12, D-16: camera-level calibration stored in CameraSlaveParam,
         // but FAIConfig also carries PixelResolution for RoiDefinition compatibility)

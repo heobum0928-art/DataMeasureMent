@@ -1,4 +1,5 @@
 //260409 hbk Phase 4: Datum 데이터 모델 — D-01, D-04, D-05, D-11
+using System.Collections.Generic; //260423 hbk WR-RT-02 ComboBox 옵션 리스트
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Utility;
@@ -50,7 +51,12 @@ namespace ReringProject.Sequence {
         [Category("Datum|Edge Detection")]
         public int EdgeThreshold { get; set; } = 20;
         public double Sigma { get; set; } = 1.0;
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgePolarity { get; set; } = "all"; // Halcon MeasurePos polarity: "all", "positive", "negative"
+
+        //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼 — Datum은 Halcon 원시 값 사용
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgePolarityList { get { return EdgeOptionLists.DatumPolarities; } }
 
         //260409 hbk Phase 4: 설정 완료 플래그 — 티칭 후 true, 기본값 false
         [Category("Datum|Status")]

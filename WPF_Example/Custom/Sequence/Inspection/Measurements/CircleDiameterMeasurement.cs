@@ -23,7 +23,12 @@ namespace ReringProject.Sequence
         [Category("Edge")]
         public int EdgeThreshold { get; set; } = 10;
         public double Sigma { get; set; } = 1.0;
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgePolarity { get; set; } = "DarkToLight";
+
+        //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
         public CircleDiameterMeasurement(object owner) : base(owner) { } //260413 hbk
 

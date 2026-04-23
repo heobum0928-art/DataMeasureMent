@@ -23,11 +23,19 @@ namespace ReringProject.Sequence
         [Category("EdgePair|Edge")]
         public int EdgeThreshold { get; set; } = 10;
         public double Sigma { get; set; } = 1.0;
+        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgeDirection { get; set; } = "LtoR";
         public string EdgeSelection { get; set; } = "Both";
         public int EdgeSampleCount { get; set; } = 20;
         public int EdgeTrimCount { get; set; } = 10;
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgePolarity { get; set; } = "DarkToLight";
+
+        //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
         [Category("EdgePair|Calibration")]
         public double PixelResolutionX { get; set; } = 1.0;

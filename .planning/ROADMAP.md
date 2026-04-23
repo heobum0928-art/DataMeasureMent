@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 2/2 | Complete    | 2026-04-23 |
 | 11. Datum 티칭 UI + ROI 보강 (defect bundle) | 0/4 | Planned | - |
-| 12. Datum Circle+2Line 교차점 (신규 알고리즘) | 0/? | Pending spec | - |
+| 12. Datum 신규 알고리즘 2종 (Circle+2H, Vertical+2H) | 0/? | Spec locked | - |
 | 13. Datum 알고리즘 확장성 (strategy pattern) | 0/3 | Planned | - |
 
 ### Phase 11: datum-teaching-ui-roi
@@ -221,12 +221,11 @@ Plans:
 **UI hint**: yes
 
 ### Phase 12: datum-circle-vertical-horizontal-intersection
-**Goal**: Circle ROI(원 중심) + 수평 ROI 2개(각각 에지 라인 피팅 → 하나의 연장선으로 결합) 구조로 Datum 기준 교점을 계산한다. 교점 = "원 중심에서 Y축 아래로 내린 수직 가상선" ∩ "수평 2-ROI에서 피팅한 연장선". 기존 Phase 4/11 2-Line Datum과 공존하며, 신규 Datum 티칭 워크플로우로 제공된다
+**Goal**: 신규 Datum 알고리즘 2종을 추가한다. (A) CircleTwoHorizontal: 원 중심 Y축 수직 가상선 × 수평 2-ROI concat 연장선의 교점. (B) VerticalTwoHorizontal: 수직 ROI 피팅 연장선 × 수평 2-ROI concat 연장선의 교점. `DatumConfig.AlgorithmType` enum으로 기존 `TwoLineIntersect`와 공존하며 INI 하위호환 유지
 **Depends on**: Phase 11
-**Requirements**: (SPEC 단계에서 확정)
-**Success Criteria** (what must be TRUE):
-  1. SPEC.md를 통해 요구사항이 정의된다 (자리표시자 — /gsd-spec-phase 12에서 확정)
-**Plans:** 0 plans (pending SPEC)
+**Requirements**: SPEC.md (7 requirements locked, ambiguity 0.17)
+**Success Criteria** (what must be TRUE): SPEC.md의 Acceptance Criteria 참조
+**Plans:** 0 plans (pending discuss-phase)
 **UI hint**: yes
 
 ### Phase 13: datum-algorithm-extensibility

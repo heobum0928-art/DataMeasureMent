@@ -110,6 +110,7 @@ Recent decisions affecting current work:
 | 260417-ou8 | 2026-04-17 | EdgePairDistanceMeasurement ROI 필드 제거 — FAIConfig 단일 소스화 (노란≠빨강 ROI 버그 구조적 제거) | 5bfde87 |
 | 260417-kzd | 2026-04-22 | Phase 6-04 UAT 잔여 결함 수정 — InspectionMasterParam DisplayName 편집 UI + Shot 실행 경로 매핑/지연 동기화 | 40ea796, a44debd, 40a7cca, 84b1bfb, 44523ad, abe8f55 |
 | 260423-hzt | 2026-04-23 | WR-RT-02 EdgeDirection/EdgePolarity ComboBox 처리 — PropertyGrid 자유 텍스트 → [ItemsSourceProperty] 드롭다운 (8 파일, string 유지로 INI 하위호환) | 5ff753a |
+| 260423-o53 | 2026-04-23 | 선택된 Rect/Circle ROI 마우스 드래그 이동 — hit-test + 이동 상태 머신 + RoiMoveCompleted 이벤트 → FAI 모델 좌표 반영 | f92be35 |
 
 ### Pending Todos
 

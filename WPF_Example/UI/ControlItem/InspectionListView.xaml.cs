@@ -242,6 +242,11 @@ namespace ReringProject.UI {
             button_grab.IsEnabled = false;
             //button_showConfig.IsEnabled = false;
 
+            //260423 hbk Phase 11 D-15 — 선택 해제 시 Circle ROI 비활성 (기본값)
+            if (mParentWindow != null && mParentWindow.mainView != null) {
+                mParentWindow.mainView.btn_circleRoi.IsEnabled = false;
+            }
+
             object source = e.Source;
             if(source is TreeListBox) {
                 TreeListBox list = source as TreeListBox;
@@ -318,6 +323,20 @@ namespace ReringProject.UI {
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
                         _inspectionVm?.ClearResults();
+                    }
+
+                    //260423 hbk Phase 11 D-15/D-18 — Circle ROI 버튼 활성화 게이팅 (선택 노드 기반)
+                    bool circleEnabled = false;
+                    if (itemParam is FAIConfig faiForCircle) {
+                        foreach (var m in faiForCircle.Measurements) {
+                            if (m is CircleDiameterMeasurement) { circleEnabled = true; break; }
+                        }
+                    }
+                    else if (itemParam is CircleDiameterMeasurement) {
+                        circleEnabled = true;
+                    }
+                    if (mParentWindow != null && mParentWindow.mainView != null) {
+                        mParentWindow.mainView.btn_circleRoi.IsEnabled = circleEnabled;
                     }
                 }
             }

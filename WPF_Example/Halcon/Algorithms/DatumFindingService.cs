@@ -144,6 +144,7 @@ namespace ReringProject.Halcon.Algorithms
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out lineError))
                 {
+                    config.LastTeachSucceeded = false; //260423 hbk Phase 11 D-11
                     error = "Line1: " + lineError;
                     return false;
                 }
@@ -157,6 +158,7 @@ namespace ReringProject.Halcon.Algorithms
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out lineError))
                 {
+                    config.LastTeachSucceeded = false; //260423 hbk Phase 11 D-11
                     error = "Line2: " + lineError;
                     return false;
                 }
@@ -172,12 +174,14 @@ namespace ReringProject.Halcon.Algorithms
                 // For parallel lines, isOverlapping==0 but intersection coords are at ±Infinity. //260423 hbk WR-01
                 if (isOverlapping.I == 1) //260423 hbk WR-01
                 {
+                    config.LastTeachSucceeded = false; //260423 hbk Phase 11 D-11
                     error = "Lines are collinear (identical), no unique intersection"; //260423 hbk WR-01
                     return false;
                 }
                 if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) || //260423 hbk WR-01
                     double.IsNaN(curRow.D) || double.IsNaN(curCol.D)) //260423 hbk WR-01
                 {
+                    config.LastTeachSucceeded = false; //260423 hbk Phase 11 D-11
                     error = "Lines are parallel, intersection is at infinity"; //260423 hbk WR-01
                     return false;
                 }
@@ -192,10 +196,22 @@ namespace ReringProject.Halcon.Algorithms
                 config.RefAngleRad = curAngle;
                 config.IsConfigured = true;
 
+                //260423 hbk Phase 11 D-11 — 검출 라인 좌표 휘발성 저장 (오버레이용)
+                config.Line1Detected_RBegin = line1RowBegin;
+                config.Line1Detected_CBegin = line1ColBegin;
+                config.Line1Detected_REnd   = line1RowEnd;
+                config.Line1Detected_CEnd   = line1ColEnd;
+                config.Line2Detected_RBegin = line2RowBegin;
+                config.Line2Detected_CBegin = line2ColBegin;
+                config.Line2Detected_REnd   = line2RowEnd;
+                config.Line2Detected_CEnd   = line2ColEnd;
+                config.LastTeachSucceeded   = true;
+
                 return true;
             }
             catch (Exception ex)
             {
+                if (config != null) { config.LastTeachSucceeded = false; } //260423 hbk Phase 11 D-11
                 error = ex.Message;
                 return false;
             }

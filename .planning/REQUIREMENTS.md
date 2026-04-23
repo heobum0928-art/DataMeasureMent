@@ -99,8 +99,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 - v1 requirements: 22 total (UI-01..UI-05, TCH-01..TCH-02, ALG-01..ALG-05, SEQ-01..SEQ-04, RC-01..RC-06)
 - Mapped to phases: 22
 - Unmapped: 0
-- 참고: RC-01..RC-06은 Phase 6에서 구현되었으나 본 문서 정의/본문 체크박스 등록은 Phase 8(요구사항 동기화)에서 수행된다.
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-22 — gap closure phase 7~10 배정 (full sync in Phase 8)*
+*Last updated: 2026-04-23 — Phase 8: RC-01..RC-06 정의 등록 + traceability 정합화*

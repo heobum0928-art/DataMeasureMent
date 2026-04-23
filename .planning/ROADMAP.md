@@ -175,6 +175,10 @@ Plans:
   1. `DatumFindingService` 평행선 검출이 올바른 `isOverlapping` 분기를 사용하여 무한 좌표를 걸러낸다
   2. `FAIEdgeMeasurementService`의 hom_mat2d 회전 추출이 올바른 행렬 인덱스를 사용하여 병진 성분과 무관하게 회전각이 복원된다
   3. Datum 실패 경로에서 `LastFindSucceeded`가 `false`로 리셋된다
+**Plans:** 2 plans
+Plans:
+- [ ] 10-01-PLAN.md — WR-01 평행선 가드 3곳 + WR-03 hom_mat2d 회전 인덱스 수정 (코드)
+- [ ] 10-02-PLAN.md — 10-VERIFICATION.md 산출 (WR-01/WR-03 before/after + WR-05 Phase 6 구조적 해결 증거 + SIMUL_MODE 런타임 절차)
 
 ## Progress
 
@@ -192,4 +196,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. 오버레이 회귀 수정 (gap closure) | 1/2 | In progress | - |
 | 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
 | 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
-| 10. Datum 정확성 결함 수정 (gap closure) | 0/? | Pending plan | - |
+| 10. Datum 정확성 결함 수정 (gap closure) | 0/2 | Planned | - |

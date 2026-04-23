@@ -79,6 +79,14 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260423 hbk Phase 11 D-15 Circle ROI 드로잉 토글-->
+                    <ToggleButton x:Name="btn_circleRoi" Content="Circle ROI"
+                        Click="CircleRoiButton_Click"
+                        Style="{StaticResource RoiToggleButtonStyle}"
+                        IsEnabled="False"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
+
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
                                Margin="4,4"/>
 

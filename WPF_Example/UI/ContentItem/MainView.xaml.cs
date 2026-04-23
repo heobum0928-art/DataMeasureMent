@@ -51,6 +51,8 @@ namespace ReringProject.UI {
         public MainView() {
             InitializeComponent();
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
+            //260423 hbk ROI 이동 완료 이벤트 구독
+            halconViewer.RoiMoveCompleted += HalconViewer_RoiMoveCompleted;
             Unloaded += MainView_Unloaded;
         }
 
@@ -422,6 +424,34 @@ namespace ReringProject.UI {
 
         private void MainView_Unloaded(object sender, RoutedEventArgs e) {
             halconViewer.PointerInfoChanged -= HalconViewer_PointerInfoChanged;
+            //260423 hbk ROI 이동 이벤트 구독 해제
+            halconViewer.RoiMoveCompleted -= HalconViewer_RoiMoveCompleted;
+        }
+
+        //260423 hbk ROI 이동 완료 → FAI 모델 좌표 반영
+        private void HalconViewer_RoiMoveCompleted(object sender, RoiMoveCompletedArgs e) {
+            if (e == null || string.IsNullOrEmpty(e.RoiId)) return;
+
+            var fai = FindFAIByName(e.RoiId);
+            if (fai == null) return;
+
+            bool handledCircle = false;
+            foreach (var m in fai.Measurements) {
+                var circle = m as CircleDiameterMeasurement;
+                if (circle != null) {
+                    circle.Circle_Row += e.DeltaRow;
+                    circle.Circle_Col += e.DeltaCol;
+                    handledCircle = true;
+                    break;
+                }
+            }
+            if (!handledCircle) {
+                fai.ROI_Row += e.DeltaRow;
+                fai.ROI_Col += e.DeltaCol;
+            }
+
+            var rois = GetCurrentFAIRois();
+            halconViewer.UpdateDisplayState(rois, e.RoiId, null, null);
         }
 
         private static List<RoiDefinition> ConvertParamRects(ParamBase param) {

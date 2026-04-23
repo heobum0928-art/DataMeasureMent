@@ -36,6 +36,14 @@ namespace ReringProject.UI
         public double Radius { get; set; }
     }
 
+    //260423 hbk ROI 이동 완료 인자
+    public class RoiMoveCompletedArgs : EventArgs
+    {
+        public string RoiId { get; set; }
+        public double DeltaRow { get; set; }
+        public double DeltaCol { get; set; }
+    }
+
     public partial class MainResultViewerControl : UserControl, IDisposable
     {
         private const double ZoomInScaleFactor = 0.65;
@@ -77,6 +85,14 @@ namespace ReringProject.UI
 
         //260423 hbk Phase 11 D-14 — Circle 드래그 완료 이벤트
         public event EventHandler<CircleDrawCompletedArgs> CircleDrawingCompleted;
+
+        //260423 hbk ROI 이동 완료 이벤트
+        public event EventHandler<RoiMoveCompletedArgs> RoiMoveCompleted;
+
+        //260423 hbk ROI 이동 상태
+        private bool _isMovingRoi;
+        private Point _moveStartImagePoint;
+        private RoiDefinition _movingRoiSnapshot;
 
         //260408 hbk Polygon draft rendering state
         private IList<Point> _polygonDraftPoints;
@@ -241,6 +257,47 @@ namespace ReringProject.UI
             _isDrawingCircle = false;
             _circleDraftRadius = 0;
             Render();
+        }
+
+        //260423 hbk ROI hit-test: 선택된 ROI 내부 클릭인지 판정
+        private RoiDefinition HitTestSelectedRoi(Point imagePoint)
+        {
+            if (string.IsNullOrEmpty(_selectedRoiId))
+            {
+                return null;
+            }
+
+            var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId);
+            if (roi == null)
+            {
+                return null;
+            }
+
+            if (roi.Shape == RoiShape.Circle)
+            {
+                double dr = imagePoint.Y - roi.CenterRow;
+                double dc = imagePoint.X - roi.CenterCol;
+                if (Math.Sqrt(dr * dr + dc * dc) <= roi.Radius)
+                {
+                    return roi;
+                }
+                return null;
+            }
+
+            if (imagePoint.Y >= roi.Row1 && imagePoint.Y <= roi.Row2 &&
+                imagePoint.X >= roi.Column1 && imagePoint.X <= roi.Column2)
+            {
+                return roi;
+            }
+            return null;
+        }
+
+        //260423 hbk 드로잉 모드 진입 중이면 이동 차단
+        private bool IsAnyDrawingModeActive()
+        {
+            return _isDrawingRect || _isDrawingCircle
+                || (_polygonDraftPoints != null && _polygonDraftPoints.Count > 0)
+                || (_calibrationPoints != null && _calibrationPoints.Count > 0);
         }
 
         //260408 hbk SetPolygonDraft/ClearPolygonDraft 추가 (Polygon ROI 드로잉)
@@ -430,6 +487,21 @@ namespace ReringProject.UI
                 return;
             }
 
+            //260423 hbk ROI 이동 시작: 드로잉 모드 아니고 선택된 ROI 내부 클릭 시
+            if (!IsAnyDrawingModeActive() && HasImage)
+            {
+                var hitRoi = HitTestSelectedRoi(mouseState.ImagePoint);
+                if (hitRoi != null)
+                {
+                    _isMovingRoi = true;
+                    _moveStartImagePoint = mouseState.ImagePoint;
+                    _movingRoiSnapshot = hitRoi.Clone();
+                    SetPanCursor(Cursors.SizeAll);
+                    PublishPointerInfo();
+                    return;
+                }
+            }
+
             //260408 hbk Rect drawing mode — start drag
             if (_isDrawingRect && HasImage)
             {
@@ -496,6 +568,32 @@ namespace ReringProject.UI
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
 
+            //260423 hbk ROI 이동 중: _rois 해당 항목 좌표 갱신 후 Render
+            if (_isMovingRoi && _movingRoiSnapshot != null)
+            {
+                double dr = mouseState.ImagePoint.Y - _moveStartImagePoint.Y;
+                double dc = mouseState.ImagePoint.X - _moveStartImagePoint.X;
+                var target = _rois.FirstOrDefault(r => r.Id == _movingRoiSnapshot.Id);
+                if (target != null)
+                {
+                    if (target.Shape == RoiShape.Circle)
+                    {
+                        target.CenterRow = _movingRoiSnapshot.CenterRow + dr;
+                        target.CenterCol = _movingRoiSnapshot.CenterCol + dc;
+                    }
+                    else
+                    {
+                        target.Row1 = _movingRoiSnapshot.Row1 + dr;
+                        target.Column1 = _movingRoiSnapshot.Column1 + dc;
+                        target.Row2 = _movingRoiSnapshot.Row2 + dr;
+                        target.Column2 = _movingRoiSnapshot.Column2 + dc;
+                    }
+                    Render();
+                }
+                PublishPointerInfo();
+                return;
+            }
+
             //260408 hbk Update rect draft while dragging
             if (_isDrawingRect && _rectDraftRoi != null)
             {
@@ -552,6 +650,41 @@ namespace ReringProject.UI
 
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
+            //260423 hbk ROI 이동 완료: 델타 계산 후 RoiMoveCompleted 발생
+            if (_isMovingRoi && _movingRoiSnapshot != null)
+            {
+                double dr = 0;
+                double dc = 0;
+                var target = _rois.FirstOrDefault(r => r.Id == _movingRoiSnapshot.Id);
+                if (target != null)
+                {
+                    if (target.Shape == RoiShape.Circle)
+                    {
+                        dr = target.CenterRow - _movingRoiSnapshot.CenterRow;
+                        dc = target.CenterCol - _movingRoiSnapshot.CenterCol;
+                    }
+                    else
+                    {
+                        dr = target.Row1 - _movingRoiSnapshot.Row1;
+                        dc = target.Column1 - _movingRoiSnapshot.Column1;
+                    }
+                }
+                string movedId = _movingRoiSnapshot.Id;
+                _isMovingRoi = false;
+                _movingRoiSnapshot = null;
+                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                if (Math.Abs(dr) > 0.5 || Math.Abs(dc) > 0.5)
+                {
+                    RoiMoveCompleted?.Invoke(this, new RoiMoveCompletedArgs
+                    {
+                        RoiId = movedId,
+                        DeltaRow = dr,
+                        DeltaCol = dc
+                    });
+                }
+                return;
+            }
+
             //260408 hbk On mouse up during rect drawing, finalize and notify
             if (_isDrawingRect && _rectDraftRoi != null)
             {

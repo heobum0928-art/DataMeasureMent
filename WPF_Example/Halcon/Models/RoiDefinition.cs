@@ -2,6 +2,9 @@
 
 namespace ReringProject.Halcon.Models
 {
+    //260423 hbk Phase 11 D-16 — ROI 모양 enum (Rect/Polygon 하위호환: 기본값 Rect)
+    public enum RoiShape { Rect, Polygon, Circle }
+
     [DataContract]
     public class RoiDefinition
     {
@@ -34,6 +37,19 @@ namespace ReringProject.Halcon.Models
 
         [DataMember]
         public int EdgeThreshold { get; set; } = 10;
+
+        //260423 hbk Phase 11 D-16 — Circle ROI 지원 (Rect/Polygon 하위호환: 기본값 Rect)
+        [DataMember]
+        public RoiShape Shape { get; set; } = RoiShape.Rect;
+
+        [DataMember]
+        public double CenterRow { get; set; }
+
+        [DataMember]
+        public double CenterCol { get; set; }
+
+        [DataMember]
+        public double Radius { get; set; }
 
         [DataMember]
         public int EdgeSampleCount { get; set; } = 20;

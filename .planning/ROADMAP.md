@@ -198,6 +198,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 2/2 | Complete    | 2026-04-23 |
 | 11. Datum 티칭 UI + ROI 보강 (defect bundle) | 0/4 | Planned | - |
+| 12. Datum 알고리즘 확장성 (strategy pattern) | 0/3 | Planned | - |
 
 ### Phase 11: datum-teaching-ui-roi
 **Goal**: Datum을 실사용 가능한 UI로 완성하고 Circle ROI를 지원하여 RC-03 CircleDiameterMeasurement를 현실 운용 가능하게 만든다. WR-RT-01/03/04를 공통 캔버스/ROI/티칭 인프라 위에서 한 번에 해소한다
@@ -216,4 +217,21 @@ Plans:
 - [ ] 11-02-PLAN.md — btn_circleRoi + ECanvasMode.CircleRoi + CommitCircleRoi → CircleDiameterMeasurement 필드 바인딩 (WR-RT-01)
 - [ ] 11-03-PLAN.md — DatumConfig SourceShotName + DatumFindingService writeback + Datum Grab 활성화 + btn_teachDatum 2단계 Rect + 자동 TryTeachDatum + 오버레이 (WR-RT-03 Blocker)
 - [ ] 11-04-PLAN.md — NodeViewModel.StatusColor 배지 + 상태바 다음 단계 힌트 + btn_testFai 하드 검증/리허설 + bugs.md Fixed 이동 (WR-RT-04)
+**UI hint**: yes
+
+### Phase 12: datum-algorithm-extensibility
+**Goal**: Phase 11의 고정 2단계 Datum 티칭 흐름을 Strategy 패턴으로 추상화하여, 다양한 Datum 추출 알고리즘(TwoLineIntersect, CircleAndLine 등)을 파일 1개 추가만으로 확장할 수 있게 만든다. CircleAndLine 알고리즘(원 센터 X + 수평 에지 교점)을 첫 번째 확장 구현체로 추가한다
+**Depends on**: Phase 11
+**Requirements**: (확장성 아키텍처 — no ROADMAP Requirement IDs)
+**Success Criteria** (what must be TRUE):
+  1. DatumConfig.AlgorithmType(EDatumAlgorithm)으로 알고리즘을 선택하고 INI에 저장/로드된다
+  2. TwoLineIntersectDatum이 Phase 11 기존 동작을 그대로 재현한다 (회귀 없음)
+  3. CircleAndLineDatum이 원 검출(EdgesSubPix→FitCircleContourXld) + 수평선 교점으로 Datum을 티칭한다
+  4. MainView 티칭 흐름이 GetROISteps() 배열 기반으로 단계 수/종류가 자동 적응한다 (고정 EDatumTeachStep 제거)
+  5. 기존 Phase 11 INI 레시피가 AlgorithmType 미존재 시 TwoLineIntersect로 폴백하여 로드된다
+**Plans:** 3 plans
+Plans:
+- [ ] 12-01-PLAN.md — EDatumAlgorithm/EDatumROIStep enum + DatumAlgorithmBase + TwoLineIntersectDatum(Phase 11 로직 추출) + DatumFindingService 디스패처 (순수 리팩터링)
+- [ ] 12-02-PLAN.md — DatumConfig CircleROI 필드 + CircleAndLineDatum 구현 + HalconDisplayService CircleAndLine 오버레이 분기
+- [ ] 12-03-PLAN.md — MainView 가변 단계 흐름(EDatumTeachStep→인덱스) + HalconViewerControl.StartCircleDrawing + SIMUL_MODE 양쪽 알고리즘 검증
 **UI hint**: yes

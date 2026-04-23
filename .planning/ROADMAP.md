@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: 검사 시퀀스 & TCP** - Shot 순회 Grab + FAI 측정 + 종합 판정 + TCP 응답 (completed 2026-04-09)
 - [ ] **Phase 6: Rapid City 확장** - Fixture/Multi-Datum 구조 + Multi-Algorithm 측정 + 조명 필드 + 새 INI 포맷
 - [ ] **Phase 7: Measurement 오버레이 회귀 수정** - `Action_FAIMeasurement` Measure 루프에서 에지 오버레이 누적 (I1 블로커)
-- [ ] **Phase 8: 요구사항 & 트레이서빌리티 동기화** - RC-01..RC-06 등록 + Phase 2/3/5 트레이서빌리티 정합화
+- [x] **Phase 8: 요구사항 & 트레이서빌리티 동기화** - RC-01..RC-06 등록 + Phase 2/3/5 트레이서빌리티 정합화
 - [ ] **Phase 9: VERIFICATION 문서 보강** - Phase 1/3/6 VERIFICATION 산출 + Phase 2/5 UAT 사인오프 기록
 - [ ] **Phase 10: Datum 정확성 결함 수정** - WR-01/WR-03/WR-05 해소 (Phase 4 tech debt)
 
@@ -144,6 +144,9 @@ Plans:
   1. REQUIREMENTS.md에 "Rapid City 확장" 섹션이 추가되고 RC-01..RC-06 정의가 기재된다
   2. Traceability 표 Status 및 본문 체크박스가 Phase 2/3/4/5/6의 실제 상태와 일치한다
   3. Coverage 총계가 갱신된다 (v1: 16 → 22)
+**Plans:** 1 plan
+Plans:
+- [x] 08-01-PLAN.md — REQUIREMENTS.md RC-01..RC-06 섹션 신설 + Traceability Status 정합화 + Coverage 갱신
 
 ### Phase 9: VERIFICATION 문서 보강
 **Goal**: Phase 1/3/6에 누락된 VERIFICATION.md를 생성하고, Phase 2/5의 human-needed UAT 사인오프를 문서화하여 감사 통과 가능한 상태로 만든다

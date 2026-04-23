@@ -17,7 +17,6 @@
 | ID | 발견일 | 출처 Phase | Severity | 증상 | 영향 | 처리 계획 |
 |----|--------|-----------|----------|------|------|----------|
 | WR-RT-01 | 2026-04-23 | Phase 1 | 🟡 Warning | Circle ROI가 존재하지 않음 — Rect/Polygon만 지원 | RC-03 (CircleDiameterMeasurement) 사용 불가 / Datum의 원 검출 (B1 등)도 영향 가능 | **Phase 11 묶음 예정** — WR-RT-03·04와 함께 "Datum 티칭 UI + ROI 보강" Phase 신설 (캔버스/ROI 코드 공통) |
-| WR-RT-02 | 2026-04-23 | Phase 1 + Quick 260409-e3v | 🟡 Warning | EdgePair의 EdgeDirection / EdgePolarity가 텍스트 입력 — ComboBox 없음 | 사용자가 `LtoR` 대신 `LTOR` `Lto R` 같은 오타 입력 가능 → 측정 실패. FAI 측정도 동일 패턴 | **Quick Task 대기** — PropertyGrid enum/TypeConverter. Phase 11 전에 먼저 처리 (1~2시간, 독립) |
 | WR-RT-03 | 2026-04-23 | Phase 4 (+ Phase 6 Plan 04 미완) | 🔴 Blocker | **[범위 확대 2026-04-23]** 원 증상은 "티칭 화면에 이미지 로드 없음"이었으나 조사 결과 **Datum 티칭 UI 자체가 미구현**. `DatumFindingService.TryTeachDatum` (line 122)은 존재하나 UI 호출자 0건. Datum 노드 선택 시 `SetDatumOverlay`만 호출되고 이미지 로드는 없음 (`InspectionListView.xaml.cs:273-283`). `Action_FAIMeasurement.cs:220` 주석이 "ReuseFromShot 모드는 향후 Plan 04 UI 작업과 함께 구현"으로 명시 — Phase 6 Plan 04에서 빠진 작업. 현재는 사용자가 PropertyGrid에 Line1/Line2 좌표·RefOrigin·RefAngle을 수동 숫자 입력해야 함 (비현실적) | Datum 티칭 워크플로 전면 차단 / TCH-01 (ROI 시각화) 부분 미달 / Datum 기능 실사용 불가 | **Phase 11 묶음 예정** — "Datum 티칭 UI 완성": 이미지 로드 + TeachingWindow 연동(또는 전용 다이얼로그) + 2 Line ROI 드로잉 + `TryTeachDatum` 호출 + DatumConfig 저장. WR-RT-01·04와 캔버스/ROI 코드 공유 |
 | WR-RT-04 | 2026-04-23 | Phase 1·2·3 통합 | 🟡 Warning | 프로그램 흐름 시퀀스가 의도대로 안내되지 않음: ① Datum 티칭→저장 ② ROI 그리기 ③ 알고리즘 선택+파라미터+테스트 ④ 저장 — UI가 이 순서를 강제/안내하는지 미확인 | 사용자가 임의 순서로 작업 시 혼란 / 미저장 상태로 진행 가능 | **Phase 11 묶음 예정** — Datum 티칭 UI 설계(WR-RT-03) discuss-phase에서 워크플로 가이드/단계 강제를 함께 결정 (독립 조사 대신 fold-in) |
 
@@ -27,7 +26,7 @@
 
 | ID | 발견일 | 수정일 | 출처 Phase | 어떻게 해결 | 커밋 |
 |----|--------|--------|-----------|-------------|------|
-| (없음) | | | | | |
+| WR-RT-02 | 2026-04-23 | 2026-04-23 | Phase 1 + Quick 260409-e3v | PropertyTools `[ItemsSourceProperty]` + 공용 `EdgeOptionLists` 도입으로 PropertyGrid를 자유 텍스트 → 드롭다운. `string` 타입 유지로 INI 하위호환. 8 파일 수정 | 5ff753a (Quick 260423-hzt) |
 
 ---
 
@@ -57,13 +56,13 @@
 
 ## 통계
 
-- Open: 4건 (Blocker 1, Warning 3)
-- Fixed: 0건
-- 출처 Phase: Phase 1 (2건), Phase 4 (1건, 범위 Phase 6 Plan 04까지 확대), 통합 (1건)
+- Open: 3건 (Blocker 1, Warning 2)
+- Fixed: 1건 (WR-RT-02)
+- 출처 Phase: Phase 1 (1건), Phase 4 (1건, 범위 Phase 6 Plan 04까지 확대), 통합 (1건)
 
 ### 처리 로드맵 (2026-04-23 조사 기반)
 
-1. **Quick Task** — WR-RT-02 (ComboBox/TypeConverter, 1~2시간)
+1. ~~**Quick Task** — WR-RT-02 (ComboBox/TypeConverter, 1~2시간)~~ — Quick 260423-hzt로 처리 완료
 2. **Phase 11 (신설 예정)** — "Datum 티칭 UI + ROI 보강":
    - WR-RT-03: Datum 티칭 UI 전체 구현 (현재 미구현 상태 확정)
    - WR-RT-01: Circle ROI 추가 (동일 캔버스·ROI 코드 공유)
@@ -74,4 +73,4 @@
 ---
 
 *Created: 2026-04-23 — Initial population from Phase 9 후속 사용자 발견*
-*Last updated: 2026-04-23 — WR-RT-03 범위 조사 후 Phase 11 묶음 계획 기록*
+*Last updated: 2026-04-23 — WR-RT-02 Fixed (Quick 260423-hzt, ComboBox 처리 완료)*

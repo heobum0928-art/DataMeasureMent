@@ -271,7 +271,12 @@ namespace ReringProject.Halcon.Algorithms
                     row1a, col1a, row1b, col1b,
                     row2a, col2a, row2b, col2b,
                     out iRow, out iCol, out isOverlapping);
-                if (isOverlapping.I == 1) return false;
+                if (isOverlapping.I == 1) return false; //260423 hbk WR-01 collinear
+                if (double.IsInfinity(iRow.D) || double.IsInfinity(iCol.D) || //260423 hbk WR-01 parallel guard
+                    double.IsNaN(iRow.D) || double.IsNaN(iCol.D)) //260423 hbk WR-01
+                {
+                    return false; //260423 hbk WR-01
+                }
                 intRow = iRow.D;
                 intCol = iCol.D;
                 return true;

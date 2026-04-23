@@ -17,23 +17,23 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### 티칭
 
-- [ ] **TCH-01**: 캔버스에 FAI ROI 오버레이를 시각적으로 표시한다 (Edge 방향, 범위)
-- [ ] **TCH-02**: TeachingStorageService를 통해 ROI 데이터를 저장/로드한다
+- [x] **TCH-01**: 캔버스에 FAI ROI 오버레이를 시각적으로 표시한다 (Edge 방향, 범위)
+- [x] **TCH-02**: TeachingStorageService를 통해 ROI 데이터를 저장/로드한다
 
 ### 에지 측정 알고리즘
 
 - [x] **ALG-01**: FAI ROI 내에서 Halcon MeasurePos로 에지 페어 거리(mm)를 계산한다
 - [x] **ALG-02**: FAIConfig의 Tolerance 기준으로 OK/NG 판정을 수행한다
-- [ ] **ALG-03**: 픽셀→mm 변환을 위한 캘리브레이션 기능을 제공한다
-- [ ] **ALG-04**: 측정 결과(에지 위치, 거리, 판정)를 캔버스에 오버레이로 표시한다
+- [x] **ALG-03**: 픽셀→mm 변환을 위한 캘리브레이션 기능을 제공한다
+- [x] **ALG-04**: 측정 결과(에지 위치, 거리, 판정)를 캔버스에 오버레이로 표시한다
 - [x] **ALG-05**: Datum 기준좌표계로 제품 위치/회전 편차를 자동 보정한다 (hom_mat2d 변환)
 
 ### 검사 시퀀스
 
-- [ ] **SEQ-01**: Z축 이동하며 각 Shot 위치에서 카메라 Grab을 순차 실행한다
-- [ ] **SEQ-02**: 각 Shot의 모든 FAI에 대해 에지 측정을 수행한다
-- [ ] **SEQ-03**: 전체 FAI 결과를 종합하여 최종 OK/NG 판정을 산출한다
-- [ ] **SEQ-04**: 측정 결과를 TCP 패킷으로 호스트에 전송한다
+- [x] **SEQ-01**: Z축 이동하며 각 Shot 위치에서 카메라 Grab을 순차 실행한다
+- [x] **SEQ-02**: 각 Shot의 모든 FAI에 대해 에지 측정을 수행한다
+- [x] **SEQ-03**: 전체 FAI 결과를 종합하여 최종 OK/NG 판정을 산출한다
+- [x] **SEQ-04**: 측정 결과를 TCP 패킷으로 호스트에 전송한다
 
 ### Rapid City 확장
 
@@ -77,23 +77,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-03 | Phase 1 | Complete |
 | UI-04 | Phase 1 | Complete |
 | UI-05 | Phase 1 | Complete |
-| TCH-01 | Phase 2 | Pending |
-| TCH-02 | Phase 2 | Pending |
-| ALG-03 | Phase 2 | Pending |
+| TCH-01 | Phase 2 | Complete |
+| TCH-02 | Phase 2 | Complete |
+| ALG-03 | Phase 2 | Complete |
 | ALG-01 | Phase 3 | Complete |
 | ALG-02 | Phase 3 | Complete |
-| ALG-04 | Phase 3 → Phase 7 (gap closure) | Pending |
+| ALG-04 | Phase 3 → Phase 7 (gap closure) | Complete |
 | ALG-05 | Phase 4 | Complete |
-| SEQ-01 | Phase 5 | Pending |
-| SEQ-02 | Phase 5 | Pending |
-| SEQ-03 | Phase 5 | Pending |
-| SEQ-04 | Phase 5 | Pending |
-| RC-01 | Phase 6 (등록은 Phase 8) | Pending |
-| RC-02 | Phase 6 (등록은 Phase 8) | Pending |
-| RC-03 | Phase 6 (등록은 Phase 8) | Pending |
-| RC-04 | Phase 6 (등록은 Phase 8) | Pending |
-| RC-05 | Phase 6 (등록은 Phase 8) | Pending |
-| RC-06 | Phase 6 (등록은 Phase 8) | Pending |
+| SEQ-01 | Phase 5 | Complete |
+| SEQ-02 | Phase 5 | Complete |
+| SEQ-03 | Phase 5 | Complete |
+| SEQ-04 | Phase 5 | Complete |
+| RC-01 | Phase 6 | Complete |
+| RC-02 | Phase 6 | Complete |
+| RC-03 | Phase 6 | Complete |
+| RC-04 | Phase 6 | Complete |
+| RC-05 | Phase 6 | Complete |
+| RC-06 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 22 total (UI-01..UI-05, TCH-01..TCH-02, ALG-01..ALG-05, SEQ-01..SEQ-04, RC-01..RC-06)

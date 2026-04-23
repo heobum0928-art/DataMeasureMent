@@ -44,6 +44,32 @@ namespace ReringProject.UI
         public double DeltaCol { get; set; }
     }
 
+    //260423 hbk ROI 리사이즈/정점편집 완료 인자 (절대 좌표 전달)
+    public class RoiGeometryChangedArgs : EventArgs
+    {
+        public string RoiId { get; set; }
+        public RoiShape Shape { get; set; }
+        public double Row1 { get; set; }
+        public double Column1 { get; set; }
+        public double Row2 { get; set; }
+        public double Column2 { get; set; }
+        public double CenterRow { get; set; }
+        public double CenterCol { get; set; }
+        public double Radius { get; set; }
+        public string PolygonPoints { get; set; }
+    }
+
+    //260423 hbk ROI 리사이즈 핸들 식별
+    internal enum ResizeHandle
+    {
+        None,
+        RectTL, RectT, RectTR,
+        RectL,           RectR,
+        RectBL, RectB, RectBR,
+        CircleRadius,
+        PolygonVertex
+    }
+
     public partial class MainResultViewerControl : UserControl, IDisposable
     {
         private const double ZoomInScaleFactor = 0.65;
@@ -93,6 +119,21 @@ namespace ReringProject.UI
         private bool _isMovingRoi;
         private Point _moveStartImagePoint;
         private RoiDefinition _movingRoiSnapshot;
+
+        //260423 hbk Edit 모드 상태 + 삭제 이벤트
+        private bool _isEditMode;
+        public bool IsEditMode { get { return _isEditMode; } }
+        public event EventHandler<bool> RoiEditModeChanged;
+        public event EventHandler<string> RoiDeleteRequested;
+
+        //260423 hbk 리사이즈 상태 + 기하 변경 이벤트
+        private bool _isResizingRoi;
+        private ResizeHandle _resizingHandle;
+        private int _resizingPolygonIndex;
+        private RoiDefinition _resizingRoiSnapshot;
+        private const double HandleHalfSizeImage = 10.0; //260423 hbk 핸들 정사각형 반변(이미지 px)
+        private const double HandleHitRadiusImage = 14.0; //260423 hbk 핸들 히트테스트 허용 반경(이미지 px)
+        public event EventHandler<RoiGeometryChangedArgs> RoiGeometryChanged;
 
         //260408 hbk Polygon draft rendering state
         private IList<Point> _polygonDraftPoints;
@@ -300,6 +341,160 @@ namespace ReringProject.UI
                 || (_calibrationPoints != null && _calibrationPoints.Count > 0);
         }
 
+        //260423 hbk 선택 ROI의 Edit 핸들 위치 산출 (Edit 모드 전용)
+        // Rect: 4 코너 + 4 변 중점, Circle: 동쪽 반경 1개, Polygon: 각 꼭짓점
+        private List<(ResizeHandle Handle, int PolyIndex, Point Pos)> GetEditHandles(RoiDefinition roi)
+        {
+            var list = new List<(ResizeHandle, int, Point)>();
+            if (roi == null) return list;
+
+            if (roi.Shape == RoiShape.Circle)
+            {
+                //260423 hbk Circle 리사이즈 핸들: N/S/E/W 4개 (모두 동일 로직 — center 기준 거리=newRadius)
+                list.Add((ResizeHandle.CircleRadius, -1, new Point(roi.CenterCol + roi.Radius, roi.CenterRow))); // E
+                list.Add((ResizeHandle.CircleRadius, -1, new Point(roi.CenterCol - roi.Radius, roi.CenterRow))); // W
+                list.Add((ResizeHandle.CircleRadius, -1, new Point(roi.CenterCol, roi.CenterRow - roi.Radius))); // N
+                list.Add((ResizeHandle.CircleRadius, -1, new Point(roi.CenterCol, roi.CenterRow + roi.Radius))); // S
+                return list;
+            }
+
+            if (!string.IsNullOrEmpty(roi.PolygonPoints))
+            {
+                var pts = ParsePolygonPointsLocal(roi.PolygonPoints);
+                for (int i = 0; i < pts.Count; i++)
+                {
+                    list.Add((ResizeHandle.PolygonVertex, i, pts[i]));
+                }
+                return list;
+            }
+
+            // Rect
+            double r1 = roi.Row1, r2 = roi.Row2, c1 = roi.Column1, c2 = roi.Column2;
+            double midR = (r1 + r2) / 2.0, midC = (c1 + c2) / 2.0;
+            list.Add((ResizeHandle.RectTL, -1, new Point(c1, r1)));
+            list.Add((ResizeHandle.RectT,  -1, new Point(midC, r1)));
+            list.Add((ResizeHandle.RectTR, -1, new Point(c2, r1)));
+            list.Add((ResizeHandle.RectL,  -1, new Point(c1, midR)));
+            list.Add((ResizeHandle.RectR,  -1, new Point(c2, midR)));
+            list.Add((ResizeHandle.RectBL, -1, new Point(c1, r2)));
+            list.Add((ResizeHandle.RectB,  -1, new Point(midC, r2)));
+            list.Add((ResizeHandle.RectBR, -1, new Point(c2, r2)));
+            return list;
+        }
+
+        //260423 hbk 핸들 히트테스트 — 선택 ROI 핸들 중 클릭 위치와 가장 가까운 것 반환
+        private (ResizeHandle Handle, int PolyIndex) HitTestEditHandle(RoiDefinition roi, Point imagePoint)
+        {
+            foreach (var h in GetEditHandles(roi))
+            {
+                double dx = imagePoint.X - h.Pos.X;
+                double dy = imagePoint.Y - h.Pos.Y;
+                if (Math.Sqrt(dx * dx + dy * dy) <= HandleHitRadiusImage)
+                {
+                    return (h.Handle, h.PolyIndex);
+                }
+            }
+            return (ResizeHandle.None, -1);
+        }
+
+        //260423 hbk 리사이즈 진행 중 — snapshot 기준으로 target ROI 기하 갱신
+        private void ApplyResizeToTarget(RoiDefinition target, Point imagePoint)
+        {
+            if (target == null || _resizingRoiSnapshot == null) return;
+            var snap = _resizingRoiSnapshot;
+
+            if (_resizingHandle == ResizeHandle.CircleRadius)
+            {
+                double dx = imagePoint.X - snap.CenterCol;
+                double dy = imagePoint.Y - snap.CenterRow;
+                double newRadius = Math.Sqrt(dx * dx + dy * dy);
+                target.Radius = Math.Max(1.0, newRadius);
+                return;
+            }
+
+            if (_resizingHandle == ResizeHandle.PolygonVertex)
+            {
+                var pts = ParsePolygonPointsLocal(snap.PolygonPoints);
+                if (_resizingPolygonIndex < 0 || _resizingPolygonIndex >= pts.Count) return;
+                pts[_resizingPolygonIndex] = imagePoint;
+                target.PolygonPoints = SerializePolygonPointsLocal(pts);
+                return;
+            }
+
+            // Rect 핸들 — snapshot 기준으로 끝점만 갱신
+            double r1 = snap.Row1, r2 = snap.Row2, c1 = snap.Column1, c2 = snap.Column2;
+            switch (_resizingHandle)
+            {
+                case ResizeHandle.RectTL: r1 = imagePoint.Y; c1 = imagePoint.X; break;
+                case ResizeHandle.RectT:  r1 = imagePoint.Y; break;
+                case ResizeHandle.RectTR: r1 = imagePoint.Y; c2 = imagePoint.X; break;
+                case ResizeHandle.RectL:  c1 = imagePoint.X; break;
+                case ResizeHandle.RectR:  c2 = imagePoint.X; break;
+                case ResizeHandle.RectBL: r2 = imagePoint.Y; c1 = imagePoint.X; break;
+                case ResizeHandle.RectB:  r2 = imagePoint.Y; break;
+                case ResizeHandle.RectBR: r2 = imagePoint.Y; c2 = imagePoint.X; break;
+            }
+            // 정규화 (Row1 < Row2, Col1 < Col2, 최소 1px)
+            target.Row1 = Math.Min(r1, r2);
+            target.Row2 = Math.Max(r1, r2);
+            target.Column1 = Math.Min(c1, c2);
+            target.Column2 = Math.Max(c1, c2);
+            if (target.Row2 - target.Row1 < 1.0) target.Row2 = target.Row1 + 1.0;
+            if (target.Column2 - target.Column1 < 1.0) target.Column2 = target.Column1 + 1.0;
+        }
+
+        //260423 hbk PolygonPoints 로컬 파서/시리얼라이저 (HalconDisplayService의 ParsePolygonPoints 비공개)
+        private static List<Point> ParsePolygonPointsLocal(string polygonPoints)
+        {
+            var list = new List<Point>();
+            if (string.IsNullOrWhiteSpace(polygonPoints)) return list;
+            var pairs = polygonPoints.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var pair in pairs)
+            {
+                var xy = pair.Split(',');
+                if (xy.Length != 2) continue;
+                if (double.TryParse(xy[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double x)
+                    && double.TryParse(xy[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double y))
+                {
+                    list.Add(new Point(x, y));
+                }
+            }
+            return list;
+        }
+
+        private static string SerializePolygonPointsLocal(IList<Point> pts)
+        {
+            if (pts == null || pts.Count == 0) return "";
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < pts.Count; i++)
+            {
+                if (i > 0) sb.Append(';');
+                sb.Append(pts[i].X.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                sb.Append(',');
+                sb.Append(pts[i].Y.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            }
+            return sb.ToString();
+        }
+
+        //260423 hbk Edit 모드 핸들 렌더링 — 메인 ROI 렌더 뒤에 호출
+        private void RenderEditHandles()
+        {
+            if (!_isEditMode) return;
+            var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+            if (roi == null) return;
+            var window = ViewerHost.HalconWindow;
+            window.SetColor("cyan");
+            window.SetLineWidth(2);
+            foreach (var h in GetEditHandles(roi))
+            {
+                window.DispRectangle1(
+                    h.Pos.Y - HandleHalfSizeImage,
+                    h.Pos.X - HandleHalfSizeImage,
+                    h.Pos.Y + HandleHalfSizeImage,
+                    h.Pos.X + HandleHalfSizeImage);
+            }
+        }
+
         //260408 hbk SetPolygonDraft/ClearPolygonDraft 추가 (Polygon ROI 드로잉)
         /// <summary>Sets the polygon draft points for rendering during polygon drawing mode.</summary>
         public void SetPolygonDraft(IList<Point> points, string color)
@@ -417,6 +612,9 @@ namespace ReringProject.UI
             {
                 _displayService.RenderCircleDraft(ViewerHost.HalconWindow, _circleDraftCenter.Y, _circleDraftCenter.X, _circleDraftRadius);
             }
+
+            //260423 hbk Edit 모드 핸들 렌더 (메인 ROI 위에 덧그림)
+            RenderEditHandles();
         }
 
         private void ViewerHost_HInitWindow(object sender, EventArgs e)
@@ -470,6 +668,13 @@ namespace ReringProject.UI
             _lastMouseImagePoint = mouseState.ImagePoint;
             if ((mouseState.Buttons & HalconRightButton) == HalconRightButton)
             {
+                //260423 hbk Edit 모드 중 우클릭 → 모드 종료, ContextMenu 미표시
+                if (_isEditMode)
+                {
+                    SetEditMode(false);
+                    PublishPointerInfo();
+                    return;
+                }
                 //260408 hbk 우클릭 이벤트 브릿지 (Polygon 완성용)
                 if (ImageRightClicked != null)
                 {
@@ -487,9 +692,25 @@ namespace ReringProject.UI
                 return;
             }
 
-            //260423 hbk ROI 이동 시작: 드로잉 모드 아니고 선택된 ROI 내부 클릭 시
-            if (!IsAnyDrawingModeActive() && HasImage)
+            //260423 hbk Edit 모드 전용: 핸들 히트 → 리사이즈 시작, 바디 히트 → 이동 시작
+            if (_isEditMode && !IsAnyDrawingModeActive() && HasImage)
             {
+                var selectedRoi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+                if (selectedRoi != null)
+                {
+                    var handleHit = HitTestEditHandle(selectedRoi, mouseState.ImagePoint);
+                    if (handleHit.Handle != ResizeHandle.None)
+                    {
+                        _isResizingRoi = true;
+                        _resizingHandle = handleHit.Handle;
+                        _resizingPolygonIndex = handleHit.PolyIndex;
+                        _resizingRoiSnapshot = selectedRoi.Clone();
+                        SetPanCursor(Cursors.SizeAll);
+                        PublishPointerInfo();
+                        return;
+                    }
+                }
+
                 var hitRoi = HitTestSelectedRoi(mouseState.ImagePoint);
                 if (hitRoi != null)
                 {
@@ -567,6 +788,19 @@ namespace ReringProject.UI
 
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
+
+            //260423 hbk 리사이즈 중: snapshot 기준 target 기하 갱신
+            if (_isResizingRoi && _resizingRoiSnapshot != null)
+            {
+                var target = _rois.FirstOrDefault(r => r.Id == _resizingRoiSnapshot.Id);
+                if (target != null)
+                {
+                    ApplyResizeToTarget(target, mouseState.ImagePoint);
+                    Render();
+                }
+                PublishPointerInfo();
+                return;
+            }
 
             //260423 hbk ROI 이동 중: _rois 해당 항목 좌표 갱신 후 Render
             if (_isMovingRoi && _movingRoiSnapshot != null)
@@ -650,6 +884,36 @@ namespace ReringProject.UI
 
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
+            //260423 hbk 리사이즈 완료: 절대 기하 RoiGeometryChanged로 발생
+            if (_isResizingRoi && _resizingRoiSnapshot != null)
+            {
+                var target = _rois.FirstOrDefault(r => r.Id == _resizingRoiSnapshot.Id);
+                string movedId = _resizingRoiSnapshot.Id;
+                RoiShape shape = _resizingRoiSnapshot.Shape;
+                _isResizingRoi = false;
+                _resizingRoiSnapshot = null;
+                _resizingHandle = ResizeHandle.None;
+                _resizingPolygonIndex = -1;
+                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                if (target != null)
+                {
+                    RoiGeometryChanged?.Invoke(this, new RoiGeometryChangedArgs
+                    {
+                        RoiId = movedId,
+                        Shape = shape,
+                        Row1 = target.Row1,
+                        Column1 = target.Column1,
+                        Row2 = target.Row2,
+                        Column2 = target.Column2,
+                        CenterRow = target.CenterRow,
+                        CenterCol = target.CenterCol,
+                        Radius = target.Radius,
+                        PolygonPoints = target.PolygonPoints
+                    });
+                }
+                return;
+            }
+
             //260423 hbk ROI 이동 완료: 델타 계산 후 RoiMoveCompleted 발생
             if (_isMovingRoi && _movingRoiSnapshot != null)
             {
@@ -958,6 +1222,45 @@ namespace ReringProject.UI
             ManualMeasureMenuItem.IsCheckable = true;
             ManualMeasureMenuItem.IsChecked = _manualMeasureMode;
             ClearMeasureMenuItem.IsEnabled = isImageLoaded && (_manualMeasureStartPoint.HasValue || _manualMeasureEndPoint.HasValue || _manualMeasureMode);
+
+            //260423 hbk Edit/Delete ROI 메뉴 활성화 (선택 ROI 존재 + 드로잉 모드 아님)
+            if (EditRoiMenuItem != null && DeleteRoiMenuItem != null)
+            {
+                bool hasSelectedRoi = !string.IsNullOrEmpty(_selectedRoiId)
+                    && _rois.Any(r => r.Id == _selectedRoiId && r.IsTaught);
+                bool canEdit = hasSelectedRoi && !IsAnyDrawingModeActive();
+                EditRoiMenuItem.IsEnabled = canEdit;
+                EditRoiMenuItem.IsCheckable = true;
+                EditRoiMenuItem.IsChecked = _isEditMode;
+                DeleteRoiMenuItem.IsEnabled = canEdit;
+            }
+        }
+
+        //260423 hbk Edit 모드 토글 헬퍼 (우클릭 종료 경로 + 메뉴 클릭 경로 공용)
+        private void SetEditMode(bool enter)
+        {
+            if (_isEditMode == enter) return;
+            _isEditMode = enter;
+            SetPanCursor(enter ? Cursors.Cross : (CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow));
+            UpdateContextMenuState();
+            Render();
+            RoiEditModeChanged?.Invoke(this, enter);
+        }
+
+        //260423 hbk ContextMenu: Edit ROI 토글
+        private void EditRoiMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_selectedRoiId)) return;
+            SetEditMode(!_isEditMode);
+        }
+
+        //260423 hbk ContextMenu: Delete ROI — 선택된 ROI 제거 요청 (FAI는 유지, ROI만 clear)
+        private void DeleteRoiMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_selectedRoiId)) return;
+            string targetId = _selectedRoiId;
+            if (_isEditMode) SetEditMode(false);
+            RoiDeleteRequested?.Invoke(this, targetId);
         }
 
         private IEnumerable<EdgeInspectionOverlay> BuildTransientOverlays()

@@ -44,6 +44,8 @@ namespace ReringProject.UI {
         private FAIConfig _editingFai;
         //260423 hbk Phase 11 D-17 — Circle ROI 편집 대상 Measurement
         private CircleDiameterMeasurement _editingCircleMeasurement;
+        //260423 hbk Circle ROI 편집 대상 FAI 이름 (RoiDefinition.Id=FAIName 과 일치 유지)
+        private string _editingCircleFaiName;
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -53,6 +55,10 @@ namespace ReringProject.UI {
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
             //260423 hbk ROI 이동 완료 이벤트 구독
             halconViewer.RoiMoveCompleted += HalconViewer_RoiMoveCompleted;
+            //260423 hbk ROI 삭제 요청 이벤트 구독 (ContextMenu)
+            halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
+            //260423 hbk ROI 기하 변경(리사이즈/정점편집) 이벤트 구독
+            halconViewer.RoiGeometryChanged += HalconViewer_RoiGeometryChanged;
             Unloaded += MainView_Unloaded;
         }
 
@@ -426,6 +432,77 @@ namespace ReringProject.UI {
             halconViewer.PointerInfoChanged -= HalconViewer_PointerInfoChanged;
             //260423 hbk ROI 이동 이벤트 구독 해제
             halconViewer.RoiMoveCompleted -= HalconViewer_RoiMoveCompleted;
+            //260423 hbk ROI 삭제 이벤트 구독 해제
+            halconViewer.RoiDeleteRequested -= HalconViewer_RoiDeleteRequested;
+            //260423 hbk ROI 기하 변경 이벤트 구독 해제
+            halconViewer.RoiGeometryChanged -= HalconViewer_RoiGeometryChanged;
+        }
+
+        //260423 hbk ROI 기하 변경(리사이즈/정점편집) → FAI 모델 좌표/크기 반영
+        private void HalconViewer_RoiGeometryChanged(object sender, RoiGeometryChangedArgs e) {
+            if (e == null || string.IsNullOrEmpty(e.RoiId)) return;
+
+            var fai = FindFAIByName(e.RoiId);
+            if (fai == null) return;
+
+            if (e.Shape == RoiShape.Circle) {
+                foreach (var m in fai.Measurements) {
+                    var circle = m as CircleDiameterMeasurement;
+                    if (circle != null) {
+                        circle.Circle_Row = e.CenterRow;
+                        circle.Circle_Col = e.CenterCol;
+                        circle.Circle_Radius = e.Radius;
+                        break;
+                    }
+                }
+            }
+            else if (e.Shape == RoiShape.Polygon) {
+                fai.PolygonPoints = e.PolygonPoints ?? "";
+            }
+            else {
+                // Rect — bounding box로부터 center + half-length 재계산 (ROI_Phi=0 가정)
+                double cRow = (e.Row1 + e.Row2) / 2.0;
+                double cCol = (e.Column1 + e.Column2) / 2.0;
+                double halfR = (e.Row2 - e.Row1) / 2.0;
+                double halfC = (e.Column2 - e.Column1) / 2.0;
+                fai.ROI_Row = cRow;
+                fai.ROI_Col = cCol;
+                fai.ROI_Phi = 0;
+                fai.ROI_Length1 = halfR;
+                fai.ROI_Length2 = halfC;
+            }
+
+            var rois = GetCurrentFAIRois();
+            halconViewer.UpdateDisplayState(rois, e.RoiId, null, null);
+        }
+
+        //260423 hbk ROI 삭제 요청 → FAI의 ROI 필드 초기화 (FAI 자체는 유지)
+        private void HalconViewer_RoiDeleteRequested(object sender, string roiId) {
+            if (string.IsNullOrEmpty(roiId)) return;
+
+            var fai = FindFAIByName(roiId);
+            if (fai == null) return;
+
+            // Rect ROI clear
+            fai.ROI_Row = 0;
+            fai.ROI_Col = 0;
+            fai.ROI_Phi = 0;
+            fai.ROI_Length1 = 0;
+            fai.ROI_Length2 = 0;
+            // Polygon ROI clear
+            fai.PolygonPoints = "";
+            // Circle ROI clear (CircleDiameterMeasurement.Circle_Radius = 0 → ToRoiDefinition에서 hasCircle=false)
+            foreach (var m in fai.Measurements) {
+                var circle = m as CircleDiameterMeasurement;
+                if (circle != null) {
+                    circle.Circle_Row = 0;
+                    circle.Circle_Col = 0;
+                    circle.Circle_Radius = 0;
+                }
+            }
+
+            var rois = GetCurrentFAIRois();
+            halconViewer.UpdateDisplayState(rois, null, null, null);
         }
 
         //260423 hbk ROI 이동 완료 → FAI 모델 좌표 반영
@@ -538,6 +615,7 @@ namespace ReringProject.UI {
             _editingFai = null;
             //260423 hbk Phase 11 — Circle ROI 편집 대상 해제
             _editingCircleMeasurement = null;
+            _editingCircleFaiName = null;
             btn_rectRoi.IsChecked = false;
             btn_polygonRoi.IsChecked = false;
             //260423 hbk Phase 11 — Circle ROI 토글 해제
@@ -632,6 +710,9 @@ namespace ReringProject.UI {
                     return;
                 }
                 _editingCircleMeasurement = target;
+                //260423 hbk Commit 시 selection id 를 FAIName 으로 맞추기 위해 캡처
+                var selRowForCircle = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                _editingCircleFaiName = selRowForCircle?.FAIName;
 
                 label_drawHint.Content = "중심을 클릭 후 드래그하여 반지름을 지정하세요";
                 label_drawHint.Foreground = new SolidColorBrush(
@@ -651,6 +732,26 @@ namespace ReringProject.UI {
         //260423 hbk Phase 11 — Circle 드래그 완료 수신 → CommitCircleRoi로 위임
         private void HalconViewer_CircleDrawingCompleted(object sender, CircleDrawCompletedArgs e) {
             CommitCircleRoi(e.CenterRow, e.CenterCol, e.Radius);
+        }
+
+        //260423 hbk Measurement 인스턴스를 소유한 FAIConfig 의 FAIName 역탐색 (fallback)
+        private string FindFaiNameContainingMeasurement(MeasurementBase measurement) {
+            if (measurement == null || pSeq == null) return null;
+            for (int i = 0; i < pSeq.Count; i++) {
+                var seq = pSeq[i];
+                if (seq == null) continue;
+                for (int j = 0; j < seq.ActionCount; j++) {
+                    var act = seq[j];
+                    if (act?.Param is ShotConfig shot) {
+                        foreach (FAIConfig fai in shot.FAIList) {
+                            foreach (var m in fai.Measurements) {
+                                if (ReferenceEquals(m, measurement)) return fai.FAIName;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
@@ -683,8 +784,13 @@ namespace ReringProject.UI {
             // Refresh canvas using GetCurrentFAIRois — FAIConfig.ToRoiDefinition() Circle branch (Task 3)
             // emits Shape=Circle so HalconDisplayService (Plan 01) renders committed circle.
             var rois = GetCurrentFAIRois();
-            string selId = _editingCircleMeasurement.MeasurementName;
-            if (string.IsNullOrEmpty(selId)) selId = "Circle";
+            //260423 hbk FIX: RoiDefinition.Id = FAIName (ToRoiDefinition) 과 일치시켜야
+            // _selectedRoiId 매치 → Edit/Delete 메뉴 활성화 + 리사이즈 핸들 렌더 동작
+            string selId = _editingCircleFaiName;
+            if (string.IsNullOrEmpty(selId)) {
+                // Fallback: _editingCircleMeasurement 를 포함한 FAI 를 역탐색
+                selId = FindFaiNameContainingMeasurement(_editingCircleMeasurement);
+            }
             halconViewer.UpdateDisplayState(rois, selId, null, null);
 
             ExitCanvasMode();

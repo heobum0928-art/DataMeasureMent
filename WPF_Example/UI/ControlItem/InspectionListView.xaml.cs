@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -240,6 +241,7 @@ namespace ReringProject.UI {
             if (mParentWindow == null) mParentWindow = (MainWindow)Window.GetWindow(this);
             button_light.IsEnabled = false;
             button_grab.IsEnabled = false;
+            button_loadImage.IsEnabled = false;  //260423 hbk Datum 노드 지원: 선택 변경 시 초기화
             //button_showConfig.IsEnabled = false;
 
             //260423 hbk Phase 11 D-15 — 선택 해제 시 Circle ROI 비활성 (기본값)
@@ -280,6 +282,9 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
+                        //260423 hbk Datum 노드: Grab/LoadImage 활성화 (DatumConfig → ResolveDatumCameraParam 위임)
+                        button_grab.IsEnabled = true;
+                        button_loadImage.IsEnabled = true;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
                         _inspectionVm?.ClearResults();
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
@@ -378,9 +383,17 @@ namespace ReringProject.UI {
 
         private void button_grab_Click(object sender, RoutedEventArgs e) {
             if (SelectedParam == null) return;
+            //260423 hbk Datum 노드: ICameraParam 미구현이므로 Shot 위임
+            if (SelectedParam is DatumConfig datumForGrab) {
+                ICameraParam resolved = ResolveDatumCameraParam(datumForGrab);
+                if (resolved == null) return;
+                if (SystemHandler.Handle.Sequences.IsIdle == false) return;
+                mParentWindow.mainView.GrabAndDisplay(resolved);
+                return;
+            }
             if (!(SelectedParam is ICameraParam)) return;
             if (SystemHandler.Handle.Sequences.IsIdle == false) {
-                //show message 
+                //show message
                 return;
             }
             //Debug.WriteLine($"217-InspectionListView.xaml.cs SelectedParam:{SelectedParam.ToString()}");
@@ -392,10 +405,28 @@ namespace ReringProject.UI {
 
         private void button_loadImage_Click(object sender, RoutedEventArgs e) {
             if (SelectedParam == null) return;
+            //260423 hbk Datum 노드: ICameraParam 미구현이므로 Shot 위임
+            if (SelectedParam is DatumConfig datumForLoad) {
+                ICameraParam resolved = ResolveDatumCameraParam(datumForLoad);
+                if (resolved == null) return;
+                mParentWindow.mainView.LoadAndDisplay(resolved);
+                return;
+            }
             if (!(SelectedParam is ICameraParam)) return;
 
             ICameraParam camParam = SelectedParam as ICameraParam;
             mParentWindow.mainView.LoadAndDisplay(camParam);
+        }
+
+        //260423 hbk Datum 노드: SourceShotName으로 ShotConfig 조회, 없으면 Shots[0] fallback
+        private ICameraParam ResolveDatumCameraParam(DatumConfig datum) {
+            var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+            if (shots.Count == 0) return null;
+            if (!string.IsNullOrEmpty(datum.SourceShotName)) {
+                ShotConfig matched = shots.FirstOrDefault(s => s.ShotName == datum.SourceShotName);
+                if (matched != null) return matched;
+            }
+            return shots[0];
         }
 
         private void button_light_Click(object sender, RoutedEventArgs e) {

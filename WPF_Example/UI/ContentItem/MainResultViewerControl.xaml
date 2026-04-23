@@ -15,6 +15,13 @@
             Padding="4">
         <Border.ContextMenu>
             <ContextMenu x:Name="ViewerContextMenu">
+                <MenuItem x:Name="EditRoiMenuItem"
+                          Header="Edit ROI"
+                          Click="EditRoiMenuItem_Click"/>
+                <MenuItem x:Name="DeleteRoiMenuItem"
+                          Header="Delete ROI"
+                          Click="DeleteRoiMenuItem_Click"/>
+                <Separator/>
                 <MenuItem x:Name="CrosshairMenuItem"
                           Header="Crosshair"
                           Click="CrosshairMenuItem_Click"/>

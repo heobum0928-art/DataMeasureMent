@@ -72,9 +72,17 @@ namespace ReringProject.Halcon.Algorithms
                     line2RowBegin, line2ColBegin, line2RowEnd, line2ColEnd,
                     out curRow, out curCol, out isOverlapping);
 
-                if (isOverlapping.I == 1)
+                // IntersectionLl: isOverlapping==1 means lines are the SAME (collinear). //260423 hbk WR-01
+                // For parallel lines, isOverlapping==0 but intersection coords are at ±Infinity. //260423 hbk WR-01
+                if (isOverlapping.I == 1) //260423 hbk WR-01
                 {
-                    error = "Lines are parallel, no intersection";
+                    error = "Lines are collinear (identical), no unique intersection"; //260423 hbk WR-01
+                    return false;
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) || //260423 hbk WR-01
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D)) //260423 hbk WR-01
+                {
+                    error = "Lines are parallel, intersection is at infinity"; //260423 hbk WR-01
                     return false;
                 }
 
@@ -160,9 +168,17 @@ namespace ReringProject.Halcon.Algorithms
                     line2RowBegin, line2ColBegin, line2RowEnd, line2ColEnd,
                     out curRow, out curCol, out isOverlapping);
 
-                if (isOverlapping.I == 1)
+                // IntersectionLl: isOverlapping==1 means lines are the SAME (collinear). //260423 hbk WR-01
+                // For parallel lines, isOverlapping==0 but intersection coords are at ±Infinity. //260423 hbk WR-01
+                if (isOverlapping.I == 1) //260423 hbk WR-01
                 {
-                    error = "Lines are parallel, no intersection";
+                    error = "Lines are collinear (identical), no unique intersection"; //260423 hbk WR-01
+                    return false;
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) || //260423 hbk WR-01
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D)) //260423 hbk WR-01
+                {
+                    error = "Lines are parallel, intersection is at infinity"; //260423 hbk WR-01
                     return false;
                 }
 

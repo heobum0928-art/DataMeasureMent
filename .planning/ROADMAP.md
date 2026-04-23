@@ -160,7 +160,7 @@ Plans:
   4. Phase 2 (5건) + Phase 5 (4건) human-needed UAT 사인오프가 기록된다
 **Plans:** 5 plans
 Plans:
-- [ ] 09-01-PLAN.md — Create 01-VERIFICATION.md (UI-01..UI-05) [G3]
+- [x] 09-01-PLAN.md — Create 01-VERIFICATION.md (UI-01..UI-05) [G3]
 - [ ] 09-02-PLAN.md — Create 03-VERIFICATION.md (ALG-01/02/04 + Phase 7 recovery) [G4]
 - [ ] 09-03-PLAN.md — Create 06-VERIFICATION.md (RC-01..RC-06 + quick 260417-kzd UAT + Phase 7 timeline + Runtime lighting backlog) [G5, I1]
 - [ ] 09-04-PLAN.md — Sign off 02-HUMAN-UAT.md (5 tests, 2026-04-23) [G7]
@@ -191,5 +191,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Rapid City 확장 | 4/4 | Complete (UAT 260417-kzd, 2026-04-22) | 2026-04-22 |
 | 7. 오버레이 회귀 수정 (gap closure) | 1/2 | In progress | - |
 | 8. 요구사항 & 트레이서빌리티 동기화 (gap closure) | 0/? | Pending plan | - |
-| 9. VERIFICATION 문서 보강 (gap closure) | 0/5 | Planned | - |
+| 9. VERIFICATION 문서 보강 (gap closure) | 1/5 | In progress | - |
 | 10. Datum 정확성 결함 수정 (gap closure) | 0/? | Pending plan | - |

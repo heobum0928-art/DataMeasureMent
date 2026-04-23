@@ -395,6 +395,32 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.SetTposition(window, datum.RefOriginRow - crossSize - 15, datum.RefOriginCol + 5);
                     HOperatorSet.WriteString(window, "Datum Origin");
                 }
+
+                //260423 hbk Phase 11 D-11 — 검출 라인 2개 + 교점 오버레이 (TryTeachDatum 성공 시에만, 기존 cyan/blue/magenta 팔레트는 건드리지 않음)
+                if (datum.LastTeachSucceeded)
+                {
+                    // Line1 detected (yellow)
+                    HOperatorSet.SetColor(window, "yellow");
+                    HOperatorSet.SetLineWidth(window, 2);
+                    HOperatorSet.DispLine(window,
+                        datum.Line1Detected_RBegin, datum.Line1Detected_CBegin,
+                        datum.Line1Detected_REnd,   datum.Line1Detected_CEnd);
+
+                    // Line2 detected (cyan)
+                    HOperatorSet.SetColor(window, "cyan");
+                    HOperatorSet.DispLine(window,
+                        datum.Line2Detected_RBegin, datum.Line2Detected_CBegin,
+                        datum.Line2Detected_REnd,   datum.Line2Detected_CEnd);
+
+                    // Intersection cross (red, 20px half-length, line width 2) — UI-SPEC Datum overlay palette
+                    HOperatorSet.SetColor(window, "red");
+                    HOperatorSet.SetLineWidth(window, 2);
+                    const double crossHalf = 20.0;
+                    HOperatorSet.DispLine(window, datum.RefOriginRow - crossHalf, datum.RefOriginCol,
+                                                  datum.RefOriginRow + crossHalf, datum.RefOriginCol);
+                    HOperatorSet.DispLine(window, datum.RefOriginRow, datum.RefOriginCol - crossHalf,
+                                                  datum.RefOriginRow, datum.RefOriginCol + crossHalf);
+                }
             }
             catch
             {

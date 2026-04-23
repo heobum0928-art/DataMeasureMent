@@ -63,8 +63,10 @@ namespace ReringProject.Halcon.Algorithms
                         roiRow = transRow.D;
                         roiCol = transCol.D;
 
-                        // Extract rotation component: transform[0]=cos(theta), transform[1]=-sin(theta)
-                        double rotAngle = Math.Atan2(-transform[1].D, transform[0].D);
+                        // hom_mat2d layout: [h00, h01, h02, h10, h11, h12, h20, h21, h22] //260423 hbk WR-03
+                        // Indices 0 (h00=cos θ) and 3 (h10=sin θ) are translation-invariant; //260423 hbk WR-03
+                        // index 1 (h01) is contaminated when HomMat2dRotate uses a non-origin center. //260423 hbk WR-03
+                        double rotAngle = Math.Atan2(transform[3].D, transform[0].D); //260423 hbk WR-03
                         roiPhi = fai.ROI_Phi + rotAngle;
                     }
                     catch

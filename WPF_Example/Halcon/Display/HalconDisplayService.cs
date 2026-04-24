@@ -367,12 +367,42 @@ namespace ReringProject.Halcon.Display
                         datum.Line1_Length1, datum.Line1_Length2);
                 }
 
-                // Draw Line2 ROI as Rectangle2
-                if (datum.Line2_Length1 > 0 && datum.Line2_Length2 > 0)
+                //260424 hbk Phase 12 D-13 — Line2 Rectangle2 는 TwoLineIntersect 에서만 렌더 (Circle/Vertical-TwoHorizontal 은 Line2 미사용)
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect
+                    && datum.Line2_Length1 > 0 && datum.Line2_Length2 > 0)
                 {
                     HOperatorSet.DispRectangle2(window,
                         datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
                         datum.Line2_Length1, datum.Line2_Length2);
+                }
+
+                //260424 hbk Phase 12 D-10 — Circle ROI 검색 영역 (CircleTwoHorizontal 일 때만 렌더, Line1/Line2 와 동일 색)
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
+                    && datum.CircleROI_Radius > 0)
+                {
+                    HOperatorSet.SetColor(window, color);
+                    HOperatorSet.SetLineWidth(window, lineWidth);
+                    HOperatorSet.DispCircle(window,
+                        datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius);
+                }
+
+                //260424 hbk Phase 12 D-11 — Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
+                if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect)
+                {
+                    HOperatorSet.SetColor(window, color);
+                    HOperatorSet.SetLineWidth(window, lineWidth);
+                    if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
+                    {
+                        HOperatorSet.DispRectangle2(window,
+                            datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Phi,
+                            datum.Horizontal_A_Length1, datum.Horizontal_A_Length2);
+                    }
+                    if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
+                    {
+                        HOperatorSet.DispRectangle2(window,
+                            datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Phi,
+                            datum.Horizontal_B_Length1, datum.Horizontal_B_Length2);
+                    }
                 }
 
                 // Draw reference origin cross if configured
@@ -420,6 +450,26 @@ namespace ReringProject.Halcon.Display
                                                   datum.RefOriginRow + crossHalf, datum.RefOriginCol);
                     HOperatorSet.DispLine(window, datum.RefOriginRow, datum.RefOriginCol - crossHalf,
                                                   datum.RefOriginRow, datum.RefOriginCol + crossHalf);
+
+                    //260424 hbk Phase 12 D-13 — CircleTwoHorizontal 검출 원 오버레이 (노란 원 + 빨간 중심 십자)
+                    if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
+                        && datum.CircleDetected_Radius > 0)
+                    {
+                        HOperatorSet.SetColor(window, "yellow");
+                        HOperatorSet.SetLineWidth(window, 2);
+                        HOperatorSet.DispCircle(window,
+                            datum.CircleCenter_Row, datum.CircleCenter_Col, datum.CircleDetected_Radius);
+
+                        HOperatorSet.SetColor(window, "red");
+                        HOperatorSet.SetLineWidth(window, 2);
+                        const double circleCenterCrossHalf = 6.0; //260424 hbk Phase 12 — 원 중심 십자 6px
+                        HOperatorSet.DispLine(window,
+                            datum.CircleCenter_Row - circleCenterCrossHalf, datum.CircleCenter_Col,
+                            datum.CircleCenter_Row + circleCenterCrossHalf, datum.CircleCenter_Col);
+                        HOperatorSet.DispLine(window,
+                            datum.CircleCenter_Row, datum.CircleCenter_Col - circleCenterCrossHalf,
+                            datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
+                    }
                 }
             }
             catch

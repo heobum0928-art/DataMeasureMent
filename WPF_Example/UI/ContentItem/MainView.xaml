@@ -87,6 +87,14 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260424 hbk Phase 12 D-01 — Datum 티칭 토글 (TwoLineIntersect / CircleTwoHorizontal / VerticalTwoHorizontal 3-way 상태머신 진입)-->
+                    <ToggleButton x:Name="btn_teachDatum" Content="Teach Datum"
+                        Click="TeachDatumButton_Click"
+                        Style="{StaticResource RoiToggleButtonStyle}"
+                        IsEnabled="False"
+                        MinWidth="100" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
+
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
                                Margin="4,4"/>
 

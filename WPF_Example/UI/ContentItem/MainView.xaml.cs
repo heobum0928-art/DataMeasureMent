@@ -39,13 +39,19 @@ namespace ReringProject.UI {
 
         //260408 hbk Drawing mode state (ROI 편집 + 캘리브레이션)
         //260423 hbk Phase 11 D-15 — CircleRoi 모드 추가
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, Calibration }
+        //260424 hbk Phase 12 D-01 — TeachDatum 모드 추가 (3-way algorithm switch)
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration }
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         //260423 hbk Phase 11 D-17 — Circle ROI 편집 대상 Measurement
         private CircleDiameterMeasurement _editingCircleMeasurement;
         //260423 hbk Circle ROI 편집 대상 FAI 이름 (RoiDefinition.Id=FAIName 과 일치 유지)
         private string _editingCircleFaiName;
+        //260424 hbk Phase 12 D-03 — Datum 티칭 단계 (알고리즘별 switch 로 전이 결정)
+        //  Phase 13 에서 DatumAlgorithmBase.GetROISteps() 가변 배열로 재설계 예정 — switch 는 MainView 내 private 유지.
+        private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
+        private EDatumTeachStep _datumTeachStep = EDatumTeachStep.Line1; //260424 hbk Phase 12 D-03
+        private DatumConfig _editingDatum; //260424 hbk Phase 12 — 현재 티칭 중 Datum
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -610,16 +616,21 @@ namespace ReringProject.UI {
             halconViewer.RectDrawingCompleted -= HalconViewer_RectDrawingCompleted;
             //260423 hbk Phase 11 — Circle ROI 모드 정리
             halconViewer.CircleDrawingCompleted -= HalconViewer_CircleDrawingCompleted;
+            //260424 hbk Phase 12 — Datum 티칭 핸들러 unsubscribe (Double-subscribe 방지)
+            halconViewer.RectDrawingCompleted   -= HalconViewer_DatumRectCompleted;
+            halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
             //260423 hbk Phase 11 — Circle ROI 편집 대상 해제
             _editingCircleMeasurement = null;
             _editingCircleFaiName = null;
+            _editingDatum = null; //260424 hbk Phase 12 — Datum 티칭 편집 대상 해제
             btn_rectRoi.IsChecked = false;
             btn_polygonRoi.IsChecked = false;
             //260423 hbk Phase 11 — Circle ROI 토글 해제
             btn_circleRoi.IsChecked = false;
+            btn_teachDatum.IsChecked = false; //260424 hbk Phase 12 — Datum 티칭 토글 해제
             label_drawHint.Visibility = Visibility.Collapsed;
             label_pointCount.Visibility = Visibility.Collapsed;
             halconViewer.ClearPolygonDraft();
@@ -970,6 +981,65 @@ namespace ReringProject.UI {
                     fai.PixelResolutionY = mmPerPixel;
                 }
             }
+        }
+
+        //260424 hbk Phase 12 D-01/D-03/D-04 — Datum 티칭 토글 (Task 2 에서 본문 구현)
+        private void TeachDatumButton_Click(object sender, RoutedEventArgs e) {
+            //260424 hbk Phase 12 — stub (Task 2)
+            btn_teachDatum.IsChecked = false;
+        }
+
+        //260424 hbk Phase 12 D-03 — 알고리즘별 첫 ROI 단계
+        private EDatumTeachStep GetFirstStep(EDatumAlgorithm algorithm) {
+            switch (algorithm) {
+                case EDatumAlgorithm.CircleTwoHorizontal:   return EDatumTeachStep.Circle;
+                case EDatumAlgorithm.VerticalTwoHorizontal: return EDatumTeachStep.Vertical;
+                case EDatumAlgorithm.TwoLineIntersect:
+                default:                                     return EDatumTeachStep.Line1;
+            }
+        }
+
+        //260424 hbk Phase 12 D-03 — 현재 step 다음 step 결정
+        private EDatumTeachStep GetNextStep(EDatumAlgorithm algorithm, EDatumTeachStep current) {
+            switch (algorithm) {
+                case EDatumAlgorithm.TwoLineIntersect:
+                    if (current == EDatumTeachStep.Line1) return EDatumTeachStep.Line2;
+                    return EDatumTeachStep.Done;
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    if (current == EDatumTeachStep.Circle)      return EDatumTeachStep.HorizontalA;
+                    if (current == EDatumTeachStep.HorizontalA) return EDatumTeachStep.HorizontalB;
+                    return EDatumTeachStep.Done;
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    if (current == EDatumTeachStep.Vertical)    return EDatumTeachStep.HorizontalA;
+                    if (current == EDatumTeachStep.HorizontalA) return EDatumTeachStep.HorizontalB;
+                    return EDatumTeachStep.Done;
+                default: return EDatumTeachStep.Done;
+            }
+        }
+
+        //260424 hbk Phase 12 — step 시작 (Task 2 에서 본문 구현)
+        private void StartDatumTeachStep(EDatumTeachStep step) {
+            //260424 hbk Phase 12 — stub (Task 2)
+        }
+
+        //260424 hbk Phase 12 — Rect 완료 수신 (Task 2 에서 본문 구현)
+        private void HalconViewer_DatumRectCompleted(object sender, EventArgs e) {
+            //260424 hbk Phase 12 — stub (Task 2)
+        }
+
+        //260424 hbk Phase 12 — Circle 완료 수신 (Task 2 에서 본문 구현)
+        private void HalconViewer_DatumCircleCompleted(object sender, CircleDrawCompletedArgs e) {
+            //260424 hbk Phase 12 — stub (Task 2)
+        }
+
+        //260424 hbk Phase 12 — 다음 step 전이 (Task 2 에서 본문 구현)
+        private void AdvanceDatumTeachStep() {
+            //260424 hbk Phase 12 — stub (Task 2)
+        }
+
+        //260424 hbk Phase 12 D-02 — 마지막 ROI 직후 TryTeachDatum 자동 호출 (Task 2 에서 본문 구현)
+        private void InvokeTryTeachDatum() {
+            //260424 hbk Phase 12 — stub (Task 2)
         }
     }
 }

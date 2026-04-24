@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 12 context gathered
-last_updated: "2026-04-23T15:17:27.742Z"
+stopped_at: Phase 12 Plan 01 complete — data model (EDatumAlgorithm + DatumConfig extensions)
+last_updated: "2026-04-24T13:01:42Z"
 progress:
   total_phases: 13
   completed_phases: 10
   total_plans: 33
-  completed_plans: 27
+  completed_plans: 28
   percent: 82
 ---
 
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase --phase — 11
+**Current focus:** Phase 12 — datum-circle-vertical-horizontal-intersection
 
 ## Current Position
 
-Phase: --phase (11) — EXECUTING
-Plan: 1 of --name
-Next: Phase 09 (VERIFICATION 문서 보강) — run /gsd-discuss-phase 9 or /gsd-plan-phase 9
+Phase: 12 (datum-circle-vertical-horizontal-intersection) — EXECUTING
+Plan: 2 of 3 (Plan 01 complete 2026-04-24)
+Next: Execute Plan 02 — DatumFindingService 3-way dispatch + TryTeachCircleTwoHorizontal + TryTeachVerticalTwoHorizontal
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Next: Phase 09 (VERIFICATION 문서 보강) — run /gsd-discuss-phase 9 or /gsd
 | Phase 09-verification-backfill P05 | 1 | 1 tasks | 1 files |
 | Phase 11 P01 | 12 | 3 tasks | 3 files |
 | Phase 11 P03a | 4 | 3 tasks | 3 files |
+| Phase 12 P01 | 10 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,7 @@ Recent decisions affecting current work:
 - [Phase 09-05]: Created 05-HUMAN-UAT.md as born-signed_off file (file did not previously exist); promoted 05-VERIFICATION.md frontmatter human_verification[] 4 entries into 4 Test entries each marked result: PASS (2026-04-23 user-confirmed); Summary total:4/passed:4/pending:0; format mirrors 02-HUMAN-UAT.md; G7 Phase 5 portion closed — together with 09-04 fully closes audit Gap G7; zero code change (D-07)
 - [Phase 11-01]: RoiShape enum placed as sibling type in RoiDefinition.cs (locality); RoiDefinition Shape/CenterRow/CenterCol/Radius added with backward-compat default; HalconDisplayService Circle branch short-circuits polygon check via continue; MainResultViewerControl follows file's actual Allman style over PATTERNS.md K&R guidance
 - [Phase 11-03a]: DatumConfig SourceShotName + 8 volatile Line*Detected_* doubles + LastTeachSucceeded added with backward-compat defaults; TryTeachDatum line-coord writeback preserves signature (Option 2); RenderDatumOverlay gains ADDITIVE LastTeachSucceeded-gated branch — existing cyan/blue/magenta palette preserved (Warning 5 scope guard)
+- [Phase 12-01]: EDatumAlgorithm enum placed in ReringProject.Sequence (co-located w/ DatumConfig for zero-import access); AlgorithmType stored as string (ParamBase can't serialize enum — switch-case L330-363 covers only Int32/Double/String/Boolean/Rect/Line/Circle/PropertyItem[]/ModelFinderViewModel); AlgorithmTypeEnum helper falls back to TwoLineIntersect on TryParse failure (legacy INI backward-compat); Rule 3 auto-fix — csproj Compile ItemGroup updated to register new file (blocking CS0246)
 
 ### Quick Tasks Completed
 

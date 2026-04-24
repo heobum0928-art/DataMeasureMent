@@ -232,19 +232,18 @@ Plans:
 - [x] 12-03-PLAN.md — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep state machine + InvokeTryTeachDatum auto-call + InspectionListView Datum node enable + HalconDisplayService algorithm-aware overlay branches + SIMUL_MODE 3-way visual verification (UAT Gap-2 ROI 라벨 + Gap-3 write-back 재바인딩 fix 포함; Gap-1 ROI Edit / Gap-4 런타임 TryFindDatum 테스트 UI 는 Phase 13 이월)
 **UI hint**: yes
 
-### Phase 13: datum-algorithm-extensibility
-**Goal**: Phase 11의 고정 2단계 Datum 티칭 흐름을 Strategy 패턴으로 추상화하여, 다양한 Datum 추출 알고리즘(TwoLineIntersect, CircleAndLine 등)을 파일 1개 추가만으로 확장할 수 있게 만든다. CircleAndLine 알고리즘(원 센터 X + 수평 에지 교점)을 첫 번째 확장 구현체로 추가한다
-**Depends on**: Phase 11
-**Requirements**: (확장성 아키텍처 — no ROADMAP Requirement IDs)
+### Phase 13: datum-algorithm-extensibility (재정의 — Datum UX 이월 3건)
+**Goal**: Phase 12(datum-circle-vertical-horizontal-intersection)에서 이월된 Datum 티칭 UX 빈틈 3건을 메운다. (1) TeachDatum ROI 사후 이동/편집 + 자동 재티칭, (2) 런타임 TryFindDatum 테스트 UI, (3) CircleTwoHorizontal/VerticalTwoHorizontal 방향 정합성 검사. 원 scope(Strategy 패턴 추상화 + CircleAndLine 알고리즘)는 Phase 12에서 switch 디스패치 방식으로 이미 달성되어 리팩터는 Deferred.
+**Depends on**: Phase 12
+**Requirements**: (UX backfill — no ROADMAP Requirement IDs; Phase 12 Req 5d 이월)
 **Success Criteria** (what must be TRUE):
-  1. DatumConfig.AlgorithmType(EDatumAlgorithm)으로 알고리즘을 선택하고 INI에 저장/로드된다
-  2. TwoLineIntersectDatum이 Phase 11 기존 동작을 그대로 재현한다 (회귀 없음)
-  3. CircleAndLineDatum이 원 검출(EdgesSubPix→FitCircleContourXld) + 수평선 교점으로 Datum을 티칭한다
-  4. MainView 티칭 흐름이 GetROISteps() 배열 기반으로 단계 수/종류가 자동 적응한다 (고정 EDatumTeachStep 제거)
-  5. 기존 Phase 11 INI 레시피가 AlgorithmType 미존재 시 TwoLineIntersect로 폴백하여 로드된다
+  1. 티칭 완료된 Datum ROI(Rect/Circle)를 마우스 드래그로 이동하면 즉시 TryTeachDatum이 자동 재호출되어 검출 오버레이(십자/원)가 새 위치를 반영한다
+  2. btn_testFindDatum을 통해 현재 Grab 이미지 또는 LoadImage로 연 파일에 대해 TryFindDatum을 실행하여 검출 RefOrigin을 오버레이 십자 + 좌표 숫자로 확인할 수 있다
+  3. CircleTwoHorizontal/VerticalTwoHorizontal 티칭 시 수평 ROI phi가 ±15°를 벗어나거나 수평/수직 교차각이 90°±5°를 벗어나면 티칭 실패로 판정한다
+  4. Phase 12에서 확정된 DatumConfig/DatumFindingService/MainView 공용 시그니처는 변경 없이 유지된다 (추가만 허용)
 **Plans:** 3 plans
 Plans:
-- [ ] 13-01-PLAN.md — EDatumAlgorithm/EDatumROIStep enum + DatumAlgorithmBase + TwoLineIntersectDatum(Phase 11 로직 추출) + DatumFindingService 디스패처 (순수 리팩터링)
-- [ ] 13-02-PLAN.md — DatumConfig CircleROI 필드 + CircleAndLineDatum 구현 + HalconDisplayService CircleAndLine 오버레이 분기
-- [ ] 13-03-PLAN.md — MainView 가변 단계 흐름(EDatumTeachStep→인덱스) + HalconViewerControl.StartCircleDrawing + SIMUL_MODE 양쪽 알고리즘 검증
+- [ ] 13-01-PLAN.md — DatumFindingService ValidateHorizontalVerticalAngles helper + CircleTwoHorizontal/VerticalTwoHorizontal 검증 게이트 연결 (Req 5d)
+- [ ] 13-02-PLAN.md — btn_testFindDatum + AskTestImageSource(현재 이미지/LoadImage) + RenderDatumFindResult 오버레이 + label_testFindResult (Gap-4)
+- [ ] 13-03-PLAN.md — RoiMoveCompleted Datum 분기 + MainResultViewerControl Datum selection-aware hit-test + ApplyDatumRoiDelta + 자동 InvokeTryTeachDatum (Gap-1)
 **UI hint**: yes

@@ -20,6 +20,16 @@ namespace ReringProject.UI {
         private InspectionViewModel _inspectionVm;
         public ParamBase SelectedParam { get; private set; } = null;
         private ParamBase CopiedParam = null;
+
+        //260424 hbk Phase 12 Gap-3 — 외부(MainView Datum 티칭)에서 DatumConfig 필드 write-back 후 PropertyGrid 재바인딩 트리거
+        // 자동 속성(set;/get;)은 INotifyPropertyChanged 미발동 → SelectedObject null 후 재할당으로 강제 재렌더
+        public void RefreshParamEditor() {
+            if (ParamEditor == null) return;
+            var current = SelectedParam;
+            ParamEditor.SelectedObject = null;
+            ParamEditor.SelectedObject = current;
+        }
+
         private bool _isControlLoaded = false; //260408 hbk UI 초기화 완료 플래그
         private string _pendingRecipeName = null; //260408 hbk 초기화 전 수신된 레시피명
 

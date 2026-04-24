@@ -365,6 +365,17 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.DispRectangle2(window,
                         datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
                         datum.Line1_Length1, datum.Line1_Length2);
+
+                    //260424 hbk Phase 12 Gap-2 — ROI 라벨 (수직/수평/라인 구분 가시화)
+                    //  TwoLineIntersect: "L1" / VerticalTwoHorizontal: "Vert" / CircleTwoHorizontal: Line1 미사용이므로 라벨 생략
+                    string line1Label = null;
+                    if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect) line1Label = "L1";
+                    else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal) line1Label = "Vert";
+                    if (line1Label != null)
+                    {
+                        DrawRoiLabel(window, datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
+                            datum.Line1_Length1, datum.Line1_Length2, line1Label);
+                    }
                 }
 
                 //260424 hbk Phase 12 D-13 — Line2 Rectangle2 는 TwoLineIntersect 에서만 렌더 (Circle/Vertical-TwoHorizontal 은 Line2 미사용)
@@ -374,6 +385,10 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.DispRectangle2(window,
                         datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
                         datum.Line2_Length1, datum.Line2_Length2);
+
+                    //260424 hbk Phase 12 Gap-2 — "L2" 라벨
+                    DrawRoiLabel(window, datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
+                        datum.Line2_Length1, datum.Line2_Length2, "L2");
                 }
 
                 //260424 hbk Phase 12 D-10 — Circle ROI 검색 영역 (CircleTwoHorizontal 일 때만 렌더, Line1/Line2 와 동일 색)
@@ -384,6 +399,12 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.SetLineWidth(window, lineWidth);
                     HOperatorSet.DispCircle(window,
                         datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius);
+
+                    //260424 hbk Phase 12 Gap-2 — "Circle" 라벨 (원 위쪽 외곽 바로 바깥)
+                    DrawRoiLabelAt(window,
+                        datum.CircleROI_Row - datum.CircleROI_Radius - 22,
+                        datum.CircleROI_Col - datum.CircleROI_Radius,
+                        "Circle");
                 }
 
                 //260424 hbk Phase 12 D-11 — Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
@@ -396,12 +417,20 @@ namespace ReringProject.Halcon.Display
                         HOperatorSet.DispRectangle2(window,
                             datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Phi,
                             datum.Horizontal_A_Length1, datum.Horizontal_A_Length2);
+
+                        //260424 hbk Phase 12 Gap-2 — "H-A" 라벨
+                        DrawRoiLabel(window, datum.Horizontal_A_Row, datum.Horizontal_A_Col,
+                            datum.Horizontal_A_Phi, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2, "H-A");
                     }
                     if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
                     {
                         HOperatorSet.DispRectangle2(window,
                             datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Phi,
                             datum.Horizontal_B_Length1, datum.Horizontal_B_Length2);
+
+                        //260424 hbk Phase 12 Gap-2 — "H-B" 라벨
+                        DrawRoiLabel(window, datum.Horizontal_B_Row, datum.Horizontal_B_Col,
+                            datum.Horizontal_B_Phi, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2, "H-B");
                     }
                 }
 
@@ -475,6 +504,37 @@ namespace ReringProject.Halcon.Display
             catch
             {
                 // Suppress display errors
+            }
+        }
+
+        //260424 hbk Phase 12 Gap-2 — Datum ROI 라벨 그리기 (수직/수평/라인 구분 가시화)
+        // Rectangle2 (row, col, phi, length1, length2) 외곽 위쪽 바로 바깥에 yellow 텍스트로 ROI 식별자 렌더.
+        //  phi=0 이면 (row-length1-22, col-length2) 가 좌상단 외곽. phi≠0 이어도 회전 중심 기준 상대 오프셋이므로 가독성 확보됨.
+        private void DrawRoiLabel(HWindow window, double row, double col, double phi,
+            double length1, double length2, string label)
+        {
+            // 외곽 상단 좌표 (회전 고려): ROI 로컬 (-length1, -length2) → 이미지 좌표 변환
+            // 로컬 (-L1, -L2) 를 phi 만큼 회전 후 (row, col) 에 더함
+            double cosP = Math.Cos(phi);
+            double sinP = Math.Sin(phi);
+            double labelRow = row + (-length1) * cosP - (-length2) * sinP - 22; // 외곽 위쪽 22px 바깥
+            double labelCol = col + (-length1) * sinP + (-length2) * cosP;
+            DrawRoiLabelAt(window, labelRow, labelCol, label);
+        }
+
+        //260424 hbk Phase 12 Gap-2 — 주어진 (row, col) 에 yellow 텍스트 라벨 렌더 (Circle ROI 등 비-Rectangle 용)
+        private void DrawRoiLabelAt(HWindow window, double row, double col, string label)
+        {
+            try
+            {
+                EnsureFontInitialized(window);
+                HOperatorSet.SetColor(window, "yellow");
+                HOperatorSet.SetTposition(window, row, col);
+                HOperatorSet.WriteString(window, label);
+            }
+            catch
+            {
+                // Suppress display errors (기존 RenderDatumOverlay catch 관습 유지)
             }
         }
 

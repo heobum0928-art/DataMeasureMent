@@ -1137,6 +1137,12 @@ namespace ReringProject.UI {
                     break;
             }
 
+            //260424 hbk Phase 12 Gap-3 — DatumConfig 자동 속성은 INotifyPropertyChanged 미발동 → PropertyGrid 강제 재바인딩 + RaisePropertyChanged 이중 신호
+            try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
+            mParentWindow?.inspectionList?.RefreshParamEditor();
+            //260424 hbk Phase 12 Gap-3 — 캔버스 오버레이도 새 좌표로 갱신 (Datum ROI Rect/Circle 재렌더)
+            halconViewer.SetDatumOverlay(_editingDatum, true);
+
             AdvanceDatumTeachStep();
         }
 
@@ -1148,6 +1154,11 @@ namespace ReringProject.UI {
             _editingDatum.CircleROI_Row    = e.CenterRow; //260424 hbk Phase 12 D-10
             _editingDatum.CircleROI_Col    = e.CenterCol; //260424 hbk Phase 12 D-10
             _editingDatum.CircleROI_Radius = e.Radius;    //260424 hbk Phase 12 D-10
+
+            //260424 hbk Phase 12 Gap-3 — PropertyGrid 재바인딩 + Datum 오버레이 갱신 (CircleROI_* write-back 즉시 반영)
+            try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
+            mParentWindow?.inspectionList?.RefreshParamEditor();
+            halconViewer.SetDatumOverlay(_editingDatum, true);
 
             AdvanceDatumTeachStep();
         }

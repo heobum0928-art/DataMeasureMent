@@ -983,10 +983,30 @@ namespace ReringProject.UI {
             }
         }
 
-        //260424 hbk Phase 12 D-01/D-03/D-04 — Datum 티칭 토글 (Task 2 에서 본문 구현)
+        //260424 hbk Phase 12 D-01/D-03/D-04 — Datum 티칭 토글 진입/취소
         private void TeachDatumButton_Click(object sender, RoutedEventArgs e) {
-            //260424 hbk Phase 12 — stub (Task 2)
-            btn_teachDatum.IsChecked = false;
+            if (btn_teachDatum.IsChecked == true) {
+                ExitCanvasMode();
+                _canvasMode = ECanvasMode.TeachDatum;
+                btn_teachDatum.IsChecked = true;
+
+                //260424 hbk Phase 12 — InspectionListView.SelectedParam 으로 DatumConfig 해결 (btn_teachDatum 활성화 조건)
+                var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig; //260424 hbk Phase 12 — MainWindow.xaml:80 x:Name="inspectionList"
+                if (datum == null) {
+                    CustomMessageBox.Show("Datum 노드를 먼저 선택하세요.", "Teach Datum");
+                    ExitCanvasMode();
+                    return;
+                }
+                _editingDatum = datum;
+
+                //260424 hbk Phase 12 D-03 — 알고리즘별 첫 단계 결정 후 StartDatumTeachStep
+                _datumTeachStep = GetFirstStep(datum.AlgorithmTypeEnum);
+                StartDatumTeachStep(_datumTeachStep);
+            }
+            else {
+                //260424 hbk Phase 12 — 수동 해제 = 취소
+                ExitCanvasMode();
+            }
         }
 
         //260424 hbk Phase 12 D-03 — 알고리즘별 첫 ROI 단계
@@ -1017,29 +1037,163 @@ namespace ReringProject.UI {
             }
         }
 
-        //260424 hbk Phase 12 — step 시작 (Task 2 에서 본문 구현)
+        //260424 hbk Phase 12 — step 시작 (드로잉 이벤트 구독 + label_drawHint + Start*Drawing)
         private void StartDatumTeachStep(EDatumTeachStep step) {
-            //260424 hbk Phase 12 — stub (Task 2)
+            // Unsubscribe any previous event to avoid double-fire //260424 hbk Phase 12
+            halconViewer.RectDrawingCompleted   -= HalconViewer_DatumRectCompleted;
+            halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
+
+            switch (step) {
+                case EDatumTeachStep.Line1:
+                    label_drawHint.Content = "Step 1/2: Line1 ROI를 드래그하세요"; //260424 hbk Phase 12
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12 info grey
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    break;
+                case EDatumTeachStep.Line2:
+                    label_drawHint.Content = "Step 2/2: Line2 ROI를 드래그하세요"; //260424 hbk Phase 12
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    break;
+                case EDatumTeachStep.Vertical:
+                    label_drawHint.Content = "Step 1/3: 수직 ROI를 드래그하세요"; //260424 hbk Phase 12
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    break;
+                case EDatumTeachStep.HorizontalA:
+                    label_drawHint.Content = "Step 2/3: 수평 A ROI를 드래그하세요"; //260424 hbk Phase 12
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    break;
+                case EDatumTeachStep.HorizontalB:
+                    label_drawHint.Content = "Step 3/3: 수평 B ROI를 드래그하세요"; //260424 hbk Phase 12
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    break;
+                case EDatumTeachStep.Circle:
+                    label_drawHint.Content = "Step 1/3: Circle 검색 영역 중심을 클릭 후 드래그하여 반지름을 지정하세요"; //260424 hbk Phase 12
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.CircleDrawingCompleted += HalconViewer_DatumCircleCompleted;
+                    halconViewer.StartCircleDrawing();
+                    break;
+                case EDatumTeachStep.Done:
+                    InvokeTryTeachDatum();
+                    break;
+            }
         }
 
-        //260424 hbk Phase 12 — Rect 완료 수신 (Task 2 에서 본문 구현)
+        //260424 hbk Phase 12 — Rect 완료 (Line1/Line2/Vertical/HorizontalA/HorizontalB 공통)
         private void HalconViewer_DatumRectCompleted(object sender, EventArgs e) {
-            //260424 hbk Phase 12 — stub (Task 2)
+            halconViewer.RectDrawingCompleted -= HalconViewer_DatumRectCompleted;
+            var roi = halconViewer.CommitActiveRectangle();
+            if (roi == null || _editingDatum == null) { ExitCanvasMode(); return; }
+
+            //260424 hbk Phase 12 — RoiDefinition bbox → Rectangle2 (center, phi=0, halfH, halfW) — CommitRectRoi L677-680 동일 계산
+            double centerRow = (roi.Row1 + roi.Row2) / 2.0;
+            double centerCol = (roi.Column1 + roi.Column2) / 2.0;
+            double halfH     = (roi.Row2 - roi.Row1) / 2.0;
+            double halfW     = (roi.Column2 - roi.Column1) / 2.0;
+
+            //260424 hbk Phase 12 — step 별 DatumConfig 필드 기록
+            switch (_datumTeachStep) {
+                case EDatumTeachStep.Line1:
+                case EDatumTeachStep.Vertical:  //260424 hbk Phase 12 D-07 — Line1 재사용
+                    _editingDatum.Line1_Row     = centerRow;
+                    _editingDatum.Line1_Col     = centerCol;
+                    _editingDatum.Line1_Phi     = 0.0;
+                    _editingDatum.Line1_Length1 = halfH;
+                    _editingDatum.Line1_Length2 = halfW;
+                    break;
+                case EDatumTeachStep.Line2:
+                    _editingDatum.Line2_Row     = centerRow;
+                    _editingDatum.Line2_Col     = centerCol;
+                    _editingDatum.Line2_Phi     = 0.0;
+                    _editingDatum.Line2_Length1 = halfH;
+                    _editingDatum.Line2_Length2 = halfW;
+                    break;
+                case EDatumTeachStep.HorizontalA:
+                    _editingDatum.Horizontal_A_Row     = centerRow;
+                    _editingDatum.Horizontal_A_Col     = centerCol;
+                    _editingDatum.Horizontal_A_Phi     = 0.0;
+                    _editingDatum.Horizontal_A_Length1 = halfH;
+                    _editingDatum.Horizontal_A_Length2 = halfW;
+                    break;
+                case EDatumTeachStep.HorizontalB:
+                    _editingDatum.Horizontal_B_Row     = centerRow;
+                    _editingDatum.Horizontal_B_Col     = centerCol;
+                    _editingDatum.Horizontal_B_Phi     = 0.0;
+                    _editingDatum.Horizontal_B_Length1 = halfH;
+                    _editingDatum.Horizontal_B_Length2 = halfW;
+                    break;
+            }
+
+            AdvanceDatumTeachStep();
         }
 
-        //260424 hbk Phase 12 — Circle 완료 수신 (Task 2 에서 본문 구현)
+        //260424 hbk Phase 12 — Circle 완료 (CircleTwoHorizontal 첫 step)
         private void HalconViewer_DatumCircleCompleted(object sender, CircleDrawCompletedArgs e) {
-            //260424 hbk Phase 12 — stub (Task 2)
+            halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
+            if (_editingDatum == null || e.Radius <= 0) { ExitCanvasMode(); return; }
+
+            _editingDatum.CircleROI_Row    = e.CenterRow; //260424 hbk Phase 12 D-10
+            _editingDatum.CircleROI_Col    = e.CenterCol; //260424 hbk Phase 12 D-10
+            _editingDatum.CircleROI_Radius = e.Radius;    //260424 hbk Phase 12 D-10
+
+            AdvanceDatumTeachStep();
         }
 
-        //260424 hbk Phase 12 — 다음 step 전이 (Task 2 에서 본문 구현)
+        //260424 hbk Phase 12 — 다음 step 전이
         private void AdvanceDatumTeachStep() {
-            //260424 hbk Phase 12 — stub (Task 2)
+            if (_editingDatum == null) { ExitCanvasMode(); return; }
+            _datumTeachStep = GetNextStep(_editingDatum.AlgorithmTypeEnum, _datumTeachStep);
+            StartDatumTeachStep(_datumTeachStep);
         }
 
-        //260424 hbk Phase 12 D-02 — 마지막 ROI 직후 TryTeachDatum 자동 호출 (Task 2 에서 본문 구현)
+        //260424 hbk Phase 12 D-02 — 마지막 ROI 직후 DatumFindingService.TryTeachDatum 자동 호출
         private void InvokeTryTeachDatum() {
-            //260424 hbk Phase 12 — stub (Task 2)
+            if (_editingDatum == null) { ExitCanvasMode(); return; }
+
+            HImage img = halconViewer.CurrentImage; //260424 hbk Phase 12 — Phase 11 이미지 로드 이후 상태
+            if (img == null) {
+                label_drawHint.Content = "Datum 티칭 실패: 이미지가 없습니다. Grab 하세요"; //260424 hbk Phase 12
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171")); //260424 hbk Phase 12 error red
+                label_drawHint.Visibility = Visibility.Visible;
+                _canvasMode = ECanvasMode.None;
+                btn_teachDatum.IsChecked = false;
+                _editingDatum = null;
+                return;
+            }
+
+            var svc = new ReringProject.Halcon.Algorithms.DatumFindingService(); //260424 hbk Phase 12 — 무상태 서비스
+            string error;
+            bool ok = svc.TryTeachDatum(img, _editingDatum, out error);
+            if (ok) {
+                label_drawHint.Content = "Datum 티칭 완료 — Recipe Save 권장"; //260424 hbk Phase 12
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80")); //260424 hbk Phase 12 success green
+                label_drawHint.Visibility = Visibility.Visible;
+                //260424 hbk Phase 12 — 오버레이 갱신 (LastTeachSucceeded=true → HalconDisplayService CircleTwoHorizontal/Horizontal A/B 분기 렌더)
+                halconViewer.SetDatumOverlay(_editingDatum, true);
+            }
+            else {
+                label_drawHint.Content = "Datum 티칭 실패: " + (error ?? "unknown"); //260424 hbk Phase 12
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171")); //260424 hbk Phase 12 error red
+                label_drawHint.Visibility = Visibility.Visible;
+            }
+
+            //260424 hbk Phase 12 — ROI 유지(재튜닝 가능), canvas mode 해제
+            _canvasMode = ECanvasMode.None;
+            btn_teachDatum.IsChecked = false;
+            _editingDatum = null;
         }
     }
 }

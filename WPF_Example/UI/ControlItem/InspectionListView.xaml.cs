@@ -245,8 +245,10 @@ namespace ReringProject.UI {
             //button_showConfig.IsEnabled = false;
 
             //260423 hbk Phase 11 D-15 — 선택 해제 시 Circle ROI 비활성 (기본값)
+            //260424 hbk Phase 12 D-01 — 선택 해제 시 btn_teachDatum 비활성 (Datum 분기에서만 true)
             if (mParentWindow != null && mParentWindow.mainView != null) {
                 mParentWindow.mainView.btn_circleRoi.IsEnabled = false;
+                mParentWindow.mainView.btn_teachDatum.IsEnabled = false; //260424 hbk Phase 12
             }
 
             object source = e.Source;
@@ -290,6 +292,10 @@ namespace ReringProject.UI {
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
                         if (itemParam is DatumConfig datumCfg) {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
+                        }
+                        //260424 hbk Phase 12 D-01 — Datum 노드 선택 시 btn_teachDatum 활성화
+                        if (mParentWindow != null && mParentWindow.mainView != null) {
+                            mParentWindow.mainView.btn_teachDatum.IsEnabled = true;
                         }
                     }
                     //260417 hbk Phase 6 Plan 04: Measurement node selection (D-24)

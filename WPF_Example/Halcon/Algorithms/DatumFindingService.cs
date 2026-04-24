@@ -240,11 +240,155 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        //260423 hbk Phase 12 — CircleTwoHorizontal 본문 (Task 2 에서 구현)
+        //260423 hbk Phase 12 — CircleTwoHorizontal: 원 센터 수직 가상선 ∩ 수평 2-ROI concat 교점 (D-05/D-06/D-08/D-13/D-14)
         private bool TryTeachCircleTwoHorizontal(HImage image, DatumConfig config, out string error)
         {
-            error = "not implemented (Task 2)";
-            return false;
+            error = null;
+
+            HObject contourA = null;
+            HObject contourB = null;
+            HObject concatContour = null;
+
+            try
+            {
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                //260423 hbk Phase 12 D-05 — Circle 피팅 (VisionAlgorithmService 재사용)
+                var visionSvc = new VisionAlgorithmService();
+                double centerRow, centerCol, radius;
+                string circleError;
+                if (!visionSvc.TryFindCircle(
+                        image,
+                        config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
+                        null, // teaching-phase identity transform
+                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        out centerRow, out centerCol, out radius,
+                        out circleError))
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Circle fit failed: " + circleError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5c)
+                    return false;
+                }
+
+                config.CircleCenter_Row      = centerRow;
+                config.CircleCenter_Col      = centerCol;
+                config.CircleDetected_Radius = radius;
+
+                //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
+                HTuple rowEdgeA, colEdgeA;
+                string edgeErrorA;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA))
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Horizontal line fit failed: " + edgeErrorA; //260423 hbk Phase 12 D-14 (Req 5a)
+                    return false;
+                }
+
+                //260423 hbk Phase 12 D-06 — 수평 B ROI 에지점
+                HTuple rowEdgeB, colEdgeB;
+                string edgeErrorB;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB))
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Horizontal line fit failed: " + edgeErrorB; //260423 hbk Phase 12 D-14 (Req 5a)
+                    return false;
+                }
+
+                //260423 hbk Phase 12 D-15 — 수평 2-ROI concat 에지점 합계 임계값 검사
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
+                if (totalEdges < MIN_HORIZONTAL_EDGES)
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Horizontal line fit failed: insufficient edges (" + totalEdges + ")"; //260423 hbk Phase 12 D-14/D-15 SPEC AC literal (Req 5a)
+                    return false;
+                }
+
+                //260423 hbk Phase 12 — GenContourPolygonXld × 2 → ConcatObj → FitLineContourXld (SPEC Req 3)
+                HOperatorSet.GenContourPolygonXld(out contourA, rowEdgeA, colEdgeA);
+                HOperatorSet.GenContourPolygonXld(out contourB, rowEdgeB, colEdgeB);
+                HOperatorSet.ConcatObj(contourA, contourB, out concatContour);
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df;
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        concatContour, "tukey", -1, 0, 5, 2,
+                        out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
+                }
+                catch (Exception fitEx)
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Horizontal line fit failed: " + fitEx.Message; //260423 hbk Phase 12 D-14 (Req 5a)
+                    return false;
+                }
+
+                //260423 hbk Phase 12 D-08 — 수직 가상선 (centerRow ± 1.0, centerCol) × 수평 결합선 IntersectionLl
+                HTuple curRow, curCol, isOverlapping;
+                HOperatorSet.IntersectionLl(
+                    centerRow - 1.0, centerCol, centerRow + 1.0, centerCol,
+                    hrB, hcB, hrE, hcE,
+                    out curRow, out curCol, out isOverlapping);
+
+                //260423 hbk Phase 12 D-14/D-16 — 교점 중첩/평행 감지 (기존 TwoLineIntersect 와 동일 로직)
+                if (isOverlapping.I == 1)
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Intersection undefined: lines are collinear"; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5b)
+                    return false;
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) ||
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D))
+                {
+                    config.LastTeachSucceeded = false;
+                    error = "Intersection undefined: lines are parallel"; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5b)
+                    return false;
+                }
+
+                //260423 hbk Phase 12 — 기준값 저장
+                config.RefOriginRow = curRow.D;
+                config.RefOriginCol = curCol.D;
+                config.RefAngleRad  = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D); //260423 hbk SPEC Req 4 — 수평 결합선 방향각
+                config.IsConfigured = true;
+
+                //260423 hbk Phase 12 D-13 — 검출 라인 오버레이 필드 재사용 (Line1Detected = 수직 가상선 2점, Line2Detected = 수평 결합선)
+                //260423 hbk  RenderDatumOverlay 의 LastTeachSucceeded 분기가 이 필드를 노랑/시안 선으로 렌더.
+                const double crossHalf = 50.0; //260423 hbk Phase 12 — 수직 가상선 오버레이 가시 길이 (±50px)
+                config.Line1Detected_RBegin = centerRow - crossHalf;
+                config.Line1Detected_CBegin = centerCol;
+                config.Line1Detected_REnd   = centerRow + crossHalf;
+                config.Line1Detected_CEnd   = centerCol;
+                config.Line2Detected_RBegin = hrB.D;
+                config.Line2Detected_CBegin = hcB.D;
+                config.Line2Detected_REnd   = hrE.D;
+                config.Line2Detected_CEnd   = hcE.D;
+                config.LastTeachSucceeded   = true;
+
+                // TODO: Phase 13 — 방향 정합성 검사 (운용 정책 확립 후 구현) //260423 hbk Phase 12 D-17 — Req 5d deferred
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (config != null) { config.LastTeachSucceeded = false; }
+                error = ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (contourA      != null) { try { contourA.Dispose();      } catch { } }
+                if (contourB      != null) { try { contourB.Dispose();      } catch { } }
+                if (concatContour != null) { try { concatContour.Dispose(); } catch { } }
+            }
         }
 
         //260423 hbk Phase 12 — VerticalTwoHorizontal 본문 (Task 3 에서 구현)

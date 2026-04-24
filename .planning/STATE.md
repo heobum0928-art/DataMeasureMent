@@ -109,6 +109,7 @@ Recent decisions affecting current work:
 - [Phase 12-03]: MainView Datum 티칭 UI 3-way 상태머신 (btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep {Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done}) + GetFirstStep/GetNextStep switch + HalconViewer_DatumRect/CircleCompleted step별 DatumConfig write-back + Done 시 InvokeTryTeachDatum 자동 호출; InspectionListView Datum 노드 선택 시 btn_teachDatum 활성화; HalconDisplayService.RenderDatumOverlay 알고리즘별 분기 (Line2 rectangle은 TwoLineIntersect 에서만, CircleROI는 CircleTwoHorizontal 에서만, Horizontal A/B는 non-TwoLineIntersect 공용); LastTeachSucceeded 분기 하 CircleTwoHorizontal 검출 원 + 중심 십자 추가 렌더
 - [Phase 12-03 UAT Gap-2 fix]: RenderDatumOverlay 에 yellow ROI 라벨 추가 (L1/L2 / Circle / H-A / H-B / Vert) — DrawRoiLabel(Rectangle2 회전 반영) + DrawRoiLabelAt(Circle 용) 헬퍼로 수직/수평/라인 시각 구분 복구
 - [Phase 12-03 UAT Gap-3 fix]: DatumConfig 자동 속성 INotifyPropertyChanged 미발동 → HalconViewer_DatumRect/CircleCompleted 에서 _editingDatum.RaisePropertyChanged("") + InspectionListView.RefreshParamEditor() 이중 신호로 PropertyGrid 재바인딩; SetDatumOverlay 도 즉시 재호출하여 방금 그린 ROI 좌표가 캔버스+PropertyGrid+INI save 경로 모두 반영되도록 함 (재시작 후 ROI 복원 가능)
+- [Phase 12-03 UAT]: SIMUL_MODE 육안 검증 사용자 승인 (2026-04-24) — (1) ROI 그리면 PropertyGrid 좌표 숫자 채워짐 확인, (2) ROI 사각형 위 yellow 라벨 (Circle/H-A/H-B) 시인성 확인; Gap-1(ROI Edit/Move in TeachDatum)·Gap-4(런타임 TryFindDatum 테스트 UI)·Req 5d(방향 정합성)는 Phase 13 이월 합의
 
 ### Quick Tasks Completed
 

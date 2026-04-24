@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 12 Plan 01 complete — data model (EDatumAlgorithm + DatumConfig extensions)
-last_updated: "2026-04-24T13:01:42Z"
+stopped_at: Phase 12 Plan 02 complete — DatumFindingService 3-way dispatch + Circle/VerticalTwoHorizontal algorithms
+last_updated: "2026-04-24T14:00:00Z"
 progress:
   total_phases: 13
   completed_phases: 10
   total_plans: 33
-  completed_plans: 28
-  percent: 82
+  completed_plans: 29
+  percent: 85
 ---
 
 # Project State
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 ## Current Position
 
 Phase: 12 (datum-circle-vertical-horizontal-intersection) — EXECUTING
-Plan: 2 of 3 (Plan 01 complete 2026-04-24)
-Next: Execute Plan 02 — DatumFindingService 3-way dispatch + TryTeachCircleTwoHorizontal + TryTeachVerticalTwoHorizontal
+Plan: 3 of 3 (Plan 01/02 complete 2026-04-24)
+Next: Execute Plan 03 — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep + HalconDisplayService algorithm-aware overlay
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Next: Execute Plan 02 — DatumFindingService 3-way dispatch + TryTeachCircleTwo
 | Phase 11 P01 | 12 | 3 tasks | 3 files |
 | Phase 11 P03a | 4 | 3 tasks | 3 files |
 | Phase 12 P01 | 10 | 3 tasks | 3 files |
+| Phase 12 P02 | 8 | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,7 @@ Recent decisions affecting current work:
 - [Phase 11-01]: RoiShape enum placed as sibling type in RoiDefinition.cs (locality); RoiDefinition Shape/CenterRow/CenterCol/Radius added with backward-compat default; HalconDisplayService Circle branch short-circuits polygon check via continue; MainResultViewerControl follows file's actual Allman style over PATTERNS.md K&R guidance
 - [Phase 11-03a]: DatumConfig SourceShotName + 8 volatile Line*Detected_* doubles + LastTeachSucceeded added with backward-compat defaults; TryTeachDatum line-coord writeback preserves signature (Option 2); RenderDatumOverlay gains ADDITIVE LastTeachSucceeded-gated branch — existing cyan/blue/magenta palette preserved (Warning 5 scope guard)
 - [Phase 12-01]: EDatumAlgorithm enum placed in ReringProject.Sequence (co-located w/ DatumConfig for zero-import access); AlgorithmType stored as string (ParamBase can't serialize enum — switch-case L330-363 covers only Int32/Double/String/Boolean/Rect/Line/Circle/PropertyItem[]/ModelFinderViewModel); AlgorithmTypeEnum helper falls back to TwoLineIntersect on TryParse failure (legacy INI backward-compat); Rule 3 auto-fix — csproj Compile ItemGroup updated to register new file (blocking CS0246)
+- [Phase 12-02]: DatumFindingService public TryTeachDatum becomes a switch(config.AlgorithmTypeEnum) dispatch; legacy Phase 4 body moved verbatim to private TryTeachTwoLineIntersect (error literals byte-identical — regression 0); new private TryExtractEdgePoints helper for raw edge tuples (used by 2-ROI horizontal concat path); CircleTwoHorizontal reuses VisionAlgorithmService.TryFindCircle (datumTransform=null for teaching identity); both new algorithms use GenContourPolygonXld×2 → ConcatObj → FitLineContourXld tukey for horizontal concat; MIN_HORIZONTAL_EDGES=10 threshold (D-15); public TryFindDatum (runtime) untouched per SPEC Out-of-scope; Req 5d (direction consistency) deferred to Phase 13 via literal TODO comment (D-17)
 
 ### Quick Tasks Completed
 
@@ -135,5 +137,6 @@ Next action: Phase 09 (VERIFICATION 문서 보강) — /gsd-discuss-phase 9 or /
 
 **Planned Phase:** 12 (datum-circle-vertical-horizontal-intersection) — 3 plans — 2026-04-23T15:17:27.733Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
+**Phase 12 / Plan 02 Execution:** 2026-04-24 — 3 tasks / 1 file (WPF_Example/Halcon/Algorithms/DatumFindingService.cs) / commits 6f6db7b, e6cc52e, 0e9c1f2 — msbuild Debug/x64 green, zero new warnings on DatumFindingService.cs
 **Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT
 **Phase 08 / Plan 08-01 Execution:** 2026-04-23 — 3 tasks / 1 file (.planning/REQUIREMENTS.md) / 3 commits — RC-01..RC-06 섹션 신설 + Traceability Status Complete 10행 + 본문 체크박스 동기화 + Coverage 주석 제거 + Last-updated 갱신 (코드 변경 0건)

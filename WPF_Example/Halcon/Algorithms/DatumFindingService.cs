@@ -13,6 +13,9 @@ namespace ReringProject.Halcon.Algorithms
     /// </summary>
     public class DatumFindingService
     {
+        //260423 hbk Phase 12 D-15 — 수평 2-ROI concat 최소 에지점 (신뢰 라인 피팅 기준)
+        private const int MIN_HORIZONTAL_EDGES = 10;
+
         /// <summary>
         /// 런타임 Datum 찾기: 이미지에서 두 라인을 검출하고 hom_mat2d 변환 행렬을 반환한다.
         /// config.IsConfigured=false이면 identity 변환을 반환(pass-through).
@@ -119,7 +122,9 @@ namespace ReringProject.Halcon.Algorithms
         /// <param name="config">Datum ROI 설정 (기준값 저장 대상)</param>
         /// <param name="error">오류 메시지 (성공 시 null)</param>
         /// <returns>성공 여부</returns>
-        public bool TryTeachDatum(HImage image, DatumConfig config, out string error) //260409 hbk Phase 4: D-13
+        //260409 hbk Phase 4: D-13
+        //260423 hbk Phase 12 D-04 — AlgorithmType 기반 3-way 디스패치. 각 알고리즘 본문은 private 메서드로 분리.
+        public bool TryTeachDatum(HImage image, DatumConfig config, out string error)
         {
             error = null;
 
@@ -128,6 +133,24 @@ namespace ReringProject.Halcon.Algorithms
                 error = "image or config is null";
                 return false;
             }
+
+            //260423 hbk Phase 12 D-04 — AlgorithmTypeEnum 은 string→enum 파싱 헬퍼 (Plan 01, DatumConfig.cs), 미지원 문자열은 TwoLineIntersect 폴백
+            switch (config.AlgorithmTypeEnum)
+            {
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    return TryTeachCircleTwoHorizontal(image, config, out error);
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    return TryTeachVerticalTwoHorizontal(image, config, out error);
+                case EDatumAlgorithm.TwoLineIntersect:
+                default:
+                    return TryTeachTwoLineIntersect(image, config, out error);
+            }
+        }
+
+        //260423 hbk Phase 12 D-04 — 기존 Phase 4 TwoLineIntersect 본문 private 이동 (코드 동일, 회귀 0)
+        private bool TryTeachTwoLineIntersect(HImage image, DatumConfig config, out string error)
+        {
+            error = null;
 
             try
             {
@@ -217,6 +240,20 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260423 hbk Phase 12 — CircleTwoHorizontal 본문 (Task 2 에서 구현)
+        private bool TryTeachCircleTwoHorizontal(HImage image, DatumConfig config, out string error)
+        {
+            error = "not implemented (Task 2)";
+            return false;
+        }
+
+        //260423 hbk Phase 12 — VerticalTwoHorizontal 본문 (Task 3 에서 구현)
+        private bool TryTeachVerticalTwoHorizontal(HImage image, DatumConfig config, out string error)
+        {
+            error = "not implemented (Task 3)";
+            return false;
+        }
+
         /// <summary>
         /// Rectangle2 ROI 내에서 에지 포인트를 검출하고 FitLineContourXld로 라인을 피팅한다.
         /// T-04-02: MeasureHandle은 finally 블록에서 해제된다.
@@ -290,6 +327,45 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     try { contour.Dispose(); } catch { }
                 }
+            }
+        }
+
+        //260423 hbk Phase 12 D-06 — 단일 Rectangle2 ROI에서 에지점만 추출 (라인 피팅 전 단계). 수평 2-ROI concat 피팅용.
+        //260423 hbk  TryFindLine 과 달리 FitLineContourXld 단계를 생략하고 raw edge tuples 반환.
+        private bool TryExtractEdgePoints(
+            HImage image, HTuple imageWidth, HTuple imageHeight,
+            double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
+            double sigma, int threshold, string polarity,
+            out HTuple rowEdge, out HTuple colEdge,
+            out string error)
+        {
+            rowEdge = new HTuple();
+            colEdge = new HTuple();
+            error = null;
+
+            HTuple measureHandle = null;
+            try
+            {
+                HOperatorSet.GenMeasureRectangle2(
+                    roiRow, roiCol, roiPhi, roiLength1, roiLength2,
+                    imageWidth, imageHeight, "nearest_neighbor",
+                    out measureHandle);
+
+                HTuple amp, dist;
+                HOperatorSet.MeasurePos(
+                    image, measureHandle, sigma, threshold, polarity, "all",
+                    out rowEdge, out colEdge, out amp, out dist);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (measureHandle != null) { try { HOperatorSet.CloseMeasure(measureHandle); } catch { } }
             }
         }
     }

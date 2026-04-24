@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 12 Plan 02 complete — DatumFindingService 3-way dispatch + Circle/VerticalTwoHorizontal algorithms
-last_updated: "2026-04-24T14:00:00Z"
+stopped_at: Phase 12 Plan 03 complete — MainView Datum 티칭 상태머신 + InspectionListView 활성화 + RenderDatumOverlay 알고리즘별 분기 + UAT Gap-2/Gap-3 fix
+last_updated: "2026-04-24T16:00:00Z"
 progress:
   total_phases: 13
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 33
-  completed_plans: 29
-  percent: 85
+  completed_plans: 30
+  percent: 88
 ---
 
 # Project State
@@ -24,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 
 ## Current Position
 
-Phase: 12 (datum-circle-vertical-horizontal-intersection) — EXECUTING
-Plan: 3 of 3 (Plan 01/02 complete 2026-04-24)
-Next: Execute Plan 03 — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep + HalconDisplayService algorithm-aware overlay
+Phase: 12 (datum-circle-vertical-horizontal-intersection) — COMPLETE (3/3 plans 2026-04-24)
+Plan: Plan 03 완료 — Datum teach UI state machine + UAT Gap-2 (ROI 라벨) + Gap-3 (PropertyGrid write-back 재바인딩) fix applied
+Next: Phase 13 진입 — Strategy 패턴 리팩터 + deferred Gap-1 (ROI Edit/Move in TeachDatum 모드) + Gap-4 (런타임 TryFindDatum 테스트 UI) + Req 5d (방향 정합성 검사)
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Next: Execute Plan 03 — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDa
 | Phase 11 P03a | 4 | 3 tasks | 3 files |
 | Phase 12 P01 | 10 | 3 tasks | 3 files |
 | Phase 12 P02 | 8 | 3 tasks | 1 files |
+| Phase 12 P03 | 20 | 5 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Recent decisions affecting current work:
 - [Phase 11-03a]: DatumConfig SourceShotName + 8 volatile Line*Detected_* doubles + LastTeachSucceeded added with backward-compat defaults; TryTeachDatum line-coord writeback preserves signature (Option 2); RenderDatumOverlay gains ADDITIVE LastTeachSucceeded-gated branch — existing cyan/blue/magenta palette preserved (Warning 5 scope guard)
 - [Phase 12-01]: EDatumAlgorithm enum placed in ReringProject.Sequence (co-located w/ DatumConfig for zero-import access); AlgorithmType stored as string (ParamBase can't serialize enum — switch-case L330-363 covers only Int32/Double/String/Boolean/Rect/Line/Circle/PropertyItem[]/ModelFinderViewModel); AlgorithmTypeEnum helper falls back to TwoLineIntersect on TryParse failure (legacy INI backward-compat); Rule 3 auto-fix — csproj Compile ItemGroup updated to register new file (blocking CS0246)
 - [Phase 12-02]: DatumFindingService public TryTeachDatum becomes a switch(config.AlgorithmTypeEnum) dispatch; legacy Phase 4 body moved verbatim to private TryTeachTwoLineIntersect (error literals byte-identical — regression 0); new private TryExtractEdgePoints helper for raw edge tuples (used by 2-ROI horizontal concat path); CircleTwoHorizontal reuses VisionAlgorithmService.TryFindCircle (datumTransform=null for teaching identity); both new algorithms use GenContourPolygonXld×2 → ConcatObj → FitLineContourXld tukey for horizontal concat; MIN_HORIZONTAL_EDGES=10 threshold (D-15); public TryFindDatum (runtime) untouched per SPEC Out-of-scope; Req 5d (direction consistency) deferred to Phase 13 via literal TODO comment (D-17)
+- [Phase 12-03]: MainView Datum 티칭 UI 3-way 상태머신 (btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep {Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done}) + GetFirstStep/GetNextStep switch + HalconViewer_DatumRect/CircleCompleted step별 DatumConfig write-back + Done 시 InvokeTryTeachDatum 자동 호출; InspectionListView Datum 노드 선택 시 btn_teachDatum 활성화; HalconDisplayService.RenderDatumOverlay 알고리즘별 분기 (Line2 rectangle은 TwoLineIntersect 에서만, CircleROI는 CircleTwoHorizontal 에서만, Horizontal A/B는 non-TwoLineIntersect 공용); LastTeachSucceeded 분기 하 CircleTwoHorizontal 검출 원 + 중심 십자 추가 렌더
+- [Phase 12-03 UAT Gap-2 fix]: RenderDatumOverlay 에 yellow ROI 라벨 추가 (L1/L2 / Circle / H-A / H-B / Vert) — DrawRoiLabel(Rectangle2 회전 반영) + DrawRoiLabelAt(Circle 용) 헬퍼로 수직/수평/라인 시각 구분 복구
+- [Phase 12-03 UAT Gap-3 fix]: DatumConfig 자동 속성 INotifyPropertyChanged 미발동 → HalconViewer_DatumRect/CircleCompleted 에서 _editingDatum.RaisePropertyChanged("") + InspectionListView.RefreshParamEditor() 이중 신호로 PropertyGrid 재바인딩; SetDatumOverlay 도 즉시 재호출하여 방금 그린 ROI 좌표가 캔버스+PropertyGrid+INI save 경로 모두 반영되도록 함 (재시작 후 ROI 복원 가능)
 
 ### Quick Tasks Completed
 
@@ -140,3 +144,4 @@ Next action: Phase 09 (VERIFICATION 문서 보강) — /gsd-discuss-phase 9 or /
 **Phase 12 / Plan 02 Execution:** 2026-04-24 — 3 tasks / 1 file (WPF_Example/Halcon/Algorithms/DatumFindingService.cs) / commits 6f6db7b, e6cc52e, 0e9c1f2 — msbuild Debug/x64 green, zero new warnings on DatumFindingService.cs
 **Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT
 **Phase 08 / Plan 08-01 Execution:** 2026-04-23 — 3 tasks / 1 file (.planning/REQUIREMENTS.md) / 3 commits — RC-01..RC-06 섹션 신설 + Traceability Status Complete 10행 + 본문 체크박스 동기화 + Coverage 주석 제거 + Last-updated 갱신 (코드 변경 0건)
+**Phase 12 / Plan 12-03 Execution:** 2026-04-24 — 5 tasks / 5 files (MainView.xaml + MainView.xaml.cs + InspectionListView.xaml.cs + HalconDisplayService.cs + DatumConfig.cs 주석) / commits e3287c6, f0c7668, 3fe1119 (Tasks 1-3 원계획) + 781e4be (UAT Gap-2/Gap-3 fix) — msbuild Debug/x64 green, 신규 warning 0. UAT Gap-1 (ROI Edit in TeachDatum 모드) 및 Gap-4 (런타임 TryFindDatum 테스트 UI) 는 Phase 13 이월.

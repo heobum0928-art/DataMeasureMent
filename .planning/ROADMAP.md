@@ -225,11 +225,11 @@ Plans:
 **Depends on**: Phase 11
 **Requirements**: SPEC.md (7 requirements locked, ambiguity 0.17)
 **Success Criteria** (what must be TRUE): SPEC.md의 Acceptance Criteria 참조
-**Plans:** 2/3 plans complete
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 12-01-PLAN.md — EDatumAlgorithm enum + DatumConfig data-model extension (AlgorithmType string + Circle/Horizontal ROI fields + volatile Circle detection fields) + INI round-trip sanity
 - [x] 12-02-PLAN.md — DatumFindingService 3-way dispatch + TryTeachCircleTwoHorizontal + TryTeachVerticalTwoHorizontal + TryExtractEdgePoints helper + MIN_HORIZONTAL_EDGES threshold + SPEC AC error literals (Req 5d deferred to Phase 13)
-- [ ] 12-03-PLAN.md — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep state machine + InvokeTryTeachDatum auto-call + InspectionListView Datum node enable + HalconDisplayService algorithm-aware overlay branches + SIMUL_MODE 3-way visual verification
+- [x] 12-03-PLAN.md — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep state machine + InvokeTryTeachDatum auto-call + InspectionListView Datum node enable + HalconDisplayService algorithm-aware overlay branches + SIMUL_MODE 3-way visual verification (UAT Gap-2 ROI 라벨 + Gap-3 write-back 재바인딩 fix 포함; Gap-1 ROI Edit / Gap-4 런타임 TryFindDatum 테스트 UI 는 Phase 13 이월)
 **UI hint**: yes
 
 ### Phase 13: datum-algorithm-extensibility

@@ -95,6 +95,27 @@
                         MinWidth="100" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260424 hbk Phase 13 D-05 — 런타임 TryFindDatum 테스트 버튼 (Datum teach 완료 후 활성화)-->
+                    <Button x:Name="btn_testFindDatum" Content="Test Find"
+                        Click="BtnTestFindDatum_Click"
+                        IsEnabled="True"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#2563EB" Foreground="White"
+                        BorderBrush="#1D4ED8" BorderThickness="1"
+                        Margin="0,0,4,0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
                                Margin="4,4"/>
 
@@ -123,6 +144,10 @@
                 <Label x:Name="label_pointCount" Grid.Column="2" Visibility="Collapsed"
                        HorizontalAlignment="Right" VerticalContentAlignment="Center"
                        FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,8,0"/>
+                <!--260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 label (성공 LimeGreen / 실패 Red)-->
+                <Label x:Name="label_testFindResult" Grid.Column="1" Visibility="Collapsed"
+                       HorizontalAlignment="Center" VerticalContentAlignment="Center"
+                       FontSize="13" Foreground="#FFAAAAAA"/>
             </Grid>
         </Border>
 

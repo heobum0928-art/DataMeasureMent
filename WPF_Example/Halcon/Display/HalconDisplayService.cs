@@ -210,6 +210,39 @@ namespace ReringProject.Halcon.Display
             }
         }
 
+        //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 검출 RefOrigin 주황 3px 십자 + 좌표 WriteString 오버레이
+        //  기존 RenderDatumOverlay teach-success 빨간 2px 십자 (L350+) 와 시각적으로 구분되는 팔레트.
+        //  datum.RefOriginRow/Col 은 TryFindDatum 성공 시 DatumFindingService 에서 curRow/curCol 로 업데이트된 값.
+        public void RenderDatumFindResult(HWindow window, DatumConfig datum)
+        {
+            if (window == null || datum == null) return;
+
+            try
+            {
+                // 주황 십자 (20px half-length, 3px 굵기 — teach 빨강 2px 와 차별화)
+                HOperatorSet.SetColor(window, "orange");
+                HOperatorSet.SetLineWidth(window, 3);
+                const double crossHalf = 20.0;
+                HOperatorSet.DispLine(window,
+                    datum.RefOriginRow - crossHalf, datum.RefOriginCol,
+                    datum.RefOriginRow + crossHalf, datum.RefOriginCol);
+                HOperatorSet.DispLine(window,
+                    datum.RefOriginRow, datum.RefOriginCol - crossHalf,
+                    datum.RefOriginRow, datum.RefOriginCol + crossHalf);
+
+                // 좌표 텍스트 (십자 위쪽 외곽 — teach yellow 라벨 규약과 동일한 상단 offset)
+                EnsureFontInitialized(window);
+                HOperatorSet.SetColor(window, "orange");
+                HOperatorSet.SetTposition(window, datum.RefOriginRow - crossHalf - 22, datum.RefOriginCol + crossHalf + 4);
+                HOperatorSet.WriteString(window,
+                    "TryFind (" + datum.RefOriginRow.ToString("F1") + ", " + datum.RefOriginCol.ToString("F1") + ")");
+            }
+            catch
+            {
+                // Suppress display errors (기존 RenderDatumOverlay / RenderCircleDraft catch 관습 유지)
+            }
+        }
+
         private void EnsureFontInitialized(HWindow window)
         {
             if (_isFontInitialized)

@@ -1206,5 +1206,83 @@ namespace ReringProject.UI {
             btn_teachDatum.IsChecked = false;
             _editingDatum = null;
         }
+
+        //260424 hbk Phase 13 D-05..D-08 — 런타임 TryFindDatum 테스트 진입 (현재/Load 이미지 2-way + 성공 주황 십자 + 실패 에러 메시지)
+        private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
+            //260424 hbk Phase 13 D-05 — Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
+            var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
+            if (datum == null || !datum.IsConfigured || !datum.LastTeachSucceeded) {
+                CustomMessageBox.Show("Datum 티칭이 완료된 후 테스트 가능합니다.", "Datum Find 테스트"); //260424 hbk Phase 13 D-05
+                return;
+            }
+
+            //260424 hbk Phase 13 D-06 — 테스트 이미지 소스 선택 (현재 / Load / 취소)
+            HImage testImage = AskTestImageSource();
+            if (testImage == null) return; //260424 hbk Phase 13 D-06 — 사용자 취소
+
+            //260424 hbk Phase 13 D-07/D-08 — DatumFindingService.TryFindDatum 호출 (Phase 4 Plan 01 L28 시그니처)
+            var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
+            HTuple transform;
+            string error;
+            bool ok = svc.TryFindDatum(testImage, datum, out transform, out error);
+
+            //260424 hbk Phase 13 D-07/D-08 — label_drawHint 숨기고 label_testFindResult 로 전용 피드백
+            label_drawHint.Visibility = Visibility.Collapsed;
+            label_testFindResult.Visibility = Visibility.Visible;
+            if (ok) {
+                label_testFindResult.Content = string.Format(
+                    "TryFind OK — RefOrigin=({0:F1}, {1:F1}), Angle={2:F3} rad",
+                    datum.RefOriginRow, datum.RefOriginCol, datum.RefAngleRad); //260424 hbk Phase 13 D-07
+                label_testFindResult.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80")); //260424 hbk Phase 13 D-07 LimeGreen
+                //260424 hbk Phase 13 D-07 — 성공 시 주황 십자 오버레이 렌더 (RenderDatumFindResult — HalconDisplayService)
+                halconViewer.SetDatumFindResultOverlay(datum);
+            }
+            else {
+                label_testFindResult.Content = "TryFind FAIL — " + (error ?? "unknown"); //260424 hbk Phase 13 D-08
+                label_testFindResult.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171")); //260424 hbk Phase 13 D-08 error red
+                //260424 hbk Phase 13 D-08 — 실패 시 오버레이 clear (이전 성공 십자 잔상 제거)
+                halconViewer.ClearDatumFindResultOverlay();
+            }
+        }
+
+        //260424 hbk Phase 13 D-06 — 테스트 이미지 소스 다이얼로그: 현재 halconViewer.CurrentImage / OpenFileDialog / 취소
+        //  반환 HImage 는 halconViewer.CurrentImage 참조 그대로 (별도 Dispose 책임 없음 — halconViewer 가 소유)
+        private HImage AskTestImageSource() {
+            HImage currentImg = halconViewer.CurrentImage;
+            bool hasCurrent = (currentImg != null);
+
+            //260424 hbk Phase 13 D-06 — 3-way 선택 (MessageBox YesNoCancel: Yes=현재 이미지 / No=파일 선택 / Cancel=취소)
+            MessageBoxResult choice;
+            if (hasCurrent) {
+                choice = MessageBox.Show(
+                    "테스트 이미지를 선택하세요.\n\n[예] 현재 이미지로 테스트\n[아니오] 다른 파일 선택...\n[취소] 취소",
+                    "Datum Find 테스트 이미지",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+            }
+            else {
+                //260424 hbk Phase 13 D-06 — 현재 이미지 없으면 바로 파일 선택 경로 (2-way)
+                choice = MessageBoxResult.No; // 파일 선택 분기로 진입
+            }
+
+            if (choice == MessageBoxResult.Cancel) return null;
+            if (choice == MessageBoxResult.Yes) return currentImg; //260424 hbk Phase 13 D-06 — 현재 이미지 그대로 사용
+
+            //260424 hbk Phase 13 D-06 — No = OpenFileDialog (LoadAndDisplay L264-272 필터 재사용)
+            var dialog = new OpenFileDialog {
+                Filter = "Image Files (*.bmp;*.jpg;*.jpeg;*.png;*.tif;*.tiff)|*.bmp;*.jpg;*.jpeg;*.png;*.tif;*.tiff|All Files (*.*)|*.*"
+            };
+            if (dialog.ShowDialog() != true) return null;
+
+            try {
+                halconViewer.LoadImage(dialog.FileName); //260424 hbk Phase 13 D-06 — halconViewer 가 CurrentImage 교체 + Render
+                return halconViewer.CurrentImage; //260424 hbk Phase 13 D-06 — 로드된 이미지 참조 반환
+            }
+            catch (Exception ex) {
+                Logging.PrintErrLog((int)ELogType.Error, "Datum Test Load fail: " + ex.Message); //260424 hbk Phase 13 D-08
+                CustomMessageBox.Show("이미지 로드 실패: " + ex.Message, "Datum Find 테스트");
+                return null;
+            }
+        }
     }
 }

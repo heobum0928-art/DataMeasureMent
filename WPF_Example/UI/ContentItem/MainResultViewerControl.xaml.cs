@@ -508,6 +508,11 @@ namespace ReringProject.UI
         private DatumConfig _datumConfig;
         private bool _datumSelected;
 
+        //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 렌더 대상 (SetDatumFindResultOverlay 로 주입)
+        //  null 이 아니면 Render() 가 _displayService.RenderDatumFindResult 호출.
+        //  teach 경로 (_datumConfig + _datumSelected) 와 독립 — 동시 표시 허용 (주황 십자 + 빨간 교점 십자 공존).
+        private DatumConfig _datumFindResultOverlay;
+
         //260410 hbk Phase 4 gap fix: set Datum for overlay rendering
         public void SetDatumOverlay(DatumConfig datum, bool isSelected)
         {
@@ -521,6 +526,20 @@ namespace ReringProject.UI
         {
             _datumConfig = null;
             _datumSelected = false;
+        }
+
+        //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 오버레이 set
+        public void SetDatumFindResultOverlay(DatumConfig datum)
+        {
+            _datumFindResultOverlay = datum;
+            Render();
+        }
+
+        //260424 hbk Phase 13 D-08 — 실패 / 재시도 시 주황 십자 오버레이 clear
+        public void ClearDatumFindResultOverlay()
+        {
+            _datumFindResultOverlay = null;
+            Render();
         }
 
         //260408 hbk Calibration 십자+라인 오버레이
@@ -605,6 +624,12 @@ namespace ReringProject.UI
             if (_datumConfig != null)
             {
                 _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected);
+            }
+
+            //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 주황 십자 오버레이 (teach 경로와 독립, 동시 표시 허용)
+            if (_datumFindResultOverlay != null)
+            {
+                _displayService.RenderDatumFindResult(ViewerHost.HalconWindow, _datumFindResultOverlay);
             }
 
             //260423 hbk Phase 11 D-14 — Circle 드래그 미리보기 렌더

@@ -248,6 +248,6 @@ Plans:
 - [x] 13-01-PLAN.md — DatumFindingService ValidateHorizontalVerticalAngles helper + CircleTwoHorizontal/VerticalTwoHorizontal 검증 게이트 연결 (Req 5d)
 - [x] 13-02-PLAN.md — btn_testFindDatum + AskTestImageSource(현재 이미지/LoadImage) + RenderDatumFindResult 오버레이 + label_testFindResult (Gap-4)
 - [x] 13-03-PLAN.md — RoiMoveCompleted Datum 분기 + MainResultViewerControl Datum selection-aware hit-test + ApplyDatumRoiDelta + 자동 InvokeTryTeachDatum + ContextMenu Delete + Plan 02 CustomMessageBox arg fix (Gap-1 + Gap-A)
-- [ ] 13-04-PLAN.md — DatumConfig per-ROI 5×6=30 신규 필드 + EnsurePerRoiDefaults() INI 하위호환 마이그레이션 + DatumFindingService TryFindLine/TryExtractEdgePoints 시그니처 확장 + 5 ROI 와이어링 (per-ROI 파라미터)
+- [x] 13-04-PLAN.md — DatumConfig per-ROI 5×6=30 신규 필드 + EnsurePerRoiDefaults() INI 하위호환 마이그레이션 + DatumFindingService TryFindLine/TryExtractEdgePoints 시그니처 확장 + 5 ROI 와이어링 (per-ROI 파라미터)
 - [ ] 13-05-PLAN.md — DatumConfig 10 volatile HTuple 필드 (raw 에지점) + DatumFindingService write-back + HalconDisplayService EXTEND_PX/DrawExtendedLine/RenderRawEdgePoints + MainView label_datumRefCoords (시각화: 라인 외삽 + raw 점 + reference 좌표 텍스트)
 **UI hint**: yes

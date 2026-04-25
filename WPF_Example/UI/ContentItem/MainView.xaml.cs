@@ -1258,48 +1258,50 @@ namespace ReringProject.UI {
             }
         }
 
-        //260424 hbk Phase 12 — Rect 완료 (Line1/Line2/Vertical/HorizontalA/HorizontalB 공통)
+        //260426 hbk Phase 13 D-PRP-LENFIX — Rect 완료 (Line1/Line2/Vertical/HorizontalA/HorizontalB 공통)
         private void HalconViewer_DatumRectCompleted(object sender, EventArgs e) {
             halconViewer.RectDrawingCompleted -= HalconViewer_DatumRectCompleted;
             var roi = halconViewer.CommitActiveRectangle();
             if (roi == null || _editingDatum == null) { ExitCanvasMode(); return; }
 
-            //260424 hbk Phase 12 — RoiDefinition bbox → Rectangle2 (center, phi=0, halfH, halfW) — CommitRectRoi L677-680 동일 계산
+            //260426 hbk Phase 13 D-PRP-LENFIX — RoiDefinition bbox → Rectangle2 (center, phi=0, halfW=Length1, halfH=Length2) 정정
+            //  Halcon gen_measure_rectangle2(Row,Col,Phi,Length1,Length2): Phi=0 기준 Length1=X축 절반(halfW), Length2=Y축 절반(halfH).
+            //  Phase 12 의 (Length1=halfH, Length2=halfW) 매핑은 정반대 → 측정 사각형 90° 회전 → MeasurePos 가 의도한 에지를 가로지르지 못함.
             double centerRow = (roi.Row1 + roi.Row2) / 2.0;
             double centerCol = (roi.Column1 + roi.Column2) / 2.0;
             double halfH     = (roi.Row2 - roi.Row1) / 2.0;
             double halfW     = (roi.Column2 - roi.Column1) / 2.0;
 
-            //260424 hbk Phase 12 — step 별 DatumConfig 필드 기록
+            //260426 hbk Phase 13 D-PRP-LENFIX — step 별 DatumConfig 필드 기록 (Length1=halfW, Length2=halfH 정정)
             switch (_datumTeachStep) {
                 case EDatumTeachStep.Line1:
                 case EDatumTeachStep.Vertical:  //260424 hbk Phase 12 D-07 — Line1 재사용
                     _editingDatum.Line1_Row     = centerRow;
                     _editingDatum.Line1_Col     = centerCol;
                     _editingDatum.Line1_Phi     = 0.0;
-                    _editingDatum.Line1_Length1 = halfH;
-                    _editingDatum.Line1_Length2 = halfW;
+                    _editingDatum.Line1_Length1 = halfW; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfW(X축 절반)=Length1
+                    _editingDatum.Line1_Length2 = halfH; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfH(Y축 절반)=Length2
                     break;
                 case EDatumTeachStep.Line2:
                     _editingDatum.Line2_Row     = centerRow;
                     _editingDatum.Line2_Col     = centerCol;
                     _editingDatum.Line2_Phi     = 0.0;
-                    _editingDatum.Line2_Length1 = halfH;
-                    _editingDatum.Line2_Length2 = halfW;
+                    _editingDatum.Line2_Length1 = halfW; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfW=Length1
+                    _editingDatum.Line2_Length2 = halfH; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfH=Length2
                     break;
                 case EDatumTeachStep.HorizontalA:
                     _editingDatum.Horizontal_A_Row     = centerRow;
                     _editingDatum.Horizontal_A_Col     = centerCol;
                     _editingDatum.Horizontal_A_Phi     = 0.0;
-                    _editingDatum.Horizontal_A_Length1 = halfH;
-                    _editingDatum.Horizontal_A_Length2 = halfW;
+                    _editingDatum.Horizontal_A_Length1 = halfW; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfW=Length1
+                    _editingDatum.Horizontal_A_Length2 = halfH; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfH=Length2
                     break;
                 case EDatumTeachStep.HorizontalB:
                     _editingDatum.Horizontal_B_Row     = centerRow;
                     _editingDatum.Horizontal_B_Col     = centerCol;
                     _editingDatum.Horizontal_B_Phi     = 0.0;
-                    _editingDatum.Horizontal_B_Length1 = halfH;
-                    _editingDatum.Horizontal_B_Length2 = halfW;
+                    _editingDatum.Horizontal_B_Length1 = halfW; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfW=Length1
+                    _editingDatum.Horizontal_B_Length2 = halfH; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfH=Length2
                     break;
             }
 

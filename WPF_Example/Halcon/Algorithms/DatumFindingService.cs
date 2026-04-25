@@ -674,6 +674,11 @@ namespace ReringProject.Halcon.Algorithms
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
+                //260426 hbk Phase 13 D-PRP-LENFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (티칭 후 ROI 좌표 정합 확인용)
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}",
+                        roiLabel ?? "?", roiRow, roiCol, roiPhi, roiPhi * 180.0 / System.Math.PI, roiLength1, roiLength2));
+
                 //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] MeasurePos sigma={1:F2} threshold={2} polarity={3} direction={4} sampleCount={5} trimCount={6}",
@@ -779,10 +784,18 @@ namespace ReringProject.Halcon.Algorithms
             HTuple measureHandle = null;
             try
             {
+                HObject horect;
+                HOperatorSet.GenRectangle2(out horect, roiRow, roiCol, roiPhi, roiLength1, roiLength2);
+
                 HOperatorSet.GenMeasureRectangle2(
                     roiRow, roiCol, roiPhi, roiLength1, roiLength2,
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
+
+                //260426 hbk Phase 13 D-PRP-LENFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (티칭 후 ROI 좌표 정합 확인용)
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}",
+                        roiLabel ?? "?", roiRow, roiCol, roiPhi, roiPhi * 180.0 / System.Math.PI, roiLength1, roiLength2));
 
                 //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
                 Logging.PrintLog((int)ELogType.Trace,

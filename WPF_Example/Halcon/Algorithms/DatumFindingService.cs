@@ -2,6 +2,8 @@
 using System;
 using HalconDotNet;
 using ReringProject.Sequence;
+using ReringProject.Setting;  //260426 hbk Phase 13 D-PRP-HOTFIX — ELogType
+using ReringProject.Utility;  //260426 hbk Phase 13 D-PRP-HOTFIX — Logging
 
 namespace ReringProject.Halcon.Algorithms
 {
@@ -58,7 +60,8 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                     config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
-                    out lineError))
+                    out lineError,
+                    "Line1")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     error = "Line1: " + lineError;
                     return false;
@@ -73,7 +76,8 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
                     config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
-                    out lineError))
+                    out lineError,
+                    "Line2")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     error = "Line2: " + lineError;
                     return false;
@@ -181,7 +185,8 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                     config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
-                    out lineError))
+                    out lineError,
+                    "Line1")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false; //260423 hbk Phase 11 D-11
                     error = "Line1: " + lineError;
@@ -197,7 +202,8 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
                     config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
-                    out lineError))
+                    out lineError,
+                    "Line2")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false; //260423 hbk Phase 11 D-11
                     error = "Line2: " + lineError;
@@ -304,7 +310,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
-                        out rowEdgeA, out colEdgeA, out edgeErrorA))
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false;
                     error = "Horizontal line fit failed: " + edgeErrorA; //260423 hbk Phase 12 D-14 (Req 5a)
@@ -321,7 +328,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
-                        out rowEdgeB, out colEdgeB, out edgeErrorB))
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false;
                     error = "Horizontal line fit failed: " + edgeErrorB; //260423 hbk Phase 12 D-14 (Req 5a)
@@ -448,7 +456,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                         config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                         out vrB, out vcB, out vrE, out vcE,
-                        out lineError))
+                        out lineError,
+                        "Line1(vertical)")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false;
                     error = "Vertical line fit failed: " + lineError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5e)
@@ -465,7 +474,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
-                        out rowEdgeA, out colEdgeA, out edgeErrorA))
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false;
                     error = "Horizontal line fit failed: " + edgeErrorA; //260423 hbk Phase 12 D-14 (Req 5a)
@@ -482,7 +492,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
-                        out rowEdgeB, out colEdgeB, out edgeErrorB))
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     config.LastTeachSucceeded = false;
                     error = "Horizontal line fit failed: " + edgeErrorB; //260423 hbk Phase 12 D-14 (Req 5a)
@@ -625,8 +636,9 @@ namespace ReringProject.Halcon.Algorithms
         /// </summary>
         //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가)
         //  이전 호출부의 글로벌 sigma/threshold/polarity 는 ROI 별 값으로 교체됨.
-        //  direction/sampleCount/trimCount 는 향후 알고리즘 확장 hook — 현재는 시그니처에 수신만 하고 미사용 (알고리즘 변경 최소화 원칙).
-        //  sampleCount > 0 / trimCount > 0 분기는 13-05 이후 단계에서 구현 예정.
+        //260426 hbk Phase 13 D-PRP-HOTFIX — direction/sampleCount/trimCount 실제 적용:
+        //  sanity clamp, MeasurePos 전후 Trace 로그, trimCount 슬라이싱, sampleCount 최소 에지 게이트.
+        //  direction 은 로그 가시성 메타데이터 전용 (알고리즘 sort 미구현 — 추후 확장).
         private bool TryFindLine( //260409 hbk Phase 4
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
@@ -634,7 +646,8 @@ namespace ReringProject.Halcon.Algorithms
             string direction, int sampleCount, int trimCount,
             out double lineRowBegin, out double lineColBegin,
             out double lineRowEnd, out double lineColEnd,
-            out string error)
+            out string error,
+            string roiLabel) //260426 hbk Phase 13 D-PRP-HOTFIX — 진단 로그용 ROI 레이블
         {
             lineRowBegin = 0;
             lineColBegin = 0;
@@ -642,10 +655,13 @@ namespace ReringProject.Halcon.Algorithms
             lineColEnd = 0;
             error = null;
 
-            // direction/sampleCount/trimCount: 수신만 함 — 알고리즘 변경 최소화 원칙 (13-05 이후 확장)
-            _ = direction;
-            _ = sampleCount;
-            _ = trimCount;
+            //260426 hbk Phase 13 D-PRP-HOTFIX — sanity clamp: PropertyGrid 0/"" 누락 방어 (EnsurePerRoiDefaults 이후에도 이중 방어)
+            if (sigma < 0.4) sigma = 1.0;          // Halcon MeasurePos requires sigma >= 0.4
+            if (threshold <= 0) threshold = 20;
+            if (string.IsNullOrEmpty(polarity)) polarity = "all";
+            if (string.IsNullOrEmpty(direction)) direction = "LtoR";
+            if (sampleCount < 0) sampleCount = 0;  // 0 = "최소 강제 없음" sentinel
+            if (trimCount < 0) trimCount = 0;
 
             HTuple measureHandle = null;
             HObject contour = null;
@@ -658,6 +674,11 @@ namespace ReringProject.Halcon.Algorithms
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
+                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] MeasurePos sigma={1:F2} threshold={2} polarity={3} direction={4} sampleCount={5} trimCount={6}",
+                        roiLabel ?? "?", sigma, threshold, polarity, direction, sampleCount, trimCount));
+
                 // 에지 포인트 검출
                 HTuple rowEdge, colEdge, amp, dist;
                 HOperatorSet.MeasurePos(
@@ -666,9 +687,34 @@ namespace ReringProject.Halcon.Algorithms
                     out rowEdge, out colEdge, out amp, out dist);
 
                 int edgeCount = rowEdge.TupleLength();
-                if (edgeCount < 2)
+
+                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 결과 에지 수 진단 로그
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] MeasurePos returned {1} edges (need >=2 for line fit)",
+                        roiLabel ?? "?", edgeCount));
+
+                //260426 hbk Phase 13 D-PRP-HOTFIX — trimCount 적용: 양 끝 N개씩 제거 (에지 수가 충분할 때만)
+                if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
                 {
-                    error = "insufficient edge points (" + edgeCount + ")";
+                    int keepStart = trimCount;
+                    int keepEnd   = edgeCount - trimCount - 1; // inclusive
+                    HTuple trimmedRow = rowEdge.TupleSelectRange(keepStart, keepEnd);
+                    HTuple trimmedCol = colEdge.TupleSelectRange(keepStart, keepEnd);
+                    rowEdge   = trimmedRow;
+                    colEdge   = trimmedCol;
+                    edgeCount = rowEdge.TupleLength();
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
+                            roiLabel ?? "?", trimCount, edgeCount));
+                }
+
+                //260426 hbk Phase 13 D-PRP-HOTFIX — sampleCount: 최소 에지 게이트 (0 이면 기본 2개 기준 유지)
+                int minRequired = sampleCount > 0 ? sampleCount : 2;
+                if (edgeCount < minRequired)
+                {
+                    error = string.Format("[{0}] insufficient edges: got {1}, need >={2}. sigma={3:F2} threshold={4} polarity={5}",
+                        roiLabel ?? "?", edgeCount, minRequired, sigma, threshold, polarity);
+                    Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
 
@@ -707,23 +753,28 @@ namespace ReringProject.Halcon.Algorithms
 
         //260423 hbk Phase 12 D-06 — 단일 Rectangle2 ROI에서 에지점만 추출 (라인 피팅 전 단계). 수평 2-ROI concat 피팅용.
         //260423 hbk  TryFindLine 과 달리 FitLineContourXld 단계를 생략하고 raw edge tuples 반환.
-        //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가, 알고리즘 변경 최소화 원칙)
+        //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가)
+        //260426 hbk Phase 13 D-PRP-HOTFIX — direction/sampleCount/trimCount 실제 적용 (TryFindLine 과 동일 정책).
         private bool TryExtractEdgePoints(
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
             string direction, int sampleCount, int trimCount,
             out HTuple rowEdge, out HTuple colEdge,
-            out string error)
+            out string error,
+            string roiLabel) //260426 hbk Phase 13 D-PRP-HOTFIX — 진단 로그용 ROI 레이블
         {
             rowEdge = new HTuple();
             colEdge = new HTuple();
             error = null;
 
-            // direction/sampleCount/trimCount: 수신만 함 — 알고리즘 변경 최소화 원칙 (13-05 이후 확장)
-            _ = direction;
-            _ = sampleCount;
-            _ = trimCount;
+            //260426 hbk Phase 13 D-PRP-HOTFIX — sanity clamp (TryFindLine 과 동일 방어)
+            if (sigma < 0.4) sigma = 1.0;
+            if (threshold <= 0) threshold = 20;
+            if (string.IsNullOrEmpty(polarity)) polarity = "all";
+            if (string.IsNullOrEmpty(direction)) direction = "LtoR";
+            if (sampleCount < 0) sampleCount = 0;
+            if (trimCount < 0) trimCount = 0;
 
             HTuple measureHandle = null;
             try
@@ -733,10 +784,46 @@ namespace ReringProject.Halcon.Algorithms
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
+                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] MeasurePos sigma={1:F2} threshold={2} polarity={3} direction={4} sampleCount={5} trimCount={6}",
+                        roiLabel ?? "?", sigma, threshold, polarity, direction, sampleCount, trimCount));
+
                 HTuple amp, dist;
                 HOperatorSet.MeasurePos(
                     image, measureHandle, sigma, threshold, polarity, "all",
                     out rowEdge, out colEdge, out amp, out dist);
+
+                int edgeCount = rowEdge.TupleLength();
+
+                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 결과 에지 수 진단 로그
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] MeasurePos returned {1} edges",
+                        roiLabel ?? "?", edgeCount));
+
+                //260426 hbk Phase 13 D-PRP-HOTFIX — trimCount 적용: 양 끝 N개씩 제거
+                if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
+                {
+                    int keepStart = trimCount;
+                    int keepEnd   = edgeCount - trimCount - 1; // inclusive
+                    HTuple trimmedRow = rowEdge.TupleSelectRange(keepStart, keepEnd);
+                    HTuple trimmedCol = colEdge.TupleSelectRange(keepStart, keepEnd);
+                    rowEdge   = trimmedRow;
+                    colEdge   = trimmedCol;
+                    edgeCount = rowEdge.TupleLength();
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
+                            roiLabel ?? "?", trimCount, edgeCount));
+                }
+
+                //260426 hbk Phase 13 D-PRP-HOTFIX — sampleCount: 최소 에지 게이트 (caller 가 concat 후 MIN_HORIZONTAL_EDGES 도 별도 확인)
+                if (sampleCount > 0 && edgeCount < sampleCount)
+                {
+                    error = string.Format("[{0}] insufficient edges: got {1}, need >={2}. sigma={3:F2} threshold={4} polarity={5}",
+                        roiLabel ?? "?", edgeCount, sampleCount, sigma, threshold, polarity);
+                    Logging.PrintLog((int)ELogType.Trace, error);
+                    return false;
+                }
 
                 return true;
             }

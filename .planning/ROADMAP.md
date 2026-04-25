@@ -232,18 +232,22 @@ Plans:
 - [x] 12-03-PLAN.md — MainView btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep state machine + InvokeTryTeachDatum auto-call + InspectionListView Datum node enable + HalconDisplayService algorithm-aware overlay branches + SIMUL_MODE 3-way visual verification (UAT Gap-2 ROI 라벨 + Gap-3 write-back 재바인딩 fix 포함; Gap-1 ROI Edit / Gap-4 런타임 TryFindDatum 테스트 UI 는 Phase 13 이월)
 **UI hint**: yes
 
-### Phase 13: datum-algorithm-extensibility (재정의 — Datum UX 이월 3건)
-**Goal**: Phase 12(datum-circle-vertical-horizontal-intersection)에서 이월된 Datum 티칭 UX 빈틈 3건을 메운다. (1) TeachDatum ROI 사후 이동/편집 + 자동 재티칭, (2) 런타임 TryFindDatum 테스트 UI, (3) CircleTwoHorizontal/VerticalTwoHorizontal 방향 정합성 검사. 원 scope(Strategy 패턴 추상화 + CircleAndLine 알고리즘)는 Phase 12에서 switch 디스패치 방식으로 이미 달성되어 리팩터는 Deferred.
+### Phase 13: datum-algorithm-extensibility (재정의 — Datum UX 이월 + per-ROI 파라미터 + 시각화)
+**Goal**: Phase 12에서 이월된 Datum 티칭 UX 빈틈을 메우고, 사용자가 5 ROI 별 에지 파라미터를 독립 튜닝하고 검출 결과(raw 점 + 외삽 라인 + reference 좌표)를 한눈에 확인할 수 있도록 한다. 원 scope(Strategy 패턴 추상화)는 Phase 12에서 switch 디스패치 방식으로 이미 달성되어 리팩터는 Deferred.
 **Depends on**: Phase 12
 **Requirements**: (UX backfill — no ROADMAP Requirement IDs; Phase 12 Req 5d 이월)
 **Success Criteria** (what must be TRUE):
-  1. 티칭 완료된 Datum ROI(Rect/Circle)를 마우스 드래그로 이동하면 즉시 TryTeachDatum이 자동 재호출되어 검출 오버레이(십자/원)가 새 위치를 반영한다
-  2. btn_testFindDatum을 통해 현재 Grab 이미지 또는 LoadImage로 연 파일에 대해 TryFindDatum을 실행하여 검출 RefOrigin을 오버레이 십자 + 좌표 숫자로 확인할 수 있다
-  3. CircleTwoHorizontal/VerticalTwoHorizontal 티칭 시 수평 ROI phi가 ±15°를 벗어나거나 수평/수직 교차각이 90°±5°를 벗어나면 티칭 실패로 판정한다
-  4. Phase 12에서 확정된 DatumConfig/DatumFindingService/MainView 공용 시그니처는 변경 없이 유지된다 (추가만 허용)
-**Plans:** 3 plans
+  1. 티칭 완료된 Datum ROI(Rect/Circle)를 마우스 드래그로 이동/우클릭 삭제하면 즉시 TryTeachDatum이 자동 재호출되어 검출 오버레이가 새 위치를 반영한다 (Gap-1 + Gap-A)
+  2. btn_testFindDatum을 통해 현재 Grab 이미지 또는 LoadImage로 연 파일에 대해 TryFindDatum을 실행하여 검출 RefOrigin을 오버레이 십자 + 좌표 숫자로 확인할 수 있다 (Gap-4)
+  3. CircleTwoHorizontal/VerticalTwoHorizontal 티칭 시 수평 ROI phi가 ±15°를 벗어나거나 수평/수직 교차각이 90°±5°를 벗어나면 티칭 실패로 판정한다 (Req 5d)
+  4. 사용자가 5 ROI 각각에 대해 EdgeThreshold/Sigma/EdgeDirection/EdgeSampleCount/EdgeTrimCount/EdgePolarity 6 파라미터를 PropertyGrid 에서 독립 튜닝할 수 있고, 기존 Phase 4/11/12 INI 레시피는 EnsurePerRoiDefaults() 자동 마이그레이션으로 하위호환 유지된다 (per-ROI)
+  5. 검출 라인이 이미지 가장자리까지 외삽되고, 5 ROI 별 raw 검출 에지점이 색상 점 마커로 표시되며, RefOrigin/Angle/CircleCenter/Radius 가 캔버스 옆 텍스트 라벨에 즉시 표시된다 (시각화)
+  6. Phase 12에서 확정된 DatumConfig/DatumFindingService/MainView 공용 시그니처는 변경 없이 유지된다 (additive 만)
+**Plans:** 5 plans
 Plans:
-- [ ] 13-01-PLAN.md — DatumFindingService ValidateHorizontalVerticalAngles helper + CircleTwoHorizontal/VerticalTwoHorizontal 검증 게이트 연결 (Req 5d)
-- [ ] 13-02-PLAN.md — btn_testFindDatum + AskTestImageSource(현재 이미지/LoadImage) + RenderDatumFindResult 오버레이 + label_testFindResult (Gap-4)
-- [ ] 13-03-PLAN.md — RoiMoveCompleted Datum 분기 + MainResultViewerControl Datum selection-aware hit-test + ApplyDatumRoiDelta + 자동 InvokeTryTeachDatum (Gap-1)
+- [x] 13-01-PLAN.md — DatumFindingService ValidateHorizontalVerticalAngles helper + CircleTwoHorizontal/VerticalTwoHorizontal 검증 게이트 연결 (Req 5d)
+- [x] 13-02-PLAN.md — btn_testFindDatum + AskTestImageSource(현재 이미지/LoadImage) + RenderDatumFindResult 오버레이 + label_testFindResult (Gap-4)
+- [ ] 13-03-PLAN.md — RoiMoveCompleted Datum 분기 + MainResultViewerControl Datum selection-aware hit-test + ApplyDatumRoiDelta + 자동 InvokeTryTeachDatum + ContextMenu Delete + Plan 02 CustomMessageBox arg fix (Gap-1 + Gap-A)
+- [ ] 13-04-PLAN.md — DatumConfig per-ROI 5×6=30 신규 필드 + EnsurePerRoiDefaults() INI 하위호환 마이그레이션 + DatumFindingService TryFindLine/TryExtractEdgePoints 시그니처 확장 + 5 ROI 와이어링 (per-ROI 파라미터)
+- [ ] 13-05-PLAN.md — DatumConfig 10 volatile HTuple 필드 (raw 에지점) + DatumFindingService write-back + HalconDisplayService EXTEND_PX/DrawExtendedLine/RenderRawEdgePoints + MainView label_datumRefCoords (시각화: 라인 외삽 + raw 점 + reference 좌표 텍스트)
 **UI hint**: yes

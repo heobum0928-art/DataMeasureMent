@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 12 Plan 03 complete — MainView Datum 티칭 상태머신 + InspectionListView 활성화 + RenderDatumOverlay 알고리즘별 분기 + UAT Gap-2/Gap-3 fix
-last_updated: "2026-04-24T16:00:00Z"
+stopped_at: Phase 13 Plan 03 replan + Plan 04/05 신규 작성 (split — Edit/Delete + per-ROI 파라미터 + 시각화 분리)
+last_updated: "2026-04-26T00:00:00Z"
 progress:
   total_phases: 13
   completed_phases: 11
-  total_plans: 33
+  total_plans: 35
   completed_plans: 30
-  percent: 88
+  percent: 85
 ---
 
 # Project State

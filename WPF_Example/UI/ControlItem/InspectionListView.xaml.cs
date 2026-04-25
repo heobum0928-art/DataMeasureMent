@@ -270,6 +270,8 @@ namespace ReringProject.UI {
 
                     //260410 hbk Phase 4 gap fix: clear Datum overlay on any node change
                     mParentWindow.mainView.halconViewer.ClearDatumOverlay();
+                    //260426 hbk Phase 13 D-A1 — Datum 후보도 매 selection 마다 우선 clear (Datum 분기에서만 다시 publish)
+                    mParentWindow.mainView.halconViewer.ClearDatumRoiCandidates();
 
                     //param
                     if (itemParam is ParamBase) { //action or FAI
@@ -302,6 +304,8 @@ namespace ReringProject.UI {
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
                         if (itemParam is DatumConfig datumCfg) {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
+                            //260426 hbk Phase 13 D-A1 — 이미 티칭된 Datum 도 selection 즉시 ROI hit-test 가능하도록 후보 publish
+                            mParentWindow.mainView.PublishDatumRoiCandidates(datumCfg);
                         }
                         //260424 hbk Phase 12 D-01 — Datum 노드 선택 시 btn_teachDatum 활성화
                         if (mParentWindow != null && mParentWindow.mainView != null) {

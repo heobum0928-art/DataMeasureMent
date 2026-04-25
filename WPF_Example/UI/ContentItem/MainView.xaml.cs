@@ -649,7 +649,8 @@ namespace ReringProject.UI {
         }
 
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
-        private void PublishDatumRoiCandidates(DatumConfig datum) {
+        //260426 hbk Phase 13 D-A1 — InspectionListView 가 selection 시 호출하도록 public 승격
+        public void PublishDatumRoiCandidates(DatumConfig datum) {
             if (datum == null) { halconViewer.ClearDatumRoiCandidates(); return; }
             var list = new List<ReringProject.Halcon.Models.RoiDefinition>();
             switch (datum.AlgorithmTypeEnum) {

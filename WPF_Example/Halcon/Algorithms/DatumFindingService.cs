@@ -531,6 +531,15 @@ namespace ReringProject.Halcon.Algorithms
                 config.Line2Detected_CEnd   = hcE.D;
                 config.LastTeachSucceeded   = true;
 
+                //260424 hbk Phase 13 D-09..D-12 — Req 5d 방향 정합성 검증 (VerticalTwoHorizontal: 수직 phi 는 검출된 수직 라인 Atan2)
+                double vertPhiDetected = Math.Atan2(vrE - vrB, vcE - vcB);
+                string angleError;
+                if (!ValidateHorizontalVerticalAngles(config.RefAngleRad, vertPhiDetected, out angleError))
+                {
+                    config.LastTeachSucceeded = false;
+                    error = angleError;
+                    return false;
+                }
                 return true;
             }
             catch (Exception ex)

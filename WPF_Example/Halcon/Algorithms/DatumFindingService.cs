@@ -378,7 +378,15 @@ namespace ReringProject.Halcon.Algorithms
                 config.Line2Detected_CEnd   = hcE.D;
                 config.LastTeachSucceeded   = true;
 
-                // TODO: Phase 13 — 방향 정합성 검사 (운용 정책 확립 후 구현) //260423 hbk Phase 12 D-17 — Req 5d deferred
+                //260424 hbk Phase 13 D-09..D-12 — Req 5d 방향 정합성 검증 (CircleTwoHorizontal: 수직 가상선 phi = PI/2 고정)
+                double vertPhiCircle = Math.PI / 2.0; // 수직 가상선은 col=const 이므로 Atan2(1,0)=PI/2
+                string angleError;
+                if (!ValidateHorizontalVerticalAngles(config.RefAngleRad, vertPhiCircle, out angleError))
+                {
+                    config.LastTeachSucceeded = false;
+                    error = angleError;
+                    return false;
+                }
                 return true;
             }
             catch (Exception ex)

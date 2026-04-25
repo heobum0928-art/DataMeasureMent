@@ -636,13 +636,14 @@ namespace ReringProject.Halcon.Algorithms
 
         /// <summary>
         /// Rectangle2 ROI 내에서 에지 포인트를 검출하고 FitLineContourXld로 라인을 피팅한다.
-        /// T-04-02: MeasureHandle은 finally 블록에서 해제된다.
+        /// T-04-02: MeasureHandle은 AppendEdgePointsFromStrip 내부 finally 블록에서 strip별로 해제된다.
         /// </summary>
         //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가)
         //  이전 호출부의 글로벌 sigma/threshold/polarity 는 ROI 별 값으로 교체됨.
-        //260426 hbk Phase 13 D-PRP-HOTFIX — direction/sampleCount/trimCount 실제 적용:
-        //  sanity clamp, MeasurePos 전후 Trace 로그, trimCount 슬라이싱, sampleCount 최소 에지 게이트.
-        //  direction 은 로그 가시성 메타데이터 전용 (알고리즘 sort 미구현 — 추후 확장).
+        //260426 hbk Phase 13 D-PRP-LOOP — strip-loop MeasurePos 누적 패턴으로 전면 교체.
+        //  SampleCount = strip 개수 (이전: 최소 에지 게이트). direction = strip 분할 방향.
+        //  SmallestRectangle2 가 strip 별 Phi 자동 도출 → manual effectivePhi 불필요.
+        //  참조: C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs
         private bool TryFindLine( //260409 hbk Phase 4
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
@@ -664,122 +665,122 @@ namespace ReringProject.Halcon.Algorithms
             if (threshold <= 0) threshold = 20;
             if (string.IsNullOrEmpty(polarity)) polarity = "all";
             if (string.IsNullOrEmpty(direction)) direction = "LtoR";
-            if (sampleCount < 0) sampleCount = 0;  // 0 = "최소 강제 없음" sentinel
+            if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
-            //260426 hbk Phase 13 D-PRP-DIRFIX — direction 이 GenMeasureRectangle2 Phi 를 결정.
-            //  Halcon MeasurePos 는 Phi 가 결정하는 major axis 에 PERPENDICULAR 한 에지를 검출.
-            //   - LtoR/RtoL : sweep horizontally  → vertical edges  → effectivePhi = roiPhi (no add)
-            //   - TtoB/BtoT : sweep vertically    → horizontal edges → effectivePhi = roiPhi + PI/2
-            //  90° 회전 시 시각 사각형 유지 위해 Length1/Length2 도 swap.
-            double effectivePhi     = roiPhi;
-            double effectiveLength1 = roiLength1;
-            double effectiveLength2 = roiLength2;
-            if (direction == "TtoB" || direction == "BtoT")
-            {
-                effectivePhi     = roiPhi + System.Math.PI / 2.0;
-                effectiveLength1 = roiLength2;  // major axis half (now Y) = original Y extent
-                effectiveLength2 = roiLength1;  // minor axis half (now X) = original X extent
-            }
+            //260426 hbk Phase 13 D-PRP-LOOP — bounding box 계산 (Phi=0 저장 규약 기준, halfW/halfH = Length1/Length2)
+            double halfW    = roiLength1;
+            double halfH    = roiLength2;
+            double top      = roiRow - halfH;
+            double bottom   = roiRow + halfH;
+            double left     = roiCol - halfW;
+            double right    = roiCol + halfW;
+            double widthPx  = right - left;
+            double heightPx = bottom - top;
 
-            HTuple measureHandle = null;
-            HObject contour = null;
+            //260426 hbk Phase 13 D-PRP-LOOP — LtoR/RtoL = horizontal strips (row-sliced), TtoB/BtoT = vertical strips (col-sliced)
+            bool scanHorizontal = (direction != "TtoB" && direction != "BtoT");
+            int stripCount = (sampleCount > 0) ? sampleCount : 20;  // sentinel 0 → 기본 20 strips
+            if (stripCount < 1) stripCount = 1;
+
+            Logging.PrintLog((int)ELogType.Trace,
+                string.Format("[Datum.{0}] strip-loop: bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
+                    roiLabel ?? "?", top, left, bottom, right,
+                    scanHorizontal ? "horizontal" : "vertical",
+                    stripCount, sigma, threshold, polarity));
+
+            HTuple allRows = new HTuple();
+            HTuple allCols = new HTuple();
 
             try
             {
-                // 에지 측정 핸들 생성
-                HOperatorSet.GenMeasureRectangle2(
-                    roiRow, roiCol, effectivePhi, effectiveLength1, effectiveLength2,
-                    imageWidth, imageHeight, "nearest_neighbor",
-                    out measureHandle);
+                if (scanHorizontal)
+                {
+                    for (int i = 0; i < stripCount; i++)
+                    {
+                        double r1 = top + (i * heightPx / stripCount);
+                        double r2 = top + ((i + 1) * heightPx / stripCount);
+                        AppendEdgePointsFromStrip(
+                            image, r1, left, r2, right,
+                            imageWidth, imageHeight,
+                            sigma, threshold, polarity,
+                            ref allRows, ref allCols);
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < stripCount; i++)
+                    {
+                        double c1 = left + (i * widthPx / stripCount);
+                        double c2 = left + ((i + 1) * widthPx / stripCount);
+                        AppendEdgePointsFromStrip(
+                            image, top, c1, bottom, c2,
+                            imageWidth, imageHeight,
+                            sigma, threshold, polarity,
+                            ref allRows, ref allCols);
+                    }
+                }
 
-                //260426 hbk Phase 13 D-PRP-DIRFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (effective vs raw 비교)
+                int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}  [direction={7} → effective from raw Phi={8:F4}rad L1={9:F2} L2={10:F2}]",
-                        roiLabel ?? "?", roiRow, roiCol, effectivePhi, effectivePhi * 180.0 / System.Math.PI, effectiveLength1, effectiveLength2,
-                        direction, roiPhi, roiLength1, roiLength2));
+                    string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips",
+                        roiLabel ?? "?", edgeCount, stripCount));
 
-                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
-                Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] MeasurePos sigma={1:F2} threshold={2} polarity={3} direction={4} sampleCount={5} trimCount={6}",
-                        roiLabel ?? "?", sigma, threshold, polarity, direction, sampleCount, trimCount));
-
-                // 에지 포인트 검출
-                HTuple rowEdge, colEdge, amp, dist;
-                HOperatorSet.MeasurePos(
-                    image, measureHandle, sigma, threshold,
-                    polarity, "all",
-                    out rowEdge, out colEdge, out amp, out dist);
-
-                int edgeCount = rowEdge.TupleLength();
-
-                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 결과 에지 수 진단 로그
-                Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] MeasurePos returned {1} edges (need >=2 for line fit)",
-                        roiLabel ?? "?", edgeCount));
-
-                //260426 hbk Phase 13 D-PRP-HOTFIX — trimCount 적용: 양 끝 N개씩 제거 (에지 수가 충분할 때만)
+                //260426 hbk Phase 13 D-PRP-LOOP — TrimCount: 누적된 모든 점 중 양 끝 제거 (FitLineContourXld 입력 정제)
                 if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
                 {
-                    int keepStart = trimCount;
-                    int keepEnd   = edgeCount - trimCount - 1; // inclusive
-                    HTuple trimmedRow = rowEdge.TupleSelectRange(keepStart, keepEnd);
-                    HTuple trimmedCol = colEdge.TupleSelectRange(keepStart, keepEnd);
-                    rowEdge   = trimmedRow;
-                    colEdge   = trimmedCol;
-                    edgeCount = rowEdge.TupleLength();
+                    HTuple trimmedR = allRows.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
+                    HTuple trimmedC = allCols.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
+                    allRows    = trimmedR;
+                    allCols    = trimmedC;
+                    edgeCount  = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
                         string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
                             roiLabel ?? "?", trimCount, edgeCount));
                 }
 
-                //260426 hbk Phase 13 D-PRP-HOTFIX — sampleCount: 최소 에지 게이트 (0 이면 기본 2개 기준 유지)
-                int minRequired = sampleCount > 0 ? sampleCount : 2;
-                if (edgeCount < minRequired)
+                if (edgeCount < 2)
                 {
-                    error = string.Format("[{0}] insufficient edges: got {1}, need >={2}. sigma={3:F2} threshold={4} polarity={5}",
-                        roiLabel ?? "?", edgeCount, minRequired, sigma, threshold, polarity);
+                    error = string.Format(
+                        "[{0}] insufficient edges across {1} strips: got {2} (need >=2). sigma={3:F2} threshold={4} polarity={5} scan={6}",
+                        roiLabel ?? "?", stripCount, edgeCount, sigma, threshold, polarity,
+                        scanHorizontal ? "horizontal" : "vertical");
                     Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
 
                 // 라인 피팅 (FitLineContourXld, tukey 로버스트 추정)
-                HOperatorSet.GenContourPolygonXld(out contour, rowEdge, colEdge);
-                HTuple lr1, lc1, lr2, lc2, nr, nc, df;
-                HOperatorSet.FitLineContourXld(
-                    contour, "tukey", -1, 0, 5, 2,
-                    out lr1, out lc1, out lr2, out lc2, out nr, out nc, out df);
+                HObject contour = null;
+                try
+                {
+                    HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols);
+                    HTuple lr1, lc1, lr2, lc2, nr, nc, df;
+                    HOperatorSet.FitLineContourXld(
+                        contour, "tukey", -1, 0, 5, 2,
+                        out lr1, out lc1, out lr2, out lc2, out nr, out nc, out df);
 
-                lineRowBegin = lr1.D;
-                lineColBegin = lc1.D;
-                lineRowEnd = lr2.D;
-                lineColEnd = lc2.D;
-
-                return true;
+                    lineRowBegin = lr1.D;
+                    lineColBegin = lc1.D;
+                    lineRowEnd   = lr2.D;
+                    lineColEnd   = lc2.D;
+                    return true;
+                }
+                finally
+                {
+                    if (contour != null) { try { contour.Dispose(); } catch { } }
+                }
             }
             catch (Exception ex)
             {
                 error = ex.Message;
                 return false;
             }
-            finally
-            {
-                // T-04-02: MeasureHandle 항상 해제
-                if (measureHandle != null)
-                {
-                    try { HOperatorSet.CloseMeasure(measureHandle); } catch { }
-                }
-                if (contour != null)
-                {
-                    try { contour.Dispose(); } catch { }
-                }
-            }
         }
 
         //260423 hbk Phase 12 D-06 — 단일 Rectangle2 ROI에서 에지점만 추출 (라인 피팅 전 단계). 수평 2-ROI concat 피팅용.
         //260423 hbk  TryFindLine 과 달리 FitLineContourXld 단계를 생략하고 raw edge tuples 반환.
         //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가)
-        //260426 hbk Phase 13 D-PRP-HOTFIX — direction/sampleCount/trimCount 실제 적용 (TryFindLine 과 동일 정책).
+        //260426 hbk Phase 13 D-PRP-LOOP — strip-loop MeasurePos 누적 패턴으로 전면 교체 (TryFindLine 과 동일 구조).
         private bool TryExtractEdgePoints(
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
@@ -801,73 +802,87 @@ namespace ReringProject.Halcon.Algorithms
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
-            //260426 hbk Phase 13 D-PRP-DIRFIX — direction 이 GenMeasureRectangle2 Phi 를 결정 (TryFindLine 과 동일 정책).
-            //  TtoB/BtoT : effectivePhi = roiPhi + PI/2, Length1/Length2 swap.
-            //  LtoR/RtoL : effectivePhi = roiPhi (no change).
-            double effectivePhi     = roiPhi;
-            double effectiveLength1 = roiLength1;
-            double effectiveLength2 = roiLength2;
-            if (direction == "TtoB" || direction == "BtoT")
-            {
-                effectivePhi     = roiPhi + System.Math.PI / 2.0;
-                effectiveLength1 = roiLength2;  // major axis half (now Y) = original Y extent
-                effectiveLength2 = roiLength1;  // minor axis half (now X) = original X extent
-            }
+            //260426 hbk Phase 13 D-PRP-LOOP — bounding box 계산 (Phi=0 저장 규약 기준)
+            double halfW    = roiLength1;
+            double halfH    = roiLength2;
+            double top      = roiRow - halfH;
+            double bottom   = roiRow + halfH;
+            double left     = roiCol - halfW;
+            double right    = roiCol + halfW;
+            double widthPx  = right - left;
+            double heightPx = bottom - top;
 
-            HTuple measureHandle = null;
+            //260426 hbk Phase 13 D-PRP-LOOP — LtoR/RtoL = horizontal strips, TtoB/BtoT = vertical strips
+            bool scanHorizontal = (direction != "TtoB" && direction != "BtoT");
+            int stripCount = (sampleCount > 0) ? sampleCount : 20;
+            if (stripCount < 1) stripCount = 1;
+
+            Logging.PrintLog((int)ELogType.Trace,
+                string.Format("[Datum.{0}] strip-loop(extract): bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
+                    roiLabel ?? "?", top, left, bottom, right,
+                    scanHorizontal ? "horizontal" : "vertical",
+                    stripCount, sigma, threshold, polarity));
+
+            HTuple allRows = new HTuple();
+            HTuple allCols = new HTuple();
+
             try
             {
-                HObject horect;
-                HOperatorSet.GenRectangle2(out horect, roiRow, roiCol, effectivePhi, effectiveLength1, effectiveLength2);
+                if (scanHorizontal)
+                {
+                    for (int i = 0; i < stripCount; i++)
+                    {
+                        double r1 = top + (i * heightPx / stripCount);
+                        double r2 = top + ((i + 1) * heightPx / stripCount);
+                        AppendEdgePointsFromStrip(
+                            image, r1, left, r2, right,
+                            imageWidth, imageHeight,
+                            sigma, threshold, polarity,
+                            ref allRows, ref allCols);
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < stripCount; i++)
+                    {
+                        double c1 = left + (i * widthPx / stripCount);
+                        double c2 = left + ((i + 1) * widthPx / stripCount);
+                        AppendEdgePointsFromStrip(
+                            image, top, c1, bottom, c2,
+                            imageWidth, imageHeight,
+                            sigma, threshold, polarity,
+                            ref allRows, ref allCols);
+                    }
+                }
 
-                HOperatorSet.GenMeasureRectangle2(
-                    roiRow, roiCol, effectivePhi, effectiveLength1, effectiveLength2,
-                    imageWidth, imageHeight, "nearest_neighbor",
-                    out measureHandle);
-
-                //260426 hbk Phase 13 D-PRP-DIRFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (effective vs raw 비교)
+                int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}  [direction={7} → effective from raw Phi={8:F4}rad L1={9:F2} L2={10:F2}]",
-                        roiLabel ?? "?", roiRow, roiCol, effectivePhi, effectivePhi * 180.0 / System.Math.PI, effectiveLength1, effectiveLength2,
-                        direction, roiPhi, roiLength1, roiLength2));
+                    string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips",
+                        roiLabel ?? "?", edgeCount, stripCount));
 
-                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
-                Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] MeasurePos sigma={1:F2} threshold={2} polarity={3} direction={4} sampleCount={5} trimCount={6}",
-                        roiLabel ?? "?", sigma, threshold, polarity, direction, sampleCount, trimCount));
-
-                HTuple amp, dist;
-                HOperatorSet.MeasurePos(
-                    image, measureHandle, sigma, threshold, polarity, "all",
-                    out rowEdge, out colEdge, out amp, out dist);
-
-                int edgeCount = rowEdge.TupleLength();
-
-                //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 결과 에지 수 진단 로그
-                Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] MeasurePos returned {1} edges",
-                        roiLabel ?? "?", edgeCount));
-
-                //260426 hbk Phase 13 D-PRP-HOTFIX — trimCount 적용: 양 끝 N개씩 제거
+                //260426 hbk Phase 13 D-PRP-LOOP — TrimCount: 누적된 전체 점 양 끝 제거
                 if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
                 {
-                    int keepStart = trimCount;
-                    int keepEnd   = edgeCount - trimCount - 1; // inclusive
-                    HTuple trimmedRow = rowEdge.TupleSelectRange(keepStart, keepEnd);
-                    HTuple trimmedCol = colEdge.TupleSelectRange(keepStart, keepEnd);
-                    rowEdge   = trimmedRow;
-                    colEdge   = trimmedCol;
-                    edgeCount = rowEdge.TupleLength();
+                    HTuple trimmedR = allRows.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
+                    HTuple trimmedC = allCols.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
+                    allRows   = trimmedR;
+                    allCols   = trimmedC;
+                    edgeCount = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
                         string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
                             roiLabel ?? "?", trimCount, edgeCount));
                 }
 
-                //260426 hbk Phase 13 D-PRP-HOTFIX — sampleCount: 최소 에지 게이트 (caller 가 concat 후 MIN_HORIZONTAL_EDGES 도 별도 확인)
-                if (sampleCount > 0 && edgeCount < sampleCount)
+                rowEdge = allRows;
+                colEdge = allCols;
+
+                // caller 가 concat 후 MIN_HORIZONTAL_EDGES 별도 확인하므로 1개 이상이면 성공으로 반환
+                if (edgeCount < 1)
                 {
-                    error = string.Format("[{0}] insufficient edges: got {1}, need >={2}. sigma={3:F2} threshold={4} polarity={5}",
-                        roiLabel ?? "?", edgeCount, sampleCount, sigma, threshold, polarity);
+                    error = string.Format(
+                        "[{0}] no edges found across {1} strips. sigma={2:F2} threshold={3} polarity={4} scan={5}",
+                        roiLabel ?? "?", stripCount, sigma, threshold, polarity,
+                        scanHorizontal ? "horizontal" : "vertical");
                     Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
@@ -879,9 +894,55 @@ namespace ReringProject.Halcon.Algorithms
                 error = ex.Message;
                 return false;
             }
+        }
+
+        //260426 hbk Phase 13 D-PRP-LOOP — 단일 strip 에서 MeasurePos 실행 후 edge 점 누적.
+        //  참조: C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs AppendEdgePointsFromStrip.
+        //  SmallestRectangle2 로 strip Phi 자동 도출 → manual effectivePhi 불필요.
+        //  strip 실패(빈 결과 / 예외)는 swallow — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
+        private void AppendEdgePointsFromStrip(
+            HImage image,
+            double row1, double col1, double row2, double col2,
+            HTuple imageWidth, HTuple imageHeight,
+            double sigma, int threshold, string polarity,
+            ref HTuple allRows, ref HTuple allCols)
+        {
+            HObject stripRegion = null;
+            HTuple measureHandle = null;
+            try
+            {
+                HOperatorSet.GenRectangle1(out stripRegion, row1, col1, row2, col2);
+
+                HTuple rr, rc, rp, rh, rw;
+                HOperatorSet.SmallestRectangle2(stripRegion, out rr, out rc, out rp, out rh, out rw);
+
+                HOperatorSet.GenMeasureRectangle2(
+                    rr, rc, rp, rh, rw,
+                    imageWidth, imageHeight, "nearest_neighbor",
+                    out measureHandle);
+
+                HTuple edgeRows, edgeCols, amp, dist;
+                HOperatorSet.MeasurePos(
+                    image, measureHandle, sigma, threshold,
+                    polarity, "all",
+                    out edgeRows, out edgeCols, out amp, out dist);
+
+                if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
+                {
+                    return;
+                }
+
+                HOperatorSet.TupleConcat(allRows, edgeRows, out allRows);
+                HOperatorSet.TupleConcat(allCols, edgeCols, out allCols);
+            }
+            catch
+            {
+                // per-strip 실패 swallow — 나머지 strip 계속 처리
+            }
             finally
             {
                 if (measureHandle != null) { try { HOperatorSet.CloseMeasure(measureHandle); } catch { } }
+                if (stripRegion != null)   { try { stripRegion.Dispose(); } catch { } }
             }
         }
     }

@@ -482,22 +482,34 @@ namespace ReringProject.UI {
             halconViewer.UpdateDisplayState(rois, e.RoiId, null, null);
         }
 
-        //260423 hbk ROI 삭제 요청 → FAI의 ROI 필드 초기화 (FAI 자체는 유지)
+        //260423 hbk ContextMenu Delete 핸들러
+        //260425 hbk Phase 13 D-A — Datum RoiId prefix 면 Datum 분기로 early return (FAI lookup 전에)
         private void HalconViewer_RoiDeleteRequested(object sender, string roiId) {
             if (string.IsNullOrEmpty(roiId)) return;
 
+            //260425 hbk Phase 13 D-A — Datum 분기 우선
+            if (roiId.StartsWith("Datum.")) {
+                DatumConfig datum;
+                if (IsCurrentNodeDatum(out datum)) {
+                    ClearDatumRoiFields(datum, roiId);
+                    try { datum.RaisePropertyChanged(string.Empty); } catch { }
+                    mParentWindow?.inspectionList?.RefreshParamEditor();
+                    halconViewer.SetDatumOverlay(datum, true);
+                    PublishDatumRoiCandidates(datum); //260425 hbk Phase 13 D-A — 잔존 ROI 만 후보로 남도록 갱신
+                }
+                return;
+            }
+
+            //260423 hbk 기존 FAI 경로 (untouched)
             var fai = FindFAIByName(roiId);
             if (fai == null) return;
 
-            // Rect ROI clear
             fai.ROI_Row = 0;
             fai.ROI_Col = 0;
             fai.ROI_Phi = 0;
             fai.ROI_Length1 = 0;
             fai.ROI_Length2 = 0;
-            // Polygon ROI clear
             fai.PolygonPoints = "";
-            // Circle ROI clear (CircleDiameterMeasurement.Circle_Radius = 0 → ToRoiDefinition에서 hasCircle=false)
             foreach (var m in fai.Measurements) {
                 var circle = m as CircleDiameterMeasurement;
                 if (circle != null) {
@@ -512,9 +524,18 @@ namespace ReringProject.UI {
         }
 
         //260423 hbk ROI 이동 완료 → FAI 모델 좌표 반영
+        //260425 hbk Phase 13 D-01..D-04 — Datum 컨텍스트(SelectedParam=DatumConfig + RoiId='Datum.*') 에서는 Datum 분기로 early return
         private void HalconViewer_RoiMoveCompleted(object sender, RoiMoveCompletedArgs e) {
             if (e == null || string.IsNullOrEmpty(e.RoiId)) return;
 
+            //260425 hbk Phase 13 D-01..D-04 — Datum 분기 우선 (FAI lookup 전에)
+            DatumConfig datum;
+            if (e.RoiId.StartsWith("Datum.") && IsCurrentNodeDatum(out datum)) {
+                HandleDatumRoiMove(datum, e);
+                return;
+            }
+
+            //260423 hbk 기존 FAI 경로 (untouched from Phase 11 Quick 260423-o53)
             var fai = FindFAIByName(e.RoiId);
             if (fai == null) return;
 
@@ -535,6 +556,148 @@ namespace ReringProject.UI {
 
             var rois = GetCurrentFAIRois();
             halconViewer.UpdateDisplayState(rois, e.RoiId, null, null);
+        }
+
+        //260425 hbk Phase 13 D-01 — 현재 선택 노드가 Datum 인지 판정
+        private bool IsCurrentNodeDatum(out DatumConfig datum) {
+            datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
+            return datum != null;
+        }
+
+        //260425 hbk Phase 13 D-01..D-04 — Datum ROI 이동 후 처리 (delta + 이중 신호 + 자동 재티칭 + 후보 publish)
+        private void HandleDatumRoiMove(DatumConfig datum, RoiMoveCompletedArgs e) {
+            ApplyDatumRoiDelta(datum, e);
+            try { datum.RaisePropertyChanged(string.Empty); } catch { }
+            mParentWindow?.inspectionList?.RefreshParamEditor();
+            halconViewer.SetDatumOverlay(datum, true);
+            InvokeTryTeachDatumForEdit(datum);
+            PublishDatumRoiCandidates(datum);
+        }
+
+        //260425 hbk Phase 13 D-02 — RoiId prefix 별 DatumConfig 필드 매핑 (delta 누적)
+        private void ApplyDatumRoiDelta(DatumConfig datum, RoiMoveCompletedArgs e) {
+            if (datum == null || e == null || string.IsNullOrEmpty(e.RoiId)) return;
+            switch (e.RoiId) {
+                case "Datum.Line1":
+                    datum.Line1_Row += e.DeltaRow; datum.Line1_Col += e.DeltaCol; break;
+                case "Datum.Line2":
+                    datum.Line2_Row += e.DeltaRow; datum.Line2_Col += e.DeltaCol; break;
+                case "Datum.Circle":
+                    datum.CircleROI_Row += e.DeltaRow; datum.CircleROI_Col += e.DeltaCol; break;
+                case "Datum.HorizontalA":
+                    datum.Horizontal_A_Row += e.DeltaRow; datum.Horizontal_A_Col += e.DeltaCol; break;
+                case "Datum.HorizontalB":
+                    datum.Horizontal_B_Row += e.DeltaRow; datum.Horizontal_B_Col += e.DeltaCol; break;
+                default:
+                    Logging.PrintLog((int)ELogType.Trace, "Datum ROI move: unknown RoiId=" + e.RoiId);
+                    break;
+            }
+        }
+
+        //260425 hbk Phase 13 D-A — RoiId prefix 별 ROI 필드 0 reset (Length1/Length2/Radius) + IsConfigured/LastTeachSucceeded false
+        //  RenderDatumOverlay 의 그리기 가드(if Length1>0 && Length2>0)에 걸려 시각적으로 사라짐.
+        private void ClearDatumRoiFields(DatumConfig datum, string roiId) {
+            if (datum == null || string.IsNullOrEmpty(roiId)) return;
+            switch (roiId) {
+                case "Datum.Line1":
+                    datum.Line1_Row = 0; datum.Line1_Col = 0; datum.Line1_Phi = 0;
+                    datum.Line1_Length1 = 0; datum.Line1_Length2 = 0;
+                    break;
+                case "Datum.Line2":
+                    datum.Line2_Row = 0; datum.Line2_Col = 0; datum.Line2_Phi = 0;
+                    datum.Line2_Length1 = 0; datum.Line2_Length2 = 0;
+                    break;
+                case "Datum.Circle":
+                    datum.CircleROI_Row = 0; datum.CircleROI_Col = 0; datum.CircleROI_Radius = 0;
+                    break;
+                case "Datum.HorizontalA":
+                    datum.Horizontal_A_Row = 0; datum.Horizontal_A_Col = 0; datum.Horizontal_A_Phi = 0;
+                    datum.Horizontal_A_Length1 = 0; datum.Horizontal_A_Length2 = 0;
+                    break;
+                case "Datum.HorizontalB":
+                    datum.Horizontal_B_Row = 0; datum.Horizontal_B_Col = 0; datum.Horizontal_B_Phi = 0;
+                    datum.Horizontal_B_Length1 = 0; datum.Horizontal_B_Length2 = 0;
+                    break;
+                default:
+                    Logging.PrintLog((int)ELogType.Trace, "Datum ROI delete: unknown RoiId=" + roiId);
+                    return;
+            }
+            //260425 hbk Phase 13 D-A — 어느 ROI 든 삭제되면 Datum 자체가 불완전 → 검증 disable
+            datum.IsConfigured = false;
+            datum.LastTeachSucceeded = false;
+        }
+
+        //260425 hbk Phase 13 D-03 — Edit 세션 전용 자동 재티칭 (_editingDatum 건드리지 않음)
+        private void InvokeTryTeachDatumForEdit(DatumConfig datum) {
+            if (datum == null) return;
+            HImage img = halconViewer.CurrentImage;
+            if (img == null) return;
+            var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
+            string error;
+            bool ok = svc.TryTeachDatum(img, datum, out error);
+            if (ok) {
+                label_drawHint.Content = "Datum ROI 이동 — 재티칭 OK";
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
+                label_drawHint.Visibility = Visibility.Visible;
+            }
+            else {
+                label_drawHint.Content = "Datum ROI 이동 — 재티칭 실패: " + (error ?? "unknown");
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171"));
+                label_drawHint.Visibility = Visibility.Visible;
+            }
+            halconViewer.SetDatumOverlay(datum, true);
+        }
+
+        //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
+        private void PublishDatumRoiCandidates(DatumConfig datum) {
+            if (datum == null) { halconViewer.ClearDatumRoiCandidates(); return; }
+            var list = new List<ReringProject.Halcon.Models.RoiDefinition>();
+            switch (datum.AlgorithmTypeEnum) {
+                case EDatumAlgorithm.TwoLineIntersect:
+                    if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.Line1", datum.Line1_Row, datum.Line1_Col, datum.Line1_Length1, datum.Line1_Length2));
+                    if (datum.Line2_Length1 > 0 && datum.Line2_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.Line2", datum.Line2_Row, datum.Line2_Col, datum.Line2_Length1, datum.Line2_Length2));
+                    break;
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    if (datum.CircleROI_Radius > 0)
+                        list.Add(BuildDatumCircleCandidate("Datum.Circle", datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius));
+                    if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
+                    if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
+                    break;
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.Line1", datum.Line1_Row, datum.Line1_Col, datum.Line1_Length1, datum.Line1_Length2));
+                    if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
+                    if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
+                    break;
+            }
+            halconViewer.SetDatumRoiCandidates(list);
+        }
+
+        //260425 hbk Phase 13 D-02 — Rectangle2 (centerRow, centerCol, phi=0, halfH, halfW) → bbox
+        private static ReringProject.Halcon.Models.RoiDefinition BuildDatumRectCandidate(string id, double centerRow, double centerCol, double halfH, double halfW) {
+            return new ReringProject.Halcon.Models.RoiDefinition {
+                Id = id, Name = id,
+                Shape = ReringProject.Halcon.Models.RoiShape.Rect,
+                Row1 = centerRow - halfH, Row2 = centerRow + halfH,
+                Column1 = centerCol - halfW, Column2 = centerCol + halfW,
+                IsTaught = true
+            };
+        }
+
+        //260425 hbk Phase 13 D-02 — Circle → RoiDefinition
+        private static ReringProject.Halcon.Models.RoiDefinition BuildDatumCircleCandidate(string id, double centerRow, double centerCol, double radius) {
+            return new ReringProject.Halcon.Models.RoiDefinition {
+                Id = id, Name = id,
+                Shape = ReringProject.Halcon.Models.RoiShape.Circle,
+                CenterRow = centerRow, CenterCol = centerCol, Radius = radius,
+                IsTaught = true
+            };
         }
 
         private static List<RoiDefinition> ConvertParamRects(ParamBase param) {
@@ -998,6 +1161,8 @@ namespace ReringProject.UI {
                     return;
                 }
                 _editingDatum = datum;
+                //260425 hbk Phase 13 D-01..D-04 — teach 진입 시점에 후보 publish (이후 edit/delete 가능)
+                PublishDatumRoiCandidates(datum);
 
                 //260424 hbk Phase 12 D-03 — 알고리즘별 첫 단계 결정 후 StartDatumTeachStep
                 _datumTeachStep = GetFirstStep(datum.AlgorithmTypeEnum);
@@ -1194,6 +1359,8 @@ namespace ReringProject.UI {
                 label_drawHint.Visibility = Visibility.Visible;
                 //260424 hbk Phase 12 — 오버레이 갱신 (LastTeachSucceeded=true → HalconDisplayService CircleTwoHorizontal/Horizontal A/B 분기 렌더)
                 halconViewer.SetDatumOverlay(_editingDatum, true);
+                //260425 hbk Phase 13 D-01..D-04 — teach 완료 시점에 후보 갱신
+                PublishDatumRoiCandidates(_editingDatum);
             }
             else {
                 label_drawHint.Content = "Datum 티칭 실패: " + (error ?? "unknown"); //260424 hbk Phase 12
@@ -1212,7 +1379,7 @@ namespace ReringProject.UI {
             //260424 hbk Phase 13 D-05 — Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
             var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
             if (datum == null || !datum.IsConfigured || !datum.LastTeachSucceeded) {
-                CustomMessageBox.Show("Datum 티칭이 완료된 후 테스트 가능합니다.", "Datum Find 테스트"); //260424 hbk Phase 13 D-05
+                CustomMessageBox.Show("Datum Find 테스트", "Datum 티칭이 완료된 후 테스트 가능합니다."); //260425 hbk Phase 13 cleanup — Plan 02 인자 순서 fix
                 return;
             }
 
@@ -1280,7 +1447,7 @@ namespace ReringProject.UI {
             }
             catch (Exception ex) {
                 Logging.PrintErrLog((int)ELogType.Error, "Datum Test Load fail: " + ex.Message); //260424 hbk Phase 13 D-08
-                CustomMessageBox.Show("이미지 로드 실패: " + ex.Message, "Datum Find 테스트");
+                CustomMessageBox.Show("Datum Find 테스트", "이미지 로드 실패: " + ex.Message); //260425 hbk Phase 13 cleanup
                 return null;
             }
         }

@@ -300,31 +300,45 @@ namespace ReringProject.UI
             Render();
         }
 
-        //260423 hbk ROI hit-test: 선택된 ROI 내부 클릭인지 판정
+        //260423 hbk ROI hit-test
+        //260425 hbk Phase 13 D-02 — _rois (FAI) FirstOrDefault null fallback 으로 _datumRoiCandidates 검사
         private RoiDefinition HitTestSelectedRoi(Point imagePoint)
         {
-            if (string.IsNullOrEmpty(_selectedRoiId))
+            if (!string.IsNullOrEmpty(_selectedRoiId))
             {
-                return null;
+                var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId);
+                if (roi != null)
+                {
+                    var hit = HitTestOneRoi(roi, imagePoint);
+                    if (hit != null) return hit;
+                }
             }
 
-            var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId);
-            if (roi == null)
+            //260425 hbk Phase 13 D-02 — Datum 후보 fallback (_selectedRoiId 무관 hit 허용)
+            if (_datumRoiCandidates != null && _datumRoiCandidates.Count > 0)
             {
-                return null;
+                foreach (var candidate in _datumRoiCandidates)
+                {
+                    if (candidate == null) continue;
+                    var hit = HitTestOneRoi(candidate, imagePoint);
+                    if (hit != null) return hit;
+                }
             }
 
+            return null;
+        }
+
+        //260425 hbk Phase 13 D-02 — Rect/Circle 공통 hit 판정 helper
+        private static RoiDefinition HitTestOneRoi(RoiDefinition roi, Point imagePoint)
+        {
+            if (roi == null) return null;
             if (roi.Shape == RoiShape.Circle)
             {
                 double dr = imagePoint.Y - roi.CenterRow;
                 double dc = imagePoint.X - roi.CenterCol;
-                if (Math.Sqrt(dr * dr + dc * dc) <= roi.Radius)
-                {
-                    return roi;
-                }
+                if (Math.Sqrt(dr * dr + dc * dc) <= roi.Radius) return roi;
                 return null;
             }
-
             if (imagePoint.Y >= roi.Row1 && imagePoint.Y <= roi.Row2 &&
                 imagePoint.X >= roi.Column1 && imagePoint.X <= roi.Column2)
             {
@@ -542,6 +556,28 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260425 hbk Phase 13 D-02 — Datum ROI 편집 후보 (Datum 노드 선택 시 MainView 가 주입)
+        private List<RoiDefinition> _datumRoiCandidates = new List<RoiDefinition>();
+
+        //260425 hbk Phase 13 D-02 — Datum ROI 후보 주입 (MainView publish 진입점)
+        public void SetDatumRoiCandidates(IList<RoiDefinition> datumRois)
+        {
+            if (datumRois == null)
+            {
+                _datumRoiCandidates.Clear();
+            }
+            else
+            {
+                _datumRoiCandidates = datumRois.Where(r => r != null).Select(r => r.Clone()).ToList();
+            }
+        }
+
+        //260425 hbk Phase 13 D-02 — Datum 노드 비선택 시 후보 clear
+        public void ClearDatumRoiCandidates()
+        {
+            _datumRoiCandidates.Clear();
+        }
+
         //260408 hbk Calibration 십자+라인 오버레이
         public void SetCalibrationOverlay(IList<Point> points)
         {
@@ -718,27 +754,38 @@ namespace ReringProject.UI
             }
 
             //260423 hbk Edit 모드 전용: 핸들 히트 → 리사이즈 시작, 바디 히트 → 이동 시작
-            if (_isEditMode && !IsAnyDrawingModeActive() && HasImage)
+            //260425 hbk Phase 13 D-01 — Datum 후보가 publish 되어 있으면 _isEditMode 무관 통과 (Datum 노드 선택 = 자동 편집 허용)
+            bool datumCandidatesPresent = (_datumRoiCandidates != null && _datumRoiCandidates.Count > 0);
+            if ((_isEditMode || datumCandidatesPresent) && !IsAnyDrawingModeActive() && HasImage)
             {
-                var selectedRoi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
-                if (selectedRoi != null)
+                // Edit 모드 전용 (FAI 리사이즈 핸들) — Datum 은 리사이즈 미지원
+                if (_isEditMode)
                 {
-                    var handleHit = HitTestEditHandle(selectedRoi, mouseState.ImagePoint);
-                    if (handleHit.Handle != ResizeHandle.None)
+                    var selectedRoi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+                    if (selectedRoi != null)
                     {
-                        _isResizingRoi = true;
-                        _resizingHandle = handleHit.Handle;
-                        _resizingPolygonIndex = handleHit.PolyIndex;
-                        _resizingRoiSnapshot = selectedRoi.Clone();
-                        SetPanCursor(Cursors.SizeAll);
-                        PublishPointerInfo();
-                        return;
+                        var handleHit = HitTestEditHandle(selectedRoi, mouseState.ImagePoint);
+                        if (handleHit.Handle != ResizeHandle.None)
+                        {
+                            _isResizingRoi = true;
+                            _resizingHandle = handleHit.Handle;
+                            _resizingPolygonIndex = handleHit.PolyIndex;
+                            _resizingRoiSnapshot = selectedRoi.Clone();
+                            SetPanCursor(Cursors.SizeAll);
+                            PublishPointerInfo();
+                            return;
+                        }
                     }
                 }
 
                 var hitRoi = HitTestSelectedRoi(mouseState.ImagePoint);
                 if (hitRoi != null)
                 {
+                    //260425 hbk Phase 13 D-02 — Datum hit 시 _selectedRoiId 도 set → 기존 컨텍스트 메뉴 Delete 가 그대로 동작
+                    if (hitRoi.Id != null && hitRoi.Id.StartsWith("Datum."))
+                    {
+                        _selectedRoiId = hitRoi.Id;
+                    }
                     _isMovingRoi = true;
                     _moveStartImagePoint = mouseState.ImagePoint;
                     _movingRoiSnapshot = hitRoi.Clone();
@@ -849,6 +896,29 @@ namespace ReringProject.UI
                     }
                     Render();
                 }
+                else
+                {
+                    //260425 hbk Phase 13 D-02 — Datum ROI 드래그 비주얼: _rois 에 없으면 _datumRoiCandidates 검색
+                    var datumTarget = _datumRoiCandidates != null
+                        ? _datumRoiCandidates.FirstOrDefault(r => r != null && r.Id == _movingRoiSnapshot.Id)
+                        : null;
+                    if (datumTarget != null)
+                    {
+                        if (datumTarget.Shape == RoiShape.Circle)
+                        {
+                            datumTarget.CenterRow = _movingRoiSnapshot.CenterRow + dr;
+                            datumTarget.CenterCol = _movingRoiSnapshot.CenterCol + dc;
+                        }
+                        else
+                        {
+                            datumTarget.Row1 = _movingRoiSnapshot.Row1 + dr;
+                            datumTarget.Column1 = _movingRoiSnapshot.Column1 + dc;
+                            datumTarget.Row2 = _movingRoiSnapshot.Row2 + dr;
+                            datumTarget.Column2 = _movingRoiSnapshot.Column2 + dc;
+                        }
+                        Render();
+                    }
+                }
                 PublishPointerInfo();
                 return;
             }
@@ -956,6 +1026,26 @@ namespace ReringProject.UI
                     {
                         dr = target.Row1 - _movingRoiSnapshot.Row1;
                         dc = target.Column1 - _movingRoiSnapshot.Column1;
+                    }
+                }
+                else
+                {
+                    //260425 hbk Phase 13 D-02 — Datum ROI 이동 완료: _rois 에 없으면 _datumRoiCandidates 로 델타 계산
+                    var datumTarget = _datumRoiCandidates != null
+                        ? _datumRoiCandidates.FirstOrDefault(r => r != null && r.Id == _movingRoiSnapshot.Id)
+                        : null;
+                    if (datumTarget != null)
+                    {
+                        if (datumTarget.Shape == RoiShape.Circle)
+                        {
+                            dr = datumTarget.CenterRow - _movingRoiSnapshot.CenterRow;
+                            dc = datumTarget.CenterCol - _movingRoiSnapshot.CenterCol;
+                        }
+                        else
+                        {
+                            dr = datumTarget.Row1 - _movingRoiSnapshot.Row1;
+                            dc = datumTarget.Column1 - _movingRoiSnapshot.Column1;
+                        }
                     }
                 }
                 string movedId = _movingRoiSnapshot.Id;

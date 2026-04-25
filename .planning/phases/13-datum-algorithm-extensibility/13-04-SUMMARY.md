@@ -2,7 +2,7 @@
 phase: 13-datum-algorithm-extensibility
 plan: "04"
 subsystem: Datum/EdgeParams
-tags: [datum, edge-params, schema, per-roi, ini-compat, propertygrid, phase-13, hotfix-series]
+tags: [datum, edge-params, schema, per-roi, ini-compat, propertygrid, phase-13, hotfix-series, strip-loop]
 status: complete
 updated: "2026-04-26"
 dependency_graph:
@@ -18,7 +18,8 @@ tech_stack:
     - "ParamBase reflection INI round-trip — new keys auto-ignored on old INI, legacy keys preserved for backward-compat"
     - "DatumFindingService TryFindLine/TryExtractEdgePoints +3 params (direction/sampleCount/trimCount) — algorithmically active after hotfix series"
     - "config.EnsurePerRoiDefaults() at all TryTeach*/TryFindDatum entry points — one-shot lazy migration"
-    - "EdgeDirection -> Phi translation: TtoB/BtoT adds PI/2 and swaps Length1/Length2 for Halcon rectangle2 orientation"
+    - "EdgeDirection -> strip orientation: LtoR/RtoL = row-sliced horizontal strips, TtoB/BtoT = col-sliced vertical strips"
+    - "Strip-loop pattern: slice ROI into EdgeSampleCount strips, MeasurePos per strip via SmallestRectangle2-derived Phi, TupleConcat accumulation, trim + line fit on accumulated set (ported from C:\\Info\\Project\\DatumMeasure ref)"
     - "PhiDeg proxy property exposes Phi in degrees to PropertyGrid (degree input, radian stored)"
 key_files:
   modified:
@@ -27,12 +28,14 @@ key_files:
 decisions:
   - "per-ROI 필드 sentinel 기본값 0/\"\" — ParamBase 기본값 폴백 + EnsurePerRoiDefaults 자동 채우기 (INI 미존재 키 -> 생성자 기본 0 -> migrate 시 글로벌 복제)"
   - "legacy 글로벌 EdgeThreshold/Sigma/EdgePolarity는 삭제 않고 [Browsable(false)] + Category(legacy) — INI 이중 저장 허용 (ParamBase reflection 자동)"
-  - "EdgeDirection은 시그니처 계약 + 알고리즘 활성화 모두 완료 — TtoB/BtoT 방향은 Phi += PI/2 + Length1/Length2 swap으로 GenMeasureRectangle2에 반영 (hotfix e0f304e)"
+  - "EdgeDirection은 시그니처 계약 + 알고리즘 활성화 모두 완료 — strip 분할 방향 결정 (LtoR/RtoL→행 슬라이스, TtoB/BtoT→열 슬라이스); SmallestRectangle2가 strip별 Phi 자동 도출 (hotfix fa91525)"
   - "EnsurePerRoiDefaults는 idempotent — 이미 채워진 ROI는 재호출 시 무변경 (sentinel 0/\"\" 가 아니면 건드리지 않음)"
   - "EdgeDirection 글로벌 필드 미존재 -> hardcoded fallback \"LtoR\" (legacy 레시피 호환)"
   - "trimCount/sampleCount sanity clamp 추가 (hotfix 95a18a3) — 너무 큰 값이 Halcon MeasurePos 실패 유발 방지"
   - "PhiDeg PropertyGrid 프록시 (hotfix c2a3097) — DatumConfig.Phi는 radian 저장, 사용자는 도(degree) 입력"
   - "Length1/Length2 swap 버그는 Phase 12에서 잠재 — Phase 13 diagnostic logging으로 비로소 발견 (교훈)"
+  - "EdgeSampleCount 의미 재정의 (hotfix fa91525) — 종전 단일 MeasurePos 최소 에지 게이트(minimum-edge gate)가 아니라 strip 개수(stripCount, default 20)로 재정의; EdgeTrimCount는 누적 전체 에지셋에서 양 끝을 제거하는 횟수"
+  - "hotfix e0f304e의 수동 effectivePhi 조합 로직 제거 (fa91525) — SmallestRectangle2가 각 strip의 실제 Phi를 자동 도출하므로 하드코딩 불필요"
 commits:
   - b4f5d3f  # feat: per-ROI Datum edge params (5 ROI x 6 fields) + INI compat + service wiring
   - b0582e6  # docs: preliminary SUMMARY (premature — UAT teach end-to-end not yet exercised)
@@ -40,8 +43,10 @@ commits:
   - c2a3097  # fix: expose Phi as PhiDeg in PropertyGrid (degree input)
   - 54e466a  # fix: correct Length1/Length2 swap in Datum teach + log geometry
   - e0f304e  # fix: wire EdgeDirection to GenMeasureRectangle2 Phi (TtoB/BtoT adds 90 deg + swaps Length1/Length2)
+  - 8cc1140  # docs: rewrite SUMMARY after first 4 hotfixes (premature — strip-loop hotfix still pending)
+  - fa91525  # fix: strip-loop MeasurePos accumulation (port from C:\Info\Project\DatumMeasure ref)
 metrics:
-  duration: ~4hr (including 4 UAT hotfix iterations)
+  duration: ~5hr (including 5 UAT hotfix iterations)
   completed_date: "2026-04-26"
   tasks_completed: 3
   tasks_total: 3
@@ -50,11 +55,12 @@ metrics:
 
 # Phase 13 Plan 04: per-ROI Datum Edge Parameters Summary
 
-> **Note: Plan landed in 6 commits — 1 main implementation + 4 hotfixes during UAT.**
+> **Note: Plan landed in 7 source-code commits + 2 doc commits — 1 main implementation + 5 hotfixes during UAT.**
 > The preliminary SUMMARY written at commit b0582e6 was premature — UAT had not yet exercised
-> Datum teach end-to-end. This rewrite reflects the full hotfix series and final approval at e0f304e.
+> Datum teach end-to-end. The rewrite at 8cc1140 captured hotfixes 1-4 but was still premature —
+> hotfix 5 (strip-loop MeasurePos accumulation, fa91525) came after and is the true final state.
 
-**One-liner:** DatumConfig에 5 ROI x 6 파라미터 = 30 신규 필드를 추가하고, EnsurePerRoiDefaults() sentinel 마이그레이션으로 기존 INI 하위호환을 보장하며, DatumFindingService 모든 호출부가 per-ROI 값을 참조하도록 와이어링했다 — 4번의 UAT 핫픽스를 거쳐 EdgeDirection이 Halcon GenMeasureRectangle2 Phi에 실제로 반영되고 티칭 end-to-end가 동작하는 상태로 최종 승인되었다.
+**One-liner:** DatumConfig에 5 ROI x 6 파라미터 = 30 신규 필드를 추가하고, EnsurePerRoiDefaults() sentinel 마이그레이션으로 기존 INI 하위호환을 보장하며, DatumFindingService 모든 호출부가 per-ROI 값을 참조하도록 와이어링했다 — 5번의 UAT 핫픽스를 거쳐 EdgeSampleCount가 strip 개수로 재정의되고 SmallestRectangle2 기반 strip-loop MeasurePos 패턴(C:\\Info\\Project\\DatumMeasure 참조 코드에서 포팅)으로 충분한 에지점을 안정적으로 수집하여 티칭 end-to-end가 동작하는 상태로 최종 승인되었다.
 
 ---
 
@@ -77,10 +83,12 @@ metrics:
 | 4 | c2a3097 | fix | expose Phi as PhiDeg in PropertyGrid (degree input, radian stored internally) |
 | 5 | 54e466a | fix | correct Length1/Length2 swap in Datum teach + log geometry |
 | 6 | e0f304e | fix | wire EdgeDirection to GenMeasureRectangle2 Phi (TtoB/BtoT adds 90 deg + swaps L1/L2) |
+| 7 | 8cc1140 | docs | rewrite SUMMARY after hotfixes 1-4 (still premature — strip-loop hotfix pending) |
+| 8 | fa91525 | fix | strip-loop MeasurePos accumulation — port from C:\Info\Project\DatumMeasure ref (FINAL) |
 
 ---
 
-## UAT Hotfix Series (4 Iterations)
+## UAT Hotfix Series (5 Iterations)
 
 ### Hotfix 1 — trimCount/sampleCount inert + diagnostic log missing
 **Commit:** 95a18a3
@@ -118,7 +126,18 @@ metrics:
 | Root cause | `EdgeDirection` (LtoR/RtoL/TtoB/BtoT) was stored in per-ROI fields and passed to `TryFindLine` signature, but the function body did not translate it to Halcon `GenMeasureRectangle2`'s phi parameter. Horizontal directions (LtoR/RtoL) and vertical directions (TtoB/BtoT) require different phi orientations in Halcon |
 | Symptom | Setting `Line1_EdgeDirection = "TtoB"` had no effect — rectangle orientation was purely determined by the stored phi field, not the logical direction intent |
 | Fix | Added direction-to-phi translation logic: TtoB/BtoT adds PI/2 to phi and swaps Length1/Length2 to correctly orient the measurement strip for vertical edge detection; LtoR/RtoL leaves phi unchanged |
-| Outcome | Datum teach succeeds end-to-end with EdgeDirection as the primary driver of measurement orientation |
+| Outcome | Datum teach appeared to work, but single MeasurePos call yielded only 2-4 sparse edge points — brittle for line fit. Strip-loop hotfix (fa91525) supersedes the manual effectivePhi composition done here |
+
+### Hotfix 5 — Single MeasurePos yielding sparse edge points; strip-loop needed
+**Commit:** fa91525
+
+| Field | Detail |
+|-------|--------|
+| Root cause | The algorithm called `MeasurePos` once on the full ROI rectangle, yielding only 2-4 detected edge points. A line fit on 2-4 points is geometrically brittle — small noise causes large angular deviation. The reference implementation in `C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs` uses a strip-loop pattern that was never ported |
+| Symptom | Detected line orientation jittered between consecutive teach runs on the same image; occasionally produced near-zero-length degenerate line segment |
+| Fix | Ported strip-loop pattern from reference codebase: slice the ROI into `EdgeSampleCount` strips (default 20), call `MeasurePos` per strip using `SmallestRectangle2`-derived Phi for that strip, accumulate all detected positions via `TupleConcat`, then apply `EdgeTrimCount` trim on the full accumulated set before calling `FitLineContourXld`. Removed the manual `effectivePhi` direction composition from e0f304e — `SmallestRectangle2` now derives Phi per strip automatically from strip geometry |
+| Semantic change | `EdgeSampleCount` re-defined: previously misread as "minimum edge count gate"; now correctly means "number of strips" (stripCount). `EdgeTrimCount` now trims from the accumulated multi-strip edge set (not per-strip) |
+| Outcome | 20 strips x ~2-4 edges/strip = 40-80 accumulated edge points before trim → stable line fit. User confirmed Datum teach succeeds end-to-end with consistent orientation. FINAL APPROVAL 2026-04-26 |
 
 ---
 
@@ -132,10 +151,11 @@ metrics:
 | Horizontal A | `Datum\|Horizontal A Edge` | `Horizontal_A_EdgeThreshold` | `Horizontal_A_Sigma` | `Horizontal_A_EdgeDirection` | `Horizontal_A_EdgeSampleCount` | `Horizontal_A_EdgeTrimCount` | `Horizontal_A_EdgePolarity` |
 | Horizontal B | `Datum\|Horizontal B Edge` | `Horizontal_B_EdgeThreshold` | `Horizontal_B_Sigma` | `Horizontal_B_EdgeDirection` | `Horizontal_B_EdgeSampleCount` | `Horizontal_B_EdgeTrimCount` | `Horizontal_B_EdgePolarity` |
 
-**Algorithm activation status (post-hotfix):**
+**Algorithm activation status (post all hotfixes):**
 - `EdgeThreshold` / `Sigma` / `EdgePolarity` — algorithmically active from commit b4f5d3f (main impl)
-- `EdgeSampleCount` / `EdgeTrimCount` — activated in hotfix 95a18a3 (previously inert)
-- `EdgeDirection` — activated in hotfix e0f304e (Phi + L1/L2 swap translation)
+- `EdgeSampleCount` — activated in hotfix 95a18a3 as single-call sampleCount; re-defined in fa91525 as strip count (number of strips to slice ROI into)
+- `EdgeTrimCount` — activated in hotfix 95a18a3; in fa91525 now trims from the full accumulated multi-strip edge set
+- `EdgeDirection` — activated in hotfix e0f304e (Phi + L1/L2 swap); superseded in fa91525 by SmallestRectangle2 per-strip Phi derivation; EdgeDirection now controls strip slicing orientation (row-sliced vs col-sliced)
 
 **Sentinel defaults:** 모든 per-ROI 필드는 생성자 기본값 0 / `""` (sentinel). INI에 키가 없으면 ParamBase reflection이 생성자 기본값(0 / "") 유지 -> EnsurePerRoiDefaults() 진입 시 글로벌 값으로 채워짐.
 
@@ -254,7 +274,7 @@ Exit code: 0
 | 11 | Phase 13-02 btn_testFindDatum: TryFindDatum per-ROI 파라미터 사용 — 테스트 동작 정상 | PASS |
 | 12 | Phase 13-03 ROI 드래그 이동 -> InvokeTryTeachDatumForEdit -> per-ROI 파라미터로 재티칭 OK | PASS |
 
-**Hotfix 반복:** 시나리오 12 통과 전 4번의 hotfix 반복 (95a18a3 -> c2a3097 -> 54e466a -> e0f304e). 최종 승인은 e0f304e (EdgeDirection->Phi wiring) 이후.
+**Hotfix 반복:** 시나리오 12 통과 전 4번의 hotfix 반복 (95a18a3 -> c2a3097 -> 54e466a -> e0f304e). e0f304e 후 잠정 승인 후 strip-loop 안정성 문제로 5번째 hotfix (fa91525). 최종 승인은 fa91525 (strip-loop MeasurePos) 이후.
 
 ---
 
@@ -300,6 +320,13 @@ Exit code: 0
 - **Files modified:** `WPF_Example/Halcon/Algorithms/DatumFindingService.cs`
 - **Commit:** e0f304e
 
+**5. [Rule 1 - Bug] Single MeasurePos call yielded only 2-4 sparse edge points — brittle line fit**
+- **Found during:** UAT Task 3 (fifth iteration, after e0f304e approval)
+- **Issue:** Even with correct Phi orientation, a single `MeasurePos` call on the full ROI rectangle returned only 2-4 edge points. A line fit on so few points is geometrically unstable — jitter between consecutive teach runs on identical images
+- **Fix:** Strip-loop pattern ported from `C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs`: slice ROI into `EdgeSampleCount` strips, `MeasurePos` per strip using `SmallestRectangle2`-derived Phi, `TupleConcat` accumulation, trim + line fit on full accumulated set. `EdgeSampleCount` re-defined as strip count (not minimum-edge gate). Manual `effectivePhi` composition from e0f304e removed — `SmallestRectangle2` derives Phi per strip automatically
+- **Files modified:** `WPF_Example/Halcon/Algorithms/DatumFindingService.cs`
+- **Commit:** fa91525
+
 ---
 
 ## Lessons Learned
@@ -307,8 +334,8 @@ Exit code: 0
 **1. Diagnostic logging is the highest-leverage addition in a Halcon integration plan.**
 Without the diagnostic log added in 95a18a3, the user had no way to distinguish between "ROI is in the wrong position" and "params are passed but ignored" — both produce 0 detected edges. Adding a single `Logging.PrintLog` line showing row/col/phi/length1/length2/detected-edge-count per ROI cut debugging time from hours to minutes for hotfixes 3 and 4.
 
-**2. "알고리즘 변경 최소화 원칙"이 오적용되면 plumbing-without-wiring 패턴을 만든다.**
-The plan correctly said "minimize algorithm changes" as a scope guard against over-engineering. But it was misapplied to mean "receive params in the signature but never use them." The correct reading is: "don't add new algorithm modes (e.g. smoothing window, selection mode) — but DO wire the params you explicitly plumb." Three of the four hotfixes corrected plumbing-without-wiring errors.
+**2. "알고리즘 변경 최소화 원칙"이 오적용되면 plumbing-without-wiring 패턴을 만든다 — 그리고 잘못 배선된 단일 호출도 근본적으로 틀린 알고리즘 형태일 수 있다.**
+The plan correctly said "minimize algorithm changes" as a scope guard against over-engineering. But it was misapplied to mean "receive params in the signature but never use them." The correct reading is: "don't add new algorithm modes — but DO wire the params you explicitly plumb." Three of the four early hotfixes corrected plumbing-without-wiring errors. Even after all four were applied, the resulting single-call MeasurePos was still the wrong algorithmic shape — it needed to be a strip-loop from the start. The plan's scope guard caused us to under-engineer the core measurement call.
 
 **3. Phase 12에서 잠재했던 Length1/Length2 swap 버그는 Phase 13의 diagnostic logging이 없었으면 발견하지 못했을 것이다.**
 The swap bug existed since Phase 12's initial `TryTeachTwoLineIntersect` implementation. It was invisible because Datum teach was never run against a real image with a known-good ground truth until Phase 13. Adding debug geometry output to the log made the Halcon-side geometry observable for the first time, immediately revealing the swap.
@@ -316,11 +343,14 @@ The swap bug existed since Phase 12's initial `TryTeachTwoLineIntersect` impleme
 **4. UAT를 "PropertyGrid 에서 값 편집 가능 여부" 수준에서 멈추지 말고 "실제 알고리즘 결과가 파라미터 변화에 반응하는가"까지 검증해야 한다.**
 The original UAT gate (Task 3 in the plan) checked PropertyGrid visibility and INI round-trip. Those all passed in the first iteration. The deeper verification — that changing EdgeDirection actually changes which edges Halcon detects — required four more hotfix cycles. UAT gates should include at least one "change param X, observe result Y changes" check per algorithmically-active parameter.
 
+**5. 참조 코드베이스 독해는 필수다 — 처음부터 포팅했어야 할 검증된 패턴을 4번의 핫픽스 후에야 발견했다.**
+The reference implementation at `C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs` had a battle-tested strip-loop MeasurePos pattern. We re-derived the measurement algorithm from scratch instead of reading the reference first, and paid for it with four intermediate hotfixes that each addressed symptoms of the wrong algorithmic shape rather than the root cause. Before implementing any Halcon measurement algorithm, read the reference codebase first.
+
 ---
 
 ## Known Stubs
 
-None — all per-ROI parameters (EdgeThreshold, Sigma, EdgePolarity, EdgeSampleCount, EdgeTrimCount, EdgeDirection) are algorithmically active as of commit e0f304e. The preliminary SUMMARY at b0582e6 incorrectly documented direction/sampleCount/trimCount as "minimalist hook — Phase 14+심화 예정"; this is no longer accurate.
+None — all per-ROI parameters (EdgeThreshold, Sigma, EdgePolarity, EdgeSampleCount, EdgeTrimCount, EdgeDirection) are algorithmically active as of commit fa91525. The preliminary SUMMARY at b0582e6 incorrectly documented direction/sampleCount/trimCount as "minimalist hook — Phase 14+심화 예정"; the SUMMARY rewrite at 8cc1140 reflected hotfixes 1-4 but still predated the strip-loop refactor. fa91525 is the true final implementation.
 
 ---
 
@@ -333,13 +363,16 @@ None — all per-ROI parameters (EdgeThreshold, Sigma, EdgePolarity, EdgeSampleC
 - [x] 커밋 c2a3097 존재 (hotfix 2: PhiDeg PropertyGrid)
 - [x] 커밋 54e466a 존재 (hotfix 3: Length1/Length2 swap fix)
 - [x] 커밋 e0f304e 존재 (hotfix 4: EdgeDirection->Phi wiring)
+- [x] 커밋 8cc1140 존재 (docs: SUMMARY rewrite after hotfixes 1-4 — premature)
+- [x] 커밋 fa91525 존재 (hotfix 5: strip-loop MeasurePos accumulation — FINAL)
 - [x] msbuild Debug/x64 exit 0
 - [x] 신규 warning 0 (수정 2 파일 기준)
 - [x] legacy config.EdgeThreshold / Sigma / EdgePolarity 직접 사용 잔존 0 (모두 per-ROI로 교체)
 - [x] EnsurePerRoiDefaults() TryTeachDatum + TryFindDatum 진입부 각 1회 호출
-- [x] UAT 12 시나리오 + 5 hotfix 반복 끝 APPROVED (최종 e0f304e)
-- [x] 4건 deviations 문서화 완료
-- [x] 교훈(Lessons Learned) 4건 기록 완료
+- [x] EdgeSampleCount 의미 재정의 완료 (strip count, not minimum-edge gate)
+- [x] UAT 12 시나리오 + 5 hotfix 반복 끝 APPROVED (최종 fa91525, 2026-04-26)
+- [x] 5건 deviations 문서화 완료
+- [x] 교훈(Lessons Learned) 5건 기록 완료
 - [x] 13-05 이월 항목 문서화 완료
 
 ## Self-Check: PASSED

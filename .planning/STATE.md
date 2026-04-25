@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 13 Plan 04 complete (UAT approved) — advancing to Plan 05
-last_updated: "2026-04-26T00:00:00Z"
+stopped_at: Phase 13 Plan 04 SUMMARY rewritten after 4 UAT hotfixes — advancing to Plan 05
+last_updated: "2026-04-26T12:00:00Z"
 progress:
   total_phases: 13
   completed_phases: 11
@@ -111,7 +111,7 @@ Recent decisions affecting current work:
 - [Phase 12-03 UAT Gap-3 fix]: DatumConfig 자동 속성 INotifyPropertyChanged 미발동 → HalconViewer_DatumRect/CircleCompleted 에서 _editingDatum.RaisePropertyChanged("") + InspectionListView.RefreshParamEditor() 이중 신호로 PropertyGrid 재바인딩; SetDatumOverlay 도 즉시 재호출하여 방금 그린 ROI 좌표가 캔버스+PropertyGrid+INI save 경로 모두 반영되도록 함 (재시작 후 ROI 복원 가능)
 - [Phase 12-03 UAT]: SIMUL_MODE 육안 검증 사용자 승인 (2026-04-24) — (1) ROI 그리면 PropertyGrid 좌표 숫자 채워짐 확인, (2) ROI 사각형 위 yellow 라벨 (Circle/H-A/H-B) 시인성 확인; Gap-1(ROI Edit/Move in TeachDatum)·Gap-4(런타임 TryFindDatum 테스트 UI)·Req 5d(방향 정합성)는 Phase 13 이월 합의
 - [Phase 13-03]: Datum ROI 이동/삭제 분기를 RoiId.StartsWith("Datum.")로 식별 — FAI 경로 한 줄도 변경 없음; HitTestOneRoi private static으로 FAI+Datum 공용; SetDatumRoiCandidates _isEditMode 무관 통과; ClearDatumRoiFields 시 IsConfigured/LastTeachSucceeded false; PublishDatumRoiCandidates 3 지점; Plan 02 CustomMessageBox (message,title)→(title,message) swap; UAT 발견 버그(InspectionList 선택 시 candidates 미publish) hotfix e199093으로 해결; per-ROI 에지 파라미터·시각화는 13-04/13-05 이월
-- [Phase 13-04]: per-ROI 필드 sentinel 기본값 0/"" + EnsurePerRoiDefaults idempotent migration; legacy 글로벌 [Browsable(false)] + Category(legacy) INI 이중 저장; TryFindLine/TryExtractEdgePoints +3 params minimalist hook (방향/샘플/트림 심화 Phase 14+); EdgeDirection 글로벌 미존재 → hardcoded fallback "LtoR"; UAT 12 시나리오 APPROVED (2026-04-26)
+- [Phase 13-04]: per-ROI 필드 sentinel 기본값 0/"" + EnsurePerRoiDefaults idempotent migration; legacy 글로벌 [Browsable(false)] + Category(legacy) INI 이중 저장; TryFindLine/TryExtractEdgePoints +3 params 모두 algorithmically active (4 hotfix 후); EdgeDirection->Phi translation (TtoB/BtoT += PI/2 + L1/L2 swap, hotfix e0f304e); PhiDeg degree-proxy PropertyGrid (hotfix c2a3097); trimCount/sampleCount sanity clamp (hotfix 95a18a3); Length1/Length2 swap 버그(Phase 12 잠재) diagnostic logging으로 발견/수정 (hotfix 54e466a); 6 커밋(1 feat + 4 fix + 1 docs), UAT 12 시나리오 + 5 hotfix 반복 끝 APPROVED (2026-04-26)
 
 ### Quick Tasks Completed
 

@@ -177,6 +177,10 @@ namespace ReringProject.Halcon.Algorithms
 
                 // Line1 검출
                 double line1RowBegin, line1ColBegin, line1RowEnd, line1ColEnd;
+
+                HObject horect;
+                HOperatorSet.GenRectangle2(out horect, config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2);
+
                 string lineError;
                 //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (글로벌 EdgeThreshold/Sigma/EdgePolarity → Line1_*)
                 if (!TryFindLine(
@@ -663,6 +667,21 @@ namespace ReringProject.Halcon.Algorithms
             if (sampleCount < 0) sampleCount = 0;  // 0 = "최소 강제 없음" sentinel
             if (trimCount < 0) trimCount = 0;
 
+            //260426 hbk Phase 13 D-PRP-DIRFIX — direction 이 GenMeasureRectangle2 Phi 를 결정.
+            //  Halcon MeasurePos 는 Phi 가 결정하는 major axis 에 PERPENDICULAR 한 에지를 검출.
+            //   - LtoR/RtoL : sweep horizontally  → vertical edges  → effectivePhi = roiPhi (no add)
+            //   - TtoB/BtoT : sweep vertically    → horizontal edges → effectivePhi = roiPhi + PI/2
+            //  90° 회전 시 시각 사각형 유지 위해 Length1/Length2 도 swap.
+            double effectivePhi     = roiPhi;
+            double effectiveLength1 = roiLength1;
+            double effectiveLength2 = roiLength2;
+            if (direction == "TtoB" || direction == "BtoT")
+            {
+                effectivePhi     = roiPhi + System.Math.PI / 2.0;
+                effectiveLength1 = roiLength2;  // major axis half (now Y) = original Y extent
+                effectiveLength2 = roiLength1;  // minor axis half (now X) = original X extent
+            }
+
             HTuple measureHandle = null;
             HObject contour = null;
 
@@ -670,14 +689,15 @@ namespace ReringProject.Halcon.Algorithms
             {
                 // 에지 측정 핸들 생성
                 HOperatorSet.GenMeasureRectangle2(
-                    roiRow, roiCol, roiPhi, roiLength1, roiLength2,
+                    roiRow, roiCol, effectivePhi, effectiveLength1, effectiveLength2,
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
-                //260426 hbk Phase 13 D-PRP-LENFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (티칭 후 ROI 좌표 정합 확인용)
+                //260426 hbk Phase 13 D-PRP-DIRFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (effective vs raw 비교)
                 Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}",
-                        roiLabel ?? "?", roiRow, roiCol, roiPhi, roiPhi * 180.0 / System.Math.PI, roiLength1, roiLength2));
+                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}  [direction={7} → effective from raw Phi={8:F4}rad L1={9:F2} L2={10:F2}]",
+                        roiLabel ?? "?", roiRow, roiCol, effectivePhi, effectivePhi * 180.0 / System.Math.PI, effectiveLength1, effectiveLength2,
+                        direction, roiPhi, roiLength1, roiLength2));
 
                 //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
                 Logging.PrintLog((int)ELogType.Trace,
@@ -781,21 +801,35 @@ namespace ReringProject.Halcon.Algorithms
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
+            //260426 hbk Phase 13 D-PRP-DIRFIX — direction 이 GenMeasureRectangle2 Phi 를 결정 (TryFindLine 과 동일 정책).
+            //  TtoB/BtoT : effectivePhi = roiPhi + PI/2, Length1/Length2 swap.
+            //  LtoR/RtoL : effectivePhi = roiPhi (no change).
+            double effectivePhi     = roiPhi;
+            double effectiveLength1 = roiLength1;
+            double effectiveLength2 = roiLength2;
+            if (direction == "TtoB" || direction == "BtoT")
+            {
+                effectivePhi     = roiPhi + System.Math.PI / 2.0;
+                effectiveLength1 = roiLength2;  // major axis half (now Y) = original Y extent
+                effectiveLength2 = roiLength1;  // minor axis half (now X) = original X extent
+            }
+
             HTuple measureHandle = null;
             try
             {
                 HObject horect;
-                HOperatorSet.GenRectangle2(out horect, roiRow, roiCol, roiPhi, roiLength1, roiLength2);
+                HOperatorSet.GenRectangle2(out horect, roiRow, roiCol, effectivePhi, effectiveLength1, effectiveLength2);
 
                 HOperatorSet.GenMeasureRectangle2(
-                    roiRow, roiCol, roiPhi, roiLength1, roiLength2,
+                    roiRow, roiCol, effectivePhi, effectiveLength1, effectiveLength2,
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
-                //260426 hbk Phase 13 D-PRP-LENFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (티칭 후 ROI 좌표 정합 확인용)
+                //260426 hbk Phase 13 D-PRP-DIRFIX — Halcon 이 실제로 받는 Rectangle2 파라미터 출력 (effective vs raw 비교)
                 Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}",
-                        roiLabel ?? "?", roiRow, roiCol, roiPhi, roiPhi * 180.0 / System.Math.PI, roiLength1, roiLength2));
+                    string.Format("[Datum.{0}] gen_measure_rectangle2: Row={1:F2} Col={2:F2} Phi={3:F4}rad ({4:F1}deg) Length1={5:F2} Length2={6:F2}  [direction={7} → effective from raw Phi={8:F4}rad L1={9:F2} L2={10:F2}]",
+                        roiLabel ?? "?", roiRow, roiCol, effectivePhi, effectivePhi * 180.0 / System.Math.PI, effectiveLength1, effectiveLength2,
+                        direction, roiPhi, roiLength1, roiLength2));
 
                 //260426 hbk Phase 13 D-PRP-HOTFIX — MeasurePos 호출 전 파라미터 진단 로그
                 Logging.PrintLog((int)ELogType.Trace,

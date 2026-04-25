@@ -16,6 +16,10 @@ namespace ReringProject.Halcon.Algorithms
         //260423 hbk Phase 12 D-15 — 수평 2-ROI concat 최소 에지점 (신뢰 라인 피팅 기준)
         private const int MIN_HORIZONTAL_EDGES = 10;
 
+        //260424 hbk Phase 13 D-10 — Req 5d 방향 정합성 임계각 (고정값; 사용자 튜닝 필요해지면 DatumConfig 필드화 Deferred)
+        private const double HORIZONTAL_TOLERANCE_DEG    = 15.0;
+        private const double PERPENDICULAR_TOLERANCE_DEG = 5.0;
+
         /// <summary>
         /// 런타임 Datum 찾기: 이미지에서 두 라인을 검출하고 hom_mat2d 변환 행렬을 반환한다.
         /// config.IsConfigured=false이면 identity 변환을 반환(pass-through).
@@ -533,6 +537,44 @@ namespace ReringProject.Halcon.Algorithms
                 if (contourB      != null) { try { contourB.Dispose();      } catch { } }
                 if (concatContour != null) { try { concatContour.Dispose(); } catch { } }
             }
+        }
+
+        //260424 hbk Phase 13 D-09..D-12 — 수평선 phi 방향 + 수평/수직 직각성 검증 게이트
+        //  CircleTwoHorizontal / VerticalTwoHorizontal 공통. TwoLineIntersect 는 무효(호출 안 함).
+        //  horizPhiRad = 수평 결합선 Atan2, vertPhiRad = 수직 가상선(Circle) 또는 검출 수직선(Vertical) Atan2.
+        //  실패 시 error 에 SPEC AC 리터럴 반환. NaN/Infinity 입력은 수평 체크에서 자연히 걸러짐(Abs > tol).
+        private static bool ValidateHorizontalVerticalAngles(
+            double horizPhiRad, double vertPhiRad, out string error)
+        {
+            //260424 hbk Phase 13 D-09 — 수평 phi 를 [-90°, +90°] 로 normalize 후 절댓값 비교
+            double horizDeg = Math.Abs(horizPhiRad * 180.0 / Math.PI);
+            if (horizDeg > 90.0) horizDeg = 180.0 - horizDeg;
+            if (horizDeg > HORIZONTAL_TOLERANCE_DEG)
+            {
+                error = "Horizontal line orientation out of range: "
+                      + horizDeg.ToString("F1")
+                      + " deg (expected +/-"
+                      + HORIZONTAL_TOLERANCE_DEG.ToString("F1")
+                      + " deg)"; //260424 hbk Phase 13 D-11 SPEC AC literal (Req 5d)
+                return false;
+            }
+
+            //260424 hbk Phase 13 D-09 — 수평선과 수직선 사이 각도 = |phi_h - phi_v| 를 [0°, 180°) 로 정규화 → 90° 와의 편차
+            double deltaDeg = Math.Abs((horizPhiRad - vertPhiRad) * 180.0 / Math.PI);
+            while (deltaDeg >= 180.0) deltaDeg -= 180.0;
+            double perpErr = Math.Abs(deltaDeg - 90.0);
+            if (perpErr > PERPENDICULAR_TOLERANCE_DEG)
+            {
+                error = "Horizontal/Vertical perpendicularity violated: delta="
+                      + deltaDeg.ToString("F1")
+                      + " deg (expected 90 +/-"
+                      + PERPENDICULAR_TOLERANCE_DEG.ToString("F1")
+                      + " deg)"; //260424 hbk Phase 13 D-11 SPEC AC literal (Req 5d)
+                return false;
+            }
+
+            error = null;
+            return true;
         }
 
         /// <summary>

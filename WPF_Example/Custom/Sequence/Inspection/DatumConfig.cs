@@ -78,7 +78,16 @@ namespace ReringProject.Sequence {
         [Category("Datum|Line1 ROI")]
         public double Line1_Row { get; set; } = 0;
         public double Line1_Col { get; set; } = 0;
+        //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Line1_Phi { get; set; } = 0;
+        //260426 hbk Phase 13 D-PRP-PHIFIX — Phi 를 도(degree) 단위로 노출 (Line1_Phi = PhiDeg * PI / 180).
+        //  수평 에지 검출 시 90, 수직 에지 검출 시 0 (기본). MeasurePos 가 ROI 의 긴 축 방향으로 traverse 하며 수직 그라디언트 측정.
+        public double Line1_PhiDeg
+        {
+            get { return Line1_Phi * 180.0 / System.Math.PI; }
+            set { Line1_Phi = value * System.Math.PI / 180.0; }
+        }
         public double Line1_Length1 { get; set; } = 0;
         public double Line1_Length2 { get; set; } = 0;
 
@@ -103,7 +112,16 @@ namespace ReringProject.Sequence {
         [Category("Datum|Line2 ROI")]
         public double Line2_Row { get; set; } = 0;
         public double Line2_Col { get; set; } = 0;
+        //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Line2_Phi { get; set; } = 0;
+        //260426 hbk Phase 13 D-PRP-PHIFIX — Phi 를 도(degree) 단위로 노출 (Line2_Phi = PhiDeg * PI / 180).
+        //  수평 에지 검출 시 90, 수직 에지 검출 시 0 (기본).
+        public double Line2_PhiDeg
+        {
+            get { return Line2_Phi * 180.0 / System.Math.PI; }
+            set { Line2_Phi = value * System.Math.PI / 180.0; }
+        }
         public double Line2_Length1 { get; set; } = 0;
         public double Line2_Length2 { get; set; } = 0;
 
@@ -152,7 +170,16 @@ namespace ReringProject.Sequence {
         [Category("Datum|Horizontal A ROI")]
         public double Horizontal_A_Row     { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_A_Col     { get; set; } = 0; //260423 hbk Phase 12 D-11
+        //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Horizontal_A_Phi     { get; set; } = 0; //260423 hbk Phase 12 D-11
+        //260426 hbk Phase 13 D-PRP-PHIFIX — Phi 를 도(degree) 단위로 노출 (Horizontal_A_Phi = PhiDeg * PI / 180).
+        //  수평 에지 검출 시 90, 수직 에지 검출 시 0 (기본).
+        public double Horizontal_A_PhiDeg
+        {
+            get { return Horizontal_A_Phi * 180.0 / System.Math.PI; }
+            set { Horizontal_A_Phi = value * System.Math.PI / 180.0; }
+        }
         public double Horizontal_A_Length1 { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_A_Length2 { get; set; } = 0; //260423 hbk Phase 12 D-11
 
@@ -176,7 +203,16 @@ namespace ReringProject.Sequence {
         [Category("Datum|Horizontal B ROI")]
         public double Horizontal_B_Row     { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_B_Col     { get; set; } = 0; //260423 hbk Phase 12 D-11
+        //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Horizontal_B_Phi     { get; set; } = 0; //260423 hbk Phase 12 D-11
+        //260426 hbk Phase 13 D-PRP-PHIFIX — Phi 를 도(degree) 단위로 노출 (Horizontal_B_Phi = PhiDeg * PI / 180).
+        //  수평 에지 검출 시 90, 수직 에지 검출 시 0 (기본).
+        public double Horizontal_B_PhiDeg
+        {
+            get { return Horizontal_B_Phi * 180.0 / System.Math.PI; }
+            set { Horizontal_B_Phi = value * System.Math.PI / 180.0; }
+        }
         public double Horizontal_B_Length1 { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_B_Length2 { get; set; } = 0; //260423 hbk Phase 12 D-11
 

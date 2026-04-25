@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 13 Plan 03 replan + Plan 04/05 신규 작성 (split — Edit/Delete + per-ROI 파라미터 + 시각화 분리)
+status: executing
+stopped_at: Phase 13 Plan 03 complete — advancing to Plan 04
 last_updated: "2026-04-26T00:00:00Z"
 progress:
   total_phases: 13
   completed_phases: 11
-  total_plans: 35
-  completed_plans: 30
-  percent: 85
+  total_plans: 38
+  completed_plans: 33
+  percent: 87
 ---
 
 # Project State
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase 12 — datum-circle-vertical-horizontal-intersection
+**Current focus:** Phase --phase — 13
 
 ## Current Position
 
-Phase: 12 (datum-circle-vertical-horizontal-intersection) — COMPLETE (3/3 plans 2026-04-24)
-Plan: Plan 03 완료 — Datum teach UI state machine + UAT Gap-2 (ROI 라벨) + Gap-3 (PropertyGrid write-back 재바인딩) fix applied
-Next: Phase 13 진입 — Strategy 패턴 리팩터 + deferred Gap-1 (ROI Edit/Move in TeachDatum 모드) + Gap-4 (런타임 TryFindDatum 테스트 UI) + Req 5d (방향 정합성 검사)
+Phase: 13 (datum-algorithm-extensibility) — EXECUTING
+Plan: 4 of 5 (13-04 next)
+Next: Phase 13 Plan 04 — DatumConfig per-ROI 5×6=30 신규 필드 + EnsurePerRoiDefaults() INI 하위호환 마이그레이션 + DatumFindingService per-ROI 파라미터 와이어링
 
 ## Performance Metrics
 
@@ -110,6 +110,7 @@ Recent decisions affecting current work:
 - [Phase 12-03 UAT Gap-2 fix]: RenderDatumOverlay 에 yellow ROI 라벨 추가 (L1/L2 / Circle / H-A / H-B / Vert) — DrawRoiLabel(Rectangle2 회전 반영) + DrawRoiLabelAt(Circle 용) 헬퍼로 수직/수평/라인 시각 구분 복구
 - [Phase 12-03 UAT Gap-3 fix]: DatumConfig 자동 속성 INotifyPropertyChanged 미발동 → HalconViewer_DatumRect/CircleCompleted 에서 _editingDatum.RaisePropertyChanged("") + InspectionListView.RefreshParamEditor() 이중 신호로 PropertyGrid 재바인딩; SetDatumOverlay 도 즉시 재호출하여 방금 그린 ROI 좌표가 캔버스+PropertyGrid+INI save 경로 모두 반영되도록 함 (재시작 후 ROI 복원 가능)
 - [Phase 12-03 UAT]: SIMUL_MODE 육안 검증 사용자 승인 (2026-04-24) — (1) ROI 그리면 PropertyGrid 좌표 숫자 채워짐 확인, (2) ROI 사각형 위 yellow 라벨 (Circle/H-A/H-B) 시인성 확인; Gap-1(ROI Edit/Move in TeachDatum)·Gap-4(런타임 TryFindDatum 테스트 UI)·Req 5d(방향 정합성)는 Phase 13 이월 합의
+- [Phase 13-03]: Datum ROI 이동/삭제 분기를 RoiId.StartsWith("Datum.")로 식별 — FAI 경로 한 줄도 변경 없음; HitTestOneRoi private static으로 FAI+Datum 공용; SetDatumRoiCandidates _isEditMode 무관 통과; ClearDatumRoiFields 시 IsConfigured/LastTeachSucceeded false; PublishDatumRoiCandidates 3 지점; Plan 02 CustomMessageBox (message,title)→(title,message) swap; UAT 발견 버그(InspectionList 선택 시 candidates 미publish) hotfix e199093으로 해결; per-ROI 에지 파라미터·시각화는 13-04/13-05 이월
 
 ### Quick Tasks Completed
 
@@ -135,10 +136,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 12 context gathered
-Resume file: --resume-file
-Next action: Phase 09 (VERIFICATION 문서 보강) — /gsd-discuss-phase 9 or /gsd-plan-phase 9
+Last session: 2026-04-26T00:00:00Z
+Stopped at: Phase 13 Plan 03 complete (UAT approved after hotfix e199093) — advancing to Plan 04
+Resume file: .planning/phases/13-datum-algorithm-extensibility/13-04-PLAN.md
+Next action: Phase 13 Plan 04 — per-ROI 에지 파라미터 DatumConfig 스키마 확장 + EnsurePerRoiDefaults() + DatumFindingService 와이어링
 
 **Planned Phase:** 12 (datum-circle-vertical-horizontal-intersection) — 3 plans — 2026-04-23T15:17:27.733Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265

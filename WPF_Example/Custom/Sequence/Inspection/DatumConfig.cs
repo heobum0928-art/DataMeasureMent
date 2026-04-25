@@ -82,6 +82,23 @@ namespace ReringProject.Sequence {
         public double Line1_Length1 { get; set; } = 0;
         public double Line1_Length2 { get; set; } = 0;
 
+        //260425 hbk Phase 13 D-PRP-02 — Line1 ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
+        //  sentinel 0/"" 일 때 EnsurePerRoiDefaults() 가 legacy 글로벌 값으로 복제.
+        [Category("Datum|Line1 Edge")]
+        public int    Line1_EdgeThreshold   { get; set; } = 0;
+        public double Line1_Sigma           { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Line1_EdgeDirectionList))]
+        public string Line1_EdgeDirection   { get; set; } = "";
+        public int    Line1_EdgeSampleCount { get; set; } = 0;
+        public int    Line1_EdgeTrimCount   { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Line1_EdgePolarityList))]
+        public string Line1_EdgePolarity    { get; set; } = "";
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Line1_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Line1_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+
         //260409 hbk Phase 4: Line2 ROI (기준 Y축 방향 에지 라인, 기본값 PI/2 = 수직)
         [Category("Datum|Line2 ROI")]
         public double Line2_Row { get; set; } = 0;
@@ -90,12 +107,44 @@ namespace ReringProject.Sequence {
         public double Line2_Length1 { get; set; } = 0;
         public double Line2_Length2 { get; set; } = 0;
 
+        //260425 hbk Phase 13 D-PRP-02 — Line2 ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
+        [Category("Datum|Line2 Edge")]
+        public int    Line2_EdgeThreshold   { get; set; } = 0;
+        public double Line2_Sigma           { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Line2_EdgeDirectionList))]
+        public string Line2_EdgeDirection   { get; set; } = "";
+        public int    Line2_EdgeSampleCount { get; set; } = 0;
+        public int    Line2_EdgeTrimCount   { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Line2_EdgePolarityList))]
+        public string Line2_EdgePolarity    { get; set; } = "";
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Line2_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Line2_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+
         //260423 hbk Phase 12 D-10 — Circle ROI (CircleTwoHorizontal 전용 검색 영역)
         //260423 hbk  CircleROI_Radius > 0 이 ROI 설정 완료 판정 기준.
         [Category("Datum|Circle ROI")]
         public double CircleROI_Row    { get; set; } = 0; //260423 hbk Phase 12 D-10
         public double CircleROI_Col    { get; set; } = 0; //260423 hbk Phase 12 D-10
         public double CircleROI_Radius { get; set; } = 0; //260423 hbk Phase 12 D-10
+
+        //260425 hbk Phase 13 D-PRP-02 — Circle ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
+        [Category("Datum|Circle Edge")]
+        public int    Circle_EdgeThreshold   { get; set; } = 0;
+        public double Circle_Sigma           { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
+        public string Circle_EdgeDirection   { get; set; } = "";
+        public int    Circle_EdgeSampleCount { get; set; } = 0;
+        public int    Circle_EdgeTrimCount   { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Circle_EdgePolarityList))]
+        public string Circle_EdgePolarity    { get; set; } = "";
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Circle_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Circle_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
 
         //260423 hbk Phase 12 D-11 — 수평 A ROI (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
         //260423 hbk  A/B 순서 의존성 없음 — concat + FitLineContourXld 이므로 교환 대칭.
@@ -107,6 +156,22 @@ namespace ReringProject.Sequence {
         public double Horizontal_A_Length1 { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_A_Length2 { get; set; } = 0; //260423 hbk Phase 12 D-11
 
+        //260425 hbk Phase 13 D-PRP-02 — Horizontal A ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
+        [Category("Datum|Horizontal A Edge")]
+        public int    Horizontal_A_EdgeThreshold   { get; set; } = 0;
+        public double Horizontal_A_Sigma           { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Horizontal_A_EdgeDirectionList))]
+        public string Horizontal_A_EdgeDirection   { get; set; } = "";
+        public int    Horizontal_A_EdgeSampleCount { get; set; } = 0;
+        public int    Horizontal_A_EdgeTrimCount   { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Horizontal_A_EdgePolarityList))]
+        public string Horizontal_A_EdgePolarity    { get; set; } = "";
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Horizontal_A_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Horizontal_A_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+
         //260423 hbk Phase 12 D-11 — 수평 B ROI
         [Category("Datum|Horizontal B ROI")]
         public double Horizontal_B_Row     { get; set; } = 0; //260423 hbk Phase 12 D-11
@@ -115,20 +180,39 @@ namespace ReringProject.Sequence {
         public double Horizontal_B_Length1 { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_B_Length2 { get; set; } = 0; //260423 hbk Phase 12 D-11
 
+        //260425 hbk Phase 13 D-PRP-02 — Horizontal B ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
+        [Category("Datum|Horizontal B Edge")]
+        public int    Horizontal_B_EdgeThreshold   { get; set; } = 0;
+        public double Horizontal_B_Sigma           { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Horizontal_B_EdgeDirectionList))]
+        public string Horizontal_B_EdgeDirection   { get; set; } = "";
+        public int    Horizontal_B_EdgeSampleCount { get; set; } = 0;
+        public int    Horizontal_B_EdgeTrimCount   { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Horizontal_B_EdgePolarityList))]
+        public string Horizontal_B_EdgePolarity    { get; set; } = "";
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Horizontal_B_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Horizontal_B_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+
         //260409 hbk Phase 4: 기준 원점 및 각도 (티칭 시 저장)
         [Category("Datum|Reference")]
         public double RefOriginRow { get; set; } = 0;
         public double RefOriginCol { get; set; } = 0;
         public double RefAngleRad { get; set; } = 0;
 
-        //260409 hbk Phase 4: 에지 검출 파라미터 (FAIConfig와 동일 패턴)
-        [Category("Datum|Edge Detection")]
+        //260425 hbk Phase 13 D-PRP-01 — Legacy 글로벌 에지 파라미터 (INI 하위호환 유지, PropertyGrid 노출 안 함)
+        //  per-ROI 30 필드로 대체 (Line1_*/Line2_*/Circle_*/Horizontal_A_*/Horizontal_B_*).
+        //  EnsurePerRoiDefaults() 가 최초 1회 글로벌 → per-ROI 복제.
+        [Category("Datum|Edge Detection (legacy)")]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeThreshold { get; set; } = 20;
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Sigma { get; set; } = 1.0;
-        [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string EdgePolarity { get; set; } = "all"; // Halcon MeasurePos polarity: "all", "positive", "negative"
 
-        //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼 — Datum은 Halcon 원시 값 사용
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.DatumPolarities; } }
 
@@ -171,6 +255,59 @@ namespace ReringProject.Sequence {
         public double CircleCenter_Col { get; set; } //260423 hbk Phase 12 D-10
         [PropertyTools.DataAnnotations.Browsable(false)]
         public double CircleDetected_Radius { get; set; } //260423 hbk Phase 12 D-10
+
+        //260425 hbk Phase 13 D-PRP-03 — 최초 로드 시 sentinel(per-ROI EdgeThreshold==0) 검출 → 글로벌 값 5 ROI 일괄 복제 (idempotent).
+        //  DatumFindingService.TryTeach* / TryFindDatum 진입부에서 1회 호출.
+        //  sentinel 가 아니면 (사용자가 per-ROI 값을 명시한 경우) 그대로 유지 — 멱등성 보장.
+        public void EnsurePerRoiDefaults() {
+            // Hardcoded fallback (legacy 글로벌이 모두 0/"" 인 극단 케이스)
+            int    fbThreshold   = EdgeThreshold > 0 ? EdgeThreshold : 20;
+            double fbSigma       = Sigma > 0 ? Sigma : 1.0;
+            string fbDirection   = "LtoR"; // legacy 글로벌에 EdgeDirection 없음
+            int    fbSampleCount = 20;
+            int    fbTrimCount   = 10;
+            string fbPolarity    = !string.IsNullOrEmpty(EdgePolarity) ? EdgePolarity : "all";
+
+            // Line1
+            if (Line1_EdgeThreshold == 0)        Line1_EdgeThreshold = fbThreshold;
+            if (Line1_Sigma == 0)                Line1_Sigma = fbSigma;
+            if (string.IsNullOrEmpty(Line1_EdgeDirection)) Line1_EdgeDirection = fbDirection;
+            if (Line1_EdgeSampleCount == 0)      Line1_EdgeSampleCount = fbSampleCount;
+            if (Line1_EdgeTrimCount == 0)        Line1_EdgeTrimCount = fbTrimCount;
+            if (string.IsNullOrEmpty(Line1_EdgePolarity)) Line1_EdgePolarity = fbPolarity;
+
+            // Line2
+            if (Line2_EdgeThreshold == 0)        Line2_EdgeThreshold = fbThreshold;
+            if (Line2_Sigma == 0)                Line2_Sigma = fbSigma;
+            if (string.IsNullOrEmpty(Line2_EdgeDirection)) Line2_EdgeDirection = fbDirection;
+            if (Line2_EdgeSampleCount == 0)      Line2_EdgeSampleCount = fbSampleCount;
+            if (Line2_EdgeTrimCount == 0)        Line2_EdgeTrimCount = fbTrimCount;
+            if (string.IsNullOrEmpty(Line2_EdgePolarity)) Line2_EdgePolarity = fbPolarity;
+
+            // Circle
+            if (Circle_EdgeThreshold == 0)       Circle_EdgeThreshold = fbThreshold;
+            if (Circle_Sigma == 0)               Circle_Sigma = fbSigma;
+            if (string.IsNullOrEmpty(Circle_EdgeDirection)) Circle_EdgeDirection = fbDirection;
+            if (Circle_EdgeSampleCount == 0)     Circle_EdgeSampleCount = fbSampleCount;
+            if (Circle_EdgeTrimCount == 0)       Circle_EdgeTrimCount = fbTrimCount;
+            if (string.IsNullOrEmpty(Circle_EdgePolarity)) Circle_EdgePolarity = fbPolarity;
+
+            // Horizontal_A
+            if (Horizontal_A_EdgeThreshold == 0)   Horizontal_A_EdgeThreshold = fbThreshold;
+            if (Horizontal_A_Sigma == 0)           Horizontal_A_Sigma = fbSigma;
+            if (string.IsNullOrEmpty(Horizontal_A_EdgeDirection)) Horizontal_A_EdgeDirection = fbDirection;
+            if (Horizontal_A_EdgeSampleCount == 0) Horizontal_A_EdgeSampleCount = fbSampleCount;
+            if (Horizontal_A_EdgeTrimCount == 0)   Horizontal_A_EdgeTrimCount = fbTrimCount;
+            if (string.IsNullOrEmpty(Horizontal_A_EdgePolarity)) Horizontal_A_EdgePolarity = fbPolarity;
+
+            // Horizontal_B
+            if (Horizontal_B_EdgeThreshold == 0)   Horizontal_B_EdgeThreshold = fbThreshold;
+            if (Horizontal_B_Sigma == 0)           Horizontal_B_Sigma = fbSigma;
+            if (string.IsNullOrEmpty(Horizontal_B_EdgeDirection)) Horizontal_B_EdgeDirection = fbDirection;
+            if (Horizontal_B_EdgeSampleCount == 0) Horizontal_B_EdgeSampleCount = fbSampleCount;
+            if (Horizontal_B_EdgeTrimCount == 0)   Horizontal_B_EdgeTrimCount = fbTrimCount;
+            if (string.IsNullOrEmpty(Horizontal_B_EdgePolarity)) Horizontal_B_EdgePolarity = fbPolarity;
+        }
 
         public DatumConfig(object owner) : base(owner) {
         }

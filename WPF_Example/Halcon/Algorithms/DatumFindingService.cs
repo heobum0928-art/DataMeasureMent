@@ -40,6 +40,9 @@ namespace ReringProject.Halcon.Algorithms
                 return true;
             }
 
+            //260425 hbk Phase 13 D-PRP-06 — per-ROI sentinel → 글로벌 복제 (idempotent, 최초 1회 의미)
+            config.EnsurePerRoiDefaults();
+
             try
             {
                 HTuple imageWidth, imageHeight;
@@ -48,10 +51,12 @@ namespace ReringProject.Halcon.Algorithms
                 // Line1 검출
                 double line1RowBegin, line1ColBegin, line1RowEnd, line1ColEnd;
                 string lineError;
+                //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (글로벌 EdgeThreshold/Sigma/EdgePolarity → Line1_*)
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
                     config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2,
-                    config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                    config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
+                    config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out lineError))
                 {
@@ -61,10 +66,12 @@ namespace ReringProject.Halcon.Algorithms
 
                 // Line2 검출
                 double line2RowBegin, line2ColBegin, line2RowEnd, line2ColEnd;
+                //260425 hbk Phase 13 D-PRP-05 — Line2 per-ROI 에지 파라미터 사용
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
                     config.Line2_Row, config.Line2_Col, config.Line2_Phi, config.Line2_Length1, config.Line2_Length2,
-                    config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                    config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
+                    config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out lineError))
                 {
@@ -138,6 +145,9 @@ namespace ReringProject.Halcon.Algorithms
                 return false;
             }
 
+            //260425 hbk Phase 13 D-PRP-06 — per-ROI sentinel → 글로벌 복제 (idempotent, 최초 1회 의미)
+            config.EnsurePerRoiDefaults();
+
             //260423 hbk Phase 12 D-04 — AlgorithmTypeEnum 은 string→enum 파싱 헬퍼 (Plan 01, DatumConfig.cs), 미지원 문자열은 TwoLineIntersect 폴백
             switch (config.AlgorithmTypeEnum)
             {
@@ -164,10 +174,12 @@ namespace ReringProject.Halcon.Algorithms
                 // Line1 검출
                 double line1RowBegin, line1ColBegin, line1RowEnd, line1ColEnd;
                 string lineError;
+                //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (글로벌 EdgeThreshold/Sigma/EdgePolarity → Line1_*)
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
                     config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2,
-                    config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                    config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
+                    config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out lineError))
                 {
@@ -178,10 +190,12 @@ namespace ReringProject.Halcon.Algorithms
 
                 // Line2 검출
                 double line2RowBegin, line2ColBegin, line2RowEnd, line2ColEnd;
+                //260425 hbk Phase 13 D-PRP-05 — Line2 per-ROI 에지 파라미터 사용
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
                     config.Line2_Row, config.Line2_Col, config.Line2_Phi, config.Line2_Length1, config.Line2_Length2,
-                    config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                    config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
+                    config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out lineError))
                 {
@@ -262,11 +276,12 @@ namespace ReringProject.Halcon.Algorithms
                 var visionSvc = new VisionAlgorithmService();
                 double centerRow, centerCol, radius;
                 string circleError;
+                //260425 hbk Phase 13 D-PRP-05 — Circle per-ROI 에지 파라미터 사용
                 if (!visionSvc.TryFindCircle(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
                         null, // teaching-phase identity transform
-                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        config.Circle_Sigma, config.Circle_EdgeThreshold, config.Circle_EdgePolarity,
                         out centerRow, out centerCol, out radius,
                         out circleError))
                 {
@@ -282,11 +297,13 @@ namespace ReringProject.Halcon.Algorithms
                 //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
                 HTuple rowEdgeA, colEdgeA;
                 string edgeErrorA;
+                //260425 hbk Phase 13 D-PRP-05 — Horizontal_A per-ROI 에지 파라미터 사용
                 if (!TryExtractEdgePoints(
                         image, imageWidth, imageHeight,
                         config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
-                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
                         out rowEdgeA, out colEdgeA, out edgeErrorA))
                 {
                     config.LastTeachSucceeded = false;
@@ -297,11 +314,13 @@ namespace ReringProject.Halcon.Algorithms
                 //260423 hbk Phase 12 D-06 — 수평 B ROI 에지점
                 HTuple rowEdgeB, colEdgeB;
                 string edgeErrorB;
+                //260425 hbk Phase 13 D-PRP-05 — Horizontal_B per-ROI 에지 파라미터 사용
                 if (!TryExtractEdgePoints(
                         image, imageWidth, imageHeight,
                         config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
-                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
                         out rowEdgeB, out colEdgeB, out edgeErrorB))
                 {
                     config.LastTeachSucceeded = false;
@@ -421,11 +440,13 @@ namespace ReringProject.Halcon.Algorithms
                 //260423 hbk Phase 12 D-07 — 수직 ROI 라인 피팅 (Line1_* 재사용)
                 double vrB, vcB, vrE, vcE;
                 string lineError;
+                //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (수직 ROI)
                 if (!TryFindLine(
                         image, imageWidth, imageHeight,
                         config.Line1_Row, config.Line1_Col, config.Line1_Phi,
                         config.Line1_Length1, config.Line1_Length2,
-                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
+                        config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                         out vrB, out vcB, out vrE, out vcE,
                         out lineError))
                 {
@@ -437,11 +458,13 @@ namespace ReringProject.Halcon.Algorithms
                 //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
                 HTuple rowEdgeA, colEdgeA;
                 string edgeErrorA;
+                //260425 hbk Phase 13 D-PRP-05 — Horizontal_A per-ROI 에지 파라미터 사용
                 if (!TryExtractEdgePoints(
                         image, imageWidth, imageHeight,
                         config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
-                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
                         out rowEdgeA, out colEdgeA, out edgeErrorA))
                 {
                     config.LastTeachSucceeded = false;
@@ -452,11 +475,13 @@ namespace ReringProject.Halcon.Algorithms
                 //260423 hbk Phase 12 D-06 — 수평 B ROI 에지점
                 HTuple rowEdgeB, colEdgeB;
                 string edgeErrorB;
+                //260425 hbk Phase 13 D-PRP-05 — Horizontal_B per-ROI 에지 파라미터 사용
                 if (!TryExtractEdgePoints(
                         image, imageWidth, imageHeight,
                         config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
-                        config.Sigma, config.EdgeThreshold, config.EdgePolarity,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
                         out rowEdgeB, out colEdgeB, out edgeErrorB))
                 {
                     config.LastTeachSucceeded = false;
@@ -598,10 +623,15 @@ namespace ReringProject.Halcon.Algorithms
         /// Rectangle2 ROI 내에서 에지 포인트를 검출하고 FitLineContourXld로 라인을 피팅한다.
         /// T-04-02: MeasureHandle은 finally 블록에서 해제된다.
         /// </summary>
+        //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가)
+        //  이전 호출부의 글로벌 sigma/threshold/polarity 는 ROI 별 값으로 교체됨.
+        //  direction/sampleCount/trimCount 는 향후 알고리즘 확장 hook — 현재는 시그니처에 수신만 하고 미사용 (알고리즘 변경 최소화 원칙).
+        //  sampleCount > 0 / trimCount > 0 분기는 13-05 이후 단계에서 구현 예정.
         private bool TryFindLine( //260409 hbk Phase 4
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
+            string direction, int sampleCount, int trimCount,
             out double lineRowBegin, out double lineColBegin,
             out double lineRowEnd, out double lineColEnd,
             out string error)
@@ -611,6 +641,11 @@ namespace ReringProject.Halcon.Algorithms
             lineRowEnd = 0;
             lineColEnd = 0;
             error = null;
+
+            // direction/sampleCount/trimCount: 수신만 함 — 알고리즘 변경 최소화 원칙 (13-05 이후 확장)
+            _ = direction;
+            _ = sampleCount;
+            _ = trimCount;
 
             HTuple measureHandle = null;
             HObject contour = null;
@@ -672,16 +707,23 @@ namespace ReringProject.Halcon.Algorithms
 
         //260423 hbk Phase 12 D-06 — 단일 Rectangle2 ROI에서 에지점만 추출 (라인 피팅 전 단계). 수평 2-ROI concat 피팅용.
         //260423 hbk  TryFindLine 과 달리 FitLineContourXld 단계를 생략하고 raw edge tuples 반환.
+        //260425 hbk Phase 13 D-PRP-04 — per-ROI 에지 파라미터 적용 (direction/sampleCount/trimCount 추가, 알고리즘 변경 최소화 원칙)
         private bool TryExtractEdgePoints(
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
+            string direction, int sampleCount, int trimCount,
             out HTuple rowEdge, out HTuple colEdge,
             out string error)
         {
             rowEdge = new HTuple();
             colEdge = new HTuple();
             error = null;
+
+            // direction/sampleCount/trimCount: 수신만 함 — 알고리즘 변경 최소화 원칙 (13-05 이후 확장)
+            _ = direction;
+            _ = sampleCount;
+            _ = trimCount;
 
             HTuple measureHandle = null;
             try

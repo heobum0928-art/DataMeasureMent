@@ -93,3 +93,20 @@ blocked: 1
   test: 6
   artifacts: []
   missing: []
+
+## Routing Decision (2026-04-26)
+
+사용자 합의: **옵션 2 — minor patch + major 분리**
+
+### Phase 13-06 (이번 phase 내 patch)
+- **Test 6 (minor)**: per-ROI PropertyGrid 파라미터 변경 시 자동 재티칭 트리거 연결
+  - 변경 위치 후보: DatumConfig PropertyChanged 이벤트 → MainView InvokeTryTeachDatumForEdit 호출
+  - 또는 PropertyGrid의 ValueChanged 이벤트에서 _editingDatum != null + LastTeachSucceeded일 때 재티칭 발동
+
+### Phase 14 (별도 phase로 분리)
+- **Test 1 issue 1/2 + Test 3 + Test 2 blocked + Carry-over Circle 재설계**:
+  - **Vertical 에지 파라미터 그룹 신설** — VerticalTwoHorizontal 알고리즘에서 수직 ROI(현재 Line1 매핑)의 의미적 라벨링 + PropertyGrid 카테고리 분리. RoiId 규약/데이터 모델 영향.
+  - **Circle ROI 이동 회귀 fix** — Plan 13-03에서 PASS였는데 후속 작업(13-04/05) 중 어디서 깨짐. _datumRoiCandidates publish 누락 가능성.
+  - **Circle 알고리즘 재설계** — center+radius 기점 360° 에지 추출 방식으로 전환. VisionAlgorithmService.TryFindCircle raw 에지점 반환 확장 포함 (Plan 13-05의 Circle raw 점 carry-over도 동시 해결).
+  - **CircleTwoHorizontal / VerticalTwoHorizontal 정상 시행 불가 원인 조사** — 13-04 strip-loop 패턴이 horizontal 알고리즘에 잘못 적용됐을 가능성 / per-ROI 파라미터 누락 / Phi 와이어링 결함.
+  - **각도 out-of-range UX 갭** — TwoLineIntersect도 검증 게이트 적용 검토(D-12 scope 확장).

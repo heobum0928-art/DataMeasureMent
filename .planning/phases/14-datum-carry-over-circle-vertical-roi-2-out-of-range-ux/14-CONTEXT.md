@@ -168,6 +168,7 @@ Downstream agents MUST read `14-SPEC.md` before planning or implementing. Requir
 - **Strategy 패턴 / 알고리즘 클래스 추상화** — Phase 13 deferred 결정 그대로 유지. switch 디스패치 패턴 (DatumFindingService) 계속 사용.
 - **Halcon `MeasureCircle` 등 SDK 빌트인** — Phase 14 는 사용자 지정 회전 방식만. SDK 빌트인 비교/벤치마크는 별도 spike 가능.
 - **PropertyGrid 동적 가시성 fallback (prefix only)** — D-08 의 (3) 후보. 1차 동적 숨김 구현이 너무 까다로우면 그때 채택. fallback 채택 시 사용자 추가 승인 필요.
+- **D-07 알고리즘별 동적 [Browsable] 숨김** — 사용자 승인 (2026-04-26) 으로 D-08 prefix fallback 채택. PropertyTools 3.1.0 런타임 토글 미시도. 향후 사용자가 prefix 만으로 부족하다고 판단하면 별도 phase 에서 TypeDescriptor.AddAttributes / SelectedObject wrapper 패턴으로 재시도 가능.
 - **Vertical_* / Line1_* 양방향 동기화** — D-06 에서 안 함. 향후 사용자가 알고리즘 빈번히 전환하며 Vertical/Line1 일치 원하면 별도 quick task.
 - **Reviewed Todos** — 매칭된 todo 0건이라 reviewed 도 없음.
 </deferred>

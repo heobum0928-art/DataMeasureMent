@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: unknown
 stopped_at: Phase 14 context gathered (13 decisions across 5 areas)
-last_updated: "2026-04-26T13:18:07.517Z"
+last_updated: "2026-04-26T14:01:01.883Z"
 progress:
   total_phases: 14
   completed_phases: 12
-  total_plans: 39
+  total_plans: 44
   completed_plans: 36
-  percent: 92
+  percent: 82
 ---
 
 # Project State
@@ -144,7 +144,7 @@ Stopped at: Phase 14 context gathered (13 decisions across 5 areas)
 Resume file: --resume-file
 Next action: `/gsd-spec-phase 14` (Datum ROI Edit resize + Circle 알고리즘 재설계 + Test 1/2/3 majors 정식 spec)
 
-**Planned Phase:** 13 (datum-algorithm-extensibility) — 6 plans — 2026-04-26T05:12:47.305Z
+**Planned Phase:** 14 (datum-carry-over-circle-vertical-roi-2-out-of-range-ux) — 5 plans — 2026-04-26T14:01:01.873Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
 **Phase 12 / Plan 02 Execution:** 2026-04-24 — 3 tasks / 1 file (WPF_Example/Halcon/Algorithms/DatumFindingService.cs) / commits 6f6db7b, e6cc52e, 0e9c1f2 — msbuild Debug/x64 green, zero new warnings on DatumFindingService.cs
 **Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT

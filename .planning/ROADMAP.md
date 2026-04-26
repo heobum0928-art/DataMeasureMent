@@ -200,6 +200,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 11. Datum 티칭 UI + ROI 보강 (defect bundle) | 0/4 | Planned | - |
 | 12. Datum 신규 알고리즘 2종 (Circle+2H, Vertical+2H) | 0/3 | Planned | - |
 | 13. Datum 알고리즘 확장성 (재정의 — UX 이월 + per-ROI + 시각화) | 5/5 | Complete (UAT 13-05 approved 2026-04-26; Datum ROI resize + Circle raw 점 carry-over) | 2026-04-26 |
+| 14. Datum carry-over (Circle 알고리즘 재설계 + Vertical 그룹 + ROI 회귀 + 2종 정상화 + UX 게이트) | 0/5 | Planned | - |
 
 ### Phase 11: datum-teaching-ui-roi
 **Goal**: Datum을 실사용 가능한 UI로 완성하고 Circle ROI를 지원하여 RC-03 CircleDiameterMeasurement를 현실 운용 가능하게 만든다. WR-RT-01/03/04를 공통 캔버스/ROI/티칭 인프라 위에서 한 번에 해소한다
@@ -254,10 +255,15 @@ Plans:
 
 ### Phase 14: Datum carry-over: Circle 알고리즘 재설계 + Vertical 파라미터 그룹 + ROI 이동 회귀 + 2종 알고리즘 정상화 + out-of-range UX 게이트
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 13
-**Plans:** 0 plans
-
+**Goal**: Phase 13 UAT carry-over 5건 (Circle ROI 이동/resize 회귀 / TwoLineIntersect 각도 게이트 누락 / Vertical 파라미터 그룹 누락 / Circle raw 점 미반환 / 2종 알고리즘 btn_testFindDatum 미정상화) 을 5 sub-phase 로 처리하여, Datum 3 알고리즘 (TwoLineIntersect / CircleTwoHorizontal / VerticalTwoHorizontal) 모두에서 (a) Circle ROI 이동/resize 가 검출 결과 갱신까지 이어지고, (b) Vertical ROI 가 별도 파라미터 그룹으로 노출되며, (c) Circle 검출이 360° polar sampling 방식으로 raw 점까지 시각화되고, (d) 비정상 두 라인 각도가 fail 라벨로 거부되며, (e) btn_testFindDatum 으로 3 알고리즘 모두 정상 시행이 검증된다.
+**Requirements**: SPEC-14-Req-1, SPEC-14-Req-2, SPEC-14-Req-3, SPEC-14-Req-4, SPEC-14-Req-5 (14-SPEC.md 5 locked requirements + 15 acceptance criteria)
+**Depends on**: Phase 13
+**Success Criteria** (what must be TRUE): 14-SPEC.md Acceptance Criteria 15 항목 참조 (SIMUL_MODE 육안 PASS 6 + 자동화/grep 가능 9)
+**Plans:** 5 plans
 Plans:
-- [ ] TBD (run /gsd-plan-phase 14 to break down)
+- [ ] 14-01-PLAN.md — Circle ROI 이동 자동 재티칭 wiring fix + Edit 모드 N/S/E/W 핸들 resize 동작 (D-04 단일 RoiGeometryChanged 이벤트 확장; MainResultViewerControl + MainView)
+- [ ] 14-02-PLAN.md — TwoLineIntersect 두 라인 각도 out-of-range 게이트 (DatumConfig.TwoLineAngleToleranceDeg 필드 + DatumFindingService 게이트 + fail 라벨 literal)
+- [ ] 14-03-PLAN.md — DatumConfig Vertical 그룹 13 신규 필드 (5 geometry + 6 edge + 2 raw) + Category prefix 라벨 (D-08 fallback) + EnsurePerRoiDefaults INI 하위호환 마이그레이션 + DatumFindingService Line1_* → Vertical_* 슬롯 교체 + MainView Datum.Vertical 4 분기 + HalconDisplayService Vertical raw 점 orange 매핑
+- [ ] 14-04-PLAN.md — VisionAlgorithmService 신규 TryFindCircleByPolarSampling 메서드 (additive, legacy TryFindCircle 보존) + DatumConfig 3 신규 PropertyGrid 파라미터 (Circle_PolarStepDeg / RectL1Ratio / RectL2Ratio) + D-13 Halcon Rectangle2 phi 부호 4점 smoke test
+- [ ] 14-05-PLAN.md — DatumFindingService.TryTeachCircleTwoHorizontal Circle 검출 호출 교체 (TryFindCircle → TryFindCircleByPolarSampling) + raw 점 직접 write-back (D-VIZ-03 closure) + SIMUL_MODE btn_testFindDatum 3 알고리즘 통합 UAT (D-10 PASS path 우선 / D-11 FAIL contingency)
+**UI hint**: yes

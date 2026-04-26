@@ -251,3 +251,13 @@ Plans:
 - [x] 13-04-PLAN.md — DatumConfig per-ROI 5×6=30 신규 필드 + EnsurePerRoiDefaults() INI 하위호환 마이그레이션 + DatumFindingService TryFindLine/TryExtractEdgePoints 시그니처 확장 + 5 ROI 와이어링 (per-ROI 파라미터)
 - [x] 13-05-PLAN.md — DatumConfig 10 volatile HTuple 필드 (raw 에지점) + DatumFindingService write-back + HalconDisplayService EXTEND_PX/DrawExtendedLine/RenderRawEdgePoints + MainView label_datumRefCoords (시각화: 라인 외삽 + raw 점 + reference 좌표 텍스트) — UAT 15 시나리오 APPROVED (commits 01e37e3 + 136de8e Edit/Delete hotfix; Datum ROI resize + Circle raw 점 carry-over to next phase)
 **UI hint**: yes
+
+### Phase 14: Datum carry-over: Circle 알고리즘 재설계 + Vertical 파라미터 그룹 + ROI 이동 회귀 + 2종 알고리즘 정상화 + out-of-range UX 게이트
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 13
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 14 to break down)

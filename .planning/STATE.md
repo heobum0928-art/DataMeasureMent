@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 13 Plan 04 SUMMARY rewritten after 4 UAT hotfixes — advancing to Plan 05
-last_updated: "2026-04-26T12:00:00Z"
+status: unknown
+stopped_at: Phase 13 complete (5/5 plans — 13-05 UAT approved 15 scenarios; Datum ROI resize + Circle raw points carry-over to next phase)
+last_updated: "2026-04-26T01:00:00.000Z"
 progress:
   total_phases: 13
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 38
-  completed_plans: 34
-  percent: 89
+  completed_plans: 35
+  percent: 92
 ---
 
 # Project State
@@ -24,9 +24,9 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 
 ## Current Position
 
-Phase: 13 (datum-algorithm-extensibility) — EXECUTING
-Plan: 5 of 5 (13-05 next)
-Next: Phase 13 Plan 05 — DatumConfig volatile HTuple 필드 (raw 에지점) + DatumFindingService write-back + HalconDisplayService EXTEND_PX/DrawExtendedLine/RenderRawEdgePoints + MainView label_datumRefCoords (시각화)
+Phase: --phase (13) — COMPLETE (5/5 plans)
+Plan: 5 of 5 — 13-05 (visualization) complete
+Next: `/gsd-verify-work 13` (verifier on closed phase) 또는 `/gsd-spec-phase 14` (Datum ROI Edit resize + 자동 재티칭 신규 phase — 13-05 UAT carry-over)
 
 ## Performance Metrics
 
@@ -112,6 +112,7 @@ Recent decisions affecting current work:
 - [Phase 12-03 UAT]: SIMUL_MODE 육안 검증 사용자 승인 (2026-04-24) — (1) ROI 그리면 PropertyGrid 좌표 숫자 채워짐 확인, (2) ROI 사각형 위 yellow 라벨 (Circle/H-A/H-B) 시인성 확인; Gap-1(ROI Edit/Move in TeachDatum)·Gap-4(런타임 TryFindDatum 테스트 UI)·Req 5d(방향 정합성)는 Phase 13 이월 합의
 - [Phase 13-03]: Datum ROI 이동/삭제 분기를 RoiId.StartsWith("Datum.")로 식별 — FAI 경로 한 줄도 변경 없음; HitTestOneRoi private static으로 FAI+Datum 공용; SetDatumRoiCandidates _isEditMode 무관 통과; ClearDatumRoiFields 시 IsConfigured/LastTeachSucceeded false; PublishDatumRoiCandidates 3 지점; Plan 02 CustomMessageBox (message,title)→(title,message) swap; UAT 발견 버그(InspectionList 선택 시 candidates 미publish) hotfix e199093으로 해결; per-ROI 에지 파라미터·시각화는 13-04/13-05 이월
 - [Phase 13-04]: per-ROI 필드 sentinel 기본값 0/"" + EnsurePerRoiDefaults idempotent migration; legacy 글로벌 [Browsable(false)] + Category(legacy) INI 이중 저장; TryFindLine/TryExtractEdgePoints +3 params 모두 algorithmically active (5 hotfix 후); EdgeDirection-로 strip orientation (LtoR/RtoL=행슬라이스, TtoB/BtoT=열슬라이스); strip-loop MeasurePos 패턴 (SmallestRectangle2 per-strip Phi + TupleConcat 누적, hotfix fa91525 — C:\Info\Project\DatumMeasure 참조 포팅); EdgeSampleCount = strip 개수(stripCount, default 20)로 재정의 (단일 MeasurePos minimum-edge gate 해석 폐기); PhiDeg degree-proxy PropertyGrid (hotfix c2a3097); trimCount/sampleCount sanity clamp (hotfix 95a18a3); Length1/Length2 swap 버그(Phase 12 잠재) diagnostic logging으로 발견/수정 (hotfix 54e466a); 7 소스 커밋(1 feat + 5 fix + 1 docs(premature)) + 2 docs 커밋, UAT 12 시나리오 + 5 hotfix 반복 끝 APPROVED (최종 fa91525, 2026-04-26) — 13-04 TRULY COMPLETE
+- [Phase 13-05]: 시각화 묶음 — DatumConfig 5 ROI × 2 = 10 신규 volatile HTuple 필드 ([Browsable(false)], ParamBase reflection 자동 무시 → INI 영향 0, Phase 4 D-11 패턴 연장); DatumFindingService TryFindLine 시그니처 +2 out HTuple (edgeRowsOut/edgeColsOut), 5 ROI write-back 양 경로 (TryTeach + TryFindDatum); HalconDisplayService EXTEND_PX=10000.0 + DrawExtendedLine helper (unit-vector × EXTEND_PX 양방향 외삽, lenSq<1e-9 degenerate guard, HALCON DispLine 자동 클리핑) + RenderRawEdgePoints helper (DispCross batch size=6 angle=0, null/length-0 가드); RenderDatumOverlay LastTeachSucceeded 분기에서 DispLine→DrawExtendedLine 2 회 교체 + 5 ROI RenderRawEdgePoints 호출 (Line1=cyan / Line2=magenta / Circle=yellow / HorizA=green / HorizB=lime); MainView label_datumRefCoords WPF Label + UpdateDatumRefCoordsLabel(DatumConfig) + 3 호출 지점 (Datum 노드 선택 / 티칭 성공 / ROI 이동 후 재티칭); 메인 commit 01e37e3 + hotfix 136de8e (Plan 13-03 잠복 결함 — UpdateContextMenuState hasSelectedRoi 가 _datumRoiCandidates OR-체크 안 해 Edit/Delete 메뉴 비활성, 1 라인 확장으로 흡수); UAT 15 시나리오 APPROVED (Test 5 Circle 노란 점 = VisionAlgorithmService.TryFindCircle raw row/col 미반환으로 빈 HTuple → carry-over; Test 13 Datum ROI 실제 resize 동작 = 신규 사용자 요구사항 → 13-06 또는 14-XX 신규 plan 으로 carry-over). Phase 13 5/5 plan 완료.
 
 ### Quick Tasks Completed
 
@@ -137,10 +138,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-26T00:00:00Z
-Stopped at: Phase 13 Plan 04 complete (UAT approved, 12 scenarios passed) — advancing to Plan 05
-Resume file: .planning/phases/13-datum-algorithm-extensibility/13-05-PLAN.md
-Next action: Phase 13 Plan 05 — 시각화: 검출 라인 외삽 + raw 에지점 마커 + RefOrigin/Angle/CircleCenter/Radius 텍스트 라벨
+Last session: 2026-04-26T01:00:00Z
+Stopped at: Phase 13 complete (5/5 plans — 13-05 UAT 15 시나리오 APPROVED, 메인 commit 01e37e3 + Edit/Delete hotfix 136de8e + 메타 commit)
+Resume file: (Phase 13 closed — Datum ROI Edit/resize + Circle raw 점 carry-over)
+Next action: `/gsd-verify-work 13` (verifier on closed phase) 또는 `/gsd-spec-phase 14` (Datum ROI Edit resize + 자동 재티칭 신규 phase 정식 spec)
 
 **Planned Phase:** 12 (datum-circle-vertical-horizontal-intersection) — 3 plans — 2026-04-23T15:17:27.733Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265

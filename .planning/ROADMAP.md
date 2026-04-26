@@ -199,7 +199,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 10. Datum 정확성 결함 수정 (gap closure) | 2/2 | Complete    | 2026-04-23 |
 | 11. Datum 티칭 UI + ROI 보강 (defect bundle) | 0/4 | Planned | - |
 | 12. Datum 신규 알고리즘 2종 (Circle+2H, Vertical+2H) | 0/3 | Planned | - |
-| 13. Datum 알고리즘 확장성 (strategy pattern) | 0/3 | Planned | - |
+| 13. Datum 알고리즘 확장성 (재정의 — UX 이월 + per-ROI + 시각화) | 5/5 | Complete (UAT 13-05 approved 2026-04-26; Datum ROI resize + Circle raw 점 carry-over) | 2026-04-26 |
 
 ### Phase 11: datum-teaching-ui-roi
 **Goal**: Datum을 실사용 가능한 UI로 완성하고 Circle ROI를 지원하여 RC-03 CircleDiameterMeasurement를 현실 운용 가능하게 만든다. WR-RT-01/03/04를 공통 캔버스/ROI/티칭 인프라 위에서 한 번에 해소한다
@@ -249,5 +249,5 @@ Plans:
 - [x] 13-02-PLAN.md — btn_testFindDatum + AskTestImageSource(현재 이미지/LoadImage) + RenderDatumFindResult 오버레이 + label_testFindResult (Gap-4)
 - [x] 13-03-PLAN.md — RoiMoveCompleted Datum 분기 + MainResultViewerControl Datum selection-aware hit-test + ApplyDatumRoiDelta + 자동 InvokeTryTeachDatum + ContextMenu Delete + Plan 02 CustomMessageBox arg fix (Gap-1 + Gap-A)
 - [x] 13-04-PLAN.md — DatumConfig per-ROI 5×6=30 신규 필드 + EnsurePerRoiDefaults() INI 하위호환 마이그레이션 + DatumFindingService TryFindLine/TryExtractEdgePoints 시그니처 확장 + 5 ROI 와이어링 (per-ROI 파라미터)
-- [ ] 13-05-PLAN.md — DatumConfig 10 volatile HTuple 필드 (raw 에지점) + DatumFindingService write-back + HalconDisplayService EXTEND_PX/DrawExtendedLine/RenderRawEdgePoints + MainView label_datumRefCoords (시각화: 라인 외삽 + raw 점 + reference 좌표 텍스트)
+- [x] 13-05-PLAN.md — DatumConfig 10 volatile HTuple 필드 (raw 에지점) + DatumFindingService write-back + HalconDisplayService EXTEND_PX/DrawExtendedLine/RenderRawEdgePoints + MainView label_datumRefCoords (시각화: 라인 외삽 + raw 점 + reference 좌표 텍스트) — UAT 15 시나리오 APPROVED (commits 01e37e3 + 136de8e Edit/Delete hotfix; Datum ROI resize + Circle raw 점 carry-over to next phase)
 **UI hint**: yes

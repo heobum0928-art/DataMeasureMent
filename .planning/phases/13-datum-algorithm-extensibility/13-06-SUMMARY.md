@@ -19,6 +19,7 @@ metrics:
   tasks: 2
   files_modified: 2
   commits: 3
+hot_fix: 13-07 (commit 9d34426 — UAT-driven cascade + recovery fix; see addendum below)
 ---
 
 # Phase 13 Plan 06: PropertyGrid Auto Re-Teach Gap Closure Summary
@@ -137,3 +138,56 @@ msbuild WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x
 - **Circle raw 점 시각화** (VisionAlgorithmService.TryFindCircle row/col 미반환 → 빈 HTuple) — Phase 14
 
 Phase 13 (5/5 plans) 은 13-06 완료로 모든 plan + UAT minor 갭까지 closeout. 다음 액션: `/gsd-spec-phase 14` 또는 `/gsd-verify-work 13`.
+
+---
+
+## 13-07 Hot-Fix Addendum (2026-04-26)
+
+**Trigger:** `/gsd-verify-work 13` 의 13-06 retest 6 시나리오 진행 중 발견된 회귀 2건. 사용자 합의로 즉시 hot-fix 적용 (별도 plan 파일 미생성, 13-06 SUMMARY 에 folded — Phase 12 UAT Gap-2/3 fix 12-03 SUMMARY folded 패턴과 동일).
+
+**Commit:** `9d34426` `fix(phase-13-07): hot-fix 13-06 UAT regressions — cascade + recovery`
+
+### Issue A: Test E 회귀 (major)
+
+**Symptom:** Datum 노드에서 FAI 트리 노드를 클릭해도 PropertyGrid 가 Datum 에서 안 바뀜 (Datum 안 만져도 항상 실패 — 사용자 (b) 패턴).
+
+**Root cause:** `Selector.SelectionChangedEvent` 가 PropertyGrid 내부 navigation Selector (카테고리 ListBox 등) 에서도 fire 되어 ParamEditor 까지 bubble. 사용자가 트리에서 FAI 클릭 → SelectedObject 가 Datum→FAI 로 전환되는 *중간 시점* 에 internal Selector.SelectionChanged 가 fire → 우리 핸들러가 invoke → SelectedObject 가 아직 Datum 인 상태에서 동기 Halcon TryTeachDatum (50~200ms) 호출 → UI 스레드 블록 → PropertyGrid 의 binding 전환이 중간에 깨짐 → FAI 표시 실패.
+
+**Fix:**
+- `OnParamEditorLostFocus` 에 `if (!(e.OriginalSource is TextBoxBase)) return;` 가드 추가 — 헤더/네비게이션 LostFocus 차단
+- `OnParamEditorSelectionChanged` 에 `if (!(e.OriginalSource is ComboBox)) return;` 가드 추가 — PropertyGrid 내부 카테고리 ListBox 등 차단
+- `TryTriggerDatumAutoReteach` 의 SelectedObject 검사 + Halcon 호출 부분을 `Dispatcher.BeginInvoke(DispatcherPriority.Background)` 로 wrap — binding 전환이 끝난 후 재검사. 정말 ComboBox 변경 시점에는 동일 시점에 binding 도 push 완료되어 Background 우선순위로 즉시 실행됨.
+
+### Issue B: Test D recovery 갭 (minor)
+
+**Symptom:** "되는걸 안되게" 변경(파라미터를 극단값으로) → 자동 재티칭 fail → LastTeachSucceeded=false. 그 후 "안되는걸 되게" (정상값으로 되돌림) → 자동 재티칭이 안 발동, ROI 를 손으로 클릭/이동해야 회복.
+
+**Root cause:** `MainView.NotifyDatumParamMaybeChanged` 의 가드 `if (!datum.IsConfigured || !datum.LastTeachSucceeded) return;` 의 `LastTeachSucceeded` 조건이 회복 경로를 차단. fail 상태에서는 어떤 파라미터 변경도 자동 재티칭으로 이어지지 않음.
+
+**Fix:** 가드를 `if (!datum.IsConfigured) return;` 로 완화 — ROI 가 그려져 있으면(IsConfigured=true) fail 상태(LastTeachSucceeded=false) 에서도 재시도 허용. fail→success 회복 경로 복구.
+
+### Files Changed
+
+| File | Change |
+| ---- | ------ |
+| `WPF_Example/UI/ControlItem/InspectionListView.xaml.cs` | +using System.Windows.Threading + 2 OriginalSource 필터 라인 + Dispatcher.BeginInvoke(Background) defer (+19 / -7) |
+| `WPF_Example/UI/ContentItem/MainView.xaml.cs` | NotifyDatumParamMaybeChanged 의 LastTeachSucceeded 가드 라인 1줄 제거 + 주석 보강 (+4 / -2) |
+
+### Build & Verification
+
+- msbuild Debug/x64 exit 0
+- 신규 warning 0 (기존 VirtualCamera CS0162 / VisionAlgorithmService CS0219 / MSB3884 동일)
+- Retest 6 시나리오 (B/C/D/E/F/G) 전수 PASS — 13-UAT.md "13-06 + 13-07 Retest" 섹션 참조
+
+### Self-Check
+
+- [x] OriginalSource 필터 (`is TextBoxBase` / `is ComboBox`) 적용 — PropertyGrid 내부 Selector / 헤더 LostFocus 차단
+- [x] `Dispatcher.BeginInvoke(DispatcherPriority.Background)` 로 binding 전환 후 재검사 안전 마진
+- [x] `LastTeachSucceeded` 가드 제거 — fail→success 회복 경로 복구 (`IsConfigured` 만 유지)
+- [x] FAI 편집 회귀 없음 (재검증) — `as DatumConfig` 캐스트가 여전히 1차 게이트
+- [x] 미티칭 / 이미지 미로드 가드 정상 동작 (Test F/G PASS)
+- [x] 주석 convention `//260426 hbk Phase 13-07` 신규/수정 라인 준수
+- [x] 단일 commit (9d34426) — feat 가 아닌 fix 컨벤션 (UAT-driven hot-fix)
+- [x] 13-UAT.md 갱신: Test 6 result issue → pass, Sub-test B/C/D/E/F/G PASS 섹션 추가, Summary count 4→5/3→2
+
+### Self-Check: PASSED

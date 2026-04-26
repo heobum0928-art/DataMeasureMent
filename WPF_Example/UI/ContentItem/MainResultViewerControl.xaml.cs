@@ -1339,10 +1339,15 @@ namespace ReringProject.UI
             ClearMeasureMenuItem.IsEnabled = isImageLoaded && (_manualMeasureStartPoint.HasValue || _manualMeasureEndPoint.HasValue || _manualMeasureMode);
 
             //260423 hbk Edit/Delete ROI 메뉴 활성화 (선택 ROI 존재 + 드로잉 모드 아님)
+            //260426 hbk Phase 13-05 hotfix — Datum ROI (_datumRoiCandidates) 도 hasSelectedRoi 판정에 포함.
+            //  13-03 에서 Datum hit 시 _selectedRoiId = "Datum.*" 를 set 하지만 _rois (FAI 전용) 에는 없으므로 항상 false 였음.
+            //  결과: Datum ROI 컨텍스트 메뉴 Edit/Delete 항목이 비활성 → UAT regression.
             if (EditRoiMenuItem != null && DeleteRoiMenuItem != null)
             {
                 bool hasSelectedRoi = !string.IsNullOrEmpty(_selectedRoiId)
-                    && _rois.Any(r => r.Id == _selectedRoiId && r.IsTaught);
+                    && (_rois.Any(r => r.Id == _selectedRoiId && r.IsTaught)
+                        || (_datumRoiCandidates != null
+                            && _datumRoiCandidates.Any(r => r != null && r.Id == _selectedRoiId && r.IsTaught)));
                 bool canEdit = hasSelectedRoi && !IsAnyDrawingModeActive();
                 EditRoiMenuItem.IsEnabled = canEdit;
                 EditRoiMenuItem.IsCheckable = true;

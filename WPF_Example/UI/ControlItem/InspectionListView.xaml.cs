@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives; //260426 hbk Phase 13-06 — TextBoxBase / Selector routed event
 using PropertyTools.Wpf;
 using ReringProject.Define;
 using ReringProject.Sequence;
@@ -28,6 +29,30 @@ namespace ReringProject.UI {
             var current = SelectedParam;
             ParamEditor.SelectedObject = null;
             ParamEditor.SelectedObject = current;
+        }
+
+        //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅
+        //  ParamEditor 의 routed TextBoxBase.LostFocus / Selector.SelectionChanged 가 fire 시 호출.
+        //  SelectedObject 가 teached DatumConfig 일 때만 MainView.NotifyDatumParamMaybeChanged 로 라우팅.
+        //  FAI/측정 ParamBase 편집은 noop (조기 return) → 회귀 위험 0.
+        private void TryTriggerDatumAutoReteach() {
+            if (ParamEditor == null) return;
+            var datum = ParamEditor.SelectedObject as DatumConfig;
+            if (datum == null) return;
+            if (mParentWindow == null) return;
+            var mv = mParentWindow.mainView;
+            if (mv == null) return;
+            mv.NotifyDatumParamMaybeChanged(datum);
+        }
+
+        //260426 hbk Phase 13-06 — TextBox(숫자/문자 셀) LostFocus 시점: WPF default UpdateSourceTrigger=LostFocus 이므로 binding 은 이미 DatumConfig 에 push 완료
+        private void OnParamEditorLostFocus(object sender, RoutedEventArgs e) {
+            TryTriggerDatumAutoReteach();
+        }
+
+        //260426 hbk Phase 13-06 — ComboBox(EdgeDirection/EdgePolarity 등) SelectionChanged 시점: binding 은 즉시 push
+        private void OnParamEditorSelectionChanged(object sender, SelectionChangedEventArgs e) {
+            TryTriggerDatumAutoReteach();
         }
 
         private bool _isControlLoaded = false; //260408 hbk UI 초기화 완료 플래그
@@ -84,6 +109,13 @@ namespace ReringProject.UI {
                 }
 
                 ViewModel.RootModel.ExpandAll();
+
+                //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
+                //  ParamEditor 가 null 이면 (Loaded 이전) skip. 정상 경로에서는 InitializeComponent 가 이미 ParamEditor 를 생성.
+                if (ParamEditor != null) {
+                    ParamEditor.AddHandler(TextBoxBase.LostFocusEvent, new RoutedEventHandler(OnParamEditorLostFocus), true);
+                    ParamEditor.AddHandler(Selector.SelectionChangedEvent, new SelectionChangedEventHandler(OnParamEditorSelectionChanged), true);
+                }
             }
             catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine("InspectionListView.ListView_Loaded error: " + ex.Message);

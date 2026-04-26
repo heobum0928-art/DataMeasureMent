@@ -629,6 +629,17 @@ namespace ReringProject.UI {
             datum.LastTeachSucceeded = false;
         }
 
+        //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
+        //  호출처: InspectionListView.OnParamEditorLostFocus / OnParamEditorSelectionChanged (routed event handler)
+        //  게이트: datum != null + IsConfigured + LastTeachSucceeded + halconViewer.CurrentImage != null
+        //  미티칭 / FAI 편집 / 이미지 미로드 시 noop — 회귀 위험 0.
+        public void NotifyDatumParamMaybeChanged(DatumConfig datum) {
+            if (datum == null) return;
+            if (!datum.IsConfigured || !datum.LastTeachSucceeded) return;
+            if (halconViewer == null || halconViewer.CurrentImage == null) return;
+            InvokeTryTeachDatumForEdit(datum);
+        }
+
         //260425 hbk Phase 13 D-03 — Edit 세션 전용 자동 재티칭 (_editingDatum 건드리지 않음)
         private void InvokeTryTeachDatumForEdit(DatumConfig datum) {
             if (datum == null) return;

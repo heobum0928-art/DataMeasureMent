@@ -52,6 +52,7 @@ namespace ReringProject.Halcon.Algorithms
 
                 // Line1 검출
                 double line1RowBegin, line1ColBegin, line1RowEnd, line1ColEnd;
+                HTuple line1RawRows, line1RawCols; //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신용
                 string lineError;
                 //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (글로벌 EdgeThreshold/Sigma/EdgePolarity → Line1_*)
                 if (!TryFindLine(
@@ -60,15 +61,20 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                     config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
+                    out line1RawRows, out line1RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
                     "Line1")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     error = "Line1: " + lineError;
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Line1 raw 점 DatumConfig 기록 (런타임 진단/시각화)
+                config.Line1_DetectedEdgeRows = line1RawRows;
+                config.Line1_DetectedEdgeCols = line1RawCols;
 
                 // Line2 검출
                 double line2RowBegin, line2ColBegin, line2RowEnd, line2ColEnd;
+                HTuple line2RawRows, line2RawCols; //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신용
                 //260425 hbk Phase 13 D-PRP-05 — Line2 per-ROI 에지 파라미터 사용
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
@@ -76,12 +82,16 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
                     config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
+                    out line2RawRows, out line2RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
                     "Line2")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
                     error = "Line2: " + lineError;
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Line2 raw 점 DatumConfig 기록
+                config.Line2_DetectedEdgeRows = line2RawRows;
+                config.Line2_DetectedEdgeCols = line2RawCols;
 
                 // D-03: 두 라인 교점 계산
                 HTuple curRow, curCol, isOverlapping;
@@ -182,6 +192,7 @@ namespace ReringProject.Halcon.Algorithms
                 HOperatorSet.GenRectangle2(out horect, config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2);
 
                 string lineError;
+                HTuple line1RawRows, line1RawCols; //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신용
                 //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (글로벌 EdgeThreshold/Sigma/EdgePolarity → Line1_*)
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
@@ -189,6 +200,7 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                     config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
+                    out line1RawRows, out line1RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
                     "Line1")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
@@ -196,9 +208,13 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Line1: " + lineError;
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Line1 raw 점 DatumConfig 기록
+                config.Line1_DetectedEdgeRows = line1RawRows;
+                config.Line1_DetectedEdgeCols = line1RawCols;
 
                 // Line2 검출
                 double line2RowBegin, line2ColBegin, line2RowEnd, line2ColEnd;
+                HTuple line2RawRows, line2RawCols; //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신용
                 //260425 hbk Phase 13 D-PRP-05 — Line2 per-ROI 에지 파라미터 사용
                 if (!TryFindLine(
                     image, imageWidth, imageHeight,
@@ -206,6 +222,7 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
                     config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
+                    out line2RawRows, out line2RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
                     "Line2")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
@@ -213,6 +230,9 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Line2: " + lineError;
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Line2 raw 점 DatumConfig 기록
+                config.Line2_DetectedEdgeRows = line2RawRows;
+                config.Line2_DetectedEdgeCols = line2RawCols;
 
                 // D-03: 교점 계산
                 HTuple curRow, curCol, isOverlapping;
@@ -303,6 +323,9 @@ namespace ReringProject.Halcon.Algorithms
                 config.CircleCenter_Row      = centerRow;
                 config.CircleCenter_Col      = centerCol;
                 config.CircleDetected_Radius = radius;
+                //260425 hbk Phase 13 D-VIZ-03 — Circle raw 점은 VisionAlgorithmService.TryFindCircle 가 미반환 → 빈 HTuple (향후 phase 이월)
+                config.Circle_DetectedEdgeRows = new HTuple();
+                config.Circle_DetectedEdgeCols = new HTuple();
 
                 //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
                 HTuple rowEdgeA, colEdgeA;
@@ -321,6 +344,9 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Horizontal line fit failed: " + edgeErrorA; //260423 hbk Phase 12 D-14 (Req 5a)
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Horizontal_A raw 점 DatumConfig 기록
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA;
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA;
 
                 //260423 hbk Phase 12 D-06 — 수평 B ROI 에지점
                 HTuple rowEdgeB, colEdgeB;
@@ -339,6 +365,9 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Horizontal line fit failed: " + edgeErrorB; //260423 hbk Phase 12 D-14 (Req 5a)
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Horizontal_B raw 점 DatumConfig 기록
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB;
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB;
 
                 //260423 hbk Phase 12 D-15 — 수평 2-ROI concat 에지점 합계 임계값 검사
                 int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
@@ -451,6 +480,7 @@ namespace ReringProject.Halcon.Algorithms
 
                 //260423 hbk Phase 12 D-07 — 수직 ROI 라인 피팅 (Line1_* 재사용)
                 double vrB, vcB, vrE, vcE;
+                HTuple vertRawRows, vertRawCols; //260425 hbk Phase 13 D-VIZ-03 — 수직 라인 raw 점 수신용
                 string lineError;
                 //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (수직 ROI)
                 if (!TryFindLine(
@@ -460,6 +490,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                         config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                         out vrB, out vcB, out vrE, out vcE,
+                        out vertRawRows, out vertRawCols, //260425 hbk Phase 13 D-VIZ-03 — 수직 라인 raw 점 수신
                         out lineError,
                         "Line1(vertical)")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
@@ -467,6 +498,9 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Vertical line fit failed: " + lineError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5e)
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — 수직 라인 raw 점 DatumConfig 의 Line1_DetectedEdge* 에 기록 (Line1_* 슬롯 재사용)
+                config.Line1_DetectedEdgeRows = vertRawRows;
+                config.Line1_DetectedEdgeCols = vertRawCols;
 
                 //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
                 HTuple rowEdgeA, colEdgeA;
@@ -485,6 +519,9 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Horizontal line fit failed: " + edgeErrorA; //260423 hbk Phase 12 D-14 (Req 5a)
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Horizontal_A raw 점 DatumConfig 기록
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA;
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA;
 
                 //260423 hbk Phase 12 D-06 — 수평 B ROI 에지점
                 HTuple rowEdgeB, colEdgeB;
@@ -503,6 +540,9 @@ namespace ReringProject.Halcon.Algorithms
                     error = "Horizontal line fit failed: " + edgeErrorB; //260423 hbk Phase 12 D-14 (Req 5a)
                     return false;
                 }
+                //260425 hbk Phase 13 D-VIZ-03 — Horizontal_B raw 점 DatumConfig 기록
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB;
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB;
 
                 //260423 hbk Phase 12 D-15 — 수평 2-ROI concat 에지점 합계 임계값 검사
                 int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
@@ -644,6 +684,9 @@ namespace ReringProject.Halcon.Algorithms
         //  SampleCount = strip 개수 (이전: 최소 에지 게이트). direction = strip 분할 방향.
         //  SmallestRectangle2 가 strip 별 Phi 자동 도출 → manual effectivePhi 불필요.
         //  참조: C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs
+        //260425 hbk Phase 13 D-VIZ-02 — raw edge points 외부 노출 (out HTuple edgeRowsOut/edgeColsOut)
+        //  caller 가 DatumConfig 의 ROI 별 DetectedEdgeRows/Cols 에 대입 → RenderDatumOverlay 가 점 마커 렌더.
+        //  edge 가 0개 검출되면 빈 HTuple 반환 (length 0 → RenderRawEdgePoints 에서 no-op).
         private bool TryFindLine( //260409 hbk Phase 4
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
@@ -651,6 +694,7 @@ namespace ReringProject.Halcon.Algorithms
             string direction, int sampleCount, int trimCount,
             out double lineRowBegin, out double lineColBegin,
             out double lineRowEnd, out double lineColEnd,
+            out HTuple edgeRowsOut, out HTuple edgeColsOut, //260425 hbk Phase 13 D-VIZ-02 — raw 점 외부 노출
             out string error,
             string roiLabel) //260426 hbk Phase 13 D-PRP-HOTFIX — 진단 로그용 ROI 레이블
         {
@@ -658,6 +702,8 @@ namespace ReringProject.Halcon.Algorithms
             lineColBegin = 0;
             lineRowEnd = 0;
             lineColEnd = 0;
+            edgeRowsOut = new HTuple(); //260425 hbk Phase 13 D-VIZ-02 — 실패 분기에서도 null 방지
+            edgeColsOut = new HTuple();
             error = null;
 
             //260426 hbk Phase 13 D-PRP-HOTFIX — sanity clamp: PropertyGrid 0/"" 누락 방어 (EnsurePerRoiDefaults 이후에도 이중 방어)
@@ -763,6 +809,9 @@ namespace ReringProject.Halcon.Algorithms
                     lineColBegin = lc1.D;
                     lineRowEnd   = lr2.D;
                     lineColEnd   = lc2.D;
+                    //260425 hbk Phase 13 D-VIZ-02 — raw 점 외부 노출 (성공 시에만; 실패는 빈 HTuple 유지)
+                    edgeRowsOut = allRows;
+                    edgeColsOut = allCols;
                     return true;
                 }
                 finally

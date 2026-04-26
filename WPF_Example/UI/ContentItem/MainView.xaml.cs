@@ -572,6 +572,8 @@ namespace ReringProject.UI {
             halconViewer.SetDatumOverlay(datum, true);
             InvokeTryTeachDatumForEdit(datum);
             PublishDatumRoiCandidates(datum);
+            //260425 hbk Phase 13 D-VIZ-06 — ROI 이동 후 자동 재티칭 결과로 좌표 라벨 갱신 (PublishDatumRoiCandidates 가 이미 호출하나 명시 보장)
+            UpdateDatumRefCoordsLabel(datum);
         }
 
         //260425 hbk Phase 13 D-02 — RoiId prefix 별 DatumConfig 필드 매핑 (delta 누적)
@@ -648,9 +650,42 @@ namespace ReringProject.UI {
             halconViewer.SetDatumOverlay(datum, true);
         }
 
+        //260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 갱신
+        //  IsConfigured && LastTeachSucceeded 시 RefOrigin + Angle (+ CircleCenter/Radius) 표시.
+        //  null 또는 미설정 시 회색 'Datum 미설정'.
+        //  호출 3 지점: InspectionListView Datum 노드 선택 (PublishDatumRoiCandidates 내부) /
+        //              InvokeTryTeachDatum 성공 분기 / HandleDatumRoiMove 말미.
+        private void UpdateDatumRefCoordsLabel(DatumConfig datum) {
+            if (label_datumRefCoords == null) return;
+            if (datum == null) {
+                label_datumRefCoords.Visibility = Visibility.Collapsed;
+                return;
+            }
+            if (!datum.IsConfigured || !datum.LastTeachSucceeded) {
+                label_datumRefCoords.Content = "Datum 미설정";
+                label_datumRefCoords.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF888888"));
+                label_datumRefCoords.Visibility = Visibility.Visible;
+                return;
+            }
+            double angleDeg = datum.RefAngleRad * 180.0 / Math.PI;
+            string text = "RefOrigin = (R: " + datum.RefOriginRow.ToString("F1")
+                        + ", C: " + datum.RefOriginCol.ToString("F1")
+                        + "), Angle = " + angleDeg.ToString("F2") + " deg";
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal && datum.CircleDetected_Radius > 0) {
+                text += "  |  CircleCenter = (R: " + datum.CircleCenter_Row.ToString("F1")
+                      + ", C: " + datum.CircleCenter_Col.ToString("F1")
+                      + "), Radius = " + datum.CircleDetected_Radius.ToString("F2");
+            }
+            label_datumRefCoords.Content = text;
+            label_datumRefCoords.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFCBD5E0"));
+            label_datumRefCoords.Visibility = Visibility.Visible;
+        }
+
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
         //260426 hbk Phase 13 D-A1 — InspectionListView 가 selection 시 호출하도록 public 승격
         public void PublishDatumRoiCandidates(DatumConfig datum) {
+            //260425 hbk Phase 13 D-VIZ-06 — selection 시점에 reference 좌표 라벨도 동기 갱신
+            UpdateDatumRefCoordsLabel(datum);
             if (datum == null) { halconViewer.ClearDatumRoiCandidates(); return; }
             var list = new List<ReringProject.Halcon.Models.RoiDefinition>();
             switch (datum.AlgorithmTypeEnum) {
@@ -1364,6 +1399,8 @@ namespace ReringProject.UI {
                 halconViewer.SetDatumOverlay(_editingDatum, true);
                 //260425 hbk Phase 13 D-01..D-04 — teach 완료 시점에 후보 갱신
                 PublishDatumRoiCandidates(_editingDatum);
+                //260425 hbk Phase 13 D-VIZ-06 — teach 성공 시 좌표 라벨 갱신 (PublishDatumRoiCandidates 가 이미 호출하나 명시 보장)
+                UpdateDatumRefCoordsLabel(_editingDatum);
             }
             else {
                 label_drawHint.Content = "Datum 티칭 실패: " + (error ?? "unknown"); //260424 hbk Phase 12

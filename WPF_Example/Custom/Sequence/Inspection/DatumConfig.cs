@@ -292,6 +292,34 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public double CircleDetected_Radius { get; set; } //260423 hbk Phase 12 D-10
 
+        //260425 hbk Phase 13 D-VIZ-01 — raw 검출 에지점 (TryFindLine / TryExtractEdgePoints / TryFindCircle 직후 write-back)
+        //  HTuple 은 ParamBase 직렬화 미지원 (Phase 4 D-11 패턴 동일) → INI 영향 0, runtime 전용.
+        //  RenderDatumOverlay 가 LastTeachSucceeded 분기에서 ROI 별 색상으로 점 마커 렌더.
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Line1_DetectedEdgeRows { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Line1_DetectedEdgeCols { get; set; }
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Line2_DetectedEdgeRows { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Line2_DetectedEdgeCols { get; set; }
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Circle_DetectedEdgeRows { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Circle_DetectedEdgeCols { get; set; }
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Horizontal_A_DetectedEdgeRows { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Horizontal_A_DetectedEdgeCols { get; set; }
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Horizontal_B_DetectedEdgeRows { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Horizontal_B_DetectedEdgeCols { get; set; }
+
         //260425 hbk Phase 13 D-PRP-03 — 최초 로드 시 sentinel(per-ROI EdgeThreshold==0) 검출 → 글로벌 값 5 ROI 일괄 복제 (idempotent).
         //  DatumFindingService.TryTeach* / TryFindDatum 진입부에서 1회 호출.
         //  sentinel 가 아니면 (사용자가 per-ROI 값을 명시한 경우) 그대로 유지 — 멱등성 보장.

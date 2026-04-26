@@ -166,6 +166,11 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
+                    <!--260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 라벨 (Datum 노드 선택/티칭 성공/ROI 이동 시 갱신)-->
+                    <Label x:Name="label_datumRefCoords" Grid.Column="0" Visibility="Collapsed"
+                           FontSize="13" Foreground="#FFCBD5E0"
+                           HorizontalContentAlignment="Left" HorizontalAlignment="Left"
+                           VerticalContentAlignment="Center"/>
                     <Label x:Name="label_pos" Grid.Column="1"
                            FontSize="16" Foreground="LightGray"
                            HorizontalContentAlignment="Right" HorizontalAlignment="Right"

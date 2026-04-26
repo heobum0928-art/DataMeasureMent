@@ -378,6 +378,55 @@ namespace ReringProject.Halcon.Display
                              endRow + headLen * Math.Sin(a2), endCol + headLen * Math.Cos(a2));
         }
 
+        //260425 hbk Phase 13 D-VIZ-04 — 검출 라인 외삽 거리 (HALCON DispLine 자동 클리핑 활용; 30K~50K 이미지에서도 충분)
+        private const double EXTEND_PX = 10000.0;
+
+        //260425 hbk Phase 13 D-VIZ-04 — 두 점 (r1,c1)-(r2,c2) 를 unit-vector × EXTEND_PX 로 양쪽 외삽 후 DispLine
+        //  HALCON 은 화면 밖 좌표를 자동 클리핑하므로 이미지 width/height 조회 불필요.
+        //  두 점이 동일하면 (lenSq=0) DispLine 호출 자체를 skip — divide by zero 방지.
+        private static void DrawExtendedLine(HWindow window, double r1, double c1, double r2, double c2)
+        {
+            double dr = r2 - r1;
+            double dc = c2 - c1;
+            double lenSq = dr * dr + dc * dc;
+            if (lenSq < 1e-9) return; // degenerate
+            double len = Math.Sqrt(lenSq);
+            double ur = dr / len;
+            double uc = dc / len;
+            double exR1 = r1 - ur * EXTEND_PX;
+            double exC1 = c1 - uc * EXTEND_PX;
+            double exR2 = r2 + ur * EXTEND_PX;
+            double exC2 = c2 + uc * EXTEND_PX;
+            try
+            {
+                HOperatorSet.DispLine(window, exR1, exC1, exR2, exC2);
+            }
+            catch
+            {
+                // suppress display errors per RenderDatumOverlay 관습
+            }
+        }
+
+        //260425 hbk Phase 13 D-VIZ-05 — raw 검출 에지점들을 작은 cross 마커로 일괄 렌더
+        //  rows/cols 가 null 이거나 length 0 이면 no-op (안전).
+        //  size 6 px, line width 1. HALCON DispCross batch: rows/cols HTuple 일괄 처리.
+        private static void RenderRawEdgePoints(HWindow window, HTuple rows, HTuple cols, string color)
+        {
+            if (rows == null || cols == null) return;
+            int n = rows.TupleLength();
+            if (n == 0 || cols.TupleLength() != n) return;
+            try
+            {
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, 1);
+                HOperatorSet.DispCross(window, rows, cols, 6.0, 0.0);
+            }
+            catch
+            {
+                // Suppress display errors (RenderDatumOverlay catch 관습)
+            }
+        }
+
         //260409 hbk Phase 4: render Datum Line ROI overlays on canvas (D-12)
         /// <summary>Renders Datum Line1/Line2 ROI rectangles and reference origin cross on HWindow.</summary>
         public void RenderDatumOverlay(HWindow window, DatumConfig datum, bool isSelected)
@@ -491,16 +540,16 @@ namespace ReringProject.Halcon.Display
                 //260423 hbk Phase 11 D-11 — 검출 라인 2개 + 교점 오버레이 (TryTeachDatum 성공 시에만, 기존 cyan/blue/magenta 팔레트는 건드리지 않음)
                 if (datum.LastTeachSucceeded)
                 {
-                    // Line1 detected (yellow)
+                    //260425 hbk Phase 13 D-VIZ-04 — Line1 detected 외삽 (yellow)
                     HOperatorSet.SetColor(window, "yellow");
                     HOperatorSet.SetLineWidth(window, 2);
-                    HOperatorSet.DispLine(window,
+                    DrawExtendedLine(window,
                         datum.Line1Detected_RBegin, datum.Line1Detected_CBegin,
                         datum.Line1Detected_REnd,   datum.Line1Detected_CEnd);
 
-                    // Line2 detected (cyan)
+                    //260425 hbk Phase 13 D-VIZ-04 — Line2 detected 외삽 (cyan)
                     HOperatorSet.SetColor(window, "cyan");
-                    HOperatorSet.DispLine(window,
+                    DrawExtendedLine(window,
                         datum.Line2Detected_RBegin, datum.Line2Detected_CBegin,
                         datum.Line2Detected_REnd,   datum.Line2Detected_CEnd);
 
@@ -532,6 +581,13 @@ namespace ReringProject.Halcon.Display
                             datum.CircleCenter_Row, datum.CircleCenter_Col - circleCenterCrossHalf,
                             datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
                     }
+
+                    //260425 hbk Phase 13 D-VIZ-05 — 5 ROI raw 검출 에지점 (있을 때만) — ROI 별 색상 구분
+                    RenderRawEdgePoints(window, datum.Line1_DetectedEdgeRows,        datum.Line1_DetectedEdgeCols,        "cyan");
+                    RenderRawEdgePoints(window, datum.Line2_DetectedEdgeRows,        datum.Line2_DetectedEdgeCols,        "magenta");
+                    RenderRawEdgePoints(window, datum.Circle_DetectedEdgeRows,       datum.Circle_DetectedEdgeCols,       "yellow");
+                    RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
+                    RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
                 }
             }
             catch

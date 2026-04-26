@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives; //260426 hbk Phase 13-06 — TextBoxBase / Selector routed event
+using System.Windows.Threading; //260426 hbk Phase 13-07 — DispatcherPriority for re-teach defer
 using PropertyTools.Wpf;
 using ReringProject.Define;
 using ReringProject.Sequence;
@@ -34,24 +35,35 @@ namespace ReringProject.UI {
         //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅
         //  ParamEditor 의 routed TextBoxBase.LostFocus / Selector.SelectionChanged 가 fire 시 호출.
         //  SelectedObject 가 teached DatumConfig 일 때만 MainView.NotifyDatumParamMaybeChanged 로 라우팅.
-        //  FAI/측정 ParamBase 편집은 noop (조기 return) → 회귀 위험 0.
+        //260426 hbk Phase 13-07 — UAT Test E cascade fix:
+        //  PropertyGrid 내부 navigation Selector(카테고리 ListBox 등) 의 SelectionChanged 가 bubble 되어
+        //  Datum→FAI 트리 전환 중간 시점에 SelectedObject 가 아직 Datum 인 채로 fire → 동기 Halcon 호출이
+        //  binding 전환을 깨던 회귀를 차단. (a) OriginalSource 필터로 실제 ComboBox/TextBox 셀만 통과
+        //  (b) Dispatcher.BeginInvoke(Background) 로 binding 안정 후 재검사.
         private void TryTriggerDatumAutoReteach() {
             if (ParamEditor == null) return;
-            var datum = ParamEditor.SelectedObject as DatumConfig;
-            if (datum == null) return;
-            if (mParentWindow == null) return;
-            var mv = mParentWindow.mainView;
-            if (mv == null) return;
-            mv.NotifyDatumParamMaybeChanged(datum);
+            //260426 hbk Phase 13-07 — binding 전환이 끝난 후 재검사하도록 Background 우선순위로 defer
+            Dispatcher.BeginInvoke(new Action(() => {
+                var datum = ParamEditor.SelectedObject as DatumConfig;
+                if (datum == null) return;
+                if (mParentWindow == null) return;
+                var mv = mParentWindow.mainView;
+                if (mv == null) return;
+                mv.NotifyDatumParamMaybeChanged(datum);
+            }), DispatcherPriority.Background);
         }
 
         //260426 hbk Phase 13-06 — TextBox(숫자/문자 셀) LostFocus 시점: WPF default UpdateSourceTrigger=LostFocus 이므로 binding 은 이미 DatumConfig 에 push 완료
+        //260426 hbk Phase 13-07 — OriginalSource 가 실제 TextBoxBase(셀) 일 때만 통과 (헤더/네비게이션 LostFocus 차단)
         private void OnParamEditorLostFocus(object sender, RoutedEventArgs e) {
+            if (!(e.OriginalSource is TextBoxBase)) return;
             TryTriggerDatumAutoReteach();
         }
 
         //260426 hbk Phase 13-06 — ComboBox(EdgeDirection/EdgePolarity 등) SelectionChanged 시점: binding 은 즉시 push
+        //260426 hbk Phase 13-07 — OriginalSource 가 실제 ComboBox 일 때만 통과 (PropertyGrid 내부 카테고리 ListBox 등 차단)
         private void OnParamEditorSelectionChanged(object sender, SelectionChangedEventArgs e) {
+            if (!(e.OriginalSource is ComboBox)) return;
             TryTriggerDatumAutoReteach();
         }
 

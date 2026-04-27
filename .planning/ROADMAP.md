@@ -261,9 +261,9 @@ Plans:
 **Success Criteria** (what must be TRUE): 14-SPEC.md Acceptance Criteria 15 항목 참조 (SIMUL_MODE 육안 PASS 6 + 자동화/grep 가능 9)
 **Plans:** 5 plans
 Plans:
-- [ ] 14-01-PLAN.md — Circle ROI 이동 자동 재티칭 wiring fix + Edit 모드 N/S/E/W 핸들 resize 동작 (D-04 단일 RoiGeometryChanged 이벤트 확장; MainResultViewerControl + MainView)
-- [ ] 14-02-PLAN.md — TwoLineIntersect 두 라인 각도 out-of-range 게이트 (DatumConfig.TwoLineAngleToleranceDeg 필드 + DatumFindingService 게이트 + fail 라벨 literal)
-- [ ] 14-03-PLAN.md — DatumConfig Vertical 그룹 13 신규 필드 (5 geometry + 6 edge + 2 raw) + Category prefix 라벨 (D-08 fallback) + EnsurePerRoiDefaults INI 하위호환 마이그레이션 + DatumFindingService Line1_* → Vertical_* 슬롯 교체 + MainView Datum.Vertical 4 분기 + HalconDisplayService Vertical raw 점 orange 매핑
-- [ ] 14-04-PLAN.md — VisionAlgorithmService 신규 TryFindCircleByPolarSampling 메서드 (additive, legacy TryFindCircle 보존) + DatumConfig 3 신규 PropertyGrid 파라미터 (Circle_PolarStepDeg / RectL1Ratio / RectL2Ratio) + D-13 Halcon Rectangle2 phi 부호 4점 smoke test
-- [ ] 14-05-PLAN.md — DatumFindingService.TryTeachCircleTwoHorizontal Circle 검출 호출 교체 (TryFindCircle → TryFindCircleByPolarSampling) + raw 점 직접 write-back (D-VIZ-03 closure) + SIMUL_MODE btn_testFindDatum 3 알고리즘 통합 UAT (D-10 PASS path 우선 / D-11 FAIL contingency)
+- [x] 14-01-PLAN.md — Circle ROI 이동 자동 재티칭 wiring fix + Edit 모드 N/S/E/W 핸들 resize 동작 (D-04 단일 RoiGeometryChanged 이벤트 확장; MainResultViewerControl + MainView) — UAT 6 시나리오 APPROVED
+- [x] 14-02-PLAN.md — TwoLineIntersect 두 라인 각도 out-of-range 게이트 (DatumConfig.TwoLineAngleToleranceDeg 필드 + DatumFindingService 게이트 + fail 라벨 literal) — UAT 5 시나리오 APPROVED
+- [x] 14-03-PLAN.md — DatumConfig Vertical 그룹 13 신규 필드 + Category prefix 라벨 + EnsurePerRoiDefaults INI 하위호환 + DatumFindingService Line1_* → Vertical_* 슬롯 교체 + MainView Datum.Vertical 4 분기 + HalconDisplayService Vertical raw 점 orange — UAT 7 시나리오 APPROVED
+- [x] 14-04-PLAN.md — VisionAlgorithmService 신규 TryFindCircleByPolarSampling 메서드 (additive, legacy TryFindCircle 보존) + DatumConfig 3 신규 PropertyGrid 파라미터 (Circle_PolarStepDeg / RectL1Ratio / RectL2Ratio) + D-13 phi 부호 4점 smoke test APPROVED
+- [x] 14-05-PLAN.md — DatumFindingService.TryTeachCircleTwoHorizontal Circle 검출 호출 교체 (TryFindCircle → TryFindCircleByPolarSampling) + raw 점 직접 write-back (D-VIZ-03 closure) + SIMUL_MODE btn_testFindDatum 3 알고리즘 통합 UAT APPROVED
 **UI hint**: yes

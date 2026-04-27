@@ -491,13 +491,27 @@ namespace ReringProject.UI
         }
 
         //260423 hbk Edit 모드 핸들 렌더링 — 메인 ROI 렌더 뒤에 호출
+        //260426 hbk Phase 14-01 D-01 — Datum Circle Edit 핸들도 보이도록: _isEditMode OR _datumRoiCandidates 존재 시 활성. lookup 은 _rois → _datumRoiCandidates fallback.
         private void RenderEditHandles()
         {
-            if (!_isEditMode) return;
-            var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+            bool datumCandidatesPresent = (_datumRoiCandidates != null && _datumRoiCandidates.Count > 0);
+            if (!_isEditMode && !datumCandidatesPresent) return;
+
+            RoiDefinition roi = null;
+            if (_isEditMode && !string.IsNullOrEmpty(_selectedRoiId))
+            {
+                roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+            }
+            if (roi == null && datumCandidatesPresent)
+            {
+                //260426 hbk Phase 14-01 — Datum Circle 후보 fallback (Edit 모드 비활성이어도 핸들 노출)
+                roi = _datumRoiCandidates.FirstOrDefault(r => r != null && r.Shape == RoiShape.Circle);
+            }
             if (roi == null) return;
+
             var window = ViewerHost.HalconWindow;
-            window.SetColor("cyan");
+            //260426 hbk Phase 14-01 — Datum 시각 일관 (cyan→yellow) 핸들 색
+            window.SetColor("yellow");
             window.SetLineWidth(2);
             foreach (var h in GetEditHandles(roi))
             {
@@ -758,10 +772,18 @@ namespace ReringProject.UI
             bool datumCandidatesPresent = (_datumRoiCandidates != null && _datumRoiCandidates.Count > 0);
             if ((_isEditMode || datumCandidatesPresent) && !IsAnyDrawingModeActive() && HasImage)
             {
-                // Edit 모드 전용 (FAI 리사이즈 핸들) — Datum 은 리사이즈 미지원
-                if (_isEditMode)
+                //260426 hbk Phase 14-01 D-02 — Edit 모드 OR Datum 후보 존재 시 핸들 hit-test 활성 (Datum Circle resize 지원, 4 핸들 동일 동작)
                 {
-                    var selectedRoi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+                    RoiDefinition selectedRoi = null;
+                    if (_isEditMode && !string.IsNullOrEmpty(_selectedRoiId))
+                    {
+                        selectedRoi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
+                    }
+                    if (selectedRoi == null && datumCandidatesPresent)
+                    {
+                        //260426 hbk Phase 14-01 — Datum Circle fallback (mouse 위치 hit-test 는 GetEditHandles 가 처리)
+                        selectedRoi = _datumRoiCandidates.FirstOrDefault(r => r != null && r.Shape == RoiShape.Circle);
+                    }
                     if (selectedRoi != null)
                     {
                         var handleHit = HitTestEditHandle(selectedRoi, mouseState.ImagePoint);
@@ -865,6 +887,11 @@ namespace ReringProject.UI
             if (_isResizingRoi && _resizingRoiSnapshot != null)
             {
                 var target = _rois.FirstOrDefault(r => r.Id == _resizingRoiSnapshot.Id);
+                //260426 hbk Phase 14-01 — Datum Circle resize 시 _rois 에 없으면 _datumRoiCandidates lookup
+                if (target == null && _datumRoiCandidates != null)
+                {
+                    target = _datumRoiCandidates.FirstOrDefault(r => r != null && r.Id == _resizingRoiSnapshot.Id);
+                }
                 if (target != null)
                 {
                     ApplyResizeToTarget(target, mouseState.ImagePoint);
@@ -980,9 +1007,14 @@ namespace ReringProject.UI
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
             //260423 hbk 리사이즈 완료: 절대 기하 RoiGeometryChanged로 발생
+            //260426 hbk Phase 14-01 D-04 — Datum Circle resize 완료 시 RoiGeometryChanged 발행 (단일 이벤트 확장, 신규 이벤트 X)
             if (_isResizingRoi && _resizingRoiSnapshot != null)
             {
                 var target = _rois.FirstOrDefault(r => r.Id == _resizingRoiSnapshot.Id);
+                if (target == null && _datumRoiCandidates != null)
+                {
+                    target = _datumRoiCandidates.FirstOrDefault(r => r != null && r.Id == _resizingRoiSnapshot.Id);
+                }
                 string movedId = _resizingRoiSnapshot.Id;
                 RoiShape shape = _resizingRoiSnapshot.Shape;
                 _isResizingRoi = false;

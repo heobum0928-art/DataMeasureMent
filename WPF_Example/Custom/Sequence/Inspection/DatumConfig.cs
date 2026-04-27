@@ -64,6 +64,14 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //260426 hbk Phase 14-02 Req 2 — TwoLineIntersect 두 라인 직각성 게이트 임계각 (도)
+        //  0  = 게이트 off (어떤 각도여도 PASS)
+        //  10 = default (90°±10° 허용)
+        //  range hint: 0~45°. INI 미존재 시 default 10° (값이 0 이면 명시 off 의도로 간주).
+        //  ParamBase reflection 자동 직렬화 — 별도 Save/Load 코드 불필요.
+        [Category("Datum|Algorithm")]
+        public double TwoLineAngleToleranceDeg { get; set; } = 10.0;
+
         //260423 hbk Phase 12 D-12 — Line1 ROI 시맨틱스는 AlgorithmType 에 따라 달라진다:
         //260423 hbk   TwoLineIntersect:         1st 라인 ROI (기준 X축 방향 에지 라인)
         //260423 hbk   VerticalTwoHorizontal:    수직 ROI (수직 에지 라인)

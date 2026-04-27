@@ -200,6 +200,153 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
+        /// 360° polar sampling 방식의 Circle 검출.
+        /// center+radius 기점에서 stepDeg 간격으로 회전하며, 각 각도 θ 에서 작은 사각형 ROI 의 MeasurePos
+        /// 첫 에지점 1개 추출 → 누적 → FitCircleContourXld. raw 에지점 HTuple out 반환
+        /// (legacy TryFindCircle 의 미반환 결함 closure).
+        /// </summary>
+        //260426 hbk Phase 14-04 Req 4 — D-12/D-13 좌표계: 화면 시점 CCW (0°=right, 90°=up, 180°=left, 270°=down)
+        //   rect 중심 row = centerRow - radius * sin(theta_rad)  (sin 앞 minus: 화면 위쪽 = row 감소)
+        //   rect 중심 col = centerCol + radius * cos(theta_rad)
+        //   rect phi      = theta_rad (반경 방향 = rect length1 축; Halcon Rectangle2 phi 는 horizontal axis 기준 CCW radian)
+        //   주의: Halcon Rectangle2 phi 정의 SDK 문서 재확인 필수 (D-13 caveat).
+        //        Task 3 smoke test (θ=0°/90°/180°/270°) 가 4 위치 PASS 시 부호식 검증 완료.
+        public bool TryFindCircleByPolarSampling(
+            HImage image,
+            double centerRow, double centerCol, double radius,
+            double stepDeg, double rectL1Ratio, double rectL2Ratio,
+            double sigma, int threshold, string polarity,
+            HTuple datumTransform,
+            out double foundRow, out double foundCol, out double foundRadius,
+            out HTuple edgeRows, out HTuple edgeCols,
+            out string error)
+        {
+            foundRow = 0; foundCol = 0; foundRadius = 0;
+            edgeRows = new HTuple();
+            edgeCols = new HTuple();
+            error = null;
+
+            if (image == null) { error = "image is null"; return false; }
+
+            //260426 hbk Phase 14-04 — Sanity clamp (sentinel/0 방어)
+            if (stepDeg <= 0)         stepDeg     = 10.0;
+            if (stepDeg > 30)         stepDeg     = 30.0;
+            if (rectL1Ratio <= 0)     rectL1Ratio = 0.05;
+            if (rectL2Ratio <= 0)     rectL2Ratio = 0.05;
+            if (sigma < 0.4)          sigma       = 1.0;
+            if (threshold <= 0)       threshold   = 20;
+            if (string.IsNullOrEmpty(polarity)) polarity = "all";
+            if (radius <= 0)          { error = "radius must be > 0"; return false; }
+
+            //260426 hbk Phase 14-04 — Datum transform (legacy TryFindCircle 패턴 — center 만 변환, radius 는 무변환)
+            double cRow = centerRow, cCol = centerCol;
+            if (datumTransform != null && datumTransform.Length > 0)
+            {
+                try
+                {
+                    HTuple tRow, tCol;
+                    HOperatorSet.AffineTransPoint2d(datumTransform, centerRow, centerCol, out tRow, out tCol);
+                    cRow = tRow.D;
+                    cCol = tCol.D;
+                }
+                catch
+                {
+                    // Identity transform fallback — 이전 동작 유지
+                }
+            }
+
+            HObject contour = null;
+            try
+            {
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                double halfL1 = radius * rectL1Ratio;
+                double halfL2 = radius * rectL2Ratio;
+                if (halfL1 < 1.0) halfL1 = 1.0;
+                if (halfL2 < 1.0) halfL2 = 1.0;
+
+                HTuple allRows = new HTuple();
+                HTuple allCols = new HTuple();
+
+                int stepCount = (int)Math.Round(360.0 / stepDeg);
+                for (int i = 0; i < stepCount; i++)
+                {
+                    double thetaDeg = i * stepDeg;
+                    double thetaRad = thetaDeg * Math.PI / 180.0;
+                    //260426 hbk Phase 14-04 D-13 — 화면 CCW 좌표계 (sin 앞 minus)
+                    double rectRow = cRow - radius * Math.Sin(thetaRad);
+                    double rectCol = cCol + radius * Math.Cos(thetaRad);
+                    double rectPhi = thetaRad; // 반경 방향 = rect length1 축
+
+                    HTuple measureHandle = null;
+                    try
+                    {
+                        HOperatorSet.GenMeasureRectangle2(
+                            rectRow, rectCol, rectPhi, halfL1, halfL2,
+                            imageWidth, imageHeight, "nearest_neighbor",
+                            out measureHandle);
+
+                        HTuple eRows, eCols, amp, dist;
+                        HOperatorSet.MeasurePos(image, measureHandle,
+                            sigma, threshold, polarity, "all",
+                            out eRows, out eCols, out amp, out dist);
+
+                        if (eRows.TupleLength() > 0 && eCols.TupleLength() > 0)
+                        {
+                            //260426 hbk Phase 14-04 — 첫 에지점 1개만 누적 (회전 sweep 의 의도)
+                            HOperatorSet.TupleConcat(allRows, eRows[0], out allRows);
+                            HOperatorSet.TupleConcat(allCols, eCols[0], out allCols);
+                        }
+                    }
+                    catch
+                    {
+                        //260426 hbk Phase 14-04 — per-step 실패 swallow (AppendEdgePointsFromStrip 관습) — 나머지 step 계속
+                    }
+                    finally
+                    {
+                        if (measureHandle != null)
+                        {
+                            try { HOperatorSet.CloseMeasure(measureHandle); } catch { }
+                        }
+                    }
+                }
+
+                edgeRows = allRows;
+                edgeCols = allCols;
+
+                if (allRows.TupleLength() < 3)
+                {
+                    error = "insufficient polar samples (" + allRows.TupleLength() + ")";
+                    return false;
+                }
+
+                //260426 hbk Phase 14-04 — FitCircleContourXld (legacy TryFindCircle 패턴 — atukey robust)
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols);
+
+                HTuple row, column, rad, startPhi, endPhi, pointOrder;
+                HOperatorSet.FitCircleContourXld(contour, "atukey", -1, 2, 0, 5, 2,
+                    out row, out column, out rad, out startPhi, out endPhi, out pointOrder);
+
+                if (row.Length == 0) { error = "no circle fitted"; return false; }
+
+                foundRow = row[0].D;
+                foundCol = column[0].D;
+                foundRadius = rad[0].D;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        /// <summary>
         /// 점과 직선 사이의 수직 거리(픽셀). 순수 수학 — 교차곱 기반.
         /// </summary>
         public static double DistancePointToLine( //260413 hbk

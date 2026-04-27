@@ -502,29 +502,29 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple imageWidth, imageHeight;
                 image.GetImageSize(out imageWidth, out imageHeight);
 
-                //260423 hbk Phase 12 D-07 — 수직 ROI 라인 피팅 (Line1_* 재사용)
+                //260426 hbk Phase 14-03 Req 3 — Vertical_* 슬롯 (의미적 분리, Line1_* 재사용 종료)
                 double vrB, vcB, vrE, vcE;
                 HTuple vertRawRows, vertRawCols; //260425 hbk Phase 13 D-VIZ-03 — 수직 라인 raw 점 수신용
                 string lineError;
-                //260425 hbk Phase 13 D-PRP-05 — Line1 per-ROI 에지 파라미터 사용 (수직 ROI)
+                //260426 hbk Phase 14-03 — Vertical per-ROI 에지 파라미터 사용 (수직 ROI 의미 분리)
                 if (!TryFindLine(
                         image, imageWidth, imageHeight,
-                        config.Line1_Row, config.Line1_Col, config.Line1_Phi,
-                        config.Line1_Length1, config.Line1_Length2,
-                        config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
-                        config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
+                        config.Vertical_Row, config.Vertical_Col, config.Vertical_Phi,
+                        config.Vertical_Length1, config.Vertical_Length2,
+                        config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
+                        config.Vertical_EdgeDirection, config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
                         out vrB, out vcB, out vrE, out vcE,
-                        out vertRawRows, out vertRawCols, //260425 hbk Phase 13 D-VIZ-03 — 수직 라인 raw 점 수신
+                        out vertRawRows, out vertRawCols,
                         out lineError,
-                        "Line1(vertical)")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
+                        "Vertical")) //260426 hbk Phase 14-03 — 진단 로그 레이블 변경 ("Line1(vertical)" → "Vertical")
                 {
                     config.LastTeachSucceeded = false;
                     error = "Vertical line fit failed: " + lineError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5e)
                     return false;
                 }
-                //260425 hbk Phase 13 D-VIZ-03 — 수직 라인 raw 점 DatumConfig 의 Line1_DetectedEdge* 에 기록 (Line1_* 슬롯 재사용)
-                config.Line1_DetectedEdgeRows = vertRawRows;
-                config.Line1_DetectedEdgeCols = vertRawCols;
+                //260426 hbk Phase 14-03 Req 3 — 수직 라인 raw 점 Vertical_DetectedEdge* 에 기록 (Line1_DetectedEdge* 슬롯 종료)
+                config.Vertical_DetectedEdgeRows = vertRawRows;
+                config.Vertical_DetectedEdgeCols = vertRawCols;
 
                 //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
                 HTuple rowEdgeA, colEdgeA;

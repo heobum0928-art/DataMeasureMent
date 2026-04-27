@@ -83,7 +83,8 @@ namespace ReringProject.Sequence {
         ///   CircleTwoHorizontal: 미사용 (기본값 0 유지)
         /// </summary>
         //260409 hbk Phase 4: Line1 ROI (기준 X축 방향 에지 라인)
-        [Category("Datum|Line1 ROI")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (TLI=TwoLineIntersect)
+        [Category("Datum|Line1 (TLI) ROI")]
         public double Line1_Row { get; set; } = 0;
         public double Line1_Col { get; set; } = 0;
         //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
@@ -101,7 +102,8 @@ namespace ReringProject.Sequence {
 
         //260425 hbk Phase 13 D-PRP-02 — Line1 ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
         //  sentinel 0/"" 일 때 EnsurePerRoiDefaults() 가 legacy 글로벌 값으로 복제.
-        [Category("Datum|Line1 Edge")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (TLI)
+        [Category("Datum|Line1 (TLI) Edge")]
         public int    Line1_EdgeThreshold   { get; set; } = 0;
         public double Line1_Sigma           { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line1_EdgeDirectionList))]
@@ -116,8 +118,40 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line1_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
 
+        //260426 hbk Phase 14-03 Req 3 — Vertical ROI 그룹 (VerticalTwoHorizontal 전용 수직 에지 라인 — 의미상 별도)
+        //  D-08 Category prefix labeling — "(VTH)" 태그로 알고리즘 가시 구분 (PropertyGrid 동적 숨김 fallback)
+        [Category("Datum|Vertical (VTH) ROI")]
+        public double Vertical_Row { get; set; } = 0;
+        public double Vertical_Col { get; set; } = 0;
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double Vertical_Phi { get; set; } = 0;
+        public double Vertical_PhiDeg
+        {
+            get { return Vertical_Phi * 180.0 / System.Math.PI; }
+            set { Vertical_Phi = value * System.Math.PI / 180.0; }
+        }
+        public double Vertical_Length1 { get; set; } = 0;
+        public double Vertical_Length2 { get; set; } = 0;
+
+        //260426 hbk Phase 14-03 Req 3 — Vertical ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
+        [Category("Datum|Vertical (VTH) Edge")]
+        public int    Vertical_EdgeThreshold   { get; set; } = 0;
+        public double Vertical_Sigma           { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Vertical_EdgeDirectionList))]
+        public string Vertical_EdgeDirection   { get; set; } = "";
+        public int    Vertical_EdgeSampleCount { get; set; } = 0;
+        public int    Vertical_EdgeTrimCount   { get; set; } = 0;
+        [ItemsSourceProperty(nameof(Vertical_EdgePolarityList))]
+        public string Vertical_EdgePolarity    { get; set; } = "";
+
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Vertical_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Vertical_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+
         //260409 hbk Phase 4: Line2 ROI (기준 Y축 방향 에지 라인, 기본값 PI/2 = 수직)
-        [Category("Datum|Line2 ROI")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (TLI)
+        [Category("Datum|Line2 (TLI) ROI")]
         public double Line2_Row { get; set; } = 0;
         public double Line2_Col { get; set; } = 0;
         //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
@@ -134,7 +168,8 @@ namespace ReringProject.Sequence {
         public double Line2_Length2 { get; set; } = 0;
 
         //260425 hbk Phase 13 D-PRP-02 — Line2 ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
-        [Category("Datum|Line2 Edge")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (TLI)
+        [Category("Datum|Line2 (TLI) Edge")]
         public int    Line2_EdgeThreshold   { get; set; } = 0;
         public double Line2_Sigma           { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line2_EdgeDirectionList))]
@@ -151,13 +186,15 @@ namespace ReringProject.Sequence {
 
         //260423 hbk Phase 12 D-10 — Circle ROI (CircleTwoHorizontal 전용 검색 영역)
         //260423 hbk  CircleROI_Radius > 0 이 ROI 설정 완료 판정 기준.
-        [Category("Datum|Circle ROI")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (CTH=CircleTwoHorizontal)
+        [Category("Datum|Circle (CTH) ROI")]
         public double CircleROI_Row    { get; set; } = 0; //260423 hbk Phase 12 D-10
         public double CircleROI_Col    { get; set; } = 0; //260423 hbk Phase 12 D-10
         public double CircleROI_Radius { get; set; } = 0; //260423 hbk Phase 12 D-10
 
         //260425 hbk Phase 13 D-PRP-02 — Circle ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
-        [Category("Datum|Circle Edge")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (CTH)
+        [Category("Datum|Circle (CTH) Edge")]
         public int    Circle_EdgeThreshold   { get; set; } = 0;
         public double Circle_Sigma           { get; set; } = 0;
         [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
@@ -175,7 +212,8 @@ namespace ReringProject.Sequence {
         //260423 hbk Phase 12 D-11 — 수평 A ROI (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
         //260423 hbk  A/B 순서 의존성 없음 — concat + FitLineContourXld 이므로 교환 대칭.
         //260423 hbk  Length1 > 0 && Length2 > 0 이 ROI 설정 완료 판정 기준.
-        [Category("Datum|Horizontal A ROI")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling (CTH+VTH 공용)
+        [Category("Datum|Horizontal_A (CTH/VTH) ROI")]
         public double Horizontal_A_Row     { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_A_Col     { get; set; } = 0; //260423 hbk Phase 12 D-11
         //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
@@ -192,7 +230,8 @@ namespace ReringProject.Sequence {
         public double Horizontal_A_Length2 { get; set; } = 0; //260423 hbk Phase 12 D-11
 
         //260425 hbk Phase 13 D-PRP-02 — Horizontal A ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
-        [Category("Datum|Horizontal A Edge")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling
+        [Category("Datum|Horizontal_A (CTH/VTH) Edge")]
         public int    Horizontal_A_EdgeThreshold   { get; set; } = 0;
         public double Horizontal_A_Sigma           { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeDirectionList))]
@@ -208,7 +247,8 @@ namespace ReringProject.Sequence {
         public List<string> Horizontal_A_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
 
         //260423 hbk Phase 12 D-11 — 수평 B ROI
-        [Category("Datum|Horizontal B ROI")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling
+        [Category("Datum|Horizontal_B (CTH/VTH) ROI")]
         public double Horizontal_B_Row     { get; set; } = 0; //260423 hbk Phase 12 D-11
         public double Horizontal_B_Col     { get; set; } = 0; //260423 hbk Phase 12 D-11
         //260426 hbk Phase 13 D-PRP-PHIFIX — radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출 (사용자는 도 단위로 입력)
@@ -225,7 +265,8 @@ namespace ReringProject.Sequence {
         public double Horizontal_B_Length2 { get; set; } = 0; //260423 hbk Phase 12 D-11
 
         //260425 hbk Phase 13 D-PRP-02 — Horizontal B ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
-        [Category("Datum|Horizontal B Edge")]
+        //260426 hbk Phase 14-03 D-08 — Category prefix labeling
+        [Category("Datum|Horizontal_B (CTH/VTH) Edge")]
         public int    Horizontal_B_EdgeThreshold   { get; set; } = 0;
         public double Horizontal_B_Sigma           { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeDirectionList))]
@@ -328,6 +369,12 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public HTuple Horizontal_B_DetectedEdgeCols { get; set; }
 
+        //260426 hbk Phase 14-03 Req 3 — Vertical raw 검출 에지점 (volatile, INI 영향 0 — Phase 13-05 D-VIZ-01 패턴)
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Vertical_DetectedEdgeRows { get; set; }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public HTuple Vertical_DetectedEdgeCols { get; set; }
+
         //260425 hbk Phase 13 D-PRP-03 — 최초 로드 시 sentinel(per-ROI EdgeThreshold==0) 검출 → 글로벌 값 5 ROI 일괄 복제 (idempotent).
         //  DatumFindingService.TryTeach* / TryFindDatum 진입부에서 1회 호출.
         //  sentinel 가 아니면 (사용자가 per-ROI 값을 명시한 경우) 그대로 유지 — 멱등성 보장.
@@ -379,6 +426,27 @@ namespace ReringProject.Sequence {
             if (Horizontal_B_EdgeSampleCount == 0) Horizontal_B_EdgeSampleCount = fbSampleCount;
             if (Horizontal_B_EdgeTrimCount == 0)   Horizontal_B_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Horizontal_B_EdgePolarity)) Horizontal_B_EdgePolarity = fbPolarity;
+
+            //260426 hbk Phase 14-03 D-05/D-06 — Vertical 그룹 INI 하위호환 마이그레이션
+            //  기존 INI 의 Line1_* 값을 Vertical_* sentinel(==0/"") 일 때 1회 복사.
+            //  Line1_* zero-out 안 함 (회귀 위험 0, 사용자가 알고리즘을 TwoLineIntersect 로 다시 바꿔도 Line1_* 즉시 사용 가능).
+            //  idempotent: 두 번째 호출 시 Vertical_* 가 모두 의미값 → 분기 미진입.
+            if (Vertical_EdgeThreshold == 0)   Vertical_EdgeThreshold   = (Line1_EdgeThreshold > 0)    ? Line1_EdgeThreshold    : fbThreshold;
+            if (Vertical_Sigma == 0)           Vertical_Sigma           = (Line1_Sigma > 0)            ? Line1_Sigma            : fbSigma;
+            if (string.IsNullOrEmpty(Vertical_EdgeDirection))   Vertical_EdgeDirection   = !string.IsNullOrEmpty(Line1_EdgeDirection)   ? Line1_EdgeDirection   : fbDirection;
+            if (Vertical_EdgeSampleCount == 0) Vertical_EdgeSampleCount = (Line1_EdgeSampleCount > 0)  ? Line1_EdgeSampleCount  : fbSampleCount;
+            if (Vertical_EdgeTrimCount == 0)   Vertical_EdgeTrimCount   = (Line1_EdgeTrimCount > 0)    ? Line1_EdgeTrimCount    : fbTrimCount;
+            if (string.IsNullOrEmpty(Vertical_EdgePolarity))    Vertical_EdgePolarity    = !string.IsNullOrEmpty(Line1_EdgePolarity)    ? Line1_EdgePolarity    : fbPolarity;
+
+            //260426 hbk Phase 14-03 D-05 — Geometry 1회 복사 (사용자가 Vertical 그룹만 보고 알고리즘 운용 가능하도록)
+            //   sentinel: Vertical_Length1 == 0
+            if (Vertical_Length1 == 0 && Line1_Length1 > 0) {
+                Vertical_Row     = Line1_Row;
+                Vertical_Col     = Line1_Col;
+                Vertical_Phi     = Line1_Phi;
+                Vertical_Length1 = Line1_Length1;
+                Vertical_Length2 = Line1_Length2;
+            }
         }
 
         public DatumConfig(object owner) : base(owner) {

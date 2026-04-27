@@ -346,6 +346,35 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260426 hbk Phase 14-04 W1 — D-13 부호식 4점 smoke harness (production 영향 0; 외부 호출자만 활성).
+        //  PASS 후 호출 주석 처리하여 dormant 상태로 보존. 메서드 자체는 영구 코드 — 회귀 시 재호출.
+        //  실제 Halcon Rectangle2 phi 부호 검증은 SIMUL_MODE 에서 사람이 화면 시각으로 4 rect (right/up/left/down)
+        //  배치 확인 (Task 3b). 본 harness 는 좌표 계산 식만 trace 로그로 노출.
+        public void RunPhiSmokeTest(HImage image, double centerRow, double centerCol, double radius)
+        {
+            if (image == null) return;
+            double[] thetasDeg = new double[] { 0.0, 90.0, 180.0, 270.0 };
+            foreach (double thetaDeg in thetasDeg)
+            {
+                double thetaRad = thetaDeg * Math.PI / 180.0;
+                //260426 hbk Phase 14-04 D-13 — 화면 CCW 좌표계 (sin 앞 minus, TryFindCircleByPolarSampling 와 동일 식)
+                double rectRow = centerRow - radius * Math.Sin(thetaRad);
+                double rectCol = centerCol + radius * Math.Cos(thetaRad);
+                //260426 hbk Phase 14-04 — 기대값 = 동일 식 (좌표 계산 자체 검증). 실 위치는 Halcon debugger 가 시각으로 확인.
+                double expectedRow = centerRow - radius * Math.Sin(thetaRad);
+                double expectedCol = centerCol + radius * Math.Cos(thetaRad);
+                double dRow = Math.Abs(rectRow - expectedRow);
+                double dCol = Math.Abs(rectCol - expectedCol);
+                double delta = Math.Sqrt(dRow * dRow + dCol * dCol);
+
+                ReringProject.Utility.Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
+                    "PHI_SMOKE: theta=" + thetaDeg.ToString("F0") +
+                    " expected=(" + expectedRow.ToString("F1") + "," + expectedCol.ToString("F1") + ")" +
+                    " actual=(" + rectRow.ToString("F1") + "," + rectCol.ToString("F1") + ")" +
+                    " delta=" + delta.ToString("F2"));
+            }
+        }
+
         /// <summary>
         /// 점과 직선 사이의 수직 거리(픽셀). 순수 수학 — 교차곱 기반.
         /// </summary>

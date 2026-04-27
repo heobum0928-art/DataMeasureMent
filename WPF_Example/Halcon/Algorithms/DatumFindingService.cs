@@ -326,30 +326,37 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple imageWidth, imageHeight;
                 image.GetImageSize(out imageWidth, out imageHeight);
 
-                //260423 hbk Phase 12 D-05 — Circle 피팅 (VisionAlgorithmService 재사용)
+                //260426 hbk Phase 14-05 D-10 — TryFindCircle → TryFindCircleByPolarSampling 교체 (raw 점 반환 + 360° 분포)
                 var visionSvc = new VisionAlgorithmService();
                 double centerRow, centerCol, radius;
+                HTuple circleEdgeRows, circleEdgeCols;
                 string circleError;
-                //260425 hbk Phase 13 D-PRP-05 — Circle per-ROI 에지 파라미터 사용
-                if (!visionSvc.TryFindCircle(
+                //260426 hbk Phase 14-05 D-11 — 진단 로그 (FAIL contingency 대비, PASS 후 주석 처리 가능)
+                Logging.PrintLog((int)ELogType.Trace,
+                    "TryTeachCircleTwoHorizontal: ROI=(" + config.CircleROI_Row + "," + config.CircleROI_Col + ",r=" + config.CircleROI_Radius + ") " +
+                    "polar(step=" + config.Circle_PolarStepDeg + " L1=" + config.Circle_RectL1Ratio + " L2=" + config.Circle_RectL2Ratio + ")");
+                //260426 hbk Phase 14-05 — Circle per-ROI 에지 파라미터 + Polar sampling 파라미터 (14-04 신규 3 필드)
+                if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
-                        null, // teaching-phase identity transform
+                        config.Circle_PolarStepDeg, config.Circle_RectL1Ratio, config.Circle_RectL2Ratio,
                         config.Circle_Sigma, config.Circle_EdgeThreshold, config.Circle_EdgePolarity,
+                        null, // teaching-phase identity transform (legacy 동일)
                         out centerRow, out centerCol, out radius,
+                        out circleEdgeRows, out circleEdgeCols,
                         out circleError))
                 {
                     config.LastTeachSucceeded = false;
-                    error = "Circle fit failed: " + circleError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5c)
+                    error = "Circle fit failed: " + circleError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5c) 보존
                     return false;
                 }
 
                 config.CircleCenter_Row      = centerRow;
                 config.CircleCenter_Col      = centerCol;
                 config.CircleDetected_Radius = radius;
-                //260425 hbk Phase 13 D-VIZ-03 — Circle raw 점은 VisionAlgorithmService.TryFindCircle 가 미반환 → 빈 HTuple (향후 phase 이월)
-                config.Circle_DetectedEdgeRows = new HTuple();
-                config.Circle_DetectedEdgeCols = new HTuple();
+                //260426 hbk Phase 14-05 — Phase 13-05 D-VIZ-03 carry-over closure: raw 점 직접 반환 (이전엔 빈 HTuple)
+                config.Circle_DetectedEdgeRows = circleEdgeRows;
+                config.Circle_DetectedEdgeCols = circleEdgeCols;
 
                 //260423 hbk Phase 12 D-06 — 수평 A ROI 에지점
                 HTuple rowEdgeA, colEdgeA;

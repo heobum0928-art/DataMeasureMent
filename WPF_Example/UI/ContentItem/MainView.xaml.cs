@@ -445,8 +445,16 @@ namespace ReringProject.UI {
         }
 
         //260423 hbk ROI 기하 변경(리사이즈/정점편집) → FAI 모델 좌표/크기 반영
+        //260426 hbk Phase 14-01 D-04 — Datum 분기 우선 (FAI lookup 전에) — 단일 RoiGeometryChanged 이벤트 확장
         private void HalconViewer_RoiGeometryChanged(object sender, RoiGeometryChangedArgs e) {
             if (e == null || string.IsNullOrEmpty(e.RoiId)) return;
+
+            //260426 hbk Phase 14-01 — Datum.* RoiId 면 FAI 분기 진입 전에 처리하고 return
+            DatumConfig datum;
+            if (e.RoiId.StartsWith("Datum.") && IsCurrentNodeDatum(out datum) && datum != null) {
+                HandleDatumRoiResize(datum, e);
+                return;
+            }
 
             var fai = FindFAIByName(e.RoiId);
             if (fai == null) return;
@@ -528,6 +536,12 @@ namespace ReringProject.UI {
         private void HalconViewer_RoiMoveCompleted(object sender, RoiMoveCompletedArgs e) {
             if (e == null || string.IsNullOrEmpty(e.RoiId)) return;
 
+            //260426 hbk Phase 14-01 — Move 자동 재티칭 회귀 진단 로그 (Phase 14-05 verify 시 PASS 면 제거 가능)
+            if (e.RoiId.StartsWith("Datum.")) {
+                Logging.PrintLog((int)ELogType.Trace,
+                    "Datum ROI move: id=" + e.RoiId + " dr=" + e.DeltaRow + " dc=" + e.DeltaCol);
+            }
+
             //260425 hbk Phase 13 D-01..D-04 — Datum 분기 우선 (FAI lookup 전에)
             DatumConfig datum;
             if (e.RoiId.StartsWith("Datum.") && IsCurrentNodeDatum(out datum)) {
@@ -565,15 +579,44 @@ namespace ReringProject.UI {
         }
 
         //260425 hbk Phase 13 D-01..D-04 — Datum ROI 이동 후 처리 (delta + 이중 신호 + 자동 재티칭 + 후보 publish)
+        //260426 hbk Phase 14-01 D-03 — Move 자동 재티칭 미발동 회귀 fix: Dispatcher.BeginInvoke(Background) defer (Phase 13-07 Fix A 패턴)
         private void HandleDatumRoiMove(DatumConfig datum, RoiMoveCompletedArgs e) {
             ApplyDatumRoiDelta(datum, e);
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
             mParentWindow?.inspectionList?.RefreshParamEditor();
             halconViewer.SetDatumOverlay(datum, true);
-            InvokeTryTeachDatumForEdit(datum);
-            PublishDatumRoiCandidates(datum);
-            //260425 hbk Phase 13 D-VIZ-06 — ROI 이동 후 자동 재티칭 결과로 좌표 라벨 갱신 (PublishDatumRoiCandidates 가 이미 호출하나 명시 보장)
-            UpdateDatumRefCoordsLabel(datum);
+            //260426 hbk Phase 14-01 D-03 — UI thread 즉시 반환, 자동 재티칭은 Background priority 로 defer
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
+                InvokeTryTeachDatumForEdit(datum);
+                PublishDatumRoiCandidates(datum);
+                //260425 hbk Phase 13 D-VIZ-06 — ROI 이동 후 자동 재티칭 결과로 좌표 라벨 갱신
+                UpdateDatumRefCoordsLabel(datum);
+            }));
+        }
+
+        //260426 hbk Phase 14-01 D-04 — Datum ROI resize 후처리 (HandleDatumRoiMove 5-step 패턴 동일, delta vs absolute 차이만)
+        private void HandleDatumRoiResize(DatumConfig datum, RoiGeometryChangedArgs e) {
+            if (datum == null || e == null) return;
+
+            //260426 hbk Phase 14-01 — Circle 절대 좌표 직접 대입 (resize 는 delta 가 아닌 새 절대값)
+            if (e.RoiId == "Datum.Circle" && e.Shape == RoiShape.Circle) {
+                datum.CircleROI_Row = e.CenterRow;
+                datum.CircleROI_Col = e.CenterCol;
+                datum.CircleROI_Radius = e.Radius;
+            }
+            //260426 hbk Phase 14-01 — Rect 핸들은 Phase 14 scope 외 (deferred to ROI Edit 전반 재설계 phase)
+
+            //260426 hbk Phase 14-01 — write-back 후 이중 신호 (HandleDatumRoiMove 패턴)
+            try { datum.RaisePropertyChanged(string.Empty); } catch { }
+            mParentWindow?.inspectionList?.RefreshParamEditor();
+            halconViewer.SetDatumOverlay(datum, true);
+
+            //260426 hbk Phase 14-01 D-03 — 자동 재티칭 (Phase 13-07 Dispatcher.BeginInvoke(Background) defer 패턴)
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
+                InvokeTryTeachDatumForEdit(datum);
+                PublishDatumRoiCandidates(datum);
+                UpdateDatumRefCoordsLabel(datum);
+            }));
         }
 
         //260425 hbk Phase 13 D-02 — RoiId prefix 별 DatumConfig 필드 매핑 (delta 누적)
@@ -643,8 +686,10 @@ namespace ReringProject.UI {
         }
 
         //260425 hbk Phase 13 D-03 — Edit 세션 전용 자동 재티칭 (_editingDatum 건드리지 않음)
+        //260426 hbk Phase 14-01 — 진단: 자동 재티칭 진입/종료 로깅 (Move 회귀 추적)
         private void InvokeTryTeachDatumForEdit(DatumConfig datum) {
             if (datum == null) return;
+            Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit ENTRY: IsConfigured=" + datum.IsConfigured);
             HImage img = halconViewer.CurrentImage;
             if (img == null) return;
             var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
@@ -661,6 +706,7 @@ namespace ReringProject.UI {
                 label_drawHint.Visibility = Visibility.Visible;
             }
             halconViewer.SetDatumOverlay(datum, true);
+            Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit EXIT: LastTeachSucceeded=" + datum.LastTeachSucceeded);
         }
 
         //260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 갱신

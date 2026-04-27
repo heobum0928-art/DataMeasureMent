@@ -198,6 +198,8 @@ namespace ReringProject.Sequence {
         //  Circle_RectL2Ratio:  사각형 ROI 의 length2 = radius × ratio (접선 방향)
         //  default 10° / 0.05 / 0.05. INI 미존재 시 자동 fallback (회귀 0).
         //  사용자 0/음수 입력 시 TryFindCircleByPolarSampling 진입부에서 sanity clamp 으로 default 복원.
+        //260427 hbk Phase 14 fix — Circle polar 파라미터 PropertyGrid 노출 추가 (Category 명시)
+        [Category("Datum|Circle (CTH) Polar")]
         public double Circle_PolarStepDeg  { get; set; } = 10.0;
         public double Circle_RectL1Ratio   { get; set; } = 0.05;
         public double Circle_RectL2Ratio   { get; set; } = 0.05;

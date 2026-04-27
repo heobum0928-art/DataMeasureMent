@@ -353,23 +353,32 @@ namespace ReringProject.Halcon.Algorithms
         public void RunPhiSmokeTest(HImage image, double centerRow, double centerCol, double radius)
         {
             if (image == null) return;
-            double[] thetasDeg = new double[] { 0.0, 90.0, 180.0, 270.0 };
-            foreach (double thetaDeg in thetasDeg)
+            //260427 hbk Phase 14 WR-02 — 기대값을 hand-precomputed 독립 reference 로 교체 (sin/cos 부호 회귀 시 delta 발산).
+            //  화면 CCW: 0°=right(+col), 90°=up(-row), 180°=left(-col), 270°=down(+row).
+            //  cases: (thetaDeg, expRow, expCol)
+            double[][] cases = new double[][]
             {
+                new double[] {   0.0, centerRow,            centerCol + radius },
+                new double[] {  90.0, centerRow - radius,   centerCol          },
+                new double[] { 180.0, centerRow,            centerCol - radius },
+                new double[] { 270.0, centerRow + radius,   centerCol          },
+            };
+            foreach (double[] c in cases)
+            {
+                double thetaDeg = c[0];
+                double expRow = c[1];
+                double expCol = c[2];
                 double thetaRad = thetaDeg * Math.PI / 180.0;
                 //260426 hbk Phase 14-04 D-13 — 화면 CCW 좌표계 (sin 앞 minus, TryFindCircleByPolarSampling 와 동일 식)
                 double rectRow = centerRow - radius * Math.Sin(thetaRad);
                 double rectCol = centerCol + radius * Math.Cos(thetaRad);
-                //260426 hbk Phase 14-04 — 기대값 = 동일 식 (좌표 계산 자체 검증). 실 위치는 Halcon debugger 가 시각으로 확인.
-                double expectedRow = centerRow - radius * Math.Sin(thetaRad);
-                double expectedCol = centerCol + radius * Math.Cos(thetaRad);
-                double dRow = Math.Abs(rectRow - expectedRow);
-                double dCol = Math.Abs(rectCol - expectedCol);
+                double dRow = Math.Abs(rectRow - expRow);
+                double dCol = Math.Abs(rectCol - expCol);
                 double delta = Math.Sqrt(dRow * dRow + dCol * dCol);
 
                 ReringProject.Utility.Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
                     "PHI_SMOKE: theta=" + thetaDeg.ToString("F0") +
-                    " expected=(" + expectedRow.ToString("F1") + "," + expectedCol.ToString("F1") + ")" +
+                    " expected=(" + expRow.ToString("F1") + "," + expCol.ToString("F1") + ")" +
                     " actual=(" + rectRow.ToString("F1") + "," + rectCol.ToString("F1") + ")" +
                     " delta=" + delta.ToString("F2"));
             }

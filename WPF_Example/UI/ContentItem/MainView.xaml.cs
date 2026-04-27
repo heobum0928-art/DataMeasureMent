@@ -627,6 +627,9 @@ namespace ReringProject.UI {
                     datum.Line1_Row += e.DeltaRow; datum.Line1_Col += e.DeltaCol; break;
                 case "Datum.Line2":
                     datum.Line2_Row += e.DeltaRow; datum.Line2_Col += e.DeltaCol; break;
+                //260426 hbk Phase 14-03 Req 3 — Vertical ROI 이동 (Line1_* 슬롯 종료)
+                case "Datum.Vertical":
+                    datum.Vertical_Row += e.DeltaRow; datum.Vertical_Col += e.DeltaCol; break;
                 case "Datum.Circle":
                     datum.CircleROI_Row += e.DeltaRow; datum.CircleROI_Col += e.DeltaCol; break;
                 case "Datum.HorizontalA":
@@ -651,6 +654,11 @@ namespace ReringProject.UI {
                 case "Datum.Line2":
                     datum.Line2_Row = 0; datum.Line2_Col = 0; datum.Line2_Phi = 0;
                     datum.Line2_Length1 = 0; datum.Line2_Length2 = 0;
+                    break;
+                //260426 hbk Phase 14-03 Req 3 — Vertical ROI 클리어
+                case "Datum.Vertical":
+                    datum.Vertical_Row = 0; datum.Vertical_Col = 0; datum.Vertical_Phi = 0;
+                    datum.Vertical_Length1 = 0; datum.Vertical_Length2 = 0;
                     break;
                 case "Datum.Circle":
                     datum.CircleROI_Row = 0; datum.CircleROI_Col = 0; datum.CircleROI_Radius = 0;
@@ -763,8 +771,9 @@ namespace ReringProject.UI {
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
                     break;
                 case EDatumAlgorithm.VerticalTwoHorizontal:
-                    if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
-                        list.Add(BuildDatumRectCandidate("Datum.Line1", datum.Line1_Row, datum.Line1_Col, datum.Line1_Length1, datum.Line1_Length2));
+                    //260426 hbk Phase 14-03 Req 3 — Line1_* → Vertical_* 슬롯 교체 (RoiId 도 Datum.Vertical 로)
+                    if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0)
+                        list.Add(BuildDatumRectCandidate("Datum.Vertical", datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Length1, datum.Vertical_Length2));
                     if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
                     if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
@@ -1367,14 +1376,22 @@ namespace ReringProject.UI {
             double halfW     = (roi.Column2 - roi.Column1) / 2.0;
 
             //260426 hbk Phase 13 D-PRP-LENFIX — step 별 DatumConfig 필드 기록 (Length1=halfW, Length2=halfH 정정)
+            //260426 hbk Phase 14-03 W4 precheck — EDatumTeachStep.Vertical: true (이미 정의됨, MainView.xaml.cs:52). Branch A 적용 — Line1/Vertical case 분리.
             switch (_datumTeachStep) {
                 case EDatumTeachStep.Line1:
-                case EDatumTeachStep.Vertical:  //260424 hbk Phase 12 D-07 — Line1 재사용
                     _editingDatum.Line1_Row     = centerRow;
                     _editingDatum.Line1_Col     = centerCol;
                     _editingDatum.Line1_Phi     = 0.0;
                     _editingDatum.Line1_Length1 = halfW; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfW(X축 절반)=Length1
                     _editingDatum.Line1_Length2 = halfH; //260426 hbk Phase 13 D-PRP-LENFIX — 정정: halfH(Y축 절반)=Length2
+                    break;
+                //260426 hbk Phase 14-03 W4-A — Vertical case 분리: Line1_* → Vertical_* write-back (의미적 분리)
+                case EDatumTeachStep.Vertical:
+                    _editingDatum.Vertical_Row     = centerRow;
+                    _editingDatum.Vertical_Col     = centerCol;
+                    _editingDatum.Vertical_Phi     = 0.0;
+                    _editingDatum.Vertical_Length1 = halfW;
+                    _editingDatum.Vertical_Length2 = halfH;
                     break;
                 case EDatumTeachStep.Line2:
                     _editingDatum.Line2_Row     = centerRow;

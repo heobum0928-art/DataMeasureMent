@@ -192,6 +192,16 @@ namespace ReringProject.Sequence {
         public double CircleROI_Col    { get; set; } = 0; //260423 hbk Phase 12 D-10
         public double CircleROI_Radius { get; set; } = 0; //260423 hbk Phase 12 D-10
 
+        //260426 hbk Phase 14-04 Req 4 — Circle polar-sampling 알고리즘 파라미터 (TryFindCircleByPolarSampling 전용)
+        //  Circle_PolarStepDeg: 회전 각도 step (1~30°, 360/step = 점 개수)
+        //  Circle_RectL1Ratio:  사각형 ROI 의 length1 = radius × ratio (반경 방향)
+        //  Circle_RectL2Ratio:  사각형 ROI 의 length2 = radius × ratio (접선 방향)
+        //  default 10° / 0.05 / 0.05. INI 미존재 시 자동 fallback (회귀 0).
+        //  사용자 0/음수 입력 시 TryFindCircleByPolarSampling 진입부에서 sanity clamp 으로 default 복원.
+        public double Circle_PolarStepDeg  { get; set; } = 10.0;
+        public double Circle_RectL1Ratio   { get; set; } = 0.05;
+        public double Circle_RectL2Ratio   { get; set; } = 0.05;
+
         //260425 hbk Phase 13 D-PRP-02 — Circle ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
         //260426 hbk Phase 14-03 D-08 — Category prefix labeling (CTH)
         [Category("Datum|Circle (CTH) Edge")]

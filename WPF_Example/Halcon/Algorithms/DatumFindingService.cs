@@ -267,6 +267,30 @@ namespace ReringProject.Halcon.Algorithms
                 config.RefAngleRad = curAngle;
                 config.IsConfigured = true;
 
+                //260426 hbk Phase 14-02 Req 2 — TwoLineIntersect 두 라인 각도 게이트
+                //  사용자 임계각 N=TwoLineAngleToleranceDeg, 0 이면 게이트 off (PASS).
+                //  측정값 = |line1 phi - line2 phi| 를 [0,180) 정규화 후 90° 와의 편차.
+                //  CircleTwoHorizontal/VerticalTwoHorizontal 의 ValidateHorizontalVerticalAngles 와 별개 게이트 (TwoLineIntersect 한정).
+                if (config.TwoLineAngleToleranceDeg > 0.0)
+                {
+                    double phi1 = Math.Atan2(line1RowEnd - line1RowBegin, line1ColEnd - line1ColBegin);
+                    double phi2 = Math.Atan2(line2RowEnd - line2RowBegin, line2ColEnd - line2ColBegin);
+                    double deltaDeg = Math.Abs((phi1 - phi2) * 180.0 / Math.PI);
+                    while (deltaDeg >= 180.0) deltaDeg -= 180.0;
+                    double perpErr = Math.Abs(deltaDeg - 90.0);
+                    if (perpErr > config.TwoLineAngleToleranceDeg)
+                    {
+                        config.LastTeachSucceeded = false;
+                        //260426 hbk Phase 14-02 SPEC AC literal — ASCII (deg, +/-)
+                        error = "Two-line angle out of range: "
+                              + deltaDeg.ToString("F1")
+                              + " deg (expected 90 +/- "
+                              + config.TwoLineAngleToleranceDeg.ToString("F1")
+                              + " deg)";
+                        return false;
+                    }
+                }
+
                 //260423 hbk Phase 11 D-11 — 검출 라인 좌표 휘발성 저장 (오버레이용)
                 config.Line1Detected_RBegin = line1RowBegin;
                 config.Line1Detected_CBegin = line1ColBegin;

@@ -588,6 +588,8 @@ namespace ReringProject.Halcon.Display
                     RenderRawEdgePoints(window, datum.Circle_DetectedEdgeRows,       datum.Circle_DetectedEdgeCols,       "yellow");
                     RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
                     RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
+                    //260426 hbk Phase 14-03 Req 3 — Vertical 그룹 raw 점 (Line1 cyan 과 시각 구분: orange 신규 — 미사용 색상)
+                    RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows,     datum.Vertical_DetectedEdgeCols,     "orange");
                 }
             }
             catch

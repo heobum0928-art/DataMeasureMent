@@ -604,7 +604,14 @@ namespace ReringProject.UI {
                 datum.CircleROI_Col = e.CenterCol;
                 datum.CircleROI_Radius = e.Radius;
             }
-            //260426 hbk Phase 14-01 — Rect 핸들은 Phase 14 scope 외 (deferred to ROI Edit 전반 재설계 phase)
+            //260427 hbk Phase 14 WR-01 — Rect resize 는 write-back 미구현 (Phase 14 scope 외).
+            //  silent fall-through 방지: 명시적 log + early return 으로 stale geometry 자동 재티칭 차단.
+            //  향후 Vertical/Horizontal Edit 핸들 노출 시 여기에 write-back 구현 후 return 제거.
+            else if (e.Shape == RoiShape.Rect) {
+                Logging.PrintLog((int)ELogType.Trace,
+                    "Datum Rect resize ignored (Phase 14 scope): id=" + e.RoiId);
+                return;
+            }
 
             //260426 hbk Phase 14-01 — write-back 후 이중 신호 (HandleDatumRoiMove 패턴)
             try { datum.RaisePropertyChanged(string.Empty); } catch { }

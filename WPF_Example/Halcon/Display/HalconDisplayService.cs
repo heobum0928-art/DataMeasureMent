@@ -441,24 +441,38 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.SetColor(window, color);
                 HOperatorSet.SetLineWidth(window, lineWidth);
 
-                // Draw Line1 ROI as Rectangle2
-                if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
+                //260428 hbk W4-A 후속 — RenderDatumOverlay 슬롯 분기 수정
+                //  Phase 14-03 W4-A 에서 VerticalTwoHorizontal 의 수직 검색 ROI 를 Line1_* → Vertical_* 슬롯으로 이동했으나
+                //  렌더 경로가 갱신되지 않아 사용자가 Vertical ROI 를 그려도 사각형이 표시되지 않는 버그가 있었음.
+                //  AlgorithmType 별로 그릴 슬롯을 분기:
+                //    TwoLineIntersect       → Line1_*  (기존 동작 보존, "L1" 라벨)
+                //    VerticalTwoHorizontal  → Vertical_* (신규, "Vert" 라벨)
+                //    CircleTwoHorizontal    → 둘 다 미사용 (legacy INI 의 Line1_* 잔류값이 더 이상 잘못 렌더되지 않음)
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect)
                 {
-                    HOperatorSet.DispRectangle2(window,
-                        datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
-                        datum.Line1_Length1, datum.Line1_Length2);
-
-                    //260424 hbk Phase 12 Gap-2 — ROI 라벨 (수직/수평/라인 구분 가시화)
-                    //  TwoLineIntersect: "L1" / VerticalTwoHorizontal: "Vert" / CircleTwoHorizontal: Line1 미사용이므로 라벨 생략
-                    string line1Label = null;
-                    if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect) line1Label = "L1";
-                    else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal) line1Label = "Vert";
-                    if (line1Label != null)
+                    if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
                     {
+                        HOperatorSet.DispRectangle2(window,
+                            datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
+                            datum.Line1_Length1, datum.Line1_Length2);
+
                         DrawRoiLabel(window, datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
-                            datum.Line1_Length1, datum.Line1_Length2, line1Label);
+                            datum.Line1_Length1, datum.Line1_Length2, "L1");
                     }
                 }
+                else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal)
+                {
+                    if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0)
+                    {
+                        HOperatorSet.DispRectangle2(window,
+                            datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Phi,
+                            datum.Vertical_Length1, datum.Vertical_Length2);
+
+                        DrawRoiLabel(window, datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Phi,
+                            datum.Vertical_Length1, datum.Vertical_Length2, "Vert");
+                    }
+                }
+                // CircleTwoHorizontal: Line1/Vertical 모두 렌더하지 않음 (의도적). Horizontal A/B + Circle 만 아래 블록에서 그림.
 
                 //260424 hbk Phase 12 D-13 — Line2 Rectangle2 는 TwoLineIntersect 에서만 렌더 (Circle/Vertical-TwoHorizontal 은 Line2 미사용)
                 if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect

@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: ready
 stopped_at: Phase 14 complete (5/5 plans, 3 algorithms verified, D-VIZ-03 closure)
-last_updated: "2026-04-27T08:00:00.000Z"
+last_updated: "2026-04-28T08:48:47.487Z"
 progress:
   total_phases: 14
   completed_phases: 13
@@ -123,6 +123,7 @@ Recent decisions affecting current work:
 | 260417-kzd | 2026-04-22 | Phase 6-04 UAT 잔여 결함 수정 — InspectionMasterParam DisplayName 편집 UI + Shot 실행 경로 매핑/지연 동기화 | 40ea796, a44debd, 40a7cca, 84b1bfb, 44523ad, abe8f55 |
 | 260423-hzt | 2026-04-23 | WR-RT-02 EdgeDirection/EdgePolarity ComboBox 처리 — PropertyGrid 자유 텍스트 → [ItemsSourceProperty] 드롭다운 (8 파일, string 유지로 INI 하위호환) | 5ff753a |
 | 260423-o53 | 2026-04-23 | 선택된 Rect/Circle ROI 마우스 드래그 이동 — hit-test + 이동 상태 머신 + RoiMoveCompleted 이벤트 → FAI 모델 좌표 반영 | f92be35 |
+| 260428-oqn | 2026-04-28 | VerticalTwoHorizontal Datum Vertical_* ROI 렌더 누락 수정 — RenderDatumOverlay Line1/Vertical 슬롯 분기 (W4-A 후속, "Vert" 라벨 + Horizon A/B 에지 가시화 동시 회복) | c6c15a4 |
 
 ### Pending Todos
 

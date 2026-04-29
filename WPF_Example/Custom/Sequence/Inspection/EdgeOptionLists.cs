@@ -17,5 +17,8 @@ namespace ReringProject.Sequence
 
         // DatumConfig — Halcon MeasurePos transition 파라미터 원시 값
         public static readonly List<string> DatumPolarities = new List<string> { "all", "positive", "negative" };
+
+        // MeasurePos 'first'/'last'/'all' 의 Datum UI 표기. //260429 hbk Phase 15 — DatumConfig.*_EdgeSelection ItemsSource 단일 소스
+        public static readonly List<string> Selections = new List<string> { "First", "Last", "All" }; //260429 hbk Phase 15
     }
 }

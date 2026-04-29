@@ -719,7 +719,8 @@ namespace ReringProject.Halcon.Algorithms
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
-            string direction, int sampleCount, int trimCount,
+            string direction, string selection,                 //260429 hbk Phase 15 — selection 파라미터 추가 (DatumConfig.*_EdgeSelection 전파)
+            int sampleCount, int trimCount,
             out double lineRowBegin, out double lineColBegin,
             out double lineRowEnd, out double lineColEnd,
             out HTuple edgeRowsOut, out HTuple edgeColsOut, //260425 hbk Phase 13 D-VIZ-02 — raw 점 외부 노출
@@ -739,6 +740,7 @@ namespace ReringProject.Halcon.Algorithms
             if (threshold <= 0) threshold = 20;
             if (string.IsNullOrEmpty(polarity)) polarity = "all";
             if (string.IsNullOrEmpty(direction)) direction = "LtoR";
+            if (string.IsNullOrEmpty(selection)) selection = "First"; //260429 hbk Phase 15 — Halcon "first" 매핑 (canonical)
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
@@ -778,7 +780,9 @@ namespace ReringProject.Halcon.Algorithms
                             image, r1, left, r2, right,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
-                            ref allRows, ref allCols);
+                            direction, selection,                          //260429 hbk Phase 15 — measurePhi 매핑 + selection 전파
+                            ref allRows, ref allCols,
+                            roiLabel);                                     //260429 hbk Phase 15 — Trace 로그용 ROI 레이블 전달
                     }
                 }
                 else
@@ -791,7 +795,9 @@ namespace ReringProject.Halcon.Algorithms
                             image, top, c1, bottom, c2,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
-                            ref allRows, ref allCols);
+                            direction, selection,                          //260429 hbk Phase 15 — measurePhi 매핑 + selection 전파
+                            ref allRows, ref allCols,
+                            roiLabel);                                     //260429 hbk Phase 15 — Trace 로그용 ROI 레이블 전달
                     }
                 }
 
@@ -862,7 +868,8 @@ namespace ReringProject.Halcon.Algorithms
             HImage image, HTuple imageWidth, HTuple imageHeight,
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
-            string direction, int sampleCount, int trimCount,
+            string direction, string selection,                 //260429 hbk Phase 15 — selection 파라미터 추가
+            int sampleCount, int trimCount,
             out HTuple rowEdge, out HTuple colEdge,
             out string error,
             string roiLabel) //260426 hbk Phase 13 D-PRP-HOTFIX — 진단 로그용 ROI 레이블
@@ -876,6 +883,7 @@ namespace ReringProject.Halcon.Algorithms
             if (threshold <= 0) threshold = 20;
             if (string.IsNullOrEmpty(polarity)) polarity = "all";
             if (string.IsNullOrEmpty(direction)) direction = "LtoR";
+            if (string.IsNullOrEmpty(selection)) selection = "First"; //260429 hbk Phase 15
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
@@ -915,7 +923,9 @@ namespace ReringProject.Halcon.Algorithms
                             image, r1, left, r2, right,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
-                            ref allRows, ref allCols);
+                            direction, selection,                          //260429 hbk Phase 15 — measurePhi 매핑 + selection 전파
+                            ref allRows, ref allCols,
+                            roiLabel);                                     //260429 hbk Phase 15
                     }
                 }
                 else
@@ -928,7 +938,9 @@ namespace ReringProject.Halcon.Algorithms
                             image, top, c1, bottom, c2,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
-                            ref allRows, ref allCols);
+                            direction, selection,                          //260429 hbk Phase 15 — measurePhi 매핑 + selection 전파
+                            ref allRows, ref allCols,
+                            roiLabel);                                     //260429 hbk Phase 15
                     }
                 }
 

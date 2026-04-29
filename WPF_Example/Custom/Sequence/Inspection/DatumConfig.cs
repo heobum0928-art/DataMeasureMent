@@ -422,6 +422,7 @@ namespace ReringProject.Sequence {
             int    fbSampleCount = 20;
             int    fbTrimCount   = 10;
             string fbPolarity    = !string.IsNullOrEmpty(EdgePolarity) ? EdgePolarity : "all";
+            string fbSelection   = "First"; //260429 hbk Phase 15 — EdgeSelection 기본값 (Halcon MeasurePos "first" 와 매핑)
 
             // Line1
             if (Line1_EdgeThreshold == 0)        Line1_EdgeThreshold = fbThreshold;
@@ -430,6 +431,7 @@ namespace ReringProject.Sequence {
             if (Line1_EdgeSampleCount == 0)      Line1_EdgeSampleCount = fbSampleCount;
             if (Line1_EdgeTrimCount == 0)        Line1_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Line1_EdgePolarity)) Line1_EdgePolarity = fbPolarity;
+            if (string.IsNullOrEmpty(Line1_EdgeSelection)) Line1_EdgeSelection = fbSelection; //260429 hbk Phase 15
 
             // Line2
             if (Line2_EdgeThreshold == 0)        Line2_EdgeThreshold = fbThreshold;
@@ -438,6 +440,7 @@ namespace ReringProject.Sequence {
             if (Line2_EdgeSampleCount == 0)      Line2_EdgeSampleCount = fbSampleCount;
             if (Line2_EdgeTrimCount == 0)        Line2_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Line2_EdgePolarity)) Line2_EdgePolarity = fbPolarity;
+            if (string.IsNullOrEmpty(Line2_EdgeSelection)) Line2_EdgeSelection = fbSelection; //260429 hbk Phase 15
 
             // Circle
             if (Circle_EdgeThreshold == 0)       Circle_EdgeThreshold = fbThreshold;
@@ -446,6 +449,7 @@ namespace ReringProject.Sequence {
             if (Circle_EdgeSampleCount == 0)     Circle_EdgeSampleCount = fbSampleCount;
             if (Circle_EdgeTrimCount == 0)       Circle_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Circle_EdgePolarity)) Circle_EdgePolarity = fbPolarity;
+            if (string.IsNullOrEmpty(Circle_EdgeSelection)) Circle_EdgeSelection = fbSelection; //260429 hbk Phase 15
 
             // Horizontal_A
             if (Horizontal_A_EdgeThreshold == 0)   Horizontal_A_EdgeThreshold = fbThreshold;
@@ -454,6 +458,7 @@ namespace ReringProject.Sequence {
             if (Horizontal_A_EdgeSampleCount == 0) Horizontal_A_EdgeSampleCount = fbSampleCount;
             if (Horizontal_A_EdgeTrimCount == 0)   Horizontal_A_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Horizontal_A_EdgePolarity)) Horizontal_A_EdgePolarity = fbPolarity;
+            if (string.IsNullOrEmpty(Horizontal_A_EdgeSelection)) Horizontal_A_EdgeSelection = fbSelection; //260429 hbk Phase 15
 
             // Horizontal_B
             if (Horizontal_B_EdgeThreshold == 0)   Horizontal_B_EdgeThreshold = fbThreshold;
@@ -462,6 +467,7 @@ namespace ReringProject.Sequence {
             if (Horizontal_B_EdgeSampleCount == 0) Horizontal_B_EdgeSampleCount = fbSampleCount;
             if (Horizontal_B_EdgeTrimCount == 0)   Horizontal_B_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Horizontal_B_EdgePolarity)) Horizontal_B_EdgePolarity = fbPolarity;
+            if (string.IsNullOrEmpty(Horizontal_B_EdgeSelection)) Horizontal_B_EdgeSelection = fbSelection; //260429 hbk Phase 15
 
             //260426 hbk Phase 14-03 D-05/D-06 — Vertical 그룹 INI 하위호환 마이그레이션
             //  기존 INI 의 Line1_* 값을 Vertical_* sentinel(==0/"") 일 때 1회 복사.
@@ -473,6 +479,7 @@ namespace ReringProject.Sequence {
             if (Vertical_EdgeSampleCount == 0) Vertical_EdgeSampleCount = (Line1_EdgeSampleCount > 0)  ? Line1_EdgeSampleCount  : fbSampleCount;
             if (Vertical_EdgeTrimCount == 0)   Vertical_EdgeTrimCount   = (Line1_EdgeTrimCount > 0)    ? Line1_EdgeTrimCount    : fbTrimCount;
             if (string.IsNullOrEmpty(Vertical_EdgePolarity))    Vertical_EdgePolarity    = !string.IsNullOrEmpty(Line1_EdgePolarity)    ? Line1_EdgePolarity    : fbPolarity;
+            if (string.IsNullOrEmpty(Vertical_EdgeSelection))   Vertical_EdgeSelection   = fbSelection; //260429 hbk Phase 15
 
             //260426 hbk Phase 14-03 D-05 — Geometry 1회 복사 (사용자가 Vertical 그룹만 보고 알고리즘 운용 가능하도록)
             //   sentinel: Vertical_Length1 == 0

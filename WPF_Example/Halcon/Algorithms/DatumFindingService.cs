@@ -317,9 +317,8 @@ namespace ReringProject.Halcon.Algorithms
         {
             error = null;
 
-            HObject contourA = null;
-            HObject contourB = null;
-            HObject concatContour = null;
+            //260429 hbk #1405 fix — TryFindLine 패턴(833)으로 통일: 단일 contour 만 사용
+            HObject contour = null;
 
             try
             {
@@ -409,16 +408,16 @@ namespace ReringProject.Halcon.Algorithms
                     return false;
                 }
 
-                //260423 hbk Phase 12 — GenContourPolygonXld × 2 → ConcatObj → FitLineContourXld (SPEC Req 3)
-                HOperatorSet.GenContourPolygonXld(out contourA, rowEdgeA, colEdgeA);
-                HOperatorSet.GenContourPolygonXld(out contourB, rowEdgeB, colEdgeB);
-                HOperatorSet.ConcatObj(contourA, contourB, out concatContour);
+                //260429 hbk #1405 fix — TupleConcat + 단일 GenContourPolygonXld 로 변경 (TryFindLine 833 라인 패턴과 통일). 기존 ConcatObj 패턴은 length-2 fit 결과를 만들어 IntersectionLl 인자 길이 불일치 발생.
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB); //260429 hbk #1405 fix — 행 에지 결합
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB); //260429 hbk #1405 fix — 열 에지 결합
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols); //260429 hbk #1405 fix — 단일 컨투어 생성
 
                 HTuple hrB, hcB, hrE, hcE, nr, nc, df;
                 try
                 {
                     HOperatorSet.FitLineContourXld(
-                        concatContour, "tukey", -1, 0, 5, 2,
+                        contour, "tukey", -1, 0, 5, 2, //260429 hbk #1405 fix — concatContour → contour
                         out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
                 }
                 catch (Exception fitEx)
@@ -488,9 +487,8 @@ namespace ReringProject.Halcon.Algorithms
             }
             finally
             {
-                if (contourA      != null) { try { contourA.Dispose();      } catch { } }
-                if (contourB      != null) { try { contourB.Dispose();      } catch { } }
-                if (concatContour != null) { try { concatContour.Dispose(); } catch { } }
+                //260429 hbk #1405 fix — 단일 contour 만 dispose (contourA/contourB/concatContour 제거)
+                if (contour != null) { try { contour.Dispose(); } catch { } }
             }
         }
 
@@ -500,9 +498,8 @@ namespace ReringProject.Halcon.Algorithms
         {
             error = null;
 
-            HObject contourA = null;
-            HObject contourB = null;
-            HObject concatContour = null;
+            //260429 hbk #1405 fix — TryFindLine 패턴(833)으로 통일: 단일 contour 만 사용
+            HObject contour = null;
 
             try
             {
@@ -584,16 +581,16 @@ namespace ReringProject.Halcon.Algorithms
                     return false;
                 }
 
-                //260423 hbk Phase 12 — GenContourPolygonXld × 2 → ConcatObj → FitLineContourXld (SPEC Req 3)
-                HOperatorSet.GenContourPolygonXld(out contourA, rowEdgeA, colEdgeA);
-                HOperatorSet.GenContourPolygonXld(out contourB, rowEdgeB, colEdgeB);
-                HOperatorSet.ConcatObj(contourA, contourB, out concatContour);
+                //260429 hbk #1405 fix — TupleConcat + 단일 GenContourPolygonXld 로 변경 (TryFindLine 833 라인 패턴과 통일). 기존 ConcatObj 패턴은 length-2 fit 결과를 만들어 IntersectionLl 인자 길이 불일치 발생.
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB); //260429 hbk #1405 fix — 행 에지 결합
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB); //260429 hbk #1405 fix — 열 에지 결합
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols); //260429 hbk #1405 fix — 단일 컨투어 생성
 
                 HTuple hrB, hcB, hrE, hcE, nr, nc, df;
                 try
                 {
                     HOperatorSet.FitLineContourXld(
-                        concatContour, "tukey", -1, 0, 5, 2,
+                        contour, "tukey", -1, 0, 5, 2, //260429 hbk #1405 fix — concatContour → contour
                         out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
                 }
                 catch (Exception fitEx)
@@ -661,9 +658,8 @@ namespace ReringProject.Halcon.Algorithms
             }
             finally
             {
-                if (contourA      != null) { try { contourA.Dispose();      } catch { } }
-                if (contourB      != null) { try { contourB.Dispose();      } catch { } }
-                if (concatContour != null) { try { concatContour.Dispose(); } catch { } }
+                //260429 hbk #1405 fix — 단일 contour 만 dispose (contourA/contourB/concatContour 제거)
+                if (contour != null) { try { contour.Dispose(); } catch { } }
             }
         }
 

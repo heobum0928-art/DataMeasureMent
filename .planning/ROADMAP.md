@@ -283,10 +283,12 @@ Plans:
 
 ### Phase 16: datum-circle-strip-redesign-algorithmtype-binding-fix
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Datum 티칭 UX 의 두 결함을 해결한다 — (a) Circle 알고리즘의 strip 시각화가 의도(원호를 포함하는 작은 사각형 stepCount 개) 대신 잘못된 큰 사각형으로 그려지는 문제를 시각화 재작성으로 수정하고, (b) ROI 이동/생성 후 Datum 1↔2↔3 전환 시 PropertyGrid AlgorithmType + 실제 티칭 동작이 stale 해지는 문제를 PropertyGrid SelectedObject force rebind 로 해결하며, (c) 매번 자동 재티칭으로 인한 리소스 과부하를 제거하고 사용자가 btn_teachDatum 으로 명시적 트리거하도록 정책을 바꾼다. 알고리즘 코드 (VisionAlgorithmService / DatumFindingService) 는 한 줄도 변경하지 않는다 (D-22).
+**Requirements**: R1, R2, R3, R4, R5 (16-SPEC.md locked)
 **Depends on:** Phase 15
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 16 to break down)
+- [ ] 16-01-PLAN.md — HalconDisplayService Circle overlay 재작성 (R1+R2 / D-01~D-08): pre-teach Strip 사각형 stepCount 개 회색 시각화 + post-teach 검출 원 light green / Center cross 노란색 size=12 / Raw edges 회색 size=4 + z-order
+- [ ] 16-02-PLAN.md — InspectionListView Datum 분기 PropertyGrid SelectedObject null→new force rebind (R3 / D-09~D-12) + MainView HandleDatumRoiMove/Resize 의 InvokeTryTeachDatumForEdit 자동 호출 직접 삭제 (R4 / D-13~D-16)
+- [ ] 16-03-PLAN.md — UAT (R5 / D-19): Phase 15 carry-over 10건 (Test 5/6/7/8/10/11/12/13/14/15) 흡수 + Phase 16 신규 4건 (strip 시각화 / RectL1Ratio 즉시 갱신 / 검출 원 시각화 / Auto-reteach off) — total ≥ 14, signed_off

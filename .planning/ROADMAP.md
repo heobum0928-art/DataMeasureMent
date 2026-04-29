@@ -280,3 +280,13 @@ Plans:
 - [ ] 15-02-PLAN.md — AppendEdgePointsFromStrip 시그니처 확장 (measurePhi 4-way + selection) + TryFindLine/TryExtractEdgePoints 시그니처 + 7 호출 사이트 EdgeSelection wiring + 통합 빌드 (revision iteration 1: 원래 15-02+15-03 병합 — atomic wave-2 단위)
 - [ ] 15-03-PLAN.md — VisionAlgorithmService.TryFindCircleByPolarSampling selection 정리 + DatumFindingService Circle 호출 wiring (Phase 14-04 rectPhi=thetaRad 보존)
 - [ ] 15-04-PLAN.md — UAT (manual): 3 알고리즘 x 4 EdgeDirection + ROI 이동 재티칭 + #1405 carry-over 흡수 + SIMUL 회귀
+
+### Phase 16: datum-circle-strip-redesign-algorithmtype-binding-fix
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 16 to break down)

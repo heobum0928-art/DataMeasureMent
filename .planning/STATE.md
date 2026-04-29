@@ -148,6 +148,7 @@ None yet.
 - 2026-04-23: Phase 11 added — datum-teaching-ui-roi (WR-RT-01/03/04 묶음 예정, bugs.md 로드맵 기반)
 - 2026-04-26: Phase 14 added — Datum carry-over (Circle 알고리즘 재설계 + Vertical 파라미터 그룹 + ROI 이동 회귀 + CircleTwoHorizontal/VerticalTwoHorizontal 정상화 + out-of-range UX 게이트). Phase 13 UAT 옵션 2 합의(commit d9b5cc8) 후속.
 - 2026-04-29: Phase 15 added — HALCON MeasurePos 정합성 (DatumFindingService strip-loop 6 ROI + Circle polar). 구조적 누락 2건: (a) AppendEdgePointsFromStrip 가 SmallestRectangle2 의 rp 자동 도출 의존 → EdgeDirection→measurePhi 명시 매핑 누락 (BtoT/TtoB 부호 못 구분 → polarity 의미 뒤집힘), (b) MeasurePos 가 selection="all" 하드코딩 + DatumConfig 에 EdgeSelection 필드 자체 없음. 실 데이터 UAT 에서 "Horizontal_A no edges found across 50 strips" 로 발현. 참조 올바른 구현: MeasurementAlgorithm.cs:130-178, FAIEdgeMeasurementService.cs:87-102, VisionAlgorithmService.cs:63-72.
+- 2026-04-29: Phase 16 added — datum-circle-strip-redesign-algorithmtype-binding-fix (Phase 15 UAT carry-over). 결함 2건 병합: (a) Gap-1 Circle 알고리즘 strip 패턴 자체 재설계 — 현재 ROI 원을 Rectangle 변환 후 제자리 회전, 의도는 원 ROI → 왼쪽 반지름 끝점으로 strip 이동 → 원호 포함 작은 사각형 → 원 센터 기준 1°/10° (사용자 설정) 회전 → 안→밖 or 밖→안 에지 → 360° 누적 → fit_circle_contour_xld. Phase 14-04 D-13 `rectPhi=thetaRad` 결정 재검토 필요. (b) Gap-2 Datum AlgorithmType PropertyGrid binding refresh 누락 — 첫 레시피 로드 시엔 정상 전환되나 ROI 이동/생성 후 Datum 변경해도 AlgorithmType combobox 갱신 안 됨, Phase 12-03/13-04 의 RaisePropertyChanged("") + RefreshParamEditor() 패턴이 AlgorithmType 까지 안 닿음.
 
 ## Session Continuity
 

@@ -59,7 +59,8 @@ namespace ReringProject.Halcon.Algorithms
                     image, imageWidth, imageHeight,
                     config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2,
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
-                    config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
+                    config.Line1_EdgeDirection, config.Line1_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                    config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out line1RawRows, out line1RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
@@ -80,7 +81,8 @@ namespace ReringProject.Halcon.Algorithms
                     image, imageWidth, imageHeight,
                     config.Line2_Row, config.Line2_Col, config.Line2_Phi, config.Line2_Length1, config.Line2_Length2,
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
-                    config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
+                    config.Line2_EdgeDirection, config.Line2_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                    config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out line2RawRows, out line2RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
@@ -198,7 +200,8 @@ namespace ReringProject.Halcon.Algorithms
                     image, imageWidth, imageHeight,
                     config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2,
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
-                    config.Line1_EdgeDirection, config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
+                    config.Line1_EdgeDirection, config.Line1_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                    config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out line1RawRows, out line1RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
@@ -220,7 +223,8 @@ namespace ReringProject.Halcon.Algorithms
                     image, imageWidth, imageHeight,
                     config.Line2_Row, config.Line2_Col, config.Line2_Phi, config.Line2_Length1, config.Line2_Length2,
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
-                    config.Line2_EdgeDirection, config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
+                    config.Line2_EdgeDirection, config.Line2_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                    config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out line2RawRows, out line2RawCols, //260425 hbk Phase 13 D-VIZ-03 — raw 점 수신
                     out lineError,
@@ -366,7 +370,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
-                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
@@ -387,7 +392,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
-                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
@@ -516,7 +522,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Vertical_Row, config.Vertical_Col, config.Vertical_Phi,
                         config.Vertical_Length1, config.Vertical_Length2,
                         config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
-                        config.Vertical_EdgeDirection, config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
                         out vrB, out vcB, out vrE, out vcE,
                         out vertRawRows, out vertRawCols,
                         out lineError,
@@ -539,7 +546,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
-                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {
@@ -560,7 +568,8 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
-                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,            //260429 hbk Phase 15 — EdgeSelection 전파 (DatumConfig → MeasurePos)
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B")) //260426 hbk Phase 13 D-PRP-HOTFIX — ROI 레이블 추가 (진단 로그용)
                 {

@@ -112,11 +112,15 @@ namespace ReringProject.Sequence {
         public int    Line1_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line1_EdgePolarityList))]
         public string Line1_EdgePolarity    { get; set; } = "";
+        [ItemsSourceProperty(nameof(Line1_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
+        public string Line1_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line1_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line1_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Line1_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260426 hbk Phase 14-03 Req 3 — Vertical ROI 그룹 (VerticalTwoHorizontal 전용 수직 에지 라인 — 의미상 별도)
         //  D-08 Category prefix labeling — "(VTH)" 태그로 알고리즘 가시 구분 (PropertyGrid 동적 숨김 fallback)
@@ -143,11 +147,15 @@ namespace ReringProject.Sequence {
         public int    Vertical_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Vertical_EdgePolarityList))]
         public string Vertical_EdgePolarity    { get; set; } = "";
+        [ItemsSourceProperty(nameof(Vertical_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
+        public string Vertical_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Vertical_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Vertical_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Vertical_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260409 hbk Phase 4: Line2 ROI (기준 Y축 방향 에지 라인, 기본값 PI/2 = 수직)
         //260426 hbk Phase 14-03 D-08 — Category prefix labeling (TLI)
@@ -178,11 +186,15 @@ namespace ReringProject.Sequence {
         public int    Line2_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line2_EdgePolarityList))]
         public string Line2_EdgePolarity    { get; set; } = "";
+        [ItemsSourceProperty(nameof(Line2_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
+        public string Line2_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line2_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line2_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Line2_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260423 hbk Phase 12 D-10 — Circle ROI (CircleTwoHorizontal 전용 검색 영역)
         //260423 hbk  CircleROI_Radius > 0 이 ROI 설정 완료 판정 기준.
@@ -215,11 +227,15 @@ namespace ReringProject.Sequence {
         public int    Circle_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Circle_EdgePolarityList))]
         public string Circle_EdgePolarity    { get; set; } = "";
+        [ItemsSourceProperty(nameof(Circle_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
+        public string Circle_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Circle_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Circle_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Circle_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260423 hbk Phase 12 D-11 — 수평 A ROI (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
         //260423 hbk  A/B 순서 의존성 없음 — concat + FitLineContourXld 이므로 교환 대칭.
@@ -252,11 +268,15 @@ namespace ReringProject.Sequence {
         public int    Horizontal_A_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_A_EdgePolarityList))]
         public string Horizontal_A_EdgePolarity    { get; set; } = "";
+        [ItemsSourceProperty(nameof(Horizontal_A_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
+        public string Horizontal_A_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Horizontal_A_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Horizontal_A_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Horizontal_A_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260423 hbk Phase 12 D-11 — 수평 B ROI
         //260426 hbk Phase 14-03 D-08 — Category prefix labeling
@@ -287,11 +307,15 @@ namespace ReringProject.Sequence {
         public int    Horizontal_B_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_B_EdgePolarityList))]
         public string Horizontal_B_EdgePolarity    { get; set; } = "";
+        [ItemsSourceProperty(nameof(Horizontal_B_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
+        public string Horizontal_B_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Horizontal_B_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Horizontal_B_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> Horizontal_B_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260409 hbk Phase 4: 기준 원점 및 각도 (티칭 시 저장)
         [Category("Datum|Reference")]

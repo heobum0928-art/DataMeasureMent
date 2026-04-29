@@ -215,7 +215,7 @@ namespace ReringProject.Halcon.Algorithms
             HImage image,
             double centerRow, double centerCol, double radius,
             double stepDeg, double rectL1Ratio, double rectL2Ratio,
-            double sigma, int threshold, string polarity,
+            double sigma, int threshold, string polarity, string selection, //260429 hbk Phase 15 — selection 명시 처리 ("all" 하드코딩 제거)
             HTuple datumTransform,
             out double foundRow, out double foundCol, out double foundRadius,
             out HTuple edgeRows, out HTuple edgeCols,
@@ -236,6 +236,11 @@ namespace ReringProject.Halcon.Algorithms
             if (sigma < 0.4)          sigma       = 1.0;
             if (threshold <= 0)       threshold   = 20;
             if (string.IsNullOrEmpty(polarity)) polarity = "all";
+            //260429 hbk Phase 15 — selection sanity clamp + PascalCase → Halcon lower-case 변환 (CANONICAL: MeasurementAlgorithm.cs:178)
+            if (string.IsNullOrEmpty(selection)) selection = "First";
+            string selectionLower =
+                string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase) ? "last" :
+                string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase) ? "all"  : "first";
             if (radius <= 0)          { error = "radius must be > 0"; return false; }
 
             //260426 hbk Phase 14-04 — Datum transform (legacy TryFindCircle 패턴 — center 만 변환, radius 는 무변환)
@@ -289,14 +294,23 @@ namespace ReringProject.Halcon.Algorithms
 
                         HTuple eRows, eCols, amp, dist;
                         HOperatorSet.MeasurePos(image, measureHandle,
-                            sigma, threshold, polarity, "all",
+                            sigma, threshold, polarity, selectionLower, //260429 hbk Phase 15 — "all" 하드코딩 → caller selection 반영
                             out eRows, out eCols, out amp, out dist);
 
                         if (eRows.TupleLength() > 0 && eCols.TupleLength() > 0)
                         {
-                            //260426 hbk Phase 14-04 — 첫 에지점 1개만 누적 (회전 sweep 의 의도)
-                            HOperatorSet.TupleConcat(allRows, eRows[0], out allRows);
-                            HOperatorSet.TupleConcat(allCols, eCols[0], out allCols);
+                            //260429 hbk Phase 15 — selection 정책 분기: First/Last 는 단일점 누적(Phase 14-04 stepCount 보존), All 은 전체 누적
+                            if (string.Equals(selectionLower, "all", StringComparison.OrdinalIgnoreCase))
+                            {
+                                HOperatorSet.TupleConcat(allRows, eRows, out allRows);
+                                HOperatorSet.TupleConcat(allCols, eCols, out allCols);
+                            }
+                            else
+                            {
+                                //260426 hbk Phase 14-04 — 첫 에지점 1개만 누적 (회전 sweep 의 의도) — First/Last 모드는 Halcon 자체가 1점 반환
+                                HOperatorSet.TupleConcat(allRows, eRows[0], out allRows);
+                                HOperatorSet.TupleConcat(allCols, eCols[0], out allCols);
+                            }
                         }
                     }
                     catch

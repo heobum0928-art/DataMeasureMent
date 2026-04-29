@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Completed 15-03-PLAN.md
-last_updated: "2026-04-29T08:15:00.000Z"
+status: ready
+stopped_at: Phase 15 partial sign-off — measurePhi 4-way + EdgeSelection PASS, Circle 패턴 + Datum AlgorithmType binding 2 gap → Phase 16 carry-over
+last_updated: "2026-04-29T08:30:00.000Z"
 progress:
   total_phases: 15
   completed_phases: 13
-  total_plans: 48
-  completed_plans: 44
+  total_plans: 49
+  completed_plans: 45
   percent: 92
 ---
 
@@ -20,13 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase --phase — 15
+**Current focus:** Phase 15 — PARTIAL COMPLETE (4/4 plans, UAT 5 PASS / 4 FAIL / 6 not_tested)
 
 ## Current Position
 
-Phase: --phase (15) — EXECUTING
-Plan: 3 of --name
-Next: Plan 15-04 (UAT — 3 알고리즘 × EdgeDirection 4방향 + #1405 carry-over 4건 + SIMUL 회귀)
+Phase: 15 — PARTIAL COMPLETE (measurePhi 4-way + EdgeSelection 데이터 모델 PASS)
+Plan: 4 of 4 (15-04 partial sign-off, commit ea3644c)
+Next: Phase 16 신설 — datum-circle-redesign + algorithm-type-binding-fix
+  Gap-1: VisionAlgorithmService.TryFindCircleByPolarSampling strip 패턴 재설계 (왼쪽 반지름 끝점 strip + 1°/10° 회전 360°)
+  Gap-2: Datum AlgorithmType PropertyGrid binding refresh — ROI 이동/생성 후 갱신 누락
+  Workflow: /gsd-add-phase → /gsd-spec-phase 16 → /gsd-discuss-phase 16 → /gsd-plan-phase 16 → /gsd-execute-phase 16
 
 ## Performance Metrics
 

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-04-29T07:30:00.000Z"
+stopped_at: Completed 15-03-PLAN.md
+last_updated: "2026-04-29T08:15:00.000Z"
 progress:
   total_phases: 15
   completed_phases: 13
   total_plans: 48
-  completed_plans: 43
-  percent: 90
+  completed_plans: 44
+  percent: 92
 ---
 
 # Project State
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 ## Current Position
 
 Phase: --phase (15) — EXECUTING
-Plan: 2 of --name
-Next: Plan 15-03 (VisionAlgorithmService TryFindCircleByPolarSampling selection 정리) 또는 Plan 15-04 (UAT)
+Plan: 3 of --name
+Next: Plan 15-04 (UAT — 3 알고리즘 × EdgeDirection 4방향 + #1405 carry-over 4건 + SIMUL 회귀)
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Next: Plan 15-03 (VisionAlgorithmService TryFindCircleByPolarSampling selection 
 | Phase 12 P03 | 20 | 5 tasks | 5 files |
 | Phase 15 P01 | 4 | 3 tasks | 2 files |
 | Phase 15 P02 | 10 | 3 tasks | 1 files |
+| Phase 15 P03 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,7 @@ Recent decisions affecting current work:
 - [Phase 13-05]: 시각화 묶음 — DatumConfig 5 ROI × 2 = 10 신규 volatile HTuple 필드 ([Browsable(false)], ParamBase reflection 자동 무시 → INI 영향 0, Phase 4 D-11 패턴 연장); DatumFindingService TryFindLine 시그니처 +2 out HTuple (edgeRowsOut/edgeColsOut), 5 ROI write-back 양 경로 (TryTeach + TryFindDatum); HalconDisplayService EXTEND_PX=10000.0 + DrawExtendedLine helper (unit-vector × EXTEND_PX 양방향 외삽, lenSq<1e-9 degenerate guard, HALCON DispLine 자동 클리핑) + RenderRawEdgePoints helper (DispCross batch size=6 angle=0, null/length-0 가드); RenderDatumOverlay LastTeachSucceeded 분기에서 DispLine→DrawExtendedLine 2 회 교체 + 5 ROI RenderRawEdgePoints 호출 (Line1=cyan / Line2=magenta / Circle=yellow / HorizA=green / HorizB=lime); MainView label_datumRefCoords WPF Label + UpdateDatumRefCoordsLabel(DatumConfig) + 3 호출 지점 (Datum 노드 선택 / 티칭 성공 / ROI 이동 후 재티칭); 메인 commit 01e37e3 + hotfix 136de8e (Plan 13-03 잠복 결함 — UpdateContextMenuState hasSelectedRoi 가 _datumRoiCandidates OR-체크 안 해 Edit/Delete 메뉴 비활성, 1 라인 확장으로 흡수); UAT 15 시나리오 APPROVED (Test 5 Circle 노란 점 = VisionAlgorithmService.TryFindCircle raw row/col 미반환으로 빈 HTuple → carry-over; Test 13 Datum ROI 실제 resize 동작 = 신규 사용자 요구사항 → 13-06 또는 14-XX 신규 plan 으로 carry-over). Phase 13 5/5 plan 완료.
 - [Phase 15-01]: DatumConfig 6 *_EdgeSelection (sentinel "" + EnsurePerRoiDefaults fbSelection="First" fallback) + EdgeOptionLists.Selections [First,Last,All] PascalCase 단일 소스 — INI 하위호환, 데이터 모델 only (런타임 소비는 15-02 부터)
 - [Phase 15-02]: AppendEdgePointsFromStrip 4-way 명시 measurePhi 매핑(TtoB=-π/2/BtoT=+π/2/RtoL=π/LtoR=0, CANONICAL: MeasurementAlgorithm.cs:130-178) + selection 인자화(PascalCase→lower) + Trace 로그 강화(dir/phi/sel/edges); TryFindLine + TryExtractEdgePoints 시그니처 +1 string selection; 9 caller 사이트 wiring (7 plan teach + 2 Rule 3 runtime in TryFindDatum); SmallestRectangle2 자동 rp 의존 제거 (BtoT/TtoB 부호 결함 직접 원인 해결); msbuild Debug/x64 PASS 0 신규 warning
+- [Phase 15-03]: VisionAlgorithmService.TryFindCircleByPolarSampling 시그니처 +1 string selection (polarity 다음, datumTransform 앞) + sanity clamp("First" default) + selectionLower 변환 (CANONICAL: MeasurementAlgorithm.cs:178); MeasurePos "all" 하드코딩 제거 → caller selection 반영; 누적 정책 분기 — All=eRows 전체, First/Last=eRows[0] 단일점 (Phase 14-04 360° stepCount 의도 보존); rectPhi=thetaRad 회전 식 변경 0 라인 (Phase 14-04 D-13 anti-goal 준수); DatumFindingService.TryTeachCircleTwoHorizontal Circle 호출 1 사이트 wiring (config.Circle_EdgeSelection 전파); 전체 솔루션 caller scan 결과 1 caller 확정 (RunPhiSmokeTest 는 자체 sin/cos 계산만 trace 노출 — TryFindCircleByPolarSampling 미호출, dormant); msbuild Debug/x64 PASS 0 신규 warning on 수정 범위
 
 ### Quick Tasks Completed
 
@@ -146,10 +148,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-29T07:30:00.000Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-04-29T08:15:00.000Z
+Stopped at: Completed 15-03-PLAN.md
 Resume file: None
-Next action: `/gsd-execute-phase 15` (Plan 15-03 VisionAlgorithmService Circle selection 정리 → 15-04 UAT)
+Next action: `/gsd-execute-phase 15` (Plan 15-04 UAT — 3 알고리즘 × EdgeDirection 4방향 + #1405 carry-over 4건 + SIMUL 회귀)
 
 **Planned Phase:** 14 (datum-carry-over-circle-vertical-roi-2-out-of-range-ux) — 5 plans — 2026-04-26T14:01:01.873Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
@@ -158,3 +160,4 @@ Next action: `/gsd-execute-phase 15` (Plan 15-03 VisionAlgorithmService Circle s
 **Phase 08 / Plan 08-01 Execution:** 2026-04-23 — 3 tasks / 1 file (.planning/REQUIREMENTS.md) / 3 commits — RC-01..RC-06 섹션 신설 + Traceability Status Complete 10행 + 본문 체크박스 동기화 + Coverage 주석 제거 + Last-updated 갱신 (코드 변경 0건)
 **Phase 12 / Plan 12-03 Execution:** 2026-04-24 — 5 tasks / 5 files (MainView.xaml + MainView.xaml.cs + InspectionListView.xaml.cs + HalconDisplayService.cs + DatumConfig.cs 주석) / commits e3287c6, f0c7668, 3fe1119 (Tasks 1-3 원계획) + 781e4be (UAT Gap-2/Gap-3 fix) — msbuild Debug/x64 green, 신규 warning 0. UAT Gap-1 (ROI Edit in TeachDatum 모드) 및 Gap-4 (런타임 TryFindDatum 테스트 UI) 는 Phase 13 이월.
 **Phase 15 / Plan 15-02 Execution:** 2026-04-29 — 3 tasks / 1 file (DatumFindingService.cs) / commits fe9925a (AppendEdgePointsFromStrip measurePhi+selection+roiLabel) + 05033ea (TryFindLine/TryExtractEdgePoints +1 string selection + 4 helper calls wired) + 5fac0c8 (9 caller sites wired — 7 plan teach + 2 Rule 3 runtime) — msbuild Debug/x64 PASS, 신규 warning 0 on DatumFindingService.cs. Rule 3 deviation: TryFindDatum runtime Line1/Line2 호출 2건도 함께 wiring (signature 변경 빌드 회복).
+**Phase 15 / Plan 15-03 Execution:** 2026-04-29 — 2 tasks / 2 files (VisionAlgorithmService.cs + DatumFindingService.cs) / commits dbde085 (TryFindCircleByPolarSampling +1 string selection + sanity clamp + selectionLower 변환 + MeasurePos 인자화 + selection-aware 누적 정책 분기) + b8e3a60 (DatumFindingService.TryTeachCircleTwoHorizontal Circle_EdgeSelection wiring + 통합 빌드 검증) — msbuild Debug/x64 PASS, 신규 warning 0 on 수정 범위. Phase 14-04 D-13 rectPhi=thetaRad 회전 식 변경 0 라인 (anti-goal 준수). Caller scan 1 caller 확정 (smoke harness 미호출). Deviations: 0.

@@ -344,6 +344,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
                         config.Circle_PolarStepDeg, config.Circle_RectL1Ratio, config.Circle_RectL2Ratio,
                         config.Circle_Sigma, config.Circle_EdgeThreshold, config.Circle_EdgePolarity,
+                        config.Circle_EdgeSelection, //260429 hbk Phase 15 — Circle_EdgeSelection 전파 (PropertyGrid → MeasurePos selection)
                         null, // teaching-phase identity transform (legacy 동일)
                         out centerRow, out centerCol, out radius,
                         out circleEdgeRows, out circleEdgeCols,

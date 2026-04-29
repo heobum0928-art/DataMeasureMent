@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready
-stopped_at: Phase 14 complete (5/5 plans, 3 algorithms verified, D-VIZ-03 closure)
-last_updated: "2026-04-29T00:02:00.000Z"
+stopped_at: Phase 15 added — HALCON MeasurePos 정합성 (Phase 14 후속)
+last_updated: "2026-04-29T05:42:00.000Z"
 progress:
-  total_phases: 14
+  total_phases: 15
   completed_phases: 13
   total_plans: 49
   completed_plans: 41
-  percent: 84
+  percent: 78
 ---
 
 # Project State
@@ -138,6 +138,7 @@ None yet.
 
 - 2026-04-23: Phase 11 added — datum-teaching-ui-roi (WR-RT-01/03/04 묶음 예정, bugs.md 로드맵 기반)
 - 2026-04-26: Phase 14 added — Datum carry-over (Circle 알고리즘 재설계 + Vertical 파라미터 그룹 + ROI 이동 회귀 + CircleTwoHorizontal/VerticalTwoHorizontal 정상화 + out-of-range UX 게이트). Phase 13 UAT 옵션 2 합의(commit d9b5cc8) 후속.
+- 2026-04-29: Phase 15 added — HALCON MeasurePos 정합성 (DatumFindingService strip-loop 6 ROI + Circle polar). 구조적 누락 2건: (a) AppendEdgePointsFromStrip 가 SmallestRectangle2 의 rp 자동 도출 의존 → EdgeDirection→measurePhi 명시 매핑 누락 (BtoT/TtoB 부호 못 구분 → polarity 의미 뒤집힘), (b) MeasurePos 가 selection="all" 하드코딩 + DatumConfig 에 EdgeSelection 필드 자체 없음. 실 데이터 UAT 에서 "Horizontal_A no edges found across 50 strips" 로 발현. 참조 올바른 구현: MeasurementAlgorithm.cs:130-178, FAIEdgeMeasurementService.cs:87-102, VisionAlgorithmService.cs:63-72.
 
 ## Session Continuity
 

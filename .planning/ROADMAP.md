@@ -267,3 +267,16 @@ Plans:
 - [x] 14-04-PLAN.md — VisionAlgorithmService 신규 TryFindCircleByPolarSampling 메서드 (additive, legacy TryFindCircle 보존) + DatumConfig 3 신규 PropertyGrid 파라미터 (Circle_PolarStepDeg / RectL1Ratio / RectL2Ratio) + D-13 phi 부호 4점 smoke test APPROVED
 - [x] 14-05-PLAN.md — DatumFindingService.TryTeachCircleTwoHorizontal Circle 검출 호출 교체 (TryFindCircle → TryFindCircleByPolarSampling) + raw 점 직접 write-back (D-VIZ-03 closure) + SIMUL_MODE btn_testFindDatum 3 알고리즘 통합 UAT APPROVED
 **UI hint**: yes
+
+### Phase 15: HALCON MeasurePos 정합성 — measurePhi 명시 매핑 + EdgeSelection 명시 처리 (DatumFindingService strip-loop 6 ROI + Circle polar)
+
+**Goal**: DatumFindingService 의 strip-loop 패턴(AppendEdgePointsFromStrip) 과 VisionAlgorithmService.TryFindCircleByPolarSampling 의 HALCON MeasurePos 호출에 (a) EdgeDirection -> measurePhi 4-way 명시 매핑(BtoT/TtoB 부호 구분) 과 (b) EdgeSelection 명시 처리(First/Last/All)를 도입하여, Datum 6 ROI(Line1/Line2/Vertical/Circle/Horizontal_A/Horizontal_B) x 3 알고리즘(TwoLineIntersect/CircleTwoHorizontal/VerticalTwoHorizontal) 모두에서 사용자 의도가 HALCON 까지 단대단 전파되어 BtoT/TtoB 케이스 0 edges 결함이 해결되고 INI 하위호환은 유지된다.
+**Requirements**: PHASE15-Req-EdgeSelection-Field, PHASE15-Req-MeasurePhi-Mapping, PHASE15-Req-Circle-Selection, PHASE15-Req-INI-Compat, PHASE15-Req-UAT-RealData (synthetic IDs — structural correctness phase, no formal ROADMAP IDs)
+**Depends on:** Phase 14
+**Plans:** 4 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — DatumConfig 6 EdgeSelection 프로퍼티 + EdgeOptionLists.Selections + EnsurePerRoiDefaults INI 하위호환
+- [ ] 15-02-PLAN.md — AppendEdgePointsFromStrip 시그니처 확장 (measurePhi 4-way + selection) + TryFindLine/TryExtractEdgePoints 시그니처 + 7 호출 사이트 EdgeSelection wiring + 통합 빌드 (revision iteration 1: 원래 15-02+15-03 병합 — atomic wave-2 단위)
+- [ ] 15-03-PLAN.md — VisionAlgorithmService.TryFindCircleByPolarSampling selection 정리 + DatumFindingService Circle 호출 wiring (Phase 14-04 rectPhi=thetaRad 보존)
+- [ ] 15-04-PLAN.md — UAT (manual): 3 알고리즘 x 4 EdgeDirection + ROI 이동 재티칭 + #1405 carry-over 흡수 + SIMUL 회귀

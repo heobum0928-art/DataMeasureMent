@@ -709,8 +709,9 @@ namespace ReringProject.Halcon.Algorithms
         //  이전 호출부의 글로벌 sigma/threshold/polarity 는 ROI 별 값으로 교체됨.
         //260426 hbk Phase 13 D-PRP-LOOP — strip-loop MeasurePos 누적 패턴으로 전면 교체.
         //  SampleCount = strip 개수 (이전: 최소 에지 게이트). direction = strip 분할 방향.
-        //  SmallestRectangle2 가 strip 별 Phi 자동 도출 → manual effectivePhi 불필요.
         //  참조: C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs
+        //260429 hbk Phase 15 — 기존 SmallestRectangle2 자동 phi 정당화 주석 제거 (실 데이터 UAT 에서 BtoT/TtoB 부호 구분 누락 확인).
+        //  direction → measurePhi 명시 매핑은 AppendEdgePointsFromStrip 안으로 이동 (CANONICAL: MeasurementAlgorithm.cs:130-178).
         //260425 hbk Phase 13 D-VIZ-02 — raw edge points 외부 노출 (out HTuple edgeRowsOut/edgeColsOut)
         //  caller 가 DatumConfig 의 ROI 별 DetectedEdgeRows/Cols 에 대입 → RenderDatumOverlay 가 점 마커 렌더.
         //  edge 가 0개 검출되면 빈 HTuple 반환 (length 0 → RenderRawEdgePoints 에서 no-op).
@@ -974,15 +975,31 @@ namespace ReringProject.Halcon.Algorithms
 
         //260426 hbk Phase 13 D-PRP-LOOP — 단일 strip 에서 MeasurePos 실행 후 edge 점 누적.
         //  참조: C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs AppendEdgePointsFromStrip.
-        //  SmallestRectangle2 로 strip Phi 자동 도출 → manual effectivePhi 불필요.
         //  strip 실패(빈 결과 / 예외)는 swallow — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
+        //260429 hbk Phase 15 — direction → measurePhi 4-way 명시 매핑 (BtoT/TtoB 부호 구분), selection 인자화.
+        //  CANONICAL refs: MeasurementAlgorithm.cs:130-178, FAIEdgeMeasurementService.cs:82-106, VisionAlgorithmService.cs:63-72.
+        //  SmallestRectangle2 의 rp 자동 도출은 사용자 의도(BtoT vs TtoB) 를 구분 못 함 → polarity 의미 뒤집힘.
         private void AppendEdgePointsFromStrip(
             HImage image,
             double row1, double col1, double row2, double col2,
             HTuple imageWidth, HTuple imageHeight,
             double sigma, int threshold, string polarity,
-            ref HTuple allRows, ref HTuple allCols)
+            string direction, string selection,                          //260429 hbk Phase 15 — measurePhi 매핑 + selection 명시화
+            ref HTuple allRows, ref HTuple allCols,
+            string roiLabel)                                              //260429 hbk Phase 15 — Trace 로그용 ROI 레이블 (Claude's Discretion)
         {
+            //260429 hbk Phase 15 — direction → measurePhi (CANONICAL: MeasurementAlgorithm.cs:130-178)
+            double measurePhi;
+            if (string.Equals(direction, "TtoB", StringComparison.OrdinalIgnoreCase))      measurePhi = -Math.PI / 2.0;
+            else if (string.Equals(direction, "BtoT", StringComparison.OrdinalIgnoreCase)) measurePhi = +Math.PI / 2.0;
+            else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
+            else                                                                            measurePhi = 0.0; //260429 hbk Phase 15 — LtoR 기본
+
+            //260429 hbk Phase 15 — selection (PascalCase) → Halcon MeasurePos 인자 (lower)
+            string selectionLower =
+                string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase) ? "last" :
+                string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase) ? "all"  : "first";
+
             HObject stripRegion = null;
             HTuple measureHandle = null;
             try
@@ -991,17 +1008,24 @@ namespace ReringProject.Halcon.Algorithms
 
                 HTuple rr, rc, rp, rh, rw;
                 HOperatorSet.SmallestRectangle2(stripRegion, out rr, out rc, out rp, out rh, out rw);
+                //260429 hbk Phase 15 — rp(자동 phi) 는 더 이상 사용 안 함; measurePhi 만 사용. rh/rw 는 유효 (strip 의 half-W/H).
 
                 HOperatorSet.GenMeasureRectangle2(
-                    rr, rc, rp, rh, rw,
+                    rr, rc, measurePhi, rh, rw,                          //260429 hbk Phase 15 — rp → measurePhi
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
                 HTuple edgeRows, edgeCols, amp, dist;
                 HOperatorSet.MeasurePos(
                     image, measureHandle, sigma, threshold,
-                    polarity, "all",
+                    polarity, selectionLower,                             //260429 hbk Phase 15 — "all" → selectionLower
                     out edgeRows, out edgeCols, out amp, out dist);
+
+                //260429 hbk Phase 15 — Trace 로그 강화: measurePhi (deg) + selection 노출 (디버깅 편의)
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[Datum.{0}] strip MeasurePos: dir={1} measurePhi={2:F1}deg sel={3} edges={4}",
+                        roiLabel ?? "?", direction ?? "?", measurePhi * 180.0 / Math.PI, selectionLower,
+                        edgeRows.TupleLength()));
 
                 if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
                 {
@@ -1011,9 +1035,15 @@ namespace ReringProject.Halcon.Algorithms
                 HOperatorSet.TupleConcat(allRows, edgeRows, out allRows);
                 HOperatorSet.TupleConcat(allCols, edgeCols, out allCols);
             }
-            catch
+            catch (Exception ex)
             {
-                // per-strip 실패 swallow — 나머지 strip 계속 처리
+                //260429 hbk Phase 15 — 빈 catch 진단 강화: 라벨 + 예외 메시지 Trace 로그 (per-strip swallow 정책 유지)
+                try
+                {
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] strip swallowed: {1}", roiLabel ?? "?", ex.Message));
+                }
+                catch { }
             }
             finally
             {

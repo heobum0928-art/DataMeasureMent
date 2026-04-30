@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 17 context gathered
-last_updated: "2026-04-30T07:28:44.573Z"
+stopped_at: Phase 17 planned (4 plans / 4 waves) — ready to execute
+last_updated: "2026-04-30T08:16:40.936Z"
 progress:
   total_phases: 17
   completed_phases: 14
-  total_plans: 51
+  total_plans: 55
   completed_plans: 47
-  percent: 92
+  percent: 85
 ---
 
 # Project State
@@ -159,11 +159,11 @@ None yet.
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 17 context gathered
+Stopped at: Phase 17 planned (4 plans / 4 waves) — ready to execute
 Resume file: --resume-file
-Next action: `/gsd-execute-phase 15` (Plan 15-04 UAT — 3 알고리즘 × EdgeDirection 4방향 + #1405 carry-over 4건 + SIMUL 회귀)
+Next action: `/gsd-execute-phase 17` (Wave 1 = 17-01 Cluster A → Wave 2 = 17-02 Cluster B+C → Wave 3 = 17-03 Cluster D → Wave 4 = 17-04 UAT)
 
-**Planned Phase:** 14 (datum-carry-over-circle-vertical-roi-2-out-of-range-ux) — 5 plans — 2026-04-26T14:01:01.873Z
+**Planned Phase:** 17 (Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover) — 4 plans — 2026-04-30T08:16:40.923Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
 **Phase 12 / Plan 02 Execution:** 2026-04-24 — 3 tasks / 1 file (WPF_Example/Halcon/Algorithms/DatumFindingService.cs) / commits 6f6db7b, e6cc52e, 0e9c1f2 — msbuild Debug/x64 green, zero new warnings on DatumFindingService.cs
 **Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT

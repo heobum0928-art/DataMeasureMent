@@ -350,6 +350,19 @@ namespace ReringProject.UI {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
                             //260426 hbk Phase 13 D-A1 — 이미 티칭된 Datum 도 selection 즉시 ROI hit-test 가능하도록 후보 publish
                             mParentWindow.mainView.PublishDatumRoiCandidates(datumCfg);
+
+                            //260429 hbk Phase 16 D-09/D-10 — Datum 전환 시 PropertyGrid SelectedObject 강제 null→new force rebind.
+                            //  이유: Phase 15 UAT Test 10~12 결함 — ROI 이동/생성 후 Datum 전환 시 AlgorithmType combobox 가 stale.
+                            //  RaisePropertyChanged + RefreshParamEditor 만으로는 AlgorithmType (string property) combobox 까지 안 닿음.
+                            //  SetParam(line 328) 이 SelectedParam 만 갱신하고 ParamEditor.SelectedObject 는 다른 경로(외부 binding)로 갱신될 때
+                            //  combobox 가 이전 reference 의 stale 값을 유지함 → null 할당으로 binding 강제 해제 후 새 인스턴스 할당.
+                            //260429 hbk Phase 16 D-09 — _editingDatum 등가 reference (ParamEditor.SelectedObject) 강제 재할당
+                            //260429 hbk Phase 16 D-11/D-12 — 매 Datum 클릭마다 force rebind (편집 모드 무관) + AlgorithmType 변경 자체는 자동 재티칭 추가 안 함 (D-13 일관)
+                            if (ParamEditor != null) {
+                                //260429 hbk Phase 16 D-10 — null 할당으로 PropertyGrid 의 기존 binding 강제 해제 후, 새 인스턴스 할당
+                                ParamEditor.SelectedObject = null;
+                                ParamEditor.SelectedObject = datumCfg;
+                            }
                         }
                         //260424 hbk Phase 12 D-01 — Datum 노드 선택 시 btn_teachDatum 활성화
                         if (mParentWindow != null && mParentWindow.mainView != null) {

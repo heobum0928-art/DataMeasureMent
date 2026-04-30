@@ -7,8 +7,10 @@ updated: 2026-04-30
 summary:
   total: 14
   passed: 0
-  failed: 0
-  not_tested: 14
+  failed: 3
+  skipped: 2
+  not_tested: 9
+status_note: paused — /gsd-quick strip size fix in progress (2026-04-30)
 ---
 
 # Phase 16 UAT — Datum Circle Strip Redesign + AlgorithmType Binding Fix
@@ -61,8 +63,13 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 - 화면에 stepCount 개 strip 사각형 회색 외곽선 보임
 - Strip 위치 = 알고리즘이 실제 측정할 위치 (canonical 식: `rectRow = ROI_Row - Radius * Sin(thetaRad)`, `rectCol = ROI_Col + Radius * Cos(thetaRad)`)
 
-**result**: not_tested
+**result**: FAIL
 **notes**:
+- 사용자 피드백 (2026-04-30):
+  1. Strip 사각형 **크기 오류** — 현재 너무 크게 그려짐. 정상은 ROI 호(arc)의 한 위치에 작게 그려져 그 내부에서 edge point 1개씩 찾는 용도여야 함
+  2. **시각화 정책 재설계 필요** — strip N개 동시 표시(현재) → ROI 1개만 표시로 변경. 테스트(teach) 트리거 후에만 검출 원 + center + 찾은 XLD 표시
+- 추정 원인: `RenderCircleStripOverlay` 의 strip 사이즈 계산 (length1=ROI_Radius * RectL1Ratio, length2=Circle_RectL2) 의 단위 또는 ratio default 값 부적절
+- Phase 17 carry-over 후보: Circle 시각화 전면 재설계
 
 ---
 
@@ -79,8 +86,10 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 **Acceptance**:
 - Strip 시각화가 즉시 변함 (육안 확인)
 
-**result**: not_tested
+**result**: SKIP
 **notes**:
+- blocked_by: Test 1 재설계 (strip 정책 자체가 사라질 가능성 → ratio 즉시 갱신 검증 가치 0)
+- Phase 17 재설계 후 재정의
 
 ---
 
@@ -100,8 +109,16 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 - 검출 원 위 노란 큰 십자가 두드러지게 보임 (가장 위)
 - PropertyGrid 의 `CircleCenter_Row` / `CircleCenter_Col` / `CircleDetected_Radius` 값과 화면 좌표 일치
 
-**result**: not_tested
+**result**: FAIL
 **notes**:
+- 사용자 피드백 (2026-04-30, image_1/image_2.png 증거):
+  - Strip 사각형이 거대하게 그려져 원 영역을 훨씬 초과 + 모든 strip 동시 표시 → 알고리즘 의도 전달 실패
+  - 검출 원 / center cross 가시성 확인 불가 (strip 노이즈에 묻힘)
+- Phase 17 재설계 spec:
+  1. 티칭 1단계: cyan 원 ROI 만 표시
+  2. 티칭 2단계: cyan 원 좌측 반지름 위치에 **호를 포함한 작은 사각형 1개**만 표시 (N개 동시 X)
+  3. PropertyGrid 신규 UI: 각도 step (1°/10° 등), edge 검출 방향 (안→밖 / 밖→안)
+  4. teach 트리거 시점에만 검출 원 + center 표시
 
 ---
 
@@ -123,8 +140,11 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 - 검출 원이 새 ROI 위치와 mismatch 한 채로 보임 (의도적 stale)
 - btn_teachDatum 수동 트리거는 정상 동작
 
-**result**: not_tested
+**result**: SKIP
 **notes**:
+- blocked_by: Test 3 (검출 원 light green 자체가 화면에 안 보여 stale 여부 검증 불가)
+- 추가 의심: btn_teachDatum 클릭 후에도 원 검출 실패 가능성 (strip 크기 결함 → edge point 노이즈) — Phase 17 재설계 시 root cause 분석 필요
+- 사용자 UX 혼란 보고: "티칭은 어떻게 하는거야?? 자동으로 되는거야???" → Phase 17 시각화 재설계 시 teach trigger 명확화 (예: 버튼 강조 / 안내 텍스트) 검토
 
 ---
 
@@ -136,8 +156,13 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 
 **단계**: 15-UAT.md acceptance 절차 그대로 수행.
 **기대**: Circle Horizontal A/B 의 LtoR 검출 + Circle First selection 으로 안정적 원 fitting.
-**result**: not_tested
+**result**: FAIL
 **notes**:
+- 에러 메시지 (image 증거): **"Datum 검증 실패: Circle 0 failed: insufficient polar samples (1)"**
+- 36개 polar 각도 중 1개만 edge 검출 성공 → circle fitting 불가
+- Root cause 추정: strip 사각형 과대 크기 → MeasurePos edge 노이즈 → 35/36 sample 실패
+- 사용자 directive: "ui적으로 circle도 반지름 부근 사각형 사이즈를 현격하게 줄여"
+- Phase 17 fix 방향: strip length1/length2 default 값 대폭 축소 (RectL1Ratio 기본값 + Circle_RectL2 절대값 둘 다 검토)
 
 ---
 
@@ -284,11 +309,11 @@ grep -c "//260429 hbk Phase 16" WPF_Example/UI/ContentItem/MainView.xaml.cs     
 
 | # | Test | result | notes |
 |---|------|--------|-------|
-| 1 | Pre-teach Strip 시각화 (R1) | not_tested | |
-| 2 | RectL1Ratio 즉시 갱신 (R1) | not_tested | |
-| 3 | Post-teach 검출 원 + Center cross (R2) | not_tested | |
-| 4 | Auto-reteach off (R4) | not_tested | |
-| 5 | CircleTwoHorizontal × LtoR (carry) | not_tested | |
+| 1 | Pre-teach Strip 시각화 (R1) | FAIL | strip 사각형 크기 오류 + 시각화 정책 재설계 필요 (Phase 17 carry) |
+| 2 | RectL1Ratio 즉시 갱신 (R1) | SKIP | blocked by Test 1 재설계 |
+| 3 | Post-teach 검출 원 + Center cross (R2) | FAIL | strip 거대화 + 모든 strip 동시 표시 (image 증거) — Phase 17 재설계 |
+| 4 | Auto-reteach off (R4) | SKIP | blocked by Test 3 (검출 원 unverifiable) |
+| 5 | CircleTwoHorizontal × LtoR (carry) | FAIL | "insufficient polar samples (1)" — strip 크기 root cause |
 | 6 | CircleTwoHorizontal × RtoL/BtoT (carry) | not_tested | |
 | 7 | VerticalTwoHorizontal × Vert TtoB + Horiz LtoR (carry) | not_tested | |
 | 8 | VerticalTwoHorizontal × Vert BtoT (carry) | not_tested | |

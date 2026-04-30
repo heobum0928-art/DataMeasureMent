@@ -409,8 +409,9 @@ namespace ReringProject.Halcon.Display
 
         //260425 hbk Phase 13 D-VIZ-05 — raw 검출 에지점들을 작은 cross 마커로 일괄 렌더
         //  rows/cols 가 null 이거나 length 0 이면 no-op (안전).
-        //  size 6 px, line width 1. HALCON DispCross batch: rows/cols HTuple 일괄 처리.
-        private static void RenderRawEdgePoints(HWindow window, HTuple rows, HTuple cols, string color)
+        //  size 기본 6 px, line width 1. HALCON DispCross batch: rows/cols HTuple 일괄 처리.
+        //260429 hbk Phase 16 D-07 — size 인자 추가 (default 6.0, 기존 호출 시그니처 하위호환). Circle 호출처에서만 4.0 + "gray" override.
+        private static void RenderRawEdgePoints(HWindow window, HTuple rows, HTuple cols, string color, double size = 6.0)
         {
             if (rows == null || cols == null) return;
             int n = rows.TupleLength();
@@ -419,11 +420,79 @@ namespace ReringProject.Halcon.Display
             {
                 HOperatorSet.SetColor(window, color);
                 HOperatorSet.SetLineWidth(window, 1);
-                HOperatorSet.DispCross(window, rows, cols, 6.0, 0.0);
+                //260429 hbk Phase 16 D-07 — 6.0 하드코딩 → size 인자
+                HOperatorSet.DispCross(window, rows, cols, size, 0.0);
             }
             catch
             {
                 // Suppress display errors (RenderDatumOverlay catch 관습)
+            }
+        }
+
+        //260429 hbk Phase 16 D-01 — 원 ROI 그린 직후 알고리즘이 사용할 strip 사각형 stepCount 개를 정적으로 시각화.
+        //  VisionAlgorithmService.TryFindCircleByPolarSampling 의 strip 생성 식 (Phase 14-04 D-13 보존) 을 그대로 미러링.
+        //  알고리즘 canonical (VisionAlgorithmService.cs line 282-285):
+        //    rectRow = CircleROI_Row - Radius * Sin(thetaRad)   (화면 CCW 좌표계 — Phase 14-04 D-13 코멘트 참조)
+        //    rectCol = CircleROI_Col + Radius * Cos(thetaRad)
+        //    rectPhi = thetaRad
+        //  Plan 16-01 <interfaces> 96-103 의 sin/cos 부호는 plan-text error (반대 부호) — 본 구현은 알고리즘 코드 미러링 (D-22:
+        //  알고리즘 diff 0 보존 + 시각화는 알고리즘 식 따라간다 라는 plan 의 stated intent 에 충실).
+        //  length1 = Radius * RectL1Ratio (반경 방향), length2 = Radius * RectL2Ratio (접선 방향). fill 없음 — DispLine 외곽선만.
+        private static void RenderCircleStripOverlay(HWindow window, DatumConfig datum)
+        {
+            if (datum == null) return;
+            if (datum.CircleROI_Radius <= 0) return;
+            double stepDeg = datum.Circle_PolarStepDeg;
+            //260429 hbk Phase 16 D-01 — 0/음수 division 방지 + CONTEXT D-01: 1°~30° 범위 가드
+            if (stepDeg < 1.0) stepDeg = 1.0;
+            if (stepDeg > 30.0) stepDeg = 30.0;
+            int stepCount = (int)Math.Round(360.0 / stepDeg);
+            if (stepCount <= 0) return;
+
+            double radius  = datum.CircleROI_Radius;
+            double centerR = datum.CircleROI_Row;
+            double centerC = datum.CircleROI_Col;
+            //260429 hbk Phase 16 D-01 — 반경 방향 / 접선 방향 길이
+            double length1 = radius * datum.Circle_RectL1Ratio;
+            double length2 = radius * datum.Circle_RectL2Ratio;
+            //260429 hbk Phase 16 — 1px 미만이면 시각화 의미 없음, 자동 floor
+            if (length1 < 1.0) length1 = 1.0;
+            if (length2 < 1.0) length2 = 1.0;
+
+            try
+            {
+                //260429 hbk Phase 16 D-02 — Strip 색상: 회색 thin line, fill 없음 (cyan/magenta/yellow 와 충돌 회피)
+                HOperatorSet.SetColor(window, "gray");
+                HOperatorSet.SetLineWidth(window, 1);
+                double stepRad = stepDeg * Math.PI / 180.0;
+                for (int k = 0; k < stepCount; k++)
+                {
+                    double thetaRad = k * stepRad;
+                    //260429 hbk Phase 16 D-01 — 알고리즘 canonical 식 미러 (VisionAlgorithmService line 282-285, -sin/+cos)
+                    double rectRow = centerR - radius * Math.Sin(thetaRad);
+                    double rectCol = centerC + radius * Math.Cos(thetaRad);
+                    double rectPhi = thetaRad;
+                    //260429 hbk Phase 16 D-02 — fill 없는 외곽선만: 4 corner 좌표 직접 계산 후 DispLine 4 회 (DispObj GenRectangle2 는 fill 됨)
+                    double cosP = Math.Cos(rectPhi);
+                    double sinP = Math.Sin(rectPhi);
+                    //  로컬 4 corner: (-l1,-l2), (-l1,+l2), (+l1,+l2), (+l1,-l2) → 회전 변환 (rectPhi)
+                    double r1 = rectRow + (-length1) * cosP - (-length2) * sinP;
+                    double c1 = rectCol + (-length1) * sinP + (-length2) * cosP;
+                    double r2 = rectRow + (-length1) * cosP - ( length2) * sinP;
+                    double c2 = rectCol + (-length1) * sinP + ( length2) * cosP;
+                    double r3 = rectRow + ( length1) * cosP - ( length2) * sinP;
+                    double c3 = rectCol + ( length1) * sinP + ( length2) * cosP;
+                    double r4 = rectRow + ( length1) * cosP - (-length2) * sinP;
+                    double c4 = rectCol + ( length1) * sinP + (-length2) * cosP;
+                    HOperatorSet.DispLine(window, r1, c1, r2, c2);
+                    HOperatorSet.DispLine(window, r2, c2, r3, c3);
+                    HOperatorSet.DispLine(window, r3, c3, r4, c4);
+                    HOperatorSet.DispLine(window, r4, c4, r1, c1);
+                }
+            }
+            catch
+            {
+                //260429 hbk Phase 16 — RenderDatumOverlay 의 catch 컨벤션 유지 (display 에러 무시)
             }
         }
 
@@ -501,6 +570,9 @@ namespace ReringProject.Halcon.Display
                         datum.CircleROI_Row - datum.CircleROI_Radius - 22,
                         datum.CircleROI_Col - datum.CircleROI_Radius,
                         "Circle");
+
+                    //260429 hbk Phase 16 D-01/D-02/D-08 — pre-teach Strip 사각형 stepCount 개 정적 시각화 (z-order: ROI 경계 위)
+                    RenderCircleStripOverlay(window, datum);
                 }
 
                 //260424 hbk Phase 12 D-11 — Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)

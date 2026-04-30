@@ -648,18 +648,35 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.DispLine(window, datum.RefOriginRow, datum.RefOriginCol - crossHalf,
                                                   datum.RefOriginRow, datum.RefOriginCol + crossHalf);
 
-                    //260424 hbk Phase 12 D-13 — CircleTwoHorizontal 검출 원 오버레이 (노란 원 + 빨간 중심 십자)
+                    //260425 hbk Phase 13 D-VIZ-05 — 5 ROI raw 검출 에지점 (있을 때만) — ROI 별 색상 구분
+                    //260429 hbk Phase 16 D-08 — z-order 정렬: Raw edge points 먼저 그린 후 검출 원 + center cross (top) 로 center 가 가려지지 않게.
+                    RenderRawEdgePoints(window, datum.Line1_DetectedEdgeRows,        datum.Line1_DetectedEdgeCols,        "cyan");
+                    RenderRawEdgePoints(window, datum.Line2_DetectedEdgeRows,        datum.Line2_DetectedEdgeCols,        "magenta");
+                    //260425 hbk Phase 13 D-VIZ-05 — Circle raw 검출 에지점 (yellow size=6) — Phase 16 D-07 로 회색 size=4 변경
+                    //260429 hbk Phase 16 D-07 — Circle raw points = 회색 작은 십자가 size=4 (검출 trace 용, Phase 13-05 의 yellow 와 시각 구분)
+                    RenderRawEdgePoints(window, datum.Circle_DetectedEdgeRows,       datum.Circle_DetectedEdgeCols,       "gray", 4.0);
+                    RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
+                    RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
+                    //260426 hbk Phase 14-03 Req 3 — Vertical 그룹 raw 점 (Line1 cyan 과 시각 구분: orange 신규 — 미사용 색상)
+                    RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows,     datum.Vertical_DetectedEdgeCols,     "orange");
+
+                    //260424 hbk Phase 12 D-13 — CircleTwoHorizontal 검출 원 오버레이 (노란 원 + 빨간 중심 십자) — 색상 / 사이즈 Phase 16 재정의
+                    //260429 hbk Phase 16 D-05 — 검출 원 색상 yellow → "light green" (검출 성공 = 녹색 컨벤션)
+                    //260429 hbk Phase 16 D-06 — Center cross 색상 red → "yellow", 6px → 12px (정밀 원 center 가 최종 목적, 가장 두드러지게)
+                    //260429 hbk Phase 16 D-08 — z-order: 검출 원 그린 후 center cross (top) — center 가 가려지지 않게.
                     if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
                         && datum.CircleDetected_Radius > 0)
                     {
-                        HOperatorSet.SetColor(window, "yellow");
+                        //260429 hbk Phase 16 D-05 — 검출 원 = 녹색 (light green)
+                        HOperatorSet.SetColor(window, "light green");
                         HOperatorSet.SetLineWidth(window, 2);
                         HOperatorSet.DispCircle(window,
                             datum.CircleCenter_Row, datum.CircleCenter_Col, datum.CircleDetected_Radius);
 
-                        HOperatorSet.SetColor(window, "red");
-                        HOperatorSet.SetLineWidth(window, 2);
-                        const double circleCenterCrossHalf = 6.0; //260424 hbk Phase 12 — 원 중심 십자 6px
+                        //260429 hbk Phase 16 D-06 — Center cross = 노란색 + size=12 + line width 3 (굵기 강조)
+                        HOperatorSet.SetColor(window, "yellow");
+                        HOperatorSet.SetLineWidth(window, 3);
+                        const double circleCenterCrossHalf = 12.0; //260429 hbk Phase 16 D-06 — 6 → 12px (size=12, CONTEXT D-06)
                         HOperatorSet.DispLine(window,
                             datum.CircleCenter_Row - circleCenterCrossHalf, datum.CircleCenter_Col,
                             datum.CircleCenter_Row + circleCenterCrossHalf, datum.CircleCenter_Col);
@@ -667,15 +684,6 @@ namespace ReringProject.Halcon.Display
                             datum.CircleCenter_Row, datum.CircleCenter_Col - circleCenterCrossHalf,
                             datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
                     }
-
-                    //260425 hbk Phase 13 D-VIZ-05 — 5 ROI raw 검출 에지점 (있을 때만) — ROI 별 색상 구분
-                    RenderRawEdgePoints(window, datum.Line1_DetectedEdgeRows,        datum.Line1_DetectedEdgeCols,        "cyan");
-                    RenderRawEdgePoints(window, datum.Line2_DetectedEdgeRows,        datum.Line2_DetectedEdgeCols,        "magenta");
-                    RenderRawEdgePoints(window, datum.Circle_DetectedEdgeRows,       datum.Circle_DetectedEdgeCols,       "yellow");
-                    RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
-                    RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
-                    //260426 hbk Phase 14-03 Req 3 — Vertical 그룹 raw 점 (Line1 cyan 과 시각 구분: orange 신규 — 미사용 색상)
-                    RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows,     datum.Vertical_DetectedEdgeCols,     "orange");
                 }
             }
             catch

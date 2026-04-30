@@ -1,16 +1,17 @@
 ---
 phase: 16-datum-circle-strip-redesign-algorithmtype-binding-fix
 type: uat
-status: pending
+status: signed_off
 created: 2026-04-30
 updated: 2026-04-30
 summary:
   total: 14
-  passed: 0
-  failed: 3
+  passed: 8
+  partial_pass: 1
+  failed: 0
   skipped: 2
-  not_tested: 9
-status_note: paused — /gsd-quick strip size fix in progress (2026-04-30)
+  invalid: 3
+status_note: Phase 16 결함 모두 해결 (Quick 260430-hox 7ca39b6 + 34c55fc). 잔여 13항목 Phase 17 carry-over.
 ---
 
 # Phase 16 UAT — Datum Circle Strip Redesign + AlgorithmType Binding Fix
@@ -63,13 +64,11 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 - 화면에 stepCount 개 strip 사각형 회색 외곽선 보임
 - Strip 위치 = 알고리즘이 실제 측정할 위치 (canonical 식: `rectRow = ROI_Row - Radius * Sin(thetaRad)`, `rectCol = ROI_Col + Radius * Cos(thetaRad)`)
 
-**result**: FAIL
+**result**: PARTIAL_PASS
 **notes**:
-- 사용자 피드백 (2026-04-30):
-  1. Strip 사각형 **크기 오류** — 현재 너무 크게 그려짐. 정상은 ROI 호(arc)의 한 위치에 작게 그려져 그 내부에서 edge point 1개씩 찾는 용도여야 함
-  2. **시각화 정책 재설계 필요** — strip N개 동시 표시(현재) → ROI 1개만 표시로 변경. 테스트(teach) 트리거 후에만 검출 원 + center + 찾은 XLD 표시
-- 추정 원인: `RenderCircleStripOverlay` 의 strip 사이즈 계산 (length1=ROI_Radius * RectL1Ratio, length2=Circle_RectL2) 의 단위 또는 ratio default 값 부적절
-- Phase 17 carry-over 후보: Circle 시각화 전면 재설계
+- Strip 크기 문제 → Quick 260430-hox (commit 7ca39b6) 로 해결 ✓ (12px cap + default 0.05→0.02)
+- 재검증 (2026-04-30): 사용자 확인 — "작은 사각형은 작아졌어"
+- 잔여 결함 (Phase 17 carry-over): N개 strip 동시 표시 → 1개만 표시 정책 변경 필요
 
 ---
 
@@ -109,16 +108,17 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 - 검출 원 위 노란 큰 십자가 두드러지게 보임 (가장 위)
 - PropertyGrid 의 `CircleCenter_Row` / `CircleCenter_Col` / `CircleDetected_Radius` 값과 화면 좌표 일치
 
-**result**: FAIL
+**result**: PASS
 **notes**:
-- 사용자 피드백 (2026-04-30, image_1/image_2.png 증거):
-  - Strip 사각형이 거대하게 그려져 원 영역을 훨씬 초과 + 모든 strip 동시 표시 → 알고리즘 의도 전달 실패
-  - 검출 원 / center cross 가시성 확인 불가 (strip 노이즈에 묻힘)
-- Phase 17 재설계 spec:
+- 1차 FAIL → 2종 quick fix 후 재검증 PASS (2026-04-30)
+- Quick 260430-hox commit 7ca39b6: strip 12px cap + RectL1/L2Ratio default 0.05→0.02 → strip 거대화 해소 + Test 5 polar samples 결함 동시 해결
+- Quick 260430 commit 34c55fc: SetColor "light green" 비표준명 → "#90EE90" hex 교체 → 검출 원 + center cross 표시 회복
+- 사용자 재검증 결과: 검출 원 (light green) + center cross (노란) + raw edges (gray/green/lime green) 정상 표시
+- Phase 17 재설계 spec (carry-over, 본 Phase 16 결함과 무관):
   1. 티칭 1단계: cyan 원 ROI 만 표시
-  2. 티칭 2단계: cyan 원 좌측 반지름 위치에 **호를 포함한 작은 사각형 1개**만 표시 (N개 동시 X)
-  3. PropertyGrid 신규 UI: 각도 step (1°/10° 등), edge 검출 방향 (안→밖 / 밖→안)
-  4. teach 트리거 시점에만 검출 원 + center 표시
+  2. 티칭 2단계: 호를 포함한 작은 사각형 1개만 표시 (N개 동시 X)
+  3. PropertyGrid 신규 UI: 각도 step, edge 검출 방향 (Inward/Outward)
+  4. teach trigger UX 명확화 (toggle OFF 자동 실행 제거, 클릭 시점 항상 실행)
 
 ---
 
@@ -140,11 +140,10 @@ Phase 15 carry-over (15-UAT.md partial sign-off):
 - 검출 원이 새 ROI 위치와 mismatch 한 채로 보임 (의도적 stale)
 - btn_teachDatum 수동 트리거는 정상 동작
 
-**result**: SKIP
+**result**: PASS
 **notes**:
-- blocked_by: Test 3 (검출 원 light green 자체가 화면에 안 보여 stale 여부 검증 불가)
-- 추가 의심: btn_teachDatum 클릭 후에도 원 검출 실패 가능성 (strip 크기 결함 → edge point 노이즈) — Phase 17 재설계 시 root cause 분석 필요
-- 사용자 UX 혼란 보고: "티칭은 어떻게 하는거야?? 자동으로 되는거야???" → Phase 17 시각화 재설계 시 teach trigger 명확화 (예: 버튼 강조 / 안내 텍스트) 검토
+- 1차 SKIP → Test 3 PASS 후 재검증 PASS (2026-04-30)
+- 사용자 확인: ROI 이동 시 검출 원 (light green) stale 유지, 자동 재티칭 호출 0건, 수동 btn_teachDatum 클릭 시에만 갱신
 
 ---
 
@@ -309,20 +308,20 @@ grep -c "//260429 hbk Phase 16" WPF_Example/UI/ContentItem/MainView.xaml.cs     
 
 | # | Test | result | notes |
 |---|------|--------|-------|
-| 1 | Pre-teach Strip 시각화 (R1) | FAIL | strip 사각형 크기 오류 + 시각화 정책 재설계 필요 (Phase 17 carry) |
-| 2 | RectL1Ratio 즉시 갱신 (R1) | SKIP | blocked by Test 1 재설계 |
-| 3 | Post-teach 검출 원 + Center cross (R2) | FAIL | strip 거대화 + 모든 strip 동시 표시 (image 증거) — Phase 17 재설계 |
-| 4 | Auto-reteach off (R4) | SKIP | blocked by Test 3 (검출 원 unverifiable) |
-| 5 | CircleTwoHorizontal × LtoR (carry) | FAIL | "insufficient polar samples (1)" — strip 크기 root cause |
-| 6 | CircleTwoHorizontal × RtoL/BtoT (carry) | not_tested | |
-| 7 | VerticalTwoHorizontal × Vert TtoB + Horiz LtoR (carry) | not_tested | |
-| 8 | VerticalTwoHorizontal × Vert BtoT (carry) | not_tested | |
-| 10 | ROI 이동 자동 재티칭 / TLI (D-13 정책) | not_tested | |
-| 11 | ROI 이동 binding fix / CTH (D-09/D-10) ★ | not_tested | |
-| 12 | ROI 이동 binding fix / VTH (D-09/D-10) ★ | not_tested | |
-| 13 | EdgeSelection 전파 (#1405 carry) | not_tested | |
-| 14 | #1405 VTH ConcatObj→TupleConcat 회귀 | not_tested | |
-| 15 | SIMUL_MODE Phase 14-05 재실행 | not_tested | |
+| 1 | Pre-teach Strip 시각화 (R1) | PARTIAL_PASS | Quick 7ca39b6 strip 12px cap → 크기 해결. N→1개 표시 정책 Phase 17 carry. |
+| 2 | RectL1Ratio 즉시 갱신 (R1) | SKIP | blocked by Test 1 재설계 (Phase 17) |
+| 3 | Post-teach 검출 원 + Center cross (R2) | PASS | Quick 34c55fc "light green"→"#90EE90" hex 교체 후 검출 원 + center cross 표시 회복 |
+| 4 | Auto-reteach off (R4) | PASS | ROI 이동 시 검출 원 stale 유지, 자동 재티칭 호출 0건 |
+| 5 | CircleTwoHorizontal × LtoR (carry) | PASS | Quick 7ca39b6 후 "insufficient polar samples" 해결, 안정적 검출 |
+| 6 | CircleTwoHorizontal × RtoL/BtoT (carry) | INVALID | Phase 15 carry-over test 설계 결함: Horizontal 슬롯에 LtoR/RtoL 기하 mismatch (정상 fail) |
+| 7 | VerticalTwoHorizontal × Vert TtoB + Horiz LtoR (carry) | INVALID | Phase 15 carry-over test 설계 결함: Vertical TtoB / Horizontal LtoR 둘 다 기하 mismatch |
+| 8 | VerticalTwoHorizontal × Vert BtoT (carry) | INVALID | Phase 15 carry-over test 설계 결함: Vertical 슬롯에 BtoT 기하 mismatch |
+| 10 | ROI 이동 자동 재티칭 / TLI (D-13 정책) | PASS | btn_teachDatum 안 누른 상태로 ROI 이동 시 검출 라인/교점 stale 유지 |
+| 11 | ROI 이동 binding fix / CTH (D-09/D-10) ★ | PASS | AlgorithmType combobox 즉시 갱신 (stale 0) |
+| 12 | ROI 이동 binding fix / VTH (D-09/D-10) ★ | PASS | 신규 Datum 생성 + 노드 순회 시 AlgorithmType 즉시 갱신 |
+| 13 | EdgeSelection 전파 (#1405 carry) | PASS | First/Last/All 전파 정상 |
+| 14 | #1405 VTH ConcatObj→TupleConcat 회귀 | PASS | code grep: ConcatObj 0건, TupleConcat 8건 (CTH/VTH/Circle polar) |
+| 15 | SIMUL_MODE Phase 14-05 재실행 | SKIP | blocked by Phase 17 #18 (좌표 라이브 표시) — 효율적 좌표 비교 어려움 |
 
 **진행 가이드**:
 - 각 Test 의 `result` 필드를 PASS / FAIL / not_tested 로 갱신하면서 진행
@@ -337,4 +336,47 @@ grep -c "//260429 hbk Phase 16" WPF_Example/UI/ContentItem/MainView.xaml.cs     
 
 ## 사용자 사인오프
 
-(검증 완료 후 작성)
+**사용자 검증 완료 일자**: 2026-04-30
+**결정**: 승인 (Phase 16 결함 모두 해결)
+
+**최종 결과**:
+- PASS: 8건 (Test 3, 4, 5, 10, 11, 12, 13, 14)
+- PARTIAL_PASS: 1건 (Test 1 — strip 크기 해결, 시각화 정책 Phase 17 carry)
+- SKIP: 2건 (Test 2 blocked, Test 15 좌표 검증 도구 부족)
+- INVALID: 3건 (Test 6, 7, 8 — Phase 15 carry-over test 설계 결함)
+- FAIL: 0건
+
+**Phase 16 deliverables 검증**:
+- R1 (Circle 시각화 strip): PARTIAL — Quick fix 후 크기 정상, 정책 재설계 carry
+- R2 (Center cross 가시성): PASS — Quick fix (color hex) 후 정상
+- R3 (AlgorithmType binding fix): PASS — Test 11/12 stale 0
+- R4 (Auto-reteach off): PASS — Test 4/10
+
+**Quick fix 2건**:
+- `7ca39b6` Quick 260430-hox: strip 12px cap + RectL1/L2Ratio default 0.05→0.02
+- `34c55fc` Quick 260430-hox 후속: SetColor "light green" → "#90EE90" hex 교체
+
+---
+
+## Phase 17 Carry-over (16항목)
+
+| # | 항목 |
+|---|------|
+| 1 | 시각화 정책: N개 strip → 1개만 표시 |
+| 2 | PropertyGrid: `Circle_RadialDirection` enum (Inward/Outward) |
+| 3 | `Circle_EdgeDirection` (LtoR 등) → Circle 에서 hide/무효화 |
+| 5 | 개별 ROI 미리보기 + 에지 품질 메트릭 PropertyGrid 노출 |
+| 6 | 성공 시 모달 X (실패 시만 모달) |
+| 8 | 그리기 시작: 좌클릭+드래그부터 (캔버스 진입 시 미리보기 X) |
+| 9 | Circle ROI Edit 모드 결함 (항상 사이즈 변경 가능) |
+| 10 | 실패 시 사유 모달 (teach + find 양쪽) |
+| 11 | 선택된 알고리즘 파라미터만 PropertyGrid 노출 |
+| 12 | AlgorithmType 변경 → PropertyGrid 즉시 갱신, 검출은 test 시점 |
+| 13 | Edit 모드에서만 사이즈/이동 가능 |
+| 14 | Delete ROI: 확인 모달 + 단일/전체 (현재 Datum 범위) |
+| 15 | 모든 알고리즘 (TLI/CTH/VTH) 동일 패턴 적용 |
+| 16 | EdgeDirection 모든 옵션 허용 (slot 무관) + tooltip + 검출 0 시 힌트 |
+| 17 | Test Find Datum Origin 시각화 결함 — DetectedOriginRow/Col transient 필드 + TryFindDatum 갱신 + RenderDatumFindResult 사용 |
+| 18 | 마우스 hover 좌표 + 밝기 라이브 표시 (상단 툴바 `X / Y / Gray` 1줄) |
+
+(이전 #4 #7 무효화: btn_teachDatum 한 개 가정 하의 합의였으나, btn_testFindDatum 별도 보존 결정으로 무효)

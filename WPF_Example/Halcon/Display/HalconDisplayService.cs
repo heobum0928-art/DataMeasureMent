@@ -669,7 +669,8 @@ namespace ReringProject.Halcon.Display
                         && datum.CircleDetected_Radius > 0)
                     {
                         //260429 hbk Phase 16 D-05 — 검출 원 = 녹색 (light green)
-                        HOperatorSet.SetColor(window, "light green");
+                        //260430 hbk Quick 260430 — "light green" 비표준 색상명 → HALCON SetColor 예외 → catch swallow → 검출 원 + center cross 둘 다 미표시 결함. hex "#90EE90" 으로 교체 (사용자 의도 보존).
+                        HOperatorSet.SetColor(window, "#90EE90");
                         HOperatorSet.SetLineWidth(window, 2);
                         HOperatorSet.DispCircle(window,
                             datum.CircleCenter_Row, datum.CircleCenter_Col, datum.CircleDetected_Radius);

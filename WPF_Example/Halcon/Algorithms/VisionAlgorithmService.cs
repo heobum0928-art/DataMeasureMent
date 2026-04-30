@@ -266,8 +266,9 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple imageWidth, imageHeight;
                 image.GetImageSize(out imageWidth, out imageHeight);
 
-                double halfL1 = radius * rectL1Ratio;
-                double halfL2 = radius * rectL2Ratio;
+                //260430 hbk Quick 260430-hox — strip half-extent 12px cap. Phase 16 UAT FAIL root cause: recipe 의 큰 ratio (또는 큰 radius) → strip 거대 → MeasurePos edge 노이즈 → "insufficient polar samples". 24px 이상 strip 은 polar sample 의미가 없으므로 cap.
+                double halfL1 = Math.Min(radius * rectL1Ratio, 12.0);
+                double halfL2 = Math.Min(radius * rectL2Ratio, 12.0);
                 if (halfL1 < 1.0) halfL1 = 1.0;
                 if (halfL2 < 1.0) halfL2 = 1.0;
 
@@ -283,6 +284,9 @@ namespace ReringProject.Halcon.Algorithms
                     double rectRow = cRow - radius * Math.Sin(thetaRad);
                     double rectCol = cCol + radius * Math.Cos(thetaRad);
                     double rectPhi = thetaRad; // 반경 방향 = rect length1 축
+
+                    HObject horotteRect;
+                    HOperatorSet.GenRectangle2(out horotteRect, rectRow, rectCol, rectPhi, halfL1, halfL2);
 
                     HTuple measureHandle = null;
                     try

@@ -453,8 +453,9 @@ namespace ReringProject.Halcon.Display
             double centerR = datum.CircleROI_Row;
             double centerC = datum.CircleROI_Col;
             //260429 hbk Phase 16 D-01 — 반경 방향 / 접선 방향 길이
-            double length1 = radius * datum.Circle_RectL1Ratio;
-            double length2 = radius * datum.Circle_RectL2Ratio;
+            //260430 hbk Quick 260430-hox — 12px cap (VisionAlgorithmService.TryFindCircleByPolarSampling 와 동일). Phase 16 UAT FAIL root cause: 큰 radius/ratio → strip 화면 폭만큼 거대 → 시각화 의미 상실 + 알고리즘 fail.
+            double length1 = Math.Min(radius * datum.Circle_RectL1Ratio, 12.0);
+            double length2 = Math.Min(radius * datum.Circle_RectL2Ratio, 12.0);
             //260429 hbk Phase 16 — 1px 미만이면 시각화 의미 없음, 자동 floor
             if (length1 < 1.0) length1 = 1.0;
             if (length2 < 1.0) length2 = 1.0;

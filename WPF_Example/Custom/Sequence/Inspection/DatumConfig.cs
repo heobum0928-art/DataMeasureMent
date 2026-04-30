@@ -213,8 +213,9 @@ namespace ReringProject.Sequence {
         //260427 hbk Phase 14 fix — Circle polar 파라미터 PropertyGrid 노출 추가 (Category 명시)
         [Category("Datum|Circle (CTH) Polar")]
         public double Circle_PolarStepDeg  { get; set; } = 10.0;
-        public double Circle_RectL1Ratio   { get; set; } = 0.05;
-        public double Circle_RectL2Ratio   { get; set; } = 0.05;
+        //260430 hbk Quick 260430-hox — default 0.05 → 0.02 (radius 200 → strip 8px). Phase 16 UAT FAIL root cause: 큰 strip → MeasurePos edge 노이즈 → "insufficient polar samples (1)".
+        public double Circle_RectL1Ratio   { get; set; } = 0.02;
+        public double Circle_RectL2Ratio   { get; set; } = 0.02;
 
         //260425 hbk Phase 13 D-PRP-02 — Circle ROI 전용 에지 파라미터 (per-ROI 독립 튜닝)
         //260426 hbk Phase 14-03 D-08 — Category prefix labeling (CTH)

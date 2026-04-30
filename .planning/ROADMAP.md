@@ -292,3 +292,13 @@ Plans:
 - [ ] 16-01-PLAN.md — HalconDisplayService Circle overlay 재작성 (R1+R2 / D-01~D-08): pre-teach Strip 사각형 stepCount 개 회색 시각화 + post-teach 검출 원 light green / Center cross 노란색 size=12 / Raw edges 회색 size=4 + z-order
 - [ ] 16-02-PLAN.md — InspectionListView Datum 분기 PropertyGrid SelectedObject null→new force rebind (R3 / D-09~D-12) + MainView HandleDatumRoiMove/Resize 의 InvokeTryTeachDatumForEdit 자동 호출 직접 삭제 (R4 / D-13~D-16)
 - [ ] 16-03-PLAN.md — UAT (R5 / D-19): Phase 15 carry-over 10건 (Test 5/6/7/8/10/11/12/13/14/15) 흡수 + Phase 16 신규 4건 (strip 시각화 / RectL1Ratio 즉시 갱신 / 검출 원 시각화 / Auto-reteach off) — total ≥ 14, signed_off
+
+### Phase 17: Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 16
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 17 to break down)

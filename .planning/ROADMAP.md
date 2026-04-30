@@ -295,10 +295,14 @@ Plans:
 
 ### Phase 17: Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Phase 16 UAT carry-over 16항목 (Circle 시각화 N→1 / RadialDirection enum / EdgeDirection 정책 / 좌클릭+드래그 / Edit 모드 단일 gate / Delete 3-button 모달 / PropertyGrid 동적 노출 / AlgorithmType 변경 흐름 / 호환성 가드 / 모달 정책 / DetectedOrigin 시각화 / 결과 메트릭 / 마우스 hover) 을 한 묶음으로 해결한다. 알고리즘 코드 (VisionAlgorithmService / DatumFindingService) 의 *계산 로직* 은 한 줄도 변경하지 않으며 (D-17), DatumFindingService 신규 코드 누적 ≤ 11 라인 (caller polarity 매핑 + transient write-back) 만 허용. 사용자가 알고리즘별로 깔끔한 PropertyGrid 만 보고, 의도하지 않은 ROI 변형/실수 삭제를 방지하며, 실패 시점에 다음 액션이 명확히 안내되는 UX 를 완성한다.
+**Requirements**: P17-D-01..D-20 (CONTEXT.md 24 D-decisions, requirement-driven from Phase 16 UAT carry-over #1-#3, #5, #6, #8-#18)
 **Depends on:** Phase 16
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 17 to break down)
+- [ ] 17-01-PLAN.md — Cluster A: Circle 1-strip + RadialDirection enum + EdgeDirection 정책 (D-01~D-04). HalconDisplayService / DatumConfig (RadialDirection 영역) / EdgeOptionLists / DatumFindingService caller 1라인.
+- [ ] 17-02-PLAN.md — Cluster B+C: Edit 모드 단일 gate + 좌클릭+드래그 + Delete 3-button 모달 + PropertyGrid 동적 노출 (ICustomTypeDescriptor) + AlgorithmType 변경 흐름 + 호환성 가드 + 모달 정책 (D-05~D-12). MainResultViewerControl / MainView / DatumConfig (ICustomTypeDescriptor 영역) / InspectionListView.
+- [ ] 17-03-PLAN.md — Cluster D: DetectedOrigin transient (D-13) + Test Find 시각화 (D-14, purple DispCross + 좌표 텍스트 + RefAngle 화살표) + 마우스 hover X/Y/Gray (D-15) + 결과 메트릭 PropertyGrid 노출 (D-16). DatumConfig (transient/메트릭 영역) / DatumFindingService write-back / HalconDisplayService RenderDatumFindResult / MainView 툴바 + UpdatePointerLabel.
+- [ ] 17-04-PLAN.md — UAT (≥ 16 시나리오, signed_off): Phase 16 carry-over 16항목 + Phase 17 D-01~D-16 통합 검증 + D-17 algorithm preservation 자동 검증 + D-20 Phase 16 회귀 자동 검증.
+**UI hint**: yes

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready
-stopped_at: Phase 16 planning complete — 3 plans / 2 waves (16-01 viz / 16-02 binding+auto-off / 16-03 UAT). VERIFICATION PASSED 8/8 dimensions. Ready for /gsd-execute-phase 16.
-last_updated: "2026-04-30T00:00:00.000Z"
+status: unknown
+stopped_at: Completed 15-03-PLAN.md
+last_updated: "2026-04-29T23:55:45.913Z"
 progress:
   total_phases: 16
-  completed_phases: 13
-  total_plans: 52
+  completed_phases: 14
+  total_plans: 51
   completed_plans: 45
-  percent: 87
+  percent: 88
 ---
 
 # Project State
@@ -20,14 +20,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase 16 — READY FOR EXECUTION (3 plans planned + verified, Phase 15 carry-over 흡수)
+**Current focus:** Phase --phase — 16
 
 ## Current Position
 
-Phase: 16 — datum-circle-strip-redesign-algorithmtype-binding-fix (planning complete, commit 3cf0064)
+Phase: --phase (16) — EXECUTING
+Plan: 1 of --name
 Plans: 3 / 2 waves
+
   - Wave 1 (병렬): 16-01 HalconDisplayService Circle overlay 재작성 (R1+R2) / 16-02 InspectionListView force rebind + MainView Auto-reteach off (R3+R4)
   - Wave 2: 16-03 UAT (Phase 15 carry-over 10건 흡수 + Phase 16 신규 4건 = ≥14 시나리오, signed_off)
+
 Next: /gsd-execute-phase 16
   Boundary: VisionAlgorithmService.cs / DatumFindingService.cs / DatumConfig.cs diff = 0 강제 (Phase 14-04 D-13 + Phase 15-02/03 결정 보존)
   Convention: 모든 변경 라인 위 //260429 hbk 주석 (grep count acceptance 강제)

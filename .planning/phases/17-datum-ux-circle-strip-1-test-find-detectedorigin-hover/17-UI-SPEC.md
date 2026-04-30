@@ -50,6 +50,8 @@ Exceptions:
 - PropertyGrid category header: FontSize="14" Bold (locked — existing InspectionListView template).
 - Delete modal 3-button layout: uses CustomMessageBox built-in button layout (no custom spacing).
 
+> WPF control heights (28/36) and intermediate token (12) follow WPF HIG conventions and are multiples of 4. Web-standard set {4,8,16,24,32,48,64} does not apply to WPF DIP control sizing — all values are locked existing XAML constants.
+
 ---
 
 ## Typography
@@ -68,9 +70,17 @@ WPF TextBlock/Label properties. Use values that match the existing toolbar conve
 
 Line height: WPF auto (no explicit LineHeight set anywhere in existing toolbar/label code).
 
+### Typography Exception
+
+Exception: 3 font weights present (Normal / SemiBold / Bold) because all three roles (toolbar buttons → SemiBold, body labels → Normal, PropertyGrid category headers → Bold) are locked existing XAML template values — no new weights introduced in Phase 17. Reducing to 2 weights would require modifying PropertyTools.Wpf default category template or all toolbar buttons across MainView.xaml — out of scope and regression risk to prior phases (12-03 / 13-04 / 16-02).
+
 ---
 
 ## Color
+
+### 60/30/10 Declaration
+
+60% dark canvas/toolbar surfaces (#FF303030 / #111827) · 30% neutral button + PropertyGrid backgrounds · 10% accent blue (#2563EB IsChecked) + HALCON semantic colors.
 
 ### WPF UI Surfaces
 
@@ -85,6 +95,8 @@ Line height: WPF auto (no explicit LineHeight set anywhere in existing toolbar/l
 | Button disabled foreground | #FF666666 | ToggleButton IsEnabled=False — locked existing |
 | Info label foreground | #FFCBD5E0 | label_datumRefCoords foreground — locked existing |
 | Hover TextBlock foreground | #FFAAAAAA | Same as label_drawHint — match existing toolbar info text |
+
+> Delete ROI modal: destructive intent is conveyed by modal title `"ROI 삭제"` + first button text `"이 ROI만 삭제"` — no red foreground applied because CustomMessageBox is a shared primitive across the app and cannot be styled per-call without scope creep.
 
 ### HALCON Overlay Color Palette
 
@@ -285,6 +297,8 @@ Full palette audit (do not collide with existing assignments):
 
 한국어 UI. 모든 모달 텍스트, 툴팁, 힌트는 한국어.
 
+> `"취소"` 는 산업 표준 한국어 취소 버튼 레이블로, 3-버튼 모달(`ROI 삭제` title)에서 명사는 모달 title 이 담당하므로 단독 동사 레이블만으로 충분하다. `"NO Image"` 는 기존 English 고정 텍스트 — 변경 없음 (legacy).
+
 ### Delete ROI 모달 (D-07)
 
 | 요소 | 텍스트 |
@@ -334,7 +348,7 @@ PropertyTools.Wpf: `[System.ComponentModel.Description("일반적으로 수평 �
 
 | 상황 | 텍스트 |
 |------|--------|
-| 이미지 없음 (기존 label_message) | `"NO Image"` (기존 — 변경 없음) |
+| 이미지 없음 (기존 label_message) | `"NO Image"` (기존 English 고정 텍스트 — 변경 없음, legacy) |
 | Datum 노드 선택 전 hover | `X: N/A  ·  Y: N/A  ·  Gray: N/A` |
 
 ---
@@ -388,6 +402,14 @@ PropertyTools.Wpf: `[System.ComponentModel.Description("일반적으로 수평 �
 | blue | "blue" | ROI overlay (unselected), Datum overlay (unselected) |
 | white | "white" | Direction arrow |
 | **purple** | **"purple"** | **DetectedOrigin DispCross + 좌표 텍스트 + RefAngle 화살표 (Phase 17 신규)** |
+
+### Render Order (Z-Stack, bottom → top)
+
+1. ROI 외곽선 (Rect/Circle/Polygon outlines)
+2. raw edge points (gray DispCross)
+3. fitted geometry (line extension, fitted circle)
+4. center cross + Datum origin (yellow/magenta)
+5. DetectedOrigin cross + reference angle arrow (purple, last)
 
 ### RenderCircleStripOverlay 변경 사항
 

@@ -580,18 +580,19 @@ namespace ReringProject.UI {
 
         //260425 hbk Phase 13 D-01..D-04 — Datum ROI 이동 후 처리 (delta + 이중 신호 + 자동 재티칭 + 후보 publish)
         //260426 hbk Phase 14-01 D-03 — Move 자동 재티칭 미발동 회귀 fix: Dispatcher.BeginInvoke(Background) defer (Phase 13-07 Fix A 패턴)
+        //260429 hbk Phase 16 D-13 — Auto-reteach off: ROI 이동 후 자동 InvokeTryTeachDatumForEdit 호출 삭제 (사용자가 btn_teachDatum 으로 수동 트리거)
+        //260429 hbk Phase 16 D-14 — ROI 이동 후 LastTeachSucceeded 변경되지 않음 → 검출 원/center 시각화는 stale 데이터를 그대로 보여줌 (사용자가 mismatch 인지)
         private void HandleDatumRoiMove(DatumConfig datum, RoiMoveCompletedArgs e) {
             ApplyDatumRoiDelta(datum, e);
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
             mParentWindow?.inspectionList?.RefreshParamEditor();
             halconViewer.SetDatumOverlay(datum, true);
-            //260426 hbk Phase 14-01 D-03 — UI thread 즉시 반환, 자동 재티칭은 Background priority 로 defer
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
-                InvokeTryTeachDatumForEdit(datum);
-                PublishDatumRoiCandidates(datum);
-                //260425 hbk Phase 13 D-VIZ-06 — ROI 이동 후 자동 재티칭 결과로 좌표 라벨 갱신
-                UpdateDatumRefCoordsLabel(datum);
-            }));
+            //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
+            //  Phase 14-01 D-03 의 Background defer 패턴은 자동 재티칭이 fire 되어야만 의미 있음.
+            //  본 phase 에서 자동 재티칭 자체를 제거하므로 PublishDatumRoiCandidates / UpdateDatumRefCoordsLabel 만 inline 호출.
+            PublishDatumRoiCandidates(datum);
+            //260425 hbk Phase 13 D-VIZ-06 — ROI 이동 후 좌표 라벨 갱신 (자동 재티칭 없이도 호출 — stale 좌표 표시)
+            UpdateDatumRefCoordsLabel(datum);
         }
 
         //260426 hbk Phase 14-01 D-04 — Datum ROI resize 후처리 (HandleDatumRoiMove 5-step 패턴 동일, delta vs absolute 차이만)
@@ -618,12 +619,10 @@ namespace ReringProject.UI {
             mParentWindow?.inspectionList?.RefreshParamEditor();
             halconViewer.SetDatumOverlay(datum, true);
 
-            //260426 hbk Phase 14-01 D-03 — 자동 재티칭 (Phase 13-07 Dispatcher.BeginInvoke(Background) defer 패턴)
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
-                InvokeTryTeachDatumForEdit(datum);
-                PublishDatumRoiCandidates(datum);
-                UpdateDatumRefCoordsLabel(datum);
-            }));
+            //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
+            //260429 hbk Phase 16 D-14 — ROI resize 후 LastTeachSucceeded 변경되지 않음 (stale 시각화 의도적)
+            PublishDatumRoiCandidates(datum);
+            UpdateDatumRefCoordsLabel(datum);
         }
 
         //260425 hbk Phase 13 D-02 — RoiId prefix 별 DatumConfig 필드 매핑 (delta 누적)
@@ -688,16 +687,13 @@ namespace ReringProject.UI {
         }
 
         //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
-        //  호출처: InspectionListView.OnParamEditorLostFocus / OnParamEditorSelectionChanged (routed event handler)
         //260426 hbk Phase 13-07 — UAT Test D recovery fix: LastTeachSucceeded 가드 제거 (IsConfigured만 유지)
-        //  이유: 직전 시도가 fail 이면 LastTeachSucceeded=false → 사용자가 파라미터를 정상값으로 되돌려도 가드에 막혀 자동 재티칭 미발동 (fail→success 회복 경로 차단).
-        //       IsConfigured(=ROI 그려져 있음) 만 충족하면 재시도 허용.
-        //  미티칭 / FAI 편집 / 이미지 미로드 시 noop — 회귀 위험 0.
+        //260429 hbk Phase 16 D-12/D-13 — Auto-reteach off (수동 트리거 일원화):
+        //  PropertyGrid 파라미터 변경 (EdgeDirection / EdgePolarity / AlgorithmType / RectL1Ratio 등) 시 자동 재티칭 안 함.
+        //  사용자가 btn_teachDatum 수동 클릭해야만 검출 갱신. 시그니처는 호출처 (InspectionListView.TryTriggerDatumAutoReteach 등) 회귀 방지로 보존.
         public void NotifyDatumParamMaybeChanged(DatumConfig datum) {
-            if (datum == null) return;
-            if (!datum.IsConfigured) return; //260426 hbk Phase 13-07 — LastTeachSucceeded 게이트 제거
-            if (halconViewer == null || halconViewer.CurrentImage == null) return;
-            InvokeTryTeachDatumForEdit(datum);
+            //260429 hbk Phase 16 D-12/D-13 — noop: 자동 재티칭 정책 폐지 (CONTEXT D-13 verbatim "단순화 우선")
+            return;
         }
 
         //260425 hbk Phase 13 D-03 — Edit 세션 전용 자동 재티칭 (_editingDatum 건드리지 않음)

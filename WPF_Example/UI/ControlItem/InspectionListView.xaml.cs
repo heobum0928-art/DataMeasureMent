@@ -72,6 +72,11 @@ namespace ReringProject.UI {
         private void OnParamEditorSelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (!(e.OriginalSource is ComboBox)) return;
             if (_isRebinding) return; //260503 hbk Phase 17 bugfix — SelectedObject 재할당 중 ComboBox 초기화 이벤트 무시 (무한루프 방지)
+            //260503 hbk Phase 17 bugfix#2 — Layout pass 에서 비동기로 도착하는 초기 binding SelectionChanged 차단.
+            //  PropertyGrid 가 SelectedObject 재할당 후 ComboBox 를 재생성 → binding 으로 SelectedValue 설정 시
+            //  RemovedItems.Count == 0 (no prior selection). 사용자 실제 변경은 RemovedItems 에 old value 포함.
+            //  _isRebinding 가드는 동기 경로만 보호 → 비동기 deferred 이벤트는 이 필터로 차단해야 force-rebind → SelectionChanged 무한 루프 방지.
+            if (e.RemovedItems == null || e.RemovedItems.Count == 0) return;
 
             //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 분기 (다른 ComboBox: EdgeDirection / EdgeSelection / RadialDirection 등은 기존 경로)
             var datum = ParamEditor != null ? ParamEditor.SelectedObject as DatumConfig : null;

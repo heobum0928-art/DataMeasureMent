@@ -141,9 +141,24 @@
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"
                        HorizontalAlignment="Center" VerticalContentAlignment="Center"
                        FontSize="13" Foreground="#FFAAAAAA"/>
+                <!--260503 hbk Phase 17 D-15 — label_pointCount 보존 (Polygon 모드 code-behind 5 사이트 참조 — Rule 3 회귀 방지). 기본 Collapsed.-->
                 <Label x:Name="label_pointCount" Grid.Column="2" Visibility="Collapsed"
                        HorizontalAlignment="Right" VerticalContentAlignment="Center"
                        FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,8,0"/>
+                <!--260503 hbk Phase 17 D-15 — Hover 좌표 + 밝기 (X / Y / Gray). Column 2 공유 — label_pointCount 가 Collapsed 일 때만 가시 (Polygon 모드 진입 시 자동 숨김 처리는 별도 wiring 불필요 — label_pointCount Visible 시 같은 Column 영역 우선).-->
+                <StackPanel x:Name="panel_hoverInfo" Grid.Column="2" Orientation="Horizontal"
+                            HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
+                    <TextBlock x:Name="txt_hoverX" Text="X: N/A" FontSize="13" Foreground="#FFAAAAAA"
+                               Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="·" FontSize="13" Foreground="#FFAAAAAA"
+                               Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="txt_hoverY" Text="Y: N/A" FontSize="13" Foreground="#FFAAAAAA"
+                               Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="·" FontSize="13" Foreground="#FFAAAAAA"
+                               Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="txt_hoverG" Text="Gray: N/A" FontSize="13" Foreground="#FFAAAAAA"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
                 <!--260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 label (성공 LimeGreen / 실패 Red)-->
                 <Label x:Name="label_testFindResult" Grid.Column="1" Visibility="Collapsed"
                        HorizontalAlignment="Center" VerticalContentAlignment="Center"

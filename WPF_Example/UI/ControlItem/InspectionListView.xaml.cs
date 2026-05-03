@@ -62,8 +62,39 @@ namespace ReringProject.UI {
 
         //260426 hbk Phase 13-06 — ComboBox(EdgeDirection/EdgePolarity 등) SelectionChanged 시점: binding 은 즉시 push
         //260426 hbk Phase 13-07 — OriginalSource 가 실제 ComboBox 일 때만 통과 (PropertyGrid 내부 카테고리 ListBox 등 차단)
+        //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 감지 + 5-step 리셋 (force rebind + 검출 reset + 시각화 clear + ROI 보존 + 자동 재검출 X)
         private void OnParamEditorSelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (!(e.OriginalSource is ComboBox)) return;
+
+            //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 분기 (다른 ComboBox: EdgeDirection / EdgeSelection / RadialDirection 등은 기존 경로)
+            var datum = ParamEditor != null ? ParamEditor.SelectedObject as DatumConfig : null;
+            if (datum != null) {
+                var combo = e.OriginalSource as ComboBox;
+                string newValue = combo != null ? combo.SelectedValue as string : null;
+                //260503 hbk Phase 17 D-10 — AlgorithmType whitelist 가드 (Tampering mitigate T-17-02-01)
+                if (!string.IsNullOrEmpty(newValue)
+                    && string.Equals(newValue, datum.AlgorithmType, System.StringComparison.Ordinal)
+                    && (newValue == "TwoLineIntersect" || newValue == "CircleTwoHorizontal" || newValue == "VerticalTwoHorizontal")) {
+                    // Step 1: force rebind — PropertyDescriptor 재계산 + ICustomTypeDescriptor 신규 필터 적용 (Phase 16 D-09/D-10 패턴 재사용)
+                    if (ParamEditor != null) {
+                        ParamEditor.SelectedObject = null;
+                        ParamEditor.SelectedObject = datum;
+                    }
+                    // Step 2: 검출 상태 reset (Pattern S5 — LastTeachSucceeded/LastFindSucceeded 가드 false → RenderDatumOverlay 검출 도형 자동 미렌더)
+                    datum.LastTeachSucceeded = false; //260503 hbk Phase 17 D-10
+                    datum.LastFindSucceeded  = false; //260503 hbk Phase 17 D-10
+                    // Step 3: DetectedOrigin* 0 리셋 — Plan 17-03 가 본 핸들러에 추가 라인으로 wiring (Plan 17-02 시점 필드 미존재)
+                    // Step 4: ROI 보존 — 명시적 액션 없음 (DatumConfig ROI 필드 미수정)
+                    // Step 5: 자동 재검출 없음 — Phase 16 D-13/D-14 보존 (TryTriggerDatumAutoReteach 호출 없음)
+                    // Step 6: 캔버스 시각화 갱신 (RenderDatumOverlay 가 LastTeachSucceeded=false 분기에서 검출 도형 미렌더)
+                    if (mParentWindow != null && mParentWindow.mainView != null && mParentWindow.mainView.halconViewer != null) {
+                        mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true);
+                    }
+                    return; //260503 hbk Phase 17 D-10 — AlgorithmType 변경은 전용 흐름 — TryTriggerDatumAutoReteach 라우팅 안 함 (D-13/D-14 보존)
+                }
+            }
+
+            // 기타 ComboBox (EdgeDirection / EdgePolarity / EdgeSelection / RadialDirection 등): 기존 경로
             TryTriggerDatumAutoReteach();
         }
 

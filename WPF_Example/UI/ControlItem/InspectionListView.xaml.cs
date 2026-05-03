@@ -22,14 +22,20 @@ namespace ReringProject.UI {
         private InspectionViewModel _inspectionVm;
         public ParamBase SelectedParam { get; private set; } = null;
         private ParamBase CopiedParam = null;
+        private bool _isRebinding = false; //260503 hbk Phase 17 bugfix — SelectionChanged 무한루프 방지 (SelectedObject 재할당 중 ComboBox 초기화 이벤트 차단)
 
         //260424 hbk Phase 12 Gap-3 — 외부(MainView Datum 티칭)에서 DatumConfig 필드 write-back 후 PropertyGrid 재바인딩 트리거
         // 자동 속성(set;/get;)은 INotifyPropertyChanged 미발동 → SelectedObject null 후 재할당으로 강제 재렌더
         public void RefreshParamEditor() {
             if (ParamEditor == null) return;
             var current = SelectedParam;
-            ParamEditor.SelectedObject = null;
-            ParamEditor.SelectedObject = current;
+            _isRebinding = true; //260503 hbk Phase 17 bugfix — 재할당 중 SelectionChanged 무한루프 차단
+            try {
+                ParamEditor.SelectedObject = null;
+                ParamEditor.SelectedObject = current;
+            } finally {
+                _isRebinding = false;
+            }
         }
 
         //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅
@@ -65,6 +71,7 @@ namespace ReringProject.UI {
         //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 감지 + 5-step 리셋 (force rebind + 검출 reset + 시각화 clear + ROI 보존 + 자동 재검출 X)
         private void OnParamEditorSelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (!(e.OriginalSource is ComboBox)) return;
+            if (_isRebinding) return; //260503 hbk Phase 17 bugfix — SelectedObject 재할당 중 ComboBox 초기화 이벤트 무시 (무한루프 방지)
 
             //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 분기 (다른 ComboBox: EdgeDirection / EdgeSelection / RadialDirection 등은 기존 경로)
             var datum = ParamEditor != null ? ParamEditor.SelectedObject as DatumConfig : null;
@@ -77,8 +84,13 @@ namespace ReringProject.UI {
                     && (newValue == "TwoLineIntersect" || newValue == "CircleTwoHorizontal" || newValue == "VerticalTwoHorizontal")) {
                     // Step 1: force rebind — PropertyDescriptor 재계산 + ICustomTypeDescriptor 신규 필터 적용 (Phase 16 D-09/D-10 패턴 재사용)
                     if (ParamEditor != null) {
-                        ParamEditor.SelectedObject = null;
-                        ParamEditor.SelectedObject = datum;
+                        _isRebinding = true; //260503 hbk Phase 17 bugfix — rebind 중 재진입 차단
+                        try {
+                            ParamEditor.SelectedObject = null;
+                            ParamEditor.SelectedObject = datum;
+                        } finally {
+                            _isRebinding = false;
+                        }
                     }
                     // Step 2: 검출 상태 reset (Pattern S5 — LastTeachSucceeded/LastFindSucceeded 가드 false → RenderDatumOverlay 검출 도형 자동 미렌더)
                     datum.LastTeachSucceeded = false; //260503 hbk Phase 17 D-10
@@ -397,8 +409,13 @@ namespace ReringProject.UI {
                             //260429 hbk Phase 16 D-11/D-12 — 매 Datum 클릭마다 force rebind (편집 모드 무관) + AlgorithmType 변경 자체는 자동 재티칭 추가 안 함 (D-13 일관)
                             if (ParamEditor != null) {
                                 //260429 hbk Phase 16 D-10 — null 할당으로 PropertyGrid 의 기존 binding 강제 해제 후, 새 인스턴스 할당
-                                ParamEditor.SelectedObject = null;
-                                ParamEditor.SelectedObject = datumCfg;
+                                _isRebinding = true; //260503 hbk Phase 17 bugfix — datum 클릭 rebind 중 SelectionChanged 무한루프 차단
+                                try {
+                                    ParamEditor.SelectedObject = null;
+                                    ParamEditor.SelectedObject = datumCfg;
+                                } finally {
+                                    _isRebinding = false;
+                                }
                             }
                         }
                         //260424 hbk Phase 12 D-01 — Datum 노드 선택 시 btn_teachDatum 활성화

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 17-03 완료 (5 tasks / 6 files / ~12 min) — 다음 Plan 17-04 UAT
-last_updated: "2026-05-03T09:06:39.435Z"
+stopped_at: Phase 17-04 Task 1 완료 (17-UAT.md ≥ 16 시나리오 status: pending) — Task 2 사용자 사인오프 checkpoint:human-verify 대기
+last_updated: "2026-05-03T09:15:30.000Z"
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 55
-  completed_plans: 50
-  percent: 91
+  completed_plans: 51
+  percent: 92
 ---
 
 # Project State
@@ -79,6 +79,7 @@ Next: /gsd-execute-phase 16
 | Phase 17 P17-01 | 6 | 3 tasks | 4 files |
 | Phase 17 PP17-02 | 6 | 4 tasks | 4 files |
 | Phase 17 PP17-03 | 12 | 5 tasks | 6 files |
+| Phase 17 P17-04 | 6 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,7 @@ Recent decisions affecting current work:
 - [Phase 17-01]: Circle pre-teach strip 시각화 폐기 (stepCount N개 → thetaRad=0.0 단일 strip), Circle_RadialDirection PropertyGrid ComboBox 신규 (sentinel/fallback 'Inward'), 6 *_EdgeDirection 한국어 tooltip, DatumFindingService caller polarity 매핑 (D-17: VisionAlgorithmService 0 라인 / DatumFindingService +2 라인). Plan 영역 분리 lock 통과 (17-02 ICustomTypeDescriptor / 17-03 transient 미침범).
 - [Phase 17-02]: Cluster B+C 통합 — Edit 모드 단일 gate (HitTestSelectedRoi 가드) + 좌클릭 드래그 그리기 + DatumConfig ICustomTypeDescriptor (TLI/CTH/VTH 동적 PropertyGrid + Circle_EdgeDirection D-03 hide) + AlgorithmType 변경 5-step 리셋 (force rebind + 검출 reset + ROI 보존 + 자동 재검출 X) + Delete 3-button 모달 (CustomMessageBox YesNoCancel 재사용) + btn_teachDatum 호환성 가드 (ValidateRoiPresence 한국어 모달) + teach/find 실패 모달 (FormatTeachError/FormatFindError + D-04 EdgeDirection 힌트). D-17 0 라인 (VisionAlgorithmService + DatumFindingService 양쪽 0). Plan 17-01 RadialDirection / 17-03 transient 영역 미침범 (sequential lock 통과).
 - [Phase 17-03]: DatumConfig 6 신규 필드 (transient 3 + 메트릭 3) — Phase 13-05 D-VIZ-01 패턴 재사용 ([Browsable(false)]+[JsonIgnore]+ParamBase reflection 자동 무시); PropertyTools.DataAnnotations.ReadOnly + System.ComponentModel.ReadOnly 양쪽 부착 (호환성 안전판); TryFindDatum 시작시 LastFindSucceeded=false reset + 성공분기 끝 9 라인 write-back (D-17 cumulative DatumFindingService 11 라인 EXACT, VisionAlgorithmService 0); RenderDatumFindResult 본문 orange/RefOrigin → purple/DetectedOrigin + LastFindSucceeded gate + RenderDatumOverlay z-stack last 호출; canvasToolbar X/Y/Gray TextBlock 3개 (panel_hoverInfo) + UpdatePointerLabel 양쪽 갱신 + 기존 PublishPointerInfo 파이프라인 재사용 (신규 GetGrayval 호출 0); BtnTestFindDatum_Click 성공경로 SetDatumOverlay 단일화 (RenderDatumOverlay z-stack chain) + RaisePropertyChanged + RefreshParamEditor + 모달 X (UI-SPEC LOCKED); InspectionListView 5-step Step 3 wiring (DetectedOrigin/메트릭 0 리셋 — W3 Test 13 검증 가능). Rule 3 deviation: label_pointCount XAML 보존 (code-behind 5 사이트 참조).
+- [Phase 17-04 Task 1]: 17-UAT.md 작성 (640 라인, 16 시나리오 = Cluster A 4 + B 3 + C 4 + D 4 + 자동 검증 1) — Phase 16 carry-over 16항목 (#1-#3, #5, #6, #8-#18; #4/#7 제외) + Phase 17 D-01~D-16 통합 검증. Test 16 자동 검증 verbatim bash (D-17 algorithm preservation: VisionAlgorithmService 0 / DatumFindingService 11 EXACT, D-18 hbk 주석 카운트 7 파일, D-20 Phase 16 force rebind + Auto-reteach off, msbuild Debug/x64). UI-SPEC Copywriting Contract verbatim (D-04 EdgeDirection tooltip + D-07 Delete 3-button + D-11 ROI 호환성 + D-12 EdgeDirection 0 검출 힌트). W3 cross-plan 검증 (Test 13 = Plan 17-02 Step 3 wiring + Plan 17-03 transient 통합). Plan 17-03 Rule 3 deviation 검증 (Test 15 = panel_hoverInfo / label_pointCount Polygon 모드 시각 충돌). status: pending — Task 2 사용자 사인오프 checkpoint:human-verify 대기. Deviation: PLAN.md `<output>` "별도 SUMMARY.md 미작성 (UAT 관습)" vs user prompt "Create SUMMARY.md" 충돌 → user prompt 우선, 17-04-SUMMARY.md 간소화 작성.
 
 ### Quick Tasks Completed
 
@@ -164,10 +166,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-03T09:06:17.095Z
-Stopped at: Phase 17-03 완료 (5 tasks / 6 files / ~12 min) — 다음 Plan 17-04 UAT
-Resume file: None
-Next action: `/gsd-execute-phase 17` (Wave 1 = 17-01 Cluster A → Wave 2 = 17-02 Cluster B+C → Wave 3 = 17-03 Cluster D → Wave 4 = 17-04 UAT)
+Last session: 2026-05-03T09:15:30.000Z
+Stopped at: Phase 17-04 Task 1 완료 (17-UAT.md 16 시나리오 status: pending) — Task 2 사용자 사인오프 checkpoint:human-verify 대기
+Resume file: .planning/phases/17-datum-ux-circle-strip-1-test-find-detectedorigin-hover/17-UAT.md
+Next action: 사용자가 Debug/x64 빌드된 DatumMeasurement.exe 실행 → 16 시나리오 순차 실행 → 17-UAT.md result/frontmatter/사인오프 갱신 → `git commit -m "docs(17): UAT signed_off — Phase 17 ${RESULT}"`
 
 **Planned Phase:** 17 (Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover) — 4 plans — 2026-04-30T08:16:40.923Z
 **Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
@@ -177,3 +179,4 @@ Next action: `/gsd-execute-phase 17` (Wave 1 = 17-01 Cluster A → Wave 2 = 17-0
 **Phase 12 / Plan 12-03 Execution:** 2026-04-24 — 5 tasks / 5 files (MainView.xaml + MainView.xaml.cs + InspectionListView.xaml.cs + HalconDisplayService.cs + DatumConfig.cs 주석) / commits e3287c6, f0c7668, 3fe1119 (Tasks 1-3 원계획) + 781e4be (UAT Gap-2/Gap-3 fix) — msbuild Debug/x64 green, 신규 warning 0. UAT Gap-1 (ROI Edit in TeachDatum 모드) 및 Gap-4 (런타임 TryFindDatum 테스트 UI) 는 Phase 13 이월.
 **Phase 15 / Plan 15-02 Execution:** 2026-04-29 — 3 tasks / 1 file (DatumFindingService.cs) / commits fe9925a (AppendEdgePointsFromStrip measurePhi+selection+roiLabel) + 05033ea (TryFindLine/TryExtractEdgePoints +1 string selection + 4 helper calls wired) + 5fac0c8 (9 caller sites wired — 7 plan teach + 2 Rule 3 runtime) — msbuild Debug/x64 PASS, 신규 warning 0 on DatumFindingService.cs. Rule 3 deviation: TryFindDatum runtime Line1/Line2 호출 2건도 함께 wiring (signature 변경 빌드 회복).
 **Phase 15 / Plan 15-03 Execution:** 2026-04-29 — 2 tasks / 2 files (VisionAlgorithmService.cs + DatumFindingService.cs) / commits dbde085 (TryFindCircleByPolarSampling +1 string selection + sanity clamp + selectionLower 변환 + MeasurePos 인자화 + selection-aware 누적 정책 분기) + b8e3a60 (DatumFindingService.TryTeachCircleTwoHorizontal Circle_EdgeSelection wiring + 통합 빌드 검증) — msbuild Debug/x64 PASS, 신규 warning 0 on 수정 범위. Phase 14-04 D-13 rectPhi=thetaRad 회전 식 변경 0 라인 (anti-goal 준수). Caller scan 1 caller 확정 (smoke harness 미호출). Deviations: 0.
+**Phase 17 / Plan 17-04 Task 1 Execution:** 2026-05-03 — 1 task / 1 file (.planning/phases/17-.../17-UAT.md, 640 라인) / commit 77510ca — 16 시나리오 (Cluster A 4 + B 3 + C 4 + D 4 + 자동 검증 1) status: pending. Phase 16 carry-over 16항목 + Phase 17 D-01~D-16 통합 검증. UI-SPEC Copywriting verbatim (D-04/D-07/D-11/D-12). W3 cross-plan + Plan 17-03 Rule 3 deviation 검증 단계 추가. msbuild Debug/x64 PASS (코드 변경 0). D-17 algorithm preservation 실측: VisionAlgorithmService 0 / DatumFindingService 11 EXACT. Task 2 (사용자 사인오프) checkpoint:human-verify 대기.

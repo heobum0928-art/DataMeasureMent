@@ -424,6 +424,38 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public HTuple Vertical_DetectedEdgeCols { get; set; }
 
+        //260503 hbk Phase 17 D-13 — DetectedOrigin transient (TryFindDatum write-back, INI 0 영향 — ParamBase double 직렬화하나 [Browsable(false)] 로 PropertyGrid 미표시)
+        [System.ComponentModel.Browsable(false)] //260503 hbk Phase 17 D-13
+        [PropertyTools.DataAnnotations.Browsable(false)] //260503 hbk Phase 17 D-13
+        [Newtonsoft.Json.JsonIgnore] //260503 hbk Phase 17 D-13
+        public double DetectedOriginRow { get; set; } //260503 hbk Phase 17 D-13
+        [System.ComponentModel.Browsable(false)] //260503 hbk Phase 17 D-13
+        [PropertyTools.DataAnnotations.Browsable(false)] //260503 hbk Phase 17 D-13
+        [Newtonsoft.Json.JsonIgnore] //260503 hbk Phase 17 D-13
+        public double DetectedOriginCol { get; set; } //260503 hbk Phase 17 D-13
+        [System.ComponentModel.Browsable(false)] //260503 hbk Phase 17 D-13
+        [PropertyTools.DataAnnotations.Browsable(false)] //260503 hbk Phase 17 D-13
+        [Newtonsoft.Json.JsonIgnore] //260503 hbk Phase 17 D-13
+        public double DetectedRefAngle { get; set; } //260503 hbk Phase 17 D-13
+
+        //260503 hbk Phase 17 D-16 — 결과 메트릭 PropertyGrid 노출 (ReadOnly, 사용자가 검출 품질 즉시 확인)
+        //  PropertyTools.Wpf 가 지원하는 ReadOnly attribute 는 PropertyTools.DataAnnotations.ReadOnly (ParamBase.cs L37/L53 confirmed canonical).
+        //  System.ComponentModel.ReadOnly 도 함께 부착 — ICustomTypeDescriptor.GetProperties 경로의 안전판.
+        [Category("Datum|Result")] //260503 hbk Phase 17 D-16
+        [System.ComponentModel.ReadOnly(true)] //260503 hbk Phase 17 D-16
+        [PropertyTools.DataAnnotations.ReadOnly(true)] //260503 hbk Phase 17 D-16
+        public int DetectedEdgeCount { get; set; } //260503 hbk Phase 17 D-16
+
+        [Category("Datum|Result")] //260503 hbk Phase 17 D-16
+        [System.ComponentModel.ReadOnly(true)] //260503 hbk Phase 17 D-16
+        [PropertyTools.DataAnnotations.ReadOnly(true)] //260503 hbk Phase 17 D-16
+        public double DetectedFitRMSE { get; set; } //260503 hbk Phase 17 D-16
+
+        [Category("Datum|Result")] //260503 hbk Phase 17 D-16
+        [System.ComponentModel.ReadOnly(true)] //260503 hbk Phase 17 D-16
+        [PropertyTools.DataAnnotations.ReadOnly(true)] //260503 hbk Phase 17 D-16
+        public double DetectedAngleDeg { get; set; } //260503 hbk Phase 17 D-16
+
         //260425 hbk Phase 13 D-PRP-03 — 최초 로드 시 sentinel(per-ROI EdgeThreshold==0) 검출 → 글로벌 값 5 ROI 일괄 복제 (idempotent).
         //  DatumFindingService.TryTeach* / TryFindDatum 진입부에서 1회 호출.
         //  sentinel 가 아니면 (사용자가 per-ROI 값을 명시한 경우) 그대로 유지 — 멱등성 보장.

@@ -504,18 +504,16 @@ namespace ReringProject.UI {
             if (roiId.StartsWith("Datum.")) {
                 DatumConfig datum;
                 if (IsCurrentNodeDatum(out datum)) {
-                    //260503 hbk Phase 17 D-07 — Delete 모달 (단일 / 전체 / 취소). UI-SPEC Copywriting Contract 한국어 verbatim.
+                    //260504 hbk Phase 17 hotfix#9 (Option B) — Delete 모달 단순화 (3-button → 2-button).
+                    //  사유: 단일 ROI 삭제 후 Wizard 가 Step 1 부터 무조건 시작 → 잔존 ROI 도 다시 그려야 했음.
+                    //  hotfix#9 의 Option A (Wizard skip-existing) 와 함께 깔끔한 워크플로우 구성:
+                    //  Delete = 항상 전체 삭제 / 부분 수정은 Edit 모드 / 단일 재 그리기는 PropertyGrid 0 입력 → wizard 자동 skip.
                     var choice = CustomMessageBox.ShowConfirmation(
                         "ROI 삭제",
-                        "선택한 ROI 를 삭제하시겠습니까?\n\n[예] 이 ROI만 삭제\n[아니오] 현재 Datum 의 모든 ROI 삭제\n[취소] 취소",
-                        MessageBoxButton.YesNoCancel);
-                    if (choice == MessageBoxResult.Cancel || choice == MessageBoxResult.None) return; //260503 hbk Phase 17 D-07 — 취소 (Repudiation mitigate T-17-02-04)
-                    if (choice == MessageBoxResult.Yes) {
-                        ClearDatumRoiFields(datum, roiId); //260503 hbk Phase 17 D-07 — 단일 ROI 삭제
-                    }
-                    else {
-                        ClearAllDatumRoiFields(datum); //260503 hbk Phase 17 D-07 — No → 현재 Datum 의 모든 ROI 삭제
-                    }
+                        "현재 Datum 의 모든 ROI 를 삭제하시겠습니까?",
+                        MessageBoxButton.OKCancel);
+                    if (choice != MessageBoxResult.OK) return;
+                    ClearAllDatumRoiFields(datum); //260504 hbk Phase 17 hotfix#9 (Option B) — 항상 전체 삭제
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
                     mParentWindow?.inspectionList?.RefreshParamEditor();
                     halconViewer.SetDatumOverlay(datum, true);
@@ -1367,7 +1365,9 @@ namespace ReringProject.UI {
                 halconViewer.IsEditMode = false;
 
                 //260424 hbk Phase 12 D-03 — 알고리즘별 첫 단계 결정 후 StartDatumTeachStep
-                _datumTeachStep = GetFirstStep(datum.AlgorithmTypeEnum);
+                //260504 hbk Phase 17 hotfix#9 (Option A) — Wizard skip-existing: 누락된 단계만 묻기.
+                //  GetFirstStep → GetFirstMissingStep 교체. 모든 ROI 가 이미 있으면 Done → InvokeTryTeachDatum 자동 호출 (즉시 teach).
+                _datumTeachStep = GetFirstMissingStep(datum);
                 StartDatumTeachStep(_datumTeachStep);
             }
             else {
@@ -1376,32 +1376,54 @@ namespace ReringProject.UI {
             }
         }
 
-        //260424 hbk Phase 12 D-03 — 알고리즘별 첫 ROI 단계
-        private EDatumTeachStep GetFirstStep(EDatumAlgorithm algorithm) {
-            switch (algorithm) {
-                case EDatumAlgorithm.CircleTwoHorizontal:   return EDatumTeachStep.Circle;
-                case EDatumAlgorithm.VerticalTwoHorizontal: return EDatumTeachStep.Vertical;
+        //260424 hbk Phase 12 D-03 — 알고리즘별 ROI 단계 시퀀스
+        //260504 hbk Phase 17 hotfix#9 (Option A) — 단일 source-of-truth, GetFirstMissingStep/GetNextMissingStep 가 사용.
+        private static EDatumTeachStep[] GetAlgorithmSteps(EDatumAlgorithm alg) {
+            switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
-                default:                                     return EDatumTeachStep.Line1;
+                    return new[] { EDatumTeachStep.Line1, EDatumTeachStep.Line2 };
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    return new[] { EDatumTeachStep.Circle, EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB };
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    return new[] { EDatumTeachStep.Vertical, EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB };
+                default:
+                    return new EDatumTeachStep[0];
             }
         }
 
-        //260424 hbk Phase 12 D-03 — 현재 step 다음 step 결정
-        private EDatumTeachStep GetNextStep(EDatumAlgorithm algorithm, EDatumTeachStep current) {
-            switch (algorithm) {
-                case EDatumAlgorithm.TwoLineIntersect:
-                    if (current == EDatumTeachStep.Line1) return EDatumTeachStep.Line2;
-                    return EDatumTeachStep.Done;
-                case EDatumAlgorithm.CircleTwoHorizontal:
-                    if (current == EDatumTeachStep.Circle)      return EDatumTeachStep.HorizontalA;
-                    if (current == EDatumTeachStep.HorizontalA) return EDatumTeachStep.HorizontalB;
-                    return EDatumTeachStep.Done;
-                case EDatumAlgorithm.VerticalTwoHorizontal:
-                    if (current == EDatumTeachStep.Vertical)    return EDatumTeachStep.HorizontalA;
-                    if (current == EDatumTeachStep.HorizontalA) return EDatumTeachStep.HorizontalB;
-                    return EDatumTeachStep.Done;
-                default: return EDatumTeachStep.Done;
+        //260504 hbk Phase 17 hotfix#9 (Option A) — Wizard skip-existing helper.
+        //  ROI 가 이미 그려진 단계는 누락 X → wizard 가 건너뜀. Length1/Length2/Radius > 0 이면 ROI 존재.
+        private static bool IsStepMissing(DatumConfig d, EDatumTeachStep step) {
+            switch (step) {
+                case EDatumTeachStep.Line1:       return d.Line1_Length1 <= 0 || d.Line1_Length2 <= 0;
+                case EDatumTeachStep.Line2:       return d.Line2_Length1 <= 0 || d.Line2_Length2 <= 0;
+                case EDatumTeachStep.Vertical:    return d.Vertical_Length1 <= 0 || d.Vertical_Length2 <= 0;
+                case EDatumTeachStep.Circle:      return d.CircleROI_Radius <= 0;
+                case EDatumTeachStep.HorizontalA: return d.Horizontal_A_Length1 <= 0 || d.Horizontal_A_Length2 <= 0;
+                case EDatumTeachStep.HorizontalB: return d.Horizontal_B_Length1 <= 0 || d.Horizontal_B_Length2 <= 0;
+                default: return false;
             }
+        }
+
+        //260504 hbk Phase 17 hotfix#9 (Option A) — 첫 누락 단계 반환. 모든 ROI 존재 시 Done (즉시 teach).
+        //  사용자 시나리오: 한 ROI 만 PropertyGrid 에서 Length1/Length2 = 0 입력 후 Teach Datum → 그 단계만 묻고 자동 teach.
+        private EDatumTeachStep GetFirstMissingStep(DatumConfig datum) {
+            foreach (var step in GetAlgorithmSteps(datum.AlgorithmTypeEnum)) {
+                if (IsStepMissing(datum, step)) return step;
+            }
+            return EDatumTeachStep.Done;
+        }
+
+        //260504 hbk Phase 17 hotfix#9 (Option A) — current 이후 다음 누락 단계 반환.
+        //  Wizard 가 한 단계 완료 후 다음 누락 단계로 점프 — 잔존 ROI 는 건너뛰고 누락만 묻기.
+        private EDatumTeachStep GetNextMissingStep(DatumConfig datum, EDatumTeachStep current) {
+            var steps = GetAlgorithmSteps(datum.AlgorithmTypeEnum);
+            bool foundCurrent = false;
+            foreach (var step in steps) {
+                if (foundCurrent && IsStepMissing(datum, step)) return step;
+                if (step == current) foundCurrent = true;
+            }
+            return EDatumTeachStep.Done;
         }
 
         //260424 hbk Phase 12 — step 시작 (드로잉 이벤트 구독 + label_drawHint + Start*Drawing)
@@ -1541,9 +1563,10 @@ namespace ReringProject.UI {
         }
 
         //260424 hbk Phase 12 — 다음 step 전이
+        //260504 hbk Phase 17 hotfix#9 (Option A) — Wizard skip-existing: 잔존 ROI 건너뛰고 다음 누락 단계만 묻기.
         private void AdvanceDatumTeachStep() {
             if (_editingDatum == null) { ExitCanvasMode(); return; }
-            _datumTeachStep = GetNextStep(_editingDatum.AlgorithmTypeEnum, _datumTeachStep);
+            _datumTeachStep = GetNextMissingStep(_editingDatum, _datumTeachStep);
             StartDatumTeachStep(_datumTeachStep);
         }
 

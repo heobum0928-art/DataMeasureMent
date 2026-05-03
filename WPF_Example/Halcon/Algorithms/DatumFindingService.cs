@@ -45,6 +45,9 @@ namespace ReringProject.Halcon.Algorithms
             //260425 hbk Phase 13 D-PRP-06 — per-ROI sentinel → 글로벌 복제 (idempotent, 최초 1회 의미)
             config.EnsurePerRoiDefaults();
 
+            //260503 hbk Phase 17 D-13 — 메서드 시작 시 reset (조기 return / catch 시 false 보장)
+            config.LastFindSucceeded = false;
+
             try
             {
                 HTuple imageWidth, imageHeight;
@@ -130,6 +133,17 @@ namespace ReringProject.Halcon.Algorithms
                 HOperatorSet.HomMat2dIdentity(out mat);
                 HOperatorSet.HomMat2dTranslate(mat, dRow, dCol, out mat);
                 HOperatorSet.HomMat2dRotate(mat, dAngle, curRow.D, curCol.D, out transform);
+
+                //260503 hbk Phase 17 D-13 — DetectedOrigin transient write-back (RenderDatumFindResult 입력)
+                config.DetectedOriginRow = curRow.D; //260503 hbk Phase 17 D-13
+                config.DetectedOriginCol = curCol.D; //260503 hbk Phase 17 D-13
+                config.DetectedRefAngle  = curAngle; //260503 hbk Phase 17 D-13
+                //260503 hbk Phase 17 D-16 — 결과 메트릭 (검출 점 개수 합계 + 각도 deg)
+                config.DetectedEdgeCount = (line1RawRows != null ? line1RawRows.TupleLength() : 0)
+                                         + (line2RawRows != null ? line2RawRows.TupleLength() : 0); //260503 hbk Phase 17 D-16
+                config.DetectedFitRMSE   = 0.0; //260503 hbk Phase 17 D-16 — fit RMSE 미수집 (placeholder)
+                config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI; //260503 hbk Phase 17 D-16
+                config.LastFindSucceeded = true; //260503 hbk Phase 17 D-13
 
                 return true;
             }

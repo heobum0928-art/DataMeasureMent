@@ -749,9 +749,25 @@ namespace ReringProject.UI
             _lastMouseImagePoint = mouseState.ImagePoint;
             if ((mouseState.Buttons & HalconRightButton) == HalconRightButton)
             {
-                //260423 hbk Edit 모드 중 우클릭 → 모드 종료, ContextMenu 미표시
+                //260503 hbk Phase 17 hotfix#4 (Test 7 / D-07) — 우클릭 분기 재설계:
+                //  Edit ON + ROI body 우클릭 → _selectedRoiId 갱신 + ContextMenu (Delete 활성)
+                //  Edit ON + 빈 영역 우클릭 → SetEditMode(false) (Phase 13 종료 단축 보존)
+                //  Edit OFF + 우클릭 → 기존 동작 (Polygon 브릿지 또는 ContextMenu)
                 if (_isEditMode)
                 {
+                    var hitRoi = HitTestSelectedRoi(mouseState.ImagePoint);
+                    if (hitRoi != null)
+                    {
+                        if (hitRoi.Id != null)
+                        {
+                            _selectedRoiId = hitRoi.Id;
+                        }
+                        UpdateContextMenuState();
+                        OpenContextMenu();
+                        PublishPointerInfo();
+                        return;
+                    }
+                    // 빈 영역 우클릭 → Edit 모드 종료 (Phase 13 패턴 보존)
                     SetEditMode(false);
                     PublishPointerInfo();
                     return;
@@ -774,18 +790,19 @@ namespace ReringProject.UI
             }
 
             //260423 hbk Edit 모드 전용: 핸들 히트 → 리사이즈 시작, 바디 히트 → 이동 시작
-            //260425 hbk Phase 13 D-01 — Datum 후보가 publish 되어 있으면 _isEditMode 무관 통과 (Datum 노드 선택 = 자동 편집 허용)
-            bool datumCandidatesPresent = (_datumRoiCandidates != null && _datumRoiCandidates.Count > 0);
-            if ((_isEditMode || datumCandidatesPresent) && !IsAnyDrawingModeActive() && HasImage)
+            //260503 hbk Phase 17 hotfix#4 (Test 6 / D-06) — Phase 13 D-01 의 datumCandidatesPresent bypass 제거.
+            //  사유: Edit OFF 인데도 Datum 후보 publish 만으로 핸들 hit-test 활성 → 사이즈 변경 가능 회귀.
+            //  UI-SPEC § _isEditMode 상태머신 (단일 gate) 준수: Edit ON 일 때만 ROI 변형 허용.
+            if (_isEditMode && !IsAnyDrawingModeActive() && HasImage)
             {
-                //260426 hbk Phase 14-01 D-02 — Edit 모드 OR Datum 후보 존재 시 핸들 hit-test 활성 (Datum Circle resize 지원, 4 핸들 동일 동작)
+                //260426 hbk Phase 14-01 D-02 — Edit 모드 시 핸들 hit-test 활성 (Datum Circle resize 지원, 4 핸들 동일 동작)
                 {
                     RoiDefinition selectedRoi = null;
-                    if (_isEditMode && !string.IsNullOrEmpty(_selectedRoiId))
+                    if (!string.IsNullOrEmpty(_selectedRoiId))
                     {
                         selectedRoi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId && r.IsTaught);
                     }
-                    if (selectedRoi == null && datumCandidatesPresent)
+                    if (selectedRoi == null && _datumRoiCandidates != null && _datumRoiCandidates.Count > 0)
                     {
                         //260426 hbk Phase 14-01 — Datum Circle fallback (mouse 위치 hit-test 는 GetEditHandles 가 처리)
                         selectedRoi = _datumRoiCandidates.FirstOrDefault(r => r != null && r.Shape == RoiShape.Circle);
@@ -978,8 +995,13 @@ namespace ReringProject.UI
             }
 
             //260423 hbk Phase 11 D-14 — Circle drawing mode: update radius while dragging
+            //260503 hbk Phase 17 hotfix#4 (Test 5) — 좌클릭 누른 상태 + center 클릭 완료 후에만 반지름 갱신.
+            //  기존: _circleDraftCenter (0,0) 초기화 + hover 만으로 (0,0)→포인터 거대 원 렌더 회귀.
+            //  수정: 좌클릭 가드 + center sentinel((0,0)) 가드 (Rect 분기의 _rectDraftRoi != null 패턴 동일).
             if (_isDrawingCircle && HasImage)
             {
+                if ((mouseState.Buttons & HalconLeftButton) != HalconLeftButton) return;
+                if (_circleDraftCenter.X == 0 && _circleDraftCenter.Y == 0) return;
                 double dx = mouseState.ImagePoint.X - _circleDraftCenter.X;
                 double dy = mouseState.ImagePoint.Y - _circleDraftCenter.Y;
                 _circleDraftRadius = Math.Sqrt(dx * dx + dy * dy);

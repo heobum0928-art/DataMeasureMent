@@ -334,6 +334,38 @@ namespace ReringProject.UI
             return null;
         }
 
+        //260503 hbk Phase 17 hotfix#5 — Edit 모드 무관 hit-test (우클릭 시 _selectedRoiId 갱신용).
+        //  HitTestSelectedRoi 의 _isEditMode 가드가 막던 진입 경로 우회 — ContextMenu Edit/Delete 활성화에 필요한
+        //  _selectedRoiId 를 Edit OFF 에서도 갱신 가능. 좌클릭 분기는 여전히 _isEditMode 단일 gate 유지 (hotfix#4 보존).
+        private RoiDefinition HitTestRoiAtPoint(Point imagePoint)
+        {
+            if (!string.IsNullOrEmpty(_selectedRoiId))
+            {
+                var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId);
+                if (roi != null)
+                {
+                    var hit = HitTestOneRoi(roi, imagePoint);
+                    if (hit != null) return hit;
+                }
+            }
+            foreach (var roi in _rois)
+            {
+                if (roi == null) continue;
+                var hit = HitTestOneRoi(roi, imagePoint);
+                if (hit != null) return hit;
+            }
+            if (_datumRoiCandidates != null)
+            {
+                foreach (var candidate in _datumRoiCandidates)
+                {
+                    if (candidate == null) continue;
+                    var hit = HitTestOneRoi(candidate, imagePoint);
+                    if (hit != null) return hit;
+                }
+            }
+            return null;
+        }
+
         //260425 hbk Phase 13 D-02 — Rect/Circle 공통 hit 판정 helper
         private static RoiDefinition HitTestOneRoi(RoiDefinition roi, Point imagePoint)
         {
@@ -749,36 +781,33 @@ namespace ReringProject.UI
             _lastMouseImagePoint = mouseState.ImagePoint;
             if ((mouseState.Buttons & HalconRightButton) == HalconRightButton)
             {
-                //260503 hbk Phase 17 hotfix#4 (Test 7 / D-07) — 우클릭 분기 재설계:
-                //  Edit ON + ROI body 우클릭 → _selectedRoiId 갱신 + ContextMenu (Delete 활성)
-                //  Edit ON + 빈 영역 우클릭 → SetEditMode(false) (Phase 13 종료 단축 보존)
-                //  Edit OFF + 우클릭 → 기존 동작 (Polygon 브릿지 또는 ContextMenu)
-                if (_isEditMode)
+                //260503 hbk Phase 17 hotfix#5 (C/D 회귀) — 우클릭 시 Edit 모드 무관 hit-test 로 _selectedRoiId 갱신.
+                //  사유: hotfix#4 가 Phase 13 datumCandidatesPresent bypass 를 제거하면서 Edit 진입점이 막힘 (닭/달걀).
+                //  HitTestRoiAtPoint 는 _isEditMode 게이트 없이 hit-test → ContextMenu Edit/Delete 활성화에 필요한 _selectedRoiId 보장.
+                //  이동/리사이즈는 좌클릭 분기에서 여전히 Edit ON 일 때만 시작 (단일 gate 보존).
+                var rightClickHit = HitTestRoiAtPoint(mouseState.ImagePoint);
+                if (rightClickHit != null && rightClickHit.Id != null)
                 {
-                    var hitRoi = HitTestSelectedRoi(mouseState.ImagePoint);
-                    if (hitRoi != null)
-                    {
-                        if (hitRoi.Id != null)
-                        {
-                            _selectedRoiId = hitRoi.Id;
-                        }
-                        UpdateContextMenuState();
-                        OpenContextMenu();
-                        PublishPointerInfo();
-                        return;
-                    }
-                    // 빈 영역 우클릭 → Edit 모드 종료 (Phase 13 패턴 보존)
+                    _selectedRoiId = rightClickHit.Id;
+                }
+
+                //260503 hbk Phase 17 hotfix#5 — Edit ON + 빈 영역 우클릭 → 모드 종료 (Phase 13 종료 단축 보존)
+                if (_isEditMode && rightClickHit == null)
+                {
                     SetEditMode(false);
                     PublishPointerInfo();
                     return;
                 }
-                //260408 hbk 우클릭 이벤트 브릿지 (Polygon 완성용)
-                if (ImageRightClicked != null)
+
+                //260408 hbk 우클릭 이벤트 브릿지 (Polygon 완성용) — Edit OFF 일 때만 Polygon 우클릭 처리
+                if (!_isEditMode && rightClickHit == null && ImageRightClicked != null)
                 {
                     ImageRightClicked?.Invoke(this, EventArgs.Empty);
                     PublishPointerInfo();
                     return;
                 }
+
+                UpdateContextMenuState();
                 OpenContextMenu();
                 PublishPointerInfo();
                 return;
@@ -1405,18 +1434,20 @@ namespace ReringProject.UI
             //260423 hbk Edit/Delete ROI 메뉴 활성화 (선택 ROI 존재 + 드로잉 모드 아님)
             //260426 hbk Phase 13-05 hotfix — Datum ROI (_datumRoiCandidates) 도 hasSelectedRoi 판정에 포함.
             //  13-03 에서 Datum hit 시 _selectedRoiId = "Datum.*" 를 set 하지만 _rois (FAI 전용) 에는 없으므로 항상 false 였음.
-            //  결과: Datum ROI 컨텍스트 메뉴 Edit/Delete 항목이 비활성 → UAT regression.
+            //260503 hbk Phase 17 hotfix#5 — Edit 메뉴는 진입점 보장을 위해 (이미지 + 그리기 X) 일 때 항상 활성.
+            //  이전: hasSelectedRoi 게이트 → _selectedRoiId 비어있으면 Edit 토글 클릭 불가 (닭/달걀).
+            //  지금: Edit 는 토글이므로 ROI 선택 무관하게 모드 진입 가능. Delete 만 _selectedRoiId 요구.
             if (EditRoiMenuItem != null && DeleteRoiMenuItem != null)
             {
                 bool hasSelectedRoi = !string.IsNullOrEmpty(_selectedRoiId)
                     && (_rois.Any(r => r.Id == _selectedRoiId && r.IsTaught)
                         || (_datumRoiCandidates != null
                             && _datumRoiCandidates.Any(r => r != null && r.Id == _selectedRoiId && r.IsTaught)));
-                bool canEdit = hasSelectedRoi && !IsAnyDrawingModeActive();
-                EditRoiMenuItem.IsEnabled = canEdit;
+                bool drawing = IsAnyDrawingModeActive();
+                EditRoiMenuItem.IsEnabled = isImageLoaded && !drawing; //260503 hbk Phase 17 hotfix#5 — Edit 진입점 항상 보장
                 EditRoiMenuItem.IsCheckable = true;
                 EditRoiMenuItem.IsChecked = _isEditMode;
-                DeleteRoiMenuItem.IsEnabled = canEdit;
+                DeleteRoiMenuItem.IsEnabled = hasSelectedRoi && !drawing; //260503 hbk Phase 17 hotfix#5 — Delete 는 선택 필요
             }
         }
 
@@ -1432,9 +1463,10 @@ namespace ReringProject.UI
         }
 
         //260423 hbk ContextMenu: Edit ROI 토글
+        //260503 hbk Phase 17 hotfix#5 — _selectedRoiId 가드 제거. Edit 토글은 진입점이므로 ROI 선택 무관.
+        //  ROI 가 없어도 Edit ON 으로 두면 사용자가 ROI body 좌클릭하면 hit-test → _selectedRoiId 갱신 → 이동/리사이즈.
         private void EditRoiMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(_selectedRoiId)) return;
             SetEditMode(!_isEditMode);
         }
 

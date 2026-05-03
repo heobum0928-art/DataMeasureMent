@@ -1347,14 +1347,20 @@ namespace ReringProject.UI {
                 PublishDatumRoiCandidates(datum);
 
                 //260503 hbk Phase 17 D-11 — 새 알고리즘이 요구하는 ROI 슬롯 비어 있으면 친절한 에러 모달 (UI-SPEC Copywriting Contract)
-                string missingRoiMsg = ValidateRoiPresence(datum, datum.AlgorithmTypeEnum);
-                if (missingRoiMsg != null) {
-                    CustomMessageBox.Show("티칭 실패", missingRoiMsg); //260503 hbk Phase 17 D-11 — 한국어 친절한 에러
-                    btn_teachDatum.IsChecked = false;
-                    _canvasMode = ECanvasMode.None;
-                    _editingDatum = null;
-                    halconViewer.IsEditMode = false; //260503 hbk Phase 17 D-06 wiring — 티칭 미시작 시 Edit 모드 해제
-                    return;
+                //260503 hbk Phase 17 bugfix#3 — IsConfigured=true 인 경우만 가드 적용 (알고리즘 전환 후 ROI 누락 케이스).
+                //  IsConfigured=false 면 첫 티칭 → wizard(StartDatumTeachStep) 가 ROI 를 단계별로 그리도록 진행.
+                //  UAT Test 10 (새 Datum + ROI 미생성 → 모달) 와 UI-SPEC § btn_teachDatum 상태머신 (Drawing 모드 ON) 충돌 →
+                //  UI-SPEC 우선 (사용자 워크플로우 차단 회피). Test 10 은 carry-over.
+                if (datum.IsConfigured) {
+                    string missingRoiMsg = ValidateRoiPresence(datum, datum.AlgorithmTypeEnum);
+                    if (missingRoiMsg != null) {
+                        CustomMessageBox.Show("티칭 실패", missingRoiMsg); //260503 hbk Phase 17 D-11 — 한국어 친절한 에러
+                        btn_teachDatum.IsChecked = false;
+                        _canvasMode = ECanvasMode.None;
+                        _editingDatum = null;
+                        halconViewer.IsEditMode = false; //260503 hbk Phase 17 D-06 wiring — 티칭 미시작 시 Edit 모드 해제
+                        return;
+                    }
                 }
 
                 //260503 hbk Phase 17 D-06 wiring — 티칭 모드 진입 시 Edit OFF (그리기 모드 → ROI hit-test 차단)

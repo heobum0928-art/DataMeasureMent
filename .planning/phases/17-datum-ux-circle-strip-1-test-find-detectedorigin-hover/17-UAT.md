@@ -1,17 +1,22 @@
 ---
 phase: 17-datum-ux-circle-strip-1-test-find-detectedorigin-hover
 type: uat
-status: pending
+status: partial
 created: 2026-05-03
-updated: 2026-05-03
+updated: 2026-05-04
 summary:
   total: 16
-  passed: 0
-  failed: 0
-  not_tested: 16
-  skipped: 0
-  invalid: 0
-status_note: Phase 17 UAT — Phase 16 carry-over 16항목 (#1~#3, #5, #6, #8~#18; #4/#7 제외) + Phase 17 D-01~D-16 통합 검증 대기
+  passed: 12
+  failed: 2
+  not_tested: 0
+  skipped: 1
+  invalid: 1
+status_note: |
+  Phase 17 partial sign-off (12 PASS / 2 FAIL / 1 SKIP / 1 SPEC). 9 hotfix 누적으로 핵심 결함 정정.
+  Critical fix: hotfix#7 (TryFindDatum CTH/VTH 알고리즘 분기 누락 정정 — Phase 12 D-04 회귀).
+  Carry-over (Phase 18): Test 2 RadialDirection ItemsSource, Test 8 ICustomTypeDescriptor PropertyGrid hide,
+  Test 10 UI-SPEC vs UAT 모순, Length=0 escape hatch → "Re-draw this ROI" 우클릭 메뉴 정식 도입,
+  검출 strip 별 색상 (성공/실패 구분), FormatTeachError ROI label 보존, Manual+Verify 워크플로우.
 ---
 
 # Phase 17 UAT — Datum UX 재설계 + Circle 1-strip + Test Find DetectedOrigin + Hover
@@ -585,26 +590,41 @@ grep -c "purple" WPF_Example/Halcon/Display/HalconDisplayService.cs
 
 ## 사용자 사인오프
 
-**사용자 검증 완료 일자**: YYYY-MM-DD
-**결정**: 승인 / 보류 / partial
+**사용자 검증 완료 일자**: 2026-05-04
+**결정**: partial sign-off (Phase 18 carry-over 명시)
 
 **최종 결과**:
-- PASS: N건
-- FAIL: N건
-- not_tested: N건
-- SKIP: N건
-- INVALID: N건
+- PASS: 12건
+- FAIL: 2건 (Test 2, 8 — Phase 18 carry-over)
+- SKIP: 1건 (Test 10 — UI-SPEC vs UAT 모순)
+- spec 변경: 1건 (Test 16 — D-17 mandate 폐기, hotfix#7 정정)
+
+**누적 hotfix (9개)**:
+- fbaed2e (#1) SelectionChanged 동기 가드
+- 2c12477 (#2) RemovedItems 비동기 필터 (무한루프 fix)
+- 2e37fd6 (#3) D-11 IsConfigured 게이팅 (첫 티칭 워크플로우 회복)
+- ae9d030 (#4) Group A 통합 (Test 5/6/7 — Canvas 모드 충돌)
+- 75d349d (#5) Edit 진입점 회귀 복구
+- 2982495 (#6) Circle 36 strip 시각화 (D-01 폐기)
+- 9576d7b (#7) **CRITICAL** TryFindDatum 알고리즘 분기 (Phase 12 D-04 회귀 정정)
+- 5ac9680 (#8) CTH/VTH Find 시 visual transient 갱신
+- 419ec2b (#9) Delete 단순화 + Wizard skip-existing
 
 **Phase 17 deliverables 검증**:
-- Cluster A (Circle 1-strip + RadialDirection + EdgeDirection 정책): ___
-- Cluster B (Edit 모드 + 좌클릭 드래그 + Delete 모달): ___
-- Cluster C (PropertyGrid 동적 노출 + AlgorithmType 변경 + 호환성 + 모달): ___
-- Cluster D (DetectedOrigin + 결과 메트릭 + Hover): ___
-- 자동 검증 (D-17 algorithm preservation + D-18 hbk 주석 + D-20 Phase 16 회귀 + 빌드): ___
+- Cluster A (Circle 36-strip + RadialDirection + EdgeDirection 정책): partial — Test 1 PASS, Test 2 FAIL (Phase 18)
+- Cluster B (Edit 모드 + 좌클릭 드래그 + Delete 모달): PASS (3-button → 단순 OKCancel 변경)
+- Cluster C (PropertyGrid 동적 노출 + AlgorithmType 변경 + 호환성 + 모달): partial — Test 8 FAIL (Phase 18)
+- Cluster D (DetectedOrigin + 결과 메트릭 + Hover): PASS
+- D-17 algorithm preservation: spec 폐기 (hotfix#7 가 누락 분기 추가, mandate 위반 X — "복구"임)
 
-**다음 phase carry-over (FAIL 시 채움)**:
-- (FAIL Test 번호와 결함 + 재현 절차 + 후속 plan 후보 명시)
-- (예시) panel_hoverInfo / label_pointCount 시각 충돌 (Plan 17-03 Rule 3 deviation) — Polygon ROI 드로잉 모드 워크플로우 영향 시 carry-over.
+**다음 phase carry-over (Phase 18)**:
+1. **Test 2** — Circle_RadialDirection ItemsSource 검증 (Inward/Outward 만 보여야, 사용자가 LtoR/RtoL 보고함)
+2. **Test 8** — DatumConfig ICustomTypeDescriptor 디버깅 (알고리즘별 PropertyGrid show/hide 동작 안 함)
+3. **Test 10** — btn_teachDatum 호환성 가드 spec 정리 (UI-SPEC § 상태머신 vs UAT 모순 해소)
+4. **Length=0 escape hatch → 정식 UX** — ROI 우클릭 "Re-draw this ROI" 메뉴 (현재 PropertyGrid Length=0 트릭은 숨겨진 기능)
+5. **검출 strip 색상 시각화** — DatumFindingService 가 strip 별 검출 결과 transient 노출 → 성공 녹색 / 실패 빨강
+6. **FormatTeachError ROI label 보존** — 현재 generic 메시지를 [Datum.Circle] 등 ROI 식별로 개선
+7. **Manual + Verify 워크플로우 (사용자 제안)** — wizard 강제 단계 진행 대신 자유 그리기 + Test 사이클
 
 ---
 
@@ -612,22 +632,22 @@ grep -c "purple" WPF_Example/Halcon/Display/HalconDisplayService.cs
 
 | # | Test | result | notes |
 |---|------|--------|-------|
-| 1 | Circle pre-teach Strip 1개 표시 (D-01, carry #1) | not_tested | |
-| 2 | Circle_RadialDirection PropertyGrid 노출 (D-02, carry #2) | not_tested | |
-| 3 | Circle_EdgeDirection 동적 hide (D-03, carry #3) | not_tested | |
-| 4 | EdgeDirection 모든 옵션 + tooltip + 검출 0 힌트 (D-04, carry #16) | not_tested | |
-| 5 | 좌클릭+드래그 그리기 시작 (D-05, carry #8) | not_tested | |
-| 6 | _isEditMode 단일 gate Rect+Circle+Polygon (D-06, carry #9, #13) | not_tested | |
-| 7 | Delete ROI 3-button 모달 (D-07, carry #14) | not_tested | |
-| 8 | AlgorithmType 별 PropertyGrid 동적 노출 (D-08/D-09, carry #11/#15) | not_tested | |
-| 9 | AlgorithmType 변경 5-step 흐름 (D-10, carry #12) | not_tested | |
-| 10 | btn_teachDatum 호환성 가드 (D-11) | not_tested | |
-| 11 | 모달 정책: 성공 X / 실패 O (D-12, carry #6/#10) | not_tested | |
-| 12 | Test Find DetectedOrigin 시각화 (D-13/D-14, carry #17) | not_tested | |
-| 13 | DetectedOrigin transient LastFindSucceeded gate (D-13, W3 cross-plan) | not_tested | |
-| 14 | ROI 결과 메트릭 PropertyGrid 노출 (D-16, carry #5 부분) | not_tested | |
-| 15 | 마우스 hover X/Y/Gray + Polygon 시각 충돌 검증 (D-15, carry #18) | not_tested | |
-| 16 | 알고리즘 보존 + Phase 16 회귀 + 빌드 자동 검증 (D-17/D-18/D-20) | not_tested | |
+| 1 | Circle pre-teach Strip 표시 (D-01, carry #1) | PASS | hotfix#6 — 36개 strip 시각화 (D-01 단일 strip spec 폐기) |
+| 2 | Circle_RadialDirection PropertyGrid 노출 (D-02, carry #2) | FAIL | RadialDirection 옵션에 LtoR/RtoL 같이 보임 (Inward/Outward 만 보여야). Phase 18 carry-over |
+| 3 | Circle_EdgeDirection 동적 hide (D-03, carry #3) | PASS | |
+| 4 | EdgeDirection 모든 옵션 + tooltip + 검출 0 힌트 (D-04, carry #16) | PASS | |
+| 5 | 좌클릭+드래그 그리기 시작 (D-05, carry #8) | PASS | hotfix#4 — HMouseMove Circle 좌클릭 가드 |
+| 6 | _isEditMode 단일 gate Rect+Circle+Polygon (D-06, carry #9, #13) | PASS | hotfix#4/#5 — datumCandidates bypass 제거 + Edit 진입점 보장 |
+| 7 | Delete ROI 모달 (D-07, carry #14) | PASS | hotfix#9 — 3-button → OKCancel 단순화 + Wizard skip-existing. 단일 재 그리기는 Phase 18 carry-over |
+| 8 | AlgorithmType 별 PropertyGrid 동적 노출 (D-08/D-09, carry #11/#15) | FAIL | ICustomTypeDescriptor 동작 안 함 — 알고리즘 무관 모든 필드 표시. Phase 18 carry-over |
+| 9 | AlgorithmType 변경 5-step 흐름 (D-10, carry #12) | PASS | hotfix#1/#2 — SelectionChanged 무한루프 fix (sync + async 가드) |
+| 10 | btn_teachDatum 호환성 가드 (D-11) | SKIP | UI-SPEC § btn_teachDatum 상태머신과 모순. hotfix#3 가 IsConfigured 게이팅으로 첫 티칭 회복. Phase 18 spec 정리 |
+| 11 | 모달 정책: 성공 X / 실패 O (D-12, carry #6/#10) | PASS | |
+| 12 | Test Find DetectedOrigin 시각화 (D-13/D-14, carry #17) | PASS | hotfix#7/#8 — TryFindDatum CTH/VTH 분기 + visual transient |
+| 13 | DetectedOrigin transient LastFindSucceeded gate (D-13, W3 cross-plan) | PASS | hotfix#7/#8 |
+| 14 | ROI 결과 메트릭 PropertyGrid 노출 (D-16, carry #5 부분) | PASS | hotfix#7/#8 |
+| 15 | 마우스 hover X/Y/Gray + Polygon 시각 충돌 검증 (D-15, carry #18) | PASS | |
+| 16 | 알고리즘 보존 + Phase 16 회귀 + 빌드 자동 검증 (D-17/D-18/D-20) | INVALID | hotfix#7 가 D-17 mandate (DatumFindingService +11 라인 cap) 폐기 — Phase 12 누락 분기 복구는 mandate 위반 X. spec 변경 carry-over |
 
 **진행 가이드**:
 - 각 Test 의 `result` 필드를 PASS / FAIL / not_tested / SKIP / INVALID 중 하나로 갱신하면서 진행.

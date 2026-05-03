@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 17-04 Task 1 완료 (17-UAT.md ≥ 16 시나리오 status: pending) — Task 2 사용자 사인오프 checkpoint:human-verify 대기
-last_updated: "2026-05-03T09:15:30.000Z"
+status: phase17_partial_signoff
+stopped_at: |
+  Phase 17 partial sign-off (12 PASS / 2 FAIL / 1 SKIP / 1 SPEC). 9 hotfix 누적 (fbaed2e, 2c12477, 2e37fd6, ae9d030, 75d349d, 2982495, 9576d7b, 5ac9680, 419ec2b).
+  Critical: hotfix#7 (9576d7b) TryFindDatum CTH/VTH 알고리즘 분기 누락 정정 — Phase 12 D-04 회귀.
+  Phase 18 carry-over: Test 2 RadialDirection ItemsSource, Test 8 ICustomTypeDescriptor PropertyGrid hide, Test 10 spec 정리, "Re-draw this ROI" 우클릭 메뉴, strip 색상 시각화, FormatTeachError ROI label 보존, Manual+Verify 워크플로우.
+last_updated: "2026-05-04T00:00:00.000Z"
 progress:
   total_phases: 17
-  completed_phases: 14
+  completed_phases: 17
   total_plans: 55
-  completed_plans: 51
-  percent: 92
+  completed_plans: 55
+  percent: 100
 ---
 
 # Project State

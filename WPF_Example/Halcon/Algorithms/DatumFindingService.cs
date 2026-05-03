@@ -338,12 +338,14 @@ namespace ReringProject.Halcon.Algorithms
                 Logging.PrintLog((int)ELogType.Trace,
                     "TryTeachCircleTwoHorizontal: ROI=(" + config.CircleROI_Row + "," + config.CircleROI_Col + ",r=" + config.CircleROI_Radius + ") " +
                     "polar(step=" + config.Circle_PolarStepDeg + " L1=" + config.Circle_RectL1Ratio + " L2=" + config.Circle_RectL2Ratio + ")");
+                //260503 hbk Phase 17 D-02 — Circle_RadialDirection ("Inward"/"Outward") → polarity ("positive"/"negative") override (EdgePolarity 무시)
+                string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
                 //260426 hbk Phase 14-05 — Circle per-ROI 에지 파라미터 + Polar sampling 파라미터 (14-04 신규 3 필드)
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
                         config.Circle_PolarStepDeg, config.Circle_RectL1Ratio, config.Circle_RectL2Ratio,
-                        config.Circle_Sigma, config.Circle_EdgeThreshold, config.Circle_EdgePolarity,
+                        config.Circle_Sigma, config.Circle_EdgeThreshold, circlePolarity, //260503 hbk Phase 17 D-02 — RadialDirection 우선 (EdgePolarity 미사용)
                         config.Circle_EdgeSelection, //260429 hbk Phase 15 — Circle_EdgeSelection 전파 (PropertyGrid → MeasurePos selection)
                         null, // teaching-phase identity transform (legacy 동일)
                         out centerRow, out centerCol, out radius,

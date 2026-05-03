@@ -48,6 +48,28 @@ namespace ReringProject.Halcon.Algorithms
             //260503 hbk Phase 17 D-13 — 메서드 시작 시 reset (조기 return / catch 시 false 보장)
             config.LastFindSucceeded = false;
 
+            //260503 hbk Phase 17 hotfix#7 — TryFindDatum 알고리즘 분기 추가 (Phase 12 D-04 누락 정정).
+            //  기존: TwoLineIntersect 본문 inline → CTH/VTH 검사 시 Line1/Line2 빈 슬롯 접근 → 항상 NG.
+            //  수정: AlgorithmTypeEnum switch 로 3-way 분기 (TryTeachDatum 와 동일 패턴).
+            switch (config.AlgorithmTypeEnum)
+            {
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    return TryFindCircleTwoHorizontal(image, config, out transform, out error);
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    return TryFindVerticalTwoHorizontal(image, config, out transform, out error);
+                case EDatumAlgorithm.TwoLineIntersect:
+                default:
+                    return TryFindTwoLineIntersect(image, config, out transform, out error);
+            }
+        }
+
+        //260503 hbk Phase 17 hotfix#7 — 기존 TryFindDatum 본문 (TwoLineIntersect 검출 + transform 빌드) 을 private 으로 분리.
+        //  로직 변경 0: Line1 / Line2 검출 → IntersectionLl → hom_mat2d (translate + rotate) → DetectedOrigin transient.
+        private bool TryFindTwoLineIntersect(HImage image, DatumConfig config, out HTuple transform, out string error)
+        {
+            error = null;
+            HOperatorSet.HomMat2dIdentity(out transform);
+
             try
             {
                 HTuple imageWidth, imageHeight;
@@ -152,6 +174,310 @@ namespace ReringProject.Halcon.Algorithms
                 error = ex.Message;
                 HOperatorSet.HomMat2dIdentity(out transform);
                 return false;
+            }
+        }
+
+        //260503 hbk Phase 17 hotfix#7 — CircleTwoHorizontal Find 분기 (Phase 12 D-04 누락 정정).
+        //  검출 로직은 TryTeachCircleTwoHorizontal 와 동일 (Step 1 Circle + Step 2/3 Horizontal A/B + Step 4 라인 fit
+        //  + Step 5 수직 가상선 ∩ 수평 결합선). 차이는 마지막에 ref 덮어쓰기 대신 (curRow,curCol,curAngle) 와
+        //  config.RefOriginRow/Col/RefAngleRad 의 delta 로 hom_mat2d 빌드.
+        private bool TryFindCircleTwoHorizontal(HImage image, DatumConfig config, out HTuple transform, out string error)
+        {
+            error = null;
+            HOperatorSet.HomMat2dIdentity(out transform);
+
+            HObject contour = null;
+            try
+            {
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                // Step 1: Circle 검출 (TryTeachCircleTwoHorizontal 와 동일)
+                var visionSvc = new VisionAlgorithmService();
+                double centerRow, centerCol, radius;
+                HTuple circleEdgeRows, circleEdgeCols;
+                string circleError;
+                string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
+                if (!visionSvc.TryFindCircleByPolarSampling(
+                        image,
+                        config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
+                        config.Circle_PolarStepDeg, config.Circle_RectL1Ratio, config.Circle_RectL2Ratio,
+                        config.Circle_Sigma, config.Circle_EdgeThreshold, circlePolarity,
+                        config.Circle_EdgeSelection,
+                        null,
+                        out centerRow, out centerCol, out radius,
+                        out circleEdgeRows, out circleEdgeCols,
+                        out circleError))
+                {
+                    error = "Circle: " + circleError;
+                    return false;
+                }
+
+                // Step 2: Horizontal A 에지점
+                HTuple rowEdgeA, colEdgeA;
+                string edgeErrorA;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A"))
+                {
+                    error = "Horizontal_A: " + edgeErrorA;
+                    return false;
+                }
+
+                // Step 3: Horizontal B 에지점
+                HTuple rowEdgeB, colEdgeB;
+                string edgeErrorB;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B"))
+                {
+                    error = "Horizontal_B: " + edgeErrorB;
+                    return false;
+                }
+
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
+                if (totalEdges < MIN_HORIZONTAL_EDGES)
+                {
+                    error = "Horizontal line fit failed: insufficient edges (" + totalEdges + ")";
+                    return false;
+                }
+
+                // Step 4: A+B concat → 단일 라인 fit
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB);
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB);
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols);
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df;
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        contour, "tukey", -1, 0, 5, 2,
+                        out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
+                }
+                catch (Exception fitEx)
+                {
+                    error = "Horizontal line fit failed: " + fitEx.Message;
+                    return false;
+                }
+
+                // Step 5: 수직 가상선 (centerRow ± 1.0, centerCol) × 수평 결합선
+                HTuple curRow, curCol, isOverlapping;
+                HOperatorSet.IntersectionLl(
+                    centerRow - 1.0, centerCol, centerRow + 1.0, centerCol,
+                    hrB, hcB, hrE, hcE,
+                    out curRow, out curCol, out isOverlapping);
+
+                if (isOverlapping.I == 1)
+                {
+                    error = "Intersection undefined: lines are collinear";
+                    return false;
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) ||
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D))
+                {
+                    error = "Intersection undefined: lines are parallel";
+                    return false;
+                }
+
+                // 현재 각도 = 수평 결합선 방향각 (Teach 와 동일 정의)
+                double curAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
+
+                // hom_mat2d 빌드 (translate + rotate around current origin)
+                double dRow = curRow.D - config.RefOriginRow;
+                double dCol = curCol.D - config.RefOriginCol;
+                double dAngle = curAngle - config.RefAngleRad;
+                HTuple mat;
+                HOperatorSet.HomMat2dIdentity(out mat);
+                HOperatorSet.HomMat2dTranslate(mat, dRow, dCol, out mat);
+                HOperatorSet.HomMat2dRotate(mat, dAngle, curRow.D, curCol.D, out transform);
+
+                // DetectedOrigin transient write-back (D-13)
+                config.DetectedOriginRow = curRow.D;
+                config.DetectedOriginCol = curCol.D;
+                config.DetectedRefAngle  = curAngle;
+                config.DetectedEdgeCount = circleEdgeRows.TupleLength() + totalEdges;
+                config.DetectedFitRMSE   = 0.0;
+                config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
+                config.LastFindSucceeded = true;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                HOperatorSet.HomMat2dIdentity(out transform);
+                return false;
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        //260503 hbk Phase 17 hotfix#7 — VerticalTwoHorizontal Find 분기 (Phase 12 D-04 누락 정정).
+        //  검출: Vertical 라인 + Horizontal A/B 합산 라인 → IntersectionLl. Teach 와 동일.
+        //  ValidateHorizontalVerticalAngles 게이트 보존 (Teach 와 동일). 마지막에 transform 빌드.
+        private bool TryFindVerticalTwoHorizontal(HImage image, DatumConfig config, out HTuple transform, out string error)
+        {
+            error = null;
+            HOperatorSet.HomMat2dIdentity(out transform);
+
+            HObject contour = null;
+            try
+            {
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                // Vertical 라인 검출
+                double vrB, vcB, vrE, vcE;
+                HTuple vertRawRows, vertRawCols;
+                string lineError;
+                if (!TryFindLine(
+                        image, imageWidth, imageHeight,
+                        config.Vertical_Row, config.Vertical_Col, config.Vertical_Phi,
+                        config.Vertical_Length1, config.Vertical_Length2,
+                        config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
+                        config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        out vrB, out vcB, out vrE, out vcE,
+                        out vertRawRows, out vertRawCols,
+                        out lineError,
+                        "Vertical"))
+                {
+                    error = "Vertical: " + lineError;
+                    return false;
+                }
+
+                // Horizontal A
+                HTuple rowEdgeA, colEdgeA;
+                string edgeErrorA;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A"))
+                {
+                    error = "Horizontal_A: " + edgeErrorA;
+                    return false;
+                }
+
+                // Horizontal B
+                HTuple rowEdgeB, colEdgeB;
+                string edgeErrorB;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B"))
+                {
+                    error = "Horizontal_B: " + edgeErrorB;
+                    return false;
+                }
+
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
+                if (totalEdges < MIN_HORIZONTAL_EDGES)
+                {
+                    error = "Horizontal line fit failed: insufficient edges (" + totalEdges + ")";
+                    return false;
+                }
+
+                // A+B concat → 라인 fit
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB);
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB);
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols);
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df;
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        contour, "tukey", -1, 0, 5, 2,
+                        out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
+                }
+                catch (Exception fitEx)
+                {
+                    error = "Horizontal line fit failed: " + fitEx.Message;
+                    return false;
+                }
+
+                // 수직 라인 × 수평 결합선
+                HTuple curRow, curCol, isOverlapping;
+                HOperatorSet.IntersectionLl(
+                    vrB, vcB, vrE, vcE,
+                    hrB, hcB, hrE, hcE,
+                    out curRow, out curCol, out isOverlapping);
+
+                if (isOverlapping.I == 1)
+                {
+                    error = "Intersection undefined: lines are collinear";
+                    return false;
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) ||
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D))
+                {
+                    error = "Intersection undefined: lines are parallel";
+                    return false;
+                }
+
+                double curAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
+
+                // 직각성 검증 (Teach 와 동일)
+                double vertPhiDetected = Math.Atan2(vrE - vrB, vcE - vcB);
+                string angleError;
+                if (!ValidateHorizontalVerticalAngles(curAngle, vertPhiDetected, out angleError))
+                {
+                    error = angleError;
+                    return false;
+                }
+
+                // hom_mat2d 빌드
+                double dRow = curRow.D - config.RefOriginRow;
+                double dCol = curCol.D - config.RefOriginCol;
+                double dAngle = curAngle - config.RefAngleRad;
+                HTuple mat;
+                HOperatorSet.HomMat2dIdentity(out mat);
+                HOperatorSet.HomMat2dTranslate(mat, dRow, dCol, out mat);
+                HOperatorSet.HomMat2dRotate(mat, dAngle, curRow.D, curCol.D, out transform);
+
+                // DetectedOrigin transient
+                config.DetectedOriginRow = curRow.D;
+                config.DetectedOriginCol = curCol.D;
+                config.DetectedRefAngle  = curAngle;
+                config.DetectedEdgeCount = (vertRawRows != null ? vertRawRows.TupleLength() : 0) + totalEdges;
+                config.DetectedFitRMSE   = 0.0;
+                config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
+                config.LastFindSucceeded = true;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                HOperatorSet.HomMat2dIdentity(out transform);
+                return false;
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } }
             }
         }
 

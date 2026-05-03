@@ -20,5 +20,10 @@ namespace ReringProject.Sequence
 
         // MeasurePos 'first'/'last'/'all' 의 Datum UI 표기. //260429 hbk Phase 15 — DatumConfig.*_EdgeSelection ItemsSource 단일 소스
         public static readonly List<string> Selections = new List<string> { "First", "Last", "All" }; //260429 hbk Phase 15
+
+        //260503 hbk Phase 17 D-02 — Datum Circle ROI 안→밖 / 밖→안 그라디언트 polarity (CTH only).
+        //  DatumConfig.Circle_RadialDirection ItemsSource 단일 소스. Caller (DatumFindingService.TryTeachCircleTwoHorizontal)
+        //  가 "Inward" → "positive", "Outward" → "negative" 로 매핑하여 TryFindCircleByPolarSampling 의 polarity 인자에 override 전달.
+        public static readonly List<string> RadialDirections = new List<string> { "Inward", "Outward" }; //260503 hbk Phase 17 D-02
     }
 }

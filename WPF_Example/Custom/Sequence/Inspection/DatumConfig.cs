@@ -106,6 +106,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Line1 (TLI) Edge")]
         public int    Line1_EdgeThreshold   { get; set; } = 0;
         public double Line1_Sigma           { get; set; } = 0;
+        [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Line1_EdgeDirectionList))]
         public string Line1_EdgeDirection   { get; set; } = "";
         public int    Line1_EdgeSampleCount { get; set; } = 0;
@@ -141,6 +142,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Vertical (VTH) Edge")]
         public int    Vertical_EdgeThreshold   { get; set; } = 0;
         public double Vertical_Sigma           { get; set; } = 0;
+        [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Vertical_EdgeDirectionList))]
         public string Vertical_EdgeDirection   { get; set; } = "";
         public int    Vertical_EdgeSampleCount { get; set; } = 0;
@@ -180,6 +182,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Line2 (TLI) Edge")]
         public int    Line2_EdgeThreshold   { get; set; } = 0;
         public double Line2_Sigma           { get; set; } = 0;
+        [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Line2_EdgeDirectionList))]
         public string Line2_EdgeDirection   { get; set; } = "";
         public int    Line2_EdgeSampleCount { get; set; } = 0;
@@ -222,6 +225,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Circle (CTH) Edge")]
         public int    Circle_EdgeThreshold   { get; set; } = 0;
         public double Circle_Sigma           { get; set; } = 0;
+        [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
         public string Circle_EdgeDirection   { get; set; } = "";
         public int    Circle_EdgeSampleCount { get; set; } = 0;
@@ -231,12 +235,17 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Circle_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
         public string Circle_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
+        [ItemsSourceProperty(nameof(Circle_RadialDirectionList))] //260503 hbk Phase 17 D-02
+        public string Circle_RadialDirection { get; set; } = ""; //260503 hbk Phase 17 D-02 — 안→밖(Inward, polarity=positive) / 밖→안(Outward, polarity=negative)
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Circle_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Circle_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Circle_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
+        [PropertyTools.DataAnnotations.Browsable(false)] //260503 hbk Phase 17 D-02
+        public List<string> Circle_RadialDirectionList { get { return EdgeOptionLists.RadialDirections; } } //260503 hbk Phase 17 D-02
 
         //260423 hbk Phase 12 D-11 — 수평 A ROI (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
         //260423 hbk  A/B 순서 의존성 없음 — concat + FitLineContourXld 이므로 교환 대칭.
@@ -263,6 +272,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Horizontal_A (CTH/VTH) Edge")]
         public int    Horizontal_A_EdgeThreshold   { get; set; } = 0;
         public double Horizontal_A_Sigma           { get; set; } = 0;
+        [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeDirectionList))]
         public string Horizontal_A_EdgeDirection   { get; set; } = "";
         public int    Horizontal_A_EdgeSampleCount { get; set; } = 0;
@@ -302,6 +312,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Horizontal_B (CTH/VTH) Edge")]
         public int    Horizontal_B_EdgeThreshold   { get; set; } = 0;
         public double Horizontal_B_Sigma           { get; set; } = 0;
+        [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeDirectionList))]
         public string Horizontal_B_EdgeDirection   { get; set; } = "";
         public int    Horizontal_B_EdgeSampleCount { get; set; } = 0;
@@ -451,6 +462,7 @@ namespace ReringProject.Sequence {
             if (Circle_EdgeTrimCount == 0)       Circle_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Circle_EdgePolarity)) Circle_EdgePolarity = fbPolarity;
             if (string.IsNullOrEmpty(Circle_EdgeSelection)) Circle_EdgeSelection = fbSelection; //260429 hbk Phase 15
+            if (string.IsNullOrEmpty(Circle_RadialDirection)) Circle_RadialDirection = "Inward"; //260503 hbk Phase 17 D-02 — sentinel "" → "Inward" fallback (INI 하위호환)
 
             // Horizontal_A
             if (Horizontal_A_EdgeThreshold == 0)   Horizontal_A_EdgeThreshold = fbThreshold;

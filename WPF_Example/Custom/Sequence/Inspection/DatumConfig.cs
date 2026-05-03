@@ -11,7 +11,8 @@ namespace ReringProject.Sequence {
     /// ParamBase 상속으로 INI 자동 직렬화(double/int/string/bool).
     /// HTuple 필드는 ParamBase switch-case에 없으므로 런타임 전용으로 사용된다 (D-11).
     /// </summary>
-    public class DatumConfig : ParamBase {
+    //260503 hbk Phase 17 D-09 — PropertyGrid 동적 노출 (AlgorithmType 별 필터). ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0 (확인: ParamBase.cs L75/L325/L370).
+    public class DatumConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor {
 
         //260413 hbk Phase 6: DatumName — 사용자가 지정하는 식별자 (D-06)
         [Category("Datum|Identity")]
@@ -503,6 +504,61 @@ namespace ReringProject.Sequence {
                 Vertical_Length1 = Line1_Length1;
                 Vertical_Length2 = Line1_Length2;
             }
+        }
+
+        //260503 hbk Phase 17 D-09 — PropertyGrid 동적 노출 (AlgorithmType 별 필터)
+        //  PropertyTools.Wpf 가 ICustomTypeDescriptor.GetProperties(Attribute[]) 를 호출 (PropertyGrid 용).
+        //  ParamBase INI 직렬화는 GetType().GetProperties() System.Reflection 경로 사용 — ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370 확인).
+        //  안전 장치: GetProperties() 무인자도 base TypeDescriptor 위임으로 정의 (System.ComponentModel 우회 사용처 보호).
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) {
+            var all = System.ComponentModel.TypeDescriptor.GetProperties(this, attributes, true);
+            var alg = AlgorithmTypeEnum;
+            var keep = new List<System.ComponentModel.PropertyDescriptor>();
+            foreach (System.ComponentModel.PropertyDescriptor pd in all) {
+                if (IsHiddenForAlgorithm(pd.Name, alg)) continue; //260503 hbk Phase 17 D-09 — alg 별 hide 필터
+                keep.Add(pd);
+            }
+            return new System.ComponentModel.PropertyDescriptorCollection(keep.ToArray());
+        }
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties() {
+            //260503 hbk Phase 17 D-09 — INI reflection 경로 보호 (System.ComponentModel 사용처가 있을 경우 base 위임)
+            return System.ComponentModel.TypeDescriptor.GetProperties(this, true);
+        }
+        public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); }
+        public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); }
+        public string GetComponentName() { return System.ComponentModel.TypeDescriptor.GetComponentName(this, true); }
+        public System.ComponentModel.TypeConverter GetConverter() { return System.ComponentModel.TypeDescriptor.GetConverter(this, true); }
+        public System.ComponentModel.EventDescriptor GetDefaultEvent() { return System.ComponentModel.TypeDescriptor.GetDefaultEvent(this, true); }
+        public System.ComponentModel.PropertyDescriptor GetDefaultProperty() { return System.ComponentModel.TypeDescriptor.GetDefaultProperty(this, true); }
+        public object GetEditor(System.Type editorBaseType) { return System.ComponentModel.TypeDescriptor.GetEditor(this, editorBaseType, true); }
+        public System.ComponentModel.EventDescriptorCollection GetEvents(System.Attribute[] attributes) { return System.ComponentModel.TypeDescriptor.GetEvents(this, attributes, true); }
+        public System.ComponentModel.EventDescriptorCollection GetEvents() { return System.ComponentModel.TypeDescriptor.GetEvents(this, true); }
+        public object GetPropertyOwner(System.ComponentModel.PropertyDescriptor pd) { return this; }
+
+        //260503 hbk Phase 17 D-08/D-09 — AlgorithmType 별 노출 그룹 (UI-SPEC 표):
+        //   TLI: Line1_*/Line2_* 노출 — Circle_*/CircleROI_*/CircleCenter_*/CircleDetected_*, Vertical_*, Horizontal_A_*/Horizontal_B_* 숨김
+        //   CTH: Circle_* (RadialDirection 포함) + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Vertical_*, Circle_EdgeDirection (D-03) 숨김
+        //   VTH: Vertical_* + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Circle_* 숨김
+        private static bool IsHiddenForAlgorithm(string name, EDatumAlgorithm alg) {
+            switch (alg) {
+                case EDatumAlgorithm.TwoLineIntersect:
+                    if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
+                    if (name.StartsWith("Vertical_")) return true;
+                    if (name.StartsWith("Horizontal_A_") || name.StartsWith("Horizontal_B_")) return true;
+                    return false;
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
+                    if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
+                    if (name.StartsWith("Vertical_")) return true;
+                    if (name == "Circle_EdgeDirection") return true; //260503 hbk Phase 17 D-03 — Circle 분기에서 EdgeDirection 동적 hide
+                    return false;
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
+                    if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
+                    if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
+                    return false;
+            }
+            return false;
         }
 
         public DatumConfig(object owner) : base(owner) {

@@ -310,6 +310,32 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedEdgeCount = circleEdgeRows.TupleLength() + totalEdges;
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
+
+                //260503 hbk Phase 17 hotfix#8 — Visual transient 갱신 (검출 원 + 라인 외삽 + raw edge 점 새 위치 반영).
+                //  hotfix#7 가 DetectedOrigin 만 갱신 → CTH 의 검출 원/center cross 가 teach 시점 위치에 박힘 →
+                //  사용자가 "ROI 옮겨도 갱신 안 됨" 으로 인식. RenderDatumOverlay 가 사용하는 visual field 를 모두 갱신.
+                config.CircleCenter_Row      = centerRow;
+                config.CircleCenter_Col      = centerCol;
+                config.CircleDetected_Radius = radius;
+                //  Line1Detected = 수직 가상선 (Teach 와 동일 패턴, 가시 길이 ±50px)
+                const double crossHalf = 50.0;
+                config.Line1Detected_RBegin = centerRow - crossHalf;
+                config.Line1Detected_CBegin = centerCol;
+                config.Line1Detected_REnd   = centerRow + crossHalf;
+                config.Line1Detected_CEnd   = centerCol;
+                //  Line2Detected = 수평 결합 라인
+                config.Line2Detected_RBegin = hrB.D;
+                config.Line2Detected_CBegin = hcB.D;
+                config.Line2Detected_REnd   = hrE.D;
+                config.Line2Detected_CEnd   = hcE.D;
+                //  Raw edge points (검출 trace 시각화)
+                config.Circle_DetectedEdgeRows       = circleEdgeRows;
+                config.Circle_DetectedEdgeCols       = circleEdgeCols;
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA;
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA;
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB;
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB;
+
                 config.LastFindSucceeded = true;
 
                 return true;
@@ -465,6 +491,26 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedEdgeCount = (vertRawRows != null ? vertRawRows.TupleLength() : 0) + totalEdges;
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
+
+                //260503 hbk Phase 17 hotfix#8 — Visual transient 갱신 (검출 라인 외삽 + raw edge 점 새 위치 반영).
+                //  hotfix#7 가 DetectedOrigin 만 갱신 → 사용자가 "ROI 옮겨도 갱신 안 됨" 으로 인식.
+                //  Line1Detected = 검출된 수직 라인, Line2Detected = 수평 결합 라인.
+                config.Line1Detected_RBegin = vrB;
+                config.Line1Detected_CBegin = vcB;
+                config.Line1Detected_REnd   = vrE;
+                config.Line1Detected_CEnd   = vcE;
+                config.Line2Detected_RBegin = hrB.D;
+                config.Line2Detected_CBegin = hcB.D;
+                config.Line2Detected_REnd   = hrE.D;
+                config.Line2Detected_CEnd   = hcE.D;
+                //  Raw edge points (검출 trace 시각화)
+                config.Vertical_DetectedEdgeRows     = vertRawRows;
+                config.Vertical_DetectedEdgeCols     = vertRawCols;
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA;
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA;
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB;
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB;
+
                 config.LastFindSucceeded = true;
 
                 return true;

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 17-02 완료 (4 tasks / 4 files / ~6 min) — 다음 Plan 17-03
-last_updated: "2026-05-03T08:52:36.763Z"
+stopped_at: Phase 17-03 완료 (5 tasks / 6 files / ~12 min) — 다음 Plan 17-04 UAT
+last_updated: "2026-05-03T09:06:39.435Z"
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 55
-  completed_plans: 49
-  percent: 89
+  completed_plans: 50
+  percent: 91
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 ## Current Position
 
 Phase: 17 (datum-ux-circle-strip-1-test-find-detectedorigin-hover) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Plans: 3 / 2 waves
 
   - Wave 1 (병렬): 16-01 HalconDisplayService Circle overlay 재작성 (R1+R2) / 16-02 InspectionListView force rebind + MainView Auto-reteach off (R3+R4)
@@ -78,6 +78,7 @@ Next: /gsd-execute-phase 16
 | Phase 15 P03 | 5 | 2 tasks | 2 files |
 | Phase 17 P17-01 | 6 | 3 tasks | 4 files |
 | Phase 17 PP17-02 | 6 | 4 tasks | 4 files |
+| Phase 17 PP17-03 | 12 | 5 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,7 @@ Recent decisions affecting current work:
 - [Phase 15-03]: VisionAlgorithmService.TryFindCircleByPolarSampling 시그니처 +1 string selection (polarity 다음, datumTransform 앞) + sanity clamp("First" default) + selectionLower 변환 (CANONICAL: MeasurementAlgorithm.cs:178); MeasurePos "all" 하드코딩 제거 → caller selection 반영; 누적 정책 분기 — All=eRows 전체, First/Last=eRows[0] 단일점 (Phase 14-04 360° stepCount 의도 보존); rectPhi=thetaRad 회전 식 변경 0 라인 (Phase 14-04 D-13 anti-goal 준수); DatumFindingService.TryTeachCircleTwoHorizontal Circle 호출 1 사이트 wiring (config.Circle_EdgeSelection 전파); 전체 솔루션 caller scan 결과 1 caller 확정 (RunPhiSmokeTest 는 자체 sin/cos 계산만 trace 노출 — TryFindCircleByPolarSampling 미호출, dormant); msbuild Debug/x64 PASS 0 신규 warning on 수정 범위
 - [Phase 17-01]: Circle pre-teach strip 시각화 폐기 (stepCount N개 → thetaRad=0.0 단일 strip), Circle_RadialDirection PropertyGrid ComboBox 신규 (sentinel/fallback 'Inward'), 6 *_EdgeDirection 한국어 tooltip, DatumFindingService caller polarity 매핑 (D-17: VisionAlgorithmService 0 라인 / DatumFindingService +2 라인). Plan 영역 분리 lock 통과 (17-02 ICustomTypeDescriptor / 17-03 transient 미침범).
 - [Phase 17-02]: Cluster B+C 통합 — Edit 모드 단일 gate (HitTestSelectedRoi 가드) + 좌클릭 드래그 그리기 + DatumConfig ICustomTypeDescriptor (TLI/CTH/VTH 동적 PropertyGrid + Circle_EdgeDirection D-03 hide) + AlgorithmType 변경 5-step 리셋 (force rebind + 검출 reset + ROI 보존 + 자동 재검출 X) + Delete 3-button 모달 (CustomMessageBox YesNoCancel 재사용) + btn_teachDatum 호환성 가드 (ValidateRoiPresence 한국어 모달) + teach/find 실패 모달 (FormatTeachError/FormatFindError + D-04 EdgeDirection 힌트). D-17 0 라인 (VisionAlgorithmService + DatumFindingService 양쪽 0). Plan 17-01 RadialDirection / 17-03 transient 영역 미침범 (sequential lock 통과).
+- [Phase 17-03]: DatumConfig 6 신규 필드 (transient 3 + 메트릭 3) — Phase 13-05 D-VIZ-01 패턴 재사용 ([Browsable(false)]+[JsonIgnore]+ParamBase reflection 자동 무시); PropertyTools.DataAnnotations.ReadOnly + System.ComponentModel.ReadOnly 양쪽 부착 (호환성 안전판); TryFindDatum 시작시 LastFindSucceeded=false reset + 성공분기 끝 9 라인 write-back (D-17 cumulative DatumFindingService 11 라인 EXACT, VisionAlgorithmService 0); RenderDatumFindResult 본문 orange/RefOrigin → purple/DetectedOrigin + LastFindSucceeded gate + RenderDatumOverlay z-stack last 호출; canvasToolbar X/Y/Gray TextBlock 3개 (panel_hoverInfo) + UpdatePointerLabel 양쪽 갱신 + 기존 PublishPointerInfo 파이프라인 재사용 (신규 GetGrayval 호출 0); BtnTestFindDatum_Click 성공경로 SetDatumOverlay 단일화 (RenderDatumOverlay z-stack chain) + RaisePropertyChanged + RefreshParamEditor + 모달 X (UI-SPEC LOCKED); InspectionListView 5-step Step 3 wiring (DetectedOrigin/메트릭 0 리셋 — W3 Test 13 검증 가능). Rule 3 deviation: label_pointCount XAML 보존 (code-behind 5 사이트 참조).
 
 ### Quick Tasks Completed
 
@@ -162,8 +164,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-03T08:52:24.108Z
-Stopped at: Phase 17-02 완료 (4 tasks / 4 files / ~6 min) — 다음 Plan 17-03
+Last session: 2026-05-03T09:06:17.095Z
+Stopped at: Phase 17-03 완료 (5 tasks / 6 files / ~12 min) — 다음 Plan 17-04 UAT
 Resume file: None
 Next action: `/gsd-execute-phase 17` (Wave 1 = 17-01 Cluster A → Wave 2 = 17-02 Cluster B+C → Wave 3 = 17-03 Cluster D → Wave 4 = 17-04 UAT)
 

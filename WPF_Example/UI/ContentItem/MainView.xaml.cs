@@ -492,6 +492,7 @@ namespace ReringProject.UI {
 
         //260423 hbk ContextMenu Delete 핸들러
         //260425 hbk Phase 13 D-A — Datum RoiId prefix 면 Datum 분기로 early return (FAI lookup 전에)
+        //260503 hbk Phase 17 D-07 — Datum ROI Delete 시 3-button 모달 (단일 / 전체 / 취소). YesNoCancel 재사용 (PATTERNS gap #3 옵션 a).
         private void HalconViewer_RoiDeleteRequested(object sender, string roiId) {
             if (string.IsNullOrEmpty(roiId)) return;
 
@@ -499,7 +500,18 @@ namespace ReringProject.UI {
             if (roiId.StartsWith("Datum.")) {
                 DatumConfig datum;
                 if (IsCurrentNodeDatum(out datum)) {
-                    ClearDatumRoiFields(datum, roiId);
+                    //260503 hbk Phase 17 D-07 — Delete 모달 (단일 / 전체 / 취소). UI-SPEC Copywriting Contract 한국어 verbatim.
+                    var choice = CustomMessageBox.ShowConfirmation(
+                        "ROI 삭제",
+                        "선택한 ROI 를 삭제하시겠습니까?\n\n[예] 이 ROI만 삭제\n[아니오] 현재 Datum 의 모든 ROI 삭제\n[취소] 취소",
+                        MessageBoxButton.YesNoCancel);
+                    if (choice == MessageBoxResult.Cancel || choice == MessageBoxResult.None) return; //260503 hbk Phase 17 D-07 — 취소 (Repudiation mitigate T-17-02-04)
+                    if (choice == MessageBoxResult.Yes) {
+                        ClearDatumRoiFields(datum, roiId); //260503 hbk Phase 17 D-07 — 단일 ROI 삭제
+                    }
+                    else {
+                        ClearAllDatumRoiFields(datum); //260503 hbk Phase 17 D-07 — No → 현재 Datum 의 모든 ROI 삭제
+                    }
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
                     mParentWindow?.inspectionList?.RefreshParamEditor();
                     halconViewer.SetDatumOverlay(datum, true);
@@ -684,6 +696,65 @@ namespace ReringProject.UI {
             //260425 hbk Phase 13 D-A — 어느 ROI 든 삭제되면 Datum 자체가 불완전 → 검증 disable
             datum.IsConfigured = false;
             datum.LastTeachSucceeded = false;
+        }
+
+        //260503 hbk Phase 17 D-07 — 현재 Datum 의 모든 ROI 필드 0 리셋 (Delete 모달 [아니오] 분기)
+        //  ClearDatumRoiFields 의 6 RoiId 분기를 모두 호출. IsConfigured/LastTeachSucceeded 는 마지막 호출에서 false 로 set.
+        private void ClearAllDatumRoiFields(DatumConfig datum) {
+            if (datum == null) return;
+            ClearDatumRoiFields(datum, "Datum.Line1");
+            ClearDatumRoiFields(datum, "Datum.Line2");
+            ClearDatumRoiFields(datum, "Datum.Vertical");
+            ClearDatumRoiFields(datum, "Datum.Circle");
+            ClearDatumRoiFields(datum, "Datum.HorizontalA");
+            ClearDatumRoiFields(datum, "Datum.HorizontalB");
+        }
+
+        //260503 hbk Phase 17 D-11 — btn_teachDatum 호환성 가드: 새 알고리즘이 요구하는 ROI 슬롯 비어 있으면 친절한 한국어 에러 (UI-SPEC Copywriting Contract)
+        //  반환 null = OK. 비어 있으면 사용자에게 표시할 메시지 반환.
+        private static string ValidateRoiPresence(DatumConfig d, EDatumAlgorithm alg) {
+            if (d == null) return null;
+            switch (alg) {
+                case EDatumAlgorithm.TwoLineIntersect:
+                    if (d.Line1_Length1 <= 0 || d.Line2_Length1 <= 0)
+                        return "Line1/Line2 ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요.";
+                    break;
+                case EDatumAlgorithm.CircleTwoHorizontal:
+                    if (d.CircleROI_Radius <= 0)
+                        return "Circle ROI 가 없습니다. 캔버스에 원을 그리고 다시 시도하세요.";
+                    if (d.Horizontal_A_Length1 <= 0 || d.Horizontal_B_Length1 <= 0)
+                        return "Horizontal A/B ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요.";
+                    break;
+                case EDatumAlgorithm.VerticalTwoHorizontal:
+                    if (d.Vertical_Length1 <= 0)
+                        return "Vertical ROI 가 없습니다. 캔버스에 수직 ROI 를 그리고 다시 시도하세요.";
+                    if (d.Horizontal_A_Length1 <= 0 || d.Horizontal_B_Length1 <= 0)
+                        return "Horizontal A/B ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요.";
+                    break;
+            }
+            return null;
+        }
+
+        //260503 hbk Phase 17 D-12 + D-04 — teach 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
+        private static string FormatTeachError(string err) {
+            if (err == null) err = "unknown";
+            if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) {
+                return "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요."; //260503 hbk Phase 17 D-04 — EdgeDirection 힌트
+            }
+            return "티칭에 실패했습니다: " + err;
+        }
+
+        //260503 hbk Phase 17 D-12 + D-04 — Test Find 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
+        private static string FormatFindError(string err) {
+            if (err == null) err = "unknown";
+            if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) {
+                return "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요."; //260503 hbk Phase 17 D-04 — EdgeDirection 힌트
+            }
+            return "Datum Find 에 실패했습니다: " + err;
         }
 
         //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
@@ -1271,6 +1342,20 @@ namespace ReringProject.UI {
                 //260425 hbk Phase 13 D-01..D-04 — teach 진입 시점에 후보 publish (이후 edit/delete 가능)
                 PublishDatumRoiCandidates(datum);
 
+                //260503 hbk Phase 17 D-11 — 새 알고리즘이 요구하는 ROI 슬롯 비어 있으면 친절한 에러 모달 (UI-SPEC Copywriting Contract)
+                string missingRoiMsg = ValidateRoiPresence(datum, datum.AlgorithmTypeEnum);
+                if (missingRoiMsg != null) {
+                    CustomMessageBox.Show("티칭 실패", missingRoiMsg); //260503 hbk Phase 17 D-11 — 한국어 친절한 에러
+                    btn_teachDatum.IsChecked = false;
+                    _canvasMode = ECanvasMode.None;
+                    _editingDatum = null;
+                    halconViewer.IsEditMode = false; //260503 hbk Phase 17 D-06 wiring — 티칭 미시작 시 Edit 모드 해제
+                    return;
+                }
+
+                //260503 hbk Phase 17 D-06 wiring — 티칭 모드 진입 시 Edit OFF (그리기 모드 → ROI hit-test 차단)
+                halconViewer.IsEditMode = false;
+
                 //260424 hbk Phase 12 D-03 — 알고리즘별 첫 단계 결정 후 StartDatumTeachStep
                 _datumTeachStep = GetFirstStep(datum.AlgorithmTypeEnum);
                 StartDatumTeachStep(_datumTeachStep);
@@ -1458,9 +1543,9 @@ namespace ReringProject.UI {
 
             HImage img = halconViewer.CurrentImage; //260424 hbk Phase 12 — Phase 11 이미지 로드 이후 상태
             if (img == null) {
-                label_drawHint.Content = "Datum 티칭 실패: 이미지가 없습니다. Grab 하세요"; //260424 hbk Phase 12
-                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171")); //260424 hbk Phase 12 error red
-                label_drawHint.Visibility = Visibility.Visible;
+                //260503 hbk Phase 17 D-12 — label_drawHint 사유 표시 폐기 → CustomMessageBox
+                label_drawHint.Visibility = Visibility.Collapsed;
+                CustomMessageBox.Show("티칭 실패", "이미지가 없습니다. 먼저 Grab 또는 Load Image 를 수행하세요."); //260503 hbk Phase 17 D-12
                 _canvasMode = ECanvasMode.None;
                 btn_teachDatum.IsChecked = false;
                 _editingDatum = null;
@@ -1482,9 +1567,9 @@ namespace ReringProject.UI {
                 UpdateDatumRefCoordsLabel(_editingDatum);
             }
             else {
-                label_drawHint.Content = "Datum 티칭 실패: " + (error ?? "unknown"); //260424 hbk Phase 12
-                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171")); //260424 hbk Phase 12 error red
-                label_drawHint.Visibility = Visibility.Visible;
+                //260503 hbk Phase 17 D-12 — teach 실패 사유 모달 (label_drawHint 사유 표시 패턴 폐기). FormatTeachError 가 D-04 EdgeDirection 힌트 통합.
+                label_drawHint.Visibility = Visibility.Collapsed;
+                CustomMessageBox.Show("티칭 실패", FormatTeachError(error)); //260503 hbk Phase 17 D-12
             }
 
             //260424 hbk Phase 12 — ROI 유지(재튜닝 가능), canvas mode 해제
@@ -1524,8 +1609,9 @@ namespace ReringProject.UI {
                 halconViewer.SetDatumFindResultOverlay(datum);
             }
             else {
-                label_testFindResult.Content = "TryFind FAIL — " + (error ?? "unknown"); //260424 hbk Phase 13 D-08
-                label_testFindResult.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171")); //260424 hbk Phase 13 D-08 error red
+                //260503 hbk Phase 17 D-12 — Test Find 실패 사유 모달 (label_testFindResult inline 표시 폐기). FormatFindError 가 D-04 EdgeDirection 힌트 통합.
+                label_testFindResult.Visibility = Visibility.Collapsed;
+                CustomMessageBox.Show("Find 실패", FormatFindError(error)); //260503 hbk Phase 17 D-12
                 //260424 hbk Phase 13 D-08 — 실패 시 오버레이 clear (이전 성공 십자 잔상 제거)
                 halconViewer.ClearDatumFindResultOverlay();
             }

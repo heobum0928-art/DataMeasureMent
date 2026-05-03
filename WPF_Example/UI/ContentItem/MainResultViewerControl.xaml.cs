@@ -121,8 +121,12 @@ namespace ReringProject.UI
         private RoiDefinition _movingRoiSnapshot;
 
         //260423 hbk Edit 모드 상태 + 삭제 이벤트
+        //260503 hbk Phase 17 D-06 — Edit 모드 단일 gate (Rect+Circle+Polygon 공통). setter 노출 (외부 wiring: MainView btn_teachDatum / ExitCanvasMode 등)
         private bool _isEditMode;
-        public bool IsEditMode { get { return _isEditMode; } }
+        public bool IsEditMode {
+            get { return _isEditMode; }
+            set { SetEditMode(value); } //260503 hbk Phase 17 D-06 — setter 가 SetEditMode 위임 (RoiEditModeChanged 이벤트 + 컨텍스트 메뉴 동기화 보존)
+        }
         public event EventHandler<bool> RoiEditModeChanged;
         public event EventHandler<string> RoiDeleteRequested;
 
@@ -302,8 +306,10 @@ namespace ReringProject.UI
 
         //260423 hbk ROI hit-test
         //260425 hbk Phase 13 D-02 — _rois (FAI) FirstOrDefault null fallback 으로 _datumRoiCandidates 검사
+        //260503 hbk Phase 17 D-06 — Edit OFF 시 hit-test 불가 (Rect+Circle+Polygon 단일 gate, carry #9/#13 해소)
         private RoiDefinition HitTestSelectedRoi(Point imagePoint)
         {
+            if (!_isEditMode) return null; //260503 hbk Phase 17 D-06 — Edit 모드 단일 gate
             if (!string.IsNullOrEmpty(_selectedRoiId))
             {
                 var roi = _rois.FirstOrDefault(r => r.Id == _selectedRoiId);
@@ -818,8 +824,10 @@ namespace ReringProject.UI
             }
 
             //260408 hbk Rect drawing mode — start drag
+            //260503 hbk Phase 17 D-05 — 좌클릭+드래그부터 그리기 시작 (캔버스 hover 미리보기 제거). 본 분기는 HMouseDown 좌클릭 게이트(L765) 통과 후 진입 — 명시적 D-05 가드.
             if (_isDrawingRect && HasImage)
             {
+                if ((mouseState.Buttons & HalconLeftButton) != HalconLeftButton) return; //260503 hbk Phase 17 D-05 — 좌클릭 없이 미리보기 시작 금지
                 _rectDragStart = mouseState.ImagePoint;
                 _rectDraftRoi = new RoiDefinition
                 {
@@ -835,8 +843,10 @@ namespace ReringProject.UI
             }
 
             //260423 hbk Phase 11 D-14 — Circle drawing mode: start drag (center click)
+            //260503 hbk Phase 17 D-05 — 좌클릭+드래그부터 그리기 시작 (캔버스 hover 미리보기 제거)
             if (_isDrawingCircle && HasImage)
             {
+                if ((mouseState.Buttons & HalconLeftButton) != HalconLeftButton) return; //260503 hbk Phase 17 D-05 — 좌클릭 없이 미리보기 시작 금지
                 _circleDraftCenter = mouseState.ImagePoint;
                 _circleDraftRadius = 0;
                 PublishPointerInfo();

@@ -429,25 +429,23 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        //260429 hbk Phase 16 D-01 — 원 ROI 그린 직후 알고리즘이 사용할 strip 사각형 stepCount 개를 정적으로 시각화.
+        //260429 hbk Phase 16 D-01 — 원 ROI 그린 직후 알고리즘이 사용할 strip 사각형을 정적으로 시각화.
         //  VisionAlgorithmService.TryFindCircleByPolarSampling 의 strip 생성 식 (Phase 14-04 D-13 보존) 을 그대로 미러링.
         //  알고리즘 canonical (VisionAlgorithmService.cs line 282-285):
         //    rectRow = CircleROI_Row - Radius * Sin(thetaRad)   (화면 CCW 좌표계 — Phase 14-04 D-13 코멘트 참조)
         //    rectCol = CircleROI_Col + Radius * Cos(thetaRad)
         //    rectPhi = thetaRad
-        //  Plan 16-01 <interfaces> 96-103 의 sin/cos 부호는 plan-text error (반대 부호) — 본 구현은 알고리즘 코드 미러링 (D-22:
-        //  알고리즘 diff 0 보존 + 시각화는 알고리즘 식 따라간다 라는 plan 의 stated intent 에 충실).
         //  length1 = Radius * RectL1Ratio (반경 방향), length2 = Radius * RectL2Ratio (접선 방향). fill 없음 — DispLine 외곽선만.
+        //260503 hbk Phase 17 D-01 — stepCount 루프 폐기. 0° (3시 방향) 단일 strip 만 표시 (Phase 16 UAT carry #1 — 사용자가 strip 의 방향/크기/내외 관계만 직관 인지하면 충분, 360° 분포는 알고리즘 내부에서만 처리).
         private static void RenderCircleStripOverlay(HWindow window, DatumConfig datum)
         {
             if (datum == null) return;
             if (datum.CircleROI_Radius <= 0) return;
             double stepDeg = datum.Circle_PolarStepDeg;
-            //260429 hbk Phase 16 D-01 — 0/음수 division 방지 + CONTEXT D-01: 1°~30° 범위 가드
+            //260429 hbk Phase 16 D-01 — 0/음수 division 방지 + CONTEXT D-01: 1°~30° 범위 가드 (데이터 모델 보존)
             if (stepDeg < 1.0) stepDeg = 1.0;
             if (stepDeg > 30.0) stepDeg = 30.0;
-            int stepCount = (int)Math.Round(360.0 / stepDeg);
-            if (stepCount <= 0) return;
+            //260503 hbk Phase 17 D-01 — stepCount/stepRad 변수는 더 이상 strip 루프에 사용하지 않음 (단일 strip 만 그림). stepDeg 자체는 데이터 모델/알고리즘 보존을 위해 클램프만 유지.
 
             double radius  = datum.CircleROI_Radius;
             double centerR = datum.CircleROI_Row;
@@ -465,31 +463,27 @@ namespace ReringProject.Halcon.Display
                 //260429 hbk Phase 16 D-02 — Strip 색상: 회색 thin line, fill 없음 (cyan/magenta/yellow 와 충돌 회피)
                 HOperatorSet.SetColor(window, "gray");
                 HOperatorSet.SetLineWidth(window, 1);
-                double stepRad = stepDeg * Math.PI / 180.0;
-                for (int k = 0; k < stepCount; k++)
-                {
-                    double thetaRad = k * stepRad;
-                    //260429 hbk Phase 16 D-01 — 알고리즘 canonical 식 미러 (VisionAlgorithmService line 282-285, -sin/+cos)
-                    double rectRow = centerR - radius * Math.Sin(thetaRad);
-                    double rectCol = centerC + radius * Math.Cos(thetaRad);
-                    double rectPhi = thetaRad;
-                    //260429 hbk Phase 16 D-02 — fill 없는 외곽선만: 4 corner 좌표 직접 계산 후 DispLine 4 회 (DispObj GenRectangle2 는 fill 됨)
-                    double cosP = Math.Cos(rectPhi);
-                    double sinP = Math.Sin(rectPhi);
-                    //  로컬 4 corner: (-l1,-l2), (-l1,+l2), (+l1,+l2), (+l1,-l2) → 회전 변환 (rectPhi)
-                    double r1 = rectRow + (-length1) * cosP - (-length2) * sinP;
-                    double c1 = rectCol + (-length1) * sinP + (-length2) * cosP;
-                    double r2 = rectRow + (-length1) * cosP - ( length2) * sinP;
-                    double c2 = rectCol + (-length1) * sinP + ( length2) * cosP;
-                    double r3 = rectRow + ( length1) * cosP - ( length2) * sinP;
-                    double c3 = rectCol + ( length1) * sinP + ( length2) * cosP;
-                    double r4 = rectRow + ( length1) * cosP - (-length2) * sinP;
-                    double c4 = rectCol + ( length1) * sinP + (-length2) * cosP;
-                    HOperatorSet.DispLine(window, r1, c1, r2, c2);
-                    HOperatorSet.DispLine(window, r2, c2, r3, c3);
-                    HOperatorSet.DispLine(window, r3, c3, r4, c4);
-                    HOperatorSet.DispLine(window, r4, c4, r1, c1);
-                }
+                double thetaRad = 0.0; //260503 hbk Phase 17 D-01 — 3시 방향 strip 1개만 표시 (Phase 16 UAT carry #1 폐기 정책)
+                //260429 hbk Phase 16 D-01 — 알고리즘 canonical 식 미러 (VisionAlgorithmService line 282-285, -sin/+cos)
+                double rectRow = centerR - radius * Math.Sin(thetaRad); //260503 hbk Phase 17 D-01
+                double rectCol = centerC + radius * Math.Cos(thetaRad); //260503 hbk Phase 17 D-01
+                double rectPhi = thetaRad; //260503 hbk Phase 17 D-01
+                //260429 hbk Phase 16 D-02 — fill 없는 외곽선만: 4 corner 좌표 직접 계산 후 DispLine 4 회 (DispObj GenRectangle2 는 fill 됨)
+                double cosP = Math.Cos(rectPhi); //260503 hbk Phase 17 D-01
+                double sinP = Math.Sin(rectPhi); //260503 hbk Phase 17 D-01
+                //  로컬 4 corner: (-l1,-l2), (-l1,+l2), (+l1,+l2), (+l1,-l2) → 회전 변환 (rectPhi)
+                double r1 = rectRow + (-length1) * cosP - (-length2) * sinP; //260503 hbk Phase 17 D-01
+                double c1 = rectCol + (-length1) * sinP + (-length2) * cosP; //260503 hbk Phase 17 D-01
+                double r2 = rectRow + (-length1) * cosP - ( length2) * sinP; //260503 hbk Phase 17 D-01
+                double c2 = rectCol + (-length1) * sinP + ( length2) * cosP; //260503 hbk Phase 17 D-01
+                double r3 = rectRow + ( length1) * cosP - ( length2) * sinP; //260503 hbk Phase 17 D-01
+                double c3 = rectCol + ( length1) * sinP + ( length2) * cosP; //260503 hbk Phase 17 D-01
+                double r4 = rectRow + ( length1) * cosP - (-length2) * sinP; //260503 hbk Phase 17 D-01
+                double c4 = rectCol + ( length1) * sinP + (-length2) * cosP; //260503 hbk Phase 17 D-01
+                HOperatorSet.DispLine(window, r1, c1, r2, c2); //260503 hbk Phase 17 D-01
+                HOperatorSet.DispLine(window, r2, c2, r3, c3); //260503 hbk Phase 17 D-01
+                HOperatorSet.DispLine(window, r3, c3, r4, c4); //260503 hbk Phase 17 D-01
+                HOperatorSet.DispLine(window, r4, c4, r1, c1); //260503 hbk Phase 17 D-01
             }
             catch
             {

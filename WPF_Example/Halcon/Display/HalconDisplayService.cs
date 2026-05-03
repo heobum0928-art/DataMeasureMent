@@ -210,32 +210,48 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 검출 RefOrigin 주황 3px 십자 + 좌표 WriteString 오버레이
-        //  기존 RenderDatumOverlay teach-success 빨간 2px 십자 (L350+) 와 시각적으로 구분되는 팔레트.
-        //  datum.RefOriginRow/Col 은 TryFindDatum 성공 시 DatumFindingService 에서 curRow/curCol 로 업데이트된 값.
+        //260503 hbk Phase 17 D-13 — RenderDatumFindResult 본문 교체 (orange→purple, RefOrigin→DetectedOrigin, +DetectedRefAngle 화살표)
+        //  Phase 13 D-07 본문 (orange + RefOriginRow/Col) 폐기 → DetectedOrigin transient 기반 시각화로 전환.
+        //  LastFindSucceeded gate: TryFindDatum 성공 분기에서만 렌더 (catch/조기 return 시 자동 미렌더).
+        //  Z-stack: RenderDatumOverlay 의 LastTeachSucceeded 분기 마지막에 호출 — purple 십자가 가장 위.
         public void RenderDatumFindResult(HWindow window, DatumConfig datum)
         {
             if (window == null || datum == null) return;
-
+            if (!datum.LastFindSucceeded) return; //260503 hbk Phase 17 D-13 — find 성공 분기에서만 렌더
             try
             {
-                // 주황 십자 (20px half-length, 3px 굵기 — teach 빨강 2px 와 차별화)
-                HOperatorSet.SetColor(window, "orange");
-                HOperatorSet.SetLineWidth(window, 3);
-                const double crossHalf = 20.0;
+                //260503 hbk Phase 17 D-13 — purple DispCross size=14 lineWidth=2 (UI-SPEC LOCKED)
+                HOperatorSet.SetColor(window, "purple");
+                HOperatorSet.SetLineWidth(window, 2);
+                const double crossHalf = 14.0; //260503 hbk Phase 17 D-13
                 HOperatorSet.DispLine(window,
-                    datum.RefOriginRow - crossHalf, datum.RefOriginCol,
-                    datum.RefOriginRow + crossHalf, datum.RefOriginCol);
+                    datum.DetectedOriginRow - crossHalf, datum.DetectedOriginCol,
+                    datum.DetectedOriginRow + crossHalf, datum.DetectedOriginCol); //260503 hbk Phase 17 D-13
                 HOperatorSet.DispLine(window,
-                    datum.RefOriginRow, datum.RefOriginCol - crossHalf,
-                    datum.RefOriginRow, datum.RefOriginCol + crossHalf);
+                    datum.DetectedOriginRow, datum.DetectedOriginCol - crossHalf,
+                    datum.DetectedOriginRow, datum.DetectedOriginCol + crossHalf); //260503 hbk Phase 17 D-13
 
-                // 좌표 텍스트 (십자 위쪽 외곽 — teach yellow 라벨 규약과 동일한 상단 offset)
+                //260503 hbk Phase 17 D-13 — 좌표 텍스트 "Find (row, col)"
                 EnsureFontInitialized(window);
-                HOperatorSet.SetColor(window, "orange");
-                HOperatorSet.SetTposition(window, datum.RefOriginRow - crossHalf - 22, datum.RefOriginCol + crossHalf + 4);
+                HOperatorSet.SetTposition(window,
+                    datum.DetectedOriginRow - crossHalf - 22,
+                    datum.DetectedOriginCol + crossHalf + 4); //260503 hbk Phase 17 D-13
                 HOperatorSet.WriteString(window,
-                    "TryFind (" + datum.RefOriginRow.ToString("F1") + ", " + datum.RefOriginCol.ToString("F1") + ")");
+                    "Find (" + datum.DetectedOriginRow.ToString("F1") + ", "
+                             + datum.DetectedOriginCol.ToString("F1") + ")"); //260503 hbk Phase 17 D-13
+
+                //260503 hbk Phase 17 D-13 — DetectedRefAngle 방향 화살표 (DrawDirectionArrow 패턴 inlined, length=20, head=5)
+                double angle  = datum.DetectedRefAngle; //260503 hbk Phase 17 D-13
+                double aLen   = 20.0; //260503 hbk Phase 17 D-13
+                double headLn = 5.0; //260503 hbk Phase 17 D-13
+                double endRow = datum.DetectedOriginRow + aLen * System.Math.Sin(angle); //260503 hbk Phase 17 D-13
+                double endCol = datum.DetectedOriginCol + aLen * System.Math.Cos(angle); //260503 hbk Phase 17 D-13
+                HOperatorSet.DispLine(window, datum.DetectedOriginRow, datum.DetectedOriginCol, endRow, endCol); //260503 hbk Phase 17 D-13
+                double a1 = angle + 2.5, a2 = angle - 2.5; //260503 hbk Phase 17 D-13
+                HOperatorSet.DispLine(window, endRow, endCol,
+                    endRow + headLn * System.Math.Sin(a1), endCol + headLn * System.Math.Cos(a1)); //260503 hbk Phase 17 D-13
+                HOperatorSet.DispLine(window, endRow, endCol,
+                    endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2)); //260503 hbk Phase 17 D-13
             }
             catch
             {
@@ -680,6 +696,9 @@ namespace ReringProject.Halcon.Display
                             datum.CircleCenter_Row, datum.CircleCenter_Col - circleCenterCrossHalf,
                             datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
                     }
+
+                    //260503 hbk Phase 17 D-13 — z-stack last: DetectedOrigin purple cross 가 가장 위에 그려짐 (LastFindSucceeded gate 는 RenderDatumFindResult 내부)
+                    RenderDatumFindResult(window, datum); //260503 hbk Phase 17 D-13
                 }
             }
             catch

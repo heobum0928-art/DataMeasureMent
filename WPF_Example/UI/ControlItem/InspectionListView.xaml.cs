@@ -83,7 +83,13 @@ namespace ReringProject.UI {
                     // Step 2: 검출 상태 reset (Pattern S5 — LastTeachSucceeded/LastFindSucceeded 가드 false → RenderDatumOverlay 검출 도형 자동 미렌더)
                     datum.LastTeachSucceeded = false; //260503 hbk Phase 17 D-10
                     datum.LastFindSucceeded  = false; //260503 hbk Phase 17 D-10
-                    // Step 3: DetectedOrigin* 0 리셋 — Plan 17-03 가 본 핸들러에 추가 라인으로 wiring (Plan 17-02 시점 필드 미존재)
+                    //260503 hbk Phase 17 D-13 — Step 3: DetectedOrigin 시각화 clear (RenderDatumOverlay 가 LastFindSucceeded=false 분기에서 자동 미렌더, 본 라인은 PropertyGrid 메트릭 0 표시 안전 처리)
+                    datum.DetectedOriginRow = 0; //260503 hbk Phase 17 D-13
+                    datum.DetectedOriginCol = 0; //260503 hbk Phase 17 D-13
+                    datum.DetectedRefAngle  = 0; //260503 hbk Phase 17 D-13
+                    datum.DetectedEdgeCount = 0; //260503 hbk Phase 17 D-16
+                    datum.DetectedFitRMSE   = 0; //260503 hbk Phase 17 D-16
+                    datum.DetectedAngleDeg  = 0; //260503 hbk Phase 17 D-16
                     // Step 4: ROI 보존 — 명시적 액션 없음 (DatumConfig ROI 필드 미수정)
                     // Step 5: 자동 재검출 없음 — Phase 16 D-13/D-14 보존 (TryTriggerDatumAutoReteach 호출 없음)
                     // Step 6: 캔버스 시각화 갱신 (RenderDatumOverlay 가 LastTeachSucceeded=false 분기에서 검출 도형 미렌더)

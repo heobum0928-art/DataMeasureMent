@@ -371,15 +371,19 @@ namespace ReringProject.UI {
         }
 
         private void UpdatePointerLabel(double x, double y, double? grayValue) {
-            if (label_pos == null) {
-                return;
+            if (label_pos != null) {
+                label_pos.Content = string.Format(
+                    "X:{0:0.0}, Y:{1:0.0}, G:{2}",
+                    x,
+                    y,
+                    grayValue.HasValue ? grayValue.Value.ToString("0.0") : "-");
             }
-
-            label_pos.Content = string.Format(
-                "X:{0:0.0}, Y:{1:0.0}, G:{2}",
-                x,
-                y,
-                grayValue.HasValue ? grayValue.Value.ToString("0.0") : "-");
+            //260503 hbk Phase 17 D-15 — 상단 툴바 hover 표시 (정수 + N/A, mm 변환은 deferred)
+            //  PublishPointerInfo (MainResultViewerControl L1297-1319) 가 CurrentImage==null 시 (0,0,null) 발행 — grayValue.HasValue=false 일 때 X/Y 도 N/A 표시.
+            //  신규 GetGrayval 호출 0 — 기존 PointerInfoChanged 파이프라인 재사용 (PATTERNS gap #4).
+            if (txt_hoverX != null) txt_hoverX.Text = grayValue.HasValue ? "X: " + x.ToString("0") : "X: N/A"; //260503 hbk Phase 17 D-15
+            if (txt_hoverY != null) txt_hoverY.Text = grayValue.HasValue ? "Y: " + y.ToString("0") : "Y: N/A"; //260503 hbk Phase 17 D-15
+            if (txt_hoverG != null) txt_hoverG.Text = "Gray: " + (grayValue.HasValue ? grayValue.Value.ToString("0") : "N/A"); //260503 hbk Phase 17 D-15
         }
 
         private bool DisplayToViewer(HImage img, IEnumerable<RoiDefinition> rois) {
@@ -1597,20 +1601,21 @@ namespace ReringProject.UI {
             string error;
             bool ok = svc.TryFindDatum(testImage, datum, out transform, out error);
 
-            //260424 hbk Phase 13 D-07/D-08 — label_drawHint 숨기고 label_testFindResult 로 전용 피드백
-            label_drawHint.Visibility = Visibility.Collapsed;
-            label_testFindResult.Visibility = Visibility.Visible;
+            //260503 hbk Phase 17 D-12/D-14 — label_drawHint / label_testFindResult inline 피드백 폐기, 성공/실패 모두 모달 정책 (성공 X / 실패 O)
+            label_drawHint.Visibility = Visibility.Collapsed; //260503 hbk Phase 17 D-14
+            label_testFindResult.Visibility = Visibility.Collapsed; //260503 hbk Phase 17 D-14 — inline 표시 사용 안 함
             if (ok) {
-                label_testFindResult.Content = string.Format(
-                    "TryFind OK — RefOrigin=({0:F1}, {1:F1}), Angle={2:F3} rad",
-                    datum.RefOriginRow, datum.RefOriginCol, datum.RefAngleRad); //260424 hbk Phase 13 D-07
-                label_testFindResult.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80")); //260424 hbk Phase 13 D-07 LimeGreen
-                //260424 hbk Phase 13 D-07 — 성공 시 주황 십자 오버레이 렌더 (RenderDatumFindResult — HalconDisplayService)
-                halconViewer.SetDatumFindResultOverlay(datum);
+                //260503 hbk Phase 17 D-14 — 성공: 시각화 자동 (TryFindDatum 이 DetectedOrigin* + LastFindSucceeded write-back → SetDatumOverlay → RenderDatumOverlay 가 RenderDatumFindResult 자동 호출 chain)
+                halconViewer.SetDatumOverlay(datum, true); //260503 hbk Phase 17 D-14 — purple cross + 좌표 + 화살표 (HalconDisplayService.RenderDatumFindResult)
+                //260503 hbk Phase 17 D-14 — PropertyGrid 메트릭 갱신 (DetectedEdgeCount/FitRMSE/AngleDeg ReadOnly 표시)
+                try { datum.RaisePropertyChanged(string.Empty); } catch { } //260503 hbk Phase 17 D-14
+                if (mParentWindow != null && mParentWindow.inspectionList != null) {
+                    mParentWindow.inspectionList.RefreshParamEditor(); //260503 hbk Phase 17 D-14
+                }
+                //260503 hbk Phase 17 D-12 — 성공 시 모달 X (UI-SPEC LOCKED — 사용자가 캔버스 시각화로 즉시 확인)
             }
             else {
                 //260503 hbk Phase 17 D-12 — Test Find 실패 사유 모달 (label_testFindResult inline 표시 폐기). FormatFindError 가 D-04 EdgeDirection 힌트 통합.
-                label_testFindResult.Visibility = Visibility.Collapsed;
                 CustomMessageBox.Show("Find 실패", FormatFindError(error)); //260503 hbk Phase 17 D-12
                 //260424 hbk Phase 13 D-08 — 실패 시 오버레이 clear (이전 성공 십자 잔상 제거)
                 halconViewer.ClearDatumFindResultOverlay();

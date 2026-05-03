@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 17 planned (4 plans / 4 waves) — ready to execute
-last_updated: "2026-04-30T08:16:40.936Z"
+stopped_at: Phase 17-01 완료 (3 tasks / 4 files / ~6 min) — 다음 Plan 17-02
+last_updated: "2026-05-03T08:34:04.896Z"
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 55
-  completed_plans: 47
-  percent: 85
+  completed_plans: 48
+  percent: 87
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase --phase — 16
+**Current focus:** Phase 17 — datum-ux-circle-strip-1-test-find-detectedorigin-hover
 
 ## Current Position
 
-Phase: --phase (16) — EXECUTING
-Plan: 1 of --name
+Phase: 17 (datum-ux-circle-strip-1-test-find-detectedorigin-hover) — EXECUTING
+Plan: 2 of 4
 Plans: 3 / 2 waves
 
   - Wave 1 (병렬): 16-01 HalconDisplayService Circle overlay 재작성 (R1+R2) / 16-02 InspectionListView force rebind + MainView Auto-reteach off (R3+R4)
@@ -76,6 +76,7 @@ Next: /gsd-execute-phase 16
 | Phase 15 P01 | 4 | 3 tasks | 2 files |
 | Phase 15 P02 | 10 | 3 tasks | 1 files |
 | Phase 15 P03 | 5 | 2 tasks | 2 files |
+| Phase 17 P17-01 | 6 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ Recent decisions affecting current work:
 - [Phase 15-01]: DatumConfig 6 *_EdgeSelection (sentinel "" + EnsurePerRoiDefaults fbSelection="First" fallback) + EdgeOptionLists.Selections [First,Last,All] PascalCase 단일 소스 — INI 하위호환, 데이터 모델 only (런타임 소비는 15-02 부터)
 - [Phase 15-02]: AppendEdgePointsFromStrip 4-way 명시 measurePhi 매핑(TtoB=-π/2/BtoT=+π/2/RtoL=π/LtoR=0, CANONICAL: MeasurementAlgorithm.cs:130-178) + selection 인자화(PascalCase→lower) + Trace 로그 강화(dir/phi/sel/edges); TryFindLine + TryExtractEdgePoints 시그니처 +1 string selection; 9 caller 사이트 wiring (7 plan teach + 2 Rule 3 runtime in TryFindDatum); SmallestRectangle2 자동 rp 의존 제거 (BtoT/TtoB 부호 결함 직접 원인 해결); msbuild Debug/x64 PASS 0 신규 warning
 - [Phase 15-03]: VisionAlgorithmService.TryFindCircleByPolarSampling 시그니처 +1 string selection (polarity 다음, datumTransform 앞) + sanity clamp("First" default) + selectionLower 변환 (CANONICAL: MeasurementAlgorithm.cs:178); MeasurePos "all" 하드코딩 제거 → caller selection 반영; 누적 정책 분기 — All=eRows 전체, First/Last=eRows[0] 단일점 (Phase 14-04 360° stepCount 의도 보존); rectPhi=thetaRad 회전 식 변경 0 라인 (Phase 14-04 D-13 anti-goal 준수); DatumFindingService.TryTeachCircleTwoHorizontal Circle 호출 1 사이트 wiring (config.Circle_EdgeSelection 전파); 전체 솔루션 caller scan 결과 1 caller 확정 (RunPhiSmokeTest 는 자체 sin/cos 계산만 trace 노출 — TryFindCircleByPolarSampling 미호출, dormant); msbuild Debug/x64 PASS 0 신규 warning on 수정 범위
+- [Phase 17-01]: Circle pre-teach strip 시각화 폐기 (stepCount N개 → thetaRad=0.0 단일 strip), Circle_RadialDirection PropertyGrid ComboBox 신규 (sentinel/fallback 'Inward'), 6 *_EdgeDirection 한국어 tooltip, DatumFindingService caller polarity 매핑 (D-17: VisionAlgorithmService 0 라인 / DatumFindingService +2 라인). Plan 영역 분리 lock 통과 (17-02 ICustomTypeDescriptor / 17-03 transient 미침범).
 
 ### Quick Tasks Completed
 
@@ -158,9 +160,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 17 planned (4 plans / 4 waves) — ready to execute
-Resume file: --resume-file
+Last session: 2026-05-03T08:34:04.884Z
+Stopped at: Phase 17-01 완료 (3 tasks / 4 files / ~6 min) — 다음 Plan 17-02
+Resume file: None
 Next action: `/gsd-execute-phase 17` (Wave 1 = 17-01 Cluster A → Wave 2 = 17-02 Cluster B+C → Wave 3 = 17-03 Cluster D → Wave 4 = 17-04 UAT)
 
 **Planned Phase:** 17 (Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover) — 4 plans — 2026-04-30T08:16:40.923Z

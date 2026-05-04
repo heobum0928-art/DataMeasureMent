@@ -1,39 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: v1.0 milestone complete
-stopped_at: "Phase 17-04 Task 1 완료 (17-UAT.md 16 시나리오 status: pending) — Task 2 사용자 사인오프 checkpoint:human-verify 대기"
-last_updated: "2026-05-04T14:22:23.191Z"
+milestone: v1.1
+milestone_name: Quality + Workflow + Infrastructure
+status: Defining requirements
+stopped_at: "v1.1 milestone started 2026-05-04 — REQUIREMENTS.md + ROADMAP.md 작성 대기"
+last_updated: "2026-05-04T00:00:00.000Z"
 progress:
-  total_phases: 17
-  completed_phases: 15
-  total_plans: 55
-  completed_plans: 51
-  percent: 93
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-02)
+See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
-**Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 수행
-**Current focus:** Phase 17 — datum-ux-circle-strip-1-test-find-detectedorigin-hover
+**Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
+**Current focus:** v1.1 Defining requirements (코드 품질 + 검사 워크플로우 실측 + 메모리 이미지 버퍼 + CXP 그래버 + 결과 분석)
 
 ## Current Position
 
-Phase: 17 (datum-ux-circle-strip-1-test-find-detectedorigin-hover) — EXECUTING
-Plan: 4 of 4
-Plans: 3 / 2 waves
-
-  - Wave 1 (병렬): 16-01 HalconDisplayService Circle overlay 재작성 (R1+R2) / 16-02 InspectionListView force rebind + MainView Auto-reteach off (R3+R4)
-  - Wave 2: 16-03 UAT (Phase 15 carry-over 10건 흡수 + Phase 16 신규 4건 = ≥14 시나리오, signed_off)
-
-Next: /gsd-execute-phase 16
-  Boundary: VisionAlgorithmService.cs / DatumFindingService.cs / DatumConfig.cs diff = 0 강제 (Phase 14-04 D-13 + Phase 15-02/03 결정 보존)
-  Convention: 모든 변경 라인 위 //260429 hbk 주석 (grep count acceptance 강제)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-04 — Milestone v1.1 started, phase numbering continues from 18
 
 ## Performance Metrics
 

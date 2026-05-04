@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: Defining requirements
-stopped_at: "v1.1 milestone started 2026-05-04 — REQUIREMENTS.md + ROADMAP.md 작성 대기"
+status: Ready
+stopped_at: "v1.1 ROADMAP.md created 2026-05-04 — Phase 18 is next"
 last_updated: "2026-05-04T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** v1.1 Defining requirements (코드 품질 + 검사 워크플로우 실측 + 메모리 이미지 버퍼 + CXP 그래버 + 결과 분석)
+**Current focus:** v1.1 Phase 18 — Carry-over 정리 (Phase 17 partial sign-off 잔여 5건 흡수)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 18 (Carry-over 정리)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-05-04 — Milestone v1.1 started, phase numbering continues from 18
+Status: Not started
+Last activity: 2026-05-04 — v1.1 ROADMAP.md created, 9 phases (18-26) defined
 
 ## Performance Metrics
 
@@ -115,19 +115,12 @@ Recent decisions affecting current work:
 - [Phase 12-01]: EDatumAlgorithm enum placed in ReringProject.Sequence (co-located w/ DatumConfig for zero-import access); AlgorithmType stored as string (ParamBase can't serialize enum — switch-case L330-363 covers only Int32/Double/String/Boolean/Rect/Line/Circle/PropertyItem[]/ModelFinderViewModel); AlgorithmTypeEnum helper falls back to TwoLineIntersect on TryParse failure (legacy INI backward-compat); Rule 3 auto-fix — csproj Compile ItemGroup updated to register new file (blocking CS0246)
 - [Phase 12-02]: DatumFindingService public TryTeachDatum becomes a switch(config.AlgorithmTypeEnum) dispatch; legacy Phase 4 body moved verbatim to private TryTeachTwoLineIntersect (error literals byte-identical — regression 0); new private TryExtractEdgePoints helper for raw edge tuples (used by 2-ROI horizontal concat path); CircleTwoHorizontal reuses VisionAlgorithmService.TryFindCircle (datumTransform=null for teaching identity); both new algorithms use GenContourPolygonXld×2 → ConcatObj → FitLineContourXld tukey for horizontal concat; MIN_HORIZONTAL_EDGES=10 threshold (D-15); public TryFindDatum (runtime) untouched per SPEC Out-of-scope; Req 5d (direction consistency) deferred to Phase 13 via literal TODO comment (D-17)
 - [Phase 12-03]: MainView Datum 티칭 UI 3-way 상태머신 (btn_teachDatum + ECanvasMode.TeachDatum + EDatumTeachStep {Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done}) + GetFirstStep/GetNextStep switch + HalconViewer_DatumRect/CircleCompleted step별 DatumConfig write-back + Done 시 InvokeTryTeachDatum 자동 호출; InspectionListView Datum 노드 선택 시 btn_teachDatum 활성화; HalconDisplayService.RenderDatumOverlay 알고리즘별 분기 (Line2 rectangle은 TwoLineIntersect 에서만, CircleROI는 CircleTwoHorizontal 에서만, Horizontal A/B는 non-TwoLineIntersect 공용); LastTeachSucceeded 분기 하 CircleTwoHorizontal 검출 원 + 중심 십자 추가 렌더
-- [Phase 12-03 UAT Gap-2 fix]: RenderDatumOverlay 에 yellow ROI 라벨 추가 (L1/L2 / Circle / H-A / H-B / Vert) — DrawRoiLabel(Rectangle2 회전 반영) + DrawRoiLabelAt(Circle 용) 헬퍼로 수직/수평/라인 시각 구분 복구
-- [Phase 12-03 UAT Gap-3 fix]: DatumConfig 자동 속성 INotifyPropertyChanged 미발동 → HalconViewer_DatumRect/CircleCompleted 에서 _editingDatum.RaisePropertyChanged("") + InspectionListView.RefreshParamEditor() 이중 신호로 PropertyGrid 재바인딩; SetDatumOverlay 도 즉시 재호출하여 방금 그린 ROI 좌표가 캔버스+PropertyGrid+INI save 경로 모두 반영되도록 함 (재시작 후 ROI 복원 가능)
-- [Phase 12-03 UAT]: SIMUL_MODE 육안 검증 사용자 승인 (2026-04-24) — (1) ROI 그리면 PropertyGrid 좌표 숫자 채워짐 확인, (2) ROI 사각형 위 yellow 라벨 (Circle/H-A/H-B) 시인성 확인; Gap-1(ROI Edit/Move in TeachDatum)·Gap-4(런타임 TryFindDatum 테스트 UI)·Req 5d(방향 정합성)는 Phase 13 이월 합의
-- [Phase 13-03]: Datum ROI 이동/삭제 분기를 RoiId.StartsWith("Datum.")로 식별 — FAI 경로 한 줄도 변경 없음; HitTestOneRoi private static으로 FAI+Datum 공용; SetDatumRoiCandidates _isEditMode 무관 통과; ClearDatumRoiFields 시 IsConfigured/LastTeachSucceeded false; PublishDatumRoiCandidates 3 지점; Plan 02 CustomMessageBox (message,title)→(title,message) swap; UAT 발견 버그(InspectionList 선택 시 candidates 미publish) hotfix e199093으로 해결; per-ROI 에지 파라미터·시각화는 13-04/13-05 이월
-- [Phase 13-04]: per-ROI 필드 sentinel 기본값 0/"" + EnsurePerRoiDefaults idempotent migration; legacy 글로벌 [Browsable(false)] + Category(legacy) INI 이중 저장; TryFindLine/TryExtractEdgePoints +3 params 모두 algorithmically active (5 hotfix 후); EdgeDirection-로 strip orientation (LtoR/RtoL=행슬라이스, TtoB/BtoT=열슬라이스); strip-loop MeasurePos 패턴 (SmallestRectangle2 per-strip Phi + TupleConcat 누적, hotfix fa91525 — C:\Info\Project\DatumMeasure 참조 포팅); EdgeSampleCount = strip 개수(stripCount, default 20)로 재정의 (단일 MeasurePos minimum-edge gate 해석 폐기); PhiDeg degree-proxy PropertyGrid (hotfix c2a3097); trimCount/sampleCount sanity clamp (hotfix 95a18a3); Length1/Length2 swap 버그(Phase 12 잠재) diagnostic logging으로 발견/수정 (hotfix 54e466a); 7 소스 커밋(1 feat + 5 fix + 1 docs(premature)) + 2 docs 커밋, UAT 12 시나리오 + 5 hotfix 반복 끝 APPROVED (최종 fa91525, 2026-04-26) — 13-04 TRULY COMPLETE
-- [Phase 13-05]: 시각화 묶음 — DatumConfig 5 ROI × 2 = 10 신규 volatile HTuple 필드 ([Browsable(false)], ParamBase reflection 자동 무시 → INI 영향 0, Phase 4 D-11 패턴 연장); DatumFindingService TryFindLine 시그니처 +2 out HTuple (edgeRowsOut/edgeColsOut), 5 ROI write-back 양 경로 (TryTeach + TryFindDatum); HalconDisplayService EXTEND_PX=10000.0 + DrawExtendedLine helper (unit-vector × EXTEND_PX 양방향 외삽, lenSq<1e-9 degenerate guard, HALCON DispLine 자동 클리핑) + RenderRawEdgePoints helper (DispCross batch size=6 angle=0, null/length-0 가드); RenderDatumOverlay LastTeachSucceeded 분기에서 DispLine→DrawExtendedLine 2 회 교체 + 5 ROI RenderRawEdgePoints 호출 (Line1=cyan / Line2=magenta / Circle=yellow / HorizA=green / HorizB=lime); MainView label_datumRefCoords WPF Label + UpdateDatumRefCoordsLabel(DatumConfig) + 3 호출 지점 (Datum 노드 선택 / 티칭 성공 / ROI 이동 후 재티칭); 메인 commit 01e37e3 + hotfix 136de8e (Plan 13-03 잠복 결함 — UpdateContextMenuState hasSelectedRoi 가 _datumRoiCandidates OR-체크 안 해 Edit/Delete 메뉴 비활성, 1 라인 확장으로 흡수); UAT 15 시나리오 APPROVED (Test 5 Circle 노란 점 = VisionAlgorithmService.TryFindCircle raw row/col 미반환으로 빈 HTuple → carry-over; Test 13 Datum ROI 실제 resize 동작 = 신규 사용자 요구사항 → 13-06 또는 14-XX 신규 plan 으로 carry-over). Phase 13 5/5 plan 완료.
-- [Phase 15-01]: DatumConfig 6 *_EdgeSelection (sentinel "" + EnsurePerRoiDefaults fbSelection="First" fallback) + EdgeOptionLists.Selections [First,Last,All] PascalCase 단일 소스 — INI 하위호환, 데이터 모델 only (런타임 소비는 15-02 부터)
-- [Phase 15-02]: AppendEdgePointsFromStrip 4-way 명시 measurePhi 매핑(TtoB=-π/2/BtoT=+π/2/RtoL=π/LtoR=0, CANONICAL: MeasurementAlgorithm.cs:130-178) + selection 인자화(PascalCase→lower) + Trace 로그 강화(dir/phi/sel/edges); TryFindLine + TryExtractEdgePoints 시그니처 +1 string selection; 9 caller 사이트 wiring (7 plan teach + 2 Rule 3 runtime in TryFindDatum); SmallestRectangle2 자동 rp 의존 제거 (BtoT/TtoB 부호 결함 직접 원인 해결); msbuild Debug/x64 PASS 0 신규 warning
-- [Phase 15-03]: VisionAlgorithmService.TryFindCircleByPolarSampling 시그니처 +1 string selection (polarity 다음, datumTransform 앞) + sanity clamp("First" default) + selectionLower 변환 (CANONICAL: MeasurementAlgorithm.cs:178); MeasurePos "all" 하드코딩 제거 → caller selection 반영; 누적 정책 분기 — All=eRows 전체, First/Last=eRows[0] 단일점 (Phase 14-04 360° stepCount 의도 보존); rectPhi=thetaRad 회전 식 변경 0 라인 (Phase 14-04 D-13 anti-goal 준수); DatumFindingService.TryTeachCircleTwoHorizontal Circle 호출 1 사이트 wiring (config.Circle_EdgeSelection 전파); 전체 솔루션 caller scan 결과 1 caller 확정 (RunPhiSmokeTest 는 자체 sin/cos 계산만 trace 노출 — TryFindCircleByPolarSampling 미호출, dormant); msbuild Debug/x64 PASS 0 신규 warning on 수정 범위
-- [Phase 17-01]: Circle pre-teach strip 시각화 폐기 (stepCount N개 → thetaRad=0.0 단일 strip), Circle_RadialDirection PropertyGrid ComboBox 신규 (sentinel/fallback 'Inward'), 6 *_EdgeDirection 한국어 tooltip, DatumFindingService caller polarity 매핑 (D-17: VisionAlgorithmService 0 라인 / DatumFindingService +2 라인). Plan 영역 분리 lock 통과 (17-02 ICustomTypeDescriptor / 17-03 transient 미침범).
-- [Phase 17-02]: Cluster B+C 통합 — Edit 모드 단일 gate (HitTestSelectedRoi 가드) + 좌클릭 드래그 그리기 + DatumConfig ICustomTypeDescriptor (TLI/CTH/VTH 동적 PropertyGrid + Circle_EdgeDirection D-03 hide) + AlgorithmType 변경 5-step 리셋 (force rebind + 검출 reset + ROI 보존 + 자동 재검출 X) + Delete 3-button 모달 (CustomMessageBox YesNoCancel 재사용) + btn_teachDatum 호환성 가드 (ValidateRoiPresence 한국어 모달) + teach/find 실패 모달 (FormatTeachError/FormatFindError + D-04 EdgeDirection 힌트). D-17 0 라인 (VisionAlgorithmService + DatumFindingService 양쪽 0). Plan 17-01 RadialDirection / 17-03 transient 영역 미침범 (sequential lock 통과).
-- [Phase 17-03]: DatumConfig 6 신규 필드 (transient 3 + 메트릭 3) — Phase 13-05 D-VIZ-01 패턴 재사용 ([Browsable(false)]+[JsonIgnore]+ParamBase reflection 자동 무시); PropertyTools.DataAnnotations.ReadOnly + System.ComponentModel.ReadOnly 양쪽 부착 (호환성 안전판); TryFindDatum 시작시 LastFindSucceeded=false reset + 성공분기 끝 9 라인 write-back (D-17 cumulative DatumFindingService 11 라인 EXACT, VisionAlgorithmService 0); RenderDatumFindResult 본문 orange/RefOrigin → purple/DetectedOrigin + LastFindSucceeded gate + RenderDatumOverlay z-stack last 호출; canvasToolbar X/Y/Gray TextBlock 3개 (panel_hoverInfo) + UpdatePointerLabel 양쪽 갱신 + 기존 PublishPointerInfo 파이프라인 재사용 (신규 GetGrayval 호출 0); BtnTestFindDatum_Click 성공경로 SetDatumOverlay 단일화 (RenderDatumOverlay z-stack chain) + RaisePropertyChanged + RefreshParamEditor + 모달 X (UI-SPEC LOCKED); InspectionListView 5-step Step 3 wiring (DetectedOrigin/메트릭 0 리셋 — W3 Test 13 검증 가능). Rule 3 deviation: label_pointCount XAML 보존 (code-behind 5 사이트 참조).
-- [Phase 17-04 Task 1]: 17-UAT.md 작성 (640 라인, 16 시나리오 = Cluster A 4 + B 3 + C 4 + D 4 + 자동 검증 1) — Phase 16 carry-over 16항목 (#1-#3, #5, #6, #8-#18; #4/#7 제외) + Phase 17 D-01~D-16 통합 검증. Test 16 자동 검증 verbatim bash (D-17 algorithm preservation: VisionAlgorithmService 0 / DatumFindingService 11 EXACT, D-18 hbk 주석 카운트 7 파일, D-20 Phase 16 force rebind + Auto-reteach off, msbuild Debug/x64). UI-SPEC Copywriting Contract verbatim (D-04 EdgeDirection tooltip + D-07 Delete 3-button + D-11 ROI 호환성 + D-12 EdgeDirection 0 검출 힌트). W3 cross-plan 검증 (Test 13 = Plan 17-02 Step 3 wiring + Plan 17-03 transient 통합). Plan 17-03 Rule 3 deviation 검증 (Test 15 = panel_hoverInfo / label_pointCount Polygon 모드 시각 충돌). status: pending — Task 2 사용자 사인오프 checkpoint:human-verify 대기. Deviation: PLAN.md `<output>` "별도 SUMMARY.md 미작성 (UAT 관습)" vs user prompt "Create SUMMARY.md" 충돌 → user prompt 우선, 17-04-SUMMARY.md 간소화 작성.
+- [Phase 13-04]: per-ROI 필드 sentinel 기본값 0/"" + EnsurePerRoiDefaults idempotent migration; legacy 글로벌 [Browsable(false)] + Category(legacy) INI 이중 저장; TryFindLine/TryExtractEdgePoints +3 params 모두 algorithmically active (5 hotfix 후); EdgeDirection-로 strip orientation (LtoR/RtoL=행슬라이스, TtoB/BtoT=열슬라이스); strip-loop MeasurePos 패턴 (SmallestRectangle2 per-strip Phi + TupleConcat 누적, hotfix fa91525); EdgeSampleCount = strip 개수(stripCount, default 20)로 재정의
+- [Phase 15-02]: AppendEdgePointsFromStrip 4-way 명시 measurePhi 매핑(TtoB=-π/2/BtoT=+π/2/RtoL=π/LtoR=0) + selection 인자화(PascalCase→lower); SmallestRectangle2 자동 rp 의존 제거 (BtoT/TtoB 부호 결함 직접 원인 해결)
+- [Phase 17-02]: DatumConfig ICustomTypeDescriptor (TLI/CTH/VTH 동적 PropertyGrid + Circle_EdgeDirection D-03 hide) + AlgorithmType 변경 5-step 리셋 + Delete 3-button 모달 + btn_teachDatum 호환성 가드 (ValidateRoiPresence 한국어 모달)
+- [v1.1 roadmap]: 헝가리안 전체 리팩토링(QUAL-01) → Phase 26 마지막 배치 (다른 phase 와 merge 충돌 최소화 — 사용자 명시 결정)
+- [v1.1 roadmap]: CO-02 (DatumConfig PropertyGrid Phase 17 Test 8 잔여) → Phase 19 QUAL-03 에 흡수 (동일 ICustomTypeDescriptor 작업 범위)
+- [v1.1 roadmap]: WF-01/02 → Phase 24 (BUF Phase 21 + HW Phase 23 이후 배치 — end-to-end 에 버퍼+하드웨어 경로 포함)
 
 ### Quick Tasks Completed
 
@@ -185,23 +178,25 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 - 2026-04-23: Phase 11 added — datum-teaching-ui-roi (WR-RT-01/03/04 묶음 예정, bugs.md 로드맵 기반)
 - 2026-04-26: Phase 14 added — Datum carry-over (Circle 알고리즘 재설계 + Vertical 파라미터 그룹 + ROI 이동 회귀 + CircleTwoHorizontal/VerticalTwoHorizontal 정상화 + out-of-range UX 게이트). Phase 13 UAT 옵션 2 합의(commit d9b5cc8) 후속.
-- 2026-04-29: Phase 15 added — HALCON MeasurePos 정합성 (DatumFindingService strip-loop 6 ROI + Circle polar). 구조적 누락 2건: (a) AppendEdgePointsFromStrip 가 SmallestRectangle2 의 rp 자동 도출 의존 → EdgeDirection→measurePhi 명시 매핑 누락 (BtoT/TtoB 부호 못 구분 → polarity 의미 뒤집힘), (b) MeasurePos 가 selection="all" 하드코딩 + DatumConfig 에 EdgeSelection 필드 자체 없음. 실 데이터 UAT 에서 "Horizontal_A no edges found across 50 strips" 로 발현. 참조 올바른 구현: MeasurementAlgorithm.cs:130-178, FAIEdgeMeasurementService.cs:87-102, VisionAlgorithmService.cs:63-72.
-- 2026-04-29: Phase 16 added — datum-circle-strip-redesign-algorithmtype-binding-fix (Phase 15 UAT carry-over). 결함 2건 병합: (a) Gap-1 Circle 알고리즘 strip 패턴 자체 재설계 — 현재 ROI 원을 Rectangle 변환 후 제자리 회전, 의도는 원 ROI → 왼쪽 반지름 끝점으로 strip 이동 → 원호 포함 작은 사각형 → 원 센터 기준 1°/10° (사용자 설정) 회전 → 안→밖 or 밖→안 에지 → 360° 누적 → fit_circle_contour_xld. Phase 14-04 D-13 `rectPhi=thetaRad` 결정 재검토 필요. (b) Gap-2 Datum AlgorithmType PropertyGrid binding refresh 누락 — 첫 레시피 로드 시엔 정상 전환되나 ROI 이동/생성 후 Datum 변경해도 AlgorithmType combobox 갱신 안 됨, Phase 12-03/13-04 의 RaisePropertyChanged("") + RefreshParamEditor() 패턴이 AlgorithmType 까지 안 닿음.
-- 2026-04-30: Phase 17 added — Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover (Phase 16 UAT carry-over 16항목). 주요 묶음: (a) Circle 시각화 정책 재설계 (N개 strip → 1개만, RadialDirection enum, EdgeDirection 모든 옵션 + tooltip), (b) Edit 모드 일관성 (그리기/이동/리사이즈 분리, Delete 단일/전체 모달, Circle 항상 사이즈변경 결함), (c) PropertyGrid 알고리즘별 동적 노출 + 모달 정책 (성공 X / 실패 O), (d) Test Find Datum Origin 시각화 결함 (DetectedOriginRow/Col transient 필드 + TryFindDatum 갱신), (e) 마우스 hover 좌표 + 밝기 (상단 툴바). 모든 알고리즘 (TLI/CTH/VTH) 동일 패턴 적용.
+- 2026-04-29: Phase 15 added — HALCON MeasurePos 정합성 (DatumFindingService strip-loop 6 ROI + Circle polar).
+- 2026-04-29: Phase 16 added — datum-circle-strip-redesign-algorithmtype-binding-fix (Phase 15 UAT carry-over).
+- 2026-04-30: Phase 17 added — Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover (Phase 16 UAT carry-over 16항목).
+- 2026-05-04: v1.1 milestone started — Phases 18-26 defined (ROADMAP.md created).
 
 ## Session Continuity
 
-Last session: 2026-05-03T09:15:30.000Z
-Stopped at: Phase 17-04 Task 1 완료 (17-UAT.md 16 시나리오 status: pending) — Task 2 사용자 사인오프 checkpoint:human-verify 대기
-Resume file: .planning/phases/17-datum-ux-circle-strip-1-test-find-detectedorigin-hover/17-UAT.md
-Next action: 사용자가 Debug/x64 빌드된 DatumMeasurement.exe 실행 → 16 시나리오 순차 실행 → 17-UAT.md result/frontmatter/사인오프 갱신 → `git commit -m "docs(17): UAT signed_off — Phase 17 ${RESULT}"`
+Last session: 2026-05-04T00:00:00.000Z
+Stopped at: v1.1 ROADMAP.md created — Phase 18 ready to plan
+Resume file: .planning/ROADMAP.md
+Next action: `/gsd-plan-phase 18` — Carry-over 정리 (CO-01/03/04/05/06)
 
-**Planned Phase:** 17 (Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover) — 4 plans — 2026-04-30T08:16:40.923Z
-**Plan 01 Execution:** 2026-04-22T08:11:22Z — 4 tasks / 7 files / duration ~4 min — commits df4e24a, 3e73191, c426415, 7787265
-**Phase 12 / Plan 02 Execution:** 2026-04-24 — 3 tasks / 1 file (WPF_Example/Halcon/Algorithms/DatumFindingService.cs) / commits 6f6db7b, e6cc52e, 0e9c1f2 — msbuild Debug/x64 green, zero new warnings on DatumFindingService.cs
-**Plan 02 Execution:** 2026-04-23 — 3 tasks / 1 file / commits 6662ea1, b5a857e + user-approved SIMUL_MODE UAT
-**Phase 08 / Plan 08-01 Execution:** 2026-04-23 — 3 tasks / 1 file (.planning/REQUIREMENTS.md) / 3 commits — RC-01..RC-06 섹션 신설 + Traceability Status Complete 10행 + 본문 체크박스 동기화 + Coverage 주석 제거 + Last-updated 갱신 (코드 변경 0건)
-**Phase 12 / Plan 12-03 Execution:** 2026-04-24 — 5 tasks / 5 files (MainView.xaml + MainView.xaml.cs + InspectionListView.xaml.cs + HalconDisplayService.cs + DatumConfig.cs 주석) / commits e3287c6, f0c7668, 3fe1119 (Tasks 1-3 원계획) + 781e4be (UAT Gap-2/Gap-3 fix) — msbuild Debug/x64 green, 신규 warning 0. UAT Gap-1 (ROI Edit in TeachDatum 모드) 및 Gap-4 (런타임 TryFindDatum 테스트 UI) 는 Phase 13 이월.
-**Phase 15 / Plan 15-02 Execution:** 2026-04-29 — 3 tasks / 1 file (DatumFindingService.cs) / commits fe9925a (AppendEdgePointsFromStrip measurePhi+selection+roiLabel) + 05033ea (TryFindLine/TryExtractEdgePoints +1 string selection + 4 helper calls wired) + 5fac0c8 (9 caller sites wired — 7 plan teach + 2 Rule 3 runtime) — msbuild Debug/x64 PASS, 신규 warning 0 on DatumFindingService.cs. Rule 3 deviation: TryFindDatum runtime Line1/Line2 호출 2건도 함께 wiring (signature 변경 빌드 회복).
-**Phase 15 / Plan 15-03 Execution:** 2026-04-29 — 2 tasks / 2 files (VisionAlgorithmService.cs + DatumFindingService.cs) / commits dbde085 (TryFindCircleByPolarSampling +1 string selection + sanity clamp + selectionLower 변환 + MeasurePos 인자화 + selection-aware 누적 정책 분기) + b8e3a60 (DatumFindingService.TryTeachCircleTwoHorizontal Circle_EdgeSelection wiring + 통합 빌드 검증) — msbuild Debug/x64 PASS, 신규 warning 0 on 수정 범위. Phase 14-04 D-13 rectPhi=thetaRad 회전 식 변경 0 라인 (anti-goal 준수). Caller scan 1 caller 확정 (smoke harness 미호출). Deviations: 0.
-**Phase 17 / Plan 17-04 Task 1 Execution:** 2026-05-03 — 1 task / 1 file (.planning/phases/17-.../17-UAT.md, 640 라인) / commit 77510ca — 16 시나리오 (Cluster A 4 + B 3 + C 4 + D 4 + 자동 검증 1) status: pending. Phase 16 carry-over 16항목 + Phase 17 D-01~D-16 통합 검증. UI-SPEC Copywriting verbatim (D-04/D-07/D-11/D-12). W3 cross-plan + Plan 17-03 Rule 3 deviation 검증 단계 추가. msbuild Debug/x64 PASS (코드 변경 0). D-17 algorithm preservation 실측: VisionAlgorithmService 0 / DatumFindingService 11 EXACT. Task 2 (사용자 사인오프) checkpoint:human-verify 대기.
+**v1.1 Phase Map:**
+- Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06)
+- Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)
+- Phase 20: 코드 스타일 정리 (QUAL-02, QUAL-04)
+- Phase 21: 메모리 이미지 버퍼 (BUF-01, BUF-02)
+- Phase 22: CXP SDK 확정 (HW-01)
+- Phase 23: CXP 드라이버 통합 (HW-02)
+- Phase 24: 검사 워크플로우 end-to-end (WF-01, WF-02)
+- Phase 25: 결과 분석 & Export (OUT-01, OUT-02, OUT-03, OUT-04)
+- Phase 26: 헝가리안 전체 리팩토링 (QUAL-01)

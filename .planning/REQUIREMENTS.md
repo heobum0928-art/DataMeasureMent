@@ -78,12 +78,20 @@
 
 ## Traceability
 
-각 요구사항을 어떤 phase 가 처리하는지 — `/gsd-roadmapper` 가 채운다.
-
 | Phase | Requirements | Status |
 |-------|-------------|--------|
-| TBD   | TBD         | Pending roadmap |
+| Phase 18 — Carry-over 정리 | CO-01, CO-03, CO-04, CO-05, CO-06 | Pending |
+| Phase 19 — PropertyGrid 동적 노출 일반화 | QUAL-03, CO-02 | Pending |
+| Phase 20 — 코드 스타일 정리 | QUAL-02, QUAL-04 | Pending |
+| Phase 21 — 메모리 이미지 버퍼 | BUF-01, BUF-02 | Pending |
+| Phase 22 — CXP SDK 확정 | HW-01 | Pending |
+| Phase 23 — CXP 드라이버 통합 | HW-02 | Pending |
+| Phase 24 — 검사 워크플로우 end-to-end | WF-01, WF-02 | Pending |
+| Phase 25 — 결과 분석 & Export | OUT-01, OUT-02, OUT-03, OUT-04 | Pending |
+| Phase 26 — 헝가리안 전체 리팩토링 | QUAL-01 | Pending |
+
+**Coverage: 18/18 requirements mapped (100%)**
 
 ---
 
-*Defined: 2026-05-04*
+*Defined: 2026-05-04 — Traceability filled by roadmapper 2026-05-04*

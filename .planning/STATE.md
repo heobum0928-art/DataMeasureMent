@@ -2,18 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase17_partial_signoff
-stopped_at: |
-  Phase 17 partial sign-off (12 PASS / 2 FAIL / 1 SKIP / 1 SPEC). 9 hotfix 누적 (fbaed2e, 2c12477, 2e37fd6, ae9d030, 75d349d, 2982495, 9576d7b, 5ac9680, 419ec2b).
-  Critical: hotfix#7 (9576d7b) TryFindDatum CTH/VTH 알고리즘 분기 누락 정정 — Phase 12 D-04 회귀.
-  Phase 18 carry-over: Test 2 RadialDirection ItemsSource, Test 8 ICustomTypeDescriptor PropertyGrid hide, Test 10 spec 정리, "Re-draw this ROI" 우클릭 메뉴, strip 색상 시각화, FormatTeachError ROI label 보존, Manual+Verify 워크플로우.
-last_updated: "2026-05-04T00:00:00.000Z"
+status: v1.0 milestone complete
+stopped_at: "Phase 17-04 Task 1 완료 (17-UAT.md 16 시나리오 status: pending) — Task 2 사용자 사인오프 checkpoint:human-verify 대기"
+last_updated: "2026-05-04T14:22:23.191Z"
 progress:
   total_phases: 17
-  completed_phases: 17
+  completed_phases: 15
   total_plans: 55
-  completed_plans: 55
-  percent: 100
+  completed_plans: 51
+  percent: 93
 ---
 
 # Project State
@@ -158,6 +155,37 @@ None yet.
 ### Blockers/Concerns
 
 None yet.
+
+## Deferred Items
+
+Items acknowledged and deferred at v1.0 milestone close on 2026-05-04:
+
+| Category | Item | Status |
+|----------|------|--------|
+| quick_task | 260409-e3v-phase-3 | missing |
+| quick_task | 260417-kzd-phase-6-04-uat-displayname-ui-shot | missing |
+| quick_task | 260417-ou8-edgepairdistancemeasurement-roi-faiconfi | missing |
+| quick_task | 260423-ctx-roi-editmode-delete-contextmenu | missing |
+| quick_task | 260423-hnd-roi-edit-handles-resize-vertex | missing |
+| quick_task | 260423-hzt-wr-rt-02-edgedirection-edgepolarity-comb | missing |
+| quick_task | 260423-lws-datum-grab-loadimage-datumconfig | missing |
+| quick_task | 260423-o53-add-roi-move-drag | missing |
+| quick_task | 260428-oqn-fix-verticaltwohorizontal-datum-vertical | missing |
+| quick_task | 260429-c2e-fix-halcon-1405-in-datumfindingservice-u | missing |
+| quick_task | 260430-hox-circle-strip-phase-16-uat-fail-root-caus | missing |
+| uat_gap | Phase 02 / 02-HUMAN-UAT.md | signed_off |
+| uat_gap | Phase 04 / 04-UAT.md | partial |
+| uat_gap | Phase 05 / 05-HUMAN-UAT.md | signed_off |
+| uat_gap | Phase 13 / 13-UAT.md | partial |
+| uat_gap | Phase 15 / 15-UAT.md | partial |
+| uat_gap | Phase 16 / 16-UAT.md | signed_off |
+| uat_gap | Phase 17 / 17-UAT.md | partial |
+| verification_gap | Phase 02 / 02-VERIFICATION.md | human_needed |
+| verification_gap | Phase 04 / 04-VERIFICATION.md | gaps_found |
+| verification_gap | Phase 05 / 05-VERIFICATION.md | human_needed |
+| verification_gap | Phase 10 / 10-VERIFICATION-REPORT.md | human_needed |
+
+Note: Quick task slugs are git commits without paired `.planning/quick/` artifacts (commits exist in history). UAT gaps are partial sign-offs (pending=0, but not all scenarios PASS). Verification gaps are documented but unresolved at milestone close. All carried over to v1.1 scope (project_v1_1_scope.md).
 
 ### Roadmap Evolution
 

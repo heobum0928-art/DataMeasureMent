@@ -130,6 +130,13 @@ namespace ReringProject.UI
         public event EventHandler<bool> RoiEditModeChanged;
         public event EventHandler<string> RoiDeleteRequested;
 
+        //260505 hbk Phase 18 CO-04 — TeachDatum 모드 여부. MainView.TeachDatumButton_Click 에서 true/false 설정.
+        //  UpdateContextMenuState 가 "ROI 다시 그리기" 메뉴 가시성 결정에 사용.
+        public bool IsTeachDatumMode { get; set; } //260505 hbk Phase 18 CO-04
+
+        //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴 클릭 시 발생. 인자 = hit-test 통과한 roiId.
+        public event System.Action<string> RoiRedrawRequested; //260505 hbk Phase 18 CO-04
+
         //260423 hbk 리사이즈 상태 + 기하 변경 이벤트
         private bool _isResizingRoi;
         private ResizeHandle _resizingHandle;
@@ -1449,6 +1456,14 @@ namespace ReringProject.UI
                 EditRoiMenuItem.IsChecked = _isEditMode;
                 DeleteRoiMenuItem.IsEnabled = hasSelectedRoi && !drawing; //260503 hbk Phase 17 hotfix#5 — Delete 는 선택 필요
             }
+
+            //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴: TeachDatum 모드 + 우클릭 위치에 Datum ROI 있을 때만 표시
+            if (RedrawRoiMenuItem != null) //260505 hbk Phase 18 CO-04
+            { //260505 hbk Phase 18 CO-04
+                RoiDefinition hitRoi = IsTeachDatumMode ? HitTestRoiAtPoint(_lastMouseImagePoint) : null; //260505 hbk Phase 18 CO-04
+                bool isDatumRoi = hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum."); //260505 hbk Phase 18 CO-04
+                RedrawRoiMenuItem.Visibility = isDatumRoi ? Visibility.Visible : Visibility.Collapsed; //260505 hbk Phase 18 CO-04
+            } //260505 hbk Phase 18 CO-04
         }
 
         //260423 hbk Edit 모드 토글 헬퍼 (우클릭 종료 경로 + 메뉴 클릭 경로 공용)
@@ -1478,6 +1493,16 @@ namespace ReringProject.UI
             if (_isEditMode) SetEditMode(false);
             RoiDeleteRequested?.Invoke(this, targetId);
         }
+
+        //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 클릭: hit-test 후 이벤트 발행 → MainView가 ClearDatumRoiFields 호출
+        private void RedrawRoiMenuItem_Click(object sender, RoutedEventArgs e) //260505 hbk Phase 18 CO-04
+        { //260505 hbk Phase 18 CO-04
+            var hitRoi = HitTestRoiAtPoint(_lastMouseImagePoint); //260505 hbk Phase 18 CO-04
+            if (hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum.")) //260505 hbk Phase 18 CO-04
+            { //260505 hbk Phase 18 CO-04
+                RoiRedrawRequested?.Invoke(hitRoi.Id); //260505 hbk Phase 18 CO-04
+            } //260505 hbk Phase 18 CO-04
+        } //260505 hbk Phase 18 CO-04
 
         private IEnumerable<EdgeInspectionOverlay> BuildTransientOverlays()
         {

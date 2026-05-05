@@ -480,12 +480,17 @@ namespace ReringProject.Halcon.Display
 
             try
             {
-                //260429 hbk Phase 16 D-02 — Strip 색상: 회색 thin line, fill 없음 (cyan/magenta/yellow 와 충돌 회피)
-                HOperatorSet.SetColor(window, "gray");
+                //260505 hbk Phase 18 CO-05 — per-strip 성공/실패 색상 분기 (D-15)
+                bool[] successes = datum.CircleStripSuccesses; //260505 hbk Phase 18 CO-05
                 HOperatorSet.SetLineWidth(window, 1);
                 //260503 hbk Phase 17 hotfix#6 — stepCount 만큼 0°, stepDeg°, 2*stepDeg°, ... 360° (한 바퀴) 모두 그림.
                 for (int i = 0; i < stepCount; i++)
                 {
+                    //260505 hbk Phase 18 CO-05 — green=성공, red=실패, gray=데이터 없음(fallback)
+                    string stripColor = "gray"; //260505 hbk Phase 18 CO-05
+                    if (successes != null && i < successes.Length) //260505 hbk Phase 18 CO-05
+                        stripColor = successes[i] ? "green" : "red"; //260505 hbk Phase 18 CO-05
+                    HOperatorSet.SetColor(window, stripColor); //260505 hbk Phase 18 CO-05
                     double thetaRad = i * stepRad;
                     //260429 hbk Phase 16 D-01 — 알고리즘 canonical 식 미러 (VisionAlgorithmService line 282-285, -sin/+cos)
                     double rectRow = centerR - radius * Math.Sin(thetaRad);
@@ -508,6 +513,8 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.DispLine(window, r3, c3, r4, c4);
                     HOperatorSet.DispLine(window, r4, c4, r1, c1);
                 }
+                //260505 hbk Phase 18 CO-05 — 루프 완료 후 SetColor 상태 복원 (Halcon Window 전역 상태 오염 방지)
+                HOperatorSet.SetColor(window, "gray"); //260505 hbk Phase 18 CO-05
             }
             catch
             {

@@ -438,6 +438,13 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260503 hbk Phase 17 D-13
         public double DetectedRefAngle { get; set; } //260503 hbk Phase 17 D-13
 
+        //260505 hbk Phase 18 CO-05 — Circle polar strip 별 검출 성공 여부 (TryTeachCircleTwoHorizontal write-back).
+        //  INI/JSON 직렬화 제외 (transient). RenderCircleStripOverlay 소비. bool[] 크기 = stepCount.
+        [System.ComponentModel.Browsable(false)] //260505 hbk Phase 18 CO-05
+        [PropertyTools.DataAnnotations.Browsable(false)] //260505 hbk Phase 18 CO-05
+        [Newtonsoft.Json.JsonIgnore] //260505 hbk Phase 18 CO-05
+        public bool[] CircleStripSuccesses { get; set; } //260505 hbk Phase 18 CO-05
+
         //260503 hbk Phase 17 D-16 — 결과 메트릭 PropertyGrid 노출 (ReadOnly, 사용자가 검출 품질 즉시 확인)
         //  PropertyTools.Wpf 가 지원하는 ReadOnly attribute 는 PropertyTools.DataAnnotations.ReadOnly (ParamBase.cs L37/L53 confirmed canonical).
         //  System.ComponentModel.ReadOnly 도 함께 부착 — ICustomTypeDescriptor.GetProperties 경로의 안전판.

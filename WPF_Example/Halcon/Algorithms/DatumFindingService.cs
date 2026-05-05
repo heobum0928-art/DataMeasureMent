@@ -198,6 +198,7 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple circleEdgeRows, circleEdgeCols;
                 string circleError;
                 string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
+                bool[] unusedStrips; //260505 hbk Phase 18 CO-05 — D-14: find 경로는 strip 색상 갱신 없음
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
@@ -207,6 +208,7 @@ namespace ReringProject.Halcon.Algorithms
                         null,
                         out centerRow, out centerCol, out radius,
                         out circleEdgeRows, out circleEdgeCols,
+                        out unusedStrips, //260505 hbk Phase 18 CO-05 — D-14: find 경로는 CircleStripSuccesses 갱신 안 함
                         out circleError))
                 {
                     error = "Circle: " + circleError;
@@ -727,6 +729,7 @@ namespace ReringProject.Halcon.Algorithms
                 //260503 hbk Phase 17 D-02 — Circle_RadialDirection ("Inward"/"Outward") → polarity ("positive"/"negative") override (EdgePolarity 무시)
                 string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
                 //260426 hbk Phase 14-05 — Circle per-ROI 에지 파라미터 + Polar sampling 파라미터 (14-04 신규 3 필드)
+                bool[] circleStrips; //260505 hbk Phase 18 CO-05
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
@@ -736,12 +739,14 @@ namespace ReringProject.Halcon.Algorithms
                         null, // teaching-phase identity transform (legacy 동일)
                         out centerRow, out centerCol, out radius,
                         out circleEdgeRows, out circleEdgeCols,
+                        out circleStrips, //260505 hbk Phase 18 CO-05
                         out circleError))
                 {
                     config.LastTeachSucceeded = false;
                     error = "Circle fit failed: " + circleError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5c) 보존
                     return false;
                 }
+                config.CircleStripSuccesses = circleStrips; //260505 hbk Phase 18 CO-05 — per-strip 성공 여부 보관 (D-14: teach 경로만)
 
                 config.CircleCenter_Row      = centerRow;
                 config.CircleCenter_Col      = centerCol;

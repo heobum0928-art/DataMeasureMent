@@ -21,6 +21,10 @@
                 <MenuItem x:Name="DeleteRoiMenuItem"
                           Header="Delete ROI"
                           Click="DeleteRoiMenuItem_Click"/>
+                <MenuItem x:Name="RedrawRoiMenuItem"
+                          Header="ROI 다시 그리기"
+                          Click="RedrawRoiMenuItem_Click"
+                          Visibility="Collapsed"/>
                 <Separator/>
                 <MenuItem x:Name="CrosshairMenuItem"
                           Header="Crosshair"

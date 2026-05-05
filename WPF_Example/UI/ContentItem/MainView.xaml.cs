@@ -65,6 +65,16 @@ namespace ReringProject.UI {
             halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
             //260423 hbk ROI 기하 변경(리사이즈/정점편집) 이벤트 구독
             halconViewer.RoiGeometryChanged += HalconViewer_RoiGeometryChanged;
+            //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기": Length/Radius 0 리셋 후 오버레이 갱신
+            halconViewer.RoiRedrawRequested += (roiId) => //260505 hbk Phase 18 CO-04
+            { //260505 hbk Phase 18 CO-04
+                if (_editingDatum != null) //260505 hbk Phase 18 CO-04
+                { //260505 hbk Phase 18 CO-04
+                    ClearDatumRoiFields(_editingDatum, roiId); //260505 hbk Phase 18 CO-04
+                    halconViewer.SetDatumOverlay(_editingDatum, false); //260505 hbk Phase 18 CO-04
+                    PublishDatumRoiCandidates(_editingDatum); //260505 hbk Phase 18 CO-04
+                } //260505 hbk Phase 18 CO-04
+            }; //260505 hbk Phase 18 CO-04
             Unloaded += MainView_Unloaded;
         }
 
@@ -1332,6 +1342,7 @@ namespace ReringProject.UI {
                 ExitCanvasMode();
                 _canvasMode = ECanvasMode.TeachDatum;
                 btn_teachDatum.IsChecked = true;
+                halconViewer.IsTeachDatumMode = true; //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴 활성화
 
                 //260424 hbk Phase 12 — InspectionListView.SelectedParam 으로 DatumConfig 해결 (btn_teachDatum 활성화 조건)
                 var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig; //260424 hbk Phase 12 — MainWindow.xaml:80 x:Name="inspectionList"
@@ -1357,6 +1368,7 @@ namespace ReringProject.UI {
                         _canvasMode = ECanvasMode.None;
                         _editingDatum = null;
                         halconViewer.IsEditMode = false; //260503 hbk Phase 17 D-06 wiring — 티칭 미시작 시 Edit 모드 해제
+                        halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — 티칭 미시작 시 메뉴 숨김
                         return;
                     }
                 }
@@ -1372,6 +1384,7 @@ namespace ReringProject.UI {
             }
             else {
                 //260424 hbk Phase 12 — 수동 해제 = 취소
+                halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
                 ExitCanvasMode();
             }
         }
@@ -1582,6 +1595,7 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.None;
                 btn_teachDatum.IsChecked = false;
                 _editingDatum = null;
+                halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
                 return;
             }
 
@@ -1609,6 +1623,7 @@ namespace ReringProject.UI {
             _canvasMode = ECanvasMode.None;
             btn_teachDatum.IsChecked = false;
             _editingDatum = null;
+            halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
         }
 
         //260424 hbk Phase 13 D-05..D-08 — 런타임 TryFindDatum 테스트 진입 (현재/Load 이미지 2-way + 성공 주황 십자 + 실패 에러 메시지)

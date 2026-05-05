@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: Ready
-stopped_at: "v1.1 ROADMAP.md created 2026-05-04 — Phase 18 is next"
-last_updated: "2026-05-04T00:00:00.000Z"
+status: executing
+stopped_at: Completed 18-01-PLAN.md (CO-01 DatumConfig GetProperties whitelist)
+last_updated: "2026-05-05T03:42:58.092Z"
+last_activity: 2026-05-05 — Phase 18 planned (18-01~18-05, 3 waves)
 progress:
   total_phases: 9
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 5
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -26,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 18 (Carry-over 정리)
 Plan: —
-Status: Not started
-Last activity: 2026-05-04 — v1.1 ROADMAP.md created, 9 phases (18-26) defined
+Status: Ready to execute (5 plans created)
+Last activity: 2026-05-05 — Phase 18 planned (18-01~18-05, 3 waves)
 
 ## Performance Metrics
 
@@ -74,6 +75,7 @@ Last activity: 2026-05-04 — v1.1 ROADMAP.md created, 9 phases (18-26) defined
 | Phase 17 PP17-02 | 6 | 4 tasks | 4 files |
 | Phase 17 PP17-03 | 12 | 5 tasks | 6 files |
 | Phase 17 P17-04 | 6 | 1 tasks | 1 files |
+| Phase 18-carry-over-cleanup P01 | 10 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -121,6 +123,7 @@ Recent decisions affecting current work:
 - [v1.1 roadmap]: 헝가리안 전체 리팩토링(QUAL-01) → Phase 26 마지막 배치 (다른 phase 와 merge 충돌 최소화 — 사용자 명시 결정)
 - [v1.1 roadmap]: CO-02 (DatumConfig PropertyGrid Phase 17 Test 8 잔여) → Phase 19 QUAL-03 에 흡수 (동일 ICustomTypeDescriptor 작업 범위)
 - [v1.1 roadmap]: WF-01/02 → Phase 24 (BUF Phase 21 + HW Phase 23 이후 배치 — end-to-end 에 버퍼+하드웨어 경로 포함)
+- allNoFilter+sourceNames whitelist 패턴: DatumConfig.GetProperties Browsable(false) List<> 소스 프로퍼티 강제 포함으로 Circle_RadialDirection ItemsSource fallback 버그 수정 (CO-01)
 
 ### Quick Tasks Completed
 
@@ -185,12 +188,13 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-04T00:00:00.000Z
-Stopped at: v1.1 ROADMAP.md created — Phase 18 ready to plan
-Resume file: .planning/ROADMAP.md
-Next action: `/gsd-plan-phase 18` — Carry-over 정리 (CO-01/03/04/05/06)
+Last session: 2026-05-05T03:42:58.084Z
+Stopped at: Completed 18-01-PLAN.md (CO-01 DatumConfig GetProperties whitelist)
+Resume file: None
+Next action: `/gsd-execute-phase 18` — Carry-over 정리 실행 (CO-01/03/04/05/06)
 
 **v1.1 Phase Map:**
+
 - Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06)
 - Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)
 - Phase 20: 코드 스타일 정리 (QUAL-02, QUAL-04)

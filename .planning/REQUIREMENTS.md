@@ -50,7 +50,8 @@
 - [x] **CO-04
 **: ROI Length=0 escape hatch 를 우클릭 메뉴로 노출한다
 - [ ] **CO-05**: 검출 strip 색상을 성공=녹색 / 실패=빨강으로 분기한다
-- [ ] **CO-06**: FormatTeachError 메시지에서 ROI label 을 보존한다
+- [x] **CO-06
+**: FormatTeachError 메시지에서 ROI label 을 보존한다
 
 ---
 

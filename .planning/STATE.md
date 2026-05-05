@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
 status: executing
-stopped_at: Completed 18-02-PLAN.md (CO-04 ROI 다시 그리기 컨텍스트 메뉴)
-last_updated: "2026-05-05T03:49:36.114Z"
+stopped_at: Completed 18-03-PLAN.md (CO-06 FormatTeachError DatumName 접두사)
+last_updated: "2026-05-05T03:53:51.870Z"
 last_activity: 2026-05-05 — Phase 18 planned (18-01~18-05, 3 waves)
 progress:
   total_phases: 9
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
-  percent: 40
+  completed_plans: 3
+  percent: 60
 ---
 
 # Project State
@@ -77,6 +77,7 @@ Last activity: 2026-05-05 — Phase 18 planned (18-01~18-05, 3 waves)
 | Phase 17 P17-04 | 6 | 1 tasks | 1 files |
 | Phase 18-carry-over-cleanup P01 | 10 | 1 tasks | 1 files |
 | Phase 18 P02 | 15 | 2 tasks | 3 files |
+| Phase 18-carry-over-cleanup P03 | 8 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ Recent decisions affecting current work:
 - [v1.1 roadmap]: WF-01/02 → Phase 24 (BUF Phase 21 + HW Phase 23 이후 배치 — end-to-end 에 버퍼+하드웨어 경로 포함)
 - allNoFilter+sourceNames whitelist 패턴: DatumConfig.GetProperties Browsable(false) List<> 소스 프로퍼티 강제 포함으로 Circle_RadialDirection ItemsSource fallback 버그 수정 (CO-01)
 - CO-04 컨텍스트 메뉴: IsTeachDatumMode + HitTestRoiAtPoint(Datum.*) 게이팅 — RoiRedrawRequested 이벤트로 ClearDatumRoiFields 위임 (Phase 18-02)
+- [Phase 18-03]: FormatTeachError DatumConfig 인자 추가 — datum.DatumName 기반 "[DatumName] " 접두사, null/empty 가드 포함 (CO-06)
 
 ### Quick Tasks Completed
 
@@ -190,10 +192,10 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-05T03:49:36.106Z
-Stopped at: Completed 18-02-PLAN.md (CO-04 ROI 다시 그리기 컨텍스트 메뉴)
+Last session: 2026-05-05T04:05:00.000Z
+Stopped at: Completed 18-03-PLAN.md (CO-06 FormatTeachError DatumName 접두사)
 Resume file: None
-Next action: `/gsd-execute-phase 18` — Carry-over 정리 실행 (CO-01/03/04/05/06)
+Next action: `/gsd-execute-phase 18` — 18-04(CO-05 Test Find 버그) 실행
 
 **v1.1 Phase Map:**
 

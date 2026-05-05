@@ -550,6 +550,28 @@ namespace ReringProject.Sequence {
                 if (IsHiddenForAlgorithm(pd.Name, alg)) continue; //260503 hbk Phase 17 D-09 — alg 별 hide 필터
                 keep.Add(pd);
             }
+            //260505 hbk Phase 18 CO-01 — ItemsSource 소스 List<> 프로퍼티는 [Browsable(false)]이므로
+            // TypeDescriptor.GetProperties(this, attributes, true) 에서 제외됨.
+            // PropertyTools.Wpf 가 [ItemsSourceProperty] 이름을 GetProperties 반환 컬렉션에서 조회할 때
+            // Circle_RadialDirectionList 등을 찾지 못해 fallback(Directions 4항목)이 적용되는 버그.
+            // → Browsable 필터 없이 전체 재조회하여 소스 프로퍼티를 명시적으로 추가.
+            var allNoFilter = System.ComponentModel.TypeDescriptor.GetProperties(this, true); //260505 hbk Phase 18 CO-01
+            var sourceNames = new System.Collections.Generic.HashSet<string> { //260505 hbk Phase 18 CO-01
+                nameof(AlgorithmTypeList),
+                nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
+                nameof(Circle_EdgeSelectionList), nameof(Circle_RadialDirectionList),
+                nameof(Horizontal_A_EdgeDirectionList), nameof(Horizontal_A_EdgePolarityList),
+                nameof(Horizontal_A_EdgeSelectionList),
+                nameof(Horizontal_B_EdgeDirectionList), nameof(Horizontal_B_EdgePolarityList),
+                nameof(Horizontal_B_EdgeSelectionList),
+                nameof(Line1_EdgeDirectionList), nameof(Line1_EdgePolarityList), nameof(Line1_EdgeSelectionList),
+                nameof(Line2_EdgeDirectionList), nameof(Line2_EdgePolarityList), nameof(Line2_EdgeSelectionList),
+                nameof(Vertical_EdgeDirectionList), nameof(Vertical_EdgePolarityList), nameof(Vertical_EdgeSelectionList),
+            }; //260505 hbk Phase 18 CO-01
+            foreach (System.ComponentModel.PropertyDescriptor pd in allNoFilter) { //260505 hbk Phase 18 CO-01
+                if (sourceNames.Contains(pd.Name) && !keep.Exists(k => k.Name == pd.Name)) //260505 hbk Phase 18 CO-01
+                    keep.Add(pd); //260505 hbk Phase 18 CO-01
+            } //260505 hbk Phase 18 CO-01
             return new System.ComponentModel.PropertyDescriptorCollection(keep.ToArray());
         }
         public System.ComponentModel.PropertyDescriptorCollection GetProperties() {

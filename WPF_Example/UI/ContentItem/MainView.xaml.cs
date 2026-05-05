@@ -747,16 +747,18 @@ namespace ReringProject.UI {
             return null;
         }
 
-        //260503 hbk Phase 17 D-12 + D-04 — teach 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
-        private static string FormatTeachError(string err) {
-            if (err == null) err = "unknown";
-            if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0
-                || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0
-                || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) {
-                return "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요."; //260503 hbk Phase 17 D-04 — EdgeDirection 힌트
-            }
-            return "티칭에 실패했습니다: " + err;
-        }
+        //260505 hbk Phase 18 CO-06 — datum 인자 추가 → 에러 메시지에 [DatumName] 접두사 포함 (D-17)
+        private static string FormatTeachError(DatumConfig datum, string err) { //260505 hbk Phase 18 CO-06
+            if (err == null) err = "unknown"; //260505 hbk Phase 18 CO-06
+            string prefix = (datum != null && !string.IsNullOrEmpty(datum.DatumName)) //260505 hbk Phase 18 CO-06
+                ? "[" + datum.DatumName + "] " : ""; //260505 hbk Phase 18 CO-06
+            if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0 //260505 hbk Phase 18 CO-06
+                || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0 //260505 hbk Phase 18 CO-06
+                || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) { //260505 hbk Phase 18 CO-06
+                return prefix + "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요."; //260505 hbk Phase 18 CO-06
+            } //260505 hbk Phase 18 CO-06
+            return prefix + "티칭에 실패했습니다: " + err; //260505 hbk Phase 18 CO-06
+        } //260505 hbk Phase 18 CO-06
 
         //260503 hbk Phase 17 D-12 + D-04 — Test Find 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
         private static string FormatFindError(string err) {
@@ -1616,7 +1618,7 @@ namespace ReringProject.UI {
             else {
                 //260503 hbk Phase 17 D-12 — teach 실패 사유 모달 (label_drawHint 사유 표시 패턴 폐기). FormatTeachError 가 D-04 EdgeDirection 힌트 통합.
                 label_drawHint.Visibility = Visibility.Collapsed;
-                CustomMessageBox.Show("티칭 실패", FormatTeachError(error)); //260503 hbk Phase 17 D-12
+                CustomMessageBox.Show("티칭 실패", FormatTeachError(_editingDatum, error)); //260505 hbk Phase 18 CO-06
             }
 
             //260424 hbk Phase 12 — ROI 유지(재튜닝 가능), canvas mode 해제

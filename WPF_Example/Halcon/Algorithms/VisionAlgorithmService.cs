@@ -219,11 +219,13 @@ namespace ReringProject.Halcon.Algorithms
             HTuple datumTransform,
             out double foundRow, out double foundCol, out double foundRadius,
             out HTuple edgeRows, out HTuple edgeCols,
+            out bool[] stripSuccesses, //260505 hbk Phase 18 CO-05 — per-strip 검출 성공 여부
             out string error)
         {
             foundRow = 0; foundCol = 0; foundRadius = 0;
             edgeRows = new HTuple();
             edgeCols = new HTuple();
+            stripSuccesses = null; //260505 hbk Phase 18 CO-05
             error = null;
 
             if (image == null) { error = "image is null"; return false; }
@@ -276,6 +278,7 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple allCols = new HTuple();
 
                 int stepCount = (int)Math.Round(360.0 / stepDeg);
+                bool[] strips = new bool[stepCount]; //260505 hbk Phase 18 CO-05 — per-strip 성공 여부 배열
                 for (int i = 0; i < stepCount; i++)
                 {
                     double thetaDeg = i * stepDeg;
@@ -303,6 +306,7 @@ namespace ReringProject.Halcon.Algorithms
 
                         if (eRows.TupleLength() > 0 && eCols.TupleLength() > 0)
                         {
+                            strips[i] = true; //260505 hbk Phase 18 CO-05 — 이 strip 검출 성공
                             //260429 hbk Phase 15 — selection 정책 분기: First/Last 는 단일점 누적(Phase 14-04 stepCount 보존), All 은 전체 누적
                             if (string.Equals(selectionLower, "all", StringComparison.OrdinalIgnoreCase))
                             {
@@ -330,6 +334,7 @@ namespace ReringProject.Halcon.Algorithms
                     }
                 }
 
+                stripSuccesses = strips; //260505 hbk Phase 18 CO-05 — 호출자에게 per-strip 결과 전달
                 edgeRows = allRows;
                 edgeCols = allCols;
 

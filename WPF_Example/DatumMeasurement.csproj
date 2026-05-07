@@ -215,6 +215,7 @@
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
+    <Compile Include="Custom\Sequence\Inspection\DynamicPropertyHelper.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgePairDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\PointToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\PointToPointDistanceMeasurement.cs" />

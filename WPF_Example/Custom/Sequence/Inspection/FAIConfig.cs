@@ -7,7 +7,8 @@ using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
 
-    public class FAIConfig : ParamBase {
+    //260507 hbk Phase 19 QUAL-03: ICustomTypeDescriptor 추가 — PropertyGrid 동적 노출용 (EdgeMeasureType 별 필터)
+    public class FAIConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor {
 
         //260413 hbk Phase 6: Multi-Algorithm Measurements (D-20) — 수동 직렬화, ParamBase 자동 Save/Load 제외
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -44,7 +45,20 @@ namespace ReringProject.Sequence {
         public double ROI_Length2 { get; set; }
 
         // Edge Measurement //260409 hbk
-        [Category("Edge|Measurement")]
+        //260507 hbk Phase 19 QUAL-03: EdgeMeasureType — 측정 알고리즘 선택 (INI 직렬화, 미존재 시 기본값 "EdgePairDistance")
+        //  저장 타입: string (ParamBase.Save/Load switch가 string 지원)
+        //  유효값: MeasurementFactory.GetTypeNames() 목록 (6종)
+        //  미존재 INI 로드 시: property 기본값 "EdgePairDistance" 가 유지됨 (ParamBase.Load 가 INI 키 미존재 시 기본값 보존)
+        [Category("Edge|Measurement")] //260507 hbk Phase 19 QUAL-03
+        [ItemsSourceProperty(nameof(EdgeMeasureTypeList))] //260507 hbk Phase 19 QUAL-03 — PropertyGrid 드롭다운 목록
+        public string EdgeMeasureType { get; set; } = "EdgePairDistance"; //260507 hbk Phase 19 QUAL-03
+
+        //260507 hbk Phase 19 QUAL-03 — EdgeMeasureType 드롭다운 옵션 (MeasurementFactory 단일 소스, 하드코딩 금지)
+        [PropertyTools.DataAnnotations.Browsable(false)] //260507 hbk Phase 19 QUAL-03
+        public List<string> EdgeMeasureTypeList { //260507 hbk Phase 19 QUAL-03
+            get { return new List<string>(MeasurementFactory.GetTypeNames()); } //260507 hbk Phase 19 QUAL-03
+        }
+
         public int EdgeThreshold { get; set; } = 10; //260409 hbk RoiDefinition 호환
         public double Sigma { get; set; } = 1.0;
         [ItemsSourceProperty(nameof(EdgeDirectionList))] //260423 hbk WR-RT-02 ComboBox 처리
@@ -181,6 +195,48 @@ namespace ReringProject.Sequence {
                 PixelResolutionY = PixelResolutionY,
                 PolygonPoints = PolygonPoints ?? "" //260408 hbk
             };
+        }
+
+        //260507 hbk Phase 19 QUAL-03 — PropertyGrid 동적 노출 (EdgeMeasureType 별 필터)
+        //  PropertyTools.Wpf 가 ICustomTypeDescriptor.GetProperties(Attribute[]) 를 호출 (PropertyGrid 전용).
+        //  ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370 확인).
+        //  안전 장치: GetProperties() 무인자는 base TypeDescriptor 위임 (System.ComponentModel 우회 사용처 보호).
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) { //260507 hbk Phase 19 QUAL-03
+            var sourceNames = new System.Collections.Generic.HashSet<string> { //260507 hbk Phase 19 QUAL-03
+                nameof(EdgeMeasureTypeList), //260507 hbk Phase 19 QUAL-03
+                nameof(EdgeDirectionList), //260507 hbk Phase 18 CO-01 패턴 — EdgeDirectionList 강제 포함
+                nameof(EdgePolarityList), //260507 hbk Phase 18 CO-01 패턴 — EdgePolarityList 강제 포함
+            };
+            return DynamicPropertyHelper.FilterProperties(this, attributes, name => IsHiddenForEdgeMeasureType(name, EdgeMeasureType), sourceNames); //260507 hbk Phase 19 QUAL-03
+        }
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties() { //260507 hbk Phase 19 QUAL-03
+            //260507 hbk Phase 19 QUAL-03 — INI reflection 경로 보호 (System.ComponentModel 사용처가 있을 경우 base 위임)
+            return System.ComponentModel.TypeDescriptor.GetProperties(this, true);
+        }
+        public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); } //260507 hbk Phase 19 QUAL-03
+        public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); } //260507 hbk Phase 19 QUAL-03
+        public string GetComponentName() { return System.ComponentModel.TypeDescriptor.GetComponentName(this, true); } //260507 hbk Phase 19 QUAL-03
+        public System.ComponentModel.TypeConverter GetConverter() { return System.ComponentModel.TypeDescriptor.GetConverter(this, true); } //260507 hbk Phase 19 QUAL-03
+        public System.ComponentModel.EventDescriptor GetDefaultEvent() { return System.ComponentModel.TypeDescriptor.GetDefaultEvent(this, true); } //260507 hbk Phase 19 QUAL-03
+        public System.ComponentModel.PropertyDescriptor GetDefaultProperty() { return System.ComponentModel.TypeDescriptor.GetDefaultProperty(this, true); } //260507 hbk Phase 19 QUAL-03
+        public object GetEditor(System.Type editorBaseType) { return System.ComponentModel.TypeDescriptor.GetEditor(this, editorBaseType, true); } //260507 hbk Phase 19 QUAL-03
+        public System.ComponentModel.EventDescriptorCollection GetEvents(System.Attribute[] attributes) { return System.ComponentModel.TypeDescriptor.GetEvents(this, attributes, true); } //260507 hbk Phase 19 QUAL-03
+        public System.ComponentModel.EventDescriptorCollection GetEvents() { return System.ComponentModel.TypeDescriptor.GetEvents(this, true); } //260507 hbk Phase 19 QUAL-03
+        public object GetPropertyOwner(System.ComponentModel.PropertyDescriptor pd) { return this; } //260507 hbk Phase 19 QUAL-03
+
+        //260507 hbk Phase 19 QUAL-03 — EdgeMeasureType 별 숨김 규칙:
+        //   CircleDiameter: EdgeDirection/EdgePolarity/EdgeSelection/EdgeSampleCount/EdgeTrimCount/Sigma + 각 List 숨김
+        //   그 외 모든 타입: 숨김 없음 (EdgePairDistance, PointToLineDistance 등)
+        private static bool IsHiddenForEdgeMeasureType(string name, string edgeMeasureType) { //260507 hbk Phase 19 QUAL-03
+            if (edgeMeasureType == "CircleDiameter") {
+                if (name == "EdgeDirection"  || name == "EdgeDirectionList")  return true; //260507 hbk Phase 19 QUAL-03
+                if (name == "EdgePolarity"   || name == "EdgePolarityList")   return true; //260507 hbk Phase 19 QUAL-03
+                if (name == "EdgeSelection")                                   return true; //260507 hbk Phase 19 QUAL-03
+                if (name == "EdgeSampleCount")                                 return true; //260507 hbk Phase 19 QUAL-03
+                if (name == "EdgeTrimCount")                                   return true; //260507 hbk Phase 19 QUAL-03
+                if (name == "Sigma")                                           return true; //260507 hbk Phase 19 QUAL-03
+            }
+            return false;
         }
     }
 }

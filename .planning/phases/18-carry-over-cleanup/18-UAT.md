@@ -81,8 +81,9 @@ severity: major
 **source**: CO-04
 **static_acceptance**: PASS (RedrawRoiMenuItem=2, IsTeachDatumMode=2)
 result: issue
-reported: "btn_teachDatum 버튼이 안먹는다 (클릭해도 TeachDatum 모드 진입 안 됨) — Test 3~6 전부 blocking."
-severity: blocker
+reported: "btn_teachDatum 클릭 시 외관상 무반응 (IsConfigured=true & ROI 모두 존재 시 silent re-teach). 코드 추적 후 enhancement 로 재분류 — 재티칭 확인 모달 추가."
+severity: minor
+reclassified: "blocker → minor (실제로는 silent re-teach 동작 중. 사용자 피드백 부재가 진짜 문제)."
 
 ### 3. CO-04-B — "ROI 다시 그리기" 실행 동작
 
@@ -178,16 +179,24 @@ skipped: 0
 
 - truth: "Circle_RadialDirection PropertyGrid 드롭다운에 Inward/Outward 두 항목만 표시되어야 함 (LtoR/RtoL/TtoB/BtoT 미표시)"
   status: failed
-  reason: "User reported: Fail circle에서 LtoR 항목보임 — 정적 grep 통과(Circle_RadialDirectionList=4, allNoFilter=2)에도 불구하고 런타임에 LtoR 항목이 노출됨. PropertyGrid ItemsSource 바인딩 또는 GetProperties whitelist 가 실제로 적용되지 않은 것으로 추정."
+  reason: "User reported: Fail circle에서 LtoR 항목보임. 정적 grep 통과(Circle_RadialDirectionList=4, allNoFilter=2)에도 불구하고 런타임에 LtoR 항목 노출. ROOT CAUSE (gsd-debugger H1, 2026-05-07): PropertyTools.Wpf 가 [ItemsSourceProperty] resolve 시 GetProperties(Attribute[]) 반환이 아니라 owner.GetType().GetProperty(name) 직접 reflection 사용 → CO-01 의 GetProperties whitelist 패턴은 wrong layer (no-op fix). PropertyTools 가 fallback 으로 Circle_EdgeDirectionList(4항목)를 잡는 것으로 추정."
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  artifacts:
+    - WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs (L239-249, L548-587)
+  missing:
+    - "올바른 ItemsSource resolution 메커니즘 (PropertyTools 가 인식하는 형태)"
+    - "Circle_RadialDirectionList getter 호출 여부 검증 로그"
+  fix_direction: "GetProperties whitelist 패턴 폐기. 옵션 (b) 가장 적은 변경: *List 프로퍼티들의 [Browsable(false)] 제거 + IsHiddenForAlgorithm 에 *List 이름 추가하여 PropertyGrid 노출 차단. 옵션 (a)/(c): PropertyTools 자체 ItemsSource attribute 사용 또는 custom PropertyDescriptor."
 
-- truth: "btn_teachDatum 클릭 시 TeachDatum 모드 진입 (Wizard 시작 또는 IsTeachDatumMode=true 토글)"
-  status: failed
-  reason: "User reported: btn_teachDatum 버튼이 안먹는다 — 클릭해도 모드 진입 자체가 안 됨. Click 핸들러 미연결, Command binding 누락, IsEnabled=false, 또는 IsConfigured 게이팅이 신규 datum 에서 잘못 차단하는 것으로 추정. Test 3/4/5/6 전부 이 버튼 의존이라 blocker."
-  severity: blocker
+- truth: "기존 티칭된 Datum 에서 btn_teachDatum 클릭 시 사용자에게 명시적 피드백(모달 또는 시각 변화) 제공"
+  status: enhancement
+  reason: "User reported: btn_teachDatum 버튼이 안먹는다. 코드 추적 결과 사실은 silent re-teach 가 동작 중 — IsConfigured=true & 모든 ROI 존재 → ValidateRoiPresence null → GetFirstMissingStep=Done → InvokeTryTeachDatum 즉시 호출 → 같은 위치에서 ROI 재검출 → 같은 오버레이 표시 → ExitCanvasMode → 외관상 무반응. 사용자가 의도와 동작 차이 인지 불가. 사용자 제안: '재티칭하시겠습니까?' 확인 모달 추가."
+  severity: minor
   test: 2
-  artifacts: []
-  missing: []
+  artifacts:
+    - WPF_Example/UI/ContentItem/MainView.xaml.cs (TeachDatumButton_Click L1342-1392, IsConfigured 가드 L1365-1376)
+  missing:
+    - "재티칭 의사 확인 모달 (Yes=진행 / No=취소)"
+    - "확인 모달 위치: ValidateRoiPresence null 통과 직후 + Done 단계 진입 직전 (즉시 teach 시나리오에 한해)"
+  fix_direction: "TeachDatumButton_Click 에서 datum.IsConfigured && all ROI present 케이스를 명시적으로 분기. CustomMessageBox.Show('재티칭', '이 Datum 은 이미 티칭되어 있습니다.\\n다시 티칭하시겠습니까?', YesNo). No → btn_teachDatum.IsChecked=false; ExitCanvasMode(); return. Yes → 기존 InvokeTryTeachDatum 흐름 유지. 부수 효과: 사용자에게 '버튼 먹힘' 시각 신호 제공 + 의도치 않은 재티칭 방지."

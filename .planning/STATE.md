@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
 status: executing
-stopped_at: Completed 18-03-PLAN.md (CO-06 FormatTeachError DatumName 접두사)
-last_updated: "2026-05-05T03:53:51.870Z"
-last_activity: 2026-05-05 — Phase 18 planned (18-01~18-05, 3 waves)
+stopped_at: 18-07 complete (CO-04 재티칭 모달). 18-06 reverted — H1-based fix proved wrong layer (PropertyTools bypasses ICustomTypeDescriptor for surface enumeration too). Re-diagnosis required.
+last_updated: "2026-05-07T03:55:00.000Z"
+last_activity: 2026-05-07 — Phase 18-07 complete; 18-06 reverted after UAT FAIL
 progress:
   total_phases: 9
   completed_phases: 0
-  total_plans: 5
-  completed_plans: 3
-  percent: 60
+  total_plans: 7
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 18 (Carry-over 정리)
-Plan: —
-Status: Ready to execute (5 plans created)
-Last activity: 2026-05-05 — Phase 18 planned (18-01~18-05, 3 waves)
+Plan: 18-06 incomplete (CO-01 — H1-based fix wrong layer, reverted; needs re-diagnosis)
+Status: Phase 18 NOT complete — 6/7 plans complete, 18-06 (CO-01) blocked pending new diagnosis
+Last activity: 2026-05-07 — 18-07 PASS (재티칭 모달 + 문구 개선); 18-06 UAT FAIL → revert
 
 ## Performance Metrics
 

@@ -226,6 +226,9 @@ namespace ReringProject.Sequence {
         [Category("Datum|Circle (CTH) Edge")]
         public int    Circle_EdgeThreshold   { get; set; } = 0;
         public double Circle_Sigma           { get; set; } = 0;
+        //260507 hbk Phase 18 CO-01 — Circle 알고리즘은 EdgeDirection 대신 RadialDirection (Inward/Outward) 사용 → 영구 hide.
+        //  Phase 17 D-03 의 IsHiddenForAlgorithm CTH 분기 hide 가 dynamic enumeration 경로 차이로 불안정하게 동작 → 정적 Browsable(false) 로 확정.
+        [PropertyTools.DataAnnotations.Browsable(false)] //260507 hbk Phase 18 CO-01
         [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
         public string Circle_EdgeDirection   { get; set; } = "";

@@ -40,7 +40,8 @@ namespace ReringProject.Sequence {
         public string AlgorithmType { get; set; } = "TwoLineIntersect"; //260423 hbk Phase 12 D-09
 
         //260423 hbk Phase 12 D-09 — AlgorithmType 드롭다운 옵션 (enum의 string 투영)
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> AlgorithmTypeList
         {
             get
@@ -118,11 +119,14 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Line1_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
         public string Line1_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Line1_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Line1_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Line1_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260426 hbk Phase 14-03 Req 3 — Vertical ROI 그룹 (VerticalTwoHorizontal 전용 수직 에지 라인 — 의미상 별도)
@@ -154,11 +158,14 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Vertical_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
         public string Vertical_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Vertical_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Vertical_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Vertical_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260409 hbk Phase 4: Line2 ROI (기준 Y축 방향 에지 라인, 기본값 PI/2 = 수직)
@@ -194,11 +201,14 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Line2_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
         public string Line2_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Line2_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Line2_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Line2_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260423 hbk Phase 12 D-10 — Circle ROI (CircleTwoHorizontal 전용 검색 영역)
@@ -240,13 +250,17 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Circle_RadialDirectionList))] //260503 hbk Phase 17 D-02
         public string Circle_RadialDirection { get; set; } = ""; //260503 hbk Phase 17 D-02 — 안→밖(Inward, polarity=positive) / 밖→안(Outward, polarity=negative)
 
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Circle_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Circle_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Circle_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
-        [PropertyTools.DataAnnotations.Browsable(false)] //260503 hbk Phase 17 D-02
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Circle_RadialDirectionList { //260507 hbk Phase 18 18-06 H1 trace — getter 호출 여부 검증
             get {
                 ReringProject.Utility.Logging.PrintLog((int)ELogType.Trace, "[CO-01 H1 trace] Circle_RadialDirectionList getter called"); //260507 hbk Phase 18 18-06 H1 trace
@@ -289,11 +303,14 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
         public string Horizontal_A_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Horizontal_A_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Horizontal_A_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Horizontal_A_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260423 hbk Phase 12 D-11 — 수평 B ROI
@@ -329,11 +346,14 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeSelectionList))] //260429 hbk Phase 15 — EdgeSelection 명시 처리
         public string Horizontal_B_EdgeSelection   { get; set; } = ""; //260429 hbk Phase 15
 
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Horizontal_B_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Horizontal_B_EdgePolarityList  { get { return EdgeOptionLists.DatumPolarities; } }
-        [PropertyTools.DataAnnotations.Browsable(false)]
+        //260507 hbk Phase 18 18-06 — Browsable 제거: PropertyTools 가 [ItemsSourceProperty] reflection lookup 시 발견 가능하도록.
+        //  PropertyGrid 표면 노출은 아래 IsHiddenForAlgorithm 의 *List 일괄 hide 블록으로 차단.
         public List<string> Horizontal_B_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
 
         //260409 hbk Phase 4: 기준 원점 및 각도 (티칭 시 저장)
@@ -607,6 +627,9 @@ namespace ReringProject.Sequence {
         //   CTH: Circle_* (RadialDirection 포함) + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Vertical_*, Circle_EdgeDirection (D-03) 숨김
         //   VTH: Vertical_* + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Circle_* 숨김
         private static bool IsHiddenForAlgorithm(string name, EDatumAlgorithm alg) {
+            //260507 hbk Phase 18 18-06 — *List ItemsSource 소스 프로퍼티는 PropertyGrid 노출에서 일괄 차단.
+            //  CO-01 fix: Browsable(false) 제거로 PropertyTools reflection lookup 활성화 + 여기서 표면 노출만 차단.
+            if (name.EndsWith("List")) return true; //260507 hbk Phase 18 18-06
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;

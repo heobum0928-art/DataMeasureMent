@@ -46,10 +46,10 @@
 - [x] **CO-01
 **: DatumConfig.Circle_RadialDirection 의 PropertyGrid ItemsSource 를 Inward/Outward 두 값으로 제한한다 (Phase 17 Test 2)
 - [ ] **CO-02**: DatumConfig PropertyGrid 동적 노출(QUAL-03)에 Phase 17 Test 8 잔여를 흡수한다
-- [ ] **CO-03**: btn_teachDatum 알고리즘 호환성 가드의 사양을 명문화하고 spec 으로 검증한다 (Phase 17 Test 10)
+- [x] **CO-03**: btn_teachDatum 알고리즘 호환성 가드의 사양을 명문화하고 spec 으로 검증한다 (Phase 17 Test 10)
 - [x] **CO-04
 **: ROI Length=0 escape hatch 를 우클릭 메뉴로 노출한다
-- [ ] **CO-05**: 검출 strip 색상을 성공=녹색 / 실패=빨강으로 분기한다
+- [x] **CO-05**: 검출 strip 색상을 성공=녹색 / 실패=빨강으로 분기한다
 - [x] **CO-06
 **: FormatTeachError 메시지에서 ROI label 을 보존한다
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic; //260423 hbk WR-RT-02 ComboBox 옵션 리스트
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
+using ReringProject.Setting; //260507 hbk Phase 18 18-06 H1 trace — ELogType 접근
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -246,7 +247,12 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Circle_EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260429 hbk Phase 15
         [PropertyTools.DataAnnotations.Browsable(false)] //260503 hbk Phase 17 D-02
-        public List<string> Circle_RadialDirectionList { get { return EdgeOptionLists.RadialDirections; } } //260503 hbk Phase 17 D-02
+        public List<string> Circle_RadialDirectionList { //260507 hbk Phase 18 18-06 H1 trace — getter 호출 여부 검증
+            get {
+                ReringProject.Utility.Logging.PrintLog((int)ELogType.Trace, "[CO-01 H1 trace] Circle_RadialDirectionList getter called"); //260507 hbk Phase 18 18-06 H1 trace
+                return EdgeOptionLists.RadialDirections;
+            }
+        } //260503 hbk Phase 17 D-02
 
         //260423 hbk Phase 12 D-11 — 수평 A ROI (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
         //260423 hbk  A/B 순서 의존성 없음 — concat + FitLineContourXld 이므로 교환 대칭.

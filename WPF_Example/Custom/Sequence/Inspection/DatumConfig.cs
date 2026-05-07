@@ -552,21 +552,10 @@ namespace ReringProject.Sequence {
         //  PropertyTools.Wpf 가 ICustomTypeDescriptor.GetProperties(Attribute[]) 를 호출 (PropertyGrid 용).
         //  ParamBase INI 직렬화는 GetType().GetProperties() System.Reflection 경로 사용 — ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370 확인).
         //  안전 장치: GetProperties() 무인자도 base TypeDescriptor 위임으로 정의 (System.ComponentModel 우회 사용처 보호).
+        //260507 hbk Phase 19 QUAL-03: DynamicPropertyHelper 헬퍼로 위임 (Phase 17 D-09 + Phase 18 CO-01 동작 동일)
         public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) {
-            var all = System.ComponentModel.TypeDescriptor.GetProperties(this, attributes, true);
-            var alg = AlgorithmTypeEnum;
-            var keep = new List<System.ComponentModel.PropertyDescriptor>();
-            foreach (System.ComponentModel.PropertyDescriptor pd in all) {
-                if (IsHiddenForAlgorithm(pd.Name, alg)) continue; //260503 hbk Phase 17 D-09 — alg 별 hide 필터
-                keep.Add(pd);
-            }
-            //260505 hbk Phase 18 CO-01 — ItemsSource 소스 List<> 프로퍼티는 [Browsable(false)]이므로
-            // TypeDescriptor.GetProperties(this, attributes, true) 에서 제외됨.
-            // PropertyTools.Wpf 가 [ItemsSourceProperty] 이름을 GetProperties 반환 컬렉션에서 조회할 때
-            // Circle_RadialDirectionList 등을 찾지 못해 fallback(Directions 4항목)이 적용되는 버그.
-            // → Browsable 필터 없이 전체 재조회하여 소스 프로퍼티를 명시적으로 추가.
-            var allNoFilter = System.ComponentModel.TypeDescriptor.GetProperties(this, true); //260505 hbk Phase 18 CO-01
-            var sourceNames = new System.Collections.Generic.HashSet<string> { //260505 hbk Phase 18 CO-01
+            var alg = AlgorithmTypeEnum; //260507 hbk Phase 19 QUAL-03
+            var sourceNames = new System.Collections.Generic.HashSet<string> { //260507 hbk Phase 18 CO-01 패턴 유지
                 nameof(AlgorithmTypeList),
                 nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
                 nameof(Circle_EdgeSelectionList), nameof(Circle_RadialDirectionList),
@@ -577,12 +566,8 @@ namespace ReringProject.Sequence {
                 nameof(Line1_EdgeDirectionList), nameof(Line1_EdgePolarityList), nameof(Line1_EdgeSelectionList),
                 nameof(Line2_EdgeDirectionList), nameof(Line2_EdgePolarityList), nameof(Line2_EdgeSelectionList),
                 nameof(Vertical_EdgeDirectionList), nameof(Vertical_EdgePolarityList), nameof(Vertical_EdgeSelectionList),
-            }; //260505 hbk Phase 18 CO-01
-            foreach (System.ComponentModel.PropertyDescriptor pd in allNoFilter) { //260505 hbk Phase 18 CO-01
-                if (sourceNames.Contains(pd.Name) && !keep.Exists(k => k.Name == pd.Name)) //260505 hbk Phase 18 CO-01
-                    keep.Add(pd); //260505 hbk Phase 18 CO-01
-            } //260505 hbk Phase 18 CO-01
-            return new System.ComponentModel.PropertyDescriptorCollection(keep.ToArray());
+            };
+            return DynamicPropertyHelper.FilterProperties(this, attributes, name => IsHiddenForAlgorithm(name, alg), sourceNames); //260507 hbk Phase 19 QUAL-03
         }
         public System.ComponentModel.PropertyDescriptorCollection GetProperties() {
             //260503 hbk Phase 17 D-09 — INI reflection 경로 보호 (System.ComponentModel 사용처가 있을 경우 base 위임)

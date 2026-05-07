@@ -1373,6 +1373,20 @@ namespace ReringProject.UI {
                         halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — 티칭 미시작 시 메뉴 숨김
                         return;
                     }
+                    //260507 hbk Phase 18 18-07 — 재티칭 확인 모달: IsConfigured=true & 모든 ROI 존재 → 즉시 teach 시나리오에서 사용자 의사 확인.
+                    //  Silent re-teach 방지 + 버튼 먹힘 시각 신호 제공. ValidateRoiPresence 가 null 통과한 시점이므로 모든 ROI 존재 보장.
+                    var reteachChoice = CustomMessageBox.ShowConfirmation( //260507 hbk Phase 18 18-07
+                        "재티칭 확인", //260507 hbk Phase 18 18-07
+                        "이 Datum 은 이미 티칭되어 있습니다.\n다시 티칭하시겠습니까?", //260507 hbk Phase 18 18-07
+                        MessageBoxButton.YesNo); //260507 hbk Phase 18 18-07
+                    if (reteachChoice != MessageBoxResult.Yes) { //260507 hbk Phase 18 18-07
+                        btn_teachDatum.IsChecked = false; //260507 hbk Phase 18 18-07
+                        _canvasMode = ECanvasMode.None; //260507 hbk Phase 18 18-07
+                        _editingDatum = null; //260507 hbk Phase 18 18-07
+                        halconViewer.IsEditMode = false; //260507 hbk Phase 18 18-07
+                        halconViewer.IsTeachDatumMode = false; //260507 hbk Phase 18 18-07
+                        return; //260507 hbk Phase 18 18-07
+                    } //260507 hbk Phase 18 18-07
                 }
 
                 //260503 hbk Phase 17 D-06 wiring — 티칭 모드 진입 시 Edit OFF (그리기 모드 → ROI hit-test 차단)

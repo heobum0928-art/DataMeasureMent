@@ -1377,7 +1377,7 @@ namespace ReringProject.UI {
                     //  Silent re-teach 방지 + 버튼 먹힘 시각 신호 제공. ValidateRoiPresence 가 null 통과한 시점이므로 모든 ROI 존재 보장.
                     var reteachChoice = CustomMessageBox.ShowConfirmation( //260507 hbk Phase 18 18-07
                         "재티칭 확인", //260507 hbk Phase 18 18-07
-                        "이 Datum 은 이미 티칭되어 있습니다.\n다시 티칭하시겠습니까?", //260507 hbk Phase 18 18-07
+                        "이 Datum 은 이미 티칭되어 있습니다.\n기존 ROI 로 재티칭하시겠습니까?\n\n(ROI 를 다시 그리려면 먼저 삭제해 주세요.)", //260507 hbk Phase 18 18-07
                         MessageBoxButton.YesNo); //260507 hbk Phase 18 18-07
                     if (reteachChoice != MessageBoxResult.Yes) { //260507 hbk Phase 18 18-07
                         btn_teachDatum.IsChecked = false; //260507 hbk Phase 18 18-07

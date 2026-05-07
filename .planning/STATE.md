@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: ready_to_plan
-stopped_at: 18-07 complete (CO-04 재티칭 모달). 18-06 reverted — H1-based fix proved wrong layer (PropertyTools bypasses ICustomTypeDescriptor for surface enumeration too). Re-diagnosis required.
-last_updated: "2026-05-07T03:55:00.000Z"
-last_activity: 2026-05-07 — Phase 18-07 complete; 18-06 reverted after UAT FAIL
+status: executing
+stopped_at: Completed 19-01-PLAN.md (DynamicPropertyHelper + DatumConfig refactor)
+last_updated: "2026-05-07T23:41:36.882Z"
+last_activity: 2026-05-07
 progress:
   total_phases: 9
   completed_phases: 1
-  total_plans: 7
-  completed_plans: 6
-  percent: 11
+  total_plans: 9
+  completed_plans: 8
+  percent: 89
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** v1.1 Phase 18 — Carry-over 정리 (Phase 17 partial sign-off 잔여 5건 흡수)
+**Current focus:** Phase 19 — propertygrid-dynamic-exposure
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
-Status: Ready to plan
+Phase: 19 (propertygrid-dynamic-exposure) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-05-07
 
 ## Performance Metrics
@@ -79,6 +79,7 @@ Last activity: 2026-05-07
 | Phase 18-carry-over-cleanup P01 | 10 | 1 tasks | 1 files |
 | Phase 18 P02 | 15 | 2 tasks | 3 files |
 | Phase 18-carry-over-cleanup P03 | 8 | 1 tasks | 1 files |
+| Phase 19 P01 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,7 @@ Recent decisions affecting current work:
 - allNoFilter+sourceNames whitelist 패턴: DatumConfig.GetProperties Browsable(false) List<> 소스 프로퍼티 강제 포함으로 Circle_RadialDirection ItemsSource fallback 버그 수정 (CO-01)
 - CO-04 컨텍스트 메뉴: IsTeachDatumMode + HitTestRoiAtPoint(Datum.*) 게이팅 — RoiRedrawRequested 이벤트로 ClearDatumRoiFields 위임 (Phase 18-02)
 - [Phase 18-03]: FormatTeachError DatumConfig 인자 추가 — datum.DatumName 기반 "[DatumName] " 접두사, null/empty 가드 포함 (CO-06)
+- [Phase 19-01]: DynamicPropertyHelper.FilterProperties 정적 헬퍼 추출 — DatumConfig.GetProperties 31줄→16줄 위임 호출 축약 (Phase 17 D-09 + Phase 18 CO-01 동작 회귀 0). T-19-02 mitigation으로 hideFunc null-guard, sourceNames null-safe 추가 (Rule 2 auto-fix x2)
 
 ### Quick Tasks Completed
 
@@ -193,8 +195,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-05T04:05:00.000Z
-Stopped at: Completed 18-03-PLAN.md (CO-06 FormatTeachError DatumName 접두사)
+Last session: 2026-05-07T23:41:36.875Z
+Stopped at: Completed 19-01-PLAN.md (DynamicPropertyHelper + DatumConfig refactor)
 Resume file: None
 Next action: `/gsd-execute-phase 18` — 18-04(CO-05 Test Find 버그) 실행
 

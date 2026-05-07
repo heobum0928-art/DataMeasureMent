@@ -16,7 +16,8 @@
 
 - [ ] **QUAL-01**: 모든 식별자(필드/속성/지역변수/메서드 인자)에 헝가리안 표기법을 적용한다 (전체 리팩토링, 신규/기존 무관)
 - [ ] **QUAL-02**: 삼항 연산자, null 병합(`??`), null 조건(`?.`) 을 명시적 if/else 로 변환한다
-- [ ] **QUAL-03**: PropertyGrid 의 알고리즘별 동적 속성 노출 패턴(DatumConfig ICustomTypeDescriptor)을 다른 모델 클래스로 일반화한다
+- [x] **QUAL-03
+**: PropertyGrid 의 알고리즘별 동적 속성 노출 패턴(DatumConfig ICustomTypeDescriptor)을 다른 모델 클래스로 일반화한다
 - [ ] **QUAL-04**: 코드 주석을 정리하여 "왜(why)" 만 남기고 "무엇(what)" 주석은 제거한다
 
 ### 검사 워크플로우 실측 (Workflow)
@@ -45,7 +46,8 @@
 
 - [x] **CO-01
 **: DatumConfig.Circle_RadialDirection 의 PropertyGrid ItemsSource 를 Inward/Outward 두 값으로 제한한다 (Phase 17 Test 2)
-- [ ] **CO-02**: DatumConfig PropertyGrid 동적 노출(QUAL-03)에 Phase 17 Test 8 잔여를 흡수한다
+- [x] **CO-02**: DatumConfig PropertyGrid 동적 노출(QUAL-03
+)에 Phase 17 Test 8 잔여를 흡수한다
 - [x] **CO-03**: btn_teachDatum 알고리즘 호환성 가드의 사양을 명문화하고 spec 으로 검증한다 (Phase 17 Test 10)
 - [x] **CO-04
 **: ROI Length=0 escape hatch 를 우클릭 메뉴로 노출한다

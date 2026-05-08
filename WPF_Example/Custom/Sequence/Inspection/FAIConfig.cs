@@ -54,9 +54,13 @@ namespace ReringProject.Sequence {
         public string EdgeMeasureType { get; set; } = "EdgePairDistance"; //260507 hbk Phase 19 QUAL-03
 
         //260507 hbk Phase 19 QUAL-03 — EdgeMeasureType 드롭다운 옵션 (MeasurementFactory 단일 소스, 하드코딩 금지)
+        //260508 hbk Phase 19 fix — 정적 readonly 캐시. 매번 new List 반환 시 PropertyTools.Wpf 가 콤보 ItemsSource 인식 실패.
+        //  EdgeOptionLists.Directions 와 동일한 패턴 (정적 readonly List 단일 인스턴스).
+        private static readonly List<string> _edgeMeasureTypeListCache = //260508 hbk Phase 19 fix
+            new List<string>(MeasurementFactory.GetTypeNames()); //260508 hbk Phase 19 fix
         [PropertyTools.DataAnnotations.Browsable(false)] //260507 hbk Phase 19 QUAL-03
         public List<string> EdgeMeasureTypeList { //260507 hbk Phase 19 QUAL-03
-            get { return new List<string>(MeasurementFactory.GetTypeNames()); } //260507 hbk Phase 19 QUAL-03
+            get { return _edgeMeasureTypeListCache; } //260508 hbk Phase 19 fix
         }
 
         public int EdgeThreshold { get; set; } = 10; //260409 hbk RoiDefinition 호환

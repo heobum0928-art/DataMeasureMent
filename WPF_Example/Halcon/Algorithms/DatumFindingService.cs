@@ -727,7 +727,7 @@ namespace ReringProject.Halcon.Algorithms
                     "TryTeachCircleTwoHorizontal: ROI=(" + config.CircleROI_Row + "," + config.CircleROI_Col + ",r=" + config.CircleROI_Radius + ") " +
                     "polar(step=" + config.Circle_PolarStepDeg + " L1=" + config.Circle_RectL1Ratio + " L2=" + config.Circle_RectL2Ratio + ")");
                 //260503 hbk Phase 17 D-02 — Circle_RadialDirection ("Inward"/"Outward") → polarity ("positive"/"negative") override (EdgePolarity 무시)
-                string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
+                string circlePolarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection); //260508 hbk Phase 28 D-03 — inline ternary → helper 호출 (DRY)
                 //260426 hbk Phase 14-05 — Circle per-ROI 에지 파라미터 + Polar sampling 파라미터 (14-04 신규 3 필드)
                 bool[] circleStrips; //260505 hbk Phase 18 CO-05
                 if (!visionSvc.TryFindCircleByPolarSampling(

@@ -47,7 +47,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [ ] **Phase 25: 결과 분석 & Export** - ?��?지 리뷰??+ 1??검???��? + 반복???��? + ?�고리즘�??�계 (OUT-01..04)
 - [ ] **Phase 26: ?��?리안 ?�체 리팩?�링** - ?�체 ?�별???��?리안 ?�기�??�면 ?�용 (QUAL-01)
 - [ ] **Phase 27: Side Inspection 확장** - LineToLineAngle 알고리즘 + Side Fixture INI + PC2 분리 (D1, H5 / 신설 2026-05-08)
-- [ ] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** - CircleDiameterMeasurement 에 Circle_RadialDirection + Datum 폴라 알고리즘 호출 경로 (Phase 19 UAT 사용자 요청 / 신설 2026-05-08)
+- [x] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** - CircleDiameterMeasurement 에 Circle_RadialDirection + Datum 폴라 알고리즘 호출 경로 (Phase 19 UAT 사용자 요청 / 신설 2026-05-08, signed off 2026-05-08)
 
 ## Phase Details
 
@@ -182,9 +182,9 @@ Plans:
 
 Plans:
 - [x] 28-01-PLAN.md -- Wave 1: EdgeOptionLists helper (MapRadialDirectionToHalconPolarity) + 4 FAI polar default consts (be4d267, 2026-05-08)
-- [ ] 28-02-PLAN.md -- Wave 2: CircleDiameterMeasurement Circle_RadialDirection field + TryExecute branch (fit/polar)
-- [ ] 28-03-PLAN.md -- Wave 2: DatumFindingService 2 inline ternary -> helper call (D-03 DRY cleanup)
-- [ ] 28-04-PLAN.md -- Wave 3: SIMUL_MODE UAT (AC-1/AC-4/AC-5/AC-6) [autonomous: false]
+- [x] 28-02-PLAN.md -- Wave 2: CircleDiameterMeasurement Circle_RadialDirection field + TryExecute branch (fit/polar) (578cab6, 432adb2, 2026-05-08)
+- [x] 28-03-PLAN.md -- Wave 2: DatumFindingService 2 inline ternary -> helper call (D-03 DRY cleanup) (84affbb, a894c36, 2026-05-08)
+- [x] 28-04-PLAN.md -- Wave 3: SIMUL_MODE UAT (AC-1/AC-4/AC-5/AC-6) [autonomous: false] (02adf80, signed_off 2026-05-08)
 
 ---
 
@@ -202,7 +202,7 @@ Plans:
 | 25. 결과 분석 & Export | 0/TBD | Not started | - |
 | 26. ?��?리안 ?�체 리팩?�링 | 0/TBD | Not started | - |
 | 27. Side Inspection 확장 | 0/TBD | Not started | - |
-| 28. FAI CircleDiameter + Datum Circle | 1/4 | In progress | - |
+| 28. FAI CircleDiameter + Datum Circle | 4/4 | Complete    | 2026-05-08 |
 
 ---
 

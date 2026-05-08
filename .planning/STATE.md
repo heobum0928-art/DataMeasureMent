@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: executing
-stopped_at: 28-04-PLAN.md Task 1 complete — paused at Task 2 checkpoint:human-verify (Tests 1/2/3 pending user UAT)
-last_updated: "2026-05-08T19:42:00Z"
-last_activity: 2026-05-08
+status: signed_off
+stopped_at: Phase 28 signed off (4/4 UAT PASS — Test 1 SIMUL UAT, Tests 2/3 code-inspection 사용자 합의, Test 4 auto msbuild)
+last_updated: "2026-05-08T22:00:00Z"
+last_activity: 2026-05-08 — Phase 28 signed off
 progress:
   total_phases: 11
-  completed_phases: 2
-  total_plans: 13
-  completed_plans: 12
-  percent: 92
+  completed_phases: 3
+  total_plans: 17
+  completed_plans: 16
+  percent: 94
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 28 (fai-circlediameter-datum-circle) — EXECUTING (paused at human-verify gate)
-Plan: 4 of 4 — Task 1 complete (commit `02adf80`), Task 2 awaiting user SIMUL_MODE UAT
-Status: checkpoint:human-verify — Tests 1/2/3 pending in `.planning/phases/28-fai-circlediameter-datum-circle/28-UAT.md` (Test 4 auto-PASS recorded)
-Next: 사용자가 28-UAT.md Tests 1/2/3 결과 기재 → 4/4 PASS 시 28-04-SUMMARY.md 작성 + ROADMAP plan-progress mark complete + Phase 28 sign-off
-Last activity: 2026-05-08
+Phase: 28 (fai-circlediameter-datum-circle) — SIGNED_OFF (2026-05-08, 4/4 UAT PASS)
+Plan: 4 of 4 — all complete. Task 1 (`02adf80`) auto-PASS Test 4. Task 2 사용자 합의 후 Test 1 SIMUL UAT PASS + Tests 2/3 code-inspection PASS.
+Status: signed_off — `.planning/phases/28-fai-circlediameter-datum-circle/28-UAT.md` frontmatter status=signed_off, `.planning/phases/28-fai-circlediameter-datum-circle/28-04-SUMMARY.md` 작성 완료.
+Next: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlog (PointToLineDistance ROI 시각화 carry-over) 처리.
+Last activity: 2026-05-08 — Phase 28 signed off
 
 ## Performance Metrics
 
@@ -140,6 +140,7 @@ Recent decisions affecting current work:
 - [Phase 28-01]: EdgeOptionLists 에 MapRadialDirectionToHalconPolarity static helper + 4 FAI polar default consts (FaiCirclePolarStepDeg=10.0/RectL1Ratio=0.02/RectL2Ratio=0.02/EdgeSelection="First") 추가 — Wave 2 polar 분기 foundation. 값은 DatumConfig 의 CTH defaults 와 동일하여 REQ-28-03 동등성을 default 일치로 결정적 보장. fully-qualified System.StringComparison 사용으로 using 추가 0, 라인 1-27 무수정 (D-02/D-03/D-04)
 - [Phase 28-02]: CircleDiameterMeasurement Circle_RadialDirection (string, default "") + Circle_RadialDirectionList wrapper [Category("Edge")] 추가 — TryExecute 가 string.IsNullOrEmpty(Circle_RadialDirection) 분기. 빈값 → 기존 TryFindCircle (args byte-identical → INI 회귀 0); Inward/Outward → TryFindCircleByPolarSampling 직접 호출 (D-01) with MapRadialDirectionToHalconPolarity + Plan 01 FaiCircle* defaults → Datum CTH 동등성 결정적. ICustomTypeDescriptor 미도입 (REQ-28-05). msbuild Debug/x64 PASS, 0 new errors/warnings.
 - [Phase 28-03]: DatumFindingService.cs:200/:730 inline polarity ternary 2곳 → EdgeOptionLists.MapRadialDirectionToHalconPolarity 헬퍼 호출 교체 (D-03 service-layer cleanup). 3-way single source 달성 (Datum CTH find + teach + FAI CircleDiameter polar). Datum CTH 회귀 0 by 수학적 등가성 (Plan 01 helper byte-identical 증명). Line-for-line 1+/1- per task, msbuild Debug/x64 PASS 0 new errors/warnings, REQ-28-02/REQ-28-06 충족.
+- [Phase 28-04]: 28-UAT.md sign-off (4/4 PASS) — Test 1 SIMUL UAT (PropertyGrid 콤보 Inward/Outward 시각 노출, 사용자 확인), Tests 2/3 코드 검증 (사용자 합의 — Plan 01 default-equality + Plan 02 fit-path args byte-identical + Plan 03 helper 3-way single source 인용), Test 4 자동 msbuild PASS. REQ-28-01 ~ REQ-28-06 모두 충족. PointToLineDistance ROI 시각화 미구현은 Phase 7-01 D-03 결정으로 Phase 28 범위 밖 carry-over.
 
 ### Quick Tasks Completed
 
@@ -204,15 +205,16 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-08T19:42:00Z
-Stopped at: 28-04-PLAN.md Task 1 complete — paused at Task 2 checkpoint:human-verify
-Resume file: .planning/phases/28-fai-circlediameter-datum-circle/28-UAT.md
-Next action: 사용자 SIMUL_MODE UAT (D:\1.bmp) — 28-UAT.md 의 Test 1 (PropertyGrid Circle_RadialDirection 콤보) / Test 2 (Datum CTH ↔ FAI CircleDiameter 동등성) / Test 3 (v1.0 INI 회귀) 의 Result 라인 + Summary 표 + frontmatter passed/failed/pending 카운트 갱신. 4/4 PASS 시 status=signed_off 후 28-04-SUMMARY.md 작성 + ROADMAP Phase 28 plan-progress complete + Phase 28 시그널 컨플리트.
+Last session: 2026-05-08T22:00:00Z
+Stopped at: Phase 28 signed off (4/4 UAT PASS — Test 1 SIMUL UAT, Tests 2/3 code-inspection 사용자 합의, Test 4 auto msbuild)
+Resume file: None — Phase 28 closed
+Next action: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlog (PointToLineDistance ROI 시각화 carry-over).
 
 **v1.1 Phase Map:**
 
 - Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06) — signed_off 2026-05-07
 - Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02) — signed_off 2026-05-08
+- Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 — signed_off 2026-05-08 (Phase 19 UAT 사용자 요청)
 - Phase 20: 코드 스타일 정리 (QUAL-02, QUAL-04)
 - Phase 21: 메모리 이미지 버퍼 (BUF-01, BUF-02)
 - Phase 22: CXP SDK 확정 (HW-01)

@@ -55,6 +55,15 @@
 - [x] **CO-06
 **: FormatTeachError 메시지에서 ROI label 을 보존한다
 
+### FAI CircleDiameter + Datum Circle 통합 (Phase 19 UAT 사용자 요청, 신설 2026-05-08)
+
+- [x] **REQ-28-01**: CircleDiameterMeasurement.Circle_RadialDirection (string) 필드를 추가하고 PropertyGrid 콤보박스(Inward/Outward 2옵션)로 노출한다 (default 빈 문자열)
+- [x] **REQ-28-02**: TryExecute 가 Circle_RadialDirection 값에 따라 분기한다 — 빈 문자열 → 기존 TryFindCircle (fit), Inward/Outward → TryFindCircleByPolarSampling (polar) with Datum CTH 와 동일 polarity 매핑
+- [x] **REQ-28-03**: 동일 ROI/이미지/파라미터 입력 시 FAI CircleDiameter (RadialDirection 명시) 와 Datum CTH 의 검출 직경 차이가 0.001 mm 이하로 수렴한다 (deterministic by default-equality + helper byte-identical)
+- [x] **REQ-28-04**: Phase 28 변경 이전 INI 레시피 (Circle_RadialDirection 키 없음) 로드 시 default 빈 문자열 → fit 경로 자동 진입 → CircleDiameter 측정 결과가 v1.0 동일 (회귀 0)
+- [x] **REQ-28-05**: CircleDiameterMeasurement 는 ICustomTypeDescriptor 를 도입하지 않으며 Circle_RadialDirection 을 포함한 모든 필드는 항상 PropertyGrid 에 정적으로 노출된다
+- [x] **REQ-28-06**: msbuild Debug/x64 PASS, 신규 CS error/warning 0, 모든 신규 라인에 //260508 hbk Phase 28 주석
+
 ---
 
 ## Future Requirements (deferred to v2.0+)
@@ -94,8 +103,9 @@
 | Phase 24 — 검사 워크플로우 end-to-end | WF-01, WF-02 | Pending |
 | Phase 25 — 결과 분석 & Export | OUT-01, OUT-02, OUT-03, OUT-04 | Pending |
 | Phase 26 — 헝가리안 전체 리팩토링 | QUAL-01 | Pending |
+| Phase 28 — FAI CircleDiameter + Datum Circle 통합 | REQ-28-01, REQ-28-02, REQ-28-03, REQ-28-04, REQ-28-05, REQ-28-06 | Signed off (2026-05-08) |
 
-**Coverage: 18/18 requirements mapped (100%)**
+**Coverage: 24/24 requirements mapped (100%)**
 
 ---
 

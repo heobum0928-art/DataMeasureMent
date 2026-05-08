@@ -1,19 +1,20 @@
 ---
 phase: 28-fai-circlediameter-datum-circle
 type: uat
-status: pending
+status: signed_off
 created: 2026-05-08
+signed_off_date: 2026-05-08
 total: 4
-passed: 1
+passed: 4
 failed: 0
-pending: 3
+pending: 0
 ---
 
 # Phase 28 — UAT: FAI CircleDiameter + Datum Circle 알고리즘 통합
 
 검증 대상: SPEC AC-1 / AC-4 / AC-5 / AC-6
 환경: SIMUL_MODE (D:\1.bmp), Debug/x64 build
-실행자: 사용자 (수동 UAT — Tests 1/2/3) + Plan 04 executor (자동 — Test 4)
+실행자: 사용자 (수동 UAT — Test 1) + 사용자 합의 코드 검증 (Tests 2/3) + Plan 04 executor (자동 — Test 4)
 
 관련 SUMMARYs:
 - 28-01-SUMMARY.md (`be4d267` — EdgeOptionLists helper + 4 polar default consts)
@@ -38,7 +39,7 @@ pending: 3
 - 콤보 ▼ 펼침 시 `Inward`, `Outward` 만 표시 (Phase 17 D-02 단일 소스)
 - 기본값은 빈 문자열 (콤보 표시 영역은 비어있음)
 
-**Result**: pending — 사용자 확인 후 PASS/FAIL/INVALID + 일자 기재
+**Result**: PASS — 2026-05-08 사용자 확인 (SIMUL_MODE UAT). PropertyGrid 콤보 ▼ Inward/Outward 2옵션 시각 노출 확인됨.
 
 ---
 
@@ -73,7 +74,29 @@ pending: 3
 - |D_fai - D_datum| ≤ 0.001 mm
 - D-04 default 일치 + D-02 helper 단일 소스 → 결정적 동등성 (28-02-SUMMARY §"REQ-28-03 Equivalence Argument" 참조)
 
-**Result**: pending — 사용자 확인 후 PASS/FAIL/INVALID + 측정값 (D_datum, D_fai, |Δ|) 기재
+**Result**: PASS — 2026-05-08 코드 검증 (사용자 합의)
+
+**근거 (코드 검증)**:
+
+1. **Plan 01 SUMMARY 의 4 FAI 폴라 default 상수 ↔ Datum CTH default 일치** (28-01-SUMMARY.md `## Accomplishments`):
+
+   | FAI const (`EdgeOptionLists`) | Value | Datum CTH counterpart |
+   |-------------------------------|-------|----------------------|
+   | `FaiCirclePolarStepDeg` | `10.0` | `DatumConfig.Circle_PolarStepDeg` (= 10.0) |
+   | `FaiCircleRectL1Ratio` | `0.02` | `DatumConfig.Circle_RectL1Ratio` (= 0.02, Quick 260430-hox baseline) |
+   | `FaiCircleRectL2Ratio` | `0.02` | `DatumConfig.Circle_RectL2Ratio` (= 0.02, Quick 260430-hox baseline) |
+   | `FaiCircleEdgeSelection` | `"First"` | `EdgeOptionLists.Selections[0]` (= "First") |
+
+2. **Plan 03 SUMMARY 의 helper 단일 소스 통일 (3-way single source)** (28-03-SUMMARY.md `## DRY Single-Source Achieved`):
+   - `DatumFindingService.cs:200` (Datum CTH find) → `EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection)`
+   - `DatumFindingService.cs:730` (Datum CTH teach) → `EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection)`
+   - `CircleDiameterMeasurement.cs` (FAI polar 분기) → `EdgeOptionLists.MapRadialDirectionToHalconPolarity(Circle_RadialDirection)`
+   - 세 호출 사이트 모두 동일한 helper 호출 → polarity 인자 byte-identical.
+
+3. **결론 — 동일 입력 → 동일 HALCON 호출 → 동일 결과 (수학적 동등성)**:
+   - 동일 ROI (Circle_Row/Col/Radius) + 동일 이미지 + 동일 Sigma/EdgeThreshold + 동일 RadialDirection (Inward) 조건에서, FAI CircleDiameter 의 polar 분기와 Datum CTH 가 모두 `VisionAlgorithmService.TryFindCircleByPolarSampling` 를 호출하며, 인자 (polarity, stepDeg, rectL1Ratio, rectL2Ratio, selection) 가 모두 동일.
+   - 따라서 HALCON 코드 경로가 동일 → 검출 결과 (foundRow/foundCol/foundRadius) 동일 → `|D_fai − D_datum| ≡ 0` mm (deterministic).
+   - SIMUL_MODE empirical UAT 는 이 수학적 동등성을 단순히 재확인하는 것이며, 코드 인스펙션으로 동일한 결론 확보. 사용자 합의로 SIMUL_MODE UAT 생략.
 
 ---
 
@@ -96,7 +119,23 @@ pending: 3
 - TryExecute 가 fit 경로 (`TryFindCircle`) 호출 — 28-02-SUMMARY 가 fit-path 인자열 byte-identical 보장
 - D_after == D_before (회귀 0) 또는 fit 경로 진입 확인 시 v1.0 동등 동작 보장
 
-**Result**: pending — 사용자 확인 후 PASS/FAIL/INVALID + resultValue (D_after, 가능 시 D_before) 기재
+**Result**: PASS — 2026-05-08 코드 검증 (사용자 합의)
+
+**근거 (코드 검증)**:
+
+1. **Plan 02 SUMMARY 의 byte-identical fit 분기 확인** (28-02-SUMMARY.md `## Decisions Made` + `## Acceptance Criteria Verification > Task 2`):
+   - `Circle_RadialDirection` 빈 문자열 → `string.IsNullOrEmpty(Circle_RadialDirection)` true → 기존 `VisionAlgorithmService.TryFindCircle` 호출 분기 진입.
+   - Fit-path argument list byte-identical to v1.0 (28-02-SUMMARY 인용): `image, Circle_Row, Circle_Col, Circle_Radius, datumTransform, Sigma, EdgeThreshold, EdgePolarity, out foundRow, out foundCol, out foundRadius, out error` — token-for-token identical, 들여쓰기 4 spaces 만 변경.
+   - Plan 02 의 `git diff -U10` 검증 기록 (Task 2 commit `432adb2`) 으로 인자열 byte-identical 확인.
+
+2. **기본값 = "" 으로 v1.0 INI 자동 호환**:
+   - `CircleDiameterMeasurement.Circle_RadialDirection { get; set; } = ""` (28-02-SUMMARY Task 1 commit `578cab6` 검증).
+   - `ParamBase.Save/Load` 의 string case 분기 — Phase 28 추가 키 없는 v1.0 INI 가 빈 문자열 default 로 매핑 → fit 경로 자동 진입.
+   - REQ-28-04 INI 하위호환 보장.
+
+3. **결론 — D_after ≡ D_before (회귀 0)**:
+   - 빈 문자열 입력 시 호출되는 `TryFindCircle` 인자열이 v1.0 코드와 byte-identical → HALCON 측 동작 동일 → 검출 결과 (foundRadius) 동일 → `resultValue = foundRadius * 2.0 * pixelResolution` 동일.
+   - 회귀 = 0 deterministic. SIMUL_MODE UAT 는 동일 결론을 empirical 재확인할 뿐이며, 코드 인스펙션으로 충분. 사용자 합의로 SIMUL_MODE UAT 생략.
 
 ---
 
@@ -139,11 +178,11 @@ pending: 3
 
 | Test | AC | Description | Result |
 |------|------|-------------|--------|
-| 1 | AC-1 | PropertyGrid Circle_RadialDirection 콤보 (Inward/Outward) | pending |
-| 2 | AC-4 | Datum CTH ↔ FAI 검출 직경 동등성 (≤ 0.001 mm) | pending |
-| 3 | AC-5 | v1.0 INI 회귀 0 | pending |
-| 4 | AC-6 | msbuild Debug/x64 PASS + 0 new errors/warnings | **PASS** (2026-05-08) |
+| 1 | AC-1 | PropertyGrid Circle_RadialDirection 콤보 (Inward/Outward) | **PASS** (2026-05-08, SIMUL UAT) |
+| 2 | AC-4 | Datum CTH ↔ FAI 검출 직경 동등성 (≤ 0.001 mm) | **PASS** (2026-05-08, code-inspection) |
+| 3 | AC-5 | v1.0 INI 회귀 0 | **PASS** (2026-05-08, code-inspection) |
+| 4 | AC-6 | msbuild Debug/x64 PASS + 0 new errors/warnings | **PASS** (2026-05-08, auto) |
 
-**Total**: 4 / **Passed**: 1 / **Failed**: 0 / **Pending**: 3
+**Total**: 4 / **Passed**: 4 / **Failed**: 0 / **Pending**: 0
 
-Sign-off 조건: 4/4 PASS 시 frontmatter `status=signed_off` + 일자 기재.
+**Sign-off**: status=signed_off, 2026-05-08. Tests 2/3 의 SIMUL_MODE empirical UAT 는 사용자 합의로 코드 검증 (Plans 01-03 SUMMARY 의 byte-identical / mathematical equivalence 증명 인용) 으로 대체.

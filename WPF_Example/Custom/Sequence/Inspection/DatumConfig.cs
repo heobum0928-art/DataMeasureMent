@@ -549,12 +549,18 @@ namespace ReringProject.Sequence {
         }
 
         //260503 hbk Phase 17 D-09 — PropertyGrid 동적 노출 (AlgorithmType 별 필터)
-        //  PropertyTools.Wpf 가 ICustomTypeDescriptor.GetProperties(Attribute[]) 를 호출 (PropertyGrid 용).
-        //  ParamBase INI 직렬화는 GetType().GetProperties() System.Reflection 경로 사용 — ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370 확인).
-        //  안전 장치: GetProperties() 무인자도 base TypeDescriptor 위임으로 정의 (System.ComponentModel 우회 사용처 보호).
-        //260507 hbk Phase 19 QUAL-03: DynamicPropertyHelper 헬퍼로 위임 (Phase 17 D-09 + Phase 18 CO-01 동작 동일)
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) {
-            var alg = AlgorithmTypeEnum; //260507 hbk Phase 19 QUAL-03
+        //260508 hbk Phase 19 fix — PropertyTools.Wpf PropertyGrid 는 GetProperties() 무인자 오버로드만 호출 (TypeDescriptor.GetProperties(object) 단일 인자 → ICustomTypeDescriptor.GetProperties() 무인자로 위임).
+        //  Phase 17~19 의 GetProperties(Attribute[]) 본문은 호출되지 않는 dead code 였음. 무인자 오버로드로 hide 로직 이전.
+        //  ParamBase INI 직렬화는 GetType().GetProperties() System.Reflection 경로 사용 — ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370).
+        //  GetProperties(Attribute[]) 는 외부 사용처(LiveBinding 등) 안전판 — 동일 본문으로 유지.
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) { //260508 hbk Phase 19 fix
+            return BuildFilteredProperties(attributes); //260508 hbk Phase 19 fix
+        }
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties() { //260508 hbk Phase 19 fix — PropertyGrid 가 호출하는 진짜 진입점
+            return BuildFilteredProperties(null); //260508 hbk Phase 19 fix
+        }
+        private System.ComponentModel.PropertyDescriptorCollection BuildFilteredProperties(System.Attribute[] attrs) { //260508 hbk Phase 19 fix
+            var alg = AlgorithmTypeEnum; //260508 hbk Phase 19 fix
             var sourceNames = new System.Collections.Generic.HashSet<string> { //260507 hbk Phase 18 CO-01 패턴 유지
                 nameof(AlgorithmTypeList),
                 nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
@@ -567,11 +573,7 @@ namespace ReringProject.Sequence {
                 nameof(Line2_EdgeDirectionList), nameof(Line2_EdgePolarityList), nameof(Line2_EdgeSelectionList),
                 nameof(Vertical_EdgeDirectionList), nameof(Vertical_EdgePolarityList), nameof(Vertical_EdgeSelectionList),
             };
-            return DynamicPropertyHelper.FilterProperties(this, attributes, name => IsHiddenForAlgorithm(name, alg), sourceNames); //260507 hbk Phase 19 QUAL-03
-        }
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties() {
-            //260503 hbk Phase 17 D-09 — INI reflection 경로 보호 (System.ComponentModel 사용처가 있을 경우 base 위임)
-            return System.ComponentModel.TypeDescriptor.GetProperties(this, true);
+            return DynamicPropertyHelper.FilterProperties(this, attrs, name => IsHiddenForAlgorithm(name, alg), sourceNames); //260508 hbk Phase 19 fix
         }
         public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); }
         public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); }

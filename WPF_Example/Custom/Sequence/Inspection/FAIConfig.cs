@@ -198,20 +198,22 @@ namespace ReringProject.Sequence {
         }
 
         //260507 hbk Phase 19 QUAL-03 — PropertyGrid 동적 노출 (EdgeMeasureType 별 필터)
-        //  PropertyTools.Wpf 가 ICustomTypeDescriptor.GetProperties(Attribute[]) 를 호출 (PropertyGrid 전용).
-        //  ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370 확인).
-        //  안전 장치: GetProperties() 무인자는 base TypeDescriptor 위임 (System.ComponentModel 우회 사용처 보호).
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) { //260507 hbk Phase 19 QUAL-03
-            var sourceNames = new System.Collections.Generic.HashSet<string> { //260507 hbk Phase 19 QUAL-03
+        //260508 hbk Phase 19 fix — PropertyTools.Wpf PropertyGrid 는 GetProperties() 무인자만 호출. 무인자 오버로드로 hide 로직 이전.
+        //  ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370).
+        //  GetProperties(Attribute[]) 는 외부 사용처 안전판 — 동일 본문으로 유지.
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) { //260508 hbk Phase 19 fix
+            return BuildFilteredProperties(attributes); //260508 hbk Phase 19 fix
+        }
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties() { //260508 hbk Phase 19 fix — PropertyGrid 가 호출하는 진짜 진입점
+            return BuildFilteredProperties(null); //260508 hbk Phase 19 fix
+        }
+        private System.ComponentModel.PropertyDescriptorCollection BuildFilteredProperties(System.Attribute[] attrs) { //260508 hbk Phase 19 fix
+            var sourceNames = new System.Collections.Generic.HashSet<string> { //260508 hbk Phase 19 fix
                 nameof(EdgeMeasureTypeList), //260507 hbk Phase 19 QUAL-03
                 nameof(EdgeDirectionList), //260507 hbk Phase 18 CO-01 패턴 — EdgeDirectionList 강제 포함
                 nameof(EdgePolarityList), //260507 hbk Phase 18 CO-01 패턴 — EdgePolarityList 강제 포함
             };
-            return DynamicPropertyHelper.FilterProperties(this, attributes, name => IsHiddenForEdgeMeasureType(name, EdgeMeasureType), sourceNames); //260507 hbk Phase 19 QUAL-03
-        }
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties() { //260507 hbk Phase 19 QUAL-03
-            //260507 hbk Phase 19 QUAL-03 — INI reflection 경로 보호 (System.ComponentModel 사용처가 있을 경우 base 위임)
-            return System.ComponentModel.TypeDescriptor.GetProperties(this, true);
+            return DynamicPropertyHelper.FilterProperties(this, attrs, name => IsHiddenForEdgeMeasureType(name, EdgeMeasureType), sourceNames); //260508 hbk Phase 19 fix
         }
         public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); } //260507 hbk Phase 19 QUAL-03
         public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); } //260507 hbk Phase 19 QUAL-03

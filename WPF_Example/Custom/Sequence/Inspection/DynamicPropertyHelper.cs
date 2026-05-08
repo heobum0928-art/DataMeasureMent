@@ -25,7 +25,11 @@ namespace ReringProject.Sequence {
             System.Collections.Generic.HashSet<string> sourceNames) {
             //260507 hbk Phase 19 QUAL-03 T-19-02 — hideFunc null 가드 (DoS 위협 모델 mitigation)
             if (hideFunc == null) throw new System.ArgumentNullException("hideFunc"); //260507 hbk Phase 19 QUAL-03
-            var all = System.ComponentModel.TypeDescriptor.GetProperties(obj, attrs, true); //260507 hbk Phase 19 QUAL-03
+            //260508 hbk Phase 19 fix — PropertyTools.Wpf 는 ICustomTypeDescriptor.GetProperties() 무인자만 호출 (attrs=null).
+            //  attrs 가 null 이면 TypeDescriptor.GetProperties(obj, true) 로 fallback (전체 reflection 결과).
+            var all = (attrs != null && attrs.Length > 0) //260508 hbk Phase 19 fix
+                ? System.ComponentModel.TypeDescriptor.GetProperties(obj, attrs, true)
+                : System.ComponentModel.TypeDescriptor.GetProperties(obj, true); //260508 hbk Phase 19 fix
             var keep = new List<System.ComponentModel.PropertyDescriptor>(); //260507 hbk Phase 19 QUAL-03
             foreach (System.ComponentModel.PropertyDescriptor pd in all) {
                 if (hideFunc(pd.Name)) continue; //260507 hbk Phase 19 QUAL-03 — hideFunc 콜백 필터

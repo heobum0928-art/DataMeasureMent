@@ -434,6 +434,17 @@ namespace ReringProject.UI {
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)
+                        //260508 hbk Phase 19 fix — Datum 클릭 force rebind(line 419-420) 후 binding 손상 → Measurement 전환 시 PropertyGrid stale.
+                        //  Datum 패턴(Phase 16 D-09)과 동일하게 null→new 강제 재할당.
+                        if (ParamEditor != null && itemParam != null) { //260508 hbk Phase 19 fix
+                            _isRebinding = true; //260508 hbk Phase 19 fix
+                            try {
+                                ParamEditor.SelectedObject = null; //260508 hbk Phase 19 fix
+                                ParamEditor.SelectedObject = itemParam; //260508 hbk Phase 19 fix
+                            } finally {
+                                _isRebinding = false; //260508 hbk Phase 19 fix
+                            }
+                        }
                         _inspectionVm?.ClearResults();
                     }
                     else if (item.NodeType == ENodeType.FAI) {
@@ -443,6 +454,17 @@ namespace ReringProject.UI {
                         if (_inspectionVm != null && itemParam is FAIConfig faiConfig) {
                             _inspectionVm.OnFAISelected(faiConfig);
                             mParentWindow.mainView.DisplayFAIImage(faiConfig);
+                            //260508 hbk Phase 19 fix — ICustomTypeDescriptor 추가 후 PropertyGrid binding stale 방지 (Phase 16 D-09 패턴 적용)
+                            //  Datum 클릭 force rebind 가 SelectedObject binding 을 끊어 → FAI 전환 시 자동 갱신 안 됨 → 명시적 재할당 필요.
+                            if (ParamEditor != null) { //260508 hbk Phase 19 fix
+                                _isRebinding = true; //260508 hbk Phase 19 fix
+                                try {
+                                    ParamEditor.SelectedObject = null; //260508 hbk Phase 19 fix
+                                    ParamEditor.SelectedObject = faiConfig; //260508 hbk Phase 19 fix
+                                } finally {
+                                    _isRebinding = false; //260508 hbk Phase 19 fix
+                                }
+                            }
                         }
                     }
                     else if (item.NodeType == ENodeType.Action) {

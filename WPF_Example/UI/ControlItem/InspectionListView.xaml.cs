@@ -691,10 +691,10 @@ namespace ReringProject.UI {
         //260417 hbk Phase 6 Plan 04: FAI에 Measurement를 추가하고 트리에 노드 직접 삽입 (D-24)
         private void AddMeasurementToFAI(NodeViewModel faiNode, FAIConfig fai) {
             string[] typeNames = MeasurementFactory.GetTypeNames();
-            string typeListHint = "사용 가능한 타입: " + string.Join(", ", typeNames);
             string defaultType = typeNames.Length > 0 ? typeNames[0] : "EdgePairDistance";
 
-            if (!TextInputBox.Show("Measurement 타입 입력 (" + typeListHint + ")", defaultType, out string typeName)) return;
+            //260508 hbk Quick — TextInputBox 자유 텍스트 → ComboInputBox 콤보 강제 (사용자 입력 실수 방지, MeasurementFactory 단일 소스)
+            if (!ComboInputBox.Show("Measurement 타입 선택", typeNames, defaultType, out string typeName)) return;
 
             MeasurementBase newMeas = fai.AddMeasurement(typeName);
             if (newMeas == null) {

@@ -268,6 +268,10 @@
     <Compile Include="UI\Dialog\TextInputBoxWindow.xaml.cs">
       <DependentUpon>TextInputBoxWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Dialog\ComboInputBox.cs" />
+    <Compile Include="UI\Dialog\ComboInputBoxWindow.xaml.cs">
+      <DependentUpon>ComboInputBoxWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Login\AccountManagerWindow.xaml.cs">
       <DependentUpon>AccountManagerWindow.xaml</DependentUpon>
     </Compile>
@@ -430,6 +434,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Dialog\TextInputBoxWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Dialog\ComboInputBoxWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

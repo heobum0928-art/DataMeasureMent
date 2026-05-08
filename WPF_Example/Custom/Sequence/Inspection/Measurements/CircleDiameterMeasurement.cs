@@ -53,13 +53,43 @@ namespace ReringProject.Sequence
 
             var svc = new VisionAlgorithmService();
             double foundRow, foundCol, foundRadius;
-            if (!svc.TryFindCircle(image,
-                Circle_Row, Circle_Col, Circle_Radius,
-                datumTransform,
-                Sigma, EdgeThreshold, EdgePolarity,
-                out foundRow, out foundCol, out foundRadius, out error))
+
+            //260508 hbk Phase 28 REQ-28-02 (D-01) — Circle_RadialDirection 빈값=fit / Inward,Outward=polar 분기
+            if (string.IsNullOrEmpty(Circle_RadialDirection)) //260508 hbk Phase 28
             {
-                return false;
+                //260508 hbk Phase 28 REQ-28-04 — 기존 fit 경로 (인자 순서/EdgePolarity 사용 규칙 v1.0 동일 → INI 하위호환 회귀 0)
+                if (!svc.TryFindCircle(image,
+                    Circle_Row, Circle_Col, Circle_Radius,
+                    datumTransform,
+                    Sigma, EdgeThreshold, EdgePolarity,
+                    out foundRow, out foundCol, out foundRadius, out error))
+                {
+                    return false;
+                }
+            }
+            else //260508 hbk Phase 28
+            {
+                //260508 hbk Phase 28 REQ-28-02/REQ-28-03 (D-02, D-04, D-08) — polar 경로:
+                //  polarity = MapRadialDirectionToHalconPolarity(Circle_RadialDirection) (단일 소스, EdgePolarity 무시)
+                //  step/L1/L2/selection = EdgeOptionLists.FaiCircle* defaults (Datum CTH default 와 동일 → 동등성 결정적)
+                string polarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(Circle_RadialDirection); //260508 hbk Phase 28
+                HTuple unusedRows, unusedCols; //260508 hbk Phase 28
+                bool[] unusedStrips; //260508 hbk Phase 28
+                if (!svc.TryFindCircleByPolarSampling(
+                    image,
+                    Circle_Row, Circle_Col, Circle_Radius,
+                    EdgeOptionLists.FaiCirclePolarStepDeg,
+                    EdgeOptionLists.FaiCircleRectL1Ratio,
+                    EdgeOptionLists.FaiCircleRectL2Ratio,
+                    Sigma, EdgeThreshold, polarity,
+                    EdgeOptionLists.FaiCircleEdgeSelection,
+                    datumTransform,
+                    out foundRow, out foundCol, out foundRadius,
+                    out unusedRows, out unusedCols, out unusedStrips,
+                    out error)) //260508 hbk Phase 28
+                {
+                    return false; //260508 hbk Phase 28
+                }
             }
 
             resultValue = foundRadius * 2.0 * pixelResolution;

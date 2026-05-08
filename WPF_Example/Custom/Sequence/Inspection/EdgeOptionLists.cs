@@ -25,5 +25,23 @@ namespace ReringProject.Sequence
         //  DatumConfig.Circle_RadialDirection ItemsSource 단일 소스. Caller (DatumFindingService.TryTeachCircleTwoHorizontal)
         //  가 "Inward" → "positive", "Outward" → "negative" 로 매핑하여 TryFindCircleByPolarSampling 의 polarity 인자에 override 전달.
         public static readonly List<string> RadialDirections = new List<string> { "Inward", "Outward" }; //260503 hbk Phase 17 D-02
+
+        //260508 hbk Phase 28 D-04 — FAI CircleDiameter polar 경로 default 상수 (Datum CTH default 와 동일 → REQ-28-03 동등성 결정적 보장)
+        public const double FaiCirclePolarStepDeg   = 10.0;     //260508 hbk Phase 28
+        public const double FaiCircleRectL1Ratio    = 0.02;     //260508 hbk Phase 28
+        public const double FaiCircleRectL2Ratio    = 0.02;     //260508 hbk Phase 28
+        public const string FaiCircleEdgeSelection  = "First";  //260508 hbk Phase 28
+
+        //260508 hbk Phase 28 D-02/D-03 — RadialDirection ("Inward"/"Outward") → Halcon polarity ("positive"/"negative") 단일 매핑.
+        //  Datum CTH (DatumFindingService.cs:200, :730) 의 inline `string.Equals(..., "Outward", OrdinalIgnoreCase) ? "negative" : "positive"` 와
+        //  byte-identical 결과를 보장한다 (null/empty/Inward → "positive", Outward(대소문자무관) → "negative").
+        public static string MapRadialDirectionToHalconPolarity(string radial) //260508 hbk Phase 28
+        {
+            if (string.Equals(radial, "Outward", System.StringComparison.OrdinalIgnoreCase)) //260508 hbk Phase 28
+            {
+                return "negative"; //260508 hbk Phase 28
+            }
+            return "positive"; //260508 hbk Phase 28
+        }
     }
 }

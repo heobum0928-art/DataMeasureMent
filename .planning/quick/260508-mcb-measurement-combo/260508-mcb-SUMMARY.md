@@ -2,8 +2,10 @@
 phase: quick-260508-mcb
 slug: 260508-mcb-measurement-combo
 date: 2026-05-08
-status: complete
-commits: []
+status: signed_off
+signed_off: 2026-05-08
+commits:
+  - 2795479
 files_added:
   - WPF_Example/UI/Dialog/ComboInputBox.cs
   - WPF_Example/UI/Dialog/ComboInputBoxWindow.xaml
@@ -12,6 +14,11 @@ files_modified:
   - WPF_Example/UI/ControlItem/InspectionListView.xaml.cs
   - WPF_Example/DatumMeasurement.csproj
 related: phase-19
+uat:
+  - test: "콤보 6 옵션 표시 + 6종 measurement 모두 생성 가능"
+    result: PASS (2026-05-08 사용자 확인)
+  - test: "Measurement 이름 자유 입력 (TextInputBox 유지)"
+    result: PASS (2026-05-08 사용자 확인)
 ---
 
 # Quick 260508-mcb — Measurement 추가 모달 콤보화

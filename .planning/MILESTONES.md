@@ -1,5 +1,35 @@
 # Milestones
 
+## v1.1 Quality + Workflow + Infrastructure (In progress)
+
+**Status:** in progress (시작 2026-05-04). Phase 18 signed_off, Phase 19 fix_applied_pending_uat.
+
+**Phase Map (10 phases, continue numbering from v1.0 last=17):**
+
+- Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06)
+- Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)
+- Phase 20: 코드 스타일 정리 (QUAL-02, QUAL-04)
+- Phase 21: 메모리 이미지 버퍼 (BUF-01, BUF-02)
+- Phase 22: CXP SDK 확정 (HW-01)
+- Phase 23: CXP 드라이버 통합 (HW-02)
+- Phase 24: 검사 워크플로우 end-to-end (WF-01, WF-02)
+- Phase 25: 결과 분석 & Export (OUT-01, OUT-02, OUT-03, OUT-04)
+- Phase 26: 헝가리안 전체 리팩토링 (QUAL-01)
+- **Phase 27 — Side Inspection 확장 (신설 2026-05-08):**
+  - Plan 27-01: LineToLineAngle 알고리즘 구현 (D1, H5 대응)
+  - Plan 27-02: Side Fixture INI 설정 추가 (단변1/2, 장변3/4)
+  - Plan 27-03: PC2 Side 전용 구성 검증 (TCP Vision Server 독립 동작)
+
+**Phase 27 배경:**
+- D1 (Fixture #3-1, #3-2): Back light, Datum A vs 벽면 직선 각도 측정
+- H5 (Fixture #4-2): Back light, Datum A vs 직선 MN 각도 측정
+- Side Datum (단변1/2, 장변3/4): 기존 TwoLineIntersect 재사용 — 신규 알고리즘 불필요
+- PC 구성: PC1(Top/Bottom) / PC2(Side) 분리, 동일 SW 독립 배포
+
+**See:** [ROADMAP.md](ROADMAP.md), [REQUIREMENTS.md](REQUIREMENTS.md)
+
+---
+
 ## v1.0 Halcon Migration MVP (Shipped: 2026-05-04)
 
 **Phases completed:** 17 phases, 55 plans, 61 tasks

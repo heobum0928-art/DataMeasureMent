@@ -1,8 +1,10 @@
 ---
 phase: 19-propertygrid-dynamic-exposure
 verified: 2026-05-08T00:00:00Z
-status: human_needed
-score: 7/7 must-haves verified (자동 검증 가능 항목)
+status: signed_off
+signed_off: 2026-05-08
+score: 7/7 must-haves verified (자동) + 6/6 UAT PASS (사용자)
+fix_commits: [dd5bfca, e7c5087, 26639dc]
 overrides_applied: 0
 human_verification:
   - test: "DatumConfig CO-02 회귀 — TLI 알고리즘 선택 시 PropertyGrid 노출/숨김"

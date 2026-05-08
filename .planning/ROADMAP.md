@@ -171,14 +171,20 @@ Plans:
 ### Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 (신설 2026-05-08)
 **Goal**: FAI 의 CircleDiameterMeasurement 에 Datum CircleTwoHorizontal 의 폴라 샘플링 검출 정밀도와 Circle_RadialDirection (Inward/Outward) 파라미터를 적용하여, FAI 측정에서도 Datum 동등한 정밀도/일관성을 확보한다 (Phase 19 UAT 사용자 명시 요청)
 **Depends on**: Phase 19 (PropertyTools.Wpf 콤보 패턴 + ICustomTypeDescriptor 동적 hide 검증 완료)
-**Requirements**: TBD (Phase 19 carry-over)
+**Requirements**: REQ-28-01, REQ-28-02, REQ-28-03, REQ-28-04, REQ-28-05, REQ-28-06
 **Success Criteria** (what must be TRUE):
   1. CircleDiameterMeasurement.Circle_RadialDirection (Inward/Outward) 가 PropertyGrid 콤보로 노출되어 Datum CTH 와 동일하게 동작한다
   2. CircleDiameterMeasurement 검출 결과(직경 mm)가 Datum 폴라 알고리즘과 동일한 검출 점을 사용하므로 Datum CTH 와 비교 회귀가 0 이다 (동일 입력 → 동일 출력)
   3. 기존 EdgeThreshold/Sigma/EdgePolarity 3 파라미터 동작이 회귀 0 으로 보존된다 (기본 RadialDirection 미선택 시)
   4. INI 직렬화 하위호환 (RadialDirection 미존재 시 default 폴백)
   5. msbuild Debug/x64 PASS, 신규 error/warning 0
-**Plans**: TBD (1-2 plans 예상 — 최소 스코프, /gsd-spec-phase 28 명확화 중)
+**Plans**: 4 plans
+
+Plans:
+- [ ] 28-01-PLAN.md -- Wave 1: EdgeOptionLists helper (MapRadialDirectionToHalconPolarity) + 4 FAI polar default consts
+- [ ] 28-02-PLAN.md -- Wave 2: CircleDiameterMeasurement Circle_RadialDirection field + TryExecute branch (fit/polar)
+- [ ] 28-03-PLAN.md -- Wave 2: DatumFindingService 2 inline ternary -> helper call (D-03 DRY cleanup)
+- [ ] 28-04-PLAN.md -- Wave 3: SIMUL_MODE UAT (AC-1/AC-4/AC-5/AC-6) [autonomous: false]
 
 ---
 

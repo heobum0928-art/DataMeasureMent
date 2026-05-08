@@ -2,9 +2,9 @@
 
 ## v1.1 Quality + Workflow + Infrastructure (In progress)
 
-**Status:** in progress (시작 2026-05-04). Phase 18 signed_off, Phase 19 fix_applied_pending_uat.
+**Status:** in progress (시작 2026-05-04). Phase 18 signed_off, Phase 19 signed_off (2026-05-08).
 
-**Phase Map (10 phases, continue numbering from v1.0 last=17):**
+**Phase Map (11 phases, continue numbering from v1.0 last=17):**
 
 - Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06)
 - Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)
@@ -19,12 +19,21 @@
   - Plan 27-01: LineToLineAngle 알고리즘 구현 (D1, H5 대응)
   - Plan 27-02: Side Fixture INI 설정 추가 (단변1/2, 장변3/4)
   - Plan 27-03: PC2 Side 전용 구성 검증 (TCP Vision Server 독립 동작)
+- **Phase 28 — FAI CircleDiameter + Datum Circle 알고리즘 통합 (신설 2026-05-08):**
+  - 사용자 요청: FAI 의 CircleDiameter 측정에 Datum CircleTwoHorizontal 의 폴라 샘플링 + 파라미터 적용
+  - 스코프: Plans TBD (spec phase 에서 명확화 — 가져올 파라미터 범위 + 알고리즘 호출 경로 + ROI 입력 방식)
+  - 의존: Phase 19 (PropertyTools.Wpf 콤보 패턴 + ICustomTypeDescriptor 동적 hide 검증 완료)
 
 **Phase 27 배경:**
 - D1 (Fixture #3-1, #3-2): Back light, Datum A vs 벽면 직선 각도 측정
 - H5 (Fixture #4-2): Back light, Datum A vs 직선 MN 각도 측정
 - Side Datum (단변1/2, 장변3/4): 기존 TwoLineIntersect 재사용 — 신규 알고리즘 불필요
 - PC 구성: PC1(Top/Bottom) / PC2(Side) 분리, 동일 SW 독립 배포
+
+**Phase 28 배경:**
+- 현재 CircleDiameterMeasurement (Phase 6 D-15): VisionAlgorithmService.TryFindCircle (단순 FitCircleContourXld) — Sigma/EdgeThreshold/EdgePolarity 3 파라미터
+- Datum CircleTwoHorizontal (Phase 16~18): 폴라 샘플링 + Circle_RadialDirection (Inward/Outward) + Circle_EdgeDirection/EdgeSelection + RectL1Ratio/L2Ratio strip cap (Phase 18 CO-01 검증)
+- 사용자 의도: FAI 측정에서도 Datum 동일한 검출 정밀도/파라미터 사용
 
 **See:** [ROADMAP.md](ROADMAP.md), [REQUIREMENTS.md](REQUIREMENTS.md)
 

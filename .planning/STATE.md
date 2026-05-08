@@ -7,7 +7,7 @@ stopped_at: Phase 19 signed_off (2026-05-08) — 3 fix commits dd5bfca/e7c5087/2
 last_updated: "2026-05-08T11:00:00.000Z"
 last_activity: 2026-05-08
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 3
   total_plans: 9
   completed_plans: 9
@@ -205,8 +205,8 @@ Next action: `/gsd-execute-phase 18` — 18-04(CO-05 Test Find 버그) 실행
 
 **v1.1 Phase Map:**
 
-- Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06)
-- Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)
+- Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06) — signed_off 2026-05-07
+- Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02) — signed_off 2026-05-08
 - Phase 20: 코드 스타일 정리 (QUAL-02, QUAL-04)
 - Phase 21: 메모리 이미지 버퍼 (BUF-01, BUF-02)
 - Phase 22: CXP SDK 확정 (HW-01)
@@ -214,3 +214,5 @@ Next action: `/gsd-execute-phase 18` — 18-04(CO-05 Test Find 버그) 실행
 - Phase 24: 검사 워크플로우 end-to-end (WF-01, WF-02)
 - Phase 25: 결과 분석 & Export (OUT-01, OUT-02, OUT-03, OUT-04)
 - Phase 26: 헝가리안 전체 리팩토링 (QUAL-01)
+- Phase 27: Side Inspection 확장 — 신설 2026-05-08 (LineToLineAngle + Side Fixture INI + PC2 분리)
+- Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 — 신설 2026-05-08 (Phase 19 UAT 사용자 요청)

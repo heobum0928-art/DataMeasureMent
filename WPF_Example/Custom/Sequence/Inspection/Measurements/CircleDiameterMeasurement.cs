@@ -26,9 +26,16 @@ namespace ReringProject.Sequence
         [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
         public string EdgePolarity { get; set; } = "DarkToLight";
 
+        [ItemsSourceProperty(nameof(Circle_RadialDirectionList))] //260508 hbk Phase 28 REQ-28-01 (D-06/D-07 — Edge category 2옵션 콤보)
+        public string Circle_RadialDirection { get; set; } = ""; //260508 hbk Phase 28 REQ-28-01/REQ-28-04 (default "" → fit 경로 → INI 하위호환)
+
         //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
+
+        //260508 hbk Phase 28 REQ-28-01 — RadialDirection 콤보 옵션 래퍼 (Phase 17 D-02 단일 소스 EdgeOptionLists.RadialDirections 직접 참조)
+        [PropertyTools.DataAnnotations.Browsable(false)] //260508 hbk Phase 28
+        public List<string> Circle_RadialDirectionList { get { return EdgeOptionLists.RadialDirections; } } //260508 hbk Phase 28
 
         public CircleDiameterMeasurement(object owner) : base(owner) { } //260413 hbk
 

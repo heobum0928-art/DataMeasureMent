@@ -197,7 +197,7 @@ namespace ReringProject.Halcon.Algorithms
                 double centerRow, centerCol, radius;
                 HTuple circleEdgeRows, circleEdgeCols;
                 string circleError;
-                string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
+                string circlePolarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection); //260508 hbk Phase 28 D-03 — inline ternary → helper 호출 (DRY)
                 bool[] unusedStrips; //260505 hbk Phase 18 CO-05 — D-14: find 경로는 strip 색상 갱신 없음
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,

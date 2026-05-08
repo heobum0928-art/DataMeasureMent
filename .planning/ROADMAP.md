@@ -181,7 +181,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 28-01-PLAN.md -- Wave 1: EdgeOptionLists helper (MapRadialDirectionToHalconPolarity) + 4 FAI polar default consts
+- [x] 28-01-PLAN.md -- Wave 1: EdgeOptionLists helper (MapRadialDirectionToHalconPolarity) + 4 FAI polar default consts (be4d267, 2026-05-08)
 - [ ] 28-02-PLAN.md -- Wave 2: CircleDiameterMeasurement Circle_RadialDirection field + TryExecute branch (fit/polar)
 - [ ] 28-03-PLAN.md -- Wave 2: DatumFindingService 2 inline ternary -> helper call (D-03 DRY cleanup)
 - [ ] 28-04-PLAN.md -- Wave 3: SIMUL_MODE UAT (AC-1/AC-4/AC-5/AC-6) [autonomous: false]
@@ -201,6 +201,8 @@ Plans:
 | 24. 검???�크?�로??end-to-end | 0/TBD | Not started | - |
 | 25. 결과 분석 & Export | 0/TBD | Not started | - |
 | 26. ?��?리안 ?�체 리팩?�링 | 0/TBD | Not started | - |
+| 27. Side Inspection 확장 | 0/TBD | Not started | - |
+| 28. FAI CircleDiameter + Datum Circle | 1/4 | In progress | - |
 
 ---
 

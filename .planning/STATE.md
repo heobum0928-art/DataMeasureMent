@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: signed_off — 6/6 UAT PASS (QUAL-03 + CO-02 충족)
-stopped_at: Phase 28 context gathered
-last_updated: "2026-05-08T08:50:48.478Z"
+status: executing
+stopped_at: Completed 28-01-PLAN.md
+last_updated: "2026-05-08T10:25:05.441Z"
 last_activity: 2026-05-08
 progress:
   total_phases: 11
   completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  total_plans: 13
+  completed_plans: 10
+  percent: 77
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 19 — propertygrid-dynamic-exposure
+**Current focus:** Phase 28 — fai-circlediameter-datum-circle
 
 ## Current Position
 
-Phase: 19 (propertygrid-dynamic-exposure) — SIGNED_OFF (2026-05-08)
-Plan: 2 of 2 + 3 UAT fix commits (dd5bfca, e7c5087, 26639dc)
-Status: signed_off — 6/6 UAT PASS (QUAL-03 + CO-02 충족)
+Phase: 28 (fai-circlediameter-datum-circle) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
 Next: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 quick task (측정 추가 모달 콤보화)
 Last activity: 2026-05-08
 
@@ -82,6 +82,7 @@ Last activity: 2026-05-08
 | Phase 18-carry-over-cleanup P03 | 8 | 1 tasks | 1 files |
 | Phase 19 P01 | 3 | 2 tasks | 3 files |
 | Phase 19 P02 | 4 | 2 tasks | 1 files |
+| Phase 28-fai-circlediameter-datum-circle P01 | 6 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,7 @@ Recent decisions affecting current work:
 - [Phase 18-03]: FormatTeachError DatumConfig 인자 추가 — datum.DatumName 기반 "[DatumName] " 접두사, null/empty 가드 포함 (CO-06)
 - [Phase 19-01]: DynamicPropertyHelper.FilterProperties 정적 헬퍼 추출 — DatumConfig.GetProperties 31줄→16줄 위임 호출 축약 (Phase 17 D-09 + Phase 18 CO-01 동작 회귀 0). T-19-02 mitigation으로 hideFunc null-guard, sourceNames null-safe 추가 (Rule 2 auto-fix x2)
 - [Phase 19-02]: FAIConfig ICustomTypeDescriptor + EdgeMeasureType 동적 드롭다운 — DynamicPropertyHelper.FilterProperties 위임으로 CircleDiameter 시 6+2 hide. Task 1+2 단일 atomic commit 통합 (Rule 3 - blocking issue: ICustomTypeDescriptor 멤버 미구현 시 CS0535). DatumConfig 무수정으로 Phase 17/18 회귀 0 (CO-02 충족).
+- [Phase 28-01]: EdgeOptionLists 에 MapRadialDirectionToHalconPolarity static helper + 4 FAI polar default consts (FaiCirclePolarStepDeg=10.0/RectL1Ratio=0.02/RectL2Ratio=0.02/EdgeSelection="First") 추가 — Wave 2 polar 분기 foundation. 값은 DatumConfig 의 CTH defaults 와 동일하여 REQ-28-03 동등성을 default 일치로 결정적 보장. fully-qualified System.StringComparison 사용으로 using 추가 0, 라인 1-27 무수정 (D-02/D-03/D-04)
 
 ### Quick Tasks Completed
 
@@ -198,9 +200,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 28 context gathered
-Resume file: --resume-file
+Last session: 2026-05-08T10:25:05.427Z
+Stopped at: Completed 28-01-PLAN.md
+Resume file: None
 Next action: `/gsd-execute-phase 18` — 18-04(CO-05 Test Find 버그) 실행
 
 **v1.1 Phase Map:**
@@ -216,3 +218,5 @@ Next action: `/gsd-execute-phase 18` — 18-04(CO-05 Test Find 버그) 실행
 - Phase 26: 헝가리안 전체 리팩토링 (QUAL-01)
 - Phase 27: Side Inspection 확장 — 신설 2026-05-08 (LineToLineAngle + Side Fixture INI + PC2 분리)
 - Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 — 신설 2026-05-08 (Phase 19 UAT 사용자 요청)
+
+**Planned Phase:** 28 (fai-circlediameter-datum-circle) — 4 plans — 2026-05-08T10:01:05.031Z

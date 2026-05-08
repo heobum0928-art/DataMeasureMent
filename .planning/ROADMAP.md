@@ -1,4 +1,4 @@
-# Roadmap: DataMeasurement
+﻿# Roadmap: DataMeasurement
 
 ## Milestones
 
@@ -91,7 +91,17 @@ Plans:
   2. 코드�?그�?�??�술?�는 "what" 주석???�거?�고 ?�계 ?�도·비즈?�스 규칙???��? "why" 주석??보존?�다
   3. SIMUL_MODE 검???�나리오가 변???????�일?�게 ?�작?�다 (로직 ?��? 0)
   4. msbuild Debug/x64 PASS, ?�규 warning 0
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+- [ ] 20-01-PLAN.md -- Wave 1: FAIConfig.cs operator + comment cleanup
+- [ ] 20-02-PLAN.md -- Wave 1: DatumFindingService.cs operator (TLI/CTH/VTH paths)
+- [ ] 20-03-PLAN.md -- Wave 1: MainResultViewerControl.xaml.cs event handlers + operators
+- [ ] 20-04-PLAN.md -- Wave 1: MainView.xaml.cs operators + Datum teach state machine
+- [ ] 20-05-PLAN.md -- Wave 1: InspectionListView.xaml.cs operators
+- [ ] 20-06-PLAN.md -- Wave 1: 4 light Custom/Sequence files (DatumConfig/DynamicPropertyHelper/EdgeOptionLists/CircleDiameterMeasurement)
+- [ ] 20-07-PLAN.md -- Wave 1: 4 light Halcon+Dialog files (VisionAlgorithmService/HalconDisplayService/ComboInputBox+Window)
+- [ ] 20-08-PLAN.md -- Wave 2: SIMUL_MODE byte-identical regression + sign-off [autonomous: false]
 
 ### Phase 21: 메모�??��?지 버퍼
 **Goal**: �?Shot 검????캡처??HImage �?메모리에 보�??�여 ?�스??I/O ?�이 ?�조?�할 ???�고, ?�퀀??리셋 ?�는 ?�시??변�???버퍼가 명시?�으�??�제?�다
@@ -194,7 +204,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 18. Carry-over ?�리 | 7/7 | Complete    | 2026-05-07 |
 | 19. PropertyGrid ?�적 ?�출 ?�반??| 0/2   | Not started | - |
-| 20. 코드 ?��????�리 | 0/TBD | Not started | - |
+| 20. 코드 ?��????�리 | 0/8   | Planned     | - |
 | 21. 메모�??��?지 버퍼 | 0/TBD | Not started | - |
 | 22. CXP SDK ?�정 | 0/TBD | Not started | - |
 | 23. CXP ?�라?�버 ?�합 | 0/TBD | Not started | - |

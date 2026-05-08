@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
 status: planning
 stopped_at: Phase 20 context gathered (4 areas — operator policy / file scope / comment cleanup / regression)
-last_updated: "2026-05-08T14:33:53.068Z"
+last_updated: "2026-05-08T15:18:50.319Z"
 last_activity: 2026-05-08 — Phase 28 signed off
 progress:
   total_phases: 11
   completed_phases: 3
-  total_plans: 13
+  total_plans: 21
   completed_plans: 13
-  percent: 100
+  percent: 62
 ---
 
 # Project State
@@ -225,4 +225,4 @@ Next action: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlo
 - Phase 27: Side Inspection 확장 — 신설 2026-05-08 (LineToLineAngle + Side Fixture INI + PC2 분리)
 - Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 — 신설 2026-05-08 (Phase 19 UAT 사용자 요청)
 
-**Planned Phase:** 28 (fai-circlediameter-datum-circle) — 4 plans — 2026-05-08T10:01:05.031Z
+**Planned Phase:** 20 (code-style-cleanup) — 8 plans — 2026-05-08T15:18:50.304Z

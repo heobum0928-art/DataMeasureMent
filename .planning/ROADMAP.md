@@ -46,6 +46,8 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [ ] **Phase 24: 검???�크?�로??end-to-end** - Datum?�FAI?�결�?처리 ?�측 + OK/NG/?�패 분기 (WF-01, WF-02)
 - [ ] **Phase 25: 결과 분석 & Export** - ?��?지 리뷰??+ 1??검???��? + 반복???��? + ?�고리즘�??�계 (OUT-01..04)
 - [ ] **Phase 26: ?��?리안 ?�체 리팩?�링** - ?�체 ?�별???��?리안 ?�기�??�면 ?�용 (QUAL-01)
+- [ ] **Phase 27: Side Inspection 확장** - LineToLineAngle 알고리즘 + Side Fixture INI + PC2 분리 (D1, H5 / 신설 2026-05-08)
+- [ ] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** - CircleDiameterMeasurement 에 Circle_RadialDirection + Datum 폴라 알고리즘 호출 경로 (Phase 19 UAT 사용자 요청 / 신설 2026-05-08)
 
 ## Phase Details
 
@@ -154,6 +156,29 @@ Plans:
   4. INI ?�위?�환 (IsDynamicFAIMode + EnsurePerRoiDefaults) ??리팩?�링 ?�에???��??�다
   5. 모든 변�??�인 ?�에 `//YYMMDD hbk` 주석??존재?�다 (grep count 검�?가??
 **Plans**: TBD
+
+### Phase 27: Side Inspection 확장 (신설 2026-05-08)
+**Goal**: PC2(Side) 전용 구성 + LineToLineAngle 알고리즘 + Side Fixture INI 추가로 Datum A vs 직선 각도 측정(D1/H5) 지원
+**Depends on**: Phase 26
+**Requirements**: TBD (Side Inspection 신규)
+**Success Criteria** (what must be TRUE):
+  1. LineToLineAngle 알고리즘이 두 직선 사이 각도(deg) 를 정확하게 반환한다 (D1, H5)
+  2. Side Datum (단변1/2, 장변3/4) 가 기존 TwoLineIntersect 로 정상 동작한다 (회귀 0)
+  3. PC2 단독 실행 시 TCP Vision Server 가 PC1 과 독립적으로 호스트와 통신한다
+  4. 동일 SW 이미지로 PC1/PC2 각자 배포 가능하다 (구성 분기 INI 만)
+**Plans**: TBD (3 plans 예상 — 27-01 LineToLineAngle, 27-02 Side Fixture INI, 27-03 PC2 검증)
+
+### Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 (신설 2026-05-08)
+**Goal**: FAI 의 CircleDiameterMeasurement 에 Datum CircleTwoHorizontal 의 폴라 샘플링 검출 정밀도와 Circle_RadialDirection (Inward/Outward) 파라미터를 적용하여, FAI 측정에서도 Datum 동등한 정밀도/일관성을 확보한다 (Phase 19 UAT 사용자 명시 요청)
+**Depends on**: Phase 19 (PropertyTools.Wpf 콤보 패턴 + ICustomTypeDescriptor 동적 hide 검증 완료)
+**Requirements**: TBD (Phase 19 carry-over)
+**Success Criteria** (what must be TRUE):
+  1. CircleDiameterMeasurement.Circle_RadialDirection (Inward/Outward) 가 PropertyGrid 콤보로 노출되어 Datum CTH 와 동일하게 동작한다
+  2. CircleDiameterMeasurement 검출 결과(직경 mm)가 Datum 폴라 알고리즘과 동일한 검출 점을 사용하므로 Datum CTH 와 비교 회귀가 0 이다 (동일 입력 → 동일 출력)
+  3. 기존 EdgeThreshold/Sigma/EdgePolarity 3 파라미터 동작이 회귀 0 으로 보존된다 (기본 RadialDirection 미선택 시)
+  4. INI 직렬화 하위호환 (RadialDirection 미존재 시 default 폴백)
+  5. msbuild Debug/x64 PASS, 신규 error/warning 0
+**Plans**: TBD (1-2 plans 예상 — 최소 스코프, /gsd-spec-phase 28 명확화 중)
 
 ---
 

@@ -160,9 +160,12 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D; //260503 hbk Phase 17 D-13
                 config.DetectedOriginCol = curCol.D; //260503 hbk Phase 17 D-13
                 config.DetectedRefAngle  = curAngle; //260503 hbk Phase 17 D-13
-                //260503 hbk Phase 17 D-16 — 결과 메트릭 (검출 점 개수 합계 + 각도 deg)
-                config.DetectedEdgeCount = (line1RawRows != null ? line1RawRows.TupleLength() : 0)
-                                         + (line2RawRows != null ? line2RawRows.TupleLength() : 0); //260503 hbk Phase 17 D-16
+                //260509 hbk Phase 20 — 결과 메트릭 (검출 점 개수 합계 + 각도 deg). ?: → 명시 if/else (P-9 HTuple null 가드)
+                int line1EdgeCount = 0;
+                if (line1RawRows != null) line1EdgeCount = line1RawRows.TupleLength(); //260509 hbk Phase 20
+                int line2EdgeCount = 0;
+                if (line2RawRows != null) line2EdgeCount = line2RawRows.TupleLength(); //260509 hbk Phase 20
+                config.DetectedEdgeCount = line1EdgeCount + line2EdgeCount; //260509 hbk Phase 20
                 config.DetectedFitRMSE   = 0.0; //260503 hbk Phase 17 D-16 — fit RMSE 미수집 (placeholder)
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI; //260503 hbk Phase 17 D-16
                 config.LastFindSucceeded = true; //260503 hbk Phase 17 D-13
@@ -490,7 +493,10 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
-                config.DetectedEdgeCount = (vertRawRows != null ? vertRawRows.TupleLength() : 0) + totalEdges;
+                //260509 hbk Phase 20 — ?: → 명시 if/else (P-9 HTuple null 가드)
+                int vertEdgeCount = 0;
+                if (vertRawRows != null) vertEdgeCount = vertRawRows.TupleLength(); //260509 hbk Phase 20
+                config.DetectedEdgeCount = vertEdgeCount + totalEdges; //260509 hbk Phase 20
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
 

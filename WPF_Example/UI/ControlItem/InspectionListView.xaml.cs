@@ -167,8 +167,9 @@ namespace ReringProject.UI {
                 _isControlLoaded = true; //260408 hbk
 
                 //260408 hbk 초기화 전에 OnLoadRecipe가 먼저 호출된 경우 여기서 트리 재구축
-                string recipeName = _pendingRecipeName
-                    ?? SystemHandler.Handle.Setting.CurrentRecipeName;
+                //260509 hbk Phase 20 — null 병합 연산자 → 명시적 if/else (D-01, P-3)
+                string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+                if (_pendingRecipeName != null) recipeName = _pendingRecipeName;
                 if (!string.IsNullOrEmpty(recipeName)) {
                     ViewModel.CurrentRecipe = recipeName;
                     ViewModel.RebuildTree();
@@ -231,7 +232,8 @@ namespace ReringProject.UI {
 
             ViewModel.CurrentRecipe = name;
             ViewModel.RebuildTree();
-            ViewModel.RootModel?.ExpandAll();
+            //260509 hbk Phase 20 — null-conditional → 명시적 if/else (D-01, P-14)
+            if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandAll();
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 모두 Start 가능 + Shot→Action 지연 동기화
@@ -398,7 +400,7 @@ namespace ReringProject.UI {
                         button_grab.IsEnabled = true;
                         button_loadImage.IsEnabled = true;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
                         if (itemParam is DatumConfig datumCfg) {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
@@ -445,7 +447,7 @@ namespace ReringProject.UI {
                                 _isRebinding = false; //260508 hbk Phase 19 fix
                             }
                         }
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
@@ -479,13 +481,13 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     }
                     else {
                         button_addFAI.IsEnabled = false;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     }
 
                     //260423 hbk Phase 11 D-15/D-18 — Circle ROI 버튼 활성화 게이팅 (선택 노드 기반)
@@ -770,7 +772,7 @@ namespace ReringProject.UI {
                     if (inspSeq.RemoveDatum(datumIdx)) {
                         selectedNode.Detach();
                     }
-                    _inspectionVm?.ClearResults();
+                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     return;
                 }
 
@@ -791,7 +793,7 @@ namespace ReringProject.UI {
                     if (faiOwner.RemoveMeasurement(measIdx)) {
                         selectedNode.Detach();
                     }
-                    _inspectionVm?.ClearResults();
+                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     return;
                 }
 
@@ -809,7 +811,7 @@ namespace ReringProject.UI {
 
                     seqHandler.RecipeManager.RemoveShot(shotIndex);
                     selectedNode.Detach();
-                    _inspectionVm?.ClearResults();
+                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     return;
                 }
 
@@ -830,7 +832,7 @@ namespace ReringProject.UI {
                     _inspectionVm.RemoveFAI(shot, index);
                     selectedNode.Detach();
                 }
-                _inspectionVm?.ClearResults();
+                if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
             }
             catch (Exception ex) {
                 CustomMessageBox.Show("삭제 오류", ex.Message, System.Windows.MessageBoxImage.Error);

@@ -137,14 +137,21 @@ namespace ReringProject.Sequence {
             bool hasCircle = firstCircle != null;
 
             bool hasRect = ROI_Length1 > 0 && ROI_Length2 > 0;
-            bool hasPolygon = !string.IsNullOrEmpty(PolygonPoints); //260408 hbk Polygon ROI 지원
+            //260509 hbk Phase 20 — !string.IsNullOrEmpty(PolygonPoints) 는 PolygonPoints null 도 안전하게 false 처리하므로 ?? 분해 불필요
+            bool hasPolygon = !string.IsNullOrEmpty(PolygonPoints);
             bool isTaught = hasRect || hasPolygon || hasCircle; //260423 hbk Phase 11 D-16 — Circle 포함
+
+            //260509 hbk Phase 20 — FAIName null fallback "FAI" (Id/Name 공용 — 3개 RoiDefinition 분기 재사용)
+            string idValue = "FAI";
+            string nameValue = "FAI";
+            if (FAIName != null) { idValue = FAIName; nameValue = FAIName; }
+
             if (!isTaught)
             {
                 return new RoiDefinition
                 {
-                    Id = FAIName ?? "FAI",
-                    Name = FAIName ?? "FAI",
+                    Id = idValue,    //260509 hbk Phase 20
+                    Name = nameValue, //260509 hbk Phase 20
                     IsTaught = false
                 };
             }
@@ -154,8 +161,8 @@ namespace ReringProject.Sequence {
             {
                 return new RoiDefinition
                 {
-                    Id = FAIName ?? "FAI",
-                    Name = FAIName ?? "FAI",
+                    Id = idValue,    //260509 hbk Phase 20
+                    Name = nameValue, //260509 hbk Phase 20
                     Shape = RoiShape.Circle,
                     CenterRow = firstCircle.Circle_Row,
                     CenterCol = firstCircle.Circle_Col,
@@ -179,10 +186,20 @@ namespace ReringProject.Sequence {
                 col2 = ROI_Col + dCol;
             }
 
+            //260509 hbk Phase 20 — Edge 파라미터 null fallback 임시변수 분해 (RoiDefinition initializer 깨끗하게 유지)
+            string edgeDirectionValue = "LtoR";
+            if (EdgeDirection != null) edgeDirectionValue = EdgeDirection;
+            string edgeSelectionValue = "First";
+            if (EdgeSelection != null) edgeSelectionValue = EdgeSelection;
+            string edgePolarityValue = "DarkToLight";
+            if (EdgePolarity != null) edgePolarityValue = EdgePolarity;
+            string polygonPointsValue = "";
+            if (PolygonPoints != null) polygonPointsValue = PolygonPoints;
+
             return new RoiDefinition //260409 hbk 에지 파라미터 전달
             {
-                Id = FAIName ?? "FAI",
-                Name = FAIName ?? "FAI",
+                Id = idValue,    //260509 hbk Phase 20
+                Name = nameValue, //260509 hbk Phase 20
                 Row1 = row1,
                 Column1 = col1,
                 Row2 = row2,
@@ -190,14 +207,14 @@ namespace ReringProject.Sequence {
                 IsTaught = true,
                 Sigma = Sigma,
                 EdgeThreshold = EdgeThreshold, //260409 hbk
-                EdgeDirection = EdgeDirection ?? "LtoR", //260409 hbk
-                EdgeSelection = EdgeSelection ?? "First", //260409 hbk
+                EdgeDirection = edgeDirectionValue, //260509 hbk Phase 20
+                EdgeSelection = edgeSelectionValue, //260509 hbk Phase 20
                 EdgeSampleCount = EdgeSampleCount, //260409 hbk
                 EdgeTrimCount = EdgeTrimCount, //260409 hbk
-                EdgePolarity = EdgePolarity ?? "DarkToLight", //260409 hbk
+                EdgePolarity = edgePolarityValue, //260509 hbk Phase 20
                 PixelResolutionX = PixelResolutionX,
                 PixelResolutionY = PixelResolutionY,
-                PolygonPoints = PolygonPoints ?? "" //260408 hbk
+                PolygonPoints = polygonPointsValue //260509 hbk Phase 20
             };
         }
 

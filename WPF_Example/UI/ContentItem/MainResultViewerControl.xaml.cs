@@ -201,7 +201,9 @@ namespace ReringProject.UI
         {
             DisposeImage();
             CurrentImagePath = imagePath;
-            CurrentImage = string.IsNullOrWhiteSpace(imagePath) ? null : new HImage(imagePath);
+            //260509 hbk Phase 20 — ternary expanded
+            if (string.IsNullOrWhiteSpace(imagePath)) CurrentImage = null;
+            else                                      CurrentImage = new HImage(imagePath);
             UpdateImageMetadata();
             if (HasImage)
             {
@@ -572,8 +574,11 @@ namespace ReringProject.UI
         /// <summary>Sets the polygon draft points for rendering during polygon drawing mode.</summary>
         public void SetPolygonDraft(IList<Point> points, string color)
         {
-            _polygonDraftPoints = points != null ? new List<Point>(points) : null;
-            _polygonColor = color ?? "blue";
+            //260509 hbk Phase 20 — ternary + ?? expanded
+            if (points != null) _polygonDraftPoints = new List<Point>(points);
+            else                _polygonDraftPoints = null;
+            if (color != null) _polygonColor = color;
+            else               _polygonColor = "blue";
             Render();
         }
 
@@ -640,7 +645,9 @@ namespace ReringProject.UI
         //260408 hbk Calibration 십자+라인 오버레이
         public void SetCalibrationOverlay(IList<Point> points)
         {
-            _calibrationPoints = points != null ? new List<Point>(points) : null;
+            //260509 hbk Phase 20 — ternary expanded
+            if (points != null) _calibrationPoints = new List<Point>(points);
+            else                _calibrationPoints = null;
             Render();
         }
 
@@ -778,7 +785,11 @@ namespace ReringProject.UI
 
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
-            ZoomAtPointer(mouseState.ImagePoint.Y, mouseState.ImagePoint.X, e.Delta > 0 ? ZoomInScaleFactor : ZoomOutScaleFactor);
+            //260509 hbk Phase 20 — ternary expanded
+            double zoomFactor;
+            if (e.Delta > 0) zoomFactor = ZoomInScaleFactor;
+            else             zoomFactor = ZoomOutScaleFactor;
+            ZoomAtPointer(mouseState.ImagePoint.Y, mouseState.ImagePoint.X, zoomFactor);
             PublishPointerInfo();
         }
 
@@ -809,7 +820,9 @@ namespace ReringProject.UI
                 //260408 hbk 우클릭 이벤트 브릿지 (Polygon 완성용) — Edit OFF 일 때만 Polygon 우클릭 처리
                 if (!_isEditMode && rightClickHit == null && ImageRightClicked != null)
                 {
-                    ImageRightClicked?.Invoke(this, EventArgs.Empty);
+                    //260509 hbk Phase 20 — D-02 race-safe handler temp
+                    var imageRightClickedHandler = ImageRightClicked;
+                    if (imageRightClickedHandler != null) imageRightClickedHandler(this, EventArgs.Empty);
                     PublishPointerInfo();
                     return;
                 }
@@ -910,7 +923,9 @@ namespace ReringProject.UI
             if (ImageLeftClicked != null && HasImage)
             {
                 var pt = mouseState.ImagePoint;
-                ImageLeftClicked?.Invoke(this, new MainViewerPointerChangedEventArgs(pt.X, pt.Y, null));
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var imageLeftClickedHandler = ImageLeftClicked;
+                if (imageLeftClickedHandler != null) imageLeftClickedHandler(this, new MainViewerPointerChangedEventArgs(pt.X, pt.Y, null));
                 PublishPointerInfo();
                 return;
             }
@@ -1048,7 +1063,9 @@ namespace ReringProject.UI
 
             if (!_isPanningImage)
             {
-                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                //260509 hbk Phase 20 — ternary expanded
+                if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+                else                      SetPanCursor(Cursors.Arrow);
                 PublishPointerInfo();
                 return;
             }
@@ -1089,10 +1106,14 @@ namespace ReringProject.UI
                 _resizingRoiSnapshot = null;
                 _resizingHandle = ResizeHandle.None;
                 _resizingPolygonIndex = -1;
-                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                //260509 hbk Phase 20 — ternary expanded
+                if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+                else                      SetPanCursor(Cursors.Arrow);
                 if (target != null)
                 {
-                    RoiGeometryChanged?.Invoke(this, new RoiGeometryChangedArgs
+                    //260509 hbk Phase 20 — D-02 race-safe handler temp
+                    var roiGeometryChangedHandler = RoiGeometryChanged;
+                    if (roiGeometryChangedHandler != null) roiGeometryChangedHandler(this, new RoiGeometryChangedArgs
                     {
                         RoiId = movedId,
                         Shape = shape,
@@ -1151,10 +1172,14 @@ namespace ReringProject.UI
                 string movedId = _movingRoiSnapshot.Id;
                 _isMovingRoi = false;
                 _movingRoiSnapshot = null;
-                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                //260509 hbk Phase 20 — ternary expanded
+                if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+                else                      SetPanCursor(Cursors.Arrow);
                 if (Math.Abs(dr) > 0.5 || Math.Abs(dc) > 0.5)
                 {
-                    RoiMoveCompleted?.Invoke(this, new RoiMoveCompletedArgs
+                    //260509 hbk Phase 20 — D-02 race-safe handler temp
+                    var roiMoveCompletedHandler = RoiMoveCompleted;
+                    if (roiMoveCompletedHandler != null) roiMoveCompletedHandler(this, new RoiMoveCompletedArgs
                     {
                         RoiId = movedId,
                         DeltaRow = dr,
@@ -1169,7 +1194,9 @@ namespace ReringProject.UI
             {
                 _isDrawingRect = false;
                 Render();
-                RectDrawingCompleted?.Invoke(this, EventArgs.Empty);
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var rectDrawingCompletedHandler = RectDrawingCompleted;
+                if (rectDrawingCompletedHandler != null) rectDrawingCompletedHandler(this, EventArgs.Empty);
                 return;
             }
 
@@ -1181,7 +1208,9 @@ namespace ReringProject.UI
                 double cc = _circleDraftCenter.X;  // image Col = X
                 double rad = _circleDraftRadius;
                 Render();
-                CircleDrawingCompleted?.Invoke(this, new CircleDrawCompletedArgs { CenterRow = cr, CenterCol = cc, Radius = rad });
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var circleDrawingCompletedHandler = CircleDrawingCompleted;
+                if (circleDrawingCompletedHandler != null) circleDrawingCompletedHandler(this, new CircleDrawCompletedArgs { CenterRow = cr, CenterCol = cc, Radius = rad });
                 _circleDraftRadius = 0;
                 return;
             }
@@ -1248,8 +1277,13 @@ namespace ReringProject.UI
             var current = GetImagePart();
             var newWidth = current.Width * scaleFactor;
             var newHeight = current.Height * scaleFactor;
-            var rowRatio = current.Height <= 0 ? 0.5 : (row - current.Top) / current.Height;
-            var columnRatio = current.Width <= 0 ? 0.5 : (column - current.Left) / current.Width;
+            //260509 hbk Phase 20 — ternaries expanded
+            double rowRatio;
+            if (current.Height <= 0) rowRatio = 0.5;
+            else                     rowRatio = (row - current.Top) / current.Height;
+            double columnRatio;
+            if (current.Width <= 0) columnRatio = 0.5;
+            else                    columnRatio = (column - current.Left) / current.Width;
             var newTop = row - (newHeight * rowRatio);
             var newLeft = column - (newWidth * columnRatio);
             SetImagePart(new Rect(newLeft, newTop, newWidth, newHeight));
@@ -1302,7 +1336,9 @@ namespace ReringProject.UI
             var normalizedTop = Math.Max(minTop, Math.Min(maxTop, imagePart.Top));
 
             SetPartInternal(new Rect(normalizedLeft, normalizedTop, normalizedWidth, normalizedHeight));
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
             Render();
         }
 
@@ -1314,7 +1350,9 @@ namespace ReringProject.UI
             }
 
             SetPartInternal(imagePart);
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
             Render();
         }
 
@@ -1326,7 +1364,9 @@ namespace ReringProject.UI
             }
 
             SetImagePartExact(CreateFitToWindowImagePart());
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
         }
 
         private void SetPanCursor(Cursor cursor)
@@ -1348,13 +1388,17 @@ namespace ReringProject.UI
             }
 
             _isPanningImage = false;
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
             PublishPointerInfo();
         }
 
         private void ViewerHost_MouseEnter(object sender, MouseEventArgs e)
         {
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
         }
 
         private void ViewerHost_MouseLeave(object sender, MouseEventArgs e)
@@ -1366,7 +1410,9 @@ namespace ReringProject.UI
         {
             if (CurrentImage == null)
             {
-                PointerInfoChanged?.Invoke(this, new MainViewerPointerChangedEventArgs(0, 0, null));
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var pointerInfoChangedHandlerNull = PointerInfoChanged;
+                if (pointerInfoChangedHandlerNull != null) pointerInfoChangedHandlerNull(this, new MainViewerPointerChangedEventArgs(0, 0, null));
                 return;
             }
 
@@ -1383,7 +1429,9 @@ namespace ReringProject.UI
             {
             }
 
-            PointerInfoChanged?.Invoke(this, new MainViewerPointerChangedEventArgs(x, y, grayValue));
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var pointerInfoChangedHandler = PointerInfoChanged;
+            if (pointerInfoChangedHandler != null) pointerInfoChangedHandler(this, new MainViewerPointerChangedEventArgs(x, y, grayValue));
         }
 
         private void ApplyManualMeasurePoint(Point imagePoint)
@@ -1458,12 +1506,16 @@ namespace ReringProject.UI
             }
 
             //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴: TeachDatum 모드 + 우클릭 위치에 Datum ROI 있을 때만 표시
-            if (RedrawRoiMenuItem != null) //260505 hbk Phase 18 CO-04
-            { //260505 hbk Phase 18 CO-04
-                RoiDefinition hitRoi = IsTeachDatumMode ? HitTestRoiAtPoint(_lastMouseImagePoint) : null; //260505 hbk Phase 18 CO-04
-                bool isDatumRoi = hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum."); //260505 hbk Phase 18 CO-04
-                RedrawRoiMenuItem.Visibility = isDatumRoi ? Visibility.Visible : Visibility.Collapsed; //260505 hbk Phase 18 CO-04
-            } //260505 hbk Phase 18 CO-04
+            if (RedrawRoiMenuItem != null) //260509 hbk Phase 20 (Phase 18 CO-04)
+            {
+                //260509 hbk Phase 20 — ternaries expanded; Phase 18 CO-04 의도 보존
+                RoiDefinition hitRoi;
+                if (IsTeachDatumMode) hitRoi = HitTestRoiAtPoint(_lastMouseImagePoint);
+                else                  hitRoi = null;
+                bool isDatumRoi = hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum.");
+                if (isDatumRoi) RedrawRoiMenuItem.Visibility = Visibility.Visible;
+                else            RedrawRoiMenuItem.Visibility = Visibility.Collapsed;
+            }
         }
 
         //260423 hbk Edit 모드 토글 헬퍼 (우클릭 종료 경로 + 메뉴 클릭 경로 공용)
@@ -1471,10 +1523,19 @@ namespace ReringProject.UI
         {
             if (_isEditMode == enter) return;
             _isEditMode = enter;
-            SetPanCursor(enter ? Cursors.Cross : (CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow));
+            //260509 hbk Phase 20 — nested ternary expanded
+            if (enter) {
+                SetPanCursor(Cursors.Cross);
+            } else if (CanPanCurrentImage()) {
+                SetPanCursor(Cursors.Hand);
+            } else {
+                SetPanCursor(Cursors.Arrow);
+            }
             UpdateContextMenuState();
             Render();
-            RoiEditModeChanged?.Invoke(this, enter);
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var roiEditModeChangedHandler = RoiEditModeChanged;
+            if (roiEditModeChangedHandler != null) roiEditModeChangedHandler(this, enter);
         }
 
         //260423 hbk ContextMenu: Edit ROI 토글
@@ -1491,18 +1552,22 @@ namespace ReringProject.UI
             if (string.IsNullOrEmpty(_selectedRoiId)) return;
             string targetId = _selectedRoiId;
             if (_isEditMode) SetEditMode(false);
-            RoiDeleteRequested?.Invoke(this, targetId);
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var roiDeleteRequestedHandler = RoiDeleteRequested;
+            if (roiDeleteRequestedHandler != null) roiDeleteRequestedHandler(this, targetId);
         }
 
         //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 클릭: hit-test 후 이벤트 발행 → MainView가 ClearDatumRoiFields 호출
-        private void RedrawRoiMenuItem_Click(object sender, RoutedEventArgs e) //260505 hbk Phase 18 CO-04
-        { //260505 hbk Phase 18 CO-04
-            var hitRoi = HitTestRoiAtPoint(_lastMouseImagePoint); //260505 hbk Phase 18 CO-04
-            if (hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum.")) //260505 hbk Phase 18 CO-04
-            { //260505 hbk Phase 18 CO-04
-                RoiRedrawRequested?.Invoke(hitRoi.Id); //260505 hbk Phase 18 CO-04
-            } //260505 hbk Phase 18 CO-04
-        } //260505 hbk Phase 18 CO-04
+        private void RedrawRoiMenuItem_Click(object sender, RoutedEventArgs e) //260509 hbk Phase 20 (Phase 18 CO-04)
+        {
+            var hitRoi = HitTestRoiAtPoint(_lastMouseImagePoint);
+            if (hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum."))
+            {
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var roiRedrawRequestedHandler = RoiRedrawRequested;
+                if (roiRedrawRequestedHandler != null) roiRedrawRequestedHandler(hitRoi.Id);
+            }
+        }
 
         private IEnumerable<EdgeInspectionOverlay> BuildTransientOverlays()
         {
@@ -1691,7 +1756,9 @@ namespace ReringProject.UI
             UpdateContextMenuState();
             SetPanCursor(Cursors.Arrow);
             Mouse.OverrideCursor = null;
-            PointerInfoChanged?.Invoke(this, new MainViewerPointerChangedEventArgs(0, 0, null));
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var pointerInfoResetHandler = PointerInfoChanged;
+            if (pointerInfoResetHandler != null) pointerInfoResetHandler(this, new MainViewerPointerChangedEventArgs(0, 0, null));
         }
 
         private void OpenContextMenu()

@@ -79,10 +79,14 @@ namespace ReringProject.UI {
             if (e.RemovedItems == null || e.RemovedItems.Count == 0) return;
 
             //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 분기 (다른 ComboBox: EdgeDirection / EdgeSelection / RadialDirection 등은 기존 경로)
-            var datum = ParamEditor != null ? ParamEditor.SelectedObject as DatumConfig : null;
+            //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+            DatumConfig datum = null;
+            if (ParamEditor != null) datum = ParamEditor.SelectedObject as DatumConfig;
             if (datum != null) {
                 var combo = e.OriginalSource as ComboBox;
-                string newValue = combo != null ? combo.SelectedValue as string : null;
+                //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+                string newValue = null;
+                if (combo != null) newValue = combo.SelectedValue as string;
                 //260503 hbk Phase 17 D-10 — AlgorithmType whitelist 가드 (Tampering mitigate T-17-02-01)
                 if (!string.IsNullOrEmpty(newValue)
                     && string.Equals(newValue, datum.AlgorithmType, System.StringComparison.Ordinal)
@@ -693,7 +697,9 @@ namespace ReringProject.UI {
         //260417 hbk Phase 6 Plan 04: FAI에 Measurement를 추가하고 트리에 노드 직접 삽입 (D-24)
         private void AddMeasurementToFAI(NodeViewModel faiNode, FAIConfig fai) {
             string[] typeNames = MeasurementFactory.GetTypeNames();
-            string defaultType = typeNames.Length > 0 ? typeNames[0] : "EdgePairDistance";
+            //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+            string defaultType = "EdgePairDistance";
+            if (typeNames.Length > 0) defaultType = typeNames[0];
 
             //260508 hbk Quick — TextInputBox 자유 텍스트 → ComboInputBox 콤보 강제 (사용자 입력 실수 방지, MeasurementFactory 단일 소스)
             if (!ComboInputBox.Show("Measurement 타입 선택", typeNames, defaultType, out string typeName)) return;
@@ -783,10 +789,12 @@ namespace ReringProject.UI {
                     int measIdx = faiOwner.Measurements.IndexOf(measToRemove);
                     if (measIdx < 0) return;
 
+                    //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+                    string measDisplayName = measToRemove.MeasurementName;
+                    if (string.IsNullOrEmpty(measDisplayName)) measDisplayName = measToRemove.TypeName;
                     MessageBoxResult mr = CustomMessageBox.ShowConfirmation(
                         "Measurement 삭제",
-                        string.Format("Measurement \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?",
-                            string.IsNullOrEmpty(measToRemove.MeasurementName) ? measToRemove.TypeName : measToRemove.MeasurementName),
+                        string.Format("Measurement \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?", measDisplayName),
                         MessageBoxButton.YesNo);
                     if (mr != MessageBoxResult.Yes) return;
 

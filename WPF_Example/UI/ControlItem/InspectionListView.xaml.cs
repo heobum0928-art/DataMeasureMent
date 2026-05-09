@@ -79,10 +79,14 @@ namespace ReringProject.UI {
             if (e.RemovedItems == null || e.RemovedItems.Count == 0) return;
 
             //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 분기 (다른 ComboBox: EdgeDirection / EdgeSelection / RadialDirection 등은 기존 경로)
-            var datum = ParamEditor != null ? ParamEditor.SelectedObject as DatumConfig : null;
+            //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+            DatumConfig datum = null;
+            if (ParamEditor != null) datum = ParamEditor.SelectedObject as DatumConfig;
             if (datum != null) {
                 var combo = e.OriginalSource as ComboBox;
-                string newValue = combo != null ? combo.SelectedValue as string : null;
+                //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+                string newValue = null;
+                if (combo != null) newValue = combo.SelectedValue as string;
                 //260503 hbk Phase 17 D-10 — AlgorithmType whitelist 가드 (Tampering mitigate T-17-02-01)
                 if (!string.IsNullOrEmpty(newValue)
                     && string.Equals(newValue, datum.AlgorithmType, System.StringComparison.Ordinal)
@@ -167,8 +171,9 @@ namespace ReringProject.UI {
                 _isControlLoaded = true; //260408 hbk
 
                 //260408 hbk 초기화 전에 OnLoadRecipe가 먼저 호출된 경우 여기서 트리 재구축
-                string recipeName = _pendingRecipeName
-                    ?? SystemHandler.Handle.Setting.CurrentRecipeName;
+                //260509 hbk Phase 20 — null 병합 연산자 → 명시적 if/else (D-01, P-3)
+                string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+                if (_pendingRecipeName != null) recipeName = _pendingRecipeName;
                 if (!string.IsNullOrEmpty(recipeName)) {
                     ViewModel.CurrentRecipe = recipeName;
                     ViewModel.RebuildTree();
@@ -231,7 +236,8 @@ namespace ReringProject.UI {
 
             ViewModel.CurrentRecipe = name;
             ViewModel.RebuildTree();
-            ViewModel.RootModel?.ExpandAll();
+            //260509 hbk Phase 20 — null-conditional → 명시적 if/else (D-01, P-14)
+            if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandAll();
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 모두 Start 가능 + Shot→Action 지연 동기화
@@ -398,7 +404,7 @@ namespace ReringProject.UI {
                         button_grab.IsEnabled = true;
                         button_loadImage.IsEnabled = true;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
                         if (itemParam is DatumConfig datumCfg) {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
@@ -445,7 +451,7 @@ namespace ReringProject.UI {
                                 _isRebinding = false; //260508 hbk Phase 19 fix
                             }
                         }
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
@@ -479,13 +485,13 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     }
                     else {
                         button_addFAI.IsEnabled = false;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
-                        _inspectionVm?.ClearResults();
+                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     }
 
                     //260423 hbk Phase 11 D-15/D-18 — Circle ROI 버튼 활성화 게이팅 (선택 노드 기반)
@@ -691,7 +697,9 @@ namespace ReringProject.UI {
         //260417 hbk Phase 6 Plan 04: FAI에 Measurement를 추가하고 트리에 노드 직접 삽입 (D-24)
         private void AddMeasurementToFAI(NodeViewModel faiNode, FAIConfig fai) {
             string[] typeNames = MeasurementFactory.GetTypeNames();
-            string defaultType = typeNames.Length > 0 ? typeNames[0] : "EdgePairDistance";
+            //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+            string defaultType = "EdgePairDistance";
+            if (typeNames.Length > 0) defaultType = typeNames[0];
 
             //260508 hbk Quick — TextInputBox 자유 텍스트 → ComboInputBox 콤보 강제 (사용자 입력 실수 방지, MeasurementFactory 단일 소스)
             if (!ComboInputBox.Show("Measurement 타입 선택", typeNames, defaultType, out string typeName)) return;
@@ -770,7 +778,7 @@ namespace ReringProject.UI {
                     if (inspSeq.RemoveDatum(datumIdx)) {
                         selectedNode.Detach();
                     }
-                    _inspectionVm?.ClearResults();
+                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     return;
                 }
 
@@ -781,17 +789,19 @@ namespace ReringProject.UI {
                     int measIdx = faiOwner.Measurements.IndexOf(measToRemove);
                     if (measIdx < 0) return;
 
+                    //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
+                    string measDisplayName = measToRemove.MeasurementName;
+                    if (string.IsNullOrEmpty(measDisplayName)) measDisplayName = measToRemove.TypeName;
                     MessageBoxResult mr = CustomMessageBox.ShowConfirmation(
                         "Measurement 삭제",
-                        string.Format("Measurement \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?",
-                            string.IsNullOrEmpty(measToRemove.MeasurementName) ? measToRemove.TypeName : measToRemove.MeasurementName),
+                        string.Format("Measurement \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?", measDisplayName),
                         MessageBoxButton.YesNo);
                     if (mr != MessageBoxResult.Yes) return;
 
                     if (faiOwner.RemoveMeasurement(measIdx)) {
                         selectedNode.Detach();
                     }
-                    _inspectionVm?.ClearResults();
+                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     return;
                 }
 
@@ -809,7 +819,7 @@ namespace ReringProject.UI {
 
                     seqHandler.RecipeManager.RemoveShot(shotIndex);
                     selectedNode.Detach();
-                    _inspectionVm?.ClearResults();
+                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                     return;
                 }
 
@@ -830,7 +840,7 @@ namespace ReringProject.UI {
                     _inspectionVm.RemoveFAI(shot, index);
                     selectedNode.Detach();
                 }
-                _inspectionVm?.ClearResults();
+                if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
             }
             catch (Exception ex) {
                 CustomMessageBox.Show("삭제 오류", ex.Message, System.Windows.MessageBoxImage.Error);

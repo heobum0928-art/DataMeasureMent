@@ -1165,13 +1165,21 @@ namespace ReringProject.Halcon.Algorithms
 
             //260426 hbk Phase 13 D-PRP-LOOP — LtoR/RtoL = horizontal strips (row-sliced), TtoB/BtoT = vertical strips (col-sliced)
             bool scanHorizontal = (direction != "TtoB" && direction != "BtoT");
-            int stripCount = (sampleCount > 0) ? sampleCount : 20;  // sentinel 0 → 기본 20 strips
+            //260509 hbk Phase 20 — sentinel 0 → 기본 20 strips. ?: → 명시 if/else
+            int stripCount = 20;
+            if (sampleCount > 0) stripCount = sampleCount; //260509 hbk Phase 20
             if (stripCount < 1) stripCount = 1;
+
+            //260509 hbk Phase 20 — Trace 로그 인자 임시변수화 (roiLabel null 가드 + scanHorizontal 분기 명시)
+            string lbl = "?";
+            if (roiLabel != null) lbl = roiLabel; //260509 hbk Phase 20
+            string scanLabel = "vertical";
+            if (scanHorizontal) scanLabel = "horizontal"; //260509 hbk Phase 20
 
             Logging.PrintLog((int)ELogType.Trace,
                 string.Format("[Datum.{0}] strip-loop: bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
-                    roiLabel ?? "?", top, left, bottom, right,
-                    scanHorizontal ? "horizontal" : "vertical",
+                    lbl, top, left, bottom, right, //260509 hbk Phase 20
+                    scanLabel, //260509 hbk Phase 20
                     stripCount, sigma, threshold, polarity));
 
             HTuple allRows = new HTuple();
@@ -1213,7 +1221,7 @@ namespace ReringProject.Halcon.Algorithms
                 int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips",
-                        roiLabel ?? "?", edgeCount, stripCount));
+                        lbl, edgeCount, stripCount)); //260509 hbk Phase 20
 
                 //260426 hbk Phase 13 D-PRP-LOOP — TrimCount: 누적된 모든 점 중 양 끝 제거 (FitLineContourXld 입력 정제)
                 if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
@@ -1225,15 +1233,15 @@ namespace ReringProject.Halcon.Algorithms
                     edgeCount  = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
                         string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
-                            roiLabel ?? "?", trimCount, edgeCount));
+                            lbl, trimCount, edgeCount)); //260509 hbk Phase 20
                 }
 
                 if (edgeCount < 2)
                 {
                     error = string.Format(
                         "[{0}] insufficient edges across {1} strips: got {2} (need >=2). sigma={3:F2} threshold={4} polarity={5} scan={6}",
-                        roiLabel ?? "?", stripCount, edgeCount, sigma, threshold, polarity,
-                        scanHorizontal ? "horizontal" : "vertical");
+                        lbl, stripCount, edgeCount, sigma, threshold, polarity, //260509 hbk Phase 20
+                        scanLabel); //260509 hbk Phase 20
                     Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
@@ -1308,13 +1316,21 @@ namespace ReringProject.Halcon.Algorithms
 
             //260426 hbk Phase 13 D-PRP-LOOP — LtoR/RtoL = horizontal strips, TtoB/BtoT = vertical strips
             bool scanHorizontal = (direction != "TtoB" && direction != "BtoT");
-            int stripCount = (sampleCount > 0) ? sampleCount : 20;
+            //260509 hbk Phase 20 — sentinel 0 → 기본 20 strips. ?: → 명시 if/else
+            int stripCount = 20;
+            if (sampleCount > 0) stripCount = sampleCount; //260509 hbk Phase 20
             if (stripCount < 1) stripCount = 1;
+
+            //260509 hbk Phase 20 — Trace 로그 인자 임시변수화 (roiLabel null 가드 + scanHorizontal 분기 명시)
+            string lbl = "?";
+            if (roiLabel != null) lbl = roiLabel; //260509 hbk Phase 20
+            string scanLabel = "vertical";
+            if (scanHorizontal) scanLabel = "horizontal"; //260509 hbk Phase 20
 
             Logging.PrintLog((int)ELogType.Trace,
                 string.Format("[Datum.{0}] strip-loop(extract): bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
-                    roiLabel ?? "?", top, left, bottom, right,
-                    scanHorizontal ? "horizontal" : "vertical",
+                    lbl, top, left, bottom, right, //260509 hbk Phase 20
+                    scanLabel, //260509 hbk Phase 20
                     stripCount, sigma, threshold, polarity));
 
             HTuple allRows = new HTuple();
@@ -1356,7 +1372,7 @@ namespace ReringProject.Halcon.Algorithms
                 int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips",
-                        roiLabel ?? "?", edgeCount, stripCount));
+                        lbl, edgeCount, stripCount)); //260509 hbk Phase 20
 
                 //260426 hbk Phase 13 D-PRP-LOOP — TrimCount: 누적된 전체 점 양 끝 제거
                 if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
@@ -1368,7 +1384,7 @@ namespace ReringProject.Halcon.Algorithms
                     edgeCount = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
                         string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
-                            roiLabel ?? "?", trimCount, edgeCount));
+                            lbl, trimCount, edgeCount)); //260509 hbk Phase 20
                 }
 
                 rowEdge = allRows;
@@ -1379,8 +1395,8 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     error = string.Format(
                         "[{0}] no edges found across {1} strips. sigma={2:F2} threshold={3} polarity={4} scan={5}",
-                        roiLabel ?? "?", stripCount, sigma, threshold, polarity,
-                        scanHorizontal ? "horizontal" : "vertical");
+                        lbl, stripCount, sigma, threshold, polarity, //260509 hbk Phase 20
+                        scanLabel); //260509 hbk Phase 20
                     Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
@@ -1416,10 +1432,10 @@ namespace ReringProject.Halcon.Algorithms
             else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
             else                                                                            measurePhi = 0.0; //260429 hbk Phase 15 — LtoR 기본
 
-            //260429 hbk Phase 15 — selection (PascalCase) → Halcon MeasurePos 인자 (lower)
-            string selectionLower =
-                string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase) ? "last" :
-                string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase) ? "all"  : "first";
+            //260509 hbk Phase 20 — selection (PascalCase) → Halcon MeasurePos 인자 (lower). chained ?: → if/else (CANONICAL: MeasurementAlgorithm.cs:178 의미 보존)
+            string selectionLower = "first";
+            if (string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase)) selectionLower = "last"; //260509 hbk Phase 20
+            else if (string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase)) selectionLower = "all"; //260509 hbk Phase 20
 
             HObject stripRegion = null;
             HTuple measureHandle = null;
@@ -1442,10 +1458,14 @@ namespace ReringProject.Halcon.Algorithms
                     polarity, selectionLower,                             //260429 hbk Phase 15 — "all" → selectionLower
                     out edgeRows, out edgeCols, out amp, out dist);
 
-                //260429 hbk Phase 15 — Trace 로그 강화: measurePhi (deg) + selection 노출 (디버깅 편의)
+                //260509 hbk Phase 20 — Trace 로그 강화: measurePhi (deg) + selection 노출. null-coalesce → 임시변수 + null 체크 (P-1)
+                string lbl = "?";
+                if (roiLabel != null) lbl = roiLabel; //260509 hbk Phase 20
+                string dirLabel = "?";
+                if (direction != null) dirLabel = direction; //260509 hbk Phase 20
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] strip MeasurePos: dir={1} measurePhi={2:F1}deg sel={3} edges={4}",
-                        roiLabel ?? "?", direction ?? "?", measurePhi * 180.0 / Math.PI, selectionLower,
+                        lbl, dirLabel, measurePhi * 180.0 / Math.PI, selectionLower, //260509 hbk Phase 20
                         edgeRows.TupleLength()));
 
                 if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
@@ -1458,11 +1478,13 @@ namespace ReringProject.Halcon.Algorithms
             }
             catch (Exception ex)
             {
-                //260429 hbk Phase 15 — 빈 catch 진단 강화: 라벨 + 예외 메시지 Trace 로그 (per-strip swallow 정책 유지)
+                //260509 hbk Phase 20 — 빈 catch 진단 강화: 라벨 + 예외 메시지 (per-strip swallow 정책 유지). null-coalesce → 임시변수 + null 체크 (P-1)
                 try
                 {
+                    string lblCatch = "?";
+                    if (roiLabel != null) lblCatch = roiLabel; //260509 hbk Phase 20
                     Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] strip swallowed: {1}", roiLabel ?? "?", ex.Message));
+                        string.Format("[Datum.{0}] strip swallowed: {1}", lblCatch, ex.Message)); //260509 hbk Phase 20
                 }
                 catch { }
             }

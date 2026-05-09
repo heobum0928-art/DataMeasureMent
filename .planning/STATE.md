@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: planning
+status: executing
 stopped_at: Phase 20 context gathered (4 areas — operator policy / file scope / comment cleanup / regression)
-last_updated: "2026-05-08T15:18:50.319Z"
-last_activity: 2026-05-08 — Phase 28 signed off
+last_updated: "2026-05-09T14:21:10.601Z"
+last_activity: 2026-05-09 -- Phase 20 execution started
 progress:
   total_phases: 11
   completed_phases: 3
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 28 — fai-circlediameter-datum-circle
+**Current focus:** Phase 20 — code-style-cleanup
 
 ## Current Position
 
-Phase: 28 (fai-circlediameter-datum-circle) — SIGNED_OFF (2026-05-08, 4/4 UAT PASS)
-Plan: 4 of 4 — all complete. Task 1 (`02adf80`) auto-PASS Test 4. Task 2 사용자 합의 후 Test 1 SIMUL UAT PASS + Tests 2/3 code-inspection PASS.
-Status: signed_off — `.planning/phases/28-fai-circlediameter-datum-circle/28-UAT.md` frontmatter status=signed_off, `.planning/phases/28-fai-circlediameter-datum-circle/28-04-SUMMARY.md` 작성 완료.
+Phase: 20 (code-style-cleanup) — EXECUTING
+Plan: 1 of 8
+Status: Executing Phase 20
 Next: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlog (PointToLineDistance ROI 시각화 carry-over) 처리.
-Last activity: 2026-05-08 — Phase 28 signed off
+Last activity: 2026-05-09 -- Phase 20 execution started
 
 ## Performance Metrics
 

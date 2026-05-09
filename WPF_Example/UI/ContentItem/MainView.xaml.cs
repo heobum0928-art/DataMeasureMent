@@ -123,7 +123,7 @@ namespace ReringProject.UI {
                         label_message.Visibility = Visibility.Visible;
                     }
                 } finally {
-                    img?.Dispose();
+                    if (img != null) img.Dispose(); //260509 hbk Phase 20 — ?. expanded
                 }
             } else {
                 label_message.Content = "NO Image";
@@ -189,7 +189,8 @@ namespace ReringProject.UI {
                 if (seq == null) continue;
                 for (int j = 0; j < seq.ActionCount; j++) {
                     var act = seq[j];
-                    if (act?.Param is ShotConfig shot) {
+                    //260509 hbk Phase 20 — ?. expanded to explicit null-check
+                    if (act != null && act.Param is ShotConfig shot) {
                         foreach (FAIConfig fai in shot.FAIList) {
                             if (string.Equals(fai.FAIName, faiName, StringComparison.Ordinal)) return fai;
                         }
@@ -240,7 +241,9 @@ namespace ReringProject.UI {
                             resultStr = "Device Not Opened";
                         }
                         else if (DisplayToViewer(grabbedHalconImage, ConvertParamRects(param as ParamBase))) {
-                            resultStr = pDev[param.DeviceName].IsGrabFromFile ? "Grab From File" : "Grab Success";
+                            //260509 hbk Phase 20 — ternary expanded
+                            if (pDev[param.DeviceName].IsGrabFromFile) resultStr = "Grab From File";
+                            else                                       resultStr = "Grab Success";
                             brush = Brushes.Lime;
                         }
 
@@ -312,7 +315,10 @@ namespace ReringProject.UI {
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {
                     DisplayContextToViewer(context, ConvertParamRects(param));
-                    var elapsed = context.Timer != null ? context.Timer.Elapsed.TotalMilliseconds / 1000.0 : 0; //260407 hbk Timer null 체크 추가
+                    //260509 hbk Phase 20 — ternary expanded; Phase 7 Timer null 체크 의도 보존
+                    double elapsed;
+                    if (context.Timer != null) elapsed = context.Timer.Elapsed.TotalMilliseconds / 1000.0;
+                    else                       elapsed = 0;
                     var resultStr = string.Format("{0}\n{1} ({2:0.00}s)", param, context.ResultString, elapsed);
                     label_message.Content = string.Format(
                         "{0}\n{1}",
@@ -321,7 +327,11 @@ namespace ReringProject.UI {
                     label_message.Foreground = GetResultBrush(context.Result);
                     label_message.Visibility = Visibility.Visible;
 
-                    string seqName = param.Parent?.Name ?? context.Source?.Name ?? ""; //260407 hbk Parent null 안전 처리 (동적 Shot/FAI 대응)
+                    //260509 hbk Phase 20 — ?. + ?? chain expanded; Parent null 안전 의도 보존 (동적 Shot/FAI 대응)
+                    string seqName;
+                    if (param.Parent != null && param.Parent.Name != null) seqName = param.Parent.Name;
+                    else if (context.Source != null && context.Source.Name != null) seqName = context.Source.Name;
+                    else seqName = "";
                     foreach (IMainView customView in CustomViewList) {
                         customView.Display(seqName, resultStr, label_message.Foreground, param.OwnerName);
                     }
@@ -341,7 +351,10 @@ namespace ReringProject.UI {
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {
                     DisplayContextToViewer(context, ConvertParamRects(context.ActionParam));
-                    string name = context.ActionParam != null ? context.ActionParam.ToString() : context.Source.Name;
+                    //260509 hbk Phase 20 — ternary expanded
+                    string name;
+                    if (context.ActionParam != null) name = context.ActionParam.ToString();
+                    else                             name = context.Source.Name;
                     string resultStr = string.Format("{0}\n{1} ({2:0.00}s)", name, context.ResultString, context.Timer.Elapsed.TotalMilliseconds / 1000.0);
                     label_message.Content = string.Format(
                         "{0}\n{1}",
@@ -381,19 +394,33 @@ namespace ReringProject.UI {
         }
 
         private void UpdatePointerLabel(double x, double y, double? grayValue) {
+            //260509 hbk Phase 20 — ternaries expanded; Phase 17 D-15 hover 표시 의도 보존
+            string grayStr;
+            if (grayValue.HasValue) grayStr = grayValue.Value.ToString("0.0");
+            else                    grayStr = "-";
             if (label_pos != null) {
                 label_pos.Content = string.Format(
                     "X:{0:0.0}, Y:{1:0.0}, G:{2}",
                     x,
                     y,
-                    grayValue.HasValue ? grayValue.Value.ToString("0.0") : "-");
+                    grayStr);
             }
             //260503 hbk Phase 17 D-15 — 상단 툴바 hover 표시 (정수 + N/A, mm 변환은 deferred)
             //  PublishPointerInfo (MainResultViewerControl L1297-1319) 가 CurrentImage==null 시 (0,0,null) 발행 — grayValue.HasValue=false 일 때 X/Y 도 N/A 표시.
             //  신규 GetGrayval 호출 0 — 기존 PointerInfoChanged 파이프라인 재사용 (PATTERNS gap #4).
-            if (txt_hoverX != null) txt_hoverX.Text = grayValue.HasValue ? "X: " + x.ToString("0") : "X: N/A"; //260503 hbk Phase 17 D-15
-            if (txt_hoverY != null) txt_hoverY.Text = grayValue.HasValue ? "Y: " + y.ToString("0") : "Y: N/A"; //260503 hbk Phase 17 D-15
-            if (txt_hoverG != null) txt_hoverG.Text = "Gray: " + (grayValue.HasValue ? grayValue.Value.ToString("0") : "N/A"); //260503 hbk Phase 17 D-15
+            string hoverX, hoverY, hoverG;
+            if (grayValue.HasValue) {
+                hoverX = "X: " + x.ToString("0");
+                hoverY = "Y: " + y.ToString("0");
+                hoverG = "Gray: " + grayValue.Value.ToString("0");
+            } else {
+                hoverX = "X: N/A";
+                hoverY = "Y: N/A";
+                hoverG = "Gray: N/A";
+            }
+            if (txt_hoverX != null) txt_hoverX.Text = hoverX; //260509 hbk Phase 20 (Phase 17 D-15)
+            if (txt_hoverY != null) txt_hoverY.Text = hoverY; //260509 hbk Phase 20 (Phase 17 D-15)
+            if (txt_hoverG != null) txt_hoverG.Text = hoverG; //260509 hbk Phase 20 (Phase 17 D-15)
         }
 
         private bool DisplayToViewer(HImage img, IEnumerable<RoiDefinition> rois) {
@@ -418,7 +445,10 @@ namespace ReringProject.UI {
                 return false;
             }
 
-            var roiList = rois == null ? new List<RoiDefinition>() : rois.ToList();
+            //260509 hbk Phase 20 — ternary expanded
+            List<RoiDefinition> roiList;
+            if (rois == null) roiList = new List<RoiDefinition>();
+            else              roiList = rois.ToList();
 
             if (context.ResultHalconImage != null) {
                 try {
@@ -485,7 +515,9 @@ namespace ReringProject.UI {
                 }
             }
             else if (e.Shape == RoiShape.Polygon) {
-                fai.PolygonPoints = e.PolygonPoints ?? "";
+                //260509 hbk Phase 20 — ?? expanded
+                if (e.PolygonPoints != null) fai.PolygonPoints = e.PolygonPoints;
+                else                         fai.PolygonPoints = "";
             }
             else {
                 // Rect — bounding box로부터 center + half-length 재계산 (ROI_Phi=0 가정)
@@ -525,7 +557,8 @@ namespace ReringProject.UI {
                     if (choice != MessageBoxResult.OK) return;
                     ClearAllDatumRoiFields(datum); //260504 hbk Phase 17 hotfix#9 (Option B) — 항상 전체 삭제
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
-                    mParentWindow?.inspectionList?.RefreshParamEditor();
+                    //260509 hbk Phase 20 — chained ?. expanded
+                    if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
                     halconViewer.SetDatumOverlay(datum, true);
                     PublishDatumRoiCandidates(datum); //260425 hbk Phase 13 D-A — 잔존 ROI 만 후보로 남도록 갱신
                 }
@@ -598,7 +631,11 @@ namespace ReringProject.UI {
 
         //260425 hbk Phase 13 D-01 — 현재 선택 노드가 Datum 인지 판정
         private bool IsCurrentNodeDatum(out DatumConfig datum) {
-            datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null)
+                datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else
+                datum = null;
             return datum != null;
         }
 
@@ -609,7 +646,8 @@ namespace ReringProject.UI {
         private void HandleDatumRoiMove(DatumConfig datum, RoiMoveCompletedArgs e) {
             ApplyDatumRoiDelta(datum, e);
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
             halconViewer.SetDatumOverlay(datum, true);
             //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
             //  Phase 14-01 D-03 의 Background defer 패턴은 자동 재티칭이 fire 되어야만 의미 있음.
@@ -640,7 +678,8 @@ namespace ReringProject.UI {
 
             //260426 hbk Phase 14-01 — write-back 후 이중 신호 (HandleDatumRoiMove 패턴)
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
             halconViewer.SetDatumOverlay(datum, true);
 
             //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
@@ -750,8 +789,10 @@ namespace ReringProject.UI {
         //260505 hbk Phase 18 CO-06 — datum 인자 추가 → 에러 메시지에 [DatumName] 접두사 포함 (D-17)
         private static string FormatTeachError(DatumConfig datum, string err) { //260505 hbk Phase 18 CO-06
             if (err == null) err = "unknown"; //260505 hbk Phase 18 CO-06
-            string prefix = (datum != null && !string.IsNullOrEmpty(datum.DatumName)) //260505 hbk Phase 18 CO-06
-                ? "[" + datum.DatumName + "] " : ""; //260505 hbk Phase 18 CO-06
+            //260509 hbk Phase 20 — ternary expanded; Phase 18 CO-06 [DatumName] 접두사 의도 보존
+            string prefix;
+            if (datum != null && !string.IsNullOrEmpty(datum.DatumName)) prefix = "[" + datum.DatumName + "] ";
+            else                                                         prefix = "";
             if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0 //260505 hbk Phase 18 CO-06
                 || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0 //260505 hbk Phase 18 CO-06
                 || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) { //260505 hbk Phase 18 CO-06
@@ -797,7 +838,11 @@ namespace ReringProject.UI {
                 label_drawHint.Visibility = Visibility.Visible;
             }
             else {
-                label_drawHint.Content = "Datum ROI 이동 — 재티칭 실패: " + (error ?? "unknown");
+                //260509 hbk Phase 20 — ?? expanded
+                string errMsg;
+                if (error != null) errMsg = error;
+                else               errMsg = "unknown";
+                label_drawHint.Content = "Datum ROI 이동 — 재티칭 실패: " + errMsg;
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171"));
                 label_drawHint.Visibility = Visibility.Visible;
             }
@@ -910,9 +955,13 @@ namespace ReringProject.UI {
             for (int i = 0; i < param.GetRectCount(); i++) {
                 if (!param.GetRect(i, out System.Windows.Rect rect)) continue;
                 param.GetRectName(i, out string name);
+                //260509 hbk Phase 20 — ternary expanded
+                string roiName;
+                if (string.IsNullOrWhiteSpace(name)) roiName = "Rect " + i;
+                else                                 roiName = name;
                 rois.Add(new RoiDefinition {
                     Id = "Rect_" + i,
-                    Name = string.IsNullOrWhiteSpace(name) ? "Rect " + i : name,
+                    Name = roiName,
                     Row1 = rect.Top,
                     Column1 = rect.Left,
                     Row2 = rect.Bottom,
@@ -946,11 +995,19 @@ namespace ReringProject.UI {
         }
 
         private static string BuildViewerStateSummary(string imagePath, IEnumerable<RoiDefinition> rois, IEnumerable<EdgeInspectionOverlay> overlays) {
-            var roiCount = rois == null ? 0 : rois.Count();
-            var overlayCount = overlays == null ? 0 : overlays.Count();
+            //260509 hbk Phase 20 — 3 ternaries expanded
+            int roiCount;
+            if (rois == null) roiCount = 0;
+            else              roiCount = rois.Count();
+            int overlayCount;
+            if (overlays == null) overlayCount = 0;
+            else                  overlayCount = overlays.Count();
+            string imgLabel;
+            if (string.IsNullOrWhiteSpace(imagePath)) imgLabel = "null";
+            else                                      imgLabel = Path.GetFileName(imagePath);
             return string.Format(
                 "IMG:{0} | ROI:{1} | OVR:{2}",
-                string.IsNullOrWhiteSpace(imagePath) ? "null" : Path.GetFileName(imagePath),
+                imgLabel,
                 roiCount,
                 overlayCount);
         }
@@ -1007,7 +1064,10 @@ namespace ReringProject.UI {
                 btn_rectRoi.IsChecked = true;
 
                 var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                FAIConfig faiToEdit = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+                //260509 hbk Phase 20 — ternary expanded
+                FAIConfig faiToEdit;
+                if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
+                else                     faiToEdit = null;
                 if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Rect ROI");
                     ExitCanvasMode();
@@ -1078,7 +1138,9 @@ namespace ReringProject.UI {
                 _editingCircleMeasurement = target;
                 //260423 hbk Commit 시 selection id 를 FAIName 으로 맞추기 위해 캡처
                 var selRowForCircle = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                _editingCircleFaiName = selRowForCircle?.FAIName;
+                //260509 hbk Phase 20 — ?. expanded
+                if (selRowForCircle != null) _editingCircleFaiName = selRowForCircle.FAIName;
+                else                         _editingCircleFaiName = null;
 
                 label_drawHint.Content = "중심을 클릭 후 드래그하여 반지름을 지정하세요";
                 label_drawHint.Foreground = new SolidColorBrush(
@@ -1108,7 +1170,8 @@ namespace ReringProject.UI {
                 if (seq == null) continue;
                 for (int j = 0; j < seq.ActionCount; j++) {
                     var act = seq[j];
-                    if (act?.Param is ShotConfig shot) {
+                    //260509 hbk Phase 20 — ?. expanded to explicit null-check
+                    if (act != null && act.Param is ShotConfig shot) {
                         foreach (FAIConfig fai in shot.FAIList) {
                             foreach (var m in fai.Measurements) {
                                 if (ReferenceEquals(m, measurement)) return fai.FAIName;
@@ -1171,7 +1234,10 @@ namespace ReringProject.UI {
 
                 //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FAIName으로 FAIConfig 조회 (D-21)
                 var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                FAIConfig faiToEdit = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+                //260509 hbk Phase 20 — ternary expanded
+                FAIConfig faiToEdit;
+                if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
+                else                     faiToEdit = null;
                 if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Polygon ROI");
                     ExitCanvasMode();
@@ -1319,7 +1385,10 @@ namespace ReringProject.UI {
         //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FindFAIByName (D-21)
         private void ApplyCalibrationResult(double mmPerPixel) {
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-            FAIConfig anchorFai = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+            //260509 hbk Phase 20 — ternary expanded
+            FAIConfig anchorFai;
+            if (selectedRow != null) anchorFai = FindFAIByName(selectedRow.FAIName);
+            else                     anchorFai = null;
             if (anchorFai != null) {
                 var shot = anchorFai.Owner as ShotConfig;
                 if (shot == null) {
@@ -1347,7 +1416,10 @@ namespace ReringProject.UI {
                 halconViewer.IsTeachDatumMode = true; //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴 활성화
 
                 //260424 hbk Phase 12 — InspectionListView.SelectedParam 으로 DatumConfig 해결 (btn_teachDatum 활성화 조건)
-                var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig; //260424 hbk Phase 12 — MainWindow.xaml:80 x:Name="inspectionList"
+                //260509 hbk Phase 20 — chained ?. expanded
+                DatumConfig datum;
+                if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+                else                                                               datum = null;
                 if (datum == null) {
                     CustomMessageBox.Show("Datum 노드를 먼저 선택하세요.", "Teach Datum");
                     ExitCanvasMode();
@@ -1567,7 +1639,8 @@ namespace ReringProject.UI {
 
             //260424 hbk Phase 12 Gap-3 — DatumConfig 자동 속성은 INotifyPropertyChanged 미발동 → PropertyGrid 강제 재바인딩 + RaisePropertyChanged 이중 신호
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
             //260424 hbk Phase 12 Gap-3 — 캔버스 오버레이도 새 좌표로 갱신 (Datum ROI Rect/Circle 재렌더)
             halconViewer.SetDatumOverlay(_editingDatum, true);
 
@@ -1585,7 +1658,8 @@ namespace ReringProject.UI {
 
             //260424 hbk Phase 12 Gap-3 — PropertyGrid 재바인딩 + Datum 오버레이 갱신 (CircleROI_* write-back 즉시 반영)
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
             halconViewer.SetDatumOverlay(_editingDatum, true);
 
             AdvanceDatumTeachStep();
@@ -1645,7 +1719,10 @@ namespace ReringProject.UI {
         //260424 hbk Phase 13 D-05..D-08 — 런타임 TryFindDatum 테스트 진입 (현재/Load 이미지 2-way + 성공 주황 십자 + 실패 에러 메시지)
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
             //260424 hbk Phase 13 D-05 — Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
-            var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
+            //260509 hbk Phase 20 — chained ?. expanded
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
             if (datum == null || !datum.IsConfigured || !datum.LastTeachSucceeded) {
                 CustomMessageBox.Show("Datum Find 테스트", "Datum 티칭이 완료된 후 테스트 가능합니다."); //260425 hbk Phase 13 cleanup — Plan 02 인자 순서 fix
                 return;

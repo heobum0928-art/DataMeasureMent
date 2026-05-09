@@ -471,12 +471,18 @@ namespace ReringProject.Sequence {
         //  sentinel 가 아니면 (사용자가 per-ROI 값을 명시한 경우) 그대로 유지 — 멱등성 보장.
         public void EnsurePerRoiDefaults() {
             // Hardcoded fallback (legacy 글로벌이 모두 0/"" 인 극단 케이스)
-            int    fbThreshold   = EdgeThreshold > 0 ? EdgeThreshold : 20;
-            double fbSigma       = Sigma > 0 ? Sigma : 1.0;
+            int    fbThreshold; //260509 hbk Phase 20 — ternary expanded
+            if (EdgeThreshold > 0) fbThreshold = EdgeThreshold;
+            else                   fbThreshold = 20;
+            double fbSigma; //260509 hbk Phase 20 — ternary expanded
+            if (Sigma > 0) fbSigma = Sigma;
+            else           fbSigma = 1.0;
             string fbDirection   = "LtoR"; // legacy 글로벌에 EdgeDirection 없음
             int    fbSampleCount = 20;
             int    fbTrimCount   = 10;
-            string fbPolarity    = !string.IsNullOrEmpty(EdgePolarity) ? EdgePolarity : "all";
+            string fbPolarity; //260509 hbk Phase 20 — ternary expanded
+            if (!string.IsNullOrEmpty(EdgePolarity)) fbPolarity = EdgePolarity;
+            else                                     fbPolarity = "all";
             string fbSelection   = "First"; //260429 hbk Phase 15 — EdgeSelection 기본값 (Halcon MeasurePos "first" 와 매핑)
 
             // Line1
@@ -529,12 +535,31 @@ namespace ReringProject.Sequence {
             //  기존 INI 의 Line1_* 값을 Vertical_* sentinel(==0/"") 일 때 1회 복사.
             //  Line1_* zero-out 안 함 (회귀 위험 0, 사용자가 알고리즘을 TwoLineIntersect 로 다시 바꿔도 Line1_* 즉시 사용 가능).
             //  idempotent: 두 번째 호출 시 Vertical_* 가 모두 의미값 → 분기 미진입.
-            if (Vertical_EdgeThreshold == 0)   Vertical_EdgeThreshold   = (Line1_EdgeThreshold > 0)    ? Line1_EdgeThreshold    : fbThreshold;
-            if (Vertical_Sigma == 0)           Vertical_Sigma           = (Line1_Sigma > 0)            ? Line1_Sigma            : fbSigma;
-            if (string.IsNullOrEmpty(Vertical_EdgeDirection))   Vertical_EdgeDirection   = !string.IsNullOrEmpty(Line1_EdgeDirection)   ? Line1_EdgeDirection   : fbDirection;
-            if (Vertical_EdgeSampleCount == 0) Vertical_EdgeSampleCount = (Line1_EdgeSampleCount > 0)  ? Line1_EdgeSampleCount  : fbSampleCount;
-            if (Vertical_EdgeTrimCount == 0)   Vertical_EdgeTrimCount   = (Line1_EdgeTrimCount > 0)    ? Line1_EdgeTrimCount    : fbTrimCount;
-            if (string.IsNullOrEmpty(Vertical_EdgePolarity))    Vertical_EdgePolarity    = !string.IsNullOrEmpty(Line1_EdgePolarity)    ? Line1_EdgePolarity    : fbPolarity;
+            //260509 hbk Phase 20 — Vertical_* migration ternaries expanded to nested if/else
+            if (Vertical_EdgeThreshold == 0) {
+                if (Line1_EdgeThreshold > 0) Vertical_EdgeThreshold = Line1_EdgeThreshold;
+                else                         Vertical_EdgeThreshold = fbThreshold;
+            }
+            if (Vertical_Sigma == 0) {
+                if (Line1_Sigma > 0) Vertical_Sigma = Line1_Sigma;
+                else                 Vertical_Sigma = fbSigma;
+            }
+            if (string.IsNullOrEmpty(Vertical_EdgeDirection)) {
+                if (!string.IsNullOrEmpty(Line1_EdgeDirection)) Vertical_EdgeDirection = Line1_EdgeDirection;
+                else                                            Vertical_EdgeDirection = fbDirection;
+            }
+            if (Vertical_EdgeSampleCount == 0) {
+                if (Line1_EdgeSampleCount > 0) Vertical_EdgeSampleCount = Line1_EdgeSampleCount;
+                else                           Vertical_EdgeSampleCount = fbSampleCount;
+            }
+            if (Vertical_EdgeTrimCount == 0) {
+                if (Line1_EdgeTrimCount > 0) Vertical_EdgeTrimCount = Line1_EdgeTrimCount;
+                else                         Vertical_EdgeTrimCount = fbTrimCount;
+            }
+            if (string.IsNullOrEmpty(Vertical_EdgePolarity)) {
+                if (!string.IsNullOrEmpty(Line1_EdgePolarity)) Vertical_EdgePolarity = Line1_EdgePolarity;
+                else                                           Vertical_EdgePolarity = fbPolarity;
+            }
             if (string.IsNullOrEmpty(Vertical_EdgeSelection))   Vertical_EdgeSelection   = fbSelection; //260429 hbk Phase 15
 
             //260426 hbk Phase 14-03 D-05 — Geometry 1회 복사 (사용자가 Vertical 그룹만 보고 알고리즘 운용 가능하도록)

@@ -73,8 +73,16 @@ namespace ReringProject.Halcon.Algorithms
 
                 measurePhi = measurePhi + (rPhi - roiPhi);
 
-                string pol = string.Equals(polarity, "LightToDark", StringComparison.OrdinalIgnoreCase)
-                    ? "negative" : "positive";
+                //260509 hbk Phase 20 — ?: → if/else (D-01)
+                string pol;
+                if (string.Equals(polarity, "LightToDark", StringComparison.OrdinalIgnoreCase))
+                {
+                    pol = "negative";
+                }
+                else
+                {
+                    pol = "positive";
+                }
 
                 HOperatorSet.GenMeasureRectangle2(
                     rRow, rCol, rPhi, roiLength1, roiLength2,
@@ -240,9 +248,20 @@ namespace ReringProject.Halcon.Algorithms
             if (string.IsNullOrEmpty(polarity)) polarity = "all";
             //260429 hbk Phase 15 — selection sanity clamp + PascalCase → Halcon lower-case 변환 (CANONICAL: MeasurementAlgorithm.cs:178)
             if (string.IsNullOrEmpty(selection)) selection = "First";
-            string selectionLower =
-                string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase) ? "last" :
-                string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase) ? "all"  : "first";
+            //260509 hbk Phase 20 — chained ?: → if/else if/else (D-01)
+            string selectionLower;
+            if (string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase))
+            {
+                selectionLower = "last";
+            }
+            else if (string.Equals(selection, "All", StringComparison.OrdinalIgnoreCase))
+            {
+                selectionLower = "all";
+            }
+            else
+            {
+                selectionLower = "first";
+            }
             if (radius <= 0)          { error = "radius must be > 0"; return false; }
 
             //260426 hbk Phase 14-04 — Datum transform (legacy TryFindCircle 패턴 — center 만 변환, radius 는 무변환)

@@ -43,16 +43,38 @@ namespace ReringProject.Halcon.Display
             {
                 foreach (var roi in rois)
                 {
-                    string roiColor = roi.Id == selectedRoiId ? "yellow" : "green";
-                    int roiWidth = roi.Id == selectedRoiId ? 3 : 2;
+                    //260509 hbk Phase 20 — ?: → if/else (D-01)
+                    string roiColor;
+                    int roiWidth;
+                    if (roi.Id == selectedRoiId)
+                    {
+                        roiColor = "yellow";
+                        roiWidth = 3;
+                    }
+                    else
+                    {
+                        roiColor = "green";
+                        roiWidth = 2;
+                    }
                     window.SetColor(roiColor);
                     window.SetLineWidth(roiWidth);
 
                     //260423 hbk Phase 11 D-19 — Circle ROI 렌더링 (명시 Shape이 Polygon 감지보다 우선)
                     if (roi.Shape == RoiShape.Circle)
                     {
-                        string circleColor = roi.Id == selectedRoiId ? "yellow" : "lime green";
-                        int circleWidth = roi.Id == selectedRoiId ? 3 : 2;
+                        //260509 hbk Phase 20 — ?: → if/else (D-01)
+                        string circleColor;
+                        int circleWidth;
+                        if (roi.Id == selectedRoiId)
+                        {
+                            circleColor = "yellow";
+                            circleWidth = 3;
+                        }
+                        else
+                        {
+                            circleColor = "lime green";
+                            circleWidth = 2;
+                        }
                         window.SetColor(circleColor);
                         window.SetLineWidth(circleWidth);
                         HOperatorSet.DispCircle(window, roi.CenterRow, roi.CenterCol, roi.Radius);
@@ -145,7 +167,15 @@ namespace ReringProject.Halcon.Display
                     else if (overlay.RoiId != null && overlay.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase))
                     {
                         bool isNG = overlay.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase);
-                        window.SetColor(isNG ? "red" : "green");
+                        //260509 hbk Phase 20 — ?: → if/else (D-01)
+                        if (isNG)
+                        {
+                            window.SetColor("red");
+                        }
+                        else
+                        {
+                            window.SetColor("green");
+                        }
                         window.SetLineWidth(2);
                     }
                     else if (string.Equals(overlay.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
@@ -271,7 +301,16 @@ namespace ReringProject.Halcon.Display
             {
                 HTuple fonts;
                 HOperatorSet.QueryFont(window, out fonts);
-                var font = fonts.TupleLength() > 0 ? fonts.TupleSelect(0) + "-18" : new HTuple("mono-18");
+                //260509 hbk Phase 20 — ?: → if/else (D-01)
+                HTuple font;
+                if (fonts.TupleLength() > 0)
+                {
+                    font = fonts.TupleSelect(0) + "-18";
+                }
+                else
+                {
+                    font = new HTuple("mono-18");
+                }
                 window.SetFont(font);
                 _isFontInitialized = true;
             }
@@ -488,8 +527,20 @@ namespace ReringProject.Halcon.Display
                 {
                     //260505 hbk Phase 18 CO-05 — green=성공, red=실패, gray=데이터 없음(fallback)
                     string stripColor = "gray"; //260505 hbk Phase 18 CO-05
-                    if (successes != null && i < successes.Length) //260505 hbk Phase 18 CO-05
-                        stripColor = successes[i] ? "green" : "red"; //260505 hbk Phase 18 CO-05
+                    //260505 hbk Phase 18 CO-05
+                    //260505 hbk Phase 18 CO-05
+                    //260509 hbk Phase 20 — ?: → if/else (D-01, Phase 18 CO-05 의미 보존)
+                    if (successes != null && i < successes.Length)
+                    {
+                        if (successes[i])
+                        {
+                            stripColor = "green";
+                        }
+                        else
+                        {
+                            stripColor = "red";
+                        }
+                    }
                     HOperatorSet.SetColor(window, stripColor); //260505 hbk Phase 18 CO-05
                     double thetaRad = i * stepRad;
                     //260429 hbk Phase 16 D-01 — 알고리즘 canonical 식 미러 (VisionAlgorithmService line 282-285, -sin/+cos)
@@ -528,8 +579,19 @@ namespace ReringProject.Halcon.Display
         {
             if (datum == null) return;
 
-            string color = isSelected ? "cyan" : "blue";
-            int lineWidth = isSelected ? 3 : 2;
+            //260509 hbk Phase 20 — ?: → if/else (D-01)
+            string color;
+            int lineWidth;
+            if (isSelected)
+            {
+                color = "cyan";
+                lineWidth = 3;
+            }
+            else
+            {
+                color = "blue";
+                lineWidth = 2;
+            }
 
             try
             {

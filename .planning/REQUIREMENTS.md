@@ -15,10 +15,10 @@
 ### 코드 품질 (Cross-cutting)
 
 - [ ] **QUAL-01**: 모든 식별자(필드/속성/지역변수/메서드 인자)에 헝가리안 표기법을 적용한다 (전체 리팩토링, 신규/기존 무관)
-- [ ] **QUAL-02**: 삼항 연산자, null 병합(`??`), null 조건(`?.`) 을 명시적 if/else 로 변환한다
+- [x] **QUAL-02**: 삼항 연산자, null 병합(`??`), null 조건(`?.`) 을 명시적 if/else 로 변환한다 (Phase 20, 2026-05-09)
 - [x] **QUAL-03
 **: PropertyGrid 의 알고리즘별 동적 속성 노출 패턴(DatumConfig ICustomTypeDescriptor)을 다른 모델 클래스로 일반화한다
-- [ ] **QUAL-04**: 코드 주석을 정리하여 "왜(why)" 만 남기고 "무엇(what)" 주석은 제거한다
+- [x] **QUAL-04**: 코드 주석을 정리하여 "왜(why)" 만 남기고 "무엇(what)" 주석은 제거한다 (Phase 20, 2026-05-09)
 
 ### 검사 워크플로우 실측 (Workflow)
 
@@ -96,7 +96,7 @@
 |-------|-------------|--------|
 | Phase 18 — Carry-over 정리 | CO-01, CO-03, CO-04, CO-05, CO-06 | Pending |
 | Phase 19 — PropertyGrid 동적 노출 일반화 | QUAL-03, CO-02 | Pending |
-| Phase 20 — 코드 스타일 정리 | QUAL-02, QUAL-04 | Pending |
+| Phase 20 — 코드 스타일 정리 | QUAL-02, QUAL-04 | Complete (2026-05-09) |
 | Phase 21 — 메모리 이미지 버퍼 | BUF-01, BUF-02 | Pending |
 | Phase 22 — CXP SDK 확정 | HW-01 | Pending |
 | Phase 23 — CXP 드라이버 통합 | HW-02 | Pending |

@@ -39,7 +39,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 
 - [x] **Phase 18: Carry-over ?�리** - Phase 17 partial sign-off ?�여 5�?(CO-01/03/04/05/06) ?�수 (completed 2026-05-07)
 - [x] **Phase 19: PropertyGrid ?�적 ?�출 ?�반??* - DatumConfig ICustomTypeDescriptor ?�턴???�른 모델�??�장 (QUAL-03, CO-02) ??2/2 ??2026-05-07
-- [ ] **Phase 20: 코드 ?��????�리** - ?�항/null ?�산????명시??if/else + "why" 주석�?보존 (QUAL-02, QUAL-04)
+- [x] **Phase 20: 코드 스타일 정리** - 14 파일 113 conv (if/else + "why" 주석) — signed off 2026-05-09 (QUAL-02, QUAL-04)
 - [ ] **Phase 21: 메모�??��?지 버퍼** - 검?�별 ?��?지 메모�??�주 + lifetime 명시 관�?(BUF-01, BUF-02)
 - [ ] **Phase 22: CXP SDK ?�정** - RAP 4G 4C12 SDK ?�보 ?��? + ?�치 + ?�라?�버 ?�계 spec (HW-01)
 - [ ] **Phase 23: CXP ?�라?�버 ?�합** - VirtualCamera 추상???��??�며 CXP ?�라?�버 ?�래??추�? (HW-02)
@@ -94,14 +94,14 @@ Plans:
 **Plans**: 8 plans
 
 Plans:
-- [ ] 20-01-PLAN.md -- Wave 1: FAIConfig.cs operator + comment cleanup
-- [ ] 20-02-PLAN.md -- Wave 1: DatumFindingService.cs operator (TLI/CTH/VTH paths)
-- [ ] 20-03-PLAN.md -- Wave 1: MainResultViewerControl.xaml.cs event handlers + operators
-- [ ] 20-04-PLAN.md -- Wave 1: MainView.xaml.cs operators + Datum teach state machine
-- [ ] 20-05-PLAN.md -- Wave 1: InspectionListView.xaml.cs operators
-- [ ] 20-06-PLAN.md -- Wave 1: 4 light Custom/Sequence files (DatumConfig/DynamicPropertyHelper/EdgeOptionLists/CircleDiameterMeasurement)
-- [ ] 20-07-PLAN.md -- Wave 1: 4 light Halcon+Dialog files (VisionAlgorithmService/HalconDisplayService/ComboInputBox+Window)
-- [ ] 20-08-PLAN.md -- Wave 2: SIMUL_MODE byte-identical regression + sign-off [autonomous: false]
+- [x] 20-01-PLAN.md -- Wave 1: FAIConfig.cs operator + comment cleanup
+- [x] 20-02-PLAN.md -- Wave 1: DatumFindingService.cs operator (TLI/CTH/VTH paths)
+- [x] 20-03-PLAN.md -- Wave 1: MainResultViewerControl.xaml.cs event handlers + operators
+- [x] 20-04-PLAN.md -- Wave 1: MainView.xaml.cs operators + Datum teach state machine
+- [x] 20-05-PLAN.md -- Wave 1: InspectionListView.xaml.cs operators
+- [x] 20-06-PLAN.md -- Wave 1: 4 light Custom/Sequence files (DatumConfig/DynamicPropertyHelper/EdgeOptionLists/CircleDiameterMeasurement)
+- [x] 20-07-PLAN.md -- Wave 1: 4 light Halcon+Dialog files (VisionAlgorithmService/HalconDisplayService/ComboInputBox+Window)
+- [x] 20-08-PLAN.md -- Wave 2: SIMUL_MODE byte-identical regression + sign-off [autonomous: false]
 
 ### Phase 21: 메모�??��?지 버퍼
 **Goal**: �?Shot 검????캡처??HImage �?메모리에 보�??�여 ?�스??I/O ?�이 ?�조?�할 ???�고, ?�퀀??리셋 ?�는 ?�시??변�???버퍼가 명시?�으�??�제?�다

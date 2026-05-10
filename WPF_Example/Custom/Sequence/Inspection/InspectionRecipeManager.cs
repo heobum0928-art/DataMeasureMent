@@ -60,6 +60,8 @@ namespace ReringProject.Sequence {
         /// 있으나, ClearImage 가 null-safe 이므로 멱등 (idempotent) 호출 안전.
         /// </summary>
         public void ClearShots() {
+            //260510 hbk Phase 21: BUF-02 dispose 입증 instrumentation — UAT 가 recipe load × N 회 후 이 로그 라인 카운트로 dispose 검증
+            Logging.PrintLog((int)ELogType.Trace, "[InspectionRecipeManager] ClearShots disposed {0} shot buffers", Shots.Count);
             foreach (var shot in Shots) {
                 shot.ClearImage();
             }

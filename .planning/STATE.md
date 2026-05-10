@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
 status: executing
-stopped_at: None
-last_updated: "2026-05-10T12:29:02.386Z"
+stopped_at: Completed 21-02-PLAN.md (3605eda, 86e498d, c04ccbb)
+last_updated: "2026-05-10T12:36:14.352Z"
 last_activity: 2026-05-10
 progress:
   total_phases: 11
   completed_phases: 4
   total_plans: 24
-  completed_plans: 22
-  percent: 92
+  completed_plans: 23
+  percent: 96
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 21 (memory-image-buffer) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Next: Phase 21 (메모리 이미지 버퍼, BUF-01/02) — `/gsd-discuss-phase 21` 또는 `/gsd-plan-phase 21`.
 Last activity: 2026-05-10
@@ -86,6 +86,7 @@ Last activity: 2026-05-10
 | Phase 28 P02 | 3 | 2 tasks | 1 files |
 | Phase 28 PP03 | 2 | 2 tasks | 1 files |
 | Phase 21 P21-01 | 25 | 2 tasks | 3 files |
+| Phase 21 P21-02 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,7 @@ Recent decisions affecting current work:
 - [Phase 28-04]: 28-UAT.md sign-off (4/4 PASS) — Test 1 SIMUL UAT (PropertyGrid 콤보 Inward/Outward 시각 노출, 사용자 확인), Tests 2/3 코드 검증 (사용자 합의 — Plan 01 default-equality + Plan 02 fit-path args byte-identical + Plan 03 helper 3-way single source 인용), Test 4 자동 msbuild PASS. REQ-28-01 ~ REQ-28-06 모두 충족. PointToLineDistance ROI 시각화 미구현은 Phase 7-01 D-03 결정으로 Phase 28 범위 밖 carry-over.
 - [Phase 20]: 14 파일 113 operator conversion (16 ?? + 33 ?: + 12 D-02 events + 39 ?: misc + 13 ?. misc) → 명시적 if/else; 'what' 주석 제거 / 'why' 주석 보존; hbk 마커 변환 라인만 260509 hbk Phase 20 으로 교체 (D-12), 비변환 라인 보존 (D-13); D-04/05 예외 (LINQ tail / expression-bodied) 적용 라인 0; msbuild Debug/x64 PASS + 신규 warning 0; W3 한국어 mojibake 0; 회귀 검증 경로 B (code-inspection fallback, W5 4 항목 정당화 — 의미적 동등 + msbuild + grep 매트릭스 + hbk baseline) 사용자 합의 (Phase 28 sign-off 와 동일 패턴). Wave 1 4 plan worktree mode 성공, 3 plan sandbox 차단 → 인라인 오케스트레이터 실행. QUAL-02 + QUAL-04 충족.
 - Phase 21-01: BUF-02 lifetime XML doc — placed hbk marker on plain comment line above /// summary block (Phase 20 D-12 stacking-avoid pattern). 6 doc blocks + 7 markers across 3 files; behavior bytes preserved.
+- [Phase 21-02]: D-02 channel #1 wire = Custom/SystemHandler.cs partial methods (Wire/Unwire/OnRecipeChanged_FlushBuffers); channel #3 = Release() ClearShots before Sequences.Dispose; AC#2 instrumentation = Logging.PrintLog as first statement of ClearShots (pre-dispose Shots.Count). 0 deviations, msbuild PASS.
 
 ### Quick Tasks Completed
 
@@ -208,8 +210,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: Completed 21-01-PLAN.md (XML doc + marker — 0647704, 5b97d95)
-Stopped at: None
+Last session: 2026-05-10T12:36:14.344Z
+Stopped at: Completed 21-02-PLAN.md (3605eda, 86e498d, c04ccbb)
 Resume file: None
 Next action: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlog (PointToLineDistance ROI 시각화 carry-over).
 

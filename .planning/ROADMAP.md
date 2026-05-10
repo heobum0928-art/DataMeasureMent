@@ -114,8 +114,8 @@ Plans:
   4. msbuild Debug/x64 PASS, ?�규 warning 0; SIMUL_MODE ?�상 ?�작
 **Plans**: 3 plans
 Plans:
-- [ ] 21-01-PLAN.md — XML doc lifetime contract (ShotConfig 5 members + InspectionRecipeManager.ClearShots) + Action_FAIMeasurement EStep.Init channel #2 marker (D-06, D-02 ch#2)
-- [ ] 21-02-PLAN.md — D-02 channel #1 (OnRecipeChanged subscriber) + channel #3 (Release ClearShots) wire-up + ClearShots Logging instrumentation for AC#2 dispose proof (D-02, D-11)
+- [x] 21-01-PLAN.md — XML doc lifetime contract (ShotConfig 5 members + InspectionRecipeManager.ClearShots) + Action_FAIMeasurement EStep.Init channel #2 marker (D-06, D-02 ch#2)
+- [x] 21-02-PLAN.md — D-02 channel #1 (OnRecipeChanged subscriber) + channel #3 (Release ClearShots) wire-up + ClearShots Logging instrumentation for AC#2 dispose proof (D-02, D-11)
 - [ ] 21-03-PLAN.md — VERIFICATION.md (AC#1 grep audit / AC#3 doc grep / AC#4 msbuild) + UAT.md (SIMUL 4 tests) + sign-off (autonomous: false, D-08, D-10)
 
 ### Phase 22: CXP SDK ?�정

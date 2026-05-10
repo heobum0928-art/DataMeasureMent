@@ -112,7 +112,11 @@ Plans:
   2. ?�시??변�??�는 ?�퀀??Reset ?�벤??발생 ??버퍼 ??모든 HImage 가 Dispose ?�다 (메모�??�수 ?�음)
   3. 버퍼??보�??�는 HImage ?��? 보�? ?�점??코드 주석 ?�는 명시???�수�?문서?�되???�다
   4. msbuild Debug/x64 PASS, ?�규 warning 0; SIMUL_MODE ?�상 ?�작
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 21-01-PLAN.md — XML doc lifetime contract (ShotConfig 5 members + InspectionRecipeManager.ClearShots) + Action_FAIMeasurement EStep.Init channel #2 marker (D-06, D-02 ch#2)
+- [ ] 21-02-PLAN.md — D-02 channel #1 (OnRecipeChanged subscriber) + channel #3 (Release ClearShots) wire-up + ClearShots Logging instrumentation for AC#2 dispose proof (D-02, D-11)
+- [ ] 21-03-PLAN.md — VERIFICATION.md (AC#1 grep audit / AC#3 doc grep / AC#4 msbuild) + UAT.md (SIMUL 4 tests) + sign-off (autonomous: false, D-08, D-10)
 
 ### Phase 22: CXP SDK ?�정
 **Goal**: RAP 4G 4C12 CXP ?�레??그래�?보드???�??Euresys Coaxlink ?�는 Matrox �?SDK �??�정?�고, 개발 PC ???�치 검�?�??�라?�버 ?�합 ?�계 spec ???�출?�다

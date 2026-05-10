@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
 status: planning
 stopped_at: "Phase 21 context gathered (4 areas — buffer scope / lifetime trigger / API surface / AC#1 path)"
-last_updated: "2026-05-10T11:41:24.595Z"
+last_updated: "2026-05-10T12:15:27.034Z"
 last_activity: 2026-05-09 -- Phase 20 signed off
 progress:
   total_phases: 11
   completed_phases: 4
-  total_plans: 21
+  total_plans: 24
   completed_plans: 21
-  percent: 100
+  percent: 88
 ---
 
 # Project State
@@ -226,4 +226,4 @@ Next action: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlo
 - Phase 27: Side Inspection 확장 — 신설 2026-05-08 (LineToLineAngle + Side Fixture INI + PC2 분리)
 - Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 — 신설 2026-05-08 (Phase 19 UAT 사용자 요청)
 
-**Planned Phase:** 20 (code-style-cleanup) — 8 plans — 2026-05-08T15:18:50.304Z
+**Planned Phase:** 21 (memory-image-buffer) — 3 plans — 2026-05-10T12:15:27.026Z

@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: executing
-stopped_at: Completed 21-02-PLAN.md (3605eda, 86e498d, c04ccbb)
-last_updated: "2026-05-10T12:36:14.352Z"
-last_activity: 2026-05-10
+status: paused
+stopped_at: "Phase 21 Plan 03 — VERIFICATION.md (474e333) + UAT scaffold (b91dae8) committed. 사용자 SIMUL UAT 4 테스트 결과 대기. (Sign-off 시도 후 PASS 정정 — daf3c98/422eaee reset --hard 로 제거)"
+last_updated: "2026-05-10T12:50:00.000Z"
+last_activity: 2026-05-10 -- Phase 21 paused mid-UAT
 progress:
   total_phases: 11
   completed_phases: 4
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 21 (memory-image-buffer) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Next: Phase 21 (메모리 이미지 버퍼, BUF-01/02) — `/gsd-discuss-phase 21` 또는 `/gsd-plan-phase 21`.
-Last activity: 2026-05-10
+Phase: 21 (memory-image-buffer) — PAUSED mid-UAT
+Plan: 3 of 3 (Plan 01/02 commit 완료, Plan 03 VERIFICATION + UAT scaffold 완료)
+Status: 사용자 SIMUL UAT 4 테스트 결과 대기 중. `.planning/phases/21-memory-image-buffer/21-UAT.md` 의 빈 Result 필드 채우기 + frontmatter status (signed_off / partial) 결정 필요.
+Next: 내일 SIMUL_MODE 에서 Test 1-3 실행 (Test 4 는 자동 PASS) → 21-UAT.md 결과 기입 → `/gsd-execute-phase 21` 재실행 (남은 sign-off 단계만 수행) 또는 직접 commit + `/gsd-complete-milestone` 단계 평가.
+Last activity: 2026-05-10 -- Phase 21 paused mid-UAT (sign-off 시도 후 PASS 정정 → reset --hard 로 daf3c98/422eaee 제거, b91dae8 으로 복귀)
 
 ## Performance Metrics
 

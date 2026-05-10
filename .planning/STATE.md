@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: executing
-stopped_at: Phase 20 signed off (4/4 AC PASS, 경로 B 정당화 합의)
-last_updated: "2026-05-09T15:30:00.000Z"
+status: planning
+stopped_at: "Phase 21 context gathered (4 areas — buffer scope / lifetime trigger / API surface / AC#1 path)"
+last_updated: "2026-05-10T11:41:24.595Z"
 last_activity: 2026-05-09 -- Phase 20 signed off
 progress:
   total_phases: 11
   completed_phases: 4
-  total_plans: 29
+  total_plans: 21
   completed_plans: 21
-  percent: 72
+  percent: 100
 ---
 
 # Project State
@@ -207,7 +207,7 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 20 context gathered (4 areas — operator policy / file scope / comment cleanup / regression)
+Stopped at: Phase 21 context gathered (4 areas — buffer scope / lifetime trigger / API surface / AC#1 path)
 Resume file: --resume-file
 Next action: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlog (PointToLineDistance ROI 시각화 carry-over).
 

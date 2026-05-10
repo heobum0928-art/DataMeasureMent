@@ -48,6 +48,17 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260510 hbk Phase 21: BUF-02 lifetime owner — recipe change + app shutdown 채널
+        /// <summary>
+        /// 모든 Shot 의 image buffer 를 Dispose 하고 Shot 리스트를 비운다.
+        /// Phase 21 BUF-02 lifetime 계약상 다음 채널에서 호출되어야 한다:
+        ///   (1) 레시피 변경 — Custom/SystemHandler.cs 의 OnRecipeChanged subscriber 가 호출
+        ///       (이 호출 채널이 Phase 21 의 신규 wire — 기존에는 Load() 내부에서만 호출됨).
+        ///   (2) 앱 종료 — SystemHandler.Release() 에서 Sequences.Dispose() 직전 호출
+        ///       (이 호출 채널이 Phase 21 의 신규 wire — 기존 Release() 에는 누락됨).
+        /// 또한 LoadPhase6Format() 도 INI 재로드 직전에 호출하므로 (1) subscriber 와 중복될 수
+        /// 있으나, ClearImage 가 null-safe 이므로 멱등 (idempotent) 호출 안전.
+        /// </summary>
         public void ClearShots() {
             foreach (var shot in Shots) {
                 shot.ClearImage();

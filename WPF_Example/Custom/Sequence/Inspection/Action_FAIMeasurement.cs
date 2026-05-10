@@ -57,6 +57,7 @@ namespace ReringProject.Sequence {
         public override ActionContext Run() {
             switch ((EStep)Step) {
                 case EStep.Init:
+                    //260510 hbk Phase 21: BUF-02 channel #2 — sequence reset 트리거 (Run 사이클 진입 시 image buffer + FAI results dispose)
                     ShotParam?.ClearAllResults();
                     Step = (int)EStep.MoveZ;
                     break;

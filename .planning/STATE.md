@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: planning
-stopped_at: "Phase 21 context gathered (4 areas — buffer scope / lifetime trigger / API surface / AC#1 path)"
-last_updated: "2026-05-10T12:15:27.034Z"
-last_activity: 2026-05-09 -- Phase 20 signed off
+status: executing
+stopped_at: None
+last_updated: "2026-05-10T12:29:02.386Z"
+last_activity: 2026-05-10
 progress:
   total_phases: 11
   completed_phases: 4
   total_plans: 24
-  completed_plans: 21
-  percent: 88
+  completed_plans: 22
+  percent: 92
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 21 — 메모리 이미지 버퍼 (BUF-01, BUF-02)
+**Current focus:** Phase 21 — memory-image-buffer
 
 ## Current Position
 
-Phase: 20 (code-style-cleanup) — SIGNED_OFF (2026-05-09, 4/4 AC PASS)
-Plan: 8 of 8 — all complete. 7 Wave 1 변환 plan + 1 Wave 2 검증 plan. 경로 B (code-inspection fallback, W5 4 항목 정당화) 사용자 합의.
-Status: signed_off — `.planning/phases/20-code-style-cleanup/20-VERIFICATION.md` frontmatter status=signed_off, `20-08-SUMMARY.md` 작성 완료. 113 operator conversion across 14 files.
+Phase: 21 (memory-image-buffer) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Next: Phase 21 (메모리 이미지 버퍼, BUF-01/02) — `/gsd-discuss-phase 21` 또는 `/gsd-plan-phase 21`.
-Last activity: 2026-05-09 -- Phase 20 signed off
+Last activity: 2026-05-10
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Last activity: 2026-05-09 -- Phase 20 signed off
 | Phase 28-fai-circlediameter-datum-circle P01 | 6 | 1 tasks | 1 files |
 | Phase 28 P02 | 3 | 2 tasks | 1 files |
 | Phase 28 PP03 | 2 | 2 tasks | 1 files |
+| Phase 21 P21-01 | 25 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,7 @@ Recent decisions affecting current work:
 - [Phase 28-03]: DatumFindingService.cs:200/:730 inline polarity ternary 2곳 → EdgeOptionLists.MapRadialDirectionToHalconPolarity 헬퍼 호출 교체 (D-03 service-layer cleanup). 3-way single source 달성 (Datum CTH find + teach + FAI CircleDiameter polar). Datum CTH 회귀 0 by 수학적 등가성 (Plan 01 helper byte-identical 증명). Line-for-line 1+/1- per task, msbuild Debug/x64 PASS 0 new errors/warnings, REQ-28-02/REQ-28-06 충족.
 - [Phase 28-04]: 28-UAT.md sign-off (4/4 PASS) — Test 1 SIMUL UAT (PropertyGrid 콤보 Inward/Outward 시각 노출, 사용자 확인), Tests 2/3 코드 검증 (사용자 합의 — Plan 01 default-equality + Plan 02 fit-path args byte-identical + Plan 03 helper 3-way single source 인용), Test 4 자동 msbuild PASS. REQ-28-01 ~ REQ-28-06 모두 충족. PointToLineDistance ROI 시각화 미구현은 Phase 7-01 D-03 결정으로 Phase 28 범위 밖 carry-over.
 - [Phase 20]: 14 파일 113 operator conversion (16 ?? + 33 ?: + 12 D-02 events + 39 ?: misc + 13 ?. misc) → 명시적 if/else; 'what' 주석 제거 / 'why' 주석 보존; hbk 마커 변환 라인만 260509 hbk Phase 20 으로 교체 (D-12), 비변환 라인 보존 (D-13); D-04/05 예외 (LINQ tail / expression-bodied) 적용 라인 0; msbuild Debug/x64 PASS + 신규 warning 0; W3 한국어 mojibake 0; 회귀 검증 경로 B (code-inspection fallback, W5 4 항목 정당화 — 의미적 동등 + msbuild + grep 매트릭스 + hbk baseline) 사용자 합의 (Phase 28 sign-off 와 동일 패턴). Wave 1 4 plan worktree mode 성공, 3 plan sandbox 차단 → 인라인 오케스트레이터 실행. QUAL-02 + QUAL-04 충족.
+- Phase 21-01: BUF-02 lifetime XML doc — placed hbk marker on plain comment line above /// summary block (Phase 20 D-12 stacking-avoid pattern). 6 doc blocks + 7 markers across 3 files; behavior bytes preserved.
 
 ### Quick Tasks Completed
 
@@ -206,9 +208,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 21 context gathered (4 areas — buffer scope / lifetime trigger / API surface / AC#1 path)
-Resume file: --resume-file
+Last session: Completed 21-01-PLAN.md (XML doc + marker — 0647704, 5b97d95)
+Stopped at: None
+Resume file: None
 Next action: Phase 20 (코드 스타일 정리, QUAL-02 + QUAL-04) 또는 backlog (PointToLineDistance ROI 시각화 carry-over).
 
 **v1.1 Phase Map:**

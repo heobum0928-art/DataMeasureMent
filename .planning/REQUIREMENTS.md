@@ -27,8 +27,10 @@
 
 ### 메모리 이미지 버퍼 (Buffer Infrastructure)
 
-- [ ] **BUF-01**: 검사별 이미지를 메모리에 상주시켜 디스크 I/O 없이 재사용한다 (보관 정책 없음, 디스크 fallback 없음)
-- [ ] **BUF-02**: 이미지 버퍼의 lifetime 을 명시적으로 관리한다 (sequence reset / recipe change 시점에 초기화)
+- [x] **BUF-01
+**: 검사별 이미지를 메모리에 상주시켜 디스크 I/O 없이 재사용한다 (보관 정책 없음, 디스크 fallback 없음)
+- [x] **BUF-02
+**: 이미지 버퍼의 lifetime 을 명시적으로 관리한다 (sequence reset / recipe change 시점에 초기화)
 
 ### CXP 프레임 그래버 (Hardware)
 

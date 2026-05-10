@@ -243,7 +243,7 @@ namespace ReringProject {
         private TestResultPacket SendTestError(TestPacket packet) {
             TestResultPacket resultPacket = new TestResultPacket();
             TestPacket sendPacket = packet.AsTest();
-            
+
             resultPacket.Target = sendPacket.Sender;
             resultPacket.Site = sendPacket.Site;
             resultPacket.InspectionType = sendPacket.TestType;
@@ -252,6 +252,23 @@ namespace ReringProject {
             return resultPacket;
         }
 
+        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)
+        private void WireBufferLifecycle() {
+            //260510 hbk Phase 21: OnRecipeChanged subscriber 등록 — Sequences 가 SequenceHandler.Handle 로 초기화된 후 호출되어야 함
+            Sequences.OnRecipeChanged += OnRecipeChanged_FlushBuffers;
+        }
+
+        //260510 hbk Phase 21: BUF-02 channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호 — D-04 Claude's Discretion)
+        internal void UnwireBufferLifecycle() {
+            //260510 hbk Phase 21: 멱등 — 미등록 상태에서도 안전 (delegate -= null 무동작)
+            Sequences.OnRecipeChanged -= OnRecipeChanged_FlushBuffers;
+        }
+
+        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change → InspectionRecipeManager.ClearShots() 전파
+        private void OnRecipeChanged_FlushBuffers(object sender, RecipeChangedEventArgs args) {
+            //260510 hbk Phase 21: 모든 Shot 의 image buffer dispose — Load() 경로 의존에서 명시 훅으로 승격
+            Sequences.RecipeManager.ClearShots();
+        }
 
     }
 }

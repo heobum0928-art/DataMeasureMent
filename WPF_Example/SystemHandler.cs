@@ -133,6 +133,9 @@ namespace ReringProject {
             //    Typically sets up per-sequence resources.
             Sequences.ExecOnCreate();
 
+            //260510 hbk Phase 21: BUF-02 channel #1 — OnRecipeChanged subscriber 등록 (Sequences 가 살아있고 ExecOnCreate 가 끝난 뒤 wire)
+            WireBufferLifecycle();
+
             // 7) Collect recipe list
             //    Scans configured recipe directories.
             Recipes.CollectRecipe();
@@ -167,6 +170,8 @@ namespace ReringProject {
             // Release device resources.
             Devices.Dispose();
 
+            //260510 hbk Phase 21: BUF-02 channel #1 — subscriber 해제 (Sequences 가 살아있는 동안 unwire)
+            UnwireBufferLifecycle();
             //260510 hbk Phase 21: BUF-02 channel #3 (app shutdown buffer flush — Sequences.Dispose 가 ClearShots 를 호출하지 않으므로 명시 dispose)
             Sequences.RecipeManager.ClearShots();
             // Release sequences.

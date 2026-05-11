@@ -365,9 +365,16 @@ namespace ReringProject.UI {
                 mParentWindow.mainView.btn_teachDatum.IsEnabled = false; //260424 hbk Phase 12
             }
 
-            object source = e.Source;
-            if(source is TreeListBox) {
-                TreeListBox list = source as TreeListBox;
+            //260511 hbk CO-22-01 — sender 기준 게이트 (e.Source 비대칭 회피)
+            //  기존 `e.Source is TreeListBox` 게이트는 TreeListBox 내부 (계층형 inner item / EditableTextBlock 등) 가 발생시킨
+            //  Selector.SelectionChanged routed event bubble 시 e.Source 가 inner element 가 되어 게이트 실패 → 함수 전체 skip.
+            //  Phase 16 D-09 force rebind 가 ParamEditor.SelectedObject 를 code-behind 로 설정해 XAML 바인딩(L257)을 클리어한 이후,
+            //  Datum → FAI 전환에서 본 핸들러가 skip 되면 XAML 바인딩도 force rebind 도 모두 안 돌아 PropertyGrid 가 직전 Datum 으로 stale.
+            //  sender 는 항상 XAML 에 핸들러를 등록한 본인 컨트롤 (treeListBox_sequence) → 비대칭 회피.
+            //  Phase 17 D-10 OnParamEditorSelectionChanged 의 e.OriginalSource 사용과 비대칭 (의도된 차이) 이었으나, 트리 핸들러는 sender 기준이 정합.
+            if (!(sender is TreeListBox list)) return; //260511 hbk CO-22-01
+            if (!ReferenceEquals(sender, treeListBox_sequence)) return; //260511 hbk CO-22-01 — 동일 핸들러가 다른 트리에 attach 됐을 때 무관 호출 차단
+            {
                 if(list.SelectedItem is NodeViewModel) {
                     NodeViewModel item = list.SelectedItem as NodeViewModel;
                     object itemParam = item.Param;

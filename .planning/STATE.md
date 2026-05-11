@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: executing
-stopped_at: Quick 260511-ucv complete (CO-22-01 resolved, UAT 5/5 PASS)
-last_updated: "2026-05-11T09:30:00.000Z"
-last_activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 Datum↔FAI/SHOT PropertyGrid stale resolved)
+status: CO-22-01 resolved. v1.1 다음 phase 진입 가능.
+stopped_at: Phase 23 context gathered
+last_updated: "2026-05-11T14:20:11.510Z"
+last_activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 5/5 UAT PASS)
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 5
   total_plans: 26
   completed_plans: 25
@@ -218,9 +218,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-11T07:30:00.000Z
-Stopped at: Phase 22 signed_off (image-dual-structure, IMG-01+IMG-02). Commits dd9f706, 55c2fd4, 131f789, 06d6628, e433212, 701fefb, ef884d6, 9e945a4.
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 23 context gathered
+Resume file: --resume-file
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 
 **v1.1 Phase Map:**

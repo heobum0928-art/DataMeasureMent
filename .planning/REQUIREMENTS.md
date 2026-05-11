@@ -32,6 +32,11 @@
 - [x] **BUF-02
 **: 이미지 버퍼의 lifetime 을 명시적으로 관리한다 (sequence reset / recipe change 시점에 초기화)
 
+### 이미지 이중화 (Image Role Separation, 신설 2026-05-11)
+
+- [ ] **IMG-01**: DatumConfig 에 TeachingImagePath 필드를 추가하고 INI 직렬화/역직렬화(미존재 키는 빈 문자열 폴백)를 동작시킨다 — 티칭 시 사용한 기준 이미지 경로를 레시피에 보존
+- [ ] **IMG-02**: 검사 실행(Simul) 시 사용하는 이미지 경로(InspectionImagePath = ShotConfig.SimulImagePath)를 TeachingImagePath 와 코드 레벨에서 역할 분리한다 — 두 경로가 같은 파일을 가리켜도 Datum 찾기 → FAI 측정 정상 동작
+
 ### CXP 프레임 그래버 (Hardware)
 
 - [ ] **HW-01**: RAP 4G 4C12 CXP 프레임 그래버 보드 SDK(Euresys Coaxlink 또는 Matrox)를 확정하고 설치한다
@@ -100,14 +105,16 @@
 | Phase 19 — PropertyGrid 동적 노출 일반화 | QUAL-03, CO-02 | Pending |
 | Phase 20 — 코드 스타일 정리 | QUAL-02, QUAL-04 | Complete (2026-05-09) |
 | Phase 21 — 메모리 이미지 버퍼 | BUF-01, BUF-02 | Pending |
-| Phase 22 — CXP SDK 확정 | HW-01 | Pending |
-| Phase 23 — CXP 드라이버 통합 | HW-02 | Pending |
+| Phase 22 — 이미지 이중화 구조 | IMG-01, IMG-02 | Pending (신설 2026-05-11) |
+| Phase 23 — Top #1 A시리즈 Simul end-to-end | ALG-01 (별도 정의) | Pending (신설 2026-05-11) |
 | Phase 24 — 검사 워크플로우 end-to-end | WF-01, WF-02 | Pending |
 | Phase 25 — 결과 분석 & Export | OUT-01, OUT-02, OUT-03, OUT-04 | Pending |
 | Phase 26 — 헝가리안 전체 리팩토링 | QUAL-01 | Pending |
 | Phase 28 — FAI CircleDiameter + Datum Circle 통합 | REQ-28-01, REQ-28-02, REQ-28-03, REQ-28-04, REQ-28-05, REQ-28-06 | Signed off (2026-05-08) |
+| Phase 29 — CXP SDK 확정 (v1.2, 구 Phase 22) | HW-01 | Deferred (장비 도착 후) |
+| Phase 30 — CXP 드라이버 통합 (v1.2, 구 Phase 23) | HW-02 | Deferred (장비 도착 후) |
 
-**Coverage: 24/24 requirements mapped (100%)**
+**Coverage: 26/26 requirements mapped (100%)** — IMG-01, IMG-02 추가 2026-05-11
 
 ---
 

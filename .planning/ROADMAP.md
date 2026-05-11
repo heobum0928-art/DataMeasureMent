@@ -1,204 +1,167 @@
-﻿# Roadmap: DataMeasurement
+# Roadmap: DataMeasurement
 
 ## Milestones
 
-- **v1.0 Halcon Migration MVP** ??Phases 1-17 (shipped 2026-05-04, 22 deferred items)
-- **v1.1 Quality + Workflow + Infrastructure** ??Phases 18-26 (started 2026-05-04)
+- **v1.0 Halcon Migration MVP** ✅ Phases 1-17 (shipped 2026-05-04, 22 deferred items)
+- **v1.1 Quality + Workflow + Algorithm** 🔄 Phases 18-28 (started 2026-05-04)
+- **v1.2 Hardware Integration** ⏳ CXP SDK + Driver (deferred — 장비 도착 후)
 
 ## Phases
 
 <details>
-<summary>v1.0 Halcon Migration MVP (Phases 1-17) ??SHIPPED 2026-05-04</summary>
+<summary>v1.0 Halcon Migration MVP (Phases 1-17) ✅ SHIPPED 2026-05-04</summary>
 
 Full archive: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
-Requirements: [milestones/v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md)
-Audit: [milestones/v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md)
 Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 
-- [x] Phase 1: UI ?�설�?(FAI-centric TreeView + ?�일 캔버?? ??2/2 ??2026-04-07
-- [x] Phase 2: ?�칭 & 캘리브레?�션 (ROI ?�각??+ ?��?-mm) ??2/2 ??2026-04-08
-- [x] Phase 3: ?��? 측정 ?�고리즘 (Halcon MeasurePos) ??2/2 ??2026-04-09
-- [x] Phase 4: Datum 기�?좌표�?(TwoLineIntersect + hom_mat2d) ??3/3 ??2026-04-10
-- [x] Phase 5: 검???�퀀??& TCP ??2/2 ??2026-04-09
-- [x] Phase 6: Rapid City ?�장 (Fixture + 6 Measurement + 조명) ??4/4 ??2026-04-22
-- [x] Phase 7: Measurement ?�버?�이 ?��? ?�정 ??2/2 ??2026-04-23
-- [x] Phase 8: ?�구?�항 & ?�레?�서빌리???�기????1/1 ??2026-04-23
-- [x] Phase 9: VERIFICATION 문서 보강 (G3/G4/G5/G7) ??5/5 ??2026-04-23
-- [x] Phase 10: Datum ?�확??결함 ?�정 (WR-01/03/05) ??2/2 ??2026-04-23
-- [x] Phase 11: Datum ?�칭 UI + ROI 보강 (Circle 지?? ??4/4 ??2026-04-25
-- [x] Phase 12: Datum ?�규 ?�고리즘 2�?(CircleTwoHorizontal + VerticalTwoHorizontal) ??3/3 ??2026-04-24
-- [x] Phase 13: Datum ?�고리즘 ?�장??(per-ROI ?�라미터 + ?�각?? ??5/5 ??2026-04-26
-- [x] Phase 14: Datum carry-over (Circle polar sampling + Vertical 그룹) ??5/5 ??2026-04-28
-- [x] Phase 15: HALCON MeasurePos ?�합??(measurePhi + EdgeSelection) ??4/4 ??2026-04-29 (partial)
-- [x] Phase 16: Circle strip ?�설�?+ AlgorithmType binding fix ??3/3 ??2026-04-30 (partial)
-- [x] Phase 17: Datum ?�칭/검�?UX ?�설�?+ DetectedOrigin + hover ??4/4 ??2026-05-04 (partial 12 PASS / 2 FAIL / 1 SKIP / 1 INVALID)
+- [x] Phase 1~17: v1.0 전체 완료 (상세는 milestones/v1.0-ROADMAP.md 참조)
 
 </details>
 
-### v1.1 Quality + Workflow + Infrastructure
+### v1.1 Quality + Workflow + Algorithm
 
-- [x] **Phase 18: Carry-over ?�리** - Phase 17 partial sign-off ?�여 5�?(CO-01/03/04/05/06) ?�수 (completed 2026-05-07)
-- [x] **Phase 19: PropertyGrid ?�적 ?�출 ?�반??* - DatumConfig ICustomTypeDescriptor ?�턴???�른 모델�??�장 (QUAL-03, CO-02) ??2/2 ??2026-05-07
-- [x] **Phase 20: 코드 스타일 정리** - 14 파일 113 conv (if/else + "why" 주석) — signed off 2026-05-09 (QUAL-02, QUAL-04)
-- [ ] **Phase 21: 메모�??��?지 버퍼** - 검?�별 ?��?지 메모�??�주 + lifetime 명시 관�?(BUF-01, BUF-02)
-- [ ] **Phase 22: CXP SDK ?�정** - RAP 4G 4C12 SDK ?�보 ?��? + ?�치 + ?�라?�버 ?�계 spec (HW-01)
-- [ ] **Phase 23: CXP ?�라?�버 ?�합** - VirtualCamera 추상???��??�며 CXP ?�라?�버 ?�래??추�? (HW-02)
-- [ ] **Phase 24: 검???�크?�로??end-to-end** - Datum?�FAI?�결�?처리 ?�측 + OK/NG/?�패 분기 (WF-01, WF-02)
-- [ ] **Phase 25: 결과 분석 & Export** - ?��?지 리뷰??+ 1??검???��? + 반복???��? + ?�고리즘�??�계 (OUT-01..04)
-- [ ] **Phase 26: ?��?리안 ?�체 리팩?�링** - ?�체 ?�별???��?리안 ?�기�??�면 ?�용 (QUAL-01)
-- [ ] **Phase 27: Side Inspection 확장** - LineToLineAngle 알고리즘 + Side Fixture INI + PC2 분리 (D1, H5 / 신설 2026-05-08)
-- [x] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** - CircleDiameterMeasurement 에 Circle_RadialDirection + Datum 폴라 알고리즘 호출 경로 (Phase 19 UAT 사용자 요청 / 신설 2026-05-08, signed off 2026-05-08)
+- [x] **Phase 18: Carry-over 정리** — completed 2026-05-07
+- [x] **Phase 19: PropertyGrid 동적 노출 일반화** — completed 2026-05-07
+- [x] **Phase 20: 코드 스타일 정리** — signed off 2026-05-09
+- [ ] **Phase 21: 메모리 이미지 버퍼** — UAT 마무리 중 (2/3 plans done)
+- [ ] **Phase 22: 이미지 이중화 구조** — 티칭 이미지(TeachingImagePath) / 검사 이미지(InspectionImagePath) 역할 분리 + INI 직렬화 (IMG-01, IMG-02) ← 신설 2026-05-11
+- [ ] **Phase 23: Top #1 A시리즈 Simul end-to-end** — Datum B/C 기반 FAI A1~A5 Y방향 거리 측정 Simul 완주 (ALG-01) ← 신설 2026-05-11
+- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02)
+- [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
+- [ ] **Phase 26: 헝가리안 전체 리팩토링** — 전체 식별자 헝가리안 표기법 일면 적용 (QUAL-01)
+- [ ] **Phase 27: Side Inspection 확장** — LineToLineAngle + Side Fixture INI + PC2 분리 (D1, H5)
+- [x] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** — signed off 2026-05-08
+
+---
+
+### v1.2 Hardware Integration (이연 — 장비 도착 후)
+
+- [ ] **Phase 29: CXP SDK 확정** (구 Phase 22) — HW-01
+- [ ] **Phase 30: CXP 드라이버 통합** (구 Phase 23) — HW-02
+
+> 이연 사유: POC 납기(6월 말) 기준 HW 도착 전까지 Simul 모드 알고리즘/UI 검증 우선.
+> CXP 장비 도착(6월 중순 예상) 후 v1.2 개시.
+
+---
 
 ## Phase Details
 
-### Phase 18: Carry-over ?�리
-**Goal**: Phase 17 partial sign-off ?�서 ?�월??5건의 ?�형 결함???�전???�소?�여 v1.1 개발 기반??깨끗?�게 만든??**Depends on**: Nothing (v1.1 first phase)
-**Requirements**: CO-01, CO-03, CO-04, CO-05, CO-06
-**Success Criteria** (what must be TRUE):
-  1. DatumConfig.Circle_RadialDirection PropertyGrid 콤보박스??Inward/Outward ????���??�시?�다 (CO-01)
-  2. btn_teachDatum ?�릭 ??AlgorithmType �??�환?��? ?�는 ROI 조합???�??경고 모달 ?�양??spec 문서�?명문?�되�??�동 검증된??(CO-03)
-  3. ROI ?�클�?메뉴??Length=0 escape hatch ??��???��??�고 ?�행?�다 (CO-04)
-  4. Datum/FAI 검�?결과 strip ???�공=?�색, ?�패=빨강?�로 구분 ?�시?�다 (CO-05)
-  5. FormatTeachError ?�류 메시지??문제 ROI ??label ?�름???�함?�다 (CO-06)
-**Plans**: 5 plans
-
-Plans:
-- [x] 18-01-PLAN.md -- CO-01: DatumConfig.GetProperties ItemsSource whitelist ����
-- [x] 18-02-PLAN.md -- CO-04: ��Ŭ�� ROI �ٽ� �׸��� �޴�
-- [x] 18-03-PLAN.md -- CO-06: FormatTeachError DatumName ���λ�
-- [x] 18-04-PLAN.md -- CO-05: CircleStripSuccesses + RenderCircleStripOverlay ���� �б�
-- [x] 18-05-PLAN.md -- CO-03: 18-UAT.md Test 10 ���?����ȭ
-
-### Phase 19: PropertyGrid ?�적 ?�출 ?�반??**Goal**: DatumConfig ?�만 ?�용??ICustomTypeDescriptor 기반 ?�적 PropertyGrid ?�턴??FAIConfig ???�른 모델 ?�래?�로 ?�장?�여, ?�재 ?�정 종류??무�????�성??PropertyGrid ?�서 ?�동?�로 ?�겨진다
-**Depends on**: Phase 18
-**Requirements**: QUAL-03, CO-02
-**Success Criteria** (what must be TRUE):
-  1. DatumConfig ?�적 ?�출??Phase 17-02 ?�작 그�?�??��??�다 (?��? 0) ??CO-02 ?�수
-  2. FAIConfig �?PropertyGrid ???�시?????�재 EdgeMeasureType ??무�????�성???�겨진다
-  3. ?�적 ?�출 ?�턴???�용?�기 ?�한 공통 추상 베이???�는 ?�퍼가 구현?�어 ??모델 ?�록???��????�차�?가?�하??  4. msbuild Debug/x64 PASS, ?�규 warning 0
-**Plans**: 2 plans
-
-Plans:
-- [x] 19-01-PLAN.md -- Wave 1: DynamicPropertyHelper 신규 생성 + DatumConfig 리팩토링 (commit 224332d, 4342cdc, b619508)
-- [x] 19-02-PLAN.md -- Wave 2: FAIConfig ICustomTypeDescriptor 구현 + EdgeMeasureType 동적 드롭다운 (commit 1046cd7)
-**UI hint**: yes
-
-### Phase 20: 코드 ?��????�리
-**Goal**: 코드베이???�반???�항/null ?�산?��? 명시??if/else �??�환?�고, "what" 주석???�거?�여 "why" 주석�??��??�로??가?�성???�인??**Depends on**: Phase 18
-**Requirements**: QUAL-02, QUAL-04
-**Success Criteria** (what must be TRUE):
-  1. 변???�???�일?�서 `?:` ?�항, `??` null 병합, `?.` null 조건 ?�산?��? 명시??if/else 블록?�로 교체?�다
-  2. 코드�?그�?�??�술?�는 "what" 주석???�거?�고 ?�계 ?�도·비즈?�스 규칙???��? "why" 주석??보존?�다
-  3. SIMUL_MODE 검???�나리오가 변???????�일?�게 ?�작?�다 (로직 ?��? 0)
-  4. msbuild Debug/x64 PASS, ?�규 warning 0
-**Plans**: 8 plans
-
-Plans:
-- [x] 20-01-PLAN.md -- Wave 1: FAIConfig.cs operator + comment cleanup
-- [x] 20-02-PLAN.md -- Wave 1: DatumFindingService.cs operator (TLI/CTH/VTH paths)
-- [x] 20-03-PLAN.md -- Wave 1: MainResultViewerControl.xaml.cs event handlers + operators
-- [x] 20-04-PLAN.md -- Wave 1: MainView.xaml.cs operators + Datum teach state machine
-- [x] 20-05-PLAN.md -- Wave 1: InspectionListView.xaml.cs operators
-- [x] 20-06-PLAN.md -- Wave 1: 4 light Custom/Sequence files (DatumConfig/DynamicPropertyHelper/EdgeOptionLists/CircleDiameterMeasurement)
-- [x] 20-07-PLAN.md -- Wave 1: 4 light Halcon+Dialog files (VisionAlgorithmService/HalconDisplayService/ComboInputBox+Window)
-- [x] 20-08-PLAN.md -- Wave 2: SIMUL_MODE byte-identical regression + sign-off [autonomous: false]
-
-### Phase 21: 메모�??��?지 버퍼
-**Goal**: �?Shot 검????캡처??HImage �?메모리에 보�??�여 ?�스??I/O ?�이 ?�조?�할 ???�고, ?�퀀??리셋 ?�는 ?�시??변�???버퍼가 명시?�으�??�제?�다
+### Phase 21: 메모리 이미지 버퍼
+**Goal**: 각 Shot 검사에서 캡처한 HImage 를 메모리에 보관하여 디스크 I/O 없이 재조회할 수 있고, 시퀀스 리셋 또는 레시피 변경 시 버퍼 내 모든 HImage 가 명시적으로 제거된다
 **Depends on**: Phase 20
 **Requirements**: BUF-01, BUF-02
-**Success Criteria** (what must be TRUE):
-  1. 검???�료 ??결과 ?��?지 리뷰???�는 ?�버�?�??�서 마�?�?Shot ?��?지�??�스???�근 ?�이 ?�시?????�다
-  2. ?�시??변�??�는 ?�퀀??Reset ?�벤??발생 ??버퍼 ??모든 HImage 가 Dispose ?�다 (메모�??�수 ?�음)
-  3. 버퍼??보�??�는 HImage ?��? 보�? ?�점??코드 주석 ?�는 명시???�수�?문서?�되???�다
-  4. msbuild Debug/x64 PASS, ?�규 warning 0; SIMUL_MODE ?�상 ?�작
 **Plans**: 3 plans
 Plans:
-- [x] 21-01-PLAN.md — XML doc lifetime contract (ShotConfig 5 members + InspectionRecipeManager.ClearShots) + Action_FAIMeasurement EStep.Init channel #2 marker (D-06, D-02 ch#2)
-- [x] 21-02-PLAN.md — D-02 channel #1 (OnRecipeChanged subscriber) + channel #3 (Release ClearShots) wire-up + ClearShots Logging instrumentation for AC#2 dispose proof (D-02, D-11)
-- [ ] 21-03-PLAN.md — VERIFICATION.md (AC#1 grep audit / AC#3 doc grep / AC#4 msbuild) + UAT.md (SIMUL 4 tests) + sign-off (autonomous: false, D-08, D-10)
+- [x] 21-01-PLAN.md
+- [x] 21-02-PLAN.md
+- [ ] 21-03-PLAN.md — VERIFICATION + UAT sign-off (autonomous: false)
 
-### Phase 22: CXP SDK ?�정
-**Goal**: RAP 4G 4C12 CXP ?�레??그래�?보드???�??Euresys Coaxlink ?�는 Matrox �?SDK �??�정?�고, 개발 PC ???�치 검�?�??�라?�버 ?�합 ?�계 spec ???�출?�다
+---
+
+### Phase 22: 이미지 이중화 구조 (신설 2026-05-11)
+**Goal**: Datum 티칭 이미지(TeachingImagePath)와 검사 이미지(InspectionImagePath)를 코드 레벨에서 역할 분리.
+티칭 시 사용한 기준 이미지를 INI에 보존하고, 검사 실행 시에는 별도 경로의 이미지를 사용할 수 있도록 한다.
+Simul 모드에서는 두 경로가 동일 파일을 가리켜도 무방하나, 참조 경로는 항상 분리 유지된다.
 **Depends on**: Phase 21
-**Requirements**: HW-01
+**Requirements**: IMG-01, IMG-02
+**Background**:
+  - 현재 Simul 모드: 이미지 1장 로드 시 Datum/FAI 모두 동일 경로 사용
+  - 문제: 티칭 시 사용한 기준 이미지를 나중에 참조할 수 없음 (재티칭 시 기준 불명)
+  - 해결: TeachingImagePath(INI 저장) / InspectionImagePath(검사 실행 시) 분리
 **Success Criteria** (what must be TRUE):
-  1. SDK ?�택 근거(?�이?�스, HALCON ?�동 방식, API ?�환??가 결정 문서�?기록?�다
-  2. ?�택??SDK 가 개발 PC ???�치?�고 sample ?�플리�??�션??빌드/?�행?�다
-  3. VirtualCamera 추상???�래??CXP ?�라?�버�??�입?�기 ?�한 ?�터?�이???�계 초안(?�래??구조 + 메서???�명)??phase spec ???�함?�다
-  4. SDK ?�치 ?�에??SIMUL_MODE 경로(D:\1.bmp)가 ?�향받�? ?�는??**Plans**: TBD
+  1. DatumConfig 에 TeachingImagePath 필드 추가 + INI 직렬화/역직렬화 동작
+  2. 검사 실행(Simul) 시 이미지 경로는 InspectionImagePath 로 분리
+  3. 두 경로가 같은 파일이어도 Datum 찾기 → FAI 측정 정상 동작
+  4. TeachingImagePath 가 INI에 없을 경우 빈 문자열 폴백 (기존 동작 회귀 없음)
+  5. msbuild Debug/x64 PASS, 신규 warning 0
+**Plans**: 2 plans 예상
+  - 22-01: DatumConfig TeachingImagePath 필드 + INI 직렬화
+  - 22-02: InspectionImagePath 분리 + Simul 로드 경로 연결 + UAT
 
-### Phase 23: CXP ?�라?�버 ?�합
-**Goal**: ?�정??CXP SDK �?기반?�로 VirtualCamera 추상?��? ?��??�면??CXP 카메???�라?�버 ?�래?��? 추�??�고, Basler/HIK ?�??�일???�터?�이?�로 DeviceHandler ???�록?�다
+---
+
+### Phase 23: Top #1 A시리즈 Simul end-to-end (신설 2026-05-11)
+**Goal**: PPT(Datum_정보_260511_2D) 기반으로 Top Fixture #1 의 Datum B/C 설정 →
+FAI A1~A5 Y방향 거리 측정까지 Simul 이미지 1장으로 오류 없이 완주한다.
+이 Phase 이후 어떤 FAI도 동일 구조로 확장 가능하다.
 **Depends on**: Phase 22
-**Requirements**: HW-02
+**Requirements**: ALG-01
+**Background (PPT 구조)**:
+  - Datum B: Top View 하단 수평면 접선 → Y축 기준선
+  - Datum C: B1 홀 센터 통과 수직선 → X축 기준선
+  - FAI A1~A5: Datum B → 측정 포인트 Y방향 거리 (Back light, Fixture #1)
+  - 측정 알고리즘: EdgeToLineDistance
 **Success Criteria** (what must be TRUE):
-  1. `CxpCamera` (?�는 ?�등 명칭) ?�래?��? `VirtualCamera` ??`GrabHalconImage()` ?�터?�이?��? 구현?�다
-  2. DeviceHandler ??CXP 카메???�록 경로가 추�??�다
-  3. CXP ?�드?�어 미연�??�태?�서 SIMUL_MODE �?빌드/?�행 ???�외 ?�이 ?�상 초기?�된??  4. msbuild Debug/x64 PASS, ?�규 warning 0
-**Plans**: TBD
+  1. Simul 이미지 로드 → Datum B/C 자동 찾기 → A1~A5 측정값(mm) UI 표시가 오류 없이 완주
+  2. A1~A5 각 측정값이 공차 범위 내 OK/NG 판정 → 결과 strip 색상(녹/적) 표시
+  3. 티칭 이미지 경로와 검사 이미지 경로 분리 상태에서도 동일 동작 (Phase 22 구조 활용)
+  4. 동일 구조로 A6~A23 추가가 INI 설정만으로 가능 (확장성 검증)
+  5. msbuild Debug/x64 PASS, 신규 warning 0
+**Plans**: 3 plans 예상
+  - 23-01: Datum B/C INI 설정 + Top #1 Fixture 구조 확인
+  - 23-02: FAI A1~A5 EdgeToLineDistance 측정 구현 + 결과 표시
+  - 23-03: Simul end-to-end UAT + sign-off (autonomous: false)
 
-### Phase 24: 검???�크?�로??end-to-end
-**Goal**: Datum ?�칭 ??FAI 측정 ??결과 처리 ??과정??SIMUL_MODE ?�???카메???�쪽?�서 ?�류 ?�이 ?�주?�고, OK/NG/검�??�패 �?결과???�라 TCP ?�답 + ?��?지 ?�??+ UI ?�시가 ?�바르게 분기?�다
-**Depends on**: Phase 21, Phase 23
+---
+
+### Phase 24: 검사 워크플로우 end-to-end
+**Goal**: Datum 티칭 후 FAI 측정 후 결과 처리 전 과정이 SIMUL_MODE 와 카메라 쪽에서 오류 없이 완주하고,
+OK/NG/검사실패 각 결과에 따라 TCP 응답 + 이미지 저장 + UI 표시가 올바르게 분기된다
+**Depends on**: Phase 23
 **Requirements**: WF-01, WF-02
 **Success Criteria** (what must be TRUE):
-  1. SIMUL_MODE ?�서 ?�퀀??1???�행 ??Datum 보정 ??Shot N�?Grab ??FAI M�?측정 ??종합 ?�정???�류 ?�이 ?�주?�다
-  2. OK ?�정 ??TCP OK ?�답 ?�송???�인?�다
-  3. NG ?�정 ??TCP NG ?�답 + ?�패 ?��?지 ?�??+ UI 결과 ?�이�?NG ???�시가 ?�인?�다
-  4. 검�??�패(?��? 미�?�? ??TCP Error ?�답 + ?�류 ?��?지 ?�??+ UI ?�류 ?�시가 ?�인?�다
-  5. INI ?�위?�환 (IsDynamicFAIMode + EnsurePerRoiDefaults) ??end-to-end ?�행 ??깨�?지 ?�는??**Plans**: TBD
+  1. SIMUL_MODE 에서 시퀀스 1회 실행 → Datum 보정 → Shot N개 Grab → FAI M개 측정 → 종합 판정 오류 없이 완주
+  2. OK 판정 시 TCP OK 응답 전송 확인
+  3. NG 판정 시 TCP NG 응답 + 실패 이미지 저장 + UI NG 표시 확인
+  4. 검사실패(ROI 미검출) 시 TCP Error 응답 + 오류 이미지 저장 + UI 오류 표시 확인
+  5. INI 하위호환 (IsDynamicFAIMode + EnsurePerRoiDefaults) end-to-end 실행 후 유지
+**Plans**: TBD
+
+---
 
 ### Phase 25: 결과 분석 & Export
-**Goal**: 검??결과 ?��?지�??�짜/?�더 기�??�로 불러?�??�현?????�고, 1??검??결과?�?50??반복 측정값을 ?��?�?export ?�며, ?�고리즘�??�계 분석?��? 조회?????�다
+**Goal**: 검사 결과 이미지를 날짜/헤더 기준으로 불러와 표현할 수 있고,
+1회/50회 반복 측정값을 xlsx 로 export 하며, 알고리즘별 통계 분석화면을 조회할 수 있다
 **Depends on**: Phase 24
 **Requirements**: OUT-01, OUT-02, OUT-03, OUT-04
-**Success Criteria** (what must be TRUE):
-  1. 결과 ?��?지 리뷰?�에???�짜/?�더�??�택?�면 ?�?�된 결과 ?��?지?�?측정값이 ?�현?�다 (OUT-01)
-  2. "?��? Export (1??" ?�행 ??마�?�?검?�의 Shot × FAI 측정값과 OK/NG ?�정??.xlsx ?�일�??�?�된??(OUT-02)
-  3. "반복??Export (50??" ?�행 ??�?FAI ??mean/stddev/range/Cpk 가 .xlsx ?�일�??�출?�다 (OUT-03)
-  4. ?�고리즘�??�계 분석?�에??TLI/CTH/VTH/Edge 6�?각각??측정 분포 ?�약???�이블로 ?�인?????�다 (OUT-04)
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 26: ?��?리안 ?�체 리팩?�링
-**Goal**: 코드베이???�체(?�규/기존 무�?)??모든 ?�별???�드/?�성/지?????메서???�자)???��?리안 ?�기법을 ?��??�게 ?�용?�여 가?�성???�인??**Depends on**: Phase 25
+---
+
+### Phase 26: 헝가리안 전체 리팩토링
+**Goal**: 코드베이스 전체의 모든 식별자에 헝가리안 표기법을 일관되게 적용
+**Depends on**: Phase 25
 **Requirements**: QUAL-01
-**Success Criteria** (what must be TRUE):
-  1. 리팩?�링 ?�???�일 ?�체?�서 ?��?리안 ?�두??미적???�드/?�성??grep 기�? ?�의 문서???�라 검출되지 ?�는??  2. msbuild Debug/x64 PASS, ?�규 warning 0
-  3. SIMUL_MODE 검???�나리오가 리팩?�링 ?????�일?�게 ?�과?�다 (?�작 ?��? 0)
-  4. INI ?�위?�환 (IsDynamicFAIMode + EnsurePerRoiDefaults) ??리팩?�링 ?�에???��??�다
-  5. 모든 변�??�인 ?�에 `//YYMMDD hbk` 주석??존재?�다 (grep count 검�?가??
 **Plans**: TBD
+
+---
 
 ### Phase 27: Side Inspection 확장 (신설 2026-05-08)
 **Goal**: PC2(Side) 전용 구성 + LineToLineAngle 알고리즘 + Side Fixture INI 추가로 Datum A vs 직선 각도 측정(D1/H5) 지원
 **Depends on**: Phase 26
-**Requirements**: TBD (Side Inspection 신규)
-**Success Criteria** (what must be TRUE):
-  1. LineToLineAngle 알고리즘이 두 직선 사이 각도(deg) 를 정확하게 반환한다 (D1, H5)
-  2. Side Datum (단변1/2, 장변3/4) 가 기존 TwoLineIntersect 로 정상 동작한다 (회귀 0)
-  3. PC2 단독 실행 시 TCP Vision Server 가 PC1 과 독립적으로 호스트와 통신한다
-  4. 동일 SW 이미지로 PC1/PC2 각자 배포 가능하다 (구성 분기 INI 만)
 **Plans**: TBD (3 plans 예상 — 27-01 LineToLineAngle, 27-02 Side Fixture INI, 27-03 PC2 검증)
 
-### Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 (신설 2026-05-08)
-**Goal**: FAI 의 CircleDiameterMeasurement 에 Datum CircleTwoHorizontal 의 폴라 샘플링 검출 정밀도와 Circle_RadialDirection (Inward/Outward) 파라미터를 적용하여, FAI 측정에서도 Datum 동등한 정밀도/일관성을 확보한다 (Phase 19 UAT 사용자 명시 요청)
-**Depends on**: Phase 19 (PropertyTools.Wpf 콤보 패턴 + ICustomTypeDescriptor 동적 hide 검증 완료)
-**Requirements**: REQ-28-01, REQ-28-02, REQ-28-03, REQ-28-04, REQ-28-05, REQ-28-06
-**Success Criteria** (what must be TRUE):
-  1. CircleDiameterMeasurement.Circle_RadialDirection (Inward/Outward) 가 PropertyGrid 콤보로 노출되어 Datum CTH 와 동일하게 동작한다
-  2. CircleDiameterMeasurement 검출 결과(직경 mm)가 Datum 폴라 알고리즘과 동일한 검출 점을 사용하므로 Datum CTH 와 비교 회귀가 0 이다 (동일 입력 → 동일 출력)
-  3. 기존 EdgeThreshold/Sigma/EdgePolarity 3 파라미터 동작이 회귀 0 으로 보존된다 (기본 RadialDirection 미선택 시)
-  4. INI 직렬화 하위호환 (RadialDirection 미존재 시 default 폴백)
-  5. msbuild Debug/x64 PASS, 신규 error/warning 0
-**Plans**: 4 plans
+---
 
-Plans:
-- [x] 28-01-PLAN.md -- Wave 1: EdgeOptionLists helper (MapRadialDirectionToHalconPolarity) + 4 FAI polar default consts (be4d267, 2026-05-08)
-- [x] 28-02-PLAN.md -- Wave 2: CircleDiameterMeasurement Circle_RadialDirection field + TryExecute branch (fit/polar) (578cab6, 432adb2, 2026-05-08)
-- [x] 28-03-PLAN.md -- Wave 2: DatumFindingService 2 inline ternary -> helper call (D-03 DRY cleanup) (84affbb, a894c36, 2026-05-08)
-- [x] 28-04-PLAN.md -- Wave 3: SIMUL_MODE UAT (AC-1/AC-4/AC-5/AC-6) [autonomous: false] (02adf80, signed_off 2026-05-08)
+### Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 ✅
+**Goal**: FAI CircleDiameterMeasurement 에 Datum 폴라 샘플링 + Circle_RadialDirection 파라미터 적용
+**Depends on**: Phase 19
+**Plans**: 4/4 ✅ signed off 2026-05-08
+
+---
+
+## v1.2 Hardware Integration (이연)
+
+### Phase 29: CXP SDK 확정 (구 Phase 22)
+**Depends on**: 장비 도착 (6월 중순 예상)
+**Requirements**: HW-01
+**Plans**: TBD
+
+### Phase 30: CXP 드라이버 통합 (구 Phase 23)
+**Depends on**: Phase 29
+**Requirements**: HW-02
+**Plans**: TBD
 
 ---
 
@@ -206,27 +169,21 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 18. Carry-over ?�리 | 7/7 | Complete    | 2026-05-07 |
-| 19. PropertyGrid ?�적 ?�출 ?�반??| 0/2   | Not started | - |
-| 20. 코드 ?��????�리 | 0/8   | Planned     | - |
-| 21. 메모�??��?지 버퍼 | 0/TBD | Not started | - |
-| 22. CXP SDK ?�정 | 0/TBD | Not started | - |
-| 23. CXP ?�라?�버 ?�합 | 0/TBD | Not started | - |
-| 24. 검???�크?�로??end-to-end | 0/TBD | Not started | - |
-| 25. 결과 분석 & Export | 0/TBD | Not started | - |
-| 26. ?��?리안 ?�체 리팩?�링 | 0/TBD | Not started | - |
-| 27. Side Inspection 확장 | 0/TBD | Not started | - |
-| 28. FAI CircleDiameter + Datum Circle | 4/4 | Complete    | 2026-05-08 |
+| 18. Carry-over 정리 | 7/7 | ✅ Complete | 2026-05-07 |
+| 19. PropertyGrid 동적 노출 일반화 | 2/2 | ✅ Complete | 2026-05-07 |
+| 20. 코드 스타일 정리 | 8/8 | ✅ Complete | 2026-05-09 |
+| 21. 메모리 이미지 버퍼 | 2/3 | 🔄 UAT 대기 | - |
+| 22. 이미지 이중화 구조 | 0/2 | ⏳ Planned | - |
+| 23. Top #1 A시리즈 Simul end-to-end | 0/3 | ⏳ Planned | - |
+| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned | - |
+| 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
+| 26. 헝가리안 전체 리팩토링 | 0/TBD | ⏳ Planned | - |
+| 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
+| 28. FAI CircleDiameter + Datum Circle | 4/4 | ✅ Complete | 2026-05-08 |
+| **v1.2** | | | |
+| 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
+| 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |
 
 ---
 
-## v1.0 Progress (archived)
-
-| Milestone | Phases | Plans Complete | Status | Shipped |
-|-----------|--------|----------------|--------|---------|
-| v1.0 Halcon Migration MVP | 17 | 55/55 | Complete (22 deferred) | 2026-05-04 |
-| v1.1 Quality + Workflow + Infrastructure | 9 | 0/TBD | In progress | ??|
-
----
-
-*v1.1 roadmap created: 2026-05-04 ??Phase 18-26 (continues from v1.0 Phase 17)*
+*v1.1 roadmap updated: 2026-05-11 — Phase 22/23 재편 (이미지 이중화 + A시리즈 Simul), HW phases → v1.2 이연*

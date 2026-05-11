@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
 status: paused
-stopped_at: "Phase 21 Plan 03 — VERIFICATION.md (474e333) + UAT scaffold (b91dae8) committed. 사용자 SIMUL UAT 4 테스트 결과 대기. (Sign-off 시도 후 PASS 정정 — daf3c98/422eaee reset --hard 로 제거)"
-last_updated: "2026-05-10T12:50:00.000Z"
-last_activity: 2026-05-10 -- Phase 21 paused mid-UAT
+stopped_at: "Phase 21 Plan 03 UAT 대기 중. Phase 22(이미지 이중화)/23(A시리즈 Simul) 신설 완료. HW phases → v1.2 이연."
+last_updated: "2026-05-11T00:00:00.000Z"
+last_activity: 2026-05-11 -- ROADMAP 재편: Phase 22/23 교체, HW → v1.2 이연
 progress:
   total_phases: 11
   completed_phases: 4

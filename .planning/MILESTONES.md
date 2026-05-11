@@ -10,8 +10,8 @@
 - Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)
 - Phase 20: 코드 스타일 정리 (QUAL-02, QUAL-04)
 - Phase 21: 메모리 이미지 버퍼 (BUF-01, BUF-02)
-- Phase 22: CXP SDK 확정 (HW-01)
-- Phase 23: CXP 드라이버 통합 (HW-02)
+- Phase 22: 이미지 이중화 구조 (IMG-01, IMG-02) ← 신설 2026-05-11
+- Phase 23: Top #1 A시리즈 Simul end-to-end (ALG-01) ← 신설 2026-05-11
 - Phase 24: 검사 워크플로우 end-to-end (WF-01, WF-02)
 - Phase 25: 결과 분석 & Export (OUT-01, OUT-02, OUT-03, OUT-04)
 - Phase 26: 헝가리안 전체 리팩토링 (QUAL-01)
@@ -63,3 +63,10 @@
 - Phase artifacts (17 dirs): [milestones/v1.0-phases/](milestones/v1.0-phases/)
 
 ---
+
+## v1.2 Hardware Integration (이연 — 장비 도착 후)
+
+- Phase 29: CXP SDK 확정 (구 Phase 22, HW-01)
+- Phase 30: CXP 드라이버 통합 (구 Phase 23, HW-02)
+
+이연 사유: POC 납기(6월 말) 기준 HW 도착 전까지 Simul 모드 알고리즘/UI 검증 우선.

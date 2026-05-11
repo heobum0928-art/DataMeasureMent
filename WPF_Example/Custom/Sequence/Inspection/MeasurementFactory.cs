@@ -25,6 +25,8 @@ namespace ReringProject.Sequence
                     return new CircleDiameterMeasurement(owner);
                 case "LineToLineDistance":
                     return new LineToLineDistanceMeasurement(owner);
+                case "EdgeToLineDistance": //260512 hbk Phase 23 ALG-01
+                    return new EdgeToLineDistanceMeasurement(owner); //260512 hbk Phase 23 ALG-01
                 default:
                     return null;
             }
@@ -39,7 +41,8 @@ namespace ReringProject.Sequence
                 "PointToPointDistance",
                 "LineToLineAngle",
                 "CircleDiameter",
-                "LineToLineDistance"
+                "LineToLineDistance",
+                "EdgeToLineDistance" //260512 hbk Phase 23 ALG-01
             };
         }
     }

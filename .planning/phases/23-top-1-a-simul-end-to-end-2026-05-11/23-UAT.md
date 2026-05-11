@@ -1,0 +1,178 @@
+---
+phase: 23
+plan: 03
+status: pending
+total: 5
+passed: 0
+pending: 5
+requirement_ids: [ALG-01]
+sign_off_reviewer: ""
+sign_off_date: ""
+---
+
+# Phase 23 UAT — Top #1 A시리즈 Simul end-to-end (ALG-01)
+
+본 UAT 는 Plan 23-01 (EdgeToLineDistanceMeasurement 클래스 + TryFitLine selection 파라미터) 과 Plan 23-02 (MeasurementFactory 7번째 case + GrabOrLoadDatumImage TeachingImagePath 우선 분기) 의 합성 검증이다.
+사용자는 아래 5 시나리오를 직접 수행 후 각 Result 를 PASS/FAIL/PARTIAL 로 채우고, frontmatter 의 `passed:` 카운트와 `status:` (passed:5 → signed_off, passed<5 → partial) 를 갱신한다.
+
+---
+
+## Pre-conditions (사용자 사전 셋업, D-16 + D-01 + D-13)
+
+1. **Simul 이미지 비치** — `D:\TestImg\Datameasurement\` 디렉토리에 Top Fixture #1 의 PPT 도면 반영본 Simul 이미지 배치 (TeachingImagePath / SimulImagePath 분리 검증용 별도 파일 권장)
+2. **DatumConfig 1개 작성** — AlgorithmType = `CircleTwoHorizontal` (per D-01 lock)
+   - B1 홀 Circle ROI + 2 horizontal tangent line ROI 입력
+   - TeachingImagePath = Simul 이미지 경로 또는 빈 문자열 (SC#3 검증용)
+3. **FAI A1~A5 5개 작성** — EdgeMeasureType = `EdgeToLineDistance` (Plan 23-02 Factory 등록 후 자동 노출)
+   - 각각 Point ROI Rectangle 1개 + 7 Edge 파라미터 (EdgeDirection default TtoB, EdgeSelection default First) + NominalValue + UpperTolerance + LowerTolerance
+   - 모두 InspectionRecipeManager (IsDynamicFAIMode) 의 기존 INI 포맷 (D-15)
+4. **빌드 산출물 확인** — `bin\x64\Debug\DatumMeasurement.exe` 존재 (Plan 23-02 Task 3 출력 또는 Test 5 자동 재빌드)
+
+---
+
+## Test 1 — SC#1 Simul end-to-end 완주 (ALG-01)
+
+**Scenario:** Simul 이미지 로드 → Datum CTH 자동 찾기 → A1~A5 EdgeToLineDistance 측정값(mm) UI 표시가 오류 없이 완주
+
+**Steps:**
+
+1. DataMeasurement.exe 기동
+2. Recipe 선택 (Pre-conditions 의 INI)
+3. Inspection 시퀀스 1회 실행 (수동 트리거 또는 TCP 명령)
+4. InspectionListView TreeView 펼침 (Datum + A1~A5 노드 가시)
+5. 각 A1~A5 노드의 측정값 컬럼 (mm 단위, 0.001 정밀도 per D-09) 표시 확인
+
+**Expected:**
+
+- 시퀀스 Error 상태 진입 없음 (모든 5 측정 정상 완주)
+- A1~A5 5개 측정값 표시 (mm)
+- 정밀도 3자릿 (예: `12.345 mm`) — format = F3 확인 완료 (MeasurementResultRow.cs L54/L60 `ToString("F3")` 기존 적용)
+- +Y 부호 적용 확인 (Datum B 위쪽 측정점 = 양수, D-02)
+
+**Actual:** (사용자 작성)
+
+**Result:** ⬜ pending
+
+**Notes:** (사용자 작성)
+
+---
+
+## Test 2 — SC#2 OK/NG strip 녹/적 (ALG-01)
+
+**Scenario:** A1~A5 각각의 측정값 ↔ NominalValue/Tolerance 공차 비교 → OK/NG 판정 → InspectionListView 노드 색상 분기 (CO-05 녹/적)
+
+**Steps:**
+
+1. Test 1 의 시퀀스 실행 결과 유지
+2. NominalValue 또는 Tolerance 를 의도적으로 다르게 설정 → A1~A5 중 일부 OK 일부 NG 만들기
+3. 재실행 → InspectionListView 5 노드 색상 시각 확인
+4. Halcon viewer 오버레이 영역 확인 (RESEARCH Pitfall 4 명확화 — overlay 빈 리스트 채택으로 viewer 라인 미표시 가능, **InspectionListView 노드 색상** 으로 분기 검증)
+
+**Expected:**
+
+- OK 판정 노드 = 녹색, NG 판정 노드 = 빨강 (CO-05 패턴 — InspectionListView)
+- Halcon viewer 의 strip 색상 라인은 EdgeToLineDistance overlay 미생성 정책 (Plan 23-01 결정 — PointToLineDistance 패턴 일치) 으로 표시 안 될 수 있음. **trust-based PASS 옵션** — 노드 색상이 정확히 분기되면 PASS, viewer 라인 부재 시 carry-over 등록.
+
+**Actual:** (사용자 작성)
+
+**Result:** ⬜ pending
+
+**Notes:** Pitfall 4 인용 — overlay 추가는 별도 backlog
+
+---
+
+## Test 3 — SC#3 TeachingImagePath ≠ InspectionImagePath 분리 (ALG-01)
+
+**Scenario:** TeachingImagePath 와 ShotConfig.SimulImagePath (= InspectionImagePath) 가 다른 파일을 가리켜도 정상 동작, 같은 파일이어도 회귀 0
+
+**Steps:**
+
+1. **Case A (분리):** DatumConfig.TeachingImagePath = `teaching.bmp`, ShotConfig.SimulImagePath = `inspection.bmp` (다른 파일) → 시퀀스 실행 → Datum 찾기는 teaching.bmp 로, A1~A5 측정은 inspection.bmp 로 (Plan 23-02 Task 2 분기 확인)
+2. **Case B (동일):** 두 경로 모두 동일 파일 → 시퀀스 실행 → 회귀 0 (Phase 22 UAT Test 2 패턴)
+3. **Case C (TeachingImagePath 빈 문자열):** TeachingImagePath = `""` → SimulImagePath 폴백으로 Phase 22 baseline byte-identical
+
+**Expected:**
+
+- Case A: Datum 검출 = teaching.bmp 의 좌표, FAI 측정 = inspection.bmp 의 좌표 (각각 분리 동작)
+- Case B: SC#1 동작 동일 (회귀 0)
+- Case C: Phase 22 동작 byte-identical (회귀 0)
+
+**Actual:** (사용자 작성)
+
+**Result:** ⬜ pending
+
+**Notes:** Case A 가 실 시나리오, Case B/C 는 회귀 검증
+
+---
+
+## Test 4 — SC#4 A6 확장성 (D-12 + D-13)
+
+**Scenario:** A6 1개 추가가 INI 직접 편집 + UI 'Add FAI' 버튼 두 채널 모두로 가능, 코드 변경 0 으로 확장성 검증
+
+**Steps:**
+
+1. **Channel A (INI 직접 편집):** 프로그램 종료 → INI 파일에 A6 섹션 추가 (FAIName="A6", EdgeMeasureType="EdgeToLineDistance", ROI/Edge 파라미터 입력) → 재기동 → InspectionListView 에 A6 노드 표시 확인 + 시퀀스 실행 시 A6 측정값 출력 확인
+2. **Channel B (UI 'Add FAI'):** InspectionListView 의 Shot 노드 우클릭 또는 'Add FAI' 버튼 → FAIConfig 신규 생성 → EdgeMeasureType ComboBox 에서 `EdgeToLineDistance` 선택 가능 확인 (Plan 23-02 Task 1 GetTypeNames 반영) → ROI/Edge 파라미터 입력 → 시퀀스 실행 → A6 측정값 출력
+
+**Expected:**
+
+- Channel A + B 둘 다 A6 측정값 정상 표시 (= 6개 측정값)
+- EdgeMeasureType ComboBox 의 7번째 항목 = "EdgeToLineDistance" 가시
+- 코드 추가 0 (Phase 5 IsDynamicFAIMode 인프라 + Plan 23-02 Factory 자동 노출)
+
+**Actual:** (사용자 작성)
+
+**Result:** ⬜ pending
+
+**Notes:** D-14 확장 한계 = A23 까지 보장, 검증은 A6 1개
+
+---
+
+## Test 5 — SC#5 msbuild Debug/x64 PASS (D-19)
+
+**Scenario:** Plan 23-01 + 23-02 누적 변경 후 msbuild Debug/x64 Rebuild 에서 0 errors + 신규 warning 0 (Phase 21 baseline 6 유지)
+
+**Steps:**
+
+1. `msbuild WPF_Example\DatumMeasurement.csproj /p:Configuration=Debug /p:Platform=x64 /v:minimal /nologo /t:Rebuild > build_23_w3.log 2>&1`
+2. log 파일 점검 — error 0, warning 6 (MSB3884×2 + CS0162×2 + CS0219×2)
+
+**Expected:**
+
+- `0 Error(s)`
+- Warning 매치 정확히 6 (Phase 21 baseline)
+- 신규 warning code 부재
+
+**Actual:** (build_23_w3.log 인용 — Task 2 자동 갱신)
+
+**Result:** ⬜ pending — Task 2 가 자동 실행/검증
+
+**Notes:** Plan 23-02 Task 3 의 build_23_w2.log 와 동일 결과 기대 (단, Plan 23-03 시점 재검증)
+
+---
+
+## Summary
+
+| # | Scenario | Result | Notes |
+|---|----------|--------|-------|
+| 1 | SC#1 Simul end-to-end | ⬜ pending | — |
+| 2 | SC#2 OK/NG strip | ⬜ pending | — |
+| 3 | SC#3 TeachingImagePath 분리 | ⬜ pending | — |
+| 4 | SC#4 A6 확장성 (INI + UI) | ⬜ pending | — |
+| 5 | SC#5 msbuild PASS | ⬜ pending | — |
+
+**Total:** 5 / **Passed:** 0 / **Pending:** 5
+
+---
+
+## Carry-overs
+
+(초기 빈 — Task 3 사인오프 시 FAIL/PARTIAL 항목 등록)
+
+---
+
+## Sign-off
+
+- Reviewer:
+- Date:
+- Status: pending

@@ -223,9 +223,21 @@ namespace ReringProject.Sequence {
         private HImage GrabOrLoadDatumImage(InspectionSequence parentSeq) {
             if (ShotParam == null) return null;
             HImage image = null;
+            //260512 hbk Phase 23 ALG-01 — D-04 TeachingImagePath 자동 로드 (Phase 22 carry-over). 비어있지 않으면 우선, 비어있으면 SimulImagePath 폴백.
             //260511 hbk Phase 22 IMG-02 — Datum 찾기 단계의 이미지 = InspectionImagePath (= ShotParam.SimulImagePath) 사용. TeachingImagePath (DatumConfig 보존) 는 본 메서드에서 미참조 — 재티칭/UI 셋업 경로에서만 참조 (Phase 23 carry-over 가능).
+            string teachingPath = null; //260512 hbk Phase 23 ALG-01
+            if (parentSeq != null && parentSeq.DatumConfigs != null && parentSeq.DatumConfigs.Count > 0) { //260512 hbk Phase 23 ALG-01
+                teachingPath = parentSeq.DatumConfigs[0].TeachingImagePath;
+            }
             #if SIMUL_MODE
-            if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
+            if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) { //260512 hbk Phase 23 ALG-01 — TeachingImagePath 우선 (Pitfall 3 - 2-step 가드)
+                try {
+                    image = new HImage(teachingPath);
+                } catch {
+                    image = null;
+                }
+            }
+            if (image == null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { //260512 hbk Phase 23 ALG-01 — SimulImagePath 폴백 (회귀 0)
                 try {
                     image = new HImage(ShotParam.SimulImagePath);
                 } catch {

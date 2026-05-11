@@ -1,4 +1,4 @@
-﻿using ReringProject.Setting;
+using ReringProject.Setting;
 using ReringProject.Network;
 using ReringProject.Utility;
 using System;
@@ -17,7 +17,7 @@ namespace ReringProject {
             //send test response message
             for (int i = 0; i < Sequences.Count; i++) {
                 TestResultPacket response = Sequences[i].PopResponse();
-                if (response == null) continue; 
+                if (response == null) continue;
                 if (!Server.SendPacket(response.Target, response)) {
                     //occurs error
                 }
@@ -56,7 +56,7 @@ namespace ReringProject {
                             responsePacket = SendTestError(packet.AsTest());
                         }
                         break;
-                  
+
                     case VisionRequestType.Unknown:
                         //occurs error
                         break;
@@ -164,7 +164,7 @@ namespace ReringProject {
             {
                 resultPacket.Result = EVisionResultType.NG;
             }
-            //select 
+            //select
             else if ((Setting.CurrentRecipeName != recipeName) && LoadRecipe(recipeName))
             {
                 resultPacket.Result = EVisionResultType.OK;
@@ -188,7 +188,7 @@ namespace ReringProject {
             resultPacket.Target = packet.Sender;
             resultPacket.Site = packet.Site;
             resultPacket.MaxCount = packet.MaxCount;
-            
+
             //sorting
             if (packet.Option == 1) {
                 Recipes.SortingByCreateDate();
@@ -264,12 +264,13 @@ namespace ReringProject {
             Sequences.OnRecipeChanged -= OnRecipeChanged_FlushBuffers;
         }
 
-        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change → InspectionRecipeManager.ClearShots() 전파
+        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change 훅 (wire/unwire lifecycle 유지용)
         private void OnRecipeChanged_FlushBuffers(object sender, RecipeChangedEventArgs args) {
-            //260510 hbk Phase 21: 모든 Shot 의 image buffer dispose — Load() 경로 의존에서 명시 훅으로 승격
-            Sequences.RecipeManager.ClearShots();
+            //260511 hbk Phase 21 hotfix: ClearShots() 제거 — LoadRecipe 완료 후 OnRecipeChanged 발화 시
+            //  이 훅이 방금 로드된 Shots 컬렉션을 전부 삭제하는 silent data-loss 유발.
+            //  LoadPhase6Format 내부에서 Shots 재구성을 직접 수행하므로 여기서 ClearShots 호출 불필요.
+            //  app shutdown 시 buffer dispose 는 Release() 의 channel #3 (SystemHandler.cs:176) 이 담당.
         }
 
     }
 }
-

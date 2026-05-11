@@ -23,7 +23,8 @@ namespace ReringProject.Halcon.Algorithms
             int sampleCount, int trimCount, double sigma, int threshold,
             string direction, string polarity,
             out double row1, out double col1, out double row2, out double col2,
-            out string error)
+            out string error,
+            string selection = "all") //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 (optional, 기존 caller 호환)
         {
             row1 = col1 = row2 = col2 = 0;
             error = null;
@@ -89,10 +90,25 @@ namespace ReringProject.Halcon.Algorithms
                     imageWidth, imageHeight, "nearest_neighbor",
                     out measureHandle);
 
+                //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 처리 (TryFindCircleByPolarSampling L249-264 패턴 차용)
+                string measureSel; //260512 hbk Phase 23 ALG-01
+                if (string.Equals(selection, "First", StringComparison.OrdinalIgnoreCase)) //260512 hbk Phase 23 ALG-01
+                {
+                    measureSel = "first";
+                }
+                else if (string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase)) //260512 hbk Phase 23 ALG-01
+                {
+                    measureSel = "last";
+                }
+                else
+                {
+                    measureSel = "all";
+                }
+
                 HTuple rows, cols, amp, dist;
                 HOperatorSet.MeasurePos(image, measureHandle,
                     Math.Max(0.4, sigma), Math.Max(1, threshold),
-                    pol, "all", out rows, out cols, out amp, out dist);
+                    pol, measureSel, out rows, out cols, out amp, out dist); //260512 hbk Phase 23 ALG-01
 
                 int edgeCount = rows.TupleLength();
                 if (edgeCount < 2)

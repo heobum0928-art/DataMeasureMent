@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Phase 22 signed_off (image-dual-structure, IMG-01+IMG-02, 4/4 UAT PASS)
-last_updated: "2026-05-11T07:30:00.000Z"
-last_activity: 2026-05-11 -- Phase 22 signed_off (image-dual-structure)
+stopped_at: Quick 260511-ucv complete (CO-22-01 resolved, UAT 5/5 PASS)
+last_updated: "2026-05-11T09:30:00.000Z"
+last_activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 Datum↔FAI/SHOT PropertyGrid stale resolved)
 progress:
   total_phases: 6
   completed_phases: 5
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 22 signed_off — image-dual-structure 완료. 다음 v1.1 phase 대기.
+**Current focus:** Quick 260511-ucv complete (CO-22-01 resolved). 다음 v1.1 phase 대기.
 
 ## Current Position
 
-Phase: 22 (image-dual-structure) — SIGNED_OFF (2026-05-11, IMG-01+IMG-02, UAT 4/4 PASS)
-Plan: 2 of 2 (둘 다 완료)
-Status: Phase 22 완료, 다음 phase 대기
-Next: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일, Phase 23 A시리즈 Simul 등), (c) 기타 backlog
-Last activity: 2026-05-11 -- Phase 22 signed_off (image-dual-structure)
+Phase: 22 (image-dual-structure) — SIGNED_OFF (2026-05-11) + Quick 260511-ucv (CO-22-01) — complete
+Plan: quick 1/1 완료 (d6070e8 + 50f5405 hotfix)
+Status: CO-22-01 resolved. v1.1 다음 phase 진입 가능.
+Next: 사용자 선택 — (a) Phase 23 A시리즈 Simul (TeachingImagePath 활용), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export, (d) 기타 backlog
+Last activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 5/5 UAT PASS)
 
 ## Performance Metrics
 
@@ -164,12 +164,13 @@ Recent decisions affecting current work:
 | 260429-c2e | 2026-04-29 | HALCON #1405 IntersectionLl 수정 — DatumFindingService CTH/VTH `ConcatObj→FitLine` 패턴을 `TupleConcat→단일 GenContourPolygonXld` (TryFindLine 833 라인 패턴) 으로 통일 | 311012a | Needs Review |
 | 260430-hox | 2026-04-30 | Circle strip 12px cap + RectL1/L2Ratio default 0.05→0.02 — Phase 16 UAT FAIL (insufficient polar samples) root cause | 7ca39b6 | UAT pending |
 | 260511-k3i | 2026-05-11 | ROI 버튼 트리 선택 fallback — 신규 FAI Measurement 0 케이스 대응 | 92f8c73 | UAT PASS (사용자 4 scenarios 2026-05-11) |
+| 260511-ucv | 2026-05-11 | CO-22-01 — Datum↔FAI / SHOT PropertyGrid stale 해결: (A) InspectionList_SelectionChanged 게이트 e.Source→sender 교체 + (B) Action/Sequence/else 분기 force rebind 추가 | d6070e8, 50f5405 | UAT PASS (사용자 5/5 2026-05-11) |
 
 ### Pending Todos
 
 | ID | Date | Description | Source | Status |
 |----|------|-------------|--------|--------|
-| CO-22-01 | 2026-05-11 | Datum 노드 ↔ FAI 노드 PropertyGrid 전환 동작 안 됨 — 트리 선택 시 즉시 갱신 안 됨. Phase 17 ICustomTypeDescriptor 와의 상호작용 가능성. 별도 quick task 로 재현/원인 추적 필요. | Phase 22 UAT carry-over | open |
+| CO-22-01 | 2026-05-11 | Datum 노드 ↔ FAI 노드 PropertyGrid 전환 동작 안 됨 — 트리 선택 시 즉시 갱신 안 됨. Phase 17 ICustomTypeDescriptor 와의 상호작용 가능성. 별도 quick task 로 재현/원인 추적 필요. | Phase 22 UAT carry-over | **resolved** (quick 260511-ucv, d6070e8 + 50f5405, UAT 5/5 PASS) |
 
 ### Blockers/Concerns
 

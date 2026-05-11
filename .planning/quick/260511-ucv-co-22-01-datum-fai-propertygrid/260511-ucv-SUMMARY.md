@@ -2,7 +2,7 @@
 phase: quick-260511-ucv
 plan: 01
 type: execute
-status: task_1_complete_task_2_pending_uat
+status: complete
 wave: 1
 requirements:
   - CO-22-01
@@ -10,20 +10,23 @@ files_modified:
   - WPF_Example/UI/ControlItem/InspectionListView.xaml.cs
 commits:
   - d6070e8  # fix(quick-260511-ucv): CO-22-01 Datum↔FAI PropertyGrid stale [root cause: A — e.Source asymmetric gate]
+  - 50f5405  # fix(quick-260511-ucv): CO-22-01 SHOT/Sequence PropertyGrid stale [hotfix: Action 분기 force rebind]
 metrics:
-  duration_min: 12
-  lines_added: 10
+  duration_min: 35
+  lines_added: 43
   lines_removed: 3
   files_changed: 1
   build: PASS
   build_errors: 0
   build_warnings_new: 0
-last_updated: "2026-05-11T08:00:00.000Z"
+  uat_scenarios_total: 5
+  uat_scenarios_passed: 5
+last_updated: "2026-05-11T09:30:00.000Z"
 ---
 
 # Quick 260511-ucv — CO-22-01: Datum↔FAI PropertyGrid stale 해결 Summary
 
-**One-liner:** Task 1 완료 — Root cause = `e.Source` 비대칭 게이트 (TreeListBox 내부 bubble 시 inner element). Fix = `sender` 기준 게이트로 교체. msbuild PASS, 신규 warning 0. Task 2 SIMUL UAT (5 scenarios) 사용자 검증 대기.
+**One-liner:** 완료 — Root cause = (A) `e.Source` 비대칭 게이트 + (B) Action 분기 force rebind 누락. 두 fix 후 SIMUL UAT 5/5 PASS. 둘 다 동일 root cause(Phase 16 D-09 force rebind 가 XAML 바인딩 끊음)의 두 트리거.
 
 ## Root Cause Analysis (Step A)
 
@@ -114,25 +117,60 @@ msbuild WPF_Example/DatumMeasurement.csproj /p:Configuration=Debug /p:Platform=x
 
 **구조적 동등성 보증:** 변경된 게이트 (`e.Source is TreeListBox` → `sender == treeListBox_sequence`) 는 **정상 경로에서 동일하게 통과**한다 (`sender == treeListBox_sequence == e.Source` when WPF raises event normally from outer Selector). 이상 경로 (inner bubble) 에서만 동작이 변경되며, 그 경우 원본은 skip (stale 유발) / 새 코드는 정상 통과 (stale 회복). 정상 경로 0 회귀.
 
-## Pending — Task 2 (SIMUL UAT 사용자 검증)
+## Task 2 — SIMUL UAT 결과 (사용자 검증 2026-05-11)
 
-Plan Task 2 = `checkpoint:human-verify` (5 scenarios).
+| # | Scenario | 1차 결과 | Hotfix 후 | 비고 |
+|---|----------|----------|-----------|------|
+| 1 | Datum ↔ FAI 직접 전환 (메인 버그) | **PASS** | — | 후보 A fix 로 해결 |
+| 2 | Datum ↔ Datum (동일 Type, 다른 AlgorithmType) | **PASS** | — | dynamic filter 즉시 적용 |
+| 3 | FAI ↔ FAI / Measurement 전환 | **PASS** | — | |
+| 4 | Datum → SHOT → FAI 3-hop | FAIL (SHOT PropertyGrid 미표시) | **PASS** | 후보 B 발현 → hotfix 적용 |
+| 5 | AlgorithmType ComboBox 변경 + SHOT 표시 | partial FAIL (SHOT 표시 누락) | **PASS** | Phase 17 D-10 자체는 정상, SHOT 표시는 hotfix 후 정상 |
 
-**사용자 검증 항목:**
+**Final: 5/5 PASS.**
 
-1. **Scenario 1 — Datum ↔ FAI 직접 전환 (메인 버그):** Datum_1 → FAI_1 → Datum_1 → FAI_2 모두 즉시 PropertyGrid 갱신
-2. **Scenario 2 — Datum ↔ Datum 전환 (동일 Type, 다른 AlgorithmType):** TwoLineIntersect ↔ CircleTwoHorizontal dynamic filter 적용
-3. **Scenario 3 — FAI ↔ FAI 전환 (동일 Type, 다른 EdgeMeasureType):** EdgePairDistance ↔ CircleDiameter dynamic filter (또는 Measurement 노드로 대체 가능)
-4. **Scenario 4 — Action/Sequence 경유 전환 (3-hop):** Datum_1 → SHOT_0 → FAI_1 / Sequence (Top) → Datum_1
-5. **Scenario 5 — Phase 17 D-10 회귀 확인:** Datum AlgorithmType ComboBox 변경 시 dynamic filter 즉시 갱신 + LastTeachSucceeded=false 검출 도형 사라짐
+## Hotfix — 후보 B (Action 분기 force rebind 추가)
 
-**Resume signal:** `"approved 5/5 PASS"` 또는 `"FAIL scenario N: [관찰 내용]"`
+**Trigger:** Scenario 4/5 의 SHOT 표시 누락 = PLAN 의 root cause 후보 B (NodeType 분기 누락) 가 실제 발현. Phase 16 D-09 Datum force rebind 가 XAML SelectedObject 바인딩(L257)을 끊은 이후, Action/Sequence/else 분기에는 force rebind 가 없어 ParamEditor.SelectedObject 가 stale.
+
+**Fix:** InspectionListView.xaml.cs L483-490 (Action) / L491-496 (Sequence) / L497-502 (else) 분기에 Phase 19 fix 와 동일한 force rebind 패턴 추가.
+
+```csharp
+// Action 분기
+if (ParamEditor != null && itemParam is ParamBase) { //260511 hbk CO-22-01
+    _isRebinding = true; //260511 hbk CO-22-01
+    try {
+        ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
+        ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+    } finally {
+        _isRebinding = false; //260511 hbk CO-22-01
+    }
+}
+
+// Sequence/else 분기 — null 우선 + ParamBase 시 재할당
+if (ParamEditor != null) { //260511 hbk CO-22-01
+    _isRebinding = true; //260511 hbk CO-22-01
+    try {
+        ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
+        if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+    } finally {
+        _isRebinding = false; //260511 hbk CO-22-01
+    }
+}
+```
+
+**Hotfix commit:** `50f5405` — fix(quick-260511-ucv): CO-22-01 SHOT/Sequence PropertyGrid stale [hotfix: Action 분기 force rebind]
+
+**누적 변경:** +43 / -3 라인 (단일 파일).
+
+**재빌드:** msbuild Debug/x64 Rebuild PASS, 0 errors, 0 신규 warning (baseline 유지).
 
 ## Self-Check: PASSED
 
-- [x] `WPF_Example/UI/ControlItem/InspectionListView.xaml.cs` — modified, build PASS
-- [x] Commit `d6070e8` exists in worktree branch `worktree-agent-a5587eb25ea2356bb`
-- [x] 변경 라인 모두 `//260511 hbk CO-22-01` 마커 (3건)
+- [x] `WPF_Example/UI/ControlItem/InspectionListView.xaml.cs` — modified, build PASS (1차 + hotfix)
+- [x] Commits `d6070e8` + `50f5405` exist on main
+- [x] 변경 라인 모두 `//260511 hbk CO-22-01` 마커
 - [x] 기존 hbk 마커 손실 0
 - [x] 변경 파일 = 1 (InspectionListView.xaml.cs 만)
-- [x] Task 2 SIMUL UAT 자동 실행 안 함 (사용자 검증 영역)
+- [x] Task 2 SIMUL UAT 5/5 PASS (사용자 검증)
+- [x] CO-22-01 STATE.md Pending Todos → resolved (다음 단계)

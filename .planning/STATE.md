@@ -159,7 +159,7 @@ Recent decisions affecting current work:
 | 260428-oqn | 2026-04-28 | VerticalTwoHorizontal Datum Vertical_* ROI 렌더 누락 수정 — RenderDatumOverlay Line1/Vertical 슬롯 분기 (W4-A 후속, "Vert" 라벨 + Horizon A/B 에지 가시화 동시 회복) | c6c15a4 | |
 | 260429-c2e | 2026-04-29 | HALCON #1405 IntersectionLl 수정 — DatumFindingService CTH/VTH `ConcatObj→FitLine` 패턴을 `TupleConcat→단일 GenContourPolygonXld` (TryFindLine 833 라인 패턴) 으로 통일 | 311012a | Needs Review |
 | 260430-hox | 2026-04-30 | Circle strip 12px cap + RectL1/L2Ratio default 0.05→0.02 — Phase 16 UAT FAIL (insufficient polar samples) root cause | 7ca39b6 | UAT pending |
-| 260511-k3i | 2026-05-11 | ROI 버튼 트리 선택 fallback — 신규 FAI Measurement 0 케이스 대응 | 92f8c73 | Needs UAT |
+| 260511-k3i | 2026-05-11 | ROI 버튼 트리 선택 fallback — 신규 FAI Measurement 0 케이스 대응 | 92f8c73 | UAT PASS (사용자 4 scenarios 2026-05-11) |
 
 ### Pending Todos
 

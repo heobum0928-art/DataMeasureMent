@@ -30,6 +30,10 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string SourceShotName { get; set; } = "";
 
+        //260511 hbk Phase 22 IMG-01 — Datum 티칭 시 사용한 기준 이미지 경로. INI 직렬화는 ParamBase reflection 이 자동 처리 (ParamBase.cs L325-339 Save 의 case "String", L385-395 Load 의 case "String"). 검사 실행 시 이미지는 별도 ShotConfig.SimulImagePath 사용 — 역할 분리 유지. 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화 (T2).
+        [Category("Datum|ImageSource")]
+        public string TeachingImagePath { get; set; } = "";
+
         //260423 hbk Phase 12 D-09 — Datum 알고리즘 선택자 (PropertyGrid enum 자동 드롭다운)
         //260423 hbk  저장 타입: string (ParamBase.Save/Load switch가 enum 미지원 — ParamBase.cs:330-363)
         //260423 hbk  유효값: "TwoLineIntersect" | "CircleTwoHorizontal" | "VerticalTwoHorizontal"

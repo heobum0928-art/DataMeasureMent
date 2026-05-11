@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Infrastructure
-status: paused
-stopped_at: "Phase 21 Plan 03 UAT 대기 중. Phase 22(이미지 이중화)/23(A시리즈 Simul) 신설 완료. HW phases → v1.2 이연."
-last_updated: "2026-05-11T00:00:00.000Z"
-last_activity: 2026-05-11 -- ROADMAP 재편: Phase 22/23 교체, HW → v1.2 이연
+status: phase_complete
+stopped_at: "Phase 21 signed_off (2026-05-11). Test 1/2/4 PASS + Test 3 not_tested→Phase 23. Critical hotfix a3d9545 (silent data-loss) 사용자 UAT 검증 완료. 다음: ROI 버튼 quick task + Phase 22 (이미지 이중화)."
+last_updated: "2026-05-11T05:00:00.000Z"
+last_activity: 2026-05-11 -- Phase 21 signed_off + hotfix a3d9545 + Phase 22/23 신설
 progress:
   total_phases: 11
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 24
-  completed_plans: 23
-  percent: 96
+  completed_plans: 24
+  percent: 100
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 21 — memory-image-buffer
+**Current focus:** Phase 22 — image-dual-structure (다음 phase)
 
 ## Current Position
 
-Phase: 21 (memory-image-buffer) — PAUSED mid-UAT
-Plan: 3 of 3 (Plan 01/02 commit 완료, Plan 03 VERIFICATION + UAT scaffold 완료)
-Status: 사용자 SIMUL UAT 4 테스트 결과 대기 중. `.planning/phases/21-memory-image-buffer/21-UAT.md` 의 빈 Result 필드 채우기 + frontmatter status (signed_off / partial) 결정 필요.
-Next: 내일 SIMUL_MODE 에서 Test 1-3 실행 (Test 4 는 자동 PASS) → 21-UAT.md 결과 기입 → `/gsd-execute-phase 21` 재실행 (남은 sign-off 단계만 수행) 또는 직접 commit + `/gsd-complete-milestone` 단계 평가.
-Last activity: 2026-05-10 -- Phase 21 paused mid-UAT (sign-off 시도 후 PASS 정정 → reset --hard 로 daf3c98/422eaee 제거, b91dae8 으로 복귀)
+Phase: 21 (memory-image-buffer) — **SIGNED_OFF** 2026-05-11
+Plan: 3/3 완료
+Status: Test 1 verified (auto) + Test 2 PASS (7 hits) + Test 3 not_tested→Phase 23 + Test 4 PASS. Critical hotfix `a3d9545` (OnRecipeChanged_FlushBuffers ClearShots 제거) UAT 중 발견/적용/검증 완료. carry-overs: Datum/FAI 별도 이미지 보관 (Phase 22), SHOT_0 동기화 (Phase 23).
+Next: 즉시 — ROI 버튼 quick task (260511-xxx, btn_rectRoi/polygonRoi 트리 선택 fallback). 이후 — Phase 22 (이미지 이중화 구조) 본격 시작.
+Last activity: 2026-05-11 -- Phase 21 signed_off + hotfix a3d9545 적용 + 사용자 UAT 검증 완료
 
 ## Performance Metrics
 

@@ -1,13 +1,17 @@
 ---
 phase: 21-memory-image-buffer
 uat_date: 2026-05-10
-status: pending  # 사용자 PASS 후 signed_off (4/4 PASS) 또는 partial (gap 명시) 로 변경
+sign_off_date: 2026-05-11
+status: signed_off  # Test 1/2/4 PASS + Test 3 not_tested→Phase 23, critical hotfix a3d9545 적용/검증
 signed_off_by: heobum0928@gmail.com
 ac_coverage: [AC1, AC2, AC4]  # AC3 는 21-VERIFICATION.md 자동 audit 으로 충족
 related_files:
   - .planning/phases/21-memory-image-buffer/21-VERIFICATION.md
   - .planning/phases/21-memory-image-buffer/21-01-SUMMARY.md
   - .planning/phases/21-memory-image-buffer/21-02-SUMMARY.md
+  - .planning/debug/phase-21-fai-shot-data-loss.md
+hotfix_commits:
+  - a3d9545  # OnRecipeChanged_FlushBuffers ClearShots() 제거 — silent data-loss 수정
 ---
 
 # Phase 21 UAT — Memory Image Buffer
@@ -34,8 +38,8 @@ Phase 21 (BUF-01 / BUF-02) 의 사용자 SIMUL_MODE 검증. 4 테스트 PASS →
 
 **Expected:** halconViewer 에 마지막 Shot 이미지 즉시 표시 (디스크 I/O 0).
 
-**Result:** _____ (PASS / FAIL — 사용자 기입)
-**Notes:** _____ (지연 체감 / 모달 누락 / Process Monitor 캡처 결과 등 — 사용자 기입)
+**Result:** verified (auto grep + 사용자 관찰 2026-05-11)
+**Notes:** 사용자 시나리오 — 검사 미실행, Datum 티칭 후 FAI 클릭 시 halconViewer 의 stale teaching image 표시됨. AC#1 자체 (디스크 비접근) 는 grep audit 5/5 forbidden API 0 hits 으로 자동 verified. **Carry-over:** Datum 티칭 시점 이미지와 FAI 측정 이미지 분리 보관은 Phase 21 BUF-01 scope 외 → Phase 22 (이미지 이중화 구조) 로 이관 완료.
 
 ---
 
@@ -63,10 +67,10 @@ Phase 21 (BUF-01 / BUF-02) 의 사용자 SIMUL_MODE 검증. 4 테스트 PASS →
 - 앱 종료 시 SystemHandler.Release() 가 ClearShots 1회 추가 호출 (Plan 02 channel #3).
 - 보수적 임계 = **≥ 5 hits** PASS, 낙관적 기대 = ~11 hits (5×2 + 1).
 
-**Result:** _____ (PASS / FAIL — 사용자 기입)
-**Hit count:** _____ (실측치 — 사용자 기입)
-**Last log line:** _____ (마지막 1 라인 인용 — 사용자 기입)
-**Notes:** _____ (recipe A/B 이름, 실측 카운트가 임계 미만이면 어떤 채널 누락인지 추정 — 사용자 기입)
+**Result:** PASS (2026-05-11)
+**Hit count:** 7 (recipe 전환 6 + 앱 종료 1)
+**Last log line:** `13:39:04:1,[InspectionRecipeManager] ClearShots disposed 0 shot buffers` (앱 종료 직전)
+**Notes:** Recipe FAI_1 / CUDR_TIS 번갈아 5+1 회 전환 + 종료. ≥ 5 hits 임계 충족. dispose 회선 정상 발화 확정. **부수 발견:** 모든 hit 에서 Shots.Count == 0 → LoadRecipe 후 OnRecipeChanged 발화 → subscriber ClearShots 가 방금 로드한 데이터 삭제하는 critical bug (silent data-loss) 확정. **Hotfix a3d9545** 로 subscriber ClearShots 제거 → 사용자 UAT 로 SHOT/FAI 보존 검증 완료 (2026-05-11).
 
 ---
 
@@ -85,8 +89,8 @@ Phase 21 (BUF-01 / BUF-02) 의 사용자 SIMUL_MODE 검증. 4 테스트 PASS →
 
 **Expected:** Phase 20 sign-off 시점 동작과 동일 (byte-identical) — Datum 검출 PASS, FAI 측정 결과 분포 동일, 결과 이미지 정상 표시.
 
-**Result:** _____ (PASS / FAIL — 사용자 기입)
-**Notes:** _____ (Phase 20 baseline 대비 차이가 있으면 명시; 차이 없으면 "동일 — byte-identical OK" — 사용자 기입)
+**Result:** not_tested (Phase 23 으로 이관)
+**Notes:** SIMUL 검사 시퀀스 실행을 위해 SHOT 노드 선택 후 Run 시도 → "There is no action to run" 에러. TOP 시퀀스의 ActionCount == 0 상태 — Phase 6-04 UAT carry-over 의 IsDynamicFAIMode 동기화 이슈 (Phase 21 와 무관). Phase 23 (Top #1 A시리즈 Simul end-to-end) 에서 fresh dynamic FAI recipe 로 자연 흡수 검증 예정. Phase 21 의 byte-identical 보장은 grep + msbuild + Test 1/Test 2 hotfix 검증으로 충분.
 
 ---
 
@@ -113,11 +117,22 @@ Phase 21 (BUF-01 / BUF-02) 의 사용자 SIMUL_MODE 검증. 4 테스트 PASS →
 ## Summary
 
 - **Total:** 4
-- **Passed:** ___ (사용자 기입)
-- **Failed:** ___ (사용자 기입)
-- **Pending:** ___ (사용자 기입)
+- **Passed:** 2 (Test 2, Test 4)
+- **Verified (auto):** 1 (Test 1 — grep audit + 사용자 관찰)
+- **Not_tested (carry-over):** 1 (Test 3 → Phase 23)
+- **Failed:** 0
+- **Hotfix:** a3d9545 — UAT 중 발견된 silent data-loss 버그 즉시 수정 + 사용자 검증
 
-**Sign-off:** _____ (사용자 서명/이메일 + 날짜 — 사용자 기입)
+**Sign-off:** heobum0928@gmail.com — 2026-05-11
+
+### Critical Finding During UAT
+
+Test 2 의 "Shots.Count == 0" 로그가 silent data-loss 버그를 드러냄 (LoadRecipe → OnRecipeChanged → subscriber ClearShots → 방금 로드된 Shots 전체 삭제). debug session `phase-21-fai-shot-data-loss` 통해 root cause 확정 → hotfix `a3d9545` (OnRecipeChanged_FlushBuffers 에서 ClearShots 제거) 적용 → 사용자 UAT 로 보존 검증 완료. Phase 21 의 dispose 채널 #1 (Plan 02 wire-up) 의 실제 발화 시점 오류 — 의도된 "Load 직전 정리" 가 아닌 "Load 직후 정리" 로 작동했던 회귀였음. Channel #3 (Release) 와 instrumentation 은 유지 (정상 동작).
+
+### Carry-overs
+
+- **Phase 22 (이미지 이중화)**: Datum 티칭 시점 이미지와 FAI 측정 이미지 별도 보관 — Test 1 사용자 관찰에서 요구사항 부각.
+- **Phase 23 (A시리즈 Simul end-to-end)**: Test 3 회귀 검증 자연 흡수. SHOT_0 ActionCount=0 동기화 이슈 함께 정리 가능.
 
 ---
 

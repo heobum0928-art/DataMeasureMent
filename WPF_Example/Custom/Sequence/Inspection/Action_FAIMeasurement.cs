@@ -106,6 +106,7 @@ namespace ReringProject.Sequence {
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
                         HImage image = null;
+                        //260511 hbk Phase 22 IMG-02 — ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능 (UAT Test 2).
                         //260409 hbk Phase 5: SimulImagePath 이미지 로드 (D-10)
                         #if SIMUL_MODE
                         if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {

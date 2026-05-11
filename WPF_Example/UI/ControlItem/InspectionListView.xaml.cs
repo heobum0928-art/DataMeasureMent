@@ -487,18 +487,51 @@ namespace ReringProject.UI {
                         if (_inspectionVm != null) {
                             _inspectionVm.OnActionSelected(item);
                         }
+                        //260511 hbk CO-22-01 — Action(ShotConfig) 분기 force rebind 추가.
+                        //  Phase 16 D-09 Datum force rebind 가 XAML SelectedObject 바인딩(L257)을 끊은 이후
+                        //  Action 노드 클릭 시 PropertyGrid 가 stale (직전 Datum/FAI 유지). Phase 19 fix 와 동일 패턴 적용.
+                        if (ParamEditor != null && itemParam is ParamBase) { //260511 hbk CO-22-01
+                            _isRebinding = true; //260511 hbk CO-22-01
+                            try {
+                                ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
+                                ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+                            } finally {
+                                _isRebinding = false; //260511 hbk CO-22-01
+                            }
+                        }
                     }
                     else if (item.NodeType == ENodeType.Sequence) {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                        //260511 hbk CO-22-01 — Sequence 분기 force rebind (param=null 경로 포함).
+                        //  Sequence 노드는 통상 ParamBase 가 없으므로 명시적 null 할당으로 PropertyGrid 비움.
+                        if (ParamEditor != null) { //260511 hbk CO-22-01
+                            _isRebinding = true; //260511 hbk CO-22-01
+                            try {
+                                ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
+                                if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+                            } finally {
+                                _isRebinding = false; //260511 hbk CO-22-01
+                            }
+                        }
                     }
                     else {
                         button_addFAI.IsEnabled = false;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                        //260511 hbk CO-22-01 — else 분기 (unknown NodeType) 도 동일 패턴 — PropertyGrid 명시적 비움.
+                        if (ParamEditor != null) { //260511 hbk CO-22-01
+                            _isRebinding = true; //260511 hbk CO-22-01
+                            try {
+                                ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
+                                if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+                            } finally {
+                                _isRebinding = false; //260511 hbk CO-22-01
+                            }
+                        }
                     }
 
                     //260423 hbk Phase 11 D-15/D-18 — Circle ROI 버튼 활성화 게이팅 (선택 노드 기반)

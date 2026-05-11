@@ -222,6 +222,7 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineAngleMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\CircleDiameterMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineDistanceMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />

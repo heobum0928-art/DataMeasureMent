@@ -1,0 +1,101 @@
+//260512 hbk Phase 23 ALG-01 — Datum-relative Y 거리 측정 (D-06)
+using System.Collections.Generic;
+using HalconDotNet;
+using PropertyTools.DataAnnotations;
+using ReringProject.Halcon.Algorithms;
+using ReringProject.Halcon.Models;
+
+namespace ReringProject.Sequence
+{
+    /// <summary>
+    /// Point ROI 에서 수평 에지 라인을 피팅하여 중점을 추출하고,
+    /// datumTransform 으로 Datum-relative 좌표계로 변환한 후 row 좌표(부호 반전 = +Y 위쪽 양수)를
+    /// "Datum B 까지 Y방향 거리" (mm) 로 리턴한다.
+    /// 결과 단위: mm (pixelResolution 적용).
+    /// Datum 1개(CTH) 가정 — origin = Circle center, Y축 = horizontal line (D-01).
+    /// </summary>
+    public class EdgeToLineDistanceMeasurement : MeasurementBase //260512 hbk Phase 23 ALG-01
+    {
+        public override string TypeName { get { return "EdgeToLineDistance"; } } //260512 hbk Phase 23 ALG-01
+
+        [Category("Point|ROI")] //260512 hbk Phase 23 ALG-01
+        public double Point_Row { get; set; }
+        public double Point_Col { get; set; }
+        public double Point_Phi { get; set; }
+        public double Point_Length1 { get; set; }
+        public double Point_Length2 { get; set; }
+
+        [Category("Edge")] //260512 hbk Phase 23 ALG-01
+        public int EdgeThreshold { get; set; } = 10;
+        public double Sigma { get; set; } = 1.0;
+        public int EdgeSampleCount { get; set; } = 20;
+        public int EdgeTrimCount { get; set; } = 10;
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260512 hbk Phase 23 ALG-01 — ComboBox 처리
+        public string EdgePolarity { get; set; } = "DarkToLight";
+        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260512 hbk Phase 23 ALG-01 — ComboBox 처리, default TtoB (수평 에지 검출, Y거리 측정 의도)
+        public string EdgeDirection { get; set; } = "TtoB";
+        [ItemsSourceProperty(nameof(EdgeSelectionList))] //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 (memory feedback)
+        public string EdgeSelection { get; set; } = "First";
+
+        //260512 hbk Phase 23 ALG-01 — PropertyGrid ComboBox 옵션 래퍼 (Browsable(false) 로 자체 노출 차단)
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } }
+
+        public EdgeToLineDistanceMeasurement(object owner) : base(owner) { } //260512 hbk Phase 23 ALG-01
+
+        public override bool TryExecute( //260512 hbk Phase 23 ALG-01
+            HImage image,
+            HTuple datumTransform,
+            double pixelResolution,
+            out double resultValue,
+            out string error,
+            out List<EdgeInspectionOverlay> overlays)
+        {
+            resultValue = 0;
+            error = null;
+            overlays = new List<EdgeInspectionOverlay>(); //260512 hbk Phase 23 ALG-01 — PointToLineDistance 패턴 (빈 리스트, Phase 7-01 D-03)
+
+            //260512 hbk Phase 23 ALG-01 — D-11 Datum 찾기 실패 가드 (literal 구현, upstream gating 은 보조 이중 안전망)
+            if (datumTransform == null || datumTransform.Length == 0)
+            {
+                error = "Datum not found";
+                return false;
+            }
+
+            var svc = new VisionAlgorithmService();
+            double pr1, pc1, pr2, pc2;
+            //260512 hbk Phase 23 ALG-01 — TryFitLine selection 인자 전달 (D-10 EdgeSelection 명시)
+            if (!svc.TryFitLine(image,
+                Point_Row, Point_Col, Point_Phi, Point_Length1, Point_Length2,
+                datumTransform,
+                EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
+                EdgeDirection, EdgePolarity,
+                out pr1, out pc1, out pr2, out pc2, out error,
+                EdgeSelection))
+            {
+                return false;
+            }
+            double pRow = (pr1 + pr2) / 2.0;
+            double pCol = (pc1 + pc2) / 2.0;
+
+            //260512 hbk Phase 23 ALG-01 — Datum-relative Y 좌표 추출 + D-02 부호 반전 (image row → +Y 위쪽 양수)
+            double datumRow = pRow;
+            try
+            {
+                HTuple tRow, tCol;
+                HOperatorSet.AffineTransPoint2d(datumTransform, pRow, pCol, out tRow, out tCol);
+                datumRow = tRow.D;
+            }
+            catch
+            {
+                // transform 실패 시 image-row 좌표 사용 (TryFitLine 패턴 일관성, RESEARCH Pitfall 2)
+            }
+            resultValue = -datumRow * pixelResolution; //260512 hbk Phase 23 ALG-01 — D-02 +Y 부호 (위쪽 양수)
+            return true;
+        }
+    }
+}

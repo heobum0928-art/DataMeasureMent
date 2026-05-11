@@ -3,8 +3,8 @@ phase: 23
 plan: 03
 status: pending
 total: 5
-passed: 0
-pending: 5
+passed: 1
+pending: 4
 requirement_ids: [ALG-01]
 sign_off_reviewer: ""
 sign_off_date: ""
@@ -143,11 +143,11 @@ sign_off_date: ""
 - Warning 매치 정확히 6 (Phase 21 baseline)
 - 신규 warning code 부재
 
-**Actual:** (build_23_w3.log 인용 — Task 2 자동 갱신)
+**Actual:** build_23_w3.log — EXIT=0, 0 errors, 6 warnings (MSB3884×2 + CS0162×2 + CS0219×2 = Phase 21 baseline preserved). 신규 warning 0.
 
-**Result:** ⬜ pending — Task 2 가 자동 실행/검증
+**Result:** ✅ PASS (2026-05-12 자동 검증)
 
-**Notes:** Plan 23-02 Task 3 의 build_23_w2.log 와 동일 결과 기대 (단, Plan 23-03 시점 재검증)
+**Notes:** Plan 23-02 Task 3 의 build_23_w2.log 와 동일 결과 — Phase 21 baseline 6 occurrences (3 unique × 2-pass Rebuild) 유지, Plan 23-01+02 누적 변경이 신규 컴파일 warning 도입 0.
 
 ---
 
@@ -159,9 +159,9 @@ sign_off_date: ""
 | 2 | SC#2 OK/NG strip | ⬜ pending | — |
 | 3 | SC#3 TeachingImagePath 분리 | ⬜ pending | — |
 | 4 | SC#4 A6 확장성 (INI + UI) | ⬜ pending | — |
-| 5 | SC#5 msbuild PASS | ⬜ pending | — |
+| 5 | SC#5 msbuild PASS | ✅ PASS | build_23_w3.log: 0 errors / 6 warnings (baseline 유지) |
 
-**Total:** 5 / **Passed:** 0 / **Pending:** 5
+**Total:** 5 / **Passed:** 1 / **Pending:** 4
 
 ---
 

@@ -516,6 +516,7 @@ namespace ReringProject.Sequence {
             if (string.IsNullOrEmpty(Circle_EdgePolarity)) Circle_EdgePolarity = fbPolarity;
             if (string.IsNullOrEmpty(Circle_EdgeSelection)) Circle_EdgeSelection = fbSelection; //260429 hbk Phase 15
             if (string.IsNullOrEmpty(Circle_RadialDirection)) Circle_RadialDirection = "Inward"; //260503 hbk Phase 17 D-02 — sentinel "" → "Inward" fallback (INI 하위호환)
+            if (TeachingImagePath == null) TeachingImagePath = ""; //260511 hbk Phase 22 IMG-01 — INI 키 미존재 시 null 가드 (ParamBase.Load String case 가 IniValue.Default → null 로 SetValue 가능 → 소비처 string.IsNullOrEmpty 가드 보완). 멱등성 보장 — 빈 문자열 아닌 사용자 셋업 값은 보존.
 
             // Horizontal_A
             if (Horizontal_A_EdgeThreshold == 0)   Horizontal_A_EdgeThreshold = fbThreshold;

@@ -554,7 +554,7 @@ public bool TryFitLine(
 
 **즉 이 RESEARCH 의 핵심 가정 = A1 (Datum 알고리즘 1개 = CTH)** 이며, 이 1개 답변으로 Phase 23 lock 완료. 나머지 가정은 PropertyGrid 에서 사용자 조정 가능하므로 risk 낮음.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **PPT(Datum_정보_260511_2D) 의 Datum B/C 매핑 (D-01 lock-in)** [SEVERITY: HIGH]
    - What we know: 위치 `D:\TestImg\Datameasurement\` — 현재 `teaching.bmp` (2022-12-07, 41 MB) 만 존재. PPT 파일 미존재 (검증: `Get-ChildItem`).
@@ -563,21 +563,25 @@ public bool TryFitLine(
      - "Top Fixture #1 의 Datum 정의 = (a) 1개 = CircleTwoHorizontal (B1 홀 + 수평 2-ROI) / (b) 2개 = B(TwoLineIntersect) + C(CircleTwoHorizontal) / (c) 2개 = B(VerticalTwoHorizontal) + C(... 등). 어느 쪽?"
      - A1~A5 ROI 좌표 + 공차는 사용자가 셋업 시 PropertyGrid 에서 직접 입력 가능 → PPT 없이도 코드 작성 가능. 검증은 사용자가 Simul 이미지 + INI 셋업 후 UAT.
    - Fallback: A1 (CTH 1개) 로 lock 후 진행. UAT 시 결과 부적합하면 carry-over.
+   - RESOLVED: D-01 lock to CircleTwoHorizontal per CONTEXT.md (사용자 답변 2026-05-11)
 
 2. **SC#2 의 "5개 strip 동시 표시" 정확한 정의**
    - What we know: 기존 CO-05 = HalconDisplayService L167-180 의 RoiId suffix 패턴 (FAI-Edge*-OK/NG → 녹/적). 5종 measurement 중 EdgePairDistance 만 overlay 채움.
    - What's unclear: EdgeToLineDistance 의 PointToLineDistance 패턴 (overlay 빈) 채택 vs minimal overlay 추가.
    - Recommendation: Pitfall 4 의 옵션 (A) — minimal overlay (`RoiId="FAI-Edge1"`, Line = fit 결과) 추가. PLAN 에 명시.
+   - RESOLVED: PointToLineDistance pattern (empty overlay) — Plan 23-01 Task 2 + Plan 23-03 Test 2 trust-based PASS
 
 3. **EdgeSelection 명시 처리 — TryFitLine 시그니처 확장 vs 직접 MeasurePos 호출**
    - What we know: 시그니처 확장이 변경 라인 적음 (TryFitLine 1 함수만), 기존 caller 호환 (default 인자).
    - What's unclear: 다른 caller (EdgePairDistanceMeasurement 등) 가 EdgeSelection 명시 처리를 곧 따라가야 하는지.
    - Recommendation: Phase 23 범위는 TryFitLine 시그니처 확장만 + 기존 caller 는 default "all" 유지. EdgePairDistance 등의 EdgeSelection 명시는 별도 phase 또는 carry-over.
+   - RESOLVED: TryFitLine 시그니처 확장 (string selection = "all" default) — Plan 23-01 Task 1
 
 4. **Datum 찾기 실패 시 5개 strip 모두 빨강 — UAT 검증 방법**
    - What we know: D-11 = TryExecute → false + error="Datum not found"`. Action_FAIMeasurement L171-175 가 `ClearResult + LastJudgement=false`.
    - What's unclear: Halcon viewer 에 빨강 라인 표시 vs InspectionListView 노드 색상 vs 그냥 메시지만.
    - Recommendation: Datum 실패 시 `EdgeToLineDistance` 가 false 반환 → Action_FAIMeasurement 가 NG 처리 → CO-05 자동 빨강. 단, overlay 가 채워졌을 때만 시각 빨강. discuss-phase 에서 사용자 기대 확인.
+   - RESOLVED: D-11 literal 구현 (EdgeToLineDistance.TryExecute guard) — Plan 23-01 Task 2
 
 ## Environment Availability
 

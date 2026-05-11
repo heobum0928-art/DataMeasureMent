@@ -1,10 +1,10 @@
 ---
 phase: 22-image-dual-structure
 artifact: UAT
-status: pending
+status: signed_off
 updated: 2026-05-11
 total: 4
-passed: 0
+passed: 4
 ---
 
 # Phase 22 UAT — 이미지 이중화 구조 (IMG-01, IMG-02)
@@ -35,9 +35,10 @@ PropertyGrid 노출 + INI Save/Load 라운드트립 보존 검증.
 
 **Expected:** 3 시점 입력값과 6 시점 복원값이 byte-identical
 
-**Result:** __ (PASS/FAIL)
+**Result:** PASS (2026-05-11 사용자 확인)
 
-**Notes:** (FAIL 시 원인 기재)
+**Notes:** 스크린샷으로 시각 확인 — Datum_2 노드의 `Datum|ImageSource` 카테고리에
+`Teaching image path = D:\TestImg\Datameasurement\teaching_b.bmp` 정상 노출 + 저장/로드 라운드트립 PASS.
 
 ---
 
@@ -57,9 +58,10 @@ PropertyGrid 노출 + INI Save/Load 라운드트립 보존 검증.
 
 **Expected:** 동일 경로여도 코드 레벨 분리 유지, 런타임 회귀 0
 
-**Result:** __ (PASS/FAIL)
+**Result:** PASS (2026-05-11 trust-based — 사용자 합의)
 
-**Notes:** (FAIL 시 원인 기재)
+**Notes:** trust-based PASS 근거 — Plan 22-02 는 `Action_FAIMeasurement.cs` 의 SIMUL 로드 분기 (L110-123 Grab, L226-240 GrabOrLoadDatumImage) 코드 라인 1 자도 수정하지 않음. 신규 추가는 주석 2 라인 (L109, L226 위)뿐. 새로 도입한 코드 경로가 없으므로 "두 경로 동일 파일" 회귀 시나리오가 발생할 수 있는 분기 자체가 부재.
+검증 패턴: `grep -c "new HImage(ShotParam.SimulImagePath)" Action_FAIMeasurement.cs == 2` (Plan 22-02 verification step 2 자동 통과).
 
 ---
 
@@ -77,9 +79,9 @@ PropertyGrid 노출 + INI Save/Load 라운드트립 보존 검증.
 
 **Expected:** 빈 문자열 폴백 + 회귀 0
 
-**Result:** __ (PASS/FAIL)
+**Result:** PASS (2026-05-11 사용자 확인)
 
-**Notes:** (FAIL 시 원인 기재)
+**Notes:** 초기 보고 시 "레시피별 분리 안 됨" 증상 발생 — 원인 추적 결과 사용자 측 테스트 데이터 (티칭 파일 자체) 차이로 확인. 레시피 A 복사 후 B 를 만들어 정상 절차로 재테스트 시 INI 별로 독립적으로 TeachingImagePath 가 저장/로드됨을 확인 (ParamBase reflection 정상 동작). 회귀 0.
 
 ---
 
@@ -100,9 +102,9 @@ PropertyGrid 노출 + INI Save/Load 라운드트립 보존 검증.
 
 **Expected:** 0 errors / 6 warning occurrences (baseline 동일) / DatumMeasurement.exe 생성
 
-**Result:** __ (PASS/FAIL)
+**Result:** PASS (2026-05-11 자동 검증)
 
-**Notes:** (FAIL 시 원인 기재)
+**Notes:** `build_22.log` 의 grep 결과 — error 매치 0, warning 매치 6 (Phase 21 baseline 동일). `bin\x64\Debug\DatumMeasurement.exe` 정상 생성. 신규 warning 0 — Task 1/2 의 주석-only 변경 + Task 22-01 의 public string 속성 추가가 CS0649 (unused private field) 등 신규 경고를 발생시키지 않음.
 
 ---
 
@@ -110,25 +112,28 @@ PropertyGrid 노출 + INI Save/Load 라운드트립 보존 검증.
 
 | # | Scenario | Result |
 |---|----------|--------|
-| 1 | TeachingImagePath INI 라운드트립 (SC#1) | pending |
-| 2 | 두 경로 동일 파일 케이스 (SC#3) | pending |
-| 3 | TeachingImagePath INI 키 미존재 폴백 (SC#4) | pending |
-| 4 | msbuild Debug/x64 PASS + warning 0 (SC#5) | pending |
+| 1 | TeachingImagePath INI 라운드트립 (SC#1) | PASS |
+| 2 | 두 경로 동일 파일 케이스 (SC#3) | PASS (trust-based) |
+| 3 | TeachingImagePath INI 키 미존재 폴백 (SC#4) | PASS |
+| 4 | msbuild Debug/x64 PASS + warning 0 (SC#5) | PASS |
 
-**Total:** 4 / **Passed:** 0 / **Pending:** 4
+**Total:** 4 / **Passed:** 4 / **Pending:** 0
 
 ---
 
 ## Carry-overs
 
-(사용자 검증 중 발견된 신규 결함은 본 섹션에 기재 — Phase 23 또는 별도 quick-task 로 이관)
+UAT 수행 중 발견된 신규 결함 (Phase 22 범위 밖, 별도 quick task 로 이관):
 
-- (없음)
+- **CO-22-01 — Datum 노드 ↔ FAI 노드 PropertyGrid 전환 동작 안 됨**: 트리에서 Datum 노드 선택 후 FAI 노드를 클릭해도 PropertyGrid 가 즉시 갱신되지 않는 UI 네비게이션 버그. Phase 22 가 추가한 단일 속성 (TeachingImagePath) 과 무관 — 사전 존재 UI 동작 또는 Phase 17 ICustomTypeDescriptor 와의 상호작용 가능성. 별도 quick task 로 분리하여 재현/원인 추적 필요. (등록: 2026-05-11 사용자 보고)
+
+- **TeachingImagePath 실 소비**: Plan 22-01 은 INI 영구 보존 인프라만 제공. 실제 셋업 단계에서 TeachingImagePath 의 이미지를 자동 로드하여 재티칭 ROI 기준으로 사용하는 기능은 **Phase 23 (A시리즈 Simul) 또는 후속 UI 작업** 으로 carry-over (계획 lock-in).
 
 ---
 
 ## Sign-off
 
-- Reviewer: __
-- Date: __
-- Status: pending → signed_off (4/4 PASS 후 갱신)
+- Reviewer: heobum0928 (사용자)
+- Date: 2026-05-11
+- Status: signed_off
+- Result: 3 PASS (직접 검증) + 1 PASS (trust-based, 코드 변경 0 근거)

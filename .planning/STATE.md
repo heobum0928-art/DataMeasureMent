@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: CO-22-01 resolved. v1.1 다음 phase 진입 가능.
-stopped_at: Phase 23 context gathered
-last_updated: "2026-05-11T14:56:32.742Z"
-last_activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 5/5 UAT PASS)
+status: executing
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-05-11T15:06:57.921Z"
+last_activity: 2026-05-11
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 29
-  completed_plans: 25
-  percent: 86
+  completed_plans: 26
+  percent: 90
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Quick 260511-ucv complete (CO-22-01 resolved). 다음 v1.1 phase 대기.
+**Current focus:** Phase 23 — top-1-a-simul-end-to-end
 
 ## Current Position
 
-Phase: 22 (image-dual-structure) — SIGNED_OFF (2026-05-11) + Quick 260511-ucv (CO-22-01) — complete
-Plan: quick 1/1 완료 (d6070e8 + 50f5405 hotfix)
-Status: CO-22-01 resolved. v1.1 다음 phase 진입 가능.
+Phase: 23 (top-1-a-simul-end-to-end) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Next: 사용자 선택 — (a) Phase 23 A시리즈 Simul (TeachingImagePath 활용), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export, (d) 기타 backlog
-Last activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 5/5 UAT PASS)
+Last activity: 2026-05-11
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Last activity: 2026-05-11 -- Quick 260511-ucv complete (CO-22-01 5/5 UAT PASS)
 | Phase 21 P21-02 | 3 | 3 tasks | 3 files |
 | Phase 22 P22-01 | 2 | 2 tasks | 1 files |
 | Phase 22 P22-02 | 10 | 4 tasks | 2 files |
+| Phase 23 P01 | 12 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,8 @@ Recent decisions affecting current work:
 - [Phase 21-02]: D-02 channel #1 wire = Custom/SystemHandler.cs partial methods (Wire/Unwire/OnRecipeChanged_FlushBuffers); channel #3 = Release() ClearShots before Sequences.Dispose; AC#2 instrumentation = Logging.PrintLog as first statement of ClearShots (pre-dispose Shots.Count). 0 deviations, msbuild PASS.
 - [Phase 22-01]: DatumConfig.TeachingImagePath public string ("" default) + [Category("Datum|ImageSource")] PropertyGrid 자동 노출 (L33-35); EnsurePerRoiDefaults null 가드 `if (TeachingImagePath == null) TeachingImagePath = ""` (L519) — `== null` 비교 채택 (NOT IsNullOrEmpty) 으로 사용자 클리어한 빈 문자열 보존. ParamBase reflection 자동 직렬화 → InspectionRecipeManager caller 코드 0 변경. ShotConfig 무수정 (디자인 lock-in (b): InspectionImagePath = ShotConfig.SimulImagePath 의미적 재해석).
 - [Phase 22-02]: Action_FAIMeasurement.cs 코드 무수정 + 주석 2 라인만 추가 (L109 EStep.Grab, L226 GrabOrLoadDatumImage) — InspectionImagePath = ShotParam.SimulImagePath 역할 명시 + TeachingImagePath 와의 분리 못박음. msbuild Debug/x64 Rebuild PASS (0 errors, 6 warnings = Phase 21 baseline, 신규 0). 22-UAT.md 4/4 PASS (Test 1 시각 / Test 2 trust-based 코드 변경 0 근거 / Test 3 사용자 측 데이터 차이 해결 / Test 4 자동). Phase 20 D-12 marker stacking 패턴 준수 (기존 `//260409 hbk Phase 5` 보존 + 위에 `//260511 hbk Phase 22 IMG-02` 누적).
+- [Phase 23-01]: TryFitLine signature 확장 — optional 'string selection = "all"' default param 채택으로 5 caller (PointToLine/PointToPoint/LineToLineAngle/LineToLineDistance × 2 호출씩 = 8건) 무수정 호환. MeasurePos 'all' 하드코딩 → measureSel 변수 3분기 (TryFindCircleByPolarSampling L249-264 패턴 차용). D-10 EdgeSelection 명시 (memory feedback) 충족.
+- [Phase 23-01]: EdgeToLineDistanceMeasurement 신규 (Datum-relative Y 거리 측정, MeasurementFactory 7번째 algorithm). EdgeDirection default = TtoB (수평 에지 검출), EdgeSelection default = First (D-10), overlay = 빈 리스트 (PointToLineDistance 패턴, Phase 7-01 D-03). D-11 literal guard (datumTransform null/empty → 'Datum not found') 진입부 추가 — upstream gating 보조 이중 안전망. Y 부호 반전 = 클라이언트측 (-datumRow * pixelResolution, D-02).
 
 ### Quick Tasks Completed
 
@@ -218,9 +221,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 23 context gathered
-Resume file: --resume-file
+Last session: 2026-05-11T15:06:45.065Z
+Stopped at: Completed 23-01-PLAN.md
+Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 
 **v1.1 Phase Map:**

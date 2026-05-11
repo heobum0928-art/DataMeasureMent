@@ -37,7 +37,7 @@ Top Fixture #1 의 Simul 이미지 1장으로 다음 흐름이 오류 없이 완
 
 ### Datum B/C 구성
 
-- **D-01:** Datum 표현 방식은 **researcher 가 PPT(Datum_정보_260511_2D) 확인 후 결정**. 후보 — (a) Datum 1개 = CTH (B1 홀 Circle + 2 horizontal tangent line, origin=circle center, Y축 자동 도출), (b) Datum 2개 = B(TLI 또는 단일 horizontal) + C(CTH 또는 단일 vertical). researcher 가 PPT 매핑 후 lock-in.
+- **D-01:** Datum 표현 방식 = **LOCKED 2026-05-11 → (a) Datum 1개 = CTH (B1 홀 Circle + 2 horizontal tangent line). AlgorithmType = `CircleTwoHorizontal`**. origin = Circle center, Y축 자동 도출. INI = 단일 DatumConfig 1개. PPT 미존재로 1줄 답변 lock (사용자 확인). 후보 (b) Datum 2개 (B+C) 는 deferred.
 - **D-02:** Y측정 부호 규약 = **+Y (Datum B 위쪽이 양수, 공학 표준)**. HALCON image row 방향(아래쪽 양수)과 반대일 수 있음 — datumTransform 적용 시 부호 반전 확인.
 - **D-03:** 이번 Phase 의 Fixture 범위 = **Top Fixture #1 단독**. #2~ 및 Bottom Fixture 는 SC#4 확장성 검증 대상 아님 (구조 동일 가정만).
 - **D-04:** **TeachingImagePath 자동 로드 구현** (Phase 22 carry-over) — Datum 첫기 단계에서 `DatumConfig.TeachingImagePath` 가 비어있지 않으면 그 이미지를 재티칭 기준으로 로드하고, 비어있으면 기존 `ShotConfig.SimulImagePath` (= InspectionImagePath) 폴백 (하위호환). 두 경로 동일 파일도 회귀 0 (Phase 22 SC#3 유지).

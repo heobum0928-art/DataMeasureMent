@@ -1063,11 +1063,15 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.RectRoi;
                 btn_rectRoi.IsChecked = true;
 
-                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                //260509 hbk Phase 20 — ternary expanded
-                FAIConfig faiToEdit;
-                if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
-                else                     faiToEdit = null;
+                //260511 hbk 신규 FAI(Measurement 0개) 회귀 — 트리 선택을 우선 사용, dataGrid 는 fallback
+                FAIConfig faiToEdit = null;
+                if (mParentWindow != null && mParentWindow.inspectionList != null)
+                    faiToEdit = mParentWindow.inspectionList.SelectedParam as FAIConfig;
+                if (faiToEdit == null) {
+                    //260511 hbk fallback — 기존 dataGrid 행 선택 경로 보존
+                    var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                    if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
+                }
                 if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Rect ROI");
                     ExitCanvasMode();
@@ -1232,12 +1236,15 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.PolygonRoi;
                 btn_polygonRoi.IsChecked = true;
 
-                //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FAIName으로 FAIConfig 조회 (D-21)
-                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                //260509 hbk Phase 20 — ternary expanded
-                FAIConfig faiToEdit;
-                if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
-                else                     faiToEdit = null;
+                //260511 hbk 신규 FAI(Measurement 0개) 회귀 — 트리 선택을 우선 사용, dataGrid 는 fallback
+                FAIConfig faiToEdit = null;
+                if (mParentWindow != null && mParentWindow.inspectionList != null)
+                    faiToEdit = mParentWindow.inspectionList.SelectedParam as FAIConfig;
+                if (faiToEdit == null) {
+                    //260511 hbk fallback — 기존 dataGrid 행 선택 경로 보존
+                    var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                    if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
+                }
                 if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Polygon ROI");
                     ExitCanvasMode();

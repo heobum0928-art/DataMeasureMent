@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Completed 23-02-PLAN.md
-last_updated: "2026-05-11T15:12:57.090Z"
-last_activity: 2026-05-11
+stopped_at: Phase 23 partial sign-off (2026-05-13) — CO-23-01 carry-over
+last_updated: "2026-05-13T10:00:00.000Z"
+last_activity: 2026-05-13
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 29
-  completed_plans: 27
-  percent: 93
+  completed_plans: 28
+  percent: 96
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 23 — top-1-a-simul-end-to-end
+**Current focus:** Phase 23 partial sign-off → CO-23-01 quick task 또는 Phase 24
 
 ## Current Position
 
-Phase: 23 (top-1-a-simul-end-to-end) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
-Next: 사용자 선택 — (a) Phase 23 A시리즈 Simul (TeachingImagePath 활용), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export, (d) 기타 backlog
-Last activity: 2026-05-11
+Phase: 23 (top-1-a-simul-end-to-end) — PARTIAL SIGN-OFF (2026-05-13)
+Plan: 3 of 3 (UAT)
+Status: partial (1 PASS / 1 FAIL / 3 blocked)
+Next: 사용자 선택 — (a) v1.1 quick CO-23-01 디버깅 (A1~A5 측정값 미표시 — PixelResolutionX 0 또는 binding 단절 추적), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
+Last activity: 2026-05-13
 
 ## Performance Metrics
 

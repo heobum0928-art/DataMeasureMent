@@ -25,7 +25,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 20: 코드 스타일 정리** — signed off 2026-05-09
 - [ ] **Phase 21: 메모리 이미지 버퍼** — UAT 마무리 중 (2/3 plans done)
 - [ ] **Phase 22: 이미지 이중화 구조** — 티칭 이미지(TeachingImagePath) / 검사 이미지(InspectionImagePath) 역할 분리 + INI 직렬화 (IMG-01, IMG-02) ← 신설 2026-05-11
-- [ ] **Phase 23: Top #1 A시리즈 Simul end-to-end** — Datum B/C 기반 FAI A1~A5 Y방향 거리 측정 Simul 완주 (ALG-01) ← 신설 2026-05-11
+- [~] **Phase 23: Top #1 A시리즈 Simul end-to-end** — Partial sign-off 2026-05-13 (ALG-01 wiring 완료, A1~A5 측정값 UI 표시 결함 CO-23-01 carry-over)
 - [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02)
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
 - [ ] **Phase 26: 헝가리안 전체 리팩토링** — 전체 식별자 헝가리안 표기법 일면 적용 (QUAL-01)

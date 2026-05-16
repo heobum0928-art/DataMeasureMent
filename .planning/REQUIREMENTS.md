@@ -106,7 +106,7 @@
 | Phase 20 — 코드 스타일 정리 | QUAL-02, QUAL-04 | Complete (2026-05-09) |
 | Phase 21 — 메모리 이미지 버퍼 | BUF-01, BUF-02 | Pending |
 | Phase 22 — 이미지 이중화 구조 | IMG-01, IMG-02 | Pending (신설 2026-05-11) |
-| Phase 23 — Top #1 A시리즈 Simul end-to-end | ALG-01 (별도 정의) | Pending (신설 2026-05-11) |
+| Phase 23 — Top #1 A시리즈 Simul end-to-end | ALG-01 (별도 정의) | Partial (2026-05-13 — wiring 완료, A1~A5 측정값 UI 표시 결함 CO-23-01 carry-over) |
 | Phase 24 — 검사 워크플로우 end-to-end | WF-01, WF-02 | Pending |
 | Phase 25 — 결과 분석 & Export | OUT-01, OUT-02, OUT-03, OUT-04 | Pending |
 | Phase 26 — 헝가리안 전체 리팩토링 | QUAL-01 | Pending |

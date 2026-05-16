@@ -1,13 +1,15 @@
 ---
 phase: 23
 plan: 03
-status: pending
+status: partial
 total: 5
 passed: 1
-pending: 4
+failed: 1
+blocked: 3
+pending: 0
 requirement_ids: [ALG-01]
-sign_off_reviewer: ""
-sign_off_date: ""
+sign_off_reviewer: heobum0928-art
+sign_off_date: 2026-05-13
 ---
 
 # Phase 23 UAT — Top #1 A시리즈 Simul end-to-end (ALG-01)
@@ -49,11 +51,11 @@ sign_off_date: ""
 - 정밀도 3자릿 (예: `12.345 mm`) — format = F3 확인 완료 (MeasurementResultRow.cs L54/L60 `ToString("F3")` 기존 적용)
 - +Y 부호 적용 확인 (Datum B 위쪽 측정점 = 양수, D-02)
 
-**Actual:** (사용자 작성)
+**Actual:** 시퀀스 완주 + Datum CTH (Datum.Line2 strip-loop 50 edges → trim 30 정상 로그) 동작. A1~A5 EdgeToLineDistance 측정 후 InspectionListView 측정값 컬럼 = `—` (값 없음), 판정 컬럼 = `—`. Error 로그에 `[FAIMeasurement] failed` 메시지 부재 → `TryExecute = true` 로 평가됨에도 UI 결과 미표시. (Error 로그에 ParamBase.Load reflection 노이즈 `Property set method not found` 다수 — `MeasurementBase.TypeName` get-only 인 기존 노이즈, 본 결함과 무관.)
 
-**Result:** ⬜ pending
+**Result:** ❌ FAIL
 
-**Notes:** (사용자 작성)
+**Notes:** 가능한 원인 후보 (디버깅 carry-over) — (a) `FAIConfig.PixelResolutionX = 0` → `resultValue = -datumRow * 0 = 0` (조용히 0), (b) 측정값 컬럼 binding/refresh 단절. 추적 미완료, v1.1 quick task 로 carry-over.
 
 ---
 
@@ -73,11 +75,11 @@ sign_off_date: ""
 - OK 판정 노드 = 녹색, NG 판정 노드 = 빨강 (CO-05 패턴 — InspectionListView)
 - Halcon viewer 의 strip 색상 라인은 EdgeToLineDistance overlay 미생성 정책 (Plan 23-01 결정 — PointToLineDistance 패턴 일치) 으로 표시 안 될 수 있음. **trust-based PASS 옵션** — 노드 색상이 정확히 분기되면 PASS, viewer 라인 부재 시 carry-over 등록.
 
-**Actual:** (사용자 작성)
+**Actual:** SC#1 측정값 부재로 OK/NG 판정 자체 불가 → 본 시나리오 검증 불가.
 
-**Result:** ⬜ pending
+**Result:** ⏸ blocked (SC#1 의존)
 
-**Notes:** Pitfall 4 인용 — overlay 추가는 별도 backlog
+**Notes:** Pitfall 4 인용 — overlay 추가는 별도 backlog. SC#1 carry-over 해소 후 재검증 필요.
 
 ---
 
@@ -97,11 +99,11 @@ sign_off_date: ""
 - Case B: SC#1 동작 동일 (회귀 0)
 - Case C: Phase 22 동작 byte-identical (회귀 0)
 
-**Actual:** (사용자 작성)
+**Actual:** SC#1 측정값 부재로 두 경로 분리/회귀 동등성 비교 자체 불가 → 본 시나리오 검증 불가.
 
-**Result:** ⬜ pending
+**Result:** ⏸ blocked (SC#1 의존)
 
-**Notes:** Case A 가 실 시나리오, Case B/C 는 회귀 검증
+**Notes:** Case A 가 실 시나리오, Case B/C 는 회귀 검증. SC#1 carry-over 해소 후 재검증 필요.
 
 ---
 
@@ -120,11 +122,11 @@ sign_off_date: ""
 - EdgeMeasureType ComboBox 의 7번째 항목 = "EdgeToLineDistance" 가시
 - 코드 추가 0 (Phase 5 IsDynamicFAIMode 인프라 + Plan 23-02 Factory 자동 노출)
 
-**Actual:** (사용자 작성)
+**Actual:** SC#1 측정값 부재로 A6 추가 후 측정값 검증 자체 불가 → 본 시나리오 검증 불가. (Channel B EdgeMeasureType ComboBox 노출 여부는 시각 미확인.)
 
-**Result:** ⬜ pending
+**Result:** ⏸ blocked (SC#1 의존)
 
-**Notes:** D-14 확장 한계 = A23 까지 보장, 검증은 A6 1개
+**Notes:** D-14 확장 한계 = A23 까지 보장. SC#1 carry-over 해소 후 재검증 필요. ComboBox 노출 검증은 단독 분리 가능 (별도 spike 후보).
 
 ---
 
@@ -155,24 +157,27 @@ sign_off_date: ""
 
 | # | Scenario | Result | Notes |
 |---|----------|--------|-------|
-| 1 | SC#1 Simul end-to-end | ⬜ pending | — |
-| 2 | SC#2 OK/NG strip | ⬜ pending | — |
-| 3 | SC#3 TeachingImagePath 분리 | ⬜ pending | — |
-| 4 | SC#4 A6 확장성 (INI + UI) | ⬜ pending | — |
+| 1 | SC#1 Simul end-to-end | ❌ FAIL | 시퀀스 완주 + Datum 정상 동작, 그러나 A1~A5 측정값/판정 컬럼 = `—` (Error 로그 [FAIMeasurement] 부재 → TryExecute success 후 결과 미표시) |
+| 2 | SC#2 OK/NG strip | ⏸ blocked | SC#1 의존 |
+| 3 | SC#3 TeachingImagePath 분리 | ⏸ blocked | SC#1 의존 |
+| 4 | SC#4 A6 확장성 (INI + UI) | ⏸ blocked | SC#1 의존 (ComboBox 노출 단독 검증은 분리 가능) |
 | 5 | SC#5 msbuild PASS | ✅ PASS | build_23_w3.log: 0 errors / 6 warnings (baseline 유지) |
 
-**Total:** 5 / **Passed:** 1 / **Pending:** 4
+**Total:** 5 / **Passed:** 1 / **Failed:** 1 / **Blocked:** 3
 
 ---
 
 ## Carry-overs
 
-(초기 빈 — Task 3 사인오프 시 FAIL/PARTIAL 항목 등록)
+| ID | Description | Owner | Status |
+|----|-------------|-------|--------|
+| CO-23-01 | A1~A5 EdgeToLineDistance 측정값/판정 컬럼 미표시 — 시퀀스 완주 + Error 로그 [FAIMeasurement] 부재 + Datum 정상 동작에도 InspectionListView 결과 컬럼 = `—`. 가능한 원인: (a) FAIConfig.PixelResolutionX = 0 → resultValue silently 0, (b) MeasurementResultRow binding/refresh 단절. v1.1 quick task 로 디버깅 필요. | TBD | open |
+| CO-23-02 | SC#2/SC#3/SC#4 인터랙티브 UAT 미수행 — CO-23-01 해소 후 재실행 필요. | TBD | blocked-by CO-23-01 |
 
 ---
 
 ## Sign-off
 
-- Reviewer:
-- Date:
-- Status: pending
+- Reviewer: heobum0928-art
+- Date: 2026-05-13
+- Status: partial (1 PASS / 1 FAIL / 3 blocked) — Phase 23 핵심 SC#1 FAIL → CO-23-01 carry-over 등록 후 마감

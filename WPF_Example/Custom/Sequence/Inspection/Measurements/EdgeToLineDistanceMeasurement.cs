@@ -34,8 +34,13 @@ namespace ReringProject.Sequence
         public string EdgePolarity { get; set; } = "DarkToLight";
         [ItemsSourceProperty(nameof(EdgeDirectionList))] //260512 hbk Phase 23 ALG-01 — ComboBox 처리, default TtoB (수평 에지 검출, Y거리 측정 의도)
         public string EdgeDirection { get; set; } = "TtoB";
+        //260517 hbk CO-23-01: EdgeSelection 기본값 "All" 로 변경 (was "First").
+        //  MeasurePos selection="first" 는 단일 에지점 1개 반환 → FitLineContourXld 최소 2점 요구 미충족 →
+        //  TryFitLine false 반환 → TryExecute false → 측정 실패(하지만 Error 로그만 남고 UI = '—').
+        //  EdgeToLineDistance 는 ROI 내 에지 분포 전체를 라인으로 피팅해 중점을 구하는 알고리즘이므로
+        //  "All" 이 의미적으로 올바른 기본값이다.
         [ItemsSourceProperty(nameof(EdgeSelectionList))] //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 (memory feedback)
-        public string EdgeSelection { get; set; } = "First";
+        public string EdgeSelection { get; set; } = "All"; //260517 hbk CO-23-01 (was "First")
 
         //260512 hbk Phase 23 ALG-01 — PropertyGrid ComboBox 옵션 래퍼 (Browsable(false) 로 자체 노출 차단)
         [PropertyTools.DataAnnotations.Browsable(false)]

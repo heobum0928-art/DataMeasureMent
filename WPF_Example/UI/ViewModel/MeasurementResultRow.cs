@@ -41,23 +41,25 @@ namespace ReringProject.UI
 
         public bool IsPass { get { return _measurement.LastJudgement; } }
 
-        //260417 hbk Phase 6 Plan 04: FAIResultRow.HasResult 패턴 — 0이면 미측정
-        public bool HasResult { get { return _measurement.LastMeasuredValue != 0; } }
+        //260517 hbk CO-23-01: LastHasResult 플래그 기반으로 교체 — 0.0 측정값도 정상 결과로 표시.
+        //  기존 LastMeasuredValue != 0 검사는 resultValue = 0.0 인 에지(Datum 기준선 위 측정점)를
+        //  미측정으로 오판하여 '—' 를 표시하는 거짓음성(false negative) 유발.
+        public bool HasResult { get { return _measurement.LastHasResult; } }
 
         //260417 hbk Phase 6 Plan 04: 알고리즘 타입별 단위 포맷 (각도=deg, 그 외=mm)
         public string ResultDisplay
         {
             get
             {
-                if (!HasResult) return "\u2014";
+                if (!HasResult) return "—";
                 string unit = string.Equals(_measurement.TypeName, "LineToLineAngle", StringComparison.Ordinal) ? "deg" : "mm";
                 return MeasuredValue.ToString("F3") + " " + unit;
             }
         }
 
-        public string JudgeText { get { return HasResult ? (IsPass ? "OK" : "NG") : "\u2014"; } }
+        public string JudgeText { get { return HasResult ? (IsPass ? "OK" : "NG") : "—"; } }
 
-        public string MeasuredValueText { get { return HasResult ? MeasuredValue.ToString("F3") : "\u2014"; } }
+        public string MeasuredValueText { get { return HasResult ? MeasuredValue.ToString("F3") : "—"; } }
 
         public string SpecMinText { get { return (NominalValue + ToleranceMinus).ToString("F3"); } }
 

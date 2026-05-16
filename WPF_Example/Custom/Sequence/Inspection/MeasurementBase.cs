@@ -35,6 +35,11 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public bool LastJudgement { get; set; } //260413 hbk true=OK
 
+        //260517 hbk CO-23-01: HasResult 판정 기준 분리 — 0.0 결과값도 정상 측정으로 표시하기 위해
+        //  LastMeasuredValue != 0 대신 별도 플래그 사용. EvaluateJudgement에서 true, ClearResult에서 false 설정.
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public bool LastHasResult { get; set; } //260517 hbk CO-23-01
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } //260413 hbk MeasurementFactory 키
 
@@ -54,11 +59,12 @@ namespace ReringProject.Sequence
 
         /// <summary>
         /// 공차 판정: lower = Nominal + ToleranceMinus (음수 허용), upper = Nominal + TolerancePlus.
-        /// LastMeasuredValue/LastJudgement를 갱신하고 결과를 반환한다.
+        /// LastMeasuredValue/LastJudgement/LastHasResult를 갱신하고 결과를 반환한다.
         /// </summary>
         public bool EvaluateJudgement(double value) //260413 hbk
         {
             LastMeasuredValue = value;
+            LastHasResult = true; //260517 hbk CO-23-01: 측정 성공 마킹 (0.0 도 정상 결과)
             double lower = NominalValue + ToleranceMinus;
             double upper = NominalValue + TolerancePlus;
             if (lower > upper)
@@ -73,6 +79,7 @@ namespace ReringProject.Sequence
         {
             LastMeasuredValue = 0;
             LastJudgement = false;
+            LastHasResult = false; //260517 hbk CO-23-01: 미측정 상태 복원
         }
     }
 }

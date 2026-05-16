@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: executing
-stopped_at: Phase 23 partial sign-off (2026-05-13) — CO-23-01 carry-over
-last_updated: "2026-05-13T10:00:00.000Z"
+status: partial (1 PASS / 1 FAIL / 3 blocked)
+stopped_at: Phase 23.1 context gathered
+last_updated: "2026-05-16T20:23:59.946Z"
 last_activity: 2026-05-13
 progress:
-  total_phases: 7
-  completed_phases: 5
+  total_phases: 8
+  completed_phases: 6
   total_plans: 29
   completed_plans: 28
-  percent: 96
+  percent: 97
 ---
 
 # Project State
@@ -221,12 +221,13 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 - 2026-04-29: Phase 16 added — datum-circle-strip-redesign-algorithmtype-binding-fix (Phase 15 UAT carry-over).
 - 2026-04-30: Phase 17 added — Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover (Phase 16 UAT carry-over 16항목).
 - 2026-05-04: v1.1 milestone started — Phases 18-26 defined (ROADMAP.md created).
+- 2026-05-17: Phase 23.1 inserted after Phase 23: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원 (URGENT) — SOP 도면 갭 대응 (ROI 측정별 티칭 미배선 + 다점 치수 P1/P2 미지원 + EdgeSelection 마이그레이션 + Datum 실측검증 + CO-23-01 재검증)
 
 ## Session Continuity
 
-Last session: 2026-05-11T15:12:57.080Z
-Stopped at: Completed 23-02-PLAN.md
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 23.1 context gathered
+Resume file: --resume-file
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 
 **v1.1 Phase Map:**

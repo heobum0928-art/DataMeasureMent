@@ -14,7 +14,9 @@ namespace ReringProject.Sequence
     /// 결과 단위: mm (pixelResolution 적용).
     /// Datum 1개(CTH) 가정 — origin = Circle center, Y축 = horizontal line (D-01).
     /// </summary>
-    public class EdgeToLineDistanceMeasurement : MeasurementBase //260512 hbk Phase 23 ALG-01
+    //260517 hbk Phase 23.1 D-09 — ICustomTypeDescriptor 추가 (PropertyGrid 에서 EdgeSelection 숨김 — D-08 고정값 사용자 노출 차단)
+    public class EdgeToLineDistanceMeasurement : MeasurementBase, //260512 hbk Phase 23 ALG-01
+        System.ComponentModel.ICustomTypeDescriptor //260517 hbk Phase 23.1 D-09
     {
         public override string TypeName { get { return "EdgeToLineDistance"; } } //260512 hbk Phase 23 ALG-01
 
@@ -108,5 +110,43 @@ namespace ReringProject.Sequence
             resultValue = -datumRow * pixelResolution; //260512 hbk Phase 23 ALG-01 — D-02 +Y 부호 (위쪽 양수)
             return true;
         }
+
+        //260517 hbk Phase 23.1 D-09 — PropertyGrid EdgeSelection 숨김 (D-08 고정값 사용자 노출 차단)
+        //  PropertyTools.Wpf PropertyGrid 는 무인자 GetProperties() 만 호출 → 무인자 오버로드가 진짜 진입점.
+        //  ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0.
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) //260517 hbk Phase 23.1 D-09
+        {
+            return BuildFilteredProperties(attributes);
+        }
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties() //260517 hbk Phase 23.1 D-09
+        {
+            return BuildFilteredProperties(null);
+        }
+        private System.ComponentModel.PropertyDescriptorCollection BuildFilteredProperties(System.Attribute[] attrs) //260517 hbk Phase 23.1 D-09
+        {
+            //260517 hbk Phase 23.1 D-09 — [Browsable(false)] ComboBox 소스 래퍼 강제 포함 (Phase 18 CO-01 패턴).
+            //  EdgeSelectionList 도 화이트리스트에 포함 — hideFunc 로 숨기되, keepList 에 넣어야
+            //  PropertyTools.Wpf 가 EdgeDirection/EdgePolarity 의 ComboBox 를 정상 렌더한다.
+            var sourceNames = new System.Collections.Generic.HashSet<string>
+            {
+                nameof(EdgeDirectionList),
+                nameof(EdgePolarityList),
+                nameof(EdgeSelectionList),
+            };
+            return DynamicPropertyHelper.FilterProperties(
+                this, attrs,
+                name => name == "EdgeSelection" || name == "EdgeSelectionList", //260517 hbk Phase 23.1 D-09 — EdgeSelection 행 + List 래퍼 둘 다 숨김
+                sourceNames);
+        }
+        public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); } //260517 hbk Phase 23.1 D-09
+        public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); } //260517 hbk Phase 23.1 D-09
+        public string GetComponentName() { return System.ComponentModel.TypeDescriptor.GetComponentName(this, true); } //260517 hbk Phase 23.1 D-09
+        public System.ComponentModel.TypeConverter GetConverter() { return System.ComponentModel.TypeDescriptor.GetConverter(this, true); } //260517 hbk Phase 23.1 D-09
+        public System.ComponentModel.EventDescriptor GetDefaultEvent() { return System.ComponentModel.TypeDescriptor.GetDefaultEvent(this, true); } //260517 hbk Phase 23.1 D-09
+        public System.ComponentModel.PropertyDescriptor GetDefaultProperty() { return System.ComponentModel.TypeDescriptor.GetDefaultProperty(this, true); } //260517 hbk Phase 23.1 D-09
+        public object GetEditor(System.Type editorBaseType) { return System.ComponentModel.TypeDescriptor.GetEditor(this, editorBaseType, true); } //260517 hbk Phase 23.1 D-09
+        public System.ComponentModel.EventDescriptorCollection GetEvents(System.Attribute[] attributes) { return System.ComponentModel.TypeDescriptor.GetEvents(this, attributes, true); } //260517 hbk Phase 23.1 D-09
+        public System.ComponentModel.EventDescriptorCollection GetEvents() { return System.ComponentModel.TypeDescriptor.GetEvents(this, true); } //260517 hbk Phase 23.1 D-09
+        public object GetPropertyOwner(System.ComponentModel.PropertyDescriptor pd) { return this; } //260517 hbk Phase 23.1 D-09
     }
 }

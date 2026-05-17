@@ -74,13 +74,19 @@ namespace ReringProject.Sequence
             var svc = new VisionAlgorithmService();
             double pr1, pc1, pr2, pc2;
             //260512 hbk Phase 23 ALG-01 — TryFitLine selection 인자 전달 (D-10 EdgeSelection 명시)
+            //260517 hbk Phase 23.1 D-08 — EdgeSelection "All" 고정 (CO-23-01 #1 구조적 차단).
+            //  FitLineContourXld 는 라인 피팅에 최소 2개 에지점 요구. "First"/"Last" 는 MeasurePos 가
+            //  단일 에지점 1개만 반환 → 라인 피팅 실패 → TryFitLine false → 측정 실패(UI '—').
+            //  ICustomTypeDescriptor(D-09)가 PropertyGrid 에서 EdgeSelection 을 숨겨도 레거시 INI 의
+            //  EdgeSelection=First 값이 로드될 수 있으므로, TryExecute 는 EdgeSelection 필드를 무시하고
+            //  무조건 리터럴 "All" 을 전달한다.
             if (!svc.TryFitLine(image,
                 Point_Row, Point_Col, Point_Phi, Point_Length1, Point_Length2,
                 datumTransform,
                 EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
                 EdgeDirection, EdgePolarity,
                 out pr1, out pc1, out pr2, out pc2, out error,
-                EdgeSelection))
+                "All")) //260517 hbk Phase 23.1 D-08 (was: EdgeSelection)
             {
                 return false;
             }

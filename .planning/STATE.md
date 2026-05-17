@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: partial (1 PASS / 1 FAIL / 3 blocked)
-stopped_at: Phase 23.1 context gathered
-last_updated: "2026-05-16T23:56:09.238Z"
-last_activity: 2026-05-13
+status: executing
+stopped_at: Completed 23.1-01-PLAN.md
+last_updated: "2026-05-17T00:13:32.518Z"
+last_activity: 2026-05-17
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 32
-  completed_plans: 28
-  percent: 88
+  completed_plans: 29
+  percent: 91
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 23 partial sign-off → CO-23-01 quick task 또는 Phase 24
+**Current focus:** Phase 23.1 — edgetolinedistance-roi
 
 ## Current Position
 
-Phase: 23 (top-1-a-simul-end-to-end) — PARTIAL SIGN-OFF (2026-05-13)
-Plan: 3 of 3 (UAT)
-Status: partial (1 PASS / 1 FAIL / 3 blocked)
+Phase: 23.1 (edgetolinedistance-roi) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Next: 사용자 선택 — (a) v1.1 quick CO-23-01 디버깅 (A1~A5 측정값 미표시 — PixelResolutionX 0 또는 binding 단절 추적), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
-Last activity: 2026-05-13
+Last activity: 2026-05-17
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Last activity: 2026-05-13
 | Phase 22 P22-02 | 10 | 4 tasks | 2 files |
 | Phase 23 P01 | 12 | 3 tasks | 3 files |
 | Phase 23 P02 | 2 | 3 tasks | 2 files |
+| Phase 23.1 P01 | 3 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -156,6 +157,8 @@ Recent decisions affecting current work:
 - [Phase 23-01]: EdgeToLineDistanceMeasurement 신규 (Datum-relative Y 거리 측정, MeasurementFactory 7번째 algorithm). EdgeDirection default = TtoB (수평 에지 검출), EdgeSelection default = First (D-10), overlay = 빈 리스트 (PointToLineDistance 패턴, Phase 7-01 D-03). D-11 literal guard (datumTransform null/empty → 'Datum not found') 진입부 추가 — upstream gating 보조 이중 안전망. Y 부호 반전 = 클라이언트측 (-datumRow * pixelResolution, D-02).
 - [Phase 23-02]: MeasurementFactory 7번째 case + GetTypeNames 7번째 원소 추가 — FAIConfig L60 ItemsSource 캐시 단일 소스로 INI Type dispatch + PropertyGrid 드롭다운 자동 노출 (D-13). 6 기존 case 무수정 (회귀 0).
 - [Phase 23-02]: Action_FAIMeasurement.GrabOrLoadDatumImage 3-tier fallback chain — TeachingImagePath (우선) → SimulImagePath (회귀 0 baseline) → GrabHalconImage (최종). DatumConfigs[0] 첫 번째만 채택 (RESEARCH A6, D-01 CTH 1개). Pitfall 3 2-step 가드 (IsNullOrEmpty + File.Exists). Phase 22 IMG-02 marker (L226) 보존 — Phase 20 D-12 stacking 패턴.
+- D-08: TryExecute 가 EdgeSelection 필드를 무시하고 리터럴 'All' 전달 — CO-23-01 #1 구조적 차단 (Phase 23.1-01)
+- D-09: EdgeToLineDistanceMeasurement ICustomTypeDescriptor 구현 — PropertyGrid EdgeSelection 숨김, 사용자 재조작 원천 차단 (Phase 23.1-01)
 
 ### Quick Tasks Completed
 
@@ -225,9 +228,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 23.1 context gathered
-Resume file: --resume-file
+Last session: 2026-05-17T00:13:32.509Z
+Stopped at: Completed 23.1-01-PLAN.md
+Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 
 **v1.1 Phase Map:**

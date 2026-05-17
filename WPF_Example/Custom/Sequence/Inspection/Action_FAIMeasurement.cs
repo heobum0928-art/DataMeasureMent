@@ -154,6 +154,35 @@ namespace ReringProject.Sequence {
                                                 transform = new HTuple();
                                             }
                                         }
+                                        //260517 hbk — EdgeToLineDistance 는 datum 교점(절대 좌표) 기준 Y거리 측정.
+                                        //  TryFindDatum 의 transform 은 part-drift 보정 델타라 좌표 변환에 못 씀 →
+                                        //  DatumConfig.DetectedOrigin* (IntersectionLl 결과) 를 측정 객체에 직접 주입.
+                                        //  EStep.DatumPhase 가 EStep.Measure 보다 먼저 실행되므로 DetectedOrigin* 는 채워져 있음.
+                                        var etld = meas as EdgeToLineDistanceMeasurement; //260517 hbk
+                                        if (etld != null) //260517 hbk
+                                        {
+                                            DatumConfig dc = null; //260517 hbk
+                                            if (parentSeq2 != null && parentSeq2.DatumConfigs != null //260517 hbk
+                                                && !string.IsNullOrEmpty(meas.DatumRef)) //260517 hbk
+                                            {
+                                                foreach (var d in parentSeq2.DatumConfigs) //260517 hbk
+                                                {
+                                                    if (d != null && d.DatumName == meas.DatumRef) { dc = d; break; } //260517 hbk
+                                                }
+                                            }
+                                            if (dc != null) //260517 hbk
+                                            {
+                                                etld.DatumOriginRow = dc.DetectedOriginRow; //260517 hbk
+                                                etld.DatumOriginCol = dc.DetectedOriginCol; //260517 hbk
+                                                etld.DatumAngleRad  = dc.DetectedRefAngle; //260517 hbk
+                                            }
+                                            else //260517 hbk — DatumRef 미지정 또는 매칭 Datum 없음 → 미주입 (측정은 폴백 경로 사용)
+                                            {
+                                                etld.DatumOriginRow = 0.0; //260517 hbk
+                                                etld.DatumOriginCol = 0.0; //260517 hbk
+                                                etld.DatumAngleRad  = 0.0; //260517 hbk
+                                            }
+                                        }
                                         double resultValue;
                                         string measError;
                                         List<EdgeInspectionOverlay> measOverlays; //260422 hbk Phase 7: (D-01)

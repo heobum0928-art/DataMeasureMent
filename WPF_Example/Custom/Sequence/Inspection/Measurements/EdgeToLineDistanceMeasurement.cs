@@ -64,7 +64,8 @@ namespace ReringProject.Sequence
         {
             resultValue = 0;
             error = null;
-            overlays = new List<EdgeInspectionOverlay>(); //260512 hbk Phase 23 ALG-01 — PointToLineDistance 패턴 (빈 리스트, Phase 7-01 D-03)
+            //260517 hbk — 실패 경로용 초기값 (성공 경로는 아래에서 채움)
+            overlays = new List<EdgeInspectionOverlay>(); //260512 hbk Phase 23 ALG-01
 
             //260512 hbk Phase 23 ALG-01 — D-11 Datum 찾기 실패 가드 (literal 구현, upstream gating 은 보조 이중 안전망)
             if (datumTransform == null || datumTransform.Length == 0)
@@ -108,6 +109,60 @@ namespace ReringProject.Sequence
                 // transform 실패 시 image-row 좌표 사용 (TryFitLine 패턴 일관성, RESEARCH Pitfall 2)
             }
             resultValue = -datumRow * pixelResolution; //260512 hbk Phase 23 ALG-01 — D-02 +Y 부호 (위쪽 양수)
+
+            // Phase 7-01 D-03 / Phase 23-01 의 의도적 '빈 리스트' overlay 정책을 이번에 뒤집음. //260517 hbk
+            // Phase 23.1 UAT 시각 검증(측정값 vs SOP 도면 정확도)을 위해 검출 에지/거리선을 캔버스에 표시. //260517 hbk
+
+            // 1) 검출 에지 라인 overlay (FAIEdgeMeasurementService.BuildOverlaysSingle 패턴) //260517 hbk
+            overlays.Add(new EdgeInspectionOverlay //260517 hbk
+            {
+                RoiId = "FAI-Edge1", //260517 hbk — StartsWith("FAI-Edge") 충족 → HalconDisplayService 녹/적 분기 + Action_FAIMeasurement 판정 suffix(-OK/-NG) 자동 부여
+                LineRow1 = pr1, //260517 hbk
+                LineColumn1 = pc1, //260517 hbk
+                LineRow2 = pr2, //260517 hbk
+                LineColumn2 = pc2, //260517 hbk
+                Points = new List<EdgeInspectionPoint> //260517 hbk
+                {
+                    new EdgeInspectionPoint { Row = pRow, Column = pCol } //260517 hbk — 에지 중점 1개 (이미 L95-96에 계산됨)
+                }
+            }); //260517 hbk
+
+            // 2) Y거리 선 overlay: 교점(Datum 원점) image 좌표 → 에지 중점 (coordinate_facts 2) //260517 hbk
+            bool originOk = false; //260517 hbk
+            double originRow = 0.0; //260517 hbk
+            double originCol = 0.0; //260517 hbk
+            try //260517 hbk
+            {
+                HTuple invMat; //260517 hbk
+                HOperatorSet.HomMat2dInvert(datumTransform, out invMat); //260517 hbk — datumTransform 역행렬: image→datum 역 = datum→image
+                HTuple oRow, oCol; //260517 hbk
+                HOperatorSet.AffineTransPoint2d(invMat, 0.0, 0.0, out oRow, out oCol); //260517 hbk — datum 원점(0,0)의 image 좌표
+                originRow = oRow.D; //260517 hbk
+                originCol = oCol.D; //260517 hbk
+                originOk = true; //260517 hbk
+            }
+            catch //260517 hbk
+            {
+                // 역변환 실패 시 FAI-DistLine 만 skip — 에지 라인 overlay 와 측정값은 유지 //260517 hbk
+            }
+
+            if (originOk) //260517 hbk
+            {
+                overlays.Add(new EdgeInspectionOverlay //260517 hbk
+                {
+                    RoiId = "FAI-DistLine", //260517 hbk — HalconDisplayService.cs:181 cyan(청록) 분기 충족, suffix 미부여
+                    LineRow1 = originRow, //260517 hbk — 교점(Datum 원점) image 좌표
+                    LineColumn1 = originCol, //260517 hbk
+                    LineRow2 = pRow, //260517 hbk — 에지 중점 image 좌표
+                    LineColumn2 = pCol, //260517 hbk
+                    Points = new List<EdgeInspectionPoint> //260517 hbk — 양 끝점 X자 마커 (BuildOverlaysBoth FAI-DistLine 패턴)
+                    {
+                        new EdgeInspectionPoint { Row = originRow, Column = originCol }, //260517 hbk
+                        new EdgeInspectionPoint { Row = pRow, Column = pCol } //260517 hbk
+                    }
+                }); //260517 hbk
+            }
+
             return true;
         }
 

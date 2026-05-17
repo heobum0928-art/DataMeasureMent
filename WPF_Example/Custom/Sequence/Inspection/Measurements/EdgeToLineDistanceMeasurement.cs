@@ -8,11 +8,12 @@ using ReringProject.Halcon.Models;
 namespace ReringProject.Sequence
 {
     /// <summary>
-    /// Point ROI 에서 수평 에지 라인을 피팅하여 중점을 추출하고,
-    /// datumTransform 으로 Datum-relative 좌표계로 변환한 후 row 좌표(부호 반전 = +Y 위쪽 양수)를
-    /// "Datum B 까지 Y방향 거리" (mm) 로 리턴한다.
-    /// 결과 단위: mm (pixelResolution 적용).
-    /// Datum 1개(CTH) 가정 — origin = Circle center, Y축 = horizontal line (D-01).
+    /// Point ROI 에서 에지 라인을 피팅해 중점을 추출하고, datum 기준선까지의 거리(mm)를 리턴한다.
+    /// MeasureAxis="Y": datum 수평선(x축)까지 수직거리 — +Y 위쪽 양수(D-02). 수평 에지 검출용.
+    /// MeasureAxis="X": datum 수직선(y축)까지 거리 — +X 오른쪽 양수. 수직 에지 검출용.
+    /// datum 기준선은 교점(DatumOriginRow/Col)을 지나며 각도는 DatumAngleRad(수평선 θ, 수직선 θ+90°).
+    /// HALCON projection_pl 로 에지 중점을 기준선에 정사영해 수선의 발을 구하고 거리를 계산한다.
+    /// 결과 단위: mm (pixelResolution 적용). Datum 1개(CTH) 가정 (D-01).
     /// </summary>
     //260517 hbk Phase 23.1 D-09 — ICustomTypeDescriptor 추가 (PropertyGrid 에서 EdgeSelection 숨김 — D-08 고정값 사용자 노출 차단)
     public class EdgeToLineDistanceMeasurement : MeasurementBase, //260512 hbk Phase 23 ALG-01
@@ -51,6 +52,16 @@ namespace ReringProject.Sequence
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } }
+
+        //260517 hbk l5e-03 — 측정 거리 축 선택: datum 어느 기준선까지의 거리를 잴지.
+        //  "Y" = datum 수평선(x축)까지 수직거리 (+Y 위쪽 양수, D-02) — 수평 에지 측정용.
+        //  "X" = datum 수직선(y축)까지 거리 (+X 오른쪽 양수) — 수직 에지 측정용.
+        [Category("Edge")] //260517 hbk l5e-03
+        [System.ComponentModel.Description("측정 거리 축 — Y: datum 수평선까지, X: datum 수직선까지")] //260517 hbk l5e-03
+        [ItemsSourceProperty(nameof(MeasureAxisList))] //260517 hbk l5e-03
+        public string MeasureAxis { get; set; } = "Y"; //260517 hbk l5e-03
+        [PropertyTools.DataAnnotations.Browsable(false)] //260517 hbk l5e-03
+        public List<string> MeasureAxisList { get { return new List<string> { "Y", "X" }; } } //260517 hbk l5e-03
 
         //260517 hbk — datum 교점 좌표 runtime 주입 전용 프로퍼티 (Action_FAIMeasurement 가 TryExecute 직전 주입).
         //  DatumConfig.DetectedOrigin* 패턴과 동일하게 처리: 런타임 transient, PropertyGrid 미표시, JSON 직렬화 제외.
@@ -112,15 +123,60 @@ namespace ReringProject.Sequence
             double pRow = (pr1 + pr2) / 2.0;
             double pCol = (pc1 + pc2) / 2.0;
 
-            //260517 hbk — Y거리 계산: datum 교점 기준(정상 경로) vs AffineTransPoint2d 폴백(레거시/무보정).
-            //  datumTransform 은 part-drift 보정 델타(Translate∘Rotate)이지 좌표 변환 행렬이 아님 →
-            //  SIMUL(curOrigin≈RefOrigin) 에서 transform≈Identity → tRow≈pRow(이미지 row 0 기준) 오류 발생.
-            //  정상 경로: DatumOriginRow(DatumConfig.DetectedOriginRow, IntersectionLl 결과) 직접 사용.
+            //260517 hbk l5e-03 — 측정값 = 에지 중점에서 datum 기준선에 내린 수선의 길이 (HALCON projection_pl).
+            //  MeasureAxis="Y": datum 수평선(x축, 각도 θ)까지 수직거리 — D-02 +Y 위쪽 양수.
+            //  MeasureAxis="X": datum 수직선(y축, 각도 θ+90°)까지 거리 — +X 오른쪽 양수.
+            //  datum 기준선은 교점(DatumOriginRow/Col)을 지나고 각도는 DatumAngleRad(=DatumConfig.DetectedRefAngle,
+            //  수평 결합선 Atan2(Δrow,Δcol)). ※ l5e-01 의 -(pRow-DatumOriginRow) 는 image row 축 단순 차분이라
+            //  datum 회전 시 수직거리와 불일치 → projection_pl 정사영으로 교체.
+            //  레거시/무보정(datum 미주입) 폴백은 아래 else 블록(AffineTransPoint2d, Y 기준) 무변경.
             bool datumOriginInjected = (DatumOriginRow != 0.0 || DatumOriginCol != 0.0); //260517 hbk
-            if (datumOriginInjected) //260517 hbk — 정상 경로: datum 교점 row 기준 Y변위 (D-02 +Y 부호 보존)
+            double footRow = pRow; //260517 hbk l5e-03 — projection foot. 미주입/실패 시 에지점 자신(거리 0). overlay 에서 재사용.
+            double footCol = pCol; //260517 hbk l5e-03
+            bool footOk = false; //260517 hbk l5e-03
+            if (datumOriginInjected) //260517 hbk l5e-03 — 정상 경로: projection_pl 로 datum 기준선까지 수직거리
             {
-                double datumRelRow = pRow - DatumOriginRow; //260517 hbk — 에지 중점 row − datum 교점 row = datum-기준 Y변위(pixel)
-                resultValue = -datumRelRow * pixelResolution; //260517 hbk — D-02 +Y 부호 규약(앞 마이너스 보존)
+                bool measureX = (MeasureAxis == "X"); //260517 hbk l5e-03 — null/""/"Y" → false (레거시 INI·미설정 안전)
+                double sinT = System.Math.Sin(DatumAngleRad); //260517 hbk l5e-03
+                double cosT = System.Math.Cos(DatumAngleRad); //260517 hbk l5e-03
+                if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260517 hbk l5e-03 — Atan2 방향(좌→우/우→좌) 무관 부호 일관성: datum x축 cosθ≥0 정규화
+                double axisR1, axisC1, axisR2, axisC2; //260517 hbk l5e-03 — projection_pl 대상 직선의 2점 (교점 ±200px, 길이는 직선 정의에 무관)
+                if (measureX) //260517 hbk l5e-03 — datum 수직선(y축): 방향벡터 (cosθ,-sinθ), 각도 θ+90°
+                {
+                    axisR1 = DatumOriginRow - 200.0 * cosT; //260517 hbk l5e-03
+                    axisC1 = DatumOriginCol + 200.0 * sinT; //260517 hbk l5e-03
+                    axisR2 = DatumOriginRow + 200.0 * cosT; //260517 hbk l5e-03
+                    axisC2 = DatumOriginCol - 200.0 * sinT; //260517 hbk l5e-03
+                }
+                else //260517 hbk l5e-03 — datum 수평선(x축): 방향벡터 (sinθ,cosθ), 각도 θ
+                {
+                    axisR1 = DatumOriginRow - 200.0 * sinT; //260517 hbk l5e-03
+                    axisC1 = DatumOriginCol - 200.0 * cosT; //260517 hbk l5e-03
+                    axisR2 = DatumOriginRow + 200.0 * sinT; //260517 hbk l5e-03
+                    axisC2 = DatumOriginCol + 200.0 * cosT; //260517 hbk l5e-03
+                }
+                try //260517 hbk l5e-03
+                {
+                    HTuple prRow, prCol; //260517 hbk l5e-03
+                    HOperatorSet.ProjectionPl(pRow, pCol, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol); //260517 hbk l5e-03 — 에지 중점을 datum 기준선에 정사영
+                    footRow = prRow.D; //260517 hbk l5e-03
+                    footCol = prCol.D; //260517 hbk l5e-03
+                    footOk = true; //260517 hbk l5e-03
+                }
+                catch //260517 hbk l5e-03
+                {
+                    // projection 실패 시 foot=에지점 유지 → 측정값 0, FAI-DistLine skip //260517 hbk l5e-03
+                }
+                double signedPx; //260517 hbk l5e-03 — 수선의 발→에지점 변위의 부호 있는 거리 성분
+                if (measureX) //260517 hbk l5e-03 — +X 오른쪽 양수: datum x축 방향 (sinθ,cosθ) 성분
+                {
+                    signedPx = (pRow - footRow) * sinT + (pCol - footCol) * cosT; //260517 hbk l5e-03
+                }
+                else //260517 hbk l5e-03 — +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
+                {
+                    signedPx = (pRow - footRow) * (-cosT) + (pCol - footCol) * sinT; //260517 hbk l5e-03
+                }
+                resultValue = signedPx * pixelResolution; //260517 hbk l5e-03
             }
             else //260517 hbk — 레거시/무보정 폴백: AffineTransPoint2d (DatumRef 빈 문자열 또는 구버전 호출 경로)
             {
@@ -156,15 +212,15 @@ namespace ReringProject.Sequence
                 }
             }); //260517 hbk
 
-            // 2) Y거리 선 overlay: 교점(Datum 원점) image 좌표 → 에지 중점 (coordinate_facts 2) //260517 hbk
+            // 2) 수직 드롭선 overlay: 수선의 발(projection foot, datum 기준선 위) → 에지 중점 //260517 hbk l5e-03
             bool originOk = false; //260517 hbk
             double originRow = 0.0; //260517 hbk
             double originCol = 0.0; //260517 hbk
-            if (datumOriginInjected) //260517 hbk — 정상 경로: DatumOriginRow/Col 직접 사용 (HomMat2dInvert 불필요)
+            if (datumOriginInjected) //260517 hbk l5e-03 — 정상 경로: FAI-DistLine = 에지점→수선의 발 (수직 드롭)
             {
-                originRow = DatumOriginRow; //260517 hbk — datum 교점 image 좌표 (IntersectionLl 결과, DatumConfig.DetectedOriginRow)
-                originCol = DatumOriginCol; //260517 hbk
-                originOk = true; //260517 hbk
+                originRow = footRow; //260517 hbk l5e-03 — projection foot (datum 기준선 위의 점). HomMat2dInvert 불필요.
+                originCol = footCol; //260517 hbk l5e-03
+                originOk = footOk; //260517 hbk l5e-03 — projection 실패 시 false → FAI-DistLine skip
             }
             else //260517 hbk — 레거시/무보정 폴백: HomMat2dInvert 경로 (datum 미주입 케이스에서 overlay 완전 소실 방지)
             {
@@ -189,7 +245,7 @@ namespace ReringProject.Sequence
                 overlays.Add(new EdgeInspectionOverlay //260517 hbk
                 {
                     RoiId = "FAI-DistLine", //260517 hbk — HalconDisplayService.cs:181 cyan(청록) 분기 충족, suffix 미부여
-                    LineRow1 = originRow, //260517 hbk — 교점(Datum 원점) image 좌표
+                    LineRow1 = originRow, //260517 hbk l5e-03 — 수선의 발 (projection foot, datum 기준선 위)
                     LineColumn1 = originCol, //260517 hbk
                     LineRow2 = pRow, //260517 hbk — 에지 중점 image 좌표
                     LineColumn2 = pCol, //260517 hbk
@@ -225,6 +281,7 @@ namespace ReringProject.Sequence
                 nameof(EdgeDirectionList),
                 nameof(EdgePolarityList),
                 nameof(EdgeSelectionList),
+                nameof(MeasureAxisList), //260517 hbk l5e-03 — MeasureAxis ComboBox 소스 강제 포함 (Browsable(false) 래퍼)
             };
             return DynamicPropertyHelper.FilterProperties(
                 this, attrs,

@@ -29,7 +29,7 @@ Phase: 23.1 (edgetolinedistance-roi) — EXECUTING
 Plan: 3 of 3
 Status: Ready to execute
 Next: 사용자 선택 — (a) v1.1 quick CO-23-01 디버깅 (A1~A5 측정값 미표시 — PixelResolutionX 0 또는 binding 단절 추적), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
-Last activity: 2026-05-17 - Completed quick task 260517-ja8: EdgeToLineDistance overlay 시각화 (SIMUL UAT 대기)
+Last activity: 2026-05-17 - Completed quick task 260517-l5e: EdgeToLineDistance datum 교점 기준 측정 수정 (SIMUL UAT 대기)
 
 ## Performance Metrics
 
@@ -180,6 +180,7 @@ Recent decisions affecting current work:
 | 260517-hvz | 2026-05-17 | ShotConfig 가 IOfflineImageParam 구현 — SHOT 노드 Load 시 SimulImagePath 자동 저장 (Load↔측정이미지 경로 미배선 갭 해소, 측정값 '—' 직접 원인 #1) | b01e60d | |
 | 260517-ijg | 2026-05-17 | TryFitLine strip-loop MeasurePos 누적 재작성 — 단일 MeasurePos 1회 → sampleCount strip for-loop 누적 (라인 피팅 점 부족 = 측정값 '—' 근본 원인 #2). VisionAlgorithmService.AppendStrip 헬퍼 추가, 5 measure caller 자동 수혜 | a14f229 | UAT PASS (사용자 확인 2026-05-17 — 측정값+판정 표시) |
 | 260517-ja8 | 2026-05-17 | EdgeToLineDistance overlay 시각화 — TryExecute 측정 성공 시 검출 에지 라인(FAI-Edge1, 녹/적) + 교점→에지 Y거리 선(FAI-DistLine, 청록) overlay 생성. Phase 7-01 D-03 빈 리스트 정책 의도적 뒤집기 | 5c3d36b | SIMUL UAT 대기 |
+| 260517-l5e | 2026-05-17 | EdgeToLineDistance datum 교점 기준 측정 수정 — datumTransform(part-drift 보정 델타) 오용을 DatumConfig.DetectedOrigin* 교점 좌표 배선으로 교체. Y거리 계산 + ja8 청록 overlay 정정, 레거시 폴백 경로 보존(회귀 0) | 74d0d15, 19e5663 | SIMUL UAT 대기 |
 
 ### Pending Todos
 

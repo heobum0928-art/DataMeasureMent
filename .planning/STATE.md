@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Completed 23.1-02-PLAN.md
-last_updated: "2026-05-17T00:21:49.951Z"
+stopped_at: "23.1-03 Task 1+2 완료, Task 3 checkpoint:human-verify 대기"
+last_updated: "2026-05-17T00:30:21.336Z"
 last_activity: 2026-05-17
 progress:
   total_phases: 8
@@ -29,7 +29,7 @@ Phase: 23.1 (edgetolinedistance-roi) — EXECUTING
 Plan: 3 of 3
 Status: Ready to execute
 Next: 사용자 선택 — (a) v1.1 quick CO-23-01 디버깅 (A1~A5 측정값 미표시 — PixelResolutionX 0 또는 binding 단절 추적), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
-Last activity: 2026-05-17
+Last activity: 2026-05-17 - Completed quick task 260517-hvz: ShotConfig IOfflineImageParam 연결
 
 ## Performance Metrics
 
@@ -177,6 +177,7 @@ Recent decisions affecting current work:
 | 260430-hox | 2026-04-30 | Circle strip 12px cap + RectL1/L2Ratio default 0.05→0.02 — Phase 16 UAT FAIL (insufficient polar samples) root cause | 7ca39b6 | UAT pending |
 | 260511-k3i | 2026-05-11 | ROI 버튼 트리 선택 fallback — 신규 FAI Measurement 0 케이스 대응 | 92f8c73 | UAT PASS (사용자 4 scenarios 2026-05-11) |
 | 260511-ucv | 2026-05-11 | CO-22-01 — Datum↔FAI / SHOT PropertyGrid stale 해결: (A) InspectionList_SelectionChanged 게이트 e.Source→sender 교체 + (B) Action/Sequence/else 분기 force rebind 추가 | d6070e8, 50f5405 | UAT PASS (사용자 5/5 2026-05-11) |
+| 260517-hvz | 2026-05-17 | ShotConfig 가 IOfflineImageParam 구현 — SHOT 노드 Load 시 SimulImagePath 자동 저장 (Load↔측정이미지 경로 미배선 갭 해소, 측정값 '—' 직접 원인 #1) | b01e60d | |
 
 ### Pending Todos
 
@@ -231,8 +232,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-17T00:21:45.951Z
-Stopped at: Completed 23.1-02-PLAN.md
+Last session: 2026-05-17T00:30:21.326Z
+Stopped at: 23.1-03 Task 1+2 완료, Task 3 checkpoint:human-verify 대기
 Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 

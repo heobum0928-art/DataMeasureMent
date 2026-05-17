@@ -35,8 +35,7 @@ namespace ReringProject.Halcon.Algorithms
                 return false;
             }
 
-            HTuple measureHandle = null;
-            HObject contour = null;
+            HObject contour = null; //260517 hbk — measureHandle 제거: strip 헬퍼가 strip별 handle 관리
             try
             {
                 double rRow = roiRow, rCol = roiCol, rPhi = roiPhi;
@@ -85,11 +84,6 @@ namespace ReringProject.Halcon.Algorithms
                     pol = "positive";
                 }
 
-                HOperatorSet.GenMeasureRectangle2(
-                    rRow, rCol, rPhi, roiLength1, roiLength2,
-                    imageWidth, imageHeight, "nearest_neighbor",
-                    out measureHandle);
-
                 //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 처리 (TryFindCircleByPolarSampling L249-264 패턴 차용)
                 string measureSel; //260512 hbk Phase 23 ALG-01
                 if (string.Equals(selection, "First", StringComparison.OrdinalIgnoreCase)) //260512 hbk Phase 23 ALG-01
@@ -105,19 +99,71 @@ namespace ReringProject.Halcon.Algorithms
                     measureSel = "all";
                 }
 
-                HTuple rows, cols, amp, dist;
-                HOperatorSet.MeasurePos(image, measureHandle,
-                    Math.Max(0.4, sigma), Math.Max(1, threshold),
-                    pol, measureSel, out rows, out cols, out amp, out dist); //260512 hbk Phase 23 ALG-01
+                //260517 hbk — 단일 MeasurePos → strip-loop 누적 (CO-23-01 구조적 차단 제거)
+                //  근본 원인: 단일 MeasurePos 는 측정 축 1개에서만 에지 반환 → FitLineContourXld 입력 1~2점
+                //  → "insufficient edge points (1)" → TryFitLine false → 측정값 '—'.
+                //  해결: ROI 를 stripCount 개 strip 으로 쪼개 strip 마다 MeasurePos 누적 (DatumFindingService.TryFindLine 패턴).
+                //  rPhi 회전은 strip region 회전 대신 measurePhi 로 흡수 (축 정렬 strip + 회전된 측정 축).
+                //  datum 회전 ROI 도 동일 경로.
+                double halfW = roiLength1; //260517 hbk
+                double halfH = roiLength2; //260517 hbk
+                double top = rRow - halfH; //260517 hbk
+                double bottom = rRow + halfH; //260517 hbk
+                double left = rCol - halfW; //260517 hbk
+                double right = rCol + halfW; //260517 hbk
+                double widthPx = right - left; //260517 hbk
+                double heightPx = bottom - top; //260517 hbk
 
-                int edgeCount = rows.TupleLength();
-                if (edgeCount < 2)
+                //260517 hbk — CANONICAL: DatumFindingService.TryFindLine stripCount 산출 (sentinel 0 → 기본 20)
+                int stripCount = 20; //260517 hbk
+                if (sampleCount > 0) stripCount = sampleCount; //260517 hbk
+                if (stripCount < 1) stripCount = 1; //260517 hbk
+
+                HTuple allRows = new HTuple(); //260517 hbk
+                HTuple allCols = new HTuple(); //260517 hbk
+
+                if (scanHorizontal) //260517 hbk
                 {
-                    error = "insufficient edge points (" + edgeCount + ")";
+                    for (int i = 0; i < stripCount; i++) //260517 hbk
+                    {
+                        double r1 = top + (i * heightPx / stripCount); //260517 hbk
+                        double r2 = top + ((i + 1) * heightPx / stripCount); //260517 hbk
+                        AppendStrip(image, r1, left, r2, right, imageWidth, imageHeight,
+                            Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel,
+                            ref allRows, ref allCols); //260517 hbk
+                    }
+                }
+                else //260517 hbk
+                {
+                    for (int i = 0; i < stripCount; i++) //260517 hbk
+                    {
+                        double c1 = left + (i * widthPx / stripCount); //260517 hbk
+                        double c2 = left + ((i + 1) * widthPx / stripCount); //260517 hbk
+                        AppendStrip(image, top, c1, bottom, c2, imageWidth, imageHeight,
+                            Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel,
+                            ref allRows, ref allCols); //260517 hbk
+                    }
+                }
+
+                //260517 hbk — CANONICAL: TrimCount 적용 (누적 점 양 끝 제거)
+                int edgeCount = allRows.TupleLength(); //260517 hbk
+                if (trimCount > 0 && edgeCount > 2 * trimCount + 1) //260517 hbk
+                {
+                    HTuple trimmedR = allRows.TupleSelectRange(trimCount, edgeCount - trimCount - 1); //260517 hbk
+                    HTuple trimmedC = allCols.TupleSelectRange(trimCount, edgeCount - trimCount - 1); //260517 hbk
+                    allRows = trimmedR; //260517 hbk
+                    allCols = trimmedC; //260517 hbk
+                    edgeCount = allRows.TupleLength(); //260517 hbk
+                }
+
+                //260517 hbk — edge 개수 게이트: strip 누적 후에도 2점 미만이면 실패
+                if (edgeCount < 2) //260517 hbk
+                {
+                    error = "insufficient edge points (" + edgeCount + ") across " + stripCount + " strips"; //260517 hbk
                     return false;
                 }
 
-                HOperatorSet.GenContourPolygonXld(out contour, rows, cols);
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols); //260517 hbk
                 HTuple lr1, lc1, lr2, lc2, nr, nc, df;
                 HOperatorSet.FitLineContourXld(contour, "tukey", -1, 0, 5, 2,
                     out lr1, out lc1, out lr2, out lc2, out nr, out nc, out df);
@@ -133,8 +179,55 @@ namespace ReringProject.Halcon.Algorithms
             }
             finally
             {
-                if (measureHandle != null) { try { HOperatorSet.CloseMeasure(measureHandle); } catch { } }
                 if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        //260517 hbk — 단일 strip 에서 MeasurePos 실행 후 edge 점 누적.
+        //  CANONICAL: DatumFindingService.AppendEdgePointsFromStrip. DatumFindingService 의 헬퍼는 private 라 직접 호출 불가
+        //  → 동등 구현을 VisionAlgorithmService 내부에 작성. 헬퍼 위치 결정 옵션 (a): 단순함 우선, 공유 추출 없음.
+        //  polarity 차이: 이 헬퍼는 Halcon polarity 문자열("positive"/"negative")을 그대로 받는다 (caller 에서 매핑 완료).
+        //  measurePhi 차이: caller 가 direction 매핑 + rPhi 회전 보정을 합산한 값을 전달
+        //    → 헬퍼는 SmallestRectangle2 자동 phi(rp) 를 쓰지 않고 전달받은 measurePhi 만 사용.
+        //  strip 실패(빈 결과 / 예외)는 swallow — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
+        private void AppendStrip( //260517 hbk
+            HImage image,
+            double row1, double col1, double row2, double col2,
+            HTuple imageWidth, HTuple imageHeight,
+            double sigma, int threshold, string polarity,
+            double measurePhi, string selection,
+            ref HTuple allRows, ref HTuple allCols)
+        {
+            HObject stripRegion = null;
+            HTuple measureHandle = null;
+            try
+            {
+                HOperatorSet.GenRectangle1(out stripRegion, row1, col1, row2, col2); //260517 hbk
+                HTuple rr, rc, rp, rh, rw;
+                HOperatorSet.SmallestRectangle2(stripRegion, out rr, out rc, out rp, out rh, out rw); //260517 hbk — rp(자동 phi)는 미사용; rr/rc/rh/rw 만 사용
+                HOperatorSet.GenMeasureRectangle2(
+                    rr, rc, measurePhi, rh, rw, //260517 hbk — measurePhi = direction 매핑 + rPhi 회전 보정 합산값
+                    imageWidth, imageHeight, "nearest_neighbor",
+                    out measureHandle);
+                HTuple edgeRows, edgeCols, amp, dist;
+                HOperatorSet.MeasurePos(
+                    image, measureHandle, sigma, threshold,
+                    polarity, selection, //260517 hbk — polarity: Halcon 문자열 직접 사용 (caller 에서 매핑 완료)
+                    out edgeRows, out edgeCols, out amp, out dist);
+                if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
+                {
+                    return;
+                }
+                HOperatorSet.TupleConcat(allRows, edgeRows, out allRows); //260517 hbk
+                HOperatorSet.TupleConcat(allCols, edgeCols, out allCols); //260517 hbk
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (measureHandle != null) { try { HOperatorSet.CloseMeasure(measureHandle); } catch { } } //260517 hbk
+                if (stripRegion != null) { try { stripRegion.Dispose(); } catch { } } //260517 hbk
             }
         }
 
@@ -341,7 +434,7 @@ namespace ReringProject.Halcon.Algorithms
 
                         if (eRows.TupleLength() > 0 && eCols.TupleLength() > 0)
                         {
-                            strips[i] = true; //260505 hbk Phase 18 CO-05 — 이 strip 검출 성공
+                            strips[i] = true; //260505 hbk Phase 18 CO-05 — 이 1strip 검출 성공
                             //260429 hbk Phase 15 — selection 정책 분기: First/Last 는 단일점 누적(Phase 14-04 stepCount 보존), All 은 전체 누적
                             if (string.Equals(selectionLower, "all", StringComparison.OrdinalIgnoreCase))
                             {

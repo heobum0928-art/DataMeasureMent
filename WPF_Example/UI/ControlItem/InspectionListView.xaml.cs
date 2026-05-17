@@ -446,6 +446,10 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
+                        //260517 hbk Phase 23.1 D-01 — EdgeToLineDistanceMeasurement 노드 선택 시 Rect ROI 버튼 활성화 (다른 measurement 타입은 비활성)
+                        bool isEdgeToLine = item.Param is EdgeToLineDistanceMeasurement;
+                        if (mParentWindow != null && mParentWindow.mainView != null)
+                            mParentWindow.mainView.btn_rectRoi.IsEnabled = isEdgeToLine; //260517 hbk Phase 23.1 D-01
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)
                         //260508 hbk Phase 19 fix — Datum 클릭 force rebind(line 419-420) 후 binding 손상 → Measurement 전환 시 PropertyGrid stale.
                         //  Datum 패턴(Phase 16 D-09)과 동일하게 null→new 강제 재할당.

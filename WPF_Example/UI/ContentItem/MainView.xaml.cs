@@ -181,6 +181,23 @@ namespace ReringProject.UI {
                 if (fai == null) continue;
                 var roi = fai.ToRoiDefinition();
                 if (roi.IsTaught) result.Add(roi);
+                //260517 hbk Phase 23.1 D-03 — EdgeToLineDistanceMeasurement Point ROI 동시 수집 (FAI 노드 선택 시 다점 ROI 렌더)
+                foreach (var m in fai.Measurements) {
+                    var etl = m as EdgeToLineDistanceMeasurement;
+                    if (etl != null && etl.Point_Length1 > 0 && etl.Point_Length2 > 0) {
+                        string measName = etl.MeasurementName;
+                        if (string.IsNullOrEmpty(measName)) measName = etl.TypeName;
+                        result.Add(new RoiDefinition {
+                            Id = fai.FAIName + "_" + measName,
+                            Name = measName,
+                            Row1 = etl.Point_Row - etl.Point_Length1,
+                            Column1 = etl.Point_Col - etl.Point_Length2,
+                            Row2 = etl.Point_Row + etl.Point_Length1,
+                            Column2 = etl.Point_Col + etl.Point_Length2,
+                            IsTaught = true
+                        });
+                    }
+                }
             }
             return result;
         }

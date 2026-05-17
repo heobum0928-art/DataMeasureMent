@@ -52,6 +52,22 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } }
 
+        //260517 hbk — datum 교점 좌표 runtime 주입 전용 프로퍼티 (Action_FAIMeasurement 가 TryExecute 직전 주입).
+        //  DatumConfig.DetectedOrigin* 패턴과 동일하게 처리: 런타임 transient, PropertyGrid 미표시, JSON 직렬화 제외.
+        //  ParamBase INI reflection 은 public double 을 0 으로 직렬화하나 — DatumConfig 와 동일하게 수용.
+        [System.ComponentModel.Browsable(false)] //260517 hbk
+        [PropertyTools.DataAnnotations.Browsable(false)] //260517 hbk
+        [Newtonsoft.Json.JsonIgnore] //260517 hbk
+        public double DatumOriginRow { get; set; } //260517 hbk — datum 교점 row (image 좌표). 미주입 시 0.
+        [System.ComponentModel.Browsable(false)] //260517 hbk
+        [PropertyTools.DataAnnotations.Browsable(false)] //260517 hbk
+        [Newtonsoft.Json.JsonIgnore] //260517 hbk
+        public double DatumOriginCol { get; set; } //260517 hbk — datum 교점 col (image 좌표). 미주입 시 0.
+        [System.ComponentModel.Browsable(false)] //260517 hbk
+        [PropertyTools.DataAnnotations.Browsable(false)] //260517 hbk
+        [Newtonsoft.Json.JsonIgnore] //260517 hbk
+        public double DatumAngleRad { get; set; } //260517 hbk — datum 기준선 각도(rad). 향후 회전 보정 확장 지점. 미주입 시 0.
+
         public EdgeToLineDistanceMeasurement(object owner) : base(owner) { } //260512 hbk Phase 23 ALG-01
 
         public override bool TryExecute( //260512 hbk Phase 23 ALG-01
@@ -96,19 +112,32 @@ namespace ReringProject.Sequence
             double pRow = (pr1 + pr2) / 2.0;
             double pCol = (pc1 + pc2) / 2.0;
 
-            //260512 hbk Phase 23 ALG-01 — Datum-relative Y 좌표 추출 + D-02 부호 반전 (image row → +Y 위쪽 양수)
-            double datumRow = pRow;
-            try
+            //260517 hbk — Y거리 계산: datum 교점 기준(정상 경로) vs AffineTransPoint2d 폴백(레거시/무보정).
+            //  datumTransform 은 part-drift 보정 델타(Translate∘Rotate)이지 좌표 변환 행렬이 아님 →
+            //  SIMUL(curOrigin≈RefOrigin) 에서 transform≈Identity → tRow≈pRow(이미지 row 0 기준) 오류 발생.
+            //  정상 경로: DatumOriginRow(DatumConfig.DetectedOriginRow, IntersectionLl 결과) 직접 사용.
+            bool datumOriginInjected = (DatumOriginRow != 0.0 || DatumOriginCol != 0.0); //260517 hbk
+            if (datumOriginInjected) //260517 hbk — 정상 경로: datum 교점 row 기준 Y변위 (D-02 +Y 부호 보존)
             {
-                HTuple tRow, tCol;
-                HOperatorSet.AffineTransPoint2d(datumTransform, pRow, pCol, out tRow, out tCol);
-                datumRow = tRow.D;
+                double datumRelRow = pRow - DatumOriginRow; //260517 hbk — 에지 중점 row − datum 교점 row = datum-기준 Y변위(pixel)
+                resultValue = -datumRelRow * pixelResolution; //260517 hbk — D-02 +Y 부호 규약(앞 마이너스 보존)
             }
-            catch
+            else //260517 hbk — 레거시/무보정 폴백: AffineTransPoint2d (DatumRef 빈 문자열 또는 구버전 호출 경로)
             {
-                // transform 실패 시 image-row 좌표 사용 (TryFitLine 패턴 일관성, RESEARCH Pitfall 2)
+                //260512 hbk Phase 23 ALG-01 — Datum-relative Y 좌표 추출 + D-02 부호 반전 (image row → +Y 위쪽 양수)
+                double datumRow = pRow; //260517 hbk
+                try //260517 hbk
+                {
+                    HTuple tRow, tCol; //260517 hbk
+                    HOperatorSet.AffineTransPoint2d(datumTransform, pRow, pCol, out tRow, out tCol); //260517 hbk
+                    datumRow = tRow.D; //260517 hbk
+                }
+                catch //260517 hbk
+                {
+                    // transform 실패 시 image-row 좌표 사용 (TryFitLine 패턴 일관성, RESEARCH Pitfall 2) //260517 hbk
+                }
+                resultValue = -datumRow * pixelResolution; //260517 hbk — D-02 +Y 부호 (위쪽 양수)
             }
-            resultValue = -datumRow * pixelResolution; //260512 hbk Phase 23 ALG-01 — D-02 +Y 부호 (위쪽 양수)
 
             // Phase 7-01 D-03 / Phase 23-01 의 의도적 '빈 리스트' overlay 정책을 이번에 뒤집음. //260517 hbk
             // Phase 23.1 UAT 시각 검증(측정값 vs SOP 도면 정확도)을 위해 검출 에지/거리선을 캔버스에 표시. //260517 hbk
@@ -131,19 +160,28 @@ namespace ReringProject.Sequence
             bool originOk = false; //260517 hbk
             double originRow = 0.0; //260517 hbk
             double originCol = 0.0; //260517 hbk
-            try //260517 hbk
+            if (datumOriginInjected) //260517 hbk — 정상 경로: DatumOriginRow/Col 직접 사용 (HomMat2dInvert 불필요)
             {
-                HTuple invMat; //260517 hbk
-                HOperatorSet.HomMat2dInvert(datumTransform, out invMat); //260517 hbk — datumTransform 역행렬: image→datum 역 = datum→image
-                HTuple oRow, oCol; //260517 hbk
-                HOperatorSet.AffineTransPoint2d(invMat, 0.0, 0.0, out oRow, out oCol); //260517 hbk — datum 원점(0,0)의 image 좌표
-                originRow = oRow.D; //260517 hbk
-                originCol = oCol.D; //260517 hbk
+                originRow = DatumOriginRow; //260517 hbk — datum 교점 image 좌표 (IntersectionLl 결과, DatumConfig.DetectedOriginRow)
+                originCol = DatumOriginCol; //260517 hbk
                 originOk = true; //260517 hbk
             }
-            catch //260517 hbk
+            else //260517 hbk — 레거시/무보정 폴백: HomMat2dInvert 경로 (datum 미주입 케이스에서 overlay 완전 소실 방지)
             {
-                // 역변환 실패 시 FAI-DistLine 만 skip — 에지 라인 overlay 와 측정값은 유지 //260517 hbk
+                try //260517 hbk
+                {
+                    HTuple invMat; //260517 hbk
+                    HOperatorSet.HomMat2dInvert(datumTransform, out invMat); //260517 hbk — datumTransform 역행렬: image→datum 역 = datum→image
+                    HTuple oRow, oCol; //260517 hbk
+                    HOperatorSet.AffineTransPoint2d(invMat, 0.0, 0.0, out oRow, out oCol); //260517 hbk — datum 원점(0,0)의 image 좌표
+                    originRow = oRow.D; //260517 hbk
+                    originCol = oCol.D; //260517 hbk
+                    originOk = true; //260517 hbk
+                }
+                catch //260517 hbk
+                {
+                    // 역변환 실패 시 FAI-DistLine 만 skip — 에지 라인 overlay 와 측정값은 유지 //260517 hbk
+                }
             }
 
             if (originOk) //260517 hbk

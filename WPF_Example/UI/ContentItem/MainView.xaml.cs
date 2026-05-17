@@ -47,6 +47,10 @@ namespace ReringProject.UI {
         private CircleDiameterMeasurement _editingCircleMeasurement;
         //260423 hbk Circle ROI 편집 대상 FAI 이름 (RoiDefinition.Id=FAIName 과 일치 유지)
         private string _editingCircleFaiName;
+        //260517 hbk Phase 23.1 D-01 — EdgeToLineDistance Rect ROI 편집 대상 Measurement
+        private EdgeToLineDistanceMeasurement _editingMeasurement;
+        //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 FAI 이름 (UpdateDisplayState selId 용)
+        private string _editingMeasurementFaiName;
         //260424 hbk Phase 12 D-03 — Datum 티칭 단계 (알고리즘별 switch 로 전이 결정)
         //  Phase 13 에서 DatumAlgorithmBase.GetROISteps() 가변 배열로 재설계 예정 — switch 는 MainView 내 private 유지.
         private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
@@ -1037,6 +1041,9 @@ namespace ReringProject.UI {
             //260423 hbk Phase 11 — Circle ROI 편집 대상 해제
             _editingCircleMeasurement = null;
             _editingCircleFaiName = null;
+            //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 Measurement 해제
+            _editingMeasurement = null;
+            _editingMeasurementFaiName = null;
             _editingDatum = null; //260424 hbk Phase 12 — Datum 티칭 편집 대상 해제
             btn_rectRoi.IsChecked = false;
             btn_polygonRoi.IsChecked = false;
@@ -1062,6 +1069,20 @@ namespace ReringProject.UI {
                 ExitCanvasMode();
                 _canvasMode = ECanvasMode.RectRoi;
                 btn_rectRoi.IsChecked = true;
+
+                //260517 hbk Phase 23.1 D-01 — Measurement 노드 선택 시 EdgeToLineDistanceMeasurement 대상 분기 (FAIConfig 해석보다 우선)
+                EdgeToLineDistanceMeasurement measTarget = FindSelectedEdgeToLineMeasurement();
+                if (measTarget != null) {
+                    _editingMeasurement = measTarget;
+                    var selRowForMeas = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                    if (selRowForMeas != null) _editingMeasurementFaiName = selRowForMeas.FAIName;
+                    else _editingMeasurementFaiName = FindFaiNameContainingMeasurement(_editingMeasurement);
+                    label_drawHint.Content = "드래그하여 Measurement Point ROI를 설정하세요";
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    return;
+                }
 
                 //260511 hbk 신규 FAI(Measurement 0개) 회귀 — 트리 선택을 우선 사용, dataGrid 는 fallback
                 FAIConfig faiToEdit = null;
@@ -1096,7 +1117,37 @@ namespace ReringProject.UI {
         }
 
         private void CommitRectRoi() {
-            if (_canvasMode != ECanvasMode.RectRoi || _editingFai == null) {
+            //260517 hbk Phase 23.1 D-01 — canvas mode 가드 (Measurement/FAI 공통)
+            if (_canvasMode != ECanvasMode.RectRoi) {
+                ExitCanvasMode();
+                return;
+            }
+
+            //260517 hbk Phase 23.1 D-01 — Measurement 분기 우선: EdgeToLineDistanceMeasurement.Point_* write-back
+            if (_editingMeasurement != null) {
+                var measRoi = halconViewer.CommitActiveRectangle();
+                if (measRoi != null) {
+                    double mCenterRow = (measRoi.Row1 + measRoi.Row2) / 2.0;
+                    double mCenterCol = (measRoi.Column1 + measRoi.Column2) / 2.0;
+                    double mHalfHeight = (measRoi.Row2 - measRoi.Row1) / 2.0;
+                    double mHalfWidth = (measRoi.Column2 - measRoi.Column1) / 2.0;
+                    _editingMeasurement.Point_Row = mCenterRow;      //260517 hbk Phase 23.1 D-01
+                    _editingMeasurement.Point_Col = mCenterCol;      //260517 hbk Phase 23.1 D-01
+                    _editingMeasurement.Point_Phi = 0.0;             //260517 hbk Phase 23.1 D-01
+                    _editingMeasurement.Point_Length1 = mHalfHeight; //260517 hbk Phase 23.1 D-01
+                    _editingMeasurement.Point_Length2 = mHalfWidth;  //260517 hbk Phase 23.1 D-01
+                    string measSelId = _editingMeasurementFaiName;
+                    if (string.IsNullOrEmpty(measSelId))
+                        measSelId = FindFaiNameContainingMeasurement(_editingMeasurement);
+                    var measRois = GetCurrentFAIRois();
+                    halconViewer.UpdateDisplayState(measRois, measSelId, null, null);
+                }
+                ExitCanvasMode();
+                return;
+            }
+
+            //260517 hbk Phase 23.1 D-01 — 기존 FAIConfig 경로 (무수정)
+            if (_editingFai == null) {
                 ExitCanvasMode();
                 return;
             }
@@ -1196,6 +1247,27 @@ namespace ReringProject.UI {
                     foreach (var m in fai.Measurements) {
                         var circle = m as CircleDiameterMeasurement;
                         if (circle != null) return circle;
+                    }
+                }
+            }
+            return null;
+        }
+
+        //260517 hbk Phase 23.1 D-01 — 선택된 트리/결과 행에서 EdgeToLineDistanceMeasurement 해석 (D-02: 이 타입만 대상)
+        private EdgeToLineDistanceMeasurement FindSelectedEdgeToLineMeasurement() {
+            // 트리 노드 선택 우선 (FAI 미생성 신규 measurement 케이스 포함)
+            if (mParentWindow != null && mParentWindow.inspectionList != null) {
+                var meas = mParentWindow.inspectionList.SelectedParam as EdgeToLineDistanceMeasurement;
+                if (meas != null) return meas;
+            }
+            // fallback — dataGrid 행 선택 경로
+            var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+            if (selectedRow != null) {
+                FAIConfig fai = FindFAIByName(selectedRow.FAIName);
+                if (fai != null) {
+                    foreach (var m in fai.Measurements) {
+                        var etl = m as EdgeToLineDistanceMeasurement;
+                        if (etl != null) return etl;
                     }
                 }
             }

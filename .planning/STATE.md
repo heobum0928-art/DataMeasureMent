@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Completed 23.1-01-PLAN.md
-last_updated: "2026-05-17T00:13:32.518Z"
+stopped_at: Completed 23.1-02-PLAN.md
+last_updated: "2026-05-17T00:21:49.951Z"
 last_activity: 2026-05-17
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 32
-  completed_plans: 29
-  percent: 91
+  completed_plans: 30
+  percent: 94
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 23.1 (edgetolinedistance-roi) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Next: 사용자 선택 — (a) v1.1 quick CO-23-01 디버깅 (A1~A5 측정값 미표시 — PixelResolutionX 0 또는 binding 단절 추적), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
 Last activity: 2026-05-17
@@ -92,6 +92,7 @@ Last activity: 2026-05-17
 | Phase 23 P01 | 12 | 3 tasks | 3 files |
 | Phase 23 P02 | 2 | 3 tasks | 2 files |
 | Phase 23.1 P01 | 3 | 2 tasks | 1 files |
+| Phase 23.1 P02 | 8 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,8 @@ Recent decisions affecting current work:
 - [Phase 23-02]: Action_FAIMeasurement.GrabOrLoadDatumImage 3-tier fallback chain — TeachingImagePath (우선) → SimulImagePath (회귀 0 baseline) → GrabHalconImage (최종). DatumConfigs[0] 첫 번째만 채택 (RESEARCH A6, D-01 CTH 1개). Pitfall 3 2-step 가드 (IsNullOrEmpty + File.Exists). Phase 22 IMG-02 marker (L226) 보존 — Phase 20 D-12 stacking 패턴.
 - D-08: TryExecute 가 EdgeSelection 필드를 무시하고 리터럴 'All' 전달 — CO-23-01 #1 구조적 차단 (Phase 23.1-01)
 - D-09: EdgeToLineDistanceMeasurement ICustomTypeDescriptor 구현 — PropertyGrid EdgeSelection 숨김, 사용자 재조작 원천 차단 (Phase 23.1-01)
+- D-01(적용): 기존 Rect ROI 버튼 재사용 — ECanvasMode 신규 값 없음, _editingMeasurement != null 여부로 FAI/Measurement 분기 (Phase 23.1-02)
+- D-03(적용): GetCurrentFAIRois 에서 Measurement Point ROI 추가 수집 — ToRoiDefinition 시그니처 무변경, FAI 노드 선택 시 다점 ROI 동시 렌더 (Phase 23.1-02)
 
 ### Quick Tasks Completed
 
@@ -228,8 +231,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-17T00:13:32.509Z
-Stopped at: Completed 23.1-01-PLAN.md
+Last session: 2026-05-17T00:21:45.951Z
+Stopped at: Completed 23.1-02-PLAN.md
 Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 

@@ -6,7 +6,8 @@ using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
 
-    public class ShotConfig : CameraSlaveParam {
+    public class ShotConfig : CameraSlaveParam, IOfflineImageParam //260517 hbk
+    {
 
         [Category("Shot|Setting")]
         public double ZPosition { get; set; }
@@ -14,6 +15,17 @@ namespace ReringProject.Sequence {
 
         [Category("Shot|Simulation")]
         public string SimulImagePath { get; set; } = "";
+
+        //260517 hbk IOfflineImageParam — MainView Load 버튼이 SHOT 노드 선택 시 경로 저장
+        public string GetLatestImagePath()
+        {
+            return SimulImagePath;
+        }
+
+        public void SetLatestImagePath(string imagePath)
+        {
+            SimulImagePath = imagePath;
+        }
 
         [Browsable(false)]
         public List<FAIConfig> FAIList { get; private set; } = new List<FAIConfig>();

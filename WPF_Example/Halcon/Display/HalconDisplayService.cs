@@ -11,6 +11,8 @@ namespace ReringProject.Halcon.Display
     public class HalconDisplayService
     {
         private bool _isFontInitialized;
+        //260519 hbk #6-b — 전역 폰트 문자열 캐시 (DrawRoiLabelAt 축소 폰트 원복용)
+        private string _normalFontName;
         private static readonly HTuple MessageTextParamNames = new HTuple("box");
         private static readonly HTuple MessageTextParamValues = new HTuple("false");
 
@@ -321,6 +323,8 @@ namespace ReringProject.Halcon.Display
                     font = new HTuple("mono-18");
                 }
                 window.SetFont(font);
+                //260519 hbk #6-b — 전역 폰트 문자열 캐시 저장 (DrawRoiLabelAt 원복용)
+                _normalFontName = font.S;
                 _isFontInitialized = true;
             }
             catch
@@ -809,14 +813,26 @@ namespace ReringProject.Halcon.Display
         }
 
         //260424 hbk Phase 12 Gap-2 — 주어진 (row, col) 에 yellow 텍스트 라벨 렌더 (Circle ROI 등 비-Rectangle 용)
+        //260519 hbk #6-b — 라벨 폰트 30% 축소 (전역 폰트 영향 0: 렌더 후 원복)
         private void DrawRoiLabelAt(HWindow window, double row, double col, string label)
         {
             try
             {
                 EnsureFontInitialized(window);
+                //260519 hbk #6-b — 라벨 전용 축소 폰트 (~70% of 18 = 13): "-18" → "-13" 치환
+                if (!string.IsNullOrEmpty(_normalFontName))
+                {
+                    string smallFont = _normalFontName.Replace("-18", "-13");
+                    HOperatorSet.SetFont(window, smallFont);
+                }
                 HOperatorSet.SetColor(window, "yellow");
                 HOperatorSet.SetTposition(window, row, col);
                 HOperatorSet.WriteString(window, label);
+                //260519 hbk #6-b — 전역 폰트 원복 (좌표/메시지 텍스트 회귀 방지)
+                if (!string.IsNullOrEmpty(_normalFontName))
+                {
+                    HOperatorSet.SetFont(window, _normalFontName);
+                }
             }
             catch
             {

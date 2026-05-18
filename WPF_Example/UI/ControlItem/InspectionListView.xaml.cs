@@ -463,6 +463,9 @@ namespace ReringProject.UI {
                             }
                         }
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                        //260518 hbk #6 — 선택 Measurement 노드의 ROI 캔버스 하이라이트 + 명칭 라벨
+                        if (mParentWindow != null && mParentWindow.mainView != null)
+                            mParentWindow.mainView.HighlightSelectedRoi(itemParam as ParamBase);
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
@@ -483,6 +486,9 @@ namespace ReringProject.UI {
                                 }
                             }
                         }
+                        //260518 hbk #6 — 선택 FAI 노드의 ROI 캔버스 하이라이트 + 명칭 라벨
+                        if (mParentWindow != null && mParentWindow.mainView != null)
+                            mParentWindow.mainView.HighlightSelectedRoi(itemParam as ParamBase);
                     }
                     else if (item.NodeType == ENodeType.Action) {
                         button_addFAI.IsEnabled = true;

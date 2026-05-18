@@ -202,6 +202,27 @@ namespace ReringProject.UI {
             return result;
         }
 
+        //260518 hbk #6 — 선택된 Measurement/FAI 노드의 ROI 를 캔버스에서 노란색 하이라이트한다.
+        /// <summary>
+        /// 트리에서 선택된 param 의 ROI Id 를 도출해 halconViewer 에 하이라이트를 적용한다.
+        /// param 이 FAIConfig 또는 MeasurementBase 가 아니면 하이라이트를 해제한다.
+        /// </summary>
+        public void HighlightSelectedRoi(ParamBase param) {
+            //260518 hbk #6 — 선택 노드의 ROI 하이라이트 ID 도출 (GetCurrentFAIRois 의 Id 규칙과 일치)
+            string selRoiId = null;
+            if (param is FAIConfig faiSel) {
+                selRoiId = faiSel.FAIName;
+            }
+            else if (param is MeasurementBase measSel) {
+                string faiName = FindFaiNameContainingMeasurement(measSel);
+                string mName = measSel.MeasurementName;
+                if (string.IsNullOrEmpty(mName)) mName = measSel.TypeName;
+                if (!string.IsNullOrEmpty(faiName)) selRoiId = faiName + "_" + mName;
+            }
+            var rois = GetCurrentFAIRois();
+            halconViewer.UpdateDisplayState(rois, selRoiId, null, null);
+        }
+
         //260417 hbk Phase 6 Plan 04: 모든 시퀀스/Shot에서 FAIName으로 FAIConfig 조회 (D-21)
         private FAIConfig FindFAIByName(string faiName) {
             if (string.IsNullOrEmpty(faiName) || pSeq == null) return null;

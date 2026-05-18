@@ -84,6 +84,9 @@ namespace ReringProject.Halcon.Display
                         window.SetLineWidth(2);
                         window.DispLine(roi.CenterRow - 6, roi.CenterCol, roi.CenterRow + 6, roi.CenterCol);
                         window.DispLine(roi.CenterRow, roi.CenterCol - 6, roi.CenterRow, roi.CenterCol + 6);
+                        //260518 hbk #6 — Circle ROI 명칭 라벨 (원 상단 외곽)
+                        if (!string.IsNullOrEmpty(roi.Name))
+                            DrawRoiLabelAt(window, roi.CenterRow - roi.Radius - 22, roi.CenterCol, roi.Name);
                         continue;
                     }
 
@@ -93,10 +96,16 @@ namespace ReringProject.Halcon.Display
                         var pts = ParsePolygonPoints(roi.PolygonPoints);
                         if (pts != null && pts.Count >= 3)
                             RenderPolygon(window, pts, roiColor, roiWidth);
+                        //260518 hbk #6 — Polygon ROI 명칭 라벨 (첫 점 기준 위쪽)
+                        if (!string.IsNullOrEmpty(roi.Name) && pts != null && pts.Count > 0)
+                            DrawRoiLabelAt(window, pts[0].Y - 22, pts[0].X, roi.Name);
                     }
                     else if (roi.Row1 != 0 || roi.Column1 != 0 || roi.Row2 != 0 || roi.Column2 != 0)
                     {
                         DrawRectangleOutline(window, roi.Row1, roi.Column1, roi.Row2, roi.Column2);
+                        //260518 hbk #6 — Rectangle ROI 명칭 라벨 (좌상단 외곽 위쪽)
+                        if (!string.IsNullOrEmpty(roi.Name))
+                            DrawRoiLabelAt(window, roi.Row1 - 22, roi.Column1, roi.Name);
                     }
 
                     if (roi.Id == selectedRoiId && roi.IsTaught)

@@ -625,6 +625,8 @@ namespace ReringProject.UI {
                 if (resolved == null) return;
                 //260518 hbk #3 — 표시는 Shot 으로 위임, 경로 저장은 DatumConfig.TeachingImagePath 로
                 mParentWindow.mainView.LoadAndDisplay(resolved, datumForLoad);
+                //260519 hbk #3-refresh — Datum Load 후 TeachingImagePath 자동속성 write-back 은 INPC 미발동 → PropertyGrid 강제 재바인딩
+                RefreshParamEditor();
                 return;
             }
             if (!(SelectedParam is ICameraParam)) return;

@@ -234,7 +234,13 @@ namespace ReringProject.Sequence {
                 nameof(EdgeDirectionList), //260507 hbk Phase 18 CO-01 패턴 — EdgeDirectionList 강제 포함
                 nameof(EdgePolarityList), //260507 hbk Phase 18 CO-01 패턴 — EdgePolarityList 강제 포함
             };
-            return DynamicPropertyHelper.FilterProperties(this, attrs, name => IsHiddenForEdgeMeasureType(name, EdgeMeasureType), sourceNames); //260508 hbk Phase 19 fix
+            //260518 hbk #4 — 동적 FAI 모드(자식 Measurement >= 1)에서 레거시 FAI-레벨 Edge 파라미터 숨김.
+            //  각 Measurement 가 자기 파라미터를 보유하므로 FAI-레벨 Edge 값은 죽은 값 → 사용자 혼란 방지.
+            bool hasDynamicMeasurements = Measurements != null && Measurements.Count > 0; //260518 hbk #4
+            return DynamicPropertyHelper.FilterProperties(this, attrs,
+                name => IsHiddenForEdgeMeasureType(name, EdgeMeasureType)
+                        || (hasDynamicMeasurements && IsLegacyEdgeParam(name)), //260518 hbk #4
+                sourceNames); //260508 hbk Phase 19 fix
         }
         public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); } //260507 hbk Phase 19 QUAL-03
         public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); } //260507 hbk Phase 19 QUAL-03
@@ -259,6 +265,21 @@ namespace ReringProject.Sequence {
                 if (name == "EdgeTrimCount")                                   return true; //260507 hbk Phase 19 QUAL-03
                 if (name == "Sigma")                                           return true; //260507 hbk Phase 19 QUAL-03
             }
+            return false;
+        }
+
+        //260518 hbk #4 — 동적 FAI 모드에서 숨길 레거시 FAI-레벨 Edge 파라미터 이름 매칭.
+        //  *List 이름(EdgeMeasureTypeList 등)은 매칭하지 않는다 — ItemsSource 화이트리스트 보존 (콤보 깨짐 회피).
+        //  부모 프로퍼티가 숨겨지면 List 도 화면에 노출되지 않으므로 무관.
+        private static bool IsLegacyEdgeParam(string name) { //260518 hbk #4
+            if (name == "EdgeMeasureType")  return true; //260518 hbk #4
+            if (name == "EdgeThreshold")    return true; //260518 hbk #4
+            if (name == "Sigma")            return true; //260518 hbk #4
+            if (name == "EdgeDirection")    return true; //260518 hbk #4
+            if (name == "EdgeSelection")    return true; //260518 hbk #4
+            if (name == "EdgeSampleCount")  return true; //260518 hbk #4
+            if (name == "EdgeTrimCount")    return true; //260518 hbk #4
+            if (name == "EdgePolarity")     return true; //260518 hbk #4
             return false;
         }
     }

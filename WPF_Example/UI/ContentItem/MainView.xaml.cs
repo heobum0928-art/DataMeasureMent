@@ -208,19 +208,34 @@ namespace ReringProject.UI {
         /// param 이 FAIConfig 또는 MeasurementBase 가 아니면 하이라이트를 해제한다.
         /// </summary>
         public void HighlightSelectedRoi(ParamBase param) {
-            //260518 hbk #6 — 선택 노드의 ROI 하이라이트 ID 도출 (GetCurrentFAIRois 의 Id 규칙과 일치)
+            //260519 hbk #6-a — 선택 노드의 ROI 하이라이트 ID 도출
             string selRoiId = null;
+            string faiNameForFallback = null;
             if (param is FAIConfig faiSel) {
                 selRoiId = faiSel.FAIName;
             }
             else if (param is MeasurementBase measSel) {
                 string faiName = FindFaiNameContainingMeasurement(measSel);
+                faiNameForFallback = faiName;
                 string mName = measSel.MeasurementName;
                 if (string.IsNullOrEmpty(mName)) mName = measSel.TypeName;
                 if (!string.IsNullOrEmpty(faiName)) selRoiId = faiName + "_" + mName;
             }
             var rois = GetCurrentFAIRois();
-            halconViewer.UpdateDisplayState(rois, selRoiId, null, null);
+            //260519 hbk #6-a — composite ID 매칭 ROI 없으면 부모 FAI ROI 로 fallback (일반 FAI rect ROI 는 Id=FAIName)
+            if (!string.IsNullOrEmpty(selRoiId) && !string.IsNullOrEmpty(faiNameForFallback)) {
+                bool matched = false;
+                foreach (var r in rois) {
+                    if (r != null && r.Id == selRoiId) { matched = true; break; }
+                }
+                if (!matched) selRoiId = faiNameForFallback;
+            }
+            //260519 hbk #6-a — 선행 LoadImage/ClearResults 렌더가 끝난 뒤 하이라이트 최종 적용 (덮어쓰기 방지)
+            string finalRoiId = selRoiId;
+            var finalRois = rois;
+            Dispatcher.BeginInvoke(new Action(() => {
+                halconViewer.UpdateDisplayState(finalRois, finalRoiId, null, null);
+            }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         //260417 hbk Phase 6 Plan 04: 모든 시퀀스/Shot에서 FAIName으로 FAIConfig 조회 (D-21)

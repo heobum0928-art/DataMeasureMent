@@ -293,6 +293,18 @@ namespace ReringProject.UI {
         }
 
         public void LoadAndDisplay(ICameraParam param) {
+            //260518 hbk #3 — 1-인자 오버로드는 표시/경로저장 동일 param 위임 (코드 중복 제거)
+            LoadAndDisplay(param, param as IOfflineImageParam);
+        }
+
+        //260518 hbk #3 — 표시용(displayParam)과 경로 persistence(pathSinkParam) 분리.
+        //  Datum 노드 Load 시 표시는 Shot 으로 위임하되 경로는 DatumConfig.TeachingImagePath 로 저장하기 위함.
+        /// <summary>
+        /// 이미지를 로드해 표시하고, 선택 경로를 pathSinkParam 에 기록한다.
+        /// pathSinkParam 이 null 이면 경로 persistence 를 건너뛴다.
+        /// </summary>
+        public void LoadAndDisplay(ICameraParam displayParam, IOfflineImageParam pathSinkParam) {
+            ICameraParam param = displayParam;
             if (param == null) return;
 
             var dialog = new OpenFileDialog {
@@ -306,8 +318,8 @@ namespace ReringProject.UI {
                 halconViewer.LoadImage(dialog.FileName);
                 halconViewer.UpdateDisplayState(ConvertParamRects(param as ParamBase), null, null);
                 _lastRenderedImagePath = dialog.FileName;
-                if (param is IOfflineImageParam offlineImageParam) {
-                    offlineImageParam.SetLatestImagePath(dialog.FileName);
+                if (pathSinkParam != null) { //260518 hbk #3 — 경로저장 대상 분리
+                    pathSinkParam.SetLatestImagePath(dialog.FileName);
                 }
 
                 label_message.Foreground = Brushes.DeepSkyBlue;

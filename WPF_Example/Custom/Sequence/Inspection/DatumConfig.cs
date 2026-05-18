@@ -12,7 +12,7 @@ namespace ReringProject.Sequence {
     /// HTuple 필드는 ParamBase switch-case에 없으므로 런타임 전용으로 사용된다 (D-11).
     /// </summary>
     //260503 hbk Phase 17 D-09 — PropertyGrid 동적 노출 (AlgorithmType 별 필터). ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0 (확인: ParamBase.cs L75/L325/L370).
-    public class DatumConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor {
+    public class DatumConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor, IOfflineImageParam { //260518 hbk #3 — IOfflineImageParam 추가
 
         //260413 hbk Phase 6: DatumName — 사용자가 지정하는 식별자 (D-06)
         [Category("Datum|Identity")]
@@ -33,6 +33,24 @@ namespace ReringProject.Sequence {
         //260511 hbk Phase 22 IMG-01 — Datum 티칭 시 사용한 기준 이미지 경로. INI 직렬화는 ParamBase reflection 이 자동 처리 (ParamBase.cs L325-339 Save 의 case "String", L385-395 Load 의 case "String"). 검사 실행 시 이미지는 별도 ShotConfig.SimulImagePath 사용 — 역할 분리 유지. 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화 (T2).
         [Category("Datum|ImageSource")]
         public string TeachingImagePath { get; set; } = "";
+
+        //260518 hbk #3 IOfflineImageParam — Datum 노드 Load 버튼이 선택 경로를 TeachingImagePath 에 기록.
+        //  Shot 노드(ShotConfig)는 SimulImagePath, Datum 노드는 TeachingImagePath 로 역할 분리.
+        /// <summary>
+        /// Datum 노드 오프라인 이미지 경로 게터 — TeachingImagePath 를 backing 으로 사용한다.
+        /// </summary>
+        public string GetLatestImagePath()
+        {
+            return TeachingImagePath;
+        }
+
+        /// <summary>
+        /// Datum 노드 오프라인 이미지 경로 세터 — 선택한 경로를 TeachingImagePath 에 기록한다.
+        /// </summary>
+        public void SetLatestImagePath(string imagePath)
+        {
+            TeachingImagePath = imagePath;
+        }
 
         //260423 hbk Phase 12 D-09 — Datum 알고리즘 선택자 (PropertyGrid enum 자동 드롭다운)
         //260423 hbk  저장 타입: string (ParamBase.Save/Load switch가 enum 미지원 — ParamBase.cs:330-363)

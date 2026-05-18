@@ -24,9 +24,11 @@ namespace ReringProject.Sequence
         public double NominalValue { get; set; } //260413 hbk
 
         [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("상한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")] //260518 hbk #Tol
         public double TolerancePlus { get; set; } //260413 hbk
 
         [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("하한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")] //260518 hbk #Tol
         public double ToleranceMinus { get; set; } //260413 hbk
 
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -58,15 +60,16 @@ namespace ReringProject.Sequence
             out List<EdgeInspectionOverlay> overlays);
 
         /// <summary>
-        /// 공차 판정: lower = Nominal + ToleranceMinus (음수 허용), upper = Nominal + TolerancePlus.
+        /// 공차 판정: lower = Nominal - Abs(ToleranceMinus), upper = Nominal + Abs(TolerancePlus).
+        /// 공차 입력 부호와 무관하게 NominalValue 중심의 올바른 범위를 적용한다.
         /// LastMeasuredValue/LastJudgement/LastHasResult를 갱신하고 결과를 반환한다.
         /// </summary>
         public bool EvaluateJudgement(double value) //260413 hbk
         {
             LastMeasuredValue = value;
             LastHasResult = true; //260517 hbk CO-23-01: 측정 성공 마킹 (0.0 도 정상 결과)
-            double lower = NominalValue + ToleranceMinus;
-            double upper = NominalValue + TolerancePlus;
+            double lower = NominalValue - System.Math.Abs(ToleranceMinus); //260518 hbk #Tol — 부호 무관 절대값 처리
+            double upper = NominalValue + System.Math.Abs(TolerancePlus);  //260518 hbk #Tol
             if (lower > upper)
             {
                 double tmp = lower; lower = upper; upper = tmp;

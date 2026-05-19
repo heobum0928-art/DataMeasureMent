@@ -158,7 +158,14 @@ namespace ReringProject.UI {
             }
 
             var rois = GetCurrentFAIRois();
+            //260519 hbk #6-a — 결과행 선택 시 그 측정 전용 ROI(Id="FAIName_측정명")만 하이라이트한다.
+            //  해당 측정 ROI 가 없으면 FAIName 으로 폴백 — Render 의 접두사 매칭이 FAI 전체 ROI 를 하이라이트.
+            //  selectedRow.FAIName 만 쓰면 FAI 노드 선택과 동일 selId 라 행을 바꿔도 색이 안 변함.
+            string composite = selectedRow.FAIName + "_" + selectedRow.MeasurementName;
             string selectedRoiId = selectedRow.FAIName;
+            foreach (var r in rois) {
+                if (r != null && r.Id == composite) { selectedRoiId = composite; break; }
+            }
             halconViewer.UpdateDisplayState(rois, selectedRoiId, null, null);
 
             //260417 hbk Phase 6 Plan 04: 선택된 행의 FAIConfig를 트리에서 조회해 ROI hint 표시

@@ -205,26 +205,74 @@ namespace ReringProject.UI {
             return result;
         }
 
+        //260519 hbk #6-a — 단일 FAI 의 rect ROI + EdgeToLineDistance Point ROI 를 result 에 누적한다.
+        //  GetCurrentFAIRois 의 FAI별 수집 규칙(Id/IsTaught/Point ROI)과 동일 — DataGrid 비의존 버전이 공유한다.
+        private void AppendFaiRois(List<RoiDefinition> result, FAIConfig fai) {
+            if (fai == null) return;
+            var roi = fai.ToRoiDefinition();
+            if (roi.IsTaught) result.Add(roi);
+            //260517 hbk Phase 23.1 D-03 — EdgeToLineDistanceMeasurement Point ROI 동시 수집
+            foreach (var m in fai.Measurements) {
+                var etl = m as EdgeToLineDistanceMeasurement;
+                if (etl != null && etl.Point_Length1 > 0 && etl.Point_Length2 > 0) {
+                    string measName = etl.MeasurementName;
+                    if (string.IsNullOrEmpty(measName)) measName = etl.TypeName;
+                    result.Add(new RoiDefinition {
+                        Id = fai.FAIName + "_" + measName,
+                        Name = measName,
+                        Row1 = etl.Point_Row - etl.Point_Length1,
+                        Column1 = etl.Point_Col - etl.Point_Length2,
+                        Row2 = etl.Point_Row + etl.Point_Length1,
+                        Column2 = etl.Point_Col + etl.Point_Length2,
+                        IsTaught = true
+                    });
+                }
+            }
+        }
+
+        //260519 hbk #6-a — 주어진 FAI 가 속한 Shot 의 모든 FAI ROI 를 DataGrid 비의존으로 수집한다.
+        //  GetCurrentFAIRois 는 dataGrid_faiResults 바인딩 갱신 지연으로 트리 선택보다 한 박자 늦은 ROI 집합을 줘
+        //  → 트리 선택 하이라이트가 stale FAI 기준이 되어 Id 불일치(녹색 유지) 발생. anchorFai.Owner(Shot)에서 직접 수집한다.
+        private List<RoiDefinition> CollectShotRois(FAIConfig anchorFai) {
+            var result = new List<RoiDefinition>();
+            if (anchorFai == null) return result;
+            ShotConfig shot = anchorFai.Owner as ShotConfig;
+            if (shot == null || shot.FAIList == null) {
+                AppendFaiRois(result, anchorFai); //260519 hbk #6-a — Shot 미해결 시 anchor 단독 수집 (fallback)
+                return result;
+            }
+            foreach (FAIConfig fai in shot.FAIList) {
+                AppendFaiRois(result, fai);
+            }
+            return result;
+        }
+
         //260518 hbk #6 — 선택된 Measurement/FAI 노드의 ROI 를 캔버스에서 노란색 하이라이트한다.
         /// <summary>
         /// 트리에서 선택된 param 의 ROI Id 를 도출해 halconViewer 에 하이라이트를 적용한다.
         /// param 이 FAIConfig 또는 MeasurementBase 가 아니면 하이라이트를 해제한다.
         /// </summary>
         public void HighlightSelectedRoi(ParamBase param) {
-            //260519 hbk #6-a — 선택 노드의 ROI 하이라이트 ID 도출
+            //260519 hbk #6-a — 선택 노드의 ROI 하이라이트 ID 도출 + 대상 FAI(anchorFai) 해결
             string selRoiId = null;
             string faiNameForFallback = null;
+            FAIConfig anchorFai = null;
             if (param is FAIConfig faiSel) {
                 selRoiId = faiSel.FAIName;
+                anchorFai = faiSel;
             }
             else if (param is MeasurementBase measSel) {
                 string faiName = FindFaiNameContainingMeasurement(measSel);
                 faiNameForFallback = faiName;
                 string mName = measSel.MeasurementName;
                 if (string.IsNullOrEmpty(mName)) mName = measSel.TypeName;
-                if (!string.IsNullOrEmpty(faiName)) selRoiId = faiName + "_" + mName;
+                if (!string.IsNullOrEmpty(faiName)) {
+                    selRoiId = faiName + "_" + mName;
+                    anchorFai = FindFAIByName(faiName);
+                }
             }
-            var rois = GetCurrentFAIRois();
+            //260519 hbk #6-a — dataGrid_faiResults 바인딩 지연 회피: 선택 FAI 의 Shot 에서 직접 ROI 수집
+            var rois = CollectShotRois(anchorFai);
             //260519 hbk #6-a — composite ID 매칭 ROI 없으면 부모 FAI ROI 로 fallback (일반 FAI rect ROI 는 Id=FAIName)
             if (!string.IsNullOrEmpty(selRoiId) && !string.IsNullOrEmpty(faiNameForFallback)) {
                 bool matched = false;
@@ -233,10 +281,7 @@ namespace ReringProject.UI {
                 }
                 if (!matched) selRoiId = faiNameForFallback;
             }
-            //260519 hbk #6-a — BeginInvoke defer 제거: 이 메서드는 항상 UI 스레드(InspectionListView SelectionChanged)에서
-            //  호출된다. defer 시 FAIResults_SelectionChanged 의 Render() 큐보다 늦게 실행되어 타이밍 레이스 발생.
-            //  직접 호출하면 4인자 UpdateDisplayState(_selectedRoiId=selRoiId) → Render() 큐가 null-clobber 큐보다
-            //  나중에 쌓이므로 최종 RenderNow 에서 노란색이 보장된다.
+            //260519 hbk #6-a — UI 스레드(InspectionListView SelectionChanged)에서 직접 호출 — 타이밍 레이스 제거.
             halconViewer.UpdateDisplayState(rois, selRoiId, null, null); //260519 hbk #6-a
         }
 

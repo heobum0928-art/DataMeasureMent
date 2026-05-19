@@ -17,7 +17,8 @@ namespace ReringProject.Sequence
     /// </summary>
     //260517 hbk Phase 23.1 D-09 — ICustomTypeDescriptor 추가 (PropertyGrid 에서 EdgeSelection 숨김 — D-08 고정값 사용자 노출 차단)
     public class EdgeToLineDistanceMeasurement : MeasurementBase, //260512 hbk Phase 23 ALG-01
-        System.ComponentModel.ICustomTypeDescriptor //260517 hbk Phase 23.1 D-09
+        System.ComponentModel.ICustomTypeDescriptor, //260517 hbk Phase 23.1 D-09
+        IDatumOriginConsumer //260519 hbk Phase 31 D-03 — 소급 구현 (Action_FAIMeasurement 하드코딩 제거 전제조건)
     {
         public override string TypeName { get { return "EdgeToLineDistance"; } } //260512 hbk Phase 23 ALG-01
 

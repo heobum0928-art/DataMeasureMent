@@ -1393,6 +1393,13 @@ namespace ReringProject.UI {
         //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
         //260519 hbk Phase 31 CO-23.1-02 — 반환 타입 MeasurementBase 로 일반화, CircleCenterDistanceMeasurement 추가
         private MeasurementBase FindSelectedCircleMeasurement() {
+            //260519 hbk Phase 31 CO-23.1-02 — 트리 노드 선택 우선 (FindSelectedRectMeasurement 와 대칭, Measurement 노드 직접 선택 케이스)
+            if (mParentWindow != null && mParentWindow.inspectionList != null) {
+                var selParam = mParentWindow.inspectionList.SelectedParam;
+                if (selParam is CircleDiameterMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CircleCenterDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+            }
+            // fallback — dataGrid 행 선택 경로
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             if (selectedRow != null) {
                 FAIConfig fai = FindFAIByName(selectedRow.FAIName);

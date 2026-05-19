@@ -128,13 +128,24 @@ namespace ReringProject.Sequence {
         {
             //260423 hbk Phase 11 D-16 — Circle ROI 렌더링 (committed circle → RoiDefinition Shape=Circle)
             // Precedence: Circle takes priority over Rect/Polygon when present.
-            CircleDiameterMeasurement firstCircle = null;
+            //260519 hbk Phase 31 CO-23.1-02 — CircleDiameter + CircleCenterDistance 두 타입 모두 Circle_* ROI 보유
+            double circleRow = 0, circleCol = 0, circleRadius = 0;
+            bool hasCircle = false;
             foreach (var m in Measurements)
             {
                 var c = m as CircleDiameterMeasurement;
-                if (c != null && c.Circle_Radius > 0) { firstCircle = c; break; }
+                if (c != null && c.Circle_Radius > 0)
+                {
+                    circleRow = c.Circle_Row; circleCol = c.Circle_Col; circleRadius = c.Circle_Radius;
+                    hasCircle = true; break;
+                }
+                var cc = m as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                if (cc != null && cc.Circle_Radius > 0)
+                {
+                    circleRow = cc.Circle_Row; circleCol = cc.Circle_Col; circleRadius = cc.Circle_Radius;
+                    hasCircle = true; break;
+                }
             }
-            bool hasCircle = firstCircle != null;
 
             bool hasRect = ROI_Length1 > 0 && ROI_Length2 > 0;
             //260509 hbk Phase 20 — !string.IsNullOrEmpty(PolygonPoints) 는 PolygonPoints null 도 안전하게 false 처리하므로 ?? 분해 불필요
@@ -164,9 +175,9 @@ namespace ReringProject.Sequence {
                     Id = idValue,    //260509 hbk Phase 20
                     Name = nameValue, //260509 hbk Phase 20
                     Shape = RoiShape.Circle,
-                    CenterRow = firstCircle.Circle_Row,
-                    CenterCol = firstCircle.Circle_Col,
-                    Radius = firstCircle.Circle_Radius,
+                    CenterRow = circleRow,    //260519 hbk Phase 31 CO-23.1-02
+                    CenterCol = circleCol,    //260519 hbk Phase 31 CO-23.1-02
+                    Radius = circleRadius,    //260519 hbk Phase 31 CO-23.1-02
                     IsTaught = true,
                     PixelResolutionX = PixelResolutionX,
                     PixelResolutionY = PixelResolutionY

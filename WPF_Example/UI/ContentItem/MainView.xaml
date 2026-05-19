@@ -177,19 +177,30 @@
 
             <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!--260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 행 추가-->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <!--260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 라벨 (Datum 노드 선택/티칭 성공/ROI 이동 시 갱신)-->
-                    <Label x:Name="label_datumRefCoords" Grid.Column="0" Visibility="Collapsed"
+                    <Label x:Name="label_datumRefCoords" Grid.Row="0" Grid.Column="0" Visibility="Collapsed"
                            FontSize="13" Foreground="#FFCBD5E0"
                            HorizontalContentAlignment="Left" HorizontalAlignment="Left"
                            VerticalContentAlignment="Center"/>
-                    <Label x:Name="label_pos" Grid.Column="1"
+                    <Label x:Name="label_pos" Grid.Row="0" Grid.Column="1"
                            FontSize="16" Foreground="LightGray"
                            HorizontalContentAlignment="Right" HorizontalAlignment="Right"
                            Content="X:0.0, Y:0.0, G:-"/>
+                    <!--260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 (티칭/검사 이미지 경로 표시)-->
+                    <TextBlock x:Name="txt_imageSourceLabel" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Visibility="Collapsed"
+                               FontSize="11" Foreground="#FF88A0C0"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" Margin="0,2,0,0"/>
                 </Grid>
             </Border>
         </Grid>

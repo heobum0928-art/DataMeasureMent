@@ -44,11 +44,13 @@ namespace ReringProject.UI {
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         //260423 hbk Phase 11 D-17 — Circle ROI 편집 대상 Measurement
-        private CircleDiameterMeasurement _editingCircleMeasurement;
+        //260519 hbk Phase 31 CO-23.1-02 — 타입 MeasurementBase 로 일반화 (CircleDiameter + CircleCenterDistance 커버)
+        private MeasurementBase _editingCircleMeasurement;
         //260423 hbk Circle ROI 편집 대상 FAI 이름 (RoiDefinition.Id=FAIName 과 일치 유지)
         private string _editingCircleFaiName;
         //260517 hbk Phase 23.1 D-01 — EdgeToLineDistance Rect ROI 편집 대상 Measurement
-        private EdgeToLineDistanceMeasurement _editingMeasurement;
+        //260519 hbk Phase 31 CO-23.1-02 — 타입 MeasurementBase 로 일반화 (Point_* ROI 보유 타입 전체 커버)
+        private MeasurementBase _editingMeasurement;
         //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 FAI 이름 (UpdateDisplayState selId 용)
         private string _editingMeasurementFaiName;
         //260424 hbk Phase 12 D-03 — Datum 티칭 단계 (알고리즘별 switch 로 전이 결정)
@@ -412,6 +414,8 @@ namespace ReringProject.UI {
                 if (pathSinkParam != null) { //260518 hbk #3 — 경로저장 대상 분리
                     pathSinkParam.SetLatestImagePath(dialog.FileName);
                 }
+                //260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 갱신 (Load 시 경로 확인)
+                UpdateImageSourceLabel(pathSinkParam as DatumConfig, param as ShotConfig);
 
                 label_message.Foreground = Brushes.DeepSkyBlue;
                 label_message.Content = string.Format(
@@ -460,6 +464,8 @@ namespace ReringProject.UI {
                         customView.Display(seqName, resultStr, label_message.Foreground, param.OwnerName);
                     }
                     RefreshFAIResultRows(); //260409 hbk Phase 3
+                    //260519 hbk Phase 31 CO-23.1-01 — 검사 실행 결과 표시 시 이미지 출처 레이블 갱신
+                    UpdateImageSourceLabel(null, param as ShotConfig);
                 });
             }
         }
@@ -1005,6 +1011,27 @@ namespace ReringProject.UI {
             label_datumRefCoords.Visibility = Visibility.Visible;
         }
 
+        //260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 갱신
+        //  datumConfig != null 이면 티칭 이미지(TeachingImagePath) 표시,
+        //  shotConfig != null 이면 검사 이미지(SimulImagePath) 표시.
+        //  둘 다 null 이거나 경로가 빈 문자열이면 레이블 Collapsed.
+        //  T-31-12 mitigation: 경로 노출은 로컬 운영자 화면 전용 — File.Exists 가드 불필요 (레이블 표시 only).
+        private void UpdateImageSourceLabel(DatumConfig datumConfig, ShotConfig shotConfig) {
+            if (txt_imageSourceLabel == null) return;
+            if (datumConfig != null && !string.IsNullOrEmpty(datumConfig.TeachingImagePath)) {
+                txt_imageSourceLabel.Text = "티칭 이미지: " + datumConfig.TeachingImagePath; //260519 hbk Phase 31 CO-23.1-01
+                txt_imageSourceLabel.Visibility = Visibility.Visible;
+                return;
+            }
+            if (shotConfig != null && !string.IsNullOrEmpty(shotConfig.SimulImagePath)) {
+                txt_imageSourceLabel.Text = "검사 이미지: " + shotConfig.SimulImagePath; //260519 hbk Phase 31 CO-23.1-01
+                txt_imageSourceLabel.Visibility = Visibility.Visible;
+                return;
+            }
+            txt_imageSourceLabel.Text = string.Empty; //260519 hbk Phase 31 CO-23.1-01
+            txt_imageSourceLabel.Visibility = Visibility.Collapsed;
+        }
+
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
         //260426 hbk Phase 13 D-A1 — InspectionListView 가 selection 시 호출하도록 public 승격
         public void PublishDatumRoiCandidates(DatumConfig datum) {
@@ -1191,7 +1218,8 @@ namespace ReringProject.UI {
                 btn_rectRoi.IsChecked = true;
 
                 //260517 hbk Phase 23.1 D-01 — Measurement 노드 선택 시 EdgeToLineDistanceMeasurement 대상 분기 (FAIConfig 해석보다 우선)
-                EdgeToLineDistanceMeasurement measTarget = FindSelectedEdgeToLineMeasurement();
+                //260519 hbk Phase 31 CO-23.1-02 — FindSelectedRectMeasurement 로 교체 (Point_* 보유 타입 화이트리스트)
+                MeasurementBase measTarget = FindSelectedRectMeasurement();
                 if (measTarget != null) {
                     _editingMeasurement = measTarget;
                     var selRowForMeas = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
@@ -1244,6 +1272,7 @@ namespace ReringProject.UI {
             }
 
             //260517 hbk Phase 23.1 D-01 — Measurement 분기 우선: EdgeToLineDistanceMeasurement.Point_* write-back
+            //260519 hbk Phase 31 CO-23.1-02 — MeasurementBase 타입 일반화, as 캐스트 분기로 Point_* 설정
             if (_editingMeasurement != null) {
                 var measRoi = halconViewer.CommitActiveRectangle();
                 if (measRoi != null) {
@@ -1251,11 +1280,13 @@ namespace ReringProject.UI {
                     double mCenterCol = (measRoi.Column1 + measRoi.Column2) / 2.0;
                     double mHalfHeight = (measRoi.Row2 - measRoi.Row1) / 2.0;
                     double mHalfWidth = (measRoi.Column2 - measRoi.Column1) / 2.0;
-                    _editingMeasurement.Point_Row = mCenterRow;      //260517 hbk Phase 23.1 D-01
-                    _editingMeasurement.Point_Col = mCenterCol;      //260517 hbk Phase 23.1 D-01
-                    _editingMeasurement.Point_Phi = 0.0;             //260517 hbk Phase 23.1 D-01
-                    _editingMeasurement.Point_Length1 = mHalfHeight; //260517 hbk Phase 23.1 D-01
-                    _editingMeasurement.Point_Length2 = mHalfWidth;  //260517 hbk Phase 23.1 D-01
+                    //260519 hbk Phase 31 CO-23.1-02 — 측정 타입별 Point ROI 기록 일반화
+                    var etld = _editingMeasurement as EdgeToLineDistanceMeasurement;
+                    if (etld != null) { etld.Point_Row = mCenterRow; etld.Point_Col = mCenterCol; etld.Point_Phi = 0.0; etld.Point_Length1 = mHalfHeight; etld.Point_Length2 = mHalfWidth; }
+                    var etla = _editingMeasurement as EdgeToLineAngleMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                    if (etla != null) { etla.Point_Row = mCenterRow; etla.Point_Col = mCenterCol; etla.Point_Phi = 0.0; etla.Point_Length1 = mHalfHeight; etla.Point_Length2 = mHalfWidth; }
+                    var aed = _editingMeasurement as ArcEdgeDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                    if (aed != null) { aed.Point_Row = mCenterRow; aed.Point_Col = mCenterCol; aed.Point_Phi = 0.0; aed.Point_Length1 = mHalfHeight; aed.Point_Length2 = mHalfWidth; }
                     string measSelId = _editingMeasurementFaiName;
                     if (string.IsNullOrEmpty(measSelId))
                         measSelId = FindFaiNameContainingMeasurement(_editingMeasurement);
@@ -1304,9 +1335,10 @@ namespace ReringProject.UI {
                 btn_circleRoi.IsChecked = true;
 
                 //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
-                CircleDiameterMeasurement target = FindSelectedCircleMeasurement();
+                //260519 hbk Phase 31 CO-23.1-02 — 반환 타입 MeasurementBase 로 일반화 (CircleCenterDistance 포함)
+                MeasurementBase target = FindSelectedCircleMeasurement();
                 if (target == null) {
-                    CustomMessageBox.Show("Circle ROI", "CircleDiameterMeasurement을 포함한 FAI를 선택하세요.");
+                    CustomMessageBox.Show("Circle ROI", "CircleDiameterMeasurement 또는 CircleCenterDistanceMeasurement를 포함한 FAI를 선택하세요.");
                     ExitCanvasMode();
                     return;
                 }
@@ -1359,7 +1391,8 @@ namespace ReringProject.UI {
         }
 
         //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
-        private CircleDiameterMeasurement FindSelectedCircleMeasurement() {
+        //260519 hbk Phase 31 CO-23.1-02 — 반환 타입 MeasurementBase 로 일반화, CircleCenterDistanceMeasurement 추가
+        private MeasurementBase FindSelectedCircleMeasurement() {
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             if (selectedRow != null) {
                 FAIConfig fai = FindFAIByName(selectedRow.FAIName);
@@ -1367,6 +1400,8 @@ namespace ReringProject.UI {
                     foreach (var m in fai.Measurements) {
                         var circle = m as CircleDiameterMeasurement;
                         if (circle != null) return circle;
+                        var circleCtr = m as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                        if (circleCtr != null) return circleCtr; //260519 hbk Phase 31 CO-23.1-02
                     }
                 }
             }
@@ -1374,11 +1409,18 @@ namespace ReringProject.UI {
         }
 
         //260517 hbk Phase 23.1 D-01 — 선택된 트리/결과 행에서 EdgeToLineDistanceMeasurement 해석 (D-02: 이 타입만 대상)
-        private EdgeToLineDistanceMeasurement FindSelectedEdgeToLineMeasurement() {
+        //260519 hbk Phase 31 CO-23.1-02 — FindSelectedRectMeasurement 로 일반화 (Point_* ROI 보유 타입 화이트리스트)
+        private MeasurementBase FindSelectedRectMeasurement() {
             // 트리 노드 선택 우선 (FAI 미생성 신규 measurement 케이스 포함)
             if (mParentWindow != null && mParentWindow.inspectionList != null) {
-                var meas = mParentWindow.inspectionList.SelectedParam as EdgeToLineDistanceMeasurement;
-                if (meas != null) return meas;
+                var selParam = mParentWindow.inspectionList.SelectedParam;
+                if (selParam is EdgeToLineDistanceMeasurement) return (MeasurementBase)selParam;
+                if (selParam is EdgeToLineAngleMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is ArcEdgeDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is ArcLineIntersectDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundAngleMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundCenterCDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundCenterBDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
             }
             // fallback — dataGrid 행 선택 경로
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
@@ -1386,8 +1428,13 @@ namespace ReringProject.UI {
                 FAIConfig fai = FindFAIByName(selectedRow.FAIName);
                 if (fai != null) {
                     foreach (var m in fai.Measurements) {
-                        var etl = m as EdgeToLineDistanceMeasurement;
-                        if (etl != null) return etl;
+                        if (m is EdgeToLineDistanceMeasurement) return m;
+                        if (m is EdgeToLineAngleMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is ArcEdgeDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is ArcLineIntersectDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundAngleMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundCenterCDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundCenterBDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                     }
                 }
             }
@@ -1395,6 +1442,7 @@ namespace ReringProject.UI {
         }
 
         //260423 hbk Phase 11 D-17 — Circle 드래그 결과를 Measurement에 기록
+        //260519 hbk Phase 31 CO-23.1-02 — _editingCircleMeasurement 타입 MeasurementBase 로 일반화 (Circle_* as 분기)
         private void CommitCircleRoi(double centerRow, double centerCol, double radius) {
             if (_canvasMode != ECanvasMode.CircleRoi || _editingCircleMeasurement == null || radius <= 0) {
                 ExitCanvasMode();
@@ -1402,9 +1450,11 @@ namespace ReringProject.UI {
             }
 
             // D-17: write to the Measurement's own fields (authoritative for Halcon call)
-            _editingCircleMeasurement.Circle_Row = centerRow;
-            _editingCircleMeasurement.Circle_Col = centerCol;
-            _editingCircleMeasurement.Circle_Radius = radius;
+            //260519 hbk Phase 31 CO-23.1-02 — 타입별 Circle_* 필드 설정 분기
+            var circDiam = _editingCircleMeasurement as CircleDiameterMeasurement;
+            if (circDiam != null) { circDiam.Circle_Row = centerRow; circDiam.Circle_Col = centerCol; circDiam.Circle_Radius = radius; }
+            var circCtr = _editingCircleMeasurement as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+            if (circCtr != null) { circCtr.Circle_Row = centerRow; circCtr.Circle_Col = centerCol; circCtr.Circle_Radius = radius; }
 
             // Refresh canvas using GetCurrentFAIRois — FAIConfig.ToRoiDefinition() Circle branch (Task 3)
             // emits Shape=Circle so HalconDisplayService (Plan 01) renders committed circle.

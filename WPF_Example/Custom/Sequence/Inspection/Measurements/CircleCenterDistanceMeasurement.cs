@@ -154,20 +154,43 @@ namespace ReringProject.Sequence
             bool datumInjected = (DatumOriginRow != 0.0 || DatumOriginCol != 0.0); //260519 hbk Phase 31 hotfix
             if (datumInjected) //260519 hbk Phase 31 hotfix
             {
-                //260519 hbk Phase 31 hotfix — 2) datum 기준선(측정 축) + datum 교점 마커 (RoiId 미지정 분기 = 파랑)
-                double axisR1, axisC1, axisR2, axisC2; //260519 hbk Phase 31 hotfix
-                VisionAlgorithmService.GetDatumAxisLine(
-                    DatumOriginRow, DatumOriginCol, DatumAngleRad, MeasureAxis,
-                    out axisR1, out axisC1, out axisR2, out axisC2); //260519 hbk Phase 31 hotfix
-                overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix
+                //260519 hbk Phase 31 hotfix#2 — 2) datum 교점을 지나는 가로/세로 기준선을 이미지 끝까지 표시(사용자 요청).
+                //  halfLength = 이미지 대각선 → 원점 위치·각도 무관하게 이미지 전체 span (DispLine 이 window 로 클립).
+                double axisHalfLen = 4000.0; //260519 hbk Phase 31 hotfix#2 — HImage 크기 조회 실패 시 폴백
+                try //260519 hbk Phase 31 hotfix#2
                 {
-                    RoiId = "FAI-DatumLine", //260519 hbk Phase 31 hotfix — 미지정 분기 파랑 (datum 기준선)
-                    LineRow1 = axisR1, LineColumn1 = axisC1, //260519 hbk Phase 31 hotfix
-                    LineRow2 = axisR2, LineColumn2 = axisC2, //260519 hbk Phase 31 hotfix
-                    Points = new List<EdgeInspectionPoint> //260519 hbk Phase 31 hotfix — datum 교점(원점) 마커
+                    HTuple imgW, imgH; //260519 hbk Phase 31 hotfix#2
+                    image.GetImageSize(out imgW, out imgH); //260519 hbk Phase 31 hotfix#2
+                    axisHalfLen = System.Math.Sqrt(imgW.D * imgW.D + imgH.D * imgH.D); //260519 hbk Phase 31 hotfix#2
+                }
+                catch { } //260519 hbk Phase 31 hotfix#2 — 조회 실패 시 폴백 길이 유지
+
+                //260519 hbk Phase 31 hotfix#2 — 가로 datum 기준선(수평선, "Y" 축) — datum 교점 마커 동반
+                double hR1, hC1, hR2, hC2; //260519 hbk Phase 31 hotfix#2
+                VisionAlgorithmService.GetDatumAxisLine(
+                    DatumOriginRow, DatumOriginCol, DatumAngleRad, "Y", axisHalfLen,
+                    out hR1, out hC1, out hR2, out hC2); //260519 hbk Phase 31 hotfix#2
+                overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix#2
+                {
+                    RoiId = "FAI-DatumLine", //260519 hbk Phase 31 hotfix#2 — 미지정 분기 파랑 (datum 기준선)
+                    LineRow1 = hR1, LineColumn1 = hC1, //260519 hbk Phase 31 hotfix#2
+                    LineRow2 = hR2, LineColumn2 = hC2, //260519 hbk Phase 31 hotfix#2
+                    Points = new List<EdgeInspectionPoint> //260519 hbk Phase 31 hotfix#2 — datum 교점(원점) 마커
                     {
-                        new EdgeInspectionPoint { Row = DatumOriginRow, Column = DatumOriginCol } //260519 hbk Phase 31 hotfix
+                        new EdgeInspectionPoint { Row = DatumOriginRow, Column = DatumOriginCol } //260519 hbk Phase 31 hotfix#2
                     }
+                });
+
+                //260519 hbk Phase 31 hotfix#2 — 세로 datum 기준선(수직선, "X" 축)
+                double vR1, vC1, vR2, vC2; //260519 hbk Phase 31 hotfix#2
+                VisionAlgorithmService.GetDatumAxisLine(
+                    DatumOriginRow, DatumOriginCol, DatumAngleRad, "X", axisHalfLen,
+                    out vR1, out vC1, out vR2, out vC2); //260519 hbk Phase 31 hotfix#2
+                overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix#2
+                {
+                    RoiId = "FAI-DatumLine", //260519 hbk Phase 31 hotfix#2
+                    LineRow1 = vR1, LineColumn1 = vC1, //260519 hbk Phase 31 hotfix#2
+                    LineRow2 = vR2, LineColumn2 = vC2 //260519 hbk Phase 31 hotfix#2
                 });
 
                 //260519 hbk Phase 31 hotfix — 3) FAI-DistLine = 원중심 → 수선의 발 (수직 거리선, cyan)

@@ -671,8 +671,8 @@ namespace ReringProject.Halcon.Algorithms
             double cosT = Math.Cos(datumAngleRad); //260519 hbk Phase 31 D-04
             if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260519 hbk Phase 31 D-04 — Atan2 방향 무관 부호 일관성: datum x축 cosθ≥0 정규화
             double axisR1, axisC1, axisR2, axisC2; //260519 hbk Phase 31 D-04 — projection_pl 대상 직선의 2점 (교점 ±200px)
-            GetDatumAxisLine(datumOriginRow, datumOriginCol, datumAngleRad, measureAxis,
-                out axisR1, out axisC1, out axisR2, out axisC2); //260519 hbk Phase 31 hotfix
+            GetDatumAxisLine(datumOriginRow, datumOriginCol, datumAngleRad, measureAxis, 200.0,
+                out axisR1, out axisC1, out axisR2, out axisC2); //260519 hbk Phase 31 hotfix — projection_pl 은 직선 정의에 길이 무관(±200)
             try //260519 hbk Phase 31 D-04
             {
                 HTuple prRow, prCol; //260519 hbk Phase 31 D-04
@@ -698,14 +698,15 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
-        /// datum 교점(datumOrigin)을 지나는 측정 기준선의 양 끝점(±200px)을 산출한다.
+        /// datum 교점(datumOrigin)을 지나는 측정 기준선의 양 끝점(±halfLength)을 산출한다.
         /// MeasureAxis="Y": datum 수평선(x축, 방향 (sinθ,cosθ)). "X": datum 수직선(y축, 방향 (cosθ,-sinθ)).
-        /// ComputeProjectionDistance 내부 + CircleCenterDistance overlay(datum 기준선 표시)가 공유.
+        /// ComputeProjectionDistance 내부(halfLength=200) + CircleCenterDistance overlay(이미지 대각선 길이)가 공유.
         /// </summary>
         //260519 hbk Phase 31 hotfix — datum 기준선 2점 산출 헬퍼 (projection_pl axis + overlay 공용)
+        //260519 hbk Phase 31 hotfix#2 — halfLength 파라미터화 (overlay 가 이미지 끝까지 그리도록)
         public static void GetDatumAxisLine(
             double datumOriginRow, double datumOriginCol,
-            double datumAngleRad, string measureAxis,
+            double datumAngleRad, string measureAxis, double halfLength,
             out double axisR1, out double axisC1, out double axisR2, out double axisC2)
         {
             bool measureX = (measureAxis == "X"); //260519 hbk Phase 31 hotfix
@@ -714,17 +715,17 @@ namespace ReringProject.Halcon.Algorithms
             if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260519 hbk Phase 31 hotfix — datum x축 cosθ≥0 정규화
             if (measureX) //260519 hbk Phase 31 hotfix — datum 수직선(y축): 방향벡터 (cosθ,-sinθ)
             {
-                axisR1 = datumOriginRow - 200.0 * cosT; //260519 hbk Phase 31 hotfix
-                axisC1 = datumOriginCol + 200.0 * sinT; //260519 hbk Phase 31 hotfix
-                axisR2 = datumOriginRow + 200.0 * cosT; //260519 hbk Phase 31 hotfix
-                axisC2 = datumOriginCol - 200.0 * sinT; //260519 hbk Phase 31 hotfix
+                axisR1 = datumOriginRow - halfLength * cosT; //260519 hbk Phase 31 hotfix#2
+                axisC1 = datumOriginCol + halfLength * sinT; //260519 hbk Phase 31 hotfix#2
+                axisR2 = datumOriginRow + halfLength * cosT; //260519 hbk Phase 31 hotfix#2
+                axisC2 = datumOriginCol - halfLength * sinT; //260519 hbk Phase 31 hotfix#2
             }
             else //260519 hbk Phase 31 hotfix — datum 수평선(x축): 방향벡터 (sinθ,cosθ)
             {
-                axisR1 = datumOriginRow - 200.0 * sinT; //260519 hbk Phase 31 hotfix
-                axisC1 = datumOriginCol - 200.0 * cosT; //260519 hbk Phase 31 hotfix
-                axisR2 = datumOriginRow + 200.0 * sinT; //260519 hbk Phase 31 hotfix
-                axisC2 = datumOriginCol + 200.0 * cosT; //260519 hbk Phase 31 hotfix
+                axisR1 = datumOriginRow - halfLength * sinT; //260519 hbk Phase 31 hotfix#2
+                axisC1 = datumOriginCol - halfLength * cosT; //260519 hbk Phase 31 hotfix#2
+                axisR2 = datumOriginRow + halfLength * sinT; //260519 hbk Phase 31 hotfix#2
+                axisC2 = datumOriginCol + halfLength * cosT; //260519 hbk Phase 31 hotfix#2
             }
         }
 

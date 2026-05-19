@@ -265,7 +265,8 @@ namespace ReringProject.UI {
             string faiNameForFallback = null;
             FAIConfig anchorFai = null;
             if (param is FAIConfig faiSel) {
-                selRoiId = faiSel.FAIName;
+                //260519 hbk #6-a — FAI 노드 선택 시 하이라이트 없음(ROI 전부 녹색) — 사용자 결정.
+                //  측정 노드/결과행을 선택해야 그 ROI 1개가 노란색. selRoiId 는 null 유지.
                 anchorFai = faiSel;
             }
             else if (param is MeasurementBase measSel) {

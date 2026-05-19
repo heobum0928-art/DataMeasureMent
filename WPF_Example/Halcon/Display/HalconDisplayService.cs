@@ -16,24 +16,6 @@ namespace ReringProject.Halcon.Display
         private static readonly HTuple MessageTextParamNames = new HTuple("box");
         private static readonly HTuple MessageTextParamValues = new HTuple("false");
 
-        //260519 hbk #6-a — ROI 가 현재 선택 대상인지 판정한다.
-        //  exact Id 매칭에 더해, FAI 노드 선택(selectedRoiId=FAIName) 시 그 FAI 의 모든 자식 ROI
-        //  (Id="FAIName_<측정명>")도 선택으로 간주한다 — FAI 에 rect ROI 가 없고 측정별 Point ROI 만
-        //  있을 때 FAI 노드 클릭/결과행 선택이 아무 ROI 도 하이라이트 못 하던 문제 해결.
-        //  "_" 경계 덕분에 FAI_0 선택이 FAI_01 의 ROI 를 잘못 매칭하지 않는다.
-        private static bool IsRoiSelected(RoiDefinition roi, string selectedRoiId)
-        {
-            if (roi == null || string.IsNullOrEmpty(selectedRoiId) || string.IsNullOrEmpty(roi.Id))
-            {
-                return false;
-            }
-            if (roi.Id == selectedRoiId)
-            {
-                return true;
-            }
-            return roi.Id.StartsWith(selectedRoiId + "_", StringComparison.Ordinal);
-        }
-
         public void Render(
             HWindow window,
             HImage image,
@@ -66,7 +48,7 @@ namespace ReringProject.Halcon.Display
                     //260509 hbk Phase 20 — ?: → if/else (D-01)
                     string roiColor;
                     int roiWidth;
-                    if (IsRoiSelected(roi, selectedRoiId)) //260519 hbk #6-a — exact + FAI 접두사 매칭
+                    if (roi.Id == selectedRoiId)
                     {
                         roiColor = "yellow";
                         roiWidth = 3;
@@ -85,7 +67,7 @@ namespace ReringProject.Halcon.Display
                         //260509 hbk Phase 20 — ?: → if/else (D-01)
                         string circleColor;
                         int circleWidth;
-                        if (IsRoiSelected(roi, selectedRoiId)) //260519 hbk #6-a — exact + FAI 접두사 매칭
+                        if (roi.Id == selectedRoiId)
                         {
                             circleColor = "yellow";
                             circleWidth = 3;
@@ -128,7 +110,7 @@ namespace ReringProject.Halcon.Display
                             DrawRoiLabelAt(window, roi.Row1 - 22, roi.Column1, roi.Name);
                     }
 
-                    if (IsRoiSelected(roi, selectedRoiId) && roi.IsTaught) //260519 hbk #6-a — exact + FAI 접두사 매칭
+                    if (roi.Id == selectedRoiId && roi.IsTaught)
                     {
                         DrawDirectionArrow(window, roi);
                     }

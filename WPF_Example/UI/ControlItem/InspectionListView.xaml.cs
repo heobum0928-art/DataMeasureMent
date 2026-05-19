@@ -446,10 +446,16 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
-                        //260517 hbk Phase 23.1 D-01 — EdgeToLineDistanceMeasurement 노드 선택 시 Rect ROI 버튼 활성화 (다른 measurement 타입은 비활성)
-                        bool isEdgeToLine = item.Param is EdgeToLineDistanceMeasurement;
+                        //260519 hbk Phase 31 CO-23.1-02 — Rect ROI 버튼 활성화: Point_* ROI 보유 타입 7종 (Phase 31 신규 포함)
+                        bool isRectRoiType = item.Param is EdgeToLineDistanceMeasurement
+                            || item.Param is EdgeToLineAngleMeasurement       //260519 hbk Phase 31 D-05
+                            || item.Param is ArcEdgeDistanceMeasurement        //260519 hbk Phase 31 D-08
+                            || item.Param is ArcLineIntersectDistanceMeasurement //260519 hbk Phase 31 D-01
+                            || item.Param is CompoundAngleMeasurement          //260519 hbk Phase 31 D-11
+                            || item.Param is CompoundCenterCDistanceMeasurement //260519 hbk Phase 31 D-11
+                            || item.Param is CompoundCenterBDistanceMeasurement; //260519 hbk Phase 31 D-11
                         if (mParentWindow != null && mParentWindow.mainView != null)
-                            mParentWindow.mainView.btn_rectRoi.IsEnabled = isEdgeToLine; //260517 hbk Phase 23.1 D-01
+                            mParentWindow.mainView.btn_rectRoi.IsEnabled = isRectRoiType; //260519 hbk Phase 31 CO-23.1-02
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)
                         //260508 hbk Phase 19 fix — Datum 클릭 force rebind(line 419-420) 후 binding 손상 → Measurement 전환 시 PropertyGrid stale.
                         //  Datum 패턴(Phase 16 D-09)과 동일하게 null→new 강제 재할당.
@@ -544,14 +550,16 @@ namespace ReringProject.UI {
                         }
                     }
 
-                    //260423 hbk Phase 11 D-15/D-18 — Circle ROI 버튼 활성화 게이팅 (선택 노드 기반)
+                    //260519 hbk Phase 31 CO-23.1-02 — Circle ROI 버튼 활성화 게이팅: CircleDiameter + CircleCenterDistance 포함
                     bool circleEnabled = false;
                     if (itemParam is FAIConfig faiForCircle) {
                         foreach (var m in faiForCircle.Measurements) {
-                            if (m is CircleDiameterMeasurement) { circleEnabled = true; break; }
+                            if (m is CircleDiameterMeasurement || m is CircleCenterDistanceMeasurement) { //260519 hbk Phase 31 CO-23.1-02
+                                circleEnabled = true; break;
+                            }
                         }
                     }
-                    else if (itemParam is CircleDiameterMeasurement) {
+                    else if (itemParam is CircleDiameterMeasurement || itemParam is CircleCenterDistanceMeasurement) { //260519 hbk Phase 31 CO-23.1-02
                         circleEnabled = true;
                     }
                     if (mParentWindow != null && mParentWindow.mainView != null) {

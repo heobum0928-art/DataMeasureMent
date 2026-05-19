@@ -36,10 +36,17 @@ created: 2026-05-19
 
 | 항목 | 기대 | 결과 |
 |------|------|------|
-| 측정값 표시 | 숫자(mm) 정상 | pending |
-| 판정 | PASS/FAIL 정상 | pending |
-| Overlay | 원 피팅 + 거리선 표시(FAI-DistLine) | pending |
-| PropertyGrid CircleCenterDistance 타입 노출 | 드롭다운에 표시 | pending |
+| 측정값 표시 | 숫자(mm) 정상 | **PASS** |
+| 판정 | PASS/FAIL 정상 | **PASS** |
+| Overlay | 원 피팅 + 거리선 표시(FAI-DistLine) | **PASS** |
+| PropertyGrid CircleCenterDistance 타입 노출 | 드롭다운에 표시 | **PASS** |
+| Datum 기준선/교점 표시 | 가로·세로 기준선 + 교점 마커 | **PASS** (재검증) |
+
+**UAT 이력:** 초기 검증에서 결함 3건 발견 → hotfix.
+- 결함 A(결과 overlay 빈 리스트) / B(datum 기준선·교점 미표시) / C(RectL1·L2Ratio 12px cap 무반응) — commit 0071d50 수정.
+- 재검증 시 datum 기준선이 ±200px 로 짧음 → 가로/세로 기준선 이미지 풀스팬으로 보강 — commit 3d8b4fc.
+- 재검증 시 X축 수직 기준선이 실제 datum 수직선과 어긋남(Line1+90° 재구성 결함) → datum 2차(수직) 기준선 각도 검출·저장·사용으로 전환 — commit b526167.
+- 측정값/판정/overlay/타입 노출 + X축 수직선 일치 PASS 확인 (사용자 2026-05-19).
 
 ---
 

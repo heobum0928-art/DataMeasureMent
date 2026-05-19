@@ -190,7 +190,13 @@ Datum 절대 좌표계 기준의 거리·각도·교점 측정을 EdgeToLineDist
   - **CO-23.1-01**: TeachingImagePath ≠ InspectionImagePath 분리 시 UI 뷰어가 한 이미지만 표시 — datum/측정 이미지 개별 보기 필요
   - **CO-23.1-02**: EdgeToLineDistance·CircleDiameter 외 측정 타입은 Rect ROI 버튼 미활성 — ROI 티칭 배선 일반화
 **SOP**: `C:\Info\Doc\2.디팜스테크\02_설계\SOP\Datum_정보_260511_2D.pptx`
-**Plans**: TBD (run /gsd-plan-phase 31 to break down)
+**Plans**: 5 plans (5 waves)
+Plans:
+- [ ] 31-01-PLAN.md - Foundation: IDatumOriginConsumer 인터페이스 + ComputeProjectionDistance/TryFitArc/TryIntersectCircleLine 헬퍼 + EdgeToLineDistance/Action_FAIMeasurement 일반화 + 31-UAT scaffold (Wave 1)
+- [ ] 31-02-PLAN.md - 단순 신규 타입: E8(CircleCenterDistance)/D1.H5(EdgeToLineAngle)/ArcEdgeDistance + MeasurementFactory (Wave 2)
+- [ ] 31-03-PLAN.md - 복합 신규 타입: I9.I10(ArcLineIntersectDistance)/E2(CompoundAngle)/E9.E10(CompoundCenterC.BDistance) + MeasurementFactory (Wave 3)
+- [ ] 31-04-PLAN.md - carry-over: CO-23.1-02 ROI 버튼 일반화 + CO-23.1-01 듀얼 이미지 뷰어 (Wave 4)
+- [ ] 31-05-PLAN.md - 최종 빌드 검증 + SIMUL UAT 사인오프 (Wave 5, autonomous: false)
 
 ---
 

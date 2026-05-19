@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Completed 31-03-PLAN.md
-last_updated: "2026-05-19T07:17:35.775Z"
+stopped_at: Completed 31-04-PLAN.md
+last_updated: "2026-05-19T07:24:49.730Z"
 last_activity: 2026-05-19
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 37
-  completed_plans: 33
-  percent: 89
+  completed_plans: 34
+  percent: 92
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 31 (Datum 기준 측정 알고리즘 확장) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Next: 사용자 선택 — (a) 신규 알고리즘 Phase (E8/D1/I9/I10/E2/E9/E10 + ArcEdgeDistance, CO-23.1-01·02 흡수), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
 Last activity: 2026-05-19
@@ -96,6 +96,7 @@ Last activity: 2026-05-19
 | Phase 31-datum-algorithm P01 | 5 | 3 tasks | 6 files |
 | Phase 31-datum-algorithm P02 | 4 | 3 tasks | 5 files |
 | Phase 31-datum-algorithm P03 | 8 | 3 tasks | 6 files |
+| Phase 31-datum-algorithm P04 | 15 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,8 @@ Recent decisions affecting current work:
 - ArcLineIntersectDistance(I9/I10): 3점 arc ROI TryFitLine('All') 중점 → TryFitArc → TryFitLine → TryIntersectCircleLine(D-10) → ComputeProjectionDistance, MeasureAxis='X'
 - CompoundAngle(E2): TryComputeChainPoint(CL2/CL3/La/Lb→Pc) + AngleLineLine(CL1중심→Pc vs DatumB±200px), D-09 캡슐화 D-11 별도타입
 - CompoundCenterCDistance(E9) MeasureAxis='X' / CompoundCenterBDistance(E10) MeasureAxis='Y' — D-07/D-11, Pitfall 8 방지
+- CO-23.1-02: FindSelectedRectMeasurement 화이트리스트(Point_* 7종) + CommitRectRoi as 분기 일반화 — _editingMeasurement MeasurementBase 타입으로 확장
+- CO-23.1-01: Option A(경로 레이블) 채택 — 하단 Border 2행 + UpdateImageSourceLabel(DatumConfig TeachingImagePath vs ShotConfig SimulImagePath 판별)
 
 ### Quick Tasks Completed
 
@@ -250,8 +253,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-19T07:17:35.765Z
-Stopped at: Completed 31-03-PLAN.md
+Last session: 2026-05-19T07:24:49.719Z
+Stopped at: Completed 31-04-PLAN.md
 Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 

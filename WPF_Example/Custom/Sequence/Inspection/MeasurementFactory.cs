@@ -33,6 +33,14 @@ namespace ReringProject.Sequence
                     return new EdgeToLineAngleMeasurement(owner); //260519 hbk Phase 31 D-05
                 case "ArcEdgeDistance": //260519 hbk Phase 31 D-08
                     return new ArcEdgeDistanceMeasurement(owner); //260519 hbk Phase 31 D-08
+                case "ArcLineIntersectDistance": //260519 hbk Phase 31 D-01
+                    return new ArcLineIntersectDistanceMeasurement(owner); //260519 hbk Phase 31 D-01
+                case "CompoundAngle": //260519 hbk Phase 31 D-11
+                    return new CompoundAngleMeasurement(owner); //260519 hbk Phase 31 D-11
+                case "CompoundCenterCDistance": //260519 hbk Phase 31 D-11
+                    return new CompoundCenterCDistanceMeasurement(owner); //260519 hbk Phase 31 D-11
+                case "CompoundCenterBDistance": //260519 hbk Phase 31 D-11
+                    return new CompoundCenterBDistanceMeasurement(owner); //260519 hbk Phase 31 D-11
                 default:
                     return null;
             }
@@ -51,7 +59,11 @@ namespace ReringProject.Sequence
                 "EdgeToLineDistance", //260512 hbk Phase 23 ALG-01
                 "CircleCenterDistance", //260519 hbk Phase 31 D-01 E8
                 "EdgeToLineAngle", //260519 hbk Phase 31 D-05
-                "ArcEdgeDistance" //260519 hbk Phase 31 D-08
+                "ArcEdgeDistance", //260519 hbk Phase 31 D-08
+                "ArcLineIntersectDistance", //260519 hbk Phase 31 D-01 I9/I10
+                "CompoundAngle", //260519 hbk Phase 31 D-11 E2
+                "CompoundCenterCDistance", //260519 hbk Phase 31 D-11 E9
+                "CompoundCenterBDistance" //260519 hbk Phase 31 D-11 E10
             };
         }
     }

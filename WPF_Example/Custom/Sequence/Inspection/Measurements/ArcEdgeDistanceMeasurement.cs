@@ -61,7 +61,11 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 D-08
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 D-08
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 D-08
-        public double DatumAngleRad { get; set; } //260519 hbk Phase 31 D-08 — datum 기준선 각도(rad). 미주입 시 0.
+        public double DatumAngleRad { get; set; } //260519 hbk Phase 31 D-08 — datum 1차(수평) 기준선 각도(rad). 미주입 시 0.
+        [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
+        public double DatumAngle2Rad { get; set; } //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도(rad). X축 측정 기준.
 
         public ArcEdgeDistanceMeasurement(object owner) : base(owner) { } //260519 hbk Phase 31 D-08
 
@@ -97,9 +101,11 @@ namespace ReringProject.Sequence
             double pCol = (pc1 + pc2) / 2.0; //260519 hbk Phase 31 D-08
 
             //260519 hbk Phase 31 D-08 — D-04 공용 헬퍼 호출: 에지 라인 중점 → datum 기준선 투영 거리
+            //260519 hbk Phase 31 hotfix#3 — X축 측정은 2차(수직) 기준선, Y축은 1차(수평) 기준선
+            double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260519 hbk Phase 31 hotfix#3
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
                 pRow, pCol,
-                DatumOriginRow, DatumOriginCol, DatumAngleRad,
+                DatumOriginRow, DatumOriginCol, measureLineAngle,
                 pixelResolution, MeasureAxis); //260519 hbk Phase 31 D-08
 
             //260519 hbk Phase 31 D-08 — overlay: EdgeToLineDistanceMeasurement 와 동일 패턴 (FAI-Edge1 + FAI-DistLine)

@@ -78,7 +78,13 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Browsable(false)] //260517 hbk
         [PropertyTools.DataAnnotations.Browsable(false)] //260517 hbk
         [Newtonsoft.Json.JsonIgnore] //260517 hbk
-        public double DatumAngleRad { get; set; } //260517 hbk — datum 기준선 각도(rad). 향후 회전 보정 확장 지점. 미주입 시 0.
+        public double DatumAngleRad { get; set; } //260517 hbk — datum 1차(수평) 기준선 각도(rad). 미주입 시 0.
+        //260519 hbk Phase 31 hotfix#3 — IDatumOriginConsumer 2차 각도. EdgeToLineDistance 인라인 투영은 현행 유지(carry-over),
+        //  속성만 구현 — X축 = 실제 datum 수직선 전환은 후속 carry-over (Phase 23.1 사인오프 회귀 회피).
+        [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
+        public double DatumAngle2Rad { get; set; } //260519 hbk Phase 31 hotfix#3
 
         public EdgeToLineDistanceMeasurement(object owner) : base(owner) { } //260512 hbk Phase 23 ALG-01
 

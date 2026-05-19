@@ -463,6 +463,13 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260503 hbk Phase 17 D-13
         public double DetectedRefAngle { get; set; } //260503 hbk Phase 17 D-13
 
+        //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도(rad). DetectedRefAngle 은 1차(수평) 각도.
+        //  X축 측정이 Line1+90° 가 아닌 실제 datum 수직선을 기준하도록 DatumFindingService 가 write-back.
+        [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
+        public double DetectedRefAngle2 { get; set; } //260519 hbk Phase 31 hotfix#3
+
         //260505 hbk Phase 18 CO-05 — Circle polar strip 별 검출 성공 여부 (TryTeachCircleTwoHorizontal write-back).
         //  INI/JSON 직렬화 제외 (transient). RenderCircleStripOverlay 소비. bool[] 크기 = stepCount.
         [System.ComponentModel.Browsable(false)] //260505 hbk Phase 18 CO-05

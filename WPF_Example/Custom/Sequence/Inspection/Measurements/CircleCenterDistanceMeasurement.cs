@@ -68,7 +68,11 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 D-01
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 D-01
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 D-01
-        public double DatumAngleRad { get; set; } //260519 hbk Phase 31 D-01 — datum 기준선 각도(rad). 미주입 시 0.
+        public double DatumAngleRad { get; set; } //260519 hbk Phase 31 D-01 — datum 1차(수평) 기준선 각도(rad). 미주입 시 0.
+        [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
+        public double DatumAngle2Rad { get; set; } //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도(rad). X축 측정 기준.
 
         public CircleCenterDistanceMeasurement(object owner) : base(owner) { } //260519 hbk Phase 31 D-01
 
@@ -130,9 +134,11 @@ namespace ReringProject.Sequence
             //260519 hbk Phase 31 hotfix(결함 A/B) — foot 반환 오버로드: overlay(거리선/교점) 표시용
             double footRow, footCol;
             bool footOk;
+            //260519 hbk Phase 31 hotfix#3 — X축 측정은 2차(수직) 기준선, Y축은 1차(수평) 기준선
+            double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260519 hbk Phase 31 hotfix#3
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
                 foundRow, foundCol,
-                DatumOriginRow, DatumOriginCol, DatumAngleRad,
+                DatumOriginRow, DatumOriginCol, measureLineAngle,
                 pixelResolution, MeasureAxis,
                 out footRow, out footCol, out footOk);
 
@@ -165,11 +171,11 @@ namespace ReringProject.Sequence
                 }
                 catch { } //260519 hbk Phase 31 hotfix#2 — 조회 실패 시 폴백 길이 유지
 
-                //260519 hbk Phase 31 hotfix#2 — 가로 datum 기준선(수평선, "Y" 축) — datum 교점 마커 동반
+                //260519 hbk Phase 31 hotfix#2 — 가로 datum 기준선(1차 수평선, DatumAngleRad) — datum 교점 마커 동반
                 double hR1, hC1, hR2, hC2; //260519 hbk Phase 31 hotfix#2
                 VisionAlgorithmService.GetDatumAxisLine(
-                    DatumOriginRow, DatumOriginCol, DatumAngleRad, "Y", axisHalfLen,
-                    out hR1, out hC1, out hR2, out hC2); //260519 hbk Phase 31 hotfix#2
+                    DatumOriginRow, DatumOriginCol, DatumAngleRad, axisHalfLen,
+                    out hR1, out hC1, out hR2, out hC2); //260519 hbk Phase 31 hotfix#3
                 overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix#2
                 {
                     RoiId = "FAI-DatumLine", //260519 hbk Phase 31 hotfix#2 — 미지정 분기 파랑 (datum 기준선)
@@ -181,11 +187,11 @@ namespace ReringProject.Sequence
                     }
                 });
 
-                //260519 hbk Phase 31 hotfix#2 — 세로 datum 기준선(수직선, "X" 축)
+                //260519 hbk Phase 31 hotfix#3 — 세로 datum 기준선(2차 수직선, DatumAngle2Rad — 실제 datum 수직선)
                 double vR1, vC1, vR2, vC2; //260519 hbk Phase 31 hotfix#2
                 VisionAlgorithmService.GetDatumAxisLine(
-                    DatumOriginRow, DatumOriginCol, DatumAngleRad, "X", axisHalfLen,
-                    out vR1, out vC1, out vR2, out vC2); //260519 hbk Phase 31 hotfix#2
+                    DatumOriginRow, DatumOriginCol, DatumAngle2Rad, axisHalfLen,
+                    out vR1, out vC1, out vR2, out vC2); //260519 hbk Phase 31 hotfix#3
                 overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix#2
                 {
                     RoiId = "FAI-DatumLine", //260519 hbk Phase 31 hotfix#2

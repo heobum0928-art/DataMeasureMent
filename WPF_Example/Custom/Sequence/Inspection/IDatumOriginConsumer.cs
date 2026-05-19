@@ -11,5 +11,8 @@ namespace ReringProject.Sequence
         double DatumOriginRow { get; set; }
         double DatumOriginCol { get; set; }
         double DatumAngleRad  { get; set; }
+        //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도. Y측정=DatumAngleRad(수평선), X측정=DatumAngle2Rad(수직선).
+        //  CircleTwoHorizontal=π/2(원중심 통과 수직 가상선), TwoLineIntersect=Line2 실제각, VerticalTwoHorizontal=수직에지 실제각.
+        double DatumAngle2Rad { get; set; }
     }
 }

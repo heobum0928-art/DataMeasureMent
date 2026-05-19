@@ -160,6 +160,9 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D; //260503 hbk Phase 17 D-13
                 config.DetectedOriginCol = curCol.D; //260503 hbk Phase 17 D-13
                 config.DetectedRefAngle  = curAngle; //260503 hbk Phase 17 D-13
+                //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = Line2 실제 검출 각도 (X축 측정 기준)
+                config.DetectedRefAngle2 = Math.Atan2(
+                    line2RowEnd - line2RowBegin, line2ColEnd - line2ColBegin); //260519 hbk Phase 31 hotfix#3
                 //260509 hbk Phase 20 — 결과 메트릭 (검출 점 개수 합계 + 각도 deg). ?: → 명시 if/else (P-9 HTuple null 가드)
                 int line1EdgeCount = 0;
                 if (line1RawRows != null) line1EdgeCount = line1RawRows.TupleLength(); //260509 hbk Phase 20
@@ -312,6 +315,9 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
+                //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = 원중심 통과 수직 가상선 (Step 5: centerRow±1, centerCol).
+                //  방향벡터 (Δrow=+2, Δcol=0) → Atan2(2,0) = π/2 (순수 이미지-수직). X축 측정 기준.
+                config.DetectedRefAngle2 = Math.PI / 2.0; //260519 hbk Phase 31 hotfix#3
                 config.DetectedEdgeCount = circleEdgeRows.TupleLength() + totalEdges;
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
@@ -493,6 +499,8 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
+                //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = 수직 에지 실제 검출 각도 (vertPhiDetected). X축 측정 기준.
+                config.DetectedRefAngle2 = vertPhiDetected; //260519 hbk Phase 31 hotfix#3
                 //260509 hbk Phase 20 — ?: → 명시 if/else (P-9 HTuple null 가드)
                 int vertEdgeCount = 0;
                 if (vertRawRows != null) vertEdgeCount = vertRawRows.TupleLength(); //260509 hbk Phase 20

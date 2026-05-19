@@ -85,7 +85,11 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 D-11
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 D-11
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 D-11
-        public double DatumAngleRad { get; set; } //260519 hbk Phase 31 D-11
+        public double DatumAngleRad { get; set; } //260519 hbk Phase 31 D-11 — datum 1차(수평) 기준선 각도
+        [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
+        public double DatumAngle2Rad { get; set; } //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도. X축 측정 기준.
 
         public CompoundCenterBDistanceMeasurement(object owner) : base(owner) { } //260519 hbk Phase 31 D-11
 
@@ -199,9 +203,11 @@ namespace ReringProject.Sequence
 
             // Pc → Datum B Y 방향 거리(mm)
             //260519 hbk Phase 31 D-04 — ComputeProjectionDistance 공용 헬퍼 호출 (D-07: E10 = Datum B Y 거리)
+            //260519 hbk Phase 31 hotfix#3 — X축 측정은 2차(수직) 기준선, Y축은 1차(수평) 기준선
+            double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260519 hbk Phase 31 hotfix#3
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
                 pcRow, pcCol,
-                DatumOriginRow, DatumOriginCol, DatumAngleRad,
+                DatumOriginRow, DatumOriginCol, measureLineAngle,
                 pixelResolution, MeasureAxis); //260519 hbk Phase 31 D-11
 
             return true;

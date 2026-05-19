@@ -39,6 +39,15 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 CO-23.1-02
         public List<string> Circle_RadialDirectionList { get { return EdgeOptionLists.RadialDirections; } } //260519 hbk Phase 31 CO-23.1-02
 
+        //260519 hbk Phase 31 CO-23.1-02 — Circle polar-sampling 알고리즘 파라미터 (DatumConfig Circle_PolarStepDeg/RectL1/L2Ratio 동일).
+        //  PolarStepDeg: 사각형 ROI 회전 각도 step (360/step = 검사 각도 개수, 각도별 에지 1점 누적).
+        //  RectL1Ratio:  사각형 ROI length1 = radius × ratio (반경 방향). RectL2Ratio: length2 (접선 방향).
+        //  사용자 0/음수 입력 시 TryFindCircleByPolarSampling 진입부 sanity clamp 으로 default 복원.
+        [Category("Circle|Polar")] //260519 hbk Phase 31 CO-23.1-02
+        public double Circle_PolarStepDeg { get; set; } = 10.0; //260519 hbk Phase 31 CO-23.1-02
+        public double Circle_RectL1Ratio { get; set; } = 0.02; //260519 hbk Phase 31 CO-23.1-02
+        public double Circle_RectL2Ratio { get; set; } = 0.02; //260519 hbk Phase 31 CO-23.1-02
+
         //260519 hbk Phase 31 D-01 — 측정 거리 축 선택: E8 = Datum B Y 방향이므로 기본값 "Y"
         [Category("Edge")] //260519 hbk Phase 31 D-01
         [ItemsSourceProperty(nameof(MeasureAxisList))] //260519 hbk Phase 31 D-01
@@ -94,20 +103,20 @@ namespace ReringProject.Sequence
             }
             else //260519 hbk Phase 31 CO-23.1-02
             {
-                //260519 hbk Phase 31 CO-23.1-02 — Datum 원 알고리즘 (polar sampling):
+                //260519 hbk Phase 31 CO-23.1-02 — Datum 원 알고리즘 (polar sampling): 360° 회전하며 각도별 사각형 ROI MeasurePos.
                 //  polarity = MapRadialDirectionToHalconPolarity(Circle_RadialDirection) (EdgePolarity 무시)
-                //  step/L1/L2/selection = EdgeOptionLists.FaiCircle* defaults (Datum CTH default 와 동일)
+                //  step/L1/L2 = 사용자 편집 파라미터 (DatumConfig Circle_* 와 동일 의미). selection = "all" (각도별 에지 전체 누적).
                 string polarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(Circle_RadialDirection); //260519 hbk Phase 31 CO-23.1-02
                 HTuple unusedRows, unusedCols; //260519 hbk Phase 31 CO-23.1-02
                 bool[] unusedStrips; //260519 hbk Phase 31 CO-23.1-02
                 if (!svc.TryFindCircleByPolarSampling(
                     image,
                     Circle_Row, Circle_Col, Circle_Radius,
-                    EdgeOptionLists.FaiCirclePolarStepDeg,
-                    EdgeOptionLists.FaiCircleRectL1Ratio,
-                    EdgeOptionLists.FaiCircleRectL2Ratio,
+                    Circle_PolarStepDeg,   //260519 hbk Phase 31 CO-23.1-02 — 회전 각도 step (사용자 편집)
+                    Circle_RectL1Ratio,    //260519 hbk Phase 31 CO-23.1-02 — rect length1 비율 (사용자 편집)
+                    Circle_RectL2Ratio,    //260519 hbk Phase 31 CO-23.1-02 — rect length2 비율 (사용자 편집)
                     Sigma, EdgeThreshold, polarity,
-                    EdgeOptionLists.FaiCircleEdgeSelection,
+                    "all",                 //260519 hbk Phase 31 CO-23.1-02 — 각도별 에지점 전체 누적 (strip-loop, 단일점 금지)
                     datumTransform,
                     out foundRow, out foundCol, out foundRadius,
                     out unusedRows, out unusedCols, out unusedStrips,

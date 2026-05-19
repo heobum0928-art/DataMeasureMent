@@ -29,7 +29,7 @@ Phase: 23.1 (edgetolinedistance-roi) — EXECUTING
 Plan: 3 of 3
 Status: Ready to execute
 Next: 사용자 선택 — (a) v1.1 quick CO-23-01 디버깅 (A1~A5 측정값 미표시 — PixelResolutionX 0 또는 binding 단절 추적), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
-Last activity: 2026-05-18 - Completed quick task 260518-vxp: Phase 23.1 UAT 후속 4건 (Datum Load TeachingImagePath / FAI 레거시 Edge탭 숨김 / ROI 하이라이트+라벨 / Tol 절대값)
+Last activity: 2026-05-19 - Completed quick task 260519-c08: Phase 23.1 UAT 2차 보충 3건 (Datum Load PropertyGrid refresh / ROI 선택 하이라이트 / 라벨 폰트 축소) — UAT 3/3 PASS
 
 ## Performance Metrics
 
@@ -182,6 +182,7 @@ Recent decisions affecting current work:
 | 260517-ja8 | 2026-05-17 | EdgeToLineDistance overlay 시각화 — TryExecute 측정 성공 시 검출 에지 라인(FAI-Edge1, 녹/적) + 교점→에지 Y거리 선(FAI-DistLine, 청록) overlay 생성. Phase 7-01 D-03 빈 리스트 정책 의도적 뒤집기 | 5c3d36b | SIMUL UAT 대기 |
 | 260517-l5e | 2026-05-17 | EdgeToLineDistance datum 기준 측정 수정 — ①datumTransform 오용→DatumConfig 교점 좌표 배선 ②UAT 피드백 반영 projection_pl 정사영 수직거리 ③MeasureAxis 로 X/Y 축 선택. 레거시 폴백 보존(회귀 0) | 74d0d15, 19e5663, e838542 | SIMUL UAT 대기 (실행 중 exe 잠금 MSB3027 — 앱 종료 후 재빌드 필요) |
 | 260518-vxp | 2026-05-18 | Phase 23.1 UAT 후속 4건 — #3 Datum Load 가 DatumConfig.TeachingImagePath 에 기록(IOfflineImageParam 구현 + LoadAndDisplay 2-인자 오버로드) / #4 자식 Measurement 보유 FAI 의 레거시 Edge탭 PropertyGrid 숨김 / #6 ROI 선택 노란색 하이라이트 + Rect/Circle/Polygon 명칭 라벨 / #Tol EvaluateJudgement 공차 절대값 처리(부호 무관 입력). 빌드 Rebuild 0 errors | 2260353, 9ff516b, 1fcaed6 | SIMUL UAT 대기 |
+| 260519-c08 | 2026-05-19 | Phase 23.1 UAT 2차 보충 3건 — #3-refresh Datum Load 후 PropertyGrid 즉시 갱신(RefreshParamEditor) / #6-a ROI 선택 하이라이트(진단 로그로 진짜 원인 확정 = 측정 ROI 복합키 'FAIName_측정명' vs FAIName exact 매칭 실패. 최종 모델: FAI 노드=하이라이트 없음, 측정 노드/결과행=단일 ROI 노란색) / #6-b 라벨 폰트 30% 축소. UAT 4라운드 반복 | 5a2a350, 79e483a, 51c441b, afb03d3, 33212cd, 5e3d2c5, 3c25579 | UAT PASS (사용자 3/3 2026-05-19) |
 
 ### Pending Todos
 

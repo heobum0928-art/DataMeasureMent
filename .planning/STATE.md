@@ -234,6 +234,7 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 - 2026-04-30: Phase 17 added — Datum 티칭/검증 UX 재설계 + Circle strip 1개 표시 + Test Find DetectedOrigin + 좌표 hover (Phase 16 UAT carry-over 16항목).
 - 2026-05-04: v1.1 milestone started — Phases 18-26 defined (ROADMAP.md created).
 - 2026-05-17: Phase 23.1 inserted after Phase 23: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원 (URGENT) — SOP 도면 갭 대응 (ROI 측정별 티칭 미배선 + 다점 치수 P1/P2 미지원 + EdgeSelection 마이그레이션 + Datum 실측검증 + CO-23-01 재검증)
+- 2026-05-19: Phase 31 added — Datum 기준 측정 알고리즘 확장 (E8 원중심→Datum거리 / D1 Datum 각도 / I9·I10 호∩라인 교점 / E2·E9·E10 CompoundAngle / ArcEdgeDistance). Phase 23.1 carry-over CO-23.1-01·02 흡수. ※ gsd-sdk phase.add CLI phase_number 오산정 → 수동 보정 (31).
 
 ## Session Continuity
 

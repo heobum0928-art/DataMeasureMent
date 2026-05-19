@@ -81,6 +81,16 @@ namespace ReringProject.Halcon.Display
                         window.SetLineWidth(circleWidth);
                         HOperatorSet.DispCircle(window, roi.CenterRow, roi.CenterCol, roi.Radius);
 
+                        //260519 hbk Phase 31 CO-23.1-02 — polar strip 시각화 (CircleCenterDistance polar 모드일 때만 StepDeg > 0)
+                        //  파라미터(StepDeg/RectL1/L2Ratio) 수정 → ToRoiDefinition 재생성 → 여기서 즉시 반영.
+                        if (roi.CirclePolarStepDeg > 0)
+                        {
+                            RenderCircleStrips(window, roi.CenterRow, roi.CenterCol, roi.Radius,
+                                roi.CirclePolarStepDeg, roi.CircleRectL1Ratio, roi.CircleRectL2Ratio, null);
+                            window.SetColor(circleColor); //260519 hbk Phase 31 CO-23.1-02 — strip 후 색상 복원
+                            window.SetLineWidth(circleWidth);
+                        }
+
                         // Center cross marker (6px, red) — UI-SPEC Circle ROI center marker
                         window.SetColor("red");
                         window.SetLineWidth(2);
@@ -510,32 +520,37 @@ namespace ReringProject.Halcon.Display
         {
             if (datum == null) return;
             if (datum.CircleROI_Radius <= 0) return;
-            double stepDeg = datum.Circle_PolarStepDeg;
-            //260429 hbk Phase 16 D-01 — 0/음수 division 방지 + CONTEXT D-01: 1°~30° 범위 가드 (데이터 모델 보존)
+            //260519 hbk Phase 31 CO-23.1-02 — primitive 공용 렌더러로 위임 (Datum/FAI circle 공유)
+            RenderCircleStrips(window,
+                datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius,
+                datum.Circle_PolarStepDeg, datum.Circle_RectL1Ratio, datum.Circle_RectL2Ratio,
+                datum.CircleStripSuccesses);
+        }
+
+        //260519 hbk Phase 31 CO-23.1-02 — primitive 파라미터 strip 렌더러 (Datum CircleConfig / FAI CircleCenterDistance 공용).
+        //  successes != null 이면 per-strip green/red, null 이면 전부 gray (정적 preview — 파라미터 수정 시 즉시 반영).
+        //  strip 생성 식은 VisionAlgorithmService.TryFindCircleByPolarSampling canonical 미러 (-sin/+cos, 화면 CCW).
+        private static void RenderCircleStrips(HWindow window,
+            double centerR, double centerC, double radius,
+            double stepDeg, double l1Ratio, double l2Ratio, bool[] successes)
+        {
+            if (radius <= 0) return;
+            //260519 hbk Phase 31 CO-23.1-02 — 0/음수 division 방지 + 1°~30° 범위 가드
             if (stepDeg < 1.0) stepDeg = 1.0;
             if (stepDeg > 30.0) stepDeg = 30.0;
-            //260503 hbk Phase 17 hotfix#6 — stepCount = 360 / stepDeg (기본 36개 @ 10°). 알고리즘 canonical 식 미러.
             int stepCount = (int)Math.Round(360.0 / stepDeg);
             if (stepCount < 1) stepCount = 1;
             double stepRad = (2.0 * Math.PI) / stepCount;
 
-            double radius  = datum.CircleROI_Radius;
-            double centerR = datum.CircleROI_Row;
-            double centerC = datum.CircleROI_Col;
-            //260429 hbk Phase 16 D-01 — 반경 방향 / 접선 방향 길이
-            //260430 hbk Quick 260430-hox — 12px cap (VisionAlgorithmService.TryFindCircleByPolarSampling 와 동일). Phase 16 UAT FAIL root cause: 큰 radius/ratio → strip 화면 폭만큼 거대 → 시각화 의미 상실 + 알고리즘 fail.
-            double length1 = Math.Min(radius * datum.Circle_RectL1Ratio, 12.0);
-            double length2 = Math.Min(radius * datum.Circle_RectL2Ratio, 12.0);
-            //260429 hbk Phase 16 — 1px 미만이면 시각화 의미 없음, 자동 floor
+            //260519 hbk Phase 31 CO-23.1-02 — 12px cap (TryFindCircleByPolarSampling 와 동일)
+            double length1 = Math.Min(radius * l1Ratio, 12.0);
+            double length2 = Math.Min(radius * l2Ratio, 12.0);
             if (length1 < 1.0) length1 = 1.0;
             if (length2 < 1.0) length2 = 1.0;
 
             try
             {
-                //260505 hbk Phase 18 CO-05 — per-strip 성공/실패 색상 분기 (D-15)
-                bool[] successes = datum.CircleStripSuccesses; //260505 hbk Phase 18 CO-05
                 HOperatorSet.SetLineWidth(window, 1);
-                //260503 hbk Phase 17 hotfix#6 — stepCount 만큼 0°, stepDeg°, 2*stepDeg°, ... 360° (한 바퀴) 모두 그림.
                 for (int i = 0; i < stepCount; i++)
                 {
                     //260505 hbk Phase 18 CO-05 — green=성공, red=실패, gray=데이터 없음(fallback)

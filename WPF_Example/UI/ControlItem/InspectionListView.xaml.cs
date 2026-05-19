@@ -64,6 +64,22 @@ namespace ReringProject.UI {
         private void OnParamEditorLostFocus(object sender, RoutedEventArgs e) {
             if (!(e.OriginalSource is TextBoxBase)) return;
             TryTriggerDatumAutoReteach();
+            TryTriggerMeasurementRoiRefresh(); //260519 hbk Phase 31 CO-23.1-02 — 측정 파라미터 변경 → ROI 캔버스 재렌더
+        }
+
+        //260519 hbk Phase 31 CO-23.1-02 — PropertyGrid 측정 파라미터 변경 → MainView ROI 캔버스 재렌더 라우팅.
+        //  CircleCenterDistance polar strip(StepDeg/RectL1/L2Ratio)이 수정 즉시 시각 반영되도록.
+        //  TryTriggerDatumAutoReteach 와 동일 패턴 — Background defer 로 binding push 완료 후 재검사.
+        private void TryTriggerMeasurementRoiRefresh() {
+            if (ParamEditor == null) return;
+            Dispatcher.BeginInvoke(new Action(() => {
+                var meas = ParamEditor.SelectedObject as MeasurementBase;
+                if (meas == null) return;
+                if (mParentWindow == null) return;
+                var mv = mParentWindow.mainView;
+                if (mv == null) return;
+                mv.HighlightSelectedRoi(meas);
+            }), DispatcherPriority.Background);
         }
 
         //260426 hbk Phase 13-06 — ComboBox(EdgeDirection/EdgePolarity 등) SelectionChanged 시점: binding 은 즉시 push

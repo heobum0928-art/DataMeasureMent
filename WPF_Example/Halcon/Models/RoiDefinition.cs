@@ -51,6 +51,15 @@ namespace ReringProject.Halcon.Models
         [DataMember]
         public double Radius { get; set; }
 
+        //260519 hbk Phase 31 CO-23.1-02 — Circle polar-sampling strip 시각화 파라미터.
+        //  > 0 일 때만 HalconDisplayService 가 360° strip 사각형 overlay 를 렌더 (0 = strip 미표시).
+        [DataMember]
+        public double CirclePolarStepDeg { get; set; } //260519 hbk Phase 31 CO-23.1-02
+        [DataMember]
+        public double CircleRectL1Ratio { get; set; } //260519 hbk Phase 31 CO-23.1-02
+        [DataMember]
+        public double CircleRectL2Ratio { get; set; } //260519 hbk Phase 31 CO-23.1-02
+
         [DataMember]
         public int EdgeSampleCount { get; set; } = 20;
 

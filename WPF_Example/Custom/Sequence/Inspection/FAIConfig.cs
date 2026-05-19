@@ -130,6 +130,8 @@ namespace ReringProject.Sequence {
             // Precedence: Circle takes priority over Rect/Polygon when present.
             //260519 hbk Phase 31 CO-23.1-02 — CircleDiameter + CircleCenterDistance 두 타입 모두 Circle_* ROI 보유
             double circleRow = 0, circleCol = 0, circleRadius = 0;
+            //260519 hbk Phase 31 CO-23.1-02 — polar strip 시각화 파라미터 (CircleCenterDistance polar 모드만 > 0)
+            double circleStepDeg = 0, circleL1Ratio = 0, circleL2Ratio = 0;
             bool hasCircle = false;
             foreach (var m in Measurements)
             {
@@ -143,6 +145,13 @@ namespace ReringProject.Sequence {
                 if (cc != null && cc.Circle_Radius > 0)
                 {
                     circleRow = cc.Circle_Row; circleCol = cc.Circle_Col; circleRadius = cc.Circle_Radius;
+                    //260519 hbk Phase 31 CO-23.1-02 — polar 모드(RadialDirection 비어있지 않음)일 때만 strip 파라미터 전달
+                    if (!string.IsNullOrEmpty(cc.Circle_RadialDirection))
+                    {
+                        circleStepDeg = cc.Circle_PolarStepDeg;
+                        circleL1Ratio = cc.Circle_RectL1Ratio;
+                        circleL2Ratio = cc.Circle_RectL2Ratio;
+                    }
                     hasCircle = true; break;
                 }
             }
@@ -178,6 +187,9 @@ namespace ReringProject.Sequence {
                     CenterRow = circleRow,    //260519 hbk Phase 31 CO-23.1-02
                     CenterCol = circleCol,    //260519 hbk Phase 31 CO-23.1-02
                     Radius = circleRadius,    //260519 hbk Phase 31 CO-23.1-02
+                    CirclePolarStepDeg = circleStepDeg, //260519 hbk Phase 31 CO-23.1-02 — strip 시각화
+                    CircleRectL1Ratio = circleL1Ratio,  //260519 hbk Phase 31 CO-23.1-02
+                    CircleRectL2Ratio = circleL2Ratio,  //260519 hbk Phase 31 CO-23.1-02
                     IsTaught = true,
                     PixelResolutionX = PixelResolutionX,
                     PixelResolutionY = PixelResolutionY

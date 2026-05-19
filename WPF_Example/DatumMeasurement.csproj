@@ -225,6 +225,8 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\IDatumOriginConsumer.cs" /> <!--260519 hbk Phase 31 D-03-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CircleCenterDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-01 E8-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineAngleMeasurement.cs" /> <!--260519 hbk Phase 31 D-05-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcEdgeDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-08-->
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />

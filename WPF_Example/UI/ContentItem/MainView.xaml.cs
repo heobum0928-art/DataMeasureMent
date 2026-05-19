@@ -634,12 +634,20 @@ namespace ReringProject.UI {
             if (fai == null) return;
 
             if (e.Shape == RoiShape.Circle) {
+                //260519 hbk Phase 31 CO-23.1-02 — CircleDiameter + CircleCenterDistance 두 타입 모두 Edit write-back
                 foreach (var m in fai.Measurements) {
                     var circle = m as CircleDiameterMeasurement;
                     if (circle != null) {
                         circle.Circle_Row = e.CenterRow;
                         circle.Circle_Col = e.CenterCol;
                         circle.Circle_Radius = e.Radius;
+                        break;
+                    }
+                    var circleCtr = m as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                    if (circleCtr != null) {
+                        circleCtr.Circle_Row = e.CenterRow;
+                        circleCtr.Circle_Col = e.CenterCol;
+                        circleCtr.Circle_Radius = e.Radius;
                         break;
                     }
                 }

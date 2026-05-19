@@ -193,22 +193,11 @@ namespace ReringProject.UI {
                 if (fai == null) continue;
                 var roi = fai.ToRoiDefinition();
                 if (roi.IsTaught) result.Add(roi);
-                //260517 hbk Phase 23.1 D-03 — EdgeToLineDistanceMeasurement Point ROI 동시 수집 (FAI 노드 선택 시 다점 ROI 렌더)
+                //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집
+                //  (EdgeToLineDistance/EdgeToLineAngle/ArcEdgeDistance — Phase 31 신규 타입 캔버스 렌더 누락 수정)
                 foreach (var m in fai.Measurements) {
-                    var etl = m as EdgeToLineDistanceMeasurement;
-                    if (etl != null && etl.Point_Length1 > 0 && etl.Point_Length2 > 0) {
-                        string measName = etl.MeasurementName;
-                        if (string.IsNullOrEmpty(measName)) measName = etl.TypeName;
-                        result.Add(new RoiDefinition {
-                            Id = fai.FAIName + "_" + measName,
-                            Name = measName,
-                            Row1 = etl.Point_Row - etl.Point_Length1,
-                            Column1 = etl.Point_Col - etl.Point_Length2,
-                            Row2 = etl.Point_Row + etl.Point_Length1,
-                            Column2 = etl.Point_Col + etl.Point_Length2,
-                            IsTaught = true
-                        });
-                    }
+                    var pointRoi = BuildPointRoiDefinition(m, fai.FAIName);
+                    if (pointRoi != null) result.Add(pointRoi);
                 }
             }
             return result;
@@ -220,23 +209,36 @@ namespace ReringProject.UI {
             if (fai == null) return;
             var roi = fai.ToRoiDefinition();
             if (roi.IsTaught) result.Add(roi);
-            //260517 hbk Phase 23.1 D-03 — EdgeToLineDistanceMeasurement Point ROI 동시 수집
+            //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집
             foreach (var m in fai.Measurements) {
-                var etl = m as EdgeToLineDistanceMeasurement;
-                if (etl != null && etl.Point_Length1 > 0 && etl.Point_Length2 > 0) {
-                    string measName = etl.MeasurementName;
-                    if (string.IsNullOrEmpty(measName)) measName = etl.TypeName;
-                    result.Add(new RoiDefinition {
-                        Id = fai.FAIName + "_" + measName,
-                        Name = measName,
-                        Row1 = etl.Point_Row - etl.Point_Length1,
-                        Column1 = etl.Point_Col - etl.Point_Length2,
-                        Row2 = etl.Point_Row + etl.Point_Length1,
-                        Column2 = etl.Point_Col + etl.Point_Length2,
-                        IsTaught = true
-                    });
-                }
+                var pointRoi = BuildPointRoiDefinition(m, fai.FAIName);
+                if (pointRoi != null) result.Add(pointRoi);
             }
+        }
+
+        //260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 → RoiDefinition 변환 (캔버스 렌더용).
+        //  EdgeToLineDistance(Phase 23.1) 만 수집하던 누락을 EdgeToLineAngle/ArcEdgeDistance 까지 일반화.
+        //  Length1/2 미티칭(≤0) 이면 null. CommitRectRoi 가 Point_Phi=0 으로만 쓰므로 축정렬 bounding box.
+        private static RoiDefinition BuildPointRoiDefinition(MeasurementBase m, string faiName) {
+            double pRow = 0, pCol = 0, pLen1 = 0, pLen2 = 0;
+            var etld = m as EdgeToLineDistanceMeasurement;
+            if (etld != null) { pRow = etld.Point_Row; pCol = etld.Point_Col; pLen1 = etld.Point_Length1; pLen2 = etld.Point_Length2; }
+            var etla = m as EdgeToLineAngleMeasurement;
+            if (etla != null) { pRow = etla.Point_Row; pCol = etla.Point_Col; pLen1 = etla.Point_Length1; pLen2 = etla.Point_Length2; }
+            var aed = m as ArcEdgeDistanceMeasurement;
+            if (aed != null) { pRow = aed.Point_Row; pCol = aed.Point_Col; pLen1 = aed.Point_Length1; pLen2 = aed.Point_Length2; }
+            if (pLen1 <= 0 || pLen2 <= 0) return null;
+            string measName = m.MeasurementName;
+            if (string.IsNullOrEmpty(measName)) measName = m.TypeName;
+            return new RoiDefinition {
+                Id = faiName + "_" + measName,
+                Name = measName,
+                Row1 = pRow - pLen1,
+                Column1 = pCol - pLen2,
+                Row2 = pRow + pLen1,
+                Column2 = pCol + pLen2,
+                IsTaught = true
+            };
         }
 
         //260519 hbk #6-a — 주어진 FAI 가 속한 Shot 의 모든 FAI ROI 를 DataGrid 비의존으로 수집한다.

@@ -27,6 +27,12 @@ namespace ReringProject.Sequence
                     return new LineToLineDistanceMeasurement(owner);
                 case "EdgeToLineDistance": //260512 hbk Phase 23 ALG-01
                     return new EdgeToLineDistanceMeasurement(owner); //260512 hbk Phase 23 ALG-01
+                case "CircleCenterDistance": //260519 hbk Phase 31 D-01 E8
+                    return new CircleCenterDistanceMeasurement(owner); //260519 hbk Phase 31 D-01 E8
+                case "EdgeToLineAngle": //260519 hbk Phase 31 D-05
+                    return new EdgeToLineAngleMeasurement(owner); //260519 hbk Phase 31 D-05
+                case "ArcEdgeDistance": //260519 hbk Phase 31 D-08
+                    return new ArcEdgeDistanceMeasurement(owner); //260519 hbk Phase 31 D-08
                 default:
                     return null;
             }
@@ -42,7 +48,10 @@ namespace ReringProject.Sequence
                 "LineToLineAngle",
                 "CircleDiameter",
                 "LineToLineDistance",
-                "EdgeToLineDistance" //260512 hbk Phase 23 ALG-01
+                "EdgeToLineDistance", //260512 hbk Phase 23 ALG-01
+                "CircleCenterDistance", //260519 hbk Phase 31 D-01 E8
+                "EdgeToLineAngle", //260519 hbk Phase 31 D-05
+                "ArcEdgeDistance" //260519 hbk Phase 31 D-08
             };
         }
     }

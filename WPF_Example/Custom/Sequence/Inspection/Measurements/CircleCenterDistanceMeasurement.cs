@@ -127,10 +127,65 @@ namespace ReringProject.Sequence
             }
 
             //260519 hbk Phase 31 D-01 — D-04 공용 헬퍼 호출: 원중심 → datum 기준선 투영 거리
+            //260519 hbk Phase 31 hotfix(결함 A/B) — foot 반환 오버로드: overlay(거리선/교점) 표시용
+            double footRow, footCol;
+            bool footOk;
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
                 foundRow, foundCol,
                 DatumOriginRow, DatumOriginCol, DatumAngleRad,
-                pixelResolution, MeasureAxis);
+                pixelResolution, MeasureAxis,
+                out footRow, out footCol, out footOk);
+
+            //260519 hbk Phase 31 hotfix(결함 A) — 측정 결과 overlay 채움 (was: 빈 리스트 → 화면 표시 0).
+            //  EdgeToLineDistanceMeasurement.TryExecute L199~259 패턴 동일.
+            //  1) FAI-Edge1 = 검출 원중심 마커 (HalconDisplayService 녹/적 분기 + Action_FAIMeasurement -OK/-NG suffix)
+            overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix
+            {
+                RoiId = "FAI-Edge1", //260519 hbk Phase 31 hotfix
+                LineRow1 = foundRow, LineColumn1 = foundCol, //260519 hbk Phase 31 hotfix — 길이 0 라인 = 점 마커
+                LineRow2 = foundRow, LineColumn2 = foundCol, //260519 hbk Phase 31 hotfix
+                Points = new List<EdgeInspectionPoint> //260519 hbk Phase 31 hotfix
+                {
+                    new EdgeInspectionPoint { Row = foundRow, Column = foundCol } //260519 hbk Phase 31 hotfix — 원중심 X 마커
+                }
+            });
+
+            //260519 hbk Phase 31 hotfix(결함 B) — datum 주입 시: datum 기준선 + 수선의 발(교점) + 거리선 표시.
+            bool datumInjected = (DatumOriginRow != 0.0 || DatumOriginCol != 0.0); //260519 hbk Phase 31 hotfix
+            if (datumInjected) //260519 hbk Phase 31 hotfix
+            {
+                //260519 hbk Phase 31 hotfix — 2) datum 기준선(측정 축) + datum 교점 마커 (RoiId 미지정 분기 = 파랑)
+                double axisR1, axisC1, axisR2, axisC2; //260519 hbk Phase 31 hotfix
+                VisionAlgorithmService.GetDatumAxisLine(
+                    DatumOriginRow, DatumOriginCol, DatumAngleRad, MeasureAxis,
+                    out axisR1, out axisC1, out axisR2, out axisC2); //260519 hbk Phase 31 hotfix
+                overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix
+                {
+                    RoiId = "FAI-DatumLine", //260519 hbk Phase 31 hotfix — 미지정 분기 파랑 (datum 기준선)
+                    LineRow1 = axisR1, LineColumn1 = axisC1, //260519 hbk Phase 31 hotfix
+                    LineRow2 = axisR2, LineColumn2 = axisC2, //260519 hbk Phase 31 hotfix
+                    Points = new List<EdgeInspectionPoint> //260519 hbk Phase 31 hotfix — datum 교점(원점) 마커
+                    {
+                        new EdgeInspectionPoint { Row = DatumOriginRow, Column = DatumOriginCol } //260519 hbk Phase 31 hotfix
+                    }
+                });
+
+                //260519 hbk Phase 31 hotfix — 3) FAI-DistLine = 원중심 → 수선의 발 (수직 거리선, cyan)
+                if (footOk) //260519 hbk Phase 31 hotfix
+                {
+                    overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 hotfix
+                    {
+                        RoiId = "FAI-DistLine", //260519 hbk Phase 31 hotfix — HalconDisplayService cyan 분기
+                        LineRow1 = footRow, LineColumn1 = footCol, //260519 hbk Phase 31 hotfix — 수선의 발 (datum 기준선 위)
+                        LineRow2 = foundRow, LineColumn2 = foundCol, //260519 hbk Phase 31 hotfix — 원중심
+                        Points = new List<EdgeInspectionPoint> //260519 hbk Phase 31 hotfix — 양 끝점 X 마커
+                        {
+                            new EdgeInspectionPoint { Row = footRow, Column = footCol }, //260519 hbk Phase 31 hotfix
+                            new EdgeInspectionPoint { Row = foundRow, Column = foundCol } //260519 hbk Phase 31 hotfix
+                        }
+                    });
+                }
+            }
 
             return true;
         }

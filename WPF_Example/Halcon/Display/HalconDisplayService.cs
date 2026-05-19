@@ -542,9 +542,9 @@ namespace ReringProject.Halcon.Display
             if (stepCount < 1) stepCount = 1;
             double stepRad = (2.0 * Math.PI) / stepCount;
 
-            //260519 hbk Phase 31 CO-23.1-02 — 12px cap (TryFindCircleByPolarSampling 와 동일)
-            double length1 = Math.Min(radius * l1Ratio, 12.0);
-            double length2 = Math.Min(radius * l2Ratio, 12.0);
+            //260519 hbk Phase 31 hotfix — strip half-extent cap (VisionAlgorithmService 와 공유 — WYSIWYG)
+            double length1 = Math.Min(radius * l1Ratio, ReringProject.Halcon.Algorithms.VisionAlgorithmService.CircleStripHalfExtentCapPx);
+            double length2 = Math.Min(radius * l2Ratio, ReringProject.Halcon.Algorithms.VisionAlgorithmService.CircleStripHalfExtentCapPx);
             if (length1 < 1.0) length1 = 1.0;
             if (length2 < 1.0) length2 = 1.0;
 

@@ -316,6 +316,11 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260519 hbk Phase 31 hotfix — polar strip half-extent cap (px). Phase 16 의 12px 고정값을 상향(사용자 결정).
+        //  큰 strip = MeasurePos 노이즈 → 측정 실패를 막는 cap 은 유지하되, RectL1/L2Ratio 변경이 더 넓은 범위에서
+        //  strip 크기·측정에 반영되도록 상한을 키운다. HalconDisplayService.RenderCircleStrips 와 공유 (WYSIWYG).
+        public const double CircleStripHalfExtentCapPx = 36.0; //260519 hbk Phase 31 hotfix
+
         /// <summary>
         /// 360° polar sampling 방식의 Circle 검출.
         /// center+radius 기점에서 stepDeg 간격으로 회전하며, 각 각도 θ 에서 작은 사각형 ROI 의 MeasurePos
@@ -396,9 +401,10 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple imageWidth, imageHeight;
                 image.GetImageSize(out imageWidth, out imageHeight);
 
-                //260430 hbk Quick 260430-hox — strip half-extent 12px cap. Phase 16 UAT FAIL root cause: recipe 의 큰 ratio (또는 큰 radius) → strip 거대 → MeasurePos edge 노이즈 → "insufficient polar samples". 24px 이상 strip 은 polar sample 의미가 없으므로 cap.
-                double halfL1 = Math.Min(radius * rectL1Ratio, 12.0);
-                double halfL2 = Math.Min(radius * rectL2Ratio, 12.0);
+                //260430 hbk Quick 260430-hox / 260519 hbk Phase 31 hotfix — strip half-extent cap (CircleStripHalfExtentCapPx).
+                //  Phase 16 UAT FAIL root cause: 큰 ratio/radius → strip 거대 → MeasurePos edge 노이즈 → "insufficient polar samples".
+                double halfL1 = Math.Min(radius * rectL1Ratio, CircleStripHalfExtentCapPx);
+                double halfL2 = Math.Min(radius * rectL2Ratio, CircleStripHalfExtentCapPx);
                 if (halfL1 < 1.0) halfL1 = 1.0;
                 if (halfL2 < 1.0) halfL2 = 1.0;
 
@@ -637,31 +643,43 @@ namespace ReringProject.Halcon.Algorithms
             double pixelResolution,
             string measureAxis)
         {
+            //260519 hbk Phase 31 hotfix — foot 미사용 호출 경로: foot 반환 오버로드로 위임
+            double footRow, footCol;
+            bool footOk;
+            return ComputeProjectionDistance(pointRow, pointCol,
+                datumOriginRow, datumOriginCol, datumAngleRad,
+                pixelResolution, measureAxis,
+                out footRow, out footCol, out footOk);
+        }
+
+        /// <summary>
+        /// ComputeProjectionDistance 오버로드 — datum 기준선 위 수선의 발(foot) 좌표를 함께 반환한다.
+        /// overlay(FAI-DistLine: 측정점→foot 수직 드롭선) 표시용. footOk=false 면 projection 실패(거리 0).
+        /// </summary>
+        //260519 hbk Phase 31 hotfix — foot 반환 오버로드 (CircleCenterDistance overlay 결함 A/B fix)
+        public static double ComputeProjectionDistance(
+            double pointRow, double pointCol,
+            double datumOriginRow, double datumOriginCol,
+            double datumAngleRad,
+            double pixelResolution,
+            string measureAxis,
+            out double footRow, out double footCol, out bool footOk)
+        {
+            footRow = pointRow; footCol = pointCol; footOk = false; //260519 hbk Phase 31 hotfix — 실패 시 foot=측정점(거리 0)
             bool measureX = (measureAxis == "X"); //260519 hbk Phase 31 D-04 — null/""/"Y" → false (레거시 INI·미설정 안전)
             double sinT = Math.Sin(datumAngleRad); //260519 hbk Phase 31 D-04
             double cosT = Math.Cos(datumAngleRad); //260519 hbk Phase 31 D-04
             if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260519 hbk Phase 31 D-04 — Atan2 방향 무관 부호 일관성: datum x축 cosθ≥0 정규화
             double axisR1, axisC1, axisR2, axisC2; //260519 hbk Phase 31 D-04 — projection_pl 대상 직선의 2점 (교점 ±200px)
-            if (measureX) //260519 hbk Phase 31 D-04 — datum 수직선(y축): 방향벡터 (cosθ,-sinθ)
-            {
-                axisR1 = datumOriginRow - 200.0 * cosT; //260519 hbk Phase 31 D-04
-                axisC1 = datumOriginCol + 200.0 * sinT; //260519 hbk Phase 31 D-04
-                axisR2 = datumOriginRow + 200.0 * cosT; //260519 hbk Phase 31 D-04
-                axisC2 = datumOriginCol - 200.0 * sinT; //260519 hbk Phase 31 D-04
-            }
-            else //260519 hbk Phase 31 D-04 — datum 수평선(x축): 방향벡터 (sinθ,cosθ)
-            {
-                axisR1 = datumOriginRow - 200.0 * sinT; //260519 hbk Phase 31 D-04
-                axisC1 = datumOriginCol - 200.0 * cosT; //260519 hbk Phase 31 D-04
-                axisR2 = datumOriginRow + 200.0 * sinT; //260519 hbk Phase 31 D-04
-                axisC2 = datumOriginCol + 200.0 * cosT; //260519 hbk Phase 31 D-04
-            }
+            GetDatumAxisLine(datumOriginRow, datumOriginCol, datumAngleRad, measureAxis,
+                out axisR1, out axisC1, out axisR2, out axisC2); //260519 hbk Phase 31 hotfix
             try //260519 hbk Phase 31 D-04
             {
                 HTuple prRow, prCol; //260519 hbk Phase 31 D-04
                 HOperatorSet.ProjectionPl(pointRow, pointCol, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol); //260519 hbk Phase 31 D-04
-                double footRow = prRow.D; //260519 hbk Phase 31 D-04
-                double footCol = prCol.D; //260519 hbk Phase 31 D-04
+                footRow = prRow.D; //260519 hbk Phase 31 hotfix
+                footCol = prCol.D; //260519 hbk Phase 31 hotfix
+                footOk = true; //260519 hbk Phase 31 hotfix
                 double signedPx; //260519 hbk Phase 31 D-04 — 수선의 발→측정점 변위의 부호 있는 거리 성분
                 if (measureX) //260519 hbk Phase 31 D-04 — +X 오른쪽 양수: datum x축 방향 (sinθ,cosθ) 성분
                 {
@@ -676,6 +694,37 @@ namespace ReringProject.Halcon.Algorithms
             catch //260519 hbk Phase 31 D-04 — ProjectionPl 실패 시 0 반환
             {
                 return 0.0; //260519 hbk Phase 31 D-04
+            }
+        }
+
+        /// <summary>
+        /// datum 교점(datumOrigin)을 지나는 측정 기준선의 양 끝점(±200px)을 산출한다.
+        /// MeasureAxis="Y": datum 수평선(x축, 방향 (sinθ,cosθ)). "X": datum 수직선(y축, 방향 (cosθ,-sinθ)).
+        /// ComputeProjectionDistance 내부 + CircleCenterDistance overlay(datum 기준선 표시)가 공유.
+        /// </summary>
+        //260519 hbk Phase 31 hotfix — datum 기준선 2점 산출 헬퍼 (projection_pl axis + overlay 공용)
+        public static void GetDatumAxisLine(
+            double datumOriginRow, double datumOriginCol,
+            double datumAngleRad, string measureAxis,
+            out double axisR1, out double axisC1, out double axisR2, out double axisC2)
+        {
+            bool measureX = (measureAxis == "X"); //260519 hbk Phase 31 hotfix
+            double sinT = Math.Sin(datumAngleRad); //260519 hbk Phase 31 hotfix
+            double cosT = Math.Cos(datumAngleRad); //260519 hbk Phase 31 hotfix
+            if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260519 hbk Phase 31 hotfix — datum x축 cosθ≥0 정규화
+            if (measureX) //260519 hbk Phase 31 hotfix — datum 수직선(y축): 방향벡터 (cosθ,-sinθ)
+            {
+                axisR1 = datumOriginRow - 200.0 * cosT; //260519 hbk Phase 31 hotfix
+                axisC1 = datumOriginCol + 200.0 * sinT; //260519 hbk Phase 31 hotfix
+                axisR2 = datumOriginRow + 200.0 * cosT; //260519 hbk Phase 31 hotfix
+                axisC2 = datumOriginCol - 200.0 * sinT; //260519 hbk Phase 31 hotfix
+            }
+            else //260519 hbk Phase 31 hotfix — datum 수평선(x축): 방향벡터 (sinθ,cosθ)
+            {
+                axisR1 = datumOriginRow - 200.0 * sinT; //260519 hbk Phase 31 hotfix
+                axisC1 = datumOriginCol - 200.0 * cosT; //260519 hbk Phase 31 hotfix
+                axisR2 = datumOriginRow + 200.0 * sinT; //260519 hbk Phase 31 hotfix
+                axisC2 = datumOriginCol + 200.0 * cosT; //260519 hbk Phase 31 hotfix
             }
         }
 

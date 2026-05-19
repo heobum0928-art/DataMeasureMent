@@ -624,6 +624,144 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
+        /// 에지 중점(pointRow/Col)에서 datum 기준선까지의 부호 있는 거리(mm)를 반환한다.
+        /// MeasureAxis="Y": datum 수평선(x축)까지 수직거리 — +Y 위쪽 양수.
+        /// MeasureAxis="X": datum 수직선(y축)까지 거리 — +X 오른쪽 양수.
+        /// EdgeToLineDistanceMeasurement.TryExecute L126~196 datumOriginInjected 블록 추출.
+        /// </summary>
+        //260519 hbk Phase 31 D-04 — projection_pl 거리 공용 헬퍼 (EdgeToLineDistanceMeasurement.TryExecute L126~196 추출)
+        public static double ComputeProjectionDistance(
+            double pointRow, double pointCol,
+            double datumOriginRow, double datumOriginCol,
+            double datumAngleRad,
+            double pixelResolution,
+            string measureAxis)
+        {
+            bool measureX = (measureAxis == "X"); //260519 hbk Phase 31 D-04 — null/""/"Y" → false (레거시 INI·미설정 안전)
+            double sinT = Math.Sin(datumAngleRad); //260519 hbk Phase 31 D-04
+            double cosT = Math.Cos(datumAngleRad); //260519 hbk Phase 31 D-04
+            if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260519 hbk Phase 31 D-04 — Atan2 방향 무관 부호 일관성: datum x축 cosθ≥0 정규화
+            double axisR1, axisC1, axisR2, axisC2; //260519 hbk Phase 31 D-04 — projection_pl 대상 직선의 2점 (교점 ±200px)
+            if (measureX) //260519 hbk Phase 31 D-04 — datum 수직선(y축): 방향벡터 (cosθ,-sinθ)
+            {
+                axisR1 = datumOriginRow - 200.0 * cosT; //260519 hbk Phase 31 D-04
+                axisC1 = datumOriginCol + 200.0 * sinT; //260519 hbk Phase 31 D-04
+                axisR2 = datumOriginRow + 200.0 * cosT; //260519 hbk Phase 31 D-04
+                axisC2 = datumOriginCol - 200.0 * sinT; //260519 hbk Phase 31 D-04
+            }
+            else //260519 hbk Phase 31 D-04 — datum 수평선(x축): 방향벡터 (sinθ,cosθ)
+            {
+                axisR1 = datumOriginRow - 200.0 * sinT; //260519 hbk Phase 31 D-04
+                axisC1 = datumOriginCol - 200.0 * cosT; //260519 hbk Phase 31 D-04
+                axisR2 = datumOriginRow + 200.0 * sinT; //260519 hbk Phase 31 D-04
+                axisC2 = datumOriginCol + 200.0 * cosT; //260519 hbk Phase 31 D-04
+            }
+            try //260519 hbk Phase 31 D-04
+            {
+                HTuple prRow, prCol; //260519 hbk Phase 31 D-04
+                HOperatorSet.ProjectionPl(pointRow, pointCol, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol); //260519 hbk Phase 31 D-04
+                double footRow = prRow.D; //260519 hbk Phase 31 D-04
+                double footCol = prCol.D; //260519 hbk Phase 31 D-04
+                double signedPx; //260519 hbk Phase 31 D-04 — 수선의 발→측정점 변위의 부호 있는 거리 성분
+                if (measureX) //260519 hbk Phase 31 D-04 — +X 오른쪽 양수: datum x축 방향 (sinθ,cosθ) 성분
+                {
+                    signedPx = (pointRow - footRow) * sinT + (pointCol - footCol) * cosT; //260519 hbk Phase 31 D-04
+                }
+                else //260519 hbk Phase 31 D-04 — +Y 위쪽 양수: datum x축 up-normal (-cosθ,sinθ) 성분
+                {
+                    signedPx = (pointRow - footRow) * (-cosT) + (pointCol - footCol) * sinT; //260519 hbk Phase 31 D-04
+                }
+                return signedPx * pixelResolution; //260519 hbk Phase 31 D-04
+            }
+            catch //260519 hbk Phase 31 D-04 — ProjectionPl 실패 시 0 반환
+            {
+                return 0.0; //260519 hbk Phase 31 D-04
+            }
+        }
+
+        /// <summary>
+        /// 3점(row/col)으로 외접원을 피팅한다 (GenContourPolygonXld → FitCircleContourXld).
+        /// I9/I10 호∩라인 교점 측정에서 arc 3점 피팅에 사용.
+        /// </summary>
+        //260519 hbk Phase 31 D-01 — 3점 arc 피팅 (GenContourPolygonXld → FitCircleContourXld)
+        public bool TryFitArc(
+            double p1Row, double p1Col,
+            double p2Row, double p2Col,
+            double p3Row, double p3Col,
+            out double foundRow, out double foundCol, out double foundRadius,
+            out string error)
+        {
+            foundRow = foundCol = foundRadius = 0;
+            error = null;
+            HObject contour = null;
+            try //260519 hbk Phase 31 D-01
+            {
+                HTuple rows = new HTuple(new double[] { p1Row, p2Row, p3Row }); //260519 hbk Phase 31 D-01
+                HTuple cols = new HTuple(new double[] { p1Col, p2Col, p3Col }); //260519 hbk Phase 31 D-01
+                HOperatorSet.GenContourPolygonXld(out contour, rows, cols); //260519 hbk Phase 31 D-01
+                HTuple cR, cC, rad, startPhi, endPhi, pointOrder;
+                HOperatorSet.FitCircleContourXld(contour, "algebraic", -1, 0, 0, 3, 2, //260519 hbk Phase 31 D-01
+                    out cR, out cC, out rad, out startPhi, out endPhi, out pointOrder);
+                foundRow = cR.D; //260519 hbk Phase 31 D-01
+                foundCol = cC.D; //260519 hbk Phase 31 D-01
+                foundRadius = rad.D; //260519 hbk Phase 31 D-01
+                return true;
+            }
+            catch (Exception ex) //260519 hbk Phase 31 D-01 — T-31-03: FitCircleContourXld 예외(3점 비수렴) → false, 메모리 누수 차단
+            {
+                error = ex.Message;
+                return false;
+            }
+            finally //260519 hbk Phase 31 D-01 — T-31-03 mitigation: contour Dispose
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } } //260519 hbk Phase 31 D-01
+            }
+        }
+
+        /// <summary>
+        /// 원과 직선의 교점을 구한다. 2해 중 ROI 중심(roiRow/Col)에 더 가까운 해를 반환한다 (D-10).
+        /// HALCON IntersectionLl 은 직선-직선 전용이므로 수학 구현(2차 방정식).
+        /// </summary>
+        //260519 hbk Phase 31 D-10 — 원-직선 교점 (2해 → ROI 내부 해 선택). T-31-02: 0-나눗셈/음수 판별식 가드
+        public static bool TryIntersectCircleLine(
+            double cRow, double cCol, double radius,
+            double lRow1, double lCol1, double lRow2, double lCol2,
+            double roiRow, double roiCol,
+            out double intRow, out double intCol)
+        {
+            intRow = intCol = 0;
+            try //260519 hbk Phase 31 D-10
+            {
+                // 직선 방향벡터: (dR, dC) = (lRow2-lRow1, lCol2-lCol1)
+                double dR = lRow2 - lRow1; double dC = lCol2 - lCol1; //260519 hbk Phase 31 D-10
+                // 원 중심 → 직선 시작점 벡터: (fR, fC)
+                double fR = lRow1 - cRow; double fC = lCol1 - cCol; //260519 hbk Phase 31 D-10
+                // 2차 방정식: t²(dR²+dC²) + 2t(fR·dR+fC·dC) + (fR²+fC²-r²) = 0
+                double a = dR * dR + dC * dC; //260519 hbk Phase 31 D-10
+                if (a < 1e-12) return false; // T-31-02: 직선 길이 0 가드 //260519 hbk Phase 31 D-10
+                double b = 2 * (fR * dR + fC * dC); //260519 hbk Phase 31 D-10
+                double c = fR * fR + fC * fC - radius * radius; //260519 hbk Phase 31 D-10
+                double disc = b * b - 4 * a * c; //260519 hbk Phase 31 D-10
+                if (disc < 0) return false; // T-31-02: 교점 없음(음수 판별식) 가드 //260519 hbk Phase 31 D-10
+                double sqrtDisc = Math.Sqrt(disc); //260519 hbk Phase 31 D-10
+                double t1 = (-b - sqrtDisc) / (2 * a); //260519 hbk Phase 31 D-10
+                double t2 = (-b + sqrtDisc) / (2 * a); //260519 hbk Phase 31 D-10
+                double s1R = lRow1 + t1 * dR; double s1C = lCol1 + t1 * dC; //260519 hbk Phase 31 D-10
+                double s2R = lRow1 + t2 * dR; double s2C = lCol1 + t2 * dC; //260519 hbk Phase 31 D-10
+                // D-10: ROI 중심에 더 가까운 해 선택
+                double d1 = (s1R - roiRow) * (s1R - roiRow) + (s1C - roiCol) * (s1C - roiCol); //260519 hbk Phase 31 D-10
+                double d2 = (s2R - roiRow) * (s2R - roiRow) + (s2C - roiCol) * (s2C - roiCol); //260519 hbk Phase 31 D-10
+                if (d1 <= d2) { intRow = s1R; intCol = s1C; } //260519 hbk Phase 31 D-10
+                else          { intRow = s2R; intCol = s2C; } //260519 hbk Phase 31 D-10
+                return true;
+            }
+            catch //260519 hbk Phase 31 D-10
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 점(row,col)에 hom_mat2d 변환을 적용한다.
         /// </summary>
         public static void AffineTransformPoint( //260413 hbk

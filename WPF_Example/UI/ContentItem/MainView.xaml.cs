@@ -148,9 +148,12 @@ namespace ReringProject.UI {
         private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             if (selectedRow == null) {
+                //260519 hbk #6-a — ItemsSource 교체 시 WPF 가 SelectedItem=null 로 자동 리셋하며 이 핸들러를 동기 발화.
+                //  4인자 UpdateDisplayState(null) 는 _selectedRoiId=null clobber → 이후 HighlightSelectedRoi 의 하이라이트를
+                //  렌더링 타이밍에 따라 지워버림. 3인자 오버로드(selectedRoiId 미변경)를 써서 트리 선택 하이라이트를 보존한다.
                 var allRois = GetCurrentFAIRois();
                 if (allRois.Count > 0)
-                    halconViewer.UpdateDisplayState(allRois, null, null, null);
+                    halconViewer.UpdateDisplayState(allRois, null, null); //260519 hbk #6-a — 3인자: _selectedRoiId 보존
                 return;
             }
 
@@ -230,12 +233,11 @@ namespace ReringProject.UI {
                 }
                 if (!matched) selRoiId = faiNameForFallback;
             }
-            //260519 hbk #6-a — 선행 LoadImage/ClearResults 렌더가 끝난 뒤 하이라이트 최종 적용 (덮어쓰기 방지)
-            string finalRoiId = selRoiId;
-            var finalRois = rois;
-            Dispatcher.BeginInvoke(new Action(() => {
-                halconViewer.UpdateDisplayState(finalRois, finalRoiId, null, null);
-            }), System.Windows.Threading.DispatcherPriority.Render);
+            //260519 hbk #6-a — BeginInvoke defer 제거: 이 메서드는 항상 UI 스레드(InspectionListView SelectionChanged)에서
+            //  호출된다. defer 시 FAIResults_SelectionChanged 의 Render() 큐보다 늦게 실행되어 타이밍 레이스 발생.
+            //  직접 호출하면 4인자 UpdateDisplayState(_selectedRoiId=selRoiId) → Render() 큐가 null-clobber 큐보다
+            //  나중에 쌓이므로 최종 RenderNow 에서 노란색이 보장된다.
+            halconViewer.UpdateDisplayState(rois, selRoiId, null, null); //260519 hbk #6-a
         }
 
         //260417 hbk Phase 6 Plan 04: 모든 시퀀스/Shot에서 FAIName으로 FAIConfig 조회 (D-21)

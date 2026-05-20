@@ -374,33 +374,44 @@ namespace ReringProject.Sequence {
 
         //생성된 파일명을 반환한다.
         // Save the result image and record the generated file name.
+        //260520 hbk Manual Tools Locked root cause — 본체 전체 try/catch 추가.
+        //  배경: DatumPhase 실패 등으로 Grab 단계 미실행 시 Context.ResultHalconImage 가 disposed/잘못된 핸들 → CopyImage() 동기 예외 →
+        //  Error()/Finish() 의 OnError/OnFinish?.Invoke() 까지 도달 못함 → MainWindow.SetManualToolsEnabled(true) 미호출 → 잠금 영구화.
+        //  격리 원칙: 이미지 저장 실패가 시퀀스 완료 이벤트 발화를 막아서는 안 됨.
         protected void SaveResultImage(string actionName) {
-            if (SystemHandler.Handle.Setting.SaveFailImage == false) {
-                Context.ResultImageFileName = null;
-                return;
-            }
+            try { //260520 hbk
+                if (SystemHandler.Handle.Setting.SaveFailImage == false) {
+                    Context.ResultImageFileName = null;
+                    return;
+                }
 
-            if (Context.ResultHalconImage != null) {
-                HImage snapshot = Context.ResultHalconImage.CopyImage();
-                Task.Factory.StartNew((object obj) => {
-                    HImage resultImage = obj as HImage;
-                    try {
-                        string filePath = SystemHandler.Handle.Setting.GetResultImageSavePath(Name, actionName);
-                        Context.ResultImageFileName = Path.GetFileName(filePath);
+                if (Context.ResultHalconImage != null) {
+                    HImage snapshot = Context.ResultHalconImage.CopyImage();
+                    Task.Factory.StartNew((object obj) => {
+                        HImage resultImage = obj as HImage;
+                        try {
+                            string filePath = SystemHandler.Handle.Setting.GetResultImageSavePath(Name, actionName);
+                            Context.ResultImageFileName = Path.GetFileName(filePath);
 
-                        using (HImage grayImage = resultImage.CountChannels().I == 1 ? resultImage.CopyImage() : resultImage.Rgb1ToGray()) {
-                            string format = Path.GetExtension(filePath).TrimStart('.');
-                            grayImage.WriteImage(format, 0, filePath);
+                            using (HImage grayImage = resultImage.CountChannels().I == 1 ? resultImage.CopyImage() : resultImage.Rgb1ToGray()) {
+                                string format = Path.GetExtension(filePath).TrimStart('.');
+                                grayImage.WriteImage(format, 0, filePath);
+                            }
                         }
-                    }
-                    catch (Exception ex) {
-                        CustomMessageBox.Show("Fail to Save Image", "Image Save Fail : " + ex.Message, System.Windows.MessageBoxImage.Error);
-                    }
-                    finally {
-                        resultImage.Dispose();
-                    }
-                }, snapshot);
-                return;
+                        catch (Exception ex) {
+                            CustomMessageBox.Show("Fail to Save Image", "Image Save Fail : " + ex.Message, System.Windows.MessageBoxImage.Error);
+                        }
+                        finally {
+                            resultImage.Dispose();
+                        }
+                    }, snapshot);
+                    return;
+                }
+            } //260520 hbk
+            catch (Exception ex) { //260520 hbk — CopyImage 등 동기 예외 격리 (OnError/OnFinish 발화 보장)
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SaveResultImage] Sync exception swallowed (lock-release path protected): " + ex.Message); } catch { } //260520 hbk
+                Context.ResultImageFileName = null; //260520 hbk
+                return; //260520 hbk
             }
         }
 

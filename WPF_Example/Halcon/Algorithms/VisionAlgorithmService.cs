@@ -677,34 +677,35 @@ namespace ReringProject.Halcon.Algorithms
             string measureAxis,
             out double footRow, out double footCol, out bool footOk)
         {
-            footRow = pointRow; footCol = pointCol; footOk = false; //260519 hbk Phase 31 hotfix — 실패 시 foot=측정점(거리 0)
-            bool measureX = (measureAxis == "X"); //260519 hbk Phase 31 D-04 — null/""/"Y" → false (레거시 INI·미설정 안전)
-            //260519 hbk Phase 31 hotfix#3 — 측정 기준선은 lineAngleRad 그대로 사용 (방향벡터 (sinφ,cosφ)).
-            //  X(2차 수직선)이 Line1+90° 가 아닌 실제 datum 수직선 각도이므로 측정·시각화가 datum 과 일치.
-            double sinT = Math.Sin(lineAngleRad); //260519 hbk Phase 31 hotfix#3
-            double cosT = Math.Cos(lineAngleRad); //260519 hbk Phase 31 hotfix#3
-            //260519 hbk Phase 31 hotfix#3 — 부호 일관성 정규화 (Atan2 traversal 방향 무관):
-            //  Y(수평선) = cosθ≥0 (+Y 위쪽), X(수직선) = sinθ≥0 (+X 오른쪽).
-            if (measureX) { if (sinT < 0.0) { sinT = -sinT; cosT = -cosT; } } //260519 hbk Phase 31 hotfix#3
-            else          { if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } } //260519 hbk Phase 31 hotfix#3
-            double axisR1, axisC1, axisR2, axisC2; //260519 hbk Phase 31 D-04 — projection_pl 대상 직선의 2점
-            GetDatumAxisLine(datumOriginRow, datumOriginCol, lineAngleRad, 200.0,
-                out axisR1, out axisC1, out axisR2, out axisC2); //260519 hbk Phase 31 hotfix#3 — projection_pl 은 직선 길이 무관(±200)
-            try //260519 hbk Phase 31 D-04
+            //260520 hbk Phase 31 simplify — HALCON projection_pl 직접 사용. 거리 = |point - foot| (절대값).
+            //  사용자 결정: 부호 처리 제거 → 단순 sqrt 거리. 공차 판정은 |측정 - 설계| 로 별도 처리.
+            //  measureAxis 인자는 caller 호환성 유지용 (내부 미사용).
+            footRow = pointRow; footCol = pointCol; footOk = false;
+
+            // datum 라인 2점 (projection_pl 은 직선 정의만 필요, 길이 무관 — ±200px 임의 선택)
+            double dirR = Math.Sin(lineAngleRad);
+            double dirC = Math.Cos(lineAngleRad);
+            double r1 = datumOriginRow - 200.0 * dirR;
+            double c1 = datumOriginCol - 200.0 * dirC;
+            double r2 = datumOriginRow + 200.0 * dirR;
+            double c2 = datumOriginCol + 200.0 * dirC;
+
+            try
             {
-                HTuple prRow, prCol; //260519 hbk Phase 31 D-04
-                HOperatorSet.ProjectionPl(pointRow, pointCol, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol); //260519 hbk Phase 31 D-04
-                footRow = prRow.D; //260519 hbk Phase 31 hotfix
-                footCol = prCol.D; //260519 hbk Phase 31 hotfix
-                footOk = true; //260519 hbk Phase 31 hotfix
-                //260519 hbk Phase 31 hotfix#3 — 수선의 발→측정점 변위를 기준선 법선 (-cosφ,sinφ) 에 정사영.
-                //  Y: 수평선 up-normal(+Y 위). X: 수직선 right-normal(+X 오른쪽, sinφ≥0 정규화). 양축 동일 식.
-                double signedPx = (pointRow - footRow) * (-cosT) + (pointCol - footCol) * sinT; //260519 hbk Phase 31 hotfix#3
-                return signedPx * pixelResolution; //260519 hbk Phase 31 D-04
+                HTuple prRow, prCol;
+                HOperatorSet.ProjectionPl(pointRow, pointCol, r1, c1, r2, c2, out prRow, out prCol);
+                footRow = prRow.D;
+                footCol = prCol.D;
+                footOk = true;
+
+                double dr = pointRow - footRow;
+                double dc = pointCol - footCol;
+                double distPx = Math.Sqrt(dr * dr + dc * dc);
+                return distPx * pixelResolution;
             }
-            catch //260519 hbk Phase 31 D-04 — ProjectionPl 실패 시 0 반환
+            catch
             {
-                return 0.0; //260519 hbk Phase 31 D-04
+                return 0.0;
             }
         }
 

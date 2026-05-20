@@ -102,11 +102,17 @@ namespace ReringProject.Sequence
 
             //260519 hbk Phase 31 D-08 — D-04 공용 헬퍼 호출: 에지 라인 중점 → datum 기준선 투영 거리
             //260519 hbk Phase 31 hotfix#3 — X축 측정은 2차(수직) 기준선, Y축은 1차(수평) 기준선
+            //260520 hbk Phase 31 simplify — foot 반환 오버로드로 전환. HomMat2dInvert+AffineTransPoint2d 제거
+            //   (IDatumOriginConsumer 가 이미 datum 원점 image 좌표 주입 → 행렬 역변환 불필요).
+            //   FAI-DistLine 시작점도 datum 원점이 아닌 실제 정사영점(foot, datum 라인 위 수선의 발)으로 정확화.
             double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260519 hbk Phase 31 hotfix#3
+            double footRow, footCol; //260520 hbk Phase 31 simplify
+            bool footOk; //260520 hbk Phase 31 simplify
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
                 pRow, pCol,
                 DatumOriginRow, DatumOriginCol, measureLineAngle,
-                pixelResolution, MeasureAxis); //260519 hbk Phase 31 D-08
+                pixelResolution, MeasureAxis,
+                out footRow, out footCol, out footOk); //260520 hbk Phase 31 simplify
 
             //260519 hbk Phase 31 D-08 — overlay: EdgeToLineDistanceMeasurement 와 동일 패턴 (FAI-Edge1 + FAI-DistLine)
             // 1) 검출 에지 라인 overlay
@@ -123,41 +129,21 @@ namespace ReringProject.Sequence
                 }
             }); //260519 hbk Phase 31 D-08
 
-            // 2) 거리선 overlay: ComputeProjectionDistance 는 foot 좌표를 반환하지 않으므로 HomMat2dInvert 폴백 패턴 사용
-            //    (EdgeToLineDistanceMeasurement.cs L226~242 레거시 폴백 블록 동일)
-            bool originOk = false; //260519 hbk Phase 31 D-08
-            double originRow = 0.0; //260519 hbk Phase 31 D-08
-            double originCol = 0.0; //260519 hbk Phase 31 D-08
-            try //260519 hbk Phase 31 D-08
+            // 2) 거리선 overlay: 측정점 → 정사영점(foot, datum 라인 위 수선의 발). 측정값과 시각적 일치.
+            //260520 hbk Phase 31 simplify — footOk 가 false 면 ProjectionPl 실패 → distline skip (측정값과 에지 라인 overlay 는 유지)
+            if (footOk) //260520 hbk Phase 31 simplify
             {
-                HTuple invMat; //260519 hbk Phase 31 D-08
-                HOperatorSet.HomMat2dInvert(datumTransform, out invMat); //260519 hbk Phase 31 D-08
-                HTuple oRow, oCol; //260519 hbk Phase 31 D-08
-                HOperatorSet.AffineTransPoint2d(invMat, 0.0, 0.0, out oRow, out oCol); //260519 hbk Phase 31 D-08
-                originRow = oRow.D; //260519 hbk Phase 31 D-08
-                originCol = oCol.D; //260519 hbk Phase 31 D-08
-                originOk = true; //260519 hbk Phase 31 D-08
-            }
-            catch //260519 hbk Phase 31 D-08
-            {
-                // datum 역변환 실패 시 FAI-DistLine 만 skip — 에지 라인 overlay 와 측정값은 유지 //260519 hbk Phase 31 D-08
-            }
-
-            if (originOk) //260519 hbk Phase 31 D-08
-            {
-                overlays.Add(new EdgeInspectionOverlay //260519 hbk Phase 31 D-08
+                overlays.Add(new EdgeInspectionOverlay //260520 hbk Phase 31 simplify
                 {
-                    RoiId = "FAI-DistLine", //260519 hbk Phase 31 D-08 — cyan(청록), HalconDisplayService.cs:181 분기
-                    LineRow1 = originRow, //260519 hbk Phase 31 D-08
-                    LineColumn1 = originCol, //260519 hbk Phase 31 D-08
-                    LineRow2 = pRow, //260519 hbk Phase 31 D-08
-                    LineColumn2 = pCol, //260519 hbk Phase 31 D-08
-                    Points = new List<EdgeInspectionPoint> //260519 hbk Phase 31 D-08
+                    RoiId = "FAI-DistLine", //260520 hbk Phase 31 simplify — cyan(청록), HalconDisplayService.cs:181 분기
+                    LineRow1 = footRow, LineColumn1 = footCol, //260520 hbk Phase 31 simplify — 정사영점
+                    LineRow2 = pRow, LineColumn2 = pCol, //260520 hbk Phase 31 simplify — 에지 중점
+                    Points = new List<EdgeInspectionPoint> //260520 hbk Phase 31 simplify
                     {
-                        new EdgeInspectionPoint { Row = originRow, Column = originCol }, //260519 hbk Phase 31 D-08
-                        new EdgeInspectionPoint { Row = pRow, Column = pCol } //260519 hbk Phase 31 D-08
+                        new EdgeInspectionPoint { Row = footRow, Column = footCol }, //260520 hbk Phase 31 simplify
+                        new EdgeInspectionPoint { Row = pRow, Column = pCol } //260520 hbk Phase 31 simplify
                     }
-                }); //260519 hbk Phase 31 D-08
+                });
             }
 
             return true;

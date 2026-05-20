@@ -71,9 +71,17 @@ created: 2026-05-19
 
 | 항목 | 기대 | 결과 |
 |------|------|------|
-| 측정값 표시 | 각도(deg) 정상 | pending |
-| 판정 | PASS/FAIL 정상 | pending |
-| PropertyGrid EdgeToLineAngle 타입 노출 | 드롭다운에 표시 | pending |
+| 측정값 표시 | 각도(deg) 정상 | **PASS** |
+| 판정 | PASS/FAIL 정상 | **PASS** |
+| PropertyGrid EdgeToLineAngle 타입 노출 | 드롭다운에 표시 | **PASS** |
+| Overlay 가시화 (사용자 추가 요청) | FAI-Edge1 라인 + 라인 분리 X 마커 + raw 에지점 + datum 라인 | **PASS** |
+
+**UAT 이력:** 측정값/판정/타입 노출 PASS 후 사용자 시각 검증 피드백 4건 → hotfix.
+- hotfix#5 (TryFitLine collectedEdges + FAI-EdgeRaw 노랑 작은 + 마커) — strip-loop 누적 raw 에지점 가시화.
+- hotfix#6 (FAI-Edge* X 마커 색상 라인과 분리, 초기 white) — 검출 점 위치 시각 분리.
+- hotfix#7 (라인 범위 축소: 상단부→datum 교점, IntersectionLl + 평행 폴백) — V자 형태로 각도 직관 강화.
+- hotfix#8 (X 마커 색상 white → magenta) — 사용자 색상 변경 요청.
+- 전체 PASS 확인 (사용자 2026-05-20, 단일 커밋 f0842e4).
 
 ---
 

@@ -1,5 +1,6 @@
 //260413 hbk Phase 6: Halcon 빌딩 블록 서비스 — FitLine, FindCircle, 기하 유틸 (D-18)
 using System;
+using System.Collections.Generic; //260519 hbk Phase 31 hotfix#5 — TryFitLine collectedEdges 인자
 using HalconDotNet;
 
 namespace ReringProject.Halcon.Algorithms
@@ -24,7 +25,8 @@ namespace ReringProject.Halcon.Algorithms
             string direction, string polarity,
             out double row1, out double col1, out double row2, out double col2,
             out string error,
-            string selection = "all") //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 (optional, 기존 caller 호환)
+            string selection = "all", //260512 hbk Phase 23 ALG-01 — D-10 EdgeSelection 명시 (optional, 기존 caller 호환)
+            List<ValueTuple<double, double>> collectedEdges = null) //260519 hbk Phase 31 hotfix#5 — strip-loop 누적 raw 에지점 노출 (opt-in, 기존 caller 호환). 측정 overlay 가시화용.
         {
             row1 = col1 = row2 = col2 = 0;
             error = null;
@@ -170,6 +172,16 @@ namespace ReringProject.Halcon.Algorithms
 
                 row1 = lr1.D; col1 = lc1.D;
                 row2 = lr2.D; col2 = lc2.D;
+
+                //260519 hbk Phase 31 hotfix#5 — opt-in: 라인 피팅에 사용된 trim 후 raw 에지점들을 caller list 에 누적.
+                //  EdgeToLineAngle overlay 가시화 — 측정 라인이 어느 점들로 피팅되었는지 사용자 시각 검증용.
+                if (collectedEdges != null) //260519 hbk Phase 31 hotfix#5
+                {
+                    for (int k = 0; k < edgeCount; k++) //260519 hbk Phase 31 hotfix#5
+                    {
+                        collectedEdges.Add(new ValueTuple<double, double>(allRows[k].D, allCols[k].D)); //260519 hbk Phase 31 hotfix#5
+                    }
+                }
                 return true;
             }
             catch (Exception ex)

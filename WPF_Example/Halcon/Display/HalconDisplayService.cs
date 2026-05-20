@@ -184,8 +184,37 @@ namespace ReringProject.Halcon.Display
                         window.SetColor("red");
                         window.SetLineWidth(3);
                     }
+                    //260519 hbk Phase 31 hotfix#5 — FAI-EdgeRaw: strip-loop 누적 raw 에지점 일괄 가시화 (노랑 작은 +).
+                    //  반드시 "FAI-Edge" StartsWith 분기보다 먼저 평가되어야 함 — "FAI-EdgeRaw" 도 prefix 매칭.
+                    //  렌더 후 continue → 기본 DispLine + 큰 X 마커 loop 모두 skip.
+                    else if (string.Equals(overlay.RoiId, "FAI-EdgeRaw", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (overlay.Points != null && overlay.Points.Count > 0)
+                        {
+                            try
+                            {
+                                HTuple rRows = new HTuple();
+                                HTuple rCols = new HTuple();
+                                foreach (var p in overlay.Points)
+                                {
+                                    rRows = rRows.TupleConcat(p.Row);
+                                    rCols = rCols.TupleConcat(p.Column);
+                                }
+                                HOperatorSet.SetColor(window, "yellow");
+                                HOperatorSet.SetLineWidth(window, 1);
+                                HOperatorSet.DispCross(window, rRows, rCols, 4.0, 0.0);
+                            }
+                            catch
+                            {
+                                // RenderRawEdgePoints 관습 — display 예외 swallow
+                            }
+                        }
+                        continue;
+                    }
+                    //260519 hbk Phase 31 hotfix#6 — X 마커 색 분리용: FAI-Edge* 라인은 녹/적(OK/NG), X 는 white 로 구분.
+                    bool isFaiEdgeLine = false; //260519 hbk Phase 31 hotfix#6
                     //260409 hbk Phase 3: FAI edge measurement result overlay colors
-                    else if (overlay.RoiId != null && overlay.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase))
+                    if (overlay.RoiId != null && overlay.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase))
                     {
                         bool isNG = overlay.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase);
                         //260509 hbk Phase 20 — ?: → if/else (D-01)
@@ -198,6 +227,7 @@ namespace ReringProject.Halcon.Display
                             window.SetColor("green");
                         }
                         window.SetLineWidth(2);
+                        isFaiEdgeLine = true; //260519 hbk Phase 31 hotfix#6
                     }
                     else if (string.Equals(overlay.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
                     {
@@ -214,6 +244,14 @@ namespace ReringProject.Halcon.Display
                     if (overlay.Points == null)
                     {
                         continue;
+                    }
+
+                    //260519 hbk Phase 31 hotfix#6 — FAI-Edge* 의 X 마커만 라인과 분리된 색상으로 (사용자 요청: 검출된 점 위치를 라인과 시각적으로 분리)
+                    //260519 hbk Phase 31 hotfix#8 — white → magenta (사용자 색상 변경 요청). Phase 31 측정 overlay 컨텍스트 미사용 색상.
+                    if (isFaiEdgeLine)
+                    {
+                        window.SetColor("magenta"); //260519 hbk Phase 31 hotfix#8 (was: white)
+                        window.SetLineWidth(2); //260519 hbk Phase 31 hotfix#6
                     }
 
                     foreach (var point in overlay.Points)

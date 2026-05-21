@@ -1373,7 +1373,10 @@ namespace ReringProject.UI {
                     string measSelId = _editingMeasurementFaiName;
                     if (string.IsNullOrEmpty(measSelId))
                         measSelId = FindFaiNameContainingMeasurement(_editingMeasurement);
-                    var measRois = GetCurrentFAIRois();
+                    //260521 hbk Phase 32 UAT — DataGrid 비의존 Shot 단위 ROI 수집으로 교체 (Measurement 노드 선택 시 ClearResults() 가 DataGrid 를 비워 GetCurrentFAIRois() 가 빈 리스트 반환 → ROI 미표시 결함)
+                    //  CollectShotRois 는 anchorFai.Owner(ShotConfig).FAIList 전체를 AppendFaiRois 로 수집 — DataGrid 무관 (Phase 31 #6-a 패턴 재사용)
+                    FAIConfig anchorFaiForCommit = FindFAIByName(measSelId); //260521 hbk Phase 32 UAT
+                    var measRois = CollectShotRois(anchorFaiForCommit); //260521 hbk Phase 32 UAT — GetCurrentFAIRois() 교체
                     halconViewer.UpdateDisplayState(measRois, measSelId, null, null);
                 }
                 ExitCanvasMode();

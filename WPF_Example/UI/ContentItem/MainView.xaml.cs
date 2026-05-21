@@ -53,6 +53,7 @@ namespace ReringProject.UI {
         private MeasurementBase _editingMeasurement;
         //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 FAI 이름 (UpdateDisplayState selId 용)
         private string _editingMeasurementFaiName;
+        private int _editingMeasurementRoiIndex; //260521 hbk Phase 32 — ArcLineIntersect 2-ROI 순차 드로잉 인덱스 (0=EdgeA, 1=EdgeB)
         //260424 hbk Phase 12 D-03 — Datum 티칭 단계 (알고리즘별 switch 로 전이 결정)
         //  Phase 13 에서 DatumAlgorithmBase.GetROISteps() 가변 배열로 재설계 예정 — switch 는 MainView 내 private 유지.
         private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
@@ -227,6 +228,16 @@ namespace ReringProject.UI {
             if (etla != null) { pRow = etla.Point_Row; pCol = etla.Point_Col; pLen1 = etla.Point_Length1; pLen2 = etla.Point_Length2; }
             var aed = m as ArcEdgeDistanceMeasurement;
             if (aed != null) { pRow = aed.Point_Row; pCol = aed.Point_Col; pLen1 = aed.Point_Length1; pLen2 = aed.Point_Length2; }
+            var cAngle = m as CompoundAngleMeasurement; //260521 hbk Phase 32
+            if (cAngle != null) { pRow = cAngle.Rect_Row; pCol = cAngle.Rect_Col; pLen1 = cAngle.Rect_Length1; pLen2 = cAngle.Rect_Length2; }
+            var cCenterC = m as CompoundCenterCDistanceMeasurement; //260521 hbk Phase 32
+            if (cCenterC != null) { pRow = cCenterC.Rect_Row; pCol = cCenterC.Rect_Col; pLen1 = cCenterC.Rect_Length1; pLen2 = cCenterC.Rect_Length2; }
+            var cCenterB = m as CompoundCenterBDistanceMeasurement; //260521 hbk Phase 32
+            if (cCenterB != null) { pRow = cCenterB.Rect_Row; pCol = cCenterB.Rect_Col; pLen1 = cCenterB.Rect_Length1; pLen2 = cCenterB.Rect_Length2; }
+            var cShort = m as CompoundShortAxisDistanceMeasurement; //260521 hbk Phase 32 E3
+            if (cShort != null) { pRow = cShort.Rect_Row; pCol = cShort.Rect_Col; pLen1 = cShort.Rect_Length1; pLen2 = cShort.Rect_Length2; }
+            var ali = m as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32
+            if (ali != null) { pRow = ali.EdgeA_Row; pCol = ali.EdgeA_Col; pLen1 = ali.EdgeA_Length1; pLen2 = ali.EdgeA_Length2; }
             if (pLen1 <= 0 || pLen2 <= 0) return null;
             string measName = m.MeasurementName;
             if (string.IsNullOrEmpty(measName)) measName = m.TypeName;
@@ -1242,10 +1253,15 @@ namespace ReringProject.UI {
                 MeasurementBase measTarget = FindSelectedRectMeasurement();
                 if (measTarget != null) {
                     _editingMeasurement = measTarget;
+                    _editingMeasurementRoiIndex = 0; //260521 hbk Phase 32 — 인덱스 초기화 (이전 미완료 티칭 잔존 인덱스 오염 방지, T-32-10)
                     var selRowForMeas = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
                     if (selRowForMeas != null) _editingMeasurementFaiName = selRowForMeas.FAIName;
                     else _editingMeasurementFaiName = FindFaiNameContainingMeasurement(_editingMeasurement);
-                    label_drawHint.Content = "드래그하여 Measurement Point ROI를 설정하세요";
+                    //260521 hbk Phase 32 — ArcLineIntersect 순차 2-ROI UX: 첫 드로잉은 EdgeA(수직 에지)
+                    if (measTarget is ArcLineIntersectDistanceMeasurement) //260521 hbk Phase 32
+                        label_drawHint.Content = "EdgeA(수직 에지) ROI 를 드래그하세요"; //260521 hbk Phase 32
+                    else //260521 hbk Phase 32
+                        label_drawHint.Content = "드래그하여 Measurement Point ROI를 설정하세요";
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted;
                     halconViewer.StartRectangleDrawing();
@@ -1307,6 +1323,32 @@ namespace ReringProject.UI {
                     if (etla != null) { etla.Point_Row = mCenterRow; etla.Point_Col = mCenterCol; etla.Point_Phi = 0.0; etla.Point_Length1 = mHalfHeight; etla.Point_Length2 = mHalfWidth; }
                     var aed = _editingMeasurement as ArcEdgeDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
                     if (aed != null) { aed.Point_Row = mCenterRow; aed.Point_Col = mCenterCol; aed.Point_Phi = 0.0; aed.Point_Length1 = mHalfHeight; aed.Point_Length2 = mHalfWidth; }
+                    //260521 hbk Phase 32 — Compound 4종 단일 Rect ROI write-back (Rect_* 필드명)
+                    var cAngle = _editingMeasurement as CompoundAngleMeasurement; //260521 hbk Phase 32
+                    if (cAngle != null) { cAngle.Rect_Row = mCenterRow; cAngle.Rect_Col = mCenterCol; cAngle.Rect_Phi = 0.0; cAngle.Rect_Length1 = mHalfHeight; cAngle.Rect_Length2 = mHalfWidth; }
+                    var cCenterC = _editingMeasurement as CompoundCenterCDistanceMeasurement; //260521 hbk Phase 32
+                    if (cCenterC != null) { cCenterC.Rect_Row = mCenterRow; cCenterC.Rect_Col = mCenterCol; cCenterC.Rect_Phi = 0.0; cCenterC.Rect_Length1 = mHalfHeight; cCenterC.Rect_Length2 = mHalfWidth; }
+                    var cCenterB = _editingMeasurement as CompoundCenterBDistanceMeasurement; //260521 hbk Phase 32
+                    if (cCenterB != null) { cCenterB.Rect_Row = mCenterRow; cCenterB.Rect_Col = mCenterCol; cCenterB.Rect_Phi = 0.0; cCenterB.Rect_Length1 = mHalfHeight; cCenterB.Rect_Length2 = mHalfWidth; }
+                    var cShort = _editingMeasurement as CompoundShortAxisDistanceMeasurement; //260521 hbk Phase 32 E3
+                    if (cShort != null) { cShort.Rect_Row = mCenterRow; cShort.Rect_Col = mCenterCol; cShort.Rect_Phi = 0.0; cShort.Rect_Length1 = mHalfHeight; cShort.Rect_Length2 = mHalfWidth; }
+                    //260521 hbk Phase 32 — ArcLineIntersect 순차 2-ROI 드로잉: 인덱스 0=EdgeA, 1=EdgeB
+                    var ali = _editingMeasurement as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32
+                    if (ali != null) {
+                        if (_editingMeasurementRoiIndex == 0) {
+                            ali.EdgeA_Row = mCenterRow; ali.EdgeA_Col = mCenterCol; ali.EdgeA_Phi = 0.0;
+                            ali.EdgeA_Length1 = mHalfHeight; ali.EdgeA_Length2 = mHalfWidth; //260521 hbk Phase 32
+                            _editingMeasurementRoiIndex = 1; //260521 hbk Phase 32 — 두 번째 ROI 로 진행
+                            label_drawHint.Content = "EdgeB(수평 에지) ROI 를 드래그하세요"; //260521 hbk Phase 32
+                            halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32
+                            return; //260521 hbk Phase 32 — ExitCanvasMode 미호출 (두 번째 드로잉 대기)
+                        }
+                        else {
+                            ali.EdgeB_Row = mCenterRow; ali.EdgeB_Col = mCenterCol; ali.EdgeB_Phi = 0.0;
+                            ali.EdgeB_Length1 = mHalfHeight; ali.EdgeB_Length2 = mHalfWidth; //260521 hbk Phase 32
+                        }
+                    }
                     string measSelId = _editingMeasurementFaiName;
                     if (string.IsNullOrEmpty(measSelId))
                         measSelId = FindFaiNameContainingMeasurement(_editingMeasurement);
@@ -1448,6 +1490,7 @@ namespace ReringProject.UI {
                 if (selParam is CompoundAngleMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
                 if (selParam is CompoundCenterCDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
                 if (selParam is CompoundCenterBDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundShortAxisDistanceMeasurement) return (MeasurementBase)selParam; //260521 hbk Phase 32 E3
             }
             // fallback — dataGrid 행 선택 경로
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
@@ -1462,6 +1505,7 @@ namespace ReringProject.UI {
                         if (m is CompoundAngleMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                         if (m is CompoundCenterCDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                         if (m is CompoundCenterBDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundShortAxisDistanceMeasurement) return m; //260521 hbk Phase 32 E3
                     }
                 }
             }

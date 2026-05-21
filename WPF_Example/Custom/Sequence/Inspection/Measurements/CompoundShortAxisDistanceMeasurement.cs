@@ -70,6 +70,30 @@ namespace ReringProject.Sequence
             double shortAxisWidthPx = 2.0 * shortHalf; //260521 hbk Phase 32 E3 — 사각형 짧은 변 폭 (px)
 
             resultValue = shortAxisWidthPx * pixelResolution; //260521 hbk Phase 32 E3 — mm 변환 (SOP La↔Lb 간격 등가)
+
+            // overlay — 단축 폭 세그먼트. TryFindLargestContourRect 결과 변수 재사용. HALCON 재호출 없음. //260521 hbk Phase 32 E3-overlay
+            // 단축 방향 법선각도: phi 는 장축 방향(rad), 단축은 phi + π/2
+            double phiPerp = phi + System.Math.PI / 2.0; //260521 hbk Phase 32 E3-overlay — 단축 방향 각도
+            double sinPerp = System.Math.Sin(phiPerp); //260521 hbk Phase 32 E3-overlay
+            double cosPerp = System.Math.Cos(phiPerp); //260521 hbk Phase 32 E3-overlay
+            // 단축 세그먼트 양 끝점 = 중심 ± shortHalf × 단축방향
+            double sEnd1Row = centerRow - shortHalf * sinPerp; //260521 hbk Phase 32 E3-overlay
+            double sEnd1Col = centerCol - shortHalf * cosPerp; //260521 hbk Phase 32 E3-overlay
+            double sEnd2Row = centerRow + shortHalf * sinPerp; //260521 hbk Phase 32 E3-overlay
+            double sEnd2Col = centerCol + shortHalf * cosPerp; //260521 hbk Phase 32 E3-overlay
+            // FAI-ShortAxis = 단축 폭 세그먼트 (양 끝 X마커 포함)
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 E3-overlay
+            {
+                RoiId = "FAI-ShortAxis", //260521 hbk Phase 32 E3-overlay — 기본 HalconDisplayService 분기 (라인 + 점 마커)
+                LineRow1 = sEnd1Row, LineColumn1 = sEnd1Col, //260521 hbk Phase 32 E3-overlay — 단축 끝점 1
+                LineRow2 = sEnd2Row, LineColumn2 = sEnd2Col, //260521 hbk Phase 32 E3-overlay — 단축 끝점 2
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 E3-overlay — 양 끝점 X마커
+                {
+                    new EdgeInspectionPoint { Row = sEnd1Row, Column = sEnd1Col }, //260521 hbk Phase 32 E3-overlay
+                    new EdgeInspectionPoint { Row = sEnd2Row, Column = sEnd2Col } //260521 hbk Phase 32 E3-overlay
+                }
+            }); //260521 hbk Phase 32 E3-overlay
+
             return true;
         }
     }

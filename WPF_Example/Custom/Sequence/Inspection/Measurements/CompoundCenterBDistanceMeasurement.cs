@@ -116,11 +116,42 @@ namespace ReringProject.Sequence
             }
 
             // (2) LargestRect 중심 → Datum 거리. X측정=2차(수직)선, Y측정=1차(수평)선
-            double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260521 hbk Phase 32
+            double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260521 hbk Phase 32 E10-overlay — 유지
+            double footRow, footCol; //260521 hbk Phase 32 E10-overlay — FAI-DistLine 수선의 발 좌표
+            bool footOk; //260521 hbk Phase 32 E10-overlay
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
                 centerRow, centerCol,
                 DatumOriginRow, DatumOriginCol, measureLineAngle,
-                pixelResolution, MeasureAxis); //260521 hbk Phase 32
+                pixelResolution, MeasureAxis,
+                out footRow, out footCol, out footOk); //260521 hbk Phase 32 E10-overlay — foot 반환 오버로드로 교체 (수치 결과 동일)
+
+            // overlay — 이미 계산한 변수만 재사용. HALCON 재호출 없음. //260521 hbk Phase 32 E10-overlay
+            // 1) FAI-Edge1 = LargestRect 중심 점 마커
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 E10-overlay
+            {
+                RoiId = "FAI-Edge1", //260521 hbk Phase 32 E10-overlay — HalconDisplayService 녹/적 분기 + Action_FAIMeasurement suffix
+                LineRow1 = centerRow, LineColumn1 = centerCol, //260521 hbk Phase 32 E10-overlay
+                LineRow2 = centerRow, LineColumn2 = centerCol, //260521 hbk Phase 32 E10-overlay — 점 마커
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 E10-overlay
+                {
+                    new EdgeInspectionPoint { Row = centerRow, Column = centerCol } //260521 hbk Phase 32 E10-overlay
+                }
+            }); //260521 hbk Phase 32 E10-overlay
+            // 2) FAI-DistLine = LargestRect 중심 → datum 기준선 수선의 발 (수직 드롭선, cyan)
+            if (footOk) //260521 hbk Phase 32 E10-overlay — projection 실패 시 수치 0 이지만 라인은 skip
+            {
+                overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 E10-overlay
+                {
+                    RoiId = "FAI-DistLine", //260521 hbk Phase 32 E10-overlay — HalconDisplayService cyan 분기
+                    LineRow1 = footRow, LineColumn1 = footCol, //260521 hbk Phase 32 E10-overlay — 수선의 발 (datum 기준선 위)
+                    LineRow2 = centerRow, LineColumn2 = centerCol, //260521 hbk Phase 32 E10-overlay — LargestRect 중심
+                    Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 E10-overlay — 양 끝점 X마커
+                    {
+                        new EdgeInspectionPoint { Row = footRow, Column = footCol }, //260521 hbk Phase 32 E10-overlay
+                        new EdgeInspectionPoint { Row = centerRow, Column = centerCol } //260521 hbk Phase 32 E10-overlay
+                    }
+                }); //260521 hbk Phase 32 E10-overlay
+            } //260521 hbk Phase 32 E10-overlay
 
             return true;
         }

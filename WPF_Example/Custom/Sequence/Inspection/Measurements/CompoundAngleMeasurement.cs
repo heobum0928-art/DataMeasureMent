@@ -128,6 +128,31 @@ namespace ReringProject.Sequence
                 centerRow, centerCol, DatumDetectedCircleRow, DatumDetectedCircleCol, //260521 hbk Phase 32 — 대각선
                 daR1, daC1, daR2, daC2); //260521 hbk Phase 32 — DatumB 기준선
 
+            // overlay — TryFindLargestContourRect/DatumDetectedCircle* 가 이미 계산한 변수 재사용. //260521 hbk Phase 32 E2-overlay
+            // 1) FAI-Edge1 = LargestRect 중심 마커 (점 마커: LineRow1==LineRow2)
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 E2-overlay
+            {
+                RoiId = "FAI-Edge1", //260521 hbk Phase 32 E2-overlay — HalconDisplayService 녹/적 분기 + Action_FAIMeasurement suffix
+                LineRow1 = centerRow, LineColumn1 = centerCol, //260521 hbk Phase 32 E2-overlay
+                LineRow2 = centerRow, LineColumn2 = centerCol, //260521 hbk Phase 32 E2-overlay — 점 마커
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 E2-overlay
+                {
+                    new EdgeInspectionPoint { Row = centerRow, Column = centerCol } //260521 hbk Phase 32 E2-overlay
+                }
+            }); //260521 hbk Phase 32 E2-overlay
+            // 2) FAI-DiagLine = 대각선 (LargestRect 중심 ↔ DatumC 검출 원중심). AngleLineLine 의 첫 번째 라인과 동일.
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 E2-overlay
+            {
+                RoiId = "FAI-DiagLine", //260521 hbk Phase 32 E2-overlay
+                LineRow1 = centerRow, LineColumn1 = centerCol, //260521 hbk Phase 32 E2-overlay — LargestRect 중심
+                LineRow2 = DatumDetectedCircleRow, LineColumn2 = DatumDetectedCircleCol, //260521 hbk Phase 32 E2-overlay — DatumC 검출 원중심
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 E2-overlay — 양 끝점 X마커
+                {
+                    new EdgeInspectionPoint { Row = centerRow, Column = centerCol }, //260521 hbk Phase 32 E2-overlay
+                    new EdgeInspectionPoint { Row = DatumDetectedCircleRow, Column = DatumDetectedCircleCol } //260521 hbk Phase 32 E2-overlay
+                }
+            }); //260521 hbk Phase 32 E2-overlay
+
             return true;
         }
     }

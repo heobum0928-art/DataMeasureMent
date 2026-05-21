@@ -150,6 +150,41 @@ namespace ReringProject.Sequence
                 DatumOriginRow, DatumOriginCol, measureLineAngle,
                 pixelResolution, MeasureAxis); //260521 hbk Phase 32
 
+            // overlay — 알고리즘이 이미 계산한 변수만 재사용. HALCON 재호출 없음. //260521 hbk Phase 32 I9/I10-overlay
+            // 1) FAI-Edge1 = EdgeA 피팅 라인 (HalconDisplayService 녹/적 분기 + Action_FAIMeasurement -OK/-NG suffix)
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 I9/I10-overlay
+            {
+                RoiId = "FAI-Edge1", //260521 hbk Phase 32 I9/I10-overlay
+                LineRow1 = a1r1, LineColumn1 = a1c1, //260521 hbk Phase 32 I9/I10-overlay
+                LineRow2 = a1r2, LineColumn2 = a1c2, //260521 hbk Phase 32 I9/I10-overlay
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 I9/I10-overlay
+                {
+                    new EdgeInspectionPoint { Row = (a1r1 + a1r2) / 2.0, Column = (a1c1 + a1c2) / 2.0 } //260521 hbk Phase 32 I9/I10-overlay — EdgeA 중점
+                }
+            }); //260521 hbk Phase 32 I9/I10-overlay
+            // 2) FAI-Edge2 = EdgeB 피팅 라인 (FAI-Edge 로 시작하므로 동일 색상 분기 적용)
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 I9/I10-overlay
+            {
+                RoiId = "FAI-Edge2", //260521 hbk Phase 32 I9/I10-overlay
+                LineRow1 = b1r1, LineColumn1 = b1c1, //260521 hbk Phase 32 I9/I10-overlay
+                LineRow2 = b1r2, LineColumn2 = b1c2, //260521 hbk Phase 32 I9/I10-overlay
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 I9/I10-overlay
+                {
+                    new EdgeInspectionPoint { Row = (b1r1 + b1r2) / 2.0, Column = (b1c1 + b1c2) / 2.0 } //260521 hbk Phase 32 I9/I10-overlay — EdgeB 중점
+                }
+            }); //260521 hbk Phase 32 I9/I10-overlay
+            // 3) FAI-Intersection = 교점 마커 (점 마커: LineRow1==LineRow2, LineColumn1==LineColumn2)
+            overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 I9/I10-overlay
+            {
+                RoiId = "FAI-Intersection", //260521 hbk Phase 32 I9/I10-overlay
+                LineRow1 = intRow, LineColumn1 = intCol, //260521 hbk Phase 32 I9/I10-overlay
+                LineRow2 = intRow, LineColumn2 = intCol, //260521 hbk Phase 32 I9/I10-overlay — 점 마커 (길이 0 라인)
+                Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 I9/I10-overlay
+                {
+                    new EdgeInspectionPoint { Row = intRow, Column = intCol } //260521 hbk Phase 32 I9/I10-overlay — 교점 X마커
+                }
+            }); //260521 hbk Phase 32 I9/I10-overlay
+
             return true;
         }
     }

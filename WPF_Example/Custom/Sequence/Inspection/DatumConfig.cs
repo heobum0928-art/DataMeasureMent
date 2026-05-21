@@ -470,6 +470,16 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
         public double DetectedRefAngle2 { get; set; } //260519 hbk Phase 31 hotfix#3
 
+        //260521 hbk Phase 32 — CircleTwoHorizontal 검출 원(B1 홀) 중심. E2 CompoundAngle 주입용 (DatumOriginConsumer 채널).
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DetectedCircleRow { get; set; } //260521 hbk Phase 32
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DetectedCircleCol { get; set; } //260521 hbk Phase 32
+
         //260505 hbk Phase 18 CO-05 — Circle polar strip 별 검출 성공 여부 (TryTeachCircleTwoHorizontal write-back).
         //  INI/JSON 직렬화 제외 (transient). RenderCircleStripOverlay 소비. bool[] 크기 = stepCount.
         [System.ComponentModel.Browsable(false)] //260505 hbk Phase 18 CO-05

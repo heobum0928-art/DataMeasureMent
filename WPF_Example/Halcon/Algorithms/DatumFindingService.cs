@@ -318,6 +318,8 @@ namespace ReringProject.Halcon.Algorithms
                 //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = 원중심 통과 수직 가상선 (Step 5: centerRow±1, centerCol).
                 //  방향벡터 (Δrow=+2, Δcol=0) → Atan2(2,0) = π/2 (순수 이미지-수직). X축 측정 기준.
                 config.DetectedRefAngle2 = Math.PI / 2.0; //260519 hbk Phase 31 hotfix#3
+                config.DetectedCircleRow = centerRow; //260521 hbk Phase 32 — E2 CompoundAngle 주입용 원중심
+                config.DetectedCircleCol = centerCol; //260521 hbk Phase 32
                 config.DetectedEdgeCount = circleEdgeRows.TupleLength() + totalEdges;
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;

@@ -221,7 +221,7 @@ Plans:
 - [x] 32-01-PLAN.md — VisionAlgorithmService 공통 컨투어 알고리즘 + intersection_lines/contours 래퍼 신설
 - [x] 32-02-PLAN.md — IDatumOriginConsumer 검출 원중심 주입 채널 확장 (8 구현 클래스 영향)
 - [x] 32-03-PLAN.md — ArcLineIntersect(I9/I10) 2직선 교점 재작성
-- [ ] 32-04-PLAN.md — E2/E9/E10 공통 컨투어 알고리즘 기반 재작성
+- [x] 32-04-PLAN.md — E2/E9/E10 공통 컨투어 알고리즘 기반 재작성
 - [ ] 32-05-PLAN.md — E3 CompoundShortAxisDistance 신규 타입 + Factory 등록
 - [ ] 32-06-PLAN.md — MainView ROI 티칭 배선 + SIMUL UAT
 
@@ -258,7 +258,7 @@ Plans:
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | 28. FAI CircleDiameter + Datum Circle | 4/4 | ✅ Complete | 2026-05-08 |
 | 31. Datum 기준 측정 알고리즘 확장 | 0/TBD | 🔄 UAT 진행 | - |
-| 32. 측정 알고리즘 SOP 재정합 | 3/6 | ⏳ Executing | - |
+| 32. 측정 알고리즘 SOP 재정합 | 4/6 | ⏳ Executing | - |
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |

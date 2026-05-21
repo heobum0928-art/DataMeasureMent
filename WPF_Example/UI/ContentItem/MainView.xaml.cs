@@ -53,7 +53,7 @@ namespace ReringProject.UI {
         private MeasurementBase _editingMeasurement;
         //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 FAI 이름 (UpdateDisplayState selId 용)
         private string _editingMeasurementFaiName;
-        private int _editingMeasurementRoiIndex; //260521 hbk Phase 32 — ArcLineIntersect 2-ROI 순차 드로잉 인덱스 (0=EdgeA, 1=EdgeB)
+        private int _editingMeasurementRoiIndex; //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 4-ROI 순차 드로잉 인덱스 (0=EdgeA1, 1=EdgeB1, 2=EdgeA2, 3=EdgeB2)
         //260424 hbk Phase 12 D-03 — Datum 티칭 단계 (알고리즘별 switch 로 전이 결정)
         //  Phase 13 에서 DatumAlgorithmBase.GetROISteps() 가변 배열로 재설계 예정 — switch 는 MainView 내 private 유지.
         private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
@@ -237,32 +237,46 @@ namespace ReringProject.UI {
             string measName = m.MeasurementName; //260521 hbk Phase 32 UAT
             if (string.IsNullOrEmpty(measName)) measName = m.TypeName; //260521 hbk Phase 32 UAT
 
-            //260521 hbk Phase 32 UAT — ArcLineIntersect: EdgeA + EdgeB 각각 독립 RoiDefinition. 미티칭 ROI 는 개별 skip.
-            var ali = m as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 UAT
+            //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect: EdgeA1/EdgeB1/EdgeA2/EdgeB2 4개 독립 RoiDefinition. 미티칭 ROI 는 개별 skip.
+            var ali = m as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 I9/I10-redesign
             if (ali != null) {
-                if (ali.EdgeA_Length1 > 0 && ali.EdgeA_Length2 > 0) { //260521 hbk Phase 32 UAT
-                    result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
-                        Id = faiName + "_" + measName + "_EdgeA", //260521 hbk Phase 32 UAT — EdgeB 와 Id 충돌 방지
-                        Name = measName + "_EdgeA", //260521 hbk Phase 32 UAT
-                        Row1 = ali.EdgeA_Row - ali.EdgeA_Length1, //260521 hbk Phase 32 UAT
-                        Column1 = ali.EdgeA_Col - ali.EdgeA_Length2, //260521 hbk Phase 32 UAT
-                        Row2 = ali.EdgeA_Row + ali.EdgeA_Length1, //260521 hbk Phase 32 UAT
-                        Column2 = ali.EdgeA_Col + ali.EdgeA_Length2, //260521 hbk Phase 32 UAT
-                        IsTaught = true //260521 hbk Phase 32 UAT
-                    }); //260521 hbk Phase 32 UAT
-                } //260521 hbk Phase 32 UAT
-                if (ali.EdgeB_Length1 > 0 && ali.EdgeB_Length2 > 0) { //260521 hbk Phase 32 UAT
-                    result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
-                        Id = faiName + "_" + measName + "_EdgeB", //260521 hbk Phase 32 UAT — EdgeA 와 Id 충돌 방지
-                        Name = measName + "_EdgeB", //260521 hbk Phase 32 UAT
-                        Row1 = ali.EdgeB_Row - ali.EdgeB_Length1, //260521 hbk Phase 32 UAT
-                        Column1 = ali.EdgeB_Col - ali.EdgeB_Length2, //260521 hbk Phase 32 UAT
-                        Row2 = ali.EdgeB_Row + ali.EdgeB_Length1, //260521 hbk Phase 32 UAT
-                        Column2 = ali.EdgeB_Col + ali.EdgeB_Length2, //260521 hbk Phase 32 UAT
-                        IsTaught = true //260521 hbk Phase 32 UAT
-                    }); //260521 hbk Phase 32 UAT
-                } //260521 hbk Phase 32 UAT
-                return result; //260521 hbk Phase 32 UAT — 나머지 타입 분기 통과 불필요
+                if (ali.EdgeA1_Length1 > 0 && ali.EdgeA1_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeA1", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeA1", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeA1_Row - ali.EdgeA1_Length1, Column1 = ali.EdgeA1_Col - ali.EdgeA1_Length2,
+                        Row2 = ali.EdgeA1_Row + ali.EdgeA1_Length1, Column2 = ali.EdgeA1_Col + ali.EdgeA1_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                if (ali.EdgeB1_Length1 > 0 && ali.EdgeB1_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeB1", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeB1", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeB1_Row - ali.EdgeB1_Length1, Column1 = ali.EdgeB1_Col - ali.EdgeB1_Length2,
+                        Row2 = ali.EdgeB1_Row + ali.EdgeB1_Length1, Column2 = ali.EdgeB1_Col + ali.EdgeB1_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                if (ali.EdgeA2_Length1 > 0 && ali.EdgeA2_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeA2", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeA2", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeA2_Row - ali.EdgeA2_Length1, Column1 = ali.EdgeA2_Col - ali.EdgeA2_Length2,
+                        Row2 = ali.EdgeA2_Row + ali.EdgeA2_Length1, Column2 = ali.EdgeA2_Col + ali.EdgeA2_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                if (ali.EdgeB2_Length1 > 0 && ali.EdgeB2_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeB2", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeB2", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeB2_Row - ali.EdgeB2_Length1, Column1 = ali.EdgeB2_Col - ali.EdgeB2_Length2,
+                        Row2 = ali.EdgeB2_Row + ali.EdgeB2_Length1, Column2 = ali.EdgeB2_Col + ali.EdgeB2_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                return result; //260521 hbk Phase 32 I9/I10-redesign — 나머지 타입 분기 통과 불필요
             }
 
             double pRow = 0, pCol = 0, pLen1 = 0, pLen2 = 0;
@@ -1307,9 +1321,9 @@ namespace ReringProject.UI {
                     var selRowForMeas = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
                     if (selRowForMeas != null) _editingMeasurementFaiName = selRowForMeas.FAIName;
                     else _editingMeasurementFaiName = FindFaiNameContainingMeasurement(_editingMeasurement);
-                    //260521 hbk Phase 32 — ArcLineIntersect 순차 2-ROI UX: 첫 드로잉은 EdgeA(수직 에지)
-                    if (measTarget is ArcLineIntersectDistanceMeasurement) //260521 hbk Phase 32
-                        label_drawHint.Content = "EdgeA(수직 에지) ROI 를 드래그하세요"; //260521 hbk Phase 32
+                    //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 순차 4-ROI UX: 첫 드로잉은 교점1 EdgeA1(수직 에지)
+                    if (measTarget is ArcLineIntersectDistanceMeasurement) //260521 hbk Phase 32 I9/I10-redesign
+                        label_drawHint.Content = "교점1 수직 에지(EdgeA1) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
                     else //260521 hbk Phase 32
                         label_drawHint.Content = "드래그하여 Measurement Point ROI를 설정하세요";
                     label_drawHint.Visibility = Visibility.Visible;
@@ -1382,22 +1396,40 @@ namespace ReringProject.UI {
                     if (cCenterB != null) { cCenterB.Rect_Row = mCenterRow; cCenterB.Rect_Col = mCenterCol; cCenterB.Rect_Phi = 0.0; cCenterB.Rect_Length1 = mHalfHeight; cCenterB.Rect_Length2 = mHalfWidth; }
                     var cShort = _editingMeasurement as CompoundShortAxisDistanceMeasurement; //260521 hbk Phase 32 E3
                     if (cShort != null) { cShort.Rect_Row = mCenterRow; cShort.Rect_Col = mCenterCol; cShort.Rect_Phi = 0.0; cShort.Rect_Length1 = mHalfHeight; cShort.Rect_Length2 = mHalfWidth; }
-                    //260521 hbk Phase 32 — ArcLineIntersect 순차 2-ROI 드로잉: 인덱스 0=EdgeA, 1=EdgeB
-                    var ali = _editingMeasurement as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32
+                    //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 순차 4-ROI 드로잉: 인덱스 0=EdgeA1, 1=EdgeB1, 2=EdgeA2, 3=EdgeB2
+                    var ali = _editingMeasurement as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 I9/I10-redesign
                     if (ali != null) {
                         if (_editingMeasurementRoiIndex == 0) {
-                            ali.EdgeA_Row = mCenterRow; ali.EdgeA_Col = mCenterCol; ali.EdgeA_Phi = 0.0;
-                            ali.EdgeA_Length1 = mHalfHeight; ali.EdgeA_Length2 = mHalfWidth; //260521 hbk Phase 32
-                            _editingMeasurementRoiIndex = 1; //260521 hbk Phase 32 — 두 번째 ROI 로 진행
-                            label_drawHint.Content = "EdgeB(수평 에지) ROI 를 드래그하세요"; //260521 hbk Phase 32
+                            ali.EdgeA1_Row = mCenterRow; ali.EdgeA1_Col = mCenterCol; ali.EdgeA1_Phi = 0.0;
+                            ali.EdgeA1_Length1 = mHalfHeight; ali.EdgeA1_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                            _editingMeasurementRoiIndex = 1; //260521 hbk Phase 32 I9/I10-redesign
+                            label_drawHint.Content = "교점1 수평 에지(EdgeB1) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
                             halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
-                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32
-                            return; //260521 hbk Phase 32 — ExitCanvasMode 미호출 (두 번째 드로잉 대기)
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32 I9/I10-redesign
+                            return; //260521 hbk Phase 32 I9/I10-redesign — ExitCanvasMode 미호출
                         }
-                        else {
-                            ali.EdgeB_Row = mCenterRow; ali.EdgeB_Col = mCenterCol; ali.EdgeB_Phi = 0.0;
-                            ali.EdgeB_Length1 = mHalfHeight; ali.EdgeB_Length2 = mHalfWidth; //260521 hbk Phase 32
+                        else if (_editingMeasurementRoiIndex == 1) {
+                            ali.EdgeB1_Row = mCenterRow; ali.EdgeB1_Col = mCenterCol; ali.EdgeB1_Phi = 0.0;
+                            ali.EdgeB1_Length1 = mHalfHeight; ali.EdgeB1_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                            _editingMeasurementRoiIndex = 2; //260521 hbk Phase 32 I9/I10-redesign
+                            label_drawHint.Content = "교점2 수직 에지(EdgeA2) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
+                            halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32 I9/I10-redesign
+                            return; //260521 hbk Phase 32 I9/I10-redesign — ExitCanvasMode 미호출
                         }
+                        else if (_editingMeasurementRoiIndex == 2) {
+                            ali.EdgeA2_Row = mCenterRow; ali.EdgeA2_Col = mCenterCol; ali.EdgeA2_Phi = 0.0;
+                            ali.EdgeA2_Length1 = mHalfHeight; ali.EdgeA2_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                            _editingMeasurementRoiIndex = 3; //260521 hbk Phase 32 I9/I10-redesign
+                            label_drawHint.Content = "교점2 수평 에지(EdgeB2) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
+                            halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32 I9/I10-redesign
+                            return; //260521 hbk Phase 32 I9/I10-redesign — ExitCanvasMode 미호출
+                        }
+                        else { // index == 3: 마지막 ROI EdgeB2 — 정상 종결
+                            ali.EdgeB2_Row = mCenterRow; ali.EdgeB2_Col = mCenterCol; ali.EdgeB2_Phi = 0.0;
+                            ali.EdgeB2_Length1 = mHalfHeight; ali.EdgeB2_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                        } //260521 hbk Phase 32 I9/I10-redesign — index 3: EdgeB2 기록 후 아래 ExitCanvasMode 로 종결
                     }
                     string measSelId = _editingMeasurementFaiName;
                     if (string.IsNullOrEmpty(measSelId))

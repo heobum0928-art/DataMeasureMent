@@ -918,6 +918,78 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
+        /// 두 직선의 교점을 구한다 (ArcLineIntersect 호출용). 평행/근접/중첩 시 false (측정값 '—').
+        /// 기존 static IntersectLines 의 isOverlapping.I==1 / IsInfinity / IsNaN 가드를 그대로 유지하고
+        /// 호출 이름만 명확히 한 래퍼 메서드 (CONTEXT.md 미해결#3).
+        /// </summary>
+        //260521 hbk Phase 32 — 두 직선 교점 (ArcLineIntersect 호출용). 평행/근접/중첩 시 false (측정값 '—').
+        public static bool TryIntersectLines( //260521 hbk Phase 32
+            double row1a, double col1a, double row1b, double col1b, //260521 hbk Phase 32
+            double row2a, double col2a, double row2b, double col2b, //260521 hbk Phase 32
+            out double intRow, out double intCol) //260521 hbk Phase 32
+        {
+            // 기존 IntersectLines 로 위임 — isOverlapping.I==1 / IsInfinity / IsNaN 가드 이미 존재 (본문 무수정)
+            return IntersectLines(row1a, col1a, row1b, col1b, //260521 hbk Phase 32
+                                  row2a, col2a, row2b, col2b, //260521 hbk Phase 32
+                                  out intRow, out intCol); //260521 hbk Phase 32
+        }
+
+        /// <summary>
+        /// 단축 방향 선분과 사각형 XLD 컨투어의 교점 2개를 산출한다 (E3 단축 거리 측정용).
+        /// 교점 0개 또는 1개이면 false (CONTEXT.md 미해결#3 안전 종결).
+        /// rectContour 는 호출측(E3 측정 클래스)이 소유/Dispose — 본 메서드는 Dispose 하지 않는다.
+        /// </summary>
+        //260521 hbk Phase 32 — 단축선 ↔ 사각형 XLD 교점 2점 (E3 단축 거리). 0교점/1교점 시 false (안전 종결).
+        public bool TryIntersectContours( //260521 hbk Phase 32
+            HObject rectContour, //260521 hbk Phase 32
+            double lineRow1, double lineCol1, double lineRow2, double lineCol2, //260521 hbk Phase 32
+            out double iRow1, out double iCol1, out double iRow2, out double iCol2, //260521 hbk Phase 32
+            out string error) //260521 hbk Phase 32
+        {
+            iRow1 = iCol1 = iRow2 = iCol2 = 0; //260521 hbk Phase 32
+            error = null; //260521 hbk Phase 32
+
+            HObject lineContour = null; //260521 hbk Phase 32
+            HObject intersectionPoints = null; //260521 hbk Phase 32
+            try //260521 hbk Phase 32
+            {
+                // 단축 방향 선분을 XLD 컨투어로 변환 (TryFitArc L750 의 GenContourPolygonXld 패턴)
+                HOperatorSet.GenContourPolygonXld( //260521 hbk Phase 32
+                    out lineContour, //260521 hbk Phase 32
+                    new HTuple(lineRow1, lineRow2), //260521 hbk Phase 32
+                    new HTuple(lineCol1, lineCol2)); //260521 hbk Phase 32
+
+                // 두 컨투어의 교점 산출 (HALCON intersection_contours_xld — out isOverlapping 포함 3-out 시그니처)
+                HTuple iR, iC, isOverlap; //260521 hbk Phase 32
+                HOperatorSet.IntersectionContoursXld(rectContour, lineContour, "mutual", out iR, out iC, out isOverlap); //260521 hbk Phase 32
+
+                // 교점 2개 미만 시 안전 종결 (CONTEXT.md 미해결#3)
+                if (iR.Length < 2) //260521 hbk Phase 32
+                {
+                    error = "short-axis line intersects rectangle at " + iR.Length + " point(s)"; //260521 hbk Phase 32
+                    return false; //260521 hbk Phase 32
+                }
+
+                iRow1 = iR[0].D; //260521 hbk Phase 32
+                iCol1 = iC[0].D; //260521 hbk Phase 32
+                iRow2 = iR[1].D; //260521 hbk Phase 32
+                iCol2 = iC[1].D; //260521 hbk Phase 32
+                return true; //260521 hbk Phase 32
+            }
+            catch (Exception ex) //260521 hbk Phase 32 — T-32-01 mitigation: HALCON 예외가 검사 스레드를 크래시시키지 않음
+            {
+                error = ex.Message; //260521 hbk Phase 32
+                return false; //260521 hbk Phase 32
+            }
+            finally //260521 hbk Phase 32 — T-32-02 mitigation: 네이티브 메모리 누수 방지
+            {
+                if (lineContour != null) { try { lineContour.Dispose(); } catch { } } //260521 hbk Phase 32
+                if (intersectionPoints != null) { try { intersectionPoints.Dispose(); } catch { } } //260521 hbk Phase 32
+                // 주의: rectContour 는 호출측이 소유/Dispose — 본 메서드에서 Dispose 하지 않음 //260521 hbk Phase 32
+            }
+        }
+
+        /// <summary>
         /// 점(row,col)에 hom_mat2d 변환을 적용한다.
         /// </summary>
         public static void AffineTransformPoint( //260413 hbk

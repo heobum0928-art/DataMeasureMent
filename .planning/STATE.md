@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Completed 32-02-PLAN.md
-last_updated: "2026-05-21T06:06:58.845Z"
+stopped_at: Completed 32-03-PLAN.md
+last_updated: "2026-05-21T06:11:33.397Z"
 last_activity: 2026-05-21
 progress:
   total_phases: 11
   completed_phases: 6
   total_plans: 43
-  completed_plans: 36
-  percent: 84
+  completed_plans: 37
+  percent: 86
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 32 (sop-i9-i10-e2-e9-e10-e3) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Next: 사용자 선택 — (a) 신규 알고리즘 Phase (E8/D1/I9/I10/E2/E9/E10 + ArcEdgeDistance, CO-23.1-01·02 흡수), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
 Last activity: 2026-05-21
@@ -99,6 +99,7 @@ Last activity: 2026-05-21
 | Phase 31-datum-algorithm P04 | 15 | 3 tasks | 2 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P01 | 10 | 2 tasks | 1 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P02 | 15 | 3 tasks | 12 files |
+| Phase 32-sop-i9-i10-e2-e9-e10-e3 P03 | 15 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -181,6 +182,7 @@ Recent decisions affecting current work:
 - CO-23.1-01: Option A(경로 레이블) 채택 — 하단 Border 2행 + UpdateImageSourceLabel(DatumConfig TeachingImagePath vs ShotConfig SimulImagePath 판별)
 - IntersectionContoursXld HALCON 시그니처 = 3-out (iRow, iCol, isOverlapping) — TryIntersectContours 구현 시 2-out 오해→CS7036→Rule 1 즉시 수정
 - 재작성 4종(ArcLineIntersect/CompoundAngle/CenterC/CenterB) IDatumOriginConsumer stub 추가 — CS0535 빌드 차단 Rule 3 auto-fix, Plan 03/04 재작성 시 교체
+- 3점 호 피팅(Arc_P1~P3) + 원-직선 교점 방식 완전 폐기. EdgeA(수직)/EdgeB(수평) 2 ROI 직선 피팅 + TryIntersectLines 교점 방식으로 전환 (Phase 32 Plan 03)
 
 ### Quick Tasks Completed
 
@@ -258,8 +260,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-21T06:06:58.834Z
-Stopped at: Completed 32-02-PLAN.md
+Last session: 2026-05-21T06:11:33.386Z
+Stopped at: Completed 32-03-PLAN.md
 Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 

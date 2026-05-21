@@ -427,6 +427,15 @@ namespace ReringProject.UI {
                 if (pathSinkParam != null) { //260518 hbk #3 — 경로저장 대상 분리
                     pathSinkParam.SetLatestImagePath(dialog.FileName);
                 }
+                //260521 hbk Phase 32 UAT — Shot 노드 Load 시 _image 버퍼 동기화
+                //  displayParam == pathSinkParam (동일 참조) 일 때만 Shot 캐시 갱신.
+                //  Datum 노드 Load 는 displayParam=ShotConfig, pathSinkParam=DatumConfig (참조 불일치) → 건너뜀.
+                if (displayParam is ShotConfig shot && ReferenceEquals(displayParam, pathSinkParam)) {
+                    HImage currentImg = halconViewer.CurrentImage; //260521 hbk Phase 32 UAT
+                    if (currentImg != null) {
+                        shot.SetImage(currentImg); //260521 hbk Phase 32 UAT — SetImage 내부 CopyImage 로 소유권 분리
+                    }
+                }
                 //260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 갱신 (Load 시 경로 확인)
                 UpdateImageSourceLabel(pathSinkParam as DatumConfig, param as ShotConfig);
 

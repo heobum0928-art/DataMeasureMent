@@ -117,7 +117,7 @@ namespace ReringProject.UI {
         }
 
         /// <summary>Displays the image stored in the given ShotConfig on the canvas.</summary>
-        private void DisplayShotImage(ShotConfig shot) {
+        public void DisplayShotImage(ShotConfig shot) { //260521 hbk Phase 32 UAT — private → public (Shot/Measurement 노드 선택 시 InspectionListView 에서 호출)
             if (shot != null && shot.HasImage) {
                 HImage img = null;
                 try {
@@ -137,6 +137,18 @@ namespace ReringProject.UI {
                 label_message.Visibility = Visibility.Visible;
             }
         }
+
+        //260521 hbk Phase 32 UAT — Measurement 노드 선택 시 소유 Shot 이미지 표시 진입점.
+        //  MeasurementBase → FAI(FindFaiNameContainingMeasurement) → ShotConfig(FAIConfig.Owner) → DisplayShotImage.
+        /// <summary>Resolves the owning ShotConfig for the given measurement and displays its image.</summary>
+        public void DisplayMeasurementImage(MeasurementBase measurement) { //260521 hbk Phase 32 UAT
+            if (measurement == null) return; //260521 hbk Phase 32 UAT
+            string faiName = FindFaiNameContainingMeasurement(measurement); //260521 hbk Phase 32 UAT
+            FAIConfig fai = FindFAIByName(faiName); //260521 hbk Phase 32 UAT
+            if (fai == null) return; //260521 hbk Phase 32 UAT
+            ShotConfig shot = fai.Owner as ShotConfig; //260521 hbk Phase 32 UAT
+            DisplayShotImage(shot); //260521 hbk Phase 32 UAT
+        } //260521 hbk Phase 32 UAT
 
         /// <summary>Binds DataGrid to the InspectionViewModel's MeasurementResults collection.</summary>
         //260417 hbk Phase 6 Plan 04: FAIResults → MeasurementResults 바인딩 (D-21)

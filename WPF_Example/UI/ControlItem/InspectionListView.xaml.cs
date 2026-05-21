@@ -486,6 +486,9 @@ namespace ReringProject.UI {
                             }
                         }
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                        //260521 hbk Phase 32 UAT — Measurement 노드 선택 시 소유 Shot 이미지 표시 (이미지 회귀 결함 수정)
+                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas)
+                            mParentWindow.mainView.DisplayMeasurementImage(meas); //260521 hbk Phase 32 UAT
                         //260518 hbk #6 — 선택 Measurement 노드의 ROI 캔버스 하이라이트 + 명칭 라벨
                         if (mParentWindow != null && mParentWindow.mainView != null)
                             mParentWindow.mainView.HighlightSelectedRoi(itemParam as ParamBase);
@@ -520,6 +523,9 @@ namespace ReringProject.UI {
                         if (_inspectionVm != null) {
                             _inspectionVm.OnActionSelected(item);
                         }
+                        //260521 hbk Phase 32 UAT — Shot 노드 선택 시 Shot 이미지 표시 (이미지 회귀 결함 수정)
+                        if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotSel)
+                            mParentWindow.mainView.DisplayShotImage(shotSel); //260521 hbk Phase 32 UAT
                         //260511 hbk CO-22-01 — Action(ShotConfig) 분기 force rebind 추가.
                         //  Phase 16 D-09 Datum force rebind 가 XAML SelectedObject 바인딩(L257)을 끊은 이후
                         //  Action 노드 클릭 시 PropertyGrid 가 stale (직전 Datum/FAI 유지). Phase 19 fix 와 동일 패턴 적용.

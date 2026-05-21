@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: verifying
-stopped_at: Completed 32-07-PLAN.md
-last_updated: "2026-05-21T07:42:56.266Z"
+stopped_at: Completed 32-08-PLAN.md
+last_updated: "2026-05-21T12:56:59.617Z"
 last_activity: 2026-05-21
 progress:
   total_phases: 11
   completed_phases: 6
-  total_plans: 44
-  completed_plans: 40
+  total_plans: 45
+  completed_plans: 41
   percent: 91
 ---
 
@@ -103,6 +103,7 @@ Last activity: 2026-05-21
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P04 | 25 | 2 tasks | 3 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P05 | 131 | 2 tasks | 3 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P07 | 20 | 5 tasks | 5 files |
+| Phase 32-sop-i9-i10-e2-e9-e10-e3 P08 | 25 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -193,6 +194,7 @@ Recent decisions affecting current work:
 - 2 * min(length1,length2) 직접 계산 채택 — intersection_contours_xld 불필요, 수학적 등가 (32-05)
 - overlay ADDITIVE 원칙: return true 직전 삽입, HALCON 재호출 없음, 이미 계산된 로컬 변수만 참조 (32-07)
 - CompoundCenterC/B foot 오버로드 교체: 단일 오버로드→foot 반환 오버로드, 수치 결과 byte-identical, footOk 가드로 FAI-DistLine skip (32-07)
+- 4-ROI ArcLineIntersect 설계 채택: 교점1(A1/B1)과 교점2(A2/B2) 평균점 → Datum C X 거리. SOP I9/I10 실무 알고리즘 일치 (Plan 32-08)
 
 ### Quick Tasks Completed
 
@@ -270,8 +272,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-21T07:42:56.256Z
-Stopped at: Completed 32-07-PLAN.md
+Last session: 2026-05-21T12:56:59.608Z
+Stopped at: Completed 32-08-PLAN.md
 Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 

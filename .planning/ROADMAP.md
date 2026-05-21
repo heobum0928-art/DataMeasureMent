@@ -216,14 +216,16 @@ Plans:
 **신규 인프라**: VisionAlgorithmService 컨투어 알고리즘 + intersection_lines 메서드, DatumC 검출 원중심 주입 채널, canny/union 파라미터 PropertyGrid 노출, MeasurementFactory E3 등록
 **이관**: Phase 31 UAT Test 3·4·5 → 본 phase
 **SOP**: `C:\Info\Doc\2.디팜스테크\02_설계\SOP\Datum_정보_260511_2D.pptx` (E2 p.49, E3 p.50)
-**Plans**: 6 plans
+**Plans**: 8 plans
 Plans:
 - [x] 32-01-PLAN.md — VisionAlgorithmService 공통 컨투어 알고리즘 + intersection_lines/contours 래퍼 신설
 - [x] 32-02-PLAN.md — IDatumOriginConsumer 검출 원중심 주입 채널 확장 (8 구현 클래스 영향)
 - [x] 32-03-PLAN.md — ArcLineIntersect(I9/I10) 2직선 교점 재작성
 - [x] 32-04-PLAN.md — E2/E9/E10 공통 컨투어 알고리즘 기반 재작성
 - [x] 32-05-PLAN.md — E3 CompoundShortAxisDistance 신규 타입 + Factory 등록
-- [ ] 32-06-PLAN.md — MainView ROI 티칭 배선 + SIMUL UAT
+- [x] 32-06-PLAN.md — MainView ROI 티칭 배선 + SIMUL UAT
+- [x] 32-07-PLAN.md — overlay 전체 정합 (foot 오버로드 교체 + ADDITIVE 원칙 적용)
+- [x] 32-08-PLAN.md — ArcLineIntersect 4-ROI 두 교점 평균 재설계 (I9/I10 UAT 확정)
 
 ---
 
@@ -258,7 +260,7 @@ Plans:
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | 28. FAI CircleDiameter + Datum Circle | 4/4 | ✅ Complete | 2026-05-08 |
 | 31. Datum 기준 측정 알고리즘 확장 | 0/TBD | 🔄 UAT 진행 | - |
-| 32. 측정 알고리즘 SOP 재정합 | 5/6 | ⏳ Executing | - |
+| 32. 측정 알고리즘 SOP 재정합 | 8/8 | ✅ Complete | 2026-05-21 |
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |

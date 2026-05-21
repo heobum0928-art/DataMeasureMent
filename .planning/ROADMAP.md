@@ -200,6 +200,28 @@ Plans:
 
 ---
 
+### Phase 32: 측정 알고리즘 SOP 재정합 (신설 2026-05-21)
+**Goal**: Phase 31 신규 측정 타입(I9/I10/E2/E9/E10)의 알고리즘을 SOP 실무 방식으로
+전면 재작성하고 E3(단축 거리) 신규 타입을 추가하여 실제 SOP 측정 절차와 일치시킨다.
+**Depends on**: Phase 31
+**Background**:
+  - Phase 31 UAT 중 I9/I10/E2/E9/E10 측정 알고리즘이 SOP 실무 방식과 불일치 확인
+  - ArcLineIntersect: 3점 호 피팅 폐기 → Rect 2개 직선 피팅 + HALCON intersection_lines 교점
+  - E2/E3/E9/E10: CL1~3 원 + La/Lb 라인 체인 폐기 → 공통 컨투어 알고리즘 (reduce_domain → edges_sub_pix canny → union_adjacent_contours_xld → smallest_rectangle2_xld → shape_trans_xld → 최대면적 사각형 LargestRect)
+**측정 타입 변경**:
+  - **I9 / I10 (ArcLineIntersect)**: Rect 2개 → 직선 2개 교점 → Datum 거리 (명칭 유지)
+  - **E2 (CompoundAngle)**: LargestRect 중심 ↔ DatumC 검출 원중심 대각선 ↔ DatumB 각도
+  - **E3 (신규)**: LargestRect 단축 거리 (공차 0.600±0.030)
+  - **E9 / E10 (CompoundCenterC/B)**: LargestRect 중심 → Datum C/B 거리
+**신규 인프라**: VisionAlgorithmService 컨투어 알고리즘 + intersection_lines 메서드, DatumC 검출 원중심 주입 채널, canny/union 파라미터 PropertyGrid 노출, MeasurementFactory E3 등록
+**이관**: Phase 31 UAT Test 3·4·5 → 본 phase
+**SOP**: `C:\Info\Doc\2.디팜스테크\02_설계\SOP\Datum_정보_260511_2D.pptx` (E2 p.49, E3 p.50)
+**Plans**: TBD
+Plans:
+- [ ] TBD (run /gsd-plan-phase 32 to break down)
+
+---
+
 ## v1.2 Hardware Integration (이연)
 
 ### Phase 29: CXP SDK 확정 (구 Phase 22)
@@ -230,13 +252,15 @@ Plans:
 | 26. 헝가리안 전체 리팩토링 | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | 28. FAI CircleDiameter + Datum Circle | 4/4 | ✅ Complete | 2026-05-08 |
-| 31. Datum 기준 측정 알고리즘 확장 | 0/TBD | ⏳ Planned | - |
+| 31. Datum 기준 측정 알고리즘 확장 | 0/TBD | 🔄 UAT 진행 | - |
+| 32. 측정 알고리즘 SOP 재정합 | 0/TBD | ⏳ Planned | - |
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |
 
 ---
 
+*v1.1 roadmap updated: 2026-05-21 — Phase 32 추가 (측정 알고리즘 SOP 재정합 — I9/I10/E2/E9/E10 재작성 + E3 신규). gsd-sdk phase.add CLI 가 다시 phase_number 오산정(1) → 수동 보정 (다음 정수 = 32).*
 *v1.1 roadmap updated: 2026-05-19 — Phase 31 추가 (Datum 기준 측정 알고리즘 확장 — E8/D1/I9·I10/CompoundAngle/ArcEdgeDistance + CO-23.1-01·02 흡수). gsd-sdk phase.add CLI 가 phase_number 오산정(1) → 수동 보정 (다음 정수 = 31).*
 *v1.1 roadmap updated: 2026-05-19 — Phase 23.1 SIGNED OFF (23.1-UAT.md 8/8 PASS, 대화형 UAT). Phase 23 도 동시 최종 sign-off (D-14). CO-23-01 resolved, CO-23.1-01·02 → 신규 알고리즘 Phase.*
 *v1.1 roadmap updated: 2026-05-17 — Phase 23.1 plan breakdown 완료 (3 plans, 3 waves — 23.1-01 EdgeSelection 차단 / 23.1-02 ROI 티칭 배선 / 23.1-03 UAT sign-off).*

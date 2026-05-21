@@ -49,6 +49,8 @@ namespace ReringProject.Sequence
         public string EdgeA_Polarity { get; set; } = "DarkToLight"; //260521 hbk Phase 32 UAT
         [ItemsSourceProperty(nameof(EdgeDirectionList))] //260521 hbk Phase 32 UAT
         public string EdgeA_Direction { get; set; } = "LtoR"; //260521 hbk Phase 32 UAT — 수직 에지 → 수평 스캔
+        [ItemsSourceProperty(nameof(EdgeSelectionList))] //260521 hbk Phase 32 UAT
+        public string EdgeA_Selection { get; set; } = "All"; //260521 hbk Phase 32 UAT — EdgeA 에지 선택 (First/Last/All)
 
         // ── EdgeB Edge 파라미터 (수평 에지 — 수직 스캔 방향) ─────────────────────────
         //260521 hbk Phase 32 UAT — EdgeB = 수평 에지 검출 → 스캔 방향 기본값 "TtoB" (수직 스캔).
@@ -61,16 +63,20 @@ namespace ReringProject.Sequence
         public string EdgeB_Polarity { get; set; } = "DarkToLight"; //260521 hbk Phase 32 UAT
         [ItemsSourceProperty(nameof(EdgeDirectionList))] //260521 hbk Phase 32 UAT
         public string EdgeB_Direction { get; set; } = "TtoB"; //260521 hbk Phase 32 UAT — 수평 에지 → 수직 스캔
+        [ItemsSourceProperty(nameof(EdgeSelectionList))] //260521 hbk Phase 32 UAT
+        public string EdgeB_Selection { get; set; } = "All"; //260521 hbk Phase 32 UAT — EdgeB 에지 선택 (First/Last/All)
 
         //260521 hbk Phase 32 — PropertyGrid ComboBox 옵션 래퍼 (EdgeA/EdgeB 두 그룹에서 공유)
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } } //260521 hbk Phase 32
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } } //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32 UAT
+        public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260521 hbk Phase 32 UAT — First/Last/All
 
         // ── MeasureAxis ───────────────────────────────────────────────────────────────
         //260521 hbk Phase 32 — I9/I10 = Datum C X 방향이므로 기본값 "X". 독립 카테고리로 이동.
-        [Category("Measure")] //260521 hbk Phase 32 UAT — 기존 "Edge" 에서 "Measure" 로 분리
+        [Category("Measurement|Measure")] //260521 hbk Phase 32 UAT — 기존 "Edge" 에서 "Measure" 로 분리; Tab 프리픽스 추가 (클래스명 기본탭 제거)
         [ItemsSourceProperty(nameof(MeasureAxisList))] //260521 hbk Phase 32
         public string MeasureAxis { get; set; } = "X"; //260521 hbk Phase 32 (I9/I10 = Datum C X 방향)
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
@@ -129,7 +135,7 @@ namespace ReringProject.Sequence
                 EdgeA_SampleCount, EdgeA_TrimCount, EdgeA_Sigma, EdgeA_Threshold, //260521 hbk Phase 32 UAT
                 EdgeA_Direction, EdgeA_Polarity, //260521 hbk Phase 32 UAT
                 out a1r1, out a1c1, out a1r2, out a1c2, out error,
-                "All")) //260521 hbk Phase 32 — EdgeSelection "All" 고정
+                EdgeA_Selection)) //260521 hbk Phase 32 UAT — 사용자 선택값 (기본값 "All")
             {
                 return false;
             }
@@ -143,7 +149,7 @@ namespace ReringProject.Sequence
                 EdgeB_SampleCount, EdgeB_TrimCount, EdgeB_Sigma, EdgeB_Threshold, //260521 hbk Phase 32 UAT
                 EdgeB_Direction, EdgeB_Polarity, //260521 hbk Phase 32 UAT
                 out b1r1, out b1c1, out b1r2, out b1c2, out error,
-                "All")) //260521 hbk Phase 32 — EdgeSelection "All" 고정
+                EdgeB_Selection)) //260521 hbk Phase 32 UAT — 사용자 선택값 (기본값 "All")
             {
                 return false;
             }

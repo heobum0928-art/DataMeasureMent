@@ -14,5 +14,8 @@ namespace ReringProject.Sequence
         //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도. Y측정=DatumAngleRad(수평선), X측정=DatumAngle2Rad(수직선).
         //  CircleTwoHorizontal=π/2(원중심 통과 수직 가상선), TwoLineIntersect=Line2 실제각, VerticalTwoHorizontal=수직에지 실제각.
         double DatumAngle2Rad { get; set; }
+        //260521 hbk Phase 32 — DatumC(CircleTwoHorizontal) 검출 원(B1 홀) 중심. E2 CompoundAngle 만 사용, 타 타입은 0 주입.
+        double DatumDetectedCircleRow { get; set; } //260521 hbk Phase 32
+        double DatumDetectedCircleCol { get; set; } //260521 hbk Phase 32
     }
 }

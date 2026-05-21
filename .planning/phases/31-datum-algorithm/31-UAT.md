@@ -198,10 +198,13 @@ created: 2026-05-19
 
 | 항목 | 기대 | 결과 |
 |------|------|------|
-| 측정값 표시 | 거리(mm) 정상 | pending |
-| 판정 | PASS/FAIL 정상 | pending |
-| Overlay FAI-Edge1 | 에지 라인 표시 | pending |
-| Overlay FAI-DistLine | 거리선 표시 | pending |
+| 측정값 표시 | 거리(mm) 정상 | **PASS** |
+| 판정 | PASS/FAIL 정상 | **PASS** |
+| Overlay FAI-Edge1 | 에지 라인 표시 | **PASS** |
+| Overlay FAI-DistLine | 거리선 표시 | **PASS** |
+| Datum 수직 기준선 표시 (사용자 추가 요청) | datum 가로·세로 기준선 표시 | **PASS** |
+
+**UAT 이력:** root cause 3건(Manual Tools 잠금 / ComputeProjectionDistance 단순화 / 행렬 역변환 제거) commit b7c34cf 수정 후 측정 정상 확인. 단 datum 수직 기준선 overlay 누락 → ArcEdgeDistanceMeasurement 에 CircleCenterDistance 동일 패턴(FAI-DatumLine 가로/세로 기준선 + datum 교점 마커) 추가 hotfix. 전체 PASS 확인 (사용자 2026-05-21).
 
 ---
 

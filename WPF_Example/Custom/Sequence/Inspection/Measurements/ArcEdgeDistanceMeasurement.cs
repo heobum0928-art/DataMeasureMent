@@ -129,7 +129,51 @@ namespace ReringProject.Sequence
                 }
             }); //260519 hbk Phase 31 D-08
 
-            // 2) 거리선 overlay: 측정점 → 정사영점(foot, datum 라인 위 수선의 발). 측정값과 시각적 일치.
+            // 2) datum 기준선 overlay: datum 주입 시 가로(1차 수평)/세로(2차 수직) 기준선 표시.
+            //260521 hbk Phase 31 UAT Test6 — CircleCenterDistanceMeasurement L159~217 동일 패턴 (datum 수직선 가시화 누락 수정).
+            bool datumInjected = (DatumOriginRow != 0.0 || DatumOriginCol != 0.0); //260521 hbk Phase 31 UAT Test6
+            if (datumInjected) //260521 hbk Phase 31 UAT Test6
+            {
+                //260521 hbk Phase 31 UAT Test6 — halfLength = 이미지 대각선 → 기준선 이미지 전체 span (DispLine 이 window 로 클립)
+                double axisHalfLen = 4000.0; //260521 hbk Phase 31 UAT Test6 — HImage 크기 조회 실패 시 폴백
+                try //260521 hbk Phase 31 UAT Test6
+                {
+                    HTuple imgW, imgH; //260521 hbk Phase 31 UAT Test6
+                    image.GetImageSize(out imgW, out imgH); //260521 hbk Phase 31 UAT Test6
+                    axisHalfLen = System.Math.Sqrt(imgW.D * imgW.D + imgH.D * imgH.D); //260521 hbk Phase 31 UAT Test6
+                }
+                catch { } //260521 hbk Phase 31 UAT Test6 — 조회 실패 시 폴백 길이 유지
+
+                //260521 hbk Phase 31 UAT Test6 — 가로 datum 기준선(1차 수평선, DatumAngleRad) + datum 교점 마커
+                double hR1, hC1, hR2, hC2; //260521 hbk Phase 31 UAT Test6
+                VisionAlgorithmService.GetDatumAxisLine(
+                    DatumOriginRow, DatumOriginCol, DatumAngleRad, axisHalfLen,
+                    out hR1, out hC1, out hR2, out hC2); //260521 hbk Phase 31 UAT Test6
+                overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 31 UAT Test6
+                {
+                    RoiId = "FAI-DatumLine", //260521 hbk Phase 31 UAT Test6 — 미지정 분기 파랑 (datum 기준선)
+                    LineRow1 = hR1, LineColumn1 = hC1, //260521 hbk Phase 31 UAT Test6
+                    LineRow2 = hR2, LineColumn2 = hC2, //260521 hbk Phase 31 UAT Test6
+                    Points = new List<EdgeInspectionPoint> //260521 hbk Phase 31 UAT Test6 — datum 교점(원점) 마커
+                    {
+                        new EdgeInspectionPoint { Row = DatumOriginRow, Column = DatumOriginCol } //260521 hbk Phase 31 UAT Test6
+                    }
+                });
+
+                //260521 hbk Phase 31 UAT Test6 — 세로 datum 기준선(2차 수직선, DatumAngle2Rad — X축 측정 기준)
+                double vR1, vC1, vR2, vC2; //260521 hbk Phase 31 UAT Test6
+                VisionAlgorithmService.GetDatumAxisLine(
+                    DatumOriginRow, DatumOriginCol, DatumAngle2Rad, axisHalfLen,
+                    out vR1, out vC1, out vR2, out vC2); //260521 hbk Phase 31 UAT Test6
+                overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 31 UAT Test6
+                {
+                    RoiId = "FAI-DatumLine", //260521 hbk Phase 31 UAT Test6
+                    LineRow1 = vR1, LineColumn1 = vC1, //260521 hbk Phase 31 UAT Test6
+                    LineRow2 = vR2, LineColumn2 = vC2 //260521 hbk Phase 31 UAT Test6
+                });
+            }
+
+            // 3) 거리선 overlay: 측정점 → 정사영점(foot, datum 라인 위 수선의 발). 측정값과 시각적 일치.
             //260520 hbk Phase 31 simplify — footOk 가 false 면 ProjectionPl 실패 → distline skip (측정값과 에지 라인 overlay 는 유지)
             if (footOk) //260520 hbk Phase 31 simplify
             {

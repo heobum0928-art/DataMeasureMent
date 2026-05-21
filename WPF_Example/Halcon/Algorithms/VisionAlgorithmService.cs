@@ -768,6 +768,113 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
+        /// Rect ROI 1개에서 Canny 에지 → UnionAdjacentContours → ShapeTransXld("rectangle2") 파이프라인으로
+        /// 가장 면적이 큰 사각형 XLD의 중심/각도/장단축 길이를 산출한다 (E2/E3/E9/E10 공통 컨투어 알고리즘).
+        /// 사각형 0개 검출 시 예외 throw 없이 error 세팅 후 false 반환 (CONTEXT.md 미해결#4).
+        /// </summary>
+        //260521 hbk Phase 32 — 공통 컨투어 알고리즘 (E2/E3/E9/E10 공유). LargestRect 산출.
+        public bool TryFindLargestContourRect( //260521 hbk Phase 32
+            HImage image, //260521 hbk Phase 32
+            double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2, //260521 hbk Phase 32
+            HTuple datumTransform, //260521 hbk Phase 32
+            double cannyAlpha, int cannyLow, int cannyHigh, double unionDistance, //260521 hbk Phase 32
+            out double centerRow, out double centerCol, out double phi, //260521 hbk Phase 32
+            out double length1, out double length2, out string error) //260521 hbk Phase 32
+        {
+            centerRow = centerCol = phi = length1 = length2 = 0; //260521 hbk Phase 32
+            error = null; //260521 hbk Phase 32
+
+            if (image == null) //260521 hbk Phase 32
+            {
+                error = "image is null"; //260521 hbk Phase 32
+                return false; //260521 hbk Phase 32
+            }
+
+            HObject rect = null; //260521 hbk Phase 32
+            HObject imageReduced = null; //260521 hbk Phase 32
+            HObject edges = null; //260521 hbk Phase 32
+            HObject unionContours = null; //260521 hbk Phase 32
+            HObject rectXld = null; //260521 hbk Phase 32
+            HObject largestRect = null; //260521 hbk Phase 32
+
+            try //260521 hbk Phase 32
+            {
+                // datumTransform 적용 — TryFitLine L45~60 / TryFindCircle L271~282 패턴
+                double cRow = roiRow, cCol = roiCol, cPhi = roiPhi; //260521 hbk Phase 32
+                if (datumTransform != null && datumTransform.Length > 0) //260521 hbk Phase 32
+                {
+                    try //260521 hbk Phase 32
+                    {
+                        HTuple tRow, tCol; //260521 hbk Phase 32
+                        HOperatorSet.AffineTransPoint2d(datumTransform, roiRow, roiCol, out tRow, out tCol); //260521 hbk Phase 32
+                        cRow = tRow.D; //260521 hbk Phase 32
+                        cCol = tCol.D; //260521 hbk Phase 32
+                        double rotAngle = Math.Atan2(-datumTransform[1].D, datumTransform[0].D); //260521 hbk Phase 32
+                        cPhi = roiPhi + rotAngle; //260521 hbk Phase 32
+                    }
+                    catch { } //260521 hbk Phase 32 — transform 실패 시 원본 좌표 사용
+                }
+
+                // Rect ROI 영역 생성 → domain 축소
+                HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, roiLength1, roiLength2); //260521 hbk Phase 32
+                HOperatorSet.ReduceDomain(image, rect, out imageReduced); //260521 hbk Phase 32
+
+                // Canny 에지 검출 (사용자 스크립트: edges_sub_pix(imageReduced, edges, 'canny', 1, 20, 40))
+                HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh); //260521 hbk Phase 32
+
+                // 인접 컨투어 병합 (사용자 스크립트: union_adjacent_contours_xld(edges, unionContours, 700, 1, 'attr_keep'))
+                HOperatorSet.UnionAdjacentContoursXld(edges, out unionContours, unionDistance, 1, "attr_keep"); //260521 hbk Phase 32
+
+                // 각 컨투어를 최소외접사각형 XLD 로 변환 (사용자 스크립트: shape_trans_xld(unionContours, rectXld, 'rectangle2'))
+                HOperatorSet.ShapeTransXld(unionContours, out rectXld, "rectangle2"); //260521 hbk Phase 32
+
+                // 각 사각형 XLD 의 면적/중심 산출
+                HTuple area, rowC, colC, ptOrder; //260521 hbk Phase 32
+                HOperatorSet.AreaCenterXld(rectXld, out area, out rowC, out colC, out ptOrder); //260521 hbk Phase 32
+
+                // 사각형 0개 검출 시 안전 종결 (CONTEXT.md 미해결#4)
+                if (area.Length == 0) //260521 hbk Phase 32
+                {
+                    error = "no contour rectangle detected"; //260521 hbk Phase 32
+                    return false; //260521 hbk Phase 32
+                }
+
+                // 최대 면적 인덱스 산출 (사용자 스크립트: tuple_max / tuple_find)
+                HTuple maxArea, maxIdx; //260521 hbk Phase 32
+                HOperatorSet.TupleMax(area, out maxArea); //260521 hbk Phase 32
+                HOperatorSet.TupleFind(area, maxArea, out maxIdx); //260521 hbk Phase 32
+
+                // select_obj: HALCON 은 1-based → maxIdx[0].I + 1 정수 인덱스 사용
+                HOperatorSet.SelectObj(rectXld, out largestRect, maxIdx[0].I + 1); //260521 hbk Phase 32
+
+                // 가장 면적이 큰 사각형 XLD 에서 중심/각도/장단축 길이 산출
+                HTuple cRowT, cColT, phiT, len1T, len2T; //260521 hbk Phase 32
+                HOperatorSet.SmallestRectangle2Xld(largestRect, out cRowT, out cColT, out phiT, out len1T, out len2T); //260521 hbk Phase 32
+
+                centerRow = cRowT.D; //260521 hbk Phase 32
+                centerCol = cColT.D; //260521 hbk Phase 32
+                phi = phiT.D; //260521 hbk Phase 32
+                length1 = len1T.D; //260521 hbk Phase 32
+                length2 = len2T.D; //260521 hbk Phase 32
+                return true; //260521 hbk Phase 32
+            }
+            catch (Exception ex) //260521 hbk Phase 32 — CONTEXT.md 미해결#4 안전 종결: 예외 throw 금지 (CLAUDE.md 컨벤션)
+            {
+                error = ex.Message; //260521 hbk Phase 32
+                return false; //260521 hbk Phase 32
+            }
+            finally //260521 hbk Phase 32 — 모든 HObject Dispose (T-32-02 mitigation: 네이티브 메모리 누수 방지)
+            {
+                if (rect != null) { try { rect.Dispose(); } catch { } } //260521 hbk Phase 32
+                if (imageReduced != null) { try { imageReduced.Dispose(); } catch { } } //260521 hbk Phase 32
+                if (edges != null) { try { edges.Dispose(); } catch { } } //260521 hbk Phase 32
+                if (unionContours != null) { try { unionContours.Dispose(); } catch { } } //260521 hbk Phase 32
+                if (rectXld != null) { try { rectXld.Dispose(); } catch { } } //260521 hbk Phase 32
+                if (largestRect != null) { try { largestRect.Dispose(); } catch { } } //260521 hbk Phase 32
+            }
+        }
+
+        /// <summary>
         /// 원과 직선의 교점을 구한다. 2해 중 ROI 중심(roiRow/Col)에 더 가까운 해를 반환한다 (D-10).
         /// HALCON IntersectionLl 은 직선-직선 전용이므로 수학 구현(2차 방정식).
         /// </summary>

@@ -37,26 +37,40 @@ namespace ReringProject.Sequence
         public double EdgeB_Length1 { get; set; } //260521 hbk Phase 32
         public double EdgeB_Length2 { get; set; } //260521 hbk Phase 32
 
-        // ── Edge 파라미터 ─────────────────────────────────────────────────────────────
-        [Category("Edge")] //260521 hbk Phase 32
-        public int EdgeThreshold { get; set; } = 10; //260521 hbk Phase 32
-        public double Sigma { get; set; } = 1.0; //260521 hbk Phase 32
-        public int EdgeSampleCount { get; set; } = 20; //260521 hbk Phase 32
-        public int EdgeTrimCount { get; set; } = 10; //260521 hbk Phase 32
-        [ItemsSourceProperty(nameof(EdgePolarityList))] //260521 hbk Phase 32
-        public string EdgePolarity { get; set; } = "DarkToLight"; //260521 hbk Phase 32
-        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260521 hbk Phase 32
-        public string EdgeDirection { get; set; } = "TtoB"; //260521 hbk Phase 32
+        // ── EdgeA Edge 파라미터 (수직 에지 — 수평 스캔 방향) ─────────────────────────
+        //260521 hbk Phase 32 UAT — 공용 Edge 블록을 EdgeA/EdgeB 독립 그룹으로 분리.
+        //  EdgeA = 수직 에지 검출 → 스캔 방향 기본값 "LtoR" (수평 스캔).
+        [Category("EdgeA|Edge")] //260521 hbk Phase 32 UAT
+        public int EdgeA_Threshold { get; set; } = 10; //260521 hbk Phase 32 UAT
+        public double EdgeA_Sigma { get; set; } = 1.0; //260521 hbk Phase 32 UAT
+        public int EdgeA_SampleCount { get; set; } = 20; //260521 hbk Phase 32 UAT
+        public int EdgeA_TrimCount { get; set; } = 10; //260521 hbk Phase 32 UAT
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260521 hbk Phase 32 UAT
+        public string EdgeA_Polarity { get; set; } = "DarkToLight"; //260521 hbk Phase 32 UAT
+        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260521 hbk Phase 32 UAT
+        public string EdgeA_Direction { get; set; } = "LtoR"; //260521 hbk Phase 32 UAT — 수직 에지 → 수평 스캔
 
-        //260521 hbk Phase 32 — PropertyGrid ComboBox 옵션 래퍼
+        // ── EdgeB Edge 파라미터 (수평 에지 — 수직 스캔 방향) ─────────────────────────
+        //260521 hbk Phase 32 UAT — EdgeB = 수평 에지 검출 → 스캔 방향 기본값 "TtoB" (수직 스캔).
+        [Category("EdgeB|Edge")] //260521 hbk Phase 32 UAT
+        public int EdgeB_Threshold { get; set; } = 10; //260521 hbk Phase 32 UAT
+        public double EdgeB_Sigma { get; set; } = 1.0; //260521 hbk Phase 32 UAT
+        public int EdgeB_SampleCount { get; set; } = 20; //260521 hbk Phase 32 UAT
+        public int EdgeB_TrimCount { get; set; } = 10; //260521 hbk Phase 32 UAT
+        [ItemsSourceProperty(nameof(EdgePolarityList))] //260521 hbk Phase 32 UAT
+        public string EdgeB_Polarity { get; set; } = "DarkToLight"; //260521 hbk Phase 32 UAT
+        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260521 hbk Phase 32 UAT
+        public string EdgeB_Direction { get; set; } = "TtoB"; //260521 hbk Phase 32 UAT — 수평 에지 → 수직 스캔
+
+        //260521 hbk Phase 32 — PropertyGrid ComboBox 옵션 래퍼 (EdgeA/EdgeB 두 그룹에서 공유)
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } } //260521 hbk Phase 32
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } } //260521 hbk Phase 32
 
         // ── MeasureAxis ───────────────────────────────────────────────────────────────
-        //260521 hbk Phase 32 — I9/I10 = Datum C X 방향이므로 기본값 "X"
-        [Category("Edge")] //260521 hbk Phase 32
+        //260521 hbk Phase 32 — I9/I10 = Datum C X 방향이므로 기본값 "X". 독립 카테고리로 이동.
+        [Category("Measure")] //260521 hbk Phase 32 UAT — 기존 "Edge" 에서 "Measure" 로 분리
         [ItemsSourceProperty(nameof(MeasureAxisList))] //260521 hbk Phase 32
         public string MeasureAxis { get; set; } = "X"; //260521 hbk Phase 32 (I9/I10 = Datum C X 방향)
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
@@ -107,12 +121,13 @@ namespace ReringProject.Sequence
             var svc = new VisionAlgorithmService(); //260521 hbk Phase 32
 
             // (1) EdgeA ROI — 수직 에지 직선 피팅. EdgeSelection "All" 고정 (memory feedback — 단일 MeasurePos 금지)
+            //260521 hbk Phase 32 UAT — EdgeA_* 독립 파라미터 사용 (수직 에지, 수평 스캔)
             double a1r1, a1c1, a1r2, a1c2; //260521 hbk Phase 32
             if (!svc.TryFitLine(image,
                 EdgeA_Row, EdgeA_Col, EdgeA_Phi, EdgeA_Length1, EdgeA_Length2,
                 datumTransform,
-                EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
-                EdgeDirection, EdgePolarity,
+                EdgeA_SampleCount, EdgeA_TrimCount, EdgeA_Sigma, EdgeA_Threshold, //260521 hbk Phase 32 UAT
+                EdgeA_Direction, EdgeA_Polarity, //260521 hbk Phase 32 UAT
                 out a1r1, out a1c1, out a1r2, out a1c2, out error,
                 "All")) //260521 hbk Phase 32 — EdgeSelection "All" 고정
             {
@@ -120,12 +135,13 @@ namespace ReringProject.Sequence
             }
 
             // (2) EdgeB ROI — 수평 에지 직선 피팅
+            //260521 hbk Phase 32 UAT — EdgeB_* 독립 파라미터 사용 (수평 에지, 수직 스캔)
             double b1r1, b1c1, b1r2, b1c2; //260521 hbk Phase 32
             if (!svc.TryFitLine(image,
                 EdgeB_Row, EdgeB_Col, EdgeB_Phi, EdgeB_Length1, EdgeB_Length2,
                 datumTransform,
-                EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
-                EdgeDirection, EdgePolarity,
+                EdgeB_SampleCount, EdgeB_TrimCount, EdgeB_Sigma, EdgeB_Threshold, //260521 hbk Phase 32 UAT
+                EdgeB_Direction, EdgeB_Polarity, //260521 hbk Phase 32 UAT
                 out b1r1, out b1c1, out b1r2, out b1c2, out error,
                 "All")) //260521 hbk Phase 32 — EdgeSelection "All" 고정
             {

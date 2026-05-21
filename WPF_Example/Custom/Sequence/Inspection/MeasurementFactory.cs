@@ -41,8 +41,8 @@ namespace ReringProject.Sequence
                     return new CompoundCenterCDistanceMeasurement(owner); //260519 hbk Phase 31 D-11
                 case "CompoundCenterBDistance": //260519 hbk Phase 31 D-11
                     return new CompoundCenterBDistanceMeasurement(owner); //260519 hbk Phase 31 D-11
-                case "CompoundShortAxisDistance": //260521 hbk Phase 32 E3
-                    return new CompoundShortAxisDistanceMeasurement(owner); //260521 hbk Phase 32 E3
+                case "CompoundLongAxisDistance": //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
+                    return new CompoundLongAxisDistanceMeasurement(owner); //260521 hbk Phase 32 UAT
                 default:
                     return null;
             }
@@ -66,7 +66,7 @@ namespace ReringProject.Sequence
                 "CompoundAngle", //260519 hbk Phase 31 D-11 E2
                 "CompoundCenterCDistance", //260519 hbk Phase 31 D-11 E9
                 "CompoundCenterBDistance", //260519 hbk Phase 31 D-11 E10
-                "CompoundShortAxisDistance" //260521 hbk Phase 32 E3
+                "CompoundLongAxisDistance" //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
             };
         }
     }

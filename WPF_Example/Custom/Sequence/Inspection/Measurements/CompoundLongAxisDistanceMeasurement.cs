@@ -1,4 +1,5 @@
-//260521 hbk Phase 32 E3 — E3: 공통 컨투어 알고리즘(canny→union→LargestRect) → 단축 폭 측정
+//260521 hbk Phase 32 E3 — E3: 공통 컨투어 알고리즘(canny→union→LargestRect) → 장축 폭 측정
+//260521 hbk Phase 32 UAT — 단축→장축 정정: CompoundShortAxisDistance → CompoundLongAxisDistance
 using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
@@ -8,15 +9,16 @@ using ReringProject.Halcon.Models;
 namespace ReringProject.Sequence
 {
     /// <summary>
-    /// Rect ROI 1개 → 공통 컨투어 알고리즘(canny→union_adjacent→LargestRect) → 단축 폭(mm) 측정.
-    /// E3(SOP p.50): CompoundShortAxisDistance — La/Lb 2직선 거리, 공차 0.600±0.030.
-    /// LargestRect 단축 폭 = smallest_rectangle2_xld 의 length1/length2 중 작은 쪽 × 2 × pixelResolution.
-    /// Datum 비의존: 단축 폭은 사각형 자체 기하이므로 IDatumOriginConsumer 미구현.
+    /// Rect ROI 1개 → 공통 컨투어 알고리즘(canny→union_adjacent→LargestRect) → 장축 폭(mm) 측정.
+    /// E3(SOP p.50): CompoundLongAxisDistance — La/Lb 2직선 거리, 공차 0.600±0.030.
+    /// LargestRect 장축 폭 = smallest_rectangle2_xld 의 length1/length2 중 큰 쪽 × 2 × pixelResolution.
+    /// 장축 = 2 * max(length1, length2). (260521 hbk Phase 32 UAT — min→max 정정)
+    /// Datum 비의존: 장축 폭은 사각형 자체 기하이므로 IDatumOriginConsumer 미구현.
     /// VisionAlgorithmService.TryFindLargestContourRect 공용 컨투어 서비스 호출.
     /// </summary>
-    public class CompoundShortAxisDistanceMeasurement : MeasurementBase //260521 hbk Phase 32 E3
+    public class CompoundLongAxisDistanceMeasurement : MeasurementBase //260521 hbk Phase 32 UAT — Short→Long 정정
     {
-        public override string TypeName { get { return "CompoundShortAxisDistance"; } } //260521 hbk Phase 32 E3
+        public override string TypeName { get { return "CompoundLongAxisDistance"; } } //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
 
         // ── Rect ROI ─────────────────────────────────────────────────────────────────
         //260521 hbk Phase 32 E3 — 공통 컨투어 알고리즘 입력 Rect ROI
@@ -35,7 +37,7 @@ namespace ReringProject.Sequence
         public int CannyHigh { get; set; } = 40; //260521 hbk Phase 32 E3 — canny high threshold
         public double UnionDistance { get; set; } = 700.0; //260521 hbk Phase 32 E3 — union_adjacent_contours_xld 거리
 
-        public CompoundShortAxisDistanceMeasurement(object owner) : base(owner) { } //260521 hbk Phase 32 E3
+        public CompoundLongAxisDistanceMeasurement(object owner) : base(owner) { } //260521 hbk Phase 32 UAT — 생성자명 정정
 
         public override bool TryExecute( //260521 hbk Phase 32 E3
             HImage image,
@@ -62,35 +64,36 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // 단축 폭 = smallest_rectangle2_xld 의 짧은 변.
-            // length1/length2 는 사각형 장축/단축 반길이 → 단축 폭 = 2 * min(length1, length2).
+            // 장축 폭 = smallest_rectangle2_xld 의 긴 변.
+            // length1/length2 는 사각형 장축/단축 반길이 → 장축 폭 = 2 * max(length1, length2).
+            //260521 hbk Phase 32 UAT — min → max 정정 (단축→장축 SOP 요구사항 정정)
             // TryFindLargestContourRect 가 스칼라만 반환(사각형 XLD 미반환)하므로
             // intersection_contours_xld 대신 직접 계산 채택 — 수학적으로 등가, 교점 0개 위험 없음.
-            double shortHalf = System.Math.Min(length1, length2); //260521 hbk Phase 32 E3
-            double shortAxisWidthPx = 2.0 * shortHalf; //260521 hbk Phase 32 E3 — 사각형 짧은 변 폭 (px)
+            double longHalf = System.Math.Max(length1, length2); //260521 hbk Phase 32 UAT — Max(장축 반길이)
+            double longAxisWidthPx = 2.0 * longHalf; //260521 hbk Phase 32 UAT — 사각형 긴 변 폭 (px)
 
-            resultValue = shortAxisWidthPx * pixelResolution; //260521 hbk Phase 32 E3 — mm 변환 (SOP La↔Lb 간격 등가)
+            resultValue = longAxisWidthPx * pixelResolution; //260521 hbk Phase 32 UAT — mm 변환 (SOP La↔Lb 간격 등가)
 
-            // overlay — 단축 폭 세그먼트. TryFindLargestContourRect 결과 변수 재사용. HALCON 재호출 없음. //260521 hbk Phase 32 E3-overlay
-            // 단축 방향 법선각도: phi 는 장축 방향(rad), 단축은 phi + π/2
-            double phiPerp = phi + System.Math.PI / 2.0; //260521 hbk Phase 32 E3-overlay — 단축 방향 각도
-            double sinPerp = System.Math.Sin(phiPerp); //260521 hbk Phase 32 E3-overlay
-            double cosPerp = System.Math.Cos(phiPerp); //260521 hbk Phase 32 E3-overlay
-            // 단축 세그먼트 양 끝점 = 중심 ± shortHalf × 단축방향
-            double sEnd1Row = centerRow - shortHalf * sinPerp; //260521 hbk Phase 32 E3-overlay
-            double sEnd1Col = centerCol - shortHalf * cosPerp; //260521 hbk Phase 32 E3-overlay
-            double sEnd2Row = centerRow + shortHalf * sinPerp; //260521 hbk Phase 32 E3-overlay
-            double sEnd2Col = centerCol + shortHalf * cosPerp; //260521 hbk Phase 32 E3-overlay
-            // FAI-ShortAxis = 단축 폭 세그먼트 (양 끝 X마커 포함)
+            // overlay — 장축 폭 세그먼트. TryFindLargestContourRect 결과 변수 재사용. HALCON 재호출 없음. //260521 hbk Phase 32 E3-overlay
+            // 장축 방향각: phi (rad). 장축 세그먼트 양 끝점 = 중심 ± longHalf × 장축방향
+            //260521 hbk Phase 32 UAT — FAI-ShortAxis → FAI-LongAxis, phiPerp 제거, phi(장축 방향) 직접 사용
+            double sinPhi = System.Math.Sin(phi); //260521 hbk Phase 32 UAT — 장축 방향 sin
+            double cosPhi = System.Math.Cos(phi); //260521 hbk Phase 32 UAT — 장축 방향 cos
+            // 장축 세그먼트 양 끝점 = 중심 ± longHalf × 장축방향
+            double lEnd1Row = centerRow - longHalf * sinPhi; //260521 hbk Phase 32 UAT
+            double lEnd1Col = centerCol - longHalf * cosPhi; //260521 hbk Phase 32 UAT
+            double lEnd2Row = centerRow + longHalf * sinPhi; //260521 hbk Phase 32 UAT
+            double lEnd2Col = centerCol + longHalf * cosPhi; //260521 hbk Phase 32 UAT
+            // FAI-LongAxis = 장축 폭 세그먼트 (양 끝 X마커 포함)
             overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 E3-overlay
             {
-                RoiId = "FAI-ShortAxis", //260521 hbk Phase 32 E3-overlay — 기본 HalconDisplayService 분기 (라인 + 점 마커)
-                LineRow1 = sEnd1Row, LineColumn1 = sEnd1Col, //260521 hbk Phase 32 E3-overlay — 단축 끝점 1
-                LineRow2 = sEnd2Row, LineColumn2 = sEnd2Col, //260521 hbk Phase 32 E3-overlay — 단축 끝점 2
+                RoiId = "FAI-LongAxis", //260521 hbk Phase 32 UAT — FAI-ShortAxis → FAI-LongAxis
+                LineRow1 = lEnd1Row, LineColumn1 = lEnd1Col, //260521 hbk Phase 32 UAT — 장축 끝점 1
+                LineRow2 = lEnd2Row, LineColumn2 = lEnd2Col, //260521 hbk Phase 32 UAT — 장축 끝점 2
                 Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 E3-overlay — 양 끝점 X마커
                 {
-                    new EdgeInspectionPoint { Row = sEnd1Row, Column = sEnd1Col }, //260521 hbk Phase 32 E3-overlay
-                    new EdgeInspectionPoint { Row = sEnd2Row, Column = sEnd2Col } //260521 hbk Phase 32 E3-overlay
+                    new EdgeInspectionPoint { Row = lEnd1Row, Column = lEnd1Col }, //260521 hbk Phase 32 UAT
+                    new EdgeInspectionPoint { Row = lEnd2Row, Column = lEnd2Col } //260521 hbk Phase 32 UAT
                 }
             }); //260521 hbk Phase 32 E3-overlay
 

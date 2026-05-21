@@ -759,6 +759,16 @@ namespace ReringProject.UI {
                     handledCircle = true;
                     break;
                 }
+                //260521 hbk Phase 31 UAT Test7 — CircleCenterDistance 이동 write-back 누락 수정.
+                //  RoiGeometryChanged(리사이즈)는 L648 에서 처리하나 RoiMoveCompleted(이동)는 빠져
+                //  이동 후 GetCurrentFAIRois 재렌더가 stale Circle_* 로 원복되던 결함.
+                var circleCtr = m as CircleCenterDistanceMeasurement; //260521 hbk Phase 31 UAT Test7
+                if (circleCtr != null) {
+                    circleCtr.Circle_Row += e.DeltaRow; //260521 hbk Phase 31 UAT Test7
+                    circleCtr.Circle_Col += e.DeltaCol; //260521 hbk Phase 31 UAT Test7
+                    handledCircle = true; //260521 hbk Phase 31 UAT Test7
+                    break; //260521 hbk Phase 31 UAT Test7
+                }
             }
             if (!handledCircle) {
                 fai.ROI_Row += e.DeltaRow;

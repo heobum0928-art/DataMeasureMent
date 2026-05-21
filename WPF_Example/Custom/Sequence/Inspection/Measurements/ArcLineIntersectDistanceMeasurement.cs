@@ -9,9 +9,11 @@ namespace ReringProject.Sequence
 {
     /// <summary>
     /// EdgeA1/EdgeB1(교점1용) 과 EdgeA2/EdgeB2(교점2용) 4개 ROI 에서 각각 직선을 피팅하고,
-    /// 두 교점의 평균점을 VisionAlgorithmService.TryIntersectLines 로 산출한다.
-    /// 평균점을 Datum 기준선까지의 거리(mm)로 환산한다.
-    /// I9/I10(SOP): 두 교점 평균 → Datum C X 방향 거리. 기본 MeasureAxis="X".
+    /// TryIntersectLines 로 교점1/교점2를 산출한다.
+    /// 측정점 = 측정축 방향 좌표는 교점2(거리 끝점), 수직축 좌표는 두 교점 평균.
+    /// 측정점을 Datum 기준선까지의 거리(mm)로 환산한다.
+    /// I9/I10(SOP): 기본 MeasureAxis="X" → measurePointCol=교점2.Col, measurePointRow=(교점1.Row+교점2.Row)/2.
+    //260521 hbk Phase 32 UAT — 단순 양축 평균 → 측정축은 교점2, 수직축만 평균으로 정정
     /// 어느 ROI 피팅 또는 교점 산출이 실패해도 false 반환 — 측정값 '—', 앱 무크래시 (T-32-14/T-32-15 mitigation).
     /// </summary>
     public class ArcLineIntersectDistanceMeasurement : MeasurementBase, IDatumOriginConsumer //260521 hbk Phase 32
@@ -242,16 +244,28 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // (7) 평균점 — 두 교점의 중점을 최종 측정 기준점으로 사용 (I9/I10 SOP 핵심)
-            double avgRow = (int1Row + int2Row) / 2.0; //260521 hbk Phase 32 I9/I10-redesign
-            double avgCol = (int1Col + int2Col) / 2.0; //260521 hbk Phase 32 I9/I10-redesign
+            // (7) 측정점 보정 — 측정축 방향 좌표는 교점2(거리 끝점), 수직축 좌표는 두 교점 평균.
+            // MeasureAxis X(수평=Col): measurePointCol = 교점2.Col, measurePointRow = (교점1.Row+교점2.Row)/2
+            // MeasureAxis Y(수직=Row): measurePointRow = 교점2.Row, measurePointCol = (교점1.Col+교점2.Col)/2
+            //260521 hbk Phase 32 UAT — 단순 양축 평균 → 측정축은 교점2, 수직축만 평균으로 정정
+            double measurePointRow, measurePointCol;
+            if (MeasureAxis == "X")
+            {
+                measurePointCol = int2Col; //260521 hbk Phase 32 UAT — 측정축(X=Col)은 교점2 값
+                measurePointRow = (int1Row + int2Row) / 2.0; //260521 hbk Phase 32 UAT — 수직축(Row)은 두 교점 평균
+            }
+            else
+            {
+                measurePointRow = int2Row; //260521 hbk Phase 32 UAT — 측정축(Y=Row)은 교점2 값
+                measurePointCol = (int1Col + int2Col) / 2.0; //260521 hbk Phase 32 UAT — 수직축(Col)은 두 교점 평균
+            }
 
             // (8) Datum 거리 — foot 반환 오버로드 사용 (overlay FAI-DistLine 용)
             double measureLineAngle = (MeasureAxis == "X") ? DatumAngle2Rad : DatumAngleRad; //260521 hbk Phase 32 I9/I10-redesign
             double footRow, footCol; //260521 hbk Phase 32 I9/I10-redesign
             bool footOk; //260521 hbk Phase 32 I9/I10-redesign
             resultValue = VisionAlgorithmService.ComputeProjectionDistance(
-                avgRow, avgCol,
+                measurePointRow, measurePointCol,
                 DatumOriginRow, DatumOriginCol, measureLineAngle,
                 pixelResolution, MeasureAxis,
                 out footRow, out footCol, out footOk); //260521 hbk Phase 32 I9/I10-redesign
@@ -321,29 +335,30 @@ namespace ReringProject.Sequence
                     new EdgeInspectionPoint { Row = int2Row, Column = int2Col } //260521 hbk Phase 32 I9/I10-redesign
                 }
             }); //260521 hbk Phase 32 I9/I10-redesign
-            // 평균점 마커
+            // 보정된 측정점 마커 — 측정축=교점2, 수직축=두 교점 평균 (UAT 정정)
+            //260521 hbk Phase 32 UAT — FAI-AvgPoint 마커를 보정 측정점(measurePointRow/Col) 으로 갱신
             overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 I9/I10-redesign
             {
                 RoiId = "FAI-AvgPoint", //260521 hbk Phase 32 I9/I10-redesign
-                LineRow1 = avgRow, LineColumn1 = avgCol, //260521 hbk Phase 32 I9/I10-redesign
-                LineRow2 = avgRow, LineColumn2 = avgCol, //260521 hbk Phase 32 I9/I10-redesign — 점 마커
+                LineRow1 = measurePointRow, LineColumn1 = measurePointCol, //260521 hbk Phase 32 UAT — 보정 측정점
+                LineRow2 = measurePointRow, LineColumn2 = measurePointCol, //260521 hbk Phase 32 UAT — 점 마커 (길이 0 라인)
                 Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 I9/I10-redesign
                 {
-                    new EdgeInspectionPoint { Row = avgRow, Column = avgCol } //260521 hbk Phase 32 I9/I10-redesign
+                    new EdgeInspectionPoint { Row = measurePointRow, Column = measurePointCol } //260521 hbk Phase 32 UAT
                 }
             }); //260521 hbk Phase 32 I9/I10-redesign
-            // Datum 거리선 — 평균점 → 수선의 발 (footOk 가드)
+            // Datum 거리선 — 보정 측정점 → 수선의 발 (footOk 가드)
             if (footOk) //260521 hbk Phase 32 I9/I10-redesign
             {
                 overlays.Add(new EdgeInspectionOverlay //260521 hbk Phase 32 I9/I10-redesign
                 {
                     RoiId = "FAI-DistLine", //260521 hbk Phase 32 I9/I10-redesign
                     LineRow1 = footRow, LineColumn1 = footCol, //260521 hbk Phase 32 I9/I10-redesign — 수선의 발
-                    LineRow2 = avgRow, LineColumn2 = avgCol, //260521 hbk Phase 32 I9/I10-redesign — 평균점
+                    LineRow2 = measurePointRow, LineColumn2 = measurePointCol, //260521 hbk Phase 32 UAT — 보정 측정점
                     Points = new List<EdgeInspectionPoint> //260521 hbk Phase 32 I9/I10-redesign
                     {
                         new EdgeInspectionPoint { Row = footRow, Column = footCol }, //260521 hbk Phase 32 I9/I10-redesign
-                        new EdgeInspectionPoint { Row = avgRow, Column = avgCol } //260521 hbk Phase 32 I9/I10-redesign
+                        new EdgeInspectionPoint { Row = measurePointRow, Column = measurePointCol } //260521 hbk Phase 32 UAT
                     }
                 }); //260521 hbk Phase 32 I9/I10-redesign
             }

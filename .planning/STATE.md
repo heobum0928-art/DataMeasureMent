@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: executing
-stopped_at: Completed 31-04-PLAN.md
-last_updated: "2026-05-19T07:24:49.730Z"
-last_activity: 2026-05-19
+stopped_at: Completed 32-01-PLAN.md
+last_updated: "2026-05-21T05:59:57.575Z"
+last_activity: 2026-05-21
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 6
-  total_plans: 37
-  completed_plans: 34
-  percent: 92
+  total_plans: 43
+  completed_plans: 35
+  percent: 81
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 31 — Datum 기준 측정 알고리즘 확장
+**Current focus:** Phase 32 — sop-i9-i10-e2-e9-e10-e3
 
 ## Current Position
 
-Phase: 31 (Datum 기준 측정 알고리즘 확장) — EXECUTING
-Plan: 5 of 5
+Phase: 32 (sop-i9-i10-e2-e9-e10-e3) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
 Next: 사용자 선택 — (a) 신규 알고리즘 Phase (E8/D1/I9/I10/E2/E9/E10 + ArcEdgeDistance, CO-23.1-01·02 흡수), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
-Last activity: 2026-05-19
+Last activity: 2026-05-21
 
 ## Performance Metrics
 
@@ -97,6 +97,7 @@ Last activity: 2026-05-19
 | Phase 31-datum-algorithm P02 | 4 | 3 tasks | 5 files |
 | Phase 31-datum-algorithm P03 | 8 | 3 tasks | 6 files |
 | Phase 31-datum-algorithm P04 | 15 | 3 tasks | 2 files |
+| Phase 32-sop-i9-i10-e2-e9-e10-e3 P01 | 10 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,7 @@ Recent decisions affecting current work:
 - CompoundCenterCDistance(E9) MeasureAxis='X' / CompoundCenterBDistance(E10) MeasureAxis='Y' — D-07/D-11, Pitfall 8 방지
 - CO-23.1-02: FindSelectedRectMeasurement 화이트리스트(Point_* 7종) + CommitRectRoi as 분기 일반화 — _editingMeasurement MeasurementBase 타입으로 확장
 - CO-23.1-01: Option A(경로 레이블) 채택 — 하단 Border 2행 + UpdateImageSourceLabel(DatumConfig TeachingImagePath vs ShotConfig SimulImagePath 판별)
+- IntersectionContoursXld HALCON 시그니처 = 3-out (iRow, iCol, isOverlapping) — TryIntersectContours 구현 시 2-out 오해→CS7036→Rule 1 즉시 수정
 
 ### Quick Tasks Completed
 
@@ -254,8 +256,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-19T07:24:49.719Z
-Stopped at: Completed 31-04-PLAN.md
+Last session: 2026-05-21T05:59:57.564Z
+Stopped at: Completed 32-01-PLAN.md
 Resume file: None
 Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
 
@@ -276,4 +278,4 @@ Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyG
 
 **Completed Phase:** 22 (image-dual-structure) — 2 plans — signed_off 2026-05-11T07:30:00Z (IMG-01+IMG-02, UAT 4/4 PASS)
 
-**Planned Phase:** 31 (Datum 기준 측정 알고리즘 확장) — 5 plans — 2026-05-19T06:33:25.933Z
+**Planned Phase:** 32 (측정 알고리즘 SOP 재정합) — 6 plans — 2026-05-21T05:50:13.568Z

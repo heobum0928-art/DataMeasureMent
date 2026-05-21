@@ -218,7 +218,7 @@ Plans:
 **SOP**: `C:\Info\Doc\2.디팜스테크\02_설계\SOP\Datum_정보_260511_2D.pptx` (E2 p.49, E3 p.50)
 **Plans**: 6 plans
 Plans:
-- [ ] 32-01-PLAN.md — VisionAlgorithmService 공통 컨투어 알고리즘 + intersection_lines/contours 래퍼 신설
+- [x] 32-01-PLAN.md — VisionAlgorithmService 공통 컨투어 알고리즘 + intersection_lines/contours 래퍼 신설
 - [ ] 32-02-PLAN.md — IDatumOriginConsumer 검출 원중심 주입 채널 확장 (8 구현 클래스 영향)
 - [ ] 32-03-PLAN.md — ArcLineIntersect(I9/I10) 2직선 교점 재작성
 - [ ] 32-04-PLAN.md — E2/E9/E10 공통 컨투어 알고리즘 기반 재작성

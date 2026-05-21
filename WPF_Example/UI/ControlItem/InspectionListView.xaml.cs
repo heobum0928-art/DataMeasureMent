@@ -469,7 +469,8 @@ namespace ReringProject.UI {
                             || item.Param is ArcLineIntersectDistanceMeasurement //260519 hbk Phase 31 D-01
                             || item.Param is CompoundAngleMeasurement          //260519 hbk Phase 31 D-11
                             || item.Param is CompoundCenterCDistanceMeasurement //260519 hbk Phase 31 D-11
-                            || item.Param is CompoundCenterBDistanceMeasurement; //260519 hbk Phase 31 D-11
+                            || item.Param is CompoundCenterBDistanceMeasurement //260519 hbk Phase 31 D-11
+                            || item.Param is CompoundShortAxisDistanceMeasurement; //260521 hbk Phase 32 E3
                         if (mParentWindow != null && mParentWindow.mainView != null)
                             mParentWindow.mainView.btn_rectRoi.IsEnabled = isRectRoiType; //260519 hbk Phase 31 CO-23.1-02
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)

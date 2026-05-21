@@ -175,6 +175,8 @@ namespace ReringProject.Sequence {
                                                 consumer.DatumOriginCol = dc.DetectedOriginCol; //260519 hbk Phase 31 D-03
                                                 consumer.DatumAngleRad  = dc.DetectedRefAngle;  //260519 hbk Phase 31 D-03
                                                 consumer.DatumAngle2Rad = dc.DetectedRefAngle2; //260519 hbk Phase 31 hotfix#3 — 수직 기준선 각도
+                                                consumer.DatumDetectedCircleRow = dc.DetectedCircleRow; //260521 hbk Phase 32 — E2 CompoundAngle 원중심 주입
+                                                consumer.DatumDetectedCircleCol = dc.DetectedCircleCol; //260521 hbk Phase 32
                                             }
                                             else //260519 hbk Phase 31 D-03 — DatumRef 미지정 또는 매칭 Datum 없음 → 미주입
                                             {
@@ -182,6 +184,8 @@ namespace ReringProject.Sequence {
                                                 consumer.DatumOriginCol = 0.0; //260519 hbk Phase 31 D-03
                                                 consumer.DatumAngleRad  = 0.0; //260519 hbk Phase 31 D-03
                                                 consumer.DatumAngle2Rad = 0.0; //260519 hbk Phase 31 hotfix#3
+                                                consumer.DatumDetectedCircleRow = 0.0; //260521 hbk Phase 32
+                                                consumer.DatumDetectedCircleCol = 0.0; //260521 hbk Phase 32
                                             }
                                         }
                                         double resultValue;

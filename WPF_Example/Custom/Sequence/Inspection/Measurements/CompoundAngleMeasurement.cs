@@ -88,6 +88,15 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
         public double DatumAngle2Rad { get; set; } //260519 hbk Phase 31 hotfix#3
+        //260521 hbk Phase 32 — IDatumOriginConsumer 확장 stub. Plan 04 재작성 시 실제 사용 (E2 = 유일 실사용 타입).
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DatumDetectedCircleRow { get; set; } //260521 hbk Phase 32
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DatumDetectedCircleCol { get; set; } //260521 hbk Phase 32
 
         public CompoundAngleMeasurement(object owner) : base(owner) { } //260519 hbk Phase 31 D-11
 

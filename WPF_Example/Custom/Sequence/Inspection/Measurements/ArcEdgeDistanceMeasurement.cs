@@ -66,6 +66,15 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
         public double DatumAngle2Rad { get; set; } //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도(rad). X축 측정 기준.
+        //260521 hbk Phase 32 — IDatumOriginConsumer 확장. 본 타입은 검출 원중심 미사용 (E2 만 사용) — 주입만 받고 미참조.
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DatumDetectedCircleRow { get; set; } //260521 hbk Phase 32
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DatumDetectedCircleCol { get; set; } //260521 hbk Phase 32
 
         public ArcEdgeDistanceMeasurement(object owner) : base(owner) { } //260519 hbk Phase 31 D-08
 

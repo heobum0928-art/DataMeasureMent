@@ -209,8 +209,7 @@ namespace ReringProject.UI {
                 //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집
                 //  (EdgeToLineDistance/EdgeToLineAngle/ArcEdgeDistance — Phase 31 신규 타입 캔버스 렌더 누락 수정)
                 foreach (var m in fai.Measurements) {
-                    var pointRoi = BuildPointRoiDefinition(m, fai.FAIName);
-                    if (pointRoi != null) result.Add(pointRoi);
+                    result.AddRange(BuildPointRoiDefinitions(m, fai.FAIName)); //260521 hbk Phase 32 UAT
                 }
             }
             return result;
@@ -224,15 +223,48 @@ namespace ReringProject.UI {
             if (roi.IsTaught) result.Add(roi);
             //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집
             foreach (var m in fai.Measurements) {
-                var pointRoi = BuildPointRoiDefinition(m, fai.FAIName);
-                if (pointRoi != null) result.Add(pointRoi);
+                result.AddRange(BuildPointRoiDefinitions(m, fai.FAIName)); //260521 hbk Phase 32 UAT
             }
         }
 
-        //260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 → RoiDefinition 변환 (캔버스 렌더용).
+        //260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 → RoiDefinition 리스트 변환 (캔버스 렌더용).
         //  EdgeToLineDistance(Phase 23.1) 만 수집하던 누락을 EdgeToLineAngle/ArcEdgeDistance 까지 일반화.
-        //  Length1/2 미티칭(≤0) 이면 null. CommitRectRoi 가 Point_Phi=0 으로만 쓰므로 축정렬 bounding box.
-        private static RoiDefinition BuildPointRoiDefinition(MeasurementBase m, string faiName) {
+        //  Length1/2 미티칭(≤0) 이면 해당 ROI skip. CommitRectRoi 가 Point_Phi=0 으로만 쓰므로 축정렬 bounding box.
+        //260521 hbk Phase 32 UAT — 반환 타입 List<RoiDefinition> 으로 변경: ArcLineIntersect 는 EdgeA + EdgeB 2개 반환.
+        //  비-ArcLineIntersect 타입은 0 또는 1개짜리 리스트 반환 (기존 null 반환 규칙 보존: 길이 0 = skip).
+        private static List<RoiDefinition> BuildPointRoiDefinitions(MeasurementBase m, string faiName) { //260521 hbk Phase 32 UAT
+            var result = new List<RoiDefinition>(); //260521 hbk Phase 32 UAT
+            string measName = m.MeasurementName; //260521 hbk Phase 32 UAT
+            if (string.IsNullOrEmpty(measName)) measName = m.TypeName; //260521 hbk Phase 32 UAT
+
+            //260521 hbk Phase 32 UAT — ArcLineIntersect: EdgeA + EdgeB 각각 독립 RoiDefinition. 미티칭 ROI 는 개별 skip.
+            var ali = m as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 UAT
+            if (ali != null) {
+                if (ali.EdgeA_Length1 > 0 && ali.EdgeA_Length2 > 0) { //260521 hbk Phase 32 UAT
+                    result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
+                        Id = faiName + "_" + measName + "_EdgeA", //260521 hbk Phase 32 UAT — EdgeB 와 Id 충돌 방지
+                        Name = measName + "_EdgeA", //260521 hbk Phase 32 UAT
+                        Row1 = ali.EdgeA_Row - ali.EdgeA_Length1, //260521 hbk Phase 32 UAT
+                        Column1 = ali.EdgeA_Col - ali.EdgeA_Length2, //260521 hbk Phase 32 UAT
+                        Row2 = ali.EdgeA_Row + ali.EdgeA_Length1, //260521 hbk Phase 32 UAT
+                        Column2 = ali.EdgeA_Col + ali.EdgeA_Length2, //260521 hbk Phase 32 UAT
+                        IsTaught = true //260521 hbk Phase 32 UAT
+                    }); //260521 hbk Phase 32 UAT
+                } //260521 hbk Phase 32 UAT
+                if (ali.EdgeB_Length1 > 0 && ali.EdgeB_Length2 > 0) { //260521 hbk Phase 32 UAT
+                    result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
+                        Id = faiName + "_" + measName + "_EdgeB", //260521 hbk Phase 32 UAT — EdgeA 와 Id 충돌 방지
+                        Name = measName + "_EdgeB", //260521 hbk Phase 32 UAT
+                        Row1 = ali.EdgeB_Row - ali.EdgeB_Length1, //260521 hbk Phase 32 UAT
+                        Column1 = ali.EdgeB_Col - ali.EdgeB_Length2, //260521 hbk Phase 32 UAT
+                        Row2 = ali.EdgeB_Row + ali.EdgeB_Length1, //260521 hbk Phase 32 UAT
+                        Column2 = ali.EdgeB_Col + ali.EdgeB_Length2, //260521 hbk Phase 32 UAT
+                        IsTaught = true //260521 hbk Phase 32 UAT
+                    }); //260521 hbk Phase 32 UAT
+                } //260521 hbk Phase 32 UAT
+                return result; //260521 hbk Phase 32 UAT — 나머지 타입 분기 통과 불필요
+            }
+
             double pRow = 0, pCol = 0, pLen1 = 0, pLen2 = 0;
             var etld = m as EdgeToLineDistanceMeasurement;
             if (etld != null) { pRow = etld.Point_Row; pCol = etld.Point_Col; pLen1 = etld.Point_Length1; pLen2 = etld.Point_Length2; }
@@ -248,12 +280,8 @@ namespace ReringProject.UI {
             if (cCenterB != null) { pRow = cCenterB.Rect_Row; pCol = cCenterB.Rect_Col; pLen1 = cCenterB.Rect_Length1; pLen2 = cCenterB.Rect_Length2; }
             var cShort = m as CompoundShortAxisDistanceMeasurement; //260521 hbk Phase 32 E3
             if (cShort != null) { pRow = cShort.Rect_Row; pCol = cShort.Rect_Col; pLen1 = cShort.Rect_Length1; pLen2 = cShort.Rect_Length2; }
-            var ali = m as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32
-            if (ali != null) { pRow = ali.EdgeA_Row; pCol = ali.EdgeA_Col; pLen1 = ali.EdgeA_Length1; pLen2 = ali.EdgeA_Length2; }
-            if (pLen1 <= 0 || pLen2 <= 0) return null;
-            string measName = m.MeasurementName;
-            if (string.IsNullOrEmpty(measName)) measName = m.TypeName;
-            return new RoiDefinition {
+            if (pLen1 <= 0 || pLen2 <= 0) return result; //260521 hbk Phase 32 UAT — 미티칭 시 빈 리스트 반환 (기존 null 규칙 대체)
+            result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
                 Id = faiName + "_" + measName,
                 Name = measName,
                 Row1 = pRow - pLen1,
@@ -261,7 +289,8 @@ namespace ReringProject.UI {
                 Row2 = pRow + pLen1,
                 Column2 = pCol + pLen2,
                 IsTaught = true
-            };
+            });
+            return result; //260521 hbk Phase 32 UAT
         }
 
         //260519 hbk #6-a — 주어진 FAI 가 속한 Shot 의 모든 FAI ROI 를 DataGrid 비의존으로 수집한다.

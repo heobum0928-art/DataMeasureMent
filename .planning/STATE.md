@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: verifying
-stopped_at: Completed 32-08-PLAN.md
-last_updated: "2026-05-21T12:56:59.617Z"
+stopped_at: Phase 32 코드 전체 완료 — 32-06 최종 UAT 대기 (내일 진행)
+last_updated: "2026-05-21T13:52:26.000Z"
 last_activity: 2026-05-21
 progress:
   total_phases: 11
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 32 (sop-i9-i10-e2-e9-e10-e3) — EXECUTING
-Plan: 6 of 6
-Status: Phase complete — ready for verification
-Next: 사용자 선택 — (a) 신규 알고리즘 Phase (E8/D1/I9/I10/E2/E9/E10 + ArcEdgeDistance, CO-23.1-01·02 흡수), (b) Phase 24 워크플로우 e2e, (c) Phase 25 결과 분석/Export
+Phase: 32 (sop-i9-i10-e2-e9-e10-e3) — EXECUTING (32-06 UAT 대기)
+Plan: 8 of 8 코드 완료 (32-01~32-08) — 32-06 UAT 체크포인트 미승인
+Status: 32-06 최종 UAT 내일 진행 — "approved" 시 32-06 SUMMARY 작성 → Phase 32 verify_phase_goal → 완료 처리
+Next: 앱 재빌드 → SIMUL UAT (Datum B/C 티칭 → ArcLineIntersect 4-ROI → E2/E3/E9/E10 측정 + 오버레이) → "approved"
 Last activity: 2026-05-21
 
 ## Performance Metrics
@@ -272,10 +272,10 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-21T12:56:59.608Z
-Stopped at: Completed 32-08-PLAN.md
+Last session: 2026-05-21 (저녁 — UAT 내일로 연기)
+Stopped at: Phase 32 — 8개 plan(32-01~32-08) 코드 전체 완료 + UAT 후속 수정 다수 적용. 32-06 최종 UAT 체크포인트 대기 중.
 Resume file: None
-Next action: 사용자 선택 — (a) CO-22-01 quick task (Datum↔FAI PropertyGrid 전환 UI 버그), (b) 다음 v1.1 phase (Phase 20 코드 스타일 / Phase 23 A시리즈 Simul), (c) 기타 backlog.
+Next action: 앱 재빌드 후 Phase 32 최종 UAT(32-06 Task 2) 수행. 절차 = Datum B/C 티칭 → ArcLineIntersect(4-ROI: EdgeA1/B1/A2/B2, 측정점 X=교점2·Y=평균) → E2 CompoundAngle → E3 CompoundLongAxisDistance(장축폭) → E9/E10 → Contour 파라미터 → 실패 케이스. "approved" 시 32-06 SUMMARY 작성 → verify_phase_goal → phase.complete. UAT 수정 이력은 git log fix(32-*) 커밋 참조.
 
 **v1.1 Phase Map:**
 

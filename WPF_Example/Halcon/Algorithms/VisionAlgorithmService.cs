@@ -935,6 +935,186 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
+        /// E3 reference algorithm: canny → union_adjacent_contours_xld → shape_trans_xld('rectangle2') →
+        /// select_obj(max area) → LargestRect XLD → get_contour_xld 코너 → Edge1Len/Edge2Len 비교로 긴변 선택 →
+        /// fit_line_contour_xld('tukey') 로 refined Phi → 중심 통과 phi+π/2 측정선 →
+        /// intersection_contours_xld(measureLine, LargestRect, 'all') 로 교점 2개 산출.
+        /// 측정 결과값(=교점 간 거리)·overlay 좌표를 한 번에 반환 — 측정 클래스는 HOperatorSet 직접 호출 없음.
+        /// </summary>
+        //260523 hbk Phase 32 — E3 reference algorithm: LargestRect XLD 기반 긴변 fit + 측정선 contour intersection.
+        public bool TryFindShortAxisIntersections( //260523 hbk Phase 32 — E3 reference algorithm
+            HImage image, //260523 hbk Phase 32 — E3 reference algorithm
+            double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2, //260523 hbk Phase 32 — E3 reference algorithm
+            HTuple datumTransform, //260523 hbk Phase 32 — E3 reference algorithm
+            double cannyAlpha, int cannyLow, int cannyHigh, double unionDistance, //260523 hbk Phase 32 — E3 reference algorithm
+            double crossLen, //260523 hbk Phase 32 — E3 reference algorithm: 측정선 반길이 (예: 500 px)
+            out double centerRow, out double centerCol, //260523 hbk Phase 32 — E3 reference algorithm
+            out double phi, out double length1, out double length2, //260523 hbk Phase 32 — E3 reference algorithm: refined phi(fit_line) + scalar
+            out double longEdge1AR, out double longEdge1AC, out double longEdge1BR, out double longEdge1BC, //260523 hbk Phase 32 — E3 reference algorithm: 긴변1 양 끝
+            out double longEdge2AR, out double longEdge2AC, out double longEdge2BR, out double longEdge2BC, //260523 hbk Phase 32 — E3 reference algorithm: 긴변2(opposite) 양 끝
+            out double measureRow1, out double measureCol1, out double measureRow2, out double measureCol2, //260523 hbk Phase 32 — E3 reference algorithm: 측정선 양 끝
+            out double int1Row, out double int1Col, out double int2Row, out double int2Col, //260523 hbk Phase 32 — E3 reference algorithm: 교점 2개
+            out string error) //260523 hbk Phase 32 — E3 reference algorithm
+        {
+            centerRow = centerCol = phi = length1 = length2 = 0; //260523 hbk Phase 32 — E3 reference algorithm
+            longEdge1AR = longEdge1AC = longEdge1BR = longEdge1BC = 0; //260523 hbk Phase 32 — E3 reference algorithm
+            longEdge2AR = longEdge2AC = longEdge2BR = longEdge2BC = 0; //260523 hbk Phase 32 — E3 reference algorithm
+            measureRow1 = measureCol1 = measureRow2 = measureCol2 = 0; //260523 hbk Phase 32 — E3 reference algorithm
+            int1Row = int1Col = int2Row = int2Col = 0; //260523 hbk Phase 32 — E3 reference algorithm
+            error = null; //260523 hbk Phase 32 — E3 reference algorithm
+
+            if (image == null) //260523 hbk Phase 32 — E3 reference algorithm
+            {
+                error = "image is null"; //260523 hbk Phase 32 — E3 reference algorithm
+                return false; //260523 hbk Phase 32 — E3 reference algorithm
+            }
+
+            HObject rect = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject imageReduced = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject edges = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject unionContours = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject rectXld = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject largestRect = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject longEdgeContour = null; //260523 hbk Phase 32 — E3 reference algorithm
+            HObject measureLineContour = null; //260523 hbk Phase 32 — E3 reference algorithm
+
+            try //260523 hbk Phase 32 — E3 reference algorithm
+            {
+                // datumTransform 적용 — TryFindLargestContourRect L802~816 패턴
+                double cRow = roiRow, cCol = roiCol, cPhi = roiPhi; //260523 hbk Phase 32 — E3 reference algorithm
+                if (datumTransform != null && datumTransform.Length > 0) //260523 hbk Phase 32 — E3 reference algorithm
+                {
+                    try //260523 hbk Phase 32 — E3 reference algorithm
+                    {
+                        HTuple tRow, tCol; //260523 hbk Phase 32 — E3 reference algorithm
+                        HOperatorSet.AffineTransPoint2d(datumTransform, roiRow, roiCol, out tRow, out tCol); //260523 hbk Phase 32 — E3 reference algorithm
+                        cRow = tRow.D; //260523 hbk Phase 32 — E3 reference algorithm
+                        cCol = tCol.D; //260523 hbk Phase 32 — E3 reference algorithm
+                        double rotAngle = Math.Atan2(-datumTransform[1].D, datumTransform[0].D); //260523 hbk Phase 32 — E3 reference algorithm
+                        cPhi = roiPhi + rotAngle; //260523 hbk Phase 32 — E3 reference algorithm
+                    }
+                    catch { } //260523 hbk Phase 32 — E3 reference algorithm: transform 실패 시 원본 좌표 사용
+                }
+
+                // Step 1: ROI 영역 → reduce_domain → edges_sub_pix(canny) → union_adjacent_contours_xld
+                HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, roiLength1, roiLength2); //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.ReduceDomain(image, rect, out imageReduced); //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh); //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.UnionAdjacentContoursXld(edges, out unionContours, unionDistance, 1, "attr_keep"); //260523 hbk Phase 32 — E3 reference algorithm
+
+                // Step 2: shape_trans_xld('rectangle2') → area_center_xld → tuple_max/tuple_find → select_obj(LargestRect)
+                HOperatorSet.ShapeTransXld(unionContours, out rectXld, "rectangle2"); //260523 hbk Phase 32 — E3 reference algorithm
+
+                HTuple area, rowC, colC, ptOrder; //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.AreaCenterXld(rectXld, out area, out rowC, out colC, out ptOrder); //260523 hbk Phase 32 — E3 reference algorithm
+                if (area.Length == 0) //260523 hbk Phase 32 — E3 reference algorithm
+                {
+                    error = "no contour rectangle detected"; //260523 hbk Phase 32 — E3 reference algorithm
+                    return false; //260523 hbk Phase 32 — E3 reference algorithm
+                }
+
+                HTuple maxArea, maxIdx; //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.TupleMax(area, out maxArea); //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.TupleFind(area, maxArea, out maxIdx); //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.SelectObj(rectXld, out largestRect, maxIdx[0].I + 1); //260523 hbk Phase 32 — E3 reference algorithm
+
+                // Step 3: smallest_rectangle2_xld(LargestRect) → center + scalar phi/length1/length2 (phi 는 Step 5 에서 fit_line 결과로 덮어쓴다)
+                HTuple cRowT, cColT, phiT, len1T, len2T; //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.SmallestRectangle2Xld(largestRect, out cRowT, out cColT, out phiT, out len1T, out len2T); //260523 hbk Phase 32 — E3 reference algorithm
+                centerRow = cRowT.D; //260523 hbk Phase 32 — E3 reference algorithm
+                centerCol = cColT.D; //260523 hbk Phase 32 — E3 reference algorithm
+                length1 = len1T.D; //260523 hbk Phase 32 — E3 reference algorithm
+                length2 = len2T.D; //260523 hbk Phase 32 — E3 reference algorithm
+
+                // Step 4: get_contour_xld → 5 corners (rectangle2 XLD: P0,P1,P2,P3,P0)
+                HTuple rows, cols; //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.GetContourXld(largestRect, out rows, out cols); //260523 hbk Phase 32 — E3 reference algorithm
+                if (rows.Length < 4) //260523 hbk Phase 32 — E3 reference algorithm
+                {
+                    error = "LargestRect XLD has " + rows.Length + " points (expected ≥ 4)"; //260523 hbk Phase 32 — E3 reference algorithm
+                    return false; //260523 hbk Phase 32 — E3 reference algorithm
+                }
+
+                double r0 = rows[0].D, c0 = cols[0].D; //260523 hbk Phase 32 — E3 reference algorithm
+                double r1 = rows[1].D, c1 = cols[1].D; //260523 hbk Phase 32 — E3 reference algorithm
+                double r2 = rows[2].D, c2 = cols[2].D; //260523 hbk Phase 32 — E3 reference algorithm
+                double r3 = rows[3].D, c3 = cols[3].D; //260523 hbk Phase 32 — E3 reference algorithm
+
+                // Edge1Len(P0→P1) vs Edge2Len(P1→P2) — 긴 변 판별 (사용자 reference 스크립트)
+                double edge1Len = Math.Sqrt((r1 - r0) * (r1 - r0) + (c1 - c0) * (c1 - c0)); //260523 hbk Phase 32 — E3 reference algorithm
+                double edge2Len = Math.Sqrt((r2 - r1) * (r2 - r1) + (c2 - c1) * (c2 - c1)); //260523 hbk Phase 32 — E3 reference algorithm
+
+                if (edge1Len >= edge2Len) //260523 hbk Phase 32 — E3 reference algorithm
+                {
+                    // 긴변 = P0→P1 (LongEdge1), opposite = P3→P2 (LongEdge2, 평행)
+                    longEdge1AR = r0; longEdge1AC = c0; longEdge1BR = r1; longEdge1BC = c1; //260523 hbk Phase 32 — E3 reference algorithm
+                    longEdge2AR = r3; longEdge2AC = c3; longEdge2BR = r2; longEdge2BC = c2; //260523 hbk Phase 32 — E3 reference algorithm
+                }
+                else //260523 hbk Phase 32 — E3 reference algorithm
+                {
+                    // 긴변 = P1→P2 (LongEdge1), opposite = P0→P3 (LongEdge2, 평행)
+                    longEdge1AR = r1; longEdge1AC = c1; longEdge1BR = r2; longEdge1BC = c2; //260523 hbk Phase 32 — E3 reference algorithm
+                    longEdge2AR = r0; longEdge2AC = c0; longEdge2BR = r3; longEdge2BC = c3; //260523 hbk Phase 32 — E3 reference algorithm
+                }
+
+                // Step 5: gen_contour_polygon_xld(LongEdge) → fit_line_contour_xld('tukey') → atan2 로 refined Phi
+                HOperatorSet.GenContourPolygonXld(out longEdgeContour, //260523 hbk Phase 32 — E3 reference algorithm
+                    new HTuple(longEdge1AR, longEdge1BR), //260523 hbk Phase 32 — E3 reference algorithm
+                    new HTuple(longEdge1AC, longEdge1BC)); //260523 hbk Phase 32 — E3 reference algorithm
+
+                HTuple rowBegin, colBegin, rowEnd, colEnd, lineNr, lineNc, lineDist; //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.FitLineContourXld(longEdgeContour, "tukey", -1, 0, 5, 2, //260523 hbk Phase 32 — E3 reference algorithm
+                    out rowBegin, out colBegin, out rowEnd, out colEnd, //260523 hbk Phase 32 — E3 reference algorithm
+                    out lineNr, out lineNc, out lineDist); //260523 hbk Phase 32 — E3 reference algorithm
+
+                phi = Math.Atan2(rowEnd.D - rowBegin.D, colEnd.D - colBegin.D); //260523 hbk Phase 32 — E3 reference algorithm: refined Phi from fit_line direction
+
+                // Step 6: PhiPerp = phi + π/2 → 중심 통과 측정선 양 끝 (center ± crossLen)
+                double phiPerp = phi + Math.PI / 2.0; //260523 hbk Phase 32 — E3 reference algorithm
+                double sinPP = Math.Sin(phiPerp); //260523 hbk Phase 32 — E3 reference algorithm
+                double cosPP = Math.Cos(phiPerp); //260523 hbk Phase 32 — E3 reference algorithm
+                measureRow1 = centerRow - crossLen * sinPP; //260523 hbk Phase 32 — E3 reference algorithm
+                measureCol1 = centerCol - crossLen * cosPP; //260523 hbk Phase 32 — E3 reference algorithm
+                measureRow2 = centerRow + crossLen * sinPP; //260523 hbk Phase 32 — E3 reference algorithm
+                measureCol2 = centerCol + crossLen * cosPP; //260523 hbk Phase 32 — E3 reference algorithm
+
+                // Step 7: intersection_contours_xld(measureLine, LargestRect, 'all') → 교점 2개
+                HOperatorSet.GenContourPolygonXld(out measureLineContour, //260523 hbk Phase 32 — E3 reference algorithm
+                    new HTuple(measureRow1, measureRow2), //260523 hbk Phase 32 — E3 reference algorithm
+                    new HTuple(measureCol1, measureCol2)); //260523 hbk Phase 32 — E3 reference algorithm
+
+                HTuple iR, iC, isOverlap; //260523 hbk Phase 32 — E3 reference algorithm
+                HOperatorSet.IntersectionContoursXld(measureLineContour, largestRect, "all", out iR, out iC, out isOverlap); //260523 hbk Phase 32 — E3 reference algorithm
+
+                if (iR.Length < 2) //260523 hbk Phase 32 — E3 reference algorithm
+                {
+                    error = "measure line intersects LargestRect at " + iR.Length + " point(s) (expected ≥ 2)"; //260523 hbk Phase 32 — E3 reference algorithm
+                    return false; //260523 hbk Phase 32 — E3 reference algorithm
+                }
+
+                int1Row = iR[0].D; int1Col = iC[0].D; //260523 hbk Phase 32 — E3 reference algorithm
+                int2Row = iR[1].D; int2Col = iC[1].D; //260523 hbk Phase 32 — E3 reference algorithm
+                return true; //260523 hbk Phase 32 — E3 reference algorithm
+            }
+            catch (Exception ex) //260523 hbk Phase 32 — E3 reference algorithm: HALCON 예외 → false (시퀀스 스레드 무크래시)
+            {
+                error = ex.Message; //260523 hbk Phase 32 — E3 reference algorithm
+                return false; //260523 hbk Phase 32 — E3 reference algorithm
+            }
+            finally //260523 hbk Phase 32 — E3 reference algorithm: 모든 HObject Dispose (T-32-02 패턴)
+            {
+                if (rect != null) { try { rect.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (imageReduced != null) { try { imageReduced.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (edges != null) { try { edges.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (unionContours != null) { try { unionContours.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (rectXld != null) { try { rectXld.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (largestRect != null) { try { largestRect.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (longEdgeContour != null) { try { longEdgeContour.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+                if (measureLineContour != null) { try { measureLineContour.Dispose(); } catch { } } //260523 hbk Phase 32 — E3 reference algorithm
+            }
+        }
+
+        /// <summary>
         /// 단축 방향 선분과 사각형 XLD 컨투어의 교점 2개를 산출한다 (E3 단축 거리 측정용).
         /// 교점 0개 또는 1개이면 false (CONTEXT.md 미해결#3 안전 종결).
         /// rectContour 는 호출측(E3 측정 클래스)이 소유/Dispose — 본 메서드는 Dispose 하지 않는다.

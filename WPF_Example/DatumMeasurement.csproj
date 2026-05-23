@@ -231,7 +231,7 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundAngleMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E2-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterCDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E9-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterBDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E10-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundLongAxisDistanceMeasurement.cs" /> <!--260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundShortAxisDistanceMeasurement.cs" /> <!--260523 hbk Phase 32 — E3 단축 환원-->
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />

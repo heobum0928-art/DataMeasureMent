@@ -470,7 +470,7 @@ namespace ReringProject.UI {
                             || item.Param is CompoundAngleMeasurement          //260519 hbk Phase 31 D-11
                             || item.Param is CompoundCenterCDistanceMeasurement //260519 hbk Phase 31 D-11
                             || item.Param is CompoundCenterBDistanceMeasurement //260519 hbk Phase 31 D-11
-                            || item.Param is CompoundLongAxisDistanceMeasurement; //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
+                            || item.Param is CompoundShortAxisDistanceMeasurement; //260523 hbk Phase 32 — E3 단축 환원
                         if (mParentWindow != null && mParentWindow.mainView != null)
                             mParentWindow.mainView.btn_rectRoi.IsEnabled = isRectRoiType; //260519 hbk Phase 31 CO-23.1-02
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)

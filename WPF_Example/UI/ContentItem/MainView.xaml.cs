@@ -292,7 +292,7 @@ namespace ReringProject.UI {
             if (cCenterC != null) { pRow = cCenterC.Rect_Row; pCol = cCenterC.Rect_Col; pLen1 = cCenterC.Rect_Length1; pLen2 = cCenterC.Rect_Length2; }
             var cCenterB = m as CompoundCenterBDistanceMeasurement; //260521 hbk Phase 32
             if (cCenterB != null) { pRow = cCenterB.Rect_Row; pCol = cCenterB.Rect_Col; pLen1 = cCenterB.Rect_Length1; pLen2 = cCenterB.Rect_Length2; }
-            var cShort = m as CompoundLongAxisDistanceMeasurement; //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
+            var cShort = m as CompoundShortAxisDistanceMeasurement; //260523 hbk Phase 32 — E3 단축 환원
             if (cShort != null) { pRow = cShort.Rect_Row; pCol = cShort.Rect_Col; pLen1 = cShort.Rect_Length1; pLen2 = cShort.Rect_Length2; }
             if (pLen1 <= 0 || pLen2 <= 0) return result; //260521 hbk Phase 32 UAT — 미티칭 시 빈 리스트 반환 (기존 null 규칙 대체)
             result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
@@ -1394,7 +1394,7 @@ namespace ReringProject.UI {
                     if (cCenterC != null) { cCenterC.Rect_Row = mCenterRow; cCenterC.Rect_Col = mCenterCol; cCenterC.Rect_Phi = 0.0; cCenterC.Rect_Length1 = mHalfHeight; cCenterC.Rect_Length2 = mHalfWidth; }
                     var cCenterB = _editingMeasurement as CompoundCenterBDistanceMeasurement; //260521 hbk Phase 32
                     if (cCenterB != null) { cCenterB.Rect_Row = mCenterRow; cCenterB.Rect_Col = mCenterCol; cCenterB.Rect_Phi = 0.0; cCenterB.Rect_Length1 = mHalfHeight; cCenterB.Rect_Length2 = mHalfWidth; }
-                    var cShort = _editingMeasurement as CompoundLongAxisDistanceMeasurement; //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
+                    var cShort = _editingMeasurement as CompoundShortAxisDistanceMeasurement; //260523 hbk Phase 32 — E3 단축 환원
                     if (cShort != null) { cShort.Rect_Row = mCenterRow; cShort.Rect_Col = mCenterCol; cShort.Rect_Phi = 0.0; cShort.Rect_Length1 = mHalfHeight; cShort.Rect_Length2 = mHalfWidth; }
                     //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 순차 4-ROI 드로잉: 인덱스 0=EdgeA1, 1=EdgeB1, 2=EdgeA2, 3=EdgeB2
                     var ali = _editingMeasurement as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 I9/I10-redesign
@@ -1575,7 +1575,7 @@ namespace ReringProject.UI {
                 if (selParam is CompoundAngleMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
                 if (selParam is CompoundCenterCDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
                 if (selParam is CompoundCenterBDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
-                if (selParam is CompoundLongAxisDistanceMeasurement) return (MeasurementBase)selParam; //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
+                if (selParam is CompoundShortAxisDistanceMeasurement) return (MeasurementBase)selParam; //260523 hbk Phase 32 — E3 단축 환원
             }
             // fallback — dataGrid 행 선택 경로
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
@@ -1590,7 +1590,7 @@ namespace ReringProject.UI {
                         if (m is CompoundAngleMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                         if (m is CompoundCenterCDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                         if (m is CompoundCenterBDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
-                        if (m is CompoundLongAxisDistanceMeasurement) return m; //260521 hbk Phase 32 UAT — CompoundShortAxisDistance → CompoundLongAxisDistance
+                        if (m is CompoundShortAxisDistanceMeasurement) return m; //260523 hbk Phase 32 — E3 단축 환원
                     }
                 }
             }

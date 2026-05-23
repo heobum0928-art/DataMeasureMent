@@ -260,13 +260,14 @@ Plans:
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | 28. FAI CircleDiameter + Datum Circle | 4/4 | ✅ Complete | 2026-05-08 |
 | 31. Datum 기준 측정 알고리즘 확장 | 0/TBD | 🔄 UAT 진행 | - |
-| 32. 측정 알고리즘 SOP 재정합 | 8/8 | ✅ Complete | 2026-05-21 |
+| 32. 측정 알고리즘 SOP 재정합 | 8/8 | ✅ Complete (UAT PASS) | 2026-05-23 |
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |
 
 ---
 
+*v1.1 roadmap updated: 2026-05-23 — Phase 32 SIGNED OFF (32-UAT.md 전 항목 PASS, 사용자 approved). gsd-verifier goal-backward 검증 6/6 truths + 14 artifacts + 10 key_links + 8 threat mitigations 모두 확인. UAT 직전 quick 260523-j72 가 E3 알고리즘을 사용자 reference HALCON 일치화(b3dd847/c95982d/af07972). Phase 32 complete.*
 *v1.1 roadmap updated: 2026-05-21 — Phase 32 추가 (측정 알고리즘 SOP 재정합 — I9/I10/E2/E9/E10 재작성 + E3 신규). gsd-sdk phase.add CLI 가 다시 phase_number 오산정(1) → 수동 보정 (다음 정수 = 32).*
 *v1.1 roadmap updated: 2026-05-19 — Phase 31 추가 (Datum 기준 측정 알고리즘 확장 — E8/D1/I9·I10/CompoundAngle/ArcEdgeDistance + CO-23.1-01·02 흡수). gsd-sdk phase.add CLI 가 phase_number 오산정(1) → 수동 보정 (다음 정수 = 31).*
 *v1.1 roadmap updated: 2026-05-19 — Phase 23.1 SIGNED OFF (23.1-UAT.md 8/8 PASS, 대화형 UAT). Phase 23 도 동시 최종 sign-off (D-14). CO-23-01 resolved, CO-23.1-01·02 → 신규 알고리즘 Phase.*

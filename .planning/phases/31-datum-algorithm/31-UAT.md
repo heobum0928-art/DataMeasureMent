@@ -16,13 +16,16 @@ test_results:
   test_9_msbuild: PASS (자동)
 carry_overs:
   - id: CO-31-01
+    status: resolved
+    resolved_date: 2026-05-26
+    resolved_by: quick-260526-ilp
+    commits: [daeb195, 66b20bc, 35fe244]
     description: |
-      PropertyGrid 양방향 즉시 갱신 미작동 — INotifyPropertyChanged 미구현 통한 양 방향 동기화 누락
-      (a) Tree → PropertyGrid: 트리 노드 선택 시 PropertyGrid 가 즉시 새 노드 값으로 안 바뀜 (Test 8 B 부수 발견)
-      (b) PropertyGrid → Tree: PropertyGrid 에서 DatumName/ShotName/FAIName/MeasurementName 변경 시 트리 헤더에 즉시 반영 안 됨 (사용자 2026-05-26 추가 보고)
-      Root cause: DatumConfig.DatumName / ShotConfig.ShotName / FAIConfig.FAIName / MeasurementBase.MeasurementName 모두 plain `{ get; set; }` 자동 프로퍼티 — PropertyChanged 발화 부재.
-      InspectionListView.xaml L51 `EditableTextBlock Text="{Binding Name}"` 는 OneWay-effect 로 동작 (변경 푸시 없음).
-    candidate_disposition: v1.1 quick fix (Name 4종을 PropertyChanged 발화 setter 로 교체) 또는 Phase 22/26 흡수
+      PropertyGrid 양방향 즉시 갱신 미작동 — RESOLVED via quick 260526-ilp.
+      4 Param Name (DatumName/ShotName/FAIName/MeasurementName) → backing field + RaisePropertyChanged 패턴 교체 +
+      NodeViewModel ctor 에서 Param PropertyChanged 구독 + Node.Name 동기화 핸들러 추가 +
+      ShotName/FAIName [Browsable(false)] 제거하여 PropertyGrid 노출 일관화.
+      사용자 UAT 4/4 PASS (2026-05-26).
 ---
 
 # 31-UAT: Datum 기준 측정 알고리즘 확장 UAT

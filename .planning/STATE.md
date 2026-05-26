@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: planning_next
-stopped_at: Phase 33 (Side/Bottom InspectionSequence 마이그레이션) 신설 결정 — Phase 24 prerequisite. 코드 조사 결과 Side/Bottom 이 DatumConfigs 부재한 레거시 시퀀스 사용 중.
-last_updated: "2026-05-26T03:00:00.000Z"
-last_activity: 2026-05-26
+status: Phase 33 partial sign-off (코드 PASS, 실측 UAT 차단). v1.1 잔여 = Phase 34(Datum 듀얼 티칭) → Phase 35(Side/Bottom 실측 UAT+디버그) → 24 → 25 → 27.
+stopped_at: Phase 33 partial sign-off — 코드 변경 + msbuild PASS, 실측 UAT 차단(Side/Bottom Datum 검출 실패 + 이미지 갱신 회귀) → Phase 35 carry-over.
+last_updated: "2026-05-26T14:00:00.000Z"
+last_activity: 2026-05-26 - Phase 33 partial sign-off. Plan 33-01 (SequenceHandler) + 33-02 (INI 직렬화) 코드 완료, msbuild PASS, D-06 가드 코드 레벨 통과. 실측 UAT 중 Side/Bottom Datum 검출 실패 + 이미지 갱신 회귀 노출 → CO-33-02 / CO-33-03 / CO-33-04 carry-over Phase 35 신설 결정. Phase 34 (Datum 듀얼 티칭 이미지) 도 별도 신설 (CO-33-05).
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 53
-  completed_plans: 53
-  percent: 100
+  total_phases: 12
+  completed_phases: 9
+  total_plans: 48
+  completed_plans: 44
+  percent: 92
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 33 (Side/Bottom InspectionSequence 마이그레이션) — ⏭ NEXT, 신설 2026-05-26.
-근거: 코드 조사로 Side/Bottom 이 레거시 TopSequence/BottomSequence 사용 중 (DatumConfigs 부재) → Datum 형성 구조적으로 불가 → Phase 24 end-to-end 검증 prerequisite.
-Plan: TBD (~3 plans 예상 — 33-01 SequenceHandler 교체 / 33-02 Action 통합 + INI 마이그레이션 / 33-03 SIMUL UAT).
-Status: v1.1 잔여 phase = 33 → 24 → 25 → 27 (Phase 26 v1.2 이연).
-다음 = /gsd-discuss-phase 33 또는 /gsd-plan-phase 33.
+Phase: 33 (Side/Bottom InspectionSequence 마이그레이션) — ✅ PARTIAL SIGN-OFF 2026-05-26.
+완료: Plan 33-01 (SequenceHandler + 4 [Obsolete]) / Plan 33-02 (FIXTURE_SIDE/BOTTOM 직렬화) / Plan 33-03 Task 1 (msbuild PASS) + Task 6 (33-UAT.md partial).
+Carry-over → Phase 35: Side/Bottom 실측 UAT (CO-33-04) + Datum 검출 실패 디버그 (CO-33-03) + 이미지 갱신 회귀 (CO-33-02). Top 회귀/INI 라운드트립 실측 검증도 Phase 35 에서.
+별도 신설: Phase 34 — Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 (CO-33-05).
+다음 = /gsd-discuss-phase 34 또는 /gsd-discuss-phase 35.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
 Last activity: 2026-05-26 - Phase 33 신설 (Side/Bottom InspectionSequence 마이그레이션, Phase 24 prerequisite). 사용자 보고 "Side/Bottom datum 형성 안 됨" 코드 조사 결과 구조적 결함 확정 — 별도 phase 분리 결정.
 
@@ -299,4 +299,4 @@ Next action: 앱 재빌드 후 Phase 32 최종 UAT(32-06 Task 2) 수행. 절차 
 
 **Completed Phase:** 22 (image-dual-structure) — 2 plans — signed_off 2026-05-11T07:30:00Z (IMG-01+IMG-02, UAT 4/4 PASS)
 
-**Planned Phase:** 32 (측정 알고리즘 SOP 재정합) — 6 plans — 2026-05-21T05:50:13.568Z
+**Planned Phase:** 33 (Side/Bottom InspectionSequence 마이그레이션) — 3 plans — 2026-05-26T08:49:47.529Z

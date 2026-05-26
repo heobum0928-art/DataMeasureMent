@@ -27,8 +27,10 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 22: 이미지 이중화 구조** — ✅ signed off 2026-05-11 (IMG-01/IMG-02, 4/4 UAT PASS) ← 신설 2026-05-11
 - [x] **Phase 23: Top #1 A시리즈 Simul end-to-end** — ✅ 최종 sign-off 2026-05-19 (23.1-UAT.md 가 23-UAT.md supersede, D-14)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
-- [ ] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** ← 신설 2026-05-26 (Phase 24 prerequisite)
-- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Depends on Phase 33
+- [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26 (코드 PASS, 실측 UAT → Phase 35 carry-over)
+- [ ] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** ← 신설 2026-05-26 (가로축 2 ROI 이미지 + 세로축 1 ROI 이미지)
+- [ ] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** ← 신설 2026-05-26 (CO-33-02/03/04/06 통합, Phase 33 sign-off 완결 + Phase 24 prerequisite)
+- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Depends on Phase 35
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
 - [ ] **Phase 27: Side Inspection 확장** — LineToLineAngle + Side Fixture INI + PC2 분리 + Datum 2-image 지원 (D1, H5, Phase 999.1 흡수 2026-05-26)
 - [ ] ~~**Phase 26: 헝가리안 전체 리팩토링**~~ — **v1.2 로 이연 2026-05-26** (QUAL-01, 코드 정리 — POC 납기 후)
@@ -153,6 +155,56 @@ Plans:
 - [ ] 33-01-PLAN.md — SequenceHandler Side/Bottom InspectionSequence 교체 + 레거시 4 클래스 [Obsolete] (Wave 1)
 - [ ] 33-02-PLAN.md — InspectionRecipeManager 시퀀스별 FIXTURE 직렬화 확장 (FIXTURE_SIDE/BOTTOM, Top byte-identical) (Wave 2, depends on 33-01)
 - [ ] 33-03-PLAN.md — SIMUL UAT (msbuild + Side / Bottom Datum + Top 회귀 + INI 라운드트립) + sign-off (Wave 3, autonomous: false)
+
+---
+
+### Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 (신설 2026-05-26)
+**Goal**: VerticalTwoHorizontal 알고리즘의 2-image 변형 1종 추가 — 가로축 ROI 2개 (Horizontal_A + Horizontal_B) 는 이미지 1장, 세로축 ROI 1개 (Vertical) 는 이미지 2장에서 검출하여 Datum 좌표 결합.
+**Depends on**: Phase 33 (구조 마이그레이션 완료 — 코드 부분)
+**Background (Phase 33 carry-over CO-33-05)**:
+  - 기존 3 datum 타입 (TwoLineIntersect / CircleTwoHorizontal / VerticalTwoHorizontal) 모두 단일 이미지 전제
+  - 실제 검사 현장에서 가로축 ROI 와 세로축 ROI 가 동일 이미지에서 모두 잡히지 않는 케이스 존재
+  - 신규 algorithm 1종 추가 (예: `VerticalTwoHorizontalDualImage`) — 기존 1-image 타입은 회귀 0
+**Success Criteria**:
+  1. 신규 EDatumAlgorithm 값 1개 추가, AlgorithmType 콤보박스에 노출
+  2. DatumConfig 에 `TeachingImagePath_Vertical` 필드 추가 (ICustomTypeDescriptor 로 신규 타입일 때만 노출)
+  3. DatumFindingService 신규 분기 — 가로 ROI 2개는 image1, 세로 ROI 1개는 image2 에서 검출
+  4. 티칭 UI step 머신에 이미지 전환 step 추가 (Horizontal_A → Horizontal_B → image switch → Vertical)
+  5. Action_FAIMeasurement GrabOrLoadDatumImage 가 ROI 별 이미지 선택 (algorithm = 신규일 때 vertical ROI 는 image2)
+  6. INI 호환: TeachingImagePath_Vertical 미존재 시 "" 정규화 (기존 INI 회귀 0)
+  7. 기존 1-image 타입 회귀 0 (msbuild PASS + Top recipe 로드 확인)
+**Plans**: TBD (~3 plans 예상 — 34-01 DatumConfig 필드+enum / 34-02 DatumFindingService 분기+티칭 UI / 34-03 Action_FAIMeasurement+SIMUL UAT)
+
+---
+
+### Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강 (신설 2026-05-26)
+**Goal**: Phase 33 partial sign-off carry-over 통합 — Side/Bottom 시퀀스에서 Datum 티칭 + FAI 측정이 SIMUL 실제 검증을 통과하고, Bottom Shot 재로드 가능하도록 RecipeManager 의 per-sequence Shot ownership 모델을 보강한다. Phase 33 의 SequenceHandler/INI 마이그레이션을 운영 가능한 상태로 완결.
+**Depends on**: Phase 33 (partial sign-off, 코드 PASS)
+**Background (Phase 33 partial sign-off carry-over)**:
+  - **CO-33-02 (이미지 갱신 회귀)**: Shot 이미지 로드 후 Measurement 노드 이동 시 다른 이미지 표시. Edit 모드 최근 이미지 로드 시 ROI 이동 안 됨. Phase 32-06 fix (4ea5bcc/9c482dd) 가 cover 못한 시나리오. HalconViewerControl.LoadImage 캐시 조건 + LoadImage(HImage) 의 CurrentImagePath=null 로직 의심.
+  - **CO-33-03 (Side/Bottom Datum 검출 실패)**: 사용자 보고. Datum 노드 선택 → 이미지 로드(Z=1) → ROI 티칭 → 검사 → Datum 위치 못 찾음. 작업 순서는 올바름.
+  - **CO-33-04 (Side/Bottom 실측 SIMUL UAT)**: Phase 33 Test 2/3 (Side/Bottom SIMUL) + Test 4 (Top 회귀 실측) + Test 5 (INI 라운드트립 실측) — 모두 미수행
+  - **CO-33-06 (Bottom Shot 재로드 실패) — 아키텍처 보강**: RecipeManager.Shots 가 글로벌 단일 리스트. ShotConfig 에 OwnerSequenceId 필드 없어서 INI 저장 후 재로드 시 Bottom Shot 이 어느 시퀀스 트리 아래 붙일지 정보 부재. Phase 33 의 마이그레이션이 구조적으로 미완성 상태였음을 노출.
+**Scope (예상)**:
+  1. **CO-33-06 아키텍처 보강** (가장 무거운 작업):
+     - ShotConfig 에 `OwnerSequenceId` (또는 `OwnerSequenceName`) 필드 추가
+     - InspectionRecipeManager.AddShot(name, seqId) overload
+     - INI [SHOT_n] 섹션에 OwnerSequenceId 저장/로드
+     - RebuildInspectionActions(seqId) 가 글로벌 Shots 에서 해당 시퀀스 소유 Shot 만 필터링
+     - AddShotToSequence UI 핸들러가 seqNode.SequenceID 를 ShotConfig 에 전달
+     - 트리 재구축 시 OwnerSequenceId 기준 분기
+     - 기존 INI 호환: OwnerSequenceId 미존재 시 Top 폴백 (Phase 33 이전 동작 보존)
+  2. **CO-33-02 hotfix** (이미지 갱신 회귀): HalconViewerControl 이미지 갱신 보장 + CurrentImagePath 정상화
+  3. **CO-33-03 디버그** (Datum 검출 실패): CO-33-02 hotfix 후 재현. parentSeq resolution / DatumFindingService 분기 확인
+  4. **CO-33-04 SIMUL UAT 5종 통합 실행**: Side / Bottom / Top 회귀 / INI 라운드트립
+**Success Criteria**:
+  1. Bottom Shot 추가 후 INI 저장 → 재로드 → Bottom 시퀀스 트리에 Shot 정상 복원 (CO-33-06 핵심)
+  2. Side/Bottom 시퀀스에서 Datum 티칭 + FAI 측정 SIMUL 검증 PASS (Phase 33 Test 2/3)
+  3. Top 회귀 0 — Phase 23.1 sign-off 시점 동작과 100% 동일 (Phase 33 Test 4)
+  4. INI 라운드트립 — FIXTURE_SIDE/BOTTOM + 시퀀스별 SHOT 매핑 보존 (Phase 33 Test 5)
+  5. 이미지 갱신 회귀 해소 — Shot/FAI/Measurement 노드 간 전환 시 stale cache 없음 (CO-33-02)
+  6. msbuild Debug/x64 PASS, 신규 warning 0
+**Plans**: TBD (~4 plans 예상 — 35-01 OwnerSequenceId 아키텍처 / 35-02 이미지 갱신 hotfix / 35-03 Datum 디버그 / 35-04 통합 SIMUL UAT)
 
 ---
 
@@ -315,8 +367,10 @@ Plans:
 | 22. 이미지 이중화 구조 | 2/2 | ✅ Complete (signed off) | 2026-05-11 |
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
-| 33. Side/Bottom InspectionSequence 마이그레이션 | 0/3 | ⏳ Planned (Phase 24 prerequisite) | - |
-| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Phase 33 후) | - |
+| 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off (코드 PASS, UAT → Phase 35) | 2026-05-26 |
+| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 0/TBD | ⏳ Planned (CO-33-05) | - |
+| 35. Side/Bottom 실측 UAT + Phase 33 보강 | 0/TBD | ⏳ Planned (CO-33-02/03/04/06 통합, Phase 24 prerequisite) | - |
+| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Phase 35 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | ~~26. 헝가리안 전체 리팩토링~~ | — | ⏭ Deferred → v1.2 | (2026-05-26 이연) |

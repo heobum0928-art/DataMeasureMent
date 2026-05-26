@@ -100,8 +100,10 @@ namespace ReringProject.Sequence {
         public bool IsPass { get; set; }
 
         //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
+        //260526 hbk CO-31-01 — [Browsable(false)] 제거 + [Category] 추가로 PropertyGrid 노출 (DatumName/MeasurementName 과 일관성).
+        //  기존 Btn_RenameFAI_Click 버튼은 그대로 작동 — 양쪽 모두 동일 setter 호출.
         private string _faiName;
-        [Browsable(false)]
+        [Category("FAI|Identity")]
         public string FAIName {
             get { return _faiName; }
             set {

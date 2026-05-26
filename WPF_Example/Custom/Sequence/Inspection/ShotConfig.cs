@@ -31,8 +31,9 @@ namespace ReringProject.Sequence {
         public List<FAIConfig> FAIList { get; private set; } = new List<FAIConfig>();
 
         //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
+        //260526 hbk CO-31-01 — [Browsable(false)] 제거 + [Category] 추가로 PropertyGrid 노출 (DatumName/MeasurementName 과 일관성)
         private string _shotName;
-        [Browsable(false)]
+        [Category("Shot|Identity")]
         public string ShotName {
             get { return _shotName; }
             set {

@@ -78,6 +78,52 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //260526 hbk Phase 33 — 시퀀스별 InspectionSequence 해석 — Side/Bottom DatumConfigs 라운드트립 (D-06 정밀 가드: Top 폴백 시 기존 동작 byte-identical)
+        private InspectionSequence ResolveFixtureSequence(ESequence seqId) {
+            try {
+                var seq = SystemHandler.Handle.Sequences[seqId] as InspectionSequence;
+                return seq;
+            } catch {
+                return null;
+            }
+        }
+
+        //260526 hbk Phase 33 — 시퀀스별 FIXTURE 저장 헬퍼 (SC#3, Side/Bottom 라운드트립)
+        private void SaveFixtureForSequence(IniFile saveFile, ESequence seqId, string sectionPrefix) {
+            var seq = ResolveFixtureSequence(seqId);
+            if (seq == null) {
+                saveFile[sectionPrefix]["DisplayName"] = "";
+                saveFile[sectionPrefix]["DatumCount"] = 0;
+                return;
+            }
+            saveFile[sectionPrefix]["DisplayName"] = seq.GetDisplayName() ?? "";
+            saveFile[sectionPrefix]["DatumCount"] = seq.DatumConfigs.Count;
+            for (int d = 0; d < seq.DatumConfigs.Count; d++) {
+                string datumSection = $"{sectionPrefix}_DATUM_{d}";
+                seq.DatumConfigs[d].Save(saveFile, datumSection);
+            }
+        }
+
+        //260526 hbk Phase 33 — 시퀀스별 FIXTURE 로드 헬퍼 (SC#3, Side/Bottom 라운드트립). 섹션 부재 시 빈 DatumConfigs 로 초기화 (기존 INI 회귀 0)
+        private void LoadFixtureForSequence(IniFile loadFile, ESequence seqId, string sectionPrefix) {
+            var seq = ResolveFixtureSequence(seqId);
+            if (seq == null) return;
+            seq.DatumConfigs.Clear();
+            if (!loadFile.ContainsSection(sectionPrefix)) {
+                // 기존 INI (Side/Bottom FIXTURE 섹션 부재) — 빈 DatumConfigs 유지 (회귀 0)
+                return;
+            }
+            seq.DisplayName = loadFile[sectionPrefix]["DisplayName"].ToString() ?? "";
+            int datumCount = loadFile[sectionPrefix]["DatumCount"].ToInt();
+            if (datumCount < 0) datumCount = 0;
+            for (int d = 0; d < datumCount; d++) {
+                string datumSection = $"{sectionPrefix}_DATUM_{d}";
+                if (!loadFile.ContainsSection(datumSection)) continue;
+                var datum = seq.AddDatum();
+                datum.Load(loadFile, datumSection);
+            }
+        }
+
         //260413 hbk Phase 6: INI 포맷 버전 감지 (D-22, T-06-08)
         private ERecipeFormatVersion DetectFormatVersion(IniFile iniFile) {
             if (iniFile.ContainsSection("FORMAT")) {
@@ -122,6 +168,10 @@ namespace ReringProject.Sequence {
                 saveFile["FIXTURE"]["DisplayName"] = "";
                 saveFile["FIXTURE"]["DatumCount"] = 0;
             }
+
+            //260526 hbk Phase 33 — Side/Bottom InspectionSequence DatumConfigs 직렬화 (SC#3 INI 라운드트립)
+            SaveFixtureForSequence(saveFile, ESequence.Side, "FIXTURE_SIDE");
+            SaveFixtureForSequence(saveFile, ESequence.Bottom, "FIXTURE_BOTTOM");
 
             saveFile["SHOTS"]["Count"] = Shots.Count;
 
@@ -192,6 +242,10 @@ namespace ReringProject.Sequence {
                     datum.Load(loadFile, datumSection);
                 }
             }
+
+            //260526 hbk Phase 33 — Side/Bottom InspectionSequence DatumConfigs 로드 (SC#3 라운드트립)
+            LoadFixtureForSequence(loadFile, ESequence.Side, "FIXTURE_SIDE");
+            LoadFixtureForSequence(loadFile, ESequence.Bottom, "FIXTURE_BOTTOM");
 
             // --- Shots ---
             if (!loadFile.ContainsSection("SHOTS")) return true;

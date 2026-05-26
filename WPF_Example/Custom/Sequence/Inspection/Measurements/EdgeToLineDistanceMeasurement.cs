@@ -15,9 +15,8 @@ namespace ReringProject.Sequence
     /// HALCON projection_pl 로 에지 중점을 기준선에 정사영해 수선의 발을 구하고 거리를 계산한다.
     /// 결과 단위: mm (pixelResolution 적용). Datum 1개(CTH) 가정 (D-01).
     /// </summary>
-    //260517 hbk Phase 23.1 D-09 — ICustomTypeDescriptor 추가 (PropertyGrid 에서 EdgeSelection 숨김 — D-08 고정값 사용자 노출 차단)
+    //260526 hbk quick-260526-kay — Phase 23.1 D-09 차단 해제: strip-loop 도입 후 First/Last 도 stripCount 점 누적 → 안전. ICustomTypeDescriptor 제거하여 PropertyGrid EdgeSelection 노출.
     public class EdgeToLineDistanceMeasurement : MeasurementBase, //260512 hbk Phase 23 ALG-01
-        System.ComponentModel.ICustomTypeDescriptor, //260517 hbk Phase 23.1 D-09
         IDatumOriginConsumer //260519 hbk Phase 31 D-03 — 소급 구현 (Action_FAIMeasurement 하드코딩 제거 전제조건)
     {
         public override string TypeName { get { return "EdgeToLineDistance"; } } //260512 hbk Phase 23 ALG-01
@@ -120,19 +119,16 @@ namespace ReringProject.Sequence
             var svc = new VisionAlgorithmService();
             double pr1, pc1, pr2, pc2;
             //260512 hbk Phase 23 ALG-01 — TryFitLine selection 인자 전달 (D-10 EdgeSelection 명시)
-            //260517 hbk Phase 23.1 D-08 — EdgeSelection "All" 고정 (CO-23-01 #1 구조적 차단).
-            //  FitLineContourXld 는 라인 피팅에 최소 2개 에지점 요구. "First"/"Last" 는 MeasurePos 가
-            //  단일 에지점 1개만 반환 → 라인 피팅 실패 → TryFitLine false → 측정 실패(UI '—').
-            //  ICustomTypeDescriptor(D-09)가 PropertyGrid 에서 EdgeSelection 을 숨겨도 레거시 INI 의
-            //  EdgeSelection=First 값이 로드될 수 있으므로, TryExecute 는 EdgeSelection 필드를 무시하고
-            //  무조건 리터럴 "All" 을 전달한다.
+            //260526 hbk quick-260526-kay — Phase 23.1 D-08 차단 해제: strip-loop(stripCount 기본 20)가
+            //  First/Last 도 strip 마다 1점씩 누적 → 라인 피팅 충분. 사용자 선택값 사용 안전.
+            //  edgeCount<2 안전 가드는 VisionAlgorithmService.TryFitLine L161-166 에 유지.
             if (!svc.TryFitLine(image,
                 Point_Row, Point_Col, Point_Phi, Point_Length1, Point_Length2,
                 datumTransform,
                 EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
                 EdgeDirection, EdgePolarity,
                 out pr1, out pc1, out pr2, out pc2, out error,
-                "All")) //260517 hbk Phase 23.1 D-08 (was: EdgeSelection)
+                EdgeSelection)) //260526 hbk quick-260526-kay — 사용자 선택값 복원 (was 리터럴 "All")
             {
                 return false;
             }
@@ -276,43 +272,7 @@ namespace ReringProject.Sequence
             return true;
         }
 
-        //260517 hbk Phase 23.1 D-09 — PropertyGrid EdgeSelection 숨김 (D-08 고정값 사용자 노출 차단)
-        //  PropertyTools.Wpf PropertyGrid 는 무인자 GetProperties() 만 호출 → 무인자 오버로드가 진짜 진입점.
-        //  ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0.
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) //260517 hbk Phase 23.1 D-09
-        {
-            return BuildFilteredProperties(attributes);
-        }
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties() //260517 hbk Phase 23.1 D-09
-        {
-            return BuildFilteredProperties(null);
-        }
-        private System.ComponentModel.PropertyDescriptorCollection BuildFilteredProperties(System.Attribute[] attrs) //260517 hbk Phase 23.1 D-09
-        {
-            //260517 hbk Phase 23.1 D-09 — [Browsable(false)] ComboBox 소스 래퍼 강제 포함 (Phase 18 CO-01 패턴).
-            //  EdgeSelectionList 도 화이트리스트에 포함 — hideFunc 로 숨기되, keepList 에 넣어야
-            //  PropertyTools.Wpf 가 EdgeDirection/EdgePolarity 의 ComboBox 를 정상 렌더한다.
-            var sourceNames = new System.Collections.Generic.HashSet<string>
-            {
-                nameof(EdgeDirectionList),
-                nameof(EdgePolarityList),
-                nameof(EdgeSelectionList),
-                nameof(MeasureAxisList), //260517 hbk l5e-03 — MeasureAxis ComboBox 소스 강제 포함 (Browsable(false) 래퍼)
-            };
-            return DynamicPropertyHelper.FilterProperties(
-                this, attrs,
-                name => name == "EdgeSelection" || name == "EdgeSelectionList", //260517 hbk Phase 23.1 D-09 — EdgeSelection 행 + List 래퍼 둘 다 숨김
-                sourceNames);
-        }
-        public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); } //260517 hbk Phase 23.1 D-09
-        public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); } //260517 hbk Phase 23.1 D-09
-        public string GetComponentName() { return System.ComponentModel.TypeDescriptor.GetComponentName(this, true); } //260517 hbk Phase 23.1 D-09
-        public System.ComponentModel.TypeConverter GetConverter() { return System.ComponentModel.TypeDescriptor.GetConverter(this, true); } //260517 hbk Phase 23.1 D-09
-        public System.ComponentModel.EventDescriptor GetDefaultEvent() { return System.ComponentModel.TypeDescriptor.GetDefaultEvent(this, true); } //260517 hbk Phase 23.1 D-09
-        public System.ComponentModel.PropertyDescriptor GetDefaultProperty() { return System.ComponentModel.TypeDescriptor.GetDefaultProperty(this, true); } //260517 hbk Phase 23.1 D-09
-        public object GetEditor(System.Type editorBaseType) { return System.ComponentModel.TypeDescriptor.GetEditor(this, editorBaseType, true); } //260517 hbk Phase 23.1 D-09
-        public System.ComponentModel.EventDescriptorCollection GetEvents(System.Attribute[] attributes) { return System.ComponentModel.TypeDescriptor.GetEvents(this, attributes, true); } //260517 hbk Phase 23.1 D-09
-        public System.ComponentModel.EventDescriptorCollection GetEvents() { return System.ComponentModel.TypeDescriptor.GetEvents(this, true); } //260517 hbk Phase 23.1 D-09
-        public object GetPropertyOwner(System.ComponentModel.PropertyDescriptor pd) { return this; } //260517 hbk Phase 23.1 D-09
+        //260526 hbk quick-260526-kay — Phase 23.1 D-09 ICustomTypeDescriptor 구현 8 메서드 + BuildFilteredProperties 삭제.
+        //  strip-loop 도입으로 D-08 차단 근거 무효화 → UI 노출 복원. PropertyGrid 가 EdgeSelection 정상 표시.
     }
 }

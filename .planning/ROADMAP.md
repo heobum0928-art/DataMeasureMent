@@ -148,7 +148,11 @@ Plans:
   2. Side / Bottom 노드에서 Datum 추가 + 티칭 + FAI 측정 정상 작동
   3. INI Save/Load 라운드트립 유지 (Side/Bottom recipe 호환)
   4. msbuild Debug/x64 PASS, 신규 warning 0
-**Plans**: TBD (~3 plans 예상 — 33-01 SequenceHandler 교체 / 33-02 Action 통합 + INI 마이그레이션 / 33-03 SIMUL UAT)
+**Plans**: 3 plans
+Plans:
+- [ ] 33-01-PLAN.md — SequenceHandler Side/Bottom InspectionSequence 교체 + 레거시 4 클래스 [Obsolete] (Wave 1)
+- [ ] 33-02-PLAN.md — InspectionRecipeManager 시퀀스별 FIXTURE 직렬화 확장 (FIXTURE_SIDE/BOTTOM, Top byte-identical) (Wave 2, depends on 33-01)
+- [ ] 33-03-PLAN.md — SIMUL UAT (msbuild + Side / Bottom Datum + Top 회귀 + INI 라운드트립) + sign-off (Wave 3, autonomous: false)
 
 ---
 
@@ -311,7 +315,7 @@ Plans:
 | 22. 이미지 이중화 구조 | 2/2 | ✅ Complete (signed off) | 2026-05-11 |
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
-| 33. Side/Bottom InspectionSequence 마이그레이션 | 0/TBD | ⏳ Planned (Phase 24 prerequisite) | - |
+| 33. Side/Bottom InspectionSequence 마이그레이션 | 0/3 | ⏳ Planned (Phase 24 prerequisite) | - |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Phase 33 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |

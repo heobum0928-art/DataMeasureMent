@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 33 (Side/Bottom InspectionSequence 마이그레이션) — ✅ PARTIAL SIGN-OFF 2026-05-26.
 완료: Plan 33-01 (SequenceHandler + 4 [Obsolete]) / Plan 33-02 (FIXTURE_SIDE/BOTTOM 직렬화) / Plan 33-03 Task 1 (msbuild PASS) + Task 6 (33-UAT.md partial).
-Carry-over → Phase 35: Side/Bottom 실측 UAT (CO-33-04) + Datum 검출 실패 디버그 (CO-33-03) + 이미지 갱신 회귀 (CO-33-02). Top 회귀/INI 라운드트립 실측 검증도 Phase 35 에서.
+Carry-over → Phase 35: Side/Bottom 실측 UAT (CO-33-04) + Datum 검출 실패 디버그 (CO-33-03) + 이미지 갱신 회귀 (CO-33-02) + Bottom Shot 재로드 실패 / OwnerSequenceId 아키텍처 보강 (CO-33-06). Top 회귀/INI 라운드트립 실측 검증도 Phase 35 에서.
 별도 신설: Phase 34 — Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 (CO-33-05).
 다음 = /gsd-discuss-phase 34 또는 /gsd-discuss-phase 35.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토

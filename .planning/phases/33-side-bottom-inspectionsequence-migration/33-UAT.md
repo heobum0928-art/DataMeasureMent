@@ -71,7 +71,7 @@ not_tested: 2
 |---|---|---|
 | **CO-33-01** | Bottom Multi-Die 자동 FAI 매핑 (D-03 Option B = Die_i_X/Y/Angle 3 FAI) | **v1.2 이연** (Bottom 도메인 작업) |
 | **CO-33-02** | 이미지 갱신 회귀 (Measurement/Edit 모드 stale cache) | **→ Phase 35** (디버그+hotfix) |
-| **CO-33-03** | Side/Bottom Datum 검출 실패 (사용자 보고 Test 2/3) | **→ Phase 35** (디버그+hotfix) |
+| **CO-33-03** | ~~Side/Bottom~~ Datum 검출 실패 — **2026-05-26 추가 보고: Top 도 동일 재현. 다중 이미지 Load 시나리오에서 Top/Side/Bottom 동시 차단** (baseline 회귀 또는 다중-Load 시나리오 신규 노출) | **→ Phase 35** Wave 1 최우선 |
 | **CO-33-04** | Side/Bottom 실측 SIMUL UAT (Test 2/3 재검증 + Test 4 Top 회귀 + Test 5 INI 라운드트립) | **→ Phase 35** sign-off 조건 |
 | **CO-33-05** | Phase 34 — Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 (가로축 2 ROI + 세로축 1 ROI 별도 이미지) | **→ Phase 34** (별도 신설) |
 | **CO-33-06** | Bottom Shot 재로드 실패 — RecipeManager.Shots 글로벌 리스트에 per-sequence ownership 누락. ShotConfig.OwnerSequenceId 필드 + INI 직렬화 + 재로드 트리 분기 필요 (아키텍처 보강) | **→ Phase 35** (Phase 33 마이그레이션 미완성 보강) |

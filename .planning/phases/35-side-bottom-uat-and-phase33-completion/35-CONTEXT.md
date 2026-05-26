@@ -58,10 +58,15 @@
 
 ### D. SIMUL UAT 범위 및 순서
 
-- **D-D1 (locked):** 아키텍처 → hotfix → UAT 순서
-  1. Wave 1: OwnerSequenceId 아키텍처 구현 + Bottom Shot 재로드 단위 검증
-  2. Wave 2: 이미지 갱신 hotfix + Datum 검출 재검증
-  3. Wave 3: Phase 33 Test 2/3/4/5 통합 SIMUL UAT
+- **D-D1 (locked, 2026-05-26 업데이트):** **이미지 hotfix 최우선** → 아키텍처 → UAT 순서로 변경
+  1. **Wave 1: 이미지 갱신 hotfix (CO-33-02) 최우선** — Top 도 동일 차단 중이므로 단일 root cause 가설 검증
+     - HalconViewerControl 캐시 로직 광범위 수정 (D-C1)
+     - 사용자 다중-Load 시나리오로 Top SIMUL 재검증 → Datum 검출 PASS 가 1차 sign-off 조건
+  2. Wave 2: OwnerSequenceName 아키텍처 (CO-33-06) — Wave 1 의 fix 가 CO-33-06 도 동시 해소하는지 먼저 확인. 별도 fix 필요 시만 진행
+  3. Wave 3: Phase 33 Test 2/3/4/5 통합 SIMUL UAT (Side/Bottom Datum + Top 회귀 + INI 라운드트립)
+
+**기존 D-D1 결정 (2026-05-26 디스커스 시점) 변경 사유:**
+사용자 추가 보고로 CO-33-03 (Datum 검출 실패) 가 Top 에서도 동일 재현 — Side/Bottom 특화 아님이 확정됨. 따라서 OwnerSequenceId 아키텍처가 단일 root cause 가 아닐 가능성 매우 높음. 이미지 캐시 hotfix 가 Top/Side/Bottom 동시 해소 가능성 — 최우선 검증.
 - **D-D2 (locked):** Phase 33 4 미수행 테스트 모두 Phase 35 에서 재수행
   - Phase 35 완료 시 Phase 33 도 retro 완전 sign-off
   - 33-UAT.md frontmatter `status: partial` → `signed_off` 로 retro 업데이트
@@ -145,13 +150,34 @@
 <specifics>
 ## Specific Ideas
 
-### 사용자 보고 증상 (CO-33-03 디버그 단서)
-- 작업 순서: Datum 노드 선택 → Load Image (Z=1) → ROI 티칭 → 검사 실행 → Datum 위치 못 찾음
-- 추가 보고: Shot 노드 이미지 로드 후 Measurement 이동 시 다른 이미지 표시 (CO-33-02)
-- 가설 검증 순서:
-  1. CO-33-02 (이미지 갱신) hotfix 우선 적용 → canvas 가 항상 최신 이미지 표시 보장
-  2. 사용자가 같은 시나리오 재실행 → CO-33-03 자연 해소 여부 확인
-  3. 미해소 시 추가 디버그 (parentSeq resolution / DatumFindingService 알고리즘 분기)
+### 사용자 보고 증상 (CO-33-03 디버그 단서 — 2026-05-26 업데이트)
+
+**핵심 발견 (2026-05-26 추가 보고):** **Top 시퀀스도 동일 증상 재현** — Side/Bottom 특화가 아님.
+
+사용자 재현 시나리오 (Top 에서도 동일 실패):
+1. Datum 노드 → Load Image (티칭 이미지)
+2. Datum 티칭 (ROI 설정, LastTeachSucceeded 확인)
+3. Shot 노드 → Load Image (측정 이미지)
+4. Measurement ROI 추가 + 설정
+5. **Datum 노드 재방문 → Load Image (다시)**
+6. **Shot 노드 재방문 → Load Image (다시)**
+7. 검사 실행 → **Datum 위치 못 찾음 (Top/Side/Bottom 동일)**
+
+**근본 원인 후보 (CO-33-02 단일 root cause 가설):**
+- 다중 이미지 Load 시 HalconViewerControl 의 `CurrentImagePath` / `CurrentImage` 상태와 ShotConfig._image 캐시 / DatumConfig.TeachingImagePath 간 동기화 갭
+- `LoadImage(string)` (캐시 hit 가능) ↔ `LoadImage(HImage)` (CurrentImagePath = null) 교차 호출 시 stale 상태 누적
+- ROI 좌표는 보존되지만 실제 검출 시점에 사용되는 이미지가 의도와 다름
+
+**가설 검증 순서:**
+1. **CO-33-02 (이미지 갱신) hotfix 가 단일 fix** 일 가능성 매우 높음 → 최우선 작업
+2. CO-33-02 hotfix 후 사용자 동일 시나리오 재현 → Top/Side/Bottom 동시 해소 여부 확인
+3. CO-33-06 (Bottom Shot 재로드) 도 동일 캐시 문제일 가능성 → CO-33-02 fix 후 별도 검증 필요
+4. 미해소 시 추가 디버그 (parentSeq / DatumFindingService 알고리즘 분기 / GrabOrLoadDatumImage 의 File.Exists 검증)
+
+**Phase 33 회귀 여부:**
+- Top 시퀀스가 Phase 23.1 (2026-05-19) sign-off 시점에는 동작했으나, 동일 다중-Load 시나리오로 검증되었는지 불명
+- 즉, **pre-existing baseline 버그가 사용자가 Phase 33 UAT 중 발견** 했을 가능성 (회귀가 아님)
+- 또는 Phase 33 이후 신규 노출 시나리오 — Phase 35 에서 git bisect 또는 코드 검토로 확인 필요
 
 ### 사용자 Z 축 매핑 명확화 (대화 2026-05-26)
 - "Bottom Datum z축 1 / Shot z축 2" — 이는 이미 Phase 22 IMG-02 + Phase 23 ALG-01 의 dual-image 구조 (TeachingImagePath + SimulImagePath) 와 일치

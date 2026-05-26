@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: planning_next
-stopped_at: Phase 31 SIGNED_OFF (측정 알고리즘 전체 완료). 다음 = 비-알고리즘 phase (22/24/25/26/27) 결정 또는 milestone close.
+stopped_at: v1.1 잔여 phase 결정 완료 (Phase 22 → 24 → 25 → 27, Phase 26 v1.2 이연). 다음 = /gsd-discuss-phase 22 또는 /gsd-plan-phase 22.
 last_updated: "2026-05-26T03:00:00.000Z"
 last_activity: 2026-05-26
 progress:
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 31 — datum-algorithm (sign-off 완료)
+**Current focus:** Phase 22 — image-dual-structure (다음 진행)
 
 ## Current Position
 
-Phase: 31 (datum-algorithm) — ✅ SIGNED_OFF 2026-05-26. 9 테스트 (7 측정 타입 + 2 UI carry-over + 1 빌드) 모두 PASS 또는 Phase 32 transfer 로 효력 발생. 측정 알고리즘 phase 전체(28/31/32) 완료.
-Plan: 5 of 5 완료 (31-01 ~ 31-05) + 31-UAT.md signed_off + 31-05-SUMMARY.md 작성
-Status: v1.1 milestone — 측정 알고리즘 전체 완료. 다음 행동지 = 비-알고리즘 phase 결정 (22 이미지 이중화 / 24 검사 워크플로우 / 25 결과 분석 / 26 헝가리안 / 27 Side Inspection) 또는 milestone close 검토. 신규 carry-over CO-31-01 (PropertyGrid 양방향 즉시 갱신 미작동) 처리 결정 필요.
+Phase: 22 (image-dual-structure) — ⏭ NEXT. v1.1 잔여 phase 결정 완료 (2026-05-26): Phase 22 → 24 → 25 → 27. Phase 26 (헝가리안) v1.2 이연.
+Plan: 2 plans planned (22-01 DatumConfig TeachingImagePath + 22-02 검증)
+Status: 측정 알고리즘 전체 완료 (28/31/32 SIGNED_OFF). CO-31-01 closed (quick 260526-ilp UAT PASS). 다음 = /gsd-discuss-phase 22 또는 /gsd-plan-phase 22 로 진행.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
 Last activity: 2026-05-26 - quick 260526-ilp CO-31-01 fix (PropertyGrid 양방향 즉시 갱신 — 4 Param Name PropertyChanged 발화 + NodeViewModel 구독, daeb195/66b20bc, SIMUL UAT 대기)
 

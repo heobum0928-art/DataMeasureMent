@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: planning_next
-stopped_at: Phase 22 retro-marked SIGNED_OFF + quick 260526-kay (EdgeSelection 차단 해제 3군) UAT PASS. 다음 = Phase 24 (검사 워크플로우 end-to-end) 진입.
+stopped_at: Phase 33 (Side/Bottom InspectionSequence 마이그레이션) 신설 결정 — Phase 24 prerequisite. 코드 조사 결과 Side/Bottom 이 DatumConfigs 부재한 레거시 시퀀스 사용 중.
 last_updated: "2026-05-26T03:00:00.000Z"
 last_activity: 2026-05-26
 progress:
@@ -21,15 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 24 — 검사 워크플로우 end-to-end (다음 진행)
+**Current focus:** Phase 33 — Side/Bottom InspectionSequence 마이그레이션 (Phase 24 prerequisite)
 
 ## Current Position
 
-Phase: 22 (image-dual-structure) — ✅ SIGNED_OFF 2026-05-11 retro-marked 2026-05-26 (ROADMAP 표 동기화). IMG-01/IMG-02 4/4 UAT PASS.
-Plan: 2/2 완료 (22-01 / 22-02). 추가 작업 없음.
-Status: v1.1 잔여 phase = 24 → 25 → 27 (Phase 26 v1.2 이연). 측정 알고리즘 + 이미지 이중화 모두 완료. quick 260526-kay (EdgeSelection 차단 해제) UAT PASS. 다음 = /gsd-discuss-phase 24 또는 /gsd-plan-phase 24.
+Phase: 33 (Side/Bottom InspectionSequence 마이그레이션) — ⏭ NEXT, 신설 2026-05-26.
+근거: 코드 조사로 Side/Bottom 이 레거시 TopSequence/BottomSequence 사용 중 (DatumConfigs 부재) → Datum 형성 구조적으로 불가 → Phase 24 end-to-end 검증 prerequisite.
+Plan: TBD (~3 plans 예상 — 33-01 SequenceHandler 교체 / 33-02 Action 통합 + INI 마이그레이션 / 33-03 SIMUL UAT).
+Status: v1.1 잔여 phase = 33 → 24 → 25 → 27 (Phase 26 v1.2 이연).
+다음 = /gsd-discuss-phase 33 또는 /gsd-plan-phase 33.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
-Last activity: 2026-05-26 - quick 260526-kay UAT PASS (사용자 3/3) + Phase 22 ROADMAP retro 동기화 (실제 sign-off 는 2026-05-11). 다음 = Phase 24.
+Last activity: 2026-05-26 - Phase 33 신설 (Side/Bottom InspectionSequence 마이그레이션, Phase 24 prerequisite). 사용자 보고 "Side/Bottom datum 형성 안 됨" 코드 조사 결과 구조적 결함 확정 — 별도 phase 분리 결정.
 
 ## Performance Metrics
 

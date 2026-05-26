@@ -27,7 +27,8 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 22: 이미지 이중화 구조** — ✅ signed off 2026-05-11 (IMG-01/IMG-02, 4/4 UAT PASS) ← 신설 2026-05-11
 - [x] **Phase 23: Top #1 A시리즈 Simul end-to-end** — ✅ 최종 sign-off 2026-05-19 (23.1-UAT.md 가 23-UAT.md supersede, D-14)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
-- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02)
+- [ ] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** ← 신설 2026-05-26 (Phase 24 prerequisite)
+- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Depends on Phase 33
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
 - [ ] **Phase 27: Side Inspection 확장** — LineToLineAngle + Side Fixture INI + PC2 분리 + Datum 2-image 지원 (D1, H5, Phase 999.1 흡수 2026-05-26)
 - [ ] ~~**Phase 26: 헝가리안 전체 리팩토링**~~ — **v1.2 로 이연 2026-05-26** (QUAL-01, 코드 정리 — POC 납기 후)
@@ -126,10 +127,35 @@ Plans:
 
 ---
 
+### Phase 33: Side/Bottom InspectionSequence 마이그레이션 (신설 2026-05-26, Phase 24 prerequisite)
+**Goal**: Side / Bottom 카메라 시퀀스를 레거시 `TopSequence` / `BottomSequence` 에서 신규 `InspectionSequence` 로 마이그레이션 — Side/Bottom 에서도 Multi-Datum + Dynamic FAI 구조 사용 가능하게 한다.
+**Depends on**: Phase 23.1
+**Background (코드 조사 2026-05-26)**:
+  - `SequenceHandler.RegisterSequences()` (L30-34):
+    - Top → `InspectionSequence` (Datum + dynamic FAI 지원, Phase 5/6 마이그레이션)
+    - Side → `TopSequence` (레거시) — DatumConfigs 필드 부재 → **Datum 형성 불가**
+    - Bottom → `BottomSequence` (레거시) — DatumConfigs 필드 부재 → **Datum 형성 불가**
+  - v1.0 마이그레이션 시 Top 만 InspectionSequence 로 마이그레이션, Side/Bottom 누락
+  - Side/Bottom 검사가 작동 안 하면 Phase 24 의 end-to-end 검증 자체가 불가능 → Phase 24 prerequisite 로 설정
+**Scope**:
+  1. SequenceHandler 의 Side/Bottom 시퀀스 클래스 교체 (TopSequence/BottomSequence → InspectionSequence)
+  2. 관련 Action 매핑 정리 (TopInspectionAction 의 Side 케이스 + BottomInspectionAction 의 Bottom 케이스 → Action_FAIMeasurement 사용 또는 InspectionSequence 기반 흐름으로 통합)
+  3. INI 하위호환: Side/Bottom 의 기존 recipe 가 새 구조에서도 정상 로드되도록 EnsurePerRoiDefaults 확장 (또는 마이그레이션 코드)
+  4. 레거시 TopSequence/BottomSequence/TopInspectionAction/BottomInspectionAction 클래스 deprecate 또는 정리
+  5. SIMUL UAT — Side / Bottom 각각에서 Datum 티칭 + FAI 측정 작동 검증
+**Success Criteria**:
+  1. Side / Bottom 시퀀스가 InspectionSequence 인스턴스로 등록됨 (grep 검증)
+  2. Side / Bottom 노드에서 Datum 추가 + 티칭 + FAI 측정 정상 작동
+  3. INI Save/Load 라운드트립 유지 (Side/Bottom recipe 호환)
+  4. msbuild Debug/x64 PASS, 신규 warning 0
+**Plans**: TBD (~3 plans 예상 — 33-01 SequenceHandler 교체 / 33-02 Action 통합 + INI 마이그레이션 / 33-03 SIMUL UAT)
+
+---
+
 ### Phase 24: 검사 워크플로우 end-to-end
 **Goal**: Datum 티칭 후 FAI 측정 후 결과 처리 전 과정이 SIMUL_MODE 와 카메라 쪽에서 오류 없이 완주하고,
 OK/NG/검사실패 각 결과에 따라 TCP 응답 + 이미지 저장 + UI 표시가 올바르게 분기된다
-**Depends on**: Phase 23
+**Depends on**: Phase 33 (Side/Bottom 마이그레이션 prerequisite, 신설 2026-05-26)
 **Requirements**: WF-01, WF-02
 **Success Criteria** (what must be TRUE):
   1. SIMUL_MODE 에서 시퀀스 1회 실행 → Datum 보정 → Shot N개 Grab → FAI M개 측정 → 종합 판정 오류 없이 완주
@@ -285,7 +311,8 @@ Plans:
 | 22. 이미지 이중화 구조 | 2/2 | ✅ Complete (signed off) | 2026-05-11 |
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
-| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned | - |
+| 33. Side/Bottom InspectionSequence 마이그레이션 | 0/TBD | ⏳ Planned (Phase 24 prerequisite) | - |
+| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Phase 33 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | ~~26. 헝가리안 전체 리팩토링~~ | — | ⏭ Deferred → v1.2 | (2026-05-26 이연) |
@@ -298,7 +325,8 @@ Plans:
 
 ---
 
-*v1.1 roadmap updated: 2026-05-26 — Phase 22 retro 동기화. 22-UAT.md 가 2026-05-11 에 이미 signed_off (4/4 PASS) 였으나 ROADMAP 표 미갱신 상태였음 — 표 및 체크박스 동기화 완료. quick 260526-kay (EdgeSelection 차단 해제 3군 일괄) UAT PASS (사용자 3/3 2026-05-26). v1.1 잔여 = 24 → 25 → 27.*
+*v1.1 roadmap updated: 2026-05-26 — Phase 33 신설 (Side/Bottom InspectionSequence 마이그레이션). 코드 조사 결과 SequenceHandler L30-34 에서 Top 만 InspectionSequence 사용, Side/Bottom 은 레거시 TopSequence/BottomSequence → DatumConfigs 부재 → Side/Bottom 에서 Datum 형성 구조적으로 불가. Phase 24 (검사 워크플로우 end-to-end) 의 prerequisite 로 등록 — Side/Bottom 검사가 안 되면 end-to-end 검증 불가. v1.1 잔여 = 33 → 24 → 25 → 27.*
+*v1.1 roadmap updated: 2026-05-26 — Phase 22 retro 동기화. 22-UAT.md 가 2026-05-11 에 이미 signed_off (4/4 PASS) 였으나 ROADMAP 표 미갱신 상태였음 — 표 및 체크박스 동기화 완료. quick 260526-kay (EdgeSelection 차단 해제 3군 일괄) UAT PASS (사용자 3/3 2026-05-26).*
 *v1.1 roadmap updated: 2026-05-26 — Phase 26 (헝가리안 리팩토링) v1.2 로 이연. 사용자 결정 — POC 납기 우선, 코드 정리 작업이라 운영 영향 0. Phase 27 (Side Inspection) 의 Depends on 을 Phase 26 → Phase 25 로 변경. v1.1 잔여 = Phase 22 + 24 + 25 + 27. v1.2 = CXP HW + 헝가리안 리팩토링.*
 *v1.1 roadmap updated: 2026-05-26 — Phase 27 Datum 2-image scope 구체화 (사용자 케이스: 동일 카메라, 광원+Z 만 변경한 이미지 2장 → 좌표계 변환 0). 코드 조사 결과 ShotConfig 가 이미 ZPosition + 4 광원 + 이미지 버퍼 보유 (인프라 재활용) — 변경 포인트는 "라인 검출 시 어떤 Shot 이미지 사용" 1점에 집중. 5 변경 사항 (DatumConfig 필드 + TryFindDatum 오버로드 + TryFindTwoLineIntersect 분기 + GrabOrLoadDatumImages 다중 반환 + UI ComboBox) 명문화. Plan 작성은 /gsd-plan-phase 27 실행 시점.*
 *v1.1 roadmap updated: 2026-05-26 — Phase 999.1 (Datum 2-image side 지원) → Phase 27 ABSORBED. Phase 27 스코프 4 항목 (LineToLineAngle + Side Fixture INI + PC2 분리 + Datum 2-image), plans 3→4 plans 로 확장. INI 호환성 + side 컨텍스트 동일 + backlog 원문 권장 근거.*

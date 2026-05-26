@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: planning_next
-stopped_at: Phase 32 SIGNED_OFF — 다음 phase 또는 milestone close 결정 대기
-last_updated: "2026-05-23T14:00:00.000Z"
-last_activity: 2026-05-23
+stopped_at: Phase 21 SIGNED_OFF retro-marked (21-03-SUMMARY.md 작성). 다음 phase 또는 milestone close 결정 대기.
+last_updated: "2026-05-26T00:00:00.000Z"
+last_activity: 2026-05-26
 progress:
   total_phases: 11
-  completed_phases: 7
-  total_plans: 45
-  completed_plans: 45
+  completed_phases: 8
+  total_plans: 46
+  completed_plans: 46
   percent: 100
 ---
 
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 32 — sop-i9-i10-e2-e9-e10-e3
+**Current focus:** Phase 21 — memory-image-buffer (retro 마무리)
 
 ## Current Position
 
-Phase: 32 (sop-i9-i10-e2-e9-e10-e3) — ✅ SIGNED_OFF (2026-05-23 UAT 전 항목 PASS, gsd-verifier 6/6 truths + 14 artifacts + 10 key_links + 8 threats 모두 확인)
-Plan: 8 of 8 완료 + 32-06 UAT SUMMARY + 32-UAT.md + 32-VERIFICATION.md 생성
-Status: v1.1 milestone — Phase 32 SIGNED_OFF. 다음 행동지 = 미완 phase 결정 (21 UAT 대기 / 22 이미지 이중화 planned / 24 검사 워크플로우 planned / 25 결과 분석 planned / 26 헝가리안 리팩토링 planned / 27 Side Inspection 확장 planned / 31 Datum 기준 측정 UAT 진행) 또는 milestone close.
+Phase: 21 (memory-image-buffer) — ✅ SIGNED_OFF retro-marked 2026-05-26 (실 sign-off 2026-05-11). 21-UAT.md 가 이미 signed_off + hotfix `a3d9545` 적용 상태였으나 21-03-SUMMARY.md / ROADMAP 표 / STATE.md 미갱신 — Plan 03 마무리 작성 완료.
+Plan: 3 of 3 완료 (21-VERIFICATION.md / 21-UAT.md / 21-03-SUMMARY.md)
+Status: v1.1 milestone — Phase 21 SIGNED_OFF retro. 다음 행동지 = 미완 phase 결정 (22 이미지 이중화 planned / 24 검사 워크플로우 planned / 25 결과 분석 planned / 26 헝가리안 리팩토링 planned / 27 Side Inspection 확장 planned / 31 Datum 기준 측정 UAT 진행) 또는 milestone close.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
-Last activity: 2026-05-23 - Phase 32 SIGNED_OFF (UAT PASS + gsd-verifier 통과) + quick 260523-j72 complete
+Last activity: 2026-05-26 - Phase 21 SIGNED_OFF retro-marked (21-03-SUMMARY.md 작성, ROADMAP 표 + STATE 갱신) — Phase 32 sign-off 후 잔여 정리
 
 ## Performance Metrics
 

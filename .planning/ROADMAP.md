@@ -23,7 +23,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 18: Carry-over 정리** — completed 2026-05-07
 - [x] **Phase 19: PropertyGrid 동적 노출 일반화** — completed 2026-05-07
 - [x] **Phase 20: 코드 스타일 정리** — signed off 2026-05-09
-- [ ] **Phase 21: 메모리 이미지 버퍼** — UAT 마무리 중 (2/3 plans done)
+- [x] **Phase 21: 메모리 이미지 버퍼** — ✅ signed off 2026-05-11 (BUF-01/BUF-02 4/4 AC, hotfix a3d9545)
 - [ ] **Phase 22: 이미지 이중화 구조** — 티칭 이미지(TeachingImagePath) / 검사 이미지(InspectionImagePath) 역할 분리 + INI 직렬화 (IMG-01, IMG-02) ← 신설 2026-05-11
 - [x] **Phase 23: Top #1 A시리즈 Simul end-to-end** — ✅ 최종 sign-off 2026-05-19 (23.1-UAT.md 가 23-UAT.md supersede, D-14)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
@@ -56,7 +56,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 Plans:
 - [x] 21-01-PLAN.md
 - [x] 21-02-PLAN.md
-- [ ] 21-03-PLAN.md — VERIFICATION + UAT sign-off (autonomous: false)
+- [x] 21-03-PLAN.md — VERIFICATION + UAT sign-off (signed_off 2026-05-11, hotfix a3d9545)
 
 ---
 
@@ -250,7 +250,7 @@ Plans:
 | 18. Carry-over 정리 | 7/7 | ✅ Complete | 2026-05-07 |
 | 19. PropertyGrid 동적 노출 일반화 | 2/2 | ✅ Complete | 2026-05-07 |
 | 20. 코드 스타일 정리 | 8/8 | ✅ Complete | 2026-05-09 |
-| 21. 메모리 이미지 버퍼 | 2/3 | 🔄 UAT 대기 | - |
+| 21. 메모리 이미지 버퍼 | 3/3 | ✅ Complete (signed off, hotfix a3d9545) | 2026-05-11 |
 | 22. 이미지 이중화 구조 | 0/2 | ⏳ Planned | - |
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
@@ -267,6 +267,7 @@ Plans:
 
 ---
 
+*v1.1 roadmap updated: 2026-05-26 — Phase 21 SIGNED OFF retro-marked. 21-UAT.md 가 2026-05-11 에 이미 signed_off (4 테스트 — Test 1 verified / Test 2 PASS hit=7 / Test 3 not_tested→Phase 23 / Test 4 PASS, hotfix a3d9545) 였으나 21-03-SUMMARY.md / ROADMAP 표 미갱신 상태였음 — Plan 03 마무리 작성 완료.*
 *v1.1 roadmap updated: 2026-05-23 — Phase 32 SIGNED OFF (32-UAT.md 전 항목 PASS, 사용자 approved). gsd-verifier goal-backward 검증 6/6 truths + 14 artifacts + 10 key_links + 8 threat mitigations 모두 확인. UAT 직전 quick 260523-j72 가 E3 알고리즘을 사용자 reference HALCON 일치화(b3dd847/c95982d/af07972). Phase 32 complete.*
 *v1.1 roadmap updated: 2026-05-21 — Phase 32 추가 (측정 알고리즘 SOP 재정합 — I9/I10/E2/E9/E10 재작성 + E3 신규). gsd-sdk phase.add CLI 가 다시 phase_number 오산정(1) → 수동 보정 (다음 정수 = 32).*
 *v1.1 roadmap updated: 2026-05-19 — Phase 31 추가 (Datum 기준 측정 알고리즘 확장 — E8/D1/I9·I10/CompoundAngle/ArcEdgeDistance + CO-23.1-01·02 흡수). gsd-sdk phase.add CLI 가 phase_number 오산정(1) → 수동 보정 (다음 정수 = 31).*

@@ -29,7 +29,7 @@ Phase: 31 (datum-algorithm) — ✅ SIGNED_OFF 2026-05-26. 9 테스트 (7 측정
 Plan: 5 of 5 완료 (31-01 ~ 31-05) + 31-UAT.md signed_off + 31-05-SUMMARY.md 작성
 Status: v1.1 milestone — 측정 알고리즘 전체 완료. 다음 행동지 = 비-알고리즘 phase 결정 (22 이미지 이중화 / 24 검사 워크플로우 / 25 결과 분석 / 26 헝가리안 / 27 Side Inspection) 또는 milestone close 검토. 신규 carry-over CO-31-01 (PropertyGrid 양방향 즉시 갱신 미작동) 처리 결정 필요.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
-Last activity: 2026-05-26 - Phase 31 SIGNED_OFF (Test 7 retro PASS + Test 8 사용자 PASS, 31-05-SUMMARY.md 작성, CO-31-01 신규 carry-over — PropertyGrid 양방향 갱신 미작동)
+Last activity: 2026-05-26 - quick 260526-ilp CO-31-01 fix (PropertyGrid 양방향 즉시 갱신 — 4 Param Name PropertyChanged 발화 + NodeViewModel 구독, daeb195/66b20bc, SIMUL UAT 대기)
 
 ## Performance Metrics
 
@@ -217,6 +217,7 @@ Recent decisions affecting current work:
 | 260518-vxp | 2026-05-18 | Phase 23.1 UAT 후속 4건 — #3 Datum Load 가 DatumConfig.TeachingImagePath 에 기록(IOfflineImageParam 구현 + LoadAndDisplay 2-인자 오버로드) / #4 자식 Measurement 보유 FAI 의 레거시 Edge탭 PropertyGrid 숨김 / #6 ROI 선택 노란색 하이라이트 + Rect/Circle/Polygon 명칭 라벨 / #Tol EvaluateJudgement 공차 절대값 처리(부호 무관 입력). 빌드 Rebuild 0 errors | 2260353, 9ff516b, 1fcaed6 | SIMUL UAT 대기 |
 | 260519-c08 | 2026-05-19 | Phase 23.1 UAT 2차 보충 3건 — #3-refresh Datum Load 후 PropertyGrid 즉시 갱신(RefreshParamEditor) / #6-a ROI 선택 하이라이트(진단 로그로 진짜 원인 확정 = 측정 ROI 복합키 'FAIName_측정명' vs FAIName exact 매칭 실패. 최종 모델: FAI 노드=하이라이트 없음, 측정 노드/결과행=단일 ROI 노란색) / #6-b 라벨 폰트 30% 축소. UAT 4라운드 반복 | 5a2a350, 79e483a, 51c441b, afb03d3, 33212cd, 5e3d2c5, 3c25579 | UAT PASS (사용자 3/3 2026-05-19) |
 | 260523-j72 | 2026-05-23 | E3 단축↔장축 revert + 교점 기반 알고리즘 교체 — 32-05 commit 3343250 (단축→장축) 전면 revert + 사용자 reference HALCON 스크립트(LargestRect XLD → get_contour_xld → Edge len 비교 → fit_line_contour_xld('tukey') refined Phi → intersection_contours_xld(measureLine, LargestRect, 'all')) 일치화. VisionAlgorithmService.TryFindShortAxisIntersections 신규 추가, CompoundShortAxisDistanceMeasurement 측정 클래스 단순화(HOperatorSet 직접 호출 0), CrossLen 프로퍼티 신규(기본 500). 오버레이 6개(FAI-LongEdge1/2, FAI-MeasureLine, FAI-Intersection1/2, FAI-DistLine). | b3dd847, c95982d, af07972 | UAT PASS (사용자 approved 2026-05-23) |
+| 260526-ilp | 2026-05-26 | CO-31-01 PropertyGrid 양방향 즉시 갱신 — 4 Param Name (DatumName/ShotName/FAIName/MeasurementName) 을 plain auto-property → backing field + RaisePropertyChanged 패턴 교체 + NodeViewModel ctor 에서 Param PropertyChanged 구독 + Node.Name 동기화 핸들러 추가. MeasurementName TypeName 폴백 보존. msbuild Debug/x64 PASS, 신규 warning 0. | daeb195, 66b20bc | SIMUL UAT 대기 |
 
 ### Pending Todos
 

@@ -33,12 +33,17 @@ namespace ReringProject.Sequence
         public string EdgePolarity { get; set; } = "DarkToLight"; //260519 hbk Phase 31 D-05
         [ItemsSourceProperty(nameof(EdgeDirectionList))] //260519 hbk Phase 31 D-05
         public string EdgeDirection { get; set; } = "TtoB"; //260519 hbk Phase 31 D-05
+        //260526 hbk quick-260526-kay — EdgeSelection 사용자 노출 (strip-loop 가 First/Last 도 stripCount 점 누적). INI 미존재 시 폴백 "All".
+        [ItemsSourceProperty(nameof(EdgeSelectionList))] //260526 hbk quick-260526-kay
+        public string EdgeSelection { get; set; } = "All"; //260526 hbk quick-260526-kay
 
         //260519 hbk Phase 31 D-05 — PropertyGrid ComboBox 옵션 래퍼
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 D-05
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } } //260519 hbk Phase 31 D-05
         [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 D-05
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } } //260519 hbk Phase 31 D-05
+        [PropertyTools.DataAnnotations.Browsable(false)] //260526 hbk quick-260526-kay
+        public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } } //260526 hbk quick-260526-kay
 
         //260519 hbk Phase 31 D-05 — datum 교점 좌표 runtime 주입 전용 (Action_FAIMeasurement IDatumOriginConsumer 경로).
         //  transient: PropertyGrid 미표시, JSON 직렬화 제외. EdgeToLineDistanceMeasurement.cs L69~80 동일 패턴.
@@ -88,14 +93,14 @@ namespace ReringProject.Sequence
             //260519 hbk Phase 31 hotfix#5 — strip-loop 누적 raw 에지점 수집용 (overlay 가시화)
             var rawEdges = new List<System.ValueTuple<double, double>>(); //260519 hbk Phase 31 hotfix#5
 
-            //260519 hbk Phase 31 D-05 — TryFitLine "All" 고정 (memory feedback — EdgeSelection 명시 필수, CO-23-01 구조적 차단)
+            //260526 hbk quick-260526-kay — EdgeSelection 사용자 선택값 사용 (was 리터럴 "All"). strip-loop 가 First/Last 도 stripCount 점 누적하므로 안전.
             if (!svc.TryFitLine(image,
                 Point_Row, Point_Col, Point_Phi, Point_Length1, Point_Length2,
                 datumTransform,
                 EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
                 EdgeDirection, EdgePolarity,
                 out pr1, out pc1, out pr2, out pc2, out error,
-                "All", //260519 hbk Phase 31 D-05 — EdgeSelection "All" 고정
+                EdgeSelection, //260526 hbk quick-260526-kay — 사용자 선택값
                 rawEdges)) //260519 hbk Phase 31 hotfix#5 — raw 에지점 수집
             {
                 return false;

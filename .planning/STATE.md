@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: planning_next
-stopped_at: Phase 21 SIGNED_OFF retro-marked (21-03-SUMMARY.md 작성). 다음 phase 또는 milestone close 결정 대기.
-last_updated: "2026-05-26T00:00:00.000Z"
+stopped_at: Phase 31 SIGNED_OFF (측정 알고리즘 전체 완료). 다음 = 비-알고리즘 phase (22/24/25/26/27) 결정 또는 milestone close.
+last_updated: "2026-05-26T03:00:00.000Z"
 last_activity: 2026-05-26
 progress:
   total_phases: 11
-  completed_phases: 8
-  total_plans: 46
-  completed_plans: 46
+  completed_phases: 9
+  total_plans: 51
+  completed_plans: 51
   percent: 100
 ---
 
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 21 — memory-image-buffer (retro 마무리)
+**Current focus:** Phase 31 — datum-algorithm (sign-off 완료)
 
 ## Current Position
 
-Phase: 21 (memory-image-buffer) — ✅ SIGNED_OFF retro-marked 2026-05-26 (실 sign-off 2026-05-11). 21-UAT.md 가 이미 signed_off + hotfix `a3d9545` 적용 상태였으나 21-03-SUMMARY.md / ROADMAP 표 / STATE.md 미갱신 — Plan 03 마무리 작성 완료.
-Plan: 3 of 3 완료 (21-VERIFICATION.md / 21-UAT.md / 21-03-SUMMARY.md)
-Status: v1.1 milestone — Phase 21 SIGNED_OFF retro. 다음 행동지 = 미완 phase 결정 (22 이미지 이중화 planned / 24 검사 워크플로우 planned / 25 결과 분석 planned / 26 헝가리안 리팩토링 planned / 27 Side Inspection 확장 planned / 31 Datum 기준 측정 UAT 진행) 또는 milestone close.
+Phase: 31 (datum-algorithm) — ✅ SIGNED_OFF 2026-05-26. 9 테스트 (7 측정 타입 + 2 UI carry-over + 1 빌드) 모두 PASS 또는 Phase 32 transfer 로 효력 발생. 측정 알고리즘 phase 전체(28/31/32) 완료.
+Plan: 5 of 5 완료 (31-01 ~ 31-05) + 31-UAT.md signed_off + 31-05-SUMMARY.md 작성
+Status: v1.1 milestone — 측정 알고리즘 전체 완료. 다음 행동지 = 비-알고리즘 phase 결정 (22 이미지 이중화 / 24 검사 워크플로우 / 25 결과 분석 / 26 헝가리안 / 27 Side Inspection) 또는 milestone close 검토. 신규 carry-over CO-31-01 (PropertyGrid 양방향 즉시 갱신 미작동) 처리 결정 필요.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
-Last activity: 2026-05-26 - Phase 21 SIGNED_OFF retro-marked (21-03-SUMMARY.md 작성, ROADMAP 표 + STATE 갱신) — Phase 32 sign-off 후 잔여 정리
+Last activity: 2026-05-26 - Phase 31 SIGNED_OFF (Test 7 retro PASS + Test 8 사용자 PASS, 31-05-SUMMARY.md 작성, CO-31-01 신규 carry-over — PropertyGrid 양방향 갱신 미작동)
 
 ## Performance Metrics
 

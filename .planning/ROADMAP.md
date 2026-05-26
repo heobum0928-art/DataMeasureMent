@@ -32,7 +32,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [ ] **Phase 26: 헝가리안 전체 리팩토링** — 전체 식별자 헝가리안 표기법 일면 적용 (QUAL-01)
 - [ ] **Phase 27: Side Inspection 확장** — LineToLineAngle + Side Fixture INI + PC2 분리 (D1, H5)
 - [x] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** — signed off 2026-05-08
-- [ ] **Phase 31: Datum 기준 측정 알고리즘 확장** — 신규 측정 타입 (E8 원중심→Datum거리 / D1 Datum 각도 / I9·I10 호∩라인 교점→Datum / E2·E9·E10 CompoundAngle / ArcEdgeDistance) + CO-23.1-01·02 흡수 ← 신설 2026-05-19
+- [x] **Phase 31: Datum 기준 측정 알고리즘 확장** — ✅ signed off 2026-05-26 (Test 1/2/6/7/8/9 PASS, Test 3/4/5 → Phase 32 transferred, CO-31-01 신규 carry-over) ← 신설 2026-05-19
 
 ---
 
@@ -259,7 +259,7 @@ Plans:
 | 26. 헝가리안 전체 리팩토링 | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | 28. FAI CircleDiameter + Datum Circle | 4/4 | ✅ Complete | 2026-05-08 |
-| 31. Datum 기준 측정 알고리즘 확장 | 0/TBD | 🔄 UAT 진행 | - |
+| 31. Datum 기준 측정 알고리즘 확장 | 5/5 | ✅ Complete (signed off, CO-31-01 carry-over) | 2026-05-26 |
 | 32. 측정 알고리즘 SOP 재정합 | 8/8 | ✅ Complete (UAT PASS) | 2026-05-23 |
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
@@ -267,6 +267,7 @@ Plans:
 
 ---
 
+*v1.1 roadmap updated: 2026-05-26 — Phase 31 SIGNED OFF. Test 1/2/6 (E8/D1·H5/ArcEdge) Phase 31 PASS + Test 3/4/5 (I9·I10/E2/E9·E10) Phase 32 transferred (SIGNED_OFF 2026-05-23) + Test 7 (ROI 버튼) retro PASS + Test 8 (듀얼 이미지 레이블) 사용자 3-step PASS + Test 9 msbuild PASS. CO-31-01 신규 carry-over (PropertyGrid 양방향 즉시 갱신 미작동 — Name 4종 plain auto-property INotifyPropertyChanged 부재).*
 *v1.1 roadmap updated: 2026-05-26 — Phase 21 SIGNED OFF retro-marked. 21-UAT.md 가 2026-05-11 에 이미 signed_off (4 테스트 — Test 1 verified / Test 2 PASS hit=7 / Test 3 not_tested→Phase 23 / Test 4 PASS, hotfix a3d9545) 였으나 21-03-SUMMARY.md / ROADMAP 표 미갱신 상태였음 — Plan 03 마무리 작성 완료.*
 *v1.1 roadmap updated: 2026-05-23 — Phase 32 SIGNED OFF (32-UAT.md 전 항목 PASS, 사용자 approved). gsd-verifier goal-backward 검증 6/6 truths + 14 artifacts + 10 key_links + 8 threat mitigations 모두 확인. UAT 직전 quick 260523-j72 가 E3 알고리즘을 사용자 reference HALCON 일치화(b3dd847/c95982d/af07972). Phase 32 complete.*
 *v1.1 roadmap updated: 2026-05-21 — Phase 32 추가 (측정 알고리즘 SOP 재정합 — I9/I10/E2/E9/E10 재작성 + E3 신규). gsd-sdk phase.add CLI 가 다시 phase_number 오산정(1) → 수동 보정 (다음 정수 = 32).*

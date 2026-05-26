@@ -1,7 +1,28 @@
 ---
 phase: 31-datum-algorithm
-status: pending
+status: signed_off
 created: 2026-05-19
+signed_off_date: 2026-05-26
+signed_off_by: heobum0928@gmail.com
+test_results:
+  test_1_CircleCenterDistance: PASS (2026-05-19)
+  test_2_EdgeToLineAngle: PASS (2026-05-20)
+  test_3_ArcLineIntersect: transferred_to_phase_32 (Phase 32 SIGNED_OFF 2026-05-23)
+  test_4_CompoundAngle: transferred_to_phase_32 (Phase 32 SIGNED_OFF 2026-05-23)
+  test_5_CompoundCenterC_B: transferred_to_phase_32 (Phase 32 SIGNED_OFF 2026-05-23)
+  test_6_ArcEdgeDistance: PASS (2026-05-21)
+  test_7_ROI_buttons: PASS_retro (2026-05-26 — Phase 31 Test 1/2/6 + Phase 32 UAT 흐름에서 행동 검증 + 화이트리스트 8 타입 등록 확인)
+  test_8_dual_image_label: PASS (2026-05-26 — A/B/C 3 단계 사용자 시각 검증)
+  test_9_msbuild: PASS (자동)
+carry_overs:
+  - id: CO-31-01
+    description: |
+      PropertyGrid 양방향 즉시 갱신 미작동 — INotifyPropertyChanged 미구현 통한 양 방향 동기화 누락
+      (a) Tree → PropertyGrid: 트리 노드 선택 시 PropertyGrid 가 즉시 새 노드 값으로 안 바뀜 (Test 8 B 부수 발견)
+      (b) PropertyGrid → Tree: PropertyGrid 에서 DatumName/ShotName/FAIName/MeasurementName 변경 시 트리 헤더에 즉시 반영 안 됨 (사용자 2026-05-26 추가 보고)
+      Root cause: DatumConfig.DatumName / ShotConfig.ShotName / FAIConfig.FAIName / MeasurementBase.MeasurementName 모두 plain `{ get; set; }` 자동 프로퍼티 — PropertyChanged 발화 부재.
+      InspectionListView.xaml L51 `EditableTextBlock Text="{Binding Name}"` 는 OneWay-effect 로 동작 (변경 푸시 없음).
+    candidate_disposition: v1.1 quick fix (Name 4종을 PropertyChanged 발화 setter 로 교체) 또는 Phase 22/26 흡수
 ---
 
 # 31-UAT: Datum 기준 측정 알고리즘 확장 UAT
@@ -227,11 +248,17 @@ created: 2026-05-19
 
 | 항목 | 기대 | 결과 |
 |------|------|------|
-| EdgeToLineAngle → Rect ROI 버튼 | 활성화 | pending |
-| ArcEdgeDistance → Rect ROI 버튼 | 활성화 | pending |
-| CompoundAngle → Rect ROI 버튼 | 활성화 | pending |
-| CircleCenterDistance → Circle ROI 버튼 | 활성화 | pending |
-| EdgeToLineDistance → Rect ROI 버튼 (회귀) | 활성화 | pending |
+| EdgeToLineAngle → Rect ROI 버튼 | 활성화 | **PASS** (retro) |
+| ArcEdgeDistance → Rect ROI 버튼 | 활성화 | **PASS** (retro) |
+| CompoundAngle → Rect ROI 버튼 | 활성화 | **PASS** (retro) |
+| CircleCenterDistance → Circle ROI 버튼 | 활성화 | **PASS** (retro) |
+| EdgeToLineDistance → Rect ROI 버튼 (회귀) | 활성화 | **PASS** (retro) |
+
+**UAT 이력 (retro 마킹 2026-05-26):**
+- MainView.xaml.cs L1567-1598 `FindSelectedRectMeasurement` 화이트리스트에 8 타입 모두 등록 — EdgeToLineDistance / EdgeToLineAngle / ArcEdgeDistance / ArcLineIntersectDistance / CompoundAngle / CompoundCenterCDistance / CompoundCenterBDistance / CompoundShortAxisDistance.
+- CircleCenterDistance 는 L1541-1564 `FindSelectedCircleMeasurement` 화이트리스트.
+- 사실상 검증: Phase 31 Test 1 (CircleCenterDistance Circle ROI 드로잉 PASS) + Test 2 (EdgeToLineAngle Rect ROI PASS) + Test 6 (ArcEdgeDistance Rect ROI PASS) + Phase 32 UAT (ArcLineIntersect/E2/E3/E9/E10 ROI 드로잉 5종 PASS) 에서 각 타입별 ROI 버튼 활성화가 이미 사용자에 의해 행동 검증됨.
+- Phase 32 hotfix `15fa8d8` (E3 화이트리스트 누락 수정) 으로 cap 검증 완료.
 
 ---
 
@@ -254,9 +281,16 @@ created: 2026-05-19
 
 | 항목 | 기대 | 결과 |
 |------|------|------|
-| Datum Load 시 TeachingImagePath 레이블 | 경로/파일명 표시 | pending |
-| Shot 실행 시 SimulImagePath 레이블 | 경로/파일명으로 교체 | pending |
-| 빈 TeachingImagePath | 레이블 Collapsed | pending |
+| Datum Load 시 TeachingImagePath 레이블 | "티칭 이미지: <경로>" 표시 | **PASS** (사용자 2026-05-26) |
+| Shot 노드 선택 시 SimulImagePath 레이블 | "검사 이미지: <경로>" 로 교체 | **PASS** (사용자 2026-05-26) |
+| 이미지 없는 노드 선택 시 라벨 숨김 | Collapsed | **PASS** (사용자 2026-05-26) |
+
+**UAT 이력 (2026-05-26 사용자 시각 검증):**
+- A. Datum 노드 → Load → jpg 선택 → 하단 라벨 "티칭 이미지: <경로>" 정상 표시 — PASS
+- B. Shot 노드 → Load → 다른 jpg 선택 → 라벨 "검사 이미지: <경로>" 로 교체 — PASS
+- C. 이미지 미로드 노드 선택 → 라벨 Collapsed (사라짐) — PASS
+
+**부수 발견 (carry-over CO-31-01):** Shot 노드로 전환 시 `txt_imageSourceLabel` 은 정상 갱신되나 **PropertyGrid 즉시 갱신이 안 되는 별도 binding/refresh 문제** 관찰됨. Phase 31 CO-23.1-01 (레이블 표시 자체) 충족 — PropertyGrid 갱신 이슈는 별도 carry-over 로 분리 (v1.1 다른 phase 또는 quick fix 후보).
 
 ---
 

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel; //260526 hbk CO-31-01 — INotifyPropertyChanged 구독
 using System.Diagnostics;
 using PropertyTools;
 using ReringProject.Define;
+using ReringProject.Sequence; //260526 hbk CO-31-01 — DatumConfig/ShotConfig/FAIConfig/MeasurementBase 타입 식별
 
 namespace ReringProject.UI {
     public class NodeViewModel : Observable { //, IDragSource, IDropTarget {
@@ -195,6 +197,39 @@ namespace ReringProject.UI {
             this.Node = Node;
             this.Parent = parent;
             this.IsExpanded = true;
+
+            //260526 hbk CO-31-01 — PropertyGrid 에서 DatumName/ShotName/FAIName/MeasurementName 변경 시
+            //  Node.Name 동기화 + Tree 헤더 즉시 갱신. NodeViewModel 와 Param 수명 동일 (recipe 재로드 시 둘 다 dispose) → unsubscribe 불필요.
+            if (Node != null && Node.ParamData is INotifyPropertyChanged inpc) {
+                inpc.PropertyChanged += OnParamPropertyChanged;
+            }
+        }
+
+        //260526 hbk CO-31-01 — Param Name 변경 → Node.Name 동기화 + RaisePropertyChanged("Name")
+        //  MeasurementName 폴백: 빈 문자열이면 TypeName 사용 (InspectionListViewModel L100 와 일치).
+        private void OnParamPropertyChanged(object sender, PropertyChangedEventArgs e) {
+            string newName = null;
+            switch (e.PropertyName) {
+                case nameof(DatumConfig.DatumName):
+                    newName = (sender as DatumConfig)?.DatumName;
+                    break;
+                case nameof(ShotConfig.ShotName):
+                    newName = (sender as ShotConfig)?.ShotName;
+                    break;
+                case nameof(FAIConfig.FAIName):
+                    newName = (sender as FAIConfig)?.FAIName;
+                    break;
+                case nameof(MeasurementBase.MeasurementName):
+                    var m = sender as MeasurementBase;
+                    if (m != null) {
+                        newName = string.IsNullOrEmpty(m.MeasurementName) ? m.TypeName : m.MeasurementName;
+                    }
+                    break;
+            }
+            if (newName != null && this.Node != null) {
+                this.Node.Name = newName;
+                RaisePropertyChanged("Name");
+            }
         }
 
         public override string ToString() {

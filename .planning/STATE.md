@@ -29,7 +29,7 @@ Phase: 22 (image-dual-structure) — ⏭ NEXT. v1.1 잔여 phase 결정 완료 (
 Plan: 2 plans planned (22-01 DatumConfig TeachingImagePath + 22-02 검증)
 Status: 측정 알고리즘 전체 완료 (28/31/32 SIGNED_OFF). CO-31-01 closed (quick 260526-ilp UAT PASS). 다음 = /gsd-discuss-phase 22 또는 /gsd-plan-phase 22 로 진행.
 Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
-Last activity: 2026-05-26 - quick 260526-ilp CO-31-01 fix (PropertyGrid 양방향 즉시 갱신 — 4 Param Name PropertyChanged 발화 + NodeViewModel 구독, daeb195/66b20bc, SIMUL UAT 대기)
+Last activity: 2026-05-26 - quick 260526-kay EdgeSelection 차단 해제 3군 일괄 (EdgeToLineDistance D-08/D-09 + EdgeToLineAngle/ArcEdgeDistance 필드 추가, 24b33b9/b33e141/59ce666, SIMUL UAT 대기)
 
 ## Performance Metrics
 
@@ -218,6 +218,7 @@ Recent decisions affecting current work:
 | 260519-c08 | 2026-05-19 | Phase 23.1 UAT 2차 보충 3건 — #3-refresh Datum Load 후 PropertyGrid 즉시 갱신(RefreshParamEditor) / #6-a ROI 선택 하이라이트(진단 로그로 진짜 원인 확정 = 측정 ROI 복합키 'FAIName_측정명' vs FAIName exact 매칭 실패. 최종 모델: FAI 노드=하이라이트 없음, 측정 노드/결과행=단일 ROI 노란색) / #6-b 라벨 폰트 30% 축소. UAT 4라운드 반복 | 5a2a350, 79e483a, 51c441b, afb03d3, 33212cd, 5e3d2c5, 3c25579 | UAT PASS (사용자 3/3 2026-05-19) |
 | 260523-j72 | 2026-05-23 | E3 단축↔장축 revert + 교점 기반 알고리즘 교체 — 32-05 commit 3343250 (단축→장축) 전면 revert + 사용자 reference HALCON 스크립트(LargestRect XLD → get_contour_xld → Edge len 비교 → fit_line_contour_xld('tukey') refined Phi → intersection_contours_xld(measureLine, LargestRect, 'all')) 일치화. VisionAlgorithmService.TryFindShortAxisIntersections 신규 추가, CompoundShortAxisDistanceMeasurement 측정 클래스 단순화(HOperatorSet 직접 호출 0), CrossLen 프로퍼티 신규(기본 500). 오버레이 6개(FAI-LongEdge1/2, FAI-MeasureLine, FAI-Intersection1/2, FAI-DistLine). | b3dd847, c95982d, af07972 | UAT PASS (사용자 approved 2026-05-23) |
 | 260526-ilp | 2026-05-26 | CO-31-01 PropertyGrid 양방향 즉시 갱신 — 4 Param Name (DatumName/ShotName/FAIName/MeasurementName) 을 plain auto-property → backing field + RaisePropertyChanged 패턴 교체 + NodeViewModel ctor 에서 Param PropertyChanged 구독 + Node.Name 동기화 핸들러 추가. MeasurementName TypeName 폴백 보존. hotfix 35fe244: ShotName/FAIName [Browsable(false)] → [Category] (UAT 보고 시 PropertyGrid 노출 누락 발견). msbuild Debug/x64 PASS, 신규 warning 0. | daeb195, 66b20bc, 35fe244 | UAT PASS (사용자 4/4 2026-05-26) |
+| 260526-kay | 2026-05-26 | EdgeSelection 차단 해제 3군 일괄 — EdgeToLineDistance(Phase 23.1 D-08/D-09 ICustomTypeDescriptor 8 메서드 + "All" 리터럴 제거) + EdgeToLineAngle/ArcEdgeDistance(EdgeSelection 필드 신규 + ItemsSource 노출). strip-loop(stripCount=20) 도입(2026-05-17) 후 First/Last 도 안전하게 라인 피팅 가능한 사실 활용. 기본값 "All" 유지 → INI 회귀 0. msbuild Debug/x64 PASS, 신규 warning 0. | 24b33b9, b33e141, 59ce666 | SIMUL UAT 대기 |
 
 ### Pending Todos
 

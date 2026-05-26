@@ -24,7 +24,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 19: PropertyGrid 동적 노출 일반화** — completed 2026-05-07
 - [x] **Phase 20: 코드 스타일 정리** — signed off 2026-05-09
 - [x] **Phase 21: 메모리 이미지 버퍼** — ✅ signed off 2026-05-11 (BUF-01/BUF-02 4/4 AC, hotfix a3d9545)
-- [ ] **Phase 22: 이미지 이중화 구조** — 티칭 이미지(TeachingImagePath) / 검사 이미지(InspectionImagePath) 역할 분리 + INI 직렬화 (IMG-01, IMG-02) ← 신설 2026-05-11
+- [x] **Phase 22: 이미지 이중화 구조** — ✅ signed off 2026-05-11 (IMG-01/IMG-02, 4/4 UAT PASS) ← 신설 2026-05-11
 - [x] **Phase 23: Top #1 A시리즈 Simul end-to-end** — ✅ 최종 sign-off 2026-05-19 (23.1-UAT.md 가 23-UAT.md supersede, D-14)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
 - [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02)
@@ -282,7 +282,7 @@ Plans:
 | 19. PropertyGrid 동적 노출 일반화 | 2/2 | ✅ Complete | 2026-05-07 |
 | 20. 코드 스타일 정리 | 8/8 | ✅ Complete | 2026-05-09 |
 | 21. 메모리 이미지 버퍼 | 3/3 | ✅ Complete (signed off, hotfix a3d9545) | 2026-05-11 |
-| 22. 이미지 이중화 구조 | 0/2 | ⏳ Planned | - |
+| 22. 이미지 이중화 구조 | 2/2 | ✅ Complete (signed off) | 2026-05-11 |
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned | - |
@@ -298,6 +298,7 @@ Plans:
 
 ---
 
+*v1.1 roadmap updated: 2026-05-26 — Phase 22 retro 동기화. 22-UAT.md 가 2026-05-11 에 이미 signed_off (4/4 PASS) 였으나 ROADMAP 표 미갱신 상태였음 — 표 및 체크박스 동기화 완료. quick 260526-kay (EdgeSelection 차단 해제 3군 일괄) UAT PASS (사용자 3/3 2026-05-26). v1.1 잔여 = 24 → 25 → 27.*
 *v1.1 roadmap updated: 2026-05-26 — Phase 26 (헝가리안 리팩토링) v1.2 로 이연. 사용자 결정 — POC 납기 우선, 코드 정리 작업이라 운영 영향 0. Phase 27 (Side Inspection) 의 Depends on 을 Phase 26 → Phase 25 로 변경. v1.1 잔여 = Phase 22 + 24 + 25 + 27. v1.2 = CXP HW + 헝가리안 리팩토링.*
 *v1.1 roadmap updated: 2026-05-26 — Phase 27 Datum 2-image scope 구체화 (사용자 케이스: 동일 카메라, 광원+Z 만 변경한 이미지 2장 → 좌표계 변환 0). 코드 조사 결과 ShotConfig 가 이미 ZPosition + 4 광원 + 이미지 버퍼 보유 (인프라 재활용) — 변경 포인트는 "라인 검출 시 어떤 Shot 이미지 사용" 1점에 집중. 5 변경 사항 (DatumConfig 필드 + TryFindDatum 오버로드 + TryFindTwoLineIntersect 분기 + GrabOrLoadDatumImages 다중 반환 + UI ComboBox) 명문화. Plan 작성은 /gsd-plan-phase 27 실행 시점.*
 *v1.1 roadmap updated: 2026-05-26 — Phase 999.1 (Datum 2-image side 지원) → Phase 27 ABSORBED. Phase 27 스코프 4 항목 (LineToLineAngle + Side Fixture INI + PC2 분리 + Datum 2-image), plans 3→4 plans 로 확장. INI 호환성 + side 컨텍스트 동일 + backlog 원문 권장 근거.*

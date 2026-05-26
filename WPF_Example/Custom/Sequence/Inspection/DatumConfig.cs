@@ -15,8 +15,17 @@ namespace ReringProject.Sequence {
     public class DatumConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor, IOfflineImageParam { //260518 hbk #3 — IOfflineImageParam 추가
 
         //260413 hbk Phase 6: DatumName — 사용자가 지정하는 식별자 (D-06)
+        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
+        private string _datumName = "Datum_1";
         [Category("Datum|Identity")]
-        public string DatumName { get; set; } = "Datum_1";
+        public string DatumName {
+            get { return _datumName; }
+            set {
+                if (_datumName == value) return;
+                _datumName = value;
+                RaisePropertyChanged(nameof(DatumName));
+            }
+        }
 
         //260413 hbk Phase 6: 이미지 소스 모드 — "Dedicated" 또는 "ReuseFromShot" (D-07, D-08)
         [Category("Datum|ImageSource")]

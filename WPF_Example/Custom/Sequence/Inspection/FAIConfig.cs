@@ -99,8 +99,17 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public bool IsPass { get; set; }
 
+        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
+        private string _faiName;
         [Browsable(false)]
-        public string FAIName { get; set; }
+        public string FAIName {
+            get { return _faiName; }
+            set {
+                if (_faiName == value) return;
+                _faiName = value;
+                RaisePropertyChanged(nameof(FAIName));
+            }
+        }
 
         public FAIConfig(object owner) : base(owner) {
         }

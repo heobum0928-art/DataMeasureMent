@@ -17,8 +17,17 @@ namespace ReringProject.Sequence
         [Category("Measurement|Reference")]
         public string DatumRef { get; set; } = ""; //260413 hbk 빈 문자열=무보정
 
+        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree, TypeName 폴백은 NodeViewModel.OnParamPropertyChanged 처리)
+        private string _measurementName = "";
         [Category("Measurement|Info")]
-        public string MeasurementName { get; set; } = ""; //260413 hbk
+        public string MeasurementName {
+            get { return _measurementName; }
+            set {
+                if (_measurementName == value) return;
+                _measurementName = value;
+                RaisePropertyChanged(nameof(MeasurementName));
+            }
+        }
 
         [Category("Measurement|Tolerance")]
         public double NominalValue { get; set; } //260413 hbk

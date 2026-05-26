@@ -30,8 +30,17 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public List<FAIConfig> FAIList { get; private set; } = new List<FAIConfig>();
 
+        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
+        private string _shotName;
         [Browsable(false)]
-        public string ShotName { get; set; }
+        public string ShotName {
+            get { return _shotName; }
+            set {
+                if (_shotName == value) return;
+                _shotName = value;
+                RaisePropertyChanged(nameof(ShotName));
+            }
+        }
 
         //260413 hbk Phase 6: Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (D-11)
         [Category("Light|Ring")]

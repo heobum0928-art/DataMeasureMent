@@ -788,6 +788,32 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260527 hbk Phase 34 D-34-01/02 — VerticalTwoHorizontalDualImage 변형 전용 2-image Teach 오버로드.
+        //  imageHorizontal: 가로축 이미지 (Horizontal_A + Horizontal_B ROI 티칭 대상)
+        //  imageVertical:   세로축 이미지 (Vertical ROI 티칭 대상)
+        //  algorithm != VerticalTwoHorizontalDualImage 일 때는 error 반환 (잘못된 오버로드 호출 가드).
+        //  기존 단일-이미지 TryTeachDatum 시그니처는 unchanged — 1-image algorithm 3종 회귀 0 (D-34-13).
+        public bool TryTeachDatum(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out string error) //260527 hbk Phase 34 D-34-01/02
+        {
+            error = null; //260527 hbk Phase 34 D-34-01
+
+            if (imageHorizontal == null || imageVertical == null || config == null) //260527 hbk Phase 34 D-34-01
+            {
+                error = "image(s) or config is null"; //260527 hbk Phase 34 D-34-01
+                return false; //260527 hbk Phase 34 D-34-01
+            }
+
+            config.EnsurePerRoiDefaults(); //260527 hbk Phase 34 D-34-01
+
+            if (config.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) //260527 hbk Phase 34 D-34-02
+            {
+                error = "Algorithm is not VerticalTwoHorizontalDualImage; use single-image TryTeachDatum overload"; //260527 hbk Phase 34 D-34-02
+                return false; //260527 hbk Phase 34 D-34-02
+            }
+
+            return TryTeachVerticalTwoHorizontalDualImage(imageHorizontal, imageVertical, config, out error); //260527 hbk Phase 34 D-34-01/02
+        }
+
         //260423 hbk Phase 12 D-04 — 기존 Phase 4 TwoLineIntersect 본문 private 이동 (코드 동일, 회귀 0)
         private bool TryTeachTwoLineIntersect(HImage image, DatumConfig config, out string error)
         {
@@ -1286,6 +1312,172 @@ namespace ReringProject.Halcon.Algorithms
             {
                 //260429 hbk #1405 fix — 단일 contour 만 dispose (contourA/contourB/concatContour 제거)
                 if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        //260527 hbk Phase 34 D-34-01/02 — VerticalTwoHorizontalDualImage Teach 분기.
+        //  본문 = TryTeachVerticalTwoHorizontal 100% 복제 + ROI 별 이미지 입력 분기 (Vertical=imageVertical, Horizontal A/B=imageHorizontal).
+        //  나머지 로직 (Vertical TryFindLine / Horizontal A/B TryExtractEdgePoints / totalEdges 가드 / TupleConcat / FitLineContourXld / IntersectionLl / 기준값 저장 / Line1Detected/Line2Detected transient / ValidateHorizontalVerticalAngles 게이트) 모두 동일.
+        private bool TryTeachVerticalTwoHorizontalDualImage(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out string error) //260527 hbk Phase 34 D-34-01/02
+        {
+            error = null; //260527 hbk Phase 34 D-34-01
+
+            HObject contour = null; //260527 hbk Phase 34 D-34-01
+
+            try
+            {
+                HTuple imageVerticalWidth, imageVerticalHeight; //260527 hbk Phase 34 D-34-01 — 세로축 이미지 크기
+                imageVertical.GetImageSize(out imageVerticalWidth, out imageVerticalHeight); //260527 hbk Phase 34 D-34-01
+
+                // Vertical 라인 검출 — imageVertical 사용 (D-34-01)
+                double vrB, vcB, vrE, vcE; //260527 hbk Phase 34 D-34-01
+                HTuple vertRawRows, vertRawCols; //260527 hbk Phase 34 D-34-01
+                string lineError; //260527 hbk Phase 34 D-34-01
+                if (!TryFindLine(
+                        imageVertical, imageVerticalWidth, imageVerticalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Vertical_Row, config.Vertical_Col, config.Vertical_Phi,
+                        config.Vertical_Length1, config.Vertical_Length2,
+                        config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
+                        config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        out vrB, out vcB, out vrE, out vcE,
+                        out vertRawRows, out vertRawCols,
+                        out lineError,
+                        "Vertical")) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Vertical line fit failed: " + lineError; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                config.Vertical_DetectedEdgeRows = vertRawRows; //260527 hbk Phase 34 D-34-01
+                config.Vertical_DetectedEdgeCols = vertRawCols; //260527 hbk Phase 34 D-34-01
+
+                HTuple imageHorizontalWidth, imageHorizontalHeight; //260527 hbk Phase 34 D-34-01 — 가로축 이미지 크기
+                imageHorizontal.GetImageSize(out imageHorizontalWidth, out imageHorizontalHeight); //260527 hbk Phase 34 D-34-01
+
+                // Horizontal A — imageHorizontal 사용 (D-34-01)
+                HTuple rowEdgeA, colEdgeA; //260527 hbk Phase 34 D-34-01
+                string edgeErrorA; //260527 hbk Phase 34 D-34-01
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, imageHorizontalWidth, imageHorizontalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A")) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: " + edgeErrorA; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA; //260527 hbk Phase 34 D-34-01
+
+                // Horizontal B — imageHorizontal 사용 (D-34-01)
+                HTuple rowEdgeB, colEdgeB; //260527 hbk Phase 34 D-34-01
+                string edgeErrorB; //260527 hbk Phase 34 D-34-01
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, imageHorizontalWidth, imageHorizontalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B")) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: " + edgeErrorB; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB; //260527 hbk Phase 34 D-34-01
+
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength(); //260527 hbk Phase 34 D-34-01
+                if (totalEdges < MIN_HORIZONTAL_EDGES) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: insufficient edges (" + totalEdges + ")"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB); //260527 hbk Phase 34 D-34-01
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB); //260527 hbk Phase 34 D-34-01
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols); //260527 hbk Phase 34 D-34-01
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df; //260527 hbk Phase 34 D-34-01
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        contour, "tukey", -1, 0, 5, 2,
+                        out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df); //260527 hbk Phase 34 D-34-01
+                }
+                catch (Exception fitEx)
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: " + fitEx.Message; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                HTuple curRow, curCol, isOverlapping; //260527 hbk Phase 34 D-34-01
+                HOperatorSet.IntersectionLl(
+                    vrB, vcB, vrE, vcE,
+                    hrB, hcB, hrE, hcE,
+                    out curRow, out curCol, out isOverlapping); //260527 hbk Phase 34 D-34-01
+
+                if (isOverlapping.I == 1) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Intersection undefined: lines are collinear"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) ||
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D)) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Intersection undefined: lines are parallel"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                // 기준값 저장
+                config.RefOriginRow = curRow.D; //260527 hbk Phase 34 D-34-01
+                config.RefOriginCol = curCol.D; //260527 hbk Phase 34 D-34-01
+                config.RefAngleRad  = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D); //260527 hbk Phase 34 D-34-01
+                config.IsConfigured = true; //260527 hbk Phase 34 D-34-01
+
+                // 검출 라인 오버레이 (Line1Detected = 수직 검출선, Line2Detected = 수평 결합선)
+                config.Line1Detected_RBegin = vrB; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_CBegin = vcB; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_REnd   = vrE; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_CEnd   = vcE; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_RBegin = hrB.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_CBegin = hcB.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_REnd   = hrE.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_CEnd   = hcE.D; //260527 hbk Phase 34 D-34-01
+                config.LastTeachSucceeded   = true; //260527 hbk Phase 34 D-34-01
+
+                // Req 5d 방향 정합성 검증 (VerticalTwoHorizontalDualImage: 수직 phi 는 검출된 수직 라인 Atan2)
+                double vertPhiDetected = Math.Atan2(vrE - vrB, vcE - vcB); //260527 hbk Phase 34 D-34-01
+                string angleError; //260527 hbk Phase 34 D-34-01
+                if (!ValidateHorizontalVerticalAngles(config.RefAngleRad, vertPhiDetected, out angleError)) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = angleError; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                return true; //260527 hbk Phase 34 D-34-01
+            }
+            catch (Exception ex)
+            {
+                if (config != null) { config.LastTeachSucceeded = false; } //260527 hbk Phase 34 D-34-01
+                error = ex.Message; //260527 hbk Phase 34 D-34-01
+                return false; //260527 hbk Phase 34 D-34-01
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } } //260527 hbk Phase 34 D-34-01
             }
         }
 

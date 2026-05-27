@@ -813,7 +813,9 @@ namespace ReringProject.UI {
             if (!TextInputBox.Show("Shot 이름 입력", defaultName, out string shotName)) return;
 
             // 데이터만 추가 (시퀀스 Action 교체 안 함 — 런타임 안전)
-            ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName);
+            //260527 hbk Phase 35 — CO-33-06: 신규 Shot 의 OwnerSequenceName 명시 전달 (D-A1)
+            string ownerSeqName = SequenceHandler.ResolveSequenceName(seqNode.SequenceID);
+            ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName, ownerSeqName);
             FAIConfig fai = shot.AddFAI("FAI_0");
             seqHandler.EnableDynamicFAIMode(); //260408 hbk 저장 시 SHOTS 포맷으로 기록되도록 활성화
 

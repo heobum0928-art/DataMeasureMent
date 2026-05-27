@@ -43,6 +43,13 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //260527 hbk Phase 35 — CO-33-06 per-sequence Shot ownership 보강 (D-A1)
+        //  값 = SequenceHandler.SEQ_TOP / SEQ_SIDE / SEQ_BOTTOM
+        //  Phase 33 이전 INI 호환: 빈 문자열 → ApplyShotDefaults 에서 SEQ_TOP 자동 폴백 (D-B1)
+        //  ParamBase reflection 자동 직렬화 (String case, ParamBase.cs L325-339 Save / L385-395 Load)
+        [Category("Shot|Identity")]
+        public string OwnerSequenceName { get; set; } = "";
+
         //260413 hbk Phase 6: Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (D-11)
         [Category("Light|Ring")]
         public bool RingLight_Enabled { get; set; }
@@ -129,6 +136,17 @@ namespace ReringProject.Sequence {
             lock (_imageLock) {
                 _image?.Dispose();
                 _image = null;
+            }
+        }
+
+        //260527 hbk Phase 35 — CO-33-06: D-B1 빈값 폴백 + 향후 ShotConfig 신규 필드 default 정규화 단일 진입점.
+        //  DatumConfig.EnsurePerRoiDefaults 패턴 차용. InspectionRecipeManager.LoadPhase6Format 의 shot.Load 다음에 호출.
+        public void ApplyShotDefaults() {
+            if (string.IsNullOrEmpty(OwnerSequenceName)) {
+                OwnerSequenceName = "TOP"; // SequenceHandler.SEQ_TOP — Phase 33 이전 INI 호환 (모든 기존 Shots = Top 소속)
+            }
+            if (SimulImagePath == null) {
+                SimulImagePath = "";
             }
         }
 

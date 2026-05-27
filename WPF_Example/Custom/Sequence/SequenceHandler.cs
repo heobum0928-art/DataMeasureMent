@@ -21,6 +21,16 @@ namespace ReringProject.Sequence {
 
         public const int Inspection_Model_Index = 0;
 
+        //260527 hbk Phase 35 — CO-33-06: ESequence ↔ SEQ_* 상수 매핑 단일 source (D-35-02-01)
+        public static string ResolveSequenceName(ESequence seqId) {
+            switch (seqId) {
+                case ESequence.Top: return SEQ_TOP;
+                case ESequence.Side: return SEQ_SIDE;
+                case ESequence.Bottom: return SEQ_BOTTOM;
+                default: return SEQ_TOP; // D-B1 폴백 — 예상치 못한 enum 값도 안전한 동작
+            }
+        }
+
         public InspectionRecipeManager RecipeManager { get; } = new InspectionRecipeManager(Handle);
 
         public bool IsDynamicFAIMode { get; private set; } = false;
@@ -63,6 +73,7 @@ namespace ReringProject.Sequence {
         /// <summary>
         /// RecipeManager의 Shot 목록 기반으로 시퀀스의 Action을 재구축한다.
         /// </summary>
+        //260527 hbk Phase 35 — CO-33-06: 시퀀스 소유 Shot 만 필터링 (D-A1 OwnerSequenceName)
         public void RebuildInspectionActions(ESequence seqId) {
             SequenceBase seq = this[seqId];
             if (seq == null) return;
@@ -72,14 +83,23 @@ namespace ReringProject.Sequence {
                 masterParam.ClearChildren();
             }
 
+            //260527 hbk Phase 35 — CO-33-06: 시퀀스 매칭 키 (TOP/SIDE/BOTTOM)
+            string targetSeqName = ResolveSequenceName(seqId);
+
             // Shot별로 Action_FAIMeasurement 생성
             var actions = new List<ActionBase>();
+            //260527 hbk Phase 35 — CO-33-06: actionIdx 별도 사용 — 시퀀스별 로컬 0/1/2 인덱스로 EAction.FAI_Base + N 부여
+            int actionIdx = 0;
             for (int i = 0; i < RecipeManager.ShotCount; i++) {
                 ShotConfig shot = RecipeManager.Shots[i];
-                EAction actionId = (EAction)((int)EAction.FAI_Base + i);
-                string actionName = shot.ShotName ?? $"SHOT_{i}";
+                //260527 hbk Phase 35 — CO-33-06: OwnerSequenceName 매칭만 추가 (빈값은 Top 폴백 — ApplyShotDefaults 가 보장)
+                string shotOwner = string.IsNullOrEmpty(shot.OwnerSequenceName) ? SEQ_TOP : shot.OwnerSequenceName;
+                if (shotOwner != targetSeqName) continue;
+                EAction actionId = (EAction)((int)EAction.FAI_Base + actionIdx);
+                string actionName = shot.ShotName ?? $"SHOT_{actionIdx}";
                 var action = new Action_FAIMeasurement(actionId, actionName, shot);
                 actions.Add(action);
+                actionIdx++;
             }
 
             if (actions.Count > 0) {

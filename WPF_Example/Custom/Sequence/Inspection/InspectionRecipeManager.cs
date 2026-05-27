@@ -33,10 +33,15 @@ namespace ReringProject.Sequence {
         public int ShotCount => Shots.Count;
 
         // CRUD
-        public ShotConfig AddShot(string name = null) {
+        //260527 hbk Phase 35 — CO-33-06: per-sequence Shot ownership. seqName 파라미터 default "" 로 기존 호출 site 호환 (D-B1 폴백 적용 위해 ApplyShotDefaults 호출 유지)
+        public ShotConfig AddShot(string name = null, string seqName = "") {
             string shotName = name ?? $"SHOT_{Shots.Count}";
             var shot = new ShotConfig(_owner, shotName);
             //260413 hbk Phase 6: ShotConfig.Datum 제거 — Datum은 Fixture(Sequence) 레벨 소유 (D-04)
+            //260527 hbk Phase 35 — CO-33-06: seqName 비어있지 않을 때 OwnerSequenceName 명시 설정 (D-A1)
+            if (!string.IsNullOrEmpty(seqName)) {
+                shot.OwnerSequenceName = seqName;
+            }
             Shots.Add(shot);
             return shot;
         }
@@ -270,6 +275,8 @@ namespace ReringProject.Sequence {
                 if (loadFile.ContainsSection(camSection)) {
                     shot.Load(loadFile, camSection);
                 }
+                //260527 hbk Phase 35 — CO-33-06: 기존 INI (OwnerSequenceName 키 부재) 호환 — 빈값 시 SEQ_TOP 폴백 (D-B1)
+                shot.ApplyShotDefaults();
 
                 for (int f = 0; f < faiCount; f++) {
                     string faiSection = $"SHOT_{s}_FAI_{f}";

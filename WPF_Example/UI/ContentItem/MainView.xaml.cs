@@ -62,6 +62,10 @@ namespace ReringProject.UI {
         //260527 hbk Phase 34.1 D-34.1-08/12 — 현재 캔버스에 표시 중인 이미지 축 (가로/세로). DualImage 변형에서만 의미 있음.
         //  세션 한정, INI 미저장 (Datum 노드 이동 시 가로축으로 리셋).
         private ReringProject.Sequence.EImageSource _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix — 현재 선택된 Datum (teach 모드 무관, swap UI 의 대상).
+        //  _editingDatum 은 Teach Datum 클릭 시에만 set → 토글 핸들러가 노드 선택 직후 동작하려면 별도 reference 필요.
+        //  PublishDatumRoiCandidates 진입 시 갱신, AlgorithmType PropertyChanged 구독 대상.
+        private DatumConfig _selectedDatumForSwap;
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -1187,18 +1191,35 @@ namespace ReringProject.UI {
             if (btn_swapHorizontal != null) btn_swapHorizontal.IsChecked = (source == ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1
             if (btn_swapVertical   != null) btn_swapVertical.IsChecked   = (source == ReringProject.Sequence.EImageSource.Vertical);   //260527 hbk Phase 34.1
 
-            // (c) ROI 가시성 — 현재 _editingDatum 가 DualImage 일 때만 subset 필터 적용. 다른 algorithm 은 PublishDatumRoiCandidates 가 알아서 처리.
-            if (_editingDatum != null
-                && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34.1 D-34.1-10
-                PublishDatumRoiCandidates(_editingDatum); //260527 hbk Phase 34.1 — DualImage 분기가 _currentImageSource 참조하여 subset 만 publish
+            // (c) ROI 가시성 — 현재 선택된 datum 이 DualImage 일 때만 subset 필터 적용. 다른 algorithm 은 PublishDatumRoiCandidates 가 알아서 처리.
+            //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체.
+            var datumForRoi = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
+            if (datumForRoi != null
+                && datumForRoi.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34.1 D-34.1-10
+                PublishDatumRoiCandidates(datumForRoi); //260527 hbk Phase 34.1 — DualImage 분기가 _currentImageSource 참조하여 subset 만 publish
             }
         }
 
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix — 보조 hook (DatumName 등 명시적 RaisePropertyChanged 가 fire 하는 property 대응).
+        //  AlgorithmType 은 DatumConfig L76 의 auto property 라 PropertyChanged 미발동 — 본 hook 으로는 못 잡음.
+        //  AlgorithmType 변경 시 Visibility 갱신은 InspectionListView.OnParamEditorSelectionChanged 의 whitelist 확장으로 처리 (별도 hotfix).
+        //  본 메서드는 RaisePropertyChanged(string.Empty) 대량 갱신 시점에 ROI/Visibility 정합성 보장하는 보호망.
+        private void OnSelectedDatumPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) {
+            if (e == null) return;
+            var datum = sender as DatumConfig;
+            if (datum == null) return;
+            //260527 hbk Phase 34.1 CO-34.1-02 — name 비교 없이 무차별 재호출 시 무한루프 우려 → string.Empty (bulk) 또는 "AlgorithmType" 만 통과
+            if (!string.IsNullOrEmpty(e.PropertyName) && e.PropertyName != "AlgorithmType") return;
+            PublishDatumRoiCandidates(datum);
+        }
+
         //260527 hbk Phase 34.1 D-34.1-02 — 가로축 토글 버튼 Click. 가로축 이미지로 swap + 배지/ROI 갱신.
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체 (teach 모드 진입 전에도 동작).
         private void BtnSwapHorizontal_Click(object sender, RoutedEventArgs e) {
-            if (_editingDatum == null) return;
-            if (_editingDatum.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09 — DualImage 외 케이스 가드
-            string hpath = _editingDatum.TeachingImagePath;
+            var d = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
+            if (d == null) return;
+            if (d.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09 — DualImage 외 케이스 가드
+            string hpath = d.TeachingImagePath;
             if (!string.IsNullOrEmpty(hpath) && System.IO.File.Exists(hpath)) {
                 try { halconViewer.LoadImage(hpath); } //260527 hbk Phase 34.1 — 자동 swap (L1994~) 와 동일 경로
                 catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
@@ -1207,10 +1228,12 @@ namespace ReringProject.UI {
         }
 
         //260527 hbk Phase 34.1 D-34.1-02 — 세로축 토글 버튼 Click. 세로축 이미지로 swap + 배지/ROI 갱신.
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체.
         private void BtnSwapVertical_Click(object sender, RoutedEventArgs e) {
-            if (_editingDatum == null) return;
-            if (_editingDatum.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09
-            string vpath = _editingDatum.TeachingImagePath_Vertical;
+            var d = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
+            if (d == null) return;
+            if (d.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09
+            string vpath = d.TeachingImagePath_Vertical;
             if (!string.IsNullOrEmpty(vpath) && System.IO.File.Exists(vpath)) {
                 try { halconViewer.LoadImage(vpath); }
                 catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
@@ -1224,6 +1247,16 @@ namespace ReringProject.UI {
             //260425 hbk Phase 13 D-VIZ-06 — selection 시점에 reference 좌표 라벨도 동기 갱신
             UpdateDatumRefCoordsLabel(datum);
 
+            //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A/B — datum reference 캐싱 + AlgorithmType PropertyChanged 구독.
+            //  swap 토글 핸들러가 teach 모드 전에도 동작하려면 별도 reference 필요 (_editingDatum 은 Teach Datum 클릭 시에만 set).
+            //  AlgorithmType 이 PropertyGrid 에서 변경되면 PropertyChanged 가 fire → 본 메서드 재귀 호출 → Visibility 즉시 갱신.
+            DatumConfig priorSelected = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02 — D-34.1-08 노드 변경 감지용 prior reference
+            if (_selectedDatumForSwap != datum) {
+                if (_selectedDatumForSwap != null) _selectedDatumForSwap.PropertyChanged -= OnSelectedDatumPropertyChanged; //260527 hbk Phase 34.1 CO-34.1-02
+                _selectedDatumForSwap = datum; //260527 hbk Phase 34.1 CO-34.1-02
+                if (_selectedDatumForSwap != null) _selectedDatumForSwap.PropertyChanged += OnSelectedDatumPropertyChanged; //260527 hbk Phase 34.1 CO-34.1-02
+            }
+
             //260527 hbk Phase 34.1 D-34.1-08/09 — Datum 노드 (재)선택 시: swap 상태 = 기본 가로축 리셋 (세션 한정).
             //  Visibility 동기화: DualImage 변형이면 토글 버튼 + 배지 Visible, 1-image 변형 / null 이면 Collapsed.
             bool isDualImage = (datum != null //260527 hbk Phase 34.1 D-34.1-09
@@ -1234,8 +1267,9 @@ namespace ReringProject.UI {
 
             if (isDualImage) {
                 // Datum 노드 선택 직후 = 가로축 기본 (D-34.1-08). 단, 본 메서드가 자동/수동 swap 도중 재호출되면 _currentImageSource 가 이미 변경되어 있을 수 있음.
-                // 진입점 구분: _editingDatum != datum 이면 새 노드 선택 → 리셋. 같으면 swap 진행 중 → 보존.
-                if (_editingDatum != datum) { //260527 hbk Phase 34.1 D-34.1-08 — 새 노드 진입만 리셋
+                // 진입점 구분: priorSelected != datum 이면 새 노드 선택 → 리셋. 같으면 swap 진행 중 / AlgorithmType 변경 → 보존.
+                //260527 hbk Phase 34.1 CO-34.1-02 hotfix — _editingDatum (teach 모드 한정) → priorSelected (swap UI selection) 교체.
+                if (priorSelected != datum) { //260527 hbk Phase 34.1 D-34.1-08 + CO-34.1-02 — 새 노드 진입만 리셋
                     _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
                     // 배지 텍스트/색상도 가로축으로 동기 (별도 UpdateImageSourceBadge 호출 없이 직접 — 재귀 회피)
                     if (txt_imageSourceBadge != null) txt_imageSourceBadge.Text = "가로축";
@@ -2094,7 +2128,9 @@ namespace ReringProject.UI {
                             UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15 — 자동 swap 도 3자 동시 갱신
                         } else {
                             //260527 hbk Phase 34 D-34-08 — 빈 경로: 안내 + 드로잉 차단 (저장은 차단하지 않음).
-                            label_drawHint.Content = "세로축 이미지를 Load 해주세요"; //260527 hbk Phase 34 D-34-08
+                            //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-C — vpath 빈 경로여도 badge 만큼은 갱신 (사용자에게 "이제 Vertical step" 시각 신호).
+                            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 CO-34.1-02
+                            label_drawHint.Content = "세로축 이미지를 Load 해주세요 (PropertyGrid 의 TeachingImagePath_Vertical)"; //260527 hbk Phase 34 D-34-08 + CO-34.1-02 — hint 강화
                             label_drawHint.Foreground = new SolidColorBrush(Colors.Orange); //260527 hbk Phase 34
                             label_drawHint.Visibility = Visibility.Visible; //260527 hbk Phase 34
                             break; //260527 hbk Phase 34 — 드로잉 시작 안 함 (switch case 종료)

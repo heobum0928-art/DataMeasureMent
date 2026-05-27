@@ -104,9 +104,10 @@ namespace ReringProject.UI {
                 string newValue = null;
                 if (combo != null) newValue = combo.SelectedValue as string;
                 //260503 hbk Phase 17 D-10 — AlgorithmType whitelist 가드 (Tampering mitigate T-17-02-01)
+                //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A — VerticalTwoHorizontalDualImage 누락 (Phase 34 D-34-05 enum 추가 시 whitelist 갱신 누락) → toggle/badge Visibility 갱신 안 됨.
                 if (!string.IsNullOrEmpty(newValue)
                     && string.Equals(newValue, datum.AlgorithmType, System.StringComparison.Ordinal)
-                    && (newValue == "TwoLineIntersect" || newValue == "CircleTwoHorizontal" || newValue == "VerticalTwoHorizontal")) {
+                    && (newValue == "TwoLineIntersect" || newValue == "CircleTwoHorizontal" || newValue == "VerticalTwoHorizontal" || newValue == "VerticalTwoHorizontalDualImage")) { //260527 hbk Phase 34.1 CO-34.1-02
                     // Step 1: force rebind — PropertyDescriptor 재계산 + ICustomTypeDescriptor 신규 필터 적용 (Phase 16 D-09/D-10 패턴 재사용)
                     if (ParamEditor != null) {
                         _isRebinding = true; //260503 hbk Phase 17 bugfix — rebind 중 재진입 차단
@@ -132,6 +133,11 @@ namespace ReringProject.UI {
                     // Step 6: 캔버스 시각화 갱신 (RenderDatumOverlay 가 LastTeachSucceeded=false 분기에서 검출 도형 미렌더)
                     if (mParentWindow != null && mParentWindow.mainView != null && mParentWindow.mainView.halconViewer != null) {
                         mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true);
+                    }
+                    //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A — AlgorithmType 변경 후 swap UI Visibility 갱신 (DualImage ↔ 1-image 전환 양방향).
+                    //  PublishDatumRoiCandidates 재호출 → isDualImage 재계산 → 토글/배지 Visibility + ROI subset 갱신.
+                    if (mParentWindow != null && mParentWindow.mainView != null) {
+                        mParentWindow.mainView.PublishDatumRoiCandidates(datum); //260527 hbk Phase 34.1 CO-34.1-02
                     }
                     return; //260503 hbk Phase 17 D-10 — AlgorithmType 변경은 전용 흐름 — TryTriggerDatumAutoReteach 라우팅 안 함 (D-13/D-14 보존)
                 }

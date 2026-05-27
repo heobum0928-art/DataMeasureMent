@@ -517,7 +517,18 @@ namespace ReringProject.UI {
                 halconViewer.UpdateDisplayState(ConvertParamRects(param as ParamBase), null, null);
                 _lastRenderedImagePath = dialog.FileName;
                 if (pathSinkParam != null) { //260518 hbk #3 — 경로저장 대상 분리
-                    pathSinkParam.SetLatestImagePath(dialog.FileName);
+                    //260527 hbk Phase 34.1 CO-34.1-07 hotfix — DualImage + 세로 토글 활성 시 TeachingImagePath_Vertical 로 저장.
+                    //  기본 동작 (가로 토글 활성 또는 1-image algorithm) = SetLatestImagePath → TeachingImagePath.
+                    //  세로 토글 활성 + DualImage 한정 분기 (DatumConfig.cs 변경 0 가드 유지 위해 외부에서 property 직접 설정).
+                    DatumConfig datumSink = pathSinkParam as DatumConfig;
+                    if (datumSink != null
+                        && datumSink.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
+                        && _currentImageSource == ReringProject.Sequence.EImageSource.Vertical) {
+                        datumSink.TeachingImagePath_Vertical = dialog.FileName; //260527 hbk Phase 34.1 CO-34.1-07
+                    }
+                    else {
+                        pathSinkParam.SetLatestImagePath(dialog.FileName); //260527 hbk Phase 34.1 CO-34.1-07 — 기본 (가로 또는 1-image)
+                    }
                 }
                 //260521 hbk Phase 32 UAT — Shot 노드 Load 시 _image 버퍼 동기화
                 //  displayParam == pathSinkParam (동일 참조) 일 때만 Shot 캐시 갱신.

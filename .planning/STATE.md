@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
 stopped_at: Phase 34 context gathered
-last_updated: "2026-05-27T03:38:33.616Z"
-last_activity: 2026-05-27 - Phase 35 partial sign-off + UAT mid-flow hotfix 2건 (CO-35-01 ResolveRunnableAction 글로벌 IndexOf / CO-35-02 TryLoadNewFormat Top-only 호출). 사용자 보고 "Bottom Shot 재로드 시 사라짐" 가장 큰 이슈 → Plan 35-02 Part D 영역으로 즉시 hotfix. 사용자 검증 PASS. Phase 34 진입 가능 상태.
+last_updated: "2026-05-27T03:47:41.611Z"
+last_activity: 2026-05-27 -- Phase 34 execution started
 progress:
   total_phases: 14
   completed_phases: 11
@@ -21,17 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 35 partial sign-off 완료 → Phase 34 (Datum 듀얼 티칭) next
+**Current focus:** Phase 34 — datum-verticaltwohorizontal-2026-05-26
 
 ## Current Position
 
-Phase: 35 (Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강) — ✅ PARTIAL SIGN-OFF 2026-05-27.
+Phase: 34 (datum-verticaltwohorizontal-2026-05-26) — EXECUTING
+Plan: 1 of 4
 완료: Plan 35-01 (이미지 캐시 hotfix — 17ccc91) / Plan 35-02 (OwnerSequenceName 아키텍처 — 11a6f61) / hotfix CO-35-01+CO-35-02 (1b0894b) / Plan 35-03 (UAT 5/6 PASS).
 UAT 결과: Test 1 (msbuild) / Test 2 (Top 단일) / Test 3 (Top 다중 — CO-33-02 핵심) / Test 5 (Bottom Datum+FAI+Shot 재로드 — CO-33-06 핵심) / Test 6 (INI 라운드트립 Top+Bottom) PASS. Test 4 (Side) → Phase 34 carry-over (CO-33-05 dual-image 의존).
 가설 확정: CO-33-02 = 캐시 stale 단일 root cause — Plan 35-01 hotfix 로 Top + Bottom 동시 해소.
 Phase 33 retro 부분 sign-off: CO-33-02/06 해소, CO-33-03/04 부분 해소 (Side 만 Phase 34). Phase 33 status = 계속 partial (Test 2 Side carry-over 잔존).
 다음 = /gsd-discuss-phase 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지).
-Last activity: 2026-05-27 - Phase 35 partial sign-off + UAT mid-flow hotfix 2건 (CO-35-01 ResolveRunnableAction 글로벌 IndexOf / CO-35-02 TryLoadNewFormat Top-only 호출). 사용자 보고 "Bottom Shot 재로드 시 사라짐" 가장 큰 이슈 → Plan 35-02 Part D 영역으로 즉시 hotfix. 사용자 검증 PASS. Phase 34 진입 가능 상태.
+Last activity: 2026-05-27 -- Phase 34 execution started
 
 ## Performance Metrics
 

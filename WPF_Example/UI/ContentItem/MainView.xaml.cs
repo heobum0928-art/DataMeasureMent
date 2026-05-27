@@ -66,6 +66,15 @@ namespace ReringProject.UI {
         //  _editingDatum 은 Teach Datum 클릭 시에만 set → 토글 핸들러가 노드 선택 직후 동작하려면 별도 reference 필요.
         //  PublishDatumRoiCandidates 진입 시 갱신, AlgorithmType PropertyChanged 구독 대상.
         private DatumConfig _selectedDatumForSwap;
+        //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 배지 색상 정적 frozen brush (인스턴스 GC 방지 + WPF 즉시 반영).
+        //  ConvertFromString 매 호출마다 새 brush 생성 → 일부 환경에서 WPF Background 갱신 누락 의심 → 정적/frozen 으로 대체.
+        private static readonly SolidColorBrush BadgeBrushHorizontal = CreateFrozenBrush(0x19, 0x76, 0xD2); //260527 hbk Phase 34.1 — Material Blue 700
+        private static readonly SolidColorBrush BadgeBrushVertical   = CreateFrozenBrush(0xF5, 0x7C, 0x00); //260527 hbk Phase 34.1 — Material Orange 800
+        private static SolidColorBrush CreateFrozenBrush(byte r, byte g, byte b) {
+            var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -1176,15 +1185,17 @@ namespace ReringProject.UI {
             _currentImageSource = source;
 
             // (b) 배지 텍스트 + 색상 — D-34.1-14 잠금값
+            //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 정적 frozen brush + SetCurrentValue 로 WPF 갱신 보장.
             if (border_imageSourceBadge != null && txt_imageSourceBadge != null) {
                 if (source == ReringProject.Sequence.EImageSource.Horizontal) {
-                    txt_imageSourceBadge.Text = "가로축"; //260527 hbk Phase 34.1 D-34.1-14
-                    border_imageSourceBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1976D2")); //260527 hbk Phase 34.1 D-34.1-14
+                    txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, "가로축"); //260527 hbk Phase 34.1 D-34.1-14
+                    border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushHorizontal); //260527 hbk Phase 34.1 CO-34.1-03
                 }
                 else {
-                    txt_imageSourceBadge.Text = "세로축"; //260527 hbk Phase 34.1 D-34.1-14
-                    border_imageSourceBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F57C00")); //260527 hbk Phase 34.1 D-34.1-14
+                    txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, "세로축"); //260527 hbk Phase 34.1 D-34.1-14
+                    border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushVertical); //260527 hbk Phase 34.1 CO-34.1-03
                 }
+                border_imageSourceBadge.InvalidateVisual(); //260527 hbk Phase 34.1 CO-34.1-03 — 즉시 재렌더 강제
             }
 
             // 토글 버튼 IsChecked 동기화 (수동 클릭 / 자동 swap 양방향) — 한쪽만 체크 (radio 패턴)
@@ -1272,8 +1283,9 @@ namespace ReringProject.UI {
                 if (priorSelected != datum) { //260527 hbk Phase 34.1 D-34.1-08 + CO-34.1-02 — 새 노드 진입만 리셋
                     _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
                     // 배지 텍스트/색상도 가로축으로 동기 (별도 UpdateImageSourceBadge 호출 없이 직접 — 재귀 회피)
-                    if (txt_imageSourceBadge != null) txt_imageSourceBadge.Text = "가로축";
-                    if (border_imageSourceBadge != null) border_imageSourceBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1976D2"));
+                    //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 정적 frozen brush + SetCurrentValue
+                    if (txt_imageSourceBadge != null) txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, "가로축");
+                    if (border_imageSourceBadge != null) border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushHorizontal); //260527 hbk Phase 34.1 CO-34.1-03
                     if (btn_swapHorizontal != null) btn_swapHorizontal.IsChecked = true;
                     if (btn_swapVertical   != null) btn_swapVertical.IsChecked   = false;
                 }

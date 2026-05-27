@@ -59,6 +59,9 @@ namespace ReringProject.UI {
         private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
         private EDatumTeachStep _datumTeachStep = EDatumTeachStep.Line1; //260424 hbk Phase 12 D-03
         private DatumConfig _editingDatum; //260424 hbk Phase 12 — 현재 티칭 중 Datum
+        //260527 hbk Phase 34.1 D-34.1-08/12 — 현재 캔버스에 표시 중인 이미지 축 (가로/세로). DualImage 변형에서만 의미 있음.
+        //  세션 한정, INI 미저장 (Datum 노드 이동 시 가로축으로 리셋).
+        private ReringProject.Sequence.EImageSource _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -1162,11 +1165,86 @@ namespace ReringProject.UI {
             txt_imageSourceLabel.Visibility = Visibility.Collapsed;
         }
 
+        //260527 hbk Phase 34.1 D-34.1-15 — 자동/수동 swap 의 단일 진입점.
+        //  3자 동시 갱신: (a) _currentImageSource 필드 + (b) 배지 텍스트/색상 + (c) ROI 가시성 (PublishDatumRoiCandidates 재호출 → 현재 축 ROI subset 만 표시).
+        //  자동 swap (StartDatumTeachStep(Vertical) at L1994~) + 수동 swap (BtnSwap*_Click) 모두 본 메서드 경유.
+        private void UpdateImageSourceBadge(ReringProject.Sequence.EImageSource source) {
+            _currentImageSource = source;
+
+            // (b) 배지 텍스트 + 색상 — D-34.1-14 잠금값
+            if (border_imageSourceBadge != null && txt_imageSourceBadge != null) {
+                if (source == ReringProject.Sequence.EImageSource.Horizontal) {
+                    txt_imageSourceBadge.Text = "가로축"; //260527 hbk Phase 34.1 D-34.1-14
+                    border_imageSourceBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1976D2")); //260527 hbk Phase 34.1 D-34.1-14
+                }
+                else {
+                    txt_imageSourceBadge.Text = "세로축"; //260527 hbk Phase 34.1 D-34.1-14
+                    border_imageSourceBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F57C00")); //260527 hbk Phase 34.1 D-34.1-14
+                }
+            }
+
+            // 토글 버튼 IsChecked 동기화 (수동 클릭 / 자동 swap 양방향) — 한쪽만 체크 (radio 패턴)
+            if (btn_swapHorizontal != null) btn_swapHorizontal.IsChecked = (source == ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1
+            if (btn_swapVertical   != null) btn_swapVertical.IsChecked   = (source == ReringProject.Sequence.EImageSource.Vertical);   //260527 hbk Phase 34.1
+
+            // (c) ROI 가시성 — 현재 _editingDatum 가 DualImage 일 때만 subset 필터 적용. 다른 algorithm 은 PublishDatumRoiCandidates 가 알아서 처리.
+            if (_editingDatum != null
+                && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34.1 D-34.1-10
+                PublishDatumRoiCandidates(_editingDatum); //260527 hbk Phase 34.1 — DualImage 분기가 _currentImageSource 참조하여 subset 만 publish
+            }
+        }
+
+        //260527 hbk Phase 34.1 D-34.1-02 — 가로축 토글 버튼 Click. 가로축 이미지로 swap + 배지/ROI 갱신.
+        private void BtnSwapHorizontal_Click(object sender, RoutedEventArgs e) {
+            if (_editingDatum == null) return;
+            if (_editingDatum.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09 — DualImage 외 케이스 가드
+            string hpath = _editingDatum.TeachingImagePath;
+            if (!string.IsNullOrEmpty(hpath) && System.IO.File.Exists(hpath)) {
+                try { halconViewer.LoadImage(hpath); } //260527 hbk Phase 34.1 — 자동 swap (L1994~) 와 동일 경로
+                catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+            }
+            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1 D-34.1-15 — 3자 동시 갱신
+        }
+
+        //260527 hbk Phase 34.1 D-34.1-02 — 세로축 토글 버튼 Click. 세로축 이미지로 swap + 배지/ROI 갱신.
+        private void BtnSwapVertical_Click(object sender, RoutedEventArgs e) {
+            if (_editingDatum == null) return;
+            if (_editingDatum.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09
+            string vpath = _editingDatum.TeachingImagePath_Vertical;
+            if (!string.IsNullOrEmpty(vpath) && System.IO.File.Exists(vpath)) {
+                try { halconViewer.LoadImage(vpath); }
+                catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+            }
+            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15
+        }
+
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
         //260426 hbk Phase 13 D-A1 — InspectionListView 가 selection 시 호출하도록 public 승격
         public void PublishDatumRoiCandidates(DatumConfig datum) {
             //260425 hbk Phase 13 D-VIZ-06 — selection 시점에 reference 좌표 라벨도 동기 갱신
             UpdateDatumRefCoordsLabel(datum);
+
+            //260527 hbk Phase 34.1 D-34.1-08/09 — Datum 노드 (재)선택 시: swap 상태 = 기본 가로축 리셋 (세션 한정).
+            //  Visibility 동기화: DualImage 변형이면 토글 버튼 + 배지 Visible, 1-image 변형 / null 이면 Collapsed.
+            bool isDualImage = (datum != null //260527 hbk Phase 34.1 D-34.1-09
+                                && datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage);
+            if (btn_swapHorizontal != null) btn_swapHorizontal.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260527 hbk Phase 34.1 D-34.1-09
+            if (btn_swapVertical   != null) btn_swapVertical.Visibility   = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260527 hbk Phase 34.1 D-34.1-09
+            if (border_imageSourceBadge != null) border_imageSourceBadge.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260527 hbk Phase 34.1 D-34.1-09
+
+            if (isDualImage) {
+                // Datum 노드 선택 직후 = 가로축 기본 (D-34.1-08). 단, 본 메서드가 자동/수동 swap 도중 재호출되면 _currentImageSource 가 이미 변경되어 있을 수 있음.
+                // 진입점 구분: _editingDatum != datum 이면 새 노드 선택 → 리셋. 같으면 swap 진행 중 → 보존.
+                if (_editingDatum != datum) { //260527 hbk Phase 34.1 D-34.1-08 — 새 노드 진입만 리셋
+                    _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
+                    // 배지 텍스트/색상도 가로축으로 동기 (별도 UpdateImageSourceBadge 호출 없이 직접 — 재귀 회피)
+                    if (txt_imageSourceBadge != null) txt_imageSourceBadge.Text = "가로축";
+                    if (border_imageSourceBadge != null) border_imageSourceBadge.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1976D2"));
+                    if (btn_swapHorizontal != null) btn_swapHorizontal.IsChecked = true;
+                    if (btn_swapVertical   != null) btn_swapVertical.IsChecked   = false;
+                }
+            }
+
             if (datum == null) { halconViewer.ClearDatumRoiCandidates(); return; }
             var list = new List<ReringProject.Halcon.Models.RoiDefinition>();
             switch (datum.AlgorithmTypeEnum) {
@@ -1193,6 +1271,20 @@ namespace ReringProject.UI {
                     if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
                     break;
+                //260527 hbk Phase 34.1 D-34.1-10 — DualImage 변형: 현재 표시 축에 해당하는 ROI subset 만 publish.
+                //  가로축 = HorizontalA + HorizontalB / 세로축 = Vertical. ROI 데이터 자체는 DatumConfig 에 항상 보존됨 (가시성만 토글).
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
+                    if (_currentImageSource == ReringProject.Sequence.EImageSource.Horizontal) { //260527 hbk Phase 34.1 D-34.1-10
+                        if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0) //260527 hbk Phase 34.1
+                            list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
+                        if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0) //260527 hbk Phase 34.1
+                            list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
+                    }
+                    else { //260527 hbk Phase 34.1 — Vertical 표시 중: Vertical ROI 만
+                        if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0) //260527 hbk Phase 34.1
+                            list.Add(BuildDatumRectCandidate("Datum.Vertical", datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Length1, datum.Vertical_Length2));
+                    }
+                    break; //260527 hbk Phase 34.1
             }
             halconViewer.SetDatumRoiCandidates(list);
         }
@@ -1999,6 +2091,7 @@ namespace ReringProject.UI {
                         if (!string.IsNullOrEmpty(vpath) && System.IO.File.Exists(vpath)) { //260527 hbk Phase 34
                             try { halconViewer.LoadImage(vpath); } //260527 hbk Phase 34 D-34-06
                             catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); } //260527 hbk Phase 34
+                            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15 — 자동 swap 도 3자 동시 갱신
                         } else {
                             //260527 hbk Phase 34 D-34-08 — 빈 경로: 안내 + 드로잉 차단 (저장은 차단하지 않음).
                             label_drawHint.Content = "세로축 이미지를 Load 해주세요"; //260527 hbk Phase 34 D-34-08

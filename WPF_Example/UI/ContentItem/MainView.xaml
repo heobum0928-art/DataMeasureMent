@@ -95,6 +95,24 @@
                         MinWidth="100" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.-->
+                    <ToggleButton x:Name="btn_swapHorizontal" Content="👁 가로"
+                        Click="BtnSwapHorizontal_Click"
+                        Style="{StaticResource RoiToggleButtonStyle}"
+                        IsEnabled="True" Visibility="Collapsed"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
+                        ToolTip="가로축 이미지로 전환 (HorizontalA + HorizontalB ROI 표시)"/>
+
+                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (세로축).-->
+                    <ToggleButton x:Name="btn_swapVertical" Content="👁 세로"
+                        Click="BtnSwapVertical_Click"
+                        Style="{StaticResource RoiToggleButtonStyle}"
+                        IsEnabled="True" Visibility="Collapsed"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
+                        ToolTip="세로축 이미지로 전환 (Vertical ROI 표시)"/>
+
                     <!--260424 hbk Phase 13 D-05 — 런타임 TryFindDatum 테스트 버튼 (Datum teach 완료 후 활성화)-->
                     <Button x:Name="btn_testFindDatum" Content="Test Find"
                         Click="BtnTestFindDatum_Click"
@@ -174,6 +192,19 @@
                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                    IsHitTestVisible="False"/>
+
+            <!--260527 hbk Phase 34.1 D-34.1-03/14 — 현재 표시 이미지 배지 (캔버스 우상단, DualImage 변형일 때만 Visible).
+                 색상/텍스트는 code-behind UpdateImageSourceBadge(EImageSource) 에서 setting.
+                 가로축 = #1976D2 Material Blue 700 / 세로축 = #F57C00 Material Orange 800 / 14px / 마진 우상단 12px.-->
+            <Border x:Name="border_imageSourceBadge"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,12,12,0" Padding="10,4"
+                    CornerRadius="4" Background="#1976D2"
+                    Visibility="Collapsed" IsHitTestVisible="False">
+                <TextBlock x:Name="txt_imageSourceBadge"
+                           Text="가로축" Foreground="White"
+                           FontSize="14" FontWeight="SemiBold"/>
+            </Border>
 
             <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
                 <Grid>

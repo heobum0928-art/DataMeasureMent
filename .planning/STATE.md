@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: phase_partial_signed_off
-stopped_at: Phase 34 partial signed_off; Phase 34.1 신설 대기
-last_updated: "2026-05-27T05:00:00.000Z"
-last_activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설 (Datum DualImage swap UX)
+status: unknown
+stopped_at: Phase 34.1 context extended (Areas A-D)
+last_updated: "2026-05-27T06:58:53.680Z"
+last_activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설
 progress:
-  total_phases: 14
-  completed_phases: 11
+  total_phases: 15
+  completed_phases: 12
   total_plans: 55
-  completed_plans: 50
-  percent: 91
+  completed_plans: 54
+  percent: 98
 ---
 
 # Project State
@@ -28,11 +28,13 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 Phase: 34 (datum-verticaltwohorizontal-2026-05-26) — PARTIAL SIGNED_OFF 2026-05-27
 Plans: 4/4 (Plan 04 partial — Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING)
 UAT 결과 (5 Test):
+
   - Test 1 (msbuild) PASS — exit=0, errors=0, 신규 warning 0
   - Test 2 (1-image 3종 회귀 0) PENDING → CO-34-03 (Phase 34.1 UAT 일괄)
   - Test 3 (DualImage SIMUL) PARTIAL — 3-a/3-b PASS · 3-d FAIL (swap UX 갭) · 3-c/3-e/3-f NOT-TESTED
   - Test 4 (INI 라운드트립) PENDING → CO-34-03
   - Test 5 (D-34-13/14 가드) PASS — VisionResponsePacket 0/0 · Action_FAIMeasurement hunks=2
+
 사용자 피드백: "이미지를 사용자가 원하는대로 스왑이 필요할 꺼 같아 이렇게 보면 헷갈려" → Phase 34.1 신설 결정.
 Carry-over: CO-34-01 (swap UX) / CO-34-02 (3-c/e/f) / CO-34-03 (Test 2/4) / CO-34-04 (Phase 35 Test 4 Side 연장) — 모두 Phase 34.1 흡수.
 다음 = /gsd-discuss-phase 34.1 (Datum DualImage swap UX — D-34.1-01~06 시드 결정사항 6건).
@@ -282,8 +284,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-27
-Stopped at: Phase 34 partial signed_off; Phase 34.1 신설 대기
+Last session: --stopped-at
+Stopped at: Phase 34.1 context extended (Areas A-D)
 Resume file: --resume-file
 Next action: /gsd-discuss-phase 34.1 — Datum DualImage swap UX. 시드 결정사항 6건 (D-34.1-01 ~ D-34.1-06) 는 34-04-SUMMARY.md 에 기재. UX 개요: (1) PropertyGrid TeachingImagePath / TeachingImagePath_Vertical 우측 [👁] 아이콘 버튼 → 해당 이미지로 캔버스 swap, (2) 캔버스 우상단 배지 라벨 — 가로축=파랑/세로축=주황 + 텍스트, (3) 자동 swap (D-34-06) 은 유지하되 사용자가 언제든 수동으로 되돌릴 수 있음. UAT 범위: CO-34-02 / CO-34-03 / CO-34-04 일괄 흡수 (Test 2/3-c/3-e/3-f/4 재실행 + Phase 35 Test 4 Side 종결).
 

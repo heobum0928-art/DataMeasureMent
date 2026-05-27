@@ -683,7 +683,9 @@ namespace ReringProject.Halcon.Display
                             datum.Line1_Length1, datum.Line1_Length2, "L1");
                     }
                 }
-                else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal)
+                //260527 hbk Phase 34.1 CO-34.1-06 hotfix — DualImage 도 Vertical 슬롯 렌더 필요 (Phase 34 D-34-05 enum 추가 시 누락).
+                else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal
+                      || datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage)
                 {
                     if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0)
                     {

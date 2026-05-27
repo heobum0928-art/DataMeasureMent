@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
 stopped_at: Phase 34 context gathered
-last_updated: "2026-05-27T02:19:41.660Z"
+last_updated: "2026-05-27T03:38:33.616Z"
 last_activity: 2026-05-27 - Phase 35 partial sign-off + UAT mid-flow hotfix 2건 (CO-35-01 ResolveRunnableAction 글로벌 IndexOf / CO-35-02 TryLoadNewFormat Top-only 호출). 사용자 보고 "Bottom Shot 재로드 시 사라짐" 가장 큰 이슈 → Plan 35-02 Part D 영역으로 즉시 hotfix. 사용자 검증 PASS. Phase 34 진입 가능 상태.
 progress:
   total_phases: 14
   completed_phases: 11
-  total_plans: 51
+  total_plans: 55
   completed_plans: 50
-  percent: 98
+  percent: 91
 ---
 
 # Project State
@@ -299,4 +299,4 @@ Next action: 앱 재빌드 후 Phase 32 최종 UAT(32-06 Task 2) 수행. 절차 
 
 **Completed Phase:** 22 (image-dual-structure) — 2 plans — signed_off 2026-05-11T07:30:00Z (IMG-01+IMG-02, UAT 4/4 PASS)
 
-**Planned Phase:** 33 (Side/Bottom InspectionSequence 마이그레이션) — 3 plans — 2026-05-26T08:49:47.529Z
+**Planned Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형) — 4 plans — 2026-05-27T03:38:33.605Z

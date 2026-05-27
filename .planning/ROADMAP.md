@@ -173,7 +173,12 @@ Plans:
   5. Action_FAIMeasurement GrabOrLoadDatumImage 가 ROI 별 이미지 선택 (algorithm = 신규일 때 vertical ROI 는 image2)
   6. INI 호환: TeachingImagePath_Vertical 미존재 시 "" 정규화 (기존 INI 회귀 0)
   7. 기존 1-image 타입 회귀 0 (msbuild PASS + Top recipe 로드 확인)
-**Plans**: TBD (~3 plans 예상 — 34-01 DatumConfig 필드+enum / 34-02 DatumFindingService 분기+티칭 UI / 34-03 Action_FAIMeasurement+SIMUL UAT)
+**Plans**: 4 plans
+Plans:
+- [ ] 34-01-PLAN.md — EDatumAlgorithm enum + DatumConfig 필드/AlgorithmTypeList/INI 정규화/ICustomTypeDescriptor 분기 (Wave 1)
+- [ ] 34-02-PLAN.md — DatumFindingService 2-image TryFindDatum/TryTeachDatum 오버로드 + 2 신규 private 메서드 (Wave 2)
+- [ ] 34-03-PLAN.md — MainView 4 메서드 분기 + Action_FAIMeasurement EStep.DatumPhase 분기 + TryGrabOrLoadDualDatumImages (Wave 3)
+- [ ] 34-04-PLAN.md — SIMUL UAT 5 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL + INI 라운드트립 + D-34-13/14 가드) + sign-off (Wave 4, autonomous: false)
 
 ---
 
@@ -368,7 +373,7 @@ Plans:
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
 | 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35) | 2026-05-26 |
-| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 0/TBD | ⏳ Planned (CO-33-05, Side carry-over) — **next** | - |
+| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 0/4 | ⏳ Planned (4 plans, 4 waves, CO-33-05 + Phase 35 Test 4 Side carry-over 흡수) — **next** | - |
 | 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side → Phase 34) | 2026-05-27 |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |

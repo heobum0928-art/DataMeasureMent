@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
-stopped_at: Phase 34.1 context extended (Areas A-D)
-last_updated: "2026-05-27T06:58:53.680Z"
-last_activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설
+stopped_at: Completed 34.1-01-PLAN.md (Datum DualImage swap UX 코드 구현)
+last_updated: "2026-05-27T08:12:15.271Z"
+last_activity: 2026-05-27
 progress:
   total_phases: 15
   completed_phases: 12
-  total_plans: 55
-  completed_plans: 54
-  percent: 98
+  total_plans: 57
+  completed_plans: 55
+  percent: 96
 ---
 
 # Project State
@@ -21,11 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 34.1 — Datum DualImage swap UX (carry-over closure)
+**Current focus:** Phase 34.1 — Datum DualImage swap UX
 
 ## Current Position
 
-Phase: 34 (datum-verticaltwohorizontal-2026-05-26) — PARTIAL SIGNED_OFF 2026-05-27
+Phase: 34.1 (Datum DualImage swap UX) — EXECUTING
+Plan: 2 of 2
 Plans: 4/4 (Plan 04 partial — Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING)
 UAT 결과 (5 Test):
 
@@ -38,7 +39,7 @@ UAT 결과 (5 Test):
 사용자 피드백: "이미지를 사용자가 원하는대로 스왑이 필요할 꺼 같아 이렇게 보면 헷갈려" → Phase 34.1 신설 결정.
 Carry-over: CO-34-01 (swap UX) / CO-34-02 (3-c/e/f) / CO-34-03 (Test 2/4) / CO-34-04 (Phase 35 Test 4 Side 연장) — 모두 Phase 34.1 흡수.
 다음 = /gsd-discuss-phase 34.1 (Datum DualImage swap UX — D-34.1-01~06 시드 결정사항 6건).
-Last activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설
+Last activity: 2026-05-27
 
 ## Performance Metrics
 
@@ -113,6 +114,7 @@ Last activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P05 | 131 | 2 tasks | 3 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P07 | 20 | 5 tasks | 5 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P08 | 25 | 3 tasks | 2 files |
+| Phase 34.1 P01 | 7 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -204,6 +206,9 @@ Recent decisions affecting current work:
 - overlay ADDITIVE 원칙: return true 직전 삽입, HALCON 재호출 없음, 이미 계산된 로컬 변수만 참조 (32-07)
 - CompoundCenterC/B foot 오버로드 교체: 단일 오버로드→foot 반환 오버로드, 수치 결과 byte-identical, footOk 가드로 FAI-DistLine skip (32-07)
 - 4-ROI ArcLineIntersect 설계 채택: 교점1(A1/B1)과 교점2(A2/B2) 평균점 → Datum C X 거리. SOP I9/I10 실무 알고리즘 일치 (Plan 32-08)
+- [Phase 34.1-01]: EImageSource enum 단일 신규 파일 + DatumConfig 변경 0 가드 유지 (D-34.1-07)
+- [Phase 34.1-01]: UpdateImageSourceBadge(EImageSource) 단일 헬퍼로 자동/수동 swap 3자 동시 전환 일원화 (D-34.1-15)
+- [Phase 34.1-01]: PublishDatumRoiCandidates 진입부 isDualImage Visibility 동기화 + 새 노드 진입 가로축 리셋 (D-34.1-08/09)
 
 ### Quick Tasks Completed
 
@@ -284,9 +289,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 34.1 context extended (Areas A-D)
-Resume file: --resume-file
+Last session: 2026-05-27T08:10:10.362Z
+Stopped at: Completed 34.1-01-PLAN.md (Datum DualImage swap UX 코드 구현)
+Resume file: None
 Next action: /gsd-discuss-phase 34.1 — Datum DualImage swap UX. 시드 결정사항 6건 (D-34.1-01 ~ D-34.1-06) 는 34-04-SUMMARY.md 에 기재. UX 개요: (1) PropertyGrid TeachingImagePath / TeachingImagePath_Vertical 우측 [👁] 아이콘 버튼 → 해당 이미지로 캔버스 swap, (2) 캔버스 우상단 배지 라벨 — 가로축=파랑/세로축=주황 + 텍스트, (3) 자동 swap (D-34-06) 은 유지하되 사용자가 언제든 수동으로 되돌릴 수 있음. UAT 범위: CO-34-02 / CO-34-03 / CO-34-04 일괄 흡수 (Test 2/3-c/3-e/3-f/4 재실행 + Phase 35 Test 4 Side 종결).
 
 **v1.1 Phase Map:**
@@ -306,4 +311,4 @@ Next action: /gsd-discuss-phase 34.1 — Datum DualImage swap UX. 시드 결정�
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 34.1 (Datum DualImage swap UX) — TBD plans — 2026-05-27 신설 (CO-34-01~04 흡수)
+**Planned Phase:** 34.1 (Datum DualImage Swap UX) — 2 plans — 2026-05-27T07:53:00.597Z

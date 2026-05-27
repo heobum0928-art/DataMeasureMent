@@ -201,7 +201,7 @@ Plans:
   8. Phase 34 D-34-13/14 가드 (DatumConfig / VisionResponsePacket / InspectionSequence / Action_FAIMeasurement) 변경 0 유지 (D-34.1-07)
 **Plans**: 2 plans
 Plans:
-- [ ] 34.1-01-PLAN.md — MainView 토글 버튼 + 배지 XAML + 3자 동시 갱신 헬퍼 + EImageSource enum + Cal_Image/DualImageTest/ 폴더 + DatumConfig.cs working-tree 정리 (Wave 1, autonomous: true)
+- [x] 34.1-01-PLAN.md — MainView 토글 버튼 + 배지 XAML + 3자 동시 갱신 헬퍼 + EImageSource enum + Cal_Image/DualImageTest/ 폴더 + DatumConfig.cs working-tree 정리 (Wave 1, autonomous: true) — ✅ completed 2026-05-27 (commits 789e364 / 118e8b7 / 937f959, msbuild PASS, 가드 4파일 변경 0)
 - [ ] 34.1-02-PLAN.md — SIMUL UAT 7 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL 3-a~3-f + INI 라운드트립 + 가드 4파일 + 3자 동시 전환 + 의사 페어 PASS) + sign-off (Wave 2, autonomous: false, CO-34-01~04 흡수)
 
 **Carry-over (예정)**: CO-34.1-01 (Side fixture 실측 이미지 페어 확보 후 DualImage Datum 결합 실측 검증) → 장비 도착 후 v1.1 다음 회주 또는 Phase 27 에서 종결
@@ -401,7 +401,7 @@ Plans:
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
 | 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35) | 2026-05-26 |
 | 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 3/4 | ⚠ PARTIAL signed off (Test 1+5 PASS, Test 3-d swap UX 갭 → Phase 34.1, Test 2/3-c/3-e/3-f/4 → 34.1 UAT 일괄) | 2026-05-27 |
-| 34.1. Datum DualImage swap UX (INSERTED) | 0/2 | ⏳ Planned 2026-05-27 (2 plans, 2 waves — swap UI / SIMUL UAT sign-off) — **next: /gsd-execute-phase 34.1** | - |
+| 34.1. Datum DualImage swap UX (INSERTED) | 1/2 | 🔄 In progress (Plan 01 ✅ 2026-05-27 — swap UI 코드 + msbuild PASS · Plan 02 ⏳ SIMUL UAT sign-off) — **next: /gsd-execute-phase 34.1 Plan 02** | - |
 | 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side carry-over → Phase 34.1 연장) | 2026-05-27 |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34.1 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |

@@ -135,8 +135,12 @@ namespace ReringProject.Sequence {
             RecipeManager.Load(loadFile);
             IsDynamicFAIMode = true;
 
-            // 첫 번째 시퀀스(Top)에 대해 Shot 기반 Action 재구축
+            //260527 hbk Phase 35 — CO-33-06 hotfix (Plan 35-02 Part D): Top/Side/Bottom 모두 RebuildInspectionActions 호출
+            //  이전 = Top 만 호출 → Side/Bottom Shot 이 INI 로드 후 seq.ActionCount=0 → 트리(InspectionListViewModel.CreateSequenceNode)에 안 보임
+            //  RebuildInspectionActions 자체가 OwnerSequenceName 으로 필터링하므로 시퀀스별로 자기 소유 Shot 만 attach
             RebuildInspectionActions(ESequence.Top);
+            RebuildInspectionActions(ESequence.Side);
+            RebuildInspectionActions(ESequence.Bottom);
             return true;
         }
 

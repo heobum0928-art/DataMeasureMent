@@ -310,7 +310,10 @@ namespace ReringProject.UI {
             // Shot 노드 (Action 타입 + ShotConfig Param): RecipeManager.Shots 인덱스 → seq[i].ID 매핑
             if (node.NodeType == ENodeType.Action && node.Param is ShotConfig shotCfg) {
                 var seqHandler = SystemHandler.Handle.Sequences;
-                int shotIdx = seqHandler.RecipeManager.Shots.IndexOf(shotCfg);
+                //260527 hbk Phase 35 — CO-35-01 hotfix (Plan 35-02 Part D): 글로벌 IndexOf 대신 시퀀스 소유 Shot 만 필터링한 로컬 인덱스 사용
+                //  이전 = RecipeManager.Shots.IndexOf → Bottom Shot 의 글로벌 인덱스 > Bottom seq.ActionCount → "no action to run" 오류
+                //  RebuildInspectionActions 의 actionIdx 부여 로직 (SequenceHandler.cs L92-103) 과 1:1 대응되어야 함
+                int shotIdx = ComputeLocalShotIndex(seqHandler.RecipeManager, shotCfg, seq.ID);
                 if (shotIdx < 0) return false;
 
                 if (shotIdx < seq.ActionCount) {
@@ -350,6 +353,23 @@ namespace ReringProject.UI {
             }
 
             return false;
+        }
+
+        //260527 hbk Phase 35 — CO-35-01 hotfix: 글로벌 Shots 에서 시퀀스 소유 Shot 만 필터링한 로컬 인덱스 계산
+        //  SequenceHandler.RebuildInspectionActions 의 actionIdx 부여 로직 (L92-103) 과 1:1 대응되어야 함
+        //  빈 OwnerSequenceName 은 TOP 으로 폴백 (ApplyShotDefaults / RebuildInspectionActions 와 동일 정책)
+        private static int ComputeLocalShotIndex(InspectionRecipeManager mgr, ShotConfig target, ESequence seqId) {
+            if (mgr == null || target == null) return -1;
+            string targetSeqName = SequenceHandler.ResolveSequenceName(seqId);
+            int localIdx = 0;
+            for (int i = 0; i < mgr.ShotCount; i++) {
+                ShotConfig s = mgr.Shots[i];
+                string shotOwner = string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName;
+                if (shotOwner != targetSeqName) continue;
+                if (ReferenceEquals(s, target)) return localIdx;
+                localIdx++;
+            }
+            return -1;
         }
 
         public void SetSelectionChange(string seqName) {

@@ -48,6 +48,85 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!--260527 hbk Phase 34.1 CO-34.1-04 hotfix — 가로축 토글 전용 스타일 (활성 시 Material Blue 700 #1976D2).
+             RoiToggleButtonStyle 의 generic blue (#2563EB) 와 시각적으로 거의 동일해 사용자가 활성 축 구분 어려움 → 축 색상 강제.-->
+        <Style x:Key="SwapHorizontalToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource RoiToggleButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1976D2"/> <!--260527 hbk Phase 34.1 D-34.1-14 — 가로축 Blue 700-->
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#0D47A1"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A4A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#1976D2"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF444444"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--260527 hbk Phase 34.1 CO-34.1-04 hotfix — 세로축 토글 전용 스타일 (활성 시 Material Orange 800 #F57C00).-->
+        <Style x:Key="SwapVerticalToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource RoiToggleButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F57C00"/> <!--260527 hbk Phase 34.1 D-34.1-14 — 세로축 Orange 800-->
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#E65100"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A4A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#F57C00"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF444444"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -95,19 +174,21 @@
                         MinWidth="100" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
-                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.-->
+                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.
+                         260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapHorizontalToggleStyle 로 교체 (활성 시 #1976D2 Blue 700).-->
                     <ToggleButton x:Name="btn_swapHorizontal" Content="👁 가로"
                         Click="BtnSwapHorizontal_Click"
-                        Style="{StaticResource RoiToggleButtonStyle}"
+                        Style="{StaticResource SwapHorizontalToggleStyle}"
                         IsEnabled="True" Visibility="Collapsed"
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
                         ToolTip="가로축 이미지로 전환 (HorizontalA + HorizontalB ROI 표시)"/>
 
-                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (세로축).-->
+                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (세로축).
+                         260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapVerticalToggleStyle 로 교체 (활성 시 #F57C00 Orange 800).-->
                     <ToggleButton x:Name="btn_swapVertical" Content="👁 세로"
                         Click="BtnSwapVertical_Click"
-                        Style="{StaticResource RoiToggleButtonStyle}"
+                        Style="{StaticResource SwapVerticalToggleStyle}"
                         IsEnabled="True" Visibility="Collapsed"
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"

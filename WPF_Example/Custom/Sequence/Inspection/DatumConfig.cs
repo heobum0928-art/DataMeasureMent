@@ -568,6 +568,7 @@ namespace ReringProject.Sequence {
             if (string.IsNullOrEmpty(Circle_EdgeSelection)) Circle_EdgeSelection = fbSelection; //260429 hbk Phase 15
             if (string.IsNullOrEmpty(Circle_RadialDirection)) Circle_RadialDirection = "Inward"; //260503 hbk Phase 17 D-02 — sentinel "" → "Inward" fallback (INI 하위호환)
             if (TeachingImagePath == null) TeachingImagePath = ""; //260511 hbk Phase 22 IMG-01 — INI 키 미존재 시 null 가드 (ParamBase.Load String case 가 IniValue.Default → null 로 SetValue 가능 → 소비처 string.IsNullOrEmpty 가드 보완). 멱등성 보장 — 빈 문자열 아닌 사용자 셋업 값은 보존.
+            if (TeachingImagePath_Vertical == null) TeachingImagePath_Vertical = ""; //260527 hbk Phase 34 D-34-11 — Phase 22 IMG-01 패턴 1:1 복제. algorithm 무관 일률 정규화 — DualImage 가 아니어도 필드 존재. 기존 INI(키 미존재) 로드 → "" 정규화 → 1-image algorithm 회귀 0 (D-34-12).
 
             // Horizontal_A
             if (Horizontal_A_EdgeThreshold == 0)   Horizontal_A_EdgeThreshold = fbThreshold;
@@ -674,17 +675,25 @@ namespace ReringProject.Sequence {
         private static bool IsHiddenForAlgorithm(string name, EDatumAlgorithm alg) {
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
+                    if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name.StartsWith("Horizontal_A_") || name.StartsWith("Horizontal_B_")) return true;
                     return false;
                 case EDatumAlgorithm.CircleTwoHorizontal:
+                    if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name == "Circle_EdgeDirection") return true; //260503 hbk Phase 17 D-03 — Circle 분기에서 EdgeDirection 동적 hide
                     return false;
                 case EDatumAlgorithm.VerticalTwoHorizontal:
+                    if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
+                    if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
+                    if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
+                    return false;
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage: //260527 hbk Phase 34 D-34-04 — DualImage 변형: VTH 와 동일 hide 그룹 (Vertical_* + Horizontal_A_*/B_* 노출). 차이 = TeachingImagePath_Vertical 추가 노출 (hide 조건 없음 → default fallthrough 후 return false).
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;

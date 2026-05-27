@@ -433,6 +433,8 @@ namespace ReringProject.UI {
                             mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
                             //260426 hbk Phase 13 D-A1 — 이미 티칭된 Datum 도 selection 즉시 ROI hit-test 가능하도록 후보 publish
                             mParentWindow.mainView.PublishDatumRoiCandidates(datumCfg);
+                            //260527 hbk Phase 35 — CO-33-02 hotfix: Datum 노드 선택 시 TeachingImagePath 표시 (Shot/Measurement 와 일관성; stale canvas 차단)
+                            mParentWindow.mainView.DisplayDatumImage(datumCfg); //260527 hbk Phase 35
 
                             //260429 hbk Phase 16 D-09/D-10 — Datum 전환 시 PropertyGrid SelectedObject 강제 null→new force rebind.
                             //  이유: Phase 15 UAT Test 10~12 결함 — ROI 이동/생성 후 Datum 전환 시 AlgorithmType combobox 가 stale.
@@ -487,6 +489,7 @@ namespace ReringProject.UI {
                         }
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                         //260521 hbk Phase 32 UAT — Measurement 노드 선택 시 소유 Shot 이미지 표시 (이미지 회귀 결함 수정)
+                        //260527 hbk Phase 35 — Measurement 노드 = 측정 단계 = SHOT 이미지 표시 (Datum 이미지 아님; Phase 22 IMG-02 dual-image 분리 구조)
                         if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas)
                             mParentWindow.mainView.DisplayMeasurementImage(meas); //260521 hbk Phase 32 UAT
                         //260518 hbk #6 — 선택 Measurement 노드의 ROI 캔버스 하이라이트 + 명칭 라벨

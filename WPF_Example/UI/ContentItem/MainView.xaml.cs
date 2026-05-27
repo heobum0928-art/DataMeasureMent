@@ -138,6 +138,27 @@ namespace ReringProject.UI {
             }
         }
 
+        //260527 hbk Phase 35 — CO-33-02 hotfix: Datum 노드 선택 시 TeachingImagePath 표시 (Shot/Measurement 와 일관성 확보, stale canvas 차단).
+        //  Phase 22 IMG-02 dual-image 구조 (TeachingImagePath != SimulImagePath) 보존 — Datum 전용 이미지 canvas 직접 표시.
+        /// <summary>Displays the TeachingImagePath image of the given DatumConfig on the canvas.
+        /// Mirrors DisplayShotImage but uses DatumConfig.TeachingImagePath (Phase 22 IMG-02 분리 구조).</summary>
+        public void DisplayDatumImage(DatumConfig datum) { //260527 hbk Phase 35
+            if (datum == null) { //260527 hbk Phase 35
+                return; //260527 hbk Phase 35
+            }
+            string path = datum.TeachingImagePath; //260527 hbk Phase 35
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) { //260527 hbk Phase 35
+                // TeachingImagePath 미설정/파일 없음 — 기존 canvas 유지 (사용자가 Load Image 누르면 갱신)
+                return; //260527 hbk Phase 35
+            }
+            try { //260527 hbk Phase 35
+                halconViewer.LoadImage(path); //260527 hbk Phase 35
+                label_message.Visibility = Visibility.Collapsed; //260527 hbk Phase 35
+            } catch (Exception ex) { //260527 hbk Phase 35
+                Logging.PrintErrLog((int)ELogType.Error, ex.Message); //260527 hbk Phase 35
+            }
+        }
+
         //260521 hbk Phase 32 UAT — Measurement 노드 선택 시 소유 Shot 이미지 표시 진입점.
         //  MeasurementBase → FAI(FindFaiNameContainingMeasurement) → ShotConfig(FAIConfig.Owner) → DisplayShotImage.
         /// <summary>Resolves the owning ShotConfig for the given measurement and displays its image.</summary>
@@ -485,6 +506,9 @@ namespace ReringProject.UI {
                 //260521 hbk Phase 32 UAT — Shot 노드 Load 시 _image 버퍼 동기화
                 //  displayParam == pathSinkParam (동일 참조) 일 때만 Shot 캐시 갱신.
                 //  Datum 노드 Load 는 displayParam=ShotConfig, pathSinkParam=DatumConfig (참조 불일치) → 건너뜀.
+                //260527 hbk Phase 35 — CO-33-02 의도 강화: 본 가드는 ShotConfig._image 캐시 오염 방지의 단일 책임을 가진다.
+                //  ReferenceEquals(displayParam, pathSinkParam) == true ⇔ 사용자가 Shot 노드에서 Load → 캐시 갱신.
+                //  Datum 노드 Load → DatumConfig.TeachingImagePath 만 기록, Shot 캐시 무오염 (Phase 22 IMG-02 분리 구조 보존). 동작 byte-identical.
                 if (displayParam is ShotConfig shot && ReferenceEquals(displayParam, pathSinkParam)) {
                     HImage currentImg = halconViewer.CurrentImage; //260521 hbk Phase 32 UAT
                     if (currentImg != null) {

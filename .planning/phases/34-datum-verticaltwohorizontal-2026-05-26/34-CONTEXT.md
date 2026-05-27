@@ -124,6 +124,7 @@ VerticalTwoHorizontal 알고리즘의 **2-image 변형 1종**을 신규 EDatumAl
 
 - **다른 algorithm 의 dual-image 변형** (CircleTwoHorizontalDualImage 등) — 본 phase 범위 외. 본 phase 의 enum 명명 패턴(`*DualImage`)이 향후 phase 의 ground work.
 - **DatumFindingService HImage 이중 입력 시그니처 표준화** — 본 phase 는 algorithm 분기로 처리. 만약 dual-image variant 가 늘어나면 인터페이스 일반화 검토 (v1.2 후보).
+- **DatumFindingService VTH/DualImage 본문 공통화** (helper extraction — 두 메서드 ~350-400 라인 복제 통합) — v1.2 후보. 본 phase 는 회귀 0 보장 위해 100% 복제 선택, 향후 dual-image variant 가 늘어나면 공통화 검토 (INFO #5).
 - **두 이미지 해상도/orientation 불일치 검증** — 운영 중 발견 시 별도 phase 로 처리. 본 phase 는 동일 해상도 가정.
 - **티칭 중 두 이미지 동시 미리보기** (split-view) — UI 확장 후보. 본 phase 는 step별 단일 이미지 표시.
 

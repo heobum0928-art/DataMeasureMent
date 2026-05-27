@@ -1031,6 +1031,17 @@ namespace ReringProject.UI {
                     if (d.Horizontal_A_Length1 <= 0 || d.Horizontal_B_Length1 <= 0)
                         return "Horizontal A/B ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요.";
                     break;
+                //260527 hbk Phase 34 D-34-09/10 — DualImage 변형 가드: 3 ROI + 2 이미지 경로 모두 검증.
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
+                    if (d.Vertical_Length1 <= 0) //260527 hbk Phase 34
+                        return "Vertical ROI 가 없습니다. 캔버스에 수직 ROI 를 그리고 다시 시도하세요."; //260527 hbk Phase 34
+                    if (d.Horizontal_A_Length1 <= 0 || d.Horizontal_B_Length1 <= 0) //260527 hbk Phase 34
+                        return "Horizontal A/B ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요."; //260527 hbk Phase 34
+                    if (string.IsNullOrEmpty(d.TeachingImagePath)) //260527 hbk Phase 34 D-34-10
+                        return "가로축 티칭 이미지 경로가 비어 있습니다. Datum 노드에서 가로축 이미지를 Load 해주세요."; //260527 hbk Phase 34 D-34-10
+                    if (string.IsNullOrEmpty(d.TeachingImagePath_Vertical)) //260527 hbk Phase 34 D-34-10
+                        return "세로축 티칭 이미지 경로가 비어 있습니다. Datum 노드에서 세로축 이미지를 Load 해주세요."; //260527 hbk Phase 34 D-34-10
+                    break;
             }
             return null;
         }
@@ -1916,6 +1927,9 @@ namespace ReringProject.UI {
                     return new[] { EDatumTeachStep.Circle, EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB };
                 case EDatumAlgorithm.VerticalTwoHorizontal:
                     return new[] { EDatumTeachStep.Vertical, EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB };
+                //260527 hbk Phase 34 D-34-07 — DualImage 변형: 순서 = HA → HB → V (가로축 이미지 먼저 → 자동 swap → 세로축 이미지). 1-image VTH (V → HA → HB) 와 의도적으로 다름.
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
+                    return new[] { EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB, EDatumTeachStep.Vertical }; //260527 hbk Phase 34 D-34-07
                 default:
                     return new EDatumTeachStep[0];
             }
@@ -1978,21 +1992,50 @@ namespace ReringProject.UI {
                     halconViewer.StartRectangleDrawing();
                     break;
                 case EDatumTeachStep.Vertical:
-                    label_drawHint.Content = "Step 1/3: 수직 ROI를 드래그하세요"; //260424 hbk Phase 12
+                    //260527 hbk Phase 34 D-34-06 — DualImage 변형이면 진입 직전에 세로축 이미지로 자동 swap.
+                    if (_editingDatum != null
+                        && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-06
+                        string vpath = _editingDatum.TeachingImagePath_Vertical; //260527 hbk Phase 34 D-34-06
+                        if (!string.IsNullOrEmpty(vpath) && System.IO.File.Exists(vpath)) { //260527 hbk Phase 34
+                            try { halconViewer.LoadImage(vpath); } //260527 hbk Phase 34 D-34-06
+                            catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); } //260527 hbk Phase 34
+                        } else {
+                            //260527 hbk Phase 34 D-34-08 — 빈 경로: 안내 + 드로잉 차단 (저장은 차단하지 않음).
+                            label_drawHint.Content = "세로축 이미지를 Load 해주세요"; //260527 hbk Phase 34 D-34-08
+                            label_drawHint.Foreground = new SolidColorBrush(Colors.Orange); //260527 hbk Phase 34
+                            label_drawHint.Visibility = Visibility.Visible; //260527 hbk Phase 34
+                            break; //260527 hbk Phase 34 — 드로잉 시작 안 함 (switch case 종료)
+                        }
+                        label_drawHint.Content = "Step 3/3: 수직 ROI를 드래그하세요"; //260527 hbk Phase 34 D-34-07
+                    } else {
+                        label_drawHint.Content = "Step 1/3: 수직 ROI를 드래그하세요"; //260424 hbk Phase 12 — 기존 1-image VTH 라벨 보존
+                    }
                     label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
                     halconViewer.StartRectangleDrawing();
                     break;
                 case EDatumTeachStep.HorizontalA:
-                    label_drawHint.Content = "Step 2/3: 수평 A ROI를 드래그하세요"; //260424 hbk Phase 12
+                    //260527 hbk Phase 34 D-34-07 — DualImage 변형: Step 1/3 (가로축 이미지 표시 상태 가정).
+                    if (_editingDatum != null
+                        && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-07
+                        label_drawHint.Content = "Step 1/3: 수평 A ROI를 드래그하세요"; //260527 hbk Phase 34 D-34-07
+                    } else {
+                        label_drawHint.Content = "Step 2/3: 수평 A ROI를 드래그하세요"; //260424 hbk Phase 12 — 기존 1-image VTH/CTH 라벨 보존
+                    }
                     label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
                     halconViewer.StartRectangleDrawing();
                     break;
                 case EDatumTeachStep.HorizontalB:
-                    label_drawHint.Content = "Step 3/3: 수평 B ROI를 드래그하세요"; //260424 hbk Phase 12
+                    //260527 hbk Phase 34 D-34-07 — DualImage 변형: Step 2/3.
+                    if (_editingDatum != null
+                        && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-07
+                        label_drawHint.Content = "Step 2/3: 수평 B ROI를 드래그하세요"; //260527 hbk Phase 34 D-34-07
+                    } else {
+                        label_drawHint.Content = "Step 3/3: 수평 B ROI를 드래그하세요"; //260424 hbk Phase 12 — 기존 1-image VTH/CTH 라벨 보존
+                    }
                     label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
@@ -2103,6 +2146,7 @@ namespace ReringProject.UI {
         }
 
         //260424 hbk Phase 12 D-02 — 마지막 ROI 직후 DatumFindingService.TryTeachDatum 자동 호출
+        //260527 hbk Phase 34 D-34-01/02 — DualImage 변형 시 두 파일에서 이미지 2개 로드 후 신규 2-image TryTeachDatum 호출 (goto 패턴 0 — early-return + try/finally).
         private void InvokeTryTeachDatum() {
             if (_editingDatum == null) { ExitCanvasMode(); return; }
 
@@ -2119,8 +2163,47 @@ namespace ReringProject.UI {
             }
 
             var svc = new ReringProject.Halcon.Algorithms.DatumFindingService(); //260424 hbk Phase 12 — 무상태 서비스
-            string error;
-            bool ok = svc.TryTeachDatum(img, _editingDatum, out error);
+            string error = null; //260527 hbk Phase 34 — DualImage 분기 공용 변수
+            bool ok = false; //260527 hbk Phase 34 — DualImage 분기 공용 변수
+
+            //260527 hbk Phase 34 D-34-01/02 — DualImage 변형: 두 파일에서 이미지 2개 로드 + 신규 2-image TryTeachDatum 호출. goto 패턴 0 (early-return + try/finally).
+            if (_editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34
+                string pathH = _editingDatum.TeachingImagePath; //260527 hbk Phase 34
+                string pathV = _editingDatum.TeachingImagePath_Vertical; //260527 hbk Phase 34
+
+                //260527 hbk Phase 34 D-34-10 — 빈 경로 / 파일 없음 가드 (early-return).
+                if (string.IsNullOrEmpty(pathH) || !System.IO.File.Exists(pathH)) { //260527 hbk Phase 34
+                    ExitTeachWithError("가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260527 hbk Phase 34 D-34-10
+                    return; //260527 hbk Phase 34
+                }
+                if (string.IsNullOrEmpty(pathV) || !System.IO.File.Exists(pathV)) { //260527 hbk Phase 34
+                    ExitTeachWithError("세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260527 hbk Phase 34 D-34-10
+                    return; //260527 hbk Phase 34
+                }
+
+                //260527 hbk Phase 34 — 이미지 2개 로드: try/finally 로 dispose 보장. 로드 실패 시 error 설정 후 try 블록 종료 → 공통 결과 처리.
+                HImage imgH = null, imgV = null; //260527 hbk Phase 34
+                try {
+                    try { imgH = new HImage(pathH); } //260527 hbk Phase 34
+                    catch (Exception exH) { error = "가로축 이미지 로드 실패: " + exH.Message; ok = false; } //260527 hbk Phase 34
+
+                    if (error == null) { //260527 hbk Phase 34 — 가로축 로드 성공 시에만 세로축 시도
+                        try { imgV = new HImage(pathV); } //260527 hbk Phase 34
+                        catch (Exception exV) { error = "세로축 이미지 로드 실패: " + exV.Message; ok = false; } //260527 hbk Phase 34
+                    }
+
+                    if (error == null) { //260527 hbk Phase 34 — 두 이미지 모두 성공 시에만 TryTeachDatum 호출
+                        ok = svc.TryTeachDatum(imgH, imgV, _editingDatum, out error); //260527 hbk Phase 34 D-34-01/02 — 2-image 오버로드
+                    }
+                } finally {
+                    if (imgH != null) { try { imgH.Dispose(); } catch { } } //260527 hbk Phase 34
+                    if (imgV != null) { try { imgV.Dispose(); } catch { } } //260527 hbk Phase 34
+                }
+            } else {
+                ok = svc.TryTeachDatum(img, _editingDatum, out error); //기존 단일-이미지 오버로드 (회귀 0)
+            }
+
+            //공통 결과 처리 (DualImage / 1-image 양쪽 공통 — goto 0)
             if (ok) {
                 label_drawHint.Content = "Datum 티칭 완료 — Recipe Save 권장"; //260424 hbk Phase 12
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80")); //260424 hbk Phase 12 success green
@@ -2143,6 +2226,16 @@ namespace ReringProject.UI {
             btn_teachDatum.IsChecked = false;
             _editingDatum = null;
             halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
+        }
+
+        //260527 hbk Phase 34 — InvokeTryTeachDatum 의 early-return 헬퍼 (goto 패턴 회피).
+        private void ExitTeachWithError(string message) {
+            label_drawHint.Visibility = Visibility.Collapsed; //260527 hbk Phase 34
+            CustomMessageBox.Show("티칭 실패", message); //260527 hbk Phase 34
+            _canvasMode = ECanvasMode.None; //260527 hbk Phase 34
+            btn_teachDatum.IsChecked = false; //260527 hbk Phase 34
+            _editingDatum = null; //260527 hbk Phase 34
+            halconViewer.IsTeachDatumMode = false; //260527 hbk Phase 34
         }
 
         //260424 hbk Phase 13 D-05..D-08 — 런타임 TryFindDatum 테스트 진입 (현재/Load 이미지 2-way + 성공 주황 십자 + 실패 에러 메시지)

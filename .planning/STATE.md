@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: unknown
-stopped_at: Phase 34 context gathered
-last_updated: "2026-05-27T03:47:41.611Z"
-last_activity: 2026-05-27 -- Phase 34 execution started
+status: phase_partial_signed_off
+stopped_at: Phase 34 partial signed_off; Phase 34.1 신설 대기
+last_updated: "2026-05-27T05:00:00.000Z"
+last_activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설 (Datum DualImage swap UX)
 progress:
   total_phases: 14
   completed_phases: 11
@@ -21,18 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 34 — datum-verticaltwohorizontal-2026-05-26
+**Current focus:** Phase 34.1 — Datum DualImage swap UX (carry-over closure)
 
 ## Current Position
 
-Phase: 34 (datum-verticaltwohorizontal-2026-05-26) — EXECUTING
-Plan: 1 of 4
-완료: Plan 35-01 (이미지 캐시 hotfix — 17ccc91) / Plan 35-02 (OwnerSequenceName 아키텍처 — 11a6f61) / hotfix CO-35-01+CO-35-02 (1b0894b) / Plan 35-03 (UAT 5/6 PASS).
-UAT 결과: Test 1 (msbuild) / Test 2 (Top 단일) / Test 3 (Top 다중 — CO-33-02 핵심) / Test 5 (Bottom Datum+FAI+Shot 재로드 — CO-33-06 핵심) / Test 6 (INI 라운드트립 Top+Bottom) PASS. Test 4 (Side) → Phase 34 carry-over (CO-33-05 dual-image 의존).
-가설 확정: CO-33-02 = 캐시 stale 단일 root cause — Plan 35-01 hotfix 로 Top + Bottom 동시 해소.
-Phase 33 retro 부분 sign-off: CO-33-02/06 해소, CO-33-03/04 부분 해소 (Side 만 Phase 34). Phase 33 status = 계속 partial (Test 2 Side carry-over 잔존).
-다음 = /gsd-discuss-phase 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지).
-Last activity: 2026-05-27 -- Phase 34 execution started
+Phase: 34 (datum-verticaltwohorizontal-2026-05-26) — PARTIAL SIGNED_OFF 2026-05-27
+Plans: 4/4 (Plan 04 partial — Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING)
+UAT 결과 (5 Test):
+  - Test 1 (msbuild) PASS — exit=0, errors=0, 신규 warning 0
+  - Test 2 (1-image 3종 회귀 0) PENDING → CO-34-03 (Phase 34.1 UAT 일괄)
+  - Test 3 (DualImage SIMUL) PARTIAL — 3-a/3-b PASS · 3-d FAIL (swap UX 갭) · 3-c/3-e/3-f NOT-TESTED
+  - Test 4 (INI 라운드트립) PENDING → CO-34-03
+  - Test 5 (D-34-13/14 가드) PASS — VisionResponsePacket 0/0 · Action_FAIMeasurement hunks=2
+사용자 피드백: "이미지를 사용자가 원하는대로 스왑이 필요할 꺼 같아 이렇게 보면 헷갈려" → Phase 34.1 신설 결정.
+Carry-over: CO-34-01 (swap UX) / CO-34-02 (3-c/e/f) / CO-34-03 (Test 2/4) / CO-34-04 (Phase 35 Test 4 Side 연장) — 모두 Phase 34.1 흡수.
+다음 = /gsd-discuss-phase 34.1 (Datum DualImage swap UX — D-34.1-01~06 시드 결정사항 6건).
+Last activity: 2026-05-27 -- Phase 34 partial signed_off + Phase 34.1 신설
 
 ## Performance Metrics
 
@@ -278,10 +282,10 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 34 context gathered
+Last session: 2026-05-27
+Stopped at: Phase 34 partial signed_off; Phase 34.1 신설 대기
 Resume file: --resume-file
-Next action: 앱 재빌드 후 Phase 32 최종 UAT(32-06 Task 2) 수행. 절차 = Datum B/C 티칭 → ArcLineIntersect(4-ROI: EdgeA1/B1/A2/B2, 측정점 X=교점2·Y=평균) → E2 CompoundAngle → E3 CompoundLongAxisDistance(장축폭) → E9/E10 → Contour 파라미터 → 실패 케이스. "approved" 시 32-06 SUMMARY 작성 → verify_phase_goal → phase.complete. UAT 수정 이력은 git log fix(32-*) 커밋 참조.
+Next action: /gsd-discuss-phase 34.1 — Datum DualImage swap UX. 시드 결정사항 6건 (D-34.1-01 ~ D-34.1-06) 는 34-04-SUMMARY.md 에 기재. UX 개요: (1) PropertyGrid TeachingImagePath / TeachingImagePath_Vertical 우측 [👁] 아이콘 버튼 → 해당 이미지로 캔버스 swap, (2) 캔버스 우상단 배지 라벨 — 가로축=파랑/세로축=주황 + 텍스트, (3) 자동 swap (D-34-06) 은 유지하되 사용자가 언제든 수동으로 되돌릴 수 있음. UAT 범위: CO-34-02 / CO-34-03 / CO-34-04 일괄 흡수 (Test 2/3-c/3-e/3-f/4 재실행 + Phase 35 Test 4 Side 종결).
 
 **v1.1 Phase Map:**
 
@@ -298,6 +302,6 @@ Next action: 앱 재빌드 후 Phase 32 최종 UAT(32-06 Task 2) 수행. 절차 
 - Phase 27: Side Inspection 확장 — 신설 2026-05-08 (LineToLineAngle + Side Fixture INI + PC2 분리)
 - Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합 — 신설 2026-05-08 (Phase 19 UAT 사용자 요청)
 
-**Completed Phase:** 22 (image-dual-structure) — 2 plans — signed_off 2026-05-11T07:30:00Z (IMG-01+IMG-02, UAT 4/4 PASS)
+**Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형) — 4 plans — 2026-05-27T03:38:33.605Z
+**Planned Phase:** 34.1 (Datum DualImage swap UX) — TBD plans — 2026-05-27 신설 (CO-34-01~04 흡수)

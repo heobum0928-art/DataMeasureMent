@@ -28,7 +28,8 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 23: Top #1 A시리즈 Simul end-to-end** — ✅ 최종 sign-off 2026-05-19 (23.1-UAT.md 가 23-UAT.md supersede, D-14)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
 - [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35, Test 2 Side → Phase 34)
-- [ ] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** ← 신설 2026-05-26 (가로축 2 ROI 이미지 + 세로축 1 ROI 이미지) — Side carry-over 일환
+- [⚠] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** — PARTIAL signed off 2026-05-27 (Test 1+5 PASS · Test 3-a/3-b PASS · Test 3-d FAIL swap UX 갭 · Test 2/3-c/3-e/3-f/4 → Phase 34.1)
+- [ ] **Phase 34.1: Datum DualImage swap UX** ← 신설 2026-05-27 (수동 swap 버튼 + 현재 이미지 배지 라벨 — CO-34-01~04 흡수, Phase 35 Test 4 Side 연장 carry-over 종결)
 - [⚠] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** — PARTIAL signed off 2026-05-27 (5/6 PASS, Test 4 Side → Phase 34, CO-33-02/06 해소, CO-35-01/02 hotfix)
 - [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Top/Bottom prerequisite 충족 (Side 는 Phase 34 후)
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
@@ -178,7 +179,7 @@ Plans:
 - [x] 34-01-PLAN.md — EDatumAlgorithm enum + DatumConfig 필드/AlgorithmTypeList/INI 정규화/ICustomTypeDescriptor 분기 (Wave 1)
 - [x] 34-02-PLAN.md — DatumFindingService 2-image TryFindDatum/TryTeachDatum 오버로드 + 2 신규 private 메서드 (Wave 2)
 - [x] 34-03-PLAN.md — MainView 4 메서드 분기 + Action_FAIMeasurement EStep.DatumPhase 분기 + TryGrabOrLoadDualDatumImages (Wave 3)
-- [ ] 34-04-PLAN.md — SIMUL UAT 5 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL + INI 라운드트립 + D-34-13/14 가드) + sign-off (Wave 4, autonomous: false)
+- [x] 34-04-PLAN.md — SIMUL UAT 5 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL + INI 라운드트립 + D-34-13/14 가드) + sign-off (Wave 4, autonomous: false) — **partial signed off 2026-05-27**: Test 1+5 PASS · Test 3-a/3-b PASS · Test 3-d FAIL swap UX 갭 → Phase 34.1 · Test 2/3-c/3-e/3-f/4 → 34.1 UAT 일괄
 
 ---
 
@@ -373,9 +374,10 @@ Plans:
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
 | 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35) | 2026-05-26 |
-| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 0/4 | ⏳ Planned (4 plans, 4 waves, CO-33-05 + Phase 35 Test 4 Side carry-over 흡수) — **next** | - |
-| 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side → Phase 34) | 2026-05-27 |
-| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34 후) | - |
+| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 3/4 | ⚠ PARTIAL signed off (Test 1+5 PASS, Test 3-d swap UX 갭 → Phase 34.1, Test 2/3-c/3-e/3-f/4 → 34.1 UAT 일괄) | 2026-05-27 |
+| 34.1. Datum DualImage swap UX (INSERTED) | 0/TBD | ⏳ Planned (수동 swap 버튼 + 현재 이미지 배지 — CO-34-01~04 흡수) — **next** | - |
+| 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side carry-over → Phase 34.1 연장) | 2026-05-27 |
+| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34.1 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | ~~26. 헝가리안 전체 리팩토링~~ | — | ⏭ Deferred → v1.2 | (2026-05-26 이연) |
@@ -385,6 +387,8 @@ Plans:
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |
+
+*v1.1 roadmap updated: 2026-05-27 — Phase 34 PARTIAL signed off + Phase 34.1 (Datum DualImage swap UX) 신설. UAT 도중 사용자 피드백 — 자동 swap 만으로는 현재 표시 이미지를 시각적으로 알 수 없고 임의 swap 불가 → ROI 그리기 신뢰성 확보 불가. 결정: 수동 swap (PropertyGrid [👁] 아이콘) + 캔버스 우상단 배지 (가로축 파랑 / 세로축 주황). CO-34-01~04 + Phase 35 Test 4 Side carry-over → 34.1 흡수. v1.1 잔여 = 34.1 → 24 → 25 → 27.*
 
 ---
 

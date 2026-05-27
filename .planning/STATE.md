@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: Phase 35 partial sign-off (5/6 UAT PASS, Side carry-over → Phase 34). CO-33-02/03/04/06 해소, CO-35-01/02 hotfix 적용. v1.1 잔여 = Phase 34 (Datum 듀얼 티칭) → 24 → 25 → 27.
-stopped_at: Phase 35 partial sign-off — Top/Bottom UAT PASS + INI 라운드트립 PASS + CO-35-01/02 mid-UAT hotfix. Side 만 Phase 34 (CO-33-05 dual-image) carry-over.
-last_updated: "2026-05-27T00:00:00.000Z"
-last_activity: 2026-05-27 - Phase 35 partial sign-off (5/6 PASS, Test 4 Side → Phase 34 carry-over). 5 commits (17ccc91 35-01 / 2ea2c2a SUM / 11a6f61 35-02 / 0c4d7de SUM / 1b0894b hotfix CO-35-01+CO-35-02). UAT 중 사용자 보고 2건 hotfix: ResolveRunnableAction 글로벌 IndexOf + TryLoadNewFormat Top-only 호출. CO-33-02 단일 root cause 가설 확정 (Top + Bottom 동시 해소). Phase 33 retro 부분 업데이트 (Test 3/4/5 PASS via Phase 35, Test 2 Side carry-over → Phase 34). D-06 가드 (Phase 33 계승) 전체 commit 통과.
+status: unknown
+stopped_at: Phase 34 context gathered
+last_updated: "2026-05-27T02:19:41.660Z"
+last_activity: 2026-05-27 - Phase 35 partial sign-off + UAT mid-flow hotfix 2건 (CO-35-01 ResolveRunnableAction 글로벌 IndexOf / CO-35-02 TryLoadNewFormat Top-only 호출). 사용자 보고 "Bottom Shot 재로드 시 사라짐" 가장 큰 이슈 → Plan 35-02 Part D 영역으로 즉시 hotfix. 사용자 검증 PASS. Phase 34 진입 가능 상태.
 progress:
-  total_phases: 13
-  completed_phases: 10
+  total_phases: 14
+  completed_phases: 11
   total_plans: 51
-  completed_plans: 47
-  percent: 92
+  completed_plans: 50
+  percent: 98
 ---
 
 # Project State
@@ -277,9 +277,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-21 (저녁 — UAT 내일로 연기)
-Stopped at: Phase 32 — 8개 plan(32-01~32-08) 코드 전체 완료 + UAT 후속 수정 다수 적용. 32-06 최종 UAT 체크포인트 대기 중.
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 34 context gathered
+Resume file: --resume-file
 Next action: 앱 재빌드 후 Phase 32 최종 UAT(32-06 Task 2) 수행. 절차 = Datum B/C 티칭 → ArcLineIntersect(4-ROI: EdgeA1/B1/A2/B2, 측정점 X=교점2·Y=평균) → E2 CompoundAngle → E3 CompoundLongAxisDistance(장축폭) → E9/E10 → Contour 파라미터 → 실패 케이스. "approved" 시 32-06 SUMMARY 작성 → verify_phase_goal → phase.complete. UAT 수정 이력은 git log fix(32-*) 커밋 참조.
 
 **v1.1 Phase Map:**

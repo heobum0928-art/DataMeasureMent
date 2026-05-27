@@ -45,7 +45,7 @@ VerticalTwoHorizontal 알고리즘의 **2-image 변형 1종**을 신규 EDatumAl
 
 ### D-06 가드 충돌 처리
 - **D-34-13**: Phase 33 D-06 가드 (`Action_FAIMeasurement.cs` 변경 0 라인) — **Phase 34 한정 해제**. 허용 변경 = `GrabOrLoadDatumImage` 안에 algorithm 분기 추가 (ROI ID 보고 image1 vs image2 선택) **단일 지점만**. 그 외 동일 파일 변경 금지. CONTEXT/PLAN 양쪽에 명시 + verification 시 diff 라인 카운트 검증.
-- **D-34-14**: `InspectionSequence.cs`, `VisionResponsePacket.cs` D-06 가드는 **그대로 유지** (Phase 33/35 와 동일). 변경 0 라인.
+- **D-34-14 (정정 2026-05-27)**: `VisionResponsePacket.cs` D-06 가드는 그대로 유지 (변경 0 라인). `InspectionSequence.cs` 는 **DualImage seam 한정 ≤5 신규 라인 허용** — Plan-checker iteration 1 BLOCKER #1 해소를 위해 완화. 허용 변경 = `TryRunDatumPhase` 의 2-image 오버로드 (`public bool TryRunDatumPhase(HImage image1, HImage image2, out string error)`) 1개 신설 — 내부에서 algorithm 분기로 DualImage 면 `DatumFindingService.TryFindDatum(image1, image2, ...)` 호출, 1-image 면 기존 경로로 폴백. 이 신규 메서드도 `_datumTransforms.Clear()` 후 dict 채움. 그 외 InspectionSequence 의 다른 site 변경 금지 (회귀 위험 0 유지). 기존 `TryRunDatumPhase(HImage)` 시그니처는 그대로 보존 (호출자 회귀 0). diff 검증: `InspectionSequence.cs` 신규 라인 수 ≤ 15 (메서드 시그니처/주석/괄호 포함), 기존 라인 수정 0.
 
 ### Claude's Discretion
 - HalconViewerControl 이미지 자동 전환 구현 위치 (`HalconViewerControl.LoadImage` 호출 직접 vs MainView 의 step change 핸들러에서 호출) — planner/researcher 가 기존 패턴 따라 결정.
@@ -75,8 +75,10 @@ VerticalTwoHorizontal 알고리즘의 **2-image 변형 1종**을 신규 EDatumAl
 - `WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs` — GrabOrLoadDatumImage 안 ROI ID → image1/image2 선택 분기 (D-34-13 한정 변경)
 
 ### 기존 코드 — 변경 0 라인 (D-06 가드)
-- `WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs`
-- `WPF_Example/TcpServer/VisionResponsePacket.cs`
+- `WPF_Example/TcpServer/VisionResponsePacket.cs` — 변경 0 라인 (D-34-14 유지)
+
+### 기존 코드 — DualImage seam 한정 ≤5 라인 허용 (D-34-14 정정 2026-05-27)
+- `WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs` — `TryRunDatumPhase(HImage, HImage, out string)` 2-image 오버로드 1개 신설만 허용. 기존 메서드/필드 수정 0.
 
 ### 이전 Phase 컨텍스트 (패턴 계승)
 - `.planning/phases/12-*/12-CONTEXT.md` — D-09 EDatumAlgorithm enum 도입 결정

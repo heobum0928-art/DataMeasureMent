@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: unknown
-stopped_at: Completed 34.1-01-PLAN.md (Datum DualImage swap UX 코드 구현)
-last_updated: "2026-05-27T08:12:15.271Z"
+status: awaiting_user
+stopped_at: Plan 34.1-02 Task 1 완료 (UAT scaffold 작성, commit 176bd50) — Task 2 사용자 SIMUL UAT 대기
+last_updated: "2026-05-27T08:30:00.000Z"
 last_activity: 2026-05-27
 progress:
   total_phases: 15
@@ -25,20 +25,18 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 34.1 (Datum DualImage swap UX) — EXECUTING
-Plan: 2 of 2
-Plans: 4/4 (Plan 04 partial — Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING)
-UAT 결과 (5 Test):
+Phase: 34.1 (Datum DualImage swap UX) — EXECUTING (Plan 02 — checkpoint)
+Plan: 2 of 2 (Task 1 완료, Task 2 checkpoint:human-verify gate=blocking)
+Plans: 1/2 완료 (Plan 01 코드 + Plan 02 Task 1 UAT scaffold)
 
-  - Test 1 (msbuild) PASS — exit=0, errors=0, 신규 warning 0
-  - Test 2 (1-image 3종 회귀 0) PENDING → CO-34-03 (Phase 34.1 UAT 일괄)
-  - Test 3 (DualImage SIMUL) PARTIAL — 3-a/3-b PASS · 3-d FAIL (swap UX 갭) · 3-c/3-e/3-f NOT-TESTED
-  - Test 4 (INI 라운드트립) PENDING → CO-34-03
-  - Test 5 (D-34-13/14 가드) PASS — VisionResponsePacket 0/0 · Action_FAIMeasurement hunks=2
+Plan 02 Task 1 결과:
+  - .planning/phases/34.1-datum-dualimage-swap-ux-2026-05-27/34.1-UAT.md 신규 (commit 176bd50)
+  - status=pending, 7 Test 본문, W3/W4 보정 반영, CO-34.1-01 carry-over 명시
+  - W3: PowerShell + vswhere fallback (Test 1 msbuild)
+  - W4: PLAN_01_BASE env var (옵션 A) + phase-34.1-pre-exec tag (옵션 B, 권장)
 
-사용자 피드백: "이미지를 사용자가 원하는대로 스왑이 필요할 꺼 같아 이렇게 보면 헷갈려" → Phase 34.1 신설 결정.
-Carry-over: CO-34-01 (swap UX) / CO-34-02 (3-c/e/f) / CO-34-03 (Test 2/4) / CO-34-04 (Phase 35 Test 4 Side 연장) — 모두 Phase 34.1 흡수.
-다음 = /gsd-discuss-phase 34.1 (Datum DualImage swap UX — D-34.1-01~06 시드 결정사항 6건).
+Task 2 = 사용자 SIMUL UAT 7 Test 수행 + 결과 보고 + UAT.md 갱신 + sign-off (checkpoint:human-verify).
+사용자 응답 대기: "approved" / "partial — Test X/Y/Z FAIL, carry-over=..." / "blocked — <상세>".
 Last activity: 2026-05-27
 
 ## Performance Metrics
@@ -289,10 +287,10 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-27T08:10:10.362Z
-Stopped at: Completed 34.1-01-PLAN.md (Datum DualImage swap UX 코드 구현)
-Resume file: None
-Next action: /gsd-discuss-phase 34.1 — Datum DualImage swap UX. 시드 결정사항 6건 (D-34.1-01 ~ D-34.1-06) 는 34-04-SUMMARY.md 에 기재. UX 개요: (1) PropertyGrid TeachingImagePath / TeachingImagePath_Vertical 우측 [👁] 아이콘 버튼 → 해당 이미지로 캔버스 swap, (2) 캔버스 우상단 배지 라벨 — 가로축=파랑/세로축=주황 + 텍스트, (3) 자동 swap (D-34-06) 은 유지하되 사용자가 언제든 수동으로 되돌릴 수 있음. UAT 범위: CO-34-02 / CO-34-03 / CO-34-04 일괄 흡수 (Test 2/3-c/3-e/3-f/4 재실행 + Phase 35 Test 4 Side 종결).
+Last session: 2026-05-27T08:30:00.000Z
+Stopped at: Plan 34.1-02 Task 1 완료 (UAT scaffold, commit 176bd50) — Task 2 사용자 SIMUL UAT 대기 (checkpoint:human-verify, gate=blocking)
+Resume file: .planning/phases/34.1-datum-dualimage-swap-ux-2026-05-27/34.1-UAT.md
+Next action: 사용자가 7 Test 수행 → UAT.md 갱신 → 결과 보고 ("approved" / "partial" / "blocked"). 그 후 /gsd-execute-phase 34.1 재진입 또는 sign-off 수동 처리.
 
 **v1.1 Phase Map:**
 

@@ -1317,19 +1317,18 @@ namespace ReringProject.UI {
                     if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
                     break;
-                //260527 hbk Phase 34.1 D-34.1-10 — DualImage 변형: 현재 표시 축에 해당하는 ROI subset 만 publish.
-                //  가로축 = HorizontalA + HorizontalB / 세로축 = Vertical. ROI 데이터 자체는 DatumConfig 에 항상 보존됨 (가시성만 토글).
+                //260527 hbk Phase 34.1 D-34.1-10 — DualImage 변형 ROI publish.
+                //  당초 설계: 축별 subset 토글 (가로축 표시 시 HA+HB 만, 세로축 표시 시 Vertical 만).
+                //260527 hbk Phase 34.1 CO-34.1-05 hotfix — UAT 결과 subset 토글이 ROI 위치 파악/삭제/이동 시 사용성 저해.
+                //  설계 변경: VerticalTwoHorizontal (1-image) 와 동일하게 모든 ROI 항상 표시. 사용자가 다른 축으로 swap 해도 기존 ROI 위치 보존되어 편집 가능.
+                //  좌표계 불일치 (가로 이미지 위에 Vertical ROI 표시 시 misalign 가능) 는 SIMUL 의사 페어 한계로 CO-34.1-01 에서 종결.
                 case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
-                    if (_currentImageSource == ReringProject.Sequence.EImageSource.Horizontal) { //260527 hbk Phase 34.1 D-34.1-10
-                        if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0) //260527 hbk Phase 34.1
-                            list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
-                        if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0) //260527 hbk Phase 34.1
-                            list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
-                    }
-                    else { //260527 hbk Phase 34.1 — Vertical 표시 중: Vertical ROI 만
-                        if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0) //260527 hbk Phase 34.1
-                            list.Add(BuildDatumRectCandidate("Datum.Vertical", datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Length1, datum.Vertical_Length2));
-                    }
+                    if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0) //260527 hbk Phase 34.1 CO-34.1-05
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
+                    if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0) //260527 hbk Phase 34.1 CO-34.1-05
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
+                    if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0) //260527 hbk Phase 34.1 CO-34.1-05
+                        list.Add(BuildDatumRectCandidate("Datum.Vertical", datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Length1, datum.Vertical_Length2));
                     break; //260527 hbk Phase 34.1
             }
             halconViewer.SetDatumRoiCandidates(list);

@@ -43,6 +43,12 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string TeachingImagePath { get; set; } = "";
 
+        //260527 hbk Phase 34 D-34-04 — 가로축 이미지(TeachingImagePath) 와 분리된 세로축 이미지 경로.
+        //  algorithm == VerticalTwoHorizontalDualImage 일 때만 의미가 있으며, 그 외 algorithm 에서는 INI 에 보존되지만 미사용 (ICustomTypeDescriptor 가 hide).
+        //  INI 직렬화 = ParamBase reflection String case 자동 (Phase 22 IMG-01 패턴 그대로). 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화 (D-34-11).
+        [Category("Datum|ImageSource")]
+        public string TeachingImagePath_Vertical { get; set; } = ""; //260527 hbk Phase 34 D-34-04
+
         //260518 hbk #3 IOfflineImageParam — Datum 노드 Load 버튼이 선택 경로를 TeachingImagePath 에 기록.
         //  Shot 노드(ShotConfig)는 SimulImagePath, Datum 노드는 TeachingImagePath 로 역할 분리.
         /// <summary>
@@ -80,6 +86,7 @@ namespace ReringProject.Sequence {
                     EDatumAlgorithm.TwoLineIntersect.ToString(),
                     EDatumAlgorithm.CircleTwoHorizontal.ToString(),
                     EDatumAlgorithm.VerticalTwoHorizontal.ToString(),
+                    EDatumAlgorithm.VerticalTwoHorizontalDualImage.ToString(), //260527 hbk Phase 34 D-34-05
                 };
             }
         }

@@ -29,7 +29,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
 - [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35, Test 2 Side → Phase 34)
 - [⚠] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** — PARTIAL signed off 2026-05-27 (Test 1+5 PASS · Test 3-a/3-b PASS · Test 3-d FAIL swap UX 갭 · Test 2/3-c/3-e/3-f/4 → Phase 34.1)
-- [ ] **Phase 34.1: Datum DualImage swap UX** ← 신설 2026-05-27, plans 2026-05-27 (2 plans, 2 waves) — 수동 swap 버튼 + 현재 이미지 배지 라벨, CO-34-01~04 흡수, Phase 35 Test 4 Side 연장 carry-over 종결
+- [⚠] **Phase 34.1: Datum DualImage swap UX** — PARTIAL signed_off 2026-05-27 (5/7 Test PASS · Test 4 INI NOT-TESTED · Test 7 PARTIAL 직각도 한계 → CO-34.1-01 carry-over). UAT 도중 6 hotfix 발견 + 종결 (CO-34.1-02~07: Visibility wiring / 토글 색상 / airspace 우회 / ROI 항상 표시 / RenderDatumOverlay 갱신 / Load Image 분기).
 - [⚠] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** — PARTIAL signed off 2026-05-27 (5/6 PASS, Test 4 Side → Phase 34, CO-33-02/06 해소, CO-35-01/02 hotfix)
 - [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Top/Bottom prerequisite 충족 (Side 는 Phase 34 후)
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
@@ -401,7 +401,7 @@ Plans:
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
 | 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35) | 2026-05-26 |
 | 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 3/4 | ⚠ PARTIAL signed off (Test 1+5 PASS, Test 3-d swap UX 갭 → Phase 34.1, Test 2/3-c/3-e/3-f/4 → 34.1 UAT 일괄) | 2026-05-27 |
-| 34.1. Datum DualImage swap UX (INSERTED) | 1/2 | 🔄 In progress (Plan 01 ✅ 2026-05-27 — swap UI 코드 + msbuild PASS · Plan 02 ⏳ SIMUL UAT sign-off) — **next: /gsd-execute-phase 34.1 Plan 02** | - |
+| 34.1. Datum DualImage swap UX (INSERTED) | 2/2 | ⚠ PARTIAL signed off (5/7 Test PASS · Test 4 NOT-TESTED · Test 7 PARTIAL → CO-34.1-01) · UAT 도중 6 hotfix (CO-34.1-02~07) | 2026-05-27 |
 | 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side carry-over → Phase 34.1 연장) | 2026-05-27 |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34.1 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
@@ -413,6 +413,8 @@ Plans:
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |
+
+*v1.1 roadmap updated: 2026-05-27 — Phase 34.1 PARTIAL signed_off (5/7 Test PASS, Plan 01+02 종결). UAT 도중 6개 hotfix 발견 + 종결 (CO-34.1-02 Visibility wiring + _editingDatum → _selectedDatumForSwap / CO-34.1-03 frozen brush / CO-34.1-04 Halcon airspace 우회 (토글 자체 axis 색상) / CO-34.1-05 ROI 항상 표시 / CO-34.1-06 RenderDatumOverlay DualImage 갱신 / CO-34.1-07 Load Image 모드별 분기). 가드 4파일 변경 0 유지. CO-34.1-01 carry-over (Side fixture 실측 페어 + 캘리브레이션) = v1.1 다음 회주 또는 Phase 27 종결. 학습: Phase 34 D-34-05 enum 추가 시 분기 갱신 누락 사이트 2곳 (whitelist + RenderDatumOverlay) — 후속 phase plan-checker 체크리스트에 "enum 사용 site grep 검증" 추가 권장. v1.1 잔여 = 24 → 25 → 27.*
 
 *v1.1 roadmap updated: 2026-05-27 — Phase 34.1 planning 완료 (2 plans, 2 waves: 01=swap UI / 02=SIMUL UAT sign-off). D-34.1-01~17 분배: Plan 01=12 IDs / Plan 02=6 IDs (D-34.1-15 양쪽 중복 검증). 변경 가드 4파일 (DatumConfig / VisionResponsePacket / InspectionSequence / Action_FAIMeasurement) 0 변경 유지. Cal_Image 가 비어 있어 SIMUL 의사 페어는 README 가이드 + 사용자 수동 배치 (Plan 02 사전 단계).*
 

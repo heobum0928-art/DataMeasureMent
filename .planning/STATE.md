@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: awaiting_user
-stopped_at: Plan 34.1-02 Task 1 완료 (UAT scaffold 작성, commit 176bd50) — Task 2 사용자 SIMUL UAT 대기
-last_updated: "2026-05-27T08:30:00.000Z"
+status: phase_signed_off_partial
+stopped_at: Phase 34.1 partial signed_off (5/7 Test PASS, 6 hotfix 적용, CO-34.1-01 carry-over) — 다음 = Phase 24 (검사 워크플로우 end-to-end)
+last_updated: "2026-05-27T15:00:00.000Z"
 last_activity: 2026-05-27
 progress:
   total_phases: 15
-  completed_phases: 12
+  completed_phases: 13
   total_plans: 57
-  completed_plans: 55
-  percent: 96
+  completed_plans: 57
+  percent: 100
 ---
 
 # Project State
@@ -21,13 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 34.1 — Datum DualImage swap UX
+**Current focus:** Phase 34.1 partial signed_off 2026-05-27 → 다음 = Phase 24 (검사 워크플로우 end-to-end)
 
 ## Current Position
 
-Phase: 34.1 (Datum DualImage swap UX) — EXECUTING (Plan 02 — checkpoint)
-Plan: 2 of 2 (Task 1 완료, Task 2 checkpoint:human-verify gate=blocking)
-Plans: 1/2 완료 (Plan 01 코드 + Plan 02 Task 1 UAT scaffold)
+Phase: 34.1 (Datum DualImage swap UX) — PARTIAL SIGNED_OFF 2026-05-27
+Plans: 2/2 완료 (Plan 01 코드 + Plan 02 UAT)
+UAT: 5/7 PASS / 1 NOT-TESTED / 1 PARTIAL (CO-34.1-01 carry-over)
+Hotfixes 적용: CO-34.1-02/03/04/05/06/07 (6 commits) — 가드 4파일 변경 0 유지
 
 Plan 02 Task 1 결과:
   - .planning/phases/34.1-datum-dualimage-swap-ux-2026-05-27/34.1-UAT.md 신규 (commit 176bd50)

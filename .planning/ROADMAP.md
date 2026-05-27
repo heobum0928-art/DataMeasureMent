@@ -29,7 +29,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
 - [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35, Test 2 Side → Phase 34)
 - [⚠] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** — PARTIAL signed off 2026-05-27 (Test 1+5 PASS · Test 3-a/3-b PASS · Test 3-d FAIL swap UX 갭 · Test 2/3-c/3-e/3-f/4 → Phase 34.1)
-- [ ] **Phase 34.1: Datum DualImage swap UX** ← 신설 2026-05-27 (수동 swap 버튼 + 현재 이미지 배지 라벨 — CO-34-01~04 흡수, Phase 35 Test 4 Side 연장 carry-over 종결)
+- [ ] **Phase 34.1: Datum DualImage swap UX** ← 신설 2026-05-27, plans 2026-05-27 (2 plans, 2 waves) — 수동 swap 버튼 + 현재 이미지 배지 라벨, CO-34-01~04 흡수, Phase 35 Test 4 Side 연장 carry-over 종결
 - [⚠] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** — PARTIAL signed off 2026-05-27 (5/6 PASS, Test 4 Side → Phase 34, CO-33-02/06 해소, CO-35-01/02 hotfix)
 - [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Top/Bottom prerequisite 충족 (Side 는 Phase 34 후)
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
@@ -180,6 +180,32 @@ Plans:
 - [x] 34-02-PLAN.md — DatumFindingService 2-image TryFindDatum/TryTeachDatum 오버로드 + 2 신규 private 메서드 (Wave 2)
 - [x] 34-03-PLAN.md — MainView 4 메서드 분기 + Action_FAIMeasurement EStep.DatumPhase 분기 + TryGrabOrLoadDualDatumImages (Wave 3)
 - [x] 34-04-PLAN.md — SIMUL UAT 5 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL + INI 라운드트립 + D-34-13/14 가드) + sign-off (Wave 4, autonomous: false) — **partial signed off 2026-05-27**: Test 1+5 PASS · Test 3-a/3-b PASS · Test 3-d FAIL swap UX 갭 → Phase 34.1 · Test 2/3-c/3-e/3-f/4 → 34.1 UAT 일괄
+
+---
+
+### Phase 34.1: Datum DualImage swap UX (INSERTED 2026-05-27, gap-closure)
+**Goal**: Phase 34 partial sign-off 의 CO-34-01~04 흡수 — DualImage (VerticalTwoHorizontalDualImage) algorithm 에서 사용자가 현재 표시 이미지를 시각적으로 구분하고 (캔버스 우상단 배지) + 수동으로 가로/세로 swap 가능한 (캔버스 툴바 토글 버튼 2개) UI 추가. 자동 swap (Phase 34 D-34-06) 은 유지하되 사용자가 언제든 되돌릴 수 있는 보완 채널.
+**Depends on**: Phase 34 (partial signed off)
+**Type**: gap-closure (parent_phase=34)
+**Background**:
+  - Phase 34 UAT (2026-05-27): 자동 swap 만으로는 사용자가 현재 어느 축 이미지인지 시각적 구분 불가 + 임의 swap 불가 → ROI 그리기 신뢰성 확보 불가능 → DualImage 워크플로우 미완성
+  - 사용자 피드백 인용: "이미지를 사용자가 원하는대로 스왑이 필요할 꺼 같아 이렇게 보면 헷갈려"
+**Success Criteria (CONTEXT D-34.1-01~17)**:
+  1. DualImage algorithm 선택 시 캔버스 툴바에 [👁 가로] [👁 세로] 토글 버튼 2개 + 우상단 배지 (가로축 = Blue700 #1976D2 / 세로축 = Orange800 #F57C00, 14px, 마진 12px) 모두 Visible (D-34.1-09/14)
+  2. 1-image algorithm (TLI/CTH/VTH) 에서는 토글/배지 모두 Collapsed (D-34.1-09)
+  3. 수동 토글 시 (a) 배지 텍스트 + (b) 배지 색상 + (c) 캔버스 ROI 가시성 (가로 = HA+HB / 세로 = Vertical) **3자 동시 전환** (D-34.1-15)
+  4. 자동 swap (StartDatumTeachStep(Vertical), L1994~) 도 동일 헬퍼 UpdateImageSourceBadge(EImageSource) 경유 — 자동/수동 일관성 (D-34.1-15)
+  5. Datum 노드 이동 시 swap 상태 = 가로축 기본 리셋 (D-34.1-08, 세션 한정 + INI 미저장)
+  6. Wizard step 라벨 ↔ 배지 의미 분리 — swap 시 step 라벨 변경 안 함 (D-34.1-11)
+  7. SIMUL 의사 페어 (Cal_Image/DualImageTest/) 로 Datum 결합 PASS → Phase 34.1 종결 (실측 Side fixture 페어 = CO-34.1-01 carry-over, D-34.1-16)
+  8. Phase 34 D-34-13/14 가드 (DatumConfig / VisionResponsePacket / InspectionSequence / Action_FAIMeasurement) 변경 0 유지 (D-34.1-07)
+**Plans**: 2 plans
+Plans:
+- [ ] 34.1-01-PLAN.md — MainView 토글 버튼 + 배지 XAML + 3자 동시 갱신 헬퍼 + EImageSource enum + Cal_Image/DualImageTest/ 폴더 + DatumConfig.cs working-tree 정리 (Wave 1, autonomous: true)
+- [ ] 34.1-02-PLAN.md — SIMUL UAT 7 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL 3-a~3-f + INI 라운드트립 + 가드 4파일 + 3자 동시 전환 + 의사 페어 PASS) + sign-off (Wave 2, autonomous: false, CO-34-01~04 흡수)
+
+**Carry-over (예정)**: CO-34.1-01 (Side fixture 실측 이미지 페어 확보 후 DualImage Datum 결합 실측 검증) → 장비 도착 후 v1.1 다음 회주 또는 Phase 27 에서 종결
+
 
 ---
 
@@ -375,7 +401,7 @@ Plans:
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
 | 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35) | 2026-05-26 |
 | 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 3/4 | ⚠ PARTIAL signed off (Test 1+5 PASS, Test 3-d swap UX 갭 → Phase 34.1, Test 2/3-c/3-e/3-f/4 → 34.1 UAT 일괄) | 2026-05-27 |
-| 34.1. Datum DualImage swap UX (INSERTED) | 0/TBD | ⏳ Planned (수동 swap 버튼 + 현재 이미지 배지 — CO-34-01~04 흡수) — **next** | - |
+| 34.1. Datum DualImage swap UX (INSERTED) | 0/2 | ⏳ Planned 2026-05-27 (2 plans, 2 waves — swap UI / SIMUL UAT sign-off) — **next: /gsd-execute-phase 34.1** | - |
 | 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side carry-over → Phase 34.1 연장) | 2026-05-27 |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34.1 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
@@ -387,6 +413,8 @@ Plans:
 | **v1.2** | | | |
 | 29. CXP SDK 확정 (구 Phase 22) | 0/TBD | ⏳ Deferred | - |
 | 30. CXP 드라이버 통합 (구 Phase 23) | 0/TBD | ⏳ Deferred | - |
+
+*v1.1 roadmap updated: 2026-05-27 — Phase 34.1 planning 완료 (2 plans, 2 waves: 01=swap UI / 02=SIMUL UAT sign-off). D-34.1-01~17 분배: Plan 01=12 IDs / Plan 02=6 IDs (D-34.1-15 양쪽 중복 검증). 변경 가드 4파일 (DatumConfig / VisionResponsePacket / InspectionSequence / Action_FAIMeasurement) 0 변경 유지. Cal_Image 가 비어 있어 SIMUL 의사 페어는 README 가이드 + 사용자 수동 배치 (Plan 02 사전 단계).*
 
 *v1.1 roadmap updated: 2026-05-27 — Phase 34 PARTIAL signed off + Phase 34.1 (Datum DualImage swap UX) 신설. UAT 도중 사용자 피드백 — 자동 swap 만으로는 현재 표시 이미지를 시각적으로 알 수 없고 임의 swap 불가 → ROI 그리기 신뢰성 확보 불가. 결정: 수동 swap (PropertyGrid [👁] 아이콘) + 캔버스 우상단 배지 (가로축 파랑 / 세로축 주황). CO-34-01~04 + Phase 35 Test 4 Side carry-over → 34.1 흡수. v1.1 잔여 = 34.1 → 24 → 25 → 27.*
 

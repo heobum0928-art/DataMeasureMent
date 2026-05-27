@@ -79,23 +79,50 @@ namespace ReringProject.Sequence {
                 case EStep.DatumPhase: {
                     var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
                     if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
-                        HImage datumImage = GrabOrLoadDatumImage(parentSeq);
-                        if (datumImage == null) {
-                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum image acquisition failed");
-                            pMyContext.AllPass = false;
-                            FinishAction(EContextResult.Error);
-                            break;
-                        }
-                        try {
-                            string datumError;
-                            if (!parentSeq.TryRunDatumPhase(datumImage, out datumError)) {
-                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum failed: " + datumError);
+                        //260527 hbk Phase 34 D-34-13 + D-34-14 정정 — DualImage 변형 분기: DatumConfigs[0] algorithm 검사 후 신규 2-image 경로 또는 기존 1-image 경로 선택.
+                        //  D-34-14 정정: InspectionSequence 에 2-image TryRunDatumPhase 오버로드 신설 (Plan 03 Task 1) — DualImage 경로도 InspectionSequence 경유로 _datumTransforms 채움 → T-34-03-08 해소 (identity fallback 회피).
+                        if (parentSeq.DatumConfigs[0].AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-13
+                            HImage imgH = null, imgV = null; //260527 hbk Phase 34
+                            try {
+                                if (!TryGrabOrLoadDualDatumImages(parentSeq, out imgH, out imgV)) { //260527 hbk Phase 34 D-34-13
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] DualImage Datum image acquisition failed"); //260527 hbk Phase 34 D-34-09
+                                    pMyContext.AllPass = false;
+                                    FinishAction(EContextResult.Error);
+                                    break;
+                                }
+                                string datumError; //260527 hbk Phase 34
+                                //260527 hbk Phase 34 D-34-14 정정 — InspectionSequence.TryRunDatumPhase 2-image 오버로드 호출 (DatumFindingService 직접 호출 우회 제거).
+                                //  InspectionSequence 가 _datumTransforms 채움 → 후속 EStep.Measure 의 TryGetDatumTransform 정상 동작 (T-34-03-08 해소).
+                                if (!parentSeq.TryRunDatumPhase(imgH, imgV, out datumError)) { //260527 hbk Phase 34 D-34-14 정정
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] DualImage Datum failed: " + datumError); //260527 hbk Phase 34
+                                    pMyContext.AllPass = false;
+                                    FinishAction(EContextResult.Error);
+                                    break;
+                                }
+                            } finally {
+                                if (imgH != null) { try { imgH.Dispose(); } catch { } } //260527 hbk Phase 34
+                                if (imgV != null) { try { imgV.Dispose(); } catch { } } //260527 hbk Phase 34
+                            }
+                        } else {
+                            //기존 1-image 경로 (TLI/CTH/VTH/default) — 0 라인 변경 (회귀 0, D-34-14)
+                            HImage datumImage = GrabOrLoadDatumImage(parentSeq);
+                            if (datumImage == null) {
+                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum image acquisition failed");
                                 pMyContext.AllPass = false;
                                 FinishAction(EContextResult.Error);
                                 break;
                             }
-                        } finally {
-                            datumImage.Dispose();
+                            try {
+                                string datumError;
+                                if (!parentSeq.TryRunDatumPhase(datumImage, out datumError)) {
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum failed: " + datumError);
+                                    pMyContext.AllPass = false;
+                                    FinishAction(EContextResult.Error);
+                                    break;
+                                }
+                            } finally {
+                                datumImage.Dispose();
+                            }
                         }
                     }
                     // DatumConfigs 비어있으면 → 무보정 pass-through (D-10)
@@ -285,6 +312,44 @@ namespace ReringProject.Sequence {
             image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
             #endif
             return image;
+        }
+
+        //260527 hbk Phase 34 D-34-13 — DualImage 변형용 두 이미지 동시 로드.
+        //  기존 GrabOrLoadDatumImage 시그니처 unchanged. 본 함수만 신규 추가.
+        //  imageHorizontal: DatumConfigs[0].TeachingImagePath 에서 로드 (가로축 ROI 검출용)
+        //  imageVertical:   DatumConfigs[0].TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
+        //  빈 경로 또는 파일 없음 / HImage 생성 실패 시 false + 로그.
+        private bool TryGrabOrLoadDualDatumImages(InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical) { //260527 hbk Phase 34 D-34-13
+            imageHorizontal = null; //260527 hbk Phase 34
+            imageVertical = null; //260527 hbk Phase 34
+            if (parentSeq == null || parentSeq.DatumConfigs == null || parentSeq.DatumConfigs.Count == 0) { //260527 hbk Phase 34
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: DatumConfigs 가 비어 있습니다."); //260527 hbk Phase 34 D-34-09
+                return false; //260527 hbk Phase 34
+            }
+            var datum = parentSeq.DatumConfigs[0]; //260527 hbk Phase 34 — Side fixture 단일 Datum 가정
+            string pathH = datum.TeachingImagePath; //260527 hbk Phase 34
+            string pathV = datum.TeachingImagePath_Vertical; //260527 hbk Phase 34
+
+            if (string.IsNullOrEmpty(pathH) || !File.Exists(pathH)) { //260527 hbk Phase 34 D-34-09
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage)."); //260527 hbk Phase 34 D-34-10
+                return false; //260527 hbk Phase 34
+            }
+            if (string.IsNullOrEmpty(pathV) || !File.Exists(pathV)) { //260527 hbk Phase 34 D-34-09
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage)."); //260527 hbk Phase 34 D-34-10
+                return false; //260527 hbk Phase 34
+            }
+
+            try { imageHorizontal = new HImage(pathH); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 이미지 로드 실패: " + ex.Message); imageHorizontal = null; } //260527 hbk Phase 34
+            try { imageVertical = new HImage(pathV); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 이미지 로드 실패: " + ex.Message); imageVertical = null; } //260527 hbk Phase 34
+
+            if (imageHorizontal == null || imageVertical == null) { //260527 hbk Phase 34
+                if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } } //260527 hbk Phase 34
+                if (imageVertical != null) { try { imageVertical.Dispose(); } catch { } } //260527 hbk Phase 34
+                imageHorizontal = null; //260527 hbk Phase 34
+                imageVertical = null; //260527 hbk Phase 34
+                return false; //260527 hbk Phase 34
+            }
+            return true; //260527 hbk Phase 34
         }
     }
 }

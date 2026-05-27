@@ -27,10 +27,10 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 22: 이미지 이중화 구조** — ✅ signed off 2026-05-11 (IMG-01/IMG-02, 4/4 UAT PASS) ← 신설 2026-05-11
 - [x] **Phase 23: Top #1 A시리즈 Simul end-to-end** — ✅ 최종 sign-off 2026-05-19 (23.1-UAT.md 가 23-UAT.md supersede, D-14)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
-- [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26 (코드 PASS, 실측 UAT → Phase 35 carry-over)
-- [ ] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** ← 신설 2026-05-26 (가로축 2 ROI 이미지 + 세로축 1 ROI 이미지)
-- [ ] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** ← 신설 2026-05-26 (CO-33-02/03/04/06 통합, Phase 33 sign-off 완결 + Phase 24 prerequisite)
-- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Depends on Phase 35
+- [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35, Test 2 Side → Phase 34)
+- [ ] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** ← 신설 2026-05-26 (가로축 2 ROI 이미지 + 세로축 1 ROI 이미지) — Side carry-over 일환
+- [⚠] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** — PARTIAL signed off 2026-05-27 (5/6 PASS, Test 4 Side → Phase 34, CO-33-02/06 해소, CO-35-01/02 hotfix)
+- [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Top/Bottom prerequisite 충족 (Side 는 Phase 34 후)
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
 - [ ] **Phase 27: Side Inspection 확장** — LineToLineAngle + Side Fixture INI + PC2 분리 + Datum 2-image 지원 (D1, H5, Phase 999.1 흡수 2026-05-26)
 - [ ] ~~**Phase 26: 헝가리안 전체 리팩토링**~~ — **v1.2 로 이연 2026-05-26** (QUAL-01, 코드 정리 — POC 납기 후)
@@ -367,10 +367,10 @@ Plans:
 | 22. 이미지 이중화 구조 | 2/2 | ✅ Complete (signed off) | 2026-05-11 |
 | 23. Top #1 A시리즈 Simul end-to-end | 3/3 | ✅ Complete | 2026-05-19 |
 | 23.1. EdgeToLineDistance ROI 티칭 배선 + 다점 치수 (INSERTED) | 3/3 | ✅ Complete | 2026-05-19 |
-| 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off (코드 PASS, UAT → Phase 35) | 2026-05-26 |
-| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 0/TBD | ⏳ Planned (CO-33-05) | - |
-| 35. Side/Bottom 실측 UAT + Phase 33 보강 | 0/TBD | ⏳ Planned (CO-33-02/03/04/06 통합, Phase 24 prerequisite) | - |
-| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Phase 35 후) | - |
+| 33. Side/Bottom InspectionSequence 마이그레이션 | 3/3 | ⚠ PARTIAL signed off, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35) | 2026-05-26 |
+| 34. Datum VerticalTwoHorizontal 듀얼 티칭 이미지 | 0/TBD | ⏳ Planned (CO-33-05, Side carry-over) — **next** | - |
+| 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side → Phase 34) | 2026-05-27 |
+| 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |
 | ~~26. 헝가리안 전체 리팩토링~~ | — | ⏭ Deferred → v1.2 | (2026-05-26 이연) |

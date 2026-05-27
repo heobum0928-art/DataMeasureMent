@@ -2,12 +2,13 @@
 phase: 33-side-bottom-inspectionsequence-migration
 status: partial
 created: 2026-05-26
-updated: 2026-05-26
+updated: 2026-05-27
 total: 5
-passed: 1
+passed: 4
 pending: 0
-blocked: 2
-not_tested: 2
+blocked: 1
+not_tested: 0
+retro_partial_signoff: 2026-05-27 via Phase 35
 ---
 
 # Phase 33 UAT — Side/Bottom InspectionSequence 마이그레이션
@@ -26,55 +27,50 @@ not_tested: 2
   - 신규 warning category = CS0618 외 0건
 
 ## Test 2 — Side 시퀀스 Datum + FAI SIMUL
-- **Result**: BLOCKED
+- **Result**: BLOCKED → Phase 34 carry-over
 - **Detail**:
   - Side 시퀀스가 InspectionSequence 인스턴스로 등록됨 (구조적 검증 ✓)
-  - Datum 노드 클릭 → 이미지 로드 (Z=1) → ROI 티칭 → 검사 실행 시 **Datum 위치 검출 실패**
-  - 의심 원인: CO-33-02 이미지 갱신 회귀 또는 Bottom/Side 신규 흐름의 parentSeq 분기 갭
-- **Carry-over**: → Phase 35 (Side/Bottom 실제 검사 UAT + 디버깅)
+  - Phase 35 진행 중 사용자 확인: Side 실측 fixture 는 **VerticalTwoHorizontal 듀얼 티칭 이미지** (수직 ROI = image1, 수평 ROI 2개 = image2) 요구
+  - 현재 코드 의 `DatumConfig.TeachingImagePath` 는 단일 이미지 가정 — Phase 34 (CO-33-05) 의 `TeachingImagePath_Vertical` 신규 필드 + DatumFindingService dual-image 분기 완성 후 검증 가능
+- **Retro update (2026-05-27)**: Phase 35 35-UAT.md Test 4 = CARRY_OVER → Phase 34 . Side 검증은 Phase 34 sign-off 와 함께 수행
 
 ## Test 3 — Bottom 시퀀스 Datum + FAI SIMUL
-- **Result**: BLOCKED
-- **Detail**:
-  - 사용자 보고: Datum Z=1 + Shot Z=2 이미지 로드 후 검사 시 Datum 위치를 못 찾음
-  - 작업 순서 사용자 확인: Datum 노드 선택 → 이미지 로드(Z=1) → ROI 티칭 → 검사 → 실패
-  - 추가 증상: Shot 노드에서 이미지 로드 후 Measurement 노드 이동 시 다른 이미지 표시 (CO-33-02)
-- **Carry-over**: → Phase 35 (Side/Bottom 실제 검사 UAT + 디버깅)
+- **Result**: PASS (retro via Phase 35, 2026-05-27)
+- **Detail**: Phase 35 35-UAT.md Test 5 참조
+  - Bottom Datum 검출 PASS (1장 이미지 모드)
+  - Bottom FAI 측정 mm + OK/NG 정상
+  - Bottom Shot 재로드 PASS (CO-33-06 / CO-35-02 해소)
+  - CO-33-02 (이미지 갱신 회귀) 도 Plan 35-01 hotfix 로 동시 해소
 
 ## Test 4 — Top 회귀 SIMUL
-- **Result**: NOT_TESTED
-- **Detail**: 사용자 시간 제약 — Phase 35 에서 함께 수행 예정
-- **D-06 자동 가드**:
-  - `git diff` 확인: `InspectionSequence.cs` / `Action_FAIMeasurement.cs` / `VisionResponsePacket.cs` **변경 0 라인** ✓
-  - SequenceHandler.cs L31 Top 라인 byte-identical 보존 ✓
-  - InspectionRecipeManager.cs L113-124 (Top `[FIXTURE]` Save 블록) byte-identical 보존 ✓
-  - InspectionRecipeManager.cs L181-194 (Top `[FIXTURE]` Load 블록) byte-identical 보존 ✓
-  - 코드 레벨로 Top 회귀 0 가드 충족, SIMUL 실측 검증은 Phase 35 에서 수행
+- **Result**: PASS (retro via Phase 35, 2026-05-27)
+- **Detail**: Phase 35 35-UAT.md Test 2 (단일-Load) + Test 3 (다중-Load CO-33-02) 참조
+  - Top 단일-Load 시나리오: Phase 23.1 sign-off 시점과 byte-identical
+  - Top 다중-Load 시나리오: Plan 35-01 hotfix 로 회귀 해소
+- **D-06 자동 가드**: `InspectionSequence.cs` / `Action_FAIMeasurement.cs` / `VisionResponsePacket.cs` **변경 0 라인 보존** ✓ (Phase 35 의 모든 commit 통과)
 
 ## Test 5 — INI 라운드트립
-- **Result**: NOT_TESTED
-- **Detail**: 사용자 시간 제약 — Phase 35 에서 함께 수행 예정
-- **코드 레벨 검증**: grep 으로 다음 패턴 모두 확인 완료
-  - `ResolveFixtureSequence(ESequence` ×1 (overload 정의)
-  - `SaveFixtureForSequence` ×3 (정의 + Side/Bottom 호출 2건)
-  - `LoadFixtureForSequence` ×3 (정의 + Side/Bottom 호출 2건)
-  - `FIXTURE_SIDE` / `FIXTURE_BOTTOM` 섹션명 각 3회
+- **Result**: PASS (retro via Phase 35, 2026-05-27, Top + Bottom 만)
+- **Detail**: Phase 35 35-UAT.md Test 6 참조
+  - `[FORMAT]` Version=6 + `[FIXTURE]` (Top) + `[FIXTURE_BOTTOM]` + `[FIXTURE_BOTTOM_DATUM_0]` + `[SHOTS]` Count + 각 `[SHOT_n]` + `[SHOT_n_CAM]` 섹션 정상
+  - Plan 35-02 의 `OwnerSequenceName=TOP/BOTTOM` 키 자동 직렬화 동작 확인
+  - Side `[FIXTURE_SIDE]` 라운드트립은 Phase 34 후 재검증 (Side carry-over 일환)
 
 ## Summary
 
-- **Total**: 5 / **Passed**: 1 / **Blocked**: 2 / **Not Tested**: 2
-- **Phase 33 status**: PARTIAL sign-off (코드 변경 + 빌드 검증 PASS, 실측 UAT 는 Phase 35 로 이관)
+- **Total**: 5 / **Passed**: 4 (1 original + 3 retro via Phase 35) / **Blocked**: 1 (Test 2 Side → Phase 34) / **Not Tested**: 0
+- **Phase 33 status (2026-05-27 update)**: 계속 PARTIAL sign-off — Test 2 (Side) 가 Phase 34 carry-over 인 한 fully signed_off 불가. Phase 34 완료 후 Test 2 retro 업데이트 시 fully signed_off 전환.
 
 ## Carry-over
 
 | ID | 항목 | 처리 |
 |---|---|---|
 | **CO-33-01** | Bottom Multi-Die 자동 FAI 매핑 (D-03 Option B = Die_i_X/Y/Angle 3 FAI) | **v1.2 이연** (Bottom 도메인 작업) |
-| **CO-33-02** | 이미지 갱신 회귀 (Measurement/Edit 모드 stale cache) | **→ Phase 35** (디버그+hotfix) |
-| **CO-33-03** | ~~Side/Bottom~~ Datum 검출 실패 — **2026-05-26 추가 보고: Top 도 동일 재현. 다중 이미지 Load 시나리오에서 Top/Side/Bottom 동시 차단** (baseline 회귀 또는 다중-Load 시나리오 신규 노출) | **→ Phase 35** Wave 1 최우선 |
-| **CO-33-04** | Side/Bottom 실측 SIMUL UAT (Test 2/3 재검증 + Test 4 Top 회귀 + Test 5 INI 라운드트립) | **→ Phase 35** sign-off 조건 |
-| **CO-33-05** | Phase 34 — Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 (가로축 2 ROI + 세로축 1 ROI 별도 이미지) | **→ Phase 34** (별도 신설) |
-| **CO-33-06** | Bottom Shot 재로드 실패 — RecipeManager.Shots 글로벌 리스트에 per-sequence ownership 누락. ShotConfig.OwnerSequenceId 필드 + INI 직렬화 + 재로드 트리 분기 필요 (아키텍처 보강) | **→ Phase 35** (Phase 33 마이그레이션 미완성 보강) |
+| **CO-33-02** | 이미지 갱신 회귀 (Measurement/Edit 모드 stale cache) | ✅ **해소** via Phase 35 Plan 35-01 (17ccc91) — Test 3/5 PASS |
+| **CO-33-03** | ~~Side/Bottom~~ Datum 검출 실패 — Top 도 동일 재현 | ⚠ **부분 해소** via Phase 35 Plan 35-01 — Top + Bottom PASS, Side → Phase 34 (dual-image) |
+| **CO-33-04** | Side/Bottom 실측 SIMUL UAT (Test 2/3/4/5) | ⚠ **부분 해소** via Phase 35 — Test 3 (Bottom) / Test 4 (Top) / Test 5 (INI Top+Bottom) PASS, Test 2 (Side) → Phase 34 |
+| **CO-33-05** | Phase 34 — Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 | **→ Phase 34** (별도 신설, Side carry-over 일환) |
+| **CO-33-06** | Bottom Shot 재로드 실패 — per-sequence ownership 누락 | ✅ **해소** via Phase 35 Plan 35-02 (11a6f61) + hotfix CO-35-02 (1b0894b) — Test 5 PASS |
 
 ## Phase 35 신설 사유
 

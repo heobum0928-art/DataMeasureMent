@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: Phase 33 partial sign-off (코드 PASS, 실측 UAT 차단). v1.1 잔여 = Phase 34(Datum 듀얼 티칭) → Phase 35(Side/Bottom 실측 UAT+디버그) → 24 → 25 → 27.
-stopped_at: Phase 33 partial sign-off — 코드 변경 + msbuild PASS, 실측 UAT 차단(Side/Bottom Datum 검출 실패 + 이미지 갱신 회귀) → Phase 35 carry-over.
-last_updated: "2026-05-26T14:00:00.000Z"
-last_activity: 2026-05-26 - Phase 33 partial sign-off. Plan 33-01 (SequenceHandler) + 33-02 (INI 직렬화) 코드 완료, msbuild PASS, D-06 가드 코드 레벨 통과. 실측 UAT 중 Side/Bottom Datum 검출 실패 + 이미지 갱신 회귀 노출 → CO-33-02 / CO-33-03 / CO-33-04 carry-over Phase 35 신설 결정. Phase 34 (Datum 듀얼 티칭 이미지) 도 별도 신설 (CO-33-05).
+status: Phase 35 partial sign-off (5/6 UAT PASS, Side carry-over → Phase 34). CO-33-02/03/04/06 해소, CO-35-01/02 hotfix 적용. v1.1 잔여 = Phase 34 (Datum 듀얼 티칭) → 24 → 25 → 27.
+stopped_at: Phase 35 partial sign-off — Top/Bottom UAT PASS + INI 라운드트립 PASS + CO-35-01/02 mid-UAT hotfix. Side 만 Phase 34 (CO-33-05 dual-image) carry-over.
+last_updated: "2026-05-27T00:00:00.000Z"
+last_activity: 2026-05-27 - Phase 35 partial sign-off (5/6 PASS, Test 4 Side → Phase 34 carry-over). 5 commits (17ccc91 35-01 / 2ea2c2a SUM / 11a6f61 35-02 / 0c4d7de SUM / 1b0894b hotfix CO-35-01+CO-35-02). UAT 중 사용자 보고 2건 hotfix: ResolveRunnableAction 글로벌 IndexOf + TryLoadNewFormat Top-only 호출. CO-33-02 단일 root cause 가설 확정 (Top + Bottom 동시 해소). Phase 33 retro 부분 업데이트 (Test 3/4/5 PASS via Phase 35, Test 2 Side carry-over → Phase 34). D-06 가드 (Phase 33 계승) 전체 commit 통과.
 progress:
-  total_phases: 12
-  completed_phases: 9
-  total_plans: 48
-  completed_plans: 44
+  total_phases: 13
+  completed_phases: 10
+  total_plans: 51
+  completed_plans: 47
   percent: 92
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 33 — Side/Bottom InspectionSequence 마이그레이션 (Phase 24 prerequisite)
+**Current focus:** Phase 35 partial sign-off 완료 → Phase 34 (Datum 듀얼 티칭) next
 
 ## Current Position
 
-Phase: 33 (Side/Bottom InspectionSequence 마이그레이션) — ✅ PARTIAL SIGN-OFF 2026-05-26.
-완료: Plan 33-01 (SequenceHandler + 4 [Obsolete]) / Plan 33-02 (FIXTURE_SIDE/BOTTOM 직렬화) / Plan 33-03 Task 1 (msbuild PASS) + Task 6 (33-UAT.md partial).
-Carry-over → Phase 35: Side/Bottom 실측 UAT (CO-33-04) + Datum 검출 실패 디버그 (CO-33-03) + 이미지 갱신 회귀 (CO-33-02) + Bottom Shot 재로드 실패 / OwnerSequenceId 아키텍처 보강 (CO-33-06). Top 회귀/INI 라운드트립 실측 검증도 Phase 35 에서.
-별도 신설: Phase 34 — Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형 (CO-33-05).
-다음 = /gsd-discuss-phase 34 또는 /gsd-discuss-phase 35.
-Next: /gsd-next 로 다음 phase 결정 또는 /gsd-audit-milestone 으로 v1.1 close 검토
-Last activity: 2026-05-26 - Phase 33 신설 (Side/Bottom InspectionSequence 마이그레이션, Phase 24 prerequisite). 사용자 보고 "Side/Bottom datum 형성 안 됨" 코드 조사 결과 구조적 결함 확정 — 별도 phase 분리 결정.
+Phase: 35 (Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강) — ✅ PARTIAL SIGN-OFF 2026-05-27.
+완료: Plan 35-01 (이미지 캐시 hotfix — 17ccc91) / Plan 35-02 (OwnerSequenceName 아키텍처 — 11a6f61) / hotfix CO-35-01+CO-35-02 (1b0894b) / Plan 35-03 (UAT 5/6 PASS).
+UAT 결과: Test 1 (msbuild) / Test 2 (Top 단일) / Test 3 (Top 다중 — CO-33-02 핵심) / Test 5 (Bottom Datum+FAI+Shot 재로드 — CO-33-06 핵심) / Test 6 (INI 라운드트립 Top+Bottom) PASS. Test 4 (Side) → Phase 34 carry-over (CO-33-05 dual-image 의존).
+가설 확정: CO-33-02 = 캐시 stale 단일 root cause — Plan 35-01 hotfix 로 Top + Bottom 동시 해소.
+Phase 33 retro 부분 sign-off: CO-33-02/06 해소, CO-33-03/04 부분 해소 (Side 만 Phase 34). Phase 33 status = 계속 partial (Test 2 Side carry-over 잔존).
+다음 = /gsd-discuss-phase 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지).
+Last activity: 2026-05-27 - Phase 35 partial sign-off + UAT mid-flow hotfix 2건 (CO-35-01 ResolveRunnableAction 글로벌 IndexOf / CO-35-02 TryLoadNewFormat Top-only 호출). 사용자 보고 "Bottom Shot 재로드 시 사라짐" 가장 큰 이슈 → Plan 35-02 Part D 영역으로 즉시 hotfix. 사용자 검증 PASS. Phase 34 진입 가능 상태.
 
 ## Performance Metrics
 

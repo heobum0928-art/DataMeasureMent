@@ -169,6 +169,22 @@ namespace ReringProject.Sequence {
             }
             return true;
         }
+        //260527 hbk Phase 34 D-34-14 정정 — VerticalTwoHorizontalDualImage 전용 2-image 오버로드. image1=가로축, image2=세로축. _datumTransforms 채움 규약은 1-image 오버로드와 동일 (T-34-03-08 해소).
+        public bool TryRunDatumPhase(HImage image1, HImage image2, out string error) {
+            error = null;
+            _datumTransforms.Clear();
+            if (DatumConfigs.Count == 0) return true;
+            if (image1 == null || image2 == null) { error = "image1 or image2 is null"; return false; }
+            var service = new DatumFindingService();
+            foreach (var datum in DatumConfigs) {
+                HTuple transform; string datumError; bool ok;
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) ok = service.TryFindDatum(image1, image2, datum, out transform, out datumError);
+                else ok = service.TryFindDatum(image1, datum, out transform, out datumError);
+                if (!ok) { error = $"Datum '{datum.DatumName}' failed: {datumError}"; datum.LastFindSucceeded = false; return false; }
+                datum.LastFindSucceeded = true; datum.CurrentTransform = transform; _datumTransforms[datum.DatumName ?? ""] = transform;
+            }
+            return true;
+        }
 
         //260413 hbk Phase 6: DatumRef → transform 조회 (D-10)
         public bool TryGetDatumTransform(string datumRef, out HTuple transform) {

@@ -175,7 +175,7 @@ Plans:
   7. 기존 1-image 타입 회귀 0 (msbuild PASS + Top recipe 로드 확인)
 **Plans**: 4 plans
 Plans:
-- [ ] 34-01-PLAN.md — EDatumAlgorithm enum + DatumConfig 필드/AlgorithmTypeList/INI 정규화/ICustomTypeDescriptor 분기 (Wave 1)
+- [x] 34-01-PLAN.md — EDatumAlgorithm enum + DatumConfig 필드/AlgorithmTypeList/INI 정규화/ICustomTypeDescriptor 분기 (Wave 1)
 - [ ] 34-02-PLAN.md — DatumFindingService 2-image TryFindDatum/TryTeachDatum 오버로드 + 2 신규 private 메서드 (Wave 2)
 - [ ] 34-03-PLAN.md — MainView 4 메서드 분기 + Action_FAIMeasurement EStep.DatumPhase 분기 + TryGrabOrLoadDualDatumImages (Wave 3)
 - [ ] 34-04-PLAN.md — SIMUL UAT 5 Test (msbuild + 1-image 회귀 0 + DualImage SIMUL + INI 라운드트립 + D-34-13/14 가드) + sign-off (Wave 4, autonomous: false)

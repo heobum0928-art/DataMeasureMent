@@ -310,6 +310,18 @@ namespace ReringProject.Halcon.Display
             if (!datum.LastFindSucceeded) return; //260503 hbk Phase 17 D-13 — find 성공 분기에서만 렌더
             try
             {
+                //260528 hbk Phase 36 D-36-10 — OFF-SCREEN 가드. DetectedOrigin 이 이미지 경계 밖이면 캔버스 중앙 fallback 으로 즉시 위임 후 return.
+                //  이미지 사이즈는 HOperatorSet.GetWindowExtents 로 조회 (HWindowControlWPF airspace 컨텍스트, 다른 RenderXXX 헬퍼 패턴 답습).
+                HTuple winR, winC, winW, winH; //260528 hbk Phase 36 D-36-10
+                HOperatorSet.GetWindowExtents(window, out winR, out winC, out winW, out winH); //260528 hbk Phase 36 D-36-10
+                bool isOffScreen = (datum.DetectedOriginRow < 0 || datum.DetectedOriginRow >= winH.D //260528 hbk Phase 36 D-36-10
+                                 || datum.DetectedOriginCol < 0 || datum.DetectedOriginCol >= winW.D);
+                if (isOffScreen) //260528 hbk Phase 36 D-36-10
+                {
+                    DrawOriginFallback(window, winW.D, winH.D, datum.DetectedOriginRow, datum.DetectedOriginCol);
+                    return; //OFF-SCREEN 시 기존 purple 십자/화살표 미렌더 (의미 없는 위치)
+                }
+
                 //260503 hbk Phase 17 D-13 — purple DispCross size=14 lineWidth=2 (UI-SPEC LOCKED)
                 HOperatorSet.SetColor(window, "purple");
                 HOperatorSet.SetLineWidth(window, 2);
@@ -342,11 +354,68 @@ namespace ReringProject.Halcon.Display
                     endRow + headLn * System.Math.Sin(a1), endCol + headLn * System.Math.Cos(a1)); //260503 hbk Phase 17 D-13
                 HOperatorSet.DispLine(window, endRow, endCol,
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2)); //260503 hbk Phase 17 D-13
+
+                //260528 hbk Phase 36 D-36-11/13 — ExpectedAngleDeg 점선 화살표 (AngleTolerance > 0 sentinel 활성 시에만).
+                //  status==None 일 때는 호출 안 함 → 점선 화살표 미표시.
+                if (datum.AngleTolerance > 0.0) //260528 hbk Phase 36 D-36-11/13
+                {
+                    DrawExpectedAngleArrow(window, datum.DetectedOriginRow, datum.DetectedOriginCol,
+                                           datum.ExpectedAngleDeg * System.Math.PI / 180.0, //260528 hbk Phase 36 D-36-11 — deg → rad
+                                           datum.AngleValidationStatus); //260528 hbk Phase 36 D-36-11
+                }
             }
             catch
             {
                 // Suppress display errors (기존 RenderDatumOverlay / RenderCircleDraft catch 관습 유지)
             }
+        }
+
+        //260528 hbk Phase 36 D-36-10 — OFF-SCREEN fallback 십자 (캔버스 중앙) + 좌표 텍스트 + "OFF-SCREEN" 라벨.
+        //  DetectedOrigin 이 이미지 경계 밖일 때 사용자에게 검출 결과의 수치를 명시적으로 노출.
+        private void DrawOriginFallback(HWindow window, double width, double height, double originRow, double originCol)
+        {
+            try
+            {
+                double cRow = height / 2.0; //260528 hbk Phase 36 D-36-10
+                double cCol = width  / 2.0; //260528 hbk Phase 36 D-36-10
+                const double crossHalf = 14.0;
+                HOperatorSet.SetColor(window, "red"); //260528 hbk Phase 36 D-36-10 — fallback 강조 색 (purple 정상 검출 십자와 시각 구분)
+                HOperatorSet.SetLineWidth(window, 2);
+                HOperatorSet.DispLine(window, cRow - crossHalf, cCol, cRow + crossHalf, cCol); //260528 hbk Phase 36 D-36-10
+                HOperatorSet.DispLine(window, cRow, cCol - crossHalf, cRow, cCol + crossHalf); //260528 hbk Phase 36 D-36-10
+                EnsureFontInitialized(window); //260528 hbk Phase 36 D-36-10
+                HOperatorSet.SetTposition(window, cRow - crossHalf - 22, cCol + crossHalf + 4); //260528 hbk Phase 36 D-36-10
+                HOperatorSet.WriteString(window, "OFF-SCREEN (" + originRow.ToString("F1") + ", " + originCol.ToString("F1") + ")"); //260528 hbk Phase 36 D-36-10
+            }
+            catch { /* Suppress display errors */ }
+        }
+
+        //260528 hbk Phase 36 D-36-11 — Expected angle 점선 화살표 (DetectedRefAngle 실선 화살표와 시각 구분).
+        //  PASS = 두 화살표 시각적 일치 (green) / FAIL = 시각적 어긋남 (red). status==None 일 때는 본 메서드 호출 안 됨 (호출자 게이트).
+        //  Halcon 점선 = HOperatorSet.SetLineStyle(window, new HTuple(10, 5)). 호출 직후 빈 HTuple 로 즉시 해제 (다른 렌더 영향 0).
+        private void DrawExpectedAngleArrow(HWindow window, double originRow, double originCol, double expectedAngleRad, ReringProject.Sequence.EAngleValidationStatus status)
+        {
+            try
+            {
+                string color; //260528 hbk Phase 36 D-36-11
+                if (status == ReringProject.Sequence.EAngleValidationStatus.Pass) color = "green";
+                else                                                              color = "red";
+                HOperatorSet.SetColor(window, color); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.SetLineWidth(window, 2);
+                HOperatorSet.SetLineStyle(window, new HTuple(10, 5)); //260528 hbk Phase 36 D-36-11 — 점선 (10px on, 5px off)
+                const double aLen = 30.0; //검출 실선 화살표 (20px) 보다 약간 길게 — 시각 구분
+                double endRow = originRow + aLen * System.Math.Sin(expectedAngleRad); //260528 hbk Phase 36 D-36-11
+                double endCol = originCol + aLen * System.Math.Cos(expectedAngleRad); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.DispLine(window, originRow, originCol, endRow, endCol); //260528 hbk Phase 36 D-36-11
+                // arrow head (검출 화살표와 동일 패턴)
+                double a1 = expectedAngleRad + 2.5; //260528 hbk Phase 36 D-36-11
+                double a2 = expectedAngleRad - 2.5; //260528 hbk Phase 36 D-36-11
+                const double headLn = 5.0;
+                HOperatorSet.DispLine(window, endRow, endCol, endRow + headLn * System.Math.Sin(a1), endCol + headLn * System.Math.Cos(a1)); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.DispLine(window, endRow, endCol, endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2)); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.SetLineStyle(window, new HTuple()); //260528 hbk Phase 36 D-36-11 — 점선 해제 (다른 렌더 영향 0)
+            }
+            catch { /* Suppress display errors */ }
         }
 
         private void EnsureFontInitialized(HWindow window)

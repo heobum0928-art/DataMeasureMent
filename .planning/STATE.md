@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: unknown
+status: ready_to_plan
 stopped_at: Phase 38 context gathered
 last_updated: "2026-05-28T12:38:33.754Z"
 last_activity: 2026-05-28 -- Phase 38 execution started
 progress:
   total_phases: 18
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 67
   completed_plans: 63
-  percent: 94
+  percent: 89
 ---
 
 # Project State
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 38 (v1-1-carryover-cleanup-2026-05-28) — EXECUTING
-Plan: 1 of 3
+Phase: 999.1
+Plan: Not started
 Plans: 37-01 + 37-02 머지 완료 (lenient TryRunDatumPhase + per-datum loop). 37-03 Task 1 = 코드 변경 0 (기존 AddDatum/PropertyGrid 흐름이 4-datum DualImage 생성/티칭 지원 확인, D-37-07).
 빌드: msbuild Debug/x64 PASS, 신규 warning 0
 UAT: 37-UAT.md SIGNED_OFF (4/4 PASS, 2026-05-28). UAT 중 신규버그 2건 hotfix:
@@ -49,13 +49,13 @@ Carry-over (open):
   - CO-36-06: **Side 검사 = datum 4개, 각 datum 이 DualImage(2장) → 8장, 각각 별도 Shot, 측정은 또 다른 이미지.** 현재 구조 미지원 → 신규 phase (검사 실행 흐름 + 데이터모델 + UI 전반). 설계 결정 5종은 36-04-SUMMARY 참조.
   - CO-36-07: TryRunDatumPhase 다중 datum 전부-성공 강제(return false) + DualImage 판단 DatumConfigs[0] 한정 → CO-36-06 phase 에서 흡수.
 
-Last activity: 2026-05-28 -- Phase 38 execution started
+Last activity: 2026-05-28
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 19
+- Total plans completed: 22
 - Average duration: —
 - Total execution time: 0 hours
 
@@ -68,6 +68,7 @@ Last activity: 2026-05-28 -- Phase 38 execution started
 | 10 | 2 | - | - |
 | 18 | 7 | - | - |
 | 37 | 3 | - | - |
+| 38 | 3 | - | - |
 
 **Recent Trend:**
 

@@ -39,7 +39,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [ ] ~~**Phase 26: 헝가리안 전체 리팩토링**~~ — **v1.2 로 이연 2026-05-26** (QUAL-01, 코드 정리 — POC 납기 후)
 - [x] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** — signed off 2026-05-08
 - [x] **Phase 31: Datum 기준 측정 알고리즘 확장** — ✅ signed off 2026-05-26 (Test 1/2/6/7/8/9 PASS, Test 3/4/5 → Phase 32 transferred, CO-31-01 신규 carry-over) ← 신설 2026-05-19
-- [ ] **Phase 38: v1.1 Carry-over Cleanup 일괄** (신설 2026-05-28) — 누적 정리 7건 묶음: #1 알고리즘 종류 정리 / #3 CircleTwoHorizontal Datum Length1·2 비율 통합 / #5 픽셀분해능 카메라(Top/Bottom/Side)별 단일화 / #6 검사 버그+미사용/혼란 기능 정리(각도 파라미터 UI 2건 포함) / #10 주석 정리 / #11 프로그램 시작 지연 분석 / #12 Datum ReuseFromShotName·SourceShotName 사용처 확인. v1.1 종결 직전 마지막 phase. **Plans:** TBD. 코드 수정은 execute 단계에서만.
+- [x] **Phase 38: v1.1 Carry-over Cleanup 일괄** (신설 2026-05-28) — 누적 정리 7건 묶음: #1 알고리즘 종류 정리 / #3 CircleTwoHorizontal Datum Length1·2 비율 통합 / #5 픽셀분해능 카메라(Top/Bottom/Side)별 단일화 / #6 검사 버그+미사용/혼란 기능 정리(각도 파라미터 UI 2건 포함) / #10 주석 정리 / #11 프로그램 시작 지연 분석 / #12 Datum ReuseFromShotName·SourceShotName 사용처 확인. v1.1 종결 직전 마지막 phase. **Plans:** TBD. 코드 수정은 execute 단계에서만. (completed 2026-05-28)
 
 ---
 
@@ -418,9 +418,9 @@ Plans:
   4. 시작 지연 원인 1개 이상 식별(개선 또는 carry-over 명시)
   5. INI 하위호환 유지
 **Plans**: 3 plans, 2 waves (planned 2026-05-28)
-- [ ] 38-01-algorithm-pixel-cleanup-PLAN.md — #1 측정타입 정리 + #5 픽셀분해능 카메라별 단일화 (wave 1)
-- [ ] 38-02-datum-ui-reuse-comment-PLAN.md — #6 각도 UI(배지 OFF + hide) + #12 ReuseFromShotName 제거 + #10 DatumConfig 주석 정리 (wave 1)
-- [ ] 38-03-startup-profiling-uat-PLAN.md — #11 시작 지연 계측/분석 + phase 38 UAT (wave 2, autonomous: false)
+- [x] 38-01-algorithm-pixel-cleanup-PLAN.md — #1 측정타입 정리 + #5 픽셀분해능 카메라별 단일화 (wave 1)
+- [x] 38-02-datum-ui-reuse-comment-PLAN.md — #6 각도 UI(배지 OFF + hide) + #12 ReuseFromShotName 제거 + #10 DatumConfig 주석 정리 (wave 1)
+- [x] 38-03-startup-profiling-uat-PLAN.md — #11 시작 지연 계측/분석 + phase 38 UAT (wave 2, autonomous: false)
 
 (#3 RectL1/L2 = D-07 변경 없음 — 코드 작업 없음, 결정만 문서화)
 
@@ -464,7 +464,7 @@ Plans:
 | 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side carry-over → Phase 34.1 연장) | 2026-05-27 |
 | 36. Datum DualImage 설계 보강 | 4/4 | ✅ Complete (시각 UAT 6/6 PASS, CO-36-05/06/07 종결) | 2026-05-28 |
 | 37. Side 다중 Datum (4 DualImage/8-image) | 3/3 | ✅ Complete (UAT 4/4 PASS, verification 9/9, hotfix 2건) | 2026-05-28 |
-| 38. v1.1 Carry-over Cleanup 일괄 | 0/TBD | ⏳ Planned (신설 2026-05-28, v1.1 종결 직전 마지막) | - |
+| 38. v1.1 Carry-over Cleanup 일괄 | 3/3 | Complete    | 2026-05-28 |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34.1 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |

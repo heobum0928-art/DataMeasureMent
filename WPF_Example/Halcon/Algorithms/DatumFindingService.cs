@@ -20,7 +20,9 @@ namespace ReringProject.Halcon.Algorithms
 
         //260424 hbk Phase 13 D-10 — Req 5d 방향 정합성 임계각 (고정값; 사용자 튜닝 필요해지면 DatumConfig 필드화 Deferred)
         private const double HORIZONTAL_TOLERANCE_DEG    = 15.0;
-        private const double PERPENDICULAR_TOLERANCE_DEG = 5.0;
+        //260528 hbk Phase 36 UAT — 실측 fixture 가로/세로축 83.5° (90°에서 6.5° 어긋남) 가 기존 5.0° 한계에 막혀 Teach 불가 → 임시 10.0° 완화.
+        //  TODO: 사용자 튜닝 가능하도록 DatumConfig 필드화 검토 (carry-over CO-36-01). TwoLineAngleToleranceDeg 는 TwoLineIntersect 전용이라 이 경로에 미적용.
+        private const double PERPENDICULAR_TOLERANCE_DEG = 10.0; //260528 hbk Phase 36 UAT
 
         /// <summary>
         /// 런타임 Datum 찾기: 이미지에서 두 라인을 검출하고 hom_mat2d 변환 행렬을 반환한다.

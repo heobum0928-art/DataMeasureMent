@@ -76,57 +76,47 @@ namespace ReringProject.Sequence {
                     break;
 
                 //260413 hbk Phase 6: Fixture Multi-Datum 실행 단계 (D-04, D-09, D-10)
+                //260528 hbk Phase 37 D-37-02/04/05 — DatumConfigs[0] 단일 분기 제거. DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적. datum 부분 실패는 skip+log (lenient, abort 없음 — D-37-03).
                 case EStep.DatumPhase: {
-                    var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
-                    if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
-                        //260527 hbk Phase 34 D-34-13 + D-34-14 정정 — DualImage 변형 분기: DatumConfigs[0] algorithm 검사 후 신규 2-image 경로 또는 기존 1-image 경로 선택.
-                        //  D-34-14 정정: InspectionSequence 에 2-image TryRunDatumPhase 오버로드 신설 (Plan 03 Task 1) — DualImage 경로도 InspectionSequence 경유로 _datumTransforms 채움 → T-34-03-08 해소 (identity fallback 회피).
-                        if (parentSeq.DatumConfigs[0].AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-13
-                            HImage imgH = null, imgV = null; //260527 hbk Phase 34
-                            try {
-                                if (!TryGrabOrLoadDualDatumImages(parentSeq, out imgH, out imgV)) { //260527 hbk Phase 34 D-34-13
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] DualImage Datum image acquisition failed"); //260527 hbk Phase 34 D-34-09
-                                    pMyContext.AllPass = false;
-                                    FinishAction(EContextResult.Error);
-                                    break;
+                    var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null; //260528 hbk Phase 37
+                    if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) { //260528 hbk Phase 37
+                        parentSeq.ClearDatumTransforms(); //260528 hbk Phase 37 D-37-05 — loop 전 1회 초기화
+                        foreach (var datum in parentSeq.DatumConfigs) { //260528 hbk Phase 37 D-37-04/05 — per-datum loop, mixed algorithm 허용
+                            if (datum == null) continue; //260528 hbk Phase 37
+                            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260528 hbk Phase 37 D-37-04 — datum별 판단
+                                HImage imgH = null, imgV = null; //260528 hbk Phase 37
+                                try {
+                                    if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) { //260528 hbk Phase 37 D-37-02 — per-datum
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' DualImage 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
+                                        continue; //260528 hbk Phase 37 D-37-03 — datum skip, abort 안 함
+                                    }
+                                    string derr; //260528 hbk Phase 37
+                                    if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { //260528 hbk Phase 37 D-37-05
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
+                                    }
+                                } finally {
+                                    if (imgH != null) { try { imgH.Dispose(); } catch { } } //260528 hbk Phase 37
+                                    if (imgV != null) { try { imgV.Dispose(); } catch { } } //260528 hbk Phase 37
                                 }
-                                string datumError; //260527 hbk Phase 34
-                                //260527 hbk Phase 34 D-34-14 정정 — InspectionSequence.TryRunDatumPhase 2-image 오버로드 호출 (DatumFindingService 직접 호출 우회 제거).
-                                //  InspectionSequence 가 _datumTransforms 채움 → 후속 EStep.Measure 의 TryGetDatumTransform 정상 동작 (T-34-03-08 해소).
-                                if (!parentSeq.TryRunDatumPhase(imgH, imgV, out datumError)) { //260527 hbk Phase 34 D-34-14 정정
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] DualImage Datum failed: " + datumError); //260527 hbk Phase 34
-                                    pMyContext.AllPass = false;
-                                    FinishAction(EContextResult.Error);
-                                    break;
+                            } else { //260528 hbk Phase 37 — 1-image datum
+                                HImage img = GrabOrLoadDatumImage(datum); //260528 hbk Phase 37 D-37-02 — per-datum 오버로드
+                                if (img == null) { //260528 hbk Phase 37
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 이미지 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
+                                    continue; //260528 hbk Phase 37
                                 }
-                            } finally {
-                                if (imgH != null) { try { imgH.Dispose(); } catch { } } //260527 hbk Phase 34
-                                if (imgV != null) { try { imgV.Dispose(); } catch { } } //260527 hbk Phase 34
-                            }
-                        } else {
-                            //기존 1-image 경로 (TLI/CTH/VTH/default) — 0 라인 변경 (회귀 0, D-34-14)
-                            HImage datumImage = GrabOrLoadDatumImage(parentSeq);
-                            if (datumImage == null) {
-                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum image acquisition failed");
-                                pMyContext.AllPass = false;
-                                FinishAction(EContextResult.Error);
-                                break;
-                            }
-                            try {
-                                string datumError;
-                                if (!parentSeq.TryRunDatumPhase(datumImage, out datumError)) {
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum failed: " + datumError);
-                                    pMyContext.AllPass = false;
-                                    FinishAction(EContextResult.Error);
-                                    break;
+                                try {
+                                    string derr; //260528 hbk Phase 37
+                                    if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { //260528 hbk Phase 37 D-37-05
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
+                                    }
+                                } finally {
+                                    img.Dispose(); //260528 hbk Phase 37
                                 }
-                            } finally {
-                                datumImage.Dispose();
                             }
                         }
                     }
-                    // DatumConfigs 비어있으면 → 무보정 pass-through (D-10)
-                    Step = (int)EStep.Grab;
+                    // DatumConfigs 비어있으면 무보정 pass-through (D-10) — abort 없음 (D-37-03 lenient)
+                    Step = (int)EStep.Grab; //260528 hbk Phase 37 — datum 부분 실패해도 측정 진행
                     break;
                 }
 
@@ -277,41 +267,6 @@ namespace ReringProject.Sequence {
                     break;
             }
             return Context;
-        }
-
-        //260413 hbk Phase 6: Datum 이미지 취득 — Dedicated만 우선 지원 (D-07, D-08)
-        // ReuseFromShot 모드는 향후 Plan 04 UI 작업과 함께 구현.
-        private HImage GrabOrLoadDatumImage(InspectionSequence parentSeq) {
-            if (ShotParam == null) return null;
-            HImage image = null;
-            //260512 hbk Phase 23 ALG-01 — D-04 TeachingImagePath 자동 로드 (Phase 22 carry-over). 비어있지 않으면 우선, 비어있으면 SimulImagePath 폴백.
-            //260511 hbk Phase 22 IMG-02 — Datum 찾기 단계의 이미지 = InspectionImagePath (= ShotParam.SimulImagePath) 사용. TeachingImagePath (DatumConfig 보존) 는 본 메서드에서 미참조 — 재티칭/UI 셋업 경로에서만 참조 (Phase 23 carry-over 가능).
-            string teachingPath = null; //260512 hbk Phase 23 ALG-01
-            if (parentSeq != null && parentSeq.DatumConfigs != null && parentSeq.DatumConfigs.Count > 0) { //260512 hbk Phase 23 ALG-01
-                teachingPath = parentSeq.DatumConfigs[0].TeachingImagePath;
-            }
-            #if SIMUL_MODE
-            if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) { //260512 hbk Phase 23 ALG-01 — TeachingImagePath 우선 (Pitfall 3 - 2-step 가드)
-                try {
-                    image = new HImage(teachingPath);
-                } catch {
-                    image = null;
-                }
-            }
-            if (image == null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { //260512 hbk Phase 23 ALG-01 — SimulImagePath 폴백 (회귀 0)
-                try {
-                    image = new HImage(ShotParam.SimulImagePath);
-                } catch {
-                    image = null;
-                }
-            }
-            if (image == null) {
-                image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
-            }
-            #else
-            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
-            #endif
-            return image;
         }
 
         //260528 hbk Phase 37 D-37-02 — per-datum 1-image 로드 (TeachingImagePath → SimulImagePath 폴백 → grab). datum 인자 명시.

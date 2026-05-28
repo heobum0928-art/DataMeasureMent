@@ -188,6 +188,33 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260528 hbk Phase 37 D-37-05 — DatumPhase loop 시작 전 1회 호출 (per-datum 누적 전 초기화)
+        public void ClearDatumTransforms() {
+            _datumTransforms.Clear();
+        }
+
+        //260528 hbk Phase 37 D-37-05 — datum 1개 검출 후 _datumTransforms 누적 저장 (Clear 안 함). 실패 시 false 반환하되 호출부는 abort 안 함 (lenient).
+        public bool TryRunSingleDatum(DatumConfig datum, HImage imageH, HImage imageV, out string error) {
+            error = null;
+            if (datum == null) { error = "datum is null"; return false; } //260528 hbk Phase 37 D-37-05
+            var service = new DatumFindingService(); //260528 hbk Phase 37 D-37-05
+            HTuple transform; //260528 hbk Phase 37 D-37-05
+            string datumError; //260528 hbk Phase 37 D-37-05
+            bool ok; //260528 hbk Phase 37 D-37-05
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260528 hbk Phase 37 D-37-05 — datum별 DualImage 판단 (mixed 허용)
+                if (imageH == null || imageV == null) { error = "DualImage 이미지 null"; datum.LastFindSucceeded = false; return false; } //260528 hbk Phase 37 D-37-05
+                ok = service.TryFindDatum(imageH, imageV, datum, out transform, out datumError); //260528 hbk Phase 37 D-37-05
+            } else { //260528 hbk Phase 37 D-37-05 — 1-image datum
+                if (imageH == null) { error = "이미지 null"; datum.LastFindSucceeded = false; return false; } //260528 hbk Phase 37 D-37-05
+                ok = service.TryFindDatum(imageH, datum, out transform, out datumError); //260528 hbk Phase 37 D-37-05
+            }
+            if (!ok) { datum.LastFindSucceeded = false; error = datumError; return false; } //260528 hbk Phase 37 D-37-05
+            datum.LastFindSucceeded = true; //260528 hbk Phase 37 D-37-05
+            datum.CurrentTransform = transform; //260528 hbk Phase 37 D-37-05
+            _datumTransforms[datum.DatumName ?? ""] = transform; //260528 hbk Phase 37 D-37-05 — 누적 저장
+            return true; //260528 hbk Phase 37 D-37-05
+        }
+
         //260413 hbk Phase 6: DatumRef → transform 조회 (D-10)
         public bool TryGetDatumTransform(string datumRef, out HTuple transform) {
             if (string.IsNullOrEmpty(datumRef)) {

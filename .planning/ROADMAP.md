@@ -39,6 +39,7 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [ ] ~~**Phase 26: 헝가리안 전체 리팩토링**~~ — **v1.2 로 이연 2026-05-26** (QUAL-01, 코드 정리 — POC 납기 후)
 - [x] **Phase 28: FAI CircleDiameter + Datum Circle 알고리즘 통합** — signed off 2026-05-08
 - [x] **Phase 31: Datum 기준 측정 알고리즘 확장** — ✅ signed off 2026-05-26 (Test 1/2/6/7/8/9 PASS, Test 3/4/5 → Phase 32 transferred, CO-31-01 신규 carry-over) ← 신설 2026-05-19
+- [ ] **Phase 38: v1.1 Carry-over Cleanup 일괄** (신설 2026-05-28) — 누적 정리 7건 묶음: #1 알고리즘 종류 정리 / #3 CircleTwoHorizontal Datum Length1·2 비율 통합 / #5 픽셀분해능 카메라(Top/Bottom/Side)별 단일화 / #6 검사 버그+미사용/혼란 기능 정리(각도 파라미터 UI 2건 포함) / #10 주석 정리 / #11 프로그램 시작 지연 분석 / #12 Datum ReuseFromShotName·SourceShotName 사용처 확인. v1.1 종결 직전 마지막 phase. **Plans:** TBD. 코드 수정은 execute 단계에서만.
 
 ---
 
@@ -392,6 +393,34 @@ Plans:
 
 ---
 
+### Phase 38: v1.1 Carry-over Cleanup 일괄 (신설 2026-05-28)
+**Goal**: v1.1 누적 carry-over 및 코드/UI 정리 항목 7건을 한 phase 로 묶어, 운영 영향 없이 정리하고 v1.1 을 깔끔하게 종결한다.
+**Depends on**: Phase 37 (signed_off)
+**Background**: v1.1 이 19 phase 누적되며 정체성 표류. POC 납기 전 미사용/혼란 기능 제거 + 코드 정리로 유지보수성 확보. v1.1 종결 직전 마지막 phase (이후 24/25/27 + UX 기능은 v1.2 로 재편).
+**Scope (흡수 항목)**:
+  - **#1 알고리즘 종류 정리** — 실사용 측정 타입만 유지(EdgeToLineDistance / ArcLineIntersectDistance / Compound* / CircleCenterDistance 등), 미사용 타입 정리/검토
+  - **#3 CircleTwoHorizontal Datum Length1/2 비율 통합** (RectL1Ratio/L2Ratio 단일화 검토)
+  - **#5 픽셀분해능 카메라(Top/Bottom/Side)별 단일화** — 측정 mm 변환 일관성
+  - **#6 검사 버그 + 미사용/혼란 기능 정리**:
+      - DualImage 각도 검증 기본 OFF (`AngleTolerance` 1.0→0.0)
+      - `TwoLineAngleToleranceDeg` PropertyGrid 숨김 (직각 게이트 default 10° 로직은 유지)
+      - 참조: `.planning/todos/pending/2026-05-28-datum-angle-param-ui-cleanup.md`
+  - **#10 주석 정리** (헝가리안 리팩토링 v1.2 연계 전 단계)
+  - **#11 프로그램 시작 지연 원인 분석** (프로파일링; 코드 변경은 원인 확인 후)
+  - **#12 Datum ReuseFromShotName / SourceShotName 사용처 확인** — 사용처 0 이면 제거 (discuss 결정)
+**Decisions pending (discuss-phase 에서 확정)**:
+  - #12 ReuseFromShotName/SourceShotName 사용처 0 이면 제거 여부
+  - #1 어떤 측정 타입을 "미사용"으로 볼지 확정
+**Success Criteria**:
+  1. 미사용 측정 타입/기능 정리 후 msbuild Debug/x64 PASS, 신규 warning 0
+  2. 각도 파라미터 UI 정리(배지 기본 OFF + TwoLineAngleToleranceDeg 숨김) — 검사 게이트 로직 회귀 0
+  3. 픽셀분해능 카메라별 단일화 — 기존 측정값 회귀 0 (또는 의도적 보정 문서화)
+  4. 시작 지연 원인 1개 이상 식별(개선 또는 carry-over 명시)
+  5. INI 하위호환 유지
+**Plans**: TBD (~3 plans 예상 — 38-01 heavy code(알고리즘/분해능) / 38-02 light code(각도 UI/주석/사용처 제거) / 38-03 시작지연 분석 + UAT, autonomous: false)
+
+---
+
 ## v1.2 Hardware Integration (이연)
 
 ### Phase 29: CXP SDK 확정 (구 Phase 22)
@@ -430,6 +459,7 @@ Plans:
 | 35. Side/Bottom 실측 UAT + Phase 33 보강 | 3/3 | ⚠ PARTIAL signed off (5/6 UAT PASS, CO-35-01/02 hotfix, Test 4 Side carry-over → Phase 34.1 연장) | 2026-05-27 |
 | 36. Datum DualImage 설계 보강 | 4/4 | ✅ Complete (시각 UAT 6/6 PASS, CO-36-05/06/07 종결) | 2026-05-28 |
 | 37. Side 다중 Datum (4 DualImage/8-image) | 3/3 | ✅ Complete (UAT 4/4 PASS, verification 9/9, hotfix 2건) | 2026-05-28 |
+| 38. v1.1 Carry-over Cleanup 일괄 | 0/TBD | ⏳ Planned (신설 2026-05-28, v1.1 종결 직전 마지막) | - |
 | 24. 검사 워크플로우 end-to-end | 0/TBD | ⏳ Planned (Top/Bottom prerequisite 충족, Side 는 Phase 34.1 후) | - |
 | 25. 결과 분석 & Export | 0/TBD | ⏳ Planned | - |
 | 27. Side Inspection 확장 | 0/TBD | ⏳ Planned | - |

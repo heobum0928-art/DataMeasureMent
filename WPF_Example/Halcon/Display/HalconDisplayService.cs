@@ -322,10 +322,15 @@ namespace ReringProject.Halcon.Display
                     return; //OFF-SCREEN 시 기존 purple 십자/화살표 미렌더 (의미 없는 위치)
                 }
 
-                //260503 hbk Phase 17 D-13 — purple DispCross size=14 lineWidth=2 (UI-SPEC LOCKED)
+                //260528 hbk Phase 36 UAT fix (CO-36-03) — 마커 크기를 표시 영역에 비례. 고정 14px 는 14208x10640 이미지에서 화면상 <1px 라 사실상 안 보임.
+                double viewExtent = System.Math.Max(partR2.D - partR1.D, partC2.D - partC1.D); //260528 hbk Phase 36 UAT fix
+                double markScale = viewExtent * 0.012; //260528 hbk Phase 36 UAT fix — 뷰 크기의 ~1.2% (줌 무관 가시성)
+                if (markScale < 7.0) markScale = 7.0; //260528 hbk Phase 36 UAT fix — 소형 이미지/고배율 하한
+
+                //260503 hbk Phase 17 D-13 — purple 십자 (Phase 36: 크기 markScale 로 스케일)
                 HOperatorSet.SetColor(window, "purple");
                 HOperatorSet.SetLineWidth(window, 2);
-                const double crossHalf = 14.0; //260503 hbk Phase 17 D-13
+                double crossHalf = markScale; //260528 hbk Phase 36 UAT fix
                 HOperatorSet.DispLine(window,
                     datum.DetectedOriginRow - crossHalf, datum.DetectedOriginCol,
                     datum.DetectedOriginRow + crossHalf, datum.DetectedOriginCol); //260503 hbk Phase 17 D-13
@@ -333,19 +338,19 @@ namespace ReringProject.Halcon.Display
                     datum.DetectedOriginRow, datum.DetectedOriginCol - crossHalf,
                     datum.DetectedOriginRow, datum.DetectedOriginCol + crossHalf); //260503 hbk Phase 17 D-13
 
-                //260503 hbk Phase 17 D-13 — 좌표 텍스트 "Find (row, col)"
+                //260503 hbk Phase 17 D-13 — 좌표 텍스트 "Find (row, col)" (Phase 36: offset 도 markScale 비례)
                 EnsureFontInitialized(window);
                 HOperatorSet.SetTposition(window,
-                    datum.DetectedOriginRow - crossHalf - 22,
-                    datum.DetectedOriginCol + crossHalf + 4); //260503 hbk Phase 17 D-13
+                    datum.DetectedOriginRow - crossHalf - markScale * 1.5, //260528 hbk Phase 36 UAT fix
+                    datum.DetectedOriginCol + crossHalf + markScale * 0.3); //260528 hbk Phase 36 UAT fix
                 HOperatorSet.WriteString(window,
                     "Find (" + datum.DetectedOriginRow.ToString("F1") + ", "
                              + datum.DetectedOriginCol.ToString("F1") + ")"); //260503 hbk Phase 17 D-13
 
-                //260503 hbk Phase 17 D-13 — DetectedRefAngle 방향 화살표 (DrawDirectionArrow 패턴 inlined, length=20, head=5)
+                //260503 hbk Phase 17 D-13 — DetectedRefAngle 방향 화살표 (Phase 36: markScale 비례)
                 double angle  = datum.DetectedRefAngle; //260503 hbk Phase 17 D-13
-                double aLen   = 20.0; //260503 hbk Phase 17 D-13
-                double headLn = 5.0; //260503 hbk Phase 17 D-13
+                double aLen   = markScale * 1.4; //260528 hbk Phase 36 UAT fix
+                double headLn = markScale * 0.4; //260528 hbk Phase 36 UAT fix
                 double endRow = datum.DetectedOriginRow + aLen * System.Math.Sin(angle); //260503 hbk Phase 17 D-13
                 double endCol = datum.DetectedOriginCol + aLen * System.Math.Cos(angle); //260503 hbk Phase 17 D-13
                 HOperatorSet.DispLine(window, datum.DetectedOriginRow, datum.DetectedOriginCol, endRow, endCol); //260503 hbk Phase 17 D-13
@@ -361,7 +366,7 @@ namespace ReringProject.Halcon.Display
                 {
                     DrawExpectedAngleArrow(window, datum.DetectedOriginRow, datum.DetectedOriginCol,
                                            datum.ExpectedAngleDeg * System.Math.PI / 180.0, //260528 hbk Phase 36 D-36-11 — deg → rad
-                                           datum.AngleValidationStatus); //260528 hbk Phase 36 D-36-11
+                                           datum.AngleValidationStatus, markScale); //260528 hbk Phase 36 UAT fix — markScale 전달
                 }
             }
             catch
@@ -378,13 +383,15 @@ namespace ReringProject.Halcon.Display
             {
                 double cRow = (partR1 + partR2) / 2.0; //260528 hbk Phase 36 UAT fix — 표시 image 영역 중앙 (image 좌표)
                 double cCol = (partC1 + partC2) / 2.0; //260528 hbk Phase 36 UAT fix
-                const double crossHalf = 14.0;
+                double viewExtent = System.Math.Max(partR2 - partR1, partC2 - partC1); //260528 hbk Phase 36 UAT fix (CO-36-03) — 뷰 비례 마커
+                double crossHalf = viewExtent * 0.012; //260528 hbk Phase 36 UAT fix
+                if (crossHalf < 7.0) crossHalf = 7.0; //260528 hbk Phase 36 UAT fix
                 HOperatorSet.SetColor(window, "red"); //260528 hbk Phase 36 D-36-10 — fallback 강조 색 (purple 정상 검출 십자와 시각 구분)
                 HOperatorSet.SetLineWidth(window, 2);
                 HOperatorSet.DispLine(window, cRow - crossHalf, cCol, cRow + crossHalf, cCol); //260528 hbk Phase 36 D-36-10
                 HOperatorSet.DispLine(window, cRow, cCol - crossHalf, cRow, cCol + crossHalf); //260528 hbk Phase 36 D-36-10
                 EnsureFontInitialized(window); //260528 hbk Phase 36 D-36-10
-                HOperatorSet.SetTposition(window, cRow - crossHalf - 22, cCol + crossHalf + 4); //260528 hbk Phase 36 D-36-10
+                HOperatorSet.SetTposition(window, cRow - crossHalf - viewExtent * 0.018, cCol + crossHalf + viewExtent * 0.004); //260528 hbk Phase 36 UAT fix
                 HOperatorSet.WriteString(window, "OFF-SCREEN (" + originRow.ToString("F1") + ", " + originCol.ToString("F1") + ")"); //260528 hbk Phase 36 D-36-10
             }
             catch { /* Suppress display errors */ }
@@ -393,7 +400,7 @@ namespace ReringProject.Halcon.Display
         //260528 hbk Phase 36 D-36-11 — Expected angle 점선 화살표 (DetectedRefAngle 실선 화살표와 시각 구분).
         //  PASS = 두 화살표 시각적 일치 (green) / FAIL = 시각적 어긋남 (red). status==None 일 때는 본 메서드 호출 안 됨 (호출자 게이트).
         //  Halcon 점선 = HOperatorSet.SetLineStyle(window, new HTuple(10, 5)). 호출 직후 빈 HTuple 로 즉시 해제 (다른 렌더 영향 0).
-        private void DrawExpectedAngleArrow(HWindow window, double originRow, double originCol, double expectedAngleRad, ReringProject.Sequence.EAngleValidationStatus status)
+        private void DrawExpectedAngleArrow(HWindow window, double originRow, double originCol, double expectedAngleRad, ReringProject.Sequence.EAngleValidationStatus status, double markScale)
         {
             try
             {
@@ -403,14 +410,14 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.SetColor(window, color); //260528 hbk Phase 36 D-36-11
                 HOperatorSet.SetLineWidth(window, 2);
                 HOperatorSet.SetLineStyle(window, new HTuple(10, 5)); //260528 hbk Phase 36 D-36-11 — 점선 (10px on, 5px off)
-                const double aLen = 30.0; //검출 실선 화살표 (20px) 보다 약간 길게 — 시각 구분
+                double aLen = markScale * 2.1; //260528 hbk Phase 36 UAT fix — 검출 실선(1.4x) 보다 길게, 뷰 비례
                 double endRow = originRow + aLen * System.Math.Sin(expectedAngleRad); //260528 hbk Phase 36 D-36-11
                 double endCol = originCol + aLen * System.Math.Cos(expectedAngleRad); //260528 hbk Phase 36 D-36-11
                 HOperatorSet.DispLine(window, originRow, originCol, endRow, endCol); //260528 hbk Phase 36 D-36-11
                 // arrow head (검출 화살표와 동일 패턴)
                 double a1 = expectedAngleRad + 2.5; //260528 hbk Phase 36 D-36-11
                 double a2 = expectedAngleRad - 2.5; //260528 hbk Phase 36 D-36-11
-                const double headLn = 5.0;
+                double headLn = markScale * 0.4; //260528 hbk Phase 36 UAT fix
                 HOperatorSet.DispLine(window, endRow, endCol, endRow + headLn * System.Math.Sin(a1), endCol + headLn * System.Math.Cos(a1)); //260528 hbk Phase 36 D-36-11
                 HOperatorSet.DispLine(window, endRow, endCol, endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2)); //260528 hbk Phase 36 D-36-11
                 HOperatorSet.SetLineStyle(window, new HTuple()); //260528 hbk Phase 36 D-36-11 — 점선 해제 (다른 렌더 영향 0)

@@ -145,4 +145,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-04 — v1.1 milestone started (continue phase numbering from 18; v1.0 close = 17 phases / 55 plans / 22 deferred items carried over)*
+*Last updated: 2026-05-28 — Phase 38 (v1.1 Carry-over Cleanup) 완료. v1.1 마지막 phase 종결 (정리 7건 중 #1/#5/#6/#10/#11/#12 적용, #3 v1.2 이연, CO-38-01~04 carry-over). v1.1 milestone 종결 준비 완료.*

@@ -314,21 +314,39 @@ namespace ReringProject.Sequence {
             return image;
         }
 
+        //260528 hbk Phase 37 D-37-02 — per-datum 1-image 로드 (TeachingImagePath → SimulImagePath 폴백 → grab). datum 인자 명시.
+        private HImage GrabOrLoadDatumImage(DatumConfig datum) {
+            if (ShotParam == null) return null; //260528 hbk Phase 37
+            HImage image = null; //260528 hbk Phase 37
+            string teachingPath = (datum != null) ? datum.TeachingImagePath : null; //260528 hbk Phase 37 D-37-02
+            #if SIMUL_MODE
+            if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) { //260528 hbk Phase 37
+                try { image = new HImage(teachingPath); } catch { image = null; } //260528 hbk Phase 37
+            }
+            if (image == null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { //260528 hbk Phase 37 — 회귀 0 폴백
+                try { image = new HImage(ShotParam.SimulImagePath); } catch { image = null; } //260528 hbk Phase 37
+            }
+            if (image == null) { image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam); } //260528 hbk Phase 37
+            #else
+            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam); //260528 hbk Phase 37
+            #endif
+            return image; //260528 hbk Phase 37
+        }
+
         //260527 hbk Phase 34 D-34-13 — DualImage 변형용 두 이미지 동시 로드.
-        //  기존 GrabOrLoadDatumImage 시그니처 unchanged. 본 함수만 신규 추가.
-        //  imageHorizontal: DatumConfigs[0].TeachingImagePath 에서 로드 (가로축 ROI 검출용)
-        //  imageVertical:   DatumConfigs[0].TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
+        //260528 hbk Phase 37 D-37-02 — DatumConfigs[0] 한정 제거, datum 인자 명시 (per-datum 로드).
+        //  imageHorizontal: datum.TeachingImagePath 에서 로드 (가로축 ROI 검출용)
+        //  imageVertical:   datum.TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
         //  빈 경로 또는 파일 없음 / HImage 생성 실패 시 false + 로그.
-        private bool TryGrabOrLoadDualDatumImages(InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical) { //260527 hbk Phase 34 D-34-13
+        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) { //260528 hbk Phase 37 D-37-02 — DatumConfigs[0] 한정 제거, datum 인자
             imageHorizontal = null; //260527 hbk Phase 34
             imageVertical = null; //260527 hbk Phase 34
-            if (parentSeq == null || parentSeq.DatumConfigs == null || parentSeq.DatumConfigs.Count == 0) { //260527 hbk Phase 34
-                Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: DatumConfigs 가 비어 있습니다."); //260527 hbk Phase 34 D-34-09
-                return false; //260527 hbk Phase 34
+            if (datum == null) { //260528 hbk Phase 37 D-37-02 — datum null 가드
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: datum 이 null 입니다."); //260528 hbk Phase 37 D-37-02
+                return false; //260528 hbk Phase 37 D-37-02
             }
-            var datum = parentSeq.DatumConfigs[0]; //260527 hbk Phase 34 — Side fixture 단일 Datum 가정
-            string pathH = datum.TeachingImagePath; //260527 hbk Phase 34
-            string pathV = datum.TeachingImagePath_Vertical; //260527 hbk Phase 34
+            string pathH = datum.TeachingImagePath; //260528 hbk Phase 37 D-37-02 — 인자 datum 에서 읽음
+            string pathV = datum.TeachingImagePath_Vertical; //260528 hbk Phase 37 D-37-02 — 인자 datum 에서 읽음
 
             if (string.IsNullOrEmpty(pathH) || !File.Exists(pathH)) { //260527 hbk Phase 34 D-34-09
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage)."); //260527 hbk Phase 34 D-34-10

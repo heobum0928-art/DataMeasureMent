@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: unknown
-stopped_at: Phase 36 context gathered
-last_updated: "2026-05-28T01:39:57.201Z"
-last_activity: 2026-05-28 -- Phase 36 execution started
+status: phase_partial_signed_off
+stopped_at: Phase 36 PARTIAL signed_off — 다음 = Side 4-datum/8-image 신규 phase (CO-36-06)
+last_updated: "2026-05-28T05:40:00.000Z"
+last_activity: 2026-05-28 -- Phase 36 PARTIAL signed_off
 progress:
   total_phases: 16
-  completed_phases: 13
+  completed_phases: 14
   total_plans: 61
-  completed_plans: 56
-  percent: 92
+  completed_plans: 60
+  percent: 95
 ---
 
 # Project State
@@ -21,26 +21,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 36 — datum-dualimage-coord-anchor-angle-validation
+**Current focus:** Phase 36 PARTIAL signed_off → 다음 = Side 4-datum/8-image 다중 datum 신규 phase (CO-36-06)
 
 ## Current Position
 
-Phase: 36 (datum-dualimage-coord-anchor-angle-validation) — EXECUTING
-Plan: 1 of 4
-Plans: 2/2 완료 (Plan 01 코드 + Plan 02 UAT)
-UAT: 5/7 PASS / 1 NOT-TESTED / 1 PARTIAL (CO-34.1-01 carry-over)
-Hotfixes 적용: CO-34.1-02/03/04/05/06/07 (6 commits) — 가드 4파일 변경 0 유지
+Phase: 36 (datum-dualimage-coord-anchor-angle-validation) — PARTIAL SIGNED_OFF 2026-05-28
+Plans: 4/4 코드 머지 완료 (01 SameFrame 가드 / 02 각도검증 / 03 시각화 / 04 UAT)
+빌드: msbuild Debug/x64 PASS, 신규 warning 0, guard 4파일 변경 0
+UAT: Test 1+2 PARTIAL / Test 3·4·6·7 PENDING(CO-36-05) / Test 5 N/A(OFF-SCREEN 기능 제거)
 
-Plan 02 Task 1 결과:
+UAT 중 시각화 ROOT CAUSE 발견·수정 (fec1e02):
+  - "purple" 는 HALCON 무효 색상명 → SetColor 예외 → catch{} swallow → 검출 십자/텍스트/화살표 전체 silent 미표시
+  - "slate blue" 로 교체 해소. (같은 파일 L865 "light green" 전례 동일 — [[feedback_halcon_setcolor_invalid_names]])
+  - OFF-SCREEN/markScale/이미지크기(CO-36-02/03)는 오진이라 제거(36a4d28). 검출 십자는 teach 오버레이와 동일 고정크기 방식으로 단순화.
+  - RenderDatumFindResult 를 LastTeachSucceeded 블록 밖으로 (df71e5c) — 검출 시각화가 teach 상태에 묶이던 결함 해소.
 
-  - .planning/phases/34.1-datum-dualimage-swap-ux-2026-05-27/34.1-UAT.md 신규 (commit 176bd50)
-  - status=pending, 7 Test 본문, W3/W4 보정 반영, CO-34.1-01 carry-over 명시
-  - W3: PowerShell + vswhere fallback (Test 1 msbuild)
-  - W4: PLAN_01_BASE env var (옵션 A) + phase-34.1-pre-exec tag (옵션 B, 권장)
+Carry-over (open):
+  - CO-36-01: PERPENDICULAR_TOLERANCE_DEG 하드코딩(10°, 임시완화 14d9bf1) → DatumConfig 사용자 필드화
+  - CO-36-05: Test 2/3/4/6/7 사용자 시각 UAT 미수행 (slate blue 빌드 이후 확인)
+  - CO-36-06: **Side 검사 = datum 4개, 각 datum 이 DualImage(2장) → 8장, 각각 별도 Shot, 측정은 또 다른 이미지.** 현재 구조 미지원 → 신규 phase (검사 실행 흐름 + 데이터모델 + UI 전반). 설계 결정 5종은 36-04-SUMMARY 참조.
+  - CO-36-07: TryRunDatumPhase 다중 datum 전부-성공 강제(return false) + DualImage 판단 DatumConfigs[0] 한정 → CO-36-06 phase 에서 흡수.
 
-Task 2 = 사용자 SIMUL UAT 7 Test 수행 + 결과 보고 + UAT.md 갱신 + sign-off (checkpoint:human-verify).
-사용자 응답 대기: "approved" / "partial — Test X/Y/Z FAIL, carry-over=..." / "blocked — <상세>".
-Last activity: 2026-05-28 -- Phase 36 execution started
+Last activity: 2026-05-28 -- Phase 36 PARTIAL signed_off
 
 ## Performance Metrics
 

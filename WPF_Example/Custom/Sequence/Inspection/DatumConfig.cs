@@ -120,10 +120,10 @@ namespace ReringProject.Sequence {
 
         //260528 hbk Phase 36 D-36-05/07/13 — 각도 검증 허용 오차 (도).
         //  0.0 = sentinel (게이트 off, AngleValidationStatus=None). > 0.0 = 활성 (TwoLineAngleToleranceDeg L915 패턴과 정렬).
-        //  range hint: 0~45°. default 1.0° (D-36-07).
+        //  range hint: 0~45°. default 0.0 (OFF, Phase 38 #6 D-12) — 신규 Datum 에서 배지 미표시(혼란 제거). 기존 INI 에 값이 있으면 ParamBase Load 가 덮어씀(하위호환).
         //  Expected=0.0 + Tolerance>0 도 활성 — 사용자가 0° 검증을 의도한 케이스 (D-36-13 단일 sentinel 모델).
         [Category("Datum|Algorithm")] //260528 hbk Phase 36 D-36-05/07/13
-        public double AngleTolerance { get; set; } = 1.0; //260528 hbk Phase 36 D-36-05/07/13
+        public double AngleTolerance { get; set; } = 0.0; //260528 hbk Phase 36 D-36-05/07/13 //260528 hbk Phase 38 #6
 
         //260423 hbk Phase 12 D-12 — Line1 ROI 시맨틱스는 AlgorithmType 에 따라 달라진다:
         //260423 hbk   TwoLineIntersect:         1st 라인 ROI (기준 X축 방향 에지 라인)
@@ -697,6 +697,7 @@ namespace ReringProject.Sequence {
         //   CTH: Circle_* (RadialDirection 포함) + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Vertical_*, Circle_EdgeDirection (D-03) 숨김
         //   VTH: Vertical_* + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Circle_* 숨김
         private static bool IsHiddenForAlgorithm(string name, EDatumAlgorithm alg) {
+            if (name == "TwoLineAngleToleranceDeg") return true; //260528 hbk Phase 38 #6 D-12 — 모든 알고리즘에서 PropertyGrid 숨김 (직각 게이트 로직은 무변경 — DatumFindingService.cs:957-975 보존)
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
                     if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide

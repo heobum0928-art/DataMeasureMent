@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -101,16 +102,24 @@ namespace ReringProject {
         
         // Call after constructor to fully initialize runtime components.
         public void Initialize() {
+            Stopwatch sw = Stopwatch.StartNew(); //260528 hbk Phase 38 #11
+            long prev = 0; //260528 hbk Phase 38 #11 — 직전 단계 누적 시각 (delta 계산용)
+
             // 1) Light controller open
             if (Lights.Initialize() == false) {
                 IsInitializeFail = true;
                 //CustomMessageBox.Show("Error", "Light Controller Open Fail", MessageBoxImage.Error);
                 CustomMessageBox.Show("Light Error", "Light Controller Open Fail", MessageBoxImage.Error, true, false);
             }
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 1 Lights.Initialize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+
             // 2) Sequence handler
             //    Owns recipe loading and main runtime states.
             Sequences = SequenceHandler.Handle;
-            
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 2 SequenceHandler: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+
             // 3) TCP server
             //    External command/monitoring interface.
             Server = new VisionServer();
@@ -118,16 +127,22 @@ namespace ReringProject {
             //260317 raw image save worker for inspection flow
             RawImageSaver = new RawImageSaveService();
             RawImageSaver.Start();
-            
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+
             // 4) System main loop thread
             //    Runs SystemProcess -> MainRun() in a tight loop.
             mSystemThread = new Thread(SystemProcess);
             mSystemThread.Priority = ThreadPriority.Highest;
             mSystemThread.Name = "SystemProcess";
             mSystemThread.Start();
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 4 SystemThread.Start: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
 
             // 5) Login manager
             Login = LoginManager.Handle;
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 5 LoginManager: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
 
             // 6) Hook sequence creation callbacks
             //    Typically sets up per-sequence resources.
@@ -135,16 +150,22 @@ namespace ReringProject {
 
             //260510 hbk Phase 21: BUF-02 channel #1 — OnRecipeChanged subscriber 등록 (Sequences 가 살아있고 ExecOnCreate 가 끝난 뒤 wire)
             WireBufferLifecycle();
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 6 ExecOnCreate+WireBuffer: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
 
             // 7) Collect recipe list
             //    Scans configured recipe directories.
             Recipes.CollectRecipe();
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 7 CollectRecipe: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
 
             // 8) Localization resource
             //    Provides runtime language switching.
             Localize = App.Current.Resources["DR"] as LocalizationResource;
             //Localize.LanguageChanged += LanguageChanged;
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 8 Localize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
 
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Total Initialize: {0} ms", sw.ElapsedMilliseconds); //260528 hbk Phase 38 #11
             Logging.PrintLog((int)ELogType.Trace, "[SYSTEM] Initialized");
         }
 

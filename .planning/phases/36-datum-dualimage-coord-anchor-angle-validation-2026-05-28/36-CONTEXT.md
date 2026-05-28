@@ -33,7 +33,10 @@ DualImage (`EDatumAlgorithm.VerticalTwoHorizontalDualImage`) 알고리즘에서:
 ### ExpectedAngleDeg / AngleTolerance UX (Area 2)
 
 - **D-36-05:** **DualImage 전용 필드** — DatumConfig 공동 필드로 선언하되 PropertyGrid Hide 분기 (L678-696 패턴) 에서 `VerticalTwoHorizontalDualImage` 만 노출. 기존 1-image algorithm 3종 (TwoLineIntersect / VerticalTwoHorizontal / CircleTwoHorizontal) PropertyGrid 회귀 표면 최소.
-- **D-36-06:** **PASS/FAIL 표시 = 기존 `DetectedAngleDeg` 셀 배경 색상 배지** — PropertyGrid 의 ReadOnly DetectedAngleDeg 필드 배경을 PASS=#43A047 (연두) / FAIL=#E53935 (연빨) / 미평가 또는 sentinel=default 로 전환. 새 ReadOnly 상태 필드 없음 — DataTrigger 또는 동등 메커니즘.
+- **D-36-06:** **PASS/FAIL 표시 = PropertyGrid 인접 색상 배지 (셀 또는 외부 라벨)** — 색상 PASS=#43A047 (연두) / FAIL=#E53935 (연빨) / 미평가 또는 sentinel=default. 구현 위치 우선순위:
+  - **1순위:** 기존 ReadOnly DetectedAngleDeg 셀 자체 배경 (DataTrigger / CellTemplateSelector). PropertyTools 3.1.0 API 가 셀 Style 커스터마이징을 지원할 때.
+  - **2순위 (Phase 36 채택, 2026-05-28 사용자 합의):** PropertyGrid 외부 별도 Border + TextBlock 라벨 (예: `MainView.xaml` PropertyGrid 인접 위치). PropertyTools 셀 Style 제약 회피 + 가드 4파일 변경 0 유지 우선. 새 ReadOnly 상태 필드 없음 — `AngleValidationStatus` transient 에 직접 binding.
+  - 어느 경우든 사용자 시야에 PropertyGrid 와 함께 색상이 인지될 것이 핵심.
 - **D-36-07:** **기본값** — `AngleTolerance` = **1.0°**, `ExpectedAngleDeg` 입력 범위 = **[-180, 180]** (atan2 출력과 일치). INI 키 미존재 시 두 값 모두 0.0 → 미평가 sentinel (D-36-13).
 - **D-36-08:** **Test Find 성공 직후 자동 평가** — `DatumFindingService.TryFindVerticalTwoHorizontalDualImage` 가 `DetectedAngleDeg` write-back (L720) 직후 PASS/FAIL 계산. 결과는 새 transient 필드 (예: `AngleValidationStatus` enum 또는 bool?) 에 기록 — INI/JSON 직렬화 제외 (`[Browsable(false)]` + `[JsonIgnore]`, Phase 17 D-13 transient 패턴 답습).
 

@@ -179,11 +179,11 @@ namespace ReringProject.Sequence {
             if (image1 == null || image2 == null) { error = "image1 or image2 is null"; return false; }
             var service = new DatumFindingService();
             foreach (var datum in DatumConfigs) {
-                HTuple transform; string datumError; bool ok;
-                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) ok = service.TryFindDatum(image1, image2, datum, out transform, out datumError);
-                else ok = service.TryFindDatum(image1, datum, out transform, out datumError);
-                if (!ok) { error = $"Datum '{datum.DatumName}' failed: {datumError}"; datum.LastFindSucceeded = false; return false; }
-                datum.LastFindSucceeded = true; datum.CurrentTransform = transform; _datumTransforms[datum.DatumName ?? ""] = transform;
+                HTuple transform; string datumError; bool ok; //260528 hbk Phase 37 D-37-04 — per-datum DualImage 판단 유지 (DatumConfigs[0] 단일 판단 아님)
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) ok = service.TryFindDatum(image1, image2, datum, out transform, out datumError); //260528 hbk Phase 37 D-37-04
+                else ok = service.TryFindDatum(image1, datum, out transform, out datumError); //260528 hbk Phase 37 D-37-04
+                if (!ok) { datum.LastFindSucceeded = false; Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + (datum.DatumName ?? "") + "' find 실패 (skip): " + (datumError ?? "")); continue; } //260528 hbk Phase 37 D-37-03 — abort 제거, skip
+                datum.LastFindSucceeded = true; datum.CurrentTransform = transform; _datumTransforms[datum.DatumName ?? ""] = transform; //260528 hbk Phase 37 D-37-03
             }
             return true;
         }

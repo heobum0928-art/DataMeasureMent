@@ -1730,7 +1730,24 @@ namespace ReringProject.UI {
         //260528 hbk Phase 37 — FindFaiNameContainingMeasurement 의 참조 버전: 이름 충돌(여러 Shot 동일 FAI 명) 시에도
         //  실제 소유 FAIConfig 객체를 ReferenceEquals 로 정확히 반환. 이미지/ROI 해석이 첫 Shot 으로 잘못 묶이는 결함 차단.
         private FAIConfig FindFAIContainingMeasurement(MeasurementBase measurement) {
-            if (measurement == null || pSeq == null) return null;
+            if (measurement == null) return null;
+            //260528 hbk Phase 37 — 우선 RecipeManager.Shots(동적 FAI 단일 소스, 신규 Shot 즉시 반영) 에서 탐색.
+            //  AddShotToSequence 는 새 Shot 을 RecipeManager 에만 넣고 라이브 Action(pSeq) 은 실행 시 지연 동기화하므로,
+            //  세션 중 pSeq 만 보면 신규 Shot 측정을 못 찾아 이미지/ROI 가 이전 Shot 으로 남는다(재시작 후엔 정상).
+            var recipeManager = (SystemHandler.Handle != null && SystemHandler.Handle.Sequences != null)
+                ? SystemHandler.Handle.Sequences.RecipeManager : null;
+            if (recipeManager != null && recipeManager.Shots != null) {
+                foreach (ShotConfig rmShot in recipeManager.Shots) {
+                    if (rmShot == null) continue;
+                    foreach (FAIConfig fai in rmShot.FAIList) {
+                        foreach (var m in fai.Measurements) {
+                            if (ReferenceEquals(m, measurement)) return fai;
+                        }
+                    }
+                }
+            }
+            //260528 hbk Phase 37 — fallback: 레거시/로드 경로(측정이 pSeq Action 에만 존재할 수 있음)
+            if (pSeq == null) return null;
             for (int i = 0; i < pSeq.Count; i++) {
                 var seq = pSeq[i];
                 if (seq == null) continue;

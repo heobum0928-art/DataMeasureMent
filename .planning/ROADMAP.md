@@ -417,7 +417,12 @@ Plans:
   3. 픽셀분해능 카메라별 단일화 — 기존 측정값 회귀 0 (또는 의도적 보정 문서화)
   4. 시작 지연 원인 1개 이상 식별(개선 또는 carry-over 명시)
   5. INI 하위호환 유지
-**Plans**: TBD (~3 plans 예상 — 38-01 heavy code(알고리즘/분해능) / 38-02 light code(각도 UI/주석/사용처 제거) / 38-03 시작지연 분석 + UAT, autonomous: false)
+**Plans**: 3 plans, 2 waves (planned 2026-05-28)
+- [ ] 38-01-algorithm-pixel-cleanup-PLAN.md — #1 측정타입 정리 + #5 픽셀분해능 카메라별 단일화 (wave 1)
+- [ ] 38-02-datum-ui-reuse-comment-PLAN.md — #6 각도 UI(배지 OFF + hide) + #12 ReuseFromShotName 제거 + #10 DatumConfig 주석 정리 (wave 1)
+- [ ] 38-03-startup-profiling-uat-PLAN.md — #11 시작 지연 계측/분석 + phase 38 UAT (wave 2, autonomous: false)
+
+(#3 RectL1/L2 = D-07 변경 없음 — 코드 작업 없음, 결정만 문서화)
 
 ---
 

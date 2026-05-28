@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
 stopped_at: Phase 36 context gathered
-last_updated: "2026-05-28T01:37:24.454Z"
-last_activity: 2026-05-27
+last_updated: "2026-05-28T01:39:57.201Z"
+last_activity: 2026-05-28 -- Phase 36 execution started
 progress:
   total_phases: 16
   completed_phases: 13
@@ -21,11 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 34.1 partial signed_off 2026-05-27 → 다음 = Phase 24 (검사 워크플로우 end-to-end)
+**Current focus:** Phase 36 — datum-dualimage-coord-anchor-angle-validation
 
 ## Current Position
 
-Phase: 34.1 (Datum DualImage swap UX) — PARTIAL SIGNED_OFF 2026-05-27
+Phase: 36 (datum-dualimage-coord-anchor-angle-validation) — EXECUTING
+Plan: 1 of 4
 Plans: 2/2 완료 (Plan 01 코드 + Plan 02 UAT)
 UAT: 5/7 PASS / 1 NOT-TESTED / 1 PARTIAL (CO-34.1-01 carry-over)
 Hotfixes 적용: CO-34.1-02/03/04/05/06/07 (6 commits) — 가드 4파일 변경 0 유지
@@ -39,7 +40,7 @@ Plan 02 Task 1 결과:
 
 Task 2 = 사용자 SIMUL UAT 7 Test 수행 + 결과 보고 + UAT.md 갱신 + sign-off (checkpoint:human-verify).
 사용자 응답 대기: "approved" / "partial — Test X/Y/Z FAIL, carry-over=..." / "blocked — <상세>".
-Last activity: 2026-05-27
+Last activity: 2026-05-28 -- Phase 36 execution started
 
 ## Performance Metrics
 

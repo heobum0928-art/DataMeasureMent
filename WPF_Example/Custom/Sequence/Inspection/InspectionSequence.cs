@@ -8,7 +8,9 @@ using ReringProject.Define;
 using ReringProject.Device;
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Network;
+using ReringProject.Setting; //260528 hbk Phase 37 — ELogType (datum find 실패 skip 로그)
 using ReringProject.UI;
+using ReringProject.Utility; //260528 hbk Phase 37 — Logging.PrintLog (datum find 실패 skip 로그)
 
 namespace ReringProject.Sequence {
 
@@ -158,10 +160,10 @@ namespace ReringProject.Sequence {
             foreach (var datum in DatumConfigs) {
                 HTuple transform;
                 string datumError;
-                if (!service.TryFindDatum(image, datum, out transform, out datumError)) {
-                    error = $"Datum '{datum.DatumName}' failed: {datumError}";
-                    datum.LastFindSucceeded = false;
-                    return false;
+                if (!service.TryFindDatum(image, datum, out transform, out datumError)) { //260528 hbk Phase 37 D-37-03 — datum 실패 시 abort 안 함, 성공만 저장
+                    datum.LastFindSucceeded = false; //260528 hbk Phase 37 D-37-03
+                    Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + (datum.DatumName ?? "") + "' find 실패 (skip): " + (datumError ?? "")); //260528 hbk Phase 37 D-37-03
+                    continue; //260528 hbk Phase 37 D-37-03 — 다음 datum 계속, 이 datum 은 _datumTransforms 미저장
                 }
                 datum.LastFindSucceeded = true;
                 datum.CurrentTransform = transform;

@@ -26,10 +26,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 37 (side-multi-datum-dualimage-2026-05-28) — EXECUTING
-Plan: 3 of 3
-Plans: 4/4 코드 머지 완료 (01 SameFrame 가드 / 02 각도검증 / 03 시각화 / 04 UAT)
-빌드: msbuild Debug/x64 PASS, 신규 warning 0, guard 4파일 변경 0
-UAT: Test 1+2 PARTIAL / Test 3·4·6·7 PENDING(CO-36-05) / Test 5 N/A(OFF-SCREEN 기능 제거)
+Plan: 3 of 3 (Task 1 완료 / Task 2 checkpoint:human-verify 대기)
+Plans: 37-01 + 37-02 머지 완료 (lenient TryRunDatumPhase + per-datum loop). 37-03 Task 1 = 코드 변경 0 (기존 AddDatum/PropertyGrid 흐름이 4-datum DualImage 생성/티칭 지원 확인, D-37-07).
+빌드: msbuild Debug/x64 PASS, 신규 warning 0, InspectionListView.xaml.cs 변경 0
+UAT: 37-03 Task 2 SIMUL UAT (다중 datum 독립 실행 + 측정≠datum 이미지) 사용자 수행 대기 — 37-UAT.md 기록 예정
 
 UAT 중 시각화 ROOT CAUSE 발견·수정 (fec1e02):
 
@@ -301,9 +301,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 ## Session Continuity
 
 Last session: 2026-05-28T07:18:56.650Z
-Stopped at: Completed 37-02-PLAN.md
-Resume file: None
-Next action: 사용자가 7 Test 수행 → UAT.md 갱신 → 결과 보고 ("approved" / "partial" / "blocked"). 그 후 /gsd-execute-phase 34.1 재진입 또는 sign-off 수동 처리.
+Stopped at: 37-03-PLAN.md Task 2 checkpoint (human-verify) — Task 1 완료(코드 변경 0)
+Resume file: .planning/phases/37-side-multi-datum-dualimage-2026-05-28/37-03-PLAN.md
+Next action: 사용자가 SIMUL UAT 4항목 수행 (독립 실행 / 4-datum mixed / 측정≠datum 이미지 / 예외 robustness) → 37-UAT.md 기록 → "approved" / 이슈 보고. 그 후 continuation executor 가 37-03-SUMMARY.md 생성 + STATE/ROADMAP 갱신.
 
 **v1.1 Phase Map:**
 

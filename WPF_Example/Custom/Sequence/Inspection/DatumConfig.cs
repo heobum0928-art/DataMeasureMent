@@ -111,6 +111,20 @@ namespace ReringProject.Sequence {
         [Category("Datum|Algorithm")]
         public double TwoLineAngleToleranceDeg { get; set; } = 10.0;
 
+        //260528 hbk Phase 36 D-36-05/07/12 — DualImage 검출 각도 검증 기댓값 (도, range hint [-180, 180] atan2 출력과 일치).
+        //  알고리즘 무관 일률 직렬화 (Phase 22 IMG-01 / D-34-11 패턴) — INI 키 미존재 시 ParamBase Double case 가 0.0 fallback.
+        //  PropertyGrid 노출 = VerticalTwoHorizontalDualImage 한정 (IsHiddenForAlgorithm 의 다른 case 에서 hide).
+        //  ParamBase reflection 자동 직렬화 (Double case) — 별도 Save/Load 코드 불필요.
+        [Category("Datum|Algorithm")] //260528 hbk Phase 36 D-36-05/07
+        public double ExpectedAngleDeg { get; set; } = 0.0; //260528 hbk Phase 36 D-36-05/07
+
+        //260528 hbk Phase 36 D-36-05/07/13 — 각도 검증 허용 오차 (도).
+        //  0.0 = sentinel (게이트 off, AngleValidationStatus=None). > 0.0 = 활성 (TwoLineAngleToleranceDeg L915 패턴과 정렬).
+        //  range hint: 0~45°. default 1.0° (D-36-07).
+        //  Expected=0.0 + Tolerance>0 도 활성 — 사용자가 0° 검증을 의도한 케이스 (D-36-13 단일 sentinel 모델).
+        [Category("Datum|Algorithm")] //260528 hbk Phase 36 D-36-05/07/13
+        public double AngleTolerance { get; set; } = 1.0; //260528 hbk Phase 36 D-36-05/07/13
+
         //260423 hbk Phase 12 D-12 — Line1 ROI 시맨틱스는 AlgorithmType 에 따라 달라진다:
         //260423 hbk   TwoLineIntersect:         1st 라인 ROI (기준 X축 방향 에지 라인)
         //260423 hbk   VerticalTwoHorizontal:    수직 ROI (수직 에지 라인)
@@ -486,6 +500,16 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
         public double DetectedRefAngle2 { get; set; } //260519 hbk Phase 31 hotfix#3
 
+        //260528 hbk Phase 36 D-36-08 — Test Find 직후 각도 PASS/FAIL 평가 결과 (transient).
+        //  TryFindVerticalTwoHorizontalDualImage 가 DetectedAngleDeg write-back 직후 본 필드 갱신.
+        //  None = 미평가 (Tolerance==0 sentinel) / Pass / Fail. PropertyGrid 색상 배지 컨버터 입력 (Plan 03).
+        //  INI/JSON 직렬화 제외 — Phase 17 D-13 3-종 데코 답습 (System.ComponentModel + PropertyTools + JsonIgnore).
+        //  주의: ParamBase 가 enum 직렬화 미지원 (Phase 12 D-09 / EDatumAlgorithm string-based 회피) — Browsable 데코 없이도 INI write 안 됨. 데코는 PropertyGrid hiding 만 담당.
+        [System.ComponentModel.Browsable(false)] //260528 hbk Phase 36 D-36-08
+        [PropertyTools.DataAnnotations.Browsable(false)] //260528 hbk Phase 36 D-36-08
+        [Newtonsoft.Json.JsonIgnore] //260528 hbk Phase 36 D-36-08
+        public EAngleValidationStatus AngleValidationStatus { get; set; } //260528 hbk Phase 36 D-36-08
+
         //260521 hbk Phase 32 — CircleTwoHorizontal 검출 원(B1 홀) 중심. E2 CompoundAngle 주입용 (DatumOriginConsumer 채널).
         [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
@@ -676,12 +700,14 @@ namespace ReringProject.Sequence {
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
                     if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; //260528 hbk Phase 36 D-36-05 — DualImage 전용 필드 hide
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name.StartsWith("Horizontal_A_") || name.StartsWith("Horizontal_B_")) return true;
                     return false;
                 case EDatumAlgorithm.CircleTwoHorizontal:
                     if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; //260528 hbk Phase 36 D-36-05 — DualImage 전용 필드 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
@@ -689,6 +715,7 @@ namespace ReringProject.Sequence {
                     return false;
                 case EDatumAlgorithm.VerticalTwoHorizontal:
                     if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; //260528 hbk Phase 36 D-36-05 — DualImage 전용 필드 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;

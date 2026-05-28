@@ -310,9 +310,10 @@ namespace ReringProject.Halcon.Display
             if (!datum.LastFindSucceeded) return; //260503 hbk Phase 17 D-13 — find 성공 분기에서만 렌더
             try
             {
-                //260503 hbk Phase 17 D-13 / 260528 Phase 36 UAT fix (CO-36-03) — purple 십자. RenderDatumOverlay 의 RefOrigin 십자(고정 15~20px)와 동일 방식.
+                //260503 hbk Phase 17 D-13 / 260528 Phase 36 UAT fix (CO-36-03) — 검출 origin 십자. RenderDatumOverlay 의 RefOrigin 십자(고정 15~20px)와 동일 방식.
                 //  OFF-SCREEN/markScale/이미지크기 로직 제거 — 티칭 오버레이가 같은 이미지에서 고정 크기로 정상 표시되므로 동일 방식이 옳음.
-                HOperatorSet.SetColor(window, "purple");
+                //260528 hbk Phase 36 UAT fix (CO-36-04) — "purple" 는 HALCON 유효 색상명 아님 → SetColor 예외 → catch swallow → 십자 전체 미표시 (L865 "light green" 전례와 동일 결함). "slate blue" 로 교체.
+                HOperatorSet.SetColor(window, "slate blue");
                 HOperatorSet.SetLineWidth(window, 2);
                 const double crossHalf = 20.0; //260528 hbk Phase 36 UAT fix — teach 오버레이와 동일 고정 크기
                 HOperatorSet.DispLine(window,

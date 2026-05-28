@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
-stopped_at: Completed 37-02-PLAN.md
-last_updated: "2026-05-28T07:19:06.905Z"
+stopped_at: Completed 37-03-PLAN.md (UAT signed_off)
+last_updated: "2026-05-28T08:30:00.000Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 64
-  completed_plans: 62
-  percent: 97
+  completed_plans: 63
+  percent: 98
 ---
 
 # Project State
@@ -25,11 +25,15 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 37 (side-multi-datum-dualimage-2026-05-28) — EXECUTING
-Plan: 3 of 3 (Task 1 완료 / Task 2 checkpoint:human-verify 대기)
+Phase: 37 (side-multi-datum-dualimage-2026-05-28) — plans 3/3 코드 머지 완료, UAT signed_off
+Plan: 3 of 3 완료
 Plans: 37-01 + 37-02 머지 완료 (lenient TryRunDatumPhase + per-datum loop). 37-03 Task 1 = 코드 변경 0 (기존 AddDatum/PropertyGrid 흐름이 4-datum DualImage 생성/티칭 지원 확인, D-37-07).
-빌드: msbuild Debug/x64 PASS, 신규 warning 0, InspectionListView.xaml.cs 변경 0
-UAT: 37-03 Task 2 SIMUL UAT (다중 datum 독립 실행 + 측정≠datum 이미지) 사용자 수행 대기 — 37-UAT.md 기록 예정
+빌드: msbuild Debug/x64 PASS, 신규 warning 0
+UAT: 37-UAT.md SIGNED_OFF (4/4 PASS, 2026-05-28). UAT 중 신규버그 2건 hotfix:
+
+  - 신규버그 A (1c11c35): Measurement 노드 이미지/ROI 해석을 FAI 이름 round-trip(FindFAIByName) → 측정 객체 참조(FindFAIContainingMeasurement, ReferenceEquals). 원인: 여러 Shot 의 FAI 이름 동일(기본 FAI_0) 시 첫 Shot 의 FAI 반환 → Shot2 측정 선택 시 Shot1 이미지 표시. HighlightSelectedRoi anchorFai 도 함께 수정.
+  - 신규버그 B (c6576e5): FindFAIContainingMeasurement 가 RecipeManager.Shots(동적 FAI 단일 소스) 우선 탐색, pSeq fallback. 원인: AddShotToSequence 가 새 Shot 을 RecipeManager 에만 추가 → 라이브 Action(pSeq) 지연 동기화 → 세션 중 새 Shot 측정을 못 찾아 이전 Shot 이미지/ROI 잔존(재시작 후엔 정상).
+  - CO-36-06 / CO-36-07 (Side 4-datum × DualImage 8-image 구조) 종결.
 
 UAT 중 시각화 ROOT CAUSE 발견·수정 (fec1e02):
 
@@ -219,6 +223,9 @@ Recent decisions affecting current work:
 - [Phase 34.1-01]: PublishDatumRoiCandidates 진입부 isDualImage Visibility 동기화 + 새 노드 진입 가로축 리셋 (D-34.1-08/09)
 - [Phase 37-01]: TryRunDatumPhase 두 오버로드 lenient 전환 (D-37-03 datum find 실패 = continue+log, 항상 true 부분성공 / D-37-04 2-image per-datum DualImage 판단 유지). 시그니처 무변경. Logging/ELogType using 추가. msbuild Debug/x64 PASS 0 new warning.
 - [Phase 37-02]: EStep.DatumPhase 를 DatumConfigs[0] 단일 분기 → DatumConfigs 전체 per-datum loop 재작성 (D-37-04). InspectionSequence 에 누적 경로 TryRunSingleDatum(Clear 안 함) + ClearDatumTransforms 추가, loop 전 1회 Clear → datum 마다 자기 이미지로 검출하여 _datumTransforms 누적 (D-37-05). datum 부분 실패 = skip+log, FinishAction(Error) 전면 제거 lenient (D-37-03). 로드 헬퍼 datum 인자화 (D-37-02), EStep.Measure 무변경 D-37-06 기존 충족. msbuild Debug/x64 PASS 0 new warning.
+- [Phase 37-03]: D-37-07 신규 UI 최소화 — 기존 AddDatumToSequence→inspSeq.AddDatum 반복 + DatumConfig ICustomTypeDescriptor DualImage 시 TeachingImagePath + TeachingImagePath_Vertical 동시 노출로 4-datum DualImage 생성/티칭 가능, InspectionListView.xaml.cs 코드 변경 0. 37-UAT.md SIGNED_OFF (4/4 PASS).
+- [Phase 37-03 UAT hotfix A, 1c11c35]: Measurement 노드 이미지/ROI 해석을 FAI 이름 round-trip(FindFAIByName) → 측정 객체 참조(FindFAIContainingMeasurement, ReferenceEquals). 여러 Shot 의 FAI 이름 동일(기본 FAI_0) 시 첫 Shot FAI 반환 → Shot2 측정 선택 시 Shot1 이미지 표시되던 결함. HighlightSelectedRoi anchorFai 해석 동일 수정.
+- [Phase 37-03 UAT hotfix B, c6576e5]: FindFAIContainingMeasurement 가 RecipeManager.Shots(동적 FAI 단일 소스, 신규 Shot 즉시 반영) 우선 탐색, pSeq fallback. AddShotToSequence 가 새 Shot 을 RecipeManager 에만 추가 → 라이브 Action(pSeq) 지연 동기화로 세션 중 새 Shot 측정 미추종(재시작 후 정상)하던 결함.
 
 ### Quick Tasks Completed
 
@@ -300,10 +307,10 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-28T07:18:56.650Z
-Stopped at: 37-03-PLAN.md Task 2 checkpoint (human-verify) — Task 1 완료(코드 변경 0)
-Resume file: .planning/phases/37-side-multi-datum-dualimage-2026-05-28/37-03-PLAN.md
-Next action: 사용자가 SIMUL UAT 4항목 수행 (독립 실행 / 4-datum mixed / 측정≠datum 이미지 / 예외 robustness) → 37-UAT.md 기록 → "approved" / 이슈 보고. 그 후 continuation executor 가 37-03-SUMMARY.md 생성 + STATE/ROADMAP 갱신.
+Last session: 2026-05-28T08:30:00.000Z
+Stopped at: 37-03-PLAN.md 완료 — UAT signed_off (4/4 PASS) + 2 mid-UAT hotfix (1c11c35/c6576e5)
+Resume file: None
+Next action: Phase 37 종결 (plans 3/3 머지 + UAT signed_off, CO-36-06/07 해소). 후속 phase 또는 carry-over 검토.
 
 **v1.1 Phase Map:**
 

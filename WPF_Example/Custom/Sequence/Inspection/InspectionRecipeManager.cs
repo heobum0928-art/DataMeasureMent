@@ -307,10 +307,13 @@ namespace ReringProject.Sequence {
                 }
 
                 //260528 hbk Phase 38 #5 — D-10 마이그레이션: FAI별 산재 PixelResolution 을 카메라(Shot) 단일값으로 통일 (X=Y 정방형 픽셀 가정 D-09)
-                double camRes = shot.PixelResolution;
-                foreach (FAIConfig fai2 in shot.FAIList) {
-                    fai2.PixelResolutionX = camRes;
-                    fai2.PixelResolutionY = camRes;
+                //260528 hbk Phase 38 WR-01 — CAM 섹션이 있어 shot.PixelResolution 이 실제 캘리브레이션 값일 때만 정규화. 부재(손상/수동편집 레시피) 시 per-FAI 값 보존 — 기본값 1.0 으로 분해능 clobber 회귀 방지
+                if (loadFile.ContainsSection(camSection)) {
+                    double camRes = shot.PixelResolution;
+                    foreach (FAIConfig fai2 in shot.FAIList) {
+                        fai2.PixelResolutionX = camRes;
+                        fai2.PixelResolutionY = camRes;
+                    }
                 }
             }
             return true;

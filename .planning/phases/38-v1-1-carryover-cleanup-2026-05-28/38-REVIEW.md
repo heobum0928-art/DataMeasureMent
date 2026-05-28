@@ -13,10 +13,16 @@ findings:
   warning: 2
   info: 3
   total: 5
-status: issues_found
+status: resolved
+resolution:
+  - "WR-01 — fixed: CAM 섹션 존재 가드 추가 (InspectionRecipeManager.cs)"
+  - "WR-02 — fixed: EdgeMeasureType 기본값 EdgeToLineDistance 로 정렬 (FAIConfig.cs)"
+  - "Info×3 — no action (정상 동작 확인)"
 ---
 
 # Phase 38: Code Review Report
+
+> **Resolution (2026-05-28):** WR-01/WR-02 both fixed inline during execute-phase code review gate (msbuild Debug/x64 PASS, 신규 warning 0). Info findings require no action.
 
 **Reviewed:** 2026-05-28T13:26:59Z
 **Depth:** standard

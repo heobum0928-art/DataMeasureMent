@@ -31,10 +31,6 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string ImageSourceMode { get; set; } = "Dedicated";
 
-        //260413 hbk Phase 6: ReuseFromShot 모드일 때 재사용할 Shot 이름 (D-07)
-        [Category("Datum|ImageSource")]
-        public string ReuseFromShotName { get; set; } = "";
-
         //260423 hbk Phase 11 D-08 — 카메라/Z/조명을 상속할 Shot 이름 (빈 문자열이면 Sequence 첫 Shot fallback)
         [Category("Datum|ImageSource")]
         public string SourceShotName { get; set; } = "";

@@ -29,8 +29,9 @@ Phase artifacts: [milestones/v1.0-phases/](milestones/v1.0-phases/)
 - [x] **Phase 23.1: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원** (INSERTED) — ✅ SIGNED OFF 2026-05-19 (8/8 PASS). CO-23-01 resolved / CO-23.1-01·02 → 신규 알고리즘 Phase 이연
 - [⚠] **Phase 33: Side/Bottom InspectionSequence 마이그레이션** — PARTIAL signed off 2026-05-26, retro 부분 sign-off 2026-05-27 (Test 3/4/5 PASS via Phase 35, Test 2 Side → Phase 34)
 - [⚠] **Phase 34: Datum VerticalTwoHorizontal 듀얼 티칭 이미지 변형** — PARTIAL signed off 2026-05-27 (Test 1+5 PASS · Test 3-a/3-b PASS · Test 3-d FAIL swap UX 갭 · Test 2/3-c/3-e/3-f/4 → Phase 34.1)
-- [⚠] **Phase 34.1: Datum DualImage swap UX** — PARTIAL signed_off 2026-05-27 (5/7 Test PASS · Test 4 INI NOT-TESTED · Test 7 PARTIAL 직각도 한계 → CO-34.1-01 carry-over). UAT 도중 6 hotfix 발견 + 종결 (CO-34.1-02~07: Visibility wiring / 토글 색상 / airspace 우회 / ROI 항상 표시 / RenderDatumOverlay 갱신 / Load Image 분기).
+- [⚠] **Phase 34.1: Datum DualImage swap UX** — PARTIAL signed_off 2026-05-27 (5/7 Test PASS · Test 4 INI NOT-TESTED · Test 7 PARTIAL 직각도 한계 → CO-34.1-01 carry-over). UAT 도중 6 hotfix 발견 + 종결 (CO-34.1-02~07). 2026-05-28 실측 페어 UAT 도중 추가 hotfix CO-34.1-08 (BtnTestFindDatum_Click DualImage 분기 누락) + CO-34.1-09 신규 carry-over (좌표계/각도 검증 갭) → Phase 36 신설.
 - [⚠] **Phase 35: Side/Bottom 실측 UAT + Phase 33 마이그레이션 보강** — PARTIAL signed off 2026-05-27 (5/6 PASS, Test 4 Side → Phase 34, CO-33-02/06 해소, CO-35-01/02 hotfix)
+- [ ] **Phase 36: Datum DualImage 설계 보강** — 좌표계 통합 (anchor/offset) + 각도 검증 파라미터 (ExpectedAngleDeg + AngleTolerance) + Test Find 시각화 강화 (CO-34.1-09 carry-over 종결 + Test 4 INI 실측)
 - [ ] **Phase 24: 검사 워크플로우 end-to-end** — Datum→FAI→결과 처리 완주 + OK/NG/실패 분기 (WF-01, WF-02) — Top/Bottom prerequisite 충족 (Side 는 Phase 34 후)
 - [ ] **Phase 25: 결과 분석 & Export** — 이미지 리뷰어 + xlsx export + 알고리즘별 통계 (OUT-01..04)
 - [ ] **Phase 27: Side Inspection 확장** — LineToLineAngle + Side Fixture INI + PC2 분리 + Datum 2-image 지원 (D1, H5, Phase 999.1 흡수 2026-05-26)
@@ -240,6 +241,25 @@ Plans:
 
 ---
 
+### Phase 36: Datum DualImage 설계 보강 (신설 2026-05-28, Phase 34.1 CO-34.1-09 carry-over 종결)
+**Goal**: DualImage (VerticalTwoHorizontalDualImage) 알고리즘에서 두 이미지의 픽셀 좌표계를 통합 처리하고, 검출된 angle 의 정확성을 사용자가 검증할 수 있는 파라미터 + Test Find 시각화를 보강하여, 실측 Side fixture 페어로 Datum 결합 워크플로우를 완결한다.
+**Depends on**: Phase 34.1 (partial signed_off, swap UX + CO-34.1-08 hotfix 종결)
+**Background (Phase 34.1 CO-34.1-09)**:
+  - **좌표계 통합 부재**: `DatumFindingService.IntersectionLl` (L674-677 Find / L1424-1428 Teach) 가 `imageVertical/imageHorizontal` 픽셀 좌표를 변환 없이 같은 평면에 두고 교차 계산. 두 이미지가 다른 fixture 위치/시점에서 찍힌 페어인 경우 의미 없는 origin/angle 산출 → 보라색 십자 화면 밖 또는 엉뚱한 위치.
+  - **각도 검증 UX 부재**: 검출된 `DetectedRefAngle` 이 PropertyGrid 의 `DetectedAngleDeg` ReadOnly 로만 노출. 사용자가 기댓값 입력해서 ±ε 비교할 수단 없음 → "정확히 되었는지 안되었는지 판단 불가" (heobum0928-art 2026-05-28 피드백).
+  - **2026-05-28 실측 페어 UAT 결과**: Side fixture A1_A2 (가로) + B1 (세로) 페어로 Test Find 시 Teach 는 PASS, Find 는 검출은 됨 (`accumulated 20 edge points` 로그 확인) 하지만 시각화 결과가 사용자에게 의미 있는 위치에 표시되지 않음.
+**Success Criteria**:
+  1. 실측 Side fixture A1_A2 + B1 페어로 DualImage Teach + Test Find PASS — DetectedOrigin 이 시각적으로 의미 있는 위치 (anchor 명시 이미지 좌표계 기준).
+  2. `DatumConfig` 에 `ExpectedAngleDeg` + `AngleTolerance` 신규 입력 가능 필드 — Test Find 시 검출 angle 과 비교해 PropertyGrid 에 PASS/FAIL 색상 배지 표시.
+  3. Test Find 시각화 보강 — DetectedOrigin/Angle 오버레이가 현재 표시 이미지 좌표계 안에 그려지거나, 좌표가 화면 밖일 때 화면 중앙 fallback 십자 + 좌표 텍스트.
+  4. INI 라운드트립 PASS (CO-34.1-02 잔여 Test 4 동시 종결) — 신규 필드 (ExpectedAngleDeg / AngleTolerance / anchor 메타) 직렬화.
+  5. 기존 1-image algorithm 3종 + DualImage 회귀 0 (D-34-13/14 + D-34.1-07 가드 4파일 변경 0 유지).
+  6. msbuild Debug/x64 PASS, 신규 warning 0.
+**Plans**: TBD (~3-4 plans 예상 — 36-01 좌표계 anchor/offset 모델 + 알고리즘 보강 / 36-02 ExpectedAngleDeg + AngleTolerance UI + 시각화 / 36-03 INI 라운드트립 + 실측 페어 UAT)
+**Carry-over absorbed**: CO-34.1-01 (Side fixture 실측 검증) / CO-34.1-02 (INI Test 4) / CO-34.1-09 (좌표계 + 각도 검증)
+
+---
+
 ### Phase 24: 검사 워크플로우 end-to-end
 **Goal**: Datum 티칭 후 FAI 측정 후 결과 처리 전 과정이 SIMUL_MODE 와 카메라 쪽에서 오류 없이 완주하고,
 OK/NG/검사실패 각 결과에 따라 TCP 응답 + 이미지 저장 + UI 표시가 올바르게 분기된다
@@ -420,7 +440,7 @@ Plans:
 
 *v1.1 roadmap updated: 2026-05-27 — Phase 34 PARTIAL signed off + Phase 34.1 (Datum DualImage swap UX) 신설. UAT 도중 사용자 피드백 — 자동 swap 만으로는 현재 표시 이미지를 시각적으로 알 수 없고 임의 swap 불가 → ROI 그리기 신뢰성 확보 불가. 결정: 수동 swap (PropertyGrid [👁] 아이콘) + 캔버스 우상단 배지 (가로축 파랑 / 세로축 주황). CO-34-01~04 + Phase 35 Test 4 Side carry-over → 34.1 흡수. v1.1 잔여 = 34.1 → 24 → 25 → 27.*
 
----
+*v1.1 roadmap updated: 2026-05-28 — Phase 34.1 실측 페어 UAT 도중 CO-34.1-08 hotfix (BtnTestFindDatum_Click DualImage 분기 누락, 61d407a) + CO-34.1-09 신규 carry-over (DualImage 좌표계 통합 부재 + 각도 검증 UX 부재). Phase 36 (Datum DualImage 설계 보강) 신설 — Phase 35 다음, Phase 24 직전 삽입. v1.1 잔여 = 36 → 24 → 25 → 27. (gsd-sdk phase.add CLI 가 Phase 1 으로 잘못 할당 → 수동 삽입, project_gsd_insert_phase_cli_bug 재확인.)*
 
 *v1.1 roadmap updated: 2026-05-26 — Phase 33 신설 (Side/Bottom InspectionSequence 마이그레이션). 코드 조사 결과 SequenceHandler L30-34 에서 Top 만 InspectionSequence 사용, Side/Bottom 은 레거시 TopSequence/BottomSequence → DatumConfigs 부재 → Side/Bottom 에서 Datum 형성 구조적으로 불가. Phase 24 (검사 워크플로우 end-to-end) 의 prerequisite 로 등록 — Side/Bottom 검사가 안 되면 end-to-end 검증 불가. v1.1 잔여 = 33 → 24 → 25 → 27.*
 *v1.1 roadmap updated: 2026-05-26 — Phase 22 retro 동기화. 22-UAT.md 가 2026-05-11 에 이미 signed_off (4/4 PASS) 였으나 ROADMAP 표 미갱신 상태였음 — 표 및 체크박스 동기화 완료. quick 260526-kay (EdgeSelection 차단 해제 3군 일괄) UAT PASS (사용자 3/3 2026-05-26).*

@@ -285,6 +285,7 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 - 2026-05-17: Phase 23.1 inserted after Phase 23: EdgeToLineDistance ROI 티칭 배선 + 다점 치수 지원 (URGENT) — SOP 도면 갭 대응 (ROI 측정별 티칭 미배선 + 다점 치수 P1/P2 미지원 + EdgeSelection 마이그레이션 + Datum 실측검증 + CO-23-01 재검증)
 - 2026-05-19: Phase 31 added — Datum 기준 측정 알고리즘 확장 (E8 원중심→Datum거리 / D1 Datum 각도 / I9·I10 호∩라인 교점 / E2·E9·E10 CompoundAngle / ArcEdgeDistance). Phase 23.1 carry-over CO-23.1-01·02 흡수. ※ gsd-sdk phase.add CLI phase_number 오산정 → 수동 보정 (31).
 - 2026-05-21: Phase 32 added — 측정 알고리즘 SOP 재정합. Phase 31 UAT 중 I9/I10/E2/E9/E10 알고리즘이 SOP 실무 방식과 불일치 확인 → ArcLineIntersect 2직선 교점 + E2/E3/E9/E10 공통 컨투어 알고리즘으로 재작성, E3 신규 타입 추가. Phase 31 UAT Test 3·4·5 이관. ※ gsd-sdk phase.add CLI phase_number 다시 오산정(1) → 수동 보정 (32).
+- 2026-05-28: Phase 36 added — Datum DualImage 설계 보강. Phase 34.1 실측 페어 UAT 도중 CO-34.1-08 hotfix (BtnTestFindDatum_Click DualImage 분기 누락, 61d407a) + CO-34.1-09 신규 carry-over (좌표계 통합 부재 + 각도 검증 UX 부재 — IntersectionLl 이 두 이미지 픽셀 좌표를 변환 없이 같은 평면 처리). 스코프: 좌표계 anchor/offset + ExpectedAngleDeg/AngleTolerance + Test Find 시각화 강화. CO-34.1-01/02/09 흡수. ※ gsd-sdk phase.add CLI phase_number 또 오산정(1) → 수동 보정 (36).
 
 ## Session Continuity
 

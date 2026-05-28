@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
-stopped_at: Completed 37-01-PLAN.md
-last_updated: "2026-05-28T07:13:14.288Z"
+stopped_at: Completed 37-02-PLAN.md
+last_updated: "2026-05-28T07:19:06.905Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 17
   completed_phases: 14
   total_plans: 64
-  completed_plans: 61
-  percent: 95
+  completed_plans: 62
+  percent: 97
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 37 (side-multi-datum-dualimage-2026-05-28) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Plans: 4/4 코드 머지 완료 (01 SameFrame 가드 / 02 각도검증 / 03 시각화 / 04 UAT)
 빌드: msbuild Debug/x64 PASS, 신규 warning 0, guard 4파일 변경 0
 UAT: Test 1+2 PARTIAL / Test 3·4·6·7 PENDING(CO-36-05) / Test 5 N/A(OFF-SCREEN 기능 제거)
@@ -122,6 +122,7 @@ Last activity: 2026-05-28
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P08 | 25 | 3 tasks | 2 files |
 | Phase 34.1 P01 | 7 | 3 tasks | 3 files |
 | Phase 37 P01 | 6 | 2 tasks | 1 files |
+| Phase 37 P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -217,6 +218,7 @@ Recent decisions affecting current work:
 - [Phase 34.1-01]: UpdateImageSourceBadge(EImageSource) 단일 헬퍼로 자동/수동 swap 3자 동시 전환 일원화 (D-34.1-15)
 - [Phase 34.1-01]: PublishDatumRoiCandidates 진입부 isDualImage Visibility 동기화 + 새 노드 진입 가로축 리셋 (D-34.1-08/09)
 - [Phase 37-01]: TryRunDatumPhase 두 오버로드 lenient 전환 (D-37-03 datum find 실패 = continue+log, 항상 true 부분성공 / D-37-04 2-image per-datum DualImage 판단 유지). 시그니처 무변경. Logging/ELogType using 추가. msbuild Debug/x64 PASS 0 new warning.
+- [Phase 37-02]: EStep.DatumPhase 를 DatumConfigs[0] 단일 분기 → DatumConfigs 전체 per-datum loop 재작성 (D-37-04). InspectionSequence 에 누적 경로 TryRunSingleDatum(Clear 안 함) + ClearDatumTransforms 추가, loop 전 1회 Clear → datum 마다 자기 이미지로 검출하여 _datumTransforms 누적 (D-37-05). datum 부분 실패 = skip+log, FinishAction(Error) 전면 제거 lenient (D-37-03). 로드 헬퍼 datum 인자화 (D-37-02), EStep.Measure 무변경 D-37-06 기존 충족. msbuild Debug/x64 PASS 0 new warning.
 
 ### Quick Tasks Completed
 
@@ -298,8 +300,8 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: 2026-05-28T07:13:14.276Z
-Stopped at: Completed 37-01-PLAN.md
+Last session: 2026-05-28T07:18:56.650Z
+Stopped at: Completed 37-02-PLAN.md
 Resume file: None
 Next action: 사용자가 7 Test 수행 → UAT.md 갱신 → 결과 보고 ("approved" / "partial" / "blocked"). 그 후 /gsd-execute-phase 34.1 재진입 또는 sign-off 수동 처리.
 

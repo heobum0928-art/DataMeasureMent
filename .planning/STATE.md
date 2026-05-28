@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: ready_to_plan
-stopped_at: Completed 37-03-PLAN.md (UAT signed_off)
-last_updated: "2026-05-28T08:30:00.000Z"
+stopped_at: Phase 36 + 37 signed_off — v1.1 종결 시퀀스 진행 중 (Step 1 완료, Step 2=Phase 38 Cleanup 신설 대기)
+last_updated: "2026-05-28T10:30:00.000Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 17
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 37 — side-multi-datum-dualimage-2026-05-28
+**Current focus:** v1.1 종결 전략 진행 중 — Phase 36+37 signed_off. 다음 = Step 2 Phase 38 "v1.1 Carry-over Cleanup 일괄" 신설 (사용자 승인 대기)
 
 ## Current Position
 
-Phase: 999.1
-Plan: Not started
+Phase: v1.1 종결 시퀀스 (Step 1 완료)
+Plan: Phase 38 Cleanup 신설 대기 (add-phase → discuss → plan → execute)
 Plans: 37-01 + 37-02 머지 완료 (lenient TryRunDatumPhase + per-datum loop). 37-03 Task 1 = 코드 변경 0 (기존 AddDatum/PropertyGrid 흐름이 4-datum DualImage 생성/티칭 지원 확인, D-37-07).
 빌드: msbuild Debug/x64 PASS, 신규 warning 0
 UAT: 37-UAT.md SIGNED_OFF (4/4 PASS, 2026-05-28). UAT 중 신규버그 2건 hotfix:

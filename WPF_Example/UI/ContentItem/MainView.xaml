@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:dmv="clr-namespace:ReringProject.UI"
+             xmlns:seq="clr-namespace:ReringProject.Sequence"
              mc:Ignorable="d" Loaded="MainView_Loaded" d:DesignWidth="1200" d:DesignHeight="800">
     <UserControl.Resources>
         <!-- Phase 2: Shared ToggleButton style for ROI toolbar buttons (D-09, D-10, UI-SPEC toolbar) -->
@@ -285,6 +286,52 @@
                 <TextBlock x:Name="txt_imageSourceBadge"
                            Text="가로축" Foreground="White"
                            FontSize="14" FontWeight="SemiBold"/>
+            </Border>
+
+            <!--260528 hbk Phase 36 D-36-06 — DualImage 검출 각도 PASS/FAIL 색상 배지 (PropertyGrid 외부 별도 라벨, 캔버스 우상단).
+                 가드 4파일 변경 0 정합. D-36-06 갱신 (2026-05-28) — 옵션 C (외부 Border) 채택.
+                 AngleValidationStatus transient 필드 바인딩 → Trigger 로 색상/텍스트 분기. None=숨김 / Pass=green "검증 OK" / Fail=red "검증 NG".
+                 DataContext = 현재 선택된 DatumConfig (halconViewer 또는 InspectionListView SelectedItem chain). -->
+            <Border x:Name="border_angleValidationBadge"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,52,12,0"
+                    Padding="10,4"
+                    CornerRadius="4"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <!--260528 hbk Phase 36 D-36-06 — Pass: 연두 배경 + "각도 검증 OK"-->
+                            <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Pass}">
+                                <Setter Property="Background" Value="#43A047"/>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <!--260528 hbk Phase 36 D-36-06 — Fail: 연빨 배경 + "각도 검증 NG"-->
+                            <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Fail}">
+                                <Setter Property="Background" Value="#E53935"/>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <!--None 또는 unset: Visibility Collapsed (default)-->
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Foreground="White" FontWeight="SemiBold" FontSize="14">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value=""/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Pass}">
+                                    <Setter Property="Text" Value="각도 검증 OK"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Fail}">
+                                    <Setter Property="Text" Value="각도 검증 NG"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Border>
 
             <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">

@@ -1247,6 +1247,8 @@ namespace ReringProject.UI {
                 catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
             }
             UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1 D-34.1-15 — 3자 동시 갱신
+            //260528 hbk Phase 36 D-36-09 — Test Find 결과 양쪽 캔버스에 일관 렌더. swap 직후 RenderDatumFindResult 가 LastFindSucceeded gate 안에서 자동 재실행 (chain: SetDatumOverlay → RenderDatumOverlay → RenderDatumFindResult).
+            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true); //260528 hbk Phase 36 D-36-09
         }
 
         //260527 hbk Phase 34.1 D-34.1-02 — 세로축 토글 버튼 Click. 세로축 이미지로 swap + 배지/ROI 갱신.
@@ -1261,6 +1263,8 @@ namespace ReringProject.UI {
                 catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
             }
             UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15
+            //260528 hbk Phase 36 D-36-09 — Vertical 토글 시에도 동일 chain 트리거 (SameFrame 가정 하 양쪽 캔버스 동일 좌표).
+            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true); //260528 hbk Phase 36 D-36-09
         }
 
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish

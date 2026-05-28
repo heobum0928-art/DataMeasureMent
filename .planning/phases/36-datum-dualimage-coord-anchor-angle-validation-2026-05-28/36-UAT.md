@@ -1,7 +1,7 @@
 ---
 phase: 36-datum-dualimage-coord-anchor-angle-validation-2026-05-28
 type: uat
-status: pending
+status: partial
 updated: 2026-05-28
 auto_checks:
   guard_4_files_changed: 0
@@ -12,14 +12,41 @@ user_tests:
   total: 7
   pass: 0
   fail: 0
-  pending: 7
+  partial: 2
+  pending: 4
+  na: 1
 carry_over_resolves:
-  - CO-34.1-01 (Side fixture 실측 검증)
-  - CO-34.1-02 (Phase 34.1 Test 4 INI 라운드트립)
-  - CO-34.1-09 (좌표계 + 각도 검증 UX)
+  - CO-34.1-09 (좌표계 + 각도 검증 UX) — 코드/시각화 종결, 시각 확인 일부 잔여
+uat_hotfixes:
+  - CO-36-01 (수직도 5°→10° 임시 완화, commit 14d9bf1) — 사용자 튜닝 필드화는 미해결 carry-over
+  - CO-36-02/03 (OFF-SCREEN/markScale/이미지크기 시도) — 오진, 후속 commit 으로 제거(36a4d28)
+  - CO-36-04 (ROOT CAUSE: "purple" 무효 HALCON 색상 → SetColor 예외 swallow → 십자 전체 미표시, commit fec1e02) — "slate blue" 로 해소
+carry_over_open:
+  - CO-36-01 — PERPENDICULAR_TOLERANCE_DEG 하드코딩(10°) → DatumConfig 사용자 필드화
+  - CO-36-05 — Test 2/3/4/6/7 사용자 시각 UAT 미수행 (slate blue 빌드 이후 확인 필요)
+  - CO-36-06 — Side 4-datum × DualImage(8장) + 측정 별도 이미지 구조 미지원 → 신규 phase 필요 (검사 실행 흐름/데이터모델/UI 전반)
+  - CO-36-07 — TryRunDatumPhase: 다중 datum 전부-성공 강제(return false) + DualImage 판단 DatumConfigs[0] 한정 + 단일 이미지로 DualImage 검사 → CO-36-06 phase 에서 흡수
 ---
 
 # Phase 36 UAT — Datum DualImage 설계 보강
+
+> **Sign-off: PARTIAL (2026-05-28).** 코드 4 plan 전부 머지 + msbuild PASS + guard 4파일 변경 0.
+> UAT 도중 시각화 결함 root cause(무효 색상 "purple") 발견·수정(fec1e02). 사용자 실측 시각 확인(Test 2~7 일부)은 잔여 → CO-36-05.
+> Side 4-datum/8-image 다중 datum 구조 요구사항이 UAT 중 새로 드러남 → 별개 신규 phase(CO-36-06/07).
+
+## Results Summary (PARTIAL sign-off 2026-05-28)
+
+| Test | 항목 | 결과 | 비고 |
+|---|---|---|---|
+| 1 | SameFrame 가드 | PARTIAL | 가드 코드 검증(메시지 2회 grep). 실측 mismatch 직접 트리거는 미관측(두 이미지 동일 해상도였을 가능성) |
+| 2 | 실측 페어 Teach + Test Find 십자 | PARTIAL | **root cause("purple" 무효색) 수정(fec1e02) 후 시각 확인 잔여.** 검출 좌표(5287,3422)=좌측중앙 정상. 수직도 10° 완화로 Teach 가능 |
+| 3 | PASS 색상 배지 | PENDING | slate blue 빌드로 재확인 필요 (CO-36-05) |
+| 4 | FAIL 색상 배지 | PENDING | 동일 |
+| 5 | OFF-SCREEN fallback | N/A | 기능 제거 결정 (좌표계 오진의 원인 → 단순화, 36a4d28). 십자가 화면 밖이면 그냥 미표시 |
+| 6 | INI 라운드트립 | PENDING | ExpectedAngleDeg/AngleTolerance 키 (CO-36-05) |
+| 7 | 1-image 회귀 smoke | PENDING | TLI/VTH/CTH 3종 (CO-36-05) |
+
+**핵심 교훈:** 시각화 "안 보임" 의 진짜 원인은 HALCON 무효 색상명 `"purple"` → `SetColor` 예외 → `catch{}` swallow → 렌더 블록 전체 silent 미표시. (같은 파일 L865 "light green" 전례 동일.) OFF-SCREEN/이미지크기/줌을 한참 팠으나 모두 오진이었고, 사용자가 색상명을 짚어 해결.
 
 ## Auto Checks (Task 1 완료 — 2026-05-28)
 

@@ -310,15 +310,15 @@ namespace ReringProject.Halcon.Display
             if (!datum.LastFindSucceeded) return; //260503 hbk Phase 17 D-13 — find 성공 분기에서만 렌더
             try
             {
-                //260528 hbk Phase 36 D-36-10 — OFF-SCREEN 가드. DetectedOrigin 이 이미지 경계 밖이면 캔버스 중앙 fallback 으로 즉시 위임 후 return.
-                //  이미지 사이즈는 HOperatorSet.GetWindowExtents 로 조회 (HWindowControlWPF airspace 컨텍스트, 다른 RenderXXX 헬퍼 패턴 답습).
-                HTuple winR, winC, winW, winH; //260528 hbk Phase 36 D-36-10
-                HOperatorSet.GetWindowExtents(window, out winR, out winC, out winW, out winH); //260528 hbk Phase 36 D-36-10
-                bool isOffScreen = (datum.DetectedOriginRow < 0 || datum.DetectedOriginRow >= winH.D //260528 hbk Phase 36 D-36-10
-                                 || datum.DetectedOriginCol < 0 || datum.DetectedOriginCol >= winW.D);
+                //260528 hbk Phase 36 D-36-10 — OFF-SCREEN 가드. DetectedOrigin 이 표시 이미지 경계 밖이면 캔버스 중앙 fallback 으로 즉시 위임 후 return.
+                //260528 hbk Phase 36 UAT fix (CO-36-02) — GetPart(image 좌표) 기준 판정. GetWindowExtents 는 window 픽셀 크기라 고해상도 이미지(예: 14208x10640)의 정상 좌표를 화면 밖으로 오판함.
+                HTuple partR1, partC1, partR2, partC2; //260528 hbk Phase 36 UAT fix
+                HOperatorSet.GetPart(window, out partR1, out partC1, out partR2, out partC2); //260528 hbk Phase 36 UAT fix — 현재 표시 image 영역 (image 좌표)
+                bool isOffScreen = (datum.DetectedOriginRow < partR1.D || datum.DetectedOriginRow > partR2.D //260528 hbk Phase 36 UAT fix
+                                 || datum.DetectedOriginCol < partC1.D || datum.DetectedOriginCol > partC2.D);
                 if (isOffScreen) //260528 hbk Phase 36 D-36-10
                 {
-                    DrawOriginFallback(window, winW.D, winH.D, datum.DetectedOriginRow, datum.DetectedOriginCol);
+                    DrawOriginFallback(window, partR1.D, partC1.D, partR2.D, partC2.D, datum.DetectedOriginRow, datum.DetectedOriginCol); //260528 hbk Phase 36 UAT fix
                     return; //OFF-SCREEN 시 기존 purple 십자/화살표 미렌더 (의미 없는 위치)
                 }
 
@@ -372,12 +372,12 @@ namespace ReringProject.Halcon.Display
 
         //260528 hbk Phase 36 D-36-10 — OFF-SCREEN fallback 십자 (캔버스 중앙) + 좌표 텍스트 + "OFF-SCREEN" 라벨.
         //  DetectedOrigin 이 이미지 경계 밖일 때 사용자에게 검출 결과의 수치를 명시적으로 노출.
-        private void DrawOriginFallback(HWindow window, double width, double height, double originRow, double originCol)
+        private void DrawOriginFallback(HWindow window, double partR1, double partC1, double partR2, double partC2, double originRow, double originCol)
         {
             try
             {
-                double cRow = height / 2.0; //260528 hbk Phase 36 D-36-10
-                double cCol = width  / 2.0; //260528 hbk Phase 36 D-36-10
+                double cRow = (partR1 + partR2) / 2.0; //260528 hbk Phase 36 UAT fix — 표시 image 영역 중앙 (image 좌표)
+                double cCol = (partC1 + partC2) / 2.0; //260528 hbk Phase 36 UAT fix
                 const double crossHalf = 14.0;
                 HOperatorSet.SetColor(window, "red"); //260528 hbk Phase 36 D-36-10 — fallback 강조 색 (purple 정상 검출 십자와 시각 구분)
                 HOperatorSet.SetLineWidth(window, 2);

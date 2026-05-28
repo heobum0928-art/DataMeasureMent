@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
 stopped_at: Phase 36 context gathered
-last_updated: "2026-05-28T00:53:53.637Z"
+last_updated: "2026-05-28T01:37:24.454Z"
 last_activity: 2026-05-27
 progress:
   total_phases: 16
   completed_phases: 13
-  total_plans: 57
+  total_plans: 61
   completed_plans: 56
-  percent: 98
+  percent: 92
 ---
 
 # Project State
@@ -312,4 +312,4 @@ Next action: 사용자가 7 Test 수행 → UAT.md 갱신 → 결과 보고 ("ap
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 34.1 (Datum DualImage Swap UX) — 2 plans — 2026-05-27T07:53:00.597Z
+**Planned Phase:** 36 (Datum DualImage 설계 보강 (신설 2026-05-28, Phase 34.1 CO-34.1-09 carry-over 종결)) — 4 plans — 2026-05-28T01:37:24.443Z

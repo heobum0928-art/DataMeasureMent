@@ -305,6 +305,13 @@ namespace ReringProject.Sequence {
                         fai.Measurements.Add(meas);
                     }
                 }
+
+                //260528 hbk Phase 38 #5 — D-10 마이그레이션: FAI별 산재 PixelResolution 을 카메라(Shot) 단일값으로 통일 (X=Y 정방형 픽셀 가정 D-09)
+                double camRes = shot.PixelResolution;
+                foreach (FAIConfig fai2 in shot.FAIList) {
+                    fai2.PixelResolutionX = camRes;
+                    fai2.PixelResolutionY = camRes;
+                }
             }
             return true;
         }

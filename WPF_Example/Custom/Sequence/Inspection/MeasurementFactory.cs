@@ -48,16 +48,13 @@ namespace ReringProject.Sequence
             }
         }
 
+        //260528 hbk Phase 38 #1 — D-01/D-02/D-03: 미사용 5종(EdgePairDistance/PointToLineDistance/PointToPointDistance/LineToLineAngle/LineToLineDistance) UI 숨김
+        // Create() switch 는 INI 하위호환을 위해 5종 case 그대로 유지
         public static string[] GetTypeNames() //260413 hbk UI ComboBox용
         {
             return new string[]
             {
-                "EdgePairDistance",
-                "PointToLineDistance",
-                "PointToPointDistance",
-                "LineToLineAngle",
                 "CircleDiameter",
-                "LineToLineDistance",
                 "EdgeToLineDistance", //260512 hbk Phase 23 ALG-01
                 "CircleCenterDistance", //260519 hbk Phase 31 D-01 E8
                 "EdgeToLineAngle", //260519 hbk Phase 31 D-05

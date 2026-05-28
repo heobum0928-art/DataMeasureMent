@@ -180,8 +180,9 @@ namespace ReringProject.UI {
         /// <summary>Resolves the owning ShotConfig for the given measurement and displays its image.</summary>
         public void DisplayMeasurementImage(MeasurementBase measurement) { //260521 hbk Phase 32 UAT
             if (measurement == null) return; //260521 hbk Phase 32 UAT
-            string faiName = FindFaiNameContainingMeasurement(measurement); //260521 hbk Phase 32 UAT
-            FAIConfig fai = FindFAIByName(faiName); //260521 hbk Phase 32 UAT
+            //260528 hbk Phase 37 — 이름 round-trip(FindFAIByName) 제거: 여러 Shot 의 FAI 이름이 같으면(기본 FAI_0 등)
+            //  첫 Shot 의 FAI 가 반환돼 잘못된 Shot 이미지가 표시됨. 소유 FAIConfig 를 객체 참조로 직접 해석.
+            FAIConfig fai = FindFAIContainingMeasurement(measurement); //260528 hbk Phase 37
             if (fai == null) return; //260521 hbk Phase 32 UAT
             ShotConfig shot = fai.Owner as ShotConfig; //260521 hbk Phase 32 UAT
             DisplayShotImage(shot); //260521 hbk Phase 32 UAT
@@ -383,7 +384,9 @@ namespace ReringProject.UI {
                 if (string.IsNullOrEmpty(mName)) mName = measSel.TypeName;
                 if (!string.IsNullOrEmpty(faiName)) {
                     selRoiId = faiName + "_" + mName;
-                    anchorFai = FindFAIByName(faiName);
+                    //260528 hbk Phase 37 — anchorFai 를 이름(FindFAIByName) 대신 측정 객체 참조로 해석.
+                    //  여러 Shot 동일 FAI 명 시 ROI 하이라이트가 첫 Shot 으로 잘못 묶이던 결함 차단(DisplayMeasurementImage 와 동일 원인).
+                    anchorFai = FindFAIContainingMeasurement(measSel); //260528 hbk Phase 37
                 }
             }
             //260519 hbk #6-a — dataGrid_faiResults 바인딩 지연 회피: 선택 FAI 의 Shot 에서 직접 ROI 수집
@@ -1716,6 +1719,27 @@ namespace ReringProject.UI {
                         foreach (FAIConfig fai in shot.FAIList) {
                             foreach (var m in fai.Measurements) {
                                 if (ReferenceEquals(m, measurement)) return fai.FAIName;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        //260528 hbk Phase 37 — FindFaiNameContainingMeasurement 의 참조 버전: 이름 충돌(여러 Shot 동일 FAI 명) 시에도
+        //  실제 소유 FAIConfig 객체를 ReferenceEquals 로 정확히 반환. 이미지/ROI 해석이 첫 Shot 으로 잘못 묶이는 결함 차단.
+        private FAIConfig FindFAIContainingMeasurement(MeasurementBase measurement) {
+            if (measurement == null || pSeq == null) return null;
+            for (int i = 0; i < pSeq.Count; i++) {
+                var seq = pSeq[i];
+                if (seq == null) continue;
+                for (int j = 0; j < seq.ActionCount; j++) {
+                    var act = seq[j];
+                    if (act != null && act.Param is ShotConfig shot) {
+                        foreach (FAIConfig fai in shot.FAIList) {
+                            foreach (var m in fai.Measurements) {
+                                if (ReferenceEquals(m, measurement)) return fai;
                             }
                         }
                     }

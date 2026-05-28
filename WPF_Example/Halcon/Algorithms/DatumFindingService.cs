@@ -730,6 +730,25 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedFitRMSE   = 0.0; //260527 hbk Phase 34 D-34-01
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI; //260527 hbk Phase 34 D-34-01
 
+                //260528 hbk Phase 36 D-36-08/13 — ExpectedAngleDeg / AngleTolerance 게이트 (TwoLineAngleToleranceDeg L915 sentinel 모델과 정렬).
+                //  Tolerance > 0 일 때만 활성. Expected=0 + Tolerance>0 도 활성 (사용자가 0° 검증을 의도) — sentinel 단일 조건.
+                //  결과는 transient AngleValidationStatus 에 기록. error 반환 안 함 (Find 자체는 PASS 유지 — UI 색상 배지로만 표시 — Plan 03).
+                //  wrap-around: (Detected - Expected) 를 [-180, 180] 정규화 후 절댓값 비교 (179 vs -179 = 2° 차이로 정상 판정).
+                if (config.AngleTolerance > 0.0) //260528 hbk Phase 36 D-36-13
+                {
+                    double diff = config.DetectedAngleDeg - config.ExpectedAngleDeg; //260528 hbk Phase 36 D-36-08
+                    diff = ((diff + 540.0) % 360.0) - 180.0; //260528 hbk Phase 36 D-36-08 — wrap-around 정규화 (CONTEXT 권고 공식)
+                    double absDiff = System.Math.Abs(diff); //260528 hbk Phase 36 D-36-08
+                    if (absDiff <= config.AngleTolerance) //260528 hbk Phase 36 D-36-08
+                        config.AngleValidationStatus = EAngleValidationStatus.Pass; //260528 hbk Phase 36 D-36-08
+                    else //260528 hbk Phase 36 D-36-08
+                        config.AngleValidationStatus = EAngleValidationStatus.Fail; //260528 hbk Phase 36 D-36-08
+                }
+                else //260528 hbk Phase 36 D-36-13 — sentinel: 검증 비활성
+                {
+                    config.AngleValidationStatus = EAngleValidationStatus.None; //260528 hbk Phase 36 D-36-13
+                }
+
                 // Visual transient — Line1Detected = 검출된 수직 라인, Line2Detected = 수평 결합 라인.
                 config.Line1Detected_RBegin = vrB; //260527 hbk Phase 34 D-34-01
                 config.Line1Detected_CBegin = vcB; //260527 hbk Phase 34 D-34-01

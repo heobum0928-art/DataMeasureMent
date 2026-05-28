@@ -255,7 +255,11 @@ Plans:
   4. INI 라운드트립 PASS (CO-34.1-02 잔여 Test 4 동시 종결) — 신규 필드 (ExpectedAngleDeg / AngleTolerance / anchor 메타) 직렬화.
   5. 기존 1-image algorithm 3종 + DualImage 회귀 0 (D-34-13/14 + D-34.1-07 가드 4파일 변경 0 유지).
   6. msbuild Debug/x64 PASS, 신규 warning 0.
-**Plans**: TBD (~3-4 plans 예상 — 36-01 좌표계 anchor/offset 모델 + 알고리즘 보강 / 36-02 ExpectedAngleDeg + AngleTolerance UI + 시각화 / 36-03 INI 라운드트립 + 실측 페어 UAT)
+**Plans**: 4 plans (commit pending)
+  - [ ] 36-01-PLAN.md — DatumFindingService SameFrame 가드 (Find/Teach DualImage 오버로드 진입부)
+  - [ ] 36-02-PLAN.md — EAngleValidationStatus enum + DatumConfig ExpectedAngleDeg/AngleTolerance + TryFindVerticalTwoHorizontalDualImage sentinel + wrap-around 평가
+  - [ ] 36-03-PLAN.md — HalconDisplayService OFF-SCREEN fallback + Expected angle 점선 화살표 + MainView swap 재호출 + PropertyGrid 색상 배지 (XAML)
+  - [ ] 36-04-PLAN.md — 자동 회귀 검증 + 실측 페어 7-Test UAT + sign-off (CO-34.1-01/02/09 종결)
 **Carry-over absorbed**: CO-34.1-01 (Side fixture 실측 검증) / CO-34.1-02 (INI Test 4) / CO-34.1-09 (좌표계 + 각도 검증)
 
 ---

@@ -45,13 +45,14 @@ namespace ReringProject.Sequence {
         public double ROI_Length2 { get; set; }
 
         // Edge Measurement //260409 hbk
-        //260507 hbk Phase 19 QUAL-03: EdgeMeasureType — 측정 알고리즘 선택 (INI 직렬화, 미존재 시 기본값 "EdgePairDistance")
+        //260507 hbk Phase 19 QUAL-03: EdgeMeasureType — 측정 알고리즘 선택 (INI 직렬화, 미존재 시 기본값 "EdgeToLineDistance")
         //  저장 타입: string (ParamBase.Save/Load switch가 string 지원)
-        //  유효값: MeasurementFactory.GetTypeNames() 목록 (6종)
-        //  미존재 INI 로드 시: property 기본값 "EdgePairDistance" 가 유지됨 (ParamBase.Load 가 INI 키 미존재 시 기본값 보존)
+        //  유효값: MeasurementFactory.GetTypeNames() 목록 (10종)
+        //  미존재 INI 로드 시: property 기본값 "EdgeToLineDistance" 가 유지됨 (ParamBase.Load 가 INI 키 미존재 시 기본값 보존)
+        //260528 hbk Phase 38 WR-02 — 기본값을 GetTypeNames() 노출 타입으로 정렬 (구 기본 "EdgePairDistance" 는 #1 정리로 콤보에서 제거됨 — 신규 FAI 콤보 빈값/불일치 방지)
         [Category("Edge|Measurement")] //260507 hbk Phase 19 QUAL-03
         [ItemsSourceProperty(nameof(EdgeMeasureTypeList))] //260507 hbk Phase 19 QUAL-03 — PropertyGrid 드롭다운 목록
-        public string EdgeMeasureType { get; set; } = "EdgePairDistance"; //260507 hbk Phase 19 QUAL-03
+        public string EdgeMeasureType { get; set; } = "EdgeToLineDistance"; //260507 hbk Phase 19 QUAL-03 //260528 hbk Phase 38 WR-02
 
         //260507 hbk Phase 19 QUAL-03 — EdgeMeasureType 드롭다운 옵션 (MeasurementFactory 단일 소스, 하드코딩 금지)
         //260508 hbk Phase 19 fix — 정적 readonly 캐시. 매번 new List 반환 시 PropertyTools.Wpf 가 콤보 ItemsSource 인식 실패.

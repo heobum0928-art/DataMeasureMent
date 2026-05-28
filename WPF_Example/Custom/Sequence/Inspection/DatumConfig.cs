@@ -510,6 +510,17 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260528 hbk Phase 36 D-36-08
         public EAngleValidationStatus AngleValidationStatus { get; set; } //260528 hbk Phase 36 D-36-08
 
+        //260528 hbk Phase 36 UAT fix (CO-36-03) — Test Find 시점의 입력 이미지 크기 (transient). RenderDatumFindResult 의 OFF-SCREEN 판정/마커 스케일에 사용.
+        //  HWindow.GetPart/GetWindowExtents 는 window 픽셀 크기라 고해상도 이미지(14208x10640)를 모름 → 검출 시 GetImageSize 로 저장. 0 = 미설정(구 recipe/1-image 경로 fallback).
+        [System.ComponentModel.Browsable(false)] //260528 hbk Phase 36 UAT fix
+        [PropertyTools.DataAnnotations.Browsable(false)] //260528 hbk Phase 36 UAT fix
+        [Newtonsoft.Json.JsonIgnore] //260528 hbk Phase 36 UAT fix
+        public double DetectedImageWidth { get; set; } //260528 hbk Phase 36 UAT fix
+        [System.ComponentModel.Browsable(false)] //260528 hbk Phase 36 UAT fix
+        [PropertyTools.DataAnnotations.Browsable(false)] //260528 hbk Phase 36 UAT fix
+        [Newtonsoft.Json.JsonIgnore] //260528 hbk Phase 36 UAT fix
+        public double DetectedImageHeight { get; set; } //260528 hbk Phase 36 UAT fix
+
         //260521 hbk Phase 32 — CircleTwoHorizontal 검출 원(B1 홀) 중심. E2 CompoundAngle 주입용 (DatumOriginConsumer 채널).
         [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32

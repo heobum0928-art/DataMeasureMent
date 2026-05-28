@@ -310,22 +310,25 @@ namespace ReringProject.Halcon.Display
             if (!datum.LastFindSucceeded) return; //260503 hbk Phase 17 D-13 — find 성공 분기에서만 렌더
             try
             {
-                //260528 hbk Phase 36 D-36-10 — OFF-SCREEN 가드. DetectedOrigin 이 표시 이미지 경계 밖이면 캔버스 중앙 fallback 으로 즉시 위임 후 return.
-                //260528 hbk Phase 36 UAT fix (CO-36-02) — GetPart(image 좌표) 기준 판정. GetWindowExtents 는 window 픽셀 크기라 고해상도 이미지(예: 14208x10640)의 정상 좌표를 화면 밖으로 오판함.
-                HTuple partR1, partC1, partR2, partC2; //260528 hbk Phase 36 UAT fix
-                HOperatorSet.GetPart(window, out partR1, out partC1, out partR2, out partC2); //260528 hbk Phase 36 UAT fix — 현재 표시 image 영역 (image 좌표)
-                bool isOffScreen = (datum.DetectedOriginRow < partR1.D || datum.DetectedOriginRow > partR2.D //260528 hbk Phase 36 UAT fix
-                                 || datum.DetectedOriginCol < partC1.D || datum.DetectedOriginCol > partC2.D);
-                if (isOffScreen) //260528 hbk Phase 36 D-36-10
+                //260528 hbk Phase 36 D-36-10 — OFF-SCREEN 가드. DetectedOrigin 이 이미지 경계 밖이면 캔버스 중앙 fallback 으로 즉시 위임 후 return.
+                //260528 hbk Phase 36 UAT fix (CO-36-03) — 판정/스케일을 실제 검출 이미지 크기 기준. window GetPart/GetWindowExtents 는 화면 픽셀이라 고해상도(14208x10640) 이미지를 모름 → 정상 좌표 오판 + 마커 미세화.
+                double imgW = datum.DetectedImageWidth; //260528 hbk Phase 36 UAT fix
+                double imgH = datum.DetectedImageHeight; //260528 hbk Phase 36 UAT fix
+                bool haveImgSize = (imgW > 0.0 && imgH > 0.0); //260528 hbk Phase 36 UAT fix — 0 = 구 recipe/1-image 경로 → off-screen 판정 skip (구 동작 유지)
+                if (haveImgSize) //260528 hbk Phase 36 UAT fix
                 {
-                    DrawOriginFallback(window, partR1.D, partC1.D, partR2.D, partC2.D, datum.DetectedOriginRow, datum.DetectedOriginCol); //260528 hbk Phase 36 UAT fix
-                    return; //OFF-SCREEN 시 기존 purple 십자/화살표 미렌더 (의미 없는 위치)
+                    bool isOffScreen = (datum.DetectedOriginRow < 0 || datum.DetectedOriginRow >= imgH //260528 hbk Phase 36 UAT fix
+                                     || datum.DetectedOriginCol < 0 || datum.DetectedOriginCol >= imgW);
+                    if (isOffScreen) //260528 hbk Phase 36 D-36-10
+                    {
+                        DrawOriginFallback(window, 0.0, 0.0, imgH, imgW, datum.DetectedOriginRow, datum.DetectedOriginCol); //260528 hbk Phase 36 UAT fix — 이미지 중앙 기준 fallback
+                        return; //OFF-SCREEN 시 기존 purple 십자/화살표 미렌더 (의미 없는 위치)
+                    }
                 }
 
-                //260528 hbk Phase 36 UAT fix (CO-36-03) — 마커 크기를 표시 영역에 비례. 고정 14px 는 14208x10640 이미지에서 화면상 <1px 라 사실상 안 보임.
-                double viewExtent = System.Math.Max(partR2.D - partR1.D, partC2.D - partC1.D); //260528 hbk Phase 36 UAT fix
-                double markScale = viewExtent * 0.012; //260528 hbk Phase 36 UAT fix — 뷰 크기의 ~1.2% (줌 무관 가시성)
-                if (markScale < 7.0) markScale = 7.0; //260528 hbk Phase 36 UAT fix — 소형 이미지/고배율 하한
+                //260528 hbk Phase 36 UAT fix (CO-36-03) — 마커 크기를 이미지 크기의 ~1.2% 로 (줌 무관 가시성). 14px 고정은 14208px 이미지에서 화면상 <1px 라 안 보임. 크기 미상 시 14px(구 동작).
+                double markScale = haveImgSize ? System.Math.Max(imgW, imgH) * 0.012 : 14.0; //260528 hbk Phase 36 UAT fix
+                if (markScale < 7.0) markScale = 7.0; //260528 hbk Phase 36 UAT fix — 하한
 
                 //260503 hbk Phase 17 D-13 — purple 십자 (Phase 36: 크기 markScale 로 스케일)
                 HOperatorSet.SetColor(window, "purple");

@@ -724,6 +724,11 @@ namespace ReringProject.Halcon.Algorithms
                 // DetectedOrigin transient
                 config.DetectedOriginRow = curRow.D; //260527 hbk Phase 34 D-34-01
                 config.DetectedOriginCol = curCol.D; //260527 hbk Phase 34 D-34-01
+                //260528 hbk Phase 36 UAT fix (CO-36-03) — 검출 이미지 크기 저장 (RenderDatumFindResult 의 OFF-SCREEN/마커 스케일용). 동일 frame 가정이라 imageHorizontal 기준.
+                HTuple imgW36, imgH36; //260528 hbk Phase 36 UAT fix
+                imageHorizontal.GetImageSize(out imgW36, out imgH36); //260528 hbk Phase 36 UAT fix
+                config.DetectedImageWidth  = imgW36.D; //260528 hbk Phase 36 UAT fix
+                config.DetectedImageHeight = imgH36.D; //260528 hbk Phase 36 UAT fix
                 config.DetectedRefAngle  = curAngle; //260527 hbk Phase 34 D-34-01
                 config.DetectedRefAngle2 = vertPhiDetected; //260527 hbk Phase 34 D-34-01
                 int vertEdgeCount = 0; //260527 hbk Phase 34 D-34-01

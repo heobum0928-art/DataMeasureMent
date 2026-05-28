@@ -1,10 +1,27 @@
 # Milestones
 
-## v1.1 Quality + Workflow + Infrastructure (In progress)
+## v1.1 Quality + Workflow + Algorithm (Shipped: 2026-05-28)
 
-**Status:** in progress (시작 2026-05-04). Phase 18 signed_off, Phase 19 signed_off (2026-05-08).
+**Status:** Shipped 2026-05-28 (시작 2026-05-04, 24일). 17 phases 실행 (18~38 + inserts 23.1/34.1).
+**Coverage:** 19/28 요구사항 충족 + 9 v1.2 이연(WF-01/02, OUT-01~04, HW-01/02, QUAL-01) + 1 부분(ALG-01/CO-23-01).
+**Audit:** [v1.1-MILESTONE-AUDIT.md](v1.1-MILESTONE-AUDIT.md) — gaps_found(이연 확정 2026-05-28).
+**Known deferred items at close:** 41 (audit-open — debug 2 + UAT partial/unknown 5 + quick-task artifacts 22 + 기타; STATE.md `## Deferred Items` 참조).
 
-**Phase Map (11 phases, continue numbering from v1.0 last=17):**
+**Key accomplishments:**
+
+1. **코드 품질 정리** — 삼항/`??`/`?.` → if/else(QUAL-02), why-only 주석(QUAL-04), PropertyGrid 동적노출 일반화(QUAL-03)
+2. **메모리 이미지 버퍼 + 이미지 이중화** — 디스크 I/O 없는 검사별 메모리 상주(BUF-01/02) + Teaching/Inspection 이미지 경로 역할 분리(IMG-01/02)
+3. **측정 알고리즘 대거 확장** — E2/E3/E8/E9/E10/I9/I10/CompoundAngle/EdgeToLineDistance/ArcLineIntersect 등 + SOP 재정합(Phase 31/32) + FAI CircleDiameter↔Datum Circle 통합(Phase 28)
+4. **Datum DualImage 구조** — VerticalTwoHorizontal 듀얼 티칭 이미지 + Side 다중 Datum(4 DualImage / 8-image) 독립 검출 구조(Phase 34/34.1/36/37)
+5. **Side/Bottom InspectionSequence 마이그레이션** — Action_FAIMeasurement 통합(Phase 33/35)
+6. **v1.1 Carry-over Cleanup** — 측정타입/픽셀분해능/각도UI 정리 + 시작지연 계측(Phase 38), CO-38-01~04 → v1.2
+
+**Archives:**
+- Roadmap: [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
+- Requirements: [milestones/v1.1-REQUIREMENTS.md](milestones/v1.1-REQUIREMENTS.md)
+- Audit: [v1.1-MILESTONE-AUDIT.md](v1.1-MILESTONE-AUDIT.md)
+
+**Phase Map (executed):**
 
 - Phase 18: Carry-over 정리 (CO-01, CO-03, CO-04, CO-05, CO-06)
 - Phase 19: PropertyGrid 동적 노출 일반화 (QUAL-03, CO-02)

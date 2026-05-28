@@ -145,4 +145,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-28 — Phase 38 (v1.1 Carry-over Cleanup) 완료. v1.1 마지막 phase 종결 (정리 7건 중 #1/#5/#6/#10/#11/#12 적용, #3 v1.2 이연, CO-38-01~04 carry-over). v1.1 milestone 종결 준비 완료.*
+*Last updated: 2026-05-28 — **v1.1 Quality + Workflow + Algorithm SHIPPED** (17 phases, git tag v1.1). 충족 19/28, v1.2 이연 9(WF/OUT/HW/QUAL-01) + 부분 1(ALG-01). 아카이브: milestones/v1.1-ROADMAP.md · v1.1-REQUIREMENTS.md · v1.1-MILESTONE-AUDIT.md. 다음 = /gsd-new-milestone (v1.2 Hardware + Workflow/Output).*

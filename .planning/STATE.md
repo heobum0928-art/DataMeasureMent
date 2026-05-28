@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Quality + Workflow + Algorithm
-status: ready_to_plan
-stopped_at: Phase 38 context gathered
-last_updated: "2026-05-28T12:38:33.754Z"
-last_activity: 2026-05-28 -- Phase 38 execution started
+milestone: v1.2
+milestone_name: Hardware Integration + Workflow/Output
+status: milestone_complete
+stopped_at: v1.1 shipped 2026-05-28 — 다음 = /gsd-new-milestone (v1.2)
+last_updated: "2026-05-28T16:00:00.000Z"
+last_activity: 2026-05-28 -- v1.1 milestone shipped (Phase 38 종결 + audit + archive + tag)
 progress:
   total_phases: 18
   completed_phases: 16
@@ -293,6 +293,28 @@ Items acknowledged and deferred at v1.0 milestone close on 2026-05-04:
 | verification_gap | Phase 10 / 10-VERIFICATION-REPORT.md | human_needed |
 
 Note: Quick task slugs are git commits without paired `.planning/quick/` artifacts (commits exist in history). UAT gaps are partial sign-offs (pending=0, but not all scenarios PASS). Verification gaps are documented but unresolved at milestone close. All carried over to v1.1 scope (project_v1_1_scope.md).
+
+---
+
+Items acknowledged and deferred at **v1.1 milestone close on 2026-05-28** (audit-open: 41 items):
+
+| Category | Item | Status |
+|----------|------|--------|
+| requirement | WF-01/WF-02 (Phase 24 검사 E2E) | deferred → v1.2 |
+| requirement | OUT-01~04 (Phase 25 Export) | deferred → v1.2 |
+| requirement | QUAL-01 (헝가리안) | deferred → v1.2 |
+| requirement | HW-01/HW-02 (CXP) | deferred → v1.2 (장비 후) |
+| carry_over | CO-38-01 픽셀분해능 런타임 단일소스 | open → v1.2 |
+| carry_over | CO-38-02/03 시작지연 LoginManager/SequenceHandler | open → v1.2 |
+| carry_over | CO-38-04 실HW [STARTUP] 재측정 | open → v1.2 |
+| carry_over | CO-23-01 A1~A5 측정값 UI 표시 | open → v1.2 |
+| debug | manual-tools-locked-stuck | root_cause_identified |
+| debug | phase-19-datumconfig-regression | fix_applied_pending_uat |
+| uat_gap | Phase 23/33/35 | partial |
+| uat_gap | Phase 32/34 | unknown |
+| quick_task | 22 artifacts (260409~260526, missing 파일) | missing (commits in history) |
+
+Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task 22건은 페어 artifact 없는 과거 commit. UAT partial/unknown 은 후속 phase(34.1/35/36/37)에서 대부분 흡수됨. 전부 v1.2 로 이월.
 
 ### Roadmap Evolution
 

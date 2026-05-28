@@ -82,6 +82,17 @@ namespace ReringProject.Halcon.Algorithms
             config.EnsurePerRoiDefaults(); //260527 hbk Phase 34 D-34-01
             config.LastFindSucceeded = false; //260527 hbk Phase 34 D-34-01
 
+            //260528 hbk Phase 36 D-36-03 — SameFrame 가드: DualImage 두 입력은 동일 sensor frame 가정 (D-36-01: 동일 카메라 + 다른 조명/Z, D-36-02: 좌표 변환 0).
+            //260528 hbk Phase 36 D-36-03 — width/height 불일치 시 IntersectionLl 의 두 픽셀 좌표가 다른 평면이 되어 의미 없는 origin/angle 산출 → 즉시 차단.
+            HTuple wH, hH, wV, hV; //260528 hbk Phase 36 D-36-03
+            imageHorizontal.GetImageSize(out wH, out hH); //260528 hbk Phase 36 D-36-03
+            imageVertical.GetImageSize(out wV, out hV); //260528 hbk Phase 36 D-36-03
+            if (wH.I != wV.I || hH.I != hV.I) //260528 hbk Phase 36 D-36-03
+            {
+                error = "DualImage requires same-frame image pair: horizontal " + wH.I + "x" + hH.I + " vs vertical " + wV.I + "x" + hV.I; //260528 hbk Phase 36 D-36-03
+                return false; //260528 hbk Phase 36 D-36-03
+            }
+
             if (config.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) //260527 hbk Phase 34 D-34-02
             {
                 error = "Algorithm is not VerticalTwoHorizontalDualImage; use single-image TryFindDatum overload"; //260527 hbk Phase 34 D-34-02

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
-status: phase_partial_signed_off
-stopped_at: Phase 36 PARTIAL signed_off — 다음 = Side 4-datum/8-image 신규 phase (CO-36-06)
-last_updated: "2026-05-28T05:40:00.000Z"
-last_activity: 2026-05-28 -- Phase 36 PARTIAL signed_off
+status: unknown
+stopped_at: Completed 37-01-PLAN.md
+last_updated: "2026-05-28T07:13:14.288Z"
+last_activity: 2026-05-28
 progress:
-  total_phases: 16
+  total_phases: 17
   completed_phases: 14
-  total_plans: 61
-  completed_plans: 60
+  total_plans: 64
+  completed_plans: 61
   percent: 95
 ---
 
@@ -21,28 +21,31 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 36 PARTIAL signed_off → 다음 = Side 4-datum/8-image 다중 datum 신규 phase (CO-36-06)
+**Current focus:** Phase 37 — side-multi-datum-dualimage-2026-05-28
 
 ## Current Position
 
-Phase: 36 (datum-dualimage-coord-anchor-angle-validation) — PARTIAL SIGNED_OFF 2026-05-28
+Phase: 37 (side-multi-datum-dualimage-2026-05-28) — EXECUTING
+Plan: 2 of 3
 Plans: 4/4 코드 머지 완료 (01 SameFrame 가드 / 02 각도검증 / 03 시각화 / 04 UAT)
 빌드: msbuild Debug/x64 PASS, 신규 warning 0, guard 4파일 변경 0
 UAT: Test 1+2 PARTIAL / Test 3·4·6·7 PENDING(CO-36-05) / Test 5 N/A(OFF-SCREEN 기능 제거)
 
 UAT 중 시각화 ROOT CAUSE 발견·수정 (fec1e02):
+
   - "purple" 는 HALCON 무효 색상명 → SetColor 예외 → catch{} swallow → 검출 십자/텍스트/화살표 전체 silent 미표시
   - "slate blue" 로 교체 해소. (같은 파일 L865 "light green" 전례 동일 — [[feedback_halcon_setcolor_invalid_names]])
   - OFF-SCREEN/markScale/이미지크기(CO-36-02/03)는 오진이라 제거(36a4d28). 검출 십자는 teach 오버레이와 동일 고정크기 방식으로 단순화.
   - RenderDatumFindResult 를 LastTeachSucceeded 블록 밖으로 (df71e5c) — 검출 시각화가 teach 상태에 묶이던 결함 해소.
 
 Carry-over (open):
+
   - CO-36-01: PERPENDICULAR_TOLERANCE_DEG 하드코딩(10°, 임시완화 14d9bf1) → DatumConfig 사용자 필드화
   - CO-36-05: Test 2/3/4/6/7 사용자 시각 UAT 미수행 (slate blue 빌드 이후 확인)
   - CO-36-06: **Side 검사 = datum 4개, 각 datum 이 DualImage(2장) → 8장, 각각 별도 Shot, 측정은 또 다른 이미지.** 현재 구조 미지원 → 신규 phase (검사 실행 흐름 + 데이터모델 + UI 전반). 설계 결정 5종은 36-04-SUMMARY 참조.
   - CO-36-07: TryRunDatumPhase 다중 datum 전부-성공 강제(return false) + DualImage 판단 DatumConfigs[0] 한정 → CO-36-06 phase 에서 흡수.
 
-Last activity: 2026-05-28 -- Phase 36 PARTIAL signed_off
+Last activity: 2026-05-28
 
 ## Performance Metrics
 
@@ -118,6 +121,7 @@ Last activity: 2026-05-28 -- Phase 36 PARTIAL signed_off
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P07 | 20 | 5 tasks | 5 files |
 | Phase 32-sop-i9-i10-e2-e9-e10-e3 P08 | 25 | 3 tasks | 2 files |
 | Phase 34.1 P01 | 7 | 3 tasks | 3 files |
+| Phase 37 P01 | 6 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -212,6 +216,7 @@ Recent decisions affecting current work:
 - [Phase 34.1-01]: EImageSource enum 단일 신규 파일 + DatumConfig 변경 0 가드 유지 (D-34.1-07)
 - [Phase 34.1-01]: UpdateImageSourceBadge(EImageSource) 단일 헬퍼로 자동/수동 swap 3자 동시 전환 일원화 (D-34.1-15)
 - [Phase 34.1-01]: PublishDatumRoiCandidates 진입부 isDualImage Visibility 동기화 + 새 노드 진입 가로축 리셋 (D-34.1-08/09)
+- [Phase 37-01]: TryRunDatumPhase 두 오버로드 lenient 전환 (D-37-03 datum find 실패 = continue+log, 항상 true 부분성공 / D-37-04 2-image per-datum DualImage 판단 유지). 시그니처 무변경. Logging/ELogType using 추가. msbuild Debug/x64 PASS 0 new warning.
 
 ### Quick Tasks Completed
 
@@ -293,9 +298,9 @@ Note: Quick task slugs are git commits without paired `.planning/quick/` artifac
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 36 context gathered
-Resume file: --resume-file
+Last session: 2026-05-28T07:13:14.276Z
+Stopped at: Completed 37-01-PLAN.md
+Resume file: None
 Next action: 사용자가 7 Test 수행 → UAT.md 갱신 → 결과 보고 ("approved" / "partial" / "blocked"). 그 후 /gsd-execute-phase 34.1 재진입 또는 sign-off 수동 처리.
 
 **v1.1 Phase Map:**
@@ -315,4 +320,4 @@ Next action: 사용자가 7 Test 수행 → UAT.md 갱신 → 결과 보고 ("ap
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 36 (Datum DualImage 설계 보강 (신설 2026-05-28, Phase 34.1 CO-34.1-09 carry-over 종결)) — 4 plans — 2026-05-28T01:37:24.443Z
+**Planned Phase:** 37 (Side 다중 Datum (4 DualImage / 8-image) 검사 구조) — 3 plans — 2026-05-28T07:08:10.930Z

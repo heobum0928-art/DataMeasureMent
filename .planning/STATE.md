@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Quality + Workflow + Algorithm
 status: unknown
 stopped_at: Phase 38 context gathered
-last_updated: "2026-05-28T12:16:21.284Z"
-last_activity: 2026-05-28
+last_updated: "2026-05-28T12:38:33.754Z"
+last_activity: 2026-05-28 -- Phase 38 execution started
 progress:
   total_phases: 18
   completed_phases: 15
-  total_plans: 64
+  total_plans: 67
   completed_plans: 63
-  percent: 98
+  percent: 94
 ---
 
 # Project State
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** v1.1 종결 전략 진행 중 — Phase 36+37 signed_off. 다음 = Step 2 Phase 38 "v1.1 Carry-over Cleanup 일괄" 신설 (사용자 승인 대기)
+**Current focus:** Phase 38 — v1-1-carryover-cleanup-2026-05-28
 
 ## Current Position
 
-Phase: v1.1 종결 시퀀스 (Step 1 완료)
-Plan: Phase 38 Cleanup 신설 대기 (add-phase → discuss → plan → execute)
+Phase: 38 (v1-1-carryover-cleanup-2026-05-28) — EXECUTING
+Plan: 1 of 3
 Plans: 37-01 + 37-02 머지 완료 (lenient TryRunDatumPhase + per-datum loop). 37-03 Task 1 = 코드 변경 0 (기존 AddDatum/PropertyGrid 흐름이 4-datum DualImage 생성/티칭 지원 확인, D-37-07).
 빌드: msbuild Debug/x64 PASS, 신규 warning 0
 UAT: 37-UAT.md SIGNED_OFF (4/4 PASS, 2026-05-28). UAT 중 신규버그 2건 hotfix:
@@ -49,7 +49,7 @@ Carry-over (open):
   - CO-36-06: **Side 검사 = datum 4개, 각 datum 이 DualImage(2장) → 8장, 각각 별도 Shot, 측정은 또 다른 이미지.** 현재 구조 미지원 → 신규 phase (검사 실행 흐름 + 데이터모델 + UI 전반). 설계 결정 5종은 36-04-SUMMARY 참조.
   - CO-36-07: TryRunDatumPhase 다중 datum 전부-성공 강제(return false) + DualImage 판단 DatumConfigs[0] 한정 → CO-36-06 phase 에서 흡수.
 
-Last activity: 2026-05-28
+Last activity: 2026-05-28 -- Phase 38 execution started
 
 ## Performance Metrics
 
@@ -330,4 +330,4 @@ Next action: Phase 37 종결 (plans 3/3 머지 + UAT signed_off, CO-36-06/07 해
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 37 (Side 다중 Datum (4 DualImage / 8-image) 검사 구조) — 3 plans — 2026-05-28T07:08:10.930Z
+**Planned Phase:** 38 (v1.1 Carry-over Cleanup 일괄) — 3 plans — 2026-05-28T12:33:21.093Z

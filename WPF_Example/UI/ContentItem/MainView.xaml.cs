@@ -2401,15 +2401,49 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260424 hbk Phase 13 D-06 — 테스트 이미지 소스 선택 (현재 / Load / 취소)
-            HImage testImage = AskTestImageSource();
-            if (testImage == null) return; //260424 hbk Phase 13 D-06 — 사용자 취소
-
             //260424 hbk Phase 13 D-07/D-08 — DatumFindingService.TryFindDatum 호출 (Phase 4 Plan 01 L28 시그니처)
             var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
             HTuple transform;
-            string error;
-            bool ok = svc.TryFindDatum(testImage, datum, out transform, out error);
+            string error = null;
+            bool ok = false;
+
+            //260528 hbk Phase 34.1 CO-34.1-08 hotfix — DualImage 변형은 두 파일 직접 로드 + 2-image 오버로드 호출 (Phase 34 D-34-01/02 누락 site, BtnTestFindDatum_Click). Teach 와 동일 패턴.
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260528 hbk Phase 34.1 CO-34.1-08
+                string pathH = datum.TeachingImagePath; //260528 hbk Phase 34.1 CO-34.1-08
+                string pathV = datum.TeachingImagePath_Vertical; //260528 hbk Phase 34.1 CO-34.1-08
+                if (string.IsNullOrEmpty(pathH) || !System.IO.File.Exists(pathH)) { //260528 hbk Phase 34.1 CO-34.1-08
+                    CustomMessageBox.Show("Find 실패", "가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260528 hbk Phase 34.1 CO-34.1-08
+                    return; //260528 hbk Phase 34.1 CO-34.1-08
+                }
+                if (string.IsNullOrEmpty(pathV) || !System.IO.File.Exists(pathV)) { //260528 hbk Phase 34.1 CO-34.1-08
+                    CustomMessageBox.Show("Find 실패", "세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260528 hbk Phase 34.1 CO-34.1-08
+                    return; //260528 hbk Phase 34.1 CO-34.1-08
+                }
+                HImage imgH = null, imgV = null; //260528 hbk Phase 34.1 CO-34.1-08
+                try {
+                    try { imgH = new HImage(pathH); } //260528 hbk Phase 34.1 CO-34.1-08
+                    catch (Exception exH) { error = "가로축 이미지 로드 실패: " + exH.Message; ok = false; } //260528 hbk Phase 34.1 CO-34.1-08
+                    if (error == null) { //260528 hbk Phase 34.1 CO-34.1-08
+                        try { imgV = new HImage(pathV); } //260528 hbk Phase 34.1 CO-34.1-08
+                        catch (Exception exV) { error = "세로축 이미지 로드 실패: " + exV.Message; ok = false; } //260528 hbk Phase 34.1 CO-34.1-08
+                    }
+                    if (error == null) { //260528 hbk Phase 34.1 CO-34.1-08
+                        ok = svc.TryFindDatum(imgH, imgV, datum, out transform, out error); //260528 hbk Phase 34.1 CO-34.1-08 — 2-image 오버로드
+                    }
+                    else {
+                        HOperatorSet.HomMat2dIdentity(out transform); //260528 hbk Phase 34.1 CO-34.1-08 — 로드 실패 transform 초기화
+                    }
+                } finally {
+                    if (imgH != null) { try { imgH.Dispose(); } catch { } } //260528 hbk Phase 34.1 CO-34.1-08
+                    if (imgV != null) { try { imgV.Dispose(); } catch { } } //260528 hbk Phase 34.1 CO-34.1-08
+                }
+            }
+            else {
+                //260424 hbk Phase 13 D-06 — 테스트 이미지 소스 선택 (현재 / Load / 취소)
+                HImage testImage = AskTestImageSource();
+                if (testImage == null) return; //260424 hbk Phase 13 D-06 — 사용자 취소
+                ok = svc.TryFindDatum(testImage, datum, out transform, out error); //단일-이미지 오버로드 (회귀 0)
+            }
 
             //260503 hbk Phase 17 D-12/D-14 — label_drawHint / label_testFindResult inline 피드백 폐기, 성공/실패 모두 모달 정책 (성공 X / 실패 O)
             label_drawHint.Visibility = Visibility.Collapsed; //260503 hbk Phase 17 D-14

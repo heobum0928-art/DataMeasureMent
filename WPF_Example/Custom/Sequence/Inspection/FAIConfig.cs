@@ -106,6 +106,13 @@ namespace ReringProject.Sequence {
         [Browsable(false)] //260529 hbk Phase 39 WF-01 D-02
         public bool WasDatumSkipped { get; set; } //260529 hbk Phase 39 WF-01 D-02
 
+        //260529 hbk Phase 39.1-03 G4-01 — 검사 결과 overlay 저장. 노드 클릭 시 재 렌더용 (Sequence 동작 변경 0).
+        //  검사 시점에 Action_FAIMeasurement.EStep.Measure 가 per-FAI 누적 write-back. ParamBase INI 직렬화 회피 (transient runtime 결과).
+        [System.ComponentModel.Browsable(false)] //260529 hbk Phase 39.1-03 G4-01
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39.1-03 G4-01
+        [Newtonsoft.Json.JsonIgnore] //260529 hbk Phase 39.1-03 G4-01
+        public List<EdgeInspectionOverlay> LastOverlays { get; set; } = new List<EdgeInspectionOverlay>(); //260529 hbk Phase 39.1-03 G4-01
+
         //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
         //260526 hbk CO-31-01 — [Browsable(false)] 제거 + [Category] 추가로 PropertyGrid 노출 (DatumName/MeasurementName 과 일관성).
         //  기존 Btn_RenameFAI_Click 버튼은 그대로 작동 — 양쪽 모두 동일 setter 호출.

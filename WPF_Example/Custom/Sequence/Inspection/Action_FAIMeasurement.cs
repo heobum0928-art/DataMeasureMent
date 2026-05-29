@@ -171,6 +171,7 @@ namespace ReringProject.Sequence {
                             if (image != null) {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
+                                    var faiOverlays = new List<EdgeInspectionOverlay>(); //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
                                     foreach (var meas in fai.Measurements) {
                                         //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
                                         //  L119 Step=Grab 변경 안 함 (Phase 37 D-37-03 lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
@@ -259,6 +260,7 @@ namespace ReringProject.Sequence {
                                                 //260422 hbk FAI-DistLine 등은 suffix 미부여 — 청록 고정 (D-07)
                                             }
                                             overlayAcc.AddRange(measOverlays); //260422 hbk Phase 7: Shot 단위 누적 (D-04)
+                                            faiOverlays.AddRange(measOverlays); //260529 hbk Phase 39.1-03 G4-01 — per-FAI 누적 (노드 클릭 재현용)
                                         }
                                         if (!meas.LastJudgement) {
                                             faiAllPass = false;
@@ -278,8 +280,10 @@ namespace ReringProject.Sequence {
                                             if (m != null && m.LastSkipReason == "DATUM_FAIL") { wasSkip = true; break; } //260529 hbk Phase 39 WF-01 D-02
                                         }
                                         fai.WasDatumSkipped = wasSkip; //260529 hbk Phase 39 WF-01 D-02
+                                        fai.LastOverlays = faiOverlays; //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 저장 (노드 클릭 시 재현)
                                     } else {
                                         fai.ClearResult();
+                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01 — Measurements 0 케이스 명시적 클리어
                                     }
                                     if (!faiAllPass) allPass = false;
                                 }

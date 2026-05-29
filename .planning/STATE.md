@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: POC Workflow + Output + Carry-over + Protocol v2.7
-status: defining_requirements
-stopped_at: v1.2 milestone started 2026-05-29 — 다음 = /gsd-plan-phase 39 (WF-01/02)
-last_updated: "2026-05-29T00:00:00.000Z"
-last_activity: 2026-05-29 -- v1.2 milestone started (POC 6월 말 기준 5순위 우선순위 확정, Phase 39부터)
+milestone_name: Phases
+status: Defining requirements
+stopped_at: Phase 39 context gathered (10 decisions, 4 areas)
+last_updated: "2026-05-29T00:52:47.011Z"
+last_activity: 2026-05-29 — Milestone v1.2 started
 progress:
-  total_phases: 0
+  total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
-  percent: 0
 ---
 
 # Project State
@@ -31,6 +30,7 @@ Status: Defining requirements
 Last activity: 2026-05-29 — Milestone v1.2 started
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
+
   1. WF-01/02 (검사 워크플로우 E2E) + OUT-01~04 (결과 분석/Export) — POC 시연 필수
   2. CO-38-01~04 (픽셀분해능/시작지연/실HW STARTUP) + CO-23-01 (A1~A5 UI) — v1.1 carry-over
   3. HW-01/02 (CXP 그래버 RAP 4G 4C12) — HW 도착 시 합류, 미도착 시 Simul 검증
@@ -38,6 +38,7 @@ Last activity: 2026-05-29 — Milestone v1.2 started
   5. PROTO-01 (제어 프로토콜 v2.7) — POC 시연 이후, 제어팀(김민우 선임) 동기화 권장
 
 **v1.1 종결 컨텍스트 (참고):**
+
 - v1.1 shipped 2026-05-28 (git tag v1.1, 17 phases, 18~38 + 23.1/34.1)
 - v1.1 충족 19/28, 이연 9 + 부분 1 — 위 v1.2 우선순위에 흡수
 - v1.1 종결 시 Carry-over (open): CO-38-01~04, CO-23-01, CO-36-01 (PERPENDICULAR_TOLERANCE_DEG 하드코딩), CO-36-05 (Test 2/3/4/6/7 시각 UAT 미수행)
@@ -322,9 +323,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-05-29
-Stopped at: v1.2 milestone started — PROJECT.md/STATE.md 갱신, REQUIREMENTS/ROADMAP 작성 진행
-Resume file: —
+Last session: --stopped-at
+Stopped at: Phase 39 context gathered (10 decisions, 4 areas)
+Resume file: --resume-file
 Next action: /gsd-plan-phase 39 (WF-01/02 검사 워크플로우 E2E)
 
 **v1.1 Phase Map:**

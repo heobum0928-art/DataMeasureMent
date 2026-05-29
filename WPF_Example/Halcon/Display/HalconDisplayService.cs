@@ -887,6 +887,27 @@ namespace ReringProject.Halcon.Display
                 //  기존엔 검출 십자가 LastTeachSucceeded==true 일 때만 그려져, 레시피 로드/swap 후(teach 미수행) Test Find 결과가 표시 안 되는 버그.
                 //  검출 십자는 자체 LastFindSucceeded 게이트(메서드 내부)만 따르면 충분. z-stack last 유지.
                 RenderDatumFindResult(window, datum); //260528 hbk Phase 36 UAT fix
+
+                //260529 hbk Phase 39 WF-02 D-04 — Datum 검출 실패 시 'DETECT FAIL' 적색 라벨 렌더.
+                //  분기: IsConfigured && !LastFindSucceeded (티칭은 했지만 런타임 Find 실패 = 검출 실패 상태).
+                //  위치: RefOrigin 십자 위쪽 (-40 row 오프셋).
+                //  색상: "red" 표준명 (memory feedback_halcon_setcolor_invalid_names — "light red" 같은 비표준명 catch swallow 로 silent 미표시 1순위 의심).
+                //  z-stack: RenderDatumFindResult 직후 — 검출 십자 위에 라벨 표시.
+                //  try/catch swallow: 기존 RenderDatumOverlay catch 컨벤션 그대로 (Suppress display errors).
+                if (datum.IsConfigured && !datum.LastFindSucceeded) //260529 hbk Phase 39 WF-02 D-04
+                {
+                    try //260529 hbk Phase 39 WF-02 D-04
+                    {
+                        EnsureFontInitialized(window); //260529 hbk Phase 39 WF-02 D-04 — DrawRoiLabelAt analog 패턴
+                        HOperatorSet.SetColor(window, "red"); //260529 hbk Phase 39 WF-02 D-04 — 표준 색상명 (memory feedback_halcon_setcolor_invalid_names)
+                        HOperatorSet.SetTposition(window, datum.RefOriginRow - 40, datum.RefOriginCol + 5); //260529 hbk Phase 39 WF-02 D-04
+                        HOperatorSet.WriteString(window, "DETECT FAIL"); //260529 hbk Phase 39 WF-02 D-04 — 영문 라벨 (HALCON 폰트 한글 미지원 회피)
+                    }
+                    catch //260529 hbk Phase 39 WF-02 D-04
+                    {
+                        // Suppress display errors (기존 RenderDatumOverlay catch 컨벤션) //260529 hbk Phase 39 WF-02 D-04
+                    }
+                }
             }
             catch
             {

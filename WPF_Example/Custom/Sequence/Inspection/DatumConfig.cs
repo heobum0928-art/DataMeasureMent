@@ -409,8 +409,33 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public HTuple CurrentTransform { get; set; }
 
+        //260529 hbk Phase 39 WF-02 D-04 — INPC 발화로 NodeViewModel 가 Datum 노드 'DETECT FAIL' 배지 갱신.
+        //  기존 auto-property (Phase 4) → backing field 패턴 (FAIConfig.FAIName analog L106-115).
+        //  setter 동일 시그니처 유지 → Phase 37 D-37-03 (InspectionSequence.TryRunDatumPhase L164, TryRunSingleDatum L211/L213) 호출 회귀 0.
+        //  setter 가 LastFindSucceeded + 파생 HasDetectFail 둘 다 RaisePropertyChanged 발화 → UI computed property 자동 갱신.
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public bool LastFindSucceeded { get; set; }
+        private bool _lastFindSucceeded; //260529 hbk Phase 39 WF-02 D-04
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public bool LastFindSucceeded //260529 hbk Phase 39 WF-02 D-04
+        {
+            get { return _lastFindSucceeded; } //260529 hbk Phase 39 WF-02 D-04
+            set //260529 hbk Phase 39 WF-02 D-04
+            {
+                if (_lastFindSucceeded == value) return; //260529 hbk Phase 39 WF-02 D-04 — idempotent 가드
+                _lastFindSucceeded = value; //260529 hbk Phase 39 WF-02 D-04
+                RaisePropertyChanged(nameof(LastFindSucceeded)); //260529 hbk Phase 39 WF-02 D-04
+                RaisePropertyChanged(nameof(HasDetectFail)); //260529 hbk Phase 39 WF-02 D-04 — computed prop 변경 통지
+            }
+        }
+
+        //260529 hbk Phase 39 WF-02 D-04 — Datum 노드 UI 'DETECT FAIL' 배지 노출용 computed 프로퍼티.
+        //  XAML DataTemplate 가 본 프로퍼티 binding 으로 적색 dot 표시 (XAML 구현은 별도 plan/UAT 결정).
+        //  IsConfigured = false 이면 (티칭 미수행) 배지 안 보임. IsConfigured && !LastFindSucceeded 이면 배지 표시.
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 WF-02 D-04
+        public bool HasDetectFail //260529 hbk Phase 39 WF-02 D-04
+        {
+            get { return IsConfigured && !_lastFindSucceeded; } //260529 hbk Phase 39 WF-02 D-04
+        }
 
         //260423 hbk Phase 11 D-11 — 검출 라인 오버레이용 휘발성 필드 (TryTeachDatum 성공 시 DatumFindingService가 기록)
         [PropertyTools.DataAnnotations.Browsable(false)]

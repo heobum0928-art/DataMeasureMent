@@ -225,6 +225,13 @@ namespace ReringProject.UI {
                         newName = string.IsNullOrEmpty(m.MeasurementName) ? m.TypeName : m.MeasurementName;
                     }
                     break;
+                //260529 hbk Phase 39 WF-02 D-04 — Datum 검출 실패 배지 갱신 (Tree 노드 헤더 + XAML DataTemplate 바인딩 진입점).
+                //  Node.Name 갱신 아님 — 별도 RaisePropertyChanged("HasDetectFail") 만 발화.
+                //  XAML 측은 Node 의 DataContext 가 NodeViewModel 인 상태에서 HasDetectFail 바인딩 가능 — 단, 본 plan 은
+                //  데이터 진입점까지만 책임 (XAML DataTemplate 적색 dot 디테일은 UAT 결정).
+                case nameof(DatumConfig.LastFindSucceeded): //260529 hbk Phase 39 WF-02 D-04
+                    RaisePropertyChanged("HasDetectFail"); //260529 hbk Phase 39 WF-02 D-04 — UI 측 NodeViewModel binding 갱신 신호
+                    return; //260529 hbk Phase 39 WF-02 D-04 — Node.Name 갱신 분기 미진입
             }
             if (newName != null && this.Node != null) {
                 this.Node.Name = newName;

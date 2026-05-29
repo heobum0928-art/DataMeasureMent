@@ -94,7 +94,7 @@ namespace ReringProject.UI {
                 if (_editingDatum != null) //260505 hbk Phase 18 CO-04
                 { //260505 hbk Phase 18 CO-04
                     ClearDatumRoiFields(_editingDatum, roiId); //260505 hbk Phase 18 CO-04
-                    halconViewer.SetDatumOverlay(_editingDatum, false); //260505 hbk Phase 18 CO-04
+                    halconViewer.SetDatumOverlay(_editingDatum, false, false); //260505 hbk Phase 18 CO-04 //260529 hbk Phase 39.1-04 G4-03 — 모드 해제 → isEditMode=false 명시
                     PublishDatumRoiCandidates(_editingDatum); //260505 hbk Phase 18 CO-04
                 } //260505 hbk Phase 18 CO-04
             }; //260505 hbk Phase 18 CO-04
@@ -187,6 +187,18 @@ namespace ReringProject.UI {
             ShotConfig shot = fai.Owner as ShotConfig; //260521 hbk Phase 32 UAT
             DisplayShotImage(shot); //260521 hbk Phase 32 UAT
         } //260521 hbk Phase 32 UAT
+
+        //260529 hbk Phase 39.1-04 G4-03 — W3 helper (intra-class): 11 SetDatumOverlay 호출처 변수 shadowing 회피.
+        //  btn_teachDatum.IsChecked == true → Edit 모드 (Datum CTH 시 fitting 원 + ROI 사각형 핸들 동시 표시).
+        private bool GetDatumEditMode() { //260529 hbk Phase 39.1-04 G4-03
+            return btn_teachDatum != null && btn_teachDatum.IsChecked == true; //260529 hbk Phase 39.1-04 G4-03
+        }
+
+        //260529 hbk Phase 39.1-04 G4-03 — W4 wrapper (extra-class): InspectionListView 등 외부 UserControl 에서 btn_teachDatum 직접 접근 회피.
+        //  encapsulation + access modifier 안전. InspectionListView 의 2 호출처에서 mParentWindow.mainView.IsDatumTeachActive 사용.
+        public bool IsDatumTeachActive { //260529 hbk Phase 39.1-04 G4-03
+            get { return btn_teachDatum != null && btn_teachDatum.IsChecked == true; } //260529 hbk Phase 39.1-04 G4-03
+        }
 
         //260529 hbk Phase 39.1-03 G4-01/G4-02 — 검사 후 FAI/Measurement 노드 클릭 시 측정 결과 + 이미지 + overlay 재현 통합 진입점.
         //  Sequence 동작 변경 0: 측정 재 호출 없이 fai.LastOverlays (Action_FAIMeasurement EStep.Measure 누적) 재 렌더.
@@ -865,7 +877,7 @@ namespace ReringProject.UI {
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
                     //260509 hbk Phase 20 — chained ?. expanded
                     if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-                    halconViewer.SetDatumOverlay(datum, true);
+                    halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
                     PublishDatumRoiCandidates(datum); //260425 hbk Phase 13 D-A — 잔존 ROI 만 후보로 남도록 갱신
                 }
                 return;
@@ -964,7 +976,7 @@ namespace ReringProject.UI {
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
             //260509 hbk Phase 20 — chained ?. expanded
             if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-            halconViewer.SetDatumOverlay(datum, true);
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
             //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
             //  Phase 14-01 D-03 의 Background defer 패턴은 자동 재티칭이 fire 되어야만 의미 있음.
             //  본 phase 에서 자동 재티칭 자체를 제거하므로 PublishDatumRoiCandidates / UpdateDatumRefCoordsLabel 만 inline 호출.
@@ -996,7 +1008,7 @@ namespace ReringProject.UI {
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
             //260509 hbk Phase 20 — chained ?. expanded
             if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-            halconViewer.SetDatumOverlay(datum, true);
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
 
             //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
             //260429 hbk Phase 16 D-14 — ROI resize 후 LastTeachSucceeded 변경되지 않음 (stale 시각화 의도적)
@@ -1173,7 +1185,7 @@ namespace ReringProject.UI {
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171"));
                 label_drawHint.Visibility = Visibility.Visible;
             }
-            halconViewer.SetDatumOverlay(datum, true);
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
             Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit EXIT: LastTeachSucceeded=" + datum.LastTeachSucceeded);
         }
 
@@ -1288,7 +1300,7 @@ namespace ReringProject.UI {
             }
             UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1 D-34.1-15 — 3자 동시 갱신
             //260528 hbk Phase 36 D-36-09 — Test Find 결과 양쪽 캔버스에 일관 렌더. swap 직후 RenderDatumFindResult 가 LastFindSucceeded gate 안에서 자동 재실행 (chain: SetDatumOverlay → RenderDatumOverlay → RenderDatumFindResult).
-            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true); //260528 hbk Phase 36 D-36-09
+            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true, GetDatumEditMode()); //260528 hbk Phase 36 D-36-09 //260529 hbk Phase 39.1-04 G4-03
         }
 
         //260527 hbk Phase 34.1 D-34.1-02 — 세로축 토글 버튼 Click. 세로축 이미지로 swap + 배지/ROI 갱신.
@@ -1304,7 +1316,7 @@ namespace ReringProject.UI {
             }
             UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15
             //260528 hbk Phase 36 D-36-09 — Vertical 토글 시에도 동일 chain 트리거 (SameFrame 가정 하 양쪽 캔버스 동일 좌표).
-            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true); //260528 hbk Phase 36 D-36-09
+            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true, GetDatumEditMode()); //260528 hbk Phase 36 D-36-09 //260529 hbk Phase 39.1-04 G4-03
         }
 
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
@@ -2347,7 +2359,7 @@ namespace ReringProject.UI {
             //260509 hbk Phase 20 — chained ?. expanded
             if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
             //260424 hbk Phase 12 Gap-3 — 캔버스 오버레이도 새 좌표로 갱신 (Datum ROI Rect/Circle 재렌더)
-            halconViewer.SetDatumOverlay(_editingDatum, true);
+            halconViewer.SetDatumOverlay(_editingDatum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
 
             AdvanceDatumTeachStep();
         }
@@ -2365,7 +2377,7 @@ namespace ReringProject.UI {
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
             //260509 hbk Phase 20 — chained ?. expanded
             if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-            halconViewer.SetDatumOverlay(_editingDatum, true);
+            halconViewer.SetDatumOverlay(_editingDatum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
 
             AdvanceDatumTeachStep();
         }
@@ -2442,7 +2454,7 @@ namespace ReringProject.UI {
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80")); //260424 hbk Phase 12 success green
                 label_drawHint.Visibility = Visibility.Visible;
                 //260424 hbk Phase 12 — 오버레이 갱신 (LastTeachSucceeded=true → HalconDisplayService CircleTwoHorizontal/Horizontal A/B 분기 렌더)
-                halconViewer.SetDatumOverlay(_editingDatum, true);
+                halconViewer.SetDatumOverlay(_editingDatum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
                 //260425 hbk Phase 13 D-01..D-04 — teach 완료 시점에 후보 갱신
                 PublishDatumRoiCandidates(_editingDatum);
                 //260425 hbk Phase 13 D-VIZ-06 — teach 성공 시 좌표 라벨 갱신 (PublishDatumRoiCandidates 가 이미 호출하나 명시 보장)
@@ -2532,7 +2544,7 @@ namespace ReringProject.UI {
             label_testFindResult.Visibility = Visibility.Collapsed; //260503 hbk Phase 17 D-14 — inline 표시 사용 안 함
             if (ok) {
                 //260503 hbk Phase 17 D-14 — 성공: 시각화 자동 (TryFindDatum 이 DetectedOrigin* + LastFindSucceeded write-back → SetDatumOverlay → RenderDatumOverlay 가 RenderDatumFindResult 자동 호출 chain)
-                halconViewer.SetDatumOverlay(datum, true); //260503 hbk Phase 17 D-14 — purple cross + 좌표 + 화살표 (HalconDisplayService.RenderDatumFindResult)
+                halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03 //260503 hbk Phase 17 D-14 — purple cross + 좌표 + 화살표 (HalconDisplayService.RenderDatumFindResult)
                 //260503 hbk Phase 17 D-14 — PropertyGrid 메트릭 갱신 (DetectedEdgeCount/FitRMSE/AngleDeg ReadOnly 표시)
                 try { datum.RaisePropertyChanged(string.Empty); } catch { } //260503 hbk Phase 17 D-14
                 if (mParentWindow != null && mParentWindow.inspectionList != null) {

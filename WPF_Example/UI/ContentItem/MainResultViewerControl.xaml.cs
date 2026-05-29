@@ -598,6 +598,8 @@ namespace ReringProject.UI
         //260410 hbk Phase 4 gap fix: Datum overlay state
         private DatumConfig _datumConfig;
         private bool _datumSelected;
+        //260529 hbk Phase 39.1-04 G4-03 — Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
+        private bool _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03
 
         //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 렌더 대상 (SetDatumFindResultOverlay 로 주입)
         //  null 이 아니면 Render() 가 _displayService.RenderDatumFindResult 호출.
@@ -605,10 +607,12 @@ namespace ReringProject.UI
         private DatumConfig _datumFindResultOverlay;
 
         //260410 hbk Phase 4 gap fix: set Datum for overlay rendering
-        public void SetDatumOverlay(DatumConfig datum, bool isSelected)
+        //260529 hbk Phase 39.1-04 G4-03 — isEditMode 옵션 인자 추가 (기본 false). MainView.GetDatumEditMode() / IsDatumTeachActive 기반 전달.
+        public void SetDatumOverlay(DatumConfig datum, bool isSelected, bool isEditMode = false) //260529 hbk Phase 39.1-04 G4-03
         {
             _datumConfig = datum;
             _datumSelected = isSelected;
+            _datumIsEditMode = isEditMode; //260529 hbk Phase 39.1-04 G4-03
             Render();
         }
 
@@ -617,6 +621,7 @@ namespace ReringProject.UI
         {
             _datumConfig = null;
             _datumSelected = false;
+            _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03 — Edit 모드 리셋
         }
 
         //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 오버레이 set
@@ -736,9 +741,10 @@ namespace ReringProject.UI
             }
 
             //260410 hbk Phase 4 gap fix: render Datum Line ROI overlay
+            //260529 hbk Phase 39.1-04 G4-03 — _datumIsEditMode 전달 (CTH Edit 모드 분리)
             if (_datumConfig != null)
             {
-                _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected);
+                _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected, _datumIsEditMode); //260529 hbk Phase 39.1-04 G4-03
             }
 
             //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 주황 십자 오버레이 (teach 경로와 독립, 동시 표시 허용)

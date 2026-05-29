@@ -132,7 +132,8 @@ namespace ReringProject.UI {
                     // Step 5: 자동 재검출 없음 — Phase 16 D-13/D-14 보존 (TryTriggerDatumAutoReteach 호출 없음)
                     // Step 6: 캔버스 시각화 갱신 (RenderDatumOverlay 가 LastTeachSucceeded=false 분기에서 검출 도형 미렌더)
                     if (mParentWindow != null && mParentWindow.mainView != null && mParentWindow.mainView.halconViewer != null) {
-                        mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true);
+                        //260529 hbk Phase 39.1-04 G4-03 — W4: IsDatumTeachActive 프로퍼티 wrapper 사용 (btn_teachDatum 직접 접근 회피, encapsulation)
+                        mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true, mParentWindow.mainView.IsDatumTeachActive); //260529 hbk Phase 39.1-04 G4-03
                     }
                     //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A — AlgorithmType 변경 후 swap UI Visibility 갱신 (DualImage ↔ 1-image 전환 양방향).
                     //  PublishDatumRoiCandidates 재호출 → isDualImage 재계산 → 토글/배지 Visibility + ROI subset 갱신.
@@ -456,7 +457,8 @@ namespace ReringProject.UI {
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
                         //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
                         if (itemParam is DatumConfig datumCfg) {
-                            mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true);
+                            //260529 hbk Phase 39.1-04 G4-03 — W4: IsDatumTeachActive 프로퍼티 wrapper (btn_teachDatum 직접 접근 회피)
+                            mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true, mParentWindow.mainView.IsDatumTeachActive); //260529 hbk Phase 39.1-04 G4-03
                             //260426 hbk Phase 13 D-A1 — 이미 티칭된 Datum 도 selection 즉시 ROI hit-test 가능하도록 후보 publish
                             mParentWindow.mainView.PublishDatumRoiCandidates(datumCfg);
                             //260527 hbk Phase 35 — CO-33-02 hotfix: Datum 노드 선택 시 TeachingImagePath 표시 (Shot/Measurement 와 일관성; stale canvas 차단)

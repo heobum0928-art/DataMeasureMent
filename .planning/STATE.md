@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: Phase 39.1 planned — Ready to execute (4 plan / 3 wave)
-stopped_at: Phase 39.1 plans verified (8/8 iter1 issue 반영, 0 blocker)
-last_updated: "2026-05-29T12:00:00.000Z"
-last_activity: 2026-05-29 — Phase 39.1 plans 작성 + 검증 완료 (commit 75f5ffc + 650eb88)
+status: executing
+stopped_at: Phase 39.1 context gathered (4 plan / 2 wave / 4 항목 UAT)
+last_updated: "2026-05-29T09:20:54.175Z"
+last_activity: 2026-05-29 -- Phase 39.1 execution started
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
-  total_plans: 4
+  total_plans: 8
   completed_plans: 4
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 39 — inspection-workflow-e2e-2026-05-29
+**Current focus:** Phase 39.1 — inspection-urgent-fixes-2026-05-29
 
 ## Current Position
 
-Phase: 39 (inspection-workflow-e2e-2026-05-29) — SIGNED_OFF
-Plan: 4/4 complete (39-01/02/03/04)
-Status: Phase 39 signed_off — 다음 Phase 40 (OUT-01/02)
-Last activity: 2026-05-29 — Phase 39 signed_off, 5/5 UAT PASS + 3 hotfix (CO-39-01/02/03)
+Phase: 39.1 (inspection-urgent-fixes-2026-05-29) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 39.1
+Last activity: 2026-05-29 -- Phase 39.1 execution started
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

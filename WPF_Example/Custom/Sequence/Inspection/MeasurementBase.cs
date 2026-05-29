@@ -51,6 +51,12 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public bool LastHasResult { get; set; } //260517 hbk CO-23-01
 
+        //260529 hbk Phase 39 WF-01 D-02 — measurement 단위 skip reason. null/"" = 정상 또는 측정 NG, "DATUM_FAIL" = datum 검출 실패로 skip.
+        //  string 채택 근거: enum 신설 시 INI/직렬화 영향 검토 필요. string 은 ParamBase reflection 의 case "String" 경로 자동 호환.
+        //  D-10 (v2.6 순수 유지) — enum 신설 안 함. UI 'DETECT FAIL' 라벨 분기 + Excel export (Phase 40/41) 용.
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 WF-01 D-02
+        public string LastSkipReason { get; set; } //260529 hbk Phase 39 WF-01 D-02
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } //260413 hbk MeasurementFactory 키
 
@@ -92,6 +98,7 @@ namespace ReringProject.Sequence
             LastMeasuredValue = 0;
             LastJudgement = false;
             LastHasResult = false; //260517 hbk CO-23-01: 미측정 상태 복원
+            LastSkipReason = null; //260529 hbk Phase 39 WF-01 D-02 — datum-skip subtype 리셋
         }
     }
 }

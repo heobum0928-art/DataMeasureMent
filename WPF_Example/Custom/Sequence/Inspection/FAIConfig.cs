@@ -100,6 +100,12 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public bool IsPass { get; set; }
 
+        //260529 hbk Phase 39 WF-01 D-02 — datum-skip subtype 플래그. true 이면 FAI 가 측정 미실행(datum 검출 실패 원인).
+        //  AddResponse 가 EVisionResultType.NotExist ('N') 매핑에 사용 (Plan 02 wire 매핑). INI 미직렬화 ([Browsable(false)] runtime 전용).
+        //  ClearResult / Action_FAIMeasurement EStep.Init ShotParam.ClearAllResults 에서 false 로 리셋.
+        [Browsable(false)] //260529 hbk Phase 39 WF-01 D-02
+        public bool WasDatumSkipped { get; set; } //260529 hbk Phase 39 WF-01 D-02
+
         //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
         //260526 hbk CO-31-01 — [Browsable(false)] 제거 + [Category] 추가로 PropertyGrid 노출 (DatumName/MeasurementName 과 일관성).
         //  기존 Btn_RenameFAI_Click 버튼은 그대로 작동 — 양쪽 모두 동일 setter 호출.
@@ -126,6 +132,7 @@ namespace ReringProject.Sequence {
         public void ClearResult() {
             MeasuredValue = 0;
             IsPass = false;
+            WasDatumSkipped = false; //260529 hbk Phase 39 WF-01 D-02
         }
 
         //260408 hbk ToRoiDefinition() 추가

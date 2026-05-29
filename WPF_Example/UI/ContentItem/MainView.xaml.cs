@@ -204,16 +204,37 @@ namespace ReringProject.UI {
         //  Sequence 동작 변경 0: 측정 재 호출 없이 fai.LastOverlays (Action_FAIMeasurement EStep.Measure 누적) 재 렌더.
         //  전 FAI 타입 공통 동작 (D-G4-02 — CircleDiameter / EdgeToLineDistance / PointToLineDistance / EdgePairDistance / EdgeToLineAngle / ArcEdgeDistance).
         public void RenderInspectionResultForNode(ParamBase param) { //260529 hbk Phase 39.1-03 G4-01
-            if (param == null) return; //260529 hbk Phase 39.1-03 G4-01
+            if (param == null) { halconViewer.ClearFaiCirclePreview(); return; } //260529 hbk Phase 39.1-03 G4-01 //260529 hbk CO-39.1-01 rev2
             if (param is MeasurementBase meas) { //260529 hbk Phase 39.1-03 G4-01
                 DisplayMeasurementImage(meas); //260529 hbk Phase 39.1-03 G4-01
                 HighlightSelectedRoi(meas); //260529 hbk Phase 39.1-03 G4-01
                 RenderStoredOverlaysForMeasurement(meas); //260529 hbk Phase 39.1-03 G4-01
+                //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Measurement 선택 시 Strip preview 활성. 폴라 경로 (Circle_RadialDirection != "") 한정.
+                UpdateFaiCirclePreview(meas);
             } else if (param is FAIConfig fai) { //260529 hbk Phase 39.1-03 G4-01
                 DisplayFAIImage(fai); //260529 hbk Phase 39.1-03 G4-01
                 HighlightSelectedRoi(fai); //260529 hbk Phase 39.1-03 G4-01
                 RenderStoredOverlaysForFai(fai); //260529 hbk Phase 39.1-03 G4-01
+                halconViewer.ClearFaiCirclePreview(); //260529 hbk CO-39.1-01 rev2 — FAI 노드 자체는 strip preview 없음 (Measurement 노드만)
             }
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI Strip preview 활성/클리어. 폴라 경로 (Circle_RadialDirection in {Inward, Outward}) 한정.
+        //  fit 경로 (Circle_RadialDirection == "") 는 strip 미사용 → preview 클리어.
+        //  PropertyGrid 편집 후 strip 갱신: 사용자가 노드를 다시 클릭하면 RenderInspectionResultForNode 가 재 호출 → preview 재 셋. (live INPC 미구현 — 추후 phase)
+        private void UpdateFaiCirclePreview(MeasurementBase meas)
+        {
+            var cd = meas as CircleDiameterMeasurement;
+            if (cd == null || string.IsNullOrEmpty(cd.Circle_RadialDirection) || cd.Circle_Radius <= 0)
+            {
+                halconViewer.ClearFaiCirclePreview();
+                return;
+            }
+            //  datumTransform = identity (UI 시점에 datum transform 미해상 — preview 좌표가 FAI 원본 좌표 기준).
+            //  실제 검사 시 transform 적용되어 strip 위치가 약간 달라질 수 있음 (acceptable for preview).
+            halconViewer.SetFaiCirclePreview(cd.Circle_Row, cd.Circle_Col, cd.Circle_Radius,
+                cd.Circle_PolarStepDeg, cd.Circle_RectL1Ratio, cd.Circle_RectL2Ratio,
+                null /* identity transform — preview */);
         }
 
         //260529 hbk Phase 39.1-03 G4-01 — FAI 노드 클릭 시 fai.LastOverlays 전체 재 렌더.

@@ -604,6 +604,32 @@ namespace ReringProject.Halcon.Display
                 datum.CircleStripSuccesses);
         }
 
+        //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview (Edit 모드 = FAI 노드 선택 시).
+        //  사용자 요구: "테스트 눌렀을때는 원만표시 edit 할때는 사각형 표시" — strip 사각형은 검사 overlay 가 아닌 preview 경로.
+        //  successes=null → 회색 strip (parameter preview, 검출 데이터 없음).
+        //  Polar 경로 (Circle_RadialDirection != "") 한정 호출 — fit 경로는 strip 미사용.
+        public void RenderFaiCircleStripPreview(HWindow window,
+            double centerR, double centerC, double radius,
+            double stepDeg, double l1Ratio, double l2Ratio,
+            HTuple datumTransform)
+        {
+            if (window == null) return;
+            if (radius <= 0) return;
+            //260529 hbk CO-39.1-01 rev2 — datum transform 적용 (TryFindCircleByPolarSampling 내부 변환 미러)
+            double tR = centerR, tC = centerC;
+            if (datumTransform != null && datumTransform.Length > 0)
+            {
+                try
+                {
+                    HTuple rT, cT;
+                    HOperatorSet.AffineTransPoint2d(datumTransform, centerR, centerC, out rT, out cT);
+                    tR = rT.D; tC = cT.D;
+                }
+                catch { /* identity fallback */ }
+            }
+            RenderCircleStrips(window, tR, tC, radius, stepDeg, l1Ratio, l2Ratio, null /* preview = gray */);
+        }
+
         //260519 hbk Phase 31 CO-23.1-02 — primitive 파라미터 strip 렌더러 (Datum CircleConfig / FAI CircleCenterDistance 공용).
         //  successes != null 이면 per-strip green/red, null 이면 전부 gray (정적 preview — 파라미터 수정 시 즉시 반영).
         //  strip 생성 식은 VisionAlgorithmService.TryFindCircleByPolarSampling canonical 미러 (-sin/+cos, 화면 CCW).

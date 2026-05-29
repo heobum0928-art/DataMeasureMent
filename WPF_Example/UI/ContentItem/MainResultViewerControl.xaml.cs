@@ -601,6 +601,13 @@ namespace ReringProject.UI
         //260529 hbk Phase 39.1-04 G4-03 — Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
         private bool _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03
 
+        //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview state (Edit 모드 = FAI 노드 선택 시).
+        //  검사 overlay 와 독립: 검사 결과는 LastOverlays 에 (원 + 지름 라인), preview 는 노드 선택 시 RenderNow 직접 호출.
+        private double _faiCirclePreviewRow, _faiCirclePreviewCol, _faiCirclePreviewRadius; //260529 hbk CO-39.1-01 rev2
+        private double _faiCirclePreviewStepDeg, _faiCirclePreviewL1Ratio, _faiCirclePreviewL2Ratio; //260529 hbk CO-39.1-01 rev2
+        private HTuple _faiCirclePreviewTransform; //260529 hbk CO-39.1-01 rev2 — datum transform (identity 가능)
+        private bool _faiCirclePreviewActive = false; //260529 hbk CO-39.1-01 rev2
+
         //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 렌더 대상 (SetDatumFindResultOverlay 로 주입)
         //  null 이 아니면 Render() 가 _displayService.RenderDatumFindResult 호출.
         //  teach 경로 (_datumConfig + _datumSelected) 와 독립 — 동시 표시 허용 (주황 십자 + 빨간 교점 십자 공존).
@@ -622,6 +629,32 @@ namespace ReringProject.UI
             _datumConfig = null;
             _datumSelected = false;
             _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03 — Edit 모드 리셋
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview set (Edit 모드).
+        //  호출자: MainView.RenderInspectionResultForNode 가 param=CircleDiameterMeasurement 일 때 호출.
+        //  successes=null gray strip 표시. Render() 호출로 즉시 반영.
+        public void SetFaiCirclePreview(double row, double col, double radius,
+            double stepDeg, double l1Ratio, double l2Ratio,
+            HTuple datumTransform)
+        {
+            _faiCirclePreviewRow = row;
+            _faiCirclePreviewCol = col;
+            _faiCirclePreviewRadius = radius;
+            _faiCirclePreviewStepDeg = stepDeg;
+            _faiCirclePreviewL1Ratio = l1Ratio;
+            _faiCirclePreviewL2Ratio = l2Ratio;
+            _faiCirclePreviewTransform = datumTransform;
+            _faiCirclePreviewActive = true;
+            Render();
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI Circle preview 클리어 (다른 노드 선택 / Datum 노드 등).
+        public void ClearFaiCirclePreview()
+        {
+            _faiCirclePreviewActive = false;
+            _faiCirclePreviewTransform = null;
+            Render();
         }
 
         //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 오버레이 set
@@ -745,6 +778,16 @@ namespace ReringProject.UI
             if (_datumConfig != null)
             {
                 _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected, _datumIsEditMode); //260529 hbk Phase 39.1-04 G4-03
+            }
+
+            //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview (Edit 모드 = FAI 노드 선택 시).
+            //  검사 결과 (LastOverlays 의 원 + 지름) 가 그려진 후 위에 strip 사각형 preview 를 덧붙임.
+            if (_faiCirclePreviewActive && _faiCirclePreviewRadius > 0)
+            {
+                _displayService.RenderFaiCircleStripPreview(ViewerHost.HalconWindow,
+                    _faiCirclePreviewRow, _faiCirclePreviewCol, _faiCirclePreviewRadius,
+                    _faiCirclePreviewStepDeg, _faiCirclePreviewL1Ratio, _faiCirclePreviewL2Ratio,
+                    _faiCirclePreviewTransform); //260529 hbk CO-39.1-01 rev2
             }
 
             //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 주황 십자 오버레이 (teach 경로와 독립, 동시 표시 허용)

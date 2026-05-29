@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: Phase 39.1 SIGNED_OFF (4/4 UAT PASS, CO-39.1-01 hotfix 2 rev)
-stopped_at: Phase 39.2 discuss 완료 — CONTEXT 6 결정 lock (commit f903a9d). 다음 /gsd-plan-phase 39.2.
-last_updated: "2026-05-29T12:00:00.000Z"
-last_activity: 2026-05-30 — Phase 39.2 discuss 완료 (CONTEXT 6 결정 lock + 12 deferred ideas). 다음 plan-phase.
+status: SIGNED_OFF. 다음 Phase 39.2 신설 (긴급 추가건2, ROADMAP 갱신 완료).
+stopped_at: Phase 39.2 discuss 완료 — CONTEXT.md commit f903a9d (D-G1~G4, 6 결정 lock)
+last_updated: "2026-05-29T22:15:15.623Z"
+last_activity: "2026-05-30 — Phase 39.2 seed (4 항목: Bottom E5 DualImage FAI + I10 close-point variant + Tree 정렬 + Tree 아이콘). 다음 = /gsd-discuss-phase 39.2."
 progress:
-  total_phases: 2
-  completed_phases: 1
-  total_plans: 8
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 13
   completed_plans: 8
-  percent: 100
+  percent: 62
 ---
 
 # Project State
@@ -352,4 +352,4 @@ Next action: /gsd-plan-phase 39.2 (CONTEXT 의 D-G1~G4 6 lock 기반 plan 생성
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 39 (검사 워크플로우 E2E) — 4 plans — 2026-05-29T01:27:56.514Z
+**Planned Phase:** 39.2 (urgent-additions-2-2026-05-30) — 5 plans — 2026-05-29T22:15:15.614Z

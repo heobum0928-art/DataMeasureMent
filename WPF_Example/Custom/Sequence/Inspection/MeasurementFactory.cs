@@ -43,6 +43,8 @@ namespace ReringProject.Sequence
                     return new CompoundCenterBDistanceMeasurement(owner); //260519 hbk Phase 31 D-11
                 case "CompoundShortAxisDistance": //260523 hbk Phase 32 — E3 단축 환원
                     return new CompoundShortAxisDistanceMeasurement(owner); //260523 hbk Phase 32 — E3 단축 환원
+                case "DualImageEdgeDistance": //260530 hbk Phase 39.2 D-G1 — Bottom E5
+                    return new DualImageEdgeDistanceMeasurement(owner); //260530 hbk Phase 39.2 D-G1
                 default:
                     return null;
             }
@@ -63,7 +65,8 @@ namespace ReringProject.Sequence
                 "CompoundAngle", //260519 hbk Phase 31 D-11 E2
                 "CompoundCenterCDistance", //260519 hbk Phase 31 D-11 E9
                 "CompoundCenterBDistance", //260519 hbk Phase 31 D-11 E10
-                "CompoundShortAxisDistance" //260523 hbk Phase 32 — E3 단축 환원
+                "CompoundShortAxisDistance", //260523 hbk Phase 32 — E3 단축 환원
+                "DualImageEdgeDistance" //260530 hbk Phase 39.2 D-G1 — Bottom E5
             };
         }
     }

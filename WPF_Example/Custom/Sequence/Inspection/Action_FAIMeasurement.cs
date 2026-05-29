@@ -88,11 +88,13 @@ namespace ReringProject.Sequence {
                                 try {
                                     if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) { //260528 hbk Phase 37 D-37-02 — per-datum
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' DualImage 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
+                                        parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                         continue; //260528 hbk Phase 37 D-37-03 — datum skip, abort 안 함
                                     }
                                     string derr; //260528 hbk Phase 37
                                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { //260528 hbk Phase 37 D-37-05
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
+                                        parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                     }
                                 } finally {
                                     if (imgH != null) { try { imgH.Dispose(); } catch { } } //260528 hbk Phase 37
@@ -102,12 +104,14 @@ namespace ReringProject.Sequence {
                                 HImage img = GrabOrLoadDatumImage(datum); //260528 hbk Phase 37 D-37-02 — per-datum 오버로드
                                 if (img == null) { //260528 hbk Phase 37
                                     Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 이미지 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
+                                    parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                     continue; //260528 hbk Phase 37
                                 }
                                 try {
                                     string derr; //260528 hbk Phase 37
                                     if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { //260528 hbk Phase 37 D-37-05
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
+                                        parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                     }
                                 } finally {
                                     img.Dispose(); //260528 hbk Phase 37
@@ -162,6 +166,19 @@ namespace ReringProject.Sequence {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
                                     foreach (var meas in fai.Measurements) {
+                                        //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
+                                        //  L119 Step=Grab 변경 안 함 (Phase 37 D-37-03 lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
+                                        //  빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
+                                        if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef)) //260529 hbk Phase 39 WF-01 D-01
+                                        {
+                                            meas.ClearResult(); //260529 hbk Phase 39 WF-01 D-01 — runtime 결과 클리어
+                                            meas.LastSkipReason = "DATUM_FAIL"; //260529 hbk Phase 39 WF-01 D-02 — UI 'DETECT FAIL' 라벨 + Excel export 분기 신호
+                                            meas.LastJudgement = false; //260529 hbk Phase 39 WF-01 D-01 — faiAllPass=false 누적 (skip 도 NG 강도)
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' skipped — datum '" + (meas.DatumRef ?? "") + "' 검출 실패 (D-01)"); //260529 hbk Phase 39 WF-01 D-01
+                                            faiAllPass = false; //260529 hbk Phase 39 WF-01 D-01 — 외부 if(!meas.LastJudgement) 와 의미 동일이지만 명시
+                                            measuredCount++; //260529 hbk Phase 39 WF-01 D-01 — measuredCount 도 증가 (시도 회수 통계)
+                                            continue; //260529 hbk Phase 39 WF-01 D-01 — 다음 measurement 진행 (TryExecute 호출 안 함)
+                                        }
                                         HTuple transform;
                                         if (parentSeq2 == null || !parentSeq2.TryGetDatumTransform(meas.DatumRef, out transform)) {
                                             //260413 hbk Fixture 미존재 또는 미지정 DatumRef → identity fallback
@@ -247,6 +264,14 @@ namespace ReringProject.Sequence {
                                     if (fai.Measurements.Count > 0) {
                                         fai.IsPass = faiAllPass;
                                         fai.MeasuredValue = fai.Measurements[0].LastMeasuredValue;
+                                        //260529 hbk Phase 39 WF-01 D-02 — fai 하위 measurement 중 1건이라도 DATUM_FAIL 이면 fai 도 datum-skip 마크.
+                                        //  Plan 02 AddResponse 가 anyDatumSkip 누적용으로 사용 (cycle = NotExist 분기). System.Linq 도입 회피 — for-loop.
+                                        bool wasSkip = false; //260529 hbk Phase 39 WF-01 D-02
+                                        foreach (var m in fai.Measurements) //260529 hbk Phase 39 WF-01 D-02
+                                        {
+                                            if (m != null && m.LastSkipReason == "DATUM_FAIL") { wasSkip = true; break; } //260529 hbk Phase 39 WF-01 D-02
+                                        }
+                                        fai.WasDatumSkipped = wasSkip; //260529 hbk Phase 39 WF-01 D-02
                                     } else {
                                         fai.ClearResult();
                                     }

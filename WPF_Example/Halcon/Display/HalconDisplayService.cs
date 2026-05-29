@@ -680,7 +680,8 @@ namespace ReringProject.Halcon.Display
 
         //260409 hbk Phase 4: render Datum Line ROI overlays on canvas (D-12)
         /// <summary>Renders Datum Line1/Line2 ROI rectangles and reference origin cross on HWindow.</summary>
-        public void RenderDatumOverlay(HWindow window, DatumConfig datum, bool isSelected)
+        //260529 hbk Phase 39.1-04 G4-03/G4-05 — Datum CTH Edit 모드 분리: isEditMode 옵션 인자 추가. 기본값 false 로 기존 호출자 호환.
+        public void RenderDatumOverlay(HWindow window, DatumConfig datum, bool isSelected, bool isEditMode = false) //260529 hbk Phase 39.1-04 G4-03/G4-05
         {
             if (datum == null) return;
 
@@ -702,6 +703,13 @@ namespace ReringProject.Halcon.Display
             {
                 HOperatorSet.SetColor(window, color);
                 HOperatorSet.SetLineWidth(window, lineWidth);
+
+                //260529 hbk Phase 39.1-04 G4-05 — CTH 평소 모드 (LastTeachSucceeded + !isEditMode) 시 Horizontal_A/B + Circle ROI 사각형 핸들 hide.
+                //  fitting 원 + DetectedOrigin 십자는 LastTeachSucceeded 블록 + RefOrigin 블록에서 별도 그림 — 본 가드 영향 없음.
+                //  TwoLineIntersect / VerticalTwoHorizontal 등 다른 algorithm 에는 영향 0 (CircleTwoHorizontal 한정).
+                bool cthHideRois = (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal) //260529 hbk Phase 39.1-04 G4-05
+                                && datum.LastTeachSucceeded //260529 hbk Phase 39.1-04 G4-05
+                                && !isEditMode; //260529 hbk Phase 39.1-04 G4-05
 
                 //260428 hbk W4-A 후속 — RenderDatumOverlay 슬롯 분기 수정
                 //  Phase 14-03 W4-A 에서 VerticalTwoHorizontal 의 수직 검색 ROI 를 Line1_* → Vertical_* 슬롯으로 이동했으나
@@ -752,8 +760,10 @@ namespace ReringProject.Halcon.Display
                 }
 
                 //260424 hbk Phase 12 D-10 — Circle ROI 검색 영역 (CircleTwoHorizontal 일 때만 렌더, Line1/Line2 와 동일 색)
+                //260529 hbk Phase 39.1-04 G4-05 — cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Circle ROI + Strip 시각화 hide
                 if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
-                    && datum.CircleROI_Radius > 0)
+                    && datum.CircleROI_Radius > 0
+                    && !cthHideRois) //260529 hbk Phase 39.1-04 G4-05
                 {
                     HOperatorSet.SetColor(window, color);
                     HOperatorSet.SetLineWidth(window, lineWidth);
@@ -771,7 +781,9 @@ namespace ReringProject.Halcon.Display
                 }
 
                 //260424 hbk Phase 12 D-11 — Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
-                if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect)
+                //260529 hbk Phase 39.1-04 G4-05 — cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Horizontal_A/B hide. VTH 는 cthHideRois=false → 영향 0.
+                if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect
+                    && !cthHideRois) //260529 hbk Phase 39.1-04 G4-05
                 {
                     HOperatorSet.SetColor(window, color);
                     HOperatorSet.SetLineWidth(window, lineWidth);

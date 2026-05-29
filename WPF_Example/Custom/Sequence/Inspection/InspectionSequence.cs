@@ -53,6 +53,9 @@ namespace ReringProject.Sequence {
         //260413 hbk Phase 6: 런타임 transform 캐시 (D-09)
         private readonly Dictionary<string, HTuple> _datumTransforms = new Dictionary<string, HTuple>();
 
+        //260529 hbk Phase 39 WF-01 D-01 — datum 검출 실패 datum 이름 집합 (per-FAI gate 신호). _datumTransforms 와 동일 lifecycle.
+        private readonly HashSet<string> _failedDatums = new HashSet<string>(); //260529 hbk Phase 39 WF-01 D-01
+
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
             pDevs = SystemHandler.Handle.Devices;
             Context = new InspectionSequenceContext(this);
@@ -191,6 +194,21 @@ namespace ReringProject.Sequence {
         //260528 hbk Phase 37 D-37-05 — DatumPhase loop 시작 전 1회 호출 (per-datum 누적 전 초기화)
         public void ClearDatumTransforms() {
             _datumTransforms.Clear();
+            _failedDatums.Clear(); //260529 hbk Phase 39 WF-01 D-01 — _datumTransforms 와 동일 lifecycle
+        }
+
+        //260529 hbk Phase 39 WF-01 D-01 — 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.
+        //  null/empty 가드: PATTERNS.md 옵션 A 분석. _failedDatums 단일 set 에 idempotent add.
+        public void MarkDatumFailed(string datumName) //260529 hbk Phase 39 WF-01 D-01
+        {
+            if (!string.IsNullOrEmpty(datumName)) _failedDatums.Add(datumName); //260529 hbk Phase 39 WF-01 D-01
+        }
+
+        //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 조회. Measurement.DatumRef 가 실패 datum 이름과 일치하면 true.
+        //  빈 DatumRef = 무보정 의도이므로 게이트 무관 (false 반환 — TryGetDatumTransform identity fallback 경로로 진행).
+        public bool IsDatumFailed(string datumRef) //260529 hbk Phase 39 WF-01 D-01
+        {
+            return !string.IsNullOrEmpty(datumRef) && _failedDatums.Contains(datumRef); //260529 hbk Phase 39 WF-01 D-01
         }
 
         //260528 hbk Phase 37 D-37-05 — datum 1개 검출 후 _datumTransforms 누적 저장 (Clear 안 함). 실패 시 false 반환하되 호출부는 abort 안 함 (lenient).

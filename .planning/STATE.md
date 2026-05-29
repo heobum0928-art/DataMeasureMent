@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: Hardware Integration + Workflow/Output
-status: milestone_complete
-stopped_at: v1.1 shipped 2026-05-28 — 다음 = /gsd-new-milestone (v1.2)
-last_updated: "2026-05-28T16:00:00.000Z"
-last_activity: 2026-05-28 -- v1.1 milestone shipped (Phase 38 종결 + audit + archive + tag)
+milestone_name: POC Workflow + Output + Carry-over + Protocol v2.7
+status: defining_requirements
+stopped_at: v1.2 milestone started 2026-05-29 — 다음 = /gsd-plan-phase 39 (WF-01/02)
+last_updated: "2026-05-29T00:00:00.000Z"
+last_activity: 2026-05-29 -- v1.2 milestone started (POC 6월 말 기준 5순위 우선순위 확정, Phase 39부터)
 progress:
-  total_phases: 18
-  completed_phases: 16
-  total_plans: 67
-  completed_plans: 63
-  percent: 89
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,35 +21,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 38 — v1-1-carryover-cleanup-2026-05-28
+**Current focus:** v1.2 milestone defining requirements (다음 Phase 39 = WF-01/02)
 
 ## Current Position
 
-Phase: 999.1
-Plan: Not started
-Plans: 37-01 + 37-02 머지 완료 (lenient TryRunDatumPhase + per-datum loop). 37-03 Task 1 = 코드 변경 0 (기존 AddDatum/PropertyGrid 흐름이 4-datum DualImage 생성/티칭 지원 확인, D-37-07).
-빌드: msbuild Debug/x64 PASS, 신규 warning 0
-UAT: 37-UAT.md SIGNED_OFF (4/4 PASS, 2026-05-28). UAT 중 신규버그 2건 hotfix:
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-29 — Milestone v1.2 started
 
-  - 신규버그 A (1c11c35): Measurement 노드 이미지/ROI 해석을 FAI 이름 round-trip(FindFAIByName) → 측정 객체 참조(FindFAIContainingMeasurement, ReferenceEquals). 원인: 여러 Shot 의 FAI 이름 동일(기본 FAI_0) 시 첫 Shot 의 FAI 반환 → Shot2 측정 선택 시 Shot1 이미지 표시. HighlightSelectedRoi anchorFai 도 함께 수정.
-  - 신규버그 B (c6576e5): FindFAIContainingMeasurement 가 RecipeManager.Shots(동적 FAI 단일 소스) 우선 탐색, pSeq fallback. 원인: AddShotToSequence 가 새 Shot 을 RecipeManager 에만 추가 → 라이브 Action(pSeq) 지연 동기화 → 세션 중 새 Shot 측정을 못 찾아 이전 Shot 이미지/ROI 잔존(재시작 후엔 정상).
-  - CO-36-06 / CO-36-07 (Side 4-datum × DualImage 8-image 구조) 종결.
+**v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
+  1. WF-01/02 (검사 워크플로우 E2E) + OUT-01~04 (결과 분석/Export) — POC 시연 필수
+  2. CO-38-01~04 (픽셀분해능/시작지연/실HW STARTUP) + CO-23-01 (A1~A5 UI) — v1.1 carry-over
+  3. HW-01/02 (CXP 그래버 RAP 4G 4C12) — HW 도착 시 합류, 미도착 시 Simul 검증
+  4. QUAL-01 (헝가리안 표기법 전체 리팩토링) — 시간 여유 시
+  5. PROTO-01 (제어 프로토콜 v2.7) — POC 시연 이후, 제어팀(김민우 선임) 동기화 권장
 
-UAT 중 시각화 ROOT CAUSE 발견·수정 (fec1e02):
-
-  - "purple" 는 HALCON 무효 색상명 → SetColor 예외 → catch{} swallow → 검출 십자/텍스트/화살표 전체 silent 미표시
-  - "slate blue" 로 교체 해소. (같은 파일 L865 "light green" 전례 동일 — [[feedback_halcon_setcolor_invalid_names]])
-  - OFF-SCREEN/markScale/이미지크기(CO-36-02/03)는 오진이라 제거(36a4d28). 검출 십자는 teach 오버레이와 동일 고정크기 방식으로 단순화.
-  - RenderDatumFindResult 를 LastTeachSucceeded 블록 밖으로 (df71e5c) — 검출 시각화가 teach 상태에 묶이던 결함 해소.
-
-Carry-over (open):
-
-  - CO-36-01: PERPENDICULAR_TOLERANCE_DEG 하드코딩(10°, 임시완화 14d9bf1) → DatumConfig 사용자 필드화
-  - CO-36-05: Test 2/3/4/6/7 사용자 시각 UAT 미수행 (slate blue 빌드 이후 확인)
-  - CO-36-06: **Side 검사 = datum 4개, 각 datum 이 DualImage(2장) → 8장, 각각 별도 Shot, 측정은 또 다른 이미지.** 현재 구조 미지원 → 신규 phase (검사 실행 흐름 + 데이터모델 + UI 전반). 설계 결정 5종은 36-04-SUMMARY 참조.
-  - CO-36-07: TryRunDatumPhase 다중 datum 전부-성공 강제(return false) + DualImage 판단 DatumConfigs[0] 한정 → CO-36-06 phase 에서 흡수.
-
-Last activity: 2026-05-28
+**v1.1 종결 컨텍스트 (참고):**
+- v1.1 shipped 2026-05-28 (git tag v1.1, 17 phases, 18~38 + 23.1/34.1)
+- v1.1 충족 19/28, 이연 9 + 부분 1 — 위 v1.2 우선순위에 흡수
+- v1.1 종결 시 Carry-over (open): CO-38-01~04, CO-23-01, CO-36-01 (PERPENDICULAR_TOLERANCE_DEG 하드코딩), CO-36-05 (Test 2/3/4/6/7 시각 UAT 미수행)
 
 ## Performance Metrics
 
@@ -331,10 +322,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 38 context gathered
-Resume file: --resume-file
-Next action: Phase 37 종결 (plans 3/3 머지 + UAT signed_off, CO-36-06/07 해소). 후속 phase 또는 carry-over 검토.
+Last session: 2026-05-29
+Stopped at: v1.2 milestone started — PROJECT.md/STATE.md 갱신, REQUIREMENTS/ROADMAP 작성 진행
+Resume file: —
+Next action: /gsd-plan-phase 39 (WF-01/02 검사 워크플로우 E2E)
 
 **v1.1 Phase Map:**
 

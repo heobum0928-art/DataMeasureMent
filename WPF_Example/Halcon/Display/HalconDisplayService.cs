@@ -901,11 +901,16 @@ namespace ReringProject.Halcon.Display
                     {
                         EnsureFontInitialized(window); //260529 hbk Phase 39 WF-02 D-04 — DrawRoiLabelAt analog 패턴
                         HOperatorSet.SetColor(window, "red"); //260529 hbk Phase 39 WF-02 D-04 — 표준 색상명 (memory feedback_halcon_setcolor_invalid_names)
-                        //260529 hbk Phase 39 hotfix CO-39-02 — 좌표 fallback: RefOrigin 이 0 (티칭 안 한 datum) 이면 화면 좌상단 (50, 50). 음수 좌표 회피.
-                        double labelRow = (datum.RefOriginRow > 50) ? (datum.RefOriginRow - 40) : 50.0; //260529 hbk Phase 39 hotfix CO-39-02
-                        double labelCol = (datum.RefOriginCol > 0) ? (datum.RefOriginCol + 5) : 50.0; //260529 hbk Phase 39 hotfix CO-39-02
-                        HOperatorSet.SetTposition(window, labelRow, labelCol); //260529 hbk Phase 39 hotfix CO-39-02 — fallback 적용 좌표
-                        HOperatorSet.WriteString(window, "DETECT FAIL"); //260529 hbk Phase 39 WF-02 D-04 — 영문 라벨 (HALCON 폰트 한글 미지원 회피)
+                        //260529 hbk Phase 39 hotfix CO-39-03 — 사용자 요청: RefOrigin 위 → 이미지 오른쪽 상단 (GetPart 로 현재 표시 영역 좌표 얻기).
+                        //  datum 이름 hash 기반 row stagger 로 여러 datum 동시 실패 시 라벨 겹침 회피 (6단계 25px 간격).
+                        //  라벨 텍스트에 datum 이름 포함 → 겹쳐도 식별 가능 + 사용자가 어느 datum 실패인지 즉시 인지.
+                        HTuple partRow1, partCol1, partRow2, partCol2; //260529 hbk Phase 39 hotfix CO-39-03
+                        HOperatorSet.GetPart(window, out partRow1, out partCol1, out partRow2, out partCol2); //260529 hbk Phase 39 hotfix CO-39-03
+                        int hashStagger = System.Math.Abs(((datum.DatumName ?? "").GetHashCode()) % 6) * 25; //260529 hbk Phase 39 hotfix CO-39-03 — 0/25/50/75/100/125 중 하나
+                        double labelRow = (double)partRow1.D + 20.0 + hashStagger; //260529 hbk Phase 39 hotfix CO-39-03 — 상단 20px + stagger
+                        double labelCol = (double)partCol2.D - 280.0; //260529 hbk Phase 39 hotfix CO-39-03 — 오른쪽 가장자리에서 280px 안쪽 (라벨 길이 고려)
+                        HOperatorSet.SetTposition(window, labelRow, labelCol); //260529 hbk Phase 39 hotfix CO-39-03 — 우상단 좌표
+                        HOperatorSet.WriteString(window, "DETECT FAIL: " + (datum.DatumName ?? "Datum")); //260529 hbk Phase 39 hotfix CO-39-03 — datum 이름 포함
                     }
                     catch //260529 hbk Phase 39 WF-02 D-04
                     {

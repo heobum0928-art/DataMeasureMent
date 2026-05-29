@@ -514,13 +514,9 @@ namespace ReringProject.UI {
                             }
                         }
                         if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
-                        //260521 hbk Phase 32 UAT — Measurement 노드 선택 시 소유 Shot 이미지 표시 (이미지 회귀 결함 수정)
-                        //260527 hbk Phase 35 — Measurement 노드 = 측정 단계 = SHOT 이미지 표시 (Datum 이미지 아님; Phase 22 IMG-02 dual-image 분리 구조)
-                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas)
-                            mParentWindow.mainView.DisplayMeasurementImage(meas); //260521 hbk Phase 32 UAT
-                        //260518 hbk #6 — 선택 Measurement 노드의 ROI 캔버스 하이라이트 + 명칭 라벨
-                        if (mParentWindow != null && mParentWindow.mainView != null)
-                            mParentWindow.mainView.HighlightSelectedRoi(itemParam as ParamBase);
+                        //260529 hbk Phase 39.1-03 G4-01 — DisplayMeasurementImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화 (Phase 32 UAT / 35 / 18 #6 동작 보존).
+                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas) //260529 hbk Phase 39.1-03 G4-01
+                            mParentWindow.mainView.RenderInspectionResultForNode(meas); //260529 hbk Phase 39.1-03 G4-01
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;
@@ -528,7 +524,8 @@ namespace ReringProject.UI {
                         button_renameFAI.IsEnabled = true;
                         if (_inspectionVm != null && itemParam is FAIConfig faiConfig) {
                             _inspectionVm.OnFAISelected(faiConfig);
-                            mParentWindow.mainView.DisplayFAIImage(faiConfig);
+                            //260529 hbk Phase 39.1-03 G4-01 — DisplayFAIImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화.
+                            mParentWindow.mainView.RenderInspectionResultForNode(faiConfig); //260529 hbk Phase 39.1-03 G4-01
                             //260508 hbk Phase 19 fix — ICustomTypeDescriptor 추가 후 PropertyGrid binding stale 방지 (Phase 16 D-09 패턴 적용)
                             //  Datum 클릭 force rebind 가 SelectedObject binding 을 끊어 → FAI 전환 시 자동 갱신 안 됨 → 명시적 재할당 필요.
                             if (ParamEditor != null) { //260508 hbk Phase 19 fix
@@ -541,9 +538,7 @@ namespace ReringProject.UI {
                                 }
                             }
                         }
-                        //260518 hbk #6 — 선택 FAI 노드의 ROI 캔버스 하이라이트 + 명칭 라벨
-                        if (mParentWindow != null && mParentWindow.mainView != null)
-                            mParentWindow.mainView.HighlightSelectedRoi(itemParam as ParamBase);
+                        //260529 hbk Phase 39.1-03 G4-01 — HighlightSelectedRoi 가 RenderInspectionResultForNode 안에 통합 → 별도 호출 제거 (FAIConfig=null 일 때 무동작 — 회귀 0)
                     }
                     else if (item.NodeType == ENodeType.Action) {
                         button_addFAI.IsEnabled = true;

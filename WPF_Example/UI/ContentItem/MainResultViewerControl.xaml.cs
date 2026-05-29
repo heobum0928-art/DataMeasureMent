@@ -265,6 +265,19 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260529 hbk Phase 39.1-03 G4-01 — overlay 만 갱신 (rois/selectedRoiId/messages 보존). 노드 클릭 시 fai.LastOverlays 재 렌더 용.
+        //  HalconViewerControl.SetInspectionOverlays (REPLACE 의미: Clear + AddRange) 와 동일 패턴.
+        //  HighlightSelectedRoi 직후에 호출되어 _selectedRoiId 와 _rois 를 보존해야 함 (UpdateDisplayState 는 _rois 도 Clear 함 → 부적합).
+        public void SetInspectionOverlays(IEnumerable<EdgeInspectionOverlay> overlays) //260529 hbk Phase 39.1-03 G4-01
+        {
+            _inspectionOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01
+            if (overlays != null) //260529 hbk Phase 39.1-03 G4-01
+            {
+                _inspectionOverlays.AddRange(overlays.Select(overlay => overlay.Clone())); //260529 hbk Phase 39.1-03 G4-01
+            }
+            Render(); //260529 hbk Phase 39.1-03 G4-01
+        }
+
         public void FitImage()
         {
             if (!_isWindowInitialized || CurrentImage == null)

@@ -188,6 +188,43 @@ namespace ReringProject.UI {
             DisplayShotImage(shot); //260521 hbk Phase 32 UAT
         } //260521 hbk Phase 32 UAT
 
+        //260529 hbk Phase 39.1-03 G4-01/G4-02 — 검사 후 FAI/Measurement 노드 클릭 시 측정 결과 + 이미지 + overlay 재현 통합 진입점.
+        //  Sequence 동작 변경 0: 측정 재 호출 없이 fai.LastOverlays (Action_FAIMeasurement EStep.Measure 누적) 재 렌더.
+        //  전 FAI 타입 공통 동작 (D-G4-02 — CircleDiameter / EdgeToLineDistance / PointToLineDistance / EdgePairDistance / EdgeToLineAngle / ArcEdgeDistance).
+        public void RenderInspectionResultForNode(ParamBase param) { //260529 hbk Phase 39.1-03 G4-01
+            if (param == null) return; //260529 hbk Phase 39.1-03 G4-01
+            if (param is MeasurementBase meas) { //260529 hbk Phase 39.1-03 G4-01
+                DisplayMeasurementImage(meas); //260529 hbk Phase 39.1-03 G4-01
+                HighlightSelectedRoi(meas); //260529 hbk Phase 39.1-03 G4-01
+                RenderStoredOverlaysForMeasurement(meas); //260529 hbk Phase 39.1-03 G4-01
+            } else if (param is FAIConfig fai) { //260529 hbk Phase 39.1-03 G4-01
+                DisplayFAIImage(fai); //260529 hbk Phase 39.1-03 G4-01
+                HighlightSelectedRoi(fai); //260529 hbk Phase 39.1-03 G4-01
+                RenderStoredOverlaysForFai(fai); //260529 hbk Phase 39.1-03 G4-01
+            }
+        }
+
+        //260529 hbk Phase 39.1-03 G4-01 — FAI 노드 클릭 시 fai.LastOverlays 전체 재 렌더.
+        //  W2 (260529) 확인: HalconViewerControl.SetInspectionOverlays 는 REPLACE 의미 (Clear + AddRange).
+        //  null/빈 케이스에 빈 List 호출 → prior overlay 안전 클리어.
+        private void RenderStoredOverlaysForFai(FAIConfig fai) { //260529 hbk Phase 39.1-03 G4-01
+            if (fai == null || fai.LastOverlays == null || fai.LastOverlays.Count == 0) { //260529 hbk Phase 39.1-03 G4-01
+                halconViewer.SetInspectionOverlays(new System.Collections.Generic.List<ReringProject.Halcon.Models.EdgeInspectionOverlay>()); //260529 hbk Phase 39.1-03 G4-01
+                return; //260529 hbk Phase 39.1-03 G4-01
+            }
+            halconViewer.SetInspectionOverlays(fai.LastOverlays); //260529 hbk Phase 39.1-03 G4-01
+        }
+
+        //260529 hbk Phase 39.1-03 G4-01 — Measurement 노드 클릭 시 소유 FAI 의 LastOverlays 재 렌더 (D-G4-02 전 타입 공통, 타입별 분기 없음).
+        private void RenderStoredOverlaysForMeasurement(MeasurementBase meas) { //260529 hbk Phase 39.1-03 G4-01
+            if (meas == null) { //260529 hbk Phase 39.1-03 G4-01
+                halconViewer.SetInspectionOverlays(new System.Collections.Generic.List<ReringProject.Halcon.Models.EdgeInspectionOverlay>()); //260529 hbk Phase 39.1-03 G4-01
+                return; //260529 hbk Phase 39.1-03 G4-01
+            }
+            FAIConfig fai = FindFAIContainingMeasurement(meas); //260528 hbk Phase 37 hotfix A/B — 객체 참조 round-trip 회피
+            RenderStoredOverlaysForFai(fai); //260529 hbk Phase 39.1-03 G4-01
+        }
+
         /// <summary>Binds DataGrid to the InspectionViewModel's MeasurementResults collection.</summary>
         //260417 hbk Phase 6 Plan 04: FAIResults → MeasurementResults 바인딩 (D-21)
         public void SetFAIResultSource(InspectionViewModel vm) {

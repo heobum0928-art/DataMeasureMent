@@ -867,6 +867,9 @@ namespace ReringProject.UI {
 
             var shotVm = new NodeViewModel(shotNode, seqNode);
             seqNode.Children.Add(shotVm);
+            //260530 hbk Phase 39.2 D-G3-03 B2 fix — Shot add 후 부모(Sequence) children 자연정렬
+            //  (실제 Shot 부모는 seqNode 이므로 plan 의 actionNode 가정 대신 seqNode 사용)
+            InspectionListViewModel.SortNodeChildren(seqNode); //260530 hbk Phase 39.2 D-G3
             seqNode.IsExpanded = true;
         }
 

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ReringProject.UI;
+using ReringProject.Utility; //260530 hbk Phase 39.2 D-G3 — NaturalStringComparer
 
 namespace ReringProject.UI {
     public class InspectionListViewModel : Observable {
@@ -42,6 +43,38 @@ namespace ReringProject.UI {
 
         public int Count { get; set; }
 
+        //260530 hbk Phase 39.2 D-G3 — 자연정렬 비교자 (Shot2 < Shot10)
+        private static readonly NaturalStringComparer _naturalComparer = new NaturalStringComparer(); //260530 hbk Phase 39.2 D-G3
+
+        /// <summary>지정한 부모 노드의 직속 children 만 Name 기반 자연정렬 (asc).
+        /// ObservableCollection 이벤트로 TreeListBox 안전 갱신 (clear + re-add).</summary>
+        //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬 + Rename hook 호출 진입점
+        public static void SortNodeChildren(NodeViewModel parent) { //260530 hbk Phase 39.2 D-G3
+            if (parent == null) return; //260530 hbk Phase 39.2 D-G3
+            var list = parent.Children; //260530 hbk Phase 39.2 D-G3 — LoadChildren 보장
+            if (list == null || list.Count <= 1) return; //260530 hbk Phase 39.2 D-G3
+            var sorted = new List<NodeViewModel>(list); //260530 hbk Phase 39.2 D-G3
+            sorted.Sort((a, b) => _naturalComparer.Compare(a != null ? a.Name : null, b != null ? b.Name : null)); //260530 hbk Phase 39.2 D-G3
+            bool dirty = false; //260530 hbk Phase 39.2 D-G3 — 변경 감지 (no-op skip 으로 RaisePropertyChanged 폭발 방지)
+            for (int i = 0; i < sorted.Count; i++) { //260530 hbk Phase 39.2 D-G3
+                if (!ReferenceEquals(sorted[i], list[i])) { dirty = true; break; } //260530 hbk Phase 39.2 D-G3
+            }
+            if (!dirty) return; //260530 hbk Phase 39.2 D-G3
+            list.Clear(); //260530 hbk Phase 39.2 D-G3
+            foreach (var item in sorted) list.Add(item); //260530 hbk Phase 39.2 D-G3
+        }
+
+        //260530 hbk Phase 39.2 D-G3 — 전 트리 재귀 정렬 (RebuildTree 후 또는 외부 일괄 정렬용)
+        public void SortAllLevels() { //260530 hbk Phase 39.2 D-G3
+            SortRecursive(RootModel); //260530 hbk Phase 39.2 D-G3
+        }
+        private static void SortRecursive(NodeViewModel node) { //260530 hbk Phase 39.2 D-G3
+            if (node == null) return; //260530 hbk Phase 39.2 D-G3
+            SortNodeChildren(node); //260530 hbk Phase 39.2 D-G3
+            foreach (var child in node.Children) //260530 hbk Phase 39.2 D-G3
+                SortRecursive(child); //260530 hbk Phase 39.2 D-G3
+        }
+
         public InspectionListViewModel() {
             pSystemHandle = SystemHandler.Handle;
 
@@ -50,6 +83,7 @@ namespace ReringProject.UI {
             this.RootModel = new NodeViewModel(this.Model, null);
             //260417 hbk Phase 6-04 UAT: 최초 트리 생성 후 DisplayName 편집 훅 연결 (D-01)
             HookSequenceDisplayNameUpdates();
+            SortAllLevels(); //260530 hbk Phase 39.2 D-G3 — 초기 트리 생성 후 자연정렬
         }
 
         private void CreateSequenceNode(CompositeNode model) {
@@ -130,6 +164,7 @@ namespace ReringProject.UI {
             // We need to add to the vm's children collection directly
             var faiVm = new NodeViewModel(faiNode, actionNode);
             cn.Add(faiVm);
+            SortNodeChildren(actionNode); //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬
         }
 
         //260417 hbk Phase 6 Plan 04: Datum 노드를 Sequence 직접 자식으로 삽입 (D-25)
@@ -144,6 +179,7 @@ namespace ReringProject.UI {
             };
             var datumVm = new NodeViewModel(datumNode, seqNode);
             seqNode.Children.Add(datumVm);
+            SortNodeChildren(seqNode); //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬
         }
 
         //260417 hbk Phase 6 Plan 04: Measurement 노드를 FAI 자식으로 삽입 (D-24)
@@ -159,6 +195,7 @@ namespace ReringProject.UI {
             };
             var measVm = new NodeViewModel(measNode, faiNode);
             faiNode.Children.Add(measVm);
+            SortNodeChildren(faiNode); //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬
         }
         
         /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.
@@ -171,6 +208,7 @@ namespace ReringProject.UI {
             RootModel.ReloadChildren();
             //260417 hbk Phase 6-04 UAT: 트리 재구축 후 DisplayName 편집 훅 재연결 + 초기 라벨 동기화 (D-01)
             HookSequenceDisplayNameUpdates();
+            SortAllLevels(); //260530 hbk Phase 39.2 D-G3 — recipe 로드 후 전 트리 자연정렬
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence 노드의 InspectionMasterParam.DisplayName 변경 시 트리 라벨 즉시 갱신 (D-01)

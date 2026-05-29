@@ -126,6 +126,15 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32 I9/I10-redesign
         public List<string> MeasureAxisList { get { return new List<string> { "X", "Y" }; } } //260521 hbk Phase 32 I9/I10-redesign
 
+        // ── IntersectionPointSelection (D-G2 close-point variant) ────────────────────
+        //260530 hbk Phase 39.2 D-G2-01 — 두 교점 중 어느 것을 측정점으로 사용할지: Far(기본, INI 하위호환) 또는 Close
+        [Category("Measurement|Measure")] //260530 hbk Phase 39.2 D-G2
+        [System.ComponentModel.Description("교점 선택 — Far: Datum 수직선 기준 더 먼 점(기본), Close: 더 가까운 점")] //260530 hbk Phase 39.2 D-G2
+        [ItemsSourceProperty(nameof(IntersectionPointSelectionList))] //260530 hbk Phase 39.2 D-G2
+        public string IntersectionPointSelection { get; set; } = "Far"; //260530 hbk Phase 39.2 D-G2 — default Far = INI 회귀 0
+        [PropertyTools.DataAnnotations.Browsable(false)] //260530 hbk Phase 39.2 D-G2
+        public List<string> IntersectionPointSelectionList { get { return new List<string> { "Far", "Close" }; } } //260530 hbk Phase 39.2 D-G2
+
         // ── IDatumOriginConsumer transient 필드 ──────────────────────────────────────
         //260521 hbk Phase 32 I9/I10-redesign — datum 좌표 runtime 주입 전용. PropertyGrid 미표시, JSON 직렬화 제외.
         [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32 I9/I10-redesign
@@ -244,19 +253,35 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // (7) 측정점 보정 — 측정축 방향 좌표는 교점2(거리 끝점), 수직축 좌표는 두 교점 평균.
-            // MeasureAxis X(수평=Col): measurePointCol = 교점2.Col, measurePointRow = (교점1.Row+교점2.Row)/2
-            // MeasureAxis Y(수직=Row): measurePointRow = 교점2.Row, measurePointCol = (교점1.Col+교점2.Col)/2
+            // (7) 측정점 보정 — 측정축 방향 좌표는 교점1(Close) 또는 교점2(Far, 기본), 수직축 좌표는 두 교점 평균.
+            // MeasureAxis X(수평=Col): measurePointCol = (Close: int1Col / Far: int2Col), measurePointRow = (교점1.Row+교점2.Row)/2
+            // MeasureAxis Y(수직=Row): measurePointRow = (Close: int1Row / Far: int2Row), measurePointCol = (교점1.Col+교점2.Col)/2
             //260521 hbk Phase 32 UAT — 단순 양축 평균 → 측정축은 교점2, 수직축만 평균으로 정정
+            //260530 hbk Phase 39.2 D-G2-01 — IntersectionPointSelection 분기 추가: "Close" → 교점1, "Far" 또는 다른 값 → 교점2 (회귀 0)
             double measurePointRow, measurePointCol;
+            bool useClose = (IntersectionPointSelection == "Close"); //260530 hbk Phase 39.2 D-G2-01 — null/""/"Far" 모두 false (INI 하위호환)
             if (MeasureAxis == "X")
             {
-                measurePointCol = int2Col; //260521 hbk Phase 32 UAT — 측정축(X=Col)은 교점2 값
+                if (useClose) //260530 hbk Phase 39.2 D-G2-01
+                {
+                    measurePointCol = int1Col; //260530 hbk Phase 39.2 D-G2-01 — Close: 교점1.Col
+                }
+                else
+                {
+                    measurePointCol = int2Col; //260521 hbk Phase 32 UAT — Far: 측정축(X=Col)은 교점2 값 (기존 default 회귀 0)
+                }
                 measurePointRow = (int1Row + int2Row) / 2.0; //260521 hbk Phase 32 UAT — 수직축(Row)은 두 교점 평균
             }
             else
             {
-                measurePointRow = int2Row; //260521 hbk Phase 32 UAT — 측정축(Y=Row)은 교점2 값
+                if (useClose) //260530 hbk Phase 39.2 D-G2-01
+                {
+                    measurePointRow = int1Row; //260530 hbk Phase 39.2 D-G2-01 — Close: 교점1.Row
+                }
+                else
+                {
+                    measurePointRow = int2Row; //260521 hbk Phase 32 UAT — Far: 측정축(Y=Row)은 교점2 값 (기존 default 회귀 0)
+                }
                 measurePointCol = (int1Col + int2Col) / 2.0; //260521 hbk Phase 32 UAT — 수직축(Col)은 두 교점 평균
             }
 

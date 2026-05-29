@@ -107,7 +107,12 @@ namespace ReringProject.UI {
             get { return this.Node.ImageSource; }
             set { this.Node.ImageSource = value; RaisePropertyChanged("ImageSource"); }
         }
-        
+
+        //260530 hbk Phase 39.2 D-G4 — IconKey proxy (Node.IconKey 위임)
+        public string IconKey { //260530 hbk Phase 39.2 D-G4
+            get { return this.Node.IconKey; } //260530 hbk Phase 39.2 D-G4
+        }
+
         public string Name {
             get {
                 return this.Node.Name;

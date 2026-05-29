@@ -1,4 +1,4 @@
-# Roadmap: DataMeasurement
+﻿# Roadmap: DataMeasurement
 
 ## Milestones
 
@@ -36,6 +36,11 @@
 
 - [ ] **Phase 39: 검사 워크플로우 E2E** — Datum→FAI→결과 OK/NG/검출 실패 분기 (WF-01, WF-02)
   - Success: SIMUL+실카메라 모두 Datum 검출→FAI 측정→TCP 결과 응답 끊김 없음 / OK·NG·검출실패 3분기 후속 동작 명세 적용 / 사이클 내 NG 누적 처리 안정
+  - **Plans:** 4 plans (3 waves)
+    - [ ] 39-01-PLAN.md — Per-FAI datum gate + LastSkipReason 데이터 모델 (D-01, D-02, D-07 가드) [Wave 1]
+    - [ ] 39-02-PLAN.md — 3-state cycle hierarchy + TCP wire 매핑 (D-03, D-05, D-06, D-08, D-10) [Wave 2]
+    - [ ] 39-03-PLAN.md — UI overlay DETECT FAIL 라벨 + Datum 노드 INPC 배지 (D-04) [Wave 2]
+    - [ ] 39-04-PLAN.md — SIMUL UAT 5 시나리오 + sign-off (D-09) [Wave 3]
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)
 - [ ] **Phase 41: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계** (OUT-03, OUT-04)
@@ -76,7 +81,7 @@
 
 | 순위 | Phase | 제목 | REQ-IDs | Status | Plans | Date |
 |------|-------|------|---------|--------|-------|------|
-| 1 | 39 | 검사 워크플로우 E2E | WF-01, WF-02 | Not started | TBD | — |
+| 1 | 39 | 검사 워크플로우 E2E | WF-01, WF-02 | Planned | 4 | 2026-05-29 |
 | 1 | 40 | Export I (리뷰어+1회) | OUT-01, OUT-02 | Not started | TBD | — |
 | 1 | 41 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
 | 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | Not started | TBD | — |
@@ -100,4 +105,4 @@
 
 ---
 
-*Last updated: 2026-05-29 — v1.2 roadmap created (11 phases, 39~50, 5순위 우선순위).*
+*Last updated: 2026-05-29 — Phase 39 planned (4 plans, 3 waves).*

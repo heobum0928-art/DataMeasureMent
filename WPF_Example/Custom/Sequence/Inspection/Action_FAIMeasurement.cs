@@ -233,13 +233,36 @@ namespace ReringProject.Sequence {
                                         string measError;
                                         List<EdgeInspectionOverlay> measOverlays; //260422 hbk Phase 7: (D-01)
                                         bool ok = false;
-                                        try {
-                                            ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays); //260422 hbk Phase 7: 6-param (D-01)
-                                        } catch (Exception ex) {
-                                            ok = false;
-                                            resultValue = 0;
-                                            measError = ex.Message;
-                                            measOverlays = null; //260422 hbk Phase 7: 예외 경로 null-safe (D-02)
+                                        //260530 hbk Phase 39.2 D-G1 — DualImage 타입 분기: 양 이미지 별도 로드 → RuntimeImageA/B 주입 → TryExecute → dispose
+                                        if (meas is DualImageEdgeDistanceMeasurement dualMeas) { //260530 hbk Phase 39.2 D-G1
+                                            HImage imgA = null, imgB = null; //260530 hbk Phase 39.2 D-G1
+                                            try {
+                                                if (TryGrabOrLoadFaiDualImages(meas, out imgA, out imgB)) { //260530 hbk Phase 39.2 D-G1
+                                                    dualMeas.RuntimeImageA = imgA; //260530 hbk Phase 39.2 D-G1 — transient property, TryExecute 가 image 인자 무시
+                                                    dualMeas.RuntimeImageB = imgB; //260530 hbk Phase 39.2 D-G1
+                                                    try {
+                                                        ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays); //260530 hbk Phase 39.2 D-G1 — 시그니처 변경 0
+                                                    } catch (Exception ex) {
+                                                        ok = false; resultValue = 0; measError = ex.Message; measOverlays = null; //260530 hbk Phase 39.2 D-G1
+                                                    }
+                                                } else {
+                                                    ok = false; resultValue = 0; measError = "DualImage 이미지 로드 실패"; measOverlays = null; //260530 hbk Phase 39.2 D-G1
+                                                }
+                                            } finally {
+                                                if (imgA != null) { try { imgA.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1
+                                                if (imgB != null) { try { imgB.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1
+                                                dualMeas.RuntimeImageA = null; //260530 hbk Phase 39.2 D-G1
+                                                dualMeas.RuntimeImageB = null; //260530 hbk Phase 39.2 D-G1
+                                            }
+                                        } else { //260530 hbk Phase 39.2 D-G1 — 기존 1-image 경로 (회귀 0)
+                                            try {
+                                                ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays); //260422 hbk Phase 7: 6-param (D-01)
+                                            } catch (Exception ex) {
+                                                ok = false;
+                                                resultValue = 0;
+                                                measError = ex.Message;
+                                                measOverlays = null; //260422 hbk Phase 7: 예외 경로 null-safe (D-02)
+                                            }
                                         }
                                         if (ok) {
                                             meas.EvaluateJudgement(resultValue);
@@ -358,6 +381,45 @@ namespace ReringProject.Sequence {
                 return false; //260527 hbk Phase 34
             }
             return true; //260527 hbk Phase 34
+        }
+
+        //260530 hbk Phase 39.2 D-G1-06 — DualImageEdgeDistanceMeasurement 측정용 양 이미지 로드.
+        //  imageA: ShotParam.SimulImagePath (1차) — PointROI 검출용 (FAI 1차 이미지 = Shot 검사 이미지 재사용, 회귀 0 baseline).
+        //  imageB: meas.TeachingImagePath_Vertical (2차) — LineROI 검출용 (D-G1-03 슬롯 컨벤션).
+        //  P37 TryGrabOrLoadDualDatumImages 동형 패턴 — 경로 빈/파일없음 → false + 로그.
+        //  HImage 한쪽 생성 실패 시 양쪽 Dispose + false (메모리 누수 방지).
+        private bool TryGrabOrLoadFaiDualImages(MeasurementBase meas, out HImage imageA, out HImage imageB) { //260530 hbk Phase 39.2 D-G1-06
+            imageA = null; //260530 hbk Phase 39.2 D-G1-06
+            imageB = null; //260530 hbk Phase 39.2 D-G1-06
+            if (ShotParam == null) { //260530 hbk Phase 39.2 D-G1-06
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] ShotParam null"); //260530 hbk Phase 39.2 D-G1-06
+                return false; //260530 hbk Phase 39.2 D-G1-06
+            }
+            var dualMeas = meas as DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.2 D-G1-06
+            if (dualMeas == null) { //260530 hbk Phase 39.2 D-G1-06
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] meas 가 DualImageEdgeDistanceMeasurement 가 아닙니다"); //260530 hbk Phase 39.2 D-G1-06
+                return false; //260530 hbk Phase 39.2 D-G1-06
+            }
+            string pathA = ShotParam.SimulImagePath; //260530 hbk Phase 39.2 D-G1-06 — PointROI 이미지 = Shot baseline
+            string pathB = dualMeas.TeachingImagePath_Vertical; //260530 hbk Phase 39.2 D-G1-06 — LineROI 이미지 = meas 별도 경로
+
+            if (string.IsNullOrEmpty(pathA) || !File.Exists(pathA)) { //260530 hbk Phase 39.2 D-G1-06
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 경로 비어 있거나 파일 없음 (SimulImagePath)"); //260530 hbk Phase 39.2 D-G1-06
+                return false; //260530 hbk Phase 39.2 D-G1-06
+            }
+            if (string.IsNullOrEmpty(pathB) || !File.Exists(pathB)) { //260530 hbk Phase 39.2 D-G1-06
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 경로 비어 있거나 파일 없음 (TeachingImagePath_Vertical)"); //260530 hbk Phase 39.2 D-G1-06
+                return false; //260530 hbk Phase 39.2 D-G1-06
+            }
+            try { imageA = new HImage(pathA); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 로드 실패: " + ex.Message); imageA = null; } //260530 hbk Phase 39.2 D-G1-06
+            try { imageB = new HImage(pathB); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 로드 실패: " + ex.Message); imageB = null; } //260530 hbk Phase 39.2 D-G1-06
+            if (imageA == null || imageB == null) { //260530 hbk Phase 39.2 D-G1-06
+                if (imageA != null) { try { imageA.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1-06
+                if (imageB != null) { try { imageB.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1-06
+                imageA = null; imageB = null; //260530 hbk Phase 39.2 D-G1-06
+                return false; //260530 hbk Phase 39.2 D-G1-06
+            }
+            return true; //260530 hbk Phase 39.2 D-G1-06
         }
     }
 }

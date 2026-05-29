@@ -428,13 +428,30 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //260529 hbk Phase 39 hotfix CO-39-02 — runtime 검출 실패 명시 신호. 티칭 여부 (IsConfigured) 와 무관하게 게이트 발동 시 라벨 표시.
+        //  Action_FAIMeasurement 4 실패 분기에서 set true, InspectionSequence.ClearDatumTransforms 에서 reset false.
+        //  INPC 발화 → HasDetectFail computed 자동 갱신 (XAML 배지 + HALCON 라벨 둘 다 통합 신호).
+        private bool _runtimeDetectFailed; //260529 hbk Phase 39 hotfix CO-39-02
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 hotfix CO-39-02
+        public bool RuntimeDetectFailed //260529 hbk Phase 39 hotfix CO-39-02
+        {
+            get { return _runtimeDetectFailed; } //260529 hbk Phase 39 hotfix CO-39-02
+            set //260529 hbk Phase 39 hotfix CO-39-02
+            {
+                if (_runtimeDetectFailed == value) return; //260529 hbk Phase 39 hotfix CO-39-02 — idempotent 가드
+                _runtimeDetectFailed = value; //260529 hbk Phase 39 hotfix CO-39-02
+                RaisePropertyChanged(nameof(RuntimeDetectFailed)); //260529 hbk Phase 39 hotfix CO-39-02
+                RaisePropertyChanged(nameof(HasDetectFail)); //260529 hbk Phase 39 hotfix CO-39-02 — computed prop 변경 통지
+            }
+        }
+
         //260529 hbk Phase 39 WF-02 D-04 — Datum 노드 UI 'DETECT FAIL' 배지 노출용 computed 프로퍼티.
         //  XAML DataTemplate 가 본 프로퍼티 binding 으로 적색 dot 표시 (XAML 구현은 별도 plan/UAT 결정).
-        //  IsConfigured = false 이면 (티칭 미수행) 배지 안 보임. IsConfigured && !LastFindSucceeded 이면 배지 표시.
+        //260529 hbk Phase 39 hotfix CO-39-02 — RuntimeDetectFailed 포함 (티칭 안 한 datum 도 검출실패 시 배지 표시).
         [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 WF-02 D-04
         public bool HasDetectFail //260529 hbk Phase 39 WF-02 D-04
         {
-            get { return IsConfigured && !_lastFindSucceeded; } //260529 hbk Phase 39 WF-02 D-04
+            get { return _runtimeDetectFailed || (IsConfigured && !_lastFindSucceeded); } //260529 hbk Phase 39 hotfix CO-39-02 — RuntimeDetectFailed OR (IsConfigured && !LastFind)
         }
 
         //260423 hbk Phase 11 D-11 — 검출 라인 오버레이용 휘발성 필드 (TryTeachDatum 성공 시 DatumFindingService가 기록)

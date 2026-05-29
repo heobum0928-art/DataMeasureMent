@@ -889,18 +889,22 @@ namespace ReringProject.Halcon.Display
                 RenderDatumFindResult(window, datum); //260528 hbk Phase 36 UAT fix
 
                 //260529 hbk Phase 39 WF-02 D-04 — Datum 검출 실패 시 'DETECT FAIL' 적색 라벨 렌더.
-                //  분기: IsConfigured && !LastFindSucceeded (티칭은 했지만 런타임 Find 실패 = 검출 실패 상태).
-                //  위치: RefOrigin 십자 위쪽 (-40 row 오프셋).
+                //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: RuntimeDetectFailed 가 true 이면 IsConfigured(티칭 여부) 무관 라벨 표시.
+                //  분기: RuntimeDetectFailed (게이트 발동) OR (IsConfigured && !LastFindSucceeded) (티칭 한 경우 fallback).
+                //  위치: RefOrigin 좌표 우선, 0 (티칭 안 한 datum) 이면 화면 좌상단 (50, 50) fallback.
                 //  색상: "red" 표준명 (memory feedback_halcon_setcolor_invalid_names — "light red" 같은 비표준명 catch swallow 로 silent 미표시 1순위 의심).
                 //  z-stack: RenderDatumFindResult 직후 — 검출 십자 위에 라벨 표시.
                 //  try/catch swallow: 기존 RenderDatumOverlay catch 컨벤션 그대로 (Suppress display errors).
-                if (datum.IsConfigured && !datum.LastFindSucceeded) //260529 hbk Phase 39 WF-02 D-04
+                if (datum.RuntimeDetectFailed || (datum.IsConfigured && !datum.LastFindSucceeded)) //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드 분기
                 {
                     try //260529 hbk Phase 39 WF-02 D-04
                     {
                         EnsureFontInitialized(window); //260529 hbk Phase 39 WF-02 D-04 — DrawRoiLabelAt analog 패턴
                         HOperatorSet.SetColor(window, "red"); //260529 hbk Phase 39 WF-02 D-04 — 표준 색상명 (memory feedback_halcon_setcolor_invalid_names)
-                        HOperatorSet.SetTposition(window, datum.RefOriginRow - 40, datum.RefOriginCol + 5); //260529 hbk Phase 39 WF-02 D-04
+                        //260529 hbk Phase 39 hotfix CO-39-02 — 좌표 fallback: RefOrigin 이 0 (티칭 안 한 datum) 이면 화면 좌상단 (50, 50). 음수 좌표 회피.
+                        double labelRow = (datum.RefOriginRow > 50) ? (datum.RefOriginRow - 40) : 50.0; //260529 hbk Phase 39 hotfix CO-39-02
+                        double labelCol = (datum.RefOriginCol > 0) ? (datum.RefOriginCol + 5) : 50.0; //260529 hbk Phase 39 hotfix CO-39-02
+                        HOperatorSet.SetTposition(window, labelRow, labelCol); //260529 hbk Phase 39 hotfix CO-39-02 — fallback 적용 좌표
                         HOperatorSet.WriteString(window, "DETECT FAIL"); //260529 hbk Phase 39 WF-02 D-04 — 영문 라벨 (HALCON 폰트 한글 미지원 회피)
                     }
                     catch //260529 hbk Phase 39 WF-02 D-04

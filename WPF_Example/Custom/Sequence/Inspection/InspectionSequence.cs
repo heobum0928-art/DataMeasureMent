@@ -220,6 +220,11 @@ namespace ReringProject.Sequence {
         public void ClearDatumTransforms() {
             _datumTransforms.Clear();
             _failedDatums.Clear(); //260529 hbk Phase 39 WF-01 D-01 — _datumTransforms 와 동일 lifecycle
+            //260529 hbk Phase 39 hotfix CO-39-02 — RuntimeDetectFailed 도 일괄 리셋 (이전 사이클 잔여 신호 제거)
+            foreach (var d in DatumConfigs) //260529 hbk Phase 39 hotfix CO-39-02
+            {
+                if (d != null) d.RuntimeDetectFailed = false; //260529 hbk Phase 39 hotfix CO-39-02
+            }
         }
 
         //260529 hbk Phase 39 WF-01 D-01 — 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.

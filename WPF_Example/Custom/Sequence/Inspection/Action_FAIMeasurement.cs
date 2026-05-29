@@ -89,12 +89,14 @@ namespace ReringProject.Sequence {
                                     if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) { //260528 hbk Phase 37 D-37-02 — per-datum
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' DualImage 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
                                         datum.LastFindSucceeded = false; //260529 hbk Phase 39 hotfix CO-39-01 — 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
+                                        datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
                                         parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                         continue; //260528 hbk Phase 37 D-37-03 — datum skip, abort 안 함
                                     }
                                     string derr; //260528 hbk Phase 37
                                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { //260528 hbk Phase 37 D-37-05
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
+                                        datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
                                         parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                     }
                                 } finally {
@@ -106,6 +108,7 @@ namespace ReringProject.Sequence {
                                 if (img == null) { //260528 hbk Phase 37
                                     Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 이미지 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
                                     datum.LastFindSucceeded = false; //260529 hbk Phase 39 hotfix CO-39-01 — 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
+                                    datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
                                     parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                     continue; //260528 hbk Phase 37
                                 }
@@ -113,6 +116,7 @@ namespace ReringProject.Sequence {
                                     string derr; //260528 hbk Phase 37
                                     if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { //260528 hbk Phase 37 D-37-05
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
+                                        datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
                                         parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
                                     }
                                 } finally {

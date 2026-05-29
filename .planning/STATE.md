@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: Defining requirements
-stopped_at: Phase 39 context gathered (10 decisions, 4 areas)
-last_updated: "2026-05-29T01:27:56.524Z"
-last_activity: 2026-05-29 — Milestone v1.2 started
+status: Phase 39 signed_off
+stopped_at: Phase 39 signed_off (5/5 UAT PASS, 3 hotfix CO-39-01/02/03)
+last_updated: "2026-05-29T12:00:00.000Z"
+last_activity: 2026-05-29 — Phase 39 signed_off (WF-01/02 검사 E2E)
 progress:
-  total_phases: 1
-  completed_phases: 0
+  total_phases: 12
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 4
+  percent: 8
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** v1.2 milestone defining requirements (다음 Phase 39 = WF-01/02)
+**Current focus:** Phase 39 — inspection-workflow-e2e-2026-05-29
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-29 — Milestone v1.2 started
+Phase: 39 (inspection-workflow-e2e-2026-05-29) — SIGNED_OFF
+Plan: 4/4 complete (39-01/02/03/04)
+Status: Phase 39 signed_off — 다음 Phase 40 (OUT-01/02)
+Last activity: 2026-05-29 — Phase 39 signed_off, 5/5 UAT PASS + 3 hotfix (CO-39-01/02/03)
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -221,6 +221,12 @@ Recent decisions affecting current work:
 - [Phase 37-03]: D-37-07 신규 UI 최소화 — 기존 AddDatumToSequence→inspSeq.AddDatum 반복 + DatumConfig ICustomTypeDescriptor DualImage 시 TeachingImagePath + TeachingImagePath_Vertical 동시 노출로 4-datum DualImage 생성/티칭 가능, InspectionListView.xaml.cs 코드 변경 0. 37-UAT.md SIGNED_OFF (4/4 PASS).
 - [Phase 37-03 UAT hotfix A, 1c11c35]: Measurement 노드 이미지/ROI 해석을 FAI 이름 round-trip(FindFAIByName) → 측정 객체 참조(FindFAIContainingMeasurement, ReferenceEquals). 여러 Shot 의 FAI 이름 동일(기본 FAI_0) 시 첫 Shot FAI 반환 → Shot2 측정 선택 시 Shot1 이미지 표시되던 결함. HighlightSelectedRoi anchorFai 해석 동일 수정.
 - [Phase 37-03 UAT hotfix B, c6576e5]: FindFAIContainingMeasurement 가 RecipeManager.Shots(동적 FAI 단일 소스, 신규 Shot 즉시 반영) 우선 탐색, pSeq fallback. AddShotToSequence 가 새 Shot 을 RecipeManager 에만 추가 → 라이브 Action(pSeq) 지연 동기화로 세션 중 새 Shot 측정 미추종(재시작 후 정상)하던 결함.
+- [Phase 39-01]: 5 신규 인터페이스 — `_failedDatums` HashSet + `MarkDatumFailed`/`IsDatumFailed` (InspectionSequence) + `FAIConfig.WasDatumSkipped` + `MeasurementBase.LastSkipReason`. Phase 37 D-37-03 lenient 회귀 0 (TryGetDatumTransform 시그니처 + L119 Step=Grab + identity fallback 보존). 게이트는 EStep.Measure 안에서만 동작.
+- [Phase 39-02]: TCP wire 3-state hierarchy — anyDatumSkip > NG > OK (cycle = O/X/N) + FAIResults[i] = P/F/N. EVisionResultType.NotExist 재사용 (v2.6 enum 추가 0 — D-10 가드). FAIResultData 신규 ctor `(string, EVisionResultType, double)` + 기존 bool ctor 보존 (외부 호출자 회귀 0).
+- [Phase 39-03]: HALCON `DETECT FAIL` 적색 라벨 (RenderDatumOverlay) + DatumConfig.LastFindSucceeded INPC + HasDetectFail computed + NodeViewModel switch case. memory feedback_halcon_setcolor_invalid_names 준수 ("red" 표준명).
+- [Phase 39 hotfix CO-39-01, 13e735e]: Action_FAIMeasurement 이미지 취득 실패 2 분기에서 `datum.LastFindSucceeded = false` 누락 — TryRunSingleDatum 미호출 경로에서 LastFindSucceeded 이전 상태 유지 → 라벨 조건 미충족. 2 분기에 1줄씩 추가.
+- [Phase 39 hotfix CO-39-02, af3f608]: 사전 티칭 안 한 datum (IsConfigured=false) → 라벨 분기 미진입 + RefOrigin=0 → 화면 밖. `DatumConfig.RuntimeDetectFailed` 휘발성 INPC 신규 + 분기 조건 `(RuntimeDetectFailed || (IsConfigured && !LastFindSucceeded))` + 좌표 fallback (50, 50). 4 파일 변경.
+- [Phase 39 hotfix CO-39-03, 8a3d2f6]: 사용자 UAT 요청 — 라벨이 Datum origin 위 → 이미지 우상단으로 이동. `GetPart(window)` 동적 좌표 + datum 이름 hash 기반 row stagger (6단계 25px) + 라벨 텍스트에 datum 이름 포함 ("DETECT FAIL: Datum_X").
 
 ### Quick Tasks Completed
 
@@ -324,10 +330,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 39 context gathered (10 decisions, 4 areas)
+Last session: 2026-05-29 — Phase 39 execute + sign-off
+Stopped at: Phase 39 signed_off (5/5 UAT PASS, 3 hotfix CO-39-01/02/03)
 Resume file: --resume-file
-Next action: /gsd-plan-phase 39 (WF-01/02 검사 워크플로우 E2E)
+Next action: /gsd-plan-phase 40 (OUT-01/02 결과 분석 & Export) — v1.2 우선순위 1순위 남은 항목
 
 **v1.1 Phase Map:**
 

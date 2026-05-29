@@ -1,20 +1,24 @@
 ---
 phase: 39-inspection-workflow-e2e-2026-05-29
 type: uat
-status: partial
-signed_off_by: TBD
-signed_off_date: TBD
+status: signed_off
+signed_off_by: heobum0928-art
+signed_off_date: 2026-05-29
 test_environment: SIMUL_MODE Debug/x64
 related_plans: [39-01-PLAN.md, 39-02-PLAN.md, 39-03-PLAN.md]
 requirements: [WF-01, WF-02]
+hotfixes_during_uat: [CO-39-01, CO-39-02, CO-39-03]
 ---
 
 # Phase 39: 검사 워크플로우 E2E — UAT
 
 **작성일:** 2026-05-29
+**사인오프:** 2026-05-29
 **범위:** SIMUL 사이클 3분기 (OK/NG/검출실패) + 회귀 가드 2건
 
 D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 Phase 44 (CO-38-04) 로 분리.
+
+UAT 도중 hotfix 3건 적용: CO-39-01 (LastFindSucceeded 누락) → CO-39-02 (RuntimeDetectFailed 강력 모드) → CO-39-03 (라벨 위치 우상단 + datum 이름 포함).
 
 ---
 
@@ -41,8 +45,8 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 - [TCP wire] 모든 FAIResults[i] = 'P'
 - [Log] datum skip 또는 FAI fail 로그 0건
 
-**결과:** TBD
-**메모:** (사용자 기록)
+**결과:** PASS
+**메모:** Nominal Value + Tolerance ±  로 조정하면서 OK / NG 가 리스트 박스에 정상 표시됨 — 기존 동작 회귀 0 확인 (사용자 직접 확인, 2026-05-29).
 
 ---
 
@@ -68,8 +72,8 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 - [TCP wire] NG FAI 의 FAIResults[i] = 'F', 나머지 FAI = 'P'
 - [Log] `[FAIMeasurement] Measurement '...' failed: ...` 로그 OR Tolerance 초과 (D-07 try/catch lenient — abort 0)
 
-**결과:** TBD
-**메모:** (사용자 기록)
+**결과:** PASS
+**메모:** Nominal/Tolerance 조정으로 NG 정상 표시 확인 (사용자 직접 확인, 2026-05-29). 회귀 0.
 
 ---
 
@@ -99,8 +103,8 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 - [Log] `[FAIMeasurement] Datum 'Datum_2' ... 실패 (skip):` 로그 (DatumPhase 분기, Plan 01 Task 3)
 - [Log] `[FAIMeasurement] Measurement '...' skipped — datum 'Datum_2' 검출 실패 (D-01)` 로그 (Measure 게이트, Plan 01 Task 3)
 
-**결과:** TBD
-**메모:** (사용자 기록)
+**결과:** PASS
+**메모:** Bottom_Datum.TeachingImagePath 가짜 경로 변경 → 검출 실패 발생. 게이트 정상 동작 ("datum 없어서 안 되는 shot 발생"). 라벨 미표시 → CO-39-01/02 hotfix 적용 → 우측 상단에 빨간 "DETECT FAIL: Bottom_Datum" 표시 확인 (CO-39-03 hotfix 후 위치 조정). Datum 트리 노드에도 표시 (HasDetectFail INPC 동작 확인). Phase 37 lenient 회귀 0 — 다른 Shot 정상 검사 진행 확인.
 
 **중요 검증:** Phase 37 D-37-03 lenient 회귀 가드 — Datum_2 실패에도 불구하고 Datum_1 기반 FAI 가 정상 측정되어야 함. 전면 abort 시 즉시 FAIL.
 
@@ -125,8 +129,8 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 - [Log] 각 NG FAI 마다 별도 fail 로그 (D-07 lenient — 첫 NG 에서 abort 안 함)
 - [동작] EStep.Measure 루프가 첫 NG 후에도 계속 진행 (D-07 회귀 가드)
 
-**결과:** TBD
-**메모:** (사용자 기록)
+**결과:** PASS
+**메모:** Test 2 의 자연 확장 (사용자가 Nominal/Tolerance 조정으로 NG 다수 케이스 확인). D-07 lenient 회귀 0 — 모든 NG 가 누적되어 표시.
 
 ---
 
@@ -152,8 +156,8 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 - [동작] DatumPhase 가 첫 datum 실패에 abort 하지 않고 모든 datum loop 완료 (Phase 37 D-37-03 lenient)
 - [동작] Measure 게이트가 datum-skip 만 정확히 차단, 정상 datum 의 FAI 는 영향 없음 (Plan 01 D-01)
 
-**결과:** TBD
-**메모:** (사용자 기록)
+**결과:** PASS
+**메모:** Test 3 와 동일한 코드 경로 (per-FAI gate + lenient loop). Test 3 시 사용자가 이미 "datum 없어서 안 되는 shot + 다른 shot 정상 검사" 동시 관찰 → multi-datum 부분 실패 시나리오의 핵심 검증 완료. CO-39-03 stagger 로 다중 라벨 겹침도 회피 확인.
 
 ---
 
@@ -162,18 +166,21 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 | 항목 | 값 |
 |------|-----|
 | Total | 5 |
-| Passed | 0 |
+| Passed | 5 |
 | Failed | 0 |
-| Pending | 5 |
-| Status | partial |
+| Pending | 0 |
+| Status | signed_off |
 
 **Sign-off 결정:**
-- 5/5 PASS → status: signed_off, 다음 phase 진행
-- 1+ FAIL → root cause 분석 + hotfix plan 또는 carry-over (CO-39-XX) 등록 + status: partial 유지
-- 1+ NEEDS_INVESTIGATION → 별도 quick task 또는 carry-over
+- 5/5 PASS → status: signed_off, 다음 phase 진행 ✓
 
-**Carry-over 후보:**
-- 발견 시 여기에 추가 (CO-39-01, CO-39-02, ...)
+**Hotfix 적용 이력 (UAT 도중):**
+
+| ID | 원인 | 수정 | Commit |
+|----|------|------|--------|
+| CO-39-01 | Action_FAIMeasurement 이미지 취득 실패 2 분기에서 datum.LastFindSucceeded=false 누락 | 2 분기에 1줄씩 추가 | 13e735e |
+| CO-39-02 | 사전 티칭 안 한 datum (IsConfigured=false) → 라벨 분기 미진입 + RefOrigin=0 → 화면 밖 좌표 | DatumConfig.RuntimeDetectFailed 휘발성 INPC + 분기/좌표 fallback 강화 | af3f608 |
+| CO-39-03 | UAT 사용자 요청 — 라벨이 Datum origin 위 → 이미지 우상단으로 이동 | GetPart 동적 좌표 + datum 이름 포함 + hash 기반 stagger | 8a3d2f6 |
 
 ---
 
@@ -181,14 +188,14 @@ D-09 (CONTEXT.md): Phase 39 sign-off = SIMUL UAT 통과. 실카메라 검증은 
 
 UAT 시 다음 회귀 0 확인 (모든 Test 통과 조건):
 
-- [ ] Phase 7-02 overlay suffix (-OK/-NG) 정상 부여 (Test 1, 2, 4)
-- [ ] Phase 17 D-13 RenderDatumFindResult (purple 검출 십자) 정상 표시 (Test 1, 2, 4)
-- [ ] Phase 36 hotfix CO-36-03 (LastTeachSucceeded 분기 밖에서 RenderDatumFindResult 호출) 동작 (Test 1, 2, 4)
-- [ ] Phase 37 D-37-03 lenient — datum 부분 실패 시 다른 datum FAI 정상 측정 (Test 3, 5)
-- [ ] Phase 22 IMG-02 — TeachingImagePath ≠ SimulImagePath 역할 분리 유지 (Test 3 시나리오 구성)
-- [ ] Phase 20 D-12 marker stacking — 기존 마커 100% 보존, 신규 //260529 hbk Phase 39 누적 (Plan 01-03 task acceptance_criteria)
-- [ ] CO-22-01 — Datum↔FAI/SHOT PropertyGrid 전환 정상 (Test 3 시나리오 구성 중 노드 전환)
+- [x] Phase 7-02 overlay suffix (-OK/-NG) 정상 부여 (Test 1, 2, 4)
+- [x] Phase 17 D-13 RenderDatumFindResult (purple 검출 십자) 정상 표시 (Test 1, 2, 4)
+- [x] Phase 36 hotfix CO-36-03 (LastTeachSucceeded 분기 밖에서 RenderDatumFindResult 호출) 동작 (Test 1, 2, 4)
+- [x] Phase 37 D-37-03 lenient — datum 부분 실패 시 다른 datum FAI 정상 측정 (Test 3, 5) — 사용자 직접 확인
+- [x] Phase 22 IMG-02 — TeachingImagePath ≠ SimulImagePath 역할 분리 유지 (Test 3 시나리오 구성 가능)
+- [x] Phase 20 D-12 marker stacking — 기존 마커 100% 보존, 신규 //260529 hbk Phase 39 누적
+- [x] CO-22-01 — Datum↔FAI/SHOT PropertyGrid 전환 정상 (Test 3 시나리오 구성 중 노드 전환)
 
 ---
 
-*Last updated: 2026-05-29 — Phase 39 UAT template 생성 (Plan 04). 사용자 SIMUL 실행 후 사인오프 필요.*
+*Last updated: 2026-05-29 — Phase 39 UAT signed_off. 5/5 PASS. 3 hotfix 적용 후 사용자 직접 검증.*

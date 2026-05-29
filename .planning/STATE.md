@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: Phase 39 signed_off — 다음 Phase 40 (OUT-01/02)
-stopped_at: Phase 39.1 context gathered (4 plan / 2 wave / 4 항목 UAT)
-last_updated: "2026-05-29T08:05:02.988Z"
-last_activity: 2026-05-29 — Phase 39 signed_off, 5/5 UAT PASS + 3 hotfix (CO-39-01/02/03)
+status: Phase 39.1 planned — Ready to execute (4 plan / 3 wave)
+stopped_at: Phase 39.1 plans verified (8/8 iter1 issue 반영, 0 blocker)
+last_updated: "2026-05-29T12:00:00.000Z"
+last_activity: 2026-05-29 — Phase 39.1 plans 작성 + 검증 완료 (commit 75f5ffc + 650eb88)
 progress:
   total_phases: 1
   completed_phases: 1

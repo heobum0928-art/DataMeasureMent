@@ -234,6 +234,7 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterCDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E9-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterBDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E10-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundShortAxisDistanceMeasurement.cs" /> <!--260523 hbk Phase 32 — E3 단축 환원-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\DualImageEdgeDistanceMeasurement.cs" /> <!--260530 hbk Phase 39.2 D-G1 — Bottom E5 DualImage FAI-->
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />

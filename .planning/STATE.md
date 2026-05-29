@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 39.1 (inspection-urgent-fixes-2026-05-29) — SIGNED_OFF
 Plan: 4/4 complete (39.1-01/02/03/04) + CO-39.1-01 hotfix rev2. UAT 4/4 PASS (2026-05-29).
-Status: SIGNED_OFF — 다음 Phase 40 (OUT-01/02 결과 분석/Export, v1.2 우선순위 1순위)
-Last activity: 2026-05-29 — Phase 39.1 SIGNED_OFF (UAT #1 → CO-39.1-01 ae58997 + rev2 5bf74ff hotfix, 사용자 PASS). UAT #2/3/4 PASS 직후. Strip preview Edit 모드 분리 + X 마커 제거 패턴 정립.
+Status: SIGNED_OFF. 다음 Phase 39.2 신설 (긴급 추가건2, ROADMAP 갱신 완료).
+Last activity: 2026-05-30 — Phase 39.2 seed (4 항목: Bottom E5 DualImage FAI + I10 close-point variant + Tree 정렬 + Tree 아이콘). 다음 = /gsd-discuss-phase 39.2.
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -331,9 +331,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 39.1 SIGNED_OFF (4/4 UAT PASS, CO-39.1-01 hotfix 2 rev)
+Stopped at: Phase 39.2 seed 캡처 + ROADMAP 갱신 (긴급 추가건2 4 항목)
 Resume file: --resume-file
-Next action: /gsd-plan-phase 40 (OUT-01/02 결과 분석 & Export, v1.2 우선순위 1순위 남은 항목)
+Next action: /gsd-discuss-phase 39.2 (4 항목: Bottom E5 DualImage FAI / I10 close-point variant / Tree 정렬 / Tree 아이콘). Phase 40 (OUT-01/02) 는 39.2 후로 보류.
 
 **v1.1 Phase Map:**
 

@@ -7,7 +7,7 @@
   - 17 phases (18~38, inserts 23.1/34.1). Quality(QUAL-02/03/04)+Buffer+Image-dual+Algorithm/Datum 대거 확장 완료.
   - v1.2 이연: WF-01/02, OUT-01~04, HW-01/02, QUAL-01. 부분: ALG-01(CO-23-01).
 - **v1.2 POC Workflow + Output + Carry-over + Protocol v2.7** — ◷ Active (started 2026-05-29, POC 납기 2026-06-30)
-  - 12 phases (39~50 + 39.1 insert), 5순위 우선순위 구조. continue numbering 모드.
+  - 13 phases (39~50 + 39.1/39.2 insert), 5순위 우선순위 구조. continue numbering 모드.
 
 ---
 
@@ -57,13 +57,32 @@
   - Item #3: FAI/Measurement 노드 클릭 시 6 타입 공통 overlay 재현 + Sequence 회귀 0
   - Item #4: CTH 평소 모드 fitting 원만 + Edit 모드 ROI 핸들 동시 + VTH/TLI/Phase 36 swap 회귀 0
 
-- [ ] **Phase 39.1: 검사 워크플로우 긴급 fixes** — algorithm 2 + UI 2 (WF-01)
+- [x] **Phase 39.1: 검사 워크플로우 긴급 fixes** — algorithm 2 + UI 2 (WF-01) — SIGNED_OFF 2026-05-29 (4/4 UAT PASS + CO-39.1-01 hotfix 2 rev)
   - Success: 4 항목 SIMUL UAT PASS + Phase 28/31/36/37/39/11/13/16/23/23.1 회귀 0
   - **Plans:** 4 plans (3 waves) — 원래 의도 2 wave (algorithm + UI) 였으나 MainView.xaml.cs file overlap 으로 UI 도 2 wave 로 분리
-    - [ ] 39.1-01-PLAN.md — Item #1 CircleDiameter 4 polar 필드 노출 + ICustomTypeDescriptor (D-G2-01~05) [Wave 1, algorithm]
-    - [ ] 39.1-02-PLAN.md — Item #2 EdgeToLineDistance measureX DatumAngle2Rad (D-G3-01~04) [Wave 1, algorithm]
-    - [ ] 39.1-03-PLAN.md — Item #3 FAI 노드 조회 overlay 재현 (D-G4-01~02) [Wave 2, UI]
-    - [ ] 39.1-04-PLAN.md — Item #4 Datum CTH Edit 모드 분리 (D-G4-03~05) [Wave 3, UI — Plan 03 file overlap 해소]
+    - [x] 39.1-01-PLAN.md — Item #1 CircleDiameter 4 polar 필드 노출 + ICustomTypeDescriptor (D-G2-01~05) [Wave 1, algorithm]
+    - [x] 39.1-02-PLAN.md — Item #2 EdgeToLineDistance measureX DatumAngle2Rad (D-G3-01~04) [Wave 1, algorithm]
+    - [x] 39.1-03-PLAN.md — Item #3 FAI 노드 조회 overlay 재현 (D-G4-01~02) [Wave 2, UI]
+    - [x] 39.1-04-PLAN.md — Item #4 Datum CTH Edit 모드 분리 (D-G4-03~05) [Wave 3, UI — Plan 03 file overlap 해소]
+
+### Phase 39.2: 긴급 추가건2 (신설 2026-05-30)
+**Goal**: Phase 39.1 SIGNED_OFF 직후 사용자 발의 4 신규 항목 — Bottom E5 듀얼 이미지 FAI 측정 + Top I10 close-point variant + Tree 정렬 + Tree 아이콘 차별화 — 단일 phase 처리. POC 2026-06-30 시연 대비 사용자 UX + 측정 커버리지 보강.
+**Depends on**: Phase 39.1 (signed_off)
+**Requirements**: WF-01 (FAI 측정 확장 + UI UX)
+**Scope** (시드 4 항목 lock):
+  - **#1 Bottom E5 DualImage FAI**: 신규 `DualImageEdgeDistanceMeasurement` MeasurementBase 서브타입 — Phase 37 VTH-DualImage 패턴 차용 (TeachingImagePath / TeachingImagePath_Vertical 슬롯 재사용 + 2 ROI + 양 이미지 에지 검출 → 거리). Datum DualImage / Phase 37 lenient 회귀 0.
+  - **#2 Top I10 close-point variant**: ArcLineIntersectDistanceMeasurement 에 `IntersectionPointSelection` enum 파라미터 ({Far, Close}, default=Far) 추가 — INI 회귀 0 + ICustomTypeDescriptor 노출. 신규 타입 도입 0 (단일 소스).
+  - **#3 Tree 노드 정렬**: Shot/FAI/Datum/Measurement 트리 노드 Name 자연정렬 (Shot10 vs Shot2 정렬) 자동. 적용 레벨 + 정렬 시점 discuss 단계 lock.
+  - **#4 Tree 아이콘 차별화**: FAI 노드 / Measurement 노드 아이콘 분리 + Measurement 는 TypeName 기반 아이콘 매핑 (10+ 타입). 디자인 자원 (icon set / Geometry path) 결정 discuss 단계 lock.
+**Success Criteria (UAT)**:
+  - Item #1: Bottom E5 2 이미지 / 2 ROI 거리 측정 성공 + Action_FAIMeasurement / 기존 FAI 타입 회귀 0
+  - Item #2: P1 / P2 close/far 선택 시 정확 거리값 + INI 하위호환 (기본 Far)
+  - Item #3: Shot 생성 순서 무관 자연정렬 표시 + Rename 시 즉시 재정렬
+  - Item #4: FAI vs Measurement 아이콘 시각 차별 + Measurement TypeName 별 아이콘 다름
+
+- [ ] **Phase 39.2: 긴급 추가건2** — DualImage FAI + I10 close-point + Tree 정렬 + Tree 아이콘 (WF-01)
+  - Success: 4 항목 SIMUL UAT PASS + Phase 28/31/36/37/39/39.1 회귀 0
+  - **Plans:** (discuss/plan 단계 lock — algorithm 2 + UI 2 예상)
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)

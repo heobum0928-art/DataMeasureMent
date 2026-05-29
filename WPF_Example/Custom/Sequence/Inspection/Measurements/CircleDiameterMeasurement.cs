@@ -76,10 +76,12 @@ namespace ReringProject.Sequence
         {
             resultValue = 0;
             error = null;
-            overlays = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: 5종 overlay 미구현 — 빈 리스트 반환 (D-03)
+            overlays = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: 5종 overlay 미구현 — 빈 리스트 반환 (D-03) //260529 hbk Phase 39.1 CO-39.1-01 — 아래에서 채움
 
             var svc = new VisionAlgorithmService();
             double foundRow, foundCol, foundRadius;
+            HTuple edgeRowsAcc = new HTuple(); //260529 hbk CO-39.1-01 — 검출 에지 누적 (폴라 경로 only)
+            HTuple edgeColsAcc = new HTuple(); //260529 hbk CO-39.1-01
 
             //260508 hbk Phase 28 REQ-28-02 (D-01) — Circle_RadialDirection 빈값=fit / Inward,Outward=polar 분기
             if (string.IsNullOrEmpty(Circle_RadialDirection)) //260508 hbk Phase 28
@@ -101,8 +103,8 @@ namespace ReringProject.Sequence
                 //  step/L1/L2/selection = EdgeOptionLists.FaiCircle* defaults (Datum CTH default 와 동일 → 동등성 결정적)
                 //260529 hbk Phase 39.1 G2-01 — 4 정적 상수 참조를 4 인스턴스 필드로 교체 (PropertyGrid override 가능). default = EdgeOptionLists.FaiCircle* byte-identical → INI 회귀 0.
                 string polarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(Circle_RadialDirection); //260508 hbk Phase 28
-                HTuple unusedRows, unusedCols; //260508 hbk Phase 28
                 bool[] unusedStrips; //260508 hbk Phase 28
+                //260529 hbk CO-39.1-01 — was unusedRows/unusedCols → edgeRowsAcc/edgeColsAcc 로 캡처 (overlay 시각화 용)
                 if (!svc.TryFindCircleByPolarSampling(
                     image,
                     Circle_Row, Circle_Col, Circle_Radius,
@@ -113,15 +115,145 @@ namespace ReringProject.Sequence
                     Circle_PolarEdgeSelection, //260529 hbk Phase 39.1 G2-01 — was EdgeOptionLists.FaiCircleEdgeSelection
                     datumTransform,
                     out foundRow, out foundCol, out foundRadius,
-                    out unusedRows, out unusedCols, out unusedStrips,
+                    out edgeRowsAcc, out edgeColsAcc, out unusedStrips, //260529 hbk CO-39.1-01
                     out error)) //260508 hbk Phase 28
                 {
                     return false; //260508 hbk Phase 28
                 }
             }
 
+            //260529 hbk CO-39.1-01 — UAT FAIL #1 후속: 검사 후 시각화 overlay 4종 추가 (Strip 사각형 + 검출 에지 점 + 검출 원 근사 + 지름 라인).
+            //  사용자 요구: "에지나 원이 보이고 지름 라인이 나왔으면 함" + "작은 사각형도 파라미터 변하면 보일수있게".
+            //  Phase 7 D-03 빈 리스트 정책 의도적 뒤집기 (Phase 23.1 EdgeToLineDistance 260517-ja8 패턴 동형).
+            AppendCircleVisualizationOverlays(overlays, datumTransform,
+                Circle_Row, Circle_Col, Circle_Radius,
+                Circle_PolarStepDeg, Circle_RectL1Ratio, Circle_RectL2Ratio,
+                Circle_RadialDirection, edgeRowsAcc, edgeColsAcc,
+                foundRow, foundCol, foundRadius);
+
             resultValue = foundRadius * 2.0 * pixelResolution;
             return true;
+        }
+
+        //260529 hbk CO-39.1-01 — 검사 시점 시각화 overlay 생성. Phase 7 D-03 빈 리스트 정책 의도적 뒤집기.
+        //  1) Strip 사각형 (4-line, 폴라 경로 only — fit 경로는 strip 미사용) — stepDeg/L1Ratio/L2Ratio 변경 즉시 반영.
+        //  2) 검출 에지 점 (폴라 경로 only, FAI-Edge1 녹/적).
+        //  3) 검출 원 근사 (72 point cloud, 양 경로 공통, FAI-Edge1).
+        //  4) 지름 라인 (수평, 양 경로 공통, FAI-DistLine 청록).
+        private static void AppendCircleVisualizationOverlays(
+            List<EdgeInspectionOverlay> overlays, HTuple datumTransform,
+            double searchRow, double searchCol, double searchRadius,
+            double stepDeg, double l1Ratio, double l2Ratio,
+            string radialDirection,
+            HTuple edgeRows, HTuple edgeCols,
+            double foundRow, double foundCol, double foundRadius)
+        {
+            //260529 hbk CO-39.1-01 — Strip 시각화는 폴라 경로(Inward/Outward) 에서만 의미. fit 경로는 strip 사용 안 함.
+            bool isPolar = !string.IsNullOrEmpty(radialDirection);
+
+            //260529 hbk CO-39.1-01 — Strip 그리려면 search center 를 image 좌표로 변환 필요 (TryFindCircleByPolarSampling 내부 변환 미러).
+            double tRow = searchRow, tCol = searchCol;
+            if (datumTransform != null && datumTransform.Length > 0)
+            {
+                try
+                {
+                    HTuple rT, cT;
+                    HOperatorSet.AffineTransPoint2d(datumTransform, searchRow, searchCol, out rT, out cT);
+                    tRow = rT.D; tCol = cT.D;
+                }
+                catch { /* identity fallback */ }
+            }
+
+            //260529 hbk CO-39.1-01 — (1) Strip 사각형 (polar only) — HalconDisplayService.RenderCircleStrips canonical 식 미러
+            if (isPolar && searchRadius > 0)
+            {
+                double sd = stepDeg;
+                if (sd < 1.0) sd = 1.0;
+                if (sd > 30.0) sd = 30.0;
+                int stepCount = (int)System.Math.Round(360.0 / sd);
+                if (stepCount < 1) stepCount = 1;
+                double stepRad = (2.0 * System.Math.PI) / stepCount;
+                //  strip half-extent cap (VisionAlgorithmService.CircleStripHalfExtentCapPx 와 WYSIWYG)
+                double length1 = System.Math.Min(searchRadius * l1Ratio, VisionAlgorithmService.CircleStripHalfExtentCapPx);
+                double length2 = System.Math.Min(searchRadius * l2Ratio, VisionAlgorithmService.CircleStripHalfExtentCapPx);
+                if (length1 < 1.0) length1 = 1.0;
+                if (length2 < 1.0) length2 = 1.0;
+
+                for (int i = 0; i < stepCount; i++)
+                {
+                    double thetaRad = i * stepRad;
+                    double rectRow = tRow - searchRadius * System.Math.Sin(thetaRad);
+                    double rectCol = tCol + searchRadius * System.Math.Cos(thetaRad);
+                    double cosP = System.Math.Cos(thetaRad);
+                    double sinP = System.Math.Sin(thetaRad);
+                    double r1 = rectRow + (-length1) * cosP - (-length2) * sinP;
+                    double c1 = rectCol + (-length1) * sinP + (-length2) * cosP;
+                    double r2 = rectRow + (-length1) * cosP - ( length2) * sinP;
+                    double c2 = rectCol + (-length1) * sinP + ( length2) * cosP;
+                    double r3 = rectRow + ( length1) * cosP - ( length2) * sinP;
+                    double c3 = rectCol + ( length1) * sinP + ( length2) * cosP;
+                    double r4 = rectRow + ( length1) * cosP - (-length2) * sinP;
+                    double c4 = rectCol + ( length1) * sinP + (-length2) * cosP;
+                    //  Strip 1개 = 4 line overlay (RoiId="FAI-Strip" → HalconDisplayService else 분기 blue 렌더, suffix 무관)
+                    overlays.Add(new EdgeInspectionOverlay { RoiId = "FAI-Strip", LineRow1 = r1, LineColumn1 = c1, LineRow2 = r2, LineColumn2 = c2 });
+                    overlays.Add(new EdgeInspectionOverlay { RoiId = "FAI-Strip", LineRow1 = r2, LineColumn1 = c2, LineRow2 = r3, LineColumn2 = c3 });
+                    overlays.Add(new EdgeInspectionOverlay { RoiId = "FAI-Strip", LineRow1 = r3, LineColumn1 = c3, LineRow2 = r4, LineColumn2 = c4 });
+                    overlays.Add(new EdgeInspectionOverlay { RoiId = "FAI-Strip", LineRow1 = r4, LineColumn1 = c4, LineRow2 = r1, LineColumn2 = c1 });
+                }
+            }
+
+            //260529 hbk CO-39.1-01 — (2) 검출 에지 점 (폴라 경로 only — fit 경로는 edge 점 미반환)
+            if (edgeRows != null && edgeCols != null && edgeRows.Length > 0 && edgeRows.Length == edgeCols.Length)
+            {
+                var edgePoints = new List<EdgeInspectionPoint>();
+                for (int i = 0; i < edgeRows.Length; i++)
+                {
+                    edgePoints.Add(new EdgeInspectionPoint { Row = edgeRows[i].D, Column = edgeCols[i].D });
+                }
+                overlays.Add(new EdgeInspectionOverlay
+                {
+                    RoiId = "FAI-Edge1", //  HalconDisplayService 녹/적 분기 + Action_FAIMeasurement -OK/-NG suffix
+                    LineRow1 = foundRow, LineColumn1 = foundCol, LineRow2 = foundRow, LineColumn2 = foundCol,
+                    Points = edgePoints
+                });
+            }
+
+            //260529 hbk CO-39.1-01 — (3) 검출 원 근사 (72 point cloud, 양 경로 공통) — 사용자 "원이 보이고" 요구 충족
+            if (foundRadius > 0)
+            {
+                const int circleSampleCount = 72;
+                var circlePoints = new List<EdgeInspectionPoint>();
+                for (int i = 0; i < circleSampleCount; i++)
+                {
+                    double t = (2.0 * System.Math.PI * i) / circleSampleCount;
+                    circlePoints.Add(new EdgeInspectionPoint {
+                        Row = foundRow - foundRadius * System.Math.Sin(t),
+                        Column = foundCol + foundRadius * System.Math.Cos(t)
+                    });
+                }
+                overlays.Add(new EdgeInspectionOverlay
+                {
+                    RoiId = "FAI-Edge1",
+                    LineRow1 = foundRow, LineColumn1 = foundCol, LineRow2 = foundRow, LineColumn2 = foundCol,
+                    Points = circlePoints
+                });
+            }
+
+            //260529 hbk CO-39.1-01 — (4) 지름 라인 (수평, 양 경로 공통) — FAI-DistLine 청록
+            if (foundRadius > 0)
+            {
+                overlays.Add(new EdgeInspectionOverlay
+                {
+                    RoiId = "FAI-DistLine",
+                    LineRow1 = foundRow, LineColumn1 = foundCol - foundRadius,
+                    LineRow2 = foundRow, LineColumn2 = foundCol + foundRadius,
+                    Points = new List<EdgeInspectionPoint>
+                    {
+                        new EdgeInspectionPoint { Row = foundRow, Column = foundCol - foundRadius },
+                        new EdgeInspectionPoint { Row = foundRow, Column = foundCol + foundRadius }
+                    }
+                });
+            }
         }
 
         //260529 hbk Phase 39.1 G2-04 — PropertyGrid 동적 노출. FAIConfig L267-296 패턴 동형.

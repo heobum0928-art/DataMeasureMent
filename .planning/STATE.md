@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
-stopped_at: Phase 39.1 context gathered (4 plan / 2 wave / 4 항목 UAT)
-last_updated: "2026-05-29T09:20:54.175Z"
-last_activity: 2026-05-29 -- Phase 39.1 execution started
+status: Phase 39.1 execution complete — SIMUL UAT pending (4 항목 lock — G1-04 sign-off)
+stopped_at: Phase 39.1 4/4 plan 실행 완료 (Wave 1 worktree, Wave 2/3 inline). SIMUL UAT 대기.
+last_updated: "2026-05-29T11:30:00.000Z"
+last_activity: 2026-05-29 — Phase 39.1 4 plan 실행 + 7 commits (3 feat + 4 docs/chore). SIMUL UAT 대기.
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
-  percent: 50
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 39.1 (inspection-urgent-fixes-2026-05-29) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 39.1
-Last activity: 2026-05-29 -- Phase 39.1 execution started
+Phase: 39.1 (inspection-urgent-fixes-2026-05-29) — EXECUTION COMPLETE, UAT PENDING
+Plan: 4/4 complete (39.1-01/02/03/04). Wave 1 worktree parallel (6344ac8 + 10e5520), Wave 2/3 inline (7c1ef70 + b1ecc17 + c9d42c1 + 792a2f4). msbuild Debug/x64 PASS 모두.
+Status: SIMUL UAT 대기 (4 항목 G1-04 sign-off — CircleDiameter polar / EdgeToLineDistance X축 / Inspection 결과 재현 6 타입 / Datum CTH Edit 모드 7 시나리오)
+Last activity: 2026-05-29 — Phase 39.1 inline 실행 마감. Wave 2 (39.1-03) executor 2회 실패 후 inline 전환, Wave 3 (39.1-04) inline 진행. MainResultViewerControl.SetInspectionOverlays 스코프 외 추가 (39.1-03 deviation, 13 라인 additive).
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -331,9 +331,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 39.1 context gathered (4 plan / 2 wave / 4 항목 UAT)
+Stopped at: Phase 39.1 4/4 plan 실행 완료 — SIMUL UAT 4 항목 lock 대기 (G1-04 sign-off)
 Resume file: --resume-file
-Next action: /gsd-plan-phase 40 (OUT-01/02 결과 분석 & Export) — v1.2 우선순위 1순위 남은 항목
+Next action: 사용자 SIMUL UAT (39.1-03 6 시나리오 + 39.1-04 7 시나리오 + 39.1-01/02 정적/사용자 검증 항목). UAT PASS 후 /gsd-plan-phase 40 (OUT-01/02 결과 분석 & Export).
 
 **v1.1 Phase Map:**
 

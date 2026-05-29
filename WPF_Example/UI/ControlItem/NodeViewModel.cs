@@ -236,6 +236,10 @@ namespace ReringProject.UI {
             if (newName != null && this.Node != null) {
                 this.Node.Name = newName;
                 RaisePropertyChanged("Name");
+                //260530 hbk Phase 39.2 D-G3-03 — Rename 후 부모 children 재정렬 (즉시 트리 정렬 갱신)
+                if (this.Parent != null) { //260530 hbk Phase 39.2 D-G3
+                    InspectionListViewModel.SortNodeChildren(this.Parent); //260530 hbk Phase 39.2 D-G3
+                }
             }
         }
 

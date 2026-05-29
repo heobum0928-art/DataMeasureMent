@@ -68,12 +68,17 @@ namespace ReringProject.Sequence {
         }
 
         //260409 hbk Phase 5: 종합 판정 + FAI별 결과 TCP 전송 (D-07)
+        //260529 hbk Phase 39 WF-02 D-03/D-05/D-06 — 3-state cycle hierarchy + FAIResults P/F/N 분기.
+        //  계층: 검출실패(NotExist 'N') > NG ('X') > OK ('O'). datum-skip 1건이라도 있으면 cycle = NotExist.
+        //  D-08: TestResultPacket 신규 필드 추가 안 함. FAIResults[i] 표현 레벨에서 끝남. wire 호환 100%.
+        //  D-10: EVisionResultType.NotExist (기존 v2.6 enum) 재사용. v2.7 ECycleResult 도입 안 함.
         protected override void AddResponse() {
             if (RequestPacket == null) return;
 
             var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
 
-            // 종합 판정: 모든 FAI가 Pass여야 OK
+            // 종합 판정: 3-state hierarchy (D-03)
+            bool anyDatumSkip = false; //260529 hbk Phase 39 WF-02 D-03 — fai.WasDatumSkipped 1건이라도 있으면 true → cycle=NotExist
             bool allPass = true;
             var responsePacket = new TestResultPacket {
                 Target = RequestPacket.Sender,
@@ -84,16 +89,36 @@ namespace ReringProject.Sequence {
 
             foreach (var shot in recipeManager.Shots) {
                 foreach (var fai in shot.FAIList) {
-                    if (!fai.IsPass) allPass = false;
-                    responsePacket.FAIResults.Add(new FAIResultData(
-                        fai.FAIName ?? "FAI",
-                        fai.IsPass,
-                        fai.MeasuredValue
-                    ));
+                    //260529 hbk Phase 39 WF-02 D-06 — FAIResults[i] 3-state (P/F/N) 분기.
+                    //  Plan 01: Action_FAIMeasurement 가 datum-skip 시 fai.WasDatumSkipped=true + IsPass=false 동시 설정.
+                    //  계층 우선순위: WasDatumSkipped → NotExist, !IsPass → NG, 그 외 → OK.
+                    EVisionResultType faiResultCode; //260529 hbk Phase 39 WF-02 D-06
+                    if (fai.WasDatumSkipped) //260529 hbk Phase 39 WF-02 D-06
+                    {
+                        faiResultCode = EVisionResultType.NotExist; //260529 hbk Phase 39 WF-02 D-06 — 'N'
+                        anyDatumSkip = true; //260529 hbk Phase 39 WF-02 D-03 — cycle aggregation
+                    }
+                    else if (!fai.IsPass) //260529 hbk Phase 39 WF-02 D-06
+                    {
+                        faiResultCode = EVisionResultType.NG; //260529 hbk Phase 39 WF-02 D-06 — 'F'
+                        allPass = false; //260529 hbk Phase 39 WF-02 D-06 — 기존 동작 보존
+                    }
+                    else //260529 hbk Phase 39 WF-02 D-06
+                    {
+                        faiResultCode = EVisionResultType.OK; //260529 hbk Phase 39 WF-02 D-06 — 'P'
+                    }
+                    responsePacket.FAIResults.Add(new FAIResultData( //260529 hbk Phase 39 WF-02 D-06 — Plan 02 Task 1 신규 ctor 호출
+                        fai.FAIName ?? "FAI", //260529 hbk Phase 39 WF-02 D-06
+                        faiResultCode, //260529 hbk Phase 39 WF-02 D-06
+                        fai.MeasuredValue //260529 hbk Phase 39 WF-02 D-06
+                    )); //260529 hbk Phase 39 WF-02 D-06
                 }
             }
 
-            responsePacket.Result = allPass ? EVisionResultType.OK : EVisionResultType.NG;
+            //260529 hbk Phase 39 WF-02 D-03/D-05 — cycle 계층 판정: 검출실패 > NG > OK.
+            if (anyDatumSkip) responsePacket.Result = EVisionResultType.NotExist; //260529 hbk Phase 39 WF-02 D-03/D-05 — 'N' (TestResultPacket.GetResultString 가 자동 매핑)
+            else if (!allPass) responsePacket.Result = EVisionResultType.NG; //260529 hbk Phase 39 WF-02 D-03 — 'X'
+            else responsePacket.Result = EVisionResultType.OK; //260529 hbk Phase 39 WF-02 D-03 — 'O'
             pMyContext.ResultInfo = responsePacket.Result;
 
             ResponseQueue.Enqueue(responsePacket);

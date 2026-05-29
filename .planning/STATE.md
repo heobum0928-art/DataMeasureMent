@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: Phase 39.1 SIGNED_OFF (4/4 UAT PASS, CO-39.1-01 hotfix 2 rev)
-stopped_at: Phase 39.1 4/4 plan + CO-39.1-01 hotfix rev2 완료. UAT 4/4 PASS.
+stopped_at: Phase 39.2 discuss 완료 — CONTEXT 6 결정 lock (commit f903a9d). 다음 /gsd-plan-phase 39.2.
 last_updated: "2026-05-29T12:00:00.000Z"
-last_activity: 2026-05-29 — Phase 39.1 SIGNED_OFF (4/4 UAT PASS). CO-39.1-01 rev2 sign-off (Strip preview Edit 모드 분리, X 마커 제거).
+last_activity: 2026-05-30 — Phase 39.2 discuss 완료 (CONTEXT 6 결정 lock + 12 deferred ideas). 다음 plan-phase.
 progress:
   total_phases: 2
   completed_phases: 1
@@ -331,9 +331,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 39.2 seed 캡처 + ROADMAP 갱신 (긴급 추가건2 4 항목)
+Stopped at: Phase 39.2 discuss 완료 — CONTEXT.md commit f903a9d (D-G1~G4, 6 결정 lock)
 Resume file: --resume-file
-Next action: /gsd-discuss-phase 39.2 (4 항목: Bottom E5 DualImage FAI / I10 close-point variant / Tree 정렬 / Tree 아이콘). Phase 40 (OUT-01/02) 는 39.2 후로 보류.
+Next action: /gsd-plan-phase 39.2 (CONTEXT 의 D-G1~G4 6 lock 기반 plan 생성). Phase 40 (OUT-01/02) 는 39.2 후로 보류.
 
 **v1.1 Phase Map:**
 

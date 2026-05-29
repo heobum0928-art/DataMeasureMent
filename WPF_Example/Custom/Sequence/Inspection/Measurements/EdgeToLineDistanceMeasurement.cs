@@ -148,19 +148,42 @@ namespace ReringProject.Sequence
             bool footOk = false; //260517 hbk l5e-03
             if (datumOriginInjected) //260517 hbk l5e-03 — 정상 경로: projection_pl 로 datum 기준선까지 수직거리
             {
+                //260529 hbk Phase 39.1-02 G3-02 — measureX 만 DatumAngle2Rad 사용 (실 datum 수직 기준선 각도). measureY 는 DatumAngleRad 유지 (회귀 0).
+                //  근본 원인 (D-G3-01): 기존 코드는 DatumAngleRad+90° 가정 — DetectedRefAngle2 ≠ DetectedRefAngle+90° 일 때 정사영 오차.
+                //  폴백 (D-G3-04): DatumAngle2Rad==0 (TLI Datum 등 2차 기준선 미주입) 시 기존 로직 유지 → TLI 회귀 0.
                 bool measureX = (MeasureAxis == "X"); //260517 hbk l5e-03 — null/""/"Y" → false (레거시 INI·미설정 안전)
-                double sinT = System.Math.Sin(DatumAngleRad); //260517 hbk l5e-03
-                double cosT = System.Math.Cos(DatumAngleRad); //260517 hbk l5e-03
+                bool useAngle2 = measureX && (DatumAngle2Rad != 0.0); //260529 hbk Phase 39.1-02 G3-02/G3-04
+                double angleSrc; //260529 hbk Phase 39.1-02 G3-02
+                if (useAngle2)
+                {
+                    angleSrc = DatumAngle2Rad; //260529 hbk Phase 39.1-02 G3-02 — 실 수직 기준선
+                }
+                else
+                {
+                    angleSrc = DatumAngleRad; //260529 hbk Phase 39.1-02 G3-04 — 1차 수평선 (회귀 0)
+                }
+                double sinT = System.Math.Sin(angleSrc); //260517 hbk l5e-03 //260529 hbk Phase 39.1-02 G3-02
+                double cosT = System.Math.Cos(angleSrc); //260517 hbk l5e-03 //260529 hbk Phase 39.1-02 G3-02
                 if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } //260517 hbk l5e-03 — Atan2 방향(좌→우/우→좌) 무관 부호 일관성: datum x축 cosθ≥0 정규화
                 double axisR1, axisC1, axisR2, axisC2; //260517 hbk l5e-03 — projection_pl 대상 직선의 2점 (교점 ±200px, 길이는 직선 정의에 무관)
-                if (measureX) //260517 hbk l5e-03 — datum 수직선(y축): 방향벡터 (cosθ,-sinθ), 각도 θ+90°
+                if (measureX) //260517 hbk l5e-03 — datum 수직선(y축)
                 {
-                    axisR1 = DatumOriginRow - 200.0 * cosT; //260517 hbk l5e-03
-                    axisC1 = DatumOriginCol + 200.0 * sinT; //260517 hbk l5e-03
-                    axisR2 = DatumOriginRow + 200.0 * cosT; //260517 hbk l5e-03
-                    axisC2 = DatumOriginCol - 200.0 * sinT; //260517 hbk l5e-03
+                    if (useAngle2) //260529 hbk Phase 39.1-02 G3-02 — 실 수직 기준선: 방향벡터 (sinθ2,cosθ2) — measureY 와 같은 공식 (각도만 θ→θ2)
+                    {
+                        axisR1 = DatumOriginRow - 200.0 * sinT; //260529 hbk Phase 39.1-02 G3-02
+                        axisC1 = DatumOriginCol - 200.0 * cosT; //260529 hbk Phase 39.1-02 G3-02
+                        axisR2 = DatumOriginRow + 200.0 * sinT; //260529 hbk Phase 39.1-02 G3-02
+                        axisC2 = DatumOriginCol + 200.0 * cosT; //260529 hbk Phase 39.1-02 G3-02
+                    }
+                    else //260529 hbk Phase 39.1-02 G3-04 — 폴백: 기존 가상 수직선 (DatumAngleRad+90° 가정)
+                    {
+                        axisR1 = DatumOriginRow - 200.0 * cosT; //260517 hbk l5e-03
+                        axisC1 = DatumOriginCol + 200.0 * sinT; //260517 hbk l5e-03
+                        axisR2 = DatumOriginRow + 200.0 * cosT; //260517 hbk l5e-03
+                        axisC2 = DatumOriginCol - 200.0 * sinT; //260517 hbk l5e-03
+                    }
                 }
-                else //260517 hbk l5e-03 — datum 수평선(x축): 방향벡터 (sinθ,cosθ), 각도 θ
+                else //260517 hbk l5e-03 — datum 수평선(x축): 방향벡터 (sinθ,cosθ), 각도 θ (변경 0)
                 {
                     axisR1 = DatumOriginRow - 200.0 * sinT; //260517 hbk l5e-03
                     axisC1 = DatumOriginCol - 200.0 * cosT; //260517 hbk l5e-03
@@ -180,11 +203,18 @@ namespace ReringProject.Sequence
                     // projection 실패 시 foot=에지점 유지 → 측정값 0, FAI-DistLine skip //260517 hbk l5e-03
                 }
                 double signedPx; //260517 hbk l5e-03 — 수선의 발→에지점 변위의 부호 있는 거리 성분
-                if (measureX) //260517 hbk l5e-03 — +X 오른쪽 양수: datum x축 방향 (sinθ,cosθ) 성분
+                if (measureX) //260517 hbk l5e-03 — +X 오른쪽 양수
                 {
-                    signedPx = (pRow - footRow) * sinT + (pCol - footCol) * cosT; //260517 hbk l5e-03
+                    if (useAngle2) //260529 hbk Phase 39.1-02 G3-02 — axis (sinθ2,cosθ2) 의 우측 법선 (cosθ2,-sinθ2)
+                    {
+                        signedPx = (pRow - footRow) * cosT - (pCol - footCol) * sinT; //260529 hbk Phase 39.1-02 G3-02
+                    }
+                    else //260529 hbk Phase 39.1-02 G3-04 — 폴백: 기존 (sinθ, cosθ) 공식 (datum x축 방향 성분)
+                    {
+                        signedPx = (pRow - footRow) * sinT + (pCol - footCol) * cosT; //260517 hbk l5e-03
+                    }
                 }
-                else //260517 hbk l5e-03 — +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
+                else //260517 hbk l5e-03 — +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분 (변경 0)
                 {
                     signedPx = (pRow - footRow) * (-cosT) + (pCol - footCol) * sinT; //260517 hbk l5e-03
                 }

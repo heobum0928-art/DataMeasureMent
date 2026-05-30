@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing — Phase 39.2 4/5 plans complete (39.2-05 SIMUL UAT pending user)
-stopped_at: Phase 39.2 Wave 1+2 코드 plans 4 완료, Plan 05 사용자 SIMUL UAT 대기
-last_updated: "2026-05-30T11:00:00.000Z"
-last_activity: 2026-05-30 — Phase 39.2 Wave 1 (39.2-01/02/05 코드 portion) + Wave 2 (39.2-03/04) 완료. msbuild Debug/x64 PASS. 다음 = 사용자 SIMUL UAT (Plan 05)
+status: PARTIAL_SIGNED_OFF — Phase 39.2 partial sign-off 2026-05-30 (3 PASS / 1 carry-over → 39.3 / 1 skipped). 2 hotfix 적용.
+stopped_at: Phase 39.2 partial sign-off + Phase 39.3 신설 seed (DualImage FAI 재설계)
+last_updated: "2026-05-30T12:00:00.000Z"
+last_activity: 2026-05-30 — Phase 39.2 PARTIAL_SIGNED_OFF (D-G2/G3/G4 PASS, D-G1 carry-over → 39.3 신설). hotfix df6f711 (트리 아이콘) + 74f608b (Move ▲▼). 다음 = Phase 39.3 신설 (DualImage FAI Side 패턴 차용).
 progress:
   total_phases: 3
   completed_phases: 2
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 39.2 (urgent-additions-2-2026-05-30) — EXECUTING (4/5 코드 plans complete)
-Plan: 4 of 5 complete (39.2-01/02/03/04 코드 + SUMMARY 모두 commit). Plan 05 UAT scenarios 작성 + commit 완료 (Task 1), 사용자 SIMUL UAT (Task 2) 대기.
-Status: Executing Phase 39.2 — Wave 1/2 코드 portion DONE, awaiting user SIMUL_MODE UAT for sign-off
-Last activity: 2026-05-30 — Plan 04 (D-G4 Geometry icons) 완료 commit 11871e9. msbuild Debug/x64 PASS, 0 새 에러/경고. 다음 = 사용자 39.2-UAT.md 5 시나리오 SIMUL 검증 + frontmatter signed_off 갱신.
+Phase: 39.2 (urgent-additions-2-2026-05-30) — PARTIAL_SIGNED_OFF (2026-05-30)
+Plan: 5/5 코드 portion complete. UAT 3 PASS (D-G2 I10 / D-G3 Move ▲▼ hotfix / D-G4 트리 아이콘 hotfix) + 1 carry-over (D-G1 DualImage FAI → Phase 39.3) + 1 skipped (Test 5 회귀).
+Status: PARTIAL_SIGNED_OFF — hotfix df6f711 (트리 아이콘 App.xaml 이동) + 74f608b (자동정렬 → Move ▲▼)
+Last activity: 2026-05-30 — Phase 39.2 partial sign-off. 다음 = Phase 39.3 신설 (DualImage FAI Side 패턴 차용 재설계).
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

@@ -80,14 +80,34 @@
   - Item #3: Shot 생성 순서 무관 자연정렬 표시 + Rename 시 즉시 재정렬 + ParamBase INI 순서 변경 0
   - Item #4: FAI vs Measurement 아이콘 시각 차별 + Measurement TypeName 별 아이콘 다름 + 노드 텍스트 변경 0
 
-- [ ] **Phase 39.2: 긴급 추가건2** — DualImage FAI + I10 close-point + Tree 정렬 + Tree 아이콘 (WF-01)
-  - Success: 4 항목 SIMUL UAT PASS + Phase 28/31/36/37/39/39.1 회귀 0
+- [~] **Phase 39.2: 긴급 추가건2** — DualImage FAI + I10 close-point + Tree 정렬 + Tree 아이콘 (WF-01) — **PARTIAL_SIGNED_OFF 2026-05-30** (3 PASS / 1 carry-over / 1 skipped, 2 hotfix)
+  - Success: 4 항목 SIMUL UAT 중 D-G2 / D-G3(hotfix) / D-G4(hotfix) PASS, D-G1 → Phase 39.3 이연
   - **Plans:** 5 plans (3 waves)
-    - [x] 39.2-01-PLAN.md — D-G1 DualImageEdgeDistanceMeasurement 신규 + MeasurementFactory 등록 + Action_FAIMeasurement helper [Wave 1, algorithm]
-    - [x] 39.2-02-PLAN.md — D-G2 ArcLineIntersect IntersectionPointSelection Far/Close 분기 [Wave 1, algorithm]
-    - [x] 39.2-03-PLAN.md — D-G3 NaturalStringComparer + InspectionListViewModel Sort 헬퍼 + Rename hook [Wave 2, UI]
-    - [x] 39.2-04-PLAN.md — D-G4 Node IconKey + IconKeyToGeometryConverter + InspectionListView.xaml Geometry 18 종 [Wave 2, UI]
-    - [ ] 39.2-05-PLAN.md — SIMUL UAT 4 시나리오 + 회귀 1 + sign-off [Wave 3, awaits user UAT]
+    - [x] 39.2-01-PLAN.md — D-G1 DualImageEdgeDistanceMeasurement 신규 (코드 OK, UAT FAIL — RectROI 비활성 + 가로/세로 이미지 2슬롯 UX 미적용 → CO-39.2-01-01 → Phase 39.3 신설)
+    - [x] 39.2-02-PLAN.md — D-G2 ArcLineIntersect IntersectionPointSelection Far/Close (UAT PASS)
+    - [x] 39.2-03-PLAN.md — D-G3 Tree 정렬 (자동정렬 → 사용자 Move ▲▼ 재설계, hotfix 74f608b, UAT PASS)
+    - [x] 39.2-04-PLAN.md — D-G4 Tree Geometry 아이콘 18 종 (App.xaml 이동 hotfix df6f711, UAT PASS)
+    - [x] 39.2-05-PLAN.md — SIMUL UAT 결과 기록 + partial sign-off (3 PASS / 1 carry-over / 1 skipped)
+
+### Phase 39.3: DualImage FAI UX 재설계 (신설 2026-05-30 — CO-39.2-01-01 carry-over)
+**Goal**: Phase 39.2 D-G1 (Bottom E5 DualImage FAI) UAT FAIL 후속 — `DualImageEdgeDistanceMeasurement` 의 측정 알고리즘은 유지, UI/UX 를 Side Datum DualImage 패턴 (가로/세로 버튼 + 이미지 2 슬롯 + RectROI 2개 활성) 으로 재설계.
+**Depends on**: Phase 39.2 (partial signed_off — 39.2-01 코드 baseline 유지)
+**Requirements**: WF-01 (FAI 측정 확장 UX)
+**Scope (seed — discuss-phase 에서 lock):**
+  - DualImage 측정 입력 UI 가 기존 Side Datum DualImage (Phase 34.1 / 37) UX 와 동일하게 동작 (가로/세로 이미지 슬롯 + 2 RectROI 셋팅 + 슬롯 swap)
+  - RectROI drawable attribute 가 PropertyGrid 에서 활성화 (현재 비활성 원인 분석 → 39.2-01 Plan 의 attribute / interface 누락 보완)
+  - 측정 알고리즘 변경 0 (projection_pl 거리, PointROI/LineROI 처리, IDatumOriginConsumer 보존)
+  - INI 회귀 0 (39.2-01 sign-off baseline 유지)
+  - Datum DualImage (Phase 36/37) / FAI 기존 10 타입 / Phase 39.1 회귀 0
+**Success Criteria (UAT)**:
+  - Bottom E5 DualImage FAI Measurement Type 선택 → 가로/세로 이미지 슬롯 노출 + 양 슬롯 별도 ROI 셋팅 가능
+  - 양 ROI 모두 RectROI drawable + edit 모드 정상 동작
+  - 측정 결과 (mm) 가 Phase 39.2-01 코드 baseline 과 동일 알고리즘으로 산출
+  - Datum DualImage / 기존 FAI / 39.1 회귀 0
+
+- [ ] **Phase 39.3: DualImage FAI UX 재설계** — Side Datum DualImage 패턴 차용 + RectROI 활성화 (WF-01, CO-39.2-01-01)
+  - Success: Bottom E5 DualImage FAI UAT PASS + 측정 알고리즘 변경 0 + Datum/기존 FAI 회귀 0
+  - **Plans:** TBD (discuss-phase 에서 lock)
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)
@@ -131,7 +151,8 @@
 |------|-------|------|---------|--------|-------|------|
 | 1 | 39 | 검사 워크플로우 E2E | WF-01, WF-02 | SIGNED_OFF | 4 | 2026-05-29 |
 | 1 | 39.1 | 검사 워크플로우 긴급 fixes | WF-01 | SIGNED_OFF | 4 | 2026-05-29 |
-| 1 | 39.2 | 긴급 추가건2 (DualImage+I10+Tree) | WF-01 | Planned | 5 | 2026-05-30 |
+| 1 | 39.2 | 긴급 추가건2 (DualImage+I10+Tree) | WF-01 | PARTIAL_SIGNED_OFF | 5 | 2026-05-30 |
+| 1 | 39.3 | DualImage FAI UX 재설계 (CO-39.2-01-01) | WF-01 | Seed | TBD | 2026-05-30 |
 | 1 | 40 | Export I (리뷰어+1회) | OUT-01, OUT-02 | Not started | TBD | — |
 | 1 | 41 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
 | 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | Not started | TBD | — |
@@ -155,4 +176,4 @@
 
 ---
 
-*Last updated: 2026-05-30 — Phase 39.2 planned (5 plans, 3 waves). Phase 39.1 SIGNED_OFF 동기화.*
+*Last updated: 2026-05-30 — Phase 39.2 PARTIAL_SIGNED_OFF (3 PASS / 1 carry-over / 1 skipped, 2 hotfix). Phase 39.3 seed 신설 (CO-39.2-01-01 → DualImage FAI UX 재설계).*

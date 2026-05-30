@@ -1338,6 +1338,25 @@ namespace ReringProject.UI {
         //260527 hbk Phase 34.1 D-34.1-02 — 가로축 토글 버튼 Click. 가로축 이미지로 swap + 배지/ROI 갱신.
         //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체 (teach 모드 진입 전에도 동작).
         private void BtnSwapHorizontal_Click(object sender, RoutedEventArgs e) {
+            //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 가 Datum 보다 우선 (mutex)
+            {
+                var meas = _selectedDualImageMeasurement; //260530 hbk Phase 39.3 D-G2
+                if (meas != null) {
+                    FAIConfig fai = FindFAIContainingMeasurement(meas); //260530 hbk Phase 39.3 D-G2 — 기존 helper (Phase 37 hotfix A/B)
+                    ShotConfig shot = fai != null ? fai.Owner as ShotConfig : null; //260530 hbk Phase 39.3 D-G2
+                    if (shot != null && shot.HasImage) { //260530 hbk Phase 39.3 D-G2
+                        HImage img = null;
+                        try {
+                            img = shot.GetImage();
+                            if (img != null) halconViewer.LoadImage(img); //260530 hbk Phase 39.3 D-G2
+                        }
+                        catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                        finally { if (img != null) img.Dispose(); }
+                    }
+                    UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260530 hbk Phase 39.3 D-G2
+                    return; //260530 hbk Phase 39.3 D-G2 — Measurement 경로 종결, Datum 코드 진입 X
+                }
+            }
             var d = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
             if (d == null) return;
             if (d.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09 — DualImage 외 케이스 가드
@@ -1354,6 +1373,20 @@ namespace ReringProject.UI {
         //260527 hbk Phase 34.1 D-34.1-02 — 세로축 토글 버튼 Click. 세로축 이미지로 swap + 배지/ROI 갱신.
         //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체.
         private void BtnSwapVertical_Click(object sender, RoutedEventArgs e) {
+            //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 가 Datum 보다 우선 (mutex)
+            {
+                var meas = _selectedDualImageMeasurement; //260530 hbk Phase 39.3 D-G2
+                if (meas != null) {
+                    //260530 hbk Phase 39.3 D-G2 — Rule 1 auto-fix: outer scope (L1392 Datum 분기) 의 'vpath' 와 충돌 회피 → vpathMeas 로 명명.
+                    string vpathMeas = meas.TeachingImagePath_Vertical; //260530 hbk Phase 39.3 D-G2 — Measurement 필드
+                    if (!string.IsNullOrEmpty(vpathMeas) && System.IO.File.Exists(vpathMeas)) {
+                        try { halconViewer.LoadImage(vpathMeas); } //260530 hbk Phase 39.3 D-G2
+                        catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                    }
+                    UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260530 hbk Phase 39.3 D-G2
+                    return; //260530 hbk Phase 39.3 D-G2 — Measurement 경로 종결
+                }
+            }
             var d = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
             if (d == null) return;
             if (d.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 39.4-01-PLAN.md — TeachingImagePath_Horizontal 신규 필드 + 한글 DisplayName 양측 (D-G1+D-G3)
-last_updated: "2026-05-30T14:34:45.080Z"
+stopped_at: Completed 39.4-02-PLAN.md — TryGrabOrLoadFaiDualImages pathA D-G1 fallback if/else (484819e)
+last_updated: "2026-05-30T14:40:08.334Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 21
-  completed_plans: 18
-  percent: 86
+  completed_plans: 19
+  percent: 90
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 39.4 (bottom-dualimage-manual-swap-2026-05-30) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-05-30
 
@@ -126,6 +126,7 @@ Last activity: 2026-05-30
 | Phase 39.3 P03 | 2 | 1 tasks | 1 files |
 | Phase 39.3 P02 | 5 | 5 tasks | 2 files |
 | Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P01 | 111 | 1 tasks | 1 files |
+| Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P02 | 360 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -239,6 +240,7 @@ Recent decisions affecting current work:
 - [Phase 39.4 discuss 완료 2026-05-30, commit 8f85eba]: 4 결정 lock — (D-G1) Fallback 정책 = ShotConfig fallback (회귀 0, INI 자동 호환, ternary 한 줄) / (D-G2) Datum DualImage 일관화 = 별도 후속 phase 이관 (회귀 표면 격리, 39.4 = Measurement 만 집중) / (D-G3) PropertyGrid 라벨 = [DisplayName("가로축 티칭 이미지")] + [Category("Image|DualImage")] 조합 (PropertyTools 3.1.0 namespace 검증 plan-phase 에서 lock, fallback = [Description] tooltip) / (D-G4) Swap UX 하이라이트 = 배지 라벨에 소스 명시 ("가로축 (Measurement)" vs "가로축 (Shot fallback)"). Plan 구조 estimated 4 plans / 3 waves. 다음 = /gsd-plan-phase 39.4.
 - D-G1 fallback 정책: TeachingImagePath_Horizontal 미설정 시 ShotConfig.SimulImagePath fallback (INI 회귀 0)
 - D-G3 PropertyGrid 라벨: PropertyTools.DataAnnotations.DisplayName 확정 — 가로축/세로축 한글 라벨 양측 Browse 버튼 노출
+- D-G1 fallback 정책: TeachingImagePath_Horizontal 명시+존재 → 명시 경로, 아니면 ShotParam.SimulImagePath (Phase 39.2 baseline 회귀 0)
 
 ### Quick Tasks Completed
 
@@ -343,8 +345,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-05-30T14:34:45.071Z
-Stopped at: Completed 39.4-01-PLAN.md — TeachingImagePath_Horizontal 신규 필드 + 한글 DisplayName 양측 (D-G1+D-G3)
+Last session: 2026-05-30T14:40:08.323Z
+Stopped at: Completed 39.4-02-PLAN.md — TryGrabOrLoadFaiDualImages pathA D-G1 fallback if/else (484819e)
 Resume file: None
 Next action: /gsd-execute-phase 39.4 (4 plans / 3 waves 실행. Plan 04 = checkpoint blocking — 사용자 SIMUL UAT 4 Test + 회귀 Verify A/B/D/E + INI 호환).
 

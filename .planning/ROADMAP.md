@@ -105,13 +105,35 @@
   - 측정 결과 (mm) 가 Phase 39.2-01 코드 baseline 과 동일 알고리즘으로 산출
   - Datum DualImage / 기존 FAI / 39.1 회귀 0
 
-- [ ] **Phase 39.3: DualImage FAI UX 재설계** — Side Datum DualImage 패턴 차용 + RectROI 활성화 (WF-01, CO-39.2-01-01)
-  - Success: Bottom E5 DualImage FAI UAT PASS + 측정 알고리즘 변경 0 + Datum/기존 FAI 회귀 0
+- [~] **Phase 39.3: DualImage FAI UX 재설계** — Side Datum DualImage 패턴 차용 + RectROI 활성화 (WF-01, CO-39.2-01-01) — **PARTIAL_SIGNED_OFF 2026-05-30** (Test 1-3 PASS + 회귀 C PASS / Test 4 + 회귀 A/B/D/E NOT_TESTED → Phase 39.4 흡수)
+  - Success: Bottom E5 DualImage FAI UAT 동작 확인 (CO-39.2-01-01 종결) + 측정 알고리즘 변경 0 + Anti-Goal 10/10 ✅
+  - **Carry-over:** CO-39.3-01 (DualImage Shot 이미지 점유 → 작업자 인지 혼동) → Phase 39.4
   - **Plans:** 4 plans (3 waves)
-    - [ ] 39.3-01-PLAN.md — RectROI 활성화 baseline: isRectRoiType + FindSelectedRectMeasurement + CommitRectRoi + BuildPointRoiDefinitions 4 분기 (D-G1 + D-G5) [Wave 1]
-    - [ ] 39.3-02-PLAN.md — Swap UX wiring: _selectedDualImageMeasurement mutex + PublishMeasurementDualImageSelection + BtnSwap*_Click Measurement 우선순위 + UpdateImageSourceBadge publish (D-G2, Datum DualImage 패턴 차용) [Wave 2]
-    - [ ] 39.3-03-PLAN.md — TeachingImagePath_Vertical [InputFilePath] + [AutoUpdateText] Browse 버튼 (D-G3) [Wave 1, Plan 01 과 다른 파일]
-    - [ ] 39.3-04-PLAN.md — SIMUL UAT 4 시나리오 + 회귀 1 + sign-off (Anti-Goal 10항 자동 검증) [Wave 3]
+    - [x] 39.3-01-PLAN.md — RectROI 활성화 baseline: isRectRoiType + FindSelectedRectMeasurement + CommitRectRoi + BuildPointRoiDefinitions 4 분기 (D-G1 + D-G5) [Wave 1]
+    - [x] 39.3-02-PLAN.md — Swap UX wiring: _selectedDualImageMeasurement mutex + PublishMeasurementDualImageSelection + BtnSwap*_Click Measurement 우선순위 + UpdateImageSourceBadge publish (D-G2, Datum DualImage 패턴 차용) [Wave 2]
+    - [x] 39.3-03-PLAN.md — TeachingImagePath_Vertical [InputFilePath] + [AutoUpdateText] Browse 버튼 (D-G3) [Wave 1, Plan 01 과 다른 파일]
+    - [x] 39.3-04-PLAN.md — SIMUL UAT (partial sign-off 2026-05-30, Test 4 + 회귀 → Phase 39.4 흡수)
+
+### Phase 39.4: Bottom DualImage 수동 Swap UX 재설계 (신설 2026-05-30 — CO-39.3-01 carry-over)
+**Goal**: Phase 39.3 Test 2 (Swap UX) PASS 후 사용자 발견 결함 — Shot 이미지가 공통 자원인데 DualImage Measurement 의 "가로축 티칭 이미지" 로 단독 점유되어 작업자 인지 혼동 발생. DualImage 가로/세로 양측 모두 Measurement 단위 명시 경로 (`TeachingImagePath_Horizontal` 신규 + 기존 `TeachingImagePath_Vertical` 유지) 로 재설계 + Datum DualImage (Phase 22 IMG-01 / Phase 37) 패턴 일관화.
+**Depends on**: Phase 39.3 (PARTIAL_SIGNED_OFF)
+**Requirements**: WF-01
+**Scope (estimated, discuss-phase 에서 lock):**
+  - DualImageEdgeDistanceMeasurement.TeachingImagePath_Horizontal 신규 필드 + [InputFilePath] + [AutoUpdateText] (Plan 39.3-03 mirror)
+  - Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 분기 교체 (RuntimeImageA 소스 = meas.TeachingImagePath_Horizontal, fallback = ShotConfig 이미지)
+  - MainView.BtnSwapHorizontal_Click Measurement 분기 교체 (가로축 = meas.TeachingImagePath_Horizontal 로드, fallback = ShotConfig)
+  - PropertyGrid 가로/세로 셀 라벨 명시 + Browse 버튼 둘 다 노출
+  - **39.3 D-G4 anti-goal ("Action_FAIMeasurement 본문 변경 0") 은 39.4 의 새 contract 로 해제**
+**Success Criteria (UAT)**:
+  - DualImage Measurement PropertyGrid 에 가로/세로 Browse 버튼 둘 다 노출 + 라벨 명시
+  - Horizontal swap 시 meas.TeachingImagePath_Horizontal 이미지 로드 (fallback = ShotConfig)
+  - Vertical swap 시 meas.TeachingImagePath_Vertical 이미지 로드 (39.3 baseline)
+  - 측정값 byte-identical (39.2-01 baseline)
+  - 회귀 0: Datum DualImage / 기존 7 Measurement / Phase 39.1~39.3 D-G1/G2/G5
+
+- [ ] **Phase 39.4: Bottom DualImage 수동 Swap UX 재설계** — DualImage 양측 명시 경로 + Datum 패턴 일관화 (WF-01, CO-39.3-01)
+  - Success: DualImage 가로/세로 양측 명시 경로 + 측정값 byte-identical + Datum/기존 FAI/Phase 39.1~39.3 회귀 0
+  - **Plans:** TBD (discuss-phase 에서 lock — seed CONTEXT.md 작성 완료)
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)

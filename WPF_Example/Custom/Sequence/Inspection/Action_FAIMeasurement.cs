@@ -400,7 +400,14 @@ namespace ReringProject.Sequence {
                 Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] meas 가 DualImageEdgeDistanceMeasurement 가 아닙니다"); //260530 hbk Phase 39.2 D-G1-06
                 return false; //260530 hbk Phase 39.2 D-G1-06
             }
-            string pathA = ShotParam.SimulImagePath; //260530 hbk Phase 39.2 D-G1-06 — PointROI 이미지 = Shot baseline
+            //260530 hbk Phase 39.4 D-G1 — PointROI 이미지 = Measurement 명시 경로 우선, 빈/파일 부재 시 ShotConfig.SimulImagePath fallback (Phase 39.2 baseline 회귀 0). ternary 회피 (RESEARCH R3 — 명시적 if/else 로 회귀 표면 최소화).
+            string pathA;
+            if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal)) { //260530 hbk Phase 39.4 D-G1
+                pathA = dualMeas.TeachingImagePath_Horizontal; //260530 hbk Phase 39.4 D-G1 — Measurement 명시 경로
+            }
+            else {
+                pathA = ShotParam.SimulImagePath; //260530 hbk Phase 39.4 D-G1 — fallback (Phase 39.2 baseline)
+            }
             string pathB = dualMeas.TeachingImagePath_Vertical; //260530 hbk Phase 39.2 D-G1-06 — LineROI 이미지 = meas 별도 경로
 
             if (string.IsNullOrEmpty(pathA) || !File.Exists(pathA)) { //260530 hbk Phase 39.2 D-G1-06

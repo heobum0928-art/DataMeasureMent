@@ -387,6 +387,30 @@ namespace ReringProject.UI {
                 return result; //260521 hbk Phase 32 I9/I10-redesign — 나머지 타입 분기 통과 불필요
             }
 
+            //260530 hbk Phase 39.3 D-G1 — DualImage: PointROI + LineROI 2개 독립 RoiDefinition (ArcLineIntersect 패턴 차용, RoiId suffix "_Point"/"_Line", HighlightSelectedRoi fallback 호환)
+            var dual = m as DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.3 D-G1
+            if (dual != null) { //260530 hbk Phase 39.3 D-G1
+                if (dual.PointROI_Length1 > 0 && dual.PointROI_Length2 > 0) { //260530 hbk Phase 39.3 D-G1
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_Point", //260530 hbk Phase 39.3 D-G1 — SP-5 RoiId suffix
+                        Name = measName + "_Point",
+                        Row1 = dual.PointROI_Row - dual.PointROI_Length1, Column1 = dual.PointROI_Col - dual.PointROI_Length2,
+                        Row2 = dual.PointROI_Row + dual.PointROI_Length1, Column2 = dual.PointROI_Col + dual.PointROI_Length2,
+                        IsTaught = true
+                    });
+                }
+                if (dual.LineROI_Length1 > 0 && dual.LineROI_Length2 > 0) { //260530 hbk Phase 39.3 D-G1
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_Line", //260530 hbk Phase 39.3 D-G1
+                        Name = measName + "_Line",
+                        Row1 = dual.LineROI_Row - dual.LineROI_Length1, Column1 = dual.LineROI_Col - dual.LineROI_Length2,
+                        Row2 = dual.LineROI_Row + dual.LineROI_Length1, Column2 = dual.LineROI_Col + dual.LineROI_Length2,
+                        IsTaught = true
+                    });
+                }
+                return result; //260530 hbk Phase 39.3 D-G1 — ArcLineIntersect 와 동일하게 조기 종료 (단일 RoiDefinition 분기 건너뜀)
+            }
+
             double pRow = 0, pCol = 0, pLen1 = 0, pLen2 = 0;
             var etld = m as EdgeToLineDistanceMeasurement;
             if (etld != null) { pRow = etld.Point_Row; pCol = etld.Point_Col; pLen1 = etld.Point_Length1; pLen2 = etld.Point_Length2; }

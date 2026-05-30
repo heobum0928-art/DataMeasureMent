@@ -1328,11 +1328,14 @@ namespace ReringProject.UI {
                 && datumForRoi.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34.1 D-34.1-10
                 PublishDatumRoiCandidates(datumForRoi); //260527 hbk Phase 34.1 — DualImage 분기가 _currentImageSource 참조하여 subset 만 publish
             }
-            //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 선택 시 RenderInspectionResultForNode 재호출 (Datum 와 동일 컨셉, mutex 가 있어 둘 다 fire X).
-            //  Warning #5 grep lock-in: RenderInspectionResultForNode(ParamBase param) 정확 메서드명 확인 (MainView.xaml.cs:206 정의, Phase 39.1-03 G4-01 도입).
-            //  DualImageEdgeDistanceMeasurement : MeasurementBase : ParamBase → 시그니처 호환.
+            //260531 hbk Phase 39.4 CO-39.4-01 hotfix — 기존 RenderInspectionResultForNode 호출은 DisplayMeasurementImage → DisplayShotImage 경유로 swap 결과(가로/세로 명시 이미지)를 Shot 이미지로 덮어씌우는 회귀.
+            //  명시 이미지는 BtnSwap*_Click 가 이미 halconViewer.LoadImage 로 적용 완료 → DisplayMeasurementImage 제외, ROI 하이라이트 + overlay 재 렌더 + circle preview 만 호출 (RenderInspectionResultForNode 의 Measurement 분기에서 #2/#3/#4 만 발췌).
+            //  초기 노드 선택 시 full render(이미지 로드 포함)는 InspectionListView L522 의 RenderInspectionResultForNode(meas) 가 담당 → 본 분기에서 재호출 시 회귀 0.
+            //  mutex: PublishDatumRoiCandidates 가 Datum 선택 시 _selectedDualImageMeasurement = null 로 clear → Datum 분기에서 본 블록 진입 X (Phase 39.3 D-G2 baseline 보존).
             if (_selectedDualImageMeasurement != null) {
-                RenderInspectionResultForNode(_selectedDualImageMeasurement); //260530 hbk Phase 39.3 D-G2
+                HighlightSelectedRoi(_selectedDualImageMeasurement); //260531 hbk Phase 39.4 CO-39.4-01 — Phase 39.3 D-G2 의 ROI 하이라이트 컨셉 보존
+                RenderStoredOverlaysForMeasurement(_selectedDualImageMeasurement); //260531 hbk Phase 39.4 CO-39.4-01 — overlay 재 렌더
+                UpdateFaiCirclePreview(_selectedDualImageMeasurement); //260531 hbk Phase 39.4 CO-39.4-01 — strip preview 갱신
             }
         }
 

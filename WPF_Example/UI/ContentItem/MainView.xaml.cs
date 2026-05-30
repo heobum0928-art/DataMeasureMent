@@ -1373,6 +1373,11 @@ namespace ReringProject.UI {
             //260425 hbk Phase 13 D-VIZ-06 — selection 시점에 reference 좌표 라벨도 동기 갱신
             UpdateDatumRefCoordsLabel(datum);
 
+            //260530 hbk Phase 39.3 D-G2 — mutex: Datum 노드 선택 시 Measurement clear (Risk R1 회피, PublishMeasurementDualImageSelection 와 대칭)
+            if (datum != null && _selectedDualImageMeasurement != null) {
+                _selectedDualImageMeasurement = null; //260530 hbk Phase 39.3 D-G2
+            }
+
             //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A/B — datum reference 캐싱 + AlgorithmType PropertyChanged 구독.
             //  swap 토글 핸들러가 teach 모드 전에도 동작하려면 별도 reference 필요 (_editingDatum 은 Teach Datum 클릭 시에만 set).
             //  AlgorithmType 이 PropertyGrid 에서 변경되면 PropertyChanged 가 fire → 본 메서드 재귀 호출 → Visibility 즉시 갱신.

@@ -1656,6 +1656,19 @@ namespace ReringProject.UI {
                     if (cCenterB != null) { cCenterB.Rect_Row = mCenterRow; cCenterB.Rect_Col = mCenterCol; cCenterB.Rect_Phi = 0.0; cCenterB.Rect_Length1 = mHalfHeight; cCenterB.Rect_Length2 = mHalfWidth; }
                     var cShort = _editingMeasurement as CompoundShortAxisDistanceMeasurement; //260523 hbk Phase 32 — E3 단축 환원
                     if (cShort != null) { cShort.Rect_Row = mCenterRow; cShort.Rect_Col = mCenterCol; cShort.Rect_Phi = 0.0; cShort.Rect_Length1 = mHalfHeight; cShort.Rect_Length2 = mHalfWidth; }
+                    //260530 hbk Phase 39.3 D-G1 — DualImage: _currentImageSource 슬롯에 따라 PointROI vs LineROI 라우팅 (사용자 인지 부담 0 — 보이는 이미지의 ROI 만 그림)
+                    var dualMeas = _editingMeasurement as DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.3 D-G1
+                    if (dualMeas != null) { //260530 hbk Phase 39.3 D-G1
+                        if (_currentImageSource == ReringProject.Sequence.EImageSource.Vertical) { //260530 hbk Phase 39.3 D-G1
+                            // 세로 슬롯 표시 중 → LineROI 라우팅
+                            dualMeas.LineROI_Row = mCenterRow; dualMeas.LineROI_Col = mCenterCol; dualMeas.LineROI_Phi = 0.0;
+                            dualMeas.LineROI_Length1 = mHalfHeight; dualMeas.LineROI_Length2 = mHalfWidth;
+                        } else { //260530 hbk Phase 39.3 D-G1
+                            // 가로 슬롯 표시 중 (기본 Horizontal) → PointROI 라우팅
+                            dualMeas.PointROI_Row = mCenterRow; dualMeas.PointROI_Col = mCenterCol; dualMeas.PointROI_Phi = 0.0;
+                            dualMeas.PointROI_Length1 = mHalfHeight; dualMeas.PointROI_Length2 = mHalfWidth;
+                        }
+                    }
                     //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 순차 4-ROI 드로잉: 인덱스 0=EdgeA1, 1=EdgeB1, 2=EdgeA2, 3=EdgeB2
                     var ali = _editingMeasurement as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 I9/I10-redesign
                     if (ali != null) {

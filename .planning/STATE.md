@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: 39.4-04 Task 04-01 완료 — UAT.md baseline + Anti-Goal 10/10 ✅ (d32a45b). checkpoint:human-verify 대기 중 (사용자 SIMUL UAT 8 시나리오)
-last_updated: "2026-05-30T15:10:00.000Z"
-last_activity: 2026-05-30
+stopped_at: Phase 39.4 PARTIAL_SIGNED_OFF 2026-05-31 (Test 1~4 + Verify A 5/5 PASS, 1 hotfix CO-39.4-01 = 6843c0d, Verify B/D/E + INI 호환 = CO-39.4-02 후속 phase 이월). 다음 = Phase 40 (OUT-01/02) 또는 carry-over phase 신설.
+last_updated: "2026-05-31T00:00:00.000Z"
+last_activity: 2026-05-31
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 21
-  completed_plans: 20
-  percent: 95
+  completed_plans: 21
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 39.4 — bottom-dualimage-manual-swap-2026-05-30
+**Current focus:** Phase 39.4 PARTIAL_SIGNED_OFF — 다음 = Phase 40 (OUT-01/02) 또는 CO-39.4-02 carry-over phase 신설
 
 ## Current Position
 
-Phase: 39.4 (bottom-dualimage-manual-swap-2026-05-30) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-05-30
+Phase: 39.4 (bottom-dualimage-manual-swap-2026-05-30) — PARTIAL_SIGNED_OFF (2026-05-31)
+Plan: 4 of 4 (complete)
+Status: PARTIAL_SIGNED_OFF — Test 1~4 + Verify A 5/5 PASS, CO-39.4-01 hotfix (6843c0d), CO-39.4-02 carry-over
+Last activity: 2026-05-31 — Phase 39.4 sign-off
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -345,13 +345,14 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 - 2026-05-21: Phase 32 added — 측정 알고리즘 SOP 재정합. Phase 31 UAT 중 I9/I10/E2/E9/E10 알고리즘이 SOP 실무 방식과 불일치 확인 → ArcLineIntersect 2직선 교점 + E2/E3/E9/E10 공통 컨투어 알고리즘으로 재작성, E3 신규 타입 추가. Phase 31 UAT Test 3·4·5 이관. ※ gsd-sdk phase.add CLI phase_number 다시 오산정(1) → 수동 보정 (32).
 - 2026-05-28: Phase 36 added — Datum DualImage 설계 보강. Phase 34.1 실측 페어 UAT 도중 CO-34.1-08 hotfix (BtnTestFindDatum_Click DualImage 분기 누락, 61d407a) + CO-34.1-09 신규 carry-over (좌표계 통합 부재 + 각도 검증 UX 부재 — IntersectionLl 이 두 이미지 픽셀 좌표를 변환 없이 같은 평면 처리). 스코프: 좌표계 anchor/offset + ExpectedAngleDeg/AngleTolerance + Test Find 시각화 강화. CO-34.1-01/02/09 흡수. ※ gsd-sdk phase.add CLI phase_number 또 오산정(1) → 수동 보정 (36).
 - 2026-05-30: Phase 39.4 added — Bottom DualImage 수동 swap UX 재설계. Phase 39.3 PARTIAL_SIGNED_OFF 후 carry-over CO-39.3-01 흡수 — Shot 이미지 공통 자원이 DualImage 의 "가로축 티칭 이미지" 로 단독 점유되어 작업자 인지 혼동. 스코프: TeachingImagePath_Horizontal 신규 필드 + Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 분기 교체 (RuntimeImageA 소스 변경, fallback ShotConfig) + MainView.BtnSwapHorizontal_Click Measurement 분기 교체 + Datum DualImage 패턴 일관화. 39.3 D-G4 anti-goal 은 39.4 의 새 contract 로 해제. status=seed (CONTEXT.md 작성, discuss-phase 대기).
+- 2026-05-31: Phase 39.4 PARTIAL_SIGNED_OFF — Test 1~4 + Verify A 5/5 PASS (UAT mid-hotfix CO-39.4-01 = `6843c0d`, UpdateImageSourceBadge 의 RenderInspectionResultForNode 가 swap 직후 Shot 이미지로 덮어씌우는 회귀 fix). CO-39.3-01 종결. CO-39.4-02 carry-over (Verify B/D/E + INI 호환 회귀 smoke = 회귀 위험 LOW, 후속 phase 이월).
 
 ## Session Continuity
 
-Last session: 2026-05-30T15:10:00.000Z
-Stopped at: 39.4-04 Task 04-01 완료 (d32a45b) — checkpoint:human-verify. 사용자 SIMUL UAT 8 시나리오 + INI 호환 대기 중.
+Last session: 2026-05-31T00:00:00.000Z
+Stopped at: Phase 39.4 PARTIAL_SIGNED_OFF 2026-05-31 (Test 1~4 + Verify A 5/5 PASS, 1 hotfix CO-39.4-01 = `6843c0d`, CO-39.4-02 carry-over). 5 commits — Plan 04: d32a45b → f2149c8 → 6843c0d (hotfix) → eb6d4cb (UAT 기록) → b3399de (sign-off).
 Resume file: None
-Next action: 사용자 UAT 결과 보고 후 Task 04-02 재개 (UAT.md result 갱신 + Phase 39.4 sign-off + CO-39.3-01 종결).
+Next action: Phase 40 (OUT-01/02) 또는 CO-39.4-02 carry-over phase 신설 결정.
 
 **v1.1 Phase Map:**
 

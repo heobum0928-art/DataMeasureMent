@@ -131,9 +131,14 @@
   - 측정값 byte-identical (39.2-01 baseline)
   - 회귀 0: Datum DualImage / 기존 7 Measurement / Phase 39.1~39.3 D-G1/G2/G5
 
-- [ ] **Phase 39.4: Bottom DualImage 수동 Swap UX 재설계** — DualImage 양측 명시 경로 + Datum 패턴 일관화 (WF-01, CO-39.3-01)
-  - Success: DualImage 가로/세로 양측 명시 경로 + 측정값 byte-identical + Datum/기존 FAI/Phase 39.1~39.3 회귀 0
-  - **Plans:** TBD (discuss-phase 에서 lock — seed CONTEXT.md 작성 완료)
+- [~] **Phase 39.4: Bottom DualImage 수동 Swap UX 재설계** — DualImage 양측 명시 경로 + Datum 패턴 일관화 (WF-01, CO-39.3-01 → 종결) — **PARTIAL_SIGNED_OFF 2026-05-31** (Test 1~4 + Verify A 5/5 PASS + 1 hotfix CO-39.4-01 = `6843c0d`, Verify B/D/E + INI 호환 = CO-39.4-02 carry-over)
+  - Success: DualImage 가로/세로 양측 명시 경로 + 측정값 byte-identical + Datum 회귀 0 — ✅ 핵심 가치 달성
+  - **Carry-over:** CO-39.4-02 (Verify B/D/E + INI 호환 회귀 smoke, 회귀 위험 LOW — Anti-Goal 자동 검증 10/10 PASS)
+  - **Plans 4 / Waves 3** (Wave 1: Plan 01 / Wave 2: Plan 02 + 03 sequential / Wave 3: Plan 04 UAT)
+    - [x] 39.4-01-PLAN.md — DualImageEdgeDistanceMeasurement TeachingImagePath_Horizontal + 5종 attribute (5cf4fb3)
+    - [x] 39.4-02-PLAN.md — Action_FAIMeasurement.TryGrabOrLoadFaiDualImages pathA D-G1 fallback if/else (484819e)
+    - [x] 39.4-03-PLAN.md — MainView.BtnSwapHorizontal_Click + UpdateImageSourceBadge D-G1+G4 (85d8c92)
+    - [x] 39.4-04-PLAN.md — SIMUL UAT + sign-off (d32a45b → f2149c8 → 6843c0d hotfix → eb6d4cb → b3399de)
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)

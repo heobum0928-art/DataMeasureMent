@@ -1295,11 +1295,19 @@ namespace ReringProject.UI {
         private void UpdateImageSourceBadge(ReringProject.Sequence.EImageSource source) {
             _currentImageSource = source;
 
-            // (b) 배지 텍스트 + 색상 — D-34.1-14 잠금값
+            // (b) 배지 텍스트 + 색상 — D-34.1-14 잠금값 + Phase 39.4 D-G4 (Measurement 명시 vs fallback 명시)
             //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 정적 frozen brush + SetCurrentValue 로 WPF 갱신 보장.
             if (border_imageSourceBadge != null && txt_imageSourceBadge != null) {
                 if (source == ReringProject.Sequence.EImageSource.Horizontal) {
-                    txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, "가로축"); //260527 hbk Phase 34.1 D-34.1-14
+                    //260530 hbk Phase 39.4 D-G4 — Measurement DualImage 가 선택된 상태에선 명시 경로 vs fallback 여부에 따라 배지 텍스트 보강. Datum 또는 null 분기 → 기존 "가로축" 보존 (mutex 가드).
+                    string horizontalBadgeText = "가로축"; //260530 hbk Phase 39.4 D-G4 — 기본값 (Datum 또는 비-DualImage selection)
+                    var measForBadge = _selectedDualImageMeasurement; //260530 hbk Phase 39.4 D-G4
+                    if (measForBadge != null) {
+                        bool hasExplicitHorizontal = !string.IsNullOrEmpty(measForBadge.TeachingImagePath_Horizontal)
+                            && System.IO.File.Exists(measForBadge.TeachingImagePath_Horizontal); //260530 hbk Phase 39.4 D-G4
+                        horizontalBadgeText = hasExplicitHorizontal ? "가로축 (Measurement)" : "가로축 (Shot fallback)"; //260530 hbk Phase 39.4 D-G4
+                    }
+                    txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, horizontalBadgeText); //260530 hbk Phase 39.4 D-G4 (Phase 34.1 D-34.1-14 텍스트 확장)
                     border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushHorizontal); //260527 hbk Phase 34.1 CO-34.1-03
                 }
                 else {
@@ -1348,16 +1356,25 @@ namespace ReringProject.UI {
             {
                 var meas = _selectedDualImageMeasurement; //260530 hbk Phase 39.3 D-G2
                 if (meas != null) {
-                    FAIConfig fai = FindFAIContainingMeasurement(meas); //260530 hbk Phase 39.3 D-G2 — 기존 helper (Phase 37 hotfix A/B)
-                    ShotConfig shot = fai != null ? fai.Owner as ShotConfig : null; //260530 hbk Phase 39.3 D-G2
-                    if (shot != null && shot.HasImage) { //260530 hbk Phase 39.3 D-G2
-                        HImage img = null;
-                        try {
-                            img = shot.GetImage();
-                            if (img != null) halconViewer.LoadImage(img); //260530 hbk Phase 39.3 D-G2
-                        }
+                    //260530 hbk Phase 39.4 D-G1 — Measurement 명시 경로 우선, 없으면 ShotConfig fallback. CS0136 회피 위해 `hpathMeas` 명명 (Phase 39.3 Task 02-04 vpathMeas 패턴 mirror).
+                    string hpathMeas = meas.TeachingImagePath_Horizontal; //260530 hbk Phase 39.4 D-G1
+                    if (!string.IsNullOrEmpty(hpathMeas) && System.IO.File.Exists(hpathMeas)) {
+                        try { halconViewer.LoadImage(hpathMeas); } //260530 hbk Phase 39.4 D-G1 — Measurement 명시 경로
                         catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
-                        finally { if (img != null) img.Dispose(); }
+                    }
+                    else {
+                        //260530 hbk Phase 39.4 D-G1 — fallback: ShotConfig 이미지 (Phase 39.3 baseline)
+                        FAIConfig fai = FindFAIContainingMeasurement(meas); //260530 hbk Phase 39.3 D-G2 — 기존 helper (Phase 37 hotfix A/B)
+                        ShotConfig shot = fai != null ? fai.Owner as ShotConfig : null; //260530 hbk Phase 39.3 D-G2
+                        if (shot != null && shot.HasImage) { //260530 hbk Phase 39.3 D-G2
+                            HImage img = null;
+                            try {
+                                img = shot.GetImage();
+                                if (img != null) halconViewer.LoadImage(img); //260530 hbk Phase 39.3 D-G2
+                            }
+                            catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                            finally { if (img != null) img.Dispose(); }
+                        }
                     }
                     UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260530 hbk Phase 39.3 D-G2
                     return; //260530 hbk Phase 39.3 D-G2 — Measurement 경로 종결, Datum 코드 진입 X

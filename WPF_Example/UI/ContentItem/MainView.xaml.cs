@@ -1320,6 +1320,12 @@ namespace ReringProject.UI {
                 && datumForRoi.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34.1 D-34.1-10
                 PublishDatumRoiCandidates(datumForRoi); //260527 hbk Phase 34.1 — DualImage 분기가 _currentImageSource 참조하여 subset 만 publish
             }
+            //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 선택 시 RenderInspectionResultForNode 재호출 (Datum 와 동일 컨셉, mutex 가 있어 둘 다 fire X).
+            //  Warning #5 grep lock-in: RenderInspectionResultForNode(ParamBase param) 정확 메서드명 확인 (MainView.xaml.cs:206 정의, Phase 39.1-03 G4-01 도입).
+            //  DualImageEdgeDistanceMeasurement : MeasurementBase : ParamBase → 시그니처 호환.
+            if (_selectedDualImageMeasurement != null) {
+                RenderInspectionResultForNode(_selectedDualImageMeasurement); //260530 hbk Phase 39.3 D-G2
+            }
         }
 
         //260527 hbk Phase 34.1 CO-34.1-02 hotfix — 보조 hook (DatumName 등 명시적 RaisePropertyChanged 가 fire 하는 property 대응).

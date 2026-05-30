@@ -303,6 +303,7 @@
     <Compile Include="Sequence\SequenceHandler.cs" />
     <Compile Include="UI\ControlItem\Node.cs" />
     <Compile Include="UI\ControlItem\NodeViewModel.cs" />
+    <Compile Include="UI\ControlItem\IconKeyToGeometryConverter.cs" />
     <Compile Include="UI\Device\DeviceSelector.xaml.cs">
       <DependentUpon>DeviceSelector.xaml</DependentUpon>
     </Compile>

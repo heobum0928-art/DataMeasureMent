@@ -1874,6 +1874,7 @@ namespace ReringProject.UI {
                 if (selParam is CompoundCenterCDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
                 if (selParam is CompoundCenterBDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
                 if (selParam is CompoundShortAxisDistanceMeasurement) return (MeasurementBase)selParam; //260523 hbk Phase 32 — E3 단축 환원
+                if (selParam is DualImageEdgeDistanceMeasurement) return (MeasurementBase)selParam; //260530 hbk Phase 39.3 D-G1
             }
             // fallback — dataGrid 행 선택 경로
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
@@ -1889,6 +1890,7 @@ namespace ReringProject.UI {
                         if (m is CompoundCenterCDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                         if (m is CompoundCenterBDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
                         if (m is CompoundShortAxisDistanceMeasurement) return m; //260523 hbk Phase 32 — E3 단축 환원
+                        if (m is DualImageEdgeDistanceMeasurement) return m; //260530 hbk Phase 39.3 D-G1
                     }
                 }
             }

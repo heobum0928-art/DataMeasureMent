@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: PARTIAL_SIGNED_OFF — Phase 39.3 (Test 1-3 + 알고리즘 PASS, Test 4 + 회귀 A/B/D/E → Phase 39.4 흡수)
-stopped_at: Phase 39.3 PARTIAL_SIGNED_OFF 2026-05-30 (4 plans, 14 commits 0a27dd2..0e546a2). CO-39.2-01-01 종결 + CO-39.3-01 carry-over → Phase 39.4 신설
-last_updated: "2026-05-30T04:30:00.000Z"
-last_activity: 2026-05-30 — Phase 39.3 partial sign-off + Phase 39.4 seed. 다음 = /gsd-discuss-phase 39.4 (CO-39.3-01 = DualImage 양측 명시 경로).
+stopped_at: Phase 39.4 discuss_complete 2026-05-30 (4 결정 D-G1~G4 lock, commit 8f85eba). 다음 = /gsd-plan-phase 39.4
+last_updated: "2026-05-30T05:00:00.000Z"
+last_activity: 2026-05-30 — Phase 39.4 discuss 완료 (Fallback ShotConfig / Datum 별도 / [DisplayName] + [Category] / 배지 fallback 명시).
 progress:
   total_phases: 5
   completed_phases: 3
@@ -235,6 +235,7 @@ Recent decisions affecting current work:
 - Phase 39.3-02: Datum-Measurement 양방향 mutex (PublishMeasurementDualImageSelection set 시 Datum unsubscribe+null / PublishDatumRoiCandidates 진입 시 Measurement null) 로 _selectedDatumForSwap 와 _selectedDualImageMeasurement 동시 non-null 0 보장
 - [Phase 39.3 PARTIAL_SIGNED_OFF 2026-05-30]: Test 1-3 PASS (RectROI 활성 / Swap UX wiring / 슬롯 종속 RectROI) + 회귀 C PASS 추정 / Test 4 (Browse 버튼) + 회귀 A/B/D/E NOT_TESTED → Phase 39.4 흡수. CO-39.2-01-01 종결. Anti-Goal 10/10 ✅.
 - [Phase 39.3 UAT 발견 결함 → CO-39.3-01]: Shot 이미지는 동일 Shot 의 다른 FAI 와 공유되는 공통 자원. 그러나 Phase 39.3 Horizontal swap 분기 (Plan 02 Task 02-04) 는 ShotConfig 이미지를 DualImage Measurement 의 "가로축 티칭 이미지" 로 단독 점유 → 작업자 인지 혼동. 실 카메라 grab 환경에서 혼동 심화 예상 → Phase 39.4 신설 합의 (DualImage 양측 명시 경로 + 수동 swap UX 재설계, Datum DualImage 패턴 일관화). 39.3 D-G4 anti-goal ("Action_FAIMeasurement 본문 변경 0") 은 39.4 의 새 contract 로 해제.
+- [Phase 39.4 discuss 완료 2026-05-30, commit 8f85eba]: 4 결정 lock — (D-G1) Fallback 정책 = ShotConfig fallback (회귀 0, INI 자동 호환, ternary 한 줄) / (D-G2) Datum DualImage 일관화 = 별도 후속 phase 이관 (회귀 표면 격리, 39.4 = Measurement 만 집중) / (D-G3) PropertyGrid 라벨 = [DisplayName("가로축 티칭 이미지")] + [Category("Image|DualImage")] 조합 (PropertyTools 3.1.0 namespace 검증 plan-phase 에서 lock, fallback = [Description] tooltip) / (D-G4) Swap UX 하이라이트 = 배지 라벨에 소스 명시 ("가로축 (Measurement)" vs "가로축 (Shot fallback)"). Plan 구조 estimated 4 plans / 3 waves. 다음 = /gsd-plan-phase 39.4.
 
 ### Quick Tasks Completed
 
@@ -339,10 +340,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-05-30T04:30:00.000Z
-Stopped at: Phase 39.3 PARTIAL_SIGNED_OFF 2026-05-30 (4 plans, 14 commits 0a27dd2..0e546a2). CO-39.2-01-01 종결 + CO-39.3-01 carry-over → Phase 39.4 신설 (seed CONTEXT.md, discuss-phase 대기).
-Resume file: None
-Next action: /gsd-discuss-phase 39.4 (CO-39.3-01 = DualImage 양측 명시 경로 + 수동 swap UX 재설계, Open Questions 4건 lock + Plan 구조 확정).
+Last session: 2026-05-30T05:00:00.000Z
+Stopped at: Phase 39.4 discuss_complete 2026-05-30 (4 결정 D-G1~G4 lock, commit 8f85eba). CONTEXT.md status seed → discuss_complete.
+Resume file: .planning/phases/39.4-bottom-dualimage-manual-swap-2026-05-30/39.4-CONTEXT.md
+Next action: /gsd-plan-phase 39.4 (RESEARCH.md + PATTERNS.md + 4 PLAN.md 생성. Research targets: PropertyTools [DisplayName] namespace 검증 / ParamBase reflection auto-pickup / 39.3 Plan 02 Task 02-04 코드 위치 / UpdateImageSourceBadge 배지 텍스트 동적 set 호환성).
 
 **v1.1 Phase Map:**
 

@@ -30,7 +30,8 @@
 
 ### 우선순위 1 — 검사 워크플로우 E2E (POC 필수)
 
-- [ ] **WF-01**: Datum→FAI 측정→결과 처리 end-to-end (SIMUL+실카메라 모두)
+- [x] **WF-01
+**: Datum→FAI 측정→결과 처리 end-to-end (SIMUL+실카메라 모두)
   - Top/Side/Bottom 멀티샷 시퀀스 정상 진행
   - Datum 검출 실패 vs 측정 실패 분기 명확화
   - TCP 결과 응답 포맷 검증

@@ -24,9 +24,18 @@ namespace ReringProject.Sequence
         //260530 hbk Phase 39.2 D-G1-06 — LineROI 이미지 경로 (Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 가 로드)
         [Category("Image|DualImage")] //260530 hbk Phase 39.2 D-G1
         [System.ComponentModel.Description("LineROI 검출용 별도 이미지 경로 — Bottom E5 패턴 (Phase 37 VTH-DualImage 슬롯 재사용)")] //260530 hbk Phase 39.2 D-G1
+        [DisplayName("세로축 티칭 이미지")] //260530 hbk Phase 39.4 D-G3 — PropertyTools.DataAnnotations.DisplayName (Action_WaferScanCalibration L56 패턴)
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)] //260530 hbk Phase 39.3 D-G3
         [AutoUpdateText] //260530 hbk Phase 39.3 D-G3 — 즉시 INPC fire (ModelFinderViewModel L28-29 패턴)
         public string TeachingImagePath_Vertical { get; set; } = ""; //260530 hbk Phase 39.2 D-G1
+
+        //260530 hbk Phase 39.4 D-G1 — PointROI 검출용 가로축 이미지 경로. 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback (Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 분기).
+        [Category("Image|DualImage")] //260530 hbk Phase 39.4 D-G1
+        [System.ComponentModel.Description("PointROI 검출용 가로축 이미지 경로 — 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback (D-G1)")] //260530 hbk Phase 39.4 D-G1
+        [DisplayName("가로축 티칭 이미지")] //260530 hbk Phase 39.4 D-G3 — PropertyTools.DataAnnotations.DisplayName (Action_WaferScanCalibration L56 패턴, RT-1.1/1.2 검증)
+        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)] //260530 hbk Phase 39.4 D-G3 — Phase 39.3 Plan 03 mirror
+        [AutoUpdateText] //260530 hbk Phase 39.4 D-G3 — 즉시 INPC fire (ModelFinderViewModel L28-29 패턴)
+        public string TeachingImagePath_Horizontal { get; set; } = ""; //260530 hbk Phase 39.4 D-G1
 
         // ── PointROI (점 형태, 1차 이미지 = ShotParam.SimulImagePath) ──
         [Category("PointROI|ROI")] //260530 hbk Phase 39.2 D-G1

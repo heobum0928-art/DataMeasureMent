@@ -520,6 +520,10 @@ namespace ReringProject.UI {
                         //260529 hbk Phase 39.1-03 G4-01 — DisplayMeasurementImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화 (Phase 32 UAT / 35 / 18 #6 동작 보존).
                         if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas) //260529 hbk Phase 39.1-03 G4-01
                             mParentWindow.mainView.RenderInspectionResultForNode(meas); //260529 hbk Phase 39.1-03 G4-01
+                        //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 선택 시 swap UI owner set (mutex). 비-DualImage Measurement 는 as 캐스트 결과 null 로 clear → swap UI 자동 Collapsed.
+                        if (mParentWindow != null && mParentWindow.mainView != null) {
+                            mParentWindow.mainView.PublishMeasurementDualImageSelection(itemParam as DualImageEdgeDistanceMeasurement); //260530 hbk Phase 39.3 D-G2
+                        }
                     }
                     else if (item.NodeType == ENodeType.FAI) {
                         button_addFAI.IsEnabled = true;

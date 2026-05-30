@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 39.4-02-PLAN.md — TryGrabOrLoadFaiDualImages pathA D-G1 fallback if/else (484819e)
-last_updated: "2026-05-30T14:40:08.334Z"
+stopped_at: Completed 39.4-03-PLAN.md — MainView swap UX D-G1 fallback + D-G4 배지 텍스트 (85d8c92)
+last_updated: "2026-05-30T14:45:17.842Z"
 last_activity: 2026-05-30
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 21
-  completed_plans: 19
-  percent: 90
+  completed_plans: 20
+  percent: 95
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 39.4 (bottom-dualimage-manual-swap-2026-05-30) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-05-30
 
@@ -127,6 +127,7 @@ Last activity: 2026-05-30
 | Phase 39.3 P02 | 5 | 5 tasks | 2 files |
 | Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P01 | 111 | 1 tasks | 1 files |
 | Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P02 | 360 | 1 tasks | 1 files |
+| Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P03 | 15 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -241,6 +242,8 @@ Recent decisions affecting current work:
 - D-G1 fallback 정책: TeachingImagePath_Horizontal 미설정 시 ShotConfig.SimulImagePath fallback (INI 회귀 0)
 - D-G3 PropertyGrid 라벨: PropertyTools.DataAnnotations.DisplayName 확정 — 가로축/세로축 한글 라벨 양측 Browse 버튼 노출
 - D-G1 fallback 정책: TeachingImagePath_Horizontal 명시+존재 → 명시 경로, 아니면 ShotParam.SimulImagePath (Phase 39.2 baseline 회귀 0)
+- RT-4 옵션 A 채택: UpdateImageSourceBadge 안 배지 텍스트 single source of truth (D-G4 — Datum mutex 가드 자동 적용)
+- CS0136 회피: hpathMeas 명명 (Datum 분기 hpath 와 outer scope 분리, Phase 39.3 vpathMeas 패턴 mirror)
 
 ### Quick Tasks Completed
 
@@ -345,8 +348,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-05-30T14:40:08.323Z
-Stopped at: Completed 39.4-02-PLAN.md — TryGrabOrLoadFaiDualImages pathA D-G1 fallback if/else (484819e)
+Last session: 2026-05-30T14:45:17.833Z
+Stopped at: Completed 39.4-03-PLAN.md — MainView swap UX D-G1 fallback + D-G4 배지 텍스트 (85d8c92)
 Resume file: None
 Next action: /gsd-execute-phase 39.4 (4 plans / 3 waves 실행. Plan 04 = checkpoint blocking — 사용자 SIMUL UAT 4 Test + 회귀 Verify A/B/D/E + INI 호환).
 

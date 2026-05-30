@@ -66,6 +66,9 @@ namespace ReringProject.UI {
         //  _editingDatum 은 Teach Datum 클릭 시에만 set → 토글 핸들러가 노드 선택 직후 동작하려면 별도 reference 필요.
         //  PublishDatumRoiCandidates 진입 시 갱신, AlgorithmType PropertyChanged 구독 대상.
         private DatumConfig _selectedDatumForSwap;
+        //260530 hbk Phase 39.3 D-G2 — 현재 선택된 DualImage Measurement (Datum 의 _selectedDatumForSwap 대칭, mutex 페어).
+        //  세션 한정, INI 미저장. InspectionListView Measurement 노드 선택 시 set, Datum 노드 선택 시 clear.
+        private DualImageEdgeDistanceMeasurement _selectedDualImageMeasurement;
         //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 배지 색상 정적 frozen brush (인스턴스 GC 방지 + WPF 즉시 반영).
         //  ConvertFromString 매 호출마다 새 brush 생성 → 일부 환경에서 WPF Background 갱신 누락 의심 → 정적/frozen 으로 대체.
         private static readonly SolidColorBrush BadgeBrushHorizontal = CreateFrozenBrush(0x19, 0x76, 0xD2); //260527 hbk Phase 34.1 — Material Blue 700
@@ -1444,6 +1447,30 @@ namespace ReringProject.UI {
                     break; //260527 hbk Phase 34.1
             }
             halconViewer.SetDatumRoiCandidates(list);
+        }
+
+        //260530 hbk Phase 39.3 D-G2 — PublishDatumRoiCandidates 대칭. Measurement DualImage 노드 선택 시 swap UI owner set + 가로축 리셋 + Visibility 제어.
+        //  mutex: 본 메서드와 PublishDatumRoiCandidates 는 _selectedDatumForSwap / _selectedDualImageMeasurement 중 하나만 non-null 임을 보장.
+        public void PublishMeasurementDualImageSelection(DualImageEdgeDistanceMeasurement meas) {
+            _selectedDualImageMeasurement = meas; //260530 hbk Phase 39.3 D-G2
+
+            //260530 hbk Phase 39.3 D-G2 — mutex: Measurement set 시 Datum clear (Risk R1 회피)
+            if (meas != null && _selectedDatumForSwap != null) {
+                _selectedDatumForSwap.PropertyChanged -= OnSelectedDatumPropertyChanged; //260530 hbk Phase 39.3 D-G2
+                _selectedDatumForSwap = null; //260530 hbk Phase 39.3 D-G2
+            }
+
+            //260530 hbk Phase 39.3 D-G2 — Visibility 제어 (PublishDatumRoiCandidates L1390-1392 패턴 차용)
+            bool isDualImage = (meas != null);
+            if (btn_swapHorizontal != null) btn_swapHorizontal.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260530 hbk Phase 39.3 D-G2
+            if (btn_swapVertical   != null) btn_swapVertical.Visibility   = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260530 hbk Phase 39.3 D-G2
+            if (border_imageSourceBadge != null) border_imageSourceBadge.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260530 hbk Phase 39.3 D-G2
+
+            if (isDualImage) {
+                //260530 hbk Phase 39.3 D-G2 — 새 노드 진입 시 가로축 리셋 (Datum D-34.1-08 대칭, Risk R6 회피)
+                _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
+                UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260530 hbk Phase 39.3 D-G2
+            }
         }
 
         //260425 hbk Phase 13 D-02 — Rectangle2 (centerRow, centerCol, phi=0, halfH, halfW) → bbox

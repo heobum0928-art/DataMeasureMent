@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: SIGNED_OFF. 다음 Phase 39.2 신설 (긴급 추가건2, ROADMAP 갱신 완료).
-stopped_at: Phase 39.2 discuss 완료 — CONTEXT.md commit f903a9d (D-G1~G4, 6 결정 lock)
-last_updated: "2026-05-29T22:15:15.623Z"
-last_activity: "2026-05-30 — Phase 39.2 seed (4 항목: Bottom E5 DualImage FAI + I10 close-point variant + Tree 정렬 + Tree 아이콘). 다음 = /gsd-discuss-phase 39.2."
+status: executing — Phase 39.2 4/5 plans complete (39.2-05 SIMUL UAT pending user)
+stopped_at: Phase 39.2 Wave 1+2 코드 plans 4 완료, Plan 05 사용자 SIMUL UAT 대기
+last_updated: "2026-05-30T11:00:00.000Z"
+last_activity: 2026-05-30 — Phase 39.2 Wave 1 (39.2-01/02/05 코드 portion) + Wave 2 (39.2-03/04) 완료. msbuild Debug/x64 PASS. 다음 = 사용자 SIMUL UAT (Plan 05)
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 13
-  completed_plans: 8
-  percent: 62
+  total_plans: 18
+  completed_plans: 12
+  percent: 66
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 39.1 — inspection-urgent-fixes-2026-05-29
+**Current focus:** Phase 39.2 — urgent-additions-2-2026-05-30
 
 ## Current Position
 
-Phase: 39.1 (inspection-urgent-fixes-2026-05-29) — SIGNED_OFF
-Plan: 4/4 complete (39.1-01/02/03/04) + CO-39.1-01 hotfix rev2. UAT 4/4 PASS (2026-05-29).
-Status: SIGNED_OFF. 다음 Phase 39.2 신설 (긴급 추가건2, ROADMAP 갱신 완료).
-Last activity: 2026-05-30 — Phase 39.2 seed (4 항목: Bottom E5 DualImage FAI + I10 close-point variant + Tree 정렬 + Tree 아이콘). 다음 = /gsd-discuss-phase 39.2.
+Phase: 39.2 (urgent-additions-2-2026-05-30) — EXECUTING (4/5 코드 plans complete)
+Plan: 4 of 5 complete (39.2-01/02/03/04 코드 + SUMMARY 모두 commit). Plan 05 UAT scenarios 작성 + commit 완료 (Task 1), 사용자 SIMUL UAT (Task 2) 대기.
+Status: Executing Phase 39.2 — Wave 1/2 코드 portion DONE, awaiting user SIMUL_MODE UAT for sign-off
+Last activity: 2026-05-30 — Plan 04 (D-G4 Geometry icons) 완료 commit 11871e9. msbuild Debug/x64 PASS, 0 새 에러/경고. 다음 = 사용자 39.2-UAT.md 5 시나리오 SIMUL 검증 + frontmatter signed_off 갱신.
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

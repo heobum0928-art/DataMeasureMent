@@ -69,20 +69,25 @@
 **Goal**: Phase 39.1 SIGNED_OFF 직후 사용자 발의 4 신규 항목 — Bottom E5 듀얼 이미지 FAI 측정 + Top I10 close-point variant + Tree 정렬 + Tree 아이콘 차별화 — 단일 phase 처리. POC 2026-06-30 시연 대비 사용자 UX + 측정 커버리지 보강.
 **Depends on**: Phase 39.1 (signed_off)
 **Requirements**: WF-01 (FAI 측정 확장 + UI UX)
-**Scope** (시드 4 항목 lock):
-  - **#1 Bottom E5 DualImage FAI**: 신규 `DualImageEdgeDistanceMeasurement` MeasurementBase 서브타입 — Phase 37 VTH-DualImage 패턴 차용 (TeachingImagePath / TeachingImagePath_Vertical 슬롯 재사용 + 2 ROI + 양 이미지 에지 검출 → 거리). Datum DualImage / Phase 37 lenient 회귀 0.
-  - **#2 Top I10 close-point variant**: ArcLineIntersectDistanceMeasurement 에 `IntersectionPointSelection` enum 파라미터 ({Far, Close}, default=Far) 추가 — INI 회귀 0 + ICustomTypeDescriptor 노출. 신규 타입 도입 0 (단일 소스).
-  - **#3 Tree 노드 정렬**: Shot/FAI/Datum/Measurement 트리 노드 Name 자연정렬 (Shot10 vs Shot2 정렬) 자동. 적용 레벨 + 정렬 시점 discuss 단계 lock.
-  - **#4 Tree 아이콘 차별화**: FAI 노드 / Measurement 노드 아이콘 분리 + Measurement 는 TypeName 기반 아이콘 매핑 (10+ 타입). 디자인 자원 (icon set / Geometry path) 결정 discuss 단계 lock.
+**Scope** (CONTEXT.md 6 결정 D-G1~D-G4 lock):
+  - **#1 Bottom E5 DualImage FAI**: 신규 `DualImageEdgeDistanceMeasurement` MeasurementBase 서브타입 — Phase 37 VTH-DualImage 패턴 차용 (TeachingImagePath / TeachingImagePath_Vertical 슬롯 재사용 + 2 ROI + 양 이미지 에지 검출 → projection_pl 거리). Datum DualImage / Phase 37 lenient 회귀 0.
+  - **#2 Top I10 close-point variant**: `ArcLineIntersectDistanceMeasurement` 에 `IntersectionPointSelection` 문자열 파라미터 ({Far, Close}, default=Far) 추가 — INI 회귀 0 + ItemsSourceProperty 콤보 노출. 신규 타입 도입 0 (단일 소스).
+  - **#3 Tree 노드 정렬**: Shot/FAI/Datum/Measurement 트리 노드 Name 자연정렬 (Shot10 vs Shot2 정렬) 자동. 전 레벨 + 정렬 시점 = Add* / Rename / RebuildTree / Constructor.
+  - **#4 Tree 아이콘 차별화**: 5 NodeType + 12 Measurement TypeName 별 Geometry path 아이콘 — Material Icons SVG path inline + IValueConverter + DynamicResource lookup. ContextMenu PNG 보존.
 **Success Criteria (UAT)**:
-  - Item #1: Bottom E5 2 이미지 / 2 ROI 거리 측정 성공 + Action_FAIMeasurement / 기존 FAI 타입 회귀 0
-  - Item #2: P1 / P2 close/far 선택 시 정확 거리값 + INI 하위호환 (기본 Far)
-  - Item #3: Shot 생성 순서 무관 자연정렬 표시 + Rename 시 즉시 재정렬
-  - Item #4: FAI vs Measurement 아이콘 시각 차별 + Measurement TypeName 별 아이콘 다름
+  - Item #1: Bottom E5 2 이미지 / 2 ROI 거리 측정 성공 + Action_FAIMeasurement / 기존 10 FAI 타입 회귀 0
+  - Item #2: P1 / P2 close/far 선택 시 정확 거리값 + INI 하위호환 (기본 Far → Phase 32 sign-off 결과 byte-identical)
+  - Item #3: Shot 생성 순서 무관 자연정렬 표시 + Rename 시 즉시 재정렬 + ParamBase INI 순서 변경 0
+  - Item #4: FAI vs Measurement 아이콘 시각 차별 + Measurement TypeName 별 아이콘 다름 + 노드 텍스트 변경 0
 
 - [ ] **Phase 39.2: 긴급 추가건2** — DualImage FAI + I10 close-point + Tree 정렬 + Tree 아이콘 (WF-01)
   - Success: 4 항목 SIMUL UAT PASS + Phase 28/31/36/37/39/39.1 회귀 0
-  - **Plans:** (discuss/plan 단계 lock — algorithm 2 + UI 2 예상)
+  - **Plans:** 5 plans (3 waves)
+    - [x] 39.2-01-PLAN.md — D-G1 DualImageEdgeDistanceMeasurement 신규 + MeasurementFactory 등록 + Action_FAIMeasurement helper [Wave 1, algorithm]
+    - [x] 39.2-02-PLAN.md — D-G2 ArcLineIntersect IntersectionPointSelection Far/Close 분기 [Wave 1, algorithm]
+    - [x] 39.2-03-PLAN.md — D-G3 NaturalStringComparer + InspectionListViewModel Sort 헬퍼 + Rename hook [Wave 2, UI]
+    - [x] 39.2-04-PLAN.md — D-G4 Node IconKey + IconKeyToGeometryConverter + InspectionListView.xaml Geometry 18 종 [Wave 2, UI]
+    - [ ] 39.2-05-PLAN.md — SIMUL UAT 4 시나리오 + 회귀 1 + sign-off [Wave 3, awaits user UAT]
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)
@@ -125,7 +130,8 @@
 | 순위 | Phase | 제목 | REQ-IDs | Status | Plans | Date |
 |------|-------|------|---------|--------|-------|------|
 | 1 | 39 | 검사 워크플로우 E2E | WF-01, WF-02 | SIGNED_OFF | 4 | 2026-05-29 |
-| 1 | 39.1 | 검사 워크플로우 긴급 fixes | WF-01 | Planned | 4 | 2026-05-29 |
+| 1 | 39.1 | 검사 워크플로우 긴급 fixes | WF-01 | SIGNED_OFF | 4 | 2026-05-29 |
+| 1 | 39.2 | 긴급 추가건2 (DualImage+I10+Tree) | WF-01 | Planned | 5 | 2026-05-30 |
 | 1 | 40 | Export I (리뷰어+1회) | OUT-01, OUT-02 | Not started | TBD | — |
 | 1 | 41 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
 | 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | Not started | TBD | — |
@@ -149,4 +155,4 @@
 
 ---
 
-*Last updated: 2026-05-29 — Phase 39.1 planned (4 plans, 3 waves).*
+*Last updated: 2026-05-30 — Phase 39.2 planned (5 plans, 3 waves). Phase 39.1 SIGNED_OFF 동기화.*

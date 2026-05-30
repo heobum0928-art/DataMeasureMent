@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
+using ReringProject.Device; //260530 hbk Phase 39.3 D-G3 — DeviceHandler 상수 참조
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Halcon.Models;
 
@@ -23,6 +24,8 @@ namespace ReringProject.Sequence
         //260530 hbk Phase 39.2 D-G1-06 — LineROI 이미지 경로 (Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 가 로드)
         [Category("Image|DualImage")] //260530 hbk Phase 39.2 D-G1
         [System.ComponentModel.Description("LineROI 검출용 별도 이미지 경로 — Bottom E5 패턴 (Phase 37 VTH-DualImage 슬롯 재사용)")] //260530 hbk Phase 39.2 D-G1
+        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)] //260530 hbk Phase 39.3 D-G3
+        [AutoUpdateText] //260530 hbk Phase 39.3 D-G3 — 즉시 INPC fire (ModelFinderViewModel L28-29 패턴)
         public string TeachingImagePath_Vertical { get; set; } = ""; //260530 hbk Phase 39.2 D-G1
 
         // ── PointROI (점 형태, 1차 이미지 = ShotParam.SimulImagePath) ──

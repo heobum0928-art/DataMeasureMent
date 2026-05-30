@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: PARTIAL_SIGNED_OFF — Phase 39.2 partial sign-off 2026-05-30 (3 PASS / 1 carry-over → 39.3 / 1 skipped). 2 hotfix 적용.
-stopped_at: Phase 39.2 partial sign-off + Phase 39.3 신설 seed (DualImage FAI 재설계)
-last_updated: "2026-05-30T12:00:00.000Z"
-last_activity: 2026-05-30 — Phase 39.2 PARTIAL_SIGNED_OFF (D-G2/G3/G4 PASS, D-G1 carry-over → 39.3 신설). hotfix df6f711 (트리 아이콘) + 74f608b (Move ▲▼). 다음 = Phase 39.3 신설 (DualImage FAI Side 패턴 차용).
+status: PARTIAL_SIGNED_OFF — hotfix df6f711 (트리 아이콘 App.xaml 이동) + 74f608b (자동정렬 → Move ▲▼)
+stopped_at: Phase 39.2 discuss 완료 — CONTEXT.md commit f903a9d (D-G1~G4, 6 결정 lock)
+last_updated: "2026-05-30T02:47:09.292Z"
+last_activity: 2026-05-30 — Phase 39.2 partial sign-off. 다음 = Phase 39.3 신설 (DualImage FAI Side 패턴 차용 재설계).
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 18
-  completed_plans: 12
-  percent: 66
+  total_phases: 4
+  completed_phases: 3
+  total_plans: 17
+  completed_plans: 13
+  percent: 76
 ---
 
 # Project State
@@ -352,4 +352,4 @@ Next action: /gsd-plan-phase 39.2 (CONTEXT 의 D-G1~G4 6 lock 기반 plan 생성
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 39.2 (urgent-additions-2-2026-05-30) — 5 plans — 2026-05-29T22:15:15.614Z
+**Planned Phase:** 39.3 (DualImage FAI UX 재설계) — 4 plans — 2026-05-30T02:47:09.284Z

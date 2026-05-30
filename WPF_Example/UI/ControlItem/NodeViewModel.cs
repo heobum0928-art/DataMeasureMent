@@ -241,10 +241,10 @@ namespace ReringProject.UI {
             if (newName != null && this.Node != null) {
                 this.Node.Name = newName;
                 RaisePropertyChanged("Name");
-                //260530 hbk Phase 39.2 D-G3-03 — Rename 후 부모 children 재정렬 (즉시 트리 정렬 갱신)
-                if (this.Parent != null) { //260530 hbk Phase 39.2 D-G3
-                    InspectionListViewModel.SortNodeChildren(this.Parent); //260530 hbk Phase 39.2 D-G3
-                }
+                //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동 재정렬 비활성 (Rename 시 사용자 이동 결과 무효화 방지)
+                //if (this.Parent != null) {
+                //    InspectionListViewModel.SortNodeChildren(this.Parent);
+                //}
             }
         }
 

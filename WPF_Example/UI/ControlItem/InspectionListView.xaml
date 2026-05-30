@@ -253,6 +253,19 @@
                                 <TextBlock Text="Edit" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <!-- 260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 사용자 ▲▼ 이동 (ParamBase 컬렉션 동시 swap) -->
+                        <Button x:Name="button_moveUp" Click="Btn_MoveUp_Click" Style="{StaticResource disalbedStyle}" ToolTip="선택 노드를 위로 이동 (ParamBase 순서 보존)">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Text="▲" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                <TextBlock Text="Up" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="button_moveDown" Click="Btn_MoveDown_Click" Style="{StaticResource disalbedStyle}" ToolTip="선택 노드를 아래로 이동 (ParamBase 순서 보존)">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Text="▼" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                <TextBlock Text="Down" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </ToolBar>
                 </ToolBarTray>
 

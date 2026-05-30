@@ -867,10 +867,27 @@ namespace ReringProject.UI {
 
             var shotVm = new NodeViewModel(shotNode, seqNode);
             seqNode.Children.Add(shotVm);
-            //260530 hbk Phase 39.2 D-G3-03 B2 fix — Shot add 후 부모(Sequence) children 자연정렬
-            //  (실제 Shot 부모는 seqNode 이므로 plan 의 actionNode 가정 대신 seqNode 사용)
-            InspectionListViewModel.SortNodeChildren(seqNode); //260530 hbk Phase 39.2 D-G3
+            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성 (사용자 ▲▼ 이동 우선)
+            //InspectionListViewModel.SortNodeChildren(seqNode);
             seqNode.IsExpanded = true;
+        }
+
+        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — TreeView 선택 노드를 위로 이동 (▲)
+        private void Btn_MoveUp_Click(object sender, RoutedEventArgs e) {
+            try {
+                if (!(treeListBox_sequence.SelectedItem is NodeViewModel sel)) return;
+                if (!InspectionListViewModel.MoveNode(sel, -1)) return;
+                sel.IsSelected = true; // 이동 후 선택 유지
+            } catch { /* UX 안정성 우선 — 예외 swallow */ }
+        }
+
+        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — TreeView 선택 노드를 아래로 이동 (▼)
+        private void Btn_MoveDown_Click(object sender, RoutedEventArgs e) {
+            try {
+                if (!(treeListBox_sequence.SelectedItem is NodeViewModel sel)) return;
+                if (!InspectionListViewModel.MoveNode(sel, +1)) return;
+                sel.IsSelected = true; // 이동 후 선택 유지
+            } catch { /* UX 안정성 우선 — 예외 swallow */ }
         }
 
         private void Btn_RemoveFAI_Click(object sender, RoutedEventArgs e) {

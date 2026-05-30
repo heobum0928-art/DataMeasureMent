@@ -83,7 +83,8 @@ namespace ReringProject.UI {
             this.RootModel = new NodeViewModel(this.Model, null);
             //260417 hbk Phase 6-04 UAT: 최초 트리 생성 후 DisplayName 편집 훅 연결 (D-01)
             HookSequenceDisplayNameUpdates();
-            SortAllLevels(); //260530 hbk Phase 39.2 D-G3 — 초기 트리 생성 후 자연정렬
+            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성 (사용자 Move ▲▼ 방식 우선). NaturalStringComparer 코드는 보존 (향후 toggle 도입 시 재활용)
+            //SortAllLevels();
         }
 
         private void CreateSequenceNode(CompositeNode model) {
@@ -164,7 +165,8 @@ namespace ReringProject.UI {
             // We need to add to the vm's children collection directly
             var faiVm = new NodeViewModel(faiNode, actionNode);
             cn.Add(faiVm);
-            SortNodeChildren(actionNode); //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬
+            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성
+            //SortNodeChildren(actionNode);
         }
 
         //260417 hbk Phase 6 Plan 04: Datum 노드를 Sequence 직접 자식으로 삽입 (D-25)
@@ -179,7 +181,8 @@ namespace ReringProject.UI {
             };
             var datumVm = new NodeViewModel(datumNode, seqNode);
             seqNode.Children.Add(datumVm);
-            SortNodeChildren(seqNode); //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬
+            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성
+            //SortNodeChildren(seqNode);
         }
 
         //260417 hbk Phase 6 Plan 04: Measurement 노드를 FAI 자식으로 삽입 (D-24)
@@ -195,7 +198,8 @@ namespace ReringProject.UI {
             };
             var measVm = new NodeViewModel(measNode, faiNode);
             faiNode.Children.Add(measVm);
-            SortNodeChildren(faiNode); //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬
+            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성
+            //SortNodeChildren(faiNode);
         }
         
         /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.
@@ -208,7 +212,80 @@ namespace ReringProject.UI {
             RootModel.ReloadChildren();
             //260417 hbk Phase 6-04 UAT: 트리 재구축 후 DisplayName 편집 훅 재연결 + 초기 라벨 동기화 (D-01)
             HookSequenceDisplayNameUpdates();
-            SortAllLevels(); //260530 hbk Phase 39.2 D-G3 — recipe 로드 후 전 트리 자연정렬
+            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성 (recipe 로드 후 ParamBase 컬렉션 순서 보존)
+            //SortAllLevels();
+        }
+
+        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 사용자 ▲▼ 이동 (P1: NodeViewModel.Children + ParamBase 컬렉션 동시 swap → INI 저장 시 보존)
+        public static bool MoveNode(NodeViewModel node, int direction) {
+            if (node == null || node.Parent == null) return false;
+            var siblings = node.Parent.Children;
+            int idx = siblings.IndexOf(node);
+            if (idx < 0) return false;
+            int newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= siblings.Count) return false;
+
+            // [1] ParamBase 컬렉션도 swap (P1 영구 보존)
+            if (!SwapParamCollection(node, siblings[newIdx])) return false;
+
+            // [2] NodeViewModel.Children swap (UI 즉시 갱신)
+            siblings.Move(idx, newIdx);
+            return true;
+        }
+
+        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — node 및 swap target 의 ParamBase owning collection 에서 index swap
+        private static bool SwapParamCollection(NodeViewModel node, NodeViewModel swapWith) {
+            if (node == null || swapWith == null) return false;
+            object myParam = node.Param;
+            object otherParam = swapWith.Param;
+            if (myParam == null || otherParam == null) return false;
+
+            switch (node.NodeType) {
+                case ENodeType.FAI: {
+                    // FAI 의 owner = parent Action(Shot) 의 ShotConfig.FAIList
+                    if (node.Parent != null && node.Parent.Param is ShotConfig shot) {
+                        return SwapInList(shot.FAIList, myParam as FAIConfig, otherParam as FAIConfig);
+                    }
+                    break;
+                }
+                case ENodeType.Measurement: {
+                    // Measurement 의 owner = parent FAI 의 FAIConfig.Measurements
+                    if (node.Parent != null && node.Parent.Param is FAIConfig fai) {
+                        return SwapInList(fai.Measurements, myParam as MeasurementBase, otherParam as MeasurementBase);
+                    }
+                    break;
+                }
+                case ENodeType.Datum: {
+                    // Datum 의 owner = Sequence 의 InspectionSequence.DatumConfigs
+                    SequenceBase seq = SystemHandler.Handle.Sequences[node.SequenceID];
+                    if (seq is InspectionSequence inspSeq) {
+                        return SwapInList(inspSeq.DatumConfigs, myParam as DatumConfig, otherParam as DatumConfig);
+                    }
+                    break;
+                }
+                case ENodeType.Action: {
+                    // Shot (Action + ShotConfig Param) 의 owner = RecipeManager.Shots
+                    if (myParam is ShotConfig myShot && otherParam is ShotConfig otherShot) {
+                        var mgr = SystemHandler.Handle.Sequences.RecipeManager;
+                        return SwapInList(mgr.Shots, myShot, otherShot);
+                    }
+                    return true; //  일반 Action (ShotConfig 아님) 은 ParamBase 컬렉션 변경 0 — UI 만 swap
+                }
+                default:
+                    return true; // Recipe/Sequence 노드 등은 UI 만 swap
+            }
+            return false;
+        }
+
+        private static bool SwapInList<T>(System.Collections.Generic.List<T> list, T a, T b) where T : class {
+            if (list == null || a == null || b == null) return false;
+            int ia = list.IndexOf(a);
+            int ib = list.IndexOf(b);
+            if (ia < 0 || ib < 0) return false;
+            T tmp = list[ia];
+            list[ia] = list[ib];
+            list[ib] = tmp;
+            return true;
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence 노드의 InspectionMasterParam.DisplayName 변경 시 트리 라벨 즉시 갱신 (D-01)

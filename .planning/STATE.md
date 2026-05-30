@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: PARTIAL_SIGNED_OFF — Phase 39.3 (Test 1-3 + 알고리즘 PASS, Test 4 + 회귀 A/B/D/E → Phase 39.4 흡수)
-stopped_at: Phase 39.4 discuss_complete 2026-05-30 (4 결정 D-G1~G4 lock, commit 8f85eba). 다음 = /gsd-plan-phase 39.4
-last_updated: "2026-05-30T05:00:00.000Z"
-last_activity: 2026-05-30 — Phase 39.4 discuss 완료 (Fallback ShotConfig / Datum 별도 / [DisplayName] + [Category] / 배지 fallback 명시).
+status: Ready to execute — Phase 39.4 (4 plans / 3 waves, plan-checker 12/12 dimensions PASS)
+stopped_at: Phase 39.4 plan_complete 2026-05-30 (RESEARCH + 4 PLAN.md, commit 542eb42). 다음 = /gsd-execute-phase 39.4
+last_updated: "2026-05-30T05:30:00.000Z"
+last_activity: 2026-05-30 — Phase 39.4 planning 완료 (RESEARCH 4 RT lock-in + 4 plans + Anti-Goal 10항).
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 17
+  total_plans: 21
   completed_plans: 17
-  percent: 100
+  percent: 81
 ---
 
 # Project State
@@ -340,10 +340,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-05-30T05:00:00.000Z
-Stopped at: Phase 39.4 discuss_complete 2026-05-30 (4 결정 D-G1~G4 lock, commit 8f85eba). CONTEXT.md status seed → discuss_complete.
-Resume file: .planning/phases/39.4-bottom-dualimage-manual-swap-2026-05-30/39.4-CONTEXT.md
-Next action: /gsd-plan-phase 39.4 (RESEARCH.md + PATTERNS.md + 4 PLAN.md 생성. Research targets: PropertyTools [DisplayName] namespace 검증 / ParamBase reflection auto-pickup / 39.3 Plan 02 Task 02-04 코드 위치 / UpdateImageSourceBadge 배지 텍스트 동적 set 호환성).
+Last session: 2026-05-30T05:30:00.000Z
+Stopped at: Phase 39.4 plan_complete 2026-05-30 (RESEARCH + 4 PLAN.md, commit 542eb42). Plan-checker 12/12 dimensions PASS (0 BLOCKER + 2 WARNING revision 적용). Wave 1 (Plan 01) → Wave 2 (Plan 02 + Plan 03 병렬, Plan 01 의존) → Wave 3 (Plan 04 UAT).
+Resume file: .planning/phases/39.4-bottom-dualimage-manual-swap-2026-05-30/39.4-01-PLAN.md
+Next action: /gsd-execute-phase 39.4 (4 plans / 3 waves 실행. Plan 04 = checkpoint blocking — 사용자 SIMUL UAT 4 Test + 회귀 Verify A/B/D/E + INI 호환).
 
 **v1.1 Phase Map:**
 

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: 40-03 SIGNED_OFF (reviewer UAT — 4 hotfix CO-40-04~07, 사용자 "리뷰어 정상 작동" 승인). 다음 = Plan 40-04 (xlsx export, OUT-02)
-last_updated: "2026-06-01T08:00:00.000Z"
+stopped_at: 40-03 SIGNED_OFF — reviewer UAT 4 hotfix(CO-40-04~07) 반영 후 사용자 승인. 커밋 2d42b5b + 7ea7f3b + 40-03-SUMMARY.
+last_updated: "2026-06-01T09:00:18.034Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 6
@@ -379,4 +379,4 @@ Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-4
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 40 (결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀) — 4 plans — 2026-06-01T01:00:17.647Z
+**Planned Phase:** 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — 2 plans — 2026-06-01T09:00:18.025Z

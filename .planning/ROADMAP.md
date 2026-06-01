@@ -227,6 +227,16 @@ Plans:
 
 ## Backlog
 
+### Phase 40.1: 리뷰어/뷰어 UAT 후속 UI 3건 (overlay On/Off 토글 + 트리 Shot 접기 + Polygon ROI 숨김) (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 40
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 40.1 to break down)
+
 ### Phase 999.1: Datum 2-image 지원 (side 검사) — ✅ ABSORBED to v1.1 Phase 27/34/36/37 (2026-05-28)
 - Side datum 2-image (4 DualImage / 8-image) 지원 v1.1 종결.
 

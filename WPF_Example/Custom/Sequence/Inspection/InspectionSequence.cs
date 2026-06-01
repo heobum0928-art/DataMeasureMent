@@ -66,6 +66,10 @@ namespace ReringProject.Sequence {
             pMyParam = Param as CameraMasterParam;
             DefaultCamera = defaultCamera;
             DefaultLight = defaultLight;
+            //260601 hbk Phase 40 CO-40-01 — 수동(UI) 검사 완료 시에도 cycle.json 영속화.
+            //  AddResponse() 는 RequestPacket(TCP/host) 경로에서만 호출 → Start(EAction) 수동 검사(RequestPacket=null)는 미저장이었음.
+            //  Finish() 의 OnFinish 는 트리거 무관 발화 → 핸들러에서 RequestPacket==null(수동) 일 때만 저장(TCP 경로 중복 방지).
+            OnFinish += HandleManualCyclePersist;
         }
 
         //260409 hbk Phase 5: 종합 판정 + FAI별 결과 TCP 전송 (D-07)
@@ -140,6 +144,48 @@ namespace ReringProject.Sequence {
             }
 
             ResponseQueue.Enqueue(responsePacket);
+        }
+
+        //260601 hbk Phase 40 CO-40-01 — 수동(UI) 검사 완료 핸들러 (OnFinish 구독, 생성자에서 1회 등록).
+        //  TCP 경로(RequestPacket!=null)는 AddResponse 에서 이미 저장하므로 여기선 수동 경로만 처리 → 중복 저장 방지.
+        //  종합판정은 ComputeOverallResult (AddResponse 의 anyDatumSkip>NG>OK 계층과 동일) 로 재집계 후 BuildDto/SaveAsync.
+        private void HandleManualCyclePersist(SequenceContext context) {
+            if (RequestPacket != null) return; //260601 hbk Phase 40 CO-40-01 — TCP 경로는 AddResponse 에서 저장됨
+            try
+            {
+                var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+                EVisionResultType result = ComputeOverallResult(recipeManager);
+                var cycleDto = CycleResultSerializer.BuildDto(
+                    recipeManager,
+                    result,
+                    System.DateTime.Now,
+                    SystemHandler.Handle.Setting.CurrentRecipeName);
+                CycleResultSerializer.SaveAsync(cycleDto);
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] 수동 cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        //260601 hbk Phase 40 CO-40-01 — 종합판정 집계 (read-only, 패킷 미생성). AddResponse 의 3-state 계층과 동일 우선순위.
+        private EVisionResultType ComputeOverallResult(InspectionRecipeManager recipeManager) {
+            bool anyDatumSkip = false;
+            bool allPass = true;
+            if (recipeManager != null)
+            {
+                foreach (var shot in recipeManager.Shots)
+                {
+                    foreach (var fai in shot.FAIList)
+                    {
+                        if (fai.WasDatumSkipped) anyDatumSkip = true;
+                        else if (!fai.IsPass) allPass = false;
+                    }
+                }
+            }
+            if (anyDatumSkip) return EVisionResultType.NotExist; //260601 hbk Phase 40 CO-40-01 — 검출실패 최우선
+            if (!allPass) return EVisionResultType.NG; //260601 hbk Phase 40 CO-40-01 — NG
+            return EVisionResultType.OK; //260601 hbk Phase 40 CO-40-01 — OK
         }
 
         public override void OnCreate() {

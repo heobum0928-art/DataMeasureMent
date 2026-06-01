@@ -2145,6 +2145,18 @@ namespace ReringProject.UI {
         }
 
         //260408 hbk 2점 캘리브레이션 플로우
+        //260601 hbk Phase 40.1 #2 — 측정 overlay 토글 → 뷰어 게이트 갱신 (즉시 재렌더)
+        private void Chk_overlayMeasure_Changed(object sender, RoutedEventArgs e) {
+            if (halconViewer == null) return;
+            halconViewer.SetMeasurementOverlayVisible(chk_overlayMeasure.IsChecked == true);
+        }
+
+        //260601 hbk Phase 40.1 #2 — Datum 라인 토글 → 뷰어 게이트 갱신 (즉시 재렌더)
+        private void Chk_overlayDatum_Changed(object sender, RoutedEventArgs e) {
+            if (halconViewer == null) return;
+            halconViewer.SetDatumOverlayVisible(chk_overlayDatum.IsChecked == true);
+        }
+
         private void CalibrateButton_Click(object sender, RoutedEventArgs e) {
             ExitCanvasMode();
             _canvasMode = ECanvasMode.Calibration;

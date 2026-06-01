@@ -153,9 +153,11 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260601 hbk Phase 40.1 #4 — Polygon ROI 생성 진입점 숨김 (RoiShape.Polygon enum + 렌더 분기 보존, 데이터 호환)-->
                     <ToggleButton x:Name="btn_polygonRoi" Content="Polygon ROI"
                         Click="PolygonRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
+                        Visibility="Collapsed"
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
@@ -236,6 +238,17 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+
+                    <!--260601 hbk Phase 40.1 #2 — overlay On/Off 토글 (기본 ON). 측정 overlay / Datum 라인 독립.-->
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,4"/>
+                    <CheckBox x:Name="chk_overlayMeasure" Content="측정 overlay"
+                        IsChecked="True"
+                        Checked="Chk_overlayMeasure_Changed" Unchecked="Chk_overlayMeasure_Changed"
+                        Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+                    <CheckBox x:Name="chk_overlayDatum" Content="Datum 라인"
+                        IsChecked="True"
+                        Checked="Chk_overlayDatum_Changed" Unchecked="Chk_overlayDatum_Changed"
+                        Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
                 </StackPanel>
                 <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"

@@ -202,7 +202,7 @@ namespace ReringProject.UI {
                     ViewModel.RebuildTree();
                 }
 
-                ViewModel.RootModel.ExpandAll();
+                ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 기본 Shot 레벨 접기 (전체 ExpandAll → Shot 레벨)
 
                 //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
                 //  ParamEditor 가 null 이면 (Loaded 이전) skip. 정상 경로에서는 InitializeComponent 가 이미 ParamEditor 를 생성.
@@ -260,7 +260,7 @@ namespace ReringProject.UI {
             ViewModel.CurrentRecipe = name;
             ViewModel.RebuildTree();
             //260509 hbk Phase 20 — null-conditional → 명시적 if/else (D-01, P-14)
-            if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandAll();
+            if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 레시피 재로드 후 Shot 레벨 접기
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 모두 Start 가능 + Shot→Action 지연 동기화

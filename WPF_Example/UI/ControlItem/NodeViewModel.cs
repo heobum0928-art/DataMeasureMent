@@ -278,5 +278,24 @@ namespace ReringProject.UI {
                 child.ExpandAll();
             }
         }
+
+        //260601 hbk Phase 40.1 #3 — 기본 펼침을 Shot 레벨까지로 제한.
+        //  루트(recipe) + Sequence 노드만 펼치고, 그 하위 Shot(Action)/Datum 노드는 접힘 상태 유지
+        //  (FAI/Measurement 상세는 사용자가 Shot 을 펼쳐야 보임). 라이브 검사 트리 한정.
+        public void ExpandToShotLevel() {
+            // Sequence 노드 이하(Shot/Datum)는 펼치지 않는다 — 자기 자신만 펼치고 재귀 중단
+            if (this.NodeType == ENodeType.Sequence) {
+                this.IsExpanded = true;
+                foreach (var child in this.Children) {
+                    child.IsExpanded = false; // Shot/Datum 노드는 접힘
+                }
+                return;
+            }
+            // 루트(recipe) 등 Sequence 상위: 펼치고 자식(Sequence) 으로 재귀
+            this.IsExpanded = true;
+            foreach (var child in this.Children) {
+                child.ExpandToShotLevel();
+            }
+        }
     }
 }

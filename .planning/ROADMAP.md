@@ -144,6 +144,12 @@
 **Goal**: 검사 완료된 결과를 사후에 검토·추출할 수 있는 출력 계층을 구축한다. (1) 날짜/원본 폴더 단위로 과거 검사 결과를 로드하여 결과 이미지(에지·overlay·판정)를 재현하는 **리뷰어**(OUT-01), (2) 시퀀스 1회 검사 결과를 메타데이터+측정값+판정+이미지 링크가 포함된 **xlsx 파일로 export**(OUT-02).
 **Depends on**: Phase 39 (검사 워크플로우 E2E — OK/NG/검출실패 3분기 + TCP 결과) signed_off, Phase 39.4 (DualImage swap) partial
 **Requirements**: OUT-01, OUT-02
+**Plans**: 4 plans (3 waves) — planned 2026-06-01
+Plans:
+- [ ] 40-01-PLAN.md — cycle 결과 JSON 영속화 토대 (CycleResultDto + CycleResultSerializer + AddResponse wiring)
+- [ ] 40-02-PLAN.md — ClosedXML 0.105.0 + 전이 의존성 등록 + 런타임 smoke test [BLOCKING]
+- [ ] 40-03-PLAN.md — 결과 리뷰어 Window (날짜폴더 → cycle 목록 → 이미지/overlay 재렌더 + 측정표, OUT-01)
+- [ ] 40-04-PLAN.md — ExcelExportService + 리뷰어 [엑셀 export] 버튼 (OUT-02)
 **Background**: 측정 알고리즘은 Phase 23~39 에서 안정화 완료. 그러나 검사 결과는 현재 라이브 화면 + `RawImageSaveService` 의 원본 이미지 저장만 존재하고, (a) 저장된 결과를 사후에 다시 불러와 검토하는 경로, (b) 측정값/판정을 정형 데이터(xlsx)로 추출하는 경로가 없다. POC 2026-06-30 시연에서 "검사 → 결과 리뷰 → 엑셀 추출" 흐름이 필요.
 **Scope**:
   - **OUT-01 결과 리뷰어**: 날짜/원본 폴더 선택 → 저장된 결과 이미지 + overlay + 판정 재현 (UI 위치 TBD — 별도 창 vs MainView 탭)

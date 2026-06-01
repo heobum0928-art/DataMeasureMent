@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 40-02-PLAN.md — ClosedXML 0.105.0 NuGet 등록 + smoke test PASS (Plan 04 선행 해소)
-last_updated: "2026-06-01T01:54:46.555Z"
+stopped_at: 40-03 SIGNED_OFF (reviewer UAT — 4 hotfix CO-40-04~07, 사용자 "리뷰어 정상 작동" 승인). 다음 = Plan 40-04 (xlsx export, OUT-02)
+last_updated: "2026-06-01T08:00:00.000Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 25
-  completed_plans: 23
-  percent: 92
+  completed_plans: 24
+  percent: 96
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 40 (결과 분석 & Export I) — EXECUTING
-Plan: 3 of 4
-Status: Ready to execute
+Plan: 4 of 4 (40-01/02/03 완료, 40-04 xlsx export 남음)
+Status: 40-03 SIGNED_OFF (reviewer). Ready to execute 40-04
 Last activity: 2026-06-01
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -280,6 +280,7 @@ Recent decisions affecting current work:
 | ID | Date | Description | Source | Status |
 |----|------|-------------|--------|--------|
 | CO-22-01 | 2026-05-11 | Datum 노드 ↔ FAI 노드 PropertyGrid 전환 동작 안 됨 — 트리 선택 시 즉시 갱신 안 됨. Phase 17 ICustomTypeDescriptor 와의 상호작용 가능성. 별도 quick task 로 재현/원인 추적 필요. | Phase 22 UAT carry-over | **resolved** (quick 260511-ucv, d6070e8 + 50f5405, UAT 5/5 PASS) |
+| CO-40-08 | 2026-06-01 | 오토 모드 종합판정/TCP 응답을 실행 시퀀스로 한정. InspectionSequence.AddResponse / ComputeOverallResult 가 recipeManager.Shots 전체를 순회 → 다른 시퀀스 stale 이 host 응답·cycle 종합판정에 포함될 수 있음. 리뷰어 측정표는 CO-40-07 로 시퀀스별 한정 완료, 종합판정/TCP 만 남음. | Phase 40-03 UAT (사용자 결정 B 이연) | open → 별도 phase/quick |
 
 ### Blockers/Concerns
 
@@ -355,10 +356,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-01T01:54:46.546Z
-Stopped at: Completed 40-02-PLAN.md — ClosedXML 0.105.0 NuGet 등록 + smoke test PASS (Plan 04 선행 해소)
+Last session: 2026-06-01T08:00:00Z
+Stopped at: 40-03 SIGNED_OFF — reviewer UAT 4 hotfix(CO-40-04~07) 반영 후 사용자 승인. 커밋 2d42b5b + 7ea7f3b + 40-03-SUMMARY.
 Resume file: None
-Next action: Phase 40 (OUT-01/02) 또는 CO-39.4-02 carry-over phase 신설 결정.
+Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-40-08(오토 종합판정/TCP 시퀀스 scoping) 별도 처리.
 
 **v1.1 Phase Map:**
 

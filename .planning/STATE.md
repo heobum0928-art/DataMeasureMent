@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: Phases
 status: executing
 stopped_at: 40-03 SIGNED_OFF — reviewer UAT 4 hotfix(CO-40-04~07) 반영 후 사용자 승인. 커밋 2d42b5b + 7ea7f3b + 40-03-SUMMARY.
-last_updated: "2026-06-01T09:00:18.034Z"
-last_activity: 2026-06-01
+last_updated: "2026-06-01T09:03:49.131Z"
+last_activity: 2026-06-01 -- Phase 40.1 Plan 01 tasks 1-2 완료, human-verify 체크포인트 대기
 progress:
   total_phases: 6
   completed_phases: 5
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 40 — 결과 분석 & Export I
+**Current focus:** Phase 40.1 — uat-ui-3-overlay-on-off-shot-polygon-roi
 
 ## Current Position
 
-Phase: 40 (결과 분석 & Export I) — EXECUTING
-Plan: 4 of 4 (40-01/02/03 완료, 40-04 xlsx export 남음)
-Status: 40-03 SIGNED_OFF (reviewer). Ready to execute 40-04
-Last activity: 2026-06-01
+Phase: 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — EXECUTING
+Plan: 1 of 2 (Task 1-2 done, awaiting human-verify checkpoint)
+Status: Executing Phase 40.1
+Last activity: 2026-06-01 -- Phase 40.1 Plan 01 tasks 1-2 완료, human-verify 체크포인트 대기
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -250,6 +250,9 @@ Recent decisions affecting current work:
 - TypeNameHandling.None 명시 보안 제어 적용 (T-40-02 RCE 방지, cycle.json 역직렬화 시 외부 타입 주입 불가)
 - SixLabors.Fonts 1.0.0 채택 (net48) — ClosedXML 0.105.0 + .NET 4.8 에서 2.1.3 netstandard2.0 폴더 부재로 로드 불가. 1.0.0 으로 대체, runtime XLWorkbook PASS
 - Microsoft.Bcl.HashCode 미설치 확정 — ClosedXML 0.105.0 전이 의존성에 포함 안 됨(ASSUMED 오판), App.config redirect 추가 불필요(Pitfall 2 미발생)
+- [Phase 40.1-01]: overlay 토글 게이트는 RenderNow 표시 시점 분기만 적용 (데이터 무변형) — _measurementOverlayVisible/_datumOverlayVisible 2 플래그 + SetMeasurementOverlayVisible/SetDatumOverlayVisible setter(즉시 Render()). 측정 overlay OFF=빈 List<EdgeInspectionOverlay> 전달(rois/messages/draft 보존), Datum OFF=`_datumConfig != null && _datumOverlayVisible` 게이트. RenderNow 단일 게이트로 라이브+노드 재현 경로 동시 커버. SetInspectionOverlays/UpdateDisplayState/RenderDatumOverlay 본문 무변경.
+- [Phase 40.1-01]: #4 Polygon = btn_polygonRoi Visibility=Collapsed 만 (UI 진입점 숨김). RoiShape.Polygon enum + HalconDisplayService Polygon 분기 + PolygonRoiButton_Click/CompletePolygon code-behind 전부 보존 (label_pointCount Phase 17 D-15 선례 동일, INI 데이터 호환).
+- [Phase 40.1-01]: MainView.xaml.cs 핸들러는 파일 실제 스타일(K&R)을 따름 — 플랜의 Allman 명시보다 CLAUDE.md "편집 파일 스타일 따름" 우선.
 
 ### Quick Tasks Completed
 

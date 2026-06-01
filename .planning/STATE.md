@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: "40-02 Task 1+2 complete — awaiting human-verify checkpoint (ClosedXML smoke test runtime validation)"
-last_updated: "2026-06-01T02:00:00.000Z"
+stopped_at: Completed 40-02-PLAN.md — ClosedXML 0.105.0 NuGet 등록 + smoke test PASS (Plan 04 선행 해소)
+last_updated: "2026-06-01T01:54:46.555Z"
 last_activity: 2026-06-01
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 25
-  completed_plans: 22
-  percent: 88
+  completed_plans: 23
+  percent: 92
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 40 (결과 분석 & Export I) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-01
 
@@ -129,6 +129,7 @@ Last activity: 2026-06-01
 | Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P02 | 360 | 1 tasks | 1 files |
 | Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P03 | 15 | 2 tasks | 1 files |
 | Phase 40-export-i-1-2026-06-01 P01 | 264 | 3 tasks | 4 files |
+| Phase 40-export-i-1-2026-06-01 P40-02 | 45 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -247,6 +248,8 @@ Recent decisions affecting current work:
 - CS0136 회피: hpathMeas 명명 (Datum 분기 hpath 와 outer scope 분리, Phase 39.3 vpathMeas 패턴 mirror)
 - CycleResultSerializer를 ReringProject.Sequence 네임스페이스에 배치 (Custom/Sequence/Inspection 폴더 규칙 일치, Phase 40 D-01)
 - TypeNameHandling.None 명시 보안 제어 적용 (T-40-02 RCE 방지, cycle.json 역직렬화 시 외부 타입 주입 불가)
+- SixLabors.Fonts 1.0.0 채택 (net48) — ClosedXML 0.105.0 + .NET 4.8 에서 2.1.3 netstandard2.0 폴더 부재로 로드 불가. 1.0.0 으로 대체, runtime XLWorkbook PASS
+- Microsoft.Bcl.HashCode 미설치 확정 — ClosedXML 0.105.0 전이 의존성에 포함 안 됨(ASSUMED 오판), App.config redirect 추가 불필요(Pitfall 2 미발생)
 
 ### Quick Tasks Completed
 
@@ -352,8 +355,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-01T01:17:18.068Z
-Stopped at: Completed 40-01-PLAN.md — cycle 결과 JSON 영속화 토대 (CycleResultDto + CycleResultSerializer + wiring)
+Last session: 2026-06-01T01:54:46.546Z
+Stopped at: Completed 40-02-PLAN.md — ClosedXML 0.105.0 NuGet 등록 + smoke test PASS (Plan 04 선행 해소)
 Resume file: None
 Next action: Phase 40 (OUT-01/02) 또는 CO-39.4-02 carry-over phase 신설 결정.
 

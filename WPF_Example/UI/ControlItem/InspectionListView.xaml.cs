@@ -150,6 +150,7 @@ namespace ReringProject.UI {
 
         private bool _isControlLoaded = false; //260408 hbk UI 초기화 완료 플래그
         private string _pendingRecipeName = null; //260408 hbk 초기화 전 수신된 레시피명
+        private bool _initialExpandApplied = false; //260601 hbk Phase 40.1 #3 UAT — 기본 Shot 레벨 펼침은 세션 첫 로드 1회만 적용 (이후 사용자 펼침/접힘 상태 유지)
 
         public InspectionListView() {
             InitializeComponent();
@@ -202,7 +203,11 @@ namespace ReringProject.UI {
                     ViewModel.RebuildTree();
                 }
 
-                ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 기본 Shot 레벨 접기 (전체 ExpandAll → Shot 레벨)
+                //260601 hbk Phase 40.1 #3 UAT — 기본 Shot 레벨 펼침은 세션 첫 로드 1회만 적용. 이후 재로드 시 사용자 펼침/접힘 상태 유지 (자동 재접기 제거).
+                if (!_initialExpandApplied) {
+                    ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 첫 로드 기본 Shot 레벨 접기 (전체 ExpandAll → Shot 레벨)
+                    _initialExpandApplied = true; //260601 hbk Phase 40.1 #3 UAT — 1회 적용 후 가드
+                }
 
                 //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
                 //  ParamEditor 가 null 이면 (Loaded 이전) skip. 정상 경로에서는 InitializeComponent 가 이미 ParamEditor 를 생성.
@@ -259,8 +264,14 @@ namespace ReringProject.UI {
 
             ViewModel.CurrentRecipe = name;
             ViewModel.RebuildTree();
+            //260601 hbk Phase 40.1 #3 UAT — 레시피 재로드 시에는 강제 Shot 레벨 접기를 적용하지 않는다 (이후 상태 유지 의도).
+            //  기본 Shot 레벨 펼침은 세션 첫 로드(ListView_Loaded) 1회만 적용. 단, 앱 시작 직후 OnLoadRecipe 가
+            //  ListView_Loaded 보다 먼저 도달하는 경로(또는 아직 1회도 적용 안 된 경우)에서는 첫 로드로 간주해 1회 적용.
             //260509 hbk Phase 20 — null-conditional → 명시적 if/else (D-01, P-14)
-            if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 레시피 재로드 후 Shot 레벨 접기
+            if (!_initialExpandApplied && ViewModel.RootModel != null) {
+                ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 첫 로드 1회 기본 Shot 레벨 접기
+                _initialExpandApplied = true; //260601 hbk Phase 40.1 #3 UAT — 1회 적용 후 가드
+            }
         }
 
         //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 모두 Start 가능 + Shot→Action 지연 동기화

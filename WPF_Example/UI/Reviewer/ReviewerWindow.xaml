@@ -1,0 +1,77 @@
+<Window x:Class="ReringProject.UI.ReviewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewers="clr-namespace:ReringProject.UI"
+        mc:Ignorable="d"
+        Title="결과 리뷰어" Height="800" Width="1200"
+        WindowStartupLocation="CenterOwner">
+    <!--260601 hbk Phase 40 OUT-01 D-08/D-09 — 결과 리뷰어 비모달 별도 Window-->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="400"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 좌측 패널 헤더 -->
+        <Border Grid.Row="0" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
+            <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
+                    Click="Button_LoadFolder_Click"
+                    Padding="8,4" HorizontalAlignment="Stretch"/>
+        </Border>
+
+        <!-- 중앙 헤더 (빈 영역) -->
+        <Border Grid.Row="0" Grid.Column="1" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
+            <TextBlock Text="이미지 / Overlay" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
+        </Border>
+
+        <!-- 우측 헤더 -->
+        <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="6,4">
+            <TextBlock Text="측정 결과" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
+        </Border>
+
+        <!-- 좌측 패널: cycle 목록 ListBox -->
+        <Border Grid.Row="1" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+            <ListBox x:Name="listBox_cycles"
+                     SelectionChanged="CycleList_SelectionChanged"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" Padding="2"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- 중앙: HalconViewerControl 인스턴스 (독립, 라이브 MainView halconViewer 재사용 금지 — RESEARCH Anti-Pattern) -->
+        <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="1" Margin="4"/>
+
+        <!-- 우측: 측정 결과 DataGrid -->
+        <DataGrid x:Name="dataGrid_measurements"
+                  Grid.Row="1" Grid.Column="2"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Auto"
+                  Margin="4">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Shot"    Binding="{Binding ShotName}"       Width="70"/>
+                <DataGridTextColumn Header="FAI"     Binding="{Binding FAIName}"        Width="70"/>
+                <DataGridTextColumn Header="측정명"  Binding="{Binding MeasurementName}" Width="100"/>
+                <DataGridTextColumn Header="Nominal" Binding="{Binding NominalValue, StringFormat=F4}" Width="65"/>
+                <DataGridTextColumn Header="Tol+"    Binding="{Binding TolerancePlus, StringFormat=F4}"  Width="55"/>
+                <DataGridTextColumn Header="Tol-"    Binding="{Binding ToleranceMinus, StringFormat=F4}" Width="55"/>
+                <DataGridTextColumn Header="측정값"  Binding="{Binding ResultDisplay}"  Width="75"/>
+                <DataGridTextColumn Header="판정"    Binding="{Binding JudgeText}"      Width="65"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

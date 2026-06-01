@@ -354,6 +354,9 @@
     <Compile Include="UI\ProcessMonitor\ProcessMonitorWindow.xaml.cs">
       <DependentUpon>ProcessMonitorWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs"> <!--260601 hbk Phase 40 OUT-01-->
+      <DependentUpon>ReviewerWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
       <DependentUpon>OpenRecipeWindow.xaml</DependentUpon>
     </Compile>
@@ -367,6 +370,7 @@
     <Compile Include="UI\ViewModel\FAINodeViewModel.cs" />
     <Compile Include="UI\ViewModel\MeasurementResultRow.cs" />
     <Compile Include="UI\ViewModel\CycleResultDto.cs" /> <!--260601 hbk Phase 40 OUT-01/OUT-02-->
+    <Compile Include="UI\ViewModel\ReviewMeasurementRow.cs" /> <!--260601 hbk Phase 40 OUT-01-->
     <Compile Include="UI\ViewModel\InspectionViewModel.cs" />
     <Compile Include="UI\Theme\OutlinedTextBlock.cs" />
     <Compile Include="UI\ViewModel\Attributes.cs" />
@@ -465,6 +469,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\ProcessMonitor\ProcessMonitorWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Reviewer\ReviewerWindow.xaml"> <!--260601 hbk Phase 40 OUT-01-->
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

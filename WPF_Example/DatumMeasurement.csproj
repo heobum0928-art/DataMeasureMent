@@ -235,6 +235,7 @@
     <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />
     <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionSequence.cs" />
+    <Compile Include="Custom\Export\ExcelExportSmokeTest.cs" /> <!--260601 hbk Phase 40 OUT-02 ClosedXML smoke test-->
     <Compile Include="Custom\Sequence\Inspection\CycleResultSerializer.cs" /> <!--260601 hbk Phase 40 OUT-01/OUT-02-->
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />

@@ -1,5 +1,6 @@
 //260409 hbk Phase 5: 동적 FAI 검사 시퀀스 (D-07)
 //260413 hbk Phase 6: Fixture 역할 확장 — DisplayName + Multi-Datum (D-01, D-04, D-09, D-10)
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using HalconDotNet;
@@ -120,6 +121,23 @@ namespace ReringProject.Sequence {
             else if (!allPass) responsePacket.Result = EVisionResultType.NG; //260529 hbk Phase 39 WF-02 D-03 — 'X'
             else responsePacket.Result = EVisionResultType.OK; //260529 hbk Phase 39 WF-02 D-03 — 'O'
             pMyContext.ResultInfo = responsePacket.Result;
+
+            //260601 hbk Phase 40 OUT-01/OUT-02 — cycle 완료 → 구조화 JSON 영속화 (리뷰어/xlsx 공통 토대, D-01/D-02/D-03)
+            //  BuildDto 는 동기 스냅샷 (Shots 가 이미 채워진 시점), SaveAsync 가 비동기 파일 쓰기 — AddResponse 스레드 블로킹 최소화.
+            //  직렬화 예외가 TCP 응답(ResponseQueue.Enqueue)을 차단하지 않도록 try/catch 격리 (RESEARCH Pitfall 4, T-40-03).
+            try
+            {
+                var cycleDto = CycleResultSerializer.BuildDto(
+                    recipeManager,
+                    responsePacket.Result,
+                    System.DateTime.Now,
+                    SystemHandler.Handle.Setting.CurrentRecipeName);
+                CycleResultSerializer.SaveAsync(cycleDto);
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+            }
 
             ResponseQueue.Enqueue(responsePacket);
         }

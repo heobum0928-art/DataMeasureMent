@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
-stopped_at: Phase 39.4 PARTIAL_SIGNED_OFF 2026-05-31 (Test 1~4 + Verify A 5/5 PASS, 1 hotfix CO-39.4-01 = 6843c0d, Verify B/D/E + INI 호환 = CO-39.4-02 후속 phase 이월). 다음 = Phase 40 (OUT-01/02) 또는 carry-over phase 신설.
-last_updated: "2026-05-31T00:00:00.000Z"
-last_activity: 2026-05-31
+status: verifying
+stopped_at: "Phase 40 context gathered (D-01~D-10): 구조화 JSON 영속화 + ClosedXML + 별도 창 리뷰어. 다음 = /gsd-plan-phase 40"
+last_updated: "2026-06-01T00:23:57.986Z"
+last_activity: 2026-05-31 — Phase 39.4 sign-off
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
   total_plans: 21
   completed_plans: 21
@@ -349,9 +349,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-05-31T00:00:00.000Z
-Stopped at: Phase 39.4 PARTIAL_SIGNED_OFF 2026-05-31 (Test 1~4 + Verify A 5/5 PASS, 1 hotfix CO-39.4-01 = `6843c0d`, CO-39.4-02 carry-over). 5 commits — Plan 04: d32a45b → f2149c8 → 6843c0d (hotfix) → eb6d4cb (UAT 기록) → b3399de (sign-off).
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 40 context gathered (D-01~D-10): 구조화 JSON 영속화 + ClosedXML + 별도 창 리뷰어. 다음 = /gsd-plan-phase 40
+Resume file: --resume-file
 Next action: Phase 40 (OUT-01/02) 또는 CO-39.4-02 carry-over phase 신설 결정.
 
 **v1.1 Phase Map:**

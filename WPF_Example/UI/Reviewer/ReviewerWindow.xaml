@@ -13,10 +13,13 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <!--260601 hbk Phase 40 CO-40-02 UAT — GridSplitter 로 3 패널 가로 크기 조절 가능. 측정표 잘림 해소.-->
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="220" MinWidth="120"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="*" MinWidth="200"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="430" MinWidth="200"/>
         </Grid.ColumnDefinitions>
 
         <!-- 좌측 패널 헤더 -->
@@ -27,14 +30,23 @@
         </Border>
 
         <!-- 중앙 헤더 (빈 영역) -->
-        <Border Grid.Row="0" Grid.Column="1" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
+        <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
             <TextBlock Text="이미지 / Overlay" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
         </Border>
 
         <!-- 우측 헤더 -->
-        <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="6,4">
-            <TextBlock Text="측정 결과" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
+        <Border Grid.Row="0" Grid.Column="4" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="6,4">
+            <TextBlock Text="측정 결과 (행 클릭 = 해당 측정만 보기)" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
         </Border>
+
+        <!--260601 hbk Phase 40 CO-40-02 — 좌/중 분할 드래그 핸들-->
+        <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      Width="5" Background="#C0C8D0" ShowsPreview="True"/>
+        <!--260601 hbk Phase 40 CO-40-02 — 중/우 분할 드래그 핸들 (측정표 가로 폭 조절)-->
+        <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="3"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      Width="5" Background="#C0C8D0" ShowsPreview="True"/>
 
         <!-- 좌측 패널: cycle 목록 ListBox -->
         <Border Grid.Row="1" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
@@ -50,11 +62,13 @@
         </Border>
 
         <!-- 중앙: HalconViewerControl 인스턴스 (독립, 라이브 MainView halconViewer 재사용 금지 — RESEARCH Anti-Pattern) -->
-        <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="1" Margin="4"/>
+        <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="2" Margin="4"/>
 
         <!-- 우측: 측정 결과 DataGrid -->
         <DataGrid x:Name="dataGrid_measurements"
-                  Grid.Row="1" Grid.Column="2"
+                  Grid.Row="1" Grid.Column="4"
+                  SelectionChanged="MeasurementGrid_SelectionChanged"
+                  SelectionMode="Single"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"

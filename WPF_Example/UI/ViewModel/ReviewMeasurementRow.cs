@@ -31,11 +31,25 @@ namespace ReringProject.UI
         /// </summary>
         public string JudgeText { get; set; }
 
-        /// <summary>ReviewerWindow 가 Shot/FAI 순회 시 shotName, faiName 을 주입한다.</summary>
-        public ReviewMeasurementRow(string shotName, string faiName, MeasurementResultDto m)
+        //260601 hbk Phase 40 CO-40-02 UAT — 행 클릭 시 해당 측정의 이미지/overlay 만 표시하기 위한 소유 객체 역참조.
+        //  직렬화 결과 DTO 를 가리키는 in-memory 참조(직렬화 대상 아님) — 리뷰어 decluttering 용.
+        /// <summary>이 측정이 속한 Shot DTO (이미지 경로 출처).</summary>
+        public ShotResultDto OwnerShot { get; set; }
+
+        /// <summary>이 측정이 속한 FAI DTO (overlay 출처).</summary>
+        public FaiResultDto OwnerFai { get; set; }
+
+        /// <summary>이 측정의 원본 DTO (DualImage 여부/측정별 이미지 경로 판별용).</summary>
+        public MeasurementResultDto Source { get; set; }
+
+        /// <summary>ReviewerWindow 가 Shot/FAI 순회 시 소유 Shot/FAI DTO 를 주입한다.</summary>
+        public ReviewMeasurementRow(ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m)
         {
-            ShotName = shotName ?? "";
-            FAIName = faiName ?? "";
+            OwnerShot = shot;
+            OwnerFai = fai;
+            Source = m;
+            ShotName = shot != null ? (shot.ShotName ?? "") : "";
+            FAIName = fai != null ? (fai.FAIName ?? "") : "";
             MeasurementName = m.MeasurementName ?? "";
             NominalValue = m.NominalValue;
             TolerancePlus = m.TolerancePlus;

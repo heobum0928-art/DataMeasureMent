@@ -130,7 +130,8 @@ namespace ReringProject.UI
                     }
                     foreach (var m in fai.Measurements)
                     {
-                        rows.Add(new ReviewMeasurementRow(shot.ShotName, fai.FAIName, m));
+                        //260601 hbk Phase 40 CO-40-02 — 행에 소유 Shot/FAI DTO 주입 (행 클릭 시 해당 측정만 표시용)
+                        rows.Add(new ReviewMeasurementRow(shot, fai, m));
                     }
                 }
             }
@@ -153,6 +154,30 @@ namespace ReringProject.UI
                 .SelectMany(f => f.LastOverlays)
                 .ToList();
             halconViewer.SetInspectionOverlays(allOverlays);
+        }
+
+        //260601 hbk Phase 40 CO-40-02 UAT — 측정 행 클릭 시 해당 측정이 속한 FAI 의 이미지 + overlay 만 표시 (decluttering).
+        //  전체 overlay 가 겹쳐 보기 불편하다는 UAT 피드백 대응. cycle 선택 = 전체 보기 / 행 선택 = 단일 FAI 집중 보기.
+        private void MeasurementGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var row = dataGrid_measurements.SelectedItem as ReviewMeasurementRow;
+            if (row == null)
+            {
+                return;
+            }
+
+            // 해당 FAI 의 Shot 이미지 로드 (순서: LoadImage → SetInspectionOverlays, RESEARCH Pitfall 6)
+            string imgPath = row.OwnerShot != null ? row.OwnerShot.ResultImagePath : null;
+            if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))  // T-40-09: File.Exists 가드
+            {
+                halconViewer.LoadImage(imgPath);
+            }
+
+            // 선택 FAI 의 overlay 만 표시 (REPLACE — SetInspectionOverlays = Clear + AddRange)
+            var faiOverlays = (row.OwnerFai != null && row.OwnerFai.LastOverlays != null)
+                ? row.OwnerFai.LastOverlays
+                : new List<EdgeInspectionOverlay>();
+            halconViewer.SetInspectionOverlays(faiOverlays);
         }
     }
 

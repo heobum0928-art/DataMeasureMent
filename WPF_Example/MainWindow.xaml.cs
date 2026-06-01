@@ -27,6 +27,7 @@ namespace ReringProject {
         Connect,
         Login,
         ProcessMonitor,
+        Reviewer,   //260601 hbk Phase 40 OUT-01 D-08 — 결과 리뷰어 비모달 창
     }
 
     /// <summary>
@@ -66,6 +67,7 @@ namespace ReringProject {
         //UI
         private Window mModalWindow;
         private ProcessMonitorWindow mProcMonitorWindow;
+        private UI.ReviewerWindow mReviewerWindow; //260601 hbk Phase 40 OUT-01
         private DispatcherTimer mTimer = new DispatcherTimer();
 
 
@@ -334,6 +336,15 @@ namespace ReringProject {
                     mProcMonitorWindow = new ProcessMonitorWindow();
                     mProcMonitorWindow.Owner = this;
                     mProcMonitorWindow.Show();
+                    break;
+                case EPageType.Reviewer:   //260601 hbk Phase 40 OUT-01 D-08 — 비모달 Show() (ShowDialog 아님, 라이브 검사 방해 안 함)
+                    if (mReviewerWindow != null && mReviewerWindow.IsLoaded) {
+                        mReviewerWindow.Show();
+                        return;
+                    }
+                    mReviewerWindow = new UI.ReviewerWindow();
+                    mReviewerWindow.Owner = this;
+                    mReviewerWindow.Show();   // 비모달 — 라이브 MainView 와 동시 사용 가능 (D-08)
                     break;
             }
         }

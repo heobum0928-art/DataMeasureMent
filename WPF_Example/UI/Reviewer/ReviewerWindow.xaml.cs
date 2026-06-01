@@ -23,6 +23,9 @@ namespace ReringProject.UI
         //260601 hbk Phase 40 OUT-01
         private CycleResultDto _currentCycle;
 
+        //260601 hbk Phase 40 CO-40-03 — DualImage 전환 버튼이 참조할 현재 선택 행
+        private ReviewMeasurementRow _selectedRow;
+
         public ReviewerWindow()
         {
             InitializeComponent();
@@ -106,6 +109,10 @@ namespace ReringProject.UI
         //260601 hbk Phase 40 OUT-01 — cycle 결과 재렌더: 측정표 + 이미지 + overlay (RenderStoredOverlaysForFai 패턴, MainView.xaml.cs:243-262)
         private void DisplayCycle(CycleResultDto cycle)
         {
+            //260601 hbk Phase 40 CO-40-03 — 새 cycle 표시 시 DualImage 전환 버튼 숨김 (행 클릭 전까지 비노출)
+            panel_dualToggle.Visibility = Visibility.Collapsed;
+            _selectedRow = null;
+
             if (cycle == null || cycle.Shots == null)
             {
                 // T-40-08: null/빈 cycle → 빈 상태 (overlay 클리어 + 빈 그리드)
@@ -158,6 +165,7 @@ namespace ReringProject.UI
 
         //260601 hbk Phase 40 CO-40-02 UAT — 측정 행 클릭 시 해당 측정이 속한 FAI 의 이미지 + overlay 만 표시 (decluttering).
         //  전체 overlay 가 겹쳐 보기 불편하다는 UAT 피드백 대응. cycle 선택 = 전체 보기 / 행 선택 = 단일 FAI 집중 보기.
+        //  CO-40-03: DualImage 측정이면 가로축/세로축 전환 버튼 노출 (기본 가로축).
         private void MeasurementGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             var row = dataGrid_measurements.SelectedItem as ReviewMeasurementRow;
@@ -165,19 +173,65 @@ namespace ReringProject.UI
             {
                 return;
             }
+            _selectedRow = row; //260601 hbk Phase 40 CO-40-03 — 전환 버튼이 참조할 현재 행
 
-            // 해당 FAI 의 Shot 이미지 로드 (순서: LoadImage → SetInspectionOverlays, RESEARCH Pitfall 6)
-            string imgPath = row.OwnerShot != null ? row.OwnerShot.ResultImagePath : null;
-            if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))  // T-40-09: File.Exists 가드
+            //260601 hbk Phase 40 CO-40-03 — DualImage 측정이면 전환 버튼 노출 + 가로축 기본 표시, 아니면 Shot 이미지 단일 표시
+            if (row.Source != null && row.Source.IsDualImage)
             {
-                halconViewer.LoadImage(imgPath);
+                panel_dualToggle.Visibility = Visibility.Visible;
+                ShowAxisImage(true); // 기본 가로축
+            }
+            else
+            {
+                panel_dualToggle.Visibility = Visibility.Collapsed;
+                // 일반 측정: 해당 FAI 의 Shot 이미지 로드 (순서: LoadImage → SetInspectionOverlays, RESEARCH Pitfall 6)
+                string imgPath = row.OwnerShot != null ? row.OwnerShot.ResultImagePath : null;
+                if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))  // T-40-09: File.Exists 가드
+                {
+                    halconViewer.LoadImage(imgPath);
+                }
+                ApplyFaiOverlays(row);
+            }
+        }
+
+        //260601 hbk Phase 40 CO-40-03 — DualImage 가로축/세로축 이미지 전환. horizontal=true → 가로축, false → 세로축.
+        private void ShowAxisImage(bool horizontal)
+        {
+            if (_selectedRow == null || _selectedRow.Source == null)
+            {
+                return;
             }
 
-            // 선택 FAI 의 overlay 만 표시 (REPLACE — SetInspectionOverlays = Clear + AddRange)
-            var faiOverlays = (row.OwnerFai != null && row.OwnerFai.LastOverlays != null)
+            string path = horizontal
+                ? _selectedRow.Source.HorizontalImagePath
+                : _selectedRow.Source.VerticalImagePath;
+
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))  // T-40-09: File.Exists 가드
+            {
+                halconViewer.LoadImage(path);
+            }
+            // overlay 는 FAI 단위로 동일 적용 (이미지별 overlay 귀속은 미저장 — 현재 데이터 모델 한계, 양 이미지 공통 표시)
+            ApplyFaiOverlays(_selectedRow);
+        }
+
+        //260601 hbk Phase 40 CO-40-03 — 선택 FAI 의 overlay 만 표시 (REPLACE — SetInspectionOverlays = Clear + AddRange)
+        private void ApplyFaiOverlays(ReviewMeasurementRow row)
+        {
+            var faiOverlays = (row != null && row.OwnerFai != null && row.OwnerFai.LastOverlays != null)
                 ? row.OwnerFai.LastOverlays
                 : new List<EdgeInspectionOverlay>();
             halconViewer.SetInspectionOverlays(faiOverlays);
+        }
+
+        //260601 hbk Phase 40 CO-40-03 — 전환 버튼 핸들러
+        private void Button_AxisHorizontal_Click(object sender, RoutedEventArgs e)
+        {
+            ShowAxisImage(true);
+        }
+
+        private void Button_AxisVertical_Click(object sender, RoutedEventArgs e)
+        {
+            ShowAxisImage(false);
         }
     }
 

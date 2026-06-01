@@ -64,6 +64,19 @@
         <!-- 중앙: HalconViewerControl 인스턴스 (독립, 라이브 MainView halconViewer 재사용 금지 — RESEARCH Anti-Pattern) -->
         <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="2" Margin="4"/>
 
+        <!--260601 hbk Phase 40 CO-40-03 UAT — DualImage 측정 행 클릭 시에만 노출되는 가로축/세로축 전환 버튼 (오버레이)-->
+        <Border x:Name="panel_dualToggle" Grid.Row="1" Grid.Column="2"
+                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10"
+                Background="#CC202830" CornerRadius="4" Padding="4"
+                Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="btn_axisH" Content="가로축" Click="Button_AxisHorizontal_Click"
+                        Padding="10,3" Margin="0,0,4,0" MinWidth="60"/>
+                <Button x:Name="btn_axisV" Content="세로축" Click="Button_AxisVertical_Click"
+                        Padding="10,3" MinWidth="60"/>
+            </StackPanel>
+        </Border>
+
         <!-- 우측: 측정 결과 DataGrid -->
         <DataGrid x:Name="dataGrid_measurements"
                   Grid.Row="1" Grid.Column="4"

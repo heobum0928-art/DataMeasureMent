@@ -85,5 +85,16 @@ namespace ReringProject.UI
 
         /// <summary>null = 정상 측정, "DATUM_FAIL" = datum 검출 실패로 skip (Phase 39 WF-01 D-02).</summary>
         public string LastSkipReason { get; set; }
+
+        //260601 hbk Phase 40 CO-40-03 UAT — DualImage 측정(가로축·세로축 2장) 리뷰어 표시용 경로.
+        //  DualImageEdgeDistanceMeasurement 만 IsDualImage=true + 2장 경로 채움. 그 외 측정은 false (Shot 이미지 사용).
+        /// <summary>true = DualImage 측정(가로축/세로축 2장). 리뷰어가 전환 버튼을 노출하는 신호.</summary>
+        public bool IsDualImage { get; set; }
+
+        /// <summary>가로축 티칭 이미지 경로 (DualImage). 미설정 시 Shot 이미지로 fallback (Phase 39.4 D-G1).</summary>
+        public string HorizontalImagePath { get; set; }
+
+        /// <summary>세로축 티칭 이미지 경로 (DualImage).</summary>
+        public string VerticalImagePath { get; set; }
     }
 }

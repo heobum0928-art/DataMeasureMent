@@ -88,6 +88,19 @@ namespace ReringProject.Sequence
                             LastHasResult = meas.LastHasResult,       // CO-23-01: 0.0 정상 결과 구분
                             LastSkipReason = meas.LastSkipReason      // null or "DATUM_FAIL"
                         };
+
+                        //260601 hbk Phase 40 CO-40-03 UAT — DualImage 측정이면 가로축/세로축 2장 경로 기록 (리뷰어 전환 버튼용).
+                        //  가로축은 측정에 명시 경로 없으면 Shot 이미지로 fallback (Phase 39.4 D-G1 정책 일치).
+                        var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                        if (dualMeas != null)
+                        {
+                            measDto.IsDualImage = true;
+                            measDto.HorizontalImagePath = !string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal)
+                                ? dualMeas.TeachingImagePath_Horizontal
+                                : shot.GetLatestImagePath();
+                            measDto.VerticalImagePath = dualMeas.TeachingImagePath_Vertical ?? "";
+                        }
+
                         faiDto.Measurements.Add(measDto);
                     }
 

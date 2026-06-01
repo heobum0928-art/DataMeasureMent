@@ -229,13 +229,14 @@ Plans:
 
 ### Phase 40.1: 리뷰어/뷰어 UAT 후속 UI 3건 (overlay On/Off 토글 + 트리 Shot 접기 + Polygon ROI 숨김) (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** 리뷰어/뷰어 UAT 후속 UI 3건 — 이미지 뷰어 overlay On/Off 토글(측정 overlay + Datum 라인 독립) + Shot 트리 기본 접기 + Polygon ROI UI 숨김. 라이브 MainView/InspectionListView 한정.
+**Requirements**: 없음 (긴급 UI 후속)
 **Depends on:** Phase 40
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 40.1 to break down)
+- [ ] 40.1-01-PLAN.md — 이미지 뷰어 overlay On/Off 토글 2개(#2) + Polygon ROI UI 숨김(#4)
+- [ ] 40.1-02-PLAN.md — Shot 트리 기본 접기 / 펼치기(#3)
 
 ### Phase 999.1: Datum 2-image 지원 (side 검사) — ✅ ABSORBED to v1.1 Phase 27/34/36/37 (2026-05-28)
 - Side datum 2-image (4 DualImage / 8-image) 지원 v1.1 종결.

@@ -295,7 +295,10 @@ namespace ReringProject.UI {
             halconViewer.UpdateDisplayState(rois, selectedRoiId, null, null);
 
             //260417 hbk Phase 6 Plan 04: 선택된 행의 FAIConfig를 트리에서 조회해 ROI hint 표시
-            FAIConfig parentFai = FindFAIByName(selectedRow.FAIName);
+            //260601 hbk bottom-shot-stale-roi — 동일-명 shot 충돌 회피: 측정 객체 참조 우선, 실패 시 이름 폴백
+            FAIConfig parentFai = null;
+            if (selectedRow.SourceMeasurement != null) parentFai = FindFAIContainingMeasurement(selectedRow.SourceMeasurement);
+            if (parentFai == null) parentFai = FindFAIByName(selectedRow.FAIName);
             if (parentFai != null && (parentFai.ROI_Length1 <= 0 || parentFai.ROI_Length2 <= 0)) {
                 label_message.Content = "ROI not set";
                 label_message.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
@@ -308,13 +311,20 @@ namespace ReringProject.UI {
         /// <summary>Collects RoiDefinitions from all FAIs of the currently displayed shot.</summary>
         private List<RoiDefinition> GetCurrentFAIRois() {
             var result = new List<RoiDefinition>();
-            var seen = new HashSet<string>();
+            //260601 hbk bottom-shot-stale-roi — FAI 객체 dedup (이름 dedup 은 동일-명 shot 의 두 번째 FAI 를 skip → 첫 shot 으로 묶임).
+            var seenFais = new HashSet<FAIConfig>();
             foreach (var item in dataGrid_faiResults.Items) {
                 var row = item as MeasurementResultRow;
-                if (row == null || string.IsNullOrEmpty(row.FAIName)) continue;
-                if (!seen.Add(row.FAIName)) continue;
-                FAIConfig fai = FindFAIByName(row.FAIName);
+                if (row == null) continue;
+                //260601 hbk bottom-shot-stale-roi — Phase 37 hotfix A/B 누락 경로 보강:
+                //  row 가 보유한 실제 측정 객체(SourceMeasurement)로 소유 FAI 를 참조 해석(ReferenceEquals).
+                //  여러 shot 이 동일 FAI 명(기본 FAI_0/1)을 가질 때 FindFAIByName 이 첫-일치(다른) shot 의 FAI 를 반환해
+                //  잘못된 shot 의 ROI 가 표시되던 결함 차단. 객체 해석 실패 시에만 이름 폴백(레거시 회귀 0).
+                FAIConfig fai = null;
+                if (row.SourceMeasurement != null) fai = FindFAIContainingMeasurement(row.SourceMeasurement);
+                if (fai == null && !string.IsNullOrEmpty(row.FAIName)) fai = FindFAIByName(row.FAIName);
                 if (fai == null) continue;
+                if (!seenFais.Add(fai)) continue; //260601 hbk bottom-shot-stale-roi — 같은 FAI 객체 중복 수집 방지
                 var roi = fai.ToRoiDefinition();
                 if (roi.IsTaught) result.Add(roi);
                 //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집

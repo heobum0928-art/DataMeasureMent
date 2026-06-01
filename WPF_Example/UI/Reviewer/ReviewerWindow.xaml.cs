@@ -26,6 +26,9 @@ namespace ReringProject.UI
         //260601 hbk Phase 40 CO-40-03 — DualImage 전환 버튼이 참조할 현재 선택 행
         private ReviewMeasurementRow _selectedRow;
 
+        //260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — '불량만 보기' 필터의 원본(전체) 행. 필터는 이 위에서 추려 ItemsSource 로 적용.
+        private List<ReviewMeasurementRow> _allRows = new List<ReviewMeasurementRow>();
+
         public ReviewerWindow()
         {
             InitializeComponent();
@@ -117,6 +120,7 @@ namespace ReringProject.UI
             {
                 // T-40-08: null/빈 cycle → 빈 상태 (overlay 클리어 + 빈 그리드)
                 halconViewer.SetInspectionOverlays(new List<EdgeInspectionOverlay>());
+                _allRows = new List<ReviewMeasurementRow>();
                 dataGrid_measurements.ItemsSource = null;
                 return;
             }
@@ -142,9 +146,9 @@ namespace ReringProject.UI
                     }
                 }
             }
-            dataGrid_measurements.ItemsSource = rows;
+            _allRows = rows; //260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — 필터 원본 보관, ItemsSource 는 ApplyRowFilter 가 설정
 
-            // 이미지 재렌더: 첫 Shot 이미지 기준 (POC 범위 — 첫 Shot 이미지 + 전 overlay)
+            // 기본 전체 보기: 첫 Shot 이미지 + 전 overlay (불량 자동 포커스 전 즉시 표시)
             // 순서 반드시: LoadImage → SetInspectionOverlays (RESEARCH Pitfall 6)
             var firstShot = cycle.Shots.FirstOrDefault();
             if (firstShot != null
@@ -161,6 +165,45 @@ namespace ReringProject.UI
                 .SelectMany(f => f.LastOverlays)
                 .ToList();
             halconViewer.SetInspectionOverlays(allOverlays);
+
+            //260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — 필터(불량만 보기) 적용 + 첫 불량 자동 포커스. 현재 체크박스 상태 반영.
+            ApplyRowFilter();
+        }
+
+        //260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — '불량만 보기' 체크박스 상태에 따라 측정표 행을 추려 ItemsSource 설정 + 첫 불량 자동 포커스.
+        //  체크 시 NG/DETECT FAIL 행만 표시. 자동 포커스는 ItemsSource 직후 동기 선택이 무시되는 문제로 Dispatcher.BeginInvoke(Background) 지연.
+        private void ApplyRowFilter()
+        {
+            if (_allRows == null)
+            {
+                dataGrid_measurements.ItemsSource = null;
+                return;
+            }
+
+            bool failOnly = chk_failOnly.IsChecked == true;
+            var visible = failOnly
+                ? _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL").ToList()
+                : _allRows;
+            dataGrid_measurements.ItemsSource = visible;
+
+            // 첫 불량 행 자동 선택 → SelectionChanged 가 해당 FAI 이미지/overlay 로 포커스 (행 생성 후 지연 실행)
+            var firstFail = visible.FirstOrDefault(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL");
+            if (firstFail != null)
+            {
+                Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        dataGrid_measurements.SelectedItem = firstFail;
+                        dataGrid_measurements.ScrollIntoView(firstFail);
+                    }),
+                    System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
+
+        //260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — '불량만 보기' 체크박스 토글 핸들러.
+        private void ChkFailOnly_Changed(object sender, RoutedEventArgs e)
+        {
+            ApplyRowFilter();
         }
 
         //260601 hbk Phase 40 CO-40-02 UAT — 측정 행 클릭 시 해당 측정이 속한 FAI 의 이미지 + overlay 만 표시 (decluttering).

@@ -29,11 +29,16 @@ namespace ReringProject.Sequence
         /// <param name="cycleResult">AddResponse 에서 확정된 종합판정 (EVisionResultType)</param>
         /// <param name="when">검사 일시 (DateTime.Now — AddResponse 호출 시점)</param>
         /// <param name="recipeName">현재 레시피/모델명 (D-02 메타)</param>
+        /// <param name="ownerSequenceName">
+        /// 이 cycle 을 생성한 시퀀스 이름(TOP/SIDE/BOTTOM). 지정 시 해당 시퀀스 소유 shot 만 포함한다 (CO-40-07 UAT).
+        /// null/빈값이면 전체 shot 포함(레거시). 빈 OwnerSequenceName shot 은 "TOP" 으로 폴백 매칭 (SequenceHandler/ShotConfig 정책 일치).
+        /// </param>
         public static CycleResultDto BuildDto(
             InspectionRecipeManager recipeManager,
             EVisionResultType cycleResult,
             DateTime when,
-            string recipeName)
+            string recipeName,
+            string ownerSequenceName = null)
         {
             var dto = new CycleResultDto
             {
@@ -50,6 +55,17 @@ namespace ReringProject.Sequence
 
             foreach (var shot in recipeManager.Shots)
             {
+                //260601 hbk Phase 40 CO-40-07 UAT — 시퀀스별 cycle: 실행한 시퀀스 소유 shot 만 포함.
+                //  검사하지 않은 다른 시퀀스(예: BOTTOM 검사 시 TOP/SIDE) shot 이 cycle.json/리뷰어에 stale 로 찍히던 문제 해소.
+                if (!string.IsNullOrEmpty(ownerSequenceName))
+                {
+                    string shotOwner = string.IsNullOrEmpty(shot.OwnerSequenceName) ? "TOP" : shot.OwnerSequenceName; // SequenceHandler.SEQ_TOP 폴백 정책 일치
+                    if (!string.Equals(shotOwner, ownerSequenceName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+
                 var shotDto = new ShotResultDto
                 {
                     ShotName = shot.ShotName ?? "",

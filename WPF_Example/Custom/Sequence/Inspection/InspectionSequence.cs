@@ -70,6 +70,9 @@ namespace ReringProject.Sequence {
             //  AddResponse() 는 RequestPacket(TCP/host) 경로에서만 호출 → Start(EAction) 수동 검사(RequestPacket=null)는 미저장이었음.
             //  Finish() 의 OnFinish 는 트리거 무관 발화 → 핸들러에서 RequestPacket==null(수동) 일 때만 저장(TCP 경로 중복 방지).
             OnFinish += HandleManualCyclePersist;
+            //260601 hbk Phase 40 CO-40-06 UAT — 런 시작 시 이 시퀀스 shot 의 모든 측정 결과 초기화 (안 돈 측정 stale 방지).
+            //  OnStart 는 단일 Start(int) + StartAll 모두에서 발화 → 단일 shot 실행이든 전체든 런 시작에 일괄 초기화.
+            OnStart += HandleRunStartResetResults;
         }
 
         //260409 hbk Phase 5: 종합 판정 + FAI별 결과 TCP 전송 (D-07)
@@ -135,7 +138,8 @@ namespace ReringProject.Sequence {
                     recipeManager,
                     responsePacket.Result,
                     System.DateTime.Now,
-                    SystemHandler.Handle.Setting.CurrentRecipeName);
+                    SystemHandler.Handle.Setting.CurrentRecipeName,
+                    Name); //260601 hbk Phase 40 CO-40-07 — 이 시퀀스 소유 shot 만 cycle 에 포함
                 CycleResultSerializer.SaveAsync(cycleDto);
             }
             catch (Exception ex)
@@ -159,12 +163,43 @@ namespace ReringProject.Sequence {
                     recipeManager,
                     result,
                     System.DateTime.Now,
-                    SystemHandler.Handle.Setting.CurrentRecipeName);
+                    SystemHandler.Handle.Setting.CurrentRecipeName,
+                    Name); //260601 hbk Phase 40 CO-40-07 — 이 시퀀스 소유 shot 만 cycle 에 포함
                 CycleResultSerializer.SaveAsync(cycleDto);
             }
             catch (Exception ex)
             {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] 수동 cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        //260601 hbk Phase 40 CO-40-06 UAT — 런 시작 시 이 시퀀스 소유 shot 의 모든 측정 결과를 초기화한다.
+        //  배경: 기존 per-shot EStep.Init 의 ShotParam.ClearAllResults() 는 '실행되는 shot' 만 초기화 + FAIConfig.ClearResult() 가
+        //        하위 Measurement 의 LastHasResult 를 안 지운다 → 단일 shot 실행 시 나머지 shot 의 측정이 이전 런 잔여값(stale)을 유지,
+        //        cycle.json/트리/리뷰어에 '안 돈 측정'이 OK/NG 로 찍히던 문제.
+        //  조치: 런 시작에 이 시퀀스의 Actions(=이 시퀀스 shot)의 모든 Measurement 를 ClearResult → 안 돈 측정은 미측정('—')으로 표시.
+        //  범위: 이 시퀀스 shot 만 (Actions 순회) → Top/Bottom/Side 병렬 실행 간섭 없음. 실행되는 shot 은 Measure 루프가 다시 채운다.
+        private void HandleRunStartResetResults(SequenceContext context) {
+            try {
+                if (Actions == null) return;
+                foreach (var act in Actions) {
+                    var faiAct = act as Action_FAIMeasurement;
+                    if (faiAct == null) continue;
+                    var shot = faiAct.ShotParam;
+                    if (shot == null) continue;
+                    foreach (var fai in shot.FAIList) {
+                        if (fai == null) continue;
+                        if (fai.Measurements != null) {
+                            foreach (var m in fai.Measurements) {
+                                if (m != null) m.ClearResult(); // LastHasResult=false → 리뷰어 '—'
+                            }
+                        }
+                        fai.ClearResult();
+                        if (fai.LastOverlays != null) fai.LastOverlays.Clear();
+                    }
+                }
+            } catch (Exception ex) {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
             }
         }
 

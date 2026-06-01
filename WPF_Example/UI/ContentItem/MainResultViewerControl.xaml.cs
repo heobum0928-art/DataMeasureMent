@@ -601,6 +601,11 @@ namespace ReringProject.UI
         //260529 hbk Phase 39.1-04 G4-03 — Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
         private bool _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03
 
+        //260601 hbk Phase 40.1 #2 — 측정 overlay 토글 게이트 (기본 ON)
+        private bool _measurementOverlayVisible = true; //260601 hbk Phase 40.1 #2
+        //260601 hbk Phase 40.1 #2 — Datum 라인 토글 게이트 (기본 ON)
+        private bool _datumOverlayVisible = true; //260601 hbk Phase 40.1 #2
+
         //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview state (Edit 모드 = FAI 노드 선택 시).
         //  검사 overlay 와 독립: 검사 결과는 LastOverlays 에 (원 + 지름 라인), preview 는 노드 선택 시 RenderNow 직접 호출.
         private double _faiCirclePreviewRow, _faiCirclePreviewCol, _faiCirclePreviewRadius; //260529 hbk CO-39.1-01 rev2
@@ -620,6 +625,20 @@ namespace ReringProject.UI
             _datumConfig = datum;
             _datumSelected = isSelected;
             _datumIsEditMode = isEditMode; //260529 hbk Phase 39.1-04 G4-03
+            Render();
+        }
+
+        //260601 hbk Phase 40.1 #2 — 측정 overlay 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        public void SetMeasurementOverlayVisible(bool visible)
+        {
+            _measurementOverlayVisible = visible;
+            Render();
+        }
+
+        //260601 hbk Phase 40.1 #2 — Datum 라인 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        public void SetDatumOverlayVisible(bool visible)
+        {
+            _datumOverlayVisible = visible;
             Render();
         }
 
@@ -750,13 +769,17 @@ namespace ReringProject.UI
                 return;
             }
 
+            //260601 hbk Phase 40.1 #2 — 측정 overlay 토글 OFF 시 빈 리스트 (rois/messages 보존)
+            List<EdgeInspectionOverlay> measOverlays = _measurementOverlayVisible
+                ? _inspectionOverlays.Concat(BuildTransientOverlays()).ToList()
+                : new List<EdgeInspectionOverlay>();
             _displayService.Render(
                 ViewerHost.HalconWindow,
                 CurrentImage,
                 _rois,
                 _selectedRoiId,
                 _rectDraftRoi,
-                _inspectionOverlays.Concat(BuildTransientOverlays()).ToList(),
+                measOverlays,
                 _displayMessages.Concat(BuildTransientMessages()).ToList());
 
             //260408 hbk Render polygon draft overlay after main render
@@ -775,7 +798,8 @@ namespace ReringProject.UI
 
             //260410 hbk Phase 4 gap fix: render Datum Line ROI overlay
             //260529 hbk Phase 39.1-04 G4-03 — _datumIsEditMode 전달 (CTH Edit 모드 분리)
-            if (_datumConfig != null)
+            //260601 hbk Phase 40.1 #2 — Datum 라인 토글 게이트
+            if (_datumConfig != null && _datumOverlayVisible)
             {
                 _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected, _datumIsEditMode); //260529 hbk Phase 39.1-04 G4-03
             }

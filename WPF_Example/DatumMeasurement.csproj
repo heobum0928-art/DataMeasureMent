@@ -203,6 +203,11 @@
     <Reference Include="halcondotnet">
       <HintPath>C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\bin\dotnet35\halcondotnet.dll</HintPath>
     </Reference>
+    <!-- 260602 hbk Phase 41 — Matrox MIL Lite 10.0 .NET binding (CXP grab) -->
+    <Reference Include="Matrox.MatroxImagingLibrary">
+      <HintPath>C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">

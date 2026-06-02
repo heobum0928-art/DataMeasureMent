@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: planning
+status: executing
 stopped_at: Phase 41 context gathered (CXP MIL grab)
-last_updated: "2026-06-02T13:53:17.219Z"
-last_activity: 2026-06-02
+last_updated: "2026-06-02T14:34:44.396Z"
+last_activity: 2026-06-02 -- Phase --phase execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 25
-  completed_plans: 24
-  percent: 96
+  completed_plans: 25
+  percent: 97
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 41 — CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02)
+**Current focus:** Phase --phase — 41
 
 ## Current Position
 
-Phase: 41 (cxp-mil-lite-10-0-grab-hw-01-hw-02) — 추가됨, 미계획
-Plan: Not planned yet
-Status: Planning — 다음 /gsd-discuss-phase 41
-Last activity: 2026-06-02
+Phase: 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 — EXECUTING
+Plan: 2 of 4
+Status: Completed Plan 01 (MIL DLL foundation)
+Last activity: 2026-06-02 — Phase 41 Plan 01 completed
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -131,6 +131,7 @@ Last activity: 2026-06-02
 | Phase 39.4-bottom-dualimage-manual-swap-2026-05-30 P03 | 15 | 2 tasks | 1 files |
 | Phase 40-export-i-1-2026-06-01 P01 | 264 | 3 tasks | 4 files |
 | Phase 40-export-i-1-2026-06-01 P40-02 | 45 | 3 tasks | 3 files |
+| Phase 41 P01 | 135 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -255,6 +256,8 @@ Recent decisions affecting current work:
 - [Phase 40.1-01]: #4 Polygon = btn_polygonRoi Visibility=Collapsed 만 (UI 진입점 숨김). RoiShape.Polygon enum + HalconDisplayService Polygon 분기 + PolygonRoiButton_Click/CompletePolygon code-behind 전부 보존 (label_pointCount Phase 17 D-15 선례 동일, INI 데이터 호환).
 - [Phase 40.1-01]: MainView.xaml.cs 핸들러는 파일 실제 스타일(K&R)을 따름 — 플랜의 Allman 명시보다 CLAUDE.md "편집 파일 스타일 따름" 우선.
 - [Phase 40.1-02]: #3 트리 기본 펼침 = NodeViewModel.ExpandToShotLevel() 신규 — NodeType==Sequence 분기에서 자기만 펼치고 자식(Shot/Datum) IsExpanded=false 후 재귀 중단, 상위(루트)는 펼치고 자식으로 재귀. 라이브 경로 2곳(ListView_Loaded L205, OnLoadRecipe L263)의 ExpandAll → ExpandToShotLevel 교체. IsEditable setter(L168, 편집 모드) ExpandAll 무변경 + 선택/하이라이트 로직(InspectionList_SelectionChanged/HighlightSelectedRoi) 무변경 — 회귀 가드. msbuild Debug/x64 PASS 신규 warning 0 (커밋 b8cbaf6, human-verify 대기).
+- [Phase 41-01]: MIL DLL HintPath = 절대 경로 (C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll), halcondotnet 선례 일치, Private=False (MIL 런타임 PC 설치).
+- [Phase 41-01]: ECameraType.MIL enum 멤버 추가 — HIK 다음 줄, 기존 Virtual/Basler/HIK 보존. Plan 02 MilCamera.cs 컴파일 foundation.
 
 ### Quick Tasks Completed
 
@@ -386,4 +389,4 @@ Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-4
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — 2 plans — 2026-06-01T09:00:18.025Z
+**Planned Phase:** 41 (cxp-mil-lite-10-0-grab-hw-01-hw-02) — 4 plans — 2026-06-02T14:27:19.562Z

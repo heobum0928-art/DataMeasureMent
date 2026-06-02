@@ -59,7 +59,8 @@
 
 ### 우선순위 3 — CXP 프레임 그래버 (장비 도착 시점)
 
-- [ ] **HW-01**: RAP 4G 4C12 CXP SDK 확정/설치 (Euresys Coaxlink 또는 Matrox — 장비 도착 후 결정)
+- [x] **HW-01
+**: RAP 4G 4C12 CXP SDK 확정/설치 (Euresys Coaxlink 또는 Matrox — 장비 도착 후 결정)
 - [ ] **HW-02**: CXP 드라이버 통합 — VirtualCamera 인터페이스 호환, HIK 와 동일 GrabHalconImage 경로
 
 > HW 미도착 시: 본 카테고리는 Simul 검증으로 마감하고 v1.3 으로 이연

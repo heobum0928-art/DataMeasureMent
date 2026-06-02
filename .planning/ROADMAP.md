@@ -249,7 +249,7 @@ Plans:
 **Plans:** 4 plans (4 waves) — planned 2026-06-02
 
 Plans:
-- [ ] 41-01-PLAN.md — MIL .NET DLL csproj 참조 + ECameraType.MIL enum (foundation, HW-01) [Wave 1]
+- [x] 41-01-PLAN.md — MIL .NET DLL csproj 참조 + ECameraType.MIL enum (foundation, HW-01) [Wave 1]
 - [ ] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
 - [ ] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
 - [ ] 41-04-PLAN.md — SIMUL_MODE UAT 5 시나리오 + sign-off (HW-01/HW-02 SIMUL 기준) [Wave 4]

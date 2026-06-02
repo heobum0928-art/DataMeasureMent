@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
+status: milestone_complete
 stopped_at: 40.1 SIGNED_OFF — UAT 4/4 PASS (측정overlay토글/Polygon숨김/트리Shot접기+로그인로그아웃/Datum라인). CO-40.1-01 RESOLVED(c41a418, Datum 선택 시 자동 재티칭 복원). 커밋 4d54a01+baf9cb8+b8cbaf6+ab470eb+de1dfe4+c41a418 + SUMMARY 2.
 last_updated: "2026-06-02T00:00:00.000Z"
 last_activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4 PASS, CO-40.1-01 Datum 자동 재티칭 복원 해소(c41a418)
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 25
   completed_plans: 24
-  percent: 96
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — SIGNED_OFF (4/4 PASS)
-Plan: 2 of 2 complete (UAT 4/4 PASS, CO-40.1-01 resolved c41a418)
-Status: Phase 40.1 완전 마감
-Last activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4, CO-40.1-01 해소(c41a418)
+Phase: 40.1
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-06-02
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -48,7 +48,7 @@ Last activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4, CO-40.1-01 해소(c41a41
 
 **Velocity:**
 
-- Total plans completed: 22
+- Total plans completed: 24
 - Average duration: —
 - Total execution time: 0 hours
 
@@ -62,6 +62,7 @@ Last activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4, CO-40.1-01 해소(c41a41
 | 18 | 7 | - | - |
 | 37 | 3 | - | - |
 | 38 | 3 | - | - |
+| 40.1 | 2 | - | - |
 
 **Recent Trend:**
 

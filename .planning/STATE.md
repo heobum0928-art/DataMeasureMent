@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: milestone_complete
-stopped_at: 40.1 SIGNED_OFF — UAT 4/4 PASS (측정overlay토글/Polygon숨김/트리Shot접기+로그인로그아웃/Datum라인). CO-40.1-01 RESOLVED(c41a418, Datum 선택 시 자동 재티칭 복원). 커밋 4d54a01+baf9cb8+b8cbaf6+ab470eb+de1dfe4+c41a418 + SUMMARY 2.
+stopped_at: 40.1 SIGNED_OFF — UAT 4/4 PASS + CO-40.1-01(c41a418 Datum 선택 시 자동 재티칭 복원) + CO-40.1-02(18a956b Shot/측정 노드 선택 시 그 시퀀스 Datum 기준선 결과화면 표시+토글) 둘 다 PASS.
 last_updated: "2026-06-02T00:00:00.000Z"
-last_activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4 PASS, CO-40.1-01 Datum 자동 재티칭 복원 해소(c41a418)
+last_activity: 2026-06-02 -- Phase 40.1 완료. CO-40.1-02(측정 노드 Datum 오버레이) UAT PASS 해소(18a956b)
 progress:
   total_phases: 6
   completed_phases: 6

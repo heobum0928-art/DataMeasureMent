@@ -218,6 +218,7 @@
     <Compile Include="Custom\UI\MainWindow.cs" />
     <Compile Include="Device\Camera\Hik\HikCamera.cs" />
     <Compile Include="Device\Camera\Hik\HikCameraProperty.cs" />
+    <Compile Include="Device\Camera\Mil\MilCamera.cs" />
     <Compile Include="Device\LightController\JPFLightController.cs" />
     <Compile Include="Login\LoginManager.cs" />
     <Compile Include="Custom\Sequence\Bottom\Action_BottomInspection.cs" />

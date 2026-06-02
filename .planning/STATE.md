@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Phase 41 context gathered (CXP MIL grab)
-last_updated: "2026-06-02T14:34:44.396Z"
-last_activity: 2026-06-02 -- Phase --phase execution started
+stopped_at: Completed 41-02-PLAN.md (MilCamera 드라이버 클래스)
+last_updated: "2026-06-02T14:40:49.013Z"
+last_activity: 2026-06-02
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 25
-  completed_plans: 25
-  percent: 97
+  completed_plans: 24
+  percent: 96
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 — EXECUTING
-Plan: 2 of 4
-Status: Completed Plan 01 (MIL DLL foundation)
-Last activity: 2026-06-02 — Phase 41 Plan 01 completed
+Plan: 3 of 4
+Status: Ready to execute
+Last activity: 2026-06-02
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -132,6 +132,7 @@ Last activity: 2026-06-02 — Phase 41 Plan 01 completed
 | Phase 40-export-i-1-2026-06-01 P01 | 264 | 3 tasks | 4 files |
 | Phase 40-export-i-1-2026-06-01 P40-02 | 45 | 3 tasks | 3 files |
 | Phase 41 P01 | 135 | 2 tasks | 2 files |
+| Phase 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 P02 | 420 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -258,6 +259,8 @@ Recent decisions affecting current work:
 - [Phase 40.1-02]: #3 트리 기본 펼침 = NodeViewModel.ExpandToShotLevel() 신규 — NodeType==Sequence 분기에서 자기만 펼치고 자식(Shot/Datum) IsExpanded=false 후 재귀 중단, 상위(루트)는 펼치고 자식으로 재귀. 라이브 경로 2곳(ListView_Loaded L205, OnLoadRecipe L263)의 ExpandAll → ExpandToShotLevel 교체. IsEditable setter(L168, 편집 모드) ExpandAll 무변경 + 선택/하이라이트 로직(InspectionList_SelectionChanged/HighlightSelectedRoi) 무변경 — 회귀 가드. msbuild Debug/x64 PASS 신규 warning 0 (커밋 b8cbaf6, human-verify 대기).
 - [Phase 41-01]: MIL DLL HintPath = 절대 경로 (C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll), halcondotnet 선례 일치, Private=False (MIL 런타임 PC 설치).
 - [Phase 41-01]: ECameraType.MIL enum 멤버 추가 — HIK 다음 줄, 기존 Virtual/Basler/HIK 보존. Plan 02 MilCamera.cs 컴파일 foundation.
+- MilCamera.IsOpen/CaptureMode/TriggerSource 모두 protected set — 파생에서 직접 set 가능 (VirtualCamera.cs L80/L74/L76 확인)
+- MIL MdigGrab 동기 grab → MbufInquire(M_HOST_ADDRESS) → new IntPtr((long)) → GenImage1("byte") 변환 패턴 (Phase 41-02)
 
 ### Quick Tasks Completed
 
@@ -367,9 +370,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 41 context gathered (CXP MIL grab)
-Resume file: --resume-file
+Last session: 2026-06-02T14:40:48.995Z
+Stopped at: Completed 41-02-PLAN.md (MilCamera 드라이버 클래스)
+Resume file: None
 Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-40-08(오토 종합판정/TCP 시퀀스 scoping) 별도 처리.
 
 **v1.1 Phase Map:**

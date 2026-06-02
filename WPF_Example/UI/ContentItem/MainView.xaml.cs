@@ -1258,6 +1258,18 @@ namespace ReringProject.UI {
                 // 티칭 이력 없음 — 복원 불필요. 기존 selection 핸들러의 SetDatumOverlay 가 ROI 만 렌더.
                 return;
             }
+            //260602 hbk Phase 40.1 CO-40.1-02 — 좌표 복원 "계산"만 헬퍼로 추출 (단일/리스트 경로 공용). 동작/시그니처 보존.
+            TryRestoreDatumGeometry(datum);
+            // 복원 성공/실패 무관 렌더 (성공 시 검출 라인 표시, 실패 시 최소 ROI 표시)
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 휘발성 검출 좌표(Line*Detected/CircleCenter/RefOrigin) 복원 계산 전용.
+        //  티칭 이미지로 TryTeachDatum 을 조용히 재실행. 렌더/모달/상태 변경 없음. 실패 silent.
+        //  RestoreDatumOverlayFromTeach(단일) 와 ShowResultDatumOverlays(리스트) 양쪽에서 재사용.
+        private void TryRestoreDatumGeometry(DatumConfig datum) {
+            if (datum == null) return;
+            if (!datum.LastTeachSucceeded) return;
             try {
                 var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
                 string error = null;
@@ -1296,10 +1308,22 @@ namespace ReringProject.UI {
                 }
             }
             catch {
-                // 복원 실패는 조용히 무시 — 선택 시 모달/에러 표시 금지. ROI 사각형은 아래 SetDatumOverlay 로 계속 표시.
+                // 복원 실패는 조용히 무시 — 선택 시 모달/에러 표시 금지.
             }
-            // 복원 성공/실패 무관 렌더 (성공 시 검출 라인 표시, 실패 시 최소 ROI 표시)
-            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선을 결과 화면에 표시.
+        //  각 datum 의 휘발 좌표를 silent 복원 후 결과용 오버레이 리스트로 일괄 렌더. 단일 _datumConfig(Datum 편집)는 무오염.
+        //  null/빈 → 결과 오버레이 클리어. 측정 결과 이미지는 그대로 두고 datum 라인만 덧그림.
+        public void ShowResultDatumOverlays(List<DatumConfig> datums) {
+            if (datums == null || datums.Count == 0) {
+                halconViewer.ClearResultDatumOverlays();
+                return;
+            }
+            foreach (DatumConfig d in datums) {
+                TryRestoreDatumGeometry(d); // 휘발 좌표 복원 (렌더는 아래 일괄 호출)
+            }
+            halconViewer.SetResultDatumOverlays(datums);
         }
 
         //260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 갱신

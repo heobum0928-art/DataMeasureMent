@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Collections.Generic; //260602 hbk Phase 40.1 CO-40.1-02 — List<DatumConfig>
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,6 +37,54 @@ namespace ReringProject.UI {
             } finally {
                 _isRebinding = false;
             }
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — SequenceID → InspectionSequence.DatumConfigs 해석.
+        //  ViewModel(L93~) 의 pSystemHandle.Sequences 접근 + SequenceHandler ESequence 인덱서(this[ESequence]) 패턴을 따름.
+        private List<DatumConfig> ResolveSequenceDatums(ESequence seqId) {
+            var result = new List<DatumConfig>();
+            try {
+                var seq = SystemHandler.Handle.Sequences[seqId] as InspectionSequence;
+                if (seq == null) return result;
+                foreach (DatumConfig d in seq.DatumConfigs) {
+                    if (d != null) result.Add(d);
+                }
+            } catch {
+                // 해석 실패 무시 — 빈 리스트 반환 (datum 미표시, 회귀 0)
+            }
+            return result;
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정 노드: DatumRef(datum 이름) 가 가리키는 datum 1개 해석.
+        //  빈 DatumRef(무보정) 또는 매칭 datum 없음 → 빈 리스트.
+        private List<DatumConfig> ResolveDatumsForMeasurement(ESequence seqId, MeasurementBase meas) {
+            var result = new List<DatumConfig>();
+            if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) return result;
+            foreach (DatumConfig d in ResolveSequenceDatums(seqId)) {
+                if (d != null && string.Equals(d.DatumName, meas.DatumRef, StringComparison.Ordinal)) {
+                    result.Add(d);
+                    break; // DatumName 은 시퀀스 내 고유 — 첫 매칭만
+                }
+            }
+            return result;
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — FAI 노드: 하위 measurement 들의 DatumRef 집합 → 해당 datum(중복 제거).
+        private List<DatumConfig> ResolveDatumsForFai(ESequence seqId, FAIConfig fai) {
+            var result = new List<DatumConfig>();
+            if (fai == null) return result;
+            List<DatumConfig> seqDatums = ResolveSequenceDatums(seqId);
+            if (seqDatums.Count == 0) return result;
+            foreach (MeasurementBase meas in fai.Measurements) {
+                if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) continue; // 무보정 측정 제외
+                foreach (DatumConfig d in seqDatums) {
+                    if (d != null && string.Equals(d.DatumName, meas.DatumRef, StringComparison.Ordinal)
+                        && !result.Contains(d)) {
+                        result.Add(d);
+                    }
+                }
+            }
+            return result;
         }
 
         //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅
@@ -438,6 +487,8 @@ namespace ReringProject.UI {
                     mParentWindow.mainView.halconViewer.ClearDatumOverlay();
                     //260426 hbk Phase 13 D-A1 — Datum 후보도 매 selection 마다 우선 clear (Datum 분기에서만 다시 publish)
                     mParentWindow.mainView.halconViewer.ClearDatumRoiCandidates();
+                    //260602 hbk Phase 40.1 CO-40.1-02 — 결과용 datum 오버레이도 매 selection 마다 clear (이전 노드 잔상 차단; 노드별 분기에서 다시 셋팅)
+                    mParentWindow.mainView.halconViewer.ClearResultDatumOverlays();
 
                     //param
                     if (itemParam is ParamBase) { //action or FAI
@@ -534,6 +585,11 @@ namespace ReringProject.UI {
                         //260529 hbk Phase 39.1-03 G4-01 — DisplayMeasurementImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화 (Phase 32 UAT / 35 / 18 #6 동작 보존).
                         if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas) //260529 hbk Phase 39.1-03 G4-01
                             mParentWindow.mainView.RenderInspectionResultForNode(meas); //260529 hbk Phase 39.1-03 G4-01
+                        //260602 hbk Phase 40.1 CO-40.1-02 — 측정 노드 선택 시 그 측정의 DatumRef 가 가리키는 시퀀스 datum 1개를 결과 화면에 표시 (토글 게이트 공용)
+                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase measForDatum) {
+                            List<DatumConfig> datumsForMeas = ResolveDatumsForMeasurement(item.SequenceID, measForDatum);
+                            mParentWindow.mainView.ShowResultDatumOverlays(datumsForMeas);
+                        }
                         //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 선택 시 swap UI owner set (mutex). 비-DualImage Measurement 는 as 캐스트 결과 null 로 clear → swap UI 자동 Collapsed.
                         if (mParentWindow != null && mParentWindow.mainView != null) {
                             mParentWindow.mainView.PublishMeasurementDualImageSelection(itemParam as DualImageEdgeDistanceMeasurement); //260530 hbk Phase 39.3 D-G2
@@ -547,6 +603,11 @@ namespace ReringProject.UI {
                             _inspectionVm.OnFAISelected(faiConfig);
                             //260529 hbk Phase 39.1-03 G4-01 — DisplayFAIImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화.
                             mParentWindow.mainView.RenderInspectionResultForNode(faiConfig); //260529 hbk Phase 39.1-03 G4-01
+                            //260602 hbk Phase 40.1 CO-40.1-02 — FAI 노드 선택 시 하위 measurement 들의 DatumRef 가 가리키는 시퀀스 datum(중복 제거)을 결과 화면에 표시
+                            if (mParentWindow != null && mParentWindow.mainView != null) {
+                                List<DatumConfig> datumsForFai = ResolveDatumsForFai(item.SequenceID, faiConfig);
+                                mParentWindow.mainView.ShowResultDatumOverlays(datumsForFai);
+                            }
                             //260508 hbk Phase 19 fix — ICustomTypeDescriptor 추가 후 PropertyGrid binding stale 방지 (Phase 16 D-09 패턴 적용)
                             //  Datum 클릭 force rebind 가 SelectedObject binding 을 끊어 → FAI 전환 시 자동 갱신 안 됨 → 명시적 재할당 필요.
                             if (ParamEditor != null) { //260508 hbk Phase 19 fix
@@ -571,6 +632,11 @@ namespace ReringProject.UI {
                         //260521 hbk Phase 32 UAT — Shot 노드 선택 시 Shot 이미지 표시 (이미지 회귀 결함 수정)
                         if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotSel)
                             mParentWindow.mainView.DisplayShotImage(shotSel); //260521 hbk Phase 32 UAT
+                        //260602 hbk Phase 40.1 CO-40.1-02 — Shot 노드 선택 시 그 시퀀스의 datum 전부를 결과 화면에 표시
+                        if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig) {
+                            List<DatumConfig> datumsForShot = ResolveSequenceDatums(item.SequenceID);
+                            mParentWindow.mainView.ShowResultDatumOverlays(datumsForShot);
+                        }
                         //260511 hbk CO-22-01 — Action(ShotConfig) 분기 force rebind 추가.
                         //  Phase 16 D-09 Datum force rebind 가 XAML SelectedObject 바인딩(L257)을 끊은 이후
                         //  Action 노드 클릭 시 PropertyGrid 가 stale (직전 Datum/FAI 유지). Phase 19 fix 와 동일 패턴 적용.

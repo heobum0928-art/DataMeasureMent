@@ -597,6 +597,11 @@ namespace ReringProject.UI
 
         //260410 hbk Phase 4 gap fix: Datum overlay state
         private DatumConfig _datumConfig;
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드 선택 시 표시할 "결과용" datum 리스트.
+        //  단일 _datumConfig(Datum 노드 편집 경로)와 분리 — 한 시퀀스 여러 datum(Phase 37 Side) 동시 표시 가능.
+        //  _datumOverlayVisible('Datum 라인' 체크박스) 게이트 공용.
+        private List<DatumConfig> _resultDatumOverlays = new List<DatumConfig>();
         private bool _datumSelected;
         //260529 hbk Phase 39.1-04 G4-03 — Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
         private bool _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03
@@ -648,6 +653,20 @@ namespace ReringProject.UI
             _datumConfig = null;
             _datumSelected = false;
             _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03 — Edit 모드 리셋
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드의 결과용 datum 기준선 리스트 설정 후 재렌더.
+        public void SetResultDatumOverlays(List<DatumConfig> datums)
+        {
+            _resultDatumOverlays = datums ?? new List<DatumConfig>();
+            Render();
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 결과용 datum 오버레이 제거(이전 노드 잔상 차단) 후 재렌더.
+        public void ClearResultDatumOverlays()
+        {
+            _resultDatumOverlays = new List<DatumConfig>();
+            Render();
         }
 
         //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview set (Edit 모드).
@@ -802,6 +821,19 @@ namespace ReringProject.UI
             if (_datumConfig != null && _datumOverlayVisible)
             {
                 _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected, _datumIsEditMode); //260529 hbk Phase 39.1-04 G4-03
+            }
+
+            //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선도 함께 표시 (토글 게이트 공용).
+            //  isSelected=false → blue, editMode=false. 단일 _datumConfig 경로(Datum 노드)와 공존.
+            if (_datumOverlayVisible && _resultDatumOverlays != null)
+            {
+                foreach (DatumConfig d in _resultDatumOverlays)
+                {
+                    if (d != null)
+                    {
+                        _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, d, false, false);
+                    }
+                }
             }
 
             //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview (Edit 모드 = FAI 노드 선택 시).

@@ -206,7 +206,8 @@
     <!-- 260602 hbk Phase 41 — Matrox MIL Lite 10.0 .NET binding (CXP grab) -->
     <Reference Include="Matrox.MatroxImagingLibrary">
       <HintPath>C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll</HintPath>
-      <Private>False</Private>
+      <!-- 260603 hbk Phase 41 hotfix CO-41-01 — Private=True: 관리 어셈블리를 출력 폴더로 복사(실 HW grab 빌드에서 런타임 로드). 네이티브 MIL 런타임은 MIL 설치 PATH 로 해석. -->
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>

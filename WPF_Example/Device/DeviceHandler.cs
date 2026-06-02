@@ -220,16 +220,19 @@ namespace ReringProject.Device {
                     break;
                     case ECameraType.MIL: {
                         //260602 hbk Phase 41 — CXP 카메라 MIL grab. enumerate 없음, Open() 으로 판별.
+#if SIMUL_MODE
+                        //260603 hbk Phase 41 hotfix CO-41-01 — SIMUL_MODE 는 MIL SDK/보드 불필요.
+                        // MilCamera 미생성 → Matrox.MatroxImagingLibrary 런타임 미로드(FileNotFound 방지) → VirtualCamera 파일 grab 폴백.
+                        AddVirtualCamera(id);
+#else
                         MilCamera newCam = new MilCamera(Config, id);
                         if (!newCam.Open()) {
                             result &= ~EInitializeResult.Success;
                             result |= EInitializeResult.OpenFail;
-#if SIMUL_MODE
-                            AddVirtualCamera(id);   // 보드 미설치 시 VirtualCamera 파일 grab 폴백 (Pitfall 1)
-#endif
                             continue;
                         }
                         Devices.Add(id.Identifier, newCam);
+#endif
                     }
                     break;
 

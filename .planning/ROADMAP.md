@@ -241,6 +241,16 @@ Plans:
 ### Phase 999.1: Datum 2-image 지원 (side 검사) — ✅ ABSORBED to v1.1 Phase 27/34/36/37 (2026-05-28)
 - Side datum 2-image (4 DualImage / 8-image) 지원 v1.1 종결.
 
+### Phase 41: CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 40
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 41 to break down)
+
 ---
 
 *Last updated: 2026-05-30 — Phase 39.3 PLAN 완료 (4 plans / 3 waves: Wave 1 = Plan 01+03 병렬, Wave 2 = Plan 02 swap UX, Wave 3 = Plan 04 UAT). Anti-Goal 10항 + 5 Success Criteria 가드.*

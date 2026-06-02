@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: milestone_complete
-stopped_at: 40.1 SIGNED_OFF — UAT 4/4 PASS + CO-40.1-01(c41a418 Datum 선택 시 자동 재티칭 복원) + CO-40.1-02(18a956b Shot/측정 노드 선택 시 그 시퀀스 Datum 기준선 결과화면 표시+토글) 둘 다 PASS.
+status: planning
+stopped_at: Phase 41 추가됨 (CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 HW-01/HW-02) — 이연됐던 v1.2 HW Integration 백로그 활성화. 다음 = /gsd-discuss-phase 41.
 last_updated: "2026-06-02T00:00:00.000Z"
-last_activity: 2026-06-02 -- Phase 40.1 완료. CO-40.1-02(측정 노드 Datum 오버레이) UAT PASS 해소(18a956b)
+last_activity: 2026-06-02 -- Phase 41(CXP MIL grab) ROADMAP 등록. HW 실물 도착 + SDK MIL Lite 10.0 확정.
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
   total_plans: 25
   completed_plans: 24
-  percent: 100
+  percent: 86
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 40.1 — uat-ui-3-overlay-on-off-shot-polygon-roi
+**Current focus:** Phase 41 — CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02)
 
 ## Current Position
 
-Phase: 40.1
-Plan: Not started
-Status: Milestone complete
+Phase: 41 (cxp-mil-lite-10-0-grab-hw-01-hw-02) — 추가됨, 미계획
+Plan: Not planned yet
+Status: Planning — 다음 /gsd-discuss-phase 41
 Last activity: 2026-06-02
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -359,6 +359,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 - 2026-05-30: Phase 39.4 added — Bottom DualImage 수동 swap UX 재설계. Phase 39.3 PARTIAL_SIGNED_OFF 후 carry-over CO-39.3-01 흡수 — Shot 이미지 공통 자원이 DualImage 의 "가로축 티칭 이미지" 로 단독 점유되어 작업자 인지 혼동. 스코프: TeachingImagePath_Horizontal 신규 필드 + Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 분기 교체 (RuntimeImageA 소스 변경, fallback ShotConfig) + MainView.BtnSwapHorizontal_Click Measurement 분기 교체 + Datum DualImage 패턴 일관화. 39.3 D-G4 anti-goal 은 39.4 의 새 contract 로 해제. status=seed (CONTEXT.md 작성, discuss-phase 대기).
 - 2026-06-01: Phase 40.1 inserted after Phase 40 (URGENT) — 리뷰어/뷰어 UAT 후속 UI 3건: (2) 이미지 뷰어 overlay On/Off 토글(측정위치+Datum 수평/수직 라인) (3) 트리 기본 Shot만 표시(접기)+펼치기 (4) Polygon ROI 전부 숨김. Phase 40 UAT 중 발견. 별도 긴급 #1(bottom-shot-stale-roi)은 debug 로 선처리·커밋(01332c3). 다음 = /gsd-plan-phase 40.1.
 - 2026-05-31: Phase 39.4 PARTIAL_SIGNED_OFF — Test 1~4 + Verify A 5/5 PASS (UAT mid-hotfix CO-39.4-01 = `6843c0d`, UpdateImageSourceBadge 의 RenderInspectionResultForNode 가 swap 직후 Shot 이미지로 덮어씌우는 회귀 fix). CO-39.3-01 종결. CO-39.4-02 carry-over (Verify B/D/E + INI 호환 회귀 smoke = 회귀 위험 LOW, 후속 phase 이월).
+- 2026-06-02: Phase 40.1 SIGNED_OFF (4/4 PASS) + CO-40.1-01(c41a418 Datum 선택 자동재티칭) + CO-40.1-02(18a956b 측정/Shot 노드 Datum 기준선 표시).
+- 2026-06-02: Phase 41 added — CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02). MILESTONES.md "v1.2 Hardware Integration" 이연 백로그(구 Phase 29 SDK확정 + 30 드라이버통합) 활성화. HW 실물 도착 + SDK MIL Lite 10.0(PC 설치) 확정. VirtualCamera GrabHalconImage 통합. 다음 = /gsd-discuss-phase 41.
 
 ## Session Continuity
 

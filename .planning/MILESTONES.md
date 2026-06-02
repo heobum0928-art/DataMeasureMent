@@ -81,9 +81,9 @@
 
 ---
 
-## v1.2 Hardware Integration (이연 — 장비 도착 후)
+## v1.2 Hardware Integration (활성화 2026-06-02 — 장비 도착)
 
-- Phase 29: CXP SDK 확정 (구 Phase 22, HW-01)
-- Phase 30: CXP 드라이버 통합 (구 Phase 23, HW-02)
+- Phase 29: CXP SDK 확정 (구 Phase 22, HW-01) → **Phase 41 로 활성화** (SDK = MIL Lite 10.0 확정)
+- Phase 30: CXP 드라이버 통합 (구 Phase 23, HW-02) → **Phase 41 로 통합**
 
-이연 사유: POC 납기(6월 말) 기준 HW 도착 전까지 Simul 모드 알고리즘/UI 검증 우선.
+이연 사유(해소): POC 납기 전까지 Simul 우선이었으나 2026-06-02 HW 실물 도착 + MIL Lite 10.0(PC 설치) 확정 → **Phase 41: CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02)** 로 활성 ROADMAP 등록. SDK 확정(HW-01)은 MIL Lite 10.0 락으로 흡수.

@@ -7,8 +7,10 @@ summary:
   passed: 1
   failed: 0
   pending: 4
-updated: "2026-06-02"
+updated: "2026-06-03"
 ---
+
+> **⏸ 검증 보류 (2026-06-03):** 사용자 요청으로 Test 2~5 런타임 육안 검증은 나중에 진행. 1차 실행에서 `FileNotFoundException(Matrox.MatroxImagingLibrary)` 크래시 발견 → **핫픽스 CO-41-01 적용·커밋(a397039)**. 재검증 시 반드시 **실행 중인 앱 종료 후 재빌드**하여 핫픽스 반영된 새 exe 로 확인할 것(이전 빌드는 앱 점유로 bin exe 미교체됨).
 
 # Phase 41 UAT: CXP MIL Lite 10.0 grab 통합 SIMUL 검증
 
@@ -55,8 +57,11 @@ updated: "2026-06-02"
 2. SIMUL_MODE: MIL Open 실패 시 `AddVirtualCamera` 폴백이 동작해야 함
 3. **확인 포인트:** 앱이 크래시 없이 메인 화면이 뜨고, IsInitializeFail 에러 모달이 뜨지 않는가?
 
-**result:** pending
-**근거:** 사용자 육안 확인 대기
+**result:** pending (재검증 — 1차 FAIL → CO-41-01 핫픽스 적용)
+**근거:**
+- 1차 실행(핫픽스 전): `System.IO.FileNotFoundException: Could not load file or assembly 'Matrox.MatroxImagingLibrary, Version=10.10.614.1'` → `DeviceHandler.Initialize()` → `SystemHandler` 정적 초기화 크래시. 원인 = csproj `Private=False`(DLL bin 미복사) + SIMUL_MODE 에서도 `new MilCamera` JIT 로 Matrox 어셈블리 로드 시도.
+- 핫픽스 CO-41-01(a397039): ① DeviceHandler MIL case 를 `#if SIMUL_MODE`→`AddVirtualCamera` 직접 폴백(SIMUL 은 Matrox 런타임 미로드) ② csproj `Private=True`(bin 복사 확인). 컴파일 0 errors 재확인.
+- 재검증: 앱 종료 후 재빌드한 새 exe 로 기동 확인 필요 (보류).
 
 ---
 

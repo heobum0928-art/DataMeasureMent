@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: planning
-stopped_at: Phase 41 추가됨 (CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 HW-01/HW-02) — 이연됐던 v1.2 HW Integration 백로그 활성화. 다음 = /gsd-discuss-phase 41.
-last_updated: "2026-06-02T00:00:00.000Z"
-last_activity: 2026-06-02 -- Phase 41(CXP MIL grab) ROADMAP 등록. HW 실물 도착 + SDK MIL Lite 10.0 확정.
+stopped_at: Phase 41 context gathered (CXP MIL grab)
+last_updated: "2026-06-02T13:53:17.219Z"
+last_activity: 2026-06-02
 progress:
-  total_phases: 7
-  completed_phases: 6
+  total_phases: 6
+  completed_phases: 5
   total_plans: 25
   completed_plans: 24
-  percent: 86
+  percent: 96
 ---
 
 # Project State
@@ -364,9 +364,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-01T08:00:00Z
-Stopped at: 40-03 SIGNED_OFF — reviewer UAT 4 hotfix(CO-40-04~07) 반영 후 사용자 승인. 커밋 2d42b5b + 7ea7f3b + 40-03-SUMMARY.
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 41 context gathered (CXP MIL grab)
+Resume file: --resume-file
 Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-40-08(오토 종합판정/TCP 시퀀스 scoping) 별도 처리.
 
 **v1.1 Phase Map:**

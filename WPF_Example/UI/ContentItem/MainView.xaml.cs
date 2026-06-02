@@ -1247,6 +1247,61 @@ namespace ReringProject.UI {
             Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit EXIT: LastTeachSucceeded=" + datum.LastTeachSucceeded);
         }
 
+        //260602 hbk Phase 40.1 CO-40.1-01 — Datum 노드 선택 시 휘발성 검출 좌표 복원.
+        //  검출 라인/십자/원 좌표(Line1Detected_*/CircleCenter_*/RefOrigin*)는 INI에 0으로만 저장되는 휘발성 필드 →
+        //  레시피 로드 후 LastTeachSucceeded=true 라도 좌표가 0 → 라인이 (0,0)에 그려져 안 보임.
+        //  이미 티칭된 datum 에 한해 티칭 이미지로 TryTeachDatum 을 조용히 재실행해 좌표 복원 후 렌더.
+        //  편집/신규 티칭 정책(Phase 16 D-12/D-13 수동 티칭)은 무변경 — 본 메서드는 "보기 선택" 복원 전용(모달/상태 변경 없음).
+        public void RestoreDatumOverlayFromTeach(DatumConfig datum) {
+            if (datum == null) return;
+            if (!datum.LastTeachSucceeded) {
+                // 티칭 이력 없음 — 복원 불필요. 기존 selection 핸들러의 SetDatumOverlay 가 ROI 만 렌더.
+                return;
+            }
+            try {
+                var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
+                string error = null;
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                    string pathH = datum.TeachingImagePath;
+                    string pathV = datum.TeachingImagePath_Vertical;
+                    if (string.IsNullOrEmpty(pathH) || !System.IO.File.Exists(pathH)) return;
+                    if (string.IsNullOrEmpty(pathV) || !System.IO.File.Exists(pathV)) return;
+                    HImage imgH = null, imgV = null;
+                    try {
+                        try { imgH = new HImage(pathH); } catch { return; }
+                        try { imgV = new HImage(pathV); } catch { return; }
+                        svc.TryTeachDatum(imgH, imgV, datum, out error);
+                    }
+                    finally {
+                        if (imgH != null) { try { imgH.Dispose(); } catch { } }
+                        if (imgV != null) { try { imgV.Dispose(); } catch { } }
+                    }
+                }
+                else {
+                    // 단일 이미지: TeachingImagePath 파일 우선 로드(결정적), 없으면 현재 표시 이미지 fallback.
+                    HImage img = null;
+                    bool ownImg = false;
+                    string path = datum.TeachingImagePath;
+                    if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) {
+                        try { img = new HImage(path); ownImg = true; } catch { img = null; }
+                    }
+                    if (img == null) img = halconViewer.CurrentImage; // fallback (소유권 없음 — dispose 금지)
+                    if (img == null) return;
+                    try {
+                        svc.TryTeachDatum(img, datum, out error);
+                    }
+                    finally {
+                        if (ownImg && img != null) { try { img.Dispose(); } catch { } }
+                    }
+                }
+            }
+            catch {
+                // 복원 실패는 조용히 무시 — 선택 시 모달/에러 표시 금지. ROI 사각형은 아래 SetDatumOverlay 로 계속 표시.
+            }
+            // 복원 성공/실패 무관 렌더 (성공 시 검출 라인 표시, 실패 시 최소 ROI 표시)
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
+        }
+
         //260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 갱신
         //  IsConfigured && LastTeachSucceeded 시 RefOrigin + Angle (+ CircleCenter/Radius) 표시.
         //  null 또는 미설정 시 회색 'Datum 미설정'.

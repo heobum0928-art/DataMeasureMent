@@ -475,6 +475,8 @@ namespace ReringProject.UI {
                             mParentWindow.mainView.PublishDatumRoiCandidates(datumCfg);
                             //260527 hbk Phase 35 — CO-33-02 hotfix: Datum 노드 선택 시 TeachingImagePath 표시 (Shot/Measurement 와 일관성; stale canvas 차단)
                             mParentWindow.mainView.DisplayDatumImage(datumCfg); //260527 hbk Phase 35
+                            //260602 hbk Phase 40.1 CO-40.1-01 — 티칭 이미지 로드 후 휘발 검출 좌표 복원(재티칭) → 검출 라인 렌더
+                            mParentWindow.mainView.RestoreDatumOverlayFromTeach(datumCfg);
 
                             //260429 hbk Phase 16 D-09/D-10 — Datum 전환 시 PropertyGrid SelectedObject 강제 null→new force rebind.
                             //  이유: Phase 15 UAT Test 10~12 결함 — ROI 이동/생성 후 Datum 전환 시 AlgorithmType combobox 가 stale.

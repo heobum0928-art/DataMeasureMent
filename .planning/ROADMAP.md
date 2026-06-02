@@ -243,14 +243,17 @@ Plans:
 
 ### Phase 41: CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02)
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** CoaXPress 카메라를 Matrox MIL Lite 10.0 으로 software-trigger 단발 grab 하여 신규 MilCamera : VirtualCamera 드라이버로 기존 DeviceHandler.GrabHalconImage(param) 계약(HImage 반환)에 통합한다. 시퀀스/액션 코드 무변경, SIMUL_MODE 폴백 유지, HIK/Basler 와 동일 계약. 실 HW(RAP4G4C12 보드) 미도착 — SIMUL_MODE 전 경로 구현·검증, 실 HW 연결부(MsysAlloc 시스템 디스크립터·ViewWorks 해상도)는 보드 도착 후 확정하도록 isolate.
+**Requirements**: HW-01, HW-02
 **Depends on:** Phase 40
-**Plans:** 0 plans
+**Plans:** 4 plans (4 waves) — planned 2026-06-02
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 41 to break down)
+- [ ] 41-01-PLAN.md — MIL .NET DLL csproj 참조 + ECameraType.MIL enum (foundation, HW-01) [Wave 1]
+- [ ] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
+- [ ] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
+- [ ] 41-04-PLAN.md — SIMUL_MODE UAT 5 시나리오 + sign-off (HW-01/HW-02 SIMUL 기준) [Wave 4]
 
 ---
 
-*Last updated: 2026-05-30 — Phase 39.3 PLAN 완료 (4 plans / 3 waves: Wave 1 = Plan 01+03 병렬, Wave 2 = Plan 02 swap UX, Wave 3 = Plan 04 UAT). Anti-Goal 10항 + 5 Success Criteria 가드.*
+*Last updated: 2026-06-02 — Phase 41(CXP MIL grab) PLAN 완료 (4 plans / 4 waves: 01 foundation, 02 MilCamera, 03 DeviceHandler 등록, 04 SIMUL UAT). HW-01/HW-02 SIMUL 기준 검증, 실 HW grab 보드 도착 후 격리.*

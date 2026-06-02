@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: 40-03 SIGNED_OFF — reviewer UAT 4 hotfix(CO-40-04~07) 반영 후 사용자 승인. 커밋 2d42b5b + 7ea7f3b + 40-03-SUMMARY.
-last_updated: "2026-06-01T09:03:49.131Z"
-last_activity: 2026-06-01 -- Phase 40.1 Plan 01 tasks 1-2 완료, human-verify 체크포인트 대기
+stopped_at: 40.1 PARTIAL SIGNED_OFF — UAT 3/4 PASS (측정overlay토글/Polygon숨김/트리Shot접기). #2 Datum 라인 = CO-40.1-01 신규 phase 이연. 커밋 4d54a01+baf9cb8+b8cbaf6+ab470eb+de1dfe4 + SUMMARY 2.
+last_updated: "2026-06-02T00:00:00.000Z"
+last_activity: 2026-06-02 -- Phase 40.1 PARTIAL signed_off (트리 UAT 2차 피드백 반영 de1dfe4), Datum CO-40.1-01 carry-over
 progress:
   total_phases: 6
   completed_phases: 5
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — EXECUTING
-Plan: 1 of 2 (Task 1-2 done, awaiting human-verify checkpoint)
-Status: Executing Phase 40.1
-Last activity: 2026-06-01 -- Phase 40.1 Plan 01 tasks 1-2 완료, human-verify 체크포인트 대기
+Phase: 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — PARTIAL SIGNED_OFF
+Plan: 2 of 2 complete (UAT 3/4 PASS, #2 Datum = CO-40.1-01 이연)
+Status: Phase 40.1 마감 — Datum 신규 phase 신설 예정
+Last activity: 2026-06-02 -- Phase 40.1 PARTIAL signed_off, Datum CO-40.1-01 carry-over
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -253,6 +253,7 @@ Recent decisions affecting current work:
 - [Phase 40.1-01]: overlay 토글 게이트는 RenderNow 표시 시점 분기만 적용 (데이터 무변형) — _measurementOverlayVisible/_datumOverlayVisible 2 플래그 + SetMeasurementOverlayVisible/SetDatumOverlayVisible setter(즉시 Render()). 측정 overlay OFF=빈 List<EdgeInspectionOverlay> 전달(rois/messages/draft 보존), Datum OFF=`_datumConfig != null && _datumOverlayVisible` 게이트. RenderNow 단일 게이트로 라이브+노드 재현 경로 동시 커버. SetInspectionOverlays/UpdateDisplayState/RenderDatumOverlay 본문 무변경.
 - [Phase 40.1-01]: #4 Polygon = btn_polygonRoi Visibility=Collapsed 만 (UI 진입점 숨김). RoiShape.Polygon enum + HalconDisplayService Polygon 분기 + PolygonRoiButton_Click/CompletePolygon code-behind 전부 보존 (label_pointCount Phase 17 D-15 선례 동일, INI 데이터 호환).
 - [Phase 40.1-01]: MainView.xaml.cs 핸들러는 파일 실제 스타일(K&R)을 따름 — 플랜의 Allman 명시보다 CLAUDE.md "편집 파일 스타일 따름" 우선.
+- [Phase 40.1-02]: #3 트리 기본 펼침 = NodeViewModel.ExpandToShotLevel() 신규 — NodeType==Sequence 분기에서 자기만 펼치고 자식(Shot/Datum) IsExpanded=false 후 재귀 중단, 상위(루트)는 펼치고 자식으로 재귀. 라이브 경로 2곳(ListView_Loaded L205, OnLoadRecipe L263)의 ExpandAll → ExpandToShotLevel 교체. IsEditable setter(L168, 편집 모드) ExpandAll 무변경 + 선택/하이라이트 로직(InspectionList_SelectionChanged/HighlightSelectedRoi) 무변경 — 회귀 가드. msbuild Debug/x64 PASS 신규 warning 0 (커밋 b8cbaf6, human-verify 대기).
 
 ### Quick Tasks Completed
 

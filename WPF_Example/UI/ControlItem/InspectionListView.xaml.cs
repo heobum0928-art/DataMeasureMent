@@ -166,12 +166,13 @@ namespace ReringProject.UI {
             set {
                 if (value) {
                     //treelistview의 seuqnce 항목을 펼친다. or 자식 항목 표시
-                    ViewModel.RootModel.ExpandAll();
+                    if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandToShotLevel(); //260602 hbk Phase 40.1 #3 UAT — 로그인 시 Shot 레벨까지만 (기존 ExpandAll 제거)
                     grid_editor.Visibility = Visibility.Visible;
                     gridSplitter_editor.Visibility = Visibility.Visible;
                     colDefinition_editor.Width = new GridLength(6, GridUnitType.Star);
                 }
                 else {
+                    if (ViewModel.RootModel != null) ViewModel.RootModel.CollapseAll(); //260602 hbk Phase 40.1 #3 UAT — 로그아웃 시 트리 전체 접기
                     grid_editor.Visibility = Visibility.Collapsed;
                     gridSplitter_editor.Visibility = Visibility.Collapsed;
                     colDefinition_editor.Width = new GridLength(0, GridUnitType.Star);

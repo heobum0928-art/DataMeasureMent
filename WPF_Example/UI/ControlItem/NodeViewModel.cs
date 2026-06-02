@@ -279,6 +279,14 @@ namespace ReringProject.UI {
             }
         }
 
+        //260602 hbk Phase 40.1 #3 UAT — 로그아웃 시 트리 전체 접기
+        public void CollapseAll() {
+            this.IsExpanded = false;
+            foreach (var child in this.Children) {
+                child.CollapseAll();
+            }
+        }
+
         //260601 hbk Phase 40.1 #3 — 기본 펼침을 Shot 레벨까지로 제한.
         //  루트(recipe) + Sequence 노드만 펼치고, 그 하위 Shot(Action)/Datum 노드는 접힘 상태 유지
         //  (FAI/Measurement 상세는 사용자가 Shot 을 펼쳐야 보임). 라이브 검사 트리 한정.

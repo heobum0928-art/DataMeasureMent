@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: 40.1 PARTIAL SIGNED_OFF — UAT 3/4 PASS (측정overlay토글/Polygon숨김/트리Shot접기). #2 Datum 라인 = CO-40.1-01 신규 phase 이연. 커밋 4d54a01+baf9cb8+b8cbaf6+ab470eb+de1dfe4 + SUMMARY 2.
+stopped_at: 40.1 SIGNED_OFF — UAT 4/4 PASS (측정overlay토글/Polygon숨김/트리Shot접기+로그인로그아웃/Datum라인). CO-40.1-01 RESOLVED(c41a418, Datum 선택 시 자동 재티칭 복원). 커밋 4d54a01+baf9cb8+b8cbaf6+ab470eb+de1dfe4+c41a418 + SUMMARY 2.
 last_updated: "2026-06-02T00:00:00.000Z"
-last_activity: 2026-06-02 -- Phase 40.1 PARTIAL signed_off (트리 UAT 2차 피드백 반영 de1dfe4), Datum CO-40.1-01 carry-over
+last_activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4 PASS, CO-40.1-01 Datum 자동 재티칭 복원 해소(c41a418)
 progress:
   total_phases: 6
   completed_phases: 5
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — PARTIAL SIGNED_OFF
-Plan: 2 of 2 complete (UAT 3/4 PASS, #2 Datum = CO-40.1-01 이연)
-Status: Phase 40.1 마감 — Datum 신규 phase 신설 예정
-Last activity: 2026-06-02 -- Phase 40.1 PARTIAL signed_off, Datum CO-40.1-01 carry-over
+Phase: 40.1 (uat-ui-3-overlay-on-off-shot-polygon-roi) — SIGNED_OFF (4/4 PASS)
+Plan: 2 of 2 complete (UAT 4/4 PASS, CO-40.1-01 resolved c41a418)
+Status: Phase 40.1 완전 마감
+Last activity: 2026-06-02 -- Phase 40.1 SIGNED_OFF 4/4, CO-40.1-01 해소(c41a418)
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

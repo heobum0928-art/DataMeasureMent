@@ -1,4 +1,5 @@
 ﻿using ReringProject.Define;
+using ReringProject.Setting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,10 @@ namespace ReringProject.Device {
         public const int WIDTH_BOTTOM = 2448;
         public const int HEIGHT_BOTTOM = 2048;
 
+
+        //260602 hbk Phase 41 — CXP ViewWorks 128MP 해상도 (실물 도착 후 MdigInquire M_SIZE_X/Y 로 확정, RESEARCH Open Q3)
+        public const int WIDTH_CXP  = 14192;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
+        public const int HEIGHT_CXP = 10640;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
 
         public const bool REVERSE_X_TOP = false;
         public const bool REVERSE_Y_TOP = false;
@@ -80,44 +85,50 @@ namespace ReringProject.Device {
         public const string EXTENSION_CALIBRATION = ".cal";
 
         /// <summary>
-        /// 이 함수에서 카메라를 정의합니다. 
+        /// 이 함수에서 카메라를 정의합니다.
         /// 함수는 시스템 초기화 시점에 호출됩니다.
         /// </summary>
         private void RegisterRequiredDevices() {
-            SetRequiredDevice(
-                ECameraType.HIK, 
-                ECaptureImageType.Gray8, 
-                ETriggerSource.Software,
-                CAMERA_TOP, 
-                WIDTH_TOP, 
-                HEIGHT_TOP,
-                REVERSE_X_TOP,
-                REVERSE_Y_TOP,
-                ROTATE_TOP);
+            //260602 hbk Phase 41 — D-03 PC별 CXP 1대 + 역할(시퀀스) 설정. HIK 3대 고정 → 역할 분기.
+            ECameraRole role = SystemSetting.Handle.CameraRole;
 
-            SetRequiredDevice(
-                ECameraType.HIK, 
-                ECaptureImageType.Gray8, 
-                ETriggerSource.Software,
-                CAMERA_SIDE, 
-                WIDTH_SIDE, 
-                HEIGHT_SIDE,
-                REVERSE_X_SIDE,
-                REVERSE_Y_SIDE,
-                ROTATE_SIDE
-                );
+            if (role == ECameraRole.TopBottom) {
+                // PC1: CXP 카메라 1대 — Top + Bottom 시퀀스 담당 (D-02)
+                SetRequiredDevice(
+                    ECameraType.MIL,
+                    ECaptureImageType.Gray8,
+                    ETriggerSource.Software,
+                    CAMERA_TOP,
+                    WIDTH_CXP,
+                    HEIGHT_CXP,
+                    REVERSE_X_TOP,
+                    REVERSE_Y_TOP,
+                    ROTATE_TOP);
 
-            SetRequiredDevice(
-                ECameraType.HIK, 
-                ECaptureImageType.Gray8, 
-                ETriggerSource.Hardware_Line0,
-                CAMERA_BOTTOM, 
-                WIDTH_BOTTOM, 
-                HEIGHT_BOTTOM,
-                REVERSE_X_BOTTOM,
-                REVERSE_Y_BOTTOM,
-                ROTATE_BOTTOM
-                );
+                SetRequiredDevice(
+                    ECameraType.MIL,
+                    ECaptureImageType.Gray8,
+                    ETriggerSource.Software,
+                    CAMERA_BOTTOM,
+                    WIDTH_CXP,
+                    HEIGHT_CXP,
+                    REVERSE_X_BOTTOM,
+                    REVERSE_Y_BOTTOM,
+                    ROTATE_BOTTOM);
+            }
+            else { // ECameraRole.Side — PC2
+                // PC2: CXP 카메라 1대 — Side 시퀀스 담당 (D-02)
+                SetRequiredDevice(
+                    ECameraType.MIL,
+                    ECaptureImageType.Gray8,
+                    ETriggerSource.Software,
+                    CAMERA_SIDE,
+                    WIDTH_CXP,
+                    HEIGHT_CXP,
+                    REVERSE_X_SIDE,
+                    REVERSE_Y_SIDE,
+                    ROTATE_SIDE);
+            }
         }
     }
 }

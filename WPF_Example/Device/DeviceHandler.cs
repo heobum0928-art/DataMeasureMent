@@ -218,7 +218,21 @@ namespace ReringProject.Device {
                         hikCamIndex++;
                     }
                     break;
-                    
+                    case ECameraType.MIL: {
+                        //260602 hbk Phase 41 — CXP 카메라 MIL grab. enumerate 없음, Open() 으로 판별.
+                        MilCamera newCam = new MilCamera(Config, id);
+                        if (!newCam.Open()) {
+                            result &= ~EInitializeResult.Success;
+                            result |= EInitializeResult.OpenFail;
+#if SIMUL_MODE
+                            AddVirtualCamera(id);   // 보드 미설치 시 VirtualCamera 파일 grab 폴백 (Pitfall 1)
+#endif
+                            continue;
+                        }
+                        Devices.Add(id.Identifier, newCam);
+                    }
+                    break;
+
                 }
             }
             IDList.Clear();

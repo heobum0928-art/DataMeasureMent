@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using ReringProject.Define;
 using ReringProject.Device;
+using ReringProject.Setting; //260604 hbk Phase 41 CO-41-02 — SystemSetting.CameraRole (역할별 시퀀스 활성 판단)
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -35,39 +36,64 @@ namespace ReringProject.Sequence {
 
         public bool IsDynamicFAIMode { get; private set; } = false;
 
+        //260604 hbk Phase 41 CO-41-02 — 이 PC(CameraRole)에서 활성화할 시퀀스 판단.
+        //  SIMUL 은 전체 활성(단일 PC 전 시퀀스 테스트). 실 HW 는 PC1=Top/Bottom, PC2=Side 만 활성 →
+        //  비활성 시퀀스를 아예 생성하지 않아, 카메라 미등록으로 인한 OnCreate Error(StateAll 비-Idle) 를 원천 차단.
+        private static bool IsSequenceActive(ESequence seqId) {
+#if SIMUL_MODE
+            return true;
+#else
+            ECameraRole role = SystemSetting.Handle.CameraRole;
+            if (role == ECameraRole.TopBottom)
+                return seqId == ESequence.Top || seqId == ESequence.Bottom;
+            return seqId == ESequence.Side;
+#endif
+        }
+
         private void RegisterSequences() {
             //260409 hbk Phase 5: 동적 FAI 모드용 InspectionSequence (D-07)
             //260526 hbk Phase 33 — Side/Bottom 도 InspectionSequence 마이그레이션 (D-01)
-            SequenceBuilder.RegisterSequence(
-                new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_TOP),
-                new InspectionSequence(ESequence.Side, SEQ_SIDE, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_SIDE),
-                new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BOTTOM)
-            );
+            //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스만 등록(SIMUL 전체). 비활성 시퀀스 미생성 → 카메라 미등록 OnCreate Error 차단.
+            var seqs = new List<SequenceBase>();
+            if (IsSequenceActive(ESequence.Top))
+                seqs.Add(new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_TOP));
+            if (IsSequenceActive(ESequence.Side))
+                seqs.Add(new InspectionSequence(ESequence.Side, SEQ_SIDE, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_SIDE));
+            if (IsSequenceActive(ESequence.Bottom))
+                seqs.Add(new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BOTTOM));
+            SequenceBuilder.RegisterSequence(seqs.ToArray());
         }
 
         private void RegisterActions() {
             //260526 hbk Phase 33 — Side/Bottom placeholder; RebuildInspectionActions(Side|Bottom) 가 동적 FAI 모드 진입 시 Action_FAIMeasurement 로 교체
-            SequenceBuilder.RegisterAction(
-                new TopInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index),
-                new TopInspectionAction(EAction.Side_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index),
-                new BottomInspectionAction(EAction.Bottom_Inspection, ACT_INSPECT, Bottom_Alg_Index, Inspection_Model_Index)
-            );
+            //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스의 Action 만 등록(InitializeSequences 의 AddAction 과 1:1 대응).
+            var acts = new List<ActionBase>();
+            if (IsSequenceActive(ESequence.Top))
+                acts.Add(new TopInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index));
+            if (IsSequenceActive(ESequence.Side))
+                acts.Add(new TopInspectionAction(EAction.Side_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
+            if (IsSequenceActive(ESequence.Bottom))
+                acts.Add(new BottomInspectionAction(EAction.Bottom_Inspection, ACT_INSPECT, Bottom_Alg_Index, Inspection_Model_Index));
+            SequenceBuilder.RegisterAction(acts.ToArray());
         }
 
         private void InitializeSequences() {
-            SequenceBuilder seq;
-
-            seq = SequenceBuilder.CreateSequence(ESequence.Top);
-            seq.AddAction(EAction.Top_Inspection);
-            RegisterSequence(seq);
-
-            seq = SequenceBuilder.CreateSequence(ESequence.Side);
-            seq.AddAction(EAction.Side_Inspection);
-            RegisterSequence(seq);
-
-            seq = SequenceBuilder.CreateSequence(ESequence.Bottom);
-            seq.AddAction(EAction.Bottom_Inspection);
-            RegisterSequence(seq);
+            //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스만 생성/등록(SIMUL 전체). 비활성은 Sequences dict 미포함 → ExecOnCreate 대상 제외.
+            if (IsSequenceActive(ESequence.Top)) {
+                SequenceBuilder seqTop = SequenceBuilder.CreateSequence(ESequence.Top);
+                seqTop.AddAction(EAction.Top_Inspection);
+                RegisterSequence(seqTop);
+            }
+            if (IsSequenceActive(ESequence.Side)) {
+                SequenceBuilder seqSide = SequenceBuilder.CreateSequence(ESequence.Side);
+                seqSide.AddAction(EAction.Side_Inspection);
+                RegisterSequence(seqSide);
+            }
+            if (IsSequenceActive(ESequence.Bottom)) {
+                SequenceBuilder seqBottom = SequenceBuilder.CreateSequence(ESequence.Bottom);
+                seqBottom.AddAction(EAction.Bottom_Inspection);
+                RegisterSequence(seqBottom);
+            }
         }
 
         /// <summary>

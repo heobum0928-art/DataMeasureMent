@@ -11,6 +11,8 @@ updated: "2026-06-03"
 ---
 
 > **⏸ 검증 보류 (2026-06-03):** 사용자 요청으로 Test 2~5 런타임 육안 검증은 나중에 진행. 1차 실행에서 `FileNotFoundException(Matrox.MatroxImagingLibrary)` 크래시 발견 → **핫픽스 CO-41-01 적용·커밋(a397039)**. 재검증 시 반드시 **실행 중인 앱 종료 후 재빌드**하여 핫픽스 반영된 새 exe 로 확인할 것(이전 빌드는 앱 점유로 bin exe 미교체됨).
+>
+> **🔧 CO-41-02 핫픽스 (2026-06-04, 사용자 동작확인 완료):** 재검증 중 SIMUL_MODE 에서 샷 실행 시 "Sequence is already running" 오진단 발견. 원인 = Phase 41 `RegisterRequiredDevices` 가 역할(CameraRole=TopBottom)별로 `CAM_TOP/CAM_BOTTOM` 만 등록 → 항상 생성되는 Side `InspectionSequence.OnCreate` 가 `CAM_SIDE` 미등록으로 `Context.State=Error` → `SequenceHandler.StateAll` 비-Idle → `IsIdle=false` 가 모든 샷을 "이미 실행 중"으로 차단. (운영 2-PC 도 동일 잠재 버그.) 수정 = ① `Custom/Device/DeviceHandler.cs` SIMUL 은 카메라 3대 전부 등록(실 HW 는 역할별), `RegisterCxpCamera` 헬퍼 도입 ② `Custom/Sequence/SequenceHandler.cs` `IsSequenceActive` 추가 — SIMUL 전체/실 HW 역할별 시퀀스·액션 등록(비활성 시퀀스 미생성). SIMUL 빌드에서 `IsSequenceActive`=항상 true → 시퀀스 동작 회귀 0, 실제 수정은 카메라 등록. msbuild Debug/x64 0 errors + 사용자 런타임 육안 동작확인. **실 HW 역할별 부분 등록 경로는 보드 도착 후 별도 검증(carry-over).**
 
 # Phase 41 UAT: CXP MIL Lite 10.0 grab 통합 SIMUL 검증
 

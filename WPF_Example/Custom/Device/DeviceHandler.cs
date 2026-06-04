@@ -90,45 +90,40 @@ namespace ReringProject.Device {
         /// </summary>
         private void RegisterRequiredDevices() {
             //260602 hbk Phase 41 — D-03 PC별 CXP 1대 + 역할(시퀀스) 설정. HIK 3대 고정 → 역할 분기.
+#if SIMUL_MODE
+            //260604 hbk Phase 41 CO-41-02 — SIMUL 은 역할 무관 3 카메라 전부 등록(단일 PC 전 시퀀스 테스트).
+            //  미등록 카메라가 있으면 해당 InspectionSequence.OnCreate 가 Error → StateAll 비-Idle →
+            //  "Sequence is already running" 오진단(샷 차단). SIMUL 은 모든 카메라가 VirtualCamera 폴백이라 전 등록이 안전.
+            RegisterCxpCamera(CAMERA_TOP, REVERSE_X_TOP, REVERSE_Y_TOP, ROTATE_TOP);
+            RegisterCxpCamera(CAMERA_BOTTOM, REVERSE_X_BOTTOM, REVERSE_Y_BOTTOM, ROTATE_BOTTOM);
+            RegisterCxpCamera(CAMERA_SIDE, REVERSE_X_SIDE, REVERSE_Y_SIDE, ROTATE_SIDE);
+#else
             ECameraRole role = SystemSetting.Handle.CameraRole;
 
             if (role == ECameraRole.TopBottom) {
                 // PC1: CXP 카메라 1대 — Top + Bottom 시퀀스 담당 (D-02)
-                SetRequiredDevice(
-                    ECameraType.MIL,
-                    ECaptureImageType.Gray8,
-                    ETriggerSource.Software,
-                    CAMERA_TOP,
-                    WIDTH_CXP,
-                    HEIGHT_CXP,
-                    REVERSE_X_TOP,
-                    REVERSE_Y_TOP,
-                    ROTATE_TOP);
-
-                SetRequiredDevice(
-                    ECameraType.MIL,
-                    ECaptureImageType.Gray8,
-                    ETriggerSource.Software,
-                    CAMERA_BOTTOM,
-                    WIDTH_CXP,
-                    HEIGHT_CXP,
-                    REVERSE_X_BOTTOM,
-                    REVERSE_Y_BOTTOM,
-                    ROTATE_BOTTOM);
+                RegisterCxpCamera(CAMERA_TOP, REVERSE_X_TOP, REVERSE_Y_TOP, ROTATE_TOP);
+                RegisterCxpCamera(CAMERA_BOTTOM, REVERSE_X_BOTTOM, REVERSE_Y_BOTTOM, ROTATE_BOTTOM);
             }
             else { // ECameraRole.Side — PC2
                 // PC2: CXP 카메라 1대 — Side 시퀀스 담당 (D-02)
-                SetRequiredDevice(
-                    ECameraType.MIL,
-                    ECaptureImageType.Gray8,
-                    ETriggerSource.Software,
-                    CAMERA_SIDE,
-                    WIDTH_CXP,
-                    HEIGHT_CXP,
-                    REVERSE_X_SIDE,
-                    REVERSE_Y_SIDE,
-                    ROTATE_SIDE);
+                RegisterCxpCamera(CAMERA_SIDE, REVERSE_X_SIDE, REVERSE_Y_SIDE, ROTATE_SIDE);
             }
+#endif
+        }
+
+        //260604 hbk Phase 41 CO-41-02 — CXP 카메라 1대 등록 헬퍼(역할/SIMUL 분기 공통). Gray8 + Software trigger + CXP 해상도 고정.
+        private void RegisterCxpCamera(string cameraName, bool reverseX, bool reverseY, ERotateAngleType rotate) {
+            SetRequiredDevice(
+                ECameraType.MIL,
+                ECaptureImageType.Gray8,
+                ETriggerSource.Software,
+                cameraName,
+                WIDTH_CXP,
+                HEIGHT_CXP,
+                reverseX,
+                reverseY,
+                rotate);
         }
     }
 }

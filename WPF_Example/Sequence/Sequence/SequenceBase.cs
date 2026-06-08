@@ -15,7 +15,7 @@ using ReringProject.Device;
 using ReringProject.UI;
 
 namespace ReringProject.Sequence {
-   
+
     #region delegates
     public delegate void EventSequenceStateChanged(SequenceContext context);
     public delegate void EventActionChanged(ActionContext context);
@@ -29,7 +29,7 @@ namespace ReringProject.Sequence {
         Pause,
         Resume,
     }
-    
+
     #endregion
 
     public partial class SequenceBase {
@@ -43,10 +43,10 @@ namespace ReringProject.Sequence {
 
         public int CurrentActionIndex { get; protected set; }
         public int EndActionIndex { get; protected set; }
-       
+
         protected ActionBase [] Actions;
         protected ActionBase CurAction = null;
-        
+
         public ParamBase Param { get; protected set; }
 
         public string CurActionName {
@@ -105,7 +105,7 @@ namespace ReringProject.Sequence {
             Param.Parent = this;
             foreach (ActionBase act in Actions) {
                 if ((Param != null) && (Param is CameraMasterParam)) {
-                    CameraMasterParam masterParam = Param as CameraMasterParam; 
+                    CameraMasterParam masterParam = Param as CameraMasterParam;
                     if (act.Param is CameraSlaveParam) {
                         CameraSlaveParam camParam = act.Param as CameraSlaveParam;
                         //260409 hbk Phase 5: ShotConfig 등 Slave에 Master DeviceName 전파
@@ -118,9 +118,9 @@ namespace ReringProject.Sequence {
                 act.Param.Parent = this;
             }
 
-            
-        } 
-        
+
+        }
+
         public EContextState State {
             get { return Context.State; }
             private set { Context.State = value; }
@@ -165,7 +165,7 @@ namespace ReringProject.Sequence {
         }
 
         public int ActionCount { get => Actions.Length; }
- 
+
         public ActionBase this[int index] {
             get {
                 if (index >= Actions.Length) return null;
@@ -220,16 +220,16 @@ namespace ReringProject.Sequence {
                 action.OnBegin(Context);
                 IsDoneBegin = true;
             }
-            
+
             ActionContext actionContext = action.Run();
-            
+
             if (actionContext.Result == EContextResult.Error) {
                 CurAction.OnEnd();
                 IsDoneBegin = false;
 
                 Context.CopyFrom(actionContext);
                 OnActionChanged?.Invoke(actionContext);
-                
+
                 Error();
             }
             else if (actionContext.State == EContextState.Finish) {
@@ -238,7 +238,7 @@ namespace ReringProject.Sequence {
 
                 Context.CopyFrom(actionContext);
                 OnActionChanged?.Invoke(actionContext);
-                
+
                 if (CurrentActionIndex >= EndActionIndex) {
                     Context.Result = actionContext.Result;
                     Finish();
@@ -257,18 +257,26 @@ namespace ReringProject.Sequence {
                     continue;
                 }
 
-                switch (Command) {
-                    case ESequenceCommmand.Stop:
-                        State = EContextState.Idle;
-                        break;
-                    case ESequenceCommmand.Pause:
-                        State = EContextState.Paused;
-                        break;
-                    case ESequenceCommmand.Start:
-                        State = EContextState.Running;
-                        CurAction = Actions[CurrentActionIndex];
-                        ExecuteAction(CurAction);
-                        break;
+                try { //260517 hbk 처리되지 않은 예외로 인한 스레드 종료 방지 — 예외 발생 시 Error()로 잠금 해제 보장
+                    switch (Command) {
+                        case ESequenceCommmand.Stop:
+                            State = EContextState.Idle;
+                            break;
+                        case ESequenceCommmand.Pause:
+                            State = EContextState.Paused;
+                            break;
+                        case ESequenceCommmand.Start:
+                            State = EContextState.Running;
+                            CurAction = Actions[CurrentActionIndex];
+                            ExecuteAction(CurAction);
+                            break;
+                    }
+                }
+                catch (Exception ex) { //260517 hbk 예외 캐치 → Error() 호출로 OnError 이벤트 보장 (잠금 미해제 방지)
+                    Logging.PrintErrLog((int)ELogType.Error,
+                        string.Format("[MainExecute] Unhandled exception in sequence '{0}': {1}", Name, ex.Message));
+                    IsDoneBegin = false;
+                    try { Error(); } catch { } //260517 hbk Error() 내 2차 예외도 무시 (로그 스레드 재진입 방지)
                 }
                 Thread.Sleep(5);
             }
@@ -325,10 +333,14 @@ namespace ReringProject.Sequence {
             EndActionIndex = actionIndex;
 
             Context.Clear();
-            Command = ESequenceCommmand.Start;
             IsFinished = false;
 
+            //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화한다.
+            //  이로써 Dispatcher 큐에 SetManualToolsEnabled(false) [잠금] 이 먼저 등록되고,
+            //  이후 완료 이벤트(OnFinish/OnStop/OnError)의 SetManualToolsEnabled(true) [해제]가
+            //  항상 뒤에 처리되어 잠금 순서가 보장된다 (race condition 차단).
             OnStart?.Invoke(Context);
+            Command = ESequenceCommmand.Start; //260517 hbk OnStart 발화 이후 Command 설정 (순서 보장)
             return true;
         }
 
@@ -342,10 +354,11 @@ namespace ReringProject.Sequence {
             EndActionIndex = Actions.Length - 1;
 
             Context.Clear();
-            Command = ESequenceCommmand.Start;
             IsFinished = false;
 
+            //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화 (Start(int)와 동일 패턴 적용)
             OnStart?.Invoke(Context);
+            Command = ESequenceCommmand.Start; //260517 hbk
             return true;
         }
 
@@ -361,33 +374,44 @@ namespace ReringProject.Sequence {
 
         //생성된 파일명을 반환한다.
         // Save the result image and record the generated file name.
+        //260520 hbk Manual Tools Locked root cause — 본체 전체 try/catch 추가.
+        //  배경: DatumPhase 실패 등으로 Grab 단계 미실행 시 Context.ResultHalconImage 가 disposed/잘못된 핸들 → CopyImage() 동기 예외 →
+        //  Error()/Finish() 의 OnError/OnFinish?.Invoke() 까지 도달 못함 → MainWindow.SetManualToolsEnabled(true) 미호출 → 잠금 영구화.
+        //  격리 원칙: 이미지 저장 실패가 시퀀스 완료 이벤트 발화를 막아서는 안 됨.
         protected void SaveResultImage(string actionName) {
-            if (SystemHandler.Handle.Setting.SaveFailImage == false) {
-                Context.ResultImageFileName = null;
-                return;
-            }
+            try { //260520 hbk
+                if (SystemHandler.Handle.Setting.SaveFailImage == false) {
+                    Context.ResultImageFileName = null;
+                    return;
+                }
 
-            if (Context.ResultHalconImage != null) {
-                HImage snapshot = Context.ResultHalconImage.CopyImage();
-                Task.Factory.StartNew((object obj) => {
-                    HImage resultImage = obj as HImage;
-                    try {
-                        string filePath = SystemHandler.Handle.Setting.GetResultImageSavePath(Name, actionName);
-                        Context.ResultImageFileName = Path.GetFileName(filePath);
+                if (Context.ResultHalconImage != null) {
+                    HImage snapshot = Context.ResultHalconImage.CopyImage();
+                    Task.Factory.StartNew((object obj) => {
+                        HImage resultImage = obj as HImage;
+                        try {
+                            string filePath = SystemHandler.Handle.Setting.GetResultImageSavePath(Name, actionName);
+                            Context.ResultImageFileName = Path.GetFileName(filePath);
 
-                        using (HImage grayImage = resultImage.CountChannels().I == 1 ? resultImage.CopyImage() : resultImage.Rgb1ToGray()) {
-                            string format = Path.GetExtension(filePath).TrimStart('.');
-                            grayImage.WriteImage(format, 0, filePath);
+                            using (HImage grayImage = resultImage.CountChannels().I == 1 ? resultImage.CopyImage() : resultImage.Rgb1ToGray()) {
+                                string format = Path.GetExtension(filePath).TrimStart('.');
+                                grayImage.WriteImage(format, 0, filePath);
+                            }
                         }
-                    }
-                    catch (Exception ex) {
-                        CustomMessageBox.Show("Fail to Save Image", "Image Save Fail : " + ex.Message, System.Windows.MessageBoxImage.Error);
-                    }
-                    finally {
-                        resultImage.Dispose();
-                    }
-                }, snapshot);
-                return;
+                        catch (Exception ex) {
+                            CustomMessageBox.Show("Fail to Save Image", "Image Save Fail : " + ex.Message, System.Windows.MessageBoxImage.Error);
+                        }
+                        finally {
+                            resultImage.Dispose();
+                        }
+                    }, snapshot);
+                    return;
+                }
+            } //260520 hbk
+            catch (Exception ex) { //260520 hbk — CopyImage 등 동기 예외 격리 (OnError/OnFinish 발화 보장)
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SaveResultImage] Sync exception swallowed (lock-release path protected): " + ex.Message); } catch { } //260520 hbk
+                Context.ResultImageFileName = null; //260520 hbk
+                return; //260520 hbk
             }
         }
 
@@ -427,7 +451,7 @@ namespace ReringProject.Sequence {
 
         public bool Pause() {
             if (State != EContextState.Running) return false;
-            
+
             if(CurAction != null) {
                 CurAction.OnPaused();
                 Context.Timer.Restart();
@@ -439,7 +463,7 @@ namespace ReringProject.Sequence {
 
         public bool Resume() {
             if (State != EContextState.Paused) return false;
-            
+
             if(CurAction != null) {
                 CurAction.OnResume();
                 Context.Timer.Restart();

@@ -10,6 +10,8 @@
              
              d:DesignHeight="800" d:DesignWidth="400" MinWidth="200" Loaded="ListView_Loaded">
     <UserControl.Resources>
+        <!-- 260530 hbk Phase 39.2 D-G4 hotfix — Geometry resources + converter moved to App.xaml (Application.Resources scope).
+             Reason: IconKeyToGeometryConverter reads Application.Current.Resources only; UserControl.Resources scope did not match → icons rendered as null. -->
         <Style TargetType="Button" x:Key="disalbedStyle">
             <Setter Property="Background" Value="Transparent"></Setter>
             <Setter Property="BorderThickness" Value="0"></Setter>
@@ -40,6 +42,7 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <!-- 260530 hbk Phase 39.2 D-G4 — NodeType + Measurement TypeName 별 Geometry icon (was Image / ImageSource PNG) -->
         <DataTemplate DataType="{x:Type local:NodeViewModel}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -47,7 +50,11 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Image Grid.Column="0" Source="{Binding ImageSource}" Width="32" Height="32" Margin="0 0 4 0"/>
+                <!-- 260530 hbk Phase 39.2 D-G4: Image PNG → Path Geometry (Material Icons inline path data). Fill = TextElement foreground (theme 호환). -->
+                <Path Grid.Column="0" Width="24" Height="24" Margin="0 0 4 0"
+                      Stretch="Uniform"
+                      Fill="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource Self}}"
+                      Data="{Binding IconKey, Converter={StaticResource iconKeyToGeometry}}"/>
                 <propToolsWpf:EditableTextBlock Grid.Column="1" Text="{Binding Name}" IsEditing="{Binding IsEditing}"/>
             </Grid>
         </DataTemplate>
@@ -244,6 +251,19 @@
                             <StackPanel Orientation="Vertical">
                                 <Image Source="/Resource/layout.png" Stretch="Uniform" Width="42" Height="42"/>
                                 <TextBlock Text="Edit" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <!-- 260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 사용자 ▲▼ 이동 (ParamBase 컬렉션 동시 swap) -->
+                        <Button x:Name="button_moveUp" Click="Btn_MoveUp_Click" Style="{StaticResource disalbedStyle}" ToolTip="선택 노드를 위로 이동 (ParamBase 순서 보존)">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Text="▲" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                <TextBlock Text="Up" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="button_moveDown" Click="Btn_MoveDown_Click" Style="{StaticResource disalbedStyle}" ToolTip="선택 노드를 아래로 이동 (ParamBase 순서 보존)">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Text="▼" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                <TextBlock Text="Down" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </ToolBar>

@@ -130,6 +130,13 @@ namespace ReringProject.UI
         public event EventHandler<bool> RoiEditModeChanged;
         public event EventHandler<string> RoiDeleteRequested;
 
+        //260505 hbk Phase 18 CO-04 — TeachDatum 모드 여부. MainView.TeachDatumButton_Click 에서 true/false 설정.
+        //  UpdateContextMenuState 가 "ROI 다시 그리기" 메뉴 가시성 결정에 사용.
+        public bool IsTeachDatumMode { get; set; } //260505 hbk Phase 18 CO-04
+
+        //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴 클릭 시 발생. 인자 = hit-test 통과한 roiId.
+        public event System.Action<string> RoiRedrawRequested; //260505 hbk Phase 18 CO-04
+
         //260423 hbk 리사이즈 상태 + 기하 변경 이벤트
         private bool _isResizingRoi;
         private ResizeHandle _resizingHandle;
@@ -194,7 +201,9 @@ namespace ReringProject.UI
         {
             DisposeImage();
             CurrentImagePath = imagePath;
-            CurrentImage = string.IsNullOrWhiteSpace(imagePath) ? null : new HImage(imagePath);
+            //260509 hbk Phase 20 — ternary expanded
+            if (string.IsNullOrWhiteSpace(imagePath)) CurrentImage = null;
+            else                                      CurrentImage = new HImage(imagePath);
             UpdateImageMetadata();
             if (HasImage)
             {
@@ -254,6 +263,19 @@ namespace ReringProject.UI
             }
 
             Render();
+        }
+
+        //260529 hbk Phase 39.1-03 G4-01 — overlay 만 갱신 (rois/selectedRoiId/messages 보존). 노드 클릭 시 fai.LastOverlays 재 렌더 용.
+        //  HalconViewerControl.SetInspectionOverlays (REPLACE 의미: Clear + AddRange) 와 동일 패턴.
+        //  HighlightSelectedRoi 직후에 호출되어 _selectedRoiId 와 _rois 를 보존해야 함 (UpdateDisplayState 는 _rois 도 Clear 함 → 부적합).
+        public void SetInspectionOverlays(IEnumerable<EdgeInspectionOverlay> overlays) //260529 hbk Phase 39.1-03 G4-01
+        {
+            _inspectionOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01
+            if (overlays != null) //260529 hbk Phase 39.1-03 G4-01
+            {
+                _inspectionOverlays.AddRange(overlays.Select(overlay => overlay.Clone())); //260529 hbk Phase 39.1-03 G4-01
+            }
+            Render(); //260529 hbk Phase 39.1-03 G4-01
         }
 
         public void FitImage()
@@ -565,14 +587,36 @@ namespace ReringProject.UI
         /// <summary>Sets the polygon draft points for rendering during polygon drawing mode.</summary>
         public void SetPolygonDraft(IList<Point> points, string color)
         {
-            _polygonDraftPoints = points != null ? new List<Point>(points) : null;
-            _polygonColor = color ?? "blue";
+            //260509 hbk Phase 20 — ternary + ?? expanded
+            if (points != null) _polygonDraftPoints = new List<Point>(points);
+            else                _polygonDraftPoints = null;
+            if (color != null) _polygonColor = color;
+            else               _polygonColor = "blue";
             Render();
         }
 
         //260410 hbk Phase 4 gap fix: Datum overlay state
         private DatumConfig _datumConfig;
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드 선택 시 표시할 "결과용" datum 리스트.
+        //  단일 _datumConfig(Datum 노드 편집 경로)와 분리 — 한 시퀀스 여러 datum(Phase 37 Side) 동시 표시 가능.
+        //  _datumOverlayVisible('Datum 라인' 체크박스) 게이트 공용.
+        private List<DatumConfig> _resultDatumOverlays = new List<DatumConfig>();
         private bool _datumSelected;
+        //260529 hbk Phase 39.1-04 G4-03 — Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
+        private bool _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03
+
+        //260601 hbk Phase 40.1 #2 — 측정 overlay 토글 게이트 (기본 ON)
+        private bool _measurementOverlayVisible = true; //260601 hbk Phase 40.1 #2
+        //260601 hbk Phase 40.1 #2 — Datum 라인 토글 게이트 (기본 ON)
+        private bool _datumOverlayVisible = true; //260601 hbk Phase 40.1 #2
+
+        //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview state (Edit 모드 = FAI 노드 선택 시).
+        //  검사 overlay 와 독립: 검사 결과는 LastOverlays 에 (원 + 지름 라인), preview 는 노드 선택 시 RenderNow 직접 호출.
+        private double _faiCirclePreviewRow, _faiCirclePreviewCol, _faiCirclePreviewRadius; //260529 hbk CO-39.1-01 rev2
+        private double _faiCirclePreviewStepDeg, _faiCirclePreviewL1Ratio, _faiCirclePreviewL2Ratio; //260529 hbk CO-39.1-01 rev2
+        private HTuple _faiCirclePreviewTransform; //260529 hbk CO-39.1-01 rev2 — datum transform (identity 가능)
+        private bool _faiCirclePreviewActive = false; //260529 hbk CO-39.1-01 rev2
 
         //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 렌더 대상 (SetDatumFindResultOverlay 로 주입)
         //  null 이 아니면 Render() 가 _displayService.RenderDatumFindResult 호출.
@@ -580,10 +624,26 @@ namespace ReringProject.UI
         private DatumConfig _datumFindResultOverlay;
 
         //260410 hbk Phase 4 gap fix: set Datum for overlay rendering
-        public void SetDatumOverlay(DatumConfig datum, bool isSelected)
+        //260529 hbk Phase 39.1-04 G4-03 — isEditMode 옵션 인자 추가 (기본 false). MainView.GetDatumEditMode() / IsDatumTeachActive 기반 전달.
+        public void SetDatumOverlay(DatumConfig datum, bool isSelected, bool isEditMode = false) //260529 hbk Phase 39.1-04 G4-03
         {
             _datumConfig = datum;
             _datumSelected = isSelected;
+            _datumIsEditMode = isEditMode; //260529 hbk Phase 39.1-04 G4-03
+            Render();
+        }
+
+        //260601 hbk Phase 40.1 #2 — 측정 overlay 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        public void SetMeasurementOverlayVisible(bool visible)
+        {
+            _measurementOverlayVisible = visible;
+            Render();
+        }
+
+        //260601 hbk Phase 40.1 #2 — Datum 라인 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        public void SetDatumOverlayVisible(bool visible)
+        {
+            _datumOverlayVisible = visible;
             Render();
         }
 
@@ -592,6 +652,47 @@ namespace ReringProject.UI
         {
             _datumConfig = null;
             _datumSelected = false;
+            _datumIsEditMode = false; //260529 hbk Phase 39.1-04 G4-03 — Edit 모드 리셋
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드의 결과용 datum 기준선 리스트 설정 후 재렌더.
+        public void SetResultDatumOverlays(List<DatumConfig> datums)
+        {
+            _resultDatumOverlays = datums ?? new List<DatumConfig>();
+            Render();
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 결과용 datum 오버레이 제거(이전 노드 잔상 차단) 후 재렌더.
+        public void ClearResultDatumOverlays()
+        {
+            _resultDatumOverlays = new List<DatumConfig>();
+            Render();
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview set (Edit 모드).
+        //  호출자: MainView.RenderInspectionResultForNode 가 param=CircleDiameterMeasurement 일 때 호출.
+        //  successes=null gray strip 표시. Render() 호출로 즉시 반영.
+        public void SetFaiCirclePreview(double row, double col, double radius,
+            double stepDeg, double l1Ratio, double l2Ratio,
+            HTuple datumTransform)
+        {
+            _faiCirclePreviewRow = row;
+            _faiCirclePreviewCol = col;
+            _faiCirclePreviewRadius = radius;
+            _faiCirclePreviewStepDeg = stepDeg;
+            _faiCirclePreviewL1Ratio = l1Ratio;
+            _faiCirclePreviewL2Ratio = l2Ratio;
+            _faiCirclePreviewTransform = datumTransform;
+            _faiCirclePreviewActive = true;
+            Render();
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI Circle preview 클리어 (다른 노드 선택 / Datum 노드 등).
+        public void ClearFaiCirclePreview()
+        {
+            _faiCirclePreviewActive = false;
+            _faiCirclePreviewTransform = null;
+            Render();
         }
 
         //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 성공 시 주황 십자 오버레이 set
@@ -633,7 +734,9 @@ namespace ReringProject.UI
         //260408 hbk Calibration 십자+라인 오버레이
         public void SetCalibrationOverlay(IList<Point> points)
         {
-            _calibrationPoints = points != null ? new List<Point>(points) : null;
+            //260509 hbk Phase 20 — ternary expanded
+            if (points != null) _calibrationPoints = new List<Point>(points);
+            else                _calibrationPoints = null;
             Render();
         }
 
@@ -685,13 +788,17 @@ namespace ReringProject.UI
                 return;
             }
 
+            //260601 hbk Phase 40.1 #2 — 측정 overlay 토글 OFF 시 빈 리스트 (rois/messages 보존)
+            List<EdgeInspectionOverlay> measOverlays = _measurementOverlayVisible
+                ? _inspectionOverlays.Concat(BuildTransientOverlays()).ToList()
+                : new List<EdgeInspectionOverlay>();
             _displayService.Render(
                 ViewerHost.HalconWindow,
                 CurrentImage,
                 _rois,
                 _selectedRoiId,
                 _rectDraftRoi,
-                _inspectionOverlays.Concat(BuildTransientOverlays()).ToList(),
+                measOverlays,
                 _displayMessages.Concat(BuildTransientMessages()).ToList());
 
             //260408 hbk Render polygon draft overlay after main render
@@ -709,9 +816,34 @@ namespace ReringProject.UI
             }
 
             //260410 hbk Phase 4 gap fix: render Datum Line ROI overlay
-            if (_datumConfig != null)
+            //260529 hbk Phase 39.1-04 G4-03 — _datumIsEditMode 전달 (CTH Edit 모드 분리)
+            //260601 hbk Phase 40.1 #2 — Datum 라인 토글 게이트
+            if (_datumConfig != null && _datumOverlayVisible)
             {
-                _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected);
+                _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, _datumConfig, _datumSelected, _datumIsEditMode); //260529 hbk Phase 39.1-04 G4-03
+            }
+
+            //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선도 함께 표시 (토글 게이트 공용).
+            //  isSelected=false → blue, editMode=false. 단일 _datumConfig 경로(Datum 노드)와 공존.
+            if (_datumOverlayVisible && _resultDatumOverlays != null)
+            {
+                foreach (DatumConfig d in _resultDatumOverlays)
+                {
+                    if (d != null)
+                    {
+                        _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, d, false, false);
+                    }
+                }
+            }
+
+            //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview (Edit 모드 = FAI 노드 선택 시).
+            //  검사 결과 (LastOverlays 의 원 + 지름) 가 그려진 후 위에 strip 사각형 preview 를 덧붙임.
+            if (_faiCirclePreviewActive && _faiCirclePreviewRadius > 0)
+            {
+                _displayService.RenderFaiCircleStripPreview(ViewerHost.HalconWindow,
+                    _faiCirclePreviewRow, _faiCirclePreviewCol, _faiCirclePreviewRadius,
+                    _faiCirclePreviewStepDeg, _faiCirclePreviewL1Ratio, _faiCirclePreviewL2Ratio,
+                    _faiCirclePreviewTransform); //260529 hbk CO-39.1-01 rev2
             }
 
             //260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 주황 십자 오버레이 (teach 경로와 독립, 동시 표시 허용)
@@ -771,7 +903,11 @@ namespace ReringProject.UI
 
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
-            ZoomAtPointer(mouseState.ImagePoint.Y, mouseState.ImagePoint.X, e.Delta > 0 ? ZoomInScaleFactor : ZoomOutScaleFactor);
+            //260509 hbk Phase 20 — ternary expanded
+            double zoomFactor;
+            if (e.Delta > 0) zoomFactor = ZoomInScaleFactor;
+            else             zoomFactor = ZoomOutScaleFactor;
+            ZoomAtPointer(mouseState.ImagePoint.Y, mouseState.ImagePoint.X, zoomFactor);
             PublishPointerInfo();
         }
 
@@ -802,7 +938,9 @@ namespace ReringProject.UI
                 //260408 hbk 우클릭 이벤트 브릿지 (Polygon 완성용) — Edit OFF 일 때만 Polygon 우클릭 처리
                 if (!_isEditMode && rightClickHit == null && ImageRightClicked != null)
                 {
-                    ImageRightClicked?.Invoke(this, EventArgs.Empty);
+                    //260509 hbk Phase 20 — D-02 race-safe handler temp
+                    var imageRightClickedHandler = ImageRightClicked;
+                    if (imageRightClickedHandler != null) imageRightClickedHandler(this, EventArgs.Empty);
                     PublishPointerInfo();
                     return;
                 }
@@ -903,7 +1041,9 @@ namespace ReringProject.UI
             if (ImageLeftClicked != null && HasImage)
             {
                 var pt = mouseState.ImagePoint;
-                ImageLeftClicked?.Invoke(this, new MainViewerPointerChangedEventArgs(pt.X, pt.Y, null));
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var imageLeftClickedHandler = ImageLeftClicked;
+                if (imageLeftClickedHandler != null) imageLeftClickedHandler(this, new MainViewerPointerChangedEventArgs(pt.X, pt.Y, null));
                 PublishPointerInfo();
                 return;
             }
@@ -1041,7 +1181,9 @@ namespace ReringProject.UI
 
             if (!_isPanningImage)
             {
-                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                //260509 hbk Phase 20 — ternary expanded
+                if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+                else                      SetPanCursor(Cursors.Arrow);
                 PublishPointerInfo();
                 return;
             }
@@ -1082,10 +1224,14 @@ namespace ReringProject.UI
                 _resizingRoiSnapshot = null;
                 _resizingHandle = ResizeHandle.None;
                 _resizingPolygonIndex = -1;
-                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                //260509 hbk Phase 20 — ternary expanded
+                if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+                else                      SetPanCursor(Cursors.Arrow);
                 if (target != null)
                 {
-                    RoiGeometryChanged?.Invoke(this, new RoiGeometryChangedArgs
+                    //260509 hbk Phase 20 — D-02 race-safe handler temp
+                    var roiGeometryChangedHandler = RoiGeometryChanged;
+                    if (roiGeometryChangedHandler != null) roiGeometryChangedHandler(this, new RoiGeometryChangedArgs
                     {
                         RoiId = movedId,
                         Shape = shape,
@@ -1144,10 +1290,14 @@ namespace ReringProject.UI
                 string movedId = _movingRoiSnapshot.Id;
                 _isMovingRoi = false;
                 _movingRoiSnapshot = null;
-                SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+                //260509 hbk Phase 20 — ternary expanded
+                if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+                else                      SetPanCursor(Cursors.Arrow);
                 if (Math.Abs(dr) > 0.5 || Math.Abs(dc) > 0.5)
                 {
-                    RoiMoveCompleted?.Invoke(this, new RoiMoveCompletedArgs
+                    //260509 hbk Phase 20 — D-02 race-safe handler temp
+                    var roiMoveCompletedHandler = RoiMoveCompleted;
+                    if (roiMoveCompletedHandler != null) roiMoveCompletedHandler(this, new RoiMoveCompletedArgs
                     {
                         RoiId = movedId,
                         DeltaRow = dr,
@@ -1162,7 +1312,9 @@ namespace ReringProject.UI
             {
                 _isDrawingRect = false;
                 Render();
-                RectDrawingCompleted?.Invoke(this, EventArgs.Empty);
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var rectDrawingCompletedHandler = RectDrawingCompleted;
+                if (rectDrawingCompletedHandler != null) rectDrawingCompletedHandler(this, EventArgs.Empty);
                 return;
             }
 
@@ -1174,7 +1326,9 @@ namespace ReringProject.UI
                 double cc = _circleDraftCenter.X;  // image Col = X
                 double rad = _circleDraftRadius;
                 Render();
-                CircleDrawingCompleted?.Invoke(this, new CircleDrawCompletedArgs { CenterRow = cr, CenterCol = cc, Radius = rad });
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var circleDrawingCompletedHandler = CircleDrawingCompleted;
+                if (circleDrawingCompletedHandler != null) circleDrawingCompletedHandler(this, new CircleDrawCompletedArgs { CenterRow = cr, CenterCol = cc, Radius = rad });
                 _circleDraftRadius = 0;
                 return;
             }
@@ -1241,8 +1395,13 @@ namespace ReringProject.UI
             var current = GetImagePart();
             var newWidth = current.Width * scaleFactor;
             var newHeight = current.Height * scaleFactor;
-            var rowRatio = current.Height <= 0 ? 0.5 : (row - current.Top) / current.Height;
-            var columnRatio = current.Width <= 0 ? 0.5 : (column - current.Left) / current.Width;
+            //260509 hbk Phase 20 — ternaries expanded
+            double rowRatio;
+            if (current.Height <= 0) rowRatio = 0.5;
+            else                     rowRatio = (row - current.Top) / current.Height;
+            double columnRatio;
+            if (current.Width <= 0) columnRatio = 0.5;
+            else                    columnRatio = (column - current.Left) / current.Width;
             var newTop = row - (newHeight * rowRatio);
             var newLeft = column - (newWidth * columnRatio);
             SetImagePart(new Rect(newLeft, newTop, newWidth, newHeight));
@@ -1295,7 +1454,9 @@ namespace ReringProject.UI
             var normalizedTop = Math.Max(minTop, Math.Min(maxTop, imagePart.Top));
 
             SetPartInternal(new Rect(normalizedLeft, normalizedTop, normalizedWidth, normalizedHeight));
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
             Render();
         }
 
@@ -1307,7 +1468,9 @@ namespace ReringProject.UI
             }
 
             SetPartInternal(imagePart);
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
             Render();
         }
 
@@ -1319,7 +1482,9 @@ namespace ReringProject.UI
             }
 
             SetImagePartExact(CreateFitToWindowImagePart());
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
         }
 
         private void SetPanCursor(Cursor cursor)
@@ -1341,13 +1506,17 @@ namespace ReringProject.UI
             }
 
             _isPanningImage = false;
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
             PublishPointerInfo();
         }
 
         private void ViewerHost_MouseEnter(object sender, MouseEventArgs e)
         {
-            SetPanCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            //260509 hbk Phase 20 — ternary expanded
+            if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
+            else                      SetPanCursor(Cursors.Arrow);
         }
 
         private void ViewerHost_MouseLeave(object sender, MouseEventArgs e)
@@ -1359,7 +1528,9 @@ namespace ReringProject.UI
         {
             if (CurrentImage == null)
             {
-                PointerInfoChanged?.Invoke(this, new MainViewerPointerChangedEventArgs(0, 0, null));
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var pointerInfoChangedHandlerNull = PointerInfoChanged;
+                if (pointerInfoChangedHandlerNull != null) pointerInfoChangedHandlerNull(this, new MainViewerPointerChangedEventArgs(0, 0, null));
                 return;
             }
 
@@ -1376,7 +1547,9 @@ namespace ReringProject.UI
             {
             }
 
-            PointerInfoChanged?.Invoke(this, new MainViewerPointerChangedEventArgs(x, y, grayValue));
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var pointerInfoChangedHandler = PointerInfoChanged;
+            if (pointerInfoChangedHandler != null) pointerInfoChangedHandler(this, new MainViewerPointerChangedEventArgs(x, y, grayValue));
         }
 
         private void ApplyManualMeasurePoint(Point imagePoint)
@@ -1449,6 +1622,18 @@ namespace ReringProject.UI
                 EditRoiMenuItem.IsChecked = _isEditMode;
                 DeleteRoiMenuItem.IsEnabled = hasSelectedRoi && !drawing; //260503 hbk Phase 17 hotfix#5 — Delete 는 선택 필요
             }
+
+            //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴: TeachDatum 모드 + 우클릭 위치에 Datum ROI 있을 때만 표시
+            if (RedrawRoiMenuItem != null) //260509 hbk Phase 20 (Phase 18 CO-04)
+            {
+                //260509 hbk Phase 20 — ternaries expanded; Phase 18 CO-04 의도 보존
+                RoiDefinition hitRoi;
+                if (IsTeachDatumMode) hitRoi = HitTestRoiAtPoint(_lastMouseImagePoint);
+                else                  hitRoi = null;
+                bool isDatumRoi = hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum.");
+                if (isDatumRoi) RedrawRoiMenuItem.Visibility = Visibility.Visible;
+                else            RedrawRoiMenuItem.Visibility = Visibility.Collapsed;
+            }
         }
 
         //260423 hbk Edit 모드 토글 헬퍼 (우클릭 종료 경로 + 메뉴 클릭 경로 공용)
@@ -1456,10 +1641,19 @@ namespace ReringProject.UI
         {
             if (_isEditMode == enter) return;
             _isEditMode = enter;
-            SetPanCursor(enter ? Cursors.Cross : (CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow));
+            //260509 hbk Phase 20 — nested ternary expanded
+            if (enter) {
+                SetPanCursor(Cursors.Cross);
+            } else if (CanPanCurrentImage()) {
+                SetPanCursor(Cursors.Hand);
+            } else {
+                SetPanCursor(Cursors.Arrow);
+            }
             UpdateContextMenuState();
             Render();
-            RoiEditModeChanged?.Invoke(this, enter);
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var roiEditModeChangedHandler = RoiEditModeChanged;
+            if (roiEditModeChangedHandler != null) roiEditModeChangedHandler(this, enter);
         }
 
         //260423 hbk ContextMenu: Edit ROI 토글
@@ -1476,7 +1670,21 @@ namespace ReringProject.UI
             if (string.IsNullOrEmpty(_selectedRoiId)) return;
             string targetId = _selectedRoiId;
             if (_isEditMode) SetEditMode(false);
-            RoiDeleteRequested?.Invoke(this, targetId);
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var roiDeleteRequestedHandler = RoiDeleteRequested;
+            if (roiDeleteRequestedHandler != null) roiDeleteRequestedHandler(this, targetId);
+        }
+
+        //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 클릭: hit-test 후 이벤트 발행 → MainView가 ClearDatumRoiFields 호출
+        private void RedrawRoiMenuItem_Click(object sender, RoutedEventArgs e) //260509 hbk Phase 20 (Phase 18 CO-04)
+        {
+            var hitRoi = HitTestRoiAtPoint(_lastMouseImagePoint);
+            if (hitRoi != null && hitRoi.Id != null && hitRoi.Id.StartsWith("Datum."))
+            {
+                //260509 hbk Phase 20 — D-02 race-safe handler temp
+                var roiRedrawRequestedHandler = RoiRedrawRequested;
+                if (roiRedrawRequestedHandler != null) roiRedrawRequestedHandler(hitRoi.Id);
+            }
         }
 
         private IEnumerable<EdgeInspectionOverlay> BuildTransientOverlays()
@@ -1666,7 +1874,9 @@ namespace ReringProject.UI
             UpdateContextMenuState();
             SetPanCursor(Cursors.Arrow);
             Mouse.OverrideCursor = null;
-            PointerInfoChanged?.Invoke(this, new MainViewerPointerChangedEventArgs(0, 0, null));
+            //260509 hbk Phase 20 — D-02 race-safe handler temp
+            var pointerInfoResetHandler = PointerInfoChanged;
+            if (pointerInfoResetHandler != null) pointerInfoResetHandler(this, new MainViewerPointerChangedEventArgs(0, 0, null));
         }
 
         private void OpenContextMenu()

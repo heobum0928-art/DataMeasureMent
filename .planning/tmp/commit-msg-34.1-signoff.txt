@@ -1,0 +1,24 @@
+docs(34.1): PARTIAL signed_off — 5/7 PASS + 6 hotfix + CO-34.1-01 carry-over
+
+UAT 결과 (2026-05-27, heobum0928-art):
+- Test 1 (msbuild) PASS / Test 2 (1-image 회귀) PASS / Test 3 (DualImage swap UX) PASS
+- Test 4 (INI 라운드트립) NOT-TESTED -- carry-over
+- Test 5 (가드 git diff) PASS / Test 6 (3자 동시 전환) PASS
+- Test 7 (SIMUL 의사 페어) PARTIAL -- ROI/swap PASS, 직각도 한계 → CO-34.1-01
+
+UAT 도중 6 hotfix 발견 + 종결 (commit 4c52724 ~ eb3c104):
+- CO-34.1-02 _selectedDatumForSwap + whitelist + vpath empty 분기
+- CO-34.1-03 frozen brush + SetCurrentValue
+- CO-34.1-04 Halcon HWindowControlWPF airspace 우회 (토글 자체 axis 색상)
+- CO-34.1-05 subset 토글 폐기 → 모든 ROI 항상 표시
+- CO-34.1-06 RenderDatumOverlay Vertical 슬롯 DualImage 갱신
+- CO-34.1-07 Load Image 모드별 분기 (가로 / 세로 경로)
+
+가드 4파일 변경 0 유지 (DatumConfig / VisionResponsePacket / InspectionSequence /
+Action_FAIMeasurement).
+
+학습: Phase 34 D-34-05 가 enum 추가 시 InspectionListView whitelist +
+HalconDisplayService.RenderDatumOverlay 두 site 의 분기 갱신 누락. 후속 phase
+plan-checker 체크리스트에 "신규 enum 사용 site grep 검증" 추가 권장.
+
+다음 = Phase 24 (검사 워크플로우 end-to-end). v1.1 잔여 = 24 → 25 → 27.

@@ -33,10 +33,15 @@ namespace ReringProject.Sequence {
         public int ShotCount => Shots.Count;
 
         // CRUD
-        public ShotConfig AddShot(string name = null) {
+        //260527 hbk Phase 35 — CO-33-06: per-sequence Shot ownership. seqName 파라미터 default "" 로 기존 호출 site 호환 (D-B1 폴백 적용 위해 ApplyShotDefaults 호출 유지)
+        public ShotConfig AddShot(string name = null, string seqName = "") {
             string shotName = name ?? $"SHOT_{Shots.Count}";
             var shot = new ShotConfig(_owner, shotName);
             //260413 hbk Phase 6: ShotConfig.Datum 제거 — Datum은 Fixture(Sequence) 레벨 소유 (D-04)
+            //260527 hbk Phase 35 — CO-33-06: seqName 비어있지 않을 때 OwnerSequenceName 명시 설정 (D-A1)
+            if (!string.IsNullOrEmpty(seqName)) {
+                shot.OwnerSequenceName = seqName;
+            }
             Shots.Add(shot);
             return shot;
         }
@@ -48,7 +53,20 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260510 hbk Phase 21: BUF-02 lifetime owner — recipe change + app shutdown 채널
+        /// <summary>
+        /// 모든 Shot 의 image buffer 를 Dispose 하고 Shot 리스트를 비운다.
+        /// Phase 21 BUF-02 lifetime 계약상 다음 채널에서 호출되어야 한다:
+        ///   (1) 레시피 변경 — Custom/SystemHandler.cs 의 OnRecipeChanged subscriber 가 호출
+        ///       (이 호출 채널이 Phase 21 의 신규 wire — 기존에는 Load() 내부에서만 호출됨).
+        ///   (2) 앱 종료 — SystemHandler.Release() 에서 Sequences.Dispose() 직전 호출
+        ///       (이 호출 채널이 Phase 21 의 신규 wire — 기존 Release() 에는 누락됨).
+        /// 또한 LoadPhase6Format() 도 INI 재로드 직전에 호출하므로 (1) subscriber 와 중복될 수
+        /// 있으나, ClearImage 가 null-safe 이므로 멱등 (idempotent) 호출 안전.
+        /// </summary>
         public void ClearShots() {
+            //260510 hbk Phase 21: BUF-02 dispose 입증 instrumentation — UAT 가 recipe load × N 회 후 이 로그 라인 카운트로 dispose 검증
+            Logging.PrintLog((int)ELogType.Trace, "[InspectionRecipeManager] ClearShots disposed {0} shot buffers", Shots.Count);
             foreach (var shot in Shots) {
                 shot.ClearImage();
             }
@@ -62,6 +80,52 @@ namespace ReringProject.Sequence {
                 return seq;
             } catch {
                 return null;
+            }
+        }
+
+        //260526 hbk Phase 33 — 시퀀스별 InspectionSequence 해석 — Side/Bottom DatumConfigs 라운드트립 (D-06 정밀 가드: Top 폴백 시 기존 동작 byte-identical)
+        private InspectionSequence ResolveFixtureSequence(ESequence seqId) {
+            try {
+                var seq = SystemHandler.Handle.Sequences[seqId] as InspectionSequence;
+                return seq;
+            } catch {
+                return null;
+            }
+        }
+
+        //260526 hbk Phase 33 — 시퀀스별 FIXTURE 저장 헬퍼 (SC#3, Side/Bottom 라운드트립)
+        private void SaveFixtureForSequence(IniFile saveFile, ESequence seqId, string sectionPrefix) {
+            var seq = ResolveFixtureSequence(seqId);
+            if (seq == null) {
+                saveFile[sectionPrefix]["DisplayName"] = "";
+                saveFile[sectionPrefix]["DatumCount"] = 0;
+                return;
+            }
+            saveFile[sectionPrefix]["DisplayName"] = seq.GetDisplayName() ?? "";
+            saveFile[sectionPrefix]["DatumCount"] = seq.DatumConfigs.Count;
+            for (int d = 0; d < seq.DatumConfigs.Count; d++) {
+                string datumSection = $"{sectionPrefix}_DATUM_{d}";
+                seq.DatumConfigs[d].Save(saveFile, datumSection);
+            }
+        }
+
+        //260526 hbk Phase 33 — 시퀀스별 FIXTURE 로드 헬퍼 (SC#3, Side/Bottom 라운드트립). 섹션 부재 시 빈 DatumConfigs 로 초기화 (기존 INI 회귀 0)
+        private void LoadFixtureForSequence(IniFile loadFile, ESequence seqId, string sectionPrefix) {
+            var seq = ResolveFixtureSequence(seqId);
+            if (seq == null) return;
+            seq.DatumConfigs.Clear();
+            if (!loadFile.ContainsSection(sectionPrefix)) {
+                // 기존 INI (Side/Bottom FIXTURE 섹션 부재) — 빈 DatumConfigs 유지 (회귀 0)
+                return;
+            }
+            seq.DisplayName = loadFile[sectionPrefix]["DisplayName"].ToString() ?? "";
+            int datumCount = loadFile[sectionPrefix]["DatumCount"].ToInt();
+            if (datumCount < 0) datumCount = 0;
+            for (int d = 0; d < datumCount; d++) {
+                string datumSection = $"{sectionPrefix}_DATUM_{d}";
+                if (!loadFile.ContainsSection(datumSection)) continue;
+                var datum = seq.AddDatum();
+                datum.Load(loadFile, datumSection);
             }
         }
 
@@ -109,6 +173,10 @@ namespace ReringProject.Sequence {
                 saveFile["FIXTURE"]["DisplayName"] = "";
                 saveFile["FIXTURE"]["DatumCount"] = 0;
             }
+
+            //260526 hbk Phase 33 — Side/Bottom InspectionSequence DatumConfigs 직렬화 (SC#3 INI 라운드트립)
+            SaveFixtureForSequence(saveFile, ESequence.Side, "FIXTURE_SIDE");
+            SaveFixtureForSequence(saveFile, ESequence.Bottom, "FIXTURE_BOTTOM");
 
             saveFile["SHOTS"]["Count"] = Shots.Count;
 
@@ -180,6 +248,10 @@ namespace ReringProject.Sequence {
                 }
             }
 
+            //260526 hbk Phase 33 — Side/Bottom InspectionSequence DatumConfigs 로드 (SC#3 라운드트립)
+            LoadFixtureForSequence(loadFile, ESequence.Side, "FIXTURE_SIDE");
+            LoadFixtureForSequence(loadFile, ESequence.Bottom, "FIXTURE_BOTTOM");
+
             // --- Shots ---
             if (!loadFile.ContainsSection("SHOTS")) return true;
             int shotCount = loadFile["SHOTS"]["Count"].ToInt();
@@ -203,6 +275,8 @@ namespace ReringProject.Sequence {
                 if (loadFile.ContainsSection(camSection)) {
                     shot.Load(loadFile, camSection);
                 }
+                //260527 hbk Phase 35 — CO-33-06: 기존 INI (OwnerSequenceName 키 부재) 호환 — 빈값 시 SEQ_TOP 폴백 (D-B1)
+                shot.ApplyShotDefaults();
 
                 for (int f = 0; f < faiCount; f++) {
                     string faiSection = $"SHOT_{s}_FAI_{f}";
@@ -229,6 +303,16 @@ namespace ReringProject.Sequence {
                         }
                         meas.Load(loadFile, measSection);
                         fai.Measurements.Add(meas);
+                    }
+                }
+
+                //260528 hbk Phase 38 #5 — D-10 마이그레이션: FAI별 산재 PixelResolution 을 카메라(Shot) 단일값으로 통일 (X=Y 정방형 픽셀 가정 D-09)
+                //260528 hbk Phase 38 WR-01 — CAM 섹션이 있어 shot.PixelResolution 이 실제 캘리브레이션 값일 때만 정규화. 부재(손상/수동편집 레시피) 시 per-FAI 값 보존 — 기본값 1.0 으로 분해능 clobber 회귀 방지
+                if (loadFile.ContainsSection(camSection)) {
+                    double camRes = shot.PixelResolution;
+                    foreach (FAIConfig fai2 in shot.FAIList) {
+                        fai2.PixelResolutionX = camRes;
+                        fai2.PixelResolutionY = camRes;
                     }
                 }
             }

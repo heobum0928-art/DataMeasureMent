@@ -25,3 +25,6 @@ x86/
 
 # Test and IDE artifacts
 TestResults/
+
+# Large test bitmaps (exceed GitHub 100MB limit)
+Cal_Image/DualImageTest/*.bmp

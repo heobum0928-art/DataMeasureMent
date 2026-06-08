@@ -1,0 +1,14 @@
+
+
+    **회귀 D — Phase 39.1 4항목 smoke test** (CONTEXT.md Anti-Goal #7 가드):
+    - (1) CircleDiameter 검사 — Bottom 시퀀스의 CircleDiameter Measurement 노드 1개 클릭 → PropertyGrid 에 파라미터 (Radius/Center) 정상 표시 확인 (1 클릭)
+    - (2) EdgeToLineDistance projection_pl — 기존 EdgeToLineDistance Measurement 1개 클릭 → SIMUL 검사 1회 실행 → 측정값 표시 (1 클릭 + 1 실행)
+    - (3) FAI 개별 검사 토글 — FAI 노드 우클릭 메뉴 또는 토글 버튼 1회 클릭 → 개별 검사 동작 확인 (1 클릭)
+    - (4) Datum CircleTwoHorizontal Edit 모드 — Side 시퀀스의 CircleTwoHorizontal Datum 1개 선택 → Edit 모드 진입 1회 → ROI 표시 정상 (1 클릭)
+    - Pass: 4 항목 ALL OK (각 1 클릭/표시 확인 정도, 최소 부담)
+
+    **회귀 E — Phase 39.2 D-G2~G4 smoke test** (CONTEXT.md Anti-Goal #7 가드):
+    - (1) I10 close-point variant — Bottom 시퀀스의 I10 close-point variant Measurement 1개로 SIMUL 검사 1 시퀀스 실행 → 측정값 정상 (1 실행)
+    - (2) Tree Move ▲▼ 버튼 — InspectionListView 트리에서 임의 노드 선택 → Move ▲ 또는 Move ▼ 버튼 1회 클릭 → 노드 순서 변경 동작 확인 (1 클릭)
+    - (3) Tree 18 Geometry 아이콘 — InspectionListView 트리 18 Geometry 아이콘 시각 확인 (각 Measurement 타입별 아이콘이 정상 표시되는지 1 회 시각 확인)
+    - Pass: 3 항목 ALL OK (smoke 수준, 최소 부담)

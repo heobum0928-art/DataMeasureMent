@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:dmv="clr-namespace:ReringProject.UI"
+             xmlns:seq="clr-namespace:ReringProject.Sequence"
              mc:Ignorable="d" Loaded="MainView_Loaded" d:DesignWidth="1200" d:DesignHeight="800">
     <UserControl.Resources>
         <!-- Phase 2: Shared ToggleButton style for ROI toolbar buttons (D-09, D-10, UI-SPEC toolbar) -->
@@ -48,6 +49,85 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!--260527 hbk Phase 34.1 CO-34.1-04 hotfix — 가로축 토글 전용 스타일 (활성 시 Material Blue 700 #1976D2).
+             RoiToggleButtonStyle 의 generic blue (#2563EB) 와 시각적으로 거의 동일해 사용자가 활성 축 구분 어려움 → 축 색상 강제.-->
+        <Style x:Key="SwapHorizontalToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource RoiToggleButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1976D2"/> <!--260527 hbk Phase 34.1 D-34.1-14 — 가로축 Blue 700-->
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#0D47A1"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A4A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#1976D2"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF444444"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--260527 hbk Phase 34.1 CO-34.1-04 hotfix — 세로축 토글 전용 스타일 (활성 시 Material Orange 800 #F57C00).-->
+        <Style x:Key="SwapVerticalToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource RoiToggleButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F57C00"/> <!--260527 hbk Phase 34.1 D-34.1-14 — 세로축 Orange 800-->
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#E65100"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A4A"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#F57C00"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="#FF666666"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF444444"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -73,9 +153,11 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260601 hbk Phase 40.1 #4 — Polygon ROI 생성 진입점 숨김 (RoiShape.Polygon enum + 렌더 분기 보존, 데이터 호환)-->
                     <ToggleButton x:Name="btn_polygonRoi" Content="Polygon ROI"
                         Click="PolygonRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
+                        Visibility="Collapsed"
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
@@ -94,6 +176,26 @@
                         IsEnabled="False"
                         MinWidth="100" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
+
+                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.
+                         260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapHorizontalToggleStyle 로 교체 (활성 시 #1976D2 Blue 700).-->
+                    <ToggleButton x:Name="btn_swapHorizontal" Content="👁 가로"
+                        Click="BtnSwapHorizontal_Click"
+                        Style="{StaticResource SwapHorizontalToggleStyle}"
+                        IsEnabled="True" Visibility="Collapsed"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
+                        ToolTip="가로축 이미지로 전환 (HorizontalA + HorizontalB ROI 표시)"/>
+
+                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (세로축).
+                         260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapVerticalToggleStyle 로 교체 (활성 시 #F57C00 Orange 800).-->
+                    <ToggleButton x:Name="btn_swapVertical" Content="👁 세로"
+                        Click="BtnSwapVertical_Click"
+                        Style="{StaticResource SwapVerticalToggleStyle}"
+                        IsEnabled="True" Visibility="Collapsed"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
+                        ToolTip="세로축 이미지로 전환 (Vertical ROI 표시)"/>
 
                     <!--260424 hbk Phase 13 D-05 — 런타임 TryFindDatum 테스트 버튼 (Datum teach 완료 후 활성화)-->
                     <Button x:Name="btn_testFindDatum" Content="Test Find"
@@ -136,6 +238,17 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+
+                    <!--260601 hbk Phase 40.1 #2 — overlay On/Off 토글 (기본 ON). 측정 overlay / Datum 라인 독립.-->
+                    <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,4"/>
+                    <CheckBox x:Name="chk_overlayMeasure" Content="측정 overlay"
+                        IsChecked="True"
+                        Checked="Chk_overlayMeasure_Changed" Unchecked="Chk_overlayMeasure_Changed"
+                        Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="12"/>
+                    <CheckBox x:Name="chk_overlayDatum" Content="Datum 라인"
+                        IsChecked="True"
+                        Checked="Chk_overlayDatum_Changed" Unchecked="Chk_overlayDatum_Changed"
+                        Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
                 </StackPanel>
                 <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"
@@ -175,21 +288,91 @@
                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                    IsHitTestVisible="False"/>
 
+            <!--260527 hbk Phase 34.1 D-34.1-03/14 — 현재 표시 이미지 배지 (캔버스 우상단, DualImage 변형일 때만 Visible).
+                 색상/텍스트는 code-behind UpdateImageSourceBadge(EImageSource) 에서 setting.
+                 가로축 = #1976D2 Material Blue 700 / 세로축 = #F57C00 Material Orange 800 / 14px / 마진 우상단 12px.-->
+            <Border x:Name="border_imageSourceBadge"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,12,12,0" Padding="10,4"
+                    CornerRadius="4" Background="#1976D2"
+                    Visibility="Collapsed" IsHitTestVisible="False">
+                <TextBlock x:Name="txt_imageSourceBadge"
+                           Text="가로축" Foreground="White"
+                           FontSize="14" FontWeight="SemiBold"/>
+            </Border>
+
+            <!--260528 hbk Phase 36 D-36-06 — DualImage 검출 각도 PASS/FAIL 색상 배지 (PropertyGrid 외부 별도 라벨, 캔버스 우상단).
+                 가드 4파일 변경 0 정합. D-36-06 갱신 (2026-05-28) — 옵션 C (외부 Border) 채택.
+                 AngleValidationStatus transient 필드 바인딩 → Trigger 로 색상/텍스트 분기. None=숨김 / Pass=green "검증 OK" / Fail=red "검증 NG".
+                 DataContext = 현재 선택된 DatumConfig (halconViewer 또는 InspectionListView SelectedItem chain). -->
+            <Border x:Name="border_angleValidationBadge"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,52,12,0"
+                    Padding="10,4"
+                    CornerRadius="4"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <!--260528 hbk Phase 36 D-36-06 — Pass: 연두 배경 + "각도 검증 OK"-->
+                            <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Pass}">
+                                <Setter Property="Background" Value="#43A047"/>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <!--260528 hbk Phase 36 D-36-06 — Fail: 연빨 배경 + "각도 검증 NG"-->
+                            <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Fail}">
+                                <Setter Property="Background" Value="#E53935"/>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <!--None 또는 unset: Visibility Collapsed (default)-->
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Foreground="White" FontWeight="SemiBold" FontSize="14">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value=""/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Pass}">
+                                    <Setter Property="Text" Value="각도 검증 OK"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Fail}">
+                                    <Setter Property="Text" Value="각도 검증 NG"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Border>
+
             <Border VerticalAlignment="Bottom" Background="#111827" Padding="12,6">
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!--260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 행 추가-->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <!--260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 라벨 (Datum 노드 선택/티칭 성공/ROI 이동 시 갱신)-->
-                    <Label x:Name="label_datumRefCoords" Grid.Column="0" Visibility="Collapsed"
+                    <Label x:Name="label_datumRefCoords" Grid.Row="0" Grid.Column="0" Visibility="Collapsed"
                            FontSize="13" Foreground="#FFCBD5E0"
                            HorizontalContentAlignment="Left" HorizontalAlignment="Left"
                            VerticalContentAlignment="Center"/>
-                    <Label x:Name="label_pos" Grid.Column="1"
+                    <Label x:Name="label_pos" Grid.Row="0" Grid.Column="1"
                            FontSize="16" Foreground="LightGray"
                            HorizontalContentAlignment="Right" HorizontalAlignment="Right"
                            Content="X:0.0, Y:0.0, G:-"/>
+                    <!--260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 (티칭/검사 이미지 경로 표시)-->
+                    <TextBlock x:Name="txt_imageSourceLabel" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                               Visibility="Collapsed"
+                               FontSize="11" Foreground="#FF88A0C0"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" Margin="0,2,0,0"/>
                 </Grid>
             </Border>
         </Grid>

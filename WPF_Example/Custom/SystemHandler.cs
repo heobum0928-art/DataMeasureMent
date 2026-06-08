@@ -1,4 +1,4 @@
-﻿using ReringProject.Setting;
+using ReringProject.Setting;
 using ReringProject.Network;
 using ReringProject.Utility;
 using System;
@@ -17,7 +17,7 @@ namespace ReringProject {
             //send test response message
             for (int i = 0; i < Sequences.Count; i++) {
                 TestResultPacket response = Sequences[i].PopResponse();
-                if (response == null) continue; 
+                if (response == null) continue;
                 if (!Server.SendPacket(response.Target, response)) {
                     //occurs error
                 }
@@ -56,7 +56,7 @@ namespace ReringProject {
                             responsePacket = SendTestError(packet.AsTest());
                         }
                         break;
-                  
+
                     case VisionRequestType.Unknown:
                         //occurs error
                         break;
@@ -164,7 +164,7 @@ namespace ReringProject {
             {
                 resultPacket.Result = EVisionResultType.NG;
             }
-            //select 
+            //select
             else if ((Setting.CurrentRecipeName != recipeName) && LoadRecipe(recipeName))
             {
                 resultPacket.Result = EVisionResultType.OK;
@@ -188,7 +188,7 @@ namespace ReringProject {
             resultPacket.Target = packet.Sender;
             resultPacket.Site = packet.Site;
             resultPacket.MaxCount = packet.MaxCount;
-            
+
             //sorting
             if (packet.Option == 1) {
                 Recipes.SortingByCreateDate();
@@ -243,7 +243,7 @@ namespace ReringProject {
         private TestResultPacket SendTestError(TestPacket packet) {
             TestResultPacket resultPacket = new TestResultPacket();
             TestPacket sendPacket = packet.AsTest();
-            
+
             resultPacket.Target = sendPacket.Sender;
             resultPacket.Site = sendPacket.Site;
             resultPacket.InspectionType = sendPacket.TestType;
@@ -252,7 +252,25 @@ namespace ReringProject {
             return resultPacket;
         }
 
+        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)
+        private void WireBufferLifecycle() {
+            //260510 hbk Phase 21: OnRecipeChanged subscriber 등록 — Sequences 가 SequenceHandler.Handle 로 초기화된 후 호출되어야 함
+            Sequences.OnRecipeChanged += OnRecipeChanged_FlushBuffers;
+        }
+
+        //260510 hbk Phase 21: BUF-02 channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호 — D-04 Claude's Discretion)
+        internal void UnwireBufferLifecycle() {
+            //260510 hbk Phase 21: 멱등 — 미등록 상태에서도 안전 (delegate -= null 무동작)
+            Sequences.OnRecipeChanged -= OnRecipeChanged_FlushBuffers;
+        }
+
+        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change 훅 (wire/unwire lifecycle 유지용)
+        private void OnRecipeChanged_FlushBuffers(object sender, RecipeChangedEventArgs args) {
+            //260511 hbk Phase 21 hotfix: ClearShots() 제거 — LoadRecipe 완료 후 OnRecipeChanged 발화 시
+            //  이 훅이 방금 로드된 Shots 컬렉션을 전부 삭제하는 silent data-loss 유발.
+            //  LoadPhase6Format 내부에서 Shots 재구성을 직접 수행하므로 여기서 ClearShots 호출 불필요.
+            //  app shutdown 시 buffer dispose 는 Release() 의 channel #3 (SystemHandler.cs:176) 이 담당.
+        }
 
     }
 }
-

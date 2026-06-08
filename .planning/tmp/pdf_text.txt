@@ -1,0 +1,6398 @@
+PAGES: 122
+
+===== PAGE 1 (36 chars) =====
+MSOP┃Rapid City A8.1 Z Stopper MSOP
+
+
+===== PAGE 2 (209 chars) =====
+A8.1 Z Stopper┃MSOP : Rev history
+NO
+Date
+Section
+Revision History
+Writer
+Confirmation
+MSOP Revision
+Drawing Revision
+1
+2025.12.04
+/
+A
+2
+- Initial release
+ES Lee
+2
+2026.03.03
+/
+B
+4
+- Relieved tolerance
+ES Lee
+
+
+===== PAGE 3 (1234 chars) =====
+A8.1 Z Stopper┃MSOP : Template Purpose
+Measurement Equipment
+•
+Specify the equipment type, precision, light 
+source to mitigate the measurement variance 
+from equipments
+•
+Benefit for correlation and FA afterwords
+•
+Access the equipment difference among 
+vendors to have initial read of variance impact 
+risk 
+Fixture
+•
+Align the fixture design across sites to be 
+identical, in order to minimize the 
+measurement variance from fixture positioning 
+or pressing
+•
+Benefit for correlation study among sites
+•
+Early read of fixture difference with better 
+choice to reflect design purpose 
+Algorithm
+•
+Define the datum setting up with same 
+establishment to minimize variance 
+•
+Specify the measurement metrology to capture 
+exactly same points through defined X/Y 
+coordinates
+•
+Perform exactly same calculation method to 
+avoid any error or difference 
+MSOP Standardization and Alignment
+Data Output
+•
+All the GD&T dimensions should out put the dx 
+and dy.  
+•
+All the profile and parallelism dimensions 
+should out put the reference dimension. 
+•
+All the surface points should use laser and X 
+540 magnification.
+•
+All the datum line should use 2 points to 
+create.
+•
+All the point should use back light if the 
+condition is suitable
+
+
+===== PAGE 4 (1380 chars) =====
+A8.1 Z Stopper┃MSOP : Dimension Summary
+Number
+SPC
+FAI
+Spec
+Description
+Measurement View
+Part State
+Measurement Instrume
+nt
+GR&R
+Correlation
+Order of operations
+SPC letter (leave blank if N/A)
+FAI number
+Nominal dimension +/- tolerance
+Geometric characteristic
+Top/Bottom/Side
+Free or Constrained
+Measurement equipment for CPK
+GRR Percent score
+Correlation with downstream
+1
+POR
+AA
+A1
+20.681 ±0.030
+Distance
+Top
+Free
+OMM
+2
+POR
+-
+A2
+19.771 ±0.050
+Distance
+Top
+Free
+OMM
+3
+POR
+-
+A3
+2x18.500 +0.050/-0.020
+Distance
+Top
+Free
+OMM
+4
+POR
+-
+A4
+2x2.180 +0.020/-0.050
+Distance
+Top
+Free
+OMM
+5
+POR
+-
+A5
+1.079 ±0.050
+Distance
+Top
+Free
+OMM
+6
+POR
+-
+A6
+0.910 ±0.050
+Distance
+Top
+Free
+OMM
+7
+POR
+-
+A7
+10.175 ±0.050
+Distance
+Top
+Free
+OMM
+8
+POR
+-
+A8
+0.532 ±0.050
+Distance
+Top
+Free
+OMM
+9
+POR
+-
+A9
+0.834 ±0.050
+Distance
+Top
+Free
+OMM
+10
+POR
+-
+A10
+0.979 ±0.020
+Distance
+Top
+Free
+OMM
+11
+POR
+-
+A11
+3.395 ±0.050
+Distance
+Top
+Free
+OMM
+12
+POR
+-
+A12
+3.476 ±0.050
+Distance
+Top
+Free
+OMM
+13
+POR
+-
+A13
+3.850 ±0.050
+Distance
+Top
+Free
+OMM
+14
+POR
+-
+A14
+16.831 ±0.050
+Distance
+Top
+Free
+OMM
+15
+POR
+-
+A15
+17.204 ±0.050
+Distance
+Top
+Free
+OMM
+16
+POR
+-
+A16
+17.286 ±0.050
+Distance
+Top
+Free
+OMM
+17
+POR
+-
+A17
+19.847 ±0.050
+Distance
+Top
+Free
+OMM
+18
+POR
+-
+A18
+19.947 ±0.030
+Distance
+Top
+Free
+OMM
+19
+POR
+-
+A19
+0.401 +0.050/-0.020
+Distance
+Top
+Free
+OMM
+20
+POR
+-
+A20
+9.980 ±0.050
+Distance
+Top
+Free
+OMM
+Will be 
+update
+O
+O
+O
+O
+O
+O
+O
+
+
+===== PAGE 5 (1515 chars) =====
+A8.1 Z Stopper┃MSOP : Dimension Summary
+Number
+SPC
+FAI
+Spec
+Description
+Measurement View
+Part State
+Measurement Instrume
+nt
+GR&R
+Correlation
+Order of operations
+SPC letter (leave blank if N/A)
+FAI number
+Nominal dimension +/- tolerance
+Geometric characteristic
+Top/Bottom/Side
+Free or Constrained
+Measurement equipment for CPK
+GRR Percent score
+Correlation with downstream
+21
+POR
+-
+A21
+21.017 +0.050/-0.020
+Distance
+Top
+Free
+OMM
+22
+POR
+-
+A22
+24.330 ±0.050
+Distance
+Top
+Free
+OMM
+23
+POR
+-
+A23
+25.980 +0.020/-0.050
+Distance
+Top
+Free
+OMM
+24
+POR
+-
+B1
+2x20.347 ±0.030
+Distance
+Bottom
+Free
+OMM
+25
+POR
+-
+B2
+20.102 ±0.030
+Distance
+Bottom
+Free
+OMM
+26
+POR
+-
+B3
+2x0.579 ±0.030
+Distance
+Bottom
+Free
+OMM
+27
+POR
+-
+B4
+0.334 ±0.030
+Distance
+Bottom
+Free
+OMM
+28
+POR
+-
+C1
+2x2.750 +0.010/-0.030
+Distance
+Top
+Free
+OMM
+29
+POR
+-
+C2
+2x2.350 +0.030/-0.010
+Distance
+Top
+Free
+OMM
+30
+POR
+-
+C3
+2x1.494 +0.010/-0.030
+Distance
+Top
+Free
+OMM
+31
+POR
+-
+C4
+2x1.094 +0.030/-0.010
+Distance
+Top
+Free
+OMM
+32
+POR
+-
+C5
+2x10.301 +0.030/-0.010
+Distance
+Top
+Free
+OMM
+33
+POR
+-
+C6
+2x10.701 +0.010/-0.030
+Distance
+Top
+Free
+OMM
+34
+POR
+-
+C7
+2x11.557 +0.030/-0.010
+Distance
+Top
+Free
+OMM
+35
+POR
+-
+C8
+2x11.957 +0.010/-0.030
+Distance
+Top
+Free
+OMM
+36
+POR
+-
+C9
+2x24.072 +0.030/-0.010
+Distance
+Top
+Free
+OMM
+37
+POR
+-
+C10
+2x24.472 +0.010/-0.030
+Distance
+Top
+Free
+OMM
+38
+POR
+-
+C11
+2x25.328 +0.030/-0.010
+Distance
+Top
+Free
+OMM
+39
+POR
+-
+C12
+2x25.728 +0.010/-0.030
+Distance
+Top
+Free
+OMM
+40
+POR
+CA
+C13
+6x2.050 ±0.030
+Distance
+Side2
+Constrained
+OMM
+Will be 
+update
+O
+O
+O
+O
+O
+O
+O
+O
+
+
+===== PAGE 6 (1462 chars) =====
+A8.1 Z Stopper┃MSOP : Dimension Summary
+Number
+SPC
+FAI
+Spec
+Description
+Measurement View
+Part State
+Measurement Instrume
+nt
+GR&R
+Correlation
+Order of operations
+SPC letter (leave blank if N/A)
+FAI number
+Nominal dimension +/- tolerance
+Geometric characteristic
+Top/Bottom/Side
+Free or Constrained
+Measurement equipment for CPK
+GRR Percent score
+Correlation with downstream
+41
+POR
+-
+C14
+6x2.500 ±0.050
+Distance
+Side2
+Constrained
+OMM
+42
+POR
+-
+D1
+6x90.0˚ +0.5˚/-1.5˚
+Angle
+Side1
+Constrained
+OMM
+43
+POR
+EA
+E1
+Φ0.600 ±0.020
+Diameter
+Bottom
+Free
+OMM
+44
+POR
+EB
+E2
+41.36˚ ± 1.00˚
+Angle
+Bottom
+Free
+OMM
+45
+POR
+EC
+E3
+0.600 ±0.030
+Distance
+Bottom
+Free
+OMM
+46
+POR
+ED
+E4
+26.580 ±0.020
+Distance
+Bottom
+Free
+OMM
+47
+POR
+EE
+E5
+30.578 ±0.050
+Distance
+Bottom
+Free
+OMM
+48
+POR
+EF
+E6
+1.945 ±0.030
+Distance
+Bottom
+Free
+OMM
+49
+POR
+EG
+E7
+18.736 ±0.030
+Distance
+Bottom
+Free
+OMM
+50
+POR
+EH
+E8
+20.201 ±0.020
+Distance
+Bottom
+Free
+OMM
+51
+POR
+EI
+E9
+22.285 ±0.030
+Distance
+Bottom
+Free
+OMM
+52
+POR
+EJ
+E10
+0.580 ±0.030
+Distance
+Bottom
+Free
+OMM
+53
+POR
+FA
+F1
+2x5.935 ±0.030
+Distance
+Bottom
+Free
+OMM
+54
+POR
+-
+F2
+2x5.511 ±0.030
+Distance
+Bottom
+Free
+OMM
+55
+POR
+-
+F3
+0.100 ±0.030
+Distance
+Bottom
+Free
+OMM
+56
+POR
+-
+F4
+2x45.0˚ ±1.5˚
+Angle
+Bottom
+Free
+OMM
+57
+POR
+FC
+F5
+1.333 ±0.030
+Distance
+Bottom
+Free
+OMM
+58
+POR
+-
+F6
+6x0.516 ±0.050
+Distance
+Top
+Free
+OMM
+59
+POR
+-
+F7
+2x2.700 ±0.030
+Distance
+Bottom
+Free
+OMM
+60
+POR
+FD
+F8
+2x0.100 ±0.050
+Distance
+Bottom
+Free
+OMM
+Will be 
+update
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+
+
+===== PAGE 7 (1399 chars) =====
+A8.1 Z Stopper┃MSOP : Dimension Summary
+Number
+SPC
+FAI
+Spec
+Description
+Measurement View
+Part State
+Measurement Instrume
+nt
+GR&R
+Correlation
+Order of operations
+SPC letter (leave blank if N/A)
+FAI number
+Nominal dimension +/- tolerance
+Geometric characteristic
+Top/Bottom/Side
+Free or Constrained
+Measurement equipment for CPK
+GRR Percent score
+Correlation with downstream
+61
+POR
+-
+F9
+2x1.442 ±0.100
+Distance
+Top
+Free
+OMM
+62
+POR
+-
+G1
+22.661 +0.010/-0.050
+Distance
+Bottom
+Free
+OMM
+63
+POR
+-
+G2
+22.162 ±0.030
+Distance
+Bottom
+Free
+OMM
+64
+POR
+-
+G5
+13.332 ±0.030
+Distance
+Bottom
+Free
+OMM
+65
+POR
+-
+G6
+12.833 +0.050/-0.010
+Distance
+Bottom
+Free
+OMM
+66
+POR
+-
+G7
+10.633 +0.050/-0.010
+Distance
+Bottom
+Free
+OMM
+67
+POR
+GA
+G8
+11.132 ±0.020
+Distance
+Bottom
+Free
+OMM
+68
+POR
+GB
+G11
+24.362 ±0.020
+Distance
+Bottom
+Free
+OMM
+69
+POR
+-
+G12
+24.861 +0.010/-0.050
+Distance
+Bottom
+Free
+OMM
+70
+POR
+-
+H1
+0.200 ±0.030
+Thickness
+-
+Free
+Spline Micrometer
+71
+POR
+-
+H2
+2x0.050 ±0.030
+Distance
+Bottom
+Free
+OMM
+72
+POR
+HA
+H3
+4x1.861 ±0.030
+Distance
+Bottom
+Free
+OMM
+73
+H4
+74
+POR
+-
+H5
+90.0˚ ±1.5˚
+Angle
+Side2
+Constrained
+OMM
+75
+POR
+IA
+I1
+Max 0.050
+Flatness
+Bottom
+Free
+OMM
+76
+I3
+77
+POR
+IB
+I5
+17.567 ±0.030
+Distance
+Bottom
+Free
+OMM
+78
+POR
+IC
+I6
+17.267 ±0.030
+Distance
+Bottom
+Free
+OMM
+79
+POR
+ID
+I7
+3.414 ±0.030
+Distance
+Bottom
+Free
+OMM
+80
+POR
+IE
+I8
+3.114 ±0.030
+Distance
+Bottom
+Free
+OMM
+Will be 
+update
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+
+
+===== PAGE 8 (530 chars) =====
+A8.1 Z Stopper┃MSOP : Dimension Summary
+Number
+SPC
+FAI
+Spec
+Description
+Measurement View
+Part State
+Measurement Instrume
+nt
+GR&R
+Correlation
+Order of operations
+SPC letter (leave blank if N/A)
+FAI number
+Nominal dimension +/- tolerance
+Geometric characteristic
+Top/Bottom/Side
+Free or Constrained
+Measurement equipment for CPK
+GRR Percent score
+Correlation with downstream
+81
+POR
+-
+I9
+2x5.053 +0.050/-0.000
+Distance
+Top
+Free
+OMM
+82
+POR
+-
+I10
+2x0.741 +0.000/-0.050
+Distance
+Top
+Free
+OMM
+I11
+I12
+I13
+I14
+Will be 
+update
+O
+O
+O
+O
+O
+O
+
+
+===== PAGE 9 (1950 chars) =====
+A8.1 Z Stopper┃MSOP : Measurement Equipment
+OMM
+Brand
+Nikon NEXIV
+Model (POR)
+VMZ-S4540 type2, VMZ-S3020 type2 
+Magnification
+36x~540X (Type 2)
+Measuring Stroke
+450x400x200mm, 300x200x250mm
+Measurement Accuracy
+X/Y:1.2+4L/1000um, Z :1.2+L/1000um
+CMM
+Brand
+Werth
+Mitutoyo
+Probe specifications
+Φ0.1 mm (Sub Φ0.3 mm)
+Φ0.3 mm (Sub Φ0.1 mm)
+Model (POR)
+UA 400 / HA 400
+Hyper umap vision system 302 type2
+Measuring Stroke
+400 X 400 X 250mm
+200 X 200 X 250mm
+Measurement Accuracy
+1) Camera : Unidirectional, Sensor 20xTO
+   - E1 = (0.15+L/900) µm
+   - E2 = (0.25+L/600) µm
+   - E3 = (0.75+L/600) µm
+ 2) Camera : Bidirectional, Sensor 10xTO
+   - E1 = (0.25+L/600) µm
+   - E2 = (0.75+L/600) µm
+   - E3 = (0.95+L/600) µm
+1) Vision
+   - X/Y=0.8+2L/1000μm
+   - Z=1.5+2L/1000μm
+ 2) UMAP
+   - 1.7+3L/1000μm
+Roughness meter
+Brand
+ZYGO
+Model
+ZEGAGE OMP-0619
+Magnification
+1x ~ 50x
+Vertical scan range
+Manual X/Y with 50 x 100 mm X/Y 
+travel—OR, Motorized X/Y with 
+100 x 100 mm X/Y travel 
+Repeatability of RMS
+0.1 nm
+Zygo - Zegage OMP-0619
+Hardness Tester
+Measurement 
+Equipment
+Hardness Tester
+Manufacturer
+Shidaizhifeng in Beijing
+Model
+TMVS-1+MV-TEST1000
+Range
+HV can be converted to 
+HRA/B/C/15N/30N/45N
+Repeatability of RMS
+0.1 nm
+light source
+Halogen lamp 12V, 500W
+Eyepiece magnification
+10X
+Objective magnification
+10X,  40X
+XY test bench size
+100× 100
+XY travel distance
+25× 25
+Working temperature
+Room temperature at 20 ±  5 ℃
+Humidity
+Indoor relative humidity is not more than 65%,
+and there is no corrosive gas around
+XY Resolution
+0.01mm
+TMVS-1+MV-TEST1000
+Note
+1.  Define the measurement equipment/setting/fixture into detail
+2. Locate the sample through location pin/fixture with stable placement
+•
+ 3 points support for rigid part in free state
+•
+ Press or constraint the part if necessary to get stable placement
+•
+ Try to simulate the system assembly of part state during placement
+•
+ Placement must aligned across each site to avoid any variance
+
+
+===== PAGE 10 (23 chars) =====
+A8.1 Z Stopper┃Drawing
+
+
+===== PAGE 11 (23 chars) =====
+A8.1 Z Stopper┃Drawing
+
+
+===== PAGE 12 (46 chars) =====
+A8.1 Z Stopper┃Drawing : Top view – Fixture 1
+
+
+===== PAGE 13 (49 chars) =====
+A8.1 Z Stopper┃Drawing : Bottom view – Fixture 2
+
+
+===== PAGE 14 (49 chars) =====
+A8.1 Z Stopper┃Drawing : Side-1 view – Fixture 3
+
+
+===== PAGE 15 (49 chars) =====
+A8.1 Z Stopper┃Drawing : Side-2 view – Fixture 4
+
+
+===== PAGE 16 (295 chars) =====
+A8.1 Z Stopper┃MSOP : Fixture Positioning
+FAI / SPC
+Fixture Positioning
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature
+N/A
+Measurement
+Procedure
+1. Place the part on the attachment plane.
+Datum
+N/A
+Measuring 
+Equipment
+N/A
+Fixture without part
+Fixture with part
+Attachment plane
+(4X1 Array)
+
+
+===== PAGE 17 (298 chars) =====
+A8.1 Z Stopper┃MSOP : Fixture Positioning
+FAI / SPC
+Fixture Positioning
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature
+N/A
+Measurement
+Procedure
+1. Place the part on the attachment plane.
+Datum
+N/A
+Measuring 
+Equipment
+N/A
+Fixture without part
+Fixture with part
+Attachment plane
+(4X1 Array)
+
+
+===== PAGE 18 (347 chars) =====
+A8.1 Z Stopper┃MSOP : Fixture Positioning
+FAI / SPC
+Fixture Positioning
+Fixture
+Fixture #3(Side 1,2 jig)
+Geometric Feature
+N/A
+Measurement
+Procedure
+1. Place the part on the attachment plane.
+Datum
+N/A
+Measuring 
+Equipment
+N/A
+Fixture without part
+Fixture with part
+(4X1 Array)
+Fixture surface
+With cover
+Without cover
+Side 2
+Side 1
+Side 1
+Side 2
+
+
+===== PAGE 19 (347 chars) =====
+A8.1 Z Stopper┃MSOP : Fixture Positioning
+FAI / SPC
+Fixture Positioning
+Fixture
+Fixture #4(Side 3,4 jig)
+Geometric Feature
+N/A
+Measurement
+Procedure
+1. Place the part on the attachment plane.
+Datum
+N/A
+Measuring 
+Equipment
+N/A
+Fixture without part
+Fixture with part
+(4X1 Array)
+Fixture surface
+With cover
+Without cover
+Side 4
+Side 3
+Side 3
+Side 4
+
+
+===== PAGE 20 (286 chars) =====
+A8.1 Z Stopper┃MSOP : Measurement view
+Up face
+(@Fixture #4-1, Side4 view jig)
+Top face
+(@Fixture #1, Top view jig)
+Bottom face
+(@Fixture #2, Bottom view jig)
+Right face
+(@Fixture #3-2, Side1 view jig)
+Left face
+(@Fixture #3-1, Side1 view jig)
+Down face
+(@Fixture #4-2, Side4 view jig)
+
+
+===== PAGE 21 (319 chars) =====
+A8.1 Z Stopper┃MSOP : Pre-Datum Setup
+FAI / SPC
+Pre-Datum
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 1 (x40)
+Drawing callout
+Measurement details
+P1
+L2
+L1
+N1
+P2
+P3
+X Axis
+Y axis
+P2
+P1
+P3
+
+
+===== PAGE 22 (612 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum A
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Measure points a1-a6 to construct plane, PlaneA
+2. Set Plane A to face correction Z zero position, Set plane A as Datum A
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+a1
+24.11
+14.08
+2
+a2
+24.11
+6.60
+3
+a3
+15.94
+0.52
+4
+a4
+6.60
+-0.52
+5
+a5
+-1.30
+2.53
+6
+a6
+-1.30
+18.17
+L2
+L1
+X Axis
+Datum A
+(Plane A)
+a1
+a5
+a4
+a3
+a6
+Y axis
+N1
+a2
+
+
+===== PAGE 23 (772 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup 
+FAI / SPC
+Datum B,C
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Take points  A1, A2 as shown in the figure 
+2. Construct L3 line through A1&A2, L3 is datum B(with line L3 as alignment X axis)
+3. Capture B1 using OMM circle tool (B1 is centerpoint of hole)
+4. Draw a line L4 that passes through B1 and is perpendicular to L3. L4 is Datum C
+5. Designate the intersection of L3 & L4 as N2. N2 as the coordinate origin(0,0)
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+A2
+L3
+L4
+N2
+A1
+B1
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+A1
+1.32
+0
+2
+A2
+22.26
+0
+3
+B1
+0
+20.20
+A2
+A1
+B1
+
+
+===== PAGE 24 (313 chars) =====
+A8.1 Z Stopper┃MSOP : Pre-Datum Setup
+FAI / SPC
+Pre-Datum
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 1 (x40)
+Drawing callout
+Measurement details
+L5
+L6
+N3
+P1
+Y Axis
+X axis
+P2
+P3
+
+
+===== PAGE 25 (769 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum A
+Fixture
+Fixture #1(Bottom view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Measure points b1-b6 to construct plane Plane1
+2. Set Plane B to face correction Z zero position, Set plane B as Datum A
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L5
+L6
+N3
+Y Axis
+X axis
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+a1
+-25.780
+19.300
+2
+a2
+-20.980
+19.000
+3
+a3
+-14.580
+19.000
+4
+a4
+-9.680
+19.450
+5
+a5
+-2.100
+20.100
+6
+a6
+1.820
+19.050
+7
+a7
+-25.780
+1.380
+8
+a8
+-21.480
+2.130
+9
+a9
+-14.080
+2.130
+10
+a10
+-9.280
+1.100
+11
+a11
+-2.100
+0.600
+12
+a12
+1.820
+1.600
+a1
+a2
+a6
+a7
+a10
+a12
+a3
+a4
+a5
+a8
+a9
+a11
+Datum A
+(Plane B)
+
+
+===== PAGE 26 (773 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum B,C
+Fixture
+Fixture #1(Bottom view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Take points  A1, A2 as shown in the figure
+2. Construct L7 line through A1&A2, L7 is datum B(with line L5 as alignment X axis)
+3. Capture B1 using OMM circle tool (B1 is centerpoint of hole)
+4. Draw a line L8 that passes through B1 and is perpendicular to L7. L8 is Datum C
+5. Designate the intersection of L7 & L8 as N4. N4 as the coordinate origin(0,0)
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+A1
+-22.26
+0
+2
+A2
+-1.32
+0
+3
+B1
+0
+20.20
+L7
+L8
+N4
+A1
+Y Axis
+X axis
+A2
+B1
+B1
+A1
+A2
+
+
+===== PAGE 27 (321 chars) =====
+A8.1 Z Stopper┃MSOP : Pre-Datum Setup
+FAI / SPC
+Pre-Datum
+Fixture
+Fixture #3-1(Side1 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 1 (x40)
+Drawing callout
+Measurement details
+L9
+L10
+N5
+Y Axis
+X axis
+P2
+P1
+P2
+P1
+P3
+
+
+===== PAGE 28 (652 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum Sub-C1
+Fixture
+Fixture #3-1(Side1 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Measure points c1-c6 to construct plane, Plane C
+2. Set Plane C to face correction Z zero position, Set plane C as Datum Sub-C1
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+c1
+0.48~0.58
+1.50
+2
+c2
+0.48~0.53
+0.70
+3
+c3
+0.80
+-0.10
+4
+c4
+19.88
+-0.10
+5
+c5
+20.10~20.20
+0.70
+6
+c6
+20.15~20.20
+1.50
+L9
+L10
+N5
+Y Axis
+X axis
+c1
+c2
+c3
+c4
+c5
+c6
+Datum Sub-C1
+(Plane C)
+
+
+===== PAGE 29 (733 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum A,B
+Fixture
+Fixture #3-1(Side1 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Take points  A1, A2, B1 as shown in the figure
+2. Construct L11 line through A1&A2, L11 is datum A(with line L11 as alignment X axis)
+3. Draw a line L12 that passes through B1 and is perpendicular to L11. L12 is Datum B
+4. Designate the intersection of L11 & L12 as N6. N6 as the coordinate origin(0,0)
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+A1
+0.25
+0
+2
+A2
+20.34
+0
+3
+B1
+0
+-0.10
+L11
+L12
+N6
+Datum B
+Datum A
+A2
+A1
+B1
+26/01/05 Updated
+
+
+===== PAGE 30 (318 chars) =====
+A8.1 Z Stopper┃MSOP : Pre-Datum Setup
+FAI / SPC
+Pre-Datum
+Fixture
+Fixture #3-2(Side1 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L13
+L14
+N7
+Y Axis
+X axis
+P2
+P1
+P3
+
+
+===== PAGE 31 (663 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum Sub-C2
+Fixture
+Fixture #3-2(Side1 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Measure points d1-d6 to construct plane, Plane D
+2. Set Plane D to face correction Z zero position, Set plane D as Datum Sub-C2
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L13
+L14
+N7
+Y Axis
+X axis
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+d1
+-20.45~-20.35
+1.50
+2
+d2
+-20.45~-20.40
+0.70
+3
+d3
+-20.12
+-0.10
+4
+d4
+-0.50
+-0.10
+5
+d5
+-0.28~-0.23
+0.70
+6
+d6
+-0.33~-0.23
+1.50
+d1
+d2
+d3
+d4
+d5
+d6
+Datum Sub-C2
+(Plane D)
+
+
+===== PAGE 32 (718 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum A, B
+Fixture
+Fixture #3-2(Side1 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Take points  A1, A2, B1 as shown in the figure
+2. Construct L11 line through A1&A2, L11 is datum A(with line L11 as alignment X axis)
+3. Draw a line L12 that passes through B1 and is perpendicular to L11. L12 is Datum B
+4. Designate the intersection of L11 & L12 as N6. N6 as the coordinate origin(0,0)
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L15
+L16
+N8
+Datum B
+Datum A
+A2
+A1
+B1
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+A1
+-2.14
+0
+2
+A2
+-18.50
+0
+3
+B1
+0
+-0.10
+
+
+===== PAGE 33 (325 chars) =====
+A8.1 Z Stopper┃MSOP : Pre-Datum Setup
+FAI / SPC
+Pre-Datum
+Fixture
+Fixture #4-1(Side2 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 1 (x40)
+Drawing callout
+Measurement details
+L17
+L18
+Y Axis
+X axis
+N9
+P2
+P1
+P3
+P1
+P2
+P3
+
+
+===== PAGE 34 (644 chars) =====
+Datum Sub-B1
+(Plane E)
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum Sub-B1
+Fixture
+Fixture #4-1(Side2 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Measure points e1-e6 to construct plane, Plane E
+2. Set Plane E to face correction Z zero position, Set plane E as Datum Sub-B1
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+e1
+3.50
+-0.05
+2
+e2
+3.50
+-0.15
+3
+e3
+5.10
+-0.10
+4
+e4
+18.00
+-0.10
+5
+e5
+21.50
+-0.05
+6
+e6
+21.50
+-0.15
+e1
+L17
+L18
+Y Axis
+X axis
+N9
+P2
+P1
+P3
+e2
+e3
+e5
+e6
+e4
+
+
+===== PAGE 35 (437 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum A, C
+Fixture
+Fixture #4-1(Side2 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+A1
+5.000
+0.000
+2
+A2
+25.260
+0.000
+3
+B1
+0.000
+-0.100
+L19
+L20
+Ref Datum
+Datum A
+A2
+A1
+B1
+A1
+A2
+B1
+N10
+
+
+===== PAGE 36 (326 chars) =====
+A8.1 Z Stopper┃MSOP : Pre-Datum Setup
+FAI / SPC
+Pre-Datum
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 1 (x40)
+Drawing callout
+Measurement details
+L21
+L22
+N11
+Y axis
+X axis
+P2
+P1
+P3
+P1
+P2
+P3
+
+
+===== PAGE 37 (654 chars) =====
+L21
+L22
+N11
+Y axis
+X axis
+P2
+P1
+P3
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum Sub-B2
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+1. Measure points c1-c6 to construct plane, Plane C
+2. Set Plane C to face correction Z zero position, Set plane C as Datum Sub-B1
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+f1
+-26.70
+-0.05
+2
+f2
+-26.70
+-0.15
+3
+f3
+-24.80
+-0.10
+4
+f4
+-22.20
+-0.10
+5
+f5
+-17.30
+-0.05
+6
+f6
+-17.30
+-0.15
+Datum Sub-B2
+(Plane F)
+f1
+f2
+f3
+f5
+f6
+f4
+
+
+===== PAGE 38 (456 chars) =====
+A8.1 Z Stopper┃MSOP : Datum Setup
+FAI / SPC
+Datum A, C
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Set Datum
+Measurement
+Procedure
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+A1
+-25.727
+0.000
+2
+A2
+-0.700
+0.000
+3
+B1
+0.000
+-0.100
+L23
+L24
+N12
+Ref Datum
+Datum A
+A2
+A1
+B1
+A1
+A2
+B1
+26/01/05 Updated
+
+
+===== PAGE 39 (689 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A1 / SPC AA - Distance
+FAI / SPC
+FAI A1 / SPC AA 20.681 ±0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0.385
+20.681
+2
+P2
+9.370
+20.681
+P2
+P1
+L3
+L4
+N2
+Datum C
+Datum B
+
+
+===== PAGE 40 (639 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A2 - Distance
+FAI / SPC
+FAI A2 19.771 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-3.505
+19.771
+P1
+L3
+L4
+N2
+Datum C
+Datum B
+
+
+===== PAGE 41 (702 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A3 - Distance
+FAI / SPC
+FAI A3  2X 18.500 +0.050 / -0.020
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-3.387
+18.500
+2
+P2
+9.617
+18.500
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 42 (711 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A4 - Distance
+FAI / SPC
+FAI A4 2x2.180 +0.020/-0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-3.389
+2.180
+2
+P2
+9.533
+2.180
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+Datum B
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 43 (686 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A5 - Distance
+FAI / SPC
+FAI A5 1.079 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-0.397
+1.079
+2
+P2
+12.238
+1.079
+L3
+L4
+N2
+Datum C
+Datum B
+P2
+P1
+Datum B
+Datum B
+
+
+===== PAGE 44 (645 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A6 - Distance
+FAI / SPC
+FAI A6 0.910 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-3.505
+0.910
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+Datum B
+
+
+===== PAGE 45 (639 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A7 - Distance
+FAI / SPC
+FAI A7 10.175 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+10.175
+17.860
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+
+
+===== PAGE 46 (647 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A8 - Distance
+FAI / SPC
+FAI A8  0.532 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-0.532
+20.100
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+Datum C
+
+
+===== PAGE 47 (645 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A9 - Distance
+FAI / SPC
+FAI A9 0.834 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+26.013
+0.834
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+Datum B
+
+
+===== PAGE 48 (680 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A10 - Distance
+FAI / SPC
+FAI A10 0.979 ±0.020
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+12.723
+0.979
+2
+P2
+20.713
+0.979
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+Datum B
+
+
+===== PAGE 49 (648 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A11 - Distance
+FAI / SPC
+FAI A11 3.395 ±0.050 
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+26.230
+3.395
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+Datum B
+
+
+===== PAGE 50 (680 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A12 - Distance
+FAI / SPC
+FAI A12 3.476 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+14.905
+3.476
+2
+P2
+23.124
+3.476
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+Datum B
+P2
+
+
+===== PAGE 51 (697 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A13 - Distance
+FAI / SPC
+FAI A13 3.850 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+10.730
+3.850
+2
+P2
+13.678
+3.850
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 52 (692 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A14 - Distance
+FAI / SPC
+FAI A14 16.831 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+10.972
+16.831
+2
+P2
+13.672
+16.831
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 53 (692 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A15 - Distance
+FAI / SPC
+FAI A15 17.204 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+14.909
+17.204
+2
+P2
+23.110
+17.204
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 54 (641 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A16 - Distance
+FAI / SPC
+FAI A16 17.286 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+26.230
+17.286
+L3
+L4
+N2
+Datum C
+Datum B
+P2
+
+
+===== PAGE 55 (641 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A17 - Distance
+FAI / SPC
+FAI A17 19.847 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+26.012
+19.847
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+
+
+===== PAGE 56 (692 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A18 - Distance
+FAI / SPC
+FAI A18 19.947 ±0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+12.817
+19.947
+2
+P2
+23.114
+19.947
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 57 (670 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A19 - Distance
+FAI / SPC
+FAI A19 0.401 +0.050/-0.020
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0.401
+0.581
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+Datum C
+26/03/03 Updated
+
+
+===== PAGE 58 (638 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A20 - Distance
+FAI / SPC
+FAI A20 9.980 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+9.980
+2.974
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+
+
+===== PAGE 59 (664 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A21 - Distance
+FAI / SPC
+FAI A21 21.017 +0.050/-0.020
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+21.017
+0.531
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+26/03/03 Updated
+
+
+===== PAGE 60 (692 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A22 - Distance
+FAI / SPC`
+FAI A22 24.330 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+24.330
+4.700
+2
+P2
+24.330
+15.986
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 61 (698 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI A23 - Distance
+FAI / SPC
+FAI A23 25.980 +0.020/-0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+25.980
+3.920
+2
+P2
+25.980
+16.746
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 62 (696 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI B1 - Distance
+FAI / SPC
+FAI B1 2x20.347±0.030
+Fixture
+Fixture #1(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-24.900
+20.347
+2
+P2
+-11.130
+20.347
+P1
+P2
+L7
+L8
+N4
+Datum C
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 63 (658 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI B2 - Distance
+FAI / SPC
+FAI B2 20.102 ±0.030
+Fixture
+Fixture #1(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+1.922
+20.102
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 64 (700 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI B3 - Distance
+FAI / SPC
+FAI B3 2x0.579 ±0.030
+Fixture
+Fixture #1(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-11.129
+0.579
+2
+P2
+1.922
+0.579
+P2
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 65 (666 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI B4 - Distance
+FAI / SPC
+FAI B4 0.334 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum B to P1 in the Y direction.
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-24.900
+0.334
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 66 (680 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI C1 - Distance
+FAI / SPC
+FAI C1 2x2.750 +0.010/-0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-2.750
+0.779
+2
+P2
+-2.750
+19.902
+P2
+L3
+L4
+N2
+Datum C
+Datum B
+P1
+
+
+===== PAGE 67 (680 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C2 - Distance
+FAI / SPC
+FAI C2 2x2.350 +0.030/-0.010
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-2.350
+0.779
+2
+P2
+-2.350
+19.902
+P2
+P1
+
+
+===== PAGE 68 (680 chars) =====
+P2
+P1
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C3 - Distance
+FAI / SPC
+FAI C3 2x1.494 +0.010/-0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-1.494
+0.779
+2
+P2
+-1.494
+19.902
+
+
+===== PAGE 69 (680 chars) =====
+P1
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C4 - Distance
+FAI / SPC
+FAI C4 2x1.094 +0.030/-0.010
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-1.094
+0.779
+2
+P2
+-1.094
+19.902
+P2
+
+
+===== PAGE 70 (681 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C5 - Distance
+FAI / SPC
+FAI C5 2x10.301 +0.030/-0.010
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+10.301
+0.779
+2
+P2
+10.301
+20.147
+P1
+P2
+
+
+===== PAGE 71 (681 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C6 - Distance
+FAI / SPC
+FAI C6 2x10.701 +0.010/-0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+10.701
+0.779
+2
+P2
+10.701
+20.147
+P1
+P2
+
+
+===== PAGE 72 (681 chars) =====
+P1
+P2
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C7 - Distance
+FAI / SPC
+FAI C7 2x11.557 +0.030/-0.010
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+11.557
+0.779
+2
+P2
+11.557
+20.147
+
+
+===== PAGE 73 (681 chars) =====
+P1
+P2
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C8 - Distance
+FAI / SPC
+FAI C8 2x11.957 +0.010/-0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+11.957
+0.779
+2
+P2
+11.957
+20.147
+
+
+===== PAGE 74 (681 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C9 - Distance
+FAI / SPC
+FAI C9 2x24.072 +0.030/-0.010
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+24.072
+0.534
+2
+P2
+24.072
+20.147
+P1
+P2
+
+
+===== PAGE 75 (683 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C10 - Distance
+FAI / SPC
+FAI C10 2x24.472 +0.010/-0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+24.472
+0.534
+2
+P2
+24.472
+20.147
+P1
+P2
+
+
+===== PAGE 76 (683 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C11 - Distance
+FAI / SPC
+FAI C11 2x25.328 +0.030/-0.010
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+25.328
+0.534
+2
+P2
+25.328
+20.147
+P1
+P2
+
+
+===== PAGE 77 (683 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI C12 - Distance
+FAI / SPC
+FAI C12 2x25.728 +0.010/-0.030
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction.
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+25.728
+0.534
+2
+P2
+25.728
+20.147
+P1
+P2
+
+
+===== PAGE 78 (790 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI C13 - Distance
+FAI / SPC
+FAI C13 6x2.050 ±0.030
+Fixture
+Fixture #4-1(Side2 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2, P3
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light(P3), Back light(P1, P2)
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+1.681
+2.050
+2
+P2
+15.452
+2.050
+3
+P3
+28.502
+2.050
+L19
+L20
+Ref Datum
+Datum A
+A2
+A1
+B1
+N10
+Datum A
+Datum A
+Datum A
+P1
+P2
+P3
+26/03/03 Updated
+
+
+===== PAGE 79 (793 chars) =====
+L23
+L24
+N12
+Ref Datum
+Datum A
+A2
+A1
+B1
+A8.1 Z Stopper_POR┃MSOP : FAI C13 - Distance
+FAI / SPC
+FAI C13 6x2.050 ±0.030
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2, P3
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light(P1), Back light(P2, P3)
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P2
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-28.502
+2.050
+2
+P2
+-15.452
+2.050
+3
+P3
+-1.681
+2.050
+P1
+Datum A
+Datum A
+Datum A
+P3
+26/03/03 Updated
+
+
+===== PAGE 80 (790 chars) =====
+L19
+L20
+Ref Datum
+Datum A
+A2
+A1
+B1
+N10
+A8.1 Z Stopper_POR┃MSOP : FAI C14 - Distance
+FAI / SPC
+FAI C14 6x2.500 ±0.050
+Fixture
+Fixture #4-1(Side2 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2, P3
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light(P3), Back light(P1, P2)
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+1.681
+2.500
+2
+P2
+15.452
+2.500
+3
+P3
+28.502
+2.500
+Datum A
+Datum A
+Datum A
+P3
+P1
+P2
+26/03/03 Updated
+
+
+===== PAGE 81 (793 chars) =====
+L23
+L24
+N12
+Ref Datum
+Datum A
+A2
+A1
+B1
+A8.1 Z Stopper_POR┃MSOP : FAI C14 - Distance
+FAI / SPC
+FAI C14 6x2.500 ±0.050
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2, P3
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+  Measurement procedure: See picture
+ Evaluation method: Measure the dimension from Datum A to P1, P2, P3 in the Y direction.
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light(P1), Back light(P2, P3)
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-28.502
+2.500
+2
+P2
+-15.452
+2.500
+3
+P3
+-1.681
+2.500
+P2
+P1
+Datum A
+Datum A
+Datum A
+P3
+26/03/03 Updated
+
+
+===== PAGE 82 (928 chars) =====
+P1
+A8.1 Z Stopper_POR┃MSOP : FAI D1 – Angle
+FAI / SPC
+FAI D1 6x90.000 +0.5˚/-1.5˚
+Fixture
+Fixture #3-2(Side1 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P4, P5~P8(Fixture #3-2)
+2. Construct a line LU by P1&P2, a line MU by P3&P4, a line MD by P5&P6, a line LD by P7&P8 (Fixture #3-2)
+3. Based on the Datum A
+4. Calculate : Measure angle between Datum A to line LU, MU, MD and LD (Fixture #3-2)
+  Evaluation method: Measure angle between Datum A to line LU, MU, MD and LD
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-20.347
+0.300
+2
+P2
+-20.347
+1.500
+3
+P3
+-20.102
+0.300
+4
+P4
+-20.102
+1.500
+5
+P5
+-0.579
+0.300
+6
+P6
+-0.579
+1.500
+7
+P7
+-0.334
+0.300
+8
+P8
+-0.334
+1.500
+L15
+L16
+N8
+Datum B
+Datum A
+P2
+P3
+P4
+P6
+P7
+P8
+P5
+LU
+MU
+MD
+LD
+26/01/05 Updated
+
+
+===== PAGE 83 (788 chars) =====
+P10
+A8.1 Z Stopper_POR┃MSOP : FAI D1 – Angle
+FAI / SPC
+FAI D1 6x90.000 +0.5˚/-1.5˚
+Fixture
+Fixture #3-1(Side1 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P9~P10, P11~P12(Fixture #3-1)
+2. Construct a line RD by P9&P10, a line RU by P11&P12 (Fixture #3-1)
+3. Based on the Datum A
+4. Calculate : Measure angle between Datum A to line RD and RU (Fixture #3-1)
+  Evaluation method: Measure angle between Datum A to line RD and RU
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P9
+0.579
+0.300
+2
+P10
+0.579
+1.500
+3
+P11
+20.102
+0.300
+4
+P12
+20.102
+1.500
+L11
+L12
+N6
+Datum B
+Datum A
+P9
+P12
+P11
+RD
+RU
+26/01/05 Updated
+
+
+===== PAGE 84 (637 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E1 / SPC EA – Diameter
+FAI / SPC
+FAI E1 / SPC EA Φ0.600 ±0.020
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Move to Measurement point P1 and capture a circle CL1 with circle tool
+2. Measure the diameter from the circle CL1
+  Evaluation method: Capture a circle CL1 with circle tool and measure the diameter
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0
+20.201
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+CL1
+26/03/03 Updated
+
+
+===== PAGE 85 (1038 chars) =====
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0
+20.201
+2
+P2
+-22.378
+0.498
+3
+P3
+-22.191
+0.663
+4
+P4
+-22.483
+0.805
+5
+P5
+-22.086
+0.355
+A8.1 Z Stopper_POR┃MSOP : FAI E2 / SPC EB – Angle
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Pb
+Pa
+Pc
+P1
+Ld
+FAI / SPC
+FAI E2 / SPC EB 41.36˚ ±1.00˚
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Angle
+Measurement
+Procedure
+1. Move to measurement point P1~P3 and capture circles CL1~CL3 with circle tool
+2. Move to measurement point P4, P5 and capture lines La, Lb with line tool
+3. Construct a midline Lc with La, Lb
+4. Construct two crosspoints Pa(by Lc – CL2), Pb(by Lc – CL3)
+5. Construct a centerpoint Pc by Pa, Pb
+6. Construct a centerpoint Pd by CL1
+7. Construct a line Ld by Pc, Pd
+8. Based on the Datum B
+9. Calculate : Measure the Angle from Datum B to Ld
+  Evaluation method: Measure the Angle from Datum B to Ld
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+P2
+P3
+La
+Lb
+Lc
+CL2
+P1
+CL1, (Pd)
+CL3
+P4
+P5
+
+
+===== PAGE 86 (633 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E3 / SPC EC - Distance
+FAI / SPC
+FAI E3 / SPC EC 0.600±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Move to measurement point P1, P2 and capture a line La, Lb with line tool
+2. Measure the distance from La to Lb
+  Evaluation method: Measure the distance from La to Lb
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+La
+Lb
+P1
+P2
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-22.483
+0.805
+2
+P2
+-22.086
+0.355
+26/03/03 Updated
+
+
+===== PAGE 87 (670 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E4 / SPC ED - Distance
+FAI / SPC
+FAI E4 / SPC ED 26.580 ±0.020
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-26.580
+2.740
+2
+P2
+-26.580
+17.970
+P1
+P2
+L7
+L8
+N4
+Datum C
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 88 (702 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E5 / SPC EE - Distance
+FAI / SPC
+FAI E5 / SPC EE  30.578 ±0.050
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2, P3, P4
+2. Construct a line Py from P1, P2
+3. Calculate : Measure the dimension from Py to P3, P4
+  Evaluation method: Measure the dimension from Py to P3, P4
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-26.580
+2.740
+2
+P2
+-26.580
+17.970
+3
+P3
+3.998
+2.740
+4
+P4
+3.998
+17.970
+Datum B
+L7
+L8
+N4
+Datum C
+P2
+P1
+P1
+P2
+P3
+P4
+P3
+P4
+Py
+26/03/03 Updated
+
+
+===== PAGE 89 (674 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E6 / SPC EF - Distance
+FAI / SPC
+FAI E6 / SPC EF 1.945 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction
+  Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-7.896
+1.945
+2
+P2
+-5.794
+1.945
+P2
+L7
+L8
+N4
+Datum C
+Datum B
+P1
+P1
+26/03/03 Updated
+
+
+===== PAGE 90 (678 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E7 / SPC EG - Distance
+FAI / SPC
+FAI E7 / SPC EG  18.736 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1, P2 in the Y direction
+  Evaluation method: Measure the dimension from Datum B to P1, P2 in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-7.896
+18.736
+2
+P2
+-5.794
+18.736
+P2
+L7
+L8
+N4
+Datum C
+Datum B
+P1
+P1
+26/03/03 Updated
+
+
+===== PAGE 91 (737 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E8 / SPC EH - Distance
+FAI / SPC
+FAI E8 / SPC EH   20.201 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Move to Measurement point P1 and capture a circle CL1 with circle tool
+2. Construct a centerpoint Pd by CL1
+3. Based on the Datum B
+4. Calculate : Measure the dimension from Datum B to Pd in the Y direction
+  Evaluation method: Measure the dimension from Datum B to Pd in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+P1
+P1
+CL1, (Pd)
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0
+20.201
+26/03/03 Updated
+
+
+===== PAGE 92 (971 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E9 / SPC EI - Distance
+FAI / SPC
+FAI E9 / SPC EI   22.285 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Move to measurement point P2~P3 and capture a circle CL2~CL3 with circle tool
+2. Move to measurement point P4, P5 and capture a line La, Lb with line tool
+3. Construct a midline Lc with La, Lb
+4. Construct two crosspoints Pa(by Lc – CL2), Pb(by Lc – CL3)
+5. Construct a centerpoint Pc by Pa, Pb
+8. Based on the Datum C
+9. Calculate : Measure the distance from Datum C to Pc
+  Evaluation method: Measure the Angle from Datum C to Pc
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+P1
+Pc
+Pb
+Pa
+Pc
+P2
+P3
+La
+Lb
+Lc
+CL2
+CL3
+P4
+P5
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P2
+-22.378
+0.498
+2
+P3
+-22.191
+0.663
+3
+P4
+-22.483
+0.805
+4
+P5
+-22.086
+0.355
+26/03/03 Updated
+
+
+===== PAGE 93 (972 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI E10 / SPC EJ - Distance
+FAI / SPC
+FAI E10 / SPC EJ   0.580 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Move to measurement point P2~P3 and capture a circle CL2~CL3 with circle tool
+2. Move to measurement point P4, P5 and capture a line La, Lb with line tool
+3. Construct a midline Lc with La, Lb
+4. Construct two crosspoints Pa(by Lc – CL2), Pb(by Lc – CL3)
+5. Construct a centerpoint Pc by Pa, Pb
+8. Based on the Datum C
+9. Calculate : Measure the distance from Datum B to Pc
+  Evaluation method: Measure the Angle from Datum B to Pc
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+P1
+Pc
+Pb
+Pa
+Pc
+P2
+P3
+La
+Lb
+Lc
+CL2
+CL3
+P4
+P5
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P2
+-22.378
+0.498
+2
+P3
+-22.191
+0.663
+3
+P4
+-22.483
+0.805
+4
+P5
+-22.086
+0.355
+26/03/03 Updated
+
+
+===== PAGE 94 (681 chars) =====
+L7
+L8
+N4
+Datum C
+Datum B
+P2
+A8.1 Z Stopper_POR┃MSOP : FAI F1 / SPC FA - Distance
+FAI / SPC
+FAI F1 / SPC FA  2x5.935 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-5.935
+1.570
+2
+P2
+-5.935
+19.111
+P1
+P2
+P1
+26/03/03 Updated
+
+
+===== PAGE 95 (646 chars) =====
+L7
+L8
+N4
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI F2 - Distance
+FAI / SPC
+FAI F2  2x5.511 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1, P2 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1, P2 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-5.511
+1.570
+2
+P2
+-5.511
+19.111
+P2
+P1
+P2
+P1
+
+
+===== PAGE 96 (1009 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F3 - Distance
+FAI / SPC
+FAI F3  0.100 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P14
+2. Construct planes PL1 from P1~P6 and PL2 from P8~P13 
+3. Calculate : Measure distance between plane PL1 to P7, plane PL2 to P14
+  Evaluation method: Measure distance between plane PL1 to P7, plane PL2 to P14
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P8
+-7.000
+1.708
+2
+P9
+-7.000
+1.435
+3
+P10
+-6.500
+1.708
+4
+P11
+-6.500
+1.435
+5
+P12
+-5.430
+1.708
+6
+P13
+-5.430
+1.435
+7
+P14
+-5.723
+1.570
+PL1
+PL2
+P1
+P2
+P3
+P4
+P5
+P6
+P7
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-7.000
+19.248
+2
+P2
+-7.000
+18.975
+3
+P3
+-6.500
+19.248
+4
+P4
+-6.500
+18.975
+5
+P5
+-5.430
+19.248
+6
+P6
+-5.430
+18.975
+7
+P7
+-5.723
+19.111
+P8
+P9
+P10
+P11
+P12
+P13
+P14
+26/03/03 Updated
+
+
+===== PAGE 97 (844 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F4 – Angle
+FAI / SPC
+FAI F4 2x45.0˚±1.5˚
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Angle
+Measurement
+Procedure
+1. Capture points : P1~P4, P5~P8
+2. Construct a plane PL1, PL2 by P1~P4, P5~P8
+3. Based on the Datum A
+4. Calculate : Measure angle between Datum A to plane PL1, PL2
+  Evaluation method: Measure angle between Datum A to plane PL1, PL2
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-5.829
+19.248
+2
+P2
+-5.617
+19.248
+3
+P3
+-5.829
+18.973
+4
+P4
+-5.617
+18.973
+P2
+P1
+P4
+P3
+P6
+P5
+P8
+P7
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+5
+P5
+-5.829
+1.708
+6
+P6
+-5.617
+1.708
+7
+P7
+-5.829
+1.433
+8
+P8
+-5.617
+1.433
+PL1
+PL2
+
+
+===== PAGE 98 (678 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F5 / SPC FC – Distance
+FAI / SPC
+FAI F5 / SPC FC 1.333 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1, P2
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1, P2 in the Z direction
+  Evaluation method: Measure the dimension from Datum A to P1, P2 in the Z direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-6.000
+1.575
+2
+P2
+-6.000
+19.125
+P1
+P1
+P2
+P2
+26/03/03 Updated
+
+
+===== PAGE 99 (735 chars) =====
+L3
+L4
+N2
+Datum C
+Datum B
+A8.1 Z Stopper_POR┃MSOP : FAI F6 – Distance
+FAI / SPC
+FAI F6  6x0.516 ±0.050
+Fixture
+Fixture #1(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P6
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1~P6 in the Z direction
+  Evaluation method: Measure the dimension from Datum A to P1~P6 in the Z direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+6.900
+1.295
+2
+P2
+12.803
+2.464
+3
+P3
+22.664
+2.231
+4
+P4
+7.055
+19.386
+5
+P5
+13.317
+18.190
+6
+P6
+22.162
+18.490
+P1
+P2
+P3
+P4
+P5
+P6
+26/03/03 Updated
+
+
+===== PAGE 100 (659 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F7 – Distance
+FAI / SPC
+FAI F7 2x2.700 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P2
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1~P2 in the Z direction
+  Evaluation method: Measure the dimension from Datum A to P1~P2 in the Z direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-7.967
+1.512
+2
+P2
+-7.967
+19.161
+L7
+L8
+N4
+Datum C
+Datum B
+P2
+P1
+P2
+P1
+26/01/22 Updated
+
+
+===== PAGE 101 (726 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F8 / SPC FD – Distance
+FAI / SPC
+FAI F8 / SPC FD 2x0.100 ±0.050
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P4
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1~P4 in the Z direction
+  Evaluation method: Measure the dimension from Datum A to P1~P4 in the Z direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-3.597
+1.452
+2
+P2
+-2.197
+1.452
+3
+P3
+-3.597
+19.229
+4
+P4
+-2.197
+19.229
+L7
+L8
+N4
+Datum C
+Datum B
+P4~P6
+P3
+P4
+P2
+P1
+P4~P6
+26/03/03 Updated
+
+
+===== PAGE 102 (926 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F9 – Distance
+FAI / SPC
+FAI F9  2x1.442 ±0.100
+Fixture
+Fixture #4-1(Side2 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : D1 ~ D4
+2. Construct a Plane F9-1 by D1 ~ D4
+3. Only in this FAI F9, set Plane F9-1 to face correction Z zero position
+4. Capture points : P1 ~ P3
+5. Based on the Datum A
+6. Calculate : Measure the dimension from Datum A to P1~P3 in the Y direction
+  Evaluation method: Measure the dimension from Datum A to P1~P3 in the Y direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+D1
+24.850
+-0.400
+2
+D2
+22.650
+-0.400
+3
+D3
+24.850
+-0.600
+4
+D4
+22.650
+-0.600
+5
+P1
+21.883
+-1.442
+6
+P2
+23.683
+-1.442
+7
+P3
+25.483
+-1.442
+L19
+L20
+Ref Datum 
+Datum A
+N10
+P1
+P2
+P3
+D1
+D2
+D1
+D3
+D4
+Plane F9-1
+26/03/03 Updated
+
+
+===== PAGE 103 (929 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI F9 – Distance
+FAI / SPC
+FAI F9  2x1.442 ±0.100
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : D1 ~ D4
+2. Construct a Plane F9-2 by D1 ~ D4
+3. Only in this FAI F9, set Plane F9-2 to face correction Z zero position
+4. Capture points : P1 ~ P3
+5. Based on the Datum A
+6. Calculate : Measure the dimension from Datum A to P1~P3 in the Y direction
+  Evaluation method: Measure the dimension from Datum A to P1~P3 in the Y direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L23
+L24
+N12
+Ref Datum
+Datum A
+P1
+P2
+P3
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+D1
+-24.850
+-0.400
+2
+D2
+-22.650
+-0.400
+3
+D3
+-24.850
+-0.600
+4
+D4
+-22.650
+-0.600
+5
+P1
+-25.483
+-1.442
+6
+P2
+-23.683
+-1.442
+7
+P3
+-21.883
+-1.442
+D1
+D2
+D4
+D3
+Plane F9-2
+26/03/03 Updated
+
+
+===== PAGE 104 (631 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI G1 – Distance
+FAI / SPC
+FAI G1  22.661 +0.010/-0.050
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-22.661
+18.540
+26/03/03 Updated
+
+
+===== PAGE 105 (624 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI G2 – Distance
+FAI / SPC
+FAI G2  22.162 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-22.162
+18.540
+26/03/03 Updated
+
+
+===== PAGE 106 (624 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI G5 – Distance
+FAI / SPC
+FAI G5  13.332 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-13.332
+18.190
+26/03/03 Updated
+
+
+===== PAGE 107 (631 chars) =====
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-12.833
+18.190
+A8.1 Z Stopper_POR┃MSOP : FAI G6 – Distance
+FAI / SPC
+FAI G6  12.834 +0.050/-0.010
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 108 (630 chars) =====
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-10.634
+2.490
+A8.1 Z Stopper_POR┃MSOP : FAI G7 – Distance
+FAI / SPC
+FAI G7  10.633 +0.050/-0.010
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 109 (641 chars) =====
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-11.132
+2.490
+A8.1 Z Stopper_POR┃MSOP : FAI G8 / SPC GA – Distance
+FAI / SPC
+FAI G8 / SPC GA  11.132 ±0.020
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+26/03/03 Updated
+
+
+===== PAGE 110 (643 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI G11 / SPC GB – Distance
+FAI / SPC
+FAI G11 / SPC GB  24.362 ±0.020
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-24.362
+2.190
+26/03/03 Updated
+
+
+===== PAGE 111 (632 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI G12 – Distance
+FAI / SPC
+FAI G12  24.861 +0.010/-0.050
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum C
+3. Calculate : Measure the dimension from Datum C to P1 in the X direction
+  Evaluation method: Measure the dimension from Datum C to P1 in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P1
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-24.861
+2.490
+26/03/03 Updated
+
+
+===== PAGE 112 (561 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI H1 – Thickness
+FAI / SPC
+FAI H1  0.200 ±0.030
+Fixture
+Measure after stamping by micrometer
+Geometric Feature Thickness
+Measurement
+Procedure
+1. Fix the preload plates between micrometer measurement pin.
+2. Turns 2 more times after fixing the insert.
+3. Record measurement data by micrometer.
+  Evaluation method: Measure the dimension from micrometer
+Datum
+A
+Measuring 
+Equipment
+Equipment : Spline Micrometer
+Drawing callout
+Measurement details
+26/03/03 Updated
+P1
+Measure  location
+P2
+P3
+Output
+Turns 2 more times 
+after fixing.
+
+
+===== PAGE 113 (752 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI H2 – Distance
+FAI / SPC
+FAI H2  2x0.050 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1 ~ P6
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1 ~ P6 in the Z direction
+  Evaluation method: Measure the dimension from Datum A to P1 ~ P6 in the Z direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-20.697
+2.455
+2
+P2
+-17.747
+2.455
+3
+P3
+-14.797
+2.455
+4
+P4
+-20.447
+18.225
+5
+P5
+-17.747
+18.225
+6
+P6
+-15.047
+18.225
+P1
+P2
+P3
+P4
+P5
+P6
+26/03/03 Updated
+
+
+===== PAGE 114 (808 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI H3 / SPC HA – Distance
+FAI / SPC
+FAI H3 / SPC HA 4x1.861 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P8
+2. Based on the Datum A
+3. Calculate : Measure the dimension from Datum A to P1~P8 in the Z direction
+  Evaluation method: Measure the dimension from Datum A to P1~P8 in the Z direction
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+Point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-24.667
+1.445
+2
+P2
+-24.667
+2.878
+3
+P3
+-22.460
+17.800
+4
+P4
+-22.460
+19.235
+5
+P5
+-10.845
+1.770
+6
+P6
+-10.845
+3.177
+7
+P7
+-13.040
+17.504
+8
+P8
+-13.040
+18.937
+P1
+P2
+P3
+P4
+P5
+P7
+P6
+P8
+26/03/03 Updated
+
+
+===== PAGE 115 (672 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI H5 – Angle
+FAI / SPC
+FAI H5  90.0˚ ±1.5˚
+Fixture
+Fixture #4-2(Side2 view jig)
+Geometric Feature Angle
+Measurement
+Procedure
+1. Capture points : P1, P2(Fixture #4-2)
+2. Construct a line MN by P1&P2
+3. Based on the Datum A
+4. Calculate : Measure angle between Datum A to line MN (Fixture #4-2)
+  Evaluation method: Measure angle between Datum A to line MN
+Datum
+A
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+P2
+P1
+MN
+Measurement 
+Point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-30.578
+0.550
+2
+P2
+-30.578
+0.300
+L23
+L24
+N12
+Ref Datum
+Datum A
+26/01/22 Updated
+
+
+===== PAGE 116 (847 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I1 / SPC IA– Flatness
+FAI / SPC
+FAI I1 / SPC IA  Max 0.050
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Flatness
+Measurement
+Procedure
+1. Capture points : a1~a10
+2. Construct on plane by 10 points
+3. Check flatness automatically form machine(OMM)
+ Measurement procedure : See picture
+ Evaluation method: Check flatness automatically from machine(OMM)
+Datum
+-
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 5 (x580)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+a1
+-20.980
+19.000
+2
+a2
+-14.580
+19.000
+3
+a3
+-9.680
+19.450
+4
+a4
+-2.100
+20.100
+5
+a5
+1.820
+19.050
+6
+a6
+-21.480
+2.130
+7
+a7
+-14.080
+2.130
+8
+a8
+-9.280
+1.100
+9
+a9
+-2.100
+0.600
+10
+a10
+1.820
+1.600
+a1
+a5
+a8
+a10
+a2
+a3
+a4
+a6
+a7
+a9
+26/03/03 Updated
+
+
+===== PAGE 117 (642 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I5 / SPC IB – Distance
+FAI / SPC
+FAI I5 / SPC IB  17.567 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction
+  Evaluation method: Measure the dimension from Datum B to P1 in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-22.457
+17.567
+P1
+26/03/03 Updated
+
+
+===== PAGE 118 (642 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I6 / SPC IC – Distance
+FAI / SPC
+FAI I6 / SPC IC  17.267 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction
+  Evaluation method: Measure the dimension from Datum B to P1 in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-13.037
+17.267
+P1
+26/03/03 Updated
+
+
+===== PAGE 119 (640 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I7 / SPC ID – Distance
+FAI / SPC
+FAI I7 / SPC ID  3.414 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction
+  Evaluation method: Measure the dimension from Datum B to P1 in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-10.837
+3.414
+P1
+26/03/03 Updated
+
+
+===== PAGE 120 (640 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I8 / SPC IE – Distance
+FAI / SPC
+FAI I8 / SPC IE  3.114 ±0.030
+Fixture
+Fixture #2(Bottom view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1
+2. Based on the Datum B
+3. Calculate : Measure the dimension from Datum B to P1 in the Y direction
+  Evaluation method: Measure the dimension from Datum B to P1 in the Y direction
+Datum
+B
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Front light
+Magnification : Zoom 3 (x150)
+Drawing callout
+Measurement details
+L7
+L8
+N4
+Datum C
+Datum B
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+-24.657
+3.114
+P1
+26/03/03 Updated
+
+
+===== PAGE 121 (1001 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I9 – Distance
+FAI / SPC
+FAI I9  2x5.053 +0.050/-0.000
+Fixture
+Fixture #2(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P3, P6~P8
+2. Construct arc A1 by P1~P3, A2 by P6~P8
+3. Move to P5, P10 and capture lines Lb, Ld
+4. Construct a crosspoint Pb by A1, Lb
+5. Construct a crosspoint Pd by A2, Ld
+6. Calculate : Measure the dimension from Datum C to Pb, Pd in the X direction
+  Evaluation method: Measure the dimension from Datum C to Pb, Pd in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+L3
+L4
+N2
+Datum C
+Datum B
+P2
+P1
+P5
+P4
+P3
+P7
+P6
+P10
+P9
+P8
+Pa
+Pb
+Pc
+Pd
+La
+Lb
+Lc
+Ld
+A1
+A2
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0.897
+17.947
+2
+P2
+2.897
+18.206
+3
+P3
+4.897
+17.947
+4
+P4
+0.713
+18.028
+5
+P5
+5.080
+18.028
+6
+P6
+0.897
+2.733
+7
+P7
+2.897
+2.474
+8
+P8
+4.897
+2.733
+9
+P9
+0.713
+2.652
+10
+P10
+5.080
+2.652
+Drawing callout
+Measurement details
+26/03/03 Updated
+
+
+===== PAGE 122 (1002 chars) =====
+A8.1 Z Stopper_POR┃MSOP : FAI I10 – Distance
+FAI / SPC
+FAI I10  2x0.741 +0.000/-0.050
+Fixture
+Fixture #2(Top view jig)
+Geometric Feature Distance
+Measurement
+Procedure
+1. Capture points : P1~P3, P6~P8
+2. Construct arc A1 by P1~P3, A2 by P6~P8
+3. Move to P4, P9 and capture lines La, Lc
+4. Construct a crosspoint Pa by A1, La
+5. Construct a crosspoint Pc by A2, Lc
+6. Calculate : Measure the dimension from Datum C to Pa, Pc in the X direction
+  Evaluation method: Measure the dimension from Datum C to Pa, Pc in the X direction
+Datum
+C
+Measuring 
+Equipment
+Equipment : OMM
+Light setting : Back light
+Magnification : Zoom 3 (x150)
+L3
+L4
+N2
+Datum C
+Datum B
+P2
+P1
+P5
+P4
+P3
+P7
+P6
+P10
+P9
+P8
+Pa
+Pb
+Pc
+Pd
+La
+Lb
+Lc
+Ld
+A1
+A2
+Drawing callout
+Measurement details
+Measurement 
+point
+Based on the origin (0, 0)
+X mm
+Y mm
+1
+P1
+0.897
+17.947
+2
+P2
+2.897
+18.206
+3
+P3
+4.897
+17.947
+4
+P4
+0.713
+18.028
+5
+P5
+5.080
+18.028
+6
+P6
+0.897
+2.733
+7
+P7
+2.897
+2.474
+8
+P8
+4.897
+2.733
+9
+P9
+0.713
+2.652
+10
+P10
+5.080
+2.652
+26/03/03 Updated
+
+

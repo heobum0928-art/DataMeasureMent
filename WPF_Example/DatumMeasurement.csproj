@@ -109,6 +109,27 @@
     <Reference Include="Ookii.Dialogs.Wpf, Version=5.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
       <HintPath>..\packages\Ookii.Dialogs.Wpf.5.0.1\lib\net462\Ookii.Dialogs.Wpf.dll</HintPath>
     </Reference>
+    <Reference Include="ClosedXML">
+      <HintPath>..\packages\ClosedXML.0.105.0\lib\netstandard2.0\ClosedXML.dll</HintPath>
+    </Reference>
+    <Reference Include="ClosedXML.Parser">
+      <HintPath>..\packages\ClosedXML.Parser.2.0.0\lib\netstandard2.0\ClosedXML.Parser.dll</HintPath>
+    </Reference>
+    <Reference Include="DocumentFormat.OpenXml">
+      <HintPath>..\packages\DocumentFormat.OpenXml.3.1.1\lib\net46\DocumentFormat.OpenXml.dll</HintPath>
+    </Reference>
+    <Reference Include="DocumentFormat.OpenXml.Framework">
+      <HintPath>..\packages\DocumentFormat.OpenXml.Framework.3.1.1\lib\net46\DocumentFormat.OpenXml.Framework.dll</HintPath>
+    </Reference>
+    <Reference Include="ExcelNumberFormat">
+      <HintPath>..\packages\ExcelNumberFormat.1.1.0\lib\netstandard2.0\ExcelNumberFormat.dll</HintPath>
+    </Reference>
+    <Reference Include="RBush">
+      <HintPath>..\packages\RBush.Signed.4.0.0\lib\netstandard2.0\RBush.dll</HintPath>
+    </Reference>
+    <Reference Include="SixLabors.Fonts">
+      <HintPath>..\packages\SixLabors.Fonts.1.0.0\lib\netstandard2.0\SixLabors.Fonts.dll</HintPath>
+    </Reference>
     <Reference Include="OpenCvSharp, Version=1.0.0.0, Culture=neutral, PublicKeyToken=6adad1e807fea099, processorArchitecture=MSIL">
       <HintPath>..\packages\OpenCvSharp4.4.8.0.20230708\lib\net48\OpenCvSharp.dll</HintPath>
     </Reference>
@@ -182,6 +203,12 @@
     <Reference Include="halcondotnet">
       <HintPath>C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\bin\dotnet35\halcondotnet.dll</HintPath>
     </Reference>
+    <!-- 260602 hbk Phase 41 — Matrox MIL Lite 10.0 .NET binding (CXP grab) -->
+    <Reference Include="Matrox.MatroxImagingLibrary">
+      <HintPath>C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll</HintPath>
+      <!-- 260603 hbk Phase 41 hotfix CO-41-01 — Private=True: 관리 어셈블리를 출력 폴더로 복사(실 HW grab 빌드에서 런타임 로드). 네이티브 MIL 런타임은 MIL 설치 PATH 로 해석. -->
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -192,6 +219,7 @@
     <Compile Include="Custom\UI\MainWindow.cs" />
     <Compile Include="Device\Camera\Hik\HikCamera.cs" />
     <Compile Include="Device\Camera\Hik\HikCameraProperty.cs" />
+    <Compile Include="Device\Camera\Mil\MilCamera.cs" />
     <Compile Include="Device\LightController\JPFLightController.cs" />
     <Compile Include="Login\LoginManager.cs" />
     <Compile Include="Custom\Sequence\Bottom\Action_BottomInspection.cs" />
@@ -205,22 +233,38 @@
     <Compile Include="Custom\SystemHandler.cs" />
     <Compile Include="Custom\Sequence\SequenceHandler.cs" />
     <Compile Include="Custom\Sequence\Inspection\DatumConfig.cs" />
+    <Compile Include="Custom\Sequence\Inspection\EAngleValidationStatus.cs" />
     <Compile Include="Custom\Sequence\Inspection\EDatumAlgorithm.cs" />
+    <Compile Include="Custom\Sequence\Inspection\EImageSource.cs" />
     <Compile Include="Custom\Sequence\Inspection\EdgeOptionLists.cs" />
     <Compile Include="Custom\Sequence\Inspection\FAIConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\ShotConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />
     <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionSequence.cs" />
+    <Compile Include="Custom\Export\ExcelExportSmokeTest.cs" /> <!--260601 hbk Phase 40 OUT-02 ClosedXML smoke test-->
+    <Compile Include="Custom\Sequence\Inspection\CycleResultSerializer.cs" /> <!--260601 hbk Phase 40 OUT-01/OUT-02-->
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
+    <Compile Include="Custom\Sequence\Inspection\DynamicPropertyHelper.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgePairDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\PointToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\PointToPointDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineAngleMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\CircleDiameterMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineDistanceMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineDistanceMeasurement.cs" />
+    <Compile Include="Custom\Sequence\Inspection\IDatumOriginConsumer.cs" /> <!--260519 hbk Phase 31 D-03-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CircleCenterDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-01 E8-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineAngleMeasurement.cs" /> <!--260519 hbk Phase 31 D-05-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcEdgeDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-08-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcLineIntersectDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-01 I9/I10-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundAngleMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E2-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterCDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E9-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterBDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E10-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundShortAxisDistanceMeasurement.cs" /> <!--260523 hbk Phase 32 — E3 단축 환원-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\DualImageEdgeDistanceMeasurement.cs" /> <!--260530 hbk Phase 39.2 D-G1 — Bottom E5 DualImage FAI-->
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />
@@ -267,6 +311,10 @@
     <Compile Include="UI\Dialog\TextInputBoxWindow.xaml.cs">
       <DependentUpon>TextInputBoxWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Dialog\ComboInputBox.cs" />
+    <Compile Include="UI\Dialog\ComboInputBoxWindow.xaml.cs">
+      <DependentUpon>ComboInputBoxWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Login\AccountManagerWindow.xaml.cs">
       <DependentUpon>AccountManagerWindow.xaml</DependentUpon>
     </Compile>
@@ -285,6 +333,7 @@
     <Compile Include="Sequence\SequenceHandler.cs" />
     <Compile Include="UI\ControlItem\Node.cs" />
     <Compile Include="UI\ControlItem\NodeViewModel.cs" />
+    <Compile Include="UI\ControlItem\IconKeyToGeometryConverter.cs" />
     <Compile Include="UI\Device\DeviceSelector.xaml.cs">
       <DependentUpon>DeviceSelector.xaml</DependentUpon>
     </Compile>
@@ -312,6 +361,9 @@
     <Compile Include="UI\ProcessMonitor\ProcessMonitorWindow.xaml.cs">
       <DependentUpon>ProcessMonitorWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs"> <!--260601 hbk Phase 40 OUT-01-->
+      <DependentUpon>ReviewerWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
       <DependentUpon>OpenRecipeWindow.xaml</DependentUpon>
     </Compile>
@@ -324,11 +376,14 @@
     <Compile Include="UI\ViewModel\ShotNodeViewModel.cs" />
     <Compile Include="UI\ViewModel\FAINodeViewModel.cs" />
     <Compile Include="UI\ViewModel\MeasurementResultRow.cs" />
+    <Compile Include="UI\ViewModel\CycleResultDto.cs" /> <!--260601 hbk Phase 40 OUT-01/OUT-02-->
+    <Compile Include="UI\ViewModel\ReviewMeasurementRow.cs" /> <!--260601 hbk Phase 40 OUT-01-->
     <Compile Include="UI\ViewModel\InspectionViewModel.cs" />
     <Compile Include="UI\Theme\OutlinedTextBlock.cs" />
     <Compile Include="UI\ViewModel\Attributes.cs" />
     <Compile Include="Utility\Ini.cs" />
     <Compile Include="Utility\Logging.cs" />
+    <Compile Include="Utility\NaturalStringComparer.cs" />
     <Compile Include="Setting\SystemSetting.cs" />
     <Compile Include="TcpServer\VisionRequestPacket.cs" />
     <Compile Include="TcpServer\VisionResponsePacket.cs" />
@@ -424,11 +479,19 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="UI\Reviewer\ReviewerWindow.xaml"> <!--260601 hbk Phase 40 OUT-01-->
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UI\Recipe\OpenRecipeWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Dialog\TextInputBoxWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Dialog\ComboInputBoxWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

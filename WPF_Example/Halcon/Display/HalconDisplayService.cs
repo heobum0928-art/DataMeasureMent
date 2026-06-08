@@ -11,6 +11,8 @@ namespace ReringProject.Halcon.Display
     public class HalconDisplayService
     {
         private bool _isFontInitialized;
+        //260519 hbk #6-b — 전역 폰트 문자열 캐시 (DrawRoiLabelAt 축소 폰트 원복용)
+        private string _normalFontName;
         private static readonly HTuple MessageTextParamNames = new HTuple("box");
         private static readonly HTuple MessageTextParamValues = new HTuple("false");
 
@@ -43,25 +45,60 @@ namespace ReringProject.Halcon.Display
             {
                 foreach (var roi in rois)
                 {
-                    string roiColor = roi.Id == selectedRoiId ? "yellow" : "green";
-                    int roiWidth = roi.Id == selectedRoiId ? 3 : 2;
+                    //260509 hbk Phase 20 — ?: → if/else (D-01)
+                    string roiColor;
+                    int roiWidth;
+                    if (roi.Id == selectedRoiId)
+                    {
+                        roiColor = "yellow";
+                        roiWidth = 3;
+                    }
+                    else
+                    {
+                        roiColor = "green";
+                        roiWidth = 2;
+                    }
                     window.SetColor(roiColor);
                     window.SetLineWidth(roiWidth);
 
                     //260423 hbk Phase 11 D-19 — Circle ROI 렌더링 (명시 Shape이 Polygon 감지보다 우선)
                     if (roi.Shape == RoiShape.Circle)
                     {
-                        string circleColor = roi.Id == selectedRoiId ? "yellow" : "lime green";
-                        int circleWidth = roi.Id == selectedRoiId ? 3 : 2;
+                        //260509 hbk Phase 20 — ?: → if/else (D-01)
+                        string circleColor;
+                        int circleWidth;
+                        if (roi.Id == selectedRoiId)
+                        {
+                            circleColor = "yellow";
+                            circleWidth = 3;
+                        }
+                        else
+                        {
+                            circleColor = "lime green";
+                            circleWidth = 2;
+                        }
                         window.SetColor(circleColor);
                         window.SetLineWidth(circleWidth);
                         HOperatorSet.DispCircle(window, roi.CenterRow, roi.CenterCol, roi.Radius);
+
+                        //260519 hbk Phase 31 CO-23.1-02 — polar strip 시각화 (CircleCenterDistance polar 모드일 때만 StepDeg > 0)
+                        //  파라미터(StepDeg/RectL1/L2Ratio) 수정 → ToRoiDefinition 재생성 → 여기서 즉시 반영.
+                        if (roi.CirclePolarStepDeg > 0)
+                        {
+                            RenderCircleStrips(window, roi.CenterRow, roi.CenterCol, roi.Radius,
+                                roi.CirclePolarStepDeg, roi.CircleRectL1Ratio, roi.CircleRectL2Ratio, null);
+                            window.SetColor(circleColor); //260519 hbk Phase 31 CO-23.1-02 — strip 후 색상 복원
+                            window.SetLineWidth(circleWidth);
+                        }
 
                         // Center cross marker (6px, red) — UI-SPEC Circle ROI center marker
                         window.SetColor("red");
                         window.SetLineWidth(2);
                         window.DispLine(roi.CenterRow - 6, roi.CenterCol, roi.CenterRow + 6, roi.CenterCol);
                         window.DispLine(roi.CenterRow, roi.CenterCol - 6, roi.CenterRow, roi.CenterCol + 6);
+                        //260518 hbk #6 — Circle ROI 명칭 라벨 (원 상단 외곽)
+                        if (!string.IsNullOrEmpty(roi.Name))
+                            DrawRoiLabelAt(window, roi.CenterRow - roi.Radius - 22, roi.CenterCol, roi.Name);
                         continue;
                     }
 
@@ -71,10 +108,16 @@ namespace ReringProject.Halcon.Display
                         var pts = ParsePolygonPoints(roi.PolygonPoints);
                         if (pts != null && pts.Count >= 3)
                             RenderPolygon(window, pts, roiColor, roiWidth);
+                        //260518 hbk #6 — Polygon ROI 명칭 라벨 (첫 점 기준 위쪽)
+                        if (!string.IsNullOrEmpty(roi.Name) && pts != null && pts.Count > 0)
+                            DrawRoiLabelAt(window, pts[0].Y - 22, pts[0].X, roi.Name);
                     }
                     else if (roi.Row1 != 0 || roi.Column1 != 0 || roi.Row2 != 0 || roi.Column2 != 0)
                     {
                         DrawRectangleOutline(window, roi.Row1, roi.Column1, roi.Row2, roi.Column2);
+                        //260518 hbk #6 — Rectangle ROI 명칭 라벨 (좌상단 외곽 위쪽)
+                        if (!string.IsNullOrEmpty(roi.Name))
+                            DrawRoiLabelAt(window, roi.Row1 - 22, roi.Column1, roi.Name);
                     }
 
                     if (roi.Id == selectedRoiId && roi.IsTaught)
@@ -141,12 +184,50 @@ namespace ReringProject.Halcon.Display
                         window.SetColor("red");
                         window.SetLineWidth(3);
                     }
+                    //260519 hbk Phase 31 hotfix#5 — FAI-EdgeRaw: strip-loop 누적 raw 에지점 일괄 가시화 (노랑 작은 +).
+                    //  반드시 "FAI-Edge" StartsWith 분기보다 먼저 평가되어야 함 — "FAI-EdgeRaw" 도 prefix 매칭.
+                    //  렌더 후 continue → 기본 DispLine + 큰 X 마커 loop 모두 skip.
+                    else if (string.Equals(overlay.RoiId, "FAI-EdgeRaw", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (overlay.Points != null && overlay.Points.Count > 0)
+                        {
+                            try
+                            {
+                                HTuple rRows = new HTuple();
+                                HTuple rCols = new HTuple();
+                                foreach (var p in overlay.Points)
+                                {
+                                    rRows = rRows.TupleConcat(p.Row);
+                                    rCols = rCols.TupleConcat(p.Column);
+                                }
+                                HOperatorSet.SetColor(window, "yellow");
+                                HOperatorSet.SetLineWidth(window, 1);
+                                HOperatorSet.DispCross(window, rRows, rCols, 4.0, 0.0);
+                            }
+                            catch
+                            {
+                                // RenderRawEdgePoints 관습 — display 예외 swallow
+                            }
+                        }
+                        continue;
+                    }
+                    //260519 hbk Phase 31 hotfix#6 — X 마커 색 분리용: FAI-Edge* 라인은 녹/적(OK/NG), X 는 white 로 구분.
+                    bool isFaiEdgeLine = false; //260519 hbk Phase 31 hotfix#6
                     //260409 hbk Phase 3: FAI edge measurement result overlay colors
-                    else if (overlay.RoiId != null && overlay.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase))
+                    if (overlay.RoiId != null && overlay.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase))
                     {
                         bool isNG = overlay.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase);
-                        window.SetColor(isNG ? "red" : "green");
+                        //260509 hbk Phase 20 — ?: → if/else (D-01)
+                        if (isNG)
+                        {
+                            window.SetColor("red");
+                        }
+                        else
+                        {
+                            window.SetColor("green");
+                        }
                         window.SetLineWidth(2);
+                        isFaiEdgeLine = true; //260519 hbk Phase 31 hotfix#6
                     }
                     else if (string.Equals(overlay.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
                     {
@@ -163,6 +244,14 @@ namespace ReringProject.Halcon.Display
                     if (overlay.Points == null)
                     {
                         continue;
+                    }
+
+                    //260519 hbk Phase 31 hotfix#6 — FAI-Edge* 의 X 마커만 라인과 분리된 색상으로 (사용자 요청: 검출된 점 위치를 라인과 시각적으로 분리)
+                    //260519 hbk Phase 31 hotfix#8 — white → magenta (사용자 색상 변경 요청). Phase 31 측정 overlay 컨텍스트 미사용 색상.
+                    if (isFaiEdgeLine)
+                    {
+                        window.SetColor("magenta"); //260519 hbk Phase 31 hotfix#8 (was: white)
+                        window.SetLineWidth(2); //260519 hbk Phase 31 hotfix#6
                     }
 
                     foreach (var point in overlay.Points)
@@ -221,10 +310,12 @@ namespace ReringProject.Halcon.Display
             if (!datum.LastFindSucceeded) return; //260503 hbk Phase 17 D-13 — find 성공 분기에서만 렌더
             try
             {
-                //260503 hbk Phase 17 D-13 — purple DispCross size=14 lineWidth=2 (UI-SPEC LOCKED)
-                HOperatorSet.SetColor(window, "purple");
+                //260503 hbk Phase 17 D-13 / 260528 Phase 36 UAT fix (CO-36-03) — 검출 origin 십자. RenderDatumOverlay 의 RefOrigin 십자(고정 15~20px)와 동일 방식.
+                //  OFF-SCREEN/markScale/이미지크기 로직 제거 — 티칭 오버레이가 같은 이미지에서 고정 크기로 정상 표시되므로 동일 방식이 옳음.
+                //260528 hbk Phase 36 UAT fix (CO-36-04) — "purple" 는 HALCON 유효 색상명 아님 → SetColor 예외 → catch swallow → 십자 전체 미표시 (L865 "light green" 전례와 동일 결함). "slate blue" 로 교체.
+                HOperatorSet.SetColor(window, "slate blue");
                 HOperatorSet.SetLineWidth(window, 2);
-                const double crossHalf = 14.0; //260503 hbk Phase 17 D-13
+                const double crossHalf = 20.0; //260528 hbk Phase 36 UAT fix — teach 오버레이와 동일 고정 크기
                 HOperatorSet.DispLine(window,
                     datum.DetectedOriginRow - crossHalf, datum.DetectedOriginCol,
                     datum.DetectedOriginRow + crossHalf, datum.DetectedOriginCol); //260503 hbk Phase 17 D-13
@@ -235,16 +326,16 @@ namespace ReringProject.Halcon.Display
                 //260503 hbk Phase 17 D-13 — 좌표 텍스트 "Find (row, col)"
                 EnsureFontInitialized(window);
                 HOperatorSet.SetTposition(window,
-                    datum.DetectedOriginRow - crossHalf - 22,
-                    datum.DetectedOriginCol + crossHalf + 4); //260503 hbk Phase 17 D-13
+                    datum.DetectedOriginRow - crossHalf - 15,
+                    datum.DetectedOriginCol + 5); //260528 hbk Phase 36 UAT fix — teach "Datum Origin" 라벨과 동일 offset
                 HOperatorSet.WriteString(window,
                     "Find (" + datum.DetectedOriginRow.ToString("F1") + ", "
                              + datum.DetectedOriginCol.ToString("F1") + ")"); //260503 hbk Phase 17 D-13
 
-                //260503 hbk Phase 17 D-13 — DetectedRefAngle 방향 화살표 (DrawDirectionArrow 패턴 inlined, length=20, head=5)
+                //260503 hbk Phase 17 D-13 — DetectedRefAngle 방향 화살표 (고정 크기)
                 double angle  = datum.DetectedRefAngle; //260503 hbk Phase 17 D-13
-                double aLen   = 20.0; //260503 hbk Phase 17 D-13
-                double headLn = 5.0; //260503 hbk Phase 17 D-13
+                double aLen   = 30.0; //260528 hbk Phase 36 UAT fix
+                double headLn = 8.0; //260528 hbk Phase 36 UAT fix
                 double endRow = datum.DetectedOriginRow + aLen * System.Math.Sin(angle); //260503 hbk Phase 17 D-13
                 double endCol = datum.DetectedOriginCol + aLen * System.Math.Cos(angle); //260503 hbk Phase 17 D-13
                 HOperatorSet.DispLine(window, datum.DetectedOriginRow, datum.DetectedOriginCol, endRow, endCol); //260503 hbk Phase 17 D-13
@@ -253,11 +344,48 @@ namespace ReringProject.Halcon.Display
                     endRow + headLn * System.Math.Sin(a1), endCol + headLn * System.Math.Cos(a1)); //260503 hbk Phase 17 D-13
                 HOperatorSet.DispLine(window, endRow, endCol,
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2)); //260503 hbk Phase 17 D-13
+
+                //260528 hbk Phase 36 D-36-11/13 — ExpectedAngleDeg 점선 화살표 (AngleTolerance > 0 sentinel 활성 시에만).
+                //  status==None 일 때는 호출 안 함 → 점선 화살표 미표시.
+                if (datum.AngleTolerance > 0.0) //260528 hbk Phase 36 D-36-11/13
+                {
+                    DrawExpectedAngleArrow(window, datum.DetectedOriginRow, datum.DetectedOriginCol,
+                                           datum.ExpectedAngleDeg * System.Math.PI / 180.0, //260528 hbk Phase 36 D-36-11 — deg → rad
+                                           datum.AngleValidationStatus); //260528 hbk Phase 36 D-36-11
+                }
             }
             catch
             {
                 // Suppress display errors (기존 RenderDatumOverlay / RenderCircleDraft catch 관습 유지)
             }
+        }
+
+        //260528 hbk Phase 36 D-36-11 — Expected angle 점선 화살표 (DetectedRefAngle 실선 화살표와 시각 구분).
+        //  PASS = 두 화살표 시각적 일치 (green) / FAIL = 시각적 어긋남 (red). status==None 일 때는 본 메서드 호출 안 됨 (호출자 게이트).
+        //  Halcon 점선 = HOperatorSet.SetLineStyle(window, new HTuple(10, 5)). 호출 직후 빈 HTuple 로 즉시 해제 (다른 렌더 영향 0).
+        private void DrawExpectedAngleArrow(HWindow window, double originRow, double originCol, double expectedAngleRad, ReringProject.Sequence.EAngleValidationStatus status)
+        {
+            try
+            {
+                string color; //260528 hbk Phase 36 D-36-11
+                if (status == ReringProject.Sequence.EAngleValidationStatus.Pass) color = "green";
+                else                                                              color = "red";
+                HOperatorSet.SetColor(window, color); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.SetLineWidth(window, 2);
+                HOperatorSet.SetLineStyle(window, new HTuple(10, 5)); //260528 hbk Phase 36 D-36-11 — 점선 (10px on, 5px off)
+                double aLen = 45.0; //260528 hbk Phase 36 UAT fix — 검출 실선(30px) 보다 길게 (고정 크기)
+                double endRow = originRow + aLen * System.Math.Sin(expectedAngleRad); //260528 hbk Phase 36 D-36-11
+                double endCol = originCol + aLen * System.Math.Cos(expectedAngleRad); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.DispLine(window, originRow, originCol, endRow, endCol); //260528 hbk Phase 36 D-36-11
+                // arrow head (검출 화살표와 동일 패턴)
+                double a1 = expectedAngleRad + 2.5; //260528 hbk Phase 36 D-36-11
+                double a2 = expectedAngleRad - 2.5; //260528 hbk Phase 36 D-36-11
+                double headLn = 10.0; //260528 hbk Phase 36 UAT fix — 고정 크기
+                HOperatorSet.DispLine(window, endRow, endCol, endRow + headLn * System.Math.Sin(a1), endCol + headLn * System.Math.Cos(a1)); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.DispLine(window, endRow, endCol, endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2)); //260528 hbk Phase 36 D-36-11
+                HOperatorSet.SetLineStyle(window, new HTuple()); //260528 hbk Phase 36 D-36-11 — 점선 해제 (다른 렌더 영향 0)
+            }
+            catch { /* Suppress display errors */ }
         }
 
         private void EnsureFontInitialized(HWindow window)
@@ -271,8 +399,19 @@ namespace ReringProject.Halcon.Display
             {
                 HTuple fonts;
                 HOperatorSet.QueryFont(window, out fonts);
-                var font = fonts.TupleLength() > 0 ? fonts.TupleSelect(0) + "-18" : new HTuple("mono-18");
+                //260509 hbk Phase 20 — ?: → if/else (D-01)
+                HTuple font;
+                if (fonts.TupleLength() > 0)
+                {
+                    font = fonts.TupleSelect(0) + "-18";
+                }
+                else
+                {
+                    font = new HTuple("mono-18");
+                }
                 window.SetFont(font);
+                //260519 hbk #6-b — 전역 폰트 문자열 캐시 저장 (DrawRoiLabelAt 원복용)
+                _normalFontName = font.S;
                 _isFontInitialized = true;
             }
             catch
@@ -458,34 +597,82 @@ namespace ReringProject.Halcon.Display
         {
             if (datum == null) return;
             if (datum.CircleROI_Radius <= 0) return;
-            double stepDeg = datum.Circle_PolarStepDeg;
-            //260429 hbk Phase 16 D-01 — 0/음수 division 방지 + CONTEXT D-01: 1°~30° 범위 가드 (데이터 모델 보존)
+            //260519 hbk Phase 31 CO-23.1-02 — primitive 공용 렌더러로 위임 (Datum/FAI circle 공유)
+            RenderCircleStrips(window,
+                datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius,
+                datum.Circle_PolarStepDeg, datum.Circle_RectL1Ratio, datum.Circle_RectL2Ratio,
+                datum.CircleStripSuccesses);
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Strip preview (Edit 모드 = FAI 노드 선택 시).
+        //  사용자 요구: "테스트 눌렀을때는 원만표시 edit 할때는 사각형 표시" — strip 사각형은 검사 overlay 가 아닌 preview 경로.
+        //  successes=null → 회색 strip (parameter preview, 검출 데이터 없음).
+        //  Polar 경로 (Circle_RadialDirection != "") 한정 호출 — fit 경로는 strip 미사용.
+        public void RenderFaiCircleStripPreview(HWindow window,
+            double centerR, double centerC, double radius,
+            double stepDeg, double l1Ratio, double l2Ratio,
+            HTuple datumTransform)
+        {
+            if (window == null) return;
+            if (radius <= 0) return;
+            //260529 hbk CO-39.1-01 rev2 — datum transform 적용 (TryFindCircleByPolarSampling 내부 변환 미러)
+            double tR = centerR, tC = centerC;
+            if (datumTransform != null && datumTransform.Length > 0)
+            {
+                try
+                {
+                    HTuple rT, cT;
+                    HOperatorSet.AffineTransPoint2d(datumTransform, centerR, centerC, out rT, out cT);
+                    tR = rT.D; tC = cT.D;
+                }
+                catch { /* identity fallback */ }
+            }
+            RenderCircleStrips(window, tR, tC, radius, stepDeg, l1Ratio, l2Ratio, null /* preview = gray */);
+        }
+
+        //260519 hbk Phase 31 CO-23.1-02 — primitive 파라미터 strip 렌더러 (Datum CircleConfig / FAI CircleCenterDistance 공용).
+        //  successes != null 이면 per-strip green/red, null 이면 전부 gray (정적 preview — 파라미터 수정 시 즉시 반영).
+        //  strip 생성 식은 VisionAlgorithmService.TryFindCircleByPolarSampling canonical 미러 (-sin/+cos, 화면 CCW).
+        private static void RenderCircleStrips(HWindow window,
+            double centerR, double centerC, double radius,
+            double stepDeg, double l1Ratio, double l2Ratio, bool[] successes)
+        {
+            if (radius <= 0) return;
+            //260519 hbk Phase 31 CO-23.1-02 — 0/음수 division 방지 + 1°~30° 범위 가드
             if (stepDeg < 1.0) stepDeg = 1.0;
             if (stepDeg > 30.0) stepDeg = 30.0;
-            //260503 hbk Phase 17 hotfix#6 — stepCount = 360 / stepDeg (기본 36개 @ 10°). 알고리즘 canonical 식 미러.
             int stepCount = (int)Math.Round(360.0 / stepDeg);
             if (stepCount < 1) stepCount = 1;
             double stepRad = (2.0 * Math.PI) / stepCount;
 
-            double radius  = datum.CircleROI_Radius;
-            double centerR = datum.CircleROI_Row;
-            double centerC = datum.CircleROI_Col;
-            //260429 hbk Phase 16 D-01 — 반경 방향 / 접선 방향 길이
-            //260430 hbk Quick 260430-hox — 12px cap (VisionAlgorithmService.TryFindCircleByPolarSampling 와 동일). Phase 16 UAT FAIL root cause: 큰 radius/ratio → strip 화면 폭만큼 거대 → 시각화 의미 상실 + 알고리즘 fail.
-            double length1 = Math.Min(radius * datum.Circle_RectL1Ratio, 12.0);
-            double length2 = Math.Min(radius * datum.Circle_RectL2Ratio, 12.0);
-            //260429 hbk Phase 16 — 1px 미만이면 시각화 의미 없음, 자동 floor
+            //260519 hbk Phase 31 hotfix — strip half-extent cap (VisionAlgorithmService 와 공유 — WYSIWYG)
+            double length1 = Math.Min(radius * l1Ratio, ReringProject.Halcon.Algorithms.VisionAlgorithmService.CircleStripHalfExtentCapPx);
+            double length2 = Math.Min(radius * l2Ratio, ReringProject.Halcon.Algorithms.VisionAlgorithmService.CircleStripHalfExtentCapPx);
             if (length1 < 1.0) length1 = 1.0;
             if (length2 < 1.0) length2 = 1.0;
 
             try
             {
-                //260429 hbk Phase 16 D-02 — Strip 색상: 회색 thin line, fill 없음 (cyan/magenta/yellow 와 충돌 회피)
-                HOperatorSet.SetColor(window, "gray");
                 HOperatorSet.SetLineWidth(window, 1);
-                //260503 hbk Phase 17 hotfix#6 — stepCount 만큼 0°, stepDeg°, 2*stepDeg°, ... 360° (한 바퀴) 모두 그림.
                 for (int i = 0; i < stepCount; i++)
                 {
+                    //260505 hbk Phase 18 CO-05 — green=성공, red=실패, gray=데이터 없음(fallback)
+                    string stripColor = "gray"; //260505 hbk Phase 18 CO-05
+                    //260505 hbk Phase 18 CO-05
+                    //260505 hbk Phase 18 CO-05
+                    //260509 hbk Phase 20 — ?: → if/else (D-01, Phase 18 CO-05 의미 보존)
+                    if (successes != null && i < successes.Length)
+                    {
+                        if (successes[i])
+                        {
+                            stripColor = "green";
+                        }
+                        else
+                        {
+                            stripColor = "red";
+                        }
+                    }
+                    HOperatorSet.SetColor(window, stripColor); //260505 hbk Phase 18 CO-05
                     double thetaRad = i * stepRad;
                     //260429 hbk Phase 16 D-01 — 알고리즘 canonical 식 미러 (VisionAlgorithmService line 282-285, -sin/+cos)
                     double rectRow = centerR - radius * Math.Sin(thetaRad);
@@ -508,6 +695,8 @@ namespace ReringProject.Halcon.Display
                     HOperatorSet.DispLine(window, r3, c3, r4, c4);
                     HOperatorSet.DispLine(window, r4, c4, r1, c1);
                 }
+                //260505 hbk Phase 18 CO-05 — 루프 완료 후 SetColor 상태 복원 (Halcon Window 전역 상태 오염 방지)
+                HOperatorSet.SetColor(window, "gray"); //260505 hbk Phase 18 CO-05
             }
             catch
             {
@@ -517,17 +706,36 @@ namespace ReringProject.Halcon.Display
 
         //260409 hbk Phase 4: render Datum Line ROI overlays on canvas (D-12)
         /// <summary>Renders Datum Line1/Line2 ROI rectangles and reference origin cross on HWindow.</summary>
-        public void RenderDatumOverlay(HWindow window, DatumConfig datum, bool isSelected)
+        //260529 hbk Phase 39.1-04 G4-03/G4-05 — Datum CTH Edit 모드 분리: isEditMode 옵션 인자 추가. 기본값 false 로 기존 호출자 호환.
+        public void RenderDatumOverlay(HWindow window, DatumConfig datum, bool isSelected, bool isEditMode = false) //260529 hbk Phase 39.1-04 G4-03/G4-05
         {
             if (datum == null) return;
 
-            string color = isSelected ? "cyan" : "blue";
-            int lineWidth = isSelected ? 3 : 2;
+            //260509 hbk Phase 20 — ?: → if/else (D-01)
+            string color;
+            int lineWidth;
+            if (isSelected)
+            {
+                color = "cyan";
+                lineWidth = 3;
+            }
+            else
+            {
+                color = "blue";
+                lineWidth = 2;
+            }
 
             try
             {
                 HOperatorSet.SetColor(window, color);
                 HOperatorSet.SetLineWidth(window, lineWidth);
+
+                //260529 hbk Phase 39.1-04 G4-05 — CTH 평소 모드 (LastTeachSucceeded + !isEditMode) 시 Horizontal_A/B + Circle ROI 사각형 핸들 hide.
+                //  fitting 원 + DetectedOrigin 십자는 LastTeachSucceeded 블록 + RefOrigin 블록에서 별도 그림 — 본 가드 영향 없음.
+                //  TwoLineIntersect / VerticalTwoHorizontal 등 다른 algorithm 에는 영향 0 (CircleTwoHorizontal 한정).
+                bool cthHideRois = (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal) //260529 hbk Phase 39.1-04 G4-05
+                                && datum.LastTeachSucceeded //260529 hbk Phase 39.1-04 G4-05
+                                && !isEditMode; //260529 hbk Phase 39.1-04 G4-05
 
                 //260428 hbk W4-A 후속 — RenderDatumOverlay 슬롯 분기 수정
                 //  Phase 14-03 W4-A 에서 VerticalTwoHorizontal 의 수직 검색 ROI 를 Line1_* → Vertical_* 슬롯으로 이동했으나
@@ -548,7 +756,9 @@ namespace ReringProject.Halcon.Display
                             datum.Line1_Length1, datum.Line1_Length2, "L1");
                     }
                 }
-                else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal)
+                //260527 hbk Phase 34.1 CO-34.1-06 hotfix — DualImage 도 Vertical 슬롯 렌더 필요 (Phase 34 D-34-05 enum 추가 시 누락).
+                else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal
+                      || datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage)
                 {
                     if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0)
                     {
@@ -576,8 +786,10 @@ namespace ReringProject.Halcon.Display
                 }
 
                 //260424 hbk Phase 12 D-10 — Circle ROI 검색 영역 (CircleTwoHorizontal 일 때만 렌더, Line1/Line2 와 동일 색)
+                //260529 hbk Phase 39.1-04 G4-05 — cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Circle ROI + Strip 시각화 hide
                 if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
-                    && datum.CircleROI_Radius > 0)
+                    && datum.CircleROI_Radius > 0
+                    && !cthHideRois) //260529 hbk Phase 39.1-04 G4-05
                 {
                     HOperatorSet.SetColor(window, color);
                     HOperatorSet.SetLineWidth(window, lineWidth);
@@ -595,7 +807,9 @@ namespace ReringProject.Halcon.Display
                 }
 
                 //260424 hbk Phase 12 D-11 — Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
-                if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect)
+                //260529 hbk Phase 39.1-04 G4-05 — cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Horizontal_A/B hide. VTH 는 cthHideRois=false → 영향 0.
+                if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect
+                    && !cthHideRois) //260529 hbk Phase 39.1-04 G4-05
                 {
                     HOperatorSet.SetColor(window, color);
                     HOperatorSet.SetLineWidth(window, lineWidth);
@@ -705,8 +919,41 @@ namespace ReringProject.Halcon.Display
                             datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
                     }
 
-                    //260503 hbk Phase 17 D-13 — z-stack last: DetectedOrigin purple cross 가 가장 위에 그려짐 (LastFindSucceeded gate 는 RenderDatumFindResult 내부)
-                    RenderDatumFindResult(window, datum); //260503 hbk Phase 17 D-13
+                }
+
+                //260528 hbk Phase 36 UAT fix (CO-36-03) — RenderDatumFindResult 를 LastTeachSucceeded 블록 밖으로 이동.
+                //  기존엔 검출 십자가 LastTeachSucceeded==true 일 때만 그려져, 레시피 로드/swap 후(teach 미수행) Test Find 결과가 표시 안 되는 버그.
+                //  검출 십자는 자체 LastFindSucceeded 게이트(메서드 내부)만 따르면 충분. z-stack last 유지.
+                RenderDatumFindResult(window, datum); //260528 hbk Phase 36 UAT fix
+
+                //260529 hbk Phase 39 WF-02 D-04 — Datum 검출 실패 시 'DETECT FAIL' 적색 라벨 렌더.
+                //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: RuntimeDetectFailed 가 true 이면 IsConfigured(티칭 여부) 무관 라벨 표시.
+                //  분기: RuntimeDetectFailed (게이트 발동) OR (IsConfigured && !LastFindSucceeded) (티칭 한 경우 fallback).
+                //  위치: RefOrigin 좌표 우선, 0 (티칭 안 한 datum) 이면 화면 좌상단 (50, 50) fallback.
+                //  색상: "red" 표준명 (memory feedback_halcon_setcolor_invalid_names — "light red" 같은 비표준명 catch swallow 로 silent 미표시 1순위 의심).
+                //  z-stack: RenderDatumFindResult 직후 — 검출 십자 위에 라벨 표시.
+                //  try/catch swallow: 기존 RenderDatumOverlay catch 컨벤션 그대로 (Suppress display errors).
+                if (datum.RuntimeDetectFailed || (datum.IsConfigured && !datum.LastFindSucceeded)) //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드 분기
+                {
+                    try //260529 hbk Phase 39 WF-02 D-04
+                    {
+                        EnsureFontInitialized(window); //260529 hbk Phase 39 WF-02 D-04 — DrawRoiLabelAt analog 패턴
+                        HOperatorSet.SetColor(window, "red"); //260529 hbk Phase 39 WF-02 D-04 — 표준 색상명 (memory feedback_halcon_setcolor_invalid_names)
+                        //260529 hbk Phase 39 hotfix CO-39-03 — 사용자 요청: RefOrigin 위 → 이미지 오른쪽 상단 (GetPart 로 현재 표시 영역 좌표 얻기).
+                        //  datum 이름 hash 기반 row stagger 로 여러 datum 동시 실패 시 라벨 겹침 회피 (6단계 25px 간격).
+                        //  라벨 텍스트에 datum 이름 포함 → 겹쳐도 식별 가능 + 사용자가 어느 datum 실패인지 즉시 인지.
+                        HTuple partRow1, partCol1, partRow2, partCol2; //260529 hbk Phase 39 hotfix CO-39-03
+                        HOperatorSet.GetPart(window, out partRow1, out partCol1, out partRow2, out partCol2); //260529 hbk Phase 39 hotfix CO-39-03
+                        int hashStagger = System.Math.Abs(((datum.DatumName ?? "").GetHashCode()) % 6) * 25; //260529 hbk Phase 39 hotfix CO-39-03 — 0/25/50/75/100/125 중 하나
+                        double labelRow = (double)partRow1.D + 20.0 + hashStagger; //260529 hbk Phase 39 hotfix CO-39-03 — 상단 20px + stagger
+                        double labelCol = (double)partCol2.D - 280.0; //260529 hbk Phase 39 hotfix CO-39-03 — 오른쪽 가장자리에서 280px 안쪽 (라벨 길이 고려)
+                        HOperatorSet.SetTposition(window, labelRow, labelCol); //260529 hbk Phase 39 hotfix CO-39-03 — 우상단 좌표
+                        HOperatorSet.WriteString(window, "DETECT FAIL: " + (datum.DatumName ?? "Datum")); //260529 hbk Phase 39 hotfix CO-39-03 — datum 이름 포함
+                    }
+                    catch //260529 hbk Phase 39 WF-02 D-04
+                    {
+                        // Suppress display errors (기존 RenderDatumOverlay catch 컨벤션) //260529 hbk Phase 39 WF-02 D-04
+                    }
                 }
             }
             catch
@@ -731,14 +978,26 @@ namespace ReringProject.Halcon.Display
         }
 
         //260424 hbk Phase 12 Gap-2 — 주어진 (row, col) 에 yellow 텍스트 라벨 렌더 (Circle ROI 등 비-Rectangle 용)
+        //260519 hbk #6-b — 라벨 폰트 30% 축소 (전역 폰트 영향 0: 렌더 후 원복)
         private void DrawRoiLabelAt(HWindow window, double row, double col, string label)
         {
             try
             {
                 EnsureFontInitialized(window);
+                //260519 hbk #6-b — 라벨 전용 축소 폰트 (~70% of 18 = 13): "-18" → "-13" 치환
+                if (!string.IsNullOrEmpty(_normalFontName))
+                {
+                    string smallFont = _normalFontName.Replace("-18", "-13");
+                    HOperatorSet.SetFont(window, smallFont);
+                }
                 HOperatorSet.SetColor(window, "yellow");
                 HOperatorSet.SetTposition(window, row, col);
                 HOperatorSet.WriteString(window, label);
+                //260519 hbk #6-b — 전역 폰트 원복 (좌표/메시지 텍스트 회귀 방지)
+                if (!string.IsNullOrEmpty(_normalFontName))
+                {
+                    HOperatorSet.SetFont(window, _normalFontName);
+                }
             }
             catch
             {

@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Window_Title" xml:space="preserve">
-    <value>DDA Vision Inspector</value>
+    <value>Measurement Vision</value>
   </data>
   <data name="WRD_HelloWorld" xml:space="preserve">
     <value>Hello World! Localization Sample</value>

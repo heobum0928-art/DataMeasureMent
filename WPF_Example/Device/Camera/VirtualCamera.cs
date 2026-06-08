@@ -19,6 +19,7 @@ namespace ReringProject.Device {
         Virtual,
         Basler,
         HIK,
+        MIL,   //260602 hbk Phase 41 — CXP 카메라 MIL Lite 10.0
     }
 
     /// <summary>

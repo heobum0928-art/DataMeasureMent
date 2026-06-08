@@ -20,7 +20,9 @@ namespace ReringProject.Halcon.Algorithms
 
         //260424 hbk Phase 13 D-10 — Req 5d 방향 정합성 임계각 (고정값; 사용자 튜닝 필요해지면 DatumConfig 필드화 Deferred)
         private const double HORIZONTAL_TOLERANCE_DEG    = 15.0;
-        private const double PERPENDICULAR_TOLERANCE_DEG = 5.0;
+        //260528 hbk Phase 36 UAT — 실측 fixture 가로/세로축 83.5° (90°에서 6.5° 어긋남) 가 기존 5.0° 한계에 막혀 Teach 불가 → 임시 10.0° 완화.
+        //  TODO: 사용자 튜닝 가능하도록 DatumConfig 필드화 검토 (carry-over CO-36-01). TwoLineAngleToleranceDeg 는 TwoLineIntersect 전용이라 이 경로에 미적용.
+        private const double PERPENDICULAR_TOLERANCE_DEG = 10.0; //260528 hbk Phase 36 UAT
 
         /// <summary>
         /// 런타임 Datum 찾기: 이미지에서 두 라인을 검출하고 hom_mat2d 변환 행렬을 반환한다.
@@ -61,6 +63,45 @@ namespace ReringProject.Halcon.Algorithms
                 default:
                     return TryFindTwoLineIntersect(image, config, out transform, out error);
             }
+        }
+
+        //260527 hbk Phase 34 D-34-01/02 — VerticalTwoHorizontalDualImage 변형 전용 2-image 오버로드.
+        //  imageHorizontal: 가로축 이미지 (Horizontal_A + Horizontal_B ROI 검출 대상, TeachingImagePath 로드)
+        //  imageVertical:   세로축 이미지 (Vertical ROI 검출 대상, TeachingImagePath_Vertical 로드)
+        //  algorithm != VerticalTwoHorizontalDualImage 일 때는 error 반환 (잘못된 오버로드 호출 가드).
+        //  기존 단일-이미지 TryFindDatum 시그니처는 unchanged — 1-image algorithm 3종 회귀 0 (D-34-13).
+        public bool TryFindDatum(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out HTuple transform, out string error) //260527 hbk Phase 34 D-34-01/02
+        {
+            error = null; //260527 hbk Phase 34 D-34-01
+            HOperatorSet.HomMat2dIdentity(out transform); //260527 hbk Phase 34 D-34-01
+
+            if (imageHorizontal == null || imageVertical == null || config == null) //260527 hbk Phase 34 D-34-01
+            {
+                error = "image(s) or config is null"; //260527 hbk Phase 34 D-34-01
+                return false; //260527 hbk Phase 34 D-34-01
+            }
+
+            config.EnsurePerRoiDefaults(); //260527 hbk Phase 34 D-34-01
+            config.LastFindSucceeded = false; //260527 hbk Phase 34 D-34-01
+
+            //260528 hbk Phase 36 D-36-03 — SameFrame 가드: DualImage 두 입력은 동일 sensor frame 가정 (D-36-01: 동일 카메라 + 다른 조명/Z, D-36-02: 좌표 변환 0).
+            //260528 hbk Phase 36 D-36-03 — width/height 불일치 시 IntersectionLl 의 두 픽셀 좌표가 다른 평면이 되어 의미 없는 origin/angle 산출 → 즉시 차단.
+            HTuple wH, hH, wV, hV; //260528 hbk Phase 36 D-36-03
+            imageHorizontal.GetImageSize(out wH, out hH); //260528 hbk Phase 36 D-36-03
+            imageVertical.GetImageSize(out wV, out hV); //260528 hbk Phase 36 D-36-03
+            if (wH.I != wV.I || hH.I != hV.I) //260528 hbk Phase 36 D-36-03
+            {
+                error = "DualImage requires same-frame image pair: horizontal " + wH.I + "x" + hH.I + " vs vertical " + wV.I + "x" + hV.I; //260528 hbk Phase 36 D-36-03
+                return false; //260528 hbk Phase 36 D-36-03
+            }
+
+            if (config.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) //260527 hbk Phase 34 D-34-02
+            {
+                error = "Algorithm is not VerticalTwoHorizontalDualImage; use single-image TryFindDatum overload"; //260527 hbk Phase 34 D-34-02
+                return false; //260527 hbk Phase 34 D-34-02
+            }
+
+            return TryFindVerticalTwoHorizontalDualImage(imageHorizontal, imageVertical, config, out transform, out error); //260527 hbk Phase 34 D-34-01/02
         }
 
         //260503 hbk Phase 17 hotfix#7 — 기존 TryFindDatum 본문 (TwoLineIntersect 검출 + transform 빌드) 을 private 으로 분리.
@@ -160,9 +201,15 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D; //260503 hbk Phase 17 D-13
                 config.DetectedOriginCol = curCol.D; //260503 hbk Phase 17 D-13
                 config.DetectedRefAngle  = curAngle; //260503 hbk Phase 17 D-13
-                //260503 hbk Phase 17 D-16 — 결과 메트릭 (검출 점 개수 합계 + 각도 deg)
-                config.DetectedEdgeCount = (line1RawRows != null ? line1RawRows.TupleLength() : 0)
-                                         + (line2RawRows != null ? line2RawRows.TupleLength() : 0); //260503 hbk Phase 17 D-16
+                //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = Line2 실제 검출 각도 (X축 측정 기준)
+                config.DetectedRefAngle2 = Math.Atan2(
+                    line2RowEnd - line2RowBegin, line2ColEnd - line2ColBegin); //260519 hbk Phase 31 hotfix#3
+                //260509 hbk Phase 20 — 결과 메트릭 (검출 점 개수 합계 + 각도 deg). ?: → 명시 if/else (P-9 HTuple null 가드)
+                int line1EdgeCount = 0;
+                if (line1RawRows != null) line1EdgeCount = line1RawRows.TupleLength(); //260509 hbk Phase 20
+                int line2EdgeCount = 0;
+                if (line2RawRows != null) line2EdgeCount = line2RawRows.TupleLength(); //260509 hbk Phase 20
+                config.DetectedEdgeCount = line1EdgeCount + line2EdgeCount; //260509 hbk Phase 20
                 config.DetectedFitRMSE   = 0.0; //260503 hbk Phase 17 D-16 — fit RMSE 미수집 (placeholder)
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI; //260503 hbk Phase 17 D-16
                 config.LastFindSucceeded = true; //260503 hbk Phase 17 D-13
@@ -197,7 +244,8 @@ namespace ReringProject.Halcon.Algorithms
                 double centerRow, centerCol, radius;
                 HTuple circleEdgeRows, circleEdgeCols;
                 string circleError;
-                string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
+                string circlePolarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection); //260508 hbk Phase 28 D-03 — inline ternary → helper 호출 (DRY)
+                bool[] unusedStrips; //260505 hbk Phase 18 CO-05 — D-14: find 경로는 strip 색상 갱신 없음
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
@@ -207,6 +255,7 @@ namespace ReringProject.Halcon.Algorithms
                         null,
                         out centerRow, out centerCol, out radius,
                         out circleEdgeRows, out circleEdgeCols,
+                        out unusedStrips, //260505 hbk Phase 18 CO-05 — D-14: find 경로는 CircleStripSuccesses 갱신 안 함
                         out circleError))
                 {
                     error = "Circle: " + circleError;
@@ -307,6 +356,11 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
+                //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = 원중심 통과 수직 가상선 (Step 5: centerRow±1, centerCol).
+                //  방향벡터 (Δrow=+2, Δcol=0) → Atan2(2,0) = π/2 (순수 이미지-수직). X축 측정 기준.
+                config.DetectedRefAngle2 = Math.PI / 2.0; //260519 hbk Phase 31 hotfix#3
+                config.DetectedCircleRow = centerRow; //260521 hbk Phase 32 — E2 CompoundAngle 주입용 원중심
+                config.DetectedCircleCol = centerCol; //260521 hbk Phase 32
                 config.DetectedEdgeCount = circleEdgeRows.TupleLength() + totalEdges;
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
@@ -488,7 +542,12 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
-                config.DetectedEdgeCount = (vertRawRows != null ? vertRawRows.TupleLength() : 0) + totalEdges;
+                //260519 hbk Phase 31 hotfix#3 — 2차(수직) 기준선 = 수직 에지 실제 검출 각도 (vertPhiDetected). X축 측정 기준.
+                config.DetectedRefAngle2 = vertPhiDetected; //260519 hbk Phase 31 hotfix#3
+                //260509 hbk Phase 20 — ?: → 명시 if/else (P-9 HTuple null 가드)
+                int vertEdgeCount = 0;
+                if (vertRawRows != null) vertEdgeCount = vertRawRows.TupleLength(); //260509 hbk Phase 20
+                config.DetectedEdgeCount = vertEdgeCount + totalEdges; //260509 hbk Phase 20
                 config.DetectedFitRMSE   = 0.0;
                 config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI;
 
@@ -527,6 +586,204 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260527 hbk Phase 34 D-34-01/02 — VerticalTwoHorizontalDualImage Find 분기.
+        //  본문 = TryFindVerticalTwoHorizontal 100% 복제 + ROI 별 이미지 입력 분기 (Vertical=imageVertical, Horizontal A/B=imageHorizontal).
+        //  나머지 로직 (totalEdges 가드 / TupleConcat / FitLineContourXld / IntersectionLl / Validate / hom_mat2d / Detected transient) 모두 동일.
+        private bool TryFindVerticalTwoHorizontalDualImage(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out HTuple transform, out string error) //260527 hbk Phase 34 D-34-01/02
+        {
+            error = null; //260527 hbk Phase 34 D-34-01
+            HOperatorSet.HomMat2dIdentity(out transform); //260527 hbk Phase 34 D-34-01
+
+            HObject contour = null; //260527 hbk Phase 34 D-34-01
+            try
+            {
+                HTuple imageVerticalWidth, imageVerticalHeight; //260527 hbk Phase 34 D-34-01 — 세로축 이미지 크기
+                imageVertical.GetImageSize(out imageVerticalWidth, out imageVerticalHeight); //260527 hbk Phase 34 D-34-01
+
+                // Vertical 라인 검출 — imageVertical 사용 (D-34-01)
+                double vrB, vcB, vrE, vcE; //260527 hbk Phase 34 D-34-01
+                HTuple vertRawRows, vertRawCols; //260527 hbk Phase 34 D-34-01
+                string lineError; //260527 hbk Phase 34 D-34-01
+                if (!TryFindLine(
+                        imageVertical, imageVerticalWidth, imageVerticalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Vertical_Row, config.Vertical_Col, config.Vertical_Phi,
+                        config.Vertical_Length1, config.Vertical_Length2,
+                        config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
+                        config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        out vrB, out vcB, out vrE, out vcE,
+                        out vertRawRows, out vertRawCols,
+                        out lineError,
+                        "Vertical")) //260527 hbk Phase 34 D-34-01
+                {
+                    error = "Vertical: " + lineError; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                HTuple imageHorizontalWidth, imageHorizontalHeight; //260527 hbk Phase 34 D-34-01 — 가로축 이미지 크기
+                imageHorizontal.GetImageSize(out imageHorizontalWidth, out imageHorizontalHeight); //260527 hbk Phase 34 D-34-01
+
+                // Horizontal A — imageHorizontal 사용 (D-34-01)
+                HTuple rowEdgeA, colEdgeA; //260527 hbk Phase 34 D-34-01
+                string edgeErrorA; //260527 hbk Phase 34 D-34-01
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, imageHorizontalWidth, imageHorizontalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A")) //260527 hbk Phase 34 D-34-01
+                {
+                    error = "Horizontal_A: " + edgeErrorA; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                // Horizontal B — imageHorizontal 사용 (D-34-01)
+                HTuple rowEdgeB, colEdgeB; //260527 hbk Phase 34 D-34-01
+                string edgeErrorB; //260527 hbk Phase 34 D-34-01
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, imageHorizontalWidth, imageHorizontalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B")) //260527 hbk Phase 34 D-34-01
+                {
+                    error = "Horizontal_B: " + edgeErrorB; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength(); //260527 hbk Phase 34 D-34-01
+                if (totalEdges < MIN_HORIZONTAL_EDGES) //260527 hbk Phase 34 D-34-01
+                {
+                    error = "Horizontal line fit failed: insufficient edges (" + totalEdges + ")"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                // A+B concat → 라인 fit
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB); //260527 hbk Phase 34 D-34-01
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB); //260527 hbk Phase 34 D-34-01
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols); //260527 hbk Phase 34 D-34-01
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df; //260527 hbk Phase 34 D-34-01
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        contour, "tukey", -1, 0, 5, 2,
+                        out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df); //260527 hbk Phase 34 D-34-01
+                }
+                catch (Exception fitEx)
+                {
+                    error = "Horizontal line fit failed: " + fitEx.Message; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                // 수직 라인 × 수평 결합선
+                HTuple curRow, curCol, isOverlapping; //260527 hbk Phase 34 D-34-01
+                HOperatorSet.IntersectionLl(
+                    vrB, vcB, vrE, vcE,
+                    hrB, hcB, hrE, hcE,
+                    out curRow, out curCol, out isOverlapping); //260527 hbk Phase 34 D-34-01
+
+                if (isOverlapping.I == 1) //260527 hbk Phase 34 D-34-01
+                {
+                    error = "Intersection undefined: lines are collinear"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) ||
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D)) //260527 hbk Phase 34 D-34-01
+                {
+                    error = "Intersection undefined: lines are parallel"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                double curAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D); //260527 hbk Phase 34 D-34-01
+
+                // 직각성 검증 (Teach 와 동일)
+                double vertPhiDetected = Math.Atan2(vrE - vrB, vcE - vcB); //260527 hbk Phase 34 D-34-01
+                string angleError; //260527 hbk Phase 34 D-34-01
+                if (!ValidateHorizontalVerticalAngles(curAngle, vertPhiDetected, out angleError)) //260527 hbk Phase 34 D-34-01
+                {
+                    error = angleError; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                // hom_mat2d 빌드
+                double dRow = curRow.D - config.RefOriginRow; //260527 hbk Phase 34 D-34-01
+                double dCol = curCol.D - config.RefOriginCol; //260527 hbk Phase 34 D-34-01
+                double dAngle = curAngle - config.RefAngleRad; //260527 hbk Phase 34 D-34-01
+                HTuple mat; //260527 hbk Phase 34 D-34-01
+                HOperatorSet.HomMat2dIdentity(out mat); //260527 hbk Phase 34 D-34-01
+                HOperatorSet.HomMat2dTranslate(mat, dRow, dCol, out mat); //260527 hbk Phase 34 D-34-01
+                HOperatorSet.HomMat2dRotate(mat, dAngle, curRow.D, curCol.D, out transform); //260527 hbk Phase 34 D-34-01
+
+                // DetectedOrigin transient
+                config.DetectedOriginRow = curRow.D; //260527 hbk Phase 34 D-34-01
+                config.DetectedOriginCol = curCol.D; //260527 hbk Phase 34 D-34-01
+                config.DetectedRefAngle  = curAngle; //260527 hbk Phase 34 D-34-01
+                config.DetectedRefAngle2 = vertPhiDetected; //260527 hbk Phase 34 D-34-01
+                int vertEdgeCount = 0; //260527 hbk Phase 34 D-34-01
+                if (vertRawRows != null) vertEdgeCount = vertRawRows.TupleLength(); //260527 hbk Phase 34 D-34-01
+                config.DetectedEdgeCount = vertEdgeCount + totalEdges; //260527 hbk Phase 34 D-34-01
+                config.DetectedFitRMSE   = 0.0; //260527 hbk Phase 34 D-34-01
+                config.DetectedAngleDeg  = curAngle * 180.0 / System.Math.PI; //260527 hbk Phase 34 D-34-01
+
+                //260528 hbk Phase 36 D-36-08/13 — ExpectedAngleDeg / AngleTolerance 게이트 (TwoLineAngleToleranceDeg L915 sentinel 모델과 정렬).
+                //  Tolerance > 0 일 때만 활성. Expected=0 + Tolerance>0 도 활성 (사용자가 0° 검증을 의도) — sentinel 단일 조건.
+                //  결과는 transient AngleValidationStatus 에 기록. error 반환 안 함 (Find 자체는 PASS 유지 — UI 색상 배지로만 표시 — Plan 03).
+                //  wrap-around: (Detected - Expected) 를 [-180, 180] 정규화 후 절댓값 비교 (179 vs -179 = 2° 차이로 정상 판정).
+                if (config.AngleTolerance > 0.0) //260528 hbk Phase 36 D-36-13
+                {
+                    double diff = config.DetectedAngleDeg - config.ExpectedAngleDeg; //260528 hbk Phase 36 D-36-08
+                    diff = ((diff + 540.0) % 360.0) - 180.0; //260528 hbk Phase 36 D-36-08 — wrap-around 정규화 (CONTEXT 권고 공식)
+                    double absDiff = System.Math.Abs(diff); //260528 hbk Phase 36 D-36-08
+                    if (absDiff <= config.AngleTolerance) //260528 hbk Phase 36 D-36-08
+                        config.AngleValidationStatus = EAngleValidationStatus.Pass; //260528 hbk Phase 36 D-36-08
+                    else //260528 hbk Phase 36 D-36-08
+                        config.AngleValidationStatus = EAngleValidationStatus.Fail; //260528 hbk Phase 36 D-36-08
+                }
+                else //260528 hbk Phase 36 D-36-13 — sentinel: 검증 비활성
+                {
+                    config.AngleValidationStatus = EAngleValidationStatus.None; //260528 hbk Phase 36 D-36-13
+                }
+
+                // Visual transient — Line1Detected = 검출된 수직 라인, Line2Detected = 수평 결합 라인.
+                config.Line1Detected_RBegin = vrB; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_CBegin = vcB; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_REnd   = vrE; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_CEnd   = vcE; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_RBegin = hrB.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_CBegin = hcB.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_REnd   = hrE.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_CEnd   = hcE.D; //260527 hbk Phase 34 D-34-01
+                //  Raw edge points (검출 trace 시각화)
+                config.Vertical_DetectedEdgeRows     = vertRawRows; //260527 hbk Phase 34 D-34-01
+                config.Vertical_DetectedEdgeCols     = vertRawCols; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB; //260527 hbk Phase 34 D-34-01
+
+                config.LastFindSucceeded = true; //260527 hbk Phase 34 D-34-01
+
+                return true; //260527 hbk Phase 34 D-34-01
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message; //260527 hbk Phase 34 D-34-01
+                HOperatorSet.HomMat2dIdentity(out transform); //260527 hbk Phase 34 D-34-01
+                return false; //260527 hbk Phase 34 D-34-01
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } } //260527 hbk Phase 34 D-34-01
+            }
+        }
+
         /// <summary>
         /// 티칭용 Datum 찾기: 이미지에서 두 라인을 검출하고 기준 원점/각도를 DatumConfig에 저장한다.
         /// 성공 시 config.IsConfigured = true로 설정된다.
@@ -561,6 +818,42 @@ namespace ReringProject.Halcon.Algorithms
                 default:
                     return TryTeachTwoLineIntersect(image, config, out error);
             }
+        }
+
+        //260527 hbk Phase 34 D-34-01/02 — VerticalTwoHorizontalDualImage 변형 전용 2-image Teach 오버로드.
+        //  imageHorizontal: 가로축 이미지 (Horizontal_A + Horizontal_B ROI 티칭 대상)
+        //  imageVertical:   세로축 이미지 (Vertical ROI 티칭 대상)
+        //  algorithm != VerticalTwoHorizontalDualImage 일 때는 error 반환 (잘못된 오버로드 호출 가드).
+        //  기존 단일-이미지 TryTeachDatum 시그니처는 unchanged — 1-image algorithm 3종 회귀 0 (D-34-13).
+        public bool TryTeachDatum(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out string error) //260527 hbk Phase 34 D-34-01/02
+        {
+            error = null; //260527 hbk Phase 34 D-34-01
+
+            if (imageHorizontal == null || imageVertical == null || config == null) //260527 hbk Phase 34 D-34-01
+            {
+                error = "image(s) or config is null"; //260527 hbk Phase 34 D-34-01
+                return false; //260527 hbk Phase 34 D-34-01
+            }
+
+            config.EnsurePerRoiDefaults(); //260527 hbk Phase 34 D-34-01
+
+            //260528 hbk Phase 36 D-36-03 — SameFrame 가드 (Find 와 대칭). 에러 메시지 포맷 byte-identical — 사용자 진단 일관성.
+            HTuple wH, hH, wV, hV; //260528 hbk Phase 36 D-36-03
+            imageHorizontal.GetImageSize(out wH, out hH); //260528 hbk Phase 36 D-36-03
+            imageVertical.GetImageSize(out wV, out hV); //260528 hbk Phase 36 D-36-03
+            if (wH.I != wV.I || hH.I != hV.I) //260528 hbk Phase 36 D-36-03
+            {
+                error = "DualImage requires same-frame image pair: horizontal " + wH.I + "x" + hH.I + " vs vertical " + wV.I + "x" + hV.I; //260528 hbk Phase 36 D-36-03
+                return false; //260528 hbk Phase 36 D-36-03
+            }
+
+            if (config.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) //260527 hbk Phase 34 D-34-02
+            {
+                error = "Algorithm is not VerticalTwoHorizontalDualImage; use single-image TryTeachDatum overload"; //260527 hbk Phase 34 D-34-02
+                return false; //260527 hbk Phase 34 D-34-02
+            }
+
+            return TryTeachVerticalTwoHorizontalDualImage(imageHorizontal, imageVertical, config, out error); //260527 hbk Phase 34 D-34-01/02
         }
 
         //260423 hbk Phase 12 D-04 — 기존 Phase 4 TwoLineIntersect 본문 private 이동 (코드 동일, 회귀 0)
@@ -725,8 +1018,9 @@ namespace ReringProject.Halcon.Algorithms
                     "TryTeachCircleTwoHorizontal: ROI=(" + config.CircleROI_Row + "," + config.CircleROI_Col + ",r=" + config.CircleROI_Radius + ") " +
                     "polar(step=" + config.Circle_PolarStepDeg + " L1=" + config.Circle_RectL1Ratio + " L2=" + config.Circle_RectL2Ratio + ")");
                 //260503 hbk Phase 17 D-02 — Circle_RadialDirection ("Inward"/"Outward") → polarity ("positive"/"negative") override (EdgePolarity 무시)
-                string circlePolarity = string.Equals(config.Circle_RadialDirection, "Outward", System.StringComparison.OrdinalIgnoreCase) ? "negative" : "positive";
+                string circlePolarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection); //260508 hbk Phase 28 D-03 — inline ternary → helper 호출 (DRY)
                 //260426 hbk Phase 14-05 — Circle per-ROI 에지 파라미터 + Polar sampling 파라미터 (14-04 신규 3 필드)
+                bool[] circleStrips; //260505 hbk Phase 18 CO-05
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
                         config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
@@ -736,12 +1030,14 @@ namespace ReringProject.Halcon.Algorithms
                         null, // teaching-phase identity transform (legacy 동일)
                         out centerRow, out centerCol, out radius,
                         out circleEdgeRows, out circleEdgeCols,
+                        out circleStrips, //260505 hbk Phase 18 CO-05
                         out circleError))
                 {
                     config.LastTeachSucceeded = false;
                     error = "Circle fit failed: " + circleError; //260423 hbk Phase 12 D-14 SPEC AC literal (Req 5c) 보존
                     return false;
                 }
+                config.CircleStripSuccesses = circleStrips; //260505 hbk Phase 18 CO-05 — per-strip 성공 여부 보관 (D-14: teach 경로만)
 
                 config.CircleCenter_Row      = centerRow;
                 config.CircleCenter_Col      = centerCol;
@@ -1061,6 +1357,172 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260527 hbk Phase 34 D-34-01/02 — VerticalTwoHorizontalDualImage Teach 분기.
+        //  본문 = TryTeachVerticalTwoHorizontal 100% 복제 + ROI 별 이미지 입력 분기 (Vertical=imageVertical, Horizontal A/B=imageHorizontal).
+        //  나머지 로직 (Vertical TryFindLine / Horizontal A/B TryExtractEdgePoints / totalEdges 가드 / TupleConcat / FitLineContourXld / IntersectionLl / 기준값 저장 / Line1Detected/Line2Detected transient / ValidateHorizontalVerticalAngles 게이트) 모두 동일.
+        private bool TryTeachVerticalTwoHorizontalDualImage(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out string error) //260527 hbk Phase 34 D-34-01/02
+        {
+            error = null; //260527 hbk Phase 34 D-34-01
+
+            HObject contour = null; //260527 hbk Phase 34 D-34-01
+
+            try
+            {
+                HTuple imageVerticalWidth, imageVerticalHeight; //260527 hbk Phase 34 D-34-01 — 세로축 이미지 크기
+                imageVertical.GetImageSize(out imageVerticalWidth, out imageVerticalHeight); //260527 hbk Phase 34 D-34-01
+
+                // Vertical 라인 검출 — imageVertical 사용 (D-34-01)
+                double vrB, vcB, vrE, vcE; //260527 hbk Phase 34 D-34-01
+                HTuple vertRawRows, vertRawCols; //260527 hbk Phase 34 D-34-01
+                string lineError; //260527 hbk Phase 34 D-34-01
+                if (!TryFindLine(
+                        imageVertical, imageVerticalWidth, imageVerticalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Vertical_Row, config.Vertical_Col, config.Vertical_Phi,
+                        config.Vertical_Length1, config.Vertical_Length2,
+                        config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
+                        config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        out vrB, out vcB, out vrE, out vcE,
+                        out vertRawRows, out vertRawCols,
+                        out lineError,
+                        "Vertical")) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Vertical line fit failed: " + lineError; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                config.Vertical_DetectedEdgeRows = vertRawRows; //260527 hbk Phase 34 D-34-01
+                config.Vertical_DetectedEdgeCols = vertRawCols; //260527 hbk Phase 34 D-34-01
+
+                HTuple imageHorizontalWidth, imageHorizontalHeight; //260527 hbk Phase 34 D-34-01 — 가로축 이미지 크기
+                imageHorizontal.GetImageSize(out imageHorizontalWidth, out imageHorizontalHeight); //260527 hbk Phase 34 D-34-01
+
+                // Horizontal A — imageHorizontal 사용 (D-34-01)
+                HTuple rowEdgeA, colEdgeA; //260527 hbk Phase 34 D-34-01
+                string edgeErrorA; //260527 hbk Phase 34 D-34-01
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, imageHorizontalWidth, imageHorizontalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A")) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: " + edgeErrorA; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                config.Horizontal_A_DetectedEdgeRows = rowEdgeA; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_A_DetectedEdgeCols = colEdgeA; //260527 hbk Phase 34 D-34-01
+
+                // Horizontal B — imageHorizontal 사용 (D-34-01)
+                HTuple rowEdgeB, colEdgeB; //260527 hbk Phase 34 D-34-01
+                string edgeErrorB; //260527 hbk Phase 34 D-34-01
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, imageHorizontalWidth, imageHorizontalHeight, //260527 hbk Phase 34 D-34-01
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B")) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: " + edgeErrorB; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                config.Horizontal_B_DetectedEdgeRows = rowEdgeB; //260527 hbk Phase 34 D-34-01
+                config.Horizontal_B_DetectedEdgeCols = colEdgeB; //260527 hbk Phase 34 D-34-01
+
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength(); //260527 hbk Phase 34 D-34-01
+                if (totalEdges < MIN_HORIZONTAL_EDGES) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: insufficient edges (" + totalEdges + ")"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB); //260527 hbk Phase 34 D-34-01
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB); //260527 hbk Phase 34 D-34-01
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols); //260527 hbk Phase 34 D-34-01
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df; //260527 hbk Phase 34 D-34-01
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        contour, "tukey", -1, 0, 5, 2,
+                        out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df); //260527 hbk Phase 34 D-34-01
+                }
+                catch (Exception fitEx)
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Horizontal line fit failed: " + fitEx.Message; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                HTuple curRow, curCol, isOverlapping; //260527 hbk Phase 34 D-34-01
+                HOperatorSet.IntersectionLl(
+                    vrB, vcB, vrE, vcE,
+                    hrB, hcB, hrE, hcE,
+                    out curRow, out curCol, out isOverlapping); //260527 hbk Phase 34 D-34-01
+
+                if (isOverlapping.I == 1) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Intersection undefined: lines are collinear"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                if (double.IsInfinity(curRow.D) || double.IsInfinity(curCol.D) ||
+                    double.IsNaN(curRow.D) || double.IsNaN(curCol.D)) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = "Intersection undefined: lines are parallel"; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+
+                // 기준값 저장
+                config.RefOriginRow = curRow.D; //260527 hbk Phase 34 D-34-01
+                config.RefOriginCol = curCol.D; //260527 hbk Phase 34 D-34-01
+                config.RefAngleRad  = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D); //260527 hbk Phase 34 D-34-01
+                config.IsConfigured = true; //260527 hbk Phase 34 D-34-01
+
+                // 검출 라인 오버레이 (Line1Detected = 수직 검출선, Line2Detected = 수평 결합선)
+                config.Line1Detected_RBegin = vrB; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_CBegin = vcB; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_REnd   = vrE; //260527 hbk Phase 34 D-34-01
+                config.Line1Detected_CEnd   = vcE; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_RBegin = hrB.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_CBegin = hcB.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_REnd   = hrE.D; //260527 hbk Phase 34 D-34-01
+                config.Line2Detected_CEnd   = hcE.D; //260527 hbk Phase 34 D-34-01
+                config.LastTeachSucceeded   = true; //260527 hbk Phase 34 D-34-01
+
+                // Req 5d 방향 정합성 검증 (VerticalTwoHorizontalDualImage: 수직 phi 는 검출된 수직 라인 Atan2)
+                double vertPhiDetected = Math.Atan2(vrE - vrB, vcE - vcB); //260527 hbk Phase 34 D-34-01
+                string angleError; //260527 hbk Phase 34 D-34-01
+                if (!ValidateHorizontalVerticalAngles(config.RefAngleRad, vertPhiDetected, out angleError)) //260527 hbk Phase 34 D-34-01
+                {
+                    config.LastTeachSucceeded = false; //260527 hbk Phase 34 D-34-01
+                    error = angleError; //260527 hbk Phase 34 D-34-01
+                    return false; //260527 hbk Phase 34 D-34-01
+                }
+                return true; //260527 hbk Phase 34 D-34-01
+            }
+            catch (Exception ex)
+            {
+                if (config != null) { config.LastTeachSucceeded = false; } //260527 hbk Phase 34 D-34-01
+                error = ex.Message; //260527 hbk Phase 34 D-34-01
+                return false; //260527 hbk Phase 34 D-34-01
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } } //260527 hbk Phase 34 D-34-01
+            }
+        }
+
         //260424 hbk Phase 13 D-09..D-12 — 수평선 phi 방향 + 수평/수직 직각성 검증 게이트
         //  CircleTwoHorizontal / VerticalTwoHorizontal 공통. TwoLineIntersect 는 무효(호출 안 함).
         //  horizPhiRad = 수평 결합선 Atan2, vertPhiRad = 수직 가상선(Circle) 또는 검출 수직선(Vertical) Atan2.
@@ -1154,13 +1616,21 @@ namespace ReringProject.Halcon.Algorithms
 
             //260426 hbk Phase 13 D-PRP-LOOP — LtoR/RtoL = horizontal strips (row-sliced), TtoB/BtoT = vertical strips (col-sliced)
             bool scanHorizontal = (direction != "TtoB" && direction != "BtoT");
-            int stripCount = (sampleCount > 0) ? sampleCount : 20;  // sentinel 0 → 기본 20 strips
+            //260509 hbk Phase 20 — sentinel 0 → 기본 20 strips. ?: → 명시 if/else
+            int stripCount = 20;
+            if (sampleCount > 0) stripCount = sampleCount; //260509 hbk Phase 20
             if (stripCount < 1) stripCount = 1;
+
+            //260509 hbk Phase 20 — Trace 로그 인자 임시변수화 (roiLabel null 가드 + scanHorizontal 분기 명시)
+            string lbl = "?";
+            if (roiLabel != null) lbl = roiLabel; //260509 hbk Phase 20
+            string scanLabel = "vertical";
+            if (scanHorizontal) scanLabel = "horizontal"; //260509 hbk Phase 20
 
             Logging.PrintLog((int)ELogType.Trace,
                 string.Format("[Datum.{0}] strip-loop: bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
-                    roiLabel ?? "?", top, left, bottom, right,
-                    scanHorizontal ? "horizontal" : "vertical",
+                    lbl, top, left, bottom, right, //260509 hbk Phase 20
+                    scanLabel, //260509 hbk Phase 20
                     stripCount, sigma, threshold, polarity));
 
             HTuple allRows = new HTuple();
@@ -1202,7 +1672,7 @@ namespace ReringProject.Halcon.Algorithms
                 int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips",
-                        roiLabel ?? "?", edgeCount, stripCount));
+                        lbl, edgeCount, stripCount)); //260509 hbk Phase 20
 
                 //260426 hbk Phase 13 D-PRP-LOOP — TrimCount: 누적된 모든 점 중 양 끝 제거 (FitLineContourXld 입력 정제)
                 if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
@@ -1214,15 +1684,15 @@ namespace ReringProject.Halcon.Algorithms
                     edgeCount  = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
                         string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
-                            roiLabel ?? "?", trimCount, edgeCount));
+                            lbl, trimCount, edgeCount)); //260509 hbk Phase 20
                 }
 
                 if (edgeCount < 2)
                 {
                     error = string.Format(
                         "[{0}] insufficient edges across {1} strips: got {2} (need >=2). sigma={3:F2} threshold={4} polarity={5} scan={6}",
-                        roiLabel ?? "?", stripCount, edgeCount, sigma, threshold, polarity,
-                        scanHorizontal ? "horizontal" : "vertical");
+                        lbl, stripCount, edgeCount, sigma, threshold, polarity, //260509 hbk Phase 20
+                        scanLabel); //260509 hbk Phase 20
                     Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
@@ -1297,13 +1767,21 @@ namespace ReringProject.Halcon.Algorithms
 
             //260426 hbk Phase 13 D-PRP-LOOP — LtoR/RtoL = horizontal strips, TtoB/BtoT = vertical strips
             bool scanHorizontal = (direction != "TtoB" && direction != "BtoT");
-            int stripCount = (sampleCount > 0) ? sampleCount : 20;
+            //260509 hbk Phase 20 — sentinel 0 → 기본 20 strips. ?: → 명시 if/else
+            int stripCount = 20;
+            if (sampleCount > 0) stripCount = sampleCount; //260509 hbk Phase 20
             if (stripCount < 1) stripCount = 1;
+
+            //260509 hbk Phase 20 — Trace 로그 인자 임시변수화 (roiLabel null 가드 + scanHorizontal 분기 명시)
+            string lbl = "?";
+            if (roiLabel != null) lbl = roiLabel; //260509 hbk Phase 20
+            string scanLabel = "vertical";
+            if (scanHorizontal) scanLabel = "horizontal"; //260509 hbk Phase 20
 
             Logging.PrintLog((int)ELogType.Trace,
                 string.Format("[Datum.{0}] strip-loop(extract): bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
-                    roiLabel ?? "?", top, left, bottom, right,
-                    scanHorizontal ? "horizontal" : "vertical",
+                    lbl, top, left, bottom, right, //260509 hbk Phase 20
+                    scanLabel, //260509 hbk Phase 20
                     stripCount, sigma, threshold, polarity));
 
             HTuple allRows = new HTuple();
@@ -1345,7 +1823,7 @@ namespace ReringProject.Halcon.Algorithms
                 int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips",
-                        roiLabel ?? "?", edgeCount, stripCount));
+                        lbl, edgeCount, stripCount)); //260509 hbk Phase 20
 
                 //260426 hbk Phase 13 D-PRP-LOOP — TrimCount: 누적된 전체 점 양 끝 제거
                 if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
@@ -1357,7 +1835,7 @@ namespace ReringProject.Halcon.Algorithms
                     edgeCount = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
                         string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
-                            roiLabel ?? "?", trimCount, edgeCount));
+                            lbl, trimCount, edgeCount)); //260509 hbk Phase 20
                 }
 
                 rowEdge = allRows;
@@ -1368,8 +1846,8 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     error = string.Format(
                         "[{0}] no edges found across {1} strips. sigma={2:F2} threshold={3} polarity={4} scan={5}",
-                        roiLabel ?? "?", stripCount, sigma, threshold, polarity,
-                        scanHorizontal ? "horizontal" : "vertical");
+                        lbl, stripCount, sigma, threshold, polarity, //260509 hbk Phase 20
+                        scanLabel); //260509 hbk Phase 20
                     Logging.PrintLog((int)ELogType.Trace, error);
                     return false;
                 }
@@ -1405,10 +1883,10 @@ namespace ReringProject.Halcon.Algorithms
             else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
             else                                                                            measurePhi = 0.0; //260429 hbk Phase 15 — LtoR 기본
 
-            //260429 hbk Phase 15 — selection (PascalCase) → Halcon MeasurePos 인자 (lower)
-            string selectionLower =
-                string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase) ? "last" :
-                string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase) ? "all"  : "first";
+            //260509 hbk Phase 20 — selection (PascalCase) → Halcon MeasurePos 인자 (lower). chained ?: → if/else (CANONICAL: MeasurementAlgorithm.cs:178 의미 보존)
+            string selectionLower = "first";
+            if (string.Equals(selection, "Last", StringComparison.OrdinalIgnoreCase)) selectionLower = "last"; //260509 hbk Phase 20
+            else if (string.Equals(selection, "All",  StringComparison.OrdinalIgnoreCase)) selectionLower = "all"; //260509 hbk Phase 20
 
             HObject stripRegion = null;
             HTuple measureHandle = null;
@@ -1431,10 +1909,14 @@ namespace ReringProject.Halcon.Algorithms
                     polarity, selectionLower,                             //260429 hbk Phase 15 — "all" → selectionLower
                     out edgeRows, out edgeCols, out amp, out dist);
 
-                //260429 hbk Phase 15 — Trace 로그 강화: measurePhi (deg) + selection 노출 (디버깅 편의)
+                //260509 hbk Phase 20 — Trace 로그 강화: measurePhi (deg) + selection 노출. null-coalesce → 임시변수 + null 체크 (P-1)
+                string lbl = "?";
+                if (roiLabel != null) lbl = roiLabel; //260509 hbk Phase 20
+                string dirLabel = "?";
+                if (direction != null) dirLabel = direction; //260509 hbk Phase 20
                 Logging.PrintLog((int)ELogType.Trace,
                     string.Format("[Datum.{0}] strip MeasurePos: dir={1} measurePhi={2:F1}deg sel={3} edges={4}",
-                        roiLabel ?? "?", direction ?? "?", measurePhi * 180.0 / Math.PI, selectionLower,
+                        lbl, dirLabel, measurePhi * 180.0 / Math.PI, selectionLower, //260509 hbk Phase 20
                         edgeRows.TupleLength()));
 
                 if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
@@ -1447,11 +1929,13 @@ namespace ReringProject.Halcon.Algorithms
             }
             catch (Exception ex)
             {
-                //260429 hbk Phase 15 — 빈 catch 진단 강화: 라벨 + 예외 메시지 Trace 로그 (per-strip swallow 정책 유지)
+                //260509 hbk Phase 20 — 빈 catch 진단 강화: 라벨 + 예외 메시지 (per-strip swallow 정책 유지). null-coalesce → 임시변수 + null 체크 (P-1)
                 try
                 {
+                    string lblCatch = "?";
+                    if (roiLabel != null) lblCatch = roiLabel; //260509 hbk Phase 20
                     Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] strip swallowed: {1}", roiLabel ?? "?", ex.Message));
+                        string.Format("[Datum.{0}] strip swallowed: {1}", lblCatch, ex.Message)); //260509 hbk Phase 20
                 }
                 catch { }
             }

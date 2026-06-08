@@ -1,0 +1,2 @@
+    - .planning/phases/39.3-dualimage-fai-ux-redesign-2026-05-30/39.3-RESEARCH.md (RT-4 표 H + RT-1.2 UpdateImageSourceBadge 동작)
+  </read_first>

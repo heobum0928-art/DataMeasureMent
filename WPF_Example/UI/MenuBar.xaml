@@ -71,7 +71,8 @@
             <Label Grid.Column="1" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
 
             <!-- Title -->
-            <local:OutlinedTextBlock x:Name="label_title" Grid.Column="2" Grid.Row="0" Margin="0,1,0,1" HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" FontFamily="Verdana" FontSize="20pt" FontWeight="ExtraBold" TextWrapping="Wrap" StrokeThickness="2" Stroke="Blue" Fill="AliceBlue">
+            <!--260608 hbk "Measurement\nVision" 2줄이 180px 폭/80px 높이에 맞도록 폰트 20pt→14pt 축소(20pt 는 단어 중간 줄바꿈 발생)-->
+            <local:OutlinedTextBlock x:Name="label_title" Grid.Column="2" Grid.Row="0" Margin="0,1,0,1" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontStyle="Italic" FontFamily="Verdana" FontSize="14pt" FontWeight="ExtraBold" TextWrapping="Wrap" StrokeThickness="2" Stroke="Blue" Fill="AliceBlue">
                 Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit
             </local:OutlinedTextBlock>
 
@@ -162,21 +163,22 @@
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="3*"></RowDefinition>
                         <RowDefinition Height="9*"></RowDefinition>
                     </Grid.RowDefinitions>
-                    
-                    <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" 
+
+                    <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="4"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        FontSize="12" Foreground="Black" Text="{Binding [CONTROL], Source={StaticResource DR}}">
-                        
+
                     </TextBlock>
-                    
+
                     <!-- Single -->
-                    <Button x:Name="Button_Camera" Grid.Column="0" Grid.Row="1" HorizontalContentAlignment="Center" 
+                    <Button x:Name="Button_Camera" Grid.Column="0" Grid.Row="1" HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center" Click="Button_Camera_Click" Style="{StaticResource disalbedStyle}">
                         <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
                             <Image Source="/Resource/camera.png" Height="32" Width="32"></Image>
@@ -184,7 +186,7 @@
                         </StackPanel>
                     </Button>
                     <!-- 4ea -->
-                    <Button x:Name="Button_Light" Grid.Column="1" Grid.Row="1" HorizontalContentAlignment="Center" 
+                    <Button x:Name="Button_Light" Grid.Column="1" Grid.Row="1" HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center" Click="Button_Light_Click" Style="{StaticResource disalbedStyle}">
                         <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
                             <Image Source="/Resource/light.png" Height="32" Width="32"></Image>
@@ -192,11 +194,20 @@
                         </StackPanel>
                     </Button>
                     <!-- All -->
-                    <Button x:Name="Button_Connect" Grid.Column="2" Grid.Row="1" HorizontalContentAlignment="Center" 
+                    <Button x:Name="Button_Connect" Grid.Column="2" Grid.Row="1" HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center" Click="Button_Connect_Click" Style="{StaticResource disalbedStyle}">
                         <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
                             <Image Source="/Resource/connect.png" Height="32" Width="32"></Image>
                             <TextBlock Text="{Binding [CONNECT], Source={StaticResource DR}}" FontSize="14"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <!-- 결과 리뷰어 -->
+                    <!--260601 hbk Phase 40 OUT-01 D-08/D-09 — 결과 리뷰어 비모달 버튼 (IsEditable 무관, 항상 활성)-->
+                    <Button x:Name="Button_Reviewer" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center" Click="Button_Reviewer_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <TextBlock Text="[R]" FontSize="22" HorizontalAlignment="Center" FontWeight="Bold" Foreground="#1E3A5F"></TextBlock>
+                            <TextBlock Text="결과 리뷰어" FontSize="12"></TextBlock>
                         </StackPanel>
                     </Button>
                 </Grid>

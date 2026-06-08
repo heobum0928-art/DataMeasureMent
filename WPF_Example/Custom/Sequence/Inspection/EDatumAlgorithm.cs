@@ -10,5 +10,6 @@ namespace ReringProject.Sequence
         TwoLineIntersect,           //260423 hbk 기존 Phase 4 방식 (Line1∩Line2) — default(EDatumAlgorithm)
         CircleTwoHorizontal,        //260423 hbk Circle 센터 수직 가상선 ∩ 수평 2-ROI concat
         VerticalTwoHorizontal,      //260423 hbk 수직 ROI ∩ 수평 2-ROI concat
+        VerticalTwoHorizontalDualImage, //260527 hbk Phase 34 D-34-03 — 가로축 이미지(H_A+H_B) + 세로축 이미지(V) 분리 (Side fixture). enum 순서 보존(append) — 기존 string 직렬화 INI 회귀 0.
     }
 }

@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Window_Title" xml:space="preserve">
-    <value>DDA Vision Inspector</value>
+    <value>Measurement Vision</value>
     <comment>메인 윈도우의 타이틀</comment>
   </data>
   <data name="fail to load recipe" xml:space="preserve">

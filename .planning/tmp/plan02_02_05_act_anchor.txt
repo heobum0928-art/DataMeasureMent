@@ -1,0 +1,4 @@
+  <action>
+    //260530 hbk Phase 39.3 D-G2 주석 의무. PATTERNS.md L386-389 가 적용 코드 블록.
+
+    `UpdateImageSourceBadge(EImageSource source)` 메서드 (L1265-1296) **끝부분**, 기존 Datum publish 가드 (L1289-1295, `var datumForRoi = _selectedDatumForSwap;` ~ `PublishDatumRoiCandidates(datumForRoi);`) **직후** 에 Measurement publish 분기 추가:

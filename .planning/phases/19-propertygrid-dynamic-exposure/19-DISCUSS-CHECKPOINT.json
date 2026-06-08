@@ -1,0 +1,40 @@
+{
+  "phase": "19",
+  "phase_name": "PropertyGrid 동적 노출 일반화",
+  "timestamp": "2026-05-07T00:00:00Z",
+  "areas_completed": ["FAIConfig 필터 조건", "공통 추상화 전략", "CO-02 검증 범위"],
+  "areas_remaining": [],
+  "pending_notes": "CO-02 결정됨(Phase 19 UAT에 Test 8 재검증 포함). 확장성 우려 설명 완료. CONTEXT.md 작성은 추후 재개.",
+  "decisions": {
+    "FAIConfig 필터 조건": [
+      {
+        "question": "FAIConfig에서 동적 필터링의 기준이 될 필드가 없습니다. 로드맵에서 말하는 'EdgeMeasureType'의 실체가 무엇인가요?",
+        "answer": "FAIConfig에 신규 필드 추가",
+        "options_presented": ["FAIConfig에 신규 필드 추가", "Measurements[0].TypeName 성 도출", "FAIConfig 자체와 동적 숨김 다른 방향으로"]
+      },
+      {
+        "question": "FAIConfig PropertyGrid 에서 CircleDiameter 선택 시 숨길 항목은?",
+        "answer": "EdgeDirection/Polarity/Selection 숨김",
+        "detail": "EdgeDirection, EdgePolarity, EdgeSelection, EdgeSampleCount, EdgeTrimCount, EdgeThreshold, Sigma 숨김. ROI + Calibration 노출 유지."
+      },
+      {
+        "question": "FAIConfig의 EdgeMeasureType 필드를 다른 하나 묻겠습니다. INI 저장 여부?",
+        "answer": "INI 저장 필요",
+        "detail": "DatumConfig.AlgorithmType과 동일 패턴. ParamBase 자동 직렬화 대상."
+      }
+    ],
+    "공통 추상화 전략": [
+      {
+        "question": "DatumConfig와 FAIConfig 공통 패턴을 어떻게 관리할까요?",
+        "answer": "정적 헬퍼 FilterProperties",
+        "detail": "DynamicPropertyHelper.FilterProperties(obj, attr, hideFunc, sourceNames) 신규 파일 1개. DatumConfig 기존 GetProperties(Attribute[]) 내부를 리팩토링하여 헬퍼 호출로 대체. FAIConfig도 동일 헬퍼 호출. 클래스 계층 변경 없음."
+      }
+    ]
+  },
+  "deferred_ideas": [],
+  "canonical_refs": [
+    "WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs",
+    "WPF_Example/Custom/Sequence/Inspection/FAIConfig.cs",
+    "WPF_Example/Custom/Sequence/Inspection/MeasurementBase.cs"
+  ]
+}

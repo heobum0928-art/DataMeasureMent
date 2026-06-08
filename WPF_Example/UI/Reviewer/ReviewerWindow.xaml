@@ -1,0 +1,133 @@
+<Window x:Class="ReringProject.UI.ReviewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewers="clr-namespace:ReringProject.UI"
+        mc:Ignorable="d"
+        Title="결과 리뷰어" Height="800" Width="1200"
+        WindowStartupLocation="CenterOwner">
+    <!--260601 hbk Phase 40 OUT-01 D-08/D-09 — 결과 리뷰어 비모달 별도 Window-->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <!--260601 hbk Phase 40 CO-40-02 UAT — GridSplitter 로 3 패널 가로 크기 조절 가능. 측정표 잘림 해소.-->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" MinWidth="120"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="*" MinWidth="200"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="430" MinWidth="200"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 좌측 패널 헤더 -->
+        <Border Grid.Row="0" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
+            <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
+                    Click="Button_LoadFolder_Click"
+                    Padding="8,4" HorizontalAlignment="Stretch"/>
+        </Border>
+
+        <!-- 중앙 헤더 — 좌: 라벨 / 우: DualImage 가로축·세로축 토글 (헤더에 배치하여 Halcon 창 airspace 회피) -->
+        <!--260601 hbk Phase 40 CO-40-04 UAT — HWindowControlWPF(네이티브 HWND)는 WPF 오버레이를 가린다.
+            기존 이미지 위 오버레이 버튼이 airspace 로 안 보이던 결함 → 헤더(Row0)로 이동. 조건부 표시는 유지.-->
+        <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
+            <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left" Text="이미지 / Overlay" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
+                <StackPanel x:Name="panel_dualToggle" DockPanel.Dock="Right" Orientation="Horizontal"
+                            Visibility="Collapsed">
+                    <TextBlock Text="축 전환:" VerticalAlignment="Center" FontSize="12" Foreground="#334155" Margin="0,0,6,0"/>
+                    <Button x:Name="btn_axisH" Content="가로축" Click="Button_AxisHorizontal_Click"
+                            Padding="10,2" Margin="0,0,4,0" MinWidth="60"/>
+                    <Button x:Name="btn_axisV" Content="세로축" Click="Button_AxisVertical_Click"
+                            Padding="10,2" MinWidth="60"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 우측 헤더 — 좌: 라벨 / 우: '불량만 보기' 필터 체크박스 -->
+        <!--260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — 불량(NG/DETECT FAIL) 행만 추려 보는 필터.-->
+        <Border Grid.Row="0" Grid.Column="4" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="6,4">
+            <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left" Text="측정 결과 (행 클릭 = 해당 측정만 보기)"
+                           VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
+                <CheckBox x:Name="chk_failOnly" DockPanel.Dock="Right" Content="불량만 보기"
+                          VerticalAlignment="Center" FontSize="12" Foreground="#334155"
+                          Checked="ChkFailOnly_Changed" Unchecked="ChkFailOnly_Changed"/>
+            </DockPanel>
+        </Border>
+
+        <!--260601 hbk Phase 40 CO-40-02 — 좌/중 분할 드래그 핸들-->
+        <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      Width="5" Background="#C0C8D0" ShowsPreview="True"/>
+        <!--260601 hbk Phase 40 CO-40-02 — 중/우 분할 드래그 핸들 (측정표 가로 폭 조절)-->
+        <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="3"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      Width="5" Background="#C0C8D0" ShowsPreview="True"/>
+
+        <!-- 좌측 패널: cycle 목록 ListBox -->
+        <Border Grid.Row="1" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+            <ListBox x:Name="listBox_cycles"
+                     SelectionChanged="CycleList_SelectionChanged"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" Padding="2"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <!-- 중앙: HalconViewerControl 인스턴스 (독립, 라이브 MainView halconViewer 재사용 금지 — RESEARCH Anti-Pattern) -->
+        <!--260601 hbk Phase 40 CO-40-04 — DualImage 토글은 헤더(Row0)로 이동 (HWindowControlWPF airspace 회피). 이 셀에는 오버레이 두지 않음.-->
+        <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="2" Margin="4"/>
+
+        <!-- 우측: 측정 결과 DataGrid -->
+        <DataGrid x:Name="dataGrid_measurements"
+                  Grid.Row="1" Grid.Column="4"
+                  SelectionChanged="MeasurementGrid_SelectionChanged"
+                  SelectionMode="Single"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Auto"
+                  Margin="4">
+            <!--260601 hbk Phase 40 CO-40-05 UAT — 불량 위치 식별: 판정별 행 배경색 (NG=빨강 / DETECT FAIL=주황 / OK=연녹).
+                IsSelected 트리거는 DataTrigger 뒤에 두어 우선 적용 — 자동/수동 선택 행을 행 색상 위에 굵게+파란 테두리로 강조.-->
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding JudgeText}" Value="NG">
+                            <Setter Property="Background" Value="#FFD6D6"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding JudgeText}" Value="DETECT FAIL">
+                            <Setter Property="Background" Value="#FFE3C2"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding JudgeText}" Value="OK">
+                            <Setter Property="Background" Value="#E2F3E5"/>
+                        </DataTrigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="BorderBrush" Value="#1565C0"/>
+                            <Setter Property="BorderThickness" Value="2"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Shot"    Binding="{Binding ShotName}"       Width="70"/>
+                <DataGridTextColumn Header="FAI"     Binding="{Binding FAIName}"        Width="70"/>
+                <DataGridTextColumn Header="측정명"  Binding="{Binding MeasurementName}" Width="100"/>
+                <DataGridTextColumn Header="Nominal" Binding="{Binding NominalValue, StringFormat=F4}" Width="65"/>
+                <DataGridTextColumn Header="Tol+"    Binding="{Binding TolerancePlus, StringFormat=F4}"  Width="55"/>
+                <DataGridTextColumn Header="Tol-"    Binding="{Binding ToleranceMinus, StringFormat=F4}" Width="55"/>
+                <DataGridTextColumn Header="측정값"  Binding="{Binding ResultDisplay}"  Width="75"/>
+                <DataGridTextColumn Header="판정"    Binding="{Binding JudgeText}"      Width="65"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

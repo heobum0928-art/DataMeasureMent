@@ -12,23 +12,56 @@ namespace ReringProject.Sequence {
     /// HTuple 필드는 ParamBase switch-case에 없으므로 런타임 전용으로 사용된다 (D-11).
     /// </summary>
     //260503 hbk Phase 17 D-09 — PropertyGrid 동적 노출 (AlgorithmType 별 필터). ParamBase INI 직렬화는 GetType().GetProperties() Reflection 경로 사용 → ICustomTypeDescriptor 영향 0 (확인: ParamBase.cs L75/L325/L370).
-    public class DatumConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor {
+    public class DatumConfig : ParamBase, System.ComponentModel.ICustomTypeDescriptor, IOfflineImageParam { //260518 hbk #3 — IOfflineImageParam 추가
 
         //260413 hbk Phase 6: DatumName — 사용자가 지정하는 식별자 (D-06)
+        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
+        private string _datumName = "Datum_1";
         [Category("Datum|Identity")]
-        public string DatumName { get; set; } = "Datum_1";
+        public string DatumName {
+            get { return _datumName; }
+            set {
+                if (_datumName == value) return;
+                _datumName = value;
+                RaisePropertyChanged(nameof(DatumName));
+            }
+        }
 
         //260413 hbk Phase 6: 이미지 소스 모드 — "Dedicated" 또는 "ReuseFromShot" (D-07, D-08)
         [Category("Datum|ImageSource")]
         public string ImageSourceMode { get; set; } = "Dedicated";
 
-        //260413 hbk Phase 6: ReuseFromShot 모드일 때 재사용할 Shot 이름 (D-07)
-        [Category("Datum|ImageSource")]
-        public string ReuseFromShotName { get; set; } = "";
-
         //260423 hbk Phase 11 D-08 — 카메라/Z/조명을 상속할 Shot 이름 (빈 문자열이면 Sequence 첫 Shot fallback)
         [Category("Datum|ImageSource")]
         public string SourceShotName { get; set; } = "";
+
+        //260511 hbk Phase 22 IMG-01 — Datum 티칭 시 사용한 기준 이미지 경로. INI 직렬화는 ParamBase reflection 이 자동 처리 (ParamBase.cs L325-339 Save 의 case "String", L385-395 Load 의 case "String"). 검사 실행 시 이미지는 별도 ShotConfig.SimulImagePath 사용 — 역할 분리 유지. 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화 (T2).
+        [Category("Datum|ImageSource")]
+        public string TeachingImagePath { get; set; } = "";
+
+        //260527 hbk Phase 34 D-34-04 — 가로축 이미지(TeachingImagePath) 와 분리된 세로축 이미지 경로.
+        //  algorithm == VerticalTwoHorizontalDualImage 일 때만 의미가 있으며, 그 외 algorithm 에서는 INI 에 보존되지만 미사용 (ICustomTypeDescriptor 가 hide).
+        //  INI 직렬화 = ParamBase reflection String case 자동 (Phase 22 IMG-01 패턴 그대로). 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화 (D-34-11).
+        [Category("Datum|ImageSource")]
+        public string TeachingImagePath_Vertical { get; set; } = ""; //260527 hbk Phase 34 D-34-04
+
+        //260518 hbk #3 IOfflineImageParam — Datum 노드 Load 버튼이 선택 경로를 TeachingImagePath 에 기록.
+        //  Shot 노드(ShotConfig)는 SimulImagePath, Datum 노드는 TeachingImagePath 로 역할 분리.
+        /// <summary>
+        /// Datum 노드 오프라인 이미지 경로 게터 — TeachingImagePath 를 backing 으로 사용한다.
+        /// </summary>
+        public string GetLatestImagePath()
+        {
+            return TeachingImagePath;
+        }
+
+        /// <summary>
+        /// Datum 노드 오프라인 이미지 경로 세터 — 선택한 경로를 TeachingImagePath 에 기록한다.
+        /// </summary>
+        public void SetLatestImagePath(string imagePath)
+        {
+            TeachingImagePath = imagePath;
+        }
 
         //260423 hbk Phase 12 D-09 — Datum 알고리즘 선택자 (PropertyGrid enum 자동 드롭다운)
         //260423 hbk  저장 타입: string (ParamBase.Save/Load switch가 enum 미지원 — ParamBase.cs:330-363)
@@ -49,6 +82,7 @@ namespace ReringProject.Sequence {
                     EDatumAlgorithm.TwoLineIntersect.ToString(),
                     EDatumAlgorithm.CircleTwoHorizontal.ToString(),
                     EDatumAlgorithm.VerticalTwoHorizontal.ToString(),
+                    EDatumAlgorithm.VerticalTwoHorizontalDualImage.ToString(), //260527 hbk Phase 34 D-34-05
                 };
             }
         }
@@ -72,6 +106,20 @@ namespace ReringProject.Sequence {
         //  ParamBase reflection 자동 직렬화 — 별도 Save/Load 코드 불필요.
         [Category("Datum|Algorithm")]
         public double TwoLineAngleToleranceDeg { get; set; } = 10.0;
+
+        //260528 hbk Phase 36 D-36-05/07/12 — DualImage 검출 각도 검증 기댓값 (도, range hint [-180, 180] atan2 출력과 일치).
+        //  알고리즘 무관 일률 직렬화 (Phase 22 IMG-01 / D-34-11 패턴) — INI 키 미존재 시 ParamBase Double case 가 0.0 fallback.
+        //  PropertyGrid 노출 = VerticalTwoHorizontalDualImage 한정 (IsHiddenForAlgorithm 의 다른 case 에서 hide).
+        //  ParamBase reflection 자동 직렬화 (Double case) — 별도 Save/Load 코드 불필요.
+        [Category("Datum|Algorithm")] //260528 hbk Phase 36 D-36-05/07
+        public double ExpectedAngleDeg { get; set; } = 0.0; //260528 hbk Phase 36 D-36-05/07
+
+        //260528 hbk Phase 36 D-36-05/07/13 — 각도 검증 허용 오차 (도).
+        //  0.0 = sentinel (게이트 off, AngleValidationStatus=None). > 0.0 = 활성 (TwoLineAngleToleranceDeg L915 패턴과 정렬).
+        //  range hint: 0~45°. default 0.0 (OFF, Phase 38 #6 D-12) — 신규 Datum 에서 배지 미표시(혼란 제거). 기존 INI 에 값이 있으면 ParamBase Load 가 덮어씀(하위호환).
+        //  Expected=0.0 + Tolerance>0 도 활성 — 사용자가 0° 검증을 의도한 케이스 (D-36-13 단일 sentinel 모델).
+        [Category("Datum|Algorithm")] //260528 hbk Phase 36 D-36-05/07/13
+        public double AngleTolerance { get; set; } = 0.0; //260528 hbk Phase 36 D-36-05/07/13 //260528 hbk Phase 38 #6
 
         //260423 hbk Phase 12 D-12 — Line1 ROI 시맨틱스는 AlgorithmType 에 따라 달라진다:
         //260423 hbk   TwoLineIntersect:         1st 라인 ROI (기준 X축 방향 에지 라인)
@@ -226,6 +274,9 @@ namespace ReringProject.Sequence {
         [Category("Datum|Circle (CTH) Edge")]
         public int    Circle_EdgeThreshold   { get; set; } = 0;
         public double Circle_Sigma           { get; set; } = 0;
+        //260507 hbk Phase 18 CO-01 — Circle 알고리즘은 EdgeDirection 대신 RadialDirection (Inward/Outward) 사용 → 영구 hide.
+        //  Phase 17 D-03 의 IsHiddenForAlgorithm CTH 분기 hide 가 dynamic enumeration 경로 차이로 불안정하게 동작 → 정적 Browsable(false) 로 확정.
+        [PropertyTools.DataAnnotations.Browsable(false)] //260507 hbk Phase 18 CO-01
         [System.ComponentModel.Description("일반적으로 수평 방향 ROI 에는 LtoR 또는 RtoL 을 권장합니다.")] //260503 hbk Phase 17 D-04
         [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
         public string Circle_EdgeDirection   { get; set; } = "";
@@ -358,8 +409,50 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public HTuple CurrentTransform { get; set; }
 
+        //260529 hbk Phase 39 WF-02 D-04 — INPC 발화로 NodeViewModel 가 Datum 노드 'DETECT FAIL' 배지 갱신.
+        //  기존 auto-property (Phase 4) → backing field 패턴 (FAIConfig.FAIName analog L106-115).
+        //  setter 동일 시그니처 유지 → Phase 37 D-37-03 (InspectionSequence.TryRunDatumPhase L164, TryRunSingleDatum L211/L213) 호출 회귀 0.
+        //  setter 가 LastFindSucceeded + 파생 HasDetectFail 둘 다 RaisePropertyChanged 발화 → UI computed property 자동 갱신.
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public bool LastFindSucceeded { get; set; }
+        private bool _lastFindSucceeded; //260529 hbk Phase 39 WF-02 D-04
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public bool LastFindSucceeded //260529 hbk Phase 39 WF-02 D-04
+        {
+            get { return _lastFindSucceeded; } //260529 hbk Phase 39 WF-02 D-04
+            set //260529 hbk Phase 39 WF-02 D-04
+            {
+                if (_lastFindSucceeded == value) return; //260529 hbk Phase 39 WF-02 D-04 — idempotent 가드
+                _lastFindSucceeded = value; //260529 hbk Phase 39 WF-02 D-04
+                RaisePropertyChanged(nameof(LastFindSucceeded)); //260529 hbk Phase 39 WF-02 D-04
+                RaisePropertyChanged(nameof(HasDetectFail)); //260529 hbk Phase 39 WF-02 D-04 — computed prop 변경 통지
+            }
+        }
+
+        //260529 hbk Phase 39 hotfix CO-39-02 — runtime 검출 실패 명시 신호. 티칭 여부 (IsConfigured) 와 무관하게 게이트 발동 시 라벨 표시.
+        //  Action_FAIMeasurement 4 실패 분기에서 set true, InspectionSequence.ClearDatumTransforms 에서 reset false.
+        //  INPC 발화 → HasDetectFail computed 자동 갱신 (XAML 배지 + HALCON 라벨 둘 다 통합 신호).
+        private bool _runtimeDetectFailed; //260529 hbk Phase 39 hotfix CO-39-02
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 hotfix CO-39-02
+        public bool RuntimeDetectFailed //260529 hbk Phase 39 hotfix CO-39-02
+        {
+            get { return _runtimeDetectFailed; } //260529 hbk Phase 39 hotfix CO-39-02
+            set //260529 hbk Phase 39 hotfix CO-39-02
+            {
+                if (_runtimeDetectFailed == value) return; //260529 hbk Phase 39 hotfix CO-39-02 — idempotent 가드
+                _runtimeDetectFailed = value; //260529 hbk Phase 39 hotfix CO-39-02
+                RaisePropertyChanged(nameof(RuntimeDetectFailed)); //260529 hbk Phase 39 hotfix CO-39-02
+                RaisePropertyChanged(nameof(HasDetectFail)); //260529 hbk Phase 39 hotfix CO-39-02 — computed prop 변경 통지
+            }
+        }
+
+        //260529 hbk Phase 39 WF-02 D-04 — Datum 노드 UI 'DETECT FAIL' 배지 노출용 computed 프로퍼티.
+        //  XAML DataTemplate 가 본 프로퍼티 binding 으로 적색 dot 표시 (XAML 구현은 별도 plan/UAT 결정).
+        //260529 hbk Phase 39 hotfix CO-39-02 — RuntimeDetectFailed 포함 (티칭 안 한 datum 도 검출실패 시 배지 표시).
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 WF-02 D-04
+        public bool HasDetectFail //260529 hbk Phase 39 WF-02 D-04
+        {
+            get { return _runtimeDetectFailed || (IsConfigured && !_lastFindSucceeded); } //260529 hbk Phase 39 hotfix CO-39-02 — RuntimeDetectFailed OR (IsConfigured && !LastFind)
+        }
 
         //260423 hbk Phase 11 D-11 — 검출 라인 오버레이용 휘발성 필드 (TryTeachDatum 성공 시 DatumFindingService가 기록)
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -438,6 +531,40 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260503 hbk Phase 17 D-13
         public double DetectedRefAngle { get; set; } //260503 hbk Phase 17 D-13
 
+        //260519 hbk Phase 31 hotfix#3 — datum 2차(수직) 기준선 각도(rad). DetectedRefAngle 은 1차(수평) 각도.
+        //  X축 측정이 Line1+90° 가 아닌 실제 datum 수직선을 기준하도록 DatumFindingService 가 write-back.
+        [System.ComponentModel.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [PropertyTools.DataAnnotations.Browsable(false)] //260519 hbk Phase 31 hotfix#3
+        [Newtonsoft.Json.JsonIgnore] //260519 hbk Phase 31 hotfix#3
+        public double DetectedRefAngle2 { get; set; } //260519 hbk Phase 31 hotfix#3
+
+        //260528 hbk Phase 36 D-36-08 — Test Find 직후 각도 PASS/FAIL 평가 결과 (transient).
+        //  TryFindVerticalTwoHorizontalDualImage 가 DetectedAngleDeg write-back 직후 본 필드 갱신.
+        //  None = 미평가 (Tolerance==0 sentinel) / Pass / Fail. PropertyGrid 색상 배지 컨버터 입력 (Plan 03).
+        //  INI/JSON 직렬화 제외 — Phase 17 D-13 3-종 데코 답습 (System.ComponentModel + PropertyTools + JsonIgnore).
+        //  주의: ParamBase 가 enum 직렬화 미지원 (Phase 12 D-09 / EDatumAlgorithm string-based 회피) — Browsable 데코 없이도 INI write 안 됨. 데코는 PropertyGrid hiding 만 담당.
+        [System.ComponentModel.Browsable(false)] //260528 hbk Phase 36 D-36-08
+        [PropertyTools.DataAnnotations.Browsable(false)] //260528 hbk Phase 36 D-36-08
+        [Newtonsoft.Json.JsonIgnore] //260528 hbk Phase 36 D-36-08
+        public EAngleValidationStatus AngleValidationStatus { get; set; } //260528 hbk Phase 36 D-36-08
+
+        //260521 hbk Phase 32 — CircleTwoHorizontal 검출 원(B1 홀) 중심. E2 CompoundAngle 주입용 (DatumOriginConsumer 채널).
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DetectedCircleRow { get; set; } //260521 hbk Phase 32
+        [System.ComponentModel.Browsable(false)] //260521 hbk Phase 32
+        [PropertyTools.DataAnnotations.Browsable(false)] //260521 hbk Phase 32
+        [Newtonsoft.Json.JsonIgnore] //260521 hbk Phase 32
+        public double DetectedCircleCol { get; set; } //260521 hbk Phase 32
+
+        //260505 hbk Phase 18 CO-05 — Circle polar strip 별 검출 성공 여부 (TryTeachCircleTwoHorizontal write-back).
+        //  INI/JSON 직렬화 제외 (transient). RenderCircleStripOverlay 소비. bool[] 크기 = stepCount.
+        [System.ComponentModel.Browsable(false)] //260505 hbk Phase 18 CO-05
+        [PropertyTools.DataAnnotations.Browsable(false)] //260505 hbk Phase 18 CO-05
+        [Newtonsoft.Json.JsonIgnore] //260505 hbk Phase 18 CO-05
+        public bool[] CircleStripSuccesses { get; set; } //260505 hbk Phase 18 CO-05
+
         //260503 hbk Phase 17 D-16 — 결과 메트릭 PropertyGrid 노출 (ReadOnly, 사용자가 검출 품질 즉시 확인)
         //  PropertyTools.Wpf 가 지원하는 ReadOnly attribute 는 PropertyTools.DataAnnotations.ReadOnly (ParamBase.cs L37/L53 confirmed canonical).
         //  System.ComponentModel.ReadOnly 도 함께 부착 — ICustomTypeDescriptor.GetProperties 경로의 안전판.
@@ -461,12 +588,18 @@ namespace ReringProject.Sequence {
         //  sentinel 가 아니면 (사용자가 per-ROI 값을 명시한 경우) 그대로 유지 — 멱등성 보장.
         public void EnsurePerRoiDefaults() {
             // Hardcoded fallback (legacy 글로벌이 모두 0/"" 인 극단 케이스)
-            int    fbThreshold   = EdgeThreshold > 0 ? EdgeThreshold : 20;
-            double fbSigma       = Sigma > 0 ? Sigma : 1.0;
+            int    fbThreshold; //260509 hbk Phase 20 — ternary expanded
+            if (EdgeThreshold > 0) fbThreshold = EdgeThreshold;
+            else                   fbThreshold = 20;
+            double fbSigma; //260509 hbk Phase 20 — ternary expanded
+            if (Sigma > 0) fbSigma = Sigma;
+            else           fbSigma = 1.0;
             string fbDirection   = "LtoR"; // legacy 글로벌에 EdgeDirection 없음
             int    fbSampleCount = 20;
             int    fbTrimCount   = 10;
-            string fbPolarity    = !string.IsNullOrEmpty(EdgePolarity) ? EdgePolarity : "all";
+            string fbPolarity; //260509 hbk Phase 20 — ternary expanded
+            if (!string.IsNullOrEmpty(EdgePolarity)) fbPolarity = EdgePolarity;
+            else                                     fbPolarity = "all";
             string fbSelection   = "First"; //260429 hbk Phase 15 — EdgeSelection 기본값 (Halcon MeasurePos "first" 와 매핑)
 
             // Line1
@@ -496,6 +629,8 @@ namespace ReringProject.Sequence {
             if (string.IsNullOrEmpty(Circle_EdgePolarity)) Circle_EdgePolarity = fbPolarity;
             if (string.IsNullOrEmpty(Circle_EdgeSelection)) Circle_EdgeSelection = fbSelection; //260429 hbk Phase 15
             if (string.IsNullOrEmpty(Circle_RadialDirection)) Circle_RadialDirection = "Inward"; //260503 hbk Phase 17 D-02 — sentinel "" → "Inward" fallback (INI 하위호환)
+            if (TeachingImagePath == null) TeachingImagePath = ""; //260511 hbk Phase 22 IMG-01 — INI 키 미존재 시 null 가드 (ParamBase.Load String case 가 IniValue.Default → null 로 SetValue 가능 → 소비처 string.IsNullOrEmpty 가드 보완). 멱등성 보장 — 빈 문자열 아닌 사용자 셋업 값은 보존.
+            if (TeachingImagePath_Vertical == null) TeachingImagePath_Vertical = ""; //260527 hbk Phase 34 D-34-11 — Phase 22 IMG-01 패턴 1:1 복제. algorithm 무관 일률 정규화 — DualImage 가 아니어도 필드 존재. 기존 INI(키 미존재) 로드 → "" 정규화 → 1-image algorithm 회귀 0 (D-34-12).
 
             // Horizontal_A
             if (Horizontal_A_EdgeThreshold == 0)   Horizontal_A_EdgeThreshold = fbThreshold;
@@ -519,12 +654,31 @@ namespace ReringProject.Sequence {
             //  기존 INI 의 Line1_* 값을 Vertical_* sentinel(==0/"") 일 때 1회 복사.
             //  Line1_* zero-out 안 함 (회귀 위험 0, 사용자가 알고리즘을 TwoLineIntersect 로 다시 바꿔도 Line1_* 즉시 사용 가능).
             //  idempotent: 두 번째 호출 시 Vertical_* 가 모두 의미값 → 분기 미진입.
-            if (Vertical_EdgeThreshold == 0)   Vertical_EdgeThreshold   = (Line1_EdgeThreshold > 0)    ? Line1_EdgeThreshold    : fbThreshold;
-            if (Vertical_Sigma == 0)           Vertical_Sigma           = (Line1_Sigma > 0)            ? Line1_Sigma            : fbSigma;
-            if (string.IsNullOrEmpty(Vertical_EdgeDirection))   Vertical_EdgeDirection   = !string.IsNullOrEmpty(Line1_EdgeDirection)   ? Line1_EdgeDirection   : fbDirection;
-            if (Vertical_EdgeSampleCount == 0) Vertical_EdgeSampleCount = (Line1_EdgeSampleCount > 0)  ? Line1_EdgeSampleCount  : fbSampleCount;
-            if (Vertical_EdgeTrimCount == 0)   Vertical_EdgeTrimCount   = (Line1_EdgeTrimCount > 0)    ? Line1_EdgeTrimCount    : fbTrimCount;
-            if (string.IsNullOrEmpty(Vertical_EdgePolarity))    Vertical_EdgePolarity    = !string.IsNullOrEmpty(Line1_EdgePolarity)    ? Line1_EdgePolarity    : fbPolarity;
+            //260509 hbk Phase 20 — Vertical_* migration ternaries expanded to nested if/else
+            if (Vertical_EdgeThreshold == 0) {
+                if (Line1_EdgeThreshold > 0) Vertical_EdgeThreshold = Line1_EdgeThreshold;
+                else                         Vertical_EdgeThreshold = fbThreshold;
+            }
+            if (Vertical_Sigma == 0) {
+                if (Line1_Sigma > 0) Vertical_Sigma = Line1_Sigma;
+                else                 Vertical_Sigma = fbSigma;
+            }
+            if (string.IsNullOrEmpty(Vertical_EdgeDirection)) {
+                if (!string.IsNullOrEmpty(Line1_EdgeDirection)) Vertical_EdgeDirection = Line1_EdgeDirection;
+                else                                            Vertical_EdgeDirection = fbDirection;
+            }
+            if (Vertical_EdgeSampleCount == 0) {
+                if (Line1_EdgeSampleCount > 0) Vertical_EdgeSampleCount = Line1_EdgeSampleCount;
+                else                           Vertical_EdgeSampleCount = fbSampleCount;
+            }
+            if (Vertical_EdgeTrimCount == 0) {
+                if (Line1_EdgeTrimCount > 0) Vertical_EdgeTrimCount = Line1_EdgeTrimCount;
+                else                         Vertical_EdgeTrimCount = fbTrimCount;
+            }
+            if (string.IsNullOrEmpty(Vertical_EdgePolarity)) {
+                if (!string.IsNullOrEmpty(Line1_EdgePolarity)) Vertical_EdgePolarity = Line1_EdgePolarity;
+                else                                           Vertical_EdgePolarity = fbPolarity;
+            }
             if (string.IsNullOrEmpty(Vertical_EdgeSelection))   Vertical_EdgeSelection   = fbSelection; //260429 hbk Phase 15
 
             //260426 hbk Phase 14-03 D-05 — Geometry 1회 복사 (사용자가 Vertical 그룹만 보고 알고리즘 운용 가능하도록)
@@ -539,22 +693,31 @@ namespace ReringProject.Sequence {
         }
 
         //260503 hbk Phase 17 D-09 — PropertyGrid 동적 노출 (AlgorithmType 별 필터)
-        //  PropertyTools.Wpf 가 ICustomTypeDescriptor.GetProperties(Attribute[]) 를 호출 (PropertyGrid 용).
-        //  ParamBase INI 직렬화는 GetType().GetProperties() System.Reflection 경로 사용 — ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370 확인).
-        //  안전 장치: GetProperties() 무인자도 base TypeDescriptor 위임으로 정의 (System.ComponentModel 우회 사용처 보호).
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) {
-            var all = System.ComponentModel.TypeDescriptor.GetProperties(this, attributes, true);
-            var alg = AlgorithmTypeEnum;
-            var keep = new List<System.ComponentModel.PropertyDescriptor>();
-            foreach (System.ComponentModel.PropertyDescriptor pd in all) {
-                if (IsHiddenForAlgorithm(pd.Name, alg)) continue; //260503 hbk Phase 17 D-09 — alg 별 hide 필터
-                keep.Add(pd);
-            }
-            return new System.ComponentModel.PropertyDescriptorCollection(keep.ToArray());
+        //260508 hbk Phase 19 fix — PropertyTools.Wpf PropertyGrid 는 GetProperties() 무인자 오버로드만 호출 (TypeDescriptor.GetProperties(object) 단일 인자 → ICustomTypeDescriptor.GetProperties() 무인자로 위임).
+        //  Phase 17~19 의 GetProperties(Attribute[]) 본문은 호출되지 않는 dead code 였음. 무인자 오버로드로 hide 로직 이전.
+        //  ParamBase INI 직렬화는 GetType().GetProperties() System.Reflection 경로 사용 — ICustomTypeDescriptor 영향 0 (ParamBase.cs L75/L325/L370).
+        //  GetProperties(Attribute[]) 는 외부 사용처(LiveBinding 등) 안전판 — 동일 본문으로 유지.
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties(System.Attribute[] attributes) { //260508 hbk Phase 19 fix
+            return BuildFilteredProperties(attributes); //260508 hbk Phase 19 fix
         }
-        public System.ComponentModel.PropertyDescriptorCollection GetProperties() {
-            //260503 hbk Phase 17 D-09 — INI reflection 경로 보호 (System.ComponentModel 사용처가 있을 경우 base 위임)
-            return System.ComponentModel.TypeDescriptor.GetProperties(this, true);
+        public System.ComponentModel.PropertyDescriptorCollection GetProperties() { //260508 hbk Phase 19 fix — PropertyGrid 가 호출하는 진짜 진입점
+            return BuildFilteredProperties(null); //260508 hbk Phase 19 fix
+        }
+        private System.ComponentModel.PropertyDescriptorCollection BuildFilteredProperties(System.Attribute[] attrs) { //260508 hbk Phase 19 fix
+            var alg = AlgorithmTypeEnum; //260508 hbk Phase 19 fix
+            var sourceNames = new System.Collections.Generic.HashSet<string> { //260507 hbk Phase 18 CO-01 패턴 유지
+                nameof(AlgorithmTypeList),
+                nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
+                nameof(Circle_EdgeSelectionList), nameof(Circle_RadialDirectionList),
+                nameof(Horizontal_A_EdgeDirectionList), nameof(Horizontal_A_EdgePolarityList),
+                nameof(Horizontal_A_EdgeSelectionList),
+                nameof(Horizontal_B_EdgeDirectionList), nameof(Horizontal_B_EdgePolarityList),
+                nameof(Horizontal_B_EdgeSelectionList),
+                nameof(Line1_EdgeDirectionList), nameof(Line1_EdgePolarityList), nameof(Line1_EdgeSelectionList),
+                nameof(Line2_EdgeDirectionList), nameof(Line2_EdgePolarityList), nameof(Line2_EdgeSelectionList),
+                nameof(Vertical_EdgeDirectionList), nameof(Vertical_EdgePolarityList), nameof(Vertical_EdgeSelectionList),
+            };
+            return DynamicPropertyHelper.FilterProperties(this, attrs, name => IsHiddenForAlgorithm(name, alg), sourceNames); //260508 hbk Phase 19 fix
         }
         public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); }
         public string GetClassName() { return System.ComponentModel.TypeDescriptor.GetClassName(this, true); }
@@ -572,19 +735,31 @@ namespace ReringProject.Sequence {
         //   CTH: Circle_* (RadialDirection 포함) + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Vertical_*, Circle_EdgeDirection (D-03) 숨김
         //   VTH: Vertical_* + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Circle_* 숨김
         private static bool IsHiddenForAlgorithm(string name, EDatumAlgorithm alg) {
+            if (name == "TwoLineAngleToleranceDeg") return true; //260528 hbk Phase 38 #6 D-12 — 모든 알고리즘에서 PropertyGrid 숨김 (직각 게이트 로직은 무변경 — DatumFindingService.cs:957-975 보존)
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
+                    if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; //260528 hbk Phase 36 D-36-05 — DualImage 전용 필드 hide
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name.StartsWith("Horizontal_A_") || name.StartsWith("Horizontal_B_")) return true;
                     return false;
                 case EDatumAlgorithm.CircleTwoHorizontal:
+                    if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; //260528 hbk Phase 36 D-36-05 — DualImage 전용 필드 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name == "Circle_EdgeDirection") return true; //260503 hbk Phase 17 D-03 — Circle 분기에서 EdgeDirection 동적 hide
                     return false;
                 case EDatumAlgorithm.VerticalTwoHorizontal:
+                    if (name == "TeachingImagePath_Vertical") return true; //260527 hbk Phase 34 D-34-04 — DualImage 전용 필드 hide
+                    if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; //260528 hbk Phase 36 D-36-05 — DualImage 전용 필드 hide
+                    if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
+                    if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
+                    if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
+                    return false;
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage: //260527 hbk Phase 34 D-34-04 — DualImage 변형: VTH 와 동일 hide 그룹 (Vertical_* + Horizontal_A_*/B_* 노출). 차이 = TeachingImagePath_Vertical 추가 노출 (hide 조건 없음 → default fallthrough 후 return false).
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;

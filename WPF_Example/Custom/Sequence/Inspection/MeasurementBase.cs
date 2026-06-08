@@ -17,16 +17,27 @@ namespace ReringProject.Sequence
         [Category("Measurement|Reference")]
         public string DatumRef { get; set; } = ""; //260413 hbk 빈 문자열=무보정
 
+        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree, TypeName 폴백은 NodeViewModel.OnParamPropertyChanged 처리)
+        private string _measurementName = "";
         [Category("Measurement|Info")]
-        public string MeasurementName { get; set; } = ""; //260413 hbk
+        public string MeasurementName {
+            get { return _measurementName; }
+            set {
+                if (_measurementName == value) return;
+                _measurementName = value;
+                RaisePropertyChanged(nameof(MeasurementName));
+            }
+        }
 
         [Category("Measurement|Tolerance")]
         public double NominalValue { get; set; } //260413 hbk
 
         [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("상한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")] //260518 hbk #Tol
         public double TolerancePlus { get; set; } //260413 hbk
 
         [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("하한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")] //260518 hbk #Tol
         public double ToleranceMinus { get; set; } //260413 hbk
 
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -34,6 +45,17 @@ namespace ReringProject.Sequence
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public bool LastJudgement { get; set; } //260413 hbk true=OK
+
+        //260517 hbk CO-23-01: HasResult 판정 기준 분리 — 0.0 결과값도 정상 측정으로 표시하기 위해
+        //  LastMeasuredValue != 0 대신 별도 플래그 사용. EvaluateJudgement에서 true, ClearResult에서 false 설정.
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public bool LastHasResult { get; set; } //260517 hbk CO-23-01
+
+        //260529 hbk Phase 39 WF-01 D-02 — measurement 단위 skip reason. null/"" = 정상 또는 측정 NG, "DATUM_FAIL" = datum 검출 실패로 skip.
+        //  string 채택 근거: enum 신설 시 INI/직렬화 영향 검토 필요. string 은 ParamBase reflection 의 case "String" 경로 자동 호환.
+        //  D-10 (v2.6 순수 유지) — enum 신설 안 함. UI 'DETECT FAIL' 라벨 분기 + Excel export (Phase 40/41) 용.
+        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 WF-01 D-02
+        public string LastSkipReason { get; set; } //260529 hbk Phase 39 WF-01 D-02
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } //260413 hbk MeasurementFactory 키
@@ -53,14 +75,16 @@ namespace ReringProject.Sequence
             out List<EdgeInspectionOverlay> overlays);
 
         /// <summary>
-        /// 공차 판정: lower = Nominal + ToleranceMinus (음수 허용), upper = Nominal + TolerancePlus.
-        /// LastMeasuredValue/LastJudgement를 갱신하고 결과를 반환한다.
+        /// 공차 판정: lower = Nominal - Abs(ToleranceMinus), upper = Nominal + Abs(TolerancePlus).
+        /// 공차 입력 부호와 무관하게 NominalValue 중심의 올바른 범위를 적용한다.
+        /// LastMeasuredValue/LastJudgement/LastHasResult를 갱신하고 결과를 반환한다.
         /// </summary>
         public bool EvaluateJudgement(double value) //260413 hbk
         {
             LastMeasuredValue = value;
-            double lower = NominalValue + ToleranceMinus;
-            double upper = NominalValue + TolerancePlus;
+            LastHasResult = true; //260517 hbk CO-23-01: 측정 성공 마킹 (0.0 도 정상 결과)
+            double lower = NominalValue - System.Math.Abs(ToleranceMinus); //260518 hbk #Tol — 부호 무관 절대값 처리
+            double upper = NominalValue + System.Math.Abs(TolerancePlus);  //260518 hbk #Tol
             if (lower > upper)
             {
                 double tmp = lower; lower = upper; upper = tmp;
@@ -73,6 +97,8 @@ namespace ReringProject.Sequence
         {
             LastMeasuredValue = 0;
             LastJudgement = false;
+            LastHasResult = false; //260517 hbk CO-23-01: 미측정 상태 복원
+            LastSkipReason = null; //260529 hbk Phase 39 WF-01 D-02 — datum-skip subtype 리셋
         }
     }
 }

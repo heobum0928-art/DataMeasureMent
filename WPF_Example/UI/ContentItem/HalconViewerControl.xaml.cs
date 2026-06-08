@@ -108,9 +108,13 @@ namespace ReringProject.UI
 
         public bool EnableRoiSelection { get; set; } = true;
 
+        //260527 hbk Phase 35 — CO-33-02 hotfix: 이전 HImage 로드 후 캐시 hit 무효화 (CurrentImagePath="" 일 때 다른 path 와 잘못된 비교 차단)
         public void LoadImage(string imagePath)
         {
-            if (HasImage && string.Equals(CurrentImagePath, imagePath, StringComparison.OrdinalIgnoreCase))
+            bool cacheHit = HasImage
+                            && !string.IsNullOrEmpty(CurrentImagePath)   //260527 hbk Phase 35 — 빈 문자열(HImage 직접 로드 상태) 시 캐시 hit 차단
+                            && string.Equals(CurrentImagePath, imagePath, StringComparison.OrdinalIgnoreCase);
+            if (cacheHit)
             {
                 ApplyInitialFitView();
                 Render();
@@ -118,17 +122,19 @@ namespace ReringProject.UI
             }
 
             DisposeImage();
-            CurrentImagePath = imagePath;
+            CurrentImagePath = imagePath ?? "";   //260527 hbk Phase 35 — null 방지 (정규화: null=초기화 전, ""=HImage 로드, non-empty=path 로드)
             CurrentImage = string.IsNullOrWhiteSpace(imagePath) ? null : new HImage(imagePath);
             UpdateImageMetadata();
             ApplyInitialFitView();
             Render();
         }
 
-        public void LoadImage(HImage image)
+        //260527 hbk Phase 35 — CO-33-02 hotfix: HImage 오버로드도 sourceContext 보존하여 캐시 일관성 확보 (default 인자 → 기존 호출 site 무수정 호환)
+        public void LoadImage(HImage image, string sourceContext = null)
         {
             DisposeImage();
-            CurrentImagePath = null;
+            //260527 hbk Phase 35 — 기존 null 대신 sourceContext 보존; null/empty → "" 정규화 (HImage 직접 로드 상태 표현)
+            CurrentImagePath = sourceContext ?? "";
             CurrentImage = HalconImageBridge.Clone(image);
             UpdateImageMetadata();
             ApplyInitialFitView();
@@ -591,7 +597,7 @@ namespace ReringProject.UI
 
             CurrentImage.Dispose();
             CurrentImage = null;
-            CurrentImagePath = null;
+            CurrentImagePath = "";   //260527 hbk Phase 35 — CO-33-02 hotfix: null 대신 "" 사용 (정규화 정책: null=초기화 전, ""=HImage 로드/Dispose 후, non-empty=path)
             UpdateImageMetadata();
         }
 

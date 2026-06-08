@@ -44,14 +44,40 @@ namespace ReringProject.UI {
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         //260423 hbk Phase 11 D-17 — Circle ROI 편집 대상 Measurement
-        private CircleDiameterMeasurement _editingCircleMeasurement;
+        //260519 hbk Phase 31 CO-23.1-02 — 타입 MeasurementBase 로 일반화 (CircleDiameter + CircleCenterDistance 커버)
+        private MeasurementBase _editingCircleMeasurement;
         //260423 hbk Circle ROI 편집 대상 FAI 이름 (RoiDefinition.Id=FAIName 과 일치 유지)
         private string _editingCircleFaiName;
+        //260517 hbk Phase 23.1 D-01 — EdgeToLineDistance Rect ROI 편집 대상 Measurement
+        //260519 hbk Phase 31 CO-23.1-02 — 타입 MeasurementBase 로 일반화 (Point_* ROI 보유 타입 전체 커버)
+        private MeasurementBase _editingMeasurement;
+        //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 FAI 이름 (UpdateDisplayState selId 용)
+        private string _editingMeasurementFaiName;
+        private int _editingMeasurementRoiIndex; //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 4-ROI 순차 드로잉 인덱스 (0=EdgeA1, 1=EdgeB1, 2=EdgeA2, 3=EdgeB2)
         //260424 hbk Phase 12 D-03 — Datum 티칭 단계 (알고리즘별 switch 로 전이 결정)
         //  Phase 13 에서 DatumAlgorithmBase.GetROISteps() 가변 배열로 재설계 예정 — switch 는 MainView 내 private 유지.
         private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
         private EDatumTeachStep _datumTeachStep = EDatumTeachStep.Line1; //260424 hbk Phase 12 D-03
         private DatumConfig _editingDatum; //260424 hbk Phase 12 — 현재 티칭 중 Datum
+        //260527 hbk Phase 34.1 D-34.1-08/12 — 현재 캔버스에 표시 중인 이미지 축 (가로/세로). DualImage 변형에서만 의미 있음.
+        //  세션 한정, INI 미저장 (Datum 노드 이동 시 가로축으로 리셋).
+        private ReringProject.Sequence.EImageSource _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix — 현재 선택된 Datum (teach 모드 무관, swap UI 의 대상).
+        //  _editingDatum 은 Teach Datum 클릭 시에만 set → 토글 핸들러가 노드 선택 직후 동작하려면 별도 reference 필요.
+        //  PublishDatumRoiCandidates 진입 시 갱신, AlgorithmType PropertyChanged 구독 대상.
+        private DatumConfig _selectedDatumForSwap;
+        //260530 hbk Phase 39.3 D-G2 — 현재 선택된 DualImage Measurement (Datum 의 _selectedDatumForSwap 대칭, mutex 페어).
+        //  세션 한정, INI 미저장. InspectionListView Measurement 노드 선택 시 set, Datum 노드 선택 시 clear.
+        private DualImageEdgeDistanceMeasurement _selectedDualImageMeasurement;
+        //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 배지 색상 정적 frozen brush (인스턴스 GC 방지 + WPF 즉시 반영).
+        //  ConvertFromString 매 호출마다 새 brush 생성 → 일부 환경에서 WPF Background 갱신 누락 의심 → 정적/frozen 으로 대체.
+        private static readonly SolidColorBrush BadgeBrushHorizontal = CreateFrozenBrush(0x19, 0x76, 0xD2); //260527 hbk Phase 34.1 — Material Blue 700
+        private static readonly SolidColorBrush BadgeBrushVertical   = CreateFrozenBrush(0xF5, 0x7C, 0x00); //260527 hbk Phase 34.1 — Material Orange 800
+        private static SolidColorBrush CreateFrozenBrush(byte r, byte g, byte b) {
+            var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol; //260408 hbk 마지막 이미지 좌표 (polygon/calibration 클릭용)
@@ -65,6 +91,16 @@ namespace ReringProject.UI {
             halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
             //260423 hbk ROI 기하 변경(리사이즈/정점편집) 이벤트 구독
             halconViewer.RoiGeometryChanged += HalconViewer_RoiGeometryChanged;
+            //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기": Length/Radius 0 리셋 후 오버레이 갱신
+            halconViewer.RoiRedrawRequested += (roiId) => //260505 hbk Phase 18 CO-04
+            { //260505 hbk Phase 18 CO-04
+                if (_editingDatum != null) //260505 hbk Phase 18 CO-04
+                { //260505 hbk Phase 18 CO-04
+                    ClearDatumRoiFields(_editingDatum, roiId); //260505 hbk Phase 18 CO-04
+                    halconViewer.SetDatumOverlay(_editingDatum, false, false); //260505 hbk Phase 18 CO-04 //260529 hbk Phase 39.1-04 G4-03 — 모드 해제 → isEditMode=false 명시
+                    PublishDatumRoiCandidates(_editingDatum); //260505 hbk Phase 18 CO-04
+                } //260505 hbk Phase 18 CO-04
+            }; //260505 hbk Phase 18 CO-04
             Unloaded += MainView_Unloaded;
         }
 
@@ -100,7 +136,7 @@ namespace ReringProject.UI {
         }
 
         /// <summary>Displays the image stored in the given ShotConfig on the canvas.</summary>
-        private void DisplayShotImage(ShotConfig shot) {
+        public void DisplayShotImage(ShotConfig shot) { //260521 hbk Phase 32 UAT — private → public (Shot/Measurement 노드 선택 시 InspectionListView 에서 호출)
             if (shot != null && shot.HasImage) {
                 HImage img = null;
                 try {
@@ -113,12 +149,116 @@ namespace ReringProject.UI {
                         label_message.Visibility = Visibility.Visible;
                     }
                 } finally {
-                    img?.Dispose();
+                    if (img != null) img.Dispose(); //260509 hbk Phase 20 — ?. expanded
                 }
             } else {
                 label_message.Content = "NO Image";
                 label_message.Visibility = Visibility.Visible;
             }
+        }
+
+        //260527 hbk Phase 35 — CO-33-02 hotfix: Datum 노드 선택 시 TeachingImagePath 표시 (Shot/Measurement 와 일관성 확보, stale canvas 차단).
+        //  Phase 22 IMG-02 dual-image 구조 (TeachingImagePath != SimulImagePath) 보존 — Datum 전용 이미지 canvas 직접 표시.
+        /// <summary>Displays the TeachingImagePath image of the given DatumConfig on the canvas.
+        /// Mirrors DisplayShotImage but uses DatumConfig.TeachingImagePath (Phase 22 IMG-02 분리 구조).</summary>
+        public void DisplayDatumImage(DatumConfig datum) { //260527 hbk Phase 35
+            if (datum == null) { //260527 hbk Phase 35
+                return; //260527 hbk Phase 35
+            }
+            string path = datum.TeachingImagePath; //260527 hbk Phase 35
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) { //260527 hbk Phase 35
+                // TeachingImagePath 미설정/파일 없음 — 기존 canvas 유지 (사용자가 Load Image 누르면 갱신)
+                return; //260527 hbk Phase 35
+            }
+            try { //260527 hbk Phase 35
+                halconViewer.LoadImage(path); //260527 hbk Phase 35
+                label_message.Visibility = Visibility.Collapsed; //260527 hbk Phase 35
+            } catch (Exception ex) { //260527 hbk Phase 35
+                Logging.PrintErrLog((int)ELogType.Error, ex.Message); //260527 hbk Phase 35
+            }
+        }
+
+        //260521 hbk Phase 32 UAT — Measurement 노드 선택 시 소유 Shot 이미지 표시 진입점.
+        //  MeasurementBase → FAI(FindFaiNameContainingMeasurement) → ShotConfig(FAIConfig.Owner) → DisplayShotImage.
+        /// <summary>Resolves the owning ShotConfig for the given measurement and displays its image.</summary>
+        public void DisplayMeasurementImage(MeasurementBase measurement) { //260521 hbk Phase 32 UAT
+            if (measurement == null) return; //260521 hbk Phase 32 UAT
+            //260528 hbk Phase 37 — 이름 round-trip(FindFAIByName) 제거: 여러 Shot 의 FAI 이름이 같으면(기본 FAI_0 등)
+            //  첫 Shot 의 FAI 가 반환돼 잘못된 Shot 이미지가 표시됨. 소유 FAIConfig 를 객체 참조로 직접 해석.
+            FAIConfig fai = FindFAIContainingMeasurement(measurement); //260528 hbk Phase 37
+            if (fai == null) return; //260521 hbk Phase 32 UAT
+            ShotConfig shot = fai.Owner as ShotConfig; //260521 hbk Phase 32 UAT
+            DisplayShotImage(shot); //260521 hbk Phase 32 UAT
+        } //260521 hbk Phase 32 UAT
+
+        //260529 hbk Phase 39.1-04 G4-03 — W3 helper (intra-class): 11 SetDatumOverlay 호출처 변수 shadowing 회피.
+        //  btn_teachDatum.IsChecked == true → Edit 모드 (Datum CTH 시 fitting 원 + ROI 사각형 핸들 동시 표시).
+        private bool GetDatumEditMode() { //260529 hbk Phase 39.1-04 G4-03
+            return btn_teachDatum != null && btn_teachDatum.IsChecked == true; //260529 hbk Phase 39.1-04 G4-03
+        }
+
+        //260529 hbk Phase 39.1-04 G4-03 — W4 wrapper (extra-class): InspectionListView 등 외부 UserControl 에서 btn_teachDatum 직접 접근 회피.
+        //  encapsulation + access modifier 안전. InspectionListView 의 2 호출처에서 mParentWindow.mainView.IsDatumTeachActive 사용.
+        public bool IsDatumTeachActive { //260529 hbk Phase 39.1-04 G4-03
+            get { return btn_teachDatum != null && btn_teachDatum.IsChecked == true; } //260529 hbk Phase 39.1-04 G4-03
+        }
+
+        //260529 hbk Phase 39.1-03 G4-01/G4-02 — 검사 후 FAI/Measurement 노드 클릭 시 측정 결과 + 이미지 + overlay 재현 통합 진입점.
+        //  Sequence 동작 변경 0: 측정 재 호출 없이 fai.LastOverlays (Action_FAIMeasurement EStep.Measure 누적) 재 렌더.
+        //  전 FAI 타입 공통 동작 (D-G4-02 — CircleDiameter / EdgeToLineDistance / PointToLineDistance / EdgePairDistance / EdgeToLineAngle / ArcEdgeDistance).
+        public void RenderInspectionResultForNode(ParamBase param) { //260529 hbk Phase 39.1-03 G4-01
+            if (param == null) { halconViewer.ClearFaiCirclePreview(); return; } //260529 hbk Phase 39.1-03 G4-01 //260529 hbk CO-39.1-01 rev2
+            if (param is MeasurementBase meas) { //260529 hbk Phase 39.1-03 G4-01
+                DisplayMeasurementImage(meas); //260529 hbk Phase 39.1-03 G4-01
+                HighlightSelectedRoi(meas); //260529 hbk Phase 39.1-03 G4-01
+                RenderStoredOverlaysForMeasurement(meas); //260529 hbk Phase 39.1-03 G4-01
+                //260529 hbk CO-39.1-01 rev2 — FAI CircleDiameter Measurement 선택 시 Strip preview 활성. 폴라 경로 (Circle_RadialDirection != "") 한정.
+                UpdateFaiCirclePreview(meas);
+            } else if (param is FAIConfig fai) { //260529 hbk Phase 39.1-03 G4-01
+                DisplayFAIImage(fai); //260529 hbk Phase 39.1-03 G4-01
+                HighlightSelectedRoi(fai); //260529 hbk Phase 39.1-03 G4-01
+                RenderStoredOverlaysForFai(fai); //260529 hbk Phase 39.1-03 G4-01
+                halconViewer.ClearFaiCirclePreview(); //260529 hbk CO-39.1-01 rev2 — FAI 노드 자체는 strip preview 없음 (Measurement 노드만)
+            }
+        }
+
+        //260529 hbk CO-39.1-01 rev2 — FAI Strip preview 활성/클리어. 폴라 경로 (Circle_RadialDirection in {Inward, Outward}) 한정.
+        //  fit 경로 (Circle_RadialDirection == "") 는 strip 미사용 → preview 클리어.
+        //  PropertyGrid 편집 후 strip 갱신: 사용자가 노드를 다시 클릭하면 RenderInspectionResultForNode 가 재 호출 → preview 재 셋. (live INPC 미구현 — 추후 phase)
+        private void UpdateFaiCirclePreview(MeasurementBase meas)
+        {
+            var cd = meas as CircleDiameterMeasurement;
+            if (cd == null || string.IsNullOrEmpty(cd.Circle_RadialDirection) || cd.Circle_Radius <= 0)
+            {
+                halconViewer.ClearFaiCirclePreview();
+                return;
+            }
+            //  datumTransform = identity (UI 시점에 datum transform 미해상 — preview 좌표가 FAI 원본 좌표 기준).
+            //  실제 검사 시 transform 적용되어 strip 위치가 약간 달라질 수 있음 (acceptable for preview).
+            halconViewer.SetFaiCirclePreview(cd.Circle_Row, cd.Circle_Col, cd.Circle_Radius,
+                cd.Circle_PolarStepDeg, cd.Circle_RectL1Ratio, cd.Circle_RectL2Ratio,
+                null /* identity transform — preview */);
+        }
+
+        //260529 hbk Phase 39.1-03 G4-01 — FAI 노드 클릭 시 fai.LastOverlays 전체 재 렌더.
+        //  W2 (260529) 확인: HalconViewerControl.SetInspectionOverlays 는 REPLACE 의미 (Clear + AddRange).
+        //  null/빈 케이스에 빈 List 호출 → prior overlay 안전 클리어.
+        private void RenderStoredOverlaysForFai(FAIConfig fai) { //260529 hbk Phase 39.1-03 G4-01
+            if (fai == null || fai.LastOverlays == null || fai.LastOverlays.Count == 0) { //260529 hbk Phase 39.1-03 G4-01
+                halconViewer.SetInspectionOverlays(new System.Collections.Generic.List<ReringProject.Halcon.Models.EdgeInspectionOverlay>()); //260529 hbk Phase 39.1-03 G4-01
+                return; //260529 hbk Phase 39.1-03 G4-01
+            }
+            halconViewer.SetInspectionOverlays(fai.LastOverlays); //260529 hbk Phase 39.1-03 G4-01
+        }
+
+        //260529 hbk Phase 39.1-03 G4-01 — Measurement 노드 클릭 시 소유 FAI 의 LastOverlays 재 렌더 (D-G4-02 전 타입 공통, 타입별 분기 없음).
+        private void RenderStoredOverlaysForMeasurement(MeasurementBase meas) { //260529 hbk Phase 39.1-03 G4-01
+            if (meas == null) { //260529 hbk Phase 39.1-03 G4-01
+                halconViewer.SetInspectionOverlays(new System.Collections.Generic.List<ReringProject.Halcon.Models.EdgeInspectionOverlay>()); //260529 hbk Phase 39.1-03 G4-01
+                return; //260529 hbk Phase 39.1-03 G4-01
+            }
+            FAIConfig fai = FindFAIContainingMeasurement(meas); //260528 hbk Phase 37 hotfix A/B — 객체 참조 round-trip 회피
+            RenderStoredOverlaysForFai(fai); //260529 hbk Phase 39.1-03 G4-01
         }
 
         /// <summary>Binds DataGrid to the InspectionViewModel's MeasurementResults collection.</summary>
@@ -134,18 +274,31 @@ namespace ReringProject.UI {
         private void FAIResults_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             if (selectedRow == null) {
+                //260519 hbk #6-a — ItemsSource 교체 시 WPF 가 SelectedItem=null 로 자동 리셋하며 이 핸들러를 동기 발화.
+                //  4인자 UpdateDisplayState(null) 는 _selectedRoiId=null clobber → 이후 HighlightSelectedRoi 의 하이라이트를
+                //  렌더링 타이밍에 따라 지워버림. 3인자 오버로드(selectedRoiId 미변경)를 써서 트리 선택 하이라이트를 보존한다.
                 var allRois = GetCurrentFAIRois();
                 if (allRois.Count > 0)
-                    halconViewer.UpdateDisplayState(allRois, null, null, null);
+                    halconViewer.UpdateDisplayState(allRois, null, null); //260519 hbk #6-a — 3인자: _selectedRoiId 보존
                 return;
             }
 
             var rois = GetCurrentFAIRois();
+            //260519 hbk #6-a — 결과행 선택 시 그 측정 전용 ROI(Id="FAIName_측정명")만 하이라이트한다.
+            //  해당 측정 ROI 가 없으면 FAIName 으로 폴백 — Render 의 접두사 매칭이 FAI 전체 ROI 를 하이라이트.
+            //  selectedRow.FAIName 만 쓰면 FAI 노드 선택과 동일 selId 라 행을 바꿔도 색이 안 변함.
+            string composite = selectedRow.FAIName + "_" + selectedRow.MeasurementName;
             string selectedRoiId = selectedRow.FAIName;
+            foreach (var r in rois) {
+                if (r != null && r.Id == composite) { selectedRoiId = composite; break; }
+            }
             halconViewer.UpdateDisplayState(rois, selectedRoiId, null, null);
 
             //260417 hbk Phase 6 Plan 04: 선택된 행의 FAIConfig를 트리에서 조회해 ROI hint 표시
-            FAIConfig parentFai = FindFAIByName(selectedRow.FAIName);
+            //260601 hbk bottom-shot-stale-roi — 동일-명 shot 충돌 회피: 측정 객체 참조 우선, 실패 시 이름 폴백
+            FAIConfig parentFai = null;
+            if (selectedRow.SourceMeasurement != null) parentFai = FindFAIContainingMeasurement(selectedRow.SourceMeasurement);
+            if (parentFai == null) parentFai = FindFAIByName(selectedRow.FAIName);
             if (parentFai != null && (parentFai.ROI_Length1 <= 0 || parentFai.ROI_Length2 <= 0)) {
                 label_message.Content = "ROI not set";
                 label_message.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
@@ -158,17 +311,203 @@ namespace ReringProject.UI {
         /// <summary>Collects RoiDefinitions from all FAIs of the currently displayed shot.</summary>
         private List<RoiDefinition> GetCurrentFAIRois() {
             var result = new List<RoiDefinition>();
-            var seen = new HashSet<string>();
+            //260601 hbk bottom-shot-stale-roi — FAI 객체 dedup (이름 dedup 은 동일-명 shot 의 두 번째 FAI 를 skip → 첫 shot 으로 묶임).
+            var seenFais = new HashSet<FAIConfig>();
             foreach (var item in dataGrid_faiResults.Items) {
                 var row = item as MeasurementResultRow;
-                if (row == null || string.IsNullOrEmpty(row.FAIName)) continue;
-                if (!seen.Add(row.FAIName)) continue;
-                FAIConfig fai = FindFAIByName(row.FAIName);
+                if (row == null) continue;
+                //260601 hbk bottom-shot-stale-roi — Phase 37 hotfix A/B 누락 경로 보강:
+                //  row 가 보유한 실제 측정 객체(SourceMeasurement)로 소유 FAI 를 참조 해석(ReferenceEquals).
+                //  여러 shot 이 동일 FAI 명(기본 FAI_0/1)을 가질 때 FindFAIByName 이 첫-일치(다른) shot 의 FAI 를 반환해
+                //  잘못된 shot 의 ROI 가 표시되던 결함 차단. 객체 해석 실패 시에만 이름 폴백(레거시 회귀 0).
+                FAIConfig fai = null;
+                if (row.SourceMeasurement != null) fai = FindFAIContainingMeasurement(row.SourceMeasurement);
+                if (fai == null && !string.IsNullOrEmpty(row.FAIName)) fai = FindFAIByName(row.FAIName);
                 if (fai == null) continue;
+                if (!seenFais.Add(fai)) continue; //260601 hbk bottom-shot-stale-roi — 같은 FAI 객체 중복 수집 방지
                 var roi = fai.ToRoiDefinition();
                 if (roi.IsTaught) result.Add(roi);
+                //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집
+                //  (EdgeToLineDistance/EdgeToLineAngle/ArcEdgeDistance — Phase 31 신규 타입 캔버스 렌더 누락 수정)
+                foreach (var m in fai.Measurements) {
+                    result.AddRange(BuildPointRoiDefinitions(m, fai.FAIName)); //260521 hbk Phase 32 UAT
+                }
             }
             return result;
+        }
+
+        //260519 hbk #6-a — 단일 FAI 의 rect ROI + EdgeToLineDistance Point ROI 를 result 에 누적한다.
+        //  GetCurrentFAIRois 의 FAI별 수집 규칙(Id/IsTaught/Point ROI)과 동일 — DataGrid 비의존 버전이 공유한다.
+        private void AppendFaiRois(List<RoiDefinition> result, FAIConfig fai) {
+            if (fai == null) return;
+            var roi = fai.ToRoiDefinition();
+            if (roi.IsTaught) result.Add(roi);
+            //260517 hbk Phase 23.1 D-03 / 260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 동시 수집
+            foreach (var m in fai.Measurements) {
+                result.AddRange(BuildPointRoiDefinitions(m, fai.FAIName)); //260521 hbk Phase 32 UAT
+            }
+        }
+
+        //260519 hbk Phase 31 hotfix#4 — Point ROI 보유 측정 타입 → RoiDefinition 리스트 변환 (캔버스 렌더용).
+        //  EdgeToLineDistance(Phase 23.1) 만 수집하던 누락을 EdgeToLineAngle/ArcEdgeDistance 까지 일반화.
+        //  Length1/2 미티칭(≤0) 이면 해당 ROI skip. CommitRectRoi 가 Point_Phi=0 으로만 쓰므로 축정렬 bounding box.
+        //260521 hbk Phase 32 UAT — 반환 타입 List<RoiDefinition> 으로 변경: ArcLineIntersect 는 EdgeA + EdgeB 2개 반환.
+        //  비-ArcLineIntersect 타입은 0 또는 1개짜리 리스트 반환 (기존 null 반환 규칙 보존: 길이 0 = skip).
+        private static List<RoiDefinition> BuildPointRoiDefinitions(MeasurementBase m, string faiName) { //260521 hbk Phase 32 UAT
+            var result = new List<RoiDefinition>(); //260521 hbk Phase 32 UAT
+            string measName = m.MeasurementName; //260521 hbk Phase 32 UAT
+            if (string.IsNullOrEmpty(measName)) measName = m.TypeName; //260521 hbk Phase 32 UAT
+
+            //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect: EdgeA1/EdgeB1/EdgeA2/EdgeB2 4개 독립 RoiDefinition. 미티칭 ROI 는 개별 skip.
+            var ali = m as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 I9/I10-redesign
+            if (ali != null) {
+                if (ali.EdgeA1_Length1 > 0 && ali.EdgeA1_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeA1", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeA1", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeA1_Row - ali.EdgeA1_Length1, Column1 = ali.EdgeA1_Col - ali.EdgeA1_Length2,
+                        Row2 = ali.EdgeA1_Row + ali.EdgeA1_Length1, Column2 = ali.EdgeA1_Col + ali.EdgeA1_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                if (ali.EdgeB1_Length1 > 0 && ali.EdgeB1_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeB1", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeB1", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeB1_Row - ali.EdgeB1_Length1, Column1 = ali.EdgeB1_Col - ali.EdgeB1_Length2,
+                        Row2 = ali.EdgeB1_Row + ali.EdgeB1_Length1, Column2 = ali.EdgeB1_Col + ali.EdgeB1_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                if (ali.EdgeA2_Length1 > 0 && ali.EdgeA2_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeA2", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeA2", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeA2_Row - ali.EdgeA2_Length1, Column1 = ali.EdgeA2_Col - ali.EdgeA2_Length2,
+                        Row2 = ali.EdgeA2_Row + ali.EdgeA2_Length1, Column2 = ali.EdgeA2_Col + ali.EdgeA2_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                if (ali.EdgeB2_Length1 > 0 && ali.EdgeB2_Length2 > 0) { //260521 hbk Phase 32 I9/I10-redesign
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_EdgeB2", //260521 hbk Phase 32 I9/I10-redesign
+                        Name = measName + "_EdgeB2", //260521 hbk Phase 32 I9/I10-redesign
+                        Row1 = ali.EdgeB2_Row - ali.EdgeB2_Length1, Column1 = ali.EdgeB2_Col - ali.EdgeB2_Length2,
+                        Row2 = ali.EdgeB2_Row + ali.EdgeB2_Length1, Column2 = ali.EdgeB2_Col + ali.EdgeB2_Length2,
+                        IsTaught = true
+                    }); //260521 hbk Phase 32 I9/I10-redesign
+                } //260521 hbk Phase 32 I9/I10-redesign
+                return result; //260521 hbk Phase 32 I9/I10-redesign — 나머지 타입 분기 통과 불필요
+            }
+
+            //260530 hbk Phase 39.3 D-G1 — DualImage: PointROI + LineROI 2개 독립 RoiDefinition (ArcLineIntersect 패턴 차용, RoiId suffix "_Point"/"_Line", HighlightSelectedRoi fallback 호환)
+            var dual = m as DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.3 D-G1
+            if (dual != null) { //260530 hbk Phase 39.3 D-G1
+                if (dual.PointROI_Length1 > 0 && dual.PointROI_Length2 > 0) { //260530 hbk Phase 39.3 D-G1
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_Point", //260530 hbk Phase 39.3 D-G1 — SP-5 RoiId suffix
+                        Name = measName + "_Point",
+                        Row1 = dual.PointROI_Row - dual.PointROI_Length1, Column1 = dual.PointROI_Col - dual.PointROI_Length2,
+                        Row2 = dual.PointROI_Row + dual.PointROI_Length1, Column2 = dual.PointROI_Col + dual.PointROI_Length2,
+                        IsTaught = true
+                    });
+                }
+                if (dual.LineROI_Length1 > 0 && dual.LineROI_Length2 > 0) { //260530 hbk Phase 39.3 D-G1
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_Line", //260530 hbk Phase 39.3 D-G1
+                        Name = measName + "_Line",
+                        Row1 = dual.LineROI_Row - dual.LineROI_Length1, Column1 = dual.LineROI_Col - dual.LineROI_Length2,
+                        Row2 = dual.LineROI_Row + dual.LineROI_Length1, Column2 = dual.LineROI_Col + dual.LineROI_Length2,
+                        IsTaught = true
+                    });
+                }
+                return result; //260530 hbk Phase 39.3 D-G1 — ArcLineIntersect 와 동일하게 조기 종료 (단일 RoiDefinition 분기 건너뜀)
+            }
+
+            double pRow = 0, pCol = 0, pLen1 = 0, pLen2 = 0;
+            var etld = m as EdgeToLineDistanceMeasurement;
+            if (etld != null) { pRow = etld.Point_Row; pCol = etld.Point_Col; pLen1 = etld.Point_Length1; pLen2 = etld.Point_Length2; }
+            var etla = m as EdgeToLineAngleMeasurement;
+            if (etla != null) { pRow = etla.Point_Row; pCol = etla.Point_Col; pLen1 = etla.Point_Length1; pLen2 = etla.Point_Length2; }
+            var aed = m as ArcEdgeDistanceMeasurement;
+            if (aed != null) { pRow = aed.Point_Row; pCol = aed.Point_Col; pLen1 = aed.Point_Length1; pLen2 = aed.Point_Length2; }
+            var cAngle = m as CompoundAngleMeasurement; //260521 hbk Phase 32
+            if (cAngle != null) { pRow = cAngle.Rect_Row; pCol = cAngle.Rect_Col; pLen1 = cAngle.Rect_Length1; pLen2 = cAngle.Rect_Length2; }
+            var cCenterC = m as CompoundCenterCDistanceMeasurement; //260521 hbk Phase 32
+            if (cCenterC != null) { pRow = cCenterC.Rect_Row; pCol = cCenterC.Rect_Col; pLen1 = cCenterC.Rect_Length1; pLen2 = cCenterC.Rect_Length2; }
+            var cCenterB = m as CompoundCenterBDistanceMeasurement; //260521 hbk Phase 32
+            if (cCenterB != null) { pRow = cCenterB.Rect_Row; pCol = cCenterB.Rect_Col; pLen1 = cCenterB.Rect_Length1; pLen2 = cCenterB.Rect_Length2; }
+            var cShort = m as CompoundShortAxisDistanceMeasurement; //260523 hbk Phase 32 — E3 단축 환원
+            if (cShort != null) { pRow = cShort.Rect_Row; pCol = cShort.Rect_Col; pLen1 = cShort.Rect_Length1; pLen2 = cShort.Rect_Length2; }
+            if (pLen1 <= 0 || pLen2 <= 0) return result; //260521 hbk Phase 32 UAT — 미티칭 시 빈 리스트 반환 (기존 null 규칙 대체)
+            result.Add(new RoiDefinition { //260521 hbk Phase 32 UAT
+                Id = faiName + "_" + measName,
+                Name = measName,
+                Row1 = pRow - pLen1,
+                Column1 = pCol - pLen2,
+                Row2 = pRow + pLen1,
+                Column2 = pCol + pLen2,
+                IsTaught = true
+            });
+            return result; //260521 hbk Phase 32 UAT
+        }
+
+        //260519 hbk #6-a — 주어진 FAI 가 속한 Shot 의 모든 FAI ROI 를 DataGrid 비의존으로 수집한다.
+        //  GetCurrentFAIRois 는 dataGrid_faiResults 바인딩 갱신 지연으로 트리 선택보다 한 박자 늦은 ROI 집합을 줘
+        //  → 트리 선택 하이라이트가 stale FAI 기준이 되어 Id 불일치(녹색 유지) 발생. anchorFai.Owner(Shot)에서 직접 수집한다.
+        private List<RoiDefinition> CollectShotRois(FAIConfig anchorFai) {
+            var result = new List<RoiDefinition>();
+            if (anchorFai == null) return result;
+            ShotConfig shot = anchorFai.Owner as ShotConfig;
+            if (shot == null || shot.FAIList == null) {
+                AppendFaiRois(result, anchorFai); //260519 hbk #6-a — Shot 미해결 시 anchor 단독 수집 (fallback)
+                return result;
+            }
+            foreach (FAIConfig fai in shot.FAIList) {
+                AppendFaiRois(result, fai);
+            }
+            return result;
+        }
+
+        //260518 hbk #6 — 선택된 Measurement/FAI 노드의 ROI 를 캔버스에서 노란색 하이라이트한다.
+        /// <summary>
+        /// 트리에서 선택된 param 의 ROI Id 를 도출해 halconViewer 에 하이라이트를 적용한다.
+        /// param 이 FAIConfig 또는 MeasurementBase 가 아니면 하이라이트를 해제한다.
+        /// </summary>
+        public void HighlightSelectedRoi(ParamBase param) {
+            //260519 hbk #6-a — 선택 노드의 ROI 하이라이트 ID 도출 + 대상 FAI(anchorFai) 해결
+            string selRoiId = null;
+            string faiNameForFallback = null;
+            FAIConfig anchorFai = null;
+            if (param is FAIConfig faiSel) {
+                //260519 hbk #6-a — FAI 노드 선택 시 하이라이트 없음(ROI 전부 녹색) — 사용자 결정.
+                //  측정 노드/결과행을 선택해야 그 ROI 1개가 노란색. selRoiId 는 null 유지.
+                anchorFai = faiSel;
+            }
+            else if (param is MeasurementBase measSel) {
+                string faiName = FindFaiNameContainingMeasurement(measSel);
+                faiNameForFallback = faiName;
+                string mName = measSel.MeasurementName;
+                if (string.IsNullOrEmpty(mName)) mName = measSel.TypeName;
+                if (!string.IsNullOrEmpty(faiName)) {
+                    selRoiId = faiName + "_" + mName;
+                    //260528 hbk Phase 37 — anchorFai 를 이름(FindFAIByName) 대신 측정 객체 참조로 해석.
+                    //  여러 Shot 동일 FAI 명 시 ROI 하이라이트가 첫 Shot 으로 잘못 묶이던 결함 차단(DisplayMeasurementImage 와 동일 원인).
+                    anchorFai = FindFAIContainingMeasurement(measSel); //260528 hbk Phase 37
+                }
+            }
+            //260519 hbk #6-a — dataGrid_faiResults 바인딩 지연 회피: 선택 FAI 의 Shot 에서 직접 ROI 수집
+            var rois = CollectShotRois(anchorFai);
+            //260519 hbk #6-a — composite ID 매칭 ROI 없으면 부모 FAI ROI 로 fallback (일반 FAI rect ROI 는 Id=FAIName)
+            if (!string.IsNullOrEmpty(selRoiId) && !string.IsNullOrEmpty(faiNameForFallback)) {
+                bool matched = false;
+                foreach (var r in rois) {
+                    if (r != null && r.Id == selRoiId) { matched = true; break; }
+                }
+                if (!matched) selRoiId = faiNameForFallback;
+            }
+            //260519 hbk #6-a — UI 스레드(InspectionListView SelectionChanged)에서 직접 호출 — 타이밍 레이스 제거.
+            halconViewer.UpdateDisplayState(rois, selRoiId, null, null); //260519 hbk #6-a
         }
 
         //260417 hbk Phase 6 Plan 04: 모든 시퀀스/Shot에서 FAIName으로 FAIConfig 조회 (D-21)
@@ -179,7 +518,8 @@ namespace ReringProject.UI {
                 if (seq == null) continue;
                 for (int j = 0; j < seq.ActionCount; j++) {
                     var act = seq[j];
-                    if (act?.Param is ShotConfig shot) {
+                    //260509 hbk Phase 20 — ?. expanded to explicit null-check
+                    if (act != null && act.Param is ShotConfig shot) {
                         foreach (FAIConfig fai in shot.FAIList) {
                             if (string.Equals(fai.FAIName, faiName, StringComparison.Ordinal)) return fai;
                         }
@@ -230,7 +570,9 @@ namespace ReringProject.UI {
                             resultStr = "Device Not Opened";
                         }
                         else if (DisplayToViewer(grabbedHalconImage, ConvertParamRects(param as ParamBase))) {
-                            resultStr = pDev[param.DeviceName].IsGrabFromFile ? "Grab From File" : "Grab Success";
+                            //260509 hbk Phase 20 — ternary expanded
+                            if (pDev[param.DeviceName].IsGrabFromFile) resultStr = "Grab From File";
+                            else                                       resultStr = "Grab Success";
                             brush = Brushes.Lime;
                         }
 
@@ -259,6 +601,18 @@ namespace ReringProject.UI {
         }
 
         public void LoadAndDisplay(ICameraParam param) {
+            //260518 hbk #3 — 1-인자 오버로드는 표시/경로저장 동일 param 위임 (코드 중복 제거)
+            LoadAndDisplay(param, param as IOfflineImageParam);
+        }
+
+        //260518 hbk #3 — 표시용(displayParam)과 경로 persistence(pathSinkParam) 분리.
+        //  Datum 노드 Load 시 표시는 Shot 으로 위임하되 경로는 DatumConfig.TeachingImagePath 로 저장하기 위함.
+        /// <summary>
+        /// 이미지를 로드해 표시하고, 선택 경로를 pathSinkParam 에 기록한다.
+        /// pathSinkParam 이 null 이면 경로 persistence 를 건너뛴다.
+        /// </summary>
+        public void LoadAndDisplay(ICameraParam displayParam, IOfflineImageParam pathSinkParam) {
+            ICameraParam param = displayParam;
             if (param == null) return;
 
             var dialog = new OpenFileDialog {
@@ -272,9 +626,34 @@ namespace ReringProject.UI {
                 halconViewer.LoadImage(dialog.FileName);
                 halconViewer.UpdateDisplayState(ConvertParamRects(param as ParamBase), null, null);
                 _lastRenderedImagePath = dialog.FileName;
-                if (param is IOfflineImageParam offlineImageParam) {
-                    offlineImageParam.SetLatestImagePath(dialog.FileName);
+                if (pathSinkParam != null) { //260518 hbk #3 — 경로저장 대상 분리
+                    //260527 hbk Phase 34.1 CO-34.1-07 hotfix — DualImage + 세로 토글 활성 시 TeachingImagePath_Vertical 로 저장.
+                    //  기본 동작 (가로 토글 활성 또는 1-image algorithm) = SetLatestImagePath → TeachingImagePath.
+                    //  세로 토글 활성 + DualImage 한정 분기 (DatumConfig.cs 변경 0 가드 유지 위해 외부에서 property 직접 설정).
+                    DatumConfig datumSink = pathSinkParam as DatumConfig;
+                    if (datumSink != null
+                        && datumSink.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
+                        && _currentImageSource == ReringProject.Sequence.EImageSource.Vertical) {
+                        datumSink.TeachingImagePath_Vertical = dialog.FileName; //260527 hbk Phase 34.1 CO-34.1-07
+                    }
+                    else {
+                        pathSinkParam.SetLatestImagePath(dialog.FileName); //260527 hbk Phase 34.1 CO-34.1-07 — 기본 (가로 또는 1-image)
+                    }
                 }
+                //260521 hbk Phase 32 UAT — Shot 노드 Load 시 _image 버퍼 동기화
+                //  displayParam == pathSinkParam (동일 참조) 일 때만 Shot 캐시 갱신.
+                //  Datum 노드 Load 는 displayParam=ShotConfig, pathSinkParam=DatumConfig (참조 불일치) → 건너뜀.
+                //260527 hbk Phase 35 — CO-33-02 의도 강화: 본 가드는 ShotConfig._image 캐시 오염 방지의 단일 책임을 가진다.
+                //  ReferenceEquals(displayParam, pathSinkParam) == true ⇔ 사용자가 Shot 노드에서 Load → 캐시 갱신.
+                //  Datum 노드 Load → DatumConfig.TeachingImagePath 만 기록, Shot 캐시 무오염 (Phase 22 IMG-02 분리 구조 보존). 동작 byte-identical.
+                if (displayParam is ShotConfig shot && ReferenceEquals(displayParam, pathSinkParam)) {
+                    HImage currentImg = halconViewer.CurrentImage; //260521 hbk Phase 32 UAT
+                    if (currentImg != null) {
+                        shot.SetImage(currentImg); //260521 hbk Phase 32 UAT — SetImage 내부 CopyImage 로 소유권 분리
+                    }
+                }
+                //260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 갱신 (Load 시 경로 확인)
+                UpdateImageSourceLabel(pathSinkParam as DatumConfig, param as ShotConfig);
 
                 label_message.Foreground = Brushes.DeepSkyBlue;
                 label_message.Content = string.Format(
@@ -302,7 +681,10 @@ namespace ReringProject.UI {
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {
                     DisplayContextToViewer(context, ConvertParamRects(param));
-                    var elapsed = context.Timer != null ? context.Timer.Elapsed.TotalMilliseconds / 1000.0 : 0; //260407 hbk Timer null 체크 추가
+                    //260509 hbk Phase 20 — ternary expanded; Phase 7 Timer null 체크 의도 보존
+                    double elapsed;
+                    if (context.Timer != null) elapsed = context.Timer.Elapsed.TotalMilliseconds / 1000.0;
+                    else                       elapsed = 0;
                     var resultStr = string.Format("{0}\n{1} ({2:0.00}s)", param, context.ResultString, elapsed);
                     label_message.Content = string.Format(
                         "{0}\n{1}",
@@ -311,11 +693,17 @@ namespace ReringProject.UI {
                     label_message.Foreground = GetResultBrush(context.Result);
                     label_message.Visibility = Visibility.Visible;
 
-                    string seqName = param.Parent?.Name ?? context.Source?.Name ?? ""; //260407 hbk Parent null 안전 처리 (동적 Shot/FAI 대응)
+                    //260509 hbk Phase 20 — ?. + ?? chain expanded; Parent null 안전 의도 보존 (동적 Shot/FAI 대응)
+                    string seqName;
+                    if (param.Parent != null && param.Parent.Name != null) seqName = param.Parent.Name;
+                    else if (context.Source != null && context.Source.Name != null) seqName = context.Source.Name;
+                    else seqName = "";
                     foreach (IMainView customView in CustomViewList) {
                         customView.Display(seqName, resultStr, label_message.Foreground, param.OwnerName);
                     }
                     RefreshFAIResultRows(); //260409 hbk Phase 3
+                    //260519 hbk Phase 31 CO-23.1-01 — 검사 실행 결과 표시 시 이미지 출처 레이블 갱신
+                    UpdateImageSourceLabel(null, param as ShotConfig);
                 });
             }
         }
@@ -331,7 +719,10 @@ namespace ReringProject.UI {
             lock (mDrawInterlock) {
                 ExecuteOnUi(() => {
                     DisplayContextToViewer(context, ConvertParamRects(context.ActionParam));
-                    string name = context.ActionParam != null ? context.ActionParam.ToString() : context.Source.Name;
+                    //260509 hbk Phase 20 — ternary expanded
+                    string name;
+                    if (context.ActionParam != null) name = context.ActionParam.ToString();
+                    else                             name = context.Source.Name;
                     string resultStr = string.Format("{0}\n{1} ({2:0.00}s)", name, context.ResultString, context.Timer.Elapsed.TotalMilliseconds / 1000.0);
                     label_message.Content = string.Format(
                         "{0}\n{1}",
@@ -371,19 +762,33 @@ namespace ReringProject.UI {
         }
 
         private void UpdatePointerLabel(double x, double y, double? grayValue) {
+            //260509 hbk Phase 20 — ternaries expanded; Phase 17 D-15 hover 표시 의도 보존
+            string grayStr;
+            if (grayValue.HasValue) grayStr = grayValue.Value.ToString("0.0");
+            else                    grayStr = "-";
             if (label_pos != null) {
                 label_pos.Content = string.Format(
                     "X:{0:0.0}, Y:{1:0.0}, G:{2}",
                     x,
                     y,
-                    grayValue.HasValue ? grayValue.Value.ToString("0.0") : "-");
+                    grayStr);
             }
             //260503 hbk Phase 17 D-15 — 상단 툴바 hover 표시 (정수 + N/A, mm 변환은 deferred)
             //  PublishPointerInfo (MainResultViewerControl L1297-1319) 가 CurrentImage==null 시 (0,0,null) 발행 — grayValue.HasValue=false 일 때 X/Y 도 N/A 표시.
             //  신규 GetGrayval 호출 0 — 기존 PointerInfoChanged 파이프라인 재사용 (PATTERNS gap #4).
-            if (txt_hoverX != null) txt_hoverX.Text = grayValue.HasValue ? "X: " + x.ToString("0") : "X: N/A"; //260503 hbk Phase 17 D-15
-            if (txt_hoverY != null) txt_hoverY.Text = grayValue.HasValue ? "Y: " + y.ToString("0") : "Y: N/A"; //260503 hbk Phase 17 D-15
-            if (txt_hoverG != null) txt_hoverG.Text = "Gray: " + (grayValue.HasValue ? grayValue.Value.ToString("0") : "N/A"); //260503 hbk Phase 17 D-15
+            string hoverX, hoverY, hoverG;
+            if (grayValue.HasValue) {
+                hoverX = "X: " + x.ToString("0");
+                hoverY = "Y: " + y.ToString("0");
+                hoverG = "Gray: " + grayValue.Value.ToString("0");
+            } else {
+                hoverX = "X: N/A";
+                hoverY = "Y: N/A";
+                hoverG = "Gray: N/A";
+            }
+            if (txt_hoverX != null) txt_hoverX.Text = hoverX; //260509 hbk Phase 20 (Phase 17 D-15)
+            if (txt_hoverY != null) txt_hoverY.Text = hoverY; //260509 hbk Phase 20 (Phase 17 D-15)
+            if (txt_hoverG != null) txt_hoverG.Text = hoverG; //260509 hbk Phase 20 (Phase 17 D-15)
         }
 
         private bool DisplayToViewer(HImage img, IEnumerable<RoiDefinition> rois) {
@@ -408,7 +813,10 @@ namespace ReringProject.UI {
                 return false;
             }
 
-            var roiList = rois == null ? new List<RoiDefinition>() : rois.ToList();
+            //260509 hbk Phase 20 — ternary expanded
+            List<RoiDefinition> roiList;
+            if (rois == null) roiList = new List<RoiDefinition>();
+            else              roiList = rois.ToList();
 
             if (context.ResultHalconImage != null) {
                 try {
@@ -464,6 +872,7 @@ namespace ReringProject.UI {
             if (fai == null) return;
 
             if (e.Shape == RoiShape.Circle) {
+                //260519 hbk Phase 31 CO-23.1-02 — CircleDiameter + CircleCenterDistance 두 타입 모두 Edit write-back
                 foreach (var m in fai.Measurements) {
                     var circle = m as CircleDiameterMeasurement;
                     if (circle != null) {
@@ -472,10 +881,19 @@ namespace ReringProject.UI {
                         circle.Circle_Radius = e.Radius;
                         break;
                     }
+                    var circleCtr = m as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                    if (circleCtr != null) {
+                        circleCtr.Circle_Row = e.CenterRow;
+                        circleCtr.Circle_Col = e.CenterCol;
+                        circleCtr.Circle_Radius = e.Radius;
+                        break;
+                    }
                 }
             }
             else if (e.Shape == RoiShape.Polygon) {
-                fai.PolygonPoints = e.PolygonPoints ?? "";
+                //260509 hbk Phase 20 — ?? expanded
+                if (e.PolygonPoints != null) fai.PolygonPoints = e.PolygonPoints;
+                else                         fai.PolygonPoints = "";
             }
             else {
                 // Rect — bounding box로부터 center + half-length 재계산 (ROI_Phi=0 가정)
@@ -515,8 +933,9 @@ namespace ReringProject.UI {
                     if (choice != MessageBoxResult.OK) return;
                     ClearAllDatumRoiFields(datum); //260504 hbk Phase 17 hotfix#9 (Option B) — 항상 전체 삭제
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
-                    mParentWindow?.inspectionList?.RefreshParamEditor();
-                    halconViewer.SetDatumOverlay(datum, true);
+                    //260509 hbk Phase 20 — chained ?. expanded
+                    if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+                    halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
                     PublishDatumRoiCandidates(datum); //260425 hbk Phase 13 D-A — 잔존 ROI 만 후보로 남도록 갱신
                 }
                 return;
@@ -576,6 +995,16 @@ namespace ReringProject.UI {
                     handledCircle = true;
                     break;
                 }
+                //260521 hbk Phase 31 UAT Test7 — CircleCenterDistance 이동 write-back 누락 수정.
+                //  RoiGeometryChanged(리사이즈)는 L648 에서 처리하나 RoiMoveCompleted(이동)는 빠져
+                //  이동 후 GetCurrentFAIRois 재렌더가 stale Circle_* 로 원복되던 결함.
+                var circleCtr = m as CircleCenterDistanceMeasurement; //260521 hbk Phase 31 UAT Test7
+                if (circleCtr != null) {
+                    circleCtr.Circle_Row += e.DeltaRow; //260521 hbk Phase 31 UAT Test7
+                    circleCtr.Circle_Col += e.DeltaCol; //260521 hbk Phase 31 UAT Test7
+                    handledCircle = true; //260521 hbk Phase 31 UAT Test7
+                    break; //260521 hbk Phase 31 UAT Test7
+                }
             }
             if (!handledCircle) {
                 fai.ROI_Row += e.DeltaRow;
@@ -588,7 +1017,11 @@ namespace ReringProject.UI {
 
         //260425 hbk Phase 13 D-01 — 현재 선택 노드가 Datum 인지 판정
         private bool IsCurrentNodeDatum(out DatumConfig datum) {
-            datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null)
+                datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else
+                datum = null;
             return datum != null;
         }
 
@@ -599,8 +1032,9 @@ namespace ReringProject.UI {
         private void HandleDatumRoiMove(DatumConfig datum, RoiMoveCompletedArgs e) {
             ApplyDatumRoiDelta(datum, e);
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
-            halconViewer.SetDatumOverlay(datum, true);
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
             //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
             //  Phase 14-01 D-03 의 Background defer 패턴은 자동 재티칭이 fire 되어야만 의미 있음.
             //  본 phase 에서 자동 재티칭 자체를 제거하므로 PublishDatumRoiCandidates / UpdateDatumRefCoordsLabel 만 inline 호출.
@@ -630,8 +1064,9 @@ namespace ReringProject.UI {
 
             //260426 hbk Phase 14-01 — write-back 후 이중 신호 (HandleDatumRoiMove 패턴)
             try { datum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
-            halconViewer.SetDatumOverlay(datum, true);
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
 
             //260429 hbk Phase 16 D-13 — Dispatcher.BeginInvoke 자동 재티칭 블록 삭제 (CONTEXT D-13 verbatim).
             //260429 hbk Phase 16 D-14 — ROI resize 후 LastTeachSucceeded 변경되지 않음 (stale 시각화 의도적)
@@ -733,20 +1168,35 @@ namespace ReringProject.UI {
                     if (d.Horizontal_A_Length1 <= 0 || d.Horizontal_B_Length1 <= 0)
                         return "Horizontal A/B ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요.";
                     break;
+                //260527 hbk Phase 34 D-34-09/10 — DualImage 변형 가드: 3 ROI + 2 이미지 경로 모두 검증.
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
+                    if (d.Vertical_Length1 <= 0) //260527 hbk Phase 34
+                        return "Vertical ROI 가 없습니다. 캔버스에 수직 ROI 를 그리고 다시 시도하세요."; //260527 hbk Phase 34
+                    if (d.Horizontal_A_Length1 <= 0 || d.Horizontal_B_Length1 <= 0) //260527 hbk Phase 34
+                        return "Horizontal A/B ROI 가 없습니다. 캔버스에 ROI 를 그리고 다시 시도하세요."; //260527 hbk Phase 34
+                    if (string.IsNullOrEmpty(d.TeachingImagePath)) //260527 hbk Phase 34 D-34-10
+                        return "가로축 티칭 이미지 경로가 비어 있습니다. Datum 노드에서 가로축 이미지를 Load 해주세요."; //260527 hbk Phase 34 D-34-10
+                    if (string.IsNullOrEmpty(d.TeachingImagePath_Vertical)) //260527 hbk Phase 34 D-34-10
+                        return "세로축 티칭 이미지 경로가 비어 있습니다. Datum 노드에서 세로축 이미지를 Load 해주세요."; //260527 hbk Phase 34 D-34-10
+                    break;
             }
             return null;
         }
 
-        //260503 hbk Phase 17 D-12 + D-04 — teach 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
-        private static string FormatTeachError(string err) {
-            if (err == null) err = "unknown";
-            if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0
-                || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0
-                || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) {
-                return "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요."; //260503 hbk Phase 17 D-04 — EdgeDirection 힌트
-            }
-            return "티칭에 실패했습니다: " + err;
-        }
+        //260505 hbk Phase 18 CO-06 — datum 인자 추가 → 에러 메시지에 [DatumName] 접두사 포함 (D-17)
+        private static string FormatTeachError(DatumConfig datum, string err) { //260505 hbk Phase 18 CO-06
+            if (err == null) err = "unknown"; //260505 hbk Phase 18 CO-06
+            //260509 hbk Phase 20 — ternary expanded; Phase 18 CO-06 [DatumName] 접두사 의도 보존
+            string prefix;
+            if (datum != null && !string.IsNullOrEmpty(datum.DatumName)) prefix = "[" + datum.DatumName + "] ";
+            else                                                         prefix = "";
+            if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0 //260505 hbk Phase 18 CO-06
+                || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0 //260505 hbk Phase 18 CO-06
+                || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) { //260505 hbk Phase 18 CO-06
+                return prefix + "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요."; //260505 hbk Phase 18 CO-06
+            } //260505 hbk Phase 18 CO-06
+            return prefix + "티칭에 실패했습니다: " + err; //260505 hbk Phase 18 CO-06
+        } //260505 hbk Phase 18 CO-06
 
         //260503 hbk Phase 17 D-12 + D-04 — Test Find 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
         private static string FormatFindError(string err) {
@@ -785,12 +1235,95 @@ namespace ReringProject.UI {
                 label_drawHint.Visibility = Visibility.Visible;
             }
             else {
-                label_drawHint.Content = "Datum ROI 이동 — 재티칭 실패: " + (error ?? "unknown");
+                //260509 hbk Phase 20 — ?? expanded
+                string errMsg;
+                if (error != null) errMsg = error;
+                else               errMsg = "unknown";
+                label_drawHint.Content = "Datum ROI 이동 — 재티칭 실패: " + errMsg;
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171"));
                 label_drawHint.Visibility = Visibility.Visible;
             }
-            halconViewer.SetDatumOverlay(datum, true);
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
             Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit EXIT: LastTeachSucceeded=" + datum.LastTeachSucceeded);
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-01 — Datum 노드 선택 시 휘발성 검출 좌표 복원.
+        //  검출 라인/십자/원 좌표(Line1Detected_*/CircleCenter_*/RefOrigin*)는 INI에 0으로만 저장되는 휘발성 필드 →
+        //  레시피 로드 후 LastTeachSucceeded=true 라도 좌표가 0 → 라인이 (0,0)에 그려져 안 보임.
+        //  이미 티칭된 datum 에 한해 티칭 이미지로 TryTeachDatum 을 조용히 재실행해 좌표 복원 후 렌더.
+        //  편집/신규 티칭 정책(Phase 16 D-12/D-13 수동 티칭)은 무변경 — 본 메서드는 "보기 선택" 복원 전용(모달/상태 변경 없음).
+        public void RestoreDatumOverlayFromTeach(DatumConfig datum) {
+            if (datum == null) return;
+            if (!datum.LastTeachSucceeded) {
+                // 티칭 이력 없음 — 복원 불필요. 기존 selection 핸들러의 SetDatumOverlay 가 ROI 만 렌더.
+                return;
+            }
+            //260602 hbk Phase 40.1 CO-40.1-02 — 좌표 복원 "계산"만 헬퍼로 추출 (단일/리스트 경로 공용). 동작/시그니처 보존.
+            TryRestoreDatumGeometry(datum);
+            // 복원 성공/실패 무관 렌더 (성공 시 검출 라인 표시, 실패 시 최소 ROI 표시)
+            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 휘발성 검출 좌표(Line*Detected/CircleCenter/RefOrigin) 복원 계산 전용.
+        //  티칭 이미지로 TryTeachDatum 을 조용히 재실행. 렌더/모달/상태 변경 없음. 실패 silent.
+        //  RestoreDatumOverlayFromTeach(단일) 와 ShowResultDatumOverlays(리스트) 양쪽에서 재사용.
+        private void TryRestoreDatumGeometry(DatumConfig datum) {
+            if (datum == null) return;
+            if (!datum.LastTeachSucceeded) return;
+            try {
+                var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
+                string error = null;
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                    string pathH = datum.TeachingImagePath;
+                    string pathV = datum.TeachingImagePath_Vertical;
+                    if (string.IsNullOrEmpty(pathH) || !System.IO.File.Exists(pathH)) return;
+                    if (string.IsNullOrEmpty(pathV) || !System.IO.File.Exists(pathV)) return;
+                    HImage imgH = null, imgV = null;
+                    try {
+                        try { imgH = new HImage(pathH); } catch { return; }
+                        try { imgV = new HImage(pathV); } catch { return; }
+                        svc.TryTeachDatum(imgH, imgV, datum, out error);
+                    }
+                    finally {
+                        if (imgH != null) { try { imgH.Dispose(); } catch { } }
+                        if (imgV != null) { try { imgV.Dispose(); } catch { } }
+                    }
+                }
+                else {
+                    // 단일 이미지: TeachingImagePath 파일 우선 로드(결정적), 없으면 현재 표시 이미지 fallback.
+                    HImage img = null;
+                    bool ownImg = false;
+                    string path = datum.TeachingImagePath;
+                    if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) {
+                        try { img = new HImage(path); ownImg = true; } catch { img = null; }
+                    }
+                    if (img == null) img = halconViewer.CurrentImage; // fallback (소유권 없음 — dispose 금지)
+                    if (img == null) return;
+                    try {
+                        svc.TryTeachDatum(img, datum, out error);
+                    }
+                    finally {
+                        if (ownImg && img != null) { try { img.Dispose(); } catch { } }
+                    }
+                }
+            }
+            catch {
+                // 복원 실패는 조용히 무시 — 선택 시 모달/에러 표시 금지.
+            }
+        }
+
+        //260602 hbk Phase 40.1 CO-40.1-02 — 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선을 결과 화면에 표시.
+        //  각 datum 의 휘발 좌표를 silent 복원 후 결과용 오버레이 리스트로 일괄 렌더. 단일 _datumConfig(Datum 편집)는 무오염.
+        //  null/빈 → 결과 오버레이 클리어. 측정 결과 이미지는 그대로 두고 datum 라인만 덧그림.
+        public void ShowResultDatumOverlays(List<DatumConfig> datums) {
+            if (datums == null || datums.Count == 0) {
+                halconViewer.ClearResultDatumOverlays();
+                return;
+            }
+            foreach (DatumConfig d in datums) {
+                TryRestoreDatumGeometry(d); // 휘발 좌표 복원 (렌더는 아래 일괄 호출)
+            }
+            halconViewer.SetResultDatumOverlays(datums);
         }
 
         //260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 갱신
@@ -824,11 +1357,208 @@ namespace ReringProject.UI {
             label_datumRefCoords.Visibility = Visibility.Visible;
         }
 
+        //260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 갱신
+        //  datumConfig != null 이면 티칭 이미지(TeachingImagePath) 표시,
+        //  shotConfig != null 이면 검사 이미지(SimulImagePath) 표시.
+        //  둘 다 null 이거나 경로가 빈 문자열이면 레이블 Collapsed.
+        //  T-31-12 mitigation: 경로 노출은 로컬 운영자 화면 전용 — File.Exists 가드 불필요 (레이블 표시 only).
+        private void UpdateImageSourceLabel(DatumConfig datumConfig, ShotConfig shotConfig) {
+            if (txt_imageSourceLabel == null) return;
+            if (datumConfig != null && !string.IsNullOrEmpty(datumConfig.TeachingImagePath)) {
+                txt_imageSourceLabel.Text = "티칭 이미지: " + datumConfig.TeachingImagePath; //260519 hbk Phase 31 CO-23.1-01
+                txt_imageSourceLabel.Visibility = Visibility.Visible;
+                return;
+            }
+            if (shotConfig != null && !string.IsNullOrEmpty(shotConfig.SimulImagePath)) {
+                txt_imageSourceLabel.Text = "검사 이미지: " + shotConfig.SimulImagePath; //260519 hbk Phase 31 CO-23.1-01
+                txt_imageSourceLabel.Visibility = Visibility.Visible;
+                return;
+            }
+            txt_imageSourceLabel.Text = string.Empty; //260519 hbk Phase 31 CO-23.1-01
+            txt_imageSourceLabel.Visibility = Visibility.Collapsed;
+        }
+
+        //260527 hbk Phase 34.1 D-34.1-15 — 자동/수동 swap 의 단일 진입점.
+        //  3자 동시 갱신: (a) _currentImageSource 필드 + (b) 배지 텍스트/색상 + (c) ROI 가시성 (PublishDatumRoiCandidates 재호출 → 현재 축 ROI subset 만 표시).
+        //  자동 swap (StartDatumTeachStep(Vertical) at L1994~) + 수동 swap (BtnSwap*_Click) 모두 본 메서드 경유.
+        private void UpdateImageSourceBadge(ReringProject.Sequence.EImageSource source) {
+            _currentImageSource = source;
+
+            // (b) 배지 텍스트 + 색상 — D-34.1-14 잠금값 + Phase 39.4 D-G4 (Measurement 명시 vs fallback 명시)
+            //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 정적 frozen brush + SetCurrentValue 로 WPF 갱신 보장.
+            if (border_imageSourceBadge != null && txt_imageSourceBadge != null) {
+                if (source == ReringProject.Sequence.EImageSource.Horizontal) {
+                    //260530 hbk Phase 39.4 D-G4 — Measurement DualImage 가 선택된 상태에선 명시 경로 vs fallback 여부에 따라 배지 텍스트 보강. Datum 또는 null 분기 → 기존 "가로축" 보존 (mutex 가드).
+                    string horizontalBadgeText = "가로축"; //260530 hbk Phase 39.4 D-G4 — 기본값 (Datum 또는 비-DualImage selection)
+                    var measForBadge = _selectedDualImageMeasurement; //260530 hbk Phase 39.4 D-G4
+                    if (measForBadge != null) {
+                        bool hasExplicitHorizontal = !string.IsNullOrEmpty(measForBadge.TeachingImagePath_Horizontal)
+                            && System.IO.File.Exists(measForBadge.TeachingImagePath_Horizontal); //260530 hbk Phase 39.4 D-G4
+                        horizontalBadgeText = hasExplicitHorizontal ? "가로축 (Measurement)" : "가로축 (Shot fallback)"; //260530 hbk Phase 39.4 D-G4
+                    }
+                    txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, horizontalBadgeText); //260530 hbk Phase 39.4 D-G4 (Phase 34.1 D-34.1-14 텍스트 확장)
+                    border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushHorizontal); //260527 hbk Phase 34.1 CO-34.1-03
+                }
+                else {
+                    txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, "세로축"); //260527 hbk Phase 34.1 D-34.1-14
+                    border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushVertical); //260527 hbk Phase 34.1 CO-34.1-03
+                }
+                border_imageSourceBadge.InvalidateVisual(); //260527 hbk Phase 34.1 CO-34.1-03 — 즉시 재렌더 강제
+            }
+
+            // 토글 버튼 IsChecked 동기화 (수동 클릭 / 자동 swap 양방향) — 한쪽만 체크 (radio 패턴)
+            if (btn_swapHorizontal != null) btn_swapHorizontal.IsChecked = (source == ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1
+            if (btn_swapVertical   != null) btn_swapVertical.IsChecked   = (source == ReringProject.Sequence.EImageSource.Vertical);   //260527 hbk Phase 34.1
+
+            // (c) ROI 가시성 — 현재 선택된 datum 이 DualImage 일 때만 subset 필터 적용. 다른 algorithm 은 PublishDatumRoiCandidates 가 알아서 처리.
+            //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체.
+            var datumForRoi = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
+            if (datumForRoi != null
+                && datumForRoi.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34.1 D-34.1-10
+                PublishDatumRoiCandidates(datumForRoi); //260527 hbk Phase 34.1 — DualImage 분기가 _currentImageSource 참조하여 subset 만 publish
+            }
+            //260531 hbk Phase 39.4 CO-39.4-01 hotfix — 기존 RenderInspectionResultForNode 호출은 DisplayMeasurementImage → DisplayShotImage 경유로 swap 결과(가로/세로 명시 이미지)를 Shot 이미지로 덮어씌우는 회귀.
+            //  명시 이미지는 BtnSwap*_Click 가 이미 halconViewer.LoadImage 로 적용 완료 → DisplayMeasurementImage 제외, ROI 하이라이트 + overlay 재 렌더 + circle preview 만 호출 (RenderInspectionResultForNode 의 Measurement 분기에서 #2/#3/#4 만 발췌).
+            //  초기 노드 선택 시 full render(이미지 로드 포함)는 InspectionListView L522 의 RenderInspectionResultForNode(meas) 가 담당 → 본 분기에서 재호출 시 회귀 0.
+            //  mutex: PublishDatumRoiCandidates 가 Datum 선택 시 _selectedDualImageMeasurement = null 로 clear → Datum 분기에서 본 블록 진입 X (Phase 39.3 D-G2 baseline 보존).
+            if (_selectedDualImageMeasurement != null) {
+                HighlightSelectedRoi(_selectedDualImageMeasurement); //260531 hbk Phase 39.4 CO-39.4-01 — Phase 39.3 D-G2 의 ROI 하이라이트 컨셉 보존
+                RenderStoredOverlaysForMeasurement(_selectedDualImageMeasurement); //260531 hbk Phase 39.4 CO-39.4-01 — overlay 재 렌더
+                UpdateFaiCirclePreview(_selectedDualImageMeasurement); //260531 hbk Phase 39.4 CO-39.4-01 — strip preview 갱신
+            }
+        }
+
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix — 보조 hook (DatumName 등 명시적 RaisePropertyChanged 가 fire 하는 property 대응).
+        //  AlgorithmType 은 DatumConfig L76 의 auto property 라 PropertyChanged 미발동 — 본 hook 으로는 못 잡음.
+        //  AlgorithmType 변경 시 Visibility 갱신은 InspectionListView.OnParamEditorSelectionChanged 의 whitelist 확장으로 처리 (별도 hotfix).
+        //  본 메서드는 RaisePropertyChanged(string.Empty) 대량 갱신 시점에 ROI/Visibility 정합성 보장하는 보호망.
+        private void OnSelectedDatumPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) {
+            if (e == null) return;
+            var datum = sender as DatumConfig;
+            if (datum == null) return;
+            //260527 hbk Phase 34.1 CO-34.1-02 — name 비교 없이 무차별 재호출 시 무한루프 우려 → string.Empty (bulk) 또는 "AlgorithmType" 만 통과
+            if (!string.IsNullOrEmpty(e.PropertyName) && e.PropertyName != "AlgorithmType") return;
+            PublishDatumRoiCandidates(datum);
+        }
+
+        //260527 hbk Phase 34.1 D-34.1-02 — 가로축 토글 버튼 Click. 가로축 이미지로 swap + 배지/ROI 갱신.
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체 (teach 모드 진입 전에도 동작).
+        private void BtnSwapHorizontal_Click(object sender, RoutedEventArgs e) {
+            //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 가 Datum 보다 우선 (mutex)
+            {
+                var meas = _selectedDualImageMeasurement; //260530 hbk Phase 39.3 D-G2
+                if (meas != null) {
+                    //260530 hbk Phase 39.4 D-G1 — Measurement 명시 경로 우선, 없으면 ShotConfig fallback. CS0136 회피 위해 `hpathMeas` 명명 (Phase 39.3 Task 02-04 vpathMeas 패턴 mirror).
+                    string hpathMeas = meas.TeachingImagePath_Horizontal; //260530 hbk Phase 39.4 D-G1
+                    if (!string.IsNullOrEmpty(hpathMeas) && System.IO.File.Exists(hpathMeas)) {
+                        try { halconViewer.LoadImage(hpathMeas); } //260530 hbk Phase 39.4 D-G1 — Measurement 명시 경로
+                        catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                    }
+                    else {
+                        //260530 hbk Phase 39.4 D-G1 — fallback: ShotConfig 이미지 (Phase 39.3 baseline)
+                        FAIConfig fai = FindFAIContainingMeasurement(meas); //260530 hbk Phase 39.3 D-G2 — 기존 helper (Phase 37 hotfix A/B)
+                        ShotConfig shot = fai != null ? fai.Owner as ShotConfig : null; //260530 hbk Phase 39.3 D-G2
+                        if (shot != null && shot.HasImage) { //260530 hbk Phase 39.3 D-G2
+                            HImage img = null;
+                            try {
+                                img = shot.GetImage();
+                                if (img != null) halconViewer.LoadImage(img); //260530 hbk Phase 39.3 D-G2
+                            }
+                            catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                            finally { if (img != null) img.Dispose(); }
+                        }
+                    }
+                    UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260530 hbk Phase 39.3 D-G2
+                    return; //260530 hbk Phase 39.3 D-G2 — Measurement 경로 종결, Datum 코드 진입 X
+                }
+            }
+            var d = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
+            if (d == null) return;
+            if (d.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09 — DualImage 외 케이스 가드
+            string hpath = d.TeachingImagePath;
+            if (!string.IsNullOrEmpty(hpath) && System.IO.File.Exists(hpath)) {
+                try { halconViewer.LoadImage(hpath); } //260527 hbk Phase 34.1 — 자동 swap (L1994~) 와 동일 경로
+                catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+            }
+            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260527 hbk Phase 34.1 D-34.1-15 — 3자 동시 갱신
+            //260528 hbk Phase 36 D-36-09 — Test Find 결과 양쪽 캔버스에 일관 렌더. swap 직후 RenderDatumFindResult 가 LastFindSucceeded gate 안에서 자동 재실행 (chain: SetDatumOverlay → RenderDatumOverlay → RenderDatumFindResult).
+            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true, GetDatumEditMode()); //260528 hbk Phase 36 D-36-09 //260529 hbk Phase 39.1-04 G4-03
+        }
+
+        //260527 hbk Phase 34.1 D-34.1-02 — 세로축 토글 버튼 Click. 세로축 이미지로 swap + 배지/ROI 갱신.
+        //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-B — _editingDatum → _selectedDatumForSwap 교체.
+        private void BtnSwapVertical_Click(object sender, RoutedEventArgs e) {
+            //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 가 Datum 보다 우선 (mutex)
+            {
+                var meas = _selectedDualImageMeasurement; //260530 hbk Phase 39.3 D-G2
+                if (meas != null) {
+                    //260530 hbk Phase 39.3 D-G2 — Rule 1 auto-fix: outer scope (L1392 Datum 분기) 의 'vpath' 와 충돌 회피 → vpathMeas 로 명명.
+                    string vpathMeas = meas.TeachingImagePath_Vertical; //260530 hbk Phase 39.3 D-G2 — Measurement 필드
+                    if (!string.IsNullOrEmpty(vpathMeas) && System.IO.File.Exists(vpathMeas)) {
+                        try { halconViewer.LoadImage(vpathMeas); } //260530 hbk Phase 39.3 D-G2
+                        catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                    }
+                    UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260530 hbk Phase 39.3 D-G2
+                    return; //260530 hbk Phase 39.3 D-G2 — Measurement 경로 종결
+                }
+            }
+            var d = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02
+            if (d == null) return;
+            if (d.AlgorithmTypeEnum != EDatumAlgorithm.VerticalTwoHorizontalDualImage) return; //260527 hbk Phase 34.1 D-34.1-09
+            string vpath = d.TeachingImagePath_Vertical;
+            if (!string.IsNullOrEmpty(vpath) && System.IO.File.Exists(vpath)) {
+                try { halconViewer.LoadImage(vpath); }
+                catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+            }
+            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15
+            //260528 hbk Phase 36 D-36-09 — Vertical 토글 시에도 동일 chain 트리거 (SameFrame 가정 하 양쪽 캔버스 동일 좌표).
+            halconViewer.SetDatumOverlay(_selectedDatumForSwap, true, GetDatumEditMode()); //260528 hbk Phase 36 D-36-09 //260529 hbk Phase 39.1-04 G4-03
+        }
+
         //260425 hbk Phase 13 D-02 — DatumConfig → RoiDefinition 리스트 → halconViewer.SetDatumRoiCandidates publish
         //260426 hbk Phase 13 D-A1 — InspectionListView 가 selection 시 호출하도록 public 승격
         public void PublishDatumRoiCandidates(DatumConfig datum) {
             //260425 hbk Phase 13 D-VIZ-06 — selection 시점에 reference 좌표 라벨도 동기 갱신
             UpdateDatumRefCoordsLabel(datum);
+
+            //260530 hbk Phase 39.3 D-G2 — mutex: Datum 노드 선택 시 Measurement clear (Risk R1 회피, PublishMeasurementDualImageSelection 와 대칭)
+            if (datum != null && _selectedDualImageMeasurement != null) {
+                _selectedDualImageMeasurement = null; //260530 hbk Phase 39.3 D-G2
+            }
+
+            //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A/B — datum reference 캐싱 + AlgorithmType PropertyChanged 구독.
+            //  swap 토글 핸들러가 teach 모드 전에도 동작하려면 별도 reference 필요 (_editingDatum 은 Teach Datum 클릭 시에만 set).
+            //  AlgorithmType 이 PropertyGrid 에서 변경되면 PropertyChanged 가 fire → 본 메서드 재귀 호출 → Visibility 즉시 갱신.
+            DatumConfig priorSelected = _selectedDatumForSwap; //260527 hbk Phase 34.1 CO-34.1-02 — D-34.1-08 노드 변경 감지용 prior reference
+            if (_selectedDatumForSwap != datum) {
+                if (_selectedDatumForSwap != null) _selectedDatumForSwap.PropertyChanged -= OnSelectedDatumPropertyChanged; //260527 hbk Phase 34.1 CO-34.1-02
+                _selectedDatumForSwap = datum; //260527 hbk Phase 34.1 CO-34.1-02
+                if (_selectedDatumForSwap != null) _selectedDatumForSwap.PropertyChanged += OnSelectedDatumPropertyChanged; //260527 hbk Phase 34.1 CO-34.1-02
+            }
+
+            //260527 hbk Phase 34.1 D-34.1-08/09 — Datum 노드 (재)선택 시: swap 상태 = 기본 가로축 리셋 (세션 한정).
+            //  Visibility 동기화: DualImage 변형이면 토글 버튼 + 배지 Visible, 1-image 변형 / null 이면 Collapsed.
+            bool isDualImage = (datum != null //260527 hbk Phase 34.1 D-34.1-09
+                                && datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage);
+            if (btn_swapHorizontal != null) btn_swapHorizontal.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260527 hbk Phase 34.1 D-34.1-09
+            if (btn_swapVertical   != null) btn_swapVertical.Visibility   = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260527 hbk Phase 34.1 D-34.1-09
+            if (border_imageSourceBadge != null) border_imageSourceBadge.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260527 hbk Phase 34.1 D-34.1-09
+
+            if (isDualImage) {
+                // Datum 노드 선택 직후 = 가로축 기본 (D-34.1-08). 단, 본 메서드가 자동/수동 swap 도중 재호출되면 _currentImageSource 가 이미 변경되어 있을 수 있음.
+                // 진입점 구분: priorSelected != datum 이면 새 노드 선택 → 리셋. 같으면 swap 진행 중 / AlgorithmType 변경 → 보존.
+                //260527 hbk Phase 34.1 CO-34.1-02 hotfix — _editingDatum (teach 모드 한정) → priorSelected (swap UI selection) 교체.
+                if (priorSelected != datum) { //260527 hbk Phase 34.1 D-34.1-08 + CO-34.1-02 — 새 노드 진입만 리셋
+                    _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
+                    // 배지 텍스트/색상도 가로축으로 동기 (별도 UpdateImageSourceBadge 호출 없이 직접 — 재귀 회피)
+                    //260527 hbk Phase 34.1 CO-34.1-03 hotfix — 정적 frozen brush + SetCurrentValue
+                    if (txt_imageSourceBadge != null) txt_imageSourceBadge.SetCurrentValue(TextBlock.TextProperty, "가로축");
+                    if (border_imageSourceBadge != null) border_imageSourceBadge.SetCurrentValue(Border.BackgroundProperty, BadgeBrushHorizontal); //260527 hbk Phase 34.1 CO-34.1-03
+                    if (btn_swapHorizontal != null) btn_swapHorizontal.IsChecked = true;
+                    if (btn_swapVertical   != null) btn_swapVertical.IsChecked   = false;
+                }
+            }
+
             if (datum == null) { halconViewer.ClearDatumRoiCandidates(); return; }
             var list = new List<ReringProject.Halcon.Models.RoiDefinition>();
             switch (datum.AlgorithmTypeEnum) {
@@ -855,8 +1585,45 @@ namespace ReringProject.UI {
                     if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
                     break;
+                //260527 hbk Phase 34.1 D-34.1-10 — DualImage 변형 ROI publish.
+                //  당초 설계: 축별 subset 토글 (가로축 표시 시 HA+HB 만, 세로축 표시 시 Vertical 만).
+                //260527 hbk Phase 34.1 CO-34.1-05 hotfix — UAT 결과 subset 토글이 ROI 위치 파악/삭제/이동 시 사용성 저해.
+                //  설계 변경: VerticalTwoHorizontal (1-image) 와 동일하게 모든 ROI 항상 표시. 사용자가 다른 축으로 swap 해도 기존 ROI 위치 보존되어 편집 가능.
+                //  좌표계 불일치 (가로 이미지 위에 Vertical ROI 표시 시 misalign 가능) 는 SIMUL 의사 페어 한계로 CO-34.1-01 에서 종결.
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
+                    if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0) //260527 hbk Phase 34.1 CO-34.1-05
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
+                    if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0) //260527 hbk Phase 34.1 CO-34.1-05
+                        list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
+                    if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0) //260527 hbk Phase 34.1 CO-34.1-05
+                        list.Add(BuildDatumRectCandidate("Datum.Vertical", datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Length1, datum.Vertical_Length2));
+                    break; //260527 hbk Phase 34.1
             }
             halconViewer.SetDatumRoiCandidates(list);
+        }
+
+        //260530 hbk Phase 39.3 D-G2 — PublishDatumRoiCandidates 대칭. Measurement DualImage 노드 선택 시 swap UI owner set + 가로축 리셋 + Visibility 제어.
+        //  mutex: 본 메서드와 PublishDatumRoiCandidates 는 _selectedDatumForSwap / _selectedDualImageMeasurement 중 하나만 non-null 임을 보장.
+        public void PublishMeasurementDualImageSelection(DualImageEdgeDistanceMeasurement meas) {
+            _selectedDualImageMeasurement = meas; //260530 hbk Phase 39.3 D-G2
+
+            //260530 hbk Phase 39.3 D-G2 — mutex: Measurement set 시 Datum clear (Risk R1 회피)
+            if (meas != null && _selectedDatumForSwap != null) {
+                _selectedDatumForSwap.PropertyChanged -= OnSelectedDatumPropertyChanged; //260530 hbk Phase 39.3 D-G2
+                _selectedDatumForSwap = null; //260530 hbk Phase 39.3 D-G2
+            }
+
+            //260530 hbk Phase 39.3 D-G2 — Visibility 제어 (PublishDatumRoiCandidates L1390-1392 패턴 차용)
+            bool isDualImage = (meas != null);
+            if (btn_swapHorizontal != null) btn_swapHorizontal.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260530 hbk Phase 39.3 D-G2
+            if (btn_swapVertical   != null) btn_swapVertical.Visibility   = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260530 hbk Phase 39.3 D-G2
+            if (border_imageSourceBadge != null) border_imageSourceBadge.Visibility = isDualImage ? Visibility.Visible : Visibility.Collapsed; //260530 hbk Phase 39.3 D-G2
+
+            if (isDualImage) {
+                //260530 hbk Phase 39.3 D-G2 — 새 노드 진입 시 가로축 리셋 (Datum D-34.1-08 대칭, Risk R6 회피)
+                _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
+                UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Horizontal); //260530 hbk Phase 39.3 D-G2
+            }
         }
 
         //260425 hbk Phase 13 D-02 — Rectangle2 (centerRow, centerCol, phi=0, halfH, halfW) → bbox
@@ -898,9 +1665,13 @@ namespace ReringProject.UI {
             for (int i = 0; i < param.GetRectCount(); i++) {
                 if (!param.GetRect(i, out System.Windows.Rect rect)) continue;
                 param.GetRectName(i, out string name);
+                //260509 hbk Phase 20 — ternary expanded
+                string roiName;
+                if (string.IsNullOrWhiteSpace(name)) roiName = "Rect " + i;
+                else                                 roiName = name;
                 rois.Add(new RoiDefinition {
                     Id = "Rect_" + i,
-                    Name = string.IsNullOrWhiteSpace(name) ? "Rect " + i : name,
+                    Name = roiName,
                     Row1 = rect.Top,
                     Column1 = rect.Left,
                     Row2 = rect.Bottom,
@@ -934,11 +1705,19 @@ namespace ReringProject.UI {
         }
 
         private static string BuildViewerStateSummary(string imagePath, IEnumerable<RoiDefinition> rois, IEnumerable<EdgeInspectionOverlay> overlays) {
-            var roiCount = rois == null ? 0 : rois.Count();
-            var overlayCount = overlays == null ? 0 : overlays.Count();
+            //260509 hbk Phase 20 — 3 ternaries expanded
+            int roiCount;
+            if (rois == null) roiCount = 0;
+            else              roiCount = rois.Count();
+            int overlayCount;
+            if (overlays == null) overlayCount = 0;
+            else                  overlayCount = overlays.Count();
+            string imgLabel;
+            if (string.IsNullOrWhiteSpace(imagePath)) imgLabel = "null";
+            else                                      imgLabel = Path.GetFileName(imagePath);
             return string.Format(
                 "IMG:{0} | ROI:{1} | OVR:{2}",
-                string.IsNullOrWhiteSpace(imagePath) ? "null" : Path.GetFileName(imagePath),
+                imgLabel,
                 roiCount,
                 overlayCount);
         }
@@ -968,6 +1747,9 @@ namespace ReringProject.UI {
             //260423 hbk Phase 11 — Circle ROI 편집 대상 해제
             _editingCircleMeasurement = null;
             _editingCircleFaiName = null;
+            //260517 hbk Phase 23.1 D-01 — Rect ROI 편집 대상 Measurement 해제
+            _editingMeasurement = null;
+            _editingMeasurementFaiName = null;
             _editingDatum = null; //260424 hbk Phase 12 — Datum 티칭 편집 대상 해제
             btn_rectRoi.IsChecked = false;
             btn_polygonRoi.IsChecked = false;
@@ -994,8 +1776,35 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.RectRoi;
                 btn_rectRoi.IsChecked = true;
 
-                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                FAIConfig faiToEdit = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+                //260517 hbk Phase 23.1 D-01 — Measurement 노드 선택 시 EdgeToLineDistanceMeasurement 대상 분기 (FAIConfig 해석보다 우선)
+                //260519 hbk Phase 31 CO-23.1-02 — FindSelectedRectMeasurement 로 교체 (Point_* 보유 타입 화이트리스트)
+                MeasurementBase measTarget = FindSelectedRectMeasurement();
+                if (measTarget != null) {
+                    _editingMeasurement = measTarget;
+                    _editingMeasurementRoiIndex = 0; //260521 hbk Phase 32 — 인덱스 초기화 (이전 미완료 티칭 잔존 인덱스 오염 방지, T-32-10)
+                    var selRowForMeas = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                    if (selRowForMeas != null) _editingMeasurementFaiName = selRowForMeas.FAIName;
+                    else _editingMeasurementFaiName = FindFaiNameContainingMeasurement(_editingMeasurement);
+                    //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 순차 4-ROI UX: 첫 드로잉은 교점1 EdgeA1(수직 에지)
+                    if (measTarget is ArcLineIntersectDistanceMeasurement) //260521 hbk Phase 32 I9/I10-redesign
+                        label_drawHint.Content = "교점1 수직 에지(EdgeA1) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
+                    else //260521 hbk Phase 32
+                        label_drawHint.Content = "드래그하여 Measurement Point ROI를 설정하세요";
+                    label_drawHint.Visibility = Visibility.Visible;
+                    halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted;
+                    halconViewer.StartRectangleDrawing();
+                    return;
+                }
+
+                //260511 hbk 신규 FAI(Measurement 0개) 회귀 — 트리 선택을 우선 사용, dataGrid 는 fallback
+                FAIConfig faiToEdit = null;
+                if (mParentWindow != null && mParentWindow.inspectionList != null)
+                    faiToEdit = mParentWindow.inspectionList.SelectedParam as FAIConfig;
+                if (faiToEdit == null) {
+                    //260511 hbk fallback — 기존 dataGrid 행 선택 경로 보존
+                    var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                    if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
+                }
                 if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Rect ROI");
                     ExitCanvasMode();
@@ -1020,7 +1829,100 @@ namespace ReringProject.UI {
         }
 
         private void CommitRectRoi() {
-            if (_canvasMode != ECanvasMode.RectRoi || _editingFai == null) {
+            //260517 hbk Phase 23.1 D-01 — canvas mode 가드 (Measurement/FAI 공통)
+            if (_canvasMode != ECanvasMode.RectRoi) {
+                ExitCanvasMode();
+                return;
+            }
+
+            //260517 hbk Phase 23.1 D-01 — Measurement 분기 우선: EdgeToLineDistanceMeasurement.Point_* write-back
+            //260519 hbk Phase 31 CO-23.1-02 — MeasurementBase 타입 일반화, as 캐스트 분기로 Point_* 설정
+            if (_editingMeasurement != null) {
+                var measRoi = halconViewer.CommitActiveRectangle();
+                if (measRoi != null) {
+                    double mCenterRow = (measRoi.Row1 + measRoi.Row2) / 2.0;
+                    double mCenterCol = (measRoi.Column1 + measRoi.Column2) / 2.0;
+                    double mHalfHeight = (measRoi.Row2 - measRoi.Row1) / 2.0;
+                    double mHalfWidth = (measRoi.Column2 - measRoi.Column1) / 2.0;
+                    //260519 hbk Phase 31 CO-23.1-02 — 측정 타입별 Point ROI 기록 일반화
+                    var etld = _editingMeasurement as EdgeToLineDistanceMeasurement;
+                    if (etld != null) { etld.Point_Row = mCenterRow; etld.Point_Col = mCenterCol; etld.Point_Phi = 0.0; etld.Point_Length1 = mHalfHeight; etld.Point_Length2 = mHalfWidth; }
+                    var etla = _editingMeasurement as EdgeToLineAngleMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                    if (etla != null) { etla.Point_Row = mCenterRow; etla.Point_Col = mCenterCol; etla.Point_Phi = 0.0; etla.Point_Length1 = mHalfHeight; etla.Point_Length2 = mHalfWidth; }
+                    var aed = _editingMeasurement as ArcEdgeDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                    if (aed != null) { aed.Point_Row = mCenterRow; aed.Point_Col = mCenterCol; aed.Point_Phi = 0.0; aed.Point_Length1 = mHalfHeight; aed.Point_Length2 = mHalfWidth; }
+                    //260521 hbk Phase 32 — Compound 4종 단일 Rect ROI write-back (Rect_* 필드명)
+                    var cAngle = _editingMeasurement as CompoundAngleMeasurement; //260521 hbk Phase 32
+                    if (cAngle != null) { cAngle.Rect_Row = mCenterRow; cAngle.Rect_Col = mCenterCol; cAngle.Rect_Phi = 0.0; cAngle.Rect_Length1 = mHalfHeight; cAngle.Rect_Length2 = mHalfWidth; }
+                    var cCenterC = _editingMeasurement as CompoundCenterCDistanceMeasurement; //260521 hbk Phase 32
+                    if (cCenterC != null) { cCenterC.Rect_Row = mCenterRow; cCenterC.Rect_Col = mCenterCol; cCenterC.Rect_Phi = 0.0; cCenterC.Rect_Length1 = mHalfHeight; cCenterC.Rect_Length2 = mHalfWidth; }
+                    var cCenterB = _editingMeasurement as CompoundCenterBDistanceMeasurement; //260521 hbk Phase 32
+                    if (cCenterB != null) { cCenterB.Rect_Row = mCenterRow; cCenterB.Rect_Col = mCenterCol; cCenterB.Rect_Phi = 0.0; cCenterB.Rect_Length1 = mHalfHeight; cCenterB.Rect_Length2 = mHalfWidth; }
+                    var cShort = _editingMeasurement as CompoundShortAxisDistanceMeasurement; //260523 hbk Phase 32 — E3 단축 환원
+                    if (cShort != null) { cShort.Rect_Row = mCenterRow; cShort.Rect_Col = mCenterCol; cShort.Rect_Phi = 0.0; cShort.Rect_Length1 = mHalfHeight; cShort.Rect_Length2 = mHalfWidth; }
+                    //260530 hbk Phase 39.3 D-G1 — DualImage: _currentImageSource 슬롯에 따라 PointROI vs LineROI 라우팅 (사용자 인지 부담 0 — 보이는 이미지의 ROI 만 그림)
+                    var dualMeas = _editingMeasurement as DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.3 D-G1
+                    if (dualMeas != null) { //260530 hbk Phase 39.3 D-G1
+                        if (_currentImageSource == ReringProject.Sequence.EImageSource.Vertical) { //260530 hbk Phase 39.3 D-G1
+                            // 세로 슬롯 표시 중 → LineROI 라우팅
+                            dualMeas.LineROI_Row = mCenterRow; dualMeas.LineROI_Col = mCenterCol; dualMeas.LineROI_Phi = 0.0;
+                            dualMeas.LineROI_Length1 = mHalfHeight; dualMeas.LineROI_Length2 = mHalfWidth;
+                        } else { //260530 hbk Phase 39.3 D-G1
+                            // 가로 슬롯 표시 중 (기본 Horizontal) → PointROI 라우팅
+                            dualMeas.PointROI_Row = mCenterRow; dualMeas.PointROI_Col = mCenterCol; dualMeas.PointROI_Phi = 0.0;
+                            dualMeas.PointROI_Length1 = mHalfHeight; dualMeas.PointROI_Length2 = mHalfWidth;
+                        }
+                    }
+                    //260521 hbk Phase 32 I9/I10-redesign — ArcLineIntersect 순차 4-ROI 드로잉: 인덱스 0=EdgeA1, 1=EdgeB1, 2=EdgeA2, 3=EdgeB2
+                    var ali = _editingMeasurement as ArcLineIntersectDistanceMeasurement; //260521 hbk Phase 32 I9/I10-redesign
+                    if (ali != null) {
+                        if (_editingMeasurementRoiIndex == 0) {
+                            ali.EdgeA1_Row = mCenterRow; ali.EdgeA1_Col = mCenterCol; ali.EdgeA1_Phi = 0.0;
+                            ali.EdgeA1_Length1 = mHalfHeight; ali.EdgeA1_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                            _editingMeasurementRoiIndex = 1; //260521 hbk Phase 32 I9/I10-redesign
+                            label_drawHint.Content = "교점1 수평 에지(EdgeB1) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
+                            halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32 I9/I10-redesign
+                            return; //260521 hbk Phase 32 I9/I10-redesign — ExitCanvasMode 미호출
+                        }
+                        else if (_editingMeasurementRoiIndex == 1) {
+                            ali.EdgeB1_Row = mCenterRow; ali.EdgeB1_Col = mCenterCol; ali.EdgeB1_Phi = 0.0;
+                            ali.EdgeB1_Length1 = mHalfHeight; ali.EdgeB1_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                            _editingMeasurementRoiIndex = 2; //260521 hbk Phase 32 I9/I10-redesign
+                            label_drawHint.Content = "교점2 수직 에지(EdgeA2) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
+                            halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32 I9/I10-redesign
+                            return; //260521 hbk Phase 32 I9/I10-redesign — ExitCanvasMode 미호출
+                        }
+                        else if (_editingMeasurementRoiIndex == 2) {
+                            ali.EdgeA2_Row = mCenterRow; ali.EdgeA2_Col = mCenterCol; ali.EdgeA2_Phi = 0.0;
+                            ali.EdgeA2_Length1 = mHalfHeight; ali.EdgeA2_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                            _editingMeasurementRoiIndex = 3; //260521 hbk Phase 32 I9/I10-redesign
+                            label_drawHint.Content = "교점2 수평 에지(EdgeB2) ROI 를 드래그하세요"; //260521 hbk Phase 32 I9/I10-redesign
+                            halconViewer.RectDrawingCompleted += HalconViewer_RectDrawingCompleted; //260521 hbk Phase 32 재무장
+                            halconViewer.StartRectangleDrawing(); //260521 hbk Phase 32 I9/I10-redesign
+                            return; //260521 hbk Phase 32 I9/I10-redesign — ExitCanvasMode 미호출
+                        }
+                        else { // index == 3: 마지막 ROI EdgeB2 — 정상 종결
+                            ali.EdgeB2_Row = mCenterRow; ali.EdgeB2_Col = mCenterCol; ali.EdgeB2_Phi = 0.0;
+                            ali.EdgeB2_Length1 = mHalfHeight; ali.EdgeB2_Length2 = mHalfWidth; //260521 hbk Phase 32 I9/I10-redesign
+                        } //260521 hbk Phase 32 I9/I10-redesign — index 3: EdgeB2 기록 후 아래 ExitCanvasMode 로 종결
+                    }
+                    string measSelId = _editingMeasurementFaiName;
+                    if (string.IsNullOrEmpty(measSelId))
+                        measSelId = FindFaiNameContainingMeasurement(_editingMeasurement);
+                    //260521 hbk Phase 32 UAT — DataGrid 비의존 Shot 단위 ROI 수집으로 교체 (Measurement 노드 선택 시 ClearResults() 가 DataGrid 를 비워 GetCurrentFAIRois() 가 빈 리스트 반환 → ROI 미표시 결함)
+                    //  CollectShotRois 는 anchorFai.Owner(ShotConfig).FAIList 전체를 AppendFaiRois 로 수집 — DataGrid 무관 (Phase 31 #6-a 패턴 재사용)
+                    FAIConfig anchorFaiForCommit = FindFAIByName(measSelId); //260521 hbk Phase 32 UAT
+                    var measRois = CollectShotRois(anchorFaiForCommit); //260521 hbk Phase 32 UAT — GetCurrentFAIRois() 교체
+                    halconViewer.UpdateDisplayState(measRois, measSelId, null, null);
+                }
+                ExitCanvasMode();
+                return;
+            }
+
+            //260517 hbk Phase 23.1 D-01 — 기존 FAIConfig 경로 (무수정)
+            if (_editingFai == null) {
                 ExitCanvasMode();
                 return;
             }
@@ -1057,16 +1959,19 @@ namespace ReringProject.UI {
                 btn_circleRoi.IsChecked = true;
 
                 //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
-                CircleDiameterMeasurement target = FindSelectedCircleMeasurement();
+                //260519 hbk Phase 31 CO-23.1-02 — 반환 타입 MeasurementBase 로 일반화 (CircleCenterDistance 포함)
+                MeasurementBase target = FindSelectedCircleMeasurement();
                 if (target == null) {
-                    CustomMessageBox.Show("Circle ROI", "CircleDiameterMeasurement을 포함한 FAI를 선택하세요.");
+                    CustomMessageBox.Show("Circle ROI", "CircleDiameterMeasurement 또는 CircleCenterDistanceMeasurement를 포함한 FAI를 선택하세요.");
                     ExitCanvasMode();
                     return;
                 }
                 _editingCircleMeasurement = target;
                 //260423 hbk Commit 시 selection id 를 FAIName 으로 맞추기 위해 캡처
                 var selRowForCircle = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                _editingCircleFaiName = selRowForCircle?.FAIName;
+                //260509 hbk Phase 20 — ?. expanded
+                if (selRowForCircle != null) _editingCircleFaiName = selRowForCircle.FAIName;
+                else                         _editingCircleFaiName = null;
 
                 label_drawHint.Content = "중심을 클릭 후 드래그하여 반지름을 지정하세요";
                 label_drawHint.Foreground = new SolidColorBrush(
@@ -1096,7 +2001,8 @@ namespace ReringProject.UI {
                 if (seq == null) continue;
                 for (int j = 0; j < seq.ActionCount; j++) {
                     var act = seq[j];
-                    if (act?.Param is ShotConfig shot) {
+                    //260509 hbk Phase 20 — ?. expanded to explicit null-check
+                    if (act != null && act.Param is ShotConfig shot) {
                         foreach (FAIConfig fai in shot.FAIList) {
                             foreach (var m in fai.Measurements) {
                                 if (ReferenceEquals(m, measurement)) return fai.FAIName;
@@ -1108,8 +2014,54 @@ namespace ReringProject.UI {
             return null;
         }
 
+        //260528 hbk Phase 37 — FindFaiNameContainingMeasurement 의 참조 버전: 이름 충돌(여러 Shot 동일 FAI 명) 시에도
+        //  실제 소유 FAIConfig 객체를 ReferenceEquals 로 정확히 반환. 이미지/ROI 해석이 첫 Shot 으로 잘못 묶이는 결함 차단.
+        private FAIConfig FindFAIContainingMeasurement(MeasurementBase measurement) {
+            if (measurement == null) return null;
+            //260528 hbk Phase 37 — 우선 RecipeManager.Shots(동적 FAI 단일 소스, 신규 Shot 즉시 반영) 에서 탐색.
+            //  AddShotToSequence 는 새 Shot 을 RecipeManager 에만 넣고 라이브 Action(pSeq) 은 실행 시 지연 동기화하므로,
+            //  세션 중 pSeq 만 보면 신규 Shot 측정을 못 찾아 이미지/ROI 가 이전 Shot 으로 남는다(재시작 후엔 정상).
+            var recipeManager = (SystemHandler.Handle != null && SystemHandler.Handle.Sequences != null)
+                ? SystemHandler.Handle.Sequences.RecipeManager : null;
+            if (recipeManager != null && recipeManager.Shots != null) {
+                foreach (ShotConfig rmShot in recipeManager.Shots) {
+                    if (rmShot == null) continue;
+                    foreach (FAIConfig fai in rmShot.FAIList) {
+                        foreach (var m in fai.Measurements) {
+                            if (ReferenceEquals(m, measurement)) return fai;
+                        }
+                    }
+                }
+            }
+            //260528 hbk Phase 37 — fallback: 레거시/로드 경로(측정이 pSeq Action 에만 존재할 수 있음)
+            if (pSeq == null) return null;
+            for (int i = 0; i < pSeq.Count; i++) {
+                var seq = pSeq[i];
+                if (seq == null) continue;
+                for (int j = 0; j < seq.ActionCount; j++) {
+                    var act = seq[j];
+                    if (act != null && act.Param is ShotConfig shot) {
+                        foreach (FAIConfig fai in shot.FAIList) {
+                            foreach (var m in fai.Measurements) {
+                                if (ReferenceEquals(m, measurement)) return fai;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
         //260423 hbk Phase 11 D-17/D-18 — 선택된 FAI에서 CircleDiameterMeasurement 해석
-        private CircleDiameterMeasurement FindSelectedCircleMeasurement() {
+        //260519 hbk Phase 31 CO-23.1-02 — 반환 타입 MeasurementBase 로 일반화, CircleCenterDistanceMeasurement 추가
+        private MeasurementBase FindSelectedCircleMeasurement() {
+            //260519 hbk Phase 31 CO-23.1-02 — 트리 노드 선택 우선 (FindSelectedRectMeasurement 와 대칭, Measurement 노드 직접 선택 케이스)
+            if (mParentWindow != null && mParentWindow.inspectionList != null) {
+                var selParam = mParentWindow.inspectionList.SelectedParam;
+                if (selParam is CircleDiameterMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CircleCenterDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+            }
+            // fallback — dataGrid 행 선택 경로
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             if (selectedRow != null) {
                 FAIConfig fai = FindFAIByName(selectedRow.FAIName);
@@ -1117,6 +2069,45 @@ namespace ReringProject.UI {
                     foreach (var m in fai.Measurements) {
                         var circle = m as CircleDiameterMeasurement;
                         if (circle != null) return circle;
+                        var circleCtr = m as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+                        if (circleCtr != null) return circleCtr; //260519 hbk Phase 31 CO-23.1-02
+                    }
+                }
+            }
+            return null;
+        }
+
+        //260517 hbk Phase 23.1 D-01 — 선택된 트리/결과 행에서 EdgeToLineDistanceMeasurement 해석 (D-02: 이 타입만 대상)
+        //260519 hbk Phase 31 CO-23.1-02 — FindSelectedRectMeasurement 로 일반화 (Point_* ROI 보유 타입 화이트리스트)
+        private MeasurementBase FindSelectedRectMeasurement() {
+            // 트리 노드 선택 우선 (FAI 미생성 신규 measurement 케이스 포함)
+            if (mParentWindow != null && mParentWindow.inspectionList != null) {
+                var selParam = mParentWindow.inspectionList.SelectedParam;
+                if (selParam is EdgeToLineDistanceMeasurement) return (MeasurementBase)selParam;
+                if (selParam is EdgeToLineAngleMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is ArcEdgeDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is ArcLineIntersectDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundAngleMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundCenterCDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundCenterBDistanceMeasurement) return (MeasurementBase)selParam; //260519 hbk Phase 31 CO-23.1-02
+                if (selParam is CompoundShortAxisDistanceMeasurement) return (MeasurementBase)selParam; //260523 hbk Phase 32 — E3 단축 환원
+                if (selParam is DualImageEdgeDistanceMeasurement) return (MeasurementBase)selParam; //260530 hbk Phase 39.3 D-G1
+            }
+            // fallback — dataGrid 행 선택 경로
+            var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+            if (selectedRow != null) {
+                FAIConfig fai = FindFAIByName(selectedRow.FAIName);
+                if (fai != null) {
+                    foreach (var m in fai.Measurements) {
+                        if (m is EdgeToLineDistanceMeasurement) return m;
+                        if (m is EdgeToLineAngleMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is ArcEdgeDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is ArcLineIntersectDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundAngleMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundCenterCDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundCenterBDistanceMeasurement) return m; //260519 hbk Phase 31 CO-23.1-02
+                        if (m is CompoundShortAxisDistanceMeasurement) return m; //260523 hbk Phase 32 — E3 단축 환원
+                        if (m is DualImageEdgeDistanceMeasurement) return m; //260530 hbk Phase 39.3 D-G1
                     }
                 }
             }
@@ -1124,6 +2115,7 @@ namespace ReringProject.UI {
         }
 
         //260423 hbk Phase 11 D-17 — Circle 드래그 결과를 Measurement에 기록
+        //260519 hbk Phase 31 CO-23.1-02 — _editingCircleMeasurement 타입 MeasurementBase 로 일반화 (Circle_* as 분기)
         private void CommitCircleRoi(double centerRow, double centerCol, double radius) {
             if (_canvasMode != ECanvasMode.CircleRoi || _editingCircleMeasurement == null || radius <= 0) {
                 ExitCanvasMode();
@@ -1131,9 +2123,11 @@ namespace ReringProject.UI {
             }
 
             // D-17: write to the Measurement's own fields (authoritative for Halcon call)
-            _editingCircleMeasurement.Circle_Row = centerRow;
-            _editingCircleMeasurement.Circle_Col = centerCol;
-            _editingCircleMeasurement.Circle_Radius = radius;
+            //260519 hbk Phase 31 CO-23.1-02 — 타입별 Circle_* 필드 설정 분기
+            var circDiam = _editingCircleMeasurement as CircleDiameterMeasurement;
+            if (circDiam != null) { circDiam.Circle_Row = centerRow; circDiam.Circle_Col = centerCol; circDiam.Circle_Radius = radius; }
+            var circCtr = _editingCircleMeasurement as CircleCenterDistanceMeasurement; //260519 hbk Phase 31 CO-23.1-02
+            if (circCtr != null) { circCtr.Circle_Row = centerRow; circCtr.Circle_Col = centerCol; circCtr.Circle_Radius = radius; }
 
             // Refresh canvas using GetCurrentFAIRois — FAIConfig.ToRoiDefinition() Circle branch (Task 3)
             // emits Shape=Circle so HalconDisplayService (Plan 01) renders committed circle.
@@ -1157,9 +2151,15 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.PolygonRoi;
                 btn_polygonRoi.IsChecked = true;
 
-                //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FAIName으로 FAIConfig 조회 (D-21)
-                var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-                FAIConfig faiToEdit = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+                //260511 hbk 신규 FAI(Measurement 0개) 회귀 — 트리 선택을 우선 사용, dataGrid 는 fallback
+                FAIConfig faiToEdit = null;
+                if (mParentWindow != null && mParentWindow.inspectionList != null)
+                    faiToEdit = mParentWindow.inspectionList.SelectedParam as FAIConfig;
+                if (faiToEdit == null) {
+                    //260511 hbk fallback — 기존 dataGrid 행 선택 경로 보존
+                    var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+                    if (selectedRow != null) faiToEdit = FindFAIByName(selectedRow.FAIName);
+                }
                 if (faiToEdit == null) {
                     CustomMessageBox.Show("FAI를 먼저 선택하세요.", "Polygon ROI");
                     ExitCanvasMode();
@@ -1224,6 +2224,18 @@ namespace ReringProject.UI {
         }
 
         //260408 hbk 2점 캘리브레이션 플로우
+        //260601 hbk Phase 40.1 #2 — 측정 overlay 토글 → 뷰어 게이트 갱신 (즉시 재렌더)
+        private void Chk_overlayMeasure_Changed(object sender, RoutedEventArgs e) {
+            if (halconViewer == null) return;
+            halconViewer.SetMeasurementOverlayVisible(chk_overlayMeasure.IsChecked == true);
+        }
+
+        //260601 hbk Phase 40.1 #2 — Datum 라인 토글 → 뷰어 게이트 갱신 (즉시 재렌더)
+        private void Chk_overlayDatum_Changed(object sender, RoutedEventArgs e) {
+            if (halconViewer == null) return;
+            halconViewer.SetDatumOverlayVisible(chk_overlayDatum.IsChecked == true);
+        }
+
         private void CalibrateButton_Click(object sender, RoutedEventArgs e) {
             ExitCanvasMode();
             _canvasMode = ECanvasMode.Calibration;
@@ -1307,7 +2319,10 @@ namespace ReringProject.UI {
         //260417 hbk Phase 6 Plan 04: MeasurementResultRow → FindFAIByName (D-21)
         private void ApplyCalibrationResult(double mmPerPixel) {
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
-            FAIConfig anchorFai = selectedRow != null ? FindFAIByName(selectedRow.FAIName) : null;
+            //260509 hbk Phase 20 — ternary expanded
+            FAIConfig anchorFai;
+            if (selectedRow != null) anchorFai = FindFAIByName(selectedRow.FAIName);
+            else                     anchorFai = null;
             if (anchorFai != null) {
                 var shot = anchorFai.Owner as ShotConfig;
                 if (shot == null) {
@@ -1332,9 +2347,13 @@ namespace ReringProject.UI {
                 ExitCanvasMode();
                 _canvasMode = ECanvasMode.TeachDatum;
                 btn_teachDatum.IsChecked = true;
+                halconViewer.IsTeachDatumMode = true; //260505 hbk Phase 18 CO-04 — "ROI 다시 그리기" 메뉴 활성화
 
                 //260424 hbk Phase 12 — InspectionListView.SelectedParam 으로 DatumConfig 해결 (btn_teachDatum 활성화 조건)
-                var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig; //260424 hbk Phase 12 — MainWindow.xaml:80 x:Name="inspectionList"
+                //260509 hbk Phase 20 — chained ?. expanded
+                DatumConfig datum;
+                if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+                else                                                               datum = null;
                 if (datum == null) {
                     CustomMessageBox.Show("Datum 노드를 먼저 선택하세요.", "Teach Datum");
                     ExitCanvasMode();
@@ -1357,8 +2376,23 @@ namespace ReringProject.UI {
                         _canvasMode = ECanvasMode.None;
                         _editingDatum = null;
                         halconViewer.IsEditMode = false; //260503 hbk Phase 17 D-06 wiring — 티칭 미시작 시 Edit 모드 해제
+                        halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — 티칭 미시작 시 메뉴 숨김
                         return;
                     }
+                    //260507 hbk Phase 18 18-07 — 재티칭 확인 모달: IsConfigured=true & 모든 ROI 존재 → 즉시 teach 시나리오에서 사용자 의사 확인.
+                    //  Silent re-teach 방지 + 버튼 먹힘 시각 신호 제공. ValidateRoiPresence 가 null 통과한 시점이므로 모든 ROI 존재 보장.
+                    var reteachChoice = CustomMessageBox.ShowConfirmation( //260507 hbk Phase 18 18-07
+                        "재티칭 확인", //260507 hbk Phase 18 18-07
+                        "이 Datum 은 이미 티칭되어 있습니다.\n기존 ROI 로 재티칭하시겠습니까?\n\n(ROI 를 다시 그리려면 먼저 삭제해 주세요.)", //260507 hbk Phase 18 18-07
+                        MessageBoxButton.YesNo); //260507 hbk Phase 18 18-07
+                    if (reteachChoice != MessageBoxResult.Yes) { //260507 hbk Phase 18 18-07
+                        btn_teachDatum.IsChecked = false; //260507 hbk Phase 18 18-07
+                        _canvasMode = ECanvasMode.None; //260507 hbk Phase 18 18-07
+                        _editingDatum = null; //260507 hbk Phase 18 18-07
+                        halconViewer.IsEditMode = false; //260507 hbk Phase 18 18-07
+                        halconViewer.IsTeachDatumMode = false; //260507 hbk Phase 18 18-07
+                        return; //260507 hbk Phase 18 18-07
+                    } //260507 hbk Phase 18 18-07
                 }
 
                 //260503 hbk Phase 17 D-06 wiring — 티칭 모드 진입 시 Edit OFF (그리기 모드 → ROI hit-test 차단)
@@ -1372,6 +2406,7 @@ namespace ReringProject.UI {
             }
             else {
                 //260424 hbk Phase 12 — 수동 해제 = 취소
+                halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
                 ExitCanvasMode();
             }
         }
@@ -1386,6 +2421,9 @@ namespace ReringProject.UI {
                     return new[] { EDatumTeachStep.Circle, EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB };
                 case EDatumAlgorithm.VerticalTwoHorizontal:
                     return new[] { EDatumTeachStep.Vertical, EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB };
+                //260527 hbk Phase 34 D-34-07 — DualImage 변형: 순서 = HA → HB → V (가로축 이미지 먼저 → 자동 swap → 세로축 이미지). 1-image VTH (V → HA → HB) 와 의도적으로 다름.
+                case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
+                    return new[] { EDatumTeachStep.HorizontalA, EDatumTeachStep.HorizontalB, EDatumTeachStep.Vertical }; //260527 hbk Phase 34 D-34-07
                 default:
                     return new EDatumTeachStep[0];
             }
@@ -1448,21 +2486,53 @@ namespace ReringProject.UI {
                     halconViewer.StartRectangleDrawing();
                     break;
                 case EDatumTeachStep.Vertical:
-                    label_drawHint.Content = "Step 1/3: 수직 ROI를 드래그하세요"; //260424 hbk Phase 12
+                    //260527 hbk Phase 34 D-34-06 — DualImage 변형이면 진입 직전에 세로축 이미지로 자동 swap.
+                    if (_editingDatum != null
+                        && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-06
+                        string vpath = _editingDatum.TeachingImagePath_Vertical; //260527 hbk Phase 34 D-34-06
+                        if (!string.IsNullOrEmpty(vpath) && System.IO.File.Exists(vpath)) { //260527 hbk Phase 34
+                            try { halconViewer.LoadImage(vpath); } //260527 hbk Phase 34 D-34-06
+                            catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); } //260527 hbk Phase 34
+                            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 D-34.1-15 — 자동 swap 도 3자 동시 갱신
+                        } else {
+                            //260527 hbk Phase 34 D-34-08 — 빈 경로: 안내 + 드로잉 차단 (저장은 차단하지 않음).
+                            //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-C — vpath 빈 경로여도 badge 만큼은 갱신 (사용자에게 "이제 Vertical step" 시각 신호).
+                            UpdateImageSourceBadge(ReringProject.Sequence.EImageSource.Vertical); //260527 hbk Phase 34.1 CO-34.1-02
+                            label_drawHint.Content = "세로축 이미지를 Load 해주세요 (PropertyGrid 의 TeachingImagePath_Vertical)"; //260527 hbk Phase 34 D-34-08 + CO-34.1-02 — hint 강화
+                            label_drawHint.Foreground = new SolidColorBrush(Colors.Orange); //260527 hbk Phase 34
+                            label_drawHint.Visibility = Visibility.Visible; //260527 hbk Phase 34
+                            break; //260527 hbk Phase 34 — 드로잉 시작 안 함 (switch case 종료)
+                        }
+                        label_drawHint.Content = "Step 3/3: 수직 ROI를 드래그하세요"; //260527 hbk Phase 34 D-34-07
+                    } else {
+                        label_drawHint.Content = "Step 1/3: 수직 ROI를 드래그하세요"; //260424 hbk Phase 12 — 기존 1-image VTH 라벨 보존
+                    }
                     label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
                     halconViewer.StartRectangleDrawing();
                     break;
                 case EDatumTeachStep.HorizontalA:
-                    label_drawHint.Content = "Step 2/3: 수평 A ROI를 드래그하세요"; //260424 hbk Phase 12
+                    //260527 hbk Phase 34 D-34-07 — DualImage 변형: Step 1/3 (가로축 이미지 표시 상태 가정).
+                    if (_editingDatum != null
+                        && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-07
+                        label_drawHint.Content = "Step 1/3: 수평 A ROI를 드래그하세요"; //260527 hbk Phase 34 D-34-07
+                    } else {
+                        label_drawHint.Content = "Step 2/3: 수평 A ROI를 드래그하세요"; //260424 hbk Phase 12 — 기존 1-image VTH/CTH 라벨 보존
+                    }
                     label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
                     halconViewer.StartRectangleDrawing();
                     break;
                 case EDatumTeachStep.HorizontalB:
-                    label_drawHint.Content = "Step 3/3: 수평 B ROI를 드래그하세요"; //260424 hbk Phase 12
+                    //260527 hbk Phase 34 D-34-07 — DualImage 변형: Step 2/3.
+                    if (_editingDatum != null
+                        && _editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34 D-34-07
+                        label_drawHint.Content = "Step 2/3: 수평 B ROI를 드래그하세요"; //260527 hbk Phase 34 D-34-07
+                    } else {
+                        label_drawHint.Content = "Step 3/3: 수평 B ROI를 드래그하세요"; //260424 hbk Phase 12 — 기존 1-image VTH/CTH 라벨 보존
+                    }
                     label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA")); //260424 hbk Phase 12
                     label_drawHint.Visibility = Visibility.Visible;
                     halconViewer.RectDrawingCompleted += HalconViewer_DatumRectCompleted;
@@ -1538,9 +2608,10 @@ namespace ReringProject.UI {
 
             //260424 hbk Phase 12 Gap-3 — DatumConfig 자동 속성은 INotifyPropertyChanged 미발동 → PropertyGrid 강제 재바인딩 + RaisePropertyChanged 이중 신호
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
             //260424 hbk Phase 12 Gap-3 — 캔버스 오버레이도 새 좌표로 갱신 (Datum ROI Rect/Circle 재렌더)
-            halconViewer.SetDatumOverlay(_editingDatum, true);
+            halconViewer.SetDatumOverlay(_editingDatum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
 
             AdvanceDatumTeachStep();
         }
@@ -1556,8 +2627,9 @@ namespace ReringProject.UI {
 
             //260424 hbk Phase 12 Gap-3 — PropertyGrid 재바인딩 + Datum 오버레이 갱신 (CircleROI_* write-back 즉시 반영)
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
-            mParentWindow?.inspectionList?.RefreshParamEditor();
-            halconViewer.SetDatumOverlay(_editingDatum, true);
+            //260509 hbk Phase 20 — chained ?. expanded
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+            halconViewer.SetDatumOverlay(_editingDatum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
 
             AdvanceDatumTeachStep();
         }
@@ -1571,6 +2643,7 @@ namespace ReringProject.UI {
         }
 
         //260424 hbk Phase 12 D-02 — 마지막 ROI 직후 DatumFindingService.TryTeachDatum 자동 호출
+        //260527 hbk Phase 34 D-34-01/02 — DualImage 변형 시 두 파일에서 이미지 2개 로드 후 신규 2-image TryTeachDatum 호출 (goto 패턴 0 — early-return + try/finally).
         private void InvokeTryTeachDatum() {
             if (_editingDatum == null) { ExitCanvasMode(); return; }
 
@@ -1582,18 +2655,58 @@ namespace ReringProject.UI {
                 _canvasMode = ECanvasMode.None;
                 btn_teachDatum.IsChecked = false;
                 _editingDatum = null;
+                halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
                 return;
             }
 
             var svc = new ReringProject.Halcon.Algorithms.DatumFindingService(); //260424 hbk Phase 12 — 무상태 서비스
-            string error;
-            bool ok = svc.TryTeachDatum(img, _editingDatum, out error);
+            string error = null; //260527 hbk Phase 34 — DualImage 분기 공용 변수
+            bool ok = false; //260527 hbk Phase 34 — DualImage 분기 공용 변수
+
+            //260527 hbk Phase 34 D-34-01/02 — DualImage 변형: 두 파일에서 이미지 2개 로드 + 신규 2-image TryTeachDatum 호출. goto 패턴 0 (early-return + try/finally).
+            if (_editingDatum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260527 hbk Phase 34
+                string pathH = _editingDatum.TeachingImagePath; //260527 hbk Phase 34
+                string pathV = _editingDatum.TeachingImagePath_Vertical; //260527 hbk Phase 34
+
+                //260527 hbk Phase 34 D-34-10 — 빈 경로 / 파일 없음 가드 (early-return).
+                if (string.IsNullOrEmpty(pathH) || !System.IO.File.Exists(pathH)) { //260527 hbk Phase 34
+                    ExitTeachWithError("가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260527 hbk Phase 34 D-34-10
+                    return; //260527 hbk Phase 34
+                }
+                if (string.IsNullOrEmpty(pathV) || !System.IO.File.Exists(pathV)) { //260527 hbk Phase 34
+                    ExitTeachWithError("세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260527 hbk Phase 34 D-34-10
+                    return; //260527 hbk Phase 34
+                }
+
+                //260527 hbk Phase 34 — 이미지 2개 로드: try/finally 로 dispose 보장. 로드 실패 시 error 설정 후 try 블록 종료 → 공통 결과 처리.
+                HImage imgH = null, imgV = null; //260527 hbk Phase 34
+                try {
+                    try { imgH = new HImage(pathH); } //260527 hbk Phase 34
+                    catch (Exception exH) { error = "가로축 이미지 로드 실패: " + exH.Message; ok = false; } //260527 hbk Phase 34
+
+                    if (error == null) { //260527 hbk Phase 34 — 가로축 로드 성공 시에만 세로축 시도
+                        try { imgV = new HImage(pathV); } //260527 hbk Phase 34
+                        catch (Exception exV) { error = "세로축 이미지 로드 실패: " + exV.Message; ok = false; } //260527 hbk Phase 34
+                    }
+
+                    if (error == null) { //260527 hbk Phase 34 — 두 이미지 모두 성공 시에만 TryTeachDatum 호출
+                        ok = svc.TryTeachDatum(imgH, imgV, _editingDatum, out error); //260527 hbk Phase 34 D-34-01/02 — 2-image 오버로드
+                    }
+                } finally {
+                    if (imgH != null) { try { imgH.Dispose(); } catch { } } //260527 hbk Phase 34
+                    if (imgV != null) { try { imgV.Dispose(); } catch { } } //260527 hbk Phase 34
+                }
+            } else {
+                ok = svc.TryTeachDatum(img, _editingDatum, out error); //기존 단일-이미지 오버로드 (회귀 0)
+            }
+
+            //공통 결과 처리 (DualImage / 1-image 양쪽 공통 — goto 0)
             if (ok) {
                 label_drawHint.Content = "Datum 티칭 완료 — Recipe Save 권장"; //260424 hbk Phase 12
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80")); //260424 hbk Phase 12 success green
                 label_drawHint.Visibility = Visibility.Visible;
                 //260424 hbk Phase 12 — 오버레이 갱신 (LastTeachSucceeded=true → HalconDisplayService CircleTwoHorizontal/Horizontal A/B 분기 렌더)
-                halconViewer.SetDatumOverlay(_editingDatum, true);
+                halconViewer.SetDatumOverlay(_editingDatum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03
                 //260425 hbk Phase 13 D-01..D-04 — teach 완료 시점에 후보 갱신
                 PublishDatumRoiCandidates(_editingDatum);
                 //260425 hbk Phase 13 D-VIZ-06 — teach 성공 시 좌표 라벨 갱신 (PublishDatumRoiCandidates 가 이미 호출하나 명시 보장)
@@ -1602,40 +2715,88 @@ namespace ReringProject.UI {
             else {
                 //260503 hbk Phase 17 D-12 — teach 실패 사유 모달 (label_drawHint 사유 표시 패턴 폐기). FormatTeachError 가 D-04 EdgeDirection 힌트 통합.
                 label_drawHint.Visibility = Visibility.Collapsed;
-                CustomMessageBox.Show("티칭 실패", FormatTeachError(error)); //260503 hbk Phase 17 D-12
+                CustomMessageBox.Show("티칭 실패", FormatTeachError(_editingDatum, error)); //260505 hbk Phase 18 CO-06
             }
 
             //260424 hbk Phase 12 — ROI 유지(재튜닝 가능), canvas mode 해제
             _canvasMode = ECanvasMode.None;
             btn_teachDatum.IsChecked = false;
             _editingDatum = null;
+            halconViewer.IsTeachDatumMode = false; //260505 hbk Phase 18 CO-04 — TeachDatum 종료 시 메뉴 숨김
+        }
+
+        //260527 hbk Phase 34 — InvokeTryTeachDatum 의 early-return 헬퍼 (goto 패턴 회피).
+        private void ExitTeachWithError(string message) {
+            label_drawHint.Visibility = Visibility.Collapsed; //260527 hbk Phase 34
+            CustomMessageBox.Show("티칭 실패", message); //260527 hbk Phase 34
+            _canvasMode = ECanvasMode.None; //260527 hbk Phase 34
+            btn_teachDatum.IsChecked = false; //260527 hbk Phase 34
+            _editingDatum = null; //260527 hbk Phase 34
+            halconViewer.IsTeachDatumMode = false; //260527 hbk Phase 34
         }
 
         //260424 hbk Phase 13 D-05..D-08 — 런타임 TryFindDatum 테스트 진입 (현재/Load 이미지 2-way + 성공 주황 십자 + 실패 에러 메시지)
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
             //260424 hbk Phase 13 D-05 — Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
-            var datum = mParentWindow?.inspectionList?.SelectedParam as DatumConfig;
+            //260509 hbk Phase 20 — chained ?. expanded
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
             if (datum == null || !datum.IsConfigured || !datum.LastTeachSucceeded) {
                 CustomMessageBox.Show("Datum Find 테스트", "Datum 티칭이 완료된 후 테스트 가능합니다."); //260425 hbk Phase 13 cleanup — Plan 02 인자 순서 fix
                 return;
             }
 
-            //260424 hbk Phase 13 D-06 — 테스트 이미지 소스 선택 (현재 / Load / 취소)
-            HImage testImage = AskTestImageSource();
-            if (testImage == null) return; //260424 hbk Phase 13 D-06 — 사용자 취소
-
             //260424 hbk Phase 13 D-07/D-08 — DatumFindingService.TryFindDatum 호출 (Phase 4 Plan 01 L28 시그니처)
             var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
             HTuple transform;
-            string error;
-            bool ok = svc.TryFindDatum(testImage, datum, out transform, out error);
+            string error = null;
+            bool ok = false;
+
+            //260528 hbk Phase 34.1 CO-34.1-08 hotfix — DualImage 변형은 두 파일 직접 로드 + 2-image 오버로드 호출 (Phase 34 D-34-01/02 누락 site, BtnTestFindDatum_Click). Teach 와 동일 패턴.
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260528 hbk Phase 34.1 CO-34.1-08
+                string pathH = datum.TeachingImagePath; //260528 hbk Phase 34.1 CO-34.1-08
+                string pathV = datum.TeachingImagePath_Vertical; //260528 hbk Phase 34.1 CO-34.1-08
+                if (string.IsNullOrEmpty(pathH) || !System.IO.File.Exists(pathH)) { //260528 hbk Phase 34.1 CO-34.1-08
+                    CustomMessageBox.Show("Find 실패", "가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260528 hbk Phase 34.1 CO-34.1-08
+                    return; //260528 hbk Phase 34.1 CO-34.1-08
+                }
+                if (string.IsNullOrEmpty(pathV) || !System.IO.File.Exists(pathV)) { //260528 hbk Phase 34.1 CO-34.1-08
+                    CustomMessageBox.Show("Find 실패", "세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다."); //260528 hbk Phase 34.1 CO-34.1-08
+                    return; //260528 hbk Phase 34.1 CO-34.1-08
+                }
+                HImage imgH = null, imgV = null; //260528 hbk Phase 34.1 CO-34.1-08
+                try {
+                    try { imgH = new HImage(pathH); } //260528 hbk Phase 34.1 CO-34.1-08
+                    catch (Exception exH) { error = "가로축 이미지 로드 실패: " + exH.Message; ok = false; } //260528 hbk Phase 34.1 CO-34.1-08
+                    if (error == null) { //260528 hbk Phase 34.1 CO-34.1-08
+                        try { imgV = new HImage(pathV); } //260528 hbk Phase 34.1 CO-34.1-08
+                        catch (Exception exV) { error = "세로축 이미지 로드 실패: " + exV.Message; ok = false; } //260528 hbk Phase 34.1 CO-34.1-08
+                    }
+                    if (error == null) { //260528 hbk Phase 34.1 CO-34.1-08
+                        ok = svc.TryFindDatum(imgH, imgV, datum, out transform, out error); //260528 hbk Phase 34.1 CO-34.1-08 — 2-image 오버로드
+                    }
+                    else {
+                        HOperatorSet.HomMat2dIdentity(out transform); //260528 hbk Phase 34.1 CO-34.1-08 — 로드 실패 transform 초기화
+                    }
+                } finally {
+                    if (imgH != null) { try { imgH.Dispose(); } catch { } } //260528 hbk Phase 34.1 CO-34.1-08
+                    if (imgV != null) { try { imgV.Dispose(); } catch { } } //260528 hbk Phase 34.1 CO-34.1-08
+                }
+            }
+            else {
+                //260424 hbk Phase 13 D-06 — 테스트 이미지 소스 선택 (현재 / Load / 취소)
+                HImage testImage = AskTestImageSource();
+                if (testImage == null) return; //260424 hbk Phase 13 D-06 — 사용자 취소
+                ok = svc.TryFindDatum(testImage, datum, out transform, out error); //단일-이미지 오버로드 (회귀 0)
+            }
 
             //260503 hbk Phase 17 D-12/D-14 — label_drawHint / label_testFindResult inline 피드백 폐기, 성공/실패 모두 모달 정책 (성공 X / 실패 O)
             label_drawHint.Visibility = Visibility.Collapsed; //260503 hbk Phase 17 D-14
             label_testFindResult.Visibility = Visibility.Collapsed; //260503 hbk Phase 17 D-14 — inline 표시 사용 안 함
             if (ok) {
                 //260503 hbk Phase 17 D-14 — 성공: 시각화 자동 (TryFindDatum 이 DetectedOrigin* + LastFindSucceeded write-back → SetDatumOverlay → RenderDatumOverlay 가 RenderDatumFindResult 자동 호출 chain)
-                halconViewer.SetDatumOverlay(datum, true); //260503 hbk Phase 17 D-14 — purple cross + 좌표 + 화살표 (HalconDisplayService.RenderDatumFindResult)
+                halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode()); //260529 hbk Phase 39.1-04 G4-03 //260503 hbk Phase 17 D-14 — purple cross + 좌표 + 화살표 (HalconDisplayService.RenderDatumFindResult)
                 //260503 hbk Phase 17 D-14 — PropertyGrid 메트릭 갱신 (DetectedEdgeCount/FitRMSE/AngleDeg ReadOnly 표시)
                 try { datum.RaisePropertyChanged(string.Empty); } catch { } //260503 hbk Phase 17 D-14
                 if (mParentWindow != null && mParentWindow.inspectionList != null) {

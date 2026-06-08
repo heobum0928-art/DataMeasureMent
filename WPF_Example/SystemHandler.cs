@@ -20,7 +20,8 @@ namespace ReringProject {
     public sealed partial class SystemHandler {
 
         // Application display name.
-        public static string ProjectName { get; } = "DDA Vision Inspector";
+        //260608 hbk 타이틀 리브랜딩: "DDA Vision Inspector" → "Measurement Vision"
+        public static string ProjectName { get; } = "Measurement Vision";
 
         // Singleton access point.
         public static SystemHandler Handle { get; } = new SystemHandler();

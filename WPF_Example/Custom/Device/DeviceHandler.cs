@@ -90,14 +90,9 @@ namespace ReringProject.Device {
         /// </summary>
         private void RegisterRequiredDevices() {
             //260602 hbk Phase 41 — D-03 PC별 CXP 1대 + 역할(시퀀스) 설정. HIK 3대 고정 → 역할 분기.
-#if SIMUL_MODE
-            //260604 hbk Phase 41 CO-41-02 — SIMUL 은 역할 무관 3 카메라 전부 등록(단일 PC 전 시퀀스 테스트).
-            //  미등록 카메라가 있으면 해당 InspectionSequence.OnCreate 가 Error → StateAll 비-Idle →
-            //  "Sequence is already running" 오진단(샷 차단). SIMUL 은 모든 카메라가 VirtualCamera 폴백이라 전 등록이 안전.
-            RegisterCxpCamera(CAMERA_TOP, REVERSE_X_TOP, REVERSE_Y_TOP, ROTATE_TOP);
-            RegisterCxpCamera(CAMERA_BOTTOM, REVERSE_X_BOTTOM, REVERSE_Y_BOTTOM, ROTATE_BOTTOM);
-            RegisterCxpCamera(CAMERA_SIDE, REVERSE_X_SIDE, REVERSE_Y_SIDE, ROTATE_SIDE);
-#else
+            //260609 hbk Phase 41 — SIMUL/실 HW 통일: 항상 CameraRole 기반 등록(#if 분기 제거).
+            //  시뮬도 실 동작을 그대로 재현(카메라 수·역할·코드 경로 동일). 다른 역할 테스트는 CameraRole 설정 변경 후 재시작.
+            //  SequenceHandler.IsSequenceActive 와 정책이 1:1 동기화되어야 함(미등록 카메라 시퀀스 미생성 → OnCreate Error 차단, CO-41-02).
             ECameraRole role = SystemSetting.Handle.CameraRole;
 
             if (role == ECameraRole.TopBottom) {
@@ -109,7 +104,6 @@ namespace ReringProject.Device {
                 // PC2: CXP 카메라 1대 — Side 시퀀스 담당 (D-02)
                 RegisterCxpCamera(CAMERA_SIDE, REVERSE_X_SIDE, REVERSE_Y_SIDE, ROTATE_SIDE);
             }
-#endif
         }
 
         //260604 hbk Phase 41 CO-41-02 — CXP 카메라 1대 등록 헬퍼(역할/SIMUL 분기 공통). Gray8 + Software trigger + CXP 해상도 고정.

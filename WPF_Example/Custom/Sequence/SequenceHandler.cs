@@ -40,14 +40,12 @@ namespace ReringProject.Sequence {
         //  SIMUL 은 전체 활성(단일 PC 전 시퀀스 테스트). 실 HW 는 PC1=Top/Bottom, PC2=Side 만 활성 →
         //  비활성 시퀀스를 아예 생성하지 않아, 카메라 미등록으로 인한 OnCreate Error(StateAll 비-Idle) 를 원천 차단.
         private static bool IsSequenceActive(ESequence seqId) {
-#if SIMUL_MODE
-            return true;
-#else
+            //260609 hbk Phase 41 — SIMUL/실 HW 통일: 항상 CameraRole 기반(#if 분기 제거).
+            //  DeviceHandler.RegisterRequiredDevices 의 등록 정책과 1:1 동기화. TopBottom=Top/Bottom, Side=Side 만 활성.
             ECameraRole role = SystemSetting.Handle.CameraRole;
             if (role == ECameraRole.TopBottom)
                 return seqId == ESequence.Top || seqId == ESequence.Bottom;
             return seqId == ESequence.Side;
-#endif
         }
 
         private void RegisterSequences() {

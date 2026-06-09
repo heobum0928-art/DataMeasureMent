@@ -14,6 +14,16 @@ namespace ReringProject.Device {
         private MIL_ID MilDigitizer   = MIL.M_NULL;
         private MIL_ID MilBuffer      = MIL.M_NULL;
 
+#if !SIMUL_MODE
+        //260609 hbk Phase 41 — MIL 라이브(연속 grab) 스레드 제어
+        private Thread _liveThread = null;
+        private volatile bool _liveRunning = false;
+
+        // 파생 클래스에서 GuiReadyForDisplay 를 직접 호출하려면 이벤트를 override 해야 한다.
+        // (HikCamera L45 와 동일 — 그렇지 않으면 CS0070: 베이스 이벤트는 +=/-= 만 가능)
+        public override event StateEvent GuiReadyForDisplay = null;
+#endif
+
         public MilCamera(DisplayConfig config, DeviceInfo info) : base(config, info, ECameraType.MIL) {
             Properties = new VirtualCameraProperty();
             Properties.Width  = info.Width;
@@ -49,8 +59,13 @@ namespace ReringProject.Device {
                               MIL.M_DEFAULT, ref MilDigitizer);
                 if (MilDigitizer == MIL.M_NULL) throw new Exception("MdigAlloc failed");
 
-                // 4. Mono8 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용 — Pitfall 5)
-                MIL.MbufAlloc2d(MilSystem, Info.Width, Info.Height,
+                // 4. Mono8 grab 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용 — Pitfall 5)
+                //    버퍼 크기는 하드코딩(Info.Width/Height) 대신 디지타이저에서 조회한다.
+                //    하드코딩 시 SIMUL_MODE 시뮬 디지타이저에 144MB non-paged(M_GRAB) 요구 →
+                //    MbufAlloc2d Allocation error 발생. MdigProcess C# 예제 L62-66 패턴.
+                MIL_INT bufW = MIL.MdigInquire(MilDigitizer, MIL.M_SIZE_X, MIL.M_NULL);
+                MIL_INT bufH = MIL.MdigInquire(MilDigitizer, MIL.M_SIZE_Y, MIL.M_NULL);
+                MIL.MbufAlloc2d(MilSystem, bufW, bufH,
                                 8 + MIL.M_UNSIGNED,
                                 MIL.M_IMAGE + MIL.M_GRAB + MIL.M_PROC,
                                 ref MilBuffer);
@@ -88,54 +103,25 @@ namespace ReringProject.Device {
             // D-11: SIMUL_MODE 에서는 base 파일 grab 경로(LastHalconImage) 로 폴백
             return LastHalconImage;
 #else
+            // 라이브 스트리밍 중에는 라이브 스레드가 MilBuffer 를 점유한다.
+            // 여기서 또 MdigGrab 하면 같은 버퍼를 동시에 건드려 충돌하므로, 최신 프레임만 반환한다.
+            if (CaptureMode == ECaptureModeType.Streaming) {
+                return LastHalconImage;
+            }
+
             try {
-                // 소프트웨어 트리거 단발 동기 grab
-                MIL.MdigGrab(MilDigitizer, MilBuffer);
-
-                // host 포인터 획득 (MbufPointerAccess 예제 패턴, Pitfall 2)
-                MIL_INT hostPtr   = MIL.M_NULL;
-                MIL_INT pitchByte = MIL.M_NULL;
-                MIL.MbufControl(MilBuffer, MIL.M_LOCK, MIL.M_DEFAULT);
-                MIL.MbufInquire(MilBuffer, MIL.M_HOST_ADDRESS, ref hostPtr);
-                MIL.MbufInquire(MilBuffer, MIL.M_PITCH_BYTE,   ref pitchByte);
-
-                if (hostPtr == MIL.M_NULL) {
-                    MIL.MbufControl(MilBuffer, MIL.M_UNLOCK, MIL.M_DEFAULT);
+                // 단발 grab → 버퍼에서 독립 HImage(복사본) 획득
+                HImage grabbed = GrabFromBuffer();
+                if (grabbed == null) {
                     return null;
                 }
 
-                IntPtr ptr = new IntPtr((long)hostPtr); // Pitfall 3: 명시적 변환
-                HImage sourceImage;
-                if (pitchByte == Info.Width) {
-                    // padding 없음 — GenImage1 직접 사용 (HikCamera.OnGrabResult L455-456 동일)
-                    sourceImage = new HImage();
-                    sourceImage.GenImage1("byte", Info.Width, Info.Height, ptr);
-                }
-                else {
-                    // pitch > width — 행 단위 padding 제거 복사
-                    sourceImage = CreateImageFromPaddedBuffer(ptr, Info.Width, Info.Height, (int)pitchByte);
-                }
-                MIL.MbufControl(MilBuffer, MIL.M_UNLOCK, MIL.M_DEFAULT);
-
-                // 회전 처리 (HikCamera.OnGrabResult L458-470 동일)
-                HImage rotatedImage = sourceImage;
-                if (Info.RotateAngle == ERotateAngleType._90) {
-                    rotatedImage = sourceImage.RotateImage(90.0, "constant");
-                    sourceImage.Dispose();
-                }
-                else if (Info.RotateAngle == ERotateAngleType._180) {
-                    rotatedImage = sourceImage.RotateImage(180.0, "constant");
-                    sourceImage.Dispose();
-                }
-                else if (Info.RotateAngle == ERotateAngleType._270) {
-                    rotatedImage = sourceImage.RotateImage(270.0, "constant");
-                    sourceImage.Dispose();
-                }
-
                 lock (Interlock) {
-                    // HikCamera.OnGrabResult L472-473 동일 패턴 — null-conditional 대신 명시적 if (Phase 20 D-04 스타일)
-                    if (LastGrabHalconImage != null) LastGrabHalconImage.Dispose();
-                    LastGrabHalconImage = rotatedImage;
+                    // HikCamera.OnGrabResult L472-473 동일 패턴 — 이전 프레임 해제 후 교체
+                    if (LastGrabHalconImage != null) {
+                        LastGrabHalconImage.Dispose();
+                    }
+                    LastGrabHalconImage = grabbed;
                 }
                 Interlocked.Increment(ref imageCount);
                 return LastHalconImage;
@@ -147,6 +133,73 @@ namespace ReringProject.Device {
             }
 #endif
         }
+
+#if !SIMUL_MODE
+        /// <summary>
+        /// MilBuffer 로 단발 grab 한 뒤 host 메모리에서 독립 HImage(복사본)를 만들어 반환한다.
+        /// 단발 grab(GrabHalconImage)과 라이브 루프(LiveLoop)가 공통으로 사용한다.
+        /// MilBuffer 는 매 grab 마다 재사용되므로, 반드시 버퍼와 분리된 복사본을 반환해야 한다.
+        /// </summary>
+        private HImage GrabFromBuffer() {
+            // 동기 단발 grab (free-run / 소프트 트리거)
+            MIL.MdigGrab(MilDigitizer, MilBuffer);
+
+            // 버퍼의 실제 크기를 조회해서 변환에 사용한다.
+            // Info.Width/Height(WIDTH_CXP 등 TBD 상수)와 실제 카메라 해상도가 다르면 깨지므로,
+            // 하드코딩 상수 대신 버퍼 기준으로 변환한다.
+            MIL_INT bufW = MIL.M_NULL;
+            MIL_INT bufH = MIL.M_NULL;
+            MIL.MbufInquire(MilBuffer, MIL.M_SIZE_X, ref bufW);
+            MIL.MbufInquire(MilBuffer, MIL.M_SIZE_Y, ref bufH);
+            int width  = (int)bufW;
+            int height = (int)bufH;
+
+            // host 포인터 / 한 행의 바이트 수(pitch) 획득 (MbufPointerAccess 예제 패턴, Pitfall 2)
+            MIL_INT hostPtr   = MIL.M_NULL;
+            MIL_INT pitchByte = MIL.M_NULL;
+            MIL.MbufControl(MilBuffer, MIL.M_LOCK, MIL.M_DEFAULT);
+            MIL.MbufInquire(MilBuffer, MIL.M_HOST_ADDRESS, ref hostPtr);
+            MIL.MbufInquire(MilBuffer, MIL.M_PITCH_BYTE,   ref pitchByte);
+
+            // host 메모리에 매핑이 안 된 버퍼(보드 전용 메모리)면 변환 불가
+            if (hostPtr == MIL.M_NULL) {
+                MIL.MbufControl(MilBuffer, MIL.M_UNLOCK, MIL.M_DEFAULT);
+                return null;
+            }
+
+            IntPtr ptr = new IntPtr((long)hostPtr); // Pitfall 3: 명시적 변환
+            HImage sourceImage = null;
+            if (pitchByte == width) {
+                // 행 padding 이 없는 경우 — 포인터로 wrap 한 뒤 독립 복사본으로 분리한다.
+                // (wrap 상태로 두면 UNLOCK/다음 grab 시 버퍼가 바뀌어 화면이 깨짐)
+                HImage wrap = new HImage();
+                wrap.GenImage1("byte", width, height, ptr);
+                sourceImage = wrap.CopyImage();
+                wrap.Dispose();
+            }
+            else {
+                // pitch > width — 행 단위로 padding 을 제거하며 복사 (이미 독립 복사본)
+                sourceImage = CreateImageFromPaddedBuffer(ptr, width, height, (int)pitchByte);
+            }
+            MIL.MbufControl(MilBuffer, MIL.M_UNLOCK, MIL.M_DEFAULT);
+
+            // 회전 처리 (HikCamera.OnGrabResult L458-470 동일)
+            HImage rotatedImage = sourceImage;
+            if (Info.RotateAngle == ERotateAngleType._90) {
+                rotatedImage = sourceImage.RotateImage(90.0, "constant");
+                sourceImage.Dispose();
+            }
+            else if (Info.RotateAngle == ERotateAngleType._180) {
+                rotatedImage = sourceImage.RotateImage(180.0, "constant");
+                sourceImage.Dispose();
+            }
+            else if (Info.RotateAngle == ERotateAngleType._270) {
+                rotatedImage = sourceImage.RotateImage(270.0, "constant");
+                sourceImage.Dispose();
+            }
+            return rotatedImage;
+        }
+#endif
 
         /// <summary>
         /// MIL 버퍼에 pitch padding이 존재할 때 행 단위로 복사하여 연속 HImage를 생성한다.
@@ -189,5 +242,93 @@ namespace ReringProject.Device {
             TriggerSource = source;
             return true;
         }
+
+#if !SIMUL_MODE
+        //260609 hbk Phase 41 — MIL 라이브(연속 영상).
+        //  HIK 는 SDK 가 프레임마다 OnGrabResult 콜백을 밀어주지만, MIL 동기 grab 방식에는 콜백이 없다.
+        //  그래서 백그라운드 스레드에서 GrabFromBuffer 를 반복 호출하고, 프레임마다 GuiReadyForDisplay 로
+        //  UI(DeviceSelector.OnImageReady)에 통지한다. (HikCamera.StartStream/OnGrabResult 대응)
+
+        /// <summary>
+        /// 라이브 시작 — 백그라운드 grab 스레드를 띄운다. (카메라 창에서 장치 선택 시 자동 호출)
+        /// </summary>
+        public override bool StartStream() {
+            // 이미 스트리밍 중이면 중복 시작하지 않는다.
+            if (CaptureMode == ECaptureModeType.Streaming) {
+                return true;
+            }
+            // 카메라가 안 열려 있으면 grab 할 수 없다.
+            if (!IsOpen) {
+                return false;
+            }
+
+            _liveRunning = true;
+            CaptureMode  = ECaptureModeType.Streaming;
+
+            _liveThread = new Thread(LiveLoop);
+            _liveThread.IsBackground = true;
+            _liveThread.Name = Name + "_MilLive";
+            _liveThread.Start();
+            return true;
+        }
+
+        /// <summary>
+        /// 라이브 정지 — grab 스레드를 멈추고 정리한다.
+        /// </summary>
+        public override void StopStream() {
+            // 이미 멈춰 있으면 할 일 없음.
+            if (CaptureMode == ECaptureModeType.Stop) {
+                return;
+            }
+
+            // 루프 종료 신호 후 스레드가 끝날 때까지 잠깐 대기한다.
+            _liveRunning = false;
+            if (_liveThread != null) {
+                if (_liveThread.IsAlive) {
+                    _liveThread.Join(1000);
+                }
+                _liveThread = null;
+            }
+
+            CaptureMode = ECaptureModeType.Stop;
+            base.StopStream(); // 마지막 프레임 정리(ClearLastFrame)
+        }
+
+        /// <summary>
+        /// 라이브 grab 루프 — _liveRunning 동안 계속 grab 하여 최신 프레임을 갱신하고 UI 에 통지한다.
+        /// </summary>
+        private void LiveLoop() {
+            while (_liveRunning) {
+                try {
+                    // 한 프레임 grab (버퍼와 분리된 독립 복사본)
+                    HImage frame = GrabFromBuffer();
+                    if (frame != null) {
+                        lock (Interlock) {
+                            // 이전 프레임 해제 후 교체
+                            if (LastGrabHalconImage != null) {
+                                LastGrabHalconImage.Dispose();
+                            }
+                            LastGrabHalconImage = frame;
+                        }
+                        Interlocked.Increment(ref imageCount);
+
+                        // UI 에 "새 프레임 준비됨" 통지 (HikCamera.OnGrabResult L483-485 동일)
+                        if (GuiReadyForDisplay != null) {
+                            GuiReadyForDisplay(Name);
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MilCamera.LiveLoop ({1})", Name, e.Message);
+                    Interlocked.Increment(ref errorCount);
+                    // 에러가 연속으로 나면 로그/CPU 폭주를 막기 위해 잠깐 쉰다.
+                    Thread.Sleep(50);
+                }
+
+                // CPU 양보 (실제 프레임 속도는 MdigGrab 가 카메라 프레임을 기다리며 결정)
+                Thread.Sleep(1);
+            }
+        }
+#endif
     }
 }

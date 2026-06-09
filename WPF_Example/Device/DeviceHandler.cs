@@ -225,13 +225,22 @@ namespace ReringProject.Device {
                         // MilCamera 미생성 → Matrox.MatroxImagingLibrary 런타임 미로드(FileNotFound 방지) → VirtualCamera 파일 grab 폴백.
                         AddVirtualCamera(id);
 #else
-                        MilCamera newCam = new MilCamera(Config, id);
-                        if (!newCam.Open()) {
-                            result &= ~EInitializeResult.Success;
-                            result |= EInitializeResult.OpenFail;
-                            continue;
+                        //260609 hbk Phase 41 — 물리 CXP 보드는 PC당 1대. 이미 연 MIL 카메라가 있으면 재사용(역할 이름만 추가 등록).
+                        //  RapixoCXP 는 MsysAlloc 을 보드당 1회만 허용 → 2번 열면 "Too many systems have already been allocated".
+                        //  144MB grab 버퍼 중복 할당도 방지. Top/Bottom 두 시퀀스가 같은 인스턴스를 공유(같은 보드가 시점만 달리 grab).
+                        MilCamera sharedMil = Devices.Values.FirstOrDefault(c => c.CamType == ECameraType.MIL) as MilCamera;
+                        if (sharedMil != null) {
+                            Devices.Add(id.Identifier, sharedMil);
                         }
-                        Devices.Add(id.Identifier, newCam);
+                        else {
+                            MilCamera newCam = new MilCamera(Config, id);
+                            if (!newCam.Open()) {
+                                result &= ~EInitializeResult.Success;
+                                result |= EInitializeResult.OpenFail;
+                                continue;
+                            }
+                            Devices.Add(id.Identifier, newCam);
+                        }
 #endif
                     }
                     break;

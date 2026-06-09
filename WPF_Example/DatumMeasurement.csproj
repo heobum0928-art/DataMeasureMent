@@ -60,7 +60,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;SIMUL_MODE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -85,20 +85,20 @@
   <ItemGroup>
     <Reference Include="Basler.Pylon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=e389355f398382ab, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\x64\Debug\Basler.Pylon.dll</HintPath>
+      <HintPath>libs\Basler.Pylon.dll</HintPath>
     </Reference>
     <Reference Include="ChartDirector.Net.Desktop.Controls, Version=7.1.0.0, Culture=neutral, PublicKeyToken=2db5fc05de12e204, processorArchitecture=MSIL">
       <HintPath>..\packages\ChartDirector.Net.Desktop.Controls.7.1.0\lib\net40\ChartDirector.Net.Desktop.Controls.dll</HintPath>
     </Reference>
     <Reference Include="ImageGlass.ImageBox">
-      <HintPath>bin\x64\Debug\dll\x64\ImageGlass.ImageBox.dll</HintPath>
+      <HintPath>libs\ImageGlass.ImageBox.dll</HintPath>
     </Reference>
     <Reference Include="MathNet.Numerics, Version=5.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MathNet.Numerics.5.0.0\lib\net48\MathNet.Numerics.dll</HintPath>
     </Reference>
     <Reference Include="MvCamCtrl.Net, Version=4.1.0.3, Culture=neutral, PublicKeyToken=52fddfb3f94be800, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\x64\Debug\MvCamCtrl.Net.dll</HintPath>
+      <HintPath>libs\MvCamCtrl.Net.dll</HintPath>
     </Reference>
     <Reference Include="netchartdir, Version=7.1.0.0, Culture=neutral, PublicKeyToken=2db5fc05de12e204, processorArchitecture=MSIL">
       <HintPath>..\packages\ChartDirector.Net.7.1.0\lib\net40\netchartdir.dll</HintPath>
@@ -141,11 +141,11 @@
     </Reference>
     <Reference Include="PropertyTools, Version=0.0.1.0, Culture=neutral, PublicKeyToken=ea0c9f2b460934d0, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\x64\Debug\PropertyTools.dll</HintPath>
+      <HintPath>libs\PropertyTools.dll</HintPath>
     </Reference>
     <Reference Include="PropertyTools.Wpf, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\x64\Debug\PropertyTools.Wpf.dll</HintPath>
+      <HintPath>libs\PropertyTools.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -192,7 +192,7 @@
     <Reference Include="WindowsFormsIntegration" />
     <Reference Include="WPF.MDI, Version=1.1.1.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\x64\Debug\WPF.MDI.dll</HintPath>
+      <HintPath>libs\WPF.MDI.dll</HintPath>
     </Reference>
     <Reference Include="zxing, Version=0.16.9.0, Culture=neutral, PublicKeyToken=4e88037ac681fe60, processorArchitecture=MSIL">
       <HintPath>..\packages\ZXing.Net.0.16.9\lib\net48\zxing.dll</HintPath>
@@ -242,8 +242,10 @@
     <Compile Include="Custom\Sequence\Inspection\InspectionRecipeManager.cs" />
     <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionSequence.cs" />
-    <Compile Include="Custom\Export\ExcelExportSmokeTest.cs" /> <!--260601 hbk Phase 40 OUT-02 ClosedXML smoke test-->
-    <Compile Include="Custom\Sequence\Inspection\CycleResultSerializer.cs" /> <!--260601 hbk Phase 40 OUT-01/OUT-02-->
+    <Compile Include="Custom\Export\ExcelExportSmokeTest.cs" />
+    <!--260601 hbk Phase 40 OUT-02 ClosedXML smoke test-->
+    <Compile Include="Custom\Sequence\Inspection\CycleResultSerializer.cs" />
+    <!--260601 hbk Phase 40 OUT-01/OUT-02-->
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
@@ -255,16 +257,26 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\CircleDiameterMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineDistanceMeasurement.cs" />
-    <Compile Include="Custom\Sequence\Inspection\IDatumOriginConsumer.cs" /> <!--260519 hbk Phase 31 D-03-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\CircleCenterDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-01 E8-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineAngleMeasurement.cs" /> <!--260519 hbk Phase 31 D-05-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcEdgeDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-08-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcLineIntersectDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-01 I9/I10-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundAngleMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E2-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterCDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E9-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterBDistanceMeasurement.cs" /> <!--260519 hbk Phase 31 D-11 E10-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundShortAxisDistanceMeasurement.cs" /> <!--260523 hbk Phase 32 — E3 단축 환원-->
-    <Compile Include="Custom\Sequence\Inspection\Measurements\DualImageEdgeDistanceMeasurement.cs" /> <!--260530 hbk Phase 39.2 D-G1 — Bottom E5 DualImage FAI-->
+    <Compile Include="Custom\Sequence\Inspection\IDatumOriginConsumer.cs" />
+    <!--260519 hbk Phase 31 D-03-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CircleCenterDistanceMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-01 E8-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineAngleMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-05-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcEdgeDistanceMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-08-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\ArcLineIntersectDistanceMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-01 I9/I10-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundAngleMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-11 E2-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterCDistanceMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-11 E9-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterBDistanceMeasurement.cs" />
+    <!--260519 hbk Phase 31 D-11 E10-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundShortAxisDistanceMeasurement.cs" />
+    <!--260523 hbk Phase 32 — E3 단축 환원-->
+    <Compile Include="Custom\Sequence\Inspection\Measurements\DualImageEdgeDistanceMeasurement.cs" />
+    <!--260530 hbk Phase 39.2 D-G1 — Bottom E5 DualImage FAI-->
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />
@@ -361,7 +373,8 @@
     <Compile Include="UI\ProcessMonitor\ProcessMonitorWindow.xaml.cs">
       <DependentUpon>ProcessMonitorWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs"> <!--260601 hbk Phase 40 OUT-01-->
+    <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs">
+      <!--260601 hbk Phase 40 OUT-01-->
       <DependentUpon>ReviewerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
@@ -376,8 +389,10 @@
     <Compile Include="UI\ViewModel\ShotNodeViewModel.cs" />
     <Compile Include="UI\ViewModel\FAINodeViewModel.cs" />
     <Compile Include="UI\ViewModel\MeasurementResultRow.cs" />
-    <Compile Include="UI\ViewModel\CycleResultDto.cs" /> <!--260601 hbk Phase 40 OUT-01/OUT-02-->
-    <Compile Include="UI\ViewModel\ReviewMeasurementRow.cs" /> <!--260601 hbk Phase 40 OUT-01-->
+    <Compile Include="UI\ViewModel\CycleResultDto.cs" />
+    <!--260601 hbk Phase 40 OUT-01/OUT-02-->
+    <Compile Include="UI\ViewModel\ReviewMeasurementRow.cs" />
+    <!--260601 hbk Phase 40 OUT-01-->
     <Compile Include="UI\ViewModel\InspectionViewModel.cs" />
     <Compile Include="UI\Theme\OutlinedTextBlock.cs" />
     <Compile Include="UI\ViewModel\Attributes.cs" />
@@ -479,7 +494,8 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="UI\Reviewer\ReviewerWindow.xaml"> <!--260601 hbk Phase 40 OUT-01-->
+    <Page Include="UI\Reviewer\ReviewerWindow.xaml">
+      <!--260601 hbk Phase 40 OUT-01-->
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

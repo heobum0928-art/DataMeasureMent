@@ -250,9 +250,11 @@ Plans:
 
 Plans:
 - [x] 41-01-PLAN.md — MIL .NET DLL csproj 참조 + ECameraType.MIL enum (foundation, HW-01) [Wave 1]
-- [ ] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
-- [ ] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
-- [ ] 41-04-PLAN.md — SIMUL_MODE UAT 5 시나리오 + sign-off (HW-01/HW-02 SIMUL 기준) [Wave 4]
+- [x] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
+- [x] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
+- [x] 41-04-PLAN.md — UAT 6 시나리오 + sign-off (SIMUL Test 1~5 + 실 HW Test 6) [Wave 4]
+
+**✅ SIGNED_OFF 2026-06-09** — UAT 6/6 PASS. 실 HW(Matrox RapixoCXP + VIEWORKS VP-152MX2-M16I0) grab+라이브 동작확인(Test 6). HW-02 런타임 VERIFIED, 실 HW grab carry-over 종결. 커밋: 2dddf13(드라이버) + a397039(CO-41-01) + CO-41-02. Carry-over: CO-41-03(역할별 다중 카메라 부분 등록 미검증).
 
 ---
 

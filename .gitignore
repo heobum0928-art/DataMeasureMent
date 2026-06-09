@@ -26,5 +26,11 @@ x86/
 # Test and IDE artifacts
 TestResults/
 
+# Claude Code harness (worktrees, local settings)
+.claude/
+
+# NuGet CLI tool
+nuget.exe
+
 # Large test bitmaps (exceed GitHub 100MB limit)
 Cal_Image/DualImageTest/*.bmp

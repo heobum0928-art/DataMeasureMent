@@ -264,7 +264,7 @@ Recent decisions affecting current work:
 - MIL MdigGrab 동기 grab → MbufInquire(M_HOST_ADDRESS) → new IntPtr((long)) → GenImage1("byte") 변환 패턴 (Phase 41-02)
 - ECameraRole enum을 ReringProject.Setting namespace 에 배치 — Custom/SystemSetting.cs 단일 정의 (Phase 12 D-12 int 백킹 선례 적용)
 - RegisterRequiredDevices HIK 3대 고정 → CameraRole(TopBottom/Side) 역할 분기 CXP 1대 등록으로 재구성 (D-03)
-- [Phase 41 SIGNED_OFF 2026-06-09]: 실 HW(Matrox **RapixoCXP** 보드 + **VIEWORKS VP-152MX2-M16I0** 카메라, ≈152MP 2-connection) 도착 → 프로그램 단발 grab + 라이브 둘 다 PASS(UAT Test 6). 보드 도착 후로 보류됐던 "실 HW grab 검증" carry-over 종결, HW-02 런타임 VERIFIED. 빌드=Debug|x64(SIMUL_MODE off), MIL run-time 라이선스 → Ctrl+F5 실행(F5 디버깅은 dev 라이선스 필요). MilCamera.Open 은 DCF 없이 M_DEFAULT → 카메라 User Set(TriggerMode Off+Mono8) 의존, CXP 단독점유(Capture Works 종료 필요), non-paged 512MB=단일 Mono8 버퍼엔 충분. SIMUL Test 2~5 = CO-41-01/CO-41-02 사용자 동작확인 근거 PASS. 신규 CO-41-03(역할별 다중 카메라 부분 등록은 "1대 공유"만 검증). UAT 6/6 PASS, status=signed_off.
+- [Phase 41 SIGNED_OFF 2026-06-09]: 실 HW(Matrox **RapixoCXP** 보드 + **VIEWORKS VP-152MX2-M16I0** 카메라, ≈152MP 2-connection) 도착 → 프로그램 단발 grab + 라이브 둘 다 PASS(UAT Test 6). 보드 도착 후로 보류됐던 "실 HW grab 검증" carry-over 종결, HW-02 런타임 VERIFIED. 빌드=Debug|x64(SIMUL_MODE off), MIL run-time 라이선스 → Ctrl+F5 실행(F5 디버깅은 dev 라이선스 필요). MilCamera.Open 은 DCF 없이 M_DEFAULT → 카메라 User Set(TriggerMode Off+Mono8) 의존, CXP 단독점유(Capture Works 종료 필요), non-paged 512MB=단일 Mono8 버퍼엔 충분. SIMUL Test 2~5 = CO-41-01/CO-41-02 사용자 동작확인 근거 PASS. CO-41-03(역할별 다중 카메라 부분 등록)은 다중 카메라 현재 미고려로 **out of scope**(사용자 2026-06-09). UAT 6/6 PASS, status=signed_off.
 - [Phase 41 hotfix CO-41-01, a397039]: SIMUL_MODE 앱 기동 크래시(FileNotFoundException: Matrox.MatroxImagingLibrary, Version=10.10.614.1) 수정 — ①DeviceHandler case MIL 을 `#if SIMUL_MODE`→`AddVirtualCamera` 직접 폴백(SIMUL 은 new MilCamera 미컴파일 → Matrox 런타임 미로드, SDK/보드 비의존) ②csproj Matrox 참조 Private=False→True(관리 어셈블리 bin 복사 확인, 실 HW 빌드 런타임 로드 보장; 네이티브 MIL 런타임은 설치 PATH 해석). 컴파일 0 errors 재확인. 근본 원인 = Private=False(bin 미복사) + SIMUL 에서도 new MilCamera JIT 로 어셈블리 로드 시도. Test 2~5 런타임 검증은 사용자 요청으로 보류(나중에 앱 종료→재빌드 후 진행).
 
 ### Quick Tasks Completed
@@ -298,7 +298,7 @@ Recent decisions affecting current work:
 | CO-22-01 | 2026-05-11 | Datum 노드 ↔ FAI 노드 PropertyGrid 전환 동작 안 됨 — 트리 선택 시 즉시 갱신 안 됨. Phase 17 ICustomTypeDescriptor 와의 상호작용 가능성. 별도 quick task 로 재현/원인 추적 필요. | Phase 22 UAT carry-over | **resolved** (quick 260511-ucv, d6070e8 + 50f5405, UAT 5/5 PASS) |
 | CO-40-08 | 2026-06-01 | 오토 모드 종합판정/TCP 응답을 실행 시퀀스로 한정. InspectionSequence.AddResponse / ComputeOverallResult 가 recipeManager.Shots 전체를 순회 → 다른 시퀀스 stale 이 host 응답·cycle 종합판정에 포함될 수 있음. 리뷰어 측정표는 CO-40-07 로 시퀀스별 한정 완료, 종합판정/TCP 만 남음. | Phase 40-03 UAT (사용자 결정 B 이연) | open → 별도 phase/quick |
 | CO-41-01 | 2026-06-03 | SIMUL_MODE 앱 기동 시 FileNotFoundException(Matrox.MatroxImagingLibrary) 크래시 — csproj Private=False(DLL bin 미복사) + SIMUL 에서도 new MilCamera JIT. 핫픽스: DeviceHandler MIL case 를 SIMUL 직접 AddVirtualCamera 폴백 + csproj Private=True. | Phase 41 UAT (41-04 Test 2 FAIL) | **resolved** (a397039) · 런타임 PASS (2026-06-09 실 HW 기동 + CO-41-02 SIMUL 동작확인) |
-| CO-41-03 | 2026-06-09 | 실 HW 역할별(CameraRole) 다중 카메라 부분 등록 경로 미검증 — Phase 41 은 "CXP 1대 공유"만 실측. 2-PC 역할 분리(TopBottom/Side) 다중 카메라 실측은 추가 카메라/구성 확보 후 검증. | Phase 41 UAT Test 4/6 (sign-off) | open → HW 구성 확보 후 |
+| CO-41-03 | 2026-06-09 | 실 HW 역할별(CameraRole) 다중 카메라 부분 등록 경로 미검증 — Phase 41 은 "CXP 1대 공유"만 실측. | Phase 41 UAT Test 4/6 (sign-off) | **out of scope** — 다중 카메라 현재 미고려(사용자 2026-06-09). 향후 다중 구성 도입 시 재개. |
 
 ### Blockers/Concerns
 

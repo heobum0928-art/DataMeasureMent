@@ -140,7 +140,7 @@ updated: "2026-06-09"
 - RESEARCH Open Q1 (시스템 디스크립터 문자열): `MsysAlloc(M_SYSTEM_DEFAULT)` + `MdigAlloc(M_DEV0, "M_DEFAULT")` 로 동작 확인됨.
 - RESEARCH Open Q3 (실 해상도): 하드코딩 대신 `MdigInquire(M_SIZE_X/Y)` 런타임 조회로 처리 — VP-152MX2 ≈14192×10640.
 
-**CO-41-03 (신규 carry-over):** 실 HW **역할별(CameraRole) 다중 카메라 부분 등록** 경로는 현재 "CXP 1대 공유"만 검증됨. 2-PC 역할 분리(TopBottom/Side) 다중 카메라 실측은 추가 카메라/구성 확보 후 검증.
+**CO-41-03 (out of scope):** 실 HW **역할별(CameraRole) 다중 카메라 부분 등록** 경로는 현재 "CXP 1대 공유"만 검증됨. **다중 카메라는 현재 미고려(사용자 2026-06-09) → 범위 외.** 향후 다중 구성 도입 시 재개.
 
 ---
 

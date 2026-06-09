@@ -23,10 +23,17 @@
         </Grid.ColumnDefinitions>
 
         <!-- 좌측 패널 헤더 -->
+        <!--260609 hbk Phase 40 OUT-02 D-10 — 날짜 폴더 열기 + 엑셀 export 버튼 (cycle 선택 시 활성)-->
         <Border Grid.Row="0" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,4">
-            <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
-                    Click="Button_LoadFolder_Click"
-                    Padding="8,4" HorizontalAlignment="Stretch"/>
+            <StackPanel Orientation="Vertical">
+                <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
+                        Click="Button_LoadFolder_Click"
+                        Padding="8,4" HorizontalAlignment="Stretch"/>
+                <Button x:Name="btn_exportExcel" Content="엑셀 export"
+                        Click="Button_ExportExcel_Click"
+                        IsEnabled="False"
+                        Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
+            </StackPanel>
         </Border>
 
         <!-- 중앙 헤더 — 좌: 라벨 / 우: DualImage 가로축·세로축 토글 (헤더에 배치하여 Halcon 창 airspace 회피) -->

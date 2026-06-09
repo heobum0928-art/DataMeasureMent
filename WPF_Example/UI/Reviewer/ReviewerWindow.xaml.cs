@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using ReringProject.Export;
 using ReringProject.Halcon.Models;
 using ReringProject.Sequence;
 using ReringProject.Setting;
@@ -107,6 +108,9 @@ namespace ReringProject.UI
             // T-40-08: Load 가 손상/악성 JSON → null, unhandled exception 0 (TypeNameHandling.None in CycleResultSerializer)
             _currentCycle = CycleResultSerializer.Load(jsonPath);
             DisplayCycle(_currentCycle);
+
+            //260609 hbk Phase 40 OUT-02 D-10 — cycle 로드 성공 시 엑셀 export 버튼 활성
+            btn_exportExcel.IsEnabled = (_currentCycle != null);
         }
 
         //260601 hbk Phase 40 OUT-01 — cycle 결과 재렌더: 측정표 + 이미지 + overlay (RenderStoredOverlaysForFai 패턴, MainView.xaml.cs:243-262)
@@ -275,6 +279,41 @@ namespace ReringProject.UI
         private void Button_AxisVertical_Click(object sender, RoutedEventArgs e)
         {
             ShowAxisImage(false);
+        }
+
+        // ────────────────────────────────────────────────────────────────────
+        //  엑셀 export (OUT-02)
+        // ────────────────────────────────────────────────────────────────────
+
+        //260609 hbk Phase 40 OUT-02 D-10 — 현재 선택된 cycle 을 xlsx 로 export. 저장 위치 = cycle 폴더 기본 + 사용자 지정.
+        private void Button_ExportExcel_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentCycle == null)
+            {
+                CustomMessageBox.Show("엑셀 export", "먼저 cycle 을 선택하세요.", MessageBoxImage.Warning);
+                return;
+            }
+
+            // 저장 위치: 해당 cycle 폴더 기본, fallback ResultSavePath (D-10)
+            string initialDir =
+                (!string.IsNullOrEmpty(_currentCycle.CycleFolderPath) && Directory.Exists(_currentCycle.CycleFolderPath))
+                ? _currentCycle.CycleFolderPath
+                : SystemHandler.Handle.Setting.ResultSavePath;
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = "result_" + _currentCycle.InspectionTime.ToString("yyyyMMdd_HHmmss") + ".xlsx",
+                InitialDirectory = initialDir
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                bool ok = ExcelExportService.Export(_currentCycle, dlg.FileName);
+                CustomMessageBox.Show("엑셀 export",
+                    ok ? "저장 완료:\n" + dlg.FileName : "export 실패 (로그 확인)",
+                    ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+            }
         }
     }
 

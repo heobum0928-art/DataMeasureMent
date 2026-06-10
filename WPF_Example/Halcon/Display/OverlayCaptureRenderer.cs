@@ -72,7 +72,7 @@ namespace ReringProject.Halcon.Display
         private const double LineThicknessRadius = 2.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 에지/마커 리전 두께(dilation 반경)
         private const double DistLineThicknessRadius = 3.1; //260610 hbk Phase 40.2 hotfix CO-40.2-09 — 측정 거리선(cyan) 추가 20%↑(사용자 요청, 2.6→3.1)
         private const double MarkerHalfSize = 8.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — X 마커 반길이(HalconDisplayService size=8.0 일치)
-        private const double DatumRingThickness = 3.0; //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 원 링 두께(px)
+        private const double DatumRingThickness = 6.0; //260610 hbk Phase 40.2 hotfix CO-40.2-13 — datum 검출 원 링 두께(px) 3→6 (pale green 가시성↑)
         private const double DatumCircleCenterCrossHalf = 12.0; //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 원 중심 십자 반길이(UI L913 일치)
         private const double DatumOriginCrossHalf = 20.0; //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자 반길이(UI L318 일치)
 

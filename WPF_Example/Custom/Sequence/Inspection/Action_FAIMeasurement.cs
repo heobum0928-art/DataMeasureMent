@@ -459,8 +459,9 @@ namespace ReringProject.Sequence {
                 var cap = new DatumCaptureOverlay();
                 if (dc.CircleDetected_Radius > 0) { //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색)
                     cap.HasCircle = true;
-                    cap.CircleRow = dc.CircleCenter_Row;
-                    cap.CircleCol = dc.CircleCenter_Col;
+                    //260610 hbk Phase 40.2 hotfix CO-40.2-13 — 중심 fallback: CircleCenter 0(런타임 미갱신) 이면 DetectedOrigin 사용(원중심≈원점).
+                    cap.CircleRow = (dc.CircleCenter_Row != 0.0) ? dc.CircleCenter_Row : dc.DetectedOriginRow;
+                    cap.CircleCol = (dc.CircleCenter_Col != 0.0) ? dc.CircleCenter_Col : dc.DetectedOriginCol;
                     cap.CircleRadius = dc.CircleDetected_Radius;
                 }
                 if (dc.LastFindSucceeded && (dc.DetectedOriginRow != 0.0 || dc.DetectedOriginCol != 0.0)) { //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자

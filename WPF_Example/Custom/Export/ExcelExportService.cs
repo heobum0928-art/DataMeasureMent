@@ -92,7 +92,10 @@ namespace ReringProject.Export
                                 {
                                     string abs = Path.GetFullPath(shot.ResultImagePath);
                                     ws.Cell(row, 9).Value = "이미지 열기";
-                                    ws.Cell(row, 9).SetHyperlink(new XLHyperlink(new Uri(abs).AbsoluteUri));
+                                    //260610 hbk 한글/유니코드 경로 버그: new Uri().AbsoluteUri 는 file:/// 퍼센트인코딩(%EB..)
+                                    //           → Excel 이 "지정한 파일을 찾을 수 없음". 원시 Windows 경로를 넣으면
+                                    //           ClosedXML 이 OriginalString 그대로 저장 → Excel 정상 오픈 (앱 DLL 로 검증).
+                                    ws.Cell(row, 9).SetHyperlink(new XLHyperlink(abs));
                                 }
 
                                 row++;

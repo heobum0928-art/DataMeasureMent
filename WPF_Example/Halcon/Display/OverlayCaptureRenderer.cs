@@ -47,7 +47,8 @@ namespace ReringProject.Halcon.Display
                 hwin.SetWindowParam("graphics_stack", "true"); //260610 hbk Phase 40.2 hotfix CO-40.2-07
                 hwin.SetPart(0, 0, h.I - 1, w.I - 1); //260610 hbk Phase 40.2 — 전체 이미지 매핑
                 hwin.DispObj(image); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 배경 이미지(iconic) 먼저 표시
-                DrawDatumRegions(hwin, datumOverlays); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원) 배경 레이어
+                double axisHalf = System.Math.Sqrt((double)w.I * w.I + (double)h.I * h.I); //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 기준선 길이 = 이미지 대각(전체 가로지름)
+                DrawDatumRegions(hwin, datumOverlays, axisHalf); //260610 hbk Phase 40.2 hotfix CO-40.2-11/12 — datum 검출 오버레이(기준선+녹색 원) 배경 레이어
                 DrawOverlayRegions(hwin, overlays); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 측정 오버레이를 리전(disp_obj)로 표시(datum 위)
                 return hwin.DumpWindowImage(); //260610 hbk Phase 40.2 — 윈도우 내용을 HImage 로 덤프 (소유권 호출부 이전)
             }
@@ -176,12 +177,21 @@ namespace ReringProject.Halcon.Display
         //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원 + 중심/원점 십자)를 리전으로 표시.
         //  UI RenderDatumOverlay/RenderDatumFindResult 의 핵심 검출 결과만 캡쳐(녹색 원 #90EE90 + 노랑 중심 십자 + slate blue 원점 십자).
         //  전체 datum ROI/strip/label/arrow 재현은 범위 외(측정 결과 시각화 목적).
-        private static void DrawDatumRegions(HWindow hwin, List<DatumCaptureOverlay> datums)
+        private static void DrawDatumRegions(HWindow hwin, List<DatumCaptureOverlay> datums, double axisHalfLength)
         {
             if (datums == null) return;
             foreach (var d in datums)
             {
                 if (d == null) continue;
+                //260610 hbk Phase 40.2 hotfix CO-40.2-12 — datum 기준선(축): 원점 통과, 각도 방향, 이미지 대각 길이. UI Line1=yellow, Line2=cyan 일치.
+                if (d.HasOrigin && d.HasAxis1)
+                {
+                    DrawDatumAxisLine(hwin, d.OriginRow, d.OriginCol, d.Axis1AngleRad, axisHalfLength, "yellow"); //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 1차 기준선
+                }
+                if (d.HasOrigin && d.HasAxis2)
+                {
+                    DrawDatumAxisLine(hwin, d.OriginRow, d.OriginCol, d.Axis2AngleRad, axisHalfLength, "cyan"); //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 2차(수직) 기준선
+                }
                 if (d.HasCircle && d.CircleRadius > 0)
                 {
                     DrawCircleRingAsRegion(hwin, d.CircleRow, d.CircleCol, d.CircleRadius, "#90EE90"); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색, UI L905 일치)
@@ -192,6 +202,17 @@ namespace ReringProject.Halcon.Display
                     DrawCrossAsRegion(hwin, d.OriginRow, d.OriginCol, DatumOriginCrossHalf, "slate blue"); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자(UI RenderDatumFindResult 일치)
                 }
             }
+        }
+
+        //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 원점 통과 기준선을 방향벡터(sinφ,cosφ)로 ±half 산출 후 리전 표시 (VisionAlgorithmService.GetDatumAxisLine 동일식).
+        private static void DrawDatumAxisLine(HWindow hwin, double originRow, double originCol, double angleRad, double half, string color)
+        {
+            double dirR = System.Math.Sin(angleRad);
+            double dirC = System.Math.Cos(angleRad);
+            DrawLineAsRegion(hwin,
+                originRow - half * dirR, originCol - half * dirC,
+                originRow + half * dirR, originCol + half * dirC,
+                color, LineThicknessRadius);
         }
 
         //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 원 외곽선을 링 리전(outer−inner)으로 만들어 disp_obj.

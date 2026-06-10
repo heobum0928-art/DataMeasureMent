@@ -30,6 +30,11 @@ namespace ReringProject.Halcon.Models
         public double CircleRow { get; set; }
         public double CircleCol { get; set; }
         public double CircleRadius { get; set; }
+        //260610 hbk Phase 40.2 hotfix CO-40.2-12 — datum 기준선(축). 원점+각도로 렌더러가 이미지 대각 길이만큼 라인 산출.
+        public bool HasAxis1 { get; set; }     //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 1차(주) 기준선
+        public double Axis1AngleRad { get; set; }
+        public bool HasAxis2 { get; set; }     //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 2차(수직) 기준선
+        public double Axis2AngleRad { get; set; }
     }
 
     public class EdgeInspectionOverlay

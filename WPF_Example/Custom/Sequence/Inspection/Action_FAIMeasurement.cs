@@ -467,6 +467,13 @@ namespace ReringProject.Sequence {
                     cap.HasOrigin = true;
                     cap.OriginRow = dc.DetectedOriginRow;
                     cap.OriginCol = dc.DetectedOriginCol;
+                    //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 검출 기준선(축). 1차=DetectedRefAngle(각도 0 도 유효), 2차=DetectedRefAngle2(0 이면 단일축 datum → 미표시).
+                    cap.HasAxis1 = true;
+                    cap.Axis1AngleRad = dc.DetectedRefAngle;
+                    if (dc.DetectedRefAngle2 != 0.0) {
+                        cap.HasAxis2 = true;
+                        cap.Axis2AngleRad = dc.DetectedRefAngle2;
+                    }
                 }
                 if (cap.HasCircle || cap.HasOrigin) {
                     if (list == null) list = new List<DatumCaptureOverlay>();

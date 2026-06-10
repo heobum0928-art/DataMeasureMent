@@ -172,6 +172,12 @@ namespace ReringProject.Sequence {
                     if (ShotParam != null) {
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
+                                //260610 hbk Phase 40.2 hotfix CO-40.2-05 — Shot당 1회 복사 공유(refcount). 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
+                                //  한 Shot 의 모든 FAI origin/capture 요청이 이 1개 복사본을 공유. capSaver 없으면 복사 자체 생략.
+                                var capSaver = SystemHandler.Handle.CaptureImageSaver;
+                                SharedHImage sharedSrc = null;
+                                if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
+                                try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
                                     var faiOverlays = new List<EdgeInspectionOverlay>(); //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
@@ -308,12 +314,15 @@ namespace ReringProject.Sequence {
                                         fai.WasDatumSkipped = wasSkip; //260529 hbk Phase 39 WF-01 D-02
                                         fai.LastOverlays = faiOverlays; //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 저장 (노드 클릭 시 재현)
                                         //260610 hbk Phase 40.2 — FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
-                                        QueueFaiCapture(fai, image, faiOverlays, ShotParam != null ? ShotParam.OwnerSequenceName : "");
+                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, ShotParam != null ? ShotParam.OwnerSequenceName : ""); //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 공유 이미지 전달
                                     } else {
                                         fai.ClearResult();
                                         if (fai.LastOverlays != null) fai.LastOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01 — Measurements 0 케이스 명시적 클리어
                                     }
                                     if (!faiAllPass) allPass = false;
+                                }
+                                } finally { //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
+                                    if (sharedSrc != null) sharedSrc.Release();
                                 }
                             }
                         }
@@ -437,37 +446,40 @@ namespace ReringProject.Sequence {
         //260610 hbk Phase 40.2 — FAI별 원본/캡쳐 이미지를 비동기 저장 큐에 넣고, 파일명을 fai 에 동기 write-back.
         //  파일명은 BuildDto(AddResponse) 가 읽으므로 enqueue 전에 동기 확정. PNG write 만 워커가 비동기 수행.
         //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
-        private void QueueFaiCapture(FAIConfig fai, HImage sourceImage, List<EdgeInspectionOverlay> faiOverlays, string sequenceName) {
-            if (fai == null || sourceImage == null) return; //260610 hbk Phase 40.2
+        //260610 hbk Phase 40.2 hotfix CO-40.2-05 — sharedSrc(Shot당 1회 복사 공유)를 받아 origin/capture 요청에 ref 공유.
+        //  검사 스레드는 더 이상 FAI별 CopyImage 하지 않음(throughput). 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
+        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, string sequenceName) {
+            if (fai == null) return; //260610 hbk Phase 40.2
             var saver = SystemHandler.Handle.CaptureImageSaver;
             DateTime ts = DateTime.Now; //260610 hbk Phase 40.2 — origin/capture 동일 timestamp 공유 (쌍)
             string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); //260610 hbk Phase 40.2 — P1/P1P2/빈값
             string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
             string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
-            //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 사용자 요청: 엑셀/cycle.json 에 파일명만이 아니라 절대 경로(경로\파일명) 표기.
-            //  실제 저장 경로와 동일한 BuildFilePath 로 기록 (ts 동일 → 디렉토리 일치 보장).
+            //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
             fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02
             fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02
-            if (saver == null) return; //260610 hbk Phase 40.2 — 서비스 미기동 시 파일명만 기록, PNG skip
+            if (saver == null || sharedSrc == null) return; //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 서비스/공유 미존재 시 파일명만 기록, PNG skip
 
-            // 원본 enqueue — 호출 스레드 원본 보호 위해 CopyImage() 사본 전달 (using image 가 dispose)
+            // 원본 enqueue — 공유 이미지 직접 write (FAI별 복사 없음). 요청 1건당 ref 1 추가.
+            sharedSrc.AddRef(); //260610 hbk Phase 40.2 hotfix CO-40.2-05
             saver.Enqueue(new CaptureImageSaveRequest //260610 hbk Phase 40.2
             {
-                Image = sourceImage.CopyImage(),
+                Shared = sharedSrc,
+                NeedsRender = false,
                 FileName = originName,
                 IsCapture = false,
                 Timestamp = ts
             });
 
-            //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 워커 스레드로 이전(throughput 보호).
-            //  검사 스레드는 원본 사본 + 오버레이 스냅샷만 enqueue(저렴), 버퍼윈도우 OpenWindow/Render/Dump 는 워커가 수행.
+            //260610 hbk Phase 40.2 hotfix CO-40.2-04/06 — capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
             //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
             List<EdgeInspectionOverlay> overlaySnapshot = faiOverlays != null ? new List<EdgeInspectionOverlay>(faiOverlays) : null; //260610 hbk Phase 40.2 hotfix CO-40.2-04
+            sharedSrc.AddRef(); //260610 hbk Phase 40.2 hotfix CO-40.2-05
             saver.Enqueue(new CaptureImageSaveRequest //260610 hbk Phase 40.2 hotfix CO-40.2-04
             {
+                Shared = sharedSrc,
                 NeedsRender = true,
-                SourceImage = sourceImage.CopyImage(),
                 Overlays = overlaySnapshot,
                 FileName = captureName,
                 IsCapture = true,

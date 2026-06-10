@@ -13,16 +13,49 @@ using System.IO;
 using System.Threading;
 
 namespace ReringProject.Utility {
-    //260610 hbk Phase 40.2 — 캡쳐 저장 요청 DTO. HImage 소유권을 request 가 갖고 저장 후 Dispose.
+    //260610 hbk Phase 40.2 hotfix CO-40.2-05 — Shot 단위 공유 이미지(refcount).
+    //  한 Shot 의 모든 FAI origin/capture 요청이 동일 이미지 1개를 공유 → 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
+    //  생성자가 ref 1 보유(검사 루프 소유). 요청마다 AddRef, 처리 후 Release. ref 0 도달 시 Dispose.
+    //  단일 워커 스레드가 읽기 전용으로만 접근하므로 동시 픽셀 접근 없음(lock 은 ref 카운트 보호용).
+    public sealed class SharedHImage {
+        private HImage _image; //260610 hbk Phase 40.2 hotfix CO-40.2-05
+        private int _ref; //260610 hbk Phase 40.2 hotfix CO-40.2-05
+        private readonly object _lock = new object(); //260610 hbk Phase 40.2 hotfix CO-40.2-05
+
+        public SharedHImage(HImage image) { //260610 hbk Phase 40.2 hotfix CO-40.2-05
+            _image = image;
+            _ref = 1; // 생성자(검사 루프)가 1 보유
+        }
+
+        /// <summary>읽기 전용 소스. 워커(단일 스레드)만 접근.</summary>
+        public HImage Image { get { return _image; } } //260610 hbk Phase 40.2 hotfix CO-40.2-05
+
+        public void AddRef() { //260610 hbk Phase 40.2 hotfix CO-40.2-05
+            lock (_lock) {
+                if (_image != null) { _ref++; }
+            }
+        }
+
+        public void Release() { //260610 hbk Phase 40.2 hotfix CO-40.2-05
+            lock (_lock) {
+                if (_image == null) { return; }
+                _ref--;
+                if (_ref <= 0) {
+                    try { _image.Dispose(); } catch { }
+                    _image = null;
+                }
+            }
+        }
+    }
+
+    //260610 hbk Phase 40.2 — 캡쳐 저장 요청 DTO. Shot 단위 공유 이미지(SharedHImage)를 참조. 요청 1건 = ref 1, Dispose 가 정확히 1회 Release.
     public sealed class CaptureImageSaveRequest : IDisposable {
-        /// <summary>워커가 저장 후 Dispose 할 소유 객체. NeedsRender=false(원본) 경로에서 직접 write.</summary>
-        public HImage Image { get; set; }
+        //260610 hbk Phase 40.2 hotfix CO-40.2-05 — origin 직접 write / capture 렌더 모두 Shared.Image 사용.
+        /// <summary>Shot 단위 공유 소스 이미지(refcount). origin write 및 capture 렌더의 읽기 소스.</summary>
+        public SharedHImage Shared { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-05
         //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 검사 스레드→워커 스레드로 이전(throughput).
-        //  검사 스레드는 SourceImage 사본 + Overlays 스냅샷만 enqueue(저렴), 워커가 버퍼윈도우 렌더+dump+write 수행.
-        /// <summary>true 면 워커가 SourceImage+Overlays 로 오버레이 캡쳐를 렌더한 뒤 저장(원본 직접 write 대신).</summary>
+        /// <summary>true 면 워커가 Shared.Image+Overlays 로 오버레이 캡쳐 렌더 후 저장. false 면 Shared.Image 직접 write(원본).</summary>
         public bool NeedsRender { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
-        /// <summary>NeedsRender 시 렌더 소스. 워커가 렌더 후 Dispose.</summary>
-        public HImage SourceImage { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
         /// <summary>NeedsRender 시 입힐 오버레이 스냅샷.</summary>
         public List<EdgeInspectionOverlay> Overlays { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
         /// <summary>동기 결정된 완성 파일명 (origin_... 또는 capture_...)</summary>
@@ -33,10 +66,8 @@ namespace ReringProject.Utility {
         public DateTime Timestamp { get; set; } = DateTime.Now; //260610 hbk Phase 40.2
 
         public void Dispose() {
-            Image?.Dispose();
-            Image = null;
-            SourceImage?.Dispose(); //260610 hbk Phase 40.2 hotfix CO-40.2-04
-            SourceImage = null;
+            Shared?.Release(); //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 요청 1건당 ref 1 해제 (마지막 해제 시 공유 이미지 dispose)
+            Shared = null;
         }
     }
 
@@ -69,10 +100,8 @@ namespace ReringProject.Utility {
             if (request == null) {
                 return;
             }
-            //260610 hbk Phase 40.2 hotfix CO-40.2-04 — NeedsRender 경로는 SourceImage 필수, 그 외는 Image 필수.
-            if (request.NeedsRender) {
-                if (request.SourceImage == null) { request.Dispose(); return; }
-            } else if (request.Image == null) {
+            //260610 hbk Phase 40.2 hotfix CO-40.2-05 — Shared 소스 필수. 누락 시 Dispose(=Release) 로 ref 균형 유지.
+            if (request.Shared == null || request.Shared.Image == null) {
                 request.Dispose();
                 return;
             }
@@ -99,16 +128,19 @@ namespace ReringProject.Utility {
         private static void SaveRequest(CaptureImageSaveRequest request) { //260610 hbk Phase 40.2
             HImage rendered = null; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — NeedsRender 시 워커가 생성하는 일시 이미지
             try {
+                //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 공유 소스(읽기 전용). 단일 워커 스레드라 동시 접근 없음.
+                HImage src = request.Shared != null ? request.Shared.Image : null;
+                if (src == null) { return; } //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 이미 해제(방어)
                 //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 워커 스레드에서 수행(검사 throughput 보호).
                 HImage toWrite;
                 if (request.NeedsRender) {
-                    rendered = _renderer.RenderToHImage(request.SourceImage, request.Overlays);
+                    rendered = _renderer.RenderToHImage(src, request.Overlays);
                     if (rendered == null) {
                         return; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — 렌더 실패(렌더러가 로깅) → PNG 만 누락, 워커 계속
                     }
                     toWrite = rendered;
                 } else {
-                    toWrite = request.Image;
+                    toWrite = src; //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 원본: 공유 이미지 직접 write
                 }
 
                 string baseDirectory = BuildDirectory(request.IsCapture, request.Timestamp); //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 디렉토리 계산 단일 소스화

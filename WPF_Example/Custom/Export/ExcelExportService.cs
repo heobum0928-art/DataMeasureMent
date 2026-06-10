@@ -43,7 +43,8 @@ namespace ReringProject.Export
 
                     // D-05 테이블 헤더 (행 5)
                     int hr = 5;
-                    string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "이미지" };
+                    //260610 hbk Phase 40.2 — "이미지" 하이퍼링크 컬럼(D-07, 3385f7c) 폐기 → 파일명 텍스트 2컬럼으로 교체.
+                    string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "원본이미지 파일명", "캡쳐이미지 파일명" };
                     for (int i = 0; i < headers.Length; i++)
                     {
                         ws.Cell(hr, i + 1).Value = headers[i];
@@ -87,16 +88,9 @@ namespace ReringProject.Export
                                     ws.Cell(row, 8).Value = "-";
                                 }
 
-                                // D-07 이미지 하이퍼링크 (T-40-11: 내부 생성 경로만, 절대 경로 정규화 + File.Exists 가드)
-                                if (!string.IsNullOrEmpty(shot.ResultImagePath) && File.Exists(shot.ResultImagePath))
-                                {
-                                    string abs = Path.GetFullPath(shot.ResultImagePath);
-                                    ws.Cell(row, 9).Value = "이미지 열기";
-                                    //260610 hbk 한글/유니코드 경로 버그: new Uri().AbsoluteUri 는 file:/// 퍼센트인코딩(%EB..)
-                                    //           → Excel 이 "지정한 파일을 찾을 수 없음". 원시 Windows 경로를 넣으면
-                                    //           ClosedXML 이 OriginalString 그대로 저장 → Excel 정상 오픈 (앱 DLL 로 검증).
-                                    ws.Cell(row, 9).SetHyperlink(new XLHyperlink(abs));
-                                }
+                                //260610 hbk Phase 40.2 — D-07 하이퍼링크 컬럼 폐기(3385f7c 한글경로 file:/// 퍼센트인코딩 이슈도 동시 해소), 파일명 텍스트로 대체. 경로 아닌 파일명만, 하이퍼링크 없음.
+                                ws.Cell(row, 9).Value  = fai.OriginImageFileName ?? "";
+                                ws.Cell(row, 10).Value = fai.CaptureImageFileName ?? "";
 
                                 row++;
                             }

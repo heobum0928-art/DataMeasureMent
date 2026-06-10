@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 40.2-02-PLAN.md (OverlayCaptureRenderer 신규 + Action_FAIMeasurement 캡쳐 enqueue)
-last_updated: "2026-06-10T03:41:05.729Z"
+stopped_at: Completed 40.2-03-PLAN.md (CycleResultSerializer 파일명 DTO 복사 + ExcelExportService 하이퍼링크→파일명 텍스트 교체)
+last_updated: "2026-06-10T03:46:48.897Z"
 last_activity: 2026-06-10
 progress:
   total_phases: 6
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 40.2 (fai-2) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-06-10
 
@@ -136,6 +136,7 @@ Last activity: 2026-06-10
 | Phase 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 P03 | 181 | 3 tasks | 3 files |
 | Phase 40.2-fai-2 P01 | 25 | 3 tasks | 5 files |
 | Phase 40.2-fai-2 P02 | 30 | 2 tasks | 3 files |
+| Phase 40.2-fai-2 P03 | 15 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -272,6 +273,8 @@ Recent decisions affecting current work:
 - 파일명 타이밍 = 동기 결정(BuildFileName) + 비동기 write 분리 (FAIConfig.LastOriginImageFileName write-back 패턴, Plan 40.2-01)
 - HalconDisplayService stateful 판정: _isFontInitialized/_normalFontName 인스턴스 필드 + EnsureFontInitialized(window) 확인 → stateful→지역new 분기 채택 (OverlayCaptureRenderer)
 - FAI-Edge 측정점 카운트: FAIEdgeMeasurementService BuildOverlaysBoth/Single 에서 FAI-Edge1/2 각각 별도 오버레이(Points 단일점) 확인 → 1점=1오버레이 구조, pointCount++ 방식 (OverlayCaptureRenderer.BuildMeasurePointSegment)
+- faiDto 복사 위치: WasDatumSkipped 다음, LastOverlays 앞 — object initializer 순서 유지 (Plan 40.2-03)
+- ExcelExportService 파일명 컬럼: FAI 레벨(measurement 루프 내 fai 참조), 같은 FAI 다중 measurement 동일 파일명 반복 표시 정상 (Plan 40.2-03)
 
 ### Quick Tasks Completed
 
@@ -384,8 +387,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-10T03:41:05.721Z
-Stopped at: Completed 40.2-02-PLAN.md (OverlayCaptureRenderer 신규 + Action_FAIMeasurement 캡쳐 enqueue)
+Last session: 2026-06-10T03:46:31.443Z
+Stopped at: Completed 40.2-03-PLAN.md (CycleResultSerializer 파일명 DTO 복사 + ExcelExportService 하이퍼링크→파일명 텍스트 교체)
 Resume file: None
 Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-40-08(오토 종합판정/TCP 시퀀스 scoping) 별도 처리.
 

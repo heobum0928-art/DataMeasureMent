@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using HalconDotNet;
 using ReringProject.Halcon.Models;
-using ReringProject.Network;
 using ReringProject.Setting;
+using ReringProject.Utility;
 
 namespace ReringProject.Halcon.Display
 {
@@ -30,18 +30,19 @@ namespace ReringProject.Halcon.Display
         public HImage RenderToHImage(HImage image, List<EdgeInspectionOverlay> overlays) //260610 hbk Phase 40.2
         {
             if (image == null) return null;
-            HTuple win = null;
+            HWindow hwin = null; //260610 hbk Phase 40.2 hotfix CO-40.2-01
             try
             {
                 image.GetImageSize(out HTuple w, out HTuple h);
-                HOperatorSet.OpenWindow(0, 0, w, h, 0, "buffer", "", out win); //260610 hbk Phase 40.2 — off-screen 버퍼 윈도우 (UI HWND 불필요)
-                HWindow hwin = new HWindow(win.IP); //260610 hbk Phase 40.2 — HalconDisplayService.Render 가 HWindow 타입 요구
-                HOperatorSet.SetPart(win, 0, 0, h - 1, w - 1); //260610 hbk Phase 40.2 — 전체 이미지 매핑
+                //260610 hbk Phase 40.2 hotfix CO-40.2-01 — HALCON 24.11 modern handle mode 대응.
+                //  기존 HOperatorSet.OpenWindow + new HWindow(win.IP) 는 핸들을 number 로 암묵 접근하여
+                //  "Implicit access to handle as number is only allowed in legacy handle mode" 예외 → capture 전건 실패.
+                //  버퍼 윈도우를 HWindow 객체로 직접 생성하여 핸들 변환 자체를 제거 (UI HalconWindow 사용 패턴과 동일).
+                hwin = new HWindow(0, 0, w.I, h.I, 0, "buffer", ""); //260610 hbk Phase 40.2 hotfix — off-screen 버퍼 HWindow (UI HWND 불필요)
+                hwin.SetPart(0, 0, h.I - 1, w.I - 1); //260610 hbk Phase 40.2 — 전체 이미지 매핑
                 //260610 hbk Phase 40.2 — stateful→지역new: 인스턴스 필드 공유 방지 (EnsureFontInitialized 가 window 별 초기화를 인스턴스 필드에 기록)
                 new HalconDisplayService().Render(hwin, image, null, null, null, overlays, null); //260610 hbk Phase 40.2 — 기존 오버레이 렌더 재사용 (순서: image→overlays)
-                HObject dumped;
-                HOperatorSet.DumpWindowImage(out dumped, win); //260610 hbk Phase 40.2 — 윈도우 내용을 HImage 로 덤프
-                return new HImage(dumped); //260610 hbk Phase 40.2 — 호출부로 소유권 이전
+                return hwin.DumpWindowImage(); //260610 hbk Phase 40.2 — 윈도우 내용을 HImage 로 덤프 (소유권 호출부 이전)
             }
             catch (Exception ex)
             {
@@ -50,9 +51,9 @@ namespace ReringProject.Halcon.Display
             }
             finally
             {
-                if (win != null) //260610 hbk Phase 40.2 — 버퍼 윈도우 누수 방지 (필수)
+                if (hwin != null) //260610 hbk Phase 40.2 — 버퍼 윈도우 누수 방지 (필수)
                 {
-                    try { HOperatorSet.CloseWindow(win); } catch { }
+                    try { hwin.CloseWindow(); } catch { }
                 }
             }
         }

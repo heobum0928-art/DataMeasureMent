@@ -147,7 +147,7 @@ namespace ReringProject.Utility {
                 Directory.CreateDirectory(baseDirectory);
                 string fileName = SanitizeFileName(request.FileName); //260610 hbk Phase 40.2 — 완성 파일명 2차 방어
                 string filePath = Path.Combine(baseDirectory, fileName);
-                toWrite.WriteImage("png", 0, filePath); //260610 hbk Phase 40.2 — RawImageSaveService.cs:85 동일 HImage→PNG API
+                toWrite.WriteImage("jpeg", 0, filePath); //260610 hbk Phase 40.2 hotfix CO-40.2-08 — png→jpeg(사용자 요청, 파일 용량↓)
             }
             catch (Exception ex) {
                 Logging.PrintErrLog((int)ELogType.Error, string.Format("Capture image save failed: {0}", ex.Message)); //260610 hbk Phase 40.2
@@ -165,15 +165,18 @@ namespace ReringProject.Utility {
         /// FAI별 캡쳐 이미지 파일명 생성. prefix = "origin" 또는 "capture".
         /// 각 segment 는 Path.GetInvalidFileNameChars() 로 sanitize (T-40.2-01 path traversal 차단).
         /// </summary>
-        public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, DateTime ts) { //260610 hbk Phase 40.2
+        //260610 hbk Phase 40.2 hotfix CO-40.2-08 — judgement(OK/NG) 추가 + 확장자 .png→.jpg(사용자 요청).
+        //  결과: {prefix}_{시퀀스}_{FAI}[_{측정점}][_{OK|NG}]_{HHmmssfff}.jpg
+        public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts) { //260610 hbk Phase 40.2 hotfix CO-40.2-08
             string seq = SanitizeFilePart(sequence, "SEQ"); //260610 hbk Phase 40.2 — T-40.2-01 traversal 차단
             string fai = SanitizeFilePart(faiName, "FAI"); //260610 hbk Phase 40.2
             string seg = SanitizeFilePart(measurePointSegment, ""); //260610 hbk Phase 40.2 — 빈 segment 허용
+            string judge = SanitizeFilePart(judgement, ""); //260610 hbk Phase 40.2 hotfix CO-40.2-08 — OK/NG (빈값 허용)
             string time = ts.ToString("HHmmssfff"); //260610 hbk Phase 40.2
-            if (string.IsNullOrEmpty(seg)) {
-                return string.Format("{0}_{1}_{2}_{3}.png", prefix, seq, fai, time); //260610 hbk Phase 40.2
-            }
-            return string.Format("{0}_{1}_{2}_{3}_{4}.png", prefix, seq, fai, seg, time); //260610 hbk Phase 40.2
+            string name = prefix + "_" + seq + "_" + fai; //260610 hbk Phase 40.2 hotfix CO-40.2-08
+            if (!string.IsNullOrEmpty(seg)) { name += "_" + seg; } //260610 hbk Phase 40.2 hotfix CO-40.2-08
+            if (!string.IsNullOrEmpty(judge)) { name += "_" + judge; } //260610 hbk Phase 40.2 hotfix CO-40.2-08
+            return name + "_" + time + ".jpg"; //260610 hbk Phase 40.2 hotfix CO-40.2-08
         }
 
         //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 저장 디렉토리 계산 단일 소스. SaveRequest 와 write-back 경로가 반드시 일치하도록 공유.
@@ -212,7 +215,7 @@ namespace ReringProject.Utility {
         //260610 hbk Phase 40.2 — 완성 파일명 전체에 대한 2차 방어 (T-40.2-01). SanitizeFilePart 와 동일 치환 로직.
         private static string SanitizeFileName(string name) {
             if (string.IsNullOrWhiteSpace(name)) {
-                return "capture_unknown.png";
+                return "capture_unknown.jpg"; //260610 hbk Phase 40.2 hotfix CO-40.2-08
             }
 
             foreach (char invalid in Path.GetInvalidFileNameChars()) {

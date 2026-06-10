@@ -453,8 +453,9 @@ namespace ReringProject.Sequence {
             var saver = SystemHandler.Handle.CaptureImageSaver;
             DateTime ts = DateTime.Now; //260610 hbk Phase 40.2 — origin/capture 동일 timestamp 공유 (쌍)
             string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); //260610 hbk Phase 40.2 — P1/P1P2/빈값
-            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
-            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
+            string judge = fai.IsPass ? "OK" : "NG"; //260610 hbk Phase 40.2 hotfix CO-40.2-08 — 캡쳐/원본 파일명에 OK/NG 삽입(사용자 요청). origin/capture 쌍 동일.
+            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts); //260610 hbk Phase 40.2
+            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts); //260610 hbk Phase 40.2
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
             //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
             fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02

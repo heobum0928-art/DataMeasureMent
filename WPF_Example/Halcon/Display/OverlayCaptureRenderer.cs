@@ -41,6 +41,10 @@ namespace ReringProject.Halcon.Display
                 image.GetImageSize(out HTuple w, out HTuple h);
                 //260610 hbk Phase 40.2 hotfix CO-40.2-01 — HALCON 24.11 modern handle mode 대응: HWindow 객체 직접 생성(핸들 number 변환 제거).
                 hwin = new HWindow(0, 0, w.I, h.I, 0, "buffer", ""); //260610 hbk Phase 40.2 hotfix — off-screen 버퍼 HWindow
+                //260610 hbk Phase 40.2 hotfix CO-40.2-07 — graphics_stack=true 없으면 dump 시 마지막 disp_obj 만 남고
+                //  앞서 그린 리전들이 소거된다(=마지막 cyan DistLine 만 보임). 스택을 켜면 image+모든 리전이
+                //  draw 순서대로 재생되어 전부 보존된다.
+                hwin.SetWindowParam("graphics_stack", "true"); //260610 hbk Phase 40.2 hotfix CO-40.2-07
                 hwin.SetPart(0, 0, h.I - 1, w.I - 1); //260610 hbk Phase 40.2 — 전체 이미지 매핑
                 hwin.DispObj(image); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 배경 이미지(iconic) 먼저 표시
                 DrawOverlayRegions(hwin, overlays); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 오버레이를 리전(disp_obj)로 표시
@@ -63,7 +67,8 @@ namespace ReringProject.Halcon.Display
         //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 오버레이를 리전으로 변환해 disp_obj 로 표시(dump 캡쳐 가능).
         //  색상 규칙은 HalconDisplayService.Render 의 FAI 오버레이 색상과 일치: FAI-Edge*(녹/적), FAI-DistLine(청록),
         //  FAI-EdgeRaw(노랑 점), 그 외(파랑). FAI-Edge* 검출점 X 마커는 magenta.
-        private const double LineThicknessRadius = 2.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 리전 두께(dilation 반경)
+        private const double LineThicknessRadius = 2.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 에지/마커 리전 두께(dilation 반경)
+        private const double DistLineThicknessRadius = 2.6; //260610 hbk Phase 40.2 hotfix CO-40.2-07 — 측정 거리선(cyan) 30% 두껍게(사용자 요청, 2.0→2.6)
         private const double MarkerHalfSize = 8.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — X 마커 반길이(HalconDisplayService size=8.0 일치)
 
         private static void DrawOverlayRegions(HWindow hwin, List<EdgeInspectionOverlay> overlays) //260610 hbk Phase 40.2 hotfix CO-40.2-06
@@ -82,6 +87,7 @@ namespace ReringProject.Halcon.Display
 
                 bool isFaiEdge = ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase); //260610 hbk Phase 40.2 hotfix CO-40.2-06
                 string lineColor;
+                double lineRadius = LineThicknessRadius; //260610 hbk Phase 40.2 hotfix CO-40.2-07
                 if (isFaiEdge)
                 {
                     lineColor = ov.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase) ? "red" : "green"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
@@ -89,13 +95,14 @@ namespace ReringProject.Halcon.Display
                 else if (string.Equals(ov.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
                 {
                     lineColor = "cyan"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
+                    lineRadius = DistLineThicknessRadius; //260610 hbk Phase 40.2 hotfix CO-40.2-07 — 거리선 30% 두껍게
                 }
                 else
                 {
                     lineColor = "blue"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
                 }
 
-                DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, lineColor); //260610 hbk Phase 40.2 hotfix CO-40.2-06
+                DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, lineColor, lineRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-06/07
 
                 if (ov.Points != null && ov.Points.Count > 0)
                 {
@@ -105,14 +112,14 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 선분 1개를 리전으로 변환(gen_region_line→dilation)해 disp_obj.
-        private static void DrawLineAsRegion(HWindow hwin, double r1, double c1, double r2, double c2, string color)
+        //260610 hbk Phase 40.2 hotfix CO-40.2-06/07 — 선분 1개를 리전으로 변환(gen_region_line→dilation)해 disp_obj. radius 로 두께 조절.
+        private static void DrawLineAsRegion(HWindow hwin, double r1, double c1, double r2, double c2, string color, double radius)
         {
             HObject region = null, dilated = null;
             try
             {
                 HOperatorSet.GenRegionLine(out region, r1, c1, r2, c2);
-                HOperatorSet.DilationCircle(region, out dilated, LineThicknessRadius);
+                HOperatorSet.DilationCircle(region, out dilated, radius);
                 hwin.SetColor(color); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 표준 색상명만 사용(비표준명 예외 회피)
                 hwin.DispObj(dilated);
             }

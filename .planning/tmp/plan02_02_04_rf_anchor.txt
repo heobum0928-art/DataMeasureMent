@@ -1,0 +1,2 @@
+    - .planning/phases/39.3-dualimage-fai-ux-redesign-2026-05-30/39.3-RESEARCH.md (Code Examples 의 Phase 39.3 swap handler 권장 패턴 L443-463)
+  </read_first>

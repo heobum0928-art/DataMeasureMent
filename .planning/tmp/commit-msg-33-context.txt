@@ -1,0 +1,18 @@
+docs(33): CONTEXT.md — Side/Bottom InspectionSequence 마이그레이션 디스커스 완료
+
+4 회색지대 deep-dive 결과:
+- 스코프 (B) 표준: Side/Bottom 마이그레이션 (현재 2 PC 구조 충실).
+  Multi-PC + Side1/Side2 분리 + Datum 2-image 는 Phase 27 이연.
+- Bottom 도메인 = 보존 + Datum 테이블 추가 (실 운영 가정).
+  Multi-Die/Picker/Cal 보존, DatumConfigs 만 추가.
+- TCP 응답 = FAIResults[] 가변 길이 통일. Bottom Multi-Die → 여러 FAI 매핑.
+- 레거시 처분 = Deprecate (파일 유지 + Obsolete) + INI 자동 마이그레이션 + Top 회귀 수동 검증.
+
+D-01 ~ D-07 implementation decisions locked.
+
+권장 plan 구성 (3 plans):
+- 33-01: SequenceHandler 교체
+- 33-02: Bottom Multi-Die → FAI 매핑 + INI 마이그레이션
+- 33-03: SIMUL UAT + sign-off
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>

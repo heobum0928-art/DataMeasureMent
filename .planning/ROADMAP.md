@@ -148,8 +148,8 @@
 Plans:
 - [x] 40-01-PLAN.md — cycle 결과 JSON 영속화 토대 (CycleResultDto + CycleResultSerializer + AddResponse wiring)
 - [x] 40-02-PLAN.md — ClosedXML 0.105.0 + 전이 의존성 등록 + 런타임 smoke test [BLOCKING]
-- [ ] 40-03-PLAN.md — 결과 리뷰어 Window (날짜폴더 → cycle 목록 → 이미지/overlay 재렌더 + 측정표, OUT-01)
-- [ ] 40-04-PLAN.md — ExcelExportService + 리뷰어 [엑셀 export] 버튼 (OUT-02)
+- [x] 40-03-PLAN.md — 결과 리뷰어 Window (날짜폴더 → cycle 목록 → 이미지/overlay 재렌더 + 측정표, OUT-01)
+- [~] 40-04-PLAN.md — ExcelExportService + 리뷰어 [엑셀 export] 버튼 (OUT-02) — **코드 완료, 빌드 PASS, UAT 대기**(2026-06-09)
 **Background**: 측정 알고리즘은 Phase 23~39 에서 안정화 완료. 그러나 검사 결과는 현재 라이브 화면 + `RawImageSaveService` 의 원본 이미지 저장만 존재하고, (a) 저장된 결과를 사후에 다시 불러와 검토하는 경로, (b) 측정값/판정을 정형 데이터(xlsx)로 추출하는 경로가 없다. POC 2026-06-30 시연에서 "검사 → 결과 리뷰 → 엑셀 추출" 흐름이 필요.
 **Scope**:
   - **OUT-01 결과 리뷰어**: 날짜/원본 폴더 선택 → 저장된 결과 이미지 + overlay + 판정 재현 (UI 위치 TBD — 별도 창 vs MainView 탭)
@@ -250,9 +250,11 @@ Plans:
 
 Plans:
 - [x] 41-01-PLAN.md — MIL .NET DLL csproj 참조 + ECameraType.MIL enum (foundation, HW-01) [Wave 1]
-- [ ] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
-- [ ] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
-- [ ] 41-04-PLAN.md — SIMUL_MODE UAT 5 시나리오 + sign-off (HW-01/HW-02 SIMUL 기준) [Wave 4]
+- [x] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
+- [x] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
+- [x] 41-04-PLAN.md — UAT 6 시나리오 + sign-off (SIMUL Test 1~5 + 실 HW Test 6) [Wave 4]
+
+**✅ SIGNED_OFF 2026-06-09** — UAT 6/6 PASS. 실 HW(Matrox RapixoCXP + VIEWORKS VP-152MX2-M16I0) grab+라이브 동작확인(Test 6). HW-02 런타임 VERIFIED, 실 HW grab carry-over 종결. 커밋: 2dddf13(드라이버) + a397039(CO-41-01) + CO-41-02. Carry-over: CO-41-03(역할별 다중 카메라 부분 등록 미검증).
 
 ---
 

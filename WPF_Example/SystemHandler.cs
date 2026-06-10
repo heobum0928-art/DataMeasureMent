@@ -21,7 +21,8 @@ namespace ReringProject {
 
         // Application display name.
         //260608 hbk 타이틀 리브랜딩: "DDA Vision Inspector" → "Measurement Vision"
-        public static string ProjectName { get; } = "Measurement Vision";
+        //260608 hbk MenuBar 로고(OutlinedTextBlock)가 좁은 폭에서 단어 중간 줄바꿈 → "Measurement"/"Vision" 2줄로 명시 개행
+        public static string ProjectName { get; } = "Measurement\nVision";
 
         // Singleton access point.
         public static SystemHandler Handle { get; } = new SystemHandler();

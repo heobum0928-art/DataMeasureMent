@@ -71,8 +71,9 @@
             <Label Grid.Column="1" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>
 
             <!-- Title -->
-            <local:OutlinedTextBlock x:Name="label_title" Grid.Column="2" Grid.Row="0" Margin="0,1,0,1" HorizontalAlignment="Center" VerticalAlignment="Center" FontStyle="Italic" FontFamily="Verdana" FontSize="20pt" FontWeight="ExtraBold" TextWrapping="Wrap" StrokeThickness="2" Stroke="Blue" Fill="AliceBlue">
-                Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit
+            <!--260608 hbk "Measurement\nVision" 2줄이 180px 폭/80px 높이에 맞도록 폰트 20pt→14pt 축소(20pt 는 단어 중간 줄바꿈 발생)-->
+            <local:OutlinedTextBlock x:Name="label_title" Grid.Column="2" Grid.Row="0" Margin="0,1,0,1" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" FontStyle="Italic" FontFamily="Verdana" FontSize="14pt" FontWeight="ExtraBold" TextWrapping="Wrap" StrokeThickness="2" Stroke="Blue" Fill="AliceBlue">
+                <!--260610 hbk 디자인용 라틴어 placeholder 제거 → 런타임은 SystemHandler.ProjectName("Measurement\nVision")로 덮어씀-->Measurement Vision
             </local:OutlinedTextBlock>
 
             <Label Grid.Column="3" Grid.Row="0" Background="Gray" Margin="0,5,0,5" Width="1"></Label>

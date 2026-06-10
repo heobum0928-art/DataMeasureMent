@@ -77,11 +77,7 @@ namespace ReringProject.Utility {
 
         private static void SaveRequest(CaptureImageSaveRequest request) { //260610 hbk Phase 40.2
             try {
-                string baseDirectory = Path.Combine(
-                    SystemHandler.Handle.Setting.ResultSavePath, "Image",
-                    request.Timestamp.ToString("yyMMdd"),
-                    request.Timestamp.ToString("HHmm"),
-                    request.IsCapture ? "capture" : "original"); //260610 hbk Phase 40.2 — ResultSavePath\Image\{yyMMdd}\{HHmm}\original|capture
+                string baseDirectory = BuildDirectory(request.IsCapture, request.Timestamp); //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 디렉토리 계산 단일 소스화
                 Directory.CreateDirectory(baseDirectory);
                 string fileName = SanitizeFileName(request.FileName); //260610 hbk Phase 40.2 — 완성 파일명 2차 방어
                 string filePath = Path.Combine(baseDirectory, fileName);
@@ -111,6 +107,26 @@ namespace ReringProject.Utility {
                 return string.Format("{0}_{1}_{2}_{3}.png", prefix, seq, fai, time); //260610 hbk Phase 40.2
             }
             return string.Format("{0}_{1}_{2}_{3}_{4}.png", prefix, seq, fai, seg, time); //260610 hbk Phase 40.2
+        }
+
+        //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 저장 디렉토리 계산 단일 소스. SaveRequest 와 write-back 경로가 반드시 일치하도록 공유.
+        /// <summary>
+        /// 캡쳐 PNG 저장 디렉토리. ResultSavePath\Image\{yyMMdd}\{HHmm}\{original|capture}.
+        /// </summary>
+        public static string BuildDirectory(bool isCapture, DateTime ts) { //260610 hbk Phase 40.2 hotfix CO-40.2-02
+            return Path.Combine(
+                SystemHandler.Handle.Setting.ResultSavePath, "Image",
+                ts.ToString("yyMMdd"),
+                ts.ToString("HHmm"),
+                isCapture ? "capture" : "original");
+        }
+
+        //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 엑셀/cycle.json 표기용 절대 경로(디렉토리+파일명). 사용자 요청: 셀에 경로\파일명 표기.
+        /// <summary>
+        /// 저장될 PNG 의 절대 경로(디렉토리 + sanitize 된 파일명). 실제 저장 위치와 동일.
+        /// </summary>
+        public static string BuildFilePath(bool isCapture, string fileName, DateTime ts) { //260610 hbk Phase 40.2 hotfix CO-40.2-02
+            return Path.Combine(BuildDirectory(isCapture, ts), SanitizeFileName(fileName));
         }
 
         //260610 hbk Phase 40.2 — RawImageSaveService.cs:95-105 와 동일 복제. 단일 segment sanitize.

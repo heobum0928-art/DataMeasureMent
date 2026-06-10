@@ -43,8 +43,9 @@ namespace ReringProject.Export
 
                     // D-05 테이블 헤더 (행 5)
                     int hr = 5;
-                    //260610 hbk Phase 40.2 — "이미지" 하이퍼링크 컬럼(D-07, 3385f7c) 폐기 → 파일명 텍스트 2컬럼으로 교체.
-                    string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "원본이미지 파일명", "캡쳐이미지 파일명" };
+                    //260610 hbk Phase 40.2 — "이미지" 하이퍼링크 컬럼(D-07, 3385f7c) 폐기 → 텍스트 2컬럼으로 교체.
+                    //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 사용자 요청: 파일명만이 아니라 절대 경로(경로\파일명) 표기 → 헤더 "경로" 로 변경.
+                    string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "원본이미지 경로", "캡쳐이미지 경로" };
                     for (int i = 0; i < headers.Length; i++)
                     {
                         ws.Cell(hr, i + 1).Value = headers[i];
@@ -88,7 +89,8 @@ namespace ReringProject.Export
                                     ws.Cell(row, 8).Value = "-";
                                 }
 
-                                //260610 hbk Phase 40.2 — D-07 하이퍼링크 컬럼 폐기(3385f7c 한글경로 file:/// 퍼센트인코딩 이슈도 동시 해소), 파일명 텍스트로 대체. 경로 아닌 파일명만, 하이퍼링크 없음.
+                                //260610 hbk Phase 40.2 — D-07 하이퍼링크 컬럼 폐기(3385f7c 한글경로 file:/// 퍼센트인코딩 이슈도 동시 해소), 텍스트로 대체. 하이퍼링크 없음.
+                                //260610 hbk Phase 40.2 hotfix CO-40.2-02 — write-back 이 절대 경로(경로\파일명)를 담음. 셀은 일반 텍스트 경로.
                                 ws.Cell(row, 9).Value  = fai.OriginImageFileName ?? "";
                                 ws.Cell(row, 10).Value = fai.CaptureImageFileName ?? "";
 

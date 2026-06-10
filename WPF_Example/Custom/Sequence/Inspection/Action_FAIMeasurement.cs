@@ -443,9 +443,11 @@ namespace ReringProject.Sequence {
             string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); //260610 hbk Phase 40.2 — P1/P1P2/빈값
             string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
             string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
-            // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 파일명은 확정)
-            fai.LastOriginImageFileName = originName; //260610 hbk Phase 40.2
-            fai.LastCaptureImageFileName = captureName; //260610 hbk Phase 40.2
+            // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
+            //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 사용자 요청: 엑셀/cycle.json 에 파일명만이 아니라 절대 경로(경로\파일명) 표기.
+            //  실제 저장 경로와 동일한 BuildFilePath 로 기록 (ts 동일 → 디렉토리 일치 보장).
+            fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02
+            fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02
             if (saver == null) return; //260610 hbk Phase 40.2 — 서비스 미기동 시 파일명만 기록, PNG skip
 
             // 원본 enqueue — 호출 스레드 원본 보호 위해 CopyImage() 사본 전달 (using image 가 dispose)

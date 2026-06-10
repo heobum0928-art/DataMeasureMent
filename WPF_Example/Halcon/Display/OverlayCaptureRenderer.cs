@@ -71,47 +71,54 @@ namespace ReringProject.Halcon.Display
         private const double DistLineThicknessRadius = 3.1; //260610 hbk Phase 40.2 hotfix CO-40.2-09 — 측정 거리선(cyan) 추가 20%↑(사용자 요청, 2.6→3.1)
         private const double MarkerHalfSize = 8.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — X 마커 반길이(HalconDisplayService size=8.0 일치)
 
+        //260610 hbk Phase 40.2 hotfix CO-40.2-10 — z-order 재설계로 OK(녹) 에지선 가림 해결.
+        //  원인: 오버레이 리스트 순서가 [Edge1, Edge2, DistLine] → cyan 거리선이 마지막(맨 위)에 그려져
+        //  두꺼운 cyan(3.1)이 OK 에지선(녹)을 덮었다. (NG 적색선은 cyan 밖으로 더 길게 뻗어 보였음.)
+        //  해결: 레이어 순서를 명시 — ①배경(거리선 cyan/blue + raw 노랑점) → ②검출점 X 마커(magenta)
+        //  → ③FAI-Edge 측정선(녹/적)을 맨 위에. 측정 OK/NG 색이 항상 보이도록.
         private static void DrawOverlayRegions(HWindow hwin, List<EdgeInspectionOverlay> overlays) //260610 hbk Phase 40.2 hotfix CO-40.2-06
         {
             if (overlays == null) return;
+
+            // ① 배경 레이어: 거리선(cyan)/기타(blue)/raw 점(노랑). FAI-Edge 마커/라인은 이후 레이어.
             foreach (var ov in overlays)
             {
                 if (ov == null || string.IsNullOrEmpty(ov.RoiId)) continue;
+                if (ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) continue; //260610 hbk Phase 40.2 hotfix CO-40.2-10 — FAI-Edge(및 FAI-EdgeRaw)는 별도 레이어
 
-                //260610 hbk Phase 40.2 hotfix CO-40.2-06 — FAI-EdgeRaw: 노랑 점만 (라인 없음). StartsWith("FAI-Edge") 보다 먼저 평가.
-                if (string.Equals(ov.RoiId, "FAI-EdgeRaw", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(ov.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
                 {
-                    DrawPointsAsRegion(hwin, ov.Points, "yellow");
-                    continue;
-                }
-
-                bool isFaiEdge = ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase); //260610 hbk Phase 40.2 hotfix CO-40.2-06
-                string lineColor;
-                double lineRadius = LineThicknessRadius; //260610 hbk Phase 40.2 hotfix CO-40.2-07
-                if (isFaiEdge)
-                {
-                    lineColor = ov.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase) ? "red" : "green"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
-                }
-                else if (string.Equals(ov.RoiId, "FAI-DistLine", StringComparison.OrdinalIgnoreCase))
-                {
-                    lineColor = "cyan"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
-                    lineRadius = DistLineThicknessRadius; //260610 hbk Phase 40.2 hotfix CO-40.2-07 — 거리선 30% 두껍게
+                    DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, "cyan", DistLineThicknessRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-10
                 }
                 else
                 {
-                    lineColor = "blue"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
+                    DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, "blue", LineThicknessRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-10
                 }
+            }
 
-                //260610 hbk Phase 40.2 hotfix CO-40.2-09 — X 마커를 먼저 그리고 측정선을 나중(on top)에 그린다.
-                //  기존엔 마커가 라인 위에 그려져, 짧은 OK(녹색) 에지선이 magenta 마커에 완전히 가려 안 보였다
-                //  (NG 적색선은 상대적으로 길어 보였음). 측정선을 마지막에 올려 OK/NG 색이 항상 보이게 한다.
+            // ② FAI-EdgeRaw 노랑 점 (배경 위)
+            foreach (var ov in overlays)
+            {
+                if (ov == null || ov.RoiId == null) continue;
+                if (string.Equals(ov.RoiId, "FAI-EdgeRaw", StringComparison.OrdinalIgnoreCase))
+                {
+                    DrawPointsAsRegion(hwin, ov.Points, "yellow"); //260610 hbk Phase 40.2 hotfix CO-40.2-10
+                }
+            }
+
+            // ③ FAI-Edge 검출점 X 마커(magenta) → 그 위에 측정선(녹/적). 측정선이 cyan·마커보다 위.
+            foreach (var ov in overlays)
+            {
+                if (ov == null || ov.RoiId == null) continue;
+                if (!ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(ov.RoiId, "FAI-EdgeRaw", StringComparison.OrdinalIgnoreCase)) continue; //260610 hbk Phase 40.2 hotfix CO-40.2-10 — Raw 는 ②에서 처리
+
                 if (ov.Points != null && ov.Points.Count > 0)
                 {
-                    string markerColor = isFaiEdge ? "magenta" : lineColor; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — FAI-Edge X 마커는 magenta (Render hotfix#8 일치)
-                    DrawPointsAsRegion(hwin, ov.Points, markerColor);
+                    DrawPointsAsRegion(hwin, ov.Points, "magenta"); //260610 hbk Phase 40.2 hotfix CO-40.2-10 — 검출점 X 마커
                 }
-
-                DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, lineColor, lineRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-06/07/09 — 측정선 on top
+                string lineColor = ov.RoiId.EndsWith("-NG", StringComparison.OrdinalIgnoreCase) ? "red" : "green"; //260610 hbk Phase 40.2 hotfix CO-40.2-10
+                DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, lineColor, LineThicknessRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-10 — 측정선 최상위
             }
         }
 

@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
-stopped_at: Phase 41 SIGNED_OFF (2026-06-09) — 실 HW(Matrox RapixoCXP + VIEWORKS VP-152MX2) grab+라이브 동작확인(Test 6 PASS). HW-02 런타임 VERIFIED, 실 HW grab carry-over 종결. SIMUL Test 2~5 = CO-41-01/CO-41-02 사용자 동작확인 근거 PASS. 신규 carry-over CO-41-03(역할별 다중 카메라 부분 등록).
-last_updated: "2026-06-09"
+status: verifying
+stopped_at: Completed 41-03-PLAN.md (DeviceHandler MIL factory + RegisterRequiredDevices 역할 분기)
+last_updated: "2026-06-10T02:34:48.014Z"
 last_activity: 2026-06-09
 progress:
   total_phases: 6
@@ -400,4 +400,4 @@ Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-4
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 41 (cxp-mil-lite-10-0-grab-hw-01-hw-02) — 4 plans — 2026-06-02T14:27:19.562Z
+**Planned Phase:** 40.2 (FAI별 측정 캡쳐 이미지 저장 + 엑셀 파일명 2컬럼) — 4 plans — 2026-06-10T02:34:48.005Z

@@ -82,6 +82,8 @@ namespace ReringProject.Sequence
                         FAIName = fai.FAIName ?? "",
                         IsPass = fai.IsPass,
                         WasDatumSkipped = fai.WasDatumSkipped,
+                        OriginImageFileName = fai.LastOriginImageFileName ?? "",   //260610 hbk Phase 40.2 — 검사 시점 write-back 파일명 복사
+                        CaptureImageFileName = fai.LastCaptureImageFileName ?? "", //260610 hbk Phase 40.2
                         // FAIConfig.LastOverlays 는 [JsonIgnore] (INI 직렬화 제외용) —
                         // DTO 계층에서 별도 복사하여 JSON 직렬화 노출 (RESEARCH Anti-Patterns, PATTERNS.md)
                         LastOverlays = new List<EdgeInspectionOverlay>(

@@ -5,6 +5,7 @@ using HalconDotNet;
 using ReringProject.Define;
 using ReringProject.Device;
 using ReringProject.Halcon.Algorithms;
+using ReringProject.Halcon.Display; //260610 hbk Phase 40.2 — OverlayCaptureRenderer 헤드리스 캡쳐
 using ReringProject.Halcon.Models;
 using ReringProject.Setting; //260409 hbk Phase 4: ELogType for Datum error logging
 using ReringProject.Utility;
@@ -38,6 +39,7 @@ namespace ReringProject.Sequence {
 
         private FAIMeasurementContext pMyContext;
         private VirtualCamera pCamera;
+        private readonly OverlayCaptureRenderer _captureRenderer = new OverlayCaptureRenderer(); //260610 hbk Phase 40.2 — 헤드리스 캡쳐 렌더러 (off-screen 버퍼 윈도우, stateful→지역new 분기)
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -304,6 +306,8 @@ namespace ReringProject.Sequence {
                                         }
                                         fai.WasDatumSkipped = wasSkip; //260529 hbk Phase 39 WF-01 D-02
                                         fai.LastOverlays = faiOverlays; //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 저장 (노드 클릭 시 재현)
+                                        //260610 hbk Phase 40.2 — FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
+                                        QueueFaiCapture(fai, image, faiOverlays, ShotParam != null ? ShotParam.OwnerSequenceName : "");
                                     } else {
                                         fai.ClearResult();
                                         if (fai.LastOverlays != null) fai.LastOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01 — Measurements 0 케이스 명시적 클리어
@@ -427,6 +431,46 @@ namespace ReringProject.Sequence {
                 return false; //260530 hbk Phase 39.2 D-G1-06
             }
             return true; //260530 hbk Phase 39.2 D-G1-06
+        }
+
+        //260610 hbk Phase 40.2 — FAI별 원본/캡쳐 이미지를 비동기 저장 큐에 넣고, 파일명을 fai 에 동기 write-back.
+        //  파일명은 BuildDto(AddResponse) 가 읽으므로 enqueue 전에 동기 확정. PNG write 만 워커가 비동기 수행.
+        //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
+        private void QueueFaiCapture(FAIConfig fai, HImage sourceImage, List<EdgeInspectionOverlay> faiOverlays, string sequenceName) {
+            if (fai == null || sourceImage == null) return; //260610 hbk Phase 40.2
+            var saver = SystemHandler.Handle.CaptureImageSaver;
+            DateTime ts = DateTime.Now; //260610 hbk Phase 40.2 — origin/capture 동일 timestamp 공유 (쌍)
+            string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); //260610 hbk Phase 40.2 — P1/P1P2/빈값
+            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
+            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, ts); //260610 hbk Phase 40.2
+            // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 파일명은 확정)
+            fai.LastOriginImageFileName = originName; //260610 hbk Phase 40.2
+            fai.LastCaptureImageFileName = captureName; //260610 hbk Phase 40.2
+            if (saver == null) return; //260610 hbk Phase 40.2 — 서비스 미기동 시 파일명만 기록, PNG skip
+
+            // 원본 enqueue — 호출 스레드 원본 보호 위해 CopyImage() 사본 전달 (using image 가 dispose)
+            saver.Enqueue(new CaptureImageSaveRequest //260610 hbk Phase 40.2
+            {
+                Image = sourceImage.CopyImage(),
+                FileName = originName,
+                IsCapture = false,
+                Timestamp = ts
+            });
+
+            // 캡쳐 enqueue — 버퍼 윈도우에서 오버레이 렌더 (실패 시 null → enqueue skip)
+            HImage captured = null; //260610 hbk Phase 40.2
+            try { captured = _captureRenderer.RenderToHImage(sourceImage, faiOverlays); } //260610 hbk Phase 40.2
+            catch { captured = null; }
+            if (captured != null) //260610 hbk Phase 40.2 — captured 는 새 객체이므로 CopyImage 불필요, 워커가 Dispose
+            {
+                saver.Enqueue(new CaptureImageSaveRequest
+                {
+                    Image = captured,
+                    FileName = captureName,
+                    IsCapture = true,
+                    Timestamp = ts
+                });
+            }
         }
     }
 }

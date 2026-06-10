@@ -227,6 +227,16 @@ Plans:
 
 ## Backlog
 
+### Phase 40.2: FAI별 측정 캡쳐 이미지 저장 + 엑셀 파일명 2컬럼 (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 40
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 40.2 to break down)
+
 ### Phase 40.1: 리뷰어/뷰어 UAT 후속 UI 3건 (overlay On/Off 토글 + 트리 Shot 접기 + Polygon ROI 숨김) (INSERTED)
 
 **Goal:** 리뷰어/뷰어 UAT 후속 UI 3건 — 이미지 뷰어 overlay On/Off 토글(측정 overlay + Datum 라인 독립) + Shot 트리 기본 접기 + Polygon ROI UI 숨김. 라이브 MainView/InspectionListView 한정.

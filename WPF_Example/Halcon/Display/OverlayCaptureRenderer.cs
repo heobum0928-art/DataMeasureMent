@@ -68,7 +68,7 @@ namespace ReringProject.Halcon.Display
         //  색상 규칙은 HalconDisplayService.Render 의 FAI 오버레이 색상과 일치: FAI-Edge*(녹/적), FAI-DistLine(청록),
         //  FAI-EdgeRaw(노랑 점), 그 외(파랑). FAI-Edge* 검출점 X 마커는 magenta.
         private const double LineThicknessRadius = 2.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 에지/마커 리전 두께(dilation 반경)
-        private const double DistLineThicknessRadius = 2.6; //260610 hbk Phase 40.2 hotfix CO-40.2-07 — 측정 거리선(cyan) 30% 두껍게(사용자 요청, 2.0→2.6)
+        private const double DistLineThicknessRadius = 3.1; //260610 hbk Phase 40.2 hotfix CO-40.2-09 — 측정 거리선(cyan) 추가 20%↑(사용자 요청, 2.6→3.1)
         private const double MarkerHalfSize = 8.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — X 마커 반길이(HalconDisplayService size=8.0 일치)
 
         private static void DrawOverlayRegions(HWindow hwin, List<EdgeInspectionOverlay> overlays) //260610 hbk Phase 40.2 hotfix CO-40.2-06
@@ -102,13 +102,16 @@ namespace ReringProject.Halcon.Display
                     lineColor = "blue"; //260610 hbk Phase 40.2 hotfix CO-40.2-06
                 }
 
-                DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, lineColor, lineRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-06/07
-
+                //260610 hbk Phase 40.2 hotfix CO-40.2-09 — X 마커를 먼저 그리고 측정선을 나중(on top)에 그린다.
+                //  기존엔 마커가 라인 위에 그려져, 짧은 OK(녹색) 에지선이 magenta 마커에 완전히 가려 안 보였다
+                //  (NG 적색선은 상대적으로 길어 보였음). 측정선을 마지막에 올려 OK/NG 색이 항상 보이게 한다.
                 if (ov.Points != null && ov.Points.Count > 0)
                 {
                     string markerColor = isFaiEdge ? "magenta" : lineColor; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — FAI-Edge X 마커는 magenta (Render hotfix#8 일치)
                     DrawPointsAsRegion(hwin, ov.Points, markerColor);
                 }
+
+                DrawLineAsRegion(hwin, ov.LineRow1, ov.LineColumn1, ov.LineRow2, ov.LineColumn2, lineColor, lineRadius); //260610 hbk Phase 40.2 hotfix CO-40.2-06/07/09 — 측정선 on top
             }
         }
 

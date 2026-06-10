@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: verifying
-stopped_at: Completed 41-03-PLAN.md (DeviceHandler MIL factory + RegisterRequiredDevices 역할 분기)
-last_updated: "2026-06-10T02:34:48.014Z"
-last_activity: 2026-06-09
+status: executing
+stopped_at: "Completed 40.2-01-PLAN.md (Foundation: DTO 필드 + CaptureImageSaveService + SystemHandler 배선)"
+last_updated: "2026-06-10T03:33:14.355Z"
+last_activity: 2026-06-10
 progress:
   total_phases: 6
   completed_phases: 6
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 41 — CXP MIL Lite 10.0 grab (HW-01/HW-02)
+**Current focus:** Phase 40.2 — fai-2
 
 ## Current Position
 
-Phase: 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 — SIGNED_OFF (2026-06-09, 6/6 UAT PASS)
-Plan: 41-01/02/03/04 완료 · UAT Test 1~6 전부 PASS · sign-off 완료
-Status: 실 HW(RapixoCXP + VP-152MX2) grab+라이브 PASS. HW-02 런타임 VERIFIED. carry-over CO-41-03(역할별 다중 카메라 부분 등록) 신규.
-Last activity: 2026-06-09
+Phase: 40.2 (fai-2) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-06-10
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -134,6 +134,7 @@ Last activity: 2026-06-09
 | Phase 41 P01 | 135 | 2 tasks | 2 files |
 | Phase 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 P02 | 420 | 2 tasks | 2 files |
 | Phase 41-cxp-mil-lite-10-0-grab-hw-01-hw-02 P03 | 181 | 3 tasks | 3 files |
+| Phase 40.2-fai-2 P01 | 25 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -266,6 +267,8 @@ Recent decisions affecting current work:
 - RegisterRequiredDevices HIK 3대 고정 → CameraRole(TopBottom/Side) 역할 분기 CXP 1대 등록으로 재구성 (D-03)
 - [Phase 41 SIGNED_OFF 2026-06-09]: 실 HW(Matrox **RapixoCXP** 보드 + **VIEWORKS VP-152MX2-M16I0** 카메라, ≈152MP 2-connection) 도착 → 프로그램 단발 grab + 라이브 둘 다 PASS(UAT Test 6). 보드 도착 후로 보류됐던 "실 HW grab 검증" carry-over 종결, HW-02 런타임 VERIFIED. 빌드=Debug|x64(SIMUL_MODE off), MIL run-time 라이선스 → Ctrl+F5 실행(F5 디버깅은 dev 라이선스 필요). MilCamera.Open 은 DCF 없이 M_DEFAULT → 카메라 User Set(TriggerMode Off+Mono8) 의존, CXP 단독점유(Capture Works 종료 필요), non-paged 512MB=단일 Mono8 버퍼엔 충분. SIMUL Test 2~5 = CO-41-01/CO-41-02 사용자 동작확인 근거 PASS. CO-41-03(역할별 다중 카메라 부분 등록)은 다중 카메라 현재 미고려로 **out of scope**(사용자 2026-06-09). UAT 6/6 PASS, status=signed_off.
 - [Phase 41 hotfix CO-41-01, a397039]: SIMUL_MODE 앱 기동 크래시(FileNotFoundException: Matrox.MatroxImagingLibrary, Version=10.10.614.1) 수정 — ①DeviceHandler case MIL 을 `#if SIMUL_MODE`→`AddVirtualCamera` 직접 폴백(SIMUL 은 new MilCamera 미컴파일 → Matrox 런타임 미로드, SDK/보드 비의존) ②csproj Matrox 참조 Private=False→True(관리 어셈블리 bin 복사 확인, 실 HW 빌드 런타임 로드 보장; 네이티브 MIL 런타임은 설치 PATH 해석). 컴파일 0 errors 재확인. 근본 원인 = Private=False(bin 미복사) + SIMUL 에서도 new MilCamera JIT 로 어셈블리 로드 시도. Test 2~5 런타임 검증은 사용자 요청으로 보류(나중에 앱 종료→재빌드 후 진행).
+- 저장 경로 = ResultSavePath\Image\{yyMMdd}\{HHmm}\original|capture (GetLogSavePath 미사용, Plan 40.2-01 확정)
+- 파일명 타이밍 = 동기 결정(BuildFileName) + 비동기 write 분리 (FAIConfig.LastOriginImageFileName write-back 패턴, Plan 40.2-01)
 
 ### Quick Tasks Completed
 
@@ -378,8 +381,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-02T14:46:48.398Z
-Stopped at: Completed 41-03-PLAN.md (DeviceHandler MIL factory + RegisterRequiredDevices 역할 분기)
+Last session: 2026-06-10T03:33:14.346Z
+Stopped at: Completed 40.2-01-PLAN.md (Foundation: DTO 필드 + CaptureImageSaveService + SystemHandler 배선)
 Resume file: None
 Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-40-08(오토 종합판정/TCP 시퀀스 scoping) 별도 처리.
 

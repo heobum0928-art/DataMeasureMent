@@ -345,6 +345,7 @@
     <Compile Include="UI\ViewModel\ModelFinderViewModel.cs" />
     <Compile Include="Utility\RecipeFileHelper.cs" />
     <Compile Include="Utility\RawImageSaveService.cs" />
+    <Compile Include="Utility\CaptureImageSaveService.cs" />
     <Compile Include="Sequence\SequenceHandler.cs" />
     <Compile Include="UI\ControlItem\Node.cs" />
     <Compile Include="UI\ControlItem\NodeViewModel.cs" />

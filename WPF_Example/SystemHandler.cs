@@ -54,6 +54,9 @@ namespace ReringProject {
         //260317 raw image save worker for inspection flow
         public RawImageSaveService RawImageSaver { get; private set; }
 
+        //260610 hbk Phase 40.2 — FAI별 캡쳐 이미지 비동기 저장 서비스 (RawImageSaver 와 동일 라이프사이클).
+        public CaptureImageSaveService CaptureImageSaver { get; private set; } //260610 hbk Phase 40.2
+
         // Localization resource (UI strings).
         public LocalizationResource Localize { get; set; }
 
@@ -129,6 +132,8 @@ namespace ReringProject {
             //260317 raw image save worker for inspection flow
             RawImageSaver = new RawImageSaveService();
             RawImageSaver.Start();
+            CaptureImageSaver = new CaptureImageSaveService(); //260610 hbk Phase 40.2
+            CaptureImageSaver.Start(); //260610 hbk Phase 40.2
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
             prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
 
@@ -203,7 +208,9 @@ namespace ReringProject {
             //260317 raw image save worker for inspection flow
             RawImageSaver?.Dispose();
             RawImageSaver = null;
-            
+            CaptureImageSaver?.Dispose(); //260610 hbk Phase 40.2
+            CaptureImageSaver = null; //260610 hbk Phase 40.2
+
             // Stop TCP server.
             Server.Dispose();
 

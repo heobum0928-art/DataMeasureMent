@@ -113,6 +113,17 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore] //260529 hbk Phase 39.1-03 G4-01
         public List<EdgeInspectionOverlay> LastOverlays { get; set; } = new List<EdgeInspectionOverlay>(); //260529 hbk Phase 39.1-03 G4-01
 
+        //260610 hbk Phase 40.2 — 검사 시점에 Action_FAIMeasurement 가 write-back 하는 캡쳐 파일명(transient).
+        //  CycleResultSerializer.BuildDto 가 FaiResultDto 로 복사. INI/PropertyGrid 미노출 + JSON 직렬화 제외(LastOverlays 패턴 일치).
+        [System.ComponentModel.Browsable(false)] //260610 hbk Phase 40.2
+        [PropertyTools.DataAnnotations.Browsable(false)] //260610 hbk Phase 40.2
+        [Newtonsoft.Json.JsonIgnore] //260610 hbk Phase 40.2
+        public string LastOriginImageFileName { get; set; } = ""; //260610 hbk Phase 40.2
+        [System.ComponentModel.Browsable(false)] //260610 hbk Phase 40.2
+        [PropertyTools.DataAnnotations.Browsable(false)] //260610 hbk Phase 40.2
+        [Newtonsoft.Json.JsonIgnore] //260610 hbk Phase 40.2
+        public string LastCaptureImageFileName { get; set; } = ""; //260610 hbk Phase 40.2
+
         //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
         //260526 hbk CO-31-01 — [Browsable(false)] 제거 + [Category] 추가로 PropertyGrid 노출 (DatumName/MeasurementName 과 일관성).
         //  기존 Btn_RenameFAI_Click 버튼은 그대로 작동 — 양쪽 모두 동일 setter 호출.

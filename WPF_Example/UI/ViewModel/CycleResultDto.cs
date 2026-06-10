@@ -55,6 +55,12 @@ namespace ReringProject.UI
         /// <summary>true 이면 datum 검출 실패로 측정 미실행 (Phase 39 WF-01, "DETECT_FAIL" 분기).</summary>
         public bool WasDatumSkipped { get; set; }
 
+        //260610 hbk Phase 40.2 — FAI별 캡쳐 이미지 파일명(경로 아님, 파일명만). 엑셀 2컬럼 + JSON 직렬화 소스.
+        /// <summary>원본 이미지 파일명. 예: origin_Top_FAI_A1_P1P2_153012345.png (경로 미포함).</summary>
+        public string OriginImageFileName { get; set; } //260610 hbk Phase 40.2
+        /// <summary>측정 오버레이 캡쳐 이미지 파일명. 예: capture_Top_FAI_A1_P1P2_153012345.png (경로 미포함).</summary>
+        public string CaptureImageFileName { get; set; } //260610 hbk Phase 40.2
+
         public List<MeasurementResultDto> Measurements { get; set; } = new List<MeasurementResultDto>();
 
         /// <summary>overlay 기하 — EdgeInspectionOverlay 전 필드가 CLR 타입이므로 직렬화 안전 (RESEARCH Pitfall 3 해소).</summary>

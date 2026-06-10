@@ -2,18 +2,29 @@
 //  ResultSavePath\Image\{yyMMdd}\{HHmm}\original|capture 경로 + origin_/capture_ 파일명 규칙.
 //  파일명은 호출 스레드(Action_FAIMeasurement)에서 동기 생성(BuildFileName), PNG write 만 워커가 비동기 수행.
 using HalconDotNet;
+using ReringProject.Halcon.Display; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — 워커 스레드 헤드리스 렌더
+using ReringProject.Halcon.Models; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — EdgeInspectionOverlay
 using ReringProject.Network;
 using ReringProject.Setting;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic; //260610 hbk Phase 40.2 hotfix CO-40.2-04
 using System.IO;
 using System.Threading;
 
 namespace ReringProject.Utility {
     //260610 hbk Phase 40.2 — 캡쳐 저장 요청 DTO. HImage 소유권을 request 가 갖고 저장 후 Dispose.
     public sealed class CaptureImageSaveRequest : IDisposable {
-        /// <summary>워커가 저장 후 Dispose 할 소유 객체.</summary>
+        /// <summary>워커가 저장 후 Dispose 할 소유 객체. NeedsRender=false(원본) 경로에서 직접 write.</summary>
         public HImage Image { get; set; }
+        //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 검사 스레드→워커 스레드로 이전(throughput).
+        //  검사 스레드는 SourceImage 사본 + Overlays 스냅샷만 enqueue(저렴), 워커가 버퍼윈도우 렌더+dump+write 수행.
+        /// <summary>true 면 워커가 SourceImage+Overlays 로 오버레이 캡쳐를 렌더한 뒤 저장(원본 직접 write 대신).</summary>
+        public bool NeedsRender { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
+        /// <summary>NeedsRender 시 렌더 소스. 워커가 렌더 후 Dispose.</summary>
+        public HImage SourceImage { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
+        /// <summary>NeedsRender 시 입힐 오버레이 스냅샷.</summary>
+        public List<EdgeInspectionOverlay> Overlays { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
         /// <summary>동기 결정된 완성 파일명 (origin_... 또는 capture_...)</summary>
         public string FileName { get; set; } //260610 hbk Phase 40.2
         /// <summary>true=capture 폴더, false=original 폴더.</summary>
@@ -24,6 +35,8 @@ namespace ReringProject.Utility {
         public void Dispose() {
             Image?.Dispose();
             Image = null;
+            SourceImage?.Dispose(); //260610 hbk Phase 40.2 hotfix CO-40.2-04
+            SourceImage = null;
         }
     }
 
@@ -34,6 +47,8 @@ namespace ReringProject.Utility {
         private readonly Thread _workerThread; //260610 hbk Phase 40.2
         private volatile bool _isStopping; //260610 hbk Phase 40.2
         private volatile bool _isStarted; //260610 hbk Phase 40.2
+        //260610 hbk Phase 40.2 hotfix CO-40.2-04 — 워커 전용 렌더러. 단일 워커 스레드에서만 사용(직렬) → 버퍼윈도우 경합 없음.
+        private static readonly OverlayCaptureRenderer _renderer = new OverlayCaptureRenderer();
 
         public CaptureImageSaveService() { //260610 hbk Phase 40.2
             _workerThread = new Thread(WorkLoop) {
@@ -51,8 +66,14 @@ namespace ReringProject.Utility {
         }
 
         public void Enqueue(CaptureImageSaveRequest request) { //260610 hbk Phase 40.2
-            if (request == null || request.Image == null) {
-                request?.Dispose();
+            if (request == null) {
+                return;
+            }
+            //260610 hbk Phase 40.2 hotfix CO-40.2-04 — NeedsRender 경로는 SourceImage 필수, 그 외는 Image 필수.
+            if (request.NeedsRender) {
+                if (request.SourceImage == null) { request.Dispose(); return; }
+            } else if (request.Image == null) {
+                request.Dispose();
                 return;
             }
 
@@ -76,17 +97,31 @@ namespace ReringProject.Utility {
         }
 
         private static void SaveRequest(CaptureImageSaveRequest request) { //260610 hbk Phase 40.2
+            HImage rendered = null; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — NeedsRender 시 워커가 생성하는 일시 이미지
             try {
+                //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 워커 스레드에서 수행(검사 throughput 보호).
+                HImage toWrite;
+                if (request.NeedsRender) {
+                    rendered = _renderer.RenderToHImage(request.SourceImage, request.Overlays);
+                    if (rendered == null) {
+                        return; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — 렌더 실패(렌더러가 로깅) → PNG 만 누락, 워커 계속
+                    }
+                    toWrite = rendered;
+                } else {
+                    toWrite = request.Image;
+                }
+
                 string baseDirectory = BuildDirectory(request.IsCapture, request.Timestamp); //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 디렉토리 계산 단일 소스화
                 Directory.CreateDirectory(baseDirectory);
                 string fileName = SanitizeFileName(request.FileName); //260610 hbk Phase 40.2 — 완성 파일명 2차 방어
                 string filePath = Path.Combine(baseDirectory, fileName);
-                request.Image.WriteImage("png", 0, filePath); //260610 hbk Phase 40.2 — RawImageSaveService.cs:85 동일 HImage→PNG API
+                toWrite.WriteImage("png", 0, filePath); //260610 hbk Phase 40.2 — RawImageSaveService.cs:85 동일 HImage→PNG API
             }
             catch (Exception ex) {
                 Logging.PrintErrLog((int)ELogType.Error, string.Format("Capture image save failed: {0}", ex.Message)); //260610 hbk Phase 40.2
             }
             finally {
+                if (rendered != null) { try { rendered.Dispose(); } catch { } } //260610 hbk Phase 40.2 hotfix CO-40.2-04
                 request.Dispose();
             }
         }

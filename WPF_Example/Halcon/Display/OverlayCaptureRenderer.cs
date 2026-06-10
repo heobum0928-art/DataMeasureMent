@@ -39,6 +39,11 @@ namespace ReringProject.Halcon.Display
                 //  "Implicit access to handle as number is only allowed in legacy handle mode" 예외 → capture 전건 실패.
                 //  버퍼 윈도우를 HWindow 객체로 직접 생성하여 핸들 변환 자체를 제거 (UI HalconWindow 사용 패턴과 동일).
                 hwin = new HWindow(0, 0, w.I, h.I, 0, "buffer", ""); //260610 hbk Phase 40.2 hotfix — off-screen 버퍼 HWindow (UI HWND 불필요)
+                //260610 hbk Phase 40.2 hotfix CO-40.2-03 — dump_window_image 오버레이 누락 수정.
+                //  graphics_stack=true 가 없으면 dump 시 displayed image 오브젝트가 마지막에 재그려져
+                //  앞서 그린 DispLine 오버레이를 덮어 지운다(=원본만 캡쳐됨). 스택을 켜면 draw 순서
+                //  (image→overlays)대로 재생되어 오버레이가 이미지 위에 보존된다.
+                hwin.SetWindowParam("graphics_stack", "true"); //260610 hbk Phase 40.2 hotfix CO-40.2-03
                 hwin.SetPart(0, 0, h.I - 1, w.I - 1); //260610 hbk Phase 40.2 — 전체 이미지 매핑
                 //260610 hbk Phase 40.2 — stateful→지역new: 인스턴스 필드 공유 방지 (EnsureFontInitialized 가 window 별 초기화를 인스턴스 필드에 기록)
                 new HalconDisplayService().Render(hwin, image, null, null, null, overlays, null); //260610 hbk Phase 40.2 — 기존 오버레이 렌더 재사용 (순서: image→overlays)

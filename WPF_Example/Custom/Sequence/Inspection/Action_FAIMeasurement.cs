@@ -39,7 +39,8 @@ namespace ReringProject.Sequence {
 
         private FAIMeasurementContext pMyContext;
         private VirtualCamera pCamera;
-        private readonly OverlayCaptureRenderer _captureRenderer = new OverlayCaptureRenderer(); //260610 hbk Phase 40.2 — 헤드리스 캡쳐 렌더러 (off-screen 버퍼 윈도우, stateful→지역new 분기)
+        //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더는 CaptureImageSaveService 워커 스레드로 이전(throughput).
+        //  Action 은 더 이상 인라인 렌더하지 않음. OverlayCaptureRenderer.BuildMeasurePointSegment(static)만 사용.
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -459,20 +460,19 @@ namespace ReringProject.Sequence {
                 Timestamp = ts
             });
 
-            // 캡쳐 enqueue — 버퍼 윈도우에서 오버레이 렌더 (실패 시 null → enqueue skip)
-            HImage captured = null; //260610 hbk Phase 40.2
-            try { captured = _captureRenderer.RenderToHImage(sourceImage, faiOverlays); } //260610 hbk Phase 40.2
-            catch { captured = null; }
-            if (captured != null) //260610 hbk Phase 40.2 — captured 는 새 객체이므로 CopyImage 불필요, 워커가 Dispose
+            //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 워커 스레드로 이전(throughput 보호).
+            //  검사 스레드는 원본 사본 + 오버레이 스냅샷만 enqueue(저렴), 버퍼윈도우 OpenWindow/Render/Dump 는 워커가 수행.
+            //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
+            List<EdgeInspectionOverlay> overlaySnapshot = faiOverlays != null ? new List<EdgeInspectionOverlay>(faiOverlays) : null; //260610 hbk Phase 40.2 hotfix CO-40.2-04
+            saver.Enqueue(new CaptureImageSaveRequest //260610 hbk Phase 40.2 hotfix CO-40.2-04
             {
-                saver.Enqueue(new CaptureImageSaveRequest
-                {
-                    Image = captured,
-                    FileName = captureName,
-                    IsCapture = true,
-                    Timestamp = ts
-                });
-            }
+                NeedsRender = true,
+                SourceImage = sourceImage.CopyImage(),
+                Overlays = overlaySnapshot,
+                FileName = captureName,
+                IsCapture = true,
+                Timestamp = ts
+            });
         }
     }
 }

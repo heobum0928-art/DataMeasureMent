@@ -229,13 +229,16 @@ Plans:
 
 ### Phase 40.2: FAI별 측정 캡쳐 이미지 저장 + 엑셀 파일명 2컬럼 (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** 검사 시점에 FAI별 원본 이미지와 측정 오버레이가 입혀진 캡쳐 이미지를 각각 PNG로 디스크에 저장하고, 엑셀 export의 하이퍼링크 컬럼을 원본/캡쳐 파일명 텍스트 2컬럼으로 교체한다.
+**Requirements**: CONTEXT 잠긴 결정 (phase_req_ids 없음)
 **Depends on:** Phase 40
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 40.2 to break down)
+- [ ] 40.2-01-PLAN.md — DTO 파일명 필드 + FAIConfig transient 필드 + CaptureImageSaveService 비동기 워커 + SystemHandler 등록
+- [ ] 40.2-02-PLAN.md — OverlayCaptureRenderer 헤드리스 버퍼 캡쳐 + Action_FAIMeasurement FAI별 origin/capture enqueue + 파일명 write-back
+- [ ] 40.2-03-PLAN.md — CycleResultSerializer 파일명 복사 + ExcelExportService 하이퍼링크→파일명 텍스트 2컬럼 교체
+- [ ] 40.2-04-PLAN.md — SIMUL_MODE UAT (폴더/파일명/오버레이/엑셀 육안 검증 + sign-off)
 
 ### Phase 40.1: 리뷰어/뷰어 UAT 후속 UI 3건 (overlay On/Off 토글 + 트리 Shot 접기 + Polygon ROI 숨김) (INSERTED)
 

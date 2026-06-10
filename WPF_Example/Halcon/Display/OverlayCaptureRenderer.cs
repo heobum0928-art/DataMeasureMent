@@ -32,7 +32,7 @@ namespace ReringProject.Halcon.Display
         //  iconic 오브젝트(이미지/리전)만 캡쳐한다(도메인 가이드). 따라서 HalconDisplayService.Render(DispLine 기반)
         //  재사용을 폐기하고, 오버레이를 리전으로 변환해 disp_obj 로 그린다. 순서: disp_obj(image) → disp_obj(region) → dump.
         //  텍스트(OK/NG) 라벨은 리전화 불가로 현 단계 제외(차기 burn-in 검토).
-        public HImage RenderToHImage(HImage image, List<EdgeInspectionOverlay> overlays) //260610 hbk Phase 40.2
+        public HImage RenderToHImage(HImage image, List<EdgeInspectionOverlay> overlays, List<DatumCaptureOverlay> datumOverlays) //260610 hbk Phase 40.2 hotfix CO-40.2-11
         {
             if (image == null) return null;
             HWindow hwin = null; //260610 hbk Phase 40.2 hotfix CO-40.2-01
@@ -47,7 +47,8 @@ namespace ReringProject.Halcon.Display
                 hwin.SetWindowParam("graphics_stack", "true"); //260610 hbk Phase 40.2 hotfix CO-40.2-07
                 hwin.SetPart(0, 0, h.I - 1, w.I - 1); //260610 hbk Phase 40.2 — 전체 이미지 매핑
                 hwin.DispObj(image); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 배경 이미지(iconic) 먼저 표시
-                DrawOverlayRegions(hwin, overlays); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 오버레이를 리전(disp_obj)로 표시
+                DrawDatumRegions(hwin, datumOverlays); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원) 배경 레이어
+                DrawOverlayRegions(hwin, overlays); //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 측정 오버레이를 리전(disp_obj)로 표시(datum 위)
                 return hwin.DumpWindowImage(); //260610 hbk Phase 40.2 — 윈도우 내용을 HImage 로 덤프 (소유권 호출부 이전)
             }
             catch (Exception ex)
@@ -70,6 +71,9 @@ namespace ReringProject.Halcon.Display
         private const double LineThicknessRadius = 2.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — 에지/마커 리전 두께(dilation 반경)
         private const double DistLineThicknessRadius = 3.1; //260610 hbk Phase 40.2 hotfix CO-40.2-09 — 측정 거리선(cyan) 추가 20%↑(사용자 요청, 2.6→3.1)
         private const double MarkerHalfSize = 8.0; //260610 hbk Phase 40.2 hotfix CO-40.2-06 — X 마커 반길이(HalconDisplayService size=8.0 일치)
+        private const double DatumRingThickness = 3.0; //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 원 링 두께(px)
+        private const double DatumCircleCenterCrossHalf = 12.0; //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 원 중심 십자 반길이(UI L913 일치)
+        private const double DatumOriginCrossHalf = 20.0; //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자 반길이(UI L318 일치)
 
         //260610 hbk Phase 40.2 hotfix CO-40.2-10 — z-order 재설계로 OK(녹) 에지선 가림 해결.
         //  원인: 오버레이 리스트 순서가 [Edge1, Edge2, DistLine] → cyan 거리선이 마지막(맨 위)에 그려져
@@ -166,6 +170,73 @@ namespace ReringProject.Halcon.Display
                     if (u != null) { try { u.Dispose(); } catch { } }
                     if (dilated != null) { try { dilated.Dispose(); } catch { } }
                 }
+            }
+        }
+
+        //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원 + 중심/원점 십자)를 리전으로 표시.
+        //  UI RenderDatumOverlay/RenderDatumFindResult 의 핵심 검출 결과만 캡쳐(녹색 원 #90EE90 + 노랑 중심 십자 + slate blue 원점 십자).
+        //  전체 datum ROI/strip/label/arrow 재현은 범위 외(측정 결과 시각화 목적).
+        private static void DrawDatumRegions(HWindow hwin, List<DatumCaptureOverlay> datums)
+        {
+            if (datums == null) return;
+            foreach (var d in datums)
+            {
+                if (d == null) continue;
+                if (d.HasCircle && d.CircleRadius > 0)
+                {
+                    DrawCircleRingAsRegion(hwin, d.CircleRow, d.CircleCol, d.CircleRadius, "#90EE90"); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색, UI L905 일치)
+                    DrawCrossAsRegion(hwin, d.CircleRow, d.CircleCol, DatumCircleCenterCrossHalf, "yellow"); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 원 중심 십자(UI L911 일치)
+                }
+                if (d.HasOrigin)
+                {
+                    DrawCrossAsRegion(hwin, d.OriginRow, d.OriginCol, DatumOriginCrossHalf, "slate blue"); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자(UI RenderDatumFindResult 일치)
+                }
+            }
+        }
+
+        //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 원 외곽선을 링 리전(outer−inner)으로 만들어 disp_obj.
+        private static void DrawCircleRingAsRegion(HWindow hwin, double row, double col, double radius, string color)
+        {
+            HObject outer = null, inner = null, ring = null;
+            try
+            {
+                double innerR = radius - DatumRingThickness;
+                if (innerR < 1.0) innerR = 1.0;
+                HOperatorSet.GenCircle(out outer, row, col, radius);
+                HOperatorSet.GenCircle(out inner, row, col, innerR);
+                HOperatorSet.Difference(outer, inner, out ring);
+                hwin.SetColor(color);
+                hwin.DispObj(ring);
+            }
+            catch { /* 단일 datum 원 실패 무시 */ }
+            finally
+            {
+                if (outer != null) { try { outer.Dispose(); } catch { } }
+                if (inner != null) { try { inner.Dispose(); } catch { } }
+                if (ring != null) { try { ring.Dispose(); } catch { } }
+            }
+        }
+
+        //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 축 정렬 십자(＋)를 리전으로 만들어 disp_obj.
+        private static void DrawCrossAsRegion(HWindow hwin, double row, double col, double half, string color)
+        {
+            HObject l1 = null, l2 = null, u = null, dilated = null;
+            try
+            {
+                HOperatorSet.GenRegionLine(out l1, row - half, col, row + half, col);
+                HOperatorSet.GenRegionLine(out l2, row, col - half, row, col + half);
+                HOperatorSet.Union2(l1, l2, out u);
+                HOperatorSet.DilationCircle(u, out dilated, LineThicknessRadius);
+                hwin.SetColor(color);
+                hwin.DispObj(dilated);
+            }
+            catch { /* 십자 실패 무시 */ }
+            finally
+            {
+                if (l1 != null) { try { l1.Dispose(); } catch { } }
+                if (l2 != null) { try { l2.Dispose(); } catch { } }
+                if (u != null) { try { u.Dispose(); } catch { } }
+                if (dilated != null) { try { dilated.Dispose(); } catch { } }
             }
         }
 

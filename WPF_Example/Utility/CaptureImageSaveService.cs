@@ -58,6 +58,8 @@ namespace ReringProject.Utility {
         public bool NeedsRender { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
         /// <summary>NeedsRender 시 입힐 오버레이 스냅샷.</summary>
         public List<EdgeInspectionOverlay> Overlays { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-04
+        /// <summary>NeedsRender 시 입힐 datum 검출 오버레이 스냅샷(녹색 원 등). null 허용.</summary>
+        public List<DatumCaptureOverlay> DatumOverlays { get; set; } //260610 hbk Phase 40.2 hotfix CO-40.2-11
         /// <summary>동기 결정된 완성 파일명 (origin_... 또는 capture_...)</summary>
         public string FileName { get; set; } //260610 hbk Phase 40.2
         /// <summary>true=capture 폴더, false=original 폴더.</summary>
@@ -134,7 +136,7 @@ namespace ReringProject.Utility {
                 //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더를 워커 스레드에서 수행(검사 throughput 보호).
                 HImage toWrite;
                 if (request.NeedsRender) {
-                    rendered = _renderer.RenderToHImage(src, request.Overlays);
+                    rendered = _renderer.RenderToHImage(src, request.Overlays, request.DatumOverlays); //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 오버레이 포함
                     if (rendered == null) {
                         return; //260610 hbk Phase 40.2 hotfix CO-40.2-04 — 렌더 실패(렌더러가 로깅) → PNG 만 누락, 워커 계속
                     }

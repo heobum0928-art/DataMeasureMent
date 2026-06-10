@@ -177,6 +177,8 @@ namespace ReringProject.Sequence {
                                 var capSaver = SystemHandler.Handle.CaptureImageSaver;
                                 SharedHImage sharedSrc = null;
                                 if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
+                                //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원/원점) 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
+                                List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2); //260610 hbk Phase 40.2 hotfix CO-40.2-11
                                 try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
@@ -314,7 +316,7 @@ namespace ReringProject.Sequence {
                                         fai.WasDatumSkipped = wasSkip; //260529 hbk Phase 39 WF-01 D-02
                                         fai.LastOverlays = faiOverlays; //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 저장 (노드 클릭 시 재현)
                                         //260610 hbk Phase 40.2 — FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
-                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, ShotParam != null ? ShotParam.OwnerSequenceName : ""); //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 공유 이미지 전달
+                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ShotParam != null ? ShotParam.OwnerSequenceName : ""); //260610 hbk Phase 40.2 hotfix CO-40.2-05/11 — 공유 이미지 + datum 스냅샷 전달
                                     } else {
                                         fai.ClearResult();
                                         if (fai.LastOverlays != null) fai.LastOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01 — Measurements 0 케이스 명시적 클리어
@@ -448,7 +450,33 @@ namespace ReringProject.Sequence {
         //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
         //260610 hbk Phase 40.2 hotfix CO-40.2-05 — sharedSrc(Shot당 1회 복사 공유)를 받아 origin/capture 요청에 ref 공유.
         //  검사 스레드는 더 이상 FAI별 CopyImage 하지 않음(throughput). 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
-        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, string sequenceName) {
+        //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이 스냅샷 빌드(시퀀스 단위). 검출 성공 datum 의 녹색 원 + 원점 십자만 추출.
+        private List<DatumCaptureOverlay> BuildDatumCaptureSnapshot(InspectionSequence parentSeq) {
+            if (parentSeq == null || parentSeq.DatumConfigs == null) return null; //260610 hbk Phase 40.2 hotfix CO-40.2-11
+            List<DatumCaptureOverlay> list = null;
+            foreach (var dc in parentSeq.DatumConfigs) {
+                if (dc == null) continue;
+                var cap = new DatumCaptureOverlay();
+                if (dc.CircleDetected_Radius > 0) { //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색)
+                    cap.HasCircle = true;
+                    cap.CircleRow = dc.CircleCenter_Row;
+                    cap.CircleCol = dc.CircleCenter_Col;
+                    cap.CircleRadius = dc.CircleDetected_Radius;
+                }
+                if (dc.LastFindSucceeded && (dc.DetectedOriginRow != 0.0 || dc.DetectedOriginCol != 0.0)) { //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자
+                    cap.HasOrigin = true;
+                    cap.OriginRow = dc.DetectedOriginRow;
+                    cap.OriginCol = dc.DetectedOriginCol;
+                }
+                if (cap.HasCircle || cap.HasOrigin) {
+                    if (list == null) list = new List<DatumCaptureOverlay>();
+                    list.Add(cap);
+                }
+            }
+            return list;
+        }
+
+        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName) {
             if (fai == null) return; //260610 hbk Phase 40.2
             var saver = SystemHandler.Handle.CaptureImageSaver;
             DateTime ts = DateTime.Now; //260610 hbk Phase 40.2 — origin/capture 동일 timestamp 공유 (쌍)
@@ -482,6 +510,7 @@ namespace ReringProject.Sequence {
                 Shared = sharedSrc,
                 NeedsRender = true,
                 Overlays = overlaySnapshot,
+                DatumOverlays = datumSnapshot, //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원) 포함
                 FileName = captureName,
                 IsCapture = true,
                 Timestamp = ts

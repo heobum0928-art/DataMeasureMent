@@ -19,6 +19,19 @@ namespace ReringProject.Halcon.Models
         }
     }
 
+    //260610 hbk Phase 40.2 hotfix CO-40.2-11 — capture 에 datum 검출 오버레이(녹색 원 + 중심/원점 십자) 포함용 스냅샷.
+    //  datum 은 시퀀스 단위 검출(모든 FAI 공유)이므로 검사 스레드에서 값만 추출해 워커로 전달(async race 차단).
+    public class DatumCaptureOverlay
+    {
+        public bool HasOrigin { get; set; }   //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자 표시 여부
+        public double OriginRow { get; set; }
+        public double OriginCol { get; set; }
+        public bool HasCircle { get; set; }    //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색) 표시 여부
+        public double CircleRow { get; set; }
+        public double CircleCol { get; set; }
+        public double CircleRadius { get; set; }
+    }
+
     public class EdgeInspectionOverlay
     {
         public string RoiId { get; set; }

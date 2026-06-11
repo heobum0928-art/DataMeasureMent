@@ -248,12 +248,15 @@ namespace ReringProject.Sequence {
 
         // Fixture API — DisplayName 폴백
         public string GetDisplayName() {
-            return string.IsNullOrEmpty(DisplayName) ? Name : DisplayName;
+            if (string.IsNullOrEmpty(DisplayName)) return Name;
+            return DisplayName;
         }
 
         // Multi-Datum add
         public DatumConfig AddDatum(string name = null) {
-            string datumName = string.IsNullOrEmpty(name) ? $"Datum_{DatumConfigs.Count + 1}" : name;
+            string datumName;
+            if (string.IsNullOrEmpty(name)) datumName = $"Datum_{DatumConfigs.Count + 1}";
+            else datumName = name;
             var datum = new DatumConfig(this);
             datum.DatumName = datumName;
             DatumConfigs.Add(datum);

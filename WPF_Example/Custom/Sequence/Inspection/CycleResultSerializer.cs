@@ -39,10 +39,12 @@ namespace ReringProject.Sequence
             string recipeName,
             string ownerSequenceName = null)
         {
+            string recipeNameStr = recipeName;
+            if (recipeNameStr == null) recipeNameStr = "";
             var dto = new CycleResultDto
             {
                 InspectionTime = when,
-                RecipeName = recipeName ?? "",
+                RecipeName = recipeNameStr,
                 OverallJudgement = MapJudgement(cycleResult)
                 // CycleFolderPath 는 SaveAsync 에서 계산 후 설정
             };
@@ -58,45 +60,63 @@ namespace ReringProject.Sequence
                 // 검사하지 않은 다른 시퀀스(예: BOTTOM 검사 시 TOP/SIDE) shot 이 cycle.json/리뷰어에 stale 로 찍히던 문제 해소.
                 if (!string.IsNullOrEmpty(ownerSequenceName))
                 {
-                    string shotOwner = string.IsNullOrEmpty(shot.OwnerSequenceName) ? "TOP" : shot.OwnerSequenceName; // SequenceHandler.SEQ_TOP 폴백 정책 일치
+                    string shotOwner;
+                    if (string.IsNullOrEmpty(shot.OwnerSequenceName)) shotOwner = "TOP";
+                    else shotOwner = shot.OwnerSequenceName; // SequenceHandler.SEQ_TOP 폴백 정책 일치
                     if (!string.Equals(shotOwner, ownerSequenceName, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
                 }
 
+                string shotName = shot.ShotName;
+                if (shotName == null) shotName = "";
+                string shotOwnerSeq = shot.OwnerSequenceName;
+                if (shotOwnerSeq == null) shotOwnerSeq = "";
+                string resultImagePath = shot.GetLatestImagePath();
+                if (resultImagePath == null) resultImagePath = "";
                 var shotDto = new ShotResultDto
                 {
-                    ShotName = shot.ShotName ?? "",
-                    OwnerSequenceName = shot.OwnerSequenceName ?? "",
-                    ResultImagePath = shot.GetLatestImagePath() ?? ""
+                    ShotName = shotName,
+                    OwnerSequenceName = shotOwnerSeq,
+                    ResultImagePath = resultImagePath
                     // GetLatestImagePath() = SimulImagePath — 측정 소스 이미지 (리뷰어 재로드용)
                     // SaveResultImage SaveFailImage 게이트에 의존하지 않음
                 };
 
                 foreach (var fai in shot.FAIList)
                 {
+                    string faiName = fai.FAIName;
+                    if (faiName == null) faiName = "";
+                    string originFileName = fai.LastOriginImageFileName;
+                    if (originFileName == null) originFileName = "";
+                    string captureFileName = fai.LastCaptureImageFileName;
+                    if (captureFileName == null) captureFileName = "";
+                    // FAIConfig.LastOverlays 는 [JsonIgnore] (INI 직렬화 제외) — DTO 계층에서 별도 복사하여 JSON 노출
+                    List<EdgeInspectionOverlay> overlaysSource;
+                    if (fai.LastOverlays != null) overlaysSource = fai.LastOverlays;
+                    else overlaysSource = new List<EdgeInspectionOverlay>();
                     var faiDto = new FaiResultDto
                     {
-                        FAIName = fai.FAIName ?? "",
+                        FAIName = faiName,
                         IsPass = fai.IsPass,
                         WasDatumSkipped = fai.WasDatumSkipped,
-                        OriginImageFileName = fai.LastOriginImageFileName ?? "",   // 검사 시점 write-back 파일명 복사
-                        CaptureImageFileName = fai.LastCaptureImageFileName ?? "",
-                        // FAIConfig.LastOverlays 는 [JsonIgnore] (INI 직렬화 제외용) —
-                        // DTO 계층에서 별도 복사하여 JSON 직렬화 노출
-                        LastOverlays = new List<EdgeInspectionOverlay>(
-                            fai.LastOverlays != null ? fai.LastOverlays : new List<EdgeInspectionOverlay>())
+                        OriginImageFileName = originFileName,   // 검사 시점 write-back 파일명 복사
+                        CaptureImageFileName = captureFileName,
+                        LastOverlays = new List<EdgeInspectionOverlay>(overlaysSource)
                     };
 
                     foreach (var meas in fai.Measurements)
                     {
+                        string measName;
+                        if (string.IsNullOrEmpty(meas.MeasurementName)) measName = meas.TypeName;
+                        else measName = meas.MeasurementName;
+                        string typeName = meas.TypeName;
+                        if (typeName == null) typeName = "";
                         var measDto = new MeasurementResultDto
                         {
-                            MeasurementName = string.IsNullOrEmpty(meas.MeasurementName)
-                                ? meas.TypeName
-                                : meas.MeasurementName,
-                            TypeName = meas.TypeName ?? "",
+                            MeasurementName = measName,
+                            TypeName = typeName,
                             NominalValue = meas.NominalValue,
                             TolerancePlus = meas.TolerancePlus,
                             ToleranceMinus = meas.ToleranceMinus,
@@ -112,10 +132,13 @@ namespace ReringProject.Sequence
                         if (dualMeas != null)
                         {
                             measDto.IsDualImage = true;
-                            measDto.HorizontalImagePath = !string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal)
-                                ? dualMeas.TeachingImagePath_Horizontal
-                                : shot.GetLatestImagePath();
-                            measDto.VerticalImagePath = dualMeas.TeachingImagePath_Vertical ?? "";
+                            if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal))
+                                measDto.HorizontalImagePath = dualMeas.TeachingImagePath_Horizontal;
+                            else
+                                measDto.HorizontalImagePath = shot.GetLatestImagePath();
+                            string verticalPath = dualMeas.TeachingImagePath_Vertical;
+                            if (verticalPath == null) verticalPath = "";
+                            measDto.VerticalImagePath = verticalPath;
                         }
 
                         faiDto.Measurements.Add(measDto);

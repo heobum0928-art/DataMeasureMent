@@ -5,9 +5,9 @@ using HalconDotNet;
 using ReringProject.Define;
 using ReringProject.Device;
 using ReringProject.Halcon.Algorithms;
-using ReringProject.Halcon.Display; //260610 hbk Phase 40.2 — OverlayCaptureRenderer 헤드리스 캡쳐
+using ReringProject.Halcon.Display;
 using ReringProject.Halcon.Models;
-using ReringProject.Setting; //260409 hbk Phase 4: ELogType for Datum error logging
+using ReringProject.Setting;
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -27,11 +27,10 @@ namespace ReringProject.Sequence {
 
     public class Action_FAIMeasurement : ActionBase {
 
-        //260413 hbk Phase 6: DatumPhase 스텝 추가 — Fixture TryRunDatumPhase 실행 위치 (D-09)
         private enum EStep {
             Init,
-            MoveZ,       //260409 hbk Phase 5: Z축 이동 스텝 (D-08)
-            DatumPhase,  //260413 hbk Phase 6: Multi-Datum 실행 (D-09)
+            MoveZ,
+            DatumPhase,
             Grab,
             Measure,
             End
@@ -39,8 +38,6 @@ namespace ReringProject.Sequence {
 
         private FAIMeasurementContext pMyContext;
         private VirtualCamera pCamera;
-        //260610 hbk Phase 40.2 hotfix CO-40.2-04 — capture 렌더는 CaptureImageSaveService 워커 스레드로 이전(throughput).
-        //  Action 은 더 이상 인라인 렌더하지 않음. OverlayCaptureRenderer.BuildMeasurePointSegment(static)만 사용.
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -60,12 +57,11 @@ namespace ReringProject.Sequence {
         public override ActionContext Run() {
             switch ((EStep)Step) {
                 case EStep.Init:
-                    //260510 hbk Phase 21: BUF-02 channel #2 — sequence reset 트리거 (Run 사이클 진입 시 image buffer + FAI results dispose)
+                    // Run 사이클 진입 시 image buffer + FAI results dispose
                     ShotParam?.ClearAllResults();
                     Step = (int)EStep.MoveZ;
                     break;
 
-                //260409 hbk Phase 5: Z축 이동 + SIMUL 이미지 준비 (D-08, D-10, D-11)
                 case EStep.MoveZ:
                     #if SIMUL_MODE
                     // SIMUL: Z축 이동 건너뜀, DelayMs 무시
@@ -78,66 +74,68 @@ namespace ReringProject.Sequence {
                     Step = (int)EStep.DatumPhase;
                     break;
 
-                //260413 hbk Phase 6: Fixture Multi-Datum 실행 단계 (D-04, D-09, D-10)
-                //260528 hbk Phase 37 D-37-02/04/05 — DatumConfigs[0] 단일 분기 제거. DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적. datum 부분 실패는 skip+log (lenient, abort 없음 — D-37-03).
+                // DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적.
+                // datum 부분 실패는 skip+log (lenient, abort 없음).
                 case EStep.DatumPhase: {
-                    var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null; //260528 hbk Phase 37
-                    if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) { //260528 hbk Phase 37
-                        parentSeq.ClearDatumTransforms(); //260528 hbk Phase 37 D-37-05 — loop 전 1회 초기화
-                        foreach (var datum in parentSeq.DatumConfigs) { //260528 hbk Phase 37 D-37-04/05 — per-datum loop, mixed algorithm 허용
-                            if (datum == null) continue; //260528 hbk Phase 37
-                            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) { //260528 hbk Phase 37 D-37-04 — datum별 판단
-                                HImage imgH = null, imgV = null; //260528 hbk Phase 37
+                    var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
+                    if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
+                        parentSeq.ClearDatumTransforms();
+                        foreach (var datum in parentSeq.DatumConfigs) {
+                            if (datum == null) continue;
+                            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                                HImage imgH = null, imgV = null;
                                 try {
-                                    if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) { //260528 hbk Phase 37 D-37-02 — per-datum
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' DualImage 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
-                                        datum.LastFindSucceeded = false; //260529 hbk Phase 39 hotfix CO-39-01 — 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
-                                        datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
-                                        parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
-                                        continue; //260528 hbk Phase 37 D-37-03 — datum skip, abort 안 함
+                                    if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) {
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' DualImage 취득 실패 (skip)");
+                                        // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
+                                        datum.LastFindSucceeded = false;
+                                        // 티칭 여부 무관 라벨 신호
+                                        datum.RuntimeDetectFailed = true;
+                                        // per-FAI gate 신호 기록
+                                        parentSeq.MarkDatumFailed(datum.DatumName);
+                                        continue; // datum skip, abort 안 함
                                     }
-                                    string derr; //260528 hbk Phase 37
-                                    if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { //260528 hbk Phase 37 D-37-05
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
-                                        datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
-                                        parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
+                                    string derr;
+                                    if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) {
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? ""));
+                                        datum.RuntimeDetectFailed = true;
+                                        parentSeq.MarkDatumFailed(datum.DatumName);
                                     }
                                 } finally {
-                                    if (imgH != null) { try { imgH.Dispose(); } catch { } } //260528 hbk Phase 37
-                                    if (imgV != null) { try { imgV.Dispose(); } catch { } } //260528 hbk Phase 37
+                                    if (imgH != null) { try { imgH.Dispose(); } catch { } }
+                                    if (imgV != null) { try { imgV.Dispose(); } catch { } }
                                 }
-                            } else { //260528 hbk Phase 37 — 1-image datum
-                                HImage img = GrabOrLoadDatumImage(datum); //260528 hbk Phase 37 D-37-02 — per-datum 오버로드
-                                if (img == null) { //260528 hbk Phase 37
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 이미지 취득 실패 (skip)"); //260528 hbk Phase 37 D-37-03
-                                    datum.LastFindSucceeded = false; //260529 hbk Phase 39 hotfix CO-39-01 — 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
-                                    datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
-                                    parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
-                                    continue; //260528 hbk Phase 37
+                            } else { // 1-image datum
+                                HImage img = GrabOrLoadDatumImage(datum);
+                                if (img == null) {
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 이미지 취득 실패 (skip)");
+                                    datum.LastFindSucceeded = false;
+                                    datum.RuntimeDetectFailed = true;
+                                    parentSeq.MarkDatumFailed(datum.DatumName);
+                                    continue;
                                 }
                                 try {
-                                    string derr; //260528 hbk Phase 37
-                                    if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { //260528 hbk Phase 37 D-37-05
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? "")); //260528 hbk Phase 37 D-37-03
-                                        datum.RuntimeDetectFailed = true; //260529 hbk Phase 39 hotfix CO-39-02 — 강력 모드: 티칭 여부 무관 라벨 신호
-                                        parentSeq.MarkDatumFailed(datum.DatumName); //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate 신호 기록
+                                    string derr;
+                                    if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) {
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? ""));
+                                        datum.RuntimeDetectFailed = true;
+                                        parentSeq.MarkDatumFailed(datum.DatumName);
                                     }
                                 } finally {
-                                    img.Dispose(); //260528 hbk Phase 37
+                                    img.Dispose();
                                 }
                             }
                         }
                     }
-                    // DatumConfigs 비어있으면 무보정 pass-through (D-10) — abort 없음 (D-37-03 lenient)
-                    Step = (int)EStep.Grab; //260528 hbk Phase 37 — datum 부분 실패해도 측정 진행
+                    // DatumConfigs 비어있으면 무보정 pass-through — abort 없음 (lenient)
+                    Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행
                     break;
                 }
 
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
                         HImage image = null;
-                        //260511 hbk Phase 22 IMG-02 — ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능 (UAT Test 2).
-                        //260409 hbk Phase 5: SimulImagePath 이미지 로드 (D-10)
+                        // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
                         #if SIMUL_MODE
                         if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
                             try {
@@ -162,117 +160,113 @@ namespace ReringProject.Sequence {
                     Step = (int)EStep.Measure;
                     break;
 
-                //260413 hbk Phase 6: FAI 루프 → Measurement 루프로 재설계 (D-09, D-10, D-20)
-                //260422 hbk Phase 7: overlay 누적 + 판정 suffix 부여 (D-04 ~ D-08)
                 case EStep.Measure: {
                     var parentSeq2 = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
                     bool allPass = true;
                     int measuredCount = 0;
-                    var overlayAcc = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: Shot 단위 overlay 누적 (D-04, D-05)
+                    var overlayAcc = new List<EdgeInspectionOverlay>(); // Shot 단위 overlay 누적
                     if (ShotParam != null) {
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
-                                //260610 hbk Phase 40.2 hotfix CO-40.2-05 — Shot당 1회 복사 공유(refcount). 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
-                                //  한 Shot 의 모든 FAI origin/capture 요청이 이 1개 복사본을 공유. capSaver 없으면 복사 자체 생략.
+                                // Shot당 1회 복사 공유(refcount). 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
+                                // 한 Shot 의 모든 FAI origin/capture 요청이 이 1개 복사본을 공유. capSaver 없으면 복사 자체 생략.
                                 var capSaver = SystemHandler.Handle.CaptureImageSaver;
                                 SharedHImage sharedSrc = null;
                                 if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
-                                //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원/원점) 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
-                                List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2); //260610 hbk Phase 40.2 hotfix CO-40.2-11
+                                // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
+                                List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
                                 try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
-                                    var faiOverlays = new List<EdgeInspectionOverlay>(); //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
+                                    var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
                                     foreach (var meas in fai.Measurements) {
-                                        //260529 hbk Phase 39 WF-01 D-01 — per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
-                                        //  L119 Step=Grab 변경 안 함 (Phase 37 D-37-03 lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
-                                        //  빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
-                                        if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef)) //260529 hbk Phase 39 WF-01 D-01
+                                        // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
+                                        // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
+                                        // 빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
+                                        if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
                                         {
-                                            meas.ClearResult(); //260529 hbk Phase 39 WF-01 D-01 — runtime 결과 클리어
-                                            meas.LastSkipReason = "DATUM_FAIL"; //260529 hbk Phase 39 WF-01 D-02 — UI 'DETECT FAIL' 라벨 + Excel export 분기 신호
-                                            meas.LastJudgement = false; //260529 hbk Phase 39 WF-01 D-01 — faiAllPass=false 누적 (skip 도 NG 강도)
-                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' skipped — datum '" + (meas.DatumRef ?? "") + "' 검출 실패 (D-01)"); //260529 hbk Phase 39 WF-01 D-01
-                                            faiAllPass = false; //260529 hbk Phase 39 WF-01 D-01 — 외부 if(!meas.LastJudgement) 와 의미 동일이지만 명시
-                                            measuredCount++; //260529 hbk Phase 39 WF-01 D-01 — measuredCount 도 증가 (시도 회수 통계)
-                                            continue; //260529 hbk Phase 39 WF-01 D-01 — 다음 measurement 진행 (TryExecute 호출 안 함)
+                                            meas.ClearResult();
+                                            meas.LastSkipReason = "DATUM_FAIL"; // UI 'DETECT FAIL' 라벨 + Excel export 분기 신호
+                                            meas.LastJudgement = false; // skip 도 NG 강도
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' skipped — datum '" + (meas.DatumRef ?? "") + "' 검출 실패 (D-01)");
+                                            faiAllPass = false;
+                                            measuredCount++; // 시도 회수 통계
+                                            continue; // 다음 measurement 진행 (TryExecute 호출 안 함)
                                         }
                                         HTuple transform;
                                         if (parentSeq2 == null || !parentSeq2.TryGetDatumTransform(meas.DatumRef, out transform)) {
-                                            //260413 hbk Fixture 미존재 또는 미지정 DatumRef → identity fallback
+                                            // Fixture 미존재 또는 미지정 DatumRef → identity fallback
                                             try {
                                                 HOperatorSet.HomMat2dIdentity(out transform);
                                             } catch {
                                                 transform = new HTuple();
                                             }
                                         }
-                                        //260519 hbk Phase 31 D-03 removed — EdgeToLineDistanceMeasurement 하드코딩 제거
-                                        //260519 hbk Phase 31 D-03 — IDatumOriginConsumer 일반화 (기존 EdgeToLineDistanceMeasurement 하드코딩 제거)
-                                        //  EStep.DatumPhase 가 EStep.Measure 보다 먼저 실행되므로 DetectedOrigin* 는 채워져 있음.
-                                        var consumer = meas as IDatumOriginConsumer; //260519 hbk Phase 31 D-03
-                                        if (consumer != null) //260519 hbk Phase 31 D-03
+                                        // IDatumOriginConsumer 일반화. EStep.DatumPhase 가 EStep.Measure 보다 먼저 실행되므로 DetectedOrigin* 는 채워져 있음.
+                                        var consumer = meas as IDatumOriginConsumer;
+                                        if (consumer != null)
                                         {
-                                            DatumConfig dc = null; //260519 hbk Phase 31 D-03
-                                            if (parentSeq2 != null && parentSeq2.DatumConfigs != null //260519 hbk Phase 31 D-03
-                                                && !string.IsNullOrEmpty(meas.DatumRef)) //260519 hbk Phase 31 D-03
+                                            DatumConfig dc = null;
+                                            if (parentSeq2 != null && parentSeq2.DatumConfigs != null
+                                                && !string.IsNullOrEmpty(meas.DatumRef))
                                             {
-                                                foreach (var d in parentSeq2.DatumConfigs) //260519 hbk Phase 31 D-03
+                                                foreach (var d in parentSeq2.DatumConfigs)
                                                 {
-                                                    if (d != null && d.DatumName == meas.DatumRef) { dc = d; break; } //260519 hbk Phase 31 D-03
+                                                    if (d != null && d.DatumName == meas.DatumRef) { dc = d; break; }
                                                 }
                                             }
-                                            if (dc != null) //260519 hbk Phase 31 D-03
+                                            if (dc != null)
                                             {
-                                                consumer.DatumOriginRow = dc.DetectedOriginRow; //260519 hbk Phase 31 D-03
-                                                consumer.DatumOriginCol = dc.DetectedOriginCol; //260519 hbk Phase 31 D-03
-                                                consumer.DatumAngleRad  = dc.DetectedRefAngle;  //260519 hbk Phase 31 D-03
-                                                consumer.DatumAngle2Rad = dc.DetectedRefAngle2; //260519 hbk Phase 31 hotfix#3 — 수직 기준선 각도
-                                                consumer.DatumDetectedCircleRow = dc.DetectedCircleRow; //260521 hbk Phase 32 — E2 CompoundAngle 원중심 주입
-                                                consumer.DatumDetectedCircleCol = dc.DetectedCircleCol; //260521 hbk Phase 32
+                                                consumer.DatumOriginRow = dc.DetectedOriginRow;
+                                                consumer.DatumOriginCol = dc.DetectedOriginCol;
+                                                consumer.DatumAngleRad  = dc.DetectedRefAngle;
+                                                consumer.DatumAngle2Rad = dc.DetectedRefAngle2; // 수직 기준선 각도
+                                                consumer.DatumDetectedCircleRow = dc.DetectedCircleRow; // CompoundAngle 원중심 주입
+                                                consumer.DatumDetectedCircleCol = dc.DetectedCircleCol;
                                             }
-                                            else //260519 hbk Phase 31 D-03 — DatumRef 미지정 또는 매칭 Datum 없음 → 미주입
+                                            else // DatumRef 미지정 또는 매칭 Datum 없음 → 미주입
                                             {
-                                                consumer.DatumOriginRow = 0.0; //260519 hbk Phase 31 D-03
-                                                consumer.DatumOriginCol = 0.0; //260519 hbk Phase 31 D-03
-                                                consumer.DatumAngleRad  = 0.0; //260519 hbk Phase 31 D-03
-                                                consumer.DatumAngle2Rad = 0.0; //260519 hbk Phase 31 hotfix#3
-                                                consumer.DatumDetectedCircleRow = 0.0; //260521 hbk Phase 32
-                                                consumer.DatumDetectedCircleCol = 0.0; //260521 hbk Phase 32
+                                                consumer.DatumOriginRow = 0.0;
+                                                consumer.DatumOriginCol = 0.0;
+                                                consumer.DatumAngleRad  = 0.0;
+                                                consumer.DatumAngle2Rad = 0.0;
+                                                consumer.DatumDetectedCircleRow = 0.0;
+                                                consumer.DatumDetectedCircleCol = 0.0;
                                             }
                                         }
                                         double resultValue;
                                         string measError;
-                                        List<EdgeInspectionOverlay> measOverlays; //260422 hbk Phase 7: (D-01)
+                                        List<EdgeInspectionOverlay> measOverlays;
                                         bool ok = false;
-                                        //260530 hbk Phase 39.2 D-G1 — DualImage 타입 분기: 양 이미지 별도 로드 → RuntimeImageA/B 주입 → TryExecute → dispose
-                                        if (meas is DualImageEdgeDistanceMeasurement dualMeas) { //260530 hbk Phase 39.2 D-G1
-                                            HImage imgA = null, imgB = null; //260530 hbk Phase 39.2 D-G1
+                                        // DualImage 타입 분기: 양 이미지 별도 로드 → RuntimeImageA/B 주입 → TryExecute → dispose
+                                        if (meas is DualImageEdgeDistanceMeasurement dualMeas) {
+                                            HImage imgA = null, imgB = null;
                                             try {
-                                                if (TryGrabOrLoadFaiDualImages(meas, out imgA, out imgB)) { //260530 hbk Phase 39.2 D-G1
-                                                    dualMeas.RuntimeImageA = imgA; //260530 hbk Phase 39.2 D-G1 — transient property, TryExecute 가 image 인자 무시
-                                                    dualMeas.RuntimeImageB = imgB; //260530 hbk Phase 39.2 D-G1
+                                                if (TryGrabOrLoadFaiDualImages(meas, out imgA, out imgB)) {
+                                                    dualMeas.RuntimeImageA = imgA; // transient property, TryExecute 가 image 인자 무시
+                                                    dualMeas.RuntimeImageB = imgB;
                                                     try {
-                                                        ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays); //260530 hbk Phase 39.2 D-G1 — 시그니처 변경 0
+                                                        ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays);
                                                     } catch (Exception ex) {
-                                                        ok = false; resultValue = 0; measError = ex.Message; measOverlays = null; //260530 hbk Phase 39.2 D-G1
+                                                        ok = false; resultValue = 0; measError = ex.Message; measOverlays = null;
                                                     }
                                                 } else {
-                                                    ok = false; resultValue = 0; measError = "DualImage 이미지 로드 실패"; measOverlays = null; //260530 hbk Phase 39.2 D-G1
+                                                    ok = false; resultValue = 0; measError = "DualImage 이미지 로드 실패"; measOverlays = null;
                                                 }
                                             } finally {
-                                                if (imgA != null) { try { imgA.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1
-                                                if (imgB != null) { try { imgB.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1
-                                                dualMeas.RuntimeImageA = null; //260530 hbk Phase 39.2 D-G1
-                                                dualMeas.RuntimeImageB = null; //260530 hbk Phase 39.2 D-G1
+                                                if (imgA != null) { try { imgA.Dispose(); } catch { } }
+                                                if (imgB != null) { try { imgB.Dispose(); } catch { } }
+                                                dualMeas.RuntimeImageA = null;
+                                                dualMeas.RuntimeImageB = null;
                                             }
-                                        } else { //260530 hbk Phase 39.2 D-G1 — 기존 1-image 경로 (회귀 0)
+                                        } else { // 기존 1-image 경로
                                             try {
-                                                ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays); //260422 hbk Phase 7: 6-param (D-01)
+                                                ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays);
                                             } catch (Exception ex) {
                                                 ok = false;
                                                 resultValue = 0;
                                                 measError = ex.Message;
-                                                measOverlays = null; //260422 hbk Phase 7: 예외 경로 null-safe (D-02)
+                                                measOverlays = null; // 예외 경로 null-safe
                                             }
                                         }
                                         if (ok) {
@@ -282,7 +276,7 @@ namespace ReringProject.Sequence {
                                             meas.ClearResult();
                                             meas.LastJudgement = false;
                                         }
-                                        //260422 hbk Phase 7: FAI-Edge* overlay에 판정 suffix 부여 (D-06, D-07, D-08)
+                                        // FAI-Edge* overlay에 판정 suffix 부여
                                         if (measOverlays != null) {
                                             string suffix = meas.LastJudgement ? "-OK" : "-NG";
                                             foreach (var ov in measOverlays) {
@@ -291,39 +285,39 @@ namespace ReringProject.Sequence {
                                                 if (ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) {
                                                     ov.RoiId = ov.RoiId + suffix;
                                                 }
-                                                //260422 hbk FAI-DistLine 등은 suffix 미부여 — 청록 고정 (D-07)
+                                                // FAI-DistLine 등은 suffix 미부여 — 청록 고정
                                             }
-                                            overlayAcc.AddRange(measOverlays); //260422 hbk Phase 7: Shot 단위 누적 (D-04)
-                                            faiOverlays.AddRange(measOverlays); //260529 hbk Phase 39.1-03 G4-01 — per-FAI 누적 (노드 클릭 재현용)
+                                            overlayAcc.AddRange(measOverlays); // Shot 단위 누적
+                                            faiOverlays.AddRange(measOverlays); // per-FAI 누적 (노드 클릭 재현용)
                                         }
                                         if (!meas.LastJudgement) {
                                             faiAllPass = false;
                                         }
                                         measuredCount++;
                                     }
-                                    //260413 hbk FAIConfig legacy 필드(IsPass/MeasuredValue)에 대표 결과 집계 —
+                                    // FAIConfig legacy 필드(IsPass/MeasuredValue)에 대표 결과 집계 —
                                     // 첫 Measurement 결과를 사용해 UI/TCP 호환 유지
                                     if (fai.Measurements.Count > 0) {
                                         fai.IsPass = faiAllPass;
                                         fai.MeasuredValue = fai.Measurements[0].LastMeasuredValue;
-                                        //260529 hbk Phase 39 WF-01 D-02 — fai 하위 measurement 중 1건이라도 DATUM_FAIL 이면 fai 도 datum-skip 마크.
-                                        //  Plan 02 AddResponse 가 anyDatumSkip 누적용으로 사용 (cycle = NotExist 분기). System.Linq 도입 회피 — for-loop.
-                                        bool wasSkip = false; //260529 hbk Phase 39 WF-01 D-02
-                                        foreach (var m in fai.Measurements) //260529 hbk Phase 39 WF-01 D-02
+                                        // fai 하위 measurement 중 1건이라도 DATUM_FAIL 이면 fai 도 datum-skip 마크.
+                                        // AddResponse 가 anyDatumSkip 누적용으로 사용 (cycle = NotExist 분기). System.Linq 도입 회피 — for-loop.
+                                        bool wasSkip = false;
+                                        foreach (var m in fai.Measurements)
                                         {
-                                            if (m != null && m.LastSkipReason == "DATUM_FAIL") { wasSkip = true; break; } //260529 hbk Phase 39 WF-01 D-02
+                                            if (m != null && m.LastSkipReason == "DATUM_FAIL") { wasSkip = true; break; }
                                         }
-                                        fai.WasDatumSkipped = wasSkip; //260529 hbk Phase 39 WF-01 D-02
-                                        fai.LastOverlays = faiOverlays; //260529 hbk Phase 39.1-03 G4-01 — per-FAI overlay 저장 (노드 클릭 시 재현)
-                                        //260610 hbk Phase 40.2 — FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
-                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ShotParam != null ? ShotParam.OwnerSequenceName : ""); //260610 hbk Phase 40.2 hotfix CO-40.2-05/11 — 공유 이미지 + datum 스냅샷 전달
+                                        fai.WasDatumSkipped = wasSkip;
+                                        fai.LastOverlays = faiOverlays; // per-FAI overlay 저장 (노드 클릭 시 재현)
+                                        // FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
+                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ShotParam != null ? ShotParam.OwnerSequenceName : "");
                                     } else {
                                         fai.ClearResult();
-                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear(); //260529 hbk Phase 39.1-03 G4-01 — Measurements 0 케이스 명시적 클리어
+                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear(); // Measurements 0 케이스 명시적 클리어
                                     }
                                     if (!faiAllPass) allPass = false;
                                 }
-                                } finally { //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
+                                } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
                                     if (sharedSrc != null) sharedSrc.Release();
                                 }
                             }
@@ -331,7 +325,7 @@ namespace ReringProject.Sequence {
                     }
                     pMyContext.AllPass = allPass;
                     pMyContext.MeasuredCount = measuredCount;
-                    pMyContext.InspectionOverlays = overlayAcc; //260422 hbk Phase 7: 초기화 라인 교체 — overlay 누적 결과 반영 (D-04, Gap I1)
+                    pMyContext.InspectionOverlays = overlayAcc; // overlay 누적 결과 반영
                     Step = (int)EStep.End;
                     break;
                 }
@@ -343,132 +337,125 @@ namespace ReringProject.Sequence {
             return Context;
         }
 
-        //260528 hbk Phase 37 D-37-02 — per-datum 1-image 로드 (TeachingImagePath → SimulImagePath 폴백 → grab). datum 인자 명시.
+        // per-datum 1-image 로드 (TeachingImagePath → SimulImagePath 폴백 → grab).
         private HImage GrabOrLoadDatumImage(DatumConfig datum) {
-            if (ShotParam == null) return null; //260528 hbk Phase 37
-            HImage image = null; //260528 hbk Phase 37
-            string teachingPath = (datum != null) ? datum.TeachingImagePath : null; //260528 hbk Phase 37 D-37-02
+            if (ShotParam == null) return null;
+            HImage image = null;
+            string teachingPath = (datum != null) ? datum.TeachingImagePath : null;
             #if SIMUL_MODE
-            if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) { //260528 hbk Phase 37
-                try { image = new HImage(teachingPath); } catch { image = null; } //260528 hbk Phase 37
+            if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) {
+                try { image = new HImage(teachingPath); } catch { image = null; }
             }
-            if (image == null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { //260528 hbk Phase 37 — 회귀 0 폴백
-                try { image = new HImage(ShotParam.SimulImagePath); } catch { image = null; } //260528 hbk Phase 37
+            if (image == null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { // 폴백
+                try { image = new HImage(ShotParam.SimulImagePath); } catch { image = null; }
             }
-            if (image == null) { image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam); } //260528 hbk Phase 37
+            if (image == null) { image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam); }
             #else
-            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam); //260528 hbk Phase 37
+            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
             #endif
-            return image; //260528 hbk Phase 37
+            return image;
         }
 
-        //260527 hbk Phase 34 D-34-13 — DualImage 변형용 두 이미지 동시 로드.
-        //260528 hbk Phase 37 D-37-02 — DatumConfigs[0] 한정 제거, datum 인자 명시 (per-datum 로드).
+        // DualImage 변형용 두 이미지 동시 로드 (per-datum).
         //  imageHorizontal: datum.TeachingImagePath 에서 로드 (가로축 ROI 검출용)
         //  imageVertical:   datum.TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
         //  빈 경로 또는 파일 없음 / HImage 생성 실패 시 false + 로그.
-        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) { //260528 hbk Phase 37 D-37-02 — DatumConfigs[0] 한정 제거, datum 인자
-            imageHorizontal = null; //260527 hbk Phase 34
-            imageVertical = null; //260527 hbk Phase 34
-            if (datum == null) { //260528 hbk Phase 37 D-37-02 — datum null 가드
-                Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: datum 이 null 입니다."); //260528 hbk Phase 37 D-37-02
-                return false; //260528 hbk Phase 37 D-37-02
+        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) {
+            imageHorizontal = null;
+            imageVertical = null;
+            if (datum == null) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: datum 이 null 입니다.");
+                return false;
             }
-            string pathH = datum.TeachingImagePath; //260528 hbk Phase 37 D-37-02 — 인자 datum 에서 읽음
-            string pathV = datum.TeachingImagePath_Vertical; //260528 hbk Phase 37 D-37-02 — 인자 datum 에서 읽음
+            string pathH = datum.TeachingImagePath;
+            string pathV = datum.TeachingImagePath_Vertical;
 
-            if (string.IsNullOrEmpty(pathH) || !File.Exists(pathH)) { //260527 hbk Phase 34 D-34-09
-                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage)."); //260527 hbk Phase 34 D-34-10
-                return false; //260527 hbk Phase 34
+            if (string.IsNullOrEmpty(pathH) || !File.Exists(pathH)) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage).");
+                return false;
             }
-            if (string.IsNullOrEmpty(pathV) || !File.Exists(pathV)) { //260527 hbk Phase 34 D-34-09
-                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage)."); //260527 hbk Phase 34 D-34-10
-                return false; //260527 hbk Phase 34
+            if (string.IsNullOrEmpty(pathV) || !File.Exists(pathV)) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage).");
+                return false;
             }
 
-            try { imageHorizontal = new HImage(pathH); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 이미지 로드 실패: " + ex.Message); imageHorizontal = null; } //260527 hbk Phase 34
-            try { imageVertical = new HImage(pathV); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 이미지 로드 실패: " + ex.Message); imageVertical = null; } //260527 hbk Phase 34
+            try { imageHorizontal = new HImage(pathH); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 이미지 로드 실패: " + ex.Message); imageHorizontal = null; }
+            try { imageVertical = new HImage(pathV); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 이미지 로드 실패: " + ex.Message); imageVertical = null; }
 
-            if (imageHorizontal == null || imageVertical == null) { //260527 hbk Phase 34
-                if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } } //260527 hbk Phase 34
-                if (imageVertical != null) { try { imageVertical.Dispose(); } catch { } } //260527 hbk Phase 34
-                imageHorizontal = null; //260527 hbk Phase 34
-                imageVertical = null; //260527 hbk Phase 34
-                return false; //260527 hbk Phase 34
+            if (imageHorizontal == null || imageVertical == null) {
+                if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } }
+                if (imageVertical != null) { try { imageVertical.Dispose(); } catch { } }
+                imageHorizontal = null;
+                imageVertical = null;
+                return false;
             }
-            return true; //260527 hbk Phase 34
+            return true;
         }
 
-        //260530 hbk Phase 39.2 D-G1-06 — DualImageEdgeDistanceMeasurement 측정용 양 이미지 로드.
-        //  imageA: ShotParam.SimulImagePath (1차) — PointROI 검출용 (FAI 1차 이미지 = Shot 검사 이미지 재사용, 회귀 0 baseline).
-        //  imageB: meas.TeachingImagePath_Vertical (2차) — LineROI 검출용 (D-G1-03 슬롯 컨벤션).
-        //  P37 TryGrabOrLoadDualDatumImages 동형 패턴 — 경로 빈/파일없음 → false + 로그.
-        //  HImage 한쪽 생성 실패 시 양쪽 Dispose + false (메모리 누수 방지).
-        private bool TryGrabOrLoadFaiDualImages(MeasurementBase meas, out HImage imageA, out HImage imageB) { //260530 hbk Phase 39.2 D-G1-06
-            imageA = null; //260530 hbk Phase 39.2 D-G1-06
-            imageB = null; //260530 hbk Phase 39.2 D-G1-06
-            if (ShotParam == null) { //260530 hbk Phase 39.2 D-G1-06
-                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] ShotParam null"); //260530 hbk Phase 39.2 D-G1-06
-                return false; //260530 hbk Phase 39.2 D-G1-06
+        // DualImageEdgeDistanceMeasurement 측정용 양 이미지 로드.
+        //  imageA: ShotParam.SimulImagePath (1차) — PointROI 검출용 (FAI 1차 이미지 = Shot 검사 이미지 재사용).
+        //  imageB: meas.TeachingImagePath_Vertical (2차) — LineROI 검출용.
+        //  경로 빈/파일없음 → false + 로그. HImage 한쪽 생성 실패 시 양쪽 Dispose + false (메모리 누수 방지).
+        private bool TryGrabOrLoadFaiDualImages(MeasurementBase meas, out HImage imageA, out HImage imageB) {
+            imageA = null;
+            imageB = null;
+            if (ShotParam == null) {
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] ShotParam null");
+                return false;
             }
-            var dualMeas = meas as DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.2 D-G1-06
-            if (dualMeas == null) { //260530 hbk Phase 39.2 D-G1-06
-                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] meas 가 DualImageEdgeDistanceMeasurement 가 아닙니다"); //260530 hbk Phase 39.2 D-G1-06
-                return false; //260530 hbk Phase 39.2 D-G1-06
+            var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+            if (dualMeas == null) {
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] meas 가 DualImageEdgeDistanceMeasurement 가 아닙니다");
+                return false;
             }
-            //260530 hbk Phase 39.4 D-G1 — PointROI 이미지 = Measurement 명시 경로 우선, 빈/파일 부재 시 ShotConfig.SimulImagePath fallback (Phase 39.2 baseline 회귀 0). ternary 회피 (RESEARCH R3 — 명시적 if/else 로 회귀 표면 최소화).
+            // PointROI 이미지 = Measurement 명시 경로 우선, 빈/파일 부재 시 ShotConfig.SimulImagePath fallback. ternary 회피 — 명시적 if/else 로 회귀 표면 최소화.
             string pathA;
-            if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal)) { //260530 hbk Phase 39.4 D-G1
-                pathA = dualMeas.TeachingImagePath_Horizontal; //260530 hbk Phase 39.4 D-G1 — Measurement 명시 경로
+            if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal)) {
+                pathA = dualMeas.TeachingImagePath_Horizontal; // Measurement 명시 경로
             }
             else {
-                pathA = ShotParam.SimulImagePath; //260530 hbk Phase 39.4 D-G1 — fallback (Phase 39.2 baseline)
+                pathA = ShotParam.SimulImagePath; // fallback
             }
-            string pathB = dualMeas.TeachingImagePath_Vertical; //260530 hbk Phase 39.2 D-G1-06 — LineROI 이미지 = meas 별도 경로
+            string pathB = dualMeas.TeachingImagePath_Vertical; // LineROI 이미지 = meas 별도 경로
 
-            if (string.IsNullOrEmpty(pathA) || !File.Exists(pathA)) { //260530 hbk Phase 39.2 D-G1-06
-                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 경로 비어 있거나 파일 없음 (SimulImagePath)"); //260530 hbk Phase 39.2 D-G1-06
-                return false; //260530 hbk Phase 39.2 D-G1-06
+            if (string.IsNullOrEmpty(pathA) || !File.Exists(pathA)) {
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 경로 비어 있거나 파일 없음 (SimulImagePath)");
+                return false;
             }
-            if (string.IsNullOrEmpty(pathB) || !File.Exists(pathB)) { //260530 hbk Phase 39.2 D-G1-06
-                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 경로 비어 있거나 파일 없음 (TeachingImagePath_Vertical)"); //260530 hbk Phase 39.2 D-G1-06
-                return false; //260530 hbk Phase 39.2 D-G1-06
+            if (string.IsNullOrEmpty(pathB) || !File.Exists(pathB)) {
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 경로 비어 있거나 파일 없음 (TeachingImagePath_Vertical)");
+                return false;
             }
-            try { imageA = new HImage(pathA); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 로드 실패: " + ex.Message); imageA = null; } //260530 hbk Phase 39.2 D-G1-06
-            try { imageB = new HImage(pathB); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 로드 실패: " + ex.Message); imageB = null; } //260530 hbk Phase 39.2 D-G1-06
-            if (imageA == null || imageB == null) { //260530 hbk Phase 39.2 D-G1-06
-                if (imageA != null) { try { imageA.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1-06
-                if (imageB != null) { try { imageB.Dispose(); } catch { } } //260530 hbk Phase 39.2 D-G1-06
-                imageA = null; imageB = null; //260530 hbk Phase 39.2 D-G1-06
-                return false; //260530 hbk Phase 39.2 D-G1-06
+            try { imageA = new HImage(pathA); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 로드 실패: " + ex.Message); imageA = null; }
+            try { imageB = new HImage(pathB); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 로드 실패: " + ex.Message); imageB = null; }
+            if (imageA == null || imageB == null) {
+                if (imageA != null) { try { imageA.Dispose(); } catch { } }
+                if (imageB != null) { try { imageB.Dispose(); } catch { } }
+                imageA = null; imageB = null;
+                return false;
             }
-            return true; //260530 hbk Phase 39.2 D-G1-06
+            return true;
         }
 
-        //260610 hbk Phase 40.2 — FAI별 원본/캡쳐 이미지를 비동기 저장 큐에 넣고, 파일명을 fai 에 동기 write-back.
-        //  파일명은 BuildDto(AddResponse) 가 읽으므로 enqueue 전에 동기 확정. PNG write 만 워커가 비동기 수행.
-        //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
-        //260610 hbk Phase 40.2 hotfix CO-40.2-05 — sharedSrc(Shot당 1회 복사 공유)를 받아 origin/capture 요청에 ref 공유.
-        //  검사 스레드는 더 이상 FAI별 CopyImage 하지 않음(throughput). 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
-        //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이 스냅샷 빌드(시퀀스 단위). 검출 성공 datum 의 녹색 원 + 원점 십자만 추출.
+        // 검출 성공 datum 의 녹색 원 + 원점 십자만 추출. 값만 복사해 워커 async race 차단.
         private List<DatumCaptureOverlay> BuildDatumCaptureSnapshot(InspectionSequence parentSeq) {
-            if (parentSeq == null || parentSeq.DatumConfigs == null) return null; //260610 hbk Phase 40.2 hotfix CO-40.2-11
+            if (parentSeq == null || parentSeq.DatumConfigs == null) return null;
             List<DatumCaptureOverlay> list = null;
             foreach (var dc in parentSeq.DatumConfigs) {
                 if (dc == null) continue;
                 var cap = new DatumCaptureOverlay();
-                if (dc.CircleDetected_Radius > 0) { //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색)
+                if (dc.CircleDetected_Radius > 0) { // 검출 원(녹색)
                     cap.HasCircle = true;
-                    //260610 hbk Phase 40.2 hotfix CO-40.2-13 — 중심 fallback: CircleCenter 0(런타임 미갱신) 이면 DetectedOrigin 사용(원중심≈원점).
+                    // 중심 fallback: CircleCenter 0(런타임 미갱신) 이면 DetectedOrigin 사용(원중심≈원점).
                     cap.CircleRow = (dc.CircleCenter_Row != 0.0) ? dc.CircleCenter_Row : dc.DetectedOriginRow;
                     cap.CircleCol = (dc.CircleCenter_Col != 0.0) ? dc.CircleCenter_Col : dc.DetectedOriginCol;
                     cap.CircleRadius = dc.CircleDetected_Radius;
                 }
-                if (dc.LastFindSucceeded && (dc.DetectedOriginRow != 0.0 || dc.DetectedOriginCol != 0.0)) { //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자
+                if (dc.LastFindSucceeded && (dc.DetectedOriginRow != 0.0 || dc.DetectedOriginCol != 0.0)) { // 검출 원점 십자
                     cap.HasOrigin = true;
                     cap.OriginRow = dc.DetectedOriginRow;
                     cap.OriginCol = dc.DetectedOriginCol;
-                    //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 검출 기준선(축). 1차=DetectedRefAngle(각도 0 도 유효), 2차=DetectedRefAngle2(0 이면 단일축 datum → 미표시).
+                    // 검출 기준선(축). 1차=DetectedRefAngle(각도 0 도 유효), 2차=DetectedRefAngle2(0 이면 단일축 datum → 미표시).
                     cap.HasAxis1 = true;
                     cap.Axis1AngleRad = dc.DetectedRefAngle;
                     if (dc.DetectedRefAngle2 != 0.0) {
@@ -484,23 +471,27 @@ namespace ReringProject.Sequence {
             return list;
         }
 
+        // FAI별 원본/캡쳐 이미지를 비동기 저장 큐에 넣고, 파일명을 fai 에 동기 write-back.
+        //  파일명은 BuildDto(AddResponse) 가 읽으므로 enqueue 전에 동기 확정. PNG write 만 워커가 비동기 수행.
+        //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
+        //  sharedSrc(Shot당 1회 복사 공유)를 받아 origin/capture 요청에 ref 공유. 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
         private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName) {
-            if (fai == null) return; //260610 hbk Phase 40.2
+            if (fai == null) return;
             var saver = SystemHandler.Handle.CaptureImageSaver;
-            DateTime ts = DateTime.Now; //260610 hbk Phase 40.2 — origin/capture 동일 timestamp 공유 (쌍)
-            string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); //260610 hbk Phase 40.2 — P1/P1P2/빈값
-            string judge = fai.IsPass ? "OK" : "NG"; //260610 hbk Phase 40.2 hotfix CO-40.2-08 — 캡쳐/원본 파일명에 OK/NG 삽입(사용자 요청). origin/capture 쌍 동일.
-            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts); //260610 hbk Phase 40.2
-            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts); //260610 hbk Phase 40.2
+            DateTime ts = DateTime.Now; // origin/capture 동일 timestamp 공유 (쌍)
+            string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); // P1/P1P2/빈값
+            string judge = fai.IsPass ? "OK" : "NG"; // 캡쳐/원본 파일명에 OK/NG 삽입. origin/capture 쌍 동일.
+            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts);
+            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts);
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
-            //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
-            fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02
-            fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts); //260610 hbk Phase 40.2 hotfix CO-40.2-02
-            if (saver == null || sharedSrc == null) return; //260610 hbk Phase 40.2 hotfix CO-40.2-05 — 서비스/공유 미존재 시 파일명만 기록, PNG skip
+            // 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
+            fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);
+            fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts);
+            if (saver == null || sharedSrc == null) return; // 서비스/공유 미존재 시 파일명만 기록, PNG skip
 
             // 원본 enqueue — 공유 이미지 직접 write (FAI별 복사 없음). 요청 1건당 ref 1 추가.
-            sharedSrc.AddRef(); //260610 hbk Phase 40.2 hotfix CO-40.2-05
-            saver.Enqueue(new CaptureImageSaveRequest //260610 hbk Phase 40.2
+            sharedSrc.AddRef();
+            saver.Enqueue(new CaptureImageSaveRequest
             {
                 Shared = sharedSrc,
                 NeedsRender = false,
@@ -509,16 +500,16 @@ namespace ReringProject.Sequence {
                 Timestamp = ts
             });
 
-            //260610 hbk Phase 40.2 hotfix CO-40.2-04/06 — capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
+            // capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
             //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
-            List<EdgeInspectionOverlay> overlaySnapshot = faiOverlays != null ? new List<EdgeInspectionOverlay>(faiOverlays) : null; //260610 hbk Phase 40.2 hotfix CO-40.2-04
-            sharedSrc.AddRef(); //260610 hbk Phase 40.2 hotfix CO-40.2-05
-            saver.Enqueue(new CaptureImageSaveRequest //260610 hbk Phase 40.2 hotfix CO-40.2-04
+            List<EdgeInspectionOverlay> overlaySnapshot = faiOverlays != null ? new List<EdgeInspectionOverlay>(faiOverlays) : null;
+            sharedSrc.AddRef();
+            saver.Enqueue(new CaptureImageSaveRequest
             {
                 Shared = sharedSrc,
                 NeedsRender = true,
                 Overlays = overlaySnapshot,
-                DatumOverlays = datumSnapshot, //260610 hbk Phase 40.2 hotfix CO-40.2-11 — datum 검출 오버레이(녹색 원) 포함
+                DatumOverlays = datumSnapshot, // datum 검출 오버레이(녹색 원) 포함
                 FileName = captureName,
                 IsCapture = true,
                 Timestamp = ts

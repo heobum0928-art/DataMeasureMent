@@ -1,23 +1,22 @@
-//260413 hbk Phase 6: Multi-Algorithm 구조를 위한 Measurement 추상 기반 클래스 (D-14)
 using System;
-using System.Collections.Generic; //260422 hbk Phase 7: List<T> (D-01)
+using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
-using ReringProject.Halcon.Models; //260422 hbk Phase 7: EdgeInspectionOverlay (D-01)
+using ReringProject.Halcon.Models;
 
 namespace ReringProject.Sequence
 {
     /// <summary>
     /// FAI 하위에서 실행되는 개별 측정의 추상 기반 클래스.
     /// 파생 클래스가 측정 유형별 ROI/알고리즘을 구현하고 TryExecute로 결과(mm 또는 deg)를 반환한다.
-    /// DatumRef는 빈 문자열이면 무보정(D-10 하위 호환), 그 외에는 Sequence 레벨에서 해석된다.
+    /// DatumRef는 빈 문자열이면 무보정(하위 호환), 그 외에는 Sequence 레벨에서 해석된다.
     /// </summary>
-    public abstract class MeasurementBase : ParamBase //260413 hbk
+    public abstract class MeasurementBase : ParamBase
     {
         [Category("Measurement|Reference")]
-        public string DatumRef { get; set; } = ""; //260413 hbk 빈 문자열=무보정
+        public string DatumRef { get; set; } = ""; // 빈 문자열=무보정
 
-        //260526 hbk CO-31-01 — INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree, TypeName 폴백은 NodeViewModel.OnParamPropertyChanged 처리)
+        // INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree, TypeName 폴백은 NodeViewModel.OnParamPropertyChanged 처리)
         private string _measurementName = "";
         [Category("Measurement|Info")]
         public string MeasurementName {
@@ -30,43 +29,42 @@ namespace ReringProject.Sequence
         }
 
         [Category("Measurement|Tolerance")]
-        public double NominalValue { get; set; } //260413 hbk
+        public double NominalValue { get; set; }
 
         [Category("Measurement|Tolerance")]
-        [System.ComponentModel.Description("상한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")] //260518 hbk #Tol
-        public double TolerancePlus { get; set; } //260413 hbk
+        [System.ComponentModel.Description("상한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")]
+        public double TolerancePlus { get; set; }
 
         [Category("Measurement|Tolerance")]
-        [System.ComponentModel.Description("하한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")] //260518 hbk #Tol
-        public double ToleranceMinus { get; set; } //260413 hbk
+        [System.ComponentModel.Description("하한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")]
+        public double ToleranceMinus { get; set; }
 
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public double LastMeasuredValue { get; set; } //260413 hbk 휘발성, INI 저장 제외
+        public double LastMeasuredValue { get; set; } // 휘발성, INI 저장 제외
 
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public bool LastJudgement { get; set; } //260413 hbk true=OK
+        public bool LastJudgement { get; set; } // true=OK
 
-        //260517 hbk CO-23-01: HasResult 판정 기준 분리 — 0.0 결과값도 정상 측정으로 표시하기 위해
+        // HasResult 판정 기준 분리 — 0.0 결과값도 정상 측정으로 표시하기 위해
         //  LastMeasuredValue != 0 대신 별도 플래그 사용. EvaluateJudgement에서 true, ClearResult에서 false 설정.
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public bool LastHasResult { get; set; } //260517 hbk CO-23-01
+        public bool LastHasResult { get; set; }
 
-        //260529 hbk Phase 39 WF-01 D-02 — measurement 단위 skip reason. null/"" = 정상 또는 측정 NG, "DATUM_FAIL" = datum 검출 실패로 skip.
+        // measurement 단위 skip reason. null/"" = 정상 또는 측정 NG, "DATUM_FAIL" = datum 검출 실패로 skip.
         //  string 채택 근거: enum 신설 시 INI/직렬화 영향 검토 필요. string 은 ParamBase reflection 의 case "String" 경로 자동 호환.
-        //  D-10 (v2.6 순수 유지) — enum 신설 안 함. UI 'DETECT FAIL' 라벨 분기 + Excel export (Phase 40/41) 용.
-        [PropertyTools.DataAnnotations.Browsable(false)] //260529 hbk Phase 39 WF-01 D-02
-        public string LastSkipReason { get; set; } //260529 hbk Phase 39 WF-01 D-02
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public string LastSkipReason { get; set; }
 
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public abstract string TypeName { get; } //260413 hbk MeasurementFactory 키
+        public abstract string TypeName { get; } // MeasurementFactory 키
 
-        protected MeasurementBase(object owner) : base(owner) { } //260413 hbk
+        protected MeasurementBase(object owner) : base(owner) { }
 
         /// <summary>
         /// 측정을 실행한다. datumTransform은 DatumFindingService.TryFindDatum 결과(hom_mat2d)로
         /// null/empty이면 identity. 결과 단위는 측정 유형별(길이=mm, 각도=deg).
         /// </summary>
-        public abstract bool TryExecute( //260413 hbk //260422 hbk Phase 7: out overlays 추가 (D-01)
+        public abstract bool TryExecute(
             HImage image,
             HTuple datumTransform,
             double pixelResolution,
@@ -79,12 +77,12 @@ namespace ReringProject.Sequence
         /// 공차 입력 부호와 무관하게 NominalValue 중심의 올바른 범위를 적용한다.
         /// LastMeasuredValue/LastJudgement/LastHasResult를 갱신하고 결과를 반환한다.
         /// </summary>
-        public bool EvaluateJudgement(double value) //260413 hbk
+        public bool EvaluateJudgement(double value)
         {
             LastMeasuredValue = value;
-            LastHasResult = true; //260517 hbk CO-23-01: 측정 성공 마킹 (0.0 도 정상 결과)
-            double lower = NominalValue - System.Math.Abs(ToleranceMinus); //260518 hbk #Tol — 부호 무관 절대값 처리
-            double upper = NominalValue + System.Math.Abs(TolerancePlus);  //260518 hbk #Tol
+            LastHasResult = true; // 측정 성공 마킹 (0.0 도 정상 결과)
+            double lower = NominalValue - System.Math.Abs(ToleranceMinus); // 부호 무관 절대값 처리
+            double upper = NominalValue + System.Math.Abs(TolerancePlus);
             if (lower > upper)
             {
                 double tmp = lower; lower = upper; upper = tmp;
@@ -93,12 +91,12 @@ namespace ReringProject.Sequence
             return LastJudgement;
         }
 
-        public void ClearResult() //260413 hbk
+        public void ClearResult()
         {
             LastMeasuredValue = 0;
             LastJudgement = false;
-            LastHasResult = false; //260517 hbk CO-23-01: 미측정 상태 복원
-            LastSkipReason = null; //260529 hbk Phase 39 WF-01 D-02 — datum-skip subtype 리셋
+            LastHasResult = false; // 미측정 상태 복원
+            LastSkipReason = null; // datum-skip subtype 리셋
         }
     }
 }

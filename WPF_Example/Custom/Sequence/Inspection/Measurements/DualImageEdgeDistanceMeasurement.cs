@@ -1,8 +1,7 @@
-//260530 hbk Phase 39.2 D-G1 — Bottom E5 DualImage FAI Measurement
 using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
-using ReringProject.Device; //260530 hbk Phase 39.3 D-G3 — DeviceHandler 상수 참조
+using ReringProject.Device;
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Halcon.Models;
 
@@ -13,39 +12,39 @@ namespace ReringProject.Sequence
     ///  - PointROI: TeachingImagePath(또는 ShotParam.SimulImagePath) 이미지 → fit_line 중점 1점 ("Point").
     ///  - LineROI:  TeachingImagePath_Vertical 이미지 → fit_line 결과 라인 자체 ("Line").
     /// 거리 = HALCON projection_pl(Point → Line) 의 수직 정사영 거리 × pixelResolution.
-    /// 두 이미지 좌표계는 동일 평면 가정 (Phase 36 SameFrame 계약).
+    /// 두 이미지 좌표계는 동일 평면 가정 (SameFrame 계약).
     /// Action_FAIMeasurement 가 EStep.Measure 진입 시 RuntimeImageA / RuntimeImageB 를 주입한다 — 본 TryExecute 는 인자 image 를 무시.
     /// </summary>
-    public class DualImageEdgeDistanceMeasurement : MeasurementBase, IDatumOriginConsumer //260530 hbk Phase 39.2 D-G1
+    public class DualImageEdgeDistanceMeasurement : MeasurementBase, IDatumOriginConsumer
     {
-        public override string TypeName { get { return "DualImageEdgeDistance"; } } //260530 hbk Phase 39.2 D-G1
+        public override string TypeName { get { return "DualImageEdgeDistance"; } }
 
-        // ── 듀얼 이미지 — 가로축(점 ROI) 이미지는 ShotParam.SimulImagePath 재사용, 세로축(라인 ROI) 이미지는 별도 경로 ──
-        //260530 hbk Phase 39.2 D-G1-06 — LineROI 이미지 경로 (Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 가 로드)
-        [Category("Image|DualImage")] //260530 hbk Phase 39.2 D-G1
-        [System.ComponentModel.Description("LineROI 검출용 별도 이미지 경로 — Bottom E5 패턴 (Phase 37 VTH-DualImage 슬롯 재사용)")] //260530 hbk Phase 39.2 D-G1
-        [DisplayName("세로축 티칭 이미지")] //260530 hbk Phase 39.4 D-G3 — PropertyTools.DataAnnotations.DisplayName (Action_WaferScanCalibration L56 패턴)
-        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)] //260530 hbk Phase 39.3 D-G3
-        [AutoUpdateText] //260530 hbk Phase 39.3 D-G3 — 즉시 INPC fire (ModelFinderViewModel L28-29 패턴)
-        public string TeachingImagePath_Vertical { get; set; } = ""; //260530 hbk Phase 39.2 D-G1
+        // 듀얼 이미지 — 가로축(점 ROI) 이미지는 ShotParam.SimulImagePath 재사용, 세로축(라인 ROI) 이미지는 별도 경로.
+        // LineROI 이미지 경로 (Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 가 로드)
+        [Category("Image|DualImage")]
+        [System.ComponentModel.Description("LineROI 검출용 별도 이미지 경로 — Bottom E5 패턴")]
+        [DisplayName("세로축 티칭 이미지")]
+        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
+        [AutoUpdateText]
+        public string TeachingImagePath_Vertical { get; set; } = "";
 
-        //260530 hbk Phase 39.4 D-G1 — PointROI 검출용 가로축 이미지 경로. 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback (Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 분기).
-        [Category("Image|DualImage")] //260530 hbk Phase 39.4 D-G1
-        [System.ComponentModel.Description("PointROI 검출용 가로축 이미지 경로 — 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback (D-G1)")] //260530 hbk Phase 39.4 D-G1
-        [DisplayName("가로축 티칭 이미지")] //260530 hbk Phase 39.4 D-G3 — PropertyTools.DataAnnotations.DisplayName (Action_WaferScanCalibration L56 패턴, RT-1.1/1.2 검증)
-        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)] //260530 hbk Phase 39.4 D-G3 — Phase 39.3 Plan 03 mirror
-        [AutoUpdateText] //260530 hbk Phase 39.4 D-G3 — 즉시 INPC fire (ModelFinderViewModel L28-29 패턴)
-        public string TeachingImagePath_Horizontal { get; set; } = ""; //260530 hbk Phase 39.4 D-G1
+        // PointROI 검출용 가로축 이미지 경로. 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback.
+        [Category("Image|DualImage")]
+        [System.ComponentModel.Description("PointROI 검출용 가로축 이미지 경로 — 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback")]
+        [DisplayName("가로축 티칭 이미지")]
+        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
+        [AutoUpdateText]
+        public string TeachingImagePath_Horizontal { get; set; } = "";
 
-        // ── PointROI (점 형태, 1차 이미지 = ShotParam.SimulImagePath) ──
-        [Category("PointROI|ROI")] //260530 hbk Phase 39.2 D-G1
+        // PointROI (점 형태, 1차 이미지 = ShotParam.SimulImagePath)
+        [Category("PointROI|ROI")]
         public double PointROI_Row { get; set; }
         public double PointROI_Col { get; set; }
         public double PointROI_Phi { get; set; }
         public double PointROI_Length1 { get; set; }
         public double PointROI_Length2 { get; set; }
 
-        [Category("PointROI|Edge")] //260530 hbk Phase 39.2 D-G1-04
+        [Category("PointROI|Edge")]
         public int PointROI_EdgeThreshold { get; set; } = 10;
         public double PointROI_Sigma { get; set; } = 1.0;
         public int PointROI_EdgeSampleCount { get; set; } = 20;
@@ -57,15 +56,15 @@ namespace ReringProject.Sequence
         [ItemsSourceProperty(nameof(EdgeSelectionList))]
         public string PointROI_EdgeSelection { get; set; } = "All";
 
-        // ── LineROI (라인 형태, 2차 이미지 = TeachingImagePath_Vertical) ──
-        [Category("LineROI|ROI")] //260530 hbk Phase 39.2 D-G1
+        // LineROI (라인 형태, 2차 이미지 = TeachingImagePath_Vertical)
+        [Category("LineROI|ROI")]
         public double LineROI_Row { get; set; }
         public double LineROI_Col { get; set; }
         public double LineROI_Phi { get; set; }
         public double LineROI_Length1 { get; set; }
         public double LineROI_Length2 { get; set; }
 
-        [Category("LineROI|Edge")] //260530 hbk Phase 39.2 D-G1-04
+        [Category("LineROI|Edge")]
         public int LineROI_EdgeThreshold { get; set; } = 10;
         public double LineROI_Sigma { get; set; } = 1.0;
         public int LineROI_EdgeSampleCount { get; set; } = 20;
@@ -77,7 +76,7 @@ namespace ReringProject.Sequence
         [ItemsSourceProperty(nameof(EdgeSelectionList))]
         public string LineROI_EdgeSelection { get; set; } = "All";
 
-        // ── ComboBox 옵션 래퍼 (EdgeToLineDistance L49-54 동형) ──
+        // ComboBox 옵션 래퍼
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -85,7 +84,7 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } }
 
-        // ── IDatumOriginConsumer transient 6 필드 (3중 attribute — EdgeToLineDistance L69-95 패턴) ──
+        // IDatumOriginConsumer transient 필드 (3중 attribute로 직렬화/PropertyGrid 노출 차단)
         [System.ComponentModel.Browsable(false)]
         [PropertyTools.DataAnnotations.Browsable(false)]
         [Newtonsoft.Json.JsonIgnore]
@@ -111,10 +110,10 @@ namespace ReringProject.Sequence
         [Newtonsoft.Json.JsonIgnore]
         public double DatumDetectedCircleCol { get; set; }
 
-        // ── Action_FAIMeasurement 가 EStep.Measure 진입 시 주입 (옵션 B 패턴) ──
-        //260530 hbk Phase 39.2 D-G1 — RuntimeImageA = PointROI 이미지 (TeachingImagePath / SimulImagePath)
-        //                              RuntimeImageB = LineROI 이미지 (TeachingImagePath_Vertical)
-        //  TryExecute 호출 후 Action_FAIMeasurement 가 dispose + 본 필드 null 리셋.
+        // Action_FAIMeasurement 가 EStep.Measure 진입 시 주입.
+        //   RuntimeImageA = PointROI 이미지 (TeachingImagePath / SimulImagePath)
+        //   RuntimeImageB = LineROI 이미지 (TeachingImagePath_Vertical)
+        // TryExecute 호출 후 Action_FAIMeasurement 가 dispose + 본 필드 null 리셋.
         [System.ComponentModel.Browsable(false)]
         [PropertyTools.DataAnnotations.Browsable(false)]
         [Newtonsoft.Json.JsonIgnore]
@@ -159,7 +158,7 @@ namespace ReringProject.Sequence
             {
                 return false;
             }
-            double pointRow = (pa_r1 + pa_r2) / 2.0;            //260530 hbk Phase 39.2 D-G1-02 midpoint 고정
+            double pointRow = (pa_r1 + pa_r2) / 2.0;            // 라인 중점을 점으로 고정
             double pointCol = (pa_c1 + pa_c2) / 2.0;
 
             // (2) LineROI — RuntimeImageB 에서 fit_line → 라인 그대로 (시작점/끝점 사용)
@@ -175,7 +174,7 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // (3) projection_pl(point → line) — EdgeToLineDistance L193-204 패턴 동형
+            // (3) projection_pl(point → line)
             double footRow = pointRow;
             double footCol = pointCol;
             bool footOk = false;

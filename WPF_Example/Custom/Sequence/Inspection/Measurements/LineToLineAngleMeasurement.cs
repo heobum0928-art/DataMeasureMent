@@ -1,9 +1,8 @@
-//260413 hbk Phase 6: 선-선 각도 측정 (D-15)
-using System.Collections.Generic; //260422 hbk Phase 7: List<T> (D-01)
+using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Algorithms;
-using ReringProject.Halcon.Models; //260422 hbk Phase 7: EdgeInspectionOverlay (D-01)
+using ReringProject.Halcon.Models;
 
 namespace ReringProject.Sequence
 {
@@ -11,7 +10,7 @@ namespace ReringProject.Sequence
     /// 두 Line ROI에서 직선을 피팅하고 두 직선이 이루는 각도(degree)를 반환한다.
     /// 단위는 degree이므로 pixelResolution 미적용.
     /// </summary>
-    public class LineToLineAngleMeasurement : MeasurementBase //260413 hbk
+    public class LineToLineAngleMeasurement : MeasurementBase
     {
         public override string TypeName { get { return "LineToLineAngle"; } }
 
@@ -34,20 +33,19 @@ namespace ReringProject.Sequence
         public double Sigma { get; set; } = 1.0;
         public int EdgeSampleCount { get; set; } = 20;
         public int EdgeTrimCount { get; set; } = 10;
-        [ItemsSourceProperty(nameof(EdgePolarityList))] //260423 hbk WR-RT-02 ComboBox 처리
+        [ItemsSourceProperty(nameof(EdgePolarityList))]
         public string EdgePolarity { get; set; } = "DarkToLight";
-        [ItemsSourceProperty(nameof(EdgeDirectionList))] //260423 hbk WR-RT-02 ComboBox 처리
+        [ItemsSourceProperty(nameof(EdgeDirectionList))]
         public string EdgeDirection { get; set; } = "LtoR";
 
-        //260423 hbk WR-RT-02 PropertyGrid ComboBox 옵션 래퍼
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
-        public LineToLineAngleMeasurement(object owner) : base(owner) { } //260413 hbk
+        public LineToLineAngleMeasurement(object owner) : base(owner) { }
 
-        public override bool TryExecute( //260413 hbk //260422 hbk Phase 7: out overlays 추가 (D-01)
+        public override bool TryExecute(
             HImage image,
             HTuple datumTransform,
             double pixelResolution,
@@ -57,7 +55,7 @@ namespace ReringProject.Sequence
         {
             resultValue = 0;
             error = null;
-            overlays = new List<EdgeInspectionOverlay>(); //260422 hbk Phase 7: 5종 overlay 미구현 — 빈 리스트 반환 (D-03)
+            overlays = new List<EdgeInspectionOverlay>();
 
             var svc = new VisionAlgorithmService();
 

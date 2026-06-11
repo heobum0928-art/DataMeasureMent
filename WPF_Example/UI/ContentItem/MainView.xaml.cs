@@ -497,7 +497,14 @@ namespace ReringProject.UI {
                 }
             }
             //260519 hbk #6-a — dataGrid_faiResults 바인딩 지연 회피: 선택 FAI 의 Shot 에서 직접 ROI 수집
-            var rois = CollectShotRois(anchorFai);
+            //260611 hbk FAI 노드 선택 시 그 FAI 의 ROI+측정위치만 표시 (기존: Shot 전체 FAI ROI). 측정 노드는 Shot 컨텍스트 유지(선택 ROI 노란색).
+            List<RoiDefinition> rois;
+            if (param is FAIConfig) {
+                rois = new List<RoiDefinition>();
+                AppendFaiRois(rois, anchorFai); //260611 hbk 선택 FAI 단독 ROI (+ measurement point ROI)
+            } else {
+                rois = CollectShotRois(anchorFai); //260611 hbk 측정 노드 등은 기존대로 Shot 전체 컨텍스트
+            }
             //260519 hbk #6-a — composite ID 매칭 ROI 없으면 부모 FAI ROI 로 fallback (일반 FAI rect ROI 는 Id=FAIName)
             if (!string.IsNullOrEmpty(selRoiId) && !string.IsNullOrEmpty(faiNameForFallback)) {
                 bool matched = false;

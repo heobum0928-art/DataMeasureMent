@@ -87,6 +87,29 @@ namespace ReringProject.UI {
             return result;
         }
 
+        //260611 hbk Shot 노드: 그 Shot 의 모든 FAI/measurement DatumRef 집합 → 해당 datum(중복 제거).
+        //  사용자 요청 "한 Shot = 1 Datum 종류" — 기존 ResolveSequenceDatums(시퀀스 전체, Side=4개 전부 표시)를
+        //  Shot 이 실제 참조하는 datum 만으로 좁힌다. 관례상 보통 1개. 무보정(빈 DatumRef) 측정만 있으면 빈 리스트.
+        private List<DatumConfig> ResolveDatumsForShot(ESequence seqId, ShotConfig shot) {
+            var result = new List<DatumConfig>();
+            if (shot == null || shot.FAIList == null) return result;
+            List<DatumConfig> seqDatums = ResolveSequenceDatums(seqId);
+            if (seqDatums.Count == 0) return result;
+            foreach (FAIConfig fai in shot.FAIList) {
+                if (fai == null) continue;
+                foreach (MeasurementBase meas in fai.Measurements) {
+                    if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) continue;
+                    foreach (DatumConfig d in seqDatums) {
+                        if (d != null && string.Equals(d.DatumName, meas.DatumRef, StringComparison.Ordinal)
+                            && !result.Contains(d)) {
+                            result.Add(d);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
         //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅
         //  ParamEditor 의 routed TextBoxBase.LostFocus / Selector.SelectionChanged 가 fire 시 호출.
         //  SelectedObject 가 teached DatumConfig 일 때만 MainView.NotifyDatumParamMaybeChanged 로 라우팅.
@@ -632,9 +655,10 @@ namespace ReringProject.UI {
                         //260521 hbk Phase 32 UAT — Shot 노드 선택 시 Shot 이미지 표시 (이미지 회귀 결함 수정)
                         if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotSel)
                             mParentWindow.mainView.DisplayShotImage(shotSel); //260521 hbk Phase 32 UAT
-                        //260602 hbk Phase 40.1 CO-40.1-02 — Shot 노드 선택 시 그 시퀀스의 datum 전부를 결과 화면에 표시
-                        if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig) {
-                            List<DatumConfig> datumsForShot = ResolveSequenceDatums(item.SequenceID);
+                        //260602 hbk Phase 40.1 CO-40.1-02 — Shot 노드 선택 시 datum 을 결과 화면에 표시
+                        //260611 hbk 시퀀스 전체(Side=4개) → 그 Shot 이 참조하는 datum 만 (사용자 요청 "한 Shot=1 Datum")
+                        if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotForDatum) {
+                            List<DatumConfig> datumsForShot = ResolveDatumsForShot(item.SequenceID, shotForDatum);
                             mParentWindow.mainView.ShowResultDatumOverlays(datumsForShot);
                         }
                         //260511 hbk CO-22-01 — Action(ShotConfig) 분기 force rebind 추가.

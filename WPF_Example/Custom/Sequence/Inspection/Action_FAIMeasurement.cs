@@ -58,7 +58,7 @@ namespace ReringProject.Sequence {
             switch ((EStep)Step) {
                 case EStep.Init:
                     // Run 사이클 진입 시 image buffer + FAI results dispose
-                    ShotParam?.ClearAllResults();
+                    if (ShotParam != null) ShotParam.ClearAllResults();
                     Step = (int)EStep.MoveZ;
                     break;
 
@@ -77,7 +77,9 @@ namespace ReringProject.Sequence {
                 // DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적.
                 // datum 부분 실패는 skip+log (lenient, abort 없음).
                 case EStep.DatumPhase: {
-                    var parentSeq = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
+                    InspectionSequence parentSeq;
+                    if (ShotParam != null) parentSeq = ShotParam.Parent as InspectionSequence;
+                    else parentSeq = null;
                     if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
                         parentSeq.ClearDatumTransforms();
                         foreach (var datum in parentSeq.DatumConfigs) {
@@ -86,7 +88,9 @@ namespace ReringProject.Sequence {
                                 HImage imgH = null, imgV = null;
                                 try {
                                     if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) {
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' DualImage 취득 실패 (skip)");
+                                        string datumName = datum.DatumName;
+                                        if (datumName == null) datumName = "";
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' DualImage 취득 실패 (skip)");
                                         // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
                                         datum.LastFindSucceeded = false;
                                         // 티칭 여부 무관 라벨 신호
@@ -97,7 +101,11 @@ namespace ReringProject.Sequence {
                                     }
                                     string derr;
                                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) {
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? ""));
+                                        string datumName = datum.DatumName;
+                                        if (datumName == null) datumName = "";
+                                        string derrStr = derr;
+                                        if (derrStr == null) derrStr = "";
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
                                         datum.RuntimeDetectFailed = true;
                                         parentSeq.MarkDatumFailed(datum.DatumName);
                                     }
@@ -108,7 +116,9 @@ namespace ReringProject.Sequence {
                             } else { // 1-image datum
                                 HImage img = GrabOrLoadDatumImage(datum);
                                 if (img == null) {
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 이미지 취득 실패 (skip)");
+                                    string datumName = datum.DatumName;
+                                    if (datumName == null) datumName = "";
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 이미지 취득 실패 (skip)");
                                     datum.LastFindSucceeded = false;
                                     datum.RuntimeDetectFailed = true;
                                     parentSeq.MarkDatumFailed(datum.DatumName);
@@ -117,7 +127,11 @@ namespace ReringProject.Sequence {
                                 try {
                                     string derr;
                                     if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) {
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + (datum.DatumName ?? "") + "' 검출 실패 (skip): " + (derr ?? ""));
+                                        string datumName = datum.DatumName;
+                                        if (datumName == null) datumName = "";
+                                        string derrStr = derr;
+                                        if (derrStr == null) derrStr = "";
+                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
                                         datum.RuntimeDetectFailed = true;
                                         parentSeq.MarkDatumFailed(datum.DatumName);
                                     }
@@ -152,7 +166,7 @@ namespace ReringProject.Sequence {
                         #endif
                         if (image != null) {
                             ShotParam.SetImage(image);
-                            pMyContext.ResultHalconImage?.Dispose();
+                            if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
                             pMyContext.ResultHalconImage = image.CopyImage();
                             image.Dispose();
                         }
@@ -161,7 +175,9 @@ namespace ReringProject.Sequence {
                     break;
 
                 case EStep.Measure: {
-                    var parentSeq2 = ShotParam != null ? ShotParam.Parent as InspectionSequence : null;
+                    InspectionSequence parentSeq2;
+                    if (ShotParam != null) parentSeq2 = ShotParam.Parent as InspectionSequence;
+                    else parentSeq2 = null;
                     bool allPass = true;
                     int measuredCount = 0;
                     var overlayAcc = new List<EdgeInspectionOverlay>(); // Shot 단위 overlay 누적
@@ -188,7 +204,11 @@ namespace ReringProject.Sequence {
                                             meas.ClearResult();
                                             meas.LastSkipReason = "DATUM_FAIL"; // UI 'DETECT FAIL' 라벨 + Excel export 분기 신호
                                             meas.LastJudgement = false; // skip 도 NG 강도
-                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' skipped — datum '" + (meas.DatumRef ?? "") + "' 검출 실패 (D-01)");
+                                            string measName = meas.MeasurementName;
+                                            if (measName == null) measName = meas.TypeName;
+                                            string datumRef = meas.DatumRef;
+                                            if (datumRef == null) datumRef = "";
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 검출 실패 (D-01)");
                                             faiAllPass = false;
                                             measuredCount++; // 시도 회수 통계
                                             continue; // 다음 measurement 진행 (TryExecute 호출 안 함)
@@ -272,13 +292,19 @@ namespace ReringProject.Sequence {
                                         if (ok) {
                                             meas.EvaluateJudgement(resultValue);
                                         } else {
-                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + (meas.MeasurementName ?? meas.TypeName) + "' failed: " + (measError ?? ""));
+                                            string measName = meas.MeasurementName;
+                                            if (measName == null) measName = meas.TypeName;
+                                            string measErrorStr = measError;
+                                            if (measErrorStr == null) measErrorStr = "";
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
                                             meas.ClearResult();
                                             meas.LastJudgement = false;
                                         }
                                         // FAI-Edge* overlay에 판정 suffix 부여
                                         if (measOverlays != null) {
-                                            string suffix = meas.LastJudgement ? "-OK" : "-NG";
+                                            string suffix;
+                                            if (meas.LastJudgement) suffix = "-OK";
+                                            else suffix = "-NG";
                                             foreach (var ov in measOverlays) {
                                                 if (ov == null) continue;
                                                 if (string.IsNullOrEmpty(ov.RoiId)) continue;
@@ -310,7 +336,10 @@ namespace ReringProject.Sequence {
                                         fai.WasDatumSkipped = wasSkip;
                                         fai.LastOverlays = faiOverlays; // per-FAI overlay 저장 (노드 클릭 시 재현)
                                         // FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
-                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ShotParam != null ? ShotParam.OwnerSequenceName : "");
+                                        string ownerSeqName;
+                                        if (ShotParam != null) ownerSeqName = ShotParam.OwnerSequenceName;
+                                        else ownerSeqName = "";
+                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ownerSeqName);
                                     } else {
                                         fai.ClearResult();
                                         if (fai.LastOverlays != null) fai.LastOverlays.Clear(); // Measurements 0 케이스 명시적 클리어
@@ -331,7 +360,10 @@ namespace ReringProject.Sequence {
                 }
 
                 case EStep.End:
-                    FinishAction(pMyContext.AllPass ? EContextResult.Pass : EContextResult.Fail);
+                    EContextResult finishResult;
+                    if (pMyContext.AllPass) finishResult = EContextResult.Pass;
+                    else finishResult = EContextResult.Fail;
+                    FinishAction(finishResult);
                     break;
             }
             return Context;
@@ -341,7 +373,9 @@ namespace ReringProject.Sequence {
         private HImage GrabOrLoadDatumImage(DatumConfig datum) {
             if (ShotParam == null) return null;
             HImage image = null;
-            string teachingPath = (datum != null) ? datum.TeachingImagePath : null;
+            string teachingPath;
+            if (datum != null) teachingPath = datum.TeachingImagePath;
+            else teachingPath = null;
             #if SIMUL_MODE
             if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) {
                 try { image = new HImage(teachingPath); } catch { image = null; }
@@ -447,8 +481,10 @@ namespace ReringProject.Sequence {
                 if (dc.CircleDetected_Radius > 0) { // 검출 원(녹색)
                     cap.HasCircle = true;
                     // 중심 fallback: CircleCenter 0(런타임 미갱신) 이면 DetectedOrigin 사용(원중심≈원점).
-                    cap.CircleRow = (dc.CircleCenter_Row != 0.0) ? dc.CircleCenter_Row : dc.DetectedOriginRow;
-                    cap.CircleCol = (dc.CircleCenter_Col != 0.0) ? dc.CircleCenter_Col : dc.DetectedOriginCol;
+                    if (dc.CircleCenter_Row != 0.0) cap.CircleRow = dc.CircleCenter_Row;
+                    else cap.CircleRow = dc.DetectedOriginRow;
+                    if (dc.CircleCenter_Col != 0.0) cap.CircleCol = dc.CircleCenter_Col;
+                    else cap.CircleCol = dc.DetectedOriginCol;
                     cap.CircleRadius = dc.CircleDetected_Radius;
                 }
                 if (dc.LastFindSucceeded && (dc.DetectedOriginRow != 0.0 || dc.DetectedOriginCol != 0.0)) { // 검출 원점 십자
@@ -480,7 +516,9 @@ namespace ReringProject.Sequence {
             var saver = SystemHandler.Handle.CaptureImageSaver;
             DateTime ts = DateTime.Now; // origin/capture 동일 timestamp 공유 (쌍)
             string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); // P1/P1P2/빈값
-            string judge = fai.IsPass ? "OK" : "NG"; // 캡쳐/원본 파일명에 OK/NG 삽입. origin/capture 쌍 동일.
+            string judge;
+            if (fai.IsPass) judge = "OK";
+            else judge = "NG"; // 캡쳐/원본 파일명에 OK/NG 삽입. origin/capture 쌍 동일.
             string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts);
             string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts);
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
@@ -502,7 +540,9 @@ namespace ReringProject.Sequence {
 
             // capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
             //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
-            List<EdgeInspectionOverlay> overlaySnapshot = faiOverlays != null ? new List<EdgeInspectionOverlay>(faiOverlays) : null;
+            List<EdgeInspectionOverlay> overlaySnapshot;
+            if (faiOverlays != null) overlaySnapshot = new List<EdgeInspectionOverlay>(faiOverlays);
+            else overlaySnapshot = null;
             sharedSrc.AddRef();
             saver.Enqueue(new CaptureImageSaveRequest
             {

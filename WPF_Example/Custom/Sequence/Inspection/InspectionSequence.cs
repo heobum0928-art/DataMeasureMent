@@ -110,8 +110,10 @@ namespace ReringProject.Sequence {
                     {
                         faiResultCode = EVisionResultType.OK; // 'P'
                     }
+                    string faiNameArg = fai.FAIName;
+                    if (faiNameArg == null) faiNameArg = "FAI";
                     responsePacket.FAIResults.Add(new FAIResultData(
-                        fai.FAIName ?? "FAI",
+                        faiNameArg,
                         faiResultCode,
                         fai.MeasuredValue
                     ));
@@ -284,12 +286,18 @@ namespace ReringProject.Sequence {
                 string datumError;
                 if (!service.TryFindDatum(image, datum, out transform, out datumError)) { // datum 실패 시 abort 안 함, 성공만 저장
                     datum.LastFindSucceeded = false;
-                    Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + (datum.DatumName ?? "") + "' find 실패 (skip): " + (datumError ?? ""));
+                    string datumName = datum.DatumName;
+                    if (datumName == null) datumName = "";
+                    string derr = datumError;
+                    if (derr == null) derr = "";
+                    Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + datumName + "' find 실패 (skip): " + derr);
                     continue; // 다음 datum 계속, 이 datum 은 _datumTransforms 미저장
                 }
                 datum.LastFindSucceeded = true;
                 datum.CurrentTransform = transform;
-                _datumTransforms[datum.DatumName ?? ""] = transform;
+                string datumKey = datum.DatumName;
+                if (datumKey == null) datumKey = "";
+                _datumTransforms[datumKey] = transform;
             }
             return true;
         }
@@ -305,8 +313,20 @@ namespace ReringProject.Sequence {
                 HTuple transform; string datumError; bool ok; // per-datum DualImage 판단 유지 (DatumConfigs[0] 단일 판단 아님)
                 if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) ok = service.TryFindDatum(image1, image2, datum, out transform, out datumError);
                 else ok = service.TryFindDatum(image1, datum, out transform, out datumError);
-                if (!ok) { datum.LastFindSucceeded = false; Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + (datum.DatumName ?? "") + "' find 실패 (skip): " + (datumError ?? "")); continue; } // abort 제거, skip
-                datum.LastFindSucceeded = true; datum.CurrentTransform = transform; _datumTransforms[datum.DatumName ?? ""] = transform;
+                if (!ok) {
+                    datum.LastFindSucceeded = false;
+                    string datumName = datum.DatumName;
+                    if (datumName == null) datumName = "";
+                    string derr = datumError;
+                    if (derr == null) derr = "";
+                    Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + datumName + "' find 실패 (skip): " + derr);
+                    continue; // abort 제거, skip
+                }
+                datum.LastFindSucceeded = true;
+                datum.CurrentTransform = transform;
+                string datumKey = datum.DatumName;
+                if (datumKey == null) datumKey = "";
+                _datumTransforms[datumKey] = transform;
             }
             return true;
         }
@@ -354,7 +374,9 @@ namespace ReringProject.Sequence {
             if (!ok) { datum.LastFindSucceeded = false; error = datumError; return false; }
             datum.LastFindSucceeded = true;
             datum.CurrentTransform = transform;
-            _datumTransforms[datum.DatumName ?? ""] = transform; // 누적 저장
+            string datumKey = datum.DatumName;
+            if (datumKey == null) datumKey = "";
+            _datumTransforms[datumKey] = transform; // 누적 저장
             return true;
         }
 

@@ -1,4 +1,3 @@
-//260409 hbk Phase 3: FAI 에지 측정 서비스 — 샘플 스트립 + 라인 피팅 방식으로 재작성
 using System;
 using System.Collections.Generic;
 using HalconDotNet;
@@ -12,17 +11,16 @@ namespace ReringProject.Halcon.Algorithms
     /// 에지 라인을 검출하고 두 라인 간 수직 거리(mm)를 산출하는 서비스.
     /// MeasurementAlgorithm.TryInspectSingleEdgeInternal 패턴을 따른다.
     /// </summary>
-    public class FAIEdgeMeasurementService //260409 hbk
+    public class FAIEdgeMeasurementService
     {
         /// <summary>
         /// FAIConfig ROI 영역에서 샘플 스트립 방식으로 에지를 측정한다.
         /// EdgeSelection=Both: 두 피팅 라인 간 수직 거리를 산출.
         /// EdgeSelection=First/Last: 단일 피팅 라인, distance=0.
-        /// transform=null이면 원본 ROI 좌표 그대로 사용 (Phase 3 하위 호환).
+        /// transform=null이면 원본 ROI 좌표 그대로 사용.
         /// </summary>
-        public bool TryMeasure(HImage image, FAIConfig fai, out FAIEdgeMeasurementResult result) //260409 hbk
+        public bool TryMeasure(HImage image, FAIConfig fai, out FAIEdgeMeasurementResult result)
         {
-            //260409 hbk Phase 4: null transform -> identity (D-08 backward compat)
             return TryMeasure(image, fai, null, out result);
         }
 
@@ -30,12 +28,10 @@ namespace ReringProject.Halcon.Algorithms
         /// FAIConfig ROI 영역에서 샘플 스트립 방식으로 에지를 측정한다.
         /// transform: Datum hom_mat2d 변환 행렬. null이면 원본 ROI 좌표 사용.
         /// </summary>
-        //260409 hbk Phase 4: TryMeasure overload with Datum transform (D-07)
-        public bool TryMeasure(HImage image, FAIConfig fai, HTuple transform, out FAIEdgeMeasurementResult result) //260409 hbk
+        public bool TryMeasure(HImage image, FAIConfig fai, HTuple transform, out FAIEdgeMeasurementResult result)
         {
-            result = null; //260409 hbk
+            result = null;
 
-            //260409 hbk null 체크 + ROI 유효성 검사
             if (image == null || fai == null)
             {
                 return false;
@@ -48,12 +44,11 @@ namespace ReringProject.Halcon.Algorithms
 
             try
             {
-                //260409 hbk Phase 4: Datum transform 적용 ROI 좌표 초기화 (D-07)
                 double roiRow = fai.ROI_Row;
                 double roiCol = fai.ROI_Col;
                 double roiPhi = fai.ROI_Phi;
 
-                //260409 hbk Phase 4: apply Datum hom_mat2d transform to ROI (D-07 step 4, T-04-05)
+                // Datum hom_mat2d 변환을 ROI 좌표에 적용
                 if (transform != null && transform.Length > 0)
                 {
                     try
@@ -63,28 +58,28 @@ namespace ReringProject.Halcon.Algorithms
                         roiRow = transRow.D;
                         roiCol = transCol.D;
 
-                        // hom_mat2d layout: [h00, h01, h02, h10, h11, h12, h20, h21, h22] //260423 hbk WR-03
-                        // Indices 0 (h00=cos θ) and 3 (h10=sin θ) are translation-invariant; //260423 hbk WR-03
-                        // index 1 (h01) is contaminated when HomMat2dRotate uses a non-origin center. //260423 hbk WR-03
-                        double rotAngle = Math.Atan2(transform[3].D, transform[0].D); //260423 hbk WR-03
+                        // hom_mat2d layout: [h00, h01, h02, h10, h11, h12, h20, h21, h22].
+                        // Indices 0 (h00=cos θ) and 3 (h10=sin θ) are translation-invariant;
+                        // index 1 (h01) is contaminated when HomMat2dRotate uses a non-origin center.
+                        double rotAngle = Math.Atan2(transform[3].D, transform[0].D);
                         roiPhi = fai.ROI_Phi + rotAngle;
                     }
                     catch
                     {
-                        // Transform failed — use original ROI coordinates (T-04-05 fallback)
+                        // Transform failed — use original ROI coordinates
                     }
                 }
 
-                //260409 hbk 이미지 크기 취득
                 HTuple imageWidth, imageHeight;
                 image.GetImageSize(out imageWidth, out imageHeight);
 
-                //260409 hbk EdgeDirection -> scanHorizontal, measurePhi 변환
-                string edgeDir = fai.EdgeDirection ?? "LtoR"; //260409 hbk
+                // EdgeDirection -> scanHorizontal, measurePhi 변환
+                string edgeDir = fai.EdgeDirection;
+                if (edgeDir == null) edgeDir = "LtoR";
                 bool scanHorizontal = string.Equals(edgeDir, "LtoR", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(edgeDir, "RtoL", StringComparison.OrdinalIgnoreCase); //260409 hbk
+                    || string.Equals(edgeDir, "RtoL", StringComparison.OrdinalIgnoreCase);
 
-                double measurePhi; //260409 hbk
+                double measurePhi;
                 if (string.Equals(edgeDir, "TtoB", StringComparison.OrdinalIgnoreCase))
                 {
                     measurePhi = -Math.PI / 2.0;
@@ -99,41 +94,41 @@ namespace ReringProject.Halcon.Algorithms
                 }
                 else
                 {
-                    measurePhi = 0.0; //260409 hbk LtoR (default)
+                    measurePhi = 0.0;
                 }
 
-                //260409 hbk Phase 4: roiPhi 기반 measurePhi 회전 보정 적용
+                // roiPhi 기반 measurePhi 회전 보정
                 measurePhi = measurePhi + (roiPhi - fai.ROI_Phi);
 
-                int sampleCount = Math.Max(1, fai.EdgeSampleCount); //260409 hbk
-                double sigma = Math.Max(0.4, fai.Sigma); //260409 hbk
-                int threshold = Math.Max(1, fai.EdgeThreshold); //260409 hbk
+                int sampleCount = Math.Max(1, fai.EdgeSampleCount);
+                double sigma = Math.Max(0.4, fai.Sigma);
+                int threshold = Math.Max(1, fai.EdgeThreshold);
 
-                //260409 hbk EdgePolarity -> Halcon transition 파라미터
-                string polarity = string.Equals(fai.EdgePolarity, "LightToDark", StringComparison.OrdinalIgnoreCase)
-                    ? "negative" : "positive"; //260409 hbk
+                string polarity;
+                if (string.Equals(fai.EdgePolarity, "LightToDark", StringComparison.OrdinalIgnoreCase)) polarity = "negative";
+                else polarity = "positive";
 
-                //260409 hbk ROI 바운딩 박스 계산 (Rectangle2 -> AABB), roiRow/roiCol/roiPhi 사용
-                double sinPhi = Math.Sin(roiPhi); //260409 hbk
-                double cosPhi = Math.Cos(roiPhi); //260409 hbk
-                double dRow = Math.Abs(fai.ROI_Length1 * cosPhi) + Math.Abs(fai.ROI_Length2 * sinPhi); //260409 hbk
-                double dCol = Math.Abs(fai.ROI_Length1 * sinPhi) + Math.Abs(fai.ROI_Length2 * cosPhi); //260409 hbk
-                double top = roiRow - dRow; //260409 hbk
-                double bottom = roiRow + dRow; //260409 hbk
-                double left = roiCol - dCol; //260409 hbk
-                double right = roiCol + dCol; //260409 hbk
+                // ROI 바운딩 박스 (Rectangle2 -> AABB)
+                double sinPhi = Math.Sin(roiPhi);
+                double cosPhi = Math.Cos(roiPhi);
+                double dRow = Math.Abs(fai.ROI_Length1 * cosPhi) + Math.Abs(fai.ROI_Length2 * sinPhi);
+                double dCol = Math.Abs(fai.ROI_Length1 * sinPhi) + Math.Abs(fai.ROI_Length2 * cosPhi);
+                double top = roiRow - dRow;
+                double bottom = roiRow + dRow;
+                double left = roiCol - dCol;
+                double right = roiCol + dCol;
 
-                if ((bottom - top) < 2.0 || (right - left) < 2.0) //260409 hbk
+                if ((bottom - top) < 2.0 || (right - left) < 2.0)
                 {
                     return false;
                 }
 
-                //260409 hbk EdgeSelection 분기
-                string edgeSel = fai.EdgeSelection ?? "First"; //260409 hbk
-                bool isBoth = string.Equals(edgeSel, "Both", StringComparison.OrdinalIgnoreCase); //260409 hbk
-                bool isLast = string.Equals(edgeSel, "Last", StringComparison.OrdinalIgnoreCase); //260409 hbk
+                string edgeSel = fai.EdgeSelection;
+                if (edgeSel == null) edgeSel = "First";
+                bool isBoth = string.Equals(edgeSel, "Both", StringComparison.OrdinalIgnoreCase);
+                bool isLast = string.Equals(edgeSel, "Last", StringComparison.OrdinalIgnoreCase);
 
-                if (isBoth) //260409 hbk
+                if (isBoth)
                 {
                     return TryMeasureBoth(
                         image, imageWidth, imageHeight,
@@ -141,7 +136,7 @@ namespace ReringProject.Halcon.Algorithms
                         top, bottom, left, right,
                         fai, out result);
                 }
-                else //260409 hbk First or Last
+                else
                 {
                     return TryMeasureSingle(
                         image, imageWidth, imageHeight,
@@ -150,7 +145,7 @@ namespace ReringProject.Halcon.Algorithms
                         isLast, fai, out result);
                 }
             }
-            catch //260409 hbk
+            catch
             {
                 return false;
             }
@@ -159,29 +154,27 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// EdgeSelection=Both: 첫 번째/마지막 에지 포인트를 분리 수집, 각각 라인 피팅 후 수직 거리 산출
         /// </summary>
-        private bool TryMeasureBoth( //260409 hbk
+        private bool TryMeasureBoth(
             HImage image, HTuple imageWidth, HTuple imageHeight,
             bool scanHorizontal, double measurePhi, int sampleCount,
             double sigma, int threshold, string polarity,
             double top, double bottom, double left, double right,
             FAIConfig fai, out FAIEdgeMeasurementResult result)
         {
-            result = null; //260409 hbk
+            result = null;
 
-            var firstRows = new HTuple(); //260409 hbk
-            var firstCols = new HTuple(); //260409 hbk
-            var lastRows = new HTuple(); //260409 hbk
-            var lastCols = new HTuple(); //260409 hbk
-            int totalEdgePoints = 0; //260409 hbk
+            var firstRows = new HTuple();
+            var firstCols = new HTuple();
+            var lastRows = new HTuple();
+            var lastCols = new HTuple();
+            int totalEdgePoints = 0;
 
-            //260409 hbk 샘플 스트립 루프
             for (int i = 0; i < sampleCount; i++)
             {
-                HObject stripRegion = null; //260409 hbk
-                HTuple handle = null; //260409 hbk
+                HObject stripRegion = null;
+                HTuple handle = null;
                 try
                 {
-                    //260409 hbk 스트립 영역 생성
                     if (scanHorizontal)
                     {
                         double row1 = top + (i * (bottom - top) / sampleCount);
@@ -195,41 +188,38 @@ namespace ReringProject.Halcon.Algorithms
                         HOperatorSet.GenRectangle1(out stripRegion, top, col1, bottom, col2);
                     }
 
-                    //260409 hbk SmallestRectangle2 -> GenMeasureRectangle2
                     HTuple rr, rc, rp, rh, rw;
                     HOperatorSet.SmallestRectangle2(stripRegion, out rr, out rc, out rp, out rh, out rw);
                     HOperatorSet.GenMeasureRectangle2(rr, rc, measurePhi, rh, rw,
                         imageWidth, imageHeight, "nearest_neighbor", out handle);
 
-                    //260409 hbk MeasurePos: select="all"로 모든 에지 검출
+                    // select="all": 스트립 내 모든 에지 검출
                     HTuple rows, cols, amp, dist;
                     HOperatorSet.MeasurePos(image, handle, sigma, threshold,
                         polarity, "all", out rows, out cols, out amp, out dist);
 
-                    int edgeCount = rows.TupleLength(); //260409 hbk
-                    totalEdgePoints += edgeCount; //260409 hbk
+                    int edgeCount = rows.TupleLength();
+                    totalEdgePoints += edgeCount;
 
-                    if (edgeCount >= 2) //260409 hbk
+                    if (edgeCount >= 2)
                     {
-                        //260409 hbk 첫 번째 에지 -> firstEdge, 마지막 에지 -> lastEdge
+                        // 첫 번째 에지 -> firstEdge, 마지막 에지 -> lastEdge
                         HOperatorSet.TupleConcat(firstRows, rows[0], out firstRows);
                         HOperatorSet.TupleConcat(firstCols, cols[0], out firstCols);
                         HOperatorSet.TupleConcat(lastRows, rows[edgeCount - 1], out lastRows);
                         HOperatorSet.TupleConcat(lastCols, cols[edgeCount - 1], out lastCols);
                     }
-                    else if (edgeCount == 1) //260409 hbk
+                    else if (edgeCount == 1)
                     {
-                        //260409 hbk 에지 1개: firstEdge에만 추가
                         HOperatorSet.TupleConcat(firstRows, rows[0], out firstRows);
                         HOperatorSet.TupleConcat(firstCols, cols[0], out firstCols);
                     }
                 }
-                catch //260409 hbk 개별 스트립 실패는 무시
+                catch // 개별 스트립 실패는 무시
                 {
                 }
                 finally
                 {
-                    //260409 hbk MeasurePos handle 해제
                     if (handle != null)
                     {
                         try { HOperatorSet.CloseMeasure(handle); } catch { }
@@ -241,21 +231,19 @@ namespace ReringProject.Halcon.Algorithms
                 }
             }
 
-            //260409 hbk 트림 적용
-            int trimCount = fai.EdgeTrimCount; //260409 hbk
+            int trimCount = fai.EdgeTrimCount;
             if (trimCount > 0)
             {
                 TrimExtremePoints(ref firstRows, ref firstCols, scanHorizontal, trimCount);
                 TrimExtremePoints(ref lastRows, ref lastCols, scanHorizontal, trimCount);
             }
 
-            //260409 hbk 최소 포인트 수 검증
             if (firstRows.TupleLength() <= 1 || lastRows.TupleLength() <= 1)
             {
                 return false;
             }
 
-            //260409 hbk 라인 1 피팅 (첫 번째 에지 포인트들)
+            // 라인 1 피팅 (첫 번째 에지 포인트들)
             HObject contour1 = null;
             HObject contour2 = null;
             try
@@ -265,58 +253,53 @@ namespace ReringProject.Halcon.Algorithms
                 HOperatorSet.FitLineContourXld(contour1, "tukey", -1, 0, 5, 2,
                     out lr1, out lc1, out lr2, out lc2, out nr1, out nc1, out df1);
 
-                double line1Row1 = lr1.D; //260409 hbk
-                double line1Col1 = lc1.D; //260409 hbk
-                double line1Row2 = lr2.D; //260409 hbk
-                double line1Col2 = lc2.D; //260409 hbk
+                double line1Row1 = lr1.D;
+                double line1Col1 = lc1.D;
+                double line1Row2 = lr2.D;
+                double line1Col2 = lc2.D;
 
-                //260409 hbk 라인 2 피팅 (마지막 에지 포인트들)
+                // 라인 2 피팅 (마지막 에지 포인트들)
                 HOperatorSet.GenContourPolygonXld(out contour2, lastRows, lastCols);
                 HTuple lr3, lc3, lr4, lc4, nr2, nc2, df2;
                 HOperatorSet.FitLineContourXld(contour2, "tukey", -1, 0, 5, 2,
                     out lr3, out lc3, out lr4, out lc4, out nr2, out nc2, out df2);
 
-                double line2Row1 = lr3.D; //260409 hbk
-                double line2Col1 = lc3.D; //260409 hbk
-                double line2Row2 = lr4.D; //260409 hbk
-                double line2Col2 = lc4.D; //260409 hbk
+                double line2Row1 = lr3.D;
+                double line2Col1 = lc3.D;
+                double line2Row2 = lr4.D;
+                double line2Col2 = lc4.D;
 
-                //260409 hbk 두 라인 간 수직 거리 계산
-                double dx = line1Col2 - line1Col1; //260409 hbk
-                double dy = line1Row2 - line1Row1; //260409 hbk
-                double len = Math.Sqrt(dx * dx + dy * dy); //260409 hbk
-                if (len < 1e-9) //260409 hbk
+                double dx = line1Col2 - line1Col1;
+                double dy = line1Row2 - line1Row1;
+                double len = Math.Sqrt(dx * dx + dy * dy);
+                if (len < 1e-9)
                 {
                     return false;
                 }
 
-                //260409 hbk 법선 벡터 (라인 1에 수직)
-                double nx = -dy / len; //260409 hbk
-                double ny = dx / len; //260409 hbk
+                // 법선 벡터 (라인 1에 수직)
+                double nx = -dy / len;
+                double ny = dx / len;
 
-                //260409 hbk 라인 2 중점
-                double midRow2 = (line2Row1 + line2Row2) / 2.0; //260409 hbk
-                double midCol2 = (line2Col1 + line2Col2) / 2.0; //260409 hbk
+                double midRow2 = (line2Row1 + line2Row2) / 2.0;
+                double midCol2 = (line2Col1 + line2Col2) / 2.0;
 
-                //260409 hbk 라인 1 중점
-                double midRow1 = (line1Row1 + line1Row2) / 2.0; //260409 hbk
-                double midCol1 = (line1Col1 + line1Col2) / 2.0; //260409 hbk
+                double midRow1 = (line1Row1 + line1Row2) / 2.0;
+                double midCol1 = (line1Col1 + line1Col2) / 2.0;
 
-                //260409 hbk 수직 거리 = 법선 벡터와 (중점2-중점1) 내적의 절대값
-                double pixelDist = Math.Abs(nx * (midCol2 - midCol1) + ny * (midRow2 - midRow1)); //260409 hbk
+                // 수직 거리 = 법선 벡터와 (중점2-중점1) 내적의 절대값
+                double pixelDist = Math.Abs(nx * (midCol2 - midCol1) + ny * (midRow2 - midRow1));
 
-                //260409 hbk mm 변환: 수평 스캔 -> X축 해상도, 수직 스캔 -> Y축 해상도
-                double mmDist = scanHorizontal
-                    ? pixelDist * fai.PixelResolutionX
-                    : pixelDist * fai.PixelResolutionY; //260409 hbk
+                // mm 변환: 수평 스캔 -> X축 해상도, 수직 스캔 -> Y축 해상도
+                double mmDist;
+                if (scanHorizontal) mmDist = pixelDist * fai.PixelResolutionX;
+                else mmDist = pixelDist * fai.PixelResolutionY;
 
-                //260409 hbk 오버레이 생성
                 var overlays = BuildOverlaysBoth(
                     line1Row1, line1Col1, line1Row2, line1Col2,
                     line2Row1, line2Col1, line2Row2, line2Col2,
                     midRow1, midCol1, midRow2, midCol2);
 
-                //260409 hbk 결과 조립
                 result = new FAIEdgeMeasurementResult
                 {
                     Edge1Row = midRow1,
@@ -339,48 +322,49 @@ namespace ReringProject.Halcon.Algorithms
 
                 return true;
             }
-            catch //260409 hbk
+            catch
             {
                 return false;
             }
             finally
             {
-                if (contour1 != null) try { contour1.Dispose(); } catch { } //260409 hbk
-                if (contour2 != null) try { contour2.Dispose(); } catch { } //260409 hbk
+                if (contour1 != null) try { contour1.Dispose(); } catch { }
+                if (contour2 != null) try { contour2.Dispose(); } catch { }
             }
         }
 
         /// <summary>
         /// EdgeSelection=First/Last: 단일 에지 라인 피팅, distance=0
         /// </summary>
-        private bool TryMeasureSingle( //260409 hbk
+        private bool TryMeasureSingle(
             HImage image, HTuple imageWidth, HTuple imageHeight,
             bool scanHorizontal, double measurePhi, int sampleCount,
             double sigma, int threshold, string polarity,
             double top, double bottom, double left, double right,
             bool isLast, FAIConfig fai, out FAIEdgeMeasurementResult result)
         {
-            result = null; //260409 hbk
+            result = null;
 
-            string select = isLast ? "last" : "first"; //260409 hbk
-            var allRows = new HTuple(); //260409 hbk
-            var allCols = new HTuple(); //260409 hbk
-            int totalEdgePoints = 0; //260409 hbk
+            string select;
+            if (isLast) select = "last";
+            else select = "first";
+            var allRows = new HTuple();
+            var allCols = new HTuple();
+            int totalEdgePoints = 0;
 
-            //260409 hbk 샘플 스트립 루프
             for (int i = 0; i < sampleCount; i++)
             {
-                HObject stripRegion = null; //260409 hbk
-                HTuple handle = null; //260409 hbk
+                HObject stripRegion = null;
+                HTuple handle = null;
                 try
                 {
-                    if (scanHorizontal) //260409 hbk
+                    if (scanHorizontal)
                     {
                         double row1 = top + (i * (bottom - top) / sampleCount);
                         double row2 = top + ((i + 1) * (bottom - top) / sampleCount);
                         HOperatorSet.GenRectangle1(out stripRegion, row1, left, row2, right);
                     }
-                    else //260409 hbk
+                    else
                     {
                         double col1 = left + (i * (right - left) / sampleCount);
                         double col2 = left + ((i + 1) * (right - left) / sampleCount);
@@ -394,46 +378,43 @@ namespace ReringProject.Halcon.Algorithms
 
                     HTuple rows, cols, amp, dist;
                     HOperatorSet.MeasurePos(image, handle, sigma, threshold,
-                        polarity, select, out rows, out cols, out amp, out dist); //260409 hbk
+                        polarity, select, out rows, out cols, out amp, out dist);
 
-                    int edgeCount = rows.TupleLength(); //260409 hbk
-                    totalEdgePoints += edgeCount; //260409 hbk
+                    int edgeCount = rows.TupleLength();
+                    totalEdgePoints += edgeCount;
 
-                    if (edgeCount > 0) //260409 hbk
+                    if (edgeCount > 0)
                     {
                         HOperatorSet.TupleConcat(allRows, rows, out allRows);
                         HOperatorSet.TupleConcat(allCols, cols, out allCols);
                     }
                 }
-                catch //260409 hbk
+                catch
                 {
                 }
                 finally
                 {
-                    if (handle != null) //260409 hbk
+                    if (handle != null)
                     {
                         try { HOperatorSet.CloseMeasure(handle); } catch { }
                     }
-                    if (stripRegion != null) //260409 hbk
+                    if (stripRegion != null)
                     {
                         try { stripRegion.Dispose(); } catch { }
                     }
                 }
             }
 
-            //260409 hbk 트림 적용
             if (fai.EdgeTrimCount > 0)
             {
                 TrimExtremePoints(ref allRows, ref allCols, scanHorizontal, fai.EdgeTrimCount);
             }
 
-            //260409 hbk 최소 포인트 수 검증
             if (allRows.TupleLength() <= 1)
             {
                 return false;
             }
 
-            //260409 hbk 라인 피팅
             HObject contour = null;
             try
             {
@@ -442,17 +423,16 @@ namespace ReringProject.Halcon.Algorithms
                 HOperatorSet.FitLineContourXld(contour, "tukey", -1, 0, 5, 2,
                     out lr1, out lc1, out lr2, out lc2, out nr, out nc, out df);
 
-                double lineRow1 = lr1.D; //260409 hbk
-                double lineCol1 = lc1.D; //260409 hbk
-                double lineRow2 = lr2.D; //260409 hbk
-                double lineCol2 = lc2.D; //260409 hbk
-                double midRow = (lineRow1 + lineRow2) / 2.0; //260409 hbk
-                double midCol = (lineCol1 + lineCol2) / 2.0; //260409 hbk
+                double lineRow1 = lr1.D;
+                double lineCol1 = lc1.D;
+                double lineRow2 = lr2.D;
+                double lineCol2 = lc2.D;
+                double midRow = (lineRow1 + lineRow2) / 2.0;
+                double midCol = (lineCol1 + lineCol2) / 2.0;
 
-                //260409 hbk 오버레이 생성
                 var overlays = BuildOverlaysSingle(lineRow1, lineCol1, lineRow2, lineCol2);
 
-                //260409 hbk 결과 조립 (단일 에지, distance=0)
+                // 단일 에지, distance=0
                 result = new FAIEdgeMeasurementResult
                 {
                     Edge1Row = midRow,
@@ -475,27 +455,27 @@ namespace ReringProject.Halcon.Algorithms
 
                 return true;
             }
-            catch //260409 hbk
+            catch
             {
                 return false;
             }
             finally
             {
-                if (contour != null) try { contour.Dispose(); } catch { } //260409 hbk
+                if (contour != null) try { contour.Dispose(); } catch { }
             }
         }
 
         /// <summary>
         /// Both 모드 오버레이: 라인 1, 라인 2, 거리 연결선
         /// </summary>
-        private static List<EdgeInspectionOverlay> BuildOverlaysBoth( //260409 hbk
+        private static List<EdgeInspectionOverlay> BuildOverlaysBoth(
             double l1r1, double l1c1, double l1r2, double l1c2,
             double l2r1, double l2c1, double l2r2, double l2c2,
             double midRow1, double midCol1, double midRow2, double midCol2)
         {
-            var overlays = new List<EdgeInspectionOverlay>(); //260409 hbk
+            var overlays = new List<EdgeInspectionOverlay>();
 
-            //260409 hbk 피팅 라인 1
+            // 피팅 라인 1
             overlays.Add(new EdgeInspectionOverlay
             {
                 RoiId = "FAI-Edge1",
@@ -509,7 +489,7 @@ namespace ReringProject.Halcon.Algorithms
                 }
             });
 
-            //260409 hbk 피팅 라인 2
+            // 피팅 라인 2
             overlays.Add(new EdgeInspectionOverlay
             {
                 RoiId = "FAI-Edge2",
@@ -523,7 +503,7 @@ namespace ReringProject.Halcon.Algorithms
                 }
             });
 
-            //260409 hbk 라인 간 거리 연결선 (중점 기준)
+            // 라인 간 거리 연결선 (중점 기준)
             overlays.Add(new EdgeInspectionOverlay
             {
                 RoiId = "FAI-DistLine",
@@ -544,10 +524,10 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// Single 모드 오버레이: 피팅 라인 1개
         /// </summary>
-        private static List<EdgeInspectionOverlay> BuildOverlaysSingle( //260409 hbk
+        private static List<EdgeInspectionOverlay> BuildOverlaysSingle(
             double lr1, double lc1, double lr2, double lc2)
         {
-            var overlays = new List<EdgeInspectionOverlay>(); //260409 hbk
+            var overlays = new List<EdgeInspectionOverlay>();
 
             overlays.Add(new EdgeInspectionOverlay
             {
@@ -569,37 +549,39 @@ namespace ReringProject.Halcon.Algorithms
         /// 극값 에지 포인트를 제거한다 (MeasurementAlgorithm.TrimExtremePoints 동일 로직).
         /// scanHorizontal이면 row 기준, 아니면 column 기준으로 정렬 후 양 끝 trimCount개 제거.
         /// </summary>
-        private static void TrimExtremePoints(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimCount) //260409 hbk
+        private static void TrimExtremePoints(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimCount)
         {
-            if (trimCount <= 0) //260409 hbk
+            if (trimCount <= 0)
             {
                 return;
             }
 
-            int pointCount = rows.TupleLength(); //260409 hbk
-            if (pointCount <= (trimCount * 2)) //260409 hbk
+            int pointCount = rows.TupleLength();
+            if (pointCount <= (trimCount * 2))
             {
                 return;
             }
 
-            var key = scanHorizontal ? rows : cols; //260409 hbk
+            HTuple key;
+            if (scanHorizontal) key = rows;
+            else key = cols;
             HTuple sortedIndex;
-            HOperatorSet.TupleSortIndex(key, out sortedIndex); //260409 hbk
+            HOperatorSet.TupleSortIndex(key, out sortedIndex);
 
             HTuple sortedRows;
             HTuple sortedCols;
-            HOperatorSet.TupleSelect(rows, sortedIndex, out sortedRows); //260409 hbk
-            HOperatorSet.TupleSelect(cols, sortedIndex, out sortedCols); //260409 hbk
+            HOperatorSet.TupleSelect(rows, sortedIndex, out sortedRows);
+            HOperatorSet.TupleSelect(cols, sortedIndex, out sortedCols);
 
-            int start = trimCount; //260409 hbk
-            int end = sortedRows.TupleLength() - trimCount - 1; //260409 hbk
-            if (end <= start) //260409 hbk
+            int start = trimCount;
+            int end = sortedRows.TupleLength() - trimCount - 1;
+            if (end <= start)
             {
                 return;
             }
 
-            HOperatorSet.TupleSelectRange(sortedRows, start, end, out rows); //260409 hbk
-            HOperatorSet.TupleSelectRange(sortedCols, start, end, out cols); //260409 hbk
+            HOperatorSet.TupleSelectRange(sortedRows, start, end, out rows);
+            HOperatorSet.TupleSelectRange(sortedCols, start, end, out cols);
         }
     }
 }

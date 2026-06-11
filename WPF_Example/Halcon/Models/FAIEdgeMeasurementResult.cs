@@ -1,4 +1,3 @@
-//260409 hbk Phase 3: FAI 에지 측정 결과 모델
 using System.Collections.Generic;
 
 namespace ReringProject.Halcon.Models
@@ -17,20 +16,20 @@ namespace ReringProject.Halcon.Models
         public double Edge2Row { get; set; }
         public double Edge2Column { get; set; }
 
-        //260409 hbk 피팅 라인 1 양 끝점
-        public double Line1Row1 { get; set; } //260409 hbk
-        public double Line1Column1 { get; set; } //260409 hbk
-        public double Line1Row2 { get; set; } //260409 hbk
-        public double Line1Column2 { get; set; } //260409 hbk
+        // 피팅 라인 1 양 끝점
+        public double Line1Row1 { get; set; }
+        public double Line1Column1 { get; set; }
+        public double Line1Row2 { get; set; }
+        public double Line1Column2 { get; set; }
 
-        //260409 hbk 피팅 라인 2 양 끝점 (Both 모드에서만 사용)
-        public double Line2Row1 { get; set; } //260409 hbk
-        public double Line2Column1 { get; set; } //260409 hbk
-        public double Line2Row2 { get; set; } //260409 hbk
-        public double Line2Column2 { get; set; } //260409 hbk
+        // 피팅 라인 2 양 끝점 (Both 모드에서만 사용)
+        public double Line2Row1 { get; set; }
+        public double Line2Column1 { get; set; }
+        public double Line2Row2 { get; set; }
+        public double Line2Column2 { get; set; }
 
-        //260409 hbk 트림 전 총 에지 포인트 수
-        public int EdgePointCount { get; set; } //260409 hbk
+        // 트림 전 총 에지 포인트 수
+        public int EdgePointCount { get; set; }
 
         /// <summary>에지 간 픽셀 거리</summary>
         public double DistancePixel { get; set; }

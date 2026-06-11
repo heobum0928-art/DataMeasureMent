@@ -2,7 +2,7 @@
 
 namespace ReringProject.Halcon.Models
 {
-    //260423 hbk Phase 11 D-16 — ROI 모양 enum (Rect/Polygon 하위호환: 기본값 Rect)
+    // ROI 모양 (Rect/Polygon 하위호환: 기본값 Rect)
     public enum RoiShape { Rect, Polygon, Circle }
 
     [DataContract]
@@ -38,7 +38,7 @@ namespace ReringProject.Halcon.Models
         [DataMember]
         public int EdgeThreshold { get; set; } = 10;
 
-        //260423 hbk Phase 11 D-16 — Circle ROI 지원 (Rect/Polygon 하위호환: 기본값 Rect)
+        // Circle ROI 지원 (Rect/Polygon 하위호환: 기본값 Rect)
         [DataMember]
         public RoiShape Shape { get; set; } = RoiShape.Rect;
 
@@ -51,14 +51,14 @@ namespace ReringProject.Halcon.Models
         [DataMember]
         public double Radius { get; set; }
 
-        //260519 hbk Phase 31 CO-23.1-02 — Circle polar-sampling strip 시각화 파라미터.
-        //  > 0 일 때만 HalconDisplayService 가 360° strip 사각형 overlay 를 렌더 (0 = strip 미표시).
+        // Circle polar-sampling strip 시각화 파라미터.
+        // > 0 일 때만 HalconDisplayService 가 360° strip 사각형 overlay 를 렌더 (0 = strip 미표시).
         [DataMember]
-        public double CirclePolarStepDeg { get; set; } //260519 hbk Phase 31 CO-23.1-02
+        public double CirclePolarStepDeg { get; set; }
         [DataMember]
-        public double CircleRectL1Ratio { get; set; } //260519 hbk Phase 31 CO-23.1-02
+        public double CircleRectL1Ratio { get; set; }
         [DataMember]
-        public double CircleRectL2Ratio { get; set; } //260519 hbk Phase 31 CO-23.1-02
+        public double CircleRectL2Ratio { get; set; }
 
         [DataMember]
         public int EdgeSampleCount { get; set; } = 20;
@@ -78,7 +78,7 @@ namespace ReringProject.Halcon.Models
         [DataMember]
         public string LineOrientation { get; set; } = "Horizontal";
 
-        //260408 hbk Polygon ROI 좌표 ("x1,y1;x2,y2;..." 포맷)
+        // Polygon ROI 좌표 ("x1,y1;x2,y2;..." 포맷)
         [DataMember]
         public string PolygonPoints { get; set; } = "";
 
@@ -100,7 +100,10 @@ namespace ReringProject.Halcon.Models
 
         public override string ToString()
         {
-            return string.Format("{0} [{1}]", Name, IsTaught ? "Taught" : "Pending");
+            string taughtLabel;
+            if (IsTaught) taughtLabel = "Taught";
+            else taughtLabel = "Pending";
+            return string.Format("{0} [{1}]", Name, taughtLabel);
         }
     }
 }

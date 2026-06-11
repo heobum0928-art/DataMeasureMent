@@ -19,21 +19,21 @@ namespace ReringProject.Halcon.Models
         }
     }
 
-    //260610 hbk Phase 40.2 hotfix CO-40.2-11 — capture 에 datum 검출 오버레이(녹색 원 + 중심/원점 십자) 포함용 스냅샷.
-    //  datum 은 시퀀스 단위 검출(모든 FAI 공유)이므로 검사 스레드에서 값만 추출해 워커로 전달(async race 차단).
+    // capture 에 datum 검출 오버레이(녹색 원 + 중심/원점 십자) 포함용 스냅샷.
+    // datum 은 시퀀스 단위 검출(모든 FAI 공유)이므로 검사 스레드에서 값만 추출해 워커로 전달(async race 차단).
     public class DatumCaptureOverlay
     {
-        public bool HasOrigin { get; set; }   //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원점 십자 표시 여부
+        public bool HasOrigin { get; set; }   // 검출 원점 십자 표시 여부
         public double OriginRow { get; set; }
         public double OriginCol { get; set; }
-        public bool HasCircle { get; set; }    //260610 hbk Phase 40.2 hotfix CO-40.2-11 — 검출 원(녹색) 표시 여부
+        public bool HasCircle { get; set; }    // 검출 원(녹색) 표시 여부
         public double CircleRow { get; set; }
         public double CircleCol { get; set; }
         public double CircleRadius { get; set; }
-        //260610 hbk Phase 40.2 hotfix CO-40.2-12 — datum 기준선(축). 원점+각도로 렌더러가 이미지 대각 길이만큼 라인 산출.
-        public bool HasAxis1 { get; set; }     //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 1차(주) 기준선
+        // datum 기준선(축). 원점+각도로 렌더러가 이미지 대각 길이만큼 라인 산출.
+        public bool HasAxis1 { get; set; }     // 1차(주) 기준선
         public double Axis1AngleRad { get; set; }
-        public bool HasAxis2 { get; set; }     //260610 hbk Phase 40.2 hotfix CO-40.2-12 — 2차(수직) 기준선
+        public bool HasAxis2 { get; set; }     // 2차(수직) 기준선
         public double Axis2AngleRad { get; set; }
     }
 
@@ -53,10 +53,13 @@ namespace ReringProject.Halcon.Models
 
         public EdgeInspectionOverlay Clone()
         {
+            List<EdgeInspectionPoint> clonedPoints;
+            if (Points == null) clonedPoints = new List<EdgeInspectionPoint>();
+            else clonedPoints = Points.Select(point => point.Clone()).ToList();
             return new EdgeInspectionOverlay
             {
                 RoiId = RoiId,
-                Points = Points == null ? new List<EdgeInspectionPoint>() : Points.Select(point => point.Clone()).ToList(),
+                Points = clonedPoints,
                 LineRow1 = LineRow1,
                 LineColumn1 = LineColumn1,
                 LineRow2 = LineRow2,

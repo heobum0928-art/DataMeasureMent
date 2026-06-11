@@ -31,7 +31,8 @@ namespace ReringProject.Sequence {
 
         // seqName 기본값 "" 는 OwnerSequenceName 미지정 호출과의 하위 호환 (빈값은 ApplyShotDefaults 에서 SEQ_TOP 폴백)
         public ShotConfig AddShot(string name = null, string seqName = "") {
-            string shotName = name ?? $"SHOT_{Shots.Count}";
+            string shotName = name;
+            if (shotName == null) shotName = $"SHOT_{Shots.Count}";
             var shot = new ShotConfig(_owner, shotName);
             if (!string.IsNullOrEmpty(seqName)) {
                 shot.OwnerSequenceName = seqName;
@@ -88,7 +89,9 @@ namespace ReringProject.Sequence {
                 PreserveFixtureFromExisting(saveFile, existingFile, sectionPrefix);
                 return;
             }
-            saveFile[sectionPrefix]["DisplayName"] = seq.GetDisplayName() ?? "";
+            string displayName = seq.GetDisplayName();
+            if (displayName == null) displayName = "";
+            saveFile[sectionPrefix]["DisplayName"] = displayName;
             saveFile[sectionPrefix]["DatumCount"] = seq.DatumConfigs.Count;
             for (int d = 0; d < seq.DatumConfigs.Count; d++) {
                 string datumSection = $"{sectionPrefix}_DATUM_{d}";
@@ -125,7 +128,9 @@ namespace ReringProject.Sequence {
             if (!loadFile.ContainsSection(sectionPrefix)) {
                 return;
             }
-            seq.DisplayName = loadFile[sectionPrefix]["DisplayName"].ToString() ?? "";
+            string displayName = loadFile[sectionPrefix]["DisplayName"].ToString();
+            if (displayName == null) displayName = "";
+            seq.DisplayName = displayName;
             int datumCount = loadFile[sectionPrefix]["DatumCount"].ToInt();
             if (datumCount < 0) datumCount = 0;
             for (int d = 0; d < datumCount; d++) {
@@ -169,7 +174,9 @@ namespace ReringProject.Sequence {
 
             var fixtureSeq = ResolveFixtureSequence();
             if (fixtureSeq != null) {
-                saveFile["FIXTURE"]["DisplayName"] = fixtureSeq.GetDisplayName() ?? "";
+                string displayName = fixtureSeq.GetDisplayName();
+                if (displayName == null) displayName = "";
+                saveFile["FIXTURE"]["DisplayName"] = displayName;
                 saveFile["FIXTURE"]["DatumCount"] = fixtureSeq.DatumConfigs.Count;
                 for (int d = 0; d < fixtureSeq.DatumConfigs.Count; d++) {
                     string datumSection = $"FIXTURE_DATUM_{d}";
@@ -189,10 +196,14 @@ namespace ReringProject.Sequence {
                 string shotSection = $"SHOT_{s}";
                 ShotConfig shot = Shots[s];
 
-                saveFile[shotSection]["ShotName"] = shot.ShotName ?? $"SHOT_{s}";
+                string shotName = shot.ShotName;
+                if (shotName == null) shotName = $"SHOT_{s}";
+                saveFile[shotSection]["ShotName"] = shotName;
                 saveFile[shotSection]["ZPosition"] = shot.ZPosition;
                 saveFile[shotSection]["DelayMs"] = shot.DelayMs;
-                saveFile[shotSection]["SimulImagePath"] = shot.SimulImagePath ?? "";
+                string simulImagePath = shot.SimulImagePath;
+                if (simulImagePath == null) simulImagePath = "";
+                saveFile[shotSection]["SimulImagePath"] = simulImagePath;
                 saveFile[shotSection]["FAICount"] = shot.FAIList.Count;
 
                 // Camera/ShotConfig 필드 (조명 8필드 포함) 자동 직렬화
@@ -203,7 +214,9 @@ namespace ReringProject.Sequence {
                     FAIConfig fai = shot.FAIList[f];
 
                     fai.Save(saveFile, faiSection);
-                    saveFile[faiSection]["FAIName"] = fai.FAIName ?? $"FAI_{f}";
+                    string faiName = fai.FAIName;
+                    if (faiName == null) faiName = $"FAI_{f}";
+                    saveFile[faiSection]["FAIName"] = faiName;
                     saveFile[faiSection]["MeasurementCount"] = fai.Measurements.Count;
 
                     for (int m = 0; m < fai.Measurements.Count; m++) {
@@ -211,7 +224,9 @@ namespace ReringProject.Sequence {
                         var meas = fai.Measurements[m];
                         meas.Save(saveFile, measSection);
                         // TypeName은 ParamBase.Save가 처리하지 못하므로 수동 저장
-                        saveFile[measSection]["Type"] = meas.TypeName ?? "";
+                        string typeName = meas.TypeName;
+                        if (typeName == null) typeName = "";
+                        saveFile[measSection]["Type"] = typeName;
                     }
                 }
             }
@@ -237,7 +252,9 @@ namespace ReringProject.Sequence {
             // --- Fixture (InspectionSequence) ---
             var fixtureSeq = ResolveFixtureSequence();
             if (fixtureSeq != null && loadFile.ContainsSection("FIXTURE")) {
-                fixtureSeq.DisplayName = loadFile["FIXTURE"]["DisplayName"].ToString() ?? "";
+                string displayName = loadFile["FIXTURE"]["DisplayName"].ToString();
+                if (displayName == null) displayName = "";
+                fixtureSeq.DisplayName = displayName;
                 int datumCount = loadFile["FIXTURE"]["DatumCount"].ToInt();
                 if (datumCount < 0) datumCount = 0;
                 fixtureSeq.DatumConfigs.Clear();

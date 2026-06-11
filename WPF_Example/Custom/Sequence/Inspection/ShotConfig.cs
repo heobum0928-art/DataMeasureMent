@@ -94,8 +94,9 @@ namespace ReringProject.Sequence {
         /// </summary>
         public void SetImage(HImage image) {
             lock (_imageLock) {
-                _image?.Dispose();
-                _image = image?.CopyImage();
+                if (_image != null) _image.Dispose();
+                if (image != null) _image = image.CopyImage();
+                else _image = null;
             }
         }
 
@@ -108,7 +109,8 @@ namespace ReringProject.Sequence {
         /// </summary>
         public HImage GetImage() {
             lock (_imageLock) {
-                return _image?.CopyImage();
+                if (_image != null) return _image.CopyImage();
+                return null;
             }
         }
 
@@ -125,7 +127,7 @@ namespace ReringProject.Sequence {
         /// </summary>
         public void ClearImage() {
             lock (_imageLock) {
-                _image?.Dispose();
+                if (_image != null) _image.Dispose();
                 _image = null;
             }
         }
@@ -142,7 +144,8 @@ namespace ReringProject.Sequence {
         }
 
         public FAIConfig AddFAI(string name = null) {
-            string faiName = name ?? $"FAI_{FAIList.Count}";
+            string faiName = name;
+            if (faiName == null) faiName = $"FAI_{FAIList.Count}";
             var fai = new FAIConfig(this, faiName);
             FAIList.Add(fai);
             return fai;

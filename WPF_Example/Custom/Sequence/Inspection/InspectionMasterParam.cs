@@ -18,11 +18,13 @@ namespace ReringProject.Sequence {
         [Category("Fixture|Identity")]
         public string DisplayName {
             get {
-                return _insp != null ? _insp.DisplayName : "";
+                if (_insp != null) return _insp.DisplayName;
+                return "";
             }
             set {
                 if (_insp == null) return;
-                string newValue = value ?? "";
+                string newValue = value;
+                if (newValue == null) newValue = "";
                 if (_insp.DisplayName == newValue) return;
                 _insp.DisplayName = newValue;
                 RaisePropertyChanged("DisplayName");

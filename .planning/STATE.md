@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
-stopped_at: Completed 40.2-03-PLAN.md (CycleResultSerializer 파일명 DTO 복사 + ExcelExportService 하이퍼링크→파일명 텍스트 교체)
-last_updated: "2026-06-10T03:46:48.897Z"
-last_activity: 2026-06-10
+status: signed_off
+stopped_at: Phase 40.2 SIGNED_OFF — 40.2-04 SIMUL UAT Test 1~5 + CO-40.2-13 전 항목 PASS (40.2-UAT.md)
+last_updated: "2026-06-11T00:00:00.000Z"
+last_activity: 2026-06-11
 progress:
   total_phases: 6
   completed_phases: 6
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 40.2 (fai-2) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
+Phase: 40.2 (fai-2) — SIGNED_OFF (2026-06-11)
+Plan: 4 of 4 complete
+Status: Phase 40.2 complete — UAT 전 항목 PASS, carry-over 없음
 Last activity: 2026-06-10
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**

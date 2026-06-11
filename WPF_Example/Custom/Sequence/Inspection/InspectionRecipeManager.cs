@@ -94,11 +94,12 @@ namespace ReringProject.Sequence {
         }
 
         //260526 hbk Phase 33 — 시퀀스별 FIXTURE 저장 헬퍼 (SC#3, Side/Bottom 라운드트립)
-        private void SaveFixtureForSequence(IniFile saveFile, ESequence seqId, string sectionPrefix) {
+        //260611 hbk 비활성 시퀀스(현재 CameraRole 미등록) 시 기존 레시피 Datum 보존 — existingFile 인자 추가
+        private void SaveFixtureForSequence(IniFile saveFile, ESequence seqId, string sectionPrefix, IniFile existingFile) {
             var seq = ResolveFixtureSequence(seqId);
             if (seq == null) {
-                saveFile[sectionPrefix]["DisplayName"] = "";
-                saveFile[sectionPrefix]["DatumCount"] = 0;
+                //260611 hbk seq 미등록(타 CameraRole) — DatumCount=0 으로 덮어쓰지 말고 기존 레시피의 Datum 을 보존
+                PreserveFixtureFromExisting(saveFile, existingFile, sectionPrefix);
                 return;
             }
             saveFile[sectionPrefix]["DisplayName"] = seq.GetDisplayName() ?? "";
@@ -106,6 +107,27 @@ namespace ReringProject.Sequence {
             for (int d = 0; d < seq.DatumConfigs.Count; d++) {
                 string datumSection = $"{sectionPrefix}_DATUM_{d}";
                 seq.DatumConfigs[d].Save(saveFile, datumSection);
+            }
+        }
+
+        //260611 hbk 비활성 시퀀스(현재 CameraRole 에 미등록 → 메모리에 시퀀스 객체 없음) 의 FIXTURE Datum 을
+        // 기존 레시피 파일에서 섹션 통째로 복사해 보존한다. 이 보존이 없으면 Side 모드 저장 시 Top/Bottom Datum 이
+        // (반대로 TopBottom 모드 저장 시 Side Datum 이) DatumCount=0 으로 덮어써져 영구 소실된다 (CameraRole 전환 버그).
+        private void PreserveFixtureFromExisting(IniFile saveFile, IniFile existingFile, string sectionPrefix) {
+            if (existingFile == null || !existingFile.ContainsSection(sectionPrefix)) {
+                // 보존할 기존 데이터 없음 (신규 레시피 등) — 빈값 (기존 동작과 동일, 회귀 0)
+                saveFile[sectionPrefix]["DisplayName"] = "";
+                saveFile[sectionPrefix]["DatumCount"] = 0;
+                return;
+            }
+            saveFile[sectionPrefix] = existingFile[sectionPrefix]; //260611 hbk FIXTURE 헤더 섹션 통째 복사
+            int datumCount = existingFile[sectionPrefix]["DatumCount"].ToInt();
+            if (datumCount < 0) datumCount = 0;
+            for (int d = 0; d < datumCount; d++) {
+                string datumSection = $"{sectionPrefix}_DATUM_{d}";
+                if (existingFile.ContainsSection(datumSection)) {
+                    saveFile[datumSection] = existingFile[datumSection]; //260611 hbk Datum 섹션 통째 복사
+                }
             }
         }
 
@@ -153,12 +175,13 @@ namespace ReringProject.Sequence {
         // [SHOT_{s}_FAI_{f}] FAIName=..., MeasurementCount=N (FAIConfig 자동 직렬화)
         // [SHOT_{s}_FAI_{f}_MEAS_{m}] Type=..., (MeasurementBase 파생 자동 직렬화)
 
-        public bool Save(IniFile saveFile) {
-            return SavePhase6Format(saveFile);
+        //260611 hbk existingFile = 덮어쓰기 전 디스크 레시피 (비활성 시퀀스 Datum 보존용). 기존 호출 호환 위해 default null.
+        public bool Save(IniFile saveFile, IniFile existingFile = null) {
+            return SavePhase6Format(saveFile, existingFile);
         }
 
         //260413 hbk Phase 6: Fixture-Datum-Shot-FAI-Measurement 전체 계층 저장 (D-17, RC-05)
-        private bool SavePhase6Format(IniFile saveFile) {
+        private bool SavePhase6Format(IniFile saveFile, IniFile existingFile) {
             saveFile["FORMAT"]["Version"] = CurrentFormatVersion;
 
             var fixtureSeq = ResolveFixtureSequence();
@@ -170,13 +193,14 @@ namespace ReringProject.Sequence {
                     fixtureSeq.DatumConfigs[d].Save(saveFile, datumSection);
                 }
             } else {
-                saveFile["FIXTURE"]["DisplayName"] = "";
-                saveFile["FIXTURE"]["DatumCount"] = 0;
+                //260611 hbk Top 시퀀스 미등록(Side 모드) — Top Datum 을 0 으로 덮어쓰지 말고 기존 레시피에서 보존
+                PreserveFixtureFromExisting(saveFile, existingFile, "FIXTURE");
             }
 
             //260526 hbk Phase 33 — Side/Bottom InspectionSequence DatumConfigs 직렬화 (SC#3 INI 라운드트립)
-            SaveFixtureForSequence(saveFile, ESequence.Side, "FIXTURE_SIDE");
-            SaveFixtureForSequence(saveFile, ESequence.Bottom, "FIXTURE_BOTTOM");
+            //260611 hbk existingFile 전달 — 비활성 시퀀스 Datum 보존
+            SaveFixtureForSequence(saveFile, ESequence.Side, "FIXTURE_SIDE", existingFile);
+            SaveFixtureForSequence(saveFile, ESequence.Bottom, "FIXTURE_BOTTOM", existingFile);
 
             saveFile["SHOTS"]["Count"] = Shots.Count;
 

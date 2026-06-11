@@ -224,13 +224,17 @@ namespace ReringProject.Sequence {
                 Directory.CreateDirectory(recipeDir);
             }
 
+            //260611 hbk 덮어쓰기 전 기존 레시피를 읽어 둔다 — 현재 CameraRole 에 비활성인 시퀀스의
+            //  FIXTURE Datum 을 보존하기 위함 (Side↔TopBottom 전환 시 타 시퀀스 Datum 소실 버그 수정)
+            IniFile existingFile = File.Exists(recipeFile) ? new IniFile(recipeFile) : null;
+
             IniFile saveFile = new IniFile();
             saveFile["Info"]["ModelName"] = ModelName;
             saveFile["Info"]["Version"] = Version;
 
             // 동적 FAI 모드면 신규 포맷으로 저장
             if (IsDynamicFAIMode) {
-                SaveNewFormat(saveFile);
+                SaveNewFormat(saveFile, existingFile); //260611 hbk existingFile 전달
             }
 
             // 기존 Param0~N 방식도 항상 저장 (하위 호환)

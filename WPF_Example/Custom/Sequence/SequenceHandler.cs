@@ -171,9 +171,10 @@ namespace ReringProject.Sequence {
         /// <summary>
         /// 신규 SHOTS 포맷으로 INI에 저장.
         /// </summary>
-        public bool SaveNewFormat(IniFile saveFile) {
+        //260611 hbk existingFile = 덮어쓰기 전 디스크 레시피 (비활성 시퀀스 CameraRole Datum 보존용)
+        public bool SaveNewFormat(IniFile saveFile, IniFile existingFile = null) {
             if (!IsDynamicFAIMode) return false;
-            return RecipeManager.Save(saveFile);
+            return RecipeManager.Save(saveFile, existingFile);
         }
     }
 }

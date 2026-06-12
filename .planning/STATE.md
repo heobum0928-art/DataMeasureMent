@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: signed_off
-stopped_at: Phase 40.2 SIGNED_OFF — 40.2-04 SIMUL UAT Test 1~5 + CO-40.2-13 전 항목 PASS (40.2-UAT.md)
-last_updated: "2026-06-11T00:00:00.000Z"
-last_activity: 2026-06-11
+status: completed
+stopped_at: context exhaustion at 98% (2026-06-12)
+last_updated: "2026-06-12T06:50:18.729Z"
+last_activity: 2026-06-10
 progress:
   total_phases: 6
   completed_phases: 6
@@ -390,10 +390,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-10T03:46:31.443Z
-Stopped at: Completed 40.2-03-PLAN.md (CycleResultSerializer 파일명 DTO 복사 + ExcelExportService 하이퍼링크→파일명 텍스트 교체)
+Last session: 2026-06-12T06:50:18.718Z
+Stopped at: context exhaustion at 98% (2026-06-12)
 Resume file: None
-Next action: /gsd-execute-phase 40 (Plan 40-04 xlsx export, OUT-02). 이후 CO-40-08(오토 종합판정/TCP 시퀀스 scoping) 별도 처리.
+Next action: QUAL-01 Wave5 Batch G 미완료 (마지막 커밋 89127d0 — ParamBase.cs 부분). 계속 = /gsd-quick 또는 수동 Wave5 잔여 파일 정리.
 
 **v1.1 Phase Map:**
 

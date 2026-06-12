@@ -31,9 +31,13 @@ namespace ReringProject.Halcon
                 int width;
                 int height;
                 IntPtr sourcePtr = image.GetImagePointer1(out imageType, out width, out height);
-                MatType matType = imageType == "uint2" ? MatType.CV_16UC1 : MatType.CV_8UC1;
+                MatType matType;
+                if (imageType == "uint2") matType = MatType.CV_16UC1;
+                else matType = MatType.CV_8UC1;
                 var mat = new Mat(height, width, matType);
-                int bytesPerPixel = matType == MatType.CV_16UC1 ? 2 : 1;
+                int bytesPerPixel;
+                if (matType == MatType.CV_16UC1) bytesPerPixel = 2;
+                else bytesPerPixel = 1;
                 int byteCount = checked(width * height * bytesPerPixel);
                 byte[] data = new byte[byteCount];
                 Marshal.Copy(sourcePtr, data, 0, byteCount);

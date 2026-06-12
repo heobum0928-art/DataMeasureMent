@@ -168,7 +168,8 @@ namespace ReringProject.Halcon.Algorithms
         private static double ComputeLineAngleDeg(double row1, double col1, double row2, double col2)
         {
             var angle = Math.Atan2(row2 - row1, col2 - col1) * (180.0 / Math.PI);
-            return angle < 0 ? angle + 180.0 : angle;
+            if (angle < 0) return angle + 180.0;
+            return angle;
         }
 
         private static double ComputeCrossAngleDeg(double angleA, double angleB)

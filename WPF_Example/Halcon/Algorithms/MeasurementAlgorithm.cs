@@ -10,7 +10,9 @@ namespace ReringProject.Halcon.Algorithms
     {
         public string Run(string imagePath, IEnumerable<RoiDefinition> rois)
         {
-            var allRois = rois == null ? new List<RoiDefinition>() : rois.ToList();
+            List<RoiDefinition> allRois;
+            if (rois == null) allRois = new List<RoiDefinition>();
+            else allRois = rois.ToList();
             if (string.IsNullOrWhiteSpace(imagePath))
             {
                 return "Image: None | No inspection executed.";
@@ -31,7 +33,9 @@ namespace ReringProject.Halcon.Algorithms
 
         public string Run(HImage image, IEnumerable<RoiDefinition> rois)
         {
-            var allRois = rois == null ? new List<RoiDefinition>() : rois.ToList();
+            List<RoiDefinition> allRois;
+            if (rois == null) allRois = new List<RoiDefinition>();
+            else allRois = rois.ToList();
             return Run(image, allRois, "(memory)");
         }
 
@@ -129,11 +133,15 @@ namespace ReringProject.Halcon.Algorithms
 
             var scanHorizontal = string.Equals(roi.EdgeDirection, "LtoR", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(roi.EdgeDirection, "RtoL", StringComparison.OrdinalIgnoreCase);
-            var measurePhi = string.Equals(roi.EdgeDirection, "TtoB", StringComparison.OrdinalIgnoreCase)
-                ? -Math.PI / 2.0
-                : string.Equals(roi.EdgeDirection, "RtoL", StringComparison.OrdinalIgnoreCase)
-                    ? Math.PI
-                    : string.Equals(roi.EdgeDirection, "BtoT", StringComparison.OrdinalIgnoreCase) ? Math.PI / 2.0 : 0.0;
+            double measurePhi;
+            if (string.Equals(roi.EdgeDirection, "TtoB", StringComparison.OrdinalIgnoreCase))
+                measurePhi = -Math.PI / 2.0;
+            else if (string.Equals(roi.EdgeDirection, "RtoL", StringComparison.OrdinalIgnoreCase))
+                measurePhi = Math.PI;
+            else if (string.Equals(roi.EdgeDirection, "BtoT", StringComparison.OrdinalIgnoreCase))
+                measurePhi = Math.PI / 2.0;
+            else
+                measurePhi = 0.0;
 
             var allRows = new HTuple();
             var allCols = new HTuple();
@@ -169,13 +177,20 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple cols;
                 HTuple amp;
                 HTuple dist;
+                string polarity;
+                if (string.Equals(roi.EdgePolarity, "LightToDark", StringComparison.OrdinalIgnoreCase)) polarity = "negative";
+                else polarity = "positive";
+                string selection;
+                if (string.Equals(roi.EdgeSelection, "Last", StringComparison.OrdinalIgnoreCase)) selection = "last";
+                else if (string.Equals(roi.EdgeSelection, "All", StringComparison.OrdinalIgnoreCase)) selection = "all";
+                else selection = "first";
                 HOperatorSet.MeasurePos(
                     image,
                     handle,
                     Math.Max(0.4, roi.Sigma),
                     Math.Max(1, roi.EdgeThreshold),
-                    string.Equals(roi.EdgePolarity, "LightToDark", StringComparison.OrdinalIgnoreCase) ? "negative" : "positive",
-                    string.Equals(roi.EdgeSelection, "Last", StringComparison.OrdinalIgnoreCase) ? "last" : string.Equals(roi.EdgeSelection, "All", StringComparison.OrdinalIgnoreCase) ? "all" : "first",
+                    polarity,
+                    selection,
                     out rows,
                     out cols,
                     out amp,
@@ -245,7 +260,9 @@ namespace ReringProject.Halcon.Algorithms
                 return;
             }
 
-            var key = scanHorizontal ? rows : cols;
+            HTuple key;
+            if (scanHorizontal) key = rows;
+            else key = cols;
             HTuple sortedIndex;
             HOperatorSet.TupleSortIndex(key, out sortedIndex);
 

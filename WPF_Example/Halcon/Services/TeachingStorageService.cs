@@ -217,7 +217,9 @@ namespace ReringProject.Halcon.Services
         }
         private static string NormalizeTeachingKey(string sourceName)
         {
-            var text = (sourceName ?? string.Empty).ToUpperInvariant();
+            string sourceNameSafe = sourceName;
+            if (sourceNameSafe == null) sourceNameSafe = string.Empty;
+            var text = sourceNameSafe.ToUpperInvariant();
             if (text.Contains("TOP"))
             {
                 return "TOP";

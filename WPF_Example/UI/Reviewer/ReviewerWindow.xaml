@@ -33,6 +33,18 @@
                         Click="Button_ExportExcel_Click"
                         IsEnabled="False"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
+                <!-- 260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 실행 UI -->
+                <Separator Margin="0,6,0,6"/>
+                <Button x:Name="btn_repeatRun" Content="50회 반복 실행"
+                        Click="Button_RepeatRun_Click"
+                        Padding="8,4" HorizontalAlignment="Stretch"/>
+                <TextBlock x:Name="lbl_repeatProgress" Text=""
+                           FontSize="11" Foreground="#334155"
+                           Margin="0,4,0,0" HorizontalAlignment="Center"/>
+                <Button x:Name="btn_repeatExport" Content="반복도 엑셀 export"
+                        Click="Button_RepeatExport_Click"
+                        IsEnabled="False"
+                        Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
             </StackPanel>
         </Border>
 

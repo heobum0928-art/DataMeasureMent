@@ -22,6 +22,10 @@ namespace ReringProject.UI
     {
         private CycleResultDto _currentCycle;
 
+        //260612 hbk Phase 41.1 OUT-03 반복도 실행 서비스 (UI 레이어 소유 인스턴스)
+        private RepeatRunService _repeatService;
+        private List<CycleResultDto> _repeatCycles;
+
         // DualImage 전환 버튼이 참조할 현재 선택 행
         private ReviewMeasurementRow _selectedRow;
 
@@ -309,6 +313,113 @@ namespace ReringProject.UI
                 CustomMessageBox.Show("엑셀 export",
                     okMessage,
                     okIcon);
+            }
+        }
+
+        //260612 hbk Phase 41.1 OUT-03 50회 반복 실행 버튼 핸들러
+        private void Button_RepeatRun_Click(object sender, RoutedEventArgs e)
+        {
+            if (_repeatService != null && _repeatService.IsRunning)
+            {
+                _repeatService.Stop();
+                lbl_repeatProgress.Text = "중단됨";
+                btn_repeatRun.Content = "50회 반복 실행";
+                return;
+            }
+
+            InspectionSequence activeSeq = null;
+            var seqHandler = SystemHandler.Handle.Sequences;
+            if (seqHandler != null)
+            {
+                for (int i = 0; i < seqHandler.Count; i++)
+                {
+                    var s = seqHandler[i];
+                    var inspSeq = s as InspectionSequence;
+                    if (inspSeq != null)
+                    {
+                        activeSeq = inspSeq;
+                        break;
+                    }
+                }
+            }
+
+            if (activeSeq == null)
+            {
+                CustomMessageBox.Show("반복 실행", "활성 검사 시퀀스를 찾을 수 없습니다.", MessageBoxImage.Warning);
+                return;
+            }
+
+            _repeatCycles = null;
+            btn_repeatExport.IsEnabled = false;
+            btn_repeatRun.Content = "중단";
+            lbl_repeatProgress.Text = "진행 중: 0/" + RepeatRunService.DEFAULT_REPEAT_COUNT;
+
+            _repeatService = new RepeatRunService();
+            _repeatService.OnProgressChanged += (current, total) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    lbl_repeatProgress.Text = "진행 중: " + current + "/" + total;
+                });
+            };
+            _repeatService.OnRepeatComplete += (cycles) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    _repeatCycles = cycles;
+                    lbl_repeatProgress.Text = "완료: " + (cycles != null ? cycles.Count : 0) + "회";
+                    btn_repeatRun.Content = "50회 반복 실행";
+                    btn_repeatExport.IsEnabled = (cycles != null && cycles.Count > 0);
+                });
+            };
+
+            _repeatService.Start(activeSeq, RepeatRunService.DEFAULT_REPEAT_COUNT);
+        }
+
+        //260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 엑셀 export 핸들러
+        private void Button_RepeatExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (_repeatCycles == null || _repeatCycles.Count == 0)
+            {
+                CustomMessageBox.Show("반복도 export", "반복 실행 완료 후 사용하세요.", MessageBoxImage.Warning);
+                return;
+            }
+
+            string initialDir = SystemHandler.Handle.Setting.ResultSavePath;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName ?? "";
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = "repeat_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xlsx",
+                InitialDirectory = initialDir
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                bool ok = ReringProject.Export.RepeatExcelExportService.Export(
+                    _repeatCycles, recipeName, dlg.FileName);
+                string msg;
+                if (ok)
+                {
+                    msg = "저장 완료:\n" + dlg.FileName;
+                }
+                else
+                {
+                    msg = "export 실패 (로그 확인)";
+                }
+
+                MessageBoxImage icon;
+                if (ok)
+                {
+                    icon = MessageBoxImage.Information;
+                }
+                else
+                {
+                    icon = MessageBoxImage.Error;
+                }
+
+                CustomMessageBox.Show("반복도 엑셀 export", msg, icon);
             }
         }
     }

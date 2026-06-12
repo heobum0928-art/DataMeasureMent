@@ -1,4 +1,3 @@
-//260530 hbk Phase 39.2 D-G4 — IconKey (string) → Geometry resource lookup converter
 using System;
 using System.Globalization;
 using System.Windows;

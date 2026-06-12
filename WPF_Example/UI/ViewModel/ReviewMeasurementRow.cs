@@ -1,4 +1,3 @@
-//260601 hbk Phase 40 OUT-01 — ReviewerWindow DataGrid 행 DTO (D-05/D-09)
 using ReringProject.UI;
 
 namespace ReringProject.UI
@@ -6,7 +5,7 @@ namespace ReringProject.UI
     /// <summary>
     /// 리뷰어 DataGrid 행 DTO. CycleResultDto.MeasurementResultDto 를 그리드 표시용으로 래핑.
     /// Observable 상속 불필요 — 순수 직렬화 결과 DTO 래퍼, 일회성 바인딩.
-    /// JudgeText: 3분기 (DATUM_FAIL/HasResult·OK·NG/미측정 '—') — MeasurementResultRow.cs:60 로직 답습.
+    /// JudgeText: 3분기 (DATUM_FAIL / HasResult·OK·NG / 미측정 '—').
     /// </summary>
     public class ReviewMeasurementRow
     {
@@ -31,8 +30,8 @@ namespace ReringProject.UI
         /// </summary>
         public string JudgeText { get; set; }
 
-        //260601 hbk Phase 40 CO-40-02 UAT — 행 클릭 시 해당 측정의 이미지/overlay 만 표시하기 위한 소유 객체 역참조.
-        //  직렬화 결과 DTO 를 가리키는 in-memory 참조(직렬화 대상 아님) — 리뷰어 decluttering 용.
+        // 행 클릭 시 해당 측정의 이미지/overlay 만 표시하기 위한 소유 객체 역참조.
+        // 직렬화 결과 DTO 를 가리키는 in-memory 참조(직렬화 대상 아님).
         /// <summary>이 측정이 속한 Shot DTO (이미지 경로 출처).</summary>
         public ShotResultDto OwnerShot { get; set; }
 
@@ -55,7 +54,7 @@ namespace ReringProject.UI
             TolerancePlus = m.TolerancePlus;
             ToleranceMinus = m.ToleranceMinus;
 
-            // CO-23-01: 0.0 도 정상 결과 — HasResult 플래그로 판별 (MeasuredValue != 0 센티넬 금지)
+            // 0.0 도 정상 결과 — HasResult 플래그로 판별 (MeasuredValue != 0 센티넬 금지)
             ResultDisplay = m.LastHasResult ? m.LastMeasuredValue.ToString("F4") : "—";
 
             // 3분기: DATUM_FAIL > HasResult 유무 > OK/NG

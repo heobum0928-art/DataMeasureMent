@@ -19,13 +19,13 @@ namespace ReringProject.UI {
     /// </summary>
     public partial class SettingWindow : Window {
         SystemSetting pSetting;
-        int pOriginalCameraRoleValue; //260611 hbk 설정 창 진입 시점의 CameraRole 원본값 (변경 감지용)
+        int pOriginalCameraRoleValue;
 
         public SettingWindow() {
             pSetting = SystemSetting.Handle;
             pSetting.Load();
 
-            pOriginalCameraRoleValue = pSetting.CameraRoleValue; //260611 hbk 원본 CameraRole 보관
+            pOriginalCameraRoleValue = pSetting.CameraRoleValue;
 
             InitializeComponent();
             this.DataContext = new SettingViewModel();
@@ -37,23 +37,23 @@ namespace ReringProject.UI {
         }
 
         private void Btn_ok_Click(object sender, RoutedEventArgs e) {
-            //260611 hbk CameraRole(검사 모드) 변경 시 경고 확인 — 함부로 못 바꾸게
+            // CameraRole(검사 모드) 변경 시 경고 확인 — 이 PC 의 검사 담당이 바뀌므로 함부로 못 바꾸게
             if (pSetting.CameraRoleValue != pOriginalCameraRoleValue) {
-                ECameraRole oldRole = (ECameraRole)pOriginalCameraRoleValue; //260611 hbk
-                ECameraRole newRole = (ECameraRole)pSetting.CameraRoleValue; //260611 hbk
+                ECameraRole oldRole = (ECameraRole)pOriginalCameraRoleValue;
+                ECameraRole newRole = (ECameraRole)pSetting.CameraRoleValue;
                 string msg = "카메라 역할(검사 모드)을 [" + oldRole + "] → [" + newRole + "] 으로 바꿉니다.\n"
                            + "이 PC 의 검사 담당(Top/Bottom 또는 Side)이 바뀌며, 프로그램을 껐다 켜야 적용됩니다.\n"
-                           + "계속하시겠습니까?"; //260611 hbk
+                           + "계속하시겠습니까?";
                 MessageBoxResult confirm = MessageBox.Show(msg, "카메라 역할 변경 확인",
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning); //260611 hbk
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (confirm != MessageBoxResult.Yes) {
-                    pSetting.CameraRoleValue = pOriginalCameraRoleValue; //260611 hbk 취소 시 원복, 창 유지
+                    pSetting.CameraRoleValue = pOriginalCameraRoleValue; // 취소 시 원복, 창 유지
                     return;
                 }
 
-                pSetting.Save(); //260611 hbk
+                pSetting.Save();
                 MessageBox.Show("프로그램을 재시작하면 새 모드로 시작됩니다.", "재시작 필요",
-                    MessageBoxButton.OK, MessageBoxImage.Information); //260611 hbk 재시작 안내
+                    MessageBoxButton.OK, MessageBoxImage.Information);
                 DialogResult = true;
                 Close();
                 return;

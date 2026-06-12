@@ -101,7 +101,7 @@ namespace ReringProject.UI {
             mParentWindow.PopupView(EPageType.ProcessMonitor);
         }
 
-        //260601 hbk Phase 40 OUT-01 — 결과 리뷰어 비모달 창 열기 (D-08/D-09, Button_CI_Click 패턴 답습)
+        // 결과 리뷰어 비모달 창 열기
         private void Button_Reviewer_Click(object sender, RoutedEventArgs e) {
             mParentWindow.PopupView(EPageType.Reviewer);
         }

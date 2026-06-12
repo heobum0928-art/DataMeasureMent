@@ -5,12 +5,10 @@ using ReringProject.UI;
 namespace ReringProject.UI
 {
     /// <summary>Measurement-centric ViewModel. Manages result table rows for the selected FAI or Action node.</summary>
-    //260417 hbk Phase 6 Plan 04: FAIResults → MeasurementResults (D-21)
     public class InspectionViewModel : Observable
     {
         private readonly InspectionRecipeManager _recipeManager;
 
-        //260417 hbk Phase 6 Plan 04: Measurement 단위 결과 컬렉션 (D-21)
         private ObservableCollection<MeasurementResultRow> _measurementResults;
 
         public ObservableCollection<MeasurementResultRow> MeasurementResults
@@ -26,7 +24,6 @@ namespace ReringProject.UI
         }
 
         /// <summary>Called when a FAI node is selected. Shows all Measurements under this FAI as rows.</summary>
-        //260417 hbk Phase 6 Plan 04: FAI 하위 모든 Measurement 행 표시 (D-21, D-24)
         public void OnFAISelected(FAIConfig fai)
         {
             var rows = new ObservableCollection<MeasurementResultRow>();
@@ -42,7 +39,6 @@ namespace ReringProject.UI
         }
 
         /// <summary>Called when an Action node is selected. Shows all Measurements across all FAIs under that ShotConfig.</summary>
-        //260417 hbk Phase 6 Plan 04: ShotConfig.FAIList 순회 → 각 FAI의 Measurements 펼치기 (D-21)
         public void OnActionSelected(NodeViewModel actionNode)
         {
             var rows = new ObservableCollection<MeasurementResultRow>();
@@ -65,7 +61,6 @@ namespace ReringProject.UI
             MeasurementResults = new ObservableCollection<MeasurementResultRow>();
         }
 
-        //260417 hbk Phase 6 Plan 04: 측정 완료 후 모든 행 갱신 (D-21)
         public void RefreshResults()
         {
             if (_measurementResults == null) return;

@@ -32,9 +32,8 @@ namespace ReringProject.UI {
             bool dialogResult = false;
 
             try {
-                // App.Current.Dispatcher ... 주석처리 해제 02.19
                 App.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
-                    try { //260408 hbk BeginInvoke 람다 내부 예외 방어
+                    try { // BeginInvoke 람다 내부 예외 방어
                         Close();
 
                         _MessageBox = new MessageBoxWindow(model);
@@ -59,17 +58,15 @@ namespace ReringProject.UI {
                         Logging.PrintErrLog((int)ELogType.Error, "CustomMessageBox.Show lambda: " + ex.Message);
                     }
                 }));
-                // App.Current.Dispatcher ... 주석처리 해제 02.19
             }
             catch(Exception e) {
-                //e.Message;
                 Logging.PrintErrLog((int)ELogType.Error, e.Message);
             }
             return dialogResult;
         }
 
         public static MessageBoxResult ShowConfirmation(string title, string message, MessageBoxButton buttons) {
-            try { //260408 hbk 앱 종료/에러 중 호출 시 예외 방어
+            try { // 앱 종료/에러 중 호출 시 예외 방어
                 Close();
                 MessageBoxModel model = new MessageBoxModel(title, message, buttons, false);
 

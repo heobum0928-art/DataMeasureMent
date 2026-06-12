@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ReringProject.UI;
-using ReringProject.Utility; //260530 hbk Phase 39.2 D-G3 — NaturalStringComparer
+using ReringProject.Utility;
 
 namespace ReringProject.UI {
     public class InspectionListViewModel : Observable {
@@ -43,36 +43,35 @@ namespace ReringProject.UI {
 
         public int Count { get; set; }
 
-        //260530 hbk Phase 39.2 D-G3 — 자연정렬 비교자 (Shot2 < Shot10)
-        private static readonly NaturalStringComparer _naturalComparer = new NaturalStringComparer(); //260530 hbk Phase 39.2 D-G3
+        // 자연정렬 비교자 (Shot2 < Shot10)
+        private static readonly NaturalStringComparer _naturalComparer = new NaturalStringComparer();
 
         /// <summary>지정한 부모 노드의 직속 children 만 Name 기반 자연정렬 (asc).
         /// ObservableCollection 이벤트로 TreeListBox 안전 갱신 (clear + re-add).</summary>
-        //260530 hbk Phase 39.2 D-G3 — Add 시 즉시 정렬 + Rename hook 호출 진입점
-        public static void SortNodeChildren(NodeViewModel parent) { //260530 hbk Phase 39.2 D-G3
-            if (parent == null) return; //260530 hbk Phase 39.2 D-G3
-            var list = parent.Children; //260530 hbk Phase 39.2 D-G3 — LoadChildren 보장
-            if (list == null || list.Count <= 1) return; //260530 hbk Phase 39.2 D-G3
-            var sorted = new List<NodeViewModel>(list); //260530 hbk Phase 39.2 D-G3
-            sorted.Sort((a, b) => _naturalComparer.Compare(a != null ? a.Name : null, b != null ? b.Name : null)); //260530 hbk Phase 39.2 D-G3
-            bool dirty = false; //260530 hbk Phase 39.2 D-G3 — 변경 감지 (no-op skip 으로 RaisePropertyChanged 폭발 방지)
-            for (int i = 0; i < sorted.Count; i++) { //260530 hbk Phase 39.2 D-G3
-                if (!ReferenceEquals(sorted[i], list[i])) { dirty = true; break; } //260530 hbk Phase 39.2 D-G3
+        public static void SortNodeChildren(NodeViewModel parent) {
+            if (parent == null) return;
+            var list = parent.Children;
+            if (list == null || list.Count <= 1) return;
+            var sorted = new List<NodeViewModel>(list);
+            sorted.Sort((a, b) => _naturalComparer.Compare(a != null ? a.Name : null, b != null ? b.Name : null));
+            // 변경 감지 (no-op skip 으로 RaisePropertyChanged 폭발 방지)
+            bool dirty = false;
+            for (int i = 0; i < sorted.Count; i++) {
+                if (!ReferenceEquals(sorted[i], list[i])) { dirty = true; break; }
             }
-            if (!dirty) return; //260530 hbk Phase 39.2 D-G3
-            list.Clear(); //260530 hbk Phase 39.2 D-G3
-            foreach (var item in sorted) list.Add(item); //260530 hbk Phase 39.2 D-G3
+            if (!dirty) return;
+            list.Clear();
+            foreach (var item in sorted) list.Add(item);
         }
 
-        //260530 hbk Phase 39.2 D-G3 — 전 트리 재귀 정렬 (RebuildTree 후 또는 외부 일괄 정렬용)
-        public void SortAllLevels() { //260530 hbk Phase 39.2 D-G3
-            SortRecursive(RootModel); //260530 hbk Phase 39.2 D-G3
+        public void SortAllLevels() {
+            SortRecursive(RootModel);
         }
-        private static void SortRecursive(NodeViewModel node) { //260530 hbk Phase 39.2 D-G3
-            if (node == null) return; //260530 hbk Phase 39.2 D-G3
-            SortNodeChildren(node); //260530 hbk Phase 39.2 D-G3
-            foreach (var child in node.Children) //260530 hbk Phase 39.2 D-G3
-                SortRecursive(child); //260530 hbk Phase 39.2 D-G3
+        private static void SortRecursive(NodeViewModel node) {
+            if (node == null) return;
+            SortNodeChildren(node);
+            foreach (var child in node.Children)
+                SortRecursive(child);
         }
 
         public InspectionListViewModel() {
@@ -81,9 +80,8 @@ namespace ReringProject.UI {
             this.Model = new CompositeNode { Name = CurrentRecipe, NodeType = ENodeType.Recipe, ParamData = SystemHandler.Handle.Sequences };
             CreateSequenceNode(this.Model);
             this.RootModel = new NodeViewModel(this.Model, null);
-            //260417 hbk Phase 6-04 UAT: 최초 트리 생성 후 DisplayName 편집 훅 연결 (D-01)
             HookSequenceDisplayNameUpdates();
-            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성 (사용자 Move ▲▼ 방식 우선). NaturalStringComparer 코드는 보존 (향후 toggle 도입 시 재활용)
+            // 자동정렬 비활성 (사용자 Move ▲▼ 방식 우선). NaturalStringComparer 코드는 향후 toggle 도입 시 재활용 위해 보존
             //SortAllLevels();
         }
 
@@ -93,14 +91,13 @@ namespace ReringProject.UI {
             for(int i = 0; i < pSystemHandle.Sequences.Count; i++) {
                 SequenceBase seq = pSystemHandle.Sequences[i];
 
-                //260417 hbk Phase 6 Plan 04: Sequence DisplayName 표시 (D-01)
                 string seqDisplay = (seq as InspectionSequence)?.GetDisplayName() ?? seq.Name;
                 var seqNode = new CompositeNode { Name = seqDisplay, NodeType = ENodeType.Sequence, ParamData = seq.Param, SequenceName = seq.Name, SequenceID = seq.ID };
                 model.Children.Add(seqNode);
 
                 this.Count++;
 
-                //260417 hbk Phase 6 Plan 04: Datum 노드를 Sequence 직접 자식으로 추가 — Action과 형제 (D-25)
+                // Datum 노드를 Sequence 직접 자식으로 추가 — Action 과 형제
                 if (seq is InspectionSequence inspSeq) {
                     foreach (DatumConfig datum in inspSeq.DatumConfigs) {
                         var datumNode = new CompositeNode {
@@ -129,7 +126,6 @@ namespace ReringProject.UI {
                             actNode.Children.Add(faiNode);
                             this.Count++;
 
-                            //260417 hbk Phase 6 Plan 04: FAI 하위 Measurement 노드 추가 (D-24)
                             foreach (MeasurementBase meas in fai.Measurements) {
                                 var measNode = new Node {
                                     Name = string.IsNullOrEmpty(meas.MeasurementName) ? meas.TypeName : meas.MeasurementName,
@@ -165,11 +161,10 @@ namespace ReringProject.UI {
             // We need to add to the vm's children collection directly
             var faiVm = new NodeViewModel(faiNode, actionNode);
             cn.Add(faiVm);
-            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성
+            // 자동정렬 비활성
             //SortNodeChildren(actionNode);
         }
 
-        //260417 hbk Phase 6 Plan 04: Datum 노드를 Sequence 직접 자식으로 삽입 (D-25)
         public void AddDatumNode(NodeViewModel seqNode, DatumConfig datum) {
             if (seqNode == null || datum == null) return;
             var datumNode = new CompositeNode {
@@ -181,11 +176,10 @@ namespace ReringProject.UI {
             };
             var datumVm = new NodeViewModel(datumNode, seqNode);
             seqNode.Children.Add(datumVm);
-            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성
+            // 자동정렬 비활성
             //SortNodeChildren(seqNode);
         }
 
-        //260417 hbk Phase 6 Plan 04: Measurement 노드를 FAI 자식으로 삽입 (D-24)
         public void AddMeasurementNode(NodeViewModel faiNode, MeasurementBase meas) {
             if (faiNode == null || meas == null) return;
             var measNode = new Node {
@@ -198,25 +192,23 @@ namespace ReringProject.UI {
             };
             var measVm = new NodeViewModel(measNode, faiNode);
             faiNode.Children.Add(measVm);
-            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성
+            // 자동정렬 비활성
             //SortNodeChildren(faiNode);
         }
-        
+
         /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.
         /// Root 교체 대신 ObservableCollection in-place 갱신으로 TreeListBox NullRef 방지.</summary>
-        //260408 hbk RaisePropertyChanged("Root") 제거 — TreeListBox 내부 NullRef 원인
         public void RebuildTree() {
             this.Model.Children.Clear();
             this.Count = 0;
             CreateSequenceNode(this.Model);
             RootModel.ReloadChildren();
-            //260417 hbk Phase 6-04 UAT: 트리 재구축 후 DisplayName 편집 훅 재연결 + 초기 라벨 동기화 (D-01)
             HookSequenceDisplayNameUpdates();
-            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성 (recipe 로드 후 ParamBase 컬렉션 순서 보존)
+            // 자동정렬 비활성 (recipe 로드 후 ParamBase 컬렉션 순서 보존)
             //SortAllLevels();
         }
 
-        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 사용자 ▲▼ 이동 (P1: NodeViewModel.Children + ParamBase 컬렉션 동시 swap → INI 저장 시 보존)
+        // 사용자 ▲▼ 이동: NodeViewModel.Children + ParamBase 컬렉션 동시 swap → INI 저장 시 보존
         public static bool MoveNode(NodeViewModel node, int direction) {
             if (node == null || node.Parent == null) return false;
             var siblings = node.Parent.Children;
@@ -225,7 +217,7 @@ namespace ReringProject.UI {
             int newIdx = idx + direction;
             if (newIdx < 0 || newIdx >= siblings.Count) return false;
 
-            // [1] ParamBase 컬렉션도 swap (P1 영구 보존)
+            // [1] ParamBase 컬렉션도 swap (영구 보존)
             if (!SwapParamCollection(node, siblings[newIdx])) return false;
 
             // [2] NodeViewModel.Children swap (UI 즉시 갱신)
@@ -233,7 +225,7 @@ namespace ReringProject.UI {
             return true;
         }
 
-        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — node 및 swap target 의 ParamBase owning collection 에서 index swap
+        // node 및 swap target 의 ParamBase owning collection 에서 index swap
         private static bool SwapParamCollection(NodeViewModel node, NodeViewModel swapWith) {
             if (node == null || swapWith == null) return false;
             object myParam = node.Param;
@@ -288,7 +280,7 @@ namespace ReringProject.UI {
             return true;
         }
 
-        //260417 hbk Phase 6-04 UAT: Sequence 노드의 InspectionMasterParam.DisplayName 변경 시 트리 라벨 즉시 갱신 (D-01)
+        // Sequence 노드의 InspectionMasterParam.DisplayName 변경 시 트리 라벨 즉시 갱신
         private void HookSequenceDisplayNameUpdates() {
             if (RootModel == null) return;
             foreach (var child in RootModel.Children) {
@@ -304,7 +296,6 @@ namespace ReringProject.UI {
             }
         }
 
-        //260417 hbk Phase 6-04 UAT: DisplayName PropertyChanged 핸들러 (D-01)
         private void OnSequenceMasterPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) {
             if (e.PropertyName != "DisplayName") return;
             if (!(sender is InspectionMasterParam master)) return;

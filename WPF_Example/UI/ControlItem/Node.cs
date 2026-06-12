@@ -13,8 +13,8 @@ namespace ReringProject.UI {
         Action,
         SubSequence,
         FAI,
-        Datum, //260409 hbk Phase 4: Datum node type (D-09)
-        Measurement, //260417 hbk Phase 6 Plan 04: FAI 하위 Measurement node (D-24)
+        Datum,
+        Measurement,
     }
 
     public class Node {
@@ -44,36 +44,31 @@ namespace ReringProject.UI {
                     case ENodeType.FAI:
                         return "/Resource/chart.png";
                     case ENodeType.Datum:
-                        return "/Resource/layout.png"; //260409 hbk Phase 4: reuse layout icon for Datum (D-09)
+                        return "/Resource/layout.png";
                     case ENodeType.Measurement:
-                        return "/Resource/chart.png"; //260417 hbk Phase 6 Plan 04: reuse chart icon for Measurement (D-24)
+                        return "/Resource/chart.png";
                 }
                 return "/Resource/process.png";
             }
             set { }
         }
 
-        //260530 hbk Phase 39.2 D-G4 — NodeType + Measurement TypeName 기반 Geometry ResourceKey
-        //  Recipe/Sequence/Action/Datum/FAI = NodeType 별 단일 키.
-        //  Measurement = "Icon.Meas." + TypeName (12 종 + DualImageEdgeDistance Plan 01 포함).
-        //  미지정 / 알 수 없는 ParamData = "Icon.Measurement" fallback.
-        //  최종 fallback (알 수 없는 NodeType) = "Icon.Default".
-        public string IconKey { //260530 hbk Phase 39.2 D-G4
+        public string IconKey {
             get {
                 switch (NodeType) {
-                    case ENodeType.Recipe:      return "Icon.Recipe"; //260530 hbk Phase 39.2 D-G4
-                    case ENodeType.Sequence:    return "Icon.Sequence"; //260530 hbk Phase 39.2 D-G4
-                    case ENodeType.Action:      return "Icon.Action"; //260530 hbk Phase 39.2 D-G4
-                    case ENodeType.SubSequence: return "Icon.Action"; //260530 hbk Phase 39.2 D-G4 — SubSequence = Action 과 동일 아이콘
-                    case ENodeType.Datum:       return "Icon.Datum"; //260530 hbk Phase 39.2 D-G4
-                    case ENodeType.FAI:         return "Icon.FAI"; //260530 hbk Phase 39.2 D-G4
-                    case ENodeType.Measurement: //260530 hbk Phase 39.2 D-G4
-                        var meas = ParamData as ReringProject.Sequence.MeasurementBase; //260530 hbk Phase 39.2 D-G4
-                        if (meas != null && !string.IsNullOrEmpty(meas.TypeName)) //260530 hbk Phase 39.2 D-G4
-                            return "Icon.Meas." + meas.TypeName; //260530 hbk Phase 39.2 D-G4
-                        return "Icon.Measurement"; //260530 hbk Phase 39.2 D-G4 — fallback (ParamData 미상)
+                    case ENodeType.Recipe:      return "Icon.Recipe";
+                    case ENodeType.Sequence:    return "Icon.Sequence";
+                    case ENodeType.Action:      return "Icon.Action";
+                    case ENodeType.SubSequence: return "Icon.Action";
+                    case ENodeType.Datum:       return "Icon.Datum";
+                    case ENodeType.FAI:         return "Icon.FAI";
+                    case ENodeType.Measurement:
+                        var meas = ParamData as ReringProject.Sequence.MeasurementBase;
+                        if (meas != null && !string.IsNullOrEmpty(meas.TypeName))
+                            return "Icon.Meas." + meas.TypeName;
+                        return "Icon.Measurement";
                 }
-                return "Icon.Default"; //260530 hbk Phase 39.2 D-G4
+                return "Icon.Default";
             }
         }
     }

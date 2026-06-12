@@ -164,48 +164,52 @@ namespace ReringProject.Utility {
             }
         }
 
-        //260610 hbk Phase 40.2 — 파일명 생성 public static 헬퍼. 호출부(Action_FAIMeasurement)가 동기로 파일명을 만들어 fai 에 write-back.
+        // 파일명 생성 public static 헬퍼. 호출부(Action_FAIMeasurement)가 동기로 파일명을 만들어 fai 에 write-back.
         //  Single source of truth — origin/capture 둘 다 이 헬퍼로 생성하여 파일명 규칙 일관성 보장.
-        //  결과: {prefix}_{시퀀스}_{FAI}_{측정점}_{HHmmssfff}.png  (segment 빈 경우 생략)
+        //  결과: {prefix}_{시퀀스}_{FAI}[_{측정점}][_{OK|NG}]_{HHmmssfff}.jpg  (segment 빈 경우 생략)
         /// <summary>
         /// FAI별 캡쳐 이미지 파일명 생성. prefix = "origin" 또는 "capture".
         /// 각 segment 는 Path.GetInvalidFileNameChars() 로 sanitize (T-40.2-01 path traversal 차단).
         /// </summary>
-        //260610 hbk Phase 40.2 hotfix CO-40.2-08 — judgement(OK/NG) 추가 + 확장자 .png→.jpg(사용자 요청).
-        //  결과: {prefix}_{시퀀스}_{FAI}[_{측정점}][_{OK|NG}]_{HHmmssfff}.jpg
-        public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts) { //260610 hbk Phase 40.2 hotfix CO-40.2-08
-            string seq = SanitizeFilePart(sequence, "SEQ"); //260610 hbk Phase 40.2 — T-40.2-01 traversal 차단
-            string fai = SanitizeFilePart(faiName, "FAI"); //260610 hbk Phase 40.2
-            string seg = SanitizeFilePart(measurePointSegment, ""); //260610 hbk Phase 40.2 — 빈 segment 허용
-            string judge = SanitizeFilePart(judgement, ""); //260610 hbk Phase 40.2 hotfix CO-40.2-08 — OK/NG (빈값 허용)
-            string time = ts.ToString("HHmmssfff"); //260610 hbk Phase 40.2
-            string name = prefix + "_" + seq + "_" + fai; //260610 hbk Phase 40.2 hotfix CO-40.2-08
-            if (!string.IsNullOrEmpty(seg)) { name += "_" + seg; } //260610 hbk Phase 40.2 hotfix CO-40.2-08
-            if (!string.IsNullOrEmpty(judge)) { name += "_" + judge; } //260610 hbk Phase 40.2 hotfix CO-40.2-08
-            return name + "_" + time + ".jpg"; //260610 hbk Phase 40.2 hotfix CO-40.2-08
+        public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts) {
+            string seq = SanitizeFilePart(sequence, "SEQ"); // T-40.2-01 traversal 차단
+            string fai = SanitizeFilePart(faiName, "FAI");
+            string seg = SanitizeFilePart(measurePointSegment, ""); // 빈 segment 허용
+            string judge = SanitizeFilePart(judgement, ""); // OK/NG (빈값 허용)
+            string time = ts.ToString("HHmmssfff");
+            string name = prefix + "_" + seq + "_" + fai;
+            if (!string.IsNullOrEmpty(seg)) { name += "_" + seg; }
+            if (!string.IsNullOrEmpty(judge)) { name += "_" + judge; }
+            return name + "_" + time + ".jpg";
         }
 
-        //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 저장 디렉토리 계산 단일 소스. SaveRequest 와 write-back 경로가 반드시 일치하도록 공유.
+        // 저장 디렉토리 계산 단일 소스. SaveRequest 와 write-back 경로가 반드시 일치하도록 공유.
         /// <summary>
         /// 캡쳐 PNG 저장 디렉토리. ResultSavePath\Image\{yyMMdd}\{HHmm}\{original|capture}.
         /// </summary>
-        public static string BuildDirectory(bool isCapture, DateTime ts) { //260610 hbk Phase 40.2 hotfix CO-40.2-02
+        public static string BuildDirectory(bool isCapture, DateTime ts) {
+            string subFolder;
+            if (isCapture) {
+                subFolder = "capture";
+            } else {
+                subFolder = "original";
+            }
             return Path.Combine(
                 SystemHandler.Handle.Setting.ResultSavePath, "Image",
                 ts.ToString("yyMMdd"),
                 ts.ToString("HHmm"),
-                isCapture ? "capture" : "original");
+                subFolder);
         }
 
-        //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 엑셀/cycle.json 표기용 절대 경로(디렉토리+파일명). 사용자 요청: 셀에 경로\파일명 표기.
+        // 엑셀/cycle.json 표기용 절대 경로(디렉토리+파일명). 사용자 요청: 셀에 경로\파일명 표기.
         /// <summary>
         /// 저장될 PNG 의 절대 경로(디렉토리 + sanitize 된 파일명). 실제 저장 위치와 동일.
         /// </summary>
-        public static string BuildFilePath(bool isCapture, string fileName, DateTime ts) { //260610 hbk Phase 40.2 hotfix CO-40.2-02
+        public static string BuildFilePath(bool isCapture, string fileName, DateTime ts) {
             return Path.Combine(BuildDirectory(isCapture, ts), SanitizeFileName(fileName));
         }
 
-        //260610 hbk Phase 40.2 — RawImageSaveService.cs:95-105 와 동일 복제. 단일 segment sanitize.
+        // RawImageSaveService.cs:95-105 와 동일 복제. 단일 segment sanitize.
         private static string SanitizeFilePart(string value, string fallback) {
             string text = string.IsNullOrWhiteSpace(value) ? fallback : value;
             if (string.IsNullOrWhiteSpace(text)) {
@@ -218,10 +222,10 @@ namespace ReringProject.Utility {
             return text;
         }
 
-        //260610 hbk Phase 40.2 — 완성 파일명 전체에 대한 2차 방어 (T-40.2-01). SanitizeFilePart 와 동일 치환 로직.
+        // 완성 파일명 전체에 대한 2차 방어 (T-40.2-01). SanitizeFilePart 와 동일 치환 로직.
         private static string SanitizeFileName(string name) {
             if (string.IsNullOrWhiteSpace(name)) {
-                return "capture_unknown.jpg"; //260610 hbk Phase 40.2 hotfix CO-40.2-08
+                return "capture_unknown.jpg";
             }
 
             foreach (char invalid in Path.GetInvalidFileNameChars()) {
@@ -230,7 +234,7 @@ namespace ReringProject.Utility {
             return name;
         }
 
-        public void Dispose() { //260610 hbk Phase 40.2
+        public void Dispose() {
             _isStopping = true;
             _signal.Set();
             if (_isStarted && _workerThread.IsAlive) {

@@ -7,7 +7,7 @@ using System.Threading;
 using Matrox.MatroxImagingLibrary;
 
 namespace ReringProject.Device {
-    //260602 hbk Phase 41 — CXP 카메라 MIL Lite 10.0 grab 드라이버
+    // CXP 카메라 MIL Lite 10.0 grab 드라이버
     public class MilCamera : VirtualCamera, IDisposable {
         private MIL_ID MilApplication = MIL.M_NULL;
         private MIL_ID MilSystem      = MIL.M_NULL;
@@ -15,7 +15,7 @@ namespace ReringProject.Device {
         private MIL_ID MilBuffer      = MIL.M_NULL;
 
 #if !SIMUL_MODE
-        //260609 hbk Phase 41 — MIL 라이브(연속 grab) 스레드 제어
+        // MIL 라이브(연속 grab) 스레드 제어
         private Thread _liveThread = null;
         private volatile bool _liveRunning = false;
 
@@ -244,7 +244,7 @@ namespace ReringProject.Device {
         }
 
 #if !SIMUL_MODE
-        //260609 hbk Phase 41 — MIL 라이브(연속 영상).
+        // MIL 라이브(연속 영상).
         //  HIK 는 SDK 가 프레임마다 OnGrabResult 콜백을 밀어주지만, MIL 동기 grab 방식에는 콜백이 없다.
         //  그래서 백그라운드 스레드에서 GrabFromBuffer 를 반복 호출하고, 프레임마다 GuiReadyForDisplay 로
         //  UI(DeviceSelector.OnImageReady)에 통지한다. (HikCamera.StartStream/OnGrabResult 대응)

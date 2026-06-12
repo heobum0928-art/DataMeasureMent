@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ReringProject.Define;
-using ReringProject.Sequence; //260409 hbk Phase 5: FAIConfig 참조
+using ReringProject.Sequence;
 
 namespace ReringProject.Network {
     public enum EVisionResponseType {
@@ -350,22 +350,20 @@ namespace ReringProject.Network {
                     msg += testPacket.InspectionType.ToString();
                     msg += VisionServer.MSG_CONTENTS_SEPERATOR;
 
-                    //260409 hbk Phase 5: 동적 FAI 모드 직렬화 (D-05)
+                    // 동적 FAI 모드 직렬화
                     if (testPacket.IsDynamicFAI) {
-                        msg += testPacket.GetResultString(); //260409 hbk Phase 5 — cycle Result, NotExist→'N' 매핑은 GetResultString 이미 보유 (L564-565)
+                        msg += testPacket.GetResultString(); // cycle Result, NotExist→'N' 매핑은 GetResultString 이미 보유
                         msg += VisionServer.MSG_CONTENTS_SEPERATOR;
                         msg += testPacket.FAICount.ToString();
                         for (int i = 0; i < testPacket.FAICount; i++) {
                             msg += VisionServer.MSG_CONTENTS_SEPERATOR;
                             var faiData = testPacket.FAIResults[i];
-                            //260529 hbk Phase 39 WF-02 D-06 — 2-state ternary → 3-state if/else. P (OK) / N (NotExist, datum-skip) / F (NG, fallback).
-                            //  D-10 v2.6 순수 유지 — TEST_RESULT_* 신규 상수 추가 안 함, EVisionResultType enum 신규 값 추가 안 함.
-                            //  CLAUDE.md C# 7.2 — switch expression 미사용, if/else (Phase 20 D-04 컨벤션).
-                            string faiCode; //260529 hbk Phase 39 WF-02 D-06
-                            if (faiData.Result == EVisionResultType.OK) faiCode = TEST_RESULT_PASS; //260529 hbk Phase 39 WF-02 D-06 — 'P'
-                            else if (faiData.Result == EVisionResultType.NotExist) faiCode = TEST_RESULT_NOTEXIST; //260529 hbk Phase 39 WF-02 D-06 — 'N' datum-skip
-                            else faiCode = TEST_RESULT_FAIL; //260529 hbk Phase 39 WF-02 D-06 — 'F' NG 및 fallback (ANG/TECHING 도 'F' 로 매핑 — wire 호환)
-                            msg += faiCode; //260529 hbk Phase 39 WF-02 D-06
+                            // 3-state: P (OK) / N (NotExist, datum-skip) / F (NG 및 fallback — ANG/TECHING 도 'F' 로 매핑, wire 호환)
+                            string faiCode;
+                            if (faiData.Result == EVisionResultType.OK) faiCode = TEST_RESULT_PASS;
+                            else if (faiData.Result == EVisionResultType.NotExist) faiCode = TEST_RESULT_NOTEXIST;
+                            else faiCode = TEST_RESULT_FAIL;
+                            msg += faiCode;
                             msg += VisionServer.MSG_CONTENTS_SEPERATOR;
                             msg += faiData.DistanceMm.ToString("0.000");
                         }
@@ -514,7 +512,7 @@ namespace ReringProject.Network {
     }
 
 
-    //260409 hbk Phase 5: FAI별 개별 측정 결과 (D-04, D-05)
+    // FAI별 개별 측정 결과
     public class FAIResultData {
         public string FAIName { get; set; }
         public EVisionResultType Result { get; set; }
@@ -527,17 +525,21 @@ namespace ReringProject.Network {
 
         public FAIResultData(string name, bool isPass, double distMm) {
             FAIName = name;
-            Result = isPass ? EVisionResultType.OK : EVisionResultType.NG;
+            if (isPass) {
+                Result = EVisionResultType.OK;
+            } else {
+                Result = EVisionResultType.NG;
+            }
             DistanceMm = distMm;
         }
 
-        //260529 hbk Phase 39 WF-02 D-06 — 3-state (P/F/N) 직접 전달용 ctor. 기존 bool ctor 는 호환 유지.
+        // 3-state (P/F/N) 직접 전달용 ctor. 기존 bool ctor 는 호환 유지.
         //  InspectionSequence.AddResponse 가 fai.WasDatumSkipped → NotExist, !fai.IsPass → NG, 그 외 → OK 로 분기 후 호출.
-        public FAIResultData(string name, EVisionResultType result, double distMm) //260529 hbk Phase 39 WF-02 D-06
+        public FAIResultData(string name, EVisionResultType result, double distMm)
         {
-            FAIName = name; //260529 hbk Phase 39 WF-02 D-06
-            Result = result; //260529 hbk Phase 39 WF-02 D-06
-            DistanceMm = distMm; //260529 hbk Phase 39 WF-02 D-06
+            FAIName = name;
+            Result = result;
+            DistanceMm = distMm;
         }
     }
 
@@ -548,7 +550,7 @@ namespace ReringProject.Network {
         public double X { get; set; }
         public double Y { get; set; }
 
-        //260409 hbk Phase 5: FAI별 동적 결과 리스트 (D-04)
+        // FAI별 동적 결과 리스트
         public List<FAIResultData> FAIResults { get; set; } = new List<FAIResultData>();
         public int FAICount => FAIResults.Count;
         public bool IsDynamicFAI { get; set; } = false;

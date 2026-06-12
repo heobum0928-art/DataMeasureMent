@@ -1,4 +1,3 @@
-//260609 hbk Phase 40 OUT-02 — ClosedXML xlsx export (D-04~D-07)
 using ClosedXML.Excel;
 using ReringProject.Setting;
 using ReringProject.UI;
@@ -35,16 +34,15 @@ namespace ReringProject.Export
 
                     // D-06 메타 헤더 블록 (행 1~3)
                     ws.Cell(1, 1).Value = "모델명";
-                    ws.Cell(1, 2).Value = cycle.RecipeName ?? "";
+                    ws.Cell(1, 2).Value = cycle.RecipeName != null ? cycle.RecipeName : "";
                     ws.Cell(2, 1).Value = "검사일시";
                     ws.Cell(2, 2).Value = cycle.InspectionTime.ToString("yyyy-MM-dd HH:mm:ss");
                     ws.Cell(3, 1).Value = "종합판정";
-                    ws.Cell(3, 2).Value = cycle.OverallJudgement ?? "";
+                    ws.Cell(3, 2).Value = cycle.OverallJudgement != null ? cycle.OverallJudgement : "";
 
                     // D-05 테이블 헤더 (행 5)
+                    // "이미지" 하이퍼링크 컬럼 폐기 → 절대 경로(경로\파일명) 텍스트 2컬럼으로 교체.
                     int hr = 5;
-                    //260610 hbk Phase 40.2 — "이미지" 하이퍼링크 컬럼(D-07, 3385f7c) 폐기 → 텍스트 2컬럼으로 교체.
-                    //260610 hbk Phase 40.2 hotfix CO-40.2-02 — 사용자 요청: 파일명만이 아니라 절대 경로(경로\파일명) 표기 → 헤더 "경로" 로 변경.
                     string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "원본이미지 경로", "캡쳐이미지 경로" };
                     for (int i = 0; i < headers.Length; i++)
                     {
@@ -52,15 +50,18 @@ namespace ReringProject.Export
                     }
 
                     int row = hr + 1;
-                    foreach (var shot in cycle.Shots ?? new List<ShotResultDto>())
+                    List<ShotResultDto> shots = cycle.Shots != null ? cycle.Shots : new List<ShotResultDto>();
+                    foreach (var shot in shots)
                     {
-                        foreach (var fai in shot.FAIs ?? new List<FaiResultDto>())
+                        List<FaiResultDto> fais = shot.FAIs != null ? shot.FAIs : new List<FaiResultDto>();
+                        foreach (var fai in fais)
                         {
-                            foreach (var m in fai.Measurements ?? new List<MeasurementResultDto>())
+                            List<MeasurementResultDto> measurements = fai.Measurements != null ? fai.Measurements : new List<MeasurementResultDto>();
+                            foreach (var m in measurements)
                             {
-                                ws.Cell(row, 1).Value = shot.ShotName ?? "";
-                                ws.Cell(row, 2).Value = fai.FAIName ?? "";
-                                ws.Cell(row, 3).Value = m.MeasurementName ?? "";
+                                ws.Cell(row, 1).Value = shot.ShotName != null ? shot.ShotName : "";
+                                ws.Cell(row, 2).Value = fai.FAIName != null ? fai.FAIName : "";
+                                ws.Cell(row, 3).Value = m.MeasurementName != null ? m.MeasurementName : "";
                                 ws.Cell(row, 4).Value = m.NominalValue;
                                 ws.Cell(row, 5).Value = m.TolerancePlus;
                                 ws.Cell(row, 6).Value = m.ToleranceMinus;
@@ -89,10 +90,9 @@ namespace ReringProject.Export
                                     ws.Cell(row, 8).Value = "-";
                                 }
 
-                                //260610 hbk Phase 40.2 — D-07 하이퍼링크 컬럼 폐기(3385f7c 한글경로 file:/// 퍼센트인코딩 이슈도 동시 해소), 텍스트로 대체. 하이퍼링크 없음.
-                                //260610 hbk Phase 40.2 hotfix CO-40.2-02 — write-back 이 절대 경로(경로\파일명)를 담음. 셀은 일반 텍스트 경로.
-                                ws.Cell(row, 9).Value  = fai.OriginImageFileName ?? "";
-                                ws.Cell(row, 10).Value = fai.CaptureImageFileName ?? "";
+                                // D-07 하이퍼링크 폐기(한글경로 file:/// 퍼센트인코딩 이슈 해소), 절대 경로 텍스트로 대체.
+                                ws.Cell(row, 9).Value  = fai.OriginImageFileName != null ? fai.OriginImageFileName : "";
+                                ws.Cell(row, 10).Value = fai.CaptureImageFileName != null ? fai.CaptureImageFileName : "";
 
                                 row++;
                             }

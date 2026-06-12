@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: completed
+status: ready_to_plan
 stopped_at: context exhaustion at 98% (2026-06-12)
-last_updated: "2026-06-12T06:50:18.729Z"
-last_activity: 2026-06-10
+last_updated: "2026-06-12T08:00:46.263Z"
+last_activity: 2026-06-12 -- Phase --phase execution started
 progress:
   total_phases: 6
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 25
   completed_plans: 25
-  percent: 100
+  percent: 117
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 40.2 — fai-2
+**Current focus:** Phase --phase — 23.1
 
 ## Current Position
 
-Phase: 40.2 (fai-2) — SIGNED_OFF (2026-06-11)
-Plan: 4 of 4 complete
-Status: Phase 40.2 complete — UAT 전 항목 PASS, carry-over 없음
-Last activity: 2026-06-10
+Phase: 39
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-06-12
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -48,7 +48,7 @@ Last activity: 2026-06-10
 
 **Velocity:**
 
-- Total plans completed: 24
+- Total plans completed: 27
 - Average duration: —
 - Total execution time: 0 hours
 
@@ -63,6 +63,7 @@ Last activity: 2026-06-10
 | 37 | 3 | - | - |
 | 38 | 3 | - | - |
 | 40.1 | 2 | - | - |
+| 23.1 | 3 | - | - |
 
 **Recent Trend:**
 

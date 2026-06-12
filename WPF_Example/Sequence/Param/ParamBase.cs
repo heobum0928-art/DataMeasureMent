@@ -76,17 +76,11 @@ namespace ReringProject.Sequence {
             foreach (var prop in props) {
                 var attrs = prop.GetCustomAttributes(true);
                 foreach (var attr in attrs) {
-                    //drawing
                     if (attr is RectangleAttribute) {
-                        //ROIAttribute roi = attr as ROIAttribute;
-                        //Rect roiData = (Rect)prop.GetValue(this);
-                        //add roi list
                         RectList.Add(new DrawableSource(this, prop));
                     }
                     else if(attr is LineAttribute) {
-                        //LineAttribute line = attr as LineAttribute;
                         Line lineData = (Line)prop.GetValue(this);
-                        //add line list
                         LineList.Add(new DrawableSource(this, prop));
                     }
                     else if(attr is CircleAttribute) {

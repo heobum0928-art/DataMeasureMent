@@ -137,64 +137,71 @@ namespace ReringProject {
         private void OnSequenceStart(SequenceContext context) {
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.SetManualToolsEnabled(false);
-                //260417 hbk diag: OnSequenceStart 이벤트 발생 확인
                 statusBar.Model.SetText(string.Format("[DIAG] Start fired: {0}", context.Source.Name));
             }));
         }
 
-        //260517 hbk SetManualToolsEnabled(true) + 상태바 갱신을 단일 BeginInvoke 로 통합.
+        // SetManualToolsEnabled(true) + 상태바 갱신을 단일 BeginInvoke 로 통합.
         //  기존: SetManualToolsEnabled(true)는 BeginInvoke, statusBar.SetText는 시퀀스 스레드 직접 호출 — 분리.
         //  수정: 모두 BeginInvoke 내부에서 순서대로 실행 — 잠금 해제와 상태바 갱신이 UI 스레드에서 원자적으로 처리됨.
         private void OnSequenceStop(SequenceContext context) {
-            Logging.PrintLog((int)ELogType.Result, context.ToString()); //260517 hbk 로그는 시퀀스 스레드에서 OK
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => { //260517 hbk
-                mainView.SetManualToolsEnabled(true); //260517 hbk
-                statusBar.Model.SetText(string.Format("{0} Stop.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString())); //260517 hbk
-            })); //260517 hbk
+            Logging.PrintLog((int)ELogType.Result, context.ToString());
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
+                mainView.SetManualToolsEnabled(true);
+                statusBar.Model.SetText(string.Format("{0} Stop.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString()));
+            }));
         }
 
-        //260517 hbk SetManualToolsEnabled(true) + DisplaySequenceContext + 상태바 갱신을 단일 BeginInvoke 로 통합.
+        // SetManualToolsEnabled(true) + DisplaySequenceContext + 상태바 갱신을 단일 BeginInvoke 로 통합.
         //  기존: SetManualToolsEnabled(true)는 BeginInvoke, DisplaySequenceContext/SetText는 시퀀스 스레드 직접 호출.
         //  수정: 모두 BeginInvoke 내부에서 순서대로 실행 — 잠금 해제 → 결과 표시 순서 보장.
         private void OnSequenceError(SequenceContext context) {
-            Logging.PrintLog((int)ELogType.Result, context.ToString()); //260517 hbk 로그는 시퀀스 스레드에서 OK
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => { //260517 hbk
-                mainView.SetManualToolsEnabled(true); //260517 hbk
-                mainView.DisplaySequenceContext(context); //260517 hbk
-                statusBar.Model.SetText(string.Format("{0} Error.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString())); //260517 hbk
-            })); //260517 hbk
+            Logging.PrintLog((int)ELogType.Result, context.ToString());
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
+                mainView.SetManualToolsEnabled(true);
+                mainView.DisplaySequenceContext(context);
+                statusBar.Model.SetText(string.Format("{0} Error.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString()));
+            }));
         }
 
-        //260409 hbk Phase 5: Shot별 Action 완료 시 실시간 UI 갱신 (D-12)
         private void OnActionChanged(ActionContext context) {
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.DisplayActionContext(context);
-                //260417 hbk diag: OnActionChanged 이벤트 발생 + 결과 확인
-                string actName = context.Source != null ? context.Source.Name : "?";
+                string actName;
+                if (context.Source != null) {
+                    actName = context.Source.Name;
+                }
+                else {
+                    actName = "?";
+                }
                 statusBar.Model.SetText(string.Format("[DIAG] Action done: {0} result={1}", actName, context.Result));
             }));
         }
 
-        //260517 hbk SetManualToolsEnabled(true) + DisplaySequenceContext + 로그 + 상태바 갱신을 단일 BeginInvoke 로 통합.
+        // SetManualToolsEnabled(true) + DisplaySequenceContext + 로그 + 상태바 갱신을 단일 BeginInvoke 로 통합.
         //  기존: SetManualToolsEnabled(true)는 BeginInvoke, DisplaySequenceContext/SetText는 시퀀스 스레드 직접 호출.
         //  수정: 모두 BeginInvoke 내부에서 순서대로 실행 — 잠금 해제 → 결과 표시 순서 보장.
         //  로그(Logging.PrintLog)만 시퀀스 스레드에서 유지 (스레드 안전, 즉시 기록 의도).
         private void OnSequenceFinish(SequenceContext context) {
-            //260409 hbk Phase 5: 최종 종합 판정 로그 (D-13)
-            Logging.PrintLog((int)ELogType.Result, "Sequence {0} Final Result: {1} ({2}ms)", //260517 hbk 로그는 시퀀스 스레드에서 OK
+            Logging.PrintLog((int)ELogType.Result, "Sequence {0} Final Result: {1} ({2}ms)",
                 context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds);
-            Logging.PrintLog((int)ELogType.Result, context.ToString()); //260517 hbk
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => { //260517 hbk
-                mainView.SetManualToolsEnabled(true); //260517 hbk
-                mainView.DisplaySequenceContext(context); //260517 hbk
-                statusBar.Model.SetText(string.Format("{0} Finished.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString())); //260517 hbk
-            })); //260517 hbk
+            Logging.PrintLog((int)ELogType.Result, context.ToString());
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
+                mainView.SetManualToolsEnabled(true);
+                mainView.DisplaySequenceContext(context);
+                statusBar.Model.SetText(string.Format("{0} Finished.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString()));
+            }));
         }
 
         private void Title_MouseDown(object sender, MouseButtonEventArgs e) {
             if (e.ChangedButton == MouseButton.Left) {
                 if (e.ClickCount >= 2) {
-                    this.WindowState = (this.WindowState == WindowState.Normal) ? WindowState.Maximized : WindowState.Normal;
+                    if (this.WindowState == WindowState.Normal) {
+                        this.WindowState = WindowState.Maximized;
+                    }
+                    else {
+                        this.WindowState = WindowState.Normal;
+                    }
                 }
                 else {
                     startPos = e.GetPosition(null);
@@ -336,7 +343,7 @@ namespace ReringProject {
                     mProcMonitorWindow.Owner = this;
                     mProcMonitorWindow.Show();
                     break;
-                case EPageType.Reviewer:   //260601 hbk Phase 40 OUT-01 D-08 — 비모달 Show() (ShowDialog 아님, 라이브 검사 방해 안 함)
+                case EPageType.Reviewer:   // Phase 40 OUT-01 D-08 — 비모달 Show() (ShowDialog 아님, 라이브 검사 방해 안 함)
                     if (mReviewerWindow != null && mReviewerWindow.IsLoaded) {
                         mReviewerWindow.Show();
                         return;
@@ -378,7 +385,6 @@ namespace ReringProject {
                 mSystemHandler.Sequences[i].OnStop -= OnSequenceStop;
                 mSystemHandler.Sequences[i].OnError -= OnSequenceError;
                 mSystemHandler.Sequences[i].OnFinish -= OnSequenceFinish;
-                //260409 hbk Phase 5: Shot별 실시간 UI 갱신 해제 (D-12)
                 mSystemHandler.Sequences[i].OnActionChanged -= OnActionChanged;
             }
             mSystemHandler.Release();

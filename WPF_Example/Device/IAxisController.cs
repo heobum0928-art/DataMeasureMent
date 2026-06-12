@@ -1,4 +1,3 @@
-//260409 hbk Phase 5: Z축 이동 인터페이스 스텁 (D-09)
 namespace ReringProject.Device {
 
     /// <summary>

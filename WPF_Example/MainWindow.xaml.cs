@@ -27,7 +27,7 @@ namespace ReringProject {
         Connect,
         Login,
         ProcessMonitor,
-        Reviewer,   //260601 hbk Phase 40 OUT-01 D-08 — 결과 리뷰어 비모달 창
+        Reviewer,   // Phase 40 OUT-01 D-08 — 결과 리뷰어 비모달 창
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ namespace ReringProject {
         //UI
         private Window mModalWindow;
         private ProcessMonitorWindow mProcMonitorWindow;
-        private UI.ReviewerWindow mReviewerWindow; //260601 hbk Phase 40 OUT-01
+        private UI.ReviewerWindow mReviewerWindow;
         private DispatcherTimer mTimer = new DispatcherTimer();
 
 
@@ -90,7 +90,6 @@ namespace ReringProject {
                 mSystemHandler.Sequences[i].OnStop += OnSequenceStop;
                 mSystemHandler.Sequences[i].OnError += OnSequenceError;
                 mSystemHandler.Sequences[i].OnFinish += OnSequenceFinish;
-                //260409 hbk Phase 5: Shot별 실시간 UI 갱신 (D-12)
                 mSystemHandler.Sequences[i].OnActionChanged += OnActionChanged;
             }
             mTimer.Dispatcher.Thread.Priority = System.Threading.ThreadPriority.AboveNormal;

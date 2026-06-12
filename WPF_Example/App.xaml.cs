@@ -50,12 +50,12 @@ namespace ReringProject {
             base.OnStartup(e);
         }
 
-        private bool _isHandlingException = false; //260408 hbk 재진입 방지 플래그
+        private bool _isHandlingException = false; // 재진입 방지 플래그
 
         private void Dispatcher_UnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e) {
             e.Handled = true;
 
-            //260408 hbk 재진입 방지: 예외 처리 중 또 다른 예외 발생 시 무한 루프 차단
+            // 재진입 방지: 예외 처리 중 또 다른 예외 발생 시 무한 루프 차단
             if (_isHandlingException) return;
             _isHandlingException = true;
 

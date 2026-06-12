@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace ReringProject.Setting {
-    //260602 hbk Phase 41 — PC별 CXP 카메라 역할 (TopBottom / Side)
+    // PC별 CXP 카메라 역할 (TopBottom / Side)
     public enum ECameraRole {
         TopBottom = 0,   // PC1: Top + Bottom 시퀀스 담당
         Side      = 1,   // PC2: Side 시퀀스 담당

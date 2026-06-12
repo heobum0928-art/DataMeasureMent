@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using ReringProject.Define;
 using ReringProject.Device;
-using ReringProject.Setting; //260604 hbk Phase 41 CO-41-02 — SystemSetting.CameraRole (역할별 시퀀스 활성 판단)
+using ReringProject.Setting;
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -22,7 +22,6 @@ namespace ReringProject.Sequence {
 
         public const int Inspection_Model_Index = 0;
 
-        //260527 hbk Phase 35 — CO-33-06: ESequence ↔ SEQ_* 상수 매핑 단일 source (D-35-02-01)
         public static string ResolveSequenceName(ESequence seqId) {
             switch (seqId) {
                 case ESequence.Top: return SEQ_TOP;
@@ -36,12 +35,11 @@ namespace ReringProject.Sequence {
 
         public bool IsDynamicFAIMode { get; private set; } = false;
 
-        //260604 hbk Phase 41 CO-41-02 — 이 PC(CameraRole)에서 활성화할 시퀀스 판단.
+        // 이 PC(CameraRole)에서 활성화할 시퀀스 판단.
         //  SIMUL 은 전체 활성(단일 PC 전 시퀀스 테스트). 실 HW 는 PC1=Top/Bottom, PC2=Side 만 활성 →
         //  비활성 시퀀스를 아예 생성하지 않아, 카메라 미등록으로 인한 OnCreate Error(StateAll 비-Idle) 를 원천 차단.
+        //  DeviceHandler.RegisterRequiredDevices 의 등록 정책과 1:1 동기화. TopBottom=Top/Bottom, Side=Side 만 활성.
         private static bool IsSequenceActive(ESequence seqId) {
-            //260609 hbk Phase 41 — SIMUL/실 HW 통일: 항상 CameraRole 기반(#if 분기 제거).
-            //  DeviceHandler.RegisterRequiredDevices 의 등록 정책과 1:1 동기화. TopBottom=Top/Bottom, Side=Side 만 활성.
             ECameraRole role = SystemSetting.Handle.CameraRole;
             if (role == ECameraRole.TopBottom)
                 return seqId == ESequence.Top || seqId == ESequence.Bottom;

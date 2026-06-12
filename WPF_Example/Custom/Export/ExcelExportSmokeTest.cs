@@ -1,4 +1,3 @@
-//260601 hbk Phase 40 OUT-02 — ClosedXML 런타임 로드 smoke test (의존성 검증 후 제거 가능)
 using ClosedXML.Excel;
 using System;
 using System.IO;

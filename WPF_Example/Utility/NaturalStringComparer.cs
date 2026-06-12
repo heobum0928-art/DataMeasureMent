@@ -1,4 +1,3 @@
-//260530 hbk Phase 39.2 D-G3 — Tree 노드 자연정렬 비교자 (Shot2 < Shot10)
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 

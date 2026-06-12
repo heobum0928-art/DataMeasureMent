@@ -108,7 +108,6 @@ namespace ReringProject.Sequence {
                     CameraMasterParam masterParam = Param as CameraMasterParam;
                     if (act.Param is CameraSlaveParam) {
                         CameraSlaveParam camParam = act.Param as CameraSlaveParam;
-                        //260409 hbk Phase 5: ShotConfig 등 Slave에 Master DeviceName 전파
                         if (string.IsNullOrEmpty(camParam.DeviceName)) {
                             camParam.DeviceName = masterParam.DeviceName;
                         }
@@ -243,7 +242,6 @@ namespace ReringProject.Sequence {
                     Context.Result = actionContext.Result;
                     Finish();
                 } else {
-                    //260409 hbk Phase 5: 다음 Action으로 진행 (D-02)
                     CurrentActionIndex++;
                     CurAction = Actions[CurrentActionIndex];
                 }
@@ -257,7 +255,7 @@ namespace ReringProject.Sequence {
                     continue;
                 }
 
-                try { //260517 hbk 처리되지 않은 예외로 인한 스레드 종료 방지 — 예외 발생 시 Error()로 잠금 해제 보장
+                try { // 처리되지 않은 예외로 인한 스레드 종료 방지 — 예외 발생 시 Error()로 잠금 해제 보장
                     switch (Command) {
                         case ESequenceCommmand.Stop:
                             State = EContextState.Idle;

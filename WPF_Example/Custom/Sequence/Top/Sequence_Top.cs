@@ -38,7 +38,6 @@ namespace ReringProject.Sequence {
         }
     }
 
-    //260526 hbk Phase 33 — InspectionSequence 로 마이그레이션됨 (D-05)
     [System.Obsolete("Phase 33 — InspectionSequence/Action_FAIMeasurement 로 마이그레이션됨", false)]
     public class TopSequence : SequenceBase {
         private readonly DeviceHandler pDevs;

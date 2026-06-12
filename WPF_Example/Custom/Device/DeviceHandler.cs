@@ -25,7 +25,7 @@ namespace ReringProject.Device {
         public const int HEIGHT_BOTTOM = 2048;
 
 
-        //260602 hbk Phase 41 — CXP ViewWorks 128MP 해상도 (실물 도착 후 MdigInquire M_SIZE_X/Y 로 확정, RESEARCH Open Q3)
+        // CXP ViewWorks 128MP 해상도 (실물 도착 후 MdigInquire M_SIZE_X/Y 로 확정)
         public const int WIDTH_CXP  = 14192;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
         public const int HEIGHT_CXP = 10640;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
 
@@ -35,7 +35,7 @@ namespace ReringProject.Device {
         public const bool REVERSE_X_SIDE = false;
         public const bool REVERSE_Y_SIDE = false;
 
-        public const bool REVERSE_X_BOTTOM = true;  // 02.06
+        public const bool REVERSE_X_BOTTOM = true;
         public const bool REVERSE_Y_BOTTOM = false;
 
         
@@ -89,10 +89,10 @@ namespace ReringProject.Device {
         /// 함수는 시스템 초기화 시점에 호출됩니다.
         /// </summary>
         private void RegisterRequiredDevices() {
-            //260602 hbk Phase 41 — D-03 PC별 CXP 1대 + 역할(시퀀스) 설정. HIK 3대 고정 → 역할 분기.
-            //260609 hbk Phase 41 — SIMUL/실 HW 통일: 항상 CameraRole 기반 등록(#if 분기 제거).
-            //  시뮬도 실 동작을 그대로 재현(카메라 수·역할·코드 경로 동일). 다른 역할 테스트는 CameraRole 설정 변경 후 재시작.
-            //  SequenceHandler.IsSequenceActive 와 정책이 1:1 동기화되어야 함(미등록 카메라 시퀀스 미생성 → OnCreate Error 차단, CO-41-02).
+            // PC별 CXP 1대 + 역할(시퀀스) 설정.
+            // SIMUL/실 HW 통일: 항상 CameraRole 기반 등록(#if 분기 없음).
+            // 시뮬도 실 동작을 그대로 재현(카메라 수·역할·코드 경로 동일). 다른 역할 테스트는 CameraRole 설정 변경 후 재시작.
+            // SequenceHandler.IsSequenceActive 와 정책이 1:1 동기화되어야 함(미등록 카메라 시퀀스 미생성 → OnCreate Error 차단).
             ECameraRole role = SystemSetting.Handle.CameraRole;
 
             if (role == ECameraRole.TopBottom) {
@@ -106,7 +106,7 @@ namespace ReringProject.Device {
             }
         }
 
-        //260604 hbk Phase 41 CO-41-02 — CXP 카메라 1대 등록 헬퍼(역할/SIMUL 분기 공통). Gray8 + Software trigger + CXP 해상도 고정.
+        // CXP 카메라 1대 등록 헬퍼(역할/SIMUL 분기 공통). Gray8 + Software trigger + CXP 해상도 고정.
         private void RegisterCxpCamera(string cameraName, bool reverseX, bool reverseY, ERotateAngleType rotate) {
             SetRequiredDevice(
                 ECameraType.MIL,

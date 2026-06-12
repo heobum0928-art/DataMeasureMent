@@ -156,7 +156,27 @@ namespace ReringProject.Sequence
 
             if (_seq.State == EContextState.Idle)
             {
-                _seq.StartAll(null);
+                // Dispatcher.BeginInvoke(Normal) 로 큐된 OnSequenceFinish 핸들러(이미지 표시)가
+                // Background 보다 먼저 실행되어 ResultHalconImage.Dispose() 경합이 해소된다.
+                // 사이클이 누적될수록 Normal 큐가 밀려 50ms 만으로는 보장이 안 되므로 우선순위 기반으로 교체.
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(
+                    System.Windows.Threading.DispatcherPriority.Background,
+                    new Action(() =>
+                    {
+                        if (!IsRunning || _seq == null)
+                        {
+                            return;
+                        }
+
+                        if (_seq.State == EContextState.Idle)
+                        {
+                            _seq.StartAll(null);
+                        }
+                        else
+                        {
+                            Task.Delay(50).ContinueWith(_ => TriggerNext());
+                        }
+                    }));
             }
             else
             {

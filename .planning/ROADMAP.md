@@ -1,4 +1,4 @@
-# Roadmap: DataMeasurement
+﻿# Roadmap: DataMeasurement
 
 ## Milestones
 
@@ -286,3 +286,4 @@ Plans:
 ---
 
 *Last updated: 2026-06-02 — Phase 41(CXP MIL grab) PLAN 완료 (4 plans / 4 waves: 01 foundation, 02 MilCamera, 03 DeviceHandler 등록, 04 SIMUL UAT). HW-01/HW-02 SIMUL 기준 검증, 실 HW grab 보드 도착 후 격리.*
+

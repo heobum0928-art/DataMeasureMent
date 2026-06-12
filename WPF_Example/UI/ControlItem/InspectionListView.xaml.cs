@@ -1,13 +1,13 @@
 ﻿
 using System;
-using System.Collections.Generic; //260602 hbk Phase 40.1 CO-40.1-02 — List<DatumConfig>
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives; //260426 hbk Phase 13-06 — TextBoxBase / Selector routed event
-using System.Windows.Threading; //260426 hbk Phase 13-07 — DispatcherPriority for re-teach defer
+using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 using PropertyTools.Wpf;
 using ReringProject.Define;
 using ReringProject.Sequence;
@@ -23,14 +23,14 @@ namespace ReringProject.UI {
         private InspectionViewModel _inspectionVm;
         public ParamBase SelectedParam { get; private set; } = null;
         private ParamBase CopiedParam = null;
-        private bool _isRebinding = false; //260503 hbk Phase 17 bugfix — SelectionChanged 무한루프 방지 (SelectedObject 재할당 중 ComboBox 초기화 이벤트 차단)
+        // SelectedObject 재할당 중 ComboBox 초기화 이벤트가 bubble되어 SelectionChanged 무한루프가 발생하는 것을 차단
+        private bool _isRebinding = false;
 
-        //260424 hbk Phase 12 Gap-3 — 외부(MainView Datum 티칭)에서 DatumConfig 필드 write-back 후 PropertyGrid 재바인딩 트리거
         // 자동 속성(set;/get;)은 INotifyPropertyChanged 미발동 → SelectedObject null 후 재할당으로 강제 재렌더
         public void RefreshParamEditor() {
             if (ParamEditor == null) return;
             var current = SelectedParam;
-            _isRebinding = true; //260503 hbk Phase 17 bugfix — 재할당 중 SelectionChanged 무한루프 차단
+            _isRebinding = true;
             try {
                 ParamEditor.SelectedObject = null;
                 ParamEditor.SelectedObject = current;
@@ -39,8 +39,6 @@ namespace ReringProject.UI {
             }
         }
 
-        //260602 hbk Phase 40.1 CO-40.1-02 — SequenceID → InspectionSequence.DatumConfigs 해석.
-        //  ViewModel(L93~) 의 pSystemHandle.Sequences 접근 + SequenceHandler ESequence 인덱서(this[ESequence]) 패턴을 따름.
         private List<DatumConfig> ResolveSequenceDatums(ESequence seqId) {
             var result = new List<DatumConfig>();
             try {
@@ -55,28 +53,25 @@ namespace ReringProject.UI {
             return result;
         }
 
-        //260602 hbk Phase 40.1 CO-40.1-02 — 측정 노드: DatumRef(datum 이름) 가 가리키는 datum 1개 해석.
-        //  빈 DatumRef(무보정) 또는 매칭 datum 없음 → 빈 리스트.
         private List<DatumConfig> ResolveDatumsForMeasurement(ESequence seqId, MeasurementBase meas) {
             var result = new List<DatumConfig>();
             if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) return result;
             foreach (DatumConfig d in ResolveSequenceDatums(seqId)) {
                 if (d != null && string.Equals(d.DatumName, meas.DatumRef, StringComparison.Ordinal)) {
                     result.Add(d);
-                    break; // DatumName 은 시퀀스 내 고유 — 첫 매칭만
+                    break; // DatumName은 시퀀스 내 고유 — 첫 매칭만
                 }
             }
             return result;
         }
 
-        //260602 hbk Phase 40.1 CO-40.1-02 — FAI 노드: 하위 measurement 들의 DatumRef 집합 → 해당 datum(중복 제거).
         private List<DatumConfig> ResolveDatumsForFai(ESequence seqId, FAIConfig fai) {
             var result = new List<DatumConfig>();
             if (fai == null) return result;
             List<DatumConfig> seqDatums = ResolveSequenceDatums(seqId);
             if (seqDatums.Count == 0) return result;
             foreach (MeasurementBase meas in fai.Measurements) {
-                if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) continue; // 무보정 측정 제외
+                if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) continue;
                 foreach (DatumConfig d in seqDatums) {
                     if (d != null && string.Equals(d.DatumName, meas.DatumRef, StringComparison.Ordinal)
                         && !result.Contains(d)) {
@@ -87,9 +82,7 @@ namespace ReringProject.UI {
             return result;
         }
 
-        //260611 hbk Shot 노드: 그 Shot 의 모든 FAI/measurement DatumRef 집합 → 해당 datum(중복 제거).
-        //  사용자 요청 "한 Shot = 1 Datum 종류" — 기존 ResolveSequenceDatums(시퀀스 전체, Side=4개 전부 표시)를
-        //  Shot 이 실제 참조하는 datum 만으로 좁힌다. 관례상 보통 1개. 무보정(빈 DatumRef) 측정만 있으면 빈 리스트.
+        // Shot이 실제 참조하는 datum만으로 좁힌다. 관례상 보통 1개. 무보정(빈 DatumRef) 측정만 있으면 빈 리스트.
         private List<DatumConfig> ResolveDatumsForShot(ESequence seqId, ShotConfig shot) {
             var result = new List<DatumConfig>();
             if (shot == null || shot.FAIList == null) return result;
@@ -110,17 +103,12 @@ namespace ReringProject.UI {
             return result;
         }
 
-        //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅
-        //  ParamEditor 의 routed TextBoxBase.LostFocus / Selector.SelectionChanged 가 fire 시 호출.
-        //  SelectedObject 가 teached DatumConfig 일 때만 MainView.NotifyDatumParamMaybeChanged 로 라우팅.
-        //260426 hbk Phase 13-07 — UAT Test E cascade fix:
-        //  PropertyGrid 내부 navigation Selector(카테고리 ListBox 등) 의 SelectionChanged 가 bubble 되어
-        //  Datum→FAI 트리 전환 중간 시점에 SelectedObject 가 아직 Datum 인 채로 fire → 동기 Halcon 호출이
-        //  binding 전환을 깨던 회귀를 차단. (a) OriginalSource 필터로 실제 ComboBox/TextBox 셀만 통과
-        //  (b) Dispatcher.BeginInvoke(Background) 로 binding 안정 후 재검사.
+        // PropertyGrid 파라미터 변경 → MainView 자동 재티칭 라우팅.
+        // PropertyGrid 내부 navigation Selector의 SelectionChanged가 bubble되어 binding 전환 중간에 fire될 수 있으므로
+        // (a) OriginalSource 필터로 실제 ComboBox/TextBox 셀만 통과, (b) Dispatcher.BeginInvoke(Background)로 binding 안정 후 재검사.
         private void TryTriggerDatumAutoReteach() {
             if (ParamEditor == null) return;
-            //260426 hbk Phase 13-07 — binding 전환이 끝난 후 재검사하도록 Background 우선순위로 defer
+            // binding 전환이 끝난 후 재검사하도록 Background 우선순위로 defer
             Dispatcher.BeginInvoke(new Action(() => {
                 var datum = ParamEditor.SelectedObject as DatumConfig;
                 if (datum == null) return;
@@ -131,17 +119,15 @@ namespace ReringProject.UI {
             }), DispatcherPriority.Background);
         }
 
-        //260426 hbk Phase 13-06 — TextBox(숫자/문자 셀) LostFocus 시점: WPF default UpdateSourceTrigger=LostFocus 이므로 binding 은 이미 DatumConfig 에 push 완료
-        //260426 hbk Phase 13-07 — OriginalSource 가 실제 TextBoxBase(셀) 일 때만 통과 (헤더/네비게이션 LostFocus 차단)
+        // OriginalSource가 실제 TextBoxBase(셀)일 때만 통과 (헤더/네비게이션 LostFocus 차단)
         private void OnParamEditorLostFocus(object sender, RoutedEventArgs e) {
             if (!(e.OriginalSource is TextBoxBase)) return;
             TryTriggerDatumAutoReteach();
-            TryTriggerMeasurementRoiRefresh(); //260519 hbk Phase 31 CO-23.1-02 — 측정 파라미터 변경 → ROI 캔버스 재렌더
+            TryTriggerMeasurementRoiRefresh();
         }
 
-        //260519 hbk Phase 31 CO-23.1-02 — PropertyGrid 측정 파라미터 변경 → MainView ROI 캔버스 재렌더 라우팅.
-        //  CircleCenterDistance polar strip(StepDeg/RectL1/L2Ratio)이 수정 즉시 시각 반영되도록.
-        //  TryTriggerDatumAutoReteach 와 동일 패턴 — Background defer 로 binding push 완료 후 재검사.
+        // PropertyGrid 측정 파라미터 변경 → MainView ROI 캔버스 재렌더 라우팅.
+        // TryTriggerDatumAutoReteach와 동일 패턴 — Background defer로 binding push 완료 후 재검사.
         private void TryTriggerMeasurementRoiRefresh() {
             if (ParamEditor == null) return;
             Dispatcher.BeginInvoke(new Action(() => {
@@ -154,35 +140,29 @@ namespace ReringProject.UI {
             }), DispatcherPriority.Background);
         }
 
-        //260426 hbk Phase 13-06 — ComboBox(EdgeDirection/EdgePolarity 등) SelectionChanged 시점: binding 은 즉시 push
-        //260426 hbk Phase 13-07 — OriginalSource 가 실제 ComboBox 일 때만 통과 (PropertyGrid 내부 카테고리 ListBox 등 차단)
-        //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 감지 + 5-step 리셋 (force rebind + 검출 reset + 시각화 clear + ROI 보존 + 자동 재검출 X)
+        // OriginalSource가 실제 ComboBox일 때만 통과 (PropertyGrid 내부 카테고리 ListBox 등 차단).
+        // AlgorithmType combobox 변경 감지 + 5-step 리셋 (force rebind + 검출 reset + 시각화 clear + ROI 보존 + 자동 재검출 X)
         private void OnParamEditorSelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (!(e.OriginalSource is ComboBox)) return;
-            if (_isRebinding) return; //260503 hbk Phase 17 bugfix — SelectedObject 재할당 중 ComboBox 초기화 이벤트 무시 (무한루프 방지)
-            //260503 hbk Phase 17 bugfix#2 — Layout pass 에서 비동기로 도착하는 초기 binding SelectionChanged 차단.
-            //  PropertyGrid 가 SelectedObject 재할당 후 ComboBox 를 재생성 → binding 으로 SelectedValue 설정 시
-            //  RemovedItems.Count == 0 (no prior selection). 사용자 실제 변경은 RemovedItems 에 old value 포함.
-            //  _isRebinding 가드는 동기 경로만 보호 → 비동기 deferred 이벤트는 이 필터로 차단해야 force-rebind → SelectionChanged 무한 루프 방지.
+            if (_isRebinding) return;
+            // PropertyGrid가 SelectedObject 재할당 후 ComboBox를 재생성 → binding으로 SelectedValue 설정 시
+            // RemovedItems.Count == 0 (no prior selection). 사용자 실제 변경은 RemovedItems에 old value 포함.
+            // _isRebinding 가드는 동기 경로만 보호 → 비동기 deferred 이벤트는 이 필터로 차단.
             if (e.RemovedItems == null || e.RemovedItems.Count == 0) return;
 
-            //260503 hbk Phase 17 D-10 — AlgorithmType combobox 변경 분기 (다른 ComboBox: EdgeDirection / EdgeSelection / RadialDirection 등은 기존 경로)
-            //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
             DatumConfig datum = null;
             if (ParamEditor != null) datum = ParamEditor.SelectedObject as DatumConfig;
             if (datum != null) {
                 var combo = e.OriginalSource as ComboBox;
-                //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
                 string newValue = null;
                 if (combo != null) newValue = combo.SelectedValue as string;
-                //260503 hbk Phase 17 D-10 — AlgorithmType whitelist 가드 (Tampering mitigate T-17-02-01)
-                //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A — VerticalTwoHorizontalDualImage 누락 (Phase 34 D-34-05 enum 추가 시 whitelist 갱신 누락) → toggle/badge Visibility 갱신 안 됨.
+                // AlgorithmType whitelist: force rebind이 필요한 타입만 통과
                 if (!string.IsNullOrEmpty(newValue)
                     && string.Equals(newValue, datum.AlgorithmType, System.StringComparison.Ordinal)
-                    && (newValue == "TwoLineIntersect" || newValue == "CircleTwoHorizontal" || newValue == "VerticalTwoHorizontal" || newValue == "VerticalTwoHorizontalDualImage")) { //260527 hbk Phase 34.1 CO-34.1-02
-                    // Step 1: force rebind — PropertyDescriptor 재계산 + ICustomTypeDescriptor 신규 필터 적용 (Phase 16 D-09/D-10 패턴 재사용)
+                    && (newValue == "TwoLineIntersect" || newValue == "CircleTwoHorizontal" || newValue == "VerticalTwoHorizontal" || newValue == "VerticalTwoHorizontalDualImage")) {
+                    // Step 1: force rebind — PropertyDescriptor 재계산 + ICustomTypeDescriptor 신규 필터 적용
                     if (ParamEditor != null) {
-                        _isRebinding = true; //260503 hbk Phase 17 bugfix — rebind 중 재진입 차단
+                        _isRebinding = true;
                         try {
                             ParamEditor.SelectedObject = null;
                             ParamEditor.SelectedObject = datum;
@@ -190,29 +170,28 @@ namespace ReringProject.UI {
                             _isRebinding = false;
                         }
                     }
-                    // Step 2: 검출 상태 reset (Pattern S5 — LastTeachSucceeded/LastFindSucceeded 가드 false → RenderDatumOverlay 검출 도형 자동 미렌더)
-                    datum.LastTeachSucceeded = false; //260503 hbk Phase 17 D-10
-                    datum.LastFindSucceeded  = false; //260503 hbk Phase 17 D-10
-                    //260503 hbk Phase 17 D-13 — Step 3: DetectedOrigin 시각화 clear (RenderDatumOverlay 가 LastFindSucceeded=false 분기에서 자동 미렌더, 본 라인은 PropertyGrid 메트릭 0 표시 안전 처리)
-                    datum.DetectedOriginRow = 0; //260503 hbk Phase 17 D-13
-                    datum.DetectedOriginCol = 0; //260503 hbk Phase 17 D-13
-                    datum.DetectedRefAngle  = 0; //260503 hbk Phase 17 D-13
-                    datum.DetectedEdgeCount = 0; //260503 hbk Phase 17 D-16
-                    datum.DetectedFitRMSE   = 0; //260503 hbk Phase 17 D-16
-                    datum.DetectedAngleDeg  = 0; //260503 hbk Phase 17 D-16
+                    // Step 2: 검출 상태 reset — LastTeachSucceeded/LastFindSucceeded false → RenderDatumOverlay 검출 도형 자동 미렌더
+                    datum.LastTeachSucceeded = false;
+                    datum.LastFindSucceeded  = false;
+                    // Step 3: DetectedOrigin 시각화 clear (PropertyGrid 메트릭 0 표시 안전 처리)
+                    datum.DetectedOriginRow = 0;
+                    datum.DetectedOriginCol = 0;
+                    datum.DetectedRefAngle  = 0;
+                    datum.DetectedEdgeCount = 0;
+                    datum.DetectedFitRMSE   = 0;
+                    datum.DetectedAngleDeg  = 0;
                     // Step 4: ROI 보존 — 명시적 액션 없음 (DatumConfig ROI 필드 미수정)
                     // Step 5: 자동 재검출 없음 — Phase 16 D-13/D-14 보존 (TryTriggerDatumAutoReteach 호출 없음)
                     // Step 6: 캔버스 시각화 갱신 (RenderDatumOverlay 가 LastTeachSucceeded=false 분기에서 검출 도형 미렌더)
                     if (mParentWindow != null && mParentWindow.mainView != null && mParentWindow.mainView.halconViewer != null) {
-                        //260529 hbk Phase 39.1-04 G4-03 — W4: IsDatumTeachActive 프로퍼티 wrapper 사용 (btn_teachDatum 직접 접근 회피, encapsulation)
-                        mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true, mParentWindow.mainView.IsDatumTeachActive); //260529 hbk Phase 39.1-04 G4-03
+                        mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true, mParentWindow.mainView.IsDatumTeachActive);
                     }
-                    //260527 hbk Phase 34.1 CO-34.1-02 hotfix BUG-A — AlgorithmType 변경 후 swap UI Visibility 갱신 (DualImage ↔ 1-image 전환 양방향).
-                    //  PublishDatumRoiCandidates 재호출 → isDualImage 재계산 → 토글/배지 Visibility + ROI subset 갱신.
+                    // AlgorithmType 변경 후 swap UI Visibility 갱신 (DualImage ↔ 1-image 전환 양방향).
+                    // PublishDatumRoiCandidates 재호출 → isDualImage 재계산 → 토글/배지 Visibility + ROI subset 갱신.
                     if (mParentWindow != null && mParentWindow.mainView != null) {
-                        mParentWindow.mainView.PublishDatumRoiCandidates(datum); //260527 hbk Phase 34.1 CO-34.1-02
+                        mParentWindow.mainView.PublishDatumRoiCandidates(datum);
                     }
-                    return; //260503 hbk Phase 17 D-10 — AlgorithmType 변경은 전용 흐름 — TryTriggerDatumAutoReteach 라우팅 안 함 (D-13/D-14 보존)
+                    return; // AlgorithmType 변경은 전용 흐름 — TryTriggerDatumAutoReteach 라우팅 안 함
                 }
             }
 
@@ -220,9 +199,10 @@ namespace ReringProject.UI {
             TryTriggerDatumAutoReteach();
         }
 
-        private bool _isControlLoaded = false; //260408 hbk UI 초기화 완료 플래그
-        private string _pendingRecipeName = null; //260408 hbk 초기화 전 수신된 레시피명
-        private bool _initialExpandApplied = false; //260601 hbk Phase 40.1 #3 UAT — 기본 Shot 레벨 펼침은 세션 첫 로드 1회만 적용 (이후 사용자 펼침/접힘 상태 유지)
+        private bool _isControlLoaded = false;
+        private string _pendingRecipeName = null;
+        // 기본 Shot 레벨 펼침은 세션 첫 로드 1회만 적용 (이후 사용자 펼침/접힘 상태 유지)
+        private bool _initialExpandApplied = false;
 
         public InspectionListView() {
             InitializeComponent();
@@ -238,13 +218,13 @@ namespace ReringProject.UI {
             set {
                 if (value) {
                     //treelistview의 seuqnce 항목을 펼친다. or 자식 항목 표시
-                    if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandToShotLevel(); //260602 hbk Phase 40.1 #3 UAT — 로그인 시 Shot 레벨까지만 (기존 ExpandAll 제거)
+                    if (ViewModel.RootModel != null) ViewModel.RootModel.ExpandToShotLevel();
                     grid_editor.Visibility = Visibility.Visible;
                     gridSplitter_editor.Visibility = Visibility.Visible;
                     colDefinition_editor.Width = new GridLength(6, GridUnitType.Star);
                 }
                 else {
-                    if (ViewModel.RootModel != null) ViewModel.RootModel.CollapseAll(); //260602 hbk Phase 40.1 #3 UAT — 로그아웃 시 트리 전체 접기
+                    if (ViewModel.RootModel != null) ViewModel.RootModel.CollapseAll();
                     grid_editor.Visibility = Visibility.Collapsed;
                     gridSplitter_editor.Visibility = Visibility.Collapsed;
                     colDefinition_editor.Width = new GridLength(0, GridUnitType.Star);
@@ -265,10 +245,9 @@ namespace ReringProject.UI {
                 _inspectionVm = new InspectionViewModel(recipeManager);
                 mParentWindow.mainView.SetFAIResultSource(_inspectionVm);
 
-                _isControlLoaded = true; //260408 hbk
+                _isControlLoaded = true;
 
-                //260408 hbk 초기화 전에 OnLoadRecipe가 먼저 호출된 경우 여기서 트리 재구축
-                //260509 hbk Phase 20 — null 병합 연산자 → 명시적 if/else (D-01, P-3)
+                // 초기화 전에 OnLoadRecipe가 먼저 호출된 경우 여기서 트리 재구축
                 string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
                 if (_pendingRecipeName != null) recipeName = _pendingRecipeName;
                 if (!string.IsNullOrEmpty(recipeName)) {
@@ -276,14 +255,11 @@ namespace ReringProject.UI {
                     ViewModel.RebuildTree();
                 }
 
-                //260601 hbk Phase 40.1 #3 UAT — 기본 Shot 레벨 펼침은 세션 첫 로드 1회만 적용. 이후 재로드 시 사용자 펼침/접힘 상태 유지 (자동 재접기 제거).
                 if (!_initialExpandApplied) {
-                    ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 첫 로드 기본 Shot 레벨 접기 (전체 ExpandAll → Shot 레벨)
-                    _initialExpandApplied = true; //260601 hbk Phase 40.1 #3 UAT — 1회 적용 후 가드
+                    ViewModel.RootModel.ExpandToShotLevel();
+                    _initialExpandApplied = true;
                 }
 
-                //260426 hbk Phase 13-06 — UAT Test 6 (minor) gap closure: PropertyGrid 파라미터 변경 → 자동 재티칭 트리거
-                //  ParamEditor 가 null 이면 (Loaded 이전) skip. 정상 경로에서는 InitializeComponent 가 이미 ParamEditor 를 생성.
                 if (ParamEditor != null) {
                     ParamEditor.AddHandler(TextBoxBase.LostFocusEvent, new RoutedEventHandler(OnParamEditorLostFocus), true);
                     ParamEditor.AddHandler(Selector.SelectionChangedEvent, new SelectionChangedEventHandler(OnParamEditorSelectionChanged), true);
@@ -329,7 +305,7 @@ namespace ReringProject.UI {
         }
 
         public void OnLoadRecipe(string name) {
-            //260408 hbk UI 초기화 전이면 보류, ListView_Loaded에서 처리
+            // UI 초기화 전이면 보류, ListView_Loaded에서 처리
             if (!_isControlLoaded) {
                 _pendingRecipeName = name;
                 return;
@@ -337,17 +313,13 @@ namespace ReringProject.UI {
 
             ViewModel.CurrentRecipe = name;
             ViewModel.RebuildTree();
-            //260601 hbk Phase 40.1 #3 UAT — 레시피 재로드 시에는 강제 Shot 레벨 접기를 적용하지 않는다 (이후 상태 유지 의도).
-            //  기본 Shot 레벨 펼침은 세션 첫 로드(ListView_Loaded) 1회만 적용. 단, 앱 시작 직후 OnLoadRecipe 가
-            //  ListView_Loaded 보다 먼저 도달하는 경로(또는 아직 1회도 적용 안 된 경우)에서는 첫 로드로 간주해 1회 적용.
-            //260509 hbk Phase 20 — null-conditional → 명시적 if/else (D-01, P-14)
+            // 앱 시작 직후 OnLoadRecipe가 ListView_Loaded보다 먼저 도달하는 경우에는 첫 로드로 간주해 1회 적용
             if (!_initialExpandApplied && ViewModel.RootModel != null) {
-                ViewModel.RootModel.ExpandToShotLevel(); //260601 hbk Phase 40.1 #3 — 첫 로드 1회 기본 Shot 레벨 접기
-                _initialExpandApplied = true; //260601 hbk Phase 40.1 #3 UAT — 1회 적용 후 가드
+                ViewModel.RootModel.ExpandToShotLevel();
+                _initialExpandApplied = true;
             }
         }
 
-        //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 모두 Start 가능 + Shot→Action 지연 동기화
         private void Btn_start_Click(object sender, RoutedEventArgs e) {
             if (treeListBox_sequence.SelectedIndex < 0) return;
             if (!(treeListBox_sequence.SelectedItem is NodeViewModel node)) return;
@@ -367,7 +339,6 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260417 hbk Phase 6-04 UAT: 이미 실행 중일 때 재실행 차단
             if (!SystemHandler.Handle.Sequences.IsIdle) {
                 CustomMessageBox.Show("Error", "Sequence is already running.", MessageBoxImage.Error);
                 return;
@@ -380,7 +351,6 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260417 hbk Phase 6-04 UAT: Start 실패 시 침묵 방지 — 실패 원인 진단
             bool started = SystemHandler.Handle.Sequences.Start(seqID, actID);
             if (!started) {
                 string diag = string.Format(
@@ -393,7 +363,6 @@ namespace ReringProject.UI {
             }
         }
 
-        //260417 hbk Phase 6-04 UAT: Sequence/Shot/Action 노드 → 실행 Action ID 해석 (+ 지연 동기화)
         private bool ResolveRunnableAction(NodeViewModel node, SequenceBase seq, out EAction actID) {
             actID = EAction.Unknown;
             if (seq == null) return false;
@@ -401,9 +370,9 @@ namespace ReringProject.UI {
             // Shot 노드 (Action 타입 + ShotConfig Param): RecipeManager.Shots 인덱스 → seq[i].ID 매핑
             if (node.NodeType == ENodeType.Action && node.Param is ShotConfig shotCfg) {
                 var seqHandler = SystemHandler.Handle.Sequences;
-                //260527 hbk Phase 35 — CO-35-01 hotfix (Plan 35-02 Part D): 글로벌 IndexOf 대신 시퀀스 소유 Shot 만 필터링한 로컬 인덱스 사용
-                //  이전 = RecipeManager.Shots.IndexOf → Bottom Shot 의 글로벌 인덱스 > Bottom seq.ActionCount → "no action to run" 오류
-                //  RebuildInspectionActions 의 actionIdx 부여 로직 (SequenceHandler.cs L92-103) 과 1:1 대응되어야 함
+                // 글로벌 IndexOf 대신 시퀀스 소유 Shot만 필터링한 로컬 인덱스 사용.
+                // RecipeManager.Shots.IndexOf는 Bottom Shot의 글로벌 인덱스가 Bottom seq.ActionCount를 초과하는 오류를 낸다.
+                // RebuildInspectionActions의 actionIdx 부여 로직(SequenceHandler.cs L92-103)과 1:1 대응되어야 함.
                 int shotIdx = ComputeLocalShotIndex(seqHandler.RecipeManager, shotCfg, seq.ID);
                 if (shotIdx < 0) return false;
 
@@ -446,16 +415,18 @@ namespace ReringProject.UI {
             return false;
         }
 
-        //260527 hbk Phase 35 — CO-35-01 hotfix: 글로벌 Shots 에서 시퀀스 소유 Shot 만 필터링한 로컬 인덱스 계산
-        //  SequenceHandler.RebuildInspectionActions 의 actionIdx 부여 로직 (L92-103) 과 1:1 대응되어야 함
-        //  빈 OwnerSequenceName 은 TOP 으로 폴백 (ApplyShotDefaults / RebuildInspectionActions 와 동일 정책)
+        // 빈 OwnerSequenceName은 TOP으로 폴백 (ApplyShotDefaults / RebuildInspectionActions와 동일 정책)
         private static int ComputeLocalShotIndex(InspectionRecipeManager mgr, ShotConfig target, ESequence seqId) {
             if (mgr == null || target == null) return -1;
             string targetSeqName = SequenceHandler.ResolveSequenceName(seqId);
             int localIdx = 0;
             for (int i = 0; i < mgr.ShotCount; i++) {
                 ShotConfig s = mgr.Shots[i];
-                string shotOwner = string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName;
+                string shotOwner;
+                if (string.IsNullOrEmpty(s.OwnerSequenceName))
+                    shotOwner = SequenceHandler.SEQ_TOP;
+                else
+                    shotOwner = s.OwnerSequenceName;
                 if (shotOwner != targetSeqName) continue;
                 if (ReferenceEquals(s, target)) return localIdx;
                 localIdx++;
@@ -482,35 +453,27 @@ namespace ReringProject.UI {
             if (mParentWindow == null) mParentWindow = (MainWindow)Window.GetWindow(this);
             button_light.IsEnabled = false;
             button_grab.IsEnabled = false;
-            button_loadImage.IsEnabled = false;  //260423 hbk Datum 노드 지원: 선택 변경 시 초기화
+            button_loadImage.IsEnabled = false;
             //button_showConfig.IsEnabled = false;
 
-            //260423 hbk Phase 11 D-15 — 선택 해제 시 Circle ROI 비활성 (기본값)
-            //260424 hbk Phase 12 D-01 — 선택 해제 시 btn_teachDatum 비활성 (Datum 분기에서만 true)
             if (mParentWindow != null && mParentWindow.mainView != null) {
                 mParentWindow.mainView.btn_circleRoi.IsEnabled = false;
-                mParentWindow.mainView.btn_teachDatum.IsEnabled = false; //260424 hbk Phase 12
+                mParentWindow.mainView.btn_teachDatum.IsEnabled = false;
             }
 
-            //260511 hbk CO-22-01 — sender 기준 게이트 (e.Source 비대칭 회피)
-            //  기존 `e.Source is TreeListBox` 게이트는 TreeListBox 내부 (계층형 inner item / EditableTextBlock 등) 가 발생시킨
-            //  Selector.SelectionChanged routed event bubble 시 e.Source 가 inner element 가 되어 게이트 실패 → 함수 전체 skip.
-            //  Phase 16 D-09 force rebind 가 ParamEditor.SelectedObject 를 code-behind 로 설정해 XAML 바인딩(L257)을 클리어한 이후,
-            //  Datum → FAI 전환에서 본 핸들러가 skip 되면 XAML 바인딩도 force rebind 도 모두 안 돌아 PropertyGrid 가 직전 Datum 으로 stale.
-            //  sender 는 항상 XAML 에 핸들러를 등록한 본인 컨트롤 (treeListBox_sequence) → 비대칭 회피.
-            //  Phase 17 D-10 OnParamEditorSelectionChanged 의 e.OriginalSource 사용과 비대칭 (의도된 차이) 이었으나, 트리 핸들러는 sender 기준이 정합.
-            if (!(sender is TreeListBox list)) return; //260511 hbk CO-22-01
-            if (!ReferenceEquals(sender, treeListBox_sequence)) return; //260511 hbk CO-22-01 — 동일 핸들러가 다른 트리에 attach 됐을 때 무관 호출 차단
+            // e.Source 게이트 대신 sender 기준 게이트 사용:
+            // TreeListBox 내부 inner item이 발생시킨 bubble 이벤트에서 e.Source가 inner element가 되어 게이트 실패 → 함수 전체 skip되는 문제 방지.
+            // force rebind(D-09)가 XAML 바인딩을 끊은 이후 이 핸들러가 skip되면 PropertyGrid가 stale 상태로 남는다.
+            // sender는 항상 XAML에 핸들러를 등록한 본인 컨트롤(treeListBox_sequence) → 비대칭 회피.
+            if (!(sender is TreeListBox list)) return;
+            if (!ReferenceEquals(sender, treeListBox_sequence)) return;
             {
                 if(list.SelectedItem is NodeViewModel) {
                     NodeViewModel item = list.SelectedItem as NodeViewModel;
                     object itemParam = item.Param;
 
-                    //260410 hbk Phase 4 gap fix: clear Datum overlay on any node change
                     mParentWindow.mainView.halconViewer.ClearDatumOverlay();
-                    //260426 hbk Phase 13 D-A1 — Datum 후보도 매 selection 마다 우선 clear (Datum 분기에서만 다시 publish)
                     mParentWindow.mainView.halconViewer.ClearDatumRoiCandidates();
-                    //260602 hbk Phase 40.1 CO-40.1-02 — 결과용 datum 오버레이도 매 selection 마다 clear (이전 노드 잔상 차단; 노드별 분기에서 다시 셋팅)
                     mParentWindow.mainView.halconViewer.ClearResultDatumOverlays();
 
                     //param
@@ -529,39 +492,28 @@ namespace ReringProject.UI {
                         SelectedParam = null;
                     }
 
-                    // FAI CRUD button state + InspectionViewModel update
-                    //260409 hbk Phase 4: Datum node selection -> PropertyGrid binding (D-10)
                     if (item.NodeType == ENodeType.Datum) {
-                        //260417 hbk Phase 6 Plan 04: Datum CRUD 활성화 (D-25)
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
-                        //260423 hbk Datum 노드: Grab/LoadImage 활성화 (DatumConfig → ResolveDatumCameraParam 위임)
                         button_grab.IsEnabled = true;
                         button_loadImage.IsEnabled = true;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
-                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
-                        //260410 hbk Phase 4 gap fix: show Datum overlay on canvas when Datum node selected
+                        if (_inspectionVm != null) _inspectionVm.ClearResults();
                         if (itemParam is DatumConfig datumCfg) {
-                            //260529 hbk Phase 39.1-04 G4-03 — W4: IsDatumTeachActive 프로퍼티 wrapper (btn_teachDatum 직접 접근 회피)
-                            mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true, mParentWindow.mainView.IsDatumTeachActive); //260529 hbk Phase 39.1-04 G4-03
-                            //260426 hbk Phase 13 D-A1 — 이미 티칭된 Datum 도 selection 즉시 ROI hit-test 가능하도록 후보 publish
+                            mParentWindow.mainView.halconViewer.SetDatumOverlay(datumCfg, true, mParentWindow.mainView.IsDatumTeachActive);
+                            // 이미 티칭된 Datum도 selection 즉시 ROI hit-test 가능하도록 후보 publish
                             mParentWindow.mainView.PublishDatumRoiCandidates(datumCfg);
-                            //260527 hbk Phase 35 — CO-33-02 hotfix: Datum 노드 선택 시 TeachingImagePath 표시 (Shot/Measurement 와 일관성; stale canvas 차단)
-                            mParentWindow.mainView.DisplayDatumImage(datumCfg); //260527 hbk Phase 35
-                            //260602 hbk Phase 40.1 CO-40.1-01 — 티칭 이미지 로드 후 휘발 검출 좌표 복원(재티칭) → 검출 라인 렌더
+                            mParentWindow.mainView.DisplayDatumImage(datumCfg);
+                            // 티칭 이미지 로드 후 휘발 검출 좌표 복원(재티칭) → 검출 라인 렌더
                             mParentWindow.mainView.RestoreDatumOverlayFromTeach(datumCfg);
 
-                            //260429 hbk Phase 16 D-09/D-10 — Datum 전환 시 PropertyGrid SelectedObject 강제 null→new force rebind.
-                            //  이유: Phase 15 UAT Test 10~12 결함 — ROI 이동/생성 후 Datum 전환 시 AlgorithmType combobox 가 stale.
-                            //  RaisePropertyChanged + RefreshParamEditor 만으로는 AlgorithmType (string property) combobox 까지 안 닿음.
-                            //  SetParam(line 328) 이 SelectedParam 만 갱신하고 ParamEditor.SelectedObject 는 다른 경로(외부 binding)로 갱신될 때
-                            //  combobox 가 이전 reference 의 stale 값을 유지함 → null 할당으로 binding 강제 해제 후 새 인스턴스 할당.
-                            //260429 hbk Phase 16 D-09 — _editingDatum 등가 reference (ParamEditor.SelectedObject) 강제 재할당
-                            //260429 hbk Phase 16 D-11/D-12 — 매 Datum 클릭마다 force rebind (편집 모드 무관) + AlgorithmType 변경 자체는 자동 재티칭 추가 안 함 (D-13 일관)
+                            // Datum 전환 시 PropertyGrid SelectedObject 강제 null→new force rebind.
+                            // ROI 이동/생성 후 Datum 전환 시 AlgorithmType combobox가 stale 해지는 문제 방지:
+                            // SetParam이 SelectedParam만 갱신하고 ParamEditor.SelectedObject는 외부 binding으로 갱신될 때
+                            // combobox가 이전 reference의 stale 값을 유지함 → null 할당으로 binding 강제 해제 후 새 인스턴스 할당.
                             if (ParamEditor != null) {
-                                //260429 hbk Phase 16 D-10 — null 할당으로 PropertyGrid 의 기존 binding 강제 해제 후, 새 인스턴스 할당
-                                _isRebinding = true; //260503 hbk Phase 17 bugfix — datum 클릭 rebind 중 SelectionChanged 무한루프 차단
+                                _isRebinding = true;
                                 try {
                                     ParamEditor.SelectedObject = null;
                                     ParamEditor.SelectedObject = datumCfg;
@@ -570,52 +522,48 @@ namespace ReringProject.UI {
                                 }
                             }
                         }
-                        //260424 hbk Phase 12 D-01 — Datum 노드 선택 시 btn_teachDatum 활성화
                         if (mParentWindow != null && mParentWindow.mainView != null) {
                             mParentWindow.mainView.btn_teachDatum.IsEnabled = true;
                         }
                     }
-                    //260417 hbk Phase 6 Plan 04: Measurement node selection (D-24)
                     else if (item.NodeType == ENodeType.Measurement) {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
-                        //260519 hbk Phase 31 CO-23.1-02 — Rect ROI 버튼 활성화: Point_* ROI 보유 타입 7종 (Phase 31 신규 포함)
                         bool isRectRoiType = item.Param is EdgeToLineDistanceMeasurement
-                            || item.Param is EdgeToLineAngleMeasurement       //260519 hbk Phase 31 D-05
-                            || item.Param is ArcEdgeDistanceMeasurement        //260519 hbk Phase 31 D-08
-                            || item.Param is ArcLineIntersectDistanceMeasurement //260519 hbk Phase 31 D-01
-                            || item.Param is CompoundAngleMeasurement          //260519 hbk Phase 31 D-11
-                            || item.Param is CompoundCenterCDistanceMeasurement //260519 hbk Phase 31 D-11
-                            || item.Param is CompoundCenterBDistanceMeasurement //260519 hbk Phase 31 D-11
-                            || item.Param is CompoundShortAxisDistanceMeasurement //260523 hbk Phase 32 — E3 단축 환원
-                            || item.Param is DualImageEdgeDistanceMeasurement; //260530 hbk Phase 39.3 D-G1
+                            || item.Param is EdgeToLineAngleMeasurement
+                            || item.Param is ArcEdgeDistanceMeasurement
+                            || item.Param is ArcLineIntersectDistanceMeasurement
+                            || item.Param is CompoundAngleMeasurement
+                            || item.Param is CompoundCenterCDistanceMeasurement
+                            || item.Param is CompoundCenterBDistanceMeasurement
+                            || item.Param is CompoundShortAxisDistanceMeasurement
+                            || item.Param is DualImageEdgeDistanceMeasurement;
                         if (mParentWindow != null && mParentWindow.mainView != null)
-                            mParentWindow.mainView.btn_rectRoi.IsEnabled = isRectRoiType; //260519 hbk Phase 31 CO-23.1-02
+                            mParentWindow.mainView.btn_rectRoi.IsEnabled = isRectRoiType;
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)
-                        //260508 hbk Phase 19 fix — Datum 클릭 force rebind(line 419-420) 후 binding 손상 → Measurement 전환 시 PropertyGrid stale.
-                        //  Datum 패턴(Phase 16 D-09)과 동일하게 null→new 강제 재할당.
-                        if (ParamEditor != null && itemParam != null) { //260508 hbk Phase 19 fix
-                            _isRebinding = true; //260508 hbk Phase 19 fix
+                        // Datum force rebind 후 binding 손상 → Measurement 전환 시 PropertyGrid stale.
+                        // Datum 패턴(D-09)과 동일하게 null→new 강제 재할당.
+                        if (ParamEditor != null && itemParam != null) {
+                            _isRebinding = true;
                             try {
-                                ParamEditor.SelectedObject = null; //260508 hbk Phase 19 fix
-                                ParamEditor.SelectedObject = itemParam; //260508 hbk Phase 19 fix
+                                ParamEditor.SelectedObject = null;
+                                ParamEditor.SelectedObject = itemParam;
                             } finally {
-                                _isRebinding = false; //260508 hbk Phase 19 fix
+                                _isRebinding = false;
                             }
                         }
-                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
-                        //260529 hbk Phase 39.1-03 G4-01 — DisplayMeasurementImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화 (Phase 32 UAT / 35 / 18 #6 동작 보존).
-                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas) //260529 hbk Phase 39.1-03 G4-01
-                            mParentWindow.mainView.RenderInspectionResultForNode(meas); //260529 hbk Phase 39.1-03 G4-01
-                        //260602 hbk Phase 40.1 CO-40.1-02 — 측정 노드 선택 시 그 측정의 DatumRef 가 가리키는 시퀀스 datum 1개를 결과 화면에 표시 (토글 게이트 공용)
+                        if (_inspectionVm != null) _inspectionVm.ClearResults();
+                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas)
+                            mParentWindow.mainView.RenderInspectionResultForNode(meas);
+                        // 측정 노드 선택 시 그 측정의 DatumRef가 가리키는 시퀀스 datum 1개를 결과 화면에 표시
                         if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase measForDatum) {
                             List<DatumConfig> datumsForMeas = ResolveDatumsForMeasurement(item.SequenceID, measForDatum);
                             mParentWindow.mainView.ShowResultDatumOverlays(datumsForMeas);
                         }
-                        //260530 hbk Phase 39.3 D-G2 — Measurement DualImage 선택 시 swap UI owner set (mutex). 비-DualImage Measurement 는 as 캐스트 결과 null 로 clear → swap UI 자동 Collapsed.
+                        // DualImage 선택 시 swap UI owner set (mutex). 비-DualImage는 as 캐스트 결과 null → swap UI 자동 Collapsed.
                         if (mParentWindow != null && mParentWindow.mainView != null) {
-                            mParentWindow.mainView.PublishMeasurementDualImageSelection(itemParam as DualImageEdgeDistanceMeasurement); //260530 hbk Phase 39.3 D-G2
+                            mParentWindow.mainView.PublishMeasurementDualImageSelection(itemParam as DualImageEdgeDistanceMeasurement);
                         }
                     }
                     else if (item.NodeType == ENodeType.FAI) {
@@ -624,53 +572,46 @@ namespace ReringProject.UI {
                         button_renameFAI.IsEnabled = true;
                         if (_inspectionVm != null && itemParam is FAIConfig faiConfig) {
                             _inspectionVm.OnFAISelected(faiConfig);
-                            //260529 hbk Phase 39.1-03 G4-01 — DisplayFAIImage + HighlightSelectedRoi + overlay 재 렌더를 RenderInspectionResultForNode 통합 진입점으로 일원화.
-                            mParentWindow.mainView.RenderInspectionResultForNode(faiConfig); //260529 hbk Phase 39.1-03 G4-01
-                            //260602 hbk Phase 40.1 CO-40.1-02 — FAI 노드 선택 시 하위 measurement 들의 DatumRef 가 가리키는 시퀀스 datum(중복 제거)을 결과 화면에 표시
+                            mParentWindow.mainView.RenderInspectionResultForNode(faiConfig);
+                            // FAI 노드 선택 시 하위 measurement들의 DatumRef가 가리키는 시퀀스 datum(중복 제거)을 결과 화면에 표시
                             if (mParentWindow != null && mParentWindow.mainView != null) {
                                 List<DatumConfig> datumsForFai = ResolveDatumsForFai(item.SequenceID, faiConfig);
                                 mParentWindow.mainView.ShowResultDatumOverlays(datumsForFai);
                             }
-                            //260508 hbk Phase 19 fix — ICustomTypeDescriptor 추가 후 PropertyGrid binding stale 방지 (Phase 16 D-09 패턴 적용)
-                            //  Datum 클릭 force rebind 가 SelectedObject binding 을 끊어 → FAI 전환 시 자동 갱신 안 됨 → 명시적 재할당 필요.
-                            if (ParamEditor != null) { //260508 hbk Phase 19 fix
-                                _isRebinding = true; //260508 hbk Phase 19 fix
+                            // Datum force rebind가 SelectedObject binding을 끊어 → FAI 전환 시 자동 갱신 안 됨 → 명시적 재할당 필요.
+                            if (ParamEditor != null) {
+                                _isRebinding = true;
                                 try {
-                                    ParamEditor.SelectedObject = null; //260508 hbk Phase 19 fix
-                                    ParamEditor.SelectedObject = faiConfig; //260508 hbk Phase 19 fix
+                                    ParamEditor.SelectedObject = null;
+                                    ParamEditor.SelectedObject = faiConfig;
                                 } finally {
-                                    _isRebinding = false; //260508 hbk Phase 19 fix
+                                    _isRebinding = false;
                                 }
                             }
                         }
-                        //260529 hbk Phase 39.1-03 G4-01 — HighlightSelectedRoi 가 RenderInspectionResultForNode 안에 통합 → 별도 호출 제거 (FAIConfig=null 일 때 무동작 — 회귀 0)
                     }
                     else if (item.NodeType == ENodeType.Action) {
                         button_addFAI.IsEnabled = true;
-                        button_removeFAI.IsEnabled = (item.Param is ShotConfig); //260408 hbk Shot 노드면 삭제 가능
+                        button_removeFAI.IsEnabled = (item.Param is ShotConfig);
                         button_renameFAI.IsEnabled = false;
                         if (_inspectionVm != null) {
                             _inspectionVm.OnActionSelected(item);
                         }
-                        //260521 hbk Phase 32 UAT — Shot 노드 선택 시 Shot 이미지 표시 (이미지 회귀 결함 수정)
                         if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotSel)
-                            mParentWindow.mainView.DisplayShotImage(shotSel); //260521 hbk Phase 32 UAT
-                        //260602 hbk Phase 40.1 CO-40.1-02 — Shot 노드 선택 시 datum 을 결과 화면에 표시
-                        //260611 hbk 시퀀스 전체(Side=4개) → 그 Shot 이 참조하는 datum 만 (사용자 요청 "한 Shot=1 Datum")
+                            mParentWindow.mainView.DisplayShotImage(shotSel);
                         if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotForDatum) {
                             List<DatumConfig> datumsForShot = ResolveDatumsForShot(item.SequenceID, shotForDatum);
                             mParentWindow.mainView.ShowResultDatumOverlays(datumsForShot);
                         }
-                        //260511 hbk CO-22-01 — Action(ShotConfig) 분기 force rebind 추가.
-                        //  Phase 16 D-09 Datum force rebind 가 XAML SelectedObject 바인딩(L257)을 끊은 이후
-                        //  Action 노드 클릭 시 PropertyGrid 가 stale (직전 Datum/FAI 유지). Phase 19 fix 와 동일 패턴 적용.
-                        if (ParamEditor != null && itemParam is ParamBase) { //260511 hbk CO-22-01
-                            _isRebinding = true; //260511 hbk CO-22-01
+                        // Datum force rebind가 XAML SelectedObject 바인딩을 끊은 이후
+                        // Action 노드 클릭 시 PropertyGrid가 stale(직전 Datum/FAI 유지) → 명시적 재할당 필요.
+                        if (ParamEditor != null && itemParam is ParamBase) {
+                            _isRebinding = true;
                             try {
-                                ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
-                                ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+                                ParamEditor.SelectedObject = null;
+                                ParamEditor.SelectedObject = itemParam;
                             } finally {
-                                _isRebinding = false; //260511 hbk CO-22-01
+                                _isRebinding = false;
                             }
                         }
                     }
@@ -678,16 +619,15 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = true;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
-                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
-                        //260511 hbk CO-22-01 — Sequence 분기 force rebind (param=null 경로 포함).
-                        //  Sequence 노드는 통상 ParamBase 가 없으므로 명시적 null 할당으로 PropertyGrid 비움.
-                        if (ParamEditor != null) { //260511 hbk CO-22-01
-                            _isRebinding = true; //260511 hbk CO-22-01
+                        if (_inspectionVm != null) _inspectionVm.ClearResults();
+                        // Sequence 노드는 통상 ParamBase가 없으므로 명시적 null 할당으로 PropertyGrid 비움.
+                        if (ParamEditor != null) {
+                            _isRebinding = true;
                             try {
-                                ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
-                                if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+                                ParamEditor.SelectedObject = null;
+                                if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam;
                             } finally {
-                                _isRebinding = false; //260511 hbk CO-22-01
+                                _isRebinding = false;
                             }
                         }
                     }
@@ -695,29 +635,27 @@ namespace ReringProject.UI {
                         button_addFAI.IsEnabled = false;
                         button_removeFAI.IsEnabled = false;
                         button_renameFAI.IsEnabled = false;
-                        if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
-                        //260511 hbk CO-22-01 — else 분기 (unknown NodeType) 도 동일 패턴 — PropertyGrid 명시적 비움.
-                        if (ParamEditor != null) { //260511 hbk CO-22-01
-                            _isRebinding = true; //260511 hbk CO-22-01
+                        if (_inspectionVm != null) _inspectionVm.ClearResults();
+                        if (ParamEditor != null) {
+                            _isRebinding = true;
                             try {
-                                ParamEditor.SelectedObject = null; //260511 hbk CO-22-01
-                                if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam; //260511 hbk CO-22-01
+                                ParamEditor.SelectedObject = null;
+                                if (itemParam is ParamBase) ParamEditor.SelectedObject = itemParam;
                             } finally {
-                                _isRebinding = false; //260511 hbk CO-22-01
+                                _isRebinding = false;
                             }
                         }
                     }
 
-                    //260519 hbk Phase 31 CO-23.1-02 — Circle ROI 버튼 활성화 게이팅: CircleDiameter + CircleCenterDistance 포함
                     bool circleEnabled = false;
                     if (itemParam is FAIConfig faiForCircle) {
                         foreach (var m in faiForCircle.Measurements) {
-                            if (m is CircleDiameterMeasurement || m is CircleCenterDistanceMeasurement) { //260519 hbk Phase 31 CO-23.1-02
+                            if (m is CircleDiameterMeasurement || m is CircleCenterDistanceMeasurement) {
                                 circleEnabled = true; break;
                             }
                         }
                     }
-                    else if (itemParam is CircleDiameterMeasurement || itemParam is CircleCenterDistanceMeasurement) { //260519 hbk Phase 31 CO-23.1-02
+                    else if (itemParam is CircleDiameterMeasurement || itemParam is CircleCenterDistanceMeasurement) {
                         circleEnabled = true;
                     }
                     if (mParentWindow != null && mParentWindow.mainView != null) {
@@ -763,7 +701,6 @@ namespace ReringProject.UI {
 
         private void button_grab_Click(object sender, RoutedEventArgs e) {
             if (SelectedParam == null) return;
-            //260423 hbk Datum 노드: ICameraParam 미구현이므로 Shot 위임
             if (SelectedParam is DatumConfig datumForGrab) {
                 ICameraParam resolved = ResolveDatumCameraParam(datumForGrab);
                 if (resolved == null) return;
@@ -785,13 +722,11 @@ namespace ReringProject.UI {
 
         private void button_loadImage_Click(object sender, RoutedEventArgs e) {
             if (SelectedParam == null) return;
-            //260423 hbk Datum 노드: ICameraParam 미구현이므로 Shot 위임
             if (SelectedParam is DatumConfig datumForLoad) {
                 ICameraParam resolved = ResolveDatumCameraParam(datumForLoad);
                 if (resolved == null) return;
-                //260518 hbk #3 — 표시는 Shot 으로 위임, 경로 저장은 DatumConfig.TeachingImagePath 로
                 mParentWindow.mainView.LoadAndDisplay(resolved, datumForLoad);
-                //260519 hbk #3-refresh — Datum Load 후 TeachingImagePath 자동속성 write-back 은 INPC 미발동 → PropertyGrid 강제 재바인딩
+                // Datum Load 후 TeachingImagePath 자동속성 write-back은 INPC 미발동 → PropertyGrid 강제 재바인딩
                 RefreshParamEditor();
                 return;
             }
@@ -801,7 +736,7 @@ namespace ReringProject.UI {
             mParentWindow.mainView.LoadAndDisplay(camParam);
         }
 
-        //260423 hbk Datum 노드: SourceShotName으로 ShotConfig 조회, 없으면 Shots[0] fallback
+        // SourceShotName으로 ShotConfig 조회, 없으면 Shots[0] fallback
         private ICameraParam ResolveDatumCameraParam(DatumConfig datum) {
             var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
             if (shots.Count == 0) return null;
@@ -828,7 +763,6 @@ namespace ReringProject.UI {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
 
-                //260417 hbk Phase 6 Plan 04: Datum 노드 선택 시 Datum 형제 추가 (D-25)
                 if (selectedNode.NodeType == ENodeType.Datum) {
                     NodeViewModel seqNodeForDatum = selectedNode.Parent;
                     if (seqNodeForDatum != null && seqNodeForDatum.NodeType == ENodeType.Sequence) {
@@ -837,7 +771,6 @@ namespace ReringProject.UI {
                     return;
                 }
 
-                //260417 hbk Phase 6 Plan 04: Measurement 노드 선택 시 Measurement 형제 추가 (D-24)
                 if (selectedNode.NodeType == ENodeType.Measurement) {
                     NodeViewModel faiNodeForMeas = selectedNode.Parent;
                     if (faiNodeForMeas != null && faiNodeForMeas.NodeType == ENodeType.FAI && faiNodeForMeas.Param is FAIConfig faiOwner) {
@@ -848,7 +781,6 @@ namespace ReringProject.UI {
 
                 // Sequence 노드 선택 시: Shot 또는 Datum 추가 선택 (D-25)
                 if (selectedNode.NodeType == ENodeType.Sequence) {
-                    //260417 hbk Phase 6 Plan 04: Yes=Shot, No=Datum
                     MessageBoxResult choice = CustomMessageBox.ShowConfirmation(
                         "추가 항목 선택",
                         "Shot을 추가하려면 Yes, Datum을 추가하려면 No를 누르세요.",
@@ -871,7 +803,6 @@ namespace ReringProject.UI {
                     return;
                 }
 
-                //260417 hbk Phase 6 Plan 04: FAI 노드 선택 시 Measurement 추가 (D-24)
                 if (selectedNode.NodeType == ENodeType.FAI && selectedNode.Param is FAIConfig faiSel) {
                     AddMeasurementToFAI(selectedNode, faiSel);
                     return;
@@ -895,7 +826,6 @@ namespace ReringProject.UI {
             }
         }
 
-        //260417 hbk Phase 6 Plan 04: Sequence에 Datum을 추가하고 트리에 노드 직접 삽입 (D-25)
         private void AddDatumToSequence(NodeViewModel seqNode) {
             if (!(seqNode.Param is CameraMasterParam)) {
                 // Param 검사 — InspectionSequence가 아니면 무시
@@ -913,15 +843,12 @@ namespace ReringProject.UI {
             seqNode.IsExpanded = true;
         }
 
-        //260417 hbk Phase 6 Plan 04: FAI에 Measurement를 추가하고 트리에 노드 직접 삽입 (D-24)
         private void AddMeasurementToFAI(NodeViewModel faiNode, FAIConfig fai) {
             string[] typeNames = MeasurementFactory.GetTypeNames();
-            //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
             string defaultType = "EdgePairDistance";
             if (typeNames.Length > 0) defaultType = typeNames[0];
 
-            //260508 hbk Quick — TextInputBox 자유 텍스트 → ComboInputBox 콤보 강제 (사용자 입력 실수 방지, MeasurementFactory 단일 소스)
-            if (!ComboInputBox.Show("Measurement 타입 선택", typeNames, defaultType, out string typeName)) return;
+                if (!ComboInputBox.Show("Measurement 타입 선택", typeNames, defaultType, out string typeName)) return;
 
             MeasurementBase newMeas = fai.AddMeasurement(typeName);
             if (newMeas == null) {
@@ -945,11 +872,10 @@ namespace ReringProject.UI {
             if (!TextInputBox.Show("Shot 이름 입력", defaultName, out string shotName)) return;
 
             // 데이터만 추가 (시퀀스 Action 교체 안 함 — 런타임 안전)
-            //260527 hbk Phase 35 — CO-33-06: 신규 Shot 의 OwnerSequenceName 명시 전달 (D-A1)
             string ownerSeqName = SequenceHandler.ResolveSequenceName(seqNode.SequenceID);
             ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName, ownerSeqName);
             FAIConfig fai = shot.AddFAI("FAI_0");
-            seqHandler.EnableDynamicFAIMode(); //260408 hbk 저장 시 SHOTS 포맷으로 기록되도록 활성화
+            seqHandler.EnableDynamicFAIMode();
 
             // 트리에 Shot 노드(Action 타입) + FAI 자식 노드 직접 삽입
             var shotNode = new CompositeNode {
@@ -968,20 +894,15 @@ namespace ReringProject.UI {
                 SequenceID = seqNode.SequenceID,
                 ActionID = EAction.Unknown
             };
-            //260413 hbk Phase 6: Datum 노드 제거 — Datum은 Fixture(Sequence) 레벨로 이전 (D-25).
-            // TODO: Phase 6 Plan 04에서 Sequence 자식으로 Datum 노드 추가.
-            //260417 hbk Phase 6-04 UAT 후속: 여기서 RebuildInspectionActions를 호출하지 않아도,
-            // 실행 시 Btn_start_Click → ResolveRunnableAction 이 지연 동기화로 Shot→Action 매핑을 복구한다.
+            // RebuildInspectionActions를 호출하지 않아도, 실행 시 Btn_start_Click → ResolveRunnableAction이 지연 동기화로 Shot→Action 매핑을 복구한다.
             shotNode.Children.Add(faiChildNode);
 
             var shotVm = new NodeViewModel(shotNode, seqNode);
             seqNode.Children.Add(shotVm);
-            //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 자동정렬 비활성 (사용자 ▲▼ 이동 우선)
             //InspectionListViewModel.SortNodeChildren(seqNode);
             seqNode.IsExpanded = true;
         }
 
-        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — TreeView 선택 노드를 위로 이동 (▲)
         private void Btn_MoveUp_Click(object sender, RoutedEventArgs e) {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel sel)) return;
@@ -990,7 +911,6 @@ namespace ReringProject.UI {
             } catch { /* UX 안정성 우선 — 예외 swallow */ }
         }
 
-        //260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — TreeView 선택 노드를 아래로 이동 (▼)
         private void Btn_MoveDown_Click(object sender, RoutedEventArgs e) {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel sel)) return;
@@ -1003,7 +923,6 @@ namespace ReringProject.UI {
             try {
                 if (!(treeListBox_sequence.SelectedItem is NodeViewModel selectedNode)) return;
 
-                //260417 hbk Phase 6 Plan 04: Datum 노드 삭제 (D-25)
                 if (selectedNode.NodeType == ENodeType.Datum && selectedNode.Param is DatumConfig datumToRemove) {
                     SequenceBase seq = SystemHandler.Handle.Sequences[selectedNode.SequenceID];
                     if (!(seq is InspectionSequence inspSeq)) return;
@@ -1019,18 +938,16 @@ namespace ReringProject.UI {
                     if (inspSeq.RemoveDatum(datumIdx)) {
                         selectedNode.Detach();
                     }
-                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                    if (_inspectionVm != null) _inspectionVm.ClearResults();
                     return;
                 }
 
-                //260417 hbk Phase 6 Plan 04: Measurement 노드 삭제 (D-24)
                 if (selectedNode.NodeType == ENodeType.Measurement && selectedNode.Param is MeasurementBase measToRemove) {
                     NodeViewModel faiParent = selectedNode.Parent;
                     if (faiParent == null || !(faiParent.Param is FAIConfig faiOwner)) return;
                     int measIdx = faiOwner.Measurements.IndexOf(measToRemove);
                     if (measIdx < 0) return;
 
-                    //260509 hbk Phase 20 — 삼항 → 명시적 if/else (D-01, P-4)
                     string measDisplayName = measToRemove.MeasurementName;
                     if (string.IsNullOrEmpty(measDisplayName)) measDisplayName = measToRemove.TypeName;
                     MessageBoxResult mr = CustomMessageBox.ShowConfirmation(
@@ -1042,11 +959,10 @@ namespace ReringProject.UI {
                     if (faiOwner.RemoveMeasurement(measIdx)) {
                         selectedNode.Detach();
                     }
-                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                    if (_inspectionVm != null) _inspectionVm.ClearResults();
                     return;
                 }
 
-                //260408 hbk Shot(Action) 노드 선택 시 Shot 삭제
                 if (selectedNode.NodeType == ENodeType.Action && selectedNode.Param is ShotConfig shotToRemove) {
                     var seqHandler = SystemHandler.Handle.Sequences;
                     int shotIndex = seqHandler.RecipeManager.Shots.IndexOf(shotToRemove);
@@ -1060,7 +976,7 @@ namespace ReringProject.UI {
 
                     seqHandler.RecipeManager.RemoveShot(shotIndex);
                     selectedNode.Detach();
-                    if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                    if (_inspectionVm != null) _inspectionVm.ClearResults();
                     return;
                 }
 
@@ -1081,7 +997,7 @@ namespace ReringProject.UI {
                     _inspectionVm.RemoveFAI(shot, index);
                     selectedNode.Detach();
                 }
-                if (_inspectionVm != null) _inspectionVm.ClearResults(); //260509 hbk Phase 20
+                if (_inspectionVm != null) _inspectionVm.ClearResults();
             }
             catch (Exception ex) {
                 CustomMessageBox.Show("삭제 오류", ex.Message, System.Windows.MessageBoxImage.Error);

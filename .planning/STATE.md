@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: ready_to_plan
-stopped_at: context exhaustion at 98% (2026-06-12)
-last_updated: "2026-06-12T08:00:46.263Z"
-last_activity: 2026-06-12 -- Phase --phase execution started
+status: uat_pending
+stopped_at: Phase 41.1 구현 완료 — UAT 체크포인트 대기 (2026-06-12)
+last_updated: "2026-06-12T14:00:00.000Z"
+last_activity: 2026-06-12
 progress:
-  total_phases: 6
-  completed_phases: 7
-  total_plans: 25
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 28
   completed_plans: 25
-  percent: 117
+  percent: 89
 ---
 
 # Project State
@@ -391,10 +391,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-12T06:50:18.718Z
-Stopped at: context exhaustion at 98% (2026-06-12)
+Last session: 2026-06-12T14:00:00.000Z
+Stopped at: Phase 41.1 구현 완료 (커밋 cd63ab9), UAT 체크포인트 대기
 Resume file: None
-Next action: QUAL-01 Wave5 Batch G 미완료 (마지막 커밋 89127d0 — ParamBase.cs 부분). 계속 = /gsd-quick 또는 수동 Wave5 잔여 파일 정리.
+Next action: Phase 41.1 UAT (Plan 41.1-03 checkpoint:human-verify) — msbuild Rebuild 확인 → 앱 실행(SIMUL_MODE) → 50회 반복 실행 → 반복도 엑셀 export → Sheet1/Sheet2 내용 확인. 완료 후 SUMMARY.md 3종 작성 + 페이즈 완료 처리.
 
 **v1.1 Phase Map:**
 

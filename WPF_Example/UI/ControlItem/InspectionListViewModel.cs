@@ -53,7 +53,13 @@ namespace ReringProject.UI {
             var list = parent.Children;
             if (list == null || list.Count <= 1) return;
             var sorted = new List<NodeViewModel>(list);
-            sorted.Sort((a, b) => _naturalComparer.Compare(a != null ? a.Name : null, b != null ? b.Name : null));
+            sorted.Sort((a, b) => {
+                string an;
+                if (a != null) an = a.Name; else an = null;
+                string bn;
+                if (b != null) bn = b.Name; else bn = null;
+                return _naturalComparer.Compare(an, bn);
+            });
             // 변경 감지 (no-op skip 으로 RaisePropertyChanged 폭발 방지)
             bool dirty = false;
             for (int i = 0; i < sorted.Count; i++) {
@@ -91,7 +97,10 @@ namespace ReringProject.UI {
             for(int i = 0; i < pSystemHandle.Sequences.Count; i++) {
                 SequenceBase seq = pSystemHandle.Sequences[i];
 
-                string seqDisplay = (seq as InspectionSequence)?.GetDisplayName() ?? seq.Name;
+                InspectionSequence seqAsInsp = seq as InspectionSequence;
+                string seqDisplay;
+                if (seqAsInsp != null) seqDisplay = seqAsInsp.GetDisplayName(); else seqDisplay = null;
+                if (seqDisplay == null) seqDisplay = seq.Name;
                 var seqNode = new CompositeNode { Name = seqDisplay, NodeType = ENodeType.Sequence, ParamData = seq.Param, SequenceName = seq.Name, SequenceID = seq.ID };
                 model.Children.Add(seqNode);
 
@@ -100,8 +109,10 @@ namespace ReringProject.UI {
                 // Datum 노드를 Sequence 직접 자식으로 추가 — Action 과 형제
                 if (seq is InspectionSequence inspSeq) {
                     foreach (DatumConfig datum in inspSeq.DatumConfigs) {
+                        string datumNodeName = datum.DatumName;
+                        if (datumNodeName == null) datumNodeName = "Datum";
                         var datumNode = new CompositeNode {
-                            Name = datum.DatumName ?? "Datum",
+                            Name = datumNodeName,
                             NodeType = ENodeType.Datum,
                             ParamData = datum,
                             SequenceName = seq.Name,
@@ -127,8 +138,10 @@ namespace ReringProject.UI {
                             this.Count++;
 
                             foreach (MeasurementBase meas in fai.Measurements) {
+                                string measNodeName;
+                                if (string.IsNullOrEmpty(meas.MeasurementName)) measNodeName = meas.TypeName; else measNodeName = meas.MeasurementName;
                                 var measNode = new Node {
-                                    Name = string.IsNullOrEmpty(meas.MeasurementName) ? meas.TypeName : meas.MeasurementName,
+                                    Name = measNodeName,
                                     NodeType = ENodeType.Measurement,
                                     ParamData = meas,
                                     SequenceName = seq.Name,
@@ -167,8 +180,10 @@ namespace ReringProject.UI {
 
         public void AddDatumNode(NodeViewModel seqNode, DatumConfig datum) {
             if (seqNode == null || datum == null) return;
+            string datumNodeName = datum.DatumName;
+            if (datumNodeName == null) datumNodeName = "Datum";
             var datumNode = new CompositeNode {
-                Name = datum.DatumName ?? "Datum",
+                Name = datumNodeName,
                 NodeType = ENodeType.Datum,
                 ParamData = datum,
                 SequenceName = seqNode.SequenceName,
@@ -182,8 +197,10 @@ namespace ReringProject.UI {
 
         public void AddMeasurementNode(NodeViewModel faiNode, MeasurementBase meas) {
             if (faiNode == null || meas == null) return;
+            string measNodeName;
+            if (string.IsNullOrEmpty(meas.MeasurementName)) measNodeName = meas.TypeName; else measNodeName = meas.MeasurementName;
             var measNode = new Node {
-                Name = string.IsNullOrEmpty(meas.MeasurementName) ? meas.TypeName : meas.MeasurementName,
+                Name = measNodeName,
                 NodeType = ENodeType.Measurement,
                 ParamData = meas,
                 SequenceName = faiNode.SequenceName,
@@ -292,7 +309,7 @@ namespace ReringProject.UI {
                 master.PropertyChanged += OnSequenceMasterPropertyChanged;
 
                 // 초기 라벨 동기화 (DisplayName 비어있으면 SequenceName 폴백)
-                child.Name = string.IsNullOrEmpty(master.DisplayName) ? child.SequenceName : master.DisplayName;
+                if (string.IsNullOrEmpty(master.DisplayName)) child.Name = child.SequenceName; else child.Name = master.DisplayName;
             }
         }
 
@@ -303,7 +320,8 @@ namespace ReringProject.UI {
             foreach (var child in RootModel.Children) {
                 if (child.NodeType != ENodeType.Sequence) continue;
                 if (ReferenceEquals(child.Param, master)) {
-                    string newLabel = string.IsNullOrEmpty(master.DisplayName) ? child.SequenceName : master.DisplayName;
+                    string newLabel;
+                    if (string.IsNullOrEmpty(master.DisplayName)) newLabel = child.SequenceName; else newLabel = master.DisplayName;
                     child.Name = newLabel; // NodeViewModel.Name setter 가 RaisePropertyChanged("Name") 발생
                     break;
                 }

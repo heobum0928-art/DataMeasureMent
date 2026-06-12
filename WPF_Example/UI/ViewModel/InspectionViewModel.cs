@@ -29,7 +29,8 @@ namespace ReringProject.UI
             var rows = new ObservableCollection<MeasurementResultRow>();
             if (fai != null)
             {
-                string faiName = fai.FAIName ?? "FAI";
+                string faiName = fai.FAIName;
+                if (faiName == null) faiName = "FAI";
                 foreach (MeasurementBase meas in fai.Measurements)
                 {
                     rows.Add(new MeasurementResultRow(meas, faiName));
@@ -46,7 +47,8 @@ namespace ReringProject.UI
             {
                 foreach (FAIConfig fai in shot.FAIList)
                 {
-                    string faiName = fai.FAIName ?? "FAI";
+                    string faiName = fai.FAIName;
+                    if (faiName == null) faiName = "FAI";
                     foreach (MeasurementBase meas in fai.Measurements)
                     {
                         rows.Add(new MeasurementResultRow(meas, faiName));

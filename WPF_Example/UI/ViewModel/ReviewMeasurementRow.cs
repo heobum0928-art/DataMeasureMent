@@ -47,15 +47,37 @@ namespace ReringProject.UI
             OwnerShot = shot;
             OwnerFai = fai;
             Source = m;
-            ShotName = shot != null ? (shot.ShotName ?? "") : "";
-            FAIName = fai != null ? (fai.FAIName ?? "") : "";
-            MeasurementName = m.MeasurementName ?? "";
+            string tShotName;
+            if (shot != null)
+            {
+                tShotName = shot.ShotName;
+                if (tShotName == null) tShotName = "";
+            }
+            else
+            {
+                tShotName = "";
+            }
+            ShotName = tShotName;
+            string tFaiName;
+            if (fai != null)
+            {
+                tFaiName = fai.FAIName;
+                if (tFaiName == null) tFaiName = "";
+            }
+            else
+            {
+                tFaiName = "";
+            }
+            FAIName = tFaiName;
+            string tMeasName = m.MeasurementName;
+            if (tMeasName == null) tMeasName = "";
+            MeasurementName = tMeasName;
             NominalValue = m.NominalValue;
             TolerancePlus = m.TolerancePlus;
             ToleranceMinus = m.ToleranceMinus;
 
             // 0.0 도 정상 결과 — HasResult 플래그로 판별 (MeasuredValue != 0 센티넬 금지)
-            ResultDisplay = m.LastHasResult ? m.LastMeasuredValue.ToString("F4") : "—";
+            if (m.LastHasResult) ResultDisplay = m.LastMeasuredValue.ToString("F4"); else ResultDisplay = "—";
 
             // 3분기: DATUM_FAIL > HasResult 유무 > OK/NG
             if (m.LastSkipReason == "DATUM_FAIL")
@@ -64,7 +86,7 @@ namespace ReringProject.UI
             }
             else if (m.LastHasResult)
             {
-                JudgeText = m.LastJudgement ? "OK" : "NG";
+                if (m.LastJudgement) JudgeText = "OK"; else JudgeText = "NG";
             }
             else
             {

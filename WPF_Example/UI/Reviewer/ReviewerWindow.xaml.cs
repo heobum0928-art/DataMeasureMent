@@ -64,9 +64,11 @@ namespace ReringProject.UI
                     {
                         var dto = CycleResultSerializer.Load(Path.Combine(d, "cycle.json"));
                         // 손상 cycle.json → Load 가 null 반환 → DisplayText 폴더명 폴백
-                        string display = dto != null
-                            ? dto.InspectionTime.ToString("HH:mm:ss") + "  " + dto.OverallJudgement
-                            : Path.GetFileName(d);
+                        string display;
+                        if (dto != null)
+                            display = dto.InspectionTime.ToString("HH:mm:ss") + "  " + dto.OverallJudgement;
+                        else
+                            display = Path.GetFileName(d);
                         return new CycleListItem { FolderPath = d, DisplayText = display };
                     })
                     .ToList();
@@ -149,7 +151,12 @@ namespace ReringProject.UI
 
             // overlay 재렌더: 전 Shot/FAI overlay 합산 (REPLACE 의미 — SetInspectionOverlays = Clear + AddRange)
             var allOverlays = cycle.Shots
-                .SelectMany(s => s.FAIs ?? new List<FaiResultDto>())
+                .SelectMany(s =>
+                {
+                    var t = s.FAIs;
+                    if (t == null) t = new List<FaiResultDto>();
+                    return t;
+                })
                 .Where(f => f.LastOverlays != null)
                 .SelectMany(f => f.LastOverlays)
                 .ToList();
@@ -169,9 +176,11 @@ namespace ReringProject.UI
             }
 
             bool failOnly = chk_failOnly.IsChecked == true;
-            var visible = failOnly
-                ? _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL").ToList()
-                : _allRows;
+            List<ReviewMeasurementRow> visible;
+            if (failOnly)
+                visible = _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL").ToList();
+            else
+                visible = _allRows;
             dataGrid_measurements.ItemsSource = visible;
 
             // 첫 불량 행 자동 선택 → SelectionChanged 가 해당 FAI 이미지/overlay 로 포커스 (행 생성 후 지연 실행)
@@ -214,7 +223,8 @@ namespace ReringProject.UI
             {
                 panel_dualToggle.Visibility = Visibility.Collapsed;
                 // 일반 측정: 해당 FAI 의 Shot 이미지 로드 (순서: LoadImage → SetInspectionOverlays)
-                string imgPath = row.OwnerShot != null ? row.OwnerShot.ResultImagePath : null;
+                string imgPath;
+                if (row.OwnerShot != null) imgPath = row.OwnerShot.ResultImagePath; else imgPath = null;
                 if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))
                 {
                     halconViewer.LoadImage(imgPath);
@@ -231,9 +241,11 @@ namespace ReringProject.UI
                 return;
             }
 
-            string path = horizontal
-                ? _selectedRow.Source.HorizontalImagePath
-                : _selectedRow.Source.VerticalImagePath;
+            string path;
+            if (horizontal)
+                path = _selectedRow.Source.HorizontalImagePath;
+            else
+                path = _selectedRow.Source.VerticalImagePath;
 
             if (!string.IsNullOrEmpty(path) && File.Exists(path))
             {
@@ -246,9 +258,11 @@ namespace ReringProject.UI
         // 선택 FAI 의 overlay 만 표시 (REPLACE — SetInspectionOverlays = Clear + AddRange)
         private void ApplyFaiOverlays(ReviewMeasurementRow row)
         {
-            var faiOverlays = (row != null && row.OwnerFai != null && row.OwnerFai.LastOverlays != null)
-                ? row.OwnerFai.LastOverlays
-                : new List<EdgeInspectionOverlay>();
+            List<EdgeInspectionOverlay> faiOverlays;
+            if (row != null && row.OwnerFai != null && row.OwnerFai.LastOverlays != null)
+                faiOverlays = row.OwnerFai.LastOverlays;
+            else
+                faiOverlays = new List<EdgeInspectionOverlay>();
             halconViewer.SetInspectionOverlays(faiOverlays);
         }
 
@@ -272,10 +286,11 @@ namespace ReringProject.UI
             }
 
             // 저장 위치: 해당 cycle 폴더 기본, fallback ResultSavePath
-            string initialDir =
-                (!string.IsNullOrEmpty(_currentCycle.CycleFolderPath) && Directory.Exists(_currentCycle.CycleFolderPath))
-                ? _currentCycle.CycleFolderPath
-                : SystemHandler.Handle.Setting.ResultSavePath;
+            string initialDir;
+            if (!string.IsNullOrEmpty(_currentCycle.CycleFolderPath) && Directory.Exists(_currentCycle.CycleFolderPath))
+                initialDir = _currentCycle.CycleFolderPath;
+            else
+                initialDir = SystemHandler.Handle.Setting.ResultSavePath;
 
             var dlg = new Microsoft.Win32.SaveFileDialog
             {
@@ -287,9 +302,13 @@ namespace ReringProject.UI
             if (dlg.ShowDialog() == true)
             {
                 bool ok = ExcelExportService.Export(_currentCycle, dlg.FileName);
+                string okMessage;
+                if (ok) okMessage = "저장 완료:\n" + dlg.FileName; else okMessage = "export 실패 (로그 확인)";
+                MessageBoxImage okIcon;
+                if (ok) okIcon = MessageBoxImage.Information; else okIcon = MessageBoxImage.Error;
                 CustomMessageBox.Show("엑셀 export",
-                    ok ? "저장 완료:\n" + dlg.FileName : "export 실패 (로그 확인)",
-                    ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+                    okMessage,
+                    okIcon);
             }
         }
     }

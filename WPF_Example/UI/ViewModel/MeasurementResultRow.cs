@@ -12,7 +12,9 @@ namespace ReringProject.UI
         public MeasurementResultRow(MeasurementBase measurement, string faiName)
         {
             _measurement = measurement;
-            _faiName = faiName ?? "";
+            string tFaiName = faiName;
+            if (tFaiName == null) tFaiName = "";
+            _faiName = tFaiName;
         }
 
         public string FAIName { get { return _faiName; } }
@@ -20,13 +22,13 @@ namespace ReringProject.UI
         // Measurement 이름 (없으면 TypeName)
         public string MeasurementName
         {
-            get { return string.IsNullOrEmpty(_measurement.MeasurementName) ? _measurement.TypeName : _measurement.MeasurementName; }
+            get { if (string.IsNullOrEmpty(_measurement.MeasurementName)) return _measurement.TypeName; return _measurement.MeasurementName; }
         }
 
         public string TypeName { get { return _measurement.TypeName; } }
 
         // 참조 Datum 이름 (빈 문자열=무보정)
-        public string DatumRef { get { return _measurement.DatumRef ?? ""; } }
+        public string DatumRef { get { string t = _measurement.DatumRef; if (t == null) t = ""; return t; } }
 
         public double NominalValue { get { return _measurement.NominalValue; } }
 
@@ -49,14 +51,15 @@ namespace ReringProject.UI
             get
             {
                 if (!HasResult) return "—";
-                string unit = string.Equals(_measurement.TypeName, "LineToLineAngle", StringComparison.Ordinal) ? "deg" : "mm";
+                string unit;
+                if (string.Equals(_measurement.TypeName, "LineToLineAngle", StringComparison.Ordinal)) unit = "deg"; else unit = "mm";
                 return MeasuredValue.ToString("F3") + " " + unit;
             }
         }
 
-        public string JudgeText { get { return HasResult ? (IsPass ? "OK" : "NG") : "—"; } }
+        public string JudgeText { get { if (HasResult) { if (IsPass) return "OK"; return "NG"; } return "—"; } }
 
-        public string MeasuredValueText { get { return HasResult ? MeasuredValue.ToString("F3") : "—"; } }
+        public string MeasuredValueText { get { if (HasResult) return MeasuredValue.ToString("F3"); return "—"; } }
 
         public string SpecMinText { get { return (NominalValue + ToleranceMinus).ToString("F3"); } }
 

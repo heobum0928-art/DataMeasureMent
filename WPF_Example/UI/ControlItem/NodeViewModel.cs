@@ -214,18 +214,21 @@ namespace ReringProject.UI {
             string newName = null;
             switch (e.PropertyName) {
                 case nameof(DatumConfig.DatumName):
-                    newName = (sender as DatumConfig)?.DatumName;
+                    DatumConfig senderDatum = sender as DatumConfig;
+                    if (senderDatum != null) newName = senderDatum.DatumName; else newName = null;
                     break;
                 case nameof(ShotConfig.ShotName):
-                    newName = (sender as ShotConfig)?.ShotName;
+                    ShotConfig senderShot = sender as ShotConfig;
+                    if (senderShot != null) newName = senderShot.ShotName; else newName = null;
                     break;
                 case nameof(FAIConfig.FAIName):
-                    newName = (sender as FAIConfig)?.FAIName;
+                    FAIConfig senderFai = sender as FAIConfig;
+                    if (senderFai != null) newName = senderFai.FAIName; else newName = null;
                     break;
                 case nameof(MeasurementBase.MeasurementName):
                     var m = sender as MeasurementBase;
                     if (m != null) {
-                        newName = string.IsNullOrEmpty(m.MeasurementName) ? m.TypeName : m.MeasurementName;
+                        if (string.IsNullOrEmpty(m.MeasurementName)) newName = m.TypeName; else newName = m.MeasurementName;
                     }
                     break;
                 // Datum 검출 실패 배지 갱신: Node.Name 갱신 아님 — RaisePropertyChanged("HasDetectFail") 만 발화하고 Name 분기 미진입.

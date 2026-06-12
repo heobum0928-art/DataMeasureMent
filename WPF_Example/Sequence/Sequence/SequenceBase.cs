@@ -66,7 +66,6 @@ namespace ReringProject.Sequence {
 
         public ESequenceCommmand Command { get; protected set; }
 
-        //inspect 요청자 정보
         public TestPacket RequestPacket { get; private set; } = null;
         public ConcurrentQueue<TestResultPacket> ResponseQueue { get; private set; } = new ConcurrentQueue<TestResultPacket>();
 
@@ -101,7 +100,6 @@ namespace ReringProject.Sequence {
 
         public void AddAction(params ActionBase[] actions) {
             Actions = actions;
-            //set cam param
             Param.Parent = this;
             foreach (ActionBase act in Actions) {
                 if ((Param != null) && (Param is CameraMasterParam)) {
@@ -131,14 +129,7 @@ namespace ReringProject.Sequence {
         }
 
         public void SequenceCheck() {
-            //sequence 정합성 검사
             if (Actions.Length == 0) throw new InvalidOperationException("Action list is Empty.");
-            //if (Actions.First().ActionType != EActionType.Begin) throw new InvalidOperationException("First Action must be 'Begin' Type.");
-            //if (Actions.Last().ActionType != EActionType.End) throw new InvalidOperationException("Last Action must be 'End' Type.");
-            //int beginCount = Actions.Count(action => action.ActionType == EActionType.Begin);
-            //int endCount = Actions.Count(action => action.ActionType == EActionType.End);
-            //if (beginCount > 1) throw new InvalidOperationException("Begin Action must be exist one.");
-            //if (endCount > 1) throw new InvalidOperationException("End Action must be exist one.");
         }
 
         public virtual void OnCreate() {
@@ -227,7 +218,9 @@ namespace ReringProject.Sequence {
                 IsDoneBegin = false;
 
                 Context.CopyFrom(actionContext);
-                OnActionChanged?.Invoke(actionContext);
+                if (OnActionChanged != null) { //260612 hbk Wave5
+                    OnActionChanged.Invoke(actionContext);
+                }
 
                 Error();
             }
@@ -236,7 +229,9 @@ namespace ReringProject.Sequence {
                 IsDoneBegin = false;
 
                 Context.CopyFrom(actionContext);
-                OnActionChanged?.Invoke(actionContext);
+                if (OnActionChanged != null) { //260612 hbk Wave5
+                    OnActionChanged.Invoke(actionContext);
+                }
 
                 if (CurrentActionIndex >= EndActionIndex) {
                     Context.Result = actionContext.Result;
@@ -294,7 +289,6 @@ namespace ReringProject.Sequence {
             if (State != EContextState.Idle) return false;
 
             RequestPacket = packet;
-            //string seqName = packet.Identifier;
             string actName = packet.Identifier2;
             int actionIndex = GetIndexOf(actName);
             if(actionIndex == -1) {
@@ -337,7 +331,9 @@ namespace ReringProject.Sequence {
             //  이로써 Dispatcher 큐에 SetManualToolsEnabled(false) [잠금] 이 먼저 등록되고,
             //  이후 완료 이벤트(OnFinish/OnStop/OnError)의 SetManualToolsEnabled(true) [해제]가
             //  항상 뒤에 처리되어 잠금 순서가 보장된다 (race condition 차단).
-            OnStart?.Invoke(Context);
+            if (OnStart != null) { //260612 hbk Wave5
+                OnStart.Invoke(Context);
+            }
             Command = ESequenceCommmand.Start; //260517 hbk OnStart 발화 이후 Command 설정 (순서 보장)
             return true;
         }
@@ -355,7 +351,9 @@ namespace ReringProject.Sequence {
             IsFinished = false;
 
             //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화 (Start(int)와 동일 패턴 적용)
-            OnStart?.Invoke(Context);
+            if (OnStart != null) { //260612 hbk Wave5
+                OnStart.Invoke(Context);
+            }
             Command = ESequenceCommmand.Start; //260517 hbk
             return true;
         }
@@ -366,12 +364,12 @@ namespace ReringProject.Sequence {
             Command = ESequenceCommmand.Stop;
             if(RequestPacket != null) AddResponse();
 
-            OnStop?.Invoke(Context);
+            if (OnStop != null) { //260612 hbk Wave5
+                OnStop.Invoke(Context);
+            }
             return true;
         }
 
-        //생성된 파일명을 반환한다.
-        // Save the result image and record the generated file name.
         //260520 hbk Manual Tools Locked root cause — 본체 전체 try/catch 추가.
         //  배경: DatumPhase 실패 등으로 Grab 단계 미실행 시 Context.ResultHalconImage 가 disposed/잘못된 핸들 → CopyImage() 동기 예외 →
         //  Error()/Finish() 의 OnError/OnFinish?.Invoke() 까지 도달 못함 → MainWindow.SetManualToolsEnabled(true) 미호출 → 잠금 영구화.
@@ -414,7 +412,6 @@ namespace ReringProject.Sequence {
         }
 
         protected bool Error() {
-            //if (State == EContextState.Idle) return false;
             Context.State = EContextState.Error;
             Context.Result = EContextResult.Error;
 
@@ -425,13 +422,14 @@ namespace ReringProject.Sequence {
             if (RequestPacket != null) AddResponse();
 
             SaveResultImage(CurActionName);
-            OnError?.Invoke(Context);
+            if (OnError != null) { //260612 hbk Wave5
+                OnError.Invoke(Context);
+            }
 
             return true;
         }
 
         protected bool Finish() {
-            //if (State == EContextState.Idle) return false;
             Context.State = EContextState.Finish;
             IsFinished = true;
 
@@ -443,7 +441,9 @@ namespace ReringProject.Sequence {
                 SaveResultImage(CurActionName);
             }
 
-            OnFinish?.Invoke(Context);
+            if (OnFinish != null) { //260612 hbk Wave5
+                OnFinish.Invoke(Context);
+            }
             return true;
         }
 
@@ -455,7 +455,9 @@ namespace ReringProject.Sequence {
                 Context.Timer.Restart();
             }
             Command = ESequenceCommmand.Pause;
-            OnPaused?.Invoke(Context);
+            if (OnPaused != null) { //260612 hbk Wave5
+                OnPaused.Invoke(Context);
+            }
             return true;
         }
 
@@ -467,7 +469,9 @@ namespace ReringProject.Sequence {
                 Context.Timer.Restart();
             }
             Command = ESequenceCommmand.Resume;
-            OnResume?.Invoke(Context);
+            if (OnResume != null) { //260612 hbk Wave5
+                OnResume.Invoke(Context);
+            }
             return true;
         }
 

@@ -20,8 +20,7 @@ namespace ReringProject.Sequence {
         
 
         [Category("General|AOI")]
-        //public double PixelToMM_Offset { get; set; }
-        public double PixelToUM_Offset { get; set; }    // 02.14 Insert
+        public double PixelToUM_Offset { get; set; }
         [System.ComponentModel.Description("mm/pixel calibration factor for this camera")]
         public double PixelResolution { get; set; } = 1.0;  //260408 hbk mm/pixel (per D-12)
 
@@ -47,16 +46,6 @@ namespace ReringProject.Sequence {
         
         public int LightLevel { get; set; }
 
-        /*
-        // 03.06 Insert Start
-        // 03.07 주석 처리 : CameraSlaveParam.cs 에서 이렇게 프로퍼티를 설정하면, Wafer 시퀀스이외의
-        // Front, Bottom 시퀀스의 Device 탭에도 해당 프로퍼티가 표시되기 때문에 주석 처리함.
-        [Category("Device|WAFER OUTER Light")]
-        [DisplayName("Outer Lightlevel")]
-        public int OuterLevel{ get; set; }
-        // 03.06 Insert End
-        */
-      
         [Category("Device|Camera")]
         [ReadOnly(true)]
         public string DeviceName {
@@ -68,7 +57,6 @@ namespace ReringProject.Sequence {
 
                 _DeviceName = value;
 
-                //선택한 장치의 현재 property 를 가져온다.
                 if (pDev == null) return;
                 var selectedDev = pDev[value];
                 if (selectedDev == null) return;
@@ -99,7 +87,6 @@ namespace ReringProject.Sequence {
         }
 
         public virtual double ConvertPixelToMM(double pixel) {
-            //double mm = pixel * PixelToMM_Offset / 1000;
             double mm = pixel * PixelToUM_Offset / 1000;
             return mm;
         }
@@ -114,7 +101,6 @@ namespace ReringProject.Sequence {
 
         public void PasteFromCamera(VirtualCamera camera) {
             if(camera.Properties == null) {
-                //error occurs
                 return;
             }
             for(int i = 0; i < camera.Properties.Count; i++) {
@@ -129,7 +115,8 @@ namespace ReringProject.Sequence {
         [Browsable(false)]
         public string SequenceName {
             get {
-                return Parent?.Name; //260407 hbk 동적 생성 Param은 Parent가 null일 수 있으므로 null 안전 접근
+                if (Parent == null) return null; //260407 hbk 동적 생성 Param은 Parent가 null일 수 있으므로 null 안전 접근
+                return Parent.Name; //260612 hbk Wave5
             }
         }
 
@@ -193,8 +180,6 @@ namespace ReringProject.Sequence {
             }
             else if (param is CameraSlaveParam) {
                 CameraSlaveParam slaveParam = param as CameraSlaveParam;
-                //slaveParam.DeviceName = this.DeviceName;
-                //slaveParam.LightGroupName = this.LightGroupName;
                 slaveParam.LightLevel = this.LightLevel;
 
                 for (int i = 0; i < this.PropertyNameList.Length; i++) {
@@ -208,14 +193,11 @@ namespace ReringProject.Sequence {
                 slaveParam.MotorYPos = this.MotorYPos;
                 slaveParam.FrameWidth = this.FrameWidth;
                 slaveParam.FrameHeight = this.FrameHeight;
-                //slaveParam.PixelToMM_Offset = this.PixelToMM_Offset;
-                slaveParam.PixelToUM_Offset = this.PixelToUM_Offset;    // 02.14
+                slaveParam.PixelToUM_Offset = this.PixelToUM_Offset;
                 return true;
             }
             else if (param is CameraParam) {
                 CameraParam camParam = param as CameraParam;
-                //camParam.DeviceName = this.DeviceName;
-                //camParam.LightGroupName = this.LightGroupName;
                 camParam.LightLevel = this.LightLevel;
 
                 for (int i = 0; i < this.PropertyNameList.Length; i++) {
@@ -229,7 +211,6 @@ namespace ReringProject.Sequence {
                 camParam.MotorYPos = this.MotorYPos;
                 camParam.FrameWidth = this.FrameWidth;
                 camParam.FrameHeight = this.FrameHeight;
-                //camParam.PixelToMM_Offset = this.PixelToMM_Offset;
                 camParam.PixelToUM_Offset = this.PixelToUM_Offset;
                 return true;
             }

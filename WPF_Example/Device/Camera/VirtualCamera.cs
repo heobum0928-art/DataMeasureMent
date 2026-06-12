@@ -22,9 +22,6 @@ namespace ReringProject.Device {
         MIL,   //260602 hbk Phase 41 — CXP 카메라 MIL Lite 10.0
     }
 
-    /// <summary>
-    /// 筌╈돦??筌뤴뫀諭?
-    /// </summary>
     public enum ECaptureModeType {
         Stop,
         Streaming,
@@ -39,17 +36,11 @@ namespace ReringProject.Device {
         Hardware_Line3,
     }
 
-    /// <summary>
-    /// 筌╈돦?????筌왖 ????
-    /// </summary>
     public enum ECaptureImageType {
         Color24,
         Gray8,
     }
 
-    /// <summary>
-    /// ???筌왖 ???읈 ?醫륁굨
-    /// </summary>
     public enum ERotateAngleType {
         _0,
         _90,
@@ -57,14 +48,9 @@ namespace ReringProject.Device {
         _270,
     }
 
-    //Event ?醫륁굨
     public delegate void StateEvent(string name);
 
 
-    /// <summary>
-    /// 揶쎛??燁삳?李?? 筌뤴뫀諭?燁삳?李??곕뮉 ??Class???怨몃꺗獄쏆룇釉???닌뗭겱??롫뮉 野껉퍔???癒?뒅????
-    /// 域밸챶???곗춸 FormDeviceSelector???紐꾪뀱??랁? 燁삳?李??筌뤴뫖以??곗쨮???????????덈뼄.
-    /// </summary>
     public class VirtualCamera {
         protected DeviceInfo Info;
         public DisplayConfig pConfig { get; private set; }
@@ -74,7 +60,7 @@ namespace ReringProject.Device {
         public ECaptureModeType CaptureMode { get; protected set; } = ECaptureModeType.Stop;
 
         public ETriggerSource TriggerSource { get; protected set; } = ETriggerSource.Software;
-        
+
         public string Name { get; protected set; }
 
         public bool IsOpen { get; protected set; }
@@ -83,13 +69,10 @@ namespace ReringProject.Device {
 
         public ERotateAngleType RotateAngle { get; set; } = ERotateAngleType._0;
 
-        //lock object 
         protected object Interlock = new object();
 
-        //燁삳?李??곕뮉 UI??μ몵嚥??紐꾪뀱??????덈뮉 ?꾩뮆媛???源?紐? 揶쎛筌욊쑬??
         public virtual event StateEvent GuiReadyForDisplay = null;
 
-        //ErrorCount 
         protected long prevImageCount = 0;
         protected long imageCount = 0;
         public long ImageCount { get { return imageCount; } }
@@ -99,16 +82,10 @@ namespace ReringProject.Device {
 
 
         private System.Windows.Media.Pen DrawPen = null;
-        /// <summary>
-        /// 域밸챶??燁삳똻??紐? ?λ뜃由?酉釉??
-        /// </summary>
         public void ResetGrabCount() {
             Interlocked.Exchange(ref imageCount, 0);
             Interlocked.Exchange(ref errorCount, 0);
         }
-        /// <summary>
-        /// ?Ρ딆겫??筌띾뜆?筌????筌왖??????獄?域밸챶??燁삳똻??紐? ?λ뜃由?酉釉??
-        /// </summary>
         public virtual void ClearLastFrame() {
             ResetGrabCount();
             lock (Interlock) {
@@ -122,16 +99,13 @@ namespace ReringProject.Device {
                 }
             }
         }
-        
+
         protected HImage LastGrabHalconImage = null;
-        //background image
         protected HImage BackgroundImage = null;
         public int BackgroundImageIndex { get; private set; } = 0;
 
         public bool IsGrabFromFile { get; private set; }
         public string SelectedImageFile { get; private set; }
-
-        //background image
 
         private string _BackgroundImagePath;
         public string BackgroundImagePath {
@@ -145,7 +119,6 @@ namespace ReringProject.Device {
                     BackgroundImageFileList.Clear();
                     if (_BackgroundImagePath == null) return;
 
-                    //path ??곷퓠 鈺곕똻???롫뮉 image ???뵬??嚥≪뮆諭?
                     string[] extensions = { ".bmp", ".jpg", ".jpeg", ".png", ".tiff" };
                     if (File.Exists(_BackgroundImagePath) && extensions.Any(ext => ext.Equals(Path.GetExtension(_BackgroundImagePath), StringComparison.OrdinalIgnoreCase))) {
                         BackgroundImageFileList.Add(_BackgroundImagePath);
@@ -161,7 +134,6 @@ namespace ReringProject.Device {
         }
         public List<string> BackgroundImageFileList { get; } = new List<string>();
 
-        //property
         public VirtualCameraProperty Properties { get; set; }
 
         public VirtualCamera(DisplayConfig config, DeviceInfo info, ECameraType camType = ECameraType.Virtual) {
@@ -209,10 +181,6 @@ namespace ReringProject.Device {
             if (BackgroundImageIndex < 0) BackgroundImageIndex = 0;
         }
 
-        /// <summary>
-        /// 筌띾뜆?筌??Ρ딆겫?????筌왖??獄쏆꼹???뺣뼄.
-        /// </summary>
-        /// <returns></returns>
         protected virtual HImage GetCurrentImageNoLock() {
             if (BackgroundImagePath == null) {
                 IsGrabFromFile = false;
@@ -236,7 +204,9 @@ namespace ReringProject.Device {
 
             SelectedImageFile = selectedImageFile;
             if (!String.IsNullOrEmpty(SelectedImageFile)) {
-                BackgroundImage?.Dispose();
+                if (BackgroundImage != null) { //260612 hbk Wave5
+                    BackgroundImage.Dispose();
+                }
                 BackgroundImage = LoadBackgroundImage(SelectedImageFile);
                 IsGrabFromFile = BackgroundImage != null;
                 return BackgroundImage;
@@ -277,24 +247,25 @@ namespace ReringProject.Device {
             get {
                 lock (Interlock) {
                     HImage image = GetCurrentImageNoLock();
-                    return image?.CopyImage();
+                    if (image == null) return null; //260612 hbk Wave5
+                    return image.CopyImage();
                 }
             }
         }
 
         public virtual void RenderCenterLine(DrawingContext dc) {
-            double ScaledCenterX = CenterX; // * pConfig.DrawScale;
-            double ScaledCenterY = CenterY; // * pConfig.DrawScale;
-            double ScaledWidth = Properties.Width; // * pConfig.DrawScale;
-            double ScaledHeight = Properties.Height; // * pConfig.DrawScale;
-            
+            double ScaledCenterX = CenterX;
+            double ScaledCenterY = CenterY;
+            double ScaledWidth = Properties.Width;
+            double ScaledHeight = Properties.Height;
+
             if (pConfig.DrawCenterLine) {
                 dc.DrawLine(DrawPen, new System.Windows.Point(0, ScaledCenterY), new System.Windows.Point(ScaledWidth, ScaledCenterY));
                 dc.DrawLine(DrawPen, new System.Windows.Point(ScaledCenterX, 0), new System.Windows.Point(ScaledCenterX, ScaledHeight));
             }
             if (pConfig.DrawCenterRect) {
-                double ScaledRectWidth = pConfig.CenterRectWidth; // * pConfig.DrawScale;
-                double ScaledRectHeight = pConfig.CenterRectHeight; // * pConfig.DrawScale;
+                double ScaledRectWidth = pConfig.CenterRectWidth;
+                double ScaledRectHeight = pConfig.CenterRectHeight;
 
                 double left = ScaledCenterX - (ScaledRectWidth / 2);
                 double top = ScaledCenterY - (ScaledRectHeight / 2);
@@ -304,11 +275,11 @@ namespace ReringProject.Device {
                 dc.DrawRectangle(System.Windows.Media.Brushes.Transparent, DrawPen, rect);
             }
             if (pConfig.DrawCenterCircle) {
-                double ScaledCircleRadius = pConfig.CenterCircleRadius; // * pConfig.DrawScale;
+                double ScaledCircleRadius = pConfig.CenterCircleRadius;
                 dc.DrawEllipse(System.Windows.Media.Brushes.Transparent, DrawPen, new System.Windows.Point(ScaledCenterX, ScaledCenterY), ScaledCircleRadius, ScaledCircleRadius);
             }
         }
-        
+
         public virtual bool Display(Image control) {
             try {
                 BitmapSource frame = GetPreviewBitmapSource();
@@ -329,8 +300,23 @@ namespace ReringProject.Device {
             try {
                 using (HImage grabbedImage = LastHalconImage) {
                     if (grabbedImage == null) return false;
-                    string extension = Path.GetExtension(fileName)?.TrimStart('.').ToLowerInvariant();
-                    string format = extension == "jpg" ? "jpeg" : extension == "jpeg" ? "jpeg" : extension == "tif" ? "tiff" : extension == "tiff" ? "tiff" : extension == "bmp" ? "bmp" : "png";
+                    string rawExt = Path.GetExtension(fileName); //260612 hbk Wave5
+                    string extension; //260612 hbk Wave5
+                    if (rawExt == null) { //260612 hbk Wave5
+                        extension = null;
+                    } else {
+                        extension = rawExt.TrimStart('.').ToLowerInvariant();
+                    }
+                    string format; //260612 hbk Wave5
+                    if (extension == "jpg" || extension == "jpeg") { //260612 hbk Wave5
+                        format = "jpeg";
+                    } else if (extension == "tif" || extension == "tiff") {
+                        format = "tiff";
+                    } else if (extension == "bmp") {
+                        format = "bmp";
+                    } else {
+                        format = "png";
+                    }
                     grabbedImage.WriteImage(format, 0, fileName);
                     return true;
                 }
@@ -340,13 +326,8 @@ namespace ReringProject.Device {
                 return false;
             }
         }
-        
 
-        /// <summary>
-        /// 雅뚯눘堉깍쭪?parameter ???關?귞몴??怨뺣뼄.
-        /// </summary>
-        /// <param name="param">雅뚯눘堉깍쭪?parameter??/param>
-        /// <returns></returns>
+
         public virtual bool Open(params object[] param) {
             if(Properties == null) {
                 Properties = new VirtualCameraProperty();
@@ -370,9 +351,6 @@ namespace ReringProject.Device {
             return true;
         }
 
-        /// <summary>
-        /// ?????關?귞몴???ル뮉??
-        /// </summary>
         public virtual void Close() {
             StopStream();
 
@@ -380,15 +358,9 @@ namespace ReringProject.Device {
                 BackgroundImage.Dispose();
                 BackgroundImage = null;
             }
-            
+
         }
 
-        /// <summary>
-        /// ???뵬嚥≪뮆????袁⑥쨮??노뼒 ?類ｋ궖??嚥≪뮆諭??뺣뼄.
-        /// </summary>
-        /// <param name="loadFile">???뵬 野껋럥以?/param>
-        /// <param name="group">域밸챶竊숋쭗?/param>
-        /// <returns>嚥≪뮆諭??源껊궗??롢늺 true, ??쎈솭??롢늺 false.</returns>
         public virtual bool LoadProperties(IniFile loadFile, string group) {
             bool result = true;
             Name = loadFile[group]["Name"].ToString();
@@ -399,18 +371,10 @@ namespace ReringProject.Device {
                 ECameraPropertyType propType = (ECameraPropertyType)loadFile[group][subGroupName + "_Type"].ToInt();
 
                 Properties[propType] = (decimal)loadFile[group][subGroupName + "_Value"].ToDouble();
-                
-                //if (!WriteProperty(propType, Properties[propType])) result = false;
             }
             return result;
         }
 
-        /// <summary>
-        /// ???뵬嚥≪뮆????袁⑥쨮??노뼒 ?類ｋ궖??嚥≪뮆諭??뺣뼄.
-        /// </summary>
-        /// <param name="filePath">嚥≪뮆諭?????뵬 野껋럥以?/param>
-        /// <param name="group">??욧쉐??域밸챶竊숋쭗??關????已???</param>
-        /// <returns>?源껊궗????true, ??쎈솭筌?false</returns>
         public virtual bool LoadProperties(string filePath, string group) {
             if (!File.Exists(filePath)) return false;
 
@@ -420,12 +384,6 @@ namespace ReringProject.Device {
             return LoadProperties(loadFile, group);
         }
 
-        /// <summary>
-        /// ?袁⑥쨮??노뼒 ?類ｋ궖?????館釉??
-        /// </summary>
-        /// <param name="saveFile">???館釉????뵬野껋럥以?/param>
-        /// <param name="group">??욧쉐??域밸챶竊숋쭗??關????已???</param>
-        /// <returns>?源껊궗????true, ??쎈솭筌?false</returns>
         public virtual bool SaveProperties(IniFile saveFile, string group) {
             saveFile[group]["Name"] = Name;
             saveFile[group]["RotateAngle"] = (int)RotateAngle;
@@ -438,17 +396,11 @@ namespace ReringProject.Device {
             }
             return true;
         }
-        /// <summary>
-        /// ?袁⑥쨮??노뼒 ?類ｋ궖?????館釉??
-        /// </summary>
-        /// <param name="filePath">???館釉????뵬 野껋럥以?/param>
-        /// <param name="group">??욧쉐??域밸챶竊숋쭗??關????已???</param>
-        /// <returns>?源껊궗????true, ??쎈솭筌?false</returns>
         public virtual bool SaveProperties(string filePath, string group) {
             IniFile saveFile = new IniFile();
 
             SaveProperties(saveFile, group);
-            
+
             saveFile.Save(filePath);
             return true;
         }
@@ -491,37 +443,20 @@ namespace ReringProject.Device {
             }
         }
 
-        /// <summary>
-        /// ?袁⑥쨮??노뼒 揶쏆뮇?붺몴?獄쏆꼹??
-        /// </summary>
-        /// <returns></returns>
         public int PropertyCount {
             get => Properties.Count;
         }
 
-        /// <summary>
-        /// ????index???袁⑥쨮??노뼒??獄쏆꼹???뺣뼄.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
         public decimal GetProperty(int index) {
             if (index >= Properties.Count) return 0;
             return Properties[index];
         }
 
-        /// <summary>
-        /// ???筌왖 域밸챶?????묐뻬??랁?野껉퀗?????筌왖??獄쏆꼹??
-        /// </summary>
-        /// <returns></returns>
         public virtual HImage GrabHalconImage() {
             SetSoftwareTriggerMode();
             return LastHalconImage;
         }
 
-        /// <summary>
-        /// ??쎈뱜?깆눘????뽰삂??뺣뼄.
-        /// </summary>
-        /// <returns></returns>
         public virtual bool StartStream() {
             CaptureMode = ECaptureModeType.Streaming;
 
@@ -530,20 +465,12 @@ namespace ReringProject.Device {
             }
             return true;
         }
-        
-        /// <summary>
-        /// ??쎈뱜?깆눘???類???뺣뼄.
-        /// </summary>
+
         public virtual void StopStream() {
             CaptureMode = ECaptureModeType.Stop;
             ClearLastFrame();
         }
 
-        /// <summary>
-        /// ??疫?餓λ쵐肉? trigger?????筌왖??獄쏆꼹???뺣뼄.
-        /// </summary>
-        /// <param name="timeOut"></param>
-        /// <returns></returns>
         public virtual HImage WaitForHalconTrigger(bool clone = true, int timeOut = 3000) {
             Stopwatch watch = new Stopwatch();
             watch.Start();
@@ -563,7 +490,8 @@ namespace ReringProject.Device {
         public virtual BitmapSource GetPreviewBitmapSource() {
             lock (Interlock) {
                 HImage image = GetCurrentImageNoLock();
-                return image == null ? null : CreateBitmapSource(image);
+                if (image == null) return null; //260612 hbk Wave5
+                return CreateBitmapSource(image);
             }
         }
 
@@ -600,7 +528,3 @@ namespace ReringProject.Device {
         }
     }
 }
-
-
-
-

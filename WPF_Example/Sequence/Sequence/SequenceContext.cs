@@ -56,7 +56,9 @@ namespace ReringProject.Sequence {
             State = EContextState.Idle;
             Result = EContextResult.None;
             CurrentStep = 0;
-            ResultHalconImage?.Dispose();
+            if (ResultHalconImage != null) { //260612 hbk Wave5
+                ResultHalconImage.Dispose();
+            }
             ResultHalconImage = null;
             ResultImagePath = null;
             InspectionOverlays.Clear();
@@ -69,15 +71,21 @@ namespace ReringProject.Sequence {
 
         public void CopyFrom(SequenceContext seqContext) {
             if (seqContext == null) return;
-            ResultHalconImage?.Dispose();
+            if (ResultHalconImage != null) { //260612 hbk Wave5
+                ResultHalconImage.Dispose();
+            }
             ResultHalconImage = HalconImageBridge.Clone(seqContext.ResultHalconImage);
             ResultImagePath = seqContext.ResultImagePath;
-            InspectionOverlays = seqContext.InspectionOverlays == null
-                ? new List<EdgeInspectionOverlay>()
-                : seqContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
-            DisplayMessages = seqContext.DisplayMessages == null
-                ? new List<string>()
-                : new List<string>(seqContext.DisplayMessages); //260409 hbk
+            if (seqContext.InspectionOverlays == null) { //260612 hbk Wave5
+                InspectionOverlays = new List<EdgeInspectionOverlay>();
+            } else {
+                InspectionOverlays = seqContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
+            }
+            if (seqContext.DisplayMessages == null) { //260612 hbk Wave5
+                DisplayMessages = new List<string>();
+            } else {
+                DisplayMessages = new List<string>(seqContext.DisplayMessages); //260409 hbk
+            }
         }
     }
 
@@ -143,7 +151,9 @@ namespace ReringProject.Sequence {
             }
 
             ResultImageFileName = string.Empty;
-            ResultHalconImage?.Dispose();
+            if (ResultHalconImage != null) { //260612 hbk Wave5
+                ResultHalconImage.Dispose();
+            }
             ResultHalconImage = null;
             ResultImagePath = null;
             InspectionOverlays.Clear();
@@ -156,15 +166,21 @@ namespace ReringProject.Sequence {
 
         public virtual void CopyFrom(ActionContext actionContext) {
             if (actionContext == null) return;
-            ResultHalconImage?.Dispose();
+            if (ResultHalconImage != null) { //260612 hbk Wave5
+                ResultHalconImage.Dispose();
+            }
             ResultHalconImage = HalconImageBridge.Clone(actionContext.ResultHalconImage);
             ResultImagePath = actionContext.ResultImagePath;
-            InspectionOverlays = actionContext.InspectionOverlays == null
-                ? new List<EdgeInspectionOverlay>()
-                : actionContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
-            DisplayMessages = actionContext.DisplayMessages == null
-                ? new List<string>()
-                : new List<string>(actionContext.DisplayMessages); //260409 hbk
+            if (actionContext.InspectionOverlays == null) { //260612 hbk Wave5
+                InspectionOverlays = new List<EdgeInspectionOverlay>();
+            } else {
+                InspectionOverlays = actionContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
+            }
+            if (actionContext.DisplayMessages == null) { //260612 hbk Wave5
+                DisplayMessages = new List<string>();
+            } else {
+                DisplayMessages = new List<string>(actionContext.DisplayMessages); //260409 hbk
+            }
         }
     }
 }

@@ -157,7 +157,7 @@ Plans:
   - **Excel 라이브러리 선정**: 현 의존성에 엑셀 라이브러리 없음 (.NET 4.8 호환 + 라이선스 고려)
   - **결과 저장 포맷/폴더 구조**: 리뷰어가 읽을 결과 폴더 레이아웃 (`RawImageSaveService` / `SaveResultImage` 연계)
   - **이미지 링크 방식**: xlsx 내 하이퍼링크 vs 셀 임베드
-**Out of scope** (Phase 41 — OUT-03/04):
+**Out of scope** (Phase 41.1 — OUT-03/04):
   - 50회 반복도 통계 (mean/stddev/range/Cpk)
   - 검출 알고리즘별 통계 분석표
 **Success Criteria (UAT)**:
@@ -167,8 +167,22 @@ Plans:
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)
-- [ ] **Phase 41: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계** (OUT-03, OUT-04)
+- [ ] **Phase 41.1: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계** (OUT-03, OUT-04)
   - Success: 50회 반복 시퀀스 자동 실행 + mean/stddev/range/Cpk xlsx / 알고리즘별(TLI/CTH/VTH/Edge 6종+) 통계 표 생성
+
+### Phase 41.1: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계 (신설 2026-06-12)
+**Goal**: 50회 반복 측정 사이클을 자동 실행하고 반복도 통계(mean/stddev/range/Cpk)와 알고리즘별 통계 분석표를 xlsx로 export한다.
+**Depends on**: Phase 40 (Export I — 리뷰어 + 1회 엑셀) signed_off
+**Requirements**: OUT-03, OUT-04
+**Background**: Phase 40 에서 1회 검사 결과의 xlsx export 기반(CycleResultSerializer + ExcelExportService) 이 완성됨. Phase 41.1 은 이 기반 위에서 (a) 50회 자동 반복 실행 + 결과 누적, (b) 반복도 단순 통계(mean/stddev/range/Cpk) xlsx, (c) 알고리즘별(TLI/CTH/VTH/Edge 6종+) 통계 분석표를 추가한다. 정식 Gage R&R ANOVA 는 OUT-OF-SCOPE (REQUIREMENTS.md 명시).
+**Scope**:
+  - **OUT-03 반복도 excel**: 50회 시퀀스 자동 실행 + 누적 결과 → mean/stddev/range/Cpk xlsx
+  - **OUT-04 알고리즘 통계표**: TLI/CTH/VTH/Edge 6종+ 알고리즘별 검출 성공률/평균/표준편차 집계표
+  - Phase 40 ExcelExportService / CycleResultSerializer 재사용 (코드 복제 0)
+**Success Criteria (UAT)**:
+  - 50회 자동 반복 실행 후 반복도 xlsx 생성 (mean/stddev/range/Cpk 컬럼 포함)
+  - 알고리즘별 통계표 xlsx 생성 (TLI/CTH/VTH + Edge 타입별 행)
+  - 생성된 xlsx 가 외부 도구(Excel) 에서 정상 열림
 
 ### 우선순위 2 — v1.1 Carry-over 정리
 
@@ -210,7 +224,7 @@ Plans:
 | 1 | 39.2 | 긴급 추가건2 (DualImage+I10+Tree) | WF-01 | PARTIAL_SIGNED_OFF | 5 | 2026-05-30 |
 | 1 | 39.3 | DualImage FAI UX 재설계 (CO-39.2-01-01) | WF-01 | Planned | 4 | 2026-05-30 |
 | 1 | 40 | Export I (리뷰어+1회) | OUT-01, OUT-02 | Not started | TBD | — |
-| 1 | 41 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
+| 1 | 41.1 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
 | 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | Not started | TBD | — |
 | 2 | 43 | 시작지연 분리 | CO-38-02/03 | Not started | TBD | — |
 | 2 | 44 | 실HW STARTUP 재측정 | CO-38-04 | Not started (HW) | TBD | — |

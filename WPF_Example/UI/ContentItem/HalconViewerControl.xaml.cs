@@ -108,11 +108,11 @@ namespace ReringProject.UI
 
         public bool EnableRoiSelection { get; set; } = true;
 
-        //260527 hbk Phase 35 — CO-33-02 hotfix: 이전 HImage 로드 후 캐시 hit 무효화 (CurrentImagePath="" 일 때 다른 path 와 잘못된 비교 차단)
+        // CO-33-02 hotfix: 이전 HImage 로드 후 캐시 hit 무효화 (CurrentImagePath="" 일 때 다른 path 와 잘못된 비교 차단)
         public void LoadImage(string imagePath)
         {
             bool cacheHit = HasImage
-                            && !string.IsNullOrEmpty(CurrentImagePath)   //260527 hbk Phase 35 — 빈 문자열(HImage 직접 로드 상태) 시 캐시 hit 차단
+                            && !string.IsNullOrEmpty(CurrentImagePath)   // 빈 문자열(HImage 직접 로드 상태) 시 캐시 hit 차단
                             && string.Equals(CurrentImagePath, imagePath, StringComparison.OrdinalIgnoreCase);
             if (cacheHit)
             {
@@ -122,19 +122,29 @@ namespace ReringProject.UI
             }
 
             DisposeImage();
-            CurrentImagePath = imagePath ?? "";   //260527 hbk Phase 35 — null 방지 (정규화: null=초기화 전, ""=HImage 로드, non-empty=path 로드)
-            CurrentImage = string.IsNullOrWhiteSpace(imagePath) ? null : new HImage(imagePath);
+            // null 방지 (정규화: null=초기화 전, ""=HImage 로드, non-empty=path 로드)
+            if (imagePath == null)
+                CurrentImagePath = "";
+            else
+                CurrentImagePath = imagePath;
+            if (string.IsNullOrWhiteSpace(imagePath))
+                CurrentImage = null;
+            else
+                CurrentImage = new HImage(imagePath);
             UpdateImageMetadata();
             ApplyInitialFitView();
             Render();
         }
 
-        //260527 hbk Phase 35 — CO-33-02 hotfix: HImage 오버로드도 sourceContext 보존하여 캐시 일관성 확보 (default 인자 → 기존 호출 site 무수정 호환)
+        // CO-33-02 hotfix: HImage 오버로드도 sourceContext 보존하여 캐시 일관성 확보 (default 인자 → 기존 호출 site 무수정 호환)
         public void LoadImage(HImage image, string sourceContext = null)
         {
             DisposeImage();
-            //260527 hbk Phase 35 — 기존 null 대신 sourceContext 보존; null/empty → "" 정규화 (HImage 직접 로드 상태 표현)
-            CurrentImagePath = sourceContext ?? "";
+            // null/empty → "" 정규화 (HImage 직접 로드 상태 표현)
+            if (sourceContext == null)
+                CurrentImagePath = "";
+            else
+                CurrentImagePath = sourceContext;
             CurrentImage = HalconImageBridge.Clone(image);
             UpdateImageMetadata();
             ApplyInitialFitView();
@@ -219,15 +229,20 @@ namespace ReringProject.UI
                 Math.Abs(seed.Row2 - seed.Row1) > 1.0 &&
                 Math.Abs(seed.Column2 - seed.Column1) > 1.0;
 
-            _draftRoi = !hasValidSeed
-                ? CreateDefaultDraftRoi()
-                : new RoiDefinition
+            if (!hasValidSeed)
+            {
+                _draftRoi = CreateDefaultDraftRoi();
+            }
+            else
+            {
+                _draftRoi = new RoiDefinition
                 {
                     Row1 = seed.Row1,
                     Column1 = seed.Column1,
                     Row2 = seed.Row2,
                     Column2 = seed.Column2
                 };
+            }
             CreateReferenceDrawingObject();
             RaiseDraftRoiChanged();
             Render();
@@ -438,7 +453,8 @@ namespace ReringProject.UI
 
             var grayValue = TryGetPointerGrayValue(e.Row, e.Column);
 
-            PointerChanged?.Invoke(this, new ViewerPointerChangedEventArgs(e.Row, e.Column, grayValue));
+            if (PointerChanged != null)
+                PointerChanged.Invoke(this, new ViewerPointerChangedEventArgs(e.Row, e.Column, grayValue));
         }
 
         private void ViewerHost_HMouseDown(object sender, HMouseEventArgsWPF e)
@@ -458,7 +474,8 @@ namespace ReringProject.UI
                 ViewerContextMenu.PlacementTarget = ViewerBorder;
                 ViewerContextMenu.Placement = PlacementMode.MousePoint;
                 ViewerContextMenu.IsOpen = true;
-                ViewerRightClicked?.Invoke(this, EventArgs.Empty);
+                if (ViewerRightClicked != null)
+                    ViewerRightClicked.Invoke(this, EventArgs.Empty);
                 return;
             }
 
@@ -507,7 +524,8 @@ namespace ReringProject.UI
                     {
                         _selectedRoiId = clicked.Id;
                         Render();
-                        RoiClicked?.Invoke(this, clicked.Clone());
+                        if (RoiClicked != null)
+                            RoiClicked.Invoke(this, clicked.Clone());
                     }
                 }
 
@@ -560,7 +578,10 @@ namespace ReringProject.UI
 
             _lastPointerRow = e.Row;
             _lastPointerColumn = e.Column;
-            ZoomAtPointer(e.Delta > 0 ? ZoomInScaleFactor : ZoomOutScaleFactor);
+            if (e.Delta > 0)
+                ZoomAtPointer(ZoomInScaleFactor);
+            else
+                ZoomAtPointer(ZoomOutScaleFactor);
             UpdateNavigationCursor();
         }
 
@@ -569,7 +590,8 @@ namespace ReringProject.UI
             ViewerContextMenu.PlacementTarget = ViewerBorder;
             ViewerContextMenu.Placement = PlacementMode.MousePoint;
             ViewerContextMenu.IsOpen = true;
-            ViewerRightClicked?.Invoke(this, EventArgs.Empty);
+            if (ViewerRightClicked != null)
+                ViewerRightClicked.Invoke(this, EventArgs.Empty);
             e.Handled = true;
         }
 
@@ -597,7 +619,8 @@ namespace ReringProject.UI
 
             CurrentImage.Dispose();
             CurrentImage = null;
-            CurrentImagePath = "";   //260527 hbk Phase 35 — CO-33-02 hotfix: null 대신 "" 사용 (정규화 정책: null=초기화 전, ""=HImage 로드/Dispose 후, non-empty=path)
+            // CO-33-02 hotfix: null 대신 "" 사용 (정규화 정책: null=초기화 전, ""=HImage 로드/Dispose 후, non-empty=path)
+            CurrentImagePath = "";
             UpdateImageMetadata();
         }
 
@@ -642,8 +665,16 @@ namespace ReringProject.UI
                 return Tuple.Create(0d, 0d);
             }
 
-            var centerRow = _lastPointerRow > 0 ? _lastPointerRow : _imageHeight / 2.0;
-            var centerColumn = _lastPointerColumn > 0 ? _lastPointerColumn : _imageWidth / 2.0;
+            double centerRow;
+            if (_lastPointerRow > 0)
+                centerRow = _lastPointerRow;
+            else
+                centerRow = _imageHeight / 2.0;
+            double centerColumn;
+            if (_lastPointerColumn > 0)
+                centerColumn = _lastPointerColumn;
+            else
+                centerColumn = _imageWidth / 2.0;
 
             return Tuple.Create(centerRow, centerColumn);
         }
@@ -864,8 +895,16 @@ namespace ReringProject.UI
 
             var targetWidth = viewPixelWidth;
             var targetHeight = viewPixelHeight;
-            var targetCenterRow = centerRow ?? ((_imageHeight - 1.0) / 2.0);
-            var targetCenterColumn = centerColumn ?? ((_imageWidth - 1.0) / 2.0);
+            double targetCenterRow;
+            if (centerRow == null)
+                targetCenterRow = (_imageHeight - 1.0) / 2.0;
+            else
+                targetCenterRow = centerRow.Value;
+            double targetCenterColumn;
+            if (centerColumn == null)
+                targetCenterColumn = (_imageWidth - 1.0) / 2.0;
+            else
+                targetCenterColumn = centerColumn.Value;
 
             var left = targetCenterColumn - (targetWidth / 2.0);
             var top = targetCenterRow - (targetHeight / 2.0);
@@ -946,7 +985,7 @@ namespace ReringProject.UI
         private double GetViewerPixelWidth()
         {
             var source = PresentationSource.FromVisual(ViewerHost);
-            if (source?.CompositionTarget == null)
+            if (source == null || source.CompositionTarget == null)
             {
                 return Math.Max(1.0, ViewerHost.ActualWidth);
             }
@@ -958,7 +997,7 @@ namespace ReringProject.UI
         private double GetViewerPixelHeight()
         {
             var source = PresentationSource.FromVisual(ViewerHost);
-            if (source?.CompositionTarget == null)
+            if (source == null || source.CompositionTarget == null)
             {
                 return Math.Max(1.0, ViewerHost.ActualHeight);
             }
@@ -969,8 +1008,16 @@ namespace ReringProject.UI
 
         private RoiDefinition CreateDefaultDraftRoi()
         {
-            var centerRow = _lastPointerRow > 0 ? _lastPointerRow : _imageHeight / 2.0;
-            var centerColumn = _lastPointerColumn > 0 ? _lastPointerColumn : _imageWidth / 2.0;
+            double centerRow;
+            if (_lastPointerRow > 0)
+                centerRow = _lastPointerRow;
+            else
+                centerRow = _imageHeight / 2.0;
+            double centerColumn;
+            if (_lastPointerColumn > 0)
+                centerColumn = _lastPointerColumn;
+            else
+                centerColumn = _imageWidth / 2.0;
             const double halfSize = 60.0;
 
             return new RoiDefinition
@@ -984,7 +1031,15 @@ namespace ReringProject.UI
 
         private void RaiseDraftRoiChanged()
         {
-            DraftRoiChanged?.Invoke(this, _draftRoi == null ? null : _draftRoi.Clone());
+            if (DraftRoiChanged != null)
+            {
+                RoiDefinition draftArg;
+                if (_draftRoi == null)
+                    draftArg = null;
+                else
+                    draftArg = _draftRoi.Clone();
+                DraftRoiChanged.Invoke(this, draftArg);
+            }
         }
 
         private void AttachActiveDrawingObject()
@@ -1028,7 +1083,10 @@ namespace ReringProject.UI
                 return;
             }
 
-            ViewerHost.Cursor = hitType == DraftRoiHitType.Inside ? Cursors.Cross : Cursors.Hand;
+            if (hitType == DraftRoiHitType.Inside)
+                ViewerHost.Cursor = Cursors.Cross;
+            else
+                ViewerHost.Cursor = Cursors.Hand;
         }
 
         private void ViewerHost_MouseEnter(object sender, MouseEventArgs e)
@@ -1064,7 +1122,10 @@ namespace ReringProject.UI
                 return;
             }
 
-            SetViewerCursor(CanPanCurrentImage() ? Cursors.Hand : Cursors.Arrow);
+            if (CanPanCurrentImage())
+                SetViewerCursor(Cursors.Hand);
+            else
+                SetViewerCursor(Cursors.Arrow);
         }
 
         private void SetViewerCursor(Cursor cursor)
@@ -1149,7 +1210,9 @@ namespace ReringProject.UI
                 return DraftRoiHitType.BottomRight;
             }
 
-            return _draftRoi.Contains(row, column) ? DraftRoiHitType.Inside : DraftRoiHitType.None;
+            if (_draftRoi.Contains(row, column))
+                return DraftRoiHitType.Inside;
+            return DraftRoiHitType.None;
         }
 
         private void SetResizeAnchor(DraftRoiHitType hitType)

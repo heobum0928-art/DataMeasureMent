@@ -193,7 +193,9 @@ Plans:
     - [x] 42-01-PLAN.md — 측정 소비 Rewire(D-01/D-06) + PropertyGrid 항목별 숨김(D-04/D-05) + 회귀 검증
 - [x] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03) — SIGNED_OFF 2026-06-15 (1 plan, UAT PASS — READY 55% 단축)
   - Success: 앱 기동 LoginManager 백그라운드 프리로드(Step 5 808ms 제거) → [STARTUP] READY avg 578ms (Before ≈1285ms, 55% 단축, 목표 ≥30% PASS). CO-43-01(흰 화면) carry-over.
-- [ ] **Phase 43.1: 기동 체감속도 개선 — 흰 화면 마스킹 + 콜드스타트 계측** (CO-43-01) — 신설 2026-06-15 (Phase 43 carry-over)
+- [x] **Phase 43.1: 기동 체감속도 개선 — 흰 화면 마스킹 + 콜드스타트 계측** (CO-43-01) — SIGNED_OFF 2026-06-15 (1 plan, UAT PASS — 스플래시 즉시 표시, 레시피 로딩 14787ms 지배 구간 확인)
+  - Success: 스플래시 ≤1s 표시(흰 화면 마스킹 ✓) + (d)=6726ms/(e)=21513ms 구간 분해 수치 확보 + 회귀 0. 지배 구간 = 레시피 로딩(~14787ms) → Phase 43.2에서 비동기화.
+- [ ] **Phase 43.2: 기동 체감속도 단축 — 레시피 로딩 비동기화** (CO-43-01 후속) — 신설 2026-06-15 (Phase 43.1 계측 결과 기반)
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
 - [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)
 
@@ -237,7 +239,12 @@ Plans:
 
 **Plans:** 1 plan
 Plans:
-- [ ] 43.1-01-PLAN.md — App/MainWindow 흰 화면 구간 [STARTUP-WHITE] (a)~(e) 분해 계측 + WPF 네이티브 SplashScreen 즉시 표시(관리 UI 이전, ContentRendered fade close) + splash.png 자산 + 회귀 UAT (CO-43-01)
+- [x] 43.1-01-PLAN.md — App/MainWindow 흰 화면 구간 [STARTUP-WHITE] (a)~(e) 분해 계측 + WPF 네이티브 SplashScreen 즉시 표시(관리 UI 이전, ContentRendered fade close) + splash.png 자산 + 회귀 UAT (CO-43-01) — COMPLETE
+
+### Phase 43.2: 기동 체감속도 단축 — 레시피 로딩 비동기화 (CO-43-01 후속) — 신설 2026-06-15
+**Goal**: Phase 43.1 계측에서 확인된 **레시피 로딩 ~14787ms** (지배 구간)를 `Show()` 이후 비동기로 이동하여 실제 기동 체감 시간을 단축한다.
+**Depends on**: Phase 43.1 (SIGNED_OFF — [STARTUP-WHITE] 계측, 지배 구간 = 레시피 로딩 확인)
+**Requirements**: CO-43-01 후속
 
 ### 우선순위 3 — HW 도착 시점
 

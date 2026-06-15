@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: verifying
-stopped_at: "43.1-01-PLAN.md Task 4 checkpoint:human-verify (Tasks 1~3 PASS, 런타임 검증 대기)"
-last_updated: "2026-06-15T09:00:00Z"
+status: executing
+stopped_at: "Phase 43.1 SIGNED_OFF — 다음: Phase 43.2 (레시피 로딩 비동기화) discuss/plan"
+last_updated: "2026-06-15T10:30:00Z"
 last_activity: 2026-06-15
 progress:
-  total_phases: 8
-  completed_phases: 7
+  total_phases: 9
+  completed_phases: 8
   total_plans: 29
-  completed_plans: 26
-  percent: 90
+  completed_plans: 27
+  percent: 93
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 43 — startup-delay-separation
+**Current focus:** Phase 43.2 — 기동 체감속도 단축 (레시피 로딩 비동기화)
 
 ## Current Position
 
-Phase: 43 (startup-delay-separation) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
+Phase: 43.2 (startup-recipe-async) — PLANNING
+Plan: 0 of TBD
+Status: Phase 43.1 SIGNED_OFF → Phase 43.2 discuss/plan 시작
 Last activity: 2026-06-15
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**

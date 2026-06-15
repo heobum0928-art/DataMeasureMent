@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 Phase: 39
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-06-12
+Last activity: 2026-06-15 - Quick 260615-dx7 완료 (반복 검사 입력 고정50회 → 이미지 폴더 N장 순회)
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -303,6 +303,7 @@ Recent decisions affecting current work:
 | 260611-e22 | 2026-06-11 | SettingWindow CameraRole(검사 모드 TopBottom↔Side) 변경 시 경고 확인 대화상자 — 생성자 원본값 보관 + Btn_ok_Click 에서 변경 감지 시 YesNo 경고(enum 이름 + 재시작 안내), 취소 시 원복/창유지, 확인 시 Save + 재시작 안내. 함부로 모드 변경 방지. Debug/x64 PASS, 신규 warning 0. | 06c62b7 | SIMUL UAT 대기 (설정창 경고 노출/원복/재시작안내 육안 확인) |
 | 260611-dl | 2026-06-11 | **데이터 손실 버그 수정** — CameraRole 전환 후 레시피 저장 시 비활성 시퀀스 Datum 이 DatumCount=0 으로 덮어써져 영구 소실(Side 저장→Top/Bottom 소실, 대칭). 저장 직전 기존 레시피 read 후 비활성 시퀀스 FIXTURE Datum 보존(PreserveFixtureFromExisting). FAI_1 Top/Bottom 이미 소실(재티칭 필요), Side=4 백업(main.ini.bak_260611_side4). Debug/x64 PASS. | 3faa91b | **UAT PASS (사용자 2026-06-11, Side↔TopBottom 번갈아 전환 시 양방향 Datum 보존 확인)**. 메모리 project_recipe_datum_loss_camerarole |
 | 260611-ov | 2026-06-11 | FAI/Shot 선택 시 해당 노드 ROI/Datum 만 표시 — ①FAI 클릭 시 Shot 전체 FAI ROI(CollectShotRois)→선택 FAI ROI+측정위치만(HighlightSelectedRoi FAI 분기). ②Shot Datum 표시 ResolveSequenceDatums(시퀀스 전체 Side=4)→ResolveDatumsForShot(그 Shot DatumRef 집합, 보통 1개). FAI 는 기존 ResolveDatumsForFai 유지. Datum 체크박스 게이트 유지. | 765195c | **UAT PASS (사용자 All Pass 2026-06-11)** |
+| 260615-dx7 | 2026-06-15 | Phase 41.1 반복 검사 입력: 고정 이미지 50회 → 이미지 폴더 N장 순회. RepeatRunService.StartFromImages(seq, imagePaths) — 매 사이클 StartAll 직전 recipeManager.Shots SimulImagePath 를 imagePaths[CompletedCount] 로 교체(1사이클=이미지1장, 횟수=폴더 이미지수). _imagePaths null 분기로 기존 고정 Start 보존. ReviewerWindow 버튼→Ookii 폴더 다이얼로그(bmp/jpg/png/tif). msbuild Debug/x64 0 errors. | 18a656e | SIMUL UAT 대기 (폴더 선택→N장 검사→2시트 xlsx 육안 확인) |
 
 ### Pending Todos
 

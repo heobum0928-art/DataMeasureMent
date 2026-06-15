@@ -1,4 +1,4 @@
-﻿# Roadmap: DataMeasurement
+# Roadmap: DataMeasurement
 
 ## Milestones
 
@@ -188,6 +188,9 @@ Plans:
 
 - [ ] **Phase 42: 픽셀분해능 런타임 단일소스** (CO-38-01)
   - Success: Shot 단일값 편집 시 재시작 없이 전체 FAI 반영 / PropertyGrid 항목별 노출 정리 / 측정 경로 단일 소스
+  - **Plans:** 1 plan
+  - Plans:
+    - [ ] 42-01-PLAN.md — 측정 소비 Rewire(D-01/D-06) + PropertyGrid 항목별 숨김(D-04/D-05) + 회귀 검증
 - [ ] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03)
   - Success: 앱 기동 LoginManager lazy-load 후 측정 가능 시점 ≥ 30% 단축 / SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)

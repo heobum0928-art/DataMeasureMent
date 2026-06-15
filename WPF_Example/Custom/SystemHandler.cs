@@ -230,7 +230,13 @@ namespace ReringProject {
         }
 
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
+        //260615 hbk Phase 43.2: IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
+        //  IsInitializeFail 패턴과 동일. false 반환 → MainRun 에서 SendTestError(NG) 응답.
         private bool ProcessTest(TestPacket packet) {
+            if (!IsRecipeReady) {
+                Logging.PrintLog((int)ELogType.Error, "[RECIPE] TEST rejected — recipe not yet loaded (IsRecipeReady=false)");
+                return false;
+            }
             if (Sequences.IsDynamicFAIMode) {
                 string seqName = packet.Identifier;
                 SequenceBase seq = Sequences[seqName];

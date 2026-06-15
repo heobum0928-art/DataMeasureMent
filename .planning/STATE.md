@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: "Phase 43.1 SIGNED_OFF — 다음: Phase 43.2 (레시피 로딩 비동기화) discuss/plan"
-last_updated: "2026-06-15T10:30:00Z"
+stopped_at: "Phase 43.2 PLAN COMPLETE (3 plans / 3 waves) — 다음: /gsd-execute-phase 43.2"
+last_updated: "2026-06-15T15:15:00Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 29
+  total_plans: 32
   completed_plans: 27
-  percent: 93
+  percent: 84
 ---
 
 # Project State
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 43.2 (startup-recipe-async) — PLANNING
-Plan: 0 of TBD
-Status: Phase 43.1 SIGNED_OFF → Phase 43.2 discuss/plan 시작
+Phase: 43.2 (startup-recipe-async) — PLANNED (3 plans / 3 waves)
+Plan: 0 of 3
+Status: Phase 43.2 plan COMPLETE → execute 대기
 Last activity: 2026-06-15
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**

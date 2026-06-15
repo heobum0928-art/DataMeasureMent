@@ -191,6 +191,7 @@ namespace ReringProject.Sequence {
                                 if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
                                 // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
                                 List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
+                                double pixRes = ShotParam != null ? ShotParam.PixelResolution : 1.0; //260615 hbk Phase 42 D-01 Shot 단일소스
                                 try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
@@ -266,7 +267,7 @@ namespace ReringProject.Sequence {
                                                     dualMeas.RuntimeImageA = imgA; // transient property, TryExecute 가 image 인자 무시
                                                     dualMeas.RuntimeImageB = imgB;
                                                     try {
-                                                        ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays);
+                                                        ok = meas.TryExecute(image, transform, pixRes, out resultValue, out measError, out measOverlays); //260615 hbk Phase 42 D-01
                                                     } catch (Exception ex) {
                                                         ok = false; resultValue = 0; measError = ex.Message; measOverlays = null;
                                                     }
@@ -281,7 +282,7 @@ namespace ReringProject.Sequence {
                                             }
                                         } else { // 기존 1-image 경로
                                             try {
-                                                ok = meas.TryExecute(image, transform, fai.PixelResolutionX, out resultValue, out measError, out measOverlays);
+                                                ok = meas.TryExecute(image, transform, pixRes, out resultValue, out measError, out measOverlays); //260615 hbk Phase 42 D-01
                                             } catch (Exception ex) {
                                                 ok = false;
                                                 resultValue = 0;

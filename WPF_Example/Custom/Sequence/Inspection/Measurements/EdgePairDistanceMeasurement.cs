@@ -35,8 +35,10 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
-        [Category("EdgePair|Calibration")]
+        // INI 호환 잔존 저장용 — D-06 재배선 후 TryExecute 에서 소비 안 함. //260615 hbk Phase 42 D-05
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double PixelResolutionX { get; set; } = 1.0;
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double PixelResolutionY { get; set; } = 1.0;
 
         public EdgePairDistanceMeasurement(object owner) : base(owner) { }
@@ -67,6 +69,10 @@ namespace ReringProject.Sequence
                 return false;
             }
 
+            //260615 hbk Phase 42 D-06 — PixelResolution 은 shot 단일소스(파라미터 경유). self 필드 소비 제거
+            var ownerShot = ownerFai.Owner as ShotConfig;
+            double resolvedPixelRes = (ownerShot != null) ? ownerShot.PixelResolution : pixelResolution;
+
             // 래퍼용 임시 FAIConfig 구성 — FAIEdgeMeasurementService 재사용.
             // ROI는 Owner에서, Edge/Calibration 파라미터는 self에서 가져온다.
             var temp = new FAIConfig(Owner)
@@ -83,8 +89,8 @@ namespace ReringProject.Sequence
                 EdgeSampleCount = EdgeSampleCount,
                 EdgeTrimCount = EdgeTrimCount,
                 EdgePolarity = EdgePolarity,
-                PixelResolutionX = PixelResolutionX,
-                PixelResolutionY = PixelResolutionY,
+                PixelResolutionX = resolvedPixelRes, //260615 hbk Phase 42 D-06
+                PixelResolutionY = resolvedPixelRes, //260615 hbk Phase 42 D-06
                 FAIName = MeasurementName
             };
 

@@ -170,22 +170,40 @@ namespace ReringProject.Login {
         //260615 hbk Phase 43: D-03 — Initialize() Step 5 에서 1회 호출. IsAlive+_isPreloaded 이중 guard 로 재기동 방지.
         public void Preload() {
             if (!_isPreloaded && !_preloadThread.IsAlive) {
-                _preloadThread.Start();
+                try {
+                    _preloadThread.Start();
+                }
+                catch (ThreadStateException) {
+                    //260615 hbk Phase 43 CR-fix: WR-01 — 비원자 guard 사이 동시 2회 호출 시 중복 Start 방어 (이미 기동됨)
+                }
             }
         }
 
         private void PreloadWorker() {
             //260615 hbk Phase 43: Load() 본문 무수정 — 백그라운드 thread 에서 호출만 함
-            if (!Load()) {
-                //occurs error or nothing (Load() 내부에서 기본 admin 추가)
+            try {
+                Load();
             }
-            _isPreloaded = true; //260615 hbk Phase 43: D-04 완료 신호 (EnsureLoaded 가 확인)
+            catch (Exception ex) {
+                //260615 hbk Phase 43 CR-fix: CR-01 — 백그라운드 thread 미처리 예외 = 프로세스 강제종료 방지. account.db 손상(Crypto/Json) 흡수.
+                Logging.PrintErrLog((int)ELogType.Error, "[LOGIN] Preload failed (account.db 손상 가능): " + ex.ToString());
+                //260615 hbk Phase 43 CR-fix: 손상 시 AccountList 비어 영구 lockout → 기본 admin 보장 (Load() 파일없음 분기와 동일 의미)
+                if (CountOf(EAccountGrade.Admin) == 0) {
+                    AccountList.Add(new AccountInfo(DEFAULT_ADMIN_ID, EAccountGrade.Admin, DEFAULT_ADMIN_PASSWORD));
+                }
+            }
+            finally {
+                _isPreloaded = true; //260615 hbk Phase 43 CR-fix: 예외 여부와 무관하게 완료 신호 — EnsureLoaded 폴백 무한대기/재throw 차단
+            }
             Logging.PrintLog((int)ELogType.Trace, "[LOGIN] Preload complete: {0} accounts", AccountList.Count); //260615 hbk Phase 43
         }
 
         //260615 hbk Phase 43: D-04/D-10 — 로그인 UI 가 호출. 완료면 즉시 반환(대기 0), 미완이면 Join 으로 half-loaded AccountList race 차단.
         public void EnsureLoaded() {
-            if (_isPreloaded) return;
+            if (_isPreloaded) {
+                System.Threading.Thread.MemoryBarrier(); //260615 hbk Phase 43 CR-fix: WR-02 — volatile read 후 non-volatile AccountList 가시성 펜스
+                return;
+            }
             if (_preloadThread.IsAlive) {
                 _preloadThread.Join();
             }

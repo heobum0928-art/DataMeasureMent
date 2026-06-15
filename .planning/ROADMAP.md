@@ -245,6 +245,11 @@ Plans:
 **Goal**: Phase 43.1 계측에서 확인된 **레시피 로딩 ~14787ms** (지배 구간)를 `Show()` 이후 비동기로 이동하여 실제 기동 체감 시간을 단축한다.
 **Depends on**: Phase 43.1 (SIGNED_OFF — [STARTUP-WHITE] 계측, 지배 구간 = 레시피 로딩 확인)
 **Requirements**: CO-43-01 후속
+**Plans:** 3 plans (3 waves)
+Plans:
+- [ ] 43.2-01-PLAN.md — SystemHandler _isRecipeReady 필드 + IsRecipeReady 프로퍼티 + LoadRecipe (f)/(g) 마커 [Wave 1]
+- [ ] 43.2-02-PLAN.md — MainWindow Window_Loaded 동기 제거 + ContentRendered BeginInvoke(Background) 이동 + OnLoadRecipe Dispatcher 래핑 [Wave 2]
+- [ ] 43.2-03-PLAN.md — ProcessTest IsRecipeReady guard + UAT Before/After 수치 확인 + 회귀 0 [Wave 3]
 
 ### 우선순위 3 — HW 도착 시점
 

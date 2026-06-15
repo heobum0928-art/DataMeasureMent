@@ -73,11 +73,11 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
-        // Calibration: camera-level calibration 은 CameraSlaveParam 에 저장되지만,
-        //  FAIConfig 도 RoiDefinition 호환을 위해 PixelResolution 을 보유한다.
-        [Category("Calibration")]
-        public double PixelResolutionX { get; set; } = 1.0;  // mm/pixel
-        public double PixelResolutionY { get; set; } = 1.0;  // mm/pixel
+        // Calibration: INI 호환 잔존 저장용. 소비 없음 — Shot 단일소스(D-01). PropertyGrid 숨김. //260615 hbk Phase 42 D-04/D-05
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double PixelResolutionX { get; set; } = 1.0;  // mm/pixel — INI 키 보존(D-07)
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double PixelResolutionY { get; set; } = 1.0;  // mm/pixel — INI 키 보존(D-07)
 
         // Polygon ROI — INI 저장용으로 "x1,y1;x2,y2;x3,y3" 문자열로 직렬화
         [Category("ROI")]

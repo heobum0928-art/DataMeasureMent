@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: verifying
-stopped_at: Completed 43-01-PLAN.md (LoginManager bg preload + READY marker, 55% READY reduction PASS)
-last_updated: "2026-06-15T04:41:12.461Z"
+stopped_at: "43.1-01-PLAN.md Task 4 checkpoint:human-verify (Tasks 1~3 PASS, 런타임 검증 대기)"
+last_updated: "2026-06-15T09:00:00Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 8
@@ -139,6 +139,7 @@ Last activity: 2026-06-15
 | Phase 40.2-fai-2 P02 | 30 | 2 tasks | 3 files |
 | Phase 40.2-fai-2 P03 | 15 | 2 tasks | 2 files |
 | Phase 43-startup-delay-separation P43-01 | 45 | 4 tasks | 3 files |
+| Phase 43.1-startup-perceived-speed P43.1-01 | — | 3/4 tasks (Task 4 checkpoint pending) | 4 files |
 
 ## Accumulated Context
 
@@ -396,10 +397,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-15T04:41:12.450Z
-Stopped at: Completed 43-01-PLAN.md (LoginManager bg preload + READY marker, 55% READY reduction PASS)
+Last session: 2026-06-15T09:00:00Z
+Stopped at: 43.1-01 Task 4 checkpoint:human-verify — 스플래시 ≤1s 표시 + [STARTUP-WHITE] (a)~(e) 구간 분해 수치 + 회귀(첫 로그인/첫 $TEST/MainView) 사용자 확인 대기
 Resume file: None
-Next action: Phase 41.1 UAT (Plan 41.1-03 checkpoint:human-verify) — msbuild Rebuild 확인 → 앱 실행(SIMUL_MODE) → 50회 반복 실행 → 반복도 엑셀 export → Sheet1/Sheet2 내용 확인. 완료 후 SUMMARY.md 3종 작성 + 페이즈 완료 처리.
+Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 
 **v1.1 Phase Map:**
 

@@ -195,7 +195,7 @@ Plans:
   - Success: 앱 기동 LoginManager 백그라운드 프리로드(Step 5 808ms 제거) → [STARTUP] READY avg 578ms (Before ≈1285ms, 55% 단축, 목표 ≥30% PASS). CO-43-01(흰 화면) carry-over.
 - [x] **Phase 43.1: 기동 체감속도 개선 — 흰 화면 마스킹 + 콜드스타트 계측** (CO-43-01) — SIGNED_OFF 2026-06-15 (1 plan, UAT PASS — 스플래시 즉시 표시, 레시피 로딩 14787ms 지배 구간 확인)
   - Success: 스플래시 ≤1s 표시(흰 화면 마스킹 ✓) + (d)=6726ms/(e)=21513ms 구간 분해 수치 확보 + 회귀 0. 지배 구간 = 레시피 로딩(~14787ms) → Phase 43.2에서 비동기화.
-- [ ] **Phase 43.2: 기동 체감속도 단축 — 레시피 로딩 비동기화** (CO-43-01 후속) — 신설 2026-06-15 (Phase 43.1 계측 결과 기반)
+- [x] **Phase 43.2: 기동 체감속도 단축 — 레시피 로딩 비동기화** (CO-43-01 후속) — SIGNED_OFF 2026-06-15 (3 plans, UAT PASS — 창 표시 21513ms→3129ms 85% 단축 + 레시피 로드 11s 병목(ParamBase.Load 예외 storm 4948회/로드) 제거)
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
 - [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)
 

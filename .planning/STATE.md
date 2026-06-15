@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: "Phase 43.2 PLAN COMPLETE (3 plans / 3 waves) — 다음: /gsd-execute-phase 43.2"
-last_updated: "2026-06-15T15:15:00Z"
+stopped_at: "Phase 43.2 SIGNED_OFF (3 plans, UAT PASS — 창 표시 85% 단축 + 레시피 로드 11s 병목 제거). 다음: Phase 44"
+last_updated: "2026-06-15T17:30:00Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 9
-  completed_phases: 8
-  total_plans: 32
-  completed_plans: 27
-  percent: 84
+  completed_phases: 9
+  total_plans: 35
+  completed_plans: 30
+  percent: 86
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 43.2 — 기동 체감속도 단축 (레시피 로딩 비동기화)
+**Current focus:** Phase 43.2 SIGNED_OFF → 다음 Phase 44 (실HW [STARTUP] 재측정)
 
 ## Current Position
 
-Phase: 43.2 (startup-recipe-async) — PLANNED (3 plans / 3 waves)
-Plan: 0 of 3
-Status: Phase 43.2 plan COMPLETE → execute 대기
+Phase: 43.2 (startup-recipe-async) — SIGNED_OFF (3 plans / 3 waves, UAT PASS)
+Plan: 3 of 3
+Status: Phase 43.2 완료 — 창 표시 21513ms→3129ms(85%↓) + 레시피 로드 11s 병목 제거
 Last activity: 2026-06-15
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**

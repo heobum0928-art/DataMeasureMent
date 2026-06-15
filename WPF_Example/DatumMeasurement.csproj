@@ -656,6 +656,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resource\saveas.png" />
+    <Resource Include="Resource\splash.png" /> <!--260615 hbk Phase 43.1: 흰 화면 마스킹 스플래시 (D-04)-->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resource\light.png" />

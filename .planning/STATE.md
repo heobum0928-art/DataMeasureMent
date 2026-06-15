@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 43 — 시작지연 분리 (LoginManager + SequenceHandler, CO-38-02/03)
-Plan: Not started — discuss 대기
-Status: ROADMAP 상세 섹션 추가 완료 (malformed 해소), CONTEXT.md 없음 → discuss-phase 먼저 진행 결정 (2026-06-15)
-Last activity: 2026-06-15 - Phase 42 signed_off 후 Phase 43 plan 진입 → discuss-phase 선행 라우팅
+Plan: Not started — discuss 완료, plan 대기
+Status: CONTEXT.md 작성 완료 (10 결정 D-01~D-10, 4 gray area). 핵심: 측정기준점=첫 $TEST ready / LoginManager 백그라운드 프리로드 / SequenceHandler 임계경로 유지 / N회평균+race회귀. 다음 = /gsd-plan-phase 43
+Last activity: 2026-06-15 - Phase 43 discuss-phase 완료 (CONTEXT.md, commit)
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

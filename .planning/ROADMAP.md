@@ -196,6 +196,23 @@ Plans:
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
 - [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)
 
+### Phase 43: 시작지연 분리 (LoginManager + SequenceHandler) (CO-38-02, CO-38-03)
+**Goal**: 앱 기동 시 동기적으로 수행되는 무거운 초기화(계정 DB 로드, 레시피 동기 로딩)를 지연/분리하여 "측정 가능 시점"까지의 시간을 단축한다. Phase 38 에서 추가한 `[STARTUP]` Stopwatch 계측을 기준선으로, 측정 가능 시점이 ≥30% 단축됨을 입증한다.
+**Depends on**: Phase 38 (`[STARTUP]` 계측 9줄 SystemHandler.Initialize) signed_off
+**Requirements**: CO-38-02, CO-38-03
+**Background**: Phase 38 SIMUL 1회 실측 — `SystemHandler.Initialize` Total **1509ms**, 이 중 Step5 LoginManager delta **808ms**(계정 DB 로드 추정) + Step2 SequenceHandler delta **550ms**(레시피 동기 로딩) ≈ 전체의 90%. 이 두 구간이 기동 지연의 지배적 원인. Phase 38 에서 "저위험 개선 미적용 → 전부 carry-over" 로 남긴 항목.
+**Scope**:
+  - **CO-38-02 LoginManager lazy-load**: 계정 DB 로드를 앱 기동 동기 경로에서 분리 — 최초 로그인 시도 시점 또는 백그라운드 로드로 지연. 기존 LoginManager 인증 동작/계정 모델 변경 없음.
+  - **CO-38-03 SequenceHandler 동기 의존성 제거**: 레시피 동기 로딩이 Initialize 를 블로킹하지 않도록 분리 — 측정 시작 전 준비 완료 보장은 유지하되 기동 경로에서 제거.
+  - **계측 기반 입증**: `[STARTUP]` 로그(Step1~8 + Total)로 Before/After 비교, 측정 가능 시점 ≥30% 단축 수치 제시.
+**Out of scope**:
+  - CO-38-04 실HW [STARTUP] 재측정 (Phase 44 — HW 도착 의존)
+  - OAuth/사용자 인증 고도화 (기존 LoginManager 유지, REQUIREMENTS.md 명시)
+**Success Criteria (UAT)**:
+  - 앱 기동 LoginManager lazy-load 후 측정 가능 시점 ≥30% 단축 (`[STARTUP]` 로그 Before/After 비교)
+  - SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증 (Step2 delta 감소 수치)
+  - 회귀 0: 첫 로그인/첫 검사 흐름 정상 (lazy-load 로 인한 미준비 상태 버그 없음)
+
 ### 우선순위 3 — HW 도착 시점
 
 - [ ] **Phase 46: CXP 그래버 통합 (RAP 4G 4C12)** (HW-01, HW-02)
@@ -228,7 +245,7 @@ Plans:
 | 1 | 39.3 | DualImage FAI UX 재설계 (CO-39.2-01-01) | WF-01 | Planned | 4 | 2026-05-30 |
 | 1 | 40 | Export I (리뷰어+1회) | OUT-01, OUT-02 | Not started | TBD | — |
 | 1 | 41.1 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
-| 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | Not started | TBD | — |
+| 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | SIGNED_OFF | 1 | 2026-06-15 |
 | 2 | 43 | 시작지연 분리 | CO-38-02/03 | Not started | TBD | — |
 | 2 | 44 | 실HW STARTUP 재측정 | CO-38-04 | Not started (HW) | TBD | — |
 | 2 | 45 | A1~A5 측정값 UI | CO-23-01 | Not started | TBD | — |

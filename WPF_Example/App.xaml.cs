@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Diagnostics; //260615 hbk Phase 43.1: 흰 화면 구간 계측 Stopwatch
 using ReringProject.UI;
 using ReringProject.Utility;
 using ReringProject.Setting;
@@ -19,12 +20,16 @@ namespace ReringProject {
     public partial class App : Application {
         Mutex mMutex;
 
+        //260615 hbk Phase 43.1: D-03 — 흰 화면(process→첫 paint) 구간 분해용 절대시각 기준. App 정적 진입부터 측정.
+        internal static readonly Stopwatch StartupWatch = Stopwatch.StartNew();
+
         public App() {
             this.Dispatcher.UnhandledException += this.Dispatcher_UnhandledException;
 
         }
 
         private void Application_Startup(object sender, StartupEventArgs e) {
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (a) App.Startup entry: {0} ms", StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
             var resource = App.Current.Resources["DR"] as LocalizationResource;
             if (resource != null) {
                 resource.ChangeLanguage("ko-KR");

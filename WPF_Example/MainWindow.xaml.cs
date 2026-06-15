@@ -73,12 +73,15 @@ namespace ReringProject {
 
 
         public MainWindow() {
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (b) MainWindow ctor entry: {0} ms", App.StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
             //initialize
             mSystemHandler = SystemHandler.Handle;
             mSystemHandler.Initialize();
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (c) after Initialize: {0} ms", App.StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
 
             //update ui
             InitializeComponent();
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (d) after InitializeComponent: {0} ms", App.StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
             //ComboLanguage.ItemsSource = Enum.GetValues(typeof(ELanguageType)).Cast<ELanguageType>();
 
             mSystemHandler.Sequences.OnRecipeChanged += this.OnLoadRecipe;

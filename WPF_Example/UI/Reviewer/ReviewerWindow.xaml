@@ -35,7 +35,7 @@
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
                 <!-- 260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 실행 UI -->
                 <Separator Margin="0,6,0,6"/>
-                <Button x:Name="btn_repeatRun" Content="50회 반복 실행"
+                <Button x:Name="btn_repeatRun" Content="이미지 폴더 반복 검사"
                         Click="Button_RepeatRun_Click"
                         Padding="8,4" HorizontalAlignment="Stretch"/>
                 <TextBlock x:Name="lbl_repeatProgress" Text=""

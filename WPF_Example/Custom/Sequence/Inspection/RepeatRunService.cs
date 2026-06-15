@@ -33,6 +33,9 @@ namespace ReringProject.Sequence
         private EventSequenceStateChanged _onFinishHandler;
         private readonly object _lock = new object();
 
+        //260615 hbk Quick 260615-dx7 이미지 폴더 순회 모드. null = 기존 고정 이미지 반복 모드.
+        private List<string> _imagePaths;
+
         /// <summary>
         /// 반복 실행을 시작한다. IsRunning=true 이면 중복 시작 방지로 즉시 반환.
         /// </summary>
@@ -60,6 +63,42 @@ namespace ReringProject.Sequence
             TriggerNext();
         }
 
+        //260615 hbk Quick 260615-dx7
+        /// <summary>
+        /// 이미지 폴더 순회 모드로 반복 검사를 시작한다. imagePaths 길이만큼 사이클을 돌리며,
+        /// 매 사이클 StartAll 직전에 활성 시퀀스의 모든 Shot SimulImagePath 를 imagePaths[CompletedCount] 로 교체한다.
+        /// 1 사이클 = 이미지 1장. IsRunning 또는 입력 부재 시 즉시 반환.
+        /// </summary>
+        public void StartFromImages(InspectionSequence seq, List<string> imagePaths)
+        {
+            if (IsRunning)
+            {
+                return;
+            }
+
+            if (seq == null)
+            {
+                return;
+            }
+
+            if (imagePaths == null || imagePaths.Count == 0)
+            {
+                return;
+            }
+
+            IsRunning = true;
+            _seq = seq;
+            _imagePaths = imagePaths;
+            TargetCount = imagePaths.Count;
+            CompletedCount = 0;
+            _collected = new List<CycleResultDto>();
+
+            _onFinishHandler = (ctx) => HandleFinish(ctx);
+            _seq.OnFinish += _onFinishHandler;
+
+            TriggerNext();
+        }
+
         /// <summary>강제 중단. OnFinish 구독을 해제하고 IsRunning = false.</summary>
         public void Stop()
         {
@@ -71,6 +110,44 @@ namespace ReringProject.Sequence
             IsRunning = false;
             _onFinishHandler = null;
             _seq = null;
+            _imagePaths = null; //260615 hbk Quick 260615-dx7
+        }
+
+        //260615 hbk Quick 260615-dx7
+        /// <summary>
+        /// 폴더 순회 모드에서 현재 사이클(CompletedCount 인덱스)의 이미지를 활성 시퀀스의 모든 Shot 에 적용한다.
+        /// _imagePaths == null (고정 모드) 이면 무동작 — 기존 동작 보존.
+        /// </summary>
+        private void ApplyCurrentImage()
+        {
+            if (_imagePaths == null)
+            {
+                return;
+            }
+
+            int idx = CompletedCount;
+            if (idx < 0 || idx >= _imagePaths.Count)
+            {
+                return;
+            }
+
+            string path = _imagePaths[idx];
+            var seqHandler = SystemHandler.Handle.Sequences;
+            if (seqHandler == null)
+            {
+                return;
+            }
+
+            var recipeManager = seqHandler.RecipeManager;
+            if (recipeManager == null)
+            {
+                return;
+            }
+
+            foreach (var shot in recipeManager.Shots)
+            {
+                shot.SimulImagePath = path;
+            }
         }
 
         private void HandleFinish(SequenceContext ctx)
@@ -170,6 +247,7 @@ namespace ReringProject.Sequence
 
                         if (_seq.State == EContextState.Idle)
                         {
+                            ApplyCurrentImage(); //260615 hbk Quick 260615-dx7 — 폴더 모드: 현재 사이클 이미지 적용
                             _seq.StartAll(null);
                         }
                         else

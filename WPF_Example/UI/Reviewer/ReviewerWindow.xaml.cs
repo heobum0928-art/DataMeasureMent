@@ -316,14 +316,47 @@ namespace ReringProject.UI
             }
         }
 
-        //260612 hbk Phase 41.1 OUT-03 50회 반복 실행 버튼 핸들러
+        //260615 hbk Quick 260615-dx7 이미지 폴더 반복 검사 버튼 핸들러 (고정 50회 → 폴더 N장 순회)
+        // 지원 이미지 확장자
+        private static readonly string[] RepeatImageExtensions =
+            { ".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff" };
+
         private void Button_RepeatRun_Click(object sender, RoutedEventArgs e)
         {
             if (_repeatService != null && _repeatService.IsRunning)
             {
                 _repeatService.Stop();
                 lbl_repeatProgress.Text = "중단됨";
-                btn_repeatRun.Content = "50회 반복 실행";
+                btn_repeatRun.Content = "이미지 폴더 반복 검사";
+                return;
+            }
+
+            // 이미지 폴더 선택 (날짜 폴더 열기와 동일한 Ookii 다이얼로그 패턴)
+            var folderDlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
+            folderDlg.Multiselect = false;
+            folderDlg.SelectedPath = SystemHandler.Handle.Setting.ResultSavePath;
+            if (folderDlg.ShowDialog() != true)
+            {
+                return;
+            }
+
+            string folder = folderDlg.SelectedPath;
+            List<string> imagePaths;
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                CustomMessageBox.Show("반복 검사", "선택한 폴더가 존재하지 않습니다.", MessageBoxImage.Warning);
+                return;
+            }
+
+            imagePaths = Directory.GetFiles(folder)
+                .Where(f => RepeatImageExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (imagePaths.Count == 0)
+            {
+                CustomMessageBox.Show("반복 검사",
+                    "선택한 폴더에 이미지(bmp/jpg/png/tif)가 없습니다.", MessageBoxImage.Warning);
                 return;
             }
 
@@ -345,14 +378,14 @@ namespace ReringProject.UI
 
             if (activeSeq == null)
             {
-                CustomMessageBox.Show("반복 실행", "활성 검사 시퀀스를 찾을 수 없습니다.", MessageBoxImage.Warning);
+                CustomMessageBox.Show("반복 검사", "활성 검사 시퀀스를 찾을 수 없습니다.", MessageBoxImage.Warning);
                 return;
             }
 
             _repeatCycles = null;
             btn_repeatExport.IsEnabled = false;
             btn_repeatRun.Content = "중단";
-            lbl_repeatProgress.Text = "진행 중: 0/" + RepeatRunService.DEFAULT_REPEAT_COUNT;
+            lbl_repeatProgress.Text = "진행 중: 0/" + imagePaths.Count;
 
             _repeatService = new RepeatRunService();
             _repeatService.OnProgressChanged += (current, total) =>
@@ -368,12 +401,12 @@ namespace ReringProject.UI
                 {
                     _repeatCycles = cycles;
                     lbl_repeatProgress.Text = "완료: " + (cycles != null ? cycles.Count : 0) + "회";
-                    btn_repeatRun.Content = "50회 반복 실행";
+                    btn_repeatRun.Content = "이미지 폴더 반복 검사";
                     btn_repeatExport.IsEnabled = (cycles != null && cycles.Count > 0);
                 });
             };
 
-            _repeatService.Start(activeSeq, RepeatRunService.DEFAULT_REPEAT_COUNT);
+            _repeatService.StartFromImages(activeSeq, imagePaths);
         }
 
         //260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 엑셀 export 핸들러

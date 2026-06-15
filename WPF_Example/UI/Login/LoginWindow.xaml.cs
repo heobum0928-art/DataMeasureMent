@@ -18,8 +18,9 @@ namespace ReringProject.UI {
         public LoginWindow() {
             InitializeComponent();
             Login = SystemHandler.Handle.Login;
+            Login.EnsureLoaded(); //260615 hbk Phase 43: D-04/D-10 — 프리로드 미완 시 완료까지 대기(완료면 즉시 반환). half-loaded AccountList race 차단
 
-            //init combobox 
+            //init combobox
             comboBox_id.ItemsSource = Login.GetIDList();
         }
 

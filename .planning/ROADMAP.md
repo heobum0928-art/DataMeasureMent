@@ -213,6 +213,10 @@ Plans:
   - SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증 (Step2 delta 감소 수치)
   - 회귀 0: 첫 로그인/첫 검사 흐름 정상 (lazy-load 로 인한 미준비 상태 버그 없음)
 
+**Plans:** 1 plan
+Plans:
+- [ ] 43-01-PLAN.md — LoginManager 백그라운드 프리로드(Step5 동기 808ms 제거) + [STARTUP] READY 마커 + LoginWindow EnsureLoaded readiness wait + 30% 평균/회귀 UAT
+
 ### 우선순위 3 — HW 도착 시점
 
 - [ ] **Phase 46: CXP 그래버 통합 (RAP 4G 4C12)** (HW-01, HW-02)

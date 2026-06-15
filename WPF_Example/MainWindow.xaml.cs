@@ -250,9 +250,14 @@ namespace ReringProject {
             menuBar.UpdateLoginID(mSystemHandler.Login.LoginID);
         }
 
+        //260615 hbk Phase 43.2: OnLoadRecipe — Dispatcher.BeginInvoke 래핑 (D-A 비동기 방식 대비 스레드 안전)
+        //  Dispatcher.BeginInvoke(Background) 방식은 UI 스레드 실행이라 현재 래핑 불필요하나,
+        //  향후 별도 Thread 방식 전환 시 이 핸들러가 비 UI 스레드에서 호출될 수 있으므로 방어적 래핑.
+        //  inspectionList.OnLoadRecipe → ViewModel.RebuildTree() → UI 컨트롤 접근 → UI 스레드 필요.
         public void OnLoadRecipe(object sender, RecipeChangedEventArgs args) {
-            //args.RecipeName;
-            inspectionList.OnLoadRecipe(args.RecipeName);
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
+                inspectionList.OnLoadRecipe(args.RecipeName);
+            }));
         }
 
         public void SaveRecipe(string name=null) {
@@ -365,14 +370,27 @@ namespace ReringProject {
             //register custom ui
             RegisterCustomUI();
 
-            //load recipe
-
-            if (mSystemHandler.Setting.CurrentRecipeName != null)
-            {
-                mSystemHandler.LoadRecipe(mSystemHandler.Setting.CurrentRecipeName);
-            }
+            //260615 hbk Phase 43.2: 레시피 로드를 ContentRendered(첫 paint) 이후 Dispatcher.Background 로 후퇴 (D-A)
+            //  기존 동기 LoadRecipe(14787ms 블로킹) 제거 → ContentRendered(~6726ms) 후 실행으로 체감 시간 단축
+            this.ContentRendered += Window_ContentRendered_LoadRecipe;
 
             IsEditable = false;
+        }
+
+        //260615 hbk Phase 43.2: ContentRendered(첫 paint) 이후 레시피를 Background 우선순위로 로드 (D-A/D-B/D-D)
+        //  App.xaml.cs ContentRendered 핸들러(스플래시 close)와 동일 이벤트 — 순서는 구독 순으로 App 먼저, 여기서 나중.
+        //  Dispatcher.BeginInvoke(Background): UI 스레드에서 실행하되 렌더링 유휴 시점으로 지연.
+        //  LoadPhase6Format 내 CustomMessageBox.Show 가 존재하므로 별도 Thread 사용 불가 (PATTERNS.md 결론).
+        private void Window_ContentRendered_LoadRecipe(object sender, EventArgs e) {
+            this.ContentRendered -= Window_ContentRendered_LoadRecipe; // 1회 실행 후 구독 해제
+            if (mSystemHandler.Setting.CurrentRecipeName == null) {
+                mSystemHandler.IsRecipeReady = true; // 레시피 없어도 guard 해제
+                return;
+            }
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
+                mSystemHandler.LoadRecipe(mSystemHandler.Setting.CurrentRecipeName);
+                mSystemHandler.IsRecipeReady = true; //260615 hbk Phase 43.2: 로드 완료(성공/실패 무관) → TCP guard 해제 (D-B)
+            }));
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {

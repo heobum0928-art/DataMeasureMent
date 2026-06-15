@@ -52,8 +52,10 @@
 ### 우선순위 2 — v1.1 Carry-over 정리
 
 - [ ] **CO-38-01**: 픽셀분해능 런타임 단일소스 (현행 다중 경로 통합)
-- [ ] **CO-38-02**: 시작지연 LoginManager 분리 (앱 기동 부담 완화)
-- [ ] **CO-38-03**: 시작지연 SequenceHandler 분리 (Initialize 가속)
+- [x] **CO-38-02
+**: 시작지연 LoginManager 분리 (앱 기동 부담 완화)
+- [x] **CO-38-03
+**: 시작지연 SequenceHandler 분리 (Initialize 가속)
 - [ ] **CO-38-04**: 실HW [STARTUP] 재측정 (HW 도착 후, 또는 Simul 베이스라인)
 - [ ] **CO-23-01**: A1~A5 측정값 UI 표시 (Phase 23 ALG-01 미완 잔여)
 

@@ -191,8 +191,8 @@ Plans:
   - **Plans:** 1 plan
   - Plans:
     - [x] 42-01-PLAN.md — 측정 소비 Rewire(D-01/D-06) + PropertyGrid 항목별 숨김(D-04/D-05) + 회귀 검증
-- [ ] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03) — Planned 2026-06-15 (1 plan, checker PASS)
-  - Success: 앱 기동 LoginManager lazy-load 후 측정 가능 시점 ≥ 30% 단축 / SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증
+- [x] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03) — SIGNED_OFF 2026-06-15 (1 plan, UAT PASS — READY 55% 단축)
+  - Success: 앱 기동 LoginManager 백그라운드 프리로드(Step 5 808ms 제거) → [STARTUP] READY avg 578ms (Before ≈1285ms, 55% 단축, 목표 ≥30% PASS). CO-43-01(흰 화면) carry-over.
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
 - [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)
 
@@ -215,7 +215,7 @@ Plans:
 
 **Plans:** 1 plan
 Plans:
-- [ ] 43-01-PLAN.md — LoginManager 백그라운드 프리로드(Step5 동기 808ms 제거) + [STARTUP] READY 마커 + LoginWindow EnsureLoaded readiness wait + 30% 평균/회귀 UAT
+- [x] 43-01-PLAN.md — LoginManager 백그라운드 프리로드(Step5 동기 808ms 제거) + [STARTUP] READY 마커 + LoginWindow EnsureLoaded readiness wait + 30% 평균/회귀 UAT — COMPLETE (55% READY 단축, CO-38-02/CO-38-03 종결)
 
 ### 우선순위 3 — HW 도착 시점
 
@@ -250,7 +250,7 @@ Plans:
 | 1 | 40 | Export I (리뷰어+1회) | OUT-01, OUT-02 | Not started | TBD | — |
 | 1 | 41.1 | Export II (반복도+통계) | OUT-03, OUT-04 | Not started | TBD | — |
 | 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | SIGNED_OFF | 1 | 2026-06-15 |
-| 2 | 43 | 시작지연 분리 | CO-38-02/03 | Not started | TBD | — |
+| 2 | 43 | 시작지연 분리 | CO-38-02/03 | SIGNED_OFF | 1 | 2026-06-15 |
 | 2 | 44 | 실HW STARTUP 재측정 | CO-38-04 | Not started (HW) | TBD | — |
 | 2 | 45 | A1~A5 측정값 UI | CO-23-01 | Not started | TBD | — |
 | 3 | 46 | CXP 그래버 통합 | HW-01/02 | Not started (HW) | TBD | — |
@@ -309,5 +309,5 @@ Plans:
 
 ---
 
-*Last updated: 2026-06-15 — Phase 42(픽셀분해능 런타임 단일소스, CO-38-01) signed_off (1 plan, UAT 2/2 PASS, code review clean). 측정 소비를 ShotConfig.PixelResolution 단일소스로 Rewire + 항목별 PixelResolutionX/Y PropertyGrid 숨김(INI 호환 보존). 회귀 0.*
+*Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*
 

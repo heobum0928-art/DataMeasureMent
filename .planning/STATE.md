@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: phase_complete
-stopped_at: Phase 42 signed_off
-last_updated: "2026-06-15T03:30:00.000Z"
-last_activity: 2026-06-15 - Phase 42(픽셀분해능 런타임 단일소스, CO-38-01) signed_off (UAT 2/2 PASS, code review clean)
+status: verifying
+stopped_at: Completed 43-01-PLAN.md (LoginManager bg preload + READY marker, 55% READY reduction PASS)
+last_updated: "2026-06-15T04:41:12.461Z"
+last_activity: 2026-06-15
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
-  total_plans: 28
+  total_plans: 29
   completed_plans: 26
-  percent: 93
+  percent: 90
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase --phase — 23.1
+**Current focus:** Phase 43 — startup-delay-separation
 
 ## Current Position
 
-Phase: 43 — 시작지연 분리 (LoginManager + SequenceHandler, CO-38-02/03)
-Plan: Planned — 43-01-PLAN.md (1 plan, 1 wave, plan-checker PASS)
-Status: PLAN 완료 (pattern-mapper + planner opus + checker 전 차원 PASS). 4 task(auto×3 + human-verify 체크포인트), 3파일 수정. 다음 = /gsd-execute-phase 43
-Last activity: 2026-06-15 - Phase 43 plan-phase 완료 (43-01-PLAN.md + PATTERNS.md, checker PASS)
+Phase: 43 (startup-delay-separation) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-06-15
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -138,6 +138,7 @@ Last activity: 2026-06-15 - Phase 43 plan-phase 완료 (43-01-PLAN.md + PATTERNS
 | Phase 40.2-fai-2 P01 | 25 | 3 tasks | 5 files |
 | Phase 40.2-fai-2 P02 | 30 | 2 tasks | 3 files |
 | Phase 40.2-fai-2 P03 | 15 | 2 tasks | 2 files |
+| Phase 43-startup-delay-separation P43-01 | 45 | 4 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -276,6 +277,9 @@ Recent decisions affecting current work:
 - FAI-Edge 측정점 카운트: FAIEdgeMeasurementService BuildOverlaysBoth/Single 에서 FAI-Edge1/2 각각 별도 오버레이(Points 단일점) 확인 → 1점=1오버레이 구조, pointCount++ 방식 (OverlayCaptureRenderer.BuildMeasurePointSegment)
 - faiDto 복사 위치: WasDatumSkipped 다음, LastOverlays 앞 — object initializer 순서 유지 (Plan 40.2-03)
 - ExcelExportService 파일명 컬럼: FAI 레벨(measurement 루프 내 fai 참조), 같은 FAI 다중 measurement 동일 파일명 반복 표시 정상 (Plan 40.2-03)
+- D-03(43-01): LoginManager 생성자 동기 Load() 제거 → Preload() 백그라운드 thread 기동 (RawImageSaveService 패턴 차용, Load() 본문 무수정)
+- D-01/D-02(43-01): [STARTUP] READY = Step 7 CollectRecipe 직후 단일 기준 지표 — Before/After 30% 비교용. 실측 55% 단축 (578ms avg vs 1285ms Before)
+- CO-43-01(43-01): 18~20s 흰 화면은 Initialize() 외부(cold JIT + native DLL 로딩 + XAML inflation, MainWindow.ctor 내 Show() 이전) — 별도 신규 phase 에서 해결 결정
 
 ### Quick Tasks Completed
 
@@ -392,9 +396,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 42 context gathered
-Resume file: --resume-file
+Last session: 2026-06-15T04:41:12.450Z
+Stopped at: Completed 43-01-PLAN.md (LoginManager bg preload + READY marker, 55% READY reduction PASS)
+Resume file: None
 Next action: Phase 41.1 UAT (Plan 41.1-03 checkpoint:human-verify) — msbuild Rebuild 확인 → 앱 실행(SIMUL_MODE) → 50회 반복 실행 → 반복도 엑셀 export → Sheet1/Sheet2 내용 확인. 완료 후 SUMMARY.md 3종 작성 + 페이즈 완료 처리.
 
 **v1.1 Phase Map:**

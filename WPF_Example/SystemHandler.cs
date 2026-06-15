@@ -69,6 +69,9 @@ namespace ReringProject {
         public bool IsInitializeFail { get; private set; } = false;
         // Indicates resources have been released.
         public bool IsReleased { get; private set; } = false;
+        //260615 hbk Phase 43.2: 레시피 비동기 로드 완료 신호 — ProcessTest guard 참조용 (D-B)
+        private volatile bool _isRecipeReady = false;
+        public bool IsRecipeReady { get { return _isRecipeReady; } set { _isRecipeReady = value; } }
 
         private SystemHandler() {
             // 1) System setting
@@ -183,6 +186,9 @@ namespace ReringProject {
         }
 
         public bool LoadRecipe(string recipeName) {
+            //260615 hbk Phase 43.2: [STARTUP-WHITE] (f) — 레시피 로드 시작. Dispatcher.Background 지연 후 실제 실행 시점 계측 (D-D)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (f) recipe load start: {0} ms", App.StartupWatch.ElapsedMilliseconds);
+
             // Delegate recipe load to sequence handler.
             // ERecipeFileType.Ini implies recipe config stored in INI format.
             bool result = Sequences.LoadRecipe(recipeName, ERecipeFileType.Ini);
@@ -193,6 +199,9 @@ namespace ReringProject {
             else {
                 Logging.PrintLog((int)ELogType.Trace, "[RECIPE] Load fail : {0}", recipeName);
             }
+
+            //260615 hbk Phase 43.2: [STARTUP-WHITE] (g) — 레시피 로드 완료(성공/실패 무관). 창 표시(e)~레시피 완료(g) 구간 = 비동기 지연 확인 (D-D)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (g) recipe load done (result={0}): {1} ms", result, App.StartupWatch.ElapsedMilliseconds);
             return result;
         }
         

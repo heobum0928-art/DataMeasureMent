@@ -159,10 +159,17 @@ namespace ReringProject.Sequence {
                     result = LoadFromJson(name);
                     break;
             }
+            //260615 hbk Phase 43.2: [STARTUP-WHITE] (f1) — INI 파싱 완료 시점 (A 구간 종료)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (f1) INI parse done: {0} ms", ReringProject.App.StartupWatch.ElapsedMilliseconds);
+
             OnRecipeChanged?.Invoke(this, new RecipeChangedEventArgs(name));
+            //260615 hbk Phase 43.2: [STARTUP-WHITE] (f2) — OnRecipeChanged 완료 시점 (B 구간 종료)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (f2) OnRecipeChanged done: {0} ms", ReringProject.App.StartupWatch.ElapsedMilliseconds);
 
             if (result) ExecOnLoad(name);
-            
+            //260615 hbk Phase 43.2: [STARTUP-WHITE] (f3) — ExecOnLoad 완료 시점 (C 구간 종료)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (f3) ExecOnLoad done: {0} ms", ReringProject.App.StartupWatch.ElapsedMilliseconds);
+
             return result;
         }
 

@@ -191,7 +191,7 @@ Plans:
   - **Plans:** 1 plan
   - Plans:
     - [x] 42-01-PLAN.md — 측정 소비 Rewire(D-01/D-06) + PropertyGrid 항목별 숨김(D-04/D-05) + 회귀 검증
-- [ ] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03)
+- [ ] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03) — Planned 2026-06-15 (1 plan, checker PASS)
   - Success: 앱 기동 LoginManager lazy-load 후 측정 가능 시점 ≥ 30% 단축 / SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
 - [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)

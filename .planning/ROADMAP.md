@@ -1,4 +1,4 @@
-# Roadmap: DataMeasurement
+﻿# Roadmap: DataMeasurement
 
 ## Milestones
 
@@ -235,7 +235,9 @@ Plans:
   - 흰 화면 구간 분해 수치 확보(어디서 18~20초 소모되는지 로그로 입증).
   - 회귀 0: 기동 후 첫 로그인/첫 $TEST/MainView 정상, READY 마커 의미 유지.
 
-**Plans:** TBD (discuss → plan)
+**Plans:** 1 plan
+Plans:
+- [ ] 43.1-01-PLAN.md — App/MainWindow 흰 화면 구간 [STARTUP-WHITE] (a)~(e) 분해 계측 + WPF 네이티브 SplashScreen 즉시 표시(관리 UI 이전, ContentRendered fade close) + splash.png 자산 + 회귀 UAT (CO-43-01)
 
 ### 우선순위 3 — HW 도착 시점
 

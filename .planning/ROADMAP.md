@@ -193,6 +193,7 @@ Plans:
     - [x] 42-01-PLAN.md — 측정 소비 Rewire(D-01/D-06) + PropertyGrid 항목별 숨김(D-04/D-05) + 회귀 검증
 - [x] **Phase 43: 시작지연 분리 (LoginManager + SequenceHandler)** (CO-38-02, CO-38-03) — SIGNED_OFF 2026-06-15 (1 plan, UAT PASS — READY 55% 단축)
   - Success: 앱 기동 LoginManager 백그라운드 프리로드(Step 5 808ms 제거) → [STARTUP] READY avg 578ms (Before ≈1285ms, 55% 단축, 목표 ≥30% PASS). CO-43-01(흰 화면) carry-over.
+- [ ] **Phase 43.1: 기동 체감속도 개선 — 흰 화면 마스킹 + 콜드스타트 계측** (CO-43-01) — 신설 2026-06-15 (Phase 43 carry-over)
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
 - [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)
 
@@ -216,6 +217,25 @@ Plans:
 **Plans:** 1 plan
 Plans:
 - [x] 43-01-PLAN.md — LoginManager 백그라운드 프리로드(Step5 동기 808ms 제거) + [STARTUP] READY 마커 + LoginWindow EnsureLoaded readiness wait + 30% 평균/회귀 UAT — COMPLETE (55% READY 단축, CO-38-02/CO-38-03 종결)
+
+### Phase 43.1: 기동 체감속도 개선 — 흰 화면 마스킹 + 콜드스타트 계측 (CO-43-01) — 신설 2026-06-15
+**Goal**: 앱 기동 시 발생하는 **18~20초 흰 화면**(체감 기동 지연)을 제거/마스킹하여 POC 시연 체감 속도를 개선한다. 먼저 흰 화면 구간을 계측해 지배 원인을 수치화하고, 즉시 표시되는 시각적 피드백(스플래시/로딩)으로 흰 화면을 없앤다.
+**Depends on**: Phase 43 (SIGNED_OFF — [STARTUP] READY 계측 + LoginManager bg 프리로드) / [STARTUP] Total Initialize 계측 기준선
+**Requirements**: CO-43-01
+**Background**: Phase 43 UAT 에서 발견. `[STARTUP] Total Initialize` = ~579ms 인데 실제 더블클릭→창 표시까지 18~20초 흰 화면. 근본 원인은 Initialize() **밖** — `MainWindow` 생성자가 `Show()` **이전에** Initialize()(MainWindow.xaml.cs:78) + InitializeComponent()(:81, 전체 MDI XAML inflation) 를 모두 끝냄. 흰 화면 = process 콜드 JIT(Debug) + Halcon/OpenCV/카메라 네이티브 DLL 로딩 + XAML inflation 의 합. 스플래시 부재(SplashScreen/StartupUri 없음).
+**Scope**:
+  - **계측(measure)**: 흰 화면 구간을 분해하는 Stopwatch 마커 추가 — (a) process→App.Startup, (b) MainWindow ctor 진입, (c) Initialize, (d) InitializeComponent, (e) ctor→Show→첫 paint(ContentRendered/Loaded). 어느 구간이 지배적인지 사용자 실행 로그로 수치화.
+  - **마스킹(mask)**: 흰 화면을 시각적 피드백으로 대체 — WPF `SplashScreen`(즉시 PNG, 관리 UI 이전 표시) 또는 경량 로딩 창. 콜드스타트 비용 위치와 무관하게 흰 화면 체감 제거. **저위험 우선.**
+  - **(조건부) 비핵심 초기화 비동기화**: 계측 결과가 가리키는 비핵심 무거운 구간을 첫 paint 이후로 지연. 측정 준비 보장(첫 $TEST 수용)은 깨지 않음.
+**Out of scope**:
+  - Release/NGEN/ReadyToRun 빌드 전환 자체(별도 검토) — 단, 흰 화면이 Debug 콜드 JIT 지배이면 Release 측정값을 참고로 기록.
+  - 측정 알고리즘/검사 흐름 변경 없음. SystemHandler.Initialize 동작 의미 불변(순서 재배치만 허용).
+**Success Criteria (UAT)**:
+  - 앱 기동 시 흰 화면 대신 즉시(≤1s) 시각 피드백(스플래시/로딩) 표시 — 사용자 체감 "멈춤" 제거.
+  - 흰 화면 구간 분해 수치 확보(어디서 18~20초 소모되는지 로그로 입증).
+  - 회귀 0: 기동 후 첫 로그인/첫 $TEST/MainView 정상, READY 마커 의미 유지.
+
+**Plans:** TBD (discuss → plan)
 
 ### 우선순위 3 — HW 도착 시점
 

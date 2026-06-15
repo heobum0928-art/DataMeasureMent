@@ -57,6 +57,7 @@
 - [x] **CO-38-03
 **: 시작지연 SequenceHandler 분리 (Initialize 가속)
 - [ ] **CO-38-04**: 실HW [STARTUP] 재측정 (HW 도착 후, 또는 Simul 베이스라인)
+- [ ] **CO-43-01**: 기동 체감속도 — 18~20초 흰 화면 마스킹 + 콜드스타트 계측 (Phase 43 carry-over, 흰 화면 = Show() 전 Initialize+InitializeComponent+콜드 JIT)
 - [ ] **CO-23-01**: A1~A5 측정값 UI 표시 (Phase 23 ALG-01 미완 잔여)
 
 ### 우선순위 3 — CXP 프레임 그래버 (장비 도착 시점)
@@ -108,7 +109,8 @@
 | OUT-01, OUT-02 | Phase 40 | not started |
 | OUT-03, OUT-04 | Phase 41 | not started |
 | CO-38-01 | Phase 42 | not started |
-| CO-38-02, CO-38-03 | Phase 43 | not started |
+| CO-38-02, CO-38-03 | Phase 43 | signed_off (READY 55% 단축) |
+| CO-43-01 | Phase 43.1 | not started (흰 화면 마스킹) |
 | CO-38-04 | Phase 44 | not started (HW 도착 시) |
 | CO-23-01 | Phase 45 | not started |
 | HW-01, HW-02 | Phase 46 | not started (HW 미도착) |

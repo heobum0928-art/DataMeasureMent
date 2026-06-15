@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading; //260615 hbk Phase 43: D-03 백그라운드 프리로드 Thread 사용
 
 namespace ReringProject.Login {
     public enum EAccountGrade {
@@ -84,6 +85,8 @@ namespace ReringProject.Login {
         private readonly string ACCOUNT_FILE;
         private static string PASSWORD = "1Alg!Young!Min22"; //16자 이상
         private static readonly string KEY = PASSWORD.Substring(0, 128 / 8); //8bit단위로 나눔
+        private readonly Thread _preloadThread;          //260615 hbk Phase 43: D-03 백그라운드 프리로드 워커
+        private volatile bool _isPreloaded;              //260615 hbk Phase 43: D-04 Load() 완료 ready 신호
 
         public static LoginManager Handle { get; } = new LoginManager();
 
@@ -97,9 +100,12 @@ namespace ReringProject.Login {
 
         private LoginManager() {
             ACCOUNT_FILE = AppDomain.CurrentDomain.BaseDirectory + @"account.db";
-            if (!Load()) {
-                //occurs error or nothing
-            }
+            //260615 hbk Phase 43: D-03 — 생성자 동기 Load() 제거 → Preload() 백그라운드 이동 (기동 임계경로 외부)
+            _preloadThread = new Thread(PreloadWorker) {
+                IsBackground = true,
+                Name = "LoginManagerPreload",
+                Priority = ThreadPriority.BelowNormal
+            };
         }
 
         public string LoginID {
@@ -159,6 +165,35 @@ namespace ReringProject.Login {
                 }
             }
             return false;
+        }
+
+        //260615 hbk Phase 43: D-03 — Initialize() Step 5 에서 1회 호출. IsAlive+_isPreloaded 이중 guard 로 재기동 방지.
+        public void Preload() {
+            if (!_isPreloaded && !_preloadThread.IsAlive) {
+                _preloadThread.Start();
+            }
+        }
+
+        private void PreloadWorker() {
+            //260615 hbk Phase 43: Load() 본문 무수정 — 백그라운드 thread 에서 호출만 함
+            if (!Load()) {
+                //occurs error or nothing (Load() 내부에서 기본 admin 추가)
+            }
+            _isPreloaded = true; //260615 hbk Phase 43: D-04 완료 신호 (EnsureLoaded 가 확인)
+            Logging.PrintLog((int)ELogType.Trace, "[LOGIN] Preload complete: {0} accounts", AccountList.Count); //260615 hbk Phase 43
+        }
+
+        //260615 hbk Phase 43: D-04/D-10 — 로그인 UI 가 호출. 완료면 즉시 반환(대기 0), 미완이면 Join 으로 half-loaded AccountList race 차단.
+        public void EnsureLoaded() {
+            if (_isPreloaded) return;
+            if (_preloadThread.IsAlive) {
+                _preloadThread.Join();
+            }
+            else if (!_isPreloaded) {
+                //프리로드가 한 번도 기동되지 않은 방어 경로 — 동기 Load() 폴백 (UI 진입 시 항상 AccountList 보장)
+                Load();
+                _isPreloaded = true;
+            }
         }
 
         public bool Load() {

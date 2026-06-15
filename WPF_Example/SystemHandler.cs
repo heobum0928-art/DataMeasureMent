@@ -146,10 +146,12 @@ namespace ReringProject {
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 4 SystemThread.Start: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
             prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
 
-            // 5) Login manager
-            Login = LoginManager.Handle;
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 5 LoginManager: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            // 5) Login manager — background preload (측정 임계 경로 외부)
+            //260615 hbk Phase 43: D-03 — 동기 Load() 제거 → 백그라운드 프리로드로 교체 (Step 5 delta 808ms → ~0)
+            Login = LoginManager.Handle;           // Handle getter(인스턴스 취득)만 — 생성자에서 Load() 제거됨(Task 1)
+            LoginManager.Handle.Preload();         //260615 hbk Phase 43: 백그라운드 Thread 기동 (내부 IsAlive+_isPreloaded guard)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 5 LoginManager preload started: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260615 hbk Phase 43
+            prev = sw.ElapsedMilliseconds; //260615 hbk Phase 43
 
             // 6) Hook sequence creation callbacks
             //    Typically sets up per-sequence resources.
@@ -165,6 +167,10 @@ namespace ReringProject {
             Recipes.CollectRecipe();
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 7 CollectRecipe: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
             prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+
+            //260615 hbk Phase 43: [STARTUP] READY — recipe ready + SystemThread alive + Sequences 구성 완료
+            //  = 첫 $TEST 수용 가능 시점 (D-01). Before/After 30% 비교의 단일 기준 지표 (D-02).
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] READY: {0} ms", sw.ElapsedMilliseconds); //260615 hbk Phase 43
 
             // 8) Localization resource
             //    Provides runtime language switching.

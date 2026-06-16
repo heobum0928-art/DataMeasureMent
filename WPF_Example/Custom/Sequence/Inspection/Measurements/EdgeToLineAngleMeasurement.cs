@@ -35,6 +35,12 @@ namespace ReringProject.Sequence
         [ItemsSourceProperty(nameof(EdgeSelectionList))]
         public string EdgeSelection { get; set; } = "All";
 
+        //260616 hbk Phase 51 UAT: 보각(180-θ) 사용. Datum 기준선 반대방향 기준 각도로 보고.
+        //  예) 이미지 0°기준 시계방향 138° → 우측 180°기준 반시계 42° = 180-138.
+        //  raw 가 [0,180] 이므로 보각도 [0,180]. 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
+        [Category("Angle")]
+        public bool UseSupplementaryAngle { get; set; } = false;
+
         // PropertyGrid ComboBox 옵션 래퍼
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
@@ -124,6 +130,12 @@ namespace ReringProject.Sequence
             resultValue = VisionAlgorithmService.AngleLineLine(
                 pr1, pc1, pr2, pc2,
                 daR1, daC1, daR2, daC2);
+
+            //260616 hbk Phase 51 UAT: 보각 옵션 — 기준 방향 반대로 각도 보고 (180-θ). raw [0,180] → 보각도 [0,180]. overlay 는 raw 기하 유지.
+            if (UseSupplementaryAngle)
+            {
+                resultValue = 180.0 - resultValue;
+            }
 
             // 결과 overlay 채움. EdgeToLineDistance 패턴.
             //  1) FAI-Edge1 = 검출 에지 피팅선

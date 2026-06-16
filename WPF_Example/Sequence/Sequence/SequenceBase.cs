@@ -358,6 +358,31 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260616 hbk Phase 51: 선택 Action(SHOT) 인덱스 집합으로 부분 실행 (D-01 SHOT 다중 선택, StartAll 변형)
+        public bool StartSubset(int[] actionIndices, TestPacket packet) {
+            if (State != EContextState.Idle) return false;
+            if (Actions == null || Actions.Length == 0) return false;
+            if (actionIndices == null || actionIndices.Length == 0) return false;
+
+            Array.Sort(actionIndices);
+            int first = actionIndices[0];
+            int last = actionIndices[actionIndices.Length - 1];
+            if (first < 0 || last >= Actions.Length) return false;
+
+            RequestPacket = packet;
+            CurrentActionIndex = first;
+            EndActionIndex = last;
+
+            Context.Clear();
+            IsFinished = false;
+
+            if (OnStart != null) { //260616 hbk Phase 51 OnStart 이후 Command 설정 (StartAll 동일 순서)
+                OnStart.Invoke(Context);
+            }
+            Command = ESequenceCommmand.Start; //260616 hbk Phase 51
+            return true;
+        }
+
         public bool Stop() {
             if (State == EContextState.Idle) return false;
             Context.Timer.Restart();

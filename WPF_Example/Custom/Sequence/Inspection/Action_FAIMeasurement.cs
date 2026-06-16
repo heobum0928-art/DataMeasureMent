@@ -151,15 +151,21 @@ namespace ReringProject.Sequence {
                         HImage image = null;
                         // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
                         #if SIMUL_MODE
+                        //260616 hbk simul-shot-cascade: SHOT 검사 이미지는 ShotParam.SimulImagePath 단일소스.
+                        //  경로 무효/로드 실패 시 공유 VirtualCamera 캐시(BackgroundImagePath 하드코딩 D:\1.bmp /
+                        //  stale LastGrabHalconImage)로 silent fallback 하던 코드를 제거. fallback 은 ShotParam.SimulImagePath 를
+                        //  카메라에 주입하지 않으므로(ApplyFromParam=register only), 시퀀스 전 SHOT 공유 캐시의 임의 이미지를
+                        //  반환해 경로 오류 SHOT 이 엉뚱/직전 이미지로 측정되는 캐스케이드(번짐) 유발. 무효 경로 SHOT 은
+                        //  image=null 로 유지 → Measure 단계 GetImage()==null 로 해당 SHOT 만 측정 skip, SHOT 간 전파 차단.
                         if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
                             try {
                                 image = new HImage(ShotParam.SimulImagePath);
-                            } catch {
+                            } catch (Exception ex) {
                                 image = null;
+                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' SimulImagePath 로드 실패: " + ex.Message);
                             }
-                        }
-                        if (image == null) {
-                            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                        } else {
+                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' SimulImagePath 비어 있거나 파일 없음 — 이 SHOT 만 측정 skip (공유 카메라 캐시 fallback 차단)");
                         }
                         #else
                         image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
@@ -350,6 +356,31 @@ namespace ReringProject.Sequence {
                                 } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
                                     if (sharedSrc != null) sharedSrc.Release();
                                 }
+                            } else {
+                                //260616 hbk simul-shot-cascade: 이미지 미취득(SimulImagePath 무효) SHOT 은 모든 measurement NG 처리.
+                                //  과거엔 공유 카메라 캐시 fallback 으로 항상 이미지가 채워져 이 분기가 사실상 미도달 → fallback 제거 후
+                                //  무효 경로 SHOT 이 image==null 도달. allPass 가 default true 로 남아 잘못 PASS 되는 것을 차단.
+                                allPass = false;
+                                foreach (var fai in ShotParam.FAIList) {
+                                    bool faiHadMeas = fai.Measurements.Count > 0;
+                                    foreach (var meas in fai.Measurements) {
+                                        meas.ClearResult();
+                                        meas.LastSkipReason = "NO_IMAGE"; // UI 'DETECT FAIL' 류 + Excel export 분기 신호
+                                        meas.LastJudgement = false;
+                                        measuredCount++;
+                                    }
+                                    if (faiHadMeas) {
+                                        fai.IsPass = false;
+                                        fai.MeasuredValue = 0;
+                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear();
+                                    } else {
+                                        fai.ClearResult();
+                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear();
+                                    }
+                                }
+                                string shotName = ShotParam.ShotName;
+                                if (shotName == null) shotName = "";
+                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + shotName + "' 검사 이미지 없음 — 모든 measurement NG 처리 (캐스케이드 차단)");
                             }
                         }
                     }

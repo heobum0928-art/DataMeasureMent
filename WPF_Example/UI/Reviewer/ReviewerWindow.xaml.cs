@@ -182,13 +182,13 @@ namespace ReringProject.UI
             bool failOnly = chk_failOnly.IsChecked == true;
             List<ReviewMeasurementRow> visible;
             if (failOnly)
-                visible = _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL").ToList();
+                visible = _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE").ToList(); //260616 hbk NO_IMAGE 불량 포함
             else
                 visible = _allRows;
             dataGrid_measurements.ItemsSource = visible;
 
             // 첫 불량 행 자동 선택 → SelectionChanged 가 해당 FAI 이미지/overlay 로 포커스 (행 생성 후 지연 실행)
-            var firstFail = visible.FirstOrDefault(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL");
+            var firstFail = visible.FirstOrDefault(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE"); //260616 hbk NO_IMAGE 불량 포함
             if (firstFail != null)
             {
                 Dispatcher.BeginInvoke(

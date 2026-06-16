@@ -84,6 +84,10 @@ namespace ReringProject.UI
             {
                 JudgeText = "DETECT FAIL";
             }
+            else if (m.LastSkipReason == "NO_IMAGE") //260616 hbk NO_IMAGE 라벨
+            {
+                JudgeText = "NO IMAGE";
+            }
             else if (m.LastHasResult)
             {
                 if (m.LastJudgement) JudgeText = "OK"; else JudgeText = "NG";

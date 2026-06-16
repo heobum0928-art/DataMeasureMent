@@ -81,6 +81,10 @@ namespace ReringProject.Export
                                 {
                                     ws.Cell(row, 8).Value = "DETECT FAIL";
                                 }
+                                else if (m.LastSkipReason == "NO_IMAGE") //260616 hbk NO_IMAGE 라벨
+                                {
+                                    ws.Cell(row, 8).Value = "NO IMAGE";
+                                }
                                 else if (m.LastHasResult)
                                 {
                                     ws.Cell(row, 8).Value = m.LastJudgement ? "OK" : "NG";

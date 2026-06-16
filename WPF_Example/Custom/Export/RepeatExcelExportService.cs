@@ -60,8 +60,9 @@ namespace ReringProject.Export
                     ws1.Cell(3, 1).Value = "반복횟수";
                     ws1.Cell(3, 2).Value = cycles.Count;
 
-                    string[] h1 = { "Shot", "FAI", "측정명", "N", "Mean", "StdDev", "Range", "Cpk",
-                                    "Nominal", "Tol+", "Tol-", "OK수", "NG수", "DETECT_FAIL수" };
+                    //260616 hbk Phase 51 UAT: CPK/StdDev/Range 제거, Mean→측정값, Nominal→Spec, 편차(측정값-Spec) 추가
+                    string[] h1 = { "Shot", "FAI", "측정명", "N", "측정값", "Spec", "편차",
+                                    "Tol+", "Tol-", "OK수", "NG수", "DETECT_FAIL수" };
                     for (int i = 0; i < h1.Length; i++)
                     {
                         ws1.Cell(5, i + 1).Value = h1[i];
@@ -75,16 +76,14 @@ namespace ReringProject.Export
                         ws1.Cell(r, 2).Value = s.FAIName ?? "";
                         ws1.Cell(r, 3).Value = s.MeasurementName ?? "";
                         ws1.Cell(r, 4).Value = s.N;
-                        ws1.Cell(r, 5).Value = Math.Round(s.Mean, 6);
-                        ws1.Cell(r, 6).Value = Math.Round(s.StdDev, 6);
-                        ws1.Cell(r, 7).Value = Math.Round(s.Range, 6);
-                        ws1.Cell(r, 8).Value = double.IsInfinity(s.Cpk) ? 999.0 : Math.Round(s.Cpk, 4);
-                        ws1.Cell(r, 9).Value = s.NominalValue;
-                        ws1.Cell(r, 10).Value = s.TolerancePlus;
-                        ws1.Cell(r, 11).Value = s.ToleranceMinus;
-                        ws1.Cell(r, 12).Value = s.OkCount;
-                        ws1.Cell(r, 13).Value = s.NgCount;
-                        ws1.Cell(r, 14).Value = s.DetectFailCount;
+                        ws1.Cell(r, 5).Value = Math.Round(s.Mean, 6);                       //측정값
+                        ws1.Cell(r, 6).Value = s.NominalValue;                              //Spec
+                        ws1.Cell(r, 7).Value = Math.Round(s.Mean - s.NominalValue, 6);      //편차 = 측정값 - Spec
+                        ws1.Cell(r, 8).Value = s.TolerancePlus;
+                        ws1.Cell(r, 9).Value = s.ToleranceMinus;
+                        ws1.Cell(r, 10).Value = s.OkCount;
+                        ws1.Cell(r, 11).Value = s.NgCount;
+                        ws1.Cell(r, 12).Value = s.DetectFailCount;
                         r++;
                     }
 

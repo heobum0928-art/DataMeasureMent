@@ -78,7 +78,7 @@ namespace ReringProject.Export
                         ws1.Cell(r, 4).Value = s.N;
                         ws1.Cell(r, 5).Value = Math.Round(s.Mean, 6);                       //측정값
                         ws1.Cell(r, 6).Value = s.NominalValue;                              //Spec
-                        ws1.Cell(r, 7).Value = Math.Round(s.Mean - s.NominalValue, 6);      //편차 = 측정값 - Spec
+                        ws1.Cell(r, 7).Value = Math.Round(Math.Abs(s.Mean - s.NominalValue), 6); //편차 = |측정값 - Spec| (절대값)
                         ws1.Cell(r, 8).Value = s.TolerancePlus;
                         ws1.Cell(r, 9).Value = s.ToleranceMinus;
                         ws1.Cell(r, 10).Value = s.OkCount;

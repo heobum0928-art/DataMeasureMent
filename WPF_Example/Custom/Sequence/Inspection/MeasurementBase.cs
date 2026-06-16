@@ -39,6 +39,12 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Description("하한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")]
         public double ToleranceMinus { get; set; }
 
+        //260616 hbk Phase 51 UAT: 절대값 판정/표시. 켜면 측정값을 |값|으로 처리 — 부호(방향)만 다른 경우 NG 오판 방지.
+        //  예) 측정 -24, Nominal 24 → |-24|=24 로 판정·표시되어 OK. 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
+        [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("절대값 판정. 켜면 측정값의 부호를 무시하고 |값|으로 판정·표시한다 (방향만 반대인 경우 NG 오판 방지).")]
+        public bool UseAbsoluteValue { get; set; } = false;
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public double LastMeasuredValue { get; set; } // 휘발성, INI 저장 제외
 
@@ -79,6 +85,8 @@ namespace ReringProject.Sequence
         /// </summary>
         public bool EvaluateJudgement(double value)
         {
+            //260616 hbk Phase 51 UAT: 절대값 판정 — 부호(방향) 무시, 크기로 판정·표시. LastMeasuredValue 도 |값| 으로 기록(표시/Export 일관).
+            if (UseAbsoluteValue) value = System.Math.Abs(value);
             LastMeasuredValue = value;
             LastHasResult = true; // 측정 성공 마킹 (0.0 도 정상 결과)
             double lower = NominalValue - System.Math.Abs(ToleranceMinus); // 부호 무관 절대값 처리

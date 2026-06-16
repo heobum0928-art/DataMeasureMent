@@ -45,6 +45,12 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Description("절대값 판정. 켜면 측정값의 부호를 무시하고 |값|으로 판정·표시한다 (방향만 반대인 경우 NG 오판 방지).")]
         public bool UseAbsoluteValue { get; set; } = false;
 
+        //260616 hbk Phase 51 UAT: 부호 반전. 켜면 측정값 부호를 뒤집어(-value) 판정·표시 — signed 거리에서 정상 쪽을 +로 읽음.
+        //  절대값과 달리 반대쪽 오검출은 -로 남아 NG 로 잡힘(불량 은폐 안 함). 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
+        [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("부호 반전. 켜면 측정값의 부호를 뒤집어(-value) 판정·표시한다. signed 거리에서 정상 쪽을 양수로 읽되 반대쪽 오검출은 음수로 남아 NG로 잡힌다.")]
+        public bool InvertSign { get; set; } = false;
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public double LastMeasuredValue { get; set; } // 휘발성, INI 저장 제외
 
@@ -85,7 +91,8 @@ namespace ReringProject.Sequence
         /// </summary>
         public bool EvaluateJudgement(double value)
         {
-            //260616 hbk Phase 51 UAT: 절대값 판정 — 부호(방향) 무시, 크기로 판정·표시. LastMeasuredValue 도 |값| 으로 기록(표시/Export 일관).
+            //260616 hbk Phase 51 UAT: 부호 보정 — 반전(-value) 후 절대값(|value|) 순. signed 거리/방향 규약 맞춤. LastMeasuredValue 도 보정값으로 기록(표시/Export 일관).
+            if (InvertSign) value = -value;
             if (UseAbsoluteValue) value = System.Math.Abs(value);
             LastMeasuredValue = value;
             LastHasResult = true; // 측정 성공 마킹 (0.0 도 정상 결과)

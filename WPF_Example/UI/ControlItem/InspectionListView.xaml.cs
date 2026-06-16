@@ -846,6 +846,8 @@ namespace ReringProject.UI {
 
             ICameraParam camParam = SelectedParam as ICameraParam;
             mParentWindow.mainView.LoadAndDisplay(camParam);
+            //260616 hbk Phase 51 UAT: SHOT Load 후 SimulImagePath 자동속성 write-back은 INPC 미발동 → PropertyGrid 강제 재바인딩 (Datum 분기와 동일 처리)
+            RefreshParamEditor();
         }
 
         // SourceShotName으로 ShotConfig 조회, 없으면 Shots[0] fallback

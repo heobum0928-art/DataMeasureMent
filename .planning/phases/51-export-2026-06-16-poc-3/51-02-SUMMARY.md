@@ -3,16 +3,19 @@ phase: 51-export-2026-06-16-poc-3
 plan: 02
 type: execute
 wave: 2
-status: uat_in_progress
+status: signed_off
 requirements: [BATCH-01]
 ---
 
-## UAT 진행 (2026-06-16, 실측 페어)
+## UAT 결과 (2026-06-16, 실측 페어) — 전 항목 PASS ✅
 
 - ✅ SHOT 다중 체크 → 일괄검사 → 1사이클 실행 + 누적 (DTO 29측정 정상, Nom/Tol 전부 채워짐 진단 확인)
 - ✅ 일괄Export → 단일 xlsx, 전 SHOT/FAI 행 분리, 새 포맷 적용
 - ✅ 공차 표시 이슈 = 엑셀 컬럼 폭에 가려진 표시 문제로 종결 (데이터·DTO·통계·출력 전부 정상, 코드 버그 아님)
-- ⏳ 미확인: Top+Bottom 교차 차단 모달 / 단일 RUN 회귀 / cycle 중복저장 0
+- ✅ Top+Bottom 교차 차단 모달
+- ✅ 단일 RUN(btn_start) 회귀 0
+- ✅ cycle 중복저장 0 (51-01 SaveAsync 미호출 검증)
+- ✅ SHOT 이미지 로드 후 SimulImagePath 즉시 갱신 (hotfix f2a376a)
 
 ### UAT 피드백 반영 (commit 5be5ed8)
 - 엑셀 포맷 정비: CPK/StdDev/Range 제거, Mean→측정값, Nominal→Spec, 편차(측정값-Spec) 컬럼 추가. (RepeatExcelExportService 공유 → ReviewerWindow 반복도 Export 도 동일 포맷)

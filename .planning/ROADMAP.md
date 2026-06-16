@@ -337,7 +337,7 @@ Plans:
 | 5 | 48 | Protocol v2.7 TEST/RESULT | PROTO-01/02 | Not started (POC 후) | TBD | — |
 | 5 | 49 | Protocol v2.7 3-state/Cycle | PROTO-03/04/05 | Not started (POC 후) | TBD | — |
 | 5 | 50 | Protocol v2.7 회귀 시험 | PROTO-06 | Not started (POC 후) | TBD | — |
-| 1 | 51 | 시퀀스 일괄 검사 & Export | BATCH-01 | Not started | TBD | — |
+| 1 | 51 | 시퀀스 일괄 검사 & Export | BATCH-01 | Complete (signed off 2026-06-16) | 2026-06-16 | UAT 전항목 PASS |
 | 1 | 52 | 이미지 수평 보정 (Datum 에지) | LEVEL-01 | Not started | TBD | — |
 | 1 | 53 | 픽셀 캘리브레이션 (체커보드) | CAL-01 | Not started | TBD | — |
 

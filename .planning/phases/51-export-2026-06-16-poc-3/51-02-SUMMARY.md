@@ -3,9 +3,22 @@ phase: 51-export-2026-06-16-poc-3
 plan: 02
 type: execute
 wave: 2
-status: code_complete_pending_uat
+status: uat_in_progress
 requirements: [BATCH-01]
 ---
+
+## UAT 진행 (2026-06-16, 실측 페어)
+
+- ✅ SHOT 다중 체크 → 일괄검사 → 1사이클 실행 + 누적 (DTO 29측정 정상, Nom/Tol 전부 채워짐 진단 확인)
+- ✅ 일괄Export → 단일 xlsx, 전 SHOT/FAI 행 분리, 새 포맷 적용
+- ✅ 공차 표시 이슈 = 엑셀 컬럼 폭에 가려진 표시 문제로 종결 (데이터·DTO·통계·출력 전부 정상, 코드 버그 아님)
+- ⏳ 미확인: Top+Bottom 교차 차단 모달 / 단일 RUN 회귀 / cycle 중복저장 0
+
+### UAT 피드백 반영 (commit 5be5ed8)
+- 엑셀 포맷 정비: CPK/StdDev/Range 제거, Mean→측정값, Nominal→Spec, 편차(측정값-Spec) 컬럼 추가. (RepeatExcelExportService 공유 → ReviewerWindow 반복도 Export 도 동일 포맷)
+
+### 논의 종결 (코드 변경 0)
+- SimulImagePath: "이미지 로드" 버튼이 SetLatestImagePath 로 자동 기록(타이핑 불필요). 공유캐시 fallback 은 simul-shot-cascade 로 의도적 제거됨. 사용자 결정 = "어떤 이미지인지 확인용으로 그대로 둔다" → PropertyGrid 노출 유지.
 
 # 51-02 SUMMARY — SHOT 다중 선택 일괄 검사 + 단일 xlsx Export (UI)
 

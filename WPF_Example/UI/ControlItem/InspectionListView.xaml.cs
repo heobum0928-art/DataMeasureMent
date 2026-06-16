@@ -26,6 +26,10 @@ namespace ReringProject.UI {
         // SelectedObject 재할당 중 ComboBox 초기화 이벤트가 bubble되어 SelectionChanged 무한루프가 발생하는 것을 차단
         private bool _isRebinding = false;
 
+        //260616 hbk Phase 51 BATCH-01: 일괄 검사 누적 결과 + 서비스 인스턴스 (UI 소유, static 금지)
+        private List<CycleResultDto> _batchAccumulated = new List<CycleResultDto>();
+        private BatchRunService _batchService;
+
         // 자동 속성(set;/get;)은 INotifyPropertyChanged 미발동 → SelectedObject null 후 재할당으로 강제 재렌더
         public void RefreshParamEditor() {
             if (ParamEditor == null) return;
@@ -432,6 +436,114 @@ namespace ReringProject.UI {
                 localIdx++;
             }
             return -1;
+        }
+
+        //260616 hbk Phase 51: 트리에서 체크된 SHOT 노드 수집 (재귀)
+        private void CollectCheckedShots(NodeViewModel node, List<NodeViewModel> acc) {
+            if (node == null) return;
+            if (node.IsChecked && node.IsCheckboxVisible) {
+                acc.Add(node);
+            }
+            foreach (NodeViewModel child in node.Children) {
+                CollectCheckedShots(child, acc);
+            }
+        }
+
+        //260616 hbk Phase 51 BATCH-01: 선택 SHOT 일괄 검사 (D-01/D-02/D-03)
+        private void Btn_batchRun_Click(object sender, RoutedEventArgs e) {
+            var root = treeListBox_sequence.Items.Count > 0 ? treeListBox_sequence.Items[0] as NodeViewModel : null;
+            var checkedShots = new List<NodeViewModel>();
+            if (root != null) {
+                CollectCheckedShots(root, checkedShots);
+            }
+
+            if (checkedShots.Count == 0) {
+                CustomMessageBox.Show("일괄 검사", "검사할 SHOT 을 체크하세요.", MessageBoxImage.Warning);
+                return;
+            }
+
+            // D-02: 모든 체크 SHOT 이 동일 시퀀스 소속이어야 함 (Top끼리 / Bottom끼리)
+            ESequence seqID = checkedShots[0].SequenceID;
+            foreach (NodeViewModel n in checkedShots) {
+                if (n.SequenceID != seqID) {
+                    CustomMessageBox.Show("일괄 검사",
+                        "한 시퀀스 내의 SHOT 만 함께 선택할 수 있습니다.\n(Top 끼리 / Bottom 끼리)",
+                        MessageBoxImage.Error);
+                    return;
+                }
+            }
+
+            if (!SystemHandler.Handle.Sequences.IsIdle) {
+                CustomMessageBox.Show("일괄 검사", "시퀀스가 이미 실행 중입니다.", MessageBoxImage.Error);
+                return;
+            }
+
+            var seqBase = SystemHandler.Handle.Sequences[seqID];
+            InspectionSequence inspSeq = seqBase as InspectionSequence;
+            if (inspSeq == null) {
+                CustomMessageBox.Show("일괄 검사", "InspectionSequence 를 찾을 수 없습니다.", MessageBoxImage.Error);
+                return;
+            }
+
+            var mgr = SystemHandler.Handle.Sequences.RecipeManager;
+            var indices = new List<int>();
+            foreach (NodeViewModel n in checkedShots) {
+                ShotConfig shot = n.Param as ShotConfig;
+                if (shot == null) continue;
+                int localIdx = ComputeLocalShotIndex(mgr, shot, seqID);
+                if (localIdx >= 0) indices.Add(localIdx);
+            }
+
+            if (indices.Count == 0) {
+                CustomMessageBox.Show("일괄 검사", "선택 SHOT 의 인덱스를 해석할 수 없습니다.", MessageBoxImage.Error);
+                return;
+            }
+
+            if (_batchService != null && _batchService.IsRunning) {
+                CustomMessageBox.Show("일괄 검사", "일괄 검사가 이미 진행 중입니다.", MessageBoxImage.Warning);
+                return;
+            }
+
+            _batchService = new BatchRunService();
+            _batchService.OnBatchComplete += OnBatchComplete;
+            _batchService.StartBatch(inspSeq, indices);
+        }
+
+        //260616 hbk Phase 51 BATCH-01: 일괄 검사 1사이클 완료 → 누적 + Export 버튼 활성 (D-04 append, D-05 수동 Export)
+        private void OnBatchComplete(List<CycleResultDto> cycles) {
+            Dispatcher.Invoke(new Action(delegate {
+                if (cycles != null) {
+                    _batchAccumulated.AddRange(cycles);
+                }
+                btn_batchExport.IsEnabled = (_batchAccumulated.Count > 0);
+            }));
+        }
+
+        //260616 hbk Phase 51 BATCH-01: 누적분 수동 엑셀 Export (D-05/D-06 Phase 40 포맷 재사용)
+        private void Btn_batchExport_Click(object sender, RoutedEventArgs e) {
+            if (_batchAccumulated == null || _batchAccumulated.Count == 0) {
+                CustomMessageBox.Show("일괄 Export", "먼저 일괄 검사를 실행하세요.", MessageBoxImage.Warning);
+                return;
+            }
+
+            string initialDir = SystemHandler.Handle.Setting.ResultSavePath;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+            if (recipeName == null) recipeName = "";
+
+            var dlg = new Microsoft.Win32.SaveFileDialog();
+            dlg.Filter = "Excel 파일 (*.xlsx)|*.xlsx";
+            dlg.FileName = "batch_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xlsx";
+            dlg.InitialDirectory = initialDir;
+
+            if (dlg.ShowDialog() == true) {
+                bool ok = ReringProject.Export.RepeatExcelExportService.Export(
+                    _batchAccumulated, recipeName, dlg.FileName);
+                string msg;
+                if (ok) msg = "저장 완료:\n" + dlg.FileName; else msg = "export 실패 (로그 확인)";
+                MessageBoxImage icon;
+                if (ok) icon = MessageBoxImage.Information; else icon = MessageBoxImage.Error;
+                CustomMessageBox.Show("일괄 엑셀 Export", msg, icon);
+            }
         }
 
         public void SetSelectionChange(string seqName) {

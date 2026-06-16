@@ -10,6 +10,8 @@
              
              d:DesignHeight="800" d:DesignWidth="400" MinWidth="200" Loaded="ListView_Loaded">
     <UserControl.Resources>
+        <!-- 260616 hbk Phase 51: SHOT 체크박스 가시성 (IsCheckboxVisible bool → Visibility) -->
+        <BooleanToVisibilityConverter x:Key="boolToVis"/>
         <!-- 260530 hbk Phase 39.2 D-G4 hotfix — Geometry resources + converter moved to App.xaml (Application.Resources scope).
              Reason: IconKeyToGeometryConverter reads Application.Current.Resources only; UserControl.Resources scope did not match → icons rendered as null. -->
         <Style TargetType="Button" x:Key="disalbedStyle">
@@ -56,6 +58,10 @@
                       Fill="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource Self}}"
                       Data="{Binding IconKey, Converter={StaticResource iconKeyToGeometry}}"/>
                 <propToolsWpf:EditableTextBlock Grid.Column="1" Text="{Binding Name}" IsEditing="{Binding IsEditing}"/>
+                <!-- 260616 hbk Phase 51: SHOT 다중 선택 체크박스 (SHOT 노드만 노출) -->
+                <CheckBox Grid.Column="2" VerticalAlignment="Center" Margin="4 0 4 0"
+                          IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                          Visibility="{Binding IsCheckboxVisible, Converter={StaticResource boolToVis}}"/>
             </Grid>
         </DataTemplate>
         <!-- property grid customize-->
@@ -147,10 +153,13 @@
 
             <!-- Recipe Name -->
             <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3">
+                <!-- 260616 hbk Phase 51 BATCH-01: 일괄검사/Export 버튼 추가로 3열 → 5열 확장 -->
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="6*"></ColumnDefinition>
-                    <ColumnDefinition Width="3*"></ColumnDefinition>
-                    <ColumnDefinition Width="2*"></ColumnDefinition>
+                    <ColumnDefinition Width="6*"></ColumnDefinition>  <!-- RecipeName -->
+                    <ColumnDefinition Width="2*"></ColumnDefinition>  <!-- btn_start (RUN) -->
+                    <ColumnDefinition Width="3*"></ColumnDefinition>  <!-- btn_batchRun (일괄검사) -->
+                    <ColumnDefinition Width="3*"></ColumnDefinition>  <!-- btn_batchExport (일괄Export) -->
+                    <ColumnDefinition Width="2*"></ColumnDefinition>  <!-- btn_RecipeSelect (...) -->
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition></RowDefinition>
@@ -163,7 +172,15 @@
                         <TextBlock Text="RUN"></TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="btn_RecipeSelect" Grid.Column="2" Grid.Row="0" Margin="2,2,2,2" FontSize="18" Content="..." ContextMenu="{StaticResource menu_control}" Click="Btn_RecipeSelect_Click">
+                <!-- 260616 hbk Phase 51 BATCH-01: 선택 SHOT 일괄 검사 -->
+                <Button x:Name="btn_batchRun" Grid.Column="2" Grid.Row="0" Margin="2,2,2,2" FontSize="16" Click="Btn_batchRun_Click">
+                    <TextBlock Text="일괄검사" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                </Button>
+                <!-- 260616 hbk Phase 51 BATCH-01: 누적분 수동 엑셀 Export (D-05) -->
+                <Button x:Name="btn_batchExport" Grid.Column="3" Grid.Row="0" Margin="2,2,2,2" FontSize="16" IsEnabled="False" Click="Btn_batchExport_Click">
+                    <TextBlock Text="일괄Export" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                </Button>
+                <Button x:Name="btn_RecipeSelect" Grid.Column="4" Grid.Row="0" Margin="2,2,2,2" FontSize="18" Content="..." ContextMenu="{StaticResource menu_control}" Click="Btn_RecipeSelect_Click">
                 </Button>
             </Grid>
             

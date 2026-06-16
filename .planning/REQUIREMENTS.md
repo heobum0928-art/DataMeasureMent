@@ -59,7 +59,7 @@
 - [ ] **CO-38-04**: 실HW [STARTUP] 재측정 (HW 도착 후, 또는 Simul 베이스라인)
 - [x] **CO-43-01
 **: 기동 체감속도 — 18~20초 흰 화면 마스킹 + 콜드스타트 계측 (Phase 43.1 SIGNED_OFF — 스플래시 ✓ + (e)=21513ms 계측 ✓ + 레시피 로딩 14787ms 지배 구간 확인 → Phase 43.2에서 비동기화)
-- [ ] **CO-23-01**: A1~A5 측정값 UI 표시 (Phase 23 ALG-01 미완 잔여)
+- [x] **CO-23-01**: A1~A5 측정값 UI 표시 (Phase 23 ALG-01 미완 잔여) — ✅ RESOLVED 2026-06-16 (Phase 40/40.1/40.2 측정값 표시 UI 구현으로 충족, 별도 Phase 45 불필요)
 
 ### 우선순위 3 — CXP 프레임 그래버 (장비 도착 시점)
 
@@ -114,7 +114,7 @@
 | CO-43-01 | Phase 43.1 | signed_off (스플래시 마스킹 + 계측 완료) |
 | CO-43-01 후속 | Phase 43.2 | not started (레시피 로딩 비동기화) |
 | CO-38-04 | Phase 44 | not started (HW 도착 시) |
-| CO-23-01 | Phase 45 | not started |
+| CO-23-01 | Phase 45 | RESOLVED 2026-06-16 (Phase 40 시리즈로 충족) |
 | HW-01, HW-02 | Phase 46 | not started (HW 미도착) |
 | QUAL-01 | Phase 47 | not started (여유 시) |
 | PROTO-01, PROTO-02 | Phase 48 | not started (POC 후) |

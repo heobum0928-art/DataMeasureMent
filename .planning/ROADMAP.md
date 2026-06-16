@@ -167,7 +167,7 @@ Plans:
 
 - [ ] **Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀** (OUT-01, OUT-02)
   - Success: 날짜/원본 폴더 로드 시 결과 이미지 재현 / 1회 검사 결과 xlsx 생성 (메타+측정값+판정+이미지 링크)
-- [ ] **Phase 41.1: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계** (OUT-03, OUT-04)
+- [ ] **Phase 41.1: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계** (OUT-03, OUT-04) — ⏸ DEFERRED 2026-06-16 (3 plans 계획 완료/실행 0건, 검증용 반복 이미지 부족 → 이미지 확보 후 재개)
   - Success: 50회 반복 시퀀스 자동 실행 + mean/stddev/range/Cpk xlsx / 알고리즘별(TLI/CTH/VTH/Edge 6종+) 통계 표 생성
 
 ### Phase 41.1: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계 (신설 2026-06-12)
@@ -197,7 +197,52 @@ Plans:
   - Success: 스플래시 ≤1s 표시(흰 화면 마스킹 ✓) + (d)=6726ms/(e)=21513ms 구간 분해 수치 확보 + 회귀 0. 지배 구간 = 레시피 로딩(~14787ms) → Phase 43.2에서 비동기화.
 - [x] **Phase 43.2: 기동 체감속도 단축 — 레시피 로딩 비동기화** (CO-43-01 후속) — SIGNED_OFF 2026-06-15 (3 plans, UAT PASS — 창 표시 21513ms→3129ms 85% 단축 + 레시피 로드 11s 병목(ParamBase.Load 예외 storm 4948회/로드) 제거)
 - [ ] **Phase 44: 실HW [STARTUP] 재측정** (CO-38-04, HW 도착 시 / 미도착 시 Simul 베이스라인)
-- [ ] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여)
+- [x] **Phase 45: A1~A5 측정값 UI 표시** (CO-23-01, Phase 23 ALG-01 잔여) — ✅ RESOLVED 2026-06-16 (Phase 40/40.1/40.2 리뷰어·결과화면·Export 가 측정값 표시를 이미 구현 — MainView.xaml / ReviewerWindow.xaml / MeasurementResultRow.cs. 별도 phase 불필요)
+
+### 우선순위 1 — POC 신규 기능 (신설 2026-06-16)
+
+- [ ] **Phase 51: 시퀀스 일괄 검사 & 일괄 Export** (BATCH-01)
+  - Success: Top/Bottom 시퀀스 단위로 전체 SHOT을 한 번에 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 일괄 추출 (SHOT 개별 트리거 불필요) / SHOT 개별 검사 회귀 0
+- [ ] **Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬)** (LEVEL-01)
+  - Success: Datum 수평 에지 검출 각도와 수평선의 각도차로 입력 이미지를 회전 정렬(레벨링) 후 측정 / 회귀 0
+- [ ] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01)
+  - Success: 별도 캘리브 창에서 체커보드(라이브 정지/촬상 또는 이미지 로드) → 픽셀 해상도(mm/px) 산출 → 측정 PixelResolution 적용
+
+### Phase 51: 시퀀스 일괄 검사 & 일괄 Export (신설 2026-06-16 — POC 신규 #3)
+**Goal**: 현재 SHOT 노드를 개별 트리거하는 검사 방식을, 시퀀스(Top/Bottom) 단위로 전체 SHOT을 한 번에 실행하여 전 측정 결과를 누적하고 엑셀로 일괄 추출할 수 있게 한다. SIMUL 모드 우선, 실 모드는 검사 사이클마다 결과를 채우는(append) 방식.
+**Depends on**: Phase 40 (Export I — CycleResultSerializer / ExcelExportService) , Phase 39 (검사 워크플로우 E2E) signed_off
+**Requirements**: BATCH-01
+**Background**: 현재 검사는 SHOT 별로 트리거되어, 엑셀 추출 시 시퀀스 전체 데이터를 한 번에 얻기 어렵다. POC 2026-06-30 산출물은 Top/Bottom 시퀀스 전체 측정값이 한 번에 나와야 한다.
+**Scope** (discuss 에서 확정):
+  - 시퀀스 단위 일괄 실행 진입점(UI 버튼/명령) + 전 SHOT 순차 실행 + 전 결과 누적
+  - Phase 40 Export(CycleResultSerializer / ExcelExportService) 재사용한 일괄 xlsx
+  - SIMUL: 각 SHOT SimulImagePath 순회 실행 / 실 모드: 검사 사이클마다 결과 append
+**Out of scope**: 50회 반복도(Phase 41.1), 신규 측정 알고리즘
+**Success Criteria (UAT)**:
+  - Top/Bottom 일괄 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 로 전 결과 추출
+  - SHOT 개별 트리거 검사 회귀 0
+
+### Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬) (신설 2026-06-16 — POC 신규 #1)
+**Goal**: Datum 수평 에지를 검출해 수평선과의 각도차로 입력 이미지를 회전 정렬(레벨링)한 뒤 측정한다.
+**Depends on**: DatumFindingService (수평 2-ROI concat 라인 피팅 — 기존)
+**Requirements**: LEVEL-01
+**Background**: 사용자 제공 HDevelop 참조 — UnionContours 2개 `fit_line_contour_xld` → `get_contour_xld` → `gen_contour_polygon_xld`(LongLine) → `fit_line_contour_xld` → `angle_lx` 로 각도 산출 → 이미지 회전. DatumFindingService 의 수평 2-ROI concat 피팅(TryFindVerticalTwoHorizontal 등)과 동일 파이프라인.
+**Scope** (discuss 에서 확정):
+  - Datum 수평 에지 각도 산출 + 이미지 회전 보정 적용
+  - 적용 시점(검사 전 전처리 / Datum 검출 후) 및 적용 범위(시퀀스/SHOT) 확정
+**Success Criteria (UAT)**:
+  - 기울어진 입력 이미지가 수평 정렬된 후 측정 / 기존 측정 회귀 0
+
+### Phase 53: 픽셀 캘리브레이션 (체커보드) (신설 2026-06-16 — POC 신규 #2)
+**Goal**: 체커보드(격자 white/black) 기반 픽셀 캘리브레이션 기능 — 라이브 정지/촬상 또는 이미지 로드로 격자 이미지를 입력받아 픽셀 해상도(mm/px)를 산출하고 측정에 적용한다. 별도 창으로 제공.
+**Depends on**: Phase 42 (ShotConfig.PixelResolution 단일소스) signed_off
+**Requirements**: CAL-01
+**Background**: 현재 픽셀 해상도는 수동 입력. 체커보드 캘리브로 산출/적용이 필요. 라이브 중에는 라이브 정지 후 촬상, 또는 이미지 로드로도 가능해야 하며, 산출값이 픽셀 해상도에 반영되어야 한다.
+**Scope** (discuss 에서 확정):
+  - 별도 캘리브 창(라이브 정지→촬상 or 이미지 로드) + 격자 검출 + mm/px 산출 + PixelResolution 반영
+  - 캘리브 알고리즘(HALCON caltab/find_caltab vs 격자 코너 검출) 확정
+**Success Criteria (UAT)**:
+  - 체커보드 입력 → 픽셀 해상도 산출 → 측정 PixelResolution 적용 / 이미지 로드 모드 동작
 
 ### Phase 43: 시작지연 분리 (LoginManager + SequenceHandler) (CO-38-02, CO-38-03)
 **Goal**: 앱 기동 시 동기적으로 수행되는 무거운 초기화(계정 DB 로드, 레시피 동기 로딩)를 지연/분리하여 "측정 가능 시점"까지의 시간을 단축한다. Phase 38 에서 추가한 `[STARTUP]` Stopwatch 계측을 기준선으로, 측정 가능 시점이 ≥30% 단축됨을 입증한다.
@@ -286,12 +331,15 @@ Plans:
 | 2 | 42 | 픽셀분해능 단일소스 | CO-38-01 | SIGNED_OFF | 1 | 2026-06-15 |
 | 2 | 43 | 시작지연 분리 | CO-38-02/03 | SIGNED_OFF | 1 | 2026-06-15 |
 | 2 | 44 | 실HW STARTUP 재측정 | CO-38-04 | Not started (HW) | TBD | — |
-| 2 | 45 | A1~A5 측정값 UI | CO-23-01 | Not started | TBD | — |
+| 2 | 45 | A1~A5 측정값 UI | CO-23-01 | RESOLVED (Phase 40 시리즈) | — | 2026-06-16 |
 | 3 | 46 | CXP 그래버 통합 | HW-01/02 | Not started (HW) | TBD | — |
 | 4 | 47 | 헝가리안 리팩토링 | QUAL-01 | Not started | TBD | — |
 | 5 | 48 | Protocol v2.7 TEST/RESULT | PROTO-01/02 | Not started (POC 후) | TBD | — |
 | 5 | 49 | Protocol v2.7 3-state/Cycle | PROTO-03/04/05 | Not started (POC 후) | TBD | — |
 | 5 | 50 | Protocol v2.7 회귀 시험 | PROTO-06 | Not started (POC 후) | TBD | — |
+| 1 | 51 | 시퀀스 일괄 검사 & Export | BATCH-01 | Not started | TBD | — |
+| 1 | 52 | 이미지 수평 보정 (Datum 에지) | LEVEL-01 | Not started | TBD | — |
+| 1 | 53 | 픽셀 캘리브레이션 (체커보드) | CAL-01 | Not started | TBD | — |
 
 > v1.0/v1.1 phase 진행표 전문: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md), [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
 

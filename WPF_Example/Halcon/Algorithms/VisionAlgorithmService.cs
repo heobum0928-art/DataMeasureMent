@@ -1149,5 +1149,37 @@ namespace ReringProject.Halcon.Algorithms
             }
             catch { }
         }
+
+        //260617 hbk Phase 52 LEVEL-01 임의각 이미지 회전 (D-02 입력 이미지 실제 회전 — Datum 검출+측정 양쪽).
+        //  HImage.RotateImage 는 90 배수 전용이라 레벨링 부적합 → affine_trans_image + hom_mat2d_rotate(회전중심=이미지 중심).
+        //  경계처리: adapt_image_size="false" (고정 크기) — taught ROI 좌표 정합 보존(방식 a), 잘림 영역은 'constant' 배경.
+        //  변환경로: HImage 인스턴스 메서드 src.AffineTransImage(HHomMat2D,...) 1순위 (HikCamera.cs RotateImage 인스턴스 패턴 동류).
+        //  실패/근사0 → 원본 복사 폴백 (무회전, 측정 계속, AffineTransformPoint identity 폴백과 동일 정신).
+        public static HImage RotateImageByAngle(HImage src, double angleRad)
+        {
+            if (src == null) return null;
+            // 근사 0 회전 → 보간 생략, 원본 복사
+            if (System.Math.Abs(angleRad) < 1e-6) return src.CopyImage();
+            try
+            {
+                HTuple width, height;
+                src.GetImageSize(out width, out height);
+                double centerRow = (height.D - 1.0) / 2.0;
+                double centerCol = (width.D - 1.0) / 2.0;
+
+                // 회전행렬 = HHomMat2D (HImage 인스턴스 메서드 시그니처와 정합)
+                HHomMat2D mat = new HHomMat2D();
+                mat = mat.HomMat2dRotate(angleRad, centerRow, centerCol);
+
+                // 1순위: HImage 인스턴스 메서드 — 새 HImage 반환 (HObject 중간객체 없음)
+                HImage rotated = src.AffineTransImage(mat, "constant", "false");
+                return rotated;
+            }
+            catch
+            {
+                // 무회전 폴백 (throw 금지)
+                return src.CopyImage();
+            }
+        }
     }
 }

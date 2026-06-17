@@ -29,6 +29,8 @@ namespace ReringProject.UI {
         //260616 hbk Phase 51 BATCH-01: 일괄 검사 누적 결과 + 서비스 인스턴스 (UI 소유, static 금지)
         private List<CycleResultDto> _batchAccumulated = new List<CycleResultDto>();
         private BatchRunService _batchService;
+        //260617 hbk Quick 260617-cq2: 일괄 검사 완료 시 결과 그리드에 펼쳐 표시할 체크 SHOT 목록
+        private List<ShotConfig> _batchShots;
 
         // 자동 속성(set;/get;)은 INotifyPropertyChanged 미발동 → SelectedObject null 후 재할당으로 강제 재렌더
         public void RefreshParamEditor() {
@@ -487,11 +489,16 @@ namespace ReringProject.UI {
 
             var mgr = SystemHandler.Handle.Sequences.RecipeManager;
             var indices = new List<int>();
+            //260617 hbk Quick 260617-cq2: 완료 후 그리드 표시용 체크 SHOT 수집
+            var batchShots = new List<ShotConfig>();
             foreach (NodeViewModel n in checkedShots) {
                 ShotConfig shot = n.Param as ShotConfig;
                 if (shot == null) continue;
                 int localIdx = ComputeLocalShotIndex(mgr, shot, seqID);
-                if (localIdx >= 0) indices.Add(localIdx);
+                if (localIdx >= 0) {
+                    indices.Add(localIdx);
+                    batchShots.Add(shot);
+                }
             }
 
             if (indices.Count == 0) {
@@ -504,6 +511,7 @@ namespace ReringProject.UI {
                 return;
             }
 
+            _batchShots = batchShots; //260617 hbk Quick 260617-cq2: 완료 핸들러에서 그리드 표시에 사용
             _batchService = new BatchRunService();
             _batchService.OnBatchComplete += OnBatchComplete;
             _batchService.StartBatch(inspSeq, indices);
@@ -516,6 +524,11 @@ namespace ReringProject.UI {
                     _batchAccumulated.AddRange(cycles);
                 }
                 btn_batchExport.IsEnabled = (_batchAccumulated.Count > 0);
+                //260617 hbk Quick 260617-cq2: 검사한 체크 SHOT 전체 측정 결과를 그리드에 펼쳐 표시.
+                //  행이 live 측정 객체를 감싸므로 LastMeasuredValue/판정이 즉시 반영됨.
+                if (_inspectionVm != null && _batchShots != null) {
+                    _inspectionVm.ShowMeasurementsForShots(_batchShots);
+                }
             }));
         }
 

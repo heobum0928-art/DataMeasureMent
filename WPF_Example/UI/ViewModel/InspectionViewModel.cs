@@ -58,6 +58,32 @@ namespace ReringProject.UI
             MeasurementResults = rows;
         }
 
+        //260617 hbk Quick 260617-cq2: 일괄 검사 후 체크된 SHOT 들의 모든 측정을 그리드에 펼쳐 표시.
+        //  OnActionSelected 의 단일-shot 평탄화를 다중 shot 으로 확장. 행은 live MeasurementBase 를
+        //  감싸므로 검사 후 LastMeasuredValue 가 이미 채워진 상태. FAIName 은 순수 유지(동일-명 FAI 는
+        //  MainView 가 SourceMeasurement ReferenceEquals 로 구분 — ROI 하이라이트 회귀 0).
+        public void ShowMeasurementsForShots(System.Collections.Generic.List<ShotConfig> shots)
+        {
+            var rows = new ObservableCollection<MeasurementResultRow>();
+            if (shots != null)
+            {
+                foreach (ShotConfig shot in shots)
+                {
+                    if (shot == null) continue;
+                    foreach (FAIConfig fai in shot.FAIList)
+                    {
+                        string faiName = fai.FAIName;
+                        if (faiName == null) faiName = "FAI";
+                        foreach (MeasurementBase meas in fai.Measurements)
+                        {
+                            rows.Add(new MeasurementResultRow(meas, faiName));
+                        }
+                    }
+                }
+            }
+            MeasurementResults = rows;
+        }
+
         public void ClearResults()
         {
             MeasurementResults = new ObservableCollection<MeasurementResultRow>();

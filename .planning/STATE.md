@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 52-01-PLAN.md
-last_updated: "2026-06-17T03:33:07.323Z"
+stopped_at: Completed 52-02-PLAN.md
+last_updated: "2026-06-17T03:55:33.543Z"
 last_activity: 2026-06-17
 progress:
   total_phases: 13
   completed_phases: 10
   total_plans: 39
-  completed_plans: 33
-  percent: 85
+  completed_plans: 34
+  percent: 87
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 52 (datum-2026-06-16-poc-1) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-17
 
@@ -141,6 +141,7 @@ Last activity: 2026-06-17
 | Phase 43-startup-delay-separation P43-01 | 45 | 4 tasks | 3 files |
 | Phase 43.1-startup-perceived-speed P43.1-01 | — | 3/4 tasks (Task 4 checkpoint pending) | 4 files |
 | Phase 52 P01 | 8 | 2 tasks | 3 files |
+| Phase 52 P02 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -285,6 +286,7 @@ Recent decisions affecting current work:
 - [Phase 52-01]: LevelingEnabled = FIXTURE 섹션 수동 키 직렬화(1/0). InspectionSequence 가 ParamBase 미상속이라 자동 직렬화 불가 → DisplayName/DatumCount 패턴 수동 키. IsLevelingReference 는 DatumConfig ParamBase reflection 자동 직렬화(_DATUM_{d}) — Save/Load 코드 0.
 - [Phase 52-01]: 레벨링 각도 캐시(_levelingAngleRad/_levelingComputed + Set/Reset/getter)는 interface-first 멤버 정의+리셋만 제공. 실제 1회 산출은 Plan 02, 소비는 Plan 03. ClearDatumTransforms 에서 ResetLeveling 호출로 datum transform 동일 lifecycle.
 - [Phase 52-01]: 신규 INI bool 토글 회귀 0 패턴 — Save ?1:0 / Load .ToBool() 키 미존재 false 폴백. CameraRole 비활성 시퀀스 보존 = PreserveFixtureFromExisting 섹션 통째 복사로 자동(추가 코드 0), 신규레시피 분기만 기본값 명시.
+- [Phase 52-02] 변환경로 1순위 확정: HHomMat2D.HomMat2dRotate + HImage.AffineTransImage 인스턴스 메서드 — msbuild Debug/x64 PASS, fallback 미사용 (변환경로 1개만 잔존). TryGetLevelingAngle = TryFindVerticalTwoHorizontal 수평 피팅 구간만 재사용 (Math.Atan2 각도, IntersectionLl/hom_mat2d/DetectedOrigin 제외). 둘 다 실패/근사0 시 무회전·false 폴백 throw 0.
 
 ### Quick Tasks Completed
 
@@ -403,8 +405,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-17T03:33:07.312Z
-Stopped at: Completed 52-01-PLAN.md
+Last session: 2026-06-17T03:55:24.519Z
+Stopped at: Completed 52-02-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

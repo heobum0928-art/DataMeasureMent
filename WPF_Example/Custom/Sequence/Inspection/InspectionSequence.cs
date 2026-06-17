@@ -404,5 +404,46 @@ namespace ReringProject.Sequence {
             }
             return _datumTransforms.TryGetValue(datumRef, out transform);
         }
+
+        //260617 hbk Phase 52 LEVEL-01 레벨링 각도 시퀀스 1회 산출 + 캐시 (D-01 기준 Datum, D-03 전 SHOT 공유).
+        //  IsLevelingReference==true 첫 Datum 의 수평 에지로 각도 산출. 이미 산출됐으면(LevelingComputed) 캐시 반환.
+        //  기준 미지정/실패 → false + 0.0 (무회전 폴백, abort 금지 — lenient).
+        public bool TryComputeLevelingAngle(HImage refImage, out double angleRad)
+        {
+            angleRad = 0.0;
+            // 이미 산출됨 → 캐시 반환 (시퀀스당 1회, D-03)
+            if (LevelingComputed)
+            {
+                angleRad = LevelingAngleRad;
+                return true;
+            }
+            if (refImage == null) return false;
+            // 기준 Datum 탐색 (IsLevelingReference 첫 1개)
+            DatumConfig refDatum = null;
+            if (DatumConfigs != null)
+            {
+                foreach (var d in DatumConfigs)
+                {
+                    if (d != null && d.IsLevelingReference) { refDatum = d; break; }
+                }
+            }
+            if (refDatum == null)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[Leveling] 레벨링 기준 Datum(IsLevelingReference) 미지정 — 무회전 진행");
+                return false;
+            }
+            var service = new DatumFindingService();
+            double computed;
+            string lvlError;
+            if (!service.TryGetLevelingAngle(refImage, refDatum, out computed, out lvlError))
+            {
+                string e = lvlError; if (e == null) e = "";
+                Logging.PrintLog((int)ELogType.Error, "[Leveling] 각도 산출 실패 (무회전 진행): " + e);
+                return false;
+            }
+            SetLevelingAngle(computed);
+            Logging.PrintLog((int)ELogType.Trace, "[Leveling] 각도 산출 완료: " + (computed * 180.0 / System.Math.PI).ToString("F3") + " deg");
+            return true;
+        }
     }
 }

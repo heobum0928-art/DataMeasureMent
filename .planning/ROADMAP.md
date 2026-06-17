@@ -232,6 +232,12 @@ Plans:
   - 적용 시점(검사 전 전처리 / Datum 검출 후) 및 적용 범위(시퀀스/SHOT) 확정
 **Success Criteria (UAT)**:
   - 기울어진 입력 이미지가 수평 정렬된 후 측정 / 기존 측정 회귀 0
+**Plans:** 4 plans (3 waves) -- planned 2026-06-17
+Plans:
+- [ ] 52-01-PLAN.md -- InspectionSequence LevelingEnabled + leveling angle cache + DatumConfig.IsLevelingReference + FIXTURE INI save/load (D-01/D-04) [Wave 1]
+- [ ] 52-02-PLAN.md -- DatumFindingService.TryGetLevelingAngle (Math.Atan2 angle) + VisionAlgorithmService.RotateImageByAngle (affine_trans_image) [Wave 1]
+- [ ] 52-03-PLAN.md -- InspectionSequence.TryComputeLevelingAngle (seq-once cache) + Action_FAIMeasurement EStep.Level grab rotation (D-02/D-03) [Wave 2]
+- [ ] 52-04-PLAN.md -- integration build + SIMUL UAT 5 + sign-off [Wave 3]
 
 ### Phase 53: 픽셀 캘리브레이션 (체커보드) (신설 2026-06-16 — POC 신규 #2)
 **Goal**: 체커보드(격자 white/black) 기반 픽셀 캘리브레이션 기능 — 라이브 정지/촬상 또는 이미지 로드로 격자 이미지를 입력받아 픽셀 해상도(mm/px)를 산출하고 측정에 적용한다. 별도 창으로 제공.

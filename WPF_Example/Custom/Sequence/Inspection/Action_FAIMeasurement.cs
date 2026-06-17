@@ -90,6 +90,20 @@ namespace ReringProject.Sequence {
                         try {
                             if (refDatum != null) refImage = GrabOrLoadDatumImage(refDatum);
                             if (refImage != null) {
+                                //260617 hbk WR-02 SIMUL 역할 분리 진단 로그 — 레벨링 각도 산출 소스(기준 Datum)와
+                                //  실제 측정 SHOT 소스가 다르면 교정각이 측정 이미지의 실제 기울기와 불일치할 수 있음(SIMUL 한정,
+                                //  실장비는 동일 라이브 프레임이라 무관). 두 경로가 다를 때만 경고 — UAT 셋업에서 동일 기울기
+                                //  이미지를 쓰도록 진단 신호 제공. 동작/각도 산출 로직은 변경 없음(D-02/D-03 불변).
+                                #if SIMUL_MODE
+                                string lvlSrc = (refDatum != null && !string.IsNullOrEmpty(refDatum.TeachingImagePath) && File.Exists(refDatum.TeachingImagePath))
+                                    ? refDatum.TeachingImagePath
+                                    : (ShotParam != null ? ShotParam.SimulImagePath : null);
+                                string measSrc = (ShotParam != null) ? ShotParam.SimulImagePath : null;
+                                if (!string.IsNullOrEmpty(lvlSrc) && !string.IsNullOrEmpty(measSrc)
+                                    && !string.Equals(lvlSrc, measSrc, StringComparison.OrdinalIgnoreCase)) {
+                                    Logging.PrintLog((int)ELogType.Error, "[Leveling] (SIMUL) 레벨링 각도 산출 이미지('" + lvlSrc + "')와 측정 SHOT 이미지('" + measSrc + "')가 다릅니다 — 교정각이 측정 이미지 기울기와 불일치할 수 있음. UAT 는 동일 기울기 이미지를 사용하세요.");
+                                }
+                                #endif
                                 double angleRad;
                                 lvlSeq.TryComputeLevelingAngle(refImage, out angleRad); // 캐시 set (실패해도 lenient)
                             } else {
@@ -133,10 +147,11 @@ namespace ReringProject.Sequence {
                                     }
                                     //260617 hbk Phase 52 LEVEL-01 DualImage datum 도 회전 이미지로 검출 (D-02). 두 이미지 동일 -각도 회전.
                                     if (datumLevelOn) {
+                                        //260617 hbk WR-01 Dispose 가드 — 원본 dispose 를 try/catch 로 감싸 swap 누수/예외 escape 차단 (파일 규약)
                                         HImage hRot = VisionAlgorithmService.RotateImageByAngle(imgH, datumLevelAngle);
-                                        if (hRot != null) { imgH.Dispose(); imgH = hRot; }
+                                        if (hRot != null) { try { imgH.Dispose(); } catch { } imgH = hRot; }
                                         HImage vRot = VisionAlgorithmService.RotateImageByAngle(imgV, datumLevelAngle);
-                                        if (vRot != null) { imgV.Dispose(); imgV = vRot; }
+                                        if (vRot != null) { try { imgV.Dispose(); } catch { } imgV = vRot; }
                                     }
                                     string derr;
                                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) {
@@ -165,8 +180,9 @@ namespace ReringProject.Sequence {
                                 }
                                 //260617 hbk Phase 52 LEVEL-01 회전 이미지로 datum 검출 (D-02). 활성 시 -각도 회전, 원본 dispose 후 교체. taught ROI 좌표는 유지(방식 a, 소각도).
                                 if (datumLevelOn) {
+                                    //260617 hbk WR-01 Dispose 가드 — 원본 dispose 를 try/catch 로 감싸 swap 누수/예외 escape 차단 (파일 규약)
                                     HImage imgRot = VisionAlgorithmService.RotateImageByAngle(img, datumLevelAngle);
-                                    if (imgRot != null) { img.Dispose(); img = imgRot; }
+                                    if (imgRot != null) { try { img.Dispose(); } catch { } img = imgRot; }
                                 }
                                 try {
                                     string derr;
@@ -219,9 +235,10 @@ namespace ReringProject.Sequence {
                             //  회전각 = -LevelingAngleRad (기울기 상쇄 = 반대방향, DatumPhase 와 동일 각도/부호). 회전본 교체, 원본 dispose (누수 0).
                             InspectionSequence rotSeq = (ShotParam != null) ? ShotParam.Parent as InspectionSequence : null;
                             if (rotSeq != null && rotSeq.LevelingEnabled && rotSeq.LevelingComputed) {
+                                //260617 hbk WR-01 Dispose 가드 — 원본 dispose 를 try/catch 로 감싸 swap 누수/예외 escape 차단 (파일 규약)
                                 HImage rotated = VisionAlgorithmService.RotateImageByAngle(image, -rotSeq.LevelingAngleRad);
                                 if (rotated != null) {
-                                    image.Dispose();
+                                    try { image.Dispose(); } catch { }
                                     image = rotated;
                                 }
                             }

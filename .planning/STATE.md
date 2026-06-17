@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 52-02-PLAN.md
-last_updated: "2026-06-17T03:55:33.543Z"
+stopped_at: Completed 52-03-PLAN.md
+last_updated: "2026-06-17T04:11:18.665Z"
 last_activity: 2026-06-17
 progress:
   total_phases: 13
   completed_phases: 10
   total_plans: 39
-  completed_plans: 34
-  percent: 87
+  completed_plans: 35
+  percent: 90
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 52 (datum-2026-06-16-poc-1) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-06-17
 
@@ -142,6 +142,7 @@ Last activity: 2026-06-17
 | Phase 43.1-startup-perceived-speed P43.1-01 | — | 3/4 tasks (Task 4 checkpoint pending) | 4 files |
 | Phase 52 P01 | 8 | 2 tasks | 3 files |
 | Phase 52 P02 | 5 | 2 tasks | 2 files |
+| Phase 52 P03 | 9 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -287,6 +288,8 @@ Recent decisions affecting current work:
 - [Phase 52-01]: 레벨링 각도 캐시(_levelingAngleRad/_levelingComputed + Set/Reset/getter)는 interface-first 멤버 정의+리셋만 제공. 실제 1회 산출은 Plan 02, 소비는 Plan 03. ClearDatumTransforms 에서 ResetLeveling 호출로 datum transform 동일 lifecycle.
 - [Phase 52-01]: 신규 INI bool 토글 회귀 0 패턴 — Save ?1:0 / Load .ToBool() 키 미존재 false 폴백. CameraRole 비활성 시퀀스 보존 = PreserveFixtureFromExisting 섹션 통째 복사로 자동(추가 코드 0), 신규레시피 분기만 기본값 명시.
 - [Phase 52-02] 변환경로 1순위 확정: HHomMat2D.HomMat2dRotate + HImage.AffineTransImage 인스턴스 메서드 — msbuild Debug/x64 PASS, fallback 미사용 (변환경로 1개만 잔존). TryGetLevelingAngle = TryFindVerticalTwoHorizontal 수평 피팅 구간만 재사용 (Math.Atan2 각도, IntersectionLl/hom_mat2d/DetectedOrigin 제외). 둘 다 실패/근사0 시 무회전·false 폴백 throw 0.
+- [Phase 52-03] TryComputeLevelingAngle = LevelingComputed 캐시 가드 우선 (시퀀스당 1회, D-03), 기준 미지정/실패 false+0.0 무회전 폴백(lenient)
+- [Phase 52-03] EStep.Level 을 MoveZ-DatumPhase 사이 삽입 — 회전 이미지가 Datum 검출+측정 둘 다 입력. DatumPhase(1-image+DualImage)·Grab 동일 -LevelingAngleRad 동일 회전중심 적용(좌표계 정합), taught ROI 미변환(방식 a), off/미산출 pass-through 회귀 0
 
 ### Quick Tasks Completed
 
@@ -405,8 +408,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-17T03:55:24.519Z
-Stopped at: Completed 52-02-PLAN.md
+Last session: 2026-06-17T04:11:18.654Z
+Stopped at: Completed 52-03-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

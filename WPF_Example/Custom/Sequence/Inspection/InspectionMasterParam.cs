@@ -30,5 +30,23 @@ namespace ReringProject.Sequence {
                 RaisePropertyChanged("DisplayName");
             }
         }
+
+        //260617 hbk Phase 52 LEVEL-01 CO-52-01 시퀀스 레벨링 토글 PropertyGrid 노출 (D-04).
+        //  실체는 InspectionSequence.LevelingEnabled. 켜면 IsLevelingReference 기준 Datum 의 수평 에지로
+        //  이미지를 회전 정렬(레벨링) 후 Datum 검출+측정. 기본 off. INI 저장은 InspectionRecipeManager FIXTURE 섹션.
+        [Category("Fixture|Leveling")]
+        [System.ComponentModel.Description("켜면 이 시퀀스의 IsLevelingReference 기준 Datum 의 수평 에지로 이미지를 회전 정렬(레벨링)한 뒤 Datum 검출+측정한다. 기본 off (회귀 0).")]
+        public bool LevelingEnabled {
+            get {
+                if (_insp != null) return _insp.LevelingEnabled;
+                return false;
+            }
+            set {
+                if (_insp == null) return;
+                if (_insp.LevelingEnabled == value) return;
+                _insp.LevelingEnabled = value;
+                RaisePropertyChanged("LevelingEnabled");
+            }
+        }
     }
 }

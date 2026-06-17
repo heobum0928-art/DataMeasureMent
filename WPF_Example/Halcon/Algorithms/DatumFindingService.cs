@@ -580,6 +580,86 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260617 hbk Phase 52 LEVEL-01 레벨링 각도 산출 (D-01). 기준 Datum 의 수평 2-ROI concat 피팅 라인의
+        //  수평선(0°) 대비 각도(radian). TryFindVerticalTwoHorizontal 의 수평 피팅 구간만 재사용 — 중복 구현 금지.
+        //  angle_lx 등가 = Math.Atan2 (코드베이스 관용, PATTERNS.md 확인). 회전각 부호 규약은 호출부(Plan 03)에서 -angleRad 확정.
+        public bool TryGetLevelingAngle(HImage image, DatumConfig config, out double angleRad, out string error)
+        {
+            angleRad = 0.0;
+            error = null;
+            HObject contour = null;
+            try
+            {
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                // Horizontal A 에지점 추출 (TryFindVerticalTwoHorizontal 와 동일 인자)
+                HTuple rowEdgeA, colEdgeA;
+                string edgeErrorA;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A"))
+                {
+                    error = "Horizontal_A: " + edgeErrorA;
+                    return false;
+                }
+
+                // Horizontal B 에지점 추출
+                HTuple rowEdgeB, colEdgeB;
+                string edgeErrorB;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B"))
+                {
+                    error = "Horizontal_B: " + edgeErrorB;
+                    return false;
+                }
+
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
+                if (totalEdges < MIN_HORIZONTAL_EDGES)
+                {
+                    error = "Leveling line fit failed: insufficient edges (" + totalEdges + ")";
+                    return false;
+                }
+
+                // A+B concat → 라인 fit (TryFindVerticalTwoHorizontal 와 동일)
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB);
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB);
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols);
+
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df;
+                HOperatorSet.FitLineContourXld(
+                    contour, "tukey", -1, 0, 5, 2,
+                    out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
+
+                // 수평선(0°) 대비 라인 각도. HDevelop angle_lx 와 동일 의미 (curAngle 패턴).
+                angleRad = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                angleRad = 0.0;
+                return false;
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
         // VerticalTwoHorizontalDualImage Find 분기.
         //  본문 = TryFindVerticalTwoHorizontal 복제 + ROI 별 이미지 입력 분기 (Vertical=imageVertical, Horizontal A/B=imageHorizontal).
         //  나머지 로직 (totalEdges 가드 / TupleConcat / FitLineContourXld / IntersectionLl / Validate / hom_mat2d / Detected transient) 모두 동일.

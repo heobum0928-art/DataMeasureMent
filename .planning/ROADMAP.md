@@ -203,7 +203,7 @@ Plans:
 
 - [ ] **Phase 51: 시퀀스 일괄 검사 & 일괄 Export** (BATCH-01)
   - Success: Top/Bottom 시퀀스 단위로 전체 SHOT을 한 번에 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 일괄 추출 (SHOT 개별 트리거 불필요) / SHOT 개별 검사 회귀 0
-- [ ] **Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬)** (LEVEL-01)
+- [ ] **Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬)** (LEVEL-01) — ⚠ PARTIAL 2026-06-17 (백엔드 완료, UI carry-over CO-52-01)
   - Success: Datum 수평 에지 검출 각도와 수평선의 각도차로 입력 이미지를 회전 정렬(레벨링) 후 측정 / 회귀 0
 - [ ] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01)
   - Success: 별도 캘리브 창에서 체커보드(라이브 정지/촬상 또는 이미지 로드) → 픽셀 해상도(mm/px) 산출 → 측정 PixelResolution 적용
@@ -237,7 +237,9 @@ Plans:
 - [x] 52-01-PLAN.md -- InspectionSequence LevelingEnabled + leveling angle cache + DatumConfig.IsLevelingReference + FIXTURE INI save/load (D-01/D-04) [Wave 1]
 - [x] 52-02-PLAN.md -- DatumFindingService.TryGetLevelingAngle (Math.Atan2 angle) + VisionAlgorithmService.RotateImageByAngle (affine_trans_image) [Wave 1]
 - [x] 52-03-PLAN.md -- InspectionSequence.TryComputeLevelingAngle (seq-once cache) + Action_FAIMeasurement EStep.Level grab rotation (D-02/D-03) [Wave 2]
-- [ ] 52-04-PLAN.md -- integration build + SIMUL UAT 5 + sign-off [Wave 3]
+- [~] 52-04-PLAN.md -- integration build PASS + SIMUL UAT (0 PASS / 1 FAIL / 3 BLOCKED / 1 NOT_TESTED) -- UI 부재로 미충족, CO-52-01 [Wave 3]
+
+**Status:** ⚠ PARTIAL (NOT signed_off) 2026-06-17 -- 백엔드 52-01~03 완료·빌드 PASS·코드리뷰 클린(0 critical, WR-01/WR-02 fix 적용). 사용자 SIMUL UAT Test 2(핵심) FAIL: LevelingEnabled/IsLevelingReference 활성화·기준지정 UI 와 결과 회전 시각화 부재로 기능 실행·검증 불가 → carry-over CO-52-01 → Phase 52.1(레벨링 UI) 신설 예정. LEVEL-01 사용자 검증 미충족.
 
 ### Phase 53: 픽셀 캘리브레이션 (체커보드) (신설 2026-06-16 — POC 신규 #2)
 **Goal**: 체커보드(격자 white/black) 기반 픽셀 캘리브레이션 기능 — 라이브 정지/촬상 또는 이미지 로드로 격자 이미지를 입력받아 픽셀 해상도(mm/px)를 산출하고 측정에 적용한다. 별도 창으로 제공.

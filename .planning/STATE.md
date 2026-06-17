@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 52-03-PLAN.md
+stopped_at: Phase 52 PARTIAL (UAT Test 2 FAIL — UI carry-over CO-52-01)
 last_updated: "2026-06-17T04:11:18.665Z"
-last_activity: 2026-06-17
+last_activity: 2026-06-17 -- Phase 52 PARTIAL (백엔드 완료, 레벨링 UI carry-over CO-52-01)
 progress:
   total_phases: 13
   completed_phases: 10
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 52 (datum-2026-06-16-poc-1) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
+Phase: 52 (datum-2026-06-16-poc-1) — ⚠ PARTIAL (NOT signed_off)
+Plan: 4 of 4 (52-01~03 완료 / 52-04 UAT PARTIAL)
+Status: 백엔드 완료·빌드 PASS·코드리뷰 클린. UAT Test 2(핵심) FAIL — 레벨링 활성화/기준지정 UI + 결과 회전 시각화 부재 (CO-52-01). LEVEL-01 사용자 검증 미충족 → Phase 52.1(레벨링 UI) 신설 권장.
 Last activity: 2026-06-17
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**

@@ -9,8 +9,11 @@ updated: 2026-06-17
 summary:
   total: 5
   passed: 0
-  failed: 0
-  pending: 5
+  failed: 1
+  blocked: 3
+  not_tested: 1
+carry_over:
+  - CO-52-01
 ---
 
 # Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬) — SIMUL UAT
@@ -67,8 +70,8 @@ Phase 52 이미지 수평 보정 (Datum 에지 기반 회전 정렬) 전 경로:
 
 **기대 결과:** 기존 레시피 측정값 변화 0 (회귀 0). Datum 검출/측정 정상.
 
-- **결과:** PENDING
-- **비고:**
+- **결과:** NOT_TESTED
+- **비고:** 사용자가 별도 보고하지 않음. 레벨링 기본 off + UI 부재로 앱은 사실상 off(기존) 경로로 동작하나 측정값 정밀 비교는 미수행.
 
 ---
 
@@ -81,8 +84,8 @@ Phase 52 이미지 수평 보정 (Datum 에지 기반 회전 정렬) 전 경로:
 
 **기대 결과:** 기울어진 이미지가 수평 정렬된 후, 동일 수평 정렬 이미지로 Datum 검출과 측정이 모두 동작 (D-02 원안).
 
-- **결과:** PENDING
-- **비고:**
+- **결과:** **FAIL**
+- **비고:** (2026-06-17 사용자) 이미지가 돌아가는 것처럼 안 보여 동작 여부 확인 불가, 각도/레벨링을 설정할 데가 없음. 근본 원인 = **UI 부재**: LevelingEnabled(시퀀스 토글)·IsLevelingReference(기준 Datum 지정) 둘 다 XAML/UI 바인딩이 없어 사용자가 켜거나 기준을 지정할 방법이 없음 + 결과 화면 회전 시각화 없음. 백엔드는 빌드 검증·리뷰 클린이나 실행 진입 불가 → carry-over **CO-52-01**.
 
 ---
 
@@ -92,8 +95,8 @@ Phase 52 이미지 수평 보정 (Datum 에지 기반 회전 정렬) 전 경로:
 
 **기대 결과:** 회전 방향 = 기울기 상쇄(올바른 방향). Datum/측정 동일 부호.
 
-- **결과:** PENDING
-- **비고:**
+- **결과:** BLOCKED
+- **비고:** Test 2 선행 필요(레벨링 활성화 UI 부재). CO-52-01 해소 후 재검증.
 
 ---
 
@@ -103,8 +106,8 @@ Phase 52 이미지 수평 보정 (Datum 에지 기반 회전 정렬) 전 경로:
 
 **기대 결과:** abort/crash 없음. 무회전(lenient pass-through)으로 Datum 검출+측정 정상 진행. 로그 출력 확인.
 
-- **결과:** PENDING
-- **비고:**
+- **결과:** BLOCKED
+- **비고:** LevelingEnabled=on 으로 설정할 UI 부재 → 시나리오 진입 불가. CO-52-01 해소 후 재검증.
 
 ---
 
@@ -114,12 +117,20 @@ Phase 52 이미지 수평 보정 (Datum 에지 기반 회전 정렬) 전 경로:
 
 **기대 결과:** 저장/재로드 시 LevelingEnabled/IsLevelingReference 유지. 기존 레시피(키 없음)는 off 폴백. CameraRole 전환 후 비활성 시퀀스 Datum/레벨링 키 소실 0.
 
-- **결과:** PENDING
-- **비고:**
+- **결과:** BLOCKED
+- **비고:** UI 에서 값을 설정할 방법이 없어 저장/재로드 영속 시나리오 진입 불가. CO-52-01 해소 후 재검증.
 
 ---
 
 ## Sign-off
 
-- **status:** partial (Task 1 빌드 검증 완료, 사용자 SIMUL 육안 검증 대기)
-- **sign-off 조건:** 5 Test 전 항목 PASS 또는 사용자 합의 시 `status: signed_off`. FAIL 시 hotfix 후 재검증. carry-over 발생 시 CO-52-XX 등재.
+- **status:** partial (백엔드 구현 완료·빌드 PASS·코드리뷰 클린 / 사용자 UAT 1 FAIL · 3 BLOCKED · 1 NOT_TESTED — **SIGNED_OFF 아님**)
+- **결과 요약 (2026-06-17):** 0 PASS / 1 FAIL(Test 2 핵심) / 3 BLOCKED(Test 3·4·5) / 1 NOT_TESTED(Test 1)
+- **판정:** Phase 52 백엔드(52-01~03) = 완료. 그러나 사용자 관점 기능은 **활성화/기준지정 UI 와 결과 회전 시각화 부재로 실행·검증 불가** → LEVEL-01 사용자 검증 미충족.
+
+### Carry-over
+
+- **CO-52-01 — 레벨링 활성화/기준지정 UI + 결과 회전 시각화 부재**
+  - **현상:** LevelingEnabled(시퀀스 토글), IsLevelingReference(기준 Datum 지정) 둘 다 UI 바인딩 없음 → 사용자가 켜거나 기준을 고를 방법이 없음. 결과 화면에서 회전 적용이 시각적으로 드러나지 않아 동작 확인 불가.
+  - **영향:** Test 2 FAIL, Test 3·4·5 BLOCKED. 백엔드 코드 경로는 빌드 검증·리뷰 클린(결함 아님).
+  - **해소 방향:** 신규 Phase **52.1** — (1) FIXTURE 설정에 LevelingEnabled 토글 UI, (2) Datum 노드/PropertyGrid 에 IsLevelingReference 선택 UI, (3) 결과 화면 회전 전/후 시각화(또는 적용 각도 표시). 이후 Test 2~5 재검증.

@@ -120,7 +120,9 @@
 | PROTO-01, PROTO-02 | Phase 48 | not started (POC 후) |
 | PROTO-03, PROTO-04, PROTO-05 | Phase 49 | not started (POC 후) |
 | PROTO-06 | Phase 50 | not started (POC 후) |
+| BATCH-01 | Phase 51 | in progress (Wave 1 완료, Wave 2 UI 잔여) |
+| LEVEL-01 | Phase 52 | partial (2026-06-17, 백엔드 완료·빌드 PASS·리뷰 클린 / UAT Test 2 FAIL — 활성화·기준지정 UI 부재 CO-52-01 → Phase 52.1) |
 
 ---
 
-*Last updated: 2026-05-29 — v1.2 milestone defined (5순위 우선순위 구조, POC 6월 말 기준).*
+*Last updated: 2026-06-17 — LEVEL-01(Phase 52) partial 등재: 백엔드 완료, 레벨링 UI carry-over CO-52-01.*

@@ -234,7 +234,7 @@ Plans:
   - 기울어진 입력 이미지가 수평 정렬된 후 측정 / 기존 측정 회귀 0
 **Plans:** 4 plans (3 waves) -- planned 2026-06-17
 Plans:
-- [ ] 52-01-PLAN.md -- InspectionSequence LevelingEnabled + leveling angle cache + DatumConfig.IsLevelingReference + FIXTURE INI save/load (D-01/D-04) [Wave 1]
+- [x] 52-01-PLAN.md -- InspectionSequence LevelingEnabled + leveling angle cache + DatumConfig.IsLevelingReference + FIXTURE INI save/load (D-01/D-04) [Wave 1]
 - [ ] 52-02-PLAN.md -- DatumFindingService.TryGetLevelingAngle (Math.Atan2 angle) + VisionAlgorithmService.RotateImageByAngle (affine_trans_image) [Wave 1]
 - [ ] 52-03-PLAN.md -- InspectionSequence.TryComputeLevelingAngle (seq-once cache) + Action_FAIMeasurement EStep.Level grab rotation (D-02/D-03) [Wave 2]
 - [ ] 52-04-PLAN.md -- integration build + SIMUL UAT 5 + sign-off [Wave 3]
@@ -344,7 +344,7 @@ Plans:
 | 5 | 49 | Protocol v2.7 3-state/Cycle | PROTO-03/04/05 | Not started (POC 후) | TBD | — |
 | 5 | 50 | Protocol v2.7 회귀 시험 | PROTO-06 | Not started (POC 후) | TBD | — |
 | 1 | 51 | 시퀀스 일괄 검사 & Export | BATCH-01 | Complete (signed off 2026-06-16) | 2026-06-16 | UAT 전항목 PASS |
-| 1 | 52 | 이미지 수평 보정 (Datum 에지) | LEVEL-01 | Not started | TBD | — |
+| 1 | 52 | 이미지 수평 보정 (Datum 에지) | LEVEL-01 | In progress (1/4) | TBD | — |
 | 1 | 53 | 픽셀 캘리브레이션 (체커보드) | CAL-01 | Not started | TBD | — |
 
 > v1.0/v1.1 phase 진행표 전문: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md), [milestones/v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)

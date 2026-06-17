@@ -59,6 +59,20 @@
 4. **Side 범위:** 1차는 단일 이미지 Datum부터(DualImage carry-over) / Side DualImage 포함 / discuss.
 + (discuss lock 권장) tilt 보정값을 측정에 실제 반영(레벨링 대체) vs 검색만 angle·보정은 레벨링에 위임 — 이중보정 가드 동작이 여기서 갈림.
 
+## 8. 설계 보강 — 대화 확정 (2026-06-17, 사용자 피드백 반영)
+권고 §3 을 다음과 같이 구체화/수정한다 (사용자 지적이 정확했음):
+
+1. **이미지 warp(`affine_trans_image`) 사용 금지 — ROI 좌표만 변환.** 이미지를 돌리면 리샘플링(보간)으로 서브픽셀 엣지가 뭉개져 **측정 오차**가 생긴다. 측정은 **원본 픽셀**에서, 측정/Datum ROI 의 중심·각도(phi)만 transform 으로 이동/회전.
+   - ⚠️ **현재 Phase 52 레벨링은 `RotateImageByAngle`(=affine_trans_image)로 이미지를 실제 회전**시켜 같은 보간 오차를 안고 있음 → 레벨링도 **"ROI 좌표 회전" 방식으로 통합** 검토(측정 정밀도 개선). ALIGN-01 과 묶어서 하나의 좌표변환으로.
+2. **각도는 Shape 모델 angle 이 아니라 직선 line-fit 에서.** Shape 매칭 angle 은 거칠다(~0.3~0.5°) → 정밀 측정용 부적합. 정확한 각도는 **긴 직선 엣지 line-fit**(~0.01~0.05°, 기존 `DatumFindingService` 수평 2-ROI 피팅 = 레벨링). 역할 분리:
+   - **Shape 매칭 = x,y 위치 전용**(서브픽셀 위치 OK, +거친 각도).
+   - **line-fit = 정밀 θ.**
+3. **연결(순서):** ① Shape 매칭 → 자재 x,y ② 그 x,y 만큼 **기준 Datum 직선 line-fit ROI 를 이동** → 이동한 엣지 위에서 line-fit → 정밀 θ ③ (x,y+θ) rigid transform 1개 ④ **모든 Datum 검출 ROI + 측정 ROI 에 동일 transform 적용**, 원본 이미지에서 검출/측정.
+   - 이로써 "위치 틀어지면 레벨링 직선 ROI 가 엣지 벗어남" 문제 해소(Shape 가 ROI 재배치).
+4. **각도 공유 전제:** θ 는 기준 Datum 1개 직선에서 산출 → 자재 강체(전체 동일 회전) 전제로 나머지 ROI 공유. 부위별 휨(비강체)은 범위 밖.
+
+→ §1 권고 갱신: "Shape 로 x,y+tilt 통합 산출(`vector_angle_to_rigid`)" 보다 **"Shape=x,y / line-fit=θ 하이브리드 + ROI 좌표변환(무 warp)"** 이 측정 정밀도상 우월. discuss 에서 이 하이브리드로 lock.
+
 ## 관련 파일
 - WPF_Example/Halcon/Algorithms/DatumFindingService.cs — hom_mat2d 보정 패턴, TryGetLevelingAngle
 - WPF_Example/Halcon/Algorithms/VisionAlgorithmService.cs — RotateImageByAngle, AffineTransPoint2d(L45~60)

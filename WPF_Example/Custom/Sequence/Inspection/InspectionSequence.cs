@@ -45,6 +45,9 @@ namespace ReringProject.Sequence {
         // Fixture DisplayName — 사용자 편집 가능
         public string DisplayName { get; set; } = "";
 
+        //260617 hbk Phase 52 LEVEL-01 시퀀스 단위 레벨링 토글 (D-04, 기본 off → INI 미존재 폴백 off 회귀 0)
+        public bool LevelingEnabled { get; set; } = false;
+
         // Multi-Datum — Fixture 레벨 Datum 소유
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<DatumConfig> DatumConfigs { get; private set; } = new List<DatumConfig>();
@@ -54,6 +57,14 @@ namespace ReringProject.Sequence {
 
         // datum 검출 실패 datum 이름 집합 (per-FAI gate 신호). _datumTransforms 와 동일 lifecycle.
         private readonly HashSet<string> _failedDatums = new HashSet<string>();
+
+        //260617 hbk Phase 52 LEVEL-01 레벨링 각도 캐시 (D-03 시퀀스당 1회 산출, 전 SHOT 공유)
+        private double _levelingAngleRad = 0.0;
+        private bool _levelingComputed = false;
+        public double LevelingAngleRad { get { return _levelingAngleRad; } }
+        public bool LevelingComputed { get { return _levelingComputed; } }
+        public void SetLevelingAngle(double angleRad) { _levelingAngleRad = angleRad; _levelingComputed = true; }
+        public void ResetLeveling() { _levelingAngleRad = 0.0; _levelingComputed = false; }
 
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
             pDevs = SystemHandler.Handle.Devices;
@@ -343,6 +354,8 @@ namespace ReringProject.Sequence {
             {
                 if (d != null) d.RuntimeDetectFailed = false;
             }
+            //260617 hbk Phase 52 레벨링 캐시도 datum transform 과 동일 lifecycle 리셋
+            ResetLeveling();
         }
 
         // 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.

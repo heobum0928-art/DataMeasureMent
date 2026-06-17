@@ -37,6 +37,11 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string TeachingImagePath { get; set; } = "";
 
+        //260617 hbk Phase 52 LEVEL-01 레벨링 기준 Datum 지정 (D-01). 켜면 이 Datum 의 수평 에지로 이미지를 회전 정렬. 시퀀스당 1개만 지정 권장.
+        [Category("Datum|Leveling")]
+        [System.ComponentModel.Description("레벨링 기준. 켜면 이 Datum 의 수평 2-ROI 에지로 이미지 회전 정렬한다. 시퀀스당 1개만 지정.")]
+        public bool IsLevelingReference { get; set; } = false;
+
         // 가로축 이미지(TeachingImagePath) 와 분리된 세로축 이미지 경로.
         //  algorithm == VerticalTwoHorizontalDualImage 일 때만 의미가 있으며, 그 외 algorithm 에서는 INI 에 보존되지만 미사용 (ICustomTypeDescriptor 가 hide).
         //  INI 직렬화 = ParamBase reflection String case 자동. 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화.

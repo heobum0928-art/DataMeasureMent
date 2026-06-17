@@ -30,6 +30,7 @@ namespace ReringProject.Sequence {
         private enum EStep {
             Init,
             MoveZ,
+            Level,        //260617 hbk Phase 52 레벨링 각도 산출 (시퀀스당 1회, DatumPhase 앞)
             DatumPhase,
             Grab,
             Measure,
@@ -71,8 +72,36 @@ namespace ReringProject.Sequence {
                         System.Threading.Thread.Sleep(ShotParam.DelayMs);
                     }
                     #endif
+                    Step = (int)EStep.Level;
+                    break;
+
+                //260617 hbk Phase 52 LEVEL-01 레벨링 각도 산출 (D-01/D-03). LevelingEnabled off 면 pass-through (회귀 0).
+                //  기준 Datum 1차 검출용 raw 이미지로 각도 1회 산출 후 캐시. 실패 시 무회전 폴백 (lenient).
+                case EStep.Level: {
+                    InspectionSequence lvlSeq;
+                    if (ShotParam != null) lvlSeq = ShotParam.Parent as InspectionSequence;
+                    else lvlSeq = null;
+                    if (lvlSeq != null && lvlSeq.LevelingEnabled && !lvlSeq.LevelingComputed) {
+                        DatumConfig refDatum = null;
+                        foreach (var d in lvlSeq.DatumConfigs) {
+                            if (d != null && d.IsLevelingReference) { refDatum = d; break; }
+                        }
+                        HImage refImage = null;
+                        try {
+                            if (refDatum != null) refImage = GrabOrLoadDatumImage(refDatum);
+                            if (refImage != null) {
+                                double angleRad;
+                                lvlSeq.TryComputeLevelingAngle(refImage, out angleRad); // 캐시 set (실패해도 lenient)
+                            } else {
+                                Logging.PrintLog((int)ELogType.Error, "[Leveling] 기준 Datum 이미지 취득 실패 — 무회전 진행");
+                            }
+                        } finally {
+                            if (refImage != null) { try { refImage.Dispose(); } catch { } }
+                        }
+                    }
                     Step = (int)EStep.DatumPhase;
                     break;
+                }
 
                 // DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적.
                 // datum 부분 실패는 skip+log (lenient, abort 없음).
@@ -82,6 +111,9 @@ namespace ReringProject.Sequence {
                     else parentSeq = null;
                     if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
                         parentSeq.ClearDatumTransforms();
+                        //260617 hbk Phase 52 LEVEL-01 회전 이미지로 Datum 검출 (D-02 원안). 활성 시 검출 입력 이미지를 -각도 회전.
+                        bool datumLevelOn = (parentSeq != null && parentSeq.LevelingEnabled && parentSeq.LevelingComputed);
+                        double datumLevelAngle = datumLevelOn ? -parentSeq.LevelingAngleRad : 0.0;
                         foreach (var datum in parentSeq.DatumConfigs) {
                             if (datum == null) continue;
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
@@ -98,6 +130,13 @@ namespace ReringProject.Sequence {
                                         // per-FAI gate 신호 기록
                                         parentSeq.MarkDatumFailed(datum.DatumName);
                                         continue; // datum skip, abort 안 함
+                                    }
+                                    //260617 hbk Phase 52 LEVEL-01 DualImage datum 도 회전 이미지로 검출 (D-02). 두 이미지 동일 -각도 회전.
+                                    if (datumLevelOn) {
+                                        HImage hRot = VisionAlgorithmService.RotateImageByAngle(imgH, datumLevelAngle);
+                                        if (hRot != null) { imgH.Dispose(); imgH = hRot; }
+                                        HImage vRot = VisionAlgorithmService.RotateImageByAngle(imgV, datumLevelAngle);
+                                        if (vRot != null) { imgV.Dispose(); imgV = vRot; }
                                     }
                                     string derr;
                                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) {
@@ -123,6 +162,11 @@ namespace ReringProject.Sequence {
                                     datum.RuntimeDetectFailed = true;
                                     parentSeq.MarkDatumFailed(datum.DatumName);
                                     continue;
+                                }
+                                //260617 hbk Phase 52 LEVEL-01 회전 이미지로 datum 검출 (D-02). 활성 시 -각도 회전, 원본 dispose 후 교체. taught ROI 좌표는 유지(방식 a, 소각도).
+                                if (datumLevelOn) {
+                                    HImage imgRot = VisionAlgorithmService.RotateImageByAngle(img, datumLevelAngle);
+                                    if (imgRot != null) { img.Dispose(); img = imgRot; }
                                 }
                                 try {
                                     string derr;
@@ -171,6 +215,16 @@ namespace ReringProject.Sequence {
                         image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
                         #endif
                         if (image != null) {
+                            //260617 hbk Phase 52 LEVEL-01 grab 직후 SHOT 측정 이미지 회전 (D-02 원안). 회전된 단일 이미지로 전 FAI 측정.
+                            //  회전각 = -LevelingAngleRad (기울기 상쇄 = 반대방향, DatumPhase 와 동일 각도/부호). 회전본 교체, 원본 dispose (누수 0).
+                            InspectionSequence rotSeq = (ShotParam != null) ? ShotParam.Parent as InspectionSequence : null;
+                            if (rotSeq != null && rotSeq.LevelingEnabled && rotSeq.LevelingComputed) {
+                                HImage rotated = VisionAlgorithmService.RotateImageByAngle(image, -rotSeq.LevelingAngleRad);
+                                if (rotated != null) {
+                                    image.Dispose();
+                                    image = rotated;
+                                }
+                            }
                             ShotParam.SetImage(image);
                             if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
                             pMyContext.ResultHalconImage = image.CopyImage();

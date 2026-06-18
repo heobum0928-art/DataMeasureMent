@@ -448,34 +448,17 @@ namespace ReringProject.Sequence {
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
             }
-            // ② tilt(θ): 패턴 매칭 각도 우선 (강건). 멀리 있는 직선 ROI 는 큰 이동 시 에지를 못 잡아 실패가 잦음.
-            //   RefMatchAngleDeg = 티칭 패턴 각도, curAngleDeg = 런타임 패턴 각도 → θ = cur - ref (동일 shape 모델 규약).
-            //   직선 ROI 가 에지를 잡고 기준각이 있으면 그 값으로 정밀화(옵션, src=line).
+            // ② tilt(θ): 패턴 매칭 각도 사용. find_shape_model 이 부품 회전을 직접·강건하게 반환하고 부호도 일관.
+            //   (직선 ROI θ 는 atan2 규약이라 패턴과 부호가 반대 + 멀리 있어 자주 실패 → 미사용. CO-54-04)
             double dRow = curRow - datum.RefMatchRow;
             double dCol = curCol - datum.RefMatchCol;
-            double thetaRad = (curAngleDeg - datum.RefMatchAngleDeg) * System.Math.PI / 180.0; // 패턴 각도 기반 (기본)
-            string thetaSrc = "pattern";
-            var dfs = new DatumFindingService();
-            double curLineAngleRad = 0.0;
-            string thErr = null;
-            if (datum.AlignLineRoi_Length1 > 0.0 && datum.AlignLineRoi_Length2 > 0.0 && datum.AlignLineRefAngleDeg != 0.0)
-            {
-                if (dfs.TryGetAlignLineAngle(refImage, datum, dRow, dCol, out curLineAngleRad, out thErr))
-                {
-                    thetaRad = curLineAngleRad - (datum.AlignLineRefAngleDeg * System.Math.PI / 180.0); // 직선 ROI 정밀 θ
-                    thetaSrc = "line";
-                }
-                else
-                {
-                    Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + (datum.DatumName ?? "") + " 직선 ROI θ 실패 → 패턴 각도 사용: " + (thErr ?? ""));
-                }
-            }
+            double thetaRad = (curAngleDeg - datum.RefMatchAngleDeg) * System.Math.PI / 180.0;
             //260618 hbk Phase 54 ALIGN-01 진단 로그 — 매칭/θ 수치 확인용 (CO-54-04)
             Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + (datum.DatumName ?? "")
                 + " cur=(" + curRow.ToString("F1") + "," + curCol.ToString("F1") + ")"
                 + " d=(" + dRow.ToString("F1") + "," + dCol.ToString("F1") + ")"
                 + " patAngDeg=" + curAngleDeg.ToString("F3") + " refPatAngDeg=" + datum.RefMatchAngleDeg.ToString("F3")
-                + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=" + thetaSrc);
+                + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=pattern");
             // ③ transform 산출 (사용자 레시피): identity → rotate(θ, RefMatch 중심) → translate(dRow,dCol).
             //  회전 중심은 무관(rotate 후 translate 로 x,y 보정) — RefMatch 위치 사용. θ 부호 = 측정−Ref.
             HTuple alignRigid;

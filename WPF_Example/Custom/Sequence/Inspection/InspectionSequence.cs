@@ -448,33 +448,34 @@ namespace ReringProject.Sequence {
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
             }
-            // ② tilt: 전용 직선 ROI(매칭 변위만큼 이동) 에서 각도 측정 → 티칭 기준각(Ref) 차감 = θ (사용자 설계).
+            // ② tilt(θ): 패턴 매칭 각도 우선 (강건). 멀리 있는 직선 ROI 는 큰 이동 시 에지를 못 잡아 실패가 잦음.
+            //   RefMatchAngleDeg = 티칭 패턴 각도, curAngleDeg = 런타임 패턴 각도 → θ = cur - ref (동일 shape 모델 규약).
+            //   직선 ROI 가 에지를 잡고 기준각이 있으면 그 값으로 정밀화(옵션, src=line).
             double dRow = curRow - datum.RefMatchRow;
             double dCol = curCol - datum.RefMatchCol;
-            double thetaRad = 0.0;
+            double thetaRad = (curAngleDeg - datum.RefMatchAngleDeg) * System.Math.PI / 180.0; // 패턴 각도 기반 (기본)
+            string thetaSrc = "pattern";
             var dfs = new DatumFindingService();
-            double curLineAngleRad;
-            string thErr;
-            if (dfs.TryGetAlignLineAngle(refImage, datum, dRow, dCol, out curLineAngleRad, out thErr))
+            double curLineAngleRad = 0.0;
+            string thErr = null;
+            if (datum.AlignLineRoi_Length1 > 0.0 && datum.AlignLineRoi_Length2 > 0.0 && datum.AlignLineRefAngleDeg != 0.0)
             {
-                // θ = 런타임 측정각 − 티칭 기준각(AlignLineRefAngleDeg). 가로≈0/세로≈90 은 기준일 뿐, 실제는 Ref 측정값.
-                thetaRad = curLineAngleRad - (datum.AlignLineRefAngleDeg * System.Math.PI / 180.0);
-            }
-            else
-            {
-                thetaRad = 0.0; // 직선 ROI θ 실패 → θ=0 폴백 (x,y 보정 유지, lenient)
-                string te = thErr;
-                if (te == null) te = "";
-                Logging.PrintLog((int)ELogType.Trace, "[ALIGN] Datum '" + (datum.DatumName ?? "") + "' 직선 ROI θ 실패 → θ=0 폴백: " + te);
+                if (dfs.TryGetAlignLineAngle(refImage, datum, dRow, dCol, out curLineAngleRad, out thErr))
+                {
+                    thetaRad = curLineAngleRad - (datum.AlignLineRefAngleDeg * System.Math.PI / 180.0); // 직선 ROI 정밀 θ
+                    thetaSrc = "line";
+                }
+                else
+                {
+                    Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + (datum.DatumName ?? "") + " 직선 ROI θ 실패 → 패턴 각도 사용: " + (thErr ?? ""));
+                }
             }
             //260618 hbk Phase 54 ALIGN-01 진단 로그 — 매칭/θ 수치 확인용 (CO-54-04)
             Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + (datum.DatumName ?? "")
                 + " cur=(" + curRow.ToString("F1") + "," + curCol.ToString("F1") + ")"
-                + " ref=(" + datum.RefMatchRow.ToString("F1") + "," + datum.RefMatchCol.ToString("F1") + ")"
                 + " d=(" + dRow.ToString("F1") + "," + dCol.ToString("F1") + ")"
-                + " lineDeg=" + (curLineAngleRad * 180.0 / System.Math.PI).ToString("F3")
-                + " refDeg=" + datum.AlignLineRefAngleDeg.ToString("F3")
-                + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3"));
+                + " patAngDeg=" + curAngleDeg.ToString("F3") + " refPatAngDeg=" + datum.RefMatchAngleDeg.ToString("F3")
+                + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=" + thetaSrc);
             // ③ transform 산출 (사용자 레시피): identity → rotate(θ, RefMatch 중심) → translate(dRow,dCol).
             //  회전 중심은 무관(rotate 후 translate 로 x,y 보정) — RefMatch 위치 사용. θ 부호 = 측정−Ref.
             HTuple alignRigid;

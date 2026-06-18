@@ -338,20 +338,18 @@ namespace ReringProject.Halcon.Algorithms
             {
                 bool isNcc = string.Equals(engine, "NCC", StringComparison.OrdinalIgnoreCase);
 
-                //260618 hbk Phase 54 ALIGN-01 (CO-54-04): align 은 부품이 크게 이동/회전하므로 검색영역을 전체 이미지로 둔다.
-                //  ROI±margin 으로 좁히면 이동량이 margin 초과 시 "no match" → align 무력화. marginPx<=0 이면 전체, >0 이면 ROI±margin.
+                //260618 hbk Phase 54 ALIGN-01 (CO-54-04): 검색영역 = ROI 중심 ± (len + margin) 으로 제한.
+                //  전체 이미지 검색은 반복 feature 부품에서 false match(엉뚱한 instance) 유발 → margin 으로 catch 범위 한정.
+                //  margin 은 "예상 최대 이동량 + 여유" 로 사용자 튜닝(PatternSearchMarginPx). 너무 크면 false match, 작으면 no match.
                 HTuple imgW, imgH;
                 HOperatorSet.GetImageSize(runtimeImage, out imgW, out imgH);
-                if (marginPx >= 100000.0) // (사실상 사용 안 함 — 의도적 좁힘 옵션 자리)
-                {
-                    double searchLen1 = roiLen1 + marginPx;
-                    double searchLen2 = roiLen2 + marginPx;
-                    HOperatorSet.GenRectangle1(out searchRect, roiRow - searchLen2, roiCol - searchLen1, roiRow + searchLen2, roiCol + searchLen1);
-                }
-                else // 기본: 전체 이미지 검색 (가장 견고)
-                {
-                    HOperatorSet.GenRectangle1(out searchRect, 0.0, 0.0, imgH.D - 1.0, imgW.D - 1.0);
-                }
+                double searchLen1 = roiLen1 + marginPx;
+                double searchLen2 = roiLen2 + marginPx;
+                double sr1 = roiRow - searchLen2; if (sr1 < 0.0) sr1 = 0.0;
+                double sc1 = roiCol - searchLen1; if (sc1 < 0.0) sc1 = 0.0;
+                double sr2 = roiRow + searchLen2; if (sr2 > imgH.D - 1.0) sr2 = imgH.D - 1.0;
+                double sc2 = roiCol + searchLen1; if (sc2 > imgW.D - 1.0) sc2 = imgW.D - 1.0;
+                HOperatorSet.GenRectangle1(out searchRect, sr1, sc1, sr2, sc2);
                 HOperatorSet.ReduceDomain(runtimeImage, searchRect, out reducedImage);
 
                 // 다운샘플 처리 (D-06a): downsampleFactor>1 이면 zoom_image_factor(1/factor)로 축소

@@ -2128,8 +2128,10 @@ namespace ReringProject.Halcon.Algorithms
             else if (string.Equals(direction, "BtoT", StringComparison.OrdinalIgnoreCase)) measurePhi = +Math.PI / 2.0;
             else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
             else                                                                            measurePhi = 0.0;
-            //260618 hbk Phase 54 ALIGN-01 carry-over#1: 패턴보정 strip 회전 — 측정 ROI(FAIEdgeMeasurementService.cs:100)와 동일하게 measurePhi 에 θ 가산.
-            measurePhi += alignRot;
+            //260618 hbk Phase 54 ALIGN-01 (부호 핫픽스): 패턴보정 strip 회전 — measurePhi 에 datum 에지 틸트 가산.
+            //  alignRot 은 패턴(shape model) 규약인데 datum 직선은 atan2 규약 → 부호 반대(확증로그: datumDetectRotDeg=-1.0 vs patternThetaDeg=+0.997).
+            //  ∴ -alignRot 로 보정해야 에지에 수직 스캔 (TtoB 예: -90°+(-1°)=-91°, +alignRot 이면 -89° 로 반대로 돌아 오측). 측정 ROI 는 datum transform=atan2 라 +가산이 맞지만 검출 단계엔 패턴 transform 만 가용해 부호 변환 필요.
+            measurePhi -= alignRot;
 
             // selection (PascalCase) → Halcon MeasurePos 인자 (lower). chained ?: → if/else (CANONICAL: MeasurementAlgorithm.cs:178 의미 보존)
             string selectionLower = "first";

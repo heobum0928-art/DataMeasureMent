@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
-stopped_at: Phase 52 PARTIAL (UAT Test 2 FAIL — UI carry-over CO-52-01)
-last_updated: "2026-06-17T04:11:18.665Z"
-last_activity: 2026-06-17 -- Phase 52 PARTIAL (백엔드 완료, 레벨링 UI carry-over CO-52-01)
+status: 백엔드 완료·빌드 PASS·코드리뷰 클린. UAT Test 2(핵심) FAIL — 레벨링 활성화/기준지정 UI + 결과 회전 시각화 부재 (CO-52-01). LEVEL-01 사용자 검증 미충족 → Phase 52.1(레벨링 UI) 신설 권장.
+stopped_at: Phase 54 context gathered
+last_updated: "2026-06-18T01:26:02.435Z"
+last_activity: 2026-06-17
 progress:
   total_phases: 13
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 39
-  completed_plans: 35
-  percent: 90
+  completed_plans: 36
+  percent: 92
 ---
 
 # Project State
@@ -405,12 +405,13 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 - 2026-05-31: Phase 39.4 PARTIAL_SIGNED_OFF — Test 1~4 + Verify A 5/5 PASS (UAT mid-hotfix CO-39.4-01 = `6843c0d`, UpdateImageSourceBadge 의 RenderInspectionResultForNode 가 swap 직후 Shot 이미지로 덮어씌우는 회귀 fix). CO-39.3-01 종결. CO-39.4-02 carry-over (Verify B/D/E + INI 호환 회귀 smoke = 회귀 위험 LOW, 후속 phase 이월).
 - 2026-06-02: Phase 40.1 SIGNED_OFF (4/4 PASS) + CO-40.1-01(c41a418 Datum 선택 자동재티칭) + CO-40.1-02(18a956b 측정/Shot 노드 Datum 기준선 표시).
 - 2026-06-02: Phase 41 added — CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02). MILESTONES.md "v1.2 Hardware Integration" 이연 백로그(구 Phase 29 SDK확정 + 30 드라이버통합) 활성화. HW 실물 도착 + SDK MIL Lite 10.0(PC 설치) 확정. VirtualCamera GrabHalconImage 통합. 다음 = /gsd-discuss-phase 41.
+- 2026-06-18: Phase 54 added — Datum 패턴매칭 위치보정 (ALIGN-01). 자재 X,Y(+tilt) 변위 정렬 — Datum 패턴매칭으로 x,y, line-fit 으로 정밀 θ 하이브리드, ROI 좌표변환(무 warp), per-Datum 매칭(Side=4회), `_datumTransforms[DatumName]` 합성, 실패=MarkDatumFailed ALIGN_FAIL NG. Phase 52(레벨링) 흡수·대체(이미지회전 폐기). 분석문서 = .planning/ALIGN-01-pattern-align-analysis.md. Open discuss = 매칭 엔진 Shape vs NCC(포커싱 불량 대비 defocus-robust) vs per-Datum 선택형. 다음 = /gsd-discuss-phase 54.
 
 ## Session Continuity
 
-Last session: 2026-06-17T04:11:18.654Z
-Stopped at: Completed 52-03-PLAN.md
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 54 context gathered
+Resume file: --resume-file
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 
 **v1.1 Phase Map:**

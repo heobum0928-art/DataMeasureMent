@@ -92,6 +92,27 @@ namespace ReringProject.Utility {
             return saveFile;
         }
 
+        //260618 hbk Phase 54 ALIGN-01 패턴 모델 경로 이름 기반 재계산 (D-07/D-07a/D-07b) — 절대경로 저장 안 함
+        /// <summary>
+        /// HALCON shape/ncc 패턴 모델 파일 경로를 이름 기반으로 재계산한다.
+        /// engine = "NCC" → .ncm, 그 외(Shape) → .shm.
+        /// 레시피 폴더(RecipeSavePath/recipe/seq/act) 하위 저장이므로 Copy/Delete 시 자동 동반된다.
+        /// DatumConfig 에 절대경로를 저장하지 않는다(D-07).
+        /// </summary>
+        public string GetPatternModelFilePath(string recipeName, string seqName, string actName, string propertyName, string engine)
+        {
+            string ext;
+            if (string.Equals(engine, "NCC", System.StringComparison.OrdinalIgnoreCase))
+                ext = DeviceHandler.EXTENSION_NCC_MODEL;
+            else
+                ext = DeviceHandler.EXTENSION_SHAPE_MODEL;
+            string saveFile = Path.Combine(SystemHandler.Handle.Setting.RecipeSavePath, recipeName, seqName, actName);
+            saveFile += propertyName + ext;
+            string savePath = Path.GetDirectoryName(saveFile);
+            if (Directory.Exists(savePath) == false) Directory.CreateDirectory(savePath);
+            return saveFile;
+        }
+
         public string GetCalibrationFilePath(string recipeName, string seqName, string actName, string propertyName)
         {
             string saveFile = Path.Combine(SystemHandler.Handle.Setting.CalibrationSavePath, propertyName + DeviceHandler.EXTENSION_CALIBRATION);

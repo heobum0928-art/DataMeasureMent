@@ -82,6 +82,10 @@ namespace ReringProject.Device {
         public const string FILTER_MODEL = "mmf Files(*.mmf)|*.mmf";
         public const string EXTENSION_MODEL = ".mmf";
 
+        //260618 hbk Phase 54 ALIGN-01 HALCON shape/ncc 모델 확장자 (D-07b) — 기존 .mmf(MIL) 미재사용
+        public const string EXTENSION_SHAPE_MODEL = ".shm";
+        public const string EXTENSION_NCC_MODEL = ".ncm";
+
         public const string EXTENSION_CALIBRATION = ".cal";
 
         /// <summary>

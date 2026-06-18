@@ -23,6 +23,11 @@ namespace ReringProject.Halcon.Algorithms
         //  TODO: 사용자 튜닝 가능하도록 DatumConfig 필드화 검토. TwoLineAngleToleranceDeg 는 TwoLineIntersect 전용이라 이 경로에 미적용.
         private const double PERPENDICULAR_TOLERANCE_DEG = 10.0;
 
+        //260618 hbk Phase 54 ALIGN-01 (사용자 설계): 패턴매칭 보정 transform. set 되면 datum 검출 ROI 중심을
+        //  이 hom_mat2d 로 이동/회전(x,y,tilt)한 뒤 검출 → 틀어진 부품에서도 datum ROI 가 실제 에지를 덮음.
+        //  null/빈 HTuple 이면 무보정(기존 동작). 검출 자체(line-fit/DetectedOrigin/angle)는 그대로 → nominal 불변.
+        public HTuple AlignPreTransform { get; set; } = null;
+
         /// <summary>
         /// 런타임 Datum 찾기: 이미지에서 두 라인을 검출하고 hom_mat2d 변환 행렬을 반환한다.
         /// config.IsConfigured=false이면 identity 변환을 반환(pass-through).
@@ -241,9 +246,23 @@ namespace ReringProject.Halcon.Algorithms
                 string circleError;
                 string circlePolarity = EdgeOptionLists.MapRadialDirectionToHalconPolarity(config.Circle_RadialDirection);
                 bool[] unusedStrips; // find 경로는 strip 색상 갱신 없음
+                //260618 hbk Phase 54 ALIGN-01 (사용자 설계): 패턴 보정 transform 을 원 ROI 중심에 적용 → 틀어진 부품에서도 원을 덮음.
+                double circRoiRow = config.CircleROI_Row;
+                double circRoiCol = config.CircleROI_Col;
+                if (AlignPreTransform != null && AlignPreTransform.Length > 0)
+                {
+                    try
+                    {
+                        HTuple acR, acC;
+                        HOperatorSet.AffineTransPoint2d(AlignPreTransform, circRoiRow, circRoiCol, out acR, out acC);
+                        circRoiRow = acR.D;
+                        circRoiCol = acC.D;
+                    }
+                    catch { /* 변환 실패 시 원본 ROI 중심 유지 */ }
+                }
                 if (!visionSvc.TryFindCircleByPolarSampling(
                         image,
-                        config.CircleROI_Row, config.CircleROI_Col, config.CircleROI_Radius,
+                        circRoiRow, circRoiCol, config.CircleROI_Radius,
                         config.Circle_PolarStepDeg, config.Circle_RectL1Ratio, config.Circle_RectL2Ratio,
                         config.Circle_Sigma, config.Circle_EdgeThreshold, circlePolarity,
                         config.Circle_EdgeSelection,
@@ -1956,6 +1975,20 @@ namespace ReringProject.Halcon.Algorithms
             if (string.IsNullOrEmpty(selection)) selection = "First";
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
+
+            //260618 hbk Phase 54 ALIGN-01 (사용자 설계): 패턴 보정 transform 이 set 되면 ROI 중심을 이동/회전.
+            //  T = rotate(θ)+translate(x,y) → 회전에 의한 ROI 위치 이동까지 반영. 작은 tilt 는 axis-aligned strip + line-fit 이 실제 각도 흡수.
+            if (AlignPreTransform != null && AlignPreTransform.Length > 0)
+            {
+                try
+                {
+                    HTuple atRow, atCol;
+                    HOperatorSet.AffineTransPoint2d(AlignPreTransform, roiRow, roiCol, out atRow, out atCol);
+                    roiRow = atRow.D;
+                    roiCol = atCol.D;
+                }
+                catch { /* 변환 실패 시 원본 ROI 좌표 유지 */ }
+            }
 
             // bounding box 계산 (Phi=0 저장 규약 기준)
             double halfW    = roiLength1;

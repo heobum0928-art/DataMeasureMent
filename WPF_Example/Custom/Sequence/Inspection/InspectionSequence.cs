@@ -431,6 +431,10 @@ namespace ReringProject.Sequence {
             error = null;
             if (datum == null) { error = "datum null"; return false; }
             if (refImage == null) { error = "refImage null"; return false; }
+            //260618 hbk Phase 54 ALIGN-01 hotfix: align-enabled Datum 은 검출 경로(EnsurePerRoiDefaults 호출처)를 건너뛰므로
+            //  여기서 명시 호출하지 않으면 PatternSearchMarginPx/PatternMinScore 가 sentinel 0 → 검색영역 ROI 에 밀착 + minScore 0
+            //  → 회전/이동으로 패턴이 이동하면 매칭 실패(ALIGN_FAIL). 멱등 폴백이므로 매 호출 안전.
+            datum.EnsurePerRoiDefaults();
             var svc = new PatternMatchService();
             double curRow, curCol, curAngleDeg, curScore;
             // ① 매칭 (보정 전 원본) → x,y

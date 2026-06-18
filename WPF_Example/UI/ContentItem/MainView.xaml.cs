@@ -2642,6 +2642,10 @@ namespace ReringProject.UI {
                 return;
             }
 
+            //260618 hbk Phase 54 ALIGN-01 hotfix: 모델 생성 전 기본값 보장. sentinel 0 이면 PatternAngleExtentDeg 가 0
+            //  → create_shape_model AngleExtent=0 → 0° 전용 모델 → 1° 회전 매칭 실패. EnsurePerRoiDefaults 가 10°/0.6/100px 복원.
+            datum.EnsurePerRoiDefaults();
+
             HImage img = halconViewer.CurrentImage;
             if (img == null) {
                 CustomMessageBox.Show("모델 생성 실패", "이미지가 없습니다. 먼저 Grab 또는 Load Image 를 수행하세요.");

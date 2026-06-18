@@ -37,7 +37,7 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi } //260618 hbk Phase 54 ALIGN-01
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, AlignLineRoi } //260618 hbk Phase 54 ALIGN-01
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private MeasurementBase _editingCircleMeasurement;
@@ -1647,6 +1647,8 @@ namespace ReringProject.UI {
             halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
             // 패턴 ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRectCompleted;
+            // 직선(tilt) ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
+            halconViewer.RectDrawingCompleted   -= HalconViewer_AlignLineRectCompleted;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
@@ -2628,6 +2630,52 @@ namespace ReringProject.UI {
             _editingDatum = null;
         }
 
+        //260618 hbk Phase 54 ALIGN-01 tilt 직선 ROI 전용 그리기 모드 진입 (사용자 설계) — DrawPatternRoiButton_Click 미러
+        private void DrawAlignLineRoiButton_Click(object sender, RoutedEventArgs e) {
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
+            if (datum == null) {
+                CustomMessageBox.Show("직선 ROI 그리기", "Datum 노드를 먼저 선택하세요.");
+                return;
+            }
+            ExitCanvasMode();
+            _editingDatum = datum;
+            _canvasMode = ECanvasMode.AlignLineRoi;
+            label_drawHint.Content = "직선 ROI: 회전 기준이 될 직선 위에 드래그하세요 (가로 직선=가로로 길게, 세로 직선=세로로 길게)";
+            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
+            label_drawHint.Visibility = Visibility.Visible;
+            halconViewer.RectDrawingCompleted += HalconViewer_AlignLineRectCompleted;
+            halconViewer.StartRectangleDrawing();
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 직선 ROI write-back (사용자 설계) — HalconViewer_PatternRectCompleted 미러
+        private void HalconViewer_AlignLineRectCompleted(object sender, EventArgs e) {
+            halconViewer.RectDrawingCompleted -= HalconViewer_AlignLineRectCompleted;
+            var roi = halconViewer.CommitActiveRectangle();
+            if (roi == null || _editingDatum == null) { ExitCanvasMode(); return; }
+
+            double centerRow = (roi.Row1 + roi.Row2) / 2.0;
+            double centerCol = (roi.Column1 + roi.Column2) / 2.0;
+            double halfH     = (roi.Row2 - roi.Row1) / 2.0;
+            double halfW     = (roi.Column2 - roi.Column1) / 2.0;
+
+            _editingDatum.AlignLineRoi_Row     = centerRow;
+            _editingDatum.AlignLineRoi_Col     = centerCol;
+            _editingDatum.AlignLineRoi_Phi     = 0.0;
+            _editingDatum.AlignLineRoi_Length1 = halfW; // X축 절반
+            _editingDatum.AlignLineRoi_Length2 = halfH; // Y축 절반
+
+            try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+
+            label_drawHint.Content = "직선 ROI 저장 완료 — [패턴 모델 생성] 시 기준각이 기록됩니다";
+            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
+            label_drawHint.Visibility = Visibility.Visible;
+            _canvasMode = ECanvasMode.None;
+            _editingDatum = null;
+        }
+
         //260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09) — InvokeTryTeachDatum 패턴 미러
         private void CreatePatternModelButton_Click(object sender, RoutedEventArgs e) {
             InvokeCreatePatternModel();
@@ -2680,10 +2728,26 @@ namespace ReringProject.UI {
                     datum.RefMatchRow     = rr;
                     datum.RefMatchCol     = rc;
                     datum.RefMatchAngleDeg = ra;
+                    //260618 hbk Phase 54 ALIGN-01 tilt 기준각 캡쳐 — 직선 ROI 가 그려져 있으면 티칭 이미지에서 1회 측정해 기준각 저장.
+                    //  런타임 θ = 측정각 − AlignLineRefAngleDeg. 직선 ROI 미설정 시 생략(θ=0 보정만).
+                    string alignMsg = "";
+                    if (datum.AlignLineRoi_Length1 > 0.0 && datum.AlignLineRoi_Length2 > 0.0) {
+                        var dfsRef = new ReringProject.Halcon.Algorithms.DatumFindingService();
+                        double refLineRad;
+                        string refLineErr;
+                        if (dfsRef.TryGetAlignLineAngle(img, datum, 0.0, 0.0, out refLineRad, out refLineErr)) {
+                            datum.AlignLineRefAngleDeg = refLineRad * 180.0 / Math.PI;
+                            alignMsg = "\n직선 ROI 기준각 " + datum.AlignLineRefAngleDeg.ToString("F3") + "° 기록 (tilt 보정 활성)";
+                        } else {
+                            alignMsg = "\n[경고] 직선 ROI 에서 각도 측정 실패 → tilt 보정 안 됨(θ=0): " + (refLineErr ?? "");
+                        }
+                    } else {
+                        alignMsg = "\n(직선 ROI 미설정 — tilt 보정 없이 x,y 만 보정. [직선 ROI] 버튼으로 그리면 회전 보정됨)";
+                    }
                     // PropertyGrid 재바인딩
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
                     if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-                    CustomMessageBox.Show("모델 생성 완료", "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ") — Recipe Save 권장");
+                    CustomMessageBox.Show("모델 생성 완료", "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ") — Recipe Save 권장" + alignMsg);
                 }
                 else {
                     CustomMessageBox.Show("ref pose 기록 실패", refError);

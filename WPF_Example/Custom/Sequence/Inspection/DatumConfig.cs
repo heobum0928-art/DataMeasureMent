@@ -99,6 +99,44 @@ namespace ReringProject.Sequence {
         [Category("Datum|PatternAlign")]
         public double PatternRoi_Length2 { get; set; } = 0.0;
 
+        //260618 hbk Phase 54 ALIGN-01 tilt 직선추출 ROI (사용자 설계) — 패턴 x,y 와 별개로 회전각 θ 산출용 전용 라인 ROI.
+        //  티칭 이미지에서 측정한 각도를 AlignLineRefAngleDeg 로 저장(가로≈0/세로≈90, 정확히 아님 = Ref). 런타임 측정각 − Ref = tilt θ.
+        //  직선 추출은 기존 measure_pos 알고리즘(TryExtractEdgePoints + fit_line) 재사용.
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRoi_Row { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRoi_Col { get; set; } = 0.0;
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double AlignLineRoi_Phi { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRoi_PhiDeg
+        {
+            get { return AlignLineRoi_Phi * 180.0 / System.Math.PI; }
+            set { AlignLineRoi_Phi = value * System.Math.PI / 180.0; }
+        }
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRoi_Length1 { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRoi_Length2 { get; set; } = 0.0;
+        // 직선추출 에지 파라미터 (Horizontal_A 미러 — sentinel 0/"" → EnsurePerRoiDefaults 복원)
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRoi_Sigma { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public int AlignLineRoi_EdgeThreshold { get; set; } = 0;
+        [Category("Datum|PatternAlign")]
+        public string AlignLineRoi_EdgePolarity { get; set; } = "";
+        [Category("Datum|PatternAlign")]
+        public string AlignLineRoi_EdgeDirection { get; set; } = "";
+        [Category("Datum|PatternAlign")]
+        public string AlignLineRoi_EdgeSelection { get; set; } = "";
+        [Category("Datum|PatternAlign")]
+        public int AlignLineRoi_EdgeSampleCount { get; set; } = 0;
+        [Category("Datum|PatternAlign")]
+        public int AlignLineRoi_EdgeTrimCount { get; set; } = 0;
+        //260618 hbk ALIGN-01 직선 ROI 기준각(티칭 측정값, deg). 런타임 측정각 − 이 값 = tilt θ.
+        [Category("Datum|PatternAlign")]
+        public double AlignLineRefAngleDeg { get; set; } = 0.0;
+
         // 가로축 이미지(TeachingImagePath) 와 분리된 세로축 이미지 경로.
         //  algorithm == VerticalTwoHorizontalDualImage 일 때만 의미가 있으며, 그 외 algorithm 에서는 INI 에 보존되지만 미사용 (ICustomTypeDescriptor 가 hide).
         //  INI 직렬화 = ParamBase reflection String case 자동. 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화.
@@ -691,6 +729,15 @@ namespace ReringProject.Sequence {
             if (Horizontal_B_EdgeTrimCount == 0)   Horizontal_B_EdgeTrimCount = fbTrimCount;
             if (string.IsNullOrEmpty(Horizontal_B_EdgePolarity)) Horizontal_B_EdgePolarity = fbPolarity;
             if (string.IsNullOrEmpty(Horizontal_B_EdgeSelection)) Horizontal_B_EdgeSelection = fbSelection;
+
+            //260618 hbk Phase 54 ALIGN-01 AlignLineRoi (tilt 직선추출) 에지 파라미터 기본값 (Horizontal_A 미러)
+            if (AlignLineRoi_EdgeThreshold == 0)   AlignLineRoi_EdgeThreshold = fbThreshold;
+            if (AlignLineRoi_Sigma == 0)           AlignLineRoi_Sigma = fbSigma;
+            if (string.IsNullOrEmpty(AlignLineRoi_EdgeDirection)) AlignLineRoi_EdgeDirection = fbDirection;
+            if (AlignLineRoi_EdgeSampleCount == 0) AlignLineRoi_EdgeSampleCount = fbSampleCount;
+            if (AlignLineRoi_EdgeTrimCount == 0)   AlignLineRoi_EdgeTrimCount = fbTrimCount;
+            if (string.IsNullOrEmpty(AlignLineRoi_EdgePolarity)) AlignLineRoi_EdgePolarity = fbPolarity;
+            if (string.IsNullOrEmpty(AlignLineRoi_EdgeSelection)) AlignLineRoi_EdgeSelection = fbSelection;
 
             // Vertical 그룹 INI 하위호환 마이그레이션.
             //  기존 INI 의 Line1_* 값을 Vertical_* sentinel(==0/"") 일 때 1회 복사.

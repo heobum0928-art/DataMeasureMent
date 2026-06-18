@@ -448,24 +448,38 @@ namespace ReringProject.Sequence {
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
             }
-            // ② line-fit ROI 를 매칭 변위만큼 이동 후 정밀 θ (D-02 ②). dRow/dCol = cur - ref.
+            // ② tilt: 전용 직선 ROI(매칭 변위만큼 이동) 에서 각도 측정 → 티칭 기준각(Ref) 차감 = θ (사용자 설계).
             double dRow = curRow - datum.RefMatchRow;
             double dCol = curCol - datum.RefMatchCol;
             double thetaRad = 0.0;
             var dfs = new DatumFindingService();
+            double curLineAngleRad;
             string thErr;
-            if (!dfs.TryGetLevelingAngle(refImage, datum, dRow, dCol, out thetaRad, out thErr))
+            if (dfs.TryGetAlignLineAngle(refImage, datum, dRow, dCol, out curLineAngleRad, out thErr))
             {
-                thetaRad = 0.0; // line-fit 실패 → θ=0 폴백 (x,y 보정 유지, lenient)
+                // θ = 런타임 측정각 − 티칭 기준각(AlignLineRefAngleDeg). 가로≈0/세로≈90 은 기준일 뿐, 실제는 Ref 측정값.
+                thetaRad = curLineAngleRad - (datum.AlignLineRefAngleDeg * System.Math.PI / 180.0);
+            }
+            else
+            {
+                thetaRad = 0.0; // 직선 ROI θ 실패 → θ=0 폴백 (x,y 보정 유지, lenient)
                 string te = thErr;
                 if (te == null) te = "";
-                Logging.PrintLog((int)ELogType.Trace, "[ALIGN] Datum '" + (datum.DatumName ?? "") + "' line-fit θ 실패 → θ=0 폴백: " + te);
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN] Datum '" + (datum.DatumName ?? "") + "' 직선 ROI θ 실패 → θ=0 폴백: " + te);
             }
-            // ③ rigid 산출
+            // ③ transform 산출 (사용자 레시피): identity → rotate(θ, RefMatch 중심) → translate(dRow,dCol).
+            //  회전 중심은 무관(rotate 후 translate 로 x,y 보정) — RefMatch 위치 사용. θ 부호 = 측정−Ref.
             HTuple alignRigid;
-            if (!svc.TryBuildAlignRigid(datum.RefMatchRow, datum.RefMatchCol, datum.RefMatchAngleDeg,
-                    curRow, curCol, thetaRad, out alignRigid, out error))
+            try
             {
+                HTuple hId, hRot;
+                HOperatorSet.HomMat2dIdentity(out hId);
+                HOperatorSet.HomMat2dRotate(hId, thetaRad, datum.RefMatchRow, datum.RefMatchCol, out hRot);
+                HOperatorSet.HomMat2dTranslate(hRot, dRow, dCol, out alignRigid);
+            }
+            catch (Exception exr)
+            {
+                error = exr.Message;
                 return false;
             }
             // ④ 기존 검출 transform(있으면)과 1회 합성 — 없으면 alignRigid 단독 저장

@@ -221,6 +221,28 @@
                         </Button.Template>
                     </Button>
 
+                    <!--260618 hbk Phase 54 ALIGN-01 tilt 직선 ROI 그리기 전용 모드 (사용자 설계)-->
+                    <Button x:Name="btn_drawAlignLineRoi" Content="직선 ROI"
+                        Click="DrawAlignLineRoiButton_Click"
+                        IsEnabled="False"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#D97706" Foreground="White"
+                        BorderBrush="#B45309" BorderThickness="1"
+                        Margin="0,0,4,0"
+                        ToolTip="회전(tilt) 기준이 될 직선 위에 ROI 를 드래그합니다. 패턴 모델 생성 시 기준각이 기록됩니다.">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.
                          260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapHorizontalToggleStyle 로 교체 (활성 시 #1976D2 Blue 700).-->
                     <ToggleButton x:Name="btn_swapHorizontal" Content="👁 가로"

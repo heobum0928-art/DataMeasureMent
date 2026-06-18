@@ -490,6 +490,15 @@ namespace ReringProject.Sequence {
             datum.CurrentTransform = datumTransform;
             string datumKey = datum.DatumName;
             if (datumKey == null) datumKey = "";
+            //260618 hbk Phase 54 ALIGN-01 carry-over#1 확증로그: datum 검출각(수평 결합선) 회전분 vs 패턴 θ.
+            //  strip θ회전 적용 후 datumDetectRotDeg 가 patternThetaDeg 로 수렴(편차~0)하면 datum 검출각 정확 = 먼 측정점 정상.
+            //  축정렬 strip 가설은 0.1-0.2° 편차. UAT 1회로 메커니즘 확증.
+            double datumDetectRotDeg = datum.DetectedAngleDeg - (datum.RefAngleRad * 180.0 / System.Math.PI);
+            Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + datumKey
+                + " datumDetectAngleDeg=" + datum.DetectedAngleDeg.ToString("F3")
+                + " datumDetectRotDeg=" + datumDetectRotDeg.ToString("F3")
+                + " vs patternThetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3")
+                + " (strip θ-rot applied)");
             _datumTransforms[datumKey] = datumTransform; // 측정은 진짜 datum 검출 transform 사용 (nominal 불변)
             datum.LastFindSucceeded = true;
             return true;

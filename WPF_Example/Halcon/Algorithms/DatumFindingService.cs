@@ -1976,8 +1976,11 @@ namespace ReringProject.Halcon.Algorithms
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
-            //260618 hbk Phase 54 ALIGN-01 (사용자 설계): 패턴 보정 transform 이 set 되면 ROI 중심을 이동/회전.
-            //  T = rotate(θ)+translate(x,y) → 회전에 의한 ROI 위치 이동까지 반영. 작은 tilt 는 axis-aligned strip + line-fit 이 실제 각도 흡수.
+            //260618 hbk Phase 54 ALIGN-01 carry-over#1: 패턴 보정 transform 이 set 되면 ROI 중심 이동 + strip 을 θ 회전.
+            //  T = rotate(θ)+translate(x,y). 기존엔 중심만 이동하고 strip 을 축정렬로 둬서(carry-over#1) 틸트된 datum 에지를 비스듬히 샘플
+            //  → DetectedRefAngle ~0.1-0.2° 편차 → datum 에서 먼 측정점 NG. 측정 ROI(FAIEdgeMeasurementService.cs:63/100/111)와 동일하게
+            //  회전각을 뽑아 measurePhi + bbox 를 θ 회전. alignRot=0(비-align) 이면 기존 축정렬 동작과 정확히 동일(회귀 0).
+            double alignRot = 0.0;
             if (AlignPreTransform != null && AlignPreTransform.Length > 0)
             {
                 try
@@ -1986,17 +1989,22 @@ namespace ReringProject.Halcon.Algorithms
                     HOperatorSet.AffineTransPoint2d(AlignPreTransform, roiRow, roiCol, out atRow, out atCol);
                     roiRow = atRow.D;
                     roiCol = atCol.D;
+                    // hom_mat2d: index0=h00(cosθ), index3=h10(sinθ) — 평행이동 불변. (CANONICAL: FAIEdgeMeasurementService.cs:63)
+                    alignRot = Math.Atan2(AlignPreTransform[3].D, AlignPreTransform[0].D);
                 }
-                catch { /* 변환 실패 시 원본 ROI 좌표 유지 */ }
+                catch { /* 변환 실패 시 원본 ROI 좌표/회전 유지 */ }
             }
 
-            // bounding box 계산 (Phi=0 저장 규약 기준)
-            double halfW    = roiLength1;
-            double halfH    = roiLength2;
-            double top      = roiRow - halfH;
-            double bottom   = roiRow + halfH;
-            double left     = roiCol - halfW;
-            double right    = roiCol + halfW;
+            // bounding box 계산: alignRot 회전 반영 enlarged AABB. ★datum 규약 length1=col(가로)/length2=row(세로) — 측정 서비스(length1=row)와 반대이므로 보존.
+            //  alignRot=0 → halfCol=length1, halfRow=length2 로 기존 축정렬 bbox 정확 복원.
+            double cosT     = Math.Cos(alignRot);
+            double sinT     = Math.Sin(alignRot);
+            double halfCol  = Math.Abs(roiLength1 * cosT) + Math.Abs(roiLength2 * sinT);
+            double halfRow  = Math.Abs(roiLength1 * sinT) + Math.Abs(roiLength2 * cosT);
+            double top      = roiRow - halfRow;
+            double bottom   = roiRow + halfRow;
+            double left     = roiCol - halfCol;
+            double right    = roiCol + halfCol;
             double widthPx  = right - left;
             double heightPx = bottom - top;
 
@@ -2036,7 +2044,8 @@ namespace ReringProject.Halcon.Algorithms
                             sigma, threshold, polarity,
                             direction, selection,
                             ref allRows, ref allCols,
-                            roiLabel);
+                            roiLabel,
+                            alignRot); //260618 hbk Phase 54 ALIGN-01 carry-over#1: strip θ회전 전달
                     }
                 }
                 else
@@ -2051,7 +2060,8 @@ namespace ReringProject.Halcon.Algorithms
                             sigma, threshold, polarity,
                             direction, selection,
                             ref allRows, ref allCols,
-                            roiLabel);
+                            roiLabel,
+                            alignRot); //260618 hbk Phase 54 ALIGN-01 carry-over#1: strip θ회전 전달
                     }
                 }
 
@@ -2109,7 +2119,8 @@ namespace ReringProject.Halcon.Algorithms
             double sigma, int threshold, string polarity,
             string direction, string selection,
             ref HTuple allRows, ref HTuple allCols,
-            string roiLabel)
+            string roiLabel,
+            double alignRot = 0.0) //260618 hbk Phase 54 ALIGN-01 carry-over#1: strip θ회전(measurePhi 가산). 기본 0 = TryFindLine 등 비-align 경로 무변경.
         {
             // direction → measurePhi (CANONICAL: MeasurementAlgorithm.cs:130-178)
             double measurePhi;
@@ -2117,6 +2128,8 @@ namespace ReringProject.Halcon.Algorithms
             else if (string.Equals(direction, "BtoT", StringComparison.OrdinalIgnoreCase)) measurePhi = +Math.PI / 2.0;
             else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
             else                                                                            measurePhi = 0.0;
+            //260618 hbk Phase 54 ALIGN-01 carry-over#1: 패턴보정 strip 회전 — 측정 ROI(FAIEdgeMeasurementService.cs:100)와 동일하게 measurePhi 에 θ 가산.
+            measurePhi += alignRot;
 
             // selection (PascalCase) → Halcon MeasurePos 인자 (lower). chained ?: → if/else (CANONICAL: MeasurementAlgorithm.cs:178 의미 보존)
             string selectionLower = "first";

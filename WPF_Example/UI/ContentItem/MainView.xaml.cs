@@ -2666,10 +2666,29 @@ namespace ReringProject.UI {
             _editingDatum.AlignLineRoi_Length1 = halfW; // X축 절반
             _editingDatum.AlignLineRoi_Length2 = halfH; // Y축 절반
 
+            //260618 hbk Phase 54 ALIGN-01 기준각 즉시 캡쳐 (CO-54-04) — 그리는 순간 현재(티칭) 이미지에서 직선 각도 측정.
+            //  [패턴 모델 생성] 재클릭 의존 제거. 런타임 θ = 측정각 − 이 기준각.
+            string alignHint;
+            _editingDatum.EnsurePerRoiDefaults();
+            HImage curImg = halconViewer.CurrentImage;
+            if (curImg != null) {
+                var dfsRef = new ReringProject.Halcon.Algorithms.DatumFindingService();
+                double refRad;
+                string refErr;
+                if (dfsRef.TryGetAlignLineAngle(curImg, _editingDatum, 0.0, 0.0, out refRad, out refErr)) {
+                    _editingDatum.AlignLineRefAngleDeg = refRad * 180.0 / Math.PI;
+                    alignHint = "직선 ROI 저장 + 기준각 " + _editingDatum.AlignLineRefAngleDeg.ToString("F3") + "° 기록 완료 — Recipe Save 권장";
+                } else {
+                    alignHint = "[경고] 직선 ROI 저장됨, 기준각 측정 실패(에지 못잡음 — polarity/threshold 확인): " + (refErr ?? "");
+                }
+            } else {
+                alignHint = "직선 ROI 저장됨 — 이미지 없음. Grab/Load 후 다시 그려야 기준각 기록됨";
+            }
+
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
             if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
 
-            label_drawHint.Content = "직선 ROI 저장 완료 — [패턴 모델 생성] 시 기준각이 기록됩니다";
+            label_drawHint.Content = alignHint;
             label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
             label_drawHint.Visibility = Visibility.Visible;
             _canvasMode = ECanvasMode.None;

@@ -58,6 +58,9 @@ namespace ReringProject.Sequence {
         // datum 검출 실패 datum 이름 집합 (per-FAI gate 신호). _datumTransforms 와 동일 lifecycle.
         private readonly HashSet<string> _failedDatums = new HashSet<string>();
 
+        //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
+        private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
+
         //260617 hbk Phase 52 LEVEL-01 레벨링 각도 캐시 (D-03 시퀀스당 1회 산출, 전 SHOT 공유)
         private double _levelingAngleRad = 0.0;
         private bool _levelingComputed = false;
@@ -349,6 +352,8 @@ namespace ReringProject.Sequence {
         public void ClearDatumTransforms() {
             _datumTransforms.Clear();
             _failedDatums.Clear(); // _datumTransforms 와 동일 lifecycle
+            //260618 hbk Phase 54 ALIGN-01 align 실패 set 도 동일 lifecycle 리셋 (D-10)
+            _alignFailedDatums.Clear();
             // RuntimeDetectFailed 도 일괄 리셋 (이전 사이클 잔여 신호 제거)
             foreach (var d in DatumConfigs)
             {
@@ -370,6 +375,109 @@ namespace ReringProject.Sequence {
         public bool IsDatumFailed(string datumRef)
         {
             return !string.IsNullOrEmpty(datumRef) && _failedDatums.Contains(datumRef);
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 패턴매칭 실패 datum 기록 (D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
+        //  _failedDatums 에도 add 하여 기존 IsDatumFailed 게이트가 NG 를 강제하도록 한다.
+        public void MarkAlignFailed(string datumName)
+        {
+            if (!string.IsNullOrEmpty(datumName))
+            {
+                _alignFailedDatums.Add(datumName);
+                MarkDatumFailed(datumName); // 측정 NG 강제 위해 기존 게이트 set 에도 add
+            }
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 align 실패 datum 여부 조회 — 게이트가 ALIGN_FAIL vs DATUM_FAIL 표기 구분에 사용 (D-10).
+        public bool IsAlignFailed(string datumRef)
+        {
+            return !string.IsNullOrEmpty(datumRef) && _alignFailedDatums.Contains(datumRef);
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 datum 모델 경로 단일 소스 (D-07) — 54-04(런타임 load)·54-05(티칭 save) 공유.
+        //  키 도출 로직 단일화 → 경로 불일치 구조적 차단. SourceShotName → ShotConfig.OwnerSequenceName 역추적 (InspectionListView.ResolveDatumCameraParam 선례).
+        public static string ResolveDatumModelPath(DatumConfig datum)
+        {
+            if (datum == null) return null;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+            if (recipeName == null) recipeName = "";
+            // datum.SourceShotName 으로 ShotConfig 역추적 → OwnerSequenceName (InspectionListView.ResolveDatumCameraParam 선례)
+            string seqName = "TOP"; // 미매칭/빈값 폴백 (ShotConfig 정책 일치)
+            var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+            if (shots != null && shots.Count > 0)
+            {
+                ShotConfig matched = null;
+                if (!string.IsNullOrEmpty(datum.SourceShotName))
+                {
+                    foreach (var s in shots) { if (s != null && s.ShotName == datum.SourceShotName) { matched = s; break; } }
+                }
+                if (matched == null) matched = shots[0];
+                if (matched != null && !string.IsNullOrEmpty(matched.OwnerSequenceName)) seqName = matched.OwnerSequenceName;
+            }
+            string actName = "Datum"; // 결정적 상수 — propertyName=DatumName 이 유일성 보장
+            string propertyName = datum.DatumName;
+            if (propertyName == null) propertyName = "";
+            return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 패턴매칭 보정 합성 (D-02 ①②③④).
+        //  refImage = 보정 전 원본 grab 이미지(D-05). modelPath = 호출부가 ResolveDatumModelPath 로 산출 전달.
+        //  ① 원본 매칭 → curRow,curCol  ② (curRow-RefMatchRow,curCol-RefMatchCol) 이동 line-fit θ  ③ rigid  ④ _datumTransforms 합성.
+        //  합성 순서: HomMat2dCompose(alignRigid, existing) = "기존 검출 transform 을 먼저 적용 후 align 보정" (right-to-left 적용 규약).
+        //   ※TryComposeAlign 은 DatumPhase 에서 TryRunSingleDatum(검출) 호출 없이 align 단독 경로로 호출됨(Task 2 ②) → 통상 existing 없음 → alignRigid 단독 저장. existing 존재 시(혼용)만 1회 합성 — align 1회 적용 보장(W4).
+        //  실패(매칭 score 미달/모델 로드 실패/rigid 실패) → false (호출부가 MarkAlignFailed, lenient D-10). _datumTransforms 미변경.
+        public bool TryComposeAlign(DatumConfig datum, HImage refImage, string modelPath, out string error)
+        {
+            error = null;
+            if (datum == null) { error = "datum null"; return false; }
+            if (refImage == null) { error = "refImage null"; return false; }
+            var svc = new PatternMatchService();
+            double curRow, curCol, curAngleDeg, curScore;
+            // ① 매칭 (보정 전 원본) → x,y
+            if (!svc.TryFindPose(refImage, datum.PatternEngine, modelPath,
+                    datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
+                    datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 2.0,
+                    out curRow, out curCol, out curAngleDeg, out curScore, out error))
+            {
+                return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
+            }
+            // ② line-fit ROI 를 매칭 변위만큼 이동 후 정밀 θ (D-02 ②). dRow/dCol = cur - ref.
+            double dRow = curRow - datum.RefMatchRow;
+            double dCol = curCol - datum.RefMatchCol;
+            double thetaRad = 0.0;
+            var dfs = new DatumFindingService();
+            string thErr;
+            if (!dfs.TryGetLevelingAngle(refImage, datum, dRow, dCol, out thetaRad, out thErr))
+            {
+                thetaRad = 0.0; // line-fit 실패 → θ=0 폴백 (x,y 보정 유지, lenient)
+                string te = thErr;
+                if (te == null) te = "";
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN] Datum '" + (datum.DatumName ?? "") + "' line-fit θ 실패 → θ=0 폴백: " + te);
+            }
+            // ③ rigid 산출
+            HTuple alignRigid;
+            if (!svc.TryBuildAlignRigid(datum.RefMatchRow, datum.RefMatchCol, datum.RefMatchAngleDeg,
+                    curRow, curCol, thetaRad, out alignRigid, out error))
+            {
+                return false;
+            }
+            // ④ 기존 검출 transform(있으면)과 1회 합성 — 없으면 alignRigid 단독 저장
+            string datumKey = datum.DatumName;
+            if (datumKey == null) datumKey = "";
+            HTuple existing;
+            HTuple composed;
+            if (_datumTransforms.TryGetValue(datumKey, out existing) && existing != null && existing.Length > 0)
+            {
+                try { HOperatorSet.HomMat2dCompose(alignRigid, existing, out composed); }
+                catch (Exception ex) { error = ex.Message; return false; }
+            }
+            else
+            {
+                composed = alignRigid;
+            }
+            _datumTransforms[datumKey] = composed;
+            datum.LastFindSucceeded = true;
+            return true;
         }
 
         // datum 1개 검출 후 _datumTransforms 누적 저장 (Clear 안 함). 실패 시 false 반환하되 호출부는 abort 안 함 (lenient).

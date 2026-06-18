@@ -660,6 +660,77 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        //260618 hbk Phase 54 ALIGN-01 line-fit ROI 이동 오버로드 (D-02 ② — 큰 X,Y 변위 시 고정 티칭 ROI 가 에지 이탈하는 문제 해소).
+        //  dRow,dCol = 매칭 변위(curRow-RefMatchRow, curCol-RefMatchCol). ROI 중심만 이동, Phi/Length/edge 파라미터 무변경.
+        //  dRow=dCol=0 이면 기존 4-arg 오버로드와 동일 결과(회귀 0).
+        public bool TryGetLevelingAngle(HImage image, DatumConfig config, double dRow, double dCol, out double angleRad, out string error)
+        {
+            angleRad = 0.0;
+            error = null;
+            HObject contour = null;
+            try
+            {
+                HTuple imageWidth, imageHeight;
+                image.GetImageSize(out imageWidth, out imageHeight);
+
+                HTuple rowEdgeA, colEdgeA;
+                string edgeErrorA;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_A_Row + dRow, config.Horizontal_A_Col + dCol, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        out rowEdgeA, out colEdgeA, out edgeErrorA,
+                        "Horizontal_A"))
+                {
+                    error = "Horizontal_A: " + edgeErrorA;
+                    return false;
+                }
+                HTuple rowEdgeB, colEdgeB;
+                string edgeErrorB;
+                if (!TryExtractEdgePoints(
+                        image, imageWidth, imageHeight,
+                        config.Horizontal_B_Row + dRow, config.Horizontal_B_Col + dCol, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        out rowEdgeB, out colEdgeB, out edgeErrorB,
+                        "Horizontal_B"))
+                {
+                    error = "Horizontal_B: " + edgeErrorB;
+                    return false;
+                }
+                int totalEdges = rowEdgeA.TupleLength() + rowEdgeB.TupleLength();
+                if (totalEdges < MIN_HORIZONTAL_EDGES)
+                {
+                    error = "Leveling line fit failed: insufficient edges (" + totalEdges + ")";
+                    return false;
+                }
+                HTuple allRows = rowEdgeA.TupleConcat(rowEdgeB);
+                HTuple allCols = colEdgeA.TupleConcat(colEdgeB);
+                HOperatorSet.GenContourPolygonXld(out contour, allRows, allCols);
+                HTuple hrB, hcB, hrE, hcE, nr, nc, df;
+                HOperatorSet.FitLineContourXld(
+                    contour, "tukey", -1, 0, 5, 2,
+                    out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
+                angleRad = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                angleRad = 0.0;
+                return false;
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
         // VerticalTwoHorizontalDualImage Find 분기.
         //  본문 = TryFindVerticalTwoHorizontal 복제 + ROI 별 이미지 입력 분기 (Vertical=imageVertical, Horizontal A/B=imageHorizontal).
         //  나머지 로직 (totalEdges 가드 / TupleConcat / FitLineContourXld / IntersectionLl / Validate / hom_mat2d / Detected transient) 모두 동일.

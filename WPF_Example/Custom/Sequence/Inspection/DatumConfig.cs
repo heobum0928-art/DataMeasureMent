@@ -42,6 +42,63 @@ namespace ReringProject.Sequence {
         [System.ComponentModel.Description("레벨링 기준. 켜면 이 Datum 의 수평 2-ROI 에지로 이미지 회전 정렬한다. 시퀀스당 1개만 지정.")]
         public bool IsLevelingReference { get; set; } = false;
 
+        //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 활성 (D-11) — 기본 false → off 회귀 0
+        [Category("Datum|PatternAlign")]
+        [System.ComponentModel.Description("패턴매칭 위치보정 활성. 켜면 매칭(x,y)+line-fit(θ) 보정을 수행한다. 기본 off — 기존 레시피 byte-identical 보장.")]
+        public bool IsPatternAlignEnabled { get; set; } = false;
+
+        //260618 hbk Phase 54 ALIGN-01 매칭 엔진 선택자 (D-01) — AlgorithmType 드롭다운 미러
+        [Category("Datum|PatternAlign")]
+        [System.ComponentModel.Description("패턴매칭 엔진 선택. Shape=회전/클러터 강, NCC=defocus 강. 포커싱 불량 부위 Datum = NCC 권장.")]
+        [ItemsSourceProperty(nameof(PatternEngineList))]
+        public string PatternEngine { get; set; } = "Shape";
+
+        // PatternEngine 드롭다운 옵션
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> PatternEngineList
+        {
+            get { return new List<string> { "Shape", "NCC" }; }
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 ref pose (D-09) — 티칭 시 find 결과 1회 기록. 런타임 pose − ref pose = 변위.
+        [Category("Datum|PatternAlign")]
+        public double RefMatchRow { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double RefMatchCol { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double RefMatchAngleDeg { get; set; } = 0.0;
+
+        //260618 hbk Phase 54 ALIGN-01 매칭 파라미터 (D-06/D-06a) — sentinel 0 → EnsurePerRoiDefaults 기본값 복원
+        [Category("Datum|PatternAlign")]
+        [System.ComponentModel.Description("패턴매칭 최소 스코어 (0~1). sentinel 0 → EnsurePerRoiDefaults 에서 0.6 복원.")]
+        public double PatternMinScore { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        [System.ComponentModel.Description("매칭 허용 각도 범위 (도). coarse x,y 전용이므로 작은 값 권장. sentinel 0 → 10° 복원.")]
+        public double PatternAngleExtentDeg { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        [System.ComponentModel.Description("검색 영역 = template ROI ± margin (픽셀). sentinel 0 → 100px 복원.")]
+        public double PatternSearchMarginPx { get; set; } = 0.0;
+
+        //260618 hbk Phase 54 ALIGN-01 패턴 템플릿 ROI (D-08) — Line1_* ROI 패턴 미러. PatternRoi_Phi 는 radian 원본, PhiDeg wrapper 노출.
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi_Row { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi_Col { get; set; } = 0.0;
+        // radian 원본은 PropertyGrid 에서 숨기고 PhiDeg wrapper 노출
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double PatternRoi_Phi { get; set; } = 0.0;
+        // Phi 를 도(degree) 단위로 노출 (PatternRoi_Phi = PhiDeg * PI / 180).
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi_PhiDeg
+        {
+            get { return PatternRoi_Phi * 180.0 / System.Math.PI; }
+            set { PatternRoi_Phi = value * System.Math.PI / 180.0; }
+        }
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi_Length1 { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi_Length2 { get; set; } = 0.0;
+
         // 가로축 이미지(TeachingImagePath) 와 분리된 세로축 이미지 경로.
         //  algorithm == VerticalTwoHorizontalDualImage 일 때만 의미가 있으며, 그 외 algorithm 에서는 INI 에 보존되지만 미사용 (ICustomTypeDescriptor 가 hide).
         //  INI 직렬화 = ParamBase reflection String case 자동. 키 미존재 → EnsurePerRoiDefaults 에서 "" 정규화.

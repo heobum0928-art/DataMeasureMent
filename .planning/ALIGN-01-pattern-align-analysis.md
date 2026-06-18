@@ -73,6 +73,23 @@
 
 → §1 권고 갱신: "Shape 로 x,y+tilt 통합 산출(`vector_angle_to_rigid`)" 보다 **"Shape=x,y / line-fit=θ 하이브리드 + ROI 좌표변환(무 warp)"** 이 측정 정밀도상 우월. discuss 에서 이 하이브리드로 lock.
 
+## 9. 매칭 주기 = Datum 단위 (대화 확정 2026-06-18, 사용자 지정)
+
+§7 Q2(매칭 주기) 답 확정: **시퀀스당 1회가 아니라 Datum 당 1회.** 사용자: "Top/Bottom 은 시퀀스당, Side 는 Datum 마다 측정 부위가 달라 4번 매칭."
+
+**기존 코드 구조가 이 모델을 이미 지원함 (추가 라우팅 0):**
+- `_datumTransforms : Dictionary<string DatumName, HTuple>` (InspectionSequence.cs L56) — **Datum 이름으로 키된** transform 사전.
+- 각 measurement 는 `meas.DatumRef`(어느 Datum 기준) 보유 → 측정 시 `TryGetDatumTransform(meas.DatumRef)`(L400) 로 **그 Datum 의 transform 만** ROI 좌표에 적용(L295). 빈 DatumRef = identity(무보정).
+- ∴ Top/Bottom(Datum 1개)=transform 1개 전 측정 공유 ≈ 시퀀스당 1회. Side(Datum 4개)=키 4개, 각 측정이 `DatumRef` 로 자기 Datum transform 만 → **부위별 독립 보정 자동**.
+
+**설계 수정(§3 의 "시퀀스당 1회 전 ROI 공유" 폐기):**
+- 매칭 = **Datum 당 1회**. align rigid transform 을 `_datumTransforms[datum.DatumName]` 에 기존 검출 transform 과 **합성**(`hom_mat2d_compose`) 저장. 측정은 `DatumRef` 로 자동 라우팅 — **Measure 본문·라우팅 무수정**.
+- 강체 가정 = **per-Datum 국소 강체** (글로벌 강체 아님). Side 4 부위 각각 독립 이동 허용 → 글로벌 transform 1개로 묶으면 오히려 오측. 레벨링(글로벌 회전) 대비 ALIGN(Datum별) 이 구조적으로 우월한 이유.
+- 흐름(Datum 1개당): ① Shape 매칭(원본)→그 Datum 부위 x,y ② x,y 로 그 Datum line-fit ROI 이동→이동 엣지 line-fit→정밀 θ ③ (x,y+θ) rigid→`_datumTransforms[DatumName]` 합성 ④ `DatumRef==DatumName` 측정들 자동 적용.
+- 신규 영속(per-Datum): `IsPatternAlignEnabled`(bool)/`PatternModelPath`(.shm 경로)/`PatternRoi_*`/`RefMatchRow/Col/AngleDeg`/`PatternMinScore`/`PatternAngleExtentDeg` — DatumConfig 에 추가(레벨링 `IsLevelingReference` 미러). .shm 모델은 별도 파일(ParamBase 직렬화 한계).
+
+**잔여 미결(discuss):** 실패 정책(§7 Q3) / Side DualImage 1차 포함(§7 Q4) / Phase 52 레벨링 처리(각도산출 line-fit 재사용 + RotateImageByAngle 이미지회전 폐기 vs 공존).
+
 ## 관련 파일
 - WPF_Example/Halcon/Algorithms/DatumFindingService.cs — hom_mat2d 보정 패턴, TryGetLevelingAngle
 - WPF_Example/Halcon/Algorithms/VisionAlgorithmService.cs — RotateImageByAngle, AffineTransPoint2d(L45~60)

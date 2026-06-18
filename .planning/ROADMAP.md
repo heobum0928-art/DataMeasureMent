@@ -397,6 +397,45 @@ Plans:
 
 **✅ SIGNED_OFF 2026-06-09** — UAT 6/6 PASS. 실 HW(Matrox RapixoCXP + VIEWORKS VP-152MX2-M16I0) grab+라이브 동작확인(Test 6). HW-02 런타임 VERIFIED, 실 HW grab carry-over 종결. 커밋: 2dddf13(드라이버) + a397039(CO-41-01) + CO-41-02. Carry-over: CO-41-03(역할별 다중 카메라 부분 등록 미검증).
 
+### Phase 54: Datum 패턴매칭 위치보정 (ALIGN-01) — 자재 X,Y+tilt 변위 정렬 (신설 2026-06-18 — POC 신규, Phase 52 레벨링 흡수·대체)
+
+**Goal:** 자재가 X,Y(+tilt)로 틀어져 들어와도 작은 측정 ROI 가 대상 에지를 벗어나지 않도록, Datum 에 패턴매칭을 두어 자재 위치를 찾고 측정/Datum ROI **좌표**를 보정한다. 측정은 **원본 픽셀**에서 수행(이미지 warp 금지). Phase 52(레벨링)를 흡수 — 이미지 회전(RotateImageByAngle) 폐기, line-fit 각도산출(TryGetLevelingAngle)만 θ 소스로 재사용.
+**Requirements**: ALIGN-01 (신규)
+**Depends on:** Phase 39 (검사 워크플로우 E2E — `_datumTransforms` / `IsDatumFailed` / `MarkDatumFailed` gate), Phase 52 (레벨링 인프라 — 흡수)
+**Background/근거:** `.planning/ALIGN-01-pattern-align-analysis.md` (§8 하이브리드, §9 Datum단위 매칭). 레벨링은 회전만 보정 → 자재 X,Y 변위 시 작은 측정 ROI 가 에지 이탈하여 오측.
+
+**확정 결정 (discuss lock 대상):**
+- **보정 = 하이브리드**: 패턴매칭 = **x,y 위치 전용** / **line-fit = 정밀 θ** (매칭 angle 은 거칠어 ~0.3~0.5° → 측정 부적합). tilt(θ)를 측정에 실반영(레벨링 대체).
+- **적용 = ROI 좌표변환**(`affine_trans_pixel`), 이미지 warp 아님 → 서브픽셀 무손실 + 저비용. 측정은 원본 이미지 픽셀.
+- **매칭 주기 = Datum 당 1회** (Top/Bottom=Datum1개=사실상 시퀀스당1회, Side=Datum4개=4회). **per-Datum 국소 강체** 가정(글로벌 아님).
+- **적용 채널 = 기존 `_datumTransforms[DatumName]`** 에 align rigid transform 을 `hom_mat2d_compose` 로 합성 저장 → 측정은 `meas.DatumRef` 로 자동 라우팅(Measure 본문·라우팅 무수정).
+- **흐름(Datum당):** ① 매칭(원본 grab 이미지)→x,y ② x,y 로 그 Datum line-fit ROI 이동→이동 엣지 line-fit→정밀 θ ③ (x,y+θ) rigid→`_datumTransforms[DatumName]` 합성 ④ `DatumRef` 측정 자동 적용.
+- **매칭 입력 = 보정 전 원본 grab 이미지** (이중보정 가드). 레벨링 이미지회전 폐기로 warp 0회.
+- **실패 정책 = lenient(시퀀스 진행, abort 없음) + 매칭 실패 Datum 의 측정은 NG 강제.** 기존 `MarkDatumFailed(DatumName)` 재사용 — `LastSkipReason="ALIGN_FAIL"`, `LastJudgement=false`. 가짜 숫자 안 넣고 값 클리어+NG+사유 → 양품 오판 0.
+- **1차 범위 = Top/Bottom + Side 단일 이미지 Datum.** Side DualImage(2-image)는 후속 phase.
+- **off 회귀 0 = `DatumConfig.IsPatternAlignEnabled` 기본 false** + INI 키 미존재 폴백 false(EnsurePerRoiDefaults). enabled=false → align=identity → `_datumTransforms` 무변경.
+- **신규 영속(per-Datum, DatumConfig):** `IsPatternAlignEnabled`(bool)/`PatternModelPath`(모델 파일 경로)/`PatternRoi_*`(검색영역)/`RefMatchRow/Col/AngleDeg`(기준 pose)/`PatternMinScore`/`PatternAngleExtentDeg`. 모델은 별도 파일(ParamBase 는 double/int/string/bool 만 직렬화) — **레시피 폴더 내 저장**(백업 동반).
+- **신규 서비스 `PatternMatchService`** (create/read/write/find_*_model + `vector_angle_to_rigid`). 패턴 티칭 UI(Datum 노드 패턴 ROI 그리기 + 모델 생성/저장 + ref pose 기록).
+
+**Open (discuss 에서 결정):**
+- **매칭 엔진 = Shape vs NCC vs 선택형** ⚠ — Shape(edge-gradient)는 **회전/조명/클러터에 강하나 defocus(블러)에 취약**(에지 약화→score 급락). NCC(intensity pattern)는 **defocus 에 강하나 회전 취약**(angle range 필요·느림). 자재 포커싱 불량 우려(사용자 제기 2026-06-18) → defocus-robust 가 중요하면 NCC, tilt 가 크면 Shape. **권장 = per-Datum 엔진 선택자**(`AlgorithmType` 드롭다운 패턴 미러, Shape 기본 + NCC 옵션). 단 매칭은 coarse x,y 만 담당(정밀 θ는 line-fit)이라 NCC 의 회전 약점은 완화됨. 단, defocus 는 line-fit θ·측정 에지도 같이 훼손 → 엔진만으로 해결 불가(포커스 자체가 전제).
+
+**예상 구조:** 3~5 plan / 2~3 wave (레벨링 인프라 미러).
+**Success Criteria (UAT, SIMUL 우선 — 합성 변형 이미지 페어):**
+- off 회귀 0 (IsPatternAlignEnabled=false → 기존 측정 byte-identical)
+- 자재 X,Y 이동 케이스: 보정 추종(측정 정상) vs off(에지 이탈) 대조
+- tilt 케이스: x,y + line-fit θ 합성 보정 후 측정 정상
+- 매칭 실패 폴백: 시퀀스 abort 0 + 해당 Datum 측정 NG(ALIGN_FAIL)
+- 영속: 모델 파일 + ref pose 재시작 후 동작
+- Side 4 Datum 각각 독립 보정(per-Datum)
+
+**리스크:** (높음) 모델 파일 영속 — 레시피 백업/복사 시 동반 누락. (중) 부호/좌표계 캘리브(매칭 angle 규약 ↔ Atan2). (중) SIMUL 변형 이미지 페어 확보(Phase 41.1 이미지 부족 전례). (중) **defocus 취약성** — 엔진 선택 + 기준 이미지 포커스 정합으로 완화, 근본은 포커스 품질.
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 54 to break down)
+
 ---
 
 *Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*

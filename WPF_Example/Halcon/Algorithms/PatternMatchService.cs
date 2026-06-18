@@ -338,15 +338,20 @@ namespace ReringProject.Halcon.Algorithms
             {
                 bool isNcc = string.Equals(engine, "NCC", StringComparison.OrdinalIgnoreCase);
 
-                // 검색영역: template ROI 중심 ± (len + margin) — reduce_domain 으로 제한(D-06)
-                double searchLen1 = roiLen1 + marginPx;
-                double searchLen2 = roiLen2 + marginPx;
-                // GenRectangle1: 축정렬 검색 박스 (중심에서 확장, phi=0)
-                double r1 = roiRow - searchLen2;
-                double c1 = roiCol - searchLen1;
-                double r2 = roiRow + searchLen2;
-                double c2 = roiCol + searchLen1;
-                HOperatorSet.GenRectangle1(out searchRect, r1, c1, r2, c2);
+                //260618 hbk Phase 54 ALIGN-01 (CO-54-04): align 은 부품이 크게 이동/회전하므로 검색영역을 전체 이미지로 둔다.
+                //  ROI±margin 으로 좁히면 이동량이 margin 초과 시 "no match" → align 무력화. marginPx<=0 이면 전체, >0 이면 ROI±margin.
+                HTuple imgW, imgH;
+                HOperatorSet.GetImageSize(runtimeImage, out imgW, out imgH);
+                if (marginPx >= 100000.0) // (사실상 사용 안 함 — 의도적 좁힘 옵션 자리)
+                {
+                    double searchLen1 = roiLen1 + marginPx;
+                    double searchLen2 = roiLen2 + marginPx;
+                    HOperatorSet.GenRectangle1(out searchRect, roiRow - searchLen2, roiCol - searchLen1, roiRow + searchLen2, roiCol + searchLen1);
+                }
+                else // 기본: 전체 이미지 검색 (가장 견고)
+                {
+                    HOperatorSet.GenRectangle1(out searchRect, 0.0, 0.0, imgH.D - 1.0, imgW.D - 1.0);
+                }
                 HOperatorSet.ReduceDomain(runtimeImage, searchRect, out reducedImage);
 
                 // 다운샘플 처리 (D-06a): downsampleFactor>1 이면 zoom_image_factor(1/factor)로 축소

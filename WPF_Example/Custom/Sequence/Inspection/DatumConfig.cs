@@ -731,6 +731,15 @@ namespace ReringProject.Sequence {
                 Vertical_Length1 = Line1_Length1;
                 Vertical_Length2 = Line1_Length2;
             }
+
+            //260618 hbk Phase 54 ALIGN-01 매칭 파라미터 sentinel 0 → 기본값 복원 (D-11 멱등 폴백)
+            // IsPatternAlignEnabled 는 bool — INI 키 미존재 시 자동 false(D-11). 별도 폴백 불필요.
+            // PatternEngine null 가드 (INI 키 미존재 시 ParamBase string case 가 null 반환 가능)
+            if (PatternEngine == null) PatternEngine = "Shape";
+            // sentinel 0 → SIMUL 튜닝 기본값 복원 (의미값이 이미 있으면 미변경 — 멱등성 보장)
+            if (PatternMinScore <= 0.0) PatternMinScore = 0.6;           // SIMUL 튜닝 기본 (Claude's Discretion)
+            if (PatternAngleExtentDeg <= 0.0) PatternAngleExtentDeg = 10.0; // coarse x,y 전용 → 작은 angle range (D-01b)
+            if (PatternSearchMarginPx <= 0.0) PatternSearchMarginPx = 100.0; // template ROI ± margin (D-06)
         }
 
         // PropertyGrid 동적 노출(AlgorithmType 별 필터).
@@ -748,6 +757,8 @@ namespace ReringProject.Sequence {
             var alg = AlgorithmTypeEnum;
             var sourceNames = new System.Collections.Generic.HashSet<string> {
                 nameof(AlgorithmTypeList),
+                //260618 hbk Phase 54 ALIGN-01 PatternEngineList 를 sourceNames 화이트리스트에 강제 포함 (CO-01 ItemsSource fallback 가드)
+                nameof(PatternEngineList),
                 nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
                 nameof(Circle_EdgeSelectionList), nameof(Circle_RadialDirectionList),
                 nameof(Horizontal_A_EdgeDirectionList), nameof(Horizontal_A_EdgePolarityList),

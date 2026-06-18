@@ -584,6 +584,9 @@ namespace ReringProject.UI {
             if (mParentWindow != null && mParentWindow.mainView != null) {
                 mParentWindow.mainView.btn_circleRoi.IsEnabled = false;
                 mParentWindow.mainView.btn_teachDatum.IsEnabled = false;
+                //260618 hbk Phase 54 ALIGN-01 패턴 ROI/모델 생성 버튼 초기화 비활성
+                mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = false;
+                mParentWindow.mainView.btn_createPatternModel.IsEnabled = false;
             }
 
             // e.Source 게이트 대신 sender 기준 게이트 사용:
@@ -649,6 +652,9 @@ namespace ReringProject.UI {
                         }
                         if (mParentWindow != null && mParentWindow.mainView != null) {
                             mParentWindow.mainView.btn_teachDatum.IsEnabled = true;
+                            //260618 hbk Phase 54 ALIGN-01 패턴 ROI/모델 생성 버튼 활성화 (btn_teachDatum 게이팅 동일)
+                            mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = true;
+                            mParentWindow.mainView.btn_createPatternModel.IsEnabled = true;
                         }
                     }
                     else if (item.NodeType == ENodeType.Measurement) {

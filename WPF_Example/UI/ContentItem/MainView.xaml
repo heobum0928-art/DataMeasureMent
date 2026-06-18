@@ -177,6 +177,50 @@
                         MinWidth="100" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
+                    <!--260618 hbk Phase 54 ALIGN-01 패턴 ROI 그리기 전용 모드 (D-08)-->
+                    <Button x:Name="btn_drawPatternRoi" Content="패턴 ROI"
+                        Click="DrawPatternRoiButton_Click"
+                        IsEnabled="False"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#7C3AED" Foreground="White"
+                        BorderBrush="#6D28D9" BorderThickness="1"
+                        Margin="0,0,4,0"
+                        ToolTip="패턴 매칭 템플릿 ROI 를 드래그하여 지정합니다">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!--260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09)-->
+                    <Button x:Name="btn_createPatternModel" Content="패턴 모델 생성"
+                        Click="CreatePatternModelButton_Click"
+                        IsEnabled="False"
+                        MinWidth="100" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#059669" Foreground="White"
+                        BorderBrush="#047857" BorderThickness="1"
+                        Margin="0,0,4,0"
+                        ToolTip="패턴 ROI 를 먼저 그린 후 클릭하면 .shm/.ncm 모델 파일을 생성하고 ref pose 를 기록합니다">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.
                          260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapHorizontalToggleStyle 로 교체 (활성 시 #1976D2 Blue 700).-->
                     <ToggleButton x:Name="btn_swapHorizontal" Content="👁 가로"

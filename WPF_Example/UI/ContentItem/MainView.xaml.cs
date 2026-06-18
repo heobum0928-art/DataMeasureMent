@@ -37,7 +37,7 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration }
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi } //260618 hbk Phase 54 ALIGN-01
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private MeasurementBase _editingCircleMeasurement;
@@ -1645,6 +1645,8 @@ namespace ReringProject.UI {
             // Datum 티칭 핸들러 unsubscribe (Double-subscribe 방지)
             halconViewer.RectDrawingCompleted   -= HalconViewer_DatumRectCompleted;
             halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
+            // 패턴 ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
+            halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRectCompleted;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
@@ -2575,6 +2577,117 @@ namespace ReringProject.UI {
             btn_teachDatum.IsChecked = false;
             _editingDatum = null;
             halconViewer.IsTeachDatumMode = false;
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 패턴 ROI 전용 그리기 모드 진입 (D-08) — TeachDatumButton_Click 진입 패턴 미러
+        private void DrawPatternRoiButton_Click(object sender, RoutedEventArgs e) {
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
+            if (datum == null) {
+                CustomMessageBox.Show("패턴 ROI 그리기", "Datum 노드를 먼저 선택하세요.");
+                return;
+            }
+            ExitCanvasMode();
+            _editingDatum = datum;
+            _canvasMode = ECanvasMode.PatternRoi;
+            label_drawHint.Content = "패턴 ROI: 드래그하여 템플릿 영역을 지정하세요";
+            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
+            label_drawHint.Visibility = Visibility.Visible;
+            halconViewer.RectDrawingCompleted += HalconViewer_PatternRectCompleted;
+            halconViewer.StartRectangleDrawing();
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 패턴 ROI write-back (D-08) — HalconViewer_DatumRectCompleted 패턴 미러
+        private void HalconViewer_PatternRectCompleted(object sender, EventArgs e) {
+            halconViewer.RectDrawingCompleted -= HalconViewer_PatternRectCompleted;
+            var roi = halconViewer.CommitActiveRectangle();
+            if (roi == null || _editingDatum == null) { ExitCanvasMode(); return; }
+
+            // RoiDefinition bbox → Rectangle2 (center, phi=0, halfW=Length1, halfH=Length2)
+            //  Length1=X축 절반(halfW), Length2=Y축 절반(halfH) — DatumRectCompleted 규약 동일
+            double centerRow = (roi.Row1 + roi.Row2) / 2.0;
+            double centerCol = (roi.Column1 + roi.Column2) / 2.0;
+            double halfH     = (roi.Row2 - roi.Row1) / 2.0;
+            double halfW     = (roi.Column2 - roi.Column1) / 2.0;
+
+            _editingDatum.PatternRoi_Row     = centerRow;
+            _editingDatum.PatternRoi_Col     = centerCol;
+            _editingDatum.PatternRoi_Phi     = 0.0;
+            _editingDatum.PatternRoi_Length1 = halfW; // X축 절반
+            _editingDatum.PatternRoi_Length2 = halfH; // Y축 절반
+
+            // PropertyGrid 재바인딩 (INotifyPropertyChanged 미발동 대응)
+            try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+
+            label_drawHint.Content = "패턴 ROI 저장 완료 (PatternRoi_* 기록됨)";
+            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
+            label_drawHint.Visibility = Visibility.Visible;
+            _canvasMode = ECanvasMode.None;
+            _editingDatum = null;
+        }
+
+        //260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09) — InvokeTryTeachDatum 패턴 미러
+        private void CreatePatternModelButton_Click(object sender, RoutedEventArgs e) {
+            InvokeCreatePatternModel();
+        }
+
+        private void InvokeCreatePatternModel() {
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
+            if (datum == null) {
+                CustomMessageBox.Show("모델 생성 실패", "Datum 노드를 먼저 선택하세요.");
+                return;
+            }
+
+            HImage img = halconViewer.CurrentImage;
+            if (img == null) {
+                CustomMessageBox.Show("모델 생성 실패", "이미지가 없습니다. 먼저 Grab 또는 Load Image 를 수행하세요.");
+                return;
+            }
+
+            // W2: PatternRoi 미확보 시 모델 생성 차단 (silent 실패 0)
+            if (datum.PatternRoi_Length1 <= 0.0 || datum.PatternRoi_Length2 <= 0.0) {
+                CustomMessageBox.Show("모델 생성 실패", "패턴 ROI(Rect) 를 먼저 그리세요. ([패턴 ROI] 버튼)");
+                return;
+            }
+
+            // 54-04 런타임 load 와 동일 키 (D-07) — 직접 경로 도출 금지, 헬퍼만 사용
+            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+            if (string.IsNullOrEmpty(modelPath)) {
+                CustomMessageBox.Show("모델 생성 실패", "모델 경로 도출 실패 (레시피/Shot 확인).");
+                return;
+            }
+
+            var svc = new ReringProject.Halcon.Algorithms.PatternMatchService();
+            string error;
+            bool ok = svc.TryCreateModel(img,
+                datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Phi,
+                datum.PatternRoi_Length1, datum.PatternRoi_Length2,
+                datum.PatternEngine, datum.PatternAngleExtentDeg, modelPath, out error);
+
+            if (ok) {
+                // D-09: 티칭 이미지에서 1회 find → ref pose 기록 (런타임과 동일 연산 → 부호 일관성)
+                double rr, rc, ra, rs;
+                string refError;
+                if (svc.TryFindRefPose(img, datum.PatternEngine, modelPath, datum.PatternMinScore, out rr, out rc, out ra, out rs, out refError)) {
+                    datum.RefMatchRow     = rr;
+                    datum.RefMatchCol     = rc;
+                    datum.RefMatchAngleDeg = ra;
+                    // PropertyGrid 재바인딩
+                    try { datum.RaisePropertyChanged(string.Empty); } catch { }
+                    if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+                    CustomMessageBox.Show("모델 생성 완료", "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ") — Recipe Save 권장");
+                }
+                else {
+                    CustomMessageBox.Show("ref pose 기록 실패", refError);
+                }
+            }
+            else {
+                CustomMessageBox.Show("모델 생성 실패", error);
+            }
         }
 
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {

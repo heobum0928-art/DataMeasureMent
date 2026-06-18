@@ -125,9 +125,8 @@ namespace ReringProject.Sequence {
                     else parentSeq = null;
                     if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
                         parentSeq.ClearDatumTransforms();
-                        //260617 hbk Phase 52 LEVEL-01 회전 이미지로 Datum 검출 (D-02 원안). 활성 시 검출 입력 이미지를 -각도 회전.
-                        bool datumLevelOn = (parentSeq != null && parentSeq.LevelingEnabled && parentSeq.LevelingComputed);
-                        double datumLevelAngle = datumLevelOn ? -parentSeq.LevelingAngleRad : 0.0;
+                        //260618 hbk Phase 54 ALIGN-01 이미지 회전(datumLevelOn/datumLevelAngle) 폐기 (D-03/D-05 warp 0회).
+                        //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 이전 datumLevelOn/datumLevelAngle 지역변수 제거.
                         foreach (var datum in parentSeq.DatumConfigs) {
                             if (datum == null) continue;
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
@@ -145,14 +144,8 @@ namespace ReringProject.Sequence {
                                         parentSeq.MarkDatumFailed(datum.DatumName);
                                         continue; // datum skip, abort 안 함
                                     }
-                                    //260617 hbk Phase 52 LEVEL-01 DualImage datum 도 회전 이미지로 검출 (D-02). 두 이미지 동일 -각도 회전.
-                                    if (datumLevelOn) {
-                                        //260617 hbk WR-01 Dispose 가드 — 원본 dispose 를 try/catch 로 감싸 swap 누수/예외 escape 차단 (파일 규약)
-                                        HImage hRot = VisionAlgorithmService.RotateImageByAngle(imgH, datumLevelAngle);
-                                        if (hRot != null) { try { imgH.Dispose(); } catch { } imgH = hRot; }
-                                        HImage vRot = VisionAlgorithmService.RotateImageByAngle(imgV, datumLevelAngle);
-                                        if (vRot != null) { try { imgV.Dispose(); } catch { } imgV = vRot; }
-                                    }
+                                    //260618 hbk Phase 54 ALIGN-01 DualImage datum 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
+                                    //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. DualImage align 삽입은 후속 phase(deferred).
                                     string derr;
                                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) {
                                         string datumName = datum.DatumName;
@@ -178,22 +171,32 @@ namespace ReringProject.Sequence {
                                     parentSeq.MarkDatumFailed(datum.DatumName);
                                     continue;
                                 }
-                                //260617 hbk Phase 52 LEVEL-01 회전 이미지로 datum 검출 (D-02). 활성 시 -각도 회전, 원본 dispose 후 교체. taught ROI 좌표는 유지(방식 a, 소각도).
-                                if (datumLevelOn) {
-                                    //260617 hbk WR-01 Dispose 가드 — 원본 dispose 를 try/catch 로 감싸 swap 누수/예외 escape 차단 (파일 규약)
-                                    HImage imgRot = VisionAlgorithmService.RotateImageByAngle(img, datumLevelAngle);
-                                    if (imgRot != null) { try { img.Dispose(); } catch { } img = imgRot; }
-                                }
+                                //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 (D-02/D-04/D-05). 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
+                                //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
                                 try {
-                                    string derr;
-                                    if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) {
-                                        string datumName = datum.DatumName;
-                                        if (datumName == null) datumName = "";
-                                        string derrStr = derr;
-                                        if (derrStr == null) derrStr = "";
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
-                                        datum.RuntimeDetectFailed = true;
-                                        parentSeq.MarkDatumFailed(datum.DatumName);
+                                    if (datum.IsPatternAlignEnabled) {
+                                        string modelPath = InspectionSequence.ResolveDatumModelPath(datum); // 54-05 티칭과 동일 키 헬퍼 (D-07)
+                                        string alignErr;
+                                        if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
+                                            string dn = datum.DatumName;
+                                            if (dn == null) dn = "";
+                                            string ae = alignErr;
+                                            if (ae == null) ae = "";
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                                            datum.RuntimeDetectFailed = true;
+                                            parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
+                                        }
+                                    } else {
+                                        string derr;
+                                        if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
+                                            string datumName = datum.DatumName;
+                                            if (datumName == null) datumName = "";
+                                            string derrStr = derr;
+                                            if (derrStr == null) derrStr = "";
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                                            datum.RuntimeDetectFailed = true;
+                                            parentSeq.MarkDatumFailed(datum.DatumName);
+                                        }
                                     }
                                 } finally {
                                     img.Dispose();
@@ -231,17 +234,8 @@ namespace ReringProject.Sequence {
                         image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
                         #endif
                         if (image != null) {
-                            //260617 hbk Phase 52 LEVEL-01 grab 직후 SHOT 측정 이미지 회전 (D-02 원안). 회전된 단일 이미지로 전 FAI 측정.
-                            //  회전각 = -LevelingAngleRad (기울기 상쇄 = 반대방향, DatumPhase 와 동일 각도/부호). 회전본 교체, 원본 dispose (누수 0).
-                            InspectionSequence rotSeq = (ShotParam != null) ? ShotParam.Parent as InspectionSequence : null;
-                            if (rotSeq != null && rotSeq.LevelingEnabled && rotSeq.LevelingComputed) {
-                                //260617 hbk WR-01 Dispose 가드 — 원본 dispose 를 try/catch 로 감싸 swap 누수/예외 escape 차단 (파일 규약)
-                                HImage rotated = VisionAlgorithmService.RotateImageByAngle(image, -rotSeq.LevelingAngleRad);
-                                if (rotated != null) {
-                                    try { image.Dispose(); } catch { }
-                                    image = rotated;
-                                }
-                            }
+                            //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
+                            //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
                             ShotParam.SetImage(image);
                             if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
                             pMyContext.ResultHalconImage = image.CopyImage();
@@ -280,13 +274,14 @@ namespace ReringProject.Sequence {
                                         if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
                                         {
                                             meas.ClearResult();
-                                            meas.LastSkipReason = "DATUM_FAIL"; // UI 'DETECT FAIL' 라벨 + Excel export 분기 신호
+                                            //260618 hbk Phase 54 ALIGN-01 align 실패와 검출 실패 구분 표기 (D-10) — Excel/UI 식별.
+                                            meas.LastSkipReason = parentSeq2.IsAlignFailed(meas.DatumRef) ? "ALIGN_FAIL" : "DATUM_FAIL";
                                             meas.LastJudgement = false; // skip 도 NG 강도
                                             string measName = meas.MeasurementName;
                                             if (measName == null) measName = meas.TypeName;
                                             string datumRef = meas.DatumRef;
                                             if (datumRef == null) datumRef = "";
-                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 검출 실패 (D-01)");
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
                                             faiAllPass = false;
                                             measuredCount++; // 시도 회수 통계
                                             continue; // 다음 measurement 진행 (TryExecute 호출 안 함)
@@ -409,7 +404,8 @@ namespace ReringProject.Sequence {
                                         bool wasSkip = false;
                                         foreach (var m in fai.Measurements)
                                         {
-                                            if (m != null && m.LastSkipReason == "DATUM_FAIL") { wasSkip = true; break; }
+                                            //260618 hbk Phase 54 ALIGN-01 ALIGN_FAIL 도 skip 통계에 포함 (D-10, skip 통계 누락 방지)
+                                            if (m != null && (m.LastSkipReason == "DATUM_FAIL" || m.LastSkipReason == "ALIGN_FAIL")) { wasSkip = true; break; }
                                         }
                                         fai.WasDatumSkipped = wasSkip;
                                         fai.LastOverlays = faiOverlays; // per-FAI overlay 저장 (노드 클릭 시 재현)

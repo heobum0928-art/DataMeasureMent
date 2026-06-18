@@ -431,10 +431,14 @@ Plans:
 
 **리스크:** (높음) 모델 파일 영속 — 레시피 백업/복사 시 동반 누락. (중) 부호/좌표계 캘리브(매칭 angle 규약 ↔ Atan2). (중) SIMUL 변형 이미지 페어 확보(Phase 41.1 이미지 부족 전례). (중) **defocus 취약성** — 엔진 선택 + 기준 이미지 포커스 정합으로 완화, 근본은 포커스 품질.
 
-**Plans:** 0 plans
+**Plans:** 5 plans (3 waves)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 54 to break down)
+- [ ] 54-01-PLAN.md — DatumConfig ALIGN 필드 + PatternEngine 드롭다운 + EnsurePerRoiDefaults 폴백 (D-01/D-09/D-11) [Wave 1]
+- [ ] 54-02-PLAN.md — DeviceHandler .shm/.ncm 상수 + RecipeFileHelper engine-aware 모델 경로 재계산 (D-07/D-07a/D-07b) [Wave 1]
+- [ ] 54-03-PLAN.md — PatternMatchService 신규 (shape+ncc create/write/read/find + reduce_domain + 다운샘플 coarse + rigid 산출) (D-01/D-06/D-06a) [Wave 1]
+- [ ] 54-04-PLAN.md — InspectionSequence align 합성 + Action_FAIMeasurement DatumPhase 매칭 통합 + RotateImageByAngle 폐기 + ALIGN_FAIL lenient (D-02~D-05/D-10/D-11) [Wave 2]
+- [ ] 54-05-PLAN.md — 패턴 티칭 UI(ROI 그리기 + 모델 생성/저장 + ref pose 기록) + SIMUL UAT (D-08/D-09) [Wave 3]
 
 ---
 

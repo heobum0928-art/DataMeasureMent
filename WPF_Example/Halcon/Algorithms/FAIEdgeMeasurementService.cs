@@ -48,35 +48,24 @@ namespace ReringProject.Halcon.Algorithms
                 double roiCol = fai.ROI_Col;
                 double roiPhi = fai.ROI_Phi;
 
-                // Datum hom_mat2d 변환을 ROI 에 적용
-                //260618 hbk Phase 54 ALIGN-01: 점 변환+phi 가산이 아니라 ROI 영역(gen_rectangle2)을
-                //  affine_trans_region 으로 이동/회전 후 pose 재추출 (사용자 요청). 에지 추출 알고리즘(strip+measure_pos)은 무변경.
+                // Datum hom_mat2d 변환을 ROI 에 적용 (analytic — 영역 rasterize/smallest_rectangle2 의 phi 90° 모호성 회피).
+                //260618 hbk Phase 54 ALIGN-01: ROI 중심점을 transform 으로 이동 + 회전각을 phi 에 가산.
+                //  transform = align rigid(rotate(θ)+translate(x,y)). 영역 변환과 결과 동일하되 스캔 방향(phi) 정확.
                 if (transform != null && transform.Length > 0)
                 {
-                    HObject roiRegion = null;
-                    HObject roiRegionTrans = null;
                     try
                     {
-                        HOperatorSet.GenRectangle2(out roiRegion, fai.ROI_Row, fai.ROI_Col, fai.ROI_Phi,
-                            fai.ROI_Length1, fai.ROI_Length2);
-                        HOperatorSet.AffineTransRegion(roiRegion, out roiRegionTrans, transform, "nearest_neighbor");
-                        HTuple sr, sc, sp, sl1, sl2;
-                        HOperatorSet.SmallestRectangle2(roiRegionTrans, out sr, out sc, out sp, out sl1, out sl2);
-                        roiRow = sr.D;
-                        roiCol = sc.D;
-                        // smallest_rectangle2 는 긴 변을 따라 phi 정의. 원본 ROI 가 Length2(짧은축 기준)인 경우 90° 어긋날 수 있어
-                        // gen_rectangle2 규약(Length1=phi축)과 맞추기 위해 길이 순서 기준으로 phi 보정.
-                        if (fai.ROI_Length1 >= fai.ROI_Length2) roiPhi = sp.D;
-                        else roiPhi = sp.D + (Math.PI / 2.0);
+                        HTuple transRow, transCol;
+                        HOperatorSet.AffineTransPoint2d(transform, fai.ROI_Row, fai.ROI_Col, out transRow, out transCol);
+                        roiRow = transRow.D;
+                        roiCol = transCol.D;
+                        // hom_mat2d: index 0 = h00(cos θ), index 3 = h10(sin θ) — 평행이동 불변.
+                        double rotAngle = Math.Atan2(transform[3].D, transform[0].D);
+                        roiPhi = fai.ROI_Phi + rotAngle;
                     }
                     catch
                     {
                         // Transform failed — use original ROI coordinates
-                    }
-                    finally
-                    {
-                        if (roiRegion != null) { try { roiRegion.Dispose(); } catch { } }
-                        if (roiRegionTrans != null) { try { roiRegionTrans.Dispose(); } catch { } }
                     }
                 }
 

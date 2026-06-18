@@ -467,6 +467,14 @@ namespace ReringProject.Sequence {
                 if (te == null) te = "";
                 Logging.PrintLog((int)ELogType.Trace, "[ALIGN] Datum '" + (datum.DatumName ?? "") + "' 직선 ROI θ 실패 → θ=0 폴백: " + te);
             }
+            //260618 hbk Phase 54 ALIGN-01 진단 로그 — 매칭/θ 수치 확인용 (CO-54-04)
+            Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + (datum.DatumName ?? "")
+                + " cur=(" + curRow.ToString("F1") + "," + curCol.ToString("F1") + ")"
+                + " ref=(" + datum.RefMatchRow.ToString("F1") + "," + datum.RefMatchCol.ToString("F1") + ")"
+                + " d=(" + dRow.ToString("F1") + "," + dCol.ToString("F1") + ")"
+                + " lineDeg=" + (curLineAngleRad * 180.0 / System.Math.PI).ToString("F3")
+                + " refDeg=" + datum.AlignLineRefAngleDeg.ToString("F3")
+                + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3"));
             // ③ transform 산출 (사용자 레시피): identity → rotate(θ, RefMatch 중심) → translate(dRow,dCol).
             //  회전 중심은 무관(rotate 후 translate 로 x,y 보정) — RefMatch 위치 사용. θ 부호 = 측정−Ref.
             HTuple alignRigid;

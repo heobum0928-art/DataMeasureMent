@@ -78,3 +78,21 @@ datum 직선 atan2 규약(−1.0°)과 **부호 반대** → strip 을 에지와
 - **ROI 검색 박스(datum + 측정)는 티칭 좌표**로 그려짐. 표시용 `RoiDefinition`(Halcon/Models)은 **축정렬 코너(Row1/Col1/Row2/Col2)**
   모델 → 회전 보정 박스를 그리려면 **Polygon 모드(PolygonPoints, 4코너 변환)** + datum transform UI 배선 필요(다중 메서드). 실제 기능 규모.
 - 측정 ROI 의 datum transform = `DatumConfig.CurrentTransform`(검사 시 InspectionSequence:490 채움) 또는 `meas.DatumRef`→`DatumConfig`.
+
+---
+
+## ★ 최종 결론 (2026-06-18 심층 디버깅 종료) — align 아님, 캘리브레이션
+임시 계측로그([ETLD] 측정 ROI 변환 전후/에지/lever, [ALIGN-CHK] datum 보정행렬 vs 패턴 대조)로 단계 규명 → 결정타는 **원본(회전X) 이미지 검사**:
+- 원본서도 A1 = **20.77mm vs 공칭 20.681 (+0.089mm/+0.43%)** — 회전본과 동일. 보정 0인데도 큰 측정 +0.5%.
+- **∴ 실패 원인은 align/회전/strip/부호가 아니라 측정값과 공칭(Nominal)의 ~0.5% 캘리브레이션 불일치** (`PixelResolution=0.00265` mm/px, 참값 ≈ 0.002639 추정). 큰값(20mm×0.5%=0.1>공차0.03)만 NG, 작은값(2mm=0.01<공차) OK = 지렛대 아닌 **비율**.
+- 배제: zoom(SIMUL 우회+factor1.0), 이미지 크기(14208×10640 동일), pixelRes X=Y 등방성, 이미지 스케일(패턴 score 0.999).
+
+**다음 작업**: 공칭값(20.681 등) 출처 확인 — CAD/도면값이면 `PixelResolution` ~0.5%↓ 보정, 예전 측정값이면 재캘리브레이션. (사용자 답변 대기)
+
+## 별도 align 개선과제 (캘리브레이션과 무관, 사용자 결정 대기)
+[ALIGN-CHK]로 **datum 보정행렬이 회전본서 패턴(score 0.999)과 ~130px 불일치** 확인(curXformErr=(-41.8,122.4), 부호뒤집어도 col 잔존). 패턴-변환(`_datumTransforms=alignRigid`)이 43개 EDGE_FAIL("—") 미스를 해결하나 "nominal 불변 via datum" 설계변경 → **임시 테스트 revert함**. 틸트 부품 정밀도 필요 시 재논의.
+
+## 정리 (세션 종료)
+- 커밋유지: strip θ(`9248473`)+부호(`a719073`)+[ALIGN] 확증로그 — 검증됨, 틸트 strip 정합 개선.
+- revert: 임시 [ETLD]/[ALIGN-CHK] 로그 + 패턴-변환 테스트 (스캐폴딩).
+- 레시피 main.ini SimulImagePath → aa.bmp 원복 완료(테스트로 원본 가리켰던 것).

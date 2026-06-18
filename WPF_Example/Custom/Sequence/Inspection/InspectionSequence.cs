@@ -490,6 +490,14 @@ namespace ReringProject.Sequence {
                 error = exr.Message;
                 return false;
             }
+            //260618 hbk Phase 54 ALIGN-01 (CO-54-04, 사용자 결정 A): Datum 기준선도 패턴매칭을 따라가게 한다.
+            //  EdgeToLineDistance 는 DatumOrigin(원점)+DatumAngle(기준선 각도)에 projection_pl 로 수직거리를 잰다.
+            //  ROI 만 transform 으로 옮기고 기준선을 안 옮기면 거리가 틀림 → 원점=패턴 위치, 각도=tilt 로 세팅(ROI 와 동일 rigid).
+            //  기준 프레임 = (RefMatch, 수평 0°) 를 transform 한 것: origin=cur(=T(RefMatch)), refAngle=0+θ=θ. (nominal 은 align ON 상태로 재티칭)
+            datum.DetectedOriginRow = curRow;
+            datum.DetectedOriginCol = curCol;
+            datum.DetectedRefAngle  = thetaRad;                          // 수평 기준선(Y측정) — 0° 를 tilt 만큼 회전
+            datum.DetectedRefAngle2 = thetaRad + System.Math.PI / 2.0;   // 수직 기준선(X측정)
             // ④ 기존 검출 transform(있으면)과 1회 합성 — 없으면 alignRigid 단독 저장
             string datumKey = datum.DatumName;
             if (datumKey == null) datumKey = "";

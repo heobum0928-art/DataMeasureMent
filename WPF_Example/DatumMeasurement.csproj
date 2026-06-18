@@ -535,6 +535,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Compile Include="Halcon\Algorithms\PatternMatchService.cs" />
     <Compile Include="Halcon\Algorithms\DatumFindingService.cs" />
     <Compile Include="Halcon\Algorithms\FAIEdgeMeasurementService.cs" />
     <Compile Include="Halcon\Algorithms\VisionAlgorithmService.cs" />

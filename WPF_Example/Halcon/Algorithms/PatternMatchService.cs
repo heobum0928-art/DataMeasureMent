@@ -227,7 +227,8 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     HOperatorSet.ReadShapeModel(modelPath, out modelId);
 
-                    HTuple row, col, angle, score, acuity;
+                    //260618 hbk find_shape_model 출력은 Row,Column,Angle,Score 4개뿐 — acuity(5번째) 제거(CS1501 fix)
+                    HTuple row, col, angle, score;
                     HOperatorSet.FindShapeModel(
                         templateImage, modelId,
                         -Math.PI, 2.0 * Math.PI,
@@ -237,7 +238,7 @@ namespace ReringProject.Halcon.Algorithms
                         "least_squares",
                         DEFAULT_NUM_LEVELS,
                         DEFAULT_GREEDINESS,
-                        out row, out col, out angle, out score, out acuity);
+                        out row, out col, out angle, out score);
 
                     if (row.TupleLength() == 0 || (score.TupleLength() > 0 && score[0].D < minScore))
                     {
@@ -372,7 +373,6 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     HOperatorSet.ReadNccModel(modelPath, out modelId);
 
-                    HTuple acuity;
                     HOperatorSet.FindNccModel(
                         findTarget, modelId,
                         -Math.PI, 2.0 * Math.PI,
@@ -387,7 +387,7 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     HOperatorSet.ReadShapeModel(modelPath, out modelId);
 
-                    HTuple acuity;
+                    //260618 hbk find_shape_model 출력 4개 — acuity 제거(CS1501 fix)
                     HOperatorSet.FindShapeModel(
                         findTarget, modelId,
                         -Math.PI, 2.0 * Math.PI,
@@ -397,7 +397,7 @@ namespace ReringProject.Halcon.Algorithms
                         "least_squares",
                         DEFAULT_NUM_LEVELS,
                         DEFAULT_GREEDINESS,
-                        out rawRow, out rawCol, out rawAngle, out rawScore, out acuity);
+                        out rawRow, out rawCol, out rawAngle, out rawScore);
                 }
 
                 // 결과 검증

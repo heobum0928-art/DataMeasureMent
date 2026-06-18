@@ -55,3 +55,26 @@ commit: 9248473
 ## 환경/제약
 - worktree 미사용(bin/ gitignored → DLL 부재로 worktree 빌드 실패), 앱 미실행 in-place 빌드.
 - 하위에이전트 Edit/Write/Bash 권한 차단(Phase 51/54 반복 확인) → 오케스트레이터 인라인 실행.
+
+---
+
+## 후속: 1차 UAT + 부호 핫픽스 (2026-06-18, commit a719073)
+
+**1차 UAT 결과**: 측정 여전히 NG(먼 측정점 A1/A2/A3). **그러나 확증로그가 원인 정확히 포착**:
+`[ALIGN] Top_Datum datumDetectAngleDeg=-0.873 datumDetectRotDeg=-1.000 vs patternThetaDeg=0.997`
+→ **크기 일치(1.0°)·부호 반대**. strip 회전에 쓴 `alignRot`(패턴 shape model 규약, +0.997°)이
+datum 직선 atan2 규약(−1.0°)과 **부호 반대** → strip 을 에지와 반대로 돌림(measurePhi=-89°, 정상은 -91°).
+
+**부호 핫픽스 (a719073)**: `AppendEdgePointsFromStrip` 의 `measurePhi += alignRot` → **`measurePhi -= alignRot`**.
+근거: TtoB 기준 -90°+에지틸트(−1°)=−91° 가 에지에 수직 스캔. bbox 는 abs(cos/sin) 라 부호 무관 → measurePhi 한 곳만.
+측정 ROI 서비스는 datum transform(atan2 규약)에서 회전각을 뽑아 += 가 맞지만, datum **검출 단계**엔 패턴 transform 만
+가용해 부호 변환 필요. 빌드 PASS(오류 0). **재UAT 대기**: 틸트 검사 → A1/A2/A3 OK 전환 확인.
+
+## 시각화(carry-over #2) 조사 발견 (구현 전, 별도 task 예정)
+- **검출 datum origin 은 이미 보정 위치로 표시됨** — `HalconDisplayService.RenderDatumFindResult`(line 301, `LastFindSucceeded` 게이트),
+  slate blue "Find(row,col)" 십자 + DetectedRefAngle 화살표. 측정 결과 마커(LastOverlays)도 보정 위치.
+- **풍부한 검출 기하(녹색 검출원·맞춤선·중심십자)는 `LastTeachSucceeded` 게이트**(RenderDatumOverlay line 839) →
+  align/검사(=`LastFindSucceeded`) 후엔 스킵. find 경로용으로 확장 필요.
+- **ROI 검색 박스(datum + 측정)는 티칭 좌표**로 그려짐. 표시용 `RoiDefinition`(Halcon/Models)은 **축정렬 코너(Row1/Col1/Row2/Col2)**
+  모델 → 회전 보정 박스를 그리려면 **Polygon 모드(PolygonPoints, 4코너 변환)** + datum transform UI 배선 필요(다중 메서드). 실제 기능 규모.
+- 측정 ROI 의 datum transform = `DatumConfig.CurrentTransform`(검사 시 InspectionSequence:490 채움) 또는 `meas.DatumRef`→`DatumConfig`.

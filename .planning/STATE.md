@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 Phase: 54 (datum-align-01-x-y-tilt) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 54
-Last activity: 2026-06-18 -- Quick 260618-o2m: datum 검출 strip θ 회전 (Phase 54 ALIGN-01 carry-over#1) — 빌드 PASS, UAT 대기
+Last activity: 2026-06-18 -- Quick 260618-o2m: datum strip θ 회전 + 부호 핫픽스(a719073, measurePhi -= alignRot) — 1차 UAT 로 부호 반대 확인 후 보정, 재UAT 대기
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -320,7 +320,7 @@ Recent decisions affecting current work:
 | 260615-dx7 | 2026-06-15 | Phase 41.1 반복 검사 입력: 고정 이미지 50회 → 이미지 폴더 N장 순회. RepeatRunService.StartFromImages(seq, imagePaths) — 매 사이클 StartAll 직전 recipeManager.Shots SimulImagePath 를 imagePaths[CompletedCount] 로 교체(1사이클=이미지1장, 횟수=폴더 이미지수). _imagePaths null 분기로 기존 고정 Start 보존. ReviewerWindow 버튼→Ookii 폴더 다이얼로그(bmp/jpg/png/tif). msbuild Debug/x64 0 errors. | 18a656e | SIMUL UAT 대기 (폴더 선택→N장 검사→2시트 xlsx 육안 확인) |
 | 260616-hmc | 2026-06-16 | 무효 SimulImagePath SHOT 의 NO_IMAGE measurement 를 명확한 NG("NO IMAGE") 라벨로 일관 표기 — 선행 simul-shot-cascade 디버그 수정(de7773f, image=null→NG)의 후속. 판정 라벨 4곳(ReviewMeasurementRow / ExcelExportService / ReviewerWindow 불량필터·포커스 / RepeatMeasurementStats)이 DATUM_FAIL 만 인식하던 것을 NO_IMAGE 분기 추가로 보완(기존엔 "—" dash 로 표시). LastSkipReason="NO_IMAGE"(밑줄) ↔ JudgeText="NO IMAGE"(공백). C# 7.2 if/else 체인. msbuild Debug/x64 0 errors. | 11c359e, c512839 | SIMUL UAT 대기 (무효 경로 SHOT → "NO IMAGE" 라벨 + 불량필터 노출 육안 확인) |
 | 260617-cq2 | 2026-06-17 | 일괄 검사 완료 후 체크 SHOT 전체 측정결과 그리드 표시 — Phase 51 설계 갭(BatchRunService 가 dataGrid_faiResults 미갱신, 결과 리스트박스에 안 나옴) 해소. InspectionViewModel.ShowMeasurementsForShots(List<ShotConfig>) 신규(OnActionSelected 단일-shot 평탄화의 다중-shot 확장) + Btn_batchRun_Click 체크 SHOT 수집(_batchShots) → OnBatchComplete 에서 그리드 펼침. 행이 live MeasurementBase 래핑이라 LastMeasuredValue/판정 즉시 반영. FAIName 순수 유지 → MainView SourceMeasurement ReferenceEquals 매칭(MainView.xaml.cs:292) ROI 하이라이트 회귀 0. msbuild Debug/x64 0 errors. | 44a9575 | **UAT PASS (사용자 2026-06-17, 체크 다중 SHOT 일괄 검사 → 결과 그리드 전체 측정값/판정 표시 확인)** |
-| 260618-o2m | 2026-06-18 | Phase 54 ALIGN-01 carry-over#1 — datum 검출 strip θ 회전(TryExtractEdgePoints): AlignPreTransform 의 회전각 atan2(T[3],T[0]) 추출 → measurePhi 가산 + enlarged AABB(측정 ROI FAIEdgeMeasurementService 미러링, datum 규약 L1=col/L2=row 보존). 축정렬 strip 이 틸트 datum 에지 비스듬히 샘플 → 검출각 0.1-0.2° 편차 → 먼 측정점 NG 가 원인. alignRot=0(비-align/TryFindLine) 무변경(회귀 0). +TryComposeAlign 확증로그(datumDetectRotDeg vs patternThetaDeg). msbuild Debug/x64 0 errors. | 9248473 | UAT pending (틸트 검사 → 먼 측정점 A1/A2/A3 OK 전환 + 확증로그 편차~0 확인) |
+| 260618-o2m | 2026-06-18 | Phase 54 ALIGN-01 carry-over#1 — datum 검출 strip θ 회전(TryExtractEdgePoints): AlignPreTransform 의 회전각 atan2(T[3],T[0]) 추출 → measurePhi 가산 + enlarged AABB(측정 ROI FAIEdgeMeasurementService 미러링, datum 규약 L1=col/L2=row 보존). 축정렬 strip 이 틸트 datum 에지 비스듬히 샘플 → 검출각 0.1-0.2° 편차 → 먼 측정점 NG 가 원인. alignRot=0(비-align/TryFindLine) 무변경(회귀 0). +TryComposeAlign 확증로그(datumDetectRotDeg vs patternThetaDeg). msbuild Debug/x64 0 errors. | 9248473, a719073 | UAT 1차 NG → 확증로그로 strip 회전 부호 반대 발견(datumDetectRotDeg=-1.0 vs patternThetaDeg=+0.997, 크기일치·부호반대) → 부호 핫픽스 a719073(measurePhi -= alignRot) → **재UAT 대기**(틸트검사 A1/A2/A3 OK 전환). viz #2 = 별도 task(검출 origin 은 이미 보정표시 'Find()' 십자, ROI 박스는 Polygon 모드+transform 배선 필요) |
 
 ### Pending Todos
 

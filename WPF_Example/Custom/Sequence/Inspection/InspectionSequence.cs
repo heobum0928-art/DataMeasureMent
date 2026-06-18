@@ -440,7 +440,10 @@ namespace ReringProject.Sequence {
             // ① 매칭 (보정 전 원본) → x,y
             if (!svc.TryFindPose(refImage, datum.PatternEngine, modelPath,
                     datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
-                    datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 2.0,
+                    //260618 hbk Phase 54 ALIGN-01 hotfix(CO-54-02): downsample 비활성(1.0). shape/ncc 모델은 스케일 불변이 아니라
+                    //  검색 이미지를 0.5배로 줄이면 패턴이 50% 크기 → find_shape_model "no match"(티칭 score 1.0 인데 런타임 0건).
+                    //  속도 다운샘플은 모델 자체 피라미드(NumLevels)가 담당 — 검색 이미지 물리 축소는 금지.
+                    datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
                     out curRow, out curCol, out curAngleDeg, out curScore, out error))
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed

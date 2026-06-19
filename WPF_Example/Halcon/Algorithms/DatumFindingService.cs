@@ -1624,9 +1624,28 @@ namespace ReringProject.Halcon.Algorithms
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
 
-            // bounding box 계산 (Phi=0 저장 규약 기준, halfW/halfH = Length1/Length2)
-            double halfW    = roiLength1;
-            double halfH    = roiLength2;
+            //260619 hbk Phase 57 #4 DualImage align — Vertical ROI 도 가로축 transform 소비(TryExtractEdgePoints :1783 미러).
+            //  현재 TryFindLine 은 AlignPreTransform 미소비라 DualImage 세로 ROI 가 보정 누락 → 이식. alignRot=0(비-align) 이면 기존 축정렬 동작과 정확히 동일(회귀 0).
+            double alignRot = 0.0;
+            if (AlignPreTransform != null && AlignPreTransform.Length > 0)
+            {
+                try
+                {
+                    HTuple atRow, atCol;
+                    HOperatorSet.AffineTransPoint2d(AlignPreTransform, roiRow, roiCol, out atRow, out atCol);
+                    roiRow = atRow.D;
+                    roiCol = atCol.D;
+                    // hom_mat2d: index0=h00(cosθ), index3=h10(sinθ) — 평행이동 불변. (CANONICAL: FAIEdgeMeasurementService.cs:63)
+                    alignRot = Math.Atan2(AlignPreTransform[3].D, AlignPreTransform[0].D);
+                }
+                catch { /* 변환 실패 시 원본 ROI 좌표/회전 유지 */ }
+            }
+
+            //260619 hbk Phase 57 #4 bounding box: alignRot 회전 반영 enlarged AABB. alignRot=0 → halfW=length1, halfH=length2 (기존 축정렬 정확 복원).
+            double cosT     = Math.Cos(alignRot);
+            double sinT     = Math.Sin(alignRot);
+            double halfW    = Math.Abs(roiLength1 * cosT) + Math.Abs(roiLength2 * sinT);
+            double halfH    = Math.Abs(roiLength1 * sinT) + Math.Abs(roiLength2 * cosT);
             double top      = roiRow - halfH;
             double bottom   = roiRow + halfH;
             double left     = roiCol - halfW;
@@ -1670,7 +1689,8 @@ namespace ReringProject.Halcon.Algorithms
                             sigma, threshold, polarity,
                             direction, selection,
                             ref allRows, ref allCols,
-                            roiLabel);
+                            roiLabel,
+                            alignRot); //260619 hbk Phase 57 #4 DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
                     }
                 }
                 else
@@ -1685,7 +1705,8 @@ namespace ReringProject.Halcon.Algorithms
                             sigma, threshold, polarity,
                             direction, selection,
                             ref allRows, ref allCols,
-                            roiLabel);
+                            roiLabel,
+                            alignRot); //260619 hbk Phase 57 #4 DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
                     }
                 }
 

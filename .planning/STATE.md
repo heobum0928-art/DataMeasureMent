@@ -408,6 +408,7 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 - 2026-06-02: Phase 40.1 SIGNED_OFF (4/4 PASS) + CO-40.1-01(c41a418 Datum 선택 자동재티칭) + CO-40.1-02(18a956b 측정/Shot 노드 Datum 기준선 표시).
 - 2026-06-02: Phase 41 added — CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02). MILESTONES.md "v1.2 Hardware Integration" 이연 백로그(구 Phase 29 SDK확정 + 30 드라이버통합) 활성화. HW 실물 도착 + SDK MIL Lite 10.0(PC 설치) 확정. VirtualCamera GrabHalconImage 통합. 다음 = /gsd-discuss-phase 41.
 - 2026-06-18: Phase 54 added — Datum 패턴매칭 위치보정 (ALIGN-01). 자재 X,Y(+tilt) 변위 정렬 — Datum 패턴매칭으로 x,y, line-fit 으로 정밀 θ 하이브리드, ROI 좌표변환(무 warp), per-Datum 매칭(Side=4회), `_datumTransforms[DatumName]` 합성, 실패=MarkDatumFailed ALIGN_FAIL NG. Phase 52(레벨링) 흡수·대체(이미지회전 폐기). 분석문서 = .planning/ALIGN-01-pattern-align-analysis.md. Open discuss = 매칭 엔진 Shape vs NCC(포커싱 불량 대비 defocus-robust) vs per-Datum 선택형. 다음 = /gsd-discuss-phase 54.
+- 2026-06-19: Phase 57 added — 패턴 ROI UX & Datum 정렬 보강 (Phase 54~56 ALIGN 후속 UAT 피드백 6항목). ① Pattern ROI1/2 버튼 나란히+2개 필수 안전장치 ② Pattern ROI 표시/숨김 토글 ③ Datum 색상 통일=slate blue만(magenta 기준선+legacy yellow 제거, 사용자 결정) ④ Side datum 4-ROI 세로축 별도 매칭(설계는 discuss서) ⑤ 매칭 에러 시 측정 진행(lenient) ⑥ leveling reference 제거(IsLevelingReference/LevelingEnabled, 미사용·사용자 결정). 조사 = Explore 3건(leveling 소비경로/Side ROI 구조/패턴버튼·datum 색상). ※ gsd-sdk phase.add CLI 또 phase_number 오산정(54, 기존 54~56 충돌) → 수동 보정 (57). 다음 = /gsd-discuss-phase 57 (#4 gray area).
 
 ## Session Continuity
 

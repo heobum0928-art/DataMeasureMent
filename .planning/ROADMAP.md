@@ -440,6 +440,26 @@ Plans:
 - [ ] 54-04-PLAN.md — InspectionSequence align 합성 + Action_FAIMeasurement DatumPhase 매칭 통합 + RotateImageByAngle 폐기 + ALIGN_FAIL lenient (D-02~D-05/D-10/D-11) [Wave 2]
 - [ ] 54-05-PLAN.md — 패턴 티칭 UI(ROI 그리기 + 모델 생성/저장 + ref pose 기록) + SIMUL UAT (D-08/D-09) [Wave 3]
 
+### Phase 57: 패턴 ROI UX & Datum 정렬 보강 (신설 2026-06-19 — Phase 54~56 ALIGN 후속 UAT 피드백)
+
+**Goal:** 패턴매칭 정렬(ALIGN)의 티칭 UX·시각화·견고성을 보강한다. 패턴 ROI 입력을 명확/안전하게 하고, datum 시각화 색상 중복을 정리하며, 매칭 실패 시 검사가 멈추지 않게 하고, 미사용 leveling 잔재를 제거한다.
+**Requirements**: ALIGN 후속 (Phase 54 ALIGN-01 / 55 ALIGN-02 / 56 시각화 carry-over)
+**Depends on:** Phase 56 (보정 ROI/Datum 시각화), Phase 54/55 (ALIGN-01/02 패턴매칭)
+**Background:** Phase 56 sign-off 후 실측 UAT 피드백 6항목 (2026-06-19). 조사 = 본 세션 Explore 3건 (leveling 소비경로 / Side datum ROI 구조 / 패턴버튼·datum 색상).
+
+**스코프 6항목 (사용자 결정 반영):**
+1. **Pattern ROI1/ROI2 버튼 나란히 배치 + 2개 필수 안전장치** — 현재 `패턴 1`(필수)/`패턴 2`(선택) 구조. 1개만 그리고 모델 생성 시 "패턴 2개 필요" 경고. (MainView.xaml btn_drawPatternRoi/2:181-244, InvokeCreatePatternModel:2826)
+2. **Pattern ROI 표시/숨김 토글 옵션** — 현재 패턴 ROI 가시성 토글 부재(teach 피드백뿐). datum/측정 토글(SetDatumOverlayVisible) 패턴 미러로 추가.
+3. **Datum 색상 통일 = slate blue만** (사용자 결정) — 확대 시 slate blue(검출 origin)+magenta(Phase 56 기준선)+legacy yellow(Line1 검출선:908/Circle 중심십자:952) 중복. **magenta 기준선 + legacy yellow 제거**, slate blue origin 십자만 유지. (HalconDisplayService.cs)
+4. **Side datum 4-ROI (세로축 별도 매칭)** — ⚠ **세부 설계 discuss서 논의**(사용자 결정). 현재 교점은 수평∩수직(4점)이나 PatternRoi2 가 가로축 이미지에서만 매칭(InspectionSequence.cs:490-514). 세로 이미지 별도 입력+분리 매칭 필요 여부 discuss.
+5. **매칭 에러 시 측정 진행(lenient)** — 매칭 실패해도 abort 없이 측정 계속(NG 처리). Phase 54 ALIGN_FAIL 정책 검증/보강.
+6. **leveling reference 제거** (사용자 결정 = 안 씀) — Phase 52 IsLevelingReference(DatumConfig:43)/LevelingEnabled(InspectionSequence:49) + TryComputeLevelingAngle(603)/TryGetLevelingAngle(DatumFindingService:609) + EStep.Level(Action_FAIMeasurement:80-118) + INI 직렬화(InspectionRecipeManager:97/139) 제거. ALIGN 이 위치/tilt 보정하므로 중복. 기존 레시피 off 폴백 회귀 0 확인.
+
+**Plans:** 0 plans (run /gsd-discuss-phase 57 → /gsd-plan-phase 57)
+
+Plans:
+- [ ] TBD (discuss 먼저 — #4 Side 4-ROI 설계 gray area)
+
 ---
 
 *Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*

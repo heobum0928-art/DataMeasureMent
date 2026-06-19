@@ -4,8 +4,10 @@ slug: per-shot
 title: "per-shot 측정 보정계수 (CorrectionFactor) 백엔드"
 date: 2026-06-19
 status: complete
-commit: d6c95a7
+commit: d6c95a7, 20c9b6f
 ---
+
+> **UAT 1차 FAIL → 핫픽스 20c9b6f (2026-06-19)**: "기본값인데 전 측정값 0". 원인 = `ParamBase.Load` 가 누락 INI 키를 `ToDouble()=0` 으로 덮어써 `CorrectionFactor` 초기값 1.0 을 0 으로 클로버 → `GetEffectivePixelResolution=PixelResolution×0=0`. 수정 = ① `CameraSlaveParam.Load` 오버라이드서 키 부재 시 1.0 복원 ② `GetEffectivePixelResolution` 에 ≤0 → 1.0 안전클램프. 전역 ParamBase 미변경(타 param 회귀 0). 패턴 = memory reference_parambase_missing_key_zeroes_default. **재빌드 후 retest 대기.**
 
 # SUMMARY — per-shot 측정 보정계수 백엔드
 

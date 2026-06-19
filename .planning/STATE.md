@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 Phase: 54 (datum-align-01-x-y-tilt) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 54
-Last activity: 2026-06-19 -- Quick 260619-cnm: per-shot 보정계수 CorrectionFactor 백엔드 **UAT PASS·signed_off**(~0.5% 캘리브 간극 layer, PixelResolution 고정+곱셈, per-shot 패널합의). UAT 1차 FAIL(ParamBase.Load 누락키→0 클로버)→핫픽스 20c9b6f→재빌드 기본 정상복귀+0.995 보정 적용 확인. 커밋 d6c95a7/20c9b6f. 다음=후속 phase(보정값 입력 UI+RepeatStats 자동산출 / per-FAI override) 또는 Phase 54 ALIGN viz
+Last activity: 2026-06-19 -- Phase 55 ALIGN-02 (2-패턴 baseline 각도) Wave 1~3 완료·빌드 PASS, UAT 대기. 단일 패턴 alignRigid(8e0bdee)가 tilt "—"는 해소했으나 먼 측정점 ~400µm 잔차 → 양 대각 패턴 2개 중심 baseline 각으로 정밀화(패턴 자체각 미사용, 폴백=단일). 커밋 bc0de3a(W1+2 데이터+런타임)/c6182bb(W3 티칭UI 패턴1/2). 다음=사용자 UAT(패턴2 티칭→tilt검사, atan2 부호 SIMUL검증)→Wave4 직선ROI제거. 앞서 per-shot CorrectionFactor(d6c95a7) UAT PASS·signed_off. 메모리 project_phase55_progress
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

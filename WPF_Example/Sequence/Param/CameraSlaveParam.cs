@@ -23,6 +23,9 @@ namespace ReringProject.Sequence {
         public double PixelToUM_Offset { get; set; }
         [System.ComponentModel.Description("mm/pixel calibration factor for this camera")]
         public double PixelResolution { get; set; } = 1.0;  //260408 hbk mm/pixel (per D-12)
+        //260619 hbk per-shot 측정 보정계수 — 비전측정↔현미경공칭 ~0.5% 캘리브 간극 보정 layer. PixelResolution(고정) 위 런타임 곱. 기본 1.0=무보정(회귀0). ParamBase INI 자동 직렬화, 키 미존재 시 1.0 폴백.
+        [System.ComponentModel.Description("Per-shot measurement correction factor (multiplies PixelResolution). 1.0 = no correction.")]
+        public double CorrectionFactor { get; set; } = 1.0;  //260619 hbk
 
         public double MotorXPos { get; set; }
         public double MotorYPos { get; set; }
@@ -89,6 +92,11 @@ namespace ReringProject.Sequence {
         public virtual double ConvertPixelToMM(double pixel) {
             double mm = pixel * PixelToUM_Offset / 1000;
             return mm;
+        }
+
+        //260619 hbk per-shot 보정계수 적용된 유효 분해능 = PixelResolution × CorrectionFactor. 측정 mm 소비 단일소스(Action_FAIMeasurement :265 + EdgePairDistance :74 양 경로 호출). 메서드 = INI 직렬화 안 됨 → PixelResolution 저장값 불변 보존.
+        public double GetEffectivePixelResolution() {
+            return PixelResolution * CorrectionFactor;
         }
 
 

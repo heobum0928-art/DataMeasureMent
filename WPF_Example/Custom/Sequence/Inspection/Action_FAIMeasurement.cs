@@ -262,7 +262,12 @@ namespace ReringProject.Sequence {
                                 if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
                                 // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
                                 List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
-                                double pixRes = ShotParam != null ? ShotParam.PixelResolution : 1.0; //260615 hbk Phase 42 D-01 Shot 단일소스
+                                //260619 hbk per-shot 보정계수 적용 = PixelResolution × CorrectionFactor (단일소스 GetEffectivePixelResolution). PixelResolution 저장값 불변.
+                                double pixRes = ShotParam != null ? ShotParam.GetEffectivePixelResolution() : 1.0; //260615 hbk Phase 42 D-01 Shot 단일소스
+                                //260619 hbk 가드레일: 보정 ±2% 초과 = 분해능/공칭/왜곡 문제 신호(정상 ~0.5%=factor 0.995 는 미발동). 경고만, 측정 계속.
+                                if (ShotParam != null && Math.Abs(ShotParam.CorrectionFactor - 1.0) > 0.02) {
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Shot '" + ShotParam.ShotName + "' CorrectionFactor=" + ShotParam.CorrectionFactor.ToString("F4") + " (±2% 초과) — 분해능/공칭/왜곡 점검 권장, 보정으로 은폐 금지");
+                                }
                                 try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;

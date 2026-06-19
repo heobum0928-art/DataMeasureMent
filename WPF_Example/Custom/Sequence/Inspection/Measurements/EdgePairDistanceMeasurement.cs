@@ -70,8 +70,9 @@ namespace ReringProject.Sequence
             }
 
             //260615 hbk Phase 42 D-06 — PixelResolution 은 shot 단일소스(파라미터 경유). self 필드 소비 제거
+            //260619 hbk per-shot 보정계수 적용 — 이 타입만 전달 pixelResolution 무시·ownerShot 재도출하므로 여기서도 GetEffectivePixelResolution() 호출(Action_FAIMeasurement 와 동일 단일소스).
             var ownerShot = ownerFai.Owner as ShotConfig;
-            double resolvedPixelRes = (ownerShot != null) ? ownerShot.PixelResolution : pixelResolution;
+            double resolvedPixelRes = (ownerShot != null) ? ownerShot.GetEffectivePixelResolution() : pixelResolution;
 
             // 래퍼용 임시 FAIConfig 구성 — FAIEdgeMeasurementService 재사용.
             // ROI는 Owner에서, Edge/Calibration 파라미터는 self에서 가져온다.

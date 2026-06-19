@@ -96,7 +96,9 @@ namespace ReringProject.Sequence {
 
         //260619 hbk per-shot 보정계수 적용된 유효 분해능 = PixelResolution × CorrectionFactor. 측정 mm 소비 단일소스(Action_FAIMeasurement :265 + EdgePairDistance :74 양 경로 호출). 메서드 = INI 직렬화 안 됨 → PixelResolution 저장값 불변 보존.
         public double GetEffectivePixelResolution() {
-            return PixelResolution * CorrectionFactor;
+            //260619 hbk CorrectionFactor ≤0(미설정 0 로드 잔재 or 오입력)은 무보정 1.0 으로 안전 처리 — 측정값 0/음수화 방지. >2% 이탈은 가드레일이 별도 경고.
+            double factor = (CorrectionFactor > 0.0) ? CorrectionFactor : 1.0;
+            return PixelResolution * factor;
         }
 
 
@@ -168,7 +170,15 @@ namespace ReringProject.Sequence {
         }
         
         public override bool Load(IniFile loadFile, string groupName) {
-            return base.Load(loadFile, groupName);
+            bool result = base.Load(loadFile, groupName);
+            //260619 hbk CorrectionFactor 하위호환 복원 — ParamBase.Load 는 Double 프로퍼티마다 INI 를 읽어 누락 키를 ToDouble()=0 으로 덮어쓴다.
+            //  구 레시피엔 CorrectionFactor 키가 없어 0 으로 로드 → GetEffectivePixelResolution=PixelResolution×0=0 → 전 측정값 0(회귀).
+            //  키 부재 시에만 기본 1.0(무보정) 복원. 키 존재(사용자 설정값)면 그대로 둠.
+            IniSection sec;
+            if (!loadFile.TryGetSection(groupName, out sec) || sec == null || !sec.ContainsKey("CorrectionFactor")) {
+                CorrectionFactor = 1.0;
+            }
+            return result;
         }
 
         public override bool Save(IniFile saveFile, string groupName) {

@@ -37,7 +37,7 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, AlignLineRoi } //260618 hbk Phase 54 ALIGN-01
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2, AlignLineRoi } //260618 hbk Phase 54 ALIGN-01 / 260619 PatternRoi2 (Phase 55 ALIGN-02)
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private MeasurementBase _editingCircleMeasurement;
@@ -1647,6 +1647,8 @@ namespace ReringProject.UI {
             halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
             // 패턴 ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRectCompleted;
+            //260619 hbk Phase 55 ALIGN-02 패턴 2 핸들러 unsubscribe
+            halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRect2Completed;
             // 직선(tilt) ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
             halconViewer.RectDrawingCompleted   -= HalconViewer_AlignLineRectCompleted;
 
@@ -2623,7 +2625,53 @@ namespace ReringProject.UI {
             try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
             if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
 
-            label_drawHint.Content = "패턴 ROI 저장 완료 (PatternRoi_* 기록됨)";
+            label_drawHint.Content = "패턴 1 ROI 저장 완료 (PatternRoi_* 기록됨)";
+            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
+            label_drawHint.Visibility = Visibility.Visible;
+            _canvasMode = ECanvasMode.None;
+            _editingDatum = null;
+        }
+
+        //260619 hbk Phase 55 ALIGN-02 패턴 2 ROI 그리기 — DrawPatternRoiButton_Click 미러 (점2 = baseline 각도용)
+        private void DrawPatternRoi2Button_Click(object sender, RoutedEventArgs e) {
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
+            if (datum == null) {
+                CustomMessageBox.Show("패턴 2 ROI 그리기", "Datum 노드를 먼저 선택하세요.");
+                return;
+            }
+            ExitCanvasMode();
+            _editingDatum = datum;
+            _canvasMode = ECanvasMode.PatternRoi2;
+            label_drawHint.Content = "패턴 2 ROI: 패턴 1 의 반대 대각 끝에 드래그하세요 (멀수록 각도 정밀)";
+            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
+            label_drawHint.Visibility = Visibility.Visible;
+            halconViewer.RectDrawingCompleted += HalconViewer_PatternRect2Completed;
+            halconViewer.StartRectangleDrawing();
+        }
+
+        //260619 hbk Phase 55 ALIGN-02 패턴 2 ROI write-back — HalconViewer_PatternRectCompleted 미러
+        private void HalconViewer_PatternRect2Completed(object sender, EventArgs e) {
+            halconViewer.RectDrawingCompleted -= HalconViewer_PatternRect2Completed;
+            var roi = halconViewer.CommitActiveRectangle();
+            if (roi == null || _editingDatum == null) { ExitCanvasMode(); return; }
+
+            double centerRow = (roi.Row1 + roi.Row2) / 2.0;
+            double centerCol = (roi.Column1 + roi.Column2) / 2.0;
+            double halfH     = (roi.Row2 - roi.Row1) / 2.0;
+            double halfW     = (roi.Column2 - roi.Column1) / 2.0;
+
+            _editingDatum.PatternRoi2_Row     = centerRow;
+            _editingDatum.PatternRoi2_Col     = centerCol;
+            _editingDatum.PatternRoi2_Phi     = 0.0;
+            _editingDatum.PatternRoi2_Length1 = halfW; // X축 절반
+            _editingDatum.PatternRoi2_Length2 = halfH; // Y축 절반
+
+            try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+
+            label_drawHint.Content = "패턴 2 ROI 저장 완료 — [패턴 모델 생성] 클릭 시 모델2 + RefMatch2 기록";
             label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
             label_drawHint.Visibility = Visibility.Visible;
             _canvasMode = ECanvasMode.None;
@@ -2747,21 +2795,30 @@ namespace ReringProject.UI {
                     datum.RefMatchRow     = rr;
                     datum.RefMatchCol     = rc;
                     datum.RefMatchAngleDeg = ra;
-                    //260618 hbk Phase 54 ALIGN-01 tilt 기준각 캡쳐 — 직선 ROI 가 그려져 있으면 티칭 이미지에서 1회 측정해 기준각 저장.
-                    //  런타임 θ = 측정각 − AlignLineRefAngleDeg. 직선 ROI 미설정 시 생략(θ=0 보정만).
-                    string alignMsg = "";
-                    if (datum.AlignLineRoi_Length1 > 0.0 && datum.AlignLineRoi_Length2 > 0.0) {
-                        var dfsRef = new ReringProject.Halcon.Algorithms.DatumFindingService();
-                        double refLineRad;
-                        string refLineErr;
-                        if (dfsRef.TryGetAlignLineAngle(img, datum, 0.0, 0.0, out refLineRad, out refLineErr)) {
-                            datum.AlignLineRefAngleDeg = refLineRad * 180.0 / Math.PI;
-                            alignMsg = "\n직선 ROI 기준각 " + datum.AlignLineRefAngleDeg.ToString("F3") + "° 기록 (tilt 보정 활성)";
+                    //260619 hbk Phase 55 ALIGN-02 — 패턴 2 설정 시 모델2 생성 + RefMatch2(위치) 기록. 미설정 시 단일 패턴(x,y+단일각) 동작.
+                    //  런타임 θ = 두 RefMatch 중심 baseline 각 − 두 cur 중심 baseline 각. 패턴2 자체 회전각 미사용.
+                    string alignMsg;
+                    if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0) {
+                        string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum);
+                        string err2 = null;
+                        if (!string.IsNullOrEmpty(modelPath2) && svc.TryCreateModel(img,
+                                datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Phi,
+                                datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
+                                datum.PatternEngine, datum.PatternAngleExtentDeg, modelPath2, out err2)) {
+                            double rr2, rc2, ra2, rs2;
+                            string refErr2;
+                            if (svc.TryFindRefPose(img, datum.PatternEngine, modelPath2, datum.PatternMinScore, out rr2, out rc2, out ra2, out rs2, out refErr2)) {
+                                datum.RefMatch2Row = rr2;
+                                datum.RefMatch2Col = rc2;
+                                alignMsg = "\n패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성";
+                            } else {
+                                alignMsg = "\n[경고] 패턴 2 모델 생성됨, ref pose 기록 실패 → 단일 패턴 폴백: " + (refErr2 ?? "");
+                            }
                         } else {
-                            alignMsg = "\n[경고] 직선 ROI 에서 각도 측정 실패 → tilt 보정 안 됨(θ=0): " + (refLineErr ?? "");
+                            alignMsg = "\n[경고] 패턴 2 모델 생성 실패 → 단일 패턴 폴백: " + (err2 ?? "");
                         }
                     } else {
-                        alignMsg = "\n(직선 ROI 미설정 — tilt 보정 없이 x,y 만 보정. [직선 ROI] 버튼으로 그리면 회전 보정됨)";
+                        alignMsg = "\n(패턴 2 미설정 — 단일 패턴 x,y+단일각 보정만. [패턴 2] 버튼으로 그리면 2-점 baseline 회전보정)";
                     }
                     // PropertyGrid 재바인딩
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }

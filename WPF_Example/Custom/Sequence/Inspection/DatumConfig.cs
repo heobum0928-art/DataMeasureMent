@@ -37,10 +37,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string TeachingImagePath { get; set; } = "";
 
-        //260617 hbk Phase 52 LEVEL-01 레벨링 기준 Datum 지정 (D-01). 켜면 이 Datum 의 수평 에지로 이미지를 회전 정렬. 시퀀스당 1개만 지정 권장.
-        [Category("Datum|Leveling")]
-        [System.ComponentModel.Description("레벨링 기준. 켜면 이 Datum 의 수평 2-ROI 에지로 이미지 회전 정렬한다. 시퀀스당 1개만 지정.")]
-        public bool IsLevelingReference { get; set; } = false;
+        //260619 hbk Phase 57 #6 leveling 제거 — IsLevelingReference 프로퍼티 폐기 (ALIGN 대체, D-12/D-13). 옛 INI stale 키는 ParamBase.Load 가 무시 (D-14)
 
         //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 활성 (D-11) — 기본 false → off 회귀 0
         [Category("Datum|PatternAlign")]

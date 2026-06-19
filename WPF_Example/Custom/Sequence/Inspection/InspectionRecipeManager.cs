@@ -93,8 +93,7 @@ namespace ReringProject.Sequence {
             if (displayName == null) displayName = "";
             saveFile[sectionPrefix]["DisplayName"] = displayName;
             saveFile[sectionPrefix]["DatumCount"] = seq.DatumConfigs.Count;
-            //260617 hbk Phase 52 LEVEL-01 시퀀스 레벨링 토글 저장 (D-04). DisplayName 과 같은 FIXTURE 섹션.
-            saveFile[sectionPrefix]["LevelingEnabled"] = seq.LevelingEnabled ? 1 : 0;
+            //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled save 키 폐기 (ALIGN 대체, D-12/D-13)
             for (int d = 0; d < seq.DatumConfigs.Count; d++) {
                 string datumSection = $"{sectionPrefix}_DATUM_{d}";
                 seq.DatumConfigs[d].Save(saveFile, datumSection);
@@ -109,8 +108,7 @@ namespace ReringProject.Sequence {
                 // 보존할 기존 데이터 없음 (신규 레시피 등) — 빈값
                 saveFile[sectionPrefix]["DisplayName"] = "";
                 saveFile[sectionPrefix]["DatumCount"] = 0;
-                //260617 hbk Phase 52 신규 레시피 보존 분기 — LevelingEnabled 기본 off 명시
-                saveFile[sectionPrefix]["LevelingEnabled"] = 0;
+                //260619 hbk Phase 57 #6 leveling 제거 — 신규 레시피 보존 분기 LevelingEnabled 키 폐기 (ALIGN 대체, D-12/D-13)
                 return;
             }
             saveFile[sectionPrefix] = existingFile[sectionPrefix];
@@ -135,8 +133,7 @@ namespace ReringProject.Sequence {
             string displayName = loadFile[sectionPrefix]["DisplayName"].ToString();
             if (displayName == null) displayName = "";
             seq.DisplayName = displayName;
-            //260617 hbk Phase 52 LEVEL-01 시퀀스 레벨링 토글 로드 (D-04). 키 미존재 → ToBool() false 폴백 = 기존 레시피 회귀 0.
-            seq.LevelingEnabled = loadFile[sectionPrefix]["LevelingEnabled"].ToBool();
+            //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled load 키 폐기 (ALIGN 대체). 옛 INI stale 키는 더 이상 read 안 함 → 로드 크래시 0 (D-14)
             int datumCount = loadFile[sectionPrefix]["DatumCount"].ToInt();
             if (datumCount < 0) datumCount = 0;
             for (int d = 0; d < datumCount; d++) {

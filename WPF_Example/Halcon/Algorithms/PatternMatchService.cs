@@ -13,7 +13,8 @@ namespace ReringProject.Halcon.Algorithms
     /// HALCON Shape/NCC 패턴매칭을 사용하여 모델 생성·저장·로드·검색영역 제한 find,
     /// ref/cur pose로부터 rigid transform(hom_mat2d)을 산출하는 서비스.
     /// Wave 2 통합단계(Action_FAIMeasurement DatumPhase 확장)가 호출하는 매칭 엔진.
-    /// coarse x,y 전용 — 정밀 θ는 DatumFindingService.TryGetLevelingAngle(line-fit)이 담당.
+    //260619 hbk Phase 57 #6 leveling 제거 — 폐기된 TryGetLevelingAngle 참조 제거 (θ는 ALIGN 2-패턴 baseline 각도가 담당)
+    /// coarse x,y + θ는 ALIGN(패턴매칭 rigid transform)이 담당.
     /// </summary>
     public class PatternMatchService
     {

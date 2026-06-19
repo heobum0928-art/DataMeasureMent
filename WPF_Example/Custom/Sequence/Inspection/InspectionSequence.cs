@@ -45,8 +45,7 @@ namespace ReringProject.Sequence {
         // Fixture DisplayName — 사용자 편집 가능
         public string DisplayName { get; set; } = "";
 
-        //260617 hbk Phase 52 LEVEL-01 시퀀스 단위 레벨링 토글 (D-04, 기본 off → INI 미존재 폴백 off 회귀 0)
-        public bool LevelingEnabled { get; set; } = false;
+        //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled 토글 폐기 (ALIGN 대체, D-12/D-13)
 
         // Multi-Datum — Fixture 레벨 Datum 소유
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -61,13 +60,7 @@ namespace ReringProject.Sequence {
         //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
-        //260617 hbk Phase 52 LEVEL-01 레벨링 각도 캐시 (D-03 시퀀스당 1회 산출, 전 SHOT 공유)
-        private double _levelingAngleRad = 0.0;
-        private bool _levelingComputed = false;
-        public double LevelingAngleRad { get { return _levelingAngleRad; } }
-        public bool LevelingComputed { get { return _levelingComputed; } }
-        public void SetLevelingAngle(double angleRad) { _levelingAngleRad = angleRad; _levelingComputed = true; }
-        public void ResetLeveling() { _levelingAngleRad = 0.0; _levelingComputed = false; }
+        //260619 hbk Phase 57 #6 leveling 제거 — 레벨링 각도 캐시 멤버/메서드 폐기 (ALIGN 대체, D-12/D-13)
 
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
             pDevs = SystemHandler.Handle.Devices;
@@ -359,8 +352,7 @@ namespace ReringProject.Sequence {
             {
                 if (d != null) d.RuntimeDetectFailed = false;
             }
-            //260617 hbk Phase 52 레벨링 캐시도 datum transform 과 동일 lifecycle 리셋
-            ResetLeveling();
+            //260619 hbk Phase 57 #6 leveling 제거 — ResetLeveling() 호출 폐기 (ALIGN 대체, D-12/D-13)
         }
 
         // 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.
@@ -597,45 +589,6 @@ namespace ReringProject.Sequence {
             return _datumTransforms.TryGetValue(datumRef, out transform);
         }
 
-        //260617 hbk Phase 52 LEVEL-01 레벨링 각도 시퀀스 1회 산출 + 캐시 (D-01 기준 Datum, D-03 전 SHOT 공유).
-        //  IsLevelingReference==true 첫 Datum 의 수평 에지로 각도 산출. 이미 산출됐으면(LevelingComputed) 캐시 반환.
-        //  기준 미지정/실패 → false + 0.0 (무회전 폴백, abort 금지 — lenient).
-        public bool TryComputeLevelingAngle(HImage refImage, out double angleRad)
-        {
-            angleRad = 0.0;
-            // 이미 산출됨 → 캐시 반환 (시퀀스당 1회, D-03)
-            if (LevelingComputed)
-            {
-                angleRad = LevelingAngleRad;
-                return true;
-            }
-            if (refImage == null) return false;
-            // 기준 Datum 탐색 (IsLevelingReference 첫 1개)
-            DatumConfig refDatum = null;
-            if (DatumConfigs != null)
-            {
-                foreach (var d in DatumConfigs)
-                {
-                    if (d != null && d.IsLevelingReference) { refDatum = d; break; }
-                }
-            }
-            if (refDatum == null)
-            {
-                Logging.PrintLog((int)ELogType.Error, "[Leveling] 레벨링 기준 Datum(IsLevelingReference) 미지정 — 무회전 진행");
-                return false;
-            }
-            var service = new DatumFindingService();
-            double computed;
-            string lvlError;
-            if (!service.TryGetLevelingAngle(refImage, refDatum, out computed, out lvlError))
-            {
-                string e = lvlError; if (e == null) e = "";
-                Logging.PrintLog((int)ELogType.Error, "[Leveling] 각도 산출 실패 (무회전 진행): " + e);
-                return false;
-            }
-            SetLevelingAngle(computed);
-            Logging.PrintLog((int)ELogType.Trace, "[Leveling] 각도 산출 완료: " + (computed * 180.0 / System.Math.PI).ToString("F3") + " deg");
-            return true;
-        }
+        //260619 hbk Phase 57 #6 leveling 제거 — TryComputeLevelingAngle 메서드 폐기 (ALIGN 위치/tilt 보정으로 대체, D-12/D-13)
     }
 }

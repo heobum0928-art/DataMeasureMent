@@ -582,6 +582,8 @@ namespace ReringProject.UI
         private bool _measurementOverlayVisible = true;
         // Datum 라인 토글 게이트 (기본 ON)
         private bool _datumOverlayVisible = true;
+        //260619 hbk Phase 57 #2 패턴 ROI 토글 게이트 (기본 ON, _datumOverlayVisible 미러)
+        private bool _patternRoiOverlayVisible = true;
 
         // FAI CircleDiameter Strip preview state (Edit 모드 = FAI 노드 선택 시).
         // 검사 결과는 LastOverlays 에 (원 + 지름 라인), preview 는 노드 선택 시 RenderNow 직접 호출.
@@ -614,6 +616,13 @@ namespace ReringProject.UI
         public void SetDatumOverlayVisible(bool visible)
         {
             _datumOverlayVisible = visible;
+            Render();
+        }
+
+        //260619 hbk Phase 57 #2 패턴 ROI 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        public void SetPatternRoiOverlayVisible(bool visible)
+        {
+            _patternRoiOverlayVisible = visible;
             Render();
         }
 
@@ -831,6 +840,22 @@ namespace ReringProject.UI
             if (_datumOverlayVisible && _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0)
             {
                 _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultDatumRoiOverlays, "orange", 2);
+            }
+
+            //260619 hbk Phase 57 #2 패턴 매칭 ROI (cyan, datum orange / 측정 green / datum 기준선 slate blue 와 구분). 패턴 토글 게이트.
+            if (_patternRoiOverlayVisible && _resultDatumOverlays != null && _resultDatumOverlays.Count > 0)
+            {
+                var patternRects = new List<double[]>();
+                foreach (DatumConfig d in _resultDatumOverlays)
+                {
+                    if (d == null) continue;
+                    if (d.PatternRoi_Length1 > 0.0 && d.PatternRoi_Length2 > 0.0)
+                        patternRects.Add(new double[] { d.PatternRoi_Row, d.PatternRoi_Col, d.PatternRoi_Phi, d.PatternRoi_Length1, d.PatternRoi_Length2 });
+                    if (d.PatternRoi2_Length1 > 0.0 && d.PatternRoi2_Length2 > 0.0)
+                        patternRects.Add(new double[] { d.PatternRoi2_Row, d.PatternRoi2_Col, d.PatternRoi2_Phi, d.PatternRoi2_Length1, d.PatternRoi2_Length2 });
+                }
+                if (patternRects.Count > 0)
+                    _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, patternRects, "cyan", 2);
             }
 
             // FAI CircleDiameter Strip preview — 검사 결과 위에 strip 사각형 preview 를 덧붙임.

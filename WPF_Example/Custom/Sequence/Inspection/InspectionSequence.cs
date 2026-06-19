@@ -444,6 +444,15 @@ namespace ReringProject.Sequence {
         //  실패(매칭 score 미달/모델 로드 실패/rigid 실패) → false (호출부가 MarkAlignFailed, lenient D-10). _datumTransforms 미변경.
         public bool TryComposeAlign(DatumConfig datum, HImage refImage, string modelPath, out string error)
         {
+            //260619 hbk Phase 57 #4 DualImage align — 기존 단일이미지 호출처 무변경 보장 위해 5-arg 오버로드에 위임(refImageVertical=null).
+            return TryComposeAlign(datum, refImage, null, modelPath, out error);
+        }
+
+        //260619 hbk Phase 57 #4 DualImage align — 세로축 이미지(refImageVertical) 를 받는 5-arg 오버로드.
+        //  refImageVertical != null + DualImage datum 이면 ④단계가 2-image TryFindDatum 으로 분기하여 가로/세로 ROI 에 동일 alignRigid 적용(D-01).
+        //  패턴 매칭(① TryFindPose)은 가로축(refImage) 에서만 수행 — 세로엔 패턴 모델 없음(D-04).
+        public bool TryComposeAlign(DatumConfig datum, HImage refImage, HImage refImageVertical, string modelPath, out string error)
+        {
             error = null;
             if (datum == null) { error = "datum null"; return false; }
             if (refImage == null) { error = "refImage null"; return false; }
@@ -523,10 +532,20 @@ namespace ReringProject.Sequence {
             //  T(rotate θ+translate x,y)로 검출 ROI(Circle/Horizontal/Line)가 틀어진 부품의 실제 datum 에지를 덮음
             //  → 진짜 DetectedOrigin/angle + datum transform 생성. 측정은 이 datum transform 을 사용 → nominal 불변.
             var detectSvc = new DatumFindingService();
-            detectSvc.AlignPreTransform = alignRigid;
+            detectSvc.AlignPreTransform = alignRigid; // 단일 인스턴스 1회 set → 두 이미지 검출(Vertical=TryFindLine, Horizontal=TryExtractEdgePoints) 모두 적용 (Task 1 으로 TryFindLine 도 소비)
             HTuple datumTransform;
             string detErr;
-            if (!detectSvc.TryFindDatum(refImage, datum, out datumTransform, out detErr))
+            //260619 hbk Phase 57 #4 DualImage align — DualImage datum 이면 2-image 오버로드로 분기(가로/세로 ROI 동일 transform, D-01). 그 외엔 기존 1-image.
+            bool detectOk;
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage && refImageVertical != null)
+            {
+                detectOk = detectSvc.TryFindDatum(refImage, refImageVertical, datum, out datumTransform, out detErr);
+            }
+            else
+            {
+                detectOk = detectSvc.TryFindDatum(refImage, datum, out datumTransform, out detErr);
+            }
+            if (!detectOk)
             {
                 error = "datum 검출 실패(패턴 보정 후): " + (detErr ?? "");
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed

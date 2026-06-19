@@ -103,17 +103,32 @@ namespace ReringProject.Sequence {
                                         parentSeq.MarkDatumFailed(datum.DatumName);
                                         continue; // datum skip, abort 안 함
                                     }
-                                    //260618 hbk Phase 54 ALIGN-01 DualImage datum 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
-                                    //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. DualImage align 삽입은 후속 phase(deferred).
-                                    string derr;
-                                    if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) {
-                                        string datumName = datum.DatumName;
-                                        if (datumName == null) datumName = "";
-                                        string derrStr = derr;
-                                        if (derrStr == null) derrStr = "";
-                                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
-                                        datum.RuntimeDetectFailed = true;
-                                        parentSeq.MarkDatumFailed(datum.DatumName);
+                                    //260619 hbk Phase 57 #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
+                                    //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
+                                    //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
+                                    if (datum.IsPatternAlignEnabled) {
+                                        string modelPath = InspectionSequence.ResolveDatumModelPath(datum); // 티칭과 동일 키 헬퍼 (D-07)
+                                        string alignErr;
+                                        if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
+                                            string dn = datum.DatumName;
+                                            if (dn == null) dn = "";
+                                            string ae = alignErr;
+                                            if (ae == null) ae = "";
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                                            datum.RuntimeDetectFailed = true;
+                                            parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
+                                        }
+                                    } else {
+                                        string derr;
+                                        if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
+                                            string datumName = datum.DatumName;
+                                            if (datumName == null) datumName = "";
+                                            string derrStr = derr;
+                                            if (derrStr == null) derrStr = "";
+                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                                            datum.RuntimeDetectFailed = true;
+                                            parentSeq.MarkDatumFailed(datum.DatumName);
+                                        }
                                     }
                                 } finally {
                                     if (imgH != null) { try { imgH.Dispose(); } catch { } }

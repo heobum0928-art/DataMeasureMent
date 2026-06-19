@@ -340,10 +340,11 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.DispLine(window, endRow, endCol,
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2));
 
-                //260619 hbk Phase 56 — datum 기준선 magenta 굵게(측정 ROI cyan/라임과 구분). 방향규약 = EdgeToLineDistance 측정축과 동일.
+                //260619 hbk Phase 56 — datum 기준선 slate blue 굵게(측정 ROI cyan/라임과 구분). 방향규약 = EdgeToLineDistance 측정축과 동일.
                 //  길이 = 이미지 전체(세로 0~높이, 가로 0~너비) 걸치도록(사용자 요청 2026-06-19): GetPart 로 표시 이미지 대각선 산출
                 //  → ±대각선(어느 origin 위치/각도든 전 이미지 관통, DispLine 창밖 자동클립). 직전 ±7000px 는 14208px 이미지서 원중심(~8600px)까지 못 닿음.
-                HOperatorSet.SetColor(window, "magenta");
+                //260619 hbk Phase 57 #3 datum 색상 slate blue 통일 (magenta→slate blue recolor, 길이/좌표 무변경 D-10)
+                HOperatorSet.SetColor(window, "slate blue");
                 HOperatorSet.SetLineWidth(window, 3);
                 double datumLineHalf = 20000.0; // GetPart 실패 시 폴백(현 이미지 대각선 17750 초과)
                 try

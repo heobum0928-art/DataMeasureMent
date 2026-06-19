@@ -1222,7 +1222,11 @@ namespace ReringProject.UI {
                 return;
             }
             foreach (DatumConfig d in datums) {
-                TryRestoreDatumGeometry(d); // 휘발 좌표 복원 (렌더는 아래 일괄 호출)
+                //260619 hbk Phase 56 — 검사-시점 정렬(보정) 검출 좌표가 살아있으면(LastFindSucceeded) 재티칭 skip.
+                //  재티칭(TryRestoreDatumGeometry→TryTeachDatum on 티칭이미지)은 DetectedOrigin/RefAngle 을 reference(무틸트) 로
+                //  덮어써 → 결과화면 datum 이 안 기울어 보이던 원인. 검출 좌표 없을 때(레시피 로드 직후 휘발 0)만 reference 복원.
+                if (d != null && !d.LastFindSucceeded)
+                    TryRestoreDatumGeometry(d); // 휘발 좌표 복원 (렌더는 아래 일괄 호출)
             }
             halconViewer.SetResultDatumOverlays(datums);
         }

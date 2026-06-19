@@ -28,9 +28,9 @@ namespace ReringProject.Sequence {
     public class Action_FAIMeasurement : ActionBase {
 
         private enum EStep {
+            //260619 hbk Phase 57 #6 leveling 제거 — EStep.Level 폐기 (D-13/D-14), MoveZ→DatumPhase 직결
             Init,
             MoveZ,
-            Level,        //260617 hbk Phase 52 레벨링 각도 산출 (시퀀스당 1회, DatumPhase 앞)
             DatumPhase,
             Grab,
             Measure,
@@ -72,50 +72,9 @@ namespace ReringProject.Sequence {
                         System.Threading.Thread.Sleep(ShotParam.DelayMs);
                     }
                     #endif
-                    Step = (int)EStep.Level;
-                    break;
-
-                //260617 hbk Phase 52 LEVEL-01 레벨링 각도 산출 (D-01/D-03). LevelingEnabled off 면 pass-through (회귀 0).
-                //  기준 Datum 1차 검출용 raw 이미지로 각도 1회 산출 후 캐시. 실패 시 무회전 폴백 (lenient).
-                case EStep.Level: {
-                    InspectionSequence lvlSeq;
-                    if (ShotParam != null) lvlSeq = ShotParam.Parent as InspectionSequence;
-                    else lvlSeq = null;
-                    if (lvlSeq != null && lvlSeq.LevelingEnabled && !lvlSeq.LevelingComputed) {
-                        DatumConfig refDatum = null;
-                        foreach (var d in lvlSeq.DatumConfigs) {
-                            if (d != null && d.IsLevelingReference) { refDatum = d; break; }
-                        }
-                        HImage refImage = null;
-                        try {
-                            if (refDatum != null) refImage = GrabOrLoadDatumImage(refDatum);
-                            if (refImage != null) {
-                                //260617 hbk WR-02 SIMUL 역할 분리 진단 로그 — 레벨링 각도 산출 소스(기준 Datum)와
-                                //  실제 측정 SHOT 소스가 다르면 교정각이 측정 이미지의 실제 기울기와 불일치할 수 있음(SIMUL 한정,
-                                //  실장비는 동일 라이브 프레임이라 무관). 두 경로가 다를 때만 경고 — UAT 셋업에서 동일 기울기
-                                //  이미지를 쓰도록 진단 신호 제공. 동작/각도 산출 로직은 변경 없음(D-02/D-03 불변).
-                                #if SIMUL_MODE
-                                string lvlSrc = (refDatum != null && !string.IsNullOrEmpty(refDatum.TeachingImagePath) && File.Exists(refDatum.TeachingImagePath))
-                                    ? refDatum.TeachingImagePath
-                                    : (ShotParam != null ? ShotParam.SimulImagePath : null);
-                                string measSrc = (ShotParam != null) ? ShotParam.SimulImagePath : null;
-                                if (!string.IsNullOrEmpty(lvlSrc) && !string.IsNullOrEmpty(measSrc)
-                                    && !string.Equals(lvlSrc, measSrc, StringComparison.OrdinalIgnoreCase)) {
-                                    Logging.PrintLog((int)ELogType.Error, "[Leveling] (SIMUL) 레벨링 각도 산출 이미지('" + lvlSrc + "')와 측정 SHOT 이미지('" + measSrc + "')가 다릅니다 — 교정각이 측정 이미지 기울기와 불일치할 수 있음. UAT 는 동일 기울기 이미지를 사용하세요.");
-                                }
-                                #endif
-                                double angleRad;
-                                lvlSeq.TryComputeLevelingAngle(refImage, out angleRad); // 캐시 set (실패해도 lenient)
-                            } else {
-                                Logging.PrintLog((int)ELogType.Error, "[Leveling] 기준 Datum 이미지 취득 실패 — 무회전 진행");
-                            }
-                        } finally {
-                            if (refImage != null) { try { refImage.Dispose(); } catch { } }
-                        }
-                    }
+                    //260619 hbk Phase 57 #6 leveling 제거 — MoveZ→DatumPhase 직결 (EStep.Level 폐기, D-13/D-14)
                     Step = (int)EStep.DatumPhase;
                     break;
-                }
 
                 // DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적.
                 // datum 부분 실패는 skip+log (lenient, abort 없음).

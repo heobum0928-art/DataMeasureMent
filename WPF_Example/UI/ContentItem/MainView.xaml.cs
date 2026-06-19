@@ -1222,6 +1222,13 @@ namespace ReringProject.UI {
                 return;
             }
             foreach (DatumConfig d in datums) {
+                //260619 hbk Phase 56 진단(임시) — 결과 datum 의 검출상태/좌표 확인. magenta 선 미표시 원인 규명용(LastFind 게이트 vs DetOrigin 0 vs 색).
+                if (d != null)
+                    Logging.PrintLog((int)ELogType.Error, "[VIZ] ResultDatum '" + (d.DatumName ?? "")
+                        + "' LastFind=" + d.LastFindSucceeded + " LastTeach=" + d.LastTeachSucceeded
+                        + " DetOrigin=(" + d.DetectedOriginRow.ToString("F1") + "," + d.DetectedOriginCol.ToString("F1") + ")"
+                        + " DetAngleDeg=" + (d.DetectedRefAngle * 180.0 / Math.PI).ToString("F2")
+                        + " DetAngle2Deg=" + (d.DetectedRefAngle2 * 180.0 / Math.PI).ToString("F2"));
                 //260619 hbk Phase 56 — 검사-시점 정렬(보정) 검출 좌표가 살아있으면(LastFindSucceeded) 재티칭 skip.
                 //  재티칭(TryRestoreDatumGeometry→TryTeachDatum on 티칭이미지)은 DetectedOrigin/RefAngle 을 reference(무틸트) 로
                 //  덮어써 → 결과화면 datum 이 안 기울어 보이던 원인. 검출 좌표 없을 때(레시피 로드 직후 휘발 0)만 reference 복원.

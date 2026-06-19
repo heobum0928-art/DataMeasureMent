@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 57-02-PLAN.md (#4 DualImage 단일 공유 transform align + #5 lenient 검증)
-last_updated: "2026-06-19T17:15:00.000Z"
-last_activity: 2026-06-19 -- Phase 57 Plan 02 (#4 DualImage ALIGN 이식 + #5 lenient) 완료
+stopped_at: Completed 57-05-PLAN.md (#2 패턴 ROI 표시/숨김 토글 — SetDatumOverlayVisible 미러)
+last_updated: "2026-06-19T18:30:00.000Z"
+last_activity: "2026-06-19 -- Phase 57 Plan 05 (#2 패턴 ROI 토글 cyan 렌더 게이트 + chk_overlayPattern) 완료"
 progress:
   total_phases: 13
   completed_phases: 11
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 57 (패턴 ROI UX & Datum 정렬 보강) — EXECUTING
-Plan: 57-01 + 57-03 + 57-04 (Wave 1) + 57-02 (Wave 2) 완료. 잔여 = 57-05 (#2 패턴 토글)
-Status: Executing Phase 57
-Last activity: 2026-06-19 -- Phase 57 Plan 02 (#4 DualImage 단일 공유 transform align + #5 lenient) 완료
+Phase: 57 (패턴 ROI UX & Datum 정렬 보강) — EXECUTING (모든 plan 완료, 검증 대기)
+Plan: 57-01 + 57-03 + 57-04 (Wave 1) + 57-02 + 57-05 (Wave 2) 완료. Phase 57 전 plan 실행 완료.
+Status: Executing Phase 57 — 5/5 plans 완료
+Last activity: 2026-06-19 -- Phase 57 Plan 05 (#2 패턴 ROI 토글 cyan 렌더 게이트 + chk_overlayPattern) 완료
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -147,6 +147,7 @@ Last activity: 2026-06-19 -- Phase 57 Plan 02 (#4 DualImage 단일 공유 transf
 | Phase 57-pattern-roi-ux-datum-align-hardening P03 | 1 | 2 tasks | 1 files |
 | Phase 57-pattern-roi-ux-datum-align-hardening P04 | 8 | 3 tasks | 2 files |
 | Phase 57-pattern-roi-ux-datum-align-hardening P02 | 15 | 3 tasks | 3 files |
+| Phase 57-pattern-roi-ux-datum-align-hardening P05 | 6 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -298,6 +299,7 @@ Recent decisions affecting current work:
 - [Phase 57-02]: #5 lenient 는 이미 구현(EStep.DatumPhase 실패 분기 abort 0, 종료 무조건 Step=Grab, Measure 루프 IsDatumFailed → ClearResult+ALIGN_FAIL/DATUM_FAIL+continue). DualImage 분기에 MarkAlignFailed 추가만, 코드 변경 없이 검증 — abort 0 확인.
 - [Phase 52-03] EStep.Level 을 MoveZ-DatumPhase 사이 삽입 — 회전 이미지가 Datum 검출+측정 둘 다 입력. DatumPhase(1-image+DualImage)·Grab 동일 -LevelingAngleRad 동일 회전중심 적용(좌표계 정합), taught ROI 미변환(방식 a), off/미산출 pass-through 회귀 0
 - [Phase 57-01]: leveling 완전 제거 — EStep.Level/LevelingEnabled/TryComputeLevelingAngle/TryGetLevelingAngle(2 오버로드)/IsLevelingReference/INI 키 3곳 전수 제거. MoveZ→DatumPhase 직결. 옛 INI stale 키는 ParamBase.Load 무시(D-14). ALIGN(AlignPreTransform/DualImage) 무손상. 빌드 PASS 신규 warning 0.
+- [Phase 57-05]: #2 패턴 ROI 표시/숨김 토글 — SetDatumOverlayVisible 미러. MainResultViewerControl 에 `_patternRoiOverlayVisible` 게이트 + `SetPatternRoiOverlayVisible` setter + RenderNow 게이트(_resultDatumOverlays 순회 → PatternRoi/PatternRoi2 Length1/2>0 sentinel → double[]{row,col,phi,l1,l2} → RenderResultRoiBoxes "cyan",2). MainView 에 chk_overlayPattern 체크박스 + Chk_overlayPattern_Changed 핸들러(측정/Datum 토글 옆). 패턴=cyan, datum=orange, 측정=green, 기준선=slate blue 구분(D-15). RenderResultRoiBoxes 시그니처 IList<double[]> 무변경. 빌드 Debug/x64 PASS 신규 warning 0.
 
 ### Quick Tasks Completed
 

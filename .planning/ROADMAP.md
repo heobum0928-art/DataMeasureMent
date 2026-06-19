@@ -455,14 +455,14 @@ Plans:
 5. **매칭 에러 시 측정 진행(lenient)** — 매칭 실패해도 abort 없이 측정 계속(NG 처리). Phase 54 ALIGN_FAIL 정책 검증/보강.
 6. **leveling reference 제거** (사용자 결정 = 안 씀) — Phase 52 IsLevelingReference(DatumConfig:43)/LevelingEnabled(InspectionSequence:49) + TryComputeLevelingAngle(603)/TryGetLevelingAngle(DatumFindingService:609) + EStep.Level(Action_FAIMeasurement:80-118) + INI 직렬화(InspectionRecipeManager:97/139) 제거. ALIGN 이 위치/tilt 보정하므로 중복. 기존 레시피 off 폴백 회귀 0 확인.
 
-**Plans:** 5 plans, 2 waves (plan_complete 2026-06-19)
+**Plans:** 5 plans, 2 waves (전 plan 실행 완료 2026-06-19, UAT 대기)
 
 Plans:
 - [x] 57-01-PLAN.md — #6 leveling 완전 제거 (코드+상태+INI, MoveZ→DatumPhase 재배선, off 회귀 0) [Wave 1] ✅ 2026-06-19 (40ffe36, d10c884)
 - [x] 57-02-PLAN.md — #4 Side DualImage 단일 공유 transform align + #5 lenient 검증 (TryFindLine transform 이식, 게이트 해제) [Wave 2] ✅ 2026-06-19 (c079b4f, 4eeb71b)
 - [x] 57-03-PLAN.md — #3 datum 시각화 slate blue 통일 (magenta→slate blue recolor, 기준선 유지) [Wave 1] ✅ 2026-06-19 (e4464c3)
 - [x] 57-04-PLAN.md — #1 패턴 ROI 버튼 나란히 배치 + 단일 패턴 경고+override [Wave 1] ✅ 2026-06-19 (a179c22, 25f1b71)
-- [ ] 57-05-PLAN.md — #2 패턴 ROI 표시/숨김 토글 (SetDatumOverlayVisible 미러) [Wave 2]
+- [x] 57-05-PLAN.md — #2 패턴 ROI 표시/숨김 토글 (SetDatumOverlayVisible 미러, cyan 렌더) [Wave 2] ✅ 2026-06-19 (cf97c5b, 9a290a7)
 
 Wave 1 (병렬): 57-01, 57-03, 57-04 (파일 비충돌)
 Wave 2 (병렬): 57-02 (deps 57-01), 57-05 (deps 57-03/57-04)

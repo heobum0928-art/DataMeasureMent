@@ -340,23 +340,47 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.DispLine(window, endRow, endCol,
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2));
 
-                //260619 hbk Phase 56 — 검출된 datum 기준선 표시(보정 위치 통과). 수평선=DetectedRefAngle, 수직선=DetectedRefAngle2(설정 시).
-                //  방향규약 = EdgeToLineDistance 측정축과 동일(datum x축 방향벡터 (sinθ,cosθ)) → 측정이 이 선 기준 수직거리 산출함을 시각 확인.
-                //260619 hbk Phase 56 — datum 기준선은 magenta 굵게: 측정 ROI(cyan/라임)와 명확히 구분(SetColor 유효명).
-                //  길이 = 이미지 전체 걸치게(±7000px). 400px 는 14208px 이미지서 화면상 ~26px 라 안 보였음. DispLine 은 창 밖 자동 클립.
+                //260619 hbk Phase 56 — datum 기준선 magenta 굵게(측정 ROI cyan/라임과 구분). 방향규약 = EdgeToLineDistance 측정축과 동일.
+                //  길이 = 이미지 전체(세로 0~높이, 가로 0~너비) 걸치도록(사용자 요청 2026-06-19): GetPart 로 표시 이미지 대각선 산출
+                //  → ±대각선(어느 origin 위치/각도든 전 이미지 관통, DispLine 창밖 자동클립). 직전 ±7000px 는 14208px 이미지서 원중심(~8600px)까지 못 닿음.
                 HOperatorSet.SetColor(window, "magenta");
                 HOperatorSet.SetLineWidth(window, 3);
-                const double datumLineHalf = 7000.0;
+                double datumLineHalf = 20000.0; // GetPart 실패 시 폴백(현 이미지 대각선 17750 초과)
+                try
+                {
+                    HTuple gpR1, gpC1, gpR2, gpC2;
+                    HOperatorSet.GetPart(window, out gpR1, out gpC1, out gpR2, out gpC2);
+                    double partH = System.Math.Abs(gpR2.D - gpR1.D) + 1.0;
+                    double partW = System.Math.Abs(gpC2.D - gpC1.D) + 1.0;
+                    double partDiag = System.Math.Sqrt(partH * partH + partW * partW);
+                    if (partDiag > 1.0) datumLineHalf = partDiag;
+                }
+                catch { /* GetPart 실패 → 폴백 길이 유지 */ }
+                // 수평 기준선 = DetectedRefAngle 방향(부품 틸트 반영), 교점 통과.
                 double hSin = System.Math.Sin(datum.DetectedRefAngle), hCos = System.Math.Cos(datum.DetectedRefAngle);
                 HOperatorSet.DispLine(window,
                     datum.DetectedOriginRow - datumLineHalf * hSin, datum.DetectedOriginCol - datumLineHalf * hCos,
                     datum.DetectedOriginRow + datumLineHalf * hSin, datum.DetectedOriginCol + datumLineHalf * hCos);
-                if (datum.DetectedRefAngle2 != 0.0)
+                //260619 hbk Phase 56 — 수직 기준선: CTH(원검출 datum)는 교점(DetectedOrigin)↔원중심(DetectedCircle) 잇는 직선 → 교점·원중심 둘 다 확실히 통과(사용자 요구).
+                //  그 외 datum 은 검출 수직 기준각(DetectedRefAngle2) 방향. 둘 다 교점 피벗·이미지 전체 길이. ※'RefAngle+90°+원중심피벗' 은 교점 빗나가 회귀 → 금지.
+                double vDirRow, vDirCol;
+                if (datum.DetectedCircleRow != 0.0 || datum.DetectedCircleCol != 0.0)
                 {
-                    double vSin = System.Math.Sin(datum.DetectedRefAngle2), vCos = System.Math.Cos(datum.DetectedRefAngle2);
+                    vDirRow = datum.DetectedCircleRow - datum.DetectedOriginRow;
+                    vDirCol = datum.DetectedCircleCol - datum.DetectedOriginCol;
+                }
+                else
+                {
+                    vDirRow = System.Math.Sin(datum.DetectedRefAngle2);
+                    vDirCol = System.Math.Cos(datum.DetectedRefAngle2);
+                }
+                double vDirLen = System.Math.Sqrt(vDirRow * vDirRow + vDirCol * vDirCol);
+                if (vDirLen > 1e-6)
+                {
+                    double vur = vDirRow / vDirLen, vuc = vDirCol / vDirLen;
                     HOperatorSet.DispLine(window,
-                        datum.DetectedOriginRow - datumLineHalf * vSin, datum.DetectedOriginCol - datumLineHalf * vCos,
-                        datum.DetectedOriginRow + datumLineHalf * vSin, datum.DetectedOriginCol + datumLineHalf * vCos);
+                        datum.DetectedOriginRow - datumLineHalf * vur, datum.DetectedOriginCol - datumLineHalf * vuc,
+                        datum.DetectedOriginRow + datumLineHalf * vur, datum.DetectedOriginCol + datumLineHalf * vuc);
                 }
 
                 // ExpectedAngleDeg 점선 화살표 (AngleTolerance > 0 sentinel 활성 시에만).
@@ -451,6 +475,27 @@ namespace ReringProject.Halcon.Display
                 int next = (i + 1) % points.Count;
                 window.DispLine(points[i].Y, points[i].X, points[next].Y, points[next].X);
             }
+        }
+
+        //260619 hbk Phase 56 Wave 2 — 결과 화면 보정(회전) ROI 박스 표시 전용 렌더. 편집 채널(_rois)과 무관 → 드래그/write-back 없음.
+        //  측정과 100% 동일하게 HALCON rectangle2 로 그림(코너 수동계산 시 회전 규약 어긋나 반대로 보이던 문제 제거).
+        //  rect 인자 = {row, col, phi, length1, length2} (TryFitLine 의 gen_measure_rectangle2 와 동일 순서/규약).
+        public void RenderResultRoiBoxes(HWindow window, IList<double[]> rects, string color, int lineWidth)
+        {
+            if (window == null || rects == null) return;
+            try
+            {
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, lineWidth);
+                HOperatorSet.SetDraw(window, "margin"); // 외곽선 (datum ROI rectangle2 렌더와 동일)
+                foreach (double[] r in rects)
+                {
+                    if (r == null) continue;
+                    if (r.Length == 3) HOperatorSet.DispCircle(window, r[0], r[1], r[2]);                       // {row,col,radius} 원 ROI
+                    else if (r.Length >= 5) HOperatorSet.DispRectangle2(window, r[0], r[1], r[2], r[3], r[4]); // {row,col,phi,l1,l2} 사각 ROI
+                }
+            }
+            catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }
         }
 
         /// <summary>Renders polygon draft points (large cross marks + connecting lines during drawing).</summary>

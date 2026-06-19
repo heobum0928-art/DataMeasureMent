@@ -335,10 +335,19 @@ namespace ReringProject.Halcon.Algorithms
                     return false;
                 }
 
-                // Step 5: 수직 가상선 (centerRow ± 1.0, centerCol) × 수평 결합선
+                // 현재 각도 = 수평 결합선 방향각 (Teach 와 동일 정의). dθ(보정 회전각) 산출에 선행.
+                double curAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
+                //260619 hbk Phase 56 — CTH 수직 기준을 보정각 dθ 만큼 회전(틸트 반영). 기존 π/2(이미지수직) 고정 = "0°틸트 가정" 버그:
+                //  ROI 는 datumTransform 으로 회전 측정되는데 X 투영축·교점만 이미지프레임이라 틸트 시 X 측정오차 + datum 표시 미회전.
+                //  티칭 수직선("원중심 순수수직")이 부품 따라 dθ 회전 → 수직각 = π/2 + dθ, 교점 = 회전된 수직선 ∩ 수평선.
+                double dAngle = curAngle - config.RefAngleRad;        // 보정 회전각 dθ
+                double vertPhi = (Math.PI / 2.0) + dAngle;            // 회전된 수직 기준각 (티칭 순수수직 + dθ)
+                double vDirR = Math.Sin(vertPhi), vDirC = Math.Cos(vertPhi);
+
+                // Step 5: 회전된 수직선(원중심 통과, vertPhi 방향) × 수평 결합선 → datum 교점
                 HTuple curRow, curCol, isOverlapping;
                 HOperatorSet.IntersectionLl(
-                    centerRow - 1.0, centerCol, centerRow + 1.0, centerCol,
+                    centerRow - vDirR, centerCol - vDirC, centerRow + vDirR, centerCol + vDirC,
                     hrB, hcB, hrE, hcE,
                     out curRow, out curCol, out isOverlapping);
 
@@ -354,13 +363,9 @@ namespace ReringProject.Halcon.Algorithms
                     return false;
                 }
 
-                // 현재 각도 = 수평 결합선 방향각 (Teach 와 동일 정의)
-                double curAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
-
                 // hom_mat2d 빌드 (translate + rotate around current origin)
                 double dRow = curRow.D - config.RefOriginRow;
                 double dCol = curCol.D - config.RefOriginCol;
-                double dAngle = curAngle - config.RefAngleRad;
                 HTuple mat;
                 HOperatorSet.HomMat2dIdentity(out mat);
                 HOperatorSet.HomMat2dTranslate(mat, dRow, dCol, out mat);
@@ -370,9 +375,8 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
-                // 2차(수직) 기준선 = 원중심 통과 수직 가상선 (Step 5: centerRow±1, centerCol).
-                //  방향벡터 (Δrow=+2, Δcol=0) → Atan2(2,0) = π/2 (순수 이미지-수직). X축 측정 기준.
-                config.DetectedRefAngle2 = Math.PI / 2.0;
+                //260619 hbk Phase 56 — 2차(수직) 기준선 = 보정각 반영 (π/2 + dθ). X축 측정 투영·datum 표시 모두 부품 프레임 일치.
+                config.DetectedRefAngle2 = vertPhi;
                 config.DetectedCircleRow = centerRow; // E2 CompoundAngle 주입용 원중심
                 config.DetectedCircleCol = centerCol;
                 config.DetectedEdgeCount = circleEdgeRows.TupleLength() + totalEdges;

@@ -569,6 +569,11 @@ namespace ReringProject.UI
         // 측정/Shot/FAI 노드 선택 시 표시할 "결과용" datum 리스트.
         // 단일 _datumConfig(Datum 노드 편집 경로)와 분리 — 한 시퀀스 여러 datum 동시 표시 가능.
         private List<DatumConfig> _resultDatumOverlays = new List<DatumConfig>();
+        //260619 hbk Phase 56 Wave 2 — 보정(회전) ROI 박스 표시 전용 채널 (편집 _rois 와 분리 → 드래그/write-back 없음).
+        //  각 항목 = {row, col, phi, length1, length2} (측정 rectangle2 인자와 동일).
+        private List<double[]> _resultRoiOverlays = new List<double[]>();
+        //260619 hbk Phase 56 Wave 2 — 보정 Datum 검색 ROI(원/수평) 표시 전용 (측정 ROI 와 색 구분). 항목 = {row,col,phi,l1,l2} 또는 {row,col,radius}.
+        private List<double[]> _resultDatumRoiOverlays = new List<double[]>();
         private bool _datumSelected;
         // Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
         private bool _datumIsEditMode = false;
@@ -633,6 +638,23 @@ namespace ReringProject.UI
         public void ClearResultDatumOverlays()
         {
             _resultDatumOverlays = new List<DatumConfig>();
+            Render();
+        }
+
+        //260619 hbk Phase 56 Wave 2 — 결과용 보정(회전) ROI 박스 오버레이 설정/제거 (표시 전용, 편집 무관).
+        public void SetResultRoiOverlays(List<double[]> measRects, List<double[]> datumRects)
+        {
+            if (measRects == null) _resultRoiOverlays = new List<double[]>();
+            else                   _resultRoiOverlays = measRects;
+            if (datumRects == null) _resultDatumRoiOverlays = new List<double[]>();
+            else                    _resultDatumRoiOverlays = datumRects;
+            Render();
+        }
+
+        public void ClearResultRoiOverlays()
+        {
+            _resultRoiOverlays = new List<double[]>();
+            _resultDatumRoiOverlays = new List<double[]>();
             Render();
         }
 
@@ -752,10 +774,15 @@ namespace ReringProject.UI
                 measOverlays = _inspectionOverlays.Concat(BuildTransientOverlays()).ToList();
             else
                 measOverlays = new List<EdgeInspectionOverlay>();
+            //260619 hbk Phase 56 — UAT #2: 보정(green) ROI 박스 활성 시 보정전 측정 ROI(_rois) 미표시(중복 제거).
+            //  비-align(보정 transform 없음) → _resultRoiOverlays 비어 기존대로 _rois 표시(회귀 0).
+            IEnumerable<RoiDefinition> roisForRender = _rois;
+            if (_resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
+                roisForRender = System.Linq.Enumerable.Empty<RoiDefinition>();
             _displayService.Render(
                 ViewerHost.HalconWindow,
                 CurrentImage,
-                _rois,
+                roisForRender,
                 _selectedRoiId,
                 _rectDraftRoi,
                 measOverlays,
@@ -779,15 +806,31 @@ namespace ReringProject.UI
             }
 
             // 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선도 함께 표시 (토글 게이트 공용).
+            //260619 hbk Phase 56 — UAT #2: 보정(orange) datum 검색 ROI 활성 시 보정전 검색 ROI 박스 미표시.
+            //  보정 시 RenderDatumFindResult(검출 origin 십자 + magenta 기준선)만 → 기준선 유지/보정전 박스 제거.
+            //  비-align → 기존 RenderDatumOverlay(검색 ROI + 기준선) 그대로(회귀 0).
             if (_datumOverlayVisible && _resultDatumOverlays != null)
             {
+                bool correctedDatumActive = _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0;
                 foreach (DatumConfig d in _resultDatumOverlays)
                 {
-                    if (d != null)
-                    {
+                    if (d == null) continue;
+                    if (correctedDatumActive)
+                        _displayService.RenderDatumFindResult(ViewerHost.HalconWindow, d);
+                    else
                         _displayService.RenderDatumOverlay(ViewerHost.HalconWindow, d, false, false);
-                    }
                 }
+            }
+
+            //260619 hbk Phase 56 Wave 2 — 보정(회전) 측정 ROI 박스 (표시 전용, green). 측정 overlay 토글 게이트.
+            if (_measurementOverlayVisible && _resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
+            {
+                _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultRoiOverlays, "green", 2);
+            }
+            //260619 hbk Phase 56 Wave 2 — 보정(회전) Datum 검색 ROI (orange, 측정 green 과 구분). datum 토글 게이트.
+            if (_datumOverlayVisible && _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0)
+            {
+                _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultDatumRoiOverlays, "orange", 2);
             }
 
             // FAI CircleDiameter Strip preview — 검사 결과 위에 strip 사각형 preview 를 덧붙임.

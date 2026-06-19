@@ -437,6 +437,89 @@ namespace ReringProject.UI {
             return result;
         }
 
+        //260619 hbk Phase 56 Wave 2 — 결과 화면용 보정(회전) ROI 박스 빌드 (표시 전용).
+        //  측정과 100% 동일: Point ROI center 를 datum CurrentTransform 으로 변환 + rPhi=Atan2(-T[1],T[0])
+        //  → rectangle2 인자 {row,col,phi,L1,L2} (TryFitLine 의 gen_measure_rectangle2 규약 일치 → 회전 방향 일치).
+        //  BuildPointRoiDefinitions 가 새 객체 생성 → 티칭/편집 좌표 불변, 편집 채널(UpdateDisplayState)·핸들러 미접촉.
+        private List<double[]> BuildCorrectedResultRoiOverlays(List<DatumConfig> datums) {
+            var rects = new List<double[]>();
+            if (datums == null || datums.Count == 0) return rects;
+            var xforms = new Dictionary<string, HalconDotNet.HTuple>();
+            foreach (DatumConfig d in datums) {
+                if (d == null || string.IsNullOrEmpty(d.DatumName)) continue;
+                if (d.CurrentTransform != null && d.CurrentTransform.Length >= 5)
+                    xforms[d.DatumName] = d.CurrentTransform;
+            }
+            if (xforms.Count == 0) return rects; // 보정 transform 없음 → 회전 박스 없음
+            var seenFais = new HashSet<FAIConfig>();
+            foreach (var item in dataGrid_faiResults.Items) {
+                var row = item as MeasurementResultRow;
+                if (row == null) continue;
+                FAIConfig fai = null;
+                if (row.SourceMeasurement != null) fai = FindFAIContainingMeasurement(row.SourceMeasurement);
+                if (fai == null && !string.IsNullOrEmpty(row.FAIName)) fai = FindFAIByName(row.FAIName);
+                if (fai == null) continue;
+                if (!seenFais.Add(fai)) continue;
+                foreach (var m in fai.Measurements) {
+                    HalconDotNet.HTuple t;
+                    if (m == null || string.IsNullOrEmpty(m.DatumRef) || !xforms.TryGetValue(m.DatumRef, out t)) continue;
+                    double rPhi = System.Math.Atan2(-t[1].D, t[0].D); // 측정 rectangle2 회전각과 동일 규약 (TryFitLine)
+                    foreach (var roi in BuildPointRoiDefinitions(m, fai.FAIName)) {
+                        double l1 = (roi.Row2 - roi.Row1) / 2.0;
+                        double l2 = (roi.Column2 - roi.Column1) / 2.0;
+                        if (l1 <= 0 || l2 <= 0) continue;
+                        double pcr = (roi.Row1 + roi.Row2) / 2.0;
+                        double pcc = (roi.Column1 + roi.Column2) / 2.0;
+                        HalconDotNet.HTuple tr, tc;
+                        HalconDotNet.HOperatorSet.AffineTransPoint2d(t, pcr, pcc, out tr, out tc);
+                        rects.Add(new double[] { tr.D, tc.D, rPhi, l1, l2 });
+                    }
+                }
+            }
+            return rects;
+        }
+
+        //260619 hbk Phase 56 Wave 2 — 결과 화면용 보정(회전) Datum 검색 ROI 빌드 (표시 전용, orange).
+        //  각 datum 의 검색 ROI(원/수평/수직/Line)를 datum.CurrentTransform(=측정과 동일 alignRigid)으로 변환.
+        //  rect={row,col,phi,L1,L2}, 원={row,col,radius}. RenderDatumOverlay(티칭좌표 렌더)와 분리 → 편집 무접촉.
+        private List<double[]> BuildCorrectedDatumRoiOverlays(List<DatumConfig> datums) {
+            var rects = new List<double[]>();
+            if (datums == null) return rects;
+            foreach (DatumConfig d in datums) {
+                if (d == null) continue;
+                HalconDotNet.HTuple t = d.CurrentTransform;
+                if (t == null || t.Length < 5) continue;
+                double rotAngle = System.Math.Atan2(-t[1].D, t[0].D);
+                var et = d.AlgorithmTypeEnum;
+                if (et == EDatumAlgorithm.TwoLineIntersect) {
+                    AppendDatumRect(rects, t, rotAngle, d.Line1_Row, d.Line1_Col, d.Line1_Phi, d.Line1_Length1, d.Line1_Length2);
+                    AppendDatumRect(rects, t, rotAngle, d.Line2_Row, d.Line2_Col, d.Line2_Phi, d.Line2_Length1, d.Line2_Length2);
+                } else if (et == EDatumAlgorithm.VerticalTwoHorizontal || et == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                    AppendDatumRect(rects, t, rotAngle, d.Vertical_Row, d.Vertical_Col, d.Vertical_Phi, d.Vertical_Length1, d.Vertical_Length2);
+                    AppendDatumRect(rects, t, rotAngle, d.Horizontal_A_Row, d.Horizontal_A_Col, d.Horizontal_A_Phi, d.Horizontal_A_Length1, d.Horizontal_A_Length2);
+                    AppendDatumRect(rects, t, rotAngle, d.Horizontal_B_Row, d.Horizontal_B_Col, d.Horizontal_B_Phi, d.Horizontal_B_Length1, d.Horizontal_B_Length2);
+                } else if (et == EDatumAlgorithm.CircleTwoHorizontal) {
+                    if (d.CircleROI_Radius > 0) {
+                        HalconDotNet.HTuple cr, cc;
+                        HalconDotNet.HOperatorSet.AffineTransPoint2d(t, d.CircleROI_Row, d.CircleROI_Col, out cr, out cc);
+                        rects.Add(new double[] { cr.D, cc.D, d.CircleROI_Radius }); // length 3 = 원
+                    }
+                    AppendDatumRect(rects, t, rotAngle, d.Horizontal_A_Row, d.Horizontal_A_Col, d.Horizontal_A_Phi, d.Horizontal_A_Length1, d.Horizontal_A_Length2);
+                    AppendDatumRect(rects, t, rotAngle, d.Horizontal_B_Row, d.Horizontal_B_Col, d.Horizontal_B_Phi, d.Horizontal_B_Length1, d.Horizontal_B_Length2);
+                }
+            }
+            return rects;
+        }
+
+        // datum 검색 사각 ROI 1개를 transform 변환(center + phi+rotAngle) 후 rects 에 추가 (미티칭 L≤0 skip).
+        private static void AppendDatumRect(List<double[]> rects, HalconDotNet.HTuple t, double rotAngle,
+            double row, double col, double phi, double l1, double l2) {
+            if (l1 <= 0 || l2 <= 0) return;
+            HalconDotNet.HTuple tr, tc;
+            HalconDotNet.HOperatorSet.AffineTransPoint2d(t, row, col, out tr, out tc);
+            rects.Add(new double[] { tr.D, tc.D, phi + rotAngle, l1, l2 });
+        }
+
         /// <summary>
         /// 트리에서 선택된 param 의 ROI Id 를 도출해 halconViewer 에 하이라이트를 적용한다.
         /// param 이 FAIConfig 또는 MeasurementBase 가 아니면 하이라이트를 해제한다.
@@ -1219,6 +1302,7 @@ namespace ReringProject.UI {
         public void ShowResultDatumOverlays(List<DatumConfig> datums) {
             if (datums == null || datums.Count == 0) {
                 halconViewer.ClearResultDatumOverlays();
+                halconViewer.ClearResultRoiOverlays(); //260619 hbk Phase 56 Wave 2 — 보정 ROI 박스도 클리어
                 return;
             }
             foreach (DatumConfig d in datums) {
@@ -1227,6 +1311,7 @@ namespace ReringProject.UI {
                     Logging.PrintLog((int)ELogType.Error, "[VIZ] ResultDatum '" + (d.DatumName ?? "")
                         + "' LastFind=" + d.LastFindSucceeded + " LastTeach=" + d.LastTeachSucceeded
                         + " DetOrigin=(" + d.DetectedOriginRow.ToString("F1") + "," + d.DetectedOriginCol.ToString("F1") + ")"
+                        + " DetCircle=(" + d.DetectedCircleRow.ToString("F1") + "," + d.DetectedCircleCol.ToString("F1") + ")"
                         + " DetAngleDeg=" + (d.DetectedRefAngle * 180.0 / Math.PI).ToString("F2")
                         + " DetAngle2Deg=" + (d.DetectedRefAngle2 * 180.0 / Math.PI).ToString("F2"));
                 //260619 hbk Phase 56 — 검사-시점 정렬(보정) 검출 좌표가 살아있으면(LastFindSucceeded) 재티칭 skip.
@@ -1236,6 +1321,8 @@ namespace ReringProject.UI {
                     TryRestoreDatumGeometry(d); // 휘발 좌표 복원 (렌더는 아래 일괄 호출)
             }
             halconViewer.SetResultDatumOverlays(datums);
+            //260619 hbk Phase 56 Wave 2 — datum CurrentTransform 으로 측정 ROI(green) + Datum 검색 ROI(orange) 회전 표시 (표시 전용 채널).
+            halconViewer.SetResultRoiOverlays(BuildCorrectedResultRoiOverlays(datums), BuildCorrectedDatumRoiOverlays(datums));
         }
 
         private void UpdateDatumRefCoordsLabel(DatumConfig datum) {

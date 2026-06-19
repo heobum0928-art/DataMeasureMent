@@ -556,6 +556,10 @@ namespace ReringProject.Sequence {
             //  패턴 pose 는 부품 회전/이동을 강건히 반영 → 먼 측정점 ROI 정상 위치. datum 검출 origin(DetectedOrigin*)은 거리 기준으로 계속 사용(nominal 보존).
             //  2-패턴 baseline(양 대각 끝 ROI 2개 → 두 점 각도) 정밀화는 후속 phase. 직선 ROI(AlignLineRoi) 각도 경로는 폐기 확정(CO-54-04).
             _datumTransforms[datumKey] = alignRigid; // 측정 ROI 위치 = 패턴 pose (검출-datum 130px 오차 회피)
+            //260619 hbk Phase 56 Wave 2 — 보정 ROI 표시도 측정과 동일 transform(alignRigid) 사용해야 일치.
+            //  line 542 는 검출-datum transform(datumTransform)을 CurrentTransform 에 넣지만, 측정은 alignRigid 사용(먼 ROI 130px 오차 회피).
+            //  CurrentTransform 소비처 = 보정 ROI 표시 전용(MainView)뿐 → alignRigid 로 덮어써 측정과 박스 위치 일치시킴.
+            datum.CurrentTransform = alignRigid;
             datum.LastFindSucceeded = true;
             return true;
         }

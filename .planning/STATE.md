@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 Phase: 54 (datum-align-01-x-y-tilt) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 54
-Last activity: 2026-06-19 -- Phase 55 ALIGN-02 (2-패턴 baseline 각도) Wave 1~3 완료·빌드 PASS, UAT 대기. 단일 패턴 alignRigid(8e0bdee)가 tilt "—"는 해소했으나 먼 측정점 ~400µm 잔차 → 양 대각 패턴 2개 중심 baseline 각으로 정밀화(패턴 자체각 미사용, 폴백=단일). 커밋 bc0de3a(W1+2 데이터+런타임)/c6182bb(W3 티칭UI 패턴1/2). 다음=사용자 UAT(패턴2 티칭→tilt검사, atan2 부호 SIMUL검증)→Wave4 직선ROI제거. 앞서 per-shot CorrectionFactor(d6c95a7) UAT PASS·signed_off. 메모리 project_phase55_progress
+Last activity: 2026-06-19 -- Phase 55 ALIGN-02 (2-패턴 baseline 각도) **Wave 1~4 전부 완료·빌드 PASS** (bc0de3a 데이터+런타임 / c6182bb 티칭UI 패턴1·2 / a534ab2 직선ROI 170줄제거). 단일패턴 400µm 잔차 → 양 대각 패턴2개 중심 baseline 각(패턴 자체각 미사용, 폴백=단일). 사용자 1차 "정상적으로 나온다"(부호 OK) + 측정 기하 부품프레임 확인. 다음=Phase 56 보정 ROI/Datum 시각화(carry-over#2: 측정/Datum ROI 티칭원위치로 그려져 확인난해+Datum 수평/수직선 미표시). 앞서 per-shot CorrectionFactor(d6c95a7) UAT PASS. 메모리 project_phase55_progress
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 

@@ -316,6 +316,11 @@
                         IsChecked="True"
                         Checked="Chk_overlayDatum_Changed" Unchecked="Chk_overlayDatum_Changed"
                         Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
+                    <!--260619 hbk Phase 57 #2 패턴 매칭 ROI 표시/숨김 토글 (기본 ON, chk_overlayDatum 미러)-->
+                    <CheckBox x:Name="chk_overlayPattern" Content="패턴 ROI"
+                        IsChecked="True"
+                        Checked="Chk_overlayPattern_Changed" Unchecked="Chk_overlayPattern_Changed"
+                        Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
                 </StackPanel>
                 <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"

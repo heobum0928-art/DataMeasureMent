@@ -2199,6 +2199,12 @@ namespace ReringProject.UI {
             halconViewer.SetDatumOverlayVisible(chk_overlayDatum.IsChecked == true);
         }
 
+        //260619 hbk Phase 57 #2 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
+        private void Chk_overlayPattern_Changed(object sender, RoutedEventArgs e) {
+            if (halconViewer == null) return;
+            halconViewer.SetPatternRoiOverlayVisible(chk_overlayPattern.IsChecked == true);
+        }
+
         private void CalibrateButton_Click(object sender, RoutedEventArgs e) {
             ExitCanvasMode();
             _canvasMode = ECanvasMode.Calibration;

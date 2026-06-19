@@ -338,6 +338,23 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.DispLine(window, endRow, endCol,
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2));
 
+                //260619 hbk Phase 56 — 검출된 datum 기준선 표시(보정 위치 통과). 수평선=DetectedRefAngle, 수직선=DetectedRefAngle2(설정 시).
+                //  방향규약 = EdgeToLineDistance 측정축과 동일(datum x축 방향벡터 (sinθ,cosθ)) → 측정이 이 선 기준 수직거리 산출함을 시각 확인.
+                HOperatorSet.SetColor(window, "cyan");
+                HOperatorSet.SetLineWidth(window, 1);
+                const double datumLineHalf = 400.0;
+                double hSin = System.Math.Sin(datum.DetectedRefAngle), hCos = System.Math.Cos(datum.DetectedRefAngle);
+                HOperatorSet.DispLine(window,
+                    datum.DetectedOriginRow - datumLineHalf * hSin, datum.DetectedOriginCol - datumLineHalf * hCos,
+                    datum.DetectedOriginRow + datumLineHalf * hSin, datum.DetectedOriginCol + datumLineHalf * hCos);
+                if (datum.DetectedRefAngle2 != 0.0)
+                {
+                    double vSin = System.Math.Sin(datum.DetectedRefAngle2), vCos = System.Math.Cos(datum.DetectedRefAngle2);
+                    HOperatorSet.DispLine(window,
+                        datum.DetectedOriginRow - datumLineHalf * vSin, datum.DetectedOriginCol - datumLineHalf * vCos,
+                        datum.DetectedOriginRow + datumLineHalf * vSin, datum.DetectedOriginCol + datumLineHalf * vCos);
+                }
+
                 // ExpectedAngleDeg 점선 화살표 (AngleTolerance > 0 sentinel 활성 시에만).
                 //  status==None 일 때는 호출 안 함 → 점선 화살표 미표시.
                 if (datum.AngleTolerance > 0.0)

@@ -459,7 +459,7 @@ Plans:
 
 Plans:
 - [x] 57-01-PLAN.md — #6 leveling 완전 제거 (코드+상태+INI, MoveZ→DatumPhase 재배선, off 회귀 0) [Wave 1] ✅ 2026-06-19 (40ffe36, d10c884)
-- [ ] 57-02-PLAN.md — #4 Side DualImage 단일 공유 transform align + #5 lenient 검증 (TryFindLine transform 이식, 게이트 해제) [Wave 2]
+- [x] 57-02-PLAN.md — #4 Side DualImage 단일 공유 transform align + #5 lenient 검증 (TryFindLine transform 이식, 게이트 해제) [Wave 2] ✅ 2026-06-19 (c079b4f, 4eeb71b)
 - [x] 57-03-PLAN.md — #3 datum 시각화 slate blue 통일 (magenta→slate blue recolor, 기준선 유지) [Wave 1] ✅ 2026-06-19 (e4464c3)
 - [x] 57-04-PLAN.md — #1 패턴 ROI 버튼 나란히 배치 + 단일 패턴 경고+override [Wave 1] ✅ 2026-06-19 (a179c22, 25f1b71)
 - [ ] 57-05-PLAN.md — #2 패턴 ROI 표시/숨김 토글 (SetDatumOverlayVisible 미러) [Wave 2]

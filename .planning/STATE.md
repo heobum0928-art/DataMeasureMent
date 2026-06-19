@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 57-04-PLAN.md (패턴 ROI UX #1 버튼 인접 + 단일 패턴 경고+override)
-last_updated: "2026-06-19T08:30:00.000Z"
-last_activity: 2026-06-19 -- Phase 57 Plan 04 (#1 패턴 버튼 인접 + 패턴2 경고+override) 완료
+stopped_at: Completed 57-02-PLAN.md (#4 DualImage 단일 공유 transform align + #5 lenient 검증)
+last_updated: "2026-06-19T17:15:00.000Z"
+last_activity: 2026-06-19 -- Phase 57 Plan 02 (#4 DualImage ALIGN 이식 + #5 lenient) 완료
 progress:
   total_phases: 13
   completed_phases: 11
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 57 (패턴 ROI UX & Datum 정렬 보강) — EXECUTING
-Plan: 57-01 + 57-03 + 57-04 완료 (Wave 1)
+Plan: 57-01 + 57-03 + 57-04 (Wave 1) + 57-02 (Wave 2) 완료. 잔여 = 57-05 (#2 패턴 토글)
 Status: Executing Phase 57
-Last activity: 2026-06-19 -- Phase 57 Plan 04 (#1 패턴1/패턴2 버튼 인접 + 패턴2 미설정 경고+override) 완료
+Last activity: 2026-06-19 -- Phase 57 Plan 02 (#4 DualImage 단일 공유 transform align + #5 lenient) 완료
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -146,6 +146,7 @@ Last activity: 2026-06-19 -- Phase 57 Plan 04 (#1 패턴1/패턴2 버튼 인접 
 | Phase 57-pattern-roi-ux-datum-align-hardening P01 | 10 | 3 tasks | 7 files |
 | Phase 57-pattern-roi-ux-datum-align-hardening P03 | 1 | 2 tasks | 1 files |
 | Phase 57-pattern-roi-ux-datum-align-hardening P04 | 8 | 3 tasks | 2 files |
+| Phase 57-pattern-roi-ux-datum-align-hardening P02 | 15 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -292,6 +293,9 @@ Recent decisions affecting current work:
 - [Phase 52-01]: 신규 INI bool 토글 회귀 0 패턴 — Save ?1:0 / Load .ToBool() 키 미존재 false 폴백. CameraRole 비활성 시퀀스 보존 = PreserveFixtureFromExisting 섹션 통째 복사로 자동(추가 코드 0), 신규레시피 분기만 기본값 명시.
 - [Phase 52-02] 변환경로 1순위 확정: HHomMat2D.HomMat2dRotate + HImage.AffineTransImage 인스턴스 메서드 — msbuild Debug/x64 PASS, fallback 미사용 (변환경로 1개만 잔존). TryGetLevelingAngle = TryFindVerticalTwoHorizontal 수평 피팅 구간만 재사용 (Math.Atan2 각도, IntersectionLl/hom_mat2d/DetectedOrigin 제외). 둘 다 실패/근사0 시 무회전·false 폴백 throw 0.
 - [Phase 52-03] TryComputeLevelingAngle = LevelingComputed 캐시 가드 우선 (시퀀스당 1회, D-03), 기준 미지정/실패 false+0.0 무회전 폴백(lenient)
+- [Phase 57-02]: TryComposeAlign 4-arg → 5-arg(HImage refImageVertical) 위임 오버로드 — 단일이미지 호출처 무변경(회귀 0). ④단계 검출이 DualImage datum + refImageVertical!=null 이면 2-image TryFindDatum, 그 외 1-image. 단일 DatumFindingService 인스턴스에 AlignPreTransform 1회 set → 가로(TryExtractEdgePoints)/세로(TryFindLine) 두 검출 모두 동일 alignRigid 소비 (D-01 단일 공유 transform).
+- [Phase 57-02]: TryFindLine 에 TryExtractEdgePoints 와 동형의 AlignPreTransform 소비 이식 — sanity clamp 직후 roiRow/Col 이동 + alignRot 추출, bbox 를 alignRot 반영 enlarged AABB 로 교체. AppendEdgePointsFromStrip 이미 alignRot optional 인자 보유 → byte-identical 미러, alignRot=0 시 회귀 0.
+- [Phase 57-02]: #5 lenient 는 이미 구현(EStep.DatumPhase 실패 분기 abort 0, 종료 무조건 Step=Grab, Measure 루프 IsDatumFailed → ClearResult+ALIGN_FAIL/DATUM_FAIL+continue). DualImage 분기에 MarkAlignFailed 추가만, 코드 변경 없이 검증 — abort 0 확인.
 - [Phase 52-03] EStep.Level 을 MoveZ-DatumPhase 사이 삽입 — 회전 이미지가 Datum 검출+측정 둘 다 입력. DatumPhase(1-image+DualImage)·Grab 동일 -LevelingAngleRad 동일 회전중심 적용(좌표계 정합), taught ROI 미변환(방식 a), off/미산출 pass-through 회귀 0
 - [Phase 57-01]: leveling 완전 제거 — EStep.Level/LevelingEnabled/TryComputeLevelingAngle/TryGetLevelingAngle(2 오버로드)/IsLevelingReference/INI 키 3곳 전수 제거. MoveZ→DatumPhase 직결. 옛 INI stale 키는 ParamBase.Load 무시(D-14). ALIGN(AlignPreTransform/DualImage) 무손상. 빌드 PASS 신규 warning 0.
 

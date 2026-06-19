@@ -99,6 +99,30 @@ namespace ReringProject.Sequence {
         [Category("Datum|PatternAlign")]
         public double PatternRoi_Length2 { get; set; } = 0.0;
 
+        //260619 hbk Phase 55 ALIGN-02 2-패턴 baseline — 점2 ref pose(위치만 사용, 각도는 두 점 baseline 으로 산출).
+        //  PatternRoi2 미설정(Length=0)이면 단일 패턴 폴백(하위호환, 회귀 0). 매칭 파라미터(Engine/MinScore/AngleExtent/SearchMargin)는 점1 공유.
+        [Category("Datum|PatternAlign")]
+        public double RefMatch2Row { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double RefMatch2Col { get; set; } = 0.0;
+        //260619 hbk Phase 55 ALIGN-02 패턴2 템플릿 ROI (점2). 양 대각 끝(점1 대비 멀리) 권장 — baseline 길수록 각도 정밀.
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi2_Row { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi2_Col { get; set; } = 0.0;
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public double PatternRoi2_Phi { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi2_PhiDeg
+        {
+            get { return PatternRoi2_Phi * 180.0 / System.Math.PI; }
+            set { PatternRoi2_Phi = value * System.Math.PI / 180.0; }
+        }
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi2_Length1 { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
+        public double PatternRoi2_Length2 { get; set; } = 0.0;
+
         //260618 hbk Phase 54 ALIGN-01 tilt 직선추출 ROI (사용자 설계) — 패턴 x,y 와 별개로 회전각 θ 산출용 전용 라인 ROI.
         //  티칭 이미지에서 측정한 각도를 AlignLineRefAngleDeg 로 저장(가로≈0/세로≈90, 정확히 아님 = Ref). 런타임 측정각 − Ref = tilt θ.
         //  직선 추출은 기존 measure_pos 알고리즘(TryExtractEdgePoints + fit_line) 재사용.

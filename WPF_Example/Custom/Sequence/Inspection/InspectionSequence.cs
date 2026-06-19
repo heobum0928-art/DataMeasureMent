@@ -420,6 +420,30 @@ namespace ReringProject.Sequence {
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
+        //260619 hbk Phase 55 ALIGN-02 패턴2 모델 경로 — ResolveDatumModelPath 미러, propertyName 에 "_2" 접미사 → 별도 .shm.
+        //  (working ResolveDatumModelPath 무변경: 경로불일치=ALIGN_FAIL 위험이라 리팩토링보다 복제 선택, 안전 우선.)
+        public static string ResolveDatumModelPath2(DatumConfig datum)
+        {
+            if (datum == null) return null;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+            if (recipeName == null) recipeName = "";
+            string seqName = "TOP";
+            var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+            if (shots != null && shots.Count > 0)
+            {
+                ShotConfig matched = null;
+                if (!string.IsNullOrEmpty(datum.SourceShotName))
+                {
+                    foreach (var s in shots) { if (s != null && s.ShotName == datum.SourceShotName) { matched = s; break; } }
+                }
+                if (matched == null) matched = shots[0];
+                if (matched != null && !string.IsNullOrEmpty(matched.OwnerSequenceName)) seqName = matched.OwnerSequenceName;
+            }
+            string actName = "Datum";
+            string propertyName = (datum.DatumName ?? "") + "_2";
+            return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
+        }
+
         //260618 hbk Phase 54 ALIGN-01 패턴매칭 보정 합성 (D-02 ①②③④).
         //  refImage = 보정 전 원본 grab 이미지(D-05). modelPath = 호출부가 ResolveDatumModelPath 로 산출 전달.
         //  ① 원본 매칭 → curRow,curCol  ② (curRow-RefMatchRow,curCol-RefMatchCol) 이동 line-fit θ  ③ rigid  ④ _datumTransforms 합성.
@@ -460,6 +484,34 @@ namespace ReringProject.Sequence {
                 + " patAngDeg=" + curAngleDeg.ToString("F3") + " refPatAngDeg=" + datum.RefMatchAngleDeg.ToString("F3")
                 + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=pattern"
                 + " score=" + curScore.ToString("F3") + " angleExtentDeg=" + datum.PatternAngleExtentDeg.ToString("F1"));
+            // ②-2 Phase 55 ALIGN-02 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
+            //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
+            //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
+            if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0)
+            {
+                string modelPath2 = ResolveDatumModelPath2(datum);
+                double cur2Row, cur2Col, cur2AngleDeg, cur2Score; string err2;
+                if (svc.TryFindPose(refImage, datum.PatternEngine, modelPath2,
+                        datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
+                        datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
+                        out cur2Row, out cur2Col, out cur2AngleDeg, out cur2Score, out err2))
+                {
+                    double refBaseline = System.Math.Atan2(-(datum.RefMatch2Row - datum.RefMatchRow), datum.RefMatch2Col - datum.RefMatchCol);
+                    double curBaseline = System.Math.Atan2(-(cur2Row - curRow), cur2Col - curCol);
+                    thetaRad = curBaseline - refBaseline;
+                    Logging.PrintLog((int)ELogType.Trace, "[ALIGN2] " + (datum.DatumName ?? "")
+                        + " p2cur=(" + cur2Row.ToString("F1") + "," + cur2Col.ToString("F1") + ")"
+                        + " refBaseDeg=" + (refBaseline * 180.0 / System.Math.PI).ToString("F3")
+                        + " curBaseDeg=" + (curBaseline * 180.0 / System.Math.PI).ToString("F3")
+                        + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3")
+                        + " score2=" + cur2Score.ToString("F3") + " (baseline θ)");
+                }
+                else
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN2] " + (datum.DatumName ?? "")
+                        + " 패턴2 매칭 실패 → 단일 패턴 θ 폴백: " + (err2 ?? ""));
+                }
+            }
             // ③ transform 산출 (사용자 레시피): identity → rotate(θ, RefMatch 중심) → translate(dRow,dCol).
             //  회전 중심은 무관(rotate 후 translate 로 x,y 보정) — RefMatch 위치 사용. θ 부호 = 측정−Ref.
             HTuple alignRigid;

@@ -301,7 +301,9 @@ namespace ReringProject.Halcon.Display
         public void RenderDatumFindResult(HWindow window, DatumConfig datum)
         {
             if (window == null || datum == null) return;
-            if (!datum.LastFindSucceeded) return; // find 성공 분기에서만 렌더
+            //260619 hbk Phase 56 — LastFindSucceeded OR 유효 DetectedOrigin 이면 렌더. 결과화면 datum 은 검사시 검출좌표는 유효한데
+            //  LastFind 플래그가 false 인 경우 있음(복원/재티칭 경로 게이트) → 좌표 유효성으로 게이트 완화. (0,0)=휘발/미검출만 skip.
+            if (!datum.LastFindSucceeded && datum.DetectedOriginRow == 0.0 && datum.DetectedOriginCol == 0.0) return;
             try
             {
                 // 검출 origin 십자. RenderDatumOverlay 의 RefOrigin 십자(고정 15~20px)와 동일 방식.

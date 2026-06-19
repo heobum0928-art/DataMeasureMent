@@ -750,63 +750,7 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        //260618 hbk Phase 54 ALIGN-01 tilt 직선추출 (사용자 설계) — 전용 AlignLineRoi 1개에서 직선 추출 후 절대 각도(rad) 반환.
-        //  measure_pos 재사용 (TryExtractEdgePoints + fit_line_contour_xld). 티칭/런타임 동일 호출 → Ref/측정 규약 일관.
-        //  dRow,dCol = 패턴 매칭 변위(curRow-RefMatchRow, curCol-RefMatchCol). 티칭 시엔 0,0.
-        public bool TryGetAlignLineAngle(HImage image, DatumConfig config, double dRow, double dCol, out double angleRad, out string error)
-        {
-            angleRad = 0.0;
-            error = null;
-            HObject contour = null;
-            try
-            {
-                if (config.AlignLineRoi_Length1 <= 0.0 || config.AlignLineRoi_Length2 <= 0.0)
-                {
-                    error = "AlignLineRoi 미설정 (Length=0)";
-                    return false;
-                }
-                HTuple imageWidth, imageHeight;
-                image.GetImageSize(out imageWidth, out imageHeight);
-
-                HTuple rowEdge, colEdge;
-                string edgeErr;
-                if (!TryExtractEdgePoints(
-                        image, imageWidth, imageHeight,
-                        config.AlignLineRoi_Row + dRow, config.AlignLineRoi_Col + dCol, config.AlignLineRoi_Phi,
-                        config.AlignLineRoi_Length1, config.AlignLineRoi_Length2,
-                        config.AlignLineRoi_Sigma, config.AlignLineRoi_EdgeThreshold, config.AlignLineRoi_EdgePolarity,
-                        config.AlignLineRoi_EdgeDirection, config.AlignLineRoi_EdgeSelection,
-                        config.AlignLineRoi_EdgeSampleCount, config.AlignLineRoi_EdgeTrimCount,
-                        out rowEdge, out colEdge, out edgeErr,
-                        "AlignLineRoi"))
-                {
-                    error = "AlignLineRoi: " + edgeErr;
-                    return false;
-                }
-                if (rowEdge.TupleLength() < 2)
-                {
-                    error = "AlignLineRoi: insufficient edges (" + rowEdge.TupleLength() + ")";
-                    return false;
-                }
-                HOperatorSet.GenContourPolygonXld(out contour, rowEdge, colEdge);
-                HTuple hrB, hcB, hrE, hcE, nr, nc, df;
-                HOperatorSet.FitLineContourXld(
-                    contour, "tukey", -1, 0, 5, 2,
-                    out hrB, out hcB, out hrE, out hcE, out nr, out nc, out df);
-                angleRad = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-                angleRad = 0.0;
-                return false;
-            }
-            finally
-            {
-                if (contour != null) { try { contour.Dispose(); } catch { } }
-            }
-        }
+        //260619 hbk Phase 55 ALIGN-02: TryGetAlignLineAngle 제거 — 직선 ROI 각도 경로 폐기(2-패턴 baseline 각도로 대체).
 
         // VerticalTwoHorizontalDualImage Find 분기.
         //  본문 = TryFindVerticalTwoHorizontal 복제 + ROI 별 이미지 입력 분기 (Vertical=imageVertical, Horizontal A/B=imageHorizontal).

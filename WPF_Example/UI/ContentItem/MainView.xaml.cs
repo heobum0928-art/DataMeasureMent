@@ -37,7 +37,7 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2, AlignLineRoi } //260618 hbk Phase 54 ALIGN-01 / 260619 PatternRoi2 (Phase 55 ALIGN-02)
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2 } //260618 hbk Phase 54 ALIGN-01 / 260619 Phase 55 ALIGN-02 (PatternRoi2, AlignLineRoi 제거)
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private MeasurementBase _editingCircleMeasurement;
@@ -1649,8 +1649,6 @@ namespace ReringProject.UI {
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRectCompleted;
             //260619 hbk Phase 55 ALIGN-02 패턴 2 핸들러 unsubscribe
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRect2Completed;
-            // 직선(tilt) ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
-            halconViewer.RectDrawingCompleted   -= HalconViewer_AlignLineRectCompleted;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
@@ -2678,70 +2676,7 @@ namespace ReringProject.UI {
             _editingDatum = null;
         }
 
-        //260618 hbk Phase 54 ALIGN-01 tilt 직선 ROI 전용 그리기 모드 진입 (사용자 설계) — DrawPatternRoiButton_Click 미러
-        private void DrawAlignLineRoiButton_Click(object sender, RoutedEventArgs e) {
-            DatumConfig datum;
-            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
-            else                                                               datum = null;
-            if (datum == null) {
-                CustomMessageBox.Show("직선 ROI 그리기", "Datum 노드를 먼저 선택하세요.");
-                return;
-            }
-            ExitCanvasMode();
-            _editingDatum = datum;
-            _canvasMode = ECanvasMode.AlignLineRoi;
-            label_drawHint.Content = "직선 ROI: 회전 기준이 될 직선 위에 드래그하세요 (가로 직선=가로로 길게, 세로 직선=세로로 길게)";
-            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
-            label_drawHint.Visibility = Visibility.Visible;
-            halconViewer.RectDrawingCompleted += HalconViewer_AlignLineRectCompleted;
-            halconViewer.StartRectangleDrawing();
-        }
-
-        //260618 hbk Phase 54 ALIGN-01 직선 ROI write-back (사용자 설계) — HalconViewer_PatternRectCompleted 미러
-        private void HalconViewer_AlignLineRectCompleted(object sender, EventArgs e) {
-            halconViewer.RectDrawingCompleted -= HalconViewer_AlignLineRectCompleted;
-            var roi = halconViewer.CommitActiveRectangle();
-            if (roi == null || _editingDatum == null) { ExitCanvasMode(); return; }
-
-            double centerRow = (roi.Row1 + roi.Row2) / 2.0;
-            double centerCol = (roi.Column1 + roi.Column2) / 2.0;
-            double halfH     = (roi.Row2 - roi.Row1) / 2.0;
-            double halfW     = (roi.Column2 - roi.Column1) / 2.0;
-
-            _editingDatum.AlignLineRoi_Row     = centerRow;
-            _editingDatum.AlignLineRoi_Col     = centerCol;
-            _editingDatum.AlignLineRoi_Phi     = 0.0;
-            _editingDatum.AlignLineRoi_Length1 = halfW; // X축 절반
-            _editingDatum.AlignLineRoi_Length2 = halfH; // Y축 절반
-
-            //260618 hbk Phase 54 ALIGN-01 기준각 즉시 캡쳐 (CO-54-04) — 그리는 순간 현재(티칭) 이미지에서 직선 각도 측정.
-            //  [패턴 모델 생성] 재클릭 의존 제거. 런타임 θ = 측정각 − 이 기준각.
-            string alignHint;
-            _editingDatum.EnsurePerRoiDefaults();
-            HImage curImg = halconViewer.CurrentImage;
-            if (curImg != null) {
-                var dfsRef = new ReringProject.Halcon.Algorithms.DatumFindingService();
-                double refRad;
-                string refErr;
-                if (dfsRef.TryGetAlignLineAngle(curImg, _editingDatum, 0.0, 0.0, out refRad, out refErr)) {
-                    _editingDatum.AlignLineRefAngleDeg = refRad * 180.0 / Math.PI;
-                    alignHint = "직선 ROI 저장 + 기준각 " + _editingDatum.AlignLineRefAngleDeg.ToString("F3") + "° 기록 완료 — Recipe Save 권장";
-                } else {
-                    alignHint = "[경고] 직선 ROI 저장됨, 기준각 측정 실패(에지 못잡음 — polarity/threshold 확인): " + (refErr ?? "");
-                }
-            } else {
-                alignHint = "직선 ROI 저장됨 — 이미지 없음. Grab/Load 후 다시 그려야 기준각 기록됨";
-            }
-
-            try { _editingDatum.RaisePropertyChanged(string.Empty); } catch { }
-            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-
-            label_drawHint.Content = alignHint;
-            label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
-            label_drawHint.Visibility = Visibility.Visible;
-            _canvasMode = ECanvasMode.None;
-            _editingDatum = null;
-        }
+        //260619 hbk Phase 55 ALIGN-02: 직선 ROI 그리기/write-back 핸들러(DrawAlignLineRoiButton_Click + HalconViewer_AlignLineRectCompleted) 제거 — [패턴 2] 버튼으로 대체.
 
         //260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09) — InvokeTryTeachDatum 패턴 미러
         private void CreatePatternModelButton_Click(object sender, RoutedEventArgs e) {

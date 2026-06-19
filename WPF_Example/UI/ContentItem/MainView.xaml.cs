@@ -2798,6 +2798,19 @@ namespace ReringProject.UI {
                 return;
             }
 
+            //260619 hbk Phase 57 #1 패턴2 미설정 경고+override (D-06 — 하드 블록 아님, 회전 정밀도 안전장치).
+            //  단일 패턴 폴백 경로(TryComposeAlign InspectionSequence.cs:490-514) 는 그대로 — 패턴2 없으면 단일 패턴 θ 사용 (D-08).
+            if (datum.PatternRoi2_Length1 <= 0.0 || datum.PatternRoi2_Length2 <= 0.0) {
+                MessageBoxResult confirm = CustomMessageBox.ShowConfirmation(
+                    "패턴 2 미설정",
+                    "패턴 2 를 그리지 않았습니다. 단일 패턴은 회전(tilt) 보정 정밀도가 낮습니다.\n\n그래도 단일 패턴으로 모델을 생성하시겠습니까?\n([취소] 후 [패턴 2] 버튼으로 반대 대각 끝에 패턴을 추가 권장)",
+                    MessageBoxButton.OKCancel);
+                if (confirm != MessageBoxResult.OK) {
+                    return; //260619 hbk Phase 57 #1 사용자가 취소 → 모델 생성 중단 (하드 블록 아님 — 단순 중단)
+                }
+                //260619 hbk Phase 57 #1 OK → 단일 패턴으로 진행 (override)
+            }
+
             // 54-04 런타임 load 와 동일 키 (D-07) — 직접 경로 도출 금지, 헬퍼만 사용
             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
             if (string.IsNullOrEmpty(modelPath)) {

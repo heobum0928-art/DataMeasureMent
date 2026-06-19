@@ -499,7 +499,11 @@ namespace ReringProject.Sequence {
                 + " datumDetectRotDeg=" + datumDetectRotDeg.ToString("F3")
                 + " vs patternThetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3")
                 + " (strip θ-rot applied)");
-            _datumTransforms[datumKey] = datumTransform; // 측정은 진짜 datum 검출 transform 사용 (nominal 불변)
+            //260619 hbk Phase 54 ALIGN-01 — 측정 transform 을 검출-datum 대신 패턴 pose(alignRigid)로 전환(단일 패턴 검증 단계).
+            //  검출-datum transform 은 tilt 서 패턴(정답) 대비 ~130px 어긋남(먼 측정 ROI lever-arm) → EDGE_FAIL "—"(quick 260618-o2m [ALIGN-CHK] 확인).
+            //  패턴 pose 는 부품 회전/이동을 강건히 반영 → 먼 측정점 ROI 정상 위치. datum 검출 origin(DetectedOrigin*)은 거리 기준으로 계속 사용(nominal 보존).
+            //  2-패턴 baseline(양 대각 끝 ROI 2개 → 두 점 각도) 정밀화는 후속 phase. 직선 ROI(AlignLineRoi) 각도 경로는 폐기 확정(CO-54-04).
+            _datumTransforms[datumKey] = alignRigid; // 측정 ROI 위치 = 패턴 pose (검출-datum 130px 오차 회피)
             datum.LastFindSucceeded = true;
             return true;
         }

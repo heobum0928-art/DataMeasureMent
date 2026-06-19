@@ -343,9 +343,10 @@ namespace ReringProject.Halcon.Display
                 //260619 hbk Phase 56 — 검출된 datum 기준선 표시(보정 위치 통과). 수평선=DetectedRefAngle, 수직선=DetectedRefAngle2(설정 시).
                 //  방향규약 = EdgeToLineDistance 측정축과 동일(datum x축 방향벡터 (sinθ,cosθ)) → 측정이 이 선 기준 수직거리 산출함을 시각 확인.
                 //260619 hbk Phase 56 — datum 기준선은 magenta 굵게: 측정 ROI(cyan/라임)와 명확히 구분(SetColor 유효명).
+                //  길이 = 이미지 전체 걸치게(±7000px). 400px 는 14208px 이미지서 화면상 ~26px 라 안 보였음. DispLine 은 창 밖 자동 클립.
                 HOperatorSet.SetColor(window, "magenta");
-                HOperatorSet.SetLineWidth(window, 2);
-                const double datumLineHalf = 400.0;
+                HOperatorSet.SetLineWidth(window, 3);
+                const double datumLineHalf = 7000.0;
                 double hSin = System.Math.Sin(datum.DetectedRefAngle), hCos = System.Math.Cos(datum.DetectedRefAngle);
                 HOperatorSet.DispLine(window,
                     datum.DetectedOriginRow - datumLineHalf * hSin, datum.DetectedOriginCol - datumLineHalf * hCos,

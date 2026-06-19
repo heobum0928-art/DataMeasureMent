@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Phase 54 context gathered
-last_updated: "2026-06-18T02:10:11.712Z"
-last_activity: 2026-06-18 -- Phase 54 execution started
+stopped_at: Phase 57 context gathered
+last_updated: "2026-06-19T07:15:35.411Z"
+last_activity: "2026-06-19 -- Phase 55 ALIGN-02 (2-패턴 baseline 각도) **Wave 1~4 전부 완료·빌드 PASS** (bc0de3a 데이터+런타임 / c6182bb 티칭UI 패턴1·2 / a534ab2 직선ROI 170줄제거). 단일패턴 400µm 잔차 → 양 대각 패턴2개 중심 baseline 각(패턴 자체각 미사용, 폴백=단일). 사용자 1차 "정상적으로 나온다"(부호 OK) + 측정 기하 부품프레임 확인. 다음=Phase 56 보정 ROI/Datum 시각화(carry-over#2: 측정/Datum ROI 티칭원위치로 그려져 확인난해+Datum 수평/수직선 미표시). 앞서 per-shot CorrectionFactor(d6c95a7) UAT PASS. 메모리 project_phase55_progress"
 progress:
   total_phases: 13
   completed_phases: 11
@@ -413,7 +413,7 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 54 context gathered
+Stopped at: Phase 57 context gathered
 Resume file: --resume-file
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

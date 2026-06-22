@@ -488,7 +488,14 @@ Wave 2 (병렬): 57-02 (deps 57-01), 57-05 (deps 57-03/57-04)
   - Datum/Measurement/Shot/FAI 어느 노드를 선택해도 패턴 ROI 표시 토글이 일관되게 동작
   - 비-Datum 노드 선택 시 패턴 ROI 버튼 비활성화, 부주의 클릭 시 알림 메시지박스 표시
 
-- [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — NOT PLANNED
+**Plans:** 3 plans (2 waves)
+
+Plans:
+- [ ] 57.1-01-PLAN.md — D-03/D-01: 패턴 ROI(cyan) 시각화 렌더 안정화 (Datum 노드 선택 시 _resultDatumOverlays 채움)
+- [ ] 57.1-02-PLAN.md — D-02: 회전각 확증 Trace 로그 + length 장축 매핑 주석 (측정값 무변경, swap 금지)
+- [ ] 57.1-03-PLAN.md — D-04: 패턴 버튼 비-Datum 비활성화 확증 + 클릭 가드 메시지 통일
+
+- [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — PLANNED
 
 ---
 

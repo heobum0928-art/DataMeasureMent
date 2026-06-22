@@ -502,7 +502,9 @@ Plans:
 - [x] 57.1-09-PLAN.md — 에지 trim 정렬+% 절사를 VisionAlgorithmService.SortAndTrimPercent 공유 헬퍼로 단일소스화 (Datum 검출 + 전 측정 trim 통일) ✅ 2026-06-22 (f14c8b9)
 - [x] 57.1-10-PLAN.md — EdgeTrimCount UI 를 %(비율) 표시로 통일 (측정 13 + Datum 6 trim 필드에 [DisplayName("...Edge Trim (%)")] 추가, INI 키 보존) ✅ 2026-06-22 (a1a167d)
 
-- [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — PLANNED
+- [x] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — SIGNED_OFF 2026-06-22 (11 plans, UAT 9/9 PASS)
+  - 04 Test Find 보정연결(Top/Bottom/Side) · 05 패턴 그리기버튼 OK/Cancel 확인창 · 06 Test Find 보정 ROI 박스 이동표시 · 07 측정 ROI 90° View수정(length1=hwidth=Column)+패턴 ROI 위치보정 · 08 TryFitLine trim 정렬+%절사 · 09 trim 통일(Datum 검출+전 측정, 공유 SortAndTrimPercent) · 10 UI [DisplayName] "Edge Trim (%)"(측정13+Datum6, INI 호환) · 11 재티칭 RefMatch 동기화(Teach=Find)
+  - 핵심: HALCON gen_rectangle2 Length1=hwidth(Column)/Length2=hheight(Row) · EdgeTrimCount 의미 개수→%(양끝각) · 측정은 SmallestRectangle2 사용→90°는 View만
 
 ---
 

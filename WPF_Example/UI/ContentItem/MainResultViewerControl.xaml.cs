@@ -849,10 +849,34 @@ namespace ReringProject.UI
                 foreach (DatumConfig d in _resultDatumOverlays)
                 {
                     if (d == null) continue;
+                    //260622 hbk Phase 57.1 #1 패턴 ROI 위치 보정 표시 — CurrentTransform 유효 시 center 변환 + phi 회전 가산
+                    //  (datum 검색 ROI/측정 ROI 와 동일 규약: AffineTransPoint2d + Atan2(-t[1],t[0])). 무효 시 공칭 폴백(회귀 0).
+                    //  length 는 이미 disp 규약(Length1=halfW 열)이라 변환 불필요(center+phi 만 보정).
+                    HTuple pt = d.CurrentTransform;
+                    bool patAlign = (pt != null && pt.Length >= 5);
+                    double patRot = patAlign ? Math.Atan2(-pt[1].D, pt[0].D) : 0.0;
                     if (d.PatternRoi_Length1 > 0.0 && d.PatternRoi_Length2 > 0.0)
-                        patternRects.Add(new double[] { d.PatternRoi_Row, d.PatternRoi_Col, d.PatternRoi_Phi, d.PatternRoi_Length1, d.PatternRoi_Length2 });
+                    {
+                        double pr = d.PatternRoi_Row, pc = d.PatternRoi_Col;
+                        if (patAlign)
+                        {
+                            HTuple tr, tc;
+                            HOperatorSet.AffineTransPoint2d(pt, pr, pc, out tr, out tc);
+                            pr = tr.D; pc = tc.D;
+                        }
+                        patternRects.Add(new double[] { pr, pc, d.PatternRoi_Phi + patRot, d.PatternRoi_Length1, d.PatternRoi_Length2 });
+                    }
                     if (d.PatternRoi2_Length1 > 0.0 && d.PatternRoi2_Length2 > 0.0)
-                        patternRects.Add(new double[] { d.PatternRoi2_Row, d.PatternRoi2_Col, d.PatternRoi2_Phi, d.PatternRoi2_Length1, d.PatternRoi2_Length2 });
+                    {
+                        double pr2 = d.PatternRoi2_Row, pc2 = d.PatternRoi2_Col;
+                        if (patAlign)
+                        {
+                            HTuple tr2, tc2;
+                            HOperatorSet.AffineTransPoint2d(pt, pr2, pc2, out tr2, out tc2);
+                            pr2 = tr2.D; pc2 = tc2.D;
+                        }
+                        patternRects.Add(new double[] { pr2, pc2, d.PatternRoi2_Phi + patRot, d.PatternRoi2_Length1, d.PatternRoi2_Length2 });
+                    }
                 }
                 if (patternRects.Count > 0)
                     _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, patternRects, "cyan", 2);

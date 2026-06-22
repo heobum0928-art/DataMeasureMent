@@ -317,8 +317,25 @@ Plans:
 
 ### 우선순위 5 — POC 시연 이후 (제어팀 동기화 필요)
 
-- [ ] **Phase 48: 제어 프로토콜 v2.7 — TEST z_index + RESULT 직렬화** (PROTO-01, PROTO-02)
-  - Success: `$TEST:site,null,z_index@` 파싱 / `$RESULT:site;P|F|B;count;id=val=OK,...@` 직렬화·역직렬화 / 회귀 0
+### Phase 48: 제어 프로토콜 (디팜스테크 v1.0) — TEST z_index + 자재번호 + RESULT P/F/B + Site 재정합 (PROTO-01, PROTO-02 + 신규 자재번호)
+
+**Goal:** 디팜스테크 인터페이스 TCP/IP 프로토콜 v1.0(엑셀 규격) 커맨드 계층을 구현한다. `$TEST:site,…,z_index@`(자재 IndexNumber 필드 포함, **유연 파서**)를 파싱하고 `$RESULT:site;P|F|B;count;id=val=OK,…@`를 직렬화하며, 2-PC 구조에 맞춰 Site 번호 체계를 재정합한다(PC1: Site1=TOP/Site2=BOTTOM, PC2: Site1=SIDE_1/Site2=SIDE_2). 자재번호는 결과 저장(Export/파일명)까지 전파한다. 포맷 향후 변경에 견디도록 파서를 구조화한다.
+**Requirements**: PROTO-01, PROTO-02 (+ 신규: 자재 IndexNumber)
+**Depends on:** Phase 39 (검사 워크플로우 E2E, signed_off)
+**Canonical spec:** `.planning/refs/Vision-Protocol-v1.0.md` (사용자 제공 엑셀 v1.0, 2026-06-22)
+**Background:** 기존 'v2.7' placeholder → 사용자 제공 엑셀 v1.0 이 구체 규격. 정책상 "POC 이후"였으나 사용자 결정으로 지금 착수(2026-06-22). 사용자 4 신규 요구 중 #2(자재번호)=본 phase 핵심, #1(조명 멀티샷 z_index↔Shot)=일부. #3-2(교차-Z 측정)·#4(분단위 저장)는 Phase 49/50/신규로 분배.
+**Scope:**
+  - **TEST 유연 파싱**: site / (예약·자재번호) / z_index. 매직 인덱스 의존 탈피 → 이름기반·가변길이·누락 시 기본값(자재번호 미수신 −1/0) 폴백. 향후 필드 추가/순서 변경 시 파서 한 곳만 수정.
+  - **자재 IndexNumber 전파**: TestPacket → SequenceContext/ActionContext → CycleResultDto → Export(xlsx 열)/CaptureImageSaveService(파일명). "자재 몇번"이 데이터 저장에 기록.
+  - **RESULT P/F/B 직렬화**: `$RESULT:site;P|F|B;count;id=val=OK|NG,…@` (헤더; 항목, 항목내부=). B=보류, Datum 샷 빈 응답 `;B;0;`.
+  - **Site 재정합(2-PC)**: 현행 ResourceMap(Site1=Top/2=Side/3=Bottom) → 엑셀 2-PC 체계. Port 7701, `@` 종료, UTF-8.
+  - **z_index ↔ Shot 매핑**: Index Table(Index→Light Type+Z+FAI 그룹) 기반. 0=Datum 샷.
+**Success Criteria (UAT):**
+  - `$TEST:site,…,z_index@`(자재번호 포함) 유연 파싱 — 필드 누락/추가에도 폴백 동작
+  - 자재 IndexNumber 가 결과 저장(파일명/xlsx)에 기록됨
+  - `$RESULT` P/F/B 직렬화가 엑셀 예시와 byte 일치 (케이스 1~3)
+  - Site 번호 2-PC 체계로 매핑 (TOP/BOTTOM/SIDE_1/SIDE_2)
+  - 기존 v2.6 경로 회귀 0 (또는 마이그레이션 가드)
 - [ ] **Phase 49: 제어 프로토콜 v2.7 — 3-state 엔진 + Datum 빈 응답 + CycleState** (PROTO-03, PROTO-04, PROTO-05)
   - Success: P/F/B 종합 판정 / Datum 샷(z_index=0) 빈 응답 / Datum 실패 즉시 F / CycleState·ECycleResult enum + 자동 리셋
 - [ ] **Phase 50: 제어 프로토콜 v2.7 — 통신 회귀 시험** (PROTO-06)

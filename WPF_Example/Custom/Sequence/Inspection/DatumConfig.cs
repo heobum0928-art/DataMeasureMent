@@ -234,6 +234,8 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Line1_EdgeDirectionList))]
         public string Line1_EdgeDirection   { get; set; } = "";
         public int    Line1_EdgeSampleCount { get; set; } = 0;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int    Line1_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line1_EdgePolarityList))]
         public string Line1_EdgePolarity    { get; set; } = "";
@@ -270,6 +272,8 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Vertical_EdgeDirectionList))]
         public string Vertical_EdgeDirection   { get; set; } = "";
         public int    Vertical_EdgeSampleCount { get; set; } = 0;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int    Vertical_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Vertical_EdgePolarityList))]
         public string Vertical_EdgePolarity    { get; set; } = "";
@@ -308,6 +312,8 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Line2_EdgeDirectionList))]
         public string Line2_EdgeDirection   { get; set; } = "";
         public int    Line2_EdgeSampleCount { get; set; } = 0;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int    Line2_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line2_EdgePolarityList))]
         public string Line2_EdgePolarity    { get; set; } = "";
@@ -352,6 +358,8 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
         public string Circle_EdgeDirection   { get; set; } = "";
         public int    Circle_EdgeSampleCount { get; set; } = 0;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int    Circle_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Circle_EdgePolarityList))]
         public string Circle_EdgePolarity    { get; set; } = "";
@@ -397,6 +405,8 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeDirectionList))]
         public string Horizontal_A_EdgeDirection   { get; set; } = "";
         public int    Horizontal_A_EdgeSampleCount { get; set; } = 0;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int    Horizontal_A_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_A_EdgePolarityList))]
         public string Horizontal_A_EdgePolarity    { get; set; } = "";
@@ -435,6 +445,8 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeDirectionList))]
         public string Horizontal_B_EdgeDirection   { get; set; } = "";
         public int    Horizontal_B_EdgeSampleCount { get; set; } = 0;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int    Horizontal_B_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_B_EdgePolarityList))]
         public string Horizontal_B_EdgePolarity    { get; set; } = "";

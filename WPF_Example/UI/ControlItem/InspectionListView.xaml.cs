@@ -585,6 +585,7 @@ namespace ReringProject.UI {
                 mParentWindow.mainView.btn_circleRoi.IsEnabled = false;
                 mParentWindow.mainView.btn_teachDatum.IsEnabled = false;
                 //260618 hbk Phase 54 ALIGN-01 패턴 ROI/모델 생성 버튼 초기화 비활성
+                //260622 hbk Phase 57.1 D-04(a): 패턴 3버튼 진입 시 무조건 비활성화 → Datum 분기에서만 재활성. 비-Datum 노드 = 비활성 유지.
                 mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = false;
                 mParentWindow.mainView.btn_createPatternModel.IsEnabled = false;
                 mParentWindow.mainView.btn_drawPatternRoi2.IsEnabled = false;

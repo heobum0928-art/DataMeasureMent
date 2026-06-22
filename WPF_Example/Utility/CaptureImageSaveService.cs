@@ -183,6 +183,33 @@ namespace ReringProject.Utility {
             return name + "_" + time + ".jpg";
         }
 
+        // 260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명 오버로드.
+        //  nIndexNumber >= 0 이면 _M{번호} 를 FAI 뒤(seg 앞)에 삽입, -1 이면 생략.
+        //  결과: prefix_seq_fai[_M{자재번호}][_seg][_judge]_time.jpg
+        //  자재번호는 int(Plan 01 에서 비정수→-1 정규화) → traversal 문자 불가 (T-48-10 mitigate).
+        //  기존 6-인자 BuildFileName 보존 (다른 호출부 호환, 회귀 0).
+        private const int FILENAME_NO_MATERIAL = -1; //260622 hbk Phase 48 PROTO-01: 자재번호 미수신 sentinel (-1). 매직넘버 금지(D-00).
+        public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts, int nIndexNumber) {
+            string seq   = SanitizeFilePart(sequence, "SEQ");
+            string fai   = SanitizeFilePart(faiName, "FAI");
+            string seg   = SanitizeFilePart(measurePointSegment, "");
+            string judge = SanitizeFilePart(judgement, "");
+            string time  = ts.ToString("HHmmssfff");
+
+            string szMat = "";
+            bool bHasMaterial = nIndexNumber > FILENAME_NO_MATERIAL;
+            if (bHasMaterial)
+            {
+                szMat = nIndexNumber.ToString();
+            }
+
+            string name = prefix + "_" + seq + "_" + fai;
+            if (!string.IsNullOrEmpty(szMat))  { name += "_M" + szMat; }
+            if (!string.IsNullOrEmpty(seg))    { name += "_" + seg; }
+            if (!string.IsNullOrEmpty(judge))  { name += "_" + judge; }
+            return name + "_" + time + ".jpg";
+        }
+
         // 저장 디렉토리 계산 단일 소스. SaveRequest 와 write-back 경로가 반드시 일치하도록 공유.
         /// <summary>
         /// 캡쳐 PNG 저장 디렉토리. ResultSavePath\Image\{yyMMdd}\{HHmm}\{original|capture}.

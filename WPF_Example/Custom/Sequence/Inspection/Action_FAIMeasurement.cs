@@ -597,8 +597,27 @@ namespace ReringProject.Sequence {
             string judge;
             if (fai.IsPass) judge = "OK";
             else judge = "NG"; // 캡쳐/원본 파일명에 OK/NG 삽입. origin/capture 쌍 동일.
-            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts);
-            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts);
+
+            //260622 hbk Phase 48 PROTO-01: 자재번호 추출 — 부모 시퀀스 RequestPacket(TCP TEST 패킷). null 이면 -1 폴백.
+            //  부모 시퀀스가 없거나 InspectionSequence 아닌 경우에도 -1(생략), 회귀 0.
+            int nIndexNumber = -1;
+            InspectionSequence parentSeq;
+            if (ShotParam != null)
+            {
+                parentSeq = ShotParam.Parent as InspectionSequence;
+            }
+            else
+            {
+                parentSeq = null;
+            }
+            bool bHasRequest = parentSeq != null && parentSeq.RequestPacket != null;
+            if (bHasRequest)
+            {
+                nIndexNumber = parentSeq.RequestPacket.IndexNumber;
+            }
+
+            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
+            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);  //260622 hbk Phase 48 PROTO-01
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
             // 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
             fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);

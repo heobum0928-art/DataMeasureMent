@@ -75,6 +75,13 @@ namespace ReringProject.Network {
         }
         private static MessageEncodingType EncodingType { get; set; } = MessageEncodingType.Default;
 
+        // 260622 hbk Phase 48 PROTO-01: 파생 클래스(VisionServer)가 v1.0 UTF-8 인코딩을 설정하는 진입점.
+        // EncodingType 캡슐화 유지 — setter 직접 노출 대신 동사+목적어 헬퍼 메서드.
+        protected static void ApplyEncoding(MessageEncodingType eEncoding)
+        {
+            EncodingType = eEncoding;
+        }
+
         //client data
         public class ConnectedClient : IDisposable {
             private TcpServer Parent { get; }
@@ -338,7 +345,17 @@ namespace ReringProject.Network {
 
         //method
         public TcpServer() {
-            PortNum = SystemSetting.Handle.ServerPort;
+            // 260622 hbk Phase 48 PROTO-01: v1.0 활성 시 ServerPortV1(7701), 아니면 기존 ServerPort(2505). D-04/D-06.
+            // base 생성자에서 mListener.Start() 가 즉시 호출되므로 포트 결정은 여기서 수행해야 한다.
+            bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
+            if (bUseV1)
+            {
+                PortNum = SystemSetting.Handle.ServerPortV1;
+            }
+            else
+            {
+                PortNum = SystemSetting.Handle.ServerPort;
+            }
 
             mListener = new TcpListener(IPAddress.Any, PortNum);
             mListener.Start();

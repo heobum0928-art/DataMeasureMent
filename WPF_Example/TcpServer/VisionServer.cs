@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ReringProject.Setting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +19,13 @@ namespace ReringProject.Network {
         public VisionServer() : base() {
             Header = (byte)MSG_STX;
             Trailer = (byte)MSG_ETX;
+            // 260622 hbk Phase 48 PROTO-01: v1.0 활성 시 UTF-8 인코딩 강제 (D-04). v2.6 면 기존 Default 유지.
+            // base() 생성자가 먼저 실행 후 인코딩 설정 — ConvertMessage(string/byte[]) 호출 시점에 읽히므로 유효.
+            bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
+            if (bUseV1)
+            {
+                ApplyEncoding(MessageEncodingType.Utf8);
+            }
         }
 
         protected override void PerformOnAlarm(AlarmEventArgs e) {

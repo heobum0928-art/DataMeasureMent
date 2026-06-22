@@ -24,6 +24,19 @@ namespace ReringProject.Network {
         public const string CMD_RECV_LIGHT = "LIGHT";
         public const string CMD_RECV_TEST = "TEST";
 
+        //260622 hbk Phase 48
+        // PROTO-01: v1.0 TEST 유연 파서 상수 ($TEST:site,MaterialNumber,null,z_index@).
+        // D-00 매직넘버 금지 — 모든 필드 인덱스/sentinel 을 명명 상수로 선언.
+        public const int SENTINEL_NO_MATERIAL = -1;          // 자재번호 미수신 sentinel
+        public const string SENTINEL_Z_INDEX_STR = "-1";     // z_index 미수신 sentinel
+        public const string TEST_NULL_PLACEHOLDER = "null";  // 예약 'null' 문자열
+        private const int TEST_FIELD_SITE = 0;               // 필드 인덱스: site
+        private const int TEST_FIELD_MATERIAL = 1;           // 필드 인덱스: 자재번호
+        private const int TEST_FIELD_ZINDEX = 3;             // 필드 인덱스: z_index (v1.0 4번째)
+        private const int TEST_MIN_FIELD_SITE = 1;           // site 만 있으면 파싱 시작
+        private const int TEST_MIN_FIELD_MATERIAL = 2;       // 자재번호 필드 존재 최소 길이
+        private const int TEST_MIN_FIELD_ZINDEX = 4;         // z_index 필드 존재 최소 길이
+
         public VisionRequestType RequestType { get; }
 
         public string Sender { get; set; }
@@ -138,7 +151,7 @@ namespace ReringProject.Network {
             //int zoneNum = 0;
             int siteNum = 0;
             int testKind = 0;
-            string testID = "";
+            // testID 로컬 변수 제거 — v1.0/v2.6 파서 메서드로 이전하여 불필요 //260622 hbk Phase 48
             switch (msgList[0]) { //cmd
                 case CMD_RECV_RECIPE_CHANGE: //recipe change
                     packet = new RecipeChangePacket();
@@ -257,38 +270,97 @@ namespace ReringProject.Network {
 
                     break;
                 case CMD_RECV_TEST: //test
+                    //260622 hbk Phase 48
+                    // PROTO-01: v2.6/v1.0 분기 (D-06). UseProtocolV1=true → 유연 V1 파서, false → 레거시 V2.6 파서.
                     packet = new TestPacket();
                     TestPacket testPacket = packet.AsTest();
 
                     dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
-                    if (dataList.Length < 3) return null;
-                    /*
-                    //zone
-                    if (Int32.TryParse(dataList[0], out zoneNum) == false) {
-                        return null;
-                    }
-                    testPacket.Zone = zoneNum;
-                    */
-                    //site
-                    if (Int32.TryParse(dataList[0], out siteNum) == false) {
-                        return null;
-                    }
-                    testPacket.Site = siteNum;
 
-                    //test kind
-                    if (Int32.TryParse(dataList[1], out testKind) == false) {
-                        return null;
+                    bool bUseV1 = ReringProject.Setting.SystemSetting.Handle.UseProtocolV1; //260622 hbk Phase 48
+                    if (bUseV1)
+                    {
+                        bool bParseV1Ok = TryParseTestFieldsV1(dataList, testPacket); //260622 hbk Phase 48
+                        if (!bParseV1Ok) { return null; }
                     }
-                    testPacket.TestType = testKind;
-
-                    //test ID
-                    testID = dataList[2];
-                    testPacket.TestID = testID;
+                    else
+                    {
+                        bool bParseV26Ok = TryParseTestFieldsV26(dataList, testPacket); //260622 hbk Phase 48
+                        if (!bParseV26Ok) { return null; }
+                    }
 
                     break;
             }
 
             return packet;
+        }
+
+        //260622 hbk Phase 48
+        // PROTO-01: v2.6 레거시 TEST 파서 — 기존 고정 인덱스 로직 그대로 보존 (D-06 회귀 0).
+        // 기존 CMD_RECV_TEST 블록(lines 259-288)의 로직을 byte-identical 추출.
+        private static bool TryParseTestFieldsV26(string[] dataList, TestPacket testPacket)
+        {
+            if (dataList.Length < 3) { return false; }
+
+            int nSiteNum = 0;
+            if (Int32.TryParse(dataList[0], out nSiteNum) == false) { return false; }
+            testPacket.Site = nSiteNum;
+
+            int nTestKind = 0;
+            if (Int32.TryParse(dataList[1], out nTestKind) == false) { return false; }
+            testPacket.TestType = nTestKind;
+
+            testPacket.TestID = dataList[2];
+            return true;
+        }
+
+        //260622 hbk Phase 48
+        // PROTO-01: v1.0 유연 TEST 파서. 고정 매직 인덱스 의존 탈피 — 필드 누락 시 sentinel 폴백.
+        //  향후 필드 추가/순서 변경 시 이 메서드(+상수)만 수정. D-02.
+        // D-00 준수: 헝가리언 + if/else + 조건 bool 변수화 + 30줄 한도(자재번호/z_index 헬퍼 분리).
+        private static bool TryParseTestFieldsV1(string[] dataList, TestPacket testPacket)
+        {
+            bool bHasSite = dataList.Length >= TEST_MIN_FIELD_SITE;
+            if (!bHasSite) { return false; }
+
+            int nSiteNum = 0;
+            bool bSiteValid = Int32.TryParse(dataList[TEST_FIELD_SITE], out nSiteNum);
+            if (!bSiteValid) { return false; }
+            testPacket.Site = nSiteNum;
+
+            testPacket.IndexNumber = ParseMaterialField(dataList);
+            testPacket.TestID = ParseZIndexField(dataList);
+            return true;
+        }
+
+        //260622 hbk Phase 48
+        // PROTO-01: 자재번호 필드 파싱. 누락/'null'/비정수 → SENTINEL_NO_MATERIAL.
+        private static int ParseMaterialField(string[] dataList)
+        {
+            bool bHasMaterial = dataList.Length >= TEST_MIN_FIELD_MATERIAL;
+            if (!bHasMaterial) { return SENTINEL_NO_MATERIAL; }
+
+            string szRaw = dataList[TEST_FIELD_MATERIAL];
+            bool bIsNullPlaceholder = string.IsNullOrEmpty(szRaw) || szRaw == TEST_NULL_PLACEHOLDER;
+            if (bIsNullPlaceholder) { return SENTINEL_NO_MATERIAL; }
+
+            int nMaterial = 0;
+            bool bMaterialValid = Int32.TryParse(szRaw, out nMaterial);
+            if (!bMaterialValid) { return SENTINEL_NO_MATERIAL; }
+            return nMaterial;
+        }
+
+        //260622 hbk Phase 48
+        // PROTO-01: z_index 필드 파싱. 누락/비정수 → SENTINEL_Z_INDEX_STR.
+        private static string ParseZIndexField(string[] dataList)
+        {
+            bool bHasZIndex = dataList.Length >= TEST_MIN_FIELD_ZINDEX;
+            if (!bHasZIndex) { return SENTINEL_Z_INDEX_STR; }
+
+            int nZIndex = 0;
+            bool bZValid = Int32.TryParse(dataList[TEST_FIELD_ZINDEX], out nZIndex);
+            if (!bZValid) { return SENTINEL_Z_INDEX_STR; }
+            return nZIndex.ToString();
         }
 
         public RecipeChangePacket AsRecipeChange() {
@@ -362,6 +434,11 @@ namespace ReringProject.Network {
         public string TestID { get; set; }
 
         public string Identifier2 { get; set; }
+
+        //260622 hbk Phase 48
+        // PROTO-01: 자재번호 (v1.0 $TEST 두 번째 필드). 미수신/null/파싱실패 → SENTINEL_NO_MATERIAL(-1).
+        // 자재번호 전파 체인의 출발점 — Wave 2 Plan 04 가 소비.
+        public int IndexNumber { get; set; } = SENTINEL_NO_MATERIAL;
 
         public TestPacket() : base(VisionRequestType.Test) {
         }

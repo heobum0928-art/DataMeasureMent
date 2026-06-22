@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: executing
-stopped_at: Completed 48-03-PLAN.md
-last_updated: "2026-06-22T07:55:20.720Z"
+status: verifying
+stopped_at: Completed 48-04-PLAN.md
+last_updated: "2026-06-22T08:02:00.839Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 14
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 43
-  completed_plans: 39
-  percent: 91
+  completed_plans: 40
+  percent: 93
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 48 (protocol-v1-test-result-site-material) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-22
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -162,6 +162,7 @@ Last activity: 2026-06-22
 | Phase 48-protocol-v1-test-result-site-material P01 | 30 | 2 tasks | 3 files |
 | Phase 48 P02 | 20 | 2 tasks | 3 files |
 | Phase 48 P03 | 168 | 1 tasks | 1 files |
+| Phase 48-protocol-v1-test-result-site-material P04 | 25 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -327,6 +328,8 @@ Recent decisions affecting current work:
 - ESite 슬롯 재사용 설계: framework ResourceMap Dictionary<ESite> 강결합으로 ESiteV1 신규 enum 불가 → ESite.Top=Site1/ESite.Side=Site2 슬롯 재사용, 자원은 PcRole 런타임 결정 (Phase 48-02)
 - TcpServer 생성자에서 포트 결정 분기: base 생성자가 mListener.Start()를 즉시 실행하므로 VisionServer 생성자 본문(base 이후)에서 포트 변경 불가 → TcpServer 생성자 내 bUseV1 분기로 ServerPortV1(7701) vs ServerPort(2505) 결정 (Phase 48-02)
 - UseProtocolV1=true 분기에서 BuildResultMessageV1 직렬화 — v1.0 3단 구분자(;/,/=) + IsBuffer 최우선 B 판정 매핑 (Phase 49가 채울 자리)
+- 자재번호 파일명 위치: FAI 뒤 seg 앞 (_M{번호} 토큰) — 자재번호가 FAI 와 가깝게 식별되도록 우선 배치 (48-04)
+- xlsx 테이블 헤더 오프셋 5→6: 자재번호 행(행 4) 삽입으로 1행 이동, hr 변수로 데이터 루프 자동 이동 (48-04)
 
 ### Quick Tasks Completed
 
@@ -450,8 +453,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-22T07:55:20.708Z
-Stopped at: Completed 48-03-PLAN.md
+Last session: 2026-06-22T08:02:00.826Z
+Stopped at: Completed 48-04-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

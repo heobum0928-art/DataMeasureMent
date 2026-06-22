@@ -322,6 +322,7 @@ Plans:
 **Goal:** 디팜스테크 인터페이스 TCP/IP 프로토콜 v1.0(엑셀 규격) 커맨드 계층을 구현한다. `$TEST:site,…,z_index@`(자재 IndexNumber 필드 포함, **유연 파서**)를 파싱하고 `$RESULT:site;P|F|B;count;id=val=OK,…@`를 직렬화하며, 2-PC 구조에 맞춰 Site 번호 체계를 재정합한다(PC1: Site1=TOP/Site2=BOTTOM, PC2: Site1=SIDE_1/Site2=SIDE_2). 자재번호는 결과 저장(Export/파일명)까지 전파한다. 포맷 향후 변경에 견디도록 파서를 구조화한다.
 **Requirements**: PROTO-01, PROTO-02 (+ 신규: 자재 IndexNumber)
 **Depends on:** Phase 39 (검사 워크플로우 E2E, signed_off)
+**Plans:** 4 plans (2 waves)
 **Canonical spec:** `.planning/refs/Vision-Protocol-v1.0.md` (사용자 제공 엑셀 v1.0, 2026-06-22)
 **Background:** 기존 'v2.7' placeholder → 사용자 제공 엑셀 v1.0 이 구체 규격. 정책상 "POC 이후"였으나 사용자 결정으로 지금 착수(2026-06-22). 사용자 4 신규 요구 중 #2(자재번호)=본 phase 핵심, #1(조명 멀티샷 z_index↔Shot)=일부. #3-2(교차-Z 측정)·#4(분단위 저장)는 Phase 49/50/신규로 분배.
 **Scope:**
@@ -336,6 +337,12 @@ Plans:
   - `$RESULT` P/F/B 직렬화가 엑셀 예시와 byte 일치 (케이스 1~3)
   - Site 번호 2-PC 체계로 매핑 (TOP/BOTTOM/SIDE_1/SIDE_2)
   - 기존 v2.6 경로 회귀 0 (또는 마이그레이션 가드)
+
+Plans:
+- [ ] 48-01-PLAN.md — (W1) SystemSetting v1.0 플래그(UseProtocolV1/PcRole/ServerPortV1) + TEST 유연 파서 + TestPacket.IndexNumber
+- [ ] 48-02-PLAN.md — (W2) Site 2-PC 재정합(ResourceMap PcRole 분기) + VisionServer Port 7701/UTF-8
+- [ ] 48-03-PLAN.md — (W2) RESULT v1.0 직렬화 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@ 3단 구분자)
+- [ ] 48-04-PLAN.md — (W2) 자재 IndexNumber 전파 (CycleResultDto→파일명 _M{번호} + xlsx 자재번호 행)
 - [ ] **Phase 49: 제어 프로토콜 v2.7 — 3-state 엔진 + Datum 빈 응답 + CycleState** (PROTO-03, PROTO-04, PROTO-05)
   - Success: P/F/B 종합 판정 / Datum 샷(z_index=0) 빈 응답 / Datum 실패 즉시 F / CycleState·ECycleResult enum + 자동 리셋
 - [ ] **Phase 50: 제어 프로토콜 v2.7 — 통신 회귀 시험** (PROTO-06)
@@ -359,7 +366,7 @@ Plans:
 | 2 | 45 | A1~A5 측정값 UI | CO-23-01 | RESOLVED (Phase 40 시리즈) | — | 2026-06-16 |
 | 3 | 46 | CXP 그래버 통합 | HW-01/02 | Not started (HW) | TBD | — |
 | 4 | 47 | 헝가리안 리팩토링 | QUAL-01 | Not started | TBD | — |
-| 5 | 48 | Protocol v2.7 TEST/RESULT | PROTO-01/02 | Not started (POC 후) | TBD | — |
+| 5 | 48 | Protocol v1.0 TEST/RESULT/Site/자재번호 | PROTO-01/02 | Planned | 4 | 2026-06-22 |
 | 5 | 49 | Protocol v2.7 3-state/Cycle | PROTO-03/04/05 | Not started (POC 후) | TBD | — |
 | 5 | 50 | Protocol v2.7 회귀 시험 | PROTO-06 | Not started (POC 후) | TBD | — |
 | 1 | 51 | 시퀀스 일괄 검사 & Export | BATCH-01 | Complete (signed off 2026-06-16) | 2026-06-16 | UAT 전항목 PASS |

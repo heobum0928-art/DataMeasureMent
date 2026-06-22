@@ -40,9 +40,20 @@ namespace ReringProject.Export
                     ws.Cell(3, 1).Value = "종합판정";
                     ws.Cell(3, 2).Value = cycle.OverallJudgement != null ? cycle.OverallJudgement : "";
 
-                    // D-05 테이블 헤더 (행 5)
+                    //260622 hbk Phase 48 PROTO-01: 자재번호 메타 행 (D-05). IndexNumber -1 = 미수신 → "-".
+                    ws.Cell(4, 1).Value = "자재번호";
+                    if (cycle.IndexNumber >= 0)
+                    {
+                        ws.Cell(4, 2).Value = cycle.IndexNumber;
+                    }
+                    else
+                    {
+                        ws.Cell(4, 2).Value = "-";
+                    }
+
+                    // D-05 테이블 헤더 (행 6 — 자재번호 행 추가로 5→6 이동)
                     // "이미지" 하이퍼링크 컬럼 폐기 → 절대 경로(경로\파일명) 텍스트 2컬럼으로 교체.
-                    int hr = 5;
+                    int hr = 6;  //260622 hbk Phase 48 PROTO-01: 자재번호 행(행 4) 추가에 따른 오프셋 조정 (5→6)
                     string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "원본이미지 경로", "캡쳐이미지 경로" };
                     for (int i = 0; i < headers.Length; i++)
                     {

@@ -348,6 +348,32 @@ Plans:
 - [ ] **Phase 50: 제어 프로토콜 v2.7 — 통신 회귀 시험** (PROTO-06)
   - Success: 제어팀(김민우 선임) 동기화 / 실 핸들러 통신 회귀 PASS / v2.6 → v2.7 마이그레이션 절차 문서화
 
+### Phase 49: 제어 프로토콜 v1.0 — P/F/B 판정 엔진 + Datum 빈 응답 + CycleState (PROTO-03, PROTO-04, PROTO-05)
+
+**Goal:** 디팜스테크 프로토콜 v1.0의 **판정 엔진**을 구현한다. Phase 48이 RESULT 직렬화(`BuildResultMessageV1` / `MapCycleJudgement`)와 빈 hook(`TestResultPacket.IsBuffer` = "Phase 49가 채울 자리")까지 완성했으므로, Phase 49는 멀티샷 Index 사이클을 가로질러 **무엇을 B/P/F로 채울지 결정하는 상태 엔진**을 추가한다. 중간 Index는 B(Buffer, NG 포함 가능), 마지막 Index에서만 종합 P/F를 1회 산출하고, Datum 샷(z_index=0)은 빈 응답(`RESULT:site;B;0;`)·Datum 실패 시 즉시 F로 분기한다.
+**Requirements:** PROTO-03, PROTO-04, PROTO-05
+**Depends on:** Phase 48 (PROTO-01/02 — TEST 유연 파서 + Site 2-PC + RESULT v1.0 직렬화 + IsBuffer hook, 코드 검증 완료) signed_off, Phase 39 (검사 워크플로우 E2E — 사이클 NG 누적/3분기) signed_off
+**Canonical spec:** `.planning/refs/Vision-Protocol-v1.0.md` §검사 시퀀스 / §판정(P/F/B 3-state) / §Index Table
+**Background:** Phase 39가 sequence-level OK/NG/검출실패 3분기를 v2.6 기준으로 통일했고, Phase 48이 v1.0 RESULT 직렬화와 `IsBuffer` 자리를 만들었다. 그러나 (a) z_index 멀티샷을 가로지르는 사이클 상태(중간=B, 마지막=P/F)를 추적하는 주체, (b) Datum(Index 0) 실패 즉시 F + 빈 응답 규격, (c) 사이클 단위 NG mark + 다음 자재 자동 리셋이 아직 없다. "NG 발견돼도 마지막 Index까지 측정 진행"(데이터 수집) 정책을 코드로 강제하는 엔진이 본 phase의 핵심.
+**Scope:**
+  - **PROTO-03 P/F/B 3-state 엔진**: NG 발견 시 즉시 종료 금지 — 마지막 Index까지 진행 후 종합. 중간 Index 응답 `IsBuffer=true`(→B), 마지막 Index에서 사이클 누적 NG 유무로 P/F 산출. `MapCycleJudgement`(48-03) 소비.
+  - **PROTO-04 Datum 빈 응답 + 즉시 F**: z_index=0(Datum 샷) → `RESULT:site;B;0;`(항목 없는 빈 응답). Datum 검출 실패 시 후속 Index skip + 즉시 F(Phase 39 검출 실패 분기와 정합).
+  - **PROTO-05 CycleState / ECycleResult enum + 사이클 NG mark + 자동 리셋**: 멀티샷 사이클 상태(`CycleState`)와 결과(`ECycleResult`) enum 신설. InspectionSequence가 사이클 단위로 NG를 누적 mark하고, 마지막 Index 응답 송신 후 다음 자재를 위해 자동 리셋.
+  - **z_index ↔ Index/마지막 판별**: Index Table(spec §Index Table) 기준 "마지막 Index" 판별. 마지막 Index에서만 P/F, 그 외 B.
+  - **(흡수) CO-48-01**: Phase 48 review CR-01 — `TcpServer.EncodingType` static 필드 → instance 필드 (다중 인스턴스 전역 오염 시한폭탄 제거).
+**Out of scope** (Phase 50 / 신규):
+  - 실 핸들러 통신 회귀 시험 (Phase 50 — PROTO-06)
+  - 교차-Z 측정(Z1 보유→Z2 측정, 요구 3-2) — 별도 신규 영역
+**Success Criteria (UAT):**
+  - 중간 Index 응답 = `B`(NG 포함 가능), 마지막 Index에서만 종합 `P`/`F` 1회
+  - Datum 샷(z_index=0) → 빈 응답 `RESULT:site;B;0;` / Datum 실패 → 즉시 `F` + 후속 Index skip
+  - 사이클 내 NG 누적 후 마지막 Index 종합 `F`, 다음 자재 시작 시 상태 자동 리셋(이전 NG 미잔류)
+  - `CycleState` / `ECycleResult` enum 기반 동작 — 기존 v2.6 경로 회귀 0
+  - CO-48-01: `EncodingType` instance 필드화 후 인코딩 동작 회귀 0
+
+- [ ] **Phase 49: 제어 프로토콜 v1.0 — P/F/B 판정 엔진 + Datum 빈 응답 + CycleState** (PROTO-03, PROTO-04, PROTO-05)
+  - Success: 중간 Index=B / 마지막 Index 종합 P/F 1회 / Datum 샷 빈 응답 + Datum 실패 즉시 F / CycleState·ECycleResult enum + 사이클 NG mark + 자동 리셋 / CO-48-01 흡수
+
 ---
 
 ## Progress Table (v1.2)

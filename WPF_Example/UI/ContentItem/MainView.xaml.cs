@@ -2990,7 +2990,15 @@ namespace ReringProject.UI {
             label_testFindResult.Visibility = Visibility.Collapsed;
             if (ok) {
                 // 성공: TryFindDatum 이 DetectedOrigin* + LastFindSucceeded write-back → SetDatumOverlay → RenderDatumFindResult chain
-                halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
+                //260622 hbk Phase 57.1 Test Find 보정 ROI 박스 이동 표시 — 보정(align) datum 은 결과 경로와 동일하게
+                //  ShowResultDatumOverlays 호출 → CurrentTransform 으로 보정된 검색 ROI 박스(orange) 가 부품 따라 이동 + 검출 십자.
+                //  공칭 박스 중복 방지 위해 _datumConfig 클리어(Phase 56 '보정전 박스 제거' 정책 일관). 비-align 은 기존 SetDatumOverlay 유지(회귀 0).
+                if (datum.IsPatternAlignEnabled) {
+                    halconViewer.ClearDatumOverlay();
+                    ShowResultDatumOverlays(new List<DatumConfig> { datum });
+                } else {
+                    halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
+                }
                 // PropertyGrid 메트릭 갱신 (DetectedEdgeCount/FitRMSE/AngleDeg ReadOnly 표시)
                 try { datum.RaisePropertyChanged(string.Empty); } catch { }
                 if (mParentWindow != null && mParentWindow.inspectionList != null) {

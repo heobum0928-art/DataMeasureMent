@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: verifying
-stopped_at: Completed 57.1-07-PLAN.md
-last_updated: "2026-06-22T03:57:16.853Z"
+stopped_at: Completed 57.1-08-PLAN.md
+last_updated: "2026-06-22T04:42:41.358Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 13
   completed_phases: 11
   total_plans: 39
-  completed_plans: 36
-  percent: 92
+  completed_plans: 37
+  percent: 95
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 57.1 — EXECUTING
-Plan: 57.1-07 완료 (측정 ROI 표시 90° 정상화 View + cyan 패턴 ROI CurrentTransform 위치보정, 측정값 무변경)
-Status: Plan 57.1-07 complete — ready for verification
+Plan: 57.1-08 완료 (TryFitLine 에지 trim 을 위치축 정렬 + 양끝 % 절사로 교체. EdgeTrimCount=양끝 각 %)
+Status: Plan 57.1-08 complete — ready for verification (8/8 plans executed)
 Last activity: 2026-06-22
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -155,6 +155,7 @@ Last activity: 2026-06-22
 | Phase 57.1 P57.1-05 | 5 | 1 tasks | 1 files |
 | Phase 57.1 P57.1-06 | 5 | 1 tasks | 1 files |
 | Phase 57.1 P57.1-07 | 4 | 2 tasks | 2 files |
+| Phase 57.1 P57.1-08 | 4 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -312,6 +313,7 @@ Recent decisions affecting current work:
 - [Phase 57.1-03]: 패턴 버튼 안전장치 D-04 — 비-Datum 클릭 가드 메시지 3종 통일("Datum 티칭 존을 먼저 선택하세요"), 비활성화 경로(default-disable→Datum 분기만 재활성) grep 회귀 확증. Teach Datum :2321 무변경. 코드 동작 무변경(메시지 본문+주석만).
 - [Phase 57.1-07]: 측정 보정 ROI 표시 박스 length1/length2 를 HALCON disp_rectangle2 규약(length1=열/가로, length2=행/세로 = cyan 패턴 ROI 동일)에 맞춰 교정 — 측정(FAIEdgeMeasurementService SmallestRectangle2+measurePhi) 무변경, 표시만 90° 정상화
 - [Phase 57.1-07]: cyan 패턴 ROI center 를 CurrentTransform 으로 AffineTransPoint2d 변환 + phi += Atan2(-t[1],t[0]) — datum/측정 ROI 동일 규약, transform 무효 시 공칭 폴백(회귀 0)
+- [Phase 57.1-08]: TryFitLine EdgeTrimCount 의미를 '개수'→'양끝 각 %(0~49 clamp)' 로 재해석 + 위치축 정렬(scanHorizontal→row,else→col, TupleSortIndex+TupleSelect) 후 양끝 removeEach=(int)(edgeCount*pct/100) 절사. 가드 edgeCount>=4 + (edgeCount-2*removeEach)>=2 로 들쭉날쭉 해소. 정렬/절사 allRows/allCols 가 FitLineContourXld+collectedEdges 로 전달(overlay 마젠타 절사 후 반영).
 
 ### Quick Tasks Completed
 
@@ -435,8 +437,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-22T03:57:04.444Z
-Stopped at: Completed 57.1-07-PLAN.md
+Last session: 2026-06-22T04:42:41.346Z
+Stopped at: Completed 57.1-08-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

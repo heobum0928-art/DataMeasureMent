@@ -1220,6 +1220,8 @@ namespace ReringProject.UI {
             var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
             string error;
             bool ok = svc.TryTeachDatum(img, datum, out error);
+            //260622 hbk Phase 57.1 — 편집 모드 재티칭 성공 시 RefMatch 동기화 (같은 티칭 이미지로 재앵커).
+            if (ok) { RefreshPatternRefPoseAfterTeach(datum, img); }
             if (ok) {
                 label_drawHint.Content = "Datum ROI 이동 — 재티칭 OK";
                 label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
@@ -2638,6 +2640,8 @@ namespace ReringProject.UI {
 
                     if (error == null) {
                         ok = svc.TryTeachDatum(imgH, imgV, _editingDatum, out error);
+                        //260622 hbk Phase 57.1 — DualImage 재티칭 성공 시 RefMatch 동기화 (패턴=가로축 imgH, dispose 전).
+                        if (ok) { RefreshPatternRefPoseAfterTeach(_editingDatum, imgH); }
                     }
                 } finally {
                     if (imgH != null) { try { imgH.Dispose(); } catch { } }
@@ -2645,6 +2649,8 @@ namespace ReringProject.UI {
                 }
             } else {
                 ok = svc.TryTeachDatum(img, _editingDatum, out error); // 단일-이미지 오버로드
+                //260622 hbk Phase 57.1 — 단일-이미지 재티칭 성공 시 RefMatch 동기화 (같은 티칭 이미지로 재앵커).
+                if (ok) { RefreshPatternRefPoseAfterTeach(_editingDatum, img); }
             }
 
             // 공통 결과 처리 (DualImage / 1-image 양쪽 공통)
@@ -2668,6 +2674,38 @@ namespace ReringProject.UI {
             btn_teachDatum.IsChecked = false;
             _editingDatum = null;
             halconViewer.IsTeachDatumMode = false;
+        }
+
+        //260622 hbk Phase 57.1 — 재티칭 시 패턴 기준(RefMatch) 동기화. align ON + 패턴 모델 존재 시 같은 티칭 이미지에서
+        //  TryFindRefPose 재실행해 RefMatch(2-패턴이면 RefMatch2) 갱신 → Test Find alignRigid≈identity → Find=Teach.
+        //  실패/모델 없음 → 기존 RefMatch 유지(teach 성공은 유지, silent).
+        private void RefreshPatternRefPoseAfterTeach(DatumConfig datum, HImage patternImage) {
+            if (datum == null || patternImage == null) return;
+            if (!datum.IsPatternAlignEnabled) return;
+            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+            if (string.IsNullOrEmpty(modelPath) || !System.IO.File.Exists(modelPath)) return;
+            var svc = new ReringProject.Halcon.Algorithms.PatternMatchService();
+            double rr, rc, ra, rs;
+            string refErr;
+            if (svc.TryFindRefPose(patternImage, datum.PatternEngine, modelPath, datum.PatternMinScore,
+                    out rr, out rc, out ra, out rs, out refErr)) {
+                datum.RefMatchRow = rr;
+                datum.RefMatchCol = rc;
+                datum.RefMatchAngleDeg = ra;
+                if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0) {
+                    string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum);
+                    double rr2, rc2, ra2, rs2;
+                    string refErr2;
+                    if (!string.IsNullOrEmpty(modelPath2) && System.IO.File.Exists(modelPath2)
+                            && svc.TryFindRefPose(patternImage, datum.PatternEngine, modelPath2, datum.PatternMinScore,
+                                   out rr2, out rc2, out ra2, out rs2, out refErr2)) {
+                        datum.RefMatch2Row = rr2;
+                        datum.RefMatch2Col = rc2;
+                    }
+                }
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN-REFRESH] " + (datum.DatumName ?? "")
+                    + " RefMatch re-anchored on teach image: (" + rr.ToString("F1") + "," + rc.ToString("F1") + ") score=" + rs.ToString("F3"));
+            }
         }
 
         // InvokeTryTeachDatum 의 early-return 헬퍼 (goto 패턴 회피).

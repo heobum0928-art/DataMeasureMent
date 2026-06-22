@@ -496,6 +496,7 @@ Plans:
 - [x] 57.1-03-PLAN.md — D-04: 패턴 버튼 비-Datum 비활성화 확증 + 클릭 가드 메시지 통일 ✅ 2026-06-22 (72896d5)
 - [x] 57.1-04-PLAN.md — Test Find 버튼을 런타임 패턴 보정 경로(TryComposeAlign)에 연결 (티칭 단계 Top/Bottom/Side 보정 육안 확인) ✅ 2026-06-22 (cd5ed77)
 - [x] 57.1-05-PLAN.md — 패턴 1/패턴 2 ROI 그리기 버튼 진입 전 OK/Cancel 진행 확인 (무심코 클릭 방지) ✅ 2026-06-22 (b600a16)
+- [x] 57.1-06-PLAN.md — Test Find 보정 ROI 박스 위치이동 표시 (보정 datum 성공 시 ShowResultDatumOverlays → orange ROI 박스 부품 따라 이동, UAT Test 4 fix) ✅ 2026-06-22 (63cc0d8)
 
 - [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — PLANNED
 

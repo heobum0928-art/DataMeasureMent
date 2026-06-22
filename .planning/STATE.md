@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: verifying
-stopped_at: Completed 57.1-05-PLAN.md
-last_updated: "2026-06-22T02:29:12.737Z"
+stopped_at: Completed 57.1-06-PLAN.md
+last_updated: "2026-06-22T03:00:00.000Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 13
   completed_phases: 11
-  total_plans: 40
-  completed_plans: 37
-  percent: 92
+  total_plans: 41
+  completed_plans: 38
+  percent: 93
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 57.1 — EXECUTING
-Plan: 57.1-05 완료 (패턴 ROI 그리기 버튼 진행 확인 OK/Cancel)
-Status: Plan 57.1-05 complete — ready for verification
+Plan: 57.1-06 완료 (Test Find 보정 ROI 박스 위치이동 표시, UAT Test 4 fix)
+Status: Plan 57.1-06 complete — ready for verification
 Last activity: 2026-06-22
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -153,6 +153,7 @@ Last activity: 2026-06-22
 | Phase 57.1-pattern-roi-verification-safety P03 | 6 | 2 tasks | 2 files |
 | Phase 57.1 P57.1-04 | 4 | 1 tasks | 1 files |
 | Phase 57.1 P57.1-05 | 5 | 1 tasks | 1 files |
+| Phase 57.1 P57.1-06 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 

@@ -15,6 +15,9 @@ namespace ReringProject.UI
 
         public string RecipeName { get; set; }
 
+        //260622 hbk Phase 48 PROTO-01: 자재번호 (TestPacket.IndexNumber 에서 전파됨). -1 = 미수신(sentinel).
+        public int IndexNumber { get; set; } = -1;
+
         /// <summary>종합 판정. "OK" / "NG" / "DETECT_FAIL" (3-state hierarchy).</summary>
         public string OverallJudgement { get; set; }
 

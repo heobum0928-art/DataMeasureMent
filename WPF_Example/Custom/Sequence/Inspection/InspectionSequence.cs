@@ -138,12 +138,20 @@ namespace ReringProject.Sequence {
             //  직렬화 예외가 TCP 응답(ResponseQueue.Enqueue)을 차단하지 않도록 try/catch 격리.
             try
             {
+                //260622 hbk Phase 48 PROTO-01: 자재번호 추출 (RequestPacket = 이번 TCP TEST 패킷). null 이면 -1 폴백.
+                int nIndexNumber = -1;
+                bool bHasRequest = RequestPacket != null;
+                if (bHasRequest)
+                {
+                    nIndexNumber = RequestPacket.IndexNumber;
+                }
                 var cycleDto = CycleResultSerializer.BuildDto(
                     recipeManager,
                     responsePacket.Result,
                     System.DateTime.Now,
                     SystemHandler.Handle.Setting.CurrentRecipeName,
-                    Name); // 이 시퀀스 소유 shot 만 cycle 에 포함
+                    Name,           // 이 시퀀스 소유 shot 만 cycle 에 포함
+                    nIndexNumber);  //260622 hbk Phase 48 PROTO-01: 자재번호 전파
                 CycleResultSerializer.SaveAsync(cycleDto);
             }
             catch (Exception ex)

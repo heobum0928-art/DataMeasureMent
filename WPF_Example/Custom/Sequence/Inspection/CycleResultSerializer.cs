@@ -37,7 +37,8 @@ namespace ReringProject.Sequence
             EVisionResultType cycleResult,
             DateTime when,
             string recipeName,
-            string ownerSequenceName = null)
+            string ownerSequenceName = null,
+            int nIndexNumber = -1)   //260622 hbk Phase 48 PROTO-01: 자재번호 전파 (기본 -1 미수신)
         {
             string recipeNameStr = recipeName;
             if (recipeNameStr == null) recipeNameStr = "";
@@ -45,7 +46,8 @@ namespace ReringProject.Sequence
             {
                 InspectionTime = when,
                 RecipeName = recipeNameStr,
-                OverallJudgement = MapJudgement(cycleResult)
+                OverallJudgement = MapJudgement(cycleResult),
+                IndexNumber = nIndexNumber   //260622 hbk Phase 48 PROTO-01: 자재번호 dto 대입
                 // CycleFolderPath 는 SaveAsync 에서 계산 후 설정
             };
 

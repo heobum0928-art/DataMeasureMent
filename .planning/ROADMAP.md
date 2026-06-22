@@ -339,7 +339,7 @@ Plans:
   - 기존 v2.6 경로 회귀 0 (또는 마이그레이션 가드)
 
 Plans:
-- [ ] 48-01-PLAN.md — (W1) SystemSetting v1.0 플래그(UseProtocolV1/PcRole/ServerPortV1) + TEST 유연 파서 + TestPacket.IndexNumber
+- [x] 48-01-PLAN.md — (W1) SystemSetting v1.0 플래그(UseProtocolV1/PcRole/ServerPortV1) + TEST 유연 파서 + TestPacket.IndexNumber
 - [ ] 48-02-PLAN.md — (W2) Site 2-PC 재정합(ResourceMap PcRole 분기) + VisionServer Port 7701/UTF-8
 - [ ] 48-03-PLAN.md — (W2) RESULT v1.0 직렬화 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@ 3단 구분자)
 - [ ] 48-04-PLAN.md — (W2) 자재 IndexNumber 전파 (CycleResultDto→파일명 _M{번호} + xlsx 자재번호 행)

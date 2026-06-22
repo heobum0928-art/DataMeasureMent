@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: verifying
-stopped_at: Completed 57.1-11-PLAN.md
-last_updated: "2026-06-22T07:27:46.846Z"
+status: executing
+stopped_at: Completed 48-01-PLAN.md
+last_updated: "2026-06-22T07:42:00.037Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 14
   completed_phases: 11
   total_plans: 43
-  completed_plans: 36
-  percent: 84
+  completed_plans: 37
+  percent: 86
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 57.1 — 패턴 ROI 검증 & 안전장치
+**Current focus:** Phase 48 — protocol-v1-test-result-site-material
 
 ## Current Position
 
-Phase: 57.1 — EXECUTING
-Plan: 57.1-11 완료 (재티칭 시 패턴 기준 RefMatch 동기화 — align ON datum 재티칭 직후 같은 티칭 이미지에서 TryFindRefPose 재실행해 RefMatch/RefMatch2 재앵커 → Test Find alignRigid≈identity → slate blue Find=yellow Teach 일치. RefreshPatternRefPoseAfterTeach 헬퍼 + 단일/DualImage(imgH dispose 전)/Edit 3 호출. align OFF/모델없음 회귀 0)
-Status: Plan 57.1-11 complete — ready for verification (11 plans executed)
+Phase: 48 (protocol-v1-test-result-site-material) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
 Last activity: 2026-06-22
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -159,6 +159,7 @@ Last activity: 2026-06-22
 | Phase 57.1 P57.1-09 | 5 | 3 tasks | 4 files |
 | Phase 57.1 P57.1-10 | 12 | 2 tasks | 13 files |
 | Phase 57.1 P57.1-11 | 8 | 1 tasks | 1 files |
+| Phase 48-protocol-v1-test-result-site-material P01 | 30 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -318,6 +319,9 @@ Recent decisions affecting current work:
 - [Phase 57.1-07]: cyan 패턴 ROI center 를 CurrentTransform 으로 AffineTransPoint2d 변환 + phi += Atan2(-t[1],t[0]) — datum/측정 ROI 동일 규약, transform 무효 시 공칭 폴백(회귀 0)
 - [Phase 57.1-08]: TryFitLine EdgeTrimCount 의미를 '개수'→'양끝 각 %(0~49 clamp)' 로 재해석 + 위치축 정렬(scanHorizontal→row,else→col, TupleSortIndex+TupleSelect) 후 양끝 removeEach=(int)(edgeCount*pct/100) 절사. 가드 edgeCount>=4 + (edgeCount-2*removeEach)>=2 로 들쭉날쭉 해소. 정렬/절사 allRows/allCols 가 FitLineContourXld+collectedEdges 로 전달(overlay 마젠타 절사 후 반영).
 - [Phase 57.1-10]: trim 의미 변경(양끝 각 %, 57.1-08/09)에 맞춰 측정 13 + Datum 6 trim 필드에 [DisplayName("...Edge Trim (%)")] 만 추가 — PropertyTools 라벨 override 는 ParamBase reflection/Newtonsoft 직렬화(프로퍼티명 기준)에 무영향이라 INI 하위호환 완전 보존. DualImage 만 ROI 구분 'Point/Line Edge Trim (%)' 차등. 빌드 0 errors 신규 warning 0.
+- Phase 48-01: v1.0 분기 TestType=0(Default) 유지 — ResourceMap Inspection 흐름 정상. Site 매핑은 Wave 2 Plan 02 PcRole 기반으로 처리
+- Phase 48-01: sentinel SENTINEL_NO_MATERIAL=-1 채택 (자재번호 미수신 표준값, Wave 2 Plan 04 전파 체인 >= 0 조건으로 유효값 판별)
+- Phase 48-01: AfterLoad() partial 후크 패턴 — base Load() 끝에서 호출, Custom 구현 없으면 컴파일러가 제거 (null 안전)
 
 ### Quick Tasks Completed
 
@@ -441,8 +445,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-22T05:50:10.618Z
-Stopped at: Completed 57.1-11-PLAN.md
+Last session: 2026-06-22T07:42:00.025Z
+Stopped at: Completed 48-01-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

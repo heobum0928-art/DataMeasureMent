@@ -76,7 +76,8 @@
 
 ### 우선순위 5 — 제어 프로토콜 v2.7 (POC 시연 이후)
 
-- [ ] **PROTO-01**: TEST 커맨드 z_index 파라미터 — `$TEST:site,null,z_index@` 파싱 + ResourceMap z_index↔Shot 매핑
+- [x] **PROTO-01
+**: TEST 커맨드 z_index 파라미터 — `$TEST:site,null,z_index@` 파싱 + ResourceMap z_index↔Shot 매핑
 - [ ] **PROTO-02**: RESULT 포맷 3단 구분자 — `$RESULT:site;P|F|B;count;id=val=OK,...@` (;/,/=) 직렬화/역직렬화
 - [ ] **PROTO-03**: P/F/B 3-state 판정 엔진 — NG 발견 시 즉시 종료 X, 마지막 Index까지 진행 후 종합 (Pass/Fail/Bypass)
 - [ ] **PROTO-04**: Datum 샷(z_index=0) 빈 응답 + Datum 실패 시 즉시 F

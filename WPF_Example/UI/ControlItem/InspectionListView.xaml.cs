@@ -637,6 +637,11 @@ namespace ReringProject.UI {
                             // 티칭 이미지 로드 후 휘발 검출 좌표 복원(재티칭) → 검출 라인 렌더
                             mParentWindow.mainView.RestoreDatumOverlayFromTeach(datumCfg);
 
+                            //260622 hbk Phase 57.1 D-03/D-01: Datum 노드 단독 선택 시에도 _resultDatumOverlays 를 채워 cyan 패턴 ROI 렌더 게이트 충족.
+                            //  Measurement/FAI/Action 분기와 동일 경로(ShowResultDatumOverlays) — 단일-원소 List. SetDatumOverlay(편집 채널)와 무관(공존).
+                            List<DatumConfig> datumOverlayList = new List<DatumConfig> { datumCfg };
+                            mParentWindow.mainView.ShowResultDatumOverlays(datumOverlayList);
+
                             // Datum 전환 시 PropertyGrid SelectedObject 강제 null→new force rebind.
                             // ROI 이동/생성 후 Datum 전환 시 AlgorithmType combobox가 stale 해지는 문제 방지:
                             // SetParam이 SelectedParam만 갱신하고 ParamEditor.SelectedObject는 외부 binding으로 갱신될 때

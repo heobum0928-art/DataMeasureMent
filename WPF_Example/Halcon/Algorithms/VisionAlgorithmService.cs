@@ -143,34 +143,9 @@ namespace ReringProject.Halcon.Algorithms
                     }
                 }
 
-                //260622 hbk Phase 57.1 #2 — 정렬 후 양끝 % 절사(trimmed fit). 기존: 정렬없이 누적순서 양끝 trimCount개 제거 → "뒤죽박죽".
-                //  위치축 정렬(scanHorizontal=세로에지→row, else→col) 후 EdgeTrimCount 를 양끝 각각 %(0~49) 로 해석해 상/하위 제거, 중간만 피팅.
-                //  점 순서는 FitLineContourXld 결과에 무관(점집합) — 정렬은 절사 대상 선정 목적.
+                //260622 hbk Phase 57.1 trim 통일 — 공유 헬퍼로 단일 소스화 (위치축 정렬 + 양끝 각 %(0~49) 절사)
+                SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
                 int edgeCount = allRows.TupleLength();
-                if (trimCount > 0 && edgeCount >= 4)
-                {
-                    // 분포 축 기준 오름차순 정렬 인덱스 → allRows/allCols 쌍 유지 재정렬
-                    HTuple sortKey = scanHorizontal ? allRows : allCols;
-                    HTuple order = sortKey.TupleSortIndex();
-                    allRows = allRows.TupleSelect(order);
-                    allCols = allCols.TupleSelect(order);
-
-                    // trimCount 를 양끝 각각 %(clamp 0~49) 로 해석
-                    int trimPct = trimCount;
-                    if (trimPct > 49) trimPct = 49;
-                    if (trimPct < 0) trimPct = 0;
-                    int removeEach = (int)(edgeCount * trimPct / 100.0);
-
-                    // 상/하위 removeEach 제거 (남는 점 >= 2 보장, 미달 시 trim skip)
-                    if (removeEach > 0 && (edgeCount - 2 * removeEach) >= 2)
-                    {
-                        HTuple trimmedR = allRows.TupleSelectRange(removeEach, edgeCount - removeEach - 1);
-                        HTuple trimmedC = allCols.TupleSelectRange(removeEach, edgeCount - removeEach - 1);
-                        allRows = trimmedR;
-                        allCols = trimmedC;
-                        edgeCount = allRows.TupleLength();
-                    }
-                }
 
                 if (edgeCount < 2)
                 {
@@ -204,6 +179,27 @@ namespace ReringProject.Halcon.Algorithms
             finally
             {
                 if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼(단일 소스)
+        // 에지점 (rows,cols) 을 위치축으로 정렬 후 양끝 각 trimPercent%(0~49) 절사. scanHorizontal=true→row, false→col 기준.
+        //  trimPercent<=0 또는 점<4 → 무변경. 절사 후 남는 점<2 면 절사 skip(원본 유지). 점 순서는 FitLineContourXld 결과 무관 — 정렬은 절사 대상 선정용.
+        public static void SortAndTrimPercent(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimPercent)
+        {
+            if (rows == null || cols == null) return;
+            int n = rows.TupleLength();
+            if (trimPercent <= 0 || n < 4) return;
+            HTuple key = scanHorizontal ? rows : cols;
+            HTuple order = key.TupleSortIndex();
+            rows = rows.TupleSelect(order);
+            cols = cols.TupleSelect(order);
+            int pct = trimPercent; if (pct > 49) pct = 49;
+            int removeEach = (int)(n * pct / 100.0);
+            if (removeEach > 0 && (n - 2 * removeEach) >= 2)
+            {
+                rows = rows.TupleSelectRange(removeEach, n - removeEach - 1);
+                cols = cols.TupleSelectRange(removeEach, n - removeEach - 1);
             }
         }
 

@@ -2683,7 +2683,8 @@ namespace ReringProject.UI {
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
             if (datum == null) {
-                CustomMessageBox.Show("패턴 ROI 그리기", "Datum 노드를 먼저 선택하세요.");
+                //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
+                CustomMessageBox.Show("패턴 ROI 그리기", "Datum 티칭 존을 먼저 선택하세요.");
                 return;
             }
             ExitCanvasMode();
@@ -2732,7 +2733,8 @@ namespace ReringProject.UI {
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
             if (datum == null) {
-                CustomMessageBox.Show("패턴 2 ROI 그리기", "Datum 노드를 먼저 선택하세요.");
+                //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
+                CustomMessageBox.Show("패턴 2 ROI 그리기", "Datum 티칭 존을 먼저 선택하세요.");
                 return;
             }
             ExitCanvasMode();
@@ -2784,7 +2786,8 @@ namespace ReringProject.UI {
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
             if (datum == null) {
-                CustomMessageBox.Show("모델 생성 실패", "Datum 노드를 먼저 선택하세요.");
+                //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
+                CustomMessageBox.Show("모델 생성 실패", "Datum 티칭 존을 먼저 선택하세요.");
                 return;
             }
 

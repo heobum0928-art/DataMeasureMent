@@ -565,43 +565,14 @@ namespace ReringProject.Halcon.Algorithms
             return overlays;
         }
 
+        //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 위임(개수 → 양끝 각 %)
         /// <summary>
-        /// 극값 에지 포인트를 제거한다 (MeasurementAlgorithm.TrimExtremePoints 동일 로직).
-        /// scanHorizontal이면 row 기준, 아니면 column 기준으로 정렬 후 양 끝 trimCount개 제거.
+        /// 극값 에지 포인트를 제거한다. trimCount 는 양끝 각 백분율(%) 로 해석된다(VisionAlgorithmService.SortAndTrimPercent).
+        /// scanHorizontal이면 row 기준, 아니면 column 기준으로 정렬 후 양 끝 trimCount% 제거.
         /// </summary>
         private static void TrimExtremePoints(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimCount)
         {
-            if (trimCount <= 0)
-            {
-                return;
-            }
-
-            int pointCount = rows.TupleLength();
-            if (pointCount <= (trimCount * 2))
-            {
-                return;
-            }
-
-            HTuple key;
-            if (scanHorizontal) key = rows;
-            else key = cols;
-            HTuple sortedIndex;
-            HOperatorSet.TupleSortIndex(key, out sortedIndex);
-
-            HTuple sortedRows;
-            HTuple sortedCols;
-            HOperatorSet.TupleSelect(rows, sortedIndex, out sortedRows);
-            HOperatorSet.TupleSelect(cols, sortedIndex, out sortedCols);
-
-            int start = trimCount;
-            int end = sortedRows.TupleLength() - trimCount - 1;
-            if (end <= start)
-            {
-                return;
-            }
-
-            HOperatorSet.TupleSelectRange(sortedRows, start, end, out rows);
-            HOperatorSet.TupleSelectRange(sortedCols, start, end, out cols);
+            VisionAlgorithmService.SortAndTrimPercent(ref rows, ref cols, scanHorizontal, trimCount);
         }
     }
 }

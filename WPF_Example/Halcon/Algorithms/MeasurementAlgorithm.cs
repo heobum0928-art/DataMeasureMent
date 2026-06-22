@@ -247,39 +247,10 @@ namespace ReringProject.Halcon.Algorithms
             return true;
         }
 
+        //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 위임(개수 → 양끝 각 %). trimCount = 양끝 각 백분율(%).
         private static void TrimExtremePoints(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimCount)
         {
-            if (trimCount <= 0)
-            {
-                return;
-            }
-
-            var pointCount = rows.TupleLength();
-            if (pointCount <= (trimCount * 2))
-            {
-                return;
-            }
-
-            HTuple key;
-            if (scanHorizontal) key = rows;
-            else key = cols;
-            HTuple sortedIndex;
-            HOperatorSet.TupleSortIndex(key, out sortedIndex);
-
-            HTuple sortedRows;
-            HTuple sortedCols;
-            HOperatorSet.TupleSelect(rows, sortedIndex, out sortedRows);
-            HOperatorSet.TupleSelect(cols, sortedIndex, out sortedCols);
-
-            var start = trimCount;
-            var end = sortedRows.TupleLength() - trimCount - 1;
-            if (end <= start)
-            {
-                return;
-            }
-
-            HOperatorSet.TupleSelectRange(sortedRows, start, end, out rows);
-            HOperatorSet.TupleSelectRange(sortedCols, start, end, out cols);
+            VisionAlgorithmService.SortAndTrimPercent(ref rows, ref cols, scanHorizontal, trimCount);
         }
     }
 }

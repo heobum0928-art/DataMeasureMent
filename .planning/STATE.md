@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 48-01-PLAN.md
-last_updated: "2026-06-22T07:42:00.037Z"
+stopped_at: Completed 48-02-PLAN.md
+last_updated: "2026-06-22T07:49:02.219Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 14
   completed_phases: 11
   total_plans: 43
-  completed_plans: 37
-  percent: 86
+  completed_plans: 38
+  percent: 88
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 48 (protocol-v1-test-result-site-material) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-06-22
 
@@ -160,6 +160,7 @@ Last activity: 2026-06-22
 | Phase 57.1 P57.1-10 | 12 | 2 tasks | 13 files |
 | Phase 57.1 P57.1-11 | 8 | 1 tasks | 1 files |
 | Phase 48-protocol-v1-test-result-site-material P01 | 30 | 2 tasks | 3 files |
+| Phase 48 P02 | 20 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -322,6 +323,8 @@ Recent decisions affecting current work:
 - Phase 48-01: v1.0 분기 TestType=0(Default) 유지 — ResourceMap Inspection 흐름 정상. Site 매핑은 Wave 2 Plan 02 PcRole 기반으로 처리
 - Phase 48-01: sentinel SENTINEL_NO_MATERIAL=-1 채택 (자재번호 미수신 표준값, Wave 2 Plan 04 전파 체인 >= 0 조건으로 유효값 판별)
 - Phase 48-01: AfterLoad() partial 후크 패턴 — base Load() 끝에서 호출, Custom 구현 없으면 컴파일러가 제거 (null 안전)
+- ESite 슬롯 재사용 설계: framework ResourceMap Dictionary<ESite> 강결합으로 ESiteV1 신규 enum 불가 → ESite.Top=Site1/ESite.Side=Site2 슬롯 재사용, 자원은 PcRole 런타임 결정 (Phase 48-02)
+- TcpServer 생성자에서 포트 결정 분기: base 생성자가 mListener.Start()를 즉시 실행하므로 VisionServer 생성자 본문(base 이후)에서 포트 변경 불가 → TcpServer 생성자 내 bUseV1 분기로 ServerPortV1(7701) vs ServerPort(2505) 결정 (Phase 48-02)
 
 ### Quick Tasks Completed
 
@@ -445,8 +448,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-22T07:42:00.025Z
-Stopped at: Completed 48-01-PLAN.md
+Last session: 2026-06-22T07:49:02.208Z
+Stopped at: Completed 48-02-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

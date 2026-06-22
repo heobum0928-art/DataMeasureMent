@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 57-05-PLAN.md (#2 패턴 ROI 표시/숨김 토글 — SetDatumOverlayVisible 미러)
-last_updated: "2026-06-19T18:30:00.000Z"
+stopped_at: Phase 57 context gathered
+last_updated: "2026-06-22T01:18:47.330Z"
 last_activity: "2026-06-19 -- Phase 57 Plan 05 (#2 패턴 ROI 토글 cyan 렌더 게이트 + chk_overlayPattern) 완료"
 progress:
   total_phases: 13
   completed_phases: 11
   total_plans: 39
-  completed_plans: 39
-  percent: 100
+  completed_plans: 36
+  percent: 92
 ---
 
 # Project State
@@ -445,4 +445,4 @@ Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 �
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 57 (패턴 ROI UX & Datum 정렬 보강) — 5 plans — 2026-06-19T07:49:36.604Z
+**Planned Phase:** 57.1 (pattern-roi-verification-safety) — 3 plans — 2026-06-22T01:18:47.319Z

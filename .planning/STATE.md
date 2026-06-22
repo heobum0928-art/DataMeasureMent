@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 57.1-02-PLAN.md
-last_updated: "2026-06-22T01:28:27.102Z"
+stopped_at: Completed 57.1-03-PLAN.md
+last_updated: "2026-06-22T01:33:22.622Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 13
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 57.1 — EXECUTING
-Plan: 2 of 3 완료 (다음: 57.1-02)
+Plan: 3 of 3 완료 (다음: 57.1-02)
 Status: Ready to execute
 Last activity: 2026-06-22
 
@@ -150,6 +150,7 @@ Last activity: 2026-06-22
 | Phase 57-pattern-roi-ux-datum-align-hardening P05 | 6 | 3 tasks | 3 files |
 | Phase 57.1-pattern-roi-verification-safety P01 | 6 | 1 tasks | 1 files |
 | Phase 57.1-pattern-roi-verification-safety P02 | 8 | 2 tasks | 1 files |
+| Phase 57.1-pattern-roi-verification-safety P03 | 6 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -304,6 +305,7 @@ Recent decisions affecting current work:
 - [Phase 57-05]: #2 패턴 ROI 표시/숨김 토글 — SetDatumOverlayVisible 미러. MainResultViewerControl 에 `_patternRoiOverlayVisible` 게이트 + `SetPatternRoiOverlayVisible` setter + RenderNow 게이트(_resultDatumOverlays 순회 → PatternRoi/PatternRoi2 Length1/2>0 sentinel → double[]{row,col,phi,l1,l2} → RenderResultRoiBoxes "cyan",2). MainView 에 chk_overlayPattern 체크박스 + Chk_overlayPattern_Changed 핸들러(측정/Datum 토글 옆). 패턴=cyan, datum=orange, 측정=green, 기준선=slate blue 구분(D-15). RenderResultRoiBoxes 시그니처 IList<double[]> 무변경. 빌드 Debug/x64 PASS 신규 warning 0.
 - [Phase 57.1-01]: D-03/D-01 — InspectionList_SelectionChanged Datum 분기(ENodeType.Datum)에 ShowResultDatumOverlays(단일-원소 List<DatumConfig>) 호출 추가(RestoreDatumOverlayFromTeach 직후, force-rebind 전). _resultDatumOverlays 채워져 MainResultViewerControl cyan 패턴 ROI 게이트(:846) 충족 → Datum 노드 단독 선택서도 cyan 보정 ROI 가시(Top/Side/Bottom 무차별). ShowResultDatumOverlays 헬퍼 재사용(신규 경로 미도입), SetDatumOverlay 편집 채널 무수정(공존), MainResultViewerControl/MainView/HalconDisplayService 무수정 — 렌더 게이트 이미 정상, 입력만 안정화. 빌드 Debug/x64 PASS 0 errors 신규 warning 0. 회귀 0(Measurement/FAI/Action 분기 동일 경로). SIMUL UAT 대기.
 - [Phase 57.1-02]: D-02 진단 산출물 — [ALIGN-ROI] Trace 로그(transform 분기 try 내부, fai.FAIName+ROI_Phi/rotAngle/roiPhi deg) + length1=phi방향 반장축/length2=수직 규약 주석. 측정 산출(AffineTransPoint2d/AABB/MeasurePos) 무변경, length swap 0건 (D-02 LOCKED). msbuild PASS 신규 warning 0.
+- [Phase 57.1-03]: 패턴 버튼 안전장치 D-04 — 비-Datum 클릭 가드 메시지 3종 통일("Datum 티칭 존을 먼저 선택하세요"), 비활성화 경로(default-disable→Datum 분기만 재활성) grep 회귀 확증. Teach Datum :2321 무변경. 코드 동작 무변경(메시지 본문+주석만).
 
 ### Quick Tasks Completed
 
@@ -427,8 +429,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-22T01:28:27.090Z
-Stopped at: Completed 57.1-02-PLAN.md
+Last session: 2026-06-22T01:33:10.929Z
+Stopped at: Completed 57.1-03-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

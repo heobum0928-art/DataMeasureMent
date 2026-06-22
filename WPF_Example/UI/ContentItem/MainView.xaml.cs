@@ -2881,6 +2881,18 @@ namespace ReringProject.UI {
             }
         }
 
+        //260622 hbk Phase 57.1 Test Find 패턴 보정 연결 — TryComposeAlign 호출용 임의 활성 InspectionSequence 인스턴스 획득
+        //  TryComposeAlign 은 sequence 실행 상태 무관(인자로 입력, _datumTransforms 만 transient) → 어느 인스턴스든 가능.
+        private ReringProject.Sequence.InspectionSequence GetAnyInspectionSequence() {
+            if (pSeq == null) return null;
+            ESequence[] roles = new ESequence[] { ESequence.Top, ESequence.Side, ESequence.Bottom };
+            for (int i = 0; i < roles.Length; i++) {
+                ReringProject.Sequence.InspectionSequence seq = pSeq[roles[i]] as ReringProject.Sequence.InspectionSequence;
+                if (seq != null) return seq;
+            }
+            return null;
+        }
+
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
             // Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
             DatumConfig datum;
@@ -2917,7 +2929,21 @@ namespace ReringProject.UI {
                         catch (Exception exV) { error = "세로축 이미지 로드 실패: " + exV.Message; ok = false; }
                     }
                     if (error == null) {
-                        ok = svc.TryFindDatum(imgH, imgV, datum, out transform, out error);
+                        //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 런타임과 동일 TryComposeAlign(가로/세로), 아니면 기존 검출
+                        if (datum.IsPatternAlignEnabled) {
+                            ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
+                            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                            if (seq != null) {
+                                ok = seq.TryComposeAlign(datum, imgH, imgV, modelPath, out error);
+                                HOperatorSet.HomMat2dIdentity(out transform); // transform out 미사용(보정은 datum 내부 write-back)
+                            }
+                            else {
+                                ok = svc.TryFindDatum(imgH, imgV, datum, out transform, out error); // 폴백: 인스턴스 없음
+                            }
+                        }
+                        else {
+                            ok = svc.TryFindDatum(imgH, imgV, datum, out transform, out error);
+                        }
                     }
                     else {
                         HOperatorSet.HomMat2dIdentity(out transform); // 로드 실패 시 transform 초기화
@@ -2930,7 +2956,21 @@ namespace ReringProject.UI {
             else {
                 HImage testImage = AskTestImageSource();
                 if (testImage == null) return;
-                ok = svc.TryFindDatum(testImage, datum, out transform, out error); // 단일-이미지 오버로드
+                //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 TryComposeAlign(단일), 아니면 기존 검출
+                if (datum.IsPatternAlignEnabled) {
+                    ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
+                    string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                    if (seq != null) {
+                        ok = seq.TryComposeAlign(datum, testImage, modelPath, out error);
+                        HOperatorSet.HomMat2dIdentity(out transform); // transform out 미사용(보정은 datum 내부 write-back)
+                    }
+                    else {
+                        ok = svc.TryFindDatum(testImage, datum, out transform, out error); // 폴백: 인스턴스 없음
+                    }
+                }
+                else {
+                    ok = svc.TryFindDatum(testImage, datum, out transform, out error); // 단일-이미지 오버로드
+                }
             }
 
             // label_drawHint / label_testFindResult inline 피드백 폐기 (성공 X / 실패 O 모달 정책)

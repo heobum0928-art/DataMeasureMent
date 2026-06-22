@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ReringProject.Define;
 using ReringProject.Sequence;
+using ReringProject.Setting; //260622 hbk Phase 48
 
 namespace ReringProject.Network {
     public enum EVisionResponseType {
@@ -51,9 +52,15 @@ namespace ReringProject.Network {
         public const string TEST_RESULT_ANGLE_FAIL = "A";           //12.21
         public const string TEST_RESULT_TEACHING = "T";             //05.20 Insert
 
-        public const string SITE_STATUS_READY = "READY";        
-        public const string SITE_STATUS_BUSY = "BUSY";          
+        public const string SITE_STATUS_READY = "READY";
+        public const string SITE_STATUS_BUSY = "BUSY";
         public const string SITE_STATUS_ERROR = "ERROR";
+
+        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 3단 구분자 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@).
+        public const char MSG_RESULT_HEADER_SEP = ';';   // 헤더 구분자 (site/판정/count 사이)
+        public const char MSG_RESULT_ITEM_SEP   = ',';   // 항목 간 구분자
+        public const char MSG_RESULT_INNER_SEP  = '=';   // 항목 내부 구분자 (id=val=judge)
+        public const string TEST_RESULT_BUFFER  = "B";   // cycle 진행 중(Buffer) 판정
         
         public EVisionResponseType ResponseType { get; }
 
@@ -338,6 +345,15 @@ namespace ReringProject.Network {
                 case EVisionResponseType.Test:
                     TestResultPacket testPacket = packet.AsTestResult();
 
+                    // 260622 hbk Phase 48 PROTO-02: v1.0 분기 — 3단 구분자 RESULT. v2.6 면 기존 누적 블록 보존(회귀 0).
+                    bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
+                    if (bUseV1)
+                    {
+                        msg += BuildResultMessageV1(testPacket);
+                        break;
+                    }
+
+                    // ↓↓↓ 이하 기존 v2.6 블록 그대로 (회귀 0) ↓↓↓
                     msg += CMD_SEND_TEST;
                     msg += VisionServer.MSG_CMD_SEPERATOR;
 
@@ -407,6 +423,75 @@ namespace ReringProject.Network {
                     return null;
             }
             return msg;
+        }
+
+        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화. $RESULT:site;P|F|B;count;id=val=judge,...@ (STX/ETX 는 TcpServer 부착).
+        // FAICount=0(Datum 샷)이면 BuildFaiItemsV1 가 빈 문자열 반환 → 'RESULT:{site};B;0;' (마지막 ';' 뒤 항목 없음).
+        private static string BuildResultMessageV1(TestResultPacket testPacket)
+        {
+            string szMsg = "";
+            szMsg += CMD_SEND_TEST;                       // "RESULT"
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;      // ':'
+            szMsg += testPacket.Site.ToString();
+            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
+            szMsg += MapCycleJudgement(testPacket);       // P|F|B
+            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
+            szMsg += testPacket.FAICount.ToString();      // count
+            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
+            szMsg += BuildFaiItemsV1(testPacket);         // id=val=judge,...  (count=0 이면 빈 문자열)
+            return szMsg;
+        }
+
+        // 260622 hbk Phase 48 PROTO-02: cycle 종합 판정 → P/F/B 매핑. IsBuffer 최우선(진행 중), OK=P, 그 외=F.
+        // 판정 '결정' 로직은 Phase 49. 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
+        private static string MapCycleJudgement(TestResultPacket testPacket)
+        {
+            bool bIsBuffer = testPacket.IsBuffer;
+            if (bIsBuffer)
+            {
+                return TEST_RESULT_BUFFER;
+            }
+
+            bool bIsPass = testPacket.Result == EVisionResultType.OK;
+            if (bIsPass)
+            {
+                return TEST_RESULT_PASS;
+            }
+
+            return TEST_RESULT_FAIL;
+        }
+
+        // 260622 hbk Phase 48 PROTO-02: FAI 항목 판정 → OK|NG. (cycle 판정과 별개 — 항목 단위.)
+        private static string MapFaiJudgement(FAIResultData faiData)
+        {
+            bool bIsOk = faiData.Result == EVisionResultType.OK;
+            if (bIsOk)
+            {
+                return RESULT_OK;   // "OK"
+            }
+            return RESULT_NG;       // "NG"
+        }
+
+        // 260622 hbk Phase 48 PROTO-02: FAI 항목들을 id=val=judge,... 로 직렬화 (항목 간 ',').
+        private static string BuildFaiItemsV1(TestResultPacket testPacket)
+        {
+            string szItems = "";
+            int nCount = testPacket.FAICount;
+            for (int i = 0; i < nCount; i++)
+            {
+                FAIResultData faiData = testPacket.FAIResults[i];
+                bool bNeedsSeparator = i > 0;
+                if (bNeedsSeparator)
+                {
+                    szItems += MSG_RESULT_ITEM_SEP;               // ','
+                }
+                szItems += faiData.FAIName;                       // id
+                szItems += MSG_RESULT_INNER_SEP;                  // '='
+                szItems += faiData.DistanceMm.ToString("0.000");  // val
+                szItems += MSG_RESULT_INNER_SEP;                  // '='
+                szItems += MapFaiJudgement(faiData);              // OK|NG
+            }
+            return szItems;
         }
 
         public void Dispose() {
@@ -554,6 +639,9 @@ namespace ReringProject.Network {
         public List<FAIResultData> FAIResults { get; set; } = new List<FAIResultData>();
         public int FAICount => FAIResults.Count;
         public bool IsDynamicFAI { get; set; } = false;
+
+        // 260622 hbk Phase 48 PROTO-02: v1.0 B(Buffer) 상태 플래그. 직렬화가 P/F 보다 우선 평가. 판정 엔진(Phase 49)이 set.
+        public bool IsBuffer { get; set; } = false;
 
         // 비전 결과 데이터를 저장할 List 생성
         public const int MaxListCount = 10;

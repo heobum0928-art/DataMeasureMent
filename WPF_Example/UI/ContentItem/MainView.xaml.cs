@@ -438,8 +438,10 @@ namespace ReringProject.UI {
         }
 
         //260619 hbk Phase 56 Wave 2 — 결과 화면용 보정(회전) ROI 박스 빌드 (표시 전용).
-        //  측정과 100% 동일: Point ROI center 를 datum CurrentTransform 으로 변환 + rPhi=Atan2(-T[1],T[0])
-        //  → rectangle2 인자 {row,col,phi,L1,L2} (TryFitLine 의 gen_measure_rectangle2 규약 일치 → 회전 방향 일치).
+        //  Point ROI center 를 datum CurrentTransform 으로 변환 + rPhi=Atan2(-T[1],T[0]).
+        //260622 hbk Phase 57.1 #2 — length 는 HALCON disp_rectangle2 규약(length1=열/가로 반장축, length2=행/세로 반장축)
+        //  을 따른다(=정상 렌더되는 cyan 패턴 ROI 와 동일 규약). 측정 자체는 FAIEdgeMeasurementService 가
+        //  SmallestRectangle2+measurePhi 로 별도 수행하여 정상이며, 표시 박스만 length1/length2 가 반대였음(90° 회전 결함).
         //  BuildPointRoiDefinitions 가 새 객체 생성 → 티칭/편집 좌표 불변, 편집 채널(UpdateDisplayState)·핸들러 미접촉.
         private List<double[]> BuildCorrectedResultRoiOverlays(List<DatumConfig> datums) {
             var rects = new List<double[]>();
@@ -465,8 +467,9 @@ namespace ReringProject.UI {
                     if (m == null || string.IsNullOrEmpty(m.DatumRef) || !xforms.TryGetValue(m.DatumRef, out t)) continue;
                     double rPhi = System.Math.Atan2(-t[1].D, t[0].D); // 측정 rectangle2 회전각과 동일 규약 (TryFitLine)
                     foreach (var roi in BuildPointRoiDefinitions(m, fai.FAIName)) {
-                        double l1 = (roi.Row2 - roi.Row1) / 2.0;
-                        double l2 = (roi.Column2 - roi.Column1) / 2.0;
+                        //260622 hbk Phase 57.1 #2 — HALCON disp_rectangle2 규약: length1=열(가로/X) 반장축, length2=행(세로/Y) 반장축.
+                        double l1 = (roi.Column2 - roi.Column1) / 2.0; // length1 = 열(가로/X) 반장축
+                        double l2 = (roi.Row2 - roi.Row1) / 2.0;       // length2 = 행(세로/Y) 반장축
                         if (l1 <= 0 || l2 <= 0) continue;
                         double pcr = (roi.Row1 + roi.Row2) / 2.0;
                         double pcc = (roi.Column1 + roi.Column2) / 2.0;

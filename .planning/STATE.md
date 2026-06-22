@@ -401,6 +401,7 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ### Roadmap Evolution
 
+- 2026-06-22: Phase 57.1 inserted after Phase 57 (URGENT) — 패턴 ROI 검증 & 안전장치. Phase 57 UAT 피드백 4항목: ① Top/Bottom 패턴매칭 보정 적용/육안 확인(cyan ROI 표시) ② gen_rectangle2 length1/length2 장축·baseline 회전각 진단(analytic 회전은 정상 — swap 코드 수정 금지, 진단/시각화로 확증) ③ 패턴 ROI 시각화 렌더 조건 안정화(_resultDatumOverlays Datum 노드 선택 시에도 채우기) ④ 패턴 ROI 버튼 비-Datum 노드 비활성화 + 알림 메시지박스 안전장치. 조사 = Explore 3건 + 직접 코드 확인(PatternMatchService/FAIEdgeMeasurementService/MainView·MainResultViewerControl). ※ gsd-sdk phase.insert CLI "Phase 57 not found" 버그 재현 → 수동 삽입. 다음 = /gsd-plan-phase 57.1 (또는 #2 진단 먼저 discuss).
 - 2026-04-23: Phase 11 added — datum-teaching-ui-roi (WR-RT-01/03/04 묶음 예정, bugs.md 로드맵 기반)
 - 2026-04-26: Phase 14 added — Datum carry-over (Circle 알고리즘 재설계 + Vertical 파라미터 그룹 + ROI 이동 회귀 + CircleTwoHorizontal/VerticalTwoHorizontal 정상화 + out-of-range UX 게이트). Phase 13 UAT 옵션 2 합의(commit d9b5cc8) 후속.
 - 2026-04-29: Phase 15 added — HALCON MeasurePos 정합성 (DatumFindingService strip-loop 6 ROI + Circle polar).

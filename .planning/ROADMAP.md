@@ -469,5 +469,28 @@ Wave 2 (병렬): 57-02 (deps 57-01), 57-05 (deps 57-03/57-04)
 
 ---
 
+### Phase 57.1: 패턴 ROI 검증 & 안전장치 (INSERTED 2026-06-22 — Phase 57 UAT 피드백)
+
+**Goal:** Phase 57 패턴 ROI/정렬 UAT 중 발견된 4개 항목을 검증·보강한다. 패턴매칭 보정이 Top/Bottom에도 실제 적용되는지 육안 확인 가능하게 하고, ROI 회전 시 length1/length2 장축·baseline 회전각이 올바른지 진단하며, 패턴 ROI 시각화 렌더 조건을 안정화하고, 패턴 ROI 버튼에 비-Datum 노드 비활성화 + 알림 안전장치를 추가한다.
+**Requirements**: Phase 57 후속 (ALIGN-01/02 UAT 피드백)
+**Depends on:** Phase 57 (패턴 ROI UX & Datum 정렬 보강)
+**Background:** Phase 57 sign-off 전 UAT 피드백 4항목 (2026-06-22). 조사 = 본 세션 Explore 3건 + 직접 코드 확인 (PatternMatchService / FAIEdgeMeasurementService / MainView·MainResultViewerControl 렌더 게이트).
+
+**스코프 4항목 (사용자 결정 = Phase 57.1 묶음):**
+1. **Top/Bottom 패턴매칭 보정 적용 + 육안 확인** — Top/Side/Bottom 모두 동일 InspectionSequence→TryComposeAlign 경로(IsPatternAlignEnabled per-Datum, 기본 off). 보정 ROI cyan 박스가 실제로 보여 보정 여부를 육안 확인 가능해야 함(#3 시각화와 연계).
+2. **gen_rectangle2 length1/length2 장축·회전각 진단 (swap 아님)** — FAIEdgeMeasurementService.cs:51 analytic 회전(phi += rotAngle, length 유지)은 강체회전상 정상. 진단 = (a) baseline 회전각 thetaRad가 90° 어긋난 값 반환하는지, (b) HALCON 규약(length1=phi방향, length2=수직) 매핑이 티칭 드로잉 직관과 일치하는지 확증·문서화/시각화. ※ length swap 코드 수정은 회귀 위험 — 금지.
+3. **패턴 ROI 시각화 렌더 조건 안정화** — cyan 패턴 ROI는 `_resultDatumOverlays` 채워질 때만 렌더(MainResultViewerControl). Measurement/Shot/FAI 노드 렌더 경로에서만 채워지고 Datum 노드 단독 선택/티칭 모드에선 비어 안 보임 → Datum 노드 선택 시에도 채우기.
+4. **패턴 ROI 버튼 비-Datum 비활성화 + 알림 안전장치** — 패턴1/패턴2/패턴모델생성 버튼이 Datum 노드 외 이동 시 명시적 비활성화 안 됨. (a) 비-Datum 노드 선택 시 IsEnabled=false, (b) 클릭 핸들러에 "Datum 티칭 존을 먼저 선택하세요" 알림 메시지박스 가드.
+
+**Success Criteria (UAT):**
+  - Top/Bottom Datum에 IsPatternAlignEnabled on 후 보정 ROI(cyan)가 결과 화면에 표시되어 보정 위치 육안 확인 가능
+  - length1/length2 장축 매핑 + baseline 회전각이 90° 어긋남 없이 ROI가 부품 정렬과 일치 (진단 보고/시각화로 확증)
+  - Datum/Measurement/Shot/FAI 어느 노드를 선택해도 패턴 ROI 표시 토글이 일관되게 동작
+  - 비-Datum 노드 선택 시 패턴 ROI 버튼 비활성화, 부주의 클릭 시 알림 메시지박스 표시
+
+- [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — NOT PLANNED
+
+---
+
 *Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*
 

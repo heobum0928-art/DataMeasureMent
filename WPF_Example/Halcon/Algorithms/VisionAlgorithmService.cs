@@ -143,15 +143,33 @@ namespace ReringProject.Halcon.Algorithms
                     }
                 }
 
-                // TrimCount 적용 (누적 점 양 끝 제거)
+                //260622 hbk Phase 57.1 #2 — 정렬 후 양끝 % 절사(trimmed fit). 기존: 정렬없이 누적순서 양끝 trimCount개 제거 → "뒤죽박죽".
+                //  위치축 정렬(scanHorizontal=세로에지→row, else→col) 후 EdgeTrimCount 를 양끝 각각 %(0~49) 로 해석해 상/하위 제거, 중간만 피팅.
+                //  점 순서는 FitLineContourXld 결과에 무관(점집합) — 정렬은 절사 대상 선정 목적.
                 int edgeCount = allRows.TupleLength();
-                if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
+                if (trimCount > 0 && edgeCount >= 4)
                 {
-                    HTuple trimmedR = allRows.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
-                    HTuple trimmedC = allCols.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
-                    allRows = trimmedR;
-                    allCols = trimmedC;
-                    edgeCount = allRows.TupleLength();
+                    // 분포 축 기준 오름차순 정렬 인덱스 → allRows/allCols 쌍 유지 재정렬
+                    HTuple sortKey = scanHorizontal ? allRows : allCols;
+                    HTuple order = sortKey.TupleSortIndex();
+                    allRows = allRows.TupleSelect(order);
+                    allCols = allCols.TupleSelect(order);
+
+                    // trimCount 를 양끝 각각 %(clamp 0~49) 로 해석
+                    int trimPct = trimCount;
+                    if (trimPct > 49) trimPct = 49;
+                    if (trimPct < 0) trimPct = 0;
+                    int removeEach = (int)(edgeCount * trimPct / 100.0);
+
+                    // 상/하위 removeEach 제거 (남는 점 >= 2 보장, 미달 시 trim skip)
+                    if (removeEach > 0 && (edgeCount - 2 * removeEach) >= 2)
+                    {
+                        HTuple trimmedR = allRows.TupleSelectRange(removeEach, edgeCount - removeEach - 1);
+                        HTuple trimmedC = allCols.TupleSelectRange(removeEach, edgeCount - removeEach - 1);
+                        allRows = trimmedR;
+                        allCols = trimmedC;
+                        edgeCount = allRows.TupleLength();
+                    }
                 }
 
                 if (edgeCount < 2)

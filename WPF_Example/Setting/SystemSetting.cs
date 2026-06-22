@@ -90,6 +90,21 @@ namespace ReringProject.Setting {
         public string MapDataSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Save";
 
 
+        //260622 hbk Phase 48
+        // PROTO-01: v1.0 프로토콜 활성화 플래그 (D-06 v2.6/v1.0 공존). 기본 false → 구 INI 0 로드돼도 v2.6 유지.
+        [Category("Connection|Protocol")]
+        public bool UseProtocolV1 { get; set; } = false;
+
+        //260622 hbk Phase 48
+        // PROTO-01: PC 역할 (D-03 빌드 상수 대신 설정 지정). 1=PC1(TOP/BOTTOM), 2=PC2(SIDE_1/SIDE_2).
+        [Category("Connection|Server")]
+        public int PcRole { get; set; } = 1;
+
+        //260622 hbk Phase 48
+        // PROTO-01: v1.0 전용 포트 (엑셀 규격 7701). ServerPort(2505) 는 v2.6 호환 유지 — v1.0 포트는 별도 속성으로 분리.
+        [Category("Connection|Server")]
+        public int ServerPortV1 { get; set; } = 7701;
+
         //config
 
         [Category("System|Enviroment")]
@@ -251,7 +266,14 @@ namespace ReringProject.Setting {
                     Logging.PrintErrLog((int)ELogType.Error, e.Message);
                 }
             }
+            //260622 hbk Phase 48
+            // PROTO-01: INI 로드 후 Custom partial 가드 호출 — PcRole 등 기본값≠0 항목 복원.
+            AfterLoad();
         }
+
+        //260622 hbk Phase 48
+        // PROTO-01: Load 후처리 partial 후크 — Custom/SystemSetting.cs 에서 구현.
+        partial void AfterLoad();
 
         public void Save() {
             IniFile saveFile = new IniFile();

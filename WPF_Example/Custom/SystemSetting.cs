@@ -25,5 +25,28 @@ namespace ReringProject.Setting {
             get { return (ECameraRole)CameraRoleValue; }
             set { CameraRoleValue = (int)value; }
         }
+
+        //260622 hbk Phase 48
+        // PROTO-01: PcRole 기본값(1) 이 구 INI 에 키 부재 시 0 으로 로드되는 문제 방어
+        // (reference_parambase_missing_key_zeroes_default.md — Int32 case 에서 0 덮어씀).
+        // AfterLoad() = Load() 완료 직후 호출되는 partial 메서드 구현부.
+        private const int PC_ROLE_DEFAULT = 1; //260622 hbk Phase 48
+
+        partial void AfterLoad()
+        {
+            RestorePcRoleDefault();
+        }
+
+        // 260622 hbk Phase 48
+        // PROTO-01: PcRole==0(구 INI 누락 로드) 이면 PC1 기본값(=1) 으로 복원.
+        // D-00 준수: 헝가리언(bPcRoleMissing), if/else, 매직넘버 금지(PC_ROLE_DEFAULT).
+        private void RestorePcRoleDefault()
+        {
+            bool bPcRoleMissing = PcRole == 0;
+            if (bPcRoleMissing)
+            {
+                PcRole = PC_ROLE_DEFAULT;
+            }
+        }
     }
 }

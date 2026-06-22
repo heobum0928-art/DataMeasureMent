@@ -26,6 +26,8 @@ namespace ReringProject.Sequence
         public string EdgeDirection { get; set; } = "LtoR";
         public string EdgeSelection { get; set; } = "Both";
         public int EdgeSampleCount { get; set; } = 20;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Edge Trim (%)")]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
         public string EdgePolarity { get; set; } = "DarkToLight";

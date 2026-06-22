@@ -48,6 +48,8 @@ namespace ReringProject.Sequence
         public int PointROI_EdgeThreshold { get; set; } = 10;
         public double PointROI_Sigma { get; set; } = 1.0;
         public int PointROI_EdgeSampleCount { get; set; } = 20;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Point Edge Trim (%)")]
         public int PointROI_EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
         public string PointROI_EdgePolarity { get; set; } = "DarkToLight";
@@ -68,6 +70,8 @@ namespace ReringProject.Sequence
         public int LineROI_EdgeThreshold { get; set; } = 10;
         public double LineROI_Sigma { get; set; } = 1.0;
         public int LineROI_EdgeSampleCount { get; set; } = 20;
+        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        [DisplayName("Line Edge Trim (%)")]
         public int LineROI_EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
         public string LineROI_EdgePolarity { get; set; } = "DarkToLight";

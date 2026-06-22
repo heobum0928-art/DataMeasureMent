@@ -1715,16 +1715,13 @@ namespace ReringProject.Halcon.Algorithms
                     string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips",
                         lbl, edgeCount, stripCount));
 
-                // TrimCount: 누적된 모든 점 중 양 끝 제거 (FitLineContourXld 입력 정제)
-                if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
+                //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 사용(개수 trim → 양끝 각 %)
+                VisionAlgorithmService.SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
+                edgeCount = allRows.TupleLength();
+                if (trimCount > 0)
                 {
-                    HTuple trimmedR = allRows.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
-                    HTuple trimmedC = allCols.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
-                    allRows    = trimmedR;
-                    allCols    = trimmedC;
-                    edgeCount  = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
+                        string.Format("[Datum.{0}] trimmed {1}% from each end -> {2} edges remain",
                             lbl, trimCount, edgeCount));
                 }
 
@@ -1890,16 +1887,13 @@ namespace ReringProject.Halcon.Algorithms
                     string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips",
                         lbl, edgeCount, stripCount));
 
-                // TrimCount: 누적된 전체 점 양 끝 제거
-                if (trimCount > 0 && edgeCount > 2 * trimCount + 1)
+                //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 사용(개수 trim → 양끝 각 %)
+                VisionAlgorithmService.SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
+                edgeCount = allRows.TupleLength();
+                if (trimCount > 0)
                 {
-                    HTuple trimmedR = allRows.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
-                    HTuple trimmedC = allCols.TupleSelectRange(trimCount, edgeCount - trimCount - 1);
-                    allRows   = trimmedR;
-                    allCols   = trimmedC;
-                    edgeCount = allRows.TupleLength();
                     Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] trimmed {1} from each end -> {2} edges remain",
+                        string.Format("[Datum.{0}] trimmed {1}% from each end -> {2} edges remain",
                             lbl, trimCount, edgeCount));
                 }
 

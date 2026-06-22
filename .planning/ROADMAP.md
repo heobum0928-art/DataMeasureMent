@@ -498,6 +498,8 @@ Plans:
 - [x] 57.1-05-PLAN.md — 패턴 1/패턴 2 ROI 그리기 버튼 진입 전 OK/Cancel 진행 확인 (무심코 클릭 방지) ✅ 2026-06-22 (b600a16)
 - [x] 57.1-06-PLAN.md — Test Find 보정 ROI 박스 위치이동 표시 (보정 datum 성공 시 ShowResultDatumOverlays → orange ROI 박스 부품 따라 이동, UAT Test 4 fix) ✅ 2026-06-22 (63cc0d8)
 - [x] 57.1-07-PLAN.md — 측정 ROI 표시 90° 정상화(View length1/length2 스왑 수정, 측정값 무변경) + cyan 패턴 ROI CurrentTransform 위치보정 표시 ✅ 2026-06-22 (088f6ab)
+- [x] 57.1-08-PLAN.md — TryFitLine 에지 trim 을 위치축 정렬 + 양끝 % 절사로 교체 (EdgeTrimCount=양끝 각 %) ✅ 2026-06-22
+- [x] 57.1-09-PLAN.md — 에지 trim 정렬+% 절사를 VisionAlgorithmService.SortAndTrimPercent 공유 헬퍼로 단일소스화 (Datum 검출 + 전 측정 trim 통일) ✅ 2026-06-22 (f14c8b9)
 
 - [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — PLANNED
 

@@ -2687,6 +2687,12 @@ namespace ReringProject.UI {
                 CustomMessageBox.Show("패턴 ROI 그리기", "Datum 티칭 존을 먼저 선택하세요.");
                 return;
             }
+            //260622 hbk Phase 57.1 패턴 버튼 무심코 클릭 방지 — Datum 노드라도 진행 확인(OK/Cancel)
+            if (CustomMessageBox.ShowConfirmation("패턴 1 ROI 그리기",
+                    "패턴 1 ROI 를 새로 그리시겠습니까?\n(기존 패턴 1 영역이 있으면 새로 그린 영역으로 대체됩니다.)",
+                    MessageBoxButton.OKCancel) != MessageBoxResult.OK) {
+                return;
+            }
             ExitCanvasMode();
             _editingDatum = datum;
             _canvasMode = ECanvasMode.PatternRoi;
@@ -2735,6 +2741,12 @@ namespace ReringProject.UI {
             if (datum == null) {
                 //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
                 CustomMessageBox.Show("패턴 2 ROI 그리기", "Datum 티칭 존을 먼저 선택하세요.");
+                return;
+            }
+            //260622 hbk Phase 57.1 패턴 버튼 무심코 클릭 방지 — Datum 노드라도 진행 확인(OK/Cancel)
+            if (CustomMessageBox.ShowConfirmation("패턴 2 ROI 그리기",
+                    "패턴 2 ROI 를 새로 그리시겠습니까?\n(기존 패턴 2 영역이 있으면 새로 그린 영역으로 대체됩니다.)",
+                    MessageBoxButton.OKCancel) != MessageBoxResult.OK) {
                 return;
             }
             ExitCanvasMode();

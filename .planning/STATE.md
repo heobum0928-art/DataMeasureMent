@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: verifying
-stopped_at: Completed 57.1-09-PLAN.md
-last_updated: "2026-06-22T05:19:26.268Z"
+stopped_at: Completed 57.1-11-PLAN.md
+last_updated: "2026-06-22T05:50:10.633Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 13
   completed_phases: 11
-  total_plans: 39
-  completed_plans: 36
+  total_plans: 40
+  completed_plans: 37
   percent: 92
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 57.1 — EXECUTING
-Plan: 57.1-10 완료 (EdgeTrimCount UI 를 %(비율) 표시로 통일 — 측정 13 + Datum 6 trim 필드에 [DisplayName("...Edge Trim (%)")] 추가. 프로퍼티명/INI 키/기본값 무변경으로 직렬화 호환 보존. 값 % 해석은 57.1-09 헬퍼 담당)
-Status: Plan 57.1-10 complete — ready for verification (10/10 plans executed)
+Plan: 57.1-11 완료 (재티칭 시 패턴 기준 RefMatch 동기화 — align ON datum 재티칭 직후 같은 티칭 이미지에서 TryFindRefPose 재실행해 RefMatch/RefMatch2 재앵커 → Test Find alignRigid≈identity → slate blue Find=yellow Teach 일치. RefreshPatternRefPoseAfterTeach 헬퍼 + 단일/DualImage(imgH dispose 전)/Edit 3 호출. align OFF/모델없음 회귀 0)
+Status: Plan 57.1-11 complete — ready for verification (11 plans executed)
 Last activity: 2026-06-22
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -158,6 +158,7 @@ Last activity: 2026-06-22
 | Phase 57.1 P57.1-08 | 4 | 1 tasks | 1 files |
 | Phase 57.1 P57.1-09 | 5 | 3 tasks | 4 files |
 | Phase 57.1 P57.1-10 | 12 | 2 tasks | 13 files |
+| Phase 57.1 P57.1-11 | 8 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -440,8 +441,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-22T05:03:50.760Z
-Stopped at: Completed 57.1-09-PLAN.md
+Last session: 2026-06-22T05:50:10.618Z
+Stopped at: Completed 57.1-11-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

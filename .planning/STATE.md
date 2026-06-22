@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: Phases
 status: verifying
 stopped_at: Completed 57.1-09-PLAN.md
-last_updated: "2026-06-22T05:03:50.772Z"
+last_updated: "2026-06-22T05:19:26.268Z"
 last_activity: 2026-06-22
 progress:
   total_phases: 13
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 57.1 — EXECUTING
-Plan: 57.1-09 완료 (에지 trim 정렬+% 절사를 VisionAlgorithmService.SortAndTrimPercent 공유 헬퍼로 단일소스화 — Datum 검출 2 + 측정 trim 2 사이트 통일. EdgeTrimCount=양끝 각 % 전 사이트 일관)
-Status: Plan 57.1-09 complete — ready for verification (9/9 plans executed)
+Plan: 57.1-10 완료 (EdgeTrimCount UI 를 %(비율) 표시로 통일 — 측정 13 + Datum 6 trim 필드에 [DisplayName("...Edge Trim (%)")] 추가. 프로퍼티명/INI 키/기본값 무변경으로 직렬화 호환 보존. 값 % 해석은 57.1-09 헬퍼 담당)
+Status: Plan 57.1-10 complete — ready for verification (10/10 plans executed)
 Last activity: 2026-06-22
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
@@ -157,6 +157,7 @@ Last activity: 2026-06-22
 | Phase 57.1 P57.1-07 | 4 | 2 tasks | 2 files |
 | Phase 57.1 P57.1-08 | 4 | 1 tasks | 1 files |
 | Phase 57.1 P57.1-09 | 5 | 3 tasks | 4 files |
+| Phase 57.1 P57.1-10 | 12 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -315,6 +316,7 @@ Recent decisions affecting current work:
 - [Phase 57.1-07]: 측정 보정 ROI 표시 박스 length1/length2 를 HALCON disp_rectangle2 규약(length1=열/가로, length2=행/세로 = cyan 패턴 ROI 동일)에 맞춰 교정 — 측정(FAIEdgeMeasurementService SmallestRectangle2+measurePhi) 무변경, 표시만 90° 정상화
 - [Phase 57.1-07]: cyan 패턴 ROI center 를 CurrentTransform 으로 AffineTransPoint2d 변환 + phi += Atan2(-t[1],t[0]) — datum/측정 ROI 동일 규약, transform 무효 시 공칭 폴백(회귀 0)
 - [Phase 57.1-08]: TryFitLine EdgeTrimCount 의미를 '개수'→'양끝 각 %(0~49 clamp)' 로 재해석 + 위치축 정렬(scanHorizontal→row,else→col, TupleSortIndex+TupleSelect) 후 양끝 removeEach=(int)(edgeCount*pct/100) 절사. 가드 edgeCount>=4 + (edgeCount-2*removeEach)>=2 로 들쭉날쭉 해소. 정렬/절사 allRows/allCols 가 FitLineContourXld+collectedEdges 로 전달(overlay 마젠타 절사 후 반영).
+- [Phase 57.1-10]: trim 의미 변경(양끝 각 %, 57.1-08/09)에 맞춰 측정 13 + Datum 6 trim 필드에 [DisplayName("...Edge Trim (%)")] 만 추가 — PropertyTools 라벨 override 는 ParamBase reflection/Newtonsoft 직렬화(프로퍼티명 기준)에 무영향이라 INI 하위호환 완전 보존. DualImage 만 ROI 구분 'Point/Line Edge Trim (%)' 차등. 빌드 0 errors 신규 warning 0.
 
 ### Quick Tasks Completed
 

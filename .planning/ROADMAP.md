@@ -500,6 +500,7 @@ Plans:
 - [x] 57.1-07-PLAN.md — 측정 ROI 표시 90° 정상화(View length1/length2 스왑 수정, 측정값 무변경) + cyan 패턴 ROI CurrentTransform 위치보정 표시 ✅ 2026-06-22 (088f6ab)
 - [x] 57.1-08-PLAN.md — TryFitLine 에지 trim 을 위치축 정렬 + 양끝 % 절사로 교체 (EdgeTrimCount=양끝 각 %) ✅ 2026-06-22
 - [x] 57.1-09-PLAN.md — 에지 trim 정렬+% 절사를 VisionAlgorithmService.SortAndTrimPercent 공유 헬퍼로 단일소스화 (Datum 검출 + 전 측정 trim 통일) ✅ 2026-06-22 (f14c8b9)
+- [x] 57.1-10-PLAN.md — EdgeTrimCount UI 를 %(비율) 표시로 통일 (측정 13 + Datum 6 trim 필드에 [DisplayName("...Edge Trim (%)")] 추가, INI 키 보존) ✅ 2026-06-22 (a1a167d)
 
 - [ ] **Phase 57.1: 패턴 ROI 검증 & 안전장치** — Top/Bottom 보정 육안확인 + length 장축 진단 + 시각화 안정화 + 버튼 안전장치 (Phase 57 UAT 후속) — PLANNED
 

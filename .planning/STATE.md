@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Phase 57 context gathered
-last_updated: "2026-06-22T01:18:47.330Z"
-last_activity: "2026-06-19 -- Phase 57 Plan 05 (#2 패턴 ROI 토글 cyan 렌더 게이트 + chk_overlayPattern) 완료"
+stopped_at: Completed 57.1-01-PLAN.md
+last_updated: "2026-06-22T01:26:00.000Z"
+last_activity: 2026-06-22 -- Phase 57.1 Plan 01 완료 (49a48ec)
 progress:
   total_phases: 13
   completed_phases: 11
-  total_plans: 39
-  completed_plans: 36
-  percent: 92
+  total_plans: 42
+  completed_plans: 37
+  percent: 88
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 57 — 패턴 ROI UX & Datum 정렬 보강
+**Current focus:** Phase 57.1 — 패턴 ROI 검증 & 안전장치
 
 ## Current Position
 
-Phase: 57 (패턴 ROI UX & Datum 정렬 보강) — EXECUTING (모든 plan 완료, 검증 대기)
-Plan: 57-01 + 57-03 + 57-04 (Wave 1) + 57-02 + 57-05 (Wave 2) 완료. Phase 57 전 plan 실행 완료.
-Status: Executing Phase 57 — 5/5 plans 완료
-Last activity: 2026-06-19 -- Phase 57 Plan 05 (#2 패턴 ROI 토글 cyan 렌더 게이트 + chk_overlayPattern) 완료
+Phase: 57.1 — EXECUTING
+Plan: 1 of 3 완료 (다음: 57.1-02)
+Status: 57.1-01 완료 (D-03/D-01 충족, SIMUL UAT 대기)
+Last activity: 2026-06-22 -- Phase 57.1 Plan 01 완료 (49a48ec)
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -148,6 +148,7 @@ Last activity: 2026-06-19 -- Phase 57 Plan 05 (#2 패턴 ROI 토글 cyan 렌더 
 | Phase 57-pattern-roi-ux-datum-align-hardening P04 | 8 | 3 tasks | 2 files |
 | Phase 57-pattern-roi-ux-datum-align-hardening P02 | 15 | 3 tasks | 3 files |
 | Phase 57-pattern-roi-ux-datum-align-hardening P05 | 6 | 3 tasks | 3 files |
+| Phase 57.1-pattern-roi-verification-safety P01 | 6 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -300,6 +301,7 @@ Recent decisions affecting current work:
 - [Phase 52-03] EStep.Level 을 MoveZ-DatumPhase 사이 삽입 — 회전 이미지가 Datum 검출+측정 둘 다 입력. DatumPhase(1-image+DualImage)·Grab 동일 -LevelingAngleRad 동일 회전중심 적용(좌표계 정합), taught ROI 미변환(방식 a), off/미산출 pass-through 회귀 0
 - [Phase 57-01]: leveling 완전 제거 — EStep.Level/LevelingEnabled/TryComputeLevelingAngle/TryGetLevelingAngle(2 오버로드)/IsLevelingReference/INI 키 3곳 전수 제거. MoveZ→DatumPhase 직결. 옛 INI stale 키는 ParamBase.Load 무시(D-14). ALIGN(AlignPreTransform/DualImage) 무손상. 빌드 PASS 신규 warning 0.
 - [Phase 57-05]: #2 패턴 ROI 표시/숨김 토글 — SetDatumOverlayVisible 미러. MainResultViewerControl 에 `_patternRoiOverlayVisible` 게이트 + `SetPatternRoiOverlayVisible` setter + RenderNow 게이트(_resultDatumOverlays 순회 → PatternRoi/PatternRoi2 Length1/2>0 sentinel → double[]{row,col,phi,l1,l2} → RenderResultRoiBoxes "cyan",2). MainView 에 chk_overlayPattern 체크박스 + Chk_overlayPattern_Changed 핸들러(측정/Datum 토글 옆). 패턴=cyan, datum=orange, 측정=green, 기준선=slate blue 구분(D-15). RenderResultRoiBoxes 시그니처 IList<double[]> 무변경. 빌드 Debug/x64 PASS 신규 warning 0.
+- [Phase 57.1-01]: D-03/D-01 — InspectionList_SelectionChanged Datum 분기(ENodeType.Datum)에 ShowResultDatumOverlays(단일-원소 List<DatumConfig>) 호출 추가(RestoreDatumOverlayFromTeach 직후, force-rebind 전). _resultDatumOverlays 채워져 MainResultViewerControl cyan 패턴 ROI 게이트(:846) 충족 → Datum 노드 단독 선택서도 cyan 보정 ROI 가시(Top/Side/Bottom 무차별). ShowResultDatumOverlays 헬퍼 재사용(신규 경로 미도입), SetDatumOverlay 편집 채널 무수정(공존), MainResultViewerControl/MainView/HalconDisplayService 무수정 — 렌더 게이트 이미 정상, 입력만 안정화. 빌드 Debug/x64 PASS 0 errors 신규 warning 0. 회귀 0(Measurement/FAI/Action 분기 동일 경로). SIMUL UAT 대기.
 
 ### Quick Tasks Completed
 

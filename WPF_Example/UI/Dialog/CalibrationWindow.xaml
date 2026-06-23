@@ -103,6 +103,7 @@
                 <WrapPanel Grid.Row="3" Margin="0,0,0,8">
                     <Button x:Name="btn_loadImage" Style="{StaticResource CalibrationActionButtonStyle}" Content="이미지 로드" Click="LoadImageButton_Click"/>
                     <Button x:Name="btn_liveCapture" Style="{StaticResource CalibrationActionButtonStyle}" Content="라이브 촬상" Click="GrabImageButton_Click"/>
+                    <Button x:Name="btn_setRoi" Style="{StaticResource CalibrationActionButtonStyle}" Content="ROI 지정" Click="SetRoiButton_Click"/>
                     <Button x:Name="btn_detect" Style="{StaticResource CalibrationActionButtonStyle}" Content="검출" Click="DetectButton_Click"/>
                     <Button x:Name="btn_apply" Style="{StaticResource CalibrationActionButtonStyle}" Content="적용" Click="ApplyButton_Click" IsEnabled="False"/>
                 </WrapPanel>

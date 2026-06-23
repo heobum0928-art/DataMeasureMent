@@ -552,12 +552,19 @@
     <Compile Include="Halcon\Models\RoiLineInspectionResult.cs" />
     <Compile Include="Halcon\Models\TeachingJob.cs" />
     <Compile Include="Halcon\Services\TeachingStorageService.cs" />
+    <Compile Include="UI\Dialog\CalibrationWindow.xaml.cs">
+      <DependentUpon>CalibrationWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Dialog\TeachingWindow.xaml.cs">
       <DependentUpon>TeachingWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\ContentItem\HalconViewerControl.xaml.cs">
       <DependentUpon>HalconViewerControl.xaml</DependentUpon>
     </Compile>
+    <Page Include="UI\Dialog\CalibrationWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="UI\Dialog\TeachingWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

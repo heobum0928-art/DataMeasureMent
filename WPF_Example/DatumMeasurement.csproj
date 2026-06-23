@@ -538,6 +538,7 @@
     <Compile Include="Halcon\Algorithms\PatternMatchService.cs" />
     <Compile Include="Halcon\Algorithms\DatumFindingService.cs" />
     <Compile Include="Halcon\Algorithms\FAIEdgeMeasurementService.cs" />
+    <Compile Include="Halcon\Algorithms\CheckerboardCalibrationService.cs" />
     <Compile Include="Halcon\Algorithms\VisionAlgorithmService.cs" />
     <Compile Include="Halcon\Algorithms\MeasurementAlgorithm.cs" />
     <Compile Include="Halcon\Algorithms\RoiLineIntersectionAlgorithm.cs" />

@@ -49,6 +49,14 @@ namespace ReringProject.Sequence {
         [Category("Shot|Identity")]
         public string OwnerSequenceName { get; set; } = "";
 
+        //260623 hbk Phase 49 PROTO-03/05 (D-01): 이 Shot 이 속한 $TEST z_index. 0=Datum 샷, 1+=측정 Index.
+        //  AddResponse(49-02) 가 RequestPacket z_index 와 비교하여 해당 Index Shot 만 판정 집계(Index-scoped, D-01).
+        //  ParamBase reflection 자동 직렬화 — INI 키 = "ZIndex". 기존 레시피엔 키 부재 → 0 로드(=Datum/Idx0 폴백, 하위 호환).
+        //  ※ 엣지케이스: ZIndex 미설정 레시피(전 Shot=0)는 Index 0 만 매칭됨 → 측정 Index(1+) 수신 시 BuildScopedResponse 매칭 0건.
+        //     이 경우 49-02 BuildScopedResponse 가 빈 B 응답 + PrintErrLog 경고를 남김(조용한 빈 B 금지). 운용 시 레시피 ZIndex 설정 필요.
+        //  ※ INI 호환 위해 PascalCase 프로퍼티명 유지(ParamBase 키=프로퍼티명) — 헝가리언 예외(직렬화 필드, D-10 적용범위 밖).
+        public int ZIndex { get; set; } = 0;
+
         // Multi-Light — Ring/Back/Coax/Side 조명 필드 8개
         [Category("Light|Ring")]
         public bool RingLight_Enabled { get; set; }

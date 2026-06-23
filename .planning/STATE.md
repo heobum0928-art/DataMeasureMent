@@ -358,6 +358,7 @@ Recent decisions affecting current work:
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| 260623-mao | 2026-06-23 | 체커보드 캘리브 검출 시각화 강화 — 검출 saddle 코너를 CalibrationResult(CornerRows/Cols)로 노출 + HalconDisplayService `Calib-Corners` cyan DispCross 배치 렌더 분기(FAI-EdgeRaw 미러, 새 HWindow 경로 0) + CalibrationWindow ShowCornerOverlay(SetInspectionOverlays 재사용)로 검출 코너 십자 오버레이 + 왜곡 리포트 보강(중앙부 px↔외곽부 px·종합/X/Y 편차%·로드/촬상/실패 클리어). 회귀 가드: FAI/Group/Datum 분기·MmPerPixel/IsDistortionWarn 무수정. msbuild Debug/x64 0 errors. | 7cff5a2, 7c88d56, 8daa972 | 빌드 PASS · SIMUL 코너마커 육안 UAT 대기 |
 | 260409-e3v | 2026-04-09 | Phase 3 에지 측정 파라미터 수정 (EEdgeMeasureType → EdgeDirection/Selection/SampleCount/TrimCount/Polarity) | 9599bbf, a65585f | |
 | 260417-ou8 | 2026-04-17 | EdgePairDistanceMeasurement ROI 필드 제거 — FAIConfig 단일 소스화 (노란≠빨강 ROI 버그 구조적 제거) | 5bfde87 | |
 | 260417-kzd | 2026-04-22 | Phase 6-04 UAT 잔여 결함 수정 — InspectionMasterParam DisplayName 편집 UI + Shot 실행 경로 매핑/지연 동기화 | 40ea796, a44debd, 40a7cca, 84b1bfb, 44523ad, abe8f55 | |

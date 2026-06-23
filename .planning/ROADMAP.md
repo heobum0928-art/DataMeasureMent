@@ -205,7 +205,7 @@ Plans:
   - Success: Top/Bottom 시퀀스 단위로 전체 SHOT을 한 번에 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 일괄 추출 (SHOT 개별 트리거 불필요) / SHOT 개별 검사 회귀 0
 - [~] **Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬)** (LEVEL-01) — ❌ 폐기 2026-06-23 (ALIGN-01/02 패턴매칭 위치보정 Phase 54/55/56 으로 대체. 레벨링 코드 Phase 54+57-01 제거 완료, 잔여 죽은 메서드 RotateImageByAngle 도 제거)
   - Success: Datum 수평 에지 검출 각도와 수평선의 각도차로 입력 이미지를 회전 정렬(레벨링) 후 측정 / 회귀 0
-- [ ] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01)
+- [x] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01) (completed 2026-06-23)
   - Success: 별도 캘리브 창에서 체커보드(라이브 정지/촬상 또는 이미지 로드) → 픽셀 해상도(mm/px) 산출 → 측정 PixelResolution 적용
 
 ### Phase 51: 시퀀스 일괄 검사 & 일괄 Export (신설 2026-06-16 — POC 신규 #3)
@@ -252,9 +252,9 @@ Plans:
 **Success Criteria (UAT)**:
   - 체커보드 입력 → 픽셀 해상도 산출 → 측정 PixelResolution 적용 / 이미지 로드 모드 동작
 **Plans**: 3 plans (3 waves)
-  - [ ] 53-01-PLAN.md — CheckerboardCalibrationService (saddle 코너검출 + median mm/px + 외곽 편차%) + csproj 등록
-  - [ ] 53-02-PLAN.md — CalibrationWindow (입력/이미지로드·라이브/검출/리포트+왜곡경고, D-04/D-05/D-06 게이트)
-  - [ ] 53-03-PLAN.md — MainView launch + 활성 시퀀스 전체 shot PixelResolution 일괄 반영(D-03) + SaveRecipe
+  - [x] 53-01-PLAN.md — CheckerboardCalibrationService (saddle 코너검출 + median mm/px + 외곽 편차%) + csproj 등록
+  - [x] 53-02-PLAN.md — CalibrationWindow (입력/이미지로드·라이브/검출/리포트+왜곡경고, D-04/D-05/D-06 게이트)
+  - [x] 53-03-PLAN.md — MainView launch + 활성 시퀀스 전체 shot PixelResolution 일괄 반영(D-03) + SaveRecipe
 
 ### Phase 43: 시작지연 분리 (LoginManager + SequenceHandler) (CO-38-02, CO-38-03)
 **Goal**: 앱 기동 시 동기적으로 수행되는 무거운 초기화(계정 DB 로드, 레시피 동기 로딩)를 지연/분리하여 "측정 가능 시점"까지의 시간을 단축한다. Phase 38 에서 추가한 `[STARTUP]` Stopwatch 계측을 기준선으로, 측정 가능 시점이 ≥30% 단축됨을 입증한다.
@@ -273,7 +273,7 @@ Plans:
   - SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증 (Step2 delta 감소 수치)
   - 회귀 0: 첫 로그인/첫 검사 흐름 정상 (lazy-load 로 인한 미준비 상태 버그 없음)
 
-**Plans:** 1 plan
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 43-01-PLAN.md — LoginManager 백그라운드 프리로드(Step5 동기 808ms 제거) + [STARTUP] READY 마커 + LoginWindow EnsureLoaded readiness wait + 30% 평균/회귀 UAT — COMPLETE (55% READY 단축, CO-38-02/CO-38-03 종결)
 

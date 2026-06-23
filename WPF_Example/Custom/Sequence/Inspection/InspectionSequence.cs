@@ -62,14 +62,12 @@ namespace ReringProject.Sequence {
 
         //260623 hbk Phase 49 PROTO-03/05 (D-02): 멀티샷 사이클 누적 상태 — 신규 클래스 미도입, _failedDatums 와 동일 lifecycle 멤버.
         //  ClearDatumTransforms() 와 별도로 Index 0 수신 시 ResetCycleState() 로 리셋(D-08).
-        //  ※ 49-01 은 정의만(판정 흐름 소비는 49-02) → 아직 read 없음 → CS0414 발생. "0 new warnings" 충족 위해
-        //    멤버 한정 #pragma 로 일시 억제. 49-02 가 AddResponse 에서 read 추가 시 이 #pragma 제거할 것.
-#pragma warning disable CS0414 //260623 hbk Phase 49 — 49-02 read 연결 시 제거
+        //  49-02 가 AddResponseV1Cycle 에서 read 연결 → CS0414(미사용) 해소, #pragma 제거함.
+        private const int DATUM_Z_INDEX = 0;         //260623 hbk Phase 49 (D-08): Index 0 = Datum 샷 (매직넘버 상수화, D-10)
         private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
         private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
         private int m_nCurrentZIndex = 0;            // 이번 $TEST z_index (RequestPacket.TestID 파싱 결과)
         private int m_nLastZIndex = 0;               // 레시피 Shot z_index 최댓값 = 마지막 Index (D-03, ComputeLastZIndex 산출)
-#pragma warning restore CS0414 //260623 hbk Phase 49
 
         //260619 hbk Phase 57 #6 leveling 제거 — 레벨링 각도 캐시 멤버/메서드 폐기 (ALIGN 대체, D-12/D-13)
 
@@ -96,6 +94,15 @@ namespace ReringProject.Sequence {
         //  EVisionResultType.NotExist (기존 v2.6 enum) 재사용.
         protected override void AddResponse() {
             if (RequestPacket == null) return;
+
+            //260623 hbk Phase 49 PROTO-03/04/05: v1.0 활성 시에만 z_index 사이클 엔진 적용. v2.6 면 기존 전체-Shot 경로(아래)로 폴백(회귀 0).
+            bool bUseV1Cycle = SystemHandler.Handle.Setting.UseProtocolV1;
+            if (bUseV1Cycle)
+            {
+                AddResponseV1Cycle();
+                return;
+            }
+            // ↓ 이하 기존 v2.6 전체-Shot 집계 블록 그대로 (회귀 0) — 무변경 보존.
 
             var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
 
@@ -286,6 +293,270 @@ namespace ReringProject.Sequence {
             m_bCycleDatumFailed = false;
             m_nCurrentZIndex = 0;
             m_nLastZIndex = 0;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무 //260623 hbk
+        }
+
+        //260623 hbk Phase 49 PROTO-03 (D-08): RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.
+        //  파싱 실패/미수신/음수 → 0(Datum/Idx0 폴백) 으로 안전 정규화 (T-49-03 mitigation).
+        private int ParseCurrentZIndex()
+        {
+            int nZ = 0;
+            bool bHasRequest = RequestPacket != null;
+            if (!bHasRequest)
+            {
+                return nZ;
+            }
+            string szTestId = RequestPacket.TestID;
+            bool bHasId = !string.IsNullOrEmpty(szTestId);
+            if (!bHasId)
+            {
+                return nZ;
+            }
+            int nParsed = 0;
+            bool bValid = int.TryParse(szTestId, out nParsed);
+            bool bNonNegative = nParsed >= 0;
+            if (bValid && bNonNegative)
+            {
+                nZ = nParsed;
+            }
+            return nZ;
+        }
+
+        //260623 hbk Phase 49 PROTO-04 (D-04/D-06): Index 0(Datum 샷) 응답 생성.
+        //  정상 → 빈 응답 RESULT:site;B;0; (IsBuffer=true, FAIResults 비움). 실패 → 즉시 F (UseProtocolV1 분기에서만).
+        //  m_bCycleDatumFailed = 호출 전 DetectDatumFailure() 로 설정됨 (HandleDatumIndexResponse).
+        private TestResultPacket BuildDatumShotResponse()
+        {
+            var packet = new TestResultPacket
+            {
+                Target = RequestPacket.Sender,
+                Site = RequestPacket.Site,
+                InspectionType = RequestPacket.TestType,
+                IsDynamicFAI = true,
+            };
+            bool bUseV1 = SystemHandler.Handle.Setting.UseProtocolV1;
+            bool bDatumFailed = m_bCycleDatumFailed;
+            bool bImmediateFail = bUseV1 && bDatumFailed;
+            if (bImmediateFail)
+            {
+                // 즉시 F — 후속 Index skip 은 핸들러 주도(D-05). IsBuffer=false + Result=NG → 직렬화 'F'.
+                packet.IsBuffer = false;
+                packet.Result = EVisionResultType.NG;
+                return packet;
+            }
+            // 정상 Datum 샷 → 빈 응답 RESULT:site;B;0; (FAIResults 비어있음 → FAICount=0).
+            packet.IsBuffer = true;
+            packet.Result = EVisionResultType.OK;
+            return packet;
+        }
+
+        //260623 hbk Phase 49 PROTO-04: 이 시퀀스 소유 Datum 중 검출 실패(IsDatumFailed)가 1건이라도 있으면 true.
+        //  Action_FAIMeasurement.DatumPhase 가 MarkDatumFailed → _failedDatums 에 누적. 빈/누락 datum 은 skip.
+        private bool DetectDatumFailure()
+        {
+            bool bAnyFailed = false;
+            foreach (var datum in DatumConfigs)
+            {
+                bool bIsNull = datum == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bFailed = IsDatumFailed(datum.DatumName);
+                if (bFailed)
+                {
+                    bAnyFailed = true;
+                }
+            }
+            return bAnyFailed;
+        }
+
+        //260623 hbk Phase 49 PROTO-03/04/05: v1.0 z_index 멀티샷 사이클 판정 엔진 진입점.
+        //  Index 0 = 사이클 시작(리셋 D-08) + Datum 빈응답/즉시F(D-04/D-06) → HandleDatumIndexResponse() 위임(본문 30줄 유지).
+        //  중간 Index = 해당 z_index Shot 집계(D-01) + NG 누적(D-02) + B(IsBuffer=true).
+        //  마지막 Index(z_index 최댓값 D-03) = 집계 + m_bCycleHasNG 반영 종합 P/F.
+        private void AddResponseV1Cycle()
+        {
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            m_nCurrentZIndex = ParseCurrentZIndex();
+            bool bIsDatumShot = m_nCurrentZIndex == DATUM_Z_INDEX;
+            if (bIsDatumShot)
+            {
+                HandleDatumIndexResponse(recipeManager);   // D-08 리셋 + 재산출 + Datum 응답 + 영속화 (ComputeLastZIndex 1회)
+                return;
+            }
+            // 측정 Index (중간 or 마지막) — m_nLastZIndex 는 이 경로에서 1회만 산출(이중 호출 제거, BLOCKER 2-a).
+            m_nLastZIndex = ComputeLastZIndex(recipeManager);
+            bool bIsLastIndex = m_nCurrentZIndex >= m_nLastZIndex;
+            TestResultPacket packet = BuildScopedResponse(recipeManager, m_nCurrentZIndex, bIsLastIndex);
+            PersistAndEnqueueV1(recipeManager, packet);
+        }
+
+        //260623 hbk Phase 49 PROTO-04/05 (D-08): Index 0(Datum 샷) 처리 — 사이클 리셋 + Datum 검출 감지 + 응답 + 영속화.
+        //  ResetCycleState() 가 m_nLastZIndex=0 으로 덮으므로 직후 단 1회 재산출(BLOCKER 2-a, 측정 경로는 자체 산출).
+        private void HandleDatumIndexResponse(InspectionRecipeManager recipeManager)
+        {
+            ResetCycleState();                                  // D-08: 사이클 시작 = 클린 슬레이트
+            m_nCurrentZIndex = DATUM_Z_INDEX;
+            m_nLastZIndex = ComputeLastZIndex(recipeManager);   // 리셋 직후 재산출(호출부 의무, ResetCycleState 주석)
+            m_bCycleDatumFailed = DetectDatumFailure();         // D-04: Datum 검출 실패 감지
+            TestResultPacket datumPacket = BuildDatumShotResponse();
+            PersistAndEnqueueV1(recipeManager, datumPacket);
+        }
+
+        //260623 hbk Phase 49 PROTO-03 (D-01/D-02/D-03): Index-scoped 집계 + B/P/F 응답 조립.
+        //  이 시퀀스 소유 AND shot.ZIndex == nZIndex 인 Shot 의 FAI 만 집계(전체 재검사 금지 D-01).
+        //  중간 Index → B(IsBuffer=true, NG 있어도 B). 마지막 Index → 종합 P/F(m_bCycleHasNG||Datum실패).
+        //  불변식: NG 발견돼도 마지막 Index 까지 측정 진행(측정은 Action_FAIMeasurement, 여기는 집계만). 종료 판정은 마지막에서만.
+        private TestResultPacket BuildScopedResponse(InspectionRecipeManager recipeManager, int nZIndex, bool bIsLastIndex)
+        {
+            var packet = new TestResultPacket
+            {
+                Target = RequestPacket.Sender,
+                Site = RequestPacket.Site,
+                InspectionType = RequestPacket.TestType,
+                IsDynamicFAI = true,
+            };
+            int nMatchedShots = AggregateIndexFais(recipeManager, nZIndex, packet);
+            WarnIfEmptyScope(packet, nMatchedShots, nZIndex);   // BLOCKER 1: ZIndex 매칭 0건 경고(조용한 빈 B 금지)
+            ApplyCycleJudgement(packet, bIsLastIndex);          // B vs 종합 P/F (D-03/불변식)
+            pMyContext.ResultInfo = packet.Result;
+            return packet;
+        }
+
+        //260623 hbk Phase 49 (D-01): nZIndex 매칭 Shot 의 FAI 만 packet.FAIResults 에 집계. 매칭 Shot 수 반환.
+        private int AggregateIndexFais(InspectionRecipeManager recipeManager, int nZIndex, TestResultPacket packet)
+        {
+            int nMatchedShots = 0;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return nMatchedShots;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                bool bZMatch = shot.ZIndex == nZIndex;
+                bool bInScope = bOwnedByThisSeq && bZMatch;
+                if (!bInScope)
+                {
+                    continue;
+                }
+                nMatchedShots = nMatchedShots + 1;
+                foreach (var fai in shot.FAIList)
+                {
+                    AddFaiResult(packet, fai);
+                }
+            }
+            return nMatchedShots;
+        }
+
+        //260623 hbk Phase 49 (D-02): FAI 1건 3-state 분류 + 누적. WasDatumSkipped/NG → m_bCycleHasNG=true (리셋 전까지 유지).
+        private void AddFaiResult(TestResultPacket packet, FAIConfig fai)
+        {
+            bool bIsNull = fai == null;
+            if (bIsNull)
+            {
+                return;
+            }
+            EVisionResultType eCode = ClassifyFai(fai);
+            string szName = fai.FAIName;
+            if (string.IsNullOrEmpty(szName))
+            {
+                szName = "FAI";
+            }
+            packet.FAIResults.Add(new FAIResultData(szName, eCode, fai.MeasuredValue));
+        }
+
+        //260623 hbk Phase 49 (D-02): FAI 3-state 분류 — 검출실패('N')/NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P').
+        private EVisionResultType ClassifyFai(FAIConfig fai)
+        {
+            bool bDatumSkipped = fai.WasDatumSkipped;
+            if (bDatumSkipped)
+            {
+                m_bCycleHasNG = true;   // 검출실패도 사이클 NG 로 누적
+                return EVisionResultType.NotExist;
+            }
+            bool bNotPass = !fai.IsPass;
+            if (bNotPass)
+            {
+                m_bCycleHasNG = true;
+                return EVisionResultType.NG;
+            }
+            return EVisionResultType.OK;
+        }
+
+        //260623 hbk Phase 49 BLOCKER 1 (D-01 정합): ZIndex 매칭 0건(빈 결과 + 매칭 Shot 0)이면 PrintErrLog 경고.
+        //  레시피 ZIndex 미설정(전부 0) + 측정 Index 수신 = 운용 오류. 폴백(전체 재검사) 금지 — 경고만, 빈 B 유지(spec 정합).
+        private void WarnIfEmptyScope(TestResultPacket packet, int nMatchedShots, int nZIndex)
+        {
+            bool bNoResults = packet.FAIResults.Count == 0;
+            bool bNoMatch = nMatchedShots == 0;
+            bool bEmptyScope = bNoResults && bNoMatch;
+            if (bEmptyScope)
+            {
+                Logging.PrintErrLog((int)ELogType.Error,
+                    "[V1Cycle] BuildScopedResponse 빈 결과: ZIndex 매칭 0건 (Seq=" + Name + ", z=" + nZIndex + ", last=" + m_nLastZIndex + "). 레시피 ZIndex 설정 확인 필요. //260623 hbk");
+            }
+            else
+            {
+                // 정상 집계 — 추가 처리 없음.
+            }
+        }
+
+        //260623 hbk Phase 49 (D-03/불변식): 중간 Index → B(IsBuffer=true). 마지막 Index → 종합 P/F(IsBuffer=false).
+        private void ApplyCycleJudgement(TestResultPacket packet, bool bIsLastIndex)
+        {
+            if (!bIsLastIndex)
+            {
+                // 중간 Index — NG 있어도 B (종료 판정은 마지막 Index 에서만).
+                packet.IsBuffer = true;
+                packet.Result = EVisionResultType.OK;   // 직렬화 IsBuffer=true 최우선 → 'B'
+                return;
+            }
+            // 마지막 Index — 사이클 누적 NG/Datum실패 반영 종합 P/F.
+            packet.IsBuffer = false;
+            bool bCycleFail = m_bCycleHasNG || m_bCycleDatumFailed;
+            if (bCycleFail)
+            {
+                packet.Result = EVisionResultType.NG;   // 직렬화 'F'
+            }
+            else
+            {
+                packet.Result = EVisionResultType.OK;   // 직렬화 'P'
+            }
+        }
+
+        //260623 hbk Phase 49: v1.0 경로 영속화+Enqueue — 기존 v2.6 try/catch CycleResultSerializer 블록 동일 이식.
+        //  매 Index 스냅샷 저장(마지막 Index 가 덮음) — 직렬화 예외 격리로 Enqueue 차단 방지(기존 패턴 보존).
+        private void PersistAndEnqueueV1(InspectionRecipeManager recipeManager, TestResultPacket packet)
+        {
+            try
+            {
+                int nIndexNumber = -1;
+                bool bHasRequest = RequestPacket != null;
+                if (bHasRequest)
+                {
+                    nIndexNumber = RequestPacket.IndexNumber;
+                }
+                var cycleDto = CycleResultSerializer.BuildDto(
+                    recipeManager,
+                    packet.Result,
+                    System.DateTime.Now,
+                    SystemHandler.Handle.Setting.CurrentRecipeName,
+                    Name,
+                    nIndexNumber);
+                CycleResultSerializer.SaveAsync(cycleDto);
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[V1Cycle] cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+            }
+            ResponseQueue.Enqueue(packet);
         }
 
         public override void OnCreate() {

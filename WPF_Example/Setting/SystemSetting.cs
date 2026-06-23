@@ -32,6 +32,9 @@ namespace ReringProject.Setting {
         private string SettingJsonFile { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Setting.json";
 
         //server
+        //260623 hbk Phase 49: v2.6 레거시 포트 — UI 숨김(혼란 방지). v1.0 전환 완료로 ServerPortV1 만 노출.
+        //  INI 직렬화는 유지(v2.6 폴백 시 값 보존). UseProtocolV1=false 일 때만 사용되는 포트.
+        [Browsable(false)]
         [Category("Connection|Server")]
         public int ServerPort { get; set; } = 2505;
 

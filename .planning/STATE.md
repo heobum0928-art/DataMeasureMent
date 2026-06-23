@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 52 (❌ 폐기 — ALIGN 패턴매칭으로 대체, skip)
 Plan: —
-Status: 정리(C) 진행 중 → 다음 B(QUAL-01 리팩토링) → A(Phase 53 캘리브레이션)
+Status: C(정리)✅ → B(QUAL-01 매직넘버 const화 4파일)✅ 매듭 → 다음 A(Phase 53 픽셀 캘리브레이션). B 잔여(헝가리언 점진/함수분할)는 회귀위험 커서 보류.
 Last activity: 2026-06-23 - QUAL-01 매직넘버 const화 패스 완료 (Ini/HalconViewer/MainResultViewer/MainView 4파일, DatumFindingService는 검출핵심이라 SKIP)
 
 **사용자 작업 계획 2026-06-23 (C→B→A):**

@@ -60,6 +60,17 @@ namespace ReringProject.Sequence {
         //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
+        //260623 hbk Phase 49 PROTO-03/05 (D-02): 멀티샷 사이클 누적 상태 — 신규 클래스 미도입, _failedDatums 와 동일 lifecycle 멤버.
+        //  ClearDatumTransforms() 와 별도로 Index 0 수신 시 ResetCycleState() 로 리셋(D-08).
+        //  ※ 49-01 은 정의만(판정 흐름 소비는 49-02) → 아직 read 없음 → CS0414 발생. "0 new warnings" 충족 위해
+        //    멤버 한정 #pragma 로 일시 억제. 49-02 가 AddResponse 에서 read 추가 시 이 #pragma 제거할 것.
+#pragma warning disable CS0414 //260623 hbk Phase 49 — 49-02 read 연결 시 제거
+        private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
+        private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
+        private int m_nCurrentZIndex = 0;            // 이번 $TEST z_index (RequestPacket.TestID 파싱 결과)
+        private int m_nLastZIndex = 0;               // 레시피 Shot z_index 최댓값 = 마지막 Index (D-03, ComputeLastZIndex 산출)
+#pragma warning restore CS0414 //260623 hbk Phase 49
+
         //260619 hbk Phase 57 #6 leveling 제거 — 레벨링 각도 캐시 멤버/메서드 폐기 (ALIGN 대체, D-12/D-13)
 
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
@@ -233,6 +244,48 @@ namespace ReringProject.Sequence {
             if (anyDatumSkip) return EVisionResultType.NotExist; // 검출실패 최우선
             if (!allPass) return EVisionResultType.NG;
             return EVisionResultType.OK;
+        }
+
+        //260623 hbk Phase 49 PROTO-03 (D-03): 레시피 Shot 들의 z_index 최댓값 = "마지막 Index".
+        //  별도 설정/플래그 불필요 — 레시피 단일 진실원. PLC Index Table = 레시피 Shot 구성 일치 전제(D-03 코드 주석 고정).
+        //  이 시퀀스 소유 Shot 만 대상(Name == OwnerSequenceName) — Top/Bottom/Side 병렬 간섭 차단.
+        private int ComputeLastZIndex(InspectionRecipeManager recipeManager)
+        {
+            int nMax = 0;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return nMax;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                bool bIsLarger = shot.ZIndex > nMax;
+                if (bIsLarger)
+                {
+                    nMax = shot.ZIndex;
+                }
+            }
+            return nMax;
+        }
+
+        //260623 hbk Phase 49 PROTO-05 (D-08): Index 0(Datum 샷) 수신 = 사이클 시작 → 누적 상태 클린 슬레이트.
+        //  비정상 종료(중단 F) 후에도 다음 사이클 시작이 항상 깨끗 — 마지막 Index 후 리셋(누락 위험) 미채택.
+        private void ResetCycleState()
+        {
+            m_bCycleHasNG = false;
+            m_bCycleDatumFailed = false;
+            m_nCurrentZIndex = 0;
+            m_nLastZIndex = 0;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무 //260623 hbk
         }
 
         public override void OnCreate() {

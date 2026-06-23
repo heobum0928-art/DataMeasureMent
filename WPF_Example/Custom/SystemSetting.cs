@@ -76,6 +76,7 @@ namespace ReringProject.Setting {
         public string EthernetCameraIp { get; set; } = "192.168.1.100"; //260623 hbk Phase 58
 
         [Category("ETHERNET_VISION")]
+        //260623 hbk Phase 58: EthernetExposure 적용은 Phase 59/61 카메라 런타임 배선 시 (SetFloatValue ExposureTime) — 현재는 config 저장만
         public double EthernetExposure { get; set; } = 10000.0; //260623 hbk Phase 58
 
         [Category("ETHERNET_VISION")]

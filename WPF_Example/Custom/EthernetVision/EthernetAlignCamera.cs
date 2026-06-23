@@ -1,5 +1,6 @@
 //260623 hbk Phase 58
 using HalconDotNet;
+using ReringProject.Setting;
 using ReringProject.Utility;
 using System;
 using System.IO;

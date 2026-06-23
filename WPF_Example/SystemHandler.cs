@@ -183,6 +183,14 @@ namespace ReringProject {
 
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Total Initialize: {0} ms", sw.ElapsedMilliseconds); //260528 hbk Phase 38 #11
             Logging.PrintLog((int)ELogType.Trace, "[SYSTEM] Initialized");
+
+            //260623 hbk Phase 58 — AV-02: 이더넷 정렬 카메라 독립 초기화 (실패해도 Grabber/검사 무영향)
+            try {
+                EthernetVisionHandler.Handle.Initialize();
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Initialize failed: {0}", ex.Message);
+            }
         }
 
         public bool LoadRecipe(string recipeName) {

@@ -1,18 +1,20 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Phases
-status: milestone_complete
-stopped_at: Completed 53-03-PLAN.md
-last_updated: "2026-06-23T06:43:24.951Z"
-last_activity: 2026-06-23
+milestone: v1.3
+milestone_name: Align Vision (Ethernet)
+status: roadmap_complete
+stopped_at: v1.3 roadmap defined (phases 58~62, AV-01~09)
+last_updated: "2026-06-23T08:00:00.000Z"
+last_activity: 2026-06-23 — v1.3 Align 비전 마일스톤 시작 (phases 58~62, v1.2 병행)
 progress:
-  total_phases: 15
-  completed_phases: 15
-  total_plans: 49
-  completed_plans: 46
-  percent: 100
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
+
+> **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
 
 # Project State
 
@@ -21,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 53 — 2026-06-16-poc-2
+**Current focus:** v1.3 Align 비전 — Phase 58 (Config & Camera). v1.2 carry-over 병행.
 
 ## Current Position
 
-Phase: 53
+Phase: 58 (v1.3 Align 비전 — not started)
 Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-23
+Status: v1.3 roadmap 정의 완료 (phases 58~62). 다음 = 참조코드(WPF_Example_260604) 파악 → Phase 58(A-1) 설계 제안 → 동의 후 구현. **코드 작성 전 설계 동의 필수.**
+Last activity: 2026-06-23 — v1.3 Align 비전 마일스톤 시작 (REQUIREMENTS AV-01~09, ROADMAP 58~62, PROJECT v1.3 섹션)
 
 **사용자 작업 계획 2026-06-23 (C→B→A):**
 

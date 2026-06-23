@@ -8,6 +8,7 @@
   - v1.2 이연: WF-01/02, OUT-01~04, HW-01/02, QUAL-01. 부분: ALG-01(CO-23-01).
 - **v1.2 POC Workflow + Output + Carry-over + Protocol v2.7** — ◷ Active (started 2026-05-29, POC 납기 2026-06-30)
   - 13 phases (39~50 + 39.1/39.2 insert), 5순위 우선순위 구조. continue numbering 모드.
+- **v1.3 Align 비전 (이더넷 카메라)** — ◷ Active (started 2026-06-23, v1.2 와 병행). 5 phases (58~62, A~E). 기존 Grabber 검사와 완전 독립 서브시스템 (Tray/Bottom Align, Shape Matching, TabControl, TRAY/BOTTOM TCP).
 
 ---
 
@@ -571,3 +572,63 @@ Plans:
 
 *Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*
 
+
+---
+
+## v1.3 Phases (Align 비전 — 이더넷 카메라, Phase 58~62)
+
+> 기존 Grabber 검사와 **완전 독립**. 같은 DataMeasurement 실행파일 내 TabControl 로 공존. v1.2 열어둔 채 병행. 참조: D:\Backup\파이널비전\WPF_Example_260604 (TabControl 구조 — 신규 설계 말고 기존 패턴 확장). **코드 작성 전 phase 별 설계 제안 → 동의 후 구현.**
+
+### Phase 58: Config & Camera (A) (신설 2026-06-23)
+**Goal**: EthernetVisionConfig(INI [ETHERNET_VISION], None/Tray/Bottom 모드) + 독립 이더넷 카메라(Hikvision MvCamCtrl.Net) 연결/grab/live 를 추가하되, 실패해도 기존 Grabber 검사에 무영향이다.
+**Requirements**: AV-01, AV-02
+**Success Criteria**:
+1. EthernetVisionMode/IP/노출/픽셀분해능 INI 저장·로드, 미존재 키 기본값(8.652) 보장
+2. 이더넷 카메라 grab/live/stop 동작 (SIMUL=D:\align_test.bmp 폴백)
+3. 이더넷 카메라 초기화 실패해도 Grabber(Top/Bottom/Side) 검사 정상
+4. 기존 Sequence/Action/SystemHandler 무수정
+
+### Phase 59: Vision Algorithm (B) (신설 2026-06-23)
+**Goal**: Shape Matching(create/find/read/write_shape_model) 으로 ROI 티칭→.shm 저장, Tray=X/Y · Bottom=X/Y/Theta Offset 산출.
+**Requirements**: AV-03, AV-04
+**Success Criteria**:
+1. ROI 지정 후 티칭 → .shm 저장/로드
+2. find_shape_model 로 Row/Col/Angle/Score 산출 (Halcon try-catch)
+3. Tray 모드 X/Y Offset, Bottom 모드 X/Y/Theta 산출
+4. Tray/Bottom 별도 템플릿 관리
+
+### Phase 60: Calibration — Bottom (C) (신설 2026-06-23)
+**Goal**: 피커 센터 캘(36스텝 10° 편심원 최소자승) + 각도 캘(비전각↔피커각 선형 보정).
+**Requirements**: AV-05, AV-06
+**Success Criteria**:
+1. 36스텝 회전 자재 중심 궤적 → 편심원 중심(피커 센터) 최소자승 계산
+2. 각도 보정계수 산출·저장
+3. Bottom 검사 Theta 출력에 보정 반영
+
+### Phase 61: UI — TabControl (D) (신설 2026-06-23)
+**Goal**: MainWindow TabControl([검사]/[Tray]/[Bottom]) 통합, 기존 MainView=[검사] 탭 이동, 모드별 탭 Visibility.
+**Requirements**: AV-07, AV-08
+**Success Criteria**:
+1. TabControl 3탭, 기존 MainView 가 [검사] 탭에서 정상 동작 (회귀 0)
+2. EthernetVisionMode 에 따라 Tray/Bottom 탭 표시/숨김
+3. Tray/BottomVisionView 툴바(Grab/Live/Stop)+티칭+결과(+Bottom 캘) 패널, HalconViewer 공용
+4. 상태 표시(대기/LIVE/검사중/미연결)
+**참조**: D:\Backup\파이널비전\WPF_Example_260604 탭 구조.
+
+### Phase 62: TCP (E) (신설 2026-06-23)
+**Goal**: Align 결과를 기존 VisionServer/TcpServer 로 전송 ($RESULT site=TRAY/BOTTOM).
+**Requirements**: AV-09
+**Success Criteria**:
+1. Tray: `$RESULT:TRAY;P;2;OffsetX=..=OK,OffsetY=..=OK@`
+2. Bottom: `$RESULT:BOTTOM;P;3;OffsetX,OffsetY,Theta@`
+3. 기존 TCP 프레임워크 재사용 (Grabber 통신 무영향)
+
+## Progress Table (v1.3 — Align 비전)
+
+| Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |
+|---|---|---|---|---|---|
+| 58 | Config & Camera (A) | AV-01/02 | Not started | — | — |
+| 59 | Vision Algorithm (B) | AV-03/04 | Not started | — | — |
+| 60 | Calibration Bottom (C) | AV-05/06 | Not started | — | — |
+| 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |
+| 62 | TCP (E) | AV-09 | Not started | — | — |

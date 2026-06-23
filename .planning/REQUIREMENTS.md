@@ -90,6 +90,33 @@
 
 ---
 
+## v1.3 요구사항 (Align 비전 — 이더넷 카메라)
+
+> 신규 마일스톤 (started 2026-06-23). 기존 Grabber 검사(v1.0~v1.2)와 **완전 독립**으로 같은 DataMeasurement 실행파일에 공존. v1.2 는 열어둔 채 병행.
+
+### Config & Camera (Phase 58 / A)
+- [ ] **AV-01**: 사용자가 EthernetVisionMode(None/Tray/Bottom) + 카메라 IP/노출/픽셀분해능(8.652 μm/px)을 INI [ETHERNET_VISION] 로 설정·저장하고, 미존재 키는 기본값으로 보장받는다
+- [ ] **AV-02**: 이더넷 카메라(Hikvision MV-CH250-90GM, MvCamCtrl.Net)를 독립 클래스로 연결/grab/live/stop 하며, 미연결(SIMUL)이면 D:\align_test.bmp 로드로 대체하고 실패해도 Grabber 검사는 정상 동작한다
+
+### Vision Algorithm (Phase 59 / B)
+- [ ] **AV-03**: 사용자가 ROI 를 지정해 Shape Model 을 티칭하고 .shm 로 저장/로드하며, find_shape_model 로 매칭 위치(Row/Col/Angle/Score)를 산출한다
+- [ ] **AV-04**: Tray 모드는 X/Y Offset, Bottom 모드는 X/Y Offset + Theta 를 산출한다 (각 모드 별도 템플릿)
+
+### Calibration — Bottom 전용 (Phase 60 / C)
+- [ ] **AV-05**: 피커가 지그를 픽업한 상태로 10°씩 36스텝 회전한 자재 중심 궤적으로 피커 편심원 중심(피커 실제 센터)을 최소자승으로 계산한다
+- [ ] **AV-06**: 비전이 읽는 각도와 피커 실제 회전각 간 선형 오프셋 보정계수를 산출·적용한다
+
+### UI — TabControl (Phase 61 / D)
+- [ ] **AV-07**: MainWindow 에 TabControl 을 추가해 [검사]/[Tray 비전]/[Bottom 비전] 탭으로 통합하고, EthernetVisionMode 에 따라 Tray/Bottom 탭 Visibility 를 제어한다 (기존 MainView 는 [검사] 탭으로 이동)
+- [ ] **AV-08**: Tray/BottomVisionView 에 툴바(Grab/Live/Stop)+티칭 패널+검사 결과 패널(+Bottom 캘 패널)을 제공하고 HalconViewer 를 공용한다
+
+### TCP (Phase 62 / E)
+- [ ] **AV-09**: Align 결과를 기존 VisionServer/TcpServer 프레임워크로 전송한다 ($RESULT site=TRAY/BOTTOM, Tray=OffsetX/Y, Bottom=OffsetX/Y/Theta)
+
+**제약 (전 phase 공통):** 기존 Grabber 검사 코드(Sequence/Action/SystemHandler) 절대 수정 금지(추가만) · 이더넷 카메라 실패해도 Grabber 정상 · EthernetVisionMode=None 이면 탭 숨김+기능 비활성 · 헝가리언 표기법 · C# 7.2 · Halcon try-catch · 함수 30줄 이하 · 매직넘버 const · SIMUL_MODE=D:\align_test.bmp. 참조: D:\Backup\파이널비전\WPF_Example_260604 (TabControl 구조 — 신규 설계 말고 기존 탭 패턴 확장).
+
+---
+
 ## Future Requirements (deferred)
 
 - (없음 — v1.2 는 v1.1 carry-over 흡수 milestone)
@@ -127,6 +154,12 @@
 | PROTO-06 | Phase 50 | not started (POC 후) |
 | BATCH-01 | Phase 51 | in progress (Wave 1 완료, Wave 2 UI 잔여) |
 | LEVEL-01 | Phase 52 | partial (2026-06-17, 백엔드 완료·빌드 PASS·리뷰 클린 / UAT Test 2 FAIL — 활성화·기준지정 UI 부재 CO-52-01 → Phase 52.1) |
+| CAL-01 | Phase 53 | completed 2026-06-23 (체커보드 픽셀 캘리브, 코드/빌드 충족, 육안 UAT pending) |
+| AV-01, AV-02 | Phase 58 | not started (v1.3 Config & Camera) |
+| AV-03, AV-04 | Phase 59 | not started (v1.3 Vision Algorithm) |
+| AV-05, AV-06 | Phase 60 | not started (v1.3 Calibration Bottom) |
+| AV-07, AV-08 | Phase 61 | not started (v1.3 UI TabControl) |
+| AV-09 | Phase 62 | not started (v1.3 TCP) |
 
 ---
 

@@ -418,7 +418,7 @@ namespace ReringProject.Sequence {
             };
             int nMatchedShots = AggregateIndexFais(recipeManager, nZIndex, packet);
             WarnIfEmptyScope(packet, nMatchedShots, nZIndex);   // BLOCKER 1: ZIndex 매칭 0건 경고(조용한 빈 B 금지)
-            ApplyCycleJudgement(packet, bIsLastIndex);          // B vs 종합 P/F (D-03/불변식)
+            ApplyCycleJudgement(packet, bIsLastIndex, nMatchedShots);   // B vs 종합 P/F (D-03/불변식), WR-01: 매칭 0건 전달
             pMyContext.ResultInfo = packet.Result;
             return packet;
         }
@@ -491,7 +491,8 @@ namespace ReringProject.Sequence {
         }
 
         //260623 hbk Phase 49 BLOCKER 1 (D-01 정합): ZIndex 매칭 0건(빈 결과 + 매칭 Shot 0)이면 PrintErrLog 경고.
-        //  레시피 ZIndex 미설정(전부 0) + 측정 Index 수신 = 운용 오류. 폴백(전체 재검사) 금지 — 경고만, 빈 B 유지(spec 정합).
+        //  레시피 ZIndex 미설정(전부 0) + 측정 Index 수신 = 운용 오류. 폴백(전체 재검사) 금지 — 경고만.
+        //  WR-01 fix: 중간 Index 면 빈 B 유지, 마지막 Index 면 ApplyCycleJudgement 가 F 강제(false-PASS 차단).
         private void WarnIfEmptyScope(TestResultPacket packet, int nMatchedShots, int nZIndex)
         {
             bool bNoResults = packet.FAIResults.Count == 0;
@@ -509,7 +510,9 @@ namespace ReringProject.Sequence {
         }
 
         //260623 hbk Phase 49 (D-03/불변식): 중간 Index → B(IsBuffer=true). 마지막 Index → 종합 P/F(IsBuffer=false).
-        private void ApplyCycleJudgement(TestResultPacket packet, bool bIsLastIndex)
+        //260623 hbk Phase 49 WR-01 fix: 마지막 Index 인데 매칭 Shot 0건이면 P 금지 → F 강제(fail-safe).
+        //  ZIndex 미설정 레시피서 측정 Index(z>=1) 수신 시 ComputeLastZIndex=0 → 1>=0 으로 마지막 오인 → 매칭 0건 → 종합 P 송신(검사 0건 합격 통보) silent false-PASS 차단.
+        private void ApplyCycleJudgement(TestResultPacket packet, bool bIsLastIndex, int nMatchedShots)
         {
             if (!bIsLastIndex)
             {
@@ -520,7 +523,8 @@ namespace ReringProject.Sequence {
             }
             // 마지막 Index — 사이클 누적 NG/Datum실패 반영 종합 P/F.
             packet.IsBuffer = false;
-            bool bCycleFail = m_bCycleHasNG || m_bCycleDatumFailed;
+            bool bEmptyLastScope = nMatchedShots == 0;   // WR-01: 마지막 Index 매칭 0건 = false-PASS 위험 → F 강제
+            bool bCycleFail = m_bCycleHasNG || m_bCycleDatumFailed || bEmptyLastScope;
             if (bCycleFail)
             {
                 packet.Result = EVisionResultType.NG;   // 직렬화 'F'

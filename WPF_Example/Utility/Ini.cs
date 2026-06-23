@@ -1,4 +1,5 @@
-﻿using ReringProject.UI;
+﻿//260623 hbk: CONVENTIONS 적용 — IniValue 좌표 파서 지역변수/매직넘버 const화. 공개 API·직렬화 동작 불변.
+using ReringProject.UI;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,79 +10,87 @@ using System.Threading.Tasks;
 namespace ReringProject.Utility {
     public struct IniValue {
 
+        private const int CIRCLE_FIELD_COUNT = 3;
+        private const int LINE_FIELD_COUNT = 4;
+        private const int RECT_FIELD_COUNT = 4;
+        private const int FIELD_X = 0;
+        private const int FIELD_Y = 1;
+        private const int FIELD_W = 2;   // Circle: radius
+        private const int FIELD_H = 3;
+
         private static bool TryParseCircle(string text, out Circle circle) {
             circle = new Circle();
-            string[] strArray = text.Split(',');
-            if (strArray == null) return false;
-            if (strArray.Length < 3) return false;
+            string[] szParts = text.Split(',');
+            if (szParts == null) return false;
+            if (szParts.Length < CIRCLE_FIELD_COUNT) return false;
 
-            double value = 0;
-            if (!TryParseDouble(strArray[0], out value)) return false;
-            double x = value;
+            double dX;
+            if (!TryParseDouble(szParts[FIELD_X], out dX)) return false;
 
-            if (!TryParseDouble(strArray[1], out value)) return false;
-            double y = value;
+            double dY;
+            if (!TryParseDouble(szParts[FIELD_Y], out dY)) return false;
 
-            if (!TryParseDouble(strArray[2], out value)) return false;
-            double radius = value;
+            double dRadius;
+            if (!TryParseDouble(szParts[FIELD_W], out dRadius)) return false;
 
-            circle.CenterX = x;
-            circle.CenterY = y;
-            circle.Radius = radius;
+            circle.CenterX = dX;
+            circle.CenterY = dY;
+            circle.Radius = dRadius;
 
             return true;
         }
 
         private static bool TryParseLine(string text, out Line line) {
             line = new Line();
-            string[] strArray = text.Split(',');
-            if (strArray == null) return false;
+            string[] szParts = text.Split(',');
+            if (szParts == null) return false;
 
-            if (strArray.Length < 4) return false;
-            double value = 0;
-            if (!TryParseDouble(strArray[0], out value)) return false;
-            double x = value;
+            // szParts: X1,Y1,X2,Y2 순서
+            if (szParts.Length < LINE_FIELD_COUNT) return false;
 
-            if (!TryParseDouble(strArray[1], out value)) return false;
-            double y = value;
+            double dX;
+            if (!TryParseDouble(szParts[FIELD_X], out dX)) return false;
 
-            if (!TryParseDouble(strArray[2], out value)) return false;
-            double w = value;
+            double dY;
+            if (!TryParseDouble(szParts[FIELD_Y], out dY)) return false;
 
-            if (!TryParseDouble(strArray[3], out value)) return false;
-            double h = value;
+            double dW;
+            if (!TryParseDouble(szParts[FIELD_W], out dW)) return false;
 
-            line.X1 = x;
-            line.Y1 = y;
-            line.X2 = w;
-            line.Y2 = h;
+            double dH;
+            if (!TryParseDouble(szParts[FIELD_H], out dH)) return false;
+
+            line.X1 = dX;
+            line.Y1 = dY;
+            line.X2 = dW;
+            line.Y2 = dH;
 
             return true;
         }
-        
+
         private static bool TryParseRect(string text, out System.Windows.Rect rect) {
             rect = new System.Windows.Rect();
-            string [] strArray = text.Split(',');
-            if (strArray == null) return false;
+            string[] szParts = text.Split(',');
+            if (szParts == null) return false;
 
-            if (strArray.Length < 4) return false;
-            double value = 0;
-            if (!TryParseDouble(strArray[0], out value)) return false;
-            double x = value;
+            if (szParts.Length < RECT_FIELD_COUNT) return false;
 
-            if (!TryParseDouble(strArray[1], out value)) return false;
-            double y = value;
-        
-            if (!TryParseDouble(strArray[2], out value)) return false;
-            double w = value;
+            double dX;
+            if (!TryParseDouble(szParts[FIELD_X], out dX)) return false;
 
-            if (!TryParseDouble(strArray[3], out value)) return false;
-            double h = value;
+            double dY;
+            if (!TryParseDouble(szParts[FIELD_Y], out dY)) return false;
 
-            rect.X = x;
-            rect.Y = y;
-            rect.Width = w;
-            rect.Height = h;
+            double dW;
+            if (!TryParseDouble(szParts[FIELD_W], out dW)) return false;
+
+            double dH;
+            if (!TryParseDouble(szParts[FIELD_H], out dH)) return false;
+
+            rect.X = dX;
+            rect.Y = dY;
+            rect.Width = dW;
+            rect.Height = dH;
 
             return true;
         }

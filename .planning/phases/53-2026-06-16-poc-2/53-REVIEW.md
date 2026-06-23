@@ -14,7 +14,8 @@ findings:
   warning: 2
   info: 4
   total: 6
-status: issues_found
+status: resolved
+resolution: "WR-01/WR-02 fixed in commit 327b62b (2026-06-23). IN-01..04 advisory, deferred."
 ---
 
 # Phase 53: Code Review Report

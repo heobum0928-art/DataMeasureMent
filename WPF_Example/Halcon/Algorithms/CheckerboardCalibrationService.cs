@@ -103,6 +103,20 @@ namespace ReringProject.Halcon.Algorithms
             double centerMean, outerMean;
             double devPct = ComputeCenterOuterDeviationPct(gapsX, gapsY, image, out centerMean, out outerMean);
 
+            //260623 hbk: 검출 코너 좌표 HTuple → double[] (오버레이 가시화 + 리포트 노출)
+            int cornerCount = rows.Length;
+            double[] cornerRows = new double[cornerCount];
+            double[] cornerCols = new double[cornerCount];
+            for (int i = 0; i < cornerCount; i++)
+            {
+                cornerRows[i] = rows[i].D;
+                cornerCols[i] = cols[i].D;
+            }
+
+            //260623 hbk: X/Y 축별 중앙↔외곽 편차% (리포트 보강)
+            double devXPct = ComputeAxisDeviationPct(gapsX, image);
+            double devYPct = ComputeAxisDeviationPct(gapsY, image);
+
             result = new CalibrationResult
             {
                 MmPerPixel = mmPerPixel,
@@ -111,7 +125,14 @@ namespace ReringProject.Halcon.Algorithms
                 MeanSpacingPx = medGap,
                 CenterOuterDeviationPct = devPct,
                 IsDistortionWarn = devPct > distortionWarnPct,
-                CornerCount = rows.Length
+                CornerCount = cornerCount,
+                //260623 hbk: 코너 좌표 + 중앙/외곽 평균(px) + X/Y 편차% 노출
+                CornerRows = cornerRows,
+                CornerCols = cornerCols,
+                CenterMeanPx = centerMean,
+                OuterMeanPx = outerMean,
+                DeviationXPct = devXPct,
+                DeviationYPct = devYPct
             };
             return true;
         }
@@ -316,6 +337,51 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
+        /// 단일 축(가로 또는 세로) gaps 의 중앙↔외곽 편차% (X/Y 축별 리포트용).
+        /// 종합 ComputeCenterOuterDeviationPct 와 동일 반경 게이트 + 0% 가드. 한쪽 그룹 비면 0.
+        /// </summary>
+        //260623 hbk: 단일 축 gaps 의 중앙↔외곽 편차% (X/Y 축별 리포트용). 종합과 동일 반경 게이트 + 0% 가드.
+        private static double ComputeAxisDeviationPct(List<EdgeGap> gaps, HImage image)
+        {
+            HTuple w, h;
+            try
+            {
+                image.GetImageSize(out w, out h);
+            }
+            catch
+            {
+                return 0; // 크기 조회 실패 → 편차 판정 보류
+            }
+            double width = w.D;
+            double height = h.D;
+            double cx = width / 2.0;
+            double cy = height / 2.0;
+            double diag = Math.Sqrt(width * width + height * height) / 2.0;
+            if (diag <= 0)
+            {
+                return 0;
+            }
+            double innerR = diag * 0.33;
+            double outerR = diag * 0.66;
+
+            List<double> centerGaps = new List<double>();
+            List<double> outerGaps = new List<double>();
+            AccumulateRadialGroups(gaps, cx, cy, innerR, outerR, centerGaps, outerGaps);
+
+            if (centerGaps.Count == 0 || outerGaps.Count == 0)
+            {
+                return 0; // 한쪽 그룹 비면 편차 판정 불가 → 0% 가드
+            }
+            double centerMean = Mean(centerGaps);
+            double outerMean = Mean(outerGaps);
+            if (centerMean <= 0)
+            {
+                return 0;
+            }
+            return Math.Abs(outerMean - centerMean) / centerMean * 100.0;
+        }
+
+        /// <summary>
         /// 각 간격의 중점 거리로 중앙/외곽 그룹에 누적 (경계대 제외로 대비 선명화).
         /// </summary>
         //260623 hbk Phase 53: 반경 기준 중앙/외곽 분류
@@ -389,5 +455,12 @@ namespace ReringProject.Halcon.Algorithms
         public double CenterOuterDeviationPct { get; set; } // 중앙↔외곽 간격 편차% (D-05)
         public bool IsDistortionWarn { get; set; }      // 편차% 임계 초과 경고 (D-05 게이트)
         public int CornerCount { get; set; }            // 검출된 코너 수
+        //260623 hbk: 코너 오버레이 가시화 + 왜곡 상세 리포트용 신규 멤버
+        public double[] CornerRows { get; set; }        // 검출 코너 row 좌표 전체 (length == CornerCount)
+        public double[] CornerCols { get; set; }        // 검출 코너 col 좌표 전체 (length == CornerCount)
+        public double CenterMeanPx { get; set; }        // 중앙부 평균 간격(px)
+        public double OuterMeanPx { get; set; }         // 외곽부 평균 간격(px)
+        public double DeviationXPct { get; set; }       // X축(가로) 중앙↔외곽 편차%
+        public double DeviationYPct { get; set; }       // Y축(세로) 중앙↔외곽 편차%
     }
 }

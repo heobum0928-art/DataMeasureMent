@@ -2386,6 +2386,58 @@ namespace ReringProject.UI {
             CustomMessageBox.Show("캘리브레이션", string.Format("{0}개 SHOT 에 적용 + 저장 완료 (1 px = {1:F5} mm)", applied, mmPerPixel));
         }
 
+        //260623 hbk Phase 53: 체커보드 캘리브 버튼 → 창 진입 (XAML btn_checkerboardCalibrate).
+        private void OpenCheckerboardCalibrationButton_Click(object sender, RoutedEventArgs e) {
+            OpenCheckerboardCalibrationWindow();
+        }
+
+        //260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 진입 (MainWindow 메뉴/툴에서 호출하도록 public 노출).
+        //  TeachingWindow launch 패턴(Action_TopInspection.OpenTeachingButton_Click) 차용 — ImageGrabber 주입 + ApplyRequested 구독.
+        public void OpenCheckerboardCalibrationWindow() {
+            var window = new CalibrationWindow { Owner = Window.GetWindow(this) };
+            window.ImageGrabber = GrabCalibrationImage;              // 라이브 grab 델리게이트 (실HW). SIMUL 은 창에서 버튼 비활성.
+            window.ApplyRequested += ApplyCheckerboardCalibration;   // [적용] → Task 1 반영+저장 (D-03/D-06)
+            try {
+                window.ShowDialog();
+            }
+            finally {
+                window.ApplyRequested -= ApplyCheckerboardCalibration;   // 이벤트 핸들러 누수 해제
+            }
+        }
+
+        //260623 hbk Phase 53: 라이브 정지 프레임 1장 grab → 임시 png 경로 반환 (Action_TopInspection.GrabTeachingImage 패턴 차용).
+        //  활성 시퀀스 첫 shot 의 카메라 param 으로 단일 GrabHalconImage. SIMUL 은 창에서 [라이브 촬상] 비활성이라 호출되지 않음.
+        //  실패 시 null 반환 (창이 "라이브 촬상 실패" 안내). throw 금지.
+        private string GrabCalibrationImage() {
+            try {
+                string activeSeq = ResolveActiveSequenceForCalibration();
+
+                InspectionRecipeManager recipeManager = null;
+                if (SystemHandler.Handle != null && SystemHandler.Handle.Sequences != null)
+                    recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+                if (recipeManager == null || recipeManager.Shots == null) return null;
+
+                ShotConfig camShot = null;
+                for (int i = 0; i < recipeManager.ShotCount; i++) {
+                    ShotConfig shot = recipeManager.Shots[i];
+                    if (shot == null) continue;
+                    string owner;
+                    if (string.IsNullOrEmpty(shot.OwnerSequenceName)) owner = SequenceHandler.SEQ_TOP;
+                    else                                              owner = shot.OwnerSequenceName;
+                    if (owner != activeSeq) continue;
+                    camShot = shot;
+                    break;
+                }
+                if (camShot == null) return null;
+
+                HImage grabbed = pDev.GrabHalconImage(camShot);
+                if (grabbed == null) return null;
+
+                return HalconTeachingHelper.SaveTempImage("Calibration_" + activeSeq, grabbed);
+            }
+            catch { return null; }
+        }
+
         private void TeachDatumButton_Click(object sender, RoutedEventArgs e) {
             if (btn_teachDatum.IsChecked == true) {
                 ExitCanvasMode();

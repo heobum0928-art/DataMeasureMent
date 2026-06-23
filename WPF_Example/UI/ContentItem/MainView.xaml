@@ -306,6 +306,25 @@
                         </Button.Template>
                     </Button>
 
+                    <!--260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 진입점 (기존 2점 Calibrate 와 별도, D-04 별도 Window).-->
+                    <Button x:Name="btn_checkerboardCalibrate" Content="체커보드 캘리브"
+                        Click="OpenCheckerboardCalibrationButton_Click"
+                        MinWidth="80" Height="28" Padding="12,4" Margin="4,0,0,0"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#0F766E" Foreground="White"
+                        BorderBrush="#0E6660" BorderThickness="1">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <!--260601 hbk Phase 40.1 #2 — overlay On/Off 토글 (기본 ON). 측정 overlay / Datum 라인 독립.-->
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,4"/>
                     <CheckBox x:Name="chk_overlayMeasure" Content="측정 overlay"

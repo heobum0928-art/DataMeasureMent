@@ -1,2 +1,0 @@
-    - WPF_Example/Custom/Sequence/Inspection/Measurements/DualImageEdgeDistanceMeasurement.cs (필드 타입 확인)
-  </read_first>

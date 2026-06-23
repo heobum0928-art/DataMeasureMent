@@ -1,7 +1,0 @@
-  <action>
-    //260530 hbk Phase 39.3 D-G2 주석 의무. PATTERNS.md L386-389 가 적용 코드 블록.
-
-    **0) 사전 grep lock-in (Warning #5 — RenderInspectionResultForNode 정확 메서드명 확정):**
-    위 read_first 의 grep 결과로 ROI/결과 재 렌더 메서드의 정확한 이름을 lock-in. 본 task 의 publish 분기 안 `RenderInspectionResultForNode(_selectedDualImageMeasurement);` 호출의 메서드명을 확정된 이름으로 교체. 사용한 메서드명을 SUMMARY 에 기록 의무.
-
-    `UpdateImageSourceBadge(EImageSource source)` 메서드 (L1265-1296) **끝부분**, 기존 Datum publish 가드 (L1289-1295, `var datumForRoi = _selectedDatumForSwap;` ~ `PublishDatumRoiCandidates(datumForRoi);`) **직후** 에 Measurement publish 분기 추가:

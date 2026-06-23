@@ -1,7 +1,0 @@
-  <action>
-    //260530 hbk Phase 39.3 D-G2 주석 의무.
-
-    **0) 사전 grep lock-in (Warning #3 — 메서드명 확정 후 코드 삽입):**
-    위 read_first 의 grep 결과로 `OnSelectedDatumPropertyChanged` (또는 동등 핸들러명) 의 정확한 메서드명을 확인. 본 task 의 mutex unsubscribe 블록 (`_selectedDatumForSwap.PropertyChanged -= XXX;`) 의 XXX 자리에 정확 메서드명을 채워서 코드 삽입. 만약 grep 결과 핸들러가 0 hit 또는 WeakEventManager 등 다른 메커니즘이면 RESEARCH.md / PATTERNS.md 의 Datum 측 unsubscribe 패턴 재확인 후 동일 패턴 적용.
-
-    **A) 신규 필드 추가** — MainView.xaml.cs L68 `_selectedDatumForSwap` 선언 직후 (L69 위치):

@@ -1,2 +1,0 @@
-    - Verify C: Bottom E5 DualImage 검사 실행 (SIMUL) → 측정 결과 (mm) 가 Phase 39.2-01 baseline 과 일치
-    - Pass: 3 항목 ALL OK

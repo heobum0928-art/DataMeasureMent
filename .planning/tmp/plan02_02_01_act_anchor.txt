@@ -1,4 +1,0 @@
-  <action>
-    //260530 hbk Phase 39.3 D-G2 주석 의무.
-
-    **A) 신규 필드 추가** — MainView.xaml.cs L68 `_selectedDatumForSwap` 선언 직후 (L69 위치):

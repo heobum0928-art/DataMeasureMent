@@ -1,1 +1,0 @@
-    - **사전 grep lock-in (Warning #5 — RenderInspectionResultForNode 메서드명 확정):** `grep -n "RenderInspectionResultForNode\|DisplayMeasurementResultForNode\|RefreshResultDisplay" WPF_Example/UI/ContentItem/MainView.xaml.cs` 으로 ROI/결과 재 렌더 메서드의 정확한 이름을 확인. 0 hit 이면 PATTERNS.md L386 의 의도 ("ROI 재 렌더") 에 부합하는 후보 메서드를 추가 grep 으로 식별.

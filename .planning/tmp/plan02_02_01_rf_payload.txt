@@ -1,1 +1,0 @@
-    - **사전 grep lock-in (Warning #3):** `grep -n "OnSelectedDatumPropertyChanged\|_selectedDatum.*PropertyChanged" WPF_Example/UI/ContentItem/MainView.xaml.cs` 으로 정확한 핸들러 메서드명을 lock-in. 결과 라인을 SUMMARY 에 기록.

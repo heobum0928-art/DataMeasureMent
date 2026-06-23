@@ -1,1 +1,0 @@
-    - **사전 pre-flight grep (Warning #4 — ShotConfig.GetImage / halconViewer.LoadImage 시그니처 lock-in):** `grep -n "ShotConfig.*HasImage\|ShotConfig.*GetImage\|halconViewer.*LoadImage" WPF_Example/` 으로 ShotConfig.GetImage() 의 반환 타입 (HImage 직접 반환인지 string 경로 반환인지) 과 halconViewer.LoadImage(HImage) 오버로드 존재 여부를 확인. main 분기 (HImage 로드) vs fallback 분기 (SimulImagePath 경로 로드) 결정에 사용.

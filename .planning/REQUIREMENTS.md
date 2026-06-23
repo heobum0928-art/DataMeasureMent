@@ -95,7 +95,8 @@
 > 신규 마일스톤 (started 2026-06-23). 기존 Grabber 검사(v1.0~v1.2)와 **완전 독립**으로 같은 DataMeasurement 실행파일에 공존. v1.2 는 열어둔 채 병행.
 
 ### Config & Camera (Phase 58 / A)
-- [ ] **AV-01**: 사용자가 EthernetVisionMode(None/Tray/Bottom) + 카메라 IP/노출/픽셀분해능(8.652 μm/px)을 INI [ETHERNET_VISION] 로 설정·저장하고, 미존재 키는 기본값으로 보장받는다
+- [x] **AV-01
+**: 사용자가 EthernetVisionMode(None/Tray/Bottom) + 카메라 IP/노출/픽셀분해능(8.652 μm/px)을 INI [ETHERNET_VISION] 로 설정·저장하고, 미존재 키는 기본값으로 보장받는다
 - [ ] **AV-02**: 이더넷 카메라(Hikvision MV-CH250-90GM, MvCamCtrl.Net)를 독립 클래스로 연결/grab/live/stop 하며, 미연결(SIMUL)이면 D:\align_test.bmp 로드로 대체하고 실패해도 Grabber 검사는 정상 동작한다
 
 ### Vision Algorithm (Phase 59 / B)

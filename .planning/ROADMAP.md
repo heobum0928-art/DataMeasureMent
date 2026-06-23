@@ -588,6 +588,11 @@ Plans:
 3. 이더넷 카메라 초기화 실패해도 Grabber(Top/Bottom/Side) 검사 정상
 4. 기존 Sequence/Action/SystemHandler 무수정
 
+**Plans**: 3 plans (3 waves)
+- [ ] 58-01-PLAN.md — [ETHERNET_VISION] config + EEthernetVisionMode enum + 8.652 default restore (AV-01)
+- [ ] 58-02-PLAN.md — EthernetAlignCamera wrapper (HikCamera composition; connect/grab/live/stop; fallback to align_test.bmp) (AV-02)
+- [ ] 58-03-PLAN.md — EthernetVisionHandler singleton + single try-catch SystemHandler init + build + anti-goal verify (AV-01/02)
+
 ### Phase 59: Vision Algorithm (B) (신설 2026-06-23)
 **Goal**: Shape Matching(create/find/read/write_shape_model) 으로 ROI 티칭→.shm 저장, Tray=X/Y · Bottom=X/Y/Theta Offset 산출.
 **Requirements**: AV-03, AV-04
@@ -627,7 +632,7 @@ Plans:
 
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |
 |---|---|---|---|---|---|
-| 58 | Config & Camera (A) | AV-01/02 | Not started | — | — |
+| 58 | Config & Camera (A) | AV-01/02 | Planned (3 plans) | — | — |
 | 59 | Vision Algorithm (B) | AV-03/04 | Not started | — | — |
 | 60 | Calibration Bottom (C) | AV-05/06 | Not started | — | — |
 | 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |

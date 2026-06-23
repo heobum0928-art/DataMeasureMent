@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Align Vision (Ethernet)
-status: roadmap_complete
-stopped_at: v1.3 roadmap defined (phases 58~62, AV-01~09)
-last_updated: "2026-06-23T08:00:00.000Z"
-last_activity: 2026-06-23 — v1.3 Align 비전 마일스톤 시작 (phases 58~62, v1.2 병행)
+milestone: v1.2
+milestone_name: Phases
+status: v1.3 roadmap 정의 완료 (phases 58~62). 다음 = 참조코드(WPF_Example_260604) 파악 → Phase 58(A-1) 설계 제안 → 동의 후 구현. **코드 작성 전 설계 동의 필수.**
+stopped_at: Phase 58 context gathered
+last_updated: "2026-06-23T08:47:35.927Z"
+last_activity: 2026-06-23 — v1.3 Align 비전 마일스톤 시작 (REQUIREMENTS AV-01~09, ROADMAP 58~62, PROJECT v1.3 섹션)
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 27
+  completed_phases: 19
+  total_plans: 80
+  completed_plans: 76
+  percent: 95
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -483,9 +483,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-23T06:43:24.936Z
-Stopped at: Completed 53-03-PLAN.md
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 58 context gathered
+Resume file: --resume-file
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 
 **v1.1 Phase Map:**

@@ -236,6 +236,7 @@
     <Compile Include="Custom\Sequence\Inspection\DatumConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\EAngleValidationStatus.cs" />
     <Compile Include="Custom\Sequence\Inspection\EDatumAlgorithm.cs" />
+    <Compile Include="Custom\EthernetVision\EEthernetVisionMode.cs" />
     <Compile Include="Custom\Sequence\Inspection\EImageSource.cs" />
     <Compile Include="Custom\Sequence\Inspection\EdgeOptionLists.cs" />
     <Compile Include="Custom\Sequence\Inspection\FAIConfig.cs" />

@@ -251,6 +251,10 @@ Plans:
   - 캘리브 알고리즘(HALCON caltab/find_caltab vs 격자 코너 검출) 확정
 **Success Criteria (UAT)**:
   - 체커보드 입력 → 픽셀 해상도 산출 → 측정 PixelResolution 적용 / 이미지 로드 모드 동작
+**Plans**: 3 plans (3 waves)
+  - [ ] 53-01-PLAN.md — CheckerboardCalibrationService (saddle 코너검출 + median mm/px + 외곽 편차%) + csproj 등록
+  - [ ] 53-02-PLAN.md — CalibrationWindow (입력/이미지로드·라이브/검출/리포트+왜곡경고, D-04/D-05/D-06 게이트)
+  - [ ] 53-03-PLAN.md — MainView launch + 활성 시퀀스 전체 shot PixelResolution 일괄 반영(D-03) + SaveRecipe
 
 ### Phase 43: 시작지연 분리 (LoginManager + SequenceHandler) (CO-38-02, CO-38-03)
 **Goal**: 앱 기동 시 동기적으로 수행되는 무거운 초기화(계정 DB 로드, 레시피 동기 로딩)를 지연/분리하여 "측정 가능 시점"까지의 시간을 단축한다. Phase 38 에서 추가한 `[STARTUP]` Stopwatch 계측을 기준선으로, 측정 가능 시점이 ≥30% 단축됨을 입증한다.

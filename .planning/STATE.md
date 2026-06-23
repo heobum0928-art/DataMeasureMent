@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: planning
-stopped_at: Phase 49 context gathered
-last_updated: "2026-06-23T00:26:28.888Z"
-last_activity: 2026-06-22
+status: executing
+stopped_at: Completed 49-01-PLAN.md
+last_updated: "2026-06-23T00:35:45.282Z"
+last_activity: 2026-06-23
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 46
-  completed_plans: 40
-  percent: 87
+  completed_plans: 41
+  percent: 89
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 48 — protocol-v1-test-result-site-material
+**Current focus:** Phase 49 — protocol-v1-judgment-engine
 
 ## Current Position
 
-Phase: 51
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-06-22
+Phase: 49 (protocol-v1-judgment-engine) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-23
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -164,6 +164,7 @@ Last activity: 2026-06-22
 | Phase 48 P02 | 20 | 2 tasks | 3 files |
 | Phase 48 P03 | 168 | 1 tasks | 1 files |
 | Phase 48-protocol-v1-test-result-site-material P04 | 25 | 3 tasks | 6 files |
+| Phase 49 P01 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -331,6 +332,9 @@ Recent decisions affecting current work:
 - UseProtocolV1=true 분기에서 BuildResultMessageV1 직렬화 — v1.0 3단 구분자(;/,/=) + IsBuffer 최우선 B 판정 매핑 (Phase 49가 채울 자리)
 - 자재번호 파일명 위치: FAI 뒤 seg 앞 (_M{번호} 토큰) — 자재번호가 FAI 와 가깝게 식별되도록 우선 배치 (48-04)
 - xlsx 테이블 헤더 오프셋 5→6: 자재번호 행(행 4) 삽입으로 1행 이동, hr 변수로 데이터 루프 자동 이동 (48-04)
+- [Phase 49-01]: ECycleResult { Buffer, Pass, Fail } enum 신설 (D-07) — CycleState 라이프사이클 enum 미도입, 상태는 InspectionSequence 멤버 bool 로 표현
+- [Phase 49-01]: ShotConfig.ZIndex (default 0) z_index↔Shot 매핑 (D-01) — ParamBase 자동직렬화, 누락키 0 폴백=의도된 안전값(Datum/Idx0)
+- [Phase 49-01]: 사이클 상태 = InspectionSequence 멤버 4개 + ComputeLastZIndex(레시피 z_index 최댓값, 시퀀스 소유 Shot 한정, D-03) + ResetCycleState(Index 0 수신 리셋, D-08). 정의만 — 소비는 49-02. CS0414 #pragma 일시억제(Rule 3)
 
 ### Quick Tasks Completed
 
@@ -454,9 +458,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 49 context gathered
-Resume file: --resume-file
+Last session: 2026-06-23T00:35:30.901Z
+Stopped at: Completed 49-01-PLAN.md
+Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 
 **v1.1 Phase Map:**

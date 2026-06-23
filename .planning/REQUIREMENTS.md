@@ -82,7 +82,8 @@
 **: RESULT 포맷 3단 구분자 — `$RESULT:site;P|F|B;count;id=val=OK,...@` (;/,/=) 직렬화/역직렬화
 - [ ] **PROTO-03**: P/F/B 3-state 판정 엔진 — NG 발견 시 즉시 종료 X, 마지막 Index까지 진행 후 종합 (Pass/Fail/Bypass)
 - [ ] **PROTO-04**: Datum 샷(z_index=0) 빈 응답 + Datum 실패 시 즉시 F
-- [ ] **PROTO-05**: 멀티샷 사이클 state — `CycleState`, `ECycleResult` enum 신설 + InspectionSequence 사이클 단위 NG mark + 자동 리셋
+- [x] **PROTO-05
+**: 멀티샷 사이클 state — `CycleState`, `ECycleResult` enum 신설 + InspectionSequence 사이클 단위 NG mark + 자동 리셋
 - [ ] **PROTO-06**: 프로토콜 v2.7 통신 회귀 시험 (제어팀(김민우 선임) 동기화 후)
 
 ---

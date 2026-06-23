@@ -201,7 +201,7 @@ Plans:
 
 ### 우선순위 1 — POC 신규 기능 (신설 2026-06-16)
 
-- [ ] **Phase 51: 시퀀스 일괄 검사 & 일괄 Export** (BATCH-01)
+- [x] **Phase 51: 시퀀스 일괄 검사 & 일괄 Export** (BATCH-01) (completed 2026-06-23)
   - Success: Top/Bottom 시퀀스 단위로 전체 SHOT을 한 번에 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 일괄 추출 (SHOT 개별 트리거 불필요) / SHOT 개별 검사 회귀 0
 - [~] **Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬)** (LEVEL-01) — ❌ 폐기 2026-06-23 (ALIGN-01/02 패턴매칭 위치보정 Phase 54/55/56 으로 대체. 레벨링 코드 Phase 54+57-01 제거 완료, 잔여 죽은 메서드 RotateImageByAngle 도 제거)
   - Success: Datum 수평 에지 검출 각도와 수평선의 각도차로 입력 이미지를 회전 정렬(레벨링) 후 측정 / 회귀 0
@@ -232,7 +232,7 @@ Plans:
   - 적용 시점(검사 전 전처리 / Datum 검출 후) 및 적용 범위(시퀀스/SHOT) 확정
 **Success Criteria (UAT)**:
   - 기울어진 입력 이미지가 수평 정렬된 후 측정 / 기존 측정 회귀 0
-**Plans:** 4 plans (3 waves) -- planned 2026-06-17
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 52-01-PLAN.md -- InspectionSequence LevelingEnabled + leveling angle cache + DatumConfig.IsLevelingReference + FIXTURE INI save/load (D-01/D-04) [Wave 1]
 - [x] 52-02-PLAN.md -- DatumFindingService.TryGetLevelingAngle (Math.Atan2 angle) + VisionAlgorithmService.RotateImageByAngle (affine_trans_image) [Wave 1]

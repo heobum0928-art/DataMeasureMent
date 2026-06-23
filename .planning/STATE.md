@@ -8,10 +8,10 @@ last_updated: "2026-06-23T00:45:32.160Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 15
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 46
   completed_plans: 43
-  percent: 93
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,15 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 51
-Plan: Not started
-Status: Ready to plan
+Phase: 52 (❌ 폐기 — ALIGN 패턴매칭으로 대체, skip)
+Plan: —
+Status: 정리(C) 진행 중 → 다음 B(QUAL-01 리팩토링) → A(Phase 53 캘리브레이션)
 Last activity: 2026-06-23
+
+**사용자 작업 계획 2026-06-23 (C→B→A):**
+  - C 정리: ✅ .claude worktrees 8.8GB 삭제 / 죽은코드 10파일 삭제 / 레벨링(Phase 52) 폐기 / Phase 49·51 완료처리 (진행 중)
+  - B QUAL-01 리팩토링: 헝가리언+if/else+함수분할+가독성(신입 이해 가능) — 측정경로 광범위, 파일/모듈 단위 분할 phase 필요 (미시작)
+  - A Phase 53 캘리브레이션: 텔레센트릭 체커보드 mm/px → ShotConfig.PixelResolution. 레퍼런스(QCellInspector CCalibration)는 CCTV 와핑이라 그대로 X, mm/px만 차용. 실 체커보드 이미지 없음(인터넷 다운로드본만) → 왜곡검증 보류 (미시작)
 
 **v1.2 우선순위 5단계 (POC 2026-06-30 기준):**
 
@@ -48,7 +53,7 @@ Last activity: 2026-06-23
 
 **Velocity:**
 
-- Total plans completed: 34
+- Total plans completed: 36
 - Average duration: —
 - Total execution time: 0 hours
 
@@ -66,6 +71,7 @@ Last activity: 2026-06-23
 | 23.1 | 3 | - | - |
 | 48 | 4 | - | - |
 | 49 | 3 | - | - |
+| 51 | 2 | - | - |
 
 **Recent Trend:**
 

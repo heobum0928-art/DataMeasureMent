@@ -177,17 +177,18 @@ namespace ReringProject.UI
 
             _lastResult = result;
             _lastCellMm = txt_cellMm.Text;   // D-01 직전값 갱신
-            //260623 hbk: 중앙/외곽 평균(px) + X/Y 축별 편차% + 종합 편차% + 구조 점검(가짜점/규칙성) 보강 리포트
+            //260623 hbk: 중앙/외곽 평균(px) + X/Y 축별 편차% + 종합 편차% + 구조 점검 + 난반사(포화) 보강 리포트
             txt_report.Text = string.Format(CultureInfo.InvariantCulture,
-                "1 px = {0:F5} mm (X {1:F5} / Y {2:F5})\n평균 간격 {3:F2} px · 코너 {4}개{5}\n중앙부 {6:F2} px ↔ 외곽부 {7:F2} px\n편차 종합 {8:F2}% (X {9:F2}% / Y {10:F2}%)\n구조 점검: {11} (규칙성 변동 {12:F1}%)",
+                "1 px = {0:F5} mm (X {1:F5} / Y {2:F5})\n평균 간격 {3:F2} px · 코너 {4}개{5}\n중앙부 {6:F2} px ↔ 외곽부 {7:F2} px\n편차 종합 {8:F2}% (X {9:F2}% / Y {10:F2}%)\n구조 점검: {11} (규칙성 변동 {12:F1}%)\n난반사/과노출: 포화 {13:F2}%",
                 result.MmPerPixel, result.MmPerPixelX, result.MmPerPixelY,
                 result.MeanSpacingPx, result.CornerCount, useRoi ? " · ROI 적용" : "",
                 result.CenterMeanPx, result.OuterMeanPx,
                 result.CenterOuterDeviationPct, result.DeviationXPct, result.DeviationYPct,
-                result.StructureNote, result.GridRegularityCv * 100.0);
+                result.StructureNote, result.GridRegularityCv * 100.0,
+                result.SaturatedAreaPct);
 
-            //260623 hbk: 왜곡(D-05) + 구조(가짜점/불규칙) 경고 통합 표시. 둘 다 advisory — 적용은 막지 않음(육안 오버레이 병행).
-            if (result.IsDistortionWarn || result.IsStructureWarn)
+            //260623 hbk: 왜곡(D-05) + 구조(가짜점/불규칙) + 난반사(포화) 경고 통합 표시. 모두 advisory — 적용은 막지 않음(육안 오버레이 병행).
+            if (result.IsDistortionWarn || result.IsStructureWarn || result.IsGlareWarn)
             {
                 string warnText = "";
                 if (result.IsDistortionWarn)
@@ -196,7 +197,11 @@ namespace ReringProject.UI
                 }
                 if (result.IsStructureWarn)
                 {
-                    warnText += "[구조] " + result.StructureNote + " — 코너 오버레이 육안 확인 권장.";
+                    warnText += "[구조] " + result.StructureNote + " — 코너 오버레이 육안 확인 권장. ";
+                }
+                if (result.IsGlareWarn)
+                {
+                    warnText += string.Format(CultureInfo.InvariantCulture, "[난반사] 포화 {0:F2}% — 무광 타깃/편광·확산 조명 검토.", result.SaturatedAreaPct);
                 }
                 lbl_distortionWarn.Text = warnText;
                 lbl_distortionWarn.Visibility = Visibility.Visible;

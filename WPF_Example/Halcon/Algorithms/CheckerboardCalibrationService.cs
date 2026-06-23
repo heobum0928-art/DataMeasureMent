@@ -23,6 +23,9 @@ namespace ReringProject.Halcon.Algorithms
         //260623 hbk: 구조 가드 임계 — pitchGuess 붕괴(가짜 근접점) / 격자 불규칙(변동계수) 경고용 (HALCON 네이티브 하드닝)
         private const double PitchDivergenceWarnRatio = 1.4;   // medGap/pitchGuess 초과 시 가짜 근접점 의심
         private const double GridIrregularityWarnCv = 0.18;    // 격자 간격 변동계수(CV) 초과 시 불규칙 경고
+        //260623 hbk: 난반사/과노출 가드 — 포화(클리핑) 픽셀 면적비. 8-bit 기준 254↑=클립(정상 흰칸 ~240은 미클립이라 오탐 회피). 근거=정반사=포화영역(문헌 베이스라인).
+        private const double GlareSatGrayValue = 254.0;        // 클리핑 임계 (8-bit)
+        private const double GlareAreaWarnRatio = 0.02;        // 검출영역 대비 포화 면적비 초과 시 난반사/과노출 경고
 
         /// <summary>
         /// 체커보드 이미지로부터 mm/px 를 산출한다 (기본 saddle/왜곡 임계 사용).
@@ -71,6 +74,7 @@ namespace ReringProject.Halcon.Algorithms
             HTuple rows, cols;
             HImage detImage = image;
             bool reduced = false;
+            double saturatedRatio = 0;
             try
             {
                 if (useRoi && Math.Abs(roiRow2 - roiRow1) > 1.0 && Math.Abs(roiCol2 - roiCol1) > 1.0)
@@ -81,6 +85,8 @@ namespace ReringProject.Halcon.Algorithms
                     reduced = true;
                 }
                 HOperatorSet.SaddlePointsSubPix(detImage, "facet", saddleSigma, saddleThreshold, out rows, out cols);
+                //260623 hbk: 검출 영역 내 난반사/과노출(포화) 면적비 측정 — 코너 검출과 같은 도메인(ROI면 ROI 안)
+                saturatedRatio = ComputeSaturatedAreaPct(detImage);
             }
             catch
             {
@@ -145,6 +151,10 @@ namespace ReringProject.Halcon.Algorithms
                 structureNote = "격자 불규칙 (간격 변동 " + (gridCv * 100.0).ToString("F1") + "%)";
             }
 
+            //260623 hbk: 난반사/과노출 경고 — 검출 영역 포화 면적비 임계 초과. 복원 아님(경보용). 근본 해결=무광 타깃+편광/확산 조명.
+            double glarePct = saturatedRatio * 100.0;
+            bool glareWarn = saturatedRatio > GlareAreaWarnRatio;
+
             //260623 hbk Phase 53: mm/px 산출 (D-02 단일 평균 + X/Y 리포트)
             double mmPerPixel = knownMmPerCell / medGap;
             double mmPerPixelX = knownMmPerCell / medGapX;
@@ -188,7 +198,10 @@ namespace ReringProject.Halcon.Algorithms
                 IsStructureWarn = structureWarn,
                 StructureNote = structureNote,
                 GridRegularityCv = gridCv,
-                PitchGuessPx = pitchGuess
+                PitchGuessPx = pitchGuess,
+                //260623 hbk: 난반사/과노출 가드 결과
+                IsGlareWarn = glareWarn,
+                SaturatedAreaPct = glarePct
             };
             return true;
         }
@@ -502,6 +515,44 @@ namespace ReringProject.Halcon.Algorithms
             double variance = sumSq / vals.Count;
             return Math.Sqrt(variance) / mean;
         }
+
+        /// <summary>
+        /// 검출 영역(도메인) 내 포화(클리핑) 픽셀 면적비 — 난반사/과노출 지표. 정상 흰칸(~240)은 미클립이라 오탐 회피.
+        /// threshold(254↑) 영역 면적 ÷ 도메인 면적. 모든 HALCON 호출 try/catch swallow → 실패 시 0(경고 없음).
+        /// </summary>
+        //260623 hbk: 포화 면적비 헬퍼 (난반사/과노출 가드, 문헌 베이스라인 = 정반사≈포화)
+        private static double ComputeSaturatedAreaPct(HImage detImage)
+        {
+            HObject bright = null;
+            HObject domain = null;
+            try
+            {
+                HOperatorSet.Threshold(detImage, out bright, GlareSatGrayValue, 255.0);
+                HTuple brightArea, br, bc;
+                HOperatorSet.AreaCenter(bright, out brightArea, out br, out bc);
+                HOperatorSet.GetDomain(detImage, out domain);
+                HTuple domainArea, dr, dc;
+                HOperatorSet.AreaCenter(domain, out domainArea, out dr, out dc);
+                double total = (domainArea != null && domainArea.Length > 0) ? domainArea.D : 0;
+                double ba = (brightArea != null && brightArea.Length > 0) ? brightArea.D : 0;
+                return (total > 0) ? (ba / total) : 0;
+            }
+            catch
+            {
+                return 0; // 측정 실패 → 경고 보류 (검출 자체는 영향 없음)
+            }
+            finally
+            {
+                if (bright != null)
+                {
+                    bright.Dispose();
+                }
+                if (domain != null)
+                {
+                    domain.Dispose();
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -548,5 +599,8 @@ namespace ReringProject.Halcon.Algorithms
         public string StructureNote { get; set; }       // 구조 점검 메시지 (리포트 표시)
         public double GridRegularityCv { get; set; }    // 격자 간격 변동계수 (작을수록 규칙적)
         public double PitchGuessPx { get; set; }        // 최근접이웃 피치 추정(px) — medGap 대비 붕괴 판정
+        //260623 hbk: 난반사/과노출 가드 (포화 면적비) — 복원 아닌 경보. 근본 해결=무광 타깃+편광/확산 조명.
+        public bool IsGlareWarn { get; set; }           // 검출 영역 포화 면적비 임계 초과 경고
+        public double SaturatedAreaPct { get; set; }    // 검출 영역 내 포화(클리핑) 픽셀 면적 비율(%)
     }
 }

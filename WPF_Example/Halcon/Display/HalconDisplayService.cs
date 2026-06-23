@@ -208,6 +208,33 @@ namespace ReringProject.Halcon.Display
                         }
                         continue;
                     }
+                    //260623 hbk: 캘리브 검출 코너 일괄 가시화 (cyan 작은 +). FAI-EdgeRaw 패턴 미러 — 라인/큰X skip 위해 continue.
+                    //  "cyan" 표준 색상명 (비표준명은 SetColor 예외 swallow → 미표시 위험).
+                    //  반드시 "FAI-Edge" StartsWith 분기보다 먼저 평가 — 형제 위치라 안전.
+                    else if (string.Equals(overlay.RoiId, "Calib-Corners", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (overlay.Points != null && overlay.Points.Count > 0)
+                        {
+                            try
+                            {
+                                HTuple rRows = new HTuple();
+                                HTuple rCols = new HTuple();
+                                foreach (var p in overlay.Points)
+                                {
+                                    rRows = rRows.TupleConcat(p.Row);
+                                    rCols = rCols.TupleConcat(p.Column);
+                                }
+                                HOperatorSet.SetColor(window, "cyan");
+                                HOperatorSet.SetLineWidth(window, 1);
+                                HOperatorSet.DispCross(window, rRows, rCols, 6.0, 0.0);
+                            }
+                            catch
+                            {
+                                // display 예외 swallow (기존 FAI-EdgeRaw / RenderRawEdgePoints 관습)
+                            }
+                        }
+                        continue;
+                    }
                     // X 마커 색 분리용: FAI-Edge* 라인은 녹/적(OK/NG), X 는 white 로 구분.
                     bool isFaiEdgeLine = false;
                     // FAI edge measurement result overlay colors

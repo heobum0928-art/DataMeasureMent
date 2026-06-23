@@ -33,6 +33,15 @@ namespace ReringProject.UI
             btn_liveCapture.IsEnabled = false;
             btn_liveCapture.ToolTip = "SIMUL 모드에서는 이미지 로드만 가능합니다.";
 #endif
+            //260623 hbk Phase 53 WR-01: 창 종료 시 뷰어 HImage 해제 (TeachingWindow 패턴) — 누수 방지
+            Closed += CalibrationWindow_Closed;
+        }
+
+        //260623 hbk Phase 53 WR-01: HalconViewerControl 네이티브 핸들 해제
+        private void CalibrationWindow_Closed(object sender, EventArgs e)
+        {
+            Closed -= CalibrationWindow_Closed;
+            CalibrationViewer.Dispose();
         }
 
         // (a) 이미지 로드 — OpenFileDialog → 뷰어 표시 (검출 입력은 CalibrationViewer.CurrentImage)

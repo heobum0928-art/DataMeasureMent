@@ -2433,7 +2433,13 @@ namespace ReringProject.UI {
                 HImage grabbed = pDev.GrabHalconImage(camShot);
                 if (grabbed == null) return null;
 
-                return HalconTeachingHelper.SaveTempImage("Calibration_" + activeSeq, grabbed);
+                //260623 hbk Phase 53 WR-02: SaveTempImage 는 grabbed 를 borrow 만 하므로 직접 Dispose (누수 방지)
+                try {
+                    return HalconTeachingHelper.SaveTempImage("Calibration_" + activeSeq, grabbed);
+                }
+                finally {
+                    grabbed.Dispose();
+                }
             }
             catch { return null; }
         }

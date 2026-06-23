@@ -73,11 +73,14 @@ namespace ReringProject.Network {
             Ascii,
             Utf8,
         }
-        private static MessageEncodingType EncodingType { get; set; } = MessageEncodingType.Default;
+        //260623 hbk Phase 49 CO-48-01 (D-09): static → instance. 다중 인스턴스 전역 인코딩 오염 시한폭탄 제거.
+        //  현재 인스턴스 1개라 동작 변화 0 — 구조만 안전화. (Header/Trailer static 은 CO-48-01 범위 밖, 기록만.)
+        private MessageEncodingType EncodingType { get; set; } = MessageEncodingType.Default;
 
         // 260622 hbk Phase 48 PROTO-01: 파생 클래스(VisionServer)가 v1.0 UTF-8 인코딩을 설정하는 진입점.
         // EncodingType 캡슐화 유지 — setter 직접 노출 대신 동사+목적어 헬퍼 메서드.
-        protected static void ApplyEncoding(MessageEncodingType eEncoding)
+        //260623 hbk Phase 49 CO-48-01 (D-09): static 제거. 파생 클래스(VisionServer) 생성자가 instance 컨텍스트에서 호출.
+        protected void ApplyEncoding(MessageEncodingType eEncoding)
         {
             EncodingType = eEncoding;
         }
@@ -155,7 +158,8 @@ namespace ReringProject.Network {
 
             private byte[] ConvertMessage(string msg) {
                 try {
-                    switch (EncodingType) {
+                    //260623 hbk Phase 49 CO-48-01 (D-09): EncodingType instance 화 — 부모 인스턴스(Parent) 경유 접근.
+                    switch (Parent.EncodingType) {
                         case MessageEncodingType.Ascii:
                             return Encoding.ASCII.GetBytes(msg);
                         case MessageEncodingType.Default:
@@ -174,7 +178,8 @@ namespace ReringProject.Network {
 
             private string ConvertMessage(byte [] msg) {
                 try {
-                    switch (EncodingType) {
+                    //260623 hbk Phase 49 CO-48-01 (D-09): EncodingType instance 화 — 부모 인스턴스(Parent) 경유 접근.
+                    switch (Parent.EncodingType) {
                         case MessageEncodingType.Ascii:
                             return Encoding.ASCII.GetString(msg);
                         case MessageEncodingType.Default:

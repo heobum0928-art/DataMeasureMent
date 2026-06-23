@@ -73,6 +73,10 @@ namespace ReringProject.UI
         private const double ZoomOutScaleFactor = 1.55;
         private const int HalconLeftButton = 1;
         private const int HalconRightButton = 4;
+        //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
+        private const double MinViewPartSize = 20.0;
+        private const double PanMarginScale = 0.75;
+        private const int PolygonMinVertices = 3;
 
         private readonly HalconDisplayService _displayService = new HalconDisplayService();
         private readonly List<RoiDefinition> _rois = new List<RoiDefinition>();
@@ -799,7 +803,7 @@ namespace ReringProject.UI
 
             if (_polygonDraftPoints != null && _polygonDraftPoints.Count > 0)
             {
-                if (_polygonDraftPoints.Count >= 3)
+                if (_polygonDraftPoints.Count >= PolygonMinVertices)
                     _displayService.RenderPolygon(ViewerHost.HalconWindow, _polygonDraftPoints, _polygonColor, 2);
                 _displayService.RenderPolygonPoints(ViewerHost.HalconWindow, _polygonDraftPoints, "red");
             }
@@ -1434,8 +1438,8 @@ namespace ReringProject.UI
                 return;
             }
 
-            var normalizedWidth = Math.Max(20.0, imagePart.Width);
-            var normalizedHeight = Math.Max(20.0, imagePart.Height);
+            var normalizedWidth = Math.Max(MinViewPartSize, imagePart.Width);
+            var normalizedHeight = Math.Max(MinViewPartSize, imagePart.Height);
 
             if (ViewerHost.ActualWidth > 0 && ViewerHost.ActualHeight > 0)
             {
@@ -1451,8 +1455,8 @@ namespace ReringProject.UI
                 }
             }
 
-            var horizontalMargin = Math.Max(normalizedWidth, _imageWidth) * 0.75;
-            var verticalMargin = Math.Max(normalizedHeight, _imageHeight) * 0.75;
+            var horizontalMargin = Math.Max(normalizedWidth, _imageWidth) * PanMarginScale;
+            var verticalMargin = Math.Max(normalizedHeight, _imageHeight) * PanMarginScale;
 
             var minLeft = -horizontalMargin;
             var maxLeft = _imageWidth - normalizedWidth + horizontalMargin;

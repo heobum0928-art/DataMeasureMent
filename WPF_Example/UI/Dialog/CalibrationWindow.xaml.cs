@@ -1,9 +1,11 @@
 //260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 코드비하인드 (입력/검출/리포트/결과 노출)
 using System;
+using System.Collections.Generic;   //260623 hbk: 코너 오버레이 리스트
 using System.Globalization;
 using System.Windows;
 using Microsoft.Win32;
 using ReringProject.Halcon.Algorithms;
+using ReringProject.Halcon.Models;   //260623 hbk: EdgeInspectionOverlay/Point
 
 namespace ReringProject.UI
 {
@@ -62,6 +64,7 @@ namespace ReringProject.UI
                 return;
             }
             btn_apply.IsEnabled = false;   // 새 이미지 로드 시 직전 검출 무효화
+            CalibrationViewer.SetInspectionOverlays(null);   //260623 hbk: 새 이미지 → 직전 코너 마커 제거
             CalibrationStatusTextBlock.Text = "로드: " + dialog.FileName;
         }
 
@@ -89,6 +92,7 @@ namespace ReringProject.UI
                 return;
             }
             btn_apply.IsEnabled = false;   // 새 프레임 → 직전 검출 무효화
+            CalibrationViewer.SetInspectionOverlays(null);   //260623 hbk: 새 프레임 → 직전 코너 마커 제거
             CalibrationStatusTextBlock.Text = "라이브 촬상 완료.";
         }
 
@@ -124,16 +128,20 @@ namespace ReringProject.UI
             if (!_calibService.TryCalibrate(CalibrationViewer.CurrentImage, mm, sigma, thr, warnPct, out result, out err))
             {
                 CalibrationStatusTextBlock.Text = "검출 실패: " + err;
+                CalibrationViewer.SetInspectionOverlays(null);   //260623 hbk: 검출 실패 → 직전 코너 마커 제거
                 btn_apply.IsEnabled = false;
                 return;
             }
 
             _lastResult = result;
             _lastCellMm = txt_cellMm.Text;   // D-01 직전값 갱신
+            //260623 hbk: 중앙/외곽 평균(px) + X/Y 축별 편차% + 종합 편차% 보강 리포트
             txt_report.Text = string.Format(CultureInfo.InvariantCulture,
-                "1 px = {0:F5} mm (X {1:F5} / Y {2:F5})\n평균 간격 {3:F2} px · 코너 {4}개\n중앙↔외곽 편차 {5:F2}%",
+                "1 px = {0:F5} mm (X {1:F5} / Y {2:F5})\n평균 간격 {3:F2} px · 코너 {4}개\n중앙부 {5:F2} px ↔ 외곽부 {6:F2} px\n편차 종합 {7:F2}% (X {8:F2}% / Y {9:F2}%)",
                 result.MmPerPixel, result.MmPerPixelX, result.MmPerPixelY,
-                result.MeanSpacingPx, result.CornerCount, result.CenterOuterDeviationPct);
+                result.MeanSpacingPx, result.CornerCount,
+                result.CenterMeanPx, result.OuterMeanPx,
+                result.CenterOuterDeviationPct, result.DeviationXPct, result.DeviationYPct);
 
             if (result.IsDistortionWarn)
             {
@@ -146,8 +154,30 @@ namespace ReringProject.UI
                 lbl_distortionWarn.Visibility = Visibility.Collapsed;
             }
 
+            ShowCornerOverlay(result);    //260623 hbk: 검출 코너 cyan + 마커 표시
             btn_apply.IsEnabled = true;   // D-06: 검출 성공 후에만 적용 가능
             CalibrationStatusTextBlock.Text = "검출 완료.";
+        }
+
+        //260623 hbk: 검출 코너를 기존 오버레이 파이프라인(SetInspectionOverlays)으로 push. 새 HWindow 경로 발명 금지.
+        private void ShowCornerOverlay(CalibrationResult result)
+        {
+            if (result == null || result.CornerRows == null || result.CornerCols == null
+                || result.CornerRows.Length != result.CornerCols.Length || result.CornerRows.Length == 0)
+            {
+                CalibrationViewer.SetInspectionOverlays(null);
+                return;
+            }
+            EdgeInspectionOverlay overlay = new EdgeInspectionOverlay();
+            overlay.RoiId = "Calib-Corners";
+            for (int i = 0; i < result.CornerRows.Length; i++)
+            {
+                EdgeInspectionPoint pt = new EdgeInspectionPoint();
+                pt.Row = result.CornerRows[i];
+                pt.Column = result.CornerCols[i];
+                overlay.Points.Add(pt);
+            }
+            CalibrationViewer.SetInspectionOverlays(new List<EdgeInspectionOverlay> { overlay });
         }
 
         // (d) 적용 — 본 plan 은 위임만. 반영/저장 wiring 은 plan 03 (ApplyRequested 구독)

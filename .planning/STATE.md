@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 53-01-PLAN.md
-last_updated: "2026-06-23T06:30:16.479Z"
+stopped_at: Completed 53-02-PLAN.md
+last_updated: "2026-06-23T06:36:20.149Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 15
   completed_phases: 13
   total_plans: 49
-  completed_plans: 44
-  percent: 90
+  completed_plans: 45
+  percent: 92
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 53 (2026-06-16-poc-2) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-23
 
@@ -176,6 +176,7 @@ Last activity: 2026-06-23
 | Phase 49 P03 | 5 | 1 tasks | 1 files |
 | Phase 49 P02 | 3 | 2 tasks | 1 files |
 | Phase 53 P01 | 5 | 3 tasks | 2 files |
+| Phase 53 P02 | 6 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -348,6 +349,8 @@ Recent decisions affecting current work:
 - [Phase 49-01]: 사이클 상태 = InspectionSequence 멤버 4개 + ComputeLastZIndex(레시피 z_index 최댓값, 시퀀스 소유 Shot 한정, D-03) + ResetCycleState(Index 0 수신 리셋, D-08). 정의만 — 소비는 49-02. CS0414 #pragma 일시억제(Rule 3)
 - [Phase 49-03]: TcpServer.EncodingType/ApplyEncoding static→instance (CO-48-01/D-09) — 중첩 클래스 ConvertMessage 2곳 Parent.EncodingType 한정, VisionServer 무변경, 인코딩 동작 회귀 0. CO-48-01 종결.
 - [Phase 53-01]: CheckerboardCalibrationService — saddle_points_sub_pix 코너 검출 + round(axis/pitch) 격자 버킷팅 + median 간격으로 mm/px 직접 산출(D-07). MmPerPixel 단일 적용/X·Y 리포트(D-02). 중앙↔외곽 편차% + IsDistortionWarn 게이트(D-05). caltab/undistort 미도입(D-07/D-08). 계약(CalibrationResult 7프로퍼티 + TryCalibrate 2오버로드)을 plan 02 CalibrationWindow 가 소비.
+- 53-02: CalibrationWindow 검출 입력 = CalibrationViewer.CurrentImage 재사용 (별도 _currentImage 미생성, 중복 HImage·이중 dispose 회피)
+- 53-02: 캘리브 결과 외부 노출 = LastResult 프로퍼티 + ApplyRequested 이벤트 (반영/저장 wiring 은 plan 03)
 
 ### Quick Tasks Completed
 
@@ -475,8 +478,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-23T06:30:03.217Z
-Stopped at: Completed 53-01-PLAN.md
+Last session: 2026-06-23T06:35:59.569Z
+Stopped at: Completed 53-02-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

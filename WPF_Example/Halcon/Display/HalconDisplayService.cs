@@ -225,8 +225,8 @@ namespace ReringProject.Halcon.Display
                                     rCols = rCols.TupleConcat(p.Column);
                                 }
                                 HOperatorSet.SetColor(window, "cyan");
-                                HOperatorSet.SetLineWidth(window, 1);
-                                HOperatorSet.DispCross(window, rRows, rCols, 6.0, 0.0);
+                                HOperatorSet.SetLineWidth(window, 2);                 //260623 hbk: 가독성 위해 1→2
+                                HOperatorSet.DispCross(window, rRows, rCols, 15.0, 0.0);   //260623 hbk: 십자 크기 6→15px (육안 확인)
                             }
                             catch
                             {

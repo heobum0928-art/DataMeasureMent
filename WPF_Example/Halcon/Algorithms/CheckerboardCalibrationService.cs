@@ -20,6 +20,9 @@ namespace ReringProject.Halcon.Algorithms
         public const double DefaultSaddleThreshold = 5.0;
         public const double DistortionWarnThresholdPct = 1.0;
         public const int MinCornerCount = 12;
+        //260623 hbk: 구조 가드 임계 — pitchGuess 붕괴(가짜 근접점) / 격자 불규칙(변동계수) 경고용 (HALCON 네이티브 하드닝)
+        private const double PitchDivergenceWarnRatio = 1.4;   // medGap/pitchGuess 초과 시 가짜 근접점 의심
+        private const double GridIrregularityWarnCv = 0.18;    // 격자 간격 변동계수(CV) 초과 시 불규칙 경고
 
         /// <summary>
         /// 체커보드 이미지로부터 mm/px 를 산출한다 (기본 saddle/왜곡 임계 사용).
@@ -35,6 +38,17 @@ namespace ReringProject.Halcon.Algorithms
         /// 체커보드 이미지로부터 mm/px 를 산출한다 (saddle Sigma/Threshold + 왜곡 임계% 노출, A2/A3 UAT 튜닝용).
         /// </summary>
         public bool TryCalibrate(HImage image, double knownMmPerCell, double saddleSigma, double saddleThreshold, double distortionWarnPct, out CalibrationResult result, out string error)
+        {
+            //260623 hbk: ROI 없는 호출 → ROI 오버로드에 위임 (전체 이미지)
+            return TryCalibrate(image, knownMmPerCell, saddleSigma, saddleThreshold, distortionWarnPct, false, 0, 0, 0, 0, out result, out error);
+        }
+
+        /// <summary>
+        /// ROI(reduce_domain) 지원 오버로드 — 보드 영역만 검출해 배경 가짜 saddle 을 억제한다 (HALCON 네이티브 하드닝).
+        /// useRoi=false 면 전체 이미지(기존 동작). 코너 좌표는 reduce_domain 후에도 원본 이미지 좌표계로 반환된다.
+        /// </summary>
+        //260623 hbk: ROI(reduce_domain) 지원 오버로드 (배경 가짜점 억제)
+        public bool TryCalibrate(HImage image, double knownMmPerCell, double saddleSigma, double saddleThreshold, double distortionWarnPct, bool useRoi, double roiRow1, double roiCol1, double roiRow2, double roiCol2, out CalibrationResult result, out string error)
         {
             //260623 hbk Phase 53: 코너검출→median 간격→mm/px→외곽 편차% (D-07/D-02/D-05)
             result = null;
@@ -53,15 +67,33 @@ namespace ReringProject.Halcon.Algorithms
             }
 
             //260623 hbk Phase 53: 코너 검출 (saddle point, try/catch return false)
+            //260623 hbk: ROI 지정 시 reduce_domain 으로 검출 영역 한정 → 배경 가짜점 억제. detImage(reduced)는 검출 후 dispose.
             HTuple rows, cols;
+            HImage detImage = image;
+            bool reduced = false;
             try
             {
-                HOperatorSet.SaddlePointsSubPix(image, "facet", saddleSigma, saddleThreshold, out rows, out cols);
+                if (useRoi && Math.Abs(roiRow2 - roiRow1) > 1.0 && Math.Abs(roiCol2 - roiCol1) > 1.0)
+                {
+                    HRegion roi = new HRegion(Math.Min(roiRow1, roiRow2), Math.Min(roiCol1, roiCol2), Math.Max(roiRow1, roiRow2), Math.Max(roiCol1, roiCol2));
+                    detImage = image.ReduceDomain(roi);
+                    roi.Dispose();
+                    reduced = true;
+                }
+                HOperatorSet.SaddlePointsSubPix(detImage, "facet", saddleSigma, saddleThreshold, out rows, out cols);
             }
             catch
             {
-                error = "코너 검출 실패 (조명/대비 확인)";
+                if (reduced && detImage != null)
+                {
+                    detImage.Dispose();
+                }
+                error = "코너 검출 실패 (조명/대비/ROI 확인)";
                 return false;
+            }
+            if (reduced && detImage != null)
+            {
+                detImage.Dispose();
             }
             if (rows == null || rows.Length < MinCornerCount)
             {
@@ -92,6 +124,25 @@ namespace ReringProject.Halcon.Algorithms
             {
                 error = "유효 간격 없음";
                 return false;
+            }
+
+            //260623 hbk: 구조 가드 — ① pitchGuess(최근접이웃) 대비 medGap 괴리 = 가짜 근접점/피치 붕괴 의심,
+            //  ② 격자 간격 변동계수(CV) 과대 = 불규칙. saddle 단독 의존의 토폴로지 미검증을 보완 (육안 오버레이와 병행).
+            double pitchDivergence = (pitchGuess > 0) ? (medGap / pitchGuess) : 0;
+            List<double> allGaps = new List<double>(gapValsX);
+            allGaps.AddRange(gapValsY);
+            double gridCv = CoeffOfVariation(allGaps);
+            bool structureWarn = false;
+            string structureNote = "구조 점검 OK";
+            if (pitchDivergence > PitchDivergenceWarnRatio)
+            {
+                structureWarn = true;
+                structureNote = "가짜 근접점 의심 (피치 붕괴 " + pitchDivergence.ToString("F2") + "×)";
+            }
+            else if (gridCv > GridIrregularityWarnCv)
+            {
+                structureWarn = true;
+                structureNote = "격자 불규칙 (간격 변동 " + (gridCv * 100.0).ToString("F1") + "%)";
             }
 
             //260623 hbk Phase 53: mm/px 산출 (D-02 단일 평균 + X/Y 리포트)
@@ -132,7 +183,12 @@ namespace ReringProject.Halcon.Algorithms
                 CenterMeanPx = centerMean,
                 OuterMeanPx = outerMean,
                 DeviationXPct = devXPct,
-                DeviationYPct = devYPct
+                DeviationYPct = devYPct,
+                //260623 hbk: 구조 가드 결과 노출 (가짜점/불규칙 경고 + 지표)
+                IsStructureWarn = structureWarn,
+                StructureNote = structureNote,
+                GridRegularityCv = gridCv,
+                PitchGuessPx = pitchGuess
             };
             return true;
         }
@@ -421,6 +477,31 @@ namespace ReringProject.Halcon.Algorithms
             }
             return sum / vals.Count;
         }
+
+        /// <summary>
+        /// 변동계수(stdev/mean) — 격자 간격 규칙성 지표. 클수록 불규칙(가짜점/누락/왜곡). 빈·단일 리스트면 0.
+        /// </summary>
+        //260623 hbk: 격자 규칙성 변동계수 헬퍼 (구조 가드)
+        private static double CoeffOfVariation(List<double> vals)
+        {
+            if (vals == null || vals.Count < 2)
+            {
+                return 0;
+            }
+            double mean = Mean(vals);
+            if (mean <= 0)
+            {
+                return 0;
+            }
+            double sumSq = 0;
+            for (int i = 0; i < vals.Count; i++)
+            {
+                double d = vals[i] - mean;
+                sumSq += d * d;
+            }
+            double variance = sumSq / vals.Count;
+            return Math.Sqrt(variance) / mean;
+        }
     }
 
     /// <summary>
@@ -462,5 +543,10 @@ namespace ReringProject.Halcon.Algorithms
         public double OuterMeanPx { get; set; }         // 외곽부 평균 간격(px)
         public double DeviationXPct { get; set; }       // X축(가로) 중앙↔외곽 편차%
         public double DeviationYPct { get; set; }       // Y축(세로) 중앙↔외곽 편차%
+        //260623 hbk: 구조 가드 — saddle 단독 토폴로지 미검증 보완 (가짜점/불규칙 경고)
+        public bool IsStructureWarn { get; set; }       // 가짜 근접점/격자 불규칙 경고
+        public string StructureNote { get; set; }       // 구조 점검 메시지 (리포트 표시)
+        public double GridRegularityCv { get; set; }    // 격자 간격 변동계수 (작을수록 규칙적)
+        public double PitchGuessPx { get; set; }        // 최근접이웃 피치 추정(px) — medGap 대비 붕괴 판정
     }
 }

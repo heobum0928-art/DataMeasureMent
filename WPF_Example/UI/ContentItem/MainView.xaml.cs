@@ -21,6 +21,11 @@ namespace ReringProject.UI {
 
     public partial class MainView : UserControl {
         private const string ViewerMemoryImageLabel = "(memory)";
+        //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
+        private const int MaxPolygonPoints = 20;
+        private const int MinPolygonPoints = 3;
+        private const double MinCalibrationPixelDistance = 1.0;
+        private const double MessageDisplaySeconds = 3.0;
         private MainWindow mParentWindow;
         private DeviceHandler pDev;
         private SequenceHandler pSeq;
@@ -2156,14 +2161,14 @@ namespace ReringProject.UI {
         private void HalconViewer_PolygonMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
             if (_canvasMode != ECanvasMode.PolygonRoi) return;
 
-            if (_polygonPoints.Count >= 20) {
-                label_pointCount.Content = "20 / 20 pts MAX";
+            if (_polygonPoints.Count >= MaxPolygonPoints) {
+                label_pointCount.Content = string.Format("{0} / {0} pts MAX", MaxPolygonPoints);
                 return;
             }
 
             var imagePoint = new System.Windows.Point(e.X, e.Y);
             _polygonPoints.Add(imagePoint);
-            label_pointCount.Content = string.Format("{0} / 20 pts", _polygonPoints.Count);
+            label_pointCount.Content = string.Format("{0} / {1} pts", _polygonPoints.Count, MaxPolygonPoints);
 
             halconViewer.SetPolygonDraft(_polygonPoints, "red");
         }
@@ -2171,13 +2176,13 @@ namespace ReringProject.UI {
         private void HalconViewer_PolygonRightClick(object sender, EventArgs e) {
             if (_canvasMode != ECanvasMode.PolygonRoi) return;
 
-            if (_polygonPoints.Count >= 3) {
+            if (_polygonPoints.Count >= MinPolygonPoints) {
                 CompletePolygon();
             }
         }
 
         private void CompletePolygon() {
-            if (_editingFai == null || _polygonPoints.Count < 3) return;
+            if (_editingFai == null || _polygonPoints.Count < MinPolygonPoints) return;
 
             var sb = new StringBuilder();
             for (int i = 0; i < _polygonPoints.Count; i++) {
@@ -2247,7 +2252,7 @@ namespace ReringProject.UI {
             double dy = p2.Y - p1.Y;
             double pixelDistance = Math.Sqrt(dx * dx + dy * dy);
 
-            if (pixelDistance < 1.0) {
+            if (pixelDistance < MinCalibrationPixelDistance) {
                 CustomMessageBox.Show("두 점 사이의 거리가 너무 가깝습니다.", "캘리브레이션");
                 ExitCanvasMode();
                 return;
@@ -2273,7 +2278,7 @@ namespace ReringProject.UI {
                     label_message.Visibility = Visibility.Visible;
 
                     var timer = new System.Windows.Threading.DispatcherTimer();
-                    timer.Interval = TimeSpan.FromSeconds(3);
+                    timer.Interval = TimeSpan.FromSeconds(MessageDisplaySeconds);
                     timer.Tick += (s, args) => {
                         timer.Stop();
                         label_message.Visibility = Visibility.Collapsed;

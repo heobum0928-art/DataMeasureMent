@@ -31,10 +31,12 @@ namespace ReringProject.Setting {
         // (reference_parambase_missing_key_zeroes_default.md — Int32 case 에서 0 덮어씀).
         // AfterLoad() = Load() 완료 직후 호출되는 partial 메서드 구현부.
         private const int PC_ROLE_DEFAULT = 1; //260622 hbk Phase 48
+        private const double ETHERNET_PIXEL_RESOLUTION_DEFAULT = 8.652; //260623 hbk Phase 58
 
         partial void AfterLoad()
         {
             RestorePcRoleDefault();
+            RestoreEthernetVisionDefault(); //260623 hbk Phase 58
         }
 
         // 260622 hbk Phase 48
@@ -48,5 +50,35 @@ namespace ReringProject.Setting {
                 PcRole = PC_ROLE_DEFAULT;
             }
         }
+
+        //260623 hbk Phase 58
+        // AV-01: 구 INI 에 [ETHERNET_VISION] PixelResolution 키 부재 시 0 으로 로드되는 문제 방어 → 8.652 복원.
+        private void RestoreEthernetVisionDefault()
+        {
+            bool bPixelResolutionMissing = EthernetPixelResolution <= 0.0;
+            if (bPixelResolutionMissing)
+            {
+                EthernetPixelResolution = ETHERNET_PIXEL_RESOLUTION_DEFAULT;
+            }
+        }
+
+        //260623 hbk Phase 58 — AV-01: [ETHERNET_VISION] INI section
+        [Category("ETHERNET_VISION")]
+        public int EthernetVisionModeValue { get; set; } = 0;   // 0 = None
+
+        [Browsable(false)]
+        public EEthernetVisionMode EthernetVisionMode {
+            get { return (EEthernetVisionMode)EthernetVisionModeValue; }
+            set { EthernetVisionModeValue = (int)value; }
+        }
+
+        [Category("ETHERNET_VISION")]
+        public string EthernetCameraIp { get; set; } = "192.168.1.100"; //260623 hbk Phase 58
+
+        [Category("ETHERNET_VISION")]
+        public double EthernetExposure { get; set; } = 10000.0; //260623 hbk Phase 58
+
+        [Category("ETHERNET_VISION")]
+        public double EthernetPixelResolution { get; set; } = 8.652; //260623 hbk Phase 58
     }
 }

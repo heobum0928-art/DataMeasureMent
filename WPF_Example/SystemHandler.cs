@@ -185,6 +185,9 @@ namespace ReringProject {
             Logging.PrintLog((int)ELogType.Trace, "[SYSTEM] Initialized");
 
             //260623 hbk Phase 58 — AV-02: 이더넷 정렬 카메라 독립 초기화 (실패해도 Grabber/검사 무영향)
+            // 260623 hbk Phase 58 review-fix IN-02: Belt-and-suspenders 의도적 이중 가드.
+            // EthernetVisionHandler.Initialize() 는 내부 전체 try-catch 로 완전히 보호되어 절대 throw 하지 않음.
+            // 이 외부 catch 는 방어적 레이어로만 존재하며 실제로 발동되지 않음.
             try {
                 EthernetVisionHandler.Handle.Initialize();
             }

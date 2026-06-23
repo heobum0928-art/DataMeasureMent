@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 49-01-PLAN.md
-last_updated: "2026-06-23T00:35:45.282Z"
+stopped_at: Completed 49-03-PLAN.md
+last_updated: "2026-06-23T00:39:17.770Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 46
-  completed_plans: 41
-  percent: 89
+  completed_plans: 42
+  percent: 91
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 49 (protocol-v1-judgment-engine) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-23
 
@@ -165,6 +165,7 @@ Last activity: 2026-06-23
 | Phase 48 P03 | 168 | 1 tasks | 1 files |
 | Phase 48-protocol-v1-test-result-site-material P04 | 25 | 3 tasks | 6 files |
 | Phase 49 P01 | 3 | 3 tasks | 3 files |
+| Phase 49 P03 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -335,6 +336,7 @@ Recent decisions affecting current work:
 - [Phase 49-01]: ECycleResult { Buffer, Pass, Fail } enum 신설 (D-07) — CycleState 라이프사이클 enum 미도입, 상태는 InspectionSequence 멤버 bool 로 표현
 - [Phase 49-01]: ShotConfig.ZIndex (default 0) z_index↔Shot 매핑 (D-01) — ParamBase 자동직렬화, 누락키 0 폴백=의도된 안전값(Datum/Idx0)
 - [Phase 49-01]: 사이클 상태 = InspectionSequence 멤버 4개 + ComputeLastZIndex(레시피 z_index 최댓값, 시퀀스 소유 Shot 한정, D-03) + ResetCycleState(Index 0 수신 리셋, D-08). 정의만 — 소비는 49-02. CS0414 #pragma 일시억제(Rule 3)
+- [Phase 49-03]: TcpServer.EncodingType/ApplyEncoding static→instance (CO-48-01/D-09) — 중첩 클래스 ConvertMessage 2곳 Parent.EncodingType 한정, VisionServer 무변경, 인코딩 동작 회귀 0. CO-48-01 종결.
 
 ### Quick Tasks Completed
 
@@ -458,8 +460,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-23T00:35:30.901Z
-Stopped at: Completed 49-01-PLAN.md
+Last session: 2026-06-23T00:39:06.639Z
+Stopped at: Completed 49-03-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

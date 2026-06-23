@@ -374,9 +374,9 @@ Plans:
 **Plans:** 3 plans, 2 waves
 
 Plans:
-- [ ] 49-01-PLAN.md — (W1) ECycleResult enum + ShotConfig.ZIndex + InspectionSequence 사이클 상태 멤버/헬퍼 (D-02/D-03/D-07/D-08 토대)
+- [x] 49-01-PLAN.md — (W1) ECycleResult enum + ShotConfig.ZIndex + InspectionSequence 사이클 상태 멤버/헬퍼 (D-02/D-03/D-07/D-08 토대)
 - [ ] 49-02-PLAN.md — (W2) Index-scoped P/F/B 판정 엔진 (중간=B / 마지막=종합 P/F / Datum 빈응답·즉시F / 리셋, PROTO-03/04/05)
-- [ ] 49-03-PLAN.md — (W1) CO-48-01 흡수 — TcpServer.EncodingType static→instance (D-09)
+- [x] 49-03-PLAN.md — (W1) CO-48-01 흡수 — TcpServer.EncodingType static→instance (D-09)
 
 - [ ] **Phase 49: 제어 프로토콜 v1.0 — P/F/B 판정 엔진 + Datum 빈 응답 + CycleState** (PROTO-03, PROTO-04, PROTO-05)
   - Success: 중간 Index=B / 마지막 Index 종합 P/F 1회 / Datum 샷 빈 응답 + Datum 실패 즉시 F / CycleState·ECycleResult enum + 사이클 NG mark + 자동 리셋 / CO-48-01 흡수

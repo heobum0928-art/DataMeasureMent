@@ -343,7 +343,7 @@ Plans:
 - [x] 48-02-PLAN.md — (W2) Site 2-PC 재정합(ResourceMap PcRole 분기) + VisionServer Port 7701/UTF-8
 - [x] 48-03-PLAN.md — (W2) RESULT v1.0 직렬화 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@ 3단 구분자)
 - [x] 48-04-PLAN.md — (W2) 자재 IndexNumber 전파 (CycleResultDto→파일명 _M{번호} + xlsx 자재번호 행)
-- [ ] **Phase 49: 제어 프로토콜 v2.7 — 3-state 엔진 + Datum 빈 응답 + CycleState** (PROTO-03, PROTO-04, PROTO-05)
+- [x] **Phase 49: 제어 프로토콜 v2.7 — 3-state 엔진 + Datum 빈 응답 + CycleState** (PROTO-03, PROTO-04, PROTO-05) (completed 2026-06-23)
   - Success: P/F/B 종합 판정 / Datum 샷(z_index=0) 빈 응답 / Datum 실패 즉시 F / CycleState·ECycleResult enum + 자동 리셋
 - [ ] **Phase 50: 제어 프로토콜 v2.7 — 통신 회귀 시험** (PROTO-06)
   - Success: 제어팀(김민우 선임) 동기화 / 실 핸들러 통신 회귀 PASS / v2.6 → v2.7 마이그레이션 절차 문서화
@@ -371,7 +371,7 @@ Plans:
   - `CycleState` / `ECycleResult` enum 기반 동작 — 기존 v2.6 경로 회귀 0
   - CO-48-01: `EncodingType` instance 필드화 후 인코딩 동작 회귀 0
 
-**Plans:** 3 plans, 2 waves
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 49-01-PLAN.md — (W1) ECycleResult enum + ShotConfig.ZIndex + InspectionSequence 사이클 상태 멤버/헬퍼 (D-02/D-03/D-07/D-08 토대)

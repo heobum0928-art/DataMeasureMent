@@ -1,8 +1,9 @@
 ---
 phase: 49-protocol-v1-judgment-engine
 verified: 2026-06-23T00:00:00Z
-status: human_needed
-score: 7/7 truths code-verified (WR-01 fixed 2026-06-23 commit bc6252b)
+status: verified
+score: 7/7 truths code-verified + UAT 9/9 wire-verified (49-UAT.md, 2026-06-23 SIMUL). WR-01 fixed (bc6252b) + UAT Test 8 로 wire 확증.
+uat_result: 9/9 PASS (Test 1 통신 / 2 Datum 빈B / 3 Datum실패 즉시F / 4 중간 B / 5 마지막 종합 P/F / 6 리셋 / 7 v2.6 회귀 / 8 WR-01 false-PASS 차단 / 9 UTF-8 인코딩)
 overrides_applied: 0
 gaps:
   - truth: "마지막 Index에서 사이클 누적 NG 유무로 정확히 P/F 산출 (오판정 없음)"

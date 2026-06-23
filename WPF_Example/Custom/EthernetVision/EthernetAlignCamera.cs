@@ -36,6 +36,17 @@ namespace ReringProject.Device {
             try {
                 _cameraIp = ip;
 
+                // 260623 hbk Phase 58 review-fix WR-01/IN-01:
+                // HikCamera.EnumerateDevice 는 공유 정적 DeviceList 를 Clear() 후 재빌드.
+                // Grabber 카메라 열거와 충돌 방지를 위해 장치 확인을 HikCamera 인스턴스 생성 전에 수행.
+                // 또한 SystemHandler 는 Grabber 카메라(DeviceHandler) 초기화 이후 마지막에 이 Connect 를
+                // 호출하므로, Grabber 열거가 끝난 뒤에 실행됨 — 동시 열거 금지.
+                int deviceCount = HikCamera.EnumerateDevice(ip);   // enumerate FIRST — DeviceList 재빌드
+                if (deviceCount == 0) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] Connect: no device found for {0}", ip);
+                    return false;
+                }
+
                 DisplayConfig config = new DisplayConfig();
                 DeviceInfo info = new DeviceInfo(
                     ECameraType.HIK,
@@ -47,13 +58,7 @@ namespace ReringProject.Device {
                     false,
                     false);
 
-                _hikCamera = new HikCamera(config, info);
-
-                int deviceCount = HikCamera.EnumerateDevice(ip);
-                if (deviceCount == 0) {
-                    Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] Connect: no device found for {0}", ip);
-                    return false;
-                }
+                _hikCamera = new HikCamera(config, info);  // construct AFTER count confirmed
 
                 bool bOpened = _hikCamera.Open(ip);
                 return bOpened;
@@ -135,23 +140,33 @@ namespace ReringProject.Device {
         /// 반환된 HImage 는 호출자가 Dispose() 책임.
         /// </summary>
         private HImage LoadFallbackImage() {
+            // 260623 hbk Phase 58 review-fix WR-02:
+            // loaded 를 try 외부에 선언하여 CountChannels() 등 HALCON 연산이 예외를 던질 경우
+            // finally 블록에서 반드시 Dispose — 성공 경로(null 로 세팅)는 no-op.
+            HImage loaded = null;
             try {
                 if (!File.Exists(ALIGN_FALLBACK_IMAGE_PATH)) {
                     Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] fallback image missing: {0}", ALIGN_FALLBACK_IMAGE_PATH);
                     return null;
                 }
-                HImage loaded = new HImage();
+                loaded = new HImage();
                 loaded.ReadImage(ALIGN_FALLBACK_IMAGE_PATH);
                 if (loaded.CountChannels().I > 1) {
                     HImage gray = loaded.Rgb1ToGray();
                     loaded.Dispose();
+                    loaded = null;  // finally no-op
                     return gray;
                 }
-                return loaded;
+                HImage result = loaded;
+                loaded = null;  // finally no-op — 호출자가 Dispose 책임
+                return result;
             }
             catch (Exception ex) {
                 Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] LoadFallbackImage failed: {0}", ex.Message);
                 return null;
+            }
+            finally {
+                loaded?.Dispose();  // loaded 가 null 이 아니면(= 예외 발생) 누수 방지 Dispose
             }
         }
     }

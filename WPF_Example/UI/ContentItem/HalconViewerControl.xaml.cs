@@ -22,6 +22,13 @@ namespace ReringProject.UI
         private const int HalconRightButton = 4;
         private const int PointerGrayThrottleMs = 40;
         private const int PanRenderThrottleMs = 16;
+        //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
+        private const double MinDraftRoiSize = 20.0;
+        private const double DraftDefaultHalfSize = 60.0;
+        private const double CornerHitThreshold = 10.0;
+        private const double PanMarginScale = 0.75;
+        private const double RoiClickTolerancePixels = 3.0;
+        private const double MinViewPartSize = 20.0;
 
         private readonly HalconDisplayService _displayService = new HalconDisplayService();
         private readonly List<RoiDefinition> _rois = new List<RoiDefinition>();
@@ -517,7 +524,7 @@ namespace ReringProject.UI
             if (EnableRoiSelection && !_isDrawingRoi && !string.IsNullOrWhiteSpace(_pendingClickRoiId))
             {
                 var moved = Distance(_mouseDownRow, _mouseDownColumn, e.Row, e.Column);
-                if (moved <= 3.0)
+                if (moved <= RoiClickTolerancePixels)
                 {
                     var clicked = _rois.FirstOrDefault(roi => roi.Id == _pendingClickRoiId);
                     if (clicked != null)
@@ -688,12 +695,12 @@ namespace ReringProject.UI
 
             if (enforceMinimumSize && System.Math.Abs(row2 - row1) < 1.0)
             {
-                row2 = row1 + 20.0;
+                row2 = row1 + MinDraftRoiSize;
             }
 
             if (enforceMinimumSize && System.Math.Abs(column2 - column1) < 1.0)
             {
-                column2 = column1 + 20.0;
+                column2 = column1 + MinDraftRoiSize;
             }
 
             _draftRoi = new RoiDefinition
@@ -832,8 +839,8 @@ namespace ReringProject.UI
                 return;
             }
 
-            var normalizedWidth = Math.Max(20.0, imagePart.Width);
-            var normalizedHeight = Math.Max(20.0, imagePart.Height);
+            var normalizedWidth = Math.Max(MinViewPartSize, imagePart.Width);
+            var normalizedHeight = Math.Max(MinViewPartSize, imagePart.Height);
 
             // Keep display scale identical on X/Y axes by matching the visible image part
             // to the current viewer aspect ratio.
@@ -853,8 +860,8 @@ namespace ReringProject.UI
 
             }
 
-            var horizontalMargin = Math.Max(normalizedWidth, _imageWidth) * 0.75;
-            var verticalMargin = Math.Max(normalizedHeight, _imageHeight) * 0.75;
+            var horizontalMargin = Math.Max(normalizedWidth, _imageWidth) * PanMarginScale;
+            var verticalMargin = Math.Max(normalizedHeight, _imageHeight) * PanMarginScale;
 
             var minLeft = -horizontalMargin;
             var maxLeft = _imageWidth - normalizedWidth + horizontalMargin;
@@ -1018,14 +1025,12 @@ namespace ReringProject.UI
                 centerColumn = _lastPointerColumn;
             else
                 centerColumn = _imageWidth / 2.0;
-            const double halfSize = 60.0;
-
             return new RoiDefinition
             {
-                Row1 = Math.Max(0.0, centerRow - halfSize),
-                Column1 = Math.Max(0.0, centerColumn - halfSize),
-                Row2 = Math.Min(_imageHeight - 1.0, centerRow + halfSize),
-                Column2 = Math.Min(_imageWidth - 1.0, centerColumn + halfSize)
+                Row1 = Math.Max(0.0, centerRow - DraftDefaultHalfSize),
+                Column1 = Math.Max(0.0, centerColumn - DraftDefaultHalfSize),
+                Row2 = Math.Min(_imageHeight - 1.0, centerRow + DraftDefaultHalfSize),
+                Column2 = Math.Min(_imageWidth - 1.0, centerColumn + DraftDefaultHalfSize)
             };
         }
 
@@ -1189,23 +1194,22 @@ namespace ReringProject.UI
                 return DraftRoiHitType.None;
             }
 
-            const double cornerHit = 10.0;
-            if (Distance(row, column, _draftRoi.Row1, _draftRoi.Column1) <= cornerHit)
+            if (Distance(row, column, _draftRoi.Row1, _draftRoi.Column1) <= CornerHitThreshold)
             {
                 return DraftRoiHitType.TopLeft;
             }
 
-            if (Distance(row, column, _draftRoi.Row1, _draftRoi.Column2) <= cornerHit)
+            if (Distance(row, column, _draftRoi.Row1, _draftRoi.Column2) <= CornerHitThreshold)
             {
                 return DraftRoiHitType.TopRight;
             }
 
-            if (Distance(row, column, _draftRoi.Row2, _draftRoi.Column1) <= cornerHit)
+            if (Distance(row, column, _draftRoi.Row2, _draftRoi.Column1) <= CornerHitThreshold)
             {
                 return DraftRoiHitType.BottomLeft;
             }
 
-            if (Distance(row, column, _draftRoi.Row2, _draftRoi.Column2) <= cornerHit)
+            if (Distance(row, column, _draftRoi.Row2, _draftRoi.Column2) <= CornerHitThreshold)
             {
                 return DraftRoiHitType.BottomRight;
             }

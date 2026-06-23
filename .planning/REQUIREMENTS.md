@@ -97,7 +97,8 @@
 ### Config & Camera (Phase 58 / A)
 - [x] **AV-01
 **: 사용자가 EthernetVisionMode(None/Tray/Bottom) + 카메라 IP/노출/픽셀분해능(8.652 μm/px)을 INI [ETHERNET_VISION] 로 설정·저장하고, 미존재 키는 기본값으로 보장받는다
-- [ ] **AV-02**: 이더넷 카메라(Hikvision MV-CH250-90GM, MvCamCtrl.Net)를 독립 클래스로 연결/grab/live/stop 하며, 미연결(SIMUL)이면 D:\align_test.bmp 로드로 대체하고 실패해도 Grabber 검사는 정상 동작한다
+- [x] **AV-02
+**: 이더넷 카메라(Hikvision MV-CH250-90GM, MvCamCtrl.Net)를 독립 클래스로 연결/grab/live/stop 하며, 미연결(SIMUL)이면 D:\align_test.bmp 로드로 대체하고 실패해도 Grabber 검사는 정상 동작한다
 
 ### Vision Algorithm (Phase 59 / B)
 - [ ] **AV-03**: 사용자가 ROI 를 지정해 Shape Model 을 티칭하고 .shm 로 저장/로드하며, find_shape_model 로 매칭 위치(Row/Col/Angle/Score)를 산출한다

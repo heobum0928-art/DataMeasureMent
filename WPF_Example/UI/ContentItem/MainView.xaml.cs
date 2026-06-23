@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using HalconDotNet;
 using Microsoft.Win32;
+using ReringProject.Halcon.Algorithms; //260623 hbk Phase 53: CalibrationResult 참조
 using ReringProject.Halcon.Models;
 using ReringProject.Halcon.Services;
 using ReringProject.Define;
@@ -2315,6 +2316,74 @@ namespace ReringProject.UI {
                     fai.PixelResolutionY = mmPerPixel;
                 }
             }
+        }
+
+        //260623 hbk Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).
+        //  기존 2점 캘리브(ApplyCalibrationResult)는 "선택 FAI shot 1개"에만 반영하지만,
+        //  체커보드 캘리브(D-03)는 동일 카메라/렌즈 가정으로 활성 시퀀스 전체 shot 에 일괄 반영한다.
+        private string ResolveActiveSequenceForCalibration() {
+            FAIConfig fai;
+            var row = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+            if (row != null) fai = FindFAIByName(row.FAIName);
+            else             fai = null;
+
+            ShotConfig sel;
+            if (fai != null) sel = fai.Owner as ShotConfig;
+            else             sel = null;
+
+            if (sel != null && !string.IsNullOrEmpty(sel.OwnerSequenceName)) return sel.OwnerSequenceName;
+            return SequenceHandler.SEQ_TOP;
+        }
+
+        //260623 hbk Phase 53: 체커보드 산출 mm/px 를 활성 시퀀스 전체 shot 의 PixelResolution 에 일괄 반영(D-03)
+        //  + 확인 모달(D-06) 후에만 + SaveRecipe 로 영속화(Pitfall 4 — existingFile 보존 가드). plan 02 ApplyRequested 핸들러.
+        private void ApplyCheckerboardCalibration(CalibrationResult result) {
+            if (result == null) return;
+            double mmPerPixel = result.MmPerPixel;
+            string activeSeq = ResolveActiveSequenceForCalibration();
+
+            string warnLine;
+            if (result.IsDistortionWarn) warnLine = string.Format("\n[경고] 외곽 왜곡 {0:F2}% — undistort 검토 권장", result.CenterOuterDeviationPct);
+            else                         warnLine = "";
+
+            string msg = string.Format(
+                "활성 시퀀스 [{0}] 전체 SHOT 의 PixelResolution 을\n1 px = {1:F5} mm 로 덮어씁니다.{2}\n적용하시겠습니까?",
+                activeSeq, mmPerPixel, warnLine);
+
+            // D-06 확인 게이트 — 되돌리기 어려운 설정 덮어쓰기라 사용자 확인 필수.
+            MessageBoxResult confirm = CustomMessageBox.ShowConfirmation("캘리브레이션 적용", msg, MessageBoxButton.OKCancel);
+            if (confirm != MessageBoxResult.OK) return;
+
+            InspectionRecipeManager recipeManager = null;
+            if (SystemHandler.Handle != null && SystemHandler.Handle.Sequences != null)
+                recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            if (recipeManager == null || recipeManager.Shots == null) {
+                CustomMessageBox.Show("캘리브레이션", "레시피 매니저를 찾을 수 없습니다.");
+                return;
+            }
+
+            int applied = 0;
+            for (int i = 0; i < recipeManager.ShotCount; i++) {
+                ShotConfig shot = recipeManager.Shots[i];
+                if (shot == null) continue;
+                string owner;
+                if (string.IsNullOrEmpty(shot.OwnerSequenceName)) owner = SequenceHandler.SEQ_TOP;
+                else                                              owner = shot.OwnerSequenceName;
+                if (owner != activeSeq) continue;
+
+                shot.PixelResolution = mmPerPixel;                       // Phase 42 단일소스 (측정 소비처)
+                foreach (FAIConfig fai in shot.FAIList) {
+                    fai.PixelResolutionX = mmPerPixel;                   // INI 호환 보존 (기존 정책)
+                    fai.PixelResolutionY = mmPerPixel;
+                }
+                applied++;
+            }
+
+            // 저장 — MainWindow.SaveRecipe 재사용 (Running 가드 + existingFile 보존 경로 내장, 비활성 시퀀스 소실 방지 / 3faa91b).
+            MainWindow mw = Window.GetWindow(this) as MainWindow;
+            if (mw != null) mw.SaveRecipe();
+
+            CustomMessageBox.Show("캘리브레이션", string.Format("{0}개 SHOT 에 적용 + 저장 완료 (1 px = {1:F5} mm)", applied, mmPerPixel));
         }
 
         private void TeachDatumButton_Click(object sender, RoutedEventArgs e) {

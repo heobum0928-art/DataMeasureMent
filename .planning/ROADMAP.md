@@ -206,7 +206,8 @@ Plans:
   - Success: Top/Bottom 시퀀스 단위로 전체 SHOT을 한 번에 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 일괄 추출 (SHOT 개별 트리거 불필요) / SHOT 개별 검사 회귀 0
 - [~] **Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬)** (LEVEL-01) — ❌ 폐기 2026-06-23 (ALIGN-01/02 패턴매칭 위치보정 Phase 54/55/56 으로 대체. 레벨링 코드 Phase 54+57-01 제거 완료, 잔여 죽은 메서드 RotateImageByAngle 도 제거)
   - Success: Datum 수평 에지 검출 각도와 수평선의 각도차로 입력 이미지를 회전 정렬(레벨링) 후 측정 / 회귀 0
-- [x] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01) (completed 2026-06-23)
+- [x] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01)
+ (completed 2026-06-23)
   - Success: 별도 캘리브 창에서 체커보드(라이브 정지/촬상 또는 이미지 로드) → 픽셀 해상도(mm/px) 산출 → 측정 PixelResolution 적용
 
 ### Phase 51: 시퀀스 일괄 검사 & 일괄 Export (신설 2026-06-16 — POC 신규 #3)
@@ -602,6 +603,12 @@ Plans:
 3. Tray 모드 X/Y Offset, Bottom 모드 X/Y/Theta 산출
 4. Tray/Bottom 별도 템플릿 관리
 
+**Plans**: 3 plans (3 waves) — planned 2026-06-24
+Plans:
+- [ ] 59-01-PLAN.md — AlignResult + AlignRefPose POCO 모델 + csproj 등록 (D-04/D-05) [Wave 1]
+- [ ] 59-02-PLAN.md — AlignShapeMatchService (PatternMatchService composition: TryTeach .shm+ref json / Run find→offset px→mm, Tray X/Y · Bottom X/Y/Theta) (D-01~D-07) [Wave 2]
+- [ ] 59-03-PLAN.md — EthernetVisionHandler.Matcher 배선 + msbuild Debug/x64 build + anti-goal git proof (D-02) [Wave 3]
+
 ### Phase 60: Calibration — Bottom (C) (신설 2026-06-23)
 **Goal**: 피커 센터 캘(36스텝 10° 편심원 최소자승) + 각도 캘(비전각↔피커각 선형 보정).
 **Requirements**: AV-05, AV-06
@@ -633,7 +640,7 @@ Plans:
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |
 |---|---|---|---|---|---|
 | 58 | Config & Camera (A) | AV-01/02 | Planned (3 plans) | — | — |
-| 59 | Vision Algorithm (B) | AV-03/04 | Not started | — | — |
+| 59 | Vision Algorithm (B) | AV-03/04 | Planned (3 plans) | — | — |
 | 60 | Calibration Bottom (C) | AV-05/06 | Not started | — | — |
 | 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |
 | 62 | TCP (E) | AV-09 | Not started | — | — |

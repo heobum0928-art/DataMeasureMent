@@ -25,7 +25,16 @@ namespace ReringProject.Network {
         OK = 1,
         NotExist = 2,
         ANG = 3,            // 12.21
-        TECHING = 4,        // 05.20 Insert 
+        TECHING = 4,        // 05.20 Insert
+    }
+
+    //260623 hbk Phase 49 PROTO-05: 멀티샷 사이클 판정 결과 (D-07). enum 신설 범위 = 이 1개만.
+    //  Buffer = 중간 Index 진행 중(NG 포함 가능) / Pass = 마지막 Index 전체 OK / Fail = 마지막 Index NG 있음 or Datum 실패.
+    //  라이프사이클 상태는 멤버 bool(m_bCycleHasNG 등)로 표현 — A-2(멤버 상태) 결정과 일관. CycleState 라이프사이클 enum 미도입.
+    public enum ECycleResult : int {
+        Buffer = 0,
+        Pass = 1,
+        Fail = 2,
     }
 
     public enum EVisionSiteStatusType : int {

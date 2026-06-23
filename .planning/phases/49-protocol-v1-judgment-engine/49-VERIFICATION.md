@@ -2,12 +2,13 @@
 phase: 49-protocol-v1-judgment-engine
 verified: 2026-06-23T00:00:00Z
 status: human_needed
-score: 6/7 truths code-verified (1 partial — WR-01 false-PASS edge)
+score: 7/7 truths code-verified (WR-01 fixed 2026-06-23 commit bc6252b)
 overrides_applied: 0
 gaps:
   - truth: "마지막 Index에서 사이클 누적 NG 유무로 정확히 P/F 산출 (오판정 없음)"
-    status: partial
-    reason: "WR-01 — ZIndex 미설정 레시피(전 Shot=0)에서 측정 Index(z>=1) 수신 시 ComputeLastZIndex=0 → bIsLastIndex(1>=0)=true + 매칭 Shot 0건 → m_bCycleHasNG=false → ApplyCycleJudgement 가 'P'(false PASS) 송신. WarnIfEmptyScope 가 PrintErrLog 경고는 남기나 패킷은 PASS 로 Enqueue 됨. 검사 시스템 최악 방향(silent false-accept)."
+    status: resolved
+    resolution: "WR-01 fixed 2026-06-23 (commit bc6252b) — nMatchedShots 를 ApplyCycleJudgement 로 전달, 마지막 Index 매칭 0건이면 bEmptyLastScope → F 강제(fail-safe). silent false-PASS 차단. 빌드 PASS. wire 동작은 UAT-7 로 확증 예정."
+    reason: "(해소 전) WR-01 — ZIndex 미설정 레시피(전 Shot=0)에서 측정 Index(z>=1) 수신 시 ComputeLastZIndex=0 → bIsLastIndex(1>=0)=true + 매칭 Shot 0건 → m_bCycleHasNG=false → ApplyCycleJudgement 가 'P'(false PASS) 송신. WarnIfEmptyScope 가 PrintErrLog 경고는 남기나 패킷은 PASS 로 Enqueue 됨. 검사 시스템 최악 방향(silent false-accept)."
     artifacts:
       - path: "WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs"
         issue: "BuildScopedResponse/ApplyCycleJudgement (388~391, 495~532) — 빈 scope 마지막 Index 가 P 로 통과. nMatchedShots 가 판정 단계로 전달되지 않아 '전부 OK' 와 '아무것도 측정 안 함' 구분 불가."

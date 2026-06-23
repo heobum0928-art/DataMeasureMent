@@ -13,6 +13,7 @@ findings:
   warning: 3
   info: 4
   total: 7
+warning_resolved: 1   # WR-01 fixed 2026-06-23 (commit bc6252b)
 status: issues_found
 ---
 
@@ -34,6 +35,8 @@ The findings below are mostly edge-case correctness concerns in the judgment log
 ## Warnings
 
 ### WR-01: Last-Index `>=` comparison can emit a false PASS when the recipe has no ZIndex configured
+
+**Status:** ✅ RESOLVED 2026-06-23 (commit bc6252b) — `nMatchedShots` now passed into `ApplyCycleJudgement`; last-Index with 0 matched shots forces `'F'` (fail-safe). Build PASS.
 
 **File:** `WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs:388-391`, `512-532`
 **Issue:**

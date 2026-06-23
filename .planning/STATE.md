@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 58-02-PLAN.md
-last_updated: "2026-06-23T09:24:46.719Z"
+stopped_at: Completed 58-03-PLAN.md
+last_updated: "2026-06-23T09:31:50.205Z"
 last_activity: 2026-06-23 -- Phase --phase execution started
 progress:
   total_phases: 15
@@ -183,6 +183,7 @@ Last activity: 2026-06-23 -- Phase --phase execution started
 | Phase 53 P03 | 9 | 2 tasks | 2 files |
 | Phase 58-config-camera-a-2026-06-23 P01 | 10 | 2 tasks | 3 files |
 | Phase 58-config-camera-a-2026-06-23 P02 | 5 | 2 tasks | 2 files |
+| Phase 58-config-camera-a-2026-06-23 P03 | 4 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -361,6 +362,7 @@ Recent decisions affecting current work:
 - int-backing property pattern (EthernetVisionModeValue): INI reflection Load switch has no enum case
 - RestoreEthernetVisionDefault() only guards PixelResolution (None=0 and empty IP are acceptable missing-key results)
 - EthernetAlignCamera: HikCamera composed as private field (no inheritance, no DeviceHandler registration) per D-01; all public methods try-catch isolated; Grab falls back to D:\align_test.bmp
+- EthernetVisionHandler placed in namespace ReringProject (top-level); Initialize() mode-gate returns immediately for None mode; Camera stays null in None mode; SystemHandler insertion after all Grabber Steps 1-8 (after [SYSTEM] Initialized log)
 
 ### Quick Tasks Completed
 
@@ -489,8 +491,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-23T09:24:46.706Z
-Stopped at: Completed 58-02-PLAN.md
+Last session: 2026-06-23T09:31:50.193Z
+Stopped at: Completed 58-03-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

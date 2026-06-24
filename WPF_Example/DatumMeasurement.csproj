@@ -241,6 +241,7 @@
     <Compile Include="Custom\EthernetVision\EEthernetVisionMode.cs" />
     <Compile Include="Custom\EthernetVision\EthernetAlignCamera.cs" />
     <Compile Include="Custom\EthernetVision\AlignShapeMatchService.cs" />
+    <Compile Include="Custom\EthernetVision\PickerCenterCalibrationService.cs" />
     <Compile Include="Custom\EthernetVision\EthernetVisionHandler.cs" />
     <Compile Include="Custom\Sequence\Inspection\EImageSource.cs" />
     <Compile Include="Custom\Sequence\Inspection\EdgeOptionLists.cs" />

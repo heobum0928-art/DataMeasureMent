@@ -20,6 +20,9 @@ namespace ReringProject {
         //260624 hbk Phase 59 — D-02: Shape matching align 서비스 (handler 소유, stateless). Mode 무관 항상 생성.
         public AlignShapeMatchService Matcher { get; private set; }
 
+        //260624 hbk Phase 60 — D-01: 피커센터 캘 서비스 (handler 소유, stateful). Mode 무관 항상 생성.
+        public PickerCenterCalibrationService PickerCal { get; private set; }
+
         /// <summary>Connect 성공 시 true. Mode==None 또는 연결 실패 시 false.</summary>
         public bool IsInitialized { get; private set; } = false;
 
@@ -32,6 +35,8 @@ namespace ReringProject {
             try {
                 //260624 hbk Phase 59 — D-02: Matcher 는 stateless → 모드/연결 결과 무관하게 항상 생성
                 Matcher = new AlignShapeMatchService();
+                //260624 hbk Phase 60 — D-01: PickerCal stateful → 모드/연결 결과 무관 항상 생성
+                PickerCal = new PickerCenterCalibrationService();
 
                 bool bModeOff = SystemSetting.Handle.EthernetVisionMode == EEthernetVisionMode.None;
                 if (bModeOff) {
@@ -57,6 +62,10 @@ namespace ReringProject {
                 //260624 hbk Phase 59 — 예외 경로에서도 Matcher null 방지
                 if (Matcher == null) {
                     Matcher = new AlignShapeMatchService();
+                }
+                //260624 hbk Phase 60 — 예외 경로에서도 PickerCal null 방지
+                if (PickerCal == null) {
+                    PickerCal = new PickerCenterCalibrationService();
                 }
                 Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Initialize error: {0}", ex.Message);
             }

@@ -574,8 +574,6 @@ Plans:
 *Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*
 
 
----
-
 ## v1.3 Phases (Align 비전 — 이더넷 카메라, Phase 58~62)
 
 > 기존 Grabber 검사와 **완전 독립**. 같은 DataMeasurement 실행파일 내 TabControl 로 공존. v1.2 열어둔 채 병행. 참조: D:\Backup\파이널비전\WPF_Example_260604 (TabControl 구조 — 신규 설계 말고 기존 패턴 확장). **코드 작성 전 phase 별 설계 제안 → 동의 후 구현.**
@@ -610,12 +608,18 @@ Plans:
 - [ ] 59-03-PLAN.md — EthernetVisionHandler.Matcher 배선 + msbuild Debug/x64 build + anti-goal git proof (D-02) [Wave 3]
 
 ### Phase 60: Calibration — Bottom (C) (신설 2026-06-23)
-**Goal**: 피커 센터 캘(36스텝 10° 편심원 최소자승) + 각도 캘(비전각↔피커각 선형 보정).
-**Requirements**: AV-05, AV-06
+**Goal**: 피커 센터 캘(36스텝 10° 편심원 최소자승) — 서비스 계층(UI 없음). AV-06(각도 캘) 폐기 = Phase 59 2-패턴 angle_lx 로 대체.
+**Requirements**: AV-05 (AV-06 dropped — superseded by Phase 59 2-pattern angle_lx)
+**Plans**: 3 plans
 **Success Criteria**:
 1. 36스텝 회전 자재 중심 궤적 → 편심원 중심(피커 센터) 최소자승 계산
-2. 각도 보정계수 산출·저장
-3. Bottom 검사 Theta 출력에 보정 반영
+2. (폐기) ~~각도 보정계수 산출·저장~~ — AV-06 dropped
+3. Bottom 정렬 보정에 피커센터 반영 (미캘 시 Phase 59 동작 폴백)
+
+Plans:
+- [ ] 60-01-PLAN.md — SystemSetting PickerCenterRow/Col INI 속성 + AfterLoad 기본값 (D-04) [Wave 1]
+- [ ] 60-02-PLAN.md — AlignShapeMatchService.TryFindCenter(2-패턴 절대중점) + 피커센터 기준 강체보정 (D-02/D-05) [Wave 2]
+- [ ] 60-03-PLAN.md — PickerCenterCalibrationService(atukey 원피팅 누적) + Handler.PickerCal 배선 + msbuild + anti-goal git proof (D-01/D-03) [Wave 3]
 
 ### Phase 61: UI — TabControl (D) (신설 2026-06-23)
 **Goal**: MainWindow TabControl([검사]/[Tray]/[Bottom]) 통합, 기존 MainView=[검사] 탭 이동, 모드별 탭 Visibility.
@@ -635,6 +639,28 @@ Plans:
 2. Bottom: `$RESULT:BOTTOM;P;3;OffsetX,OffsetY,Theta@`
 3. 기존 TCP 프레임워크 재사용 (Grabber 통신 무영향)
 
+### Phase 63: TCP 프로토콜 Type 필드 반영 및 Align TCP 통합 (신설 2026-06-24)
+**Goal**: 디팜스테크 Vision Protocol v3.0(엑셀 스펙 `D:\디팜스테크_Vision_Protocol_v3_3.xlsx`)을 코드에 반영한다. Grabber $TEST/$RESULT 에 Type 필드(site=PC독립번호 / Type=검사대상)를 추가하고, Align 전용 커맨드($ALIGN_TEST/$ALIGN_CALIB/$ALIGN_RESULT)를 기존 파싱 프레임워크에 통합한다. 둘은 같은 TCP 경계 파일을 건드리므로 한 phase 로 묶는다.
+**Requirements**: PROTO-Type, AV-09(연계)
+**Depends on:** Phase 48/49 (제어 프로토콜 v1.0 — UseProtocolV1/판정엔진), Phase 62 (TCP E — Align 결과 송신; Type 모델로 포맷 정합 시 본 phase 가 상위)
+**Success Criteria**:
+1. 수신 `$TEST:site,Type,자재번호,null,z_index@` 정확 파싱 (Type=[1], 자재번호 [1]→[2], z_index [3]→[4])
+2. 송신 `$RESULT:site;Type;P|F|B;count;id=val=judge,...@` (Type echo)
+3. `$ALIGN_TEST/$ALIGN_CALIB` 수신 파싱 + `$ALIGN_RESULT/$ALIGN_CALIB` 응답 빌더 (switch 추가만, 기존 분기 무손상)
+4. v2.6 호환(UseProtocolV1=false) 회귀 0, 기존 Grabber 검사 시퀀스/Action/SequenceBase 무변경
+5. Debug/x64 msbuild PASS
+
+**만질 파일 (TCP 경계 국한):**
+- WPF_Example/TcpServer/VisionRequestPacket.cs (파서 인덱스 + Type 필드 + ALIGN 패킷)
+- WPF_Example/TcpServer/VisionResponsePacket.cs (BuildResultMessageV1 에 Type + Align 빌더)
+- WPF_Example/Custom/TcpServer/ResourceMap.cs (ResolveSiteSlot → Type 기반 매핑, PcRole 단순화)
+- WPF_Example/Custom/SystemHandler.cs (ProcessAlignTest/ProcessAlignCalib 분기)
+- WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs (TestResultPacket.Type echo 전파 3곳)
+
+**Background**: 본 세션(2026-06-24) 분석. 엑셀 스펙 v3_3 완성(Type 모델 + 검사/Align 다이어그램 셀 재작성). Phase 59/60(Custom/EthernetVision/)과 파일 무겹침 → 병렬 가능. bin/ gitignore 라 worktree 빌드 시 SDK/HALCON DLL 복사 필요(Phase 48 worktree 불가 전례). 코딩 규칙=헝가리언+if/else(삼항/??금지)+조건 bool 변수화+함수 30~40줄 (Phase 48/49 확정).
+
+---
+
 ## Progress Table (v1.3 — Align 비전)
 
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |
@@ -644,3 +670,4 @@ Plans:
 | 60 | Calibration Bottom (C) | AV-05/06 | Not started | — | — |
 | 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |
 | 62 | TCP (E) | AV-09 | Not started | — | — |
+| 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | Not planned | — | 엑셀 스펙 v3_3 완성, 코드 미반영. Phase 59/60과 파일 무겹침 → 병렬 가능 |

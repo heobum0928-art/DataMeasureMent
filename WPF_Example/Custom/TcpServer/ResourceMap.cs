@@ -127,6 +127,42 @@ namespace ReringProject.Network {
             return ESite.Top;
         }
 
+        private const string TYPE_TOKEN_TOP = "TOP";            //260624 hbk Phase 63
+        private const string TYPE_TOKEN_BOTTOM = "BOTTOM";      //260624 hbk Phase 63
+        private const string TYPE_TOKEN_SIDE_PREFIX = "SIDE_";  //260624 hbk Phase 63 SIDE_1~4 공통 접두
+
+        //260624 hbk Phase 63 PROTO-Type: Type 토큰 → ESite 슬롯. 인식 실패 시 false 반환(호출부가 Site 폴백).
+        //  TOP→Top 슬롯, BOTTOM→Side 슬롯(PC1 Side 슬롯=BOTTOM 자원), SIDE_*→Top 슬롯(PC2 양 슬롯 SIDE 동일).
+        // T-63-08/T-63-09 mitigation: 등록된 ESite.Top/Side 슬롯만 산출 → KeyNotFoundException/오라우팅 회피.
+        private bool TryResolveSlotByType(string szType, out ESite eSlot)
+        {
+            eSlot = ESite.Top;
+            bool bHasType = !string.IsNullOrEmpty(szType);
+            if (!bHasType)
+            {
+                return false;
+            }
+            bool bIsTop = szType == TYPE_TOKEN_TOP;
+            if (bIsTop)
+            {
+                eSlot = ESite.Top;
+                return true;
+            }
+            bool bIsBottom = szType == TYPE_TOKEN_BOTTOM;
+            if (bIsBottom)
+            {
+                eSlot = ESite.Side;
+                return true;
+            }
+            bool bIsSide = szType.StartsWith(TYPE_TOKEN_SIDE_PREFIX);
+            if (bIsSide)
+            {
+                eSlot = ESite.Top;
+                return true;
+            }
+            return false;
+        }
+
         public bool SetIdentifier(ref VisionRequestPacket packet) {
             switch (packet.RequestType) {
                 case VisionRequestType.Light:

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 61-01-PLAN.md
-last_updated: "2026-06-24T09:06:00.984Z"
+stopped_at: Completed 61-02-PLAN.md
+last_updated: "2026-06-24T09:12:33.240Z"
 last_activity: 2026-06-24
 progress:
   total_phases: 15
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 61 (ui-tabcontrol-d-2026-06-23) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Last activity: 2026-06-24
 
 **사용자 작업 계획 2026-06-23 (C→B→A):**
@@ -194,6 +194,7 @@ Last activity: 2026-06-24
 | Phase 63 P05 | 8 | 2 tasks | 1 files |
 | Phase 60-calibration-bottom-c-2026-06-23 P02 | 15 | 1 tasks | 1 files |
 | Phase 61-ui-tabcontrol-d-2026-06-23 P01 | 149 | 2 tasks | 2 files |
+| Phase 61-ui-tabcontrol-d-2026-06-23 P02 | 210 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -391,6 +392,8 @@ Recent decisions affecting current work:
 - D-05 (Phase 60-02): Bottom align correction expressed as HomMat2dRotate about calibrated picker center; uncalibrated (0,0) returns input offset unchanged (Phase 59 fallback)
 - TrayVisionView 2-ROI 슬롯: DrawRoi1→StartRectangleDrawing(슬롯1), DrawRoi2→CommitActiveRectangle(슬롯1확정)+슬롯2시작, Teach→CommitActiveRectangle(슬롯2확정)
 - TrayVisionView Live 스트림: Camera.Live() 호출만, 실제 프레임 push 루프는 Camera 내부 위임
+- BottomVisionView AttachSharedViewer: CircleDrawingCompleted -= then += 중복구독 방지
+- BottomVisionView CalAddStepButton_Click: LoadImage before Dispose (LoadImage clones internally)
 
 ### Quick Tasks Completed
 
@@ -520,8 +523,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-24T09:06:00.972Z
-Stopped at: Completed 61-01-PLAN.md
+Last session: 2026-06-24T09:12:33.228Z
+Stopped at: Completed 61-02-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

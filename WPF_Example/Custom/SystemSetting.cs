@@ -37,6 +37,7 @@ namespace ReringProject.Setting {
         {
             RestorePcRoleDefault();
             RestoreEthernetVisionDefault(); //260623 hbk Phase 58
+            RestorePickerCenterDefault(); //260624 hbk Phase 60
         }
 
         // 260622 hbk Phase 48
@@ -62,6 +63,18 @@ namespace ReringProject.Setting {
             }
         }
 
+        //260624 hbk Phase 60 — D-04: 피커센터 기본값 0 = 미캘 상태(정상값). reflection Load 가
+        // 누락 키를 0 으로 로드하는 것이 곧 올바른 미캘 의미이므로 복원 불필요 — 의도 명시용 no-op 가드.
+        // 향후 비-0 머신 기본값 도입 시 이 메서드에서 복원 로직 추가.
+        private void RestorePickerCenterDefault()
+        {
+            bool bPickerCenterUncalibrated = (PickerCenterRow == 0.0) && (PickerCenterCol == 0.0);
+            if (bPickerCenterUncalibrated)
+            {
+                // 미캘 상태 유지 — 별도 복원 없음 (0,0 = 정상 초기값)
+            }
+        }
+
         //260623 hbk Phase 58 — AV-01: [ETHERNET_VISION] INI section
         [Category("ETHERNET_VISION")]
         public int EthernetVisionModeValue { get; set; } = 0;   // 0 = None
@@ -81,5 +94,12 @@ namespace ReringProject.Setting {
 
         [Category("ETHERNET_VISION")]
         public double EthernetPixelResolution { get; set; } = 8.652; //260623 hbk Phase 58
+
+        //260624 hbk Phase 60 — D-04: AV-05 피커 회전중심 (머신 단위 HW 캘 결과, 레시피 아님). 0 = 미캘.
+        [Category("ETHERNET_VISION")]
+        public double PickerCenterRow { get; set; } = 0.0;
+
+        [Category("ETHERNET_VISION")]
+        public double PickerCenterCol { get; set; } = 0.0;
     }
 }

@@ -418,6 +418,12 @@
     <Compile Include="TcpServer\VisionRequestPacket.cs" />
     <Compile Include="TcpServer\VisionResponsePacket.cs" />
     <Compile Include="TcpServer\TcpServer.cs" />
+    <Compile Include="Custom\UI\TrayVisionView.xaml.cs">
+      <DependentUpon>TrayVisionView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Custom\UI\BottomVisionView.xaml.cs">
+      <DependentUpon>BottomVisionView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\ContentItem\MainView.xaml.cs">
       <DependentUpon>MainView.xaml</DependentUpon>
     </Compile>
@@ -445,6 +451,14 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Custom\UI\TrayVisionView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Custom\UI\BottomVisionView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UI\ContentItem\LogView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

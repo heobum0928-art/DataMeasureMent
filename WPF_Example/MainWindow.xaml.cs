@@ -339,6 +339,7 @@ namespace ReringProject {
                     mModalWindow = new SettingWindow();
                     mModalWindow.Owner = this;
                     mModalWindow.ShowDialog();
+                    RefreshEthernetVisionTabs(); //260624 hbk Phase 61: 설정창 종료 후 EthernetVisionMode 탭 재게이트
                     break;
                 case EPageType.ProcessMonitor:
                     if(mProcMonitorWindow != null) {

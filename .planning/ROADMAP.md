@@ -657,6 +657,13 @@ Plans:
 - WPF_Example/Custom/SystemHandler.cs (ProcessAlignTest/ProcessAlignCalib 분기)
 - WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs (TestResultPacket.Type echo 전파 3곳)
 
+**Plans:** 5 plans (3 waves) — planned 2026-06-24
+- [ ] 63-01-PLAN.md — 수신측: VisionRequestPacket Type 필드(V1 한정 인덱스 시프트) + ALIGN 요청 패킷
+- [ ] 63-02-PLAN.md — 송신측: VisionResponsePacket TestResultPacket.Type echo + ALIGN 응답 빌더
+- [ ] 63-03-PLAN.md — ResourceMap Type 토큰→ESite 슬롯 라우팅(Site 폴백 보존)
+- [ ] 63-04-PLAN.md — InspectionSequence Type echo 3곳 + SystemHandler ALIGN dispatch
+- [ ] 63-05-PLAN.md — Debug/x64 통합 빌드 검증 + Success Criteria 추적표
+
 **Background**: 본 세션(2026-06-24) 분석. 엑셀 스펙 v3_3 완성(Type 모델 + 검사/Align 다이어그램 셀 재작성). Phase 59/60(Custom/EthernetVision/)과 파일 무겹침 → 병렬 가능. bin/ gitignore 라 worktree 빌드 시 SDK/HALCON DLL 복사 필요(Phase 48 worktree 불가 전례). 코딩 규칙=헝가리언+if/else(삼항/??금지)+조건 bool 변수화+함수 30~40줄 (Phase 48/49 확정).
 
 ---
@@ -670,4 +677,4 @@ Plans:
 | 60 | Calibration Bottom (C) | AV-05/06 | Not started | — | — |
 | 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |
 | 62 | TCP (E) | AV-09 | Not started | — | — |
-| 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | Not planned | — | 엑셀 스펙 v3_3 완성, 코드 미반영. Phase 59/60과 파일 무겹침 → 병렬 가능 |
+| 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | Planned (5 plans, 3 waves) | — | 엑셀 스펙 v3_3 완성, 코드 미반영. Phase 59/60과 파일 무겹침 → 병렬 가능 |

@@ -46,3 +46,5 @@ blocked: 0
 > 비고: 5건 모두 코드 결함이 아니라 런타임(HALCON 실행 + 파일 I/O + 부호/축 실장비 확정) 확인 항목.
 > 코드 레벨 must-have 4/4 검증 완료(59-VERIFICATION.md, human_needed). 빌드 msbuild Debug/x64 PASS, anti-goal(PatternMatchService/RecipeFileHelper/Grabber 무수정) 확인, 코드리뷰 clean(WR-01/02 + IN-01/02 수정).
 > Phase 59 는 서비스 API 만 — teach/run 을 구동할 UI 진입점은 Phase 61. 검증자 권고: **Phase 61(TabControl UI) 완성 후 Phase 58+59 UAT 일괄 수행.** 특히 Test 4 의 부호/축 매핑은 실 장비 좌표 기준 확정 필요.
+>
+> **[2026-06-24 개정] 알고리즘 = 2-패턴 + angle_lx (D-03'~07').** 위 Test 들은 이제 **ROI 2개(좌상단 TL + 우하단 BR)** 티칭 기준으로 수행: Tray/Bottom 모두 모델 2개. Test 4(Bottom Theta)는 **두 매칭 중심 사이각(angle_lx) 차이**로 산출되는지(모델 자체각 아님) 확인. 실 Tray 테스트 이미지: `C:\Info\Doc\2.디팜스테크\09_TrayVision\...`. build PASS, anti-goal 유지, 코드 구조 spot-check 완료(독립 재리뷰는 Phase 61 UAT 시 병행 권장).

@@ -74,3 +74,38 @@ None. The service has no placeholder returns; all paths either return a meaningf
 - [x] PatternMatchService.cs unmodified (composition only)
 
 ## Self-Check: PASSED
+
+---
+
+## Revision 2026-06-24 — 2-pattern + angle_lx baseline (D-03'/04'/05'/07')
+
+**Commit:** 51948b0
+**Trigger:** 사용자 설계 입력 — Bottom 픽스처가 이형이라 단일 Shape Model 자체각(curAngle) 부정확. HDevelop 레퍼런스(`59-REF-2pattern-anglelx.hdev.txt`) + Grabber Phase 55 ALIGN-02 동일 방식으로 정정. Phase 59 UAT 미완 상태에서 in-place 개정.
+
+### 변경 내용
+
+**AlignRefPose.cs (완전 재작성):**
+- 단일 RefRow/RefCol/RefAngleDeg → 두 중심 `Ref1Row/Ref1Col` (TL) + `Ref2Row/Ref2Col` (BR) + `RefBaselineRad` (angle_lx, rad)
+- Engine/AngleExtentDeg 유지
+
+**AlignShapeMatchService.cs (완전 재작성):**
+- `BuildShmPath(mode, modelIndex)` — `_1.shm` / `_2.shm` 두 경로 지원
+- `BuildJsonPath(mode)` — `_1` 접미사 제거 후 `.json` 경로
+- `ComputeAngleLx(row1,col1,row2,col2)` — `HOperatorSet.AngleLx` try-catch + `HTuple` finally dispose. 실패 시 `double.NaN`
+- `TryTeach` 시그니처 변경: ROI 2개(roi1../roi2..) 입력 → `TryCreateModel×2` → `TryFindRefPose×2` → `ComputeAngleLx` → json 저장
+- `Run`: `TryFindPose×2` → `ComputeAngleLx` → `diffRad=runtimeBaseline−refBaseline` → `ThetaDeg=diffRad×180/π` → midpoint offset → mm 변환
+- Score = `Math.Min(f1Score, f2Score)` (보수적 지표)
+- Tray: `ThetaDeg=0 / HasTheta=false`. Bottom: `ThetaDeg=diff / HasTheta=true`
+- `HasTemplate`: `_1.shm` + `_2.shm` + `json` 세 파일 모두 존재 확인
+
+### Anti-Goal 확인
+
+`git diff --name-only` 결과 2개 파일만 변경됨:
+- `WPF_Example/Custom/EthernetVision/AlignRefPose.cs`
+- `WPF_Example/Custom/EthernetVision/AlignShapeMatchService.cs`
+
+PatternMatchService.cs / RecipeFileHelper.cs / EthernetVisionHandler.cs / AlignResult.cs / Grabber 파일 전부 무수정.
+
+### 빌드 결과
+
+msbuild Debug/x64 PASS — 오류 0건.

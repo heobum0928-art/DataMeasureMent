@@ -7,6 +7,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:setting="clr-namespace:ReringProject.Setting"
         xmlns:ui="clr-namespace:ReringProject.UI"
+        xmlns:customui="clr-namespace:ReringProject.Custom.UI"
         WindowStyle="None"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
@@ -67,7 +68,18 @@
                 <RowDefinition Height="1*"></RowDefinition>
             </Grid.RowDefinitions>
             
-            <ui:MainView x:Name="mainView" Grid.Column="0" Grid.Row="0"/>
+            <!-- 260624 hbk Phase 61: MainView → [검사] TabItem 재부모화 + [Tray 비전]/[Bottom 비전] 신규 탭 (AV-07) -->
+            <TabControl x:Name="tabMain" Grid.Column="0" Grid.Row="0">
+                <TabItem x:Name="tabInspection" Header="검사">
+                    <ui:MainView x:Name="mainView"/>
+                </TabItem>
+                <TabItem x:Name="tabTray" Header="Tray 비전">
+                    <customui:TrayVisionView x:Name="trayVisionView"/>
+                </TabItem>
+                <TabItem x:Name="tabBottom" Header="Bottom 비전">
+                    <customui:BottomVisionView x:Name="bottomVisionView"/>
+                </TabItem>
+            </TabControl>
             <GridSplitter Grid.Column="0" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" ShowsPreview="True" Height="5" BorderBrush="Gray" BorderThickness="1"></GridSplitter>
             <ui:LogView x:Name="logView" Grid.Column="0" Grid.Row="2"></ui:LogView>
         </Grid>

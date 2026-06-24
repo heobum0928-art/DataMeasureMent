@@ -1,4 +1,5 @@
 //260624 hbk Phase 59
+//260624 hbk Phase 59 review-fix WR-01 IN-01 IN-02
 using System;
 using System.IO;
 using HalconDotNet;
@@ -48,20 +49,18 @@ namespace ReringProject {
 
         // ─── 경로 헬퍼 ───────────────────────────────────────────────────────────
 
-        // D-04: {RecipeSavePath}\{CurrentRecipeName}\ETHERNET_ALIGN\{Tray|Bottom}.shm
-        // RecipeFileHelper.GetPatternModelFilePath 패턴 직접 적용 — Directory.CreateDirectory 포함.
-        private string GetShmPath(EEthernetVisionMode mode) {
+        // WR-01 fix: 경로 문자열만 계산 — IO 부작용 없음. 읽기 경로(HasTemplate/Run) 에서 사용.
+        // IN-02 fix: RecipeSavePath null/empty 시 ArgumentNullException 방지 — Path.Combine 전 가드.
+        private string BuildShmPath(EEthernetVisionMode mode) {
             string recipePath = SystemSetting.Handle.RecipeSavePath;
+            if (string.IsNullOrEmpty(recipePath)) {
+                return null;  // 호출자가 null 을 "템플릿 없음" 으로 처리
+            }
             string recipeName = SystemSetting.Handle.CurrentRecipeName;
             if (string.IsNullOrEmpty(recipeName)) {
                 recipeName = DEFAULT_RECIPE_NAME;
             }
-
             string folder = Path.Combine(recipePath, recipeName, ETHERNET_ALIGN_FOLDER);
-            if (!Directory.Exists(folder)) {
-                Directory.CreateDirectory(folder);
-            }
-
             string modeFileName;
             if (mode == EEthernetVisionMode.Bottom) {
                 modeFileName = "Bottom";
@@ -70,6 +69,17 @@ namespace ReringProject {
                 modeFileName = "Tray";
             }
             return Path.Combine(folder, modeFileName + PatternMatchService.EXTENSION_SHAPE_MODEL);
+        }
+
+        // WR-01 fix: 쓰기 전용 헬퍼 — Directory.CreateDirectory 포함. TryTeach 에서만 호출.
+        // D-04: {RecipeSavePath}\{CurrentRecipeName}\ETHERNET_ALIGN\{Tray|Bottom}.shm
+        private string GetShmPath(EEthernetVisionMode mode) {
+            string path = BuildShmPath(mode);
+            if (path == null) {
+                return null;
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            return path;
         }
 
         // ─── 사이드카 JSON 저장/로드 ──────────────────────────────────────────────
@@ -86,7 +96,11 @@ namespace ReringProject {
                 refPose.AngleExtentDeg = angleExtentDeg;
                 refPose.Engine         = ENGINE;
 
-                string json = JsonConvert.SerializeObject(refPose, Formatting.Indented);
+                // IN-01 fix: 직렬화도 TypeNameHandling.None 명시 — 역직렬화 측 RCE 방지 설정과 대칭.
+                JsonSerializerSettings saveSettings = new JsonSerializerSettings();
+                saveSettings.TypeNameHandling = TypeNameHandling.None;
+                saveSettings.Formatting = Formatting.Indented;
+                string json = JsonConvert.SerializeObject(refPose, saveSettings);
                 File.WriteAllText(jsonPath, json, System.Text.Encoding.UTF8);
                 return true;
             }
@@ -115,11 +129,15 @@ namespace ReringProject {
         // ─── 템플릿 존재 확인 ────────────────────────────────────────────────────
 
         // D-07: 템플릿(.shm + ref json) 둘 다 존재해야 사용 가능
+        // WR-01 fix: BuildShmPath 사용 — 순수 존재 확인, IO 부작용 없음.
         public bool HasTemplate(EEthernetVisionMode mode) {
             if (mode == EEthernetVisionMode.None) {
                 return false;
             }
-            string shmPath  = GetShmPath(mode);
+            string shmPath  = BuildShmPath(mode);
+            if (shmPath == null) {
+                return false;
+            }
             string jsonPath = Path.ChangeExtension(shmPath, REF_POSE_EXT);
             return File.Exists(shmPath) && File.Exists(jsonPath);
         }
@@ -153,6 +171,10 @@ namespace ReringProject {
 
             try {
                 string shmPath  = GetShmPath(mode);
+                if (shmPath == null) {
+                    error = "RecipeSavePath 미설정";
+                    return false;
+                }
                 string jsonPath = Path.ChangeExtension(shmPath, REF_POSE_EXT);
 
                 double angleExtentDeg;
@@ -213,7 +235,14 @@ namespace ReringProject {
             }
 
             try {
-                string shmPath  = GetShmPath(mode);
+                // WR-01 fix: Run = 읽기 경로 — BuildShmPath(IO 없음) 사용. 디렉터리 생성 불필요.
+                string shmPath  = BuildShmPath(mode);
+                if (shmPath == null) {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_SVC] RecipeSavePath 미설정 ({0})", mode);
+                    AlignResult noPath = new AlignResult();
+                    noPath.Found = false;
+                    return noPath;
+                }
                 string jsonPath = Path.ChangeExtension(shmPath, REF_POSE_EXT);
 
                 AlignRefPose refPose = LoadRefPose(jsonPath);
@@ -224,14 +253,17 @@ namespace ReringProject {
                     return noRef;
                 }
 
-                // 전체 이미지 검색 (margin 0, downsample 1). TryFindPose 가 검색영역을 이미지 경계로 클램프.
+                // WR-02: 전체 이미지 검색 의도 명시.
+                // center=(0,0) + len=FULL_SEARCH_LEN(99999) → TryFindPose 내부 GenRectangle1 clamp 으로
+                // (0,0)~(imgH-1,imgW-1) 전 영역 커버. downsampleFactor=1.0 고정이므로
+                // 좌표 스케일 복원(curRow/scale) 없음 — (0,0) center 가 스케일 오차 유발하지 않음.
                 double curRow, curCol, curAngleDeg, curScore;
                 string findErr;
                 bool bFound = _matcher.TryFindPose(
                     img, ENGINE, shmPath,
-                    0.0, 0.0,
+                    0.0, 0.0,               // phantom center; 실제 검색범위는 FULL_SEARCH_LEN clamp 으로 결정
                     FULL_SEARCH_LEN, FULL_SEARCH_LEN,
-                    0.0, MIN_SCORE, 1.0,
+                    0.0, MIN_SCORE, 1.0,    // marginPx=0, downsample=1 (스케일 복원 불필요)
                     out curRow, out curCol, out curAngleDeg, out curScore, out findErr);
 
                 if (!bFound) {

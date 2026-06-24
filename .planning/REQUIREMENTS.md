@@ -113,7 +113,8 @@
 
 ### UI — TabControl (Phase 61 / D)
 - [ ] **AV-07**: MainWindow 에 TabControl 을 추가해 [검사]/[Tray 비전]/[Bottom 비전] 탭으로 통합하고, EthernetVisionMode 에 따라 Tray/Bottom 탭 Visibility 를 제어한다 (기존 MainView 는 [검사] 탭으로 이동)
-- [ ] **AV-08**: Tray/BottomVisionView 에 툴바(Grab/Live/Stop)+티칭 패널+검사 결과 패널(+Bottom 캘 패널)을 제공하고 HalconViewer 를 공용한다
+- [x] **AV-08
+**: Tray/BottomVisionView 에 툴바(Grab/Live/Stop)+티칭 패널+검사 결과 패널(+Bottom 캘 패널)을 제공하고 HalconViewer 를 공용한다
 
 ### TCP (Phase 62 / E)
 - [x] **AV-09

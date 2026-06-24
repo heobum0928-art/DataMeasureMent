@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 60-03-PLAN.md
-last_updated: "2026-06-24T08:30:00.000Z"
+stopped_at: Completed 61-01-PLAN.md
+last_updated: "2026-06-24T09:06:00.984Z"
 last_activity: 2026-06-24
 progress:
   total_phases: 15
   completed_phases: 14
   total_plans: 49
-  completed_plans: 47
-  percent: 96
+  completed_plans: 46
+  percent: 94
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -23,11 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 60-03 완료 — AV-05 PickerCenterCalibrationService + EthernetVisionHandler.PickerCal 빌드 완료
+**Current focus:** Phase 61 — ui-tabcontrol-d-2026-06-23
 
 ## Current Position
 
-Phase: 63 (tcp-type-align-tcp) — ✅ SIGNED OFF (UAT 5/5 PASS)
+Phase: 61 (ui-tabcontrol-d-2026-06-23) — EXECUTING
+Plan: 2 of 3
 Last activity: 2026-06-24
 
 **사용자 작업 계획 2026-06-23 (C→B→A):**
@@ -192,6 +193,7 @@ Last activity: 2026-06-24
 | Phase 63 P04 | 8 | 2 tasks | 3 files |
 | Phase 63 P05 | 8 | 2 tasks | 1 files |
 | Phase 60-calibration-bottom-c-2026-06-23 P02 | 15 | 1 tasks | 1 files |
+| Phase 61-ui-tabcontrol-d-2026-06-23 P01 | 149 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -387,6 +389,8 @@ Recent decisions affecting current work:
 - Phase 63 Plan 05: 빌드 검증 전용 plan — AlignCalibResultPacket 개명은 Plan 04(b76af74)에서 이미 완료. 추가 코드 변경 없음. MSB3884 경고 1개는 Phase 49 baseline 기존
 - D-04(Phase60): PickerCenterRow/Col stored in [ETHERNET_VISION] INI as machine-level HW cal result; default 0.0 = uncalibrated sentinel. RestorePickerCenterDefault() is a no-op guard documenting intent.
 - D-05 (Phase 60-02): Bottom align correction expressed as HomMat2dRotate about calibrated picker center; uncalibrated (0,0) returns input offset unchanged (Phase 59 fallback)
+- TrayVisionView 2-ROI 슬롯: DrawRoi1→StartRectangleDrawing(슬롯1), DrawRoi2→CommitActiveRectangle(슬롯1확정)+슬롯2시작, Teach→CommitActiveRectangle(슬롯2확정)
+- TrayVisionView Live 스트림: Camera.Live() 호출만, 실제 프레임 push 루프는 Camera 내부 위임
 
 ### Quick Tasks Completed
 
@@ -516,8 +520,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-24T07:03:23.360Z
-Stopped at: Completed 60-02-PLAN.md
+Last session: 2026-06-24T09:06:00.972Z
+Stopped at: Completed 61-01-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

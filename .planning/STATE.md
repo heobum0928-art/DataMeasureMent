@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 61-02-PLAN.md
-last_updated: "2026-06-24T09:12:33.240Z"
+stopped_at: Completed 61-03-PLAN.md
+last_updated: "2026-06-24T09:18:20.538Z"
 last_activity: 2026-06-24
 progress:
   total_phases: 15
@@ -195,6 +195,7 @@ Last activity: 2026-06-24
 | Phase 60-calibration-bottom-c-2026-06-23 P02 | 15 | 1 tasks | 1 files |
 | Phase 61-ui-tabcontrol-d-2026-06-23 P01 | 149 | 2 tasks | 2 files |
 | Phase 61-ui-tabcontrol-d-2026-06-23 P02 | 210 | 2 tasks | 2 files |
+| Phase 61 P03 | 2 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -394,6 +395,8 @@ Recent decisions affecting current work:
 - TrayVisionView Live 스트림: Camera.Live() 호출만, 실제 프레임 push 루프는 Camera 내부 위임
 - BottomVisionView AttachSharedViewer: CircleDrawingCompleted -= then += 중복구독 방지
 - BottomVisionView CalAddStepButton_Click: LoadImage before Dispose (LoadImage clones internally)
+- Phase 61-03: MainView 재부모화만(Grid→TabItem), x:Name 보존 — MainWindow.xaml.cs 참조 무손상, 코드 0줄 수정
+- Phase 61-03: D-03 단일 공유 MainResultViewerControl — EthernetVisionMode 배타로 align 탭 한 번에 하나만 실재, 다중 HWindowControlWPF 회피
 
 ### Quick Tasks Completed
 
@@ -523,8 +526,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-24T09:12:33.228Z
-Stopped at: Completed 61-02-PLAN.md
+Last session: 2026-06-24T09:18:20.526Z
+Stopped at: Completed 61-03-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

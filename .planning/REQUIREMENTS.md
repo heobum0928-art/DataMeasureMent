@@ -112,7 +112,8 @@
 - [ ] **AV-06**: 비전이 읽는 각도와 피커 실제 회전각 간 선형 오프셋 보정계수를 산출·적용한다
 
 ### UI — TabControl (Phase 61 / D)
-- [ ] **AV-07**: MainWindow 에 TabControl 을 추가해 [검사]/[Tray 비전]/[Bottom 비전] 탭으로 통합하고, EthernetVisionMode 에 따라 Tray/Bottom 탭 Visibility 를 제어한다 (기존 MainView 는 [검사] 탭으로 이동)
+- [x] **AV-07
+**: MainWindow 에 TabControl 을 추가해 [검사]/[Tray 비전]/[Bottom 비전] 탭으로 통합하고, EthernetVisionMode 에 따라 Tray/Bottom 탭 Visibility 를 제어한다 (기존 MainView 는 [검사] 탭으로 이동)
 - [x] **AV-08
 **: Tray/BottomVisionView 에 툴바(Grab/Live/Stop)+티칭 패널+검사 결과 패널(+Bottom 캘 패널)을 제공하고 HalconViewer 를 공용한다
 

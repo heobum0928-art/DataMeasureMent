@@ -11,6 +11,8 @@ namespace ReringProject.Network {
         SiteStatus,
         Light,
         Test,
+        AlignTest,      //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 타입
+        AlignCalib,     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 타입
 
         Unknown = 999
     }
@@ -23,6 +25,8 @@ namespace ReringProject.Network {
         public const string CMD_RECV_SITE_STATUS = "SITE_STATUS";
         public const string CMD_RECV_LIGHT = "LIGHT";
         public const string CMD_RECV_TEST = "TEST";
+        public const string CMD_RECV_ALIGN_TEST = "ALIGN_TEST";   //260624 hbk Phase 63 AV-09
+        public const string CMD_RECV_ALIGN_CALIB = "ALIGN_CALIB"; //260624 hbk Phase 63 AV-09
 
         //260622 hbk Phase 48
         // PROTO-01: v1.0 TEST 유연 파서 상수 ($TEST:site,MaterialNumber,null,z_index@).
@@ -293,6 +297,22 @@ namespace ReringProject.Network {
                     }
 
                     break;
+                case CMD_RECV_ALIGN_TEST: //260624 hbk Phase 63 AV-09 Align 검사 요청
+                    packet = new AlignTestPacket();
+                    AlignTestPacket alignTestPacket = packet.AsAlignTest();
+                    dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
+                    bool bAlignTestOk = TryParseAlignTestFields(dataList, alignTestPacket); //260624 hbk Phase 63
+                    if (!bAlignTestOk) { return null; }
+
+                    break;
+                case CMD_RECV_ALIGN_CALIB: //260624 hbk Phase 63 AV-09 Align 캘리브레이션 요청
+                    packet = new AlignCalibPacket();
+                    AlignCalibPacket alignCalibPacket = packet.AsAlignCalib();
+                    dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
+                    bool bAlignCalibOk = TryParseAlignCalibFields(dataList, alignCalibPacket); //260624 hbk Phase 63
+                    if (!bAlignCalibOk) { return null; }
+
+                    break;
             }
 
             return packet;
@@ -378,6 +398,26 @@ namespace ReringProject.Network {
             return nZIndex.ToString();
         }
 
+        //260624 hbk Phase 63 PROTO-Type/AV-09: ALIGN_TEST 수신 파서. [가정] 페이로드 = target 토큰(TRAY/BOTTOM 등).
+        //  Phase 62(Align 결과 모델) 미확정 → 라우팅용 Target 만 추출, 상세 필드는 향후 확장.
+        private static bool TryParseAlignTestFields(string[] dataList, AlignTestPacket alignPacket)
+        {
+            bool bHasTarget = dataList != null && dataList.Length >= 1;
+            if (!bHasTarget) { return false; }
+            alignPacket.AlignTarget = dataList[0];
+            return true;
+        }
+
+        //260624 hbk Phase 63 PROTO-Type/AV-09: ALIGN_CALIB 수신 파서. [가정] 페이로드 = target 토큰(TRAY/BOTTOM 등).
+        //  Phase 62(Align 결과 모델) 미확정 → 라우팅용 Target 만 추출, 상세 필드는 향후 확장.
+        private static bool TryParseAlignCalibFields(string[] dataList, AlignCalibPacket alignPacket)
+        {
+            bool bHasTarget = dataList != null && dataList.Length >= 1;
+            if (!bHasTarget) { return false; }
+            alignPacket.AlignTarget = dataList[0];
+            return true;
+        }
+
         public RecipeChangePacket AsRecipeChange() {
             if (RequestType != VisionRequestType.RecipeChange) return null;
             RecipeChangePacket recipePacket = this as RecipeChangePacket;
@@ -406,6 +446,18 @@ namespace ReringProject.Network {
             if (RequestType != VisionRequestType.RecipeGet) return null;
             RecipeGetPacket recipeGetPacket = this as RecipeGetPacket;
             return recipeGetPacket;
+        }
+
+        //260624 hbk Phase 63 AV-09
+        public AlignTestPacket AsAlignTest() {
+            if (RequestType != VisionRequestType.AlignTest) return null;
+            return this as AlignTestPacket;
+        }
+
+        //260624 hbk Phase 63 AV-09
+        public AlignCalibPacket AsAlignCalib() {
+            if (RequestType != VisionRequestType.AlignCalib) return null;
+            return this as AlignCalibPacket;
         }
 
     }
@@ -459,6 +511,22 @@ namespace ReringProject.Network {
         public string Type { get; set; } = "";
 
         public TestPacket() : base(VisionRequestType.Test) {
+        }
+    }
+
+    //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 패킷. AlignTarget = 라우팅 대상(TRAY/BOTTOM).
+    public class AlignTestPacket : VisionRequestPacket {
+        public string AlignTarget { get; set; } = "";   //260624 hbk Phase 63 라우팅 대상(TRAY/BOTTOM)
+
+        public AlignTestPacket() : base(VisionRequestType.AlignTest) {
+        }
+    }
+
+    //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 패킷. AlignTarget = 라우팅 대상(TRAY/BOTTOM).
+    public class AlignCalibPacket : VisionRequestPacket {
+        public string AlignTarget { get; set; } = "";   //260624 hbk Phase 63 라우팅 대상(TRAY/BOTTOM)
+
+        public AlignCalibPacket() : base(VisionRequestType.AlignCalib) {
         }
     }
 

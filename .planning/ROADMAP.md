@@ -639,8 +639,8 @@ Plans:
 
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |
 |---|---|---|---|---|---|
-| 58 | Config & Camera (A) | AV-01/02 | Planned (3 plans) | — | — |
-| 59 | Vision Algorithm (B) | AV-03/04 | Planned (3 plans) | — | — |
+| 58 | Config & Camera (A) | AV-01/02 | ✅ Complete (UAT 4/4 PASS) | 2026-06-24 | 3 plans, msbuild PASS, anti-goal OK |
+| 59 | Vision Algorithm (B) | AV-03/04 | Code complete (UAT pending) | — | 3 plans, msbuild PASS · UAT 5건 Phase 61 UI 후 |
 | 60 | Calibration Bottom (C) | AV-05/06 | Not started | — | — |
 | 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |
 | 62 | TCP (E) | AV-09 | Not started | — | — |

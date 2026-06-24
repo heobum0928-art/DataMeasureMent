@@ -1,0 +1,50 @@
+// === Phase 59 REVISION reference (사용자 제공 HDevelop, 2026-06-24) ===
+// Bottom 픽스처가 이형(완전 사각형 아님) → 단일 Shape Model 자체각(AngleF) 부정확.
+// 해결: 모델 2개(좌상단 TL + 우하단 BR) 매칭 → 각도는 두 매칭 중심 사이각 angle_lx 로 산출 (모델 자체각 미사용).
+// Tray/Bottom 통합 알고리즘. Tray=X/Y 만, Bottom=X/Y+Theta.
+// = 기존 Grabber Phase 55 ALIGN-02 ("양 대각 패턴 2개 중심 baseline 각, 패턴 자체각 미사용") 와 동일.
+
+dev_close_window ()
+dev_open_window (0, 0, 512, 512, 'black', WindowHandle)
+
+read_image (Image, '.../s01/s01_LV120_Image_...bmp')
+draw_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)
+gen_rectangle1 (Rectangle1, Row1, Column1, Row2, Column2)   // ROI 1 = 좌상단(TL)
+dev_set_draw ('margin')
+reduce_domain (Image, Rectangle1, ImageReduced1)
+
+draw_rectangle1 (WindowHandle, Row1, Column1, Row2, Column2)
+gen_rectangle1 (Rectangle2, Row1, Column1, Row2, Column2)   // ROI 2 = 우하단(BR)
+reduce_domain (Image, Rectangle2, ImageReduced2)
+
+tuple_rad (10, Rad)   // 각도 범위 ±10°
+
+// 모델 2개 생성 (TL, BR) — PatternMatchService.TryCreateModel 2회로 대응
+create_shape_model (ImageReduced1, 'auto', -Rad, Rad*2, 'auto', 'auto', 'use_polarity', 'auto', 'auto', ModelID1)
+create_shape_model (ImageReduced2, 'auto', -Rad, Rad*2, 'auto', 'auto', 'use_polarity', 'auto', 'auto', ModelID2)
+
+// 레퍼런스 포즈 = 티칭 이미지에서 두 모델 find → 두 중심 + baseline (angle_lx)
+find_shape_model (ImageReduced1, ModelID1, -Rad, Rad*2, 0.1, 1, 0.5, 'least_squares', 0, 0.9, RowR1, ColumnR1, AngleR1, Score)
+find_shape_model (ImageReduced2, ModelID2, -Rad, Rad*2, 0.1, 1, 0.5, 'least_squares', 0, 0.9, RowR2, ColumnR2, AngleR2, Score)
+
+// 런타임 루프
+for Index := 0 to Length-1 by 1
+    read_image (Image1, ImageFiles[Index])
+    find_shape_model (Image1, ModelID1, -Rad, Rad*2, 0.1, 1, 0.5, 'least_squares', 0, 0.9, RowF1, ColumnF1, AngleF1, Score)
+    find_shape_model (Image1, ModelID2, -Rad, Rad*2, 0.1, 1, 0.5, 'least_squares', 0, 0.9, RowF2, ColumnF2, AngleF2, Score)
+
+    // *** 핵심: 각도는 두 중심 사이각 (angle_lx), 모델 자체각(AngleF1/F2) 미사용 ***
+    angle_lx (RowR1, ColumnR1, RowR2, ColumnR2, AngleR)   // 레퍼런스 baseline
+    angle_lx (RowF1, ColumnF1, RowF2, ColumnF2, AngleF)   // 런타임 baseline
+    diff := AngleF - AngleR                               // 회전 보정량 (rad)
+
+    vector_angle_to_rigid (0, 0, 0, RowF1, ColumnF1, diff, HomMat2D)
+    vector_angle_to_rigid (0, 0, 0, RowF2, ColumnF2, diff, HomMat2D2)
+    // (위 2개 transform 은 모델 컨투어 표시용. 실제 출력 = 위치 offset + diff 각도)
+endfor
+
+// === Phase 59 서비스 매핑 ===
+// .NET: HOperatorSet.AngleLx(Row1,Col1,Row2,Col2, out Angle) — rad 반환.
+// ThetaDeg = (AngleF - AngleR) * 180/PI  (Bottom 만 출력).
+// X/Y = 두 중심 midpoint offset (런타임 − 레퍼런스) × (EthernetPixelResolution/1000) mm. Col→X, Row→Y.
+// PatternMatchService.TryCreateModel / TryFindPose 를 모델당 1회씩 = 2회 호출. PatternMatchService 무수정.

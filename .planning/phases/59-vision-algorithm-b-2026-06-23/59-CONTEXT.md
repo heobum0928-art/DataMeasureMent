@@ -61,6 +61,21 @@ v1.3 Align 비전의 **알고리즘 계층**. Phase 58(config+카메라) 위에 
 
 </decisions>
 
+<revision>
+## REVISION 2026-06-24 — 2-pattern + angle_lx (사용자 설계 입력, D-03/04/05/07 supersede)
+
+**이유:** Bottom(및 Tray) 픽스처가 이형(완전 사각형 아님) → 단일 Shape Model 자체각(curAngle) 부정확. 사용자 제공 HDevelop(`59-REF-2pattern-anglelx.hdev.txt`) + 기존 Grabber Phase 55 ALIGN-02 와 동일 방식으로 정정. **Tray/Bottom 통합 알고리즘.**
+
+- **D-03':** 모드별 **Shape Model 2개**(좌상단 TL `_1.shm` + 우하단 BR `_2.shm`). PatternMatchService.TryCreateModel/TryFindPose 를 모델당 1회씩 **2회 호출**(PatternMatchService 무수정 유지). ROI 2개는 대각으로 잘 떨어지게(baseline 길수록 각도 정확).
+- **D-04':** ref json 에 **두 중심**(Ref1Row/Col, Ref2Row/Col) + **ref baseline 각** 저장. `.shm` 2개 + json 1개 per 모드.
+- **D-05':** **각도 = 두 중심 사이각(`angle_lx`) 차이, 모델 자체각 폐기.** `ThetaDeg = (angle_lx(found1,found2) − angle_lx(ref1,ref2)) × 180/π`. X/Y = **두 중심 midpoint** offset(런타임−레퍼런스) × (EthernetPixelResolution/1000) mm, Col→X/Row→Y. **Tray = X/Y만(HasTheta=false), Bottom = X/Y + Theta.**
+- **D-07':** API `bool TryTeach(HImage img, roi1(Row/Col/Phi/Len1/Len2), roi2(...), EEthernetVisionMode mode, out string error)` — **ROI 2개**. `Run`/`HasTemplate` 동일하나 2-모델/2-파일 기준.
+- `angle_lx` = `HOperatorSet.AngleLx(Row1,Col1,Row2,Col2, out HTuple angleRad)` — try-catch + HTuple dispose.
+
+**Phase 60 영향(미확정, 60 설계서 lock):** 2-패턴 angle_lx 가 각도를 정확히 산출 → 사용자 "Calibration 하나로만" = Phase 60 의 각도 캘(AV-06) 불필요, **피커센터 캘 하나만** 으로 해석(60 discuss 에서 확정).
+
+</revision>
+
 <canonical_refs>
 ## Canonical References
 

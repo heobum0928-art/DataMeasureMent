@@ -31,11 +31,14 @@ namespace ReringProject.Network {
         public const string SENTINEL_Z_INDEX_STR = "-1";     // z_index 미수신 sentinel
         public const string TEST_NULL_PLACEHOLDER = "null";  // 예약 'null' 문자열
         private const int TEST_FIELD_SITE = 0;               // 필드 인덱스: site
-        private const int TEST_FIELD_MATERIAL = 1;           // 필드 인덱스: 자재번호
-        private const int TEST_FIELD_ZINDEX = 3;             // 필드 인덱스: z_index (v1.0 4번째)
+        //260624 hbk Phase 63 PROTO-Type: Type 필드 삽입 → 자재번호/z_index 인덱스 +1 시프트 (V1 한정).
+        private const int TEST_FIELD_TYPE = 1;               //260624 hbk Phase 63 필드 인덱스: Type (TOP/BOTTOM/SIDE_1~4)
+        private const int TEST_FIELD_MATERIAL = 2;           //260624 hbk Phase 63 필드 인덱스: 자재번호 (1→2 시프트)
+        private const int TEST_FIELD_ZINDEX = 4;             //260624 hbk Phase 63 필드 인덱스: z_index (3→4 시프트)
         private const int TEST_MIN_FIELD_SITE = 1;           // site 만 있으면 파싱 시작
-        private const int TEST_MIN_FIELD_MATERIAL = 2;       // 자재번호 필드 존재 최소 길이
-        private const int TEST_MIN_FIELD_ZINDEX = 4;         // z_index 필드 존재 최소 길이
+        private const int TEST_MIN_FIELD_TYPE = 2;           //260624 hbk Phase 63 Type 필드 존재 최소 길이
+        private const int TEST_MIN_FIELD_MATERIAL = 3;       //260624 hbk Phase 63 자재번호 필드 존재 최소 길이 (2→3 시프트)
+        private const int TEST_MIN_FIELD_ZINDEX = 5;         //260624 hbk Phase 63 z_index 필드 존재 최소 길이 (4→5 시프트)
 
         public VisionRequestType RequestType { get; }
 
@@ -328,9 +331,21 @@ namespace ReringProject.Network {
             if (!bSiteValid) { return false; }
             testPacket.Site = nSiteNum;
 
+            testPacket.Type = ParseTypeField(dataList);   //260624 hbk Phase 63 PROTO-Type
             testPacket.IndexNumber = ParseMaterialField(dataList);
             testPacket.TestID = ParseZIndexField(dataList);
             return true;
+        }
+
+        //260624 hbk Phase 63 PROTO-Type: Type 필드 파싱. 누락/'null'/빈값 → "" 폴백.
+        private static string ParseTypeField(string[] dataList)
+        {
+            bool bHasType = dataList.Length >= TEST_MIN_FIELD_TYPE;
+            if (!bHasType) { return ""; }
+            string szRaw = dataList[TEST_FIELD_TYPE];
+            bool bIsNullPlaceholder = string.IsNullOrEmpty(szRaw) || szRaw == TEST_NULL_PLACEHOLDER;
+            if (bIsNullPlaceholder) { return ""; }
+            return szRaw;
         }
 
         //260622 hbk Phase 48
@@ -439,6 +454,9 @@ namespace ReringProject.Network {
         // PROTO-01: 자재번호 (v1.0 $TEST 두 번째 필드). 미수신/null/파싱실패 → SENTINEL_NO_MATERIAL(-1).
         // 자재번호 전파 체인의 출발점 — Wave 2 Plan 04 가 소비.
         public int IndexNumber { get; set; } = SENTINEL_NO_MATERIAL;
+
+        //260624 hbk Phase 63 PROTO-Type: 검사 대상 토큰 (TOP/BOTTOM/SIDE_1~4). 미수신/null/빈값 → "" (INI/미수신 안전).
+        public string Type { get; set; } = "";
 
         public TestPacket() : base(VisionRequestType.Test) {
         }

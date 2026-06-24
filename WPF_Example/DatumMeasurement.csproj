@@ -236,6 +236,8 @@
     <Compile Include="Custom\Sequence\Inspection\DatumConfig.cs" />
     <Compile Include="Custom\Sequence\Inspection\EAngleValidationStatus.cs" />
     <Compile Include="Custom\Sequence\Inspection\EDatumAlgorithm.cs" />
+    <Compile Include="Custom\EthernetVision\AlignRefPose.cs" />
+    <Compile Include="Custom\EthernetVision\AlignResult.cs" />
     <Compile Include="Custom\EthernetVision\EEthernetVisionMode.cs" />
     <Compile Include="Custom\EthernetVision\EthernetAlignCamera.cs" />
     <Compile Include="Custom\EthernetVision\EthernetVisionHandler.cs" />

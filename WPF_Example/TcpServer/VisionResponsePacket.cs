@@ -436,6 +436,7 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화. $RESULT:site;P|F|B;count;id=val=judge,...@ (STX/ETX 는 TcpServer 부착).
         // FAICount=0(Datum 샷)이면 BuildFaiItemsV1 가 빈 문자열 반환 → 'RESULT:{site};B;0;' (마지막 ';' 뒤 항목 없음).
+        //260624 hbk Phase 63 PROTO-Type: site 뒤 ;Type; echo 삽입 → $RESULT:site;Type;P|F|B;count;id=val=judge,...@ (Type 빈값이면 ;; 자리 보존).
         private static string BuildResultMessageV1(TestResultPacket testPacket)
         {
             string szMsg = "";
@@ -443,6 +444,8 @@ namespace ReringProject.Network {
             szMsg += VisionServer.MSG_CMD_SEPERATOR;      // ':'
             szMsg += testPacket.Site.ToString();
             szMsg += MSG_RESULT_HEADER_SEP;               // ';'
+            szMsg += testPacket.Type;                     //260624 hbk Phase 63 Type echo (빈값이면 빈 토큰)
+            szMsg += MSG_RESULT_HEADER_SEP;               // ';'  //260624 hbk Phase 63
             szMsg += MapCycleJudgement(testPacket);       // P|F|B
             szMsg += MSG_RESULT_HEADER_SEP;               // ';'
             szMsg += testPacket.FAICount.ToString();      // count
@@ -639,6 +642,7 @@ namespace ReringProject.Network {
 
     public class TestResultPacket : VisionResponsePacket {
         public int InspectionType { get; set; }
+        public string Type { get; set; } = "";   //260624 hbk Phase 63 PROTO-Type: 검사 대상 echo (TOP/BOTTOM/SIDE_1~4)
         public EVisionResultType Result { get; set; }
         public double Angle { get; set; }
         public double X { get; set; }

@@ -44,6 +44,11 @@ namespace ReringProject {
         // 전체 이미지 검색용 — ROI 중심(0,0) + 거대 len → TryFindPose 내부 클램프로 전 영역 커버
         private const double FULL_SEARCH_LEN = 99999.0;
 
+        //260624 hbk Phase 60 — D-05: 피커센터 미캘 판정 임계 (|row|,|col| 모두 이 값 이하면 미캘).
+        private const double PICKER_CENTER_ZERO_EPS = 1e-6;
+        //260624 hbk Phase 60 — D-05: 회전중심 보정 부호/회전방향 (피커 컨트롤러 규약 — UAT 확정 전 기본 +1).
+        private const double PICKER_ROTATION_SIGN = 1.0;
+
         private readonly PatternMatchService _matcher;
 
         public AlignShapeMatchService() {
@@ -397,15 +402,21 @@ namespace ReringProject {
                 bool bBottom = (mode == EEthernetVisionMode.Bottom);
 
                 AlignResult result = new AlignResult();
-                result.Found     = true;
-                result.Score     = Math.Min(f1Score, f2Score);   // 두 스코어 중 낮은 값 = 보수적 지표
-                result.OffsetXmm = dCol * resMm;    // Col → X (UAT 에서 부호 확정)
-                result.OffsetYmm = dRow * resMm;    // Row → Y
+                result.Found = true;
+                result.Score = Math.Min(f1Score, f2Score);   // 두 스코어 중 낮은 값 = 보수적 지표
+
                 if (bBottom) {
+                    //260624 hbk Phase 60 — D-05: Bottom 은 피커센터 기준 강체보정 적용(미캘 시 폴백).
+                    double corrRow, corrCol;
+                    ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, out corrRow, out corrCol);
+                    result.OffsetXmm = corrCol * resMm;   // Col → X (UAT 에서 부호 확정)
+                    result.OffsetYmm = corrRow * resMm;   // Row → Y
                     result.ThetaDeg = thetaDeg;
                     result.HasTheta = true;
                 }
                 else {
+                    result.OffsetXmm = dCol * resMm;   // Tray = 미보정 midpoint offset (Phase 59 동작)
+                    result.OffsetYmm = dRow * resMm;
                     result.ThetaDeg = 0.0;
                     result.HasTheta = false;
                 }
@@ -420,6 +431,63 @@ namespace ReringProject {
                 AlignResult err = new AlignResult();
                 err.Found = false;
                 return err;
+            }
+        }
+
+        //260624 hbk Phase 60 — D-05: AV-05 피커센터 기준 강체보정.
+        // 부품은 피커센터를 중심으로 dθ 회전하므로, midpoint offset(dRow,dCol) 을 피커센터 기준
+        // HomMat2dRotate(dθ, pickerRow, pickerCol) 로 재표현하여 보정 row/col 을 산출.
+        // 피커센터 미캘(0,0) 시 → 입력 offset 그대로 반환(폴백 = Phase 59 동작, 회귀 0).
+        // 부호/회전중심 규약은 피커 컨트롤러 기준 — UAT/통합 확정 (PICKER_ROTATION_SIGN 파라미터화).
+        // TODO(Phase 61 UAT): PICKER_ROTATION_SIGN 및 회전 적용점 실 피커 기준 확정.
+        // 실패 시 입력값 그대로 반환(throw 금지, D-06).
+        private void ApplyPickerCenterCorrection(
+            double dRow, double dCol, double thetaDeg,
+            out double corrRow, out double corrCol)
+        {
+            corrRow = dRow;
+            corrCol = dCol;
+
+            double pickerRow = SystemSetting.Handle.PickerCenterRow;
+            double pickerCol = SystemSetting.Handle.PickerCenterCol;
+            bool bUncalibrated = (Math.Abs(pickerRow) <= PICKER_CENTER_ZERO_EPS)
+                              && (Math.Abs(pickerCol) <= PICKER_CENTER_ZERO_EPS);
+            if (bUncalibrated) {
+                return;   // 폴백: 피커센터 미캘 → midpoint offset 그대로 (Phase 59 동작 유지)
+            }
+
+            HTuple homMat = null;
+            HTuple rotMat = null;
+            HTuple pointRow = null;
+            HTuple pointCol = null;
+            HTuple outRow = null;
+            HTuple outCol = null;
+            try {
+                double thetaRad = PICKER_ROTATION_SIGN * thetaDeg * Math.PI / 180.0;
+                // 피커센터를 회전중심으로 하는 강체 회전 행렬
+                HOperatorSet.HomMat2dIdentity(out homMat);
+                HOperatorSet.HomMat2dRotate(homMat, thetaRad, pickerRow, pickerCol, out rotMat);
+                // 피커센터 + 현 offset 위치를 회전 변환 후, 피커센터 기준 잔여 offset 산출.
+                pointRow = new HTuple(pickerRow + dRow);
+                pointCol = new HTuple(pickerCol + dCol);
+                HOperatorSet.AffineTransPoint2d(rotMat, pointRow, pointCol, out outRow, out outCol);
+                corrRow = outRow[0].D - pickerRow;
+                corrCol = outCol[0].D - pickerCol;
+            }
+            catch (Exception ex) {
+                // 실패 시 폴백 — 입력 offset 그대로
+                corrRow = dRow;
+                corrCol = dCol;
+                Logging.PrintLog((int)ELogType.Error,
+                    "[ALIGN_SVC] ApplyPickerCenterCorrection exception (fallback): {0}", ex.Message);
+            }
+            finally {
+                if (homMat != null) { try { homMat.Dispose(); } catch { } }
+                if (rotMat != null) { try { rotMat.Dispose(); } catch { } }
+                if (pointRow != null) { try { pointRow.Dispose(); } catch { } }
+                if (pointCol != null) { try { pointCol.Dispose(); } catch { } }
+                if (outRow != null) { try { outRow.Dispose(); } catch { } }
+                if (outCol != null) { try { outCol.Dispose(); } catch { } }
             }
         }
     }

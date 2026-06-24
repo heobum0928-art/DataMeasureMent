@@ -90,6 +90,11 @@ namespace ReringProject {
                     error = "지그 원 피팅 실패 (에지/원 없음)";
                     return false;
                 }
+                // WR-02 fix //260624 hbk: 복수 원 검출 시 가시성 경고 — [0] 을 계속 사용.
+                if (fitRow.Length > 1) {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[PICKER_CAL] TryAddStep: 복수 원 검출({0}) — [0] 사용", fitRow.Length);
+                }
 
                 double jigRow = fitRow[0].D;
                 double jigCol = fitCol[0].D;
@@ -165,14 +170,16 @@ namespace ReringProject {
                     return false;
                 }
 
-                row = fittedRow;
-                col = fittedCol;
-                radius = fittedRad;
-
                 // D-04: 피커센터 저장 (머신 단위 HW 캘 → SystemSetting [ETHERNET_VISION])
+                // WR-01 fix //260624 hbk: Save() 성공 후에만 out 파라미터 할당.
+                // Save() 예외 시 catch 가 false 반환 — out 은 안전 기본값(0) 유지.
                 SystemSetting.Handle.PickerCenterRow = fittedRow;
                 SystemSetting.Handle.PickerCenterCol = fittedCol;
                 SystemSetting.Handle.Save();
+
+                row = fittedRow;
+                col = fittedCol;
+                radius = fittedRad;
 
                 Logging.PrintLog((int)ELogType.Camera,
                     "[PICKER_CAL] computed: center=({0:F2},{1:F2}) r={2:F2} from {3} steps",

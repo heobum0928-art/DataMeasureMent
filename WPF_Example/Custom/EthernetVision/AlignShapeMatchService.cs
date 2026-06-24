@@ -44,8 +44,8 @@ namespace ReringProject {
         // 전체 이미지 검색용 — ROI 중심(0,0) + 거대 len → TryFindPose 내부 클램프로 전 영역 커버
         private const double FULL_SEARCH_LEN = 99999.0;
 
-        //260624 hbk Phase 60 — D-05: 피커센터 미캘 판정 임계 (|row|,|col| 모두 이 값 이하면 미캘).
-        private const double PICKER_CENTER_ZERO_EPS = 1e-6;
+        // WR-03 fix //260624 hbk: 미캘 판정 임계 = SystemSetting.PICKER_CENTER_ZERO_EPS 단일 소스 참조.
+        // AlignShapeMatchService 내 독립 선언 제거 → SystemSetting public const 사용으로 통일.
         //260624 hbk Phase 60 — D-05: 회전중심 보정 부호/회전방향 (피커 컨트롤러 규약 — UAT 확정 전 기본 +1).
         private const double PICKER_ROTATION_SIGN = 1.0;
 
@@ -450,8 +450,8 @@ namespace ReringProject {
 
             double pickerRow = SystemSetting.Handle.PickerCenterRow;
             double pickerCol = SystemSetting.Handle.PickerCenterCol;
-            bool bUncalibrated = (Math.Abs(pickerRow) <= PICKER_CENTER_ZERO_EPS)
-                              && (Math.Abs(pickerCol) <= PICKER_CENTER_ZERO_EPS);
+            bool bUncalibrated = (Math.Abs(pickerRow) <= SystemSetting.PICKER_CENTER_ZERO_EPS)
+                              && (Math.Abs(pickerCol) <= SystemSetting.PICKER_CENTER_ZERO_EPS);
             if (bUncalibrated) {
                 return;   // 폴백: 피커센터 미캘 → midpoint offset 그대로 (Phase 59 동작 유지)
             }

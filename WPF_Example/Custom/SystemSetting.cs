@@ -32,6 +32,9 @@ namespace ReringProject.Setting {
         // AfterLoad() = Load() 완료 직후 호출되는 partial 메서드 구현부.
         private const int PC_ROLE_DEFAULT = 1; //260622 hbk Phase 48
         private const double ETHERNET_PIXEL_RESOLUTION_DEFAULT = 8.652; //260623 hbk Phase 58
+        // WR-03 fix //260624 hbk: 피커센터 미캘 판정 임계 — AlignShapeMatchService.PICKER_CENTER_ZERO_EPS 와 동일.
+        // 두 판정 기준을 단일 소스로 통일. AlignShapeMatchService 는 이 public const 를 참조.
+        public const double PICKER_CENTER_ZERO_EPS = 1e-6; //260624 hbk Phase 60
 
         partial void AfterLoad()
         {
@@ -64,15 +67,16 @@ namespace ReringProject.Setting {
         }
 
         //260624 hbk Phase 60 — D-04: 피커센터 기본값 0 = 미캘 상태(정상값). reflection Load 가
-        // 누락 키를 0 으로 로드하는 것이 곧 올바른 미캘 의미이므로 복원 불필요 — 의도 명시용 no-op 가드.
+        // 누락 키를 0 으로 로드하는 것이 곧 올바른 미캘 의미이므로 복원 불필요.
+        // WR-03 fix //260624 hbk: == 0.0 → PICKER_CENTER_ZERO_EPS 임계 비교로 통일
+        //   (AlignShapeMatchService 와 동일 기준 — INI 라운드트립 부동소수 오차 허용).
+        // IN-02 fix //260624 hbk: 빈 if 블록 제거 — 복원 불필요 이유를 메서드 주석으로 명시.
+        // PickerCenterRow/Col 기본값 0 = 미캘 상태(정상 초기값).
         // 향후 비-0 머신 기본값 도입 시 이 메서드에서 복원 로직 추가.
         private void RestorePickerCenterDefault()
         {
-            bool bPickerCenterUncalibrated = (PickerCenterRow == 0.0) && (PickerCenterCol == 0.0);
-            if (bPickerCenterUncalibrated)
-            {
-                // 미캘 상태 유지 — 별도 복원 없음 (0,0 = 정상 초기값)
-            }
+            // 미캘 판정: |row|, |col| 모두 PICKER_CENTER_ZERO_EPS 이하 → 복원 불필요.
+            // (0,0 이 올바른 미캘 초기값이므로 별도 복원 없음.)
         }
 
         //260623 hbk Phase 58 — AV-01: [ETHERNET_VISION] INI section

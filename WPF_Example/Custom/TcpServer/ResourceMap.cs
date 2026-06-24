@@ -198,7 +198,12 @@ namespace ReringProject.Network {
                     bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
                     if (bUseV1)
                     {
-                        ESite eSlot = ResolveSiteSlot(testPacket.Site);
+                        ESite eSlot;                                                                       //260624 hbk Phase 63
+                        bool bTypeResolved = TryResolveSlotByType(testPacket.Type, out eSlot);             //260624 hbk Phase 63
+                        if (!bTypeResolved)                                                                //260624 hbk Phase 63
+                        {
+                            eSlot = ResolveSiteSlot(testPacket.Site);                                     //260624 hbk Phase 63 폴백
+                        }
                         testPacket.Identifier  = Find(EResource.Sequence, eSlot);
                         // v1.0 은 항상 Inspection action 매핑 (TestType 명시 필드 없음 — D-01 SUMMARY 기록).
                         testPacket.Identifier2 = Find(EResource.Action, eSlot, ETestType.Inspection);

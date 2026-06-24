@@ -101,8 +101,10 @@
 **: 이더넷 카메라(Hikvision MV-CH250-90GM, MvCamCtrl.Net)를 독립 클래스로 연결/grab/live/stop 하며, 미연결(SIMUL)이면 D:\align_test.bmp 로드로 대체하고 실패해도 Grabber 검사는 정상 동작한다
 
 ### Vision Algorithm (Phase 59 / B)
-- [ ] **AV-03**: 사용자가 ROI 를 지정해 Shape Model 을 티칭하고 .shm 로 저장/로드하며, find_shape_model 로 매칭 위치(Row/Col/Angle/Score)를 산출한다
-- [ ] **AV-04**: Tray 모드는 X/Y Offset, Bottom 모드는 X/Y Offset + Theta 를 산출한다 (각 모드 별도 템플릿)
+- [x] **AV-03
+**: 사용자가 ROI 를 지정해 Shape Model 을 티칭하고 .shm 로 저장/로드하며, find_shape_model 로 매칭 위치(Row/Col/Angle/Score)를 산출한다
+- [x] **AV-04
+**: Tray 모드는 X/Y Offset, Bottom 모드는 X/Y Offset + Theta 를 산출한다 (각 모드 별도 템플릿)
 
 ### Calibration — Bottom 전용 (Phase 60 / C)
 - [ ] **AV-05**: 피커가 지그를 픽업한 상태로 10°씩 36스텝 회전한 자재 중심 궤적으로 피커 편심원 중심(피커 실제 센터)을 최소자승으로 계산한다

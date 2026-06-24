@@ -570,7 +570,7 @@ namespace ReringProject.Network {
         }
 
         //260624 hbk Phase 63 AV-09: $ALIGN_CALIB:target;P|F 직렬화 (항목 없음 — 캘리브 ack).
-        private static string BuildAlignCalibMessage(AlignCalibPacket packet)
+        private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
             szMsg += CMD_SEND_ALIGN_CALIB;
@@ -629,9 +629,9 @@ namespace ReringProject.Network {
         }
 
         //260624 hbk Phase 63 AV-09
-        public AlignCalibPacket AsAlignCalib() {
+        public AlignCalibResultPacket AsAlignCalib() {
             if (ResponseType != EVisionResponseType.AlignCalib) return null;
-            return this as AlignCalibPacket;
+            return this as AlignCalibResultPacket;
         }
     }
 
@@ -826,11 +826,12 @@ namespace ReringProject.Network {
     }
 
     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 캘리브 ack 응답 패킷 (항목 없음).
-    public class AlignCalibPacket : VisionResponsePacket {
+    //260624 hbk Phase 63: AlignCalibResultPacket 으로 개명 — 수신측 AlignCalibPacket(VisionRequestPacket 파생)과 동명 충돌 회피
+    public class AlignCalibResultPacket : VisionResponsePacket {
         public string AlignTarget { get; set; } = "";
         public bool IsPass { get; set; } = true;
 
-        public AlignCalibPacket() : base(EVisionResponseType.AlignCalib) {
+        public AlignCalibResultPacket() : base(EVisionResponseType.AlignCalib) {
         }
     }
 

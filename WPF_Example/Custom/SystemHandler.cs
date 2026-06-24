@@ -57,6 +57,12 @@ namespace ReringProject {
                         }
                         break;
 
+                    case VisionRequestType.AlignTest:                                  //260624 hbk Phase 63 AV-09
+                        responsePacket = ProcessAlignTest(packet.AsAlignTest());
+                        break;
+                    case VisionRequestType.AlignCalib:                                 //260624 hbk Phase 63 AV-09
+                        responsePacket = ProcessAlignCalib(packet.AsAlignCalib());
+                        break;
                     case VisionRequestType.Unknown:
                         //occurs error
                         break;
@@ -255,6 +261,37 @@ namespace ReringProject {
             resultPacket.InspectionType = sendPacket.TestType;
             resultPacket.Result = EVisionResultType.NG;
 
+            return resultPacket;
+        }
+
+        //260624 hbk Phase 63 AV-09: $ALIGN_TEST 처리. [가정] Phase 62 Align 결과 모델 미확정 →
+        //  현재는 ack 응답 골격(AlignTarget echo + Pass). 실제 Align 측정 트리거/결과 채움은 Phase 62 연계 시 확장.
+        private AlignResultPacket ProcessAlignTest(AlignTestPacket packet)
+        {
+            AlignResultPacket resultPacket = new AlignResultPacket();
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return null;
+            }
+            resultPacket.Target = packet.Sender;
+            resultPacket.AlignTarget = packet.AlignTarget;
+            resultPacket.IsPass = true;   // [가정] 측정 연계 전까지 ack
+            return resultPacket;
+        }
+
+        //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리 — 캘리브 ack 응답.
+        private AlignCalibResultPacket ProcessAlignCalib(AlignCalibPacket packet)
+        {
+            AlignCalibResultPacket resultPacket = new AlignCalibResultPacket();
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return null;
+            }
+            resultPacket.Target = packet.Sender;
+            resultPacket.AlignTarget = packet.AlignTarget;
+            resultPacket.IsPass = true;
             return resultPacket;
         }
 

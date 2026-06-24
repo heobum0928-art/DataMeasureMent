@@ -590,9 +590,9 @@ Plans:
 4. 기존 Sequence/Action/SystemHandler 무수정
 
 **Plans**: 3 plans (3 waves)
-- [ ] 58-01-PLAN.md — [ETHERNET_VISION] config + EEthernetVisionMode enum + 8.652 default restore (AV-01)
-- [ ] 58-02-PLAN.md — EthernetAlignCamera wrapper (HikCamera composition; connect/grab/live/stop; fallback to align_test.bmp) (AV-02)
-- [ ] 58-03-PLAN.md — EthernetVisionHandler singleton + single try-catch SystemHandler init + build + anti-goal verify (AV-01/02)
+- [x] 58-01-PLAN.md — [ETHERNET_VISION] config + EEthernetVisionMode enum + 8.652 default restore (AV-01)
+- [x] 58-02-PLAN.md — EthernetAlignCamera wrapper (HikCamera composition; connect/grab/live/stop; fallback to align_test.bmp) (AV-02)
+- [x] 58-03-PLAN.md — EthernetVisionHandler singleton + single try-catch SystemHandler init + build + anti-goal verify (AV-01/02)
 
 ### Phase 59: Vision Algorithm (B) (신설 2026-06-23)
 **Goal**: Shape Matching(create/find/read/write_shape_model) 으로 ROI 티칭→.shm 저장, Tray=X/Y · Bottom=X/Y/Theta Offset 산출.

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: executing
-stopped_at: Completed 59-01-PLAN.md
-last_updated: "2026-06-24T00:32:27.118Z"
+stopped_at: Completed 59-02-PLAN.md
+last_updated: "2026-06-24T00:39:39.706Z"
 last_activity: 2026-06-24 -- Phase --phase execution started
 progress:
   total_phases: 15
@@ -185,6 +185,7 @@ Last activity: 2026-06-24 -- Phase --phase execution started
 | Phase 58-config-camera-a-2026-06-23 P02 | 5 | 2 tasks | 2 files |
 | Phase 58-config-camera-a-2026-06-23 P03 | 4 | 3 tasks | 4 files |
 | Phase 59-vision-algorithm-b-2026-06-23 P01 | 5 | 1 tasks | 3 files |
+| Phase 59-vision-algorithm-b-2026-06-23 P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -366,6 +367,9 @@ Recent decisions affecting current work:
 - EthernetVisionHandler placed in namespace ReringProject (top-level); Initialize() mode-gate returns immediately for None mode; Camera stays null in None mode; SystemHandler insertion after all Grabber Steps 1-8 (after [SYSTEM] Initialized log)
 - AlignResult (D-05) and AlignRefPose (D-04) placed in namespace ReringProject root (top-level) for zero-import access from Plan 02/03 EthernetVision layer
 - AlignRefPose.Engine bare { get; set; } — no field initializer; Plan 02 always sets it before Newtonsoft.Json serialize
+- AlignShapeMatchService composes PatternMatchService (_matcher field, D-01) — no reimplementation, no modification of PatternMatchService.cs
+- Full-image TryFindPose: roiRow/Col=0, len=99999, marginPx=0, downsample=1.0 — TryFindPose clamps to image bounds for whole-frame search
+- ThetaDeg = curAngleDeg - refAngleDeg (degrees minus degrees, no rad re-conversion — PatternMatchService already returns degrees)
 
 ### Quick Tasks Completed
 
@@ -494,8 +498,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-24T00:32:19.285Z
-Stopped at: Completed 59-01-PLAN.md
+Last session: 2026-06-24T00:39:39.694Z
+Stopped at: Completed 59-02-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

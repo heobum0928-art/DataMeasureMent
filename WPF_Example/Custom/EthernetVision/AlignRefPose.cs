@@ -1,20 +1,28 @@
-//260624 hbk Phase 59
+//260624 hbk Phase 59 revision — 2-pattern + angle_lx baseline
 namespace ReringProject {
 
     /// <summary>
-    /// D-04 레퍼런스 포즈 사이드카 JSON 스키마. 티칭 시 .shm 옆에 저장, Run() 에서 로드하여 offset = cur − ref 산출.
+    /// D-04' 레퍼런스 포즈 사이드카 JSON 스키마 (2-pattern 개정).
+    /// 티칭 시 .shm 옆에 저장, Run() 에서 로드하여 offset/theta 산출.
+    /// Ref1=TL 중심, Ref2=BR 중심, RefBaselineRad=angle_lx(Ref1,Ref2).
     /// 순수 POCO — Newtonsoft.Json (TypeNameHandling.None) 직렬화 대상.
     /// </summary>
     public class AlignRefPose {
 
-        /// <summary>티칭 이미지에서 find 한 레퍼런스 매칭 row.</summary>
-        public double RefRow { get; set; }
+        /// <summary>티칭 이미지에서 find 한 TL 모델 레퍼런스 row.</summary>
+        public double Ref1Row { get; set; }
 
-        /// <summary>티칭 이미지에서 find 한 레퍼런스 매칭 col.</summary>
-        public double RefCol { get; set; }
+        /// <summary>티칭 이미지에서 find 한 TL 모델 레퍼런스 col.</summary>
+        public double Ref1Col { get; set; }
 
-        /// <summary>레퍼런스 매칭 각도(deg). Bottom Theta 기준.</summary>
-        public double RefAngleDeg { get; set; }
+        /// <summary>티칭 이미지에서 find 한 BR 모델 레퍼런스 row.</summary>
+        public double Ref2Row { get; set; }
+
+        /// <summary>티칭 이미지에서 find 한 BR 모델 레퍼런스 col.</summary>
+        public double Ref2Col { get; set; }
+
+        /// <summary>티칭 시 두 중심 사이 angle_lx(rad). Bottom Theta 기준 baseline.</summary>
+        public double RefBaselineRad { get; set; }
 
         /// <summary>티칭 시 사용한 모드별 angle extent(deg). 진단/재현용 기록.</summary>
         public double AngleExtentDeg { get; set; }

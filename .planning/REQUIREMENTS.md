@@ -115,10 +115,12 @@
 - [ ] **AV-08**: Tray/BottomVisionView 에 툴바(Grab/Live/Stop)+티칭 패널+검사 결과 패널(+Bottom 캘 패널)을 제공하고 HalconViewer 를 공용한다
 
 ### TCP (Phase 62 / E)
-- [ ] **AV-09**: Align 결과를 기존 VisionServer/TcpServer 프레임워크로 전송한다 ($RESULT site=TRAY/BOTTOM, Tray=OffsetX/Y, Bottom=OffsetX/Y/Theta)
+- [x] **AV-09
+**: Align 결과를 기존 VisionServer/TcpServer 프레임워크로 전송한다 ($RESULT site=TRAY/BOTTOM, Tray=OffsetX/Y, Bottom=OffsetX/Y/Theta)
 
 ### 프로토콜 Type 필드 (Phase 63)
-- [ ] **PROTO-Type**: 디팜스테크 Vision Protocol v3.0 Type 필드 — 수신 `$TEST:site,Type,자재번호,null,z_index@`(Type=[1], site=PC독립번호) 파싱 + 송신 `$RESULT:site;Type;P|F|B;...@`(Type echo) + `$ALIGN_TEST/$ALIGN_CALIB` 수신/`$ALIGN_RESULT/$ALIGN_CALIB` 응답 빌더 통합. V1(UseProtocolV1=true) 한정, v2.6 회귀 0, 검사 시퀀스/Action/SequenceBase 무변경.
+- [x] **PROTO-Type
+**: 디팜스테크 Vision Protocol v3.0 Type 필드 — 수신 `$TEST:site,Type,자재번호,null,z_index@`(Type=[1], site=PC독립번호) 파싱 + 송신 `$RESULT:site;Type;P|F|B;...@`(Type echo) + `$ALIGN_TEST/$ALIGN_CALIB` 수신/`$ALIGN_RESULT/$ALIGN_CALIB` 응답 빌더 통합. V1(UseProtocolV1=true) 한정, v2.6 회귀 0, 검사 시퀀스/Action/SequenceBase 무변경.
 
 **제약 (전 phase 공통):** 기존 Grabber 검사 코드(Sequence/Action/SystemHandler) 절대 수정 금지(추가만) · 이더넷 카메라 실패해도 Grabber 정상 · EthernetVisionMode=None 이면 탭 숨김+기능 비활성 · 헝가리언 표기법 · C# 7.2 · Halcon try-catch · 함수 30줄 이하 · 매직넘버 const · SIMUL_MODE=D:\align_test.bmp. 참조: D:\Backup\파이널비전\WPF_Example_260604 (TabControl 구조 — 신규 설계 말고 기존 탭 패턴 확장).
 

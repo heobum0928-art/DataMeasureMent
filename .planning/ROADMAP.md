@@ -631,6 +631,15 @@ Plans:
 4. 상태 표시(대기/LIVE/검사중/미연결)
 **참조**: D:\Backup\파이널비전\WPF_Example_260604 탭 구조.
 
+**Plans:** 3 plans (2 waves) — planned 2026-06-24
+Plans:
+- [ ] 61-01-PLAN.md — TrayVisionView (툴바 Grab/Live/Stop + 2-ROI Teach→Matcher.TryTeach + Run→AlignResult X/Y + 상태, 공유 뷰어 AttachSharedViewer 계약, airspace-safe) (AV-08) [Wave 1]
+- [ ] 61-02-PLAN.md — BottomVisionView (Tray facade + Theta 표시 + 피커센터 캘 패널 PickerCal.Reset/TryAddStep/TryComputePickerCenter) (AV-08) [Wave 1]
+- [ ] 61-03-PLAN.md — MainWindow 3-탭 TabControl 래퍼(MainView x:Name 보존 재부모화) + 모드 Visibility 게이트 + 단일 공유 MainResultViewerControl attach + csproj 등록 + msbuild Debug/x64 + 안티골 git 증명 (AV-07/08) [Wave 2]
+
+Wave 1 (병렬): 61-01, 61-02 (파일 비충돌)
+Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
+
 ### Phase 62: TCP (E) (신설 2026-06-23)
 **Goal**: Align 결과를 기존 VisionServer/TcpServer 로 전송 ($RESULT site=TRAY/BOTTOM).
 **Requirements**: AV-09
@@ -675,6 +684,6 @@ Plans:
 | 58 | Config & Camera (A) | AV-01/02 | ✅ Complete (UAT 4/4 PASS) | 2026-06-24 | 3 plans, msbuild PASS, anti-goal OK |
 | 59 | Vision Algorithm (B) | AV-03/04 | Code complete (UAT pending) | — | 3 plans, msbuild PASS · UAT 5건 Phase 61 UI 후 |
 | 60 | Calibration Bottom (C) | AV-05 | Planned (3 plans) | — | AV-06 폐기(2-패턴 angle_lx 대체). 피커센터=Cal지그 원 fit_circle ×2 |
-| 61 | UI TabControl (D) | AV-07/08 | Not started | — | — |
+| 61 | UI TabControl (D) | AV-07/08 | Planned (3 plans, 2 waves) | — | TabControl 래퍼+Tray/Bottom 뷰+공유 뷰어, MainView 회귀0 anti-goal git proof |
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |

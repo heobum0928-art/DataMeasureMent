@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 60-02-PLAN.md
-last_updated: "2026-06-24T07:03:23.373Z"
+stopped_at: Completed 60-03-PLAN.md
+last_updated: "2026-06-24T08:30:00.000Z"
 last_activity: 2026-06-24
 progress:
   total_phases: 15
   completed_phases: 14
   total_plans: 49
-  completed_plans: 46
-  percent: 94
+  completed_plans: 47
+  percent: 96
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -23,7 +23,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 63 완료 — 다음 phase 대기
+**Current focus:** Phase 60-03 완료 — AV-05 PickerCenterCalibrationService + EthernetVisionHandler.PickerCal 빌드 완료
 
 ## Current Position
 

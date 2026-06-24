@@ -114,6 +114,7 @@ namespace ReringProject.Sequence {
                 Site = RequestPacket.Site,
                 InspectionType = RequestPacket.TestType,
                 IsDynamicFAI = true,
+                Type = RequestPacket.Type,   //260624 hbk Phase 63 PROTO-Type: 수신 Type echo
             };
 
             foreach (var shot in recipeManager.Shots) {
@@ -332,6 +333,7 @@ namespace ReringProject.Sequence {
                 Site = RequestPacket.Site,
                 InspectionType = RequestPacket.TestType,
                 IsDynamicFAI = true,
+                Type = RequestPacket.Type,   //260624 hbk Phase 63 PROTO-Type: 수신 Type echo
             };
             bool bUseV1 = SystemHandler.Handle.Setting.UseProtocolV1;
             bool bDatumFailed = m_bCycleDatumFailed;
@@ -415,6 +417,7 @@ namespace ReringProject.Sequence {
                 Site = RequestPacket.Site,
                 InspectionType = RequestPacket.TestType,
                 IsDynamicFAI = true,
+                Type = RequestPacket.Type,   //260624 hbk Phase 63 PROTO-Type: 수신 Type echo
             };
             int nMatchedShots = AggregateIndexFais(recipeManager, nZIndex, packet);
             WarnIfEmptyScope(packet, nMatchedShots, nZIndex);   // BLOCKER 1: ZIndex 매칭 0건 경고(조용한 빈 B 금지)

@@ -640,6 +640,17 @@ Plans:
 Wave 1 (병렬): 61-01, 61-02 (파일 비충돌)
 Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 
+### Phase 61.1: Align Offline 이미지 로더 + 결과 시각화 (신설 2026-06-25 — Phase 61 UAT 갭 보완)
+**Goal**: Phase 61 1차 실측(2026-06-25)에서 발견된 갭 보완 — (1) Offline 다중 이미지 로더, (2) Align 매칭 결과 시각화(검출 위치·보정 ROI·에지 + View on/off 토글). 신규 검사 로직 0 — UI/표시 + 서비스 결과 반환 확장만.
+**Requirements**: AV-08 (Phase 61 보완)
+**Success Criteria**:
+1. Tray/Bottom 뷰 툴바에 [폴더 열기] + [◀ 이전][다음 ▶] — 폴더 내 이미지 연속 로드/전환, 로드한 이미지를 티칭/Run/캘 입력으로 사용 (기존 Grab/폴백 동작 유지, 회귀 0)
+2. 매칭 결과 시각화: 검출 위치 + 보정(offset/theta) 이동 ROI + 검출 에지, View on/off 체크박스로 토글 (MainResultViewerControl 기존 오버레이 API 재사용)
+3. AlignShapeMatchService 검출 좌표·에지 반환 확장 (anti-goal 일부 해제, 기존 Run/AlignResult 계약 하위호환)
+4. msbuild Debug/x64 PASS, MainView/Grabber/검사 경로 회귀 0
+**Background**: Phase 61 UAT(2026-06-25) 갭 G-61.1-01(Grab 이미지 한 장 고정 → 다양한 케이스 검증 불가)/G-61.1-02(결과 이미지 미시각화). 피커캘 실측 36스텝은 실 HW 필요한 별개 항목.
+**참조 (재사용)**: MainResultViewerControl `SetMeasurementOverlayVisible/SetDatumOverlayVisible/SetPatternRoiOverlayVisible`(토글), `SetResultRoiOverlays`(보정 ROI 박스), `SetInspectionOverlays/UpdateDisplayState`(에지). align 뷰는 같은 공유 뷰어.
+
 ### Phase 62: TCP (E) (신설 2026-06-23)
 **Goal**: Align 결과를 기존 VisionServer/TcpServer 로 전송 ($RESULT site=TRAY/BOTTOM).
 **Requirements**: AV-09
@@ -684,6 +695,7 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 | 58 | Config & Camera (A) | AV-01/02 | ✅ Complete (UAT 4/4 PASS) | 2026-06-24 | 3 plans, msbuild PASS, anti-goal OK |
 | 59 | Vision Algorithm (B) | AV-03/04 | Code complete (UAT pending) | — | 3 plans, msbuild PASS · UAT 5건 Phase 61 UI 후 |
 | 60 | Calibration Bottom (C) | AV-05 | Planned (3 plans) | — | AV-06 폐기(2-패턴 angle_lx 대체). 피커센터=Cal지그 원 fit_circle ×2 |
-| 61 | UI TabControl (D) | AV-07/08 | Planned (3 plans, 2 waves) | — | TabControl 래퍼+Tray/Bottom 뷰+공유 뷰어, MainView 회귀0 anti-goal git proof |
+| 61 | UI TabControl (D) | AV-07/08 | ✅ Code complete (UAT 4 PASS / 1 partial) | 2026-06-25 | 3 plans, msbuild PASS, anti-goal OK. 실측 갭 2건 → 61.1 |
+| 61.1 | Align Offline 로더 + 결과 시각화 | AV-08(보완) | Discuss (신설 2026-06-25) | — | 폴더+이전/다음 이미지 로더 / 검출·보정ROI·에지 시각화 + on/off 토글 |
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |

@@ -87,22 +87,33 @@
                         <TextBlock x:Name="lbl_status" Text="대기" FontSize="13" Foreground="#334155"/>
                     </Border>
 
-                    <!--Row 2: 툴바 (Grab/Live/Stop)-->
-                    <GroupBox Grid.Row="2" Header="카메라" Margin="0,0,0,8">
-                        <WrapPanel Margin="8">
-                            <Button x:Name="btn_grab"
-                                    Content="Grab"
-                                    Style="{StaticResource BottomActionButtonStyle}"
-                                    Click="GrabButton_Click"/>
-                            <Button x:Name="btn_live"
-                                    Content="Live"
-                                    Style="{StaticResource BottomActionButtonStyle}"
-                                    Click="LiveButton_Click"/>
-                            <Button x:Name="btn_stop"
-                                    Content="Stop"
-                                    Style="{StaticResource BottomActionButtonStyle}"
-                                    Click="StopButton_Click"/>
-                        </WrapPanel>
+                    <!--Row 2: 툴바 (Grab/Live/Stop + 오프라인 이미지 로더)-->
+                    <GroupBox Grid.Row="2" Header="카메라 / 이미지 로더" Margin="0,0,0,8">
+                        <StackPanel Margin="8">
+                            <WrapPanel>
+                                <Button x:Name="btn_grab"
+                                        Content="Grab"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        Click="GrabButton_Click"/>
+                                <Button x:Name="btn_live"
+                                        Content="Live"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        Click="LiveButton_Click"/>
+                                <Button x:Name="btn_stop"
+                                        Content="Stop"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        Click="StopButton_Click"/>
+                                <!--260625 hbk Phase 61.1 오프라인 이미지 로더-->
+                                <Button x:Name="btn_openFolder" Content="폴더 열기"
+                                        Style="{StaticResource BottomActionButtonStyle}" Click="OpenFolderButton_Click"/>
+                                <Button x:Name="btn_prevImage" Content="◀ 이전"
+                                        Style="{StaticResource BottomActionButtonStyle}" Click="PrevImageButton_Click"/>
+                                <Button x:Name="btn_nextImage" Content="다음 ▶"
+                                        Style="{StaticResource BottomActionButtonStyle}" Click="NextImageButton_Click"/>
+                            </WrapPanel>
+                            <TextBlock x:Name="lbl_loaderStatus" Margin="8,0,0,4" FontSize="12"
+                                       Foreground="#475569" Text="로드된 이미지 없음" TextWrapping="Wrap"/>
+                        </StackPanel>
                     </GroupBox>
 
                     <!--Row 3: 티칭 패널 (ROI 2개 그리기 + 티칭 저장)-->

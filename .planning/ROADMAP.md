@@ -713,6 +713,14 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 
 **Background**: 2026-06-25 설계 결정. 컨트롤러 A: Ring CH1~CH6(조명1, 6분할 물리등록→RING 통합그룹) + AlignCoax CH7. 컨트롤러 B: Back + Bar×4 + Ring7. CoaxLight_* INI키 이름 보존→ALIGN_COAX 채널 연결. $LIGHT 코드 무변경(그냥 놔두기). 미래 HW 트리거 전환 대비 = $PREP 로직 재사용 가능. 배선 맵 최종 확정 시 채널 인덱스 조정 필요(광학부서 대기 중). 코딩 규칙=헝가리언+if/else(삼항 금지).
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 064-01-PLAN.md — LightHandler 8CH x2 컨트롤러 + LightGroup 5종 재등록
+- [ ] 064-02-PLAN.md — PrepPacket 파서 + PrepAckPacket 빌더 (TCP 레이어)
+- [ ] 064-03-PLAN.md — SystemHandler ProcessPrep() 분기 + InspectionSequence 라우팅
+- [ ] 064-04-PLAN.md — InspectionSequence ApplyShotLights() 구현 (ShotConfig LightGroup 연결)
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)

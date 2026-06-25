@@ -5,6 +5,7 @@ status: incomplete
 date: 2026-06-25
 commits:
   - a442b2b
+  - 90071e5
 ---
 
 # Quick 260625-lo5 — CTH datum 수직 기준선각 직교 수정
@@ -32,8 +33,19 @@ commits:
 
 소비처(EdgeToLineDistanceMeasurement)·표시부(HalconDisplayService)·타 datum 타입 무변경.
 
+## 수정 2 — measureX 부호 정규화 (90071e5)
+후속 발견: X축 부호가 **틸트 방향에 따라 뒤집히는** 버그.
+`WPF_Example/Custom/Sequence/Inspection/Measurements/EdgeToLineDistanceMeasurement.cs:160~`
+- 근본: measureX(useAngle2) 투영축은 datum 수직선(angleSrc=DatumAngle2Rad≈π/2). 여기에
+  `cosθ≥0` 정규화를 쓰면 cosθ=−sin(curAngle)이라 부호가 틸트 방향으로만 결정 → 틸트 방향이
+  바뀌면 sinT·cosT 동시 반전 → 법선 통째 반전 → 같은 점 X 부호 뒤집힘.
+- 수정: 정규화 축별 분리 — 수직축(useAngle2)은 `sinθ≥0`(sinθ2≈±1 안정), 수평축(measureY/폴백)은
+  기존 `cosθ≥0` 유지. 거리 크기 무영향, 부호만 안정화.
+- 실데이터(FAI_1) 증상: C1/C2 (P1/P2) MeasureAxis=X, 점은 모두 datum 수직선 좌측인데
+  LastMeasuredValue 전부 음수(−2.74/−2.36), nominal 양수(+2.75/+2.35) → 부호로 NG.
+
 ## 검증
-- ✅ MSBuild Debug/x64 빌드 PASS (기존 경고만, DatumMeasurement.exe 생성)
+- ✅ MSBuild Debug/x64 빌드 PASS (수정 1·2 모두, 기존 경고만, DatumMeasurement.exe 생성)
 - ⏳ **SIMUL 실측 UAT 사용자 수행 필요** (아래)
 
 ## 사용자 UAT 체크리스트 (실데이터)

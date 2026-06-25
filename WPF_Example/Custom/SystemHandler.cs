@@ -267,8 +267,8 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260624 hbk Phase 63 AV-09: $ALIGN_TEST 처리. [가정] Phase 62 Align 결과 모델 미확정 →
-        //  현재는 ack 응답 골격(AlignTarget echo + Pass). 실제 Align 측정 트리거/결과 채움은 Phase 62 연계 시 확장.
+        //260624 hbk Phase 63 AV-09: $ALIGN_TEST 처리.
+        //260625 hbk Phase 64 ALIGN-FACE: AlignFace 로그 추가. 알고리즘 면별 라우팅은 향후 phase에서 확장.
         private AlignResultPacket ProcessAlignTest(AlignTestPacket packet)
         {
             AlignResultPacket resultPacket = new AlignResultPacket();
@@ -280,6 +280,13 @@ namespace ReringProject {
             resultPacket.Target = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
             resultPacket.IsPass = true;   // [가정] 측정 연계 전까지 ack
+
+            bool bIsBottom = packet.AlignTarget == "BOTTOM";
+            if (bIsBottom)
+            {
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[ALIGN_TEST] Target=BOTTOM, Face={0} //260625 hbk Phase 64", packet.AlignFace);
+            }
             return resultPacket;
         }
 

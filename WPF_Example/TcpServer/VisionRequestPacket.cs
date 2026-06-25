@@ -407,23 +407,40 @@ namespace ReringProject.Network {
             return nZIndex.ToString();
         }
 
-        //260624 hbk Phase 63 PROTO-Type/AV-09: ALIGN_TEST 수신 파서. [가정] 페이로드 = target 토큰(TRAY/BOTTOM 등).
-        //  Phase 62(Align 결과 모델) 미확정 → 라우팅용 Target 만 추출, 상세 필드는 향후 확장.
+        //260625 hbk Phase 64 ALIGN-FACE: ALIGN_TEST 수신 파서.
+        //  dataList[0]=AlignTarget(TRAY/BOTTOM). BOTTOM일 때 dataList[1]=AlignFace(TOP/BOT).
+        //  TRAY는 AlignFace 없음(항상 Top면) — 필드 부족 시 빈 문자열 유지.
         private static bool TryParseAlignTestFields(string[] dataList, AlignTestPacket alignPacket)
         {
             bool bHasTarget = dataList != null && dataList.Length >= 1;
             if (!bHasTarget) { return false; }
             alignPacket.AlignTarget = dataList[0];
+
+            bool bIsBottom = alignPacket.AlignTarget == "BOTTOM";
+            if (bIsBottom)
+            {
+                bool bHasFace = dataList.Length >= 2;
+                if (!bHasFace) { return false; }
+                alignPacket.AlignFace = dataList[1]; //260625 hbk TOP or BOT
+            }
             return true;
         }
 
-        //260624 hbk Phase 63 PROTO-Type/AV-09: ALIGN_CALIB 수신 파서. [가정] 페이로드 = target 토큰(TRAY/BOTTOM 등).
-        //  Phase 62(Align 결과 모델) 미확정 → 라우팅용 Target 만 추출, 상세 필드는 향후 확장.
+        //260625 hbk Phase 64 ALIGN-FACE: ALIGN_CALIB 수신 파서.
+        //  dataList[0]=AlignTarget(TRAY/BOTTOM). BOTTOM일 때 dataList[1]=AlignFace(TOP/BOT).
         private static bool TryParseAlignCalibFields(string[] dataList, AlignCalibPacket alignPacket)
         {
             bool bHasTarget = dataList != null && dataList.Length >= 1;
             if (!bHasTarget) { return false; }
             alignPacket.AlignTarget = dataList[0];
+
+            bool bIsBottom = alignPacket.AlignTarget == "BOTTOM";
+            if (bIsBottom)
+            {
+                bool bHasFace = dataList.Length >= 2;
+                if (!bHasFace) { return false; }
+                alignPacket.AlignFace = dataList[1]; //260625 hbk TOP or BOT
+            }
             return true;
         }
 
@@ -549,17 +566,21 @@ namespace ReringProject.Network {
         }
     }
 
-    //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 패킷. AlignTarget = 라우팅 대상(TRAY/BOTTOM).
+    //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 패킷.
+    //260625 hbk Phase 64 ALIGN-FACE: AlignFace 추가 — BOTTOM 카메라 자재 면 구분(TOP/BOT). TRAY는 빈 문자열.
     public class AlignTestPacket : VisionRequestPacket {
-        public string AlignTarget { get; set; } = "";   //260624 hbk Phase 63 라우팅 대상(TRAY/BOTTOM)
+        public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(TRAY/BOTTOM)
+        public string AlignFace   { get; set; } = "";   //260625 hbk BOTTOM 전용: 자재 면(TOP/BOT). TRAY=비사용
 
         public AlignTestPacket() : base(VisionRequestType.AlignTest) {
         }
     }
 
-    //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 패킷. AlignTarget = 라우팅 대상(TRAY/BOTTOM).
+    //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 패킷.
+    //260625 hbk Phase 64 ALIGN-FACE: AlignFace 추가 — BOTTOM 카메라 자재 면 구분(TOP/BOT). TRAY는 빈 문자열.
     public class AlignCalibPacket : VisionRequestPacket {
-        public string AlignTarget { get; set; } = "";   //260624 hbk Phase 63 라우팅 대상(TRAY/BOTTOM)
+        public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(TRAY/BOTTOM)
+        public string AlignFace   { get; set; } = "";   //260625 hbk BOTTOM 전용: 자재 면(TOP/BOT). TRAY=비사용
 
         public AlignCalibPacket() : base(VisionRequestType.AlignCalib) {
         }

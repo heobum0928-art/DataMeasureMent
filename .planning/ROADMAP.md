@@ -716,10 +716,10 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 **Plans:** 4 plans
 
 Plans:
-- [ ] 064-01-PLAN.md — LightHandler 8CH x2 컨트롤러 + LightGroup 5종 재등록
-- [ ] 064-02-PLAN.md — PrepPacket 파서 + PrepAckPacket 빌더 (TCP 레이어)
-- [ ] 064-03-PLAN.md — SystemHandler ProcessPrep() 분기 + InspectionSequence 라우팅
-- [ ] 064-04-PLAN.md — InspectionSequence ApplyShotLights() 구현 (ShotConfig LightGroup 연결)
+- [x] 064-01-PLAN.md — LightHandler 8CH x2 컨트롤러 + LightGroup 5종 재등록 ✅ 2026-06-25 (cb81837)
+- [x] 064-02-PLAN.md — PrepPacket 파서 + PrepAckPacket 빌더 (TCP 레이어) ✅ 2026-06-25 (9511fd9)
+- [x] 064-03-PLAN.md — SystemHandler ProcessPrep() 분기 + InspectionSequence 라우팅 ✅ 2026-06-25 (a37b45b)
+- [x] 064-04-PLAN.md — InspectionSequence ApplyShotLights() 구현 (ShotConfig LightGroup 연결) ✅ 2026-06-25 (890339e)
 
 ---
 
@@ -734,4 +734,4 @@ Plans:
 | 61.1 | Align Offline 로더 + 결과 시각화 | AV-08(보완) | Discuss (신설 2026-06-25) | — | 폴더+이전/다음 이미지 로더 / 검출·보정ROI·에지 시각화 + on/off 토글 |
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |
-| 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | Discuss (신설 2026-06-25) | — | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결 |
+| 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | ✅ Code complete (UAT pending) | 2026-06-25 | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결, msbuild PASS |

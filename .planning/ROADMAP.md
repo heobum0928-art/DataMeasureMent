@@ -692,6 +692,27 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 
 **Background**: 본 세션(2026-06-24) 분석. 엑셀 스펙 v3_3 완성(Type 모델 + 검사/Align 다이어그램 셀 재작성). Phase 59/60(Custom/EthernetVision/)과 파일 무겹침 → 병렬 가능. bin/ gitignore 라 worktree 빌드 시 SDK/HALCON DLL 복사 필요(Phase 48 worktree 불가 전례). 코딩 규칙=헝가리언+if/else(삼항/??금지)+조건 bool 변수화+함수 30~40줄 (Phase 48/49 확정).
 
+### Phase 64: 조명 채널 확장 + z_index 기반 내부 조명 제어 (신설 2026-06-25)
+**Goal**: 기존 LightHandler를 8채널×2 컨트롤러 구조로 확장하고, `$PREP:site,z_index@` 신규 TCP 커맨드를 추가하여 핸들러가 검사 트리거 전 z_index를 미리 전달 → 비전 내부에서 ShotConfig 기반으로 조명을 자동 세팅하는 흐름을 구현한다.
+**Requirements**: LIGHT-01
+**Depends on:** Phase 48/49 (UseProtocolV1 플래그), Phase 63 (TCP 파서 구조)
+**Success Criteria**:
+1. `$PREP:1,2@` 수신 → z_index=2 ShotConfig 조회 → ApplyShotLights() 실행 → `$PREP_ACK:1,2,OK@` 응답
+2. z_index에 해당 Shot 없음 → `$PREP_ACK:1,2,FAIL@`
+3. RingLight_* → RING 그룹, BackLight_* → BACK 그룹, CoaxLight_* → ALIGN_COAX 그룹, SideLight_* → BAR 그룹 연결 정상 동작
+4. 기존 $LIGHT 커맨드 회귀 0 (코드 무변경)
+5. Debug/x64 msbuild PASS
+
+**만질 파일:**
+- WPF_Example/Device/LightController/LightHandler.cs (CHANNEL_LIMIT 4→8)
+- WPF_Example/Custom/Device/LightHandler.cs (Controller A 7채널 + Controller B 6채널 + LightGroup 5종 재등록)
+- WPF_Example/TcpServer/VisionRequestPacket.cs (PrepPacket 파서 추가)
+- WPF_Example/TcpServer/VisionResponsePacket.cs (PrepAckPacket 빌더 추가)
+- WPF_Example/Custom/SystemHandler.cs (ProcessPrep() 분기 추가)
+- WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs (ApplyShotLights 구현 + ProcessPrep 연결)
+
+**Background**: 2026-06-25 설계 결정. 컨트롤러 A: Ring CH1~CH6(조명1, 6분할 물리등록→RING 통합그룹) + AlignCoax CH7. 컨트롤러 B: Back + Bar×4 + Ring7. CoaxLight_* INI키 이름 보존→ALIGN_COAX 채널 연결. $LIGHT 코드 무변경(그냥 놔두기). 미래 HW 트리거 전환 대비 = $PREP 로직 재사용 가능. 배선 맵 최종 확정 시 채널 인덱스 조정 필요(광학부서 대기 중). 코딩 규칙=헝가리언+if/else(삼항 금지).
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)
@@ -705,3 +726,4 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 | 61.1 | Align Offline 로더 + 결과 시각화 | AV-08(보완) | Discuss (신설 2026-06-25) | — | 폴더+이전/다음 이미지 로더 / 검출·보정ROI·에지 시각화 + on/off 토글 |
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |
+| 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | Discuss (신설 2026-06-25) | — | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결 |

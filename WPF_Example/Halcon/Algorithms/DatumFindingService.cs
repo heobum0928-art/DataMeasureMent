@@ -337,11 +337,12 @@ namespace ReringProject.Halcon.Algorithms
 
                 // 현재 각도 = 수평 결합선 방향각 (Teach 와 동일 정의). dθ(보정 회전각) 산출에 선행.
                 double curAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);
-                //260619 hbk Phase 56 — CTH 수직 기준을 보정각 dθ 만큼 회전(틸트 반영). 기존 π/2(이미지수직) 고정 = "0°틸트 가정" 버그:
-                //  ROI 는 datumTransform 으로 회전 측정되는데 X 투영축·교점만 이미지프레임이라 틸트 시 X 측정오차 + datum 표시 미회전.
-                //  티칭 수직선("원중심 순수수직")이 부품 따라 dθ 회전 → 수직각 = π/2 + dθ, 교점 = 회전된 수직선 ∩ 수평선.
-                double dAngle = curAngle - config.RefAngleRad;        // 보정 회전각 dθ
-                double vertPhi = (Math.PI / 2.0) + dAngle;            // 회전된 수직 기준각 (티칭 순수수직 + dθ)
+                //260625 hbk — CTH 수직 기준각을 검출 수평선에 직교(curAngle+90°)로 정의. 기존 π/2+dθ 버그 수정:
+                //  부품이 티칭과 같은 틸트로 놓이면 dθ≈0 → vertPhi=π/2(이미지수직 고정) → X축 projection_pl 투영축이 안 기울어져
+                //  수선의 발이 center 와 같은 row 에 떨어짐 → X 측정이 순수 가로(열)거리로 붕괴(틸트 미보정, A7 ~0.12mm 오차).
+                //  수직선은 항상 검출 수평선(curAngle)에 직교해야 함 → vertPhi = curAngle + π/2 (부품 프레임 일치).
+                double dAngle = curAngle - config.RefAngleRad;        // 보정 회전각 dθ (line 372 HomMat2dRotate 에서 계속 사용)
+                double vertPhi = curAngle + (Math.PI / 2.0);          //260625 hbk 검출 수평선 직교 수직 기준각
                 double vDirR = Math.Sin(vertPhi), vDirC = Math.Cos(vertPhi);
 
                 // Step 5: 회전된 수직선(원중심 통과, vertPhi 방향) × 수평 결합선 → datum 교점
@@ -375,7 +376,7 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedOriginRow = curRow.D;
                 config.DetectedOriginCol = curCol.D;
                 config.DetectedRefAngle  = curAngle;
-                //260619 hbk Phase 56 — 2차(수직) 기준선 = 보정각 반영 (π/2 + dθ). X축 측정 투영·datum 표시 모두 부품 프레임 일치.
+                //260625 hbk — 2차(수직) 기준선 = 검출 수평선 직교각(curAngle+90°). X축 측정 projection_pl 투영축·datum 표시 모두 부품 프레임 일치.
                 config.DetectedRefAngle2 = vertPhi;
                 config.DetectedCircleRow = centerRow; // E2 CompoundAngle 주입용 원중심
                 config.DetectedCircleCol = centerCol;
@@ -389,12 +390,13 @@ namespace ReringProject.Halcon.Algorithms
                 config.CircleCenter_Row      = centerRow;
                 config.CircleCenter_Col      = centerCol;
                 config.CircleDetected_Radius = radius;
-                //  Line1Detected = 수직 가상선 (Teach 와 동일 패턴, 가시 길이 ±50px)
+                //260625 hbk Line1Detected = 수직 가상선. vertPhi(검출 수평선 직교) 방향으로 ±50px 외삽 → 표시 수직선이
+                //  실제 투영축과 동일하게 기울어짐(기존 col 고정=이미지수직 → 틸트 미반영 버그 동반 수정).
                 const double crossHalf = 50.0;
-                config.Line1Detected_RBegin = centerRow - crossHalf;
-                config.Line1Detected_CBegin = centerCol;
-                config.Line1Detected_REnd   = centerRow + crossHalf;
-                config.Line1Detected_CEnd   = centerCol;
+                config.Line1Detected_RBegin = centerRow - crossHalf * vDirR;
+                config.Line1Detected_CBegin = centerCol - crossHalf * vDirC;
+                config.Line1Detected_REnd   = centerRow + crossHalf * vDirR;
+                config.Line1Detected_CEnd   = centerCol + crossHalf * vDirC;
                 //  Line2Detected = 수평 결합 라인
                 config.Line2Detected_RBegin = hrB.D;
                 config.Line2Detected_CBegin = hcB.D;
@@ -1138,10 +1140,17 @@ namespace ReringProject.Halcon.Algorithms
                     return false;
                 }
 
-                // 수직 가상선 (centerRow ± 1.0, centerCol) × 수평 결합선 IntersectionLl
+                //260625 hbk 수직 가상선을 수평 결합선에 직교(teachHorizAngle+90°)하도록 정의. 기존 col 고정(이미지수직)은
+                //  Find 의 직교 수직선과 규약이 달라 teach pose 에서도 origin 이 어긋남(circle center 가 수평선에서 멀수록 큼) → ROI 정렬 회귀.
+                //  teach/find 동일 직교 규약으로 통일해 teach pose 에서 datumTransform≈identity 보장.
+                double teachHorizAngle = Math.Atan2(hrE.D - hrB.D, hcE.D - hcB.D);   //260625 hbk 수평 결합선 각도
+                double teachVertPhi    = teachHorizAngle + (Math.PI / 2.0);          //260625 hbk 직교 수직 기준각
+                double teachVDirR      = Math.Sin(teachVertPhi);
+                double teachVDirC      = Math.Cos(teachVertPhi);
+                // 수직 가상선 (원중심 통과, teachVertPhi 방향) × 수평 결합선 IntersectionLl
                 HTuple curRow, curCol, isOverlapping;
                 HOperatorSet.IntersectionLl(
-                    centerRow - 1.0, centerCol, centerRow + 1.0, centerCol,
+                    centerRow - teachVDirR, centerCol - teachVDirC, centerRow + teachVDirR, centerCol + teachVDirC,
                     hrB, hcB, hrE, hcE,
                     out curRow, out curCol, out isOverlapping);
 
@@ -1168,19 +1177,20 @@ namespace ReringProject.Halcon.Algorithms
 
                 // 검출 라인 오버레이 필드 재사용 (Line1Detected = 수직 가상선 2점, Line2Detected = 수평 결합선)
                 //  RenderDatumOverlay 의 LastTeachSucceeded 분기가 이 필드를 노랑/시안 선으로 렌더.
+                //260625 hbk Line1Detected 수직선도 teachVertPhi(직교) 방향으로 외삽 → 표시·Find 규약 일치 (기존 col 고정 제거)
                 const double crossHalf = 50.0;
-                config.Line1Detected_RBegin = centerRow - crossHalf;
-                config.Line1Detected_CBegin = centerCol;
-                config.Line1Detected_REnd   = centerRow + crossHalf;
-                config.Line1Detected_CEnd   = centerCol;
+                config.Line1Detected_RBegin = centerRow - crossHalf * teachVDirR;
+                config.Line1Detected_CBegin = centerCol - crossHalf * teachVDirC;
+                config.Line1Detected_REnd   = centerRow + crossHalf * teachVDirR;
+                config.Line1Detected_CEnd   = centerCol + crossHalf * teachVDirC;
                 config.Line2Detected_RBegin = hrB.D;
                 config.Line2Detected_CBegin = hcB.D;
                 config.Line2Detected_REnd   = hrE.D;
                 config.Line2Detected_CEnd   = hcE.D;
                 config.LastTeachSucceeded   = true;
 
-                // Req 5d 방향 정합성 검증 (CircleTwoHorizontal: 수직 가상선 phi = PI/2 고정)
-                double vertPhiCircle = Math.PI / 2.0; // 수직 가상선은 col=const 이므로 Atan2(1,0)=PI/2
+                //260625 hbk Req 5d 방향 정합성 검증 (직교 수직 기준각 teachVertPhi 사용 — 수평선과 항상 90° → 통과 보장)
+                double vertPhiCircle = teachVertPhi;
                 string angleError;
                 if (!ValidateHorizontalVerticalAngles(config.RefAngleRad, vertPhiCircle, out angleError))
                 {

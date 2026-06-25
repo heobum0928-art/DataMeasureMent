@@ -159,7 +159,19 @@ namespace ReringProject.Sequence
                 }
                 double sinT = System.Math.Sin(angleSrc);
                 double cosT = System.Math.Cos(angleSrc);
-                if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; } // Atan2 방향 무관 부호 일관성: datum x축 cosθ≥0 정규화
+                //260625 hbk 부호 정규화 축 분리 (각도 방향 따라 X 부호 뒤집히는 버그 수정):
+                //  measureX(useAngle2)는 datum 수직축(θ2≈π/2, cosθ≈0). 여기에 cosθ≥0 정규화를 쓰면 cosθ 부호가
+                //  틸트 방향(curAngle 부호)으로만 결정 → 틸트 방향 바뀔 때 sinT·cosT 동시 반전 → 법선(cosθ,-sinθ) 통째 반전
+                //  → 같은 위치 점의 X 부호가 틸트 방향 따라 뒤집힘. 수직축은 sinθ≥0(sinθ2≈±1 안정)으로 정규화해야 부호 안정.
+                //  measureY/measureX 폴백은 datum 수평축(θ≈0, cosθ≈±1)이라 기존 cosθ≥0 유지.
+                if (useAngle2) // 수직축: sinθ≥0 정규화 (틸트 방향 무관 법선 안정)
+                {
+                    if (sinT < 0.0) { sinT = -sinT; cosT = -cosT; }
+                }
+                else // 수평축: cosθ≥0 정규화 (기존)
+                {
+                    if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; }
+                }
                 double axisR1, axisC1, axisR2, axisC2; // projection_pl 대상 직선의 2점 (교점 ±200px, 길이는 직선 정의에 무관)
                 if (measureX) // datum 수직선(y축)
                 {

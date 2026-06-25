@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 61.1-04-PLAN.md
-last_updated: "2026-06-25T01:38:28.278Z"
+stopped_at: context exhaustion at 90% (2026-06-25)
+last_updated: "2026-06-25T03:27:27.292Z"
 last_activity: 2026-06-25
 progress:
   total_phases: 15
@@ -444,6 +444,7 @@ Recent decisions affecting current work:
 | 260623-jnn | 2026-06-23 | MainResultViewerControl.xaml.cs 매직넘버 const화 (QUAL-01 §5, 안전 LOW). Explore 스코프 분석 선행 — 파일이 이미 대부분 const화 상태라 안전 수확 적음. 명확·무위험 3개만: MinViewPartSize=20.0, PanMarginScale=0.75, PolygonMinVertices=3 (리터럴→const 1:1, 값·분기 불변). **의도 회피(위험): RenderNow(139줄)/HMouseDown·Move·Up(117~142줄) 함수분리, RenderEditHandles SetColor("yellow"), 공개 API/이벤트/Dispatcher/HALCON 직접호출. 보류: 다의적 0.5·1.0·(0,0)·line-width2·색상문자열.** msbuild Debug/x64 0 errors. | 2bf6e49 | 빌드 PASS · 동작 동치(정적 검증) |
 | 260623-jd6 | 2026-06-23 | HalconViewerControl.xaml.cs 매직넘버 const화 (QUAL-01 §5, 안전 LOW 범위) — 산재 매직넘버를 PascalCase private const 6종으로 추출: MinDraftRoiSize=20.0, DraftDefaultHalfSize=60.0, CornerHitThreshold=10.0, PanMarginScale=0.75, RoiClickTolerancePixels=3.0, MinViewPartSize=20.0. 기존 지역 const(halfSize/cornerHit) 클래스 승격. 다의적 1.0(9곳)·기존 minSize 5.0 은 의도적 보류(오분류 방지). 리터럴→const 1:1 치환만(값·분기 불변). 공개 API/HOperatorSet·HalconWindow 호출/이벤트핸들러/try-catch/상태플래그 전부 diff 미등장. 스코프 Explore 분석 선행(HIGH/MED/LOW 구분). msbuild Debug/x64 0 errors. | 70b6cc1 | 빌드 PASS · 동작 동치(정적 검증) |
 | 260623-itv | 2026-06-23 | Ini.cs 리팩토링 (QUAL-01) — IniValue 좌표 파서 3종(TryParseCircle/Line/Rect) 컨벤션 적용: 매직넘버(필드개수 3/4·인덱스 0~3) → private const 7개(CIRCLE/LINE/RECT_FIELD_COUNT, FIELD_X/Y/W/H), 지역변수 점진 헝가리언(strArray→szParts, 공유 value 중간변수 제거 → dX/dY/dW/dH 직접 out). 공개 API/operator/IDictionary 명시 구현/Save·Load 직렬화/예외 문자열/#if JS 블록 전부 불변(diff=파서 3종 내부+const+헤더 주석 1줄에만 국한, 기능 동치). msbuild Debug/x64 0 errors(신규 warning 0). | fc74fe1 | 빌드 PASS · 동작 동치(정적 검증) |
+| 260625-v30 | 2026-06-25 | 프로토콜 v3.0 반영 — $ALIGN_TEST [0]=target,[1]=MaterialNo,[2]=skip,BOTTOM→[3]=AlignFace / $ALIGN_RESULT 포맷(구분자';'→',',MaterialNo echo,OK|NG,Name=val) / $ALIGN_CALIB [0]=BOTTOM,[1]=CmdStr(AlignFace제거), ack=BOTTOM,CMD,OK(STEP→N 삽입) / $ALIVE 신설(AlivePacket/AliveResponsePacket). msbuild Debug/x64 0 errors. | 62d074c | 빌드 PASS |
 | 260619-cnm | 2026-06-19 | per-shot 측정 보정계수 CorrectionFactor — 비전측정↔현미경공칭 ~0.5% 캘리브 간극을 PixelResolution(1회 캘리브 후 고정) 불변으로 둔 채 별도 per-shot 보정계수로 흡수(mm = pixelDist × PixelResolution × CorrectionFactor). CameraSlaveParam.CorrectionFactor(기본 1.0, ParamBase INI 자동직렬화·키미존재 1.0 폴백) + GetEffectivePixelResolution() 메서드(미직렬화→PixelResolution 저장값 불변). Action_FAIMeasurement:265 단일주입을 GetEffectivePixelResolution() 로 전환(14종 측정 일괄) + 보정 ±2% 초과 가드레일 경고(정상 0.5%=0.995 미발동). EdgePairDistance:74 재도출 경로도 동일 메서드. 각도 2종 미영향. 회귀 0(기본 1.0). 에이전트 패널 3인 per-shot 합의(균일·등방→배율오차, 표본부족 per-FAI 과적합). msbuild Debug/x64 컴파일 0 errors(exe-copy만 앱잠금). **UAT 1차 FAIL(기본값인데 전 측정 0)→핫픽스 20c9b6f**: ParamBase.Load 누락키→ToDouble()=0 이 CorrectionFactor 초기값 1.0 클로버 → CameraSlaveParam.Load 키부재 시 1.0 복원 + GetEffectivePixelResolution ≤0 클램프. | d6c95a7, 20c9b6f | **UAT PASS (2026-06-19)** — 재빌드 후 기본값 측정 정상복귀(회귀0) + CorrectionFactor 0.995 적용 시 측정값 보정 확인. signed_off. |
 
 ### Pending Todos
@@ -537,8 +538,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-25T01:38:28.264Z
-Stopped at: Completed 61.1-04-PLAN.md
+Last session: 2026-06-25T03:27:27.280Z
+Stopped at: context exhaustion at 90% (2026-06-25)
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

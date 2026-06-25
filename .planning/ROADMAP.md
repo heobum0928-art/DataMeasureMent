@@ -721,6 +721,16 @@ Plans:
 - [x] 064-03-PLAN.md — SystemHandler ProcessPrep() 분기 + InspectionSequence 라우팅 ✅ 2026-06-25 (a37b45b)
 - [x] 064-04-PLAN.md — InspectionSequence ApplyShotLights() 구현 (ShotConfig LightGroup 연결) ✅ 2026-06-25 (890339e)
 
+### Phase 65: Bottom 4-지그 면별 Align (Side1~4) (신설 2026-06-25 — Phase 61.1 UAT 후 사용자 요구)
+**Goal**: Bottom 비전이 안착지그 4개(Side1=Top정방향 / Side2=Top 90도 / Side3=Bottom정방향 / Side4=Bottom 90도)에 자재를 ideal 안착시키기 위한 면별 align. 자재 4측면 검사 목적. 각 지그마다 **독립 모델+레퍼런스 티칭(4세트)**.
+**Requirements**: AV-08(연계), Phase 64 TCP 연계
+**Success Criteria**:
+1. AlignShapeMatchService Bottom 에 Side1~4 4슬롯 모델+레퍼런스(`Bottom_S1~S4_1/2.shm` + `.json`), TryTeach/Run/HasTemplate 에 site(Side1~4) 파라미터. Tray + 기존 Bottom 단일 경로 하위호환(회귀 0)
+2. BottomVisionView UI: Side1~4 선택 + **면별 이미지 따로 로드** + 각 슬롯 티칭/Run, 슬롯별 HasTemplate 표시
+3. Phase 64 TCP `$ALIGN_TEST` AlignFace(TOP/BOT 2값) → **Side1~4(4값) 확장** + SystemHandler 지그별 Run 라우팅(64가 미룬 "면별 라우팅")
+4. msbuild Debug/x64 PASS, 검사(MainView)/Tray 회귀 0
+**설계 확정(사용자 합의 2026-06-25)**: 모델 4개 **독립**(90도 회전은 angle_extent 한계로 같은 모델 매칭 불가 → 각 자세 독립 티칭이 정확/빠름). 레퍼런스 = 각 지그에 ideal 안착 후 Bottom 캡처. 통신 4값. Tray=항상 Top면(면 구분 없음).
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)
@@ -735,3 +745,4 @@ Plans:
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |
 | 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | ✅ Code complete (UAT pending) | 2026-06-25 | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결, msbuild PASS |
+| 65 | Bottom 4-지그 면별 Align (Side1~4) | AV-08연계 | Discuss (신설 2026-06-25) | — | 4 안착지그(Top정/90/Bottom정/90) 독립 모델+레퍼런스, UI 4슬롯, TCP 4값 확장 |

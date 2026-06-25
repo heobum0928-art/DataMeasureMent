@@ -13,6 +13,7 @@ namespace ReringProject.Network {
         Test,
         AlignTest,      //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 타입
         AlignCalib,     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 타입
+        Prep,           //260625 hbk Phase 64 LIGHT-01: $PREP 수신 타입
 
         Unknown = 999
     }
@@ -27,6 +28,7 @@ namespace ReringProject.Network {
         public const string CMD_RECV_TEST = "TEST";
         public const string CMD_RECV_ALIGN_TEST = "ALIGN_TEST";   //260624 hbk Phase 63 AV-09
         public const string CMD_RECV_ALIGN_CALIB = "ALIGN_CALIB"; //260624 hbk Phase 63 AV-09
+        public const string CMD_RECV_PREP = "PREP";               //260625 hbk Phase 64 LIGHT-01: $PREP 수신 커맨드
 
         //260622 hbk Phase 48
         // PROTO-01: v1.0 TEST 유연 파서 상수 ($TEST:site,MaterialNumber,null,z_index@).
@@ -313,6 +315,13 @@ namespace ReringProject.Network {
                     if (!bAlignCalibOk) { return null; }
 
                     break;
+                case CMD_RECV_PREP: //260625 hbk Phase 64 LIGHT-01
+                    packet = new PrepPacket();
+                    PrepPacket prepPacket = packet.AsPrep();
+                    dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
+                    bool bPrepOk = TryParsePrepFields(dataList, prepPacket);
+                    if (!bPrepOk) { return null; }
+                    break;
             }
 
             return packet;
@@ -418,6 +427,26 @@ namespace ReringProject.Network {
             return true;
         }
 
+        //260625 hbk Phase 64 LIGHT-01: $PREP 수신 파서. dataList[0]=site, dataList[1]=z_index.
+        //  필드 부족/비정수 → false 반환(null 응답). 헝가리언 + if-else + 30줄 이내.
+        private static bool TryParsePrepFields(string[] dataList, PrepPacket prepPacket)
+        {
+            bool bHasFields = dataList != null && dataList.Length >= 2;
+            if (!bHasFields) { return false; }
+
+            int nSite = 0;
+            bool bSiteOk = Int32.TryParse(dataList[0], out nSite);
+            if (!bSiteOk) { return false; }
+            prepPacket.Site = nSite;
+
+            int nZIndex = 0;
+            bool bZIndexOk = Int32.TryParse(dataList[1], out nZIndex);
+            if (!bZIndexOk) { return false; }
+            prepPacket.ZIndex = nZIndex;
+
+            return true;
+        }
+
         public RecipeChangePacket AsRecipeChange() {
             if (RequestType != VisionRequestType.RecipeChange) return null;
             RecipeChangePacket recipePacket = this as RecipeChangePacket;
@@ -458,6 +487,12 @@ namespace ReringProject.Network {
         public AlignCalibPacket AsAlignCalib() {
             if (RequestType != VisionRequestType.AlignCalib) return null;
             return this as AlignCalibPacket;
+        }
+
+        //260625 hbk Phase 64 LIGHT-01
+        public PrepPacket AsPrep() {
+            if (RequestType != VisionRequestType.Prep) return null;
+            return this as PrepPacket;
         }
 
     }
@@ -527,6 +562,14 @@ namespace ReringProject.Network {
         public string AlignTarget { get; set; } = "";   //260624 hbk Phase 63 라우팅 대상(TRAY/BOTTOM)
 
         public AlignCalibPacket() : base(VisionRequestType.AlignCalib) {
+        }
+    }
+
+    //260625 hbk Phase 64 LIGHT-01: $PREP 수신 패킷. ZIndex = 조명 세팅 대상 Shot z_index.
+    public class PrepPacket : VisionRequestPacket {
+        public int ZIndex { get; set; }
+
+        public PrepPacket() : base(VisionRequestType.Prep) {
         }
     }
 

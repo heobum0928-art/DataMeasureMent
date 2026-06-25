@@ -18,6 +18,7 @@ namespace ReringProject.Network {
 
         AlignResult,   //260624 hbk Phase 63 AV-09: Align 결과 응답 ($ALIGN_RESULT)
         AlignCalib,    //260624 hbk Phase 63 AV-09: Align 캘리브 ack 응답 ($ALIGN_CALIB)
+        PrepAck,       //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답
 
         Unknown = 999
     }
@@ -55,6 +56,7 @@ namespace ReringProject.Network {
         public const string CMD_SEND_GRAB_STATUS = "GRAB_STATUS";
         public const string CMD_SEND_ALIGN_RESULT = "ALIGN_RESULT";   //260624 hbk Phase 63 AV-09: Align 결과 송신 커맨드
         public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Phase 63 AV-09: Align 캘리브 ack 송신 커맨드
+        public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 송신 커맨드
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
@@ -438,6 +440,9 @@ namespace ReringProject.Network {
                 case EVisionResponseType.AlignCalib:
                     msg += BuildAlignCalibMessage(packet.AsAlignCalib());     //260624 hbk Phase 63
                     break;
+                case EVisionResponseType.PrepAck:
+                    msg += BuildPrepAckMessage(packet.AsPrepAck()); //260625 hbk Phase 64 LIGHT-01
+                    break;
                 case EVisionResponseType.Unknown:
                     return null;
             }
@@ -589,6 +594,29 @@ namespace ReringProject.Network {
             return szMsg;
         }
 
+        //260625 hbk Phase 64 LIGHT-01: $PREP_ACK:site,z_index,OK|FAIL@ 직렬화.
+        //  IsOk=true → OK, IsOk=false → FAIL. 헝가리언 + if-else + 30줄 이내.
+        private static string BuildPrepAckMessage(PrepAckPacket packet)
+        {
+            string szMsg = "";
+            szMsg += CMD_SEND_PREP_ACK;
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;       // ':'
+            szMsg += packet.Site.ToString();
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
+            szMsg += packet.ZIndex.ToString();
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
+            bool bIsOk = packet.IsOk;
+            if (bIsOk)
+            {
+                szMsg += "OK";
+            }
+            else
+            {
+                szMsg += "FAIL";
+            }
+            return szMsg;
+        }
+
         public void Dispose() {
         }
 
@@ -632,6 +660,12 @@ namespace ReringProject.Network {
         public AlignCalibResultPacket AsAlignCalib() {
             if (ResponseType != EVisionResponseType.AlignCalib) return null;
             return this as AlignCalibResultPacket;
+        }
+
+        //260625 hbk Phase 64 LIGHT-01
+        public PrepAckPacket AsPrepAck() {
+            if (ResponseType != EVisionResponseType.PrepAck) return null;
+            return this as PrepAckPacket;
         }
     }
 
@@ -832,6 +866,16 @@ namespace ReringProject.Network {
         public bool IsPass { get; set; } = true;
 
         public AlignCalibResultPacket() : base(EVisionResponseType.AlignCalib) {
+        }
+    }
+
+    //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답 패킷.
+    //  IsOk=true → $PREP_ACK:site,z_index,OK@ / IsOk=false → $PREP_ACK:site,z_index,FAIL@
+    public class PrepAckPacket : VisionResponsePacket {
+        public int ZIndex { get; set; }
+        public bool IsOk { get; set; }
+
+        public PrepAckPacket() : base(EVisionResponseType.PrepAck) {
         }
     }
 

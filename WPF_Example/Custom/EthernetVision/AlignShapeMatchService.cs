@@ -146,6 +146,8 @@ namespace ReringProject {
             double ref2Row, double ref2Col,
             double refBaselineRad,
             double angleExtentDeg,
+            double roi1Len1, double roi1Len2,
+            double roi2Len1, double roi2Len2,
             out string error) {
             error = null;
             try {
@@ -157,6 +159,10 @@ namespace ReringProject {
                 refPose.RefBaselineRad = refBaselineRad;
                 refPose.AngleExtentDeg = angleExtentDeg;
                 refPose.Engine         = ENGINE;
+                refPose.Roi1Len1 = roi1Len1;   //260625 hbk Phase 61.1 F2
+                refPose.Roi1Len2 = roi1Len2;
+                refPose.Roi2Len1 = roi2Len1;
+                refPose.Roi2Len2 = roi2Len2;
 
                 // IN-01 fix: 직렬화도 TypeNameHandling.None 명시 — 역직렬화 측 RCE 방지 설정과 대칭.
                 JsonSerializerSettings saveSettings = new JsonSerializerSettings();
@@ -304,7 +310,8 @@ namespace ReringProject {
 
                 // Step 6: 사이드카 JSON 저장 (두 중심 + baseline)
                 bool bSaved = TrySaveRefPose(jsonPath,
-                    r1Row, r1Col, r2Row, r2Col, refBaselineRad, angleExtentDeg, out error);
+                    r1Row, r1Col, r2Row, r2Col, refBaselineRad, angleExtentDeg,
+                    roi1Len1, roi1Len2, roi2Len1, roi2Len2, out error);   //260625 hbk Phase 61.1 F2
                 if (!bSaved) {
                     return false;
                 }
@@ -443,11 +450,11 @@ namespace ReringProject {
 
                     // (b) 보정 ROI 박스 산출 (검출 중심 + 고정 표시 크기 — 시각화 목적)
                     double[] box1;
-                    BuildDetectedRoiBox(f1Row, f1Col, f1AngleDeg, out box1);
+                    BuildDetectedRoiBox(f1Row, f1Col, f1AngleDeg, refPose.Roi1Len1, refPose.Roi1Len2, out box1);   //260625 hbk Phase 61.1 F2
                     result.DetectedRoiBoxes.Add(box1);
 
                     double[] box2;
-                    BuildDetectedRoiBox(f2Row, f2Col, f2AngleDeg, out box2);
+                    BuildDetectedRoiBox(f2Row, f2Col, f2AngleDeg, refPose.Roi2Len1, refPose.Roi2Len2, out box2);   //260625 hbk Phase 61.1 F2
                     result.DetectedRoiBoxes.Add(box2);
 
                     // (c) 검출 에지 contour 산출 — 두 패턴 .shm 각각 → result 에 누적
@@ -493,13 +500,22 @@ namespace ReringProject {
 
         //260625 hbk Phase 61.1 — 검출 위치 기반 표시용 ROI 박스 산출 (HALCON 호출 없음).
         // box = {row, col, phi_rad, len1, len2} — DispRectangle2/RenderResultRoiBoxes 규약.
-        // 박스 크기 = DETECTED_ROI_HALF_LEN 고정 (시각화 목적, .shm 실제 크기와 무관).
+        // F2 fix: 실제 티칭 ROI 크기(roiLen1=Col 반폭, roiLen2=Row 반폭) 반영. 0 이하면 DETECTED_ROI_HALF_LEN 폴백(구 레시피 하위호환).
         private void BuildDetectedRoiBox(
             double detRow, double detCol, double detAngleDeg,
+            double roiLen1, double roiLen2,
             out double[] box)
         {
             double phi = detAngleDeg * Math.PI / 180.0;
-            box = new double[] { detRow, detCol, phi, DETECTED_ROI_HALF_LEN, DETECTED_ROI_HALF_LEN };
+            double len1 = roiLen1;
+            double len2 = roiLen2;
+            if (len1 <= 0.0) {
+                len1 = DETECTED_ROI_HALF_LEN;
+            }
+            if (len2 <= 0.0) {
+                len2 = DETECTED_ROI_HALF_LEN;
+            }
+            box = new double[] { detRow, detCol, phi, len1, len2 };
         }
 
         //260625 hbk Phase 61.1 — .shm 파일에서 검출 pose 로 이동한 모델 contour 점을 추출.

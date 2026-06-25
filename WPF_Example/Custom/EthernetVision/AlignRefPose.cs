@@ -29,5 +29,15 @@ namespace ReringProject {
 
         /// <summary>모델 엔진명("Shape"). 진단/검증용.</summary>
         public string Engine { get; set; }
+
+        //260625 hbk Phase 61.1 F2 — 티칭 ROI 크기(반폭: Len1=Col 반폭, Len2=Row 반폭). 보정 ROI 박스 실제 크기 표시용. 구 레시피엔 0 → 60px 폴백.
+        /// <summary>TL(ROI1) Col 반폭.</summary>
+        public double Roi1Len1 { get; set; }
+        /// <summary>TL(ROI1) Row 반폭.</summary>
+        public double Roi1Len2 { get; set; }
+        /// <summary>BR(ROI2) Col 반폭.</summary>
+        public double Roi2Len1 { get; set; }
+        /// <summary>BR(ROI2) Row 반폭.</summary>
+        public double Roi2Len2 { get; set; }
     }
 }

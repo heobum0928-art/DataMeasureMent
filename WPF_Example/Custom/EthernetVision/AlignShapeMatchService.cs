@@ -1,6 +1,7 @@
 //260624 hbk Phase 59
 //260624 hbk Phase 59 revision — 2-pattern + angle_lx baseline (D-03'/04'/05'/07')
 using System;
+using System.Collections.Generic;
 using System.IO;
 using HalconDotNet;
 using Newtonsoft.Json;
@@ -43,6 +44,13 @@ namespace ReringProject {
 
         // 전체 이미지 검색용 — ROI 중심(0,0) + 거대 len → TryFindPose 내부 클램프로 전 영역 커버
         private const double FULL_SEARCH_LEN = 99999.0;
+
+        //260625 hbk Phase 61.1 — 시각화 상수
+        // 검출 위치 표시용 ROI 박스 반폭(px). DispRectangle2 len1/len2 에 사용. 표시 목적 고정 크기.
+        private const double DETECTED_ROI_HALF_LEN = 60.0;
+
+        // 에지 contour 최대 표시 점 수. 대용량 contour 메모리 폭주 차단(T-61.1-01 mitigation).
+        private const int EDGE_CONTOUR_MAX_POINTS = 400;
 
         // WR-03 fix //260624 hbk: 미캘 판정 임계 = SystemSetting.PICKER_CENTER_ZERO_EPS 단일 소스 참조.
         // AlignShapeMatchService 내 독립 선언 제거 → SystemSetting public const 사용으로 통일.
@@ -421,9 +429,58 @@ namespace ReringProject {
                     result.HasTheta = false;
                 }
 
+                //260625 hbk Phase 61.1 — 시각화 필드 채우기(검출 좌표/ROI박스/에지 contour).
+                // 실패해도 result.Found/Offset 등 기존 반환은 유지(D-05 무중단). try-catch 전체 포괄.
+                try {
+                    // (a) 검출 좌표 대입 (HALCON 호출 없음 — 이미 산출된 값 재사용)
+                    result.HasDetection = true;
+                    result.DetectedRow1     = f1Row;
+                    result.DetectedCol1     = f1Col;
+                    result.DetectedRow2     = f2Row;
+                    result.DetectedCol2     = f2Col;
+                    result.DetectedCenterRow = midFRow;
+                    result.DetectedCenterCol = midFCol;
+
+                    // (b) 보정 ROI 박스 산출 (검출 중심 + 고정 표시 크기 — 시각화 목적)
+                    double[] box1;
+                    BuildDetectedRoiBox(f1Row, f1Col, f1AngleDeg, out box1);
+                    result.DetectedRoiBoxes.Add(box1);
+
+                    double[] box2;
+                    BuildDetectedRoiBox(f2Row, f2Col, f2AngleDeg, out box2);
+                    result.DetectedRoiBoxes.Add(box2);
+
+                    // (c) 검출 에지 contour 산출 — 두 패턴 .shm 각각 → result 에 누적
+                    string contErr1;
+                    bool bCont1 = TryExtractDetectedContour(
+                        shmPath1, f1Row, f1Col, f1AngleDeg,
+                        result.EdgeContourRows, result.EdgeContourCols,
+                        out contErr1);
+                    if (!bCont1) {
+                        Logging.PrintLog((int)ELogType.Error,
+                            "[ALIGN_SVC] contour[1] 추출 실패 ({0}): {1}", mode, contErr1 ?? "");
+                    }
+
+                    string contErr2;
+                    bool bCont2 = TryExtractDetectedContour(
+                        shmPath2, f2Row, f2Col, f2AngleDeg,
+                        result.EdgeContourRows, result.EdgeContourCols,
+                        out contErr2);
+                    if (!bCont2) {
+                        Logging.PrintLog((int)ELogType.Error,
+                            "[ALIGN_SVC] contour[2] 추출 실패 ({0}): {1}", mode, contErr2 ?? "");
+                    }
+                }
+                catch (Exception exViz) {
+                    // 시각화 필드 산출 예외 — 기존 result 반환은 유지 (무중단)
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[ALIGN_SVC] 시각화 필드 산출 예외 ({0}): {1}", mode, exViz.Message);
+                }
+
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[ALIGN_SVC] run OK ({0}): off=({1:F4},{2:F4})mm theta={3:F3} score1={4:F3} score2={5:F3}",
-                    mode, result.OffsetXmm, result.OffsetYmm, result.ThetaDeg, f1Score, f2Score);
+                    "[ALIGN_SVC] run OK ({0}): off=({1:F4},{2:F4})mm theta={3:F3} score1={4:F3} score2={5:F3} contourPts={6}",
+                    mode, result.OffsetXmm, result.OffsetYmm, result.ThetaDeg, f1Score, f2Score,
+                    result.EdgeContourRows.Count);
                 return result;
             }
             catch (Exception ex) {
@@ -431,6 +488,86 @@ namespace ReringProject {
                 AlignResult err = new AlignResult();
                 err.Found = false;
                 return err;
+            }
+        }
+
+        //260625 hbk Phase 61.1 — 검출 위치 기반 표시용 ROI 박스 산출 (HALCON 호출 없음).
+        // box = {row, col, phi_rad, len1, len2} — DispRectangle2/RenderResultRoiBoxes 규약.
+        // 박스 크기 = DETECTED_ROI_HALF_LEN 고정 (시각화 목적, .shm 실제 크기와 무관).
+        private void BuildDetectedRoiBox(
+            double detRow, double detCol, double detAngleDeg,
+            out double[] box)
+        {
+            double phi = detAngleDeg * Math.PI / 180.0;
+            box = new double[] { detRow, detCol, phi, DETECTED_ROI_HALF_LEN, DETECTED_ROI_HALF_LEN };
+        }
+
+        //260625 hbk Phase 61.1 — .shm 파일에서 검출 pose 로 이동한 모델 contour 점을 추출.
+        // T-61.1-01: try-catch+finally Dispose 전체 보호 — 손상 .shm/HALCON 오류 시 throw 없음.
+        // 다운샘플: EDGE_CONTOUR_MAX_POINTS 초과 시 stride 간격으로 선별하여 메모리 폭주 차단.
+        // outRows/outCols: 호출자 리스트에 누적(Add). 실패 시 비우고 error 세팅 후 return false.
+        private bool TryExtractDetectedContour(
+            string shmPath,
+            double detRow, double detCol, double detAngleDeg,
+            List<double> outRows, List<double> outCols,
+            out string error)
+        {
+            error = null;
+
+            HTuple modelId        = null;
+            HObject modelContours = null;
+            HObject movedContours = null;
+            HTuple homMat         = null;
+            HTuple contRows       = null;
+            HTuple contCols       = null;
+
+            try {
+                HOperatorSet.ReadShapeModel(shmPath, out modelId);
+                HOperatorSet.GetShapeModelContours(out modelContours, modelId, 1);
+
+                double detAngleRad = detAngleDeg * Math.PI / 180.0;
+                // 모델 원점(0,0,0) → 검출 pose 강체변환 행렬 산출
+                HOperatorSet.VectorAngleToRigid(
+                    0.0, 0.0, 0.0,
+                    detRow, detCol, detAngleRad,
+                    out homMat);
+                HOperatorSet.AffineTransContourXld(modelContours, out movedContours, homMat);
+                HOperatorSet.GetContourXld(movedContours, out contRows, out contCols);
+
+                int totalPts = contRows.Length;
+                if (totalPts <= 0) {
+                    return true;   // contour 점 없음 — 성공으로 처리(빈 목록)
+                }
+
+                // EDGE_CONTOUR_MAX_POINTS 초과 시 stride 다운샘플
+                int stride = 1;
+                if (totalPts > EDGE_CONTOUR_MAX_POINTS) {
+                    stride = totalPts / EDGE_CONTOUR_MAX_POINTS;
+                    if (stride < 1) {
+                        stride = 1;
+                    }
+                }
+
+                for (int i = 0; i < totalPts; i += stride) {
+                    outRows.Add(contRows[i].D);
+                    outCols.Add(contCols[i].D);
+                }
+
+                return true;
+            }
+            catch (Exception ex) {
+                error = "TryExtractDetectedContour: " + ex.Message;
+                outRows.Clear();
+                outCols.Clear();
+                return false;
+            }
+            finally {
+                if (modelId        != null) { try { modelId.Dispose();        } catch { } }
+                if (modelContours  != null) { try { modelContours.Dispose();  } catch { } }
+                if (movedContours  != null) { try { movedContours.Dispose();  } catch { } }
+                if (homMat         != null) { try { homMat.Dispose();         } catch { } }
+                if (contRows       != null) { try { contRows.Dispose();       } catch { } }
+                if (contCols       != null) { try { contCols.Dispose();       } catch { } }
             }
         }
 

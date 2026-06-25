@@ -19,6 +19,7 @@ namespace ReringProject.Network {
         AlignResult,   //260624 hbk Phase 63 AV-09: Align 결과 응답 ($ALIGN_RESULT)
         AlignCalib,    //260624 hbk Phase 63 AV-09: Align 캘리브 ack 응답 ($ALIGN_CALIB)
         PrepAck,       //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답
+        Alive,         //260625 hbk v3.0: $ALIVE heartbeat 응답
 
         Unknown = 999
     }
@@ -57,6 +58,7 @@ namespace ReringProject.Network {
         public const string CMD_SEND_ALIGN_RESULT = "ALIGN_RESULT";   //260624 hbk Phase 63 AV-09: Align 결과 송신 커맨드
         public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Phase 63 AV-09: Align 캘리브 ack 송신 커맨드
         public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 송신 커맨드
+        public const string CMD_SEND_ALIVE = "ALIVE";                  //260625 hbk v3.0: $ALIVE heartbeat 송신 커맨드
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
@@ -443,6 +445,9 @@ namespace ReringProject.Network {
                 case EVisionResponseType.PrepAck:
                     msg += BuildPrepAckMessage(packet.AsPrepAck()); //260625 hbk Phase 64 LIGHT-01
                     break;
+                case EVisionResponseType.Alive:
+                    msg += BuildAliveMessage(packet.AsAlive()); //260625 hbk v3.0
+                    break;
                 case EVisionResponseType.Unknown:
                     return null;
             }
@@ -521,30 +526,32 @@ namespace ReringProject.Network {
             return szItems;
         }
 
-        //260624 hbk Phase 63 AV-09: $ALIGN_RESULT:target;P|F;Name=val=OK|NG,... 직렬화.
-        //  [가정] Tray=2항목(OffsetX/Y), Bottom=3항목(+Theta). Phase 62 Align 결과 모델 확정 시 Items 채움.
+        //260625 hbk v3.0: $ALIGN_RESULT:target,MaterialNo,OK|NG,OffsetX=val,OffsetY=val[,Theta=val]@ 직렬화.
+        //  구분자 ';'→',', 자재번호 echo, 판정 P|F→OK|NG, 항목 Name=val (per-item 판정 없음).
         private static string BuildAlignResultMessage(AlignResultPacket packet)
         {
             string szMsg = "";
             szMsg += CMD_SEND_ALIGN_RESULT;
-            szMsg += VisionServer.MSG_CMD_SEPERATOR;       // ':'
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
             szMsg += packet.AlignTarget;
-            szMsg += MSG_RESULT_HEADER_SEP;                // ';'
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += packet.MaterialNo.ToString();
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
             bool bIsPass = packet.IsPass;
             if (bIsPass)
             {
-                szMsg += TEST_RESULT_PASS;                 // 'P'
+                szMsg += RESULT_OK;                         // "OK"
             }
             else
             {
-                szMsg += TEST_RESULT_FAIL;                 // 'F'
+                szMsg += RESULT_NG;                         // "NG"
             }
-            szMsg += MSG_RESULT_HEADER_SEP;                // ';'
-            szMsg += BuildAlignItems(packet);              // Name=val=OK|NG,...
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += BuildAlignItems(packet);               // OffsetX=val,OffsetY=val[,Theta=val]
             return szMsg;
         }
 
-        //260624 hbk Phase 63 AV-09: Align 항목들을 Name=val=OK|NG,... 로 직렬화 (항목 간 ',').
+        //260625 hbk v3.0: Align 항목들을 Name=val,... 로 직렬화. per-item 판정 제거.
         private static string BuildAlignItems(AlignResultPacket packet)
         {
             string szItems = "";
@@ -555,42 +562,49 @@ namespace ReringProject.Network {
                 bool bNeedsSeparator = i > 0;
                 if (bNeedsSeparator)
                 {
-                    szItems += MSG_RESULT_ITEM_SEP;        // ','
+                    szItems += VisionServer.MSG_CONTENTS_SEPERATOR; // ','
                 }
-                szItems += item.ItemName;                  // OffsetX / OffsetY / Theta
-                szItems += MSG_RESULT_INNER_SEP;           // '='
-                szItems += item.Value.ToString("0.000");   // val
-                szItems += MSG_RESULT_INNER_SEP;           // '='
-                bool bIsPass = item.IsPass;
-                if (bIsPass)
-                {
-                    szItems += RESULT_OK;                  // "OK"
-                }
-                else
-                {
-                    szItems += RESULT_NG;                  // "NG"
-                }
+                szItems += item.ItemName;                   // OffsetX / OffsetY / Theta
+                szItems += MSG_RESULT_INNER_SEP;            // '='
+                szItems += item.Value.ToString("0.000");    // val
             }
             return szItems;
         }
 
-        //260624 hbk Phase 63 AV-09: $ALIGN_CALIB:target;P|F 직렬화 (항목 없음 — 캘리브 ack).
+        //260625 hbk v3.0: $ALIGN_CALIB:BOTTOM,CMD,OK@ / STEP이면 $ALIGN_CALIB:BOTTOM,STEP,N,OK@ 직렬화.
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
             szMsg += CMD_SEND_ALIGN_CALIB;
-            szMsg += VisionServer.MSG_CMD_SEPERATOR;       // ':'
-            szMsg += packet.AlignTarget;
-            szMsg += MSG_RESULT_HEADER_SEP;                // ';'
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
+            szMsg += packet.AlignTarget;                    // BOTTOM
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += packet.CmdStr;                         // START/STEP/END/ABORT
+            bool bIsStep = packet.CmdStr == "STEP";
+            if (bIsStep)
+            {
+                szMsg += VisionServer.MSG_CONTENTS_SEPERATOR; // ','
+                szMsg += packet.StepNo.ToString();           // N
+            }
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
             bool bIsPass = packet.IsPass;
             if (bIsPass)
             {
-                szMsg += TEST_RESULT_PASS;                 // 'P'
+                szMsg += RESULT_OK;                         // "OK"
             }
             else
             {
-                szMsg += TEST_RESULT_FAIL;                 // 'F'
+                szMsg += RESULT_NG;                         // "NG"
             }
+            return szMsg;
+        }
+
+        //260625 hbk v3.0: $ALIVE:OK@ 직렬화.
+        private static string BuildAliveMessage(AliveResponsePacket packet)
+        {
+            string szMsg = CMD_SEND_ALIVE;
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
+            szMsg += RESULT_OK;                             // "OK"
             return szMsg;
         }
 
@@ -666,6 +680,12 @@ namespace ReringProject.Network {
         public PrepAckPacket AsPrepAck() {
             if (ResponseType != EVisionResponseType.PrepAck) return null;
             return this as PrepAckPacket;
+        }
+
+        //260625 hbk v3.0: $ALIVE 응답 다운캐스트 헬퍼
+        public AliveResponsePacket AsAlive() {
+            if (ResponseType != EVisionResponseType.Alive) return null;
+            return this as AliveResponsePacket;
         }
     }
 
@@ -850,8 +870,10 @@ namespace ReringProject.Network {
     }
 
     //260624 hbk Phase 63 AV-09: $ALIGN_RESULT 응답 패킷. 가변 Items 로 Tray(2)/Bottom(3) 모두 수용.
+    //260625 hbk v3.0: MaterialNo 추가 — 자재번호 echo.
     public class AlignResultPacket : VisionResponsePacket {
         public string AlignTarget { get; set; } = "";   // TRAY / BOTTOM
+        public int    MaterialNo  { get; set; } = -1;   //260625 hbk v3.0: 자재번호 echo
         public bool IsPass { get; set; } = true;
         public List<AlignResultItem> Items { get; set; } = new List<AlignResultItem>();
 
@@ -859,13 +881,22 @@ namespace ReringProject.Network {
         }
     }
 
-    //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 캘리브 ack 응답 패킷 (항목 없음).
+    //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 캘리브 ack 응답 패킷.
     //260624 hbk Phase 63: AlignCalibResultPacket 으로 개명 — 수신측 AlignCalibPacket(VisionRequestPacket 파생)과 동명 충돌 회피
+    //260625 hbk v3.0: CmdStr/StepNo 추가. AlignTarget=BOTTOM 고정.
     public class AlignCalibResultPacket : VisionResponsePacket {
         public string AlignTarget { get; set; } = "";
+        public string CmdStr      { get; set; } = "";   //260625 hbk v3.0: START/STEP/END/ABORT echo
+        public int    StepNo      { get; set; } = 0;    //260625 hbk v3.0: STEP 커맨드 시 단계 번호
         public bool IsPass { get; set; } = true;
 
         public AlignCalibResultPacket() : base(EVisionResponseType.AlignCalib) {
+        }
+    }
+
+    //260625 hbk v3.0: $ALIVE:OK@ 응답 패킷.
+    public class AliveResponsePacket : VisionResponsePacket {
+        public AliveResponsePacket() : base(EVisionResponseType.Alive) {
         }
     }
 

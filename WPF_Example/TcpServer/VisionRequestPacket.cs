@@ -14,6 +14,7 @@ namespace ReringProject.Network {
         AlignTest,      //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 타입
         AlignCalib,     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 타입
         Prep,           //260625 hbk Phase 64 LIGHT-01: $PREP 수신 타입
+        Alive,          //260625 hbk v3.0: $ALIVE heartbeat 수신 타입
 
         Unknown = 999
     }
@@ -29,6 +30,7 @@ namespace ReringProject.Network {
         public const string CMD_RECV_ALIGN_TEST = "ALIGN_TEST";   //260624 hbk Phase 63 AV-09
         public const string CMD_RECV_ALIGN_CALIB = "ALIGN_CALIB"; //260624 hbk Phase 63 AV-09
         public const string CMD_RECV_PREP = "PREP";               //260625 hbk Phase 64 LIGHT-01: $PREP 수신 커맨드
+        public const string CMD_RECV_ALIVE = "ALIVE";             //260625 hbk v3.0: $ALIVE heartbeat 수신 커맨드
 
         //260622 hbk Phase 48
         // PROTO-01: v1.0 TEST 유연 파서 상수 ($TEST:site,MaterialNumber,null,z_index@).
@@ -151,7 +153,12 @@ namespace ReringProject.Network {
 
                 //명령어 분리
                 var msgList = msg.Split(VisionServer.MSG_CMD_SEPERATOR);
-                if (msgList == null || msgList.Length < 2) return null;
+                if (msgList == null || msgList.Length < 1) return null;
+
+                //260625 hbk v3.0: ALIVE는 내용 필드 없이 '$ALIVE@' 형식 허용
+                if (msgList[0] == CMD_RECV_ALIVE) { return new AlivePacket(); }
+
+                if (msgList.Length < 2) return null;
 
             //cmd 구분
             VisionRequestPacket packet = null;
@@ -407,40 +414,40 @@ namespace ReringProject.Network {
             return nZIndex.ToString();
         }
 
-        //260625 hbk Phase 64 ALIGN-FACE: ALIGN_TEST 수신 파서.
-        //  dataList[0]=AlignTarget(TRAY/BOTTOM). BOTTOM일 때 dataList[1]=AlignFace(TOP/BOT).
-        //  TRAY는 AlignFace 없음(항상 Top면) — 필드 부족 시 빈 문자열 유지.
+        //260625 hbk v3.0: ALIGN_TEST 수신 파서.
+        //  dataList[0]=AlignTarget(TRAY/BOTTOM), [1]=MaterialNo(int), [2]=모드(skip).
+        //  BOTTOM이면 [3]=AlignFace(TOP/BOT). TRAY는 AlignFace 없음(항상 Top면).
         private static bool TryParseAlignTestFields(string[] dataList, AlignTestPacket alignPacket)
         {
-            bool bHasTarget = dataList != null && dataList.Length >= 1;
-            if (!bHasTarget) { return false; }
+            bool bHasBase = dataList != null && dataList.Length >= 2;
+            if (!bHasBase) { return false; }
             alignPacket.AlignTarget = dataList[0];
+
+            int nMaterialNo = 0;
+            bool bMaterialOk = Int32.TryParse(dataList[1], out nMaterialNo);
+            if (!bMaterialOk) { return false; }
+            alignPacket.MaterialNo = nMaterialNo;
+
+            // dataList[2]=모드(skip)
 
             bool bIsBottom = alignPacket.AlignTarget == "BOTTOM";
             if (bIsBottom)
             {
-                bool bHasFace = dataList.Length >= 2;
+                bool bHasFace = dataList.Length >= 4;
                 if (!bHasFace) { return false; }
-                alignPacket.AlignFace = dataList[1]; //260625 hbk TOP or BOT
+                alignPacket.AlignFace = dataList[3]; //260625 hbk TOP or BOT
             }
             return true;
         }
 
-        //260625 hbk Phase 64 ALIGN-FACE: ALIGN_CALIB 수신 파서.
-        //  dataList[0]=AlignTarget(TRAY/BOTTOM). BOTTOM일 때 dataList[1]=AlignFace(TOP/BOT).
+        //260625 hbk v3.0: ALIGN_CALIB 수신 파서.
+        //  dataList[0]=BOTTOM(고정), [1]=CmdStr(START/STEP/END/ABORT). AlignFace 제거.
         private static bool TryParseAlignCalibFields(string[] dataList, AlignCalibPacket alignPacket)
         {
-            bool bHasTarget = dataList != null && dataList.Length >= 1;
-            if (!bHasTarget) { return false; }
-            alignPacket.AlignTarget = dataList[0];
-
-            bool bIsBottom = alignPacket.AlignTarget == "BOTTOM";
-            if (bIsBottom)
-            {
-                bool bHasFace = dataList.Length >= 2;
-                if (!bHasFace) { return false; }
-                alignPacket.AlignFace = dataList[1]; //260625 hbk TOP or BOT
-            }
+            bool bHasFields = dataList != null && dataList.Length >= 2;
+            if (!bHasFields) { return false; }
+            alignPacket.AlignTarget = dataList[0];  // BOTTOM (고정)
+            alignPacket.CmdStr = dataList[1];       // START/STEP/END/ABORT
             return true;
         }
 
@@ -512,6 +519,12 @@ namespace ReringProject.Network {
             return this as PrepPacket;
         }
 
+        //260625 hbk v3.0: $ALIVE heartbeat 다운캐스트 헬퍼
+        public AlivePacket AsAlive() {
+            if (RequestType != VisionRequestType.Alive) return null;
+            return this as AlivePacket;
+        }
+
     }
 
 
@@ -567,9 +580,10 @@ namespace ReringProject.Network {
     }
 
     //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 패킷.
-    //260625 hbk Phase 64 ALIGN-FACE: AlignFace 추가 — BOTTOM 카메라 자재 면 구분(TOP/BOT). TRAY는 빈 문자열.
+    //260625 hbk v3.0: MaterialNo 추가([1]=자재번호). AlignFace 는 BOTTOM 전용([3]).
     public class AlignTestPacket : VisionRequestPacket {
         public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(TRAY/BOTTOM)
+        public int    MaterialNo  { get; set; } = -1;   //260625 hbk v3.0: 자재번호 echo용
         public string AlignFace   { get; set; } = "";   //260625 hbk BOTTOM 전용: 자재 면(TOP/BOT). TRAY=비사용
 
         public AlignTestPacket() : base(VisionRequestType.AlignTest) {
@@ -577,12 +591,18 @@ namespace ReringProject.Network {
     }
 
     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 패킷.
-    //260625 hbk Phase 64 ALIGN-FACE: AlignFace 추가 — BOTTOM 카메라 자재 면 구분(TOP/BOT). TRAY는 빈 문자열.
+    //260625 hbk v3.0: CmdStr 추가([1]=START/STEP/END/ABORT). AlignFace 제거.
     public class AlignCalibPacket : VisionRequestPacket {
-        public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(TRAY/BOTTOM)
-        public string AlignFace   { get; set; } = "";   //260625 hbk BOTTOM 전용: 자재 면(TOP/BOT). TRAY=비사용
+        public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(BOTTOM 고정)
+        public string CmdStr      { get; set; } = "";   //260625 hbk v3.0: START/STEP/END/ABORT
 
         public AlignCalibPacket() : base(VisionRequestType.AlignCalib) {
+        }
+    }
+
+    //260625 hbk v3.0: $ALIVE heartbeat 수신 패킷. 내용 필드 없음.
+    public class AlivePacket : VisionRequestPacket {
+        public AlivePacket() : base(VisionRequestType.Alive) {
         }
     }
 

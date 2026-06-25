@@ -66,6 +66,9 @@ namespace ReringProject {
                     case VisionRequestType.Prep:                                   //260625 hbk Phase 64 LIGHT-01
                         responsePacket = ProcessPrep(packet.AsPrep());
                         break;
+                    case VisionRequestType.Alive:                                  //260625 hbk v3.0
+                        responsePacket = ProcessAlive(packet.AsAlive());
+                        break;
                     case VisionRequestType.Unknown:
                         //occurs error
                         break;
@@ -279,6 +282,7 @@ namespace ReringProject {
             }
             resultPacket.Target = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
+            resultPacket.MaterialNo = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo
             resultPacket.IsPass = true;   // [가정] 측정 연계 전까지 ack
 
             bool bIsBottom = packet.AlignTarget == "BOTTOM";
@@ -291,6 +295,7 @@ namespace ReringProject {
         }
 
         //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리 — 캘리브 ack 응답.
+        //260625 hbk v3.0: CmdStr echo 추가. AlignFace 제거됨.
         private AlignCalibResultPacket ProcessAlignCalib(AlignCalibPacket packet)
         {
             AlignCalibResultPacket resultPacket = new AlignCalibResultPacket();
@@ -301,7 +306,21 @@ namespace ReringProject {
             }
             resultPacket.Target = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
+            resultPacket.CmdStr = packet.CmdStr;    //260625 hbk v3.0: echo back
             resultPacket.IsPass = true;
+            return resultPacket;
+        }
+
+        //260625 hbk v3.0: $ALIVE 처리 — ALIVE:OK 응답.
+        private AliveResponsePacket ProcessAlive(AlivePacket packet)
+        {
+            AliveResponsePacket resultPacket = new AliveResponsePacket();
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return null;
+            }
+            resultPacket.Target = packet.Sender;
             return resultPacket;
         }
 

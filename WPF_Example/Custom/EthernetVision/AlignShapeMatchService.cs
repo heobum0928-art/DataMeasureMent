@@ -505,7 +505,7 @@ namespace ReringProject {
         //260625 hbk Phase 61.1 — .shm 파일에서 검출 pose 로 이동한 모델 contour 점을 추출.
         // T-61.1-01: try-catch+finally Dispose 전체 보호 — 손상 .shm/HALCON 오류 시 throw 없음.
         // 다운샘플: EDGE_CONTOUR_MAX_POINTS 초과 시 stride 간격으로 선별하여 메모리 폭주 차단.
-        // outRows/outCols: 호출자 리스트에 누적(Add). 실패 시 비우고 error 세팅 후 return false.
+        // outRows/outCols: 호출자 리스트에 누적(Add). 실패해도 이전 누적분 보존(WR-02 fix) — error 세팅 후 return false.
         private bool TryExtractDetectedContour(
             string shmPath,
             double detRow, double detCol, double detAngleDeg,
@@ -518,8 +518,6 @@ namespace ReringProject {
             HObject modelContours = null;
             HObject movedContours = null;
             HTuple homMat         = null;
-            HTuple contRows       = null;
-            HTuple contCols       = null;
 
             try {
                 HOperatorSet.ReadShapeModel(shmPath, out modelId);
@@ -532,9 +530,41 @@ namespace ReringProject {
                     detRow, detCol, detAngleRad,
                     out homMat);
                 HOperatorSet.AffineTransContourXld(modelContours, out movedContours, homMat);
-                HOperatorSet.GetContourXld(movedContours, out contRows, out contCols);
 
-                int totalPts = contRows.Length;
+                // WR-01 fix //260625 hbk Phase 61.1 — movedContours 는 다중 XLD segment 를 담을 수 있다.
+                // 단일 GetContourXld 는 첫 segment 만 가져오므로, CountObj 로 개수를 세고 SelectObj 로
+                // 각 segment 점을 전부 누적한다(다중 윤곽 모델에서 에지 끊김 방지).
+                HTuple contourCount = null;
+                List<double> allRows = new List<double>();
+                List<double> allCols = new List<double>();
+                try {
+                    HOperatorSet.CountObj(movedContours, out contourCount);
+                    int nContours = contourCount.I;
+                    for (int c = 1; c <= nContours; c++) {
+                        HObject segContour = null;
+                        HTuple segRows     = null;
+                        HTuple segCols     = null;
+                        try {
+                            HOperatorSet.SelectObj(movedContours, out segContour, c);
+                            HOperatorSet.GetContourXld(segContour, out segRows, out segCols);
+                            int segLen = segRows.Length;
+                            for (int i = 0; i < segLen; i++) {
+                                allRows.Add(segRows[i].D);
+                                allCols.Add(segCols[i].D);
+                            }
+                        }
+                        finally {
+                            if (segContour != null) { try { segContour.Dispose(); } catch { } }
+                            if (segRows    != null) { try { segRows.Dispose();    } catch { } }
+                            if (segCols    != null) { try { segCols.Dispose();    } catch { } }
+                        }
+                    }
+                }
+                finally {
+                    if (contourCount != null) { try { contourCount.Dispose(); } catch { } }
+                }
+
+                int totalPts = allRows.Count;
                 if (totalPts <= 0) {
                     return true;   // contour 점 없음 — 성공으로 처리(빈 목록)
                 }
@@ -549,16 +579,16 @@ namespace ReringProject {
                 }
 
                 for (int i = 0; i < totalPts; i += stride) {
-                    outRows.Add(contRows[i].D);
-                    outCols.Add(contCols[i].D);
+                    outRows.Add(allRows[i]);
+                    outCols.Add(allCols[i]);
                 }
 
                 return true;
             }
             catch (Exception ex) {
+                // WR-02 fix //260625 hbk Phase 61.1 — outRows/outCols 는 호출자 공유 누적 리스트.
+                // 여기서 Clear() 하면 이전 패턴(.shm 1)에서 이미 누적한 점까지 삭제되므로 비우지 않는다.
                 error = "TryExtractDetectedContour: " + ex.Message;
-                outRows.Clear();
-                outCols.Clear();
                 return false;
             }
             finally {
@@ -566,8 +596,6 @@ namespace ReringProject {
                 if (modelContours  != null) { try { modelContours.Dispose();  } catch { } }
                 if (movedContours  != null) { try { movedContours.Dispose();  } catch { } }
                 if (homMat         != null) { try { homMat.Dispose();         } catch { } }
-                if (contRows       != null) { try { contRows.Dispose();       } catch { } }
-                if (contCols       != null) { try { contCols.Dispose();       } catch { } }
             }
         }
 

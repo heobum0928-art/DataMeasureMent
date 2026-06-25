@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using HalconDotNet;
 using ReringProject.Halcon.Models;
+using ReringProject.Sequence;
 using ReringProject.Setting;
 using ReringProject.UI;
 
@@ -250,15 +251,145 @@ namespace ReringProject.Custom.UI {
 
                 if (res.Found) {
                     lbl_result.Text = FormatAlignResult(res);
+                    ApplyAlignVisualization(res);          //260625 hbk Phase 61.1 검출 시각화
                 }
                 else {
                     lbl_result.Text = "검출 실패";
+                    ClearAlignVisualization();             //260625 hbk Phase 61.1 이전 오버레이 제거
                 }
                 lbl_status.Text = "대기";
             }
             catch (Exception ex) {
                 lbl_result.Text = "검사 예외: " + ex.Message;
                 lbl_status.Text = "대기";
+            }
+        }
+
+        // ─── 체크박스 토글 핸들러 ─────────────────────────────────────────────────
+
+        private void ShowRoiCheckBox_Changed(object sender, RoutedEventArgs e) {
+            //260625 hbk Phase 61.1 보정 ROI(orange) = datumRects 채널 = _datumOverlayVisible 게이트
+            if (_viewer == null) {
+                return;
+            }
+            bool bShow = (chk_showRoi.IsChecked == true);
+            try {
+                _viewer.SetDatumOverlayVisible(bShow);
+            }
+            catch {
+                // 뷰어 예외 무시 — UI 무중단
+            }
+        }
+
+        private void ShowEdgeCheckBox_Changed(object sender, RoutedEventArgs e) {
+            //260625 hbk Phase 61.1 에지(_inspectionOverlays) = _measurementOverlayVisible 게이트
+            if (_viewer == null) {
+                return;
+            }
+            bool bShow = (chk_showEdge.IsChecked == true);
+            try {
+                _viewer.SetMeasurementOverlayVisible(bShow);
+            }
+            catch {
+                // 뷰어 예외 무시 — UI 무중단
+            }
+        }
+
+        // ─── 시각화 헬퍼 (260625 hbk Phase 61.1) ────────────────────────────────
+
+        /// <summary>
+        /// Run 성공 시 검출 십자 + 보정 ROI 박스 + 에지 contour 를 MainResultViewerControl 에 전달.
+        /// MainResultViewerControl.Render() 게이트 매핑:
+        ///   datumRects(보정 ROI orange) → _datumOverlayVisible = [ROI 표시] 체크박스
+        ///   _inspectionOverlays(에지)   → _measurementOverlayVisible = [에지 표시] 체크박스
+        ///   검출 십자(_datumFindResultOverlay) → 게이트 없음, Clear 로만 제거
+        /// 예외 시 throw 없이 결과 텍스트만 유지 (T-61.1-05 완화).
+        /// </summary>
+        private void ApplyAlignVisualization(AlignResult res) {
+            if (_viewer == null) {
+                return;
+            }
+            if (!res.HasDetection) {
+                ClearAlignVisualization();
+                return;
+            }
+
+            try {
+                // 1) 검출 십자: 두 패턴 midpoint 중심 1개
+                var dc = new DatumConfig();
+                dc.DetectedOriginRow = res.DetectedCenterRow;
+                dc.DetectedOriginCol = res.DetectedCenterCol;
+                dc.LastFindSucceeded = true;
+                dc.DatumName = "Align";
+                _viewer.SetDatumFindResultOverlay(dc);
+            }
+            catch {
+                // 십자 렌더 실패 무시
+            }
+
+            try {
+                // 2) 보정 ROI 박스: datumRects 채널(orange) — measRects=null 로 green 채널 미사용
+                List<double[]> datumRects = res.DetectedRoiBoxes;
+                if (datumRects == null) {
+                    datumRects = new List<double[]>();
+                }
+                _viewer.SetResultRoiOverlays(null, datumRects);
+            }
+            catch {
+                // ROI 렌더 실패 무시
+            }
+
+            try {
+                // 3) 에지 contour: _measurementOverlayVisible 게이트
+                List<EdgeInspectionOverlay> edgeOverlays = BuildEdgeOverlays(res);
+                _viewer.SetInspectionOverlays(edgeOverlays);
+            }
+            catch {
+                // 에지 렌더 실패 무시
+            }
+        }
+
+        /// <summary>
+        /// AlignResult.EdgeContourRows/Cols → EdgeInspectionOverlay 변환.
+        /// 빈 contour 면 빈 리스트 반환.
+        /// </summary>
+        private List<EdgeInspectionOverlay> BuildEdgeOverlays(AlignResult res) {
+            var list = new List<EdgeInspectionOverlay>();
+            if (res.EdgeContourRows == null || res.EdgeContourCols == null) {
+                return list;
+            }
+
+            int n = Math.Min(res.EdgeContourRows.Count, res.EdgeContourCols.Count);
+            if (n == 0) {
+                return list;
+            }
+
+            var ov = new EdgeInspectionOverlay();
+            ov.RoiId = "AlignEdge";
+            for (int i = 0; i < n; i++) {
+                var p = new EdgeInspectionPoint();
+                p.Row = res.EdgeContourRows[i];
+                p.Column = res.EdgeContourCols[i];
+                ov.Points.Add(p);
+            }
+            list.Add(ov);
+            return list;
+        }
+
+        /// <summary>
+        /// Run 실패(검출 없음) 또는 뷰 전환 시 이전 오버레이 제거.
+        /// </summary>
+        private void ClearAlignVisualization() {
+            if (_viewer == null) {
+                return;
+            }
+            try {
+                _viewer.ClearDatumFindResultOverlay();
+                _viewer.ClearResultRoiOverlays();
+                _viewer.SetInspectionOverlays(null);
+            }
+            catch {
+                // 클리어 실패 무시
             }
         }
 

@@ -148,6 +148,11 @@
                                 Style="{StaticResource TrayActionButtonStyle}"
                                 HorizontalAlignment="Left"
                                 Click="RunButton_Click"/>
+                        <!--260625 hbk Phase 61.1 시각화 토글 (airspace-safe: 좌측 패널)-->
+                        <CheckBox x:Name="chk_showRoi" Content="ROI 표시" IsChecked="True" Margin="0,8,0,0"
+                                  Checked="ShowRoiCheckBox_Changed" Unchecked="ShowRoiCheckBox_Changed"/>
+                        <CheckBox x:Name="chk_showEdge" Content="에지 표시" IsChecked="True" Margin="0,4,0,0"
+                                  Checked="ShowEdgeCheckBox_Changed" Unchecked="ShowEdgeCheckBox_Changed"/>
                         <TextBlock x:Name="lbl_result"
                                    Margin="0,6,0,0"
                                    FontSize="12"

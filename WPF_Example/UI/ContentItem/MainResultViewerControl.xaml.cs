@@ -600,6 +600,10 @@ namespace ReringProject.UI
         // teach 경로 (_datumConfig + _datumSelected) 와 독립 — 동시 표시 허용 (주황 십자 + 빨간 교점 십자 공존).
         private DatumConfig _datumFindResultOverlay;
 
+        //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 보관 (소유권=이 컨트롤. 교체/clear/Dispose 시 dispose).
+        //  _measurementOverlayVisible(에지 토글) 게이트로 RenderNow 에서 window.DispObj. 이미지 재로드 시에도 재렌더.
+        private HObject _alignContourXld;
+
         // isEditMode 옵션 인자 (기본 false). MainView.GetDatumEditMode() / IsDatumTeachActive 기반 전달.
         public void SetDatumOverlay(DatumConfig datum, bool isSelected, bool isEditMode = false)
         {
@@ -708,6 +712,28 @@ namespace ReringProject.UI
             Render();
         }
 
+        //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 설정 (소유권 이전). 이전 보관 XLD dispose 후 교체.
+        //  xld=null 이면 clear. 즉시 재렌더. _measurementOverlayVisible(에지 토글) 게이트는 RenderNow 에서 적용.
+        public void SetAlignContourXld(HObject xld)
+        {
+            if (!ReferenceEquals(_alignContourXld, xld))
+            {
+                DisposeAlignContourXld();
+                _alignContourXld = xld;
+            }
+            Render();
+        }
+
+        //260625 hbk Phase 61.1 F4 — 보관 Align XLD dispose (교체/clear/Dispose 공용). throw 금지.
+        private void DisposeAlignContourXld()
+        {
+            if (_alignContourXld != null)
+            {
+                try { _alignContourXld.Dispose(); } catch { }
+                _alignContourXld = null;
+            }
+        }
+
         private List<RoiDefinition> _datumRoiCandidates = new List<RoiDefinition>();
 
         public void SetDatumRoiCandidates(IList<RoiDefinition> datumRois)
@@ -750,6 +776,7 @@ namespace ReringProject.UI
         public void Dispose()
         {
             DisposeImage();
+            DisposeAlignContourXld();   //260625 hbk Phase 61.1 F4 — 보관 Align XLD 누수 방지
         }
 
         private void MainResultViewerControl_Unloaded(object sender, RoutedEventArgs e)
@@ -844,6 +871,14 @@ namespace ReringProject.UI
             if (_datumOverlayVisible && _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0)
             {
                 _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultDatumRoiOverlays, "orange", 2);
+            }
+
+            //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 직접 표시 (녹색, 에지 토글 게이트).
+            //  점→DispLine polyline(대각선 버그) 대체. 이미지 재로드 등 재렌더 시에도 보관 XLD 다시 disp.
+            //  기존 FAI 검사(MainView) 는 _alignContourXld=null → 분기 미진입 → 회귀 0.
+            if (_measurementOverlayVisible && _alignContourXld != null)
+            {
+                _displayService.RenderAlignContourXld(ViewerHost.HalconWindow, _alignContourXld, "green", 2);
             }
 
             //260619 hbk Phase 57 #2 패턴 매칭 ROI (cyan, datum orange / 측정 green / datum 기준선 slate blue 와 구분). 패턴 토글 게이트.

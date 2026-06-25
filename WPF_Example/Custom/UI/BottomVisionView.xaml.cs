@@ -347,9 +347,10 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
-                // 2) 에지 contour: _measurementOverlayVisible 게이트
-                List<EdgeInspectionOverlay> edgeOverlays = BuildEdgeOverlays(res);
-                _viewer.SetInspectionOverlays(edgeOverlays);
+                //260625 hbk Phase 61.1 F4 — 에지 = 검출 XLD object 직접 disp (대각선 버그 해소).
+                //  점 polyline(BuildEdgeOverlays) 폐기. SetAlignContourXld 소유권 이전 → 뷰어가 dispose.
+                _viewer.SetAlignContourXld(res.DetectedContourXld);
+                res.DetectedContourXld = null;   // 소유권 이전 완료 — 중복 dispose 방지
             }
             catch {
                 // 에지 렌더 실패 무시
@@ -357,34 +358,8 @@ namespace ReringProject.Custom.UI {
         }
 
         /// <summary>
-        /// AlignResult.EdgeContourRows/Cols → EdgeInspectionOverlay 변환.
-        /// 빈 contour 면 빈 리스트 반환.
-        /// </summary>
-        private List<EdgeInspectionOverlay> BuildEdgeOverlays(AlignResult res) {
-            var list = new List<EdgeInspectionOverlay>();
-            if (res.EdgeContourRows == null || res.EdgeContourCols == null) {
-                return list;
-            }
-
-            int n = Math.Min(res.EdgeContourRows.Count, res.EdgeContourCols.Count);
-            if (n == 0) {
-                return list;
-            }
-
-            var ov = new EdgeInspectionOverlay();
-            ov.RoiId = "AlignEdge";
-            for (int i = 0; i < n; i++) {
-                var p = new EdgeInspectionPoint();
-                p.Row = res.EdgeContourRows[i];
-                p.Column = res.EdgeContourCols[i];
-                ov.Points.Add(p);
-            }
-            list.Add(ov);
-            return list;
-        }
-
-        /// <summary>
         /// Run 실패(검출 없음) 또는 뷰 전환 시 이전 오버레이 제거.
+        ///260625 hbk Phase 61.1 F4 — 에지는 SetAlignContourXld(null) 로 정리(XLD 채널).
         /// </summary>
         private void ClearAlignVisualization() {
             if (_viewer == null) {
@@ -393,7 +368,7 @@ namespace ReringProject.Custom.UI {
             try {
                 _viewer.ClearDatumFindResultOverlay();
                 _viewer.ClearResultRoiOverlays();
-                _viewer.SetInspectionOverlays(null);
+                _viewer.SetAlignContourXld(null);
             }
             catch {
                 // 클리어 실패 무시

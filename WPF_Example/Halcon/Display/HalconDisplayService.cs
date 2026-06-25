@@ -235,31 +235,8 @@ namespace ReringProject.Halcon.Display
                         }
                         continue;
                     }
-                    //260625 hbk Phase 61.1 — AlignEdge: 검출 모델 XLD contour 를 연속 polyline(녹색 선)으로 표시.
-                    //  Points 를 순서대로 DispLine 연결 → 점/X마커가 아닌 연속 contour 선. 렌더 후 continue 로
-                    //  기본 단일 DispLine + X마커 loop skip. 기존 FAI 검사(MainView) RoiId 미일치 → 회귀 0.
-                    else if (overlay.RoiId != null && overlay.RoiId.StartsWith("AlignEdge", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (overlay.Points != null && overlay.Points.Count >= 2)
-                        {
-                            try
-                            {
-                                window.SetColor("green");
-                                window.SetLineWidth(2);
-                                for (int i = 0; i < overlay.Points.Count - 1; i++)
-                                {
-                                    EdgeInspectionPoint pa = overlay.Points[i];
-                                    EdgeInspectionPoint pb = overlay.Points[i + 1];
-                                    window.DispLine(pa.Row, pa.Column, pb.Row, pb.Column);
-                                }
-                            }
-                            catch
-                            {
-                                // display 예외 swallow (기존 FAI-EdgeRaw / Calib-Corners 관습)
-                            }
-                        }
-                        continue;
-                    }
+                    //260625 hbk Phase 61.1 F4 — AlignEdge polyline 분기 제거: 검출 에지는 RenderAlignContourXld(XLD DispObj)로 대체.
+                    //  점→DispLine 연결 방식은 패턴1 끝점→패턴2 시작점이 대각선으로 이어지는 버그가 있어 폐기.
                     // X 마커 색 분리용: FAI-Edge* 라인은 녹/적(OK/NG), X 는 white 로 구분.
                     bool isFaiEdgeLine = false;
                     // FAI edge measurement result overlay colors
@@ -549,6 +526,24 @@ namespace ReringProject.Halcon.Display
                 }
             }
             catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }
+        }
+
+        //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 직접 표시 (점 변환 없이 window.DispObj).
+        //  AlignShapeMatchService 가 두 패턴 contour 를 검출 pose 로 이동+concat 한 단일 HObject 를 그대로 그림.
+        //  점→DispLine 방식(패턴간 대각선 연결 버그) 대체. null 가드 + try-catch (display 에러 swallow 관습 유지).
+        public void RenderAlignContourXld(HWindow window, HObject xld, string color, int lineWidth)
+        {
+            if (window == null || xld == null) return;
+            try
+            {
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, lineWidth);
+                window.DispObj(xld);
+            }
+            catch
+            {
+                // suppress display errors (기존 렌더 catch 관습 유지)
+            }
         }
 
         /// <summary>Renders polygon draft points (large cross marks + connecting lines during drawing).</summary>

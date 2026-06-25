@@ -55,12 +55,14 @@ namespace ReringProject {
         public System.Collections.Generic.List<double[]> DetectedRoiBoxes { get; set; }
             = new System.Collections.Generic.List<double[]>();
 
-        /// <summary>검출 모델 contour 점 Row 목록 (px). EdgeContourCols 와 인덱스 1:1 대응.</summary>
-        public System.Collections.Generic.List<double> EdgeContourRows { get; set; }
-            = new System.Collections.Generic.List<double>();
-
-        /// <summary>검출 모델 contour 점 Col 목록 (px). EdgeContourRows 와 인덱스 1:1 대응.</summary>
-        public System.Collections.Generic.List<double> EdgeContourCols { get; set; }
-            = new System.Collections.Generic.List<double>();
+        //260625 hbk Phase 61.1 F4 — 검출 에지 시각화 재설계: 점 리스트(EdgeContourRows/Cols) → XLD object 직접 disp.
+        //  대각선 버그(패턴1 끝점→패턴2 시작점 잘못 연결) + 다운샘플 곡선손상 해소.
+        /// <summary>
+        /// 검출된 두 패턴(.shm)의 contour XLD 를 concat 한 단일 HObject (검출 pose 로 이동 완료).
+        /// 점 변환 없이 그대로 window.DispObj 로 표시 → 패턴 간 잘못된 연결선 발생 안 함.
+        /// 소유권: AlignShapeMatchService.Run 이 생성 → MainResultViewerControl 이 보관/Dispose 책임.
+        /// 기본 null (미검출/시각화 실패 시).
+        /// </summary>
+        public HalconDotNet.HObject DetectedContourXld { get; set; }
     }
 }

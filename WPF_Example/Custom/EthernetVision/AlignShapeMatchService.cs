@@ -49,9 +49,6 @@ namespace ReringProject {
         // 검출 위치 표시용 ROI 박스 반폭(px). DispRectangle2 len1/len2 에 사용. 표시 목적 고정 크기.
         private const double DETECTED_ROI_HALF_LEN = 60.0;
 
-        // 에지 contour 최대 표시 점 수. 대용량 contour 메모리 폭주 차단(T-61.1-01 mitigation).
-        private const int EDGE_CONTOUR_MAX_POINTS = 400;
-
         // WR-03 fix //260624 hbk: 미캘 판정 임계 = SystemSetting.PICKER_CENTER_ZERO_EPS 단일 소스 참조.
         // AlignShapeMatchService 내 독립 선언 제거 → SystemSetting public const 사용으로 통일.
         //260624 hbk Phase 60 — D-05: 회전중심 보정 부호/회전방향 (피커 컨트롤러 규약 — UAT 확정 전 기본 +1).
@@ -457,25 +454,21 @@ namespace ReringProject {
                     BuildDetectedRoiBox(f2Row, f2Col, f2AngleDeg, refPose.Roi2Len1, refPose.Roi2Len2, out box2);   //260625 hbk Phase 61.1 F2
                     result.DetectedRoiBoxes.Add(box2);
 
-                    // (c) 검출 에지 contour 산출 — 두 패턴 .shm 각각 → result 에 누적
-                    string contErr1;
-                    bool bCont1 = TryExtractDetectedContour(
+                    //260625 hbk Phase 61.1 F4 — 검출 에지 XLD 산출 (점 변환 없이 두 패턴 concat).
+                    //  두 패턴 모델 contour 를 각각 검출 pose 로 affine_trans_contour_xld → concat_obj 1개 HObject.
+                    //  소유권은 result.DetectedContourXld 로 이전 → 뷰어가 Dispose. (점 추출/다운샘플 제거 = 대각선 버그 해소)
+                    string xldErr;
+                    HObject combinedXld;
+                    bool bXld = TryBuildDetectedContourXld(
                         shmPath1, f1Row, f1Col, f1AngleDeg,
-                        result.EdgeContourRows, result.EdgeContourCols,
-                        out contErr1);
-                    if (!bCont1) {
-                        Logging.PrintLog((int)ELogType.Error,
-                            "[ALIGN_SVC] contour[1] 추출 실패 ({0}): {1}", mode, contErr1 ?? "");
-                    }
-
-                    string contErr2;
-                    bool bCont2 = TryExtractDetectedContour(
                         shmPath2, f2Row, f2Col, f2AngleDeg,
-                        result.EdgeContourRows, result.EdgeContourCols,
-                        out contErr2);
-                    if (!bCont2) {
+                        out combinedXld, out xldErr);
+                    if (bXld) {
+                        result.DetectedContourXld = combinedXld;
+                    }
+                    else {
                         Logging.PrintLog((int)ELogType.Error,
-                            "[ALIGN_SVC] contour[2] 추출 실패 ({0}): {1}", mode, contErr2 ?? "");
+                            "[ALIGN_SVC] contour XLD 산출 실패 ({0}): {1}", mode, xldErr ?? "");
                     }
                 }
                 catch (Exception exViz) {
@@ -484,10 +477,11 @@ namespace ReringProject {
                         "[ALIGN_SVC] 시각화 필드 산출 예외 ({0}): {1}", mode, exViz.Message);
                 }
 
+                bool bHasXld = (result.DetectedContourXld != null);
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[ALIGN_SVC] run OK ({0}): off=({1:F4},{2:F4})mm theta={3:F3} score1={4:F3} score2={5:F3} contourPts={6}",
+                    "[ALIGN_SVC] run OK ({0}): off=({1:F4},{2:F4})mm theta={3:F3} score1={4:F3} score2={5:F3} contourXld={6}",
                     mode, result.OffsetXmm, result.OffsetYmm, result.ThetaDeg, f1Score, f2Score,
-                    result.EdgeContourRows.Count);
+                    bHasXld);
                 return result;
             }
             catch (Exception ex) {
@@ -518,17 +512,78 @@ namespace ReringProject {
             box = new double[] { detRow, detCol, phi, len1, len2 };
         }
 
-        //260625 hbk Phase 61.1 — .shm 파일에서 검출 pose 로 이동한 모델 contour 점을 추출.
-        // T-61.1-01: try-catch+finally Dispose 전체 보호 — 손상 .shm/HALCON 오류 시 throw 없음.
-        // 다운샘플: EDGE_CONTOUR_MAX_POINTS 초과 시 stride 간격으로 선별하여 메모리 폭주 차단.
-        // outRows/outCols: 호출자 리스트에 누적(Add). 실패해도 이전 누적분 보존(WR-02 fix) — error 세팅 후 return false.
-        private bool TryExtractDetectedContour(
-            string shmPath,
-            double detRow, double detCol, double detAngleDeg,
-            List<double> outRows, List<double> outCols,
-            out string error)
+        //260625 hbk Phase 61.1 F4 — 두 패턴 검출 contour XLD 를 concat 하여 단일 HObject 산출.
+        // 점 추출(get_contour_xld) 없이 affine_trans_contour_xld 결과 XLD 를 그대로 보존 → window.DispObj.
+        // 패턴1 XLD 와 패턴2 XLD 를 concat_obj 로 합쳐 잘못된 패턴간 연결선(대각선 버그) 자체가 발생하지 않음.
+        // 성공 시 outXld(소유권=호출자) 반환. 실패 시 throw 없이 false + error. 부분 성공(한 패턴만) 도 그 XLD 반환.
+        private bool TryBuildDetectedContourXld(
+            string shmPath1, double det1Row, double det1Col, double det1AngleDeg,
+            string shmPath2, double det2Row, double det2Col, double det2AngleDeg,
+            out HObject outXld, out string error)
         {
-            error = null;
+            outXld = null;
+            error  = null;
+
+            HObject moved1 = null;
+            HObject moved2 = null;
+
+            try {
+                string err1;
+                bool bMoved1 = TryBuildMovedContour(shmPath1, det1Row, det1Col, det1AngleDeg, out moved1, out err1);
+                if (!bMoved1) {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_SVC] movedContour[1] 실패: {0}", err1 ?? "");
+                }
+
+                string err2;
+                bool bMoved2 = TryBuildMovedContour(shmPath2, det2Row, det2Col, det2AngleDeg, out moved2, out err2);
+                if (!bMoved2) {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_SVC] movedContour[2] 실패: {0}", err2 ?? "");
+                }
+
+                // 둘 다 실패 → outXld null 로 false
+                if (!bMoved1 && !bMoved2) {
+                    error = "두 패턴 contour 변환 모두 실패";
+                    return false;
+                }
+
+                // 한쪽만 성공 → 그 XLD 단독 반환 (소유권 이전, finally 에서 dispose 안 함)
+                if (bMoved1 && !bMoved2) {
+                    outXld = moved1;
+                    moved1 = null;
+                    return true;
+                }
+                if (!bMoved1 && bMoved2) {
+                    outXld = moved2;
+                    moved2 = null;
+                    return true;
+                }
+
+                // 둘 다 성공 → concat. 합친 결과만 소유권 이전, 원본 moved1/moved2 는 finally 에서 dispose.
+                HObject combined;
+                HOperatorSet.ConcatObj(moved1, moved2, out combined);
+                outXld = combined;
+                return true;
+            }
+            catch (Exception ex) {
+                error = "TryBuildDetectedContourXld: " + ex.Message;
+                if (outXld != null) { try { outXld.Dispose(); } catch { } outXld = null; }
+                return false;
+            }
+            finally {
+                if (moved1 != null) { try { moved1.Dispose(); } catch { } }
+                if (moved2 != null) { try { moved2.Dispose(); } catch { } }
+            }
+        }
+
+        //260625 hbk Phase 61.1 F4 — 단일 .shm 모델 contour 를 검출 pose 로 affine 이동한 XLD 반환.
+        // read_shape_model → get_shape_model_contours(level 1) → vector_angle_to_rigid → affine_trans_contour_xld.
+        // 성공 시 outMoved 소유권을 호출자에게 이전(finally 에서 dispose 안 함). 실패 시 throw 없이 false.
+        private bool TryBuildMovedContour(
+            string shmPath, double detRow, double detCol, double detAngleDeg,
+            out HObject outMoved, out string error)
+        {
+            outMoved = null;
+            error    = null;
 
             HTuple modelId        = null;
             HObject modelContours = null;
@@ -540,78 +595,26 @@ namespace ReringProject {
                 HOperatorSet.GetShapeModelContours(out modelContours, modelId, 1);
 
                 double detAngleRad = detAngleDeg * Math.PI / 180.0;
-                // 모델 원점(0,0,0) → 검출 pose 강체변환 행렬 산출
+                // 모델 원점(0,0,0) → 검출 pose 강체변환 행렬
                 HOperatorSet.VectorAngleToRigid(
                     0.0, 0.0, 0.0,
                     detRow, detCol, detAngleRad,
                     out homMat);
                 HOperatorSet.AffineTransContourXld(modelContours, out movedContours, homMat);
 
-                // WR-01 fix //260625 hbk Phase 61.1 — movedContours 는 다중 XLD segment 를 담을 수 있다.
-                // 단일 GetContourXld 는 첫 segment 만 가져오므로, CountObj 로 개수를 세고 SelectObj 로
-                // 각 segment 점을 전부 누적한다(다중 윤곽 모델에서 에지 끊김 방지).
-                HTuple contourCount = null;
-                List<double> allRows = new List<double>();
-                List<double> allCols = new List<double>();
-                try {
-                    HOperatorSet.CountObj(movedContours, out contourCount);
-                    int nContours = contourCount.I;
-                    for (int c = 1; c <= nContours; c++) {
-                        HObject segContour = null;
-                        HTuple segRows     = null;
-                        HTuple segCols     = null;
-                        try {
-                            HOperatorSet.SelectObj(movedContours, out segContour, c);
-                            HOperatorSet.GetContourXld(segContour, out segRows, out segCols);
-                            int segLen = segRows.Length;
-                            for (int i = 0; i < segLen; i++) {
-                                allRows.Add(segRows[i].D);
-                                allCols.Add(segCols[i].D);
-                            }
-                        }
-                        finally {
-                            if (segContour != null) { try { segContour.Dispose(); } catch { } }
-                            if (segRows    != null) { try { segRows.Dispose();    } catch { } }
-                            if (segCols    != null) { try { segCols.Dispose();    } catch { } }
-                        }
-                    }
-                }
-                finally {
-                    if (contourCount != null) { try { contourCount.Dispose(); } catch { } }
-                }
-
-                int totalPts = allRows.Count;
-                if (totalPts <= 0) {
-                    return true;   // contour 점 없음 — 성공으로 처리(빈 목록)
-                }
-
-                // EDGE_CONTOUR_MAX_POINTS 초과 시 stride 다운샘플
-                int stride = 1;
-                if (totalPts > EDGE_CONTOUR_MAX_POINTS) {
-                    stride = totalPts / EDGE_CONTOUR_MAX_POINTS;
-                    if (stride < 1) {
-                        stride = 1;
-                    }
-                }
-
-                for (int i = 0; i < totalPts; i += stride) {
-                    outRows.Add(allRows[i]);
-                    outCols.Add(allCols[i]);
-                }
-
+                outMoved = movedContours;
+                movedContours = null;   // 소유권 이전 — finally 에서 dispose 금지
                 return true;
             }
             catch (Exception ex) {
-                // WR-02 fix //260625 hbk Phase 61.1 — outRows/outCols 는 호출자 공유 누적 리스트.
-                // 여기서 Clear() 하면 이전 패턴(.shm 1)에서 이미 누적한 점까지 삭제되므로 비우지 않는다.
-                error = "TryExtractDetectedContour: " + ex.Message;
+                error = "TryBuildMovedContour: " + ex.Message;
+                if (movedContours != null) { try { movedContours.Dispose(); } catch { } }
                 return false;
             }
             finally {
-                if (modelId        != null) { try { modelId.Dispose();        } catch { } }
-                if (modelContours  != null) { try { modelContours.Dispose();  } catch { } }
-                if (movedContours  != null) { try { movedContours.Dispose();  } catch { } }
-                if (homMat         != null) { try { homMat.Dispose();         } catch { } }
+                if (modelId       != null) { try { modelId.Dispose();       } catch { } }
+                if (modelContours != null) { try { modelContours.Dispose(); } catch { } }
+                if (homMat        != null) { try { homMat.Dispose();        } catch { } }
             }
         }
 

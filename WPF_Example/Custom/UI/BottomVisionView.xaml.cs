@@ -298,11 +298,11 @@ namespace ReringProject.Custom.UI {
         // ─── 시각화 헬퍼 (260625 hbk Phase 61.1) ────────────────────────────────
 
         /// <summary>
-        /// Run 성공 시 검출 십자 + 보정 ROI 박스 + 에지 contour 를 MainResultViewerControl 에 전달.
+        /// Run 성공 시 보정 ROI 박스 + 에지 contour 를 MainResultViewerControl 에 전달.
         /// MainResultViewerControl.Render() 게이트 매핑:
         ///   datumRects(보정 ROI orange) → _datumOverlayVisible = [ROI 표시] 체크박스
-        ///   _inspectionOverlays(에지)   → _measurementOverlayVisible = [에지 표시] 체크박스
-        ///   검출 십자(_datumFindResultOverlay) → 게이트 없음, Clear 로만 제거
+        ///   _inspectionOverlays(에지 XLD contour 선) → _measurementOverlayVisible = [에지 표시] 체크박스
+        ///260625 hbk Phase 61.1 — F1: 검출 십자 제거(에지를 contour 선으로 대체).
         /// 예외 시 throw 없이 결과 텍스트만 유지 (T-61.1-05 완화).
         /// </summary>
         private void ApplyAlignVisualization(AlignResult res) {
@@ -314,21 +314,10 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
-            try {
-                // 1) 검출 십자: 두 패턴 midpoint 중심 1개
-                var dc = new DatumConfig(this); //260625 hbk Phase 61.1 — owner 필수 매개변수 전달
-                dc.DetectedOriginRow = res.DetectedCenterRow;
-                dc.DetectedOriginCol = res.DetectedCenterCol;
-                dc.LastFindSucceeded = true;
-                dc.DatumName = "Align";
-                _viewer.SetDatumFindResultOverlay(dc);
-            }
-            catch {
-                // 십자 렌더 실패 무시
-            }
+            //260625 hbk Phase 61.1 — F1: 검출 십자(SetDatumFindResultOverlay) 제거. 에지는 XLD contour 선으로만 표시.
 
             try {
-                // 2) 보정 ROI 박스: datumRects 채널(orange) — measRects=null 로 green 채널 미사용
+                // 1) 보정 ROI 박스: datumRects 채널(orange) — measRects=null 로 green 채널 미사용
                 List<double[]> datumRects = res.DetectedRoiBoxes;
                 if (datumRects == null) {
                     datumRects = new List<double[]>();
@@ -340,7 +329,7 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
-                // 3) 에지 contour: _measurementOverlayVisible 게이트
+                // 2) 에지 contour: _measurementOverlayVisible 게이트
                 List<EdgeInspectionOverlay> edgeOverlays = BuildEdgeOverlays(res);
                 _viewer.SetInspectionOverlays(edgeOverlays);
             }

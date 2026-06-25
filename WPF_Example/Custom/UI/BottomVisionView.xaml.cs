@@ -316,7 +316,7 @@ namespace ReringProject.Custom.UI {
 
             try {
                 // 1) 검출 십자: 두 패턴 midpoint 중심 1개
-                var dc = new DatumConfig();
+                var dc = new DatumConfig(this); //260625 hbk Phase 61.1 — owner 필수 매개변수 전달
                 dc.DetectedOriginRow = res.DetectedCenterRow;
                 dc.DetectedOriginCol = res.DetectedCenterCol;
                 dc.LastFindSucceeded = true;

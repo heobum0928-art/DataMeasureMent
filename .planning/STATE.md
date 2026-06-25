@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 61.1-03-PLAN.md
-last_updated: "2026-06-25T01:33:20.399Z"
+stopped_at: Completed 61.1-04-PLAN.md
+last_updated: "2026-06-25T01:38:28.278Z"
 last_activity: 2026-06-25
 progress:
   total_phases: 15
@@ -199,6 +199,7 @@ Last activity: 2026-06-25
 | Phase 61.1-align-offline-loader-result-viz-2026-06-25 P01 | 15 | 2 tasks | 2 files |
 | Phase 61.1-align-offline-loader-result-viz-2026-06-25 P02 | 25 | 2 tasks | 4 files |
 | Phase 61.1 P03 | 20 | 2 tasks | 4 files |
+| Phase 61.1 P04 | 20min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -406,6 +407,7 @@ Recent decisions affecting current work:
 - LOADER_IMAGE_EXTS const = .bmp;.png;.jpg;.jpeg;.tif;.tiff 확장자 화이트리스트
 - 검출 십자를 두 패턴 midpoint 단일 DatumConfig 객체로 구현(SetDatumFindResultOverlay 소비)
 - SetResultRoiOverlays(null, datumRects): ROI/에지 체크박스가 독립 게이트(datum/_measurement) 토글
+- Phase 61.1-04: DatumConfig(this) 빌드 에러 — Plan 03 생성자 인수 누락, 허용파일 내 수정(anti-goal 0변경)
 
 ### Quick Tasks Completed
 
@@ -535,8 +537,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-25T01:33:20.385Z
-Stopped at: Completed 61.1-03-PLAN.md
+Last session: 2026-06-25T01:38:28.264Z
+Stopped at: Completed 61.1-04-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

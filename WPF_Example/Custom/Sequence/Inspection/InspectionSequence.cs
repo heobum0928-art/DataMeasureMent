@@ -286,6 +286,99 @@ namespace ReringProject.Sequence {
             return nMax;
         }
 
+        //260625 hbk Phase 64 LIGHT-01 (D-12): z_index + OwnerSequenceName 기반 ShotConfig 조회.
+        //  이 시퀀스 소유 Shot 중 첫 번째 매칭을 반환. 없으면 null.
+        //  ComputeLastZIndex 의 순회 패턴 동일 — foreach + OwnerSequenceName + ZIndex 이중 조건.
+        private ShotConfig FindShotByZIndex(int nZIndex)
+        {
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return null;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                bool bZMatch = shot.ZIndex == nZIndex;
+                bool bInScope = bOwnedByThisSeq && bZMatch;
+                if (bInScope)
+                {
+                    return shot;
+                }
+            }
+            return null;
+        }
+
+        //260625 hbk Phase 64 LIGHT-01 (D-10/D-12): $PREP 수신 → z_index Shot 조회 → 조명 세팅.
+        //  ProcessPrep() 이 호출하는 public 진입점. Shot 없으면 false.
+        //  CoaxLight_* 는 ALIGN_COAX 그룹으로 매핑 (D-11: INI 키 이름 보존, 그룹명만 변경).
+        public bool ApplyShotLights(int nZIndex)
+        {
+            ShotConfig shot = FindShotByZIndex(nZIndex);
+            bool bHasShot = shot != null;
+            if (!bHasShot)
+            {
+                Logging.PrintLog((int)ELogType.LightController,
+                    "[PREP] Shot not found for ZIndex={0}, Seq={1} //260625 hbk Phase 64", nZIndex, Name);
+                return false;
+            }
+            ApplyShotLightsInternal(shot);
+            return true;
+        }
+
+        //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 4종 조명 → LightHandler 5종 그룹 적용.
+        //  RingLight → RING / BackLight → BACK / CoaxLight → ALIGN_COAX / SideLight → BAR
+        //  Enabled=true: SetOnOff(true) 먼저, 이후 SetLevel (ApplyLight 순서 동일).
+        //  Enabled=false: SetOnOff(false) 만 호출.
+        private void ApplyShotLightsInternal(ShotConfig shot)
+        {
+            if (shot.RingLight_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_RING, shot.RingLight_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING, false);
+            }
+
+            if (shot.BackLight_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_BACK, shot.BackLight_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
+            }
+
+            if (shot.CoaxLight_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, shot.CoaxLight_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
+            }
+
+            if (shot.SideLight_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_BAR, shot.SideLight_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, false);
+            }
+        }
+
         //260623 hbk Phase 49 PROTO-05 (D-08): Index 0(Datum 샷) 수신 = 사이클 시작 → 누적 상태 클린 슬레이트.
         //  비정상 종료(중단 F) 후에도 다음 사이클 시작이 항상 깨끗 — 마지막 Index 후 리셋(누락 위험) 미채택.
         private void ResetCycleState()

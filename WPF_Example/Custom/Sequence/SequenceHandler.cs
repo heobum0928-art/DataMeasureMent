@@ -52,11 +52,11 @@ namespace ReringProject.Sequence {
             //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스만 등록(SIMUL 전체). 비활성 시퀀스 미생성 → 카메라 미등록 OnCreate Error 차단.
             var seqs = new List<SequenceBase>();
             if (IsSequenceActive(ESequence.Top))
-                seqs.Add(new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_TOP));
+                seqs.Add(new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_RING)); //260625 hbk Phase 64 LIGHT-01
             if (IsSequenceActive(ESequence.Side))
-                seqs.Add(new InspectionSequence(ESequence.Side, SEQ_SIDE, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_SIDE));
+                seqs.Add(new InspectionSequence(ESequence.Side, SEQ_SIDE, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR)); //260625 hbk Phase 64 LIGHT-01
             if (IsSequenceActive(ESequence.Bottom))
-                seqs.Add(new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BOTTOM));
+                seqs.Add(new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BACK)); //260625 hbk Phase 64 LIGHT-01
             SequenceBuilder.RegisterSequence(seqs.ToArray());
         }
 

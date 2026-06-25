@@ -59,9 +59,9 @@ namespace ReringProject.Network {
             Add(EResource.Camera, ESite.Bottom, DeviceHandler.CAMERA_BOTTOM);
 
             //light
-            Add(EResource.Light, ESite.Top, LightHandler.LIGHT_TOP);
-            Add(EResource.Light, ESite.Side, LightHandler.LIGHT_SIDE);
-            Add(EResource.Light, ESite.Bottom, LightHandler.LIGHT_BOTTOM);
+            Add(EResource.Light, ESite.Top,    LightHandler.LIGHT_RING); //260625 hbk Phase 64 LIGHT-01
+            Add(EResource.Light, ESite.Side,   LightHandler.LIGHT_BAR);  //260625 hbk Phase 64 LIGHT-01
+            Add(EResource.Light, ESite.Bottom, LightHandler.LIGHT_BACK); //260625 hbk Phase 64 LIGHT-01
 
             //sequence
             Add(EResource.Sequence, ESite.Top, SequenceHandler.SEQ_TOP);
@@ -94,8 +94,8 @@ namespace ReringProject.Network {
         {
             Add(EResource.Camera,   ESite.Top,  DeviceHandler.CAMERA_TOP);
             Add(EResource.Camera,   ESite.Side, DeviceHandler.CAMERA_BOTTOM);
-            Add(EResource.Light,    ESite.Top,  LightHandler.LIGHT_TOP);
-            Add(EResource.Light,    ESite.Side, LightHandler.LIGHT_BOTTOM);
+            Add(EResource.Light,    ESite.Top,  LightHandler.LIGHT_RING); //260625 hbk Phase 64 LIGHT-01
+            Add(EResource.Light,    ESite.Side, LightHandler.LIGHT_BACK); //260625 hbk Phase 64 LIGHT-01
             Add(EResource.Sequence, ESite.Top,  SequenceHandler.SEQ_TOP);
             Add(EResource.Sequence, ESite.Side, SequenceHandler.SEQ_BOTTOM);
             Add(EResource.Action,   ESite.Top,  ETestType.Inspection, SequenceHandler.ACT_INSPECT);
@@ -107,8 +107,8 @@ namespace ReringProject.Network {
         {
             Add(EResource.Camera,   ESite.Top,  DeviceHandler.CAMERA_SIDE);
             Add(EResource.Camera,   ESite.Side, DeviceHandler.CAMERA_SIDE);
-            Add(EResource.Light,    ESite.Top,  LightHandler.LIGHT_SIDE);
-            Add(EResource.Light,    ESite.Side, LightHandler.LIGHT_SIDE);
+            Add(EResource.Light,    ESite.Top,  LightHandler.LIGHT_BAR); //260625 hbk Phase 64 LIGHT-01
+            Add(EResource.Light,    ESite.Side, LightHandler.LIGHT_BAR); //260625 hbk Phase 64 LIGHT-01
             Add(EResource.Sequence, ESite.Top,  SequenceHandler.SEQ_SIDE);
             Add(EResource.Sequence, ESite.Side, SequenceHandler.SEQ_SIDE);
             Add(EResource.Action,   ESite.Top,  ETestType.Inspection, SequenceHandler.ACT_INSPECT);

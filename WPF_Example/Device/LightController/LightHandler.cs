@@ -54,7 +54,7 @@ namespace ReringProject.Device {
 
         public static LightHandler Handle { get; } = new LightHandler();
 
-        public const int CHANNEL_LIMIT = 4; //1 controller 당 채널 갯수
+        public const int CHANNEL_LIMIT = 8; //260625 hbk Phase 64 LIGHT-01: 1 controller 당 채널 갯수 (JPF-1208 8CH 대응)
         public const int FAIL_LIMIT = 3;
 
         public const int TIMEOUT_READ = 2000;

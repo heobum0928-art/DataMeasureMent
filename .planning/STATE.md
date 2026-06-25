@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 61.1-02-PLAN.md
-last_updated: "2026-06-25T01:26:57.381Z"
+stopped_at: Completed 61.1-03-PLAN.md
+last_updated: "2026-06-25T01:33:20.399Z"
 last_activity: 2026-06-25
 progress:
   total_phases: 15
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 61.1 (align-offline-loader-result-viz-2026-06-25) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Last activity: 2026-06-25
 
 **사용자 작업 계획 2026-06-23 (C→B→A):**
@@ -198,6 +198,7 @@ Last activity: 2026-06-25
 | Phase 61 P03 | 2 | 3 tasks | 4 files |
 | Phase 61.1-align-offline-loader-result-viz-2026-06-25 P01 | 15 | 2 tasks | 2 files |
 | Phase 61.1-align-offline-loader-result-viz-2026-06-25 P02 | 25 | 2 tasks | 4 files |
+| Phase 61.1 P03 | 20 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -403,6 +404,8 @@ Recent decisions affecting current work:
 - TryExtractDetectedContour stride 다운샘플(EDGE_CONTOUR_MAX_POINTS=400) — T-61.1-01 메모리 폭주 차단
 - 로더 폴더 마지막 위치 = static _lastImageFolder (탭 전환/뷰 재생성에도 유지)
 - LOADER_IMAGE_EXTS const = .bmp;.png;.jpg;.jpeg;.tif;.tiff 확장자 화이트리스트
+- 검출 십자를 두 패턴 midpoint 단일 DatumConfig 객체로 구현(SetDatumFindResultOverlay 소비)
+- SetResultRoiOverlays(null, datumRects): ROI/에지 체크박스가 독립 게이트(datum/_measurement) 토글
 
 ### Quick Tasks Completed
 
@@ -532,8 +535,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-25T01:26:57.367Z
-Stopped at: Completed 61.1-02-PLAN.md
+Last session: 2026-06-25T01:33:20.385Z
+Stopped at: Completed 61.1-03-PLAN.md
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

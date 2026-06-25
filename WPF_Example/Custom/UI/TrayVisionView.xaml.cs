@@ -1,5 +1,8 @@
 //260624 hbk Phase 61: TrayVisionView 코드비하인드 — Tray 비전 thin facade (AV-08)
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using HalconDotNet;
@@ -22,6 +25,12 @@ namespace ReringProject.Custom.UI {
 
         // 최소 ROI 크기 임계 (px) — 너무 작은 ROI 는 티칭 불가
         private const double MIN_ROI_HALF_LENGTH = 1.0;
+
+        //260625 hbk Phase 61.1 오프라인 이미지 로더 상태
+        private const string LOADER_IMAGE_EXTS = ".bmp;.png;.jpg;.jpeg;.tif;.tiff";  // 지원 확장자
+        private List<string> _loadedImagePaths = new List<string>();
+        private int _loadedImageIndex = -1;   // -1 = 미로드
+        private static string _lastImageFolder = null;   // 폴더 마지막 위치 기억 (static — 탭 전환에도 유지)
 
         // D-03: 외부 주입 공유 뷰어 (소유하지 않음 — MainWindow 가 관리)
         private MainResultViewerControl _viewer;
@@ -323,6 +332,117 @@ namespace ReringProject.Custom.UI {
                 res.OffsetXmm,
                 res.OffsetYmm,
                 res.Score);
+        }
+
+        // ─── 오프라인 이미지 로더 핸들러 ─────────────────────────────────────────
+
+        private void OpenFolderButton_Click(object sender, RoutedEventArgs e) {
+            //260625 hbk Phase 61.1 폴더 열기 → 이미지 목록 로드 → 인덱스 0 표시
+            try {
+                var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
+                dlg.Multiselect = false;
+                if (!string.IsNullOrEmpty(_lastImageFolder)) {
+                    dlg.SelectedPath = _lastImageFolder;
+                }
+
+                if (dlg.ShowDialog() != true) {
+                    return;
+                }
+
+                string folder = dlg.SelectedPath;
+                if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) {
+                    lbl_loaderStatus.Text = "폴더 없음";
+                    return;
+                }
+
+                _lastImageFolder = folder;
+
+                var exts = new HashSet<string>(
+                    LOADER_IMAGE_EXTS.Split(';'),
+                    StringComparer.OrdinalIgnoreCase);
+
+                _loadedImagePaths = Directory.GetFiles(folder)
+                    .Where(f => exts.Contains(Path.GetExtension(f)))
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (_loadedImagePaths.Count == 0) {
+                    _loadedImageIndex = -1;
+                    lbl_loaderStatus.Text = "이미지 없음 (bmp/png/jpg/tif)";
+                    return;
+                }
+
+                _loadedImageIndex = 0;
+                LoadCurrentLoaderImage();
+            }
+            catch (Exception ex) {
+                lbl_loaderStatus.Text = "폴더 오류: " + ex.Message;
+            }
+        }
+
+        private void PrevImageButton_Click(object sender, RoutedEventArgs e) {
+            //260625 hbk Phase 61.1 이전 이미지로 인덱스 이동
+            if (_loadedImagePaths.Count == 0) {
+                lbl_loaderStatus.Text = "폴더 먼저 열기";
+                return;
+            }
+
+            if (_loadedImageIndex > 0) {
+                _loadedImageIndex = _loadedImageIndex - 1;
+                LoadCurrentLoaderImage();
+            }
+            else {
+                lbl_loaderStatus.Text = "첫 이미지";
+            }
+        }
+
+        private void NextImageButton_Click(object sender, RoutedEventArgs e) {
+            //260625 hbk Phase 61.1 다음 이미지로 인덱스 이동
+            if (_loadedImagePaths.Count == 0) {
+                lbl_loaderStatus.Text = "폴더 먼저 열기";
+                return;
+            }
+
+            if (_loadedImageIndex < _loadedImagePaths.Count - 1) {
+                _loadedImageIndex = _loadedImageIndex + 1;
+                LoadCurrentLoaderImage();
+            }
+            else {
+                lbl_loaderStatus.Text = "마지막 이미지";
+            }
+        }
+
+        /// <summary>
+        /// 현재 인덱스 이미지를 뷰어에 로드하고 상태 라벨을 갱신한다.
+        /// _viewer.LoadImage(path) 호출 → CurrentImage 갱신 → 기존 Teach/Run 핸들러 자동 사용.
+        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만 (T-61.1-03 완화).
+        /// </summary>
+        private void LoadCurrentLoaderImage() {
+            if (_viewer == null) {
+                lbl_loaderStatus.Text = "뷰어 미연결";
+                return;
+            }
+
+            if (_loadedImageIndex < 0 || _loadedImageIndex >= _loadedImagePaths.Count) {
+                return;
+            }
+
+            string path = _loadedImagePaths[_loadedImageIndex];
+            try {
+                _viewer.LoadImage(path);
+            }
+            catch (Exception ex) {
+                lbl_loaderStatus.Text = "로드 오류: " + ex.Message;
+                return;
+            }
+
+            lbl_loaderStatus.Text = string.Format(
+                "{0}/{1}  {2}",
+                _loadedImageIndex + 1,
+                _loadedImagePaths.Count,
+                Path.GetFileName(path));
+
+            lbl_status.Text = "대기";
         }
     }
 }

@@ -63,6 +63,9 @@ namespace ReringProject {
                     case VisionRequestType.AlignCalib:                                 //260624 hbk Phase 63 AV-09
                         responsePacket = ProcessAlignCalib(packet.AsAlignCalib());
                         break;
+                    case VisionRequestType.Prep:                                   //260625 hbk Phase 64 LIGHT-01
+                        responsePacket = ProcessPrep(packet.AsPrep());
+                        break;
                     case VisionRequestType.Unknown:
                         //occurs error
                         break;
@@ -293,6 +296,54 @@ namespace ReringProject {
             resultPacket.AlignTarget = packet.AlignTarget;
             resultPacket.IsPass = true;
             return resultPacket;
+        }
+
+        //260625 hbk Phase 64 LIGHT-01 (D-12): $PREP 처리.
+        //  z_index → 이 PC InspectionSequence 찾기 → ApplyShotLights() 호출 → PrepAck 반환.
+        //  Site 필드는 ACK 에 echo만 함. 실제 시퀀스 라우팅은 이 PC 소속 InspectionSequence 전부 대상.
+        private PrepAckPacket ProcessPrep(PrepPacket packet)
+        {
+            PrepAckPacket ackPacket = new PrepAckPacket();
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return null;
+            }
+            ackPacket.Target = packet.Sender;
+            ackPacket.Site = packet.Site;
+            ackPacket.ZIndex = packet.ZIndex;
+            ackPacket.IsOk = false; // 기본값 FAIL — 성공 시 true 로 덮어씀
+
+            bool bApplied = ApplyPrepToSequences(packet.ZIndex);
+            if (bApplied)
+            {
+                ackPacket.IsOk = true;
+            }
+            return ackPacket;
+        }
+
+        //260625 hbk Phase 64 LIGHT-01: Sequences 순회 → InspectionSequence 찾기 → ApplyShotLights 호출.
+        //  하나라도 성공하면 true 반환. 매칭 InspectionSequence 없으면 false.
+        private bool ApplyPrepToSequences(int nZIndex)
+        {
+            bool bAnyApplied = false;
+            int nCount = Sequences.Count;
+            for (int i = 0; i < nCount; i++)
+            {
+                SequenceBase seqBase = Sequences[i];
+                InspectionSequence inspSeq = seqBase as InspectionSequence;
+                bool bIsInsp = inspSeq != null;
+                if (!bIsInsp)
+                {
+                    continue;
+                }
+                bool bOk = inspSeq.ApplyShotLights(nZIndex);
+                if (bOk)
+                {
+                    bAnyApplied = true;
+                }
+            }
+            return bAnyApplied;
         }
 
         //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)

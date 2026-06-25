@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: context exhaustion at 90% (2026-06-25)
-last_updated: "2026-06-25T03:27:27.292Z"
+stopped_at: Phase 61.1 F4 hotfix 적용 — Align 에지 XLD 직접 disp 재실측 대기 (2026-06-25)
+last_updated: "2026-06-25T00:00:00.000Z"
 last_activity: 2026-06-25
 progress:
   total_phases: 15
@@ -27,9 +27,11 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 61.1 (align-offline-loader-result-viz-2026-06-25) — EXECUTING
+Phase: 61.1 (align-offline-loader-result-viz-2026-06-25) — EXECUTING (UAT 재실측 대기)
 Plan: 4 of 4
 Last activity: 2026-06-25
+
+**Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
 **사용자 작업 계획 2026-06-23 (C→B→A):**
 

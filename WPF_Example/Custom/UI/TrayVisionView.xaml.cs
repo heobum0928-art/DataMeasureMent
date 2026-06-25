@@ -73,6 +73,23 @@ namespace ReringProject.Custom.UI {
         // ─── 카메라 핸들러 ────────────────────────────────────────────────────────
 
         private void GrabButton_Click(object sender, RoutedEventArgs e) {
+#if SIMUL_MODE
+            //260625 hbk Phase 61.1 F3 — SIMUL 모드: Grab = 파일 선택 다이얼로그 로드 (카메라 미사용)
+            try {
+                Ookii.Dialogs.Wpf.VistaOpenFileDialog dlg = new Ookii.Dialogs.Wpf.VistaOpenFileDialog();
+                dlg.Filter = "이미지 파일|*.bmp;*.png;*.jpg;*.jpeg;*.tif;*.tiff|모든 파일|*.*";
+                bool? bResult = dlg.ShowDialog();
+                if (bResult == true) {
+                    if (_viewer != null) {
+                        _viewer.LoadImage(dlg.FileName);
+                    }
+                    lbl_status.Text = "로드: " + System.IO.Path.GetFileName(dlg.FileName);
+                }
+            }
+            catch (Exception ex) {
+                lbl_status.Text = "로드 오류: " + ex.Message;
+            }
+#else
             //260624 hbk Phase 61 — Camera null 가드
             if (EthernetVisionHandler.Handle.Camera == null) {
                 lbl_status.Text = "미연결";
@@ -95,6 +112,7 @@ namespace ReringProject.Custom.UI {
             catch (Exception ex) {
                 lbl_status.Text = "Grab 오류: " + ex.Message;
             }
+#endif
         }
 
         private void LiveButton_Click(object sender, RoutedEventArgs e) {

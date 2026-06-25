@@ -651,6 +651,12 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 **Background**: Phase 61 UAT(2026-06-25) 갭 G-61.1-01(Grab 이미지 한 장 고정 → 다양한 케이스 검증 불가)/G-61.1-02(결과 이미지 미시각화). 피커캘 실측 36스텝은 실 HW 필요한 별개 항목.
 **참조 (재사용)**: MainResultViewerControl `SetMeasurementOverlayVisible/SetDatumOverlayVisible/SetPatternRoiOverlayVisible`(토글), `SetResultRoiOverlays`(보정 ROI 박스), `SetInspectionOverlays/UpdateDisplayState`(에지). align 뷰는 같은 공유 뷰어.
 
+**Plans:** 4 plans (3 waves) — planned 2026-06-25
+- [ ] 61.1-01-PLAN.md — AlignShapeMatchService + AlignResult 검출 좌표·보정 ROI·에지 contour 반환 확장 (하위호환)
+- [ ] 61.1-02-PLAN.md — Tray/Bottom 오프라인 이미지 로더 (폴더 열기 + 이전/다음, Grab/폴백 유지)
+- [ ] 61.1-03-PLAN.md — 시각화 배선 (Run→검출 십자/보정 ROI/에지 오버레이 + ROI/에지 표시 체크박스)
+- [ ] 61.1-04-PLAN.md — msbuild Debug/x64 빌드 게이트 + anti-goal git diff 증명 + Success Criteria 추적
+
 ### Phase 62: TCP (E) (신설 2026-06-23)
 **Goal**: Align 결과를 기존 VisionServer/TcpServer 로 전송 ($RESULT site=TRAY/BOTTOM).
 **Requirements**: AV-09

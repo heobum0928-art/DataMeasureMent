@@ -283,14 +283,14 @@ namespace ReringProject {
             resultPacket.Target = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
             resultPacket.MaterialNo = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo
-            resultPacket.AlignFace = packet.AlignFace;    //260626 hbk v3.0: 지그 면 인덱스 echo(0=TOP/1=SIDE_1/2=BOTTOM/3=SIDE_2)
+            resultPacket.AlignFace = packet.AlignFace;    //260626 hbk v3.0: 지그 면 인덱스 echo(0=TOP/1=BOTTOM/2=SIDE_1/3=SIDE_2)
             resultPacket.IsPass = true;   // [가정] 측정 연계 전까지 ack
 
             bool bIsBottom = packet.AlignTarget == "BOTTOM";
             if (bIsBottom)
             {
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[ALIGN_TEST] Target=BOTTOM, Face={0}(0=TOP/1=SIDE_1/2=BOTTOM/3=SIDE_2) //260626 hbk", packet.AlignFace);
+                    "[ALIGN_TEST] Target=BOTTOM, Face={0}(0=TOP/1=BOTTOM/2=SIDE_1/3=SIDE_2) //260626 hbk", packet.AlignFace);
             }
             return resultPacket;
         }

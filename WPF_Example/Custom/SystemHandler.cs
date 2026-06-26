@@ -344,6 +344,7 @@ namespace ReringProject {
                 //260626 hbk 예외 → throw 금지, false 반환 (TCP 스레드 크래시 방지, T-65-06)
                 Logging.PrintLog((int)ELogType.Error,
                     "[ALIGN_TEST] RunBottomAlign 예외: {0} //260626 hbk", ex.Message);
+                FillAlignPoseZero(pResult); //260626 hbk WR-02: 외부 catch — 빈 Items 응답 방지, pose=0 채움
                 return false;
             }
         }

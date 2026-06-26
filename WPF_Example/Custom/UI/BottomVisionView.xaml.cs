@@ -42,7 +42,14 @@ namespace ReringProject.Custom.UI {
         private RoiDefinition _roi2;
 
         // 현재 ROI 드로잉 진행 중인 슬롯 인덱스 (1 또는 2, 0=미진행)
+        // 주의: _drawingSlot 은 ROI 드로잉 순서(1/2), 면 슬롯(_selectedSlot) 과 다른 개념
         private int _drawingSlot;
+
+        //260626 hbk Phase 65 Plan 02 — 6슬롯 면별 Align UI 필드 (D-01)
+        // _selectedSlot: 현재 선택된 면 슬롯 (None = 미선택)
+        private EBottomAlignSlot _selectedSlot = EBottomAlignSlot.None;
+        // _slotRois: 슬롯별 확정된 ROI 쌍 보관. [0]=roi1, [1]=roi2. 슬롯 전환 시 복원에 사용.
+        private Dictionary<EBottomAlignSlot, RoiDefinition[]> _slotRois = new Dictionary<EBottomAlignSlot, RoiDefinition[]>();
 
         // 캘 검색 ROI 슬롯 (Circle 드로잉으로 수거)
         private double _calSearchRow;
@@ -79,7 +86,97 @@ namespace ReringProject.Custom.UI {
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────
 
         private void BottomVisionView_Loaded(object sender, RoutedEventArgs e) {
+            PopulateSlotComboBox(); //260626 hbk Phase 65 Plan 02 — 6슬롯 항목 채우기 (Loaded 시점)
             RefreshStatus();
+        }
+
+        /// <summary>
+        /// 면 슬롯 ComboBox 에 6개 슬롯을 그룹 라벨과 함께 채운다.
+        /// 3D 그룹 2개 먼저, 2D 그룹 4개 순서. Tag 에 EBottomAlignSlot enum 보관.
+        /// 초기 선택 없음 — 작업자가 명시적으로 선택해야 티칭 가능.
+        /// </summary>
+        private void PopulateSlotComboBox() //260626 hbk Phase 65 Plan 02 — ComboBox 6슬롯 채우기 (D-01)
+        {
+            cmb_slot.Items.Clear();
+
+            ComboBoxItem item3DTop = new ComboBoxItem();
+            item3DTop.Content = "[3D] 3D_Top"; //260626 hbk 3D 그룹 첫 번째 슬롯
+            item3DTop.Tag = EBottomAlignSlot.Slot3DTop;
+            cmb_slot.Items.Add(item3DTop);
+
+            ComboBoxItem item3DBottom = new ComboBoxItem();
+            item3DBottom.Content = "[3D] 3D_Bottom"; //260626 hbk 3D 그룹 두 번째 슬롯
+            item3DBottom.Tag = EBottomAlignSlot.Slot3DBottom;
+            cmb_slot.Items.Add(item3DBottom);
+
+            ComboBoxItem item2DTop = new ComboBoxItem();
+            item2DTop.Content = "[2D] 2D_TOP"; //260626 hbk 2D 그룹 첫 번째 슬롯
+            item2DTop.Tag = EBottomAlignSlot.Slot2DTop;
+            cmb_slot.Items.Add(item2DTop);
+
+            ComboBoxItem item2DBottom = new ComboBoxItem();
+            item2DBottom.Content = "[2D] 2D_BOTTOM"; //260626 hbk 2D 그룹 두 번째 슬롯
+            item2DBottom.Tag = EBottomAlignSlot.Slot2DBottom;
+            cmb_slot.Items.Add(item2DBottom);
+
+            ComboBoxItem item2DSide1 = new ComboBoxItem();
+            item2DSide1.Content = "[2D] 2D_SIDE_1"; //260626 hbk 2D 그룹 세 번째 슬롯
+            item2DSide1.Tag = EBottomAlignSlot.Slot2DSide1;
+            cmb_slot.Items.Add(item2DSide1);
+
+            ComboBoxItem item2DSide2 = new ComboBoxItem();
+            item2DSide2.Content = "[2D] 2D_SIDE_2"; //260626 hbk 2D 그룹 네 번째 슬롯
+            item2DSide2.Tag = EBottomAlignSlot.Slot2DSide2;
+            cmb_slot.Items.Add(item2DSide2);
+
+            // 초기 선택 없음 — 작업자가 명시 선택해야 티칭 가능 (T-65-04 가드 대비)
+            cmb_slot.SelectedIndex = -1;
+        }
+
+        /// <summary>
+        /// 면 슬롯 ComboBox 선택 변경 핸들러.
+        /// _selectedSlot 갱신 → 슬롯별 ROI 복원 → RefreshStatus 호출.
+        /// </summary>
+        private void SlotComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) //260626 hbk Phase 65 Plan 02 — 슬롯 전환 핸들러
+        {
+            try {
+                ComboBoxItem selectedItem = cmb_slot.SelectedItem as ComboBoxItem;
+                if (selectedItem == null) {
+                    _selectedSlot = EBottomAlignSlot.None; //260626 hbk 선택 없음 → None
+                    lbl_slotStatus.Text = "슬롯 선택 필요";
+                    return;
+                }
+
+                if (!(selectedItem.Tag is EBottomAlignSlot)) {
+                    _selectedSlot = EBottomAlignSlot.None; //260626 hbk Tag 타입 불일치 방어
+                    lbl_slotStatus.Text = "슬롯 선택 필요";
+                    return;
+                }
+
+                EBottomAlignSlot newSlot = (EBottomAlignSlot)selectedItem.Tag;
+                _selectedSlot = newSlot; //260626 hbk 현재 선택 슬롯 갱신
+
+                // 슬롯별 저장된 ROI 복원 (없으면 null — 새 티칭 대기)
+                if (_slotRois.ContainsKey(_selectedSlot)) {
+                    RoiDefinition[] savedRois = _slotRois[_selectedSlot];
+                    _roi1 = savedRois[0]; //260626 hbk 이 슬롯의 저장 ROI1 복원
+                    _roi2 = savedRois[1]; //260626 hbk 이 슬롯의 저장 ROI2 복원
+                }
+                else {
+                    _roi1 = null; //260626 hbk 저장된 ROI 없음 → 새 티칭 대기
+                    _roi2 = null;
+                }
+
+                _drawingSlot = 0; //260626 hbk ROI 드로잉 슬롯 리셋 (슬롯 전환 시 드로잉 취소)
+
+                string displayLabel = EBottomAlignSlotMap.ToDisplayLabel(newSlot);
+                lbl_slotStatus.Text = "선택: " + displayLabel; //260626 hbk 선택 슬롯 라벨 표시
+
+                RefreshStatus(); //260626 hbk 슬롯별 HasTemplate 상태 갱신
+            }
+            catch (Exception ex) {
+                lbl_slotStatus.Text = "슬롯 전환 오류: " + ex.Message;
+            }
         }
 
         // ─── 카메라 핸들러 ────────────────────────────────────────────────────────
@@ -207,6 +304,14 @@ namespace ReringProject.Custom.UI {
 
         private void TeachButton_Click(object sender, RoutedEventArgs e) {
             //260624 hbk Phase 61 — 2-ROI 확정 + TryTeach 호출 (EEthernetVisionMode.Bottom)
+            //260626 hbk Phase 65 Plan 02 — 슬롯 가드 + _selectedSlot 전달 (T-65-04, D-01)
+
+            // T-65-04: 슬롯 미선택 시 조기 반환 — 의도치 않은 단일경로 덮어쓰기 방지
+            if (_selectedSlot == EBottomAlignSlot.None) {
+                lbl_teachStatus.Text = "면 슬롯을 먼저 선택하세요"; //260626 hbk 슬롯 미선택 가드
+                return;
+            }
+
             if (_viewer == null || _viewer.CurrentImage == null) {
                 lbl_status.Text = "이미지 없음 — Grab 먼저";
                 return;
@@ -233,16 +338,21 @@ namespace ReringProject.Custom.UI {
                 RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
 
                 string error;
+                // 슬롯 오버로드 호출 — Plan 01 신규 오버로드(_selectedSlot 명시)
                 bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
                     _viewer.CurrentImage,
                     r1, c1, phi1, l1_1, l1_2,
                     r2, c2, phi2, l2_1, l2_2,
-                    VIEW_MODE,
+                    VIEW_MODE, _selectedSlot, //260626 hbk 선택 슬롯 전달 (Plan 01 슬롯 오버로드)
                     out error);
 
                 if (bOk) {
-                    bool bHas = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE);
-                    lbl_teachStatus.Text = "티칭 OK (HasTemplate=" + bHas + ")";
+                    bool bHas = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE, _selectedSlot); //260626 hbk 슬롯별 HasTemplate 확인
+                    string slotLabel = EBottomAlignSlotMap.ToDisplayLabel(_selectedSlot);
+                    lbl_teachStatus.Text = "[" + slotLabel + "] 티칭 OK (HasTemplate=" + bHas + ")"; //260626 hbk 슬롯 라벨 포함 메시지
+
+                    // 티칭 성공 시 이 슬롯의 ROI 쌍을 영구 보관
+                    _slotRois[_selectedSlot] = new RoiDefinition[] { _roi1, _roi2 }; //260626 hbk 슬롯별 ROI 보관 (슬롯 전환 후 복원용)
                 }
                 else {
                     lbl_teachStatus.Text = "티칭 실패: " + error;
@@ -258,6 +368,7 @@ namespace ReringProject.Custom.UI {
 
         private void RunButton_Click(object sender, RoutedEventArgs e) {
             //260624 hbk Phase 61 — Matcher.Run 호출 → AlignResult X/Y + Theta(deg) + Score 표시 (Bottom: HasTheta=true)
+            //260626 hbk Phase 65 Plan 02 — _selectedSlot 전달. None 이면 단일 경로 폴백(D-09)
             if (_viewer == null || _viewer.CurrentImage == null) {
                 lbl_status.Text = "이미지 없음 — Grab 먼저";
                 return;
@@ -265,7 +376,8 @@ namespace ReringProject.Custom.UI {
 
             try {
                 lbl_status.Text = "검사중";
-                AlignResult res = EthernetVisionHandler.Handle.Matcher.Run(_viewer.CurrentImage, VIEW_MODE);
+                // _selectedSlot None 이면 Plan 01 폴백(Bottom_1/2.shm 단일) 동작 — 회귀 0 보장
+                AlignResult res = EthernetVisionHandler.Handle.Matcher.Run(_viewer.CurrentImage, VIEW_MODE, _selectedSlot); //260626 hbk 선택 슬롯 전달
 
                 if (res.Found) {
                     lbl_result.Text = FormatAlignResult(res);
@@ -513,20 +625,7 @@ namespace ReringProject.Custom.UI {
                 lbl_status.Text = "대기";
             }
 
-            bool bHasTemplate = false;
-            try {
-                bHasTemplate = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE);
-            }
-            catch {
-                // Matcher 초기화 전 예외 무시
-            }
-
-            if (bHasTemplate) {
-                lbl_teachStatus.Text = "티칭 OK (HasTemplate=True)";
-            }
-            else {
-                lbl_teachStatus.Text = "티칭 없음";
-            }
+            RefreshTeachStatus(); //260626 hbk Phase 65 Plan 02 — 슬롯별 티칭 상태 갱신 분리
 
             // 누적 스텝 수 표시 (PickerCal null 안전 처리)
             int stepCount = 0;
@@ -534,6 +633,42 @@ namespace ReringProject.Custom.UI {
                 stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
             }
             lbl_calStatus.Text = "누적 " + stepCount;
+        }
+
+        /// <summary>
+        /// 선택 슬롯의 HasTemplate 결과로 티칭 상태 라벨을 갱신한다.
+        /// 슬롯 None 이면 단일 경로(Bottom) 상태 표시.
+        /// 슬롯 선택 시 슬롯 라벨 포함 메시지로 표시.
+        /// </summary>
+        private void RefreshTeachStatus() //260626 hbk Phase 65 Plan 02 — 슬롯별 HasTemplate 라벨 갱신
+        {
+            bool bHasTemplate = false;
+            try {
+                bHasTemplate = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE, _selectedSlot); //260626 hbk 슬롯 반영 HasTemplate
+            }
+            catch {
+                // Matcher 초기화 전 예외 무시
+            }
+
+            if (_selectedSlot == EBottomAlignSlot.None) {
+                // 슬롯 미선택: 단일 경로 상태 표시
+                if (bHasTemplate) {
+                    lbl_teachStatus.Text = "티칭 OK (단일 경로)"; //260626 hbk None=단일 경로 상태
+                }
+                else {
+                    lbl_teachStatus.Text = "티칭 없음 (슬롯 선택 필요)"; //260626 hbk None=슬롯 선택 안내
+                }
+            }
+            else {
+                // 슬롯 선택: 슬롯 라벨 포함 상태 표시
+                string slotLabel = EBottomAlignSlotMap.ToDisplayLabel(_selectedSlot);
+                if (bHasTemplate) {
+                    lbl_teachStatus.Text = "[" + slotLabel + "] 티칭 OK"; //260626 hbk 슬롯 라벨 포함 OK
+                }
+                else {
+                    lbl_teachStatus.Text = "[" + slotLabel + "] 티칭 없음"; //260626 hbk 슬롯 라벨 포함 없음
+                }
+            }
         }
 
         /// <summary>

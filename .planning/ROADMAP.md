@@ -753,6 +753,19 @@ Plans:
 - [x] 65-03-PLAN.md — SystemHandler ProcessAlignTest grab + 슬롯 Matcher.Run + pose 채움(stub 교체) [Wave 2]
 - [x] 65-04-PLAN.md — 통합 빌드 확정 + 실HW 6슬롯 티칭/Run/PLC UAT(작업자) [Wave 3]
 
+### Phase 66: 조명 정합 — 검사 Ring7/Coax + Align 동축 (신설 2026-06-26)
+**Goal**: 검사(inspection) shot 조명 세트를 HW 사양(Ring/Backlight/Bar/Ring7, shot별 자유 조합)과 정합시키고, 얼라인 카메라 전용 동축(Coax)은 검사에서 숨겨 Align 창(Bottom/Tray)으로 이동한다. 채널 재배선 없이 ShotConfig/UI/매핑 정리 수준. 상세 = 66-CONTEXT.md (discuss 후).
+**Requirements**: LIGHT-01(정합/연계), AV-08(Align 동축 연계)
+**Depends on:** Phase 64 (LightHandler 5그룹 + ShotConfig→LightGroup 매핑), Phase 65 (Bottom 6슬롯 Align 창)
+**Success Criteria**:
+1. 검사 Shot>Light = Ring/Back/Bar/Ring7 자유 조합. ShotConfig 에 Ring7Light_Enabled/Brightness 추가 + 매핑 Ring7→RING7. 기존 Ring/Back/Side(BAR) 회귀 0
+2. CoaxLight_* 검사 ShotConfig 숨김([Browsable(false)], INI 키 보존=하위호환) — 검사 PropertyGrid 미노출
+3. Bottom/Tray Align 창에 동축(LIGHT_ALIGN_COAX) ON/OFF + 밝기(0~255). Bottom 은 6슬롯별 동축 밝기 저장 + Teach/Run/Grab 직전 자동 적용(비전 PC 소유, 별도 PC 1채널)
+4. 컨트롤러 채널 재배선 없음(현 6+6+동축1 유지). msbuild Debug/x64 PASS, 검사/Tray/Align 회귀 0
+**Background**: 2026-06-26 사용자 발의 + AOI POC v1.5 HW 도면 확인. 검사 조명=shot별 자유 조합(고정 없음). 동축=얼라인 카메라 전용(별도 PC 1채널). 현 ShotConfig=Ring/Back/Coax/Side 라 Ring7 누락 + Coax 오노출 → 정합 필요. 관련 메모리=project_aoi_poc_lighting_config.
+
+**Plans:** TBD (discuss → plan)
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)
@@ -767,4 +780,5 @@ Plans:
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |
 | 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | ✅ Code complete (UAT pending) | 2026-06-25 | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결, msbuild PASS |
-| 65 | Bottom 6-슬롯 면별 Align (3D/2D × 면) | AV-08연계 | Executing (2/4 complete) | — | 6슬롯(3D 2 + 2D 4) 독립 모델/레퍼런스. 65-01(enum+서비스) + 65-02(UI) 완료. 65-03(ProcessAlignTest Run) 진행 예정. |
+| 65 | Bottom 6-슬롯 면별 Align (3D/2D × 면) | AV-08연계 | ✅ Code complete (HW UAT pending) | 2026-06-26 | 6슬롯 독립 모델/레퍼런스. 4/4 plan, 코드 5/5 검증 PASS, 빌드 PASS, 리뷰 3건 수정. 실HW UAT=65-HUMAN-UAT.md |
+| 66 | 조명 정합 — 검사 Ring7/Coax + Align 동축 | LIGHT-01연계 | Discuss (신설 2026-06-26) | — | 검사 조명 Ring/Back/Bar/Ring7 정합(Ring7 추가, Coax 숨김) + 동축 Align 창 이동 |

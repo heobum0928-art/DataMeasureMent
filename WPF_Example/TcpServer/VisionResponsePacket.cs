@@ -529,7 +529,7 @@ namespace ReringProject.Network {
         //260626 hbk v3.0: $ALIGN_RESULT 직렬화.
         //  TRAY:   $ALIGN_RESULT:TRAY,MaterialNo,OK|NG,OffsetX=val,OffsetY=val@
         //  BOTTOM: $ALIGN_RESULT:BOTTOM,MaterialNo,AlignFace(0~3),OK|NG,OffsetX=val,OffsetY=val,Theta=val@
-        //  AlignFace: 0=TOP / 1=SIDE_1 / 2=BOTTOM / 3=SIDE_2
+        //  AlignFace(0~5, 6지그): 0=G1_TOP / 1=G1_BOT / 2=G2_TOP / 3=G2_BOT / 4=G2_SIDE1 / 5=G2_SIDE2
         private static string BuildAlignResultMessage(AlignResultPacket packet)
         {
             string szMsg = "";
@@ -542,7 +542,7 @@ namespace ReringProject.Network {
             bool bIsBottom = packet.AlignTarget == "BOTTOM";
             if (bIsBottom)
             {
-                szMsg += packet.AlignFace.ToString();       // 0=TOP/1=BOTTOM/2=SIDE_1/3=SIDE_2
+                szMsg += packet.AlignFace.ToString();       // 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2
                 szMsg += VisionServer.MSG_CONTENTS_SEPERATOR; // ','
             }
             bool bIsPass = packet.IsPass;
@@ -879,11 +879,11 @@ namespace ReringProject.Network {
 
     //260624 hbk Phase 63 AV-09: $ALIGN_RESULT 응답 패킷. 가변 Items 로 Tray(2)/Bottom(3) 모두 수용.
     //260625 hbk v3.0: MaterialNo 추가 — 자재번호 echo.
-    //260626 hbk v3.0: AlignFace int 0~3 echo — 0=TOP/1=BOTTOM/2=SIDE_1/3=SIDE_2. TRAY=-1.
+    //260626 hbk v3.0: AlignFace int 0~5 echo (6지그) — 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2. TRAY=-1.
     public class AlignResultPacket : VisionResponsePacket {
         public string AlignTarget { get; set; } = "";   // TRAY / BOTTOM
         public int    MaterialNo  { get; set; } = -1;   //260625 hbk v3.0: 자재번호 echo
-        public int    AlignFace   { get; set; } = -1;   //260626 hbk v3.0: BOTTOM 전용 지그 면 인덱스 echo(0=TOP/1=BOTTOM/2=SIDE_1/3=SIDE_2)
+        public int    AlignFace   { get; set; } = -1;   //260626 hbk v3.0: BOTTOM 전용 지그 면 인덱스 echo(0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2)
         public bool IsPass { get; set; } = true;
         public List<AlignResultItem> Items { get; set; } = new List<AlignResultItem>();
 

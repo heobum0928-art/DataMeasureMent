@@ -66,6 +66,7 @@ namespace ReringProject.Sequence {
         public bool BackLight_Enabled { get; set; }
         public int BackLight_Brightness { get; set; }
 
+        [Browsable(false)]   //260626 hbk Phase 66 D-03: 검사 PropertyGrid 에서 동축 숨김. INI 키/매핑 코드는 보존(하위호환). 동축 제어는 Align 창(Plan 03).
         [Category("Light|Coax")]
         public bool CoaxLight_Enabled { get; set; }
         public int CoaxLight_Brightness { get; set; }
@@ -73,6 +74,10 @@ namespace ReringProject.Sequence {
         [Category("Light|Side")]
         public bool SideLight_Enabled { get; set; }
         public int SideLight_Brightness { get; set; }
+
+        [Category("Light|Ring7")]   //260626 hbk Phase 66 D-01: Ring7 조명 추가(자유 조합) — Ring/Back/Bar/Ring7 4종
+        public bool Ring7Light_Enabled { get; set; }   //260626 hbk Ring7 ON/OFF
+        public int Ring7Light_Brightness { get; set; }   //260626 hbk Ring7 밝기 0~255
 
         // Thread-safe image buffer
         private readonly object _imageLock = new object();

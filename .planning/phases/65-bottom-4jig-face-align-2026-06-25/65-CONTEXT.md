@@ -26,7 +26,7 @@ Bottom 비전이 안착지그 **6종**에 자재를 ideal 안착시키기 위한
   - **2D 그룹 (4)**: `2D_TOP`, `2D_BOTTOM`, `2D_SIDE_1`, `2D_SIDE_2`
   - ROADMAP 의 'Side1=Top정/Side2=Top90/Bottom정/Bottom90' 4자세 framing 및 'TOP/BOTTOM/SIDE_1/SIDE_2' 4값은 **모두 폐기** → 위 6슬롯이 정식.
 - **D-02:** 파일 슬롯명 = 의미명 `Bottom_{slot}_1/2.shm` + `Bottom_{slot}.json` (예: `Bottom_3D_Top_1.shm`, `Bottom_2D_SIDE_1_1.shm`). 6세트.
-- **D-03:** TCP `AlignFace` index = 0~3 → **0~5(6값)** 확장. **제안 매핑(기존 0~3 호환 보존)**: 0=2D_TOP, 1=2D_BOTTOM, 2=2D_SIDE_1, 3=2D_SIDE_2, 4=3D_Top, 5=3D_Bottom. 최종 index 순서/encoding = **v3.0 프로토콜 스펙 준수**(planner 확인).
+- **D-03:** TCP `AlignFace` index = **0~5(6값)** — v3.0 스펙으로 **이미 코드+엑셀 반영됨**. **권위 매핑(코드 확인, SystemHandler.cs:238/245)**: `0=G1_TOP=3D_Top / 1=G1_BOT=3D_Bottom / 2=G2_TOP=2D_TOP / 3=G2_BOT=2D_BOTTOM / 4=G2_SIDE1=2D_SIDE_1 / 5=G2_SIDE2=2D_SIDE_2` (G1=묶음1=3D, G2=묶음2=2D). UI 라벨=3D_/2D_, 코드 토큰=G1_/G2_ (planner: 기존 G1/G2 토큰 일관 유지). **이미 구현됨**: AlignFace 0~5 echo + `$ALIGN_RESULT:BOTTOM,Mat,AlignFace,OK|NG,OffsetX,OffsetY,Theta@`(pose) 포맷 (VisionResponsePacket.cs:531-545, 882-886). **미구현(이 phase)**: ProcessAlignTest 의 실제 슬롯별 Matcher.Run + grab + pose 채움(현 stub IsPass=true).
 
 ### 면별 이미지 입력
 - **D-04:** **티칭(ideal 캡처) = 면별 이미지 파일 로드** (Phase 61.1 오프라인 로더 재사용). 슬롯마다 별도 이미지(6장).
@@ -65,8 +65,10 @@ Bottom 비전이 안착지그 **6종**에 자재를 ideal 안착시키기 위한
 - `.planning/ROADMAP.md` Phase 65 항목 — Goal/Success Criteria (6슬롯으로 갱신됨).
 - `.planning/ROADMAP.md` Phase 64 항목 — TCP AlignFace 도입 맥락(이미 0~3 파싱·echo 완료, 0~5 확장 대상).
 
-### 프로토콜 스펙 (D-08 — 반드시 확인)
-- v3.0 제어 프로토콜 엑셀 스펙 (파일명 ≈ `…protocol v3_3.xlsx`, 메모리 project_protocol_type_field 참조) — $ALIGN_TEST/$ALIGN_RESULT 필드, AlignFace 모드, pose 반환 계약. planner 가 경로 확인 후 AlignFace 0~5 + ALIGN_RESULT 정합.
+### 프로토콜 스펙 (D-08 — 권위)
+- **AlignFace 0~5 매핑은 코드+엑셀에 이미 반영됨** (memory project_protocol_v30_prep_test_split): 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2. **임의 재매핑 금지** — 이 값 고정.
+- 코드 근거: `WPF_Example/Custom/SystemHandler.cs:238,245` + `WPF_Example/TcpServer/VisionResponsePacket.cs:531-545,882-886` ($ALIGN_RESULT pose 포맷 + AlignFace echo).
+- v3.0 엑셀 스펙 (`…protocol v3_3.xlsx`) — $ALIGN_TEST/$ALIGN_RESULT 필드 최종 확인용. planner 경로 확인.
 
 ### 코드 (회귀 가드 대상)
 - 기존 Align 레시피: `D:\Data\Recipe\FAI_1\ETHERNET_ALIGN\` (Bottom_1/2.shm, Bottom.json, Tray_*) — 하위호환 검증 기준.
@@ -80,12 +82,11 @@ Bottom 비전이 안착지그 **6종**에 자재를 ideal 안착시키기 위한
 - `AlignShapeMatchService.cs:198` HasTemplate, `:219` TryTeach, `:332` Run — slot 파라미터(기본값 -1 폴백=D-09).
 - `EEthernetVisionMode.cs:3-9` (None/Tray/Bottom) — 6값 slot enum 또는 slotIndex.
 - `BottomVisionView.xaml.cs:26` VIEW_MODE 고정 / `:208` TeachButton / `:259` RunButton / `:508` RefreshStatus — 6슬롯 UI(작업량 최대). `_roi1/_roi2` 단일쌍 → 슬롯별.
-- `SystemHandler.cs:227-248` ProcessAlignTest (현 stub) — grab + Matcher.Run(slot) + pose 반환 배선.
-- TCP AlignFace 범위: `VisionRequestPacket.cs:406-431`(파싱 0~3) + `AlignResultPacket.AlignFace`(echo) — **0~5 확장** 필요.
+- `SystemHandler.cs:227-248` ProcessAlignTest (현 stub: AlignFace echo + IsPass=true) — grab + 슬롯 모델 Matcher.Run + pose(Offset/Theta) 채우기 배선.
 
-### 이미 완료 (재사용)
-- TCP AlignFace 0~3 파싱/echo 골격 (0~5 확장만).
-- AlignResultPacket(Items/IsPass/AlignFace) — pose 반환 그릇.
+### 이미 완료 (재사용 — TCP/프로토콜 대부분 됨, 확장 불필요)
+- **AlignFace 0~5(6지그) 수신·echo 완료** (SystemHandler.cs:238/245, VisionResponsePacket.cs:882-886). 매핑 G1_TOP~G2_SIDE2 코드 반영. **0~5 확장 작업 없음.**
+- **$ALIGN_RESULT 포맷 완료**: `BOTTOM,Mat,AlignFace,OK|NG,OffsetX,OffsetY,Theta@` (VisionResponsePacket.cs:531-545) — pose(OffsetX/Y/Theta) 반환 자리 이미 존재. `AlignResultPacket`(AlignFace/IsPass + pose 필드) 채우면 됨.
 - 오프라인 이미지 로더: Phase 61.1 (티칭 이미지 파일 로드 = D-04).
 
 ### 무변경(회귀 가드)

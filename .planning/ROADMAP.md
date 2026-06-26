@@ -741,9 +741,9 @@ Plans:
 **Success Criteria**:
 1. AlignShapeMatchService Bottom 에 **6슬롯** 모델+레퍼런스(`Bottom_{slot}_1/2.shm` + `.json`, slot=3D_Top/3D_Bottom/2D_TOP/2D_BOTTOM/2D_SIDE_1/2D_SIDE_2), TryTeach/Run/HasTemplate 에 slot 파라미터. Tray + 기존 Bottom 단일 경로 하위호환(회귀 0)
 2. BottomVisionView UI: 6슬롯 선택 + **면별 이미지 따로 로드** + 각 슬롯 티칭/Run, 슬롯별 HasTemplate 표시
-3. Phase 64 TCP `$ALIGN_TEST` AlignFace **0~3 → 0~5(6값) 확장** (제안 2D=0~3 호환+3D=4~5, v3.0 스펙 준수) + SystemHandler 슬롯별 Run 라우팅(64가 미룬 "면별 라우팅") + 보정 pose(x/y/θ)+pass/fail 반환
+3. TCP `$ALIGN_TEST` AlignFace **0~5(6값) — 이미 코드+엑셀 반영. 권위 매핑: 0=G1_TOP=3D_Top / 1=G1_BOT=3D_Bottom / 2=G2_TOP=2D_TOP / 3=G2_BOT=2D_BOTTOM / 4=G2_SIDE1=2D_SIDE_1 / 5=G2_SIDE2=2D_SIDE_2**. echo+$ALIGN_RESULT pose 포맷 done. 이 phase = SystemHandler 슬롯별 Run 라우팅(64가 미룬 "면별 라우팅") + 보정 pose(x/y/θ=Offset/Theta)+pass/fail 채움
 4. msbuild Debug/x64 PASS, 검사(MainView)/Tray 회귀 0
-**설계 확정(사용자 합의 2026-06-25)**: 모델 4개 **독립**(90도 회전은 angle_extent 한계로 같은 모델 매칭 불가 → 각 자세 독립 티칭이 정확/빠름). 레퍼런스 = 각 지그에 ideal 안착 후 Bottom 캡처. 통신 4값. Tray=항상 Top면(면 구분 없음).
+**설계 확정(사용자 합의 2026-06-25 · 개정 06-26 4→6)**: 모델 **6개 독립**(자세/형상 차이 커 angle_extent 한계 → 각 슬롯 독립 티칭). 레퍼런스 = 각 지그에 ideal 안착 후 Bottom 캡처. 통신 6값(0~5). Tray=항상 Top면(면 구분 없음).
 
 **Plans:** 4 plans (3 waves) — plan 완료 2026-06-26
 

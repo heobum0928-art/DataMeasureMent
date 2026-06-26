@@ -1,7 +1,7 @@
 ---
 quick_id: 260625-lo5
 slug: circletwohorizontal-datum-perpendicular
-status: incomplete
+status: complete
 date: 2026-06-25
 commits:
   - a442b2b
@@ -46,7 +46,13 @@ commits:
 
 ## 검증
 - ✅ MSBuild Debug/x64 빌드 PASS (수정 1·2 모두, 기존 경고만, DatumMeasurement.exe 생성)
-- ⏳ **SIMUL 실측 UAT 사용자 수행 필요** (아래)
+- ✅ **SIMUL 실측 UAT PASS (2026-06-25 사용자 확인)** — X축 틸트보정 + 부호 안정 정상.
+
+## 후속 감사 (에이전트 팀)
+수정 후 "왜 났나 + 다른 버그?" 요청으로 에이전트 팀 감사 실행. 워크플로우 종합단계 행 → journal에서
+결과 추출(발견 12 → real 5 / 반증 7). 사용자 확인(datum 한쪽 고정·소변형) 결과 **5건 모두 현 운영선
+미발현 = 활성 버그 0**. 배치 백로그로 정리 → ROADMAP `Phase 999.2` + 상세 `260625-lo5-AUDIT-FINDINGS.md`.
+가드: A-01 5개 unsigned 타입에 InvertSign off 유지.
 
 ## 사용자 UAT 체크리스트 (실데이터)
 1. FAI_1 레시피 로드 → TOP CircleTwoHorizontal(Top_Datum) Datum 재티칭.

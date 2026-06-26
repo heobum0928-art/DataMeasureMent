@@ -418,6 +418,20 @@ Plans:
 
 ## Backlog
 
+### Phase 999.2: 측정 부호·기하 정리 배치 (감사 5건) (신설 2026-06-25)
+
+**Goal:** quick-260625-lo5 후속 에이전트 팀 감사에서 확정된 측정/Datum/투영 잠재 결함 5건을 일괄 정리. 현 운영(datum선 한쪽 고정·소변형)에선 미발현 = 활성 버그 0, 배치 처리.
+**출처/상세:** `.planning/quick/260625-lo5-circletwohorizontal-datum-perpendicular/260625-lo5-AUDIT-FINDINGS.md`
+**Depends on:** quick-260625-lo5 (커밋 a442b2b, 90071e5)
+**가드(그 전까지):** 아래 A-01 5개 unsigned 타입에 **InvertSign off 유지** (켜면 영구 NG).
+
+발견:
+- [ ] A-01 (HIGH 잠재) — `VisionAlgorithmService.cs:668-705` ComputeProjectionDistance unsigned(Math.Sqrt) → 5개 타입(ArcEdgeDistance/CircleCenterDistance/ArcLineIntersect/CompoundCenterB·C) 부호 소실. signed화 시 타입별 +방향 확인+재티칭 동반.
+- [ ] D-01 (LOW) — `ArcLineIntersectDistanceMeasurement.cs:248-273` MeasureAxis=X 교점 row평균/col단일 혼합 → 틸트 ~0.002mm 편향. 단일교점 양좌표로.
+- [ ] E-07 (LOW) — `InspectionSequence.cs:777-788` ClearDatumTransforms transient(원중심/RefAngle2) 미리셋 → 세션 중 datum 타입변경 시 stale → E2 오각도.
+- [ ] C-06 (LOW) — `DualImageEdgeDistanceMeasurement.cs` imageA/B 동일프레임 가드 없음.
+- [ ] B-02 (LOW) — EdgeToLineDistance sinθ2 정규화 θ2≈0/π 경계(TLI datum 전용, 현 레시피 미발현).
+
 ### Phase 40.2: FAI별 측정 캡쳐 이미지 저장 + 엑셀 파일명 2컬럼 (INSERTED)
 
 **Goal:** 검사 시점에 FAI별 원본 이미지와 측정 오버레이가 입혀진 캡쳐 이미지를 각각 PNG로 디스크에 저장하고, 엑셀 export의 하이퍼링크 컬럼을 원본/캡쳐 파일명 텍스트 2컬럼으로 교체한다.

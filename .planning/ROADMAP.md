@@ -748,8 +748,8 @@ Plans:
 **Plans:** 4 plans (3 waves) — plan 완료 2026-06-26
 
 Plans:
-- [ ] 65-01-PLAN.md — EBottomAlignSlot enum(6값) + AlignShapeMatchService 6슬롯화(slot 파라미터, 폴백 보존) [Wave 1]
-- [ ] 65-02-PLAN.md — BottomVisionView 6슬롯 UI(ComboBox + 슬롯별 면 이미지/티칭/Run/HasTemplate) [Wave 2]
+- [x] 65-01-PLAN.md — EBottomAlignSlot enum(6값) + AlignShapeMatchService 6슬롯화(slot 파라미터, 폴백 보존) [Wave 1]
+- [x] 65-02-PLAN.md — BottomVisionView 6슬롯 UI(ComboBox + 슬롯별 면 이미지/티칭/Run/HasTemplate) [Wave 2]
 - [ ] 65-03-PLAN.md — SystemHandler ProcessAlignTest grab + 슬롯 Matcher.Run + pose 채움(stub 교체) [Wave 2]
 - [ ] 65-04-PLAN.md — 통합 빌드 확정 + 실HW 6슬롯 티칭/Run/PLC UAT(작업자) [Wave 3]
 
@@ -767,4 +767,4 @@ Plans:
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |
 | 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | ✅ Code complete (UAT pending) | 2026-06-25 | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결, msbuild PASS |
-| 65 | Bottom 6-슬롯 면별 Align (3D/2D × 면) | AV-08연계 | Planned (4 plans, 3 waves) | — | 6슬롯(3D 2 + 2D 4) 독립 모델/레퍼런스. AlignShapeMatchService slot화 + UI 6슬롯 + ProcessAlignTest Run. TCP echo/포맷 기구현 |
+| 65 | Bottom 6-슬롯 면별 Align (3D/2D × 면) | AV-08연계 | Executing (2/4 complete) | — | 6슬롯(3D 2 + 2D 4) 독립 모델/레퍼런스. 65-01(enum+서비스) + 65-02(UI) 완료. 65-03(ProcessAlignTest Run) 진행 예정. |

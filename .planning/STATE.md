@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 65-01-PLAN.md (EBottomAlignSlot + AlignShapeMatchService slot 확장)
-last_updated: "2026-06-26T05:30:48.234Z"
-last_activity: 2026-06-26 -- Phase --phase=65 execution started
+stopped_at: Completed 65-02-PLAN.md (BottomVisionView 6슬롯 선택 UI + slot 인자 전달)
+last_updated: "2026-06-26T05:36:51Z"
+last_activity: 2026-06-26 -- Phase 65 Plan 02 complete
 progress:
   total_phases: 15
   completed_phases: 14
   total_plans: 49
-  completed_plans: 46
-  percent: 94
+  completed_plans: 47
+  percent: 96
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: --phase=65 (--name=bottom-4jig-face-align-2026-06-25) — EXECUTING
-Plan: 1 of --plans=4
-Last activity: 2026-06-26 -- Phase --phase=65 execution started
+Phase: 65 (bottom-4jig-face-align-2026-06-25) — EXECUTING
+Plan: 2 of 4 (65-02 COMPLETE)
+Last activity: 2026-06-26 -- Phase 65 Plan 02 complete — BottomVisionView 6슬롯 UI
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -204,6 +204,7 @@ Last activity: 2026-06-26 -- Phase --phase=65 execution started
 | Phase 61.1 P03 | 20 | 2 tasks | 4 files |
 | Phase 61.1 P04 | 20min | 2 tasks | 2 files |
 | Phase 65-bottom-4jig-face-align-2026-06-25 P01 | 15 | 2 tasks | 3 files |
+| Phase 65-bottom-4jig-face-align-2026-06-25 P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -547,10 +548,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-26T05:30:48.220Z
-Stopped at: Completed 65-01-PLAN.md (EBottomAlignSlot + AlignShapeMatchService slot 확장)
+Last session: 2026-06-26T05:36:51Z
+Stopped at: Completed 65-02-PLAN.md (BottomVisionView 6슬롯 선택 UI + slot 인자 전달)
 Resume file: None
-Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
+Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 
 **v1.1 Phase Map:**
 

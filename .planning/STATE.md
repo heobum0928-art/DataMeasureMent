@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: milestone_complete
-stopped_at: 65-04 Task 1 PASS (빌드 CS0 수정 91abe89) — Task 2 실HW UAT 인간 게이트 대기
-last_updated: "2026-06-26T05:48:42Z"
+status: unknown
+stopped_at: Phase 66 context gathered
+last_updated: "2026-06-26T07:38:48.904Z"
 last_activity: 2026-06-26
 progress:
   total_phases: 15
-  completed_phases: 15
+  completed_phases: 14
   total_plans: 49
   completed_plans: 46
-  percent: 100
+  percent: 94
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -552,9 +552,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-26T05:43:56.811Z
-Stopped at: Completed 65-03-PLAN.md (ProcessAlignTest 실측 grab+Run+pose 채움)
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 66 context gathered
+Resume file: --resume-file
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 
 **v1.1 Phase Map:**

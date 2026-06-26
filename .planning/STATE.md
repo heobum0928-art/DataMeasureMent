@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 65-03-PLAN.md (ProcessAlignTest 실측 grab+Run+pose 채움)
-last_updated: "2026-06-26T05:43:56.826Z"
+stopped_at: 65-04 Task 1 PASS (빌드 CS0 수정 91abe89) — Task 2 실HW UAT 인간 게이트 대기
+last_updated: "2026-06-26T05:48:42Z"
 last_activity: 2026-06-26
 progress:
   total_phases: 15
@@ -206,6 +206,7 @@ Last activity: 2026-06-26
 | Phase 65-bottom-4jig-face-align-2026-06-25 P01 | 15 | 2 tasks | 3 files |
 | Phase 65-bottom-4jig-face-align-2026-06-25 P02 | 4 | 2 tasks | 2 files |
 | Phase 65 P03 | 10 | 1 tasks | 1 files |
+| Phase 65 P04 | 10 | 1/2 tasks (Task 1 PASS, Task 2 UAT 대기) | 1 files |
 
 ## Accumulated Context
 

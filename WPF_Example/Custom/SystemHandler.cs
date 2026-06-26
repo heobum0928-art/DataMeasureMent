@@ -254,6 +254,7 @@ namespace ReringProject {
             {
                 Logging.PrintLog((int)ELogType.Error,
                     "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~5) //260626 hbk", packet.AlignFace);
+                FillAlignPoseZero(resultPacket); //260626 hbk WR-01: PLC 필드 수 일관성 — pose=0 채움 후 NG 반환
                 resultPacket.IsPass = false; //260626 hbk NG 안전 거부 (T-65-01)
                 return resultPacket;
             }

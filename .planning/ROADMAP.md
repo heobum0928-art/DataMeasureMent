@@ -764,7 +764,10 @@ Plans:
 4. 컨트롤러 채널 재배선 없음(현 6+6+동축1 유지). msbuild Debug/x64 PASS, 검사/Tray/Align 회귀 0
 **Background**: 2026-06-26 사용자 발의 + AOI POC v1.5 HW 도면 확인. 검사 조명=shot별 자유 조합(고정 없음). 동축=얼라인 카메라 전용(별도 PC 1채널). 현 ShotConfig=Ring/Back/Coax/Side 라 Ring7 누락 + Coax 오노출 → 정합 필요. 관련 메모리=project_aoi_poc_lighting_config.
 
-**Plans:** TBD (discuss → plan)
+**Plans:** 3 plans (2 waves) — planned 2026-06-26
+- [ ] 66-01-PLAN.md — 검사 ShotConfig Ring7 추가 + CoaxLight 숨김 + ApplyShotLights Ring7→RING7 매핑 (LIGHT-01, Wave 1)
+- [ ] 66-02-PLAN.md — Align 동축 백엔드: AlignRefPose Coax 필드 + GetSlotRefPose/TrySaveCoax 공개 API + RunBottomAlign grab 직전 자동적용 (AV-08, Wave 1)
+- [ ] 66-03-PLAN.md — Align 동축 UI: Bottom/Tray 동축 ON/OFF+밝기 컨트롤 + 슬롯/Tray 복원·저장 + Teach/Run/Grab 자동적용 (AV-08, Wave 2, depends 66-02)
 
 ---
 
@@ -781,4 +784,4 @@ Plans:
 | 63 | TCP 프로토콜 Type + Align TCP 통합 | PROTO-Type/AV-09 | ✅ Complete (UAT 5/5 PASS) | 2026-06-24 | 별도 세션 실행. Type echo + $ALIGN_TEST/CALIB/RESULT + v2.6 회귀 0 |
 | 64 | 조명 채널 확장 + z_index 내부 조명 제어 | LIGHT-01 | ✅ Code complete (UAT pending) | 2026-06-25 | $PREP+ACK 신규 커맨드, LightHandler 8ch×2, ShotConfig→LightHandler 연결, msbuild PASS |
 | 65 | Bottom 6-슬롯 면별 Align (3D/2D × 면) | AV-08연계 | ✅ Code complete (HW UAT pending) | 2026-06-26 | 6슬롯 독립 모델/레퍼런스. 4/4 plan, 코드 5/5 검증 PASS, 빌드 PASS, 리뷰 3건 수정. 실HW UAT=65-HUMAN-UAT.md |
-| 66 | 조명 정합 — 검사 Ring7/Coax + Align 동축 | LIGHT-01연계 | Discuss (신설 2026-06-26) | — | 검사 조명 Ring/Back/Bar/Ring7 정합(Ring7 추가, Coax 숨김) + 동축 Align 창 이동 |
+| 66 | 조명 정합 — 검사 Ring7/Coax + Align 동축 | LIGHT-01연계/AV-08연계 | Planned (3 plans, 2 waves) | — | 2026-06-26 plan 완료. W1=검사 Ring7/Coax(66-01)+Align 동축 백엔드(66-02), W2=Align 동축 UI(66-03) |

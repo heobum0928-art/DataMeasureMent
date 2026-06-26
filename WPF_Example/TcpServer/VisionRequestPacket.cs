@@ -442,8 +442,8 @@ namespace ReringProject.Network {
             return true;
         }
 
-        //260625 hbk Phase 64 LIGHT-01: $PREP 수신 파서. dataList[0]=site, dataList[1]=z_index.
-        //  필드 부족/비정수 → false 반환(null 응답). 헝가리언 + if-else + 30줄 이내.
+        //260626 hbk v3.0: $PREP 수신 파서. dataList[0]=site, [1]=z_index, [2]=Op(1=ON/0=OFF, 선택).
+        //  Op 미수신 시 1(ON) — 구 $PREP:site,z_index@ 하위호환. 필드 부족/비정수 → false(null 응답).
         private static bool TryParsePrepFields(string[] dataList, PrepPacket prepPacket)
         {
             bool bHasFields = dataList != null && dataList.Length >= 2;
@@ -458,6 +458,14 @@ namespace ReringProject.Network {
             bool bZIndexOk = Int32.TryParse(dataList[1], out nZIndex);
             if (!bZIndexOk) { return false; }
             prepPacket.ZIndex = nZIndex;
+
+            bool bHasOp = dataList.Length >= 3;   //260626 hbk Op 선택 필드
+            if (bHasOp)
+            {
+                int nOp = 1;
+                bool bOpOk = Int32.TryParse(dataList[2], out nOp);
+                if (bOpOk) { prepPacket.Op = nOp; }
+            }
 
             return true;
         }
@@ -599,8 +607,10 @@ namespace ReringProject.Network {
     }
 
     //260625 hbk Phase 64 LIGHT-01: $PREP 수신 패킷. ZIndex = 조명 세팅 대상 Shot z_index.
+    //260626 hbk v3.0: Op 추가 — 1=ON(z_index 샷 조명 점등) / 0=OFF(사이클 종료 소등). 미수신 시 1(하위호환).
     public class PrepPacket : VisionRequestPacket {
         public int ZIndex { get; set; }
+        public int Op { get; set; } = 1;   //260626 hbk 1=ON / 0=OFF (기본 ON = 구 $PREP:site,z_index@ 호환)
 
         public PrepPacket() : base(VisionRequestType.Prep) {
         }

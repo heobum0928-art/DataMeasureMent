@@ -332,6 +332,16 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260626 hbk v3.0: $PREP Op==0(사이클 종료) → 전 조명 그룹 소등. ApplyShotLightsInternal 의 4그룹 OFF.
+        //  $LIGHT OFF 명령 폐기 대체. HW 트리거 전환 시에도 $PREP 가 OFF 담당.
+        public void TurnOffShotLights()
+        {
+            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING, false);
+            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
+            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
+            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, false);
+        }
+
         //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 4종 조명 → LightHandler 5종 그룹 적용.
         //  RingLight → RING / BackLight → BACK / CoaxLight → ALIGN_COAX / SideLight → BAR
         //  Enabled=true: SetOnOff(true) 먼저, 이후 SetLevel (ApplyLight 순서 동일).

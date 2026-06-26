@@ -422,7 +422,8 @@ namespace ReringProject {
         }
 
         //260625 hbk Phase 64 LIGHT-01 (D-12): $PREP 처리.
-        //  z_index → 이 PC InspectionSequence 찾기 → ApplyShotLights() 호출 → PrepAck 반환.
+        //260626 hbk v3.0: Op 분기 — 1=ON(z_index 샷 조명 점등) / 0=OFF(사이클 종료 소등). $LIGHT 폐기 대체.
+        //  HW 트리거 전환 대비: 조명 ON/OFF 가 $PREP(준비 단계)에 통합 → $TEST(트리거)는 조명 무관.
         //  Site 필드는 ACK 에 echo만 함. 실제 시퀀스 라우팅은 이 PC 소속 InspectionSequence 전부 대상.
         private PrepAckPacket ProcessPrep(PrepPacket packet)
         {
@@ -435,13 +436,26 @@ namespace ReringProject {
             ackPacket.Target = packet.Sender;
             ackPacket.Site = packet.Site;
             ackPacket.ZIndex = packet.ZIndex;
+            ackPacket.Op = packet.Op;          //260626 hbk Op echo (1=ON / 0=OFF)
             ackPacket.IsOk = false; // 기본값 FAIL — 성공 시 true 로 덮어씀
 
-            _lastPrepZIndex = packet.ZIndex; //260626 hbk z_index 저장 → ProcessTest 주입용
-            bool bApplied = ApplyPrepToSequences(packet.ZIndex);
-            if (bApplied)
+            bool bIsOn = packet.Op != 0;       //260626 hbk Op!=0 → ON (미수신 기본 1=ON)
+            if (bIsOn)
             {
-                ackPacket.IsOk = true;
+                _lastPrepZIndex = packet.ZIndex; //260626 hbk ON 일 때만 z_index 저장 → ProcessTest 주입용
+                bool bApplied = ApplyPrepToSequences(packet.ZIndex);
+                if (bApplied)
+                {
+                    ackPacket.IsOk = true;
+                }
+            }
+            else
+            {
+                bool bOff = TurnOffPrepLights(); //260626 hbk Op==0 → 전 시퀀스 소등
+                if (bOff)
+                {
+                    ackPacket.IsOk = true;
+                }
             }
             return ackPacket;
         }
@@ -468,6 +482,27 @@ namespace ReringProject {
                 }
             }
             return bAnyApplied;
+        }
+
+        //260626 hbk v3.0: $PREP Op==0(사이클 종료 OFF) 처리 — 전 InspectionSequence 소등.
+        //  하나라도 InspectionSequence 가 있으면 true(소등 ACK). $LIGHT OFF 대체.
+        private bool TurnOffPrepLights()
+        {
+            bool bAnyOff = false;
+            int nCount = Sequences.Count;
+            for (int i = 0; i < nCount; i++)
+            {
+                SequenceBase seqBase = Sequences[i];
+                InspectionSequence inspSeq = seqBase as InspectionSequence;
+                bool bIsInsp = inspSeq != null;
+                if (!bIsInsp)
+                {
+                    continue;
+                }
+                inspSeq.TurnOffShotLights();
+                bAnyOff = true;
+            }
+            return bAnyOff;
         }
 
         //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)

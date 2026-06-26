@@ -283,6 +283,7 @@ namespace ReringProject {
             resultPacket.Target = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
             resultPacket.MaterialNo = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo
+            resultPacket.AlignFace = packet.AlignFace;    //260626 hbk v3.0: 지그 면 echo(TOP/SIDE_1/BOTTOM/SIDE_2)
             resultPacket.IsPass = true;   // [가정] 측정 연계 전까지 ack
 
             bool bIsBottom = packet.AlignTarget == "BOTTOM";

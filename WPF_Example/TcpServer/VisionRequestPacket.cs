@@ -581,10 +581,11 @@ namespace ReringProject.Network {
 
     //260624 hbk Phase 63 AV-09: $ALIGN_TEST 수신 패킷.
     //260625 hbk v3.0: MaterialNo 추가([1]=자재번호). AlignFace 는 BOTTOM 전용([3]).
+    //260626 hbk v3.0: AlignFace 4모드 — TOP / SIDE_1 / BOTTOM / SIDE_2. TRAY=비사용.
     public class AlignTestPacket : VisionRequestPacket {
         public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(TRAY/BOTTOM)
         public int    MaterialNo  { get; set; } = -1;   //260625 hbk v3.0: 자재번호 echo용
-        public string AlignFace   { get; set; } = "";   //260625 hbk BOTTOM 전용: 자재 면(TOP/BOT). TRAY=비사용
+        public string AlignFace   { get; set; } = "";   //260626 hbk BOTTOM 전용: 지그 면(TOP/SIDE_1/BOTTOM/SIDE_2). TRAY=비사용
 
         public AlignTestPacket() : base(VisionRequestType.AlignTest) {
         }

@@ -426,7 +426,7 @@ Plans:
 **가드(그 전까지):** 아래 A-01 5개 unsigned 타입에 **InvertSign off 유지** (켜면 영구 NG).
 
 발견:
-- [ ] A-01 (HIGH 잠재) — `VisionAlgorithmService.cs:668-705` ComputeProjectionDistance unsigned(Math.Sqrt) → 5개 타입(ArcEdgeDistance/CircleCenterDistance/ArcLineIntersect/CompoundCenterB·C) 부호 소실. signed화 시 타입별 +방향 확인+재티칭 동반.
+- [x] A-01 (HIGH 잠재) — ✅ 해결 quick-260626-dbd (d0eedc9): ComputeProjectionDistance signed화. 타입별 의도 점검(전부 signed 설계) 후 진행. 실측 UAT(항목별 부호 vs nominal·InvertSign 토글) 대기.
 - [ ] D-01 (LOW) — `ArcLineIntersectDistanceMeasurement.cs:248-273` MeasureAxis=X 교점 row평균/col단일 혼합 → 틸트 ~0.002mm 편향. 단일교점 양좌표로.
 - [ ] E-07 (LOW) — `InspectionSequence.cs:777-788` ClearDatumTransforms transient(원중심/RefAngle2) 미리셋 → 세션 중 datum 타입변경 시 stale → E2 오각도.
 - [ ] C-06 (LOW) — `DualImageEdgeDistanceMeasurement.cs` imageA/B 동일프레임 가드 없음.

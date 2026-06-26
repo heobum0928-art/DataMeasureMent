@@ -416,6 +416,7 @@ Recent decisions affecting current work:
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| 260626-dbd | 2026-06-26 | ComputeProjectionDistance signed화 (감사 A-01) — Math.Sqrt 절대값(부호 소실)을 EdgeToLineDistance 동일 signed 공식(축별 sinθ≥0/cosθ≥0 정규화)으로 교체. 위임 5종(ArcEdgeDistance/CircleCenterDistance/ArcLineIntersect/CompoundCenterB·C) 일괄 해결 = InvertSign 영구NG·반대편 불량은폐 복원. 타입별 의도 점검(전부 signed 설계, XML doc 계약 정합) 후 진행. EdgeToLineDistance/measureY 무영향. msbuild PASS. | d0eedc9 | 빌드 PASS · 실측 UAT(항목별 부호 vs nominal·InvertSign 토글) 대기 |
 | 260625-lo5 | 2026-06-25 | CTH datum 수직 기준선각 직교 수정 — `vertPhi=(π/2)+dθ`(틸트 같으면 π/2 고정) → `curAngle+π/2`(검출 수평선 직교)로 변경. measureX projection_pl 투영축이 안 기울어져 X축 거리가 순수 가로거리로 붕괴(A7 ~0.12mm 오차, 공차 ±0.05mm 초과)하던 버그 해소. Find+Teach 동일 직교 규약 통일(teach pose origin ~72px 어긋남 동반 수정). CTH 한정, 타 datum/Y축 회귀 0. msbuild Debug/x64 PASS. | a442b2b | 빌드 PASS · SIMUL 실측 UAT + 공칭 재확인 대기 |
 | 260623-mao | 2026-06-23 | 체커보드 캘리브 검출 시각화 강화 — 검출 saddle 코너를 CalibrationResult(CornerRows/Cols)로 노출 + HalconDisplayService `Calib-Corners` cyan DispCross 배치 렌더 분기(FAI-EdgeRaw 미러, 새 HWindow 경로 0) + CalibrationWindow ShowCornerOverlay(SetInspectionOverlays 재사용)로 검출 코너 십자 오버레이 + 왜곡 리포트 보강(중앙부 px↔외곽부 px·종합/X/Y 편차%·로드/촬상/실패 클리어). 회귀 가드: FAI/Group/Datum 분기·MmPerPixel/IsDistortionWarn 무수정. msbuild Debug/x64 0 errors. | 7cff5a2, 7c88d56, 8daa972 | 빌드 PASS · SIMUL 코너마커 육안 UAT 대기 |
 | 260409-e3v | 2026-04-09 | Phase 3 에지 측정 파라미터 수정 (EEdgeMeasureType → EdgeDirection/Selection/SampleCount/TrimCount/Polarity) | 9599bbf, a65585f | |

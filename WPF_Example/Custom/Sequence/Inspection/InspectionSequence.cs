@@ -340,6 +340,7 @@ namespace ReringProject.Sequence {
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, false);
+            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Phase 66: Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
         }
 
         //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 4종 조명 → LightHandler 5종 그룹 적용.

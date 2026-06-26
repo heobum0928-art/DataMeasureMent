@@ -673,13 +673,26 @@ namespace ReringProject.Halcon.Algorithms
             string measureAxis,
             out double footRow, out double footCol, out bool footOk)
         {
-            // HALCON projection_pl 직접 사용. 거리 = |point - foot| (절대값, 부호 처리 없음).
-            //  measureAxis 인자는 caller 호환성 유지용 (내부 미사용).
+            //260626 hbk A-01 수정: 기존 Math.Sqrt 절대값(부호 소실) → measureAxis 규약의 signed 거리로 교체.
+            //  XML doc(위)이 이미 signed(Y=+위, X=+오른쪽) 를 명시 — 본문을 doc 계약에 정합. EdgeToLineDistanceMeasurement.cs:160~216 동일 공식.
+            //  영향: 이 함수에 위임하는 5종(ArcEdgeDistance/CircleCenterDistance/ArcLineIntersect/CompoundCenterB·C). EdgeToLineDistance 는 미사용.
             footRow = pointRow; footCol = pointCol; footOk = false;
 
-            // datum 라인 2점 (projection_pl 은 직선 정의만 필요, 길이 무관 — ±200px 임의 선택)
+            // datum 라인 방향벡터 (sinθ, cosθ). 측정점을 이 직선에 정사영 → 부호는 직선 법선 방향으로 결정.
             double dirR = Math.Sin(lineAngleRad);
             double dirC = Math.Cos(lineAngleRad);
+            //260626 hbk 축별 부호 정규화 (틸트 방향 따라 부호 뒤집힘 방지, EdgeToLineDistance 와 동일):
+            //  X(수직축, θ≈π/2, cosθ≈0)는 sinθ≥0, Y(수평축, θ≈0, cosθ≈1)는 cosθ≥0 으로 법선 방향 고정.
+            bool measureX = string.Equals(measureAxis, "X", System.StringComparison.OrdinalIgnoreCase);
+            if (measureX)
+            {
+                if (dirR < 0.0) { dirR = -dirR; dirC = -dirC; }
+            }
+            else
+            {
+                if (dirC < 0.0) { dirR = -dirR; dirC = -dirC; }
+            }
+            // datum 직선 2점 (projection_pl 은 직선 정의만 필요, 길이 무관 — ±200px 임의 선택)
             double r1 = datumOriginRow - 200.0 * dirR;
             double c1 = datumOriginCol - 200.0 * dirC;
             double r2 = datumOriginRow + 200.0 * dirR;
@@ -693,10 +706,19 @@ namespace ReringProject.Halcon.Algorithms
                 footCol = prCol.D;
                 footOk = true;
 
-                double dr = pointRow - footRow;
-                double dc = pointCol - footCol;
-                double distPx = Math.Sqrt(dr * dr + dc * dc);
-                return distPx * pixelResolution;
+                //260626 hbk 부호 있는 투영 성분 (foot→측정점 변위를 직선 법선에 투영). measureAxis 가 부호 규약 결정.
+                double drr = pointRow - footRow;
+                double dcc = pointCol - footCol;
+                double signedPx;
+                if (measureX)
+                {
+                    signedPx = drr * dirC - dcc * dirR; // +X 오른쪽 양수 (EdgeToLineDistance:205)
+                }
+                else
+                {
+                    signedPx = drr * (-dirC) + dcc * dirR; // +Y 위쪽 양수 (EdgeToLineDistance:214, D-02)
+                }
+                return signedPx * pixelResolution;
             }
             catch
             {

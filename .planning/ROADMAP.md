@@ -745,13 +745,13 @@ Plans:
 4. msbuild Debug/x64 PASS, 검사(MainView)/Tray 회귀 0
 **설계 확정(사용자 합의 2026-06-25 · 개정 06-26 4→6)**: 모델 **6개 독립**(자세/형상 차이 커 angle_extent 한계 → 각 슬롯 독립 티칭). 레퍼런스 = 각 지그에 ideal 안착 후 Bottom 캡처. 통신 6값(0~5). Tray=항상 Top면(면 구분 없음).
 
-**Plans:** 4 plans (3 waves) — plan 완료 2026-06-26
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 65-01-PLAN.md — EBottomAlignSlot enum(6값) + AlignShapeMatchService 6슬롯화(slot 파라미터, 폴백 보존) [Wave 1]
 - [x] 65-02-PLAN.md — BottomVisionView 6슬롯 UI(ComboBox + 슬롯별 면 이미지/티칭/Run/HasTemplate) [Wave 2]
-- [ ] 65-03-PLAN.md — SystemHandler ProcessAlignTest grab + 슬롯 Matcher.Run + pose 채움(stub 교체) [Wave 2]
-- [ ] 65-04-PLAN.md — 통합 빌드 확정 + 실HW 6슬롯 티칭/Run/PLC UAT(작업자) [Wave 3]
+- [x] 65-03-PLAN.md — SystemHandler ProcessAlignTest grab + 슬롯 Matcher.Run + pose 채움(stub 교체) [Wave 2]
+- [x] 65-04-PLAN.md — 통합 빌드 확정 + 실HW 6슬롯 티칭/Run/PLC UAT(작업자) [Wave 3]
 
 ---
 

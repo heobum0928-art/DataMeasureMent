@@ -343,7 +343,7 @@ namespace ReringProject.Sequence {
         }
 
         //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 4종 조명 → LightHandler 5종 그룹 적용.
-        //  RingLight → RING / BackLight → BACK / CoaxLight → ALIGN_COAX / SideLight → BAR
+        //  RingLight → RING / BackLight → BACK / CoaxLight → ALIGN_COAX / SideLight → BAR / Ring7Light → RING7   //260626 hbk Phase 66 Ring7 추가
         //  Enabled=true: SetOnOff(true) 먼저, 이후 SetLevel (ApplyLight 순서 동일).
         //  Enabled=false: SetOnOff(false) 만 호출.
         private void ApplyShotLightsInternal(ShotConfig shot)
@@ -386,6 +386,16 @@ namespace ReringProject.Sequence {
             else
             {
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, false);
+            }
+
+            if (shot.Ring7Light_Enabled)   //260626 hbk Phase 66 D-02: Ring7Light → LIGHT_RING7 매핑 추가(검사 조명 정합)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, true);   //260626 hbk Ring7 ON
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_RING7, shot.Ring7Light_Brightness);   //260626 hbk Ring7 밝기
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Ring7 OFF
             }
         }
 

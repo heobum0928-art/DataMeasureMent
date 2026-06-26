@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: milestone_complete
-stopped_at: context exhaustion at 90% (2026-06-25)
-last_updated: "2026-06-25T23:45:06.821Z"
-last_activity: 2026-06-25
+status: unknown
+stopped_at: Completed 65-01-PLAN.md (EBottomAlignSlot + AlignShapeMatchService slot 확장)
+last_updated: "2026-06-26T05:30:48.234Z"
+last_activity: 2026-06-26 -- Phase --phase=65 execution started
 progress:
   total_phases: 15
   completed_phases: 14
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 61.1 — align-offline-loader-result-viz-2026-06-25
+**Current focus:** Phase --phase=65 — --name=bottom-4jig-face-align-2026-06-25
 
 ## Current Position
 
-Phase: 61.1
-Plan: Not started
-Last activity: 2026-06-25
+Phase: --phase=65 (--name=bottom-4jig-face-align-2026-06-25) — EXECUTING
+Plan: 1 of --plans=4
+Last activity: 2026-06-26 -- Phase --phase=65 execution started
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -203,6 +203,7 @@ Last activity: 2026-06-25
 | Phase 61.1-align-offline-loader-result-viz-2026-06-25 P02 | 25 | 2 tasks | 4 files |
 | Phase 61.1 P03 | 20 | 2 tasks | 4 files |
 | Phase 61.1 P04 | 20min | 2 tasks | 2 files |
+| Phase 65-bottom-4jig-face-align-2026-06-25 P01 | 15 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -411,6 +412,8 @@ Recent decisions affecting current work:
 - 검출 십자를 두 패턴 midpoint 단일 DatumConfig 객체로 구현(SetDatumFindResultOverlay 소비)
 - SetResultRoiOverlays(null, datumRects): ROI/에지 체크박스가 독립 게이트(datum/_measurement) 토글
 - Phase 61.1-04: DatumConfig(this) 빌드 에러 — Plan 03 생성자 인수 누락, 허용파일 내 수정(anti-goal 0변경)
+- EBottomAlignSlot TryTeach slot 파라미터: out+기본값 혼합 불가 → 2-오버로드 분리 (기존 호출자 하위호환 보장)
+- BuildJsonPath: Replace 전체 치환 방지 → EndsWith 마지막 _1 제거 (2D_SIDE_1 토큰 내부 오치환 방지)
 
 ### Quick Tasks Completed
 
@@ -544,8 +547,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-25T23:45:06.804Z
-Stopped at: context exhaustion at 90% (2026-06-25)
+Last session: 2026-06-26T05:30:48.220Z
+Stopped at: Completed 65-01-PLAN.md (EBottomAlignSlot + AlignShapeMatchService slot 확장)
 Resume file: None
 Next action: 사용자가 SIMUL_MODE(Debug/x64) 앱 실행 후 Task 4 3항목 확인 → "approved" 시 continuation agent 재개 → SUMMARY.md 완성 + STATE 업데이트
 

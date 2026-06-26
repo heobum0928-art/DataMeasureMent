@@ -159,8 +159,14 @@ namespace ReringProject.Custom.UI {
                 // 슬롯별 저장된 ROI 복원 (없으면 null — 새 티칭 대기)
                 if (_slotRois.ContainsKey(_selectedSlot)) {
                     RoiDefinition[] savedRois = _slotRois[_selectedSlot];
-                    _roi1 = savedRois[0]; //260626 hbk 이 슬롯의 저장 ROI1 복원
-                    _roi2 = savedRois[1]; //260626 hbk 이 슬롯의 저장 ROI2 복원
+                    if (savedRois != null && savedRois.Length >= 2) { //260626 hbk WR-03: 배열 길이 가드 — OOB 방어
+                        _roi1 = savedRois[0]; //260626 hbk 이 슬롯의 저장 ROI1 복원
+                        _roi2 = savedRois[1]; //260626 hbk 이 슬롯의 저장 ROI2 복원
+                    }
+                    else {
+                        _roi1 = null; //260626 hbk 배열 불완전 — 안전하게 null 처리 (WR-03)
+                        _roi2 = null;
+                    }
                 }
                 else {
                     _roi1 = null; //260626 hbk 저장된 ROI 없음 → 새 티칭 대기

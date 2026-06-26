@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: Phases
 status: unknown
 stopped_at: Phase 66 context gathered
-last_updated: "2026-06-26T07:38:48.904Z"
+last_updated: "2026-06-26T08:36:31.970Z"
 last_activity: 2026-06-26
 progress:
   total_phases: 15
@@ -574,4 +574,4 @@ Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 60 (Calibration Bottom) — 3 plans — 2026-06-24T05:32:10.480Z
+**Planned Phase:** 66 (조명 정합 — 검사 Ring7/Coax + Align 동축) — 3 plans — 2026-06-26T08:36:31.957Z

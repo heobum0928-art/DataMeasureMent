@@ -735,13 +735,13 @@ Plans:
 - [x] 064-03-PLAN.md — SystemHandler ProcessPrep() 분기 + InspectionSequence 라우팅 ✅ 2026-06-25 (a37b45b)
 - [x] 064-04-PLAN.md — InspectionSequence ApplyShotLights() 구현 (ShotConfig LightGroup 연결) ✅ 2026-06-25 (890339e)
 
-### Phase 65: Bottom 4-지그 면별 Align (Side1~4) (신설 2026-06-25 — Phase 61.1 UAT 후 사용자 요구)
-**Goal**: Bottom 비전이 안착지그 4개(Side1=Top정방향 / Side2=Top 90도 / Side3=Bottom정방향 / Side4=Bottom 90도)에 자재를 ideal 안착시키기 위한 면별 align. 자재 4측면 검사 목적. 각 지그마다 **독립 모델+레퍼런스 티칭(4세트)**.
+### Phase 65: Bottom 6-슬롯 면별 Align (3D/2D × 면) (신설 2026-06-25 · 스코프 개정 2026-06-26 discuss: 4→6)
+**Goal**: Bottom 비전이 안착지그 **6종**에 자재를 ideal 안착시키기 위한 면별 align. 6슬롯 = 3D 그룹 2개(`3D_Top`,`3D_Bottom`) + 2D 그룹 4개(`2D_TOP`,`2D_BOTTOM`,`2D_SIDE_1`,`2D_SIDE_2`). 각 지그마다 **독립 모델+레퍼런스 티칭(6세트)** = Bottom 비전 6번 티칭. 비전 변경 본질 = 슬롯 4→6 확장(새 알고리즘 없음). 상세 = 65-CONTEXT.md.
 **Requirements**: AV-08(연계), Phase 64 TCP 연계
 **Success Criteria**:
-1. AlignShapeMatchService Bottom 에 Side1~4 4슬롯 모델+레퍼런스(`Bottom_S1~S4_1/2.shm` + `.json`), TryTeach/Run/HasTemplate 에 site(Side1~4) 파라미터. Tray + 기존 Bottom 단일 경로 하위호환(회귀 0)
-2. BottomVisionView UI: Side1~4 선택 + **면별 이미지 따로 로드** + 각 슬롯 티칭/Run, 슬롯별 HasTemplate 표시
-3. Phase 64 TCP `$ALIGN_TEST` AlignFace(TOP/BOT 2값) → **Side1~4(4값) 확장** + SystemHandler 지그별 Run 라우팅(64가 미룬 "면별 라우팅")
+1. AlignShapeMatchService Bottom 에 **6슬롯** 모델+레퍼런스(`Bottom_{slot}_1/2.shm` + `.json`, slot=3D_Top/3D_Bottom/2D_TOP/2D_BOTTOM/2D_SIDE_1/2D_SIDE_2), TryTeach/Run/HasTemplate 에 slot 파라미터. Tray + 기존 Bottom 단일 경로 하위호환(회귀 0)
+2. BottomVisionView UI: 6슬롯 선택 + **면별 이미지 따로 로드** + 각 슬롯 티칭/Run, 슬롯별 HasTemplate 표시
+3. Phase 64 TCP `$ALIGN_TEST` AlignFace **0~3 → 0~5(6값) 확장** (제안 2D=0~3 호환+3D=4~5, v3.0 스펙 준수) + SystemHandler 슬롯별 Run 라우팅(64가 미룬 "면별 라우팅") + 보정 pose(x/y/θ)+pass/fail 반환
 4. msbuild Debug/x64 PASS, 검사(MainView)/Tray 회귀 0
 **설계 확정(사용자 합의 2026-06-25)**: 모델 4개 **독립**(90도 회전은 angle_extent 한계로 같은 모델 매칭 불가 → 각 자세 독립 티칭이 정확/빠름). 레퍼런스 = 각 지그에 ideal 안착 후 Bottom 캡처. 통신 4값. Tray=항상 Top면(면 구분 없음).
 

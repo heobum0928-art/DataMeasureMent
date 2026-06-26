@@ -64,7 +64,8 @@ namespace ReringProject {
 
         // WR-01 fix: 경로 문자열만 계산 — IO 부작용 없음. 읽기 경로(HasTemplate/Run) 에서 사용.
         // modelIndex=1 → TL(_1.shm), modelIndex=2 → BR(_2.shm).
-        private string BuildShmPath(EEthernetVisionMode mode, int modelIndex) {
+        //260626 hbk slot 파라미터 추가 — mode==Bottom && slot!=None 이면 Bottom_{token}_N.shm, 그 외 기존 경로 (D-02/D-09)
+        private string BuildShmPath(EEthernetVisionMode mode, int modelIndex, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 6슬롯 면별 모델명 경로 빌드
             string recipePath = SystemSetting.Handle.RecipeSavePath;
             if (string.IsNullOrEmpty(recipePath)) {
                 return null;
@@ -76,10 +77,22 @@ namespace ReringProject {
             string folder = Path.Combine(recipePath, recipeName, ETHERNET_ALIGN_FOLDER);
             string modeFileName;
             if (mode == EEthernetVisionMode.Bottom) {
-                modeFileName = "Bottom";
+                //260626 hbk slot!=None 이면 Bottom_{token}, None 이면 기존 "Bottom" 폴백 (D-09)
+                if (slot != EBottomAlignSlot.None) {
+                    string token = EBottomAlignSlotMap.ToFileToken(slot); //260626 hbk 슬롯 토큰 조합
+                    if (!string.IsNullOrEmpty(token)) {
+                        modeFileName = "Bottom_" + token; //260626 hbk 예: "Bottom_3D_Top" (D-02)
+                    }
+                    else {
+                        modeFileName = "Bottom"; //260626 hbk 빈 토큰 방어 → 기존 폴백
+                    }
+                }
+                else {
+                    modeFileName = "Bottom"; //260626 hbk slot==None → 기존 Bottom 단일 경로 폴백 (D-09, 회귀 0)
+                }
             }
             else {
-                modeFileName = "Tray";
+                modeFileName = "Tray"; //260626 hbk Tray 경로 무변경 (D-10)
             }
             string suffix;
             if (modelIndex == 2) {
@@ -92,9 +105,10 @@ namespace ReringProject {
         }
 
         // WR-01 fix: 쓰기 전용 헬퍼 — Directory.CreateDirectory 포함. TryTeach 에서만 호출.
-        // D-04': {RecipeSavePath}\{CurrentRecipeName}\ETHERNET_ALIGN\{Tray|Bottom}_{1|2}.shm
-        private string GetShmPath(EEthernetVisionMode mode, int modelIndex) {
-            string path = BuildShmPath(mode, modelIndex);
+        // D-04': {RecipeSavePath}\{CurrentRecipeName}\ETHERNET_ALIGN\{Tray|Bottom[_{slot}]}_{1|2}.shm
+        //260626 hbk slot 파라미터 추가 (기본 None = 기존 폴백, D-09)
+        private string GetShmPath(EEthernetVisionMode mode, int modelIndex, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 슬롯 경로 쓰기 헬퍼
+            string path = BuildShmPath(mode, modelIndex, slot); //260626 hbk slot 전달
             if (path == null) {
                 return null;
             }
@@ -102,16 +116,24 @@ namespace ReringProject {
             return path;
         }
 
-        // D-04': ref json 경로 = _1.shm 옆 {Tray|Bottom}.json (모드 단위 1개)
-        private string BuildJsonPath(EEthernetVisionMode mode) {
-            string shm1 = BuildShmPath(mode, 1);
+        // D-04': ref json 경로 = _1.shm 옆 {Tray|Bottom[_{slot}]}.json (모드+슬롯 단위 1개)
+        //260626 hbk slot 파라미터 추가 — BuildShmPath(mode,1,slot) 경로에서 마지막 _1 만 제거 (D-02)
+        //260626 hbk 주의: Replace("_1","") 는 토큰 내부 _1(예: 2D_SIDE_1_1)을 이중 치환. EndsWith 방식으로 마지막 _1 만 제거.
+        private string BuildJsonPath(EEthernetVisionMode mode, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 슬롯 json 경로 (토큰 내부 _1 오치환 방지)
+            string shm1 = BuildShmPath(mode, 1, slot); //260626 hbk slot 전달
             if (shm1 == null) {
                 return null;
             }
-            // _1.shm → .json (접미사 제거 후 확장자 교체)
-            string withoutExt = Path.Combine(
-                Path.GetDirectoryName(shm1),
-                Path.GetFileNameWithoutExtension(shm1).Replace(MODEL_SUFFIX_1, ""));
+            // _1.shm → .json (접미사 마지막 _1 만 제거 — 토큰 내부 _1 오치환 방지)
+            string baseName = Path.GetFileNameWithoutExtension(shm1); //260626 hbk 예: "Bottom_2D_SIDE_1_1"
+            string trimmedName;
+            if (baseName.EndsWith(MODEL_SUFFIX_1)) { //260626 hbk "_1" 로 끝나면 마지막 _1 만 제거
+                trimmedName = baseName.Substring(0, baseName.Length - MODEL_SUFFIX_1.Length);
+            }
+            else {
+                trimmedName = baseName; //260626 hbk 안전 폴백 — 실제로는 항상 _1 로 끝남
+            }
+            string withoutExt = Path.Combine(Path.GetDirectoryName(shm1), trimmedName);
             return withoutExt + REF_POSE_EXT;
         }
 
@@ -195,13 +217,14 @@ namespace ReringProject {
 
         // D-07': 두 .shm + ref json 셋 모두 존재해야 사용 가능
         // WR-01 fix: BuildShmPath 사용 — 순수 존재 확인, IO 부작용 없음.
-        public bool HasTemplate(EEthernetVisionMode mode) {
+        //260626 hbk slot 파라미터 추가 (기본 None = 기존 폴백, D-09)
+        public bool HasTemplate(EEthernetVisionMode mode, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 슬롯별 템플릿 존재 확인
             if (mode == EEthernetVisionMode.None) {
                 return false;
             }
-            string shmPath1 = BuildShmPath(mode, 1);
-            string shmPath2 = BuildShmPath(mode, 2);
-            string jsonPath = BuildJsonPath(mode);
+            string shmPath1 = BuildShmPath(mode, 1, slot); //260626 hbk slot 전달
+            string shmPath2 = BuildShmPath(mode, 2, slot); //260626 hbk slot 전달
+            string jsonPath = BuildJsonPath(mode, slot);     //260626 hbk slot 전달
             if (shmPath1 == null || shmPath2 == null || jsonPath == null) {
                 return false;
             }
@@ -209,19 +232,36 @@ namespace ReringProject {
         }
 
         // D-07: 파일 존재 = 로드 가능 의미론 (실제 read 는 Run 내부 지연 수행)
-        public bool TryLoadTemplate(EEthernetVisionMode mode) {
-            return HasTemplate(mode);
+        //260626 hbk slot 파라미터 추가 (기본 None = 기존 폴백, D-09)
+        public bool TryLoadTemplate(EEthernetVisionMode mode, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 슬롯별 템플릿 로드 위임
+            return HasTemplate(mode, slot); //260626 hbk slot 전달
         }
 
         // ─── 티칭 ────────────────────────────────────────────────────────────────
 
         // D-07': TryTeach = 2-ROI 입력 → TryCreateModel×2 + TryFindRefPose×2 + baseline angle_lx + 사이드카 JSON 저장.
         // ROI 파라미터는 Phase 61 UI 가 전달 — 이 서비스는 ROI 드로잉을 모름.
+        //260626 hbk slot 파라미터 추가 (기본 None = 기존 Bottom 단일 경로 폴백, D-09)
         public bool TryTeach(
             HImage img,
             double roi1Row, double roi1Col, double roi1Phi, double roi1Len1, double roi1Len2,
             double roi2Row, double roi2Col, double roi2Phi, double roi2Len1, double roi2Len2,
             EEthernetVisionMode mode,
+            out string error)
+        {
+            return TryTeach(img,
+                roi1Row, roi1Col, roi1Phi, roi1Len1, roi1Len2,
+                roi2Row, roi2Col, roi2Phi, roi2Len1, roi2Len2,
+                mode, EBottomAlignSlot.None, out error); //260626 hbk 기존 호출자 하위호환 — slot 기본 None (D-09, 회귀 0)
+        }
+
+        //260626 hbk slot 파라미터를 받는 신규 TryTeach 오버로드 (6슬롯 면별 티칭, D-02)
+        public bool TryTeach(
+            HImage img,
+            double roi1Row, double roi1Col, double roi1Phi, double roi1Len1, double roi1Len2,
+            double roi2Row, double roi2Col, double roi2Phi, double roi2Len1, double roi2Len2,
+            EEthernetVisionMode mode,
+            EBottomAlignSlot slot,   //260626 hbk 슬롯 파라미터 (mode 다음, out error 앞)
             out string error)
         {
             error = null;
@@ -236,13 +276,13 @@ namespace ReringProject {
             }
 
             try {
-                string shmPath1 = GetShmPath(mode, 1);
-                string shmPath2 = GetShmPath(mode, 2);
+                string shmPath1 = GetShmPath(mode, 1, slot); //260626 hbk slot 전달
+                string shmPath2 = GetShmPath(mode, 2, slot); //260626 hbk slot 전달
                 if (shmPath1 == null || shmPath2 == null) {
                     error = "RecipeSavePath 미설정";
                     return false;
                 }
-                string jsonPath = BuildJsonPath(mode);
+                string jsonPath = BuildJsonPath(mode, slot); //260626 hbk slot 전달
                 if (jsonPath == null) {
                     error = "jsonPath 산출 실패";
                     return false;
@@ -314,8 +354,8 @@ namespace ReringProject {
                 }
 
                 Logging.PrintLog((int)ELogType.Camera,
-                    "[ALIGN_SVC] teach OK ({0}): ref1=({1:F1},{2:F1}) ref2=({3:F1},{4:F1}) baseline={5:F4}rad",
-                    mode, r1Row, r1Col, r2Row, r2Col, refBaselineRad);
+                    "[ALIGN_SVC] teach OK ({0}/{1}): ref1=({2:F1},{3:F1}) ref2=({4:F1},{5:F1}) baseline={6:F4}rad",
+                    mode, slot, r1Row, r1Col, r2Row, r2Col, refBaselineRad); //260626 hbk 슬롯 로그 추가
                 return true;
             }
             catch (Exception ex) {
@@ -329,7 +369,8 @@ namespace ReringProject {
 
         // D-07': Run = 2-모델 find + angle_lx baseline → midpoint offset(px→mm) + Theta.
         // 실패 시 Found=false (예외 throw 없음, D-06).
-        public AlignResult Run(HImage img, EEthernetVisionMode mode) {
+        //260626 hbk slot 파라미터 추가 (기본 None = 기존 Bottom 단일 경로 폴백, D-09)
+        public AlignResult Run(HImage img, EEthernetVisionMode mode, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 슬롯별 런타임 보정 실행
             if (img == null || mode == EEthernetVisionMode.None) {
                 AlignResult notFound = new AlignResult();
                 notFound.Found = false;
@@ -338,11 +379,11 @@ namespace ReringProject {
 
             try {
                 // WR-01 fix: Run = 읽기 경로 — BuildShmPath(IO 없음) 사용. 디렉터리 생성 불필요.
-                string shmPath1 = BuildShmPath(mode, 1);
-                string shmPath2 = BuildShmPath(mode, 2);
-                string jsonPath = BuildJsonPath(mode);
+                string shmPath1 = BuildShmPath(mode, 1, slot); //260626 hbk slot 전달
+                string shmPath2 = BuildShmPath(mode, 2, slot); //260626 hbk slot 전달
+                string jsonPath = BuildJsonPath(mode, slot);     //260626 hbk slot 전달
                 if (shmPath1 == null || shmPath2 == null || jsonPath == null) {
-                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_SVC] RecipeSavePath 미설정 ({0})", mode);
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_SVC] RecipeSavePath 미설정 ({0}/{1})", mode, slot); //260626 hbk 슬롯 로그
                     AlignResult noPath = new AlignResult();
                     noPath.Found = false;
                     return noPath;
@@ -479,9 +520,9 @@ namespace ReringProject {
 
                 bool bHasXld = (result.DetectedContourXld != null);
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[ALIGN_SVC] run OK ({0}): off=({1:F4},{2:F4})mm theta={3:F3} score1={4:F3} score2={5:F3} contourXld={6}",
-                    mode, result.OffsetXmm, result.OffsetYmm, result.ThetaDeg, f1Score, f2Score,
-                    bHasXld);
+                    "[ALIGN_SVC] run OK ({0}/{1}): off=({2:F4},{3:F4})mm theta={4:F3} score1={5:F3} score2={6:F3} contourXld={7}",
+                    mode, slot, result.OffsetXmm, result.OffsetYmm, result.ThetaDeg, f1Score, f2Score,
+                    bHasXld); //260626 hbk 슬롯 로그 추가
                 return result;
             }
             catch (Exception ex) {

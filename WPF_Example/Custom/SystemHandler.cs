@@ -1,3 +1,4 @@
+using HalconDotNet; //260626 hbk HImage 참조 (RunBottomAlign 로컬 변수)
 using ReringProject.Setting;
 using ReringProject.Network;
 using ReringProject.Utility;

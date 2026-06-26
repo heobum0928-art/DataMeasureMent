@@ -42,11 +42,10 @@ namespace ReringProject.Network {
         //260624 hbk Phase 63 PROTO-Type: Type 필드 삽입 → 자재번호/z_index 인덱스 +1 시프트 (V1 한정).
         private const int TEST_FIELD_TYPE = 1;               //260624 hbk Phase 63 필드 인덱스: Type (TOP/BOTTOM/SIDE_1~4)
         private const int TEST_FIELD_MATERIAL = 2;           //260624 hbk Phase 63 필드 인덱스: 자재번호 (1→2 시프트)
-        private const int TEST_FIELD_ZINDEX = 4;             //260624 hbk Phase 63 필드 인덱스: z_index (3→4 시프트)
         private const int TEST_MIN_FIELD_SITE = 1;           // site 만 있으면 파싱 시작
         private const int TEST_MIN_FIELD_TYPE = 2;           //260624 hbk Phase 63 Type 필드 존재 최소 길이
         private const int TEST_MIN_FIELD_MATERIAL = 3;       //260624 hbk Phase 63 자재번호 필드 존재 최소 길이 (2→3 시프트)
-        private const int TEST_MIN_FIELD_ZINDEX = 5;         //260624 hbk Phase 63 z_index 필드 존재 최소 길이 (4→5 시프트)
+        // TEST_FIELD_ZINDEX/TEST_MIN_FIELD_ZINDEX 제거 //260626 hbk z_index=$PREP 분리 → $TEST에서 z_index 삭제
 
         public VisionRequestType RequestType { get; }
 
@@ -356,7 +355,8 @@ namespace ReringProject.Network {
         //260622 hbk Phase 48
         // PROTO-01: v1.0 유연 TEST 파서. 고정 매직 인덱스 의존 탈피 — 필드 누락 시 sentinel 폴백.
         //  향후 필드 추가/순서 변경 시 이 메서드(+상수)만 수정. D-02.
-        // D-00 준수: 헝가리언 + if/else + 조건 bool 변수화 + 30줄 한도(자재번호/z_index 헬퍼 분리).
+        // D-00 준수: 헝가리언 + if/else + 조건 bool 변수화 + 30줄 한도(자재번호 헬퍼 분리).
+        //260626 hbk z_index=$PREP 분리: $TEST에서 z_index 필드 제거. TestID는 SystemHandler가 _lastPrepZIndex로 주입.
         private static bool TryParseTestFieldsV1(string[] dataList, TestPacket testPacket)
         {
             bool bHasSite = dataList.Length >= TEST_MIN_FIELD_SITE;
@@ -367,9 +367,9 @@ namespace ReringProject.Network {
             if (!bSiteValid) { return false; }
             testPacket.Site = nSiteNum;
 
-            testPacket.Type = ParseTypeField(dataList);   //260624 hbk Phase 63 PROTO-Type
+            testPacket.Type = ParseTypeField(dataList);        //260624 hbk Phase 63 PROTO-Type
             testPacket.IndexNumber = ParseMaterialField(dataList);
-            testPacket.TestID = ParseZIndexField(dataList);
+            testPacket.TestID = SENTINEL_Z_INDEX_STR;          //260626 hbk $PREP 분리 — z_index는 SystemHandler._lastPrepZIndex 주입
             return true;
         }
 
@@ -401,18 +401,7 @@ namespace ReringProject.Network {
             return nMaterial;
         }
 
-        //260622 hbk Phase 48
-        // PROTO-01: z_index 필드 파싱. 누락/비정수 → SENTINEL_Z_INDEX_STR.
-        private static string ParseZIndexField(string[] dataList)
-        {
-            bool bHasZIndex = dataList.Length >= TEST_MIN_FIELD_ZINDEX;
-            if (!bHasZIndex) { return SENTINEL_Z_INDEX_STR; }
-
-            int nZIndex = 0;
-            bool bZValid = Int32.TryParse(dataList[TEST_FIELD_ZINDEX], out nZIndex);
-            if (!bZValid) { return SENTINEL_Z_INDEX_STR; }
-            return nZIndex.ToString();
-        }
+        // ParseZIndexField 제거 //260626 hbk z_index=$PREP 분리 — $TEST z_index 파싱 불필요
 
         //260626 hbk v3.0: ALIGN_TEST 수신 파서.
         //  dataList[0]=AlignTarget(TRAY/BOTTOM), [1]=MaterialNo(int), [2]=모드(skip).

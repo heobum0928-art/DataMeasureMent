@@ -12,6 +12,9 @@ using System.Diagnostics;
 
 namespace ReringProject {
     public sealed partial class SystemHandler {
+        //260626 hbk z_index=$PREP 분리: $PREP 수신 시 저장, $TEST 라우팅 시 주입. volatile=MainRun/시퀀스 스레드 안전.
+        private volatile int _lastPrepZIndex = 0;
+
         //project 별, sequence 정의
         private void MainRun() {
             //send test response message
@@ -84,85 +87,33 @@ namespace ReringProject {
             }
         }
 
+        //260626 hbk z_index=$PREP 분리: $LIGHT 응답 제거 — 조명 제어는 유지, 응답 null 반환(fire-and-forget).
+        //  핸들러는 고정 딜레이 후 $PREP 전송. $PREP_ACK 가 "준비 완료" 확인 역할.
         private LightResultPacket ProcessLightSet(LightPacket packet) {
-            LightResultPacket resultPacket = new LightResultPacket();
-
-            resultPacket.Target = packet.Sender;
-            resultPacket.Site = packet.Site;
-            Debug.WriteLine($"Packet.TestType:{packet}");
-            resultPacket.TestType = packet.TestType;
-
             if (Sequences[packet.Identifier] != null) {
                 SequenceBase seq = Sequences[packet.Identifier];
                 if (seq != null) {
-                    if(packet.TestType == 0) //off
+                    if (packet.TestType == 0) //off
                     {
-                        if (Lights.SetOnOff(packet.Identifier, packet.On) == false) {
-                            Thread.Sleep(50);
-                            resultPacket.On = !packet.On;
-                        }
-                        else {
-                            Thread.Sleep(50);
-                            resultPacket.On = packet.On;
-                        }
-                        return resultPacket;
+                        Lights.SetOnOff(packet.Identifier, packet.On);
+                        return null;
                     }
                     int actIndex = seq.GetIndexOf(packet.Identifier2);
                     ActionBase act = seq.GetAction(actIndex);
                     if (act != null) {
-                        if(act.Param is CameraSlaveParam) {
+                        if (act.Param is CameraSlaveParam) {
                             CameraSlaveParam camParam = act.Param as CameraSlaveParam;
-
-                            /*
-                            // 03.19 주석처리
-                            if (Lights.SetLevel(camParam.LightGroupName, camParam.LightLevel) == false) {
-                                //response false
-                                Thread.Sleep(50);
-                                resultPacket.On = !packet.On;
-                            }
-                            if (Lights.SetOnOff(camParam.LightGroupName, packet.On) == false) {
-                                //response false
-                                Thread.Sleep(50);
-                                resultPacket.On = !packet.On;
-                            }
-                            else {
-                                Thread.Sleep(50);
-                                resultPacket.On = packet.On;
-                            }
-                            */
-
-                            if (Lights.SetLevel(camParam.LightGroupName, camParam.LightLevel) == false)
-                            {
-                                resultPacket.On = !packet.On;
-                            }
-                            else
-                            {
-                                resultPacket.On = packet.On;
-                            }
-
-                            if (Lights.SetOnOff(camParam.LightGroupName, packet.On) == false)
-                            {
-                                resultPacket.On = !packet.On;
-                            }
-                            else
-                            {
-                                resultPacket.On = packet.On;
-                            }
+                            Lights.SetLevel(camParam.LightGroupName, camParam.LightLevel);
+                            Lights.SetOnOff(camParam.LightGroupName, packet.On);
                         }
                     }
                 }
-                return resultPacket;
+                return null;
             }
 
             //sequence not have identifier
-            if(Lights.SetOnOff(packet.Identifier, packet.On) == false) {
-                resultPacket.On = !packet.On;
-            }
-            else {
-                resultPacket.On = packet.On;
-            }
-
-            return resultPacket;
+            Lights.SetOnOff(packet.Identifier, packet.On);
+            return null;
         }
 
         private RecipeChangeResultPacket ProcessRecipeChange(RecipeChangePacket packet) {
@@ -243,12 +194,13 @@ namespace ReringProject {
 
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
         //260615 hbk Phase 43.2: IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
-        //  IsInitializeFail 패턴과 동일. false 반환 → MainRun 에서 SendTestError(NG) 응답.
+        //260626 hbk z_index=$PREP 분리: $TEST z_index 필드 제거 → _lastPrepZIndex 주입.
         private bool ProcessTest(TestPacket packet) {
             if (!IsRecipeReady) {
                 Logging.PrintLog((int)ELogType.Error, "[RECIPE] TEST rejected — recipe not yet loaded (IsRecipeReady=false)");
                 return false;
             }
+            packet.TestID = _lastPrepZIndex.ToString(); //260626 hbk $PREP z_index 주입
             if (Sequences.IsDynamicFAIMode) {
                 string seqName = packet.Identifier;
                 SequenceBase seq = Sequences[seqName];
@@ -341,6 +293,7 @@ namespace ReringProject {
             ackPacket.ZIndex = packet.ZIndex;
             ackPacket.IsOk = false; // 기본값 FAIL — 성공 시 true 로 덮어씀
 
+            _lastPrepZIndex = packet.ZIndex; //260626 hbk z_index 저장 → ProcessTest 주입용
             bool bApplied = ApplyPrepToSequences(packet.ZIndex);
             if (bApplied)
             {

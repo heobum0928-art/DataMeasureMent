@@ -222,29 +222,170 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260624 hbk Phase 63 AV-09: $ALIGN_TEST 처리.
-        //260625 hbk Phase 64 ALIGN-FACE: AlignFace 로그 추가. 알고리즘 면별 라우팅은 향후 phase에서 확장.
-        private AlignResultPacket ProcessAlignTest(AlignTestPacket packet)
+        //260626 hbk Phase 65 Plan 03 AV-08: $ALIGN_TEST 처리 — stub(IsPass=true echo) → 실측 grab+Run+pose 채움.
+        //  BOTTOM: AlignFace→슬롯→grab→Matcher.Run→FillAlignPose(OffsetX/OffsetY/Theta)+IsPass=Found (D-06/D-07).
+        //  TRAY: grab/Run 미수행 — 기존 echo ack 동작 유지 (회귀 0).
+        //  AlignFace 범위 외(음수/6이상): IsPass=false 안전 거부+로그 (T-65-01).
+        private AlignResultPacket ProcessAlignTest(AlignTestPacket packet) //260626 hbk 실측 경로 배선 (Phase 65 P03)
         {
             AlignResultPacket resultPacket = new AlignResultPacket();
-            bool bHasPacket = packet != null;
-            if (!bHasPacket)
+            if (packet == null)
             {
                 return null;
             }
-            resultPacket.Target = packet.Sender;
+            resultPacket.Target      = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
-            resultPacket.MaterialNo = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo
-            resultPacket.AlignFace = packet.AlignFace;    //260626 hbk v3.0: 지그 면 인덱스 echo(0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2)
-            resultPacket.IsPass = true;   // [가정] 측정 연계 전까지 ack
+            resultPacket.MaterialNo  = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo (무변경)
+            resultPacket.AlignFace   = packet.AlignFace;   //260626 hbk v3.0: 지그 면 인덱스 echo (무변경)
 
-            bool bIsBottom = packet.AlignTarget == "BOTTOM";
-            if (bIsBottom)
+            bool bIsBottom = packet.AlignTarget == "BOTTOM"; //260626 hbk BOTTOM 전용 슬롯 라우팅
+            if (!bIsBottom)
             {
-                Logging.PrintLog((int)ELogType.Trace,
-                    "[ALIGN_TEST] Target=BOTTOM, Face={0}(0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2) //260626 hbk", packet.AlignFace);
+                //260626 hbk TRAY: 기존 동작 유지 — grab/Run 미수행, echo ack (회귀 0)
+                resultPacket.IsPass = true;
+                return resultPacket;
             }
+
+            //260626 hbk BOTTOM: AlignFace → 슬롯 매핑 (범위 외 → None → NG 안전 거부, T-65-01)
+            EBottomAlignSlot slot = EBottomAlignSlotMap.FromAlignFace(packet.AlignFace);
+            bool bSlotValid = (slot != EBottomAlignSlot.None);
+            if (!bSlotValid)
+            {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~5) //260626 hbk", packet.AlignFace);
+                resultPacket.IsPass = false; //260626 hbk NG 안전 거부 (T-65-01)
+                return resultPacket;
+            }
+
+            //260626 hbk 슬롯별 grab+Run+pose 채움 — RunBottomAlign 헬퍼 위임
+            bool bPass = RunBottomAlign(slot, resultPacket);
+            resultPacket.IsPass = bPass;
             return resultPacket;
+        }
+
+        //260626 hbk Phase 65 P03: BOTTOM 슬롯별 grab+Matcher.Run+pose 채움 헬퍼.
+        //  미티칭/미연결/grab실패/검출실패 → IsPass=false + 로그. throw 금지 (TCP 스레드 크래시 방지, T-65-06).
+        //  HImage/DetectedContourXld 반드시 Dispose (HALCON 핸들 누수 방지, Phase 61.1 WR-01/02 선례).
+        private bool RunBottomAlign(EBottomAlignSlot slot, AlignResultPacket pResult) //260626 hbk 슬롯 grab→Run→pose 위임
+        {
+            try
+            {
+                //260626 hbk 슬롯 미티칭 가드 — 모델 파일 없으면 Run 불가
+                bool bHasTemplate = EthernetVisionHandler.Handle.Matcher.HasTemplate(EEthernetVisionMode.Bottom, slot);
+                if (!bHasTemplate)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[ALIGN_TEST] Bottom slot={0} 미티칭 — 모델 없음 NG 반환 //260626 hbk", (int)slot);
+                    FillAlignPoseZero(pResult); //260626 hbk PLC 형식 일관성 — pose=0 채움
+                    return false;
+                }
+
+                //260626 hbk Camera null 가드 — Mode==None 또는 초기화 실패 시 null
+                bool bCameraReady = EthernetVisionHandler.Handle.Camera != null;
+                if (!bCameraReady)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[ALIGN_TEST] 이더넷 카메라 미연결(null) — NG 반환 //260626 hbk");
+                    FillAlignPoseZero(pResult);
+                    return false;
+                }
+
+                HImage img = null; //260626 hbk finally 에서 Dispose 보장
+                AlignResult res = null;
+                try
+                {
+                    //260626 hbk EthernetAlignCamera.Grab() — IsOpen 이면 라이브 grab, 아니면 폴백(D-05, SIMUL 지원)
+                    img = EthernetVisionHandler.Handle.Camera.Grab();
+                    if (img == null)
+                    {
+                        Logging.PrintLog((int)ELogType.Error,
+                            "[ALIGN_TEST] Bottom slot={0} grab 실패(null) — NG 반환 //260626 hbk", (int)slot);
+                        FillAlignPoseZero(pResult);
+                        return false;
+                    }
+
+                    //260626 hbk 슬롯 모델로 Run — pose(OffsetXmm/OffsetYmm/ThetaDeg) + Found
+                    res = EthernetVisionHandler.Handle.Matcher.Run(img, EEthernetVisionMode.Bottom, slot);
+                    if (!res.Found)
+                    {
+                        Logging.PrintLog((int)ELogType.Error,
+                            "[ALIGN_TEST] Bottom slot={0} 검출 실패(Found=false) — NG 반환 //260626 hbk", (int)slot);
+                        FillAlignPoseZero(pResult); //260626 hbk 검출 실패 시 pose=0 (T-65-05: 잘못된 보정값 미전송)
+                        return false;
+                    }
+
+                    //260626 hbk 검출 성공 — pose Items 채움 (D-07)
+                    FillAlignPose(pResult, res);
+                    Logging.PrintLog((int)ELogType.Trace,
+                        "[ALIGN_TEST] Bottom slot={0} PASS off=({1:0.000},{2:0.000}) theta={3:0.000} //260626 hbk",
+                        (int)slot, res.OffsetXmm, res.OffsetYmm, res.ThetaDeg);
+                    return true;
+                }
+                finally
+                {
+                    //260626 hbk HImage Dispose — 호출자가 Dispose 책임(EthernetAlignCamera.Grab 규약)
+                    if (img != null)
+                    {
+                        img.Dispose();
+                        img = null;
+                    }
+                    //260626 hbk DetectedContourXld Dispose — TCP 경로에서 미사용, 누수 방지 (Phase 61.1 WR-01)
+                    if (res != null && res.DetectedContourXld != null)
+                    {
+                        res.DetectedContourXld.Dispose();
+                        res.DetectedContourXld = null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                //260626 hbk 예외 → throw 금지, false 반환 (TCP 스레드 크래시 방지, T-65-06)
+                Logging.PrintLog((int)ELogType.Error,
+                    "[ALIGN_TEST] RunBottomAlign 예외: {0} //260626 hbk", ex.Message);
+                return false;
+            }
+        }
+
+        //260626 hbk Phase 65 P03: AlignResultPacket.Items 에 pose(OffsetX/OffsetY/Theta) 채움.
+        //  Items 순서: OffsetX → OffsetY → Theta (BuildAlignItems 직렬화 순서, D-08 v3.0 스펙).
+        private void FillAlignPose(AlignResultPacket pkt, AlignResult res) //260626 hbk 검출 성공 pose 채움
+        {
+            pkt.Items.Clear();
+            AlignResultItem itemX = new AlignResultItem();
+            itemX.ItemName = "OffsetX";
+            itemX.Value    = res.OffsetXmm; //260626 hbk mm 단위 (AlignShapeMatchService.Run 산출)
+            pkt.Items.Add(itemX);
+
+            AlignResultItem itemY = new AlignResultItem();
+            itemY.ItemName = "OffsetY";
+            itemY.Value    = res.OffsetYmm; //260626 hbk mm 단위
+            pkt.Items.Add(itemY);
+
+            AlignResultItem itemTheta = new AlignResultItem();
+            itemTheta.ItemName = "Theta";
+            itemTheta.Value    = res.ThetaDeg; //260626 hbk Bottom 모드: res.HasTheta=true (deg 단위)
+            pkt.Items.Add(itemTheta);
+        }
+
+        //260626 hbk Phase 65 P03: 검출 실패/미티칭/grab 실패 시 pose=0 채움.
+        //  PLC 가 형식 일관 수신할 수 있도록 0값 전송 (IsPass=false → PLC 안착 미실행, T-65-05).
+        private void FillAlignPoseZero(AlignResultPacket pkt) //260626 hbk NG 시 pose=0 채움 (PLC 형식 일관)
+        {
+            pkt.Items.Clear();
+            AlignResultItem itemX = new AlignResultItem();
+            itemX.ItemName = "OffsetX";
+            itemX.Value    = 0.0; //260626 hbk NG 시 0 (IsPass=false 가 실제 불량 신호)
+            pkt.Items.Add(itemX);
+
+            AlignResultItem itemY = new AlignResultItem();
+            itemY.ItemName = "OffsetY";
+            itemY.Value    = 0.0; //260626 hbk NG 시 0
+            pkt.Items.Add(itemY);
+
+            AlignResultItem itemTheta = new AlignResultItem();
+            itemTheta.ItemName = "Theta";
+            itemTheta.Value    = 0.0; //260626 hbk NG 시 0
+            pkt.Items.Add(itemTheta);
         }
 
         //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리 — 캘리브 ack 응답.

@@ -597,7 +597,13 @@ namespace ReringProject.UI {
             // sender는 항상 XAML에 핸들러를 등록한 본인 컨트롤(treeListBox_sequence) → 비대칭 회피.
             if (!(sender is TreeListBox list)) return;
             if (!ReferenceEquals(sender, treeListBox_sequence)) return;
-            {
+            //260626 hbk 트리 크래시 수정 ("Cannot call StartAt when content generation is in progress"):
+            //  TreeListBox(가상화) 컨테이너 생성 도중 이 핸들러가 동기로 ItemsSource/SelectedObject 를 재교체
+            //  (ClearResults / PropertyGrid SelectedObject rebind / RestoreDatumOverlayFromTeach 재티칭)하면
+            //  ItemContainerGenerator 가 재진입(StartAt)되어 트리가 뒤섞이며 크래시. 무거운 선택 처리를
+            //  Dispatcher(Background)로 한 틱 미뤄 현재 생성 패스 종료 후 실행 → 재진입 차단. 지연 시점 최신
+            //  SelectedItem 재조회(빠른 연속 선택 안전). 상단 버튼 비활성화는 즉시 동기 유지.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
                 if(list.SelectedItem is NodeViewModel) {
                     NodeViewModel item = list.SelectedItem as NodeViewModel;
                     object itemParam = item.Param;
@@ -801,7 +807,7 @@ namespace ReringProject.UI {
                         mParentWindow.mainView.btn_circleRoi.IsEnabled = circleEnabled;
                     }
                 }
-            }
+            }));
         }
 
         private void button_copy_Click(object sender, RoutedEventArgs e) {

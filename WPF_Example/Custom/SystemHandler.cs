@@ -1,4 +1,5 @@
 using HalconDotNet; //260626 hbk HImage 참조 (RunBottomAlign 로컬 변수)
+using ReringProject.Device; //260626 hbk Phase 66 D-06 — LightHandler.LIGHT_ALIGN_COAX 참조 (ApplyCoaxLightForSlot)
 using ReringProject.Setting;
 using ReringProject.Network;
 using ReringProject.Utility;

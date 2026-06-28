@@ -296,6 +296,8 @@ namespace ReringProject {
                 AlignResult res = null;
                 try
                 {
+                    //260626 hbk Phase 66 D-06/D-07 — grab 직전 해당 슬롯 동축값 자동 적용(티칭=런타임 조명 일치)
+                    ApplyCoaxLightForSlot(slot);
                     //260626 hbk EthernetAlignCamera.Grab() — IsOpen 이면 라이브 grab, 아니면 폴백(D-05, SIMUL 지원)
                     img = EthernetVisionHandler.Handle.Camera.Grab();
                     if (img == null)
@@ -346,6 +348,39 @@ namespace ReringProject {
                     "[ALIGN_TEST] RunBottomAlign 예외: {0} //260626 hbk", ex.Message);
                 FillAlignPoseZero(pResult); //260626 hbk WR-02: 외부 catch — 빈 Items 응답 방지, pose=0 채움
                 return false;
+            }
+        }
+
+        //260626 hbk Phase 66 D-06 — 슬롯 JSON 의 CoaxEnabled/CoaxLevel 을 읽어 LIGHT_ALIGN_COAX 적용.
+        //  JSON 없음(미티칭)/null → 동축 off. 예외 → 로그 후 off (throw 금지, TCP 스레드 크래시 방지 T-66-01).
+        private void ApplyCoaxLightForSlot(EBottomAlignSlot slot)
+        {
+            try
+            {
+                AlignRefPose refPose = EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(EEthernetVisionMode.Bottom, slot);   //260626 hbk 슬롯 동축값 로드
+                bool bEnabled = false;   //260626 hbk 기본 off (미티칭/null 안전)
+                int nLevel = 0;
+                if (refPose != null)
+                {
+                    bEnabled = refPose.CoaxEnabled;   //260626 hbk 저장 동축 ON/OFF
+                    nLevel = refPose.CoaxLevel;       //260626 hbk 저장 동축 밝기
+                }
+
+                if (bEnabled)
+                {
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);   //260626 hbk 동축 ON
+                    LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, nLevel);   //260626 hbk 동축 밝기
+                }
+                else
+                {
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);   //260626 hbk 동축 OFF
+                }
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[ALIGN_TEST] ApplyCoaxLightForSlot 예외: {0} //260626 hbk", ex.Message);   //260626 hbk 로그 후 off
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);   //260626 hbk 예외 시 안전 off (throw 금지)
             }
         }
 

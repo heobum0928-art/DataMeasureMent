@@ -213,6 +213,69 @@ namespace ReringProject {
             }
         }
 
+        // ─── 동축 공개 API (D-05 Phase 66) ──────────────────────────────────────
+
+        //260626 hbk Phase 66 D-05 — 슬롯/Tray 레퍼런스 JSON 을 mode+slot 으로 로드(공개 래퍼).
+        //  private BuildJsonPath + LoadRefPose 위임. 파일 없음/예외 → null (호출자 null-guard).
+        //  Plan 03 UI + SystemHandler.ApplyCoaxLightForSlot 가 이 메서드를 소비한다.
+        public AlignRefPose GetSlotRefPose(EEthernetVisionMode mode, EBottomAlignSlot slot)
+        {
+            try
+            {
+                string jsonPath = BuildJsonPath(mode, slot);   //260626 hbk 슬롯/Tray json 경로
+                if (jsonPath == null)
+                {
+                    return null;   //260626 hbk 경로 산출 실패(RecipeSavePath 미설정 등)
+                }
+                return LoadRefPose(jsonPath);   //260626 hbk 기존 private 로더 재사용(키 부재 → Coax false/0)
+            }
+            catch
+            {
+                return null;   //260626 hbk 예외 시 null — 호출자가 동축 off 폴백
+            }
+        }
+
+        //260626 hbk Phase 66 D-05 — 동축값만 슬롯/Tray JSON 에 반영(티칭 데이터 보존 load-merge-save).
+        //  기존 refPose 로드 → Coax 필드만 덮어쓰기 → 재저장. 미티칭(json 없음) 슬롯은 새 refPose 로 동축만 기록.
+        //  Plan 03 UI(CheckBox/Slider 저장)가 이 메서드를 소비한다. throw 없음(UI 경로, 호출자 out error 처리).
+        public bool TrySaveCoax(EEthernetVisionMode mode, EBottomAlignSlot slot,
+            bool coaxEnabled, int coaxLevel, out string error)
+        {
+            error = null;
+            try
+            {
+                string jsonPath = BuildJsonPath(mode, slot);   //260626 hbk 슬롯/Tray json 경로
+                if (jsonPath == null)
+                {
+                    error = "jsonPath 산출 실패";   //260626 hbk RecipeSavePath 미설정
+                    return false;
+                }
+
+                AlignRefPose refPose = LoadRefPose(jsonPath);   //260626 hbk 기존 티칭 데이터 로드(있으면 보존)
+                if (refPose == null)
+                {
+                    refPose = new AlignRefPose();   //260626 hbk 미티칭 슬롯 — 동축만 기록(티칭 데이터는 추후 TryTeach 가 채움)
+                }
+
+                refPose.CoaxEnabled = coaxEnabled;   //260626 hbk 동축 ON/OFF 갱신
+                refPose.CoaxLevel = coaxLevel;       //260626 hbk 동축 밝기 갱신
+
+                Directory.CreateDirectory(Path.GetDirectoryName(jsonPath));   //260626 hbk 폴더 부재 대비(미티칭 슬롯 쓰기)
+
+                JsonSerializerSettings saveSettings = new JsonSerializerSettings();   //260626 hbk 기존 TrySaveRefPose 와 동일 설정
+                saveSettings.TypeNameHandling = TypeNameHandling.None;
+                saveSettings.Formatting = Formatting.Indented;
+                string json = JsonConvert.SerializeObject(refPose, saveSettings);
+                File.WriteAllText(jsonPath, json, System.Text.Encoding.UTF8);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = "TrySaveCoax: " + ex.Message;   //260626 hbk 직렬화/IO 실패
+                return false;
+            }
+        }
+
         // ─── 템플릿 존재 확인 ────────────────────────────────────────────────────
 
         // D-07': 두 .shm + ref json 셋 모두 존재해야 사용 가능

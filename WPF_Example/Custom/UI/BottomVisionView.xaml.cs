@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using HalconDotNet;
+using ReringProject.Device;   //260626 hbk Phase 66 — LightHandler 참조(동축 ON/OFF+Level)
 using ReringProject.Halcon.Models;
 using ReringProject.Sequence;
 using ReringProject.Setting;
@@ -178,6 +179,7 @@ namespace ReringProject.Custom.UI {
                 string displayLabel = EBottomAlignSlotMap.ToDisplayLabel(newSlot);
                 lbl_slotStatus.Text = "선택: " + displayLabel; //260626 hbk 선택 슬롯 라벨 표시
 
+                LoadSlotCoaxToUi(); //260626 hbk Phase 66 — 슬롯 동축값 복원(슬롯 전환 시 JSON에서 CoaxEnabled/CoaxLevel 복원)
                 RefreshStatus(); //260626 hbk 슬롯별 HasTemplate 상태 갱신
             }
             catch (Exception ex) {
@@ -212,6 +214,7 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
+                ApplyCoaxLight(); //260626 hbk Phase 66 — grab 직전 동축 자동 적용(D-07 Teach=Run=Grab 동일 조명)
                 HImage img = EthernetVisionHandler.Handle.Camera.Grab();
                 if (img == null) {
                     lbl_status.Text = "취득 실패 (폴백 없음)";
@@ -343,6 +346,7 @@ namespace ReringProject.Custom.UI {
                 double r2, c2, phi2, l2_1, l2_2;
                 RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
 
+                ApplyCoaxLight(); //260626 hbk Phase 66 — 티칭 직전 동축 자동 적용(D-07 티칭=런타임 조명 일치)
                 string error;
                 // 슬롯 오버로드 호출 — Plan 01 신규 오버로드(_selectedSlot 명시)
                 bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
@@ -382,6 +386,7 @@ namespace ReringProject.Custom.UI {
 
             try {
                 lbl_status.Text = "검사중";
+                ApplyCoaxLight(); //260626 hbk Phase 66 — 검사 직전 동축 자동 적용(D-07)
                 // _selectedSlot None 이면 Plan 01 폴백(Bottom_1/2.shm 단일) 동작 — 회귀 0 보장
                 AlignResult res = EthernetVisionHandler.Handle.Matcher.Run(_viewer.CurrentImage, VIEW_MODE, _selectedSlot); //260626 hbk 선택 슬롯 전달
 
@@ -739,6 +744,106 @@ namespace ReringProject.Custom.UI {
                     res.OffsetXmm,
                     res.OffsetYmm,
                     res.Score);
+            }
+        }
+
+        // ─── 동축 조명 핸들러 (260626 hbk Phase 66 D-04/D-05/D-07) ─────────────
+
+        /// <summary>
+        /// 현재 UI 동축값(chk_coaxEnabled + sld_coaxLevel)을 LIGHT_ALIGN_COAX 에 적용.
+        /// Enabled=true: SetOnOff(true)+SetLevel. Enabled=false: SetOnOff(false)만.
+        /// 예외 시 lbl_status 갱신만 — throw 금지(T-66-UI-01).
+        /// </summary>
+        private void ApplyCoaxLight() //260626 hbk Phase 66 D-06/D-07 — 현재 UI 동축값을 LIGHT_ALIGN_COAX 에 적용
+        {
+            try
+            {
+                bool bEnabled = (chk_coaxEnabled.IsChecked == true);   //260626 hbk 체크박스 상태
+                int nLevel = (int)sld_coaxLevel.Value;                 //260626 hbk 슬라이더 밝기
+                if (bEnabled)
+                {
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);    //260626 hbk 동축 ON
+                    LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, nLevel);  //260626 hbk 동축 밝기
+                }
+                else
+                {
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);   //260626 hbk 동축 OFF
+                }
+            }
+            catch (Exception ex)
+            {
+                lbl_status.Text = "동축 적용 오류: " + ex.Message;   //260626 hbk throw 금지 — 상태 라벨만
+            }
+        }
+
+        //260626 hbk Phase 66 D-07 — 동축 체크박스 변경: 즉시 조명 적용 + 슬롯 JSON 저장(수동 override)
+        private void CoaxCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            ApplyCoaxLight();       //260626 hbk 즉시 반영
+            SaveSlotCoaxToJson();   //260626 hbk 슬롯 JSON 갱신
+        }
+
+        //260626 hbk Phase 66 D-07 — 동축 슬라이더 변경: 라벨 갱신 + 즉시 적용 + 슬롯 JSON 저장
+        private void CoaxSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            int nLevel = (int)e.NewValue;   //260626 hbk 새 밝기
+            if (lbl_coaxLevel != null)
+            {
+                lbl_coaxLevel.Text = nLevel.ToString();   //260626 hbk 라벨 갱신(초기화 전 null 가드)
+            }
+            ApplyCoaxLight();
+            SaveSlotCoaxToJson();
+        }
+
+        //260626 hbk Phase 66 D-05 — 현재 선택 슬롯 JSON 에 동축값 저장(TrySaveCoax = 티칭 데이터 보존 load-merge-save).
+        //  슬롯 None(미선택)이면 저장 스킵 — 단일 경로 동축은 본 phase 범위 외(슬롯별 저장).
+        private void SaveSlotCoaxToJson()
+        {
+            if (_selectedSlot == EBottomAlignSlot.None)
+            {
+                return;   //260626 hbk 슬롯 미선택 — 저장 대상 없음
+            }
+            try
+            {
+                bool bEnabled = (chk_coaxEnabled.IsChecked == true);   //260626 hbk 체크 상태
+                int nLevel = (int)sld_coaxLevel.Value;                 //260626 hbk 밝기
+                string error;
+                bool bOk = EthernetVisionHandler.Handle.Matcher.TrySaveCoax(VIEW_MODE, _selectedSlot, bEnabled, nLevel, out error);   //260626 hbk 슬롯 JSON 동축 갱신
+                if (!bOk)
+                {
+                    lbl_status.Text = "동축 저장 실패: " + error;   //260626 hbk 저장 실패 상태 표시
+                }
+            }
+            catch (Exception ex)
+            {
+                lbl_status.Text = "동축 저장 오류: " + ex.Message;   //260626 hbk throw 금지
+            }
+        }
+
+        //260626 hbk Phase 66 D-05 — 슬롯 JSON 의 동축값을 UI(chk/sld/lbl)에 복원. null/미티칭 → off/0.
+        private void LoadSlotCoaxToUi()
+        {
+            try
+            {
+                AlignRefPose refPose = null;   //260626 hbk 슬롯 동축값 로드 결과
+                if (_selectedSlot != EBottomAlignSlot.None)
+                {
+                    refPose = EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, _selectedSlot);   //260626 hbk 슬롯 JSON 로드
+                }
+                bool bEnabled = false;   //260626 hbk 기본값 off
+                int nLevel = 0;          //260626 hbk 기본값 0
+                if (refPose != null)
+                {
+                    bEnabled = refPose.CoaxEnabled;   //260626 hbk 저장된 동축 ON/OFF
+                    nLevel = refPose.CoaxLevel;       //260626 hbk 저장된 동축 밝기
+                }
+                chk_coaxEnabled.IsChecked = bEnabled;   //260626 hbk UI 복원
+                sld_coaxLevel.Value = nLevel;
+                lbl_coaxLevel.Text = nLevel.ToString();
+            }
+            catch (Exception ex)
+            {
+                lbl_status.Text = "동축 복원 오류: " + ex.Message;   //260626 hbk throw 금지
             }
         }
 

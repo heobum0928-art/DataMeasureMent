@@ -39,5 +39,11 @@ namespace ReringProject {
         public double Roi2Len1 { get; set; }
         /// <summary>BR(ROI2) Row 반폭.</summary>
         public double Roi2Len2 { get; set; }
+
+        //260626 hbk Phase 66 D-05 — Align 동축 조명 저장. 키 부재(구 JSON) → false/0 자동 폴백(하위호환).
+        /// <summary>Align 동축 조명 ON/OFF. 저장 시점 슬롯/Tray 설정값.</summary>
+        public bool CoaxEnabled { get; set; }
+        /// <summary>Align 동축 밝기 0~255. 저장 시점 설정값.</summary>
+        public int CoaxLevel { get; set; }
     }
 }

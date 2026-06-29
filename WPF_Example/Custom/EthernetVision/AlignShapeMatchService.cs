@@ -258,7 +258,16 @@ namespace ReringProject {
                 }
 
                 refPose.CoaxEnabled = coaxEnabled;   //260626 hbk 동축 ON/OFF 갱신
-                refPose.CoaxLevel = coaxLevel;       //260626 hbk 동축 밝기 갱신
+                int nClamped = coaxLevel;            //260626 hbk WR-01: 0~255 범위 클램프 — JSON 변조/비정상값이 LightHandler 에 전달되지 않도록 방어
+                if (nClamped < 0)
+                {
+                    nClamped = 0;
+                }
+                if (nClamped > 255)
+                {
+                    nClamped = 255;
+                }
+                refPose.CoaxLevel = nClamped;        //260626 hbk 클램프된 값 저장
 
                 Directory.CreateDirectory(Path.GetDirectoryName(jsonPath));   //260626 hbk 폴더 부재 대비(미티칭 슬롯 쓰기)
 

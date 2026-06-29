@@ -764,10 +764,10 @@ Plans:
 4. 컨트롤러 채널 재배선 없음(현 6+6+동축1 유지). msbuild Debug/x64 PASS, 검사/Tray/Align 회귀 0
 **Background**: 2026-06-26 사용자 발의 + AOI POC v1.5 HW 도면 확인. 검사 조명=shot별 자유 조합(고정 없음). 동축=얼라인 카메라 전용(별도 PC 1채널). 현 ShotConfig=Ring/Back/Coax/Side 라 Ring7 누락 + Coax 오노출 → 정합 필요. 관련 메모리=project_aoi_poc_lighting_config.
 
-**Plans:** 3 plans (2 waves) — planned 2026-06-26
-- [ ] 66-01-PLAN.md — 검사 ShotConfig Ring7 추가 + CoaxLight 숨김 + ApplyShotLights Ring7→RING7 매핑 (LIGHT-01, Wave 1)
-- [ ] 66-02-PLAN.md — Align 동축 백엔드: AlignRefPose Coax 필드 + GetSlotRefPose/TrySaveCoax 공개 API + RunBottomAlign grab 직전 자동적용 (AV-08, Wave 1)
-- [ ] 66-03-PLAN.md — Align 동축 UI: Bottom/Tray 동축 ON/OFF+밝기 컨트롤 + 슬롯/Tray 복원·저장 + Teach/Run/Grab 자동적용 (AV-08, Wave 2, depends 66-02)
+**Plans:** 3/3 plans complete
+- [x] 66-01-PLAN.md — 검사 ShotConfig Ring7 추가 + CoaxLight 숨김 + ApplyShotLights Ring7→RING7 매핑 (LIGHT-01, Wave 1)
+- [x] 66-02-PLAN.md — Align 동축 백엔드: AlignRefPose Coax 필드 + GetSlotRefPose/TrySaveCoax 공개 API + RunBottomAlign grab 직전 자동적용 (AV-08, Wave 1)
+- [x] 66-03-PLAN.md — Align 동축 UI: Bottom/Tray 동축 ON/OFF+밝기 컨트롤 + 슬롯/Tray 복원·저장 + Teach/Run/Grab 자동적용 (AV-08, Wave 2, depends 66-02)
 
 ---
 

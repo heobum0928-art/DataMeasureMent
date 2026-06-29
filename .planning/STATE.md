@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-status: unknown
+status: milestone_complete
 stopped_at: "Completed 66-03-PLAN.md (Align 동축 UI: Bottom/Tray 창 동축 GroupBox + 슬롯 복원/저장 + Grab/Teach/Run 자동 적용)"
 last_updated: "2026-06-29T00:03:17.262Z"
 last_activity: 2026-06-29
 progress:
   total_phases: 15
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 49
   completed_plans: 46
-  percent: 94
+  percent: 100
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 66 (ring7-coax-align-2026-06-26) — EXECUTING
-Plan: 3 of 3
+Phase: 66
+Plan: Not started
 Last activity: 2026-06-29
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
@@ -57,7 +57,7 @@ Last activity: 2026-06-29
 
 **Velocity:**
 
-- Total plans completed: 50
+- Total plans completed: 53
 - Average duration: —
 - Total execution time: 0 hours
 
@@ -80,6 +80,7 @@ Last activity: 2026-06-29
 | 58 | 3 | - | - |
 | 61.1 | 4 | - | - |
 | 65 | 4 | - | - |
+| 66 | 3 | - | - |
 
 **Recent Trend:**
 

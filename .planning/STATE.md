@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: "Completed 66-02-PLAN.md (Align 동축 백엔드: CoaxEnabled/CoaxLevel POCO + GetSlotRefPose/TrySaveCoax API + ApplyCoaxLightForSlot 자동 적용)"
-last_updated: "2026-06-28T23:53:34.655Z"
-last_activity: 2026-06-28
+stopped_at: "Completed 66-03-PLAN.md (Align 동축 UI: Bottom/Tray 창 동축 GroupBox + 슬롯 복원/저장 + Grab/Teach/Run 자동 적용)"
+last_updated: "2026-06-29T00:03:17.262Z"
+last_activity: 2026-06-29
 progress:
   total_phases: 15
   completed_phases: 14
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 66 (ring7-coax-align-2026-06-26) — EXECUTING
 Plan: 3 of 3
-Last activity: 2026-06-28
+Last activity: 2026-06-29
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -210,6 +210,7 @@ Last activity: 2026-06-28
 | Phase 65 P04 | 10 | 1/2 tasks (Task 1 PASS, Task 2 UAT 대기) | 1 files |
 | Phase 66-ring7-coax-align-2026-06-26 P01 | 10 | 4 tasks | 2 files |
 | Phase 66 P02 | 8 | 4 tasks | 3 files |
+| Phase 66-ring7-coax-align-2026-06-26 P66-03 | 15 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -424,6 +425,8 @@ Recent decisions affecting current work:
 - Phase 66 Plan 01: Ring7Light_Enabled/Brightness 프로퍼티 추가(D-01), Ring7→LIGHT_RING7 점등 매핑(D-02), CoaxLight_* [Browsable(false)] 숨김(D-03), 점등/소등 TurnOffShotLights 대칭
 - TrySaveCoax load-merge-save: 기존 TrySaveRefPose 시그니처 무변경, 별도 public API로 동축값만 갱신(티칭 임계경로 회귀 0)
 - partial class 파일별 using 독립: Custom/SystemHandler.cs에 using ReringProject.Device 별도 명시 필요
+- Phase 66 Plan 03: airspace-safe WPF 동축 컨트롤(좌측 패널)으로 Bottom/Tray Align 창 — HALCON HWND 위 오버레이 없음
+- Phase 66 Plan 03: D-07 티칭=런타임 조명 일치 — Grab/Teach/Run 직전 ApplyCoaxLight() 공통 자동 적용 패턴 확립
 
 ### Quick Tasks Completed
 
@@ -557,8 +560,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-28T23:53:34.641Z
-Stopped at: Completed 66-02-PLAN.md (Align 동축 백엔드: CoaxEnabled/CoaxLevel POCO + GetSlotRefPose/TrySaveCoax API + ApplyCoaxLightForSlot 자동 적용)
+Last session: 2026-06-29T00:03:17.250Z
+Stopped at: Completed 66-03-PLAN.md (Align 동축 UI: Bottom/Tray 창 동축 GroupBox + 슬롯 복원/저장 + Grab/Teach/Run 자동 적용)
 Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 

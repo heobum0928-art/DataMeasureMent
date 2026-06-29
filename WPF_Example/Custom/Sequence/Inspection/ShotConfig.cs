@@ -69,6 +69,7 @@ namespace ReringProject.Sequence {
         [Browsable(false)]   //260626 hbk Phase 66 D-03: 검사 PropertyGrid 에서 동축 숨김. INI 키/매핑 코드는 보존(하위호환). 동축 제어는 Align 창(Plan 03).
         [Category("Light|Coax")]
         public bool CoaxLight_Enabled { get; set; }
+        [Browsable(false)]   //260626 hbk Phase 66 IN-01: CoaxLight_Brightness 도 PropertyGrid 에서 숨김(동축 2필드 모두 숨김). INI 키 보존(하위호환).
         public int CoaxLight_Brightness { get; set; }
 
         [Category("Light|Side")]

@@ -572,21 +572,59 @@ namespace ReringProject.Sequence {
             return nMatchedShots;
         }
 
-        //260623 hbk Phase 49 (D-02): FAI 1건 3-state 분류 + 누적. WasDatumSkipped/NG → m_bCycleHasNG=true (리셋 전까지 유지).
+        //260629 hbk FAI 단위 1항목 → 측정 단위 N항목 전환. P2 등 다측정 불량값 은폐 제거 (ETI-RESULT-PER-MEASUREMENT).
         private void AddFaiResult(TestResultPacket packet, FAIConfig fai)
         {
-            bool bIsNull = fai == null;
+            bool bIsNull = fai == null; //260629 hbk null 가드 유지
             if (bIsNull)
             {
                 return;
             }
-            EVisionResultType eCode = ClassifyFai(fai);
-            string szName = fai.FAIName;
-            if (string.IsNullOrEmpty(szName))
+            string szFaiName = fai.FAIName; //260629 hbk FAI 이름 폴백 준비 (헝가리언)
+            if (string.IsNullOrEmpty(szFaiName))
             {
-                szName = "FAI";
+                szFaiName = "FAI"; //260629 hbk FAIName null/빈 문자열 → "FAI" 폴백
             }
-            packet.FAIResults.Add(new FAIResultData(szName, eCode, fai.MeasuredValue));
+            int nMeasCount = fai.Measurements.Count; //260629 hbk 측정 개수 (0 = Datum 샷 → 루프 0회 = 항목 0개)
+            for (int i = 0; i < nMeasCount; i++) //260629 hbk 측정마다 항목 1개 추가
+            {
+                MeasurementBase meas = fai.Measurements[i]; //260629 hbk 측정 단위 순회
+                if (meas == null) //260629 hbk null 측정 방어
+                {
+                    continue;
+                }
+                string szItemId; //260629 hbk 측정 단위 id 네이밍 (삼항 금지 → if-else)
+                if (nMeasCount > 1)
+                {
+                    szItemId = szFaiName + "_P" + (i + 1).ToString(); //260629 hbk 다측정 FAI: FAIName_P{1-based}
+                }
+                else
+                {
+                    szItemId = szFaiName; //260629 hbk 단측정 FAI: suffix 없이 FAIName 그대로
+                }
+                EVisionResultType eCode = ClassifyMeasurement(meas); //260629 hbk 측정 단위 3-state 분류
+                double dVal = meas.LastMeasuredValue; //260629 hbk 측정값(mm) — fai.MeasuredValue 더 이상 사용 안 함
+                packet.FAIResults.Add(new FAIResultData(szItemId, eCode, dVal)); //260629 hbk 측정 1건 → 와이어 항목 1개
+            }
+        }
+
+        //260629 hbk 측정 단위 3-state 분류 — datum/align-skip('N')·측정 NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P'). (ClassifyFai 측정 단위 복제)
+        private EVisionResultType ClassifyMeasurement(MeasurementBase meas)
+        {
+            string szSkip = meas.LastSkipReason; //260629 hbk 측정 단위 skip 사유
+            bool bDatumSkipped = (szSkip == "DATUM_FAIL") || (szSkip == "ALIGN_FAIL"); //260629 hbk datum/align 검출 실패 skip = 'N'
+            if (bDatumSkipped)
+            {
+                m_bCycleHasNG = true; //260629 hbk 검출 실패도 사이클 NG 누적
+                return EVisionResultType.NotExist;
+            }
+            bool bNotPass = !meas.LastJudgement; //260629 hbk LastJudgement true=OK
+            if (bNotPass)
+            {
+                m_bCycleHasNG = true; //260629 hbk 측정 NG → 사이클 NG 누적
+                return EVisionResultType.NG;
+            }
+            return EVisionResultType.OK; //260629 hbk 정상 측정
         }
 
         //260623 hbk Phase 49 (D-02): FAI 3-state 분류 — 검출실패('N')/NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P').

@@ -43,6 +43,9 @@ namespace ReringProject.Custom.UI {
         // 현재 ROI 드로잉 진행 중인 슬롯 인덱스 (1 또는 2, 0=미진행)
         private int _drawingSlot;
 
+        //260626 hbk WR-02: 동축 UI 로드 중 이벤트 연쇄 저장 차단 플래그. true 이면 CoaxSlider_ValueChanged/CoaxCheckBox_Changed 즉시 return.
+        private bool _isLoadingCoax = false;
+
         public TrayVisionView() {
             InitializeComponent();
             Loaded += TrayVisionView_Loaded;
@@ -337,6 +340,7 @@ namespace ReringProject.Custom.UI {
         //260626 hbk Phase 66 D-07 — 동축 체크박스 변경: 즉시 조명 적용 + Tray JSON 저장(수동 override)
         private void CoaxCheckBox_Changed(object sender, RoutedEventArgs e)
         {
+            if (_isLoadingCoax) return;   //260626 hbk WR-02: 로드 중 연쇄 저장 차단
             ApplyCoaxLight();        //260626 hbk 즉시 반영
             SaveTrayCoaxToJson();    //260626 hbk Tray JSON 갱신
         }
@@ -344,6 +348,7 @@ namespace ReringProject.Custom.UI {
         //260626 hbk Phase 66 D-07 — 동축 슬라이더 변경: 라벨 갱신 + 즉시 적용 + Tray JSON 저장
         private void CoaxSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
+            if (_isLoadingCoax) return;   //260626 hbk WR-02: 로드 중 연쇄 저장 차단
             int nLevel = (int)e.NewValue;   //260626 hbk 새 밝기
             if (lbl_coaxLevel != null)
             {
@@ -376,6 +381,7 @@ namespace ReringProject.Custom.UI {
         //260626 hbk Phase 66 D-05 — Tray.json 동축값을 UI 에 복원. null(파일 없음/미티칭) → off/0.
         private void LoadTrayCoaxToUi()
         {
+            _isLoadingCoax = true;   //260626 hbk WR-02: UI 값 설정 중 이벤트 연쇄 저장 차단 시작
             try
             {
                 AlignRefPose refPose = EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None);   //260626 hbk Tray 단일 로드
@@ -393,6 +399,10 @@ namespace ReringProject.Custom.UI {
             catch (Exception ex)
             {
                 lbl_status.Text = "동축 복원 오류: " + ex.Message;   //260626 hbk throw 금지
+            }
+            finally
+            {
+                _isLoadingCoax = false;   //260626 hbk WR-02: 예외 발생 여부 무관하게 플래그 복원
             }
         }
 

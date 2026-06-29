@@ -70,8 +70,10 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
+                <!--260626 hbk Phase 66 D-04 — RowDefinition 1개 추가(총 7개). 동축 GroupBox=Row5, 여백=Row6.-->
 
                 <!--Row 0: 헤더-->
                 <StackPanel Grid.Row="0" Margin="0,0,0,10">
@@ -162,8 +164,23 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!--Row 5: 여백-->
-                <Grid Grid.Row="5"/>
+                <!--260626 hbk Phase 66 D-04 — 동축 조명 컨트롤(ALIGN_COAX 단일). Tray 단일 동축값.-->
+                <GroupBox Grid.Row="5" Header="동축 조명 (Align 전용)" Margin="0,0,0,8">
+                    <StackPanel Margin="8">
+                        <CheckBox x:Name="chk_coaxEnabled" Content="동축 ON/OFF" Margin="0,0,0,6"
+                                  Checked="CoaxCheckBox_Changed" Unchecked="CoaxCheckBox_Changed"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="밝기:" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12" Foreground="#334155"/>
+                            <Slider x:Name="sld_coaxLevel" Minimum="0" Maximum="255" Width="180"
+                                    VerticalAlignment="Center" ValueChanged="CoaxSlider_ValueChanged"/>
+                            <TextBlock x:Name="lbl_coaxLevel" Text="0" Margin="6,0,0,0" FontSize="12"
+                                       VerticalAlignment="Center" Width="32" Foreground="#334155"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!--Row 6: 여백 (기존 Row 5 에서 이동 — 260626 hbk Phase 66 RowDefinition 추가로 Row 번호 이동)-->
+                <Grid Grid.Row="6"/>
             </Grid>
         </Border>
 

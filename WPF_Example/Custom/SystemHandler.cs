@@ -341,6 +341,7 @@ namespace ReringProject {
                         res.DetectedContourXld.Dispose();
                         res.DetectedContourXld = null;
                     }
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false); //260630 hbk grab 완료 즉시 소등 — 검사와 독립
                 }
             }
             catch (Exception ex)
@@ -413,6 +414,7 @@ namespace ReringProject {
                         res.DetectedContourXld.Dispose();
                         res.DetectedContourXld = null;
                     }
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false); //260630 hbk grab 완료 즉시 소등 — 검사와 독립
                 }
             }
             catch (Exception ex)

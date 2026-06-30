@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -881,6 +882,60 @@ namespace ReringProject.UI {
             mParentWindow.mainView.LoadAndDisplay(camParam);
             //260616 hbk Phase 51 UAT: SHOT Load 후 SimulImagePath 자동속성 write-back은 INPC 미발동 → PropertyGrid 강제 재바인딩 (Datum 분기와 동일 처리)
             RefreshParamEditor();
+        }
+
+        //260630 hbk — 전체 Shot SimulImagePath 폴더 일괄 설정 (마지막 폴더 기억)
+        private static string _lastSimulImageFolder = null;
+        private static readonly HashSet<string> SimulFolderImageExts = new HashSet<string>(
+            new[] { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff" },
+            StringComparer.OrdinalIgnoreCase);
+
+        private void button_simFolder_Click(object sender, RoutedEventArgs e) {
+            //260630 hbk — 폴더 선택 → 알파벳 정렬 이미지 → Shot 순서대로 SimulImagePath 할당
+            try {
+                var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
+                dlg.Multiselect = false;
+                if (!string.IsNullOrEmpty(_lastSimulImageFolder)) {
+                    dlg.SelectedPath = _lastSimulImageFolder;
+                }
+                if (dlg.ShowDialog() != true) {
+                    return;
+                }
+
+                string folder = dlg.SelectedPath;
+                if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) {
+                    return;
+                }
+                _lastSimulImageFolder = folder;
+
+                List<string> imagePaths = Directory.GetFiles(folder)
+                    .Where(f => SimulFolderImageExts.Contains(Path.GetExtension(f)))
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (imagePaths.Count == 0) {
+                    CustomMessageBox.Show("이미지 없음", "bmp/png/jpg/tif 파일이 없습니다:\n" + folder, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+                if (shots == null || shots.Count == 0) {
+                    CustomMessageBox.Show("Shot 없음", "레시피에 Shot이 없습니다.", MessageBoxImage.Warning);
+                    return;
+                }
+
+                for (int i = 0; i < shots.Count; i++) {
+                    shots[i].SimulImagePath = imagePaths[i % imagePaths.Count];
+                }
+
+                RefreshParamEditor();
+                CustomMessageBox.Show("SimFolder 완료",
+                    string.Format("{0}개 Shot에 이미지 {1}개 할당\n폴더: {2}", shots.Count, imagePaths.Count, folder),
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex) {
+                CustomMessageBox.Show("SimFolder 실패", ex.Message, MessageBoxImage.Error);
+            }
         }
 
         // SourceShotName으로 ShotConfig 조회, 없으면 Shots[0] fallback

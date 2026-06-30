@@ -217,6 +217,12 @@
                                 <TextBlock Text="Load" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="button_simFolder" Click="button_simFolder_Click" Style="{StaticResource disalbedStyle}">
+                            <StackPanel Orientation="Vertical">
+                                <Image Source="/Resource/folder.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="SimFolder" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="button_light" Click="button_light_Click" IsEnabled="False"  Style="{StaticResource disalbedStyle}">
                             <StackPanel Orientation="Vertical" >
                                 <Image Source="/Resource/light.png" Stretch="Uniform" Width="42" Height="42"></Image>

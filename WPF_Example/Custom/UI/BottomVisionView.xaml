@@ -193,7 +193,13 @@
                                     Style="{StaticResource BottomActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     Click="CalDrawRoiButton_Click"/>
-                            <!--스텝 추가: Grab + 지그원 검출 → 중심 누적-->
+                            <!--Cal 모델 티칭: Grab → ROI 내 ShapeModel 생성/저장-->
+                            <Button x:Name="btn_calTeachModel"
+                                    Content="Cal 모델 티칭"
+                                    Style="{StaticResource BottomActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    Click="CalTeachModelButton_Click"/>
+                            <!--스텝 추가: Grab + find_shape_model → 중심 누적-->
                             <Button x:Name="btn_calAddStep"
                                     Content="스텝 추가 (Grab+검출)"
                                     Style="{StaticResource BottomActionButtonStyle}"

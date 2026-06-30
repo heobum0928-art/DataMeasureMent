@@ -555,8 +555,16 @@ namespace ReringProject {
             if (bIsStart)
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
+                // 모델 로드 시도 (UI 티칭 완료 전제). 실패 시 경고만 — STEP 에서 자연 실패.
+                string loadErr;
+                bool bLoaded = EthernetVisionHandler.Handle.PickerCal.TryLoadModel(out loadErr);
+                if (!bLoaded)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[ALIGN_CALIB] START: 모델 로드 실패 ({0})", loadErr);
+                }
                 resultPacket.IsPass = true;
-                Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] START — 누적 초기화");
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] START — 누적 초기화, model={0}", bLoaded);
                 return resultPacket;
             }
 
@@ -585,9 +593,11 @@ namespace ReringProject {
                     double dSearchCol    = SystemSetting.Handle.CalibSearchCol;
                     double dSearchRadius = SystemSetting.Handle.CalibSearchRadius;
 
+                    double dFoundRow, dFoundCol;
                     string error;
                     bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
-                        img, dSearchRow, dSearchCol, dSearchRadius, out error);
+                        img, dSearchRow, dSearchCol, dSearchRadius,
+                        out dFoundRow, out dFoundCol, out error);
 
                     if (bOk)
                     {

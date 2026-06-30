@@ -505,10 +505,14 @@ namespace ReringProject.Custom.UI {
 
         private void OnCalCircleDrawn(object sender, CircleDrawCompletedArgs e) {
             //260624 hbk Phase 61 — CircleDrawingCompleted 이벤트 수거: 검색 ROI(원) 좌표 저장
-            _calSearchRow = e.CenterRow;
-            _calSearchCol = e.CenterCol;
+            //260630 hbk Phase 60 — SystemSetting 에도 동시 저장 → TCP $ALIGN_CALIB STEP 공유
+            _calSearchRow    = e.CenterRow;
+            _calSearchCol    = e.CenterCol;
             _calSearchRadius = e.Radius;
-            _calRoiSet = true;
+            _calRoiSet       = true;
+            SystemSetting.Handle.CalibSearchRow    = e.CenterRow;
+            SystemSetting.Handle.CalibSearchCol    = e.CenterCol;
+            SystemSetting.Handle.CalibSearchRadius = e.Radius;
             lbl_calStatus.Text = "검색 ROI 설정됨 (r=" + _calSearchRadius.ToString("F1") + ")";
         }
 
@@ -524,6 +528,9 @@ namespace ReringProject.Custom.UI {
                 lbl_calStatus.Text = "누적 0";
                 lbl_pickerCenter.Text = "";
                 _calRoiSet = false;
+                if (_viewer != null) {
+                    _viewer.SetAlignContourXld(null); //260630 hbk — 오버레이 클리어
+                }
             }
             catch (Exception ex) {
                 lbl_calStatus.Text = "초기화 오류: " + ex.Message;
@@ -546,18 +553,16 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        private void CalAddStepButton_Click(object sender, RoutedEventArgs e) {
-            //260624 hbk Phase 61 — 한 스텝: Grab + 지그원 검출 → 중심 누적
+        private void CalTeachModelButton_Click(object sender, RoutedEventArgs e) {
+            //260630 hbk Phase 60 — Grab → ROI 내 ShapeModel 생성 → 저장 + 캐시 로드.
             if (!_calRoiSet) {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(원) 지정 먼저";
                 return;
             }
-
             if (EthernetVisionHandler.Handle.Camera == null) {
                 lbl_calStatus.Text = "미연결";
                 return;
             }
-
             if (EthernetVisionHandler.Handle.PickerCal == null) {
                 lbl_calStatus.Text = "PickerCal 미초기화";
                 return;
@@ -569,25 +574,69 @@ namespace ReringProject.Custom.UI {
                     lbl_calStatus.Text = "Grab 실패";
                     return;
                 }
-
-                // 뷰어에 표시 (LoadImage 가 내부 Clone → Dispose 전에 호출)
                 if (_viewer != null) {
                     _viewer.LoadImage(img);
                 }
 
                 string error;
+                bool bOk = EthernetVisionHandler.Handle.PickerCal.TryTeachModel(
+                    img, _calSearchRow, _calSearchCol, _calSearchRadius, out error);
+                img.Dispose();
+
+                if (bOk) {
+                    lbl_calStatus.Text = "모델 티칭 완료";
+                }
+                else {
+                    lbl_calStatus.Text = "모델 티칭 실패: " + error;
+                }
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "모델 티칭 오류: " + ex.Message;
+            }
+        }
+
+        private void CalAddStepButton_Click(object sender, RoutedEventArgs e) {
+            //260624 hbk Phase 61 — 한 스텝: Grab + find_shape_model → 중심 누적
+            //260630 hbk Phase 60 — 시그니처 변경: out foundRow/foundCol + 시각화 XLD 갱신
+            if (!_calRoiSet) {
+                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(원) 지정 먼저";
+                return;
+            }
+            if (EthernetVisionHandler.Handle.Camera == null) {
+                lbl_calStatus.Text = "미연결";
+                return;
+            }
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            try {
+                HImage img = EthernetVisionHandler.Handle.Camera.Grab();
+                if (img == null) {
+                    lbl_calStatus.Text = "Grab 실패";
+                    return;
+                }
+                if (_viewer != null) {
+                    _viewer.LoadImage(img);
+                }
+
+                double foundRow, foundCol;
+                string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
                     img,
-                    _calSearchRow,
-                    _calSearchCol,
-                    _calSearchRadius,
-                    out error);
-
+                    _calSearchRow, _calSearchCol, _calSearchRadius,
+                    out foundRow, out foundCol, out error);
                 img.Dispose();
 
                 if (bOk) {
                     int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
-                    lbl_calStatus.Text = "누적 " + stepCount;
+                    lbl_calStatus.Text = "누적 " + stepCount + "  last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")";
+                    // 누적 십자 오버레이 갱신.
+                    if (_viewer != null) {
+                        HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
+                        _viewer.SetAlignContourXld(vizXld); // 소유권 이전
+                    }
                 }
                 else {
                     lbl_calStatus.Text = "스텝 실패: " + error;
@@ -600,6 +649,7 @@ namespace ReringProject.Custom.UI {
 
         private void CalComputeButton_Click(object sender, RoutedEventArgs e) {
             //260624 hbk Phase 61 — 누적 지그 중심 → 편심원 피팅 → 피커센터 산출 + 표시
+            //260630 hbk Phase 60 — Compute 후 피팅원 + 중심 십자 오버레이 표시
             if (EthernetVisionHandler.Handle.PickerCal == null) {
                 lbl_calStatus.Text = "PickerCal 미초기화";
                 return;
@@ -614,6 +664,11 @@ namespace ReringProject.Custom.UI {
                 if (bOk) {
                     lbl_pickerCenter.Text = string.Format(
                         "피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
+                    // 피팅 원 + 전 스텝 십자 + 중심 십자 오버레이 표시.
+                    if (_viewer != null) {
+                        HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
+                        _viewer.SetAlignContourXld(vizXld); // 소유권 이전
+                    }
                 }
                 else {
                     lbl_calStatus.Text = "계산 실패: " + error;

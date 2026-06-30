@@ -338,10 +338,9 @@ namespace ReringProject {
                     return false;
                 }
 
-                // 피커센터 저장.
-                SystemSetting.Handle.PickerCenterRow = fittedRow;
+                // 피커센터 설정 (Save는 UI 확인 후 호출자 책임).
+                SystemSetting.Handle.PickerCenterRow = fittedRow; //260630 hbk — Save 분리: UI 확인 후 저장
                 SystemSetting.Handle.PickerCenterCol = fittedCol;
-                SystemSetting.Handle.Save();
 
                 row    = fittedRow;
                 col    = fittedCol;

@@ -708,10 +708,21 @@ namespace ReringProject.Custom.UI {
                 if (bOk) {
                     lbl_pickerCenter.Text = string.Format(
                         "피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
-                    // 피팅 원 + 전 스텝 십자 + 중심 십자 오버레이 표시.
                     if (_viewer != null) {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
-                        _viewer.SetAlignContourXld(vizXld); // 소유권 이전
+                        _viewer.SetAlignContourXld(vizXld);
+                    }
+                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지)
+                    string msg = string.Format(
+                        "피커센터를 저장하시겠습니까?\n\nRow: {0:F2}  Col: {1:F2}  r: {2:F2}", r, c, rad);
+                    MessageBoxResult dlgResult = MessageBox.Show(
+                        msg, "피커센터 저장", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (dlgResult == MessageBoxResult.Yes) {
+                        SystemSetting.Handle.Save();
+                        lbl_calStatus.Text = "피커센터 저장 완료";
+                    }
+                    else {
+                        lbl_calStatus.Text = "저장 취소 (값은 런타임 유지, 재시작 시 초기화)";
                     }
                 }
                 else {

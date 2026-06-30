@@ -234,16 +234,18 @@ namespace ReringProject.Network {
                 }
 
                 try {
-                    Array.Copy(bytes, mSendBuffer, bytes.Length);
-                    mStream.Write(mSendBuffer, 0, bytes.Length);
+                    //260630 hbk 고정 1024 mSendBuffer 거치면 측정점 多 응답(>1024B)에서 Array.Copy 예외 → silent 미송신 버그.
+                    //  버퍼 복사 제거하고 bytes 직접 Write (길이 제한 없음, NetworkStream 가변 길이 허용).
+                    mStream.Write(bytes, 0, bytes.Length);
                     Logging.PrintLog((int)ELogType.TcpConnection, $"{GetIpAddress()} : Send Message : {msg}");
                     Parent.OnSendMessage?.Invoke(this, new MessageEventArgs(GetIpAddress(), msg));
                 }
                 catch (Exception e) {
                     Logging.PrintLog((int)ELogType.TcpConnection, $"{GetIpAddress()} : Send Fail. ({e.Message})");
                     Parent.OnAlarm?.Invoke(this, new AlarmEventArgs(AlarmEventArgs.AlarmEventType.OnSendFail, GetIpAddress(), e.Message));
+                    return false; //260630 hbk 예외 시 true 반환 버그 수정 — 실제 송신 실패를 호출부에 전파
                 }
-                
+
                 return true;
             }
             

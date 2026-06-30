@@ -625,16 +625,24 @@ namespace ReringProject.Custom.UI {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
             }
-            if (EthernetVisionHandler.Handle.Camera == null) {
-                lbl_calStatus.Text = "미연결";
-                return;
-            }
             if (EthernetVisionHandler.Handle.PickerCal == null) {
                 lbl_calStatus.Text = "PickerCal 미초기화";
                 return;
             }
 
             try {
+#if SIMUL_MODE
+                //260630 hbk — SIMUL: Camera.Grab() 대신 뷰어 CurrentImage 사용 (오프라인 폴더 순차 테스트)
+                if (_viewer == null || _viewer.CurrentImage == null) {
+                    lbl_calStatus.Text = "이미지 없음 — [폴더 열기] 후 이미지 로드 먼저";
+                    return;
+                }
+                HImage img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
+#else
+                if (EthernetVisionHandler.Handle.Camera == null) {
+                    lbl_calStatus.Text = "미연결";
+                    return;
+                }
                 HImage img = EthernetVisionHandler.Handle.Camera.Grab();
                 if (img == null) {
                     lbl_calStatus.Text = "Grab 실패";
@@ -643,6 +651,7 @@ namespace ReringProject.Custom.UI {
                 if (_viewer != null) {
                     _viewer.LoadImage(img);
                 }
+#endif
 
                 double foundRow, foundCol;
                 string error;
@@ -650,17 +659,28 @@ namespace ReringProject.Custom.UI {
                     img,
                     _calRoiRect.Row1, _calRoiRect.Column1,
                     _calRoiRect.Row2, _calRoiRect.Column2,
-                    out foundRow, out foundCol, out error); //260630 hbk — 사각형 ROI 파라미터 전달
+                    out foundRow, out foundCol, out error);
+#if !SIMUL_MODE
                 img.Dispose();
+#endif
 
                 if (bOk) {
                     int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
                     lbl_calStatus.Text = "누적 " + stepCount + "  last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")";
-                    // 누적 십자 오버레이 갱신.
                     if (_viewer != null) {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
                         _viewer.SetAlignContourXld(vizXld); // 소유권 이전
                     }
+#if SIMUL_MODE
+                    //260630 hbk — SIMUL: 스텝 성공 시 다음 이미지로 자동 이동
+                    if (_loadedImageIndex < _loadedImagePaths.Count - 1) {
+                        _loadedImageIndex = _loadedImageIndex + 1;
+                        LoadCurrentLoaderImage();
+                    }
+                    else {
+                        lbl_loaderStatus.Text = "마지막 이미지 도달";
+                    }
+#endif
                 }
                 else {
                     lbl_calStatus.Text = "스텝 실패: " + error;

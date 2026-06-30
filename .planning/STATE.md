@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: milestone_complete
-stopped_at: "Completed 66-03-PLAN.md (Align 동축 UI: Bottom/Tray 창 동축 GroupBox + 슬롯 복원/저장 + Grab/Teach/Run 자동 적용)"
-last_updated: "2026-06-29T00:03:17.262Z"
+stopped_at: context exhaustion at 90% (2026-06-30)
+last_updated: "2026-06-30T04:18:10.622Z"
 last_activity: 2026-06-29
 progress:
   total_phases: 15
-  completed_phases: 15
+  completed_phases: 14
   total_plans: 49
   completed_plans: 46
-  percent: 100
+  percent: 94
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -562,8 +562,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-29T00:03:17.250Z
-Stopped at: Completed 66-03-PLAN.md (Align 동축 UI: Bottom/Tray 창 동축 GroupBox + 슬롯 복원/저장 + Grab/Teach/Run 자동 적용)
+Last session: 2026-06-30T04:18:10.610Z
+Stopped at: context exhaustion at 90% (2026-06-30)
 Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 

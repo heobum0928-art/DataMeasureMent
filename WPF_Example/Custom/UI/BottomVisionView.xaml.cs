@@ -959,6 +959,13 @@ namespace ReringProject.Custom.UI {
 
                 _lastImageFolder = folder;
 
+#if SIMUL_MODE
+                //260630 hbk — SIMUL: TCP STEP 경로가 폴더 이미지를 순차 사용하도록 카메라에 등록
+                if (EthernetVisionHandler.Handle.Camera != null) {
+                    EthernetVisionHandler.Handle.Camera.LoadSimulFolder(folder);
+                }
+#endif
+
                 var exts = new HashSet<string>(
                     LOADER_IMAGE_EXTS.Split(';'),
                     StringComparer.OrdinalIgnoreCase);

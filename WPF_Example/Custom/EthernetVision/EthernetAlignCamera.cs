@@ -17,9 +17,44 @@ namespace ReringProject.Device {
         private const int DEFAULT_WIDTH = 5120;     // MV-CH250-90GM 플레이스홀더 (Open 후 실 해상도로 덮어씀)
         private const int DEFAULT_HEIGHT = 5120;
         private const string ALIGN_FALLBACK_IMAGE_PATH = @"D:\align_test.bmp"; // D-04 SIMUL/실패 폴백
+        private static readonly string[] IMAGE_EXTENSIONS = { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff" };
 
         private HikCamera _hikCamera = null;    // composed instance (HikCamera 미수정, DeviceHandler 미등록)
         private string _cameraIp = null;
+
+        //260630 hbk — SIMUL 캘 테스트: 폴더 순차 이미지. null=폴백 단일이미지 모드.
+        private string[] _simulImagePaths = null;
+        private int _simulImageIndex = 0;
+
+        /// <summary>
+        /// SIMUL 캘 테스트용 폴더 등록. 이미지 파일 목록을 알파벳순 정렬 후 저장.
+        /// </summary>
+        public void LoadSimulFolder(string folder)
+        {
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                _simulImagePaths = null;
+                return;
+            }
+            var extensions = new System.Collections.Generic.HashSet<string>(
+                IMAGE_EXTENSIONS, StringComparer.OrdinalIgnoreCase);
+            var paths = System.IO.Directory.GetFiles(folder);
+            var sorted = System.Array.FindAll(paths,
+                p => extensions.Contains(Path.GetExtension(p)));
+            System.Array.Sort(sorted, StringComparer.OrdinalIgnoreCase);
+            _simulImagePaths = sorted;
+            _simulImageIndex = 0;
+            Logging.PrintLog((int)ELogType.Camera,
+                "[ETHERNET] SimulCalib 폴더 등록: {0}장 ({1})", sorted.Length, folder);
+        }
+
+        /// <summary>
+        /// SIMUL 캘 순차 인덱스를 0 으로 리셋 (TCP START 수신 시 호출).
+        /// </summary>
+        public void ResetSimulIndex()
+        {
+            _simulImageIndex = 0;
+        }
 
         /// <summary>실 카메라가 열려 있으면 true. HikCamera 인스턴스 없거나 Open 미완료면 false.</summary>
         public bool IsOpen {
@@ -145,12 +180,28 @@ namespace ReringProject.Device {
             // finally 블록에서 반드시 Dispose — 성공 경로(null 로 세팅)는 no-op.
             HImage loaded = null;
             try {
-                if (!File.Exists(ALIGN_FALLBACK_IMAGE_PATH)) {
-                    Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] fallback image missing: {0}", ALIGN_FALLBACK_IMAGE_PATH);
+                // 260630 hbk — SIMUL 캘: 폴더 등록 시 순차 이미지 반환. 마지막 도달 시 마지막 이미지 반복.
+                string imagePath = ALIGN_FALLBACK_IMAGE_PATH;
+                bool bHasSimul = _simulImagePaths != null && _simulImagePaths.Length > 0;
+                if (bHasSimul)
+                {
+                    int idx = _simulImageIndex;
+                    if (idx >= _simulImagePaths.Length)
+                    {
+                        idx = _simulImagePaths.Length - 1; // 마지막 이미지 반복
+                    }
+                    imagePath = _simulImagePaths[idx];
+                    _simulImageIndex = idx + 1;
+                    Logging.PrintLog((int)ELogType.Camera,
+                        "[ETHERNET] SimulCalib Grab [{0}/{1}]: {2}",
+                        idx + 1, _simulImagePaths.Length, Path.GetFileName(imagePath));
+                }
+                if (!File.Exists(imagePath)) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] fallback image missing: {0}", imagePath);
                     return null;
                 }
                 loaded = new HImage();
-                loaded.ReadImage(ALIGN_FALLBACK_IMAGE_PATH);
+                loaded.ReadImage(imagePath);
                 if (loaded.CountChannels().I > 1) {
                     HImage gray = loaded.Rgb1ToGray();
                     loaded.Dispose();

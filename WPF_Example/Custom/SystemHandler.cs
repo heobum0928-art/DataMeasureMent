@@ -555,6 +555,12 @@ namespace ReringProject {
             if (bIsStart)
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
+#if SIMUL_MODE
+                //260630 hbk — SIMUL: START 수신 시 이미지 순차 인덱스 리셋
+                if (EthernetVisionHandler.Handle.Camera != null) {
+                    EthernetVisionHandler.Handle.Camera.ResetSimulIndex();
+                }
+#endif
                 // 모델 로드 시도 (UI 티칭 완료 전제). 실패 시 경고만 — STEP 에서 자연 실패.
                 string loadErr;
                 bool bLoaded = EthernetVisionHandler.Handle.PickerCal.TryLoadModel(out loadErr);

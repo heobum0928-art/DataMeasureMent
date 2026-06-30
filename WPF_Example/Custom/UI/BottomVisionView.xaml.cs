@@ -691,6 +691,17 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
+            //260630 hbk — 모델 미로드 시 파일에서 자동 로드 시도 (TCP START 경로와 동일)
+            if (!EthernetVisionHandler.Handle.PickerCal.HasModel) {
+                string loadErr;
+                bool bLoaded = EthernetVisionHandler.Handle.PickerCal.TryLoadModel(out loadErr);
+                if (!bLoaded) {
+                    lbl_calStatus.Text = "모델 미로드 — [Cal 모델 티칭] 먼저 실행하세요";
+                    return;
+                }
+                lbl_calStatus.Text = "모델 로드됨";
+            }
+
             try {
 #if SIMUL_MODE
                 //260630 hbk — SIMUL: Camera.Grab() 대신 뷰어 CurrentImage 사용 (오프라인 폴더 순차 테스트)

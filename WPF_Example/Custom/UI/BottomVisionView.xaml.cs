@@ -115,7 +115,32 @@ namespace ReringProject.Custom.UI {
 
         private void BottomVisionView_Loaded(object sender, RoutedEventArgs e) {
             PopulateSlotComboBox(); //260626 hbk Phase 65 Plan 02 — 6슬롯 항목 채우기 (Loaded 시점)
+            RestoreCalibRoiFromSetting(); //260630 hbk — 저장된 ROI 좌표 복원 (앱 재시작 후 재그리기 불필요)
             RefreshStatus();
+        }
+
+        /// <summary>
+        /// SystemSetting 에 저장된 CalibSearch 좌표로 _calRoiRect + _calRoiSet 복원.
+        /// Row2/Col2 가 0 이하면 미설정으로 간주(초기값=0).
+        /// </summary>
+        private void RestoreCalibRoiFromSetting() {
+            double r1 = SystemSetting.Handle.CalibSearchRow1;
+            double c1 = SystemSetting.Handle.CalibSearchCol1;
+            double r2 = SystemSetting.Handle.CalibSearchRow2;
+            double c2 = SystemSetting.Handle.CalibSearchCol2;
+            bool bValid = r2 > r1 && c2 > c1;
+            if (!bValid) {
+                return;
+            }
+            _calRoiRect = new RoiDefinition();
+            _calRoiRect.Row1    = r1;
+            _calRoiRect.Column1 = c1;
+            _calRoiRect.Row2    = r2;
+            _calRoiRect.Column2 = c2;
+            _calRoiSet = true;
+            double dW = c2 - c1;
+            double dH = r2 - r1;
+            lbl_calStatus.Text = "ROI 복원됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")";
         }
 
         /// <summary>

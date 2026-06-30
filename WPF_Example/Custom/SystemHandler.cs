@@ -648,7 +648,8 @@ namespace ReringProject {
                 if (bOk)
                 {
                     resultPacket.IsPass = true;
-                    //260630 hbk — END 성공: vizXld + 피커센터 좌표 뷰어/라벨 표시
+                    //260630 hbk — END 성공: 피커센터 즉시 저장 (비정상 종료 시 손실 방지)
+                    SystemSetting.Handle.Save();
                     var endCb = EthernetVisionHandler.Handle.OnCalibEndViewer;
                     if (endCb != null)
                     {

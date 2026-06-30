@@ -378,6 +378,7 @@ namespace ReringProject {
                 AlignResult res = null;
                 try
                 {
+                    ApplyCoaxLightForTray(); //260630 hbk grab 직전 Tray 동축 조명 적용
                     img = EthernetVisionHandler.Handle.Camera.Grab();
                     if (img == null)
                     {
@@ -419,6 +420,39 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] RunTrayAlign 예외: {0} //260630 hbk", ex.Message);
                 FillAlignPoseZero(pResult);
                 return false;
+            }
+        }
+
+        //260630 hbk Tray JSON 의 CoaxEnabled/CoaxLevel 을 읽어 LIGHT_ALIGN_COAX 적용.
+        //  JSON 없음(미티칭)/null → 동축 off. 예외 → 로그 후 off (throw 금지).
+        private void ApplyCoaxLightForTray()
+        {
+            try
+            {
+                AlignRefPose refPose = EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(EEthernetVisionMode.Tray, EBottomAlignSlot.None); //260630 hbk Tray 동축값 로드
+                bool bEnabled = false;
+                int nLevel = 0;
+                if (refPose != null)
+                {
+                    bEnabled = refPose.CoaxEnabled;
+                    nLevel = refPose.CoaxLevel;
+                }
+
+                if (bEnabled)
+                {
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);
+                    LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, nLevel);
+                }
+                else
+                {
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[ALIGN_TEST] ApplyCoaxLightForTray 예외: {0} //260630 hbk", ex.Message);
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
             }
         }
 

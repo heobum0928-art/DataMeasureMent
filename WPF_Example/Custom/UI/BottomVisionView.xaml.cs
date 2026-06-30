@@ -604,16 +604,24 @@ namespace ReringProject.Custom.UI {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
             }
-            if (EthernetVisionHandler.Handle.Camera == null) {
-                lbl_calStatus.Text = "미연결";
-                return;
-            }
             if (EthernetVisionHandler.Handle.PickerCal == null) {
                 lbl_calStatus.Text = "PickerCal 미초기화";
                 return;
             }
 
             try {
+#if SIMUL_MODE
+                //260630 hbk — SIMUL: Camera.Grab() 대신 뷰어 CurrentImage 사용 (오프라인 티칭)
+                if (_viewer == null || _viewer.CurrentImage == null) {
+                    lbl_calStatus.Text = "이미지 없음 — [폴더 열기] 후 이미지 로드 먼저";
+                    return;
+                }
+                HImage img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
+#else
+                if (EthernetVisionHandler.Handle.Camera == null) {
+                    lbl_calStatus.Text = "미연결";
+                    return;
+                }
                 HImage img = EthernetVisionHandler.Handle.Camera.Grab();
                 if (img == null) {
                     lbl_calStatus.Text = "Grab 실패";
@@ -622,14 +630,17 @@ namespace ReringProject.Custom.UI {
                 if (_viewer != null) {
                     _viewer.LoadImage(img);
                 }
+#endif
 
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryTeachModel(
                     img,
                     _calRoiRect.Row1, _calRoiRect.Column1,
                     _calRoiRect.Row2, _calRoiRect.Column2,
-                    out error); //260630 hbk — 사각형 ROI 파라미터 전달
+                    out error);
+#if !SIMUL_MODE
                 img.Dispose();
+#endif
 
                 if (bOk) {
                     lbl_calStatus.Text = "모델 티칭 완료";

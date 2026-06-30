@@ -533,8 +533,9 @@ namespace ReringProject {
             pkt.Items.Add(itemTheta);
         }
 
-        //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리 — 캘리브 ack 응답.
+        //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리.
         //260625 hbk v3.0: CmdStr echo 추가. AlignFace 제거됨.
+        //260630 hbk Phase 60: 스텁 → 실 구현 (START/STEP/END/ABORT 분기 + PickerCal 연결).
         private AlignCalibResultPacket ProcessAlignCalib(AlignCalibPacket packet)
         {
             AlignCalibResultPacket resultPacket = new AlignCalibResultPacket();
@@ -543,10 +544,104 @@ namespace ReringProject {
             {
                 return null;
             }
-            resultPacket.Target = packet.Sender;
+            resultPacket.Target      = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
-            resultPacket.CmdStr = packet.CmdStr;    //260625 hbk v3.0: echo back
-            resultPacket.IsPass = true;
+            resultPacket.CmdStr      = packet.CmdStr;
+            resultPacket.IsPass      = false; // 기본 FAIL — 성공 분기에서 true 덮어씀
+
+            string szCmd = packet.CmdStr;
+
+            bool bIsStart = string.Equals(szCmd, "START", StringComparison.OrdinalIgnoreCase);
+            if (bIsStart)
+            {
+                EthernetVisionHandler.Handle.PickerCal.Reset();
+                resultPacket.IsPass = true;
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] START — 누적 초기화");
+                return resultPacket;
+            }
+
+            bool bIsStep = string.Equals(szCmd, "STEP", StringComparison.OrdinalIgnoreCase);
+            if (bIsStep)
+            {
+                bool bCameraReady = EthernetVisionHandler.Handle.Camera != null;
+                if (!bCameraReady)
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] STEP: 카메라 미연결");
+                    return resultPacket;
+                }
+
+                HImage img = null;
+                try
+                {
+                    img = EthernetVisionHandler.Handle.Camera.Grab();
+                    bool bGrabOk = img != null;
+                    if (!bGrabOk)
+                    {
+                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] STEP: Grab 실패");
+                        return resultPacket;
+                    }
+
+                    double dSearchRow    = SystemSetting.Handle.CalibSearchRow;
+                    double dSearchCol    = SystemSetting.Handle.CalibSearchCol;
+                    double dSearchRadius = SystemSetting.Handle.CalibSearchRadius;
+
+                    string error;
+                    bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
+                        img, dSearchRow, dSearchCol, dSearchRadius, out error);
+
+                    if (bOk)
+                    {
+                        resultPacket.StepNo = EthernetVisionHandler.Handle.PickerCal.StepCount;
+                        resultPacket.IsPass = true;
+                        Logging.PrintLog((int)ELogType.Trace,
+                            "[ALIGN_CALIB] STEP {0} OK", resultPacket.StepNo);
+                    }
+                    else
+                    {
+                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] STEP 실패: {0}", error);
+                    }
+                }
+                finally
+                {
+                    if (img != null)
+                    {
+                        img.Dispose();
+                    }
+                }
+                return resultPacket;
+            }
+
+            bool bIsEnd = string.Equals(szCmd, "END", StringComparison.OrdinalIgnoreCase);
+            if (bIsEnd)
+            {
+                double dRow, dCol, dRad;
+                string error;
+                bool bOk = EthernetVisionHandler.Handle.PickerCal.TryComputePickerCenter(
+                    out dRow, out dCol, out dRad, out error);
+
+                if (bOk)
+                {
+                    resultPacket.IsPass = true;
+                    Logging.PrintLog((int)ELogType.Trace,
+                        "[ALIGN_CALIB] END — 피커센터=({0:F2},{1:F2}) r={2:F2}", dRow, dCol, dRad);
+                }
+                else
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] END 산출 실패: {0}", error);
+                }
+                return resultPacket;
+            }
+
+            bool bIsAbort = string.Equals(szCmd, "ABORT", StringComparison.OrdinalIgnoreCase);
+            if (bIsAbort)
+            {
+                EthernetVisionHandler.Handle.PickerCal.Reset();
+                resultPacket.IsPass = true;
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] ABORT — 누적 초기화");
+                return resultPacket;
+            }
+
+            Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 알 수 없는 CmdStr: {0}", szCmd);
             return resultPacket;
         }
 

@@ -243,8 +243,9 @@ namespace ReringProject {
             bool bIsBottom = packet.AlignTarget == "BOTTOM"; //260626 hbk BOTTOM 전용 슬롯 라우팅
             if (!bIsBottom)
             {
-                //260626 hbk TRAY: 기존 동작 유지 — grab/Run 미수행, echo ack (회귀 0)
-                resultPacket.IsPass = true;
+                //260630 hbk TRAY: grab→Run→FillAlignPose (X/Y/Theta 전송, 피커 캘리브 없음)
+                bool bTrayPass = RunTrayAlign(resultPacket);
+                resultPacket.IsPass = bTrayPass;
                 return resultPacket;
             }
 
@@ -348,6 +349,75 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error,
                     "[ALIGN_TEST] RunBottomAlign 예외: {0} //260626 hbk", ex.Message);
                 FillAlignPoseZero(pResult); //260626 hbk WR-02: 외부 catch — 빈 Items 응답 방지, pose=0 채움
+                return false;
+            }
+        }
+
+        //260630 hbk Tray grab→Matcher.Run→pose 채움 헬퍼. throw 금지 (TCP 스레드 크래시 방지).
+        private bool RunTrayAlign(AlignResultPacket pResult)
+        {
+            try
+            {
+                bool bHasTemplate = EthernetVisionHandler.Handle.Matcher.HasTemplate(EEthernetVisionMode.Tray);
+                if (!bHasTemplate)
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 미티칭 — 모델 없음 NG //260630 hbk");
+                    FillAlignPoseZero(pResult);
+                    return false;
+                }
+
+                bool bCameraReady = EthernetVisionHandler.Handle.Camera != null;
+                if (!bCameraReady)
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] 이더넷 카메라 미연결 — NG //260630 hbk");
+                    FillAlignPoseZero(pResult);
+                    return false;
+                }
+
+                HImage img = null;
+                AlignResult res = null;
+                try
+                {
+                    img = EthernetVisionHandler.Handle.Camera.Grab();
+                    if (img == null)
+                    {
+                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray grab 실패(null) — NG //260630 hbk");
+                        FillAlignPoseZero(pResult);
+                        return false;
+                    }
+
+                    res = EthernetVisionHandler.Handle.Matcher.Run(img, EEthernetVisionMode.Tray);
+                    if (!res.Found)
+                    {
+                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 검출 실패 — NG //260630 hbk");
+                        FillAlignPoseZero(pResult);
+                        return false;
+                    }
+
+                    FillAlignPose(pResult, res);
+                    Logging.PrintLog((int)ELogType.Trace,
+                        "[ALIGN_TEST] Tray PASS off=({0:0.000},{1:0.000}) theta={2:0.000} //260630 hbk",
+                        res.OffsetXmm, res.OffsetYmm, res.ThetaDeg);
+                    return true;
+                }
+                finally
+                {
+                    if (img != null)
+                    {
+                        img.Dispose();
+                        img = null;
+                    }
+                    if (res != null && res.DetectedContourXld != null)
+                    {
+                        res.DetectedContourXld.Dispose();
+                        res.DetectedContourXld = null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] RunTrayAlign 예외: {0} //260630 hbk", ex.Message);
+                FillAlignPoseZero(pResult);
                 return false;
             }
         }

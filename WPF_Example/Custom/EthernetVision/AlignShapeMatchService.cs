@@ -542,8 +542,8 @@ namespace ReringProject {
                 else {
                     result.OffsetXmm = dCol * resMm;   // Tray = 미보정 midpoint offset (Phase 59 동작)
                     result.OffsetYmm = dRow * resMm;
-                    result.ThetaDeg = 0.0;
-                    result.HasTheta = false;
+                    result.ThetaDeg = thetaDeg; //260630 hbk 비전 원값 그대로 전송 (피커 캘리브 없음)
+                    result.HasTheta = true; //260630 hbk
                 }
 
                 //260625 hbk Phase 61.1 — 시각화 필드 채우기(검출 좌표/ROI박스/에지 contour).

@@ -611,6 +611,14 @@ namespace ReringProject {
                     {
                         resultPacket.StepNo = EthernetVisionHandler.Handle.PickerCal.StepCount;
                         resultPacket.IsPass = true;
+                        //260630 hbk — TCP 경로: Grab 이미지 + vizXld 를 뷰어에 표시
+                        var viewerCb = EthernetVisionHandler.Handle.OnCalibStepViewer;
+                        if (viewerCb != null)
+                        {
+                            HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
+                            HImage imgRef = img; // finally 전에 캡처
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => viewerCb(imgRef, vizXld));
+                        }
                         Logging.PrintLog((int)ELogType.Trace,
                             "[ALIGN_CALIB] STEP {0} OK", resultPacket.StepNo);
                     }

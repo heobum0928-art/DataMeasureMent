@@ -84,6 +84,17 @@ namespace ReringProject.Custom.UI {
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
             _viewer.RectDrawingCompleted += OnCalRectDrawn;
+
+            //260630 hbk — TCP ALIGN_CALIB STEP 경로 뷰어 콜백 등록
+            EthernetVisionHandler.Handle.OnCalibStepViewer = (img, xld) => {
+                if (_viewer == null)
+                {
+                    if (xld != null) { try { xld.Dispose(); } catch { } }
+                    return;
+                }
+                _viewer.LoadImage(img); // 내부 Clone — img 외부 dispose 안전
+                _viewer.SetAlignContourXld(xld); // 소유권 이전
+            };
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────

@@ -648,6 +648,14 @@ namespace ReringProject {
                 if (bOk)
                 {
                     resultPacket.IsPass = true;
+                    //260630 hbk — END 성공: vizXld + 피커센터 좌표 뷰어/라벨 표시
+                    var endCb = EthernetVisionHandler.Handle.OnCalibEndViewer;
+                    if (endCb != null)
+                    {
+                        HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
+                        double r = dRow; double c = dCol; double rad = dRad;
+                        System.Windows.Application.Current.Dispatcher.Invoke(() => endCb(r, c, rad, vizXld));
+                    }
                     Logging.PrintLog((int)ELogType.Trace,
                         "[ALIGN_CALIB] END — 피커센터=({0:F2},{1:F2}) r={2:F2}", dRow, dCol, dRad);
                 }

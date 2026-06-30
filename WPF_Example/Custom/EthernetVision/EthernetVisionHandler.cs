@@ -27,9 +27,13 @@ namespace ReringProject {
         /// <summary>Connect 성공 시 true. Mode==None 또는 연결 실패 시 false.</summary>
         public bool IsInitialized { get; private set; } = false;
 
-        //260630 hbk — TCP ALIGN_CALIB STEP/END 완료 시 UI 뷰어 갱신 콜백.
+        //260630 hbk — TCP ALIGN_CALIB STEP 완료 시 UI 뷰어 갱신 콜백.
         // (Grab 이미지, vizXld). BottomVisionView.AttachSharedViewer 에서 등록.
         public Action<HImage, HObject> OnCalibStepViewer { get; set; }
+
+        //260630 hbk — TCP ALIGN_CALIB END 완료 시 UI 갱신 콜백.
+        // (row, col, rad, vizXld). 라벨 + 뷰어 피팅원 표시. BottomVisionView.AttachSharedViewer 에서 등록.
+        public Action<double, double, double, HObject> OnCalibEndViewer { get; set; }
 
         private EthernetVisionHandler() {
         }

@@ -95,6 +95,20 @@ namespace ReringProject.Custom.UI {
                 _viewer.LoadImage(img); // 내부 Clone — img 외부 dispose 안전
                 _viewer.SetAlignContourXld(xld); // 소유권 이전
             };
+
+            //260630 hbk — TCP ALIGN_CALIB END 경로 뷰어+라벨 콜백 등록
+            EthernetVisionHandler.Handle.OnCalibEndViewer = (r, c, rad, xld) => {
+                lbl_pickerCenter.Text = string.Format("피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
+                lbl_calStatus.Text = "END 수신 — 피커센터 산출 완료";
+                if (_viewer != null)
+                {
+                    _viewer.SetAlignContourXld(xld); // 소유권 이전
+                }
+                else
+                {
+                    if (xld != null) { try { xld.Dispose(); } catch { } }
+                }
+            };
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────

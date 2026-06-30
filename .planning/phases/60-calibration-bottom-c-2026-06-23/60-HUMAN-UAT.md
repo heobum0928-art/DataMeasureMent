@@ -1,9 +1,9 @@
 ---
-status: partial
+status: approved-pending-hw
 phase: 60-calibration-bottom-c-2026-06-23
 source: [60-VERIFICATION.md]
 started: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-30
 ---
 
 ## Current Test

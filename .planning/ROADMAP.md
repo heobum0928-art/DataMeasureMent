@@ -631,9 +631,9 @@ Plans:
 3. Bottom 정렬 보정에 피커센터 반영 (미캘 시 Phase 59 동작 폴백)
 
 Plans:
-- [ ] 60-01-PLAN.md — SystemSetting PickerCenterRow/Col INI 속성 + AfterLoad 기본값 (D-04) [Wave 1]
-- [ ] 60-02-PLAN.md — AlignShapeMatchService.TryFindCenter(2-패턴 절대중점) + 피커센터 기준 강체보정 (D-02/D-05) [Wave 2]
-- [ ] 60-03-PLAN.md — PickerCenterCalibrationService(atukey 원피팅 누적) + Handler.PickerCal 배선 + msbuild + anti-goal git proof (D-01/D-03) [Wave 3]
+- [x] 60-01-PLAN.md — SystemSetting PickerCenterRow/Col INI 속성 + AfterLoad 기본값 (D-04) [Wave 1]
+- [x] 60-02-PLAN.md — AlignShapeMatchService.TryFindCenter(2-패턴 절대중점) + 피커센터 기준 강체보정 (D-02/D-05) [Wave 2]
+- [x] 60-03-PLAN.md — PickerCenterCalibrationService(atukey 원피팅 누적) + Handler.PickerCal 배선 + msbuild + anti-goal git proof (D-01/D-03) [Wave 3]
 
 ### Phase 61: UI — TabControl (D) (신설 2026-06-23)
 **Goal**: MainWindow TabControl([검사]/[Tray]/[Bottom]) 통합, 기존 MainView=[검사] 탭 이동, 모드별 탭 Visibility.
@@ -777,7 +777,7 @@ Plans:
 |---|---|---|---|---|---|
 | 58 | Config & Camera (A) | AV-01/02 | ✅ Complete (UAT 4/4 PASS) | 2026-06-24 | 3 plans, msbuild PASS, anti-goal OK |
 | 59 | Vision Algorithm (B) | AV-03/04 | Code complete (UAT pending) | — | 3 plans, msbuild PASS · UAT 5건 Phase 61 UI 후 |
-| 60 | Calibration Bottom (C) | AV-05 | Planned (3 plans) | — | AV-06 폐기(2-패턴 angle_lx 대체). 피커센터=Cal지그 원 fit_circle ×2 |
+| 60 | Calibration Bottom (C) | AV-05 | ✅ Code complete (UAT pending — 실HW 필요) | 2026-06-24 | 3 plans. 2/2 must-have PASS. 실HW UAT 4건 pending |
 | 61 | UI TabControl (D) | AV-07/08 | ✅ Code complete (UAT 4 PASS / 1 partial) | 2026-06-25 | 3 plans, msbuild PASS, anti-goal OK. 실측 갭 2건 → 61.1 |
 | 61.1 | Align Offline 로더 + 결과 시각화 | AV-08(보완) | Discuss (신설 2026-06-25) | — | 폴더+이전/다음 이미지 로더 / 검출·보정ROI·에지 시각화 + on/off 토글 |
 | 62 | TCP (E) | AV-09 | ➡ Phase 63 흡수 | — | Align TCP($ALIGN_*)가 Phase 63 으로 통합됨 |

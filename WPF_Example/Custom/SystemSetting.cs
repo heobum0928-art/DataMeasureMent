@@ -32,7 +32,8 @@ namespace ReringProject.Setting {
         // AfterLoad() = Load() 완료 직후 호출되는 partial 메서드 구현부.
         private const int PC_ROLE_DEFAULT = 1; //260622 hbk Phase 48
         private const double ETHERNET_PIXEL_RESOLUTION_DEFAULT = 8.652; //260623 hbk Phase 58
-        private const double CALIB_SEARCH_RADIUS_DEFAULT = 99999.0; //260630 hbk Phase 60: 미설정 시 전 이미지 커버
+        //260630 hbk Phase 60 사각형 ROI 전환: 미설정 시 전 이미지 커버 기본값 (row2/col2)
+        private const double CALIB_SEARCH_MAX_DEFAULT = 99999.0;
         // WR-03 fix //260624 hbk: 피커센터 미캘 판정 임계 — AlignShapeMatchService.PICKER_CENTER_ZERO_EPS 와 동일.
         // 두 판정 기준을 단일 소스로 통일. AlignShapeMatchService 는 이 public const 를 참조.
         public const double PICKER_CENTER_ZERO_EPS = 1e-6; //260624 hbk Phase 60
@@ -42,7 +43,7 @@ namespace ReringProject.Setting {
             RestorePcRoleDefault();
             RestoreEthernetVisionDefault(); //260623 hbk Phase 58
             RestorePickerCenterDefault(); //260624 hbk Phase 60
-            RestoreCalibSearchDefault(); //260630 hbk Phase 60
+            RestoreCalibSearchDefault(); //260630 hbk Phase 60 (Row2/Col2 기본값 복원)
         }
 
         // 260622 hbk Phase 48
@@ -68,13 +69,18 @@ namespace ReringProject.Setting {
             }
         }
 
-        //260630 hbk Phase 60: 구 INI 에 CalibSearchRadius 키 부재 시 0 으로 로드 → 99999 로 복원 (전 이미지 커버).
+        //260630 hbk Phase 60 사각형 ROI 전환: 구 INI 에 CalibSearchRow2/Col2 키 부재 시 0 으로 로드 → 99999 로 복원 (전 이미지 커버).
         private void RestoreCalibSearchDefault()
         {
-            bool bRadiusMissing = CalibSearchRadius <= 0.0;
-            if (bRadiusMissing)
+            bool bRow2Missing = CalibSearchRow2 <= 0.0;
+            if (bRow2Missing)
             {
-                CalibSearchRadius = CALIB_SEARCH_RADIUS_DEFAULT;
+                CalibSearchRow2 = CALIB_SEARCH_MAX_DEFAULT;
+            }
+            bool bCol2Missing = CalibSearchCol2 <= 0.0;
+            if (bCol2Missing)
+            {
+                CalibSearchCol2 = CALIB_SEARCH_MAX_DEFAULT;
             }
         }
 
@@ -118,15 +124,18 @@ namespace ReringProject.Setting {
         [Category("ETHERNET_VISION")]
         public double PickerCenterCol { get; set; } = 0.0;
 
-        //260630 hbk Phase 60: 피커캘 STEP 검색 ROI. TCP $ALIGN_CALIB:BOTTOM,STEP@ 수신 시 Grab→TryAddStep 에 전달.
-        // 기본값 Row=0/Col=0/Radius=99999 → 전 이미지 커버 (HALCON ReduceDomain 이 이미지 도메인 내부로 클립).
+        //260630 hbk Phase 60 사각형 ROI 전환: 피커캘 STEP 검색 ROI(사각형). TCP $ALIGN_CALIB:BOTTOM,STEP@ 수신 시 Grab→TryAddStep 에 전달.
+        // 기본값 Row1=0/Col1=0/Row2=99999/Col2=99999 → 전 이미지 커버 (HALCON GenRectangle1 이 이미지 도메인 내부로 클립).
         [Category("ETHERNET_VISION")]
-        public double CalibSearchRow { get; set; } = 0.0;
+        public double CalibSearchRow1 { get; set; } = 0.0;
 
         [Category("ETHERNET_VISION")]
-        public double CalibSearchCol { get; set; } = 0.0;
+        public double CalibSearchCol1 { get; set; } = 0.0;
 
         [Category("ETHERNET_VISION")]
-        public double CalibSearchRadius { get; set; } = 99999.0;
+        public double CalibSearchRow2 { get; set; } = 99999.0;
+
+        [Category("ETHERNET_VISION")]
+        public double CalibSearchCol2 { get; set; } = 99999.0;
     }
 }

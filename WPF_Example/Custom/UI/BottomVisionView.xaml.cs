@@ -52,11 +52,10 @@ namespace ReringProject.Custom.UI {
         // _slotRois: 슬롯별 확정된 ROI 쌍 보관. [0]=roi1, [1]=roi2. 슬롯 전환 시 복원에 사용.
         private Dictionary<EBottomAlignSlot, RoiDefinition[]> _slotRois = new Dictionary<EBottomAlignSlot, RoiDefinition[]>();
 
-        // 캘 검색 ROI 슬롯 (Circle 드로잉으로 수거)
-        private double _calSearchRow;
-        private double _calSearchCol;
-        private double _calSearchRadius;
-        private bool _calRoiSet;
+        // 캘 검색 ROI (사각형 드로잉으로 수거)
+        private RoiDefinition _calRoiRect = null;
+        private bool _calRoiSet = false;
+        private bool _isCalRoiDrawing = false; //260630 hbk — 티칭 ROI 드로잉과 구분용 플래그
 
         //260626 hbk WR-02: 동축 UI 로드 중 이벤트 연쇄 저장 차단 플래그. true 이면 CoaxSlider_ValueChanged/CoaxCheckBox_Changed 즉시 return.
         private bool _isLoadingCoax = false;
@@ -72,7 +71,7 @@ namespace ReringProject.Custom.UI {
         /// 외부(MainWindow)가 공유 MainResultViewerControl 을 주입한다.
         /// ViewerHostBorder.Child 로 배치하여 airspace-safe 우측 컬럼에 표시.
         /// viewer 가 이전 부모에 부착되어 있을 경우 detach 는 MainWindow 책임.
-        /// CircleDrawingCompleted 이벤트도 여기서 구독 (중복 구독 방지: -= 후 +=).
+        /// RectDrawingCompleted 이벤트도 여기서 구독 (중복 구독 방지: -= 후 +=).
         /// </summary>
         public void AttachSharedViewer(MainResultViewerControl viewer) {
             //260624 hbk Phase 61 — D-03 공유 뷰어 주입
@@ -82,9 +81,9 @@ namespace ReringProject.Custom.UI {
             _viewer = viewer;
             ViewerHostBorder.Child = viewer;
 
-            // CircleDrawingCompleted 구독 (중복 방지: -= 후 +=)
-            _viewer.CircleDrawingCompleted -= OnCalCircleDrawn;
-            _viewer.CircleDrawingCompleted += OnCalCircleDrawn;
+            // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
+            _viewer.RectDrawingCompleted -= OnCalRectDrawn;
+            _viewer.RectDrawingCompleted += OnCalRectDrawn;
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────
@@ -282,6 +281,7 @@ namespace ReringProject.Custom.UI {
 
             _roi1 = null;
             _drawingSlot = 1;
+            _isCalRoiDrawing = false; //260630 hbk — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
             try {
                 _viewer.StartRectangleDrawing();
                 lbl_status.Text = "ROI 1 드래그 후 ROI 2 버튼을 클릭하세요";
@@ -306,6 +306,7 @@ namespace ReringProject.Custom.UI {
 
                 _roi2 = null;
                 _drawingSlot = 2;
+                _isCalRoiDrawing = false; //260630 hbk — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
                 _viewer.StartRectangleDrawing();
                 lbl_status.Text = "ROI 2 드래그 후 티칭 저장을 클릭하세요";
             }
@@ -503,17 +504,34 @@ namespace ReringProject.Custom.UI {
 
         // ─── 피커센터 캘 핸들러 ──────────────────────────────────────────────────
 
-        private void OnCalCircleDrawn(object sender, CircleDrawCompletedArgs e) {
-            //260624 hbk Phase 61 — CircleDrawingCompleted 이벤트 수거: 검색 ROI(원) 좌표 저장
-            //260630 hbk Phase 60 — SystemSetting 에도 동시 저장 → TCP $ALIGN_CALIB STEP 공유
-            _calSearchRow    = e.CenterRow;
-            _calSearchCol    = e.CenterCol;
-            _calSearchRadius = e.Radius;
-            _calRoiSet       = true;
-            SystemSetting.Handle.CalibSearchRow    = e.CenterRow;
-            SystemSetting.Handle.CalibSearchCol    = e.CenterCol;
-            SystemSetting.Handle.CalibSearchRadius = e.Radius;
-            lbl_calStatus.Text = "검색 ROI 설정됨 (r=" + _calSearchRadius.ToString("F1") + ")";
+        private void OnCalRectDrawn(object sender, EventArgs e) {
+            //260630 hbk Phase 60 — RectDrawingCompleted 이벤트 수거: 검색 ROI(사각형) 좌표 저장.
+            // _isCalRoiDrawing=false 이면 티칭 ROI 드로잉 완료이므로 무시.
+            if (!_isCalRoiDrawing) {
+                return;
+            }
+            _isCalRoiDrawing = false;
+
+            try {
+                RoiDefinition roi = _viewer.CommitActiveRectangle();
+                if (roi == null) {
+                    lbl_calStatus.Text = "ROI 수거 실패";
+                    return;
+                }
+                _calRoiRect = roi;
+                _calRoiSet  = true;
+                // TCP $ALIGN_CALIB STEP 경로 공유를 위해 SystemSetting 에도 동시 저장
+                SystemSetting.Handle.CalibSearchRow1 = roi.Row1;
+                SystemSetting.Handle.CalibSearchCol1 = roi.Column1;
+                SystemSetting.Handle.CalibSearchRow2 = roi.Row2;
+                SystemSetting.Handle.CalibSearchCol2 = roi.Column2;
+                double dW = roi.Column2 - roi.Column1;
+                double dH = roi.Row2 - roi.Row1;
+                lbl_calStatus.Text = "검색 ROI 설정됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")";
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "ROI 수거 오류: " + ex.Message;
+            }
         }
 
         private void CalResetButton_Click(object sender, RoutedEventArgs e) {
@@ -538,25 +556,27 @@ namespace ReringProject.Custom.UI {
         }
 
         private void CalDrawRoiButton_Click(object sender, RoutedEventArgs e) {
-            //260624 hbk Phase 61 — 검색 ROI(원) 드로잉 시작. 좌표는 OnCalCircleDrawn 에서 수거.
+            //260630 hbk Phase 60 — 검색 ROI(사각형) 드로잉 시작. 좌표는 OnCalRectDrawn 에서 수거.
             if (_viewer == null) {
                 lbl_calStatus.Text = "뷰어 미연결";
                 return;
             }
 
             try {
-                _viewer.StartCircleDrawing();
-                lbl_calStatus.Text = "검색 원 ROI 를 드래그하세요";
+                _isCalRoiDrawing = true; //260630 hbk — 사각형 완료 이벤트를 캘 ROI 로 처리할 플래그 세트
+                _viewer.StartRectangleDrawing();
+                lbl_calStatus.Text = "검색 ROI 를 드래그하세요";
             }
             catch (Exception ex) {
+                _isCalRoiDrawing = false;
                 lbl_calStatus.Text = "ROI 드로잉 오류: " + ex.Message;
             }
         }
 
         private void CalTeachModelButton_Click(object sender, RoutedEventArgs e) {
-            //260630 hbk Phase 60 — Grab → ROI 내 ShapeModel 생성 → 저장 + 캐시 로드.
+            //260630 hbk Phase 60 — Grab → ROI(사각형) 내 ShapeModel 생성 → 저장 + 캐시 로드.
             if (!_calRoiSet) {
-                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(원) 지정 먼저";
+                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
             }
             if (EthernetVisionHandler.Handle.Camera == null) {
@@ -580,7 +600,10 @@ namespace ReringProject.Custom.UI {
 
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryTeachModel(
-                    img, _calSearchRow, _calSearchCol, _calSearchRadius, out error);
+                    img,
+                    _calRoiRect.Row1, _calRoiRect.Column1,
+                    _calRoiRect.Row2, _calRoiRect.Column2,
+                    out error); //260630 hbk — 사각형 ROI 파라미터 전달
                 img.Dispose();
 
                 if (bOk) {
@@ -597,9 +620,9 @@ namespace ReringProject.Custom.UI {
 
         private void CalAddStepButton_Click(object sender, RoutedEventArgs e) {
             //260624 hbk Phase 61 — 한 스텝: Grab + find_shape_model → 중심 누적
-            //260630 hbk Phase 60 — 시그니처 변경: out foundRow/foundCol + 시각화 XLD 갱신
+            //260630 hbk Phase 60 — 사각형 ROI 전환: out foundRow/foundCol + 시각화 XLD 갱신
             if (!_calRoiSet) {
-                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(원) 지정 먼저";
+                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
             }
             if (EthernetVisionHandler.Handle.Camera == null) {
@@ -625,8 +648,9 @@ namespace ReringProject.Custom.UI {
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
                     img,
-                    _calSearchRow, _calSearchCol, _calSearchRadius,
-                    out foundRow, out foundCol, out error);
+                    _calRoiRect.Row1, _calRoiRect.Column1,
+                    _calRoiRect.Row2, _calRoiRect.Column2,
+                    out foundRow, out foundCol, out error); //260630 hbk — 사각형 ROI 파라미터 전달
                 img.Dispose();
 
                 if (bOk) {

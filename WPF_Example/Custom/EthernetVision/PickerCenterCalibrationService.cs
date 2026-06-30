@@ -103,7 +103,7 @@ namespace ReringProject {
         /// 기존 캐시 모델을 교체하고 _modelLoaded=true 로 전환.
         /// </summary>
         public bool TryTeachModel(HImage img,
-            double roiRow, double roiCol, double roiRadius,
+            double roiRow1, double roiCol1, double roiRow2, double roiCol2,
             out string error) {
             error = null;
             if (img == null) {
@@ -125,7 +125,7 @@ namespace ReringProject {
                     Directory.CreateDirectory(folder);
                 }
 
-                HOperatorSet.GenCircle(out roiRegion, roiRow, roiCol, roiRadius);
+                HOperatorSet.GenRectangle1(out roiRegion, roiRow1, roiCol1, roiRow2, roiCol2); //260630 hbk — 원형→사각형 ROI 전환
                 HOperatorSet.ReduceDomain(img, roiRegion, out imgReduced);
 
                 // 360° 전 회전 대응 모델 생성.
@@ -212,7 +212,7 @@ namespace ReringProject {
         /// foundRow/foundCol: 검출된 지그 중심(px). 실패 시 0.
         /// </summary>
         public bool TryAddStep(HImage img,
-            double roiRow, double roiCol, double roiRadius,
+            double roiRow1, double roiCol1, double roiRow2, double roiCol2,
             out double foundRow, out double foundCol,
             out string error) {
             foundRow = 0.0;
@@ -235,7 +235,7 @@ namespace ReringProject {
             HTuple  angleCheck = null;
             HTuple  score      = null;
             try {
-                HOperatorSet.GenCircle(out roiRegion, roiRow, roiCol, roiRadius);
+                HOperatorSet.GenRectangle1(out roiRegion, roiRow1, roiCol1, roiRow2, roiCol2); //260630 hbk — 원형→사각형 ROI 전환
                 HOperatorSet.ReduceDomain(img, roiRegion, out imgReduced);
 
                 HOperatorSet.FindShapeModel(

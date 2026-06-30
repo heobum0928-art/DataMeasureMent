@@ -589,14 +589,16 @@ namespace ReringProject {
                         return resultPacket;
                     }
 
-                    double dSearchRow    = SystemSetting.Handle.CalibSearchRow;
-                    double dSearchCol    = SystemSetting.Handle.CalibSearchCol;
-                    double dSearchRadius = SystemSetting.Handle.CalibSearchRadius;
+                    //260630 hbk — 사각형 ROI 전환: Row/Col/Radius→Row1/Col1/Row2/Col2
+                    double dSearchRow1 = SystemSetting.Handle.CalibSearchRow1;
+                    double dSearchCol1 = SystemSetting.Handle.CalibSearchCol1;
+                    double dSearchRow2 = SystemSetting.Handle.CalibSearchRow2;
+                    double dSearchCol2 = SystemSetting.Handle.CalibSearchCol2;
 
                     double dFoundRow, dFoundCol;
                     string error;
                     bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
-                        img, dSearchRow, dSearchCol, dSearchRadius,
+                        img, dSearchRow1, dSearchCol1, dSearchRow2, dSearchCol2,
                         out dFoundRow, out dFoundCol, out error);
 
                     if (bOk)

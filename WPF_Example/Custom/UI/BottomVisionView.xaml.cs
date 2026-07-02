@@ -329,6 +329,14 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
+            //260702 hbk 기존 ROI1이 있을 때만 재드로잉 확인 — '아니오' 시 초기화/드로잉 미실행
+            if (_roi1 != null) {
+                MessageBoxResult confirmRoi1 = CustomMessageBox.ShowConfirmation("ROI 재드로잉", "ROI 1을(를) 삭제하고 다시 그리시겠습니까?", MessageBoxButton.YesNo);
+                if (confirmRoi1 != MessageBoxResult.Yes) {
+                    return;
+                }
+            }
+
             _roi1 = null;
             _drawingSlot = 1;
             _isCalRoiDrawing = false; //260630 hbk — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
@@ -346,6 +354,14 @@ namespace ReringProject.Custom.UI {
             if (_viewer == null) {
                 lbl_status.Text = "뷰어 미연결";
                 return;
+            }
+
+            //260702 hbk 기존 ROI2가 있을 때만 재드로잉 확인 — '아니오' 시 슬롯1 확정/초기화/드로잉 전부 미실행
+            if (_roi2 != null) {
+                MessageBoxResult confirmRoi2 = CustomMessageBox.ShowConfirmation("ROI 재드로잉", "ROI 2을(를) 삭제하고 다시 그리시겠습니까?", MessageBoxButton.YesNo);
+                if (confirmRoi2 != MessageBoxResult.Yes) {
+                    return;
+                }
             }
 
             try {

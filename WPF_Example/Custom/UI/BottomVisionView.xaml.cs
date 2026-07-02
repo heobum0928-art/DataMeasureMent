@@ -591,6 +591,14 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
+            //260702 hbk 캘 데이터 삭제(누적/시각화 초기화) 전 실수 방지 확인
+            MessageBoxResult confirmReset = CustomMessageBox.ShowConfirmation(
+                "캘 초기화", "캘리브레이션 모델/누적 데이터를 삭제하시겠습니까?", MessageBoxButton.YesNo);
+            if (confirmReset != MessageBoxResult.Yes) {
+                lbl_calStatus.Text = "초기화 취소"; //260702 hbk 사용자가 아니오 선택 — 부수효과 없이 중단
+                return;
+            }
+
             try {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
                 lbl_calStatus.Text = "누적 0";

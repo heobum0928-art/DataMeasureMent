@@ -438,6 +438,20 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
+            //260702 hbk 모델 미티칭 상태에서 검사 방지 — 안내 후 중단(선택 슬롯 기준)
+            bool bHasModel = false; //260702 hbk 기본 false: 예외/미초기화 시 검사 차단
+            try {
+                bHasModel = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE, _selectedSlot); //260702 hbk 선택 슬롯(None=단일) 템플릿 확인
+            }
+            catch {
+                bHasModel = false; //260702 hbk Matcher 예외 시 안전 차단
+            }
+            if (!bHasModel) {
+                CustomMessageBox.Show("검사 불가", "모델이 없습니다. 먼저 티칭을 완료하세요.", MessageBoxImage.Warning); //260702 hbk 안내
+                lbl_status.Text = "모델 없음"; //260702 hbk 상태 라벨 반영
+                return;
+            }
+
             try {
                 lbl_status.Text = "검사중";
                 ApplyCoaxLight(); //260626 hbk Phase 66 — 검사 직전 동축 자동 적용(D-07)
@@ -588,6 +602,14 @@ namespace ReringProject.Custom.UI {
             //260624 hbk Phase 61 — 누적 초기화
             if (EthernetVisionHandler.Handle.PickerCal == null) {
                 lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            //260702 hbk 캘 데이터 삭제(누적/시각화 초기화) 전 실수 방지 확인
+            MessageBoxResult confirmReset = CustomMessageBox.ShowConfirmation(
+                "캘 초기화", "캘리브레이션 모델/누적 데이터를 삭제하시겠습니까?", MessageBoxButton.YesNo);
+            if (confirmReset != MessageBoxResult.Yes) {
+                lbl_calStatus.Text = "초기화 취소"; //260702 hbk 사용자가 아니오 선택 — 부수효과 없이 중단
                 return;
             }
 

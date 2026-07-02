@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: milestone_complete
-stopped_at: context exhaustion at 90% (2026-06-30)
-last_updated: "2026-06-30T04:18:10.622Z"
+stopped_at: context exhaustion at 91% (2026-07-02)
+last_updated: "2026-07-02T02:22:29.196Z"
 last_activity: 2026-06-29
 progress:
   total_phases: 15
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 66
 Plan: Not started
-Last activity: 2026-06-29
+Last activity: 2026-07-02 - Completed quick task 260702-i7o: Tray/Bottom Align calibration 모델 삭제 확인 + 검사 시 모델없음 안내
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -470,6 +470,7 @@ Recent decisions affecting current work:
 | 260623-itv | 2026-06-23 | Ini.cs 리팩토링 (QUAL-01) — IniValue 좌표 파서 3종(TryParseCircle/Line/Rect) 컨벤션 적용: 매직넘버(필드개수 3/4·인덱스 0~3) → private const 7개(CIRCLE/LINE/RECT_FIELD_COUNT, FIELD_X/Y/W/H), 지역변수 점진 헝가리언(strArray→szParts, 공유 value 중간변수 제거 → dX/dY/dW/dH 직접 out). 공개 API/operator/IDictionary 명시 구현/Save·Load 직렬화/예외 문자열/#if JS 블록 전부 불변(diff=파서 3종 내부+const+헤더 주석 1줄에만 국한, 기능 동치). msbuild Debug/x64 0 errors(신규 warning 0). | fc74fe1 | 빌드 PASS · 동작 동치(정적 검증) |
 | 260625-v30 | 2026-06-25 | 프로토콜 v3.0 반영 — $ALIGN_TEST [0]=target,[1]=MaterialNo,[2]=skip,BOTTOM→[3]=AlignFace / $ALIGN_RESULT 포맷(구분자';'→',',MaterialNo echo,OK|NG,Name=val) / $ALIGN_CALIB [0]=BOTTOM,[1]=CmdStr(AlignFace제거), ack=BOTTOM,CMD,OK(STEP→N 삽입) / $ALIVE 신설(AlivePacket/AliveResponsePacket). msbuild Debug/x64 0 errors. | 62d074c | 빌드 PASS |
 | 260619-cnm | 2026-06-19 | per-shot 측정 보정계수 CorrectionFactor — 비전측정↔현미경공칭 ~0.5% 캘리브 간극을 PixelResolution(1회 캘리브 후 고정) 불변으로 둔 채 별도 per-shot 보정계수로 흡수(mm = pixelDist × PixelResolution × CorrectionFactor). CameraSlaveParam.CorrectionFactor(기본 1.0, ParamBase INI 자동직렬화·키미존재 1.0 폴백) + GetEffectivePixelResolution() 메서드(미직렬화→PixelResolution 저장값 불변). Action_FAIMeasurement:265 단일주입을 GetEffectivePixelResolution() 로 전환(14종 측정 일괄) + 보정 ±2% 초과 가드레일 경고(정상 0.5%=0.995 미발동). EdgePairDistance:74 재도출 경로도 동일 메서드. 각도 2종 미영향. 회귀 0(기본 1.0). 에이전트 패널 3인 per-shot 합의(균일·등방→배율오차, 표본부족 per-FAI 과적합). msbuild Debug/x64 컴파일 0 errors(exe-copy만 앱잠금). **UAT 1차 FAIL(기본값인데 전 측정 0)→핫픽스 20c9b6f**: ParamBase.Load 누락키→ToDouble()=0 이 CorrectionFactor 초기값 1.0 클로버 → CameraSlaveParam.Load 키부재 시 1.0 복원 + GetEffectivePixelResolution ≤0 클램프. | d6c95a7, 20c9b6f | **UAT PASS (2026-06-19)** — 재빌드 후 기본값 측정 정상복귀(회귀0) + CorrectionFactor 0.995 적용 시 측정값 보정 확인. signed_off. |
+| 260702-i7o | 2026-07-02 | Tray/Bottom Align 비전 안전 가드 2건 — ①BottomVisionView.CalResetButton_Click 에 예/아니오 확인(CustomMessageBox.ShowConfirmation) 게이트 추가, "아니오" 시 PickerCal.Reset() 미호출·부수효과 0. ②TrayVisionView/BottomVisionView RunButton_Click 에 Matcher.HasTemplate 모델 존재 가드 추가, 모델 없으면 "모델이 없습니다" 경고(CustomMessageBox.Show) 후 Matcher.Run 미호출. 기존 CustomMessageBox 재사용, 신규 의존성 0. 삼항 미사용(if-else), //260702 hbk 주석, K&R 브레이스 유지. msbuild Debug/x64 PASS. | 4d55825, 1b65aa4 | 빌드 PASS · 실사용 버튼 클릭 UAT 대기 |
 
 ### Pending Todos
 
@@ -562,8 +563,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-06-30T04:18:10.610Z
-Stopped at: context exhaustion at 90% (2026-06-30)
+Last session: 2026-07-02T02:22:29.185Z
+Stopped at: context exhaustion at 91% (2026-07-02)
 Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 

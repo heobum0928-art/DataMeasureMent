@@ -274,51 +274,13 @@ namespace ReringProject.Sequence {
                                             meas.ClearResult();
                                             meas.LastJudgement = false;
                                         }
-                                        // FAI-Edge* overlay에 판정 suffix 부여
-                                        if (measOverlays != null) {
-                                            string suffix;
-                                            if (meas.LastJudgement) suffix = "-OK";
-                                            else suffix = "-NG";
-                                            foreach (var ov in measOverlays) {
-                                                if (ov == null) continue;
-                                                if (string.IsNullOrEmpty(ov.RoiId)) continue;
-                                                if (ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) {
-                                                    ov.RoiId = ov.RoiId + suffix;
-                                                }
-                                                // FAI-DistLine 등은 suffix 미부여 — 청록 고정
-                                            }
-                                            overlayAcc.AddRange(measOverlays); // Shot 단위 누적
-                                            faiOverlays.AddRange(measOverlays); // per-FAI 누적 (노드 클릭 재현용)
-                                        }
+                                        ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
                                         if (!meas.LastJudgement) {
                                             faiAllPass = false;
                                         }
                                         measuredCount++;
                                     }
-                                    // FAIConfig legacy 필드(IsPass/MeasuredValue)에 대표 결과 집계 —
-                                    // 첫 Measurement 결과를 사용해 UI/TCP 호환 유지
-                                    if (fai.Measurements.Count > 0) {
-                                        fai.IsPass = faiAllPass;
-                                        fai.MeasuredValue = fai.Measurements[0].LastMeasuredValue;
-                                        // fai 하위 measurement 중 1건이라도 DATUM_FAIL 이면 fai 도 datum-skip 마크.
-                                        // AddResponse 가 anyDatumSkip 누적용으로 사용 (cycle = NotExist 분기). System.Linq 도입 회피 — for-loop.
-                                        bool wasSkip = false;
-                                        foreach (var m in fai.Measurements)
-                                        {
-                                            //260618 hbk Phase 54 ALIGN-01 ALIGN_FAIL 도 skip 통계에 포함 (D-10, skip 통계 누락 방지)
-                                            if (m != null && (m.LastSkipReason == "DATUM_FAIL" || m.LastSkipReason == "ALIGN_FAIL")) { wasSkip = true; break; }
-                                        }
-                                        fai.WasDatumSkipped = wasSkip;
-                                        fai.LastOverlays = faiOverlays; // per-FAI overlay 저장 (노드 클릭 시 재현)
-                                        // FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
-                                        string ownerSeqName;
-                                        if (ShotParam != null) ownerSeqName = ShotParam.OwnerSequenceName;
-                                        else ownerSeqName = "";
-                                        QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ownerSeqName);
-                                    } else {
-                                        fai.ClearResult();
-                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear(); // Measurements 0 케이스 명시적 클리어
-                                    }
+                                    AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot); //260702 hbk Extract Method(Task2)
                                     if (!faiAllPass) allPass = false;
                                 }
                                 } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
@@ -329,26 +291,7 @@ namespace ReringProject.Sequence {
                                 //  과거엔 공유 카메라 캐시 fallback 으로 항상 이미지가 채워져 이 분기가 사실상 미도달 → fallback 제거 후
                                 //  무효 경로 SHOT 이 image==null 도달. allPass 가 default true 로 남아 잘못 PASS 되는 것을 차단.
                                 allPass = false;
-                                foreach (var fai in ShotParam.FAIList) {
-                                    bool faiHadMeas = fai.Measurements.Count > 0;
-                                    foreach (var meas in fai.Measurements) {
-                                        meas.ClearResult();
-                                        meas.LastSkipReason = "NO_IMAGE"; // UI 'DETECT FAIL' 류 + Excel export 분기 신호
-                                        meas.LastJudgement = false;
-                                        measuredCount++;
-                                    }
-                                    if (faiHadMeas) {
-                                        fai.IsPass = false;
-                                        fai.MeasuredValue = 0;
-                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear();
-                                    } else {
-                                        fai.ClearResult();
-                                        if (fai.LastOverlays != null) fai.LastOverlays.Clear();
-                                    }
-                                }
-                                string shotName = ShotParam.ShotName;
-                                if (shotName == null) shotName = "";
-                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + shotName + "' 검사 이미지 없음 — 모든 measurement NG 처리 (캐스케이드 차단)");
+                                MarkAllMeasurementsNoImage(ref measuredCount); //260702 hbk Extract Method(Task2)
                             }
                         }
                     }
@@ -675,6 +618,78 @@ namespace ReringProject.Sequence {
                 }
             }
             return ok;
+        }
+
+        //260702 hbk Extract Method(Task2): FAI-Edge* overlay 판정 suffix 부여 + Shot/FAI overlay 누적, 원본 인라인 이식
+        private void ApplyOverlaySuffixAndAccumulate(MeasurementBase meas, List<EdgeInspectionOverlay> measOverlays, List<EdgeInspectionOverlay> overlayAcc, List<EdgeInspectionOverlay> faiOverlays) {
+            // FAI-Edge* overlay에 판정 suffix 부여
+            if (measOverlays != null) {
+                string suffix;
+                if (meas.LastJudgement) suffix = "-OK";
+                else suffix = "-NG";
+                foreach (var ov in measOverlays) {
+                    if (ov == null) continue;
+                    if (string.IsNullOrEmpty(ov.RoiId)) continue;
+                    if (ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) {
+                        ov.RoiId = ov.RoiId + suffix;
+                    }
+                    // FAI-DistLine 등은 suffix 미부여 — 청록 고정
+                }
+                overlayAcc.AddRange(measOverlays); // Shot 단위 누적
+                faiOverlays.AddRange(measOverlays); // per-FAI 누적 (노드 클릭 재현용)
+            }
+        }
+
+        //260702 hbk Extract Method(Task2): FAIConfig legacy 필드(IsPass/MeasuredValue) 집계 + QueueFaiCapture 호출, 원본 인라인 이식
+        private void AggregateFaiResult(FAIConfig fai, bool faiAllPass, List<EdgeInspectionOverlay> faiOverlays, SharedHImage sharedSrc, List<DatumCaptureOverlay> datumSnapshot) {
+            // FAIConfig legacy 필드(IsPass/MeasuredValue)에 대표 결과 집계 —
+            // 첫 Measurement 결과를 사용해 UI/TCP 호환 유지
+            if (fai.Measurements.Count > 0) {
+                fai.IsPass = faiAllPass;
+                fai.MeasuredValue = fai.Measurements[0].LastMeasuredValue;
+                // fai 하위 measurement 중 1건이라도 DATUM_FAIL 이면 fai 도 datum-skip 마크.
+                // AddResponse 가 anyDatumSkip 누적용으로 사용 (cycle = NotExist 분기). System.Linq 도입 회피 — for-loop.
+                bool wasSkip = false;
+                foreach (var m in fai.Measurements)
+                {
+                    //260618 hbk Phase 54 ALIGN-01 ALIGN_FAIL 도 skip 통계에 포함 (D-10, skip 통계 누락 방지)
+                    if (m != null && (m.LastSkipReason == "DATUM_FAIL" || m.LastSkipReason == "ALIGN_FAIL")) { wasSkip = true; break; }
+                }
+                fai.WasDatumSkipped = wasSkip;
+                fai.LastOverlays = faiOverlays; // per-FAI overlay 저장 (노드 클릭 시 재현)
+                // FAI별 origin/capture 캡쳐 enqueue + 파일명 write-back (오버레이+소스 이미지 확정 시점)
+                string ownerSeqName;
+                if (ShotParam != null) ownerSeqName = ShotParam.OwnerSequenceName;
+                else ownerSeqName = "";
+                QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ownerSeqName);
+            } else {
+                fai.ClearResult();
+                if (fai.LastOverlays != null) fai.LastOverlays.Clear(); // Measurements 0 케이스 명시적 클리어
+            }
+        }
+
+        //260702 hbk Extract Method(Task2): image==null NO_IMAGE 캐스케이드 처리 (faiHadMeas 분기 보존), 원본 인라인 이식
+        private void MarkAllMeasurementsNoImage(ref int measuredCount) {
+            foreach (var fai in ShotParam.FAIList) {
+                bool faiHadMeas = fai.Measurements.Count > 0;
+                foreach (var meas in fai.Measurements) {
+                    meas.ClearResult();
+                    meas.LastSkipReason = "NO_IMAGE"; // UI 'DETECT FAIL' 류 + Excel export 분기 신호
+                    meas.LastJudgement = false;
+                    measuredCount++;
+                }
+                if (faiHadMeas) {
+                    fai.IsPass = false;
+                    fai.MeasuredValue = 0;
+                    if (fai.LastOverlays != null) fai.LastOverlays.Clear();
+                } else {
+                    fai.ClearResult();
+                    if (fai.LastOverlays != null) fai.LastOverlays.Clear();
+                }
+            }
+            string shotName = ShotParam.ShotName;
+            if (shotName == null) shotName = "";
+            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + shotName + "' 검사 이미지 없음 — 모든 measurement NG 처리 (캐스케이드 차단)");
         }
     }
 }

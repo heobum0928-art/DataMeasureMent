@@ -257,6 +257,20 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
+            //260702 hbk 모델 미티칭 상태에서 검사 방지 — 안내 후 중단
+            bool bHasModel = false; //260702 hbk 기본 false: 예외/미초기화 시 검사 차단
+            try {
+                bHasModel = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE); //260702 hbk Tray 단일 경로 템플릿 확인
+            }
+            catch {
+                bHasModel = false; //260702 hbk Matcher 예외 시 안전 차단
+            }
+            if (!bHasModel) {
+                CustomMessageBox.Show("검사 불가", "모델이 없습니다. 먼저 티칭을 완료하세요.", MessageBoxImage.Warning); //260702 hbk 안내
+                lbl_status.Text = "모델 없음"; //260702 hbk 상태 라벨 반영
+                return;
+            }
+
             try {
                 lbl_status.Text = "검사중";
                 ApplyCoaxLight(); //260626 hbk Phase 66 — 검사 직전 동축 자동 적용(D-07)

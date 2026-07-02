@@ -252,95 +252,17 @@ namespace ReringProject.Sequence {
                                         // 빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
                                         if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
                                         {
-                                            meas.ClearResult();
-                                            //260618 hbk Phase 54 ALIGN-01 align 실패와 검출 실패 구분 표기 (D-10) — Excel/UI 식별.
-                                            meas.LastSkipReason = parentSeq2.IsAlignFailed(meas.DatumRef) ? "ALIGN_FAIL" : "DATUM_FAIL";
-                                            meas.LastJudgement = false; // skip 도 NG 강도
-                                            string measName = meas.MeasurementName;
-                                            if (measName == null) measName = meas.TypeName;
-                                            string datumRef = meas.DatumRef;
-                                            if (datumRef == null) datumRef = "";
-                                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
+                                            MarkMeasurementDatumSkipped(meas, parentSeq2); //260702 hbk Extract Method(Task1)
                                             faiAllPass = false;
                                             measuredCount++; // 시도 회수 통계
                                             continue; // 다음 measurement 진행 (TryExecute 호출 안 함)
                                         }
-                                        HTuple transform;
-                                        if (parentSeq2 == null || !parentSeq2.TryGetDatumTransform(meas.DatumRef, out transform)) {
-                                            // Fixture 미존재 또는 미지정 DatumRef → identity fallback
-                                            try {
-                                                HOperatorSet.HomMat2dIdentity(out transform);
-                                            } catch {
-                                                transform = new HTuple();
-                                            }
-                                        }
-                                        // IDatumOriginConsumer 일반화. EStep.DatumPhase 가 EStep.Measure 보다 먼저 실행되므로 DetectedOrigin* 는 채워져 있음.
-                                        var consumer = meas as IDatumOriginConsumer;
-                                        if (consumer != null)
-                                        {
-                                            DatumConfig dc = null;
-                                            if (parentSeq2 != null && parentSeq2.DatumConfigs != null
-                                                && !string.IsNullOrEmpty(meas.DatumRef))
-                                            {
-                                                foreach (var d in parentSeq2.DatumConfigs)
-                                                {
-                                                    if (d != null && d.DatumName == meas.DatumRef) { dc = d; break; }
-                                                }
-                                            }
-                                            if (dc != null)
-                                            {
-                                                consumer.DatumOriginRow = dc.DetectedOriginRow;
-                                                consumer.DatumOriginCol = dc.DetectedOriginCol;
-                                                consumer.DatumAngleRad  = dc.DetectedRefAngle;
-                                                consumer.DatumAngle2Rad = dc.DetectedRefAngle2; // 수직 기준선 각도
-                                                consumer.DatumDetectedCircleRow = dc.DetectedCircleRow; // CompoundAngle 원중심 주입
-                                                consumer.DatumDetectedCircleCol = dc.DetectedCircleCol;
-                                            }
-                                            else // DatumRef 미지정 또는 매칭 Datum 없음 → 미주입
-                                            {
-                                                consumer.DatumOriginRow = 0.0;
-                                                consumer.DatumOriginCol = 0.0;
-                                                consumer.DatumAngleRad  = 0.0;
-                                                consumer.DatumAngle2Rad = 0.0;
-                                                consumer.DatumDetectedCircleRow = 0.0;
-                                                consumer.DatumDetectedCircleCol = 0.0;
-                                            }
-                                        }
+                                        HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
+                                        InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
                                         double resultValue;
                                         string measError;
                                         List<EdgeInspectionOverlay> measOverlays;
-                                        bool ok = false;
-                                        // DualImage 타입 분기: 양 이미지 별도 로드 → RuntimeImageA/B 주입 → TryExecute → dispose
-                                        if (meas is DualImageEdgeDistanceMeasurement dualMeas) {
-                                            HImage imgA = null, imgB = null;
-                                            try {
-                                                if (TryGrabOrLoadFaiDualImages(meas, out imgA, out imgB)) {
-                                                    dualMeas.RuntimeImageA = imgA; // transient property, TryExecute 가 image 인자 무시
-                                                    dualMeas.RuntimeImageB = imgB;
-                                                    try {
-                                                        ok = meas.TryExecute(image, transform, pixRes, out resultValue, out measError, out measOverlays); //260615 hbk Phase 42 D-01
-                                                    } catch (Exception ex) {
-                                                        ok = false; resultValue = 0; measError = ex.Message; measOverlays = null;
-                                                    }
-                                                } else {
-                                                    ok = false; resultValue = 0; measError = "DualImage 이미지 로드 실패"; measOverlays = null;
-                                                }
-                                            } finally {
-                                                if (imgA != null) { try { imgA.Dispose(); } catch { } }
-                                                if (imgB != null) { try { imgB.Dispose(); } catch { } }
-                                                dualMeas.RuntimeImageA = null;
-                                                dualMeas.RuntimeImageB = null;
-                                            }
-                                        } else { // 기존 1-image 경로
-                                            try {
-                                                ok = meas.TryExecute(image, transform, pixRes, out resultValue, out measError, out measOverlays); //260615 hbk Phase 42 D-01
-                                            } catch (Exception ex) {
-                                                ok = false;
-                                                resultValue = 0;
-                                                measError = ex.Message;
-                                                measOverlays = null; // 예외 경로 null-safe
-                                            }
-                                        }
+                                        bool ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
                                         if (ok) {
                                             meas.EvaluateJudgement(resultValue);
                                         } else {
@@ -651,6 +573,108 @@ namespace ReringProject.Sequence {
                 IsCapture = true,
                 Timestamp = ts
             });
+        }
+
+        //260702 hbk Extract Method(Task1): datum/align 실패로 인한 measurement skip 처리 (원본 case EStep.Measure 인라인 이식, 동치 보장)
+        private void MarkMeasurementDatumSkipped(MeasurementBase meas, InspectionSequence parentSeq2) {
+            meas.ClearResult();
+            //260618 hbk Phase 54 ALIGN-01 align 실패와 검출 실패 구분 표기 (D-10) — Excel/UI 식별.
+            //260702 hbk 기존 삼항(?:) → if-else 로 전개(동치 유지, 신규 삼항 미도입)
+            if (parentSeq2.IsAlignFailed(meas.DatumRef)) meas.LastSkipReason = "ALIGN_FAIL";
+            else meas.LastSkipReason = "DATUM_FAIL";
+            meas.LastJudgement = false; // skip 도 NG 강도
+            string measName = meas.MeasurementName;
+            if (measName == null) measName = meas.TypeName;
+            string datumRef = meas.DatumRef;
+            if (datumRef == null) datumRef = "";
+            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
+        }
+
+        //260702 hbk Extract Method(Task1): datum transform 해석 (fixture 미존재/미지정 시 identity fallback), 원본 인라인 이식
+        private HTuple ResolveDatumTransform(InspectionSequence parentSeq2, string datumRef) {
+            HTuple transform;
+            if (parentSeq2 == null || !parentSeq2.TryGetDatumTransform(datumRef, out transform)) {
+                // Fixture 미존재 또는 미지정 DatumRef → identity fallback
+                try {
+                    HOperatorSet.HomMat2dIdentity(out transform);
+                } catch {
+                    transform = new HTuple();
+                }
+            }
+            return transform;
+        }
+
+        //260702 hbk Extract Method(Task1): IDatumOriginConsumer 에 검출 datum origin/각도/원중심 주입, 원본 인라인 이식(Allman 블록 배치 보존)
+        private void InjectDatumOrigin(MeasurementBase meas, InspectionSequence parentSeq2) {
+            // IDatumOriginConsumer 일반화. EStep.DatumPhase 가 EStep.Measure 보다 먼저 실행되므로 DetectedOrigin* 는 채워져 있음.
+            var consumer = meas as IDatumOriginConsumer;
+            if (consumer != null)
+            {
+                DatumConfig dc = null;
+                if (parentSeq2 != null && parentSeq2.DatumConfigs != null
+                    && !string.IsNullOrEmpty(meas.DatumRef))
+                {
+                    foreach (var d in parentSeq2.DatumConfigs)
+                    {
+                        if (d != null && d.DatumName == meas.DatumRef) { dc = d; break; }
+                    }
+                }
+                if (dc != null)
+                {
+                    consumer.DatumOriginRow = dc.DetectedOriginRow;
+                    consumer.DatumOriginCol = dc.DetectedOriginCol;
+                    consumer.DatumAngleRad  = dc.DetectedRefAngle;
+                    consumer.DatumAngle2Rad = dc.DetectedRefAngle2; // 수직 기준선 각도
+                    consumer.DatumDetectedCircleRow = dc.DetectedCircleRow; // CompoundAngle 원중심 주입
+                    consumer.DatumDetectedCircleCol = dc.DetectedCircleCol;
+                }
+                else // DatumRef 미지정 또는 매칭 Datum 없음 → 미주입
+                {
+                    consumer.DatumOriginRow = 0.0;
+                    consumer.DatumOriginCol = 0.0;
+                    consumer.DatumAngleRad  = 0.0;
+                    consumer.DatumAngle2Rad = 0.0;
+                    consumer.DatumDetectedCircleRow = 0.0;
+                    consumer.DatumDetectedCircleCol = 0.0;
+                }
+            }
+        }
+
+        //260702 hbk Extract Method(Task1): measurement 1건 실행 (DualImage/1-image 분기 포함), 원본 인라인 이식(finally 순서 보존)
+        private bool TryExecuteMeasurement(MeasurementBase meas, HImage image, HTuple transform, double pixRes, out double resultValue, out string measError, out List<EdgeInspectionOverlay> measOverlays) {
+            bool ok = false;
+            // DualImage 타입 분기: 양 이미지 별도 로드 → RuntimeImageA/B 주입 → TryExecute → dispose
+            if (meas is DualImageEdgeDistanceMeasurement dualMeas) {
+                HImage imgA = null, imgB = null;
+                try {
+                    if (TryGrabOrLoadFaiDualImages(meas, out imgA, out imgB)) {
+                        dualMeas.RuntimeImageA = imgA; // transient property, TryExecute 가 image 인자 무시
+                        dualMeas.RuntimeImageB = imgB;
+                        try {
+                            ok = meas.TryExecute(image, transform, pixRes, out resultValue, out measError, out measOverlays); //260615 hbk Phase 42 D-01
+                        } catch (Exception ex) {
+                            ok = false; resultValue = 0; measError = ex.Message; measOverlays = null;
+                        }
+                    } else {
+                        ok = false; resultValue = 0; measError = "DualImage 이미지 로드 실패"; measOverlays = null;
+                    }
+                } finally {
+                    if (imgA != null) { try { imgA.Dispose(); } catch { } }
+                    if (imgB != null) { try { imgB.Dispose(); } catch { } }
+                    dualMeas.RuntimeImageA = null;
+                    dualMeas.RuntimeImageB = null;
+                }
+            } else { // 기존 1-image 경로
+                try {
+                    ok = meas.TryExecute(image, transform, pixRes, out resultValue, out measError, out measOverlays); //260615 hbk Phase 42 D-01
+                } catch (Exception ex) {
+                    ok = false;
+                    resultValue = 0;
+                    measError = ex.Message;
+                    measOverlays = null; // 예외 경로 null-safe
+                }
+            }
+            return ok;
         }
     }
 }

@@ -370,22 +370,14 @@ namespace ReringProject.Halcon.Display
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2));
 
                 //260619 hbk Phase 56 — datum 기준선 slate blue 굵게(측정 ROI cyan/라임과 구분). 방향규약 = EdgeToLineDistance 측정축과 동일.
-                //  길이 = 이미지 전체(세로 0~높이, 가로 0~너비) 걸치도록(사용자 요청 2026-06-19): GetPart 로 표시 이미지 대각선 산출
-                //  → ±대각선(어느 origin 위치/각도든 전 이미지 관통, DispLine 창밖 자동클립). 직전 ±7000px 는 14208px 이미지서 원중심(~8600px)까지 못 닿음.
+                //  길이 = 이미지 전체(세로 0~높이, 가로 0~너비) 걸치도록(사용자 요청 2026-06-19): 고정 길이 + DispLine 창밖 자동클립.
                 //260619 hbk Phase 57 #3 datum 색상 slate blue 통일 (magenta→slate blue recolor, 길이/좌표 무변경 D-10)
+                //260702 hbk 확대(줌인) 시 라인 소실 버그 수정 — GetPart(현재 화면에 보이는 부분)로 길이를 구하면
+                //  줌인해서 파트가 작아질수록 길이도 같이 줄어들어 원점이 화면 밖일 때 선이 안 닿아 사라졌다.
+                //  DrawExtendedLine 과 동일하게 뷰포트 크기와 무관한 고정 길이(현 이미지 대각선 17750 초과) 사용으로 통일.
                 HOperatorSet.SetColor(window, "slate blue");
                 HOperatorSet.SetLineWidth(window, 3);
-                double datumLineHalf = 20000.0; // GetPart 실패 시 폴백(현 이미지 대각선 17750 초과)
-                try
-                {
-                    HTuple gpR1, gpC1, gpR2, gpC2;
-                    HOperatorSet.GetPart(window, out gpR1, out gpC1, out gpR2, out gpC2);
-                    double partH = System.Math.Abs(gpR2.D - gpR1.D) + 1.0;
-                    double partW = System.Math.Abs(gpC2.D - gpC1.D) + 1.0;
-                    double partDiag = System.Math.Sqrt(partH * partH + partW * partW);
-                    if (partDiag > 1.0) datumLineHalf = partDiag;
-                }
-                catch { /* GetPart 실패 → 폴백 길이 유지 */ }
+                double datumLineHalf = 20000.0;
                 // 수평 기준선 = DetectedRefAngle 방향(부품 틸트 반영), 교점 통과.
                 double hSin = System.Math.Sin(datum.DetectedRefAngle), hCos = System.Math.Cos(datum.DetectedRefAngle);
                 HOperatorSet.DispLine(window,

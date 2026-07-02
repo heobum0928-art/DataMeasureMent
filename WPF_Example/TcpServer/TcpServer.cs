@@ -93,10 +93,12 @@ namespace ReringProject.Network {
             private NetworkStream mStream;
 
             private byte[] mSendBuffer = new byte[SIZE_SEND_BUFFER];
-            private byte[] mRecvBuffer = new byte[SIZE_RECV_BUFFER];
 
-            private int RecvCount = 0;
-            
+            //260702 hbk 고정 1024바이트 배열(byte[SIZE_RECV_BUFFER])이었으나, 1024바이트 넘는 메시지 수신 시
+            //  IndexOutOfRangeException 발생 → catch에서 조용히 삼켜져 메시지 전체 유실되는 버그가 있었음.
+            //  크기 제한이 없는 List<byte>로 교체(Send()를 260630에 가변 길이로 고친 것과 같은 방향).
+            private List<byte> mRecvBuffer = new List<byte>();
+
             private ConcurrentQueue<string> SendQueue = new ConcurrentQueue<string>();
             private ConcurrentQueue<string> RecvQueue = new ConcurrentQueue<string>();
 
@@ -256,27 +258,29 @@ namespace ReringProject.Network {
 
                 if (IsConnected() == false) return false;
                 if (mStream.DataAvailable == false) return false;
-                
+
                 try {
-                    Array.Clear(mRecvBuffer, 0, mRecvBuffer.Length);
                     while (mStream.DataAvailable) {
                         byte recvByte = (byte)mStream.ReadByte();
 
                         if (recvByte == Header) {
-                            RecvCount = 0;
+                            //260702 hbk 새 메시지 시작(Header) 감지 시 이전에 쌓아둔 바이트는 버리고 새로 시작
+                            mRecvBuffer.Clear();
                         }
-                        mRecvBuffer[RecvCount++] = recvByte;
+                        mRecvBuffer.Add(recvByte);
 
                         if (recvByte == Trailer) {
                             //convert
-                            string msg = ConvertMessage(mRecvBuffer).Trim('\0');
+                            //260702 hbk List<byte>는 실제 받은 바이트만 담기 때문에 고정 배열의 남는 0 패딩이 없음 → Trim('\0') 불필요
+                            byte[] recvBytes = mRecvBuffer.ToArray();
+                            string msg = ConvertMessage(recvBytes);
                             if (msg == null) {
                                 return false;
                             }
-                            recvCount = RecvCount;
+                            recvCount = recvBytes.Length;
                             recvMsg = msg;
 
-                            RecvCount = 0;
+                            mRecvBuffer.Clear();
 
                             //occurs event
                             Logging.PrintLog((int)ELogType.TcpConnection, $"{GetIpAddress()} : Recv Message : {msg}");
@@ -289,7 +293,7 @@ namespace ReringProject.Network {
                     Logging.PrintLog((int)ELogType.TcpConnection, $"{GetIpAddress()} : Recv Fail. ({e.Message})");
                     Parent.OnAlarm?.Invoke(this, new AlarmEventArgs(AlarmEventArgs.AlarmEventType.OnSendFail, GetIpAddress(), e.Message));
                 }
-                
+
                 return false;
             }
 

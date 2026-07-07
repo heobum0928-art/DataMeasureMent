@@ -259,6 +259,8 @@
     <Compile Include="Custom\Sequence\Inspection\CycleResultSerializer.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementHistoryCsvWriter.cs" />
     <!--260707 hbk STAT-01 양산 이력 통계 CSV writer-->
+    <Compile Include="Custom\Sequence\Inspection\MeasurementHistoryCsvLoader.cs" />
+    <!--260707 hbk STAT-01 양산 이력 통계 CSV loader(조회/집계)-->
     <Compile Include="Custom\Sequence\Inspection\RepeatMeasurementStats.cs" />
     <Compile Include="Custom\Sequence\Inspection\RepeatRunService.cs" />
     <Compile Include="Custom\Sequence\Inspection\BatchRunService.cs" />

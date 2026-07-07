@@ -792,7 +792,7 @@ Plans:
 **Plans:** 3 plans / 3 waves (plan_complete 2026-07-07)
 - [x] 67-01-PLAN.md — 데이터 수집: StatisticsSavePath 설정 + MeasurementHistoryCsvWriter(측정항목당 1행 append, RFC4180, static lock) + SaveAsync 훅 (D-01~D-05) ✅ 2026-07-07 (f16e390)
 - [x] 67-02-PLAN.md — 조회/집계: MeasurementHistoryCsvLoader(기간 CSV 파싱 + RepeatMeasurementStats 재사용 + 순서유지 Series + distinct 레시피) (D-06/D-07/D-11/D-13) ✅ 2026-07-07 (495951c)
-- [ ] 67-03-PLAN.md — UI: StatisticsWindow(기간/레시피 필터 + DataGrid + ChartDirector 히스토그램/추이) + EPageType.Statistics 메뉴 (D-08~D-14)
+- [x] 67-03-PLAN.md — UI: StatisticsWindow(기간/레시피 필터 + DataGrid + ChartDirector 히스토그램/추이) + EPageType.Statistics 메뉴 (D-08~D-14) ✅ 2026-07-07 (31f5135)
 
 ---
 

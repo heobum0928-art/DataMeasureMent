@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 67-02-PLAN.md
-last_updated: "2026-07-07T01:24:22.369Z"
+stopped_at: Completed 67-03-PLAN.md
+last_updated: "2026-07-07T01:39:16.160Z"
 last_activity: 2026-07-07
 progress:
   total_phases: 15
@@ -214,6 +214,7 @@ Last activity: 2026-07-07
 | Phase 66-ring7-coax-align-2026-06-26 P66-03 | 15 | 3 tasks | 4 files |
 | Phase 67-stat-01-2026-07-07 P01 | 15min | 4 tasks | 4 files |
 | Phase 67-stat-01-2026-07-07 P02 | 14min | 2 tasks | 2 files |
+| Phase 67-stat-01-2026-07-07 P03 | 25min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -436,6 +437,8 @@ Recent decisions affecting current work:
 - [Phase 67-02]: RepeatMeasurementStats.cs 무수정 — CSV 행을 최소 CycleResultDto 로 감싸 AddSample 재사용(D-07, DRY)
 - [Phase 67-02]: Series(추이 시계열)는 RepeatMeasurementStats 미제공 항목이라 loader 가 별도 Shot/FAI/측정명 키로 순서유지 수집(D-13)
 - [Phase 67-02]: distinct RecipeNames 는 필터 적용 전 전체 수집 — 드롭다운 전체 후보 노출(D-11)
+- StatisticsWindow — ReviewerWindow 완전 미러(비모달/mXxxWindow 재사용) + ChartDirector 최초 in-repo 사용(XYChart addBarLayer/addLineLayer/Axis.addMark)
+- 히스토그램 USL/LSL 은 bin 인덱스로 환산해 addBarLayer 기본 정수 x축 스케일에 맞춰 addMark 전달
 
 ### Quick Tasks Completed
 
@@ -573,8 +576,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-07T01:24:22.355Z
-Stopped at: Completed 67-02-PLAN.md
+Last session: 2026-07-07T01:39:16.148Z
+Stopped at: Completed 67-03-PLAN.md
 Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 

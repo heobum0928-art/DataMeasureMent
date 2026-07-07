@@ -397,6 +397,10 @@
       <!--260601 hbk Phase 40 OUT-01-->
       <DependentUpon>ReviewerWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Statistics\StatisticsWindow.xaml.cs">
+      <!--260707 hbk STAT-01-->
+      <DependentUpon>StatisticsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
       <DependentUpon>OpenRecipeWindow.xaml</DependentUpon>
     </Compile>
@@ -530,6 +534,11 @@
     </Page>
     <Page Include="UI\Reviewer\ReviewerWindow.xaml">
       <!--260601 hbk Phase 40 OUT-01-->
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Statistics\StatisticsWindow.xaml">
+      <!--260707 hbk STAT-01-->
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

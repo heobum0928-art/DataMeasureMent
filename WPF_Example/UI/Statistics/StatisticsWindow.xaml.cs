@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using ChartDirector;
 using ReringProject.Sequence;
+using ReringProject.Setting;   //260707 hbk 빌드오류(CS0103) 수정 — ELogType 이 ReringProject.Setting 네임스페이스에 정의됨
 using ReringProject.Utility;
 
 namespace ReringProject.UI

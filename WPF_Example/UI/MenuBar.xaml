@@ -164,13 +164,15 @@
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition></ColumnDefinition>
+                        <!--260707 hbk STAT-01 D-09 — 통계분석 버튼용 5번째 컬럼 추가-->
+                        <ColumnDefinition></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="3*"></RowDefinition>
                         <RowDefinition Height="9*"></RowDefinition>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="4"
+                    <TextBlock Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="5"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        FontSize="12" Foreground="Black" Text="{Binding [CONTROL], Source={StaticResource DR}}">
@@ -208,6 +210,15 @@
                         <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
                             <TextBlock Text="[R]" FontSize="22" HorizontalAlignment="Center" FontWeight="Bold" Foreground="#1E3A5F"></TextBlock>
                             <TextBlock Text="결과 리뷰어" FontSize="12"></TextBlock>
+                        </StackPanel>
+                    </Button>
+                    <!-- 통계분석 -->
+                    <!--260707 hbk STAT-01 D-09 — 양산 이력 통계 비모달 버튼(항상 활성)-->
+                    <Button x:Name="Button_Statistics" Grid.Column="4" Grid.Row="1" HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center" Click="Button_Statistics_Click" Style="{StaticResource disalbedStyle}">
+                        <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
+                            <TextBlock Text="[S]" FontSize="22" HorizontalAlignment="Center" FontWeight="Bold" Foreground="#1E3A5F"></TextBlock>
+                            <TextBlock Text="통계분석" FontSize="12"></TextBlock>
                         </StackPanel>
                     </Button>
                 </Grid>

@@ -28,6 +28,7 @@ namespace ReringProject {
         Login,
         ProcessMonitor,
         Reviewer,   // Phase 40 OUT-01 D-08 — 결과 리뷰어 비모달 창
+        Statistics,   //260707 hbk STAT-01 D-09 — 양산 이력 통계분석 비모달 창
     }
 
     /// <summary>
@@ -68,6 +69,7 @@ namespace ReringProject {
         private Window mModalWindow;
         private ProcessMonitorWindow mProcMonitorWindow;
         private UI.ReviewerWindow mReviewerWindow;
+        private UI.StatisticsWindow mStatisticsWindow;   //260707 hbk STAT-01 D-08 — 비모달 재사용 멤버
         private DispatcherTimer mTimer = new DispatcherTimer();
 
 
@@ -360,6 +362,15 @@ namespace ReringProject {
                     mReviewerWindow = new UI.ReviewerWindow();
                     mReviewerWindow.Owner = this;
                     mReviewerWindow.Show();   // 비모달 — 라이브 MainView 와 동시 사용 가능 (D-08)
+                    break;
+                case EPageType.Statistics:   //260707 hbk STAT-01 D-08/D-09 — 비모달 Show() (라이브 MainView 방해 안 함)
+                    if (mStatisticsWindow != null && mStatisticsWindow.IsLoaded) {
+                        mStatisticsWindow.Show();
+                        return;
+                    }
+                    mStatisticsWindow = new UI.StatisticsWindow();
+                    mStatisticsWindow.Owner = this;
+                    mStatisticsWindow.Show();   // 비모달
                     break;
             }
         }

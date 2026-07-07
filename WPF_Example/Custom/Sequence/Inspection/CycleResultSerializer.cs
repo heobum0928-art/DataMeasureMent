@@ -196,6 +196,15 @@ namespace ReringProject.Sequence
                     }
                     catch { }
                 }
+
+                try   //260707 hbk STAT-01 D-04: CSV 이력 append — JSON 성공/실패와 독립(검사/TCP 무영향). v2.6/v1.0/수동 3경로 자동 커버.
+                {
+                    MeasurementHistoryCsvWriter.Append(dto);
+                }
+                catch (Exception exCsv)   //260707 hbk STAT-01 D-04
+                {
+                    try { Logging.PrintErrLog((int)ELogType.Error, "[CycleResultSerializer] CSV history append failed: " + exCsv.Message); } catch { }
+                }
             });
         }
 

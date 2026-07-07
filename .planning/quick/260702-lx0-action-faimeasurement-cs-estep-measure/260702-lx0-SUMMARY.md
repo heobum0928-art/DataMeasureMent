@@ -18,7 +18,7 @@ decisions:
   - "기존 삼항(LastSkipReason 판정)은 헬퍼 이동 시 if-else 로 전개(동치 유지), 신규 삼항 0건 유지"
   - "sharedSrc 생성/Release try-finally 경계는 case EStep.Measure 본문에 그대로 유지, 헬퍼는 파라미터로만 전달받음"
 metrics:
-  duration: "~25min (Task 1 + Task 2, Task 3 checkpoint pending human verification)"
+  duration: "~25min (Task 1 + Task 2) + human-verify checkpoint approved 2026-07-07"
   completed: 2026-07-02
 ---
 
@@ -32,7 +32,7 @@ metrics:
 |------|------|--------|-------|
 | 1 | 측정 루프 내부(per-measurement) 로직 Extract Method | d6a1823 | Action_FAIMeasurement.cs |
 | 2 | Shot 단위(per-shot) 로직 Extract Method + case 재배선 + 빌드 검증 | 29344df | Action_FAIMeasurement.cs |
-| 3 | checkpoint:human-verify (SIMUL $TEST 회귀 확인) | **PENDING — 사용자 수동 검증 필요** | — |
+| 3 | checkpoint:human-verify (SIMUL $TEST 회귀 확인) | **APPROVED — 사용자 검증 완료 (2026-07-07)** | — |
 
 ## What Was Built
 
@@ -66,18 +66,9 @@ metrics:
 - 다른 case(Init/MoveZ/DatumPhase/Grab/End) 및 기존 헬퍼(GrabOrLoadDatumImage, TryGrabOrLoadDualDatumImages, TryGrabOrLoadFaiDualImages, BuildDatumCaptureSnapshot, QueueFaiCapture) 무수정 — git diff 범위가 `case EStep.Measure` 블록 및 신규 헬퍼 추가 영역에만 국한됨을 확인.
 - `git diff --diff-filter=D` 확인 결과 두 커밋 모두 의도치 않은 파일 삭제 없음.
 
-## Task 3: Checkpoint — Pending Human Verification
+## Task 3: Checkpoint — Approved
 
-**이 계획의 실제 판정 동치(P/F/B) 검증은 완료되지 않았습니다.** 에이전트는 TCP `$TEST` 시뮬레이션 환경(SIMUL_MODE, 실 레시피, SimulImagePath 이미지)을 재현할 수 없어 자동 검증이 불가능합니다.
-
-사용자가 직접 아래 절차로 회귀 확인 필요:
-
-1. 리팩토링 전 커밋(`da68896` 또는 그 이전) 기준 앱으로 대표 SIMUL 레시피 몇 개에 대해 `$TEST` 실행 → 각 SHOT/FAI 의 `$RESULT`(site;Type;P|F|B;count) 값 기록.
-2. 리팩토링 후 앱(현재 `29344df`, `Debug/x64` 빌드 완료됨) 재실행 → 동일 레시피·동일 SimulImagePath 로 같은 `$TEST` 재실행.
-3. P/F/B 판정, measuredCount, MeasuredValue, overlay(-OK/-NG 색), NO_IMAGE/DATUM_FAIL/ALIGN_FAIL skip 사유가 리팩토링 전과 완전히 동일한지 비교.
-4. 특히 확인: (a) SimulImagePath 무효 SHOT 이 NO_IMAGE NG 로만 처리되고 다른 SHOT 에 전파 안 되는지, (b) datum 검출 실패 measurement 가 DATUM_FAIL/ALIGN_FAIL 로 skip 되며 count 는 증가하는지, (c) DualImage FAI 측정값이 동일한지.
-
-**차이 발견 시:** 회귀이므로 즉시 수정 필요 — 이 커밋들(`d6a1823`, `29344df`)의 헬퍼 추출 경계를 재검토.
+사용자가 리팩토링 전/후 SIMUL `$TEST` 결과를 비교 검증하여 **동일함을 확인, approved** (2026-07-07). 회귀 없음 — quick-260702-lx0 최종 완료.
 
 ## Deviations from Plan
 

@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 67 (stat-01-2026-07-07) — EXECUTING
 Plan: 3 of 3
-Last activity: 2026-07-07
+Last activity: 2026-07-07 - Completed quick task 260707-fdx: StatisticsWindow 차트 글자 겹침 수정
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -444,6 +444,7 @@ Recent decisions affecting current work:
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| 260707-fdx | 2026-07-07 | StatisticsWindow 차트 글자 겹침 수정 (Phase 67 STAT-01 UAT 후속). (1) 히스토그램 x축 라벨 20개→setLabelStep(4)로 ~5개만 표시. (2) USL/LSL 마크 근접·공차0 겹침 병합: 히스토그램 bin 좌표 근접 시 "USL/LSL" 단일 마크, 추이 차트는 신규 AddSpecMarksY 헬퍼가 데이터 스팬 2% 이내면 병합(평균 마크는 항상 개별). 넓은 공차·충분 샘플 케이스 기존 렌더 유지(회귀 0). 단일 파일 StatisticsWindow.xaml.cs. ChartDirector 워터마크(라이선스)는 범위 밖. msbuild Debug/x64 PASS. | 7a4de09, 562dc11 | 빌드 PASS · 육안 UAT 대기 |
 | 260629-eti | 2026-06-29 | $RESULT TCP 응답 측정(Measurement) 단위 전환 (Vision_Protocol_v1.1 B안=측정점 분리). AddFaiResult를 fai.Measurements 순회로 재작성 — 측정마다 id=val=judge 1항목(다측정 FAI=FAIName_P{n}, 단측정=FAIName) + ClassifyMeasurement 헬퍼 신규(측정 단위 NotExist/NG/OK + m_bCycleHasNG 누적). 기존 FAI당 1값(P1만 전송) 은폐 결함 제거 → 전 측정값/판정 전송. 와이어 빌더(BuildResultMessageV1/BuildFaiItemsV1)/사이클 P·F·B/FAIConfig/ClassifyFai 무변경(회귀 0). msbuild Debug/x64 PASS. | 1eae9ed | 빌드 PASS · 핸들러 파서 B포맷 동기화 + 실측 UAT 대기 |
 | 260626-e3x | 2026-06-26 | 트리 SelectionChanged StartAt 재진입 크래시 수정 — 트리 클릭 시 "Cannot call StartAt when content generation is in progress"+뒤섞임 크래시. 원인=TreeListBox(가상화) 생성 도중 SelectionChanged 가 동기로 ItemsSource/SelectedObject 재교체(ClearResults/PropertyGrid rebind/재티칭)→generator 재진입(레시피경로는 이미 Dispatcher 마샬링됨=교차스레드 아님). 수정=무거운 선택 처리 본문 Dispatcher.BeginInvoke(Background) 지연→생성 패스 종료 후 실행, 지연 시 SelectedItem 재조회. msbuild PASS. | efd5894 | 빌드 PASS · 재현기부재 실환경 클릭 UAT 대기 |
 | 260626-dbd | 2026-06-26 | ComputeProjectionDistance signed화 (감사 A-01) — Math.Sqrt 절대값(부호 소실)을 EdgeToLineDistance 동일 signed 공식(축별 sinθ≥0/cosθ≥0 정규화)으로 교체. 위임 5종(ArcEdgeDistance/CircleCenterDistance/ArcLineIntersect/CompoundCenterB·C) 일괄 해결 = InvertSign 영구NG·반대편 불량은폐 복원. 타입별 의도 점검(전부 signed 설계, XML doc 계약 정합) 후 진행. EdgeToLineDistance/measureY 무영향. msbuild PASS. | d0eedc9 | 빌드 PASS · 실측 UAT(항목별 부호 vs nominal·InvertSign 토글) 대기 |

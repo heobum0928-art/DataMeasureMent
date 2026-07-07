@@ -296,11 +296,50 @@ namespace ReringProject.UI
             XYChart c = new XYChart(CHART_W, CHART_H);
             c.setPlotArea(55, 25, CHART_W - 90, CHART_H - 70);
             c.addLineLayer(data, COLOR_LINE);
-            c.yAxis().addMark(dMean, COLOR_MEAN, "평균");
-            c.yAxis().addMark(dUsl, COLOR_USL, "USL");
-            c.yAxis().addMark(dLsl, COLOR_LSL, "LSL");
+            AddSpecMarksY(c, values, dMean, dUsl, dLsl);   //260707 hbk 근접/공차0 마크 병합 렌더
 
             viewer_Trend.Chart = c;
+        }
+
+        /// <summary>추이 차트 평균/USL/LSL 수평 마크를 근접 겹침 방지하여 렌더(공차 0 → USL/LSL 병합). //260707 hbk</summary>
+        private void AddSpecMarksY(XYChart c, List<double> values, double dMean, double dUsl, double dLsl)   //260707 hbk 마크 겹침 제거 헬퍼
+        {
+            double dMin = MinOf(values);   //260707 hbk
+            double dMax = MaxOf(values);   //260707 hbk
+            double dSpan = dMax - dMin;    //260707 hbk 데이터 스팬 기준 근접 임계
+
+            // USL/LSL 을 스팬에 포함(마크가 데이터 밖일 수 있음)
+            if (dUsl > dMax)   //260707 hbk
+            {
+                dSpan = dUsl - dMin;
+            }
+            if (dLsl < dMin)   //260707 hbk
+            {
+                dSpan = dMax - dLsl;
+                if (dUsl > dMax)
+                {
+                    dSpan = dUsl - dLsl;
+                }
+            }
+
+            double dEps = dSpan * 0.02;   //260707 hbk 스팬 2% 이내면 근접으로 간주
+            if (dEps <= 0)   //260707 hbk 스팬 0(전 값 동일) → 절대 최소 임계
+            {
+                dEps = 1e-9;
+            }
+
+            c.yAxis().addMark(dMean, COLOR_MEAN, "평균");   //260707 hbk 평균은 항상
+
+            if (Math.Abs(dUsl - dLsl) <= dEps)   //260707 hbk 공차 0 또는 USL≈LSL → 병합
+            {
+                double dMid = (dUsl + dLsl) / 2.0;   //260707 hbk
+                c.yAxis().addMark(dMid, COLOR_USL, "USL/LSL");   //260707 hbk 단일 병합 마크
+            }
+            else   //260707 hbk 정상: 개별 마크(회귀 0)
+            {
+                c.yAxis().addMark(dUsl, COLOR_USL, "USL");   //260707 hbk
+                c.yAxis().addMark(dLsl, COLOR_LSL, "LSL");   //260707 hbk
+            }
         }
 
         /// <summary>두 차트를 비운다(새 조회 직후 / 선택 없음 상태).</summary>

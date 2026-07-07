@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Phase 67 context gathered
-last_updated: "2026-07-07T01:09:44.535Z"
-last_activity: "2026-07-02 - Quick task 260702-lx0: Action_FAIMeasurement.cs EStep.Measure Extract Method 리팩토링 (코드 완료, SIMUL $TEST 회귀 확인 대기)"
+stopped_at: Completed 67-01-PLAN.md
+last_updated: "2026-07-07T01:19:53.551Z"
+last_activity: 2026-07-07
 progress:
   total_phases: 15
   completed_phases: 14
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 66 — ring7-coax-align-2026-06-26
+**Current focus:** Phase 67 — stat-01-2026-07-07
 
 ## Current Position
 
-Phase: 66
-Plan: Not started
-Last activity: 2026-07-02 - Quick task 260702-lx0: Action_FAIMeasurement.cs EStep.Measure Extract Method 리팩토링 (코드 완료, SIMUL $TEST 회귀 확인 대기)
+Phase: 67 (stat-01-2026-07-07) — EXECUTING
+Plan: 2 of 3
+Last activity: 2026-07-07
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -212,6 +212,7 @@ Last activity: 2026-07-02 - Quick task 260702-lx0: Action_FAIMeasurement.cs ESte
 | Phase 66-ring7-coax-align-2026-06-26 P01 | 10 | 4 tasks | 2 files |
 | Phase 66 P02 | 8 | 4 tasks | 3 files |
 | Phase 66-ring7-coax-align-2026-06-26 P66-03 | 15 | 3 tasks | 4 files |
+| Phase 67-stat-01-2026-07-07 P01 | 15min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -428,6 +429,9 @@ Recent decisions affecting current work:
 - partial class 파일별 using 독립: Custom/SystemHandler.cs에 using ReringProject.Device 별도 명시 필요
 - Phase 66 Plan 03: airspace-safe WPF 동축 컨트롤(좌측 패널)으로 Bottom/Tray Align 창 — HALCON HWND 위 오버레이 없음
 - Phase 66 Plan 03: D-07 티칭=런타임 조명 일치 — Grab/Teach/Run 직전 ApplyCoaxLight() 공통 자동 적용 패턴 확립
+- [Phase 67-01]: StatisticsSavePath 는 LogDeleteDay 뒤 · Path|MapData 앞에 배치 + 자체 Category("Path|Statistics") 부여 — group 상속 로직상 그룹 누출 0
+- [Phase 67-01]: CSV 스키마 고정 14컬럼 + 일자별 1파일(yyyyMMdd.csv) + OverallJudgement P/F/N 매핑, MapJudgement 5분기(DATUM_FAIL/NO_IMAGE/NO_RESULT/OK/NG)는 RepeatMeasurementStats.AddSample 정책과 100% 일치
+- [Phase 67-01]: CSV injection 프리픽스(=/+/-/@) 이스케이프 미적용 — 내부 기계 생성 데이터 저위험 판단, 왕복 파싱 정확성 우선(threat_model accept)
 
 ### Quick Tasks Completed
 
@@ -565,9 +569,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 67 context gathered
-Resume file: --resume-file
+Last session: 2026-07-07T01:18:53.657Z
+Stopped at: Completed 67-01-PLAN.md
+Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 
 **v1.1 Phase Map:**

@@ -1,9 +1,11 @@
-//260707 hbk STAT-01: 양산 이력 통계 분석 UI — 조회/테이블/차트(ChartDirector) code-behind
+//260707 hbk STAT-01: 양산 이력 통계 분석 UI — 조회/테이블/차트(WPF Canvas 직접 렌더) code-behind
+//260707 hbk quick-260707-fdx ChartDirector(유료·워터마크) 제거 → 히스토그램/추이 차트를 WPF Canvas 도형으로 재구현
 using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using ChartDirector;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using ReringProject.Sequence;
 using ReringProject.Setting;   //260707 hbk 빌드오류(CS0103) 수정 — ELogType 이 ReringProject.Setting 네임스페이스에 정의됨
 using ReringProject.Utility;
@@ -50,21 +52,23 @@ namespace ReringProject.UI
 
     /// <summary>
     /// 양산 이력 통계 분석 비모달 Window (STAT-01). MeasurementHistoryCsvLoader.Query 를 소비하여
-    /// 기간·레시피별 통계 테이블(D-06) + 행 선택 시 히스토그램/추이 차트(ChartDirector, D-12~D-14)를 표시한다.
+    /// 기간·레시피별 통계 테이블(D-06) + 행 선택 시 히스토그램/추이 차트(WPF Canvas 직접 렌더, D-12~D-14)를 표시한다.
     /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show() 로 열림 (D-08, ReviewerWindow 미러).
     /// </summary>
     public partial class StatisticsWindow : Window
     {
         private const int BIN_COUNT = 20;             //260707 hbk D-14 히스토그램 bin 수(잠금 결정)
-        private const int MAX_X_LABELS = 5;           //260707 hbk 히스토그램 x축 최대 표시 라벨 수(겹침 방지)
-        private const int CHART_W = 560;
-        private const int CHART_H = 300;
-        private const int COLOR_USL = 0xcc0000;        // 빨강 (공차 상한)
-        private const int COLOR_LSL = 0xcc0000;        // 빨강 (공차 하한)
-        private const int COLOR_MEAN = 0x008800;       // 초록 (평균)
-        private const int COLOR_BAR = 0x3366cc;
-        private const int COLOR_LINE = 0x3366cc;
+        private const int MAX_X_LABELS = 5;           //260707 hbk 히스토그램/추이 x축 최대 표시 라벨 수(겹침 방지)
+        private const double MERGE_PX = 12.0;         //260707 hbk quick-260707-fdx 픽셀 거리 12px 미만이면 라벨 병합
         private const string RECIPE_ALL = "전체";      //260707 hbk 레시피 필터 없음 표시 항목
+
+        //260707 hbk quick-260707-fdx WPF Canvas 렌더용 고정 브러시(Freeze — 성능/스레드 안전)
+        private static readonly SolidColorBrush m_brushBar = MakeFrozenBrush(0x33, 0x66, 0xCC);
+        private static readonly SolidColorBrush m_brushLine = MakeFrozenBrush(0x33, 0x66, 0xCC);
+        private static readonly SolidColorBrush m_brushMean = MakeFrozenBrush(0x00, 0x88, 0x00);
+        private static readonly SolidColorBrush m_brushSpec = MakeFrozenBrush(0xCC, 0x00, 0x00);
+        private static readonly SolidColorBrush m_brushAxis = MakeFrozenBrush(0x94, 0xA3, 0xB8);
+        private static readonly SolidColorBrush m_brushText = MakeFrozenBrush(0x33, 0x33, 0x33);
 
         private StatisticsQueryResult m_lastResult;    //260707 hbk 마지막 조회 결과(Series 조회용 보관)
 
@@ -209,6 +213,18 @@ namespace ReringProject.UI
         /// <summary>DataGrid 행 선택 시 해당 측정키(Series)의 히스토그램/추이 차트를 갱신한다(D-12).</summary>
         private void Grid_Stats_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            RenderCurrentSelection();
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx Canvas 크기 변경(창 리사이즈) 시 현재 선택 행 기준으로 다시 렌더한다. 선택 없으면 아무것도 안 함.</summary>
+        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RenderCurrentSelection();
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 현재 grid_Stats 선택 행의 Series 값으로 두 차트를 렌더한다(SelectionChanged/SizeChanged 공용).</summary>
+        private void RenderCurrentSelection()
+        {
             StatRow row = grid_Stats.SelectedItem as StatRow;
             if (row == null)
             {
@@ -232,12 +248,20 @@ namespace ReringProject.UI
             RenderTrend(values, row.Mean, dUsl, dLsl);
         }
 
-        /// <summary>도수 분포 히스토그램(BarLayer) + USL/LSL 수직 markLine 렌더(D-14).</summary>
+        /// <summary>260707 hbk quick-260707-fdx 도수 분포 히스토그램(Rectangle 막대) + USL/LSL 수직선을 canvas_Histogram 에 직접 렌더(D-14).</summary>
         private void RenderHistogram(List<double> values, double dUsl, double dLsl)
         {
+            canvas_Histogram.Children.Clear();
+            double dW = canvas_Histogram.ActualWidth;
+            double dH = canvas_Histogram.ActualHeight;
+            if (dW <= 0 || dH <= 0)
+            {
+                return;
+            }
+
             if (values == null || values.Count == 0)
             {
-                viewer_Histogram.Chart = null;
+                DrawNoDataText(canvas_Histogram, dW, dH);
                 return;
             }
 
@@ -247,72 +271,409 @@ namespace ReringProject.UI
             double dMin = MinOf(values);
             double dMax = MaxOf(values);
 
-            XYChart c = new XYChart(CHART_W, CHART_H);
-            c.setPlotArea(55, 25, CHART_W - 90, CHART_H - 70);
-            c.addBarLayer(freq, COLOR_BAR);
-            c.xAxis().setLabels(labels);
+            double dMarginL = 40;
+            double dMarginB = 24;
+            double dMarginT = 10;
+            double dMarginR = 10;
+            double dPlotX0 = dMarginL;
+            double dPlotY0 = dMarginT;
+            double dPlotW = dW - dMarginL - dMarginR;
+            double dPlotH = dH - dMarginT - dMarginB;
+            if (dPlotW <= 0 || dPlotH <= 0)
+            {
+                return;
+            }
 
-            int nLabelStep = (int)Math.Ceiling((double)BIN_COUNT / MAX_X_LABELS);   //260707 hbk 라벨 겹침 방지 스텝
+            double dMaxFreq = 0;
+            for (int i = 0; i < freq.Length; i++)
+            {
+                if (freq[i] > dMaxFreq)
+                {
+                    dMaxFreq = freq[i];
+                }
+            }
+
+            if (dMaxFreq <= 0)
+            {
+                dMaxFreq = 1;
+            }
+
+            double dBinW = dPlotW / BIN_COUNT;
+
+            // 막대(도수 정규화) //260707 hbk
+            for (int i = 0; i < BIN_COUNT; i++)
+            {
+                double dBarH = freq[i] / dMaxFreq * dPlotH;
+                Rectangle rc = new Rectangle();
+                rc.Width = Math.Max(dBinW - 1, 1);
+                rc.Height = Math.Max(dBarH, 0);
+                rc.Fill = m_brushBar;
+                Canvas.SetLeft(rc, dPlotX0 + i * dBinW);
+                Canvas.SetTop(rc, dPlotY0 + dPlotH - dBarH);
+                canvas_Histogram.Children.Add(rc);
+            }
+
+            DrawAxisLines(canvas_Histogram, dPlotX0, dPlotY0, dPlotW, dPlotH);
+
+            // x축 라벨(bin 중심값, 5개 내외만 — 겹침 방지) //260707 hbk
+            int nLabelStep = (int)Math.Ceiling((double)BIN_COUNT / MAX_X_LABELS);
             if (nLabelStep < 1)
             {
                 nLabelStep = 1;
             }
-            c.xAxis().setLabelStep(nLabelStep);   //260707 hbk 5개 내외만 표시
 
-            // USL/LSL 값 → bin 인덱스 환산 후 수직선 표시(0 나눗셈 방어)
+            for (int i = 0; i < BIN_COUNT; i += nLabelStep)
+            {
+                TextBlock tb = CreateLabel(labels[i], 10, m_brushText);
+                canvas_Histogram.Children.Add(tb);
+                tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                double dCx = dPlotX0 + i * dBinW + dBinW / 2.0;
+                Canvas.SetLeft(tb, dCx - tb.DesiredSize.Width / 2.0);
+                Canvas.SetTop(tb, dPlotY0 + dPlotH + 2);
+            }
+
+            // y축 라벨(0 / 중간 / 최대 도수) //260707 hbk
+            DrawYTicksCount(canvas_Histogram, dPlotX0, dPlotY0, dPlotH, dMaxFreq);
+
+            // USL/LSL 수직선 — 근접(12px 미만) 시 단일 라벨로 병합 //260707 hbk
             double dRange = dMax - dMin;
             if (dRange > 0)
             {
-                double dUslBin = (dUsl - dMin) / dRange * BIN_COUNT;
-                double dLslBin = (dLsl - dMin) / dRange * BIN_COUNT;
+                double dXUsl = dPlotX0 + (dUsl - dMin) / dRange * dPlotW;
+                double dXLsl = dPlotX0 + (dLsl - dMin) / dRange * dPlotW;
+                bool bUslIn = dXUsl >= dPlotX0 && dXUsl <= dPlotX0 + dPlotW;
+                bool bLslIn = dXLsl >= dPlotX0 && dXLsl <= dPlotX0 + dPlotW;
 
-                double dEps = 0.5;   //260707 hbk 반 bin 이내면 USL/LSL 동일 위치로 간주(공차 0 포함)
-                if (Math.Abs(dUslBin - dLslBin) <= dEps)
+                if (bUslIn && bLslIn && Math.Abs(dXUsl - dXLsl) < MERGE_PX)
                 {
-                    double dMidBin = (dUslBin + dLslBin) / 2.0;   //260707 hbk 겹침 → 단일 마크로 병합
-                    c.xAxis().addMark(dMidBin, COLOR_USL, "USL/LSL");   //260707 hbk 병합 라벨
+                    double dXMid = (dXUsl + dXLsl) / 2.0;
+                    DrawVLine(canvas_Histogram, dXMid, dPlotY0, dPlotH, m_brushSpec, "USL/LSL");
                 }
                 else
                 {
-                    c.xAxis().addMark(dUslBin, COLOR_USL, "USL");
-                    c.xAxis().addMark(dLslBin, COLOR_LSL, "LSL");
+                    if (bUslIn)
+                    {
+                        DrawVLine(canvas_Histogram, dXUsl, dPlotY0, dPlotH, m_brushSpec, "USL");
+                    }
+
+                    if (bLslIn)
+                    {
+                        DrawVLine(canvas_Histogram, dXLsl, dPlotY0, dPlotH, m_brushSpec, "LSL");
+                    }
                 }
             }
-
-            viewer_Histogram.Chart = c;
         }
 
-        /// <summary>샘플 인덱스(1..N) 기준 추이 LineLayer + 평균/USL/LSL 수평 markLine 렌더(D-13).</summary>
+        /// <summary>260707 hbk quick-260707-fdx 샘플 인덱스(1..N) 기준 추이 Polyline + 평균/USL/LSL 수평선을 canvas_Trend 에 직접 렌더(D-13).</summary>
         private void RenderTrend(List<double> values, double dMean, double dUsl, double dLsl)
         {
-            if (values == null || values.Count == 0)
+            canvas_Trend.Children.Clear();
+            double dW = canvas_Trend.ActualWidth;
+            double dH = canvas_Trend.ActualHeight;
+            if (dW <= 0 || dH <= 0)
             {
-                viewer_Trend.Chart = null;
                 return;
             }
 
-            double[] data = values.ToArray();
+            if (values == null || values.Count == 0)
+            {
+                DrawNoDataText(canvas_Trend, dW, dH);
+                return;
+            }
 
-            XYChart c = new XYChart(CHART_W, CHART_H);
-            c.setPlotArea(55, 25, CHART_W - 90, CHART_H - 70);
-            c.addLineLayer(data, COLOR_LINE);
-            TightenYAxis(c, values, dMean, dUsl, dLsl);    //260707 hbk 데이터+마크 범위로 y축 축소 → 마크 세로 분산(축 0~1.8 몰림 해소)
-            AddSpecMarksY(c, values, dMean, dUsl, dLsl);   //260707 hbk 근접 마크 그룹 병합 렌더
+            double dMarginL = 55;   // F3 숫자 라벨 표시 위해 히스토그램보다 넓게 //260707 hbk
+            double dMarginB = 24;
+            double dMarginT = 10;
+            double dMarginR = 10;
+            double dPlotX0 = dMarginL;
+            double dPlotY0 = dMarginT;
+            double dPlotW = dW - dMarginL - dMarginR;
+            double dPlotH = dH - dMarginT - dMarginB;
+            if (dPlotW <= 0 || dPlotH <= 0)
+            {
+                return;
+            }
 
-            viewer_Trend.Chart = c;
+            double dLo;
+            double dHi;
+            ComputePaddedRange(values, dMean, dUsl, dLsl, out dLo, out dHi);
+            double dSpan = dHi - dLo;
+            if (dSpan <= 0)
+            {
+                dSpan = 1.0;
+            }
+
+            int nCount = values.Count;
+            PointCollection pts = new PointCollection();
+            for (int i = 0; i < nCount; i++)
+            {
+                double dX = TrendIndexToX(i, nCount, dPlotX0, dPlotW);
+                double dY = dPlotY0 + dPlotH - (values[i] - dLo) / dSpan * dPlotH;
+                pts.Add(new Point(dX, dY));
+            }
+
+            Polyline pl = new Polyline();
+            pl.Points = pts;
+            pl.Stroke = m_brushLine;
+            pl.StrokeThickness = 1.5;
+            canvas_Trend.Children.Add(pl);
+
+            DrawAxisLines(canvas_Trend, dPlotX0, dPlotY0, dPlotW, dPlotH);
+            DrawYTicksValue(canvas_Trend, dPlotX0, dPlotY0, dPlotH, dLo, dHi);
+            DrawTrendXLabels(canvas_Trend, dPlotX0, dPlotY0, dPlotW, dPlotH, nCount);
+            DrawTrendSpecMarks(canvas_Trend, dPlotX0, dPlotY0, dPlotW, dPlotH, dLo, dSpan, dMean, dUsl, dLsl);
         }
 
-        /// <summary>추이 차트 y축을 데이터+마크 전체 범위(15% 여백)로 좁힌다 → 마크가 세로로 벌어져 라벨 겹침 완화. //260707 hbk</summary>
-        private void TightenYAxis(XYChart c, List<double> values, double dMean, double dUsl, double dLsl)   //260707 hbk y축 자동 0~ 확장으로 마크 몰림 방지
+        /// <summary>260707 hbk quick-260707-fdx 추이 차트 샘플 인덱스(0-base) → x 픽셀 좌표 환산. N=1 이면 플롯 중앙.</summary>
+        private double TrendIndexToX(int nIdx, int nCount, double dPlotX0, double dPlotW)
         {
-            double dLo;   //260707 hbk
-            double dHi;   //260707 hbk
-            ComputePaddedRange(values, dMean, dUsl, dLsl, out dLo, out dHi);
-            c.yAxis().setLinearScale(dLo, dHi);   //260707 hbk 수동 범위 지정(기존 0 시작 자동스케일 대체)
+            if (nCount > 1)
+            {
+                return dPlotX0 + (double)nIdx / (nCount - 1) * dPlotW;
+            }
+
+            return dPlotX0 + dPlotW / 2.0;
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 추이 차트 x축 라벨(샘플 번호 1..N, 5개 내외 — 겹침 방지).</summary>
+        private void DrawTrendXLabels(Canvas canvas, double dPlotX0, double dPlotY0, double dPlotW, double dPlotH, int nCount)
+        {
+            int nStep = (int)Math.Ceiling((double)nCount / MAX_X_LABELS);
+            if (nStep < 1)
+            {
+                nStep = 1;
+            }
+
+            for (int i = 0; i < nCount; i += nStep)
+            {
+                double dX = TrendIndexToX(i, nCount, dPlotX0, dPlotW);
+                TextBlock tb = CreateLabel((i + 1).ToString(), 10, m_brushText);
+                canvas.Children.Add(tb);
+                tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Canvas.SetLeft(tb, dX - tb.DesiredSize.Width / 2.0);
+                Canvas.SetTop(tb, dPlotY0 + dPlotH + 2);
+            }
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 추이 차트 평균/USL/LSL 수평선을 픽셀 y좌표 기준 근접(12px 미만) 그룹으로 병합해 렌더 — 라벨 세로 겹침 제거.</summary>
+        private void DrawTrendSpecMarks(Canvas canvas, double dPlotX0, double dPlotY0, double dPlotW, double dPlotH, double dLo, double dSpan, double dMean, double dUsl, double dLsl)
+        {
+            double[] dVals = new double[3];
+            string[] szLabels = new string[3];
+            dVals[0] = dLsl;
+            szLabels[0] = "LSL";
+            dVals[1] = dMean;
+            szLabels[1] = "평균";
+            dVals[2] = dUsl;
+            szLabels[2] = "USL";
+
+            double[] dPixelY = new double[3];
+            for (int i = 0; i < 3; i++)
+            {
+                dPixelY[i] = dPlotY0 + dPlotH - (dVals[i] - dLo) / dSpan * dPlotH;
+            }
+
+            // 픽셀Y 오름차순 버블 정렬(3개 — 값/라벨 동반 정렬, LINQ 미사용) //260707 hbk
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = i + 1; j < 3; j++)
+                {
+                    if (dPixelY[j] < dPixelY[i])
+                    {
+                        double dTmpY = dPixelY[i];
+                        dPixelY[i] = dPixelY[j];
+                        dPixelY[j] = dTmpY;
+                        string szTmpL = szLabels[i];
+                        szLabels[i] = szLabels[j];
+                        szLabels[j] = szTmpL;
+                    }
+                }
+            }
+
+            // 정렬된 마크를 픽셀 거리 기준 그리디 그룹화 → 그룹당 단일 병합 라벨+선 //260707 hbk
+            int nStart = 0;
+            while (nStart < 3)
+            {
+                int nEnd = nStart;
+                while (nEnd + 1 < 3 && (dPixelY[nEnd + 1] - dPixelY[nStart]) < MERGE_PX)
+                {
+                    nEnd++;
+                }
+
+                double dSumY = 0.0;
+                string szMerged = "";
+                bool bHasSpec = false;
+                for (int k = nStart; k <= nEnd; k++)
+                {
+                    dSumY += dPixelY[k];
+                    if (szMerged.Length == 0)
+                    {
+                        szMerged = szLabels[k];
+                    }
+                    else
+                    {
+                        szMerged = szMerged + "/" + szLabels[k];
+                    }
+
+                    if (szLabels[k] == "USL" || szLabels[k] == "LSL")
+                    {
+                        bHasSpec = true;
+                    }
+                }
+
+                double dPosY = dSumY / (nEnd - nStart + 1);
+                Brush brLine = m_brushMean;
+                if (bHasSpec)
+                {
+                    brLine = m_brushSpec;
+                }
+
+                System.Windows.Shapes.Line ln = new System.Windows.Shapes.Line();
+                ln.X1 = dPlotX0;
+                ln.Y1 = dPosY;
+                ln.X2 = dPlotX0 + dPlotW;
+                ln.Y2 = dPosY;
+                ln.Stroke = brLine;
+                ln.StrokeThickness = 1;
+                DoubleCollection dash = new DoubleCollection();
+                dash.Add(4);
+                dash.Add(2);
+                ln.StrokeDashArray = dash;
+                canvas.Children.Add(ln);
+
+                TextBlock tb = CreateLabel(szMerged, 10, brLine);
+                canvas.Children.Add(tb);
+                tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                double dLabelX = dPlotX0 + dPlotW - tb.DesiredSize.Width - 2;
+                double dLabelY = dPosY - tb.DesiredSize.Height - 2;
+                if (dLabelY < dPlotY0)
+                {
+                    dLabelY = dPosY + 2;
+                }
+
+                Canvas.SetLeft(tb, dLabelX);
+                Canvas.SetTop(tb, dLabelY);
+
+                nStart = nEnd + 1;
+            }
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 플롯 영역 좌/하단 축 라인(테두리) 렌더.</summary>
+        private void DrawAxisLines(Canvas canvas, double dPlotX0, double dPlotY0, double dPlotW, double dPlotH)
+        {
+            System.Windows.Shapes.Line lnLeft = new System.Windows.Shapes.Line();
+            lnLeft.X1 = dPlotX0;
+            lnLeft.Y1 = dPlotY0;
+            lnLeft.X2 = dPlotX0;
+            lnLeft.Y2 = dPlotY0 + dPlotH;
+            lnLeft.Stroke = m_brushAxis;
+            lnLeft.StrokeThickness = 1;
+            canvas.Children.Add(lnLeft);
+
+            System.Windows.Shapes.Line lnBottom = new System.Windows.Shapes.Line();
+            lnBottom.X1 = dPlotX0;
+            lnBottom.Y1 = dPlotY0 + dPlotH;
+            lnBottom.X2 = dPlotX0 + dPlotW;
+            lnBottom.Y2 = dPlotY0 + dPlotH;
+            lnBottom.Stroke = m_brushAxis;
+            lnBottom.StrokeThickness = 1;
+            canvas.Children.Add(lnBottom);
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 히스토그램 y축 도수 눈금(0/중간/최대, 정수 표시).</summary>
+        private void DrawYTicksCount(Canvas canvas, double dPlotX0, double dPlotY0, double dPlotH, double dMaxVal)
+        {
+            const int nTicks = 3;
+            for (int i = 0; i < nTicks; i++)
+            {
+                double dFrac = i / (double)(nTicks - 1);
+                double dVal = dMaxVal * dFrac;
+                double dY = dPlotY0 + dPlotH - dFrac * dPlotH;
+                TextBlock tb = CreateLabel(Math.Round(dVal).ToString(), 10, m_brushText);
+                canvas.Children.Add(tb);
+                tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Canvas.SetLeft(tb, dPlotX0 - tb.DesiredSize.Width - 4);
+                Canvas.SetTop(tb, dY - tb.DesiredSize.Height / 2.0);
+            }
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 추이 차트 y축 값 눈금(하한/중간/상한, F3 표시).</summary>
+        private void DrawYTicksValue(Canvas canvas, double dPlotX0, double dPlotY0, double dPlotH, double dLo, double dHi)
+        {
+            const int nTicks = 3;
+            for (int i = 0; i < nTicks; i++)
+            {
+                double dFrac = i / (double)(nTicks - 1);
+                double dVal = dLo + (dHi - dLo) * dFrac;
+                double dY = dPlotY0 + dPlotH - dFrac * dPlotH;
+                TextBlock tb = CreateLabel(dVal.ToString("F3"), 10, m_brushText);
+                canvas.Children.Add(tb);
+                tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Canvas.SetLeft(tb, dPlotX0 - tb.DesiredSize.Width - 4);
+                Canvas.SetTop(tb, dY - tb.DesiredSize.Height / 2.0);
+            }
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx USL/LSL 수직선 + 상단 라벨(플롯 영역 내에 위치할 때만 호출됨).</summary>
+        private void DrawVLine(Canvas canvas, double dX, double dPlotY0, double dPlotH, Brush brush, string szLabel)
+        {
+            System.Windows.Shapes.Line ln = new System.Windows.Shapes.Line();
+            ln.X1 = dX;
+            ln.Y1 = dPlotY0;
+            ln.X2 = dX;
+            ln.Y2 = dPlotY0 + dPlotH;
+            ln.Stroke = brush;
+            ln.StrokeThickness = 1;
+            DoubleCollection dash = new DoubleCollection();
+            dash.Add(4);
+            dash.Add(2);
+            ln.StrokeDashArray = dash;
+            canvas.Children.Add(ln);
+
+            TextBlock tb = CreateLabel(szLabel, 10, brush);
+            canvas.Children.Add(tb);
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(tb, dX - tb.DesiredSize.Width / 2.0);
+            Canvas.SetTop(tb, dPlotY0 - tb.DesiredSize.Height - 2);
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx 값 없음(N=0) 상태 — 캔버스 중앙에 "데이터 없음" 표시.</summary>
+        private void DrawNoDataText(Canvas canvas, double dW, double dH)
+        {
+            TextBlock tb = CreateLabel("데이터 없음", 13, m_brushAxis);
+            canvas.Children.Add(tb);
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(tb, (dW - tb.DesiredSize.Width) / 2.0);
+            Canvas.SetTop(tb, (dH - tb.DesiredSize.Height) / 2.0);
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx Canvas 라벨용 TextBlock 생성 헬퍼.</summary>
+        private TextBlock CreateLabel(string szText, double dFontSize, Brush brush)
+        {
+            TextBlock tb = new TextBlock();
+            tb.Text = szText;
+            tb.FontSize = dFontSize;
+            tb.Foreground = brush;
+            return tb;
+        }
+
+        /// <summary>260707 hbk quick-260707-fdx RGB 값으로 Freeze 된 SolidColorBrush 생성(정적 필드 초기화용).</summary>
+        private static SolidColorBrush MakeFrozenBrush(byte byR, byte byG, byte byB)
+        {
+            SolidColorBrush brush = new SolidColorBrush(Color.FromRgb(byR, byG, byB));
+            brush.Freeze();
+            return brush;
+        }
+
+        /// <summary>두 차트를 비운다(새 조회 직후 / 선택 없음 상태).</summary>
+        private void ClearCharts()
+        {
+            canvas_Histogram.Children.Clear();
+            canvas_Trend.Children.Clear();
         }
 
         /// <summary>데이터/평균/USL/LSL 을 모두 포함한 y축 표시 범위(하한/상한, 15% 여백)를 계산한다. //260707 hbk</summary>
-        private void ComputePaddedRange(List<double> values, double dMean, double dUsl, double dLsl, out double dLoOut, out double dHiOut)   //260707 hbk 축 범위 단일 산출(TightenYAxis/AddSpecMarksY 공유)
+        private void ComputePaddedRange(List<double> values, double dMean, double dUsl, double dLsl, out double dLoOut, out double dHiOut)   //260707 hbk 축 범위 단일 산출(RenderTrend/DrawTrendSpecMarks 공유)
         {
             double dLo = MinOf(values);   //260707 hbk
             double dHi = MaxOf(values);   //260707 hbk
@@ -345,88 +706,6 @@ namespace ReringProject.UI
 
             dLoOut = dLo - dPad;   //260707 hbk
             dHiOut = dHi + dPad;   //260707 hbk
-        }
-
-        /// <summary>추이 차트 평균/USL/LSL 수평 마크를 값 정렬 후 근접 그룹으로 병합 렌더 → 세 라벨 겹침 제거. //260707 hbk</summary>
-        private void AddSpecMarksY(XYChart c, List<double> values, double dMean, double dUsl, double dLsl)   //260707 hbk 마크 겹침 제거 헬퍼(3종 그룹 병합)
-        {
-            double[] dVals = new double[3];   //260707 hbk 마크 값
-            string[] szLabels = new string[3];   //260707 hbk 마크 라벨
-            dVals[0] = dLsl;
-            szLabels[0] = "LSL";
-            dVals[1] = dMean;
-            szLabels[1] = "평균";
-            dVals[2] = dUsl;
-            szLabels[2] = "USL";
-
-            // 값 오름차순 버블 정렬(3개 — 가독성 우선, LINQ 미사용) //260707 hbk
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = i + 1; j < 3; j++)
-                {
-                    if (dVals[j] < dVals[i])
-                    {
-                        double dTmpV = dVals[i];
-                        dVals[i] = dVals[j];
-                        dVals[j] = dTmpV;
-                        string szTmpL = szLabels[i];
-                        szLabels[i] = szLabels[j];
-                        szLabels[j] = szTmpL;
-                    }
-                }
-            }
-
-            double dLo;   //260707 hbk 축 범위 기준으로 근접 임계 산출(픽셀 겹침 근사)
-            double dHi;   //260707 hbk
-            ComputePaddedRange(values, dMean, dUsl, dLsl, out dLo, out dHi);
-            double dEps = (dHi - dLo) * 0.05;   //260707 hbk 축 높이 5% 이내면 라벨 겹침으로 간주
-            if (dEps <= 0)   //260707 hbk
-            {
-                dEps = 1e-9;
-            }
-
-            // 정렬된 마크를 그리디로 근접 그룹화 → 그룹당 단일 병합 라벨 //260707 hbk
-            int nStart = 0;
-            while (nStart < 3)
-            {
-                int nEnd = nStart;
-                while (nEnd + 1 < 3 && (dVals[nEnd + 1] - dVals[nStart]) <= dEps)
-                {
-                    nEnd++;
-                }
-
-                double dSum = 0.0;
-                string szMerged = "";
-                for (int k = nStart; k <= nEnd; k++)
-                {
-                    dSum += dVals[k];
-                    if (szMerged.Length == 0)
-                    {
-                        szMerged = szLabels[k];
-                    }
-                    else
-                    {
-                        szMerged = szMerged + "/" + szLabels[k];
-                    }
-                }
-
-                double dPos = dSum / (nEnd - nStart + 1);
-                int nColor = COLOR_MEAN;   //260707 hbk 그룹에 스펙(USL/LSL) 포함 시 빨강, 평균 단독이면 초록
-                if (szMerged.Contains("USL") || szMerged.Contains("LSL"))
-                {
-                    nColor = COLOR_USL;
-                }
-
-                c.yAxis().addMark(dPos, nColor, szMerged);   //260707 hbk 병합 마크 1개
-                nStart = nEnd + 1;
-            }
-        }
-
-        /// <summary>두 차트를 비운다(새 조회 직후 / 선택 없음 상태).</summary>
-        private void ClearCharts()
-        {
-            viewer_Histogram.Chart = null;
-            viewer_Trend.Chart = null;
         }
 
         /// <summary>min~max 균등 nBins 분할 도수 계산. max==min 이면 단일 bin 처리(0 나눗셈 방어).</summary>

@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:cd="clr-namespace:ChartDirector;assembly=ChartDirector.Net.Desktop.Controls"
         mc:Ignorable="d"
         Title="양산 이력 통계 분석" Height="820" Width="1280"
         WindowStartupLocation="CenterOwner">
@@ -81,11 +80,16 @@
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="분포 히스토그램 (USL/LSL 표시)"
                        FontSize="12" Foreground="Gray" Margin="4,2"/>
-            <cd:WPFChartViewer x:Name="viewer_Histogram" Grid.Row="1" Grid.Column="0" Margin="4"/>
+            <!--260707 hbk quick-260707-fdx ChartDirector(유료·워터마크) 제거 → WPF Canvas 직접 렌더-->
+            <Border Grid.Row="1" Grid.Column="0" BorderBrush="#CBD5E1" BorderThickness="1" Background="White" Margin="4">
+                <Canvas x:Name="canvas_Histogram" ClipToBounds="True" SizeChanged="Canvas_SizeChanged"/>
+            </Border>
 
             <TextBlock Grid.Row="0" Grid.Column="1" Text="측정값 추이 (평균/USL/LSL 표시)"
                        FontSize="12" Foreground="Gray" Margin="4,2"/>
-            <cd:WPFChartViewer x:Name="viewer_Trend" Grid.Row="1" Grid.Column="1" Margin="4"/>
+            <Border Grid.Row="1" Grid.Column="1" BorderBrush="#CBD5E1" BorderThickness="1" Background="White" Margin="4">
+                <Canvas x:Name="canvas_Trend" ClipToBounds="True" SizeChanged="Canvas_SizeChanged"/>
+            </Border>
         </Grid>
     </Grid>
 </Window>

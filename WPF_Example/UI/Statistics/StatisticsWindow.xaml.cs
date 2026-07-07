@@ -335,6 +335,14 @@ namespace ReringProject.UI
             // y축 라벨(0 / 중간 / 최대 도수) //260707 hbk
             DrawYTicksCount(canvas_Histogram, dPlotX0, dPlotY0, dPlotH, dMaxFreq);
 
+            // y축 제목 "빈도(개수)" — 세로 회전 라벨(막대 높이 = 해당 값 구간의 측정 개수) //260707 hbk
+            TextBlock tbYTitle = CreateLabel("빈도(개수)", 11, m_brushText);
+            tbYTitle.LayoutTransform = new RotateTransform(-90);   //260707 hbk 세로로 회전
+            canvas_Histogram.Children.Add(tbYTitle);
+            tbYTitle.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(tbYTitle, 0);
+            Canvas.SetTop(tbYTitle, dPlotY0 + (dPlotH - tbYTitle.DesiredSize.Height) / 2.0);
+
             // USL/LSL 수직선 — 근접(12px 미만) 시 단일 라벨로 병합 //260707 hbk
             double dRange = dMax - dMin;
             if (dRange > 0)

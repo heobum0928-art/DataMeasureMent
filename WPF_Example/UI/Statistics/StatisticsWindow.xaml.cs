@@ -39,7 +39,7 @@ namespace ReringProject.UI
 
         public int DetectFailCount { get; set; }
 
-        public string DefectRateText { get; set; } //260707 hbk NG/(OK+NG)
+        public string YieldRateText { get; set; }  //260707 hbk 수율 OK/(OK+NG) — 값 클수록 좋음(불량률 대체)
 
         public string Key { get; set; }             //260707 hbk Series 조인 키(Shot/FAI/측정명)
 
@@ -171,7 +171,7 @@ namespace ReringProject.UI
                 row.OkCount = s.OkCount;
                 row.NgCount = s.NgCount;
                 row.DetectFailCount = s.DetectFailCount;
-                row.DefectRateText = DefectRateToText(s.OkCount, s.NgCount);
+                row.YieldRateText = YieldRateToText(s.OkCount, s.NgCount);   //260707 hbk 불량률→수율
                 row.NominalValue = s.NominalValue;
                 row.TolerancePlus = s.TolerancePlus;
                 row.ToleranceMinus = s.ToleranceMinus;
@@ -197,8 +197,8 @@ namespace ReringProject.UI
             return dCpk.ToString("F3");
         }
 
-        /// <summary>불량률(%) 표시 문자열 = NG/(OK+NG). 분모 0 방어(if/else, 삼항 금지).</summary>
-        private string DefectRateToText(int nOk, int nNg)
+        /// <summary>수율(Yield, %) 표시 문자열 = OK/(OK+NG). 값 클수록 좋음. 분모 0 방어(if/else, 삼항 금지). //260707 hbk 불량률→수율 긍정지표 전환</summary>
+        private string YieldRateToText(int nOk, int nNg)   //260707 hbk 불량률(DefectRateToText)→수율로 대체
         {
             int nTotal = nOk + nNg;
             if (nTotal == 0)
@@ -206,7 +206,7 @@ namespace ReringProject.UI
                 return "-";
             }
 
-            double d = nNg * 100.0 / nTotal;
+            double d = nOk * 100.0 / nTotal;   //260707 hbk OK 비율(수율) — 기존 NG 비율에서 뒤집음
             return d.ToString("F2") + "%";
         }
 

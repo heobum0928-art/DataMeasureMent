@@ -63,7 +63,7 @@
                 <DataGridTextColumn Header="OK"       Binding="{Binding OkCount}"         Width="50"/>
                 <DataGridTextColumn Header="NG"       Binding="{Binding NgCount}"         Width="50"/>
                 <DataGridTextColumn Header="검출실패" Binding="{Binding DetectFailCount}" Width="65"/>
-                <DataGridTextColumn Header="불량률"   Binding="{Binding DefectRateText}"  Width="70"/>
+                <DataGridTextColumn Header="수율"     Binding="{Binding YieldRateText}"   Width="70"/>
             </DataGrid.Columns>
         </DataGrid>
 

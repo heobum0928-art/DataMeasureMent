@@ -56,6 +56,7 @@ namespace ReringProject.UI
     public partial class StatisticsWindow : Window
     {
         private const int BIN_COUNT = 20;             //260707 hbk D-14 히스토그램 bin 수(잠금 결정)
+        private const int MAX_X_LABELS = 5;           //260707 hbk 히스토그램 x축 최대 표시 라벨 수(겹침 방지)
         private const int CHART_W = 560;
         private const int CHART_H = 300;
         private const int COLOR_USL = 0xcc0000;        // 빨강 (공차 상한)
@@ -251,14 +252,31 @@ namespace ReringProject.UI
             c.addBarLayer(freq, COLOR_BAR);
             c.xAxis().setLabels(labels);
 
+            int nLabelStep = (int)Math.Ceiling((double)BIN_COUNT / MAX_X_LABELS);   //260707 hbk 라벨 겹침 방지 스텝
+            if (nLabelStep < 1)
+            {
+                nLabelStep = 1;
+            }
+            c.xAxis().setLabelStep(nLabelStep);   //260707 hbk 5개 내외만 표시
+
             // USL/LSL 값 → bin 인덱스 환산 후 수직선 표시(0 나눗셈 방어)
             double dRange = dMax - dMin;
             if (dRange > 0)
             {
                 double dUslBin = (dUsl - dMin) / dRange * BIN_COUNT;
                 double dLslBin = (dLsl - dMin) / dRange * BIN_COUNT;
-                c.xAxis().addMark(dUslBin, COLOR_USL, "USL");
-                c.xAxis().addMark(dLslBin, COLOR_LSL, "LSL");
+
+                double dEps = 0.5;   //260707 hbk 반 bin 이내면 USL/LSL 동일 위치로 간주(공차 0 포함)
+                if (Math.Abs(dUslBin - dLslBin) <= dEps)
+                {
+                    double dMidBin = (dUslBin + dLslBin) / 2.0;   //260707 hbk 겹침 → 단일 마크로 병합
+                    c.xAxis().addMark(dMidBin, COLOR_USL, "USL/LSL");   //260707 hbk 병합 라벨
+                }
+                else
+                {
+                    c.xAxis().addMark(dUslBin, COLOR_USL, "USL");
+                    c.xAxis().addMark(dLslBin, COLOR_LSL, "LSL");
+                }
             }
 
             viewer_Histogram.Chart = c;

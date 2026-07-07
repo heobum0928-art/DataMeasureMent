@@ -9,6 +9,7 @@
 - **v1.2 POC Workflow + Output + Carry-over + Protocol v2.7** — ◷ Active (started 2026-05-29, POC 납기 2026-06-30)
   - 13 phases (39~50 + 39.1/39.2 insert), 5순위 우선순위 구조. continue numbering 모드.
 - **v1.3 Align 비전 (이더넷 카메라)** — ◷ Active (started 2026-06-23, v1.2 와 병행). 5 phases (58~62, A~E). 기존 Grabber 검사와 완전 독립 서브시스템 (Tray/Bottom Align, Shape Matching, TabControl, TRAY/BOTTOM TCP).
+- **v1.4 양산 이력 통계 분석** — ◷ Active (started 2026-07-07). 양산 검사 결과를 일자별 CSV 로 누적하고 기간별 통계(Cpk/Mean/StdDev/불량률)+히스토그램+추이 차트를 UI 로 조회. continue numbering (Phase 67~).
 
 ---
 
@@ -768,6 +769,27 @@ Plans:
 - [x] 66-01-PLAN.md — 검사 ShotConfig Ring7 추가 + CoaxLight 숨김 + ApplyShotLights Ring7→RING7 매핑 (LIGHT-01, Wave 1)
 - [x] 66-02-PLAN.md — Align 동축 백엔드: AlignRefPose Coax 필드 + GetSlotRefPose/TrySaveCoax 공개 API + RunBottomAlign grab 직전 자동적용 (AV-08, Wave 1)
 - [x] 66-03-PLAN.md — Align 동축 UI: Bottom/Tray 동축 ON/OFF+밝기 컨트롤 + 슬롯/Tray 복원·저장 + Teach/Run/Grab 자동적용 (AV-08, Wave 2, depends 66-02)
+
+---
+
+## v1.4 Phases (양산 이력 통계 분석)
+
+### Phase 67: 양산 이력 통계 분석 (STAT-01) (신설 2026-07-07)
+**Goal**: 실제 양산 검사(`$TEST`/수동) 완료 결과를 일자별 CSV 로 지속 누적하고, 통계 화면에서 기간·레시피로 조회하여 측정 항목별 통계(N/Mean/StdDev/Range/Cpk/OK/NG/검출실패/불량률) 테이블 + 분포 히스토그램(공차선) + 시간별 측정값 추이 차트를 확인한다.
+**Requirements**: STAT-01 (신규)
+**Depends on**: Phase 40 (CycleResultDto/CycleResultSerializer), Phase 41.1 (RepeatMeasurementStats — Cpk 로직 재사용)
+**Background**: 현재 양산 검사 결과는 매 사이클 cycle.json 폴더로만 저장되어 기간별 통계 조회에 부적합(수천 폴더 스캔). SPC/공정능력 추이를 보려면 조회 최적화된 누적 이력 스토어가 필요. 신규 DB 도입 대신 기존 파일 패턴 재사용(일자별 CSV append).
+**Scope (설계 확정 2026-07-07)**:
+  - **수집**: `CycleResultSerializer.SaveAsync` 내부(비동기 스레드)에서 `StatisticsPath\yyyyMMdd.csv` 에 측정 항목당 1행 append. v2.6/v1.0/수동 모든 경로 자동 커버. 예외 격리(검사/TCP 무영향). 동시 쓰기 lock.
+  - **통계**: CSV 를 기간 범위로 읽어 기존 `RepeatMeasurementStats` Cpk/Mean/StdDev/Range 로직 재사용 집계(DRY).
+  - **UI**: 신규 통계 Window/View — 기간(from~to) + 레시피 필터 + [조회] + DataGrid(통계 테이블) + 히스토그램(분포+공차선) + 시간별 추이(측정값 트렌드). 차트=ChartDirector.Net(기존 의존성) 활용.
+**Success Criteria**:
+  1. 양산 `$TEST` 검사 완료 시 일자별 CSV 에 측정 항목당 1행 자동 누적(모든 경로). 검사/TCP 응답 회귀 0
+  2. 통계 화면에서 기간·레시피 선택 → 측정 항목별 N/Mean/StdDev/Range/Cpk/OK/NG/검출실패/불량률 테이블 표시
+  3. 선택 항목 히스토그램(공차 상·하한선 표시) + 시간별 측정값 추이 차트 표시
+  4. msbuild Debug/x64 PASS, 기존 검사/Align 회귀 0. 헝가리언+if/else+삼항 금지 컨벤션 준수
+
+**Plans:** discuss 대기
 
 ---
 

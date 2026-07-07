@@ -26,8 +26,8 @@ namespace ReringProject.Device {
 
 
         //260602 hbk Phase 41 — CXP ViewWorks 128MP 해상도 (실물 도착 후 MdigInquire M_SIZE_X/Y 로 확정, RESEARCH Open Q3)
-        public const int WIDTH_CXP  = 14192;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
-        public const int HEIGHT_CXP = 10640;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
+        public const int WIDTH_CXP  = 16544;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
+        public const int HEIGHT_CXP = 9200;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
 
         public const bool REVERSE_X_TOP = false;
         public const bool REVERSE_Y_TOP = false;

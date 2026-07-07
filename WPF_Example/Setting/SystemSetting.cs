@@ -83,6 +83,12 @@ namespace ReringProject.Setting {
 
         public int LogDeleteDay { get; set; } = 30;
 
+        //data statistics                                              //260707 hbk STAT-01 D-01: 양산 이력 통계 CSV 저장 경로
+        [Category("Path|Statistics")]                                   //260707 hbk STAT-01 D-01: 자체 그룹(뒤 MapData 가 리셋 → 그룹 누출 0)
+        [DirectoryPath]                                                 //260707 hbk STAT-01 D-01
+        [AutoUpdateText]                                                //260707 hbk STAT-01 D-01
+        public string StatisticsSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Statistics";   //260707 hbk STAT-01 D-01
+
         //data path
         [Category("Path|MapData")]
         [DirectoryPath]

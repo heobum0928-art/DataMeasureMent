@@ -296,49 +296,129 @@ namespace ReringProject.UI
             XYChart c = new XYChart(CHART_W, CHART_H);
             c.setPlotArea(55, 25, CHART_W - 90, CHART_H - 70);
             c.addLineLayer(data, COLOR_LINE);
-            AddSpecMarksY(c, values, dMean, dUsl, dLsl);   //260707 hbk 근접/공차0 마크 병합 렌더
+            TightenYAxis(c, values, dMean, dUsl, dLsl);    //260707 hbk 데이터+마크 범위로 y축 축소 → 마크 세로 분산(축 0~1.8 몰림 해소)
+            AddSpecMarksY(c, values, dMean, dUsl, dLsl);   //260707 hbk 근접 마크 그룹 병합 렌더
 
             viewer_Trend.Chart = c;
         }
 
-        /// <summary>추이 차트 평균/USL/LSL 수평 마크를 근접 겹침 방지하여 렌더(공차 0 → USL/LSL 병합). //260707 hbk</summary>
-        private void AddSpecMarksY(XYChart c, List<double> values, double dMean, double dUsl, double dLsl)   //260707 hbk 마크 겹침 제거 헬퍼
+        /// <summary>추이 차트 y축을 데이터+마크 전체 범위(15% 여백)로 좁힌다 → 마크가 세로로 벌어져 라벨 겹침 완화. //260707 hbk</summary>
+        private void TightenYAxis(XYChart c, List<double> values, double dMean, double dUsl, double dLsl)   //260707 hbk y축 자동 0~ 확장으로 마크 몰림 방지
         {
-            double dMin = MinOf(values);   //260707 hbk
-            double dMax = MaxOf(values);   //260707 hbk
-            double dSpan = dMax - dMin;    //260707 hbk 데이터 스팬 기준 근접 임계
+            double dLo;   //260707 hbk
+            double dHi;   //260707 hbk
+            ComputePaddedRange(values, dMean, dUsl, dLsl, out dLo, out dHi);
+            c.yAxis().setLinearScale(dLo, dHi);   //260707 hbk 수동 범위 지정(기존 0 시작 자동스케일 대체)
+        }
 
-            // USL/LSL 을 스팬에 포함(마크가 데이터 밖일 수 있음)
-            if (dUsl > dMax)   //260707 hbk
+        /// <summary>데이터/평균/USL/LSL 을 모두 포함한 y축 표시 범위(하한/상한, 15% 여백)를 계산한다. //260707 hbk</summary>
+        private void ComputePaddedRange(List<double> values, double dMean, double dUsl, double dLsl, out double dLoOut, out double dHiOut)   //260707 hbk 축 범위 단일 산출(TightenYAxis/AddSpecMarksY 공유)
+        {
+            double dLo = MinOf(values);   //260707 hbk
+            double dHi = MaxOf(values);   //260707 hbk
+
+            double[] extra = new double[3];   //260707 hbk 마크 3종도 범위에 포함
+            extra[0] = dMean;
+            extra[1] = dUsl;
+            extra[2] = dLsl;
+            for (int i = 0; i < 3; i++)   //260707 hbk
             {
-                dSpan = dUsl - dMin;
-            }
-            if (dLsl < dMin)   //260707 hbk
-            {
-                dSpan = dMax - dLsl;
-                if (dUsl > dMax)
+                if (extra[i] < dLo)
                 {
-                    dSpan = dUsl - dLsl;
+                    dLo = extra[i];
+                }
+                if (extra[i] > dHi)
+                {
+                    dHi = extra[i];
                 }
             }
 
-            double dEps = dSpan * 0.02;   //260707 hbk 스팬 2% 이내면 근접으로 간주
-            if (dEps <= 0)   //260707 hbk 스팬 0(전 값 동일) → 절대 최소 임계
+            double dPad = (dHi - dLo) * 0.15;   //260707 hbk 15% 여백
+            if (dPad <= 0)   //260707 hbk 전 값 동일(범위 0) → 절대 여백으로 축 붕괴 방지
+            {
+                dPad = Math.Abs(dHi) * 0.1;
+                if (dPad <= 0)
+                {
+                    dPad = 1.0;
+                }
+            }
+
+            dLoOut = dLo - dPad;   //260707 hbk
+            dHiOut = dHi + dPad;   //260707 hbk
+        }
+
+        /// <summary>추이 차트 평균/USL/LSL 수평 마크를 값 정렬 후 근접 그룹으로 병합 렌더 → 세 라벨 겹침 제거. //260707 hbk</summary>
+        private void AddSpecMarksY(XYChart c, List<double> values, double dMean, double dUsl, double dLsl)   //260707 hbk 마크 겹침 제거 헬퍼(3종 그룹 병합)
+        {
+            double[] dVals = new double[3];   //260707 hbk 마크 값
+            string[] szLabels = new string[3];   //260707 hbk 마크 라벨
+            dVals[0] = dLsl;
+            szLabels[0] = "LSL";
+            dVals[1] = dMean;
+            szLabels[1] = "평균";
+            dVals[2] = dUsl;
+            szLabels[2] = "USL";
+
+            // 값 오름차순 버블 정렬(3개 — 가독성 우선, LINQ 미사용) //260707 hbk
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = i + 1; j < 3; j++)
+                {
+                    if (dVals[j] < dVals[i])
+                    {
+                        double dTmpV = dVals[i];
+                        dVals[i] = dVals[j];
+                        dVals[j] = dTmpV;
+                        string szTmpL = szLabels[i];
+                        szLabels[i] = szLabels[j];
+                        szLabels[j] = szTmpL;
+                    }
+                }
+            }
+
+            double dLo;   //260707 hbk 축 범위 기준으로 근접 임계 산출(픽셀 겹침 근사)
+            double dHi;   //260707 hbk
+            ComputePaddedRange(values, dMean, dUsl, dLsl, out dLo, out dHi);
+            double dEps = (dHi - dLo) * 0.05;   //260707 hbk 축 높이 5% 이내면 라벨 겹침으로 간주
+            if (dEps <= 0)   //260707 hbk
             {
                 dEps = 1e-9;
             }
 
-            c.yAxis().addMark(dMean, COLOR_MEAN, "평균");   //260707 hbk 평균은 항상
+            // 정렬된 마크를 그리디로 근접 그룹화 → 그룹당 단일 병합 라벨 //260707 hbk
+            int nStart = 0;
+            while (nStart < 3)
+            {
+                int nEnd = nStart;
+                while (nEnd + 1 < 3 && (dVals[nEnd + 1] - dVals[nStart]) <= dEps)
+                {
+                    nEnd++;
+                }
 
-            if (Math.Abs(dUsl - dLsl) <= dEps)   //260707 hbk 공차 0 또는 USL≈LSL → 병합
-            {
-                double dMid = (dUsl + dLsl) / 2.0;   //260707 hbk
-                c.yAxis().addMark(dMid, COLOR_USL, "USL/LSL");   //260707 hbk 단일 병합 마크
-            }
-            else   //260707 hbk 정상: 개별 마크(회귀 0)
-            {
-                c.yAxis().addMark(dUsl, COLOR_USL, "USL");   //260707 hbk
-                c.yAxis().addMark(dLsl, COLOR_LSL, "LSL");   //260707 hbk
+                double dSum = 0.0;
+                string szMerged = "";
+                for (int k = nStart; k <= nEnd; k++)
+                {
+                    dSum += dVals[k];
+                    if (szMerged.Length == 0)
+                    {
+                        szMerged = szLabels[k];
+                    }
+                    else
+                    {
+                        szMerged = szMerged + "/" + szLabels[k];
+                    }
+                }
+
+                double dPos = dSum / (nEnd - nStart + 1);
+                int nColor = COLOR_MEAN;   //260707 hbk 그룹에 스펙(USL/LSL) 포함 시 빨강, 평균 단독이면 초록
+                if (szMerged.Contains("USL") || szMerged.Contains("LSL"))
+                {
+                    nColor = COLOR_USL;
+                }
+
+                c.yAxis().addMark(dPos, nColor, szMerged);   //260707 hbk 병합 마크 1개
+                nStart = nEnd + 1;
             }
         }
 

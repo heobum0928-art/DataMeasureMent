@@ -49,22 +49,31 @@ namespace ReringProject.Device {
                 MIL.MsysAlloc(MIL.M_DEFAULT, MIL.M_SYSTEM_HOST,
                               MIL.M_DEFAULT, MIL.M_DEFAULT, ref MilSystem);
 #else
-                MIL.MsysAlloc(MIL.M_DEFAULT, MIL.M_SYSTEM_DEFAULT,
+                // 실 HW: Rapixo CXP 보드를 명시 지정한다. M_SYSTEM_DEFAULT 는 이 PC 에서 Host(소프트웨어)
+                // 시스템으로 잡혀 640x480 시뮬 디지타이저가 되는 문제가 있었다 (Intellicam 도 "Rapixo CXP 0"
+                // 시스템을 명시 선택). 보드에 붙어야 자동 인식된 카메라 해상도(16544x9200)로 grab 된다.
+                MIL.MsysAlloc(MIL.M_DEFAULT, "M_SYSTEM_RAPIXOCXP",
                               MIL.M_DEFAULT, MIL.M_DEFAULT, ref MilSystem);
 #endif
                 if (MilSystem == MIL.M_NULL) throw new Exception("MsysAlloc failed");
 
-                // 3. Digitizer 할당 (DCF 미사용 — M_DEFAULT)
+                // 3. Digitizer 할당 (M_DEFAULT — DCF 파일 미사용)
                 MIL.MdigAlloc(MilSystem, MIL.M_DEV0, "M_DEFAULT",
                               MIL.M_DEFAULT, ref MilDigitizer);
                 if (MilDigitizer == MIL.M_NULL) throw new Exception("MdigAlloc failed");
 
+                // NOTE: 이 장비에서는 MdigControlFeature(Width/Height/PixelFormat) 쓰기가 불가하다
+                //       ("Requested operation not supported"). 해상도/tap 기하는 반드시 DCF 로 설정해야 한다.
+                //       DCF 준비 전까지는 M_DEFAULT 로 열어 카메라 현재 설정 그대로 grab 한다.
+
                 // 4. Mono8 grab 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용 — Pitfall 5)
-                //    버퍼 크기는 하드코딩(Info.Width/Height) 대신 디지타이저에서 조회한다.
+                //    버퍼 크기는 하드코딩 대신 디지타이저 실제값(MdigInquire)으로 잡는다.
                 //    하드코딩 시 SIMUL_MODE 시뮬 디지타이저에 144MB non-paged(M_GRAB) 요구 →
                 //    MbufAlloc2d Allocation error 발생. MdigProcess C# 예제 L62-66 패턴.
                 MIL_INT bufW = MIL.MdigInquire(MilDigitizer, MIL.M_SIZE_X, MIL.M_NULL);
                 MIL_INT bufH = MIL.MdigInquire(MilDigitizer, MIL.M_SIZE_Y, MIL.M_NULL);
+                Logging.PrintLog((int)ELogType.Camera, "[INFO] {0} MIL grab size = {1} x {2}",
+                                 Info.Identifier, (int)bufW, (int)bufH);
                 MIL.MbufAlloc2d(MilSystem, bufW, bufH,
                                 8 + MIL.M_UNSIGNED,
                                 MIL.M_IMAGE + MIL.M_GRAB + MIL.M_PROC,

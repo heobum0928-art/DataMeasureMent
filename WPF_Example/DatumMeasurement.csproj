@@ -60,7 +60,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <!--260610 hbk 이 PC 는 카메라 없는 SIMUL 전용 → 현장(실HW) PC 의 SIMUL_MODE 제거를 머지때마다 이 PC 기준으로 복구-->
+    <DefineConstants>TRACE;DEBUG;SIMUL_MODE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>

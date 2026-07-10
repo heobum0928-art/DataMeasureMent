@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,19 +22,12 @@ namespace ReringProject.Device {
         Fail,
     }
     public partial class HikCamera : VirtualCamera, IDisposable {
-        [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
-        public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
-
         //static member
         private static Dictionary<string, CCameraInfo> DeviceList = new Dictionary<string, CCameraInfo>();
         private static List<CCameraInfo> mInternalDeviceList = new List<CCameraInfo>();
 
 
         private Stopwatch mStopwatch = new Stopwatch();
-        private int FrameDurationTicks;
-        private readonly double RENDERFPS = 15;
-
-        private int ID;
         public CCamera CameraHandle { get; private set; }
         private CCameraInfo CameraInfo;
         private EGrabStateType GrabState { get; set; } = EGrabStateType.Ready;
@@ -274,8 +266,6 @@ namespace ReringProject.Device {
             Properties = new HikCameraProperty(this);
 
             mStopwatch = new Stopwatch();
-            double frametime = 1 / RENDERFPS;
-            FrameDurationTicks = (int)(Stopwatch.Frequency * frametime);
         }
 
         ~HikCamera() {
@@ -283,9 +273,6 @@ namespace ReringProject.Device {
         }
 
         public void Dispose() {
-            if(CameraHandle != null) {
-
-            }
             Close();
         }
 
@@ -308,7 +295,6 @@ namespace ReringProject.Device {
             try {
                 this.CameraHandle = new CCamera();
                 this.CameraInfo = info;
-                this.ID = id;
 
                 nRet = this.CameraHandle.CreateHandle(ref info);
                 if (nRet != CErrorDefine.MV_OK) {

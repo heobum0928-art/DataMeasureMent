@@ -604,10 +604,6 @@ namespace ReringProject.UI {
             }
         }
 
-        public void ChangeTabPage(int index) {
-            // TabControl removed in Phase 1 UI redesign. No-op.
-        }
-
         public void SetParam(ESequence seqID, ParamBase param) {
             if (pSeq == null || pSeq[seqID] == null) return;
             string selectedSeq = pSeq[seqID].Name;
@@ -1216,33 +1212,6 @@ namespace ReringProject.UI {
         // 자동 재티칭 정책 폐지 (수동 btn_teachDatum 트리거 일원화). 시그니처는 호출처 회귀 방지로 보존.
         public void NotifyDatumParamMaybeChanged(DatumConfig datum) {
             return;
-        }
-
-        private void InvokeTryTeachDatumForEdit(DatumConfig datum) {
-            if (datum == null) return;
-            Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit ENTRY: IsConfigured=" + datum.IsConfigured);
-            HImage img = halconViewer.CurrentImage;
-            if (img == null) return;
-            var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
-            string error;
-            bool ok = svc.TryTeachDatum(img, datum, out error);
-            //260622 hbk Phase 57.1 — 편집 모드 재티칭 성공 시 RefMatch 동기화 (같은 티칭 이미지로 재앵커).
-            if (ok) { RefreshPatternRefPoseAfterTeach(datum, img); }
-            if (ok) {
-                label_drawHint.Content = "Datum ROI 이동 — 재티칭 OK";
-                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
-                label_drawHint.Visibility = Visibility.Visible;
-            }
-            else {
-                string errMsg;
-                if (error != null) errMsg = error;
-                else               errMsg = "unknown";
-                label_drawHint.Content = "Datum ROI 이동 — 재티칭 실패: " + errMsg;
-                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF87171"));
-                label_drawHint.Visibility = Visibility.Visible;
-            }
-            halconViewer.SetDatumOverlay(datum, true, GetDatumEditMode());
-            Logging.PrintLog((int)ELogType.Trace, "InvokeTryTeachDatumForEdit EXIT: LastTeachSucceeded=" + datum.LastTeachSucceeded);
         }
 
         // 검출 라인/십자/원 좌표(Line1Detected_*/CircleCenter_*/RefOrigin*)는 INI에 0으로만 저장되는 휘발성 필드 →

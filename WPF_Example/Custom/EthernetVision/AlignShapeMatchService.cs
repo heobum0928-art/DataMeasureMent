@@ -303,12 +303,6 @@ namespace ReringProject {
             return File.Exists(shmPath1) && File.Exists(shmPath2) && File.Exists(jsonPath);
         }
 
-        // D-07: 파일 존재 = 로드 가능 의미론 (실제 read 는 Run 내부 지연 수행)
-        //260626 hbk slot 파라미터 추가 (기본 None = 기존 폴백, D-09)
-        public bool TryLoadTemplate(EEthernetVisionMode mode, EBottomAlignSlot slot = EBottomAlignSlot.None) { //260626 hbk 슬롯별 템플릿 로드 위임
-            return HasTemplate(mode, slot); //260626 hbk slot 전달
-        }
-
         // ─── 티칭 ────────────────────────────────────────────────────────────────
 
         // D-07': TryTeach = 2-ROI 입력 → TryCreateModel×2 + TryFindRefPose×2 + baseline angle_lx + 사이드카 JSON 저장.

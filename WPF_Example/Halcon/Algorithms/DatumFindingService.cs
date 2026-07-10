@@ -891,9 +891,6 @@ namespace ReringProject.Halcon.Algorithms
                 // Line1 검출
                 double line1RowBegin, line1ColBegin, line1RowEnd, line1ColEnd;
 
-                HObject horect;
-                HOperatorSet.GenRectangle2(out horect, config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2);
-
                 string lineError;
                 HTuple line1RawRows, line1RawCols;
                 // Line1 per-ROI 에지 파라미터 사용 (글로벌 EdgeThreshold/Sigma/EdgePolarity → Line1_*)

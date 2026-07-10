@@ -30,8 +30,6 @@ namespace ReringProject.Device {
 
         //Fps 怨꾩궛??
         private Stopwatch mStopWatch = new Stopwatch();
-        private int FrameDurationTicks;
-        private readonly double RENDERFPS = 15; //珥덈떦 15frame?쇰줈 gui 媛깆떊
 
         public override TimeSpan ElapsedTime { get { return mStopWatch.Elapsed; } }
 
@@ -173,9 +171,6 @@ namespace ReringProject.Device {
             Properties = new BaslerCameraProperty(this);
 
             mStopWatch = new Stopwatch();
-            // Calculate the number of stopwatch ticks for every frame at the given frame rate.
-            double frametime = 1 / RENDERFPS;
-            FrameDurationTicks = (int)(Stopwatch.Frequency * frametime);
         }
         
         ~BaslerCamera() {

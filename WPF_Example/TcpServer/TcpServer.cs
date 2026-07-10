@@ -62,9 +62,6 @@ namespace ReringProject.Network {
         public const int TIMEOUT_CONNECT = 2000;
         public const int TIMEOUT_RECV = 2000;
 
-        public const int SIZE_RECV_BUFFER = 1024;
-        public const int SIZE_SEND_BUFFER = 1024;
-
         public const int MAX_CONNECTION_COUNT = 1;  //client 최대 연결 갯수
 
         //options
@@ -91,8 +88,6 @@ namespace ReringProject.Network {
 
             private TcpClient mClient;
             private NetworkStream mStream;
-
-            private byte[] mSendBuffer = new byte[SIZE_SEND_BUFFER];
 
             //260702 hbk 고정 1024바이트 배열(byte[SIZE_RECV_BUFFER])이었으나, 1024바이트 넘는 메시지 수신 시
             //  IndexOutOfRangeException 발생 → catch에서 조용히 삼켜져 메시지 전체 유실되는 버그가 있었음.
@@ -343,9 +338,6 @@ namespace ReringProject.Network {
         private static IPGlobalProperties ipProperties;
         private static TcpConnectionInformation [] tcpConnections;
 
-        //timer
-        private Stopwatch mReceiveTimer = new Stopwatch();
-        
         public event MessageEventHandler OnRecvMessage;
         public event MessageEventHandler OnSendMessage;
         public event AlarmEventHandler OnAlarm;

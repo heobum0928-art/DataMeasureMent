@@ -271,7 +271,6 @@ namespace ReringProject.Halcon.Algorithms
             }
 
             HObject circleRegion = null;
-            HObject circleBorder = null;
             HObject edges = null;
             try
             {
@@ -330,7 +329,6 @@ namespace ReringProject.Halcon.Algorithms
             finally
             {
                 if (circleRegion != null) { try { circleRegion.Dispose(); } catch { } }
-                if (circleBorder != null) { try { circleBorder.Dispose(); } catch { } }
                 if (edges != null) { try { edges.Dispose(); } catch { } }
             }
         }
@@ -514,41 +512,6 @@ namespace ReringProject.Halcon.Algorithms
             finally
             {
                 if (contour != null) { try { contour.Dispose(); } catch { } }
-            }
-        }
-
-        // 부호식 4점 smoke harness (sin/cos 부호 회귀 검증용). 좌표 계산 식을 trace 로그로 노출.
-        public void RunPhiSmokeTest(HImage image, double centerRow, double centerCol, double radius)
-        {
-            if (image == null) return;
-            // 기대값을 hand-precomputed 독립 reference 로 사용 (sin/cos 부호 회귀 시 delta 발산).
-            //  화면 CCW: 0°=right(+col), 90°=up(-row), 180°=left(-col), 270°=down(+row).
-            //  cases: (thetaDeg, expRow, expCol)
-            double[][] cases = new double[][]
-            {
-                new double[] {   0.0, centerRow,            centerCol + radius },
-                new double[] {  90.0, centerRow - radius,   centerCol          },
-                new double[] { 180.0, centerRow,            centerCol - radius },
-                new double[] { 270.0, centerRow + radius,   centerCol          },
-            };
-            foreach (double[] c in cases)
-            {
-                double thetaDeg = c[0];
-                double expRow = c[1];
-                double expCol = c[2];
-                double thetaRad = thetaDeg * Math.PI / 180.0;
-                // 화면 CCW 좌표계 (sin 앞 minus, TryFindCircleByPolarSampling 와 동일 식)
-                double rectRow = centerRow - radius * Math.Sin(thetaRad);
-                double rectCol = centerCol + radius * Math.Cos(thetaRad);
-                double dRow = Math.Abs(rectRow - expRow);
-                double dCol = Math.Abs(rectCol - expCol);
-                double delta = Math.Sqrt(dRow * dRow + dCol * dCol);
-
-                ReringProject.Utility.Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
-                    "PHI_SMOKE: theta=" + thetaDeg.ToString("F0") +
-                    " expected=(" + expRow.ToString("F1") + "," + expCol.ToString("F1") + ")" +
-                    " actual=(" + rectRow.ToString("F1") + "," + rectCol.ToString("F1") + ")" +
-                    " delta=" + delta.ToString("F2"));
             }
         }
 
@@ -744,44 +707,6 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
-        /// 3점(row/col)으로 외접원을 피팅한다 (GenContourPolygonXld → FitCircleContourXld).
-        /// I9/I10 호∩라인 교점 측정에서 arc 3점 피팅에 사용.
-        /// </summary>
-        public bool TryFitArc(
-            double p1Row, double p1Col,
-            double p2Row, double p2Col,
-            double p3Row, double p3Col,
-            out double foundRow, out double foundCol, out double foundRadius,
-            out string error)
-        {
-            foundRow = foundCol = foundRadius = 0;
-            error = null;
-            HObject contour = null;
-            try
-            {
-                HTuple rows = new HTuple(new double[] { p1Row, p2Row, p3Row });
-                HTuple cols = new HTuple(new double[] { p1Col, p2Col, p3Col });
-                HOperatorSet.GenContourPolygonXld(out contour, rows, cols);
-                HTuple cR, cC, rad, startPhi, endPhi, pointOrder;
-                HOperatorSet.FitCircleContourXld(contour, "algebraic", -1, 0, 0, 3, 2,
-                    out cR, out cC, out rad, out startPhi, out endPhi, out pointOrder);
-                foundRow = cR.D;
-                foundCol = cC.D;
-                foundRadius = rad.D;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-                return false;
-            }
-            finally
-            {
-                if (contour != null) { try { contour.Dispose(); } catch { } }
-            }
-        }
-
-        /// <summary>
         /// Rect ROI 1개에서 Canny 에지 → UnionAdjacentContours → ShapeTransXld("rectangle2") 파이프라인으로
         /// 가장 면적이 큰 사각형 XLD의 중심/각도/장단축 길이를 산출한다 (E2/E3/E9/E10 공통 컨투어 알고리즘).
         /// 사각형 0개 검출 시 예외 throw 없이 error 세팅 후 false 반환 (CONTEXT.md 미해결#4).
@@ -875,48 +800,6 @@ namespace ReringProject.Halcon.Algorithms
                 if (unionContours != null) { try { unionContours.Dispose(); } catch { } }
                 if (rectXld != null) { try { rectXld.Dispose(); } catch { } }
                 if (largestRect != null) { try { largestRect.Dispose(); } catch { } }
-            }
-        }
-
-        /// <summary>
-        /// 원과 직선의 교점을 구한다. 2해 중 ROI 중심(roiRow/Col)에 더 가까운 해를 반환한다 (D-10).
-        /// HALCON IntersectionLl 은 직선-직선 전용이므로 수학 구현(2차 방정식).
-        /// </summary>
-        public static bool TryIntersectCircleLine(
-            double cRow, double cCol, double radius,
-            double lRow1, double lCol1, double lRow2, double lCol2,
-            double roiRow, double roiCol,
-            out double intRow, out double intCol)
-        {
-            intRow = intCol = 0;
-            try
-            {
-                // 직선 방향벡터: (dR, dC) = (lRow2-lRow1, lCol2-lCol1)
-                double dR = lRow2 - lRow1; double dC = lCol2 - lCol1;
-                // 원 중심 → 직선 시작점 벡터: (fR, fC)
-                double fR = lRow1 - cRow; double fC = lCol1 - cCol;
-                // 2차 방정식: t²(dR²+dC²) + 2t(fR·dR+fC·dC) + (fR²+fC²-r²) = 0
-                double a = dR * dR + dC * dC;
-                if (a < 1e-12) return false; // 직선 길이 0 가드
-                double b = 2 * (fR * dR + fC * dC);
-                double c = fR * fR + fC * fC - radius * radius;
-                double disc = b * b - 4 * a * c;
-                if (disc < 0) return false; // 교점 없음(음수 판별식) 가드
-                double sqrtDisc = Math.Sqrt(disc);
-                double t1 = (-b - sqrtDisc) / (2 * a);
-                double t2 = (-b + sqrtDisc) / (2 * a);
-                double s1R = lRow1 + t1 * dR; double s1C = lCol1 + t1 * dC;
-                double s2R = lRow1 + t2 * dR; double s2C = lCol1 + t2 * dC;
-                // 2해 중 ROI 중심에 더 가까운 해 선택
-                double d1 = (s1R - roiRow) * (s1R - roiRow) + (s1C - roiCol) * (s1C - roiCol);
-                double d2 = (s2R - roiRow) * (s2R - roiRow) + (s2C - roiCol) * (s2C - roiCol);
-                if (d1 <= d2) { intRow = s1R; intCol = s1C; }
-                else          { intRow = s2R; intCol = s2C; }
-                return true;
-            }
-            catch
-            {
-                return false;
             }
         }
 
@@ -1111,58 +994,6 @@ namespace ReringProject.Halcon.Algorithms
                 if (largestRect != null) { try { largestRect.Dispose(); } catch { } }
                 if (longEdgeContour != null) { try { longEdgeContour.Dispose(); } catch { } }
                 if (measureLineContour != null) { try { measureLineContour.Dispose(); } catch { } }
-            }
-        }
-
-        /// <summary>
-        /// 단축 방향 선분과 사각형 XLD 컨투어의 교점 2개를 산출한다 (E3 단축 거리 측정용).
-        /// 교점 0개 또는 1개이면 false (CONTEXT.md 미해결#3 안전 종결).
-        /// rectContour 는 호출측(E3 측정 클래스)이 소유/Dispose — 본 메서드는 Dispose 하지 않는다.
-        /// </summary>
-        public bool TryIntersectContours(
-            HObject rectContour,
-            double lineRow1, double lineCol1, double lineRow2, double lineCol2,
-            out double iRow1, out double iCol1, out double iRow2, out double iCol2,
-            out string error)
-        {
-            iRow1 = iCol1 = iRow2 = iCol2 = 0;
-            error = null;
-
-            HObject lineContour = null;
-            HObject intersectionPoints = null;
-            try
-            {
-                HOperatorSet.GenContourPolygonXld(
-                    out lineContour,
-                    new HTuple(lineRow1, lineRow2),
-                    new HTuple(lineCol1, lineCol2));
-
-                // intersection_contours_xld — out isOverlapping 포함 3-out 시그니처
-                HTuple iR, iC, isOverlap;
-                HOperatorSet.IntersectionContoursXld(rectContour, lineContour, "mutual", out iR, out iC, out isOverlap);
-
-                if (iR.Length < 2)
-                {
-                    error = "short-axis line intersects rectangle at " + iR.Length + " point(s)";
-                    return false;
-                }
-
-                iRow1 = iR[0].D;
-                iCol1 = iC[0].D;
-                iRow2 = iR[1].D;
-                iCol2 = iC[1].D;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-                return false;
-            }
-            finally
-            {
-                if (lineContour != null) { try { lineContour.Dispose(); } catch { } }
-                if (intersectionPoints != null) { try { intersectionPoints.Dispose(); } catch { } }
-                // rectContour 는 호출측이 소유/Dispose — 본 메서드에서 Dispose 하지 않음
             }
         }
 

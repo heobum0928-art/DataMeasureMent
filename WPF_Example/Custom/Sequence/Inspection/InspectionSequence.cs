@@ -608,7 +608,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260629 hbk 측정 단위 3-state 분류 — datum/align-skip('N')·측정 NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P'). (ClassifyFai 측정 단위 복제)
+        //260629 hbk 측정 단위 3-state 분류 — datum/align-skip('N')·측정 NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P'). //260710 hbk 죽은 FAI 단위 분류 메서드 제거로 문구 정리
         private EVisionResultType ClassifyMeasurement(MeasurementBase meas)
         {
             string szSkip = meas.LastSkipReason; //260629 hbk 측정 단위 skip 사유
@@ -625,24 +625,6 @@ namespace ReringProject.Sequence {
                 return EVisionResultType.NG;
             }
             return EVisionResultType.OK; //260629 hbk 정상 측정
-        }
-
-        //260623 hbk Phase 49 (D-02): FAI 3-state 분류 — 검출실패('N')/NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P').
-        private EVisionResultType ClassifyFai(FAIConfig fai)
-        {
-            bool bDatumSkipped = fai.WasDatumSkipped;
-            if (bDatumSkipped)
-            {
-                m_bCycleHasNG = true;   // 검출실패도 사이클 NG 로 누적
-                return EVisionResultType.NotExist;
-            }
-            bool bNotPass = !fai.IsPass;
-            if (bNotPass)
-            {
-                m_bCycleHasNG = true;
-                return EVisionResultType.NG;
-            }
-            return EVisionResultType.OK;
         }
 
         //260623 hbk Phase 49 BLOCKER 1 (D-01 정합): ZIndex 매칭 0건(빈 결과 + 매칭 Shot 0)이면 PrintErrLog 경고.
@@ -767,70 +749,7 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        // Datum phase 실행 — 모든 DatumConfig 순회
-        public bool TryRunDatumPhase(HImage image, out string error) {
-            error = null;
-            _datumTransforms.Clear();
-
-            if (DatumConfigs.Count == 0) {
-                return true; // Datum 미설정 Fixture는 무보정 pass-through
-            }
-
-            if (image == null) {
-                error = "image is null";
-                return false;
-            }
-
-            var service = new DatumFindingService();
-            foreach (var datum in DatumConfigs) {
-                HTuple transform;
-                string datumError;
-                if (!service.TryFindDatum(image, datum, out transform, out datumError)) { // datum 실패 시 abort 안 함, 성공만 저장
-                    datum.LastFindSucceeded = false;
-                    string datumName = datum.DatumName;
-                    if (datumName == null) datumName = "";
-                    string derr = datumError;
-                    if (derr == null) derr = "";
-                    Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + datumName + "' find 실패 (skip): " + derr);
-                    continue; // 다음 datum 계속, 이 datum 은 _datumTransforms 미저장
-                }
-                datum.LastFindSucceeded = true;
-                datum.CurrentTransform = transform;
-                string datumKey = datum.DatumName;
-                if (datumKey == null) datumKey = "";
-                _datumTransforms[datumKey] = transform;
-            }
-            return true;
-        }
-        // VerticalTwoHorizontalDualImage 전용 2-image 오버로드. image1=가로축, image2=세로축.
-        //  _datumTransforms 채움 규약은 1-image 오버로드와 동일.
-        public bool TryRunDatumPhase(HImage image1, HImage image2, out string error) {
-            error = null;
-            _datumTransforms.Clear();
-            if (DatumConfigs.Count == 0) return true;
-            if (image1 == null || image2 == null) { error = "image1 or image2 is null"; return false; }
-            var service = new DatumFindingService();
-            foreach (var datum in DatumConfigs) {
-                HTuple transform; string datumError; bool ok; // per-datum DualImage 판단 유지 (DatumConfigs[0] 단일 판단 아님)
-                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) ok = service.TryFindDatum(image1, image2, datum, out transform, out datumError);
-                else ok = service.TryFindDatum(image1, datum, out transform, out datumError);
-                if (!ok) {
-                    datum.LastFindSucceeded = false;
-                    string datumName = datum.DatumName;
-                    if (datumName == null) datumName = "";
-                    string derr = datumError;
-                    if (derr == null) derr = "";
-                    Logging.PrintLog((int)ELogType.Error, "[DatumPhase] Datum '" + datumName + "' find 실패 (skip): " + derr);
-                    continue; // abort 제거, skip
-                }
-                datum.LastFindSucceeded = true;
-                datum.CurrentTransform = transform;
-                string datumKey = datum.DatumName;
-                if (datumKey == null) datumKey = "";
-                _datumTransforms[datumKey] = transform;
-            }
-            return true;
-        }
+        //260710 hbk 죽은 코드 제거: 미사용 Datum phase 실행 오버로드 2종(1-image/2-image) 호출부 0건 확인 후 삭제 (quick 260710-di7)
 
         // DatumPhase loop 시작 전 1회 호출 (per-datum 누적 전 초기화)
         public void ClearDatumTransforms() {

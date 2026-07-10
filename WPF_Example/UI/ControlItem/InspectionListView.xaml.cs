@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -1029,9 +1028,6 @@ namespace ReringProject.UI {
         }
 
         private void AddDatumToSequence(NodeViewModel seqNode) {
-            if (!(seqNode.Param is CameraMasterParam)) {
-                // Param 검사 — InspectionSequence가 아니면 무시
-            }
             SequenceBase seq = SystemHandler.Handle.Sequences[seqNode.SequenceID];
             if (!(seq is InspectionSequence inspSeq)) return;
 

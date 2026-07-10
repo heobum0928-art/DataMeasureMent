@@ -1,9 +1,5 @@
 ﻿using ReringProject.Setting;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ReringProject.Network {
     public partial class VisionServer : TcpServer {

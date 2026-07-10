@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ReringProject.Network {
     public enum VisionRequestType {
@@ -174,13 +170,6 @@ namespace ReringProject.Network {
 
                     dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
                     if (dataList.Length < 2) return null;
-                    /*
-                    //zone
-                    if(Int32.TryParse(dataList[0], out zoneNum) == false) {
-                        return null;
-                    }
-                    recipePacket.Zone = zoneNum;
-                    */
                     //site
                     if (Int32.TryParse(dataList[0], out siteNum) == false) {
                         return null;
@@ -197,13 +186,6 @@ namespace ReringProject.Network {
 
                     dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
                     if (dataList.Length < 3) return null;
-                    /*
-                    //zone
-                    if (Int32.TryParse(dataList[0], out zoneNum) == false) {
-                        return null;
-                    }
-                    recipeGetPacket.Zone = zoneNum;
-                    */
                     //site
                     if (Int32.TryParse(dataList[0], out siteNum) == false) {
                         return null;
@@ -227,13 +209,6 @@ namespace ReringProject.Network {
 
                     dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
                     if (dataList.Length < 1) return null;
-                    /*
-                    //zone
-                    if (Int32.TryParse(dataList[0], out zoneNum) == false) {
-                        return null;
-                    }
-                    sitePacket.Zone = zoneNum;
-                    */
                     //site
                     if (Int32.TryParse(dataList[0], out siteNum) == false) {
                         return null;
@@ -247,13 +222,6 @@ namespace ReringProject.Network {
 
                     dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
                     if (dataList.Length < 2) return null;
-                    /*
-                    //zone
-                    if (Int32.TryParse(dataList[0], out zoneNum) == false) {
-                        return null;
-                    }
-                    lightPacket.Zone = zoneNum;
-                    */
                     //site
                     if (Int32.TryParse(dataList[0], out siteNum) == false) {
                         return null;

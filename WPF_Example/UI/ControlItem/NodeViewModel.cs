@@ -8,7 +8,7 @@ using ReringProject.Define;
 using ReringProject.Sequence;
 
 namespace ReringProject.UI {
-    public class NodeViewModel : Observable { //, IDragSource, IDropTarget {
+    public class NodeViewModel : Observable {
         public NodeViewModel Parent { get; private set; }
 
         public bool HasItems {
@@ -17,47 +17,6 @@ namespace ReringProject.UI {
                 return this.children.Count > 0;
             }
         }
-        /*
-        public bool CanDrop(IDragSource node, DropPosition mode, DragDropEffect effect) {
-            return node is NodeViewModel && (mode == DropPosition.Add || this.Parent != null);
-        }
-
-        public void Drop(IEnumerable<IDragSource> nodes, DropPosition mode, DragDropEffect effect, DragDropKeyStates initialKeyStates) {
-            foreach (var node in nodes) {
-                this.Drop(node, mode, effect == DragDropEffect.Copy);
-            }
-        }
-
-        public void Drop(IDragSource node, DropPosition mode, bool copy) {
-            var cvm = node as NodeViewModel;
-            if (copy) cvm = new NodeViewModel(cvm.Node, cvm.Parent);
-
-            switch (mode) {
-                case DropPosition.Add:
-                    this.Children.Add(cvm);
-                    cvm.Parent = this;
-                    this.IsExpanded = true;
-                    break;
-                case DropPosition.InsertBefore:
-                    int index = this.Parent.Children.IndexOf(this);
-                    Parent.Children.Insert(index, cvm);
-                    cvm.Parent = this.Parent;
-                    break;
-                case DropPosition.InsertAfter:
-                    int index2 = this.Parent.Children.IndexOf(this);
-                    Parent.Children.Insert(index2 + 1, cvm);
-                    cvm.Parent = this.Parent;
-                    break;
-            }
-        }
-
-        public bool IsDraggable {
-            get {
-                return false;
-                //return Parent != null;
-            }
-        }
-        */
         public void Detach() {
             this.Parent.Children.Remove(this);
             this.Parent = null;
@@ -261,9 +220,6 @@ namespace ReringProject.UI {
                 this.Node.Name = newName;
                 RaisePropertyChanged("Name");
                 // 자동 재정렬 비활성 (Rename 시 사용자 이동 결과 무효화 방지)
-                //if (this.Parent != null) {
-                //    InspectionListViewModel.SortNodeChildren(this.Parent);
-                //}
             }
         }
 

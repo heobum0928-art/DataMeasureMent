@@ -612,23 +612,6 @@ namespace ReringProject.Utility {
                 return obj.ToLowerInvariant().GetHashCode();
             }
 
-#if JS
-        public new bool Equals(object x, object y) {
-            var xs = x as string;
-            var ys = y as string;
-            if (xs == null || ys == null) {
-                return xs == null && ys == null;
-            }
-            return Equals(xs, ys);
-        }
-
-        public int GetHashCode(object obj) {
-            if (obj is string) {
-                return GetHashCode((string)obj);
-            }
-            return obj.ToStringInvariant().ToLowerInvariant().GetHashCode();
-        }
-#endif
         }
     }
 

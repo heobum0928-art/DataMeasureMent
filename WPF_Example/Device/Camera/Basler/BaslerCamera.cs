@@ -282,13 +282,6 @@ namespace ReringProject.Device {
                     CameraHandle.Parameters[PLCamera.GammaEnable].SetValue(true);
                     //CameraHandle.Parameters[PLCamera.GammaSelector].SetValue(PLCamera.GammaSelector.sRGB);
                 }
-                /*
-                //Balance White AUto
-                if (CameraHandle.Parameters[PLCamera.BalanceWhiteAuto].IsWritable) {
-                    CameraHandle.Parameters[PLCamera.BalanceWhiteAuto].SetValue(PLCamera.BalanceWhiteAuto.Once);
-                }
-               */
-                
                 //parameter
                 Properties.Update();
 

@@ -175,15 +175,6 @@ namespace ReringProject.Device {
                     if (device.nTLayerType == CSystem.MV_GIGE_DEVICE) {
                         CGigECameraInfo gigeInfo = (CGigECameraInfo)device;
                         camName = gigeInfo.UserDefinedName;
-                        /*
-                        if (String.IsNullOrEmpty(camName)) { //gige는 ip 주소를 우선한다.
-                            uint nIp1 = ((gigeInfo.nCurrentIp & 0xff000000) >> 24);
-                            uint nIp2 = ((gigeInfo.nCurrentIp & 0x00ff0000) >> 16);
-                            uint nIp3 = ((gigeInfo.nCurrentIp & 0x0000ff00) >> 8);
-                            uint nIp4 = (gigeInfo.nCurrentIp & 0x000000ff);
-                            camName = string.Format("{0}.{1}.{2}.{3}", nIp1, nIp2, nIp3, nIp4);
-                        }
-                        */
 
                         if (String.IsNullOrEmpty(camName)) {
                             camName = gigeInfo.chModelName + " (" + gigeInfo.chSerialNumber + ")";
@@ -372,10 +363,6 @@ namespace ReringProject.Device {
                 CameraHandle.SetEnumValue("AcquisitionMode", (uint)MV_CAM_ACQUISITION_MODE.MV_ACQ_MODE_CONTINUOUS);
                 CameraHandle.SetEnumValue("ExposureAutoMode", (uint)MV_CAM_EXPOSURE_AUTO_MODE.MV_EXPOSURE_AUTO_MODE_OFF);
                 CameraHandle.SetEnumValue("GainMode", (uint)MV_CAM_GAIN_MODE.MV_GAIN_MODE_OFF);
-
-                //CameraHandle.MV_CC_SetAcquisitionMode_NET((int)MyCamera.MV_CAM_ACQUISITION_MODE.MV_ACQ_MODE_CONTINUOUS);
-                //CameraHandle.MV_CC_SetExposureAutoMode_NET((int)MyCamera.MV_CAM_EXPOSURE_AUTO_MODE.MV_EXPOSURE_AUTO_MODE_OFF);
-                //CameraHandle.MV_CC_SetGainMode_NET((int)MyCamera.MV_CAM_GAIN_MODE.MV_GAIN_MODE_OFF);
 
                 //Register default Event
                 EventCallback = new cbEventdelegateEx(OnEvent);

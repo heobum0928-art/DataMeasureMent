@@ -461,55 +461,5 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        /// <summary>
-        /// ref pose - cur pose 변위로 rigid 행렬 산출. θ는 line-fit으로 따로 주입(D-02 ③, §3).
-        /// vector_angle_to_rigid 사용: ref 위치에서 cur 위치로, 회전은 line-fit 정밀 thetaRad 적용.
-        /// 부호 규약: curRow > refRow → 자재가 +row 방향(아래)으로 이동. transform 적용 시 ROI도 그만큼 이동.
-        /// catch 시 identity transform + return false (lenient identity 폴백, §5).
-        /// </summary>
-        /// <param name="refRow">ref pose row (티칭 시 TryFindRefPose 결과)</param>
-        /// <param name="refCol">ref pose col</param>
-        /// <param name="refAngleDeg">ref pose 각도(deg, 티칭 시 결과)</param>
-        /// <param name="curRow">cur pose row (런타임 TryFindPose 결과)</param>
-        /// <param name="curCol">cur pose col</param>
-        /// <param name="thetaRad">line-fit 정밀 θ(rad). 호출부가 별도 산출 후 전달(D-02 ③)</param>
-        /// <param name="transform">산출된 hom_mat2d rigid transform (출력)</param>
-        /// <param name="error">오류 메시지(성공 시 null)</param>
-        /// <returns>성공 여부</returns>
-        public bool TryBuildAlignRigid(
-            double refRow, double refCol, double refAngleDeg,
-            double curRow, double curCol, double thetaRad,
-            out HTuple transform,
-            out string error)
-        {
-            error = null;
-            // lenient identity 초기화 (catch 시 반환 안전)
-            HOperatorSet.HomMat2dIdentity(out transform);
-
-            try
-            {
-                // ref pose 각도(deg) → rad 변환
-                double refAngleRad = refAngleDeg * Math.PI / 180.0;
-
-                // §3 권고: vector_angle_to_rigid(refRow, refCol, refAngleRad, curRow, curCol, curAngleRad)
-                // ref pose (티칭) 에서 cur pose (런타임) 로 rigid transform 산출.
-                // thetaRad = line-fit 정밀 θ를 cur 각도로 주입 (매칭 angle은 거칠어 미사용, D-01b).
-                // 부호: D-09 — ref − cur 방향, 즉 dRow = refRow - curRow(자재 이동 역방향으로 ROI 보정).
-                // vector_angle_to_rigid 내부 규약: from=(refRow,refCol,refAngle) → to=(curRow,curCol,curAngle).
-                HOperatorSet.VectorAngleToRigid(
-                    refRow, refCol, refAngleRad,
-                    curRow, curCol, thetaRad,
-                    out transform);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                error = ex.Message;
-                // lenient identity 폴백 — 매칭 실패가 시퀀스 abort 하지 않음 (D-10, T-54-05)
-                try { HOperatorSet.HomMat2dIdentity(out transform); } catch { }
-                return false;
-            }
-        }
     }
 }

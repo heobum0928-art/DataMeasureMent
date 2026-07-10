@@ -584,7 +584,6 @@
     <Compile Include="Halcon\HalconImageBridge.cs" />
     <Compile Include="Halcon\Models\EdgeInspectionOverlay.cs" />
     <Compile Include="Halcon\Models\FAIEdgeMeasurementResult.cs" />
-    <Compile Include="Halcon\Models\JobPosition.cs" />
     <Compile Include="Halcon\Models\RoiDefinition.cs" />
     <Compile Include="Halcon\Models\RoiLineInspectionResult.cs" />
     <Compile Include="Halcon\Models\TeachingJob.cs" />

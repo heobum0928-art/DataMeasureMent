@@ -72,17 +72,6 @@ namespace ReringProject.Halcon.Services
             new TeachingStorageService().Save(path, job);
         }
 
-        public static string BuildTeachingPath(ParamBase param, string logicalName)
-        {
-            var basePath = param.GetExternalFilePath(EExternalFileType.Model, logicalName);
-            if (string.IsNullOrWhiteSpace(basePath))
-            {
-                return null;
-            }
-
-            return Path.ChangeExtension(basePath, ".json");
-        }
-
         public static string BuildFixedTeachingPath(string sourceName)
         {
             var key = NormalizeTeachingKey(sourceName);

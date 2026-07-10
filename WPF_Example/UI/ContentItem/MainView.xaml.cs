@@ -3024,7 +3024,29 @@ namespace ReringProject.UI {
                     // PropertyGrid 재바인딩
                     try { datum.RaisePropertyChanged(string.Empty); } catch { }
                     if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
-                    CustomMessageBox.Show("모델 생성 완료", "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ") — Recipe Save 권장" + alignMsg);
+                    //260710 hbk desync 차단: 모델 생성 성공 시 Recipe Save 확인 모달. Yes → 즉시 저장(.shm↔RefMatch 함께 영속화).
+                    //  No/닫기 → 오늘과 동일(경고만). 저장 실패해도 티칭 상태(메모리 RefMatch) 유지.
+                    MessageBoxResult saveChoice = CustomMessageBox.ShowConfirmation(
+                        "모델 생성 완료",
+                        "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ")" + alignMsg
+                            + "\n\n지금 Recipe Save 하시겠습니까? (.shm 모델과 RefMatch 기준값이 함께 저장됩니다.\n현재 미저장 편집이 함께 저장됩니다.)\n\n저장하지 않으면 다음 저장 시점까지 모델↔기준값이 어긋날 수 있습니다.",
+                        MessageBoxButton.YesNo);
+                    if (saveChoice == MessageBoxResult.Yes) {
+                        //260710 hbk 기존 SaveRecipe 경로 재사용 (Running 가드 + existingFile 보존, 3faa91b). 새 저장 로직 금지.
+                        try {
+                            MainWindow mw = Window.GetWindow(this) as MainWindow;
+                            if (mw != null) mw.SaveRecipe();
+                        }
+                        catch (Exception saveEx) {
+                            //260710 hbk 저장 실패해도 티칭 흐름/메모리 RefMatch 는 그대로 유지. 로그+경고만.
+                            Logging.PrintErrLog((int)ELogType.Error, "패턴 모델 Recipe Save 실패: " + saveEx.Message);
+                            CustomMessageBox.Show("저장 실패", "Recipe Save 실패 — 티칭 상태는 유지됩니다. 수동 저장 필요.\n" + saveEx.Message);
+                        }
+                    }
+                    else {
+                        //260710 hbk No/닫기 → 오늘과 동일. Recipe Save 권장 경고 남김.
+                        CustomMessageBox.Show("Recipe Save 권장", "모델은 기록되었으나 저장하지 않았습니다. 종료 전 Recipe Save 를 권장합니다.");
+                    }
                 }
                 else {
                     CustomMessageBox.Show("ref pose 기록 실패", refError);

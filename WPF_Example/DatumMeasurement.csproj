@@ -335,6 +335,7 @@
     <Compile Include="Sequence\Sequence\SequenceBase.cs" />
     <Compile Include="Sequence\Sequence\SequenceContext.cs" />
     <Compile Include="SystemHandler.cs" />
+    <Compile Include="VersionDefine.cs" />
     <Compile Include="Sequence\Action\ActionBase.cs" />
     <Compile Include="Sequence\Param\CameraParam.cs" />
     <Compile Include="Sequence\Param\ParamBase.cs" />

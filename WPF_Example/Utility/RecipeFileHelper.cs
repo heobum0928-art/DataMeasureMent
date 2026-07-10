@@ -178,9 +178,8 @@ namespace ReringProject.Utility {
         }
 
         public string GetVersion() {
-            System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-            return fvi.FileVersion;
+            //260710 hbk 버전 단일 소스(VersionDefine.VERSION) 직접 반환으로 교체
+            return ReringProject.VersionDefine.VERSION;
         }
 
         public string GetDLLVersion() {

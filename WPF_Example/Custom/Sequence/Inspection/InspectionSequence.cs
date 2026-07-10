@@ -612,7 +612,7 @@ namespace ReringProject.Sequence {
         private EVisionResultType ClassifyMeasurement(MeasurementBase meas)
         {
             string szSkip = meas.LastSkipReason; //260629 hbk 측정 단위 skip 사유
-            bool bDatumSkipped = (szSkip == "DATUM_FAIL") || (szSkip == "ALIGN_FAIL"); //260629 hbk datum/align 검출 실패 skip = 'N'
+            bool bDatumSkipped = (szSkip == SkipReason.DATUM_FAIL) || (szSkip == SkipReason.ALIGN_FAIL); //260629 hbk datum/align 검출 실패 skip = 'N' //260710 hbk 상수화
             if (bDatumSkipped)
             {
                 m_bCycleHasNG = true; //260629 hbk 검출 실패도 사이클 NG 누적

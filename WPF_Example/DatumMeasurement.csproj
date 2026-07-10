@@ -267,6 +267,7 @@
     <!--260601 hbk Phase 40 OUT-01/OUT-02-->
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
+    <Compile Include="Custom\Sequence\Inspection\SkipReason.cs" /><!--260710 hbk skip-사유 단일 소스 상수 등록-->
     <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
     <Compile Include="Custom\Sequence\Inspection\DynamicPropertyHelper.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgePairDistanceMeasurement.cs" />

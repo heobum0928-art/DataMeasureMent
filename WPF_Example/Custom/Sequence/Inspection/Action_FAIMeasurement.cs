@@ -523,8 +523,8 @@ namespace ReringProject.Sequence {
             meas.ClearResult();
             //260618 hbk Phase 54 ALIGN-01 align 실패와 검출 실패 구분 표기 (D-10) — Excel/UI 식별.
             //260702 hbk 기존 삼항(?:) → if-else 로 전개(동치 유지, 신규 삼항 미도입)
-            if (parentSeq2.IsAlignFailed(meas.DatumRef)) meas.LastSkipReason = "ALIGN_FAIL";
-            else meas.LastSkipReason = "DATUM_FAIL";
+            if (parentSeq2.IsAlignFailed(meas.DatumRef)) meas.LastSkipReason = SkipReason.ALIGN_FAIL; //260710 hbk 상수화
+            else meas.LastSkipReason = SkipReason.DATUM_FAIL; //260710 hbk 상수화
             meas.LastJudgement = false; // skip 도 NG 강도
             string measName = meas.MeasurementName;
             if (measName == null) measName = meas.TypeName;
@@ -653,7 +653,7 @@ namespace ReringProject.Sequence {
                 foreach (var m in fai.Measurements)
                 {
                     //260618 hbk Phase 54 ALIGN-01 ALIGN_FAIL 도 skip 통계에 포함 (D-10, skip 통계 누락 방지)
-                    if (m != null && (m.LastSkipReason == "DATUM_FAIL" || m.LastSkipReason == "ALIGN_FAIL")) { wasSkip = true; break; }
+                    if (m != null && (m.LastSkipReason == SkipReason.DATUM_FAIL || m.LastSkipReason == SkipReason.ALIGN_FAIL)) { wasSkip = true; break; } //260710 hbk 상수화
                 }
                 fai.WasDatumSkipped = wasSkip;
                 fai.LastOverlays = faiOverlays; // per-FAI overlay 저장 (노드 클릭 시 재현)
@@ -674,7 +674,7 @@ namespace ReringProject.Sequence {
                 bool faiHadMeas = fai.Measurements.Count > 0;
                 foreach (var meas in fai.Measurements) {
                     meas.ClearResult();
-                    meas.LastSkipReason = "NO_IMAGE"; // UI 'DETECT FAIL' 류 + Excel export 분기 신호
+                    meas.LastSkipReason = SkipReason.NO_IMAGE; //260710 hbk 상수화 // UI 'DETECT FAIL' 류 + Excel export 분기 신호
                     meas.LastJudgement = false;
                     measuredCount++;
                 }

@@ -1,3 +1,4 @@
+using ReringProject.Sequence; //260710 hbk SkipReason 상수 참조용
 using ReringProject.UI;
 
 namespace ReringProject.UI
@@ -80,11 +81,11 @@ namespace ReringProject.UI
             if (m.LastHasResult) ResultDisplay = m.LastMeasuredValue.ToString("F4"); else ResultDisplay = "—";
 
             // 3분기: DATUM_FAIL > HasResult 유무 > OK/NG
-            if (m.LastSkipReason == "DATUM_FAIL")
+            if (m.LastSkipReason == SkipReason.DATUM_FAIL) //260710 hbk 상수화
             {
                 JudgeText = "DETECT FAIL";
             }
-            else if (m.LastSkipReason == "NO_IMAGE") //260616 hbk NO_IMAGE 라벨
+            else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨 //260710 hbk 상수화
             {
                 JudgeText = "NO IMAGE";
             }

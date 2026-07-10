@@ -105,7 +105,7 @@ namespace ReringProject.Sequence
                         d.LastTolPlus = m.TolerancePlus;
                         d.LastTolMinus = m.ToleranceMinus;
 
-                        if (m.LastSkipReason == "DATUM_FAIL" || m.LastSkipReason == "NO_IMAGE") //260616 hbk NO_IMAGE DetectFail 취급
+                        if (m.LastSkipReason == SkipReason.DATUM_FAIL || m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE DetectFail 취급 //260710 hbk 상수화
                         {
                             d.DetectFailCount++;
                         }

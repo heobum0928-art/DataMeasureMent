@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using ReringProject.Sequence; //260710 hbk SkipReason 상수 참조용
 using ReringProject.Setting;
 using ReringProject.UI;
 using ReringProject.Utility;
@@ -88,11 +89,11 @@ namespace ReringProject.Export
                                 }
 
                                 // 판정 3분기: DATUM_FAIL > HasResult 유무 > OK/NG (ReviewMeasurementRow 로직 일치)
-                                if (m.LastSkipReason == "DATUM_FAIL")
+                                if (m.LastSkipReason == SkipReason.DATUM_FAIL) //260710 hbk 상수화
                                 {
                                     ws.Cell(row, 8).Value = "DETECT FAIL";
                                 }
-                                else if (m.LastSkipReason == "NO_IMAGE") //260616 hbk NO_IMAGE 라벨
+                                else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨 //260710 hbk 상수화
                                 {
                                     ws.Cell(row, 8).Value = "NO IMAGE";
                                 }

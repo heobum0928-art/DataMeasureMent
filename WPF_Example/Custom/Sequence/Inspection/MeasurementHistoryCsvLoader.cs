@@ -177,14 +177,14 @@ namespace ReringProject.Sequence
             meas.ToleranceMinus = ParseDouble(fields[COL_TOLMINUS]);
 
             string szJudge = fields[COL_JUDGE];
-            if (szJudge == "DATUM_FAIL")
+            if (szJudge == SkipReason.DATUM_FAIL) //260710 hbk 상수화
             {
-                meas.LastSkipReason = "DATUM_FAIL";
+                meas.LastSkipReason = SkipReason.DATUM_FAIL; //260710 hbk 상수화
                 meas.LastHasResult = false;
             }
-            else if (szJudge == "NO_IMAGE")
+            else if (szJudge == SkipReason.NO_IMAGE) //260710 hbk 상수화
             {
-                meas.LastSkipReason = "NO_IMAGE";
+                meas.LastSkipReason = SkipReason.NO_IMAGE; //260710 hbk 상수화
                 meas.LastHasResult = false;
             }
             else if (szJudge == "NO_RESULT")

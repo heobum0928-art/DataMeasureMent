@@ -111,8 +111,8 @@ namespace ReringProject.Sequence
         /// <summary>RepeatMeasurementStats.AddSample 정책과 일치하는 측정 판정 문자열 매핑.</summary>
         private static string MapJudgement(MeasurementResultDto meas)
         {
-            if (meas.LastSkipReason == "DATUM_FAIL") { return "DATUM_FAIL"; }   //260707 hbk STAT-01
-            if (meas.LastSkipReason == "NO_IMAGE") { return "NO_IMAGE"; }       //260707 hbk STAT-01
+            if (meas.LastSkipReason == SkipReason.DATUM_FAIL) { return SkipReason.DATUM_FAIL; }   //260707 hbk STAT-01 //260710 hbk 상수화
+            if (meas.LastSkipReason == SkipReason.NO_IMAGE) { return SkipReason.NO_IMAGE; }       //260707 hbk STAT-01 //260710 hbk 상수화
             if (meas.LastHasResult == false) { return "NO_RESULT"; }            //260707 hbk 미측정(값 없음) — 로더가 통계서 제외
             if (meas.LastJudgement) { return "OK"; }
             return "NG";

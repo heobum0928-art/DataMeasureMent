@@ -1,6 +1,6 @@
 # 조명 + Z축 수동 트리거 — 처음 보는 사람을 위한 안내서
 
-> 작성: 2026-07-13 | quick-260713-eza (개정판)
+> 작성: 2026-07-13 | quick-260713-eza (개정판) → 2026-07-13 실전 연결 가이드 추가
 >
 > 이 문서는 비전 검사 전공자가 아니어도 따라 읽을 수 있도록 썼습니다. "어느 파일을 열어서 몇 번째 줄을 보면 되는지"까지 구체적으로 적어뒀으니, 옆에 코드 에디터를 켜놓고 같이 읽으시면 됩니다.
 
@@ -14,6 +14,8 @@
 4. [조명(Lighting)이란?](#4-조명lighting이란)
 5. [Z축과 수동 트리거란?](#5-z축과-수동-트리거란)
 6. [실제 테스트 방법 (체크리스트)](#6-실제-테스트-방법-체크리스트)
+7. [실전 조명 연결 + 테스트 순서](#7-실전-조명-연결--테스트-순서)
+8. [오늘 새로 확인한 코드들 (스텝별 설명)](#8-오늘-새로-확인한-코드들-스텝별-설명)
 
 ---
 
@@ -116,7 +118,9 @@ Shot (사진 한 장, 카메라 위치 하나)
 
 ### 4-2. 채널 구조 — "멀티탭에 꽂힌 전구들"
 
-조명 컨트롤러(전기박스라고 생각하세요) 2대가 있고, 각 컨트롤러는 여러 개의 "채널"(전구 하나하나를 켜고 끄는 스위치)을 가지고 있습니다.
+조명 컨트롤러(전기박스라고 생각하세요)가 있고, 각 컨트롤러는 여러 개의 "채널"(전구 하나하나를 켜고 끄는 스위치)을 가지고 있습니다.
+
+> 📌 **2026-07-13 업데이트**: 실제로는 PC 2대(Top/Bottom용, Side용)가 있고, 각 PC마다 이 컨트롤러 구성을 **동일하게** 2대씩 갖습니다(총 컨트롤러 4대). 자세한 내용은 [7번 섹션](#7-실전-조명-연결--테스트-순서)을 참고하세요.
 
 실제 등록 코드를 봅시다 — `WPF_Example/Custom/Device/LightHandler.cs`, 41~73번째 줄:
 
@@ -140,8 +144,8 @@ public void RegisterLightController() {
 
 | 컨트롤러 | 별명 | 담당 전구(채널) | 몇 개 |
 |---|---|---|---|
-| Controller A (0번) | "A박스" | 링(Ring) 조명 6개 + 얼라인용 동축 조명 1개 | 7개 |
-| Controller B (1번) | "B박스" | 백라이트 1개 + 바(Bar) 조명 4개 + Ring7 1개 | 6개 |
+| Controller A (0번) | "A박스" | 링(Ring) 조명 6개 + 얼라인용 동축 조명 1개 | 7개 (박스 최대 8개 중 7개 사용) |
+| Controller B (1번) | "B박스" | 백라이트 1개 + 바(Bar) 조명 4개 + Ring7 1개 | 6개 (박스 최대 8개 중 6개 사용) |
 
 이번에 새로 설치한 건 **링(Ring)과 백라이트(Backlight)**입니다(바(Bar)는 이번엔 제외). 그러니까 **A박스의 링 6개 채널**과 **B박스의 백라이트 1개 채널**이 이번 테스트 대상입니다.
 
@@ -206,6 +210,8 @@ mPort.WriteLine(string.Format("#Aa000&"));        // 레벨 0
 
 **확인해볼 것**: 프로그램을 켤 때, 로그에 "Light Controller {번호} Open Success"가 뜨는 순간 실제로 어느 조명이 반짝이는지 눈으로 봐야 합니다. 0번(A박스)이 열릴 때 **링 모양(원형으로 배치된) 조명**이 반짝여야 정상이고, 백라이트가 반짝이면 배선이 뒤바뀐 겁니다.
 
+> 📌 A/B를 처음부터 헷갈리지 않게 구분하는 실전 방법은 [7번 섹션 STEP 2](#7-실전-조명-연결--테스트-순서)를 참고하세요.
+
 #### 🟡 (3) 설정 파일(light.ini)이 없으면 두 컨트롤러가 같은 포트를 요구할 수 있어요
 
 **파일**: `WPF_Example/Device/LightController/LightHandler.cs`, 351~366번째 줄
@@ -228,7 +234,7 @@ public bool Load() {
 
 **왜 문제인가**: 새로 설치한 환경에서 이 설정 파일을 깜빡하면, A박스와 B박스가 둘 다 COM3을 요구하게 되어 하나는 열리고 하나는 실패합니다.
 
-**확인해볼 것**: 프로그램 실행 폴더에 `light.ini` 파일이 있는지, 그 안에 `Controller0`/`Controller1` 항목에 실제 COM 포트 번호가 맞게 적혀있는지 열어서 확인하세요.
+**확인해볼 것**: 프로그램 실행 폴더에 `light.ini` 파일이 있는지, 그 안에 `Controller0`/`Controller1` 항목에 실제 COM 포트 번호가 맞게 적혀있는지 열어서 확인하세요. 정확한 작성 방법은 [8-6](#8-오늘-새로-확인한-코드들-스텝별-설명)을 참고하세요.
 
 #### 🟡 (4) 조명 통신이 반복 실패해도 화면에 알림이 안 떠요
 
@@ -265,6 +271,26 @@ public virtual bool ReadOnOff(int channel) {
 **파일**: `WPF_Example/Device/LightController/LightHandler.cs` (`CmdTable`, `SetOnOff`, `SetLevel` 관련 부분)
 
 여러 검사 스레드(Top/Side/Bottom)와, 이번에 추가한 수동 Z트리거 버튼이 동시에 같은 조명 채널 값을 바꾸려고 하면, 순서가 꼬여서 값이 잠깐 뒤섞일 수 있는 코드 구조입니다(락으로 보호가 안 되어 있음). 심각도는 낮지만, 여러 시퀀스를 동시에 빠르게 테스트할 때 이상 동작이 보이면 이 부분을 의심해볼 수 있습니다.
+
+#### ⚪ (7) 링/바 조명은 채널 6개(또는 4개)가 항상 "같은 밝기"로만 켜집니다
+
+**파일**: `WPF_Example/Device/LightController/LightHandler.cs`, `SetLevel(string groupName, int level)`
+
+```csharp
+public bool SetLevel(string groupName, int level) {
+    LightGroup group = GetGroup(groupName);
+    for (int i = 0; i < group.Count; i++) {
+        LightGroupItem item = group[i];
+        SetLevel(item.Index, item.Channel, level);   // ← 그룹 안 채널 전부에 "같은" level을 뿌림
+    }
+}
+```
+
+**쉬운 설명**: 링 조명 6개 채널, 바 조명 4개 채널은 각각 독립된 채널이지만, 레시피(`ShotConfig`)에는 밝기 값이 그룹당 **딱 하나**만 저장됩니다(`RingLight_Brightness`, `SideLight_Brightness`). 그래서 이 값 하나가 그룹 안 모든 채널에 똑같이 복사되어 나갑니다 — 채널마다 다른 밝기를 줄 방법이 지금 UI엔 없습니다.
+
+**왜 문제가 될 수 있나**: 검사 알고리즘이 "링의 특정 방향만 세게 비춰야 한다" 같은 요구가 있다면 지금 구조로는 불가능합니다. 반대로 링/바 조명을 원래 목적대로(사방을 균일하게 비추는 용도로) 쓰는 거라면 지금 구조가 맞습니다.
+
+**확인해볼 것**: 채널별로 다른 밝기가 필요한지 광학팀/알고리즘 담당자에게 확인이 필요합니다. 채널 하나씩 값을 주는 함수(`SetLevel(컨트롤러, 채널, 값)`)는 이미 코드에 있어서, 필요해지면 레시피 필드를 늘리고 이 함수를 여러 번 부르게 고치기만 하면 됩니다 — 하드웨어를 다시 사야 하는 문제가 아닙니다.
 
 ---
 
@@ -340,6 +366,8 @@ if (bOk) {
 
 **쉬운 설명**: 여기서 "성공"이라는 메시지는 "검사를 접수시키는 데 성공했다"는 뜻이지, **"검사가 끝나서 합격/불합격이 나왔다"는 뜻이 아닙니다.** 검사원(시퀀스)에게 "이거 검사해주세요"라고 종이를 접수한 것뿐이고, 실제 결과는 화면의 다른 부분(검사 결과 표시 영역)에서 따로 확인해야 합니다.
 
+> 📌 **패턴 등록(티칭)할 때도 이 버튼이 필요합니다** — 자세한 이유는 [8-4](#8-오늘-새로-확인한-코드들-스텝별-설명)를 참고하세요.
+
 ---
 
 ## 6. 실제 테스트 방법 (체크리스트)
@@ -372,8 +400,208 @@ if (bOk) {
 
 ---
 
+## 7. 실전 조명 연결 + 테스트 순서
+
+### 0. 확정된 하드웨어 구성 (2026-07-13 광학품 도면 + 전기 파트 자료로 확인)
+
+```
+PC 1대당 컨트롤러 2대 (A, B), 컨트롤러 1대당 최대 8채널 (JPF-1208 스펙 확인됨)
+PC 2대(PC1=Top/Bottom용, PC2=Side용) 모두 완전히 똑같은 구성 → 총 컨트롤러 4대
+
+┌─ 컨트롤러 A (8채널) ──────┐   ┌─ 컨트롤러 B (8채널) ──────┐
+│ CH1~6 : 링(Ring) 6개      │   │ CH1 : 백라이트            │
+│ CH7   : 동축(AlignCoax)   │   │ CH2~5: 바(Bar) ❌아직 미설치│
+│ CH8   : 안 씀             │   │ CH6  : Ring7(작은 링)      │
+└──────────────────────────┘   │ CH7~8: 안 씀              │
+                                └──────────────────────────┘
+```
+
+지금 실제로 연결하는 건 **링 6개 + 백라이트**뿐입니다. PC1, PC2 둘 다 이 구성 그대로 적용하면 됩니다 — PC마다 다르게 만들 필요 없습니다(동일하게 구성하기로 확정됨, [8-2](#8-오늘-새로-확인한-코드들-스텝별-설명) 참고).
+
+### STEP 1. 케이블 연결 (실물)
+
+1. 컨트롤러 A CH1~6에 **링 조명 6개**
+2. 컨트롤러 A CH7에 **동축 조명**
+3. 컨트롤러 B CH1에 **백라이트**
+4. 컨트롤러 B CH6에 **작은 링(Ring7)**
+5. 컨트롤러 B CH2~5는 비워둠 (Bar용)
+
+### STEP 2. 어느 게 A, 어느 게 B인지 정하고 적어두기
+
+1. 컨트롤러 박스 하나씩만 꽂아서 장치관리자(포트 COM & LPT)에서 COM번호 확인 → 포스트잇 붙이기
+2. 위 STEP1 배선 기준으로: **링/동축 연결한 박스 = A**, **백라이트/Ring7 연결한 박스 = B**
+3. `light.ini` 작성 (PC 2대 각각 따로, COM 번호는 컴퓨터마다 다를 수 있음):
+
+```ini
+[Controller0]     ← A박스(링/동축) COM번호
+Port=3
+Baudrate=19200
+
+[Controller1]     ← B박스(백라이트/Ring7) COM번호
+Port=5
+Baudrate=19200
+```
+
+### STEP 3. 첫 전원 켜기 — 반짝임 확인
+
+프로그램 켜면 컨트롤러마다 한 번씩 전체 반짝임:
+- "Controller **0**" 켜질 때 → **링 6개**가 반짝여야 정상
+- "Controller **1**" 켜질 때 → **백라이트+작은 링**이 반짝여야 정상
+
+반대로 반짝이면 → `light.ini`의 `Port=` 숫자를 두 항목끼리 서로 바꾸면 해결됨 (케이블 다시 안 뽑아도 됨).
+
+### STEP 4. 화면(UI)에서 개별 테스트
+
+메인 화면 왼쪽 트리(`InspectionListView`, `MainWindow.xaml`에 항상 표시됨)에서 **Shot 하나 클릭** → 오른쪽 속성창(`PropertyGrid`)에 `Light | Ring`, `Light | Ring7`, `Light | Back` 항목이 뜸
+
+각각 체크박스 켜고 끄면서 **실제 조명을 눈으로** 확인:
+- 켰을 때 진짜 켜지는지
+- 껐을 때 진짜 꺼지는지 (⚠️ 이 부분, 소프트웨어는 "껐다"고만 말하지 실제 확인은 안 하니 반드시 눈으로 볼 것)
+
+> ⚠️ 트리 위 툴바의 "Light" 버튼(전구 아이콘)은 이 값이랑 **다른 예전 시스템**을 씁니다 ([8-5](#8-오늘-새로-확인한-코드들-스텝별-설명) 참고) — 조명 미리보기 용도로 쓰지 마세요.
+
+### STEP 5. 패턴 등록(티칭)할 때는 순서 주의
+
+**티칭용 사진 찍기 전에 먼저 조명부터 맞춰야 합니다** (자동으로 안 켜짐, [8-4](#8-오늘-새로-확인한-코드들-스텝별-설명) 참고):
+
+```
+① 그 Shot의 z_index로 "수동 Z트리거" 버튼 클릭   ← 이게 실제 검사와 똑같은 조명을 켜줌
+② 그 상태에서 티칭용 사진 촬영(Grab)
+```
+
+이 순서를 안 지키면 티칭 사진과 실제 검사 사진의 조명이 달라서 오작동 원인이 될 수 있습니다.
+
+### STEP 6. 마지막 체크리스트
+
+| 확인 항목 | 방법 |
+|---|---|
+| A/B 배선 안 헷갈렸는지 | STEP 3 반짝임 |
+| light.ini 포트/보드레이트 | 실행 폴더 열어서 확인 |
+| Ring/Ring7/Back 개별 On-Off | STEP 4 화면+눈 |
+| 소등이 진짜 됐는지 | 눈으로 (화면 믿지 말 것) |
+| 티칭용 조명 = 실제 검사 조명 | STEP 5 순서 지키기 |
+| 기존 검사 로직 안 망가졌는지 | 이미 확인됨(코드 무변경) |
+| 링/바 개별 채널 밝기 필요 여부 | 광학팀에 별도 확인 필요 (지금은 그룹 전체 같은 값) |
+
+---
+
+## 8. 오늘 새로 확인한 코드들 (스텝별 설명)
+
+이 섹션은 2026-07-13에 실제 광학품 스펙시트/도면 자료를 보면서 코드와 하나씩 대조 확인한 내용입니다.
+
+### 8-1. 컨트롤러가 정말 8채널이 맞는지 — 실물 스펙시트로 확인
+
+**확인한 자료**: `JPF-1208_spec.pdf` 1페이지, "지원 채널 수" 항목
+
+> 지원 채널 수: **2/4/8 채널**
+
+프로토콜 문서에도 채널을 가리키는 문자가 `'1'~'8'` 한 자리 숫자로만 정의돼 있어서, 애초에 9번째 채널 이상은 표현할 방법이 없습니다.
+
+**코드와 대조**: `WPF_Example/Device/LightController/LightHandler.cs`, 57번째 줄
+
+```csharp
+public const int CHANNEL_LIMIT = 8; // "1 controller 당 채널 갯수 (JPF-1208 8CH 대응)"
+```
+
+**쉬운 설명**: 이 숫자(8)는 단순 참고용 주석이 아니라 실제 배열 크기로도 쓰입니다(`CmdTable = new LightCommandData[Controllers.Count, CHANNEL_LIMIT]`). 만약 실제 컨트롤러가 8채널보다 많았다면 소프트웨어가 9번째 채널을 쓰려는 순간 죽었을 텐데, 스펙시트로 8채널이 맞다는 게 확인돼서 **이 부분은 코드 수정이 필요 없습니다.**
+
+**실물 배치 문서와도 일치**: 전기 파트 PPT 자료에 "조명 컨트롤러(JPF-1208-8ch) — 광학계 1개당 2개씩 설치, 총 4대 설치"라고 명시돼 있어, 위 채널 수 확인 + 아래 8-2 PC 구성과도 정확히 맞아떨어집니다.
+
+### 8-2. PC마다 다른 조명 구성을 등록해야 하는지 확인
+
+**확인한 코드**: `RegisterLightController()`(`Custom/Device/LightHandler.cs`)는 PC가 Top/Bottom을 담당하는지 Side를 담당하는지 전혀 구분하지 않고, **항상 똑같은 채널 구성**(링6+동축1 / 백라이트+바4+링7)을 등록합니다.
+
+**왜 확인이 필요했나**: 만약 PC1(Top/Bottom)과 PC2(Side)의 실제 조명 배선이 서로 다르다면, 이 코드가 PC2에서 실행될 때 실제 하드웨어와 안 맞는 이름표를 붙이려고 시도하는 문제가 생깁니다.
+
+**결론**: 실제로는 "PC 2대, 컨트롤러 4대(각 PC에 2대씩), **완전히 동일하게 구성**"으로 확정됐습니다. 그러니 지금 코드(PC 구분 없이 항상 같은 구성 등록)를 그대로 써도 **양쪽 PC 모두 정확하게 동작합니다.** PC 역할별로 분기하는 코드를 새로 짤 필요가 없어졌습니다. (덤으로, 이 구조 덕분에 Align 동축 조명도 두 PC에 자동으로 1채널씩 배정됩니다 — Controller A의 7개 채널 중 하나로 고정돼 있으니까요.)
+
+### 8-3. Ring/Bar가 왜 "그룹 전체 같은 값"으로만 켜지는지
+
+**확인한 코드**: `WPF_Example/Device/LightController/LightHandler.cs`
+
+```csharp
+public bool SetLevel(string groupName, int level) {
+    LightGroup group = GetGroup(groupName);
+    for (int i = 0; i < group.Count; i++) {
+        LightGroupItem item = group[i];
+        SetLevel(item.Index, item.Channel, level);   // ← 그룹 안 전부에 "같은" level을 뿌림
+    }
+}
+```
+
+**쉬운 설명**: 레시피(`ShotConfig`)에도 `RingLight_Brightness`/`SideLight_Brightness`가 숫자 하나씩만 있어서, 채널마다 다른 밝기를 줄 방법이 UI에 아예 없습니다. 채널 하나씩 값을 따로 주는 함수(`SetLevel(컨트롤러번호, 채널번호, 값)`)는 이미 코드에 있어서, 나중에 필요해지면 레시피 필드를 6개(또는 4개)로 늘리고 이 함수를 여러 번 부르게만 고치면 됩니다 — **하드웨어를 새로 살 필요는 없는, 소프트웨어만의 문제**입니다.
+
+### 8-4. 티칭할 때 왜 조명이 자동으로 안 맞춰지는지
+
+**확인한 코드**: `ApplyShotLightsInternal`(Ring/Ring7/Back 설정을 실제로 켜는 함수)을 부르는 곳을 코드 전체에서 찾아보니 **딱 한 곳**뿐입니다.
+
+```
+WPF_Example/Custom/SystemHandler.cs:789   →  $PREP 신호가 들어올 때만 호출
+```
+
+**쉬운 설명**: 패턴 등록(티칭)을 할 때는 이 함수가 안 불립니다. 그래서 그 순간 조명이 어떤 상태인지는 소프트웨어가 챙겨주는 게 아니라, **직전에 뭘 켜놨었는지 그대로** 사진에 찍힙니다.
+
+**왜 문제가 되나**: 티칭할 때 조명이 실제 검사 때랑 다르면, 다른 밝기의 사진으로 패턴을 등록하는 셈이라 실제 검사 때 오작동 원인이 될 수 있습니다.
+
+**해결 방법**: 티칭 사진을 찍기 직전에, 그 Shot의 z_index로 **"수동 Z트리거" 버튼을 먼저 눌러서** `$PREP`를 발생시키세요. 이러면 실제 검사 때와 완전히 똑같은 조명이 켜진 상태에서 티칭 사진을 찍을 수 있습니다 (5번 섹션 참고).
+
+### 8-5. 툴바의 "Light" 버튼은 다른(예전) 시스템입니다 — 주의
+
+**확인한 코드**: `WPF_Example/UI/ControlItem/InspectionListView.xaml.cs`, `button_light_Click`
+
+```csharp
+private void button_light_Click(object sender, RoutedEventArgs e) {
+    if (SelectedParam == null) return;
+    if (!(SelectedParam is ICameraParam)) return;
+    ...
+    ICameraParam camParam = SelectedParam as ICameraParam;
+    SystemHandler.Handle.Lights.SetLevel(camParam.LightGroupName, camParam.LightLevel);
+    SystemHandler.Handle.Lights.SetOnOff(camParam.LightGroupName, true);
+}
+```
+
+**쉬운 설명**: 이 버튼은 `RingLight_Brightness`(4번 섹션에서 본 새 시스템, `Light|Ring` 카테고리)가 아니라, `LightGroupName`/`LightLevel`이라는 **예전부터 있던 별개의 필드**(`Device|Light` 카테고리, `CameraSlaveParam.cs`에 정의)를 씁니다.
+
+**왜 헷갈리면 안 되나**: 이 버튼으로 조명을 켜봐도, 실제 검사(`$PREP`)가 쓰는 값이랑 다를 수 있습니다. **조명 미리보기나 티칭 준비용으로 이 버튼을 쓰지 마세요.** 대신 8-4에서 설명한 "수동 Z트리거" 버튼을 쓰세요 — 그게 실제 검사 경로를 그대로 타는 유일한 방법입니다.
+
+### 8-6. light.ini 파일은 이렇게 채우면 됩니다
+
+**확인한 코드**: `WPF_Example/Device/LightController/LightHandler.cs`, `Load()` (351~366번째 줄)
+
+```csharp
+public bool Load() {
+    string loadPath = AppDomain.CurrentDomain.BaseDirectory + @"light.ini";
+    if (File.Exists(loadPath) == false) return false;
+    IniFile loadFile = new IniFile();
+    loadFile.Load(loadPath);
+    for(int i = 0; i < Controllers.Count; i++) {
+        string groupName = "Controller" + i.ToString();
+        Controllers[i].Port = loadFile[groupName]["Port"].ToInt();
+        Controllers[i].Baudrate = loadFile[groupName]["Baudrate"].ToInt();
+    }
+    return true;
+}
+```
+
+**실제로 작성할 내용**:
+
+```ini
+[Controller0]     ← A박스(링/동축) COM번호
+Port=3
+Baudrate=19200
+
+[Controller1]     ← B박스(백라이트/Ring7) COM번호
+Port=5
+Baudrate=19200
+```
+
+**주의**: `Controller0`/`Controller1`이라는 섹션 이름과 `Port`/`Baudrate`라는 키 이름은 **정확히 이 철자 그대로**여야 코드가 읽습니다. Port 번호(3, 5)는 예시일 뿐이고, PC 2대 각각 자기 컴퓨터에서 실제 COM 번호를 확인해서 따로 파일을 만들어야 합니다(7번 섹션 STEP 2 참고).
+
+---
+
 ## 앞으로 정리해야 할 것 (나중에 할 일)
 
 - 수동 Z축 트리거 버튼과 `DebugManualZTrigger`: 자동 Z축(`IAxisController`)이 실제로 만들어지면 이 버튼/메서드는 통째로 삭제
 - 이 문서에서 찾은 🔴🟡 위험 항목들은 **이번엔 코드를 고치지 않았습니다** — 발견만 하고 기록해뒀으니, 실제 하드웨어 테스트에서 문제가 재현되면 그때 수정 여부를 판단하면 됩니다
-- 조명 채널 배치는 이번엔 7+6(A박스 7채널/B박스 6채널)으로 유지하기로 했습니다. 나중에 6+6으로 바꾸는 걸 검토하게 되면 `LightHandler.cs`/`Custom/Device/LightHandler.cs`/`JPFLightController.cs`의 채널 관련 코드를 다시 봐야 합니다
+- 조명 채널 배치는 7+6(A박스 7채널/B박스 6채널, 박스 자체는 8채널까지 지원)으로 확정됐고, PC 2대 모두 동일 구성으로 확정됐습니다(6+6 검토는 더 이상 필요 없음)
+- 링/바 조명의 채널별 개별 밝기 조절이 실제로 필요한지 광학팀/알고리즘 담당자 확인 필요 (지금은 그룹 전체가 같은 값)

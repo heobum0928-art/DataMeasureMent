@@ -26,8 +26,12 @@ x86/
 # Test and IDE artifacts
 TestResults/
 
-# Claude Code harness (worktrees, local settings)
-.claude/
+# Claude Code harness (worktrees, local settings) — but track project-level
+# settings.json and hooks/ so they ship with the repo (260713-d8t).
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/*
 
 # NuGet CLI tool
 nuget.exe

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: "Phase 41.1 context gathered (갱신 스코프: raw CSV 매트릭스 + 멀티샷 오프라인 폴더)"
-last_updated: "2026-07-09T08:29:51.003Z"
-last_activity: "2026-07-07 - Completed quick task 260707-fdx: StatisticsWindow 차트 글자 겹침 수정"
+stopped_at: "Completed quick-260713-ej3: 수동 Z축 트리거 UI (POC)"
+last_updated: "2026-07-13T01:37:38.752Z"
+last_activity: "2026-07-13 - Completed quick task 260713-ej3: MainView 임시 수동 Z축 트리거 UI (DebugManualZTrigger)"
 progress:
   total_phases: 15
   completed_phases: 14
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 67 (stat-01-2026-07-07) — EXECUTING
 Plan: 3 of 3
-Last activity: 2026-07-13 - Completed quick task 260713-d8t: Claude Code hooks 추가 (Stop MSBuild 게이트 + orphan .cs/C#8/HALCON SetColor 경고)
+Last activity: 2026-07-13 - Completed quick task 260713-ej3: MainView 임시 수동 Z축 트리거 UI (DebugManualZTrigger — POC 자동 Z축 연동 전까지 브리지)
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -439,11 +439,13 @@ Recent decisions affecting current work:
 - [Phase 67-02]: distinct RecipeNames 는 필터 적용 전 전체 수집 — 드롭다운 전체 후보 노출(D-11)
 - StatisticsWindow — ReviewerWindow 완전 미러(비모달/mXxxWindow 재사용) + ChartDirector 최초 in-repo 사용(XYChart addBarLayer/addLineLayer/Axis.addMark)
 - 히스토그램 USL/LSL 은 bin 인덱스로 환산해 addBarLayer 기본 정수 x축 스케일에 맞춰 addMark 전달
+- quick-260713-ej3: DebugManualZTrigger wrapper + MainView 임시 수동 Z축 트리거 UI 추가 — IAxisController 구현 전까지 POC 브리지
 
 ### Quick Tasks Completed
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| 260713-ej3 | 2026-07-13 | MainView에 **임시** 수동 Z축 트리거 UI 추가 — POC 장비의 자동 Z축 연동(IAxisController) 붙기 전까지, 조작자가 수동 지그로 맞춘 z_index를 로컬에서 시스템에 알려 검사를 트리거하는 브리지. **배경**: 지금까지 Z축은 실제 TCP `$PREP`+`$TEST` 패킷 외엔 트리거할 방법이 없었음(로컬 UI 부재, `ShotConfig.ZIndex`는 레시피 설계용 정적 매핑일 뿐 실행 트리거 아님, `MainWindow.StartSequence`는 호출부 0건 죽은 코드였음). (1) `Custom/SystemHandler.cs`에 `internal bool DebugManualZTrigger(string seqName, int zIndex)` 추가 — `PrepPacket{ZIndex,Op=1}`→**실제 프로덕션 경로**인 private `ProcessPrep`(조명 적용+`_lastPrepZIndex`저장) 호출→성공 시에만 `TestPacket{Identifier=seqName}`→private `ProcessTest`(`StartAll`/`Start`로 실제 검사 트리거) 순서 호출, PREP 실패 시 TEST 미진행. `ProcessPrep`/`ProcessTest`/`StartAll`/`Sequences.Start` 시그니처·로직은 **무변경**(호출만 추가, git diff로 확인). (2) `MainView.xaml`에 5번째 RowDefinition(Row 4, WPF 전용 — HWindowControlWPF airspace 문제 있는 Row 1과 분리)을 추가 순수 additive로 배치, 경고색(`#4A2A00`/`#FFA500`) 패널로 프로덕션 제어부와 시각 구분 + "[임시 테스트용]" 라벨. `MainView.xaml.cs`에 `PopulateManualZSeqCombo()`(Loaded 시 시퀀스 목록 채움)+`ManualZTriggerButton_Click`(z_index 파싱+wrapper 호출+로그/메시지박스, try/catch) 추가. **삭제 조건 명시**: 코드/XAML 양쪽에 "IAxisController 실제 구현 완료 시 이 메서드/패널 전체 삭제" 한글 주석(날짜+이니셜 컨벤션 미사용, 2026-06-11 폐기 반영). 삼항연산자 0건, 파일별 브레이스 스타일(SystemHandler=Allman/MainView.xaml.cs=K&R) 준수. 검증: Debug\|x64 MSBuild 빌드 PASS(에러 0, 신규 경고 0), `git diff`로 프로덕션 경로 무변경 확인. **미검증**: 실제 SIMUL_MODE 앱 실행으로 버튼 클릭→조명 적용+시퀀스 트리거 육안 확인은 미수행(코드/빌드 레벨 검증까지만). | 3b0c5ee, 9157150 | 빌드 PASS · 정적 검증 PASS · 실행 UAT(버튼 클릭 육안 확인) 대기 |
 | 260713-d8t | 2026-07-13 | Claude Code hooks 추가 — 프로젝트 레벨 `.claude/settings.json`(커밋 대상, settings.local.json과 별개) + Node.js 훅 3종. (1) **Stop 훅** `stop-build-verify.js`: 이번 세션에서 `.cs`가 dirty할 때만 MSBuild Debug\|x64 증분빌드 실행, `error CS` 검출 시 `{"decision":"block"}`로 세션 종료 차단(빌드 에러 내용 피드백), MSBuild 부재/타임아웃/그 외 모든 실패는 fail-open(세션 브릭 방지). (2) **PostToolUse(Write) 훅** `orphan-cs-detect.js`: 새 `.cs`가 csproj `<Compile Include>`에 없으면 비차단 경고(컴파일 안 됨을 즉시 알림), 날짜 백업 파일(`_MMDD`)은 스킵. (3) **PostToolUse(Edit\|Write) 훅** `cs-style-warn.js`: added-line(Edit는 new_string만, Write는 전체)만 스캔해 C# 8+ 문법(`record`/`??=`/`using var` — x64 빌드가 LangVersion 미강제라 컴파일러가 못 막는 실제 갭)과 HALCON `SetColor` 비표준 색상명(과거 2회 실사고: 예외→catch swallow→렌더 silent 미표시)을 비차단 경고. 3개 훅 전부 stdin 파싱 실패/예외 시 fail-open. **실행 중 수정 1건**: 훅 커맨드의 `$CLAUDE_PROJECT_DIR`(bare)를 공식 문서 규격인 `${CLAUDE_PROJECT_DIR}`(중괄호)로 정정 — PowerShell 기본 셸에서 bare $VAR는 미치환 위험. 오탐 0 검증(orphan 0건/C#8+HALCON 0건/기존 코드 대상 스캔 안 함), 실제 MSBuild 클린 빌드 확인, synthetic stdin 전수 스모크 테스트 PASS, 실제 Edit 툴로 라이브 훅 발화 확인 후 원복. `.gitignore`는 `.claude/*` + 명시적 negation으로 재구성(`settings.local.json`/`worktrees/`는 계속 무시). | d450880, 0555a3a | 빌드 PASS · 스모크테스트 전수 PASS · 세션 재시작 후 실제 Stop/PostToolUse 발화 확인 권장 |
 | 260710-j05 | 2026-07-10 | 티칭 desync 차단 + 무위험 죽은코드 정리 (**회귀 0 최우선** — 사용자 명시 "되던 것도 안 되면 안 된다"). **배경**: 티칭 계층 2갈래 병렬 감사 결과, Teach↔Find 알고리즘 대칭(gen_rectangle2 L1/L2, measurePhi, 부호, EdgeSelection)은 **견고**하고 DualImage SameFrame은 코드로 강제되나, **산출물 수명주기**에 구멍 발견. (1) **desync 차단**: "패턴 모델 생성" 시 `.shm`은 WriteShapeModel로 즉시 디스크 기록되나 RefMatchRow/Col/AngleDeg는 in-memory DatumConfig에만 → Recipe Save 없이 종료 시 `.shm`(신규)↔RefMatch(구/0) 불일치 → 런타임 `curPose-RefMatch` 대변위 → **조용히 틀린 정렬**(CameraRole Datum 소실 3faa91b와 동형). 수정=MainView.xaml.cs:3027 성공모달 1줄만 `ShowConfirmation(YesNo)`로 교체, Yes→기존 `mw.SaveRecipe()` 재사용(try/catch 가드, 실패해도 티칭상태 유지), No→오늘과 동일. **엄격 additive**: TryCreateModel/TryFindRefPose 호출·패턴2 분기·alignMsg 조립·실패경로 3종 문구 **diff상 무변경 확인**. (2) 참조 0 죽은코드 삭제: JobPosition.cs(31줄, csproj:587 Compile Include 동반 제거) + TeachingStorageService.BuildTeachingPath + PatternMatchService.TryBuildAlignRigid. 검증: 5파일만 변경, 삭제파일 1개, AlignShapeMatchService/ParamBase/DatumFindingService/InspectionListView **무손상**, Debug/x64 Rebuild PASS(신규 오류 0). **미처리 carry-over(범위 밖, 동작 변경 수반)**: Datum 삭제·개명·PatternEngine 전환 시 `.shm` 고아+stale RefMatch(File.Delete 호출 0건) / NormalizeTeachingKey 부분문자열 매칭 충돌 / 확장자 상수 이중정의(DeviceHandler:87-88 vs PatternMatchService:22-25, 092391b 유실 이력) / ParamBase.Load 0-클로버 / Circle_RectL1Ratio 0.02 vs clamp 0.05 / 재티칭 2회 중복 / 버그 3건. | 98a4c78, abb306d, 9018e7b | 빌드 PASS · 육안 UAT 3건 대기(Yes 저장/No 동일동작/저장실패시 상태유지) |
 | 260710-fzx | 2026-07-10 | VersionDefine.cs 도입 — 버전 관리 단일 소스화 (FinalVision 패턴 이식, 원본 D:\Backup\파이널비전\FinalVision\WPF_Example\VersionDefine.cs 구조만 참조·복사 아님). **기존 문제: AssemblyVersion("24.11.6.1")과 AssemblyFileVersion("24.12.10.02")가 서로 다른 값으로 하드코딩**되고 RecipeFileHelper.GetVersion()은 런타임에 FileVersionInfo를 읽어 MenuBar에 표시 → 단일 소스 부재. 신규 `WPF_Example/VersionDefine.cs`(namespace ReringProject, Allman): `[AttributeUsage(AllowMultiple=true)] VersionAttribute{Number,Date,Change}` + `[Version(...)]` 스택으로 changelog를 코드에 박고, `public const string VERSION="1.4.0.0"` / `BUILD_DATE="2026-07-10"`. AssemblyVersion/AssemblyFileVersion/GetVersion() 3곳이 모두 이 상수 참조. csproj Compile Include 등록(classic-style, 자동포함 X). **함정**: AssemblyVersion 인자는 컴파일타임 상수 필수 → `static readonly` 쓰면 CS0182. **무손상 확인**: GetDLLVersion(AlligatorAlgMil.dll은 bin/에 실존)/`using System.Diagnostics`/MenuBar 코드 전부 무수정. App.config에 자기자신 bindingRedirect 없어 24.11→1.4 하향 안전. 시작 버전 1.4.0.0 = 마일스톤 v1.4 일치(git tag v1.0/v1.1 연속성). changelog는 "지금부터 쌓기"(과거 이력 seed X — STATE.md/git에 이미 존재). 검증: Debug/x64 Rebuild PASS(신규 오류 0), **exe FileVersion=1.4.0.0 실측 확인**, 하드코딩 잔존 0. **버전 올리는 절차 = VersionDefine.cs의 VERSION/BUILD_DATE 수정 + 그 위에 [Version] 항목 새로 쌓기.** | dad5b32 | 빌드 PASS · exe 1.4.0.0 확인 · UI 육안(MenuBar "Platform : 1.4.0.0") 대기 |
@@ -582,9 +584,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 41.1 context gathered (갱신 스코프: raw CSV 매트릭스 + 멀티샷 오프라인 폴더)
-Resume file: --resume-file
+Last session: 2026-07-13T01:37:38.739Z
+Stopped at: Completed quick-260713-ej3: 수동 Z축 트리거 UI (POC)
+Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 
 **v1.1 Phase Map:**

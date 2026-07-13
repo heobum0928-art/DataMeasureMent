@@ -143,6 +143,99 @@ namespace ReringProject.Sequence {
             ShotName = name;
         }
 
+        // 안전장치: 구 레시피(채널 키 없음) 로드 시 Ring/Bar 전소등 회귀 방지.
+        //  ParamBase.Load 는 INI 누락 키를 0/false 로 덮어쓴다 — 신규 채널 키가 없는 구 레시피는
+        //  base.Load 직후 RingLight_Brightness_1~6/Enabled_1~6, SideLight_Brightness_1~4/Enabled_1~4 가 전부 0/false 로 로드된다.
+        //  CameraSlaveParam.Load(CorrectionFactor 복원) 선례를 그대로 따라, 신규 키 부재 시에만 구 통합 필드 값을 채널 전체로 브로드캐스트한다.
+        //  신규 키가 이미 있으면(채널별 저장된 레시피) 아무것도 하지 않는다 — ParamBase 가 채널별로 정확히 로드했기 때문.
+        public override bool Load(IniFile loadFile, string groupName) {
+            bool result = base.Load(loadFile, groupName);
+
+            IniSection sec;
+            bool bHasSection = loadFile.TryGetSection(groupName, out sec) && sec != null;
+
+            bool bHasRingChannelKeys = bHasSection && sec.ContainsKey("RingLight_Brightness_1");
+            if (!bHasRingChannelKeys) {
+                RingLight_Enabled_1 = RingLight_Enabled;
+                RingLight_Enabled_2 = RingLight_Enabled;
+                RingLight_Enabled_3 = RingLight_Enabled;
+                RingLight_Enabled_4 = RingLight_Enabled;
+                RingLight_Enabled_5 = RingLight_Enabled;
+                RingLight_Enabled_6 = RingLight_Enabled;
+                RingLight_Brightness_1 = RingLight_Brightness;
+                RingLight_Brightness_2 = RingLight_Brightness;
+                RingLight_Brightness_3 = RingLight_Brightness;
+                RingLight_Brightness_4 = RingLight_Brightness;
+                RingLight_Brightness_5 = RingLight_Brightness;
+                RingLight_Brightness_6 = RingLight_Brightness;
+            }
+
+            bool bHasBarChannelKeys = bHasSection && sec.ContainsKey("SideLight_Brightness_1");
+            if (!bHasBarChannelKeys) {
+                SideLight_Enabled_1 = SideLight_Enabled;
+                SideLight_Enabled_2 = SideLight_Enabled;
+                SideLight_Enabled_3 = SideLight_Enabled;
+                SideLight_Enabled_4 = SideLight_Enabled;
+                SideLight_Brightness_1 = SideLight_Brightness;
+                SideLight_Brightness_2 = SideLight_Brightness;
+                SideLight_Brightness_3 = SideLight_Brightness;
+                SideLight_Brightness_4 = SideLight_Brightness;
+            }
+
+            return result;
+        }
+
+        // Copy/Paste(InspectionListView.button_paste_Click) 시 base(CameraSlaveParam.CopyTo)가 다루지 않는
+        //  ShotConfig 고유 필드를 보완 복사한다 — 기존엔 override 가 없어 조명 필드가 전혀 복사되지 않던 버그였다.
+        //  ShotName/FAIList/_image 는 이름 충돌·이미지 소유권 문제로 의도적으로 제외한다.
+        public override bool CopyTo(ParamBase param) {
+            bool result = base.CopyTo(param);
+            ShotConfig target = param as ShotConfig;
+            if (target == null) return result;
+
+            // PixelResolution/CorrectionFactor 는 CameraSlaveParam 소유이나 CameraSlaveParam.CopyTo 가 복사하지 않으므로 여기서 보완.
+            target.PixelResolution = PixelResolution;
+            target.CorrectionFactor = CorrectionFactor;
+
+            // Ring 6채널
+            target.RingLight_Enabled_1 = RingLight_Enabled_1;
+            target.RingLight_Brightness_1 = RingLight_Brightness_1;
+            target.RingLight_Enabled_2 = RingLight_Enabled_2;
+            target.RingLight_Brightness_2 = RingLight_Brightness_2;
+            target.RingLight_Enabled_3 = RingLight_Enabled_3;
+            target.RingLight_Brightness_3 = RingLight_Brightness_3;
+            target.RingLight_Enabled_4 = RingLight_Enabled_4;
+            target.RingLight_Brightness_4 = RingLight_Brightness_4;
+            target.RingLight_Enabled_5 = RingLight_Enabled_5;
+            target.RingLight_Brightness_5 = RingLight_Brightness_5;
+            target.RingLight_Enabled_6 = RingLight_Enabled_6;
+            target.RingLight_Brightness_6 = RingLight_Brightness_6;
+
+            // Bar 4채널
+            target.SideLight_Enabled_1 = SideLight_Enabled_1;
+            target.SideLight_Brightness_1 = SideLight_Brightness_1;
+            target.SideLight_Enabled_2 = SideLight_Enabled_2;
+            target.SideLight_Brightness_2 = SideLight_Brightness_2;
+            target.SideLight_Enabled_3 = SideLight_Enabled_3;
+            target.SideLight_Brightness_3 = SideLight_Brightness_3;
+            target.SideLight_Enabled_4 = SideLight_Enabled_4;
+            target.SideLight_Brightness_4 = SideLight_Brightness_4;
+
+            // 구 통합 필드(Ring/Side) + Back/Coax/Ring7 — 마이그레이션 소스/기존 그룹 필드도 함께 복사.
+            target.RingLight_Enabled = RingLight_Enabled;
+            target.RingLight_Brightness = RingLight_Brightness;
+            target.BackLight_Enabled = BackLight_Enabled;
+            target.BackLight_Brightness = BackLight_Brightness;
+            target.CoaxLight_Enabled = CoaxLight_Enabled;
+            target.CoaxLight_Brightness = CoaxLight_Brightness;
+            target.SideLight_Enabled = SideLight_Enabled;
+            target.SideLight_Brightness = SideLight_Brightness;
+            target.Ring7Light_Enabled = Ring7Light_Enabled;
+            target.Ring7Light_Brightness = Ring7Light_Brightness;
+
+            return true;
+        }
+
         /// <summary>
         /// 입력된 HImage 를 내부 buffer 에 clone 하여 보관한다.
         /// 기존 _image 가 있으면 자동으로 Dispose 후 교체된다.

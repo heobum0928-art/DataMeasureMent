@@ -112,6 +112,51 @@ namespace ReringProject.UI {
             DrawScale = pDev.Config.DrawScale;
             UpdatePointerLabel(0, 0, null);
             PreviewKeyDown += MainView_PreviewKeyDown;
+
+            PopulateManualZSeqCombo(); // [임시 / TEMP] 수동 Z 트리거 콤보 채우기
+        }
+
+        // [임시 / TEMP] 수동 Z 트리거. IAxisController 자동 Z축 구현 완료 시 이 메서드/핸들러 + XAML 패널 삭제.
+        private void PopulateManualZSeqCombo() {
+            if (SystemHandler.Handle == null || SystemHandler.Handle.Sequences == null) {
+                return;
+            }
+            SequenceHandler seqHandler = SystemHandler.Handle.Sequences;
+            combo_ManualZSeq.Items.Clear();
+            for (int i = 0; i < seqHandler.Count; i++) {
+                combo_ManualZSeq.Items.Add(seqHandler[i].Name);
+            }
+            if (seqHandler.Count > 0) {
+                combo_ManualZSeq.SelectedIndex = 0;
+            }
+        }
+
+        // [임시 / TEMP] 수동 Z 트리거. IAxisController 자동 Z축 구현 완료 시 이 메서드/핸들러 + XAML 패널 삭제.
+        private void ManualZTriggerButton_Click(object sender, RoutedEventArgs e) {
+            try {
+                if (combo_ManualZSeq.SelectedItem == null) {
+                    MessageBox.Show("시퀀스를 선택하세요");
+                    return;
+                }
+                int nZIndex;
+                bool bParsed = int.TryParse(txt_ManualZIndex.Text, out nZIndex);
+                if (!bParsed) {
+                    MessageBox.Show("z_index 는 정수를 입력하세요");
+                    return;
+                }
+                string seqName = combo_ManualZSeq.SelectedItem.ToString();
+                bool bOk = SystemHandler.Handle.DebugManualZTrigger(seqName, nZIndex);
+                if (bOk) {
+                    Logging.PrintLog((int)ELogType.Trace, "[임시 수동Z트리거 UI] 시퀀스={0} z_index={1} 성공", seqName, nZIndex);
+                    MessageBox.Show(string.Format("트리거 성공\n시퀀스: {0}\nz_index: {1}", seqName, nZIndex));
+                } else {
+                    Logging.PrintLog((int)ELogType.Error, "[임시 수동Z트리거 UI] 시퀀스={0} z_index={1} 실패", seqName, nZIndex);
+                    MessageBox.Show(string.Format("트리거 실패\n시퀀스: {0}\nz_index: {1}", seqName, nZIndex));
+                }
+            } catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[임시 수동Z트리거 UI] 예외: {0}", ex.Message);
+                MessageBox.Show("수동 Z 트리거 중 예외 발생: " + ex.Message);
+            }
         }
 
         /// <summary>Displays the shot image associated with the selected FAIConfig. Per D-12.

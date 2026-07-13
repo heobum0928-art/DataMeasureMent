@@ -135,6 +135,8 @@
             <RowDefinition Height="6*"/>
             <RowDefinition Height="5"/>
             <RowDefinition Height="4*"/>
+            <!-- [임시 / TEMP] 수동 Z축 트리거 패널용 Row (Row 4). IAxisController 구현 완료 시 이 RowDefinition + 아래 panel_ManualZTrigger Border 삭제. -->
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Phase 2 Canvas Toolbar — Row 분리 (HWindowControlWPF는 Win32 호스팅이라 ZIndex 오버레이 불가) -->
@@ -537,5 +539,24 @@
                 <DataGridTextColumn Header="판정" Binding="{Binding JudgeText}" Width="Auto"/>
             </DataGrid.Columns>
         </DataGrid>
+
+        <!-- [임시 / TEMP] 수동 Z축 트리거 패널. 자동 Z축(IAxisController) 구현 완료 시 이 Border 전체 + RowDefinition(Row 4) 삭제. -->
+        <Border x:Name="panel_ManualZTrigger" Grid.Row="4"
+                Background="#4A2A00" BorderBrush="#FFA500" BorderThickness="0,2,0,0"
+                Padding="12,6">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="[임시 테스트용 — POC 자동화(IAxisController) 전까지만 사용]"
+                           Foreground="#FFC107" FontWeight="SemiBold" FontSize="13"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <Label Content="시퀀스:" Foreground="White" VerticalContentAlignment="Center"/>
+                <ComboBox x:Name="combo_ManualZSeq" Width="160" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Label Content="z_index:" Foreground="White" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="txt_ManualZIndex" Width="60" Text="0" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Button x:Name="btn_ManualZTrigger" Content="수동 트리거 실행"
+                        Click="ManualZTriggerButton_Click"
+                        Height="28" Padding="12,4" VerticalAlignment="Center"
+                        Background="#FFA500" Foreground="Black" FontWeight="SemiBold"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

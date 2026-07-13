@@ -57,10 +57,35 @@ namespace ReringProject.Sequence {
         //  ※ INI 호환 위해 PascalCase 프로퍼티명 유지(ParamBase 키=프로퍼티명) — 헝가리언 예외(직렬화 필드, D-10 적용범위 밖).
         public int ZIndex { get; set; } = 0;
 
-        // Multi-Light — Ring/Back/Coax/Side 조명 필드 8개
+        // Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (Ring/Bar 는 채널별 개별 제어로 대체, 아래 20개 참조)
+        // 구 통합 필드 — PropertyGrid 에서 숨기되 삭제하지 않는다. Ring/Bar 채널별 키가 없는 구 레시피의 마이그레이션 소스(Load override)이자
+        // 구버전 롤백 시 graceful downgrade 경로다. INI 키/직렬화는 그대로 유지된다.
+        [Browsable(false)]
         [Category("Light|Ring")]
         public bool RingLight_Enabled { get; set; }
+        [Browsable(false)]
         public int RingLight_Brightness { get; set; }
+
+        // Ring 6채널 개별 밝기(0~255) + On/Off. 구 레시피(채널 키 없음)는 Load override 가 위 구 필드 값을 6채널 전부로 브로드캐스트한다.
+        [Category("Light|Ring")]
+        public bool RingLight_Enabled_1 { get; set; }
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_1 { get; set; }
+        public bool RingLight_Enabled_2 { get; set; }
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_2 { get; set; }
+        public bool RingLight_Enabled_3 { get; set; }
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_3 { get; set; }
+        public bool RingLight_Enabled_4 { get; set; }
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_4 { get; set; }
+        public bool RingLight_Enabled_5 { get; set; }
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_5 { get; set; }
+        public bool RingLight_Enabled_6 { get; set; }
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_6 { get; set; }
 
         [Category("Light|Back")]
         public bool BackLight_Enabled { get; set; }
@@ -72,9 +97,27 @@ namespace ReringProject.Sequence {
         [Browsable(false)]   //260626 hbk Phase 66 IN-01: CoaxLight_Brightness 도 PropertyGrid 에서 숨김(동축 2필드 모두 숨김). INI 키 보존(하위호환).
         public int CoaxLight_Brightness { get; set; }
 
+        // 구 통합 필드 — Bar 4채널 개별 제어로 대체. 사유/보존 정책은 위 RingLight_Enabled 주석과 동일.
+        [Browsable(false)]
         [Category("Light|Side")]
         public bool SideLight_Enabled { get; set; }
+        [Browsable(false)]
         public int SideLight_Brightness { get; set; }
+
+        // Bar 4채널 개별 밝기(0~255) + On/Off. 프로퍼티명 접두사는 INI 하위호환 위해 기존 SideLight_ 유지(물리 조명은 Bar).
+        [Category("Light|Bar")]
+        public bool SideLight_Enabled_1 { get; set; }
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_1 { get; set; }
+        public bool SideLight_Enabled_2 { get; set; }
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_2 { get; set; }
+        public bool SideLight_Enabled_3 { get; set; }
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_3 { get; set; }
+        public bool SideLight_Enabled_4 { get; set; }
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_4 { get; set; }
 
         [Category("Light|Ring7")]   //260626 hbk Phase 66 D-01: Ring7 조명 추가(자유 조합) — Ring/Back/Bar/Ring7 4종
         public bool Ring7Light_Enabled { get; set; }   //260626 hbk Ring7 ON/OFF

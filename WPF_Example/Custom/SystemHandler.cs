@@ -732,6 +732,45 @@ namespace ReringProject {
             return ackPacket;
         }
 
+        // [임시 / TEMP] 수동 Z축 트리거 브리지.
+        // 존재 이유: Z축을 아직 수동 지그(다이얼)로 맞추는 단계라, 조작자가 맞춘 z_index 로
+        //   검사를 돌리도록 알리는 로컬 경로가 없다($PREP+$TEST TCP 패킷만 존재). 이 wrapper 는
+        //   그 두 패킷을 코드로 만들어 실제 처리 경로(ProcessPrep→ProcessTest)로 그대로 흘려보낸다.
+        // 삭제 조건: POC 장비의 자동 Z축(IAxisController) 실제 구현이 완료되면
+        //   이 메서드 전체 + MainView 의 수동 Z 트리거 UI 패널 전체를 삭제할 것.
+        // 주의: ProcessPrep/ProcessTest 는 프로덕션 TCP 경로 — 시그니처/로직 변경 금지, 호출만 한다.
+        internal bool DebugManualZTrigger(string seqName, int zIndex)
+        {
+            bool bHasSeqName = !string.IsNullOrEmpty(seqName);
+            if (!bHasSeqName)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[임시 수동Z트리거] 시퀀스 이름이 비어있음 — 트리거 취소");
+                return false;
+            }
+
+            PrepPacket prepPacket = new PrepPacket();
+            prepPacket.ZIndex = zIndex;
+            prepPacket.Op = 1;
+            PrepAckPacket ack = ProcessPrep(prepPacket);
+
+            bool bPrepOk = ack != null && ack.IsOk;
+            if (!bPrepOk)
+            {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[임시 수동Z트리거] 시퀀스={0} z_index={1} PREP 실패 — TEST 진행하지 않음", seqName, zIndex);
+                return false;
+            }
+
+            TestPacket testPacket = new TestPacket();
+            testPacket.Identifier = seqName;
+            bool bTestOk = ProcessTest(testPacket);
+
+            Logging.PrintLog((int)ELogType.Trace,
+                "[임시 수동Z트리거] 시퀀스={0} z_index={1} PREP={2} TEST={3}", seqName, zIndex, bPrepOk, bTestOk);
+
+            return bTestOk;
+        }
+
         //260625 hbk Phase 64 LIGHT-01: Sequences 순회 → InspectionSequence 찾기 → ApplyShotLights 호출.
         //  하나라도 성공하면 true 반환. 매칭 InspectionSequence 없으면 false.
         private bool ApplyPrepToSequences(int nZIndex)

@@ -343,21 +343,19 @@ namespace ReringProject.Sequence {
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Phase 66: Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
         }
 
-        //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 4종 조명 → LightHandler 5종 그룹 적용.
-        //  RingLight → RING / BackLight → BACK / CoaxLight → ALIGN_COAX / SideLight → BAR / Ring7Light → RING7   //260626 hbk Phase 66 Ring7 추가
+        //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 조명 → LightHandler 적용.
+        //  Ring → RING_CH1~6 채널별 개별 적용 / Bar → BAR_1~4 채널별 개별 적용 (quick-260713-nse: 그룹→채널 개별 전환)
+        //  Back → BACK 그룹 / Coax → ALIGN_COAX 그룹 / Ring7 → RING7 그룹 (1채널이라 그룹 API 그대로 유지)
         //  Enabled=true: SetOnOff(true) 먼저, 이후 SetLevel (ApplyLight 순서 동일).
         //  Enabled=false: SetOnOff(false) 만 호출.
         private void ApplyShotLightsInternal(ShotConfig shot)
         {
-            if (shot.RingLight_Enabled)
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_RING, shot.RingLight_Brightness);
-            }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING, false);
-            }
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH1, shot.RingLight_Enabled_1, shot.RingLight_Brightness_1);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH2, shot.RingLight_Enabled_2, shot.RingLight_Brightness_2);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH3, shot.RingLight_Enabled_3, shot.RingLight_Brightness_3);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH4, shot.RingLight_Enabled_4, shot.RingLight_Brightness_4);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH5, shot.RingLight_Enabled_5, shot.RingLight_Brightness_5);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH6, shot.RingLight_Enabled_6, shot.RingLight_Brightness_6);
 
             if (shot.BackLight_Enabled)
             {
@@ -379,15 +377,10 @@ namespace ReringProject.Sequence {
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
             }
 
-            if (shot.SideLight_Enabled)
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_BAR, shot.SideLight_Brightness);
-            }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, false);
-            }
+            ApplyChannelLight(LightHandler.LIGHT_BAR_1, shot.SideLight_Enabled_1, shot.SideLight_Brightness_1);
+            ApplyChannelLight(LightHandler.LIGHT_BAR_2, shot.SideLight_Enabled_2, shot.SideLight_Brightness_2);
+            ApplyChannelLight(LightHandler.LIGHT_BAR_3, shot.SideLight_Enabled_3, shot.SideLight_Brightness_3);
+            ApplyChannelLight(LightHandler.LIGHT_BAR_4, shot.SideLight_Enabled_4, shot.SideLight_Brightness_4);
 
             if (shot.Ring7Light_Enabled)   //260626 hbk Phase 66 D-02: Ring7Light → LIGHT_RING7 매핑 추가(검사 조명 정합)
             {
@@ -397,6 +390,21 @@ namespace ReringProject.Sequence {
             else
             {
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Ring7 OFF
+            }
+        }
+
+        // 채널 하나의 On/Off + 밝기 적용. Enabled=true 면 On 후 SetLevel, false 면 Off 만 (기존 그룹 로직과 순서 동일).
+        //  Ring/Bar 채널별 반복 호출 지점(ApplyShotLightsInternal) 코드 중복 축소용 헬퍼.
+        private void ApplyChannelLight(string channelName, bool bEnabled, int nBrightness)
+        {
+            if (bEnabled)
+            {
+                LightHandler.Handle.SetChannelOnOff(channelName, true);
+                LightHandler.Handle.SetChannelLevel(channelName, nBrightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetChannelOnOff(channelName, false);
             }
         }
 

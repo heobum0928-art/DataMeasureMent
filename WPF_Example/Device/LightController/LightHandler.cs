@@ -197,6 +197,42 @@ namespace ReringProject.Device {
             return true;
         }
 
+        // 채널명 → (controllerIndex, channel) 조회. RegisterLightController 의 SetChannelNames 등록명을 그대로 검색한다.
+        //  인덱스 하드코딩 시 Bar(Controller B ch1~4) 를 ch0 부터 쓰면 백라이트(ch0)를 오작동시키므로 이름 기반 조회를 강제한다.
+        public bool TryFindChannel(string channelName, out int index, out int channel) {
+            index = -1;
+            channel = -1;
+            for (int i = 0; i < Controllers.Count; i++) {
+                VirtualLightController con = Controllers[i];
+                for (int j = 0; j < con.ChannelCount; j++) {
+                    if (con[j].Name == channelName) {
+                        index = con.Index;
+                        channel = j;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 채널명 기반 개별 On/Off — 기존 그룹 오버로드 SetOnOff(string groupName, bool) 와 시그니처가 겹치므로 별도 이름으로 신설.
+        public bool SetChannelOnOff(string channelName, bool onOff) {
+            int index, channel;
+            if (!TryFindChannel(channelName, out index, out channel)) return false;
+            SetOnOff(index, channel, onOff);
+            Logging.PrintLog((int)ELogType.LightController, "{0} - Set On : {1}", channelName, onOff);
+            return true;
+        }
+
+        // 채널명 기반 개별 밝기 — 기존 그룹 오버로드 SetLevel(string groupName, int) 와 시그니처가 겹치므로 별도 이름으로 신설.
+        public bool SetChannelLevel(string channelName, int level) {
+            int index, channel;
+            if (!TryFindChannel(channelName, out index, out channel)) return false;
+            SetLevel(index, channel, level);
+            Logging.PrintLog((int)ELogType.LightController, "{0} - Set Level : {1}", channelName, level);
+            return true;
+        }
+
         public int GetLevelMin(int index) {
             return Controllers[index].MinLevel;
         }

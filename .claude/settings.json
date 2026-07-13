@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-build-verify.js\""
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/stop-build-verify.js\""
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/orphan-cs-detect.js\""
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/orphan-cs-detect.js\""
           }
         ]
       },
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/cs-style-warn.js\""
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/cs-style-warn.js\""
           }
         ]
       }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using HalconDotNet;
+using ReringProject.Setting;   // ELogType
+using ReringProject.Utility;   // Logging
 
 namespace ReringProject.Halcon.Algorithms
 {
@@ -120,15 +122,32 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple allRows = new HTuple();
                 HTuple allCols = new HTuple();
 
+                // strip 성공/실패 관측용 카운터 (판정에는 미사용 — 로그 전용)
+                int okStrips = 0;
+                int noEdgeStrips = 0;
+                int failedStrips = 0;
+
                 if (scanHorizontal)
                 {
                     for (int i = 0; i < stripCount; i++)
                     {
                         double r1 = top + (i * heightPx / stripCount);
                         double r2 = top + ((i + 1) * heightPx / stripCount);
-                        AppendStrip(image, r1, left, r2, right, imageWidth, imageHeight,
+                        EStripResult sr = AppendStrip(image, r1, left, r2, right, imageWidth, imageHeight,
                             Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel,
                             ref allRows, ref allCols);
+                        if (sr == EStripResult.Ok)
+                        {
+                            okStrips++;
+                        }
+                        else if (sr == EStripResult.NoEdge)
+                        {
+                            noEdgeStrips++;
+                        }
+                        else
+                        {
+                            failedStrips++;
+                        }
                     }
                 }
                 else
@@ -137,15 +156,40 @@ namespace ReringProject.Halcon.Algorithms
                     {
                         double c1 = left + (i * widthPx / stripCount);
                         double c2 = left + ((i + 1) * widthPx / stripCount);
-                        AppendStrip(image, top, c1, bottom, c2, imageWidth, imageHeight,
+                        EStripResult sr = AppendStrip(image, top, c1, bottom, c2, imageWidth, imageHeight,
                             Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel,
                             ref allRows, ref allCols);
+                        if (sr == EStripResult.Ok)
+                        {
+                            okStrips++;
+                        }
+                        else if (sr == EStripResult.NoEdge)
+                        {
+                            noEdgeStrips++;
+                        }
+                        else
+                        {
+                            failedStrips++;
+                        }
                     }
                 }
 
                 //260622 hbk Phase 57.1 trim 통일 — 공유 헬퍼로 단일 소스화 (위치축 정렬 + 양끝 각 %(0~49) 절사)
                 SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
                 int edgeCount = allRows.TupleLength();
+
+                // strip 성공률 관측 로그 — 실패 경로(edgeCount < 2)에서도 통계가 남도록 게이트 앞에 배치
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[FitLine] strips ok {0}/{1} (noEdge {2}, failed {3}) -> {4} edge points",
+                        okStrips, stripCount, noEdgeStrips, failedStrips, edgeCount));
+
+                // 커버리지 저조 = 피팅 신뢰도 경고. 판정은 바꾸지 않고 로그만 남긴다(관측 전용 단계).
+                if (okStrips * 2 < stripCount)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        string.Format("[FitLine] low strip coverage: ok {0}/{1} (noEdge {2}, failed {3}) sigma={4:F2} threshold={5} polarity={6}",
+                            okStrips, stripCount, noEdgeStrips, failedStrips, sigma, threshold, pol));
+                }
 
                 if (edgeCount < 2)
                 {
@@ -160,6 +204,16 @@ namespace ReringProject.Halcon.Algorithms
 
                 row1 = lr1.D; col1 = lc1.D;
                 row2 = lr2.D; col2 = lc2.D;
+
+                // 피팅 잔차(df) 관측 로그 — 판정에는 사용하지 않고 기록만 한다
+                double fitResidual = -1.0;   // df 부재 sentinel
+                if (df != null && df.Length > 0)
+                {
+                    fitResidual = df.D;
+                }
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[FitLine] fit residual(df)={0:F4} from {1} edges (strips ok {2}/{3})",
+                        fitResidual, edgeCount, okStrips, stripCount));
 
                 // opt-in: 라인 피팅에 사용된 trim 후 raw 에지점들을 caller list 에 누적 (overlay 가시화용)
                 if (collectedEdges != null)
@@ -203,12 +257,20 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
+        // strip 결과 구분: 에지 0개(NoEdge)와 예외(Failed)를 나눠 세기 위함
+        private enum EStripResult
+        {
+            Ok = 0,
+            NoEdge = 1,
+            Failed = 2,
+        }
+
         // 단일 strip 에서 MeasurePos 실행 후 edge 점 누적.
         //  polarity: 이 헬퍼는 Halcon polarity 문자열("positive"/"negative")을 그대로 받는다 (caller 에서 매핑 완료).
         //  measurePhi: caller 가 direction 매핑 + rPhi 회전 보정을 합산한 값을 전달
         //    → 헬퍼는 SmallestRectangle2 자동 phi(rp) 를 쓰지 않고 전달받은 measurePhi 만 사용.
-        //  strip 실패(빈 결과 / 예외)는 swallow — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
-        private void AppendStrip(
+        //  strip 실패(빈 결과 / 예외)는 swallow 하되 결과를 반환한다(호출자가 카운트) — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
+        private EStripResult AppendStrip(
             HImage image,
             double row1, double col1, double row2, double col2,
             HTuple imageWidth, HTuple imageHeight,
@@ -235,13 +297,15 @@ namespace ReringProject.Halcon.Algorithms
                     out edgeRows, out edgeCols, out amp, out dist);
                 if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
                 {
-                    return;
+                    return EStripResult.NoEdge;
                 }
                 HOperatorSet.TupleConcat(allRows, edgeRows, out allRows);
                 HOperatorSet.TupleConcat(allCols, edgeCols, out allCols);
+                return EStripResult.Ok;
             }
             catch
             {
+                return EStripResult.Failed;
             }
             finally
             {

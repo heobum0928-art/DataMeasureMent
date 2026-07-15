@@ -77,6 +77,13 @@ namespace ReringProject.Setting {
         [AutoUpdateText]
         public string LightControllerPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"LightController";
 
+        //light config (light.ini — 물리 채널 배선/포트 설정 파일 위치). 다른 D:\Data\* 데이터 경로와 동일하게
+        //  bin 폴더 밖으로 분리 — light.ini 는 로그가 아니라 Recipe/Calibration 과 같은 영속 설정이라 별도 그룹.
+        [Category("Path|Light")]
+        [DirectoryPath]
+        [AutoUpdateText]
+        public string LightConfigPath { get; set; } = @"D:\Data\Light";
+
         [DirectoryPath]
         [AutoUpdateText]
         public string TcpConnectionPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"TcpConnection";
@@ -122,6 +129,12 @@ namespace ReringProject.Setting {
         public bool AutoLogoutWhenRecvTest { get; set; } = true;
 
         public bool SaveFailImage { get; set; } = false;
+
+        // 수동/오프라인 검사 모드. ON 이면 실 카메라 빌드에서도 라이브 grab 대신 노드별 저장 이미지로 검사한다.
+        //  (Z 모터 없는 메뉴얼 지그: 사람이 datum/shot Z 를 맞춰 미리 이미지를 확보 후 그 이미지로 검사.)
+        //  누락 INI 키 → false 로드(ToBool 기본) 이므로 기존 레시피는 자동으로 라이브 grab 유지.
+        [Category("System|Enviroment")]
+        public bool OfflineInspectMode { get; set; } = false;
 
 
         [Category("System|Localize")]

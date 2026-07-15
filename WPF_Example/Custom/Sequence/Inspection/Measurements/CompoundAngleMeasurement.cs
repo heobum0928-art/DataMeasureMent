@@ -15,6 +15,9 @@ namespace ReringProject.Sequence
     {
         public override string TypeName { get { return "CompoundAngle"; } }
 
+        // 각도(deg) 측정 — 길이 스케일 보정계수 미적용.
+        protected override bool AppliesCorrectionFactor { get { return false; } }
+
         // 공통 컨투어 알고리즘 입력 Rect ROI
         [Category("Rect|ROI")]
         public double Rect_Row { get; set; }

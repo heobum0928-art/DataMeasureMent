@@ -34,8 +34,12 @@ namespace ReringProject.Sequence {
         public int PartNo { get; set; }
 
 
+        // ShotConfig/TopInspectionParam/BottomInspectionParam(=CameraSlaveParam 파생) 는 이 필드를 세팅한 적이 없다
+        // (LightGroupName 은 CameraMasterParam.DefaultLight 로만 세팅됨) — 항상 빈 값으로만 보이는 legacy 단일그룹
+        // API 잔재라 PropertyGrid 에서 숨긴다. 채널별 조명은 Light 탭(Category="Light|...")으로 대체됨.
         [Category("Device|Light")]
         [ReadOnly(true)]
+        [Browsable(false)]
         public string LightGroupName {
             get {
                 return _LightGroupName;
@@ -46,7 +50,8 @@ namespace ReringProject.Sequence {
             }
         }
         private string _LightGroupName;
-        
+
+        [Browsable(false)]
         public int LightLevel { get; set; }
 
         [Category("Device|Camera")]

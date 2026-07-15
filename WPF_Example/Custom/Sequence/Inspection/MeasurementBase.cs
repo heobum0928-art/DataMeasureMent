@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Models;
+using ReringProject.Utility;
 
 namespace ReringProject.Sequence
 {
@@ -30,6 +31,21 @@ namespace ReringProject.Sequence
 
         [Category("Measurement|Tolerance")]
         public double NominalValue { get; set; }
+
+        // 측정별 보정계수 — 비전측정값을 현미경 공칭에 트루업하는 곱셈 계수. per-Shot CorrectionFactor(전역 캘리브 간극)
+        //  위에 한 겹 더 얹는 피처별 잔차 보정. 기본 1.0 = 무보정. 각도 측정 타입은 AppliesCorrectionFactor=false 로 미적용.
+        //  ※ 반복성이 확보된 측정에만, 여러 부품 비전↔현미경 상관으로 뽑은 값을 넣을 것(1개로 뽑거나 산포 은폐 금지).
+        //  운용 결정(사용자): 보정은 Shot 계수(CorrectionFactor) 단일 레이어로 관리하고, 안 맞는 포인트는 별도 Shot 으로 분리한다.
+        //   → 이 측정별 계수는 PropertyGrid 에서 숨긴다([Browsable(false)]). 값/직렬화/EvaluateJudgement 적용 로직은 보존(전부 1.0=무보정,
+        //     측정값 변화 0). 다시 노출하려면 [Browsable(false)] 만 제거하면 됨.
+        [Category("Measurement|Tolerance")]
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        [System.ComponentModel.Description("측정별 보정계수(×). 비전측정 → 현미경 공칭 정합용. 1.0=무보정. 각도 측정엔 미적용(길이/거리/직경만).")]
+        public double MeasCorrectionFactor { get; set; } = 1.0;
+
+        // 이 측정 유형에 MeasCorrectionFactor(길이 스케일 보정)를 적용하는지. 각도 타입은 false 로 override(각도는 비율).
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        protected virtual bool AppliesCorrectionFactor { get { return true; } }
 
         [Category("Measurement|Tolerance")]
         [System.ComponentModel.Description("상한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")]
@@ -91,6 +107,12 @@ namespace ReringProject.Sequence
         /// </summary>
         public bool EvaluateJudgement(double value)
         {
+            // 측정별 보정계수(현미경 정합 트루업) — 곱셈, 길이 타입만(각도 override 제외). 부호/절대값·판정·표시 전에 적용해
+            //  LastMeasuredValue 가 보정값으로 기록되게 한다. 계수 ≤0(구 레시피 잔재 등)은 무보정(1.0)으로 안전 처리.
+            if (AppliesCorrectionFactor && MeasCorrectionFactor > 0.0)
+            {
+                value = value * MeasCorrectionFactor;
+            }
             //260616 hbk Phase 51 UAT: 부호 보정 — 반전(-value) 후 절대값(|value|) 순. signed 거리/방향 규약 맞춤. LastMeasuredValue 도 보정값으로 기록(표시/Export 일관).
             if (InvertSign) value = -value;
             if (UseAbsoluteValue) value = System.Math.Abs(value);
@@ -112,6 +134,20 @@ namespace ReringProject.Sequence
             LastJudgement = false;
             LastHasResult = false; // 미측정 상태 복원
             LastSkipReason = null; // datum-skip subtype 리셋
+        }
+
+        // 하위호환: ParamBase.Load 는 INI 누락 double 키를 0 으로 덮어쓴다. 구 레시피엔 MeasCorrectionFactor 키가 없어
+        //  0 으로 로드되면 EvaluateJudgement 에서 value×0=0 → 전 측정 0/NG(회귀). 키 부재 시에만 1.0(무보정) 복원한다.
+        //  (CameraSlaveParam.Load 의 CorrectionFactor 복원과 동일 패턴. 키 존재=사용자 설정값이면 그대로 둠.)
+        public override bool Load(IniFile loadFile, string groupName)
+        {
+            bool result = base.Load(loadFile, groupName);
+            IniSection sec;
+            if (!loadFile.TryGetSection(groupName, out sec) || sec == null || !sec.ContainsKey("MeasCorrectionFactor"))
+            {
+                MeasCorrectionFactor = 1.0;
+            }
+            return result;
         }
     }
 }

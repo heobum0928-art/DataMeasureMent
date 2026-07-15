@@ -15,6 +15,9 @@ namespace ReringProject.Sequence
     {
         public override string TypeName { get { return "EdgeToLineAngle"; } }
 
+        // 각도(deg) 측정 — 길이 스케일 보정계수 미적용.
+        protected override bool AppliesCorrectionFactor { get { return false; } }
+
         [Category("Point|ROI")]
         public double Point_Row { get; set; }
         public double Point_Col { get; set; }

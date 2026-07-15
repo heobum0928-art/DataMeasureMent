@@ -114,10 +114,11 @@ namespace ReringProject {
             long prev = 0; //260528 hbk Phase 38 #11 — 직전 단계 누적 시각 (delta 계산용)
 
             // 1) Light controller open
+            // Site bring-up may wire controllers in one at a time; each controller already
+            // logs its own Open() failure (JPFLightController.Open), so a partial failure here
+            // must not block the whole app the way camera/device init failures do.
             if (Lights.Initialize() == false) {
-                IsInitializeFail = true;
-                //CustomMessageBox.Show("Error", "Light Controller Open Fail", MessageBoxImage.Error);
-                CustomMessageBox.Show("Light Error", "Light Controller Open Fail", MessageBoxImage.Error, true, false);
+                Logging.PrintLog((int)ELogType.LightController, "One or more light controllers failed to open at startup.");
             }
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 1 Lights.Initialize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
             prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11

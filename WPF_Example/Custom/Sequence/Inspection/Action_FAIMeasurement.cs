@@ -88,6 +88,9 @@ namespace ReringProject.Sequence {
                         //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 이전 datumLevelOn/datumLevelAngle 지역변수 제거.
                         foreach (var datum in parentSeq.DatumConfigs) {
                             if (datum == null) continue;
+                            // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
+                            //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
+                            parentSeq.ApplyDatumLights(datum);
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
                                 HImage imgH = null, imgV = null;
                                 try {
@@ -177,6 +180,9 @@ namespace ReringProject.Sequence {
                                 }
                             }
                         }
+                        // Datum grab 동안 켜져 있던 datum 전용 조명을 이 Shot 본연의 조명으로 되돌린다.
+                        //  이후 EStep.Grab 의 측정 grab 이 datum 조명이 아니라 $PREP 로 세팅된 Shot 조명 아래서 이뤄져야 한다.
+                        if (ShotParam != null) parentSeq.ApplyShotLights(ShotParam.ZIndex);
                     }
                     // DatumConfigs 비어있으면 무보정 pass-through — abort 없음 (lenient)
                     Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행
@@ -188,24 +194,14 @@ namespace ReringProject.Sequence {
                         HImage image = null;
                         // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
                         #if SIMUL_MODE
-                        //260616 hbk simul-shot-cascade: SHOT 검사 이미지는 ShotParam.SimulImagePath 단일소스.
-                        //  경로 무효/로드 실패 시 공유 VirtualCamera 캐시(BackgroundImagePath 하드코딩 D:\1.bmp /
-                        //  stale LastGrabHalconImage)로 silent fallback 하던 코드를 제거. fallback 은 ShotParam.SimulImagePath 를
-                        //  카메라에 주입하지 않으므로(ApplyFromParam=register only), 시퀀스 전 SHOT 공유 캐시의 임의 이미지를
-                        //  반환해 경로 오류 SHOT 이 엉뚱/직전 이미지로 측정되는 캐스케이드(번짐) 유발. 무효 경로 SHOT 은
-                        //  image=null 로 유지 → Measure 단계 GetImage()==null 로 해당 SHOT 만 측정 skip, SHOT 간 전파 차단.
-                        if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
-                            try {
-                                image = new HImage(ShotParam.SimulImagePath);
-                            } catch (Exception ex) {
-                                image = null;
-                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' SimulImagePath 로드 실패: " + ex.Message);
-                            }
-                        } else {
-                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' SimulImagePath 비어 있거나 파일 없음 — 이 SHOT 만 측정 skip (공유 카메라 캐시 fallback 차단)");
-                        }
+                        image = LoadShotInspectionImage(); // SIMUL: 항상 저장 이미지(ShotParam.SimulImagePath) 로드
                         #else
-                        image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                        if (SystemSetting.Handle.OfflineInspectMode) {
+                            // 오프라인(수동 지그): 라이브 grab 대신 노드 저장 이미지 로드. 각 SHOT 이 자기 Z 이미지라 정합 성립.
+                            image = LoadShotInspectionImage();
+                        } else {
+                            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                        }
                         #endif
                         if (image != null) {
                             //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
@@ -238,10 +234,8 @@ namespace ReringProject.Sequence {
                                 List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
                                 //260619 hbk per-shot 보정계수 적용 = PixelResolution × CorrectionFactor (단일소스 GetEffectivePixelResolution). PixelResolution 저장값 불변.
                                 double pixRes = ShotParam != null ? ShotParam.GetEffectivePixelResolution() : 1.0; //260615 hbk Phase 42 D-01 Shot 단일소스
-                                //260619 hbk 가드레일: 보정 ±2% 초과 = 분해능/공칭/왜곡 문제 신호(정상 ~0.5%=factor 0.995 는 미발동). 경고만, 측정 계속.
-                                if (ShotParam != null && Math.Abs(ShotParam.CorrectionFactor - 1.0) > 0.02) {
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Shot '" + ShotParam.ShotName + "' CorrectionFactor=" + ShotParam.CorrectionFactor.ToString("F4") + " (±2% 초과) — 분해능/공칭/왜곡 점검 권장, 보정으로 은폐 금지");
-                                }
+                                // (구) ±2% 가드레일 경고 제거 — CorrectionFactor 를 배율 보정(예: 0.72)까지 포함한 단일 보정 knob 으로
+                                //  운용하기로 결정. ±2% 초과가 정상 사용이 되어 매 검사 Error 로그를 헛되이 채우던 노이즈였음(로그 전용, 검사 영향 0).
                                 try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
@@ -312,6 +306,25 @@ namespace ReringProject.Sequence {
             return Context;
         }
 
+        // SIMUL / 오프라인 공용: SHOT 검사 이미지는 ShotParam.SimulImagePath 단일소스. 실패 시 null + 로그.
+        //  경로 무효/로드 실패 시 공유 VirtualCamera 캐시(BackgroundImagePath 하드코딩 / stale LastGrabHalconImage)로
+        //  silent fallback 하지 않는다 — fallback 은 시퀀스 전 SHOT 공유 캐시의 임의 이미지를 반환해 경로 오류 SHOT 이
+        //  엉뚱/직전 이미지로 측정되는 캐스케이드(번짐)를 유발했었다. 무효 경로 SHOT 은 null 로 유지 → Measure 단계
+        //  GetImage()==null 로 해당 SHOT 만 측정 skip, SHOT 간 전파 차단.
+        private HImage LoadShotInspectionImage() {
+            if (ShotParam == null) return null;
+            if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
+                try {
+                    return new HImage(ShotParam.SimulImagePath);
+                } catch (Exception ex) {
+                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 검사이미지 로드 실패: " + ex.Message);
+                    return null;
+                }
+            }
+            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 검사이미지 경로 비어있음/파일없음 — 이 SHOT 만 측정 skip (공유 카메라 캐시 fallback 차단). 오프라인 모드면 '검사이미지 Grab' 으로 먼저 확보 필요.");
+            return null;
+        }
+
         // per-datum 1-image 로드 (TeachingImagePath → SimulImagePath 폴백 → grab).
         private HImage GrabOrLoadDatumImage(DatumConfig datum) {
             if (ShotParam == null) return null;
@@ -320,16 +333,37 @@ namespace ReringProject.Sequence {
             if (datum != null) teachingPath = datum.TeachingImagePath;
             else teachingPath = null;
             #if SIMUL_MODE
+            image = LoadDatumImageFromPath(datum, teachingPath, true); // SIMUL: 저장 datum 이미지, 폴백 shot, 폴백 grab
+            #else
+            if (SystemSetting.Handle.OfflineInspectMode) {
+                // 오프라인(수동 지그): datum 저장 이미지 로드. datum 은 초점 맞는 자기 이미지라 정합 성립. grab 폴백 없음(잘못된 Z 은폐 금지).
+                image = LoadDatumImageFromPath(datum, teachingPath, false);
+            } else {
+                image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+            }
+            #endif
+            return image;
+        }
+
+        // datum 저장 이미지 로드: teachingPath → ShotParam.SimulImagePath 폴백. allowGrabFallback=true 면 둘 다 실패 시 라이브 grab.
+        //  오프라인 모드(allowGrabFallback=false)에선 저장 이미지 부재 시 null 반환 → datum Find 실패로 명확히 드러남.
+        private HImage LoadDatumImageFromPath(DatumConfig datum, string teachingPath, bool allowGrabFallback) {
+            HImage image = null;
             if (!string.IsNullOrEmpty(teachingPath) && File.Exists(teachingPath)) {
                 try { image = new HImage(teachingPath); } catch { image = null; }
             }
-            if (image == null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { // 폴백
+            if (image == null && ShotParam != null && !string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) { // 폴백
                 try { image = new HImage(ShotParam.SimulImagePath); } catch { image = null; }
             }
-            if (image == null) { image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam); }
-            #else
-            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
-            #endif
+            if (image == null) {
+                if (allowGrabFallback) {
+                    image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                } else {
+                    string dName = "";
+                    if (datum != null) dName = datum.DatumName ?? "";
+                    Logging.PrintLog((int)ELogType.Error, "[Datum] '" + dName + "' 오프라인 datum 이미지 없음 (TeachingImagePath/SimulImagePath) — datum Find skip. '검사이미지 Grab' 으로 먼저 확보 필요.");
+                }
+            }
             return image;
         }
 

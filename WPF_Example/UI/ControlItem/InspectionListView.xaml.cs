@@ -578,6 +578,7 @@ namespace ReringProject.UI {
             if (mParentWindow == null) mParentWindow = (MainWindow)Window.GetWindow(this);
             button_light.IsEnabled = false;
             button_grab.IsEnabled = false;
+            button_grabInsp.IsEnabled = false;
             button_loadImage.IsEnabled = false;
             //button_showConfig.IsEnabled = false;
 
@@ -589,6 +590,7 @@ namespace ReringProject.UI {
                 mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = false;
                 mParentWindow.mainView.btn_createPatternModel.IsEnabled = false;
                 mParentWindow.mainView.btn_drawPatternRoi2.IsEnabled = false;
+                mParentWindow.mainView.btn_reanchor.IsEnabled = false;
             }
 
             // e.Source 게이트 대신 sender 기준 게이트 사용:
@@ -617,6 +619,7 @@ namespace ReringProject.UI {
                         ParamBase param = itemParam as ParamBase;
                         if (itemParam is ICameraParam) {
                             button_grab.IsEnabled = true;
+                            button_grabInsp.IsEnabled = true;
                             button_loadImage.IsEnabled = true;
                             button_light.IsEnabled = true;
                         }
@@ -633,6 +636,7 @@ namespace ReringProject.UI {
                         button_removeFAI.IsEnabled = true;
                         button_renameFAI.IsEnabled = true;
                         button_grab.IsEnabled = true;
+                        button_grabInsp.IsEnabled = true;
                         button_loadImage.IsEnabled = true;
                         // PropertyGrid already handled by SetParam above (DatumConfig : ParamBase)
                         if (_inspectionVm != null) _inspectionVm.ClearResults();
@@ -669,6 +673,7 @@ namespace ReringProject.UI {
                             mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = true;
                             mParentWindow.mainView.btn_createPatternModel.IsEnabled = true;
                             mParentWindow.mainView.btn_drawPatternRoi2.IsEnabled = true;
+                            mParentWindow.mainView.btn_reanchor.IsEnabled = true;
                         }
                     }
                     else if (item.NodeType == ENodeType.Measurement) {
@@ -850,7 +855,7 @@ namespace ReringProject.UI {
                 ICameraParam resolved = ResolveDatumCameraParam(datumForGrab);
                 if (resolved == null) return;
                 if (SystemHandler.Handle.Sequences.IsIdle == false) return;
-                mParentWindow.mainView.GrabAndDisplay(resolved);
+                mParentWindow.mainView.GrabAndDisplay(resolved, datumForGrab);
                 return;
             }
             if (!(SelectedParam is ICameraParam)) return;
@@ -863,6 +868,62 @@ namespace ReringProject.UI {
             //param으로 grab 수행하여 결과 drawing
             ICameraParam camParam = SelectedParam as ICameraParam;
             mParentWindow.mainView.GrabAndDisplay(camParam);
+        }
+
+        // 오프라인/수동 검사: 선택 노드(datum/shot)를 라이브 grab → 그 노드 검사이미지 경로에 저장.
+        //  Z 모터 없는 수동 지그: datum Z 맞춰 datum 노드 '검사Grab', 각 shot Z 맞춰 shot 노드 '검사Grab' → OfflineInspectMode 검사가 이 저장본 로드.
+        private async void button_grabInsp_Click(object sender, RoutedEventArgs e) {
+            if (SelectedParam == null) return;
+            if (SystemHandler.Handle.Sequences.IsIdle == false) {
+                CustomMessageBox.Show("검사이미지 Grab", "시퀀스가 검사 중입니다. Idle 상태에서 다시 시도하세요.", MessageBoxImage.Warning);
+                return;
+            }
+            if (SelectedParam is DatumConfig datumForGrab) {
+                ICameraParam resolved = ResolveDatumCameraParam(datumForGrab);
+                if (resolved == null) return;
+                string savePath = BuildOfflineImagePath("datum_" + datumForGrab.DatumName);
+                if (savePath == null) return;
+                await mParentWindow.mainView.GrabSaveAndDisplay(resolved, datumForGrab, datumForGrab, savePath);
+                RefreshParamEditor(); // TeachingImagePath write-back → PropertyGrid 갱신 (grab 완료 후)
+                return;
+            }
+            if (SelectedParam is ShotConfig shotForGrab) {
+                string savePath = BuildOfflineImagePath("shot_" + shotForGrab.ShotName);
+                if (savePath == null) return;
+                await mParentWindow.mainView.GrabSaveAndDisplay(shotForGrab, null, shotForGrab, savePath);
+                RefreshParamEditor(); // SimulImagePath write-back → PropertyGrid 갱신 (grab 완료 후)
+                return;
+            }
+            // 그 외(FAI/Measurement 등) 노드는 검사이미지 대상 아님
+            CustomMessageBox.Show("검사이미지 Grab", "Datum 또는 Shot 노드를 선택하세요.", MessageBoxImage.Warning);
+        }
+
+        // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.png. 폴더 자동생성. 실패 시 null.
+        private string BuildOfflineImagePath(string baseName) {
+            try {
+                string root = SystemHandler.Handle.Setting.ImageSavePath;
+                if (string.IsNullOrEmpty(root)) root = AppDomain.CurrentDomain.BaseDirectory;
+                string recipe = SystemHandler.Handle.Setting.CurrentRecipeName;
+                if (string.IsNullOrEmpty(recipe)) recipe = "default";
+                recipe = SanitizeFileName(recipe);
+                string dir = Path.Combine(Path.Combine(root, "OfflineInspect"), recipe);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                string safe = SanitizeFileName(baseName);
+                if (string.IsNullOrEmpty(safe)) safe = "node";
+                return Path.Combine(dir, safe + ".png");
+            }
+            catch (Exception ex) {
+                CustomMessageBox.Show("검사이미지 경로 오류", ex.Message, MessageBoxImage.Error);
+                return null;
+            }
+        }
+
+        private static string SanitizeFileName(string name) {
+            if (string.IsNullOrEmpty(name)) return name;
+            foreach (char c in Path.GetInvalidFileNameChars()) {
+                name = name.Replace(c, '_');
+            }
+            return name;
         }
 
         private void button_loadImage_Click(object sender, RoutedEventArgs e) {

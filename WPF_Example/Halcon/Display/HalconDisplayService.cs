@@ -519,6 +519,64 @@ namespace ReringProject.Halcon.Display
             catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }
         }
 
+        // 결과(비-Edit) 측정 보정 박스 렌더 — 선택된 측정(selectedRoiId)은 파란색, 나머지는 green. 선택된 것은 이름 라벨을
+        //  주황·큰 폰트로 박스 위(회전 bounding 상단 바깥)에 그린다(박스와 겹치지 않게). 리스트박스/트리에서 측정 선택 시 시인성 향상.
+        public void RenderResultMeasurementBoxes(HWindow window, IList<ResultRoiBox> boxes, string selectedRoiId)
+        {
+            if (window == null || boxes == null) return;
+            try
+            {
+                HOperatorSet.SetLineWidth(window, 2);
+                HOperatorSet.SetDraw(window, "margin");
+                foreach (ResultRoiBox b in boxes)
+                {
+                    if (b == null) continue;
+                    bool isSel = !string.IsNullOrEmpty(selectedRoiId) && b.Id == selectedRoiId;
+                    if (isSel) { HOperatorSet.SetColor(window, "blue"); HOperatorSet.SetLineWidth(window, 3); }
+                    else       { HOperatorSet.SetColor(window, "green"); HOperatorSet.SetLineWidth(window, 2); }
+
+                    if (b.Radius > 0) HOperatorSet.DispCircle(window, b.Row, b.Col, b.Radius);
+                    else              HOperatorSet.DispRectangle2(window, b.Row, b.Col, b.Phi, b.L1, b.L2);
+                }
+                // 라벨은 박스 외곽선 위에 겹쳐 그려지지 않도록 박스 렌더 후 별도 패스로 그린다(선택된 것만).
+                foreach (ResultRoiBox b in boxes)
+                {
+                    if (b == null) continue;
+                    if (string.IsNullOrEmpty(selectedRoiId) || b.Id != selectedRoiId) continue;
+                    if (string.IsNullOrEmpty(b.Name)) continue;
+                    // 회전 사각형의 상단 bounding 반높이 = |L2·cos φ| + |L1·sin φ|. 그만큼 위 + 여유(20px)로 박스와 비겹침.
+                    double halfBoundH;
+                    if (b.Radius > 0) halfBoundH = b.Radius;
+                    else halfBoundH = System.Math.Abs(b.L2 * System.Math.Cos(b.Phi)) + System.Math.Abs(b.L1 * System.Math.Sin(b.Phi));
+                    double labelRow = b.Row - halfBoundH - 20.0;
+                    DrawRoiLabelLargeAt(window, labelRow, b.Col, b.Name, "orange");
+                }
+            }
+            catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }
+        }
+
+        // 큰 폰트(24) 라벨. DrawRoiLabelAt(축소 13) 대비 크게 — 선택 측정 강조용. 그린 뒤 전역 폰트 원복.
+        private void DrawRoiLabelLargeAt(HWindow window, double row, double col, string label, string color)
+        {
+            try
+            {
+                EnsureFontInitialized(window);
+                if (!string.IsNullOrEmpty(_normalFontName))
+                {
+                    string largeFont = _normalFontName.Replace("-18", "-24");
+                    HOperatorSet.SetFont(window, largeFont);
+                }
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetTposition(window, row, col);
+                HOperatorSet.WriteString(window, label);
+                if (!string.IsNullOrEmpty(_normalFontName))
+                {
+                    HOperatorSet.SetFont(window, _normalFontName);
+                }
+            }
+            catch { /* suppress display errors */ }
+        }
+
         //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 직접 표시 (점 변환 없이 window.DispObj).
         //  AlignShapeMatchService 가 두 패턴 contour 를 검출 pose 로 이동+concat 한 단일 HObject 를 그대로 그림.
         //  점→DispLine 방식(패턴간 대각선 연결 버그) 대체. null 가드 + try-catch (display 에러 swallow 관습 유지).

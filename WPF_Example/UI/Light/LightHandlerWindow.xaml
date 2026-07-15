@@ -17,12 +17,7 @@
             <RowDefinition Height="1*"></RowDefinition>
         </Grid.RowDefinitions>
 
-        <TabControl x:Name="tabControl_content" Grid.Column="0" Grid.Row="0" SelectionChanged="TabControl_content_SelectionChanged">
-            <TabItem Header="{Binding [Control], Source={StaticResource DR}}">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
-                    <StackPanel x:Name="panel_control"></StackPanel>
-                </ScrollViewer>
-            </TabItem>
+        <TabControl x:Name="tabControl_content" Grid.Column="0" Grid.Row="0">
             <TabItem Header="{Binding [Setting], Source={StaticResource DR}}">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
                     <StackPanel x:Name="panel_setting"></StackPanel>

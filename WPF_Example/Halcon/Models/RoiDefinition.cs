@@ -5,6 +5,20 @@ namespace ReringProject.Halcon.Models
     // ROI 모양 (Rect/Polygon 하위호환: 기본값 Rect)
     public enum RoiShape { Rect, Polygon, Circle }
 
+    // 결과 화면용 보정(회전) 측정 ROI 박스 — 선택 하이라이트(파랑)/이름 라벨(주황) 지원을 위해 Id/Name 을 함께 싣는다.
+    //  기하는 HALCON disp_rectangle2 규약 {Row, Col, Phi, L1(열 반장축), L2(행 반장축)} 또는 원(Radius>0 시 Row/Col/Radius).
+    public class ResultRoiBox
+    {
+        public double Row { get; set; }
+        public double Col { get; set; }
+        public double Phi { get; set; }
+        public double L1 { get; set; }
+        public double L2 { get; set; }
+        public double Radius { get; set; } // > 0 이면 원(Circle) 로 렌더
+        public string Id { get; set; }
+        public string Name { get; set; }
+    }
+
     [DataContract]
     public class RoiDefinition
     {

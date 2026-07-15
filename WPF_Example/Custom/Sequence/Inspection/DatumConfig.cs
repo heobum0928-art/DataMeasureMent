@@ -480,6 +480,164 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.DatumPolarities; } }
 
+        // Datum 전용 조명(Ring 6채널 + Bar 4채널 + Back + Ring7 + Coax). ShotConfig 와 동일 명명 + 동일 Category
+        //  탭 접두사("Light|...") — PropertyTools.Wpf 는 Category="탭명|그룹명" 규칙으로 최상위 탭을 나눈다
+        //  (ParamEditor TabHeaderTemplate, ShotConfig 가 "Shot|Light|General|Device" 탭으로 갈리는 것과 동일 메커니즘).
+        //  "Datum|..." 대신 "Light|..." 를 써야 Datum 탭과 분리된 별도 Light 탭으로 표시된다.
+        //  SourceShotName 상속과 무관하게 Datum 자체 조명을 켤 수 있다(비워두면 전 채널 Off, Shot 상속 안 함).
+        [Category("Light|Ring")]
+        public bool RingLight_Enabled_1 { get; set; }
+        private int _ringLightBrightness1;
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_1 {
+            get { return _ringLightBrightness1; }
+            set {
+                if (_ringLightBrightness1 == value) return;
+                _ringLightBrightness1 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_1));
+            }
+        }
+        public bool RingLight_Enabled_2 { get; set; }
+        private int _ringLightBrightness2;
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_2 {
+            get { return _ringLightBrightness2; }
+            set {
+                if (_ringLightBrightness2 == value) return;
+                _ringLightBrightness2 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_2));
+            }
+        }
+        public bool RingLight_Enabled_3 { get; set; }
+        private int _ringLightBrightness3;
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_3 {
+            get { return _ringLightBrightness3; }
+            set {
+                if (_ringLightBrightness3 == value) return;
+                _ringLightBrightness3 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_3));
+            }
+        }
+        public bool RingLight_Enabled_4 { get; set; }
+        private int _ringLightBrightness4;
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_4 {
+            get { return _ringLightBrightness4; }
+            set {
+                if (_ringLightBrightness4 == value) return;
+                _ringLightBrightness4 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_4));
+            }
+        }
+        public bool RingLight_Enabled_5 { get; set; }
+        private int _ringLightBrightness5;
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_5 {
+            get { return _ringLightBrightness5; }
+            set {
+                if (_ringLightBrightness5 == value) return;
+                _ringLightBrightness5 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_5));
+            }
+        }
+        public bool RingLight_Enabled_6 { get; set; }
+        private int _ringLightBrightness6;
+        [Slidable(0, 255)]
+        public int RingLight_Brightness_6 {
+            get { return _ringLightBrightness6; }
+            set {
+                if (_ringLightBrightness6 == value) return;
+                _ringLightBrightness6 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_6));
+            }
+        }
+
+        [Category("Light|Bar")]
+        public bool SideLight_Enabled_1 { get; set; }
+        private int _sideLightBrightness1;
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_1 {
+            get { return _sideLightBrightness1; }
+            set {
+                if (_sideLightBrightness1 == value) return;
+                _sideLightBrightness1 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_1));
+            }
+        }
+        public bool SideLight_Enabled_2 { get; set; }
+        private int _sideLightBrightness2;
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_2 {
+            get { return _sideLightBrightness2; }
+            set {
+                if (_sideLightBrightness2 == value) return;
+                _sideLightBrightness2 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_2));
+            }
+        }
+        public bool SideLight_Enabled_3 { get; set; }
+        private int _sideLightBrightness3;
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_3 {
+            get { return _sideLightBrightness3; }
+            set {
+                if (_sideLightBrightness3 == value) return;
+                _sideLightBrightness3 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_3));
+            }
+        }
+        public bool SideLight_Enabled_4 { get; set; }
+        private int _sideLightBrightness4;
+        [Slidable(0, 255)]
+        public int SideLight_Brightness_4 {
+            get { return _sideLightBrightness4; }
+            set {
+                if (_sideLightBrightness4 == value) return;
+                _sideLightBrightness4 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_4));
+            }
+        }
+
+        [Category("Light|Back")]
+        public bool BackLight_Enabled { get; set; }
+        private int _backLightBrightness;
+        [Slidable(0, 255)]
+        public int BackLight_Brightness {
+            get { return _backLightBrightness; }
+            set {
+                if (_backLightBrightness == value) return;
+                _backLightBrightness = value;
+                RaisePropertyChanged(nameof(BackLight_Brightness));
+            }
+        }
+
+        [Category("Light|Ring7")]
+        public bool Ring7Light_Enabled { get; set; }
+        private int _ring7LightBrightness;
+        [Slidable(0, 255)]
+        public int Ring7Light_Brightness {
+            get { return _ring7LightBrightness; }
+            set {
+                if (_ring7LightBrightness == value) return;
+                _ring7LightBrightness = value;
+                RaisePropertyChanged(nameof(Ring7Light_Brightness));
+            }
+        }
+
+        [Category("Light|Coax")]
+        public bool CoaxLight_Enabled { get; set; }
+        private int _coaxLightBrightness;
+        [Slidable(0, 255)]
+        public int CoaxLight_Brightness {
+            get { return _coaxLightBrightness; }
+            set {
+                if (_coaxLightBrightness == value) return;
+                _coaxLightBrightness = value;
+                RaisePropertyChanged(nameof(CoaxLight_Brightness));
+            }
+        }
+
         // 설정 완료 플래그 — 티칭 후 true, 기본값 false
         [Category("Datum|Status")]
         public bool IsConfigured { get; set; } = false;

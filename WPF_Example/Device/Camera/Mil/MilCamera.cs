@@ -44,6 +44,11 @@ namespace ReringProject.Device {
                 MIL.MappAlloc(MIL.M_DEFAULT, ref MilApplication);
                 if (MilApplication == MIL.M_NULL) throw new Exception("MappAlloc failed");
 
+                // MIL 기본 에러 핸들러는 에러 발생 시 OS 모달(Yes/No/Cancel "MIL Error Message")을 직접 띄워
+                // 이 앱의 UI 스레드를 막아버린다. 팝업은 끄고, 대신 MdigGrab 뒤에서 MappGetError 로 직접 체크한다
+                // (41-RESEARCH.md Anti-Pattern 참고 — 무시가 아니라 에러 출력 경로만 앱 쪽으로 옮기는 것).
+                MIL.MappControl(MilApplication, MIL.M_ERROR, MIL.M_PRINT_DISABLE);
+
                 // 2. System 할당 — SIMUL_MODE 에서는 M_SYSTEM_HOST 사용 (Pitfall 1)
 #if SIMUL_MODE
                 MIL.MsysAlloc(MIL.M_DEFAULT, MIL.M_SYSTEM_HOST,
@@ -62,6 +67,12 @@ namespace ReringProject.Device {
                               MIL.M_DEFAULT, ref MilDigitizer);
                 if (MilDigitizer == MIL.M_NULL) throw new Exception("MdigAlloc failed");
 
+                // 좌우/상하 반전 — 카메라 GenICam ReverseX/Y feature 쓰기는 이 장비에서 막혀있으므로(바로 아래 NOTE),
+                // HikCamera처럼 카메라 쪽에 요청하는 대신 그래버(digitizer) 단에서 grab 방향을 반전한다
+                // (M_GRAB_DIRECTION_X/Y — MdigControlFeature와 달리 이 옵션은 디지타이저 자체 기능이라 제약이 없다).
+                MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_X, Info.ReverseX ? MIL.M_REVERSE : MIL.M_NORMAL);
+                MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_Y, Info.ReverseY ? MIL.M_REVERSE : MIL.M_NORMAL);
+
                 // NOTE: 이 장비에서는 MdigControlFeature(Width/Height/PixelFormat) 쓰기가 불가하다
                 //       ("Requested operation not supported"). 해상도/tap 기하는 반드시 DCF 로 설정해야 한다.
                 //       DCF 준비 전까지는 M_DEFAULT 로 열어 카메라 현재 설정 그대로 grab 한다.
@@ -74,6 +85,13 @@ namespace ReringProject.Device {
                 MIL_INT bufH = MIL.MdigInquire(MilDigitizer, MIL.M_SIZE_Y, MIL.M_NULL);
                 Logging.PrintLog((int)ELogType.Camera, "[INFO] {0} MIL grab size = {1} x {2}",
                                  Info.Identifier, (int)bufW, (int)bufH);
+
+                // WIDTH_CXP/HEIGHT_CXP(DeviceHandler.cs)는 실측 전 placeholder 상수라 실제 카메라와 어긋날 수 있다.
+                // 여기서 실측값으로 덮어써서 Properties.Width/Height(카메라 창 표시, ZoomValueChanged 캔버스 크기 계산)가
+                // 실제 grab 해상도와 항상 일치하도록 한다.
+                Properties.Width  = (int)bufW;
+                Properties.Height = (int)bufH;
+
                 MIL.MbufAlloc2d(MilSystem, bufW, bufH,
                                 8 + MIL.M_UNSIGNED,
                                 MIL.M_IMAGE + MIL.M_GRAB + MIL.M_PROC,
@@ -152,6 +170,16 @@ namespace ReringProject.Device {
         private HImage GrabFromBuffer() {
             // 동기 단발 grab (free-run / 소프트 트리거)
             MIL.MdigGrab(MilDigitizer, MilBuffer);
+
+            // MdigGrab은 실패해도 예외를 던지지 않고 MIL 내부 에러 상태만 세운다(팝업은 Open()에서 이미 비활성화).
+            // 체크 안 하면 "Synchronization lost (timeout)" 등으로 못 받은 빈/이전 버퍼를 정상 프레임인 것처럼
+            // 그대로 반환하게 된다 — 화면에 검은 화면이 "성공"으로 표시되던 원인.
+            MIL_INT grabError = MIL.M_NULL;
+            MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref grabError);
+            if (grabError != MIL.M_NULL) {
+                Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MdigGrab failed (MIL error code {1})", Info.Identifier, (int)grabError);
+                return null;
+            }
 
             // 버퍼의 실제 크기를 조회해서 변환에 사용한다.
             // Info.Width/Height(WIDTH_CXP 등 TBD 상수)와 실제 카메라 해상도가 다르면 깨지므로,
@@ -273,6 +301,10 @@ namespace ReringProject.Device {
 
             _liveRunning = true;
             CaptureMode  = ECaptureModeType.Streaming;
+            // Basler/HikCamera는 SDK 콜백(OnGrabStarted/OnGrabStopped)에서 세팅하지만 MIL은 콜백이 없어
+            // 여기서 직접 세팅한다. DeviceSelector.OnTimerTick의 FPS 계산이 IsGrabbing 게이트라 이게 없으면
+            // grab이 잘 되고 있어도 FPS가 항상 0.0으로 표시된다.
+            IsGrabbing = true;
 
             _liveThread = new Thread(LiveLoop);
             _liveThread.IsBackground = true;
@@ -299,6 +331,7 @@ namespace ReringProject.Device {
                 _liveThread = null;
             }
 
+            IsGrabbing = false;
             CaptureMode = ECaptureModeType.Stop;
             base.StopStream(); // 마지막 프레임 정리(ClearLastFrame)
         }

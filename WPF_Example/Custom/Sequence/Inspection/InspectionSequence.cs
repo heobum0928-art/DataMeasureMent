@@ -332,6 +332,14 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        // 티칭 Grab 등 $PREP/z_index 프로토콜 밖에서 이미 ShotConfig 객체를 들고 있을 때 쓰는 진입점.
+        //  ApplyShotLights(int) 처럼 FindShotByZIndex 조회를 거치지 않고 바로 적용 — ApplyDatumLights(DatumConfig) 와 동일 패턴.
+        public void ApplyShotLightsDirect(ShotConfig shot)
+        {
+            if (shot == null) return;
+            ApplyShotLightsInternal(shot);
+        }
+
         //260626 hbk v3.0: $PREP Op==0(사이클 종료) → 전 조명 그룹 소등. ApplyShotLightsInternal 의 4그룹 OFF.
         //  $LIGHT OFF 명령 폐기 대체. HW 트리거 전환 시에도 $PREP 가 OFF 담당.
         public void TurnOffShotLights()
@@ -390,6 +398,60 @@ namespace ReringProject.Sequence {
             else
             {
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Ring7 OFF
+            }
+        }
+
+        // Datum 전용 조명 적용 — Action_FAIMeasurement.EStep.DatumPhase 가 datum grab 직전 호출한다.
+        //  ShotConfig 와 달리 Datum 은 $PREP/z_index 로 세팅되지 않으므로(Shot 소속 무관 순수 datum grab) 별도 진입점.
+        public void ApplyDatumLights(DatumConfig datum)
+        {
+            if (datum == null) return;
+            ApplyDatumLightsInternal(datum);
+        }
+
+        // ApplyShotLightsInternal 과 완전히 동일한 채널 매핑(Ring 6개별/Bar 4개별/Back·Coax·Ring7 그룹) — Datum 소스만 다르다.
+        private void ApplyDatumLightsInternal(DatumConfig datum)
+        {
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH1, datum.RingLight_Enabled_1, datum.RingLight_Brightness_1);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH2, datum.RingLight_Enabled_2, datum.RingLight_Brightness_2);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH3, datum.RingLight_Enabled_3, datum.RingLight_Brightness_3);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH4, datum.RingLight_Enabled_4, datum.RingLight_Brightness_4);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH5, datum.RingLight_Enabled_5, datum.RingLight_Brightness_5);
+            ApplyChannelLight(LightHandler.LIGHT_RING_CH6, datum.RingLight_Enabled_6, datum.RingLight_Brightness_6);
+
+            if (datum.BackLight_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_BACK, datum.BackLight_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
+            }
+
+            if (datum.CoaxLight_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, datum.CoaxLight_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
+            }
+
+            ApplyChannelLight(LightHandler.LIGHT_BAR_1, datum.SideLight_Enabled_1, datum.SideLight_Brightness_1);
+            ApplyChannelLight(LightHandler.LIGHT_BAR_2, datum.SideLight_Enabled_2, datum.SideLight_Brightness_2);
+            ApplyChannelLight(LightHandler.LIGHT_BAR_3, datum.SideLight_Enabled_3, datum.SideLight_Brightness_3);
+            ApplyChannelLight(LightHandler.LIGHT_BAR_4, datum.SideLight_Enabled_4, datum.SideLight_Brightness_4);
+
+            if (datum.Ring7Light_Enabled)
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, true);
+                LightHandler.Handle.SetLevel(LightHandler.LIGHT_RING7, datum.Ring7Light_Brightness);
+            }
+            else
+            {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);
             }
         }
 

@@ -211,6 +211,13 @@
                                 <TextBlock Text="Grab" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                             </StackPanel>
                         </Button>
+                        <!-- 오프라인/수동 검사: 라이브 grab + 이 노드(datum/shot) 검사이미지 경로에 즉시 저장. OfflineInspectMode 검사가 이 저장본을 로드. -->
+                        <Button x:Name="button_grabInsp" Click="button_grabInsp_Click" IsEnabled="False" Style="{StaticResource disalbedStyle}" ToolTip="라이브 Grab 후 이 노드의 검사이미지로 저장 (오프라인/수동 검사용)">
+                            <StackPanel Orientation="Vertical" >
+                                <Image Source="/Resource/camera.png" Stretch="Uniform" Width="42" Height="42"></Image>
+                                <TextBlock Text="검사Grab" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"></TextBlock>
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="button_loadImage" Click="button_loadImage_Click" IsEnabled="False" Style="{StaticResource disalbedStyle}">
                             <StackPanel Orientation="Vertical">
                                 <Image Source="/Resource/folder.png" Stretch="Uniform" Width="42" Height="42"></Image>
@@ -223,7 +230,8 @@
                                 <TextBlock Text="SimFolder" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="button_light" Click="button_light_Click" IsEnabled="False"  Style="{StaticResource disalbedStyle}">
+                        <!-- Shot/Datum 모두 PropertyGrid 에 채널별 Light 탭이 생겨 이 legacy 단일그룹 토글 버튼은 숨김(코드는 보존, 재활성 시 Visibility 만 되돌리면 됨). -->
+                        <Button x:Name="button_light" Click="button_light_Click" IsEnabled="False" Visibility="Collapsed" Style="{StaticResource disalbedStyle}">
                             <StackPanel Orientation="Vertical" >
                                 <Image Source="/Resource/light.png" Stretch="Uniform" Width="42" Height="42"></Image>
                                 <TextBlock Text="Light" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>

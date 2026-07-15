@@ -62,11 +62,16 @@ namespace ReringProject.UI {
             
             image_foreground.RenderTransform = scaleTransform;
             
-            for (int i = 0; i < pLight.Groups.Count; i++) {
-                LightGroup group = pLight.Groups[i];
-                LightGroupViewModel model = new LightGroupViewModel(group);
-                LightGroupView view = new LightGroupView(model);
-                stackPanel_light.Children.Add(view);
+            // 채널별 개별 ON/밝기 제어 (그룹 단위 대신) — LightHandlerWindow "Setting" 탭과 동일하게
+            // LightChannelView/LightChannelViewModel 재사용. 그룹 단위로는 RING 전체처럼 여러 채널이 한꺼번에만
+            // 켜져서, 개별 채널(RING_CH1 하나만 등) 실시간 테스트가 불가능했다.
+            for (int i = 0; i < pLight.Controllers.Count; i++) {
+                VirtualLightController controller = pLight.Controllers[i];
+                for (int j = 0; j < controller.Channels.Length; j++) {
+                    LightChannelViewModel channelModel = new LightChannelViewModel(controller.Channels[j], j);
+                    LightChannelView channelView = new LightChannelView(channelModel);
+                    stackPanel_light.Children.Add(channelView);
+                }
             }
             
             FpsTimer = new DispatcherTimer();
@@ -130,8 +135,8 @@ namespace ReringProject.UI {
 
             for(int i = 0; i < stackPanel_light.Children.Count; i++) {
                 UIElement uiElement = stackPanel_light.Children[i];
-                if(uiElement is LightGroupView) {
-                    LightGroupView view = uiElement as LightGroupView;
+                if(uiElement is LightChannelView) {
+                    LightChannelView view = uiElement as LightChannelView;
                     view.UpdateBindingTarget();
                 }
             }

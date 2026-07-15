@@ -83,6 +83,7 @@ namespace ReringProject.UI {
             halconViewer.RoiMoveCompleted += HalconViewer_RoiMoveCompleted;
             halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
             halconViewer.RoiGeometryChanged += HalconViewer_RoiGeometryChanged;
+            halconViewer.RoiEditModeChanged += HalconViewer_RoiEditModeChanged;
             // "ROI 다시 그리기": Length/Radius 0 리셋 후 오버레이 갱신
             halconViewer.RoiRedrawRequested += (roiId) =>
             {
@@ -172,14 +173,26 @@ namespace ReringProject.UI {
             DisplayShotImage(shot);
         }
 
+        // 같은 Shot 안에서 FAI/측정 노드만 바꿔가며 볼 때 이미지 재로드로 인한 확대/축소 리셋을 막기 위한 캐시.
+        //  halconViewer.LoadImage(HImage) 는 매 호출마다 무조건 ApplyInitialFitView() 를 호출해 뷰를 초기화한다
+        //  (사용자 보고: ROI 편집/이동 중이나 같은 Shot 내 여러 측정 ROI를 확대해서 볼 때 잦은 강제 축소).
+        //  다른 Shot 으로 전환할 때는 기존처럼 전체 보기로 리셋되는 게 맞다(사용자 확인) — 그 경우만 재로드한다.
+        private ShotConfig _lastDisplayedImageShot;
+
         /// <summary>Displays the image stored in the given ShotConfig on the canvas.</summary>
         public void DisplayShotImage(ShotConfig shot) {
             if (shot != null && shot.HasImage) {
+                if (ReferenceEquals(shot, _lastDisplayedImageShot)) {
+                    // 같은 Shot 재선택 — 이미지 내용 불변, 재로드를 건너뛰어 현재 확대/이동 상태를 그대로 유지한다.
+                    label_message.Visibility = Visibility.Collapsed;
+                    return;
+                }
                 HImage img = null;
                 try {
                     img = shot.GetImage();
                     if (img != null) {
                         halconViewer.LoadImage(img);
+                        _lastDisplayedImageShot = shot;
                         label_message.Visibility = Visibility.Collapsed;
                     } else {
                         label_message.Content = "이미지 로드 실패";
@@ -189,6 +202,7 @@ namespace ReringProject.UI {
                     if (img != null) img.Dispose();
                 }
             } else {
+                _lastDisplayedImageShot = null;
                 label_message.Content = "NO Image";
                 label_message.Visibility = Visibility.Visible;
             }
@@ -304,13 +318,17 @@ namespace ReringProject.UI {
                 // ItemsSource 교체 시 WPF 가 SelectedItem=null 로 자동 리셋하며 이 핸들러를 동기 발화.
                 //  4인자 UpdateDisplayState(null) 는 _selectedRoiId=null clobber → 이후 HighlightSelectedRoi 의 하이라이트를
                 //  렌더링 타이밍에 따라 지워버림. 3인자 오버로드(selectedRoiId 미변경)를 써서 트리 선택 하이라이트를 보존한다.
-                var allRois = GetCurrentFAIRois();
+                // GetCurrentFAIRois() 대신 Shot 컨텍스트 기반(CollectShotRois)을 쓴다 — dataGrid_faiResults 는
+                //  OnFAISelected/ClearResults 가 선택 노드 타입에 따라 부분적으로만 채우거나 비워서(예: Measurement
+                //  노드 선택 시 ClearResults 로 완전히 비움) _rois 가 다른 ROI(Edit 핸들이 찾는 그 ROI 포함)를
+                //  놓치는 경우가 있었다 — 우클릭 Edit 시 노란 핸들이 간헐적으로 안 뜨던 원인.
+                var allRois = CollectShotRoisForViewer(GetCurrentShotContext());
                 if (allRois.Count > 0)
                     halconViewer.UpdateDisplayState(allRois, null, null); // 3인자: _selectedRoiId 보존
                 return;
             }
 
-            var rois = GetCurrentFAIRois();
+            var rois = CollectShotRoisForViewer(GetCurrentShotContext());
             // 결과행 선택 시 그 측정 전용 ROI(Id="FAIName_측정명")만 하이라이트한다.
             //  해당 측정 ROI 가 없으면 FAIName 으로 폴백 — Render 의 접두사 매칭이 FAI 전체 ROI 를 하이라이트.
             //  selectedRow.FAIName 만 쓰면 FAI 노드 선택과 동일 selId 라 행을 바꿔도 색이 안 변함.
@@ -482,10 +500,98 @@ namespace ReringProject.UI {
                 AppendFaiRois(result, anchorFai); // Shot 미해결 시 anchor 단독 수집 (fallback)
                 return result;
             }
+            return CollectShotRois(shot);
+        }
+
+        // ShotConfig 를 직접 들고 있을 때(예: 트리 선택 컨텍스트, dataGrid_faiResults 미경유) 쓰는 오버로드.
+        private List<RoiDefinition> CollectShotRois(ShotConfig shot) {
+            var result = new List<RoiDefinition>();
+            if (shot == null || shot.FAIList == null) return result;
             foreach (FAIConfig fai in shot.FAIList) {
                 AppendFaiRois(result, fai);
             }
             return result;
+        }
+
+        // 뷰어로 보낼 ROI 목록을 만든다. Edit 모드에서 datum 보정이 걸린 측정 ROI 는 "보정된 위치(=초록 결과 박스와 같은
+        //  자리, 실제 특징 위치)"로 이동시켜 표시한다 — 자재가 크게 기울어져 원본(raw)과 보정 위치가 멀리 떨어진 상태에서도
+        //  사용자가 화면에 보이는 특징에 바로 드래그해 맞출 수 있게 하기 위함(이동 완료 시 write-back 이 역보정해 raw 저장).
+        //  비-Edit 모드에서는 원본 좌표 그대로(=CollectShotRois) — 어차피 비-Edit 은 raw 를 숨기고 초록 박스를 그린다.
+        private List<RoiDefinition> CollectShotRoisForViewer(ShotConfig shot) {
+            var result = CollectShotRois(shot);
+            if (!halconViewer.IsEditMode) return result;
+            var xforms = BuildResultDatumXforms();
+            if (xforms.Count == 0) return result; // 보정 없음 → 원본 그대로
+            // RoiDefinition.Id = "FAIname_measName[_sub]"(측정 Point ROI) 또는 "FAIname"(FAI rect). 측정 ROI 만 보정 위치로.
+            //  각 측정의 DatumRef → 변환 조회. 매칭 안 되면(무보정 측정/FAI rect) 원본 유지.
+            ShotConfig ctxShot = shot;
+            if (ctxShot != null && ctxShot.FAIList != null) {
+                for (int i = 0; i < result.Count; i++) {
+                    RoiDefinition roi = result[i];
+                    if (roi == null || string.IsNullOrEmpty(roi.Id)) continue;
+                    HalconDotNet.HTuple t;
+                    if (!TryGetRoiCorrection(ctxShot, roi.Id, xforms, out t)) continue;
+                    TransformRoiCenterInPlace(roi, t);
+                }
+            }
+            return result;
+        }
+
+        // _lastResultDatums 에서 (DatumName → CurrentTransform) 맵을 만든다. BuildCorrectedResultRoiOverlays 와 동일 소스.
+        private Dictionary<string, HalconDotNet.HTuple> BuildResultDatumXforms() {
+            var xforms = new Dictionary<string, HalconDotNet.HTuple>();
+            if (_lastResultDatums == null) return xforms;
+            foreach (DatumConfig d in _lastResultDatums) {
+                if (d == null || string.IsNullOrEmpty(d.DatumName)) continue;
+                if (d.CurrentTransform != null && d.CurrentTransform.Length >= 5 && !xforms.ContainsKey(d.DatumName))
+                    xforms[d.DatumName] = d.CurrentTransform;
+            }
+            return xforms;
+        }
+
+        // roiId 가 가리키는 측정의 DatumRef 로 변환을 찾는다. FAI rect(Id=FAIName, 측정 ROI 아님)나 무보정 측정은 false.
+        private bool TryGetRoiCorrection(ShotConfig shot, string roiId, Dictionary<string, HalconDotNet.HTuple> xforms, out HalconDotNet.HTuple t) {
+            t = null;
+            if (shot == null || shot.FAIList == null) return false;
+            foreach (FAIConfig fai in shot.FAIList) {
+                foreach (MeasurementBase m in fai.Measurements) {
+                    if (m == null || string.IsNullOrEmpty(m.DatumRef)) continue;
+                    string measName = m.MeasurementName;
+                    if (string.IsNullOrEmpty(measName)) measName = m.TypeName;
+                    // roiId 가 이 측정의 Point ROI Id 접두("FAIname_measName")로 시작하면 이 측정 소속.
+                    if (roiId == fai.FAIName + "_" + measName || roiId.StartsWith(fai.FAIName + "_" + measName + "_")) {
+                        HalconDotNet.HTuple xf;
+                        if (xforms.TryGetValue(m.DatumRef, out xf)) { t = xf; return true; }
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // anchorFai 의 소유 Shot 기준 뷰어용 ROI 수집(Edit 모드 보정 위치 표시 포함).
+        private List<RoiDefinition> CollectShotRoisForViewer(FAIConfig anchorFai) {
+            ShotConfig shot = null;
+            if (anchorFai != null) shot = anchorFai.Owner as ShotConfig;
+            if (shot != null) return CollectShotRoisForViewer(shot);
+            // Shot 미해결 fallback — anchor 단독(원본). Edit 보정 표시는 Shot 컨텍스트 필요하므로 생략.
+            var result = new List<RoiDefinition>();
+            AppendFaiRois(result, anchorFai);
+            return result;
+        }
+
+        // RoiDefinition 의 중심을 t 로 변환(축 정렬 유지, 반장축 불변). 이동 편집용 표시 좌표 산출.
+        private void TransformRoiCenterInPlace(RoiDefinition roi, HalconDotNet.HTuple t) {
+            double cr = (roi.Row1 + roi.Row2) / 2.0;
+            double cc = (roi.Column1 + roi.Column2) / 2.0;
+            double halfR = (roi.Row2 - roi.Row1) / 2.0;
+            double halfC = (roi.Column2 - roi.Column1) / 2.0;
+            HalconDotNet.HTuple tr, tc;
+            HalconDotNet.HOperatorSet.AffineTransPoint2d(t, cr, cc, out tr, out tc);
+            roi.Row1 = tr.D - halfR;
+            roi.Row2 = tr.D + halfR;
+            roi.Column1 = tc.D - halfC;
+            roi.Column2 = tc.D + halfC;
         }
 
         //260619 hbk Phase 56 Wave 2 — 결과 화면용 보정(회전) ROI 박스 빌드 (표시 전용).
@@ -494,8 +600,8 @@ namespace ReringProject.UI {
         //  을 따른다(=정상 렌더되는 cyan 패턴 ROI 와 동일 규약). 측정 자체는 FAIEdgeMeasurementService 가
         //  SmallestRectangle2+measurePhi 로 별도 수행하여 정상이며, 표시 박스만 length1/length2 가 반대였음(90° 회전 결함).
         //  BuildPointRoiDefinitions 가 새 객체 생성 → 티칭/편집 좌표 불변, 편집 채널(UpdateDisplayState)·핸들러 미접촉.
-        private List<double[]> BuildCorrectedResultRoiOverlays(List<DatumConfig> datums) {
-            var rects = new List<double[]>();
+        private List<ResultRoiBox> BuildCorrectedResultRoiOverlays(List<DatumConfig> datums) {
+            var rects = new List<ResultRoiBox>();
             if (datums == null || datums.Count == 0) return rects;
             var xforms = new Dictionary<string, HalconDotNet.HTuple>();
             foreach (DatumConfig d in datums) {
@@ -504,15 +610,35 @@ namespace ReringProject.UI {
                     xforms[d.DatumName] = d.CurrentTransform;
             }
             if (xforms.Count == 0) return rects; // 보정 transform 없음 → 회전 박스 없음
+
+            // 대상 FAI 집합 결정 — dataGrid_faiResults 는 노드 선택 종류에 따라 채워지거나(FAI 선택) 비워진다(측정 선택 시
+            //  ClearResults). 그리드가 비면 보정 박스가 하나도 안 만들어져 원본(_rois) 위치가 노출되는 결함이 있었다
+            //  (사용자: FAI 노드는 보정 위치, 측정 노드는 보정 이전 위치로 보임). 그리드가 비었으면 현재 트리 선택의
+            //  Shot 컨텍스트에서 직접 FAI 를 가져와 측정 노드에서도 보정 박스가 동일하게 그려지도록 한다. 그리드가
+            //  채워진 FAI 선택 경로는 기존 동작(선택 FAI 의 행만) 그대로 보존.
             var seenFais = new HashSet<FAIConfig>();
+            var faisToScan = new List<FAIConfig>();
+            bool gridHasRows = false;
             foreach (var item in dataGrid_faiResults.Items) {
                 var row = item as MeasurementResultRow;
                 if (row == null) continue;
+                gridHasRows = true;
                 FAIConfig fai = null;
                 if (row.SourceMeasurement != null) fai = FindFAIContainingMeasurement(row.SourceMeasurement);
                 if (fai == null && !string.IsNullOrEmpty(row.FAIName)) fai = FindFAIByName(row.FAIName);
                 if (fai == null) continue;
-                if (!seenFais.Add(fai)) continue;
+                if (seenFais.Add(fai)) faisToScan.Add(fai);
+            }
+            if (!gridHasRows) {
+                ShotConfig shot = GetCurrentShotContext();
+                if (shot != null && shot.FAIList != null) {
+                    foreach (FAIConfig fai in shot.FAIList) {
+                        if (fai != null && seenFais.Add(fai)) faisToScan.Add(fai);
+                    }
+                }
+            }
+
+            foreach (FAIConfig fai in faisToScan) {
                 foreach (var m in fai.Measurements) {
                     HalconDotNet.HTuple t;
                     if (m == null || string.IsNullOrEmpty(m.DatumRef) || !xforms.TryGetValue(m.DatumRef, out t)) continue;
@@ -526,7 +652,8 @@ namespace ReringProject.UI {
                         double pcc = (roi.Column1 + roi.Column2) / 2.0;
                         HalconDotNet.HTuple tr, tc;
                         HalconDotNet.HOperatorSet.AffineTransPoint2d(t, pcr, pcc, out tr, out tc);
-                        rects.Add(new double[] { tr.D, tc.D, rPhi, l1, l2 });
+                        // roi.Id/Name(= "FAI_측정[_서브]" / 측정명)을 실어 선택 하이라이트·이름 라벨에 사용.
+                        rects.Add(new ResultRoiBox { Row = tr.D, Col = tc.D, Phi = rPhi, L1 = l1, L2 = l2, Id = roi.Id, Name = roi.Name });
                     }
                 }
             }
@@ -606,7 +733,7 @@ namespace ReringProject.UI {
                 rois = new List<RoiDefinition>();
                 AppendFaiRois(rois, anchorFai); // 선택 FAI 단독 ROI (+ measurement point ROI)
             } else {
-                rois = CollectShotRois(anchorFai); // 측정 노드 등은 기존대로 Shot 전체 컨텍스트
+                rois = CollectShotRoisForViewer(anchorFai); // 측정 노드 — Shot 전체 컨텍스트(Edit 모드면 보정 위치 표시)
             }
             // composite ID 매칭 ROI 없으면 부모 FAI ROI 로 fallback (일반 FAI rect ROI 는 Id=FAIName)
             if (!string.IsNullOrEmpty(selRoiId) && !string.IsNullOrEmpty(faiNameForFallback)) {
@@ -636,6 +763,391 @@ namespace ReringProject.UI {
             return null;
         }
 
+        // ROI 드래그 write-back 전용 FAI 해석. RoiId(=FAI 명)로 FindFAIByName 을 쓰면 여러 Shot 이 같은 FAI 명
+        //  (기본 FAI_0/1)을 가질 때 첫-일치(다른 Shot)의 FAI 를 반환한다. 그러면 드래그 델타가 화면 밖 엉뚱한 FAI 에
+        //  써지고, 편집 중인 FAI 는 그대로라 재렌더 시 원위치로 스냅백된다(사용자: "이동 후 다른 FAI 탭 누르면 원복됨").
+        //  최초 수정은 dataGrid_faiResults 의 SourceMeasurement 로 스코프했으나, dataGrid_faiResults 는
+        //  OnFAISelected(InspectionViewModel.cs:27)가 "선택된 FAI 의 측정만" 통째로 교체하는 데다 바인딩 갱신이
+        //  트리 선택보다 한 박자 늦다(CollectShotRois 주석, 475줄 참고) — 그래서 FAI 에 측정이 아직 없거나(막 ROI만
+        //  그린 상태) 바인딩 지연 구간에 드래그하면 dataGrid 가 비어있어 결국 이름 폴백(FindFAIByName)을 타 버린다.
+        //  대신 읽기 경로(CollectShotRois/HighlightSelectedRoi)와 동일하게 dataGrid 를 아예 안 쓰고, 현재 트리
+        //  선택(SelectedParam)에서 Shot 컨텍스트를 역추적해 그 Shot.FAIList 안에서만 이름을 찾는다 — 기본 FAI 이름은
+        //  한 Shot 안에서는 유일(AddFAI 가 FAIList.Count 로 채번)하므로 Shot 스코프면 충돌이 구조적으로 불가능하다.
+        private FAIConfig ResolveFaiForRoiWriteBack(string roiId) {
+            if (string.IsNullOrEmpty(roiId)) return null;
+            ShotConfig shot = GetCurrentShotContext();
+            if (shot != null && shot.FAIList != null) {
+                foreach (FAIConfig f in shot.FAIList) {
+                    if (string.Equals(f.FAIName, roiId, StringComparison.Ordinal)) return f;
+                }
+            }
+            return FindFAIByName(roiId); // Shot 컨텍스트를 못 구했을 때만 레거시 폴백
+        }
+
+        // 현재 트리 선택(SelectedParam)이 속한 ShotConfig 를 역추적한다. ROI write-back 의 Shot 스코프 기준.
+        private ShotConfig GetCurrentShotContext() {
+            if (mParentWindow == null || mParentWindow.inspectionList == null) return null;
+            ParamBase sel = mParentWindow.inspectionList.SelectedParam;
+            if (sel is ShotConfig shotSel) return shotSel;
+            if (sel is FAIConfig faiSel) return faiSel.Owner as ShotConfig;
+            if (sel is MeasurementBase measSel) {
+                FAIConfig owner = FindFAIContainingMeasurement(measSel);
+                if (owner != null) return owner.Owner as ShotConfig;
+            }
+            return null;
+        }
+
+        // 측정 Point ROI(EdgeToLineDistance 점마커, ArcLineIntersect EdgeA1/B1/A2/B2, DualImage Point/Line 등)의
+        //  RoiId 는 "FAI명_측정명[_서브키]" 복합 형식이라 fai.FAIName 과 절대 일치하지 않는다. 그래서 ResolveFaiForRoiWriteBack
+        //  이 항상 null 을 반환 → 이동/리사이즈 write-back 핸들러가 곧바로 return 해 아무 것도 안 써지고, 재선택 시
+        //  원본 그대로 보이는 "원복" 으로 나타난다(사용자 확인: FAI 자체 ROI 는 안 쓰고 측정 ROI만 실사용).
+        //  BuildPointRoiDefinitions 의 Id 생성 규칙을 그대로 재구성해 비교 — faiName/measName 자체에 '_' 가 섞여도
+        //  파싱 모호성 없이 안전하다(문자열 split 대신 후보 재구성 비교).
+        private bool TryResolvePointRoiTarget(string roiId, out FAIConfig fai, out MeasurementBase meas, out string subKey) {
+            fai = null; meas = null; subKey = null;
+            ShotConfig shot = GetCurrentShotContext();
+            if (shot == null || shot.FAIList == null) return false;
+
+            foreach (FAIConfig f in shot.FAIList) {
+                foreach (MeasurementBase m in f.Measurements) {
+                    string measName = m.MeasurementName;
+                    if (string.IsNullOrEmpty(measName)) measName = m.TypeName;
+
+                    if (m is ArcLineIntersectDistanceMeasurement) {
+                        if (roiId == f.FAIName + "_" + measName + "_EdgeA1") { fai = f; meas = m; subKey = "EdgeA1"; return true; }
+                        if (roiId == f.FAIName + "_" + measName + "_EdgeB1") { fai = f; meas = m; subKey = "EdgeB1"; return true; }
+                        if (roiId == f.FAIName + "_" + measName + "_EdgeA2") { fai = f; meas = m; subKey = "EdgeA2"; return true; }
+                        if (roiId == f.FAIName + "_" + measName + "_EdgeB2") { fai = f; meas = m; subKey = "EdgeB2"; return true; }
+                        continue;
+                    }
+                    if (m is DualImageEdgeDistanceMeasurement) {
+                        if (roiId == f.FAIName + "_" + measName + "_Point") { fai = f; meas = m; subKey = "Point"; return true; }
+                        if (roiId == f.FAIName + "_" + measName + "_Line") { fai = f; meas = m; subKey = "Line"; return true; }
+                        continue;
+                    }
+                    bool isSinglePointType = m is EdgeToLineDistanceMeasurement || m is EdgeToLineAngleMeasurement
+                        || m is ArcEdgeDistanceMeasurement || m is CompoundAngleMeasurement
+                        || m is CompoundCenterCDistanceMeasurement || m is CompoundCenterBDistanceMeasurement
+                        || m is CompoundShortAxisDistanceMeasurement;
+                    if (isSinglePointType && roiId == f.FAIName + "_" + measName) {
+                        fai = f; meas = m; subKey = null; return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 측정 Point ROI 이동 델타 적용. BuildPointRoiDefinitions 의 필드 매핑과 1:1 대응.
+        private void ApplyPointRoiMoveDelta(MeasurementBase meas, string subKey, double deltaRow, double deltaCol) {
+            var ali = meas as ArcLineIntersectDistanceMeasurement;
+            if (ali != null) {
+                if (subKey == "EdgeA1") { ali.EdgeA1_Row += deltaRow; ali.EdgeA1_Col += deltaCol; }
+                else if (subKey == "EdgeB1") { ali.EdgeB1_Row += deltaRow; ali.EdgeB1_Col += deltaCol; }
+                else if (subKey == "EdgeA2") { ali.EdgeA2_Row += deltaRow; ali.EdgeA2_Col += deltaCol; }
+                else if (subKey == "EdgeB2") { ali.EdgeB2_Row += deltaRow; ali.EdgeB2_Col += deltaCol; }
+                return;
+            }
+            var dual = meas as DualImageEdgeDistanceMeasurement;
+            if (dual != null) {
+                if (subKey == "Point") { dual.PointROI_Row += deltaRow; dual.PointROI_Col += deltaCol; }
+                else if (subKey == "Line") { dual.LineROI_Row += deltaRow; dual.LineROI_Col += deltaCol; }
+                return;
+            }
+            var etld = meas as EdgeToLineDistanceMeasurement;
+            if (etld != null) { etld.Point_Row += deltaRow; etld.Point_Col += deltaCol; return; }
+            var etla = meas as EdgeToLineAngleMeasurement;
+            if (etla != null) { etla.Point_Row += deltaRow; etla.Point_Col += deltaCol; return; }
+            var aed = meas as ArcEdgeDistanceMeasurement;
+            if (aed != null) { aed.Point_Row += deltaRow; aed.Point_Col += deltaCol; return; }
+            var cAngle = meas as CompoundAngleMeasurement;
+            if (cAngle != null) { cAngle.Rect_Row += deltaRow; cAngle.Rect_Col += deltaCol; return; }
+            var cCenterC = meas as CompoundCenterCDistanceMeasurement;
+            if (cCenterC != null) { cCenterC.Rect_Row += deltaRow; cCenterC.Rect_Col += deltaCol; return; }
+            var cCenterB = meas as CompoundCenterBDistanceMeasurement;
+            if (cCenterB != null) { cCenterB.Rect_Row += deltaRow; cCenterB.Rect_Col += deltaCol; return; }
+            var cShort = meas as CompoundShortAxisDistanceMeasurement;
+            if (cShort != null) { cShort.Rect_Row += deltaRow; cShort.Rect_Col += deltaCol; }
+        }
+
+        // 측정 Point ROI 의 현재 원본(raw) 중심(row,col) 읽기. ApplyPointRoiMoveDelta 의 필드 매핑과 1:1 대응(읽기 버전).
+        private bool TryGetPointRoiCenter(MeasurementBase meas, string subKey, out double row, out double col) {
+            row = 0; col = 0;
+            var ali = meas as ArcLineIntersectDistanceMeasurement;
+            if (ali != null) {
+                if (subKey == "EdgeA1") { row = ali.EdgeA1_Row; col = ali.EdgeA1_Col; return true; }
+                if (subKey == "EdgeB1") { row = ali.EdgeB1_Row; col = ali.EdgeB1_Col; return true; }
+                if (subKey == "EdgeA2") { row = ali.EdgeA2_Row; col = ali.EdgeA2_Col; return true; }
+                if (subKey == "EdgeB2") { row = ali.EdgeB2_Row; col = ali.EdgeB2_Col; return true; }
+                return false;
+            }
+            var dual = meas as DualImageEdgeDistanceMeasurement;
+            if (dual != null) {
+                if (subKey == "Point") { row = dual.PointROI_Row; col = dual.PointROI_Col; return true; }
+                if (subKey == "Line") { row = dual.LineROI_Row; col = dual.LineROI_Col; return true; }
+                return false;
+            }
+            var etld = meas as EdgeToLineDistanceMeasurement;
+            if (etld != null) { row = etld.Point_Row; col = etld.Point_Col; return true; }
+            var etla = meas as EdgeToLineAngleMeasurement;
+            if (etla != null) { row = etla.Point_Row; col = etla.Point_Col; return true; }
+            var aed = meas as ArcEdgeDistanceMeasurement;
+            if (aed != null) { row = aed.Point_Row; col = aed.Point_Col; return true; }
+            var cAngle = meas as CompoundAngleMeasurement;
+            if (cAngle != null) { row = cAngle.Rect_Row; col = cAngle.Rect_Col; return true; }
+            var cCenterC = meas as CompoundCenterCDistanceMeasurement;
+            if (cCenterC != null) { row = cCenterC.Rect_Row; col = cCenterC.Rect_Col; return true; }
+            var cCenterB = meas as CompoundCenterBDistanceMeasurement;
+            if (cCenterB != null) { row = cCenterB.Rect_Row; col = cCenterB.Rect_Col; return true; }
+            var cShort = meas as CompoundShortAxisDistanceMeasurement;
+            if (cShort != null) { row = cShort.Rect_Row; col = cShort.Rect_Col; return true; }
+            return false;
+        }
+
+        // 측정의 DatumRef 로 현재 보정 변환(CurrentTransform)을 조회. 초록 결과 박스와 동일 소스(_lastResultDatums).
+        private bool TryGetMeasCorrection(MeasurementBase meas, out HalconDotNet.HTuple t) {
+            t = null;
+            if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) return false;
+            var xforms = BuildResultDatumXforms();
+            HalconDotNet.HTuple xf;
+            if (xforms.TryGetValue(meas.DatumRef, out xf)) { t = xf; return true; }
+            return false;
+        }
+
+        // 측정 Point ROI 리사이즈(bounding box → center+half-length, FAI Rect 분기와 동일 규약) 적용.
+        private void ApplyPointRoiResize(MeasurementBase meas, string subKey, double row1, double col1, double row2, double col2) {
+            double cRow = (row1 + row2) / 2.0;
+            double cCol = (col1 + col2) / 2.0;
+            double halfR = (row2 - row1) / 2.0;
+            double halfC = (col2 - col1) / 2.0;
+
+            var ali = meas as ArcLineIntersectDistanceMeasurement;
+            if (ali != null) {
+                if (subKey == "EdgeA1") { ali.EdgeA1_Row = cRow; ali.EdgeA1_Col = cCol; ali.EdgeA1_Length1 = halfR; ali.EdgeA1_Length2 = halfC; }
+                else if (subKey == "EdgeB1") { ali.EdgeB1_Row = cRow; ali.EdgeB1_Col = cCol; ali.EdgeB1_Length1 = halfR; ali.EdgeB1_Length2 = halfC; }
+                else if (subKey == "EdgeA2") { ali.EdgeA2_Row = cRow; ali.EdgeA2_Col = cCol; ali.EdgeA2_Length1 = halfR; ali.EdgeA2_Length2 = halfC; }
+                else if (subKey == "EdgeB2") { ali.EdgeB2_Row = cRow; ali.EdgeB2_Col = cCol; ali.EdgeB2_Length1 = halfR; ali.EdgeB2_Length2 = halfC; }
+                return;
+            }
+            var dual = meas as DualImageEdgeDistanceMeasurement;
+            if (dual != null) {
+                if (subKey == "Point") { dual.PointROI_Row = cRow; dual.PointROI_Col = cCol; dual.PointROI_Length1 = halfR; dual.PointROI_Length2 = halfC; }
+                else if (subKey == "Line") { dual.LineROI_Row = cRow; dual.LineROI_Col = cCol; dual.LineROI_Length1 = halfR; dual.LineROI_Length2 = halfC; }
+                return;
+            }
+            var etld = meas as EdgeToLineDistanceMeasurement;
+            if (etld != null) { etld.Point_Row = cRow; etld.Point_Col = cCol; etld.Point_Length1 = halfR; etld.Point_Length2 = halfC; return; }
+            var etla = meas as EdgeToLineAngleMeasurement;
+            if (etla != null) { etla.Point_Row = cRow; etla.Point_Col = cCol; etla.Point_Length1 = halfR; etla.Point_Length2 = halfC; return; }
+            var aed = meas as ArcEdgeDistanceMeasurement;
+            if (aed != null) { aed.Point_Row = cRow; aed.Point_Col = cCol; aed.Point_Length1 = halfR; aed.Point_Length2 = halfC; return; }
+            var cAngle = meas as CompoundAngleMeasurement;
+            if (cAngle != null) { cAngle.Rect_Row = cRow; cAngle.Rect_Col = cCol; cAngle.Rect_Length1 = halfR; cAngle.Rect_Length2 = halfC; return; }
+            var cCenterC = meas as CompoundCenterCDistanceMeasurement;
+            if (cCenterC != null) { cCenterC.Rect_Row = cRow; cCenterC.Rect_Col = cCol; cCenterC.Rect_Length1 = halfR; cCenterC.Rect_Length2 = halfC; return; }
+            var cCenterB = meas as CompoundCenterBDistanceMeasurement;
+            if (cCenterB != null) { cCenterB.Rect_Row = cRow; cCenterB.Rect_Col = cCol; cCenterB.Rect_Length1 = halfR; cCenterB.Rect_Length2 = halfC; return; }
+            var cShort = meas as CompoundShortAxisDistanceMeasurement;
+            if (cShort != null) { cShort.Rect_Row = cRow; cShort.Rect_Col = cCol; cShort.Rect_Length1 = halfR; cShort.Rect_Length2 = halfC; }
+        }
+
+        // 측정 Point ROI 삭제(0 리셋). FAI Delete 분기와 동일 규약.
+        private void ApplyPointRoiClear(MeasurementBase meas, string subKey) {
+            var ali = meas as ArcLineIntersectDistanceMeasurement;
+            if (ali != null) {
+                if (subKey == "EdgeA1") { ali.EdgeA1_Row = 0; ali.EdgeA1_Col = 0; ali.EdgeA1_Length1 = 0; ali.EdgeA1_Length2 = 0; }
+                else if (subKey == "EdgeB1") { ali.EdgeB1_Row = 0; ali.EdgeB1_Col = 0; ali.EdgeB1_Length1 = 0; ali.EdgeB1_Length2 = 0; }
+                else if (subKey == "EdgeA2") { ali.EdgeA2_Row = 0; ali.EdgeA2_Col = 0; ali.EdgeA2_Length1 = 0; ali.EdgeA2_Length2 = 0; }
+                else if (subKey == "EdgeB2") { ali.EdgeB2_Row = 0; ali.EdgeB2_Col = 0; ali.EdgeB2_Length1 = 0; ali.EdgeB2_Length2 = 0; }
+                return;
+            }
+            var dual = meas as DualImageEdgeDistanceMeasurement;
+            if (dual != null) {
+                if (subKey == "Point") { dual.PointROI_Row = 0; dual.PointROI_Col = 0; dual.PointROI_Length1 = 0; dual.PointROI_Length2 = 0; }
+                else if (subKey == "Line") { dual.LineROI_Row = 0; dual.LineROI_Col = 0; dual.LineROI_Length1 = 0; dual.LineROI_Length2 = 0; }
+                return;
+            }
+            var etld = meas as EdgeToLineDistanceMeasurement;
+            if (etld != null) { etld.Point_Row = 0; etld.Point_Col = 0; etld.Point_Length1 = 0; etld.Point_Length2 = 0; return; }
+            var etla = meas as EdgeToLineAngleMeasurement;
+            if (etla != null) { etla.Point_Row = 0; etla.Point_Col = 0; etla.Point_Length1 = 0; etla.Point_Length2 = 0; return; }
+            var aed = meas as ArcEdgeDistanceMeasurement;
+            if (aed != null) { aed.Point_Row = 0; aed.Point_Col = 0; aed.Point_Length1 = 0; aed.Point_Length2 = 0; return; }
+            var cAngle = meas as CompoundAngleMeasurement;
+            if (cAngle != null) { cAngle.Rect_Row = 0; cAngle.Rect_Col = 0; cAngle.Rect_Length1 = 0; cAngle.Rect_Length2 = 0; return; }
+            var cCenterC = meas as CompoundCenterCDistanceMeasurement;
+            if (cCenterC != null) { cCenterC.Rect_Row = 0; cCenterC.Rect_Col = 0; cCenterC.Rect_Length1 = 0; cCenterC.Rect_Length2 = 0; return; }
+            var cCenterB = meas as CompoundCenterBDistanceMeasurement;
+            if (cCenterB != null) { cCenterB.Rect_Row = 0; cCenterB.Rect_Col = 0; cCenterB.Rect_Length1 = 0; cCenterB.Rect_Length2 = 0; return; }
+            var cShort = meas as CompoundShortAxisDistanceMeasurement;
+            if (cShort != null) { cShort.Rect_Row = 0; cShort.Rect_Col = 0; cShort.Rect_Length1 = 0; cShort.Rect_Length2 = 0; }
+        }
+
+        // ===== 마스터 재-앵커: 강체 변환 T(옛 기준→새 마스터)로 절대좌표 ROI 를 일괄 이전하는 지오메트리 헬퍼 =====
+        //  런타임 VisionAlgorithmService.TryFitLine 과 동일 규약: 중심=AffineTransPoint2d(T), 각도=+Atan2(-T[1],T[0]),
+        //  길이/반경 불변(강체는 크기 보존). Phi 는 라디안(측정 필드 규약).
+
+        private void TransformPointInPlace(HTuple T, ref double row, ref double col) {
+            HTuple nr, nc;
+            HalconDotNet.HOperatorSet.AffineTransPoint2d(T, row, col, out nr, out nc);
+            row = nr.D;
+            col = nc.D;
+        }
+
+        private double RotAngleOf(HTuple T) {
+            return System.Math.Atan2(-T[1].D, T[0].D);
+        }
+
+        // 측정 타입별 지오메트리(중심+Phi) 이전. Length/Radius/Nominal/공차/보정계수는 불변.
+        //  EdgePairDistance 는 자체 지오메트리 없음(Owner FAI.ROI_* 사용) → 여기서 skip, TransformFaiRoi 로 처리.
+        private void TransformMeasurementGeometry(MeasurementBase m, HTuple T) {
+            if (m == null) return;
+            double rot = RotAngleOf(T);
+            double r, c;
+
+            var ali = m as ArcLineIntersectDistanceMeasurement;
+            if (ali != null) {
+                r = ali.EdgeA1_Row; c = ali.EdgeA1_Col; TransformPointInPlace(T, ref r, ref c); ali.EdgeA1_Row = r; ali.EdgeA1_Col = c; ali.EdgeA1_Phi = ali.EdgeA1_Phi + rot;
+                r = ali.EdgeB1_Row; c = ali.EdgeB1_Col; TransformPointInPlace(T, ref r, ref c); ali.EdgeB1_Row = r; ali.EdgeB1_Col = c; ali.EdgeB1_Phi = ali.EdgeB1_Phi + rot;
+                r = ali.EdgeA2_Row; c = ali.EdgeA2_Col; TransformPointInPlace(T, ref r, ref c); ali.EdgeA2_Row = r; ali.EdgeA2_Col = c; ali.EdgeA2_Phi = ali.EdgeA2_Phi + rot;
+                r = ali.EdgeB2_Row; c = ali.EdgeB2_Col; TransformPointInPlace(T, ref r, ref c); ali.EdgeB2_Row = r; ali.EdgeB2_Col = c; ali.EdgeB2_Phi = ali.EdgeB2_Phi + rot;
+                return;
+            }
+            var dual = m as DualImageEdgeDistanceMeasurement;
+            if (dual != null) {
+                r = dual.PointROI_Row; c = dual.PointROI_Col; TransformPointInPlace(T, ref r, ref c); dual.PointROI_Row = r; dual.PointROI_Col = c; dual.PointROI_Phi = dual.PointROI_Phi + rot;
+                r = dual.LineROI_Row; c = dual.LineROI_Col; TransformPointInPlace(T, ref r, ref c); dual.LineROI_Row = r; dual.LineROI_Col = c; dual.LineROI_Phi = dual.LineROI_Phi + rot;
+                return;
+            }
+            var etld = m as EdgeToLineDistanceMeasurement;
+            if (etld != null) { r = etld.Point_Row; c = etld.Point_Col; TransformPointInPlace(T, ref r, ref c); etld.Point_Row = r; etld.Point_Col = c; etld.Point_Phi = etld.Point_Phi + rot; return; }
+            var etla = m as EdgeToLineAngleMeasurement;
+            if (etla != null) { r = etla.Point_Row; c = etla.Point_Col; TransformPointInPlace(T, ref r, ref c); etla.Point_Row = r; etla.Point_Col = c; etla.Point_Phi = etla.Point_Phi + rot; return; }
+            var aed = m as ArcEdgeDistanceMeasurement;
+            if (aed != null) { r = aed.Point_Row; c = aed.Point_Col; TransformPointInPlace(T, ref r, ref c); aed.Point_Row = r; aed.Point_Col = c; aed.Point_Phi = aed.Point_Phi + rot; return; }
+            var cAngle = m as CompoundAngleMeasurement;
+            if (cAngle != null) { r = cAngle.Rect_Row; c = cAngle.Rect_Col; TransformPointInPlace(T, ref r, ref c); cAngle.Rect_Row = r; cAngle.Rect_Col = c; cAngle.Rect_Phi = cAngle.Rect_Phi + rot; return; }
+            var cCenterC = m as CompoundCenterCDistanceMeasurement;
+            if (cCenterC != null) { r = cCenterC.Rect_Row; c = cCenterC.Rect_Col; TransformPointInPlace(T, ref r, ref c); cCenterC.Rect_Row = r; cCenterC.Rect_Col = c; cCenterC.Rect_Phi = cCenterC.Rect_Phi + rot; return; }
+            var cCenterB = m as CompoundCenterBDistanceMeasurement;
+            if (cCenterB != null) { r = cCenterB.Rect_Row; c = cCenterB.Rect_Col; TransformPointInPlace(T, ref r, ref c); cCenterB.Rect_Row = r; cCenterB.Rect_Col = c; cCenterB.Rect_Phi = cCenterB.Rect_Phi + rot; return; }
+            var cShort = m as CompoundShortAxisDistanceMeasurement;
+            if (cShort != null) { r = cShort.Rect_Row; c = cShort.Rect_Col; TransformPointInPlace(T, ref r, ref c); cShort.Rect_Row = r; cShort.Rect_Col = c; cShort.Rect_Phi = cShort.Rect_Phi + rot; return; }
+            var cd = m as CircleDiameterMeasurement;
+            if (cd != null) { r = cd.Circle_Row; c = cd.Circle_Col; TransformPointInPlace(T, ref r, ref c); cd.Circle_Row = r; cd.Circle_Col = c; return; } // Radius 불변, Phi 없음
+            var ccd = m as CircleCenterDistanceMeasurement;
+            if (ccd != null) { r = ccd.Circle_Row; c = ccd.Circle_Col; TransformPointInPlace(T, ref r, ref c); ccd.Circle_Row = r; ccd.Circle_Col = c; return; }
+            var l2ld = m as LineToLineDistanceMeasurement;
+            if (l2ld != null) {
+                r = l2ld.Line1_Row; c = l2ld.Line1_Col; TransformPointInPlace(T, ref r, ref c); l2ld.Line1_Row = r; l2ld.Line1_Col = c; l2ld.Line1_Phi = l2ld.Line1_Phi + rot;
+                r = l2ld.Line2_Row; c = l2ld.Line2_Col; TransformPointInPlace(T, ref r, ref c); l2ld.Line2_Row = r; l2ld.Line2_Col = c; l2ld.Line2_Phi = l2ld.Line2_Phi + rot;
+                return;
+            }
+            var l2la = m as LineToLineAngleMeasurement;
+            if (l2la != null) {
+                r = l2la.Line1_Row; c = l2la.Line1_Col; TransformPointInPlace(T, ref r, ref c); l2la.Line1_Row = r; l2la.Line1_Col = c; l2la.Line1_Phi = l2la.Line1_Phi + rot;
+                r = l2la.Line2_Row; c = l2la.Line2_Col; TransformPointInPlace(T, ref r, ref c); l2la.Line2_Row = r; l2la.Line2_Col = c; l2la.Line2_Phi = l2la.Line2_Phi + rot;
+                return;
+            }
+            var p2l = m as PointToLineDistanceMeasurement;
+            if (p2l != null) {
+                r = p2l.Point_Row; c = p2l.Point_Col; TransformPointInPlace(T, ref r, ref c); p2l.Point_Row = r; p2l.Point_Col = c; p2l.Point_Phi = p2l.Point_Phi + rot;
+                r = p2l.Line_Row; c = p2l.Line_Col; TransformPointInPlace(T, ref r, ref c); p2l.Line_Row = r; p2l.Line_Col = c; p2l.Line_Phi = p2l.Line_Phi + rot;
+                return;
+            }
+            var p2p = m as PointToPointDistanceMeasurement;
+            if (p2p != null) {
+                r = p2p.Point1_Row; c = p2p.Point1_Col; TransformPointInPlace(T, ref r, ref c); p2p.Point1_Row = r; p2p.Point1_Col = c; p2p.Point1_Phi = p2p.Point1_Phi + rot;
+                r = p2p.Point2_Row; c = p2p.Point2_Col; TransformPointInPlace(T, ref r, ref c); p2p.Point2_Row = r; p2p.Point2_Col = c; p2p.Point2_Phi = p2p.Point2_Phi + rot;
+                return;
+            }
+            // EdgePairDistanceMeasurement: 자체 지오메트리 없음 → Owner FAI.ROI_* 를 TransformFaiRoi 로 처리(호출부에서).
+        }
+
+        // FAI 자체 rect ROI 이전 (EdgePairDistance 소비 + 일반 FAI rect). Length 불변, Phi += rot.
+        private void TransformFaiRoi(FAIConfig fai, HTuple T) {
+            if (fai == null) return;
+            double r = fai.ROI_Row, c = fai.ROI_Col;
+            TransformPointInPlace(T, ref r, ref c);
+            fai.ROI_Row = r;
+            fai.ROI_Col = c;
+            fai.ROI_Phi = fai.ROI_Phi + RotAngleOf(T);
+            if (!string.IsNullOrEmpty(fai.PolygonPoints)) {
+                Logging.PrintLog((int)ELogType.Trace, "[Reanchor] FAI '" + fai.FAIName + "' 폴리곤 ROI 는 자동 이전 대상 아님 — 수동 확인 필요");
+            }
+        }
+
+        // Datum 자체 검색 ROI 이전 (Line1/2, Vertical, Horizontal_A/B, CircleROI, PatternRoi1/2). Length/Radius 불변, Phi += rot.
+        private void TransformDatumOwnRois(DatumConfig d, HTuple T) {
+            if (d == null) return;
+            double rot = RotAngleOf(T);
+            double r, c;
+            r = d.Line1_Row; c = d.Line1_Col; TransformPointInPlace(T, ref r, ref c); d.Line1_Row = r; d.Line1_Col = c; d.Line1_Phi = d.Line1_Phi + rot;
+            r = d.Line2_Row; c = d.Line2_Col; TransformPointInPlace(T, ref r, ref c); d.Line2_Row = r; d.Line2_Col = c; d.Line2_Phi = d.Line2_Phi + rot;
+            r = d.Vertical_Row; c = d.Vertical_Col; TransformPointInPlace(T, ref r, ref c); d.Vertical_Row = r; d.Vertical_Col = c; d.Vertical_Phi = d.Vertical_Phi + rot;
+            r = d.Horizontal_A_Row; c = d.Horizontal_A_Col; TransformPointInPlace(T, ref r, ref c); d.Horizontal_A_Row = r; d.Horizontal_A_Col = c; d.Horizontal_A_Phi = d.Horizontal_A_Phi + rot;
+            r = d.Horizontal_B_Row; c = d.Horizontal_B_Col; TransformPointInPlace(T, ref r, ref c); d.Horizontal_B_Row = r; d.Horizontal_B_Col = c; d.Horizontal_B_Phi = d.Horizontal_B_Phi + rot;
+            r = d.CircleROI_Row; c = d.CircleROI_Col; TransformPointInPlace(T, ref r, ref c); d.CircleROI_Row = r; d.CircleROI_Col = c; // Radius 불변
+            r = d.PatternRoi_Row; c = d.PatternRoi_Col; TransformPointInPlace(T, ref r, ref c); d.PatternRoi_Row = r; d.PatternRoi_Col = c; d.PatternRoi_Phi = d.PatternRoi_Phi + rot;
+            r = d.PatternRoi2_Row; c = d.PatternRoi2_Col; TransformPointInPlace(T, ref r, ref c); d.PatternRoi2_Row = r; d.PatternRoi2_Col = c; d.PatternRoi2_Phi = d.PatternRoi2_Phi + rot;
+        }
+
+        // 옛 datum(현재 stored 기준)으로 현재 이미지(새 마스터)를 Find → T = 옛기준→새마스터 강체 변환.
+        //  Test Find 와 동일 find 경로 재사용(기존 핸들러는 미수정). 실패 시 false + 무변경(ROI 절대 안 건드림).
+        private bool TryFindTransformForReanchor(DatumConfig datum, out HTuple T, out string error) {
+            T = null;
+            error = null;
+            if (datum == null) { error = "Datum 이 선택되지 않았습니다."; return false; }
+            HImage image = halconViewer.CurrentImage;
+            if (image == null) { error = "이미지가 없습니다. 새 마스터를 Grab 또는 Load 하세요."; return false; }
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                error = "DualImage datum 은 자동 재앵커 미지원입니다(수동 재티칭 필요).";
+                return false;
+            }
+            var svc = new ReringProject.Halcon.Algorithms.DatumFindingService();
+            bool ok;
+            string err = null;
+            if (datum.IsPatternAlignEnabled) {
+                ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
+                string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                if (seq != null) {
+                    ok = seq.TryComposeAlign(datum, image, modelPath, out err);
+                    if (ok) T = datum.CurrentTransform;
+                }
+                else {
+                    HTuple tr;
+                    ok = svc.TryFindDatum(image, datum, out tr, out err);
+                    if (ok) T = tr;
+                }
+            }
+            else {
+                HTuple tr;
+                ok = svc.TryFindDatum(image, datum, out tr, out err);
+                if (ok) T = tr;
+            }
+            if (!ok) { error = FormatFindError(err); return false; }
+            if (T == null || T.Length < 5) { error = "변환(transform) 획득 실패 — 유효하지 않은 결과입니다."; return false; }
+            return true;
+        }
+
+        // 이 datum(DatumName)을 DatumRef 로 참조하는 모든 측정을 전 Shot 에서 수집.
+        private List<MeasurementBase> CollectMeasurementsForDatum(DatumConfig datum) {
+            var result = new List<MeasurementBase>();
+            if (datum == null || string.IsNullOrEmpty(datum.DatumName)) return result;
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            if (recipeManager == null || recipeManager.Shots == null) return result;
+            foreach (ShotConfig shot in recipeManager.Shots) {
+                if (shot == null || shot.FAIList == null) continue;
+                foreach (FAIConfig fai in shot.FAIList) {
+                    foreach (MeasurementBase m in fai.Measurements) {
+                        if (m != null && string.Equals(m.DatumRef, datum.DatumName, StringComparison.Ordinal)) {
+                            result.Add(m);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
         // Keep public methods called by MainWindow and InspectionListView
 
         public void AddCustomControl(string name, UserControl control) {
@@ -661,12 +1173,27 @@ namespace ReringProject.UI {
             if (param == null || !pSeq.IsIdle || GrabTask != null) return;
 
             GrabTask = Task.Run(() => {
+                // 데드락 방지: mDrawInterlock 은 grab 구간에만. WaitForPendingWrites(최대 500ms) 를 락 안에서 쥔 채
+                //  ExecuteOnUi(Dispatcher.Invoke) 로 UI 를 기다리면, 그 사이 트리 이동이 UI 스레드에서 같은 락을
+                //  요청 → 영구 데드락. 그래서 표시(ExecuteOnUi)는 락 해제 후 수행한다. (GrabSaveAndDisplay 와 동일 규약)
+                HImage grabbedHalconImage = null;
                 lock (mDrawInterlock) {
-                    pLight.ApplyLight(param);
-                    HImage grabbedHalconImage = pDev.GrabHalconImage(param);
+                    // ShotConfig 는 LightGroupName/LightLevel 이 세팅된 적이 없어 ApplyLight(param) 이 사실상 무동작이었다
+                    // (조명이 실제로 켜지지 않은 채 grab 됨). Ring/Bar/Back/Ring7/Coax 채널별 값(Light 탭)을 실제로 반영한다.
+                    if (param is ShotConfig shotForGrab) {
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
+                    }
+                    else {
+                        pLight.ApplyLight(param);
+                    }
+                    // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
+                    LightHandler.Handle.WaitForPendingWrites();
+                    grabbedHalconImage = pDev.GrabHalconImage(param);
                     param.PutImage(grabbedHalconImage);
-
-                    ExecuteOnUi(() => {
+                }
+                // ---- 락 해제 후 UI 디스패치(락 쥔 채 Dispatcher.Invoke 금지) ----
+                ExecuteOnUi(() => {
                         var resultStr = "Grab Fail";
                         var brush = Brushes.Red;
                         if (pDev[param.DeviceName] == null) {
@@ -693,13 +1220,194 @@ namespace ReringProject.UI {
                         foreach (IMainView customView in CustomViewList) {
                             customView.Display(param.SequenceName, resultStr, brush, param.ActionName);
                         }
-                    });
-                }
+                });
+                // grab 원본은 표시(뷰어가 Clone 보관)·저장(별도 사본) 후 아무도 참조하지 않는다 → 해제(매 grab 1장 native HImage 누수 방지).
+                //  GrabHalconImage()=LastHalconImage=CopyImage() 로 호출자 소유 독립본, PutImage=no-op, LoadImage=Clone 이므로 dispose 안전.
+                if (grabbedHalconImage != null) grabbedHalconImage.Dispose();
             });
 
-            await GrabTask;
-            GrabTask.Dispose();
-            GrabTask = null;
+            // grab 예외로 Task 가 fault 나도 GrabTask 를 반드시 비워 이후 grab 이 영구 차단되지 않게 한다.
+            try { await GrabTask; }
+            finally { GrabTask.Dispose(); GrabTask = null; }
+        }
+
+        // Datum 티칭 grab 오버로드. 기존 1-인자 오버로드는 무변경 유지(비-Datum 호출부 회귀 방지) —
+        //  본문은 조명 적용 한 줄만 다르고 나머지는 그대로 복제. datum 이 넘어오면 그 Datum 전용 조명을 켠 채로 grab한다
+        //  (기존에는 param.LightGroupName 이 ShotConfig 에서 한 번도 세팅된 적이 없어 ApplyLight(param) 이 사실상 무동작이었음).
+        public async void GrabAndDisplay(ICameraParam param, DatumConfig datum, bool eventCall = false) {
+            if (param == null || !pSeq.IsIdle || GrabTask != null) return;
+
+            GrabTask = Task.Run(() => {
+                // 데드락 방지: 락 = grab 전용, 표시(ExecuteOnUi)는 락 해제 후. (1-인자 오버로드/ GrabSaveAndDisplay 와 동일 규약)
+                HImage grabbedHalconImage = null;
+                lock (mDrawInterlock) {
+                    if (datum != null) {
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        if (lightSeq != null) lightSeq.ApplyDatumLights(datum);
+                    }
+                    else if (param is ShotConfig shotForGrab) {
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
+                    }
+                    else {
+                        pLight.ApplyLight(param);
+                    }
+                    // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
+                    LightHandler.Handle.WaitForPendingWrites();
+                    grabbedHalconImage = pDev.GrabHalconImage(param);
+                    param.PutImage(grabbedHalconImage);
+                }
+                // ---- 락 해제 후 UI 디스패치(락 쥔 채 Dispatcher.Invoke 금지) ----
+                ExecuteOnUi(() => {
+                        var resultStr = "Grab Fail";
+                        var brush = Brushes.Red;
+                        if (pDev[param.DeviceName] == null) {
+                            resultStr = "Device Not Opened";
+                        }
+                        else if (DisplayToViewer(grabbedHalconImage, ConvertParamRects(param as ParamBase))) {
+                            if (pDev[param.DeviceName].IsGrabFromFile) resultStr = "Grab From File";
+                            else                                       resultStr = "Grab Success";
+                            brush = Brushes.Lime;
+                        }
+
+                        label_message.Foreground = brush;
+                        label_message.Content = string.Format(
+                            "{0}\n{1} ({2:0.00}s)\n{3}",
+                            param.DeviceName,
+                            resultStr,
+                            pDev[param.DeviceName].ElapsedTime.TotalMilliseconds / 1000.0,
+                            BuildViewerStateSummary(
+                                _lastRenderedImagePath,
+                                ConvertParamRects(param as ParamBase),
+                                null));
+                        label_message.Visibility = Visibility.Visible;
+
+                        foreach (IMainView customView in CustomViewList) {
+                            customView.Display(param.SequenceName, resultStr, brush, param.ActionName);
+                        }
+                });
+                // grab 원본은 표시(뷰어가 Clone 보관)·저장(별도 사본) 후 아무도 참조하지 않는다 → 해제(매 grab 1장 native HImage 누수 방지).
+                //  GrabHalconImage()=LastHalconImage=CopyImage() 로 호출자 소유 독립본, PutImage=no-op, LoadImage=Clone 이므로 dispose 안전.
+                if (grabbedHalconImage != null) grabbedHalconImage.Dispose();
+            });
+
+            // grab 예외로 Task 가 fault 나도 GrabTask 를 반드시 비워 이후 grab 이 영구 차단되지 않게 한다.
+            try { await GrabTask; }
+            finally { GrabTask.Dispose(); GrabTask = null; }
+        }
+
+        // 오프라인/수동 검사용: 라이브 grab → 그 이미지를 savePath(.png) 에 저장 → 노드 경로(pathSinkParam)에 기록 → 표시.
+        //  '검사이미지 Grab' 버튼(InspectionListView) 전용. Z 모터 없는 수동 지그에서 사람이 datum/shot Z 를 맞춰
+        //  이미지를 확보하면, 이후 OfflineInspectMode 검사가 이 저장 이미지를 로드해 측정한다.
+        //  displayParam=grab/표시용(datum 노드면 SourceShot), datum!=null 이면 datum 전용 조명, pathSinkParam=경로 저장 대상.
+        //  조명 적용·대기·표시 규약은 GrabAndDisplay(datum) 와 동일. 경로 기록 규약은 LoadAndDisplay 와 동일(DualImage 세로 토글 특례 포함).
+        public async Task GrabSaveAndDisplay(ICameraParam displayParam, DatumConfig datum, IOfflineImageParam pathSinkParam, string savePath) {
+            if (displayParam == null || pathSinkParam == null || string.IsNullOrEmpty(savePath)) return;
+            if (!pSeq.IsIdle || GrabTask != null) return;
+
+            ICameraParam param = displayParam;
+            GrabTask = Task.Run(() => {
+                // === 데드락 방지 규약 ===
+                //  mDrawInterlock 은 "카메라 grab" 구간에만 잡는다. 느린 디스크 저장(WriteImage)이나 UI 디스패치
+                //  (ExecuteOnUi = Dispatcher.Invoke, UI 스레드 대기)를 이 락 안에서 하면:
+                //   ① 백그라운드가 락을 쥔 채 UI 스레드를 기다리고,
+                //   ② 그 사이 사용자가 다른 Shot/트리로 이동 → DisplayParam/DisplaySequenceContext 가 UI 스레드에서
+                //      같은 mDrawInterlock 을 요청 → UI 는 락 대기.
+                //  → 서로 상대를 기다리는 영구 데드락(실측 재현: 검사Grab 직후 shot 이동). 그래서 락 = grab 전용,
+                //     저장/표시는 전부 락 해제 후 수행한다(어떤 UI 대기도 락을 쥐지 않음).
+                HImage grabbedHalconImage = null;
+                HImage imageToSave = null;
+                lock (mDrawInterlock) {
+                    if (datum != null) {
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        if (lightSeq != null) lightSeq.ApplyDatumLights(datum);
+                    }
+                    else if (param is ShotConfig shotForGrab) {
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
+                    }
+                    else {
+                        pLight.ApplyLight(param);
+                    }
+                    // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
+                    LightHandler.Handle.WaitForPendingWrites();
+                    grabbedHalconImage = pDev.GrabHalconImage(param);
+                    // 디스크 저장은 락 밖에서 수행하므로, 락 안에서 독립 사본을 떠 둔다 — 같은 HImage 를 저장(백그라운드)과
+                    //  표시(UI)가 크로스스레드로 동시 접근하지 않도록 분리(표시는 grabbedHalconImage, 저장은 imageToSave 사용).
+                    if (grabbedHalconImage != null) imageToSave = grabbedHalconImage.CopyImage();
+                    param.PutImage(grabbedHalconImage);
+                }
+                // ---- 락 해제됨: 이 지점부터는 어떤 대기도 mDrawInterlock 을 쥐지 않는다 ----
+
+                // grab 이미지를 노드 저장경로에 png 로 기록 (검사 시 로드 대상). 실패해도 표시는 시도. (느린 디스크 I/O = 락 밖)
+                bool saved = false;
+                string saveErr = null;
+                if (imageToSave != null) {
+                    try {
+                        string dir = Path.GetDirectoryName(savePath);
+                        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                        imageToSave.WriteImage("png", 0, savePath);
+                        saved = true;
+                    }
+                    catch (Exception ex) {
+                        saveErr = ex.Message;
+                    }
+                    finally {
+                        imageToSave.Dispose();
+                    }
+                }
+
+                ExecuteOnUi(() => {
+                    var resultStr = "Grab Fail";
+                    var brush = Brushes.Red;
+                    if (pDev[param.DeviceName] == null) {
+                        resultStr = "Device Not Opened";
+                    }
+                    else if (!DisplayToViewer(grabbedHalconImage, ConvertParamRects(param as ParamBase))) {
+                        resultStr = "Grab Fail";
+                    }
+                    else if (!saved) {
+                        resultStr = "Save Fail";
+                        if (saveErr != null) resultStr = "Save Fail: " + saveErr;
+                        brush = Brushes.OrangeRed;
+                    }
+                    else {
+                        resultStr = "검사이미지 저장 완료";
+                        brush = Brushes.Lime;
+                        // 노드 경로 기록 (LoadAndDisplay 와 동일 규약: DualImage 세로 토글이면 Vertical, 아니면 SetLatestImagePath)
+                        DatumConfig datumSink = pathSinkParam as DatumConfig;
+                        if (datumSink != null
+                            && datumSink.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
+                            && _currentImageSource == ReringProject.Sequence.EImageSource.Vertical) {
+                            datumSink.TeachingImagePath_Vertical = savePath;
+                        }
+                        else {
+                            pathSinkParam.SetLatestImagePath(savePath);
+                        }
+                        _lastRenderedImagePath = savePath;
+                        // Shot 노드 grab(displayParam==pathSink) 이면 캐시 동기화 — Datum 노드는 Shot 캐시 무오염.
+                        if (displayParam is ShotConfig shotSink && ReferenceEquals(displayParam, pathSinkParam)) {
+                            _lastDisplayedImageShot = shotSink;
+                        }
+                        UpdateImageSourceLabel(pathSinkParam as DatumConfig, param as ShotConfig);
+                    }
+
+                    label_message.Foreground = brush;
+                    label_message.Content = string.Format("{0}\n{1}\n{2}", param.DeviceName, resultStr, savePath);
+                    label_message.Visibility = Visibility.Visible;
+
+                    foreach (IMainView customView in CustomViewList) {
+                        customView.Display(param.SequenceName, resultStr, brush, param.ActionName);
+                    }
+                });
+                // grab 원본은 표시(뷰어가 Clone 보관)·저장(별도 사본) 후 아무도 참조하지 않는다 → 해제(매 grab 1장 native HImage 누수 방지).
+                //  GrabHalconImage()=LastHalconImage=CopyImage() 로 호출자 소유 독립본, PutImage=no-op, LoadImage=Clone 이므로 dispose 안전.
+                if (grabbedHalconImage != null) grabbedHalconImage.Dispose();
+            });
+
+            // grab 예외로 Task 가 fault 나도 GrabTask 를 반드시 비워 이후 grab 이 영구 차단되지 않게 한다.
+            try { await GrabTask; }
+            finally { GrabTask.Dispose(); GrabTask = null; }
         }
 
         public void LoadAndDisplay(ICameraParam param) {
@@ -749,6 +1457,9 @@ namespace ReringProject.UI {
                     if (currentImg != null) {
                         shot.SetImage(currentImg); // SetImage 내부 CopyImage 로 소유권 분리
                     }
+                    // 방금 halconViewer.LoadImage(dialog.FileName) 로 이미 이 Shot 의 최신 이미지를 표시했으므로,
+                    // DisplayShotImage 캐시도 동기화해 다음 같은-Shot 재선택 때 불필요한 재로드(뷰 리셋)가 없도록 한다.
+                    _lastDisplayedImageShot = shot;
                 }
                 UpdateImageSourceLabel(pathSinkParam as DatumConfig, param as ShotConfig);
 
@@ -940,6 +1651,7 @@ namespace ReringProject.UI {
             halconViewer.RoiMoveCompleted -= HalconViewer_RoiMoveCompleted;
             halconViewer.RoiDeleteRequested -= HalconViewer_RoiDeleteRequested;
             halconViewer.RoiGeometryChanged -= HalconViewer_RoiGeometryChanged;
+            halconViewer.RoiEditModeChanged -= HalconViewer_RoiEditModeChanged;
         }
 
         // Datum.* RoiId 이면 FAI 분기 진입 전 먼저 처리, 아니면 FAI 경로.
@@ -952,7 +1664,15 @@ namespace ReringProject.UI {
                 return;
             }
 
-            var fai = FindFAIByName(e.RoiId);
+            FAIConfig pointFai; MeasurementBase pointMeas; string pointSubKey;
+            if (TryResolvePointRoiTarget(e.RoiId, out pointFai, out pointMeas, out pointSubKey)) {
+                ApplyPointRoiResize(pointMeas, pointSubKey, e.Row1, e.Column1, e.Row2, e.Column2);
+                var pointRois = CollectShotRoisForViewer(GetCurrentShotContext());
+                halconViewer.UpdateDisplayState(pointRois, e.RoiId, null, null);
+                return;
+            }
+
+            var fai = ResolveFaiForRoiWriteBack(e.RoiId);
             if (fai == null) return;
 
             if (e.Shape == RoiShape.Circle) {
@@ -991,7 +1711,7 @@ namespace ReringProject.UI {
                 fai.ROI_Length2 = halfC;
             }
 
-            var rois = GetCurrentFAIRois();
+            var rois = CollectShotRoisForViewer(GetCurrentShotContext());
             halconViewer.UpdateDisplayState(rois, e.RoiId, null, null);
         }
 
@@ -1017,7 +1737,15 @@ namespace ReringProject.UI {
                 return;
             }
 
-            var fai = FindFAIByName(roiId);
+            FAIConfig pointFai; MeasurementBase pointMeas; string pointSubKey;
+            if (TryResolvePointRoiTarget(roiId, out pointFai, out pointMeas, out pointSubKey)) {
+                ApplyPointRoiClear(pointMeas, pointSubKey);
+                var pointRois = CollectShotRoisForViewer(GetCurrentShotContext());
+                halconViewer.UpdateDisplayState(pointRois, null, null, null);
+                return;
+            }
+
+            var fai = ResolveFaiForRoiWriteBack(roiId);
             if (fai == null) return;
 
             fai.ROI_Row = 0;
@@ -1035,8 +1763,16 @@ namespace ReringProject.UI {
                 }
             }
 
-            var rois = GetCurrentFAIRois();
+            var rois = CollectShotRoisForViewer(GetCurrentShotContext());
             halconViewer.UpdateDisplayState(rois, null, null, null);
+        }
+
+        // Edit 진입/이탈 시 측정 ROI 표시를 raw↔보정 위치로 전환하기 위해 현재 선택 노드 기준으로 하이라이트를 재렌더한다.
+        //  (보정이 없거나 datum 미참조 측정이면 CollectShotRoisForViewer 가 원본 그대로 반환하므로 무보정 케이스 동작 불변.)
+        private void HalconViewer_RoiEditModeChanged(object sender, bool editMode) {
+            if (mParentWindow == null || mParentWindow.inspectionList == null) return;
+            ParamBase sel = mParentWindow.inspectionList.SelectedParam;
+            if (sel != null) HighlightSelectedRoi(sel);
         }
 
         private void HalconViewer_RoiMoveCompleted(object sender, RoiMoveCompletedArgs e) {
@@ -1053,7 +1789,39 @@ namespace ReringProject.UI {
                 return;
             }
 
-            var fai = FindFAIByName(e.RoiId);
+            FAIConfig pointFai; MeasurementBase pointMeas; string pointSubKey;
+            if (TryResolvePointRoiTarget(e.RoiId, out pointFai, out pointMeas, out pointSubKey)) {
+                double applyDr = e.DeltaRow;
+                double applyDc = e.DeltaCol;
+                // Edit 모드에서 datum 보정이 걸린 측정은 ROI 가 "보정 위치"로 표시되므로(CollectShotRoisForViewer),
+                //  사용자가 끈 드래그 델타도 보정(화면) 좌표 기준이다. 이를 원본(raw) 좌표 델타로 역변환해 저장해야
+                //  검사 때 다시 보정이 곱해져도 사용자가 놓은 화면 위치에 정확히 측정된다(이중보정 방지).
+                //   raw_new = T_inv( T(raw_old) + screenDelta ),  적용 델타 = raw_new - raw_old
+                HalconDotNet.HTuple xf;
+                double rawR, rawC;
+                if (halconViewer.IsEditMode && TryGetMeasCorrection(pointMeas, out xf)
+                    && TryGetPointRoiCenter(pointMeas, pointSubKey, out rawR, out rawC)) {
+                    try {
+                        HalconDotNet.HTuple cr, cc;
+                        HalconDotNet.HOperatorSet.AffineTransPoint2d(xf, rawR, rawC, out cr, out cc);
+                        double newCorrR = cr.D + e.DeltaRow;
+                        double newCorrC = cc.D + e.DeltaCol;
+                        HalconDotNet.HTuple xfInv;
+                        HalconDotNet.HOperatorSet.HomMat2dInvert(xf, out xfInv);
+                        HalconDotNet.HTuple nrr, nrc;
+                        HalconDotNet.HOperatorSet.AffineTransPoint2d(xfInv, newCorrR, newCorrC, out nrr, out nrc);
+                        applyDr = nrr.D - rawR;
+                        applyDc = nrc.D - rawC;
+                    }
+                    catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, ex.Message); }
+                }
+                ApplyPointRoiMoveDelta(pointMeas, pointSubKey, applyDr, applyDc);
+                var pointRois = CollectShotRoisForViewer(GetCurrentShotContext());
+                halconViewer.UpdateDisplayState(pointRois, e.RoiId, null, null);
+                return;
+            }
+
+            var fai = ResolveFaiForRoiWriteBack(e.RoiId);
             if (fai == null) return;
 
             bool handledCircle = false;
@@ -1080,7 +1848,7 @@ namespace ReringProject.UI {
                 fai.ROI_Col += e.DeltaCol;
             }
 
-            var rois = GetCurrentFAIRois();
+            var rois = CollectShotRoisForViewer(GetCurrentShotContext());
             halconViewer.UpdateDisplayState(rois, e.RoiId, null, null);
         }
 
@@ -1324,7 +2092,13 @@ namespace ReringProject.UI {
         // 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선을 결과 화면에 표시.
         //  각 datum 의 휘발 좌표를 silent 복원 후 결과용 오버레이 리스트로 일괄 렌더. 단일 _datumConfig(Datum 편집)는 무오염.
         //  null/빈 → 결과 오버레이 클리어. 측정 결과 이미지는 그대로 두고 datum 라인만 덧그림.
+        // 마지막으로 표시한 결과 datum 집합 — Edit 모드에서 측정 ROI 를 보정 위치로 표시/역보정 저장할 때
+        //  초록 결과 박스(BuildCorrectedResultRoiOverlays)와 동일한 변환 소스를 재사용하기 위한 캐시.
+        private List<DatumConfig> _lastResultDatums = new List<DatumConfig>();
+
         public void ShowResultDatumOverlays(List<DatumConfig> datums) {
+            if (datums == null) _lastResultDatums = new List<DatumConfig>();
+            else                _lastResultDatums = datums;
             if (datums == null || datums.Count == 0) {
                 halconViewer.ClearResultDatumOverlays();
                 halconViewer.ClearResultRoiOverlays(); //260619 hbk Phase 56 Wave 2 — 보정 ROI 박스도 클리어
@@ -1954,8 +2728,8 @@ namespace ReringProject.UI {
                 // Measurement.ROI_* 동기화 블록 제거 — EdgePairDistanceMeasurement 가
                 // Owner(FAIConfig).ROI_* 를 직접 참조하도록 변경되어 중복 저장이 사라짐.
 
-                // Refresh canvas to show new ROI
-                var rois = GetCurrentFAIRois();
+                // Refresh canvas to show new ROI — dataGrid 지연 비의존(편집 중 _editingFai 의 Shot 직접 수집)
+                var rois = CollectShotRois(_editingFai);
                 halconViewer.UpdateDisplayState(rois, _editingFai.FAIName, null, null);
             }
             ExitCanvasMode();
@@ -2127,7 +2901,9 @@ namespace ReringProject.UI {
 
             // Refresh canvas: RoiDefinition.Id = FAIName(ToRoiDefinition) 과 일치시켜야
             // _selectedRoiId 매치 → Edit/Delete 메뉴 활성화 + 리사이즈 핸들 렌더 동작
-            var rois = GetCurrentFAIRois();
+            // dataGrid 지연 비의존: 편집 중인 원 측정의 소유 FAI 를 객체 참조로 해석해 그 Shot 을 직접 수집.
+            FAIConfig circleOwnerFai = FindFAIContainingMeasurement(_editingCircleMeasurement);
+            var rois = CollectShotRois(circleOwnerFai);
             string selId = _editingCircleFaiName;
             if (string.IsNullOrEmpty(selId)) {
                 // Fallback: _editingCircleMeasurement 를 포함한 FAI 를 역탐색
@@ -2208,7 +2984,7 @@ namespace ReringProject.UI {
 
             halconViewer.SetPolygonDraft(_polygonPoints, "blue");
 
-            var rois = GetCurrentFAIRois();
+            var rois = CollectShotRois(_editingFai);
             halconViewer.UpdateDisplayState(rois, _editingFai.FAIName, null, null);
 
             ExitCanvasMode();
@@ -3114,13 +3890,135 @@ namespace ReringProject.UI {
             return null;
         }
 
+        // 재앵커 대기 상태 — Apply 클릭 시 실제 커밋에 사용. 미리보기 중에만 유효.
+        private DatumConfig _reanchorPendingDatum;
+        private HTuple _reanchorPendingT;
+
+        // 마스터 재-앵커 시작: 새 마스터 이미지에서 옛 datum 으로 Find(T) → 미리보기(노란 ROI) → 하단 확인 바 표시.
+        //  실제 커밋은 사용자가 미리보기를 보며 Apply 를 눌러야 진행(모달로 화면 가리지 않음). Cancel/Find실패 시 무변경.
+        private void BtnReanchor_Click(object sender, RoutedEventArgs e) {
+            DatumConfig datum;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
+            else                                                               datum = null;
+            if (datum == null) {
+                CustomMessageBox.Show("재앵커", "먼저 트리에서 재앵커할 Datum 을 선택하세요.");
+                return;
+            }
+
+            HTuple T;
+            string err;
+            if (!TryFindTransformForReanchor(datum, out T, out err)) {
+                CustomMessageBox.Show("재앵커 불가", "새 마스터에서 datum Find 에 실패했습니다. ROI 는 변경되지 않았습니다.\n\n" + err
+                    + "\n\n(새 마스터가 옛 기준과 너무 멀거나, 조명/포커스가 달라 Find 가 안 될 수 있습니다.)");
+                return;
+            }
+
+            List<MeasurementBase> targets = CollectMeasurementsForDatum(datum);
+            if (targets.Count == 0) {
+                CustomMessageBox.Show("재앵커", "이 Datum(" + datum.DatumName + ")을 참조하는 측정이 없습니다. 이전할 대상이 없습니다.");
+                return;
+            }
+
+            // 미리보기 — 원본 불변, migrated ROI 를 노란색으로 표시(중심만 이전, 시인용).
+            //  Render 는 roi.Id==selectedRoiId 를 노란색으로 그리므로, 미리보기 전부에 같은 Id 를 부여하고 그 Id 를
+            //  selectedRoiId 로 넘겨 통째로 노란색으로 띄운다(기본 초록 ROI 와 구분 — 사용자 요청).
+            var preview = new List<RoiDefinition>();
+            foreach (MeasurementBase m in targets) {
+                foreach (RoiDefinition roi in BuildPointRoiDefinitions(m, "PREVIEW")) {
+                    TransformRoiCenterInPlace(roi, T);
+                    roi.Id = "REANCHOR_PREVIEW";
+                    preview.Add(roi);
+                }
+            }
+            halconViewer.UpdateDisplayState(preview, "REANCHOR_PREVIEW", null, null);
+
+            // 대기 상태 보관 + 하단 확인 바 표시(모달 아님 → 미리보기 계속 보임)
+            _reanchorPendingDatum = datum;
+            _reanchorPendingT = T;
+            txt_reanchorConfirm.Text = "측정 " + targets.Count + "개 ROI 를 새 마스터로 이전 — 노란 미리보기가 실제 특징 위에 얹혔으면 Apply.";
+            border_reanchorConfirm.Visibility = Visibility.Visible;
+        }
+
+        // Apply — 실제 커밋(레시피 백업 → 측정/FAI/datum ROI 이전 → 재티칭 안내)
+        private void BtnReanchorApply_Click(object sender, RoutedEventArgs e) {
+            border_reanchorConfirm.Visibility = Visibility.Collapsed;
+            DatumConfig datum = _reanchorPendingDatum;
+            HTuple T = _reanchorPendingT;
+            _reanchorPendingDatum = null;
+            _reanchorPendingT = null;
+            if (datum == null || T == null) return;
+
+            List<MeasurementBase> targets = CollectMeasurementsForDatum(datum);
+
+            // 레시피 백업 (실패해도 진행 — 경고만)
+            try {
+                string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+                string recipePath = SystemHandler.Handle.Recipes.GetRecipeFilePath(recipeName);
+                if (!string.IsNullOrEmpty(recipePath) && System.IO.File.Exists(recipePath)) {
+                    string stamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+                    string backupPath = recipePath + ".reanchor_bak_" + stamp;
+                    System.IO.File.Copy(recipePath, backupPath, true);
+                    Logging.PrintLog((int)ELogType.Trace, "[Reanchor] 레시피 백업: " + backupPath);
+                }
+            }
+            catch (Exception bex) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Reanchor] 레시피 백업 실패: " + bex.Message);
+                CustomMessageBox.Show("백업 경고", "레시피 백업에 실패했습니다(진행은 계속). 종료 전 수동 백업을 권장합니다.\n" + bex.Message);
+            }
+
+            // 커밋 — EdgePairDistance/FAI rect 은 FAI 당 1회
+            var faisTransformed = new HashSet<FAIConfig>();
+            foreach (MeasurementBase m in targets) {
+                TransformMeasurementGeometry(m, T);
+                if (m is EdgePairDistanceMeasurement) {
+                    FAIConfig ownerFai = m.Owner as FAIConfig;
+                    if (ownerFai != null && faisTransformed.Add(ownerFai)) {
+                        TransformFaiRoi(ownerFai, T);
+                    }
+                }
+            }
+            TransformDatumOwnRois(datum, T);
+
+            try { datum.RaisePropertyChanged(string.Empty); } catch { }
+            if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
+            HighlightSelectedRoi(datum);
+
+            CustomMessageBox.Show("재앵커 완료",
+                "측정 " + targets.Count + "개 + datum 검색 ROI 를 새 마스터 위치로 이전했습니다.\n\n"
+                    + "다음 순서로 마무리하세요:\n"
+                    + "1) 이 Datum 을 새 마스터로 재티칭 (패턴: '패턴 모델 생성' / 라인핏: 'Teach Datum')\n"
+                    + "2) Test Find 로 검출 확인\n"
+                    + "3) Recipe Save\n\n"
+                    + "※ 이전 결과가 이상하면 백업 파일(.reanchor_bak_*)로 복원하세요.",
+                MessageBoxImage.Information, false);
+        }
+
+        // Cancel — 무변경, 미리보기 걷고 원래 선택 재렌더
+        private void BtnReanchorCancel_Click(object sender, RoutedEventArgs e) {
+            border_reanchorConfirm.Visibility = Visibility.Collapsed;
+            DatumConfig datum = _reanchorPendingDatum;
+            _reanchorPendingDatum = null;
+            _reanchorPendingT = null;
+            if (datum != null) HighlightSelectedRoi(datum);
+        }
+
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
             // Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
             DatumConfig datum;
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
-            if (datum == null || !datum.IsConfigured || !datum.LastTeachSucceeded) {
-                CustomMessageBox.Show("Datum Find 테스트", "Datum 티칭이 완료된 후 테스트 가능합니다.");
+            // 티칭 완료 판정 — 라인핏(2-라인/CTH/VTH) 티칭은 IsConfigured+LastTeachSucceeded 로, 패턴 정렬은 .shm 모델
+            //  생성으로 완료된다. 패턴 모델 생성(BtnCreatePatternModel)은 RefMatch 포즈+모델만 기록하고
+            //  IsConfigured/LastTeachSucceeded 는 세팅하지 않으므로, 게이트가 라인핏 플래그만 보면 패턴으로 티칭한 datum 의
+            //  Test Find 를 잘못 막는다(런타임 검사는 TryComposeAlign 으로 정상 동작 — 사용자 확인). 두 티칭 경로를 모두 인정.
+            bool taughtLineFit = datum != null && datum.IsConfigured && datum.LastTeachSucceeded;
+            bool taughtPattern = false;
+            if (datum != null && datum.IsPatternAlignEnabled) {
+                string mp = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                taughtPattern = !string.IsNullOrEmpty(mp) && System.IO.File.Exists(mp);
+            }
+            if (datum == null || (!taughtLineFit && !taughtPattern)) {
+                CustomMessageBox.Show("Datum Find 테스트", "Datum 티칭(라인핏 또는 패턴 모델 생성)이 완료된 후 테스트 가능합니다.");
                 return;
             }
 

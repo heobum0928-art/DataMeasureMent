@@ -1,4 +1,6 @@
 ﻿using ReringProject.Device;
+using ReringProject.Setting;
+using ReringProject.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +17,6 @@ namespace ReringProject.UI {
     /// </summary>
     public partial class LightHandlerWindow : Window {
         LightHandler pHandle;
-        private string SelectedTabName;
         DispatcherTimer mTimer = new DispatcherTimer();
     
 
@@ -24,12 +25,6 @@ namespace ReringProject.UI {
             InitializeComponent();
 
             pHandle = SystemHandler.Handle.Lights;
-            for (int i = 0; i < pHandle.Groups.Count; i++) {
-                LightGroup group = pHandle.Groups[i];
-                LightGroupViewModel model = new LightGroupViewModel(group);
-                LightGroupView view = new LightGroupView(model);
-                panel_control.Children.Add(view);
-            }
 
             for(int i = 0; i < pHandle.Controllers.Count; i++) {
                 VirtualLightController cont = pHandle.Controllers[i];
@@ -43,28 +38,13 @@ namespace ReringProject.UI {
         }
 
         private void MTimer_Tick(object sender, EventArgs e) {
-            switch (SelectedTabName) {
-                case "Control":
-                    for (int i = 0; i < panel_control.Children.Count; i++) {
-                        UIElement uiElement = panel_control.Children[i];
+            for (int i = 0; i < panel_setting.Children.Count; i++) {
+                UIElement uiElement = panel_setting.Children[i];
 
-                        if (uiElement is LightGroupView) {
-                            LightGroupView view = uiElement as LightGroupView;
-                            view.UpdateBindingTarget();
-                        }
-                    }
-
-                    break;
-                case "Setting":
-                    for (int i = 0; i < panel_setting.Children.Count; i++) {
-                        UIElement uiElement = panel_setting.Children[i];
-
-                        if (uiElement is LightControllerView) {
-                            LightControllerView view = uiElement as LightControllerView;
-                            view.UpdateBindingTarget();
-                        }
-                    }
-                    break;
+                if (uiElement is LightControllerView) {
+                    LightControllerView view = uiElement as LightControllerView;
+                    view.UpdateBindingTarget();
+                }
             }
         }
 
@@ -85,14 +65,12 @@ namespace ReringProject.UI {
             for(int i = 0; i < pHandle.Controllers.Count; i++) {
                 if(pHandle.Controllers[i].IsOpen == false) {
                     if(pHandle.Controllers[i].Open() == false) {
-                        CustomMessageBox.Show("Error", SystemHandler.Handle.Localize["Fail to open Light Controller"], MessageBoxImage.Error);
+                        // Not-yet-wired controllers are expected to fail retry here during
+                        // partial site bring-up; log instead of blocking the operator with a modal.
+                        Logging.PrintLog((int)ELogType.LightController, "Controller {0} retry-open failed on window close.", i);
                     }
                 }
             }
-        }
-
-        private void TabControl_content_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            SelectedTabName = ((sender as TabControl).SelectedItem as TabItem).Header as string;
         }
     }
 }

@@ -287,6 +287,45 @@
                         </Button.Template>
                     </Button>
 
+                    <Button x:Name="btn_reanchor" Content="Re-anchor"
+                        Click="BtnReanchor_Click"
+                        IsEnabled="False"
+                        MinWidth="90" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#B45309" Foreground="White"
+                        BorderBrush="#92400E" BorderThickness="1"
+                        Margin="0,0,4,0"
+                        ToolTip="새 마스터 이미지를 Grab/Load 한 뒤 클릭 — 옛 datum 으로 Find 한 변환으로 이 datum 참조 측정 ROI 를 새 마스터 위치로 일괄 이전(미리보기+백업 후). 이후 datum 재티칭 필요.">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- 재앵커 확인 (툴바 배치 — HALCON 캔버스 airspace 로 캔버스 오버레이는 안 보임). 미리보기 중에만 Visible. -->
+                    <Border x:Name="border_reanchorConfirm" Visibility="Collapsed"
+                            Background="#332A1A0A" BorderBrush="#B45309" BorderThickness="1"
+                            CornerRadius="4" Padding="8,2" Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="txt_reanchorConfirm" Foreground="#FBBF24" FontSize="12"
+                                       VerticalAlignment="Center" Margin="0,0,10,0"
+                                       Text="노란 미리보기가 특징 위에 얹혔으면 Apply"/>
+                            <Button x:Name="btn_reanchorApply" Content="Apply" Click="BtnReanchorApply_Click"
+                                    MinWidth="70" Height="28" FontSize="13" FontWeight="SemiBold"
+                                    Background="#059669" Foreground="White" BorderBrush="#047857" BorderThickness="1"
+                                    Margin="0,0,6,0"/>
+                            <Button x:Name="btn_reanchorCancel" Content="Cancel" Click="BtnReanchorCancel_Click"
+                                    MinWidth="70" Height="28" FontSize="13" FontWeight="SemiBold"
+                                    Background="#6B7280" Foreground="White" BorderBrush="#4B5563" BorderThickness="1"/>
+                        </StackPanel>
+                    </Border>
+
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
                                Margin="4,4"/>
 
@@ -380,6 +419,7 @@
                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                    IsHitTestVisible="False"/>
+
 
             <!--260527 hbk Phase 34.1 D-34.1-03/14 — 현재 표시 이미지 배지 (캔버스 우상단, DualImage 변형일 때만 Visible).
                  색상/텍스트는 code-behind UpdateImageSourceBadge(EImageSource) 에서 setting.

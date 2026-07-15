@@ -61,7 +61,7 @@
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
     <!--260610 hbk 이 PC 는 카메라 없는 SIMUL 전용 → 현장(실HW) PC 의 SIMUL_MODE 제거를 머지때마다 이 PC 기준으로 복구-->
-    <DefineConstants>TRACE;DEBUG;SIMUL_MODE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
@@ -267,7 +267,8 @@
     <!--260601 hbk Phase 40 OUT-01/OUT-02-->
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
-    <Compile Include="Custom\Sequence\Inspection\SkipReason.cs" /><!--260710 hbk skip-사유 단일 소스 상수 등록-->
+    <Compile Include="Custom\Sequence\Inspection\SkipReason.cs" />
+    <!--260710 hbk skip-사유 단일 소스 상수 등록-->
     <Compile Include="Custom\Sequence\Inspection\MeasurementFactory.cs" />
     <Compile Include="Custom\Sequence\Inspection\DynamicPropertyHelper.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgePairDistanceMeasurement.cs" />
@@ -382,9 +383,6 @@
       <DependentUpon>LightHandlerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Light\LightHandlerWindowModel.cs" />
-    <Compile Include="UI\Light\LightGroupView.xaml.cs">
-      <DependentUpon>LightGroupView.xaml</DependentUpon>
-    </Compile>
     <Compile Include="UI\Login\LoginWindow.xaml.cs">
       <DependentUpon>LoginWindow.xaml</DependentUpon>
     </Compile>
@@ -507,10 +505,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Light\LightHandlerWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="UI\Light\LightGroupView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -702,7 +696,8 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resource\saveas.png" />
-    <Resource Include="Resource\splash.png" /> <!--260615 hbk Phase 43.1: 흰 화면 마스킹 스플래시 (D-04)-->
+    <Resource Include="Resource\splash.png" />
+    <!--260615 hbk Phase 43.1: 흰 화면 마스킹 스플래시 (D-04)-->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resource\light.png" />

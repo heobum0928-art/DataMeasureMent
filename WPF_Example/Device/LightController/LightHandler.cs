@@ -310,6 +310,32 @@ namespace ReringProject.Device {
             CmdTable[index, channel].WriteState = on;
         }
 
+        // SetOnOff/SetLevel(및 SetChannelOnOff/SetChannelLevel)은 CmdTable 에 플래그만 세팅하고 즉시 반환한다 —
+        //  실제 시리얼 전송은 Execute() 백그라운드 루프(1ms 폴링)가 처리한다. 조명 적용 직후 곧바로 grab 하면
+        //  아직 전송 전이라 조명이 안 켜진 채로 촬영되는 문제가 있어(수동 UI 토글은 클릭↔다음 동작 사이 자연 지연이
+        //  있어 우연히 문제가 없었을 뿐) — grab 직전에 이 메서드로 큐가 실제로 비워질 때까지 동기 대기한다.
+        //  타임아웃은 안전장치(하드웨어 응답 없음 등으로 큐가 영영 안 비는 상황에서도 grab 자체는 진행되게).
+        public void WaitForPendingWrites(int timeoutMs = 500) {
+            Stopwatch sw = Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < timeoutMs) {
+                bool anyPending = false;
+                for (int i = 0; i < Controllers.Count && !anyPending; i++) {
+                    // 미연결/미오픈 컨트롤러(Execute() 의 IsOpen==false continue 로 영구 skip 됨)의 채널은
+                    // 큐에 남아있어도 절대 처리되지 않는다 — 검사 대상에서 제외해야 매 grab 마다 불필요하게
+                    // 타임아웃(500ms)을 다 채우는 것을 막을 수 있다.
+                    if (Controllers[i].IsOpen == false) continue;
+                    for (int j = 0; j < CHANNEL_LIMIT; j++) {
+                        if (CmdTable[i, j].IsWriteState || CmdTable[i, j].IsWriteValue) {
+                            anyPending = true;
+                            break;
+                        }
+                    }
+                }
+                if (!anyPending) return;
+                Thread.Sleep(2);
+            }
+        }
+
         public async Task<bool> ReadOnOffAsync(int index, int channel) {
             CmdTable[index, channel].IsReadState = true;
 
@@ -384,8 +410,14 @@ namespace ReringProject.Device {
         public int ControllerCount { get => Controllers.Count; }
         
 
+        // light.ini 경로. bin 폴더는 재빌드/재배포 시 지워질 수 있는 산출물 폴더라, Recipe/Calibration 과
+        //  동일하게 SystemSetting(LightConfigPath, 기본값 D:\Data\Light)으로 분리해 영속시킨다.
+        private static string GetLightIniPath() {
+            return Path.Combine(SystemHandler.Handle.Setting.LightConfigPath, "light.ini");
+        }
+
         public bool Load() {
-            string loadPath = AppDomain.CurrentDomain.BaseDirectory + @"light.ini";
+            string loadPath = GetLightIniPath();
             if (File.Exists(loadPath) == false) return false;
 
             IniFile loadFile = new IniFile();
@@ -395,20 +427,75 @@ namespace ReringProject.Device {
                 string groupName = "Controller" + i.ToString();
                 Controllers[i].Port = loadFile[groupName]["Port"].ToInt();
                 Controllers[i].Baudrate = loadFile[groupName]["Baudrate"].ToInt();
-                
+
+                // 물리 채널 ↔ 논리 이름(RING_CH1/BACK/ALIGN_COAX 등) 재배선을 코드 수정 없이 하기 위한 override.
+                //  RegisterLightController() 의 하드코딩 SetChannelNames 는 그대로 두고(구조 변경 금지, 260713-nse
+                //  계획서 예고: "임시 배선은 light.ini 로 대응"), 여기서 키가 있을 때만 이름을 덮어쓴다.
+                //  키 부재 시 RegisterLightController 가 부여한 기본 이름 그대로 — 하위호환/회귀 0.
+                string channelNamesRaw = loadFile[groupName]["ChannelNames"].ToString();
+                if (!string.IsNullOrEmpty(channelNamesRaw)) {
+                    string[] names = channelNamesRaw.Split(',');
+                    for (int j = 0; j < names.Length && j < Controllers[i].ChannelCount; j++) {
+                        string trimmed = names[j].Trim();
+                        if (trimmed.Length == 0) continue; // 빈 항목은 기본 이름 유지(부분 override 허용)
+                        Controllers[i].SetChannelName(j, trimmed);
+                    }
+                }
             }
-            
+
+            // ChannelNames override 로 채널 이름이 바뀌었을 수 있으므로, Groups(RING/BACK/BAR/RING7/ALIGN_COAX 등
+            //  그룹 API 가 쓰는 고정 인덱스)를 이름 기준으로 다시 찾아 갱신한다. RegisterLightController() 는 Load()
+            //  보다 먼저 실행되어 이 시점 이전 채널 배치로 그룹 인덱스가 고정돼 있었다 — 재배선 미반영 결함 수정.
+            for (int i = 0; i < Groups.Count; i++) {
+                Groups[i].RebindChannels();
+            }
+
+            WarnOnDuplicateChannelNames();
             return true;
+        }
+
+        // 같은 이름을 가진 채널이 둘 이상이면 TryFindChannel/GetGroup 이 항상 첫 매치(낮은 Controller Index)만 반환해
+        //  나머지는 이름으로 조회 불가능해진다(무음 오작동 위험). 앱 기동을 막지는 않되 로그로 즉시 알린다.
+        private void WarnOnDuplicateChannelNames() {
+            var seen = new Dictionary<string, string>();
+            for (int i = 0; i < Controllers.Count; i++) {
+                VirtualLightController con = Controllers[i];
+                for (int j = 0; j < con.ChannelCount; j++) {
+                    string name = con[j].Name;
+                    if (string.IsNullOrEmpty(name)) continue;
+                    string loc = "Controller" + i + "[" + j + "]";
+                    string prevLoc;
+                    if (seen.TryGetValue(name, out prevLoc)) {
+                        Logging.PrintLog((int)ELogType.LightController,
+                            "[light.ini] 채널명 중복: '{0}' 이 {1} 와 {2} 모두에 등록됨 — 이름 조회 시 {1} 만 사용됨(먼저 등록된 쪽)", name, prevLoc, loc);
+                    }
+                    else {
+                        seen[name] = loc;
+                    }
+                }
+            }
         }
 
         public bool Save() {
             IniFile saveFile = new IniFile();
-            string savePath = AppDomain.CurrentDomain.BaseDirectory + @"light.ini";
+            string savePath = GetLightIniPath();
+            string saveDir = Path.GetDirectoryName(savePath);
+            if (!string.IsNullOrEmpty(saveDir) && Directory.Exists(saveDir) == false) Directory.CreateDirectory(saveDir);
 
             for (int i = 0; i < Controllers.Count; i++) {
                 string groupName = "Controller" + i.ToString();
                 saveFile[groupName]["Port"] = Controllers[i].Port;
                 saveFile[groupName]["Baudrate"] = Controllers[i].Baudrate;
+
+                // 현재 채널명(기본값이든 Load 에서 override 된 값이든)을 그대로 되저장 — 저장 후 재로드해도
+                //  override 가 유실되지 않도록 라운드트립 보장(이게 없으면 LightHandlerWindow 저장 시 Port/Baudrate 만
+                //  다시 쓰여 ChannelNames 커스텀 값이 지워짐).
+                VirtualLightController con = Controllers[i];
+                string[] names = new string[con.ChannelCount];
+                for (int j = 0; j < con.ChannelCount; j++) {
+                    names[j] = con[j].Name;
+                }
+                saveFile[groupName]["ChannelNames"] = string.Join(",", names);
             }
 
             saveFile.Save(savePath);

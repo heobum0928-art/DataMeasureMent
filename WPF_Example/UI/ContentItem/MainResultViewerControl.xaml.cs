@@ -207,17 +207,42 @@ namespace ReringProject.UI
 
         public void LoadImage(HImage image)
         {
-            DisposeImage();
-            CurrentImagePath = null;
-            CurrentImage = HalconImageBridge.Clone(image);
-            UpdateImageMetadata();
+            // 같은 크기의 이미지를 다시 로드할 때(같은 Shot 안에서 노드 전환·overlay 갱신 등)는 현재 확대/이동 상태를
+            //  유지한다 — ApplyInitialFitView 는 매번 전체 fit 으로 리셋해, 확대해서 보던 중 다른 측정 노드를 누르면
+            //  전체 이미지로 튀는 문제가 있었다. 크기가 바뀌면(다른 Shot/다른 이미지) 기존대로 fit.
+            bool preserveView = false;
+            Rect preservedPart = new Rect(0, 0, 1, 1);
+            if (_isWindowInitialized && HasImage)
+            {
+                double oldW = _imageWidth;
+                double oldH = _imageHeight;
+                Rect curPart = GetImagePart();
+                DisposeImage();
+                CurrentImagePath = null;
+                CurrentImage = HalconImageBridge.Clone(image);
+                UpdateImageMetadata();
+                if (HasImage && _imageWidth == oldW && _imageHeight == oldH)
+                {
+                    preserveView = true;
+                    preservedPart = curPart;
+                }
+            }
+            else
+            {
+                DisposeImage();
+                CurrentImagePath = null;
+                CurrentImage = HalconImageBridge.Clone(image);
+                UpdateImageMetadata();
+            }
+
             if (HasImage)
             {
                 _lastMouseImagePoint = GetImageCenterPoint();
             }
 
             UpdateContextMenuState();
-            ApplyInitialFitView();
+            if (preserveView) SetImagePartExact(preservedPart);
+            else              ApplyInitialFitView();
             PublishPointerInfo();
             Render();
         }
@@ -321,6 +346,17 @@ namespace ReringProject.UI
                     var hit = HitTestOneRoi(roi, imagePoint);
                     if (hit != null) return hit;
                 }
+            }
+
+            // 선택 ROI 위가 아니면 화면의 다른 ROI 도 직접 잡을 수 있게 전체 hit-test 폴백.
+            //  다중 ROI 측정(ArcLineIntersect 4개 EdgeA1/B1/A2/B2, DualImage 2개 Point/Line)은 측정 노드 선택 시
+            //  _selectedRoiId 가 base 명("FAI_측정")이라 sub-ROI("FAI_측정_EdgeA1")와 안 맞아 좌클릭 이동이 안 되던 결함.
+            //  Edit 모드에서 클릭한 sub-ROI 를 그대로 잡도록 허용(잡힌 ROI 는 호출부에서 _selectedRoiId 로 승격).
+            foreach (var roi in _rois)
+            {
+                if (roi == null) continue;
+                var hit = HitTestOneRoi(roi, imagePoint);
+                if (hit != null) return hit;
             }
 
             // Datum 후보 fallback (_selectedRoiId 무관 hit 허용)
@@ -574,7 +610,7 @@ namespace ReringProject.UI
         private List<DatumConfig> _resultDatumOverlays = new List<DatumConfig>();
         //260619 hbk Phase 56 Wave 2 — 보정(회전) ROI 박스 표시 전용 채널 (편집 _rois 와 분리 → 드래그/write-back 없음).
         //  각 항목 = {row, col, phi, length1, length2} (측정 rectangle2 인자와 동일).
-        private List<double[]> _resultRoiOverlays = new List<double[]>();
+        private List<ResultRoiBox> _resultRoiOverlays = new List<ResultRoiBox>();
         //260619 hbk Phase 56 Wave 2 — 보정 Datum 검색 ROI(원/수평) 표시 전용 (측정 ROI 와 색 구분). 항목 = {row,col,phi,l1,l2} 또는 {row,col,radius}.
         private List<double[]> _resultDatumRoiOverlays = new List<double[]>();
         private bool _datumSelected;
@@ -658,9 +694,9 @@ namespace ReringProject.UI
         }
 
         //260619 hbk Phase 56 Wave 2 — 결과용 보정(회전) ROI 박스 오버레이 설정/제거 (표시 전용, 편집 무관).
-        public void SetResultRoiOverlays(List<double[]> measRects, List<double[]> datumRects)
+        public void SetResultRoiOverlays(List<ResultRoiBox> measRects, List<double[]> datumRects)
         {
-            if (measRects == null) _resultRoiOverlays = new List<double[]>();
+            if (measRects == null) _resultRoiOverlays = new List<ResultRoiBox>();
             else                   _resultRoiOverlays = measRects;
             if (datumRects == null) _resultDatumRoiOverlays = new List<double[]>();
             else                    _resultDatumRoiOverlays = datumRects;
@@ -669,7 +705,7 @@ namespace ReringProject.UI
 
         public void ClearResultRoiOverlays()
         {
-            _resultRoiOverlays = new List<double[]>();
+            _resultRoiOverlays = new List<ResultRoiBox>();
             _resultDatumRoiOverlays = new List<double[]>();
             Render();
         }
@@ -815,8 +851,10 @@ namespace ReringProject.UI
                 measOverlays = new List<EdgeInspectionOverlay>();
             //260619 hbk Phase 56 — UAT #2: 보정(green) ROI 박스 활성 시 보정전 측정 ROI(_rois) 미표시(중복 제거).
             //  비-align(보정 transform 없음) → _resultRoiOverlays 비어 기존대로 _rois 표시(회귀 0).
+            //  단, Edit 모드에서는 편집 대상인 원본(raw) ROI(노란 영역 + 코너 핸들)를 항상 보여야 한다 — 보정 박스는
+            //  결과 보기용이라 Edit 중엔 raw 를 숨기면 핸들만 떠 편집 영역이 안 보이는 문제가 있었다(사용자 확인).
             IEnumerable<RoiDefinition> roisForRender = _rois;
-            if (_resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
+            if (!_isEditMode && _resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
                 roisForRender = System.Linq.Enumerable.Empty<RoiDefinition>();
             _displayService.Render(
                 ViewerHost.HalconWindow,
@@ -862,9 +900,11 @@ namespace ReringProject.UI
             }
 
             //260619 hbk Phase 56 Wave 2 — 보정(회전) 측정 ROI 박스 (표시 전용, green). 측정 overlay 토글 게이트.
-            if (_measurementOverlayVisible && _resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
+            //  Edit 모드에서는 원본(raw) ROI 를 편집하므로 보정 박스를 그리지 않는다(위 roisForRender 억제 해제와 대칭).
+            if (!_isEditMode && _measurementOverlayVisible && _resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
             {
-                _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultRoiOverlays, "green", 2);
+                // 선택된 측정(리스트박스/트리 선택 → _selectedRoiId)은 파란색 + 이름 라벨(주황, 큰 폰트, 박스 위), 나머지는 green.
+                _displayService.RenderResultMeasurementBoxes(ViewerHost.HalconWindow, _resultRoiOverlays, _selectedRoiId);
             }
             //260619 hbk Phase 56 Wave 2 — 보정(회전) Datum 검색 ROI (orange, 측정 green 과 구분). datum 토글 게이트.
             if (_datumOverlayVisible && _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0)
@@ -954,6 +994,10 @@ namespace ReringProject.UI
             Render();
         }
 
+        // 마지막으로 반영된 뷰포트 크기. 리사이즈 시 현재 배율/중심 보존 계산의 기준.
+        private double _lastViewportWidth;
+        private double _lastViewportHeight;
+
         private void ViewerHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (!_isWindowInitialized || !HasImage)
@@ -961,7 +1005,32 @@ namespace ReringProject.UI
                 return;
             }
 
-            SetImagePartExact(CreateFitToWindowImagePart());
+            double newW = ViewerHost.ActualWidth;
+            double newH = ViewerHost.ActualHeight;
+
+            // 이전 뷰포트 크기를 알고 있으면 fit 으로 강제 초기화하지 않고 현재 배율(이미지px/화면px)과 중심을 유지한다.
+            //  측정/FAI 노드 전환 시 결과 그리드 행 수가 바뀌며 뷰어 pane 이 순간 줄었다 늘어나는(레이아웃 흔들림)
+            //  경우, 매번 fit 으로 리셋돼 확대 상태가 풀리던 문제를 막는다. pane 이 원래 크기로 돌아오면 part 도 정확히 복원됨.
+            if (_lastViewportWidth > 0 && _lastViewportHeight > 0 && newW > 0 && newH > 0)
+            {
+                Rect cur = GetImagePart();
+                double centerCol = cur.Left + (cur.Width / 2.0);
+                double centerRow = cur.Top + (cur.Height / 2.0);
+                double newPartW = cur.Width * (newW / _lastViewportWidth);
+                double newPartH = cur.Height * (newH / _lastViewportHeight);
+                SetImagePartExact(new Rect(
+                    centerCol - (newPartW / 2.0),
+                    centerRow - (newPartH / 2.0),
+                    newPartW,
+                    newPartH));
+            }
+            else
+            {
+                SetImagePartExact(CreateFitToWindowImagePart());
+            }
+
+            _lastViewportWidth = newW;
+            _lastViewportHeight = newH;
         }
 
         private void ViewerHost_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -1065,7 +1134,9 @@ namespace ReringProject.UI
                 var hitRoi = HitTestSelectedRoi(mouseState.ImagePoint);
                 if (hitRoi != null)
                 {
-                    if (hitRoi.Id != null && hitRoi.Id.StartsWith("Datum."))
+                    // 잡은 ROI(다중 측정의 특정 sub-ROI 포함)를 선택으로 승격 — 편집 핸들이 그 ROI 위에 그려지고
+                    //  다음 좌클릭도 이 ROI 우선 검사되도록. (Datum. 접두 뿐 아니라 일반 측정 sub-ROI 도 갱신)
+                    if (hitRoi.Id != null)
                     {
                         _selectedRoiId = hitRoi.Id;
                     }
@@ -1527,6 +1598,9 @@ namespace ReringProject.UI
             }
 
             SetImagePartExact(CreateFitToWindowImagePart());
+            // 리사이즈 배율 보존의 기준 뷰포트를 이 fit 시점 크기로 기록 (첫 리사이즈부터 확대 유지 계산이 맞도록).
+            if (ViewerHost.ActualWidth > 0) _lastViewportWidth = ViewerHost.ActualWidth;
+            if (ViewerHost.ActualHeight > 0) _lastViewportHeight = ViewerHost.ActualHeight;
             if (CanPanCurrentImage()) SetPanCursor(Cursors.Hand);
             else                      SetPanCursor(Cursors.Arrow);
         }

@@ -69,33 +69,101 @@ namespace ReringProject.Sequence {
         // Ring 6채널 개별 밝기(0~255) + On/Off. 구 레시피(채널 키 없음)는 Load override 가 위 구 필드 값을 6채널 전부로 브로드캐스트한다.
         [Category("Light|Ring")]
         public bool RingLight_Enabled_1 { get; set; }
+        // 슬라이더 드래그 시 옆 텍스트박스가 갱신되도록 PropertyChanged 발화 (ShotName과 동일 패턴 — auto-property는 PropertyGrid의
+        // Slider/TextBox 두 바인딩 중 TextBox 쪽이 갱신 신호를 못 받아 값이 안 바뀌어 보임).
+        private int _ringLightBrightness1;
         [Slidable(0, 255)]
-        public int RingLight_Brightness_1 { get; set; }
+        public int RingLight_Brightness_1 {
+            get { return _ringLightBrightness1; }
+            set {
+                if (_ringLightBrightness1 == value) return;
+                _ringLightBrightness1 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_1));
+            }
+        }
         public bool RingLight_Enabled_2 { get; set; }
+        private int _ringLightBrightness2;
         [Slidable(0, 255)]
-        public int RingLight_Brightness_2 { get; set; }
+        public int RingLight_Brightness_2 {
+            get { return _ringLightBrightness2; }
+            set {
+                if (_ringLightBrightness2 == value) return;
+                _ringLightBrightness2 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_2));
+            }
+        }
         public bool RingLight_Enabled_3 { get; set; }
+        private int _ringLightBrightness3;
         [Slidable(0, 255)]
-        public int RingLight_Brightness_3 { get; set; }
+        public int RingLight_Brightness_3 {
+            get { return _ringLightBrightness3; }
+            set {
+                if (_ringLightBrightness3 == value) return;
+                _ringLightBrightness3 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_3));
+            }
+        }
         public bool RingLight_Enabled_4 { get; set; }
+        private int _ringLightBrightness4;
         [Slidable(0, 255)]
-        public int RingLight_Brightness_4 { get; set; }
+        public int RingLight_Brightness_4 {
+            get { return _ringLightBrightness4; }
+            set {
+                if (_ringLightBrightness4 == value) return;
+                _ringLightBrightness4 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_4));
+            }
+        }
         public bool RingLight_Enabled_5 { get; set; }
+        private int _ringLightBrightness5;
         [Slidable(0, 255)]
-        public int RingLight_Brightness_5 { get; set; }
+        public int RingLight_Brightness_5 {
+            get { return _ringLightBrightness5; }
+            set {
+                if (_ringLightBrightness5 == value) return;
+                _ringLightBrightness5 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_5));
+            }
+        }
         public bool RingLight_Enabled_6 { get; set; }
+        private int _ringLightBrightness6;
         [Slidable(0, 255)]
-        public int RingLight_Brightness_6 { get; set; }
+        public int RingLight_Brightness_6 {
+            get { return _ringLightBrightness6; }
+            set {
+                if (_ringLightBrightness6 == value) return;
+                _ringLightBrightness6 = value;
+                RaisePropertyChanged(nameof(RingLight_Brightness_6));
+            }
+        }
 
         [Category("Light|Back")]
         public bool BackLight_Enabled { get; set; }
-        public int BackLight_Brightness { get; set; }
+        private int _backLightBrightness;
+        [Slidable(0, 255)]
+        public int BackLight_Brightness {
+            get { return _backLightBrightness; }
+            set {
+                if (_backLightBrightness == value) return;
+                _backLightBrightness = value;
+                RaisePropertyChanged(nameof(BackLight_Brightness));
+            }
+        }
 
         [Browsable(false)]   //260626 hbk Phase 66 D-03: 검사 PropertyGrid 에서 동축 숨김. INI 키/매핑 코드는 보존(하위호환). 동축 제어는 Align 창(Plan 03).
         [Category("Light|Coax")]
         public bool CoaxLight_Enabled { get; set; }
+        private int _coaxLightBrightness;
         [Browsable(false)]   //260626 hbk Phase 66 IN-01: CoaxLight_Brightness 도 PropertyGrid 에서 숨김(동축 2필드 모두 숨김). INI 키 보존(하위호환).
-        public int CoaxLight_Brightness { get; set; }
+        [Slidable(0, 255)]
+        public int CoaxLight_Brightness {
+            get { return _coaxLightBrightness; }
+            set {
+                if (_coaxLightBrightness == value) return;
+                _coaxLightBrightness = value;
+                RaisePropertyChanged(nameof(CoaxLight_Brightness));
+            }
+        }
 
         // 구 통합 필드 — Bar 4채널 개별 제어로 대체. 사유/보존 정책은 위 RingLight_Enabled 주석과 동일.
         [Browsable(false)]
@@ -107,21 +175,62 @@ namespace ReringProject.Sequence {
         // Bar 4채널 개별 밝기(0~255) + On/Off. 프로퍼티명 접두사는 INI 하위호환 위해 기존 SideLight_ 유지(물리 조명은 Bar).
         [Category("Light|Bar")]
         public bool SideLight_Enabled_1 { get; set; }
+        private int _sideLightBrightness1;
         [Slidable(0, 255)]
-        public int SideLight_Brightness_1 { get; set; }
+        public int SideLight_Brightness_1 {
+            get { return _sideLightBrightness1; }
+            set {
+                if (_sideLightBrightness1 == value) return;
+                _sideLightBrightness1 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_1));
+            }
+        }
         public bool SideLight_Enabled_2 { get; set; }
+        private int _sideLightBrightness2;
         [Slidable(0, 255)]
-        public int SideLight_Brightness_2 { get; set; }
+        public int SideLight_Brightness_2 {
+            get { return _sideLightBrightness2; }
+            set {
+                if (_sideLightBrightness2 == value) return;
+                _sideLightBrightness2 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_2));
+            }
+        }
         public bool SideLight_Enabled_3 { get; set; }
+        private int _sideLightBrightness3;
         [Slidable(0, 255)]
-        public int SideLight_Brightness_3 { get; set; }
+        public int SideLight_Brightness_3 {
+            get { return _sideLightBrightness3; }
+            set {
+                if (_sideLightBrightness3 == value) return;
+                _sideLightBrightness3 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_3));
+            }
+        }
         public bool SideLight_Enabled_4 { get; set; }
+        private int _sideLightBrightness4;
         [Slidable(0, 255)]
-        public int SideLight_Brightness_4 { get; set; }
+        public int SideLight_Brightness_4 {
+            get { return _sideLightBrightness4; }
+            set {
+                if (_sideLightBrightness4 == value) return;
+                _sideLightBrightness4 = value;
+                RaisePropertyChanged(nameof(SideLight_Brightness_4));
+            }
+        }
 
         [Category("Light|Ring7")]   //260626 hbk Phase 66 D-01: Ring7 조명 추가(자유 조합) — Ring/Back/Bar/Ring7 4종
         public bool Ring7Light_Enabled { get; set; }   //260626 hbk Ring7 ON/OFF
-        public int Ring7Light_Brightness { get; set; }   //260626 hbk Ring7 밝기 0~255
+        private int _ring7LightBrightness;
+        [Slidable(0, 255)]
+        public int Ring7Light_Brightness {
+            get { return _ring7LightBrightness; }
+            set {
+                if (_ring7LightBrightness == value) return;
+                _ring7LightBrightness = value;
+                RaisePropertyChanged(nameof(Ring7Light_Brightness));
+            }
+        }
 
         // Thread-safe image buffer
         private readonly object _imageLock = new object();

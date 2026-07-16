@@ -174,7 +174,17 @@ namespace ReringProject.Device {
 
         public bool SetOnOff(string groupName, bool onOff) {
             LightGroup group = GetGroup(groupName);
-            if (group == null) return false;
+            if (group == null) {
+                //260716 hbk 무음 실패 경로 로그화 — 그룹 자체가 없으면 조명이 안 켜져도 아무 신호가 없었다.
+                Logging.PrintLog((int)ELogType.Error, "[Light] 그룹 '{0}' 없음 — SetOnOff 무동작 (light.ini 그룹/채널명 확인)", groupName);
+                return false;
+            }
+            //260716 hbk 그룹은 존재하나 비어있음(RebindChannels 가 이름 못 찾은 아이템을 제거) — 기존엔 for 가 0회 돌고
+            //  '성공' 로그까지 남겨 켜진 것처럼 보였다(가장 기만적인 경로). 재배선 오타/누락을 여기서 드러낸다.
+            if (group.Count == 0) {
+                Logging.PrintLog((int)ELogType.Error, "[Light] 그룹 '{0}' 이 비어있음(채널 매핑 소실) — SetOnOff 무동작. light.ini ChannelNames 오타/누락 확인", groupName);
+                return false;
+            }
 
             for (int i = 0; i< group.Count; i++) {
                 LightGroupItem item = group[i];
@@ -187,7 +197,15 @@ namespace ReringProject.Device {
 
         public bool SetLevel(string groupName, int level) {
             LightGroup group = GetGroup(groupName);
-            if (group == null) return false;
+            if (group == null) {
+                //260716 hbk 무음 실패 경로 로그화 (SetOnOff 와 동일 규약)
+                Logging.PrintLog((int)ELogType.Error, "[Light] 그룹 '{0}' 없음 — SetLevel 무동작 (light.ini 그룹/채널명 확인)", groupName);
+                return false;
+            }
+            if (group.Count == 0) {
+                Logging.PrintLog((int)ELogType.Error, "[Light] 그룹 '{0}' 이 비어있음(채널 매핑 소실) — SetLevel 무동작. light.ini ChannelNames 오타/누락 확인", groupName);
+                return false;
+            }
 
             for (int i = 0; i < group.Count; i++) {
                 LightGroupItem item = group[i];
@@ -218,7 +236,12 @@ namespace ReringProject.Device {
         // 채널명 기반 개별 On/Off — 기존 그룹 오버로드 SetOnOff(string groupName, bool) 와 시그니처가 겹치므로 별도 이름으로 신설.
         public bool SetChannelOnOff(string channelName, bool onOff) {
             int index, channel;
-            if (!TryFindChannel(channelName, out index, out channel)) return false;
+            if (!TryFindChannel(channelName, out index, out channel)) {
+                //260716 hbk 무음 실패 경로 로그화 — 이름 미매핑(재배선 오타/누락) 시 조명이 안 켜져도 로그가 전혀 없었고,
+                //  호출부(InspectionSequence.ApplyChannelLight)도 반환값을 버려 추적이 불가능했다.
+                Logging.PrintLog((int)ELogType.Error, "[Light] 채널명 '{0}' 을 찾을 수 없음 — SetOnOff 무동작. light.ini ChannelNames 오타/누락 확인", channelName);
+                return false;
+            }
             SetOnOff(index, channel, onOff);
             Logging.PrintLog((int)ELogType.LightController, "{0} - Set On : {1}", channelName, onOff);
             return true;
@@ -227,7 +250,11 @@ namespace ReringProject.Device {
         // 채널명 기반 개별 밝기 — 기존 그룹 오버로드 SetLevel(string groupName, int) 와 시그니처가 겹치므로 별도 이름으로 신설.
         public bool SetChannelLevel(string channelName, int level) {
             int index, channel;
-            if (!TryFindChannel(channelName, out index, out channel)) return false;
+            if (!TryFindChannel(channelName, out index, out channel)) {
+                //260716 hbk 무음 실패 경로 로그화 (SetChannelOnOff 와 동일 규약)
+                Logging.PrintLog((int)ELogType.Error, "[Light] 채널명 '{0}' 을 찾을 수 없음 — SetLevel 무동작. light.ini ChannelNames 오타/누락 확인", channelName);
+                return false;
+            }
             SetLevel(index, channel, level);
             Logging.PrintLog((int)ELogType.LightController, "{0} - Set Level : {1}", channelName, level);
             return true;

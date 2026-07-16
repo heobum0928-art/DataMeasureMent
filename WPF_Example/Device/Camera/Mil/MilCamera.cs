@@ -131,9 +131,17 @@ namespace ReringProject.Device {
             return LastHalconImage;
 #else
             // 라이브 스트리밍 중에는 라이브 스레드가 MilBuffer 를 점유한다.
-            // 여기서 또 MdigGrab 하면 같은 버퍼를 동시에 건드려 충돌하므로, 최신 프레임만 반환한다.
+            // 여기서 또 MdigGrab 하면 같은 버퍼를 동시에 건드려 충돌하므로 grab 하지 않는다.
+            //260716 hbk 반환값을 LastHalconImage(마지막 라이브 프레임) → null 로 변경. 계약을 Hik/Basler 와 통일한다.
+            //  기존 결함: MIL 만 stale 프레임을 non-null 로 돌려줘 '검사 grab 성공'으로 위장됐다. 이 사이클용으로 새로
+            //  트리거된 프레임이 아니라 백그라운드 LiveLoop 의 마지막 프레임이므로 부품 위치/타이밍과 동기화되지 않은
+            //  이미지로 PASS/NG 가 나올 수 있었다(조용한 오검). Hik(HikCamera.cs)/Basler(BaslerCamera.cs)는 동일 상황에서
+            //  이미 null 을 반환해 Action_FAIMeasurement 의 no-image → NG(SkipReason.NO_IMAGE) 경로로 명시적으로 드러난다.
+            //  트리거 경로: DeviceSelector(라이브뷰)를 열어두면 같은 Devices 싱글턴 카메라가 StartStream 되어 Streaming 유지.
+            //  ※ 라이브 미리보기 표시는 GetPreviewBitmapSource(별도 경로)를 쓰므로 이 변경의 영향을 받지 않음(호출부 확인 완료).
             if (CaptureMode == ECaptureModeType.Streaming) {
-                return LastHalconImage;
+                Logging.PrintLog((int)ELogType.Camera, "[WARN] {0} Streaming 모드에서 검사 grab 요청 — stale 프레임 반환 금지, null 처리(라이브뷰 창을 닫고 재시도)", Name);
+                return null;
             }
 
             try {

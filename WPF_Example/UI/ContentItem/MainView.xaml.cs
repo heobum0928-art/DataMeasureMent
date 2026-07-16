@@ -1089,6 +1089,15 @@ namespace ReringProject.UI {
             r = d.CircleROI_Row; c = d.CircleROI_Col; TransformPointInPlace(T, ref r, ref c); d.CircleROI_Row = r; d.CircleROI_Col = c; // Radius 불변
             r = d.PatternRoi_Row; c = d.PatternRoi_Col; TransformPointInPlace(T, ref r, ref c); d.PatternRoi_Row = r; d.PatternRoi_Col = c; d.PatternRoi_Phi = d.PatternRoi_Phi + rot;
             r = d.PatternRoi2_Row; c = d.PatternRoi2_Col; TransformPointInPlace(T, ref r, ref c); d.PatternRoi2_Row = r; d.PatternRoi2_Col = c; d.PatternRoi2_Phi = d.PatternRoi2_Phi + rot;
+
+            //260716 hbk 기준 pose(Ref*) 도 동일 T 로 이전 — 재앵커 후 재티칭 생략 시 '이전(shift) 2회 적용' 방지.
+            //  배경: 런타임 Find 는 항상 (현재 검출 pose − Ref* 기준 pose) 델타로 transform 을 만든다(DatumFindingService/InspectionSequence).
+            //  검색 ROI 만 T 로 옮기고 Ref* 를 옛 마스터 값으로 두면, 이전된 ROI 가 새 마스터의 특징을 정확히 찾아도
+            //  델타 ≈ T 가 다시 산출되어, 이미 T 로 baked 된 측정 ROI 에 런타임 T 가 또 적용된다(≈2T). 재티칭이 하던 일을
+            //  재앵커 커밋 시점에 동등하게 수행해 다음 Find 델타를 ≈0 으로 만든다. 각도 baseline 인 RefMatch2 는 위치만 이전.
+            r = d.RefOriginRow; c = d.RefOriginCol; TransformPointInPlace(T, ref r, ref c); d.RefOriginRow = r; d.RefOriginCol = c; d.RefAngleRad = d.RefAngleRad + rot;
+            r = d.RefMatchRow; c = d.RefMatchCol; TransformPointInPlace(T, ref r, ref c); d.RefMatchRow = r; d.RefMatchCol = c; d.RefMatchAngleDeg = d.RefMatchAngleDeg + (rot * 180.0 / System.Math.PI); // deg 단위
+            r = d.RefMatch2Row; c = d.RefMatch2Col; TransformPointInPlace(T, ref r, ref c); d.RefMatch2Row = r; d.RefMatch2Col = c; // 점2 = 위치만(각도는 두 점 baseline 으로 산출)
         }
 
         // 옛 datum(현재 stored 기준)으로 현재 이미지(새 마스터)를 Find → T = 옛기준→새마스터 강체 변환.

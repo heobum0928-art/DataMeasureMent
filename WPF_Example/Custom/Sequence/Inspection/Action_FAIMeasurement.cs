@@ -260,6 +260,16 @@ namespace ReringProject.Sequence {
                                             measuredCount++; // 시도 회수 통계
                                             continue; // 다음 measurement 진행 (TryExecute 호출 안 함)
                                         }
+                                        //260716 hbk DatumRef 참조 불일치 게이트 — 오타/개명/삭제로 실존하지 않는 datum 을 가리키면
+                                        //  검출 시도 자체가 없어 IsDatumFailed 게이트를 우회하고 identity(무보정)로 조용히 측정되던 결함 차단.
+                                        //  '무보정 의도(빈 DatumRef)'와 '참조 깨짐'을 구분해 후자만 NG 로 승격(기존 lenient 구조 유지).
+                                        if (parentSeq2 != null && parentSeq2.IsDatumRefUnresolvable(meas.DatumRef))
+                                        {
+                                            MarkMeasurementDatumRefMissing(meas);
+                                            faiAllPass = false;
+                                            measuredCount++;
+                                            continue;
+                                        }
                                         HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
                                         InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
                                         double resultValue;
@@ -574,6 +584,19 @@ namespace ReringProject.Sequence {
             string datumRef = meas.DatumRef;
             if (datumRef == null) datumRef = "";
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
+        }
+
+        //260716 hbk DatumRef 가 실존하지 않는 datum 이름을 가리킬 때 skip 처리(MarkMeasurementDatumSkipped 와 동일 규약).
+        //  기존엔 이 케이스가 게이트를 우회해 identity(무보정)로 정상 측정처럼 PASS/NG 를 냈다 — 원인이 로그에도 안 남았음.
+        private void MarkMeasurementDatumRefMissing(MeasurementBase meas) {
+            meas.ClearResult();
+            meas.LastSkipReason = SkipReason.DATUM_REF_MISSING;
+            meas.LastJudgement = false; // skip 도 NG 강도(기존 규약 동일)
+            string measName = meas.MeasurementName;
+            if (measName == null) measName = meas.TypeName;
+            string datumRef = meas.DatumRef;
+            if (datumRef == null) datumRef = "";
+            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
         }
 
         //260702 hbk Extract Method(Task1): datum transform 해석 (fixture 미존재/미지정 시 identity fallback), 원본 인라인 이식

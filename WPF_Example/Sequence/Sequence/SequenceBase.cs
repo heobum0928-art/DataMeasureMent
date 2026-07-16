@@ -286,16 +286,17 @@ namespace ReringProject.Sequence {
         /// <param name="packet"></param>
         /// <returns></returns>
         public bool Start(TestPacket packet) {
-            if (State != EContextState.Idle) return false;
+            if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
 
-            RequestPacket = packet;
+            //260716 hbk RequestPacket 대입을 점유(StartCore) 이후로 이동 — 기존엔 인덱스 조회 실패/점유 경합 시에도
+            //  RequestPacket 을 먼저 덮어써, 다른 스레드가 진행 중인 요청의 응답 대상을 날릴 수 있었다(TCP 응답 유실).
             string actName = packet.Identifier2;
             int actionIndex = GetIndexOf(actName);
             if(actionIndex == -1) {
 
                 return false;
             }
-            return Start(actionIndex);
+            return StartCore(actionIndex, actionIndex, packet);
         }
 
         /// <summary>
@@ -304,9 +305,8 @@ namespace ReringProject.Sequence {
         /// <param name="actionID"></param>
         /// <returns></returns>
         public bool Start(EAction actionID) {
-            if (State != EContextState.Idle) return false;
+            if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
 
-            RequestPacket = null;
             //id가 없으면 첫 번째 action 수행
             if (actionID == EAction.Unknown) {
                 return Start(0);
@@ -319,13 +319,36 @@ namespace ReringProject.Sequence {
         }
 
         protected bool Start(int actionIndex = 0) {
-            if (State != EContextState.Idle) return false;
+            return StartCore(actionIndex, actionIndex, null);
+        }
 
-            CurrentActionIndex = actionIndex;
-            EndActionIndex = actionIndex;
+        //260716 hbk 시작 경합(TOCTOU) 차단용 락. Start 계열 전 경로(Start/StartAll/StartSubset)가 공유한다.
+        private readonly object _startLock = new object();
 
-            Context.Clear();
-            IsFinished = false;
+        //260716 hbk Start 계열 공통 원자 점유 경로.
+        //  배경: 기존 4개 진입점이 모두 "State != Idle 체크 → 필드 대입 → Command=Start" 였는데, State 는 시퀀스 스레드가
+        //  Command 를 처리(최대 5ms tick)해야 Running 이 되므로, UI RUN 버튼(UI 스레드)과 TCP $TEST(MainRun 스레드)가
+        //  그 사이에 겹치면 둘 다 체크를 통과했다. 결과: RequestPacket/CurrentActionIndex/EndActionIndex 가 나중 호출자
+        //  값으로 조용히 덮어써져 (a) TCP 요청이 응답을 영원히 못 받거나 (b) 의도와 다른 액션 범위가 실행됨 — 로그/예외 없음.
+        //  해결: 락 안에서 State 를 즉시 Running 으로 점유해 두 번째 호출자가 State 체크에서 확실히 탈락하게 한다.
+        //  (MainExecute 가 Command=Start 를 보고 State=Running 을 다시 세팅하지만 동일 값이라 idempotent — 회귀 없음.
+        //   Command 는 소비 후에도 Start 로 유지되는 구조라 가드로 쓸 수 없어 State 점유 방식을 택했다.)
+        //  OnStart.Invoke 는 락 밖에서 호출 — 구독자(MainWindow.OnSequenceStart)가 Dispatcher 로 UI 에 접근하므로,
+        //  락을 쥔 채 UI 를 기다리면 UI 스레드가 같은 락을 요청할 때 데드락 위험이 있다(오늘 grab 데드락과 동일 클래스).
+        private bool StartCore(int actionIndex, int endActionIndex, TestPacket packet) {
+            lock (_startLock) {
+                if (State != EContextState.Idle) return false; // 원자 점유 — 여기서만 승자가 결정된다
+                if (Actions == null || Actions.Length == 0) return false;
+                if (actionIndex < 0 || endActionIndex >= Actions.Length || actionIndex > endActionIndex) return false;
+
+                RequestPacket = packet; // 점유 성공 후에만 기록 (경합 시 남의 요청을 덮어쓰지 않음)
+                CurrentActionIndex = actionIndex;
+                EndActionIndex = endActionIndex;
+
+                Context.Clear();
+                IsFinished = false;
+                State = EContextState.Running; // 즉시 점유 → 이후 호출자는 위 State 체크에서 탈락
+            }
 
             //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화한다.
             //  이로써 Dispatcher 큐에 SetManualToolsEnabled(false) [잠금] 이 먼저 등록되고,
@@ -340,27 +363,16 @@ namespace ReringProject.Sequence {
 
         //260409 hbk Phase 5: 모든 Action 순차 실행 (D-01)
         public bool StartAll(TestPacket packet) {
-            if (State != EContextState.Idle) return false;
+            if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
             if (Actions == null || Actions.Length == 0) return false;
 
-            RequestPacket = packet;
-            CurrentActionIndex = 0;
-            EndActionIndex = Actions.Length - 1;
-
-            Context.Clear();
-            IsFinished = false;
-
-            //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화 (Start(int)와 동일 패턴 적용)
-            if (OnStart != null) { //260612 hbk Wave5
-                OnStart.Invoke(Context);
-            }
-            Command = ESequenceCommmand.Start; //260517 hbk
-            return true;
+            //260716 hbk StartCore 로 통일 — 원자 점유 + RequestPacket 을 점유 후에만 기록(경합 시 덮어쓰기 방지)
+            return StartCore(0, Actions.Length - 1, packet);
         }
 
         //260616 hbk Phase 51: 선택 Action(SHOT) 인덱스 집합으로 부분 실행 (D-01 SHOT 다중 선택, StartAll 변형)
         public bool StartSubset(int[] actionIndices, TestPacket packet) {
-            if (State != EContextState.Idle) return false;
+            if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
             if (Actions == null || Actions.Length == 0) return false;
             if (actionIndices == null || actionIndices.Length == 0) return false;
 
@@ -369,18 +381,8 @@ namespace ReringProject.Sequence {
             int last = actionIndices[actionIndices.Length - 1];
             if (first < 0 || last >= Actions.Length) return false;
 
-            RequestPacket = packet;
-            CurrentActionIndex = first;
-            EndActionIndex = last;
-
-            Context.Clear();
-            IsFinished = false;
-
-            if (OnStart != null) { //260616 hbk Phase 51 OnStart 이후 Command 설정 (StartAll 동일 순서)
-                OnStart.Invoke(Context);
-            }
-            Command = ESequenceCommmand.Start; //260616 hbk Phase 51
-            return true;
+            //260716 hbk StartCore 로 통일 (StartAll 과 동일 규약)
+            return StartCore(first, last, packet);
         }
 
         public bool Stop() {

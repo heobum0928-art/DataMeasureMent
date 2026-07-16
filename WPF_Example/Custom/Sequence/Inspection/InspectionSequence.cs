@@ -849,6 +849,22 @@ namespace ReringProject.Sequence {
             return !string.IsNullOrEmpty(datumRef) && _failedDatums.Contains(datumRef);
         }
 
+        //260716 hbk DatumRef 참조 불일치 감지 — datumRef 가 비어있지 않은데 현재 DatumConfigs 어디에도 그 이름이 없는 경우 true.
+        //  배경: DatumPhase 루프는 실존 DatumConfigs 만 순회하므로, 오타/개명/삭제된 이름은 애초에 검출 시도조차 안 되고
+        //  _failedDatums 에도 안 들어간다 → IsDatumFailed 게이트를 그대로 우회하고 ResolveDatumTransform 의 identity 폴백으로
+        //  '무보정 측정'이 정상 측정처럼 PASS/NG 를 내던 결함(조용한 오검). Datum 개명/삭제 시 참조 갱신 로직이 없어
+        //  정상적인 레시피 편집만으로도 발생 가능. 빈 DatumRef(무보정 의도)는 false — 기존 identity 폴백 경로 유지.
+        public bool IsDatumRefUnresolvable(string datumRef)
+        {
+            if (string.IsNullOrEmpty(datumRef)) return false; // 무보정 의도 — 불일치 아님
+            if (DatumConfigs == null) return true;
+            foreach (var d in DatumConfigs)
+            {
+                if (d != null && d.DatumName == datumRef) return false; // 실존
+            }
+            return true; // 이름은 지정됐는데 대응 DatumConfig 없음
+        }
+
         //260618 hbk Phase 54 ALIGN-01 패턴매칭 실패 datum 기록 (D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
         //  _failedDatums 에도 add 하여 기존 IsDatumFailed 게이트가 NG 를 강제하도록 한다.
         public void MarkAlignFailed(string datumName)
@@ -1071,6 +1087,18 @@ namespace ReringProject.Sequence {
                 ok = service.TryFindDatum(imageH, datum, out transform, out datumError);
             }
             if (!ok) { datum.LastFindSucceeded = false; error = datumError; return false; }
+            //260716 hbk 미교시 Datum 런타임 사용 감지 — DatumFindingService.TryFindDatum 은 IsConfigured=false 면
+            //  identity 를 세팅한 채 true 를 반환한다(D-08 pass-through: FAI ROI 사전 배치 편의를 위한 의도된 설계).
+            //  문제는 그 결과가 '검출 성공'과 완전히 동일하게 취급돼(로그 없음, DETECT FAIL 배지 조건도 IsConfigured=true 를
+            //  요구해 절대 안 뜸) 교시를 깜빡한 Datum 이 영구히 '무보정 측정'으로 조용히 퇴화한다는 것. pass-through 자체는
+            //  유지하되(회귀 0), 런타임 검사에서 실제로 쓰이면 로그 + RuntimeDetectFailed(티칭 무관 라벨 신호)로 드러낸다.
+            if (!datum.IsConfigured)
+            {
+                string unconfName = datum.DatumName;
+                if (unconfName == null) unconfName = "";
+                datum.RuntimeDetectFailed = true; // 티칭 여부 무관 라벨 신호 → 트리 배지/오버레이에 노출
+                Logging.PrintLog((int)ELogType.Error, "[Datum] '" + unconfName + "' 미교시(IsConfigured=false) 상태로 검사에 사용됨 — 무보정(identity) 적용. 티칭 필요.");
+            }
             datum.LastFindSucceeded = true;
             datum.CurrentTransform = transform;
             string datumKey = datum.DatumName;

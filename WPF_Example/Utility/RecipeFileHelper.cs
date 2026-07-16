@@ -153,8 +153,55 @@ namespace ReringProject.Utility {
 
             //폴더 통째로 복사하여 이름바꾼 후에 저장
             CopyFilesRecursively(prevDirPath, newDirPath);
-            
+
+            //260716 hbk 복사된 레시피의 '구 레시피명이 박힌' 오프라인 검사이미지 경로를 비운다.
+            //  배경: 검사Grab 저장 경로는 <ImageSavePath>\OfflineInspect\<레시피명>\... 로 레시피명이 절대경로에 박히는데,
+            //  이 경로 문자열은 레시피 INI 에 그대로 직렬화된다. 레시피 폴더만 복사하면 신규 레시피가 여전히 구 레시피
+            //  이미지를 가리키고, 그 파일이 실제로 존재하므로 File.Exists 를 통과해 OfflineInspectMode 검사가
+            //  '구 물건 이미지'로 조용히 수행된다(로그도 없음). 경로를 비워두면 신규 레시피는 '이미지 없음' → 명시적
+            //  NG/로그로 드러나고 운영자가 검사Grab 을 다시 하도록 강제된다.
+            //  ※ OfflineInspect 규약 경로만 대상 — 사용자가 수동 지정한 외부 경로(예: C:\Info\Doc\...)는 레시피명과
+            //    무관하므로 복사해도 유효하다. 그것까지 지우면 오히려 멀쩡한 설정을 날리므로 건드리지 않는다.
+            ClearCopiedOfflineImagePaths(newDirPath, prevName);
+
             return true;
+        }
+
+        //260716 hbk 복사본 INI 의 구-레시피 OfflineInspect 이미지 경로 제거. 실패해도 복사 자체는 성공으로 유지(로그만).
+        private static void ClearCopiedOfflineImagePaths(string newDirPath, string prevName) {
+            try {
+                // 구 레시피의 오프라인 이미지 폴더 절대경로 — 이 경로로 시작하는 값만 초기화 대상.
+                string prevOfflineDir = Path.Combine(
+                    Path.Combine(SystemHandler.Handle.Setting.ImageSavePath, "OfflineInspect"), prevName);
+
+                string[] iniFiles = Directory.GetFiles(newDirPath, "*.ini", SearchOption.AllDirectories);
+                foreach (string iniPath in iniFiles) {
+                    IniFile ini = new IniFile();
+                    ini.Load(iniPath);
+                    bool changed = false;
+                    foreach (var sectionPair in ini) {
+                        IniSection section = sectionPair.Value;
+                        if (section == null) continue;
+                        foreach (string key in section.Keys.ToList()) {
+                            if (key != "SimulImagePath" && key != "TeachingImagePath" && key != "TeachingImagePath_Vertical") continue;
+                            string val = section[key].ToString();
+                            if (string.IsNullOrEmpty(val)) continue;
+                            // 구 레시피 OfflineInspect 폴더를 가리키는 경로만 비운다(외부 수동 경로는 보존).
+                            if (val.StartsWith(prevOfflineDir, StringComparison.OrdinalIgnoreCase)) {
+                                section[key] = "";
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed) {
+                        ini.Save(iniPath);
+                        Logging.PrintLog((int)ELogType.Trace, "[Recipe] 복사본 '{0}' 의 구-레시피 오프라인 이미지 경로 초기화 — 신규 레시피는 검사Grab 재실행 필요", iniPath);
+                    }
+                }
+            }
+            catch (Exception ex) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Recipe] 복사본 오프라인 이미지 경로 초기화 실패(복사 자체는 완료): " + ex.Message);
+            }
         }
 
         private static void CopyFilesRecursively(string sourcePath, string targetPath) {

@@ -357,6 +357,22 @@ namespace ReringProject.UI {
                 return;
             }
 
+            //260716 hbk 오프라인 모드 켜진 채 라이브 검사 오인 방지 — RUN 시점 확인.
+            //  배경: OfflineInspectMode 는 SystemSetting(시스템 전역·영속) 이라 레시피를 바꿔도 켜진 채 남는다.
+            //  수동 지그 셋업 후 끄는 걸 잊고 실물 라인에서 RUN 하면, 카메라 앞에 실제 부품이 있어도 과거 저장 이미지로
+            //  조용히 측정되어 PASS/FAIL 이 실물과 무관하게 나온다(화면·로그 어디에도 표시 없음). 저장 이미지가 없으면
+            //  NG+로그로 드러나지만, 있으면 정상 사이클과 구분 불가 — 그래서 트리거 시점에 명시적으로 확인한다.
+            if (SystemHandler.Handle.Setting.OfflineInspectMode) {
+                MessageBoxResult offlineAnswer = CustomMessageBox.ShowConfirmation(
+                    "오프라인 검사 모드",
+                    "OfflineInspectMode 가 켜져 있습니다.\n\n"
+                    + "실제 카메라로 촬영하지 않고 저장된 검사이미지로 검사합니다.\n"
+                    + "(실물 부품을 지금 촬영해 검사하려면 Setting 에서 OfflineInspectMode 를 끄세요.)\n\n"
+                    + "저장 이미지로 계속 진행할까요?",
+                    MessageBoxButton.OKCancel);
+                if (offlineAnswer != MessageBoxResult.OK) return;
+            }
+
             bool started = SystemHandler.Handle.Sequences.Start(seqID, actID);
             if (!started) {
                 string diag = string.Format(

@@ -53,10 +53,23 @@ namespace ReringProject
                  "검사Grab tact 개선 — CXP 13376x9528(~1.27억 픽셀) 원본을 PNG(DEFLATE 압축)로 저장하던 것이 병목이라 bmp(무압축, 무손실 유지)로 전환. 조명대기+grab/저장 구간별 소요시간 Trace 로깅 추가. 실측 총 ~600ms(조명대기+grab ~290ms, 저장 ~320ms). 실제 검사(RUN) 저장 경로(CaptureImageSaveService)는 원래부터 별도 워커 스레드+JPEG 라 무관함을 코드로 확인(무변경). " +
                  "ArcLineIntersectDistance(I9/I10) 측정 재정의 — 기존은 측정축=우 교점 col, 수직축=두 교점 Row 평균이라 좌 교점이 사실상 무의미했고 X축 부호가 반대(우측인데 음수)로 나왔다. 사용자 확정 정의로 변경: 좌·우 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum, 휜 각도 GetDatumAxisLine 반영)의 교차점 P 를 intersection_ll(TryIntersectLines)로 구하고, 최종 측정값 = P 와 우측 교점 사이의 거리(오른쪽=양수). 좌 교점이 L_cross 기울기→P 위치→세그먼트 길이에 실제 기여. IntersectionPointSelection(Far/Close) 폐기. 오버레이에 L_cross/교차점 P/거리선(P→우교점) 표시해 시각 검증 가능. 실측 5.041(nominal 5.053, 부호 + 정상)."
     )]
+    [Version(
+        Number = "1.6.3.0",
+        Date = "2026-07-16",
+        Change = "리스크 점검(코드 전수 스캔 후 재검증)에서 확인된 '조용한 오검' 계열 결함 8건 수정 — 전부 로컬 가드/로그 추가 수준의 저위험 변경. " +
+                 "① DatumRef 참조 불일치(오타/개명/삭제)가 IsDatumFailed 게이트를 우회해 identity(무보정)로 조용히 측정되던 결함 — DatumPhase 는 실존 DatumConfigs 만 순회하므로 없는 이름은 검출 시도조차 안 돼 _failedDatums 에 들어가지 않았다. InspectionSequence.IsDatumRefUnresolvable 신설 + Measure 루프 게이트 추가로 NG 승격(SkipReason.DATUM_REF_MISSING 신설). " +
+                 "② 미교시(IsConfigured=false) Datum 이 identity pass-through(D-08 설계)로 '성공' 처리되며 로그·DETECT FAIL 배지 어디에도 안 드러나던 결함 — pass-through 자체는 유지(회귀 0)하되 런타임 사용 시 Error 로그 + RuntimeDetectFailed 로 노출. " +
+                 "③ 조명 채널명 미매핑(light.ini 재배선 오타/누락) 시 완전 무로그 무동작이던 결함 — TryFindChannel 실패 및 그룹 empty(RebindChannels 가 이름 못 찾은 아이템 제거) 케이스에 경고 로그 추가. 특히 group.Count==0 인데 '성공' 로그+true 를 반환하던 기만적 경로를 false+경고로 교정(반환값 사용 호출부 0건 확인, 회귀 없음). " +
+                 "④ Re-anchor 커밋이 검색 ROI 만 이전하고 기준 pose(RefOrigin/RefAngleRad/RefMatch*)는 옛 마스터 값으로 두어, 재티칭 생략 시 런타임 Find 델타가 다시 T 를 산출해 이전이 2회 적용(≈2T)되던 결함 — TransformDatumOwnRois 에서 Ref* 도 동일 T 로 이전(각도 단위 deg/rad 사용처 확인 후 각각 적용). " +
+                 "⑤ 레시피 복사 시 <ImageSavePath>\\OfflineInspect\\<구레시피명>\\ 이 박힌 절대경로가 그대로 남아 신규 레시피가 구 물건 이미지로 조용히 검사되던 결함 — RecipeFiles.Copy 후 해당 규약 경로만 초기화(사용자 수동 지정 외부 경로는 보존). " +
+                 "⑥ MIL 만 CaptureMode==Streaming 에서 stale 라이브 프레임을 non-null 로 반환해 '검사 grab 성공'으로 위장되던 결함(Hik/Basler 는 null 반환) — null 로 계약 통일 + 경고 로그. 라이브 미리보기는 GetPreviewBitmapSource 별도 경로라 무영향(호출부 확인). " +
+                 "⑦ Start 계열 TOCTOU — State 는 시퀀스 스레드가 Command 를 처리(≤5ms tick)해야 Running 이 되므로 UI RUN 과 TCP $TEST 가 겹치면 둘 다 'State!=Idle' 체크를 통과해 RequestPacket/액션범위가 조용히 덮어써졌다(TCP 응답 유실 또는 의도와 다른 액션 실행). StartCore 신설로 락 안에서 State 를 즉시 Running 으로 점유해 원자화하고, RequestPacket 을 점유 성공 후에만 기록. Command 는 소비 후에도 Start 로 유지되는 구조라 가드로 쓸 수 없어 State 점유 방식 채택. OnStart.Invoke 는 락 밖에서 호출(구독자가 Dispatcher 로 UI 접근 — 락 보유 중 UI 대기 시 데드락 위험). " +
+                 "⑧ OfflineInspectMode(시스템 전역·영속)가 켜진 채 실물 라인에서 RUN 하면 저장 이미지로 조용히 측정되던 결함 — RUN 트리거 시점 확인 다이얼로그 추가."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.6.2.0";
+        public const string VERSION = "1.6.3.0";
         public const string BUILD_DATE = "2026-07-16";
     }
 }

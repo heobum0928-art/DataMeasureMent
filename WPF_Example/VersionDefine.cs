@@ -41,10 +41,22 @@ namespace ReringProject
                  "Test Find 게이트 수정 — 패턴정렬(.shm 모델) datum 도 Find 허용(라인핏 datum 만 허용하던 게이트 확장). " +
                  "Grab 데드락 수정 — GrabAndDisplay/GrabSaveAndDisplay 가 mDrawInterlock(그리기 락)을 쥔 채 WaitForPendingWrites(≤500ms)+ExecuteOnUi(Dispatcher.Invoke)로 UI 를 기다려, grab 도중 트리/Shot 이동 시 UI 스레드가 같은 락을 요청하며 영구 데드락(백그라운드↔UI 상호대기). 락을 grab 구간에만 한정하고 저장/표시는 락 해제 후 수행하도록 재구성(검사이미지 저장은 락 안 CopyImage 사본으로 크로스스레드 분리). grab 예외 시 GrabTask 가 non-null 로 남아 이후 grab 이 재시작까지 막히던 결함도 try/finally 로 정리."
     )]
+    [Version(
+        Number = "1.6.1.0",
+        Date = "2026-07-16",
+        Change = "자동 검사 사이클(Action_FAIMeasurement)에 조명 반영 대기(WaitForPendingWrites) 미배선 결함 수정. 1.5.0.0 changelog 는 이 타이밍 결함을 수정했다고 기록했으나 실제 배선 범위는 MainView.xaml.cs 수동 Grab 버튼 3곳뿐이었고, 정작 매 생산 사이클마다 도는 자동 검사 흐름(EStep.DatumPhase→datum grab, EStep.DatumPhase 종료 Shot 조명 복귀→EStep.Grab)에는 대기가 전혀 없어 조명이 큐잉된 직후(실제 시리얼 전송 완료 전) 즉시 촬영될 수 있었다(리포지토리 전수 grep 으로 확인, 자동 사이클 경로 0건). 조명 전환이 심하면 datum 검출 실패로 로그와 함께 드러나지만, 전환이 부분적이면 검출은 성공하되 에지 서브픽셀 위치가 편향돼 공차 경계에서 PASS/NG 가 조용히 흔들릴 수 있는 결함. Action_FAIMeasurement.cs 두 지점(ApplyDatumLights 직후 datum grab 전, ApplyShotLights 로 Shot 조명 복귀 직후 EStep.Grab 전)에 LightHandler.Handle.WaitForPendingWrites() 배선 — 수동 grab 경로와 동일 패턴."
+    )]
+    [Version(
+        Number = "1.6.2.0",
+        Date = "2026-07-16",
+        Change = "일괄 엑셀 Export 가 항상 실패하던 결함 수정 — ClosedXML(SixLabors.Fonts 경유) 이 요구하는 BCL 폴리필 어셈블리 4단 연쇄 불일치가 원인. App.config 에 System.Numerics.Vectors/System.Buffers/System.ValueTuple/Microsoft.Bcl.HashCode 바인딩 리다이렉트 추가 + 프로젝트에 아예 누락돼 있던 Microsoft.Bcl.HashCode 1.1.1 패키지 정식 설치(서명 검증). 실패 재현용 별도 exe 로 실제 exe.config 조건에서 단계별 재현→수정→xlsx 생성 확인. (에러 로그가 ex.Message 만 남기고 InnerException 을 버려 진단이 지연됐음 — 로그 개선은 후속.) " +
+                 "검사Grab tact 개선 — CXP 13376x9528(~1.27억 픽셀) 원본을 PNG(DEFLATE 압축)로 저장하던 것이 병목이라 bmp(무압축, 무손실 유지)로 전환. 조명대기+grab/저장 구간별 소요시간 Trace 로깅 추가. 실측 총 ~600ms(조명대기+grab ~290ms, 저장 ~320ms). 실제 검사(RUN) 저장 경로(CaptureImageSaveService)는 원래부터 별도 워커 스레드+JPEG 라 무관함을 코드로 확인(무변경). " +
+                 "ArcLineIntersectDistance(I9/I10) 측정 재정의 — 기존은 측정축=우 교점 col, 수직축=두 교점 Row 평균이라 좌 교점이 사실상 무의미했고 X축 부호가 반대(우측인데 음수)로 나왔다. 사용자 확정 정의로 변경: 좌·우 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum, 휜 각도 GetDatumAxisLine 반영)의 교차점 P 를 intersection_ll(TryIntersectLines)로 구하고, 최종 측정값 = P 와 우측 교점 사이의 거리(오른쪽=양수). 좌 교점이 L_cross 기울기→P 위치→세그먼트 길이에 실제 기여. IntersectionPointSelection(Far/Close) 폐기. 오버레이에 L_cross/교차점 P/거리선(P→우교점) 표시해 시각 검증 가능. 실측 5.041(nominal 5.053, 부호 + 정상)."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.6.0.0";
-        public const string BUILD_DATE = "2026-07-15";
+        public const string VERSION = "1.6.2.0";
+        public const string BUILD_DATE = "2026-07-16";
     }
 }

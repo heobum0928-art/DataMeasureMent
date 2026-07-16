@@ -898,7 +898,9 @@ namespace ReringProject.UI {
             CustomMessageBox.Show("검사이미지 Grab", "Datum 또는 Shot 노드를 선택하세요.", MessageBoxImage.Warning);
         }
 
-        // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.png. 폴더 자동생성. 실패 시 null.
+        // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.bmp. 폴더 자동생성. 실패 시 null.
+        //  포맷 = bmp(무압축). 검사이미지는 라이브 grab을 그대로 대체해야 하므로 손실압축(jpg) 불가, 무손실이어야 함
+        //  (PNG는 무손실이지만 CXP 13376x9528(~1.27억 픽셀) 원본에서 DEFLATE 압축 자체가 tact 병목이 되어 bmp로 전환 — 260716 검사Grab 지연 실측 대응).
         private string BuildOfflineImagePath(string baseName) {
             try {
                 string root = SystemHandler.Handle.Setting.ImageSavePath;
@@ -910,7 +912,7 @@ namespace ReringProject.UI {
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 string safe = SanitizeFileName(baseName);
                 if (string.IsNullOrEmpty(safe)) safe = "node";
-                return Path.Combine(dir, safe + ".png");
+                return Path.Combine(dir, safe + ".bmp");
             }
             catch (Exception ex) {
                 CustomMessageBox.Show("검사이미지 경로 오류", ex.Message, MessageBoxImage.Error);

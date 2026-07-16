@@ -7,12 +7,12 @@ using ReringProject.Halcon.Models;
 namespace ReringProject.Sequence
 {
     /// <summary>
-    /// EdgeA1/EdgeB1(교점1용) 과 EdgeA2/EdgeB2(교점2용) 4개 ROI 에서 각각 직선을 피팅하고,
-    /// TryIntersectLines 로 교점1/교점2를 산출한다.
-    /// 측정점 = 측정축 방향 좌표는 교점2(거리 끝점), 수직축 좌표는 두 교점 평균.
-    /// 측정점을 Datum 기준선까지의 거리(mm)로 환산한다.
-    /// I9/I10(SOP): 기본 MeasureAxis="X" → measurePointCol=교점2.Col, measurePointRow=(교점1.Row+교점2.Row)/2.
-    /// 어느 ROI 피팅 또는 교점 산출이 실패해도 false 반환 — 측정값 '—', 앱 무크래시.
+    /// EdgeA1/EdgeB1(좌 교점용) 과 EdgeA2/EdgeB2(우 교점용) 4개 ROI 에서 각각 직선을 피팅해 좌 교점(int1)/우 교점(int2)을 산출한다.
+    /// 좌·우 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum, 휜 각도 반영)의 교차점 P 를 구하고,
+    /// 최종 측정값 = P 와 우측 교점(int2) 사이의 거리(mm). 오른쪽=양수.
+    /// (좌 교점이 L_cross 기울기→P 위치에 실제 기여. datum 이 휘어도 L_datum 각도가 P 를 자동 보정.)
+    /// I9/I10(SOP): 기본 MeasureAxis="X" → L_datum=DatumAngle2Rad(2차 기준선).
+    /// 어느 ROI 피팅 또는 교점/교차점 산출이 실패해도 false 반환 — 측정값 '—', 앱 무크래시.
     /// </summary>
     public class ArcLineIntersectDistanceMeasurement : MeasurementBase, IDatumOriginConsumer
     {
@@ -242,49 +242,49 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // (7) 측정점 보정 — 측정축 방향 좌표는 교점1(Close) 또는 교점2(Far, 기본), 수직축 좌표는 두 교점 평균.
-            // MeasureAxis X(수평=Col): measurePointCol = (Close: int1Col / Far: int2Col), measurePointRow = (교점1.Row+교점2.Row)/2
-            // MeasureAxis Y(수직=Row): measurePointRow = (Close: int1Row / Far: int2Row), measurePointCol = (교점1.Col+교점2.Col)/2
-            double measurePointRow, measurePointCol;
-            bool useClose = (IntersectionPointSelection == "Close"); // null/""/"Far" 모두 false (INI 하위호환)
-            if (MeasureAxis == "X")
-            {
-                if (useClose)
-                {
-                    measurePointCol = int1Col; // Close: 교점1.Col
-                }
-                else
-                {
-                    measurePointCol = int2Col; // Far: 측정축(X=Col)은 교점2 값
-                }
-                measurePointRow = (int1Row + int2Row) / 2.0; // 수직축(Row)은 두 교점 평균
-            }
-            else
-            {
-                if (useClose)
-                {
-                    measurePointRow = int1Row; // Close: 교점1.Row
-                }
-                else
-                {
-                    measurePointRow = int2Row; // Far: 측정축(Y=Row)은 교점2 값
-                }
-                measurePointCol = (int1Col + int2Col) / 2.0; // 수직축(Col)은 두 교점 평균
-            }
-
-            // (8) Datum 거리 — foot 반환 오버로드 사용 (overlay FAI-DistLine 용)
+            //260716 hbk ALI-01 측정 재정의(사용자 확정): ① 좌·우 두 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum)의
+            //  교차점 P를 intersection_ll(=TryIntersectLines)로 구하고, ② P와 우측 교점(int2)의 거리를 최종 측정값으로 한다(오른쪽=+).
+            //  (기존: 측정축=교점2 col, 수직축=두 교점 Row 평균 → 좌 교점이 사실상 무의미. IntersectionPointSelection 폐기.)
+            //  좌 교점이 L_cross 기울기·위치→P 를 결정하고, datum 이 휘어도 L_datum 각도(GetDatumAxisLine)가 P 를 자동 보정한다.
             double measureLineAngle;
             if (MeasureAxis == "X")
-                measureLineAngle = DatumAngle2Rad;
+                measureLineAngle = DatumAngle2Rad; // X 측정 = datum 2차 기준선
             else
-                measureLineAngle = DatumAngleRad;
-            double footRow, footCol;
-            bool footOk;
-            resultValue = VisionAlgorithmService.ComputeProjectionDistance(
-                measurePointRow, measurePointCol,
-                DatumOriginRow, DatumOriginCol, measureLineAngle,
-                pixelResolution, MeasureAxis,
-                out footRow, out footCol, out footOk);
+                measureLineAngle = DatumAngleRad;  // Y 측정 = datum 1차 기준선
+
+            // L_datum 시작·끝점 (datum 원점 지나는 기준선, 방향 (sinθ,cosθ)). 길이는 교점 계산에만 쓰이므로 충분히 크게.
+            double ldR1, ldC1, ldR2, ldC2;
+            VisionAlgorithmService.GetDatumAxisLine(
+                DatumOriginRow, DatumOriginCol, measureLineAngle, 4000.0,
+                out ldR1, out ldC1, out ldR2, out ldC2);
+
+            // 측정점 P = L_cross(좌교점 int1 ↔ 우교점 int2) ∩ L_datum. 평행이면 실패 → 측정 '—'.
+            double measurePointRow, measurePointCol;
+            if (!VisionAlgorithmService.TryIntersectLines(
+                int1Row, int1Col, int2Row, int2Col,   // L_cross
+                ldR1, ldC1, ldR2, ldC2,                // L_datum
+                out measurePointRow, out measurePointCol))
+            {
+                error = "교점라인-datum 교차점 산출 실패 (평행)";
+                return false;
+            }
+
+            // (8) 최종 측정값 = 교차점 P 와 우측 교점(int2) 사이의 실제 거리(mm). P·int2 는 둘 다 L_cross 위 점 —
+            //  좌 교점이 L_cross 기울기→P 위치→세그먼트 길이에 실제 기여하고, datum 휜 각도는 이미 P 위치에 반영됨.
+            //  부호: 우측 교점이 datum 기준선의 '오른쪽'(col+ 법선 방향)이면 +, 왼쪽이면 - (오른쪽=양수 규약).
+            double segDrow = int2Row - measurePointRow;
+            double segDcol = int2Col - measurePointCol;
+            double distPx = System.Math.Sqrt(segDrow * segDrow + segDcol * segDcol);
+            // datum 기준선의 오른쪽(col+) 법선 = (-cosθ, sinθ). 저장각 θ/θ+π 무관하게 col+ 향하도록 정규화(col성분≥0).
+            double normR = -System.Math.Cos(measureLineAngle);
+            double normC = System.Math.Sin(measureLineAngle);
+            if (normC < 0.0) { normR = -normR; normC = -normC; }
+            double sideSign = (segDrow * normR + segDcol * normC) >= 0.0 ? 1.0 : -1.0;
+            resultValue = distPx * sideSign * pixelResolution;
+
+            // overlay 거리선: 우측 교점 int2 → 교차점 P (실제 측정 세그먼트)
+            double footRow = int2Row, footCol = int2Col;
+            bool footOk = true;
 
             // overlay — 알고리즘이 이미 계산한 변수만 재사용. HALCON 재호출 없음.
             // 교점1 에지 라인 2개
@@ -351,11 +351,19 @@ namespace ReringProject.Sequence
                     new EdgeInspectionPoint { Row = int2Row, Column = int2Col }
                 }
             });
-            // 보정된 측정점 마커 — 측정축=교점2, 수직축=두 교점 평균
+            //260716 hbk 좌우 교점 잇는 선(L_cross) 오버레이 — 두 교점을 지나는 직선을 화면에 표시(교차점 시각 검증용).
+            overlays.Add(new EdgeInspectionOverlay
+            {
+                RoiId = "FAI-CrossLine",
+                LineRow1 = int1Row, LineColumn1 = int1Col, // 좌 교점
+                LineRow2 = int2Row, LineColumn2 = int2Col, // 우 교점
+                Points = new List<EdgeInspectionPoint>()
+            });
+            // 측정점 마커 = L_cross ∩ L_datum 교차점 P
             overlays.Add(new EdgeInspectionOverlay
             {
                 RoiId = "FAI-AvgPoint",
-                LineRow1 = measurePointRow, LineColumn1 = measurePointCol, // 보정 측정점
+                LineRow1 = measurePointRow, LineColumn1 = measurePointCol, // 교차점 P
                 LineRow2 = measurePointRow, LineColumn2 = measurePointCol, // 점 마커 (길이 0 라인)
                 Points = new List<EdgeInspectionPoint>
                 {

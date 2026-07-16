@@ -91,6 +91,10 @@ namespace ReringProject.Sequence {
                             // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
                             //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
                             parentSeq.ApplyDatumLights(datum);
+                            // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
+                            //  (기존엔 수동 UI grab 경로에만 있던 대기를 자동 검사 사이클에도 배선. SIMUL/오프라인처럼
+                            //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)
+                            LightHandler.Handle.WaitForPendingWrites();
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
                                 HImage imgH = null, imgV = null;
                                 try {
@@ -182,7 +186,12 @@ namespace ReringProject.Sequence {
                         }
                         // Datum grab 동안 켜져 있던 datum 전용 조명을 이 Shot 본연의 조명으로 되돌린다.
                         //  이후 EStep.Grab 의 측정 grab 이 datum 조명이 아니라 $PREP 로 세팅된 Shot 조명 아래서 이뤄져야 한다.
-                        if (ShotParam != null) parentSeq.ApplyShotLights(ShotParam.ZIndex);
+                        if (ShotParam != null) {
+                            parentSeq.ApplyShotLights(ShotParam.ZIndex);
+                            // EStep.Grab 의 실제 촬영은 다음 Run() 호출(시퀀스 스레드 다음 tick)에서 이뤄지므로,
+                            //  여기서 큐가 비워질 때까지 동기 대기해두면 그 사이 조명 복귀가 실제로 반영된다.
+                            LightHandler.Handle.WaitForPendingWrites();
+                        }
                     }
                     // DatumConfigs 비어있으면 무보정 pass-through — abort 없음 (lenient)
                     Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행

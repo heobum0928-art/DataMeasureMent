@@ -1317,6 +1317,8 @@ namespace ReringProject.UI {
                 //     저장/표시는 전부 락 해제 후 수행한다(어떤 UI 대기도 락을 쥐지 않음).
                 HImage grabbedHalconImage = null;
                 HImage imageToSave = null;
+                // 260716 hbk 검사Grab tact 지연 실측용 — 조명대기+grab 구간, 저장(WriteImage) 구간을 분리 계측해 Trace 로그에 남긴다.
+                var swLightGrab = System.Diagnostics.Stopwatch.StartNew();
                 lock (mDrawInterlock) {
                     if (datum != null) {
                         InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
@@ -1337,16 +1339,20 @@ namespace ReringProject.UI {
                     if (grabbedHalconImage != null) imageToSave = grabbedHalconImage.CopyImage();
                     param.PutImage(grabbedHalconImage);
                 }
+                swLightGrab.Stop();
                 // ---- 락 해제됨: 이 지점부터는 어떤 대기도 mDrawInterlock 을 쥐지 않는다 ----
 
-                // grab 이미지를 노드 저장경로에 png 로 기록 (검사 시 로드 대상). 실패해도 표시는 시도. (느린 디스크 I/O = 락 밖)
+                // grab 이미지를 노드 저장경로에 bmp(무압축)로 기록(검사 시 로드 대상). 실패해도 표시는 시도. (느린 디스크 I/O = 락 밖)
+                //  260716 hbk PNG(DEFLATE 압축)는 CXP 13376x9528(~1.27억 픽셀) 원본에서 압축 자체가 tact 병목이 되어 bmp 로 전환.
+                //  검사이미지는 라이브 grab 대체용이라 손실압축(jpg) 불가 — bmp 는 무손실 유지하며 압축 비용만 제거.
                 bool saved = false;
                 string saveErr = null;
+                var swSave = System.Diagnostics.Stopwatch.StartNew();
                 if (imageToSave != null) {
                     try {
                         string dir = Path.GetDirectoryName(savePath);
                         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                        imageToSave.WriteImage("png", 0, savePath);
+                        imageToSave.WriteImage("bmp", 0, savePath);
                         saved = true;
                     }
                     catch (Exception ex) {
@@ -1356,6 +1362,9 @@ namespace ReringProject.UI {
                         imageToSave.Dispose();
                     }
                 }
+                swSave.Stop();
+                Logging.PrintLog((int)ELogType.Trace, "[검사Grab tact] 조명대기+grab=" + swLightGrab.ElapsedMilliseconds
+                    + "ms, 저장(bmp)=" + swSave.ElapsedMilliseconds + "ms, 총=" + (swLightGrab.ElapsedMilliseconds + swSave.ElapsedMilliseconds) + "ms, path=" + savePath);
 
                 ExecuteOnUi(() => {
                     var resultStr = "Grab Fail";

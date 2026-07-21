@@ -8,5 +8,7 @@ namespace ReringProject.Sequence
         public const string NO_IMAGE = "NO_IMAGE";     //260710 hbk 이미지 없음 skip
         //260716 hbk DatumRef 가 실존하지 않는 datum 이름을 가리킴(오타/개명/삭제). 검출 시도조차 안 되므로 DATUM_FAIL 과 구분.
         public const string DATUM_REF_MISSING = "DATUM_REF_MISSING";
+        //260722 hbk PROTO-Z-CROSS: ZIndexA==ZIndexB 또는 존재하지 않는 z_index 참조 등 크로스-Z 오설정 명시적 NG 사유.
+        public const string ZINDEX_MISCONFIGURED = "ZINDEX_MISCONFIGURED";
     }
 }

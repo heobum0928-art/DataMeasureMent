@@ -194,9 +194,17 @@ namespace ReringProject {
             return resultPacket;
         }
 
+        //260722 hbk Phase 68 D-01a: z=0(Datum) 판별 매직넘버 상수화 (D-09). Datum 검출(EStep.DatumPhase)은 독립 Shot이 아니라
+        //  모든 Action 실행 안에 내장되어 매번 재수행되는 phase라서 shot.ZIndex==0 매핑 Shot이 일반적으로 없음 —
+        //  실행 스코프 필터를 z=0 에 적용하면 매칭 0건 → StartSubset 폴백이라도 Datum 검출 자체가 멈추는 회귀 위험이 있어
+        //  z=0 은 기존처럼 StartAll 로 예외 처리한다(회귀 0, waste-elimination 은 z>=1 에만 적용).
+        private const int DATUM_TEST_Z_INDEX = 0;
+
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
         //260615 hbk Phase 43.2: IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
         //260626 hbk z_index=$PREP 분리: $TEST z_index 필드 제거 → _lastPrepZIndex 주입.
+        //260722 hbk Phase 68 D-01/D-01a/D-01b: v1.0 실행(grab) 레벨 z_index 스코프 필터링 배선(StartV1Scoped 위임) —
+        //  Phase 49 D-01이 응답 집계 레벨(AggregateIndexFais)에서만 구현되고 실행 레벨에서는 갭이던 것을 닫는다.
         private bool ProcessTest(TestPacket packet) {
             if (!IsRecipeReady) {
                 Logging.PrintLog((int)ELogType.Error, "[RECIPE] TEST rejected — recipe not yet loaded (IsRecipeReady=false)");
@@ -207,9 +215,42 @@ namespace ReringProject {
                 string seqName = packet.Identifier;
                 SequenceBase seq = Sequences[seqName];
                 if (seq == null) return false;
-                return seq.StartAll(packet);
+                return StartV1Scoped(seq, packet); //260722 hbk Phase 68 D-01/D-01a: z=0 StartAll / z>=1 StartSubset(+폴백)
             }
             return Sequences.Start(packet);
+        }
+
+        //260722 hbk Phase 68 D-01/D-01a/D-01b: v1.0(UseProtocolV1+IsDynamicFAIMode) $TEST 실행 스코프 배선.
+        //  _lastPrepZIndex 가 이번 $TEST 의 z_index 단일 소스(packet.TestID 는 방금 이 값으로 대입됐을 뿐 재파싱 안 함).
+        //  z_index==0(Datum) → StartAll(D-01a, 회귀 0). z_index>=1 → InspectionSequence.FindActionIndicesByZIndex 로
+        //  매핑 Shot(own-ZIndex + 크로스-Z ZIndexA/ZIndexB owning Shot, D-01) 만 StartSubset 실행.
+        //  StartSubset 은 매칭 인덱스의 min-max 연속구간만 실행(D-01b, SequenceHandler.RebuildInspectionActions 의
+        //  ZIndex 안정 정렬이 same-ZIndex Shot 인접을 보장) — 스파스 크로스-Z 매칭으로 min-max 구간이 확장되어 그 사이
+        //  무관 Shot 이 재실행될 가능성은 Plan 05 UAT 시나리오 1의 명시적 PASS/FAIL 게이트로 검증한다(T-68-01 mitigation).
+        //  매칭 0건(레시피 ZIndex 미설정 등 운용 오류) → 조용한 무시 금지, 로그 남기고 StartAll 폴백(T-68-01: DoS 방지).
+        private bool StartV1Scoped(SequenceBase seq, TestPacket packet)
+        {
+            bool bIsDatumZIndex = _lastPrepZIndex == DATUM_TEST_Z_INDEX;
+            if (bIsDatumZIndex)
+            {
+                return seq.StartAll(packet);
+            }
+            InspectionSequence inspSeq = seq as InspectionSequence; //260722 hbk dynamic-FAI 런타임 타입은 항상 InspectionSequence
+            bool bIsInspectionSeq = inspSeq != null;
+            if (!bIsInspectionSeq)
+            {
+                return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
+            }
+            List<int> matchedIndices = inspSeq.FindActionIndicesByZIndex(_lastPrepZIndex);
+            bool bHasMatch = matchedIndices != null && matchedIndices.Count > 0;
+            if (bHasMatch)
+            {
+                return seq.StartSubset(matchedIndices.ToArray(), packet);
+            }
+            Logging.PrintLog((int)ELogType.Error,
+                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — StartAll 폴백. 레시피 ZIndex 설정 확인 필요. //260722 hbk",
+                    _lastPrepZIndex, seq.Name));
+            return seq.StartAll(packet);
         }
 
         private TestResultPacket SendTestError(TestPacket packet) {

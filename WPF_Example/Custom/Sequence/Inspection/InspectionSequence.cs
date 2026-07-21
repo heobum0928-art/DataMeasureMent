@@ -357,8 +357,9 @@ namespace ReringProject.Sequence {
         //  DualImageEdgeDistanceMeasurement의 ZIndexA/ZIndexB 위치에서도 실행되어야 한다 — 그래서 한 Shot이 여러 z_index에
         //  다중 매칭될 수 있다(반환 List<int>). FindShotByZIndex(단일매칭, ShotConfig 반환)와 달리 Actions[] 인덱스를 반환해야
         //  SequenceBase.StartSubset(int[], TestPacket)에 그대로 전달 가능하다.
-        //  정의만 — 소비(ProcessTest 배선)는 Task 3.
-        private List<int> FindActionIndicesByZIndex(int nZIndex)
+        //  public: Custom/SystemHandler.ProcessTest(Task 3, 다른 클래스)가 직접 호출해야 하므로 ApplyShotLights/TurnOffShotLights와
+        //  동일하게 public 노출(같은 파일의 기존 cross-class 호출 컨벤션 — private로는 다른 클래스에서 호출 불가, 컴파일 불가).
+        public List<int> FindActionIndicesByZIndex(int nZIndex)
         {
             var matchedIndices = new List<int>();
             bool bHasActions = Actions != null;

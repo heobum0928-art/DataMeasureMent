@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: Phases
 status: unknown
 stopped_at: Phase 68 context gathered
-last_updated: "2026-07-21T12:39:00.740Z"
-last_activity: "2026-07-14 - Completed quick task 260714-d99: TryFitLine strip 관측화 (1단계 — 로그만, 판정 무변경). 2단계(임계값 게이트)는 현장 로그로 실제 strip 성공률 분포 확인 후 결정"
+last_updated: "2026-07-21T23:00:36.488Z"
+last_activity: 2026-07-21 -- Phase 68 planning complete
 progress:
   total_phases: 23
   completed_phases: 19
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 67 (stat-01-2026-07-07) — EXECUTING
 Plan: 3 of 3
-Last activity: 2026-07-14 - Completed quick task 260714-d99: TryFitLine strip 관측화 (1단계 — 로그만, 판정 무변경). 2단계(임계값 게이트)는 현장 로그로 실제 strip 성공률 분포 확인 후 결정
+Last activity: 2026-07-21 -- Phase 68 planning complete
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 

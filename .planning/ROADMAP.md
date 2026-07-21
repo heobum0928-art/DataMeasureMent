@@ -18,18 +18,22 @@
 > POC 6월 말 기준 5단계 우선순위. 1~2순위 완료 전 5순위 착수 금지.
 
 ### Phase 39: 검사 워크플로우 E2E (신설 2026-05-29)
+
 **Goal**: Datum 검출 → FAI 측정 → 결과 처리(OK/NG/검출 실패)까지 1 사이클이 SIMUL 모드와 실카메라(HIK) 모두에서 끊김 없이 통과하고, OK·NG·검출 실패 3분기 후속 동작 명세를 v2.6 프로토콜 기준으로 적용한다.
 **Depends on**: Phase 37 (Side multi-datum), Phase 38 (v1.1 carry-over cleanup) — 둘 다 signed_off
 **Requirements**: WF-01, WF-02
 **Background**: v1.1 까지 Datum/FAI 알고리즘은 안정화 완료(Phase 23~37). 그러나 sequence-level E2E 경로는 부분 검증만 됐고 "Datum 검출 실패 vs 측정 실패" 분기, NG 누적 정책, 검출 실패 시 후속 측정 skip 처리가 sequence 마다 산발적으로 다르다. POC 시연 전에 1 사이클 전체가 한 정책으로 통일되어야 한다.
 **Scope**:
+
   - **Datum 단계 분기**: Datum 검출 실패 → 즉시 NG + 후속 FAI skip + TCP 결과 응답
   - **FAI 단계 분기**: FAI 측정 실패(에지 미검출/공차 초과) → NG mark, 다음 FAI 계속 진행
   - **사이클 종합 판정**: OK = 전 항목 PASS, NG = 1 건이라도 FAIL, 검출 실패 = Datum 단계 실패 (별도 분기)
   - **TCP 결과 응답 포맷**: 현행 v2.6 프로토콜 유지 (v2.7 은 Phase 48 별도)
   - **SIMUL + 실카메라 양쪽 검증**: SIMUL 이미지 셋(Cal_Image/) + HIK 실카메라(가능 시) 회귀
   - **NG 누적 처리**: 사이클 내 NG 발생 후 후속 측정 정상 진행, 사이클 종료 시 종합 판정
+
 **Success Criteria (UAT)**:
+
   - SIMUL Top/Side/Bottom 멀티샷 → Datum 검출 → 전 FAI 측정 → TCP 응답까지 끊김 없음
   - Datum 검출 실패 케이스: 후속 FAI skip + TCP NG 응답 (검출 실패 코드)
   - FAI 측정 실패 케이스: 해당 FAI NG mark, 다음 FAI 계속, 사이클 종합 NG
@@ -45,15 +49,19 @@
     - [x] 39-04-PLAN.md — SIMUL UAT 5 시나리오 + sign-off (D-09) [Wave 3]
 
 ### Phase 39.1: 검사 워크플로우 긴급 fixes (신설 2026-05-29)
+
 **Goal**: Phase 39 sign-off 직후 사용자가 직접 보고한 4 긴급 항목 (algorithm 2 + UI 2) 을 단일 phase 안에서 처리한다. POC 2026-06-30 시연 측정 정확도 직접 영향 = #1 CircleDiameter polar 파라미터 노출 + #2 EdgeToLineDistance projection_pl 축 정확화. UI 편의성 = #3 검사 후 FAI 노드 클릭 결과 재현 + #4 Datum CTH Edit 모드 분리.
 **Depends on**: Phase 39 (signed_off)
 **Requirements**: WF-01
 **Scope** (CONTEXT.md 16 결정 G1~G4 lock):
+
   - **#1 CircleDiameter**: 4 polar 필드 (Circle_PolarStepDeg / RectL1Ratio / RectL2Ratio / PolarEdgeSelection) 인스턴스화 + ICustomTypeDescriptor 동적 hide/show + ctor idempotent migration. Datum CTH 변경 0 anti-goal (D-G2-05).
   - **#2 EdgeToLineDistance**: measureX 분기에서 DatumAngle2Rad (실 datum 수직 기준선) 사용. measureY + Datum 미주입 폴백 변경 0. TLI Datum 폴백 보장 (D-G3-04).
   - **#3 FAI 노드 조회**: 검사 후 노드 클릭 시 측정 결과 + 이미지 + overlay 재현. Sequence 동작 변경 0 (Phase 37 lenient + Phase 39 gate 회귀 0). 전 FAI 타입 공통 (D-G4-02).
   - **#4 Datum CTH Edit**: btn_teachDatum 토글 기반 분리 — fitting 원 ↔ Edit ROI 핸들. DETECT FAIL 라벨 (Phase 39 CO-39-02/03) + fitting 원 (Phase 11/13/16) + RenderDatumFindResult (Phase 36 CO-36-03) 변경 0.
+
 **Success Criteria (UAT)**:
+
   - Item #1: polar 4 필드 PropertyGrid 노출 + 변경 시 측정값 결정적 변화 + Datum CTH 회귀 0
   - Item #2: 부정확 직각 케이스 정확화 (Δ1 < Δ0) + measureY/TLI/미주입 폴백 회귀 0
   - Item #3: FAI/Measurement 노드 클릭 시 6 타입 공통 overlay 재현 + Sequence 회귀 0
@@ -68,15 +76,19 @@
     - [x] 39.1-04-PLAN.md — Item #4 Datum CTH Edit 모드 분리 (D-G4-03~05) [Wave 3, UI — Plan 03 file overlap 해소]
 
 ### Phase 39.2: 긴급 추가건2 (신설 2026-05-30)
+
 **Goal**: Phase 39.1 SIGNED_OFF 직후 사용자 발의 4 신규 항목 — Bottom E5 듀얼 이미지 FAI 측정 + Top I10 close-point variant + Tree 정렬 + Tree 아이콘 차별화 — 단일 phase 처리. POC 2026-06-30 시연 대비 사용자 UX + 측정 커버리지 보강.
 **Depends on**: Phase 39.1 (signed_off)
 **Requirements**: WF-01 (FAI 측정 확장 + UI UX)
 **Scope** (CONTEXT.md 6 결정 D-G1~D-G4 lock):
+
   - **#1 Bottom E5 DualImage FAI**: 신규 `DualImageEdgeDistanceMeasurement` MeasurementBase 서브타입 — Phase 37 VTH-DualImage 패턴 차용 (TeachingImagePath / TeachingImagePath_Vertical 슬롯 재사용 + 2 ROI + 양 이미지 에지 검출 → projection_pl 거리). Datum DualImage / Phase 37 lenient 회귀 0.
   - **#2 Top I10 close-point variant**: `ArcLineIntersectDistanceMeasurement` 에 `IntersectionPointSelection` 문자열 파라미터 ({Far, Close}, default=Far) 추가 — INI 회귀 0 + ItemsSourceProperty 콤보 노출. 신규 타입 도입 0 (단일 소스).
   - **#3 Tree 노드 정렬**: Shot/FAI/Datum/Measurement 트리 노드 Name 자연정렬 (Shot10 vs Shot2 정렬) 자동. 전 레벨 + 정렬 시점 = Add* / Rename / RebuildTree / Constructor.
   - **#4 Tree 아이콘 차별화**: 5 NodeType + 12 Measurement TypeName 별 Geometry path 아이콘 — Material Icons SVG path inline + IValueConverter + DynamicResource lookup. ContextMenu PNG 보존.
+
 **Success Criteria (UAT)**:
+
   - Item #1: Bottom E5 2 이미지 / 2 ROI 거리 측정 성공 + Action_FAIMeasurement / 기존 10 FAI 타입 회귀 0
   - Item #2: P1 / P2 close/far 선택 시 정확 거리값 + INI 하위호환 (기본 Far → Phase 32 sign-off 결과 byte-identical)
   - Item #3: Shot 생성 순서 무관 자연정렬 표시 + Rename 시 즉시 재정렬 + ParamBase INI 순서 변경 0
@@ -92,16 +104,20 @@
     - [x] 39.2-05-PLAN.md — SIMUL UAT 결과 기록 + partial sign-off (3 PASS / 1 carry-over / 1 skipped)
 
 ### Phase 39.3: DualImage FAI UX 재설계 (신설 2026-05-30 — CO-39.2-01-01 carry-over)
+
 **Goal**: Phase 39.2 D-G1 (Bottom E5 DualImage FAI) UAT FAIL 후속 — `DualImageEdgeDistanceMeasurement` 의 측정 알고리즘은 유지, UI/UX 를 Side Datum DualImage 패턴 (가로/세로 버튼 + 이미지 2 슬롯 + RectROI 2개 활성) 으로 재설계.
 **Depends on**: Phase 39.2 (partial signed_off — 39.2-01 코드 baseline 유지)
 **Requirements**: WF-01 (FAI 측정 확장 UX)
 **Scope (CONTEXT.md 6 lock decisions D-G1~D-G5):**
+
   - DualImage 측정 입력 UI 가 기존 Side Datum DualImage (Phase 34.1 / 37) UX 와 동일하게 동작 (가로/세로 이미지 슬롯 + 2 RectROI 셋팅 + 슬롯 swap)
   - RectROI drawable attribute 가 PropertyGrid 에서 활성화 (현재 비활성 원인 분석 → 39.2-01 Plan 의 attribute / interface 누락 보완)
   - 측정 알고리즘 변경 0 (projection_pl 거리, PointROI/LineROI 처리, IDatumOriginConsumer 보존)
   - INI 회귀 0 (39.2-01 sign-off baseline 유지)
   - Datum DualImage (Phase 36/37) / FAI 기존 10 타입 / Phase 39.1 회귀 0
+
 **Success Criteria (UAT)**:
+
   - Bottom E5 DualImage FAI Measurement Type 선택 → 가로/세로 이미지 슬롯 노출 + 양 슬롯 별도 ROI 셋팅 가능
   - 양 ROI 모두 RectROI drawable + edit 모드 정상 동작
   - 측정 결과 (mm) 가 Phase 39.2-01 코드 baseline 과 동일 알고리즘으로 산출
@@ -117,16 +133,20 @@
     - [x] 39.3-04-PLAN.md — SIMUL UAT (partial sign-off 2026-05-30, Test 4 + 회귀 → Phase 39.4 흡수)
 
 ### Phase 39.4: Bottom DualImage 수동 Swap UX 재설계 (신설 2026-05-30 — CO-39.3-01 carry-over)
+
 **Goal**: Phase 39.3 Test 2 (Swap UX) PASS 후 사용자 발견 결함 — Shot 이미지가 공통 자원인데 DualImage Measurement 의 "가로축 티칭 이미지" 로 단독 점유되어 작업자 인지 혼동 발생. DualImage 가로/세로 양측 모두 Measurement 단위 명시 경로 (`TeachingImagePath_Horizontal` 신규 + 기존 `TeachingImagePath_Vertical` 유지) 로 재설계 + Datum DualImage (Phase 22 IMG-01 / Phase 37) 패턴 일관화.
 **Depends on**: Phase 39.3 (PARTIAL_SIGNED_OFF)
 **Requirements**: WF-01
 **Scope (estimated, discuss-phase 에서 lock):**
+
   - DualImageEdgeDistanceMeasurement.TeachingImagePath_Horizontal 신규 필드 + [InputFilePath] + [AutoUpdateText] (Plan 39.3-03 mirror)
   - Action_FAIMeasurement.TryGrabOrLoadFaiDualImages 분기 교체 (RuntimeImageA 소스 = meas.TeachingImagePath_Horizontal, fallback = ShotConfig 이미지)
   - MainView.BtnSwapHorizontal_Click Measurement 분기 교체 (가로축 = meas.TeachingImagePath_Horizontal 로드, fallback = ShotConfig)
   - PropertyGrid 가로/세로 셀 라벨 명시 + Browse 버튼 둘 다 노출
   - **39.3 D-G4 anti-goal ("Action_FAIMeasurement 본문 변경 0") 은 39.4 의 새 contract 로 해제**
+
 **Success Criteria (UAT)**:
+
   - DualImage Measurement PropertyGrid 에 가로/세로 Browse 버튼 둘 다 노출 + 라벨 명시
   - Horizontal swap 시 meas.TeachingImagePath_Horizontal 이미지 로드 (fallback = ShotConfig)
   - Vertical swap 시 meas.TeachingImagePath_Vertical 이미지 로드 (39.3 baseline)
@@ -143,26 +163,34 @@
     - [x] 39.4-04-PLAN.md — SIMUL UAT + sign-off (d32a45b → f2149c8 → 6843c0d hotfix → eb6d4cb → b3399de)
 
 ### Phase 40: 결과 분석 & Export I — 리뷰어 + 1회 검사 엑셀 (신설 2026-06-01)
+
 **Goal**: 검사 완료된 결과를 사후에 검토·추출할 수 있는 출력 계층을 구축한다. (1) 날짜/원본 폴더 단위로 과거 검사 결과를 로드하여 결과 이미지(에지·overlay·판정)를 재현하는 **리뷰어**(OUT-01), (2) 시퀀스 1회 검사 결과를 메타데이터+측정값+판정+이미지 링크가 포함된 **xlsx 파일로 export**(OUT-02).
 **Depends on**: Phase 39 (검사 워크플로우 E2E — OK/NG/검출실패 3분기 + TCP 결과) signed_off, Phase 39.4 (DualImage swap) partial
 **Requirements**: OUT-01, OUT-02
 **Plans**: 4 plans (3 waves) — planned 2026-06-01
 Plans:
+
 - [x] 40-01-PLAN.md — cycle 결과 JSON 영속화 토대 (CycleResultDto + CycleResultSerializer + AddResponse wiring)
 - [x] 40-02-PLAN.md — ClosedXML 0.105.0 + 전이 의존성 등록 + 런타임 smoke test [BLOCKING]
 - [x] 40-03-PLAN.md — 결과 리뷰어 Window (날짜폴더 → cycle 목록 → 이미지/overlay 재렌더 + 측정표, OUT-01)
 - [~] 40-04-PLAN.md — ExcelExportService + 리뷰어 [엑셀 export] 버튼 (OUT-02) — **코드 완료, 빌드 PASS, UAT 대기**(2026-06-09)
+
 **Background**: 측정 알고리즘은 Phase 23~39 에서 안정화 완료. 그러나 검사 결과는 현재 라이브 화면 + `RawImageSaveService` 의 원본 이미지 저장만 존재하고, (a) 저장된 결과를 사후에 다시 불러와 검토하는 경로, (b) 측정값/판정을 정형 데이터(xlsx)로 추출하는 경로가 없다. POC 2026-06-30 시연에서 "검사 → 결과 리뷰 → 엑셀 추출" 흐름이 필요.
 **Scope**:
+
   - **OUT-01 결과 리뷰어**: 날짜/원본 폴더 선택 → 저장된 결과 이미지 + overlay + 판정 재현 (UI 위치 TBD — 별도 창 vs MainView 탭)
   - **OUT-02 1회 엑셀 export**: 시퀀스 1회 검사 결과 → xlsx (메타데이터 + 측정값 mm + 판정 OK/NG + 이미지 링크)
   - **Excel 라이브러리 선정**: 현 의존성에 엑셀 라이브러리 없음 (.NET 4.8 호환 + 라이선스 고려)
   - **결과 저장 포맷/폴더 구조**: 리뷰어가 읽을 결과 폴더 레이아웃 (`RawImageSaveService` / `SaveResultImage` 연계)
   - **이미지 링크 방식**: xlsx 내 하이퍼링크 vs 셀 임베드
+
 **Out of scope** (Phase 41.1 — OUT-03/04):
+
   - 50회 반복도 통계 (mean/stddev/range/Cpk)
   - 검출 알고리즘별 통계 분석표
+
 **Success Criteria (UAT)**:
+
   - 날짜/원본 폴더 로드 시 결과 이미지 + overlay + 판정이 라이브 검사와 동일하게 재현
   - 1회 검사 결과 xlsx 생성 (메타 + 측정값 + 판정 + 이미지 링크 모두 포함)
   - 생성된 xlsx 가 외부 도구(Excel) 에서 정상 열림
@@ -173,15 +201,19 @@ Plans:
   - Success: 50회 반복 시퀀스 자동 실행 + mean/stddev/range/Cpk xlsx / 알고리즘별(TLI/CTH/VTH/Edge 6종+) 통계 표 생성
 
 ### Phase 41.1: 결과 분석 & Export II — 50회 반복도 + 알고리즘 통계 (신설 2026-06-12)
+
 **Goal**: 50회 반복 측정 사이클을 자동 실행하고 반복도 통계(mean/stddev/range/Cpk)와 알고리즘별 통계 분석표를 xlsx로 export한다.
 **Depends on**: Phase 40 (Export I — 리뷰어 + 1회 엑셀) signed_off
 **Requirements**: OUT-03, OUT-04
 **Background**: Phase 40 에서 1회 검사 결과의 xlsx export 기반(CycleResultSerializer + ExcelExportService) 이 완성됨. Phase 41.1 은 이 기반 위에서 (a) 50회 자동 반복 실행 + 결과 누적, (b) 반복도 단순 통계(mean/stddev/range/Cpk) xlsx, (c) 알고리즘별(TLI/CTH/VTH/Edge 6종+) 통계 분석표를 추가한다. 정식 Gage R&R ANOVA 는 OUT-OF-SCOPE (REQUIREMENTS.md 명시).
 **Scope**:
+
   - **OUT-03 반복도 excel**: 50회 시퀀스 자동 실행 + 누적 결과 → mean/stddev/range/Cpk xlsx
   - **OUT-04 알고리즘 통계표**: TLI/CTH/VTH/Edge 6종+ 알고리즘별 검출 성공률/평균/표준편차 집계표
   - Phase 40 ExcelExportService / CycleResultSerializer 재사용 (코드 복제 0)
+
 **Success Criteria (UAT)**:
+
   - 50회 자동 반복 실행 후 반복도 xlsx 생성 (mean/stddev/range/Cpk 컬럼 포함)
   - 알고리즘별 통계표 xlsx 생성 (TLI/CTH/VTH + Edge 타입별 행)
   - 생성된 xlsx 가 외부 도구(Excel) 에서 정상 열림
@@ -209,34 +241,45 @@ Plans:
   - Success: Datum 수평 에지 검출 각도와 수평선의 각도차로 입력 이미지를 회전 정렬(레벨링) 후 측정 / 회귀 0
 - [x] **Phase 53: 픽셀 캘리브레이션 (체커보드)** (CAL-01)
  (completed 2026-06-23)
+
   - Success: 별도 캘리브 창에서 체커보드(라이브 정지/촬상 또는 이미지 로드) → 픽셀 해상도(mm/px) 산출 → 측정 PixelResolution 적용
 
 ### Phase 51: 시퀀스 일괄 검사 & 일괄 Export (신설 2026-06-16 — POC 신규 #3)
+
 **Goal**: 현재 SHOT 노드를 개별 트리거하는 검사 방식을, 시퀀스(Top/Bottom) 단위로 전체 SHOT을 한 번에 실행하여 전 측정 결과를 누적하고 엑셀로 일괄 추출할 수 있게 한다. SIMUL 모드 우선, 실 모드는 검사 사이클마다 결과를 채우는(append) 방식.
 **Depends on**: Phase 40 (Export I — CycleResultSerializer / ExcelExportService) , Phase 39 (검사 워크플로우 E2E) signed_off
 **Requirements**: BATCH-01
 **Background**: 현재 검사는 SHOT 별로 트리거되어, 엑셀 추출 시 시퀀스 전체 데이터를 한 번에 얻기 어렵다. POC 2026-06-30 산출물은 Top/Bottom 시퀀스 전체 측정값이 한 번에 나와야 한다.
 **Scope** (discuss 에서 확정):
+
   - 시퀀스 단위 일괄 실행 진입점(UI 버튼/명령) + 전 SHOT 순차 실행 + 전 결과 누적
   - Phase 40 Export(CycleResultSerializer / ExcelExportService) 재사용한 일괄 xlsx
   - SIMUL: 각 SHOT SimulImagePath 순회 실행 / 실 모드: 검사 사이클마다 결과 append
+
 **Out of scope**: 50회 반복도(Phase 41.1), 신규 측정 알고리즘
 **Success Criteria (UAT)**:
+
   - Top/Bottom 일괄 실행 → 전 SHOT/FAI 측정 결과 누적 → 단일 xlsx 로 전 결과 추출
   - SHOT 개별 트리거 검사 회귀 0
 
 ### Phase 52: 이미지 수평 보정 (Datum 에지 기반 회전 정렬) (신설 2026-06-16 — POC 신규 #1)
+
 **Goal**: Datum 수평 에지를 검출해 수평선과의 각도차로 입력 이미지를 회전 정렬(레벨링)한 뒤 측정한다.
 **Depends on**: DatumFindingService (수평 2-ROI concat 라인 피팅 — 기존)
 **Requirements**: LEVEL-01
 **Background**: 사용자 제공 HDevelop 참조 — UnionContours 2개 `fit_line_contour_xld` → `get_contour_xld` → `gen_contour_polygon_xld`(LongLine) → `fit_line_contour_xld` → `angle_lx` 로 각도 산출 → 이미지 회전. DatumFindingService 의 수평 2-ROI concat 피팅(TryFindVerticalTwoHorizontal 등)과 동일 파이프라인.
 **Scope** (discuss 에서 확정):
+
   - Datum 수평 에지 각도 산출 + 이미지 회전 보정 적용
   - 적용 시점(검사 전 전처리 / Datum 검출 후) 및 적용 범위(시퀀스/SHOT) 확정
+
 **Success Criteria (UAT)**:
+
   - 기울어진 입력 이미지가 수평 정렬된 후 측정 / 기존 측정 회귀 0
+
 **Plans:** 2/2 plans complete
 Plans:
+
 - [x] 52-01-PLAN.md -- InspectionSequence LevelingEnabled + leveling angle cache + DatumConfig.IsLevelingReference + FIXTURE INI save/load (D-01/D-04) [Wave 1]
 - [x] 52-02-PLAN.md -- DatumFindingService.TryGetLevelingAngle (Math.Atan2 angle) + VisionAlgorithmService.RotateImageByAngle (affine_trans_image) [Wave 1]
 - [x] 52-03-PLAN.md -- InspectionSequence.TryComputeLevelingAngle (seq-once cache) + Action_FAIMeasurement EStep.Level grab rotation (D-02/D-03) [Wave 2]
@@ -245,68 +288,90 @@ Plans:
 **Status:** ❌ 폐기(ABANDONED) 2026-06-23 -- 에지 기반 레벨링(이미지 회전)을 **ALIGN-01/02 패턴매칭 위치보정(Phase 54/55/56)으로 대체** 결정(사용자 2026-06-23). 텔레센트릭 + 패턴매칭 ROI 좌표변환이 X/Y/tilt 를 보정하므로 레벨링 이미지 warp 불필요. 레벨링 코드는 Phase 54(warp→ROI변환)+57-01(멤버/메서드/EStep.Level/INI키 전수 제거)에서 이미 제거됨. 잔여 죽은 메서드 RotateImageByAngle(VisionAlgorithmService) 도 2026-06-23 제거. CO-52-01(레벨링 UI)/Phase 52.1 = 불필요(폐기). 백엔드(52-01~03)는 히스토리 기록으로만 유지.
 
 ### Phase 53: 픽셀 캘리브레이션 (체커보드) (신설 2026-06-16 — POC 신규 #2)
+
 **Goal**: 체커보드(격자 white/black) 기반 픽셀 캘리브레이션 기능 — 라이브 정지/촬상 또는 이미지 로드로 격자 이미지를 입력받아 픽셀 해상도(mm/px)를 산출하고 측정에 적용한다. 별도 창으로 제공.
 **Depends on**: Phase 42 (ShotConfig.PixelResolution 단일소스) signed_off
 **Requirements**: CAL-01
 **Background**: 현재 픽셀 해상도는 수동 입력. 체커보드 캘리브로 산출/적용이 필요. 라이브 중에는 라이브 정지 후 촬상, 또는 이미지 로드로도 가능해야 하며, 산출값이 픽셀 해상도에 반영되어야 한다.
 **Scope** (discuss 에서 확정):
+
   - 별도 캘리브 창(라이브 정지→촬상 or 이미지 로드) + 격자 검출 + mm/px 산출 + PixelResolution 반영
   - 캘리브 알고리즘(HALCON caltab/find_caltab vs 격자 코너 검출) 확정
+
 **Success Criteria (UAT)**:
+
   - 체커보드 입력 → 픽셀 해상도 산출 → 측정 PixelResolution 적용 / 이미지 로드 모드 동작
+
 **Plans**: 3 plans (3 waves)
+
   - [x] 53-01-PLAN.md — CheckerboardCalibrationService (saddle 코너검출 + median mm/px + 외곽 편차%) + csproj 등록
   - [x] 53-02-PLAN.md — CalibrationWindow (입력/이미지로드·라이브/검출/리포트+왜곡경고, D-04/D-05/D-06 게이트)
   - [x] 53-03-PLAN.md — MainView launch + 활성 시퀀스 전체 shot PixelResolution 일괄 반영(D-03) + SaveRecipe
 
 ### Phase 43: 시작지연 분리 (LoginManager + SequenceHandler) (CO-38-02, CO-38-03)
+
 **Goal**: 앱 기동 시 동기적으로 수행되는 무거운 초기화(계정 DB 로드, 레시피 동기 로딩)를 지연/분리하여 "측정 가능 시점"까지의 시간을 단축한다. Phase 38 에서 추가한 `[STARTUP]` Stopwatch 계측을 기준선으로, 측정 가능 시점이 ≥30% 단축됨을 입증한다.
 **Depends on**: Phase 38 (`[STARTUP]` 계측 9줄 SystemHandler.Initialize) signed_off
 **Requirements**: CO-38-02, CO-38-03
 **Background**: Phase 38 SIMUL 1회 실측 — `SystemHandler.Initialize` Total **1509ms**, 이 중 Step5 LoginManager delta **808ms**(계정 DB 로드 추정) + Step2 SequenceHandler delta **550ms**(레시피 동기 로딩) ≈ 전체의 90%. 이 두 구간이 기동 지연의 지배적 원인. Phase 38 에서 "저위험 개선 미적용 → 전부 carry-over" 로 남긴 항목.
 **Scope**:
+
   - **CO-38-02 LoginManager lazy-load**: 계정 DB 로드를 앱 기동 동기 경로에서 분리 — 최초 로그인 시도 시점 또는 백그라운드 로드로 지연. 기존 LoginManager 인증 동작/계정 모델 변경 없음.
   - **CO-38-03 SequenceHandler 동기 의존성 제거**: 레시피 동기 로딩이 Initialize 를 블로킹하지 않도록 분리 — 측정 시작 전 준비 완료 보장은 유지하되 기동 경로에서 제거.
   - **계측 기반 입증**: `[STARTUP]` 로그(Step1~8 + Total)로 Before/After 비교, 측정 가능 시점 ≥30% 단축 수치 제시.
+
 **Out of scope**:
+
   - CO-38-04 실HW [STARTUP] 재측정 (Phase 44 — HW 도착 의존)
   - OAuth/사용자 인증 고도화 (기존 LoginManager 유지, REQUIREMENTS.md 명시)
+
 **Success Criteria (UAT)**:
+
   - 앱 기동 LoginManager lazy-load 후 측정 가능 시점 ≥30% 단축 (`[STARTUP]` 로그 Before/After 비교)
   - SequenceHandler 동기 의존성 제거 후 Initialize 가속 입증 (Step2 delta 감소 수치)
   - 회귀 0: 첫 로그인/첫 검사 흐름 정상 (lazy-load 로 인한 미준비 상태 버그 없음)
 
 **Plans:** 3/3 plans complete
 Plans:
+
 - [x] 43-01-PLAN.md — LoginManager 백그라운드 프리로드(Step5 동기 808ms 제거) + [STARTUP] READY 마커 + LoginWindow EnsureLoaded readiness wait + 30% 평균/회귀 UAT — COMPLETE (55% READY 단축, CO-38-02/CO-38-03 종결)
 
 ### Phase 43.1: 기동 체감속도 개선 — 흰 화면 마스킹 + 콜드스타트 계측 (CO-43-01) — 신설 2026-06-15
+
 **Goal**: 앱 기동 시 발생하는 **18~20초 흰 화면**(체감 기동 지연)을 제거/마스킹하여 POC 시연 체감 속도를 개선한다. 먼저 흰 화면 구간을 계측해 지배 원인을 수치화하고, 즉시 표시되는 시각적 피드백(스플래시/로딩)으로 흰 화면을 없앤다.
 **Depends on**: Phase 43 (SIGNED_OFF — [STARTUP] READY 계측 + LoginManager bg 프리로드) / [STARTUP] Total Initialize 계측 기준선
 **Requirements**: CO-43-01
 **Background**: Phase 43 UAT 에서 발견. `[STARTUP] Total Initialize` = ~579ms 인데 실제 더블클릭→창 표시까지 18~20초 흰 화면. 근본 원인은 Initialize() **밖** — `MainWindow` 생성자가 `Show()` **이전에** Initialize()(MainWindow.xaml.cs:78) + InitializeComponent()(:81, 전체 MDI XAML inflation) 를 모두 끝냄. 흰 화면 = process 콜드 JIT(Debug) + Halcon/OpenCV/카메라 네이티브 DLL 로딩 + XAML inflation 의 합. 스플래시 부재(SplashScreen/StartupUri 없음).
 **Scope**:
+
   - **계측(measure)**: 흰 화면 구간을 분해하는 Stopwatch 마커 추가 — (a) process→App.Startup, (b) MainWindow ctor 진입, (c) Initialize, (d) InitializeComponent, (e) ctor→Show→첫 paint(ContentRendered/Loaded). 어느 구간이 지배적인지 사용자 실행 로그로 수치화.
   - **마스킹(mask)**: 흰 화면을 시각적 피드백으로 대체 — WPF `SplashScreen`(즉시 PNG, 관리 UI 이전 표시) 또는 경량 로딩 창. 콜드스타트 비용 위치와 무관하게 흰 화면 체감 제거. **저위험 우선.**
   - **(조건부) 비핵심 초기화 비동기화**: 계측 결과가 가리키는 비핵심 무거운 구간을 첫 paint 이후로 지연. 측정 준비 보장(첫 $TEST 수용)은 깨지 않음.
+
 **Out of scope**:
+
   - Release/NGEN/ReadyToRun 빌드 전환 자체(별도 검토) — 단, 흰 화면이 Debug 콜드 JIT 지배이면 Release 측정값을 참고로 기록.
   - 측정 알고리즘/검사 흐름 변경 없음. SystemHandler.Initialize 동작 의미 불변(순서 재배치만 허용).
+
 **Success Criteria (UAT)**:
+
   - 앱 기동 시 흰 화면 대신 즉시(≤1s) 시각 피드백(스플래시/로딩) 표시 — 사용자 체감 "멈춤" 제거.
   - 흰 화면 구간 분해 수치 확보(어디서 18~20초 소모되는지 로그로 입증).
   - 회귀 0: 기동 후 첫 로그인/첫 $TEST/MainView 정상, READY 마커 의미 유지.
 
 **Plans:** 1 plan
 Plans:
+
 - [x] 43.1-01-PLAN.md — App/MainWindow 흰 화면 구간 [STARTUP-WHITE] (a)~(e) 분해 계측 + WPF 네이티브 SplashScreen 즉시 표시(관리 UI 이전, ContentRendered fade close) + splash.png 자산 + 회귀 UAT (CO-43-01) — COMPLETE
 
 ### Phase 43.2: 기동 체감속도 단축 — 레시피 로딩 비동기화 (CO-43-01 후속) — 신설 2026-06-15
+
 **Goal**: Phase 43.1 계측에서 확인된 **레시피 로딩 ~14787ms** (지배 구간)를 `Show()` 이후 비동기로 이동하여 실제 기동 체감 시간을 단축한다.
 **Depends on**: Phase 43.1 (SIGNED_OFF — [STARTUP-WHITE] 계측, 지배 구간 = 레시피 로딩 확인)
 **Requirements**: CO-43-01 후속
 **Plans:** 3 plans (3 waves)
 Plans:
+
 - [ ] 43.2-01-PLAN.md — SystemHandler _isRecipeReady 필드 + IsRecipeReady 프로퍼티 + LoadRecipe (f)/(g) 마커 [Wave 1]
 - [ ] 43.2-02-PLAN.md — MainWindow Window_Loaded 동기 제거 + ContentRendered BeginInvoke(Background) 이동 + OnLoadRecipe Dispatcher 래핑 [Wave 2]
 - [ ] 43.2-03-PLAN.md — ProcessTest IsRecipeReady guard + UAT Before/After 수치 확인 + 회귀 0 [Wave 3]
@@ -333,12 +398,15 @@ Plans:
 **Canonical spec:** `.planning/refs/Vision-Protocol-v1.0.md` (사용자 제공 엑셀 v1.0, 2026-06-22)
 **Background:** 기존 'v2.7' placeholder → 사용자 제공 엑셀 v1.0 이 구체 규격. 정책상 "POC 이후"였으나 사용자 결정으로 지금 착수(2026-06-22). 사용자 4 신규 요구 중 #2(자재번호)=본 phase 핵심, #1(조명 멀티샷 z_index↔Shot)=일부. #3-2(교차-Z 측정)·#4(분단위 저장)는 Phase 49/50/신규로 분배.
 **Scope:**
+
   - **TEST 유연 파싱**: site / (예약·자재번호) / z_index. 매직 인덱스 의존 탈피 → 이름기반·가변길이·누락 시 기본값(자재번호 미수신 −1/0) 폴백. 향후 필드 추가/순서 변경 시 파서 한 곳만 수정.
   - **자재 IndexNumber 전파**: TestPacket → SequenceContext/ActionContext → CycleResultDto → Export(xlsx 열)/CaptureImageSaveService(파일명). "자재 몇번"이 데이터 저장에 기록.
   - **RESULT P/F/B 직렬화**: `$RESULT:site;P|F|B;count;id=val=OK|NG,…@` (헤더; 항목, 항목내부=). B=보류, Datum 샷 빈 응답 `;B;0;`.
   - **Site 재정합(2-PC)**: 현행 ResourceMap(Site1=Top/2=Side/3=Bottom) → 엑셀 2-PC 체계. Port 7701, `@` 종료, UTF-8.
   - **z_index ↔ Shot 매핑**: Index Table(Index→Light Type+Z+FAI 그룹) 기반. 0=Datum 샷.
+
 **Success Criteria (UAT):**
+
   - `$TEST:site,…,z_index@`(자재번호 포함) 유연 파싱 — 필드 누락/추가에도 폴백 동작
   - 자재 IndexNumber 가 결과 저장(파일명/xlsx)에 기록됨
   - `$RESULT` P/F/B 직렬화가 엑셀 예시와 byte 일치 (케이스 1~3)
@@ -346,6 +414,7 @@ Plans:
   - 기존 v2.6 경로 회귀 0 (또는 마이그레이션 가드)
 
 Plans:
+
 - [x] 48-01-PLAN.md — (W1) SystemSetting v1.0 플래그(UseProtocolV1/PcRole/ServerPortV1) + TEST 유연 파서 + TestPacket.IndexNumber
 - [x] 48-02-PLAN.md — (W2) Site 2-PC 재정합(ResourceMap PcRole 분기) + VisionServer Port 7701/UTF-8
 - [x] 48-03-PLAN.md — (W2) RESULT v1.0 직렬화 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@ 3단 구분자)
@@ -363,15 +432,20 @@ Plans:
 **Canonical spec:** `.planning/refs/Vision-Protocol-v1.0.md` §검사 시퀀스 / §판정(P/F/B 3-state) / §Index Table
 **Background:** Phase 39가 sequence-level OK/NG/검출실패 3분기를 v2.6 기준으로 통일했고, Phase 48이 v1.0 RESULT 직렬화와 `IsBuffer` 자리를 만들었다. 그러나 (a) z_index 멀티샷을 가로지르는 사이클 상태(중간=B, 마지막=P/F)를 추적하는 주체, (b) Datum(Index 0) 실패 즉시 F + 빈 응답 규격, (c) 사이클 단위 NG mark + 다음 자재 자동 리셋이 아직 없다. "NG 발견돼도 마지막 Index까지 측정 진행"(데이터 수집) 정책을 코드로 강제하는 엔진이 본 phase의 핵심.
 **Scope:**
+
   - **PROTO-03 P/F/B 3-state 엔진**: NG 발견 시 즉시 종료 금지 — 마지막 Index까지 진행 후 종합. 중간 Index 응답 `IsBuffer=true`(→B), 마지막 Index에서 사이클 누적 NG 유무로 P/F 산출. `MapCycleJudgement`(48-03) 소비.
   - **PROTO-04 Datum 빈 응답 + 즉시 F**: z_index=0(Datum 샷) → `RESULT:site;B;0;`(항목 없는 빈 응답). Datum 검출 실패 시 후속 Index skip + 즉시 F(Phase 39 검출 실패 분기와 정합).
   - **PROTO-05 CycleState / ECycleResult enum + 사이클 NG mark + 자동 리셋**: 멀티샷 사이클 상태(`CycleState`)와 결과(`ECycleResult`) enum 신설. InspectionSequence가 사이클 단위로 NG를 누적 mark하고, 마지막 Index 응답 송신 후 다음 자재를 위해 자동 리셋.
   - **z_index ↔ Index/마지막 판별**: Index Table(spec §Index Table) 기준 "마지막 Index" 판별. 마지막 Index에서만 P/F, 그 외 B.
   - **(흡수) CO-48-01**: Phase 48 review CR-01 — `TcpServer.EncodingType` static 필드 → instance 필드 (다중 인스턴스 전역 오염 시한폭탄 제거).
+
 **Out of scope** (Phase 50 / 신규):
+
   - 실 핸들러 통신 회귀 시험 (Phase 50 — PROTO-06)
   - 교차-Z 측정(Z1 보유→Z2 측정, 요구 3-2) — 별도 신규 영역
+
 **Success Criteria (UAT):**
+
   - 중간 Index 응답 = `B`(NG 포함 가능), 마지막 Index에서만 종합 `P`/`F` 1회
   - Datum 샷(z_index=0) → 빈 응답 `RESULT:site;B;0;` / Datum 실패 → 즉시 `F` + 후속 Index skip
   - 사이클 내 NG 누적 후 마지막 Index 종합 `F`, 다음 자재 시작 시 상태 자동 리셋(이전 NG 미잔류)
@@ -381,6 +455,7 @@ Plans:
 **Plans:** 3/3 plans complete
 
 Plans:
+
 - [x] 49-01-PLAN.md — (W1) ECycleResult enum + ShotConfig.ZIndex + InspectionSequence 사이클 상태 멤버/헬퍼 (D-02/D-03/D-07/D-08 토대)
 - [x] 49-02-PLAN.md — (W2) Index-scoped P/F/B 판정 엔진 (중간=B / 마지막=종합 P/F / Datum 빈응답·즉시F / 리셋, PROTO-03/04/05)
 - [x] 49-03-PLAN.md — (W1) CO-48-01 흡수 — TcpServer.EncodingType static→instance (D-09)
@@ -427,6 +502,7 @@ Plans:
 **가드(그 전까지):** 아래 A-01 5개 unsigned 타입에 **InvertSign off 유지** (켜면 영구 NG).
 
 발견:
+
 - [x] A-01 (HIGH 잠재) — ✅ 해결 quick-260626-dbd (d0eedc9): ComputeProjectionDistance signed화. 타입별 의도 점검(전부 signed 설계) 후 진행. 실측 UAT(항목별 부호 vs nominal·InvertSign 토글) 대기.
 - [ ] D-01 (LOW) — `ArcLineIntersectDistanceMeasurement.cs:248-273` MeasureAxis=X 교점 row평균/col단일 혼합 → 틸트 ~0.002mm 편향. 단일교점 양좌표로.
 - [ ] E-07 (LOW) — `InspectionSequence.cs:777-788` ClearDatumTransforms transient(원중심/RefAngle2) 미리셋 → 세션 중 datum 타입변경 시 stale → E2 오각도.
@@ -441,6 +517,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
+
 - [ ] 40.2-01-PLAN.md — DTO 파일명 필드 + FAIConfig transient 필드 + CaptureImageSaveService 비동기 워커 + SystemHandler 등록
 - [ ] 40.2-02-PLAN.md — OverlayCaptureRenderer 헤드리스 버퍼 캡쳐 + Action_FAIMeasurement FAI별 origin/capture enqueue + 파일명 write-back
 - [ ] 40.2-03-PLAN.md — CycleResultSerializer 파일명 복사 + ExcelExportService 하이퍼링크→파일명 텍스트 2컬럼 교체
@@ -454,10 +531,12 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
+
 - [x] 40.1-01-PLAN.md — 이미지 뷰어 overlay On/Off 토글 2개(#2) + Polygon ROI UI 숨김(#4)
 - [x] 40.1-02-PLAN.md — Shot 트리 기본 접기 / 펼치기(#3)
 
 ### Phase 999.1: Datum 2-image 지원 (side 검사) — ✅ ABSORBED to v1.1 Phase 27/34/36/37 (2026-05-28)
+
 - Side datum 2-image (4 DualImage / 8-image) 지원 v1.1 종결.
 
 ### Phase 41: CXP 카메라 MIL Lite 10.0 grab 드라이버 통합 (HW-01/HW-02)
@@ -468,6 +547,7 @@ Plans:
 **Plans:** 4 plans (4 waves) — planned 2026-06-02
 
 Plans:
+
 - [x] 41-01-PLAN.md — MIL .NET DLL csproj 참조 + ECameraType.MIL enum (foundation, HW-01) [Wave 1]
 - [x] 41-02-PLAN.md — MilCamera : VirtualCamera 신규 드라이버 (MIL 1회 할당 / MdigGrab→GenImage1 / SIMUL 폴백 / 역순 해제, HW-02) [Wave 2]
 - [x] 41-03-PLAN.md — DeviceHandler case MIL + RegisterRequiredDevices PC별 역할(CameraRole) 재구성 + SystemSetting INI (HW-02, D-03) [Wave 3]
@@ -483,6 +563,7 @@ Plans:
 **Background/근거:** `.planning/ALIGN-01-pattern-align-analysis.md` (§8 하이브리드, §9 Datum단위 매칭). 레벨링은 회전만 보정 → 자재 X,Y 변위 시 작은 측정 ROI 가 에지 이탈하여 오측.
 
 **확정 결정 (discuss lock 대상):**
+
 - **보정 = 하이브리드**: 패턴매칭 = **x,y 위치 전용** / **line-fit = 정밀 θ** (매칭 angle 은 거칠어 ~0.3~0.5° → 측정 부적합). tilt(θ)를 측정에 실반영(레벨링 대체).
 - **적용 = ROI 좌표변환**(`affine_trans_pixel`), 이미지 warp 아님 → 서브픽셀 무손실 + 저비용. 측정은 원본 이미지 픽셀.
 - **매칭 주기 = Datum 당 1회** (Top/Bottom=Datum1개=사실상 시퀀스당1회, Side=Datum4개=4회). **per-Datum 국소 강체** 가정(글로벌 아님).
@@ -496,10 +577,12 @@ Plans:
 - **신규 서비스 `PatternMatchService`** (create/read/write/find_*_model + `vector_angle_to_rigid`). 패턴 티칭 UI(Datum 노드 패턴 ROI 그리기 + 모델 생성/저장 + ref pose 기록).
 
 **Open (discuss 에서 결정):**
+
 - **매칭 엔진 = Shape vs NCC vs 선택형** ⚠ — Shape(edge-gradient)는 **회전/조명/클러터에 강하나 defocus(블러)에 취약**(에지 약화→score 급락). NCC(intensity pattern)는 **defocus 에 강하나 회전 취약**(angle range 필요·느림). 자재 포커싱 불량 우려(사용자 제기 2026-06-18) → defocus-robust 가 중요하면 NCC, tilt 가 크면 Shape. **권장 = per-Datum 엔진 선택자**(`AlgorithmType` 드롭다운 패턴 미러, Shape 기본 + NCC 옵션). 단 매칭은 coarse x,y 만 담당(정밀 θ는 line-fit)이라 NCC 의 회전 약점은 완화됨. 단, defocus 는 line-fit θ·측정 에지도 같이 훼손 → 엔진만으로 해결 불가(포커스 자체가 전제).
 
 **예상 구조:** 3~5 plan / 2~3 wave (레벨링 인프라 미러).
 **Success Criteria (UAT, SIMUL 우선 — 합성 변형 이미지 페어):**
+
 - off 회귀 0 (IsPatternAlignEnabled=false → 기존 측정 byte-identical)
 - 자재 X,Y 이동 케이스: 보정 추종(측정 정상) vs off(에지 이탈) 대조
 - tilt 케이스: x,y + line-fit θ 합성 보정 후 측정 정상
@@ -512,6 +595,7 @@ Plans:
 **Plans:** 5 plans (3 waves)
 
 Plans:
+
 - [ ] 54-01-PLAN.md — DatumConfig ALIGN 필드 + PatternEngine 드롭다운 + EnsurePerRoiDefaults 폴백 (D-01/D-09/D-11) [Wave 1]
 - [ ] 54-02-PLAN.md — DeviceHandler .shm/.ncm 상수 + RecipeFileHelper engine-aware 모델 경로 재계산 (D-07/D-07a/D-07b) [Wave 1]
 - [ ] 54-03-PLAN.md — PatternMatchService 신규 (shape+ncc create/write/read/find + reduce_domain + 다운샘플 coarse + rigid 산출) (D-01/D-06/D-06a) [Wave 1]
@@ -526,6 +610,7 @@ Plans:
 **Background:** Phase 56 sign-off 후 실측 UAT 피드백 6항목 (2026-06-19). 조사 = 본 세션 Explore 3건 (leveling 소비경로 / Side datum ROI 구조 / 패턴버튼·datum 색상).
 
 **스코프 6항목 (사용자 결정 반영):**
+
 1. **Pattern ROI1/ROI2 버튼 나란히 배치 + 2개 필수 안전장치** — 현재 `패턴 1`(필수)/`패턴 2`(선택) 구조. 1개만 그리고 모델 생성 시 "패턴 2개 필요" 경고. (MainView.xaml btn_drawPatternRoi/2:181-244, InvokeCreatePatternModel:2826)
 2. **Pattern ROI 표시/숨김 토글 옵션** — 현재 패턴 ROI 가시성 토글 부재(teach 피드백뿐). datum/측정 토글(SetDatumOverlayVisible) 패턴 미러로 추가.
 3. **Datum 색상 통일 = slate blue만** (사용자 결정) — 확대 시 slate blue(검출 origin)+magenta(Phase 56 기준선)+legacy yellow(Line1 검출선:908/Circle 중심십자:952) 중복. **magenta 기준선 + legacy yellow 제거**, slate blue origin 십자만 유지. (HalconDisplayService.cs)
@@ -536,6 +621,7 @@ Plans:
 **Plans:** 5 plans, 2 waves (전 plan 실행 완료 2026-06-19, UAT 대기)
 
 Plans:
+
 - [x] 57-01-PLAN.md — #6 leveling 완전 제거 (코드+상태+INI, MoveZ→DatumPhase 재배선, off 회귀 0) [Wave 1] ✅ 2026-06-19 (40ffe36, d10c884)
 - [x] 57-02-PLAN.md — #4 Side DualImage 단일 공유 transform align + #5 lenient 검증 (TryFindLine transform 이식, 게이트 해제) [Wave 2] ✅ 2026-06-19 (c079b4f, 4eeb71b)
 - [x] 57-03-PLAN.md — #3 datum 시각화 slate blue 통일 (magenta→slate blue recolor, 기준선 유지) [Wave 1] ✅ 2026-06-19 (e4464c3)
@@ -555,12 +641,14 @@ Wave 2 (병렬): 57-02 (deps 57-01), 57-05 (deps 57-03/57-04)
 **Background:** Phase 57 sign-off 전 UAT 피드백 4항목 (2026-06-22). 조사 = 본 세션 Explore 3건 + 직접 코드 확인 (PatternMatchService / FAIEdgeMeasurementService / MainView·MainResultViewerControl 렌더 게이트).
 
 **스코프 4항목 (사용자 결정 = Phase 57.1 묶음):**
+
 1. **Top/Bottom 패턴매칭 보정 적용 + 육안 확인** — Top/Side/Bottom 모두 동일 InspectionSequence→TryComposeAlign 경로(IsPatternAlignEnabled per-Datum, 기본 off). 보정 ROI cyan 박스가 실제로 보여 보정 여부를 육안 확인 가능해야 함(#3 시각화와 연계).
 2. **gen_rectangle2 length1/length2 장축·회전각 진단 (swap 아님)** — FAIEdgeMeasurementService.cs:51 analytic 회전(phi += rotAngle, length 유지)은 강체회전상 정상. 진단 = (a) baseline 회전각 thetaRad가 90° 어긋난 값 반환하는지, (b) HALCON 규약(length1=phi방향, length2=수직) 매핑이 티칭 드로잉 직관과 일치하는지 확증·문서화/시각화. ※ length swap 코드 수정은 회귀 위험 — 금지.
 3. **패턴 ROI 시각화 렌더 조건 안정화** — cyan 패턴 ROI는 `_resultDatumOverlays` 채워질 때만 렌더(MainResultViewerControl). Measurement/Shot/FAI 노드 렌더 경로에서만 채워지고 Datum 노드 단독 선택/티칭 모드에선 비어 안 보임 → Datum 노드 선택 시에도 채우기.
 4. **패턴 ROI 버튼 비-Datum 비활성화 + 알림 안전장치** — 패턴1/패턴2/패턴모델생성 버튼이 Datum 노드 외 이동 시 명시적 비활성화 안 됨. (a) 비-Datum 노드 선택 시 IsEnabled=false, (b) 클릭 핸들러에 "Datum 티칭 존을 먼저 선택하세요" 알림 메시지박스 가드.
 
 **Success Criteria (UAT):**
+
   - Top/Bottom Datum에 IsPatternAlignEnabled on 후 보정 ROI(cyan)가 결과 화면에 표시되어 보정 위치 육안 확인 가능
   - length1/length2 장축 매핑 + baseline 회전각이 90° 어긋남 없이 ROI가 부품 정렬과 일치 (진단 보고/시각화로 확증)
   - Datum/Measurement/Shot/FAI 어느 노드를 선택해도 패턴 ROI 표시 토글이 일관되게 동작
@@ -569,6 +657,7 @@ Wave 2 (병렬): 57-02 (deps 57-01), 57-05 (deps 57-03/57-04)
 **Plans:** 3 plans (2 waves)
 
 Plans:
+
 - [x] 57.1-01-PLAN.md — D-03/D-01: 패턴 ROI(cyan) 시각화 렌더 안정화 (Datum 노드 선택 시 _resultDatumOverlays 채움) ✅ 2026-06-22 (49a48ec)
 - [x] 57.1-02-PLAN.md — D-02: 회전각 확증 Trace 로그 + length 장축 매핑 주석 (측정값 무변경, swap 금지) ✅ 2026-06-22 (00ec5ad)
 - [x] 57.1-03-PLAN.md — D-04: 패턴 버튼 비-Datum 비활성화 확증 + 클릭 가드 메시지 통일 ✅ 2026-06-22 (72896d5)
@@ -588,29 +677,33 @@ Plans:
 
 *Last updated: 2026-06-15 — Phase 43(시작지연 분리, CO-38-02/CO-38-03) signed_off (1 plan, UAT PASS — [STARTUP] READY 55% 단축, avg 578ms vs Before ≈1285ms). LoginManager 백그라운드 프리로드 + EnsureLoaded race 차단. CO-43-01(흰 화면) carry-over.*
 
-
 ## v1.3 Phases (Align 비전 — 이더넷 카메라, Phase 58~62)
 
 > 기존 Grabber 검사와 **완전 독립**. 같은 DataMeasurement 실행파일 내 TabControl 로 공존. v1.2 열어둔 채 병행. 참조: D:\Backup\파이널비전\WPF_Example_260604 (TabControl 구조 — 신규 설계 말고 기존 패턴 확장). **코드 작성 전 phase 별 설계 제안 → 동의 후 구현.**
 
 ### Phase 58: Config & Camera (A) (신설 2026-06-23)
+
 **Goal**: EthernetVisionConfig(INI [ETHERNET_VISION], None/Tray/Bottom 모드) + 독립 이더넷 카메라(Hikvision MvCamCtrl.Net) 연결/grab/live 를 추가하되, 실패해도 기존 Grabber 검사에 무영향이다.
 **Requirements**: AV-01, AV-02
 **Success Criteria**:
+
 1. EthernetVisionMode/IP/노출/픽셀분해능 INI 저장·로드, 미존재 키 기본값(8.652) 보장
 2. 이더넷 카메라 grab/live/stop 동작 (SIMUL=D:\align_test.bmp 폴백)
 3. 이더넷 카메라 초기화 실패해도 Grabber(Top/Bottom/Side) 검사 정상
 4. 기존 Sequence/Action/SystemHandler 무수정
 
 **Plans**: 3 plans (3 waves)
+
 - [x] 58-01-PLAN.md — [ETHERNET_VISION] config + EEthernetVisionMode enum + 8.652 default restore (AV-01)
 - [x] 58-02-PLAN.md — EthernetAlignCamera wrapper (HikCamera composition; connect/grab/live/stop; fallback to align_test.bmp) (AV-02)
 - [x] 58-03-PLAN.md — EthernetVisionHandler singleton + single try-catch SystemHandler init + build + anti-goal verify (AV-01/02)
 
 ### Phase 59: Vision Algorithm (B) (신설 2026-06-23)
+
 **Goal**: Shape Matching(create/find/read/write_shape_model) 으로 ROI 티칭→.shm 저장, Tray=X/Y · Bottom=X/Y/Theta Offset 산출.
 **Requirements**: AV-03, AV-04
 **Success Criteria**:
+
 1. ROI 지정 후 티칭 → .shm 저장/로드
 2. find_shape_model 로 Row/Col/Angle/Score 산출 (Halcon try-catch)
 3. Tray 모드 X/Y Offset, Bottom 모드 X/Y/Theta 산출
@@ -618,36 +711,44 @@ Plans:
 
 **Plans**: 3 plans (3 waves) — planned 2026-06-24
 Plans:
+
 - [ ] 59-01-PLAN.md — AlignResult + AlignRefPose POCO 모델 + csproj 등록 (D-04/D-05) [Wave 1]
 - [ ] 59-02-PLAN.md — AlignShapeMatchService (PatternMatchService composition: TryTeach .shm+ref json / Run find→offset px→mm, Tray X/Y · Bottom X/Y/Theta) (D-01~D-07) [Wave 2]
 - [ ] 59-03-PLAN.md — EthernetVisionHandler.Matcher 배선 + msbuild Debug/x64 build + anti-goal git proof (D-02) [Wave 3]
 
 ### Phase 60: Calibration — Bottom (C) (신설 2026-06-23)
+
 **Goal**: 피커 센터 캘(36스텝 10° 편심원 최소자승) — 서비스 계층(UI 없음). AV-06(각도 캘) 폐기 = Phase 59 2-패턴 angle_lx 로 대체.
 **Requirements**: AV-05 (AV-06 dropped — superseded by Phase 59 2-pattern angle_lx)
 **Plans**: 3 plans
 **Success Criteria**:
+
 1. 36스텝 회전 자재 중심 궤적 → 편심원 중심(피커 센터) 최소자승 계산
 2. (폐기) ~~각도 보정계수 산출·저장~~ — AV-06 dropped
 3. Bottom 정렬 보정에 피커센터 반영 (미캘 시 Phase 59 동작 폴백)
 
 Plans:
+
 - [x] 60-01-PLAN.md — SystemSetting PickerCenterRow/Col INI 속성 + AfterLoad 기본값 (D-04) [Wave 1]
 - [x] 60-02-PLAN.md — AlignShapeMatchService.TryFindCenter(2-패턴 절대중점) + 피커센터 기준 강체보정 (D-02/D-05) [Wave 2]
 - [x] 60-03-PLAN.md — PickerCenterCalibrationService(atukey 원피팅 누적) + Handler.PickerCal 배선 + msbuild + anti-goal git proof (D-01/D-03) [Wave 3]
 
 ### Phase 61: UI — TabControl (D) (신설 2026-06-23)
+
 **Goal**: MainWindow TabControl([검사]/[Tray]/[Bottom]) 통합, 기존 MainView=[검사] 탭 이동, 모드별 탭 Visibility.
 **Requirements**: AV-07, AV-08
 **Success Criteria**:
+
 1. TabControl 3탭, 기존 MainView 가 [검사] 탭에서 정상 동작 (회귀 0)
 2. EthernetVisionMode 에 따라 Tray/Bottom 탭 표시/숨김
 3. Tray/BottomVisionView 툴바(Grab/Live/Stop)+티칭+결과(+Bottom 캘) 패널, HalconViewer 공용
 4. 상태 표시(대기/LIVE/검사중/미연결)
+
 **참조**: D:\Backup\파이널비전\WPF_Example_260604 탭 구조.
 
 **Plans:** 3 plans (2 waves) — planned 2026-06-24
 Plans:
+
 - [ ] 61-01-PLAN.md — TrayVisionView (툴바 Grab/Live/Stop + 2-ROI Teach→Matcher.TryTeach + Run→AlignResult X/Y + 상태, 공유 뷰어 AttachSharedViewer 계약, airspace-safe) (AV-08) [Wave 1]
 - [ ] 61-02-PLAN.md — BottomVisionView (Tray facade + Theta 표시 + 피커센터 캘 패널 PickerCal.Reset/TryAddStep/TryComputePickerCenter) (AV-08) [Wave 1]
 - [ ] 61-03-PLAN.md — MainWindow 3-탭 TabControl 래퍼(MainView x:Name 보존 재부모화) + 모드 Visibility 게이트 + 단일 공유 MainResultViewerControl attach + csproj 등록 + msbuild Debug/x64 + 안티골 git 증명 (AV-07/08) [Wave 2]
@@ -656,35 +757,43 @@ Wave 1 (병렬): 61-01, 61-02 (파일 비충돌)
 Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 
 ### Phase 61.1: Align Offline 이미지 로더 + 결과 시각화 (신설 2026-06-25 — Phase 61 UAT 갭 보완)
+
 **Goal**: Phase 61 1차 실측(2026-06-25)에서 발견된 갭 보완 — (1) Offline 다중 이미지 로더, (2) Align 매칭 결과 시각화(검출 위치·보정 ROI·에지 + View on/off 토글). 신규 검사 로직 0 — UI/표시 + 서비스 결과 반환 확장만.
 **Requirements**: AV-08 (Phase 61 보완)
 **Success Criteria**:
+
 1. Tray/Bottom 뷰 툴바에 [폴더 열기] + [◀ 이전][다음 ▶] — 폴더 내 이미지 연속 로드/전환, 로드한 이미지를 티칭/Run/캘 입력으로 사용 (기존 Grab/폴백 동작 유지, 회귀 0)
 2. 매칭 결과 시각화: 검출 위치 + 보정(offset/theta) 이동 ROI + 검출 에지, View on/off 체크박스로 토글 (MainResultViewerControl 기존 오버레이 API 재사용)
 3. AlignShapeMatchService 검출 좌표·에지 반환 확장 (anti-goal 일부 해제, 기존 Run/AlignResult 계약 하위호환)
 4. msbuild Debug/x64 PASS, MainView/Grabber/검사 경로 회귀 0
+
 **Background**: Phase 61 UAT(2026-06-25) 갭 G-61.1-01(Grab 이미지 한 장 고정 → 다양한 케이스 검증 불가)/G-61.1-02(결과 이미지 미시각화). 피커캘 실측 36스텝은 실 HW 필요한 별개 항목.
 **참조 (재사용)**: MainResultViewerControl `SetMeasurementOverlayVisible/SetDatumOverlayVisible/SetPatternRoiOverlayVisible`(토글), `SetResultRoiOverlays`(보정 ROI 박스), `SetInspectionOverlays/UpdateDisplayState`(에지). align 뷰는 같은 공유 뷰어.
 
 **Plans:** 4/4 plans complete
+
 - [x] 61.1-01-PLAN.md — AlignShapeMatchService + AlignResult 검출 좌표·보정 ROI·에지 contour 반환 확장 (하위호환)
 - [x] 61.1-02-PLAN.md — Tray/Bottom 오프라인 이미지 로더 (폴더 열기 + 이전/다음, Grab/폴백 유지)
 - [x] 61.1-03-PLAN.md — 시각화 배선 (Run→검출 십자/보정 ROI/에지 오버레이 + ROI/에지 표시 체크박스)
 - [x] 61.1-04-PLAN.md — msbuild Debug/x64 빌드 게이트 + anti-goal git diff 증명 + Success Criteria 추적
 
 ### Phase 62: TCP (E) (신설 2026-06-23)
+
 **Goal**: Align 결과를 기존 VisionServer/TcpServer 로 전송 ($RESULT site=TRAY/BOTTOM).
 **Requirements**: AV-09
 **Success Criteria**:
+
 1. Tray: `$RESULT:TRAY;P;2;OffsetX=..=OK,OffsetY=..=OK@`
 2. Bottom: `$RESULT:BOTTOM;P;3;OffsetX,OffsetY,Theta@`
 3. 기존 TCP 프레임워크 재사용 (Grabber 통신 무영향)
 
 ### Phase 63: TCP 프로토콜 Type 필드 반영 및 Align TCP 통합 (신설 2026-06-24)
+
 **Goal**: 디팜스테크 Vision Protocol v3.0(엑셀 스펙 `D:\디팜스테크_Vision_Protocol_v3_3.xlsx`)을 코드에 반영한다. Grabber $TEST/$RESULT 에 Type 필드(site=PC독립번호 / Type=검사대상)를 추가하고, Align 전용 커맨드($ALIGN_TEST/$ALIGN_CALIB/$ALIGN_RESULT)를 기존 파싱 프레임워크에 통합한다. 둘은 같은 TCP 경계 파일을 건드리므로 한 phase 로 묶는다.
 **Requirements**: PROTO-Type, AV-09(연계)
 **Depends on:** Phase 48/49 (제어 프로토콜 v1.0 — UseProtocolV1/판정엔진), Phase 62 (TCP E — Align 결과 송신; Type 모델로 포맷 정합 시 본 phase 가 상위)
 **Success Criteria**:
+
 1. 수신 `$TEST:site,Type,자재번호,null,z_index@` 정확 파싱 (Type=[1], 자재번호 [1]→[2], z_index [3]→[4])
 2. 송신 `$RESULT:site;Type;P|F|B;count;id=val=judge,...@` (Type echo)
 3. `$ALIGN_TEST/$ALIGN_CALIB` 수신 파싱 + `$ALIGN_RESULT/$ALIGN_CALIB` 응답 빌더 (switch 추가만, 기존 분기 무손상)
@@ -692,6 +801,7 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 5. Debug/x64 msbuild PASS
 
 **만질 파일 (TCP 경계 국한):**
+
 - WPF_Example/TcpServer/VisionRequestPacket.cs (파서 인덱스 + Type 필드 + ALIGN 패킷)
 - WPF_Example/TcpServer/VisionResponsePacket.cs (BuildResultMessageV1 에 Type + Align 빌더)
 - WPF_Example/Custom/TcpServer/ResourceMap.cs (ResolveSiteSlot → Type 기반 매핑, PcRole 단순화)
@@ -699,6 +809,7 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 - WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs (TestResultPacket.Type echo 전파 3곳)
 
 **Plans:** 5 plans (3 waves) — planned 2026-06-24
+
 - [ ] 63-01-PLAN.md — 수신측: VisionRequestPacket Type 필드(V1 한정 인덱스 시프트) + ALIGN 요청 패킷
 - [ ] 63-02-PLAN.md — 송신측: VisionResponsePacket TestResultPacket.Type echo + ALIGN 응답 빌더
 - [ ] 63-03-PLAN.md — ResourceMap Type 토큰→ESite 슬롯 라우팅(Site 폴백 보존)
@@ -708,10 +819,12 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 **Background**: 본 세션(2026-06-24) 분석. 엑셀 스펙 v3_3 완성(Type 모델 + 검사/Align 다이어그램 셀 재작성). Phase 59/60(Custom/EthernetVision/)과 파일 무겹침 → 병렬 가능. bin/ gitignore 라 worktree 빌드 시 SDK/HALCON DLL 복사 필요(Phase 48 worktree 불가 전례). 코딩 규칙=헝가리언+if/else(삼항/??금지)+조건 bool 변수화+함수 30~40줄 (Phase 48/49 확정).
 
 ### Phase 64: 조명 채널 확장 + z_index 기반 내부 조명 제어 (신설 2026-06-25)
+
 **Goal**: 기존 LightHandler를 8채널×2 컨트롤러 구조로 확장하고, `$PREP:site,z_index@` 신규 TCP 커맨드를 추가하여 핸들러가 검사 트리거 전 z_index를 미리 전달 → 비전 내부에서 ShotConfig 기반으로 조명을 자동 세팅하는 흐름을 구현한다.
 **Requirements**: LIGHT-01
 **Depends on:** Phase 48/49 (UseProtocolV1 플래그), Phase 63 (TCP 파서 구조)
 **Success Criteria**:
+
 1. `$PREP:1,2@` 수신 → z_index=2 ShotConfig 조회 → ApplyShotLights() 실행 → `$PREP_ACK:1,2,OK@` 응답
 2. z_index에 해당 Shot 없음 → `$PREP_ACK:1,2,FAIL@`
 3. RingLight_* → RING 그룹, BackLight_* → BACK 그룹, CoaxLight_* → ALIGN_COAX 그룹, SideLight_* → BAR 그룹 연결 정상 동작
@@ -719,6 +832,7 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 5. Debug/x64 msbuild PASS
 
 **만질 파일:**
+
 - WPF_Example/Device/LightController/LightHandler.cs (CHANNEL_LIMIT 4→8)
 - WPF_Example/Custom/Device/LightHandler.cs (Controller A 7채널 + Controller B 6채널 + LightGroup 5종 재등록)
 - WPF_Example/TcpServer/VisionRequestPacket.cs (PrepPacket 파서 추가)
@@ -731,41 +845,50 @@ Wave 2: 61-03 (deps 61-01/61-02 — TabControl + 공유 뷰어 통합 + 빌드)
 **Plans:** 4 plans
 
 Plans:
+
 - [x] 064-01-PLAN.md — LightHandler 8CH x2 컨트롤러 + LightGroup 5종 재등록 ✅ 2026-06-25 (cb81837)
 - [x] 064-02-PLAN.md — PrepPacket 파서 + PrepAckPacket 빌더 (TCP 레이어) ✅ 2026-06-25 (9511fd9)
 - [x] 064-03-PLAN.md — SystemHandler ProcessPrep() 분기 + InspectionSequence 라우팅 ✅ 2026-06-25 (a37b45b)
 - [x] 064-04-PLAN.md — InspectionSequence ApplyShotLights() 구현 (ShotConfig LightGroup 연결) ✅ 2026-06-25 (890339e)
 
 ### Phase 65: Bottom 6-슬롯 면별 Align (3D/2D × 면) (신설 2026-06-25 · 스코프 개정 2026-06-26 discuss: 4→6)
+
 **Goal**: Bottom 비전이 안착지그 **6종**에 자재를 ideal 안착시키기 위한 면별 align. 6슬롯 = 3D 그룹 2개(`3D_Top`,`3D_Bottom`) + 2D 그룹 4개(`2D_TOP`,`2D_BOTTOM`,`2D_SIDE_1`,`2D_SIDE_2`). 각 지그마다 **독립 모델+레퍼런스 티칭(6세트)** = Bottom 비전 6번 티칭. 비전 변경 본질 = 슬롯 4→6 확장(새 알고리즘 없음). 상세 = 65-CONTEXT.md.
 **Requirements**: AV-08(연계), Phase 64 TCP 연계
 **Success Criteria**:
+
 1. AlignShapeMatchService Bottom 에 **6슬롯** 모델+레퍼런스(`Bottom_{slot}_1/2.shm` + `.json`, slot=3D_Top/3D_Bottom/2D_TOP/2D_BOTTOM/2D_SIDE_1/2D_SIDE_2), TryTeach/Run/HasTemplate 에 slot 파라미터. Tray + 기존 Bottom 단일 경로 하위호환(회귀 0)
 2. BottomVisionView UI: 6슬롯 선택 + **면별 이미지 따로 로드** + 각 슬롯 티칭/Run, 슬롯별 HasTemplate 표시
 3. TCP `$ALIGN_TEST` AlignFace **0~5(6값) — 이미 코드+엑셀 반영. 권위 매핑: 0=G1_TOP=3D_Top / 1=G1_BOT=3D_Bottom / 2=G2_TOP=2D_TOP / 3=G2_BOT=2D_BOTTOM / 4=G2_SIDE1=2D_SIDE_1 / 5=G2_SIDE2=2D_SIDE_2**. echo+$ALIGN_RESULT pose 포맷 done. 이 phase = SystemHandler 슬롯별 Run 라우팅(64가 미룬 "면별 라우팅") + 보정 pose(x/y/θ=Offset/Theta)+pass/fail 채움
 4. msbuild Debug/x64 PASS, 검사(MainView)/Tray 회귀 0
+
 **설계 확정(사용자 합의 2026-06-25 · 개정 06-26 4→6)**: 모델 **6개 독립**(자세/형상 차이 커 angle_extent 한계 → 각 슬롯 독립 티칭). 레퍼런스 = 각 지그에 ideal 안착 후 Bottom 캡처. 통신 6값(0~5). Tray=항상 Top면(면 구분 없음).
 
 **Plans:** 4/4 plans complete
 
 Plans:
+
 - [x] 65-01-PLAN.md — EBottomAlignSlot enum(6값) + AlignShapeMatchService 6슬롯화(slot 파라미터, 폴백 보존) [Wave 1]
 - [x] 65-02-PLAN.md — BottomVisionView 6슬롯 UI(ComboBox + 슬롯별 면 이미지/티칭/Run/HasTemplate) [Wave 2]
 - [x] 65-03-PLAN.md — SystemHandler ProcessAlignTest grab + 슬롯 Matcher.Run + pose 채움(stub 교체) [Wave 2]
 - [x] 65-04-PLAN.md — 통합 빌드 확정 + 실HW 6슬롯 티칭/Run/PLC UAT(작업자) [Wave 3]
 
 ### Phase 66: 조명 정합 — 검사 Ring7/Coax + Align 동축 (신설 2026-06-26)
+
 **Goal**: 검사(inspection) shot 조명 세트를 HW 사양(Ring/Backlight/Bar/Ring7, shot별 자유 조합)과 정합시키고, 얼라인 카메라 전용 동축(Coax)은 검사에서 숨겨 Align 창(Bottom/Tray)으로 이동한다. 채널 재배선 없이 ShotConfig/UI/매핑 정리 수준. 상세 = 66-CONTEXT.md (discuss 후).
 **Requirements**: LIGHT-01(정합/연계), AV-08(Align 동축 연계)
 **Depends on:** Phase 64 (LightHandler 5그룹 + ShotConfig→LightGroup 매핑), Phase 65 (Bottom 6슬롯 Align 창)
 **Success Criteria**:
+
 1. 검사 Shot>Light = Ring/Back/Bar/Ring7 자유 조합. ShotConfig 에 Ring7Light_Enabled/Brightness 추가 + 매핑 Ring7→RING7. 기존 Ring/Back/Side(BAR) 회귀 0
 2. CoaxLight_* 검사 ShotConfig 숨김([Browsable(false)], INI 키 보존=하위호환) — 검사 PropertyGrid 미노출
 3. Bottom/Tray Align 창에 동축(LIGHT_ALIGN_COAX) ON/OFF + 밝기(0~255). Bottom 은 6슬롯별 동축 밝기 저장 + Teach/Run/Grab 직전 자동 적용(비전 PC 소유, 별도 PC 1채널)
 4. 컨트롤러 채널 재배선 없음(현 6+6+동축1 유지). msbuild Debug/x64 PASS, 검사/Tray/Align 회귀 0
+
 **Background**: 2026-06-26 사용자 발의 + AOI POC v1.5 HW 도면 확인. 검사 조명=shot별 자유 조합(고정 없음). 동축=얼라인 카메라 전용(별도 PC 1채널). 현 ShotConfig=Ring/Back/Coax/Side 라 Ring7 누락 + Coax 오노출 → 정합 필요. 관련 메모리=project_aoi_poc_lighting_config.
 
 **Plans:** 3/3 plans complete
+
 - [x] 66-01-PLAN.md — 검사 ShotConfig Ring7 추가 + CoaxLight 숨김 + ApplyShotLights Ring7→RING7 매핑 (LIGHT-01, Wave 1)
 - [x] 66-02-PLAN.md — Align 동축 백엔드: AlignRefPose Coax 필드 + GetSlotRefPose/TrySaveCoax 공개 API + RunBottomAlign grab 직전 자동적용 (AV-08, Wave 1)
 - [x] 66-03-PLAN.md — Align 동축 UI: Bottom/Tray 동축 ON/OFF+밝기 컨트롤 + 슬롯/Tray 복원·저장 + Teach/Run/Grab 자동적용 (AV-08, Wave 2, depends 66-02)
@@ -775,21 +898,26 @@ Plans:
 ## v1.4 Phases (양산 이력 통계 분석)
 
 ### Phase 67: 양산 이력 통계 분석 (STAT-01) (신설 2026-07-07)
+
 **Goal**: 실제 양산 검사(`$TEST`/수동) 완료 결과를 일자별 CSV 로 지속 누적하고, 통계 화면에서 기간·레시피로 조회하여 측정 항목별 통계(N/Mean/StdDev/Range/Cpk/OK/NG/검출실패/불량률) 테이블 + 분포 히스토그램(공차선) + 시간별 측정값 추이 차트를 확인한다.
 **Requirements**: STAT-01 (신규)
 **Depends on**: Phase 40 (CycleResultDto/CycleResultSerializer), Phase 41.1 (RepeatMeasurementStats — Cpk 로직 재사용)
 **Background**: 현재 양산 검사 결과는 매 사이클 cycle.json 폴더로만 저장되어 기간별 통계 조회에 부적합(수천 폴더 스캔). SPC/공정능력 추이를 보려면 조회 최적화된 누적 이력 스토어가 필요. 신규 DB 도입 대신 기존 파일 패턴 재사용(일자별 CSV append).
 **Scope (설계 확정 2026-07-07)**:
+
   - **수집**: `CycleResultSerializer.SaveAsync` 내부(비동기 스레드)에서 `StatisticsPath\yyyyMMdd.csv` 에 측정 항목당 1행 append. v2.6/v1.0/수동 모든 경로 자동 커버. 예외 격리(검사/TCP 무영향). 동시 쓰기 lock.
   - **통계**: CSV 를 기간 범위로 읽어 기존 `RepeatMeasurementStats` Cpk/Mean/StdDev/Range 로직 재사용 집계(DRY).
   - **UI**: 신규 통계 Window/View — 기간(from~to) + 레시피 필터 + [조회] + DataGrid(통계 테이블) + 히스토그램(분포+공차선) + 시간별 추이(측정값 트렌드). 차트=ChartDirector.Net(기존 의존성) 활용.
+
 **Success Criteria**:
+
   1. 양산 `$TEST` 검사 완료 시 일자별 CSV 에 측정 항목당 1행 자동 누적(모든 경로). 검사/TCP 응답 회귀 0
   2. 통계 화면에서 기간·레시피 선택 → 측정 항목별 N/Mean/StdDev/Range/Cpk/OK/NG/검출실패/불량률 테이블 표시
   3. 선택 항목 히스토그램(공차 상·하한선 표시) + 시간별 측정값 추이 차트 표시
   4. msbuild Debug/x64 PASS, 기존 검사/Align 회귀 0. 헝가리언+if/else+삼항 금지 컨벤션 준수
 
 **Plans:** 3 plans / 3 waves (plan_complete 2026-07-07)
+
 - [x] 67-01-PLAN.md — 데이터 수집: StatisticsSavePath 설정 + MeasurementHistoryCsvWriter(측정항목당 1행 append, RFC4180, static lock) + SaveAsync 훅 (D-01~D-05) ✅ 2026-07-07 (f16e390)
 - [x] 67-02-PLAN.md — 조회/집계: MeasurementHistoryCsvLoader(기간 CSV 파싱 + RepeatMeasurementStats 재사용 + 순서유지 Series + distinct 레시피) (D-06/D-07/D-11/D-13) ✅ 2026-07-07 (495951c)
 - [x] 67-03-PLAN.md — UI: StatisticsWindow(기간/레시피 필터 + DataGrid + ChartDirector 히스토그램/추이) + EPageType.Statistics 메뉴 (D-08~D-14) ✅ 2026-07-07 (31f5135)
@@ -802,10 +930,24 @@ Plans:
 **Plans:** 5 plans (5 waves)
 
 Plans:
+**Wave 1**
+
 - [ ] 68-01-PLAN.md — ZIndexA/ZIndexB 필드(측정+Datum) + Load sentinel 하위호환 + SkipReason.ZINDEX_MISCONFIGURED (D-04/D-05/D-07) [Wave 1]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 68-02-PLAN.md — z_index 실행 스코프: RebuildInspectionActions ZIndex 정렬 + measurement/datum-aware 필터 + ProcessTest StartSubset 배선 (D-01/D-01a/D-01b) [Wave 2]
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 68-03-PLAN.md — 크로스-Z 이미지 저장소 + FAI 캡처/주입 + D-08 라이브 fix + 오설정 NG 게이트 (D-02/D-02a/D-03/D-05/D-08) [Wave 3]
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 68-04-PLAN.md — Datum 레벨 크로스-Z 라이브 캡처 + Datum 오설정 게이트 (D-06) [Wave 4]
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 68-05-PLAN.md — 통합 SIMUL UAT 6 시나리오 + 하위호환 sign-off [Wave 5]
 
 ---

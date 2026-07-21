@@ -4,6 +4,7 @@ using PropertyTools.DataAnnotations;
 using ReringProject.Device;
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Halcon.Models;
+using ReringProject.Utility;
 
 namespace ReringProject.Sequence
 {
@@ -35,6 +36,18 @@ namespace ReringProject.Sequence
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
         public string TeachingImagePath_Horizontal { get; set; } = "";
+
+        // 크로스-Z 듀얼이미지(PROTO-Z-CROSS) — PointROI/LineROI 를 서로 다른 z_index 라이브 캡처에서 얻을 때 사용.
+        //  -1(기본) = 미설정 → 기존 정적 TeachingImagePath 경로 그대로 사용(회귀 0). 0 이상 = 해당 z_index 캡처 이미지 사용.
+        [Category("Image|DualImage")]
+        [System.ComponentModel.Description("PointROI(에지 A) 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
+        [DisplayName("Point z_index (ZIndexA)")]
+        public int ZIndexA { get; set; } = -1;
+
+        [Category("Image|DualImage")]
+        [System.ComponentModel.Description("LineROI(에지 B) 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
+        [DisplayName("Line z_index (ZIndexB)")]
+        public int ZIndexB { get; set; } = -1;
 
         // PointROI (점 형태, 1차 이미지 = ShotParam.SimulImagePath)
         [Category("PointROI|ROI")]
@@ -128,6 +141,24 @@ namespace ReringProject.Sequence
         public HImage RuntimeImageB { get; set; }
 
         public DualImageEdgeDistanceMeasurement(object owner) : base(owner) { }
+
+        // 하위호환(D-07): ParamBase.Load 는 INI 누락 Int32 키를 0 으로 덮어쓴다(MeasCorrectionFactor 와 동일 함정).
+        //  구 레시피엔 ZIndexA/ZIndexB 키가 없어 0 으로 로드되면 "z_index=0 명시"로 오인되어 크로스-Z 실행 스코프/캡처가
+        //  오작동한다(T-68-03). 키 부재 시에만 -1(미설정) 복원한다 — base.Load 가 MeasCorrectionFactor 복원까지 위임 처리.
+        public override bool Load(IniFile loadFile, string groupName)
+        {
+            bool result = base.Load(loadFile, groupName);
+            IniSection sec;
+            if (!loadFile.TryGetSection(groupName, out sec) || sec == null)
+            {
+                ZIndexA = -1;
+                ZIndexB = -1;
+                return result;
+            }
+            if (!sec.ContainsKey("ZIndexA")) ZIndexA = -1;
+            if (!sec.ContainsKey("ZIndexB")) ZIndexB = -1;
+            return result;
+        }
 
         public override bool TryExecute(
             HImage image,                                       // 무시 — RuntimeImageA/B 사용

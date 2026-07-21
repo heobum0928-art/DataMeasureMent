@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Phase 68 context gathered
-last_updated: "2026-07-21T23:00:36.488Z"
-last_activity: 2026-07-21 -- Phase 68 planning complete
+stopped_at: Completed 68-01-PLAN.md
+last_updated: "2026-07-21T23:26:06.904Z"
+last_activity: 2026-07-21
 progress:
   total_phases: 23
   completed_phases: 19
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 67 — stat-01-2026-07-07
+**Current focus:** Phase 68 — z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind
 
 ## Current Position
 
-Phase: 67 (stat-01-2026-07-07) — EXECUTING
-Plan: 3 of 3
-Last activity: 2026-07-21 -- Phase 68 planning complete
+Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
+Plan: 2 of 5
+Last activity: 2026-07-21
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -215,6 +215,7 @@ Last activity: 2026-07-21 -- Phase 68 planning complete
 | Phase 67-stat-01-2026-07-07 P01 | 15min | 4 tasks | 4 files |
 | Phase 67-stat-01-2026-07-07 P02 | 14min | 2 tasks | 2 files |
 | Phase 67-stat-01-2026-07-07 P03 | 25min | 3 tasks | 6 files |
+| Phase 68 P01 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -442,6 +443,9 @@ Recent decisions affecting current work:
 - quick-260713-ej3: DebugManualZTrigger wrapper + MainView 임시 수동 Z축 트리거 UI 추가 — IAxisController 구현 전까지 POC 브리지
 - quick-260713-nse: CopyTo 는 조명 20+8필드 + PixelResolution/CorrectionFactor 만 복사 (ZPosition/DelayMs/ZIndex/OwnerSequenceName/SimulImagePath 는 스코프 외 — 불필요한 동작 변화 방지)
 - quick-260713-nse: Task 4 마이그레이션 검증은 콘솔 하네스 대신 정밀 코드 추적으로 수행 (SystemHandler 싱글턴 부작용 회피, ShotConfig.Load/ParamBase.Load/IniSection.ContainsKey 경로 추적으로 대체)
+- [Phase 68]: ZIndexA/ZIndexB fields live on the measurement/Datum class itself, not on Shot — One measurement/Datum references two z_index positions per CONTEXT decision, not a two-Shot split
+- [Phase 68]: Sentinel -1 (not 0) for unset ZIndexA/ZIndexB — ParamBase.Load's Int32 reflection path overwrites missing INI keys with 0, indistinguishable from a legitimate z_index=0
+- [Phase 68]: New Load() override added to DatumConfig for ZIndexA/ZIndexB sentinel restore — EnsurePerRoiDefaults only runs at find-time and cannot distinguish 0-from-missing-key from user-set 0
 
 ### Quick Tasks Completed
 
@@ -593,9 +597,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-21T12:39:00.729Z
-Stopped at: Phase 68 context gathered
-Resume file: .planning/phases/68-z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind/68-CONTEXT.md
+Last session: 2026-07-21T23:26:06.893Z
+Stopped at: Completed 68-01-PLAN.md
+Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 
 **v1.1 Phase Map:**

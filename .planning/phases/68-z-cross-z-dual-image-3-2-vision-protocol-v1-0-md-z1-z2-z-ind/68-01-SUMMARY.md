@@ -91,6 +91,18 @@ None. `DualImageEdgeDistanceMeasurement.cs` required an additional `using Rering
 - Wave 3/4 (Plan 03/04, cross-Z capture) have `SkipReason.ZINDEX_MISCONFIGURED` available as the NG-reason constant for explicit misconfiguration detection (ZIndexA==ZIndexB, non-existent z_index) — actual validation logic is out of scope for this plan (D-05, deferred to Plan 03/04 per plan objective).
 - Backward-compat regression (D-07) is not yet verified against a real old recipe — deferred to Plan 05 SIMUL UAT (SHOT_E5 / `D:\Data\Recipe\FAI_1\main.ini` load), per this plan's `<verification>` section. No blocker for Plan 02.
 
+## Self-Check: PASSED
+
+- FOUND: WPF_Example/Custom/Sequence/Inspection/Measurements/DualImageEdgeDistanceMeasurement.cs
+- FOUND: WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
+- FOUND: WPF_Example/Custom/Sequence/Inspection/SkipReason.cs
+- FOUND: .planning/phases/68-z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind/68-01-SUMMARY.md
+- FOUND commit f3f3a49 (Task 1)
+- FOUND commit 13d2347 (Task 2)
+- FOUND commit 956ea4a (Task 3)
+- FOUND commit c0db6a6 (SUMMARY.md)
+- Content verified: ZIndexA present in both DualImageEdgeDistanceMeasurement.cs and DatumConfig.cs; ZINDEX_MISCONFIGURED present in SkipReason.cs
+
 ---
 *Phase: 68-z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind*
 *Completed: 2026-07-22*

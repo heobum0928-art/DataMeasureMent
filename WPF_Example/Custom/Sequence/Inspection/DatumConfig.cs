@@ -128,6 +128,17 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string TeachingImagePath_Vertical { get; set; } = "";
 
+        // 크로스-Z 듀얼이미지(PROTO-Z-CROSS) — PointROI/LineROI 를 서로 다른 z_index 라이브 캡처에서 얻을 때 사용.
+        //  -1(기본) = 미설정 → 기존 정적 TeachingImagePath/_Vertical 경로 그대로 사용(회귀 0). TeachingImagePath_Vertical 과 동일하게
+        //  VerticalTwoHorizontalDualImage 알고리즘에서만 PropertyGrid 노출(IsHiddenForAlgorithm 동기).
+        [Category("Datum|ImageSource")]
+        [System.ComponentModel.Description("PointROI 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
+        public int ZIndexA { get; set; } = -1;
+
+        [Category("Datum|ImageSource")]
+        [System.ComponentModel.Description("LineROI 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
+        public int ZIndexB { get; set; } = -1;
+
         // IOfflineImageParam — Datum 노드 Load 버튼이 선택 경로를 TeachingImagePath 에 기록.
         //  Shot 노드(ShotConfig)는 SimulImagePath, Datum 노드는 TeachingImagePath 로 역할 분리.
         /// <summary>
@@ -984,6 +995,7 @@ namespace ReringProject.Sequence {
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
+                    if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
@@ -991,6 +1003,7 @@ namespace ReringProject.Sequence {
                     return false;
                 case EDatumAlgorithm.CircleTwoHorizontal:
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
+                    if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
@@ -999,6 +1012,7 @@ namespace ReringProject.Sequence {
                     return false;
                 case EDatumAlgorithm.VerticalTwoHorizontal:
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
+                    if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
@@ -1014,6 +1028,23 @@ namespace ReringProject.Sequence {
         }
 
         public DatumConfig(object owner) : base(owner) {
+        }
+
+        // 하위호환(D-07): ParamBase.Load 는 INI 누락 Int32 키를 0 으로 덮어쓴다. 구 레시피엔 ZIndexA/ZIndexB 키가 없어
+        //  0 으로 로드되면 "z_index=0 명시"로 오인되어 크로스-Z 실행 스코프/캡처가 오작동한다(T-68-03).
+        //  EnsurePerRoiDefaults() 는 find-time 훅이라 로드 시점 0/미설정 구분이 불가해 이 Load override 를 신설한다
+        //  (MeasurementBase.Load/CameraSlaveParam.Load 의 ContainsKey 가드와 동일 패턴).
+        public override bool Load(IniFile loadFile, string groupName) {
+            bool result = base.Load(loadFile, groupName);
+            IniSection sec;
+            if (!loadFile.TryGetSection(groupName, out sec) || sec == null) {
+                ZIndexA = -1;
+                ZIndexB = -1;
+                return result;
+            }
+            if (!sec.ContainsKey("ZIndexA")) ZIndexA = -1;
+            if (!sec.ContainsKey("ZIndexB")) ZIndexB = -1;
+            return result;
         }
     }
 }

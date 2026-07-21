@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 68-01-PLAN.md
-last_updated: "2026-07-21T23:26:06.904Z"
+stopped_at: Completed 68-02-PLAN.md
+last_updated: "2026-07-21T23:38:41.471Z"
 last_activity: 2026-07-21
 progress:
   total_phases: 23
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Last activity: 2026-07-21
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
@@ -216,6 +216,7 @@ Last activity: 2026-07-21
 | Phase 67-stat-01-2026-07-07 P02 | 14min | 2 tasks | 2 files |
 | Phase 67-stat-01-2026-07-07 P03 | 25min | 3 tasks | 6 files |
 | Phase 68 P01 | 15min | 3 tasks | 3 files |
+| Phase 68 P02 | 20min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -446,6 +447,9 @@ Recent decisions affecting current work:
 - [Phase 68]: ZIndexA/ZIndexB fields live on the measurement/Datum class itself, not on Shot — One measurement/Datum references two z_index positions per CONTEXT decision, not a two-Shot split
 - [Phase 68]: Sentinel -1 (not 0) for unset ZIndexA/ZIndexB — ParamBase.Load's Int32 reflection path overwrites missing INI keys with 0, indistinguishable from a legitimate z_index=0
 - [Phase 68]: New Load() override added to DatumConfig for ZIndexA/ZIndexB sentinel restore — EnsurePerRoiDefaults only runs at find-time and cannot distinguish 0-from-missing-key from user-set 0
+- [Phase 68]: RebuildInspectionActions uses LINQ OrderBy (stable) not List.Sort/Array.Sort for ZIndex sort, guaranteeing same-ZIndex Shots stay contiguous for StartSubset (D-01b)
+- [Phase 68]: FindActionIndicesByZIndex made public (not private per plan literal text) since Custom/SystemHandler.ProcessTest is a different class and cannot call a private InspectionSequence member; matches ApplyShotLights/TurnOffShotLights public convention
+- [Phase 68]: z_index==0 (Datum) always routes to StartAll, never through FindActionIndicesByZIndex, since Datum detection is embedded in every Action's DatumPhase and is not represented as an independent Shot (D-01a regression guard)
 
 ### Quick Tasks Completed
 
@@ -597,8 +601,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-21T23:26:06.893Z
-Stopped at: Completed 68-01-PLAN.md
+Last session: 2026-07-21T23:38:41.461Z
+Stopped at: Completed 68-02-PLAN.md
 Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 

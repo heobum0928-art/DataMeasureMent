@@ -438,10 +438,14 @@ namespace ReringProject.UI {
         }
 
         // 빈 OwnerSequenceName은 TOP으로 폴백 (ApplyShotDefaults / RebuildInspectionActions와 동일 정책)
+        //260722 hbk Phase 68 D-01b: RebuildInspectionActions가 시퀀스 소유 Shot을 ZIndex 오름차순 안정 정렬 후 Actions[]를
+        //  구성하도록 바뀌어(SequenceHandler.cs), 이 로컬 인덱스도 동일한 필터→OrderBy(ZIndex) 순서로 계산해야
+        //  seq[shotIdx]가 여전히 이 Shot의 Action을 정확히 가리킨다(그렇지 않으면 append 순서와 ZIndex 순서가 다른 레시피에서
+        //  Run 버튼/일괄 검사가 엉뚱한 Shot을 실행하는 회귀 발생 — Rule 1, Task 1과 동시 수정).
         private static int ComputeLocalShotIndex(InspectionRecipeManager mgr, ShotConfig target, ESequence seqId) {
             if (mgr == null || target == null) return -1;
             string targetSeqName = SequenceHandler.ResolveSequenceName(seqId);
-            int localIdx = 0;
+            var ownedShots = new List<ShotConfig>();
             for (int i = 0; i < mgr.ShotCount; i++) {
                 ShotConfig s = mgr.Shots[i];
                 string shotOwner;
@@ -450,8 +454,11 @@ namespace ReringProject.UI {
                 else
                     shotOwner = s.OwnerSequenceName;
                 if (shotOwner != targetSeqName) continue;
-                if (ReferenceEquals(s, target)) return localIdx;
-                localIdx++;
+                ownedShots.Add(s);
+            }
+            List<ShotConfig> sortedShots = ownedShots.OrderBy(s => s.ZIndex).ToList(); // RebuildInspectionActions와 동일 안정 정렬(D-01b)
+            for (int localIdx = 0; localIdx < sortedShots.Count; localIdx++) {
+                if (ReferenceEquals(sortedShots[localIdx], target)) return localIdx;
             }
             return -1;
         }

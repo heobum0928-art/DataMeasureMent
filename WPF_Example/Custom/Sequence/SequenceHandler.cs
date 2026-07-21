@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using ReringProject.Define;
 using ReringProject.Device;
 using ReringProject.Setting;
@@ -96,6 +97,11 @@ namespace ReringProject.Sequence {
         /// RecipeManager의 Shot 목록 기반으로 시퀀스의 Action을 재구축한다.
         /// </summary>
         //260527 hbk Phase 35 — CO-33-06: 시퀀스 소유 Shot 만 필터링 (D-A1 OwnerSequenceName)
+        //260722 hbk Phase 68 D-01b: 필터링 후 ShotConfig.ZIndex 오름차순 안정 정렬(동일 ZIndex 는 기존 append 순서 그대로 유지) 추가 —
+        //  SequenceBase.StartSubset 이 min-max 연속구간만 실행하므로, 같은 z_index Shot 들이 Actions[] 에서 항상 연속 블록이어야
+        //  크로스-Z(D-01) 부분실행이 안전하다. List<T>.Sort/Array.Sort 는 불안정 정렬이라 동일 ZIndex 내 순서가 보존 안 됨 —
+        //  안정 정렬이 보장되는 LINQ OrderBy 만 사용한다.
+        //  ※ InspectionListView.ComputeLocalShotIndex 가 이 순서(필터→OrderBy(ZIndex))와 1:1 대응해야 한다(동시 수정, Rule 1).
         public void RebuildInspectionActions(ESequence seqId) {
             SequenceBase seq = this[seqId];
             if (seq == null) return;
@@ -108,15 +114,22 @@ namespace ReringProject.Sequence {
             //260527 hbk Phase 35 — CO-33-06: 시퀀스 매칭 키 (TOP/SIDE/BOTTOM)
             string targetSeqName = ResolveSequenceName(seqId);
 
-            // Shot별로 Action_FAIMeasurement 생성
-            var actions = new List<ActionBase>();
-            //260527 hbk Phase 35 — CO-33-06: actionIdx 별도 사용 — 시퀀스별 로컬 0/1/2 인덱스로 EAction.FAI_Base + N 부여
-            int actionIdx = 0;
+            //260722 hbk Phase 68 D-01b: 이 시퀀스 소유 Shot 만 먼저 필터링(OwnerSequenceName 매칭, 빈값은 Top 폴백 — ApplyShotDefaults 가 보장)
+            var ownedShots = new List<ShotConfig>();
             for (int i = 0; i < RecipeManager.ShotCount; i++) {
                 ShotConfig shot = RecipeManager.Shots[i];
-                //260527 hbk Phase 35 — CO-33-06: OwnerSequenceName 매칭만 추가 (빈값은 Top 폴백 — ApplyShotDefaults 가 보장)
                 string shotOwner = string.IsNullOrEmpty(shot.OwnerSequenceName) ? SEQ_TOP : shot.OwnerSequenceName;
                 if (shotOwner != targetSeqName) continue;
+                ownedShots.Add(shot);
+            }
+            //260722 hbk Phase 68 D-01b: ZIndex 오름차순 안정 정렬 — 동일 ZIndex Shot 은 위 필터링 순서(원래 append 순서) 그대로 유지(OrderBy 안정성 보장)
+            List<ShotConfig> sortedShots = ownedShots.OrderBy(shot => shot.ZIndex).ToList();
+
+            // Shot별로 Action_FAIMeasurement 생성 (정렬된 순서 그대로 EAction.FAI_Base + N 부여)
+            //260527 hbk Phase 35 — CO-33-06: actionIdx 별도 사용 — 시퀀스별 로컬 0/1/2 인덱스로 EAction.FAI_Base + N 부여
+            var actions = new List<ActionBase>();
+            int actionIdx = 0;
+            foreach (ShotConfig shot in sortedShots) {
                 EAction actionId = (EAction)((int)EAction.FAI_Base + actionIdx);
                 string actionName = shot.ShotName ?? $"SHOT_{actionIdx}";
                 var action = new Action_FAIMeasurement(actionId, actionName, shot);

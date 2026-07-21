@@ -57,6 +57,13 @@ namespace ReringProject.Sequence {
         // datum 검출 실패 datum 이름 집합 (per-FAI gate 신호). _datumTransforms 와 동일 lifecycle.
         private readonly HashSet<string> _failedDatums = new HashSet<string>();
 
+        //260722 hbk Phase 68 D-02/D-02a: 크로스-Z 측정 이미지 저장소 — 계산값이 아니라 캡처 이미지(HImage) 보관.
+        //  키 = Action_FAIMeasurement.BuildCrossZMeasurementKey(Shot명+측정식별자)+역할(A/B) 접미사. 소유 클론 계약
+        //  (ShotConfig._image/SetImage/GetImage 패턴 미러) — Store 는 CopyImage 저장, Take 는 CopyImage 반환(호출부
+        //  소유, finally Dispose 책임). z_index=0 수신 시 ResetCycleState() 에서 Dispose+Clear(D-03, 누수 0).
+        private readonly object _crossZImageLock = new object();
+        private readonly Dictionary<string, HImage> m_dicCrossZImages = new Dictionary<string, HImage>();
+
         //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
@@ -560,6 +567,107 @@ namespace ReringProject.Sequence {
             m_bCycleDatumFailed = false;
             m_nCurrentZIndex = 0;
             m_nLastZIndex = 0;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무 //260623 hbk
+            ClearCrossZImages();  //260722 hbk Phase 68 D-03: 크로스-Z 저장 이미지도 사이클 시작(z=0)에 Dispose+Clear(누수 0)
+        }
+
+        //260722 hbk Phase 68 D-02a: 기존 키에 이미지가 있으면 Dispose 후 image.CopyImage() 를 저장(소유 클론,
+        //  ShotConfig.SetImage 계약 미러). public: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 에서
+        //  직접 호출 — FindActionIndicesByZIndex 와 동일 cross-class 노출 컨벤션(Plan 02 선례).
+        public void StoreCrossZImage(string szKey, HImage image)
+        {
+            bool bHasKey = !string.IsNullOrEmpty(szKey);
+            if (!bHasKey)
+            {
+                return;
+            }
+            lock (_crossZImageLock)
+            {
+                HImage existing;
+                bool bHasExisting = m_dicCrossZImages.TryGetValue(szKey, out existing);
+                if (bHasExisting && existing != null)
+                {
+                    try { existing.Dispose(); } catch { }
+                }
+                if (image != null)
+                {
+                    m_dicCrossZImages[szKey] = image.CopyImage();
+                }
+                else
+                {
+                    m_dicCrossZImages[szKey] = null;
+                }
+            }
+        }
+
+        //260722 hbk Phase 68 D-02a: 저장된 이미지의 CopyImage() 를 반환한다(호출부 소유, finally Dispose 책임 —
+        //  ShotConfig.GetImage 계약 미러). 키 없음/이미지 없음 → null.
+        public HImage TakeCrossZImageCopy(string szKey)
+        {
+            bool bHasKey = !string.IsNullOrEmpty(szKey);
+            if (!bHasKey)
+            {
+                return null;
+            }
+            lock (_crossZImageLock)
+            {
+                HImage existing;
+                bool bHasExisting = m_dicCrossZImages.TryGetValue(szKey, out existing);
+                bool bValid = bHasExisting && existing != null;
+                if (bValid)
+                {
+                    return existing.CopyImage();
+                }
+                return null;
+            }
+        }
+
+        //260722 hbk Phase 68 D-02a: 크로스-Z 저장소에 해당 키의 이미지가 존재하는지 여부(완성 tick 판정에 사용).
+        public bool HasCrossZImage(string szKey)
+        {
+            bool bHasKey = !string.IsNullOrEmpty(szKey);
+            if (!bHasKey)
+            {
+                return false;
+            }
+            lock (_crossZImageLock)
+            {
+                HImage existing;
+                bool bHasExisting = m_dicCrossZImages.TryGetValue(szKey, out existing);
+                return bHasExisting && existing != null;
+            }
+        }
+
+        //260722 hbk Phase 68 D-03: 사이클 시작(z=0, ResetCycleState) 전용 리셋 — 전 엔트리 Dispose 후 Clear.
+        //  Z2 미도달(PLC 중단/스킵)해도 다음 부품의 z=0 도착 시 자동 정리되어 누수 없음(T-68-05 mitigation).
+        private void ClearCrossZImages()
+        {
+            lock (_crossZImageLock)
+            {
+                foreach (var kvp in m_dicCrossZImages)
+                {
+                    HImage img = kvp.Value;
+                    if (img != null)
+                    {
+                        try { img.Dispose(); } catch { }
+                    }
+                }
+                m_dicCrossZImages.Clear();
+            }
+        }
+
+        //260722 hbk Phase 68 D-02a: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST
+        //  z_index 를 조회해야 하므로 ParseCurrentZIndex(private) 를 public 래퍼로 노출. RequestPacket 은
+        //  SequenceBase.StartCore 에서 Run() 진입 전에 이미 세팅되므로 실행 시점에도 정확한 값을 반환한다.
+        public int GetExecutionZIndex()
+        {
+            return ParseCurrentZIndex();
+        }
+
+        //260722 hbk Phase 68 D-05: Action_FAIMeasurement(다른 클래스)가 크로스-Z 오설정(존재하지 않는 z_index
+        //  참조) 판정에 사용 — FindShotByZIndex(private) 의 존재 여부만 public 으로 노출(동일 cross-class 컨벤션).
+        public bool DoesZIndexExistInRecipe(int nZIndex)
+        {
+            return FindShotByZIndex(nZIndex) != null;
         }
 
         //260623 hbk Phase 49 PROTO-03 (D-08): RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.

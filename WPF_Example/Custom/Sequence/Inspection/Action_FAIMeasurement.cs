@@ -40,6 +40,11 @@ namespace ReringProject.Sequence {
         private FAIMeasurementContext pMyContext;
         private VirtualCamera pCamera;
 
+        //260722 hbk Phase 68 D-09: 매직넘버 상수화 — ZIndexA/B 미설정 sentinel + 크로스-Z 저장소 역할(A/B) 키 접미사.
+        private const int UNSET_ZINDEX = -1;
+        private const string CROSS_Z_ROLE_SUFFIX_A = "_ZA";
+        private const string CROSS_Z_ROLE_SUFFIX_B = "_ZB";
+
         public ShotConfig ShotParam => Param as ShotConfig;
 
         public Action_FAIMeasurement(EAction id, string name, ShotConfig shotConfig) : base(id, name) {
@@ -270,12 +275,56 @@ namespace ReringProject.Sequence {
                                             measuredCount++;
                                             continue;
                                         }
+                                        //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
+                                        //  ZIndexA/B 둘 다 -1(미설정) 이면 이 블록 진입 안 함 → 기존 경로 그대로(D-07 회귀 0).
+                                        var dualMeasForGate = meas as DualImageEdgeDistanceMeasurement;
+                                        bool bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
+                                        if (bHasAnyZIndex)
+                                        {
+                                            bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
+                                            if (bMisconfigured)
+                                            {
+                                                MarkMeasurementZIndexMisconfigured(meas);
+                                                faiAllPass = false;
+                                                measuredCount++;
+                                                continue;
+                                            }
+                                            bool bRelevant, bCaptureOk, bCompleted;
+                                            ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted);
+                                            if (!bRelevant)
+                                            {
+                                                continue; // 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망)
+                                            }
+                                            if (!bCaptureOk)
+                                            {
+                                                meas.ClearResult();
+                                                meas.LastSkipReason = SkipReason.NO_IMAGE;
+                                                meas.LastJudgement = false;
+                                                faiAllPass = false;
+                                                measuredCount++;
+                                                continue;
+                                            }
+                                            if (!bCompleted)
+                                            {
+                                                measuredCount++; // Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
+                                                continue;
+                                            }
+                                            // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
+                                        }
                                         HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
                                         InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
                                         double resultValue;
                                         string measError;
                                         List<EdgeInspectionOverlay> measOverlays;
-                                        bool ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
+                                        bool ok;
+                                        if (bHasAnyZIndex)
+                                        {
+                                            ok = TryExecuteCrossZMeasurement(dualMeasForGate, parentSeq2, transform, pixRes, out resultValue, out measError, out measOverlays); //260722 hbk Phase 68 D-02a: 완성 index 크로스-Z 실행
+                                        }
+                                        else
+                                        {
+                                            ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
+                                        }
                                         if (ok) {
                                             meas.EvaluateJudgement(resultValue);
                                         } else {
@@ -610,6 +659,48 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
         }
 
+        //260722 hbk Phase 68 D-05: DualImage 측정의 ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/존재하지 않는
+        //  z_index 참조 → true. 호출부가 이미 "둘 중 하나라도 설정됨"을 확인한 뒤에만 호출한다(둘 다 -1 미설정인
+        //  기존 레시피는 이 검사 자체를 타지 않음 — D-07 회귀 0). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
+        private bool IsZIndexMisconfigured(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2)
+        {
+            bool bAUnset = dualMeas.ZIndexA == UNSET_ZINDEX;
+            bool bBUnset = dualMeas.ZIndexB == UNSET_ZINDEX;
+            bool bSingleSet = bAUnset != bBUnset;
+            if (bSingleSet)
+            {
+                return true;
+            }
+            bool bSameValue = dualMeas.ZIndexA == dualMeas.ZIndexB;
+            if (bSameValue)
+            {
+                return true;
+            }
+            bool bAExists = parentSeq2 != null && parentSeq2.DoesZIndexExistInRecipe(dualMeas.ZIndexA);
+            bool bBExists = parentSeq2 != null && parentSeq2.DoesZIndexExistInRecipe(dualMeas.ZIndexB);
+            bool bBothExist = bAExists && bBExists;
+            return !bBothExist;
+        }
+
+        //260722 hbk Phase 68 D-05: MarkMeasurementDatumRefMissing 미러 — 크로스-Z 오설정 명시적 NG(조용한 폴백 금지).
+        private void MarkMeasurementZIndexMisconfigured(MeasurementBase meas)
+        {
+            meas.ClearResult();
+            meas.LastSkipReason = SkipReason.ZINDEX_MISCONFIGURED;
+            meas.LastJudgement = false;
+            string measName = meas.MeasurementName;
+            if (measName == null) measName = meas.TypeName;
+            int nZA = UNSET_ZINDEX;
+            int nZB = UNSET_ZINDEX;
+            var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+            if (dualMeas != null)
+            {
+                nZA = dualMeas.ZIndexA;
+                nZB = dualMeas.ZIndexB;
+            }
+            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
+        }
+
         //260702 hbk Extract Method(Task1): datum transform 해석 (fixture 미존재/미지정 시 identity fallback), 원본 인라인 이식
         private HTuple ResolveDatumTransform(InspectionSequence parentSeq2, string datumRef) {
             HTuple transform;
@@ -693,6 +784,102 @@ namespace ReringProject.Sequence {
                     measError = ex.Message;
                     measOverlays = null; // 예외 경로 null-safe
                 }
+            }
+            return ok;
+        }
+
+        //260722 hbk Phase 68 D-02a: 크로스-Z 저장소 키 = Shot 이름 + 측정 식별자(사이클 내 안정 문자열).
+        //  Shot 이름을 포함해 서로 다른 Shot 의 동명 측정이 같은 저장소를 공유하는 충돌을 방지한다.
+        private string BuildCrossZMeasurementKey(MeasurementBase meas)
+        {
+            string shotName = "";
+            if (ShotParam != null && ShotParam.ShotName != null)
+            {
+                shotName = ShotParam.ShotName;
+            }
+            string measName = meas.MeasurementName;
+            if (string.IsNullOrEmpty(measName))
+            {
+                measName = meas.TypeName;
+            }
+            return shotName + "|" + measName;
+        }
+
+        //260722 hbk Phase 68 D-02a: 크로스-Z 캡처 tick 처리 — 이 측정과 무관(bRelevant=false) / 캡처 실패
+        //  (bCaptureOk=false) / 완성 여부(bCompleted) 3-state 판정. 새 grab 호출 없음 — EStep.DatumPhase(GrabSyncLock
+        //  안)에서 이미 확보된 ShotParam.GetImage() 클론만 재사용(lock 위반 없음, shared-lighthandler-race 준수).
+        //  완성(bCompleted=true) 이면 호출부가 TryExecuteCrossZMeasurement 로 이어간다.
+        private void ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, out bool bRelevant, out bool bCaptureOk, out bool bCompleted)
+        {
+            bRelevant = false;
+            bCaptureOk = false;
+            bCompleted = false;
+            if (parentSeq2 == null || ShotParam == null)
+            {
+                return;
+            }
+            int nCurZ = parentSeq2.GetExecutionZIndex();
+            bool bIsRoleA = nCurZ == dualMeas.ZIndexA;
+            bool bIsRoleB = nCurZ == dualMeas.ZIndexB;
+            bRelevant = bIsRoleA || bIsRoleB;
+            if (!bRelevant)
+            {
+                return; // 이 tick 은 이 측정의 ZIndexA/B 어느 쪽도 아님 — 상태변화 없음(안전망)
+            }
+            string baseKey = BuildCrossZMeasurementKey(dualMeas);
+            string roleKey;
+            if (bIsRoleA) roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_A;
+            else roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_B;
+            using (HImage capturedImage = ShotParam.GetImage())
+            {
+                if (capturedImage == null)
+                {
+                    return; // 캡처 실패 — 호출부가 NG 처리
+                }
+                parentSeq2.StoreCrossZImage(roleKey, capturedImage);
+                bCaptureOk = true;
+            }
+            string keyA = baseKey + CROSS_Z_ROLE_SUFFIX_A;
+            string keyB = baseKey + CROSS_Z_ROLE_SUFFIX_B;
+            bCompleted = parentSeq2.HasCrossZImage(keyA) && parentSeq2.HasCrossZImage(keyB);
+        }
+
+        //260722 hbk Phase 68 D-02a: 완성 index 실행 — 저장소의 A/B 클론을 RuntimeImageA/B 에 주입해 기존 TryExecute
+        //  를 변경 없이 1회 호출한다(알고리즘 무변경). TryExecuteMeasurement 의 DualImage 분기(주입+finally Dispose)
+        //  와 동일 소유권 계약 — 주입 이미지는 항상 저장소의 클론(TakeCrossZImageCopy)이라 finally 에서 안전히 Dispose.
+        private bool TryExecuteCrossZMeasurement(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, HTuple transform, double pixRes, out double resultValue, out string measError, out List<EdgeInspectionOverlay> measOverlays)
+        {
+            resultValue = 0;
+            measError = null;
+            measOverlays = null;
+            if (parentSeq2 == null)
+            {
+                measError = "크로스-Z: parentSeq null";
+                return false;
+            }
+            string baseKey = BuildCrossZMeasurementKey(dualMeas);
+            HImage imgA = parentSeq2.TakeCrossZImageCopy(baseKey + CROSS_Z_ROLE_SUFFIX_A);
+            HImage imgB = parentSeq2.TakeCrossZImageCopy(baseKey + CROSS_Z_ROLE_SUFFIX_B);
+            bool ok;
+            try
+            {
+                dualMeas.RuntimeImageA = imgA;
+                dualMeas.RuntimeImageB = imgB;
+                try
+                {
+                    ok = dualMeas.TryExecute(null, transform, pixRes, out resultValue, out measError, out measOverlays);
+                }
+                catch (Exception ex)
+                {
+                    ok = false; resultValue = 0; measError = ex.Message; measOverlays = null;
+                }
+            }
+            finally
+            {
+                if (imgA != null) { try { imgA.Dispose(); } catch { } }
+                if (imgB != null) { try { imgB.Dispose(); } catch { } }
+                dualMeas.RuntimeImageA = null;
+                dualMeas.RuntimeImageB = null;
             }
             return ok;
         }

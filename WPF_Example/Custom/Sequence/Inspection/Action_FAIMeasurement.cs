@@ -438,17 +438,26 @@ namespace ReringProject.Sequence {
                 Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] meas 가 DualImageEdgeDistanceMeasurement 가 아닙니다");
                 return false;
             }
-            // PointROI 이미지 = Measurement 명시 경로 우선, 빈/파일 부재 시 ShotConfig.SimulImagePath fallback. ternary 회피 — 명시적 if/else 로 회귀 표면 최소화.
-            string pathA;
-            if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal)) {
+            //260722 hbk Phase 68 D-08 버그수정: pathA 산출 우선순위를 3단 if/else-if/else 로 재정렬(D-09).
+            //  (1) ShotParam.HasImage(라이브 grab) 최우선 — GetImage() 클론을 imageA 로 직접 사용, 파일 재로드 스킵.
+            //  (2) TeachingImagePath_Horizontal 명시 경로  (3) ShotParam.SimulImagePath 폴백.
+            //  기존 버그: (1)을 전혀 확인하지 않아 이미 라이브로 확보된 이미지를 무시하고 매번 파일에서 재로드했음.
+            bool bHasLiveImage = ShotParam.HasImage;
+            string pathA = null;
+            if (bHasLiveImage) {
+                imageA = ShotParam.GetImage(); // 라이브 클론 — 소유권은 호출부(TryExecuteMeasurement finally)가 Dispose
+            }
+            else if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal)) {
                 pathA = dualMeas.TeachingImagePath_Horizontal; // Measurement 명시 경로
             }
             else {
                 pathA = ShotParam.SimulImagePath; // fallback
             }
-            string pathB = dualMeas.TeachingImagePath_Vertical; // LineROI 이미지 = meas 별도 경로
+            string pathB = dualMeas.TeachingImagePath_Vertical; // LineROI 이미지 = meas 별도 경로 (무변경)
 
-            if (string.IsNullOrEmpty(pathA) || !File.Exists(pathA)) {
+            bool bPathALoadNeeded = !bHasLiveImage; // 라이브로 이미 확보했으면 파일 경로 검증/로드 스킵
+            bool bPathAInvalid = bPathALoadNeeded && (string.IsNullOrEmpty(pathA) || !File.Exists(pathA));
+            if (bPathAInvalid) {
                 Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 경로 비어 있거나 파일 없음 (SimulImagePath)");
                 return false;
             }
@@ -456,7 +465,9 @@ namespace ReringProject.Sequence {
                 Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 경로 비어 있거나 파일 없음 (TeachingImagePath_Vertical)");
                 return false;
             }
-            try { imageA = new HImage(pathA); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 로드 실패: " + ex.Message); imageA = null; }
+            if (bPathALoadNeeded) {
+                try { imageA = new HImage(pathA); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 로드 실패: " + ex.Message); imageA = null; }
+            }
             try { imageB = new HImage(pathB); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 로드 실패: " + ex.Message); imageB = null; }
             if (imageA == null || imageB == null) {
                 if (imageA != null) { try { imageA.Dispose(); } catch { } }

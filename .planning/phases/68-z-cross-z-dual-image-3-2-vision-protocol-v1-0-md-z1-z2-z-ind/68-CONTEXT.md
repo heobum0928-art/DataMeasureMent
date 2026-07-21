@@ -31,10 +31,13 @@
 ## Implementation Decisions
 
 ### A. z_index 실행 스코프
-- **D-01:** v1.0(UseProtocolV1) 경로에서 `$TEST(z=N)` 도착 시, 그 z_index에 매핑된 Shot만 실행하도록 **완전 수정**한다. v2.6/legacy 경로는 무수정(회귀 0). `SequenceBase`에 이미 존재하는 부분실행 기능(`StartSubset`/`StartCore(first,last)`)을 재활용해서 새 그랩 메커니즘을 만들지 않는다. 이건 Phase 49 D-01("`$TEST` 1건은 그 z_index에 매핑된 Shot/FAI 그룹만 검사한다")이 이미 결정했으나 응답 집계 레벨(`AggregateIndexFais`)에서만 구현되고 실행(grab) 레벨에서는 실제로 구현되지 않았던 갭을 닫는 것 — 부수 효과로 관련없는 Shot이 매 `$TEST`마다 불필요하게 재촬영되던 기존 낭비(조명/하드웨어 부담)도 같이 해결됨.
+- **D-01:** v1.0(UseProtocolV1) 경로에서 `$TEST(z=N)`, **N>=1(측정 Index)** 도착 시, 그 z_index에 매핑된 Shot만 실행하도록 **완전 수정**한다. v2.6/legacy 경로는 무수정(회귀 0). `SequenceBase`에 이미 존재하는 부분실행 기능(`StartSubset`/`StartCore(first,last)`)을 재활용해서 새 그랩 메커니즘을 만들지 않는다. 이건 Phase 49 D-01("`$TEST` 1건은 그 z_index에 매핑된 Shot/FAI 그룹만 검사한다")이 이미 결정했으나 응답 집계 레벨(`AggregateIndexFais`)에서만 구현되고 실행(grab) 레벨에서는 실제로 구현되지 않았던 갭을 닫는 것 — 부수 효과로 관련없는 Shot이 매 `$TEST`마다 불필요하게 재촬영되던 기존 낭비(조명/하드웨어 부담)도 같이 해결됨.
+- **D-01a (research 확정, z_index=0 예외):** `$TEST(z=0)`(Datum)는 **기존처럼 `StartAll`(전체 Shot 실행) 그대로 유지**한다. 근거: Datum 검출(`EStep.DatumPhase`)은 독립된 Shot이 아니라 **모든 Action의 실행 안에 내장**되어 매번 재수행되는 phase라서(`Action_FAIMeasurement.cs:81-233`), `shot.ZIndex==0`에 매핑되는 Shot이 일반적으로 존재하지 않는다(실제로 TOP 시퀀스는 ZIndex=0 Shot이 아예 없음 — SHOT은 1,2,3으로 시작). z=0에 실행 스코프 필터를 억지로 적용하면 매칭 Shot이 0개가 되어 Datum 검출 자체가 멈추는 회귀가 발생하므로 이 경우만 명시적으로 예외 처리한다. waste-elimination(D-01의 목표)은 z>=1에만 적용되고 z=0에는 적용 안 됨을 인지하고 넘어감 — 더 완전한 waste 제거(Datum-only 실행 스킵 로직 추가)는 blast radius가 커서 채택 안 함.
+- **D-01b (research 확정, StartSubset 연속구간 보장):** `SequenceBase.StartSubset`은 스파스 선택이 아니라 **min-max 연속 구간**만 실행한다(`SequenceBase.cs:374-386`) — 같은 z_index를 가진 Shot들이 `Actions[]` 배열에서 반드시 인접해야 D-01이 안전하게 동작한다. 현재 `SequenceHandler.RebuildInspectionActions`(Custom/Sequence/SequenceHandler.cs)는 `RecipeManager.Shots` 리스트 순회 순서 그대로(append 순서, ZIndex 무관) Action을 생성하므로 인접을 보장 못 한다. **`RebuildInspectionActions`가 Shot을 `ZIndex` 기준으로 정렬해서(같은 시퀀스 소유 Shot 내에서) `Actions[]`를 구성하도록 수정** — 같은 z_index Shot들이 항상 연속 블록이 되도록 구조적으로 보장한다. 구현 첫 task에서 `EAction` ID가 다른 곳에 영속/고정 인덱스로 참조되지 않는지(레시피 비영속 확인 필요) 빌드로 검증할 것.
 
 ### B. Z1→Z2 상태 보존
-- **D-02:** 크로스-Z 값(Z1에서 찾은 에지 등)은 **InspectionSequence 레벨의 사이클 공유 저장소**(멤버 상태)에 보관한다. 신규 상태머신 클래스는 도입하지 않는다 — Phase 49 D-02(`_failedDatums`/`_datumTransforms`와 동일 lifecycle에 멤버 추가) 패턴을 그대로 재사용.
+- **D-02:** 크로스-Z 저장소는 **InspectionSequence 레벨의 사이클 공유 저장소**(멤버 상태)에 보관한다. 신규 상태머신 클래스는 도입하지 않는다 — Phase 49 D-02(`_failedDatums`/`_datumTransforms`와 동일 lifecycle에 멤버 추가) 패턴을 그대로 재사용.
+- **D-02a (research 확정, "값"이 아니라 "이미지"를 저장):** 저장소에 담는 건 계산된 값이 아니라 **그 z_index에서 캡처한 이미지(HImage 또는 복사본)** 다. Z1 처리 시점엔 이미지만 캡처해서 저장소에 넣어두고, Z2(완성 index) 처리 시점에 두 이미지(Z1 저장분 + Z2 방금 캡처분)를 `DualImageEdgeDistanceMeasurement.RuntimeImageA`/`RuntimeImageB`에 그대로 주입해서 **기존 `TryExecute` 알고리즘을 변경 없이 한 번에 호출**한다. 이유: 측정 알고리즘 자체(에지 검출+projection_pl 거리계산)를 "2단계 실행"으로 리팩토링하는 것보다 압도적으로 작은 변경 — 알고리즘 코드는 그대로 두고 이미지 주입 시점/소스만 크로스-Z 저장소로 바꾸는 것.
 - **D-03:** 리셋 시점 = **z_index=0(사이클 시작) 수신 시 자동**. Phase 49 D-08("사이클 상태 자동 리셋 = `$TEST z_index=0` 수신 시")과 동일한 기존 리셋 지점에 편승한다. 별도 타이머/타임아웃 불필요 — Z2가 영영 안 와도(PLC 중단/스킵) 다음 부품의 z=0 도착 시 자동으로 깨끗한 상태로 시작되므로 누수 위험 낮음.
 - **측정/Datum 객체 자체에 직접 저장하는 방식은 채택하지 않음** — 그 객체들은 레시피 전역에서 재사용되는 인스턴스라 사이클 경계에서 자동으로 비워질 명확한 훅이 없고, 다음 부품/사이클로 값이 새어나갈 위험이 있음.
 
@@ -51,11 +54,14 @@
 - **D-09:** `InspectionSequence.cs`/`Action_FAIMeasurement.cs`의 z_index 실행스코프·크로스-Z 상태 관련 신규/수정 코드는 `.planning/refs/control-sequence-coding-guideline.md`(LOCKED, Phase 49 D-10과 동일 적용) 준수 — 헝가리언 표기법 + `if/else if/else`만(삼항·null병합 금지) + 조건식 변수화 + 매직넘버 상수화 + 함수 30줄 초과 분리. `DualImageEdgeDistanceMeasurement.cs`/`DatumConfig.cs` 같은 순수 측정/데이터 클래스는 기존 CLAUDE.md 파일 스타일(카멜케이스 등) 유지 — 제어/프로토콜 코드만 이 지침 대상.
 
 ### Claude's Discretion
-- 사이클 공유 저장소의 정확한 자료구조(예: `Dictionary<string, HeldEdgeValue>` 측정 식별자 키)와 필드명(헝가리언 접두사 준수 하에) — planner 재량.
+- 사이클 공유 저장소의 정확한 자료구조(예: `Dictionary<string, HImage>` 측정 식별자 키, D-02a 반영해 이미지 보관)와 필드명(헝가리언 접두사 준수 하에) — planner 재량. Dispose lifecycle(다음 사이클 리셋 시 저장된 HImage도 반드시 Dispose)을 D-03 리셋 로직에 포함할 것.
 - `StartSubset` 호출을 어느 지점(`Custom/SystemHandler.ProcessTest` vs `SequenceHandler`)에 배선할지 — planner 재량.
 - 신규 `SkipReason` 상수명(`ZINDEX_MISCONFIGURED` 등) — planner 재량.
-- ParamBase INI 직렬화 시 ZIndexA/B 기본값(예: -1 = 미설정 sentinel) 및 Load 오버라이드 필요 여부 — `MeasCorrectionFactor` 패턴 참고해 planner 판단.
+- ParamBase INI 직렬화 시 ZIndexA/B 기본값(예: -1 = 미설정 sentinel) 및 Load 오버라이드 필요 여부 — `MeasCorrectionFactor` 패턴(`MeasurementBase.cs:143-155`) 그대로 미러링. `DatumConfig`는 `ParamBase` 직접 상속이라 자체 `Load` 오버라이드 필요 여부 구현 착수 시 재확인(`DatumConfig.cs` 867행 근방에 이미 유사 정규화 코드 존재 — 그 메서드에 편승 가능한지 확인).
 - Datum/측정 두 곳에 ZIndexA/B를 각각 추가할지, 공유 헬퍼/인터페이스(`IZIndexPair` 류)로 추출할지 — 중복 최소화 관점에서 planner 재량.
+- REQUIREMENTS.md에 이 capability의 REQ-ID(예: `PROTO-07`)를 신설할지 — 이번 연구가 gap만 보고, 결정은 planner 착수 시 사용자에게 재확인 권장.
+- `SequenceBase.Actions`/`EndActionIndex`/`CurrentActionIndex` 접근 제한자가 z_index→ActionIndices 신규 헬퍼에서 실제로 접근 가능한지 — 구현 첫 task에서 즉시 빌드 검증.
+- z_index당 Shot이 항상 1:1인지 1:N인지 실제 레시피 전수 확인은 안 됐음(TOP은 1,2,3 각각 별개 Shot으로 1:1처럼 보임) — `FindActionIndicesByZIndex`류 헬퍼는 다중 매칭을 지원하도록 안전하게 설계할 것(1:1이어도 손해 없음).
 
 </decisions>
 

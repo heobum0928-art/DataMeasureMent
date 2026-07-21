@@ -315,6 +315,87 @@ namespace ReringProject.Sequence {
             return null;
         }
 
+        //260722 hbk Phase 68 D-01/D-05: shot이 소유한 FAIList의 DualImageEdgeDistanceMeasurement 중 하나라도
+        //  ZIndexA 또는 ZIndexB == nZIndex 이면 true. FindActionIndicesByZIndex 의 크로스-Z 매칭 sub-헬퍼(D-09: 함수 분리).
+        //  -1(미설정) sentinel은 어떤 실제 z_index(실행 시 항상 >=1)와도 매칭되지 않아 자연 배제됨 — 별도 가드 불필요.
+        private bool DoesShotOwnCrossZIndex(ShotConfig shot, int nZIndex)
+        {
+            bool bHasShot = shot != null;
+            if (!bHasShot)
+            {
+                return false;
+            }
+            foreach (var fai in shot.FAIList)
+            {
+                bool bFaiNull = fai == null;
+                if (bFaiNull)
+                {
+                    continue;
+                }
+                foreach (var meas in fai.Measurements)
+                {
+                    var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                    bool bIsDualImage = dualMeas != null;
+                    if (!bIsDualImage)
+                    {
+                        continue;
+                    }
+                    bool bMatchA = dualMeas.ZIndexA == nZIndex;
+                    bool bMatchB = dualMeas.ZIndexB == nZIndex;
+                    bool bCrossZMatch = bMatchA || bMatchB;
+                    if (bCrossZMatch)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        //260722 hbk Phase 68 D-01/D-01b: z_index → Actions[] 인덱스 다중매칭 헬퍼 (ShotConfig.ZIndex + owned ZIndexA/ZIndexB aware).
+        //  사용자 확정 설계: 크로스-Z 측정의 owning Shot은 별도 Shot으로 쪼개지 않고, own-ZIndex 위치뿐 아니라 자신이 소유한
+        //  DualImageEdgeDistanceMeasurement의 ZIndexA/ZIndexB 위치에서도 실행되어야 한다 — 그래서 한 Shot이 여러 z_index에
+        //  다중 매칭될 수 있다(반환 List<int>). FindShotByZIndex(단일매칭, ShotConfig 반환)와 달리 Actions[] 인덱스를 반환해야
+        //  SequenceBase.StartSubset(int[], TestPacket)에 그대로 전달 가능하다.
+        //  정의만 — 소비(ProcessTest 배선)는 Task 3.
+        private List<int> FindActionIndicesByZIndex(int nZIndex)
+        {
+            var matchedIndices = new List<int>();
+            bool bHasActions = Actions != null;
+            if (!bHasActions)
+            {
+                return matchedIndices;
+            }
+            for (int i = 0; i < Actions.Length; i++)
+            {
+                var faiAct = Actions[i] as Action_FAIMeasurement;
+                bool bIsFaiAction = faiAct != null;
+                if (!bIsFaiAction)
+                {
+                    continue;
+                }
+                ShotConfig shot = faiAct.ShotParam;
+                bool bHasShot = shot != null;
+                if (!bHasShot)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                bool bOwnZIndexMatch = shot.ZIndex == nZIndex;
+                bool bCrossZMatch = DoesShotOwnCrossZIndex(shot, nZIndex);
+                bool bMatch = bOwnZIndexMatch || bCrossZMatch;
+                if (bMatch)
+                {
+                    matchedIndices.Add(i);
+                }
+            }
+            return matchedIndices;
+        }
+
         //260625 hbk Phase 64 LIGHT-01 (D-10/D-12): $PREP 수신 → z_index Shot 조회 → 조명 세팅.
         //  ProcessPrep() 이 호출하는 public 진입점. Shot 없으면 false.
         //  CoaxLight_* 는 ALIGN_COAX 그룹으로 매핑 (D-11: INI 키 이름 보존, 그룹명만 변경).

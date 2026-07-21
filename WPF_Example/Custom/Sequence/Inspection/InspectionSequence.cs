@@ -71,6 +71,7 @@ namespace ReringProject.Sequence {
         //  ClearDatumTransforms() 와 별도로 Index 0 수신 시 ResetCycleState() 로 리셋(D-08).
         //  49-02 가 AddResponseV1Cycle 에서 read 연결 → CS0414(미사용) 해소, #pragma 제거함.
         private const int DATUM_Z_INDEX = 0;         //260623 hbk Phase 49 (D-08): Index 0 = Datum 샷 (매직넘버 상수화, D-10)
+        private const int CROSS_Z_UNSET = -1;        //260722 hbk Phase 68 D-09: ZIndexA/B 미설정 sentinel (매직넘버 상수화)
         private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
         private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
         private int m_nCurrentZIndex = 0;            // 이번 $TEST z_index (RequestPacket.TestID 파싱 결과)
@@ -806,7 +807,7 @@ namespace ReringProject.Sequence {
         private int GetMeasurementCompletionZIndex(MeasurementBase meas, ShotConfig shot)
         {
             var dualMeas = meas as DualImageEdgeDistanceMeasurement;
-            bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != -1 && dualMeas.ZIndexB != -1;
+            bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != CROSS_Z_UNSET && dualMeas.ZIndexB != CROSS_Z_UNSET;
             if (bIsCrossZ)
             {
                 return System.Math.Max(dualMeas.ZIndexA, dualMeas.ZIndexB);
@@ -834,7 +835,7 @@ namespace ReringProject.Sequence {
                 foreach (var meas in fai.Measurements)
                 {
                     var dualMeas = meas as DualImageEdgeDistanceMeasurement;
-                    bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != -1 && dualMeas.ZIndexB != -1;
+                    bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != CROSS_Z_UNSET && dualMeas.ZIndexB != CROSS_Z_UNSET;
                     if (!bIsCrossZ)
                     {
                         continue;

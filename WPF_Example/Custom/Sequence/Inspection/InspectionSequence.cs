@@ -800,7 +800,58 @@ namespace ReringProject.Sequence {
             return packet;
         }
 
+        //260722 hbk Phase 68 Task4(BLOCKER): 측정 완성 응답 index 산출 — 크로스-Z 측정(ZIndexA/B 둘 다 설정)은
+        //  max(ZIndexA,ZIndexB)(Action_FAIMeasurement.TryExecuteCrossZMeasurement 완성 index 정의와 동일),
+        //  그 외(기존 non-cross-Z)는 shot.ZIndex(기존 own-index 의미 그대로 보존 — D-07 회귀 0).
+        private int GetMeasurementCompletionZIndex(MeasurementBase meas, ShotConfig shot)
+        {
+            var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+            bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != -1 && dualMeas.ZIndexB != -1;
+            if (bIsCrossZ)
+            {
+                return System.Math.Max(dualMeas.ZIndexA, dualMeas.ZIndexB);
+            }
+            return shot.ZIndex;
+        }
+
+        //260722 hbk Phase 68 Task4(BLOCKER): shot 이 소유한 측정 중 크로스-Z 이고 완성 index==nZIndex 인 것이
+        //  하나라도 있으면 true. AggregateIndexFais 의 in-scope 조건을 shot.ZIndex 우연값과 무관하게 확장해,
+        //  크로스-Z 측정의 owning Shot 이 완성 index 응답 집계에 반드시 포함되도록 한다(BLOCKER 핵심 — inclusion).
+        private bool ShotHasCrossZMeasurementCompletingAt(ShotConfig shot, int nZIndex)
+        {
+            bool bHasShot = shot != null;
+            if (!bHasShot)
+            {
+                return false;
+            }
+            foreach (var fai in shot.FAIList)
+            {
+                bool bFaiNull = fai == null;
+                if (bFaiNull)
+                {
+                    continue;
+                }
+                foreach (var meas in fai.Measurements)
+                {
+                    var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                    bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != -1 && dualMeas.ZIndexB != -1;
+                    if (!bIsCrossZ)
+                    {
+                        continue;
+                    }
+                    bool bCompletesHere = GetMeasurementCompletionZIndex(meas, shot) == nZIndex;
+                    if (bCompletesHere)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         //260623 hbk Phase 49 (D-01): nZIndex 매칭 Shot 의 FAI 만 packet.FAIResults 에 집계. 매칭 Shot 수 반환.
+        //260722 hbk Phase 68 Task4(BLOCKER): in-scope 조건에 bCrossZCompletesHere 추가 — 크로스-Z 측정의 owning
+        //  Shot 은 자신의 own-ZIndex 와 다른 완성 index 응답에도 포함되어야 한다(shot.ZIndex 우연값 무관, 코드레벨 보장).
         private int AggregateIndexFais(InspectionRecipeManager recipeManager, int nZIndex, TestResultPacket packet)
         {
             int nMatchedShots = 0;
@@ -818,7 +869,8 @@ namespace ReringProject.Sequence {
                 }
                 bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
                 bool bZMatch = shot.ZIndex == nZIndex;
-                bool bInScope = bOwnedByThisSeq && bZMatch;
+                bool bCrossZCompletesHere = ShotHasCrossZMeasurementCompletingAt(shot, nZIndex);
+                bool bInScope = bOwnedByThisSeq && (bZMatch || bCrossZCompletesHere);
                 if (!bInScope)
                 {
                     continue;
@@ -826,14 +878,16 @@ namespace ReringProject.Sequence {
                 nMatchedShots = nMatchedShots + 1;
                 foreach (var fai in shot.FAIList)
                 {
-                    AddFaiResult(packet, fai);
+                    AddFaiResult(packet, fai, shot, nZIndex);
                 }
             }
             return nMatchedShots;
         }
 
         //260629 hbk FAI 단위 1항목 → 측정 단위 N항목 전환. P2 등 다측정 불량값 은폐 제거 (ETI-RESULT-PER-MEASUREMENT).
-        private void AddFaiResult(TestResultPacket packet, FAIConfig fai)
+        //260722 hbk Phase 68 Task4(BLOCKER): shot/nZIndex 추가 — 측정별 GetMeasurementCompletionZIndex 게이트로
+        //  완성 index 에서만 담기고(exclusion) 비완성 index 에서는 own-index 로 in-scope 여도 제외된다.
+        private void AddFaiResult(TestResultPacket packet, FAIConfig fai, ShotConfig shot, int nZIndex)
         {
             bool bIsNull = fai == null; //260629 hbk null 가드 유지
             if (bIsNull)
@@ -850,6 +904,11 @@ namespace ReringProject.Sequence {
             {
                 MeasurementBase meas = fai.Measurements[i]; //260629 hbk 측정 단위 순회
                 if (meas == null) //260629 hbk null 측정 방어
+                {
+                    continue;
+                }
+                bool bReportHere = GetMeasurementCompletionZIndex(meas, shot) == nZIndex; //260722 hbk Phase 68 Task4: 완성 index 게이트
+                if (!bReportHere)
                 {
                     continue;
                 }

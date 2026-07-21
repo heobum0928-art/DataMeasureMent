@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: "Completed quick-260714-d99: TryFitLine strip 관측화 (1단계 로그만, 판정 무변경) — 2단계 임계값은 현장 로그 데이터 확보 후"
-last_updated: "2026-07-13T09:00:32.815Z"
-last_activity: "2026-07-14 - Completed quick task 260714-d99: TryFitLine strip-loop 관측화(1단계). 멀티에이전트 버그헌트 11건 확정 → 심층검증(3버그×4렌즈+판정관 15에이전트)으로 원 수정안 반증 → 관측 전용으로 축소. 판정 무변경(신규 return false 0건) 기계 증명, 빌드 PASS. 실HW 로그 UAT 대기"
+stopped_at: Phase 68 context gathered
+last_updated: "2026-07-21T12:39:00.740Z"
+last_activity: "2026-07-14 - Completed quick task 260714-d99: TryFitLine strip 관측화 (1단계 — 로그만, 판정 무변경). 2단계(임계값 게이트)는 현장 로그로 실제 strip 성공률 분포 확인 후 결정"
 progress:
-  total_phases: 15
-  completed_phases: 14
-  total_plans: 49
-  completed_plans: 46
-  percent: 94
+  total_phases: 23
+  completed_phases: 19
+  total_plans: 80
+  completed_plans: 76
+  percent: 83
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -569,6 +569,7 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ### Roadmap Evolution
 
+- 2026-07-21: Phase 68 added — Z축 교차(Cross-Z) Dual-Image 측정 지원. 프로토콜 요구사항 3-2(Vision-Protocol-v1.0.md: "Z1 정보 보유 → Z2에서 측정", 영향도 LARGE로 기명시, POC 이후 착수 대상). SHOT_E5(BOTTOM, D:\Data\Recipe\FAI_1\main.ini) DualImageEdgeDistance 실사용 중 대화로 발견. 코드 조사(디버그 세션 shared-lighthandler-race 진행 중 파생 질의)로 확정된 갭 2가지: (1) z_index가 응답집계/조명선택에만 쓰이고 실행단 필터링이 없어 $TEST 가 오면 z_index 무관 시퀀스 전체 Shot 재grab됨, (2) OnStart/Shot Init 마다 결과 초기화라 Z1 검출값을 Z2 처리 시점까지 보존할 상태가 없음. 추가 스코프: DualImageEdgeDistanceMeasurement에 ZIndexA/ZIndexB 필드(PropertyGrid+INI, 기존 레시피 하위호환), TCP RESULT 보고를 완성 시점(z2) Index 에만 담기도록 조정(기존 B/P/F 3-state 그대로 재사용, 신규 상태 불필요 — Datum 샷의 count=0 B 응답과 동일 패턴). 참고 선례: DatumConfig.SourceShotName(다른 Shot 이름 참조, 단 실패시 Shots[0] 조용한 폴백은 반면교사 — DatumRef 미해결 패턴처럼 명시적 NG 처리 필요). 별건: DualImageEdgeDistance 가 실HW(non-SIMUL/non-offline)에서도 라이브 grab 무시하고 static teaching 파일 재사용하는 기존 버그 발견(Action_FAIMeasurement.TryGrabOrLoadFaiDualImages) — 이 phase 포함 여부 discuss 단계에서 결정. 다음 = /gsd-plan-phase 68 (또는 먼저 discuss).
 - 2026-06-24: Phase 63 added — TCP 프로토콜 Type 필드 반영 및 Align TCP 통합. 디팜스테크 v3.0 엑셀 스펙(D:\…v3_3.xlsx, Type 모델+다이어그램 셀 재작성 완성)을 코드 반영. Grabber $TEST/$RESULT 에 Type(site=PC#/Type=대상) + Align 커맨드($ALIGN_TEST/CALIB/RESULT) TCP 통합을 한 phase 로(같은 TCP 경계 파일). 만질 파일=VisionRequestPacket/VisionResponsePacket/ResourceMap/SystemHandler/InspectionSequence. Phase 59/60(Custom/EthernetVision/)과 무겹침 → 병렬 가능. ※ gsd-sdk phase.add CLI 가 phase_number 를 54 로 오산정(기존 Phase 54 ALIGN-01 충돌) → **수동 63 보정**(반복 버그, Phase 31/32/57.1 동일). 다음 = /gsd-plan-phase 63.
 - 2026-06-22: Phase 57.1 inserted after Phase 57 (URGENT) — 패턴 ROI 검증 & 안전장치. Phase 57 UAT 피드백 4항목: ① Top/Bottom 패턴매칭 보정 적용/육안 확인(cyan ROI 표시) ② gen_rectangle2 length1/length2 장축·baseline 회전각 진단(analytic 회전은 정상 — swap 코드 수정 금지, 진단/시각화로 확증) ③ 패턴 ROI 시각화 렌더 조건 안정화(_resultDatumOverlays Datum 노드 선택 시에도 채우기) ④ 패턴 ROI 버튼 비-Datum 노드 비활성화 + 알림 메시지박스 안전장치. 조사 = Explore 3건 + 직접 코드 확인(PatternMatchService/FAIEdgeMeasurementService/MainView·MainResultViewerControl). ※ gsd-sdk phase.insert CLI "Phase 57 not found" 버그 재현 → 수동 삽입. 다음 = /gsd-plan-phase 57.1 (또는 #2 진단 먼저 discuss).
 - 2026-04-23: Phase 11 added — datum-teaching-ui-roi (WR-RT-01/03/04 묶음 예정, bugs.md 로드맵 기반)
@@ -592,9 +593,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-13T09:00:22.698Z
-Stopped at: Completed quick-260713-nse: Ring 6채널 + Bar 4채널 개별 조명 제어 (ShotConfig 20 프로퍼티 + Load/CopyTo override + LightHandler 채널 헬퍼)
-Resume file: None
+Last session: 2026-07-21T12:39:00.729Z
+Stopped at: Phase 68 context gathered
+Resume file: .planning/phases/68-z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind/68-CONTEXT.md
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 
 **v1.1 Phase Map:**

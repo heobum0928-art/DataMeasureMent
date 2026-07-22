@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 68-09-PLAN.md
-last_updated: "2026-07-22T04:44:42.250Z"
+stopped_at: Completed 68-10-PLAN.md
+last_updated: "2026-07-22T04:59:04.844Z"
 last_activity: 2026-07-22
 progress:
   total_phases: 23
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
-Plan: 9 of 11 (68-05 UAT paused mid-run — gap analysis found FIX-0/GAP-1/2/3/CROSS-1/2, closure plans 68-06~68-11 created; 68-06 FIX-0/68-07 GAP-1+2/68-08 CROSS-1/68-09 CROSS-2 now complete, 68-10~68-11 remain before 68-05 UAT resumes)
+Plan: 10 of 11 (68-05 UAT paused mid-run — gap analysis found FIX-0/GAP-1/2/3/CROSS-1/2, closure plans 68-06~68-11 created; 68-06 FIX-0/68-07 GAP-1+2/68-08 CROSS-1/68-09 CROSS-2/68-10 GAP-3 now complete, 68-11 remains before 68-05 UAT resumes)
 Last activity: 2026-07-22
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
@@ -223,6 +223,7 @@ Last activity: 2026-07-22
 | Phase 68 P07 | ~35min | 3 tasks | 3 files |
 | Phase 68 P08 | 10min | 1 tasks | 1 files |
 | Phase 68 P09 | 15min | 1 tasks | 1 files |
+| Phase 68 P10 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -468,6 +469,7 @@ Recent decisions affecting current work:
 - [Phase 68-08]: CROSS-1: cross-Z Datum transform lifetime fixed via deterministic re-detection from stored role images at consuming z_index (not transform caching across ClearDatumTransforms resets)
 - [Phase 68-09]: CROSS-2: ComputeLastZIndex 를 max(소유 shot.ZIndex, 크로스-Z 측정 완성 index, 크로스-Z Datum 완성 index) 로 확장 — 완성 index 가 시퀀스 최대 shot.ZIndex 를 넘어도 마지막 Index 오판정 없이 한 사이클 P/F 정확히 1회 송신되도록 함(T-68-10)
 - [Phase 68-09]: GetDatumCompletionZIndex 를 GetMeasurementCompletionZIndex 옆에 배치(GAP-3/68-10 재사용 대비) — 68-10 이 동일 소스를 바로 재사용하도록 discoverability 우선, C# 멤버 순서는 컴파일에 영향 없음
+- [Phase 68-10]: GAP-3 checkpoint: enable-after-agreement — EnableCrossZDatumImmediateFail default flipped true. Vision-Protocol-v1.0.md P/F/B table F-row PLC action is index-agnostic (uniform NG 처리); PLC branches on B vs P/F only, never index number, so completion-index F (Side z=1) handled identically to z=0 F.
 
 ### Quick Tasks Completed
 
@@ -619,10 +621,10 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-22T04:44:42.241Z
-Stopped at: Completed 68-09-PLAN.md
+Last session: 2026-07-22T04:59:04.832Z
+Stopped at: Completed 68-10-PLAN.md
 Resume file: None
-Next action: Phase 68 Plan 10 — GAP-3 Datum "즉시 F" 크로스-Z 완성 index 재평가 (GetDatumCompletionZIndex 재사용, 제어팀 프로토콜 협의 게이팅)
+Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 
 **v1.1 Phase Map:**
 

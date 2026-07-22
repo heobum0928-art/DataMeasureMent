@@ -243,8 +243,9 @@ namespace ReringProject.Sequence
             }
 
             //260716 hbk ALI-01 측정 재정의(사용자 확정): ① 좌·우 두 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum)의
-            //  교차점 P를 intersection_ll(=TryIntersectLines)로 구하고, ② P와 우측 교점(int2)의 거리를 최종 측정값으로 한다(오른쪽=+).
-            //  (기존: 측정축=교점2 col, 수직축=두 교점 Row 평균 → 좌 교점이 사실상 무의미. IntersectionPointSelection 폐기.)
+            //  교차점 P를 intersection_ll(=TryIntersectLines)로 구하고, ② P와 선택된 교점의 거리를 최종 측정값으로 한다(오른쪽=+).
+            //  (기존: 측정축=교점2 col, 수직축=두 교점 Row 평균 → 좌 교점이 사실상 무의미.)
+            //  260722 hbk: IntersectionPointSelection(Far/Close) 재활성 — Close=좌 교점(int1), Far/기본/미설정=우 교점(int2, INI 하위호환).
             //  좌 교점이 L_cross 기울기·위치→P 를 결정하고, datum 이 휘어도 L_datum 각도(GetDatumAxisLine)가 P 를 자동 보정한다.
             double measureLineAngle;
             if (MeasureAxis == "X")
@@ -269,11 +270,20 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // (8) 최종 측정값 = 교차점 P 와 우측 교점(int2) 사이의 실제 거리(mm). P·int2 는 둘 다 L_cross 위 점 —
+            // (8) 최종 측정값 = 교차점 P 와 선택된 교점(Far=int2 기본/Close=int1) 사이의 실제 거리(mm). P·target 은 둘 다 L_cross 위 점 —
             //  좌 교점이 L_cross 기울기→P 위치→세그먼트 길이에 실제 기여하고, datum 휜 각도는 이미 P 위치에 반영됨.
-            //  부호: 우측 교점이 datum 기준선의 '오른쪽'(col+ 법선 방향)이면 +, 왼쪽이면 - (오른쪽=양수 규약).
-            double segDrow = int2Row - measurePointRow;
-            double segDcol = int2Col - measurePointCol;
+            //  부호: 선택된 교점이 datum 기준선의 '오른쪽'(col+ 법선 방향)이면 +, 왼쪽이면 - (오른쪽=양수 규약).
+            double targetRow, targetCol;
+            if (string.Equals(IntersectionPointSelection, "Close", System.StringComparison.OrdinalIgnoreCase))
+            {
+                targetRow = int1Row; targetCol = int1Col;
+            }
+            else
+            {
+                targetRow = int2Row; targetCol = int2Col;
+            }
+            double segDrow = targetRow - measurePointRow;
+            double segDcol = targetCol - measurePointCol;
             double distPx = System.Math.Sqrt(segDrow * segDrow + segDcol * segDcol);
             // datum 기준선의 오른쪽(col+) 법선 = (-cosθ, sinθ). 저장각 θ/θ+π 무관하게 col+ 향하도록 정규화(col성분≥0).
             double normR = -System.Math.Cos(measureLineAngle);
@@ -282,8 +292,8 @@ namespace ReringProject.Sequence
             double sideSign = (segDrow * normR + segDcol * normC) >= 0.0 ? 1.0 : -1.0;
             resultValue = distPx * sideSign * pixelResolution;
 
-            // overlay 거리선: 우측 교점 int2 → 교차점 P (실제 측정 세그먼트)
-            double footRow = int2Row, footCol = int2Col;
+            // overlay 거리선: 선택된 교점(target) → 교차점 P (실제 측정 세그먼트)
+            double footRow = targetRow, footCol = targetCol;
             bool footOk = true;
 
             // overlay — 알고리즘이 이미 계산한 변수만 재사용. HALCON 재호출 없음.

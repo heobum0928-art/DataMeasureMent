@@ -265,6 +265,11 @@ namespace ReringProject.Sequence {
         //260623 hbk Phase 49 PROTO-03 (D-03): 레시피 Shot 들의 z_index 최댓값 = "마지막 Index".
         //  별도 설정/플래그 불필요 — 레시피 단일 진실원. PLC Index Table = 레시피 Shot 구성 일치 전제(D-03 코드 주석 고정).
         //  이 시퀀스 소유 Shot 만 대상(Name == OwnerSequenceName) — Top/Bottom/Side 병렬 간섭 차단.
+        //260722 hbk Phase 68 CROSS-2(68-GAP-ANALYSIS.md 교차이슈): 소유 shot.ZIndex 최댓값만으로는 크로스-Z 완성
+        //  index(GetMeasurementCompletionZIndex/GetDatumCompletionZIndex)가 그 최댓값을 넘는 경우를 놓친다 — 넘으면
+        //  "마지막 Index"를 조기 오판정해 한 사이클에 P/F 가 2회 송신될 위험(T-68-10). 소유 shot.ZIndex 최댓값 산출 뒤
+        //  MaxCrossZCompletionZIndex 로 크로스-Z 완성 index 까지 반영해 최종 max 를 반환한다. 크로스-Z 미설정 레시피는
+        //  MaxCrossZCompletionZIndex==0(또는 이하) → 기존 max(shot.ZIndex)와 동치(D-07 회귀 0).
         private int ComputeLastZIndex(InspectionRecipeManager recipeManager)
         {
             int nMax = 0;
@@ -289,6 +294,73 @@ namespace ReringProject.Sequence {
                 if (bIsLarger)
                 {
                     nMax = shot.ZIndex;
+                }
+            }
+            nMax = System.Math.Max(nMax, MaxCrossZCompletionZIndex(recipeManager));
+            return nMax;
+        }
+
+        //260722 hbk Phase 68 CROSS-2 (D-09): ComputeLastZIndex 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스 소유 Shot 의
+        //  크로스-Z 측정 완성 index(MaxShotCrossZMeasurementCompletionZIndex) 최댓값과, 이 시퀀스 DatumConfigs 의
+        //  크로스-Z Datum 완성 index(GetDatumCompletionZIndex) 최댓값 중 더 큰 값을 반환한다. 크로스-Z 가 전혀 없으면
+        //  두 최댓값 모두 0 → 반환 0(D-07: ComputeLastZIndex 의 Math.Max(nMax, 0) 이 기존값을 그대로 보존).
+        private int MaxCrossZCompletionZIndex(InspectionRecipeManager recipeManager)
+        {
+            int nMax = 0;
+            bool bHasManager = recipeManager != null;
+            if (bHasManager)
+            {
+                foreach (var shot in recipeManager.Shots)
+                {
+                    nMax = System.Math.Max(nMax, MaxShotCrossZMeasurementCompletionZIndex(shot));
+                }
+            }
+            foreach (var datum in DatumConfigs)
+            {
+                int nDatumCompletion = GetDatumCompletionZIndex(datum);
+                bool bDatumHasCompletion = nDatumCompletion != CROSS_Z_UNSET;
+                if (bDatumHasCompletion)
+                {
+                    nMax = System.Math.Max(nMax, nDatumCompletion);
+                }
+            }
+            return nMax;
+        }
+
+        //260722 hbk Phase 68 CROSS-2 (D-09): MaxCrossZCompletionZIndex 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스
+        //  소유(OwnerSequenceName==Name) shot 이 소유한 DualImageEdgeDistanceMeasurement 중 크로스-Z(ZIndexA/B 둘 다
+        //  설정)인 것들의 완성 index(GetMeasurementCompletionZIndex, ShotHasCrossZMeasurementCompletingAt 와 동일
+        //  bIsCrossZ 게이트) 최댓값. 미소유 shot/비-크로스-Z 측정은 0 기여(D-07 회귀 가드).
+        private int MaxShotCrossZMeasurementCompletionZIndex(ShotConfig shot)
+        {
+            int nMax = 0;
+            bool bShotNull = shot == null;
+            if (bShotNull)
+            {
+                return nMax;
+            }
+            bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+            if (!bOwnedByThisSeq)
+            {
+                return nMax;
+            }
+            foreach (var fai in shot.FAIList)
+            {
+                bool bFaiNull = fai == null;
+                if (bFaiNull)
+                {
+                    continue;
+                }
+                foreach (var meas in fai.Measurements)
+                {
+                    var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                    bool bIsCrossZ = dualMeas != null && dualMeas.ZIndexA != CROSS_Z_UNSET && dualMeas.ZIndexB != CROSS_Z_UNSET;
+                    if (!bIsCrossZ)
+                    {
+                        continue;
+                    }
+                    int nCompletion = GetMeasurementCompletionZIndex(meas, shot);
+                    nMax = System.Math.Max(nMax, nCompletion);
                 }
             }
             return nMax;
@@ -1040,6 +1112,21 @@ namespace ReringProject.Sequence {
                 return System.Math.Max(dualMeas.ZIndexA, dualMeas.ZIndexB);
             }
             return shot.ZIndex;
+        }
+
+        //260722 hbk Phase 68 CROSS-2 (68-GAP-ANALYSIS.md 교차이슈, D-09): Datum 완성 index 단일 소스 —
+        //  GetMeasurementCompletionZIndex(측정)와 대칭. 크로스-Z Datum(ZIndexA/B 둘 다 설정)만 완성 index 개념이
+        //  있음 → max(ZIndexA,ZIndexB) 반환. 비-크로스-Z Datum(ZIndexA 또는 ZIndexB 미설정, 기존 정적 이미지 경로)은
+        //  완성 index 개념 자체가 없음 → CROSS_Z_UNSET 반환(D-07 게이트, 호출부가 != CROSS_Z_UNSET 으로 필터링).
+        //  MaxCrossZCompletionZIndex(이 파일, CROSS-2)와 GAP-3(68-10, Datum 완성 index 즉시-F 재평가)의 단일 소스.
+        private int GetDatumCompletionZIndex(DatumConfig datum)
+        {
+            bool bIsCrossZ = datum != null && datum.ZIndexA != CROSS_Z_UNSET && datum.ZIndexB != CROSS_Z_UNSET;
+            if (bIsCrossZ)
+            {
+                return System.Math.Max(datum.ZIndexA, datum.ZIndexB);
+            }
+            return CROSS_Z_UNSET;
         }
 
         //260722 hbk Phase 68 Task4(BLOCKER): shot 이 소유한 측정 중 크로스-Z 이고 완성 index==nZIndex 인 것이

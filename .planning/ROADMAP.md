@@ -927,7 +927,7 @@ Plans:
 **Goal:** v1.0(UseProtocolV1) 경로에서 $TEST(z=N) 도착 시 그 z_index에 매핑된 Shot만 실행(실행단 필터링)하고, 하나의 DualImage 측정/Datum이 두 z_index(ZIndexA/ZIndexB)를 참조해 Z1에서 캡처한 이미지를 사이클 저장소에 보존했다가 Z2(완성 index)에서 두 이미지로 기존 TryExecute를 한 번 호출해 거리/검출을 완결한다. 완성 index 응답에만 항목이 담기며(기존 B/P/F 3-state 재사용, 신규 프로토콜 상태 불필요), 기존 static-teaching 레시피는 회귀 0.
 **Requirements**: PROTO-Z-CROSS (작업 라벨 — REQUIREMENTS.md 정식 REQ-ID 미확정, 사용자 결정 대기)
 **Depends on:** Phase 67, Phase 49(z_index 실행스코프/사이클 상태 D-01/D-02/D-08 재사용), Phase 37(Datum DualImage)
-**Plans:** 7/11 plans executed
+**Plans:** 8/11 plans executed
 
 Plans:
 **Wave 1**
@@ -963,7 +963,7 @@ Plans:
 **Wave 8 — CROSS-1 + CROSS-2 (병렬, 파일 비중첩)** *(blocked on Wave 7)*
 
 - [x] 68-08-PLAN.md — CROSS-1 크로스-Z Datum transform 수명: 소비 index(z=2)에서 저장 이미지로 결정론적 재검출(identity 무보정 제거) [Wave 8]
-- [ ] 68-09-PLAN.md — CROSS-2 마지막 Index 진실원: ComputeLastZIndex 가 크로스-Z 완성 index 반영 + GetDatumCompletionZIndex 단일소스(68-10 재사용) [Wave 8]
+- [x] 68-09-PLAN.md — CROSS-2 마지막 Index 진실원: ComputeLastZIndex 가 크로스-Z 완성 index 반영 + GetDatumCompletionZIndex 단일소스(68-10 재사용) [Wave 8]
 
 **Wave 9 — GAP-3 (프로토콜 협의 게이트)** *(blocked on Wave 8)*
 

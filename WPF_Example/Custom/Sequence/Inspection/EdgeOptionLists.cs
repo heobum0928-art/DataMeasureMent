@@ -20,6 +20,12 @@ namespace ReringProject.Sequence
         // MeasurePos 'first'/'last'/'all' 의 Datum UI 표기.
         public static readonly List<string> Selections = new List<string> { "First", "Last", "All" };
 
+        // EdgePairDistance 전용 EdgeSelection 드롭다운 — "Both" 단일값만 노출.
+        // FAIEdgeMeasurementService.TryMeasure 은 case-insensitive "Both" 만 실제 paired-edge 거리(TryMeasureBoth)로 라우팅하고,
+        // 그 외 값은 전부 단일-에지 경로(TryMeasureSingle, DistanceMm=0 반환)로 빠져 자유 텍스트 오타 시 결과가 조용히 0이 되는
+        // 문제가 있었음. EdgeOptionLists.Selections(First/Last/All)는 "Both"가 없고 잘못된 값만 있어 재사용하지 않는다.
+        public static readonly List<string> EdgePairSelections = new List<string> { "Both" };
+
         // Datum Circle ROI 안→밖 / 밖→안 그라디언트 polarity (CTH only).
         // DatumConfig.Circle_RadialDirection ItemsSource 단일 소스. Caller (DatumFindingService.TryTeachCircleTwoHorizontal)
         // 가 "Inward" → "positive", "Outward" → "negative" 로 매핑하여 TryFindCircleByPolarSampling 의 polarity 인자에 override 전달.

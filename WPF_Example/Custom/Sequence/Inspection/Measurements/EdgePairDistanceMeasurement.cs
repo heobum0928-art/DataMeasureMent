@@ -24,6 +24,7 @@ namespace ReringProject.Sequence
         public double Sigma { get; set; } = 1.0;
         [ItemsSourceProperty(nameof(EdgeDirectionList))]
         public string EdgeDirection { get; set; } = "LtoR";
+        [ItemsSourceProperty(nameof(EdgeSelectionList))]
         public string EdgeSelection { get; set; } = "Both";
         public int EdgeSampleCount { get; set; } = 20;
         //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
@@ -34,6 +35,8 @@ namespace ReringProject.Sequence
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public List<string> EdgeSelectionList { get { return EdgeOptionLists.EdgePairSelections; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 

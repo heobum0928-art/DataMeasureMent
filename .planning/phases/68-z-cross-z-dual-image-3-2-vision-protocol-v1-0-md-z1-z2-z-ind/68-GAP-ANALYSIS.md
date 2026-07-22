@@ -125,3 +125,27 @@ FIX-0/GAP-1/2/3을 전부 적용해도, z=1에서 Datum 검출이 성공해도 *
 **커밋:** `668ff9c` (`feat(68): SIMUL-mode per-role teaching images for cross-Z DualImage capture`)
 
 **Datum 레벨 동일 갭 — 아직 미수정(범위 밖):** `TryGrabOrLoadCrossZDatumImages` → `CaptureAndStoreCrossZDatumImage` → `GrabOrLoadDatumImage` 경로도 동일한 한계를 가진다. `GrabOrLoadDatumImage(datum)` 는 `bIsRoleA` 인자 자체를 받지 않으므로 role A/B tick 모두 `datum.TeachingImagePath`(SIMUL 폴백 `ShotParam.SimulImagePath`)에서 동일하게 로드한다 — 즉 Datum 크로스-Z 도 SIMUL_MODE 에서 role A/B 가 항상 동일 이미지가 된다. 이번 수정 범위 밖(측정 레벨만 요청받음) — Datum 레벨까지 확장할지는 별도 결정 필요. 확장 시 `datum.TeachingImagePath`(role A)/`datum.TeachingImagePath_Vertical`(role B, `VerticalTwoHorizontalDualImage` 알고리즘이 이미 갖는 필드) 재사용이 유력한 설계.
+
+---
+
+## 사후발견 — REGR-2: 68-12(z=0 대표트리거 skip)가 수동(UI) RUN 을 전량 미측정으로 회귀 (이 사이트 실제 운영 경로, 2026-07-22)
+
+**배경:** 68-12(`3fe1c74`/`8cdbd71`/`f9f8cdf`, `ShouldSkipMeasurementAfterDatumPhase` 신설)가 완료된 뒤, 사용자가 실기 디버거로 `InspectionListView` RUN 버튼(`SHOT_E5` 선택)을 눌러 재현 — Datum 로그(`[ALIGN] Bottom_Datum ...`)는 찍히지만 측정값이 전혀 나오지 않고(`—` 고정), `TryExecuteMeasurement` 자체가 호출되지 않음을 확인. `DebugManualZTrigger`(zindex=1/2, 프로토콜 경로)는 정상 동작 — 68-12 이전엔 RUN 버튼도 정상이었음.
+
+**근본원인:** RUN 버튼 경로(`InspectionListView.Btn_start_Click` → `SequenceHandler.Start(seqID, actID)` → `SequenceBase.Start(EAction)` → `StartCore(idx, idx, null)`)와 `RepeatRunService.TriggerNext()`(`_seq.StartAll(null)`) 배치런은 둘 다 `packet=null` 로 `StartCore` 를 호출한다. `SequenceBase.RequestPacket` 은 `StartCore` 안에서 packet 이 non-null 일 때만 대입되므로(`SequenceBase.cs:344`), 이 두 경로는 `RequestPacket==null` 상태로 실행된다. `InspectionSequence.ParseCurrentZIndex()` 는 `RequestPacket==null` 이면 안전 폴백으로 `0` 을 반환하므로(D-08), `GetExecutionZIndex()` 도 `0` 을 반환한다 — 이는 진짜 프로토콜 `$TEST(z=0)` 와 구분되지 않는다. 68-12 가 `Action_FAIMeasurement.cs` DatumPhase 말미에 추가한 `ShouldSkipMeasurementAfterDatumPhase(nCurZ)` 호출은 `nCurZ==0` 이고 이 시퀀스(BOTTOM, `Bottom_Datum` 보유)의 `FindZeroIndexDatumTriggerActionIndices().Count > 0` 이 참이므로 항상 `true` 를 반환 — `EStep.Grab`/`EStep.Measure`(따라서 `TryExecuteMeasurement`)가 전혀 실행되지 않았다.
+
+**68-12 원래 의도와의 차이:** 68-12 의 의도는 PLC 프로토콜 `$TEST(z=0)` 에서 Datum 검출만 트리거하고 이 Shot 의 "진짜" 측정은 나중에 자신의 실제 z_index 에 재실행되므로 z=0 시점 측정을 건너뛰어도 무손실이라는 것이었다(`68-12-PLAN.md`). 이 전제는 PLC 프로토콜 사이클에서만 성립한다 — 수동 RUN/배치런은 프로토콜 사이클이 아니므로 이후 z_index 트리거가 전혀 오지 않고, z=0 이 유일한 실행 기회다. 이 사이트는 Z모터가 없는 수동 지그이며(`manual-jig-offline-inspect` 메모리 참고) RUN 버튼이 실제 운영 워크플로이므로, 이 회귀는 68-12 완료 직후 사실상 운영 불가 상태를 만들었다.
+
+**수정:** `InspectionSequence` 에 `IsProtocolDrivenCycle()` (`RequestPacket != null`) 예측자를 신설. `ShouldSkipMeasurementAfterDatumPhase`의 z=0 대표트리거 분기(`FindZeroIndexDatumTriggerActionIndices` 호출)를 `IsProtocolDrivenCycle()==true` 일 때만 적용하도록 가드 추가 — 프로토콜이 아니면 즉시 `false` 반환(스킵 안 함, 68-12 이전 동작 그대로 복원). z>=1 크로스-Z 전용 경로(`IsDatumOnlyExecutionIndex`)는 별도 가드 불필요 — `packet==null` 이면 `ParseCurrentZIndex` 가 항상 `0` 을 반환하므로 그 함수 최상단의 `nZIndex==DATUM_Z_INDEX → return false` 가드가 이미 무조건 `false` 를 강제한다(해당 분기는 `RequestPacket==null` 조건 하에서 이미 도달 불가능한 `true` 경로였음을 코드 분석으로 확인).
+
+**네 경로 결과(수정 후):**
+| 경로 | packet | Grab/Measure 실행 |
+|---|---|---|
+| 수동 RUN 버튼 (`InspectionListView`) | null | O (복원됨) |
+| `RepeatRunService` 배치런 (`StartAll(null)`) | null | O (동일 가드로 자동 복원) |
+| 프로토콜 `$TEST(z=0)` | non-null | 대표트리거 Shot 은 skip 유지(68-12 의도 보존) |
+| 프로토콜 `$TEST(z>=1)` | non-null | 정상 실행(무변경) |
+
+**증상:** RUN 버튼으로 측정 시작 시 Datum 로그만 찍히고 모든 측정값이 `—` 로 남음, `TryExecuteMeasurement` 미도달(사용자 디버거로 확인).
+
+**커밋:** `fix(68-12): restrict z=0 measurement skip to protocol-driven cycles (manual RUN regression)`

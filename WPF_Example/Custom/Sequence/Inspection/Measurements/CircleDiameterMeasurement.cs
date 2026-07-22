@@ -194,6 +194,10 @@ namespace ReringProject.Sequence
                 if (name == "Circle_PolarEdgeSelection") return true;
                 if (name == "Circle_PolarEdgeSelectionList") return true;
             }
+            else {
+                // radialDir non-empty(polar): polarity = MapRadialDirectionToHalconPolarity 파생 → EdgePolarity 미참조 → hide (legacy fit 경로에서만 표시).
+                if (name == "EdgePolarity") return true;
+            }
             return false;
         }
         public System.ComponentModel.AttributeCollection GetAttributes() { return System.ComponentModel.TypeDescriptor.GetAttributes(this, true); }

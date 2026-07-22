@@ -233,6 +233,17 @@ namespace ReringProject {
             bool bIsDatumZIndex = _lastPrepZIndex == DATUM_TEST_Z_INDEX;
             if (bIsDatumZIndex)
             {
+                //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소 리셋을 z=0 응답 생성 시점
+                //  (InspectionSequence.ResetCycleState, 모든 z=0 Action 실행이 끝난 뒤)에서 여기 z=0 $TEST
+                //  수신 즉시(StartAll=z=0 Action 실행 시작 전)로 이동한다 — role A 이미지가 같은 z=0 tick의
+                //  응답 단계에서 지워지지 않고 z=1 도착까지 살아남게 하기 위함. 캐스트 실패(방어적, 미도달)면
+                //  리셋 없이 StartAll 만 수행.
+                InspectionSequence inspDatumSeq = seq as InspectionSequence;
+                bool bIsInspSeq = inspDatumSeq != null;
+                if (bIsInspSeq)
+                {
+                    inspDatumSeq.BeginCrossZImageCycle();
+                }
                 return seq.StartAll(packet);
             }
             InspectionSequence inspSeq = seq as InspectionSequence; //260722 hbk dynamic-FAI 런타임 타입은 항상 InspectionSequence

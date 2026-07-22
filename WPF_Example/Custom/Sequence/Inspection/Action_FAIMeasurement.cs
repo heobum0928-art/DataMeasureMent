@@ -1017,9 +1017,50 @@ namespace ReringProject.Sequence {
             return shotName + "|" + measName;
         }
 
+        //260722 hbk Phase 68 GAP-4(68-GAP-ANALYSIS.md 사후발견): SIMUL_MODE 크로스-Z role별 이미지 대체.
+        //  SIMUL_MODE 에서 Shot 은 SimulImagePath 단일 고정 이미지만 가져(1-Shot-1-file) role A(ZIndexA tick)/
+        //  role B(ZIndexB tick) 가 매 tick ShotParam.GetImage() 를 호출해도 항상 동일 이미지를 반환한다 — 크로스-Z
+        //  거리계산 전제(서로 다른 두 Z 위치 이미지)가 SIMUL 에서 구조적으로 성립 불가능해 UAT 검증이 막혀 있었다
+        //  (사용자 디버거 실측: TakeCrossZImageCopy 로 취득한 imgA/imgB 가 동일 사진이었음).
+        //  대체 소스는 기존 static DualImage 경로가 이미 쓰는 두 필드를 재사용(신규 필드 도입 없음):
+        //  role A(ZIndexA tick) → TeachingImagePath_Horizontal, role B(ZIndexB tick) → TeachingImagePath_Vertical.
+        //  경로 미설정/파일없음 → 기존 ShotParam.GetImage() 라이브 폴백(이 두 경로를 설정 안 한 기존 레시피는 회귀 0).
+        //  비-SIMUL(실장비): 절대 변경 없음 — 항상 ShotParam.GetImage(). PLC 가 실제로 Z축을 이동했으므로 라이브
+        //  grab 이 role 마다 실제로 달라지는 것이 이 기능(크로스-Z)의 전제이기 때문.
+        private HImage LoadCrossZRoleImage(bool bIsRoleA, DualImageEdgeDistanceMeasurement dualMeas)
+        {
+            #if SIMUL_MODE
+            string szRoleTeachingPath;
+            if (bIsRoleA) szRoleTeachingPath = dualMeas.TeachingImagePath_Horizontal;
+            else szRoleTeachingPath = dualMeas.TeachingImagePath_Vertical;
+            bool bRoleTeachingPathValid = !string.IsNullOrEmpty(szRoleTeachingPath) && File.Exists(szRoleTeachingPath);
+            if (!bRoleTeachingPathValid)
+            {
+                string szRoleLabel;
+                if (bIsRoleA) szRoleLabel = "A(Horizontal)";
+                else szRoleLabel = "B(Vertical)";
+                Logging.PrintLog((int)ELogType.Trace, "[FAI CrossZ] SIMUL role " + szRoleLabel + " 교시 이미지 미설정 — 라이브 이미지로 폴백(회귀 0)");
+                return ShotParam.GetImage();
+            }
+            try
+            {
+                return new HImage(szRoleTeachingPath);
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintErrLog((int)ELogType.Error, "[FAI CrossZ] SIMUL role 교시 이미지 로드 실패(" + szRoleTeachingPath + "): " + ex.Message + " — 라이브 이미지로 폴백");
+                return ShotParam.GetImage();
+            }
+            #else
+            return ShotParam.GetImage();
+            #endif
+        }
+
         //260722 hbk Phase 68 D-02a: 크로스-Z 캡처 tick 처리 — 이 측정과 무관(bRelevant=false) / 캡처 실패
-        //  (bCaptureOk=false) / 완성 여부(bCompleted) 3-state 판정. 새 grab 호출 없음 — EStep.DatumPhase(GrabSyncLock
-        //  안)에서 이미 확보된 ShotParam.GetImage() 클론만 재사용(lock 위반 없음, shared-lighthandler-race 준수).
+        //  (bCaptureOk=false) / 완성 여부(bCompleted) 3-state 판정. 새 라이브 grab 호출 없음 — EStep.DatumPhase
+        //  (GrabSyncLock 안)에서 이미 확보된 ShotParam.GetImage() 클론 재사용이 기본(lock 위반 없음, shared-
+        //  lighthandler-race 준수). SIMUL_MODE 에서 role별 교시 경로가 설정돼 있으면 LoadCrossZRoleImage(GAP-4)
+        //  가 대신 그 파일에서 로드 — 파일 읽기이므로 GrabSyncLock/라이브 캡처와 무관, lock 계약 영향 없음.
         //  완성(bCompleted=true) 이면 호출부가 TryExecuteCrossZMeasurement 로 이어간다.
         private void ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, out bool bRelevant, out bool bCaptureOk, out bool bCompleted)
         {
@@ -1042,7 +1083,7 @@ namespace ReringProject.Sequence {
             string roleKey;
             if (bIsRoleA) roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_A;
             else roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_B;
-            using (HImage capturedImage = ShotParam.GetImage())
+            using (HImage capturedImage = LoadCrossZRoleImage(bIsRoleA, dualMeas))
             {
                 if (capturedImage == null)
                 {

@@ -74,6 +74,11 @@ namespace ReringProject.Sequence {
         private const int CROSS_Z_UNSET = -1;        //260722 hbk Phase 68 D-09: ZIndexA/B 미설정 sentinel (매직넘버 상수화)
         private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
         private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
+        //260722 hbk Phase 68 GAP-3(68-10, 지침 #6): 한 사이클에 즉시-F 가 최대 1회만 나가도록 하는 latch.
+        //  z=0 즉시-F 분기(BuildDatumShotResponse)와 완성 index 재평가(TryApplyCrossZDatumImmediateFail) 양쪽
+        //  모두 세팅 — 어느 한쪽만 세팅하면 한 사이클에 F 가 2번 나가는 중복-F blocking 회귀 발생(T-68-11).
+        //  ResetCycleState(z=0 리셋)에서 초기화되어 다음 부품으로 누수되지 않는다(T-68-13).
+        private bool m_bImmediateFailSent = false;
         private int m_nCurrentZIndex = 0;            // 이번 $TEST z_index (RequestPacket.TestID 파싱 결과)
         private int m_nLastZIndex = 0;               // 레시피 Shot z_index 최댓값 = 마지막 Index (D-03, ComputeLastZIndex 산출)
 
@@ -644,6 +649,7 @@ namespace ReringProject.Sequence {
         {
             m_bCycleHasNG = false;
             m_bCycleDatumFailed = false;
+            m_bImmediateFailSent = false;   //260722 hbk Phase 68 GAP-3(68-10, T-68-13): latch 도 사이클 시작에 초기화 — 다음 부품으로 누수 방지.
             m_nCurrentZIndex = 0;
             m_nLastZIndex = 0;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무 //260623 hbk
         }
@@ -1017,6 +1023,8 @@ namespace ReringProject.Sequence {
                 // 즉시 F — 후속 Index skip 은 핸들러 주도(D-05). IsBuffer=false + Result=NG → 직렬화 'F'.
                 packet.IsBuffer = false;
                 packet.Result = EVisionResultType.NG;
+                m_bImmediateFailSent = true;   //260722 hbk Phase 68 GAP-3(68-10, 지침 #6/T-68-11): z=0 즉시-F 도 latch 세팅 —
+                                                //  완성 index 재평가(TryApplyCrossZDatumImmediateFail)가 중복 F 를 또 보내지 않도록.
                 return packet;
             }
             // 정상 Datum 샷 → 빈 응답 RESULT:site;B;0; (FAIResults 비어있음 → FAICount=0).
@@ -1096,6 +1104,7 @@ namespace ReringProject.Sequence {
             int nMatchedShots = AggregateIndexFais(recipeManager, nZIndex, packet);
             WarnIfEmptyScope(packet, nMatchedShots, nZIndex);   // BLOCKER 1: ZIndex 매칭 0건 경고(조용한 빈 B 금지)
             ApplyCycleJudgement(packet, bIsLastIndex, nMatchedShots);   // B vs 종합 P/F (D-03/불변식), WR-01: 매칭 0건 전달
+            TryApplyCrossZDatumImmediateFail(packet, nZIndex);   //260722 hbk Phase 68 GAP-3(68-10): 완성 index 크로스-Z Datum 실패 재평가(게이팅, 기본 OFF no-op)
             pMyContext.ResultInfo = packet.Result;
             return packet;
         }
@@ -1127,6 +1136,46 @@ namespace ReringProject.Sequence {
                 return System.Math.Max(datum.ZIndexA, datum.ZIndexB);
             }
             return CROSS_Z_UNSET;
+        }
+
+        //260722 hbk Phase 68 GAP-3(68-10, 지침 #6/#7, 68-GAP-ANALYSIS.md): 완성 index(GetDatumCompletionZIndex,
+        //  Side 는 z=1) 응답 생성 시점에 크로스-Z Datum 실패를 재평가 — z=0 에서만 산출되던 m_bCycleDatumFailed 가
+        //  크로스-Z Datum(실제 검출은 완성 index 에서 일어남)엔 "즉시 F" 계약을 이행 못 하던 GAP-3 근본원인 수정.
+        //  게이팅(T-68-12): EnableCrossZDatumImmediateFail(기본 false) — Vision-Protocol-v1.0.md 는 Datum(Idx0)
+        //  단일위치만 명시, z>=1 F 를 PLC 가 올바르게 해석하는지 근거 없음 → 제어팀 합의 전까지 기본 OFF 로 no-op.
+        //  latch(T-68-11): m_bImmediateFailSent 이미 세팅(z=0 즉시-F 분기에서)이면 재평가 없이 즉시 return —
+        //  한 사이클 최대 1회 F 만 나가도록 보장(중복-F 방지).
+        private void TryApplyCrossZDatumImmediateFail(TestResultPacket packet, int nZIndex)
+        {
+            bool bFlagOn = SystemHandler.Handle.Setting.EnableCrossZDatumImmediateFail && SystemHandler.Handle.Setting.UseProtocolV1;
+            if (!bFlagOn)
+            {
+                return;
+            }
+            if (m_bImmediateFailSent)
+            {
+                return;
+            }
+            foreach (var datum in DatumConfigs)
+            {
+                bool bDatumNull = datum == null;
+                if (bDatumNull)
+                {
+                    continue;
+                }
+                int nCompletionZIndex = GetDatumCompletionZIndex(datum);
+                bool bIsCrossZDatum = nCompletionZIndex != CROSS_Z_UNSET;
+                bool bCompletesHere = bIsCrossZDatum && nCompletionZIndex == nZIndex;
+                bool bFailed = IsDatumFailed(datum.DatumName);
+                bool bImmediateFailHere = bCompletesHere && bFailed;
+                if (bImmediateFailHere)
+                {
+                    packet.IsBuffer = false;
+                    packet.Result = EVisionResultType.NG;
+                    m_bImmediateFailSent = true;
+                    return;
+                }
+            }
         }
 
         //260722 hbk Phase 68 Task4(BLOCKER): shot 이 소유한 측정 중 크로스-Z 이고 완성 index==nZIndex 인 것이

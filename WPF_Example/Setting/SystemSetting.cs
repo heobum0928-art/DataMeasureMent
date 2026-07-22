@@ -111,6 +111,13 @@ namespace ReringProject.Setting {
         [Category("Connection|Protocol")]
         public bool UseProtocolV1 { get; set; } = false;
 
+        //260722 hbk Phase 68 GAP-3(68-10, 지침 #7): 크로스-Z Datum(2위치, 완성 index>=1) 실패 시 완성 index 에서
+        // 즉시 F 를 보낼지 게이팅. 기본 false — Vision-Protocol-v1.0.md 는 Datum(Idx0) 단일위치만 명시하므로
+        // z>=1 F 를 PLC 가 올바르게 해석하는지 제어팀 합의 전까지 OFF. bool 기본 false → INI 누락 시 자동 OFF
+        // (Load 오버라이드 불필요, UseProtocolV1 과 동일 계약).
+        [Category("Connection|Protocol")]
+        public bool EnableCrossZDatumImmediateFail { get; set; } = false;
+
         //260622 hbk Phase 48
         // PROTO-01: PC 역할 (D-03 빌드 상수 대신 설정 지정). 1=PC1(TOP/BOTTOM), 2=PC2(SIDE_1/SIDE_2).
         [Category("Connection|Server")]

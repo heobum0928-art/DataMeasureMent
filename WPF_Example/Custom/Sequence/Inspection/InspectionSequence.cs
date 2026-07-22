@@ -976,6 +976,53 @@ namespace ReringProject.Sequence {
             triggerIndices.Add(nFirstOwnedIndex);
         }
 
+        //260722 hbk Phase 68(68-12, 68-GAP-ANALYSIS.md 후속): z=0(Datum) 자신에서 이 시퀀스의 대표 Datum
+        //  트리거 Action(들)을 해석 — FindDatumOnlyActionIndices(z>=1 크로스-Z 전용)와 달리 ZIndexA/ZIndexB
+        //  필터를 두지 않는다. 일반(비-크로스-Z) Datum 은 ZIndexA/B 개념 자체가 없어(-1/-1) 그 필터로는 절대
+        //  매칭되지 않지만, z=0 이 곧 그 Datum 의 검출 시점이라는 사실만으로 대표 Action 이 필요하기 때문이다.
+        //  AddDatumTriggerActionIndex(SourceShotName 역추적 + 미해결시 로그폴백)를 그대로 재사용해 로직 중복을 피한다(D-09).
+        public List<int> FindZeroIndexDatumTriggerActionIndices()
+        {
+            var triggerIndices = new HashSet<int>();
+            bool bHasActions = Actions != null;
+            if (!bHasActions)
+            {
+                return new List<int>();
+            }
+            foreach (var datum in DatumConfigs)
+            {
+                bool bDatumNull = datum == null;
+                if (bDatumNull)
+                {
+                    continue;
+                }
+                AddDatumTriggerActionIndex(datum, triggerIndices);
+            }
+            return new List<int>(triggerIndices);
+        }
+
+        //260722 hbk Phase 68(68-12): z=0 대표 트리거 실행 후 이 Action 의 Grab/Measure 를 건너뛸지 판정하는
+        //  단일 진입점 — 기존 IsDatumOnlyExecutionIndex(z>=1 크로스-Z 전용 경로, 무변경)와 신규 z=0 대표트리거
+        //  경로를 OR 결합한다. IsDatumOnlyExecutionIndex 를 직접 수정하지 않는 이유: 그 술어의 계약("크로스-Z
+        //  Datum 만 쓰고 일반 실행 매칭 없음")은 일반(비-크로스-Z) Datum 에는 애초에 성립하지 않는 개념이며,
+        //  IsZIndexUsedByCrossZDatum 은 WarnIfEmptyScope/GAP-1 BuildDeclaredZIndexSet 도 소비하므로 억지로
+        //  의미를 넓히면 그 소비처들의 의미까지 오염시킬 위험이 있다(68-12-PLAN.md investigation_findings) —
+        //  그래서 이 메서드가 병행 경로로 OR 만 담당한다.
+        public bool ShouldSkipMeasurementAfterDatumPhase(int nZIndex)
+        {
+            bool bIsCrossZDatumOnly = IsDatumOnlyExecutionIndex(nZIndex);
+            if (bIsCrossZDatumOnly)
+            {
+                return true;
+            }
+            bool bIsZeroIndex = nZIndex == DATUM_Z_INDEX;
+            if (!bIsZeroIndex)
+            {
+                return false;
+            }
+            return FindZeroIndexDatumTriggerActionIndices().Count > 0;
+        }
+
         //260623 hbk Phase 49 PROTO-03 (D-08): RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.
         //  파싱 실패/미수신/음수 → 0(Datum/Idx0 폴백) 으로 안전 정규화 (T-49-03 mitigation).
         private int ParseCurrentZIndex()

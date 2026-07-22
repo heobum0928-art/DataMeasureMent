@@ -1141,8 +1141,9 @@ namespace ReringProject.Sequence {
         //260722 hbk Phase 68 GAP-3(68-10, 지침 #6/#7, 68-GAP-ANALYSIS.md): 완성 index(GetDatumCompletionZIndex,
         //  Side 는 z=1) 응답 생성 시점에 크로스-Z Datum 실패를 재평가 — z=0 에서만 산출되던 m_bCycleDatumFailed 가
         //  크로스-Z Datum(실제 검출은 완성 index 에서 일어남)엔 "즉시 F" 계약을 이행 못 하던 GAP-3 근본원인 수정.
-        //  게이팅(T-68-12): EnableCrossZDatumImmediateFail(기본 false) — Vision-Protocol-v1.0.md 는 Datum(Idx0)
-        //  단일위치만 명시, z>=1 F 를 PLC 가 올바르게 해석하는지 근거 없음 → 제어팀 합의 전까지 기본 OFF 로 no-op.
+        //  게이팅(T-68-12): EnableCrossZDatumImmediateFail(체크포인트 결정 enable-after-agreement, 기본 true) —
+        //  Vision-Protocol-v1.0.md 판정표 F 행 "PLC 동작"은 index 무관 "NG 처리" 단일 규정(PLC 는 B vs P/F 만
+        //  분기, index 로 분기하지 않음) → z>=1 F 도 index 0 과 동일하게 처리되어 제어팀 합의 근거로 ON 확정.
         //  latch(T-68-11): m_bImmediateFailSent 이미 세팅(z=0 즉시-F 분기에서)이면 재평가 없이 즉시 return —
         //  한 사이클 최대 1회 F 만 나가도록 보장(중복-F 방지).
         private void TryApplyCrossZDatumImmediateFail(TestResultPacket packet, int nZIndex)

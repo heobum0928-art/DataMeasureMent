@@ -562,13 +562,18 @@ namespace ReringProject.Sequence {
 
         //260623 hbk Phase 49 PROTO-05 (D-08): Index 0(Datum 샷) 수신 = 사이클 시작 → 누적 상태 클린 슬레이트.
         //  비정상 종료(중단 F) 후에도 다음 사이클 시작이 항상 깨끗 — 마지막 Index 후 리셋(누락 위험) 미채택.
+        //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소 clear 는 여기서 더 이상 호출하지 않는다 —
+        //  BeginCrossZImageCycle()(z=0 $TEST 수신 즉시, Action 실행 전)으로 이동됨. 이 메서드는 z=0 응답 생성
+        //  시점(HandleDatumIndexResponse, 모든 z=0 Action 실행이 끝난 뒤)에 호출되므로, 여기서 크로스-Z를 clear하면
+        //  같은 z=0 tick에서 방금 StoreCrossZImage로 저장한 role A 이미지가 z=1 도착 전에 지워져 크로스-Z Datum
+        //  검출이 구조적으로 불가능해진다(FIX-0 버그). m_bCycleHasNG/m_bCycleDatumFailed 는 응답 생성 시점에만
+        //  write 되므로(ClassifyMeasurement/DetectDatumFailure) 여기 리셋은 그대로 안전하다.
         private void ResetCycleState()
         {
             m_bCycleHasNG = false;
             m_bCycleDatumFailed = false;
             m_nCurrentZIndex = 0;
             m_nLastZIndex = 0;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무 //260623 hbk
-            ClearCrossZImages();  //260722 hbk Phase 68 D-03: 크로스-Z 저장 이미지도 사이클 시작(z=0)에 Dispose+Clear(누수 0)
         }
 
         //260722 hbk Phase 68 D-02a: 기존 키에 이미지가 있으면 Dispose 후 image.CopyImage() 를 저장(소유 클론,
@@ -638,7 +643,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 D-03: 사이클 시작(z=0, ResetCycleState) 전용 리셋 — 전 엔트리 Dispose 후 Clear.
+        //260722 hbk Phase 68 D-03: 사이클 시작(z=0, BeginCrossZImageCycle) 전용 리셋 — 전 엔트리 Dispose 후 Clear.
         //  Z2 미도달(PLC 중단/스킵)해도 다음 부품의 z=0 도착 시 자동 정리되어 누수 없음(T-68-05 mitigation).
         private void ClearCrossZImages()
         {
@@ -654,6 +659,17 @@ namespace ReringProject.Sequence {
                 }
                 m_dicCrossZImages.Clear();
             }
+        }
+
+        //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소의 유일한 clear 진입점 — z=0 $TEST 수신
+        //  즉시(그 tick의 Action 실행 시작 전, Custom/SystemHandler.StartV1Scoped z=0 분기)에 1회 호출된다.
+        //  왜 여기서(응답 생성 시점 아님): z=0 DatumPhase 가 role A 를 저장하기 전에 저장소를 클린 슬레이트로
+        //  만들어야 하고, 그렇게 저장된 role A 는 z=0 응답 시점의 ResetCycleState() 에 더 이상 영향받지 않고
+        //  z=1(role B) 도착까지 살아남아야 한다. public: Custom/SystemHandler.StartV1Scoped(다른 클래스)가 직접
+        //  호출 — ApplyShotLights/FindActionIndicesByZIndex 와 동일 cross-class 노출 컨벤션(Plan 02 선례).
+        public void BeginCrossZImageCycle()
+        {
+            ClearCrossZImages();
         }
 
         //260722 hbk Phase 68 D-02a: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST

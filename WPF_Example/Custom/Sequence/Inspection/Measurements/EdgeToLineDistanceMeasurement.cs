@@ -116,6 +116,7 @@ namespace ReringProject.Sequence
 
             var svc = new VisionAlgorithmService();
             double pr1, pc1, pr2, pc2;
+            List<System.ValueTuple<double, double>> collectedEdgePoints = new List<System.ValueTuple<double, double>>();
             // strip-loop(stripCount 기본 20)가 First/Last 도 strip 마다 1점씩 누적 → 라인 피팅 충분.
             //  edgeCount<2 안전 가드는 VisionAlgorithmService.TryFitLine 에 유지.
             if (!svc.TryFitLine(image,
@@ -124,11 +125,11 @@ namespace ReringProject.Sequence
                 EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
                 EdgeDirection, EdgePolarity,
                 out pr1, out pc1, out pr2, out pc2, out error,
-                EdgeSelection))
+                EdgeSelection, collectedEdgePoints))
             {
                 return false;
             }
-            double pRow = (pr1 + pr2) / 2.0;
+            double pRow = (pr1 + pr2) / 2.0; // 폴백(수집점 없음/전투영실패)·레거시경로용 중점
             double pCol = (pc1 + pc2) / 2.0;
 
             // 측정값 = 에지 중점에서 datum 기준선에 내린 수선의 길이 (HALCON projection_pl).
@@ -197,38 +198,93 @@ namespace ReringProject.Sequence
                     axisR2 = DatumOriginRow + 200.0 * sinT;
                     axisC2 = DatumOriginCol + 200.0 * cosT;
                 }
-                try
+                // per-edge-point signed projection 평균: collectedEdgePoints 각각을 axis(axisR1..axisC2) 에 투영,
+                //  부호식은 기존 3분기(measureX+useAngle2 / measureX 폴백 / Y)를 항별 그대로 재사용한다.
+                double sumSignedPx = 0.0, sumFootRow = 0.0, sumFootCol = 0.0, sumPtRow = 0.0, sumPtCol = 0.0;
+                int nPts = 0;
+                foreach (var ep in collectedEdgePoints)
                 {
-                    HTuple prRow, prCol;
-                    HOperatorSet.ProjectionPl(pRow, pCol, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol); // 에지 중점을 datum 기준선에 정사영
-                    footRow = prRow.D;
-                    footCol = prCol.D;
+                    double er = ep.Item1, ec = ep.Item2;
+                    try
+                    {
+                        HTuple prRow, prCol;
+                        HOperatorSet.ProjectionPl(er, ec, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol);
+                        double fr = prRow.D;
+                        double fc = prCol.D;
+                        double signedPtPx;
+                        if (measureX) // +X 오른쪽 양수
+                        {
+                            if (useAngle2) // axis (sinθ2,cosθ2) 의 우측 법선 (cosθ2,-sinθ2)
+                            {
+                                signedPtPx = (er - fr) * cosT - (ec - fc) * sinT;
+                            }
+                            else // 폴백: (sinθ, cosθ) 공식 (datum x축 방향 성분)
+                            {
+                                signedPtPx = (er - fr) * sinT + (ec - fc) * cosT;
+                            }
+                        }
+                        else // +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
+                        {
+                            signedPtPx = (er - fr) * (-cosT) + (ec - fc) * sinT;
+                        }
+                        sumSignedPx += signedPtPx;
+                        sumFootRow += fr;
+                        sumFootCol += fc;
+                        sumPtRow += er;
+                        sumPtCol += ec;
+                        nPts++;
+                    }
+                    catch
+                    {
+                        // 이 점 투영 실패 — skip, 나머지 점으로 계속
+                    }
+                }
+                if (nPts >= 1)
+                {
+                    resultValue = (sumSignedPx / nPts) * pixelResolution;
+                    pRow = sumPtRow / nPts;   // 표시용 — 수집점 평균 (resultValue 수학과 무관)
+                    pCol = sumPtCol / nPts;
+                    footRow = sumFootRow / nPts;
+                    footCol = sumFootCol / nPts;
                     footOk = true;
                 }
-                catch
+                else
                 {
-                    // projection 실패 시 foot=에지점 유지 → 측정값 0, FAI-DistLine skip
-                }
-                double signedPx; // 수선의 발→에지점 변위의 부호 있는 거리 성분
-                if (measureX) // +X 오른쪽 양수
-                {
-                    if (useAngle2) // axis (sinθ2,cosθ2) 의 우측 법선 (cosθ2,-sinθ2)
+                    // 폴백: collectedEdgePoints 비었거나 모든 투영 실패 — 기존 단일-중점 동작 그대로
+                    try
                     {
-                        signedPx = (pRow - footRow) * cosT - (pCol - footCol) * sinT;
+                        HTuple prRow, prCol;
+                        HOperatorSet.ProjectionPl(pRow, pCol, axisR1, axisC1, axisR2, axisC2, out prRow, out prCol); // 에지 중점을 datum 기준선에 정사영
+                        footRow = prRow.D;
+                        footCol = prCol.D;
+                        footOk = true;
                     }
-                    else // 폴백: (sinθ, cosθ) 공식 (datum x축 방향 성분)
+                    catch
                     {
-                        signedPx = (pRow - footRow) * sinT + (pCol - footCol) * cosT;
+                        // projection 실패 시 foot=에지점 유지 → 측정값 0, FAI-DistLine skip
                     }
+                    double signedPx; // 수선의 발→에지점 변위의 부호 있는 거리 성분
+                    if (measureX) // +X 오른쪽 양수
+                    {
+                        if (useAngle2) // axis (sinθ2,cosθ2) 의 우측 법선 (cosθ2,-sinθ2)
+                        {
+                            signedPx = (pRow - footRow) * cosT - (pCol - footCol) * sinT;
+                        }
+                        else // 폴백: (sinθ, cosθ) 공식 (datum x축 방향 성분)
+                        {
+                            signedPx = (pRow - footRow) * sinT + (pCol - footCol) * cosT;
+                        }
+                    }
+                    else // +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
+                    {
+                        signedPx = (pRow - footRow) * (-cosT) + (pCol - footCol) * sinT;
+                    }
+                    resultValue = signedPx * pixelResolution;
                 }
-                else // +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
-                {
-                    signedPx = (pRow - footRow) * (-cosT) + (pCol - footCol) * sinT;
-                }
-                resultValue = signedPx * pixelResolution;
             }
             else // 레거시/무보정 폴백: AffineTransPoint2d (DatumRef 빈 문자열 또는 구버전 호출 경로)
             {
+                // per-point 평균 미적용 이유: AffineTransPoint2d 는 선형 사상 → per-point 평균 == 중점(pRow/pCol) 변환이 수학적으로 동일.
                 // Datum-relative Y 좌표 추출 + D-02 부호 반전 (image row → +Y 위쪽 양수)
                 double datumRow = pRow;
                 try

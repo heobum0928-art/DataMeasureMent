@@ -538,7 +538,15 @@ namespace ReringProject.Sequence {
             bool bIsRoleB = nCurZ == datum.ZIndexB;
             bool bRelevant = bIsRoleA || bIsRoleB;
             if (!bRelevant) {
-                bPending = true; // 이 tick 은 이 datum 의 ZIndexA/B 어느 쪽도 아님 — 상태변화 없음(안전망)
+                //260722 hbk Phase 68 CROSS-1(68-GAP-ANALYSIS.md): 소비 index(자기 ZIndexA/B 아님, 예 z=2 측정)
+                //  — ClearDatumTransforms 가 매 Action 의 EStep.DatumPhase 진입마다 _datumTransforms 를 비우므로,
+                //  여기서 재검출 없이 그냥 skip 하면 ResolveDatumTransform 이 identity 로 조용히 폴백해 무보정
+                //  측정이 정상 측정처럼 P/F 를 낸다. 양 role 이 저장소에 이미 있으면 결정론적으로 재검출한다.
+                bool bBothStored = IsCrossZDatumBothStored(datum, parentSeq);
+                if (bBothStored) {
+                    return TryReDetectCrossZDatumFromStore(datum, parentSeq, out imageHorizontal, out imageVertical);
+                }
+                bPending = true; // 저장 미완성 + 이 tick 무관 — 상태변화 없음(안전망)
                 return false;
             }
             if (!CaptureAndStoreCrossZDatumImage(datum, parentSeq, bIsRoleA)) {
@@ -568,14 +576,52 @@ namespace ReringProject.Sequence {
             imageHorizontal = null;
             imageVertical = null;
             bPending = false;
-            string baseKey = BuildCrossZDatumKey(datum);
-            string keyA = baseKey + CROSS_Z_ROLE_SUFFIX_A;
-            string keyB = baseKey + CROSS_Z_ROLE_SUFFIX_B;
+            string keyA, keyB;
+            ResolveCrossZDatumRoleKeys(datum, out keyA, out keyB);
             bool bCompleted = parentSeq.HasCrossZImage(keyA) && parentSeq.HasCrossZImage(keyB);
             if (!bCompleted) {
                 bPending = true; // Z1(비완성 index): 캡처만 — 실패 아님
                 return false;
             }
+            return TryTakeCrossZImageClones(keyA, keyB, parentSeq, out imageHorizontal, out imageVertical);
+        }
+
+        // 크로스-Z 저장소 키 = "DATUM|" 접두사 + DatumName — 측정 키(ShotName|MeasName)와 네임스페이스 구분(충돌 방지).
+        private string BuildCrossZDatumKey(DatumConfig datum) {
+            string datumName = "";
+            if (datum != null && datum.DatumName != null) {
+                datumName = datum.DatumName;
+            }
+            return CROSS_Z_DATUM_KEY_PREFIX + datumName;
+        }
+
+        // BuildCrossZDatumKey 단일 소스로부터 role(A/B) 키 두 개를 도출 — 키 도출 중복 순회 금지(D-09).
+        private void ResolveCrossZDatumRoleKeys(DatumConfig datum, out string keyA, out string keyB) {
+            string baseKey = BuildCrossZDatumKey(datum);
+            keyA = baseKey + CROSS_Z_ROLE_SUFFIX_A;
+            keyB = baseKey + CROSS_Z_ROLE_SUFFIX_B;
+        }
+
+        // 양 role(A/B) 저장 완료 여부만 판정(클론 미취득) — TryGrabOrLoadCrossZDatumImages 의 !bRelevant(소비 index)
+        //  분기가 재검출 여부를 게이트하는 데 사용(CROSS-1).
+        private bool IsCrossZDatumBothStored(DatumConfig datum, InspectionSequence parentSeq) {
+            string keyA, keyB;
+            ResolveCrossZDatumRoleKeys(datum, out keyA, out keyB);
+            return parentSeq.HasCrossZImage(keyA) && parentSeq.HasCrossZImage(keyB);
+        }
+
+        //260722 hbk Phase 68 CROSS-1: 크로스-Z Datum 소비 index(자기 ZIndexA/B 아님) 결정론적 재검출 —
+        //  양 role 이미지가 저장소에 이미 있을 때 클론을 반환해 호출부(EStep.DatumPhase)가 TryRunSingleDatum/
+        //  TryComposeAlign 을 그대로 재실행하도록 한다. 클론 소유권은 호출부 finally Dispose 계약(기존과 동일).
+        private bool TryReDetectCrossZDatumFromStore(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical) {
+            string keyA, keyB;
+            ResolveCrossZDatumRoleKeys(datum, out keyA, out keyB);
+            return TryTakeCrossZImageClones(keyA, keyB, parentSeq, out imageHorizontal, out imageVertical);
+        }
+
+        // 저장소 키 두 개로부터 클론 취득 공용 로직 — TryTakeCompletedCrossZDatumImages/TryReDetectCrossZDatumFromStore
+        //  가 공유(D-09 동일 로직 2회 이상 반복 금지). 한쪽만 취득 성공 시 누수 방지를 위해 양쪽 모두 Dispose.
+        private bool TryTakeCrossZImageClones(string keyA, string keyB, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical) {
             imageHorizontal = parentSeq.TakeCrossZImageCopy(keyA);
             imageVertical = parentSeq.TakeCrossZImageCopy(keyB);
             bool bBothLoaded = imageHorizontal != null && imageVertical != null;
@@ -587,15 +633,6 @@ namespace ReringProject.Sequence {
                 return false; // 완성 index 인데 클론 취득 실패 — 실제 실패
             }
             return true;
-        }
-
-        // 크로스-Z 저장소 키 = "DATUM|" 접두사 + DatumName — 측정 키(ShotName|MeasName)와 네임스페이스 구분(충돌 방지).
-        private string BuildCrossZDatumKey(DatumConfig datum) {
-            string datumName = "";
-            if (datum != null && datum.DatumName != null) {
-                datumName = datum.DatumName;
-            }
-            return CROSS_Z_DATUM_KEY_PREFIX + datumName;
         }
 
         // DualImageEdgeDistanceMeasurement 측정용 양 이미지 로드.

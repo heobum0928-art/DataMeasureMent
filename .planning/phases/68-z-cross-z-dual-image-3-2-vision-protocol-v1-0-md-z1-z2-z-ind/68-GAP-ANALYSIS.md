@@ -111,3 +111,17 @@ FIX-0/GAP-1/2/3을 전부 적용해도, z=1에서 Datum 검출이 성공해도 *
 **커밋:** 이 회귀에 대해 사실상 동일한 수정이 두 건 연속 커밋되었다(동일 프롬프트의 병행 실행으로 추정) — `4198b1e`(1차, 3단 if/else-if/else 재정렬만) 이어서 `e429466`(최종 — 동일 재정렬 + `ResolveFaiImageASource` 헬퍼 추출로 30줄 지침 준수). 현재 HEAD 상태는 `e429466` 기준이며 기능적으로 올바름을 빌드+코드리뷰로 확인함. 두 커밋 모두 기록 보존(히스토리 재작성 안 함) — 정리가 필요하면 사용자 판단으로 별도 처리 권고.
 
 **별개로 확인, 이번 수정 범위 아님:** cross-Z 캡처(`ProcessCrossZCaptureTick`)는 `TeachingImagePath_Horizontal`을 전혀 참조하지 않으므로 이 회귀와 무관 — 다만 `ShotParam.SimulImagePath`가 Shot당 고정 파일 1개뿐이라 SIMUL_MODE에서 ZIndexA/ZIndexB 두 시점에 구조적으로 서로 다른 이미지를 만들 수 없다는 기존 설계 갭(CROSS-1과는 별개)이 여전히 남아있음 — 사용자와 별도 논의 중.
+
+---
+
+## 사후발견 — GAP-4: SIMUL_MODE 크로스-Z role별 이미지 미구분 (측정 레벨, 수정 완료)
+
+**배경:** REGR-1의 "별개로 확인" 각주에 남아있던 SIMUL_MODE 설계 갭을 사용자가 직접 디버거로 재확인(`imgA`/`imgB` 가 `TakeCrossZImageCopy` 로 취득한 시점에 동일 사진) 요청, 2026-07-22 별도 세션에서 수정.
+
+**근본원인:** `ProcessCrossZCaptureTick`(`Action_FAIMeasurement.cs`, 측정 레벨 크로스-Z 캡처 tick)이 role A(ZIndexA tick)/role B(ZIndexB tick) 구분 없이 항상 `ShotParam.GetImage()` 를 호출했다. SIMUL_MODE 는 Shot 이 `SimulImagePath` 단일 고정 이미지만 가지므로(`EStep.Grab` 이 매 사이클 이 경로 하나만 로드), role A/B 가 물리적으로 서로 다른 Z 위치에서 촬영된 것처럼 동작해야 하는 이 기능의 전제가 SIMUL_MODE 에서는 구조적으로 성립할 수 없었다. 실장비(비-SIMUL)는 문제 없음 — PLC 가 실제 Z 를 이동시키므로 각 tick 의 라이브 grab 이 실제로 다르다.
+
+**수정:** `LoadCrossZRoleImage(bool bIsRoleA, DualImageEdgeDistanceMeasurement dualMeas)` 헬퍼를 신설해 `ProcessCrossZCaptureTick` 의 `ShotParam.GetImage()` 호출을 대체. `#if SIMUL_MODE` 게이트 안에서만: role A → `dualMeas.TeachingImagePath_Horizontal`, role B → `dualMeas.TeachingImagePath_Vertical` (신규 필드 도입 없이 static DualImage 경로가 이미 쓰는 두 필드를 재사용)에서 로드. 경로 미설정/파일없음 또는 로드 실패 시 기존 `ShotParam.GetImage()` 라이브 폴백(회귀 0 — 이 두 경로를 설정 안 한 레시피는 기존과 동일하게 동작). 비-SIMUL 경로는 완전히 무변경(`#else` 분기, 항상 `ShotParam.GetImage()`).
+
+**커밋:** `668ff9c` (`feat(68): SIMUL-mode per-role teaching images for cross-Z DualImage capture`)
+
+**Datum 레벨 동일 갭 — 아직 미수정(범위 밖):** `TryGrabOrLoadCrossZDatumImages` → `CaptureAndStoreCrossZDatumImage` → `GrabOrLoadDatumImage` 경로도 동일한 한계를 가진다. `GrabOrLoadDatumImage(datum)` 는 `bIsRoleA` 인자 자체를 받지 않으므로 role A/B tick 모두 `datum.TeachingImagePath`(SIMUL 폴백 `ShotParam.SimulImagePath`)에서 동일하게 로드한다 — 즉 Datum 크로스-Z 도 SIMUL_MODE 에서 role A/B 가 항상 동일 이미지가 된다. 이번 수정 범위 밖(측정 레벨만 요청받음) — Datum 레벨까지 확장할지는 별도 결정 필요. 확장 시 `datum.TeachingImagePath`(role A)/`datum.TeachingImagePath_Vertical`(role B, `VerticalTwoHorizontalDualImage` 알고리즘이 이미 갖는 필드) 재사용이 유력한 설계.

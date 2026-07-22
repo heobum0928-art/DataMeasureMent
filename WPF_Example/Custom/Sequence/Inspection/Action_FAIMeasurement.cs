@@ -653,24 +653,30 @@ namespace ReringProject.Sequence {
                 Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] meas 가 DualImageEdgeDistanceMeasurement 가 아닙니다");
                 return false;
             }
-            //260722 hbk Phase 68 D-08 버그수정: pathA 산출 우선순위를 3단 if/else-if/else 로 재정렬(D-09).
-            //  (1) ShotParam.HasImage(라이브 grab) 최우선 — GetImage() 클론을 imageA 로 직접 사용, 파일 재로드 스킵.
-            //  (2) TeachingImagePath_Horizontal 명시 경로  (3) ShotParam.SimulImagePath 폴백.
-            //  기존 버그: (1)을 전혀 확인하지 않아 이미 라이브로 확보된 이미지를 무시하고 매번 파일에서 재로드했음.
+            //260722 hbk Phase 68 D-08 회귀수정(D-09): pathA 우선순위 재정렬 — 명시 티칭 경로가 항상 최우선이어야 함.
+            //  회귀 원인: b28beca 가 ShotParam.HasImage 를 최우선으로 승격했으나, SIMUL_MODE/OfflineInspectMode(이 사이트의
+            //  실제 운영 모드, Z모터 없는 수동지그) 에서는 EStep.Grab 이 매 사이클 LoadShotInspectionImage()+SetImage() 를
+            //  거쳐 HasImage 가 Measure 시점엔 항상 true 임 → (2) TeachingImagePath_Horizontal 이 도달 불가능한 죽은 코드가 되어
+            //  운영자가 명시 지정한 PointROI 교시 이미지가 매번 무시됨(DualImage 측정값 미산출 증상).
+            //  올바른 우선순위: (1) TeachingImagePath_Horizontal 명시 경로 — 운영자 명시 설정은 절대 자동 override 되면 안 됨.
+            //  (2) ShotParam.HasImage(라이브 grab) — 명시 경로 없을 때만, 불필요한 파일 재로드 회피(D-08 원 의도 보존).
+            //  (3) ShotParam.SimulImagePath 폴백.
+            bool bHasExplicitTeachingPath = !string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal);
             bool bHasLiveImage = ShotParam.HasImage;
             string pathA = null;
-            if (bHasLiveImage) {
-                imageA = ShotParam.GetImage(); // 라이브 클론 — 소유권은 호출부(TryExecuteMeasurement finally)가 Dispose
+            if (bHasExplicitTeachingPath) {
+                pathA = dualMeas.TeachingImagePath_Horizontal; // Measurement 명시 경로 — 최우선
             }
-            else if (!string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal)) {
-                pathA = dualMeas.TeachingImagePath_Horizontal; // Measurement 명시 경로
+            else if (bHasLiveImage) {
+                imageA = ShotParam.GetImage(); // 라이브 클론 — 소유권은 호출부(TryExecuteMeasurement finally)가 Dispose
             }
             else {
                 pathA = ShotParam.SimulImagePath; // fallback
             }
             string pathB = dualMeas.TeachingImagePath_Vertical; // LineROI 이미지 = meas 별도 경로 (무변경)
 
-            bool bPathALoadNeeded = !bHasLiveImage; // 라이브로 이미 확보했으면 파일 경로 검증/로드 스킵
+            bool bLiveImageBranchTaken = bHasLiveImage && !bHasExplicitTeachingPath; // imageA 가 이미 라이브 클론으로 채워졌는지
+            bool bPathALoadNeeded = !bLiveImageBranchTaken; // 라이브 클론 미사용 시에만 pathA 파일 검증/로드
             bool bPathAInvalid = bPathALoadNeeded && (string.IsNullOrEmpty(pathA) || !File.Exists(pathA));
             if (bPathAInvalid) {
                 Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] PointROI 이미지 경로 비어 있거나 파일 없음 (SimulImagePath)");

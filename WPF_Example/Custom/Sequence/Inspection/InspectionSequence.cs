@@ -680,11 +680,222 @@ namespace ReringProject.Sequence {
             return ParseCurrentZIndex();
         }
 
-        //260722 hbk Phase 68 D-05: Action_FAIMeasurement(다른 클래스)가 크로스-Z 오설정(존재하지 않는 z_index
-        //  참조) 판정에 사용 — FindShotByZIndex(private) 의 존재 여부만 public 으로 노출(동일 cross-class 컨벤션).
+        //260722 hbk Phase 68 GAP-1/GAP-2 (68-GAP-ANALYSIS.md, D-09): "이 z_index 가 크로스-Z Datum 에 쓰이는가"의
+        //  단일 소스 헬퍼 — DatumConfigs 순회하여 ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 set 에 모은다.
+        //  BuildDeclaredZIndexSet(GAP-1 유니버스)과 IsDatumOnlyExecutionIndex(GAP-2 실행스코프)가 이 하나를 공유 —
+        //  유사 순회 헬퍼 난립 방지(지침 #4).
+        private HashSet<int> BuildCrossZDatumIndexSet()
+        {
+            var crossZSet = new HashSet<int>();
+            foreach (var datum in DatumConfigs)
+            {
+                bool bDatumNull = datum == null;
+                if (bDatumNull)
+                {
+                    continue;
+                }
+                bool bHasA = datum.ZIndexA != CROSS_Z_UNSET;
+                if (bHasA)
+                {
+                    crossZSet.Add(datum.ZIndexA);
+                }
+                bool bHasB = datum.ZIndexB != CROSS_Z_UNSET;
+                if (bHasB)
+                {
+                    crossZSet.Add(datum.ZIndexB);
+                }
+            }
+            return crossZSet;
+        }
+
+        //260722 hbk Phase 68 GAP-1/GAP-2 (D-09): BuildCrossZDatumIndexSet 의 membership 질의 wrapper.
+        private bool IsZIndexUsedByCrossZDatum(int nZIndex)
+        {
+            return BuildCrossZDatumIndexSet().Contains(nZIndex);
+        }
+
+        //260722 hbk Phase 68 GAP-1 (D-09): 한 FAI 의 Measurements 중 DualImageEdgeDistanceMeasurement 의
+        //  ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 declaredSet 에 추가. BuildDeclaredZIndexSet 의 sub-헬퍼(함수 30줄 가드).
+        private void AddFaiDeclaredZIndices(FAIConfig fai, HashSet<int> declaredSet)
+        {
+            bool bFaiNull = fai == null;
+            if (bFaiNull)
+            {
+                return;
+            }
+            foreach (var meas in fai.Measurements)
+            {
+                var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                bool bIsDualImage = dualMeas != null;
+                if (!bIsDualImage)
+                {
+                    continue;
+                }
+                bool bHasA = dualMeas.ZIndexA != CROSS_Z_UNSET;
+                if (bHasA)
+                {
+                    declaredSet.Add(dualMeas.ZIndexA);
+                }
+                bool bHasB = dualMeas.ZIndexB != CROSS_Z_UNSET;
+                if (bHasB)
+                {
+                    declaredSet.Add(dualMeas.ZIndexB);
+                }
+            }
+        }
+
+        //260722 hbk Phase 68 GAP-1 (D-09): 이 시퀀스 소유 Shot 1개의 own ZIndex + 소유 측정 ZIndexA/B 를
+        //  declaredSet 에 추가. BuildDeclaredZIndexSet 의 sub-헬퍼(함수 30줄 가드).
+        private void AddShotDeclaredZIndices(ShotConfig shot, HashSet<int> declaredSet)
+        {
+            bool bShotNull = shot == null;
+            if (bShotNull)
+            {
+                return;
+            }
+            bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+            if (!bOwnedByThisSeq)
+            {
+                return;
+            }
+            declaredSet.Add(shot.ZIndex);
+            foreach (var fai in shot.FAIList)
+            {
+                AddFaiDeclaredZIndices(fai, declaredSet);
+            }
+        }
+
+        //260722 hbk Phase 68 GAP-1(68-GAP-ANALYSIS.md 우선순위 1): "선언된 z_index 유니버스" — 이 시퀀스 소유
+        //  Shot own ZIndex + 그 Shot 이 소유한 측정 ZIndexA/B + Datum ZIndexA/B(BuildCrossZDatumIndexSet) 합집합.
+        //  ★ 위험 규칙 미포함(지침 #3): "완성 index(max(ZIndexA,ZIndexB))가 최대 shot.ZIndex 초과 시 오설정" 규칙은
+        //  Plan 03 BLOCKER(완성 index는 shot.ZIndex와 독립)를 다시 깨뜨리므로 절대 추가하지 않는다 — 여기선 순수 membership 만.
+        //  D-07: 전 add 는 != CROSS_Z_UNSET 게이트 하에서만 — ZIndexA/B 미설정 기존 레시피는 유니버스=Shot own ZIndex 집합으로 회귀 0.
+        private HashSet<int> BuildDeclaredZIndexSet()
+        {
+            var declaredSet = new HashSet<int>();
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            bool bHasManager = recipeManager != null;
+            if (bHasManager)
+            {
+                foreach (var shot in recipeManager.Shots)
+                {
+                    AddShotDeclaredZIndices(shot, declaredSet);
+                }
+            }
+            declaredSet.UnionWith(BuildCrossZDatumIndexSet());
+            return declaredSet;
+        }
+
+        //260722 hbk Phase 68 GAP-1: Action_FAIMeasurement(다른 클래스)가 크로스-Z 오설정(존재하지 않는 z_index
+        //  참조) 판정에 사용 — FindShotByZIndex(shot.ZIndex 단독) 위임을 제거하고 BuildDeclaredZIndexSet(선언 유니버스)
+        //  membership 으로 재작성. Side(z=1, Datum ZIndexB=1) / SHOT_E5(own ZIndex=0, 측정 ZIndexA=1) 모두 이 유니버스에 포함된다.
         public bool DoesZIndexExistInRecipe(int nZIndex)
         {
-            return FindShotByZIndex(nZIndex) != null;
+            return BuildDeclaredZIndexSet().Contains(nZIndex);
+        }
+
+        //260722 hbk Phase 68 GAP-2(68-GAP-ANALYSIS.md 우선순위 2): 오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1) 도착 시,
+        //  실행 스코프(FindActionIndicesByZIndex)가 매칭 0건이라도 StartAll 폴백 대신 datum-only 최소 실행으로 라우팅해야 함을 판정.
+        //  ★ 필수 가드(지침 #5): nZIndex==DATUM_Z_INDEX(z=0) 이면 최상단에서 무조건 false — D-01a(z=0 StartAll 전량 실행)가
+        //  datum-only 오판정으로 무너지는 것을 방지. 그 다음: 크로스-Z Datum 이 쓰는 index 이면서 동시에 일반 실행 매칭(own ZIndex/측정 ZIndexA/B)이
+        //  없는 경우만 true.
+        public bool IsDatumOnlyExecutionIndex(int nZIndex)
+        {
+            bool bIsDatumTestZIndex = nZIndex == DATUM_Z_INDEX;
+            if (bIsDatumTestZIndex)
+            {
+                return false;
+            }
+            bool bUsedByCrossZDatum = IsZIndexUsedByCrossZDatum(nZIndex);
+            bool bHasRegularExec = FindActionIndicesByZIndex(nZIndex).Count > 0;
+            return bUsedByCrossZDatum && !bHasRegularExec;
+        }
+
+        //260722 hbk Phase 68 GAP-2: datum-only index(IsDatumOnlyExecutionIndex==true) 에서 DatumPhase 만 트리거할
+        //  최소 Action 인덱스 목록 — DatumConfigs 중 ZIndexA/B==nZIndex 인 datum 의 SourceShotName 을 Actions[] 에서 역추적.
+        //  SourceShotName 미해결 datum 은 이 시퀀스 소유 첫 Action(가장 작은 owned index)을 트리거로 add(로그 명시) — DatumPhase 는
+        //  실행된 Action 하나에서 DatumConfigs 전체를 재검출하므로 '데이터' 오귀속(D-05 안티패턴)이 아니라 트리거용 Action 선택일 뿐이다.
+        public List<int> FindDatumOnlyActionIndices(int nZIndex)
+        {
+            var triggerIndices = new HashSet<int>();
+            bool bHasActions = Actions != null;
+            if (!bHasActions)
+            {
+                return new List<int>();
+            }
+            foreach (var datum in DatumConfigs)
+            {
+                bool bMatchesThisZIndex = datum != null && (datum.ZIndexA == nZIndex || datum.ZIndexB == nZIndex);
+                if (bMatchesThisZIndex)
+                {
+                    AddDatumTriggerActionIndex(datum, triggerIndices);
+                }
+            }
+            return new List<int>(triggerIndices);
+        }
+
+        //260722 hbk Phase 68 GAP-2: FindDatumOnlyActionIndices 의 sub-헬퍼(함수 30줄 가드) — 단일 datum 의 트리거 Action 인덱스 해석.
+        private void AddDatumTriggerActionIndex(DatumConfig datum, HashSet<int> triggerIndices)
+        {
+            int nFirstOwnedIndex;
+            int nResolvedIndex = FindOwnedActionIndexForSourceShot(datum, out nFirstOwnedIndex);
+            bool bResolved = nResolvedIndex != -1;
+            if (bResolved)
+            {
+                triggerIndices.Add(nResolvedIndex);
+                return;
+            }
+            AddFallbackTriggerWithLog(datum, nFirstOwnedIndex, triggerIndices);
+        }
+
+        //260722 hbk Phase 68 GAP-2: AddDatumTriggerActionIndex 의 sub-헬퍼(함수 30줄 가드) — Actions[] 순회하여
+        //  SourceShotName 매칭 인덱스를 찾는다. 매칭 없으면 -1 반환하되, 이 시퀀스 소유 첫 Action index 는 out 으로 남긴다(폴백용).
+        private int FindOwnedActionIndexForSourceShot(DatumConfig datum, out int nFirstOwnedIndex)
+        {
+            nFirstOwnedIndex = -1;
+            for (int i = 0; i < Actions.Length; i++)
+            {
+                var faiAct = Actions[i] as Action_FAIMeasurement;
+                ShotConfig shot = null;
+                if (faiAct != null)
+                {
+                    shot = faiAct.ShotParam;
+                }
+                bool bOwnedByThisSeq = shot != null && shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                if (nFirstOwnedIndex == -1)
+                {
+                    nFirstOwnedIndex = i;
+                }
+                bool bSourceShotMatch = !string.IsNullOrEmpty(datum.SourceShotName) && shot.ShotName == datum.SourceShotName;
+                if (bSourceShotMatch)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        //260722 hbk Phase 68 GAP-2: AddDatumTriggerActionIndex 의 sub-헬퍼(함수 30줄 가드) — SourceShotName 미해결 시
+        //  이 시퀀스 소유 첫 Action 을 트리거로 add 하고 로그로 명시(D-05 조용한 Shots[0] 안티패턴과 구분).
+        private void AddFallbackTriggerWithLog(DatumConfig datum, int nFirstOwnedIndex, HashSet<int> triggerIndices)
+        {
+            bool bHasFallback = nFirstOwnedIndex != -1;
+            if (!bHasFallback)
+            {
+                return;
+            }
+            string datumName = datum.DatumName;
+            if (datumName == null)
+            {
+                datumName = "";
+            }
+            Logging.PrintLog((int)ELogType.Error,
+                "[V1Scope] Datum '" + datumName + "' SourceShotName 미해결 — 첫 owned Action(index=" + nFirstOwnedIndex + ")을 DatumPhase 트리거로 사용. //260722 hbk");
+            triggerIndices.Add(nFirstOwnedIndex);
         }
 
         //260623 hbk Phase 49 PROTO-03 (D-08): RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.
@@ -966,8 +1177,15 @@ namespace ReringProject.Sequence {
         //260623 hbk Phase 49 BLOCKER 1 (D-01 정합): ZIndex 매칭 0건(빈 결과 + 매칭 Shot 0)이면 PrintErrLog 경고.
         //  레시피 ZIndex 미설정(전부 0) + 측정 Index 수신 = 운용 오류. 폴백(전체 재검사) 금지 — 경고만.
         //  WR-01 fix: 중간 Index 면 빈 B 유지, 마지막 Index 면 ApplyCycleJudgement 가 F 강제(false-PASS 차단).
+        //260722 hbk Phase 68 GAP-2(f): datum-only index(예: Side z=1, 오직 크로스-Z Datum 만 씀)는 측정 항목이
+        //  적법하게 0건(완성 index 아님)이므로 이 억제 없이는 매 사이클 스퓨리어스 Error 로그가 발생한다.
         private void WarnIfEmptyScope(TestResultPacket packet, int nMatchedShots, int nZIndex)
         {
+            bool bDatumOnlyIndex = IsDatumOnlyExecutionIndex(nZIndex);
+            if (bDatumOnlyIndex)
+            {
+                return;
+            }
             bool bNoResults = packet.FAIResults.Count == 0;
             bool bNoMatch = nMatchedShots == 0;
             bool bEmptyScope = bNoResults && bNoMatch;

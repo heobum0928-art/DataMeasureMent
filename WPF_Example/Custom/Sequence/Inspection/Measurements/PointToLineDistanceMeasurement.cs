@@ -63,16 +63,18 @@ namespace ReringProject.Sequence
             var svc = new VisionAlgorithmService();
 
             double pr1, pc1, pr2, pc2;
+            List<System.ValueTuple<double, double>> collectedEdgePoints = new List<System.ValueTuple<double, double>>();
             if (!svc.TryFitLine(image,
                 Point_Row, Point_Col, Point_Phi, Point_Length1, Point_Length2,
                 datumTransform,
                 EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
                 EdgeDirection, EdgePolarity,
-                out pr1, out pc1, out pr2, out pc2, out error))
+                out pr1, out pc1, out pr2, out pc2, out error,
+                collectedEdges: collectedEdgePoints))
             {
                 return false;
             }
-            double pRow = (pr1 + pr2) / 2.0;
+            double pRow = (pr1 + pr2) / 2.0;            // 라인 중점 — 폴백(수집점 없음)용으로 유지
             double pCol = (pc1 + pc2) / 2.0;
 
             double lr1, lc1, lr2, lc2;
@@ -86,7 +88,23 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            double distPixel = VisionAlgorithmService.DistancePointToLine(pRow, pCol, lr1, lc1, lr2, lc2);
+            // 수집 에지점(collectedEdgePoints) 각각의 기준선까지 UNSIGNED 수직거리를 구해 산술평균한다.
+            // (기존: 라인 중점 1점만으로 거리 산출 — 단일점 노이즈에 취약했음)
+            double distPixel;
+            if (collectedEdgePoints.Count >= 1)
+            {
+                double sumDistPixel = 0.0;
+                foreach (var ep in collectedEdgePoints)
+                {
+                    sumDistPixel += VisionAlgorithmService.DistancePointToLine(ep.Item1, ep.Item2, lr1, lc1, lr2, lc2);
+                }
+                distPixel = sumDistPixel / collectedEdgePoints.Count;
+            }
+            else
+            {
+                // 폴백: 수집점 없음 — 기존 단일-중점 동작 그대로
+                distPixel = VisionAlgorithmService.DistancePointToLine(pRow, pCol, lr1, lc1, lr2, lc2);
+            }
             resultValue = distPixel * pixelResolution;
             return true;
         }

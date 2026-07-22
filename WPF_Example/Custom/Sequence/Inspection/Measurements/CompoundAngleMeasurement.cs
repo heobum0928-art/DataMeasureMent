@@ -26,16 +26,23 @@ namespace ReringProject.Sequence
         public double Rect_Length1 { get; set; }
         public double Rect_Length2 { get; set; }
 
+        // 아래 6개는 미사용 copy-paste 잔재 — TryFindLargestContourRect(Canny 파이프라인)는 이들을 읽지 않음. PropertyGrid 숨김(필드/INI 보존).
         [Category("Edge")]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeThreshold { get; set; } = 10;
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Sigma { get; set; } = 1.0;
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeSampleCount { get; set; } = 20;
         //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string EdgePolarity { get; set; } = "DarkToLight";
         [ItemsSourceProperty(nameof(EdgeDirectionList))]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string EdgeDirection { get; set; } = "TtoB";
 
         // PropertyGrid ComboBox 옵션 래퍼
@@ -161,6 +168,22 @@ namespace ReringProject.Sequence
                     new EdgeInspectionPoint { Row = DatumDetectedCircleRow, Column = DatumDetectedCircleCol }
                 }
             });
+            // overlay 3: DatumB 기준선 (daR1..daC2, (3)에서 이미 계산됨) + datum 교점 마커.
+            //  EdgeToLineAngleMeasurement.cs FAI-DatumLine 패턴 동일 (순수 추가, resultValue/기존 overlay 무변경).
+            bool datumInjected = (DatumOriginRow != 0.0 || DatumOriginCol != 0.0);
+            if (datumInjected)
+            {
+                overlays.Add(new EdgeInspectionOverlay
+                {
+                    RoiId = "FAI-DatumLine",
+                    LineRow1 = daR1, LineColumn1 = daC1,
+                    LineRow2 = daR2, LineColumn2 = daC2,
+                    Points = new List<EdgeInspectionPoint>
+                    {
+                        new EdgeInspectionPoint { Row = DatumOriginRow, Column = DatumOriginCol }
+                    }
+                });
+            }
 
             return true;
         }

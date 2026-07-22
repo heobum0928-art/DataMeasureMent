@@ -72,6 +72,43 @@ created: 2026-07-22
 
 ---
 
+## Gap-Closure 검증 항목(68-06~68-10)
+
+Side(z=0,1=Datum 2위치 캡처, 측정 Shot z=2+) 배포 전 68-05 UAT 중 발견된 6개 갭(`68-GAP-ANALYSIS.md`)의
+수정(68-06~68-10, `68-11` 통합 재빌드로 함께 컴파일 확인됨)에 대한 명시적 PASS/FAIL 확인 항목. 각 항목은
+`68-GAP-UAT.md`(신규, 68-11 Task 2)에서 사람이 실제 SIMUL_MODE 실행으로 PASS/FAIL을 기록한다 — 이 표는
+"무엇을 확인해야 하는가"의 계약이며, 실제 result는 여기서 추정하지 않는다.
+
+| 수정 | 검증 항목 | PASS 기준 |
+|------|-----------|-----------|
+| FIX-0(사이클 리셋 타이밍, 68-06) | z=0에서 캡처된 role A 이미지가 z=0 자신의 응답 생성 시점 이후에도 저장소에 생존, z=1 도착 시 role B와 합쳐져 검출 성공 | z=1 응답에서 크로스-Z Datum 검출이 `bPending=true`로 영구 대기하지 않고 완료됨 |
+| GAP-1(선언 z_index 유니버스, 68-07) | Side z=1(own ZIndex를 가진 Shot 없음, Datum ZIndexB=1로만 선언)과 SHOT_E5류(own ZIndex=0, 측정 ZIndexA=1)가 `ZINDEX_MISCONFIGURED` 하드 실패를 발생시키지 않음 | 두 케이스 모두 사이클마다 `ZINDEX_MISCONFIGURED` NG 없음 |
+| GAP-2(datum-only 실행 스코프, 68-07) | z=1(datum-only, 일반 실행 매칭 0건) `$TEST` → `datum.SourceShotName` Shot만 DatumPhase까지 실행되고 Grab/Measure는 스킵, 무관 Shot 재-grab 없음 | InspectionListView 델타/저장이미지 타임스탬프로 무관 Shot 재-grab 0건 확인 + 매 사이클 "[V1Scope] 매칭 0건" Error 로그 0건 |
+| CROSS-1(Datum transform 수명, 68-08) | z=2(측정 tick)에서 z=1 검출 transform이 무보정 identity로 폴백하지 않고 재검출되어 사용됨 | ZIndexA/B 미설정 대비 보정값 차이가 관측됨(무보정이면 값이 동일/부자연스러움) |
+| CROSS-2(마지막 index 진실원, 68-09) | 크로스-Z 완성 index(예: Side z=1)가 시퀀스 최대 shot.ZIndex를 넘어도 `ComputeLastZIndex`가 이를 포함해 한 사이클 P/F가 정확히 1회 송신됨 | 사이클당 `$RESULT` P/F 정확히 1회(중복 송신 없음) |
+| GAP-3(즉시-F 게이팅, 68-10) | `EnableCrossZDatumImmediateFail` 기본값 **ON**(true) — 68-10 checkpoint 결정("enable-after-agreement": `Vision-Protocol-v1.0.md` 판정(P/F/B)표의 F행 "PLC 동작"이 "NG 처리"로만 기재되어 index 번호와 무관하며, PLC는 B(다음 index 호출) vs P/F(이 부품 완료)로만 분기하고 index 숫자 자체로는 분기하지 않으므로 완성 index가 0이 아니어도 F 해석은 동일하다는 근거로 제어팀 재확인 없이 활성화 확정). ON 상태에서 크로스-Z Datum 실패가 **완성 index**(own index 0이 아니어도 됨 — 예: Side z=1)에서 즉시 F로 반영됨. `m_bImmediateFailSent` latch가 z=0 즉시-F 분기와 완성-index 재평가 분기 양쪽에 세팅되어 한 사이클 중복 F 없음(CROSS-2와 결합 확인) | z=1(완성 index)에서 Datum 실패 시 그 index에서 즉시 F 응답, 마지막 index까지 대기하지 않음 + 한 사이클 F가 정확히 1회(z=0과 z=1 양쪽에서 중복 송신 없음) |
+
+## 운영 규칙 — 크로스-Z 측정 Shot 격리
+
+**규칙:** 크로스-Z 측정(또는 크로스-Z Datum)은 전용 Shot에 격리하고, 그 Shot의 own `ZIndex`를 완성
+index(=`max(ZIndexA, ZIndexB)`)로 설정할 것. own `ZIndex`를 0(또는 캡처 index들과 무관한 제3의 값)으로
+방치하면 v1.0에서 그 Shot의 일반(비-크로스-Z) 측정이 영원히 보고되지 않거나, own/ZIndexA/ZIndexB 세
+시점 모두에서 그 Shot이 실행되는 문제가 생긴다.
+
+**혼합 Shot 오염 (GAP-2 남은 리스크, 이번 phase 코드 수정 대상 아님):** 크로스-Z 측정을 owning하는 Shot에
+일반(비-크로스-Z) 측정이 함께 있으면, 그 Shot은 own ZIndex 시점 + ZIndexA 시점 + ZIndexB 시점 총 세
+번 실행된다. 측정 완성-index 게이트가 `$RESULT`(와이어) 자체는 보호하므로 P/F/B 판정 오염은 없지만,
+**cycle.json 스냅샷 + 저장 이미지 + 화면표시 + "Measurement failed" 에러로그가 매 사이클 오염/발생**한다
+(일반 측정이 own ZIndex가 아닌 물리 Z에서 잘못 재실행되기 때문). 이 오염은 코드로 막지 않고 **운영
+규칙(레시피 작성 가이드)으로 관리**한다 — 위 격리 규칙을 따르면 발생하지 않는다.
+
+**UAT 확인 항목(68-GAP-UAT.md, 68-11 Task 2):** 혼합 Shot 레시피(크로스-Z owning Shot에 비-크로스-Z
+측정을 추가)로 완성 index를 트리거 → cycle.json/저장이미지/화면에 무관 측정이 잘못된 Z 값으로 오염되는지
+확인하는 항목을 UAT 시나리오에 추가한다(운영 규칙 위반 케이스의 실증 — 위 규칙을 지키면 이 오염이 없어야
+함을 대조 확인).
+
+---
+
 ## Validation Sign-Off
 
 - [ ] All tasks have `<automated>` verify(msbuild) or Wave 0 dependencies

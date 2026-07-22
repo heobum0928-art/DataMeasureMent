@@ -183,17 +183,18 @@ namespace ReringProject.Sequence
 
             // (1) PointROI — RuntimeImageA 에서 fit_line → midpoint
             double pa_r1, pa_c1, pa_r2, pa_c2;
+            List<System.ValueTuple<double, double>> collectedEdgePoints = new List<System.ValueTuple<double, double>>();
             if (!svc.TryFitLine(RuntimeImageA,
                 PointROI_Row, PointROI_Col, PointROI_Phi, PointROI_Length1, PointROI_Length2,
                 datumTransform,
                 PointROI_EdgeSampleCount, PointROI_EdgeTrimCount, PointROI_Sigma, PointROI_EdgeThreshold,
                 PointROI_EdgeDirection, PointROI_EdgePolarity,
                 out pa_r1, out pa_c1, out pa_r2, out pa_c2, out error,
-                PointROI_EdgeSelection))
+                PointROI_EdgeSelection, collectedEdgePoints))
             {
                 return false;
             }
-            double pointRow = (pa_r1 + pa_r2) / 2.0;            // 라인 중점을 점으로 고정
+            double pointRow = (pa_r1 + pa_r2) / 2.0;            // 라인 중점 — 폴백(수집점 없음/전투영실패)용으로 유지
             double pointCol = (pa_c1 + pa_c2) / 2.0;
 
             // (2) LineROI — RuntimeImageB 에서 fit_line → 라인 그대로 (시작점/끝점 사용)
@@ -209,27 +210,65 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // (3) projection_pl(point → line)
+            // (3) projection_pl(point → line) — 수집 에지점(collectedEdgePoints) 각각을 기준선에 투영해
+            //  per-point UNSIGNED 거리(기존 sqrt 공식 그대로)를 구하고 산술평균한다. 단일 중점 1점 투영이 아님.
             double footRow = pointRow;
             double footCol = pointCol;
             bool footOk = false;
-            try
+            double sumDistPx = 0.0, sumFootRow = 0.0, sumFootCol = 0.0, sumPtRow = 0.0, sumPtCol = 0.0;
+            int nPts = 0;
+            foreach (var ep in collectedEdgePoints)
             {
-                HTuple prRow, prCol;
-                HOperatorSet.ProjectionPl(pointRow, pointCol, lb_r1, lb_c1, lb_r2, lb_c2, out prRow, out prCol);
-                footRow = prRow.D;
-                footCol = prCol.D;
+                double er = ep.Item1, ec = ep.Item2;
+                try
+                {
+                    HTuple prRow, prCol;
+                    HOperatorSet.ProjectionPl(er, ec, lb_r1, lb_c1, lb_r2, lb_c2, out prRow, out prCol);
+                    double fr = prRow.D;
+                    double fc = prCol.D;
+                    double d = System.Math.Sqrt((er - fr) * (er - fr) + (ec - fc) * (ec - fc));
+                    sumDistPx += d;
+                    sumFootRow += fr;
+                    sumFootCol += fc;
+                    sumPtRow += er;
+                    sumPtCol += ec;
+                    nPts++;
+                }
+                catch
+                {
+                    // 이 점 투영 실패 — skip, 나머지 점으로 계속
+                }
+            }
+            if (nPts >= 1)
+            {
+                resultValue = (sumDistPx / nPts) * pixelResolution; // px 평균 후 × 해상도
+                pointRow = sumPtRow / nPts;                          // 표시용 — 수집점 평균 (resultValue 수학과 무관)
+                pointCol = sumPtCol / nPts;
+                footRow = sumFootRow / nPts;
+                footCol = sumFootCol / nPts;
                 footOk = true;
             }
-            catch
+            else
             {
-                error = "projection_pl 실패";
-                return false;
+                // 폴백: collectedEdgePoints 비었거나 모든 투영 실패 — 기존 단일-중점 동작 그대로
+                try
+                {
+                    HTuple prRow, prCol;
+                    HOperatorSet.ProjectionPl(pointRow, pointCol, lb_r1, lb_c1, lb_r2, lb_c2, out prRow, out prCol);
+                    footRow = prRow.D;
+                    footCol = prCol.D;
+                    footOk = true;
+                }
+                catch
+                {
+                    error = "projection_pl 실패";
+                    return false;
+                }
+                double dRow = pointRow - footRow;
+                double dCol = pointCol - footCol;
+                double distPx = System.Math.Sqrt(dRow * dRow + dCol * dCol);
+                resultValue = distPx * pixelResolution;             // mm
             }
-            double dRow = pointRow - footRow;
-            double dCol = pointCol - footCol;
-            double distPx = System.Math.Sqrt(dRow * dRow + dCol * dCol);
-            resultValue = distPx * pixelResolution;             // mm
 
             // (4) Overlay 생성 — RoiId 컨벤션 강제 (HalconDisplayService 분기 충족)
             //   FAI-Edge1 = PointROI 검출 라인 + 중점 마커 (녹/적 + suffix 자동)

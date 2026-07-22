@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 68-06-PLAN.md
-last_updated: "2026-07-22T04:14:11.556Z"
+stopped_at: Completed 68-07-PLAN.md
+last_updated: "2026-07-22T04:29:19.033Z"
 last_activity: 2026-07-22
 progress:
   total_phases: 23
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
-Plan: 6 of 11 (68-05 UAT paused mid-run — gap analysis found FIX-0/GAP-1/2/3/CROSS-1/2, closure plans 68-06~68-11 created; 68-06 FIX-0 now complete, 68-07~68-11 remain before 68-05 UAT resumes)
+Plan: 7 of 11 (68-05 UAT paused mid-run — gap analysis found FIX-0/GAP-1/2/3/CROSS-1/2, closure plans 68-06~68-11 created; 68-06 FIX-0 now complete, 68-07~68-11 remain before 68-05 UAT resumes)
 Last activity: 2026-07-22
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
@@ -220,6 +220,7 @@ Last activity: 2026-07-22
 | Phase 68 P03 | 40min | 4 tasks | 2 files |
 | Phase 68 P04 | 30min | 2 tasks | 1 files |
 | Phase 68 P06 | 20min | 2 tasks | 2 files |
+| Phase 68 P07 | ~35min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -459,6 +460,9 @@ Recent decisions affecting current work:
 - [Phase 68]: IsDatumZIndexMisconfigured는 both-unset(-1/-1) 케이스를 명시적으로 먼저 통과시킴 — 측정 레벨과 달리 무조건 호출되므로, 아니면 -1==-1이 same-value 오판정되어 D-07 회귀0이 깨짐
 - [Phase 68]: 크로스-Z 저장소 clear 를 z=0 응답 생성 시점(ResetCycleState)에서 z=0 수신 시점(BeginCrossZImageCycle, StartV1Scoped z=0 분기)으로 이동 (FIX-0) — z=0 tick 의 DatumPhase 가 저장한 role A 이미지가 같은 tick 의 응답 단계에서 즉시 Dispose 되어 z=1 합성이 구조적으로 불가능했음
 - [Phase 68]: ClearCrossZImages() 는 private 유지, 신규 public BeginCrossZImageCycle() 래퍼만 추가해 cross-class 호출 표면을 최소화 — Dispose 라이프사이클 헬퍼는 내부에 숨기고 의도(사이클 시작)만 공개 — Plan 02/03 의 public 래퍼 컨벤션과 일치
+- [Phase 68]: 68-07: DoesZIndexExistInRecipe now checks a declared z_index universe (Shot own ZIndex + measurement ZIndexA/B + Datum ZIndexA/B), not just FindShotByZIndex — closes Side z=1 / SHOT_E5 ZINDEX_MISCONFIGURED false-positive without adding the dangerous completion-index-vs-max-shot.ZIndex rule that would re-break the Plan 03 BLOCKER fix
+- [Phase 68]: 68-07: IsDatumOnlyExecutionIndex/BuildDeclaredZIndexSet share one single-source predicate (BuildCrossZDatumIndexSet/IsZIndexUsedByCrossZDatum) for 'does this z_index feed a cross-Z Datum' — avoids duplicate DatumConfigs-traversal helpers per LOCKED coding guideline (D-09)
+- [Phase 68]: 68-07: StartV1Scoped empty-match branch routes datum-only z_index (e.g. Side z=1) to a minimal StartSubset instead of StartAll fallback, with no Error log — this is the designed normal path for a Datum-only capture tick, not an operator misconfiguration; genuine empty matches still fall back to StartAll + Error log (T-68-01)
 
 ### Quick Tasks Completed
 
@@ -610,8 +614,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-22T04:14:11.546Z
-Stopped at: Completed 68-06-PLAN.md
+Last session: 2026-07-22T04:29:19.022Z
+Stopped at: Completed 68-07-PLAN.md
 Resume file: None
 Next action: Phase 68 Plan 07 — GAP-1 "존재하는 z_index" 판정 기준 수정 (BuildDeclaredZIndexSet, Datum ZIndexA/B 반영)
 

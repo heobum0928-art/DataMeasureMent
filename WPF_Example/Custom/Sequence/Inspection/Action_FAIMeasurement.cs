@@ -221,7 +221,22 @@ namespace ReringProject.Sequence {
                         }
                     }
                     // DatumConfigs 비어있으면 무보정 pass-through — abort 없음 (lenient)
-                    Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행
+                    //260722 hbk Phase 68 GAP-2(AdvanceAfterDatumPhase, 68-GAP-ANALYSIS.md 우선순위 2): datum-only
+                    //  index(예: Side z=1, 오직 크로스-Z Datum 만 씀)에서는 이 Action 이 DatumPhase(크로스-Z Datum
+                    //  role 캡처+검출) 를 트리거하려고만 실행됐다 — 이 Shot 의 Grab/Measure 를 그대로 진행하면 이 Shot의
+                    //  일반 측정이 잘못된 물리 Z(z=1 은 Datum 위치)에서 재실행되어 cycle.json/저장이미지/화면표시가
+                    //  오염된다(GAP-2 남은 리스크). 그래서 Grab/Measure 를 건너뛰고 곧장 End 로 간다.
+                    int nCurZ = 0;
+                    bool bDatumOnly = false;
+                    if (parentSeq != null) {
+                        nCurZ = parentSeq.GetExecutionZIndex();
+                        bDatumOnly = parentSeq.IsDatumOnlyExecutionIndex(nCurZ);
+                    }
+                    if (bDatumOnly) {
+                        Step = (int)EStep.End;
+                    } else {
+                        Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행
+                    }
                     break;
                 }
 

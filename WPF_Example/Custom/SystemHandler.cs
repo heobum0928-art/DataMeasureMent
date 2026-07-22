@@ -194,10 +194,13 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260722 hbk Phase 68 D-01a: z=0(Datum) 판별 매직넘버 상수화 (D-09). Datum 검출(EStep.DatumPhase)은 독립 Shot이 아니라
-        //  모든 Action 실행 안에 내장되어 매번 재수행되는 phase라서 shot.ZIndex==0 매핑 Shot이 일반적으로 없음 —
-        //  실행 스코프 필터를 z=0 에 적용하면 매칭 0건 → StartSubset 폴백이라도 Datum 검출 자체가 멈추는 회귀 위험이 있어
-        //  z=0 은 기존처럼 StartAll 로 예외 처리한다(회귀 0, waste-elimination 은 z>=1 에만 적용).
+        //260722 hbk Phase 68 D-01a→68-12: z=0(Datum) 판별 매직넘버 상수화 (D-09). Datum 검출(EStep.DatumPhase)은
+        //  독립 Shot이 아니라 모든 Action 실행 안에 내장되어 매번 재수행되는 phase다. Plan 12(z=0 낭비 제거)부터
+        //  z=0 도 더 이상 무조건 StartAll 하지 않는다 — InspectionSequence.FindZeroIndexDatumTriggerActionIndices()
+        //  가 고른 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행한다(DatumConfigs 가 비어있거나
+        //  대표 트리거가 하나도 해석 안 되면 그때만 StartAll 로 폴백). 대표 Action(들)도 DatumPhase 종료 후
+        //  Grab/Measure 를 건너뛴다(Action_FAIMeasurement.ShouldSkipMeasurementAfterDatumPhase) — 68-10 Task2가
+        //  stale 주석을 새 동작에 맞게 다시 쓴 선례와 동일 패턴으로 이 주석도 갱신한다.
         private const int DATUM_TEST_Z_INDEX = 0;
 
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
@@ -240,10 +243,25 @@ namespace ReringProject {
                 //  리셋 없이 StartAll 만 수행.
                 InspectionSequence inspDatumSeq = seq as InspectionSequence;
                 bool bIsInspSeq = inspDatumSeq != null;
-                if (bIsInspSeq)
+                if (!bIsInspSeq)
                 {
-                    inspDatumSeq.BeginCrossZImageCycle();
+                    return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
                 }
+                inspDatumSeq.BeginCrossZImageCycle();
+                //260722 hbk Phase 68(68-12, GAP-3 z=0 낭비 제거): z=0 이 더 이상 무조건 StartAll 전량 실행하지
+                //  않는다 — 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행하고, 다른 측정 Shot
+                //  의 Grab/Measure 는 EStep.DatumPhase 종료부(ShouldSkipMeasurementAfterDatumPhase)에서 스킵된다.
+                //  DatumConfigs 가 비어있거나(엣지 케이스) 대표 트리거가 하나도 해석 안 되면 정상적으로 가능한
+                //  레시피 구성(운영 오류 아님)이므로 Trace 로그만 남기고 StartAll 로 안전 폴백한다(회귀 0, T-68-16
+                //  — z>=1 분기의 "매칭 0건" Error 로그와는 성격이 다름).
+                List<int> datumZeroIndices = inspDatumSeq.FindZeroIndexDatumTriggerActionIndices();
+                bool bHasDatumZeroTrigger = datumZeroIndices != null && datumZeroIndices.Count > 0;
+                if (bHasDatumZeroTrigger)
+                {
+                    return seq.StartSubset(datumZeroIndices.ToArray(), packet);
+                }
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format("[V1Scope] Seq={0} z=0: DatumConfigs 비어있음(또는 트리거 미해결) — StartAll 폴백. //260722 hbk", seq.Name));
                 return seq.StartAll(packet);
             }
             InspectionSequence inspSeq = seq as InspectionSequence; //260722 hbk dynamic-FAI 런타임 타입은 항상 InspectionSequence

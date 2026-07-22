@@ -26,16 +26,23 @@ namespace ReringProject.Sequence
         public double Rect_Length2 { get; set; }
 
         // ── Edge 파라미터 ─────────────────────────────────────────────────────────────
+        // 아래 6개는 미사용 copy-paste 잔재 — TryFindLargestContourRect(Canny 파이프라인)는 이들을 읽지 않음. PropertyGrid 숨김(필드/INI 보존).
         [Category("Edge")]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeThreshold { get; set; } = 10;
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public double Sigma { get; set; } = 1.0;
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeSampleCount { get; set; } = 20;
         //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string EdgePolarity { get; set; } = "DarkToLight";
         [ItemsSourceProperty(nameof(EdgeDirectionList))]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string EdgeDirection { get; set; } = "TtoB";
 
         // PropertyGrid ComboBox 옵션 래퍼

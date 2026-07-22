@@ -98,6 +98,7 @@ namespace ReringProject.Sequence
 
             var svc = new VisionAlgorithmService();
             double pr1, pc1, pr2, pc2;
+            List<System.ValueTuple<double, double>> collectedEdgePoints = new List<System.ValueTuple<double, double>>();
 
             // EdgeSelection 사용자 선택값 사용 (was 리터럴 "All"). strip-loop 가 First/Last 도 stripCount 점 누적하므로 안전.
             if (!svc.TryFitLine(image,
@@ -106,16 +107,16 @@ namespace ReringProject.Sequence
                 EdgeSampleCount, EdgeTrimCount, Sigma, EdgeThreshold,
                 EdgeDirection, EdgePolarity,
                 out pr1, out pc1, out pr2, out pc2, out error,
-                EdgeSelection))
+                EdgeSelection, collectedEdgePoints))
             {
                 return false;
             }
 
-            // 에지 라인 중점 (EdgeToLineDistanceMeasurement L124 동일 패턴)
+            // 에지 라인 중점 (EdgeToLineDistanceMeasurement L124 동일 패턴) — 폴백(수집점 없음/전실패)용으로 유지
             double pRow = (pr1 + pr2) / 2.0;
             double pCol = (pc1 + pc2) / 2.0;
 
-            // D-04 공용 헬퍼 호출: 에지 라인 중점 → datum 기준선 투영 거리.
+            // D-04 공용 헬퍼 호출: 수집 에지점(collectedEdgePoints) 각각 → datum 기준선 투영 거리, per-point 평균(fOk 게이트).
             // X축 측정은 2차(수직) 기준선, Y축은 1차(수평) 기준선.
             // foot 반환 오버로드로 전환. HomMat2dInvert+AffineTransPoint2d 제거
             //   (IDatumOriginConsumer 가 이미 datum 원점 image 좌표 주입 → 행렬 역변환 불필요).
@@ -127,11 +128,44 @@ namespace ReringProject.Sequence
                 measureLineAngle = DatumAngleRad;
             double footRow, footCol;
             bool footOk;
-            resultValue = VisionAlgorithmService.ComputeProjectionDistance(
-                pRow, pCol,
-                DatumOriginRow, DatumOriginCol, measureLineAngle,
-                pixelResolution, MeasureAxis,
-                out footRow, out footCol, out footOk);
+            double sumDist = 0.0, sumFootRow = 0.0, sumFootCol = 0.0, sumPtRow = 0.0, sumPtCol = 0.0;
+            int nPts = 0;
+            foreach (var ep in collectedEdgePoints)
+            {
+                double er = ep.Item1, ec = ep.Item2;
+                double fr, fc;
+                bool fOk;
+                double d = VisionAlgorithmService.ComputeProjectionDistance(
+                    er, ec,
+                    DatumOriginRow, DatumOriginCol, measureLineAngle,
+                    pixelResolution, MeasureAxis,
+                    out fr, out fc, out fOk);
+                if (!fOk) continue; // 투영 실패 점은 평균 오염 방지 위해 제외
+                sumDist += d;
+                sumFootRow += fr;
+                sumFootCol += fc;
+                sumPtRow += er;
+                sumPtCol += ec;
+                nPts++;
+            }
+            if (nPts >= 1)
+            {
+                resultValue = sumDist / nPts; // helper 반환이 이미 ×pixelResolution(mm) 이므로 mm 평균
+                pRow = sumPtRow / nPts;       // 표시용 — 수집점 평균 (resultValue 수학과 무관)
+                pCol = sumPtCol / nPts;
+                footRow = sumFootRow / nPts;
+                footCol = sumFootCol / nPts;
+                footOk = true;
+            }
+            else
+            {
+                // 폴백: collectedEdgePoints 비었거나 모든 투영 실패 — 기존 단일-중점 헬퍼 호출 그대로
+                resultValue = VisionAlgorithmService.ComputeProjectionDistance(
+                    pRow, pCol,
+                    DatumOriginRow, DatumOriginCol, measureLineAngle,
+                    pixelResolution, MeasureAxis,
+                    out footRow, out footCol, out footOk);
+            }
 
             // overlay: EdgeToLineDistanceMeasurement 와 동일 패턴 (FAI-Edge1 + FAI-DistLine)
             // 1) 검출 에지 라인 overlay
@@ -144,7 +178,7 @@ namespace ReringProject.Sequence
                 LineColumn2 = pc2,
                 Points = new List<EdgeInspectionPoint>
                 {
-                    new EdgeInspectionPoint { Row = pRow, Column = pCol } // 에지 중점
+                    new EdgeInspectionPoint { Row = pRow, Column = pCol } // 수집 에지점 평균 (폴백 시 중점)
                 }
             });
 

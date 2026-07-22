@@ -258,6 +258,19 @@ namespace ReringProject {
             {
                 return seq.StartSubset(matchedIndices.ToArray(), packet);
             }
+            //260722 hbk Phase 68 GAP-2(68-GAP-ANALYSIS.md 우선순위 2): 빈-매칭이 전부 운용 오류인 것은 아니다 —
+            //  오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1)는 own ZIndex/측정 ZIndexA/B 매칭이 없는 게 정상이다.
+            //  StartAll 폴백(무관 Shot 전체 재-grab + 매 사이클 Error 로그) 대신 datum-only 최소 Action 만 실행한다.
+            bool bDatumOnly = inspSeq.IsDatumOnlyExecutionIndex(_lastPrepZIndex);
+            if (bDatumOnly)
+            {
+                List<int> datumIndices = inspSeq.FindDatumOnlyActionIndices(_lastPrepZIndex);
+                bool bHasDatumTrigger = datumIndices != null && datumIndices.Count > 0;
+                if (bHasDatumTrigger)
+                {
+                    return seq.StartSubset(datumIndices.ToArray(), packet); // Error 로그 없음 — Side z=1 의 설계된 정상 경로
+                }
+            }
             Logging.PrintLog((int)ELogType.Error,
                 string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — StartAll 폴백. 레시피 ZIndex 설정 확인 필요. //260722 hbk",
                     _lastPrepZIndex, seq.Name));

@@ -13,6 +13,13 @@ Task 2 (`type="checkpoint:human-verify"`) executes the 7 scenarios below in SIMU
 records PASS/FAIL per scenario. Do not mark any `result:` in "## Tests" until a human has
 actually run the scenario in the running application — no result may be inferred or assumed.
 
+**⚠️ REQUIRED READING FOR GAP-CLOSURE PLANNING:** `68-GAP-ANALYSIS.md` (same directory) contains
+the synthesized, multi-agent-verified analysis of the gaps found during interactive UAT discussion
+below (Gaps section) — including one critical structural bug (cycle-reset timing) not yet reflected
+in the raw notes below, corrected/regression-checked fix recommendations for the 3 original gaps,
+and a priority order. Read it BEFORE planning — it supersedes the raw Gaps notes below wherever they
+conflict, and the raw notes below should be treated as supporting detail/evidence, not the plan basis.
+
 ---
 
 ## 1. Full Rebuild Result
@@ -249,3 +256,112 @@ blocked: 0
   `$TEST`. Not fixed here (out of Task 1's no-source-change scope); `DebugManualZTrigger` is used
   instead for this UAT. If TCP-level (not in-process) verification is later required, the mock
   script would need a `$PREP:site,z_index,1@` send prior to `$TEST`.
+- **Real-hardware (non-SIMUL) deployment risk: `OfflineInspectMode` vs. cross-Z live dual-capture
+  are architecturally incompatible.** This facility's real hardware is a manual Z jig with no motor
+  (`IAxisController` is a placeholder; see memory `manual-jig-offline-inspect`,
+  `.planning/quick/260715-moi-offline-inspect-mode/260715-moi-SUMMARY.md`). That prior session found
+  that shots at different physical Z don't reconcile via shared datum + live grab within one cycle,
+  and built `OfflineInspectMode` as the production workaround: one pre-captured static image per
+  Shot/Datum node (`<recipe>\<node>.png`, single path, overwritten on re-grab). Phase 68's cross-Z
+  design requires the *same* Shot to be live-grabbed *twice* (once per z_index role, A then B) —
+  which (a) requires `OfflineInspectMode=false` (Pitfall 4 confirms it blocks `$TEST` outright), i.e.
+  falls back to the same live-grab-coordination pattern that motivated building OfflineInspectMode
+  in the first place, and (b) has no way to represent "two images for one node" under
+  OfflineInspectMode's one-image-per-node model even if it were enabled. Phase 68's RESEARCH.md
+  Pitfall 4 only resolves the narrower "OfflineInspectMode blocks `$TEST`" symptom for SIMUL UAT —
+  it does not address whether live dual-Z capture is viable at all on this manual-jig hardware for
+  real (non-SIMUL) production use. Needs a design decision before real-hardware rollout of this
+  feature.
+- **`FindActionIndicesByZIndex` (execution-scope filter, `InspectionSequence.cs:370-406`) has no
+  awareness of `DatumConfig.ZIndexA/ZIndexB`** (Plan 04's Datum-level cross-Z fields) — it only
+  matches `ShotConfig.ZIndex` and Shot-owned `DualImageEdgeDistanceMeasurement.ZIndexA/ZIndexB`
+  (`DoesShotOwnCrossZIndex`, lines 329-361). If a z_index is used *exclusively* by a cross-Z Datum
+  (e.g. a Side setup where z=0/z=1 are both Datum capture positions and no regular measurement Shot
+  owns z=1), `FindActionIndicesByZIndex(1)` returns zero matches. `StartV1Scoped`
+  (`Custom/SystemHandler.cs:250-253`) then falls back to `StartAll` and logs
+  `"[V1Scope] ZIndex=1 매칭 Shot 0건 — StartAll 폴백. 레시피 ZIndex 설정 확인 필요."` every single cycle.
+  Functionally the Datum still gets captured (StartAll runs everyone, including the DatumPhase loop
+  that checks `nCurZ == datum.ZIndexA/B`), but this is an accidental side effect of the misconfiguration
+  safety-net fallback, not a designed path — it produces a spurious error log every cycle and defeats
+  D-01's waste-elimination goal entirely for that z_index (re-grabs every Shot instead of just the
+  Datum-relevant capture). Needs explicit handling if any sequence's Datum uses a z_index that no
+  regular Shot/measurement also owns.
+  **CONFIRMED not hypothetical — Side's actual planned recipe uses z=0/z=1 exclusively for Datum
+  (2-position Datum capture) with real measurement Shots starting at z=2, per user confirmation
+  2026-07-22.** This WILL fire every cycle on Side once deployed as planned.
+
+  **Deeper, more serious consequence found (2026-07-22): breaks the protocol's "Datum failure ⇒
+  immediate F" contract, not just wasted re-grab.** `m_bCycleDatumFailed` — the cycle-level flag
+  that `ApplyCycleJudgement` (`InspectionSequence.cs:972-989`) OR's into the final P/F verdict — is
+  computed **exactly once**, at Index 0 processing time:
+  ```csharp
+  m_bCycleDatumFailed = DetectDatumFailure();   // AddResponseV1Cycle, Index==0 branch only
+  ```
+  and never re-evaluated at any later index. `DetectDatumFailure()` just checks whether any
+  `DatumConfig` is currently in `_failedDatums` (`IsDatumFailed`, populated only by
+  `MarkDatumFailed`, which only fires when detection actually *runs and fails*). For a 2-position
+  cross-Z Datum whose real detection is deferred until its completion index (z=1 for Side, since
+  `ZIndexA=0, ZIndexB=1`), **at z=0 the datum has only captured role A and is still "pending" — no
+  detection attempt has happened yet, so it cannot possibly be in `_failedDatums`.**
+  `m_bCycleDatumFailed` is therefore *always* `false` for this Datum, regardless of what happens at
+  z=1. If detection then genuinely fails at z=1 (the actual completion tick), `MarkDatumFailed` DOES
+  fire and `_failedDatums` DOES get populated — but the cycle-level immediate-F flag was already
+  locked in as `false` at z=0 and is never revisited. The protocol's judgment table explicitly
+  specifies Datum failure should cause "즉시" (immediate) F — this cannot be honored here; the
+  failure surfaces (if at all) only via later measurements' `IsDatumFailed(datumRef)` per-FAI gate
+  classifying as `DATUM_FAIL`/'N' and setting `m_bCycleHasNG=true`, which only feeds into the final
+  verdict at the *last* index — not immediately at the Datum's actual completion index. Net effect:
+  a genuinely failed Side Datum will likely still end up reported as 'F' eventually (assuming later
+  indices have measurements referencing this `DatumRef`), but only at the very end of the cycle —
+  defeating the fail-fast purpose of "즉시 F" (PLC keeps running now-pointless further indices), and
+  in the theoretical edge case where zero later-index measurements reference this DatumRef, the
+  failure could go unreported in the cycle verdict entirely. This is a genuine protocol-contract gap
+  for any Datum whose cross-Z completion index isn't 0, not merely a wasted-execution inefficiency.
+- **Measurement-level cross-Z lighting is architecturally locked to the Shot's single static
+  `ZIndex` — it cannot vary between the ZIndexA capture and the ZIndexB capture.** Confirmed via
+  `Action_FAIMeasurement.cs:214-221`, executed at the end of every `EStep.DatumPhase` (i.e.
+  immediately before every `EStep.Grab`, for every Shot, every tick):
+  ```csharp
+  // Datum grab 동안 켜져 있던 datum 전용 조명을 이 Shot 본연의 조명으로 되돌린다.
+  if (ShotParam != null) {
+      parentSeq.ApplyShotLights(ShotParam.ZIndex);   // <- Shot's own fixed ZIndex, NOT the
+                                                       //    currently-executing z_index/role
+      LightHandler.Handle.WaitForPendingWrites();
+  }
+  ```
+  This runs unconditionally right before the measurement grab, and keys lighting purely off
+  `ShotParam.ZIndex` (the Shot's own static field) — **never** off which cross-Z role (A vs B) is
+  being captured this tick, and never off `GetExecutionZIndex()`. Consequence: **a single cross-Z
+  measurement's two captures (ZIndexA / "세로축" and ZIndexB / "가로축") always use the exact same,
+  single, fixed lighting configuration** (whatever matches the Shot's own `ZIndex`) — there is
+  currently no mechanism anywhere in the codebase to apply *different* lighting for the two
+  capture roles of one cross-Z measurement. (Datum-level cross-Z is unaffected by this — Datum
+  lighting is applied via the separate, direct `ApplyDatumLights(datum)` call at
+  `Action_FAIMeasurement.cs:100`, called per-Datum-object regardless of z_index matching, so Datum
+  capture lighting is correct today.) If a real cross-Z measurement needs different lighting per
+  capture position (e.g. two different light types per the protocol's "조명 멀티샷" concept), this
+  requires new design work (e.g. per-role light fields on the measurement, applied at the cross-Z
+  capture tick) — out of Phase 68's current implementation.
+  (Earlier draft of this note also questioned whether `$PREP`'s `ApplyShotLights(nZIndex)` →
+  `FindShotByZIndex(nZIndex)` could fail to find a cross-Z shot outright when its own `ZIndex`
+  differs from `ZIndexA`/`ZIndexB` — true for the `$PREP`-time call, but moot in practice: this
+  same `ApplyShotLights(ShotParam.ZIndex)` call after `DatumPhase` always resolves via the Shot's
+  own `ZIndex`, guaranteed to match at minimum itself, and unconditionally overwrites whatever
+  `$PREP` set before the grab — so the net risk is "always the wrong/single lighting for one of the
+  two roles," not "sometimes no lighting at all.")
+- **`z_index=0` executes far more than "Datum only," contradicting the documented design intent.**
+  Phase 49's own original decision (`49-CONTEXT.md` D-06) states plainly: **"Index 0은 datum 검출만
+  수행"** ("Index 0 performs Datum detection only"). At the wire/response level this holds — z=0's
+  `$RESULT` is always an empty `B;0;` buffer response, so the PLC/handler never sees evidence
+  otherwise. But at the *execution* level, z=0 maps to `StartAll` (`StartV1Scoped`,
+  `Custom/SystemHandler.cs:231-254`), which runs *every* Shot's full Grab+Measure — including Shots
+  whose own `ZIndex` is 1, 2, 3... (they get grabbed and measured again, redundantly, at z=0, and then
+  once more when their own index arrives). This mismatch between documented intent ("Datum only") and
+  actual behavior ("everyone, every cycle") predates Phase 68 — it originates in Phase 49's original
+  `StartAll`-at-z=0 implementation — and Phase 68's own CONTEXT.md (D-01a) explicitly re-confirmed
+  and kept this behavior rather than fixing it ("waste-elimination은 z>=1에만 적용되고 z=0에는 적용
+  안 됨을 인지하고 넘어감"). Correctness (P/F/B judgment) is unaffected since responses are still
+  correctly index-scoped; the cost is purely wasted re-grab/re-measure cycles + lighting wear on
+  every ZIndex>=1 Shot, twice per part. Flagged here as a known, carried-forward, unfixed tradeoff —
+  not a Phase 68 regression, but worth a dedicated follow-up if grab/lighting overhead becomes a real
+  concern on production hardware.

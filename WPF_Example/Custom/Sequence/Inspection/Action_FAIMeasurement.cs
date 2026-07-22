@@ -103,6 +103,22 @@ namespace ReringProject.Sequence {
                             //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)
                             LightHandler.Handle.WaitForPendingWrites();
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                                //260722 hbk Phase 68 D-05: Datum ZIndexA/B 오설정 게이트 — TryGrabOrLoadDualDatumImages 호출 전
+                                //  명시적 실패 처리(조용한 static 폴백 금지). 미설정(-1/-1)은 게이트 미해당 → 기존 static 경로.
+                                bool bDatumZIndexMisconfigured = IsDatumZIndexMisconfigured(datum, parentSeq);
+                                if (bDatumZIndexMisconfigured) {
+                                    string misName = datum.DatumName;
+                                    if (misName == null) misName = "";
+                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
+                                    datum.RuntimeDetectFailed = true;
+                                    parentSeq.MarkDatumFailed(datum.DatumName);
+                                    continue; // datum skip, abort 안 함
+                                }
+                                //260722 hbk Phase 68 D-06 (WARNING 2): Datum 크로스-Z 는 별도 z_index→Datum 매핑 조회를
+                                //  추가하지 않는다 — (a) 바로 이 루프가 매 실행 Action 마다 시퀀스 DatumConfigs 전체를
+                                //  재검출하고 (b) Plan 02 ProcessTest 의 빈-매칭→StartAll 폴백에 의존해, 두 z_index
+                                //  모두에서 이 Datum 검출이 실행된다는 사실이 크로스-Z 정정성의 전제다. 이 두 동작(전체
+                                //  재검출 / 빈-매칭 폴백)을 향후 변경할 때는 Datum 크로스-Z 재검증이 반드시 필요하다.
                                 HImage imgH = null, imgV = null;
                                 bool bDatumCrossZPending;
                                 try {
@@ -795,6 +811,36 @@ namespace ReringProject.Sequence {
                 nZB = dualMeas.ZIndexB;
             }
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
+        }
+
+        //260722 hbk Phase 68 D-05: Datum(VerticalTwoHorizontalDualImage) ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/
+        //  존재하지 않는 z_index 참조 → true. 측정 레벨 IsZIndexMisconfigured 와 달리 호출부가 "하나라도 설정됨"을
+        //  미리 걸러주지 않고 이 알고리즘의 모든 datum 에 대해 무조건 호출되므로(호출부: EStep.DatumPhase 진입 직후),
+        //  둘 다 -1(미설정)인 경우를 별도로 먼저 통과시켜야 한다 — 그렇지 않으면 -1==-1 이 bSameValue 로 오판정된다
+        //  (D-07 회귀 0 보장). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
+        private bool IsDatumZIndexMisconfigured(DatumConfig datum, InspectionSequence parentSeq)
+        {
+            bool bAUnset = datum.ZIndexA == UNSET_ZINDEX;
+            bool bBUnset = datum.ZIndexB == UNSET_ZINDEX;
+            bool bSingleSet = bAUnset != bBUnset;
+            if (bSingleSet)
+            {
+                return true;
+            }
+            bool bBothUnset = bAUnset && bBUnset;
+            if (bBothUnset)
+            {
+                return false; // 미설정(-1/-1) — 게이트 미해당, 기존 static 경로(D-07)
+            }
+            bool bSameValue = datum.ZIndexA == datum.ZIndexB;
+            if (bSameValue)
+            {
+                return true;
+            }
+            bool bAExists = parentSeq != null && parentSeq.DoesZIndexExistInRecipe(datum.ZIndexA);
+            bool bBExists = parentSeq != null && parentSeq.DoesZIndexExistInRecipe(datum.ZIndexB);
+            bool bBothExist = bAExists && bBExists;
+            return !bBothExist;
         }
 
         //260702 hbk Extract Method(Task1): datum transform 해석 (fixture 미존재/미지정 시 identity fallback), 원본 인라인 이식

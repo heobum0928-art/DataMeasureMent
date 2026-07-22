@@ -758,6 +758,18 @@ namespace ReringProject.Sequence {
             return ParseCurrentZIndex();
         }
 
+        //260722 hbk Phase 68 REGR-1(68-GAP-ANALYSIS.md): "이번 실행이 PLC/$TEST 프로토콜 사이클인가"의 단일
+        //  진실원 — SequenceBase.RequestPacket(protected 세터, 이 서브클래스에서 직접 읽기 가능)이 null 이 아니면
+        //  프로토콜 구동. 수동(UI) RUN(SequenceBase.Start(EAction) → StartCore(.., null))과 RepeatRunService
+        //  배치런(StartAll(null)) 은 항상 packet==null 이라 여기서 false — GetExecutionZIndex()==0 과는
+        //  구분되는 별도 신호가 필요한 이유: ParseCurrentZIndex 는 packet==null 일 때도 0 을 반환해(D-08 안전
+        //  폴백) 진짜 프로토콜 z=0 과 "프로토콜 자체가 없음"을 구별하지 못한다.
+        public bool IsProtocolDrivenCycle()
+        {
+            bool bHasRequestPacket = RequestPacket != null;
+            return bHasRequestPacket;
+        }
+
         //260722 hbk Phase 68 GAP-1/GAP-2 (68-GAP-ANALYSIS.md, D-09): "이 z_index 가 크로스-Z Datum 에 쓰이는가"의
         //  단일 소스 헬퍼 — DatumConfigs 순회하여 ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 set 에 모은다.
         //  BuildDeclaredZIndexSet(GAP-1 유니버스)과 IsDatumOnlyExecutionIndex(GAP-2 실행스코프)가 이 하나를 공유 —
@@ -1008,6 +1020,15 @@ namespace ReringProject.Sequence {
         //  IsZIndexUsedByCrossZDatum 은 WarnIfEmptyScope/GAP-1 BuildDeclaredZIndexSet 도 소비하므로 억지로
         //  의미를 넓히면 그 소비처들의 의미까지 오염시킬 위험이 있다(68-12-PLAN.md investigation_findings) —
         //  그래서 이 메서드가 병행 경로로 OR 만 담당한다.
+        //260722 hbk Phase 68 REGR-1(68-GAP-ANALYSIS.md): z=0 대표트리거 스킵(FindZeroIndexDatumTriggerActionIndices
+        //  경로)은 IsProtocolDrivenCycle()==true 일 때만 적용한다 — 프로토콜 $TEST(z=0) 는 이 Shot 의 진짜 측정이
+        //  나중 z_index 에 다시 트리거되므로 이번 z=0 측정을 건너뛰어도 안전하지만, 수동(UI) RUN 과
+        //  RepeatRunService 배치런은 packet==null 이라 GetExecutionZIndex()==0 으로 동일하게 관측되면서도 이후
+        //  z_index 트리거가 전혀 오지 않는다 — 여기서 스킵하면 그 Shot 은 이번 사이클에 영구히 미측정('—')이
+        //  된다(이 사이트의 실제 생산 워크플로인 수동 지그 RUN 버튼 회귀, 260722 확인). IsDatumOnlyExecutionIndex
+        //  (z>=1 경로) 는 이 가드가 필요 없다 — packet==null 이면 ParseCurrentZIndex 가 항상 0 을 반환하므로
+        //  nZIndex 는 여기 도달할 때 이미 0 이고, 그 함수 최상단의 nZIndex==DATUM_Z_INDEX 가드가 이미 false 를
+        //  강제한다(호출부 GetExecutionZIndex() 도달 경로 분석으로 확인, 별도 가드 중복 불필요).
         public bool ShouldSkipMeasurementAfterDatumPhase(int nZIndex)
         {
             bool bIsCrossZDatumOnly = IsDatumOnlyExecutionIndex(nZIndex);
@@ -1017,6 +1038,11 @@ namespace ReringProject.Sequence {
             }
             bool bIsZeroIndex = nZIndex == DATUM_Z_INDEX;
             if (!bIsZeroIndex)
+            {
+                return false;
+            }
+            bool bIsProtocolDriven = IsProtocolDrivenCycle();
+            if (!bIsProtocolDriven)
             {
                 return false;
             }

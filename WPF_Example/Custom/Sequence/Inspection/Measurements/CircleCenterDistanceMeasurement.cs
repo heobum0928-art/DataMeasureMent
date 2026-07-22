@@ -24,7 +24,9 @@ namespace ReringProject.Sequence
         [Category("Edge")]
         public int EdgeThreshold { get; set; } = 10;
         public double Sigma { get; set; } = 1.0;
+        // EdgePolarity dead: TryFindCircle polarity 인자 미참조 + legacy fit 분기(Circle_RadialDirection="")는 기본값 "Inward" 로 UI 도달 불가, polar 분기는 설계상 무시 → PropertyGrid 숨김(필드/INI 보존).
         [ItemsSourceProperty(nameof(EdgePolarityList))]
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string EdgePolarity { get; set; } = "DarkToLight";
 
         // Datum 원 알고리즘 (polar sampling) 사용: Inward/Outward 방사 방향.

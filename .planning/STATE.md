@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 68-03-PLAN.md
-last_updated: "2026-07-21T23:58:26.834Z"
-last_activity: 2026-07-21
+stopped_at: Completed 68-04-PLAN.md
+last_updated: "2026-07-22T00:13:56.088Z"
+last_activity: 2026-07-22
 progress:
   total_phases: 23
   completed_phases: 19
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
-Plan: 4 of 5
-Last activity: 2026-07-21
+Plan: 5 of 5
+Last activity: 2026-07-22
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -218,6 +218,7 @@ Last activity: 2026-07-21
 | Phase 68 P01 | 15min | 3 tasks | 3 files |
 | Phase 68 P02 | 20min | 3 tasks | 4 files |
 | Phase 68 P03 | 40min | 4 tasks | 2 files |
+| Phase 68 P04 | 30min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -453,6 +454,8 @@ Recent decisions affecting current work:
 - [Phase 68]: z_index==0 (Datum) always routes to StartAll, never through FindActionIndicesByZIndex, since Datum detection is embedded in every Action's DatumPhase and is not represented as an independent Shot (D-01a regression guard)
 - [Phase 68]: Cross-Z storage helpers made public (not private) for Action_FAIMeasurement cross-class access — Same convention as Plan 02's FindActionIndicesByZIndex; a private member cannot be called from a different class
 - [Phase 68]: AggregateIndexFais/AddFaiResult made measurement-index-aware (GetMeasurementCompletionZIndex) — Cross-Z FAI items now report only at completion z_index=max(ZIndexA,ZIndexB), independent of owning Shot's own ZIndex — closes Plan 03 BLOCKER (previously depended on shot.ZIndex recipe convention)
+- [Phase 68]: Datum 크로스-Z 라이브 캡처는 GrabOrLoadDatumImage(기존 1-image Datum grab 선례) 재사용 — DatumPhase가 Grab보다 먼저 실행되어 ShotParam.GetImage() 재사용 불가
+- [Phase 68]: IsDatumZIndexMisconfigured는 both-unset(-1/-1) 케이스를 명시적으로 먼저 통과시킴 — 측정 레벨과 달리 무조건 호출되므로, 아니면 -1==-1이 same-value 오판정되어 D-07 회귀0이 깨짐
 
 ### Quick Tasks Completed
 
@@ -604,8 +607,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-21T23:58:26.823Z
-Stopped at: Completed 68-03-PLAN.md
+Last session: 2026-07-22T00:13:56.078Z
+Stopped at: Completed 68-04-PLAN.md
 Resume file: None
 Next action: Phase 65 Plan 03 — ProcessAlignTest 슬롯별 Matcher.Run 배선 (D-06/D-07)
 

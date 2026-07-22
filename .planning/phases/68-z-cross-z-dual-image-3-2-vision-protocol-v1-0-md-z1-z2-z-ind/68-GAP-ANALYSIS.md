@@ -93,3 +93,21 @@ FIX-0/GAP-1/2/3을 전부 적용해도, z=1에서 Datum 검출이 성공해도 *
 4. **CROSS-2**(마지막 Index 진실원) — GAP-1/3과 조율 필요
 5. **GAP-3** — 코드 수정은 준비하되, **"즉시 F" 부분은 제어팀 협의 완료 전까지 게이팅**
 6. 전체 완료 후 68-05 UAT 재개(SHOT_E5의 own ZIndex 설정도 함께 재확인 — 혼합 Shot 오염 회피)
+
+---
+
+## 사후발견 — REGR-1: D-08 fix 자체의 회귀 (68-03 완료 후 UAT 중 발견, 2026-07-22)
+
+**배경:** 68-03에서 구현한 D-08 버그수정(`TryGrabOrLoadFaiDualImages`, 커밋 `b28beca`)이 그 자체로 새 회귀를 도입했다. 68-03 완료 및 본 gap-analysis 작성 이후, 이 phase와 별개로 진행된 UAT 세션에서 발견됨.
+
+**근본원인:** `b28beca`는 pathA(PointROI) 우선순위를 "`ShotParam.HasImage`(라이브 grab) 최우선 → `TeachingImagePath_Horizontal` → `SimulImagePath`" 순으로 재배치했다. 그러나 `EStep.Grab`(`Action_FAIMeasurement.cs:245-268`)은 SIMUL_MODE에서 항상, 그리고 non-SIMUL의 `SystemSetting.Handle.OfflineInspectMode`(이 사이트의 실제 운영 모드 — Z모터 없는 수동지그, `manual-jig-offline-inspect` 참고) 분기에서도 `LoadShotInspectionImage()` + `ShotParam.SetImage(image)`를 매 사이클 실행한다. 즉 `EStep.Measure` 시점엔 `ShotParam.HasImage`가 항상 `true`이므로, `b28beca`가 최우선으로 승격한 라이브 분기가 매번 이기고, 운영자가 측정별로 명시 지정한 `TeachingImagePath_Horizontal`은 이 사이트가 실제로 도는 두 모드 모두에서 도달 불가능한 죽은 코드가 된다.
+
+**D-08 원래 의도와의 차이:** D-08(`68-CONTEXT.md`)의 실제 의도는 "명시 경로가 없을 때 이미 확보된 라이브 이미지를 무시하고 파일을 낭비적으로 재로드하는" 문제만 고치는 것이었다. 명시 경로를 override하려는 의도는 없었다 — 구현이 의도보다 한 단계 더 나갔다.
+
+**증상 (UAT 중 실측):** DualImage 측정에서 `RuntimeImageA`/`RuntimeImageB`가 설정된 수평/수직 교시 이미지 쌍이 아니라 사실상 동일/오류 이미지로 귀결되어, 측정값이 산출되지 않음.
+
+**수정:** `TryGrabOrLoadFaiDualImages`의 pathA 우선순위를 (1) `TeachingImagePath_Horizontal`(명시, 존재 시 최우선) → (2) `ShotParam.HasImage`/`GetImage()`(라이브, D-08 원 의도 보존) → (3) `ShotParam.SimulImagePath`(폴백) 순으로 재정렬. 우선순위 결정 로직은 `ResolveFaiImageASource` 헬퍼로 추출(제어 시퀀스 코딩 지침의 함수 30줄 제한 준수). `imageB`/`TeachingImagePath_Vertical`, 페어 Dispose 계약, cross-Z 캡처 경로(`ProcessCrossZCaptureTick`)는 무변경.
+
+**커밋:** 이 회귀에 대해 사실상 동일한 수정이 두 건 연속 커밋되었다(동일 프롬프트의 병행 실행으로 추정) — `4198b1e`(1차, 3단 if/else-if/else 재정렬만) 이어서 `e429466`(최종 — 동일 재정렬 + `ResolveFaiImageASource` 헬퍼 추출로 30줄 지침 준수). 현재 HEAD 상태는 `e429466` 기준이며 기능적으로 올바름을 빌드+코드리뷰로 확인함. 두 커밋 모두 기록 보존(히스토리 재작성 안 함) — 정리가 필요하면 사용자 판단으로 별도 처리 권고.
+
+**별개로 확인, 이번 수정 범위 아님:** cross-Z 캡처(`ProcessCrossZCaptureTick`)는 `TeachingImagePath_Horizontal`을 전혀 참조하지 않으므로 이 회귀와 무관 — 다만 `ShotParam.SimulImagePath`가 Shot당 고정 파일 1개뿐이라 SIMUL_MODE에서 ZIndexA/ZIndexB 두 시점에 구조적으로 서로 다른 이미지를 만들 수 없다는 기존 설계 갭(CROSS-1과는 별개)이 여전히 남아있음 — 사용자와 별도 논의 중.

@@ -44,6 +44,8 @@ namespace ReringProject.Sequence {
         private const int UNSET_ZINDEX = -1;
         private const string CROSS_Z_ROLE_SUFFIX_A = "_ZA";
         private const string CROSS_Z_ROLE_SUFFIX_B = "_ZB";
+        //260722 hbk Phase 68 D-06/D-09: Datum 크로스-Z 저장소 키 접두사 — 측정 키(ShotName|MeasName)와 네임스페이스 구분.
+        private const string CROSS_Z_DATUM_KEY_PREFIX = "DATUM|";
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -102,8 +104,12 @@ namespace ReringProject.Sequence {
                             LightHandler.Handle.WaitForPendingWrites();
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
                                 HImage imgH = null, imgV = null;
+                                bool bDatumCrossZPending;
                                 try {
-                                    if (!TryGrabOrLoadDualDatumImages(datum, out imgH, out imgV)) {
+                                    if (!TryGrabOrLoadDualDatumImages(datum, parentSeq, out imgH, out imgV, out bDatumCrossZPending)) {
+                                        if (bDatumCrossZPending) {
+                                            continue; // Z1(비완성 index): 캡처만 — 실패 아님(MarkDatumFailed 미설정), 완성 z_index에서 검출(D-02a)
+                                        }
                                         string datumName = datum.DatumName;
                                         if (datumName == null) datumName = "";
                                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' DualImage 취득 실패 (skip)");
@@ -436,16 +442,30 @@ namespace ReringProject.Sequence {
         }
 
         // DualImage 변형용 두 이미지 동시 로드 (per-datum).
-        //  imageHorizontal: datum.TeachingImagePath 에서 로드 (가로축 ROI 검출용)
-        //  imageVertical:   datum.TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
-        //  빈 경로 또는 파일 없음 / HImage 생성 실패 시 false + 로그.
-        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) {
+        //  ZIndexA/ZIndexB 둘 다 설정(-1 아님) → 크로스-Z 라이브 캡처 경로(D-06). 미설정(-1/-1) → 기존 static 경로(D-07 회귀 0).
+        //  bPending=true 는 "실패 아님, 다음 z_index 대기"(D-02a) — 호출부가 MarkDatumFailed 를 걸지 않는 근거.
+        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
             imageHorizontal = null;
             imageVertical = null;
+            bPending = false;
             if (datum == null) {
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: datum 이 null 입니다.");
                 return false;
             }
+            bool bCrossZEnabled = datum.ZIndexA != UNSET_ZINDEX && datum.ZIndexB != UNSET_ZINDEX;
+            if (bCrossZEnabled) {
+                return TryGrabOrLoadCrossZDatumImages(datum, parentSeq, out imageHorizontal, out imageVertical, out bPending);
+            }
+            return TryLoadStaticDualDatumImages(datum, out imageHorizontal, out imageVertical);
+        }
+
+        // 기존 static teaching 파일 로드 경로 (ZIndexA/B 미설정, D-07 회귀 0) — 원본 TryGrabOrLoadDualDatumImages 로직 그대로.
+        //  imageHorizontal: datum.TeachingImagePath 에서 로드 (가로축 ROI 검출용)
+        //  imageVertical:   datum.TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
+        //  빈 경로 또는 파일 없음 / HImage 생성 실패 시 false + 로그.
+        private bool TryLoadStaticDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) {
+            imageHorizontal = null;
+            imageVertical = null;
             string pathH = datum.TeachingImagePath;
             string pathV = datum.TeachingImagePath_Vertical;
 
@@ -469,6 +489,82 @@ namespace ReringProject.Sequence {
                 return false;
             }
             return true;
+        }
+
+        //260722 hbk Phase 68 D-06/D-02a: Datum 크로스-Z 라이브 캡처/주입 — 완성 z_index=max(ZIndexA,ZIndexB)
+        //  (측정 레벨 TryExecuteCrossZMeasurement 완성 index 정의와 통일). 현재 tick 이 이 datum 의 ZIndexA/B
+        //  어느 쪽도 아니면 무관(bPending=true, 상태변화 없음 — ProcessCrossZCaptureTick bRelevant 미러).
+        private bool TryGrabOrLoadCrossZDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
+            imageHorizontal = null;
+            imageVertical = null;
+            bPending = false;
+            if (parentSeq == null) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 크로스-Z: parentSeq null");
+                return false;
+            }
+            int nCurZ = parentSeq.GetExecutionZIndex();
+            bool bIsRoleA = nCurZ == datum.ZIndexA;
+            bool bIsRoleB = nCurZ == datum.ZIndexB;
+            bool bRelevant = bIsRoleA || bIsRoleB;
+            if (!bRelevant) {
+                bPending = true; // 이 tick 은 이 datum 의 ZIndexA/B 어느 쪽도 아님 — 상태변화 없음(안전망)
+                return false;
+            }
+            if (!CaptureAndStoreCrossZDatumImage(datum, parentSeq, bIsRoleA)) {
+                return false; // 실제 캡처 실패 — 호출부가 MarkDatumFailed(실패 확정)
+            }
+            return TryTakeCompletedCrossZDatumImages(datum, parentSeq, out imageHorizontal, out imageVertical, out bPending);
+        }
+
+        // 현재 tick 이미지를 라이브 grab(기존 Shot 라이브 grab 선례 GrabOrLoadDatumImage 재사용, 새 메커니즘 금지 D-01)해
+        //  크로스-Z 저장소에 역할(A/B) 키로 저장. GrabSyncLock 은 호출부(EStep.DatumPhase)가 이미 보유 — 새 lock 없음.
+        private bool CaptureAndStoreCrossZDatumImage(DatumConfig datum, InspectionSequence parentSeq, bool bIsRoleA) {
+            HImage capturedImage = GrabOrLoadDatumImage(datum);
+            if (capturedImage == null) {
+                return false;
+            }
+            string baseKey = BuildCrossZDatumKey(datum);
+            string roleKey;
+            if (bIsRoleA) roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_A;
+            else roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_B;
+            parentSeq.StoreCrossZImage(roleKey, capturedImage);
+            try { capturedImage.Dispose(); } catch { } // Store 가 CopyImage 로 소유 클론 저장 — 원본은 여기서 즉시 해제
+            return true;
+        }
+
+        // 양 role(A/B) 저장 완료 여부 판정 — 완성이면 클론 반환(호출부 finally Dispose 계약), 아니면 bPending=true(Z1 캡처만).
+        private bool TryTakeCompletedCrossZDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
+            imageHorizontal = null;
+            imageVertical = null;
+            bPending = false;
+            string baseKey = BuildCrossZDatumKey(datum);
+            string keyA = baseKey + CROSS_Z_ROLE_SUFFIX_A;
+            string keyB = baseKey + CROSS_Z_ROLE_SUFFIX_B;
+            bool bCompleted = parentSeq.HasCrossZImage(keyA) && parentSeq.HasCrossZImage(keyB);
+            if (!bCompleted) {
+                bPending = true; // Z1(비완성 index): 캡처만 — 실패 아님
+                return false;
+            }
+            imageHorizontal = parentSeq.TakeCrossZImageCopy(keyA);
+            imageVertical = parentSeq.TakeCrossZImageCopy(keyB);
+            bool bBothLoaded = imageHorizontal != null && imageVertical != null;
+            if (!bBothLoaded) {
+                if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } }
+                if (imageVertical != null) { try { imageVertical.Dispose(); } catch { } }
+                imageHorizontal = null;
+                imageVertical = null;
+                return false; // 완성 index 인데 클론 취득 실패 — 실제 실패
+            }
+            return true;
+        }
+
+        // 크로스-Z 저장소 키 = "DATUM|" 접두사 + DatumName — 측정 키(ShotName|MeasName)와 네임스페이스 구분(충돌 방지).
+        private string BuildCrossZDatumKey(DatumConfig datum) {
+            string datumName = "";
+            if (datum != null && datum.DatumName != null) {
+                datumName = datum.DatumName;
+            }
+            return CROSS_Z_DATUM_KEY_PREFIX + datumName;
         }
 
         // DualImageEdgeDistanceMeasurement 측정용 양 이미지 로드.

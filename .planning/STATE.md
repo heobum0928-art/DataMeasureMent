@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
-Plan: 12 of 12 (68-05 UAT paused mid-run — gap analysis found FIX-0/GAP-1/2/3/CROSS-1/2, closure plans 68-06~68-12 created; 68-06 FIX-0/68-07 GAP-1+2/68-08 CROSS-1/68-09 CROSS-2/68-10 GAP-3/68-12(z=0 대표 트리거 낭비 제거) now complete, 68-11 Task 2(68-GAP-UAT.md human-verify checkpoint) remains open before 68-05 UAT resumes)
-Last activity: 2026-07-22
+Plan: 12 of 12 (68-11 Task 2 human-verify checkpoint 완료 — 68-GAP-UAT.md 기록 완료. FIX-0/CROSS-1/GAP-1/GAP-2(무관Shot)/CROSS-2 SIMUL 실측 PASS. GAP-2 Error로그 억제가 크로스-Z Datum-only만 커버하고 크로스-Z 측정 capture-only는 놓쳤던 신규 버그 발견+수정(WarnIfEmptyScope 확장). 혼합 Shot 오염(지침 #9) 실측 재현 확인 후 저장 시점 차단 가드 신규 추가(InspectionRecipeManager.FindMixedCrossZShots, 같은 Shot 내 측정은 (ZIndexA,ZIndexB) 짝 전부 동일해야 함 — 사용자 요청으로 크로스-Z+일반 혼합뿐 아니라 서로 다른 크로스-Z 짝 혼합도 차단). GAP-3 는 Side 크로스-Z Datum 레시피 부재로 이 환경에서 기능 검증 불가(코드 기본값 true 확인만, blocked). 원래 68-05 UAT 는 68-11 로 완전 대체됨(68-05 자체 Task2 는 실행 안 함, superseded). 남은 건 68-05-PLAN.md/68-11-PLAN.md 의 파일 카운트 상 미완료 표기뿐 — 기능적으로는 phase 68 gap-closure 전체 완료.)
+Last activity: 2026-07-23
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 
@@ -472,6 +472,9 @@ Recent decisions affecting current work:
 - [Phase 68-09]: GetDatumCompletionZIndex 를 GetMeasurementCompletionZIndex 옆에 배치(GAP-3/68-10 재사용 대비) — 68-10 이 동일 소스를 바로 재사용하도록 discoverability 우선, C# 멤버 순서는 컴파일에 영향 없음
 - [Phase 68-10]: GAP-3 checkpoint: enable-after-agreement — EnableCrossZDatumImmediateFail default flipped true. Vision-Protocol-v1.0.md P/F/B table F-row PLC action is index-agnostic (uniform NG 처리); PLC branches on B vs P/F only, never index number, so completion-index F (Side z=1) handled identically to z=0 F.
 - [Phase 68]: z=0 waste elimination (68-12): ShouldSkipMeasurementAfterDatumPhase OR-combines unmodified z>=1 IsDatumOnlyExecutionIndex with new z=0 representative-trigger path, instead of widening IsDatumOnlyExecutionIndex's contract directly — Avoids contaminating IsZIndexUsedByCrossZDatum's other consumers (WarnIfEmptyScope, BuildDeclaredZIndexSet)
+- [Phase 68-11]: 68-GAP-UAT.md 실측 중 GAP-2(f)'s WarnIfEmptyScope 억제가 크로스-Z **Datum**-only index만 커버하고 크로스-Z **Measurement** capture-only index(예: SHOT_E5 own ZIndex=0, ZIndexA=1)는 놓쳐서 매 사이클 스퓨리어스 Error 로그가 나는 걸 실측으로 발견 — BuildCrossZDatumIndexSet 대칭 구조로 BuildCrossZMeasurementIndexSet/IsZIndexUsedByCrossZMeasurement 신설, WarnIfEmptyScope 억제조건 확장. 재빌드+재트리거로 Error 로그 0 재확인.
+- [Phase 68-11]: 혼합 Shot 오염(지침 #9, 68-VALIDATION.md 운영규칙)을 SHOT_E5(E5_P2=크로스Z(1,2), E5_P1=일반(-1,-1))로 실측 재현(E5_P1이 z=1에서도 잘못 보고됨) → 사용자 지시로 실행 로직 변경 대신 **저장 시점 차단** 채택(리스크 최소화). InspectionRecipeManager.FindMixedCrossZShots/ShotHasInconsistentCrossZPairs 신설 — 규칙은 사용자가 직접 일반화: "같은 Shot 안 모든 측정은 (ZIndexA,ZIndexB) 짝이 전부 동일해야 함"(크로스-Z+일반 혼합뿐 아니라 (1,2)+(3,2) 같은 서로 다른 크로스-Z 짝 혼합도 차단). MainWindow.SaveRecipe 가 저장 직전 CustomMessageBox 로 차단, 파일 미변경 확인(main.ini mtime 불변 실측).
+- [Phase 68-11]: GAP-3(EnableCrossZDatumImmediateFail) 는 이 환경에 Side 크로스-Z Datum 레시피가 없어 기능 검증 불가로 blocked 처리(코드 기본값 true 는 68-10 결정대로 확인됨). 추가로 로컬 Setting.ini(68-10 이전 생성)가 여전히 False 로 영속화돼있어 신규 기본값 미반영 — 배포 시 기존 Setting.ini 존재 PC 대상 확인 필요(carry-over, 이번 범위 밖).
 
 ### Quick Tasks Completed
 

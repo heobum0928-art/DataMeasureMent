@@ -35,12 +35,15 @@ namespace ReringProject.Sequence
         // 측정별 보정계수 — 비전측정값을 현미경 공칭에 트루업하는 곱셈 계수. per-Shot CorrectionFactor(전역 캘리브 간극)
         //  위에 한 겹 더 얹는 피처별 잔차 보정. 기본 1.0 = 무보정. 각도 측정 타입은 AppliesCorrectionFactor=false 로 미적용.
         //  ※ 반복성이 확보된 측정에만, 여러 부품 비전↔현미경 상관으로 뽑은 값을 넣을 것(1개로 뽑거나 산포 은폐 금지).
-        //  운용 결정(사용자): 보정은 Shot 계수(CorrectionFactor) 단일 레이어로 관리하고, 안 맞는 포인트는 별도 Shot 으로 분리한다.
-        //   → 이 측정별 계수는 PropertyGrid 에서 숨긴다([Browsable(false)]). 값/직렬화/EvaluateJudgement 적용 로직은 보존(전부 1.0=무보정,
-        //     측정값 변화 0). 다시 노출하려면 [Browsable(false)] 만 제거하면 됨.
+        //  260723 hbk: 260715 에 Shot 계수 단일 레이어 방침으로 PropertyGrid 숨김 처리했었으나, "같은 조명/이미지인데
+        //   항목만 안 맞을 때 샷을 쪼개면 grab 이 늘어 택 증가" 문제로 방침 전환 — MeasCorrectionEnabled(opt-in, 기본 false)
+        //   토글로 노출 복원. ON 일 때만 적용(EvaluateJudgement 참조).
         [Category("Measurement|Tolerance")]
-        [PropertyTools.DataAnnotations.Browsable(false)]
-        [System.ComponentModel.Description("측정별 보정계수(×). 비전측정 → 현미경 공칭 정합용. 1.0=무보정. 각도 측정엔 미적용(길이/거리/직경만).")]
+        [System.ComponentModel.Description("측정별 보정계수 적용 여부(opt-in). OFF(기본)면 MeasCorrectionFactor 값과 무관하게 무보정.")]
+        public bool MeasCorrectionEnabled { get; set; } = false;
+
+        [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("측정별 보정계수(×). 비전측정 → 현미경 공칭 정합용. 1.0=무보정. 각도 측정엔 미적용(길이/거리/직경만). MeasCorrectionEnabled ON 일 때만 적용.")]
         public double MeasCorrectionFactor { get; set; } = 1.0;
 
         // 이 측정 유형에 MeasCorrectionFactor(길이 스케일 보정)를 적용하는지. 각도 타입은 false 로 override(각도는 비율).
@@ -109,7 +112,7 @@ namespace ReringProject.Sequence
         {
             // 측정별 보정계수(현미경 정합 트루업) — 곱셈, 길이 타입만(각도 override 제외). 부호/절대값·판정·표시 전에 적용해
             //  LastMeasuredValue 가 보정값으로 기록되게 한다. 계수 ≤0(구 레시피 잔재 등)은 무보정(1.0)으로 안전 처리.
-            if (AppliesCorrectionFactor && MeasCorrectionFactor > 0.0)
+            if (MeasCorrectionEnabled && AppliesCorrectionFactor && MeasCorrectionFactor > 0.0)
             {
                 value = value * MeasCorrectionFactor;
             }
@@ -143,9 +146,19 @@ namespace ReringProject.Sequence
         {
             bool result = base.Load(loadFile, groupName);
             IniSection sec;
-            if (!loadFile.TryGetSection(groupName, out sec) || sec == null || !sec.ContainsKey("MeasCorrectionFactor"))
+            bool bHasSection = loadFile.TryGetSection(groupName, out sec) && sec != null;
+            if (!bHasSection || !sec.ContainsKey("MeasCorrectionFactor"))
             {
                 MeasCorrectionFactor = 1.0;
+            }
+            // 260723 hbk 하위호환: MeasCorrectionEnabled 는 260723 신설이라 구 레시피엔 키가 없다. 키 부재 시
+            //  ParamBase reflection 이 false(안전 기본값)로 남기지만, 이미 MeasCorrectionFactor 가 1이 아닌 값으로
+            //  저장돼 있던 구 레시피(예: FAI_1 의 B2_P1=0.994, B3_P2=0.89)는 이 토글 신설 전엔 무조건 적용되고
+            //  있었으므로, 키 부재 + 비1.0 값이면 Enabled=true 로 자동 복원해 기존 보정 동작을 그대로 유지한다.
+            bool bEnabledKeyMissing = !bHasSection || !sec.ContainsKey("MeasCorrectionEnabled");
+            if (bEnabledKeyMissing && MeasCorrectionFactor != 1.0)
+            {
+                MeasCorrectionEnabled = true;
             }
             return result;
         }

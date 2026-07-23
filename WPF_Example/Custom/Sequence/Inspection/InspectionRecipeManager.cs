@@ -343,5 +343,41 @@ namespace ReringProject.Sequence {
             // [FORMAT] Version=6 이어야 신규 포맷. 그 외(Phase5 SHOTS-only 포함)는 신규로 인정하지 않음.
             return DetectFormatVersion(iniFile) == ERecipeFormatVersion.Phase6;
         }
+
+        // 260723 hbk Phase 68 GAP-2-ext(혼합 Shot 오염 저장 차단): 68-VALIDATION.md "운영 규칙 — 크로스-Z 측정
+        // Shot 격리"를 저장 시점에 강제한다. 크로스-Z 측정(ZIndexA/B 둘 다 설정)의 owning Shot 은 own ZIndex 외에
+        // ZIndexA/B 시점에도 재실행되므로, 같은 Shot 안의 측정들이 서로 다른 (ZIndexA,ZIndexB) 짝을 가지면
+        // (일반 측정 = (-1,-1) 포함) 그 중 일부가 남의 촬영 시점에 덩달아 재측정된다(UAT 260723 실측 확인 —
+        // SHOT_E5.E5_P1(-1,-1) 이 SHOT_E5.E5_P2(1,2) 의 z=1 트리거에서도 보고됨). 같은 Shot 의 모든 측정은
+        // (ZIndexA,ZIndexB) 짝이 전부 동일해야 한다 — 1,2 와 3,2 처럼 서로 다른 크로스-Z 짝도 동일하게 금지.
+        private const int CROSS_Z_UNSET = -1; // DualImageEdgeDistanceMeasurement.ZIndexA/B 기본값과 동일 sentinel
+        public List<string> FindMixedCrossZShots() {
+            var violatingShotNames = new List<string>();
+            foreach (var shot in Shots) {
+                bool bIsInconsistent = ShotHasInconsistentCrossZPairs(shot);
+                if (bIsInconsistent) {
+                    violatingShotNames.Add(shot.ShotName);
+                }
+            }
+            return violatingShotNames;
+        }
+
+        // FindMixedCrossZShots 의 sub-헬퍼(함수 30줄 가드) — Shot 1개의 측정들이 서로 다른 (ZIndexA,ZIndexB)
+        // 짝을 갖는지 판정. 비-크로스-Z 측정(다른 타입 포함)은 (-1,-1) 짝으로 취급 — 서로 다른 짝이 2종류 이상
+        // 섞이면 위반(크로스-Z+일반 혼합, 서로 다른 크로스-Z 짝 혼합 모두 이 하나의 규칙으로 커버).
+        private bool ShotHasInconsistentCrossZPairs(ShotConfig shot) {
+            if (shot == null) return false;
+            var pairsSeen = new HashSet<string>();
+            foreach (var fai in shot.FAIList) {
+                if (fai == null) continue;
+                foreach (var meas in fai.Measurements) {
+                    var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                    int nZIndexA = dualMeas != null ? dualMeas.ZIndexA : CROSS_Z_UNSET;
+                    int nZIndexB = dualMeas != null ? dualMeas.ZIndexB : CROSS_Z_UNSET;
+                    pairsSeen.Add($"{nZIndexA},{nZIndexB}");
+                }
+            }
+            return pairsSeen.Count > 1;
+        }
     }
 }

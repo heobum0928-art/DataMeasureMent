@@ -804,6 +804,47 @@ namespace ReringProject.Sequence {
             return BuildCrossZDatumIndexSet().Contains(nZIndex);
         }
 
+        //260723 hbk Phase 68 GAP-2-ext(68-11 UAT 재검증 중 발견): "이 z_index 가 크로스-Z 측정(Measurement)의
+        //  ZIndexA/B(capture-only role 포함) 로 쓰이는가" — BuildCrossZDatumIndexSet 과 대칭 구조(지침 #4 재사용
+        //  원칙, AddFaiDeclaredZIndices sub-헬퍼 재사용). WarnIfEmptyScope 가 기존엔 크로스-Z Datum-only index 만
+        //  스퓨리어스 에러를 억제했고, 크로스-Z 측정(예: SHOT_E5 ZIndexA=1, own ZIndex=0)의 비완성 capture tick 은
+        //  놓쳐서 매 사이클 "[V1Cycle] 매칭 0건" 에러가 찍혔다(AggregateIndexFais 가 own ZIndex 로만 집계하므로
+        //  capture-only tick 은 항상 매칭 0건이 정상).
+        private HashSet<int> BuildCrossZMeasurementIndexSet()
+        {
+            var crossZSet = new HashSet<int>();
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return crossZSet;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bShotNull = shot == null;
+                if (bShotNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                foreach (var fai in shot.FAIList)
+                {
+                    AddFaiDeclaredZIndices(fai, crossZSet);
+                }
+            }
+            return crossZSet;
+        }
+
+        //260723 hbk Phase 68 GAP-2-ext: BuildCrossZMeasurementIndexSet 의 membership 질의 wrapper.
+        private bool IsZIndexUsedByCrossZMeasurement(int nZIndex)
+        {
+            return BuildCrossZMeasurementIndexSet().Contains(nZIndex);
+        }
+
         //260722 hbk Phase 68 GAP-1 (D-09): 한 FAI 의 Measurements 중 DualImageEdgeDistanceMeasurement 의
         //  ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 declaredSet 에 추가. BuildDeclaredZIndexSet 의 sub-헬퍼(함수 30줄 가드).
         private void AddFaiDeclaredZIndices(FAIConfig fai, HashSet<int> declaredSet)
@@ -1389,10 +1430,15 @@ namespace ReringProject.Sequence {
         //  WR-01 fix: 중간 Index 면 빈 B 유지, 마지막 Index 면 ApplyCycleJudgement 가 F 강제(false-PASS 차단).
         //260722 hbk Phase 68 GAP-2(f): datum-only index(예: Side z=1, 오직 크로스-Z Datum 만 씀)는 측정 항목이
         //  적법하게 0건(완성 index 아님)이므로 이 억제 없이는 매 사이클 스퓨리어스 Error 로그가 발생한다.
+        //260723 hbk Phase 68 GAP-2-ext(68-11 UAT 재검증 중 발견): 크로스-Z 측정(Measurement)의 비완성 capture
+        //  role(예: SHOT_E5 ZIndexA=1, own ZIndex=0)도 같은 이유로 매칭 0건이 적법 — Datum 케이스만 억제하던
+        //  기존 가드를 측정 케이스까지 확장.
         private void WarnIfEmptyScope(TestResultPacket packet, int nMatchedShots, int nZIndex)
         {
             bool bDatumOnlyIndex = IsDatumOnlyExecutionIndex(nZIndex);
-            if (bDatumOnlyIndex)
+            bool bCrossZMeasurementCaptureIndex = IsZIndexUsedByCrossZMeasurement(nZIndex);
+            bool bSuppressWarning = bDatumOnlyIndex || bCrossZMeasurementCaptureIndex;
+            if (bSuppressWarning)
             {
                 return;
             }

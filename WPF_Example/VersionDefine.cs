@@ -66,10 +66,26 @@ namespace ReringProject
                  "⑦ Start 계열 TOCTOU — State 는 시퀀스 스레드가 Command 를 처리(≤5ms tick)해야 Running 이 되므로 UI RUN 과 TCP $TEST 가 겹치면 둘 다 'State!=Idle' 체크를 통과해 RequestPacket/액션범위가 조용히 덮어써졌다(TCP 응답 유실 또는 의도와 다른 액션 실행). StartCore 신설로 락 안에서 State 를 즉시 Running 으로 점유해 원자화하고, RequestPacket 을 점유 성공 후에만 기록. Command 는 소비 후에도 Start 로 유지되는 구조라 가드로 쓸 수 없어 State 점유 방식 채택. OnStart.Invoke 는 락 밖에서 호출(구독자가 Dispatcher 로 UI 접근 — 락 보유 중 UI 대기 시 데드락 위험). " +
                  "⑧ OfflineInspectMode(시스템 전역·영속)가 켜진 채 실물 라인에서 RUN 하면 저장 이미지로 조용히 측정되던 결함 — RUN 트리거 시점 확인 다이얼로그 추가."
     )]
+    [Version(
+        Number = "1.7.0.0",
+        Date = "2026-07-22",
+        Change = "크로스-Z Dual-Image(Vision-Protocol v1.0 z_index 독립 실행/z1·z2 분리 측정) 기능 신설(Phase 68). " +
+                 "핵심: z_index 실행 스코프(해당 index 매핑 Shot만 재실행, 무관 Shot 재-grab 0) + 크로스-Z 측정(한 항목을 서로 다른 두 Z 위치에서 캡처한 이미지 2장을 합쳐 거리 1개 산출, ZIndexA/ZIndexB 로 지정) + 크로스-Z Datum(2위치 기준점) + 완성 index 에만 P/F 응답(중간 index 는 버퍼). " +
+                 "gap-closure 6건: 사이클 리셋 타이밍 버그 수정(FIX-0), z_index 선언 유니버스 정리(GAP-1), 무관 Shot 재실행 방지+스퓨리어스 에러로그 억제(GAP-2), 완성 index 보정 재검출(CROSS-1), 마지막 index 판정 단일 진실원(CROSS-2), 기준점 검출 실패 즉시 불합격 게이팅(GAP-3, 기본 ON — 사용자 승인). z=0(기준점 전용) 트리거의 불필요한 전량 재검사 제거. " +
+                 "회귀 수정: DualImage 이미지A 경로 우선순위 복원, SIMUL 모드에서 크로스-Z 캡처 역할별(A/B) 교시이미지 분리, Z모터 없는 수동 RUN 버튼 사용 시 측정 누락되던 회귀 수정. " +
+                 "같은 날 별건 품질개선: ArcLineIntersectDistance(I9/I10) Far/Close 옵션 복원(회귀), DualImage/EdgeToLine/ArcEdge 거리측정 3종에 에지점별 평균화 도입(단일 중점 대신 각 에지점 투영 후 평균 — 노이즈 완화), PropertyGrid 에서 죽은(알고리즘이 안 읽는) 프로퍼티 5건 숨김, CompoundAngle 측정에 누락됐던 DatumB 기준선 오버레이 추가."
+    )]
+    [Version(
+        Number = "1.7.1.0",
+        Date = "2026-07-23",
+        Change = "EdgePairDistance 측정의 EdgeSelection 을 자유입력에서 Both 전용 드롭다운으로 제약(오타 입력 시 조용히 0mm 로 성공 처리되던 버그 수정), PointToLineDistance 에 에지점별 평균화 적용. " +
+                 "측정별 보정계수(MeasCorrectionFactor) PropertyGrid 노출을 MeasCorrectionEnabled 옵트인 스위치로 복원 — 기본 false 이나, 기존 레시피에 이미 1.0 아닌 보정값이 저장돼 있으면 로드 시 자동으로 활성화(하위호환, 레시피 파일 변경 없이 코드가 자동 처리). " +
+                 "Phase 68 크로스-Z 기능의 실측(SIMUL) 최종 검증(68-11) 완료 — 완성 index 보정 반영/무관 Shot 재-grab 0/사이클당 P·F 정확히 1회 전부 실측 PASS. 검증 중 신규 결함 2건 발견 즉시 수정: ① 크로스-Z 측정(기준점이 아닌 일반 측정 항목)의 비완성 캡처 시점에도 스퓨리어스 에러로그가 찍히던 것 억제 확장, ② 크로스-Z 측정과 일반 측정(또는 서로 다른 Z짝의 크로스-Z 측정)이 같은 촬영 자리(Shot)에 섞여 저장되면 불필요한 반복 재측정이 발생하던 문제 — 레시피 저장 시점에 자동 검출해 저장 자체를 차단하는 안내창 신설."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.6.3.0";
-        public const string BUILD_DATE = "2026-07-16";
+        public const string VERSION = "1.7.1.0";
+        public const string BUILD_DATE = "2026-07-23";
     }
 }

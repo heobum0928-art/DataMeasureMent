@@ -344,12 +344,11 @@ namespace ReringProject.Sequence {
             return DetectFormatVersion(iniFile) == ERecipeFormatVersion.Phase6;
         }
 
-        // 260723 hbk Phase 68 GAP-2-ext(혼합 Shot 오염 저장 차단): 68-VALIDATION.md "운영 규칙 — 크로스-Z 측정
-        // Shot 격리"를 저장 시점에 강제한다. 크로스-Z 측정(ZIndexA/B 둘 다 설정)의 owning Shot 은 own ZIndex 외에
-        // ZIndexA/B 시점에도 재실행되므로, 같은 Shot 안의 측정들이 서로 다른 (ZIndexA,ZIndexB) 짝을 가지면
-        // (일반 측정 = (-1,-1) 포함) 그 중 일부가 남의 촬영 시점에 덩달아 재측정된다(UAT 260723 실측 확인 —
-        // SHOT_E5.E5_P1(-1,-1) 이 SHOT_E5.E5_P2(1,2) 의 z=1 트리거에서도 보고됨). 같은 Shot 의 모든 측정은
-        // (ZIndexA,ZIndexB) 짝이 전부 동일해야 한다 — 1,2 와 3,2 처럼 서로 다른 크로스-Z 짝도 동일하게 금지.
+        // 260723 hbk 한 촬영 자리(Shot) 안에 있는 측정들이 z_index 짝을 서로 다르게 쓰면 안 된다.
+        //  크로스-Z 측정(사진 두 장 합쳐 재는 측정)이 있는 자리는 그 자리 전체가 여러 시점에 다시
+        //  찍히는데, 짝이 다른 측정이 섞여 있으면 그 측정이 남의 촬영 시점에 덩달아 불필요하게
+        //  다시 재진다(2026-07-23 실측으로 확인 — E5_P1이 E5_P2의 촬영 시점에도 같이 보고됨).
+        //  그래서 같은 자리 안 측정은 전부 짝이 똑같아야 한다(예: 1,2와 3,2가 섞여도 금지).
         private const int CROSS_Z_UNSET = -1; // DualImageEdgeDistanceMeasurement.ZIndexA/B 기본값과 동일 sentinel
         public List<string> FindMixedCrossZShots() {
             var violatingShotNames = new List<string>();
@@ -362,9 +361,8 @@ namespace ReringProject.Sequence {
             return violatingShotNames;
         }
 
-        // FindMixedCrossZShots 의 sub-헬퍼(함수 30줄 가드) — Shot 1개의 측정들이 서로 다른 (ZIndexA,ZIndexB)
-        // 짝을 갖는지 판정. 비-크로스-Z 측정(다른 타입 포함)은 (-1,-1) 짝으로 취급 — 서로 다른 짝이 2종류 이상
-        // 섞이면 위반(크로스-Z+일반 혼합, 서로 다른 크로스-Z 짝 혼합 모두 이 하나의 규칙으로 커버).
+        // 260723 hbk 위 함수의 실제 판정 로직 — Shot 하나 안의 측정들 짝을 전부 모아서, 서로 다른
+        //  짝이 2가지 이상이면 위반으로 본다(크로스-Z 아닌 보통 측정은 짝을 -1,-1 로 취급).
         private bool ShotHasInconsistentCrossZPairs(ShotConfig shot) {
             if (shot == null) return false;
             var pairsSeen = new HashSet<string>();

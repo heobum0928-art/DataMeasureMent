@@ -804,12 +804,9 @@ namespace ReringProject.Sequence {
             return BuildCrossZDatumIndexSet().Contains(nZIndex);
         }
 
-        //260723 hbk Phase 68 GAP-2-ext(68-11 UAT 재검증 중 발견): "이 z_index 가 크로스-Z 측정(Measurement)의
-        //  ZIndexA/B(capture-only role 포함) 로 쓰이는가" — BuildCrossZDatumIndexSet 과 대칭 구조(지침 #4 재사용
-        //  원칙, AddFaiDeclaredZIndices sub-헬퍼 재사용). WarnIfEmptyScope 가 기존엔 크로스-Z Datum-only index 만
-        //  스퓨리어스 에러를 억제했고, 크로스-Z 측정(예: SHOT_E5 ZIndexA=1, own ZIndex=0)의 비완성 capture tick 은
-        //  놓쳐서 매 사이클 "[V1Cycle] 매칭 0건" 에러가 찍혔다(AggregateIndexFais 가 own ZIndex 로만 집계하므로
-        //  capture-only tick 은 항상 매칭 0건이 정상).
+        //260723 hbk 이 z_index가 "사진 두 장 합쳐서 재는 측정"에서 쓰는 번호인지 확인하는 함수.
+        //  이런 측정은 사진 한 장만 찍힌(아직 안 끝난) 시점에도 정상적으로 결과가 0건이라, 이걸
+        //  몰라서 매번 "이상한 값 없음" 에러 로그가 찍히던 걸 막으려고 만들었다(2026-07-23 실측 중 발견).
         private HashSet<int> BuildCrossZMeasurementIndexSet()
         {
             var crossZSet = new HashSet<int>();
@@ -839,7 +836,7 @@ namespace ReringProject.Sequence {
             return crossZSet;
         }
 
-        //260723 hbk Phase 68 GAP-2-ext: BuildCrossZMeasurementIndexSet 의 membership 질의 wrapper.
+        //260723 hbk 위 BuildCrossZMeasurementIndexSet 결과에 이 번호가 들어있는지만 물어보는 함수.
         private bool IsZIndexUsedByCrossZMeasurement(int nZIndex)
         {
             return BuildCrossZMeasurementIndexSet().Contains(nZIndex);
@@ -1430,9 +1427,8 @@ namespace ReringProject.Sequence {
         //  WR-01 fix: 중간 Index 면 빈 B 유지, 마지막 Index 면 ApplyCycleJudgement 가 F 강제(false-PASS 차단).
         //260722 hbk Phase 68 GAP-2(f): datum-only index(예: Side z=1, 오직 크로스-Z Datum 만 씀)는 측정 항목이
         //  적법하게 0건(완성 index 아님)이므로 이 억제 없이는 매 사이클 스퓨리어스 Error 로그가 발생한다.
-        //260723 hbk Phase 68 GAP-2-ext(68-11 UAT 재검증 중 발견): 크로스-Z 측정(Measurement)의 비완성 capture
-        //  role(예: SHOT_E5 ZIndexA=1, own ZIndex=0)도 같은 이유로 매칭 0건이 적법 — Datum 케이스만 억제하던
-        //  기존 가드를 측정 케이스까지 확장.
+        //260723 hbk "사진 두 장 합쳐서 재는 측정"도 사진 한 장만 찍은 시점엔 같은 이유로 결과 0건이
+        //  정상이다 — 위 기준점(Datum) 케이스만 봐주던 걸 이 측정 케이스까지 넓혔다.
         private void WarnIfEmptyScope(TestResultPacket packet, int nMatchedShots, int nZIndex)
         {
             bool bDatumOnlyIndex = IsDatumOnlyExecutionIndex(nZIndex);

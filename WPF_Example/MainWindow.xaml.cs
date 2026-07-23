@@ -267,15 +267,14 @@ namespace ReringProject {
                 CustomMessageBox.Show("Error", SystemHandler.Handle.Localize["System Is Running"], MessageBoxImage.Error);
                 return;
             }
-            //260723 hbk Phase 68 GAP-2-ext(혼합 Shot 오염 저장 차단): 크로스-Z 측정과 일반 측정이 같은 Shot 에
-            //  섞인 채로 저장되지 않도록 여기서 막는다 — 68-VALIDATION.md 운영 규칙(크로스-Z 측정 Shot 격리)의
-            //  UI 강제. 저장 자체를 막을 뿐 기존 값은 무변경.
+            //260723 hbk 촬영 자리(Shot) 하나에 서로 다른 z_index 짝을 쓰는 측정이 섞여 있으면 저장을
+            //  막는다(2026-07-23 실측으로 확인된 낭비 문제 예방, 값 자체는 안 건드림).
             var mixedShotNames = mSystemHandler.Sequences.RecipeManager.FindMixedCrossZShots();
             if(mixedShotNames.Count > 0) {
                 string shotList = string.Join(", ", mixedShotNames);
                 CustomMessageBox.Show(
                     "저장 불가",
-                    $"다음 Shot의 측정들이 서로 다른 z_index 짝(ZIndexA,ZIndexB)을 갖고 있습니다: {shotList}\n\n같은 Shot 안의 측정은 전부 (ZIndexA,ZIndexB) 짝이 동일해야 합니다(일반 측정은 미설정 상태로 통일). 짝이 다르면 다른 측정의 촬영 시점에 불필요하게 반복 실행됩니다.",
+                    $"다음 자리(Shot)에 서로 다른 촬영 시점(z_index) 설정이 섞여 있습니다: {shotList}\n\n같은 자리 안의 측정은 전부 같은 시점 설정을 써야 합니다. 섞여 있으면 촬영이 불필요하게 여러 번 반복됩니다.",
                     MessageBoxImage.Error);
                 return;
             }

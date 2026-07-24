@@ -76,10 +76,21 @@ namespace ReringProject.Device {
                 // Grabber 카메라 열거와 충돌 방지를 위해 장치 확인을 HikCamera 인스턴스 생성 전에 수행.
                 // 또한 SystemHandler 는 Grabber 카메라(DeviceHandler) 초기화 이후 마지막에 이 Connect 를
                 // 호출하므로, Grabber 열거가 끝난 뒤에 실행됨 — 동시 열거 금지.
-                int deviceCount = HikCamera.EnumerateDevice(ip);   // enumerate FIRST — DeviceList 재빌드
+                // 260724 hbk 버그 수정: EnumerateDevice(string) 의 인자는 장치 "타입" 필터("USB"/"GIGE" 부분
+                //  문자열 매치)이지 IP/이름 매처가 아니다(DeviceHandler.cs:90 의 무인자 호출이 정상 사용례).
+                //  여기서 실제 IP/카메라이름 문자열을 그대로 넘기면 "USB"/"GIGE" 어느 쪽도 안 걸려 필터가 0이 되고,
+                //  실제 카메라가 연결되어 있어도 EnumDevices 가 0건을 반환했다(실기 재현: 종일 "no device found").
+                //  GigE 전용 카메라이므로 "GIGE" 로 고정 — 이후 Open(ip) 가 DeviceList 를 이름/IP/FriendlyName
+                //  으로 검색(HikCamera.GetDeviceIndex)하므로 실제 매칭은 거기서 이뤄진다.
+                int deviceCount = HikCamera.EnumerateDevice("GIGE");   // enumerate FIRST — DeviceList 재빌드
                 if (deviceCount == 0) {
                     Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] Connect: no device found for {0}", ip);
                     return false;
+                }
+                // 260724 hbk 임시 진단 로그 — 실제 검색된 장치 목록(이름/IP) 확인용. 원인 확정 후 제거 검토.
+                for (int di = 0; di < deviceCount; di++) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] found[{0}]: name={1} ip={2} friendly={3}",
+                        di, HikCamera.GetDeviceUserDefinedName(di), HikCamera.GetDeviceIpAddress(di), HikCamera.GetDeviceFriendlyName(di));
                 }
 
                 DisplayConfig config = new DisplayConfig();

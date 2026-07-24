@@ -22,6 +22,17 @@ namespace ReringProject.Device {
         Fail,
     }
     public partial class HikCamera : VirtualCamera, IDisposable {
+
+        // 260724 hbk 임시 진단 — Logging.PrintLog 는 비동기(큐+백그라운드 스레드)라 네이티브 크래시가
+        //  로그 스레드보다 먼저 프로세스를 죽이면 큐에 쌓인 메시지가 파일에 안 써진 채 유실된다.
+        //  크래시 직전 상황을 확실히 남기기 위해 동기(즉시 flush) 방식으로 별도 파일에 기록.
+        private static void SyncDiag(string msg) {
+            try {
+                System.IO.File.AppendAllText(@"D:\Data\Camera\crash_diag.log",
+                    string.Format("{0} {1}\r\n", DateTime.Now.ToString("HH:mm:ss.fff"), msg));
+            }
+            catch { }
+        }
         //static member
         private static Dictionary<string, CCameraInfo> DeviceList = new Dictionary<string, CCameraInfo>();
         private static List<CCameraInfo> mInternalDeviceList = new List<CCameraInfo>();
@@ -409,10 +420,12 @@ namespace ReringProject.Device {
                 SetSoftwareTriggerMode();
             }
 
+            SyncDiag(Name + " TriggerSoftware 커맨드 전송 직전");
             if(CameraHandle.SetCommandValue("TriggerSoftware") != CErrorDefine.MV_OK) {
                 Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0}, Execute Software Trigger failed!", Name);
                 return false;
             }
+            SyncDiag(Name + " TriggerSoftware 커맨드 전송 완료 — 프레임 대기 시작");
             return true;
         }
 
@@ -433,14 +446,16 @@ namespace ReringProject.Device {
                 //  GenImage1 은 nWidth*nHeight 바이트를 pData 에서 그대로 읽는다 — 실제 페이로드(nFrameLen)와
                 //  다르면(스트라이드/픽셀포맷 불일치) 버퍼 밖을 읽어 네이티브 크래시가 날 수 있다. GenImage1 호출
                 //  전에 로그를 남겨 크래시가 나도 원인 파악 가능하게 함.
-                Logging.PrintLog((int)ELogType.Camera,
-                    "[GRAB진단] {0} nWidth={1} nHeight={2} nFrameLen={3} enPixelType={4} nExtendWidth={5} nExtendHeight={6} pData={7}",
+                SyncDiag(string.Format(
+                    "{0} OnGrabResult 진입 nWidth={1} nHeight={2} nFrameLen={3} enPixelType={4} nExtendWidth={5} nExtendHeight={6} pData={7}",
                     Name, pFrameInfo.nWidth, pFrameInfo.nHeight, pFrameInfo.nFrameLen, pFrameInfo.enPixelType,
-                    pFrameInfo.nExtendWidth, pFrameInfo.nExtendHeight, pData);
+                    pFrameInfo.nExtendWidth, pFrameInfo.nExtendHeight, pData));
 
                 lock (Interlock) {
                     HImage sourceImage = new HImage();
+                    SyncDiag(Name + " GenImage1 호출 직전");
                     sourceImage.GenImage1("byte", (int)pFrameInfo.nWidth, (int)pFrameInfo.nHeight, pData);
+                    SyncDiag(Name + " GenImage1 완료");
 
                     HImage rotatedImage = sourceImage;
                     if (Info.RotateAngle == ERotateAngleType._90) {
@@ -478,15 +493,20 @@ namespace ReringProject.Device {
         }
 
         public override HImage GrabHalconImage() {
+            SyncDiag(Name + " GrabHalconImage 진입");
             if (CaptureMode == ECaptureModeType.Streaming) return null;
 
             GrabState = EGrabStateType.Grabbing;
             mStopwatch.Restart();
 
+            SyncDiag(Name + " SetSoftwareTriggerMode 호출 직전");
             if (!SetSoftwareTriggerMode()) return null;
-           
+            SyncDiag(Name + " SetSoftwareTriggerMode 반환됨(성공)");
+
             prevImageCount = imageCount;
+            SyncDiag(Name + " ExecuteSoftwareTrigger 호출 직전");
             ExecuteSoftwareTrigger();
+            SyncDiag(Name + " ExecuteSoftwareTrigger 반환됨");
 
             while (true) {
                 if (GrabState == EGrabStateType.Done) {
@@ -569,22 +589,28 @@ namespace ReringProject.Device {
             //if (TriggerSource == ETriggerSource.Software) return true; //이미 SW trigger 이면 Skip (231127 제거 => 확인 필요)
 
             try {
+                SyncDiag(Name + " SetSoftwareTriggerMode 진입");
                 StopStream();
+                SyncDiag(Name + " StopStream 완료");
                 ResetGrabCount();
+                SyncDiag(Name + " ResetGrabCount 완료");
                 if (CameraHandle.SetEnumValue("TriggerSource", (uint)MV_CAM_TRIGGER_SOURCE.MV_TRIGGER_SOURCE_SOFTWARE) != CErrorDefine.MV_OK) {
                     Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} set Trigger source to Software failed!", Name);
                     return false;
                 }
+                SyncDiag(Name + " TriggerSource=Software 완료");
 
                 if (CameraHandle.SetEnumValue("TriggerMode", (uint)MV_CAM_TRIGGER_MODE.MV_TRIGGER_MODE_ON) != CErrorDefine.MV_OK) {
                     Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} set Trigger mode to On failed!", Name);
                     return false;
                 }
+                SyncDiag(Name + " TriggerMode=On 완료 — StartGrabbing 진입 직전");
 
                 if (CameraHandle.StartGrabbing() != CErrorDefine.MV_OK) {
                     Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Start Grabbing failed!", Name);
                     return false;
                 }
+                SyncDiag(Name + " StartGrabbing 완료 — 스트리밍 활성화됨");
 
                 CaptureMode = ECaptureModeType.Trigger;
                 TriggerSource = ETriggerSource.Software;

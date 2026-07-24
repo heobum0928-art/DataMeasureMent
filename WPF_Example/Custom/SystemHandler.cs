@@ -670,7 +670,12 @@ namespace ReringProject {
                 HImage img = null;
                 try
                 {
+                    // 260724 hbk 임시 진단 — 동기 파일 기록으로 크래시 직전 상황 확실히 남김
+                    try { System.IO.File.AppendAllText(@"D:\Data\Camera\crash_diag.log",
+                        string.Format("{0} [ALIGN_CALIB] STEP: Camera.Grab() 호출 직전\r\n", DateTime.Now.ToString("HH:mm:ss.fff"))); } catch { }
                     img = EthernetVisionHandler.Handle.Camera.Grab();
+                    try { System.IO.File.AppendAllText(@"D:\Data\Camera\crash_diag.log",
+                        string.Format("{0} [ALIGN_CALIB] STEP: Camera.Grab() 반환됨\r\n", DateTime.Now.ToString("HH:mm:ss.fff"))); } catch { }
                     bool bGrabOk = img != null;
                     if (!bGrabOk)
                     {

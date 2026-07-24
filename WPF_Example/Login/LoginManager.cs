@@ -99,7 +99,7 @@ namespace ReringProject.Login {
         public event LoginStateChanged OnLoginStateChanged;
 
         private LoginManager() {
-            ACCOUNT_FILE = AppDomain.CurrentDomain.BaseDirectory + @"account.db";
+            ACCOUNT_FILE = SystemSetting.Handle.AccountDbFilePath; //260723 hbk: bin 폴더(재배포 시 유실) → D:\Data 통합
             //260615 hbk Phase 43: D-03 — 생성자 동기 Load() 제거 → Preload() 백그라운드 이동 (기동 임계경로 외부)
             _preloadThread = new Thread(PreloadWorker) {
                 IsBackground = true,

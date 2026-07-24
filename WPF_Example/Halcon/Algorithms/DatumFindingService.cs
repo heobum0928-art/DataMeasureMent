@@ -128,7 +128,7 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2,
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                     config.Line1_EdgeDirection, config.Line1_EdgeSelection,
-                    config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
+                    config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount, config.Line1_Erosion,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out line1RawRows, out line1RawCols,
                     out lineError,
@@ -149,7 +149,7 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line2_Row, config.Line2_Col, config.Line2_Phi, config.Line2_Length1, config.Line2_Length2,
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
                     config.Line2_EdgeDirection, config.Line2_EdgeSelection,
-                    config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
+                    config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount, config.Line2_Erosion,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out line2RawRows, out line2RawCols,
                     out lineError,
@@ -285,7 +285,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
-                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A"))
                 {
@@ -302,7 +302,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
-                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B"))
                 {
@@ -450,7 +450,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Vertical_Length1, config.Vertical_Length2,
                         config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
                         config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
-                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount, config.Vertical_Erosion,
                         out vrB, out vcB, out vrE, out vcE,
                         out vertRawRows, out vertRawCols,
                         out lineError,
@@ -469,7 +469,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
-                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A"))
                 {
@@ -486,7 +486,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
-                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B"))
                 {
@@ -633,7 +633,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Vertical_Length1, config.Vertical_Length2,
                         config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
                         config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
-                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount, config.Vertical_Erosion,
                         out vrB, out vcB, out vrE, out vcE,
                         out vertRawRows, out vertRawCols,
                         out lineError,
@@ -655,7 +655,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
-                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A"))
                 {
@@ -672,7 +672,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
-                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B"))
                 {
@@ -899,7 +899,7 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line1_Row, config.Line1_Col, config.Line1_Phi, config.Line1_Length1, config.Line1_Length2,
                     config.Line1_Sigma, config.Line1_EdgeThreshold, config.Line1_EdgePolarity,
                     config.Line1_EdgeDirection, config.Line1_EdgeSelection,
-                    config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount,
+                    config.Line1_EdgeSampleCount, config.Line1_EdgeTrimCount, config.Line1_Erosion,
                     out line1RowBegin, out line1ColBegin, out line1RowEnd, out line1ColEnd,
                     out line1RawRows, out line1RawCols,
                     out lineError,
@@ -922,7 +922,7 @@ namespace ReringProject.Halcon.Algorithms
                     config.Line2_Row, config.Line2_Col, config.Line2_Phi, config.Line2_Length1, config.Line2_Length2,
                     config.Line2_Sigma, config.Line2_EdgeThreshold, config.Line2_EdgePolarity,
                     config.Line2_EdgeDirection, config.Line2_EdgeSelection,
-                    config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount,
+                    config.Line2_EdgeSampleCount, config.Line2_EdgeTrimCount, config.Line2_Erosion,
                     out line2RowBegin, out line2ColBegin, out line2RowEnd, out line2ColEnd,
                     out line2RawRows, out line2RawCols,
                     out lineError,
@@ -1075,7 +1075,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
-                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A"))
                 {
@@ -1097,7 +1097,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
-                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B"))
                 {
@@ -1235,7 +1235,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Vertical_Length1, config.Vertical_Length2,
                         config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
                         config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
-                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount, config.Vertical_Erosion,
                         out vrB, out vcB, out vrE, out vcE,
                         out vertRawRows, out vertRawCols,
                         out lineError,
@@ -1259,7 +1259,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
-                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A"))
                 {
@@ -1281,7 +1281,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
-                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B"))
                 {
@@ -1408,7 +1408,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Vertical_Length1, config.Vertical_Length2,
                         config.Vertical_Sigma, config.Vertical_EdgeThreshold, config.Vertical_EdgePolarity,
                         config.Vertical_EdgeDirection, config.Vertical_EdgeSelection,
-                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount,
+                        config.Vertical_EdgeSampleCount, config.Vertical_EdgeTrimCount, config.Vertical_Erosion,
                         out vrB, out vcB, out vrE, out vcE,
                         out vertRawRows, out vertRawCols,
                         out lineError,
@@ -1433,7 +1433,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_A_Length1, config.Horizontal_A_Length2,
                         config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
                         config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
-                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
                         out rowEdgeA, out colEdgeA, out edgeErrorA,
                         "Horizontal_A"))
                 {
@@ -1453,7 +1453,7 @@ namespace ReringProject.Halcon.Algorithms
                         config.Horizontal_B_Length1, config.Horizontal_B_Length2,
                         config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
                         config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
-                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
                         out rowEdgeB, out colEdgeB, out edgeErrorB,
                         "Horizontal_B"))
                 {
@@ -1607,7 +1607,7 @@ namespace ReringProject.Halcon.Algorithms
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
             string direction, string selection,
-            int sampleCount, int trimCount,
+            int sampleCount, int trimCount, int erosion,
             out double lineRowBegin, out double lineColBegin,
             out double lineRowEnd, out double lineColEnd,
             out HTuple edgeRowsOut, out HTuple edgeColsOut,
@@ -1630,6 +1630,7 @@ namespace ReringProject.Halcon.Algorithms
             if (string.IsNullOrEmpty(selection)) selection = "First";
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
+            if (erosion < 0) erosion = 0; // 신규 260723: 음수 sentinel 방어 → 침식 비활성 취급 (마스크 크기 음수 불가)
 
             //260619 hbk Phase 57 #4 DualImage align — Vertical ROI 도 가로축 transform 소비(TryExtractEdgePoints :1783 미러).
             //  현재 TryFindLine 은 AlignPreTransform 미소비라 DualImage 세로 ROI 가 보정 누락 → 이식. alignRot=0(비-align) 이면 기존 축정렬 동작과 정확히 동일(회귀 0).
@@ -1682,6 +1683,74 @@ namespace ReringProject.Halcon.Algorithms
             HTuple allRows = new HTuple();
             HTuple allCols = new HTuple();
 
+            // 그레이스케일 침식 노이즈 억제 전처리 (신규 *_Erosion 필드, 260723 hbk / 방향성 전환 260724 hbk).
+            //  erosion<=0 → 이 블록 전체가 no-op(신규 HOperatorSet 호출 0회) → 기존 레시피 byte-identical (회귀 0).
+            //  erosion_rectangle1 은 REGION(이진) 전용이라 1D gray-profile(MeasurePos) 파이프라인엔 적용 불가 →
+            //  대신 gray_erosion(커스텀 SE 이미지)을 사용한다.
+            //  reduce_domain 으로 ROI bbox(+erosion 여유 패딩)만 도메인 제한 후 gray_erosion 적용 → 전체 이미지가
+            //  아닌 ROI 면적에 비례한 연산량, strip 마다 반복하지 않고 ROI 당 1회. crop 하지 않으므로 좌표계 불변
+            //  (GenMeasureRectangle2/imageWidth/imageHeight 그대로 재사용 가능 — 아래 strip 루프는 stripImage 만 교체).
+            // 260724 hbk 방향성 침식(등방 N×N gray_erosion_rect → 라인 방향으로만 긴 회전 SE 로 교체, 사용자 요청:
+            //  "vertical 이면 세로만/horizontal 이면 가로만" 침식해 에지 블러 방지):
+            //  gray_erosion_shape 는 회전 불가(마스크 형태가 octagon/rectangle/rhombus 고정, phi 파라미터 없음 —
+            //  halcondotnet.dll 리플렉션 + gray_erosion_shape.html 로 확인) → 회전 가능한 gray_erosion(커스텀 SE 이미지) 사용.
+            //  SE 각도 = measurePhi(에지 횡단/스캔 방향, strip 과 동일 각도) + 90° = 라인(에지) 방향.
+            //  gray_erosion 의 SE 는 "이미지"이며 그 리전(region) 의 위치가 곧 마스크 원점(anchor) 을 결정한다.
+            //  HALCON 리전은 음수 row/col 을 가질 수 없으므로 (row=0,col=0) 중심으로 두면 절반이 잘려나감 →
+            //  작은 홀수 정사각 캔버스 중앙에 둬야 함(read_gray_se.html: "origin of the structuring element lies
+            //  at half of the defined width and height. For even dimensions the origin will be rounded towards
+            //  the upper left corner" → 홀수 폭에서 origin = (width-1)/2, 반올림 불필요. width/2.0 을 그대로 쓰면
+            //  대각선 0.5px 편향이 생겨 sub-pixel edge 위치가 틀어짐).
+            HObject roiDomain = null;
+            HObject reducedImage = null;
+            HObject seCanvas = null;
+            HObject seRegion = null;
+            HObject seImage = null;
+            HObject erodedObj = null;
+            HImage erodedImage = null;
+            HImage stripImage = image;
+            if (erosion > 0)
+            {
+                // 260724 hbk 속도 실측용 임시 계측 — erosion on/off tact 비교 요청. 값 확인 후 제거 여부 재검토.
+                var erosionSw = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    double pad = erosion; // 회전 마스크 worst-case 반경(erosion/2+0.5) 도 이 여유 안에 들어옴 → 값 유지
+                    HOperatorSet.GenRectangle1(out roiDomain, top - pad, left - pad, bottom + pad, right + pad);
+                    HOperatorSet.ReduceDomain(image, roiDomain, out reducedImage);
+
+                    double measurePhi  = ComputeMeasurePhi(direction, alignRot);
+                    double lineAxisPhi = measurePhi + Math.PI / 2.0; // 라인(에지) 방향 = 스캔방향(measurePhi) + 90°
+                    double halfLen     = erosion / 2.0; // 라인 방향 반길이(구 gray_erosion_rect(erosion,erosion) 의 "전체 크기=erosion" 의미 보존)
+                    const double halfWidth = 0.5;        // 에지 횡단 방향 반폭 고정(~1px, 비노출) — 에지 블러 방지가 이 기능의 존재 이유
+
+                    HTuple imgType;
+                    HOperatorSet.GetImageType(image, out imgType); // gray_erosion: SE 픽셀타입은 Image 와 일치해야 함
+                    int canvasSize = (int)(2.0 * Math.Ceiling(halfLen + halfWidth) + 3.0); // 임의 회전각에서도 마스크 전체를 담는 정사각 캔버스 + 여유
+                    if (canvasSize % 2 == 0) canvasSize++;
+                    double centerRC = (canvasSize - 1) / 2.0; // 홀수 캔버스 중앙 정수 픽셀 = SE origin (read_gray_se 규약, 반올림 불필요)
+
+                    HOperatorSet.GenImageConst(out seCanvas, imgType, canvasSize, canvasSize);
+                    HOperatorSet.GenRectangle2(out seRegion, centerRC, centerRC, lineAxisPhi, halfLen, halfWidth);
+                    HOperatorSet.ReduceDomain(seCanvas, seRegion, out seImage);
+
+                    HOperatorSet.GrayErosion(reducedImage, seImage, out erodedObj);
+                    erodedImage = new HImage(erodedObj);
+                    stripImage = erodedImage;
+                    erosionSw.Stop();
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] erosion tact = {1}ms (erosion={2}px, canvas={3}x{3})", lbl, erosionSw.ElapsedMilliseconds, erosion, canvasSize));
+                }
+                catch (Exception erodeEx)
+                {
+                    erosionSw.Stop();
+                    // erosion 전처리 실패는 non-critical: 원본 image 로 폴백 (strip swallow 정책과 동일 사상)
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] gray_erosion(directional) skipped after {1}ms (fallback to source image): {2}", lbl, erosionSw.ElapsedMilliseconds, erodeEx.Message));
+                    stripImage = image;
+                }
+            }
+
             try
             {
                 if (scanHorizontal)
@@ -1691,7 +1760,7 @@ namespace ReringProject.Halcon.Algorithms
                         double r1 = top + (i * heightPx / stripCount);
                         double r2 = top + ((i + 1) * heightPx / stripCount);
                         AppendEdgePointsFromStrip(
-                            image, r1, left, r2, right,
+                            stripImage, r1, left, r2, right,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
                             direction, selection,
@@ -1707,7 +1776,7 @@ namespace ReringProject.Halcon.Algorithms
                         double c1 = left + (i * widthPx / stripCount);
                         double c2 = left + ((i + 1) * widthPx / stripCount);
                         AppendEdgePointsFromStrip(
-                            image, top, c1, bottom, c2,
+                            stripImage, top, c1, bottom, c2,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
                             direction, selection,
@@ -1771,6 +1840,17 @@ namespace ReringProject.Halcon.Algorithms
                 error = ex.Message;
                 return false;
             }
+            finally
+            {
+                // erosion==0 이면 아래 전부 null → no-op (회귀 0). 서로 다른 handle 이므로 각각 dispose.
+                if (erodedImage != null)  { try { erodedImage.Dispose(); } catch { } }
+                if (erodedObj != null)    { try { erodedObj.Dispose(); } catch { } }
+                if (seImage != null)      { try { seImage.Dispose(); } catch { } }
+                if (seRegion != null)     { try { seRegion.Dispose(); } catch { } }
+                if (seCanvas != null)     { try { seCanvas.Dispose(); } catch { } }
+                if (reducedImage != null) { try { reducedImage.Dispose(); } catch { } }
+                if (roiDomain != null)    { try { roiDomain.Dispose(); } catch { } }
+            }
         }
 
         // 단일 Rectangle2 ROI에서 에지점만 추출 (라인 피팅 전 단계). 수평 2-ROI concat 피팅용.
@@ -1782,7 +1862,7 @@ namespace ReringProject.Halcon.Algorithms
             double roiRow, double roiCol, double roiPhi, double roiLength1, double roiLength2,
             double sigma, int threshold, string polarity,
             string direction, string selection,
-            int sampleCount, int trimCount,
+            int sampleCount, int trimCount, int erosion,
             out HTuple rowEdge, out HTuple colEdge,
             out string error,
             string roiLabel)
@@ -1799,6 +1879,7 @@ namespace ReringProject.Halcon.Algorithms
             if (string.IsNullOrEmpty(selection)) selection = "First";
             if (sampleCount < 0) sampleCount = 0;
             if (trimCount < 0) trimCount = 0;
+            if (erosion < 0) erosion = 0; // 신규 260723: 음수 sentinel 방어 → 침식 비활성 취급 (마스크 크기 음수 불가)
 
             //260618 hbk Phase 54 ALIGN-01 carry-over#1: 패턴 보정 transform 이 set 되면 ROI 중심 이동 + strip 을 θ 회전.
             //  T = rotate(θ)+translate(x,y). 기존엔 중심만 이동하고 strip 을 축정렬로 둬서(carry-over#1) 틸트된 datum 에지를 비스듬히 샘플
@@ -1854,6 +1935,60 @@ namespace ReringProject.Halcon.Algorithms
             HTuple allRows = new HTuple();
             HTuple allCols = new HTuple();
 
+            // 그레이스케일 침식 노이즈 억제 전처리 (신규 *_Erosion 필드, 260723 hbk / 방향성 전환 260724 hbk).
+            //  erosion<=0 → 이 블록 전체가 no-op(신규 HOperatorSet 호출 0회) → 기존 레시피 byte-identical (회귀 0).
+            //  TryFindLine 과 동일 사상(erosion_rectangle1 은 REGION 전용이라 부적합 → 회전 가능한 gray_erosion(커스텀
+            //  SE 이미지) 사용, reduce_domain 으로 좌표계 불변 유지). SE 각도/anchor 상세 주석은 TryFindLine 참조.
+            HObject roiDomain = null;
+            HObject reducedImage = null;
+            HObject seCanvas = null;
+            HObject seRegion = null;
+            HObject seImage = null;
+            HObject erodedObj = null;
+            HImage erodedImage = null;
+            HImage stripImage = image;
+            if (erosion > 0)
+            {
+                // 260724 hbk 속도 실측용 임시 계측 — erosion on/off tact 비교 요청. 값 확인 후 제거 여부 재검토.
+                var erosionSw = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    double pad = erosion; // 회전 마스크 worst-case 반경(erosion/2+0.5) 도 이 여유 안에 들어옴 → 값 유지
+                    HOperatorSet.GenRectangle1(out roiDomain, top - pad, left - pad, bottom + pad, right + pad);
+                    HOperatorSet.ReduceDomain(image, roiDomain, out reducedImage);
+
+                    double measurePhi  = ComputeMeasurePhi(direction, alignRot);
+                    double lineAxisPhi = measurePhi + Math.PI / 2.0; // 라인(에지) 방향 = 스캔방향(measurePhi) + 90°
+                    double halfLen     = erosion / 2.0; // 라인 방향 반길이(구 gray_erosion_rect(erosion,erosion) 의 "전체 크기=erosion" 의미 보존)
+                    const double halfWidth = 0.5;        // 에지 횡단 방향 반폭 고정(~1px, 비노출) — 에지 블러 방지가 이 기능의 존재 이유
+
+                    HTuple imgType;
+                    HOperatorSet.GetImageType(image, out imgType); // gray_erosion: SE 픽셀타입은 Image 와 일치해야 함
+                    int canvasSize = (int)(2.0 * Math.Ceiling(halfLen + halfWidth) + 3.0); // 임의 회전각에서도 마스크 전체를 담는 정사각 캔버스 + 여유
+                    if (canvasSize % 2 == 0) canvasSize++;
+                    double centerRC = (canvasSize - 1) / 2.0; // 홀수 캔버스 중앙 정수 픽셀 = SE origin (read_gray_se 규약, 반올림 불필요)
+
+                    HOperatorSet.GenImageConst(out seCanvas, imgType, canvasSize, canvasSize);
+                    HOperatorSet.GenRectangle2(out seRegion, centerRC, centerRC, lineAxisPhi, halfLen, halfWidth);
+                    HOperatorSet.ReduceDomain(seCanvas, seRegion, out seImage);
+
+                    HOperatorSet.GrayErosion(reducedImage, seImage, out erodedObj);
+                    erodedImage = new HImage(erodedObj);
+                    stripImage = erodedImage;
+                    erosionSw.Stop();
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] erosion tact = {1}ms (erosion={2}px, canvas={3}x{3})", lbl, erosionSw.ElapsedMilliseconds, erosion, canvasSize));
+                }
+                catch (Exception erodeEx)
+                {
+                    erosionSw.Stop();
+                    // erosion 전처리 실패는 non-critical: 원본 image 로 폴백 (strip swallow 정책과 동일 사상)
+                    Logging.PrintLog((int)ELogType.Trace,
+                        string.Format("[Datum.{0}] gray_erosion(directional) skipped after {1}ms (fallback to source image): {2}", lbl, erosionSw.ElapsedMilliseconds, erodeEx.Message));
+                    stripImage = image;
+                }
+            }
+
             try
             {
                 if (scanHorizontal)
@@ -1863,7 +1998,7 @@ namespace ReringProject.Halcon.Algorithms
                         double r1 = top + (i * heightPx / stripCount);
                         double r2 = top + ((i + 1) * heightPx / stripCount);
                         AppendEdgePointsFromStrip(
-                            image, r1, left, r2, right,
+                            stripImage, r1, left, r2, right,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
                             direction, selection,
@@ -1879,7 +2014,7 @@ namespace ReringProject.Halcon.Algorithms
                         double c1 = left + (i * widthPx / stripCount);
                         double c2 = left + ((i + 1) * widthPx / stripCount);
                         AppendEdgePointsFromStrip(
-                            image, top, c1, bottom, c2,
+                            stripImage, top, c1, bottom, c2,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
                             direction, selection,
@@ -1925,13 +2060,42 @@ namespace ReringProject.Halcon.Algorithms
                 error = ex.Message;
                 return false;
             }
+            finally
+            {
+                // erosion==0 이면 아래 전부 null → no-op (회귀 0). 서로 다른 handle 이므로 각각 dispose.
+                if (erodedImage != null)  { try { erodedImage.Dispose(); } catch { } }
+                if (erodedObj != null)    { try { erodedObj.Dispose(); } catch { } }
+                if (seImage != null)      { try { seImage.Dispose(); } catch { } }
+                if (seRegion != null)     { try { seRegion.Dispose(); } catch { } }
+                if (seCanvas != null)     { try { seCanvas.Dispose(); } catch { } }
+                if (reducedImage != null) { try { reducedImage.Dispose(); } catch { } }
+                if (roiDomain != null)    { try { roiDomain.Dispose(); } catch { } }
+            }
+        }
+
+        // direction(+alignRot) → measurePhi 공유 헬퍼 (260724 hbk).
+        //  방향성 침식(erosion) 마스크 각도도 strip 스캔과 동일 각도가 필요해져 AppendEdgePointsFromStrip 의
+        //  기존 인라인 계산을 추출 — 산식은 100% 동일(순수 리팩터, 동작 변경 없음). 분기 시 measurePhi 불일치 →
+        //  strip 스캔 방향과 erosion 마스크 방향이 어긋나는 회귀가 생기므로 반드시 이 헬퍼 하나만 사용한다.
+        // direction → measurePhi 4-way 명시 매핑 (BtoT/TtoB 부호 구분).
+        //  CANONICAL refs: MeasurementAlgorithm.cs:130-178, FAIEdgeMeasurementService.cs:82-106, VisionAlgorithmService.cs:63-72.
+        private static double ComputeMeasurePhi(string direction, double alignRot)
+        {
+            double measurePhi;
+            if (string.Equals(direction, "TtoB", StringComparison.OrdinalIgnoreCase))      measurePhi = -Math.PI / 2.0;
+            else if (string.Equals(direction, "BtoT", StringComparison.OrdinalIgnoreCase)) measurePhi = +Math.PI / 2.0;
+            else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
+            else                                                                            measurePhi = 0.0;
+            //260618 hbk Phase 54 ALIGN-01 (부호 핫픽스): 패턴보정 strip 회전 — measurePhi 에 datum 에지 틸트 가산.
+            //  alignRot 은 패턴(shape model) 규약인데 datum 직선은 atan2 규약 → 부호 반대(확증로그: datumDetectRotDeg=-1.0 vs patternThetaDeg=+0.997).
+            //  ∴ -alignRot 로 보정해야 에지에 수직 스캔 (TtoB 예: -90°+(-1°)=-91°, +alignRot 이면 -89° 로 반대로 돌아 오측). 측정 ROI 는 datum transform=atan2 라 +가산이 맞지만 검출 단계엔 패턴 transform 만 가용해 부호 변환 필요.
+            return measurePhi - alignRot;
         }
 
         // 단일 strip 에서 MeasurePos 실행 후 edge 점 누적.
         //  참조: C:\Info\Project\DatumMeasure\DatumMeasure\Algorithms\MeasurementAlgorithm.cs AppendEdgePointsFromStrip.
         //  strip 실패(빈 결과 / 예외)는 swallow — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
-        // direction → measurePhi 4-way 명시 매핑 (BtoT/TtoB 부호 구분), selection 인자화.
-        //  CANONICAL refs: MeasurementAlgorithm.cs:130-178, FAIEdgeMeasurementService.cs:82-106, VisionAlgorithmService.cs:63-72.
+        // selection 인자화.
         //  SmallestRectangle2 의 rp 자동 도출은 사용자 의도(BtoT vs TtoB) 를 구분 못 함 → polarity 의미 뒤집힘.
         private void AppendEdgePointsFromStrip(
             HImage image,
@@ -1943,16 +2107,7 @@ namespace ReringProject.Halcon.Algorithms
             string roiLabel,
             double alignRot = 0.0) //260618 hbk Phase 54 ALIGN-01 carry-over#1: strip θ회전(measurePhi 가산). 기본 0 = TryFindLine 등 비-align 경로 무변경.
         {
-            // direction → measurePhi (CANONICAL: MeasurementAlgorithm.cs:130-178)
-            double measurePhi;
-            if (string.Equals(direction, "TtoB", StringComparison.OrdinalIgnoreCase))      measurePhi = -Math.PI / 2.0;
-            else if (string.Equals(direction, "BtoT", StringComparison.OrdinalIgnoreCase)) measurePhi = +Math.PI / 2.0;
-            else if (string.Equals(direction, "RtoL", StringComparison.OrdinalIgnoreCase)) measurePhi = Math.PI;
-            else                                                                            measurePhi = 0.0;
-            //260618 hbk Phase 54 ALIGN-01 (부호 핫픽스): 패턴보정 strip 회전 — measurePhi 에 datum 에지 틸트 가산.
-            //  alignRot 은 패턴(shape model) 규약인데 datum 직선은 atan2 규약 → 부호 반대(확증로그: datumDetectRotDeg=-1.0 vs patternThetaDeg=+0.997).
-            //  ∴ -alignRot 로 보정해야 에지에 수직 스캔 (TtoB 예: -90°+(-1°)=-91°, +alignRot 이면 -89° 로 반대로 돌아 오측). 측정 ROI 는 datum transform=atan2 라 +가산이 맞지만 검출 단계엔 패턴 transform 만 가용해 부호 변환 필요.
-            measurePhi -= alignRot;
+            double measurePhi = ComputeMeasurePhi(direction, alignRot);
 
             // selection (PascalCase) → Halcon MeasurePos 인자 (lower). chained ?: → if/else (CANONICAL: MeasurementAlgorithm.cs:178 의미 보존)
             string selectionLower = "first";

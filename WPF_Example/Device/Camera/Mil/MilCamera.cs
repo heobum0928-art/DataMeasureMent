@@ -25,13 +25,107 @@ namespace ReringProject.Device {
 #endif
 
         public MilCamera(DisplayConfig config, DeviceInfo info) : base(config, info, ECameraType.MIL) {
-            Properties = new VirtualCameraProperty();
+            Properties = new MilCameraProperty(this); //260723 hbk: Exposure/Gain/Gamma 실 HW 제어 시도(GenICam feature 경유)
             Properties.Width  = info.Width;
             Properties.Height = info.Height;
         }
 
         ~MilCamera() {
             Dispose();
+        }
+
+        //260723 hbk: MilCameraProperty 전용 진입점 — GenICam feature 값 읽기/쓰기 시도.
+        //  Width/Height/PixelFormat 은 이 장비에서 MdigControlFeature 쓰기가 "Requested operation not supported"로
+        //  실패한 이력이 있다(Open() 상단 NOTE). ExposureTime/Gain/Gamma 는 GenICam SFNC 표준 analog control 노드라
+        //  지원 여부가 다를 수 있음 — 실기 검증 필요.
+        //  주의(1차 구현 버그 수정): MdigControlFeature/MdigInquireFeature 는 MdigGrab 과 마찬가지로 실패해도
+        //  예외를 던지지 않고 MIL 내부 에러 상태만 세운다 — try/catch 만으로는 실패를 못 잡아 "성공"으로 오판했었다
+        //  (GrabFromBuffer() 의 MappGetError 체크와 동일 패턴 필요). 호출 직후 MappGetError 로 명시 확인한다.
+        // 260723 hbk: 에러 코드만으로는 원인을 알 수 없어(6501/6504 등은 MIL 매뉴얼 없이는 해독 불가) M_MESSAGE 로
+        //  사람이 읽을 수 있는 문자열도 같이 가져온다. M_ERROR_MESSAGE_SIZE(320) 버퍼 사용.
+        private string GetMilErrorMessage() {
+            try {
+                var sb = new System.Text.StringBuilder(320);
+                MIL.MappGetError(MilApplication, MIL.M_CURRENT + MIL.M_MESSAGE, sb);
+                return sb.ToString();
+            }
+            catch {
+                return "";
+            }
+        }
+
+        public bool TryReadFeature(string featureName, out double value) {
+            value = 0.0;
+            if (!IsOpen) return false;
+            try {
+                MIL.MdigInquireFeature(MilDigitizer, MIL.M_FEATURE_VALUE, featureName, MIL.M_TYPE_DOUBLE, ref value);
+                MIL_INT featureError = MIL.M_NULL;
+                MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref featureError);
+                if (featureError != MIL.M_NULL) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MilCamera.TryReadFeature({1}) (MIL error code {2}: {3})", Info.Identifier, featureName, (int)featureError, GetMilErrorMessage());
+                    value = 0.0;
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception e) {
+                Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MilCamera.TryReadFeature({1}) ({2})", Info.Identifier, featureName, e.Message);
+                return false;
+            }
+        }
+
+        // 260723 hbk: 실기 로그 확인 결과 ExposureTime/Gain 은 "Invalid parameter error"(6504)로 Gamma의
+        //  "Feature Access Error"(6501, feature 자체가 없음)와 다르게 실패했다 — feature 자체는 있는데 값 쓰기가
+        //  거부된다는 뜻. GenICam 카메라 다수가 ExposureAuto/GainAuto=Continuous(자동) 상태면 수동 쓰기를 막는
+        //  표준 동작이 있어, 값 쓰기 전에 대응 Auto feature 를 Off 로 먼저 시도한다(best-effort — 이 feature가
+        //  없는 카메라/이미 Off 인 경우도 있으므로 실패해도 무시하고 본 값 쓰기를 계속 진행).
+        private void TryDisableAutoFeature(string autoFeatureName) {
+            try {
+                MIL.MdigControlFeature(MilDigitizer, MIL.M_FEATURE_VALUE, autoFeatureName, MIL.M_TYPE_STRING, "Off");
+                MIL_INT dummyError = MIL.M_NULL;
+                MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref dummyError); // 에러 상태만 비워둠(다음 MappGetError 오판 방지) — 결과는 판정하지 않음(best-effort)
+            }
+            catch { }
+        }
+
+        // 260723 hbk: ExposureAuto/GainAuto Off 시도 후에도 "Invalid parameter error" 재현 — 원인 특정을 위해
+        //  실패 시 해당 feature 의 Min/Max/AccessMode 를 조회해 로그에 남긴다(값 범위 밖인지, 애초에 Read-Only인지 구분).
+        //  진단 전용 — 조회 자체가 실패해도 무시(원본 에러 로그가 이미 남아있으므로).
+        private string GetFeatureDiagnostics(string featureName) {
+            try {
+                double min = 0, max = 0;
+                MIL_INT accessMode = MIL.M_NULL;
+                MIL.MdigInquireFeature(MilDigitizer, MIL.M_FEATURE_MIN, featureName, MIL.M_TYPE_DOUBLE, ref min);
+                MIL.MdigInquireFeature(MilDigitizer, MIL.M_FEATURE_MAX, featureName, MIL.M_TYPE_DOUBLE, ref max);
+                MIL.MdigInquireFeature(MilDigitizer, MIL.M_FEATURE_ACCESS_MODE, featureName, MIL.M_TYPE_MIL_INT, ref accessMode);
+                MIL_INT diagError = MIL.M_NULL;
+                MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref diagError); // 진단 조회 자체의 에러는 판정에 안 씀 — 상태만 비움
+                return string.Format("min={0}, max={1}, accessMode={2}", min, max, (int)accessMode);
+            }
+            catch (Exception e) {
+                return "diagnostics failed: " + e.Message;
+            }
+        }
+
+        public bool TryWriteFeature(string featureName, double value) {
+            if (!IsOpen) return false;
+            try {
+                if (featureName == "ExposureTime") TryDisableAutoFeature("ExposureAuto");
+                else if (featureName == "Gain") TryDisableAutoFeature("GainAuto");
+
+                MIL.MdigControlFeature(MilDigitizer, MIL.M_FEATURE_VALUE, featureName, MIL.M_TYPE_DOUBLE, ref value);
+                MIL_INT featureError = MIL.M_NULL;
+                MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref featureError);
+                if (featureError != MIL.M_NULL) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MilCamera.TryWriteFeature({1}, value={2}) (MIL error code {3}: {4}) [{5}]", Info.Identifier, featureName, value, (int)featureError, GetMilErrorMessage(), GetFeatureDiagnostics(featureName));
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception e) {
+                Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MilCamera.TryWriteFeature({1}) ({2})", Info.Identifier, featureName, e.Message);
+                return false;
+            }
         }
 
         public void Dispose() {

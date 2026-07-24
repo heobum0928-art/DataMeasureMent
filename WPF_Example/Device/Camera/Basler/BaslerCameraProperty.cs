@@ -64,7 +64,7 @@ namespace ReringProject.Device {
 
         public override void Update() {
             base.Update();
-            SaveToJson(AppDomain.CurrentDomain.BaseDirectory + pHandle.Name + ".cfg");
+            SaveToJson(Path.Combine(SystemSetting.Handle.CameraConfigPath, pHandle.Name + ".cfg")); //260723 hbk: bin 폴더(재배포 시 유실) → D:\Data 통합
         }
 
         /// <summary>

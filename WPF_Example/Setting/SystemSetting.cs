@@ -48,34 +48,36 @@ namespace ReringProject.Setting {
         public string CurrentRecipeName { get; set; } = "A";
 
         //calibration
+        //260723 hbk: bin 폴더 기본값 → D:\Data 하위로 통합(Recipe/Light와 동일 정책). bin은 재빌드/재배포 시
+        //  지워질 수 있는 산출물 폴더라 영속 데이터를 두면 안 된다 — PC 역할(Top/Bottom/Side) 공통, 역할별 분기 없음.
         [Category("Path|Calibration")]
         [DirectoryPath]
         [AutoUpdateText]
-        public string CalibrationSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Calibration";
+        public string CalibrationSavePath { get; set; } = @"D:\Data\Calibration";
 
         //log
         [Category("Path|Log")]
         [DirectoryPath]
         [AutoUpdateText]
-        public string TraceLogSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Trace";
+        public string TraceLogSavePath { get; set; } = @"D:\Data\Trace";
         [DirectoryPath]
         [AutoUpdateText]
-        public string ImageSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Image";
+        public string ImageSavePath { get; set; } = @"D:\Data\Image";
         [DirectoryPath]
         [AutoUpdateText]
-        public string ResultSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Result";
+        public string ResultSavePath { get; set; } = @"D:\Data\Result";
 
         [DirectoryPath]
         [AutoUpdateText]
-        public string ErrorSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Error";
+        public string ErrorSavePath { get; set; } = @"D:\Data\Error";
 
         [DirectoryPath]
         [AutoUpdateText]
-        public string CameraLogSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Camera";
+        public string CameraLogSavePath { get; set; } = @"D:\Data\Camera";
 
         [DirectoryPath]
         [AutoUpdateText]
-        public string LightControllerPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"LightController";
+        public string LightControllerPath { get; set; } = @"D:\Data\LightController";
 
         //light config (light.ini — 물리 채널 배선/포트 설정 파일 위치). 다른 D:\Data\* 데이터 경로와 동일하게
         //  bin 폴더 밖으로 분리 — light.ini 는 로그가 아니라 Recipe/Calibration 과 같은 영속 설정이라 별도 그룹.
@@ -86,7 +88,7 @@ namespace ReringProject.Setting {
 
         [DirectoryPath]
         [AutoUpdateText]
-        public string TcpConnectionPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"TcpConnection";
+        public string TcpConnectionPath { get; set; } = @"D:\Data\TcpConnection";
 
         public int LogDeleteDay { get; set; } = 30;
 
@@ -94,16 +96,31 @@ namespace ReringProject.Setting {
         [Category("Path|Statistics")]                                   //260707 hbk STAT-01 D-01: 자체 그룹(뒤 MapData 가 리셋 → 그룹 누출 0)
         [DirectoryPath]                                                 //260707 hbk STAT-01 D-01
         [AutoUpdateText]                                                //260707 hbk STAT-01 D-01
-        public string StatisticsSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Statistics";   //260707 hbk STAT-01 D-01
+        public string StatisticsSavePath { get; set; } = @"D:\Data\Statistics";   //260707 hbk STAT-01 D-01
 
         //data path
         [Category("Path|MapData")]
         [DirectoryPath]
         [AutoUpdateText]
-        public string MapDataLoadPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Load";
+        public string MapDataLoadPath { get; set; } = @"D:\Data\Load";
         [DirectoryPath]
         [AutoUpdateText]
-        public string MapDataSavePath { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Save";
+        public string MapDataSavePath { get; set; } = @"D:\Data\Save";
+
+        //260723 hbk: account.db/카메라 .cfg/DisplayConfig.ini — 이전엔 AppDomain.BaseDirectory(bin 폴더)에
+        //  하드코딩되어 있어 재배포 시 유실되던 파일 3종. 위 Path|* 그룹들과 동일하게 D:\Data 하위로 통합.
+        [Category("Path|Account")]
+        [AutoUpdateText]
+        public string AccountDbFilePath { get; set; } = @"D:\Data\account.db";
+
+        [Category("Path|CameraConfig")]
+        [DirectoryPath]
+        [AutoUpdateText]
+        public string CameraConfigPath { get; set; } = @"D:\Data\CameraConfig";
+
+        [Category("Path|DisplayConfig")]
+        [AutoUpdateText]
+        public string DisplayConfigFilePath { get; set; } = @"D:\Data\DisplayConfig.ini";
 
 
         //260622 hbk Phase 48

@@ -7,10 +7,12 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Threading;
 using PropertyTools.Wpf;
 using ReringProject.Define;
 using ReringProject.Sequence;
+using ReringProject.Setting;
 using ReringProject.Utility;
 
 namespace ReringProject.UI {
@@ -43,6 +45,43 @@ namespace ReringProject.UI {
             } finally {
                 _isRebinding = false;
             }
+        }
+
+        // 260724 hbk PropertyTools.Wpf DataGrid Enter키 커밋 버그 우회.
+        //  실제 참조 DLL은 libs\PropertyTools.Wpf.dll(csproj Reference HintPath, v1.0.0.0) — packages\PropertyTools.Wpf.3.1.0
+        //  는 packages.config에 남아있는 미사용 NuGet 복원본이며 빌드에 쓰이지 않으므로 재검증 시 이 v1.0.0.0 DLL을 봐야 함.
+        //  라이브 디버깅(Value getter/setter 동시 breakpoint)으로 재현 확인 + 위 실제 참조 DLL을 ildasm 역어셈블해
+        //  근본원인 검증: DataGrid.TextEditorPreviewKeyDown 은 Enter(Key.Return)에서 UpdateSource() 호출 없이
+        //  RemoveEditControl()만 호출하고, RemoveEditControl()도 UIElementCollection.Remove()로 편집용 TextBox를
+        //  트리에서 직접 뜯어낼 뿐이라 LostFocus 기반 커밋(TextBox.Text의 기본 UpdateSourceTrigger=LostFocus)이
+        //  걸리지 않는다 — Exposure 등 배열 셀에 값 입력 후 Enter 시 Setter가 호출되지 않고 폐기된다. Tab은 이
+        //  메서드가 아예 관여하지 않는 키라 표준 포커스-이동 경로를 타 정상 커밋되고, 마우스 클릭도 표준 포커스
+        //  전환이라 문제없다([AutoUpdateText]는 PropertyGridControlFactory 전용이라 DataGrid 배열 셀에는 적용
+        //  안 됨을 확인 — 이 방식으로는 해결 불가).
+        //  PreviewKeyDown은 tunnel 이벤트라 ParamEditor(DataGrid의 상위 트리)에 등록한 이 핸들러가 PropertyTools가
+        //  TextBox 인스턴스에 직접 건 핸들러보다 먼저 실행된다 — Enter 전용으로 포커스된 TextBox의 바인딩을
+        //  UpdateSource()로 먼저 강제 커밋한 뒤, e.Handled는 건드리지 않아(false 유지) PropertyTools의 기존 Enter
+        //  처리(RemoveEditControl 등)가 그대로 이어서 실행되게 한다. Tab/클릭은 Key.Enter 가드로 이 핸들러를
+        //  전혀 타지 않으므로 영향 없음. Escape(취소)는 별도 분기(ClearBinding)라 마찬가지로 영향 없음.
+        //  참고(잔여 리스크): ParamEditor에는 배열 셀 외에 일반 스칼라 속성(MotorXPos/PixelToUM_Offset 등,
+        //  PropertyGridControlFactory가 렌더하는 행)도 같은 트리에 있어 그 행에서 Enter를 눌러도 이 핸들러가
+        //  먼저 UpdateSource()를 태운다 — 단순 auto-property라 무해할 것으로 판단되나 정식 검증은 안 됨(라이브 확인 필요).
+        //  임시 진단 로그: 사용자가 Enter 커밋이 실제로 동작하는지 로그로 확인하기 위한 용도. 확인 후 제거 여부 재검토.
+        private void ParamEditor_PreviewKeyDown(object sender, KeyEventArgs e) {
+            if (e.Key != Key.Enter) return;
+
+            if (!(Keyboard.FocusedElement is TextBox tb)) return;
+
+            try {
+                var bindingExpr = tb.GetBindingExpression(TextBox.TextProperty);
+                if (bindingExpr != null) {
+                    bindingExpr.UpdateSource();
+                    Logging.PrintLog((int)ELogType.Trace, "[ParamEditor Enter-commit workaround] fired — UpdateSource() 실행됨 (PropertyTools DataGrid Enter 버그 우회)");
+                }
+            } catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[ParamEditor Enter-commit workaround] UpdateSource 예외: " + ex.Message);
+            }
+            // e.Handled를 설정하지 않는다 — PropertyTools의 기존 Enter 처리(RemoveEditControl 등)가 이어서 정상 실행되어야 함
         }
 
         private List<DatumConfig> ResolveSequenceDatums(ESequence seqId) {
@@ -1031,6 +1070,20 @@ namespace ReringProject.UI {
                 ShotConfig matched = shots.FirstOrDefault(s => s.ShotName == datum.SourceShotName);
                 if (matched != null) return matched;
             }
+            // 260723 hbk: SourceShotName 미설정 시 "이 datum이 속한 시퀀스의 첫 Shot"으로 폴백해야 하는데
+            //  (DatumConfig.cs:32 comment 원래 의도) shots[0]은 전역 Shots 리스트의 첫 항목이라 다른 시퀀스
+            //  (예: TOP)의 Shot이 잡혀 잘못된 카메라로 grab되는 결함이 있었다(Side datum grab이 CAM_TOP을
+            //  조회해 Device Not Opened 나던 원인). ComputeLocalShotIndex와 동일한 OwnerSequenceName 폴백
+            //  정책(빈 값=TOP)으로 이 datum의 소유 시퀀스로 먼저 필터링한다.
+            NodeViewModel selectedNode = treeListBox_sequence.SelectedItem as NodeViewModel;
+            string ownerSeqName = selectedNode != null ? selectedNode.SequenceName : null;
+            if (!string.IsNullOrEmpty(ownerSeqName)) {
+                ShotConfig ownedFirst = shots
+                    .Where(s => (string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName) == ownerSeqName)
+                    .OrderBy(s => s.ZIndex)
+                    .FirstOrDefault();
+                if (ownedFirst != null) return ownedFirst;
+            }
             return shots[0];
         }
 
@@ -1158,6 +1211,40 @@ namespace ReringProject.UI {
             // 데이터만 추가 (시퀀스 Action 교체 안 함 — 런타임 안전)
             string ownerSeqName = SequenceHandler.ResolveSequenceName(seqNode.SequenceID);
             ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName, ownerSeqName);
+
+            // 260724 hbk: 신규 Shot은 재시작 전까지 Grab/조명이 안 되는데, 원인은 서로 독립된 두 필드다 —
+            //  (a) DeviceName이 비어 있어 DeviceHandler.GrabHalconImage(this[param.DeviceName])가 실패("Device Not Opened").
+            //  (b) Parent가 null이라 CameraSlaveParam.SequenceName도 null이 되어, MainView.GrabAndDisplay의
+            //      Sequences[param.SequenceName] 조회가 실패해 ApplyShotLightsDirect 자체가 호출되지 않음
+            //      (ApplyShotLightsInternal은 shot 자신의 필드 + static LightHandler.Handle만 사용하므로 어떤
+            //      InspectionSequence 인스턴스로 호출하든 결과는 같다 — 문제는 그 인스턴스를 못 찾는 것뿐).
+            //  즉 "같은 원인 하나"가 아니라 서로 다른 필드에서 비롯된 두 개의 별개 결함이다.
+            //  둘 다 재시작 시 SequenceHandler.TryLoadNewFormat → RebuildInspectionActions → SequenceBase.AddAction이
+            //  채워주지만, AddAction은 Actions[]/ChildList 전체를 재구성하는 무거운 경로라 Add-Shot 클릭마다 돌리면
+            //  StartCore가 _startLock으로 막아둔 것과 같은 종류의 TOCTOU(check-then-act) 노출을 넓힌다.
+            //  여기서는 AddAction의 부수효과 중 이 두 필드에만 필요한 부분을, Actions[]/ChildList는 건드리지 않고
+            //  UI 스레드에서 직접 재현한다.
+            SequenceBase seq = SystemHandler.Handle.Sequences[seqNode.SequenceID];
+            if (seq != null) {
+                shot.Parent = seq;
+                if (string.IsNullOrEmpty(shot.DeviceName) && seq.Param is CameraMasterParam masterParam) {
+                    shot.DeviceName = masterParam.DeviceName;
+                }
+            }
+
+            // 조명 채널(Ring/Bar/Back/Coax/Ring7 Enabled)은 신규 ShotConfig가 bool 기본값(false)이라 전부 꺼진 채로
+            //  생성된다 — 같은 시퀀스 소속 마지막 sibling Shot에서 조명/노광/게인/해상도 설정을 이어받아 합리적인
+            //  기본값을 준다(ShotConfig.CopyTo — 조명 8그룹 + DeviceName + Exposure/Gain/PixelResolution/CorrectionFactor
+            //  복사; ShotName/FAIList/_image는 의도적으로 제외). sibling이 없으면(해당 시퀀스의 첫 Shot) 아무것도
+            //  하지 않는다 — DeviceName은 위에서 이미 채워졌으므로 이 경우에도 Grab은 정상 동작한다.
+            //  주의: DeviceName 복사는 ShotConfig.CopyTo의 260723 hbk 수정(base.CopyTo보다 먼저 DeviceName부터 설정)에
+            //  의존한다 — 그 수정이 별도로 되돌려지면 이 sibling-copy가 DeviceName만 다시 안 채우게 되지만(조명/노광
+            //  등 나머지 필드는 영향 없음), 위 Parent/DeviceName 기본값 설정 블록이 있으므로 Grab 자체는 그래도 정상 동작한다.
+            ShotConfig siblingShot = seqHandler.RecipeManager.Shots
+                .LastOrDefault(s => s != shot
+                    && (string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName) == ownerSeqName);
+            siblingShot?.CopyTo(shot);
+
             FAIConfig fai = shot.AddFAI("FAI_0");
             seqHandler.EnableDynamicFAIMode();
 
@@ -1178,7 +1265,8 @@ namespace ReringProject.UI {
                 SequenceID = seqNode.SequenceID,
                 ActionID = EAction.Unknown
             };
-            // RebuildInspectionActions를 호출하지 않아도, 실행 시 Btn_start_Click → ResolveRunnableAction이 지연 동기화로 Shot→Action 매핑을 복구한다.
+            // RebuildInspectionActions를 호출하지 않아도, 실행 시 Btn_start_Click → ResolveRunnableAction이 지연 동기화로
+            //  Actions[]/ChildList 매핑(RUN 실행에만 필요)을 복구한다 — Grab/조명에 필요한 DeviceName/Parent는 위에서 이미 채웠다.
             shotNode.Children.Add(faiChildNode);
 
             var shotVm = new NodeViewModel(shotNode, seqNode);

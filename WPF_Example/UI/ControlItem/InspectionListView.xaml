@@ -305,7 +305,8 @@
                                         CategoryHeaderTemplate="{StaticResource HeaderTemplate1}"
                                         TabHeaderTemplate="{StaticResource HeaderTemplate2}"
                                         DescriptionIcon="/Resource/lightbulb.png"
-                                        SelectedObject="{Binding SelectedItem.Param, ElementName=treeListBox_sequence}">
+                                        SelectedObject="{Binding SelectedItem.Param, ElementName=treeListBox_sequence}"
+                                        PreviewKeyDown="ParamEditor_PreviewKeyDown">
                 </propToolsWpf:PropertyGrid>
             </Grid>
 

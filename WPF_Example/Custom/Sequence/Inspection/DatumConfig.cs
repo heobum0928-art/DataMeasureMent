@@ -252,6 +252,12 @@ namespace ReringProject.Sequence {
         public string Line1_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Line1_EdgeSelectionList))]
         public string Line1_EdgeSelection   { get; set; } = "";
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0). erosion>0 일 때만 ROI(+strip 여유) 도메인에 적용.
+        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        [Category("Datum|Line1 (TLI) Edge")]
+        [DisplayName("Erosion (px)")]
+        [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
+        public int    Line1_Erosion         { get; set; } = 0;
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line1_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
@@ -290,6 +296,12 @@ namespace ReringProject.Sequence {
         public string Vertical_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Vertical_EdgeSelectionList))]
         public string Vertical_EdgeSelection   { get; set; } = "";
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
+        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        [Category("Datum|Vertical (VTH) Edge")]
+        [DisplayName("Erosion (px)")]
+        [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
+        public int    Vertical_Erosion         { get; set; } = 0;
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Vertical_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
@@ -330,6 +342,12 @@ namespace ReringProject.Sequence {
         public string Line2_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Line2_EdgeSelectionList))]
         public string Line2_EdgeSelection   { get; set; } = "";
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
+        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        [Category("Datum|Line2 (TLI) Edge")]
+        [DisplayName("Erosion (px)")]
+        [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
+        public int    Line2_Erosion         { get; set; } = 0;
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Line2_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
@@ -423,6 +441,12 @@ namespace ReringProject.Sequence {
         public string Horizontal_A_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeSelectionList))]
         public string Horizontal_A_EdgeSelection   { get; set; } = "";
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
+        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        [Category("Datum|Horizontal_A (CTH/VTH) Edge")]
+        [DisplayName("Erosion (px)")]
+        [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
+        public int    Horizontal_A_Erosion         { get; set; } = 0;
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Horizontal_A_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
@@ -463,6 +487,12 @@ namespace ReringProject.Sequence {
         public string Horizontal_B_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeSelectionList))]
         public string Horizontal_B_EdgeSelection   { get; set; } = "";
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
+        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        [Category("Datum|Horizontal_B (CTH/VTH) Edge")]
+        [DisplayName("Erosion (px)")]
+        [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
+        public int    Horizontal_B_Erosion         { get; set; } = 0;
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> Horizontal_B_EdgeDirectionList { get { return EdgeOptionLists.Directions; } }
@@ -944,6 +974,12 @@ namespace ReringProject.Sequence {
             if (PatternMinScore <= 0.0) PatternMinScore = 0.6;           // SIMUL 튜닝 기본 (Claude's Discretion)
             if (PatternAngleExtentDeg <= 0.0) PatternAngleExtentDeg = 10.0; // coarse x,y 전용 → 작은 angle range (D-01b)
             if (PatternSearchMarginPx <= 0.0) PatternSearchMarginPx = 100.0; // template ROI ± margin (D-06)
+
+            //260723 hbk NOTE: Line1_Erosion/Line2_Erosion/Vertical_Erosion/Horizontal_A_Erosion/Horizontal_B_Erosion 는
+            //  의도적으로 위 sentinel-fallback 블록에 포함하지 않는다. Sigma/EdgeThreshold 와 달리 0 은 여기서
+            //  "침식 비활성" 이라는 유효/영구 상태이며 절대 자동 복원되면 안 된다. INI 키 미존재는 ParamBase.Load 의
+            //  ToInt()(IniValue.Default → Value=null → valueIfInvalid=0) 경로로 이미 0 이 로드되므로 별도 Load() 오버라이드도 불필요
+            //  (ZIndexA/ZIndexB 는 0 이 의미값이라 오버라이드가 필요했던 것과 대조).
         }
 
         // PropertyGrid 동적 노출(AlgorithmType 별 필터).

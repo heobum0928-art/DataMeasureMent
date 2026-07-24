@@ -44,6 +44,27 @@ namespace ReringProject.Setting {
             RestoreEthernetVisionDefault(); //260623 hbk Phase 58
             RestorePickerCenterDefault(); //260624 hbk Phase 60
             RestoreCalibSearchDefault(); //260630 hbk Phase 60 (Row2/Col2 기본값 복원)
+            RestoreDataPathDefaults(); //260723 hbk: 신규 경로 프로퍼티 3종 — 기존 배포 INI엔 키가 없어 문자열 case가 null로 로드하는 문제 방어
+        }
+
+        //260723 hbk: AccountDbFilePath/CameraConfigPath/DisplayConfigFilePath 는 이번에 새로 추가된 프로퍼티라
+        //  기존에 이미 돌아가던 모든 PC의 Setting.ini 에는 이 키가 없다. reflection Load 의 "String" case 는
+        //  키 부재 시 null 을 그대로 SetValue 해버려(PcRole 의 int 0 폴백과 동일한 계열 문제, 문자열판)
+        //  C# 기본값이 null 로 덮어써진다 — 방치하면 이번 배포에서 ACCOUNT_FILE 등이 null 이 되는 회귀 발생.
+        private void RestoreDataPathDefaults()
+        {
+            if (string.IsNullOrEmpty(AccountDbFilePath))
+            {
+                AccountDbFilePath = @"D:\Data\account.db";
+            }
+            if (string.IsNullOrEmpty(CameraConfigPath))
+            {
+                CameraConfigPath = @"D:\Data\CameraConfig";
+            }
+            if (string.IsNullOrEmpty(DisplayConfigFilePath))
+            {
+                DisplayConfigFilePath = @"D:\Data\DisplayConfig.ini";
+            }
         }
 
         // 260622 hbk Phase 48

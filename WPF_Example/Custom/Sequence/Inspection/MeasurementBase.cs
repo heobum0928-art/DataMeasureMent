@@ -50,6 +50,29 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         protected virtual bool AppliesCorrectionFactor { get { return true; } }
 
+        // 각도 보정 opt-in 토글. MeasCorrectionEnabled(길이용)의 각도 버전.
+        [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("각도 보정 적용 여부(opt-in). OFF(기본)면 AngleCorrectionDeg 값과 무관하게 무보정. 각도 측정에만 적용됨(EdgeToLineAngle/LineToLineAngle/CompoundAngle).")]
+        public bool AngleCorrectionEnabled { get; set; } = false;
+
+        // 각도 보정값 — 비전측정 각도를 현미경/CMM 공칭에 트루업하는 고정 오프셋(도, 덧셈). MeasCorrectionFactor(곱셈, 길이용)의
+        //  각도 버전. 기본 0.0 = 무보정. AngleCorrectionEnabled ON 일 때만 적용(EvaluateJudgement 참조).
+        //  ※ 반복성이 확보된 측정에만, 여러 부품 비전↔현미경 상관으로 뽑은 값을 넣을 것(1개 샘플로 뽑거나 산포 은폐 금지).
+        //  260724 hbk: MeasCorrectionFactor(기본 1.0)/DualImageEdgeDistanceMeasurement.ZIndexA·B(기본 -1)와 달리
+        //   Load() 복원 override 불필요 — 이 두 필드는 신설이라 구 레시피에 키가 아예 없고, ParamBase.Load의
+        //   "Double"/"Boolean" 케이스는 키 부재 시 IniValue.Default(Value==null) → ToDouble()/ToBool() 인자없는
+        //   기본값(0/false)으로 폴백한다. 이는 선언 기본값(0.0/false)과 완전히 동일해 진짜 no-op이다. 향후 이 파일을
+        //   만지는 사람이 위 두 사례를 보고 패턴매칭으로 불필요한(혹은 잘못된) 복원 override를 추가하지 않도록 남긴다.
+        [Category("Measurement|Tolerance")]
+        [System.ComponentModel.Description("각도 보정값(도, +/- 덧셈). 비전측정 → 현미경/CMM 공칭 정합용 고정 오프셋. 0=무보정. 비율(%) 아님 — 길이/거리 측정엔 미적용(각도만). AngleCorrectionEnabled ON 일 때만 적용.")]
+        public double AngleCorrectionDeg { get; set; } = 0.0;
+
+        // 이 측정 유형에 AngleCorrectionDeg(각도 고정 오프셋)를 적용하는지. 각도 타입만 override로 true.
+        //  AppliesCorrectionFactor의 반전이 아닌 독립 플래그 — 두 게이트가 항상 상호배타적이라는 가정에 기대지 않기 위함
+        //  (미래에 "둘 다 아님"/"둘 다 필요" 측정 유형이 생겨도 각자 명시적으로 선언 가능).
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        protected virtual bool AppliesAngleCorrection { get { return false; } }
+
         [Category("Measurement|Tolerance")]
         [System.ComponentModel.Description("상한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")]
         public double TolerancePlus { get; set; }
@@ -115,6 +138,18 @@ namespace ReringProject.Sequence
             if (MeasCorrectionEnabled && AppliesCorrectionFactor && MeasCorrectionFactor > 0.0)
             {
                 value = value * MeasCorrectionFactor;
+            }
+            // 260724 hbk: 각도 보정(고정 오프셋, 덧셈) — 각도 타입만(AppliesAngleCorrection override). 위 곱셈 보정과 같은
+            //  지점(부호/절대값 이전)에 적용해 대칭 유지 — 비전 알고리즘 고유의 계통 오차를 트루업하는 것이지 recipe
+            //  작성자의 부호/표시 규약이 아니므로, 그 규약(InvertSign/UseAbsoluteValue)보다 먼저 적용되어야 의미가 맞다.
+            //  주의: InvertSign 을 함께 켠 각도 측정에서는 (raw+offset) 전체가 반전되는 순서(반전 후 값에 오프셋을
+            //   더하는 것이 아님) — 각도 측정은 통상 0~180 비부호 컨벤션으로 InvertSign 미사용. 마찬가지로
+            //   UseAbsoluteValue 를 함께 켠 경우, 오프셋이 raw 를 0 또는 180 경계 너머로 밀면 |값| 폴드로 되접힘 —
+            //   근접(평행/직각) 정렬 판정에 오프셋을 쓸 때 특히 유의. 순서 자체는 불가피/올바르며, 두 표시 규약 모두
+            //   각도 타입에 별도로 게이트되어 있지 않으므로 recipe 작성 시 조합에 주의할 것.
+            if (AngleCorrectionEnabled && AppliesAngleCorrection)
+            {
+                value = value + AngleCorrectionDeg;
             }
             //260616 hbk Phase 51 UAT: 부호 보정 — 반전(-value) 후 절대값(|value|) 순. signed 거리/방향 규약 맞춤. LastMeasuredValue 도 보정값으로 기록(표시/Export 일관).
             if (InvertSign) value = -value;

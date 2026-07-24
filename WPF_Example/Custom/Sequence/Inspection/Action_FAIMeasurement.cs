@@ -141,7 +141,7 @@ namespace ReringProject.Sequence {
                                     //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
                                     //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
                                     if (datum.IsPatternAlignEnabled) {
-                                        string modelPath = InspectionSequence.ResolveDatumModelPath(datum); // 티칭과 동일 키 헬퍼 (D-07)
+                                        string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
                                         string alignErr;
                                         if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
                                             string dn = datum.DatumName;
@@ -183,7 +183,7 @@ namespace ReringProject.Sequence {
                                 //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
                                 try {
                                     if (datum.IsPatternAlignEnabled) {
-                                        string modelPath = InspectionSequence.ResolveDatumModelPath(datum); // 54-05 티칭과 동일 키 헬퍼 (D-07)
+                                        string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
                                         string alignErr;
                                         if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
                                             string dn = datum.DatumName;
@@ -477,6 +477,18 @@ namespace ReringProject.Sequence {
         // DualImage 변형용 두 이미지 동시 로드 (per-datum).
         //  ZIndexA/ZIndexB 둘 다 설정(-1 아님) → 크로스-Z 라이브 캡처 경로(D-06). 미설정(-1/-1) → 기존 static 경로(D-07 회귀 0).
         //  bPending=true 는 "실패 아님, 다음 z_index 대기"(D-02a) — 호출부가 MarkDatumFailed 를 걸지 않는 근거.
+        //260724 hbk quick-fix(재발, SIDE_SHOT_F9/Side_Datum_4): 수동(RUN/Repeat/Batch) 경로는 RequestPacket==null
+        //  이라 GetExecutionZIndex() 가 항상 0 을 반환(D-08 안전 폴백)해 이 datum의 ZIndexA/ZIndexB(예: 7/8, 11/12)와
+        //  결코 일치할 수 없다 — 크로스-Z tick 상태기계가 구조적으로 완주 불가능. 방치 시 datum 이 매 RUN 마다 조용히
+        //  skip(bPending, MarkDatumFailed 미설정)되어 DatumConfig.DetectedOriginRow/Col/RefAngle/RefAngle2(직전 성공
+        //  검출 잔여값 — 몇 시간/며칠 전일 수 있음)이 InjectDatumOrigin 을 통해 아무 실패 표시 없이 재사용된다
+        //  (m_dicCrossZImages 케이스와 동일 계열의 stale 재사용, 계층만 다름 — 오늘자 HandleRunStartResetResults 의
+        //  BeginCrossZImageCycle() 클린 슬레이트 조치로는 커버되지 않는다: 저장소가 비어있어도 nCurZ 가 애초에
+        //  ZIndexA/B 와 매칭될 수 없으므로 여전히 bPending=true 로 매번 skip 된다). 프로토콜 $TEST/DebugManualZTrigger
+        //  (Custom/SystemHandler.cs, RequestPacket!=null, 실제 z_index 스텝)는 완전히 무변경 — 수동 경로만 tick 게이트를
+        //  우회해 기존 static 경로(TeachingImagePath/_Vertical, 무 z 의존)로 동기 취득한다. 주의: 이 fallback 은 해당
+        //  datum 의 TeachingImagePath/_Vertical 이 채워져 있어야 성립 — 비어있으면 TryLoadStaticDualDatumImages 가
+        //  false 를 반환해 명시적 DETECT FAIL/NG 로 이어진다(조용한 stale 재사용보다 안전한 실패 모드, 회귀 아님).
         private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
             imageHorizontal = null;
             imageVertical = null;
@@ -485,7 +497,8 @@ namespace ReringProject.Sequence {
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: datum 이 null 입니다.");
                 return false;
             }
-            bool bCrossZEnabled = datum.ZIndexA != UNSET_ZINDEX && datum.ZIndexB != UNSET_ZINDEX;
+            bool bIsProtocolDriven = parentSeq != null && parentSeq.IsProtocolDrivenCycle();
+            bool bCrossZEnabled = bIsProtocolDriven && datum.ZIndexA != UNSET_ZINDEX && datum.ZIndexB != UNSET_ZINDEX;
             if (bCrossZEnabled) {
                 return TryGrabOrLoadCrossZDatumImages(datum, parentSeq, out imageHorizontal, out imageVertical, out bPending);
             }

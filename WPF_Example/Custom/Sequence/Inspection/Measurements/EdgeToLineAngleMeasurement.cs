@@ -18,6 +18,9 @@ namespace ReringProject.Sequence
         // 각도(deg) 측정 — 길이 스케일 보정계수 미적용.
         protected override bool AppliesCorrectionFactor { get { return false; } }
 
+        // 각도 보정(고정 오프셋, 덧셈) 적용 대상.
+        protected override bool AppliesAngleCorrection { get { return true; } }
+
         [Category("Point|ROI")]
         public double Point_Row { get; set; }
         public double Point_Col { get; set; }

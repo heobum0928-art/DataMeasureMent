@@ -9,6 +9,10 @@ namespace ReringProject.Sequence {
     public class ShotConfig : CameraSlaveParam, IOfflineImageParam
     {
 
+        // 260723 hbk: 실제 Z축 제어는 외부 PLC/핸들러가 전담(이 앱은 z_index 트리거만 받아 그 순간 캡처)이라
+        //  이 값이 실제 물리 위치와 일치함을 이 앱이 보장 못 함 — PropertyGrid에서 숨김(INI 키/직렬화는 보존).
+        //  DualImage datum의 ZIndexA/B(2개 캡처 인덱스)에 대응하는 물리 position 개념은 별도로 추가하지 않기로 결정(260723).
+        [Browsable(false)]
         [Category("Shot|Setting")]
         public double ZPosition { get; set; }
         public int DelayMs { get; set; }
@@ -298,8 +302,13 @@ namespace ReringProject.Sequence {
         //  ShotConfig 고유 필드를 보완 복사한다 — 기존엔 override 가 없어 조명 필드가 전혀 복사되지 않던 버그였다.
         //  ShotName/FAIList/_image 는 이름 충돌·이미지 소유권 문제로 의도적으로 제외한다.
         public override bool CopyTo(ParamBase param) {
-            bool result = base.CopyTo(param);
             ShotConfig target = param as ShotConfig;
+            // 260723 hbk: DeviceName 도 복사 누락(신규 Shot 생성 후 Copy/Paste로 채우려 해도 안 채워지던 버그).
+            //  base.CopyTo(PropertyArray/Exposure·Gain·Gamma 값 복사)보다 먼저 설정한다 — DeviceName setter 가
+            //  PasteFromCamera 를 트리거해 카메라 실측값으로 PropertyArray 를 되읽어오므로, 순서가 바뀌면
+            //  아래에서 복사한 Exposure/Gain 값이 그 실측값에 덮여 사라진다.
+            if (target != null) target.DeviceName = DeviceName;
+            bool result = base.CopyTo(param);
             if (target == null) return result;
 
             // PixelResolution/CorrectionFactor 는 CameraSlaveParam 소유이나 CameraSlaveParam.CopyTo 가 복사하지 않으므로 여기서 보완.

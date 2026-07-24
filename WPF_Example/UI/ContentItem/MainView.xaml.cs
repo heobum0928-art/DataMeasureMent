@@ -1117,7 +1117,7 @@ namespace ReringProject.UI {
             string err = null;
             if (datum.IsPatternAlignEnabled) {
                 ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
-                string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                 if (seq != null) {
                     ok = seq.TryComposeAlign(datum, image, modelPath, out err);
                     if (ok) T = datum.CurrentTransform;
@@ -1190,7 +1190,7 @@ namespace ReringProject.UI {
                     // ShotConfig 는 LightGroupName/LightLevel 이 세팅된 적이 없어 ApplyLight(param) 이 사실상 무동작이었다
                     // (조명이 실제로 켜지지 않은 채 grab 됨). Ring/Bar/Back/Ring7/Coax 채널별 값(Light 탭)을 실제로 반영한다.
                     if (param is ShotConfig shotForGrab) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
                     }
                     else {
@@ -1205,12 +1205,14 @@ namespace ReringProject.UI {
                 ExecuteOnUi(() => {
                         var resultStr = "Grab Fail";
                         var brush = Brushes.Red;
-                        if (pDev[param.DeviceName] == null) {
+                        var devInfo = pDev[param.DeviceName]; // null 이면 장치 미개방 — 아래서 반복 조회 대신 이 값만 참조(재조회로 인한 NRE 방지)
+                        if (devInfo == null) {
                             resultStr = "Device Not Opened";
+                            Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} GrabAndDisplay: Device Not Opened", param.DeviceName);
                         }
                         else if (DisplayToViewer(grabbedHalconImage, ConvertParamRects(param as ParamBase))) {
-                            if (pDev[param.DeviceName].IsGrabFromFile) resultStr = "Grab From File";
-                            else                                       resultStr = "Grab Success";
+                            if (devInfo.IsGrabFromFile) resultStr = "Grab From File";
+                            else                        resultStr = "Grab Success";
                             brush = Brushes.Lime;
                         }
 
@@ -1219,7 +1221,7 @@ namespace ReringProject.UI {
                             "{0}\n{1} ({2:0.00}s)\n{3}",
                             param.DeviceName,
                             resultStr,
-                            pDev[param.DeviceName].ElapsedTime.TotalMilliseconds / 1000.0,
+                            devInfo != null ? devInfo.ElapsedTime.TotalMilliseconds / 1000.0 : 0.0,
                             BuildViewerStateSummary(
                                 _lastRenderedImagePath,
                                 ConvertParamRects(param as ParamBase),
@@ -1251,11 +1253,11 @@ namespace ReringProject.UI {
                 HImage grabbedHalconImage = null;
                 lock (mDrawInterlock) {
                     if (datum != null) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyDatumLights(datum);
                     }
                     else if (param is ShotConfig shotForGrab) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
                     }
                     else {
@@ -1270,12 +1272,14 @@ namespace ReringProject.UI {
                 ExecuteOnUi(() => {
                         var resultStr = "Grab Fail";
                         var brush = Brushes.Red;
-                        if (pDev[param.DeviceName] == null) {
+                        var devInfo = pDev[param.DeviceName]; // null 이면 장치 미개방 — 아래서 반복 조회 대신 이 값만 참조(재조회로 인한 NRE 방지)
+                        if (devInfo == null) {
                             resultStr = "Device Not Opened";
+                            Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} GrabAndDisplay: Device Not Opened", param.DeviceName);
                         }
                         else if (DisplayToViewer(grabbedHalconImage, ConvertParamRects(param as ParamBase))) {
-                            if (pDev[param.DeviceName].IsGrabFromFile) resultStr = "Grab From File";
-                            else                                       resultStr = "Grab Success";
+                            if (devInfo.IsGrabFromFile) resultStr = "Grab From File";
+                            else                        resultStr = "Grab Success";
                             brush = Brushes.Lime;
                         }
 
@@ -1284,7 +1288,7 @@ namespace ReringProject.UI {
                             "{0}\n{1} ({2:0.00}s)\n{3}",
                             param.DeviceName,
                             resultStr,
-                            pDev[param.DeviceName].ElapsedTime.TotalMilliseconds / 1000.0,
+                            devInfo != null ? devInfo.ElapsedTime.TotalMilliseconds / 1000.0 : 0.0,
                             BuildViewerStateSummary(
                                 _lastRenderedImagePath,
                                 ConvertParamRects(param as ParamBase),
@@ -1314,6 +1318,17 @@ namespace ReringProject.UI {
             if (displayParam == null || pathSinkParam == null || string.IsNullOrEmpty(savePath)) return;
             if (!pSeq.IsIdle || GrabTask != null) return;
 
+            // 260723 hbk: DualImage datum(가로/세로 두 이미지 필요)은 두 캡처가 동일 savePath 를 써서 서로
+            //  덮어쓰던 문제 — _currentImageSource(가로/세로 토글) 기준으로 파일명에 _horizontal/_vertical 을
+            //  붙여 두 파일을 분리한다. 일반 datum/Shot(1이미지)은 기존 파일명 그대로(회귀 0).
+            if (datum != null && datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                string suffix = (_currentImageSource == ReringProject.Sequence.EImageSource.Vertical) ? "_vertical" : "_horizontal";
+                string dir = Path.GetDirectoryName(savePath);
+                string nameNoExt = Path.GetFileNameWithoutExtension(savePath);
+                string ext = Path.GetExtension(savePath);
+                savePath = Path.Combine(dir, nameNoExt + suffix + ext);
+            }
+
             ICameraParam param = displayParam;
             GrabTask = Task.Run(() => {
                 // === 데드락 방지 규약 ===
@@ -1330,11 +1345,11 @@ namespace ReringProject.UI {
                 var swLightGrab = System.Diagnostics.Stopwatch.StartNew();
                 lock (mDrawInterlock) {
                     if (datum != null) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyDatumLights(datum);
                     }
                     else if (param is ShotConfig shotForGrab) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[ESequence.Top] as InspectionSequence;
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
                     }
                     else {
@@ -3622,7 +3637,7 @@ namespace ReringProject.UI {
         private void RefreshPatternRefPoseAfterTeach(DatumConfig datum, HImage patternImage) {
             if (datum == null || patternImage == null) return;
             if (!datum.IsPatternAlignEnabled) return;
-            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
             if (string.IsNullOrEmpty(modelPath) || !System.IO.File.Exists(modelPath)) return;
             var svc = new ReringProject.Halcon.Algorithms.PatternMatchService();
             double rr, rc, ra, rs;
@@ -3633,7 +3648,7 @@ namespace ReringProject.UI {
                 datum.RefMatchCol = rc;
                 datum.RefMatchAngleDeg = ra;
                 if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0) {
-                    string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum);
+                    string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum, datum.OwnerName);
                     double rr2, rc2, ra2, rs2;
                     string refErr2;
                     if (!string.IsNullOrEmpty(modelPath2) && System.IO.File.Exists(modelPath2)
@@ -3814,7 +3829,7 @@ namespace ReringProject.UI {
             }
 
             // 54-04 런타임 load 와 동일 키 (D-07) — 직접 경로 도출 금지, 헬퍼만 사용
-            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
             if (string.IsNullOrEmpty(modelPath)) {
                 CustomMessageBox.Show("모델 생성 실패", "모델 경로 도출 실패 (레시피/Shot 확인).");
                 return;
@@ -3839,7 +3854,7 @@ namespace ReringProject.UI {
                     //  런타임 θ = 두 RefMatch 중심 baseline 각 − 두 cur 중심 baseline 각. 패턴2 자체 회전각 미사용.
                     string alignMsg;
                     if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0) {
-                        string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum);
+                        string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum, datum.OwnerName);
                         string err2 = null;
                         if (!string.IsNullOrEmpty(modelPath2) && svc.TryCreateModel(img,
                                 datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Phi,
@@ -4032,7 +4047,7 @@ namespace ReringProject.UI {
             bool taughtLineFit = datum != null && datum.IsConfigured && datum.LastTeachSucceeded;
             bool taughtPattern = false;
             if (datum != null && datum.IsPatternAlignEnabled) {
-                string mp = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                string mp = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                 taughtPattern = !string.IsNullOrEmpty(mp) && System.IO.File.Exists(mp);
             }
             if (datum == null || (!taughtLineFit && !taughtPattern)) {
@@ -4069,7 +4084,7 @@ namespace ReringProject.UI {
                         //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 런타임과 동일 TryComposeAlign(가로/세로), 아니면 기존 검출
                         if (datum.IsPatternAlignEnabled) {
                             ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
-                            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                            string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                             if (seq != null) {
                                 ok = seq.TryComposeAlign(datum, imgH, imgV, modelPath, out error);
                                 HOperatorSet.HomMat2dIdentity(out transform); // transform out 미사용(보정은 datum 내부 write-back)
@@ -4096,7 +4111,7 @@ namespace ReringProject.UI {
                 //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 TryComposeAlign(단일), 아니면 기존 검출
                 if (datum.IsPatternAlignEnabled) {
                     ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
-                    string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum);
+                    string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                     if (seq != null) {
                         ok = seq.TryComposeAlign(datum, testImage, modelPath, out error);
                         HOperatorSet.HomMat2dIdentity(out transform); // transform out 미사용(보정은 datum 내부 write-back)

@@ -242,6 +242,22 @@ namespace ReringProject.Sequence {
                         if (fai.LastOverlays != null) fai.LastOverlays.Clear();
                     }
                 }
+
+                //260724 hbk quick-fix: 수동(RUN 단일 Start(int)/RepeatRunService/BatchRunService) 경로는
+                //  packet==null → GetExecutionZIndex() 가 항상 0 을 반환한다(D-08 안전 폴백). 크로스-Z Datum
+                //  판정(TryGrabOrLoadCrossZDatumImages)은 nCurZ 가 datum.ZIndexA/B 어느 쪽과도 안 맞으면
+                //  "!bRelevant" 분기로 빠지는데, 그 분기는 저장소(m_dicCrossZImages)에 role A/B 가 이미 모두
+                //  있으면 그걸 재사용(TryReDetectCrossZDatumFromStore)한다 — 수동 경로는 이 저장소를 지금까지
+                //  전혀 리셋하지 않았으므로, 예전(다른 프로토콜/수동 사이클)에 캡처된 낡은 이미지가 이후의
+                //  모든 RUN 에서 계속 재사용된다(신규 검사이미지 Grab 이후에도 동일 증상 — 실측 재현 버그).
+                //  DebugManualZTrigger/PLC 프로토콜 z=0 사이클은 StartV1Scoped 가 BeginCrossZImageCycle() 을
+                //  호출해 매 사이클 시작마다 이미 클린 슬레이트라 재현되지 않았다. 여기서는 수동 경로에서만
+                //  (RequestPacket==null, 즉 !IsProtocolDrivenCycle()) 동일하게 클린 슬레이트를 적용한다 —
+                //  프로토콜 z=1..N 사이클(RequestPacket!=null)은 절대 건드리지 않으므로, z=1 에서 저장된 role A
+                //  가 z=2 도착 전에 지워지는 FIX-0 류 회귀는 발생하지 않는다(사이클 내 크로스-Z 공유 보존).
+                if (!IsProtocolDrivenCycle()) {
+                    BeginCrossZImageCycle();
+                }
             } catch (Exception ex) {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
             }
@@ -1644,6 +1660,51 @@ namespace ReringProject.Sequence {
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
+        //260723 hbk quick-fix: ResolveDatumCameraParam 동일 결함 클래스 수정 — 호출부가 이미 아는 소유 시퀀스명
+        //  (예: parentSeq.Name)을 받아, SourceShotName 미매칭 시 전역 shots[0] 대신 "같은 시퀀스 소유 shot"으로
+        //  스코프를 좁혀 ZIndex 최솟값으로 폴백한다(InspectionListView.ResolveDatumCameraParam 선례).
+        //  기존 1-arg 오버로드는 무변경 유지(다른 호출부 회귀 0) — owner 시퀀스명을 아는 호출부만 이 오버로드 사용.
+        public static string ResolveDatumModelPath(DatumConfig datum, string ownerSeqName)
+        {
+            if (datum == null) return null;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+            if (recipeName == null) recipeName = "";
+            string seqName = "TOP"; // 미매칭/빈값 최종 폴백 (ShotConfig 정책 일치)
+            var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+            if (shots != null && shots.Count > 0)
+            {
+                ShotConfig matched = null;
+                if (!string.IsNullOrEmpty(datum.SourceShotName))
+                {
+                    foreach (var s in shots) { if (s != null && s.ShotName == datum.SourceShotName) { matched = s; break; } }
+                }
+                // SourceShotName 미매칭 시 전역 shots[0] 대신 이 datum을 실행 중인 시퀀스(ownerSeqName)로 스코프를
+                //  좁혀 ZIndex 최솟값 shot으로 폴백한다(InspectionListView.ResolveDatumCameraParam 선례).
+                if (matched == null && !string.IsNullOrEmpty(ownerSeqName))
+                {
+                    ShotConfig ownedFirst = null;
+                    foreach (var s in shots)
+                    {
+                        if (s == null) continue;
+                        string owner = string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName;
+                        if (owner != ownerSeqName) continue;
+                        if (ownedFirst == null || s.ZIndex < ownedFirst.ZIndex) ownedFirst = s;
+                    }
+                    matched = ownedFirst;
+                }
+                if (matched == null) matched = shots[0]; // 최종 폴백(전역 첫 shot) — 도달 시 레시피 데이터 결함 의심
+                if (matched != null && !string.IsNullOrEmpty(matched.OwnerSequenceName)) seqName = matched.OwnerSequenceName;
+            }
+            else if (!string.IsNullOrEmpty(ownerSeqName))
+            {
+                seqName = ownerSeqName; // Shots가 비어도 호출부가 아는 소유 시퀀스명을 그대로 사용
+            }
+            string actName = "Datum";
+            string propertyName = datum.DatumName;
+            if (propertyName == null) propertyName = "";
+            return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
+        }
+
         //260619 hbk Phase 55 ALIGN-02 패턴2 모델 경로 — ResolveDatumModelPath 미러, propertyName 에 "_2" 접미사 → 별도 .shm.
         //  (working ResolveDatumModelPath 무변경: 경로불일치=ALIGN_FAIL 위험이라 리팩토링보다 복제 선택, 안전 우선.)
         public static string ResolveDatumModelPath2(DatumConfig datum)
@@ -1665,6 +1726,48 @@ namespace ReringProject.Sequence {
             }
             string actName = "Datum";
             string propertyName = (datum.DatumName ?? "") + "_2";
+            return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
+        }
+
+        //260723 hbk quick-fix: ResolveDatumModelPath(datum, ownerSeqName) 미러 — propertyName "_2" 접미사만 상이.
+        //  (기존 2-arg 원칙과 동일하게 복제 선택 — working 1-arg 무변경 유지, 안전 우선.)
+        public static string ResolveDatumModelPath2(DatumConfig datum, string ownerSeqName)
+        {
+            if (datum == null) return null;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
+            if (recipeName == null) recipeName = "";
+            string seqName = "TOP";
+            var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+            if (shots != null && shots.Count > 0)
+            {
+                ShotConfig matched = null;
+                if (!string.IsNullOrEmpty(datum.SourceShotName))
+                {
+                    foreach (var s in shots) { if (s != null && s.ShotName == datum.SourceShotName) { matched = s; break; } }
+                }
+                if (matched == null && !string.IsNullOrEmpty(ownerSeqName))
+                {
+                    ShotConfig ownedFirst = null;
+                    foreach (var s in shots)
+                    {
+                        if (s == null) continue;
+                        string owner = string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName;
+                        if (owner != ownerSeqName) continue;
+                        if (ownedFirst == null || s.ZIndex < ownedFirst.ZIndex) ownedFirst = s;
+                    }
+                    matched = ownedFirst;
+                }
+                if (matched == null) matched = shots[0];
+                if (matched != null && !string.IsNullOrEmpty(matched.OwnerSequenceName)) seqName = matched.OwnerSequenceName;
+            }
+            else if (!string.IsNullOrEmpty(ownerSeqName))
+            {
+                seqName = ownerSeqName;
+            }
+            string actName = "Datum";
+            string propertyName = datum.DatumName;
+            if (propertyName == null) propertyName = "";
+            propertyName = propertyName + "_2";
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
@@ -1722,7 +1825,7 @@ namespace ReringProject.Sequence {
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
             if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0)
             {
-                string modelPath2 = ResolveDatumModelPath2(datum);
+                string modelPath2 = ResolveDatumModelPath2(datum, Name); // 260723 hbk quick-fix: this(=실행 중인 시퀀스)의 소유 시퀀스명 직접 전달 — 전역 Shots[0] 폴백 결함 제거
                 double cur2Row, cur2Col, cur2AngleDeg, cur2Score; string err2;
                 if (svc.TryFindPose(refImage, datum.PatternEngine, modelPath2,
                         datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,

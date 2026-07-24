@@ -21,7 +21,7 @@ namespace ReringProject.Device {
     public class DisplayConfig : INotifyPropertyChanged {
 
         [PropertyTools.DataAnnotations.Browsable(false)]
-        private string DisplayConfigIniFile = AppDomain.CurrentDomain.BaseDirectory + @"DisplayConfig.ini";
+        private string DisplayConfigIniFile = SystemSetting.Handle.DisplayConfigFilePath; //260723 hbk: bin 폴더(재배포 시 유실) → D:\Data 통합
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public const double DrawScaleLowLimit = 0.25f;

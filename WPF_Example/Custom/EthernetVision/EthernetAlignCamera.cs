@@ -1,5 +1,6 @@
 //260623 hbk Phase 58
 using HalconDotNet;
+using MvCamCtrl.NET;
 using ReringProject.Setting;
 using ReringProject.Utility;
 using System;
@@ -107,11 +108,72 @@ namespace ReringProject.Device {
                 _hikCamera = new HikCamera(config, info);  // construct AFTER count confirmed
 
                 bool bOpened = _hikCamera.Open(ip);
+
+                // 260724 hbk 진단: Open 직후 GenICam 트리거/스트림 관련 설정값 확인.
+                //  (패킷크기 1500 강제 실험 — 크래시와 무관함을 확인 후 원복)
+                if (bOpened) {
+                    LogGigeStreamDiagnostics("Open직후");
+                }
+
                 return bOpened;
             }
             catch (Exception ex) {
                 Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] Connect failed: {0}", ex.Message);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 260724 hbk 임시 진단 — Grab 무응답(트리거는 성공하나 프레임이 안 옴) 원인 추적용.
+        /// ExposureMode/TriggerSelector/AcquisitionBurstFrameCount/GevSCPSPacketSize/GevSCDA 를 조회.
+        /// 원인 확정되면 이 메서드와 호출부 전부 제거 검토.
+        /// </summary>
+        private void LogGigeStreamDiagnostics(string tag) {
+            try {
+                CIntValue widthVal = new CIntValue();
+                int wRet = _hikCamera.CameraHandle.GetIntValue("Width", ref widthVal);
+                CIntValue heightVal = new CIntValue();
+                int hRet = _hikCamera.CameraHandle.GetIntValue("Height", ref heightVal);
+                CIntValue payloadVal = new CIntValue();
+                int plRet = _hikCamera.CameraHandle.GetIntValue("PayloadSize", ref payloadVal);
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[ETHERNET][{0}] 실제해상도: Width(ret={1})={2} Height(ret={3})={4} PayloadSize(ret={5})={6}",
+                    tag, wRet, widthVal.CurValue, hRet, heightVal.CurValue, plRet, payloadVal.CurValue);
+
+                CEnumValue expMode = new CEnumValue();
+                int getRet = _hikCamera.CameraHandle.GetEnumValue("ExposureMode", ref expMode);
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[ETHERNET][{0}] ExposureMode: ret={1} cur={2}(0=Timed,1=TriggerWidth)", tag, getRet, expMode.CurValue);
+
+                CEnumValue trigSel = new CEnumValue();
+                int selRet = _hikCamera.CameraHandle.GetEnumValue("TriggerSelector", ref trigSel);
+                CEnumEntry trigSelEntry = new CEnumEntry();
+                trigSelEntry.Value = trigSel.CurValue;
+                int symRet = _hikCamera.CameraHandle.GetEnumEntrySymbolic("TriggerSelector", ref trigSelEntry);
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[ETHERNET][{0}] TriggerSelector: ret={1} cur={2} symbolic=[{3}]", tag, selRet, trigSel.CurValue, trigSelEntry.Symbolic);
+
+                CIntValue burstCount = new CIntValue();
+                int burstRet = _hikCamera.CameraHandle.GetIntValue("AcquisitionBurstFrameCount", ref burstCount);
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[ETHERNET][{0}] AcquisitionBurstFrameCount: ret={1} cur={2}", tag, burstRet, burstCount.CurValue);
+
+                CIntValue packetSize = new CIntValue();
+                int pktRet = _hikCamera.CameraHandle.GetIntValue("GevSCPSPacketSize", ref packetSize);
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[ETHERNET][{0}] GevSCPSPacketSize: ret={1} cur={2}", tag, pktRet, packetSize.CurValue);
+
+                CIntValue scda = new CIntValue();
+                int scdaRet = _hikCamera.CameraHandle.GetIntValue("GevSCDA", ref scda);
+                uint scdaRaw = (uint)scda.CurValue;
+                string scdaIp = string.Format("{0}.{1}.{2}.{3}",
+                    (scdaRaw >> 24) & 0xFF, (scdaRaw >> 16) & 0xFF, (scdaRaw >> 8) & 0xFF, scdaRaw & 0xFF);
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[ETHERNET][{0}] GevSCDA(스트림 목적지): ret={1} raw={2} ip={3} (기대: 169.254.140.171)",
+                    tag, scdaRet, scda.CurValue, scdaIp);
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] LogGigeStreamDiagnostics({0}) failed: {1}", tag, ex.Message);
             }
         }
 
@@ -125,6 +187,7 @@ namespace ReringProject.Device {
             try {
                 if (IsOpen) {
                     HImage img = _hikCamera.GrabHalconImage();
+                    LogGigeStreamDiagnostics("Grab직후");   // 260724 hbk 임시 진단 — StartGrabbing 이후 GevSCDA 등 변화 확인
                     if (img != null) {
                         return img;
                     }

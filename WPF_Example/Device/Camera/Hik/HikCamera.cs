@@ -386,6 +386,10 @@ namespace ReringProject.Device {
                 Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Open Fail. ({1})", Info.Identifier, e.Message);
                 return false;
             }
+            // 260724 hbk 버그 수정: base(VirtualCamera).IsOpen 이 한 번도 true 로 세팅되지 않아
+            //  (Basler/MilCamera 는 세팅함) IsOpen 을 확인하는 모든 호출부(EthernetAlignCamera.Grab 등)가
+            //  Open 성공 후에도 항상 false 로 봐서 실제 Grab 을 시도조차 못 하고 폴백으로 빠졌다.
+            IsOpen = true;
             return true;
         }
 
@@ -397,6 +401,7 @@ namespace ReringProject.Device {
                     CameraHandle.DestroyHandle();
                 }
             }
+            IsOpen = false;   // 260724 hbk Open() 의 IsOpen=true 와 짝 — Close 후에는 반드시 false 로 복원
         }
 
         public override bool ExecuteSoftwareTrigger() {
@@ -423,6 +428,15 @@ namespace ReringProject.Device {
             try
             {
                 Interlocked.Increment(ref imageCount);
+
+                // 260724 hbk 임시 진단 — 대형 센서 카메라에서 GenImage1 직후 크래시 원인 추적.
+                //  GenImage1 은 nWidth*nHeight 바이트를 pData 에서 그대로 읽는다 — 실제 페이로드(nFrameLen)와
+                //  다르면(스트라이드/픽셀포맷 불일치) 버퍼 밖을 읽어 네이티브 크래시가 날 수 있다. GenImage1 호출
+                //  전에 로그를 남겨 크래시가 나도 원인 파악 가능하게 함.
+                Logging.PrintLog((int)ELogType.Camera,
+                    "[GRAB진단] {0} nWidth={1} nHeight={2} nFrameLen={3} enPixelType={4} nExtendWidth={5} nExtendHeight={6} pData={7}",
+                    Name, pFrameInfo.nWidth, pFrameInfo.nHeight, pFrameInfo.nFrameLen, pFrameInfo.enPixelType,
+                    pFrameInfo.nExtendWidth, pFrameInfo.nExtendHeight, pData);
 
                 lock (Interlock) {
                     HImage sourceImage = new HImage();

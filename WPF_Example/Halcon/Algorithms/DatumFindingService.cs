@@ -1721,14 +1721,22 @@ namespace ReringProject.Halcon.Algorithms
                 if (useDilation) opName = "gray_dilation";
                 try
                 {
-                    double pad = erosion; // 회전 마스크 worst-case 반경(erosion/2+0.5) 도 이 여유 안에 들어옴 → 값 유지
-                    HOperatorSet.GenRectangle1(out roiDomain, top - pad, left - pad, bottom + pad, right + pad);
-                    HOperatorSet.ReduceDomain(image, roiDomain, out reducedImage);
-
                     double measurePhi  = ComputeMeasurePhi(direction, alignRot);
                     double lineAxisPhi = measurePhi + Math.PI / 2.0; // 라인(에지) 방향 = 스캔방향(measurePhi) + 90°
+                    // Erosion(px) 는 PropertyGrid 자유 입력이라 ROI 크기와 무관하게 커질 수 있다(실측 201 → halfLen=100.5px).
+                    //  SE 가 ROI 를 넘어서면 모서리 건너편의 다른 방향 에지(Vertical 옆의 Horizontal)까지 같이 뭉갠다.
+                    //  사용자는 "순수한 직선 구간"만 덮도록 ROI 를 그리므로 ROI 자체가 곧 스무딩이 미쳐도 되는 범위다
+                    //  → ROI 의 에지 방향 반길이로 상한을 걸어 침식/팽창이 ROI 밖으로 번지지 않게 한다.
+                    double roiHalfExtentAlongEdge;
+                    if (scanHorizontal) roiHalfExtentAlongEdge = halfH; // Vertical 형 ROI: 에지가 행(세로) 축 → 행 반높이
+                    else roiHalfExtentAlongEdge = halfW;                // Horizontal 형 ROI: 에지가 열(가로) 축 → 열 반폭
                     double halfLen     = erosion / 2.0; // 라인 방향 반길이(구 gray_erosion_rect(erosion,erosion) 의 "전체 크기=erosion" 의미 보존)
+                    if (halfLen > roiHalfExtentAlongEdge) halfLen = roiHalfExtentAlongEdge; // ROI 자체 크기로 상한
                     const double halfWidth = 0.5;        // 에지 횡단 방향 반폭 고정(~1px, 비노출) — 에지 블러 방지가 이 기능의 존재 이유
+
+                    double pad = halfLen * 2.0 + 1.0; // 클램프된 SE 기준 도메인 여유(회전 마스크 worst-case 반경 halfLen+halfWidth 를 항상 상회, 미클램프 시엔 기존 pad=erosion 보다 항상 큼)
+                    HOperatorSet.GenRectangle1(out roiDomain, top - pad, left - pad, bottom + pad, right + pad);
+                    HOperatorSet.ReduceDomain(image, roiDomain, out reducedImage);
 
                     HTuple imgType;
                     HOperatorSet.GetImageType(image, out imgType); // gray_erosion: SE 픽셀타입은 Image 와 일치해야 함

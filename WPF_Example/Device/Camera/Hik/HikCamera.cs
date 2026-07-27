@@ -487,12 +487,21 @@ namespace ReringProject.Device {
             }
         }
 
+        // 260724 hbk 버그 수정: GrabHalconImage(bool)의 `return GrabHalconImage();`가
+        //  파라미터 없는 override 대신 자기 자신(bool 오버로드, 기본값 false)을 반복 호출해
+        //  무한 재귀 → StackOverflowException (디버거로 실제 확인, 관리 코드 try/catch로는 못 잡힘 —
+        //  오늘 하루 "크래시는 나는데 예외도 로그도 없다"의 정체). 두 오버로드가 공유하는 실제 로직을
+        //  별도 이름의 private 메서드로 분리해 오버로드 재귀 가능성 자체를 제거.
         public HImage GrabHalconImage(bool enableGrabEvent = false) {
             IsEnableGrabEvent = enableGrabEvent;
-            return GrabHalconImage();
+            return GrabHalconImageCore();
         }
 
         public override HImage GrabHalconImage() {
+            return GrabHalconImageCore();
+        }
+
+        private HImage GrabHalconImageCore() {
             SyncDiag(Name + " GrabHalconImage 진입");
             if (CaptureMode == ECaptureModeType.Streaming) return null;
 
@@ -521,7 +530,7 @@ namespace ReringProject.Device {
                 else if (mStopwatch.ElapsedMilliseconds >= pConfig.GrabTimeOut) return null;
                 Thread.Sleep(1);
             }
-            
+
             return LastHalconImage;
         }
 
@@ -626,15 +635,24 @@ namespace ReringProject.Device {
             if (CameraHandle == null) return false;
 
             if (CaptureMode == ECaptureModeType.Streaming) return true;
-            
+
+            // 260724 hbk 버그 수정: SetSoftwareTriggerMode()는 재설정 전 StopStream()을 먼저 불러
+            // 이전 grabbing 상태를 정리하는데, StartStream()엔 이 방어 로직이 빠져있었다 —
+            // Grab()을 한 번이라도 실행한 뒤(CaptureMode=Trigger, native StartGrabbing 이미 활성) Live()를
+            // 누르면 StartGrabbing() 이 "이미 그랩 중" 에러를 내며 실패, Live 버튼이 계속 실패로 보였다.
+            StopStream();
+
             try {
                 ResetGrabCount();
 
                 if (CameraHandle.SetEnumValue("TriggerMode", (uint)MV_CAM_TRIGGER_MODE.MV_TRIGGER_MODE_OFF) != CErrorDefine.MV_OK) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} StartStream: TriggerMode=Off 설정 실패", Name);
                     return false;
                 }
 
-                if (CameraHandle.StartGrabbing() != CErrorDefine.MV_OK) {
+                int nStartRet = CameraHandle.StartGrabbing();
+                if (nStartRet != CErrorDefine.MV_OK) {
+                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} StartStream: StartGrabbing 실패 (ret=0x{1:X8})", Name, nStartRet);
                     return false;
                 }
 
@@ -644,6 +662,7 @@ namespace ReringProject.Device {
             }
             catch (Exception e) {
                 Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} StartStream. ({1})", Name, e.Message);
+                return false;
             }
 
             return true;

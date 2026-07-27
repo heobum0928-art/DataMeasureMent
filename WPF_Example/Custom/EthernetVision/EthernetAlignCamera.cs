@@ -180,6 +180,20 @@ namespace ReringProject.Device {
             }
         }
 
+        /// <summary>
+        /// Live 스트리밍 중 최근 수신 프레임을 재트리거 없이 가져온다(뷰어 주기적 갱신용).
+        /// 아직 프레임을 못 받았으면 null. 반환된 HImage 는 호출자가 Dispose() 책임.
+        /// </summary>
+        public HImage PeekLastImage() {
+            try {
+                return _hikCamera?.LastHalconImage;
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] PeekLastImage failed: {0}", ex.Message);
+                return null;
+            }
+        }
+
         /// <summary>카메라 연결 해제 및 핸들 해제.</summary>
         public void Close() {
             try {

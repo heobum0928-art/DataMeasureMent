@@ -1713,6 +1713,12 @@ namespace ReringProject.Halcon.Algorithms
             {
                 // 260724 hbk 속도 실측용 임시 계측 — erosion on/off tact 비교 요청. 값 확인 후 제거 여부 재검토.
                 var erosionSw = System.Diagnostics.Stopwatch.StartNew();
+                // gray_erosion 은 국소최소 필터라 "밝은" 영역만 깎는다. polarity=negative(밝음→어두움 전이) 에지에서는
+                //  돌기가 밝은 배경으로 튀어나온 "어두운" 재질이므로 침식으로는 지워지지 않는다 → 국소최대인
+                //  gray_dilation 으로 대칭 처리해야 억제된다. positive/all 은 기존 gray_erosion 유지(회귀 0).
+                bool useDilation = string.Equals(polarity, "negative", StringComparison.OrdinalIgnoreCase);
+                string opName = "gray_erosion";
+                if (useDilation) opName = "gray_dilation";
                 try
                 {
                     double pad = erosion; // 회전 마스크 worst-case 반경(erosion/2+0.5) 도 이 여유 안에 들어옴 → 값 유지
@@ -1734,19 +1740,26 @@ namespace ReringProject.Halcon.Algorithms
                     HOperatorSet.GenRectangle2(out seRegion, centerRC, centerRC, lineAxisPhi, halfLen, halfWidth);
                     HOperatorSet.ReduceDomain(seCanvas, seRegion, out seImage);
 
-                    HOperatorSet.GrayErosion(reducedImage, seImage, out erodedObj);
+                    if (useDilation)
+                    {
+                        HOperatorSet.GrayDilation(reducedImage, seImage, out erodedObj);
+                    }
+                    else
+                    {
+                        HOperatorSet.GrayErosion(reducedImage, seImage, out erodedObj);
+                    }
                     erodedImage = new HImage(erodedObj);
                     stripImage = erodedImage;
                     erosionSw.Stop();
                     Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] erosion tact = {1}ms (erosion={2}px, canvas={3}x{3})", lbl, erosionSw.ElapsedMilliseconds, erosion, canvasSize));
+                        string.Format("[Datum.{0}] {1} tact = {2}ms (erosion={3}px, canvas={4}x{4}, polarity={5})", lbl, opName, erosionSw.ElapsedMilliseconds, erosion, canvasSize, polarity));
                 }
                 catch (Exception erodeEx)
                 {
                     erosionSw.Stop();
                     // erosion 전처리 실패는 non-critical: 원본 image 로 폴백 (strip swallow 정책과 동일 사상)
                     Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] gray_erosion(directional) skipped after {1}ms (fallback to source image): {2}", lbl, erosionSw.ElapsedMilliseconds, erodeEx.Message));
+                        string.Format("[Datum.{0}] {1}(directional) skipped after {2}ms (fallback to source image): {3}", lbl, opName, erosionSw.ElapsedMilliseconds, erodeEx.Message));
                     stripImage = image;
                 }
             }

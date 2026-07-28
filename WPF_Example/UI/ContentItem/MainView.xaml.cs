@@ -3659,6 +3659,10 @@ namespace ReringProject.UI {
                 datum.RefMatchRow = rr;
                 datum.RefMatchCol = rc;
                 datum.RefMatchAngleDeg = ra;
+                //260728 hbk quick-diag(260728-mxj): ref-refresh 시점 실제 사용 modelPath + 이미지 크기 (Test Find 시점과 육안 대조용)
+                HTuple diagImgW, diagImgH;
+                patternImage.GetImageSize(out diagImgW, out diagImgH);
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN-DIAG-REF] p1 modelPath=" + modelPath + " imgWH=" + diagImgW.ToString() + "x" + diagImgH.ToString());
                 if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0) {
                     string modelPath2 = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath2(datum, datum.OwnerName);
                     double rr2, rc2, ra2, rs2;
@@ -3670,6 +3674,8 @@ namespace ReringProject.UI {
                                     out rr2, out rc2, out ra2, out rs2, out refErr2)) {
                         datum.RefMatch2Row = rr2;
                         datum.RefMatch2Col = rc2;
+                        //260728 hbk quick-diag(260728-mxj): ref-refresh 시점 패턴2 실제 사용 modelPath2
+                        Logging.PrintLog((int)ELogType.Trace, "[ALIGN-DIAG-REF] p2 modelPath2=" + modelPath2 + " imgWH=" + diagImgW.ToString() + "x" + diagImgH.ToString());
                     }
                 }
                 Logging.PrintLog((int)ELogType.Trace, "[ALIGN-REFRESH] " + (datum.DatumName ?? "")

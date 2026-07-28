@@ -1820,12 +1820,20 @@ namespace ReringProject.Sequence {
                 + " patAngDeg=" + curAngleDeg.ToString("F3") + " refPatAngDeg=" + datum.RefMatchAngleDeg.ToString("F3")
                 + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=pattern"
                 + " score=" + curScore.ToString("F3") + " angleExtentDeg=" + datum.PatternAngleExtentDeg.ToString("F1"));
+            //260728 hbk quick-diag(260728-mxj): 라이브 매칭 시점 실제 사용 modelPath + 이미지 크기 (ref-refresh 시점과 육안 대조용)
+            HTuple diagImgW, diagImgH;
+            refImage.GetImageSize(out diagImgW, out diagImgH);
+            Logging.PrintLog((int)ELogType.Trace, "[ALIGN-DIAG-LIVE] p1 modelPath=" + modelPath + " imgWH=" + diagImgW.ToString() + "x" + diagImgH.ToString());
             // ②-2 Phase 55 ALIGN-02 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
             //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
             if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0)
             {
-                string modelPath2 = ResolveDatumModelPath2(datum, Name); // 260723 hbk quick-fix: this(=실행 중인 시퀀스)의 소유 시퀀스명 직접 전달 — 전역 Shots[0] 폴백 결함 제거
+                //260728 hbk quick-fix(260728-n7b): Name(=실행 중 인스턴스명) 대신 datum.OwnerName 사용 — Test Find 호출부는 GetAnyInspectionSequence() 로 임의 인스턴스(항상 TOP)를 골라 호출하므로 Name 기준이면 datum 소속과 무관한 폴더의 .shm 을 읽는다.
+                //  패턴1 및 기준값 저장측(MainView.RefreshPatternRefPoseAfterTeach)이 이미 datum.OwnerName 기준이라 여기도 통일한다. (260723 취지 — 전역 Shots[0] 폴백 결함 제거 — 는 유지)
+                string modelPath2 = ResolveDatumModelPath2(datum, datum.OwnerName);
+                //260728 hbk quick-diag(260728-mxj): 라이브 매칭 시점 패턴2 실제 사용 modelPath2 (ref-refresh 시점 modelPath2 와 육안 대조용)
+                Logging.PrintLog((int)ELogType.Trace, "[ALIGN-DIAG-LIVE] p2 modelPath2=" + modelPath2 + " seqName=" + (Name ?? "") + " ownerName=" + (datum.OwnerName ?? "(null)"));
                 double cur2Row, cur2Col, cur2AngleDeg, cur2Score; string err2;
                 if (svc.TryFindPose(refImage, datum.PatternEngine, modelPath2,
                         datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,

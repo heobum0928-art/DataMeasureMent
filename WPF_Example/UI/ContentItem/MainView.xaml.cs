@@ -2030,7 +2030,7 @@ namespace ReringProject.UI {
             return null;
         }
 
-        // [DatumName] 접두사 포함 티칭 에러 메시지 반환.
+        // 실패 단계 원문(err) 보존 + [DatumName] 접두사 포함 티칭 에러 메시지 반환. Circle 은 RadialDirection, 그 외는 EdgeDirection 힌트.
         private static string FormatTeachError(DatumConfig datum, string err) {
             if (err == null) err = "unknown";
             string prefix;
@@ -2039,18 +2039,24 @@ namespace ReringProject.UI {
             if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0
                 || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0
                 || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) {
-                return prefix + "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요.";
+                string hint;
+                if (err.StartsWith("Circle", System.StringComparison.OrdinalIgnoreCase)) hint = "Circle 단계 실패 — RadialDirection(Inward/Outward) 설정을 반대로 변경한 후 다시 시도하세요.";
+                else                                                                     hint = "EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요.";
+                return prefix + "검출된 에지가 없습니다 (" + err + "). " + hint;
             }
             return prefix + "티칭에 실패했습니다: " + err;
         }
 
-        // Test Find 실패 사유 모달 메시지 변환. 검출 0개 케이스에 EdgeDirection 힌트 통합.
+        // Test Find 실패 사유 모달 메시지 변환. 실패 단계 원문(err) 보존. Circle 은 RadialDirection, 그 외는 EdgeDirection 힌트.
         private static string FormatFindError(string err) {
             if (err == null) err = "unknown";
             if (err.IndexOf("no edges", System.StringComparison.OrdinalIgnoreCase) >= 0
                 || err.IndexOf("insufficient edges", System.StringComparison.OrdinalIgnoreCase) >= 0
                 || err.IndexOf("insufficient polar samples", System.StringComparison.OrdinalIgnoreCase) >= 0) {
-                return "검출된 에지가 없습니다. EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요.";
+                string hint;
+                if (err.StartsWith("Circle", System.StringComparison.OrdinalIgnoreCase)) hint = "Circle 단계 실패 — RadialDirection(Inward/Outward) 설정을 반대로 변경한 후 다시 시도하세요.";
+                else                                                                     hint = "EdgeDirection 설정을 반대로 변경한 후 다시 시도하세요.";
+                return "검출된 에지가 없습니다 (" + err + "). " + hint;
             }
             return "Datum Find 에 실패했습니다: " + err;
         }

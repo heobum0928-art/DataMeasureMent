@@ -3645,10 +3645,16 @@ namespace ReringProject.UI {
             if (!datum.IsPatternAlignEnabled) return;
             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
             if (string.IsNullOrEmpty(modelPath) || !System.IO.File.Exists(modelPath)) return;
+            //260728 hbk quick-fix(260728-l2r): ref pose 검색도 TryComposeAlign 라이브 매칭과 동일 조건이 되도록 sentinel 0 방지
+            datum.EnsurePerRoiDefaults();
+            //260728 hbk quick-fix(260728-l2r): 패턴1 ROI 미확보 시 범위제한 검색이 좌상단 구석 박스로 무너지므로 갱신 시도 없이 기존 RefMatch 보존
+            if (datum.PatternRoi_Length1 <= 0.0 || datum.PatternRoi_Length2 <= 0.0) return;
             var svc = new ReringProject.Halcon.Algorithms.PatternMatchService();
             double rr, rc, ra, rs;
             string refErr;
-            if (svc.TryFindRefPose(patternImage, datum.PatternEngine, modelPath, datum.PatternMinScore,
+            if (svc.TryFindPose(patternImage, datum.PatternEngine, modelPath,
+                    datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
+                    datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
                     out rr, out rc, out ra, out rs, out refErr)) {
                 datum.RefMatchRow = rr;
                 datum.RefMatchCol = rc;
@@ -3658,8 +3664,10 @@ namespace ReringProject.UI {
                     double rr2, rc2, ra2, rs2;
                     string refErr2;
                     if (!string.IsNullOrEmpty(modelPath2) && System.IO.File.Exists(modelPath2)
-                            && svc.TryFindRefPose(patternImage, datum.PatternEngine, modelPath2, datum.PatternMinScore,
-                                   out rr2, out rc2, out ra2, out rs2, out refErr2)) {
+                            && svc.TryFindPose(patternImage, datum.PatternEngine, modelPath2,
+                                    datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
+                                    datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
+                                    out rr2, out rc2, out ra2, out rs2, out refErr2)) {
                         datum.RefMatch2Row = rr2;
                         datum.RefMatch2Col = rc2;
                     }
@@ -3852,7 +3860,10 @@ namespace ReringProject.UI {
                 // D-09: 티칭 이미지에서 1회 find → ref pose 기록 (런타임과 동일 연산 → 부호 일관성)
                 double rr, rc, ra, rs;
                 string refError;
-                if (svc.TryFindRefPose(img, datum.PatternEngine, modelPath, datum.PatternMinScore, out rr, out rc, out ra, out rs, out refError)) {
+                if (svc.TryFindPose(img, datum.PatternEngine, modelPath,
+                        datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
+                        datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
+                        out rr, out rc, out ra, out rs, out refError)) {
                     datum.RefMatchRow     = rr;
                     datum.RefMatchCol     = rc;
                     datum.RefMatchAngleDeg = ra;
@@ -3868,7 +3879,10 @@ namespace ReringProject.UI {
                                 datum.PatternEngine, datum.PatternAngleExtentDeg, modelPath2, out err2)) {
                             double rr2, rc2, ra2, rs2;
                             string refErr2;
-                            if (svc.TryFindRefPose(img, datum.PatternEngine, modelPath2, datum.PatternMinScore, out rr2, out rc2, out ra2, out rs2, out refErr2)) {
+                            if (svc.TryFindPose(img, datum.PatternEngine, modelPath2,
+                                    datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
+                                    datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
+                                    out rr2, out rc2, out ra2, out rs2, out refErr2)) {
                                 datum.RefMatch2Row = rr2;
                                 datum.RefMatch2Col = rc2;
                                 alignMsg = "\n패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성";

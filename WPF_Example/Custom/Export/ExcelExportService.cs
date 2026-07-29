@@ -97,6 +97,10 @@ namespace ReringProject.Export
                                 {
                                     ws.Cell(row, 8).Value = "NO IMAGE";
                                 }
+                                else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 크로스-Z 미측정 라벨 (ReviewMeasurementRow 로직 일치)
+                                {
+                                    ws.Cell(row, 8).Value = "CROSS-Z INCOMPLETE";
+                                }
                                 else if (m.LastHasResult)
                                 {
                                     ws.Cell(row, 8).Value = m.LastJudgement ? "OK" : "NG";

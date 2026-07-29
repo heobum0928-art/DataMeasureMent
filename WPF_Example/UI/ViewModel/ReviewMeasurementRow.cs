@@ -89,6 +89,10 @@ namespace ReringProject.UI
             {
                 JudgeText = "NO IMAGE";
             }
+            else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 비프로토콜 실행 크로스-Z 미측정 — 일반 대기 표시와 반드시 구분
+            {
+                JudgeText = "CROSS-Z INCOMPLETE";
+            }
             else if (m.LastHasResult)
             {
                 if (m.LastJudgement) JudgeText = "OK"; else JudgeText = "NG";

@@ -390,6 +390,17 @@ namespace ReringProject.Sequence {
         //260625 hbk Phase 64 LIGHT-01 (D-12): z_index + OwnerSequenceName 기반 ShotConfig 조회.
         //  이 시퀀스 소유 Shot 중 첫 번째 매칭을 반환. 없으면 null.
         //  ComputeLastZIndex 의 순회 패턴 동일 — foreach + OwnerSequenceName + ZIndex 이중 조건.
+        //260729 hbk quick-fix(260729-hwb): 1패스(own-ZIndex 정확일치)가 실패하면 2패스로 DoesShotOwnCrossZIndex
+        //  (FindActionIndicesByZIndex 와 동일 헬퍼)를 재사용해 크로스-Z 소유 Shot 을 찾는다. $TEST 라우팅
+        //  (FindActionIndicesByZIndex)은 이미 크로스-Z 를 인지하는데 $PREP 조명 리졸버만 몰라서, 크로스-Z 짝의
+        //  한쪽 z 가 조명 단계에서 차단되던 결함(T-HWB-03)을 닫는다. own-ZIndex 정확일치가 있으면 반환값은
+        //  수정 전과 100% 동일(1패스 루프/조건 무변경) — 회귀 0 의 구조적 보장.
+        //  다중매칭 결정론: 같은 z 를 두 개 이상의 shot 이 크로스-Z 로 소유할 수 있다. 이때는 recipeManager.Shots
+        //  열거 순서의 첫 번째가 이긴다 — FindActionIndicesByZIndex/AggregateIndexFais 가 이미 같은 순서를 쓰므로
+        //  실행·집계·조명이 동일 순서를 공유하게 되고, 새 정렬 기준을 발명하지 않는다.
+        //  조명 의미론: 크로스-Z 로 매칭된 경우 그 크로스-Z 측정을 "소유"한 shot 자신의 조명 설정을 적용한다
+        //  (ApplyShotLightsInternal 은 무수정, 반환된 shot 이 달라질 뿐). role(A/B) 별로 다른 조명을 주는 기능은
+        //  현재 코드에 없으며 이번 범위 밖이다.
         private ShotConfig FindShotByZIndex(int nZIndex)
         {
             var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
@@ -410,6 +421,28 @@ namespace ReringProject.Sequence {
                 bool bInScope = bOwnedByThisSeq && bZMatch;
                 if (bInScope)
                 {
+                    return shot;
+                }
+            }
+            //260729 hbk quick-fix(260729-hwb): 2패스 — 크로스-Z 폴백. own-ZIndex 정확일치가 없을 때만 실행.
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                bool bCrossZOwned = DoesShotOwnCrossZIndex(shot, nZIndex);
+                if (bCrossZOwned)
+                {
+                    Logging.PrintLog((int)ELogType.LightController,
+                        "[PREP CrossZ] Shot={0}, ShotZIndex={1}, RequestedZIndex={2}, Seq={3} //260729 hbk quick-fix(260729-hwb)",
+                        shot.ShotName, shot.ZIndex, nZIndex, Name);
                     return shot;
                 }
             }

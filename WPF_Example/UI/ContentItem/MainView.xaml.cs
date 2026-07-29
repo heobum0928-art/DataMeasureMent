@@ -1116,7 +1116,7 @@ namespace ReringProject.UI {
             bool ok;
             string err = null;
             if (datum.IsPatternAlignEnabled) {
-                ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
+                ReringProject.Sequence.InspectionSequence seq = GetInspectionSequenceForDatum(datum);
                 string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                 if (seq != null) {
                     ok = seq.TryComposeAlign(datum, image, modelPath, out err);
@@ -3939,6 +3939,8 @@ namespace ReringProject.UI {
 
         //260622 hbk Phase 57.1 Test Find 패턴 보정 연결 — TryComposeAlign 호출용 임의 활성 InspectionSequence 인스턴스 획득
         //  TryComposeAlign 은 sequence 실행 상태 무관(인자로 입력, _datumTransforms 만 transient) → 어느 인스턴스든 가능.
+        //260729 hbk quick(260729-e7v): 이제 datum 범위 조회의 1차 경로가 아니라 **폴백 전용**이다.
+        //  datum 이 딸린 시퀀스를 써야 하는 호출은 반드시 GetInspectionSequenceForDatum(datum) 을 쓴다.
         private ReringProject.Sequence.InspectionSequence GetAnyInspectionSequence() {
             if (pSeq == null) return null;
             ESequence[] roles = new ESequence[] { ESequence.Top, ESequence.Side, ESequence.Bottom };
@@ -3947,6 +3949,20 @@ namespace ReringProject.UI {
                 if (seq != null) return seq;
             }
             return null;
+        }
+
+        //260729 hbk quick(260729-e7v): datum 범위 호출은 그 datum 을 **실제로 소유한** 시퀀스 인스턴스로 해야 한다.
+        //  임의 인스턴스(GetAnyInspectionSequence, 사실상 항상 TOP)를 넘기면, 인스턴스 정체성에 의존하는 로직이
+        //  조용히 남의 시퀀스 데이터를 집는다 — 이 버그 계열로 하루에 두 번 당했다(260728-n7b 패턴2 모델경로, 260728-l2r ref pose baseline).
+        //  DatumConfig.OwnerName 은 생성 경로가 InspectionSequence.AddDatum() → new DatumConfig(this) 단 하나라 소유 시퀀스명("TOP"/"SIDE"/"BOTTOM")으로 신뢰 가능.
+        //  해당 role 이 이 PC 에서 미등록(SequenceHandler.IsSequenceActive 가 Top/Bottom 롤 PC 에서 Side 를 제외)이면 조회 실패 → 기존 동작 보존 위해 폴백.
+        private ReringProject.Sequence.InspectionSequence GetInspectionSequenceForDatum(DatumConfig datum) {
+            if (pSeq == null) return null;
+            if (datum != null && !string.IsNullOrEmpty(datum.OwnerName)) {
+                ReringProject.Sequence.InspectionSequence owner = pSeq[datum.OwnerName] as ReringProject.Sequence.InspectionSequence;
+                if (owner != null) return owner;
+            }
+            return GetAnyInspectionSequence();
         }
 
         // 재앵커 대기 상태 — Apply 클릭 시 실제 커밋에 사용. 미리보기 중에만 유효.
@@ -4109,7 +4125,7 @@ namespace ReringProject.UI {
                     if (error == null) {
                         //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 런타임과 동일 TryComposeAlign(가로/세로), 아니면 기존 검출
                         if (datum.IsPatternAlignEnabled) {
-                            ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
+                            ReringProject.Sequence.InspectionSequence seq = GetInspectionSequenceForDatum(datum);
                             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                             if (seq != null) {
                                 ok = seq.TryComposeAlign(datum, imgH, imgV, modelPath, out error);
@@ -4136,7 +4152,7 @@ namespace ReringProject.UI {
                 if (testImage == null) return;
                 //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 TryComposeAlign(단일), 아니면 기존 검출
                 if (datum.IsPatternAlignEnabled) {
-                    ReringProject.Sequence.InspectionSequence seq = GetAnyInspectionSequence();
+                    ReringProject.Sequence.InspectionSequence seq = GetInspectionSequenceForDatum(datum);
                     string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
                     if (seq != null) {
                         ok = seq.TryComposeAlign(datum, testImage, modelPath, out error);

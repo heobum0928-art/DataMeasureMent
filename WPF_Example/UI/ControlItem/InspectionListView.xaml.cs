@@ -490,31 +490,15 @@ namespace ReringProject.UI {
             return -1;
         }
 
-        // 빈 OwnerSequenceName은 TOP으로 폴백 (ApplyShotDefaults / RebuildInspectionActions와 동일 정책)
-        //260722 hbk Phase 68 D-01b: RebuildInspectionActions가 시퀀스 소유 Shot을 ZIndex 오름차순 안정 정렬 후 Actions[]를
-        //  구성하도록 바뀌어(SequenceHandler.cs), 이 로컬 인덱스도 동일한 필터→OrderBy(ZIndex) 순서로 계산해야
-        //  seq[shotIdx]가 여전히 이 Shot의 Action을 정확히 가리킨다(그렇지 않으면 append 순서와 ZIndex 순서가 다른 레시피에서
-        //  Run 버튼/일괄 검사가 엉뚱한 Shot을 실행하는 회귀 발생 — Rule 1, Task 1과 동시 수정).
-        //260729 hbk quick-260729-jq5: Task 1 시점 임시 보존 — Task 2 에서 완전 삭제 예정(ResolveActionIndexByShot 로 대체).
-        private static int ComputeLocalShotIndex(InspectionRecipeManager mgr, ShotConfig target, ESequence seqId) {
-            if (mgr == null || target == null) return -1;
-            string targetSeqName = SequenceHandler.ResolveSequenceName(seqId);
-            var ownedShots = new List<ShotConfig>();
-            for (int i = 0; i < mgr.ShotCount; i++) {
-                ShotConfig s = mgr.Shots[i];
-                string shotOwner;
-                if (string.IsNullOrEmpty(s.OwnerSequenceName))
-                    shotOwner = SequenceHandler.SEQ_TOP;
-                else
-                    shotOwner = s.OwnerSequenceName;
-                if (shotOwner != targetSeqName) continue;
-                ownedShots.Add(s);
+        //260729 hbk quick-260729-jq5: 체크된 각 Shot 을 ResolveActionIndexByShot 으로 해석해 (shot, idx) 쌍으로 반환.
+        //  못 찾은 Shot 도 idx=-1 로 포함시켜 호출부가 rebuild 필요 여부를 판단할 수 있게 한다.
+        private List<Tuple<ShotConfig, int>> ResolveBatchShotIndices(SequenceBase seq, List<ShotConfig> shots) {
+            var result = new List<Tuple<ShotConfig, int>>();
+            foreach (ShotConfig shot in shots) {
+                int idx = ResolveActionIndexByShot(seq, shot);
+                result.Add(Tuple.Create(shot, idx));
             }
-            List<ShotConfig> sortedShots = ownedShots.OrderBy(s => s.ZIndex).ToList(); // RebuildInspectionActions와 동일 안정 정렬(D-01b)
-            for (int localIdx = 0; localIdx < sortedShots.Count; localIdx++) {
-                if (ReferenceEquals(sortedShots[localIdx], target)) return localIdx;
-            }
-            return -1;
+            return result;
         }
 
         //260616 hbk Phase 51: 트리에서 체크된 SHOT 노드 수집 (재귀)
@@ -564,19 +548,27 @@ namespace ReringProject.UI {
                 return;
             }
 
-            var mgr = SystemHandler.Handle.Sequences.RecipeManager;
-            var indices = new List<int>();
-            //260617 hbk Quick 260617-cq2: 완료 후 그리드 표시용 체크 SHOT 수집
-            var batchShots = new List<ShotConfig>();
+            //260729 hbk quick-260729-jq5: Shots 서수가 아니라 Actions[] 인덱스를 전달한다.
+            //  StartSubset 이 min-max 연속구간을 실행하므로 오름차순 정렬이 필수이고, _batchShots 는 indices 와
+            //  정렬 정합을 유지해야 한다(같은 (idx, shot) 쌍을 함께 정렬).
+            var checkedTargetShots = new List<ShotConfig>();
             foreach (NodeViewModel n in checkedShots) {
                 ShotConfig shot = n.Param as ShotConfig;
                 if (shot == null) continue;
-                int localIdx = ComputeLocalShotIndex(mgr, shot, seqID);
-                if (localIdx >= 0) {
-                    indices.Add(localIdx);
-                    batchShots.Add(shot);
-                }
+                checkedTargetShots.Add(shot);
             }
+
+            var resolvedPairs = ResolveBatchShotIndices(inspSeq, checkedTargetShots);
+            if (resolvedPairs.Any(p => p.Item2 < 0) && SystemHandler.Handle.Sequences.IsIdle) {
+                // 딱 한 번만 rebuild — Shot 마다 반복 호출하면 Actions[] 를 통째로 재생성해 낭비/DoS
+                SystemHandler.Handle.Sequences.EnableDynamicFAIMode();
+                SystemHandler.Handle.Sequences.RebuildInspectionActions(seqID);
+                resolvedPairs = ResolveBatchShotIndices(inspSeq, checkedTargetShots);
+            }
+
+            var sortedPairs = resolvedPairs.Where(p => p.Item2 >= 0).OrderBy(p => p.Item2).ToList();
+            var indices = sortedPairs.Select(p => p.Item2).ToList();
+            var batchShots = sortedPairs.Select(p => p.Item1).ToList();
 
             if (indices.Count == 0) {
                 CustomMessageBox.Show("일괄 검사", "선택 SHOT 의 인덱스를 해석할 수 없습니다.", MessageBoxImage.Error);
@@ -1088,8 +1080,8 @@ namespace ReringProject.UI {
             // 260723 hbk: SourceShotName 미설정 시 "이 datum이 속한 시퀀스의 첫 Shot"으로 폴백해야 하는데
             //  (DatumConfig.cs:32 comment 원래 의도) shots[0]은 전역 Shots 리스트의 첫 항목이라 다른 시퀀스
             //  (예: TOP)의 Shot이 잡혀 잘못된 카메라로 grab되는 결함이 있었다(Side datum grab이 CAM_TOP을
-            //  조회해 Device Not Opened 나던 원인). ComputeLocalShotIndex와 동일한 OwnerSequenceName 폴백
-            //  정책(빈 값=TOP)으로 이 datum의 소유 시퀀스로 먼저 필터링한다.
+            //  조회해 Device Not Opened 나던 원인). RebuildInspectionActions(SequenceHandler.cs)와 동일한
+            //  OwnerSequenceName 폴백 정책(빈 값=TOP)으로 이 datum의 소유 시퀀스로 먼저 필터링한다.
             NodeViewModel selectedNode = treeListBox_sequence.SelectedItem as NodeViewModel;
             string ownerSeqName = selectedNode != null ? selectedNode.SequenceName : null;
             if (!string.IsNullOrEmpty(ownerSeqName)) {

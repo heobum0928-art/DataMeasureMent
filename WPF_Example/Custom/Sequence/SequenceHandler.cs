@@ -101,7 +101,8 @@ namespace ReringProject.Sequence {
         //  SequenceBase.StartSubset 이 min-max 연속구간만 실행하므로, 같은 z_index Shot 들이 Actions[] 에서 항상 연속 블록이어야
         //  크로스-Z(D-01) 부분실행이 안전하다. List<T>.Sort/Array.Sort 는 불안정 정렬이라 동일 ZIndex 내 순서가 보존 안 됨 —
         //  안정 정렬이 보장되는 LINQ OrderBy 만 사용한다.
-        //  ※ InspectionListView.ComputeLocalShotIndex 가 이 순서(필터→OrderBy(ZIndex))와 1:1 대응해야 한다(동시 수정, Rule 1).
+        //260729 hbk quick-260729-jq5: 과거 InspectionListView 가 이 정렬 순서에 서수로 결합돼 있었으나(엉뚱한 Shot 실행
+        //  결함) 이제 Actions[] 의 ShotParam 참조 동일성으로 조회한다 — UI 측 동시 수정 의무 해소.
         public void RebuildInspectionActions(ESequence seqId) {
             SequenceBase seq = this[seqId];
             if (seq == null) return;

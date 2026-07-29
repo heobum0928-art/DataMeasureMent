@@ -27,6 +27,8 @@ namespace ReringProject.Sequence
         [DisplayName("세로축 티칭 이미지")]
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
+        //260729 hbk quick-kpy: PropertyGrid 표시만 숨김. System.ComponentModel.Browsable/JsonIgnore 는 절대 추가 금지 — 검사Grab 이 채우고 런타임 측정이 읽는 값이라 INI 저장이 반드시 유지되어야 함.
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string TeachingImagePath_Vertical { get; set; } = "";
 
         // PointROI 검출용 가로축 이미지 경로. 명시 시 우선 사용, 빈 문자열/파일 부재 시 ShotConfig.SimulImagePath 로 fallback.
@@ -35,6 +37,8 @@ namespace ReringProject.Sequence
         [DisplayName("가로축 티칭 이미지")]
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
+        //260729 hbk quick-kpy: 위와 동일 (PropertyGrid 표시만 숨김)
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string TeachingImagePath_Horizontal { get; set; } = "";
 
         // 크로스-Z 듀얼이미지(PROTO-Z-CROSS) — PointROI/LineROI 를 서로 다른 z_index 라이브 캡처에서 얻을 때 사용.

@@ -428,27 +428,27 @@ namespace ReringProject.UI {
             actID = EAction.Unknown;
             if (seq == null) return false;
 
-            // Shot 노드 (Action 타입 + ShotConfig Param): RecipeManager.Shots 인덱스 → seq[i].ID 매핑
+            // Shot 노드 (Action 타입 + ShotConfig Param): 살아있는 Actions[] 를 ShotParam 참조 동일성으로 스캔
             if (node.NodeType == ENodeType.Action && node.Param is ShotConfig shotCfg) {
                 var seqHandler = SystemHandler.Handle.Sequences;
-                // 글로벌 IndexOf 대신 시퀀스 소유 Shot만 필터링한 로컬 인덱스 사용.
-                // RecipeManager.Shots.IndexOf는 Bottom Shot의 글로벌 인덱스가 Bottom seq.ActionCount를 초과하는 오류를 낸다.
-                // RebuildInspectionActions의 actionIdx 부여 로직(SequenceHandler.cs L92-103)과 1:1 대응되어야 함.
-                int shotIdx = ComputeLocalShotIndex(seqHandler.RecipeManager, shotCfg, seq.ID);
-                if (shotIdx < 0) return false;
-
-                if (shotIdx < seq.ActionCount) {
-                    // RebuildInspectionActions 가 호출된 정상 상태: seq[shotIdx] 가 이 Shot의 Action
-                    actID = seq[shotIdx].ID;
+                //260729 hbk quick-260729-jq5: Shot 삭제(Btn_RemoveFAI_Click)와 순서변경(InspectionListViewModel.MoveNode/
+                //  SwapParamCollection)이 RebuildInspectionActions 를 호출하지 않아 RecipeManager.Shots 순번과
+                //  SequenceBase.Actions[] 가 어긋나고, 그 결과 서수 기반 매핑이 엉뚱한 Shot 을 실행/측정한 확인된 결함
+                //  (실기 재현: SHOT_E1-4 선택 → SHOT_B1-4 실행)이 있었다. 그래서 순번이 아니라 살아있는 Actions[] 의
+                //  ShotParam 참조 동일성으로 찾는다 — 서수 기반 폴백 경로는 두지 않는다.
+                int idx = ResolveActionIndexByShot(seq, shotCfg);
+                if (idx >= 0) {
+                    actID = seq[idx].ID;
                     return true;
                 }
 
-                // 매핑 실패 (UI에서 Shot 추가 후 RebuildInspectionActions 미호출) → 지연 동기화
+                // 매핑 실패 (UI에서 Shot 추가 후 RebuildInspectionActions 미호출) → 지연 동기화 후 재스캔
                 if (seqHandler.IsIdle) {
                     seqHandler.EnableDynamicFAIMode();
                     seqHandler.RebuildInspectionActions(seq.ID);
-                    if (shotIdx < seq.ActionCount) {
-                        actID = seq[shotIdx].ID;
+                    idx = ResolveActionIndexByShot(seq, shotCfg);
+                    if (idx >= 0) {
+                        actID = seq[idx].ID;
                         return true;
                     }
                 }
@@ -476,11 +476,26 @@ namespace ReringProject.UI {
             return false;
         }
 
+        //260729 hbk quick-260729-jq5: 살아있는 SequenceBase.Actions[] 를 직접 훑어 동일 ShotConfig 객체 참조를 찾는다.
+        //  RecipeManager.Shots 순번(서수)에 의존하지 않으므로 Shot 삭제/순서변경으로 Actions[] 가 낡은 상태여도
+        //  엉뚱한 Shot 을 가리키지 않는다 — 못 찾으면 -1 만 반환하고 서수 폴백은 두지 않는다.
+        //  미러링 대상: InspectionSequence.FindActionIndicesByZIndex (InspectionSequence.cs L496-520)
+        private int ResolveActionIndexByShot(SequenceBase seq, ShotConfig target) {
+            if (seq == null || target == null) return -1;
+            for (int i = 0; i < seq.ActionCount; i++) {
+                var faiAct = seq[i] as Action_FAIMeasurement;
+                if (faiAct == null) continue;
+                if (ReferenceEquals(faiAct.ShotParam, target)) return i;
+            }
+            return -1;
+        }
+
         // 빈 OwnerSequenceName은 TOP으로 폴백 (ApplyShotDefaults / RebuildInspectionActions와 동일 정책)
         //260722 hbk Phase 68 D-01b: RebuildInspectionActions가 시퀀스 소유 Shot을 ZIndex 오름차순 안정 정렬 후 Actions[]를
         //  구성하도록 바뀌어(SequenceHandler.cs), 이 로컬 인덱스도 동일한 필터→OrderBy(ZIndex) 순서로 계산해야
         //  seq[shotIdx]가 여전히 이 Shot의 Action을 정확히 가리킨다(그렇지 않으면 append 순서와 ZIndex 순서가 다른 레시피에서
         //  Run 버튼/일괄 검사가 엉뚱한 Shot을 실행하는 회귀 발생 — Rule 1, Task 1과 동시 수정).
+        //260729 hbk quick-260729-jq5: Task 1 시점 임시 보존 — Task 2 에서 완전 삭제 예정(ResolveActionIndexByShot 로 대체).
         private static int ComputeLocalShotIndex(InspectionRecipeManager mgr, ShotConfig target, ESequence seqId) {
             if (mgr == null || target == null) return -1;
             string targetSeqName = SequenceHandler.ResolveSequenceName(seqId);

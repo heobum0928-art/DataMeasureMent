@@ -330,9 +330,24 @@ namespace ReringProject.Sequence {
                                             }
                                             bool bRelevant, bCaptureOk, bCompleted;
                                             ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted);
+                                            //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
+                                            //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
+                                            //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
+                                            //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
+                                            //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
+                                            //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
+                                            //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
+                                            //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
+                                            bool bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
                                             if (!bRelevant)
                                             {
-                                                continue; // 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망)
+                                                if (bNonProtocolCycle)
+                                                {
+                                                    MarkMeasurementCrossZIncomplete(meas, false);
+                                                    faiAllPass = false;
+                                                    measuredCount++;
+                                                }
+                                                continue; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
                                             }
                                             if (!bCaptureOk)
                                             {
@@ -345,7 +360,12 @@ namespace ReringProject.Sequence {
                                             }
                                             if (!bCompleted)
                                             {
-                                                measuredCount++; // Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
+                                                if (bNonProtocolCycle)
+                                                {
+                                                    MarkMeasurementCrossZIncomplete(meas, true);
+                                                    faiAllPass = false;
+                                                }
+                                                measuredCount++; // 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
                                                 continue;
                                             }
                                             // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
@@ -894,6 +914,34 @@ namespace ReringProject.Sequence {
                 nZB = dualMeas.ZIndexB;
             }
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
+        }
+
+        //260729 hbk quick-fix(260729-e9q): MarkMeasurementZIndexMisconfigured 미러 — 비프로토콜 실행(RUN 버튼/
+        //  RepeatRunService·BatchRunService 일괄검사)에서 크로스-Z A/B 짝이 구조적으로 완성 불가일 때의 명시적
+        //  미측정 NG. GetExecutionZIndex() 가 항상 0(RequestPacket==null, D-08 안전 폴백)이므로 ZIndexA!=ZIndexB
+        //  중 최대 한쪽만 매칭될 수 있고, 이 Shot 의 EStep.Measure 는 이번 tick 한 번뿐이라 뒤이어 완성될 tick 이
+        //  존재하지 않는다. 기존엔 그대로 continue 해 faiAllPass 가 true 로 남았고 AggregateFaiResult 가
+        //  fai.IsPass=true 로 확정 → 한 번도 측정하지 않은 항목이 작업자/외부 핸들러에 PASS 로 보고됐다(안전 결함).
+        //  bRelevantTick=true = 한쪽 role 이미지만 캡처됨 / false = z=0 이 A·B 어느 쪽도 아니라 캡처조차 없음.
+        private void MarkMeasurementCrossZIncomplete(MeasurementBase meas, bool bRelevantTick)
+        {
+            meas.ClearResult();
+            meas.LastSkipReason = SkipReason.CROSS_Z_INCOMPLETE;
+            meas.LastJudgement = false;
+            string measName = meas.MeasurementName;
+            if (measName == null) measName = meas.TypeName;
+            int nZA = UNSET_ZINDEX;
+            int nZB = UNSET_ZINDEX;
+            var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+            if (dualMeas != null)
+            {
+                nZA = dualMeas.ZIndexA;
+                nZB = dualMeas.ZIndexB;
+            }
+            string szCase;
+            if (bRelevantTick) szCase = "한쪽 z 이미지만 확보, 나머지 tick 없음";
+            else szCase = "z=0 이 ZIndexA/B 어느 쪽도 아님, 캡처 없음";
+            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' 미측정 NG — 비프로토콜 실행(RUN 버튼/일괄검사)은 z_index 가 항상 0 이라 ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 짝을 완성할 수 없음(" + szCase + "). 실제로 측정하려면 PLC/$TEST 또는 수동 Z 트리거로 두 z 위치를 모두 실행할 것 (" + meas.LastSkipReason + ")");
         }
 
         //260722 hbk Phase 68 D-05: Datum(VerticalTwoHorizontalDualImage) ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/

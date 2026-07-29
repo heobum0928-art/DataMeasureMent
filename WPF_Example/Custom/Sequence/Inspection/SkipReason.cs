@@ -10,5 +10,9 @@ namespace ReringProject.Sequence
         public const string DATUM_REF_MISSING = "DATUM_REF_MISSING";
         //260722 hbk PROTO-Z-CROSS: ZIndexA==ZIndexB 또는 존재하지 않는 z_index 참조 등 크로스-Z 오설정 명시적 NG 사유.
         public const string ZINDEX_MISCONFIGURED = "ZINDEX_MISCONFIGURED";
+        //260729 hbk quick-fix(260729-e9q): 비프로토콜 실행(RUN 버튼/일괄검사)은 z_index 가 항상 0(D-08 폴백)이라
+        //  ZIndexA!=ZIndexB 크로스-Z 짝이 구조적으로 완성 불가 → 측정 자체가 수행되지 않음. 조용한 PASS 집계 금지용
+        //  명시적 미측정 NG 사유. ZINDEX_MISCONFIGURED(레시피 설정 오류)와 구분: 설정은 정상인데 실행 방식이 부적합.
+        public const string CROSS_Z_INCOMPLETE = "CROSS_Z_INCOMPLETE";
     }
 }

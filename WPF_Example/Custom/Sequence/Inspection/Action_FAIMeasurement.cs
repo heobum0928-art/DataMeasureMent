@@ -275,6 +275,9 @@ namespace ReringProject.Sequence {
                     bool allPass = true;
                     int measuredCount = 0;
                     var overlayAcc = new List<EdgeInspectionOverlay>(); // Shot 단위 overlay 누적
+                    //260729 hbk quick-fix(260729-hwb): Shot 전체에서 표시 이미지(pMyContext.ResultHalconImage)를
+                    //  크로스-Z role 이미지로 이미 교체했는지 여부 — 첫 크로스-Z 캡처가 화면을 차지한다(결정론적 규칙).
+                    bool bShotDisplayImageReplaced = false;
                     if (ShotParam != null) {
                         using (var image = ShotParam.GetImage()) {
                             if (image != null) {
@@ -293,6 +296,13 @@ namespace ReringProject.Sequence {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
                                     var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
+                                    //260729 hbk quick-fix(260729-hwb): 이 FAI tick 에서 실제로 캡처된 크로스-Z role 이미지의
+                                    //  소유 사본(같은 FAI 안에서 첫 캡처가 이김). null 이면 AggregateFaiResult 는 종전과
+                                    //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
+                                    HImage crossZRoleImage = null;
+                                    string crossZCapturedRoleLabel = null; // 표시 이미지 교체 로그용 — role(A/B) 표시
+                                    string crossZCapturedMeasName = null;  // 표시 이미지 교체 로그용 — 측정명
+                                    int crossZCapturedZ = UNSET_ZINDEX;    // 표시 이미지 교체 로그용 — 캡처 당시 z
                                     foreach (var meas in fai.Measurements) {
                                         // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
                                         // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
@@ -329,7 +339,8 @@ namespace ReringProject.Sequence {
                                                 continue;
                                             }
                                             bool bRelevant, bCaptureOk, bCompleted;
-                                            ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted);
+                                            string szCapturedRoleKey;
+                                            ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
                                             //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
                                             //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
                                             //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
@@ -343,7 +354,7 @@ namespace ReringProject.Sequence {
                                             {
                                                 if (bNonProtocolCycle)
                                                 {
-                                                    MarkMeasurementCrossZIncomplete(meas, false);
+                                                    MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
                                                     faiAllPass = false;
                                                     measuredCount++;
                                                 }
@@ -358,11 +369,36 @@ namespace ReringProject.Sequence {
                                                 measuredCount++;
                                                 continue;
                                             }
+                                            if (bCaptureOk && crossZRoleImage == null && !string.IsNullOrEmpty(szCapturedRoleKey) && parentSeq2 != null)
+                                            {
+                                                //260729 hbk quick-fix(260729-hwb): 이번 tick 에서 실제로 캡처된 role 이미지의
+                                                //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
+                                                //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
+                                                crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);
+                                                if (crossZRoleImage != null)
+                                                {
+                                                    if (szCapturedRoleKey.EndsWith(CROSS_Z_ROLE_SUFFIX_A, StringComparison.Ordinal)) crossZCapturedRoleLabel = "A";
+                                                    else crossZCapturedRoleLabel = "B";
+                                                    crossZCapturedMeasName = meas.MeasurementName;
+                                                    if (crossZCapturedMeasName == null) crossZCapturedMeasName = meas.TypeName;
+                                                    crossZCapturedZ = parentSeq2.GetExecutionZIndex();
+                                                }
+                                            }
                                             if (!bCompleted)
                                             {
                                                 if (bNonProtocolCycle)
                                                 {
-                                                    MarkMeasurementCrossZIncomplete(meas, true);
+                                                    MarkMeasurementCrossZIncomplete(meas, true, false, parentSeq2);
+                                                    faiAllPass = false;
+                                                }
+                                                else
+                                                {
+                                                    //260729 hbk quick-fix(260729-hwb): 프로토콜 사이클(수동 Z트리거 포함)도
+                                                    //  짝이 아직 미완성인 tick 에서 faiAllPass 기본값 true 로 방치하지 않고
+                                                    //  CROSS_Z_INCOMPLETE 로 명시 표시한다(T-HWB-01). AddFaiResult 의 완성
+                                                    //  index 게이트가 미완성 index 를 애초에 보고 대상에서 제외하므로 PLC
+                                                    //  응답은 오염되지 않는다 — 영향 범위는 화면/캡처 파일명/cycle.json 뿐.
+                                                    MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
                                                     faiAllPass = false;
                                                 }
                                                 measuredCount++; // 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
@@ -401,8 +437,34 @@ namespace ReringProject.Sequence {
                                         }
                                         measuredCount++;
                                     }
-                                    AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot); //260702 hbk Extract Method(Task2)
-                                    if (!faiAllPass) allPass = false;
+                                    try {
+                                        if (crossZRoleImage == null) {
+                                            AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot); //260702 hbk Extract Method(Task2)
+                                        } else {
+                                            //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
+                                            //  대신 실제 측정에 쓰인 role 이미지로 교체한다(T-HWB-02). sharedSrc 의 기존 소유권
+                                            //  계약(L284-285/L443-445, AddRef/Release, 워커 요청과 독립)을 그대로 미러한다.
+                                            SharedHImage crossZSharedSrc = null;
+                                            try {
+                                                try { crossZSharedSrc = new SharedHImage(crossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
+                                                AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot);
+                                            } finally {
+                                                if (crossZSharedSrc != null) crossZSharedSrc.Release();
+                                            }
+                                            if (!bShotDisplayImageReplaced) {
+                                                //260729 hbk quick-fix(260729-hwb): Shot 전체에서 첫 크로스-Z 캡처가 화면을
+                                                //  차지한다(결정론적 규칙) — 정적 대표 사진 대신 실제 측정 사진을 표시.
+                                                if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
+                                                pMyContext.ResultHalconImage = crossZRoleImage.CopyImage();
+                                                bShotDisplayImageReplaced = true;
+                                                string szShotNameForLog = ShotParam != null ? ShotParam.ShotName : "";
+                                                Logging.PrintLog((int)ELogType.Trace, "[FAI CrossZ IMG] Shot=" + szShotNameForLog + ", Meas=" + crossZCapturedMeasName + ", Role=" + crossZCapturedRoleLabel + ", Z=" + crossZCapturedZ + " //260729 hbk quick-fix(260729-hwb)");
+                                            }
+                                        }
+                                        if (!faiAllPass) allPass = false;
+                                    } finally {
+                                        if (crossZRoleImage != null) { try { crossZRoleImage.Dispose(); } catch { } crossZRoleImage = null; }
+                                    }
                                 }
                                 } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
                                     if (sharedSrc != null) sharedSrc.Release();
@@ -923,7 +985,12 @@ namespace ReringProject.Sequence {
         //  존재하지 않는다. 기존엔 그대로 continue 해 faiAllPass 가 true 로 남았고 AggregateFaiResult 가
         //  fai.IsPass=true 로 확정 → 한 번도 측정하지 않은 항목이 작업자/외부 핸들러에 PASS 로 보고됐다(안전 결함).
         //  bRelevantTick=true = 한쪽 role 이미지만 캡처됨 / false = z=0 이 A·B 어느 쪽도 아니라 캡처조차 없음.
-        private void MarkMeasurementCrossZIncomplete(MeasurementBase meas, bool bRelevantTick)
+        //260729 hbk quick-fix(260729-hwb): bProtocolCycle 파라미터 추가 — 상태 마킹부(ClearResult/LastSkipReason/
+        //  LastJudgement)는 e9q 와 동일하게 유지하고, 로그 문구만 분기한다. bProtocolCycle=false 는 e9q 문구를
+        //  한 글자도 바꾸지 않고 그대로 출력(비프로토콜 실행 안내). bProtocolCycle=true 는 프로토콜 사이클(수동
+        //  Z트리거 포함)의 정상 흐름 중간 상태임을 명시해 운영자가 고장으로 오인하지 않게 별도 문구를 출력한다.
+        //  parentSeq2 는 bProtocolCycle=true 일 때만 현재 tick 의 z(GetExecutionZIndex) 를 로그에 남기는 데 쓴다.
+        private void MarkMeasurementCrossZIncomplete(MeasurementBase meas, bool bRelevantTick, bool bProtocolCycle, InspectionSequence parentSeq2)
         {
             meas.ClearResult();
             meas.LastSkipReason = SkipReason.CROSS_Z_INCOMPLETE;
@@ -937,6 +1004,12 @@ namespace ReringProject.Sequence {
             {
                 nZA = dualMeas.ZIndexA;
                 nZB = dualMeas.ZIndexB;
+            }
+            if (bProtocolCycle)
+            {
+                int nCurZ = parentSeq2 != null ? parentSeq2.GetExecutionZIndex() : UNSET_ZINDEX;
+                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' CROSS_Z_INCOMPLETE — ZIndexA=" + nZA + ", ZIndexB=" + nZB + ", CurrentZ=" + nCurZ + ": 프로토콜 사이클 정상 흐름의 중간 상태(고장 아님) — 짝이 되는 나머지 z 트리거 대기 중, 아직 측정되지 않음(PASS 아님) (" + meas.LastSkipReason + ")");
+                return;
             }
             string szCase;
             if (bRelevantTick) szCase = "한쪽 z 이미지만 확보, 나머지 tick 없음";
@@ -1123,11 +1196,16 @@ namespace ReringProject.Sequence {
         //  lighthandler-race 준수). SIMUL_MODE 에서 role별 교시 경로가 설정돼 있으면 LoadCrossZRoleImage(GAP-4)
         //  가 대신 그 파일에서 로드 — 파일 읽기이므로 GrabSyncLock/라이브 캡처와 무관, lock 계약 영향 없음.
         //  완성(bCompleted=true) 이면 호출부가 TryExecuteCrossZMeasurement 로 이어간다.
-        private void ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, out bool bRelevant, out bool bCaptureOk, out bool bCompleted)
+        //260729 hbk quick-fix(260729-hwb): out szCapturedRoleKey 추가 — 이번 tick 에서 실제로 캡처된 role 저장소
+        //  키를 호출부에 알려준다. 캡처 성공(bCaptureOk=true) 이외의 모든 조기 return 경로는 null 로 나간다.
+        //  화면/저장 표시가 항상 정적 SimulImagePath 였던 결함(T-HWB-02) 을 닫기 위해 호출부가 이 키로
+        //  TakeCrossZImageCopy 사본을 받아 표시/저장 소스로 쓴다.
+        private void ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, out bool bRelevant, out bool bCaptureOk, out bool bCompleted, out string szCapturedRoleKey)
         {
             bRelevant = false;
             bCaptureOk = false;
             bCompleted = false;
+            szCapturedRoleKey = null;
             if (parentSeq2 == null || ShotParam == null)
             {
                 return;
@@ -1152,6 +1230,7 @@ namespace ReringProject.Sequence {
                 }
                 parentSeq2.StoreCrossZImage(roleKey, capturedImage);
                 bCaptureOk = true;
+                szCapturedRoleKey = roleKey;
             }
             string keyA = baseKey + CROSS_Z_ROLE_SUFFIX_A;
             string keyB = baseKey + CROSS_Z_ROLE_SUFFIX_B;

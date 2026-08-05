@@ -385,7 +385,7 @@ namespace ReringProject.Sequence {
                 // ── Grab (소프트웨어 트리거) ──────────────────────────────────
                 case EStep.Grab: {
                     SystemHandler.Handle.Lights.ApplyLight(pMyParam);
-                    var image = pCamera.GrabHalconImage();
+                    var image = pCamera.GrabHalconImage(pMyParam.DeviceName);
                     try {
                         if (image == null) {
                             Logging.PrintLog((int)ELogType.Error, "{0} Camera Image Grab Failed!", pMyParam.DeviceName);

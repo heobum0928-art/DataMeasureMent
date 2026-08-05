@@ -230,6 +230,9 @@ namespace ReringProject.Device {
                         //  144MB grab 버퍼 중복 할당도 방지. Top/Bottom 두 시퀀스가 같은 인스턴스를 공유(같은 보드가 시점만 달리 grab).
                         MilCamera sharedMil = Devices.Values.FirstOrDefault(c => c.CamType == ECameraType.MIL) as MilCamera;
                         if (sharedMil != null) {
+                            // 물리 MIL 핸들은 공유하지만, ReverseX/Y·RotateAngle 같은 역할별 grab 방향 설정은 별도로 등록해야
+                            // grab 시점(GrabFromBuffer)에 요청한 논리 카메라(CAM_TOP/CAM_BOTTOM)에 맞는 방향이 적용된다.
+                            sharedMil.RegisterRoleInfo(id);
                             Devices.Add(id.Identifier, sharedMil);
                         }
                         else {
@@ -328,7 +331,7 @@ namespace ReringProject.Device {
             if (cam == null) return null;
             if (cam.Properties == null) return null;
             if (!cam.Properties.ApplyFromParam(param)) return null;
-            return cam.GrabHalconImage();
+            return cam.GrabHalconImage(param.DeviceName);
         }
         
 

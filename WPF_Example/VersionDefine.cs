@@ -113,10 +113,15 @@ namespace ReringProject
                  "기준점(Datum) 관련 수정 — 검출 실패 메시지에 어느 단계(원/가로선A/가로선B)에서 실패했는지 그대로 표시(기존엔 뭉뚱그린 안내라 어디를 고쳐야 할지 알 수 없었음), 기준 자세를 기록할 때와 실제로 찾을 때의 검색 범위가 서로 달라 각도가 어긋나던 문제 수정, 패턴2 모델 파일을 소속과 무관한 다른 폴더에서 읽어오던 문제 수정(Top/Side/Bottom 이 섞이던 계열). " +
                  "측정 설정 화면에서 '가로축/세로축 티칭 이미지' 칸 2개 숨김 — 메뉴바의 가로/세로 버튼과 검사Grab 으로 이미 자동으로 채워지는 값이라 같은 걸 두 번 설정하게 되어 혼란스러웠다(값과 동작은 그대로, 화면에서만 안 보임)."
     )]
+    [Version(
+        Number = "1.7.5.0",
+        Date = "2026-08-05",
+        Change = "MeasurementAlgorithm.TryInspectSingleEdgeInternal 의 strip 측정 루프에서 확정된 HALCON measure handle 누수를 예외-경로 한정으로 수정 — handle 을 닫는 CloseMeasure(handle) 호출이 try/finally 밖의 평문이라, 바로 앞 MeasurePos 호출이 예외를 던지면 실행되지 않고 handle 이 새며, 그 예외는 상위 TryInspectSingleEdge 래퍼의 빈 catch{return false;}에 조용히 삼켜져 겉으로 드러나지 않았다. 형제 구현체(VisionAlgorithmService.AppendStrip, FAIEdgeMeasurementService)와 동일한 try-finally 패턴으로 통일 — MeasurePos 호출과 뒤따르는 결과 누적 블록을 try 안으로, CloseMeasure(handle)을 finally 로 이동. catch 는 추가하지 않아 예외 전파(ROI 전체 실패 처리) 동작과 판정/반환값 로직은 완전히 그대로 보존. 이 메서드는 [Obsolete] 구 액션(TopInspectionAction/BottomInspectionAction) 경로로만 도달하고 표준 운영 경로(RebuildInspectionActions→Action_FAIMeasurement)에서는 실행되지 않지만, TeachingWindow 의 수동 test 버튼에서는 여전히 도달 가능해 확정 누수로 판단해 수정."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.4.0";
-        public const string BUILD_DATE = "2026-07-29";
+        public const string VERSION = "1.7.5.0";
+        public const string BUILD_DATE = "2026-08-05";
     }
 }

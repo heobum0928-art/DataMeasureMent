@@ -498,9 +498,6 @@ namespace ReringProject.Halcon.Algorithms
                     double rectCol = cCol + radius * Math.Cos(thetaRad);
                     double rectPhi = thetaRad; // 반경 방향 = rect length1 축
 
-                    HObject horotteRect;
-                    HOperatorSet.GenRectangle2(out horotteRect, rectRow, rectCol, rectPhi, halfL1, halfL2);
-
                     HTuple measureHandle = null;
                     try
                     {

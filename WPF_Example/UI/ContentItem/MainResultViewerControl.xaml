@@ -33,6 +33,18 @@
                 <MenuItem x:Name="ManualMeasureMenuItem"
                           Header="Manual Measure"
                           Click="ManualMeasureMenuItem_Click"/>
+                <MenuItem x:Name="MeasureAxisMenuItem"
+                          Header="측정 축 고정">
+                    <MenuItem x:Name="MeasureAxisFreeMenuItem"
+                              Header="자유"
+                              Click="MeasureAxisFreeMenuItem_Click"/>
+                    <MenuItem x:Name="MeasureAxisHorizontalMenuItem"
+                              Header="수평 고정"
+                              Click="MeasureAxisHorizontalMenuItem_Click"/>
+                    <MenuItem x:Name="MeasureAxisVerticalMenuItem"
+                              Header="수직 고정"
+                              Click="MeasureAxisVerticalMenuItem_Click"/>
+                </MenuItem>
                 <MenuItem x:Name="ClearMeasureMenuItem"
                           Header="Clear Measure"
                           Click="ClearMeasureMenuItem_Click"/>

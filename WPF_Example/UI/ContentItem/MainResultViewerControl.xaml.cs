@@ -1769,6 +1769,20 @@ namespace ReringProject.UI
             ManualMeasureMenuItem.IsChecked = _manualMeasureMode;
             ClearMeasureMenuItem.IsEnabled = isImageLoaded && (_manualMeasureStartPoint.HasValue || _manualMeasureEndPoint.HasValue || _manualMeasureMode);
 
+            if (MeasureAxisMenuItem != null
+                && MeasureAxisFreeMenuItem != null
+                && MeasureAxisHorizontalMenuItem != null
+                && MeasureAxisVerticalMenuItem != null)
+            {
+                MeasureAxisMenuItem.IsEnabled = _manualToolsEnabled && isImageLoaded;
+                MeasureAxisFreeMenuItem.IsCheckable = true;
+                MeasureAxisHorizontalMenuItem.IsCheckable = true;
+                MeasureAxisVerticalMenuItem.IsCheckable = true;
+                MeasureAxisFreeMenuItem.IsChecked = (_manualMeasureAxisMode == ECaliperMode.Free);
+                MeasureAxisHorizontalMenuItem.IsChecked = (_manualMeasureAxisMode == ECaliperMode.Horizontal);
+                MeasureAxisVerticalMenuItem.IsChecked = (_manualMeasureAxisMode == ECaliperMode.Vertical);
+            }
+
             // Edit 는 토글이므로 ROI 선택 무관하게 모드 진입 가능. Delete 만 _selectedRoiId 요구.
             // Datum ROI (_datumRoiCandidates) 도 hasSelectedRoi 판정에 포함 (FAI _rois 에는 없음).
             if (EditRoiMenuItem != null && DeleteRoiMenuItem != null)

@@ -545,14 +545,12 @@ namespace ReringProject.UI {
                 }
             }
 
-            //260805 hbk Phase 69 D-01/D-03: 단일 RUN(Btn_start_Click)과 동일한 시퀀스 단위 판정을 쓴다.
-            string sBlockingSeqName;
-            if (SystemHandler.Handle.Sequences.TryGetBlockingSequence(seqID, out sBlockingSeqName)) {
-                CustomMessageBox.Show("일괄 검사",
-                    string.Format(
-                        "실행할 수 없습니다 — '{0}' 시퀀스가 아직 Idle 이 아닙니다.\n(자기 자신이거나, 같은 물리 카메라를 공유하는 시퀀스입니다.)",
-                        sBlockingSeqName),
-                    MessageBoxImage.Error);
+            // 일괄검사는 _batchService/_batchShots/_batchAccumulated 를 시퀀스별로 분리하지 않은 단일 공용 필드로
+            // 관리한다. Btn_start_Click 과 동일한 시퀀스 단위 판정으로 크로스-시퀀스 동시 실행을 허용하면, 뒤이은
+            // _batchService = new BatchRunService() 가 아직 실행 중인 다른 시퀀스의 참조를 덮어써 크래시가 난다.
+            // 공용 필드를 시퀀스별로 분리하기 전까지는 전역 IsIdle 게이트를 유지한다.
+            if (!SystemHandler.Handle.Sequences.IsIdle) {
+                CustomMessageBox.Show("일괄 검사", "시퀀스가 이미 실행 중입니다.", MessageBoxImage.Error);
                 return;
             }
 

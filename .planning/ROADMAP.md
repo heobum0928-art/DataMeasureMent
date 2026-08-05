@@ -984,10 +984,11 @@ Plans:
 **Depends on:** 없음 (독립적인 유지보수/조사 작업, Phase 68 진행과 무관하게 병행 가능)
 **Background:** 사용자가 이미 확정한 사실 — `IAxisController`는 구현체가 없고 `Action_FAIMeasurement.cs`의 MoveZ 스텝은 실장비 빌드에서도 `DelayMs`만큼 Sleep할 뿐 모터를 움직이지 않는다(Z축 실이동은 처음부터 외부 PLC/수동 다이얼 담당, `ShotConfig.cs:12-17` 주석 명시) — 이 부분은 추가 구현 불필요. POC 패널의 `ManualZTriggerButton_Click`은 `SystemHandler.DebugManualZTrigger`(`SystemHandler.cs:823-860`)를 거쳐 실제 프로덕션 TCP `$PREP`/`$TEST` 경로를 그대로 태운다. "진짜" RUN 경로 3개(`btn_start`/`btn_batchRun`/TCP `$TEST`) 전부 `SequenceBase.Start`/`StartCore`(`SequenceBase.cs:288-386`)의 `_startLock` + State 상태머신으로 수렴한다.
 
-**Plans:** 0 plans (discuss-phase 진행 예정)
+**Plans:** 2 plans (2 waves)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 69 to break down)
+- [ ] 69-01-PLAN.md — RUN 게이트를 시퀀스 단위 판정으로 교체(물리 카메라 공유 시에만 상호배타, D-01) + 차단 사유 메시지(D-03) [Wave 1]
+- [ ] 69-02-PLAN.md — SIMUL_MODE RUN 게이트 실측 UAT + 실HW 공유 카메라 carry-over 기록(→ 69-UAT.md) [Wave 2, autonomous:false]
 
 ---
 

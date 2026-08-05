@@ -28,6 +28,16 @@ namespace ReringProject.Halcon.Algorithms
         //  null/빈 HTuple 이면 무보정(기존 동작). 검출 자체(line-fit/DetectedOrigin/angle)는 그대로 → nominal 불변.
         public HTuple AlignPreTransform { get; set; } = null;
 
+        // 260805 quick-260805-f3w D-F3W-03 (S1): strip 1개 처리 결과. per-strip 로그 대신 ROI 단위로 집계해
+        //  Trace 로그 스팸(사이클당 40~240줄)을 요약 1줄로 줄인다.
+        private enum EStripOutcome { Ok, NoEdge, Failed }
+
+        // 260805 quick-260805-f3w D-F3W-03 (S2): 같은 ROI 안에서 strip 예외 메시지를 첫 1건만 남기기 위한 가드.
+        //  실패 개수는 요약줄의 failed 카운트가 담당하므로 같은 메시지를 20번 찍을 이유가 없다.
+        //  인스턴스 필드가 안전한 근거: DatumFindingService 는 매 검출마다 new 로 생성되고(스레드 공유 없음),
+        //  static 으로 만들면 시퀀스 3개(Top/Side/Bottom)가 서로의 가드를 덮어써 다른 ROI 의 첫 예외가 사라진다.
+        private bool _bStripErrorLoggedThisRoi = false;
+
         /// <summary>
         /// 런타임 Datum 찾기: 이미지에서 두 라인을 검출하고 hom_mat2d 변환 행렬을 반환한다.
         /// config.IsConfigured=false이면 identity 변환을 반환(pass-through).
@@ -1774,13 +1784,19 @@ namespace ReringProject.Halcon.Algorithms
 
             try
             {
+                // 260805 quick-260805-f3w D-F3W-03 (S1/S2): strip 결과 집계 + ROI 진입 시 예외 dedup 가드 리셋.
+                int nOkStrips = 0;
+                int nNoEdgeStrips = 0;
+                int nFailedStrips = 0;
+                _bStripErrorLoggedThisRoi = false;
+
                 if (scanHorizontal)
                 {
                     for (int i = 0; i < stripCount; i++)
                     {
                         double r1 = top + (i * heightPx / stripCount);
                         double r2 = top + ((i + 1) * heightPx / stripCount);
-                        AppendEdgePointsFromStrip(
+                        EStripOutcome stripResult = AppendEdgePointsFromStrip(
                             stripImage, r1, left, r2, right,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
@@ -1788,6 +1804,9 @@ namespace ReringProject.Halcon.Algorithms
                             ref allRows, ref allCols,
                             roiLabel,
                             alignRot); //260619 hbk Phase 57 #4 DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
+                        if (stripResult == EStripOutcome.Ok) { nOkStrips++; }
+                        else if (stripResult == EStripOutcome.NoEdge) { nNoEdgeStrips++; }
+                        else { nFailedStrips++; }
                     }
                 }
                 else
@@ -1796,7 +1815,7 @@ namespace ReringProject.Halcon.Algorithms
                     {
                         double c1 = left + (i * widthPx / stripCount);
                         double c2 = left + ((i + 1) * widthPx / stripCount);
-                        AppendEdgePointsFromStrip(
+                        EStripOutcome stripResult = AppendEdgePointsFromStrip(
                             stripImage, top, c1, bottom, c2,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
@@ -1804,13 +1823,16 @@ namespace ReringProject.Halcon.Algorithms
                             ref allRows, ref allCols,
                             roiLabel,
                             alignRot); //260619 hbk Phase 57 #4 DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
+                        if (stripResult == EStripOutcome.Ok) { nOkStrips++; }
+                        else if (stripResult == EStripOutcome.NoEdge) { nNoEdgeStrips++; }
+                        else { nFailedStrips++; }
                     }
                 }
 
                 int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips",
-                        lbl, edgeCount, stripCount));
+                    string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips (ok {3}, noEdge {4}, failed {5})",
+                        lbl, edgeCount, stripCount, nOkStrips, nNoEdgeStrips, nFailedStrips));
 
                 //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 사용(개수 trim → 양끝 각 %)
                 VisionAlgorithmService.SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
@@ -2030,13 +2052,19 @@ namespace ReringProject.Halcon.Algorithms
 
             try
             {
+                // 260805 quick-260805-f3w D-F3W-03 (S1/S2): strip 결과 집계 + ROI 진입 시 예외 dedup 가드 리셋.
+                int nOkStrips = 0;
+                int nNoEdgeStrips = 0;
+                int nFailedStrips = 0;
+                _bStripErrorLoggedThisRoi = false;
+
                 if (scanHorizontal)
                 {
                     for (int i = 0; i < stripCount; i++)
                     {
                         double r1 = top + (i * heightPx / stripCount);
                         double r2 = top + ((i + 1) * heightPx / stripCount);
-                        AppendEdgePointsFromStrip(
+                        EStripOutcome stripResult = AppendEdgePointsFromStrip(
                             stripImage, r1, left, r2, right,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
@@ -2044,6 +2072,9 @@ namespace ReringProject.Halcon.Algorithms
                             ref allRows, ref allCols,
                             roiLabel,
                             alignRot); //260618 hbk Phase 54 ALIGN-01 carry-over#1: strip θ회전 전달
+                        if (stripResult == EStripOutcome.Ok) { nOkStrips++; }
+                        else if (stripResult == EStripOutcome.NoEdge) { nNoEdgeStrips++; }
+                        else { nFailedStrips++; }
                     }
                 }
                 else
@@ -2052,7 +2083,7 @@ namespace ReringProject.Halcon.Algorithms
                     {
                         double c1 = left + (i * widthPx / stripCount);
                         double c2 = left + ((i + 1) * widthPx / stripCount);
-                        AppendEdgePointsFromStrip(
+                        EStripOutcome stripResult = AppendEdgePointsFromStrip(
                             stripImage, top, c1, bottom, c2,
                             imageWidth, imageHeight,
                             sigma, threshold, polarity,
@@ -2060,13 +2091,16 @@ namespace ReringProject.Halcon.Algorithms
                             ref allRows, ref allCols,
                             roiLabel,
                             alignRot); //260618 hbk Phase 54 ALIGN-01 carry-over#1: strip θ회전 전달
+                        if (stripResult == EStripOutcome.Ok) { nOkStrips++; }
+                        else if (stripResult == EStripOutcome.NoEdge) { nNoEdgeStrips++; }
+                        else { nFailedStrips++; }
                     }
                 }
 
                 int edgeCount = allRows.TupleLength();
                 Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips",
-                        lbl, edgeCount, stripCount));
+                    string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips (ok {3}, noEdge {4}, failed {5})",
+                        lbl, edgeCount, stripCount, nOkStrips, nNoEdgeStrips, nFailedStrips));
 
                 //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 사용(개수 trim → 양끝 각 %)
                 VisionAlgorithmService.SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
@@ -2136,7 +2170,7 @@ namespace ReringProject.Halcon.Algorithms
         //  strip 실패(빈 결과 / 예외)는 swallow — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
         // selection 인자화.
         //  SmallestRectangle2 의 rp 자동 도출은 사용자 의도(BtoT vs TtoB) 를 구분 못 함 → polarity 의미 뒤집힘.
-        private void AppendEdgePointsFromStrip(
+        private EStripOutcome AppendEdgePointsFromStrip(
             HImage image,
             double row1, double col1, double row2, double col2,
             HTuple imageWidth, HTuple imageHeight,
@@ -2174,35 +2208,32 @@ namespace ReringProject.Halcon.Algorithms
                     polarity, selectionLower,
                     out edgeRows, out edgeCols, out amp, out dist);
 
-                // Trace 로그 강화: measurePhi (deg) + selection 노출. null-coalesce → 임시변수 + null 체크 (P-1)
-                string lbl = "?";
-                if (roiLabel != null) lbl = roiLabel;
-                string dirLabel = "?";
-                if (direction != null) dirLabel = direction;
-                Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[Datum.{0}] strip MeasurePos: dir={1} measurePhi={2:F1}deg sel={3} edges={4}",
-                        lbl, dirLabel, measurePhi * 180.0 / Math.PI, selectionLower,
-                        edgeRows.TupleLength()));
-
                 if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
                 {
-                    return;
+                    return EStripOutcome.NoEdge;
                 }
 
                 HOperatorSet.TupleConcat(allRows, edgeRows, out allRows);
                 HOperatorSet.TupleConcat(allCols, edgeCols, out allCols);
+                return EStripOutcome.Ok;
             }
             catch (Exception ex)
             {
-                // 빈 catch 진단 강화: 라벨 + 예외 메시지 (per-strip swallow 정책 유지). null-coalesce → 임시변수 + null 체크 (P-1)
-                try
+                // 260805 quick-260805-f3w D-F3W-03 (S2): 같은 ROI 안에서 첫 예외 1건만 로그, 나머지는 요약줄의
+                //  failed 카운트로만 집계(per-strip swallow 정책 자체는 그대로 유지).
+                if (!_bStripErrorLoggedThisRoi)
                 {
-                    string lblCatch = "?";
-                    if (roiLabel != null) lblCatch = roiLabel;
-                    Logging.PrintLog((int)ELogType.Trace,
-                        string.Format("[Datum.{0}] strip swallowed: {1}", lblCatch, ex.Message));
+                    _bStripErrorLoggedThisRoi = true;
+                    try
+                    {
+                        string lblCatch = "?";
+                        if (roiLabel != null) lblCatch = roiLabel;
+                        Logging.PrintLog((int)ELogType.Trace,
+                            string.Format("[Datum.{0}] strip swallowed: {1}", lblCatch, ex.Message));
+                    }
+                    catch { }
                 }
-                catch { }
+                return EStripOutcome.Failed;
             }
             finally
             {

@@ -384,8 +384,15 @@ namespace ReringProject.UI {
                 return;
             }
 
-            if (!SystemHandler.Handle.Sequences.IsIdle) {
-                CustomMessageBox.Show("Error", "Sequence is already running.", MessageBoxImage.Error);
+            //260805 hbk Phase 69 D-01/D-03: 전역 IsIdle 이 아니라 "이 시퀀스 + 실제 같은 물리 카메라를 쓰는 시퀀스" 만 본다.
+            //  다른 물리 카메라를 쓰는 시퀀스가 돌고 있어도 이 시퀀스는 독립 실행 가능(전역 IsIdle 이 막던 결함).
+            string sBlockingSeqName;
+            if (SystemHandler.Handle.Sequences.TryGetBlockingSequence(seqID, out sBlockingSeqName)) {
+                CustomMessageBox.Show("Error",
+                    string.Format(
+                        "실행할 수 없습니다 — '{0}' 시퀀스가 아직 Idle 이 아닙니다.\n(자기 자신이거나, 같은 물리 카메라를 공유하는 시퀀스입니다.)",
+                        sBlockingSeqName),
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -443,7 +450,9 @@ namespace ReringProject.UI {
                 }
 
                 // 매핑 실패 (UI에서 Shot 추가 후 RebuildInspectionActions 미호출) → 지연 동기화 후 재스캔
-                if (seqHandler.IsIdle) {
+                //260805 hbk Phase 69 D-01: rebuild 는 이 시퀀스의 Actions[] 만 재생성한다(SequenceHandler.RebuildInspectionActions).
+                //  다른 시퀀스가 돌고 있는지는 무관 — 대상 시퀀스만 Idle 이면 안전하다.
+                if (seqHandler.GetSequenceState(seq.ID) == EContextState.Idle) {
                     seqHandler.EnableDynamicFAIMode();
                     seqHandler.RebuildInspectionActions(seq.ID);
                     idx = ResolveActionIndexByShot(seq, shotCfg);
@@ -536,8 +545,14 @@ namespace ReringProject.UI {
                 }
             }
 
-            if (!SystemHandler.Handle.Sequences.IsIdle) {
-                CustomMessageBox.Show("일괄 검사", "시퀀스가 이미 실행 중입니다.", MessageBoxImage.Error);
+            //260805 hbk Phase 69 D-01/D-03: 단일 RUN(Btn_start_Click)과 동일한 시퀀스 단위 판정을 쓴다.
+            string sBlockingSeqName;
+            if (SystemHandler.Handle.Sequences.TryGetBlockingSequence(seqID, out sBlockingSeqName)) {
+                CustomMessageBox.Show("일괄 검사",
+                    string.Format(
+                        "실행할 수 없습니다 — '{0}' 시퀀스가 아직 Idle 이 아닙니다.\n(자기 자신이거나, 같은 물리 카메라를 공유하는 시퀀스입니다.)",
+                        sBlockingSeqName),
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -559,7 +574,9 @@ namespace ReringProject.UI {
             }
 
             var resolvedPairs = ResolveBatchShotIndices(inspSeq, checkedTargetShots);
-            if (resolvedPairs.Any(p => p.Item2 < 0) && SystemHandler.Handle.Sequences.IsIdle) {
+            //260805 hbk Phase 69 D-01: (B)와 같은 이유 — 대상 시퀀스만 Idle 이면 rebuild 안전.
+            if (resolvedPairs.Any(p => p.Item2 < 0)
+                && SystemHandler.Handle.Sequences.GetSequenceState(seqID) == EContextState.Idle) {
                 // 딱 한 번만 rebuild — Shot 마다 반복 호출하면 Actions[] 를 통째로 재생성해 낭비/DoS
                 SystemHandler.Handle.Sequences.EnableDynamicFAIMode();
                 SystemHandler.Handle.Sequences.RebuildInspectionActions(seqID);

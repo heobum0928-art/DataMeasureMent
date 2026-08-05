@@ -901,12 +901,18 @@ namespace ReringProject.UI {
                 if(res != MessageBoxResult.OK) {
                     return;
                 }
+                // [추가 1] CopyTo 로 자식 컬렉션이 통째로 바뀌므로, 갱신할 대상 노드를 미리 잡아둔다.
+                NodeViewModel pasteTargetNode = treeListBox_sequence.SelectedItem as NodeViewModel;
                 //paste
                 if(CopiedParam.CopyTo(SelectedParam) == false) {
                     //fail
                     CustomMessageBox.Show("Fail to Copy", string.Format("Copy Failed From {0} into {1}", CopiedParam.ToString(), SelectedParam.ToString()), MessageBoxImage.Error);
                     return;
                 }
+                // [추가 2] 복사된 FAI/Measurement 를 트리에 즉시 반영 (전체 RebuildTree 는 쓰지 않는다 —
+                //  RebuildTree 는 seq.Actions[] 를 기준으로 돌아서, 아직 Actions[] 에 반영되지 않은
+                //  이번 세션 신규 Shot 이 트리에서 사라질 수 있다).
+                RefreshChildNodesAfterPaste(pasteTargetNode);
                 //success
                 mParentWindow.statusBar.Model.SetText(string.Format("Pasted : {0} to {1}",CopiedParam.ToString(), SelectedParam.ToString()));
                 int index = treeListBox_sequence.SelectedIndex;
@@ -914,6 +920,37 @@ namespace ReringProject.UI {
                 //reselect (update)
                 treeListBox_sequence.UnselectAll();
                 treeListBox_sequence.SelectedIndex = index;
+            }
+        }
+
+        // 붙여넣기로 자식 컬렉션이 교체된 노드의 트리 자식 VM 을 다시 만든다.
+        //  Shot 노드 → FAI + 그 아래 Measurement, FAI 노드 → Measurement 만 재구축한다.
+        //  그 외 노드 타입(Datum/Sequence)은 자식이 없거나 바뀌지 않으므로 아무것도 하지 않는다.
+        private void RefreshChildNodesAfterPaste(NodeViewModel targetNode) {
+            if (targetNode == null) return;
+
+            ShotConfig pastedShot = targetNode.Param as ShotConfig;
+            if (pastedShot != null) {
+                targetNode.Children.Clear();
+                for (int i = 0; i < pastedShot.FAIList.Count; i++) {
+                    FAIConfig fai = pastedShot.FAIList[i];
+                    ViewModel.AddFAINode(targetNode, fai, targetNode.SequenceID, targetNode.ActionID);
+                    NodeViewModel faiVm = targetNode.Children[targetNode.Children.Count - 1];
+                    for (int j = 0; j < fai.Measurements.Count; j++) {
+                        ViewModel.AddMeasurementNode(faiVm, fai.Measurements[j]);
+                    }
+                }
+                targetNode.IsExpanded = true;
+                return;
+            }
+
+            FAIConfig pastedFai = targetNode.Param as FAIConfig;
+            if (pastedFai != null) {
+                targetNode.Children.Clear();
+                for (int j = 0; j < pastedFai.Measurements.Count; j++) {
+                    ViewModel.AddMeasurementNode(targetNode, pastedFai.Measurements[j]);
+                }
+                targetNode.IsExpanded = true;
             }
         }
 
@@ -1242,8 +1279,9 @@ namespace ReringProject.UI {
             // 조명 채널(Ring/Bar/Back/Coax/Ring7 Enabled)은 신규 ShotConfig가 bool 기본값(false)이라 전부 꺼진 채로
             //  생성된다 — 같은 시퀀스 소속 마지막 sibling Shot에서 조명/노광/게인/해상도 설정을 이어받아 합리적인
             //  기본값을 준다(ShotConfig.CopyTo — 조명 8그룹 + DeviceName + Exposure/Gain/PixelResolution/CorrectionFactor
-            //  복사; ShotName/FAIList/_image는 의도적으로 제외). sibling이 없으면(해당 시퀀스의 첫 Shot) 아무것도
-            //  하지 않는다 — DeviceName은 위에서 이미 채워졌으므로 이 경우에도 Grab은 정상 동작한다.
+            //  복사; ShotName/_image는 제외; FAIList는 CopyTo가 복사하지만 바로 아래 ClearFAIs로 비운다). sibling이
+            //  없으면(해당 시퀀스의 첫 Shot) 아무것도 하지 않는다 — DeviceName은 위에서 이미 채워졌으므로 이 경우에도
+            //  Grab은 정상 동작한다.
             //  주의: DeviceName 복사는 ShotConfig.CopyTo의 260723 hbk 수정(base.CopyTo보다 먼저 DeviceName부터 설정)에
             //  의존한다 — 그 수정이 별도로 되돌려지면 이 sibling-copy가 DeviceName만 다시 안 채우게 되지만(조명/노광
             //  등 나머지 필드는 영향 없음), 위 Parent/DeviceName 기본값 설정 블록이 있으므로 Grab 자체는 그래도 정상 동작한다.
@@ -1251,6 +1289,10 @@ namespace ReringProject.UI {
                 .LastOrDefault(s => s != shot
                     && (string.IsNullOrEmpty(s.OwnerSequenceName) ? SequenceHandler.SEQ_TOP : s.OwnerSequenceName) == ownerSeqName);
             siblingShot?.CopyTo(shot);
+            // ShotConfig.CopyTo 가 FAIList 까지 깊은 복사하도록 바뀌었다. 여기서 필요한 건 sibling 의
+            //  조명/노광 기본값뿐이고 FAI 는 바로 아래에서 새로 만든다 — 딸려온 FAI 를 비운다.
+            //  이 줄이 없으면 Shot 추가 시 sibling 의 FAI 전체가 복제된다.
+            shot.ClearFAIs();
 
             FAIConfig fai = shot.AddFAI("FAI_0");
             seqHandler.EnableDynamicFAIMode();

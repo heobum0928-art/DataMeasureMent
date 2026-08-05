@@ -115,33 +115,14 @@ namespace ReringProject.Export
                                 }
 
                                 // 판정 3분기: DATUM_FAIL > HasResult 유무 > OK/NG (ReviewMeasurementRow 로직 일치)
-                                if (m.LastSkipReason == SkipReason.DATUM_FAIL) //260710 hbk 상수화
-                                {
-                                    ws.Cell(row, 8).Value = "DETECT FAIL";
-                                }
-                                else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨 //260710 hbk 상수화
-                                {
-                                    ws.Cell(row, 8).Value = "NO IMAGE";
-                                }
-                                else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 크로스-Z 미측정 라벨 (ReviewMeasurementRow 로직 일치)
-                                {
-                                    ws.Cell(row, 8).Value = "CROSS-Z INCOMPLETE";
-                                }
-                                else if (m.LastHasResult)
-                                {
-                                    ws.Cell(row, 8).Value = m.LastJudgement ? "OK" : "NG";
-                                }
-                                else
-                                {
-                                    ws.Cell(row, 8).Value = "-";
-                                }
+                                ws.Cell(row, 8).Value = BuildJudgementText(m);
 
                                 // D-07 하이퍼링크 폐기(한글경로 file:/// 퍼센트인코딩 이슈 해소), 절대 경로 텍스트로 대체.
                                 ws.Cell(row, 9).Value  = fai.OriginImageFileName != null ? fai.OriginImageFileName : "";
                                 ws.Cell(row, 10).Value = fai.CaptureImageFileName != null ? fai.CaptureImageFileName : "";
 
-                                byte[] arrCaptureBytes = LoadCaptureImageBytes(fai.CaptureImageFileName, dicCaptureCache, swWaitBudget);
-                                TryInsertCaptureImage(ws, row, arrCaptureBytes);
+                                byte[] arrCaptureBytes = LoadCaptureImageBytes(fai.CaptureImageFileName, dicCaptureCache, swWaitBudget, CAPTURE_WAIT_BUDGET_MS);
+                                TryInsertCaptureImage(ws, row, CAPTURE_IMAGE_COLUMN, arrCaptureBytes);
 
                                 row++;
                             }
@@ -149,7 +130,7 @@ namespace ReringProject.Export
                     }
 
                     ws.Columns().AdjustToContents();
-                    ws.Column(CAPTURE_IMAGE_COLUMN).Width = CAPTURE_BOX_WIDTH_PX / EXCEL_PIXELS_PER_WIDTH_UNIT;
+                    ApplyCaptureColumnWidth(ws, CAPTURE_IMAGE_COLUMN);
                     wb.SaveAs(outputPath);
                     return true;
                 }
@@ -167,8 +148,9 @@ namespace ReringProject.Export
 
         /// <summary>
         /// 캡쳐 JPG 를 바이트로 읽는다. 경로당 1회만 실제 대기/읽기 (결과가 null 이어도 캐시).
+        /// swBudget/nBudgetMs 는 export 1회 전체 폴링 대기 상한 — 호출자가 데이터 규모에 맞춰 정한다.
         /// </summary>
-        private static byte[] LoadCaptureImageBytes(string szPath, Dictionary<string, byte[]> dicCache, Stopwatch swBudget)
+        internal static byte[] LoadCaptureImageBytes(string szPath, Dictionary<string, byte[]> dicCache, Stopwatch swBudget, int nBudgetMs)
         {
             if (string.IsNullOrEmpty(szPath))
             {
@@ -180,7 +162,7 @@ namespace ReringProject.Export
                 return dicCache[szPath];
             }
 
-            byte[] arrBytes = WaitForCaptureImage(szPath, swBudget);
+            byte[] arrBytes = WaitForCaptureImage(szPath, swBudget, nBudgetMs);
             dicCache[szPath] = arrBytes;
 
             bool bLoadFailed = arrBytes == null;
@@ -199,7 +181,7 @@ namespace ReringProject.Export
         /// <summary>
         /// CaptureImageSaveService 워커가 JPG 를 비동기로 쓰므로 export 시점에 아직 없거나 쓰는 중일 수 있다.
         /// </summary>
-        private static byte[] WaitForCaptureImage(string szPath, Stopwatch swBudget)
+        private static byte[] WaitForCaptureImage(string szPath, Stopwatch swBudget, int nBudgetMs)
         {
             int nWaitedMs = 0;
             while (true)
@@ -213,7 +195,7 @@ namespace ReringProject.Export
                     }
                 }
 
-                bool bBudgetLeft = swBudget.ElapsedMilliseconds < CAPTURE_WAIT_BUDGET_MS;
+                bool bBudgetLeft = swBudget.ElapsedMilliseconds < nBudgetMs;
                 bool bTimeLeft = nWaitedMs < CAPTURE_WAIT_TIMEOUT_MS;
                 if (!bBudgetLeft || !bTimeLeft)
                 {
@@ -255,7 +237,7 @@ namespace ReringProject.Export
         /// <summary>
         /// 종횡비를 유지한 채 셀 박스 안에 맞춰 그림을 넣는다. 실패해도 export 는 계속된다.
         /// </summary>
-        private static bool TryInsertCaptureImage(IXLWorksheet ws, int nRow, byte[] arrBytes)
+        internal static bool TryInsertCaptureImage(IXLWorksheet ws, int nRow, int nColumn, byte[] arrBytes)
         {
             bool bHasBytes = arrBytes != null && arrBytes.Length > 0;
             if (!bHasBytes)
@@ -305,7 +287,7 @@ namespace ReringProject.Export
 
                 pic.WithPlacement(XLPicturePlacement.Move);
                 pic.WithSize(nTargetWidth, nTargetHeight);
-                pic.MoveTo(ws.Cell(nRow, CAPTURE_IMAGE_COLUMN));
+                pic.MoveTo(ws.Cell(nRow, nColumn));
 
                 ws.Row(nRow).Height = CAPTURE_BOX_HEIGHT_PX * EXCEL_POINTS_PER_PIXEL;
 
@@ -319,6 +301,54 @@ namespace ReringProject.Export
                 }
                 catch { }
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 캡쳐이미지 컬럼 폭을 이미지 박스 폭에 맞춘다. AdjustToContents 는 그림을 고려하지 않으므로 '그 뒤에' 불러야 한다.
+        /// </summary>
+        internal static void ApplyCaptureColumnWidth(IXLWorksheet ws, int nColumn)
+        {
+            ws.Column(nColumn).Width = CAPTURE_BOX_WIDTH_PX / EXCEL_PIXELS_PER_WIDTH_UNIT;
+        }
+
+        /// <summary>
+        /// 측정 1건의 판정 표시 문자열. DATUM_FAIL > NO_IMAGE > CROSS_Z_INCOMPLETE > OK/NG > "-" 순서.
+        /// ReviewMeasurementRow 로직과 일치해야 하며, 일괄검사 상세 시트도 이 함수를 공유한다.
+        /// </summary>
+        internal static string BuildJudgementText(MeasurementResultDto m)
+        {
+            if (m == null)
+            {
+                return "-";
+            }
+
+            if (m.LastSkipReason == SkipReason.DATUM_FAIL) //260710 hbk 상수화
+            {
+                return "DETECT FAIL";
+            }
+            else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨 //260710 hbk 상수화
+            {
+                return "NO IMAGE";
+            }
+            else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 크로스-Z 미측정 라벨 (ReviewMeasurementRow 로직 일치)
+            {
+                return "CROSS-Z INCOMPLETE";
+            }
+            else if (m.LastHasResult)
+            {
+                if (m.LastJudgement)
+                {
+                    return "OK";
+                }
+                else
+                {
+                    return "NG";
+                }
+            }
+            else
+            {
+                return "-";
             }
         }
     }

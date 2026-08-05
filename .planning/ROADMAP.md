@@ -977,6 +977,18 @@ Plans:
 
 - [x] 68-12-PLAN.md — z_index=0(Datum) 전량 StartAll 낭비 제거: 대표 Datum 트리거 Action(들)만 실행 + DatumPhase 후 Grab/Measure 스킵(TOP/BOTTOM/SIDE 전체 적용) [Wave 11]
 
+### Phase 69: 메인 화면 POC 패널 정리 + RUN 버튼 간헐적 미동작 조사 (신설 2026-08-05)
+
+**Goal:** 메인 화면 하단의 "POC 자동화 임시 테스트" 패널(z_index 기반 수동 트리거, `MainView.xaml:583-600`, `ManualZTriggerButton_Click`)을 유지/삭제/단순화 중 하나로 확정하고, RUN 버튼(`btn_start`/`btn_batchRun`)이 간헐적으로 반응하지 않는 문제의 원인을 좁혀(유력 용의자: `SequenceHandler.IsIdle`이 Top/Side/Bottom 3개 시퀀스를 하나로 묶어 판정하는 구조) 필요한 수정 방향을 정한다.
+**Requirements**: MAINT-POC-01 (임시 라벨 — discuss-phase 이후 REQUIREMENTS.md 정식 등록 여부는 사용자 결정)
+**Depends on:** 없음 (독립적인 유지보수/조사 작업, Phase 68 진행과 무관하게 병행 가능)
+**Background:** 사용자가 이미 확정한 사실 — `IAxisController`는 구현체가 없고 `Action_FAIMeasurement.cs`의 MoveZ 스텝은 실장비 빌드에서도 `DelayMs`만큼 Sleep할 뿐 모터를 움직이지 않는다(Z축 실이동은 처음부터 외부 PLC/수동 다이얼 담당, `ShotConfig.cs:12-17` 주석 명시) — 이 부분은 추가 구현 불필요. POC 패널의 `ManualZTriggerButton_Click`은 `SystemHandler.DebugManualZTrigger`(`SystemHandler.cs:823-860`)를 거쳐 실제 프로덕션 TCP `$PREP`/`$TEST` 경로를 그대로 태운다. "진짜" RUN 경로 3개(`btn_start`/`btn_batchRun`/TCP `$TEST`) 전부 `SequenceBase.Start`/`StartCore`(`SequenceBase.cs:288-386`)의 `_startLock` + State 상태머신으로 수렴한다.
+
+**Plans:** 0 plans (discuss-phase 진행 예정)
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 69 to break down)
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)

@@ -2,6 +2,7 @@ using HalconDotNet;
 using ReringProject.Setting;
 using ReringProject.Utility;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Matrox.MatroxImagingLibrary;
@@ -13,6 +14,10 @@ namespace ReringProject.Device {
         private MIL_ID MilSystem      = MIL.M_NULL;
         private MIL_ID MilDigitizer   = MIL.M_NULL;
         private MIL_ID MilBuffer      = MIL.M_NULL;
+
+        // Top/Bottom 이 물리 MilCamera 인스턴스를 공유할 때, grab 을 요청한 논리 카메라(역할)별로
+        // ReverseX/ReverseY/RotateAngle 을 따로 보관한다 — 공유 Info 하나만으로는 두 역할을 구분할 수 없다.
+        private Dictionary<string, DeviceInfo> _roleInfoMap = new Dictionary<string, DeviceInfo>();
 
 #if !SIMUL_MODE
         // MIL 라이브(연속 grab) 스레드 제어
@@ -28,6 +33,7 @@ namespace ReringProject.Device {
             Properties = new MilCameraProperty(this); //260723 hbk: Exposure/Gain/Gamma 실 HW 제어 시도(GenICam feature 경유)
             Properties.Width  = info.Width;
             Properties.Height = info.Height;
+            RegisterRoleInfo(info);
         }
 
         ~MilCamera() {
@@ -43,6 +49,27 @@ namespace ReringProject.Device {
         //  (GrabFromBuffer() 의 MappGetError 체크와 동일 패턴 필요). 호출 직후 MappGetError 로 명시 확인한다.
         // 260723 hbk: 에러 코드만으로는 원인을 알 수 없어(6501/6504 등은 MIL 매뉴얼 없이는 해독 불가) M_MESSAGE 로
         //  사람이 읽을 수 있는 문자열도 같이 가져온다. M_ERROR_MESSAGE_SIZE(320) 버퍼 사용.
+        public void RegisterRoleInfo(DeviceInfo roleInfo) {
+            if (roleInfo == null) {
+                return;
+            }
+            if (string.IsNullOrEmpty(roleInfo.Identifier)) {
+                return;
+            }
+            _roleInfoMap[roleInfo.Identifier] = roleInfo;
+        }
+
+        private DeviceInfo ResolveRoleInfo(string requestIdentifier) {
+            if (requestIdentifier == null) {
+                return Info;
+            }
+            DeviceInfo roleInfo;
+            if (_roleInfoMap.TryGetValue(requestIdentifier, out roleInfo)) {
+                return roleInfo;
+            }
+            return Info;
+        }
+
         private string GetMilErrorMessage() {
             try {
                 var sb = new System.Text.StringBuilder(320);
@@ -220,6 +247,10 @@ namespace ReringProject.Device {
         }
 
         public override HImage GrabHalconImage() {
+            return GrabHalconImage(Info.Identifier);
+        }
+
+        public override HImage GrabHalconImage(string requestIdentifier) {
 #if SIMUL_MODE
             // D-11: SIMUL_MODE 에서는 base 파일 grab 경로(LastHalconImage) 로 폴백
             return LastHalconImage;
@@ -238,9 +269,11 @@ namespace ReringProject.Device {
                 return null;
             }
 
+            DeviceInfo roleInfo = ResolveRoleInfo(requestIdentifier);
+
             try {
-                // 단발 grab → 버퍼에서 독립 HImage(복사본) 획득
-                HImage grabbed = GrabFromBuffer();
+                // 단발 grab → 버퍼에서 독립 HImage(복사본) 획득. 요청자(requestIdentifier)의 역할별 방향/회전을 사용한다.
+                HImage grabbed = GrabFromBuffer(roleInfo);
                 if (grabbed == null) {
                     return null;
                 }
@@ -269,7 +302,26 @@ namespace ReringProject.Device {
         /// 단발 grab(GrabHalconImage)과 라이브 루프(LiveLoop)가 공통으로 사용한다.
         /// MilBuffer 는 매 grab 마다 재사용되므로, 반드시 버퍼와 분리된 복사본을 반환해야 한다.
         /// </summary>
-        private HImage GrabFromBuffer() {
+        private HImage GrabFromBuffer(DeviceInfo roleInfo) {
+            // 물리 MilCamera 인스턴스를 Top/Bottom 이 공유할 수 있으므로, grab 방향(ReverseX/Y)을
+            // 매 grab 직전 요청자(roleInfo)의 값으로 재적용한다 — Open() 시점 값은 공유 시 한쪽에만 반영된다.
+            MIL_INT grabDirectionX;
+            if (roleInfo.ReverseX) {
+                grabDirectionX = MIL.M_REVERSE;
+            }
+            else {
+                grabDirectionX = MIL.M_NORMAL;
+            }
+            MIL_INT grabDirectionY;
+            if (roleInfo.ReverseY) {
+                grabDirectionY = MIL.M_REVERSE;
+            }
+            else {
+                grabDirectionY = MIL.M_NORMAL;
+            }
+            MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_X, grabDirectionX);
+            MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_Y, grabDirectionY);
+
             // 동기 단발 grab (free-run / 소프트 트리거)
             MIL.MdigGrab(MilDigitizer, MilBuffer);
 
@@ -279,7 +331,7 @@ namespace ReringProject.Device {
             MIL_INT grabError = MIL.M_NULL;
             MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref grabError);
             if (grabError != MIL.M_NULL) {
-                Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MdigGrab failed (MIL error code {1})", Info.Identifier, (int)grabError);
+                Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} MdigGrab failed (MIL error code {1})", roleInfo.Identifier, (int)grabError);
                 return null;
             }
 
@@ -324,15 +376,15 @@ namespace ReringProject.Device {
 
             // 회전 처리 (HikCamera.OnGrabResult L458-470 동일)
             HImage rotatedImage = sourceImage;
-            if (Info.RotateAngle == ERotateAngleType._90) {
+            if (roleInfo.RotateAngle == ERotateAngleType._90) {
                 rotatedImage = sourceImage.RotateImage(90.0, "constant");
                 sourceImage.Dispose();
             }
-            else if (Info.RotateAngle == ERotateAngleType._180) {
+            else if (roleInfo.RotateAngle == ERotateAngleType._180) {
                 rotatedImage = sourceImage.RotateImage(180.0, "constant");
                 sourceImage.Dispose();
             }
-            else if (Info.RotateAngle == ERotateAngleType._270) {
+            else if (roleInfo.RotateAngle == ERotateAngleType._270) {
                 rotatedImage = sourceImage.RotateImage(270.0, "constant");
                 sourceImage.Dispose();
             }
@@ -444,8 +496,8 @@ namespace ReringProject.Device {
         private void LiveLoop() {
             while (_liveRunning) {
                 try {
-                    // 한 프레임 grab (버퍼와 분리된 독립 복사본)
-                    HImage frame = GrabFromBuffer();
+                    // 한 프레임 grab (버퍼와 분리된 독립 복사본) — 라이브 미리보기는 이 인스턴스 자신의 기본 Info 사용
+                    HImage frame = GrabFromBuffer(Info);
                     if (frame != null) {
                         lock (Interlock) {
                             // 이전 프레임 해제 후 교체

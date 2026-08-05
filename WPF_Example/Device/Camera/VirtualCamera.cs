@@ -457,6 +457,10 @@ namespace ReringProject.Device {
             return LastHalconImage;
         }
 
+        public virtual HImage GrabHalconImage(string requestIdentifier) {
+            return GrabHalconImage();
+        }
+
         public virtual bool StartStream() {
             CaptureMode = ECaptureModeType.Streaming;
 

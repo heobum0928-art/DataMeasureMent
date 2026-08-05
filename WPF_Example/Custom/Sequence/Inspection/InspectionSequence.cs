@@ -142,6 +142,11 @@ namespace ReringProject.Sequence {
             };
 
             foreach (var shot in recipeManager.Shots) {
+                //260805 hbk Phase 70 D-02-3: 이 시퀀스 소유 shot 만 집계/전송. 전역 순회는 타 시퀀스의
+                //  미측정 FAI 로 cycle 판정(anyDatumSkip/allPass)과 FAIResults 를 동시에 오염시킨다.
+                //  v2.6 wire 포맷 무변경 — FAIResults 는 원래 가변 길이(count 필드로 전달)다.
+                bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
+                if (!bOwnedByThisSeq) continue;
                 foreach (var fai in shot.FAIList) {
                     // FAIResults[i] 3-state (P/F/N) 분기. datum-skip 시 fai.WasDatumSkipped=true + IsPass=false 동시 설정.
                     //  계층 우선순위: WasDatumSkipped → NotExist, !IsPass → NG, 그 외 → OK.
@@ -338,6 +343,38 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //260805 hbk Phase 70 D-02: 종합판정용 shot 소유권 판정 단일 진입점.
+        //  이 시퀀스(szSeqName)가 소유한 shot 인지만 판단한다. 판정 로직/계층은 건드리지 않는다.
+        //  빈 OwnerSequenceName 은 TOP 폴백 — SequenceHandler.RebuildInspectionActions(L255) /
+        //  CycleResultSerializer.BuildDto(L66) 와 동일 정책. 이 폴백이 없으면 UI 로 갓 추가된
+        //  (아직 저장/재로드 전이라 OwnerSequenceName 이 빈값인) shot 을 TOP 이 "실행은 하는데
+        //  판정에서는 제외" 하게 되어 NG 가 OK 로 보이는 반대 방향 회귀가 생긴다.
+        //  szSeqName 이 비면 소유 시퀀스 미상 → 레거시 전역 동작 유지(과대판정 방향 = 안전).
+        public static bool IsShotOwnedBySequence(ShotConfig shot, string szSeqName)
+        {
+            bool bIsNull = shot == null;
+            if (bIsNull)
+            {
+                return false;
+            }
+            bool bUnknownSeq = string.IsNullOrEmpty(szSeqName);
+            if (bUnknownSeq)
+            {
+                return true;
+            }
+            string szOwner;
+            if (string.IsNullOrEmpty(shot.OwnerSequenceName))
+            {
+                szOwner = SequenceHandler.SEQ_TOP;
+            }
+            else
+            {
+                szOwner = shot.OwnerSequenceName;
+            }
+            bool bOwned = szOwner == szSeqName;
+            return bOwned;
+        }
+
         // 종합판정 집계 (read-only, 패킷 미생성). AddResponse 의 3-state 계층과 동일 우선순위.
         private EVisionResultType ComputeOverallResult(InspectionRecipeManager recipeManager) {
             bool anyDatumSkip = false;
@@ -346,6 +383,13 @@ namespace ReringProject.Sequence {
             {
                 foreach (var shot in recipeManager.Shots)
                 {
+                    //260805 hbk Phase 70 D-02-1: 이 시퀀스 소유 shot 만 집계. 단독 RUN 시 이번에 돌지도 않은
+                    //  타 시퀀스 shot(IsPass 기본값 false)이 섞여 잘못된 NG/NotExist 가 나오던 버그 수정.
+                    bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
+                    if (!bOwnedByThisSeq)
+                    {
+                        continue;
+                    }
                     foreach (var fai in shot.FAIList)
                     {
                         if (fai.WasDatumSkipped) anyDatumSkip = true;

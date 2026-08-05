@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: Phases
 status: unknown
 stopped_at: Completed 68-12-PLAN.md
-last_updated: "2026-07-22T06:39:27.366Z"
-last_activity: 2026-07-22
+last_updated: "2026-08-05T06:30:00.000Z"
+last_activity: 2026-08-05
 progress:
   total_phases: 23
   completed_phases: 19
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 68 — z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind
+**Current focus:** Phase 69 — poc-run (메인 화면 POC 패널 정리 + RUN 버튼 간헐적 미동작)
 
 ## Current Position
 
-Phase: 68 (z-cross-z-dual-image-3-2-vision-protocol-v1-0-md-z1-z2-z-ind) — EXECUTING
-Plan: 12 of 12 (68-11 Task 2 human-verify checkpoint 완료 — 68-GAP-UAT.md 기록 완료. FIX-0/CROSS-1/GAP-1/GAP-2(무관Shot)/CROSS-2 SIMUL 실측 PASS. GAP-2 Error로그 억제가 크로스-Z Datum-only만 커버하고 크로스-Z 측정 capture-only는 놓쳤던 신규 버그 발견+수정(WarnIfEmptyScope 확장). 혼합 Shot 오염(지침 #9) 실측 재현 확인 후 저장 시점 차단 가드 신규 추가(InspectionRecipeManager.FindMixedCrossZShots, 같은 Shot 내 측정은 (ZIndexA,ZIndexB) 짝 전부 동일해야 함 — 사용자 요청으로 크로스-Z+일반 혼합뿐 아니라 서로 다른 크로스-Z 짝 혼합도 차단). GAP-3 는 Side 크로스-Z Datum 레시피 부재로 이 환경에서 기능 검증 불가(코드 기본값 true 확인만, blocked). 원래 68-05 UAT 는 68-11 로 완전 대체됨(68-05 자체 Task2 는 실행 안 함, superseded). 남은 건 68-05-PLAN.md/68-11-PLAN.md 의 파일 카운트 상 미완료 표기뿐 — 기능적으로는 phase 68 gap-closure 전체 완료.)
-Last activity: 2026-08-05 - Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0) 코드 완료(육안 UAT 대기). 흐름 로그(260805-f3w)는 Task 1-3 완료, Task 4 human-verify 체크포인트 대기 중. Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 별도 세션에서 완료(실HW 검증 carry-over). Phase 69(POC 패널+RUN 버튼 IsIdle) context 확정, 실행은 jtj 와 파일(DeviceHandler/MilCamera) 겹침 방지 위해 보류했다가 jtj 완료로 재개 가능. 이전: 엑셀 출력 이미지 삽입 2건(260805-d9y/260805-e1l) 사용자 실기 승인 완료.
+Phase: 69 (poc-run) — EXECUTING
+Plan: 1 of 2 (69-01 완료 — `SequenceHandler.TryGetBlockingSequence`/`FindBlockingSequenceName`/`SharesCameraDevice`/`TryCollectSequenceCameras` 신설(순수 추가, 기존 StateAll/IsIdle/_StateSeqName 무변경) + RUN 진입점 4곳(Btn_start_Click/Btn_batchRun_Click 및 지연 rebuild 게이트 2곳)을 시퀀스 단위 판정으로 교체, 차단 사유 메시지에 시퀀스명 포함. 카메라 공유 판정은 role 문자열이 아니라 DeviceHandler 참조 동일성(ReferenceEquals) 기반, 판정 실패 시 전부 fail-closed(차단). Debug/x64 빌드 PASS. 69-02(육안 검증 체크포인트) 대기 중. 이전 Phase 68 은 기능적으로 gap-closure 전체 완료 상태로 병행 유지.)
+Last activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over).
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 

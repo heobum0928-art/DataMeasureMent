@@ -95,6 +95,7 @@ namespace ReringProject.UI
         private Point _lastMouseImagePoint;
         private Point? _manualMeasureStartPoint;
         private Point? _manualMeasureEndPoint;
+        private ECaliperMode _manualMeasureAxisMode = ECaliperMode.Free;
 
         private bool _isDrawingRect;
         private Point _rectDragStart;

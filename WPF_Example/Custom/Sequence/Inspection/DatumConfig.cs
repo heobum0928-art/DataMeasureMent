@@ -1082,5 +1082,43 @@ namespace ReringProject.Sequence {
             if (!sec.ContainsKey("ZIndexB")) ZIndexB = -1;
             return result;
         }
+
+        // 복사 제외 목록.
+        //  (a) DatumName — 붙여넣기 시 이름 충돌 방지 (ShotName/FAIName 과 동일한 이유).
+        //  (b) 검출결과 transient 2그룹 — 대상 Datum 이 아직 검출을 안 했는데도 원본의 옛 결과가
+        //      화면에 남아 "검출 성공"으로 오인되는 것을 막는다. 특히 DetectedEdgeCount/DetectedFitRMSE/
+        //      DetectedAngleDeg 는 [Category("Datum|Result")] 로 PropertyGrid 에 실제 노출되며,
+        //      [ReadOnly(true)] 는 리플렉션의 CanWrite 를 막지 못하므로 반드시 이름으로 제외해야 한다.
+        //  (c) *_PhiDeg — radian 원본(*_Phi)이 이미 복사되므로 중복이며, 도↔라디안 왕복 오차만 생긴다.
+        private static readonly HashSet<string> _copyExclude = new HashSet<string> {
+            // (a) 이름
+            "DatumName",
+            // (b-1) 티칭 검출 오버레이 transient
+            "LastFindSucceeded", "RuntimeDetectFailed", "LastTeachSucceeded",
+            "Line1Detected_RBegin", "Line1Detected_CBegin", "Line1Detected_REnd", "Line1Detected_CEnd",
+            "Line2Detected_RBegin", "Line2Detected_CBegin", "Line2Detected_REnd", "Line2Detected_CEnd",
+            "CircleCenter_Row", "CircleCenter_Col", "CircleDetected_Radius",
+            // (b-2) TryFindDatum write-back transient
+            "DetectedOriginRow", "DetectedOriginCol",
+            "DetectedRefAngle", "DetectedRefAngle2",
+            "DetectedCircleRow", "DetectedCircleCol",
+            "DetectedEdgeCount", "DetectedFitRMSE", "DetectedAngleDeg",
+            // (c) 도 단위 wrapper
+            "PatternRoi_PhiDeg", "PatternRoi2_PhiDeg",
+            "Line1_PhiDeg", "Line2_PhiDeg", "Vertical_PhiDeg",
+            "Horizontal_A_PhiDeg", "Horizontal_B_PhiDeg"
+        };
+
+        // Datum 노드 복사/붙여넣기. 기존엔 override 가 없어 아무 필드도 옮겨지지 않았다.
+        //  ROI/에지 파라미터/패턴정렬/조명/기준원점(RefOrigin*, RefAngleRad)/IsConfigured 까지 전부 복사된다.
+        //  HTuple/enum/bool[] 필드(CurrentTransform, *_DetectedEdge*, AngleValidationStatus,
+        //  CircleStripSuccesses)는 reflection type switch 밖이라 자동으로 빠진다.
+        public override bool CopyTo(ParamBase param) {
+            DatumConfig target = param as DatumConfig;
+            if (target == null) return false;
+            base.CopyTo(param);
+            CopyPublicPropertiesTo(target, _copyExclude);
+            return true;
+        }
     }
 }

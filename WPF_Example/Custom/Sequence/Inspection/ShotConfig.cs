@@ -303,7 +303,7 @@ namespace ReringProject.Sequence {
 
         // Copy/Paste(InspectionListView.button_paste_Click) 시 base(CameraSlaveParam.CopyTo)가 다루지 않는
         //  ShotConfig 고유 필드를 보완 복사한다 — 기존엔 override 가 없어 조명 필드가 전혀 복사되지 않던 버그였다.
-        //  ShotName/FAIList/_image 는 이름 충돌·이미지 소유권 문제로 의도적으로 제외한다.
+        //  ShotName/_image는 제외; FAIList는 CopyTo가 복사하지만 바로 아래 ClearFAIs로 비운다.
         public override bool CopyTo(ParamBase param) {
             ShotConfig target = param as ShotConfig;
             // 260723 hbk: DeviceName 도 복사 누락(신규 Shot 생성 후 Copy/Paste로 채우려 해도 안 채워지던 버그).
@@ -353,6 +353,17 @@ namespace ReringProject.Sequence {
             target.SideLight_Brightness = SideLight_Brightness;
             target.Ring7Light_Enabled = Ring7Light_Enabled;
             target.Ring7Light_Brightness = Ring7Light_Brightness;
+
+            // FAI 리스트 깊은 복사. 기존엔 의도적으로 제외되어 있어, Shot 을 복사해도 검사 항목이
+            //  하나도 따라오지 않았다(사용자가 100개 넘는 항목을 손으로 다시 티칭해야 했던 원인).
+            //  참조 공유가 아니라 새 FAIConfig 를 만들어 채운다 — 안 그러면 한쪽 편집이 다른 쪽에 번진다.
+            //  FAIName 은 FAIConfig.CopyTo 의 제외 목록에 있으므로 AddFAI 인자로 직접 넘겨 보존한다.
+            target.ClearFAIs();
+            for (int i = 0; i < FAIList.Count; i++) {
+                FAIConfig srcFai = FAIList[i];
+                FAIConfig dstFai = target.AddFAI(srcFai.FAIName);
+                srcFai.CopyTo(dstFai);
+            }
 
             return true;
         }

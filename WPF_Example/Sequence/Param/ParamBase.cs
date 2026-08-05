@@ -433,6 +433,49 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        // Save/Load 와 동일한 reflection + type switch 를 복사에도 재사용한다.
+        //  "INI 에 저장되는 값 == 붙여넣기로 옮겨지는 값" 이라는 계약을 코드로 강제해,
+        //  새 프로퍼티가 추가될 때 CopyTo 에서 누락되어 조용히 유실되는 회귀를 원천 차단한다.
+        //  GetType() 은 런타임 타입이므로 파생 클래스의 고유 프로퍼티까지 그대로 포함된다.
+        //  주의: [Browsable(false)] / [ReadOnly(true)] 는 CanWrite 를 막지 않는다 —
+        //   런타임 결과 필드를 빼려면 호출자가 excludeNames 로 이름을 넘겨야 한다.
+        //  반환값 = 실제로 복사한 프로퍼티 개수 (진단/검증용).
+        protected int CopyPublicPropertiesTo(ParamBase target, HashSet<string> excludeNames) {
+            if (target == null) return 0;
+            int nCopied = 0;
+            PropertyInfo[] props = GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            foreach (var prop in props) {
+                if (!prop.CanRead) continue;
+                if (!prop.CanWrite) continue;                          // 계산 전용 프로퍼티 skip
+                if (prop.GetIndexParameters().Length > 0) continue;    // 인덱서 skip
+                if (prop.Name == "Owner") continue;                    // 객체 그래프 파괴 방지
+                if (prop.Name == "Parent") continue;
+                if (excludeNames != null && excludeNames.Contains(prop.Name)) continue;
+
+                string type = prop.PropertyType.Name;
+                bool bSupported = false;
+                if (type == "Int32")   bSupported = true;
+                else if (type == "Double")  bSupported = true;
+                else if (type == "String")  bSupported = true;
+                else if (type == "Boolean") bSupported = true;
+                else if (type == "Rect")    bSupported = true;
+                else if (type == "Line")    bSupported = true;
+                else if (type == "Circle")  bSupported = true;
+                // PropertyItem[] / ModelFinderViewModel / List<T> / HTuple / enum / bool[] 은 여기서 다루지 않는다.
+                //  (ShotConfig.CopyTo 처럼 소유 클래스가 명시적으로 처리하거나, transient 라 복사 대상이 아니다)
+                if (!bSupported) continue;
+
+                try {
+                    prop.SetValue(target, prop.GetValue(this));
+                    nCopied++;
+                }
+                catch (Exception e) {
+                    Logging.PrintErrLog((int)ELogType.Error, "CopyPublicPropertiesTo " + prop.Name + " : " + e.Message);
+                }
+            }
+            return nCopied;
+        }
+
         public override string ToString() {
             if(Owner != null) {
                 if(Owner is ActionBase) {

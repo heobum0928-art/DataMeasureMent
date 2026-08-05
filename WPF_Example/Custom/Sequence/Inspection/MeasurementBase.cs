@@ -197,5 +197,30 @@ namespace ReringProject.Sequence
             }
             return result;
         }
+
+        // 복사 제외 목록: 이름(붙여넣기 시 이름 충돌 방지) + 런타임 측정 결과(다음 검사 사이클에서 다시 채워짐)
+        //  + IDatumOriginConsumer 주입 필드(Action_FAIMeasurement 가 매 사이클 datum 절대좌표를 새로 주입).
+        //  뒤 6개는 MeasurementBase 자신에는 없고 하위 9개 타입에만 있다. 이름 기반 제외라 해당 필드가
+        //  없는 타입에서는 그냥 무시되므로, 하위 타입마다 흩어 놓지 않고 여기 한 곳에 모아 둔다.
+        private static readonly HashSet<string> _copyExclude = new HashSet<string> {
+            "MeasurementName",
+            "LastMeasuredValue", "LastJudgement", "LastHasResult", "LastSkipReason",
+            "DatumOriginRow", "DatumOriginCol", "DatumAngleRad", "DatumAngle2Rad",
+            "DatumDetectedCircleRow", "DatumDetectedCircleCol"
+        };
+
+        // 기존 override 4개(CameraMasterParam/CameraParam/CameraSlaveParam/ShotConfig)와 동일한 형태.
+        //  필드 복사는 ParamBase 의 reflection 헬퍼가 런타임 타입 기준으로 수행하므로,
+        //  파생 측정 타입 15종의 고유 필드까지 별도 override 없이 전부 복사된다.
+        public override bool CopyTo(ParamBase param) {
+            if (param == null) return false;
+            // 서로 다른 측정 타입끼리는 필드 의미가 달라 복사 불가 — paste 는 'Fail to Copy' 로 거부된다.
+            if (param.GetType() != GetType()) return false;
+            MeasurementBase target = param as MeasurementBase;
+            if (target == null) return false;
+            base.CopyTo(param);
+            CopyPublicPropertiesTo(target, _copyExclude);
+            return true;
+        }
     }
 }

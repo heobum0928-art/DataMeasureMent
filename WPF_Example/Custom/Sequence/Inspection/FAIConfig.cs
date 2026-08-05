@@ -145,6 +145,33 @@ namespace ReringProject.Sequence {
             WasDatumSkipped = false;
         }
 
+        // 복사 제외: 이름(충돌 방지) + 런타임 결과 필드.
+        //  LastOverlays 는 List 라 reflection type switch 밖 → 자동 제외된다.
+        private static readonly HashSet<string> _copyExclude = new HashSet<string> {
+            "FAIName",
+            "MeasuredValue", "IsPass", "WasDatumSkipped",
+            "LastOriginImageFileName", "LastCaptureImageFileName"
+        };
+
+        public override bool CopyTo(ParamBase param) {
+            FAIConfig target = param as FAIConfig;
+            if (target == null) return false;
+            base.CopyTo(param);
+            CopyPublicPropertiesTo(target, _copyExclude);
+
+            // Measurements 깊은 복사 — 참조를 공유하면 한쪽 편집이 다른 쪽에 번지므로 새 인스턴스를 만든다.
+            //  MeasurementName 은 _copyExclude 로 빠지므로 여기서 직접 옮긴다.
+            target.ClearMeasurements();
+            for (int i = 0; i < Measurements.Count; i++) {
+                MeasurementBase srcMeas = Measurements[i];
+                MeasurementBase dstMeas = target.AddMeasurement(srcMeas.TypeName);
+                if (dstMeas == null) continue;   // 알 수 없는 TypeName → factory 가 null
+                dstMeas.MeasurementName = srcMeas.MeasurementName;
+                srcMeas.CopyTo(dstMeas);
+            }
+            return true;
+        }
+
         /// <summary>
         /// Converts FAIConfig Rectangle2 params (center+half-lengths+phi) to RoiDefinition bounding box.
         /// NOTE on D-05 compatibility: ROI_Phi exists in legacy INI data from Rectangle2 era.

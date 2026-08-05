@@ -91,10 +91,28 @@ namespace ReringProject.Sequence
                     return;
                 }
 
+                //260805 hbk Phase 70 D-02-2: 이 배치를 실제로 돌린 시퀀스 이름. 아래 종합판정 스코프와
+                //  BuildDto 의 shot 스코프가 같은 기준을 쓰도록 한 곳에서만 산출한다.
+                string seqName;
+                if (_seq != null)
+                {
+                    seqName = _seq.Name;
+                }
+                else
+                {
+                    seqName = null; // 소유 시퀀스 미상 → IsShotOwnedBySequence 가 레거시 전역 동작 유지
+                }
+
                 bool anySkip = false;
                 bool allPass = true;
                 foreach (var shot in recipeManager.Shots)
                 {
+                    //260805 hbk Phase 70 D-02-2: 이 시퀀스 소유 shot 만 종합판정에 포함.
+                    bool bOwnedByThisSeq = InspectionSequence.IsShotOwnedBySequence(shot, seqName);
+                    if (!bOwnedByThisSeq)
+                    {
+                        continue;
+                    }
                     foreach (var fai in shot.FAIList)
                     {
                         if (fai.WasDatumSkipped)
@@ -123,7 +141,6 @@ namespace ReringProject.Sequence
                 }
 
                 string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
-                string seqName = _seq != null ? _seq.Name : null;
                 CycleResultDto dto = CycleResultSerializer.BuildDto(
                     recipeManager, resultType, DateTime.Now, recipeName, seqName);
 

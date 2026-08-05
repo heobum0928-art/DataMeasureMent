@@ -1510,6 +1510,45 @@ namespace ReringProject.UI
             Render();
         }
 
+        private void MeasureAxisFreeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SetManualMeasureAxisMode(ECaliperMode.Free);
+        }
+
+        private void MeasureAxisHorizontalMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SetManualMeasureAxisMode(ECaliperMode.Horizontal);
+        }
+
+        private void MeasureAxisVerticalMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SetManualMeasureAxisMode(ECaliperMode.Vertical);
+        }
+
+        private void SetManualMeasureAxisMode(ECaliperMode mode)
+        {
+            if (_manualMeasureAxisMode == mode)
+            {
+                // 체크 가능 MenuItem 은 클릭 시 WPF 가 IsChecked 를 제멋대로 토글한다.
+                // 같은 모드를 다시 눌러도 체크가 풀리지 않도록 상태를 되돌린다.
+                UpdateContextMenuState();
+                return;
+            }
+
+            _manualMeasureAxisMode = mode;
+
+            // 축 기준이 바뀌면 이미 찍힌 시작점의 기준이 무의미해지므로 진행 중 측정만 버린다.
+            // _manualMeasureMode / _crosshairEnabled 는 건드리지 않는다 (측정 모드 유지 — ResetManualToolState 전체 호출 금지).
+            if (_manualMeasureStartPoint.HasValue && !_manualMeasureEndPoint.HasValue)
+            {
+                _manualMeasureStartPoint = null;
+                _manualMeasureEndPoint = null;
+            }
+
+            UpdateContextMenuState();
+            Render();
+        }
+
         private void ZoomAtPointer(double row, double column, double scaleFactor)
         {
             var current = GetImagePart();
@@ -1676,6 +1715,17 @@ namespace ReringProject.UI
             }
             else
             {
+                // 끝점 좌표 한 축을 시작점 값으로 치환해 축을 고정한다.
+                // GetDistance 는 손대지 않는다 — 한쪽 delta 가 0 이 되어 자동으로 축 거리가 된다.
+                if (_manualMeasureAxisMode == ECaliperMode.Horizontal)
+                {
+                    imagePoint.Y = _manualMeasureStartPoint.Value.Y;
+                }
+                else if (_manualMeasureAxisMode == ECaliperMode.Vertical)
+                {
+                    imagePoint.X = _manualMeasureStartPoint.Value.X;
+                }
+
                 _manualMeasureEndPoint = imagePoint;
             }
 

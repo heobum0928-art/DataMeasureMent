@@ -133,6 +133,9 @@ namespace ReringProject.Sequence {
             // 종합 판정: 3-state hierarchy
             bool anyDatumSkip = false; // fai.WasDatumSkipped 1건이라도 있으면 true → cycle=NotExist
             bool allPass = true;
+            //260805 hbk Phase 70 WR-01: 소유권 필터가 0건을 매칭하면 아래 초기값(anyDatumSkip=false/allPass=true)이
+            //  그대로 남아 "측정 0건인데 OK/P" 를 PLC 로 조용히 송신한다 — 이 카운터로 그 빈 스코프를 잡는다.
+            int nMatchedFaiCount = 0;
             var responsePacket = new TestResultPacket {
                 Target = RequestPacket.Sender,
                 Site = RequestPacket.Site,
@@ -148,6 +151,7 @@ namespace ReringProject.Sequence {
                 bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
                 if (!bOwnedByThisSeq) continue;
                 foreach (var fai in shot.FAIList) {
+                    nMatchedFaiCount++;
                     // FAIResults[i] 3-state (P/F/N) 분기. datum-skip 시 fai.WasDatumSkipped=true + IsPass=false 동시 설정.
                     //  계층 우선순위: WasDatumSkipped → NotExist, !IsPass → NG, 그 외 → OK.
                     EVisionResultType faiResultCode;
@@ -175,8 +179,14 @@ namespace ReringProject.Sequence {
                 }
             }
 
-            // cycle 계층 판정: 검출실패 > NG > OK.
-            if (anyDatumSkip) responsePacket.Result = EVisionResultType.NotExist; // 'N' (TestResultPacket.GetResultString 가 자동 매핑)
+            // cycle 계층 판정: 검출실패 > NG > OK. 단, 매칭 0건(WR-01)이면 무조건 NotExist 로 폴백.
+            bool bEmptyScope = nMatchedFaiCount == 0;
+            if (bEmptyScope)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase70] " + Name + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
+                responsePacket.Result = EVisionResultType.NotExist;
+            }
+            else if (anyDatumSkip) responsePacket.Result = EVisionResultType.NotExist; // 'N' (TestResultPacket.GetResultString 가 자동 매핑)
             else if (!allPass) responsePacket.Result = EVisionResultType.NG; // 'X'
             else responsePacket.Result = EVisionResultType.OK; // 'O'
             pMyContext.ResultInfo = responsePacket.Result;
@@ -379,6 +389,11 @@ namespace ReringProject.Sequence {
         private EVisionResultType ComputeOverallResult(InspectionRecipeManager recipeManager) {
             bool anyDatumSkip = false;
             bool allPass = true;
+            //260805 hbk Phase 70 WR-01: 소유권 필터가 0건을 매칭하면(레시피 미구성/전환 중 순간 등)
+            //  아래 anyDatumSkip=false/allPass=true 초기값이 그대로 남아 "측정 0건인데 OK" 를 조용히
+            //  반환한다 — 이 카운터로 그 빈 스코프를 잡아 NotExist 로 폴백한다. 매칭 1건 이상이면
+            //  기존 계층(anyDatumSkip > NG > OK) 그대로, 이 가드는 0건 케이스만 닫는다.
+            int nMatchedFaiCount = 0;
             if (recipeManager != null)
             {
                 foreach (var shot in recipeManager.Shots)
@@ -392,10 +407,17 @@ namespace ReringProject.Sequence {
                     }
                     foreach (var fai in shot.FAIList)
                     {
+                        nMatchedFaiCount++;
                         if (fai.WasDatumSkipped) anyDatumSkip = true;
                         else if (!fai.IsPass) allPass = false;
                     }
                 }
+            }
+            bool bEmptyScope = nMatchedFaiCount == 0;
+            if (bEmptyScope)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase70] " + Name + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
+                return EVisionResultType.NotExist;
             }
             if (anyDatumSkip) return EVisionResultType.NotExist; // 검출실패 최우선
             if (!allPass) return EVisionResultType.NG;

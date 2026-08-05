@@ -91,6 +91,7 @@ namespace ReringProject {
             Logging.SetLog((int)ELogType.Result, Enum.GetName(typeof(ELogType), ELogType.Result), Setting.GetLogSavePath(ELogType.Result));
             Logging.SetLog((int)ELogType.Error, Enum.GetName(typeof(ELogType), ELogType.Error), Setting.GetLogSavePath(ELogType.Error));
             Logging.SetLog((int)ELogType.LightController, Enum.GetName(typeof(ELogType), ELogType.LightController), Setting.GetLogSavePath(ELogType.LightController));
+            Logging.SetLog((int)ELogType.Flow, Enum.GetName(typeof(ELogType), ELogType.Flow), Setting.GetLogSavePath(ELogType.Flow));
             Logging.Start();
 
             // 5) Device init (camera, IO, etc.)

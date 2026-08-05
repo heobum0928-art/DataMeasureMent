@@ -427,6 +427,7 @@
     <Compile Include="UI\ViewModel\Attributes.cs" />
     <Compile Include="Utility\Ini.cs" />
     <Compile Include="Utility\Logging.cs" />
+    <Compile Include="Utility\FlowLog.cs" />
     <Compile Include="Utility\NaturalStringComparer.cs" />
     <Compile Include="Setting\SystemSetting.cs" />
     <Compile Include="TcpServer\VisionRequestPacket.cs" />

@@ -23,6 +23,7 @@ namespace ReringProject.Setting {
         Result = 4,
         Image = 5,
         Error = 6,
+        Flow = 7,
     }
     
     public partial class SystemSetting {
@@ -89,6 +90,10 @@ namespace ReringProject.Setting {
         [DirectoryPath]
         [AutoUpdateText]
         public string TcpConnectionPath { get; set; } = @"D:\Data\TcpConnection";
+
+        [DirectoryPath]
+        [AutoUpdateText]
+        public string FlowLogSavePath { get; set; } = @"D:\Data\Flow";
 
         public int LogDeleteDay { get; set; } = 30;
 
@@ -230,6 +235,9 @@ namespace ReringProject.Setting {
                     break;
                 case ELogType.TcpConnection:
                     basePath = TcpConnectionPath;
+                    break;
+                case ELogType.Flow:
+                    basePath = FlowLogSavePath;
                     break;
             }
 

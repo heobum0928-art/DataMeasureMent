@@ -5,6 +5,7 @@
 // D-06a: 다운샘플 coarse 매칭 → x,y 스케일 복원. D-09: ref pose 기반 변위.
 // 전 메서드: try/catch(return false) + HObject/HImage dispose 규약 준수.
 using System;
+using System.Collections.Generic;
 using HalconDotNet;
 
 namespace ReringProject.Halcon.Algorithms
@@ -36,6 +37,83 @@ namespace ReringProject.Halcon.Algorithms
 
         // NCC 기본 NumLevels
         private const int DEFAULT_NCC_NUM_LEVELS = 4;
+
+        // 캐시 동시성 보호용 락. Top/Side/Bottom 시퀀스가 각자 스레드에서 서로 다른(또는 같은) modelPath 로
+        // 동시에 캐시에 접근할 수 있으므로, 딕셔너리 조회/삽입/제거는 전부 이 락 아래에서 수행한다.
+        // FindNccModel/FindShapeModel(모델을 조회만 하는 호출) 자체는 이 락 밖에서 실행된다 — 같은 modelId 를
+        // 여러 스레드가 동시에 Find 하는 것은 HALCON 문서상 안전한 사용 패턴(모델은 조회 중 read-only)이므로
+        // 별도 직렬화는 하지 않는다.
+        private static readonly object _cacheLock = new object();
+
+        // modelPath → 로드된 모델 핸들 + Clear 시 어떤 오퍼레이터(NCC/Shape)를 써야 하는지 캐시.
+        // static 인 이유: 호출부(TryComposeAlign, BtnTestFindDatum_Click 등)가 매 호출마다
+        // new PatternMatchService() 를 새로 만들기 때문에, 인스턴스 필드로는 캐시가 전혀 재사용되지 않는다.
+        private static readonly Dictionary<string, CachedModelEntry> _modelCache = new Dictionary<string, CachedModelEntry>();
+
+        // 캐시 1건 = 로드된 modelId + 무효화(재티칭) 시 호출할 Clear 오퍼레이터 식별용 엔진 플래그.
+        private sealed class CachedModelEntry
+        {
+            public HTuple ModelId;
+            public bool IsNcc;
+        }
+
+        // modelPath 에 해당하는 모델을 캐시에서 재사용(hit)하거나, 없으면 1회만 Read 해서 캐시에 적재한다(lazy load, miss).
+        // 반환된 HTuple 의 폐기(Clear) 책임은 더 이상 호출자에게 없다 — 캐시가 소유권을 가지며,
+        // TryCreateModel 의 재티칭 무효화(InvalidateCache) 시점에만 Clear 된다.
+        private static HTuple GetOrLoadModel(string modelPath, bool isNcc)
+        {
+            lock (_cacheLock)
+            {
+                CachedModelEntry entry;
+                if (_modelCache.TryGetValue(modelPath, out entry))
+                {
+                    return entry.ModelId;
+                }
+
+                HTuple newModelId;
+                if (isNcc)
+                {
+                    HOperatorSet.ReadNccModel(modelPath, out newModelId);
+                }
+                else
+                {
+                    HOperatorSet.ReadShapeModel(modelPath, out newModelId);
+                }
+
+                entry = new CachedModelEntry();
+                entry.ModelId = newModelId;
+                entry.IsNcc = isNcc;
+                _modelCache[modelPath] = entry;
+                return newModelId;
+            }
+        }
+
+        // modelPath 로 캐시된 모델이 있으면 Clear 후 캐시에서 제거한다. 재티칭(TryCreateModel 성공) 직후
+        // 반드시 호출해야 한다 — 그렇지 않으면 다음 TryFindPose 호출이 재티칭 이전의 stale 모델을 계속
+        // 재사용하는 회귀가 발생한다.
+        private static void InvalidateCache(string modelPath)
+        {
+            lock (_cacheLock)
+            {
+                CachedModelEntry entry;
+                if (_modelCache.TryGetValue(modelPath, out entry))
+                {
+                    try
+                    {
+                        if (entry.IsNcc)
+                        {
+                            HOperatorSet.ClearNccModel(entry.ModelId);
+                        }
+                        else
+                        {
+                            HOperatorSet.ClearShapeModel(entry.ModelId);
+                        }
+                    }
+                    catch { }
+                    _modelCache.Remove(modelPath);
+                }
+            }
+        }
 
         /// <summary>
         /// template ROI(Rect2)로 reduce_domain 한 영역에서 모델 생성 후 engine 별 파일 저장.
@@ -123,6 +201,10 @@ namespace ReringProject.Halcon.Algorithms
                     // Shape 모델 파일 저장
                     HOperatorSet.WriteShapeModel(modelId, modelPath);
                 }
+
+                // 재티칭 성공 — 같은 modelPath 로 캐시된 이전(stale) 모델이 있으면 즉시 무효화한다.
+                // 이걸 빠뜨리면 다음 TryFindPose 호출이 재티칭 이전 모델을 계속 재사용하는 회귀가 발생한다.
+                InvalidateCache(modelPath);
 
                 return true;
             }
@@ -375,7 +457,9 @@ namespace ReringProject.Halcon.Algorithms
 
                 if (isNcc)
                 {
-                    HOperatorSet.ReadNccModel(modelPath, out modelId);
+                    // 캐시 hit 이면 디스크 재읽기 없이 재사용, miss 면 1회 로드 후 캐시 적재(lazy load).
+                    // 이 호출 이후 finally 에서 더 이상 Clear 하지 않는다 — 소유권이 캐시로 이전됨.
+                    modelId = GetOrLoadModel(modelPath, true);
 
                     HOperatorSet.FindNccModel(
                         findTarget, modelId,
@@ -389,7 +473,8 @@ namespace ReringProject.Halcon.Algorithms
                 }
                 else
                 {
-                    HOperatorSet.ReadShapeModel(modelPath, out modelId);
+                    // 캐시 hit 이면 디스크 재읽기 없이 재사용, miss 면 1회 로드 후 캐시 적재(lazy load).
+                    modelId = GetOrLoadModel(modelPath, false);
 
                     //260618 hbk find_shape_model 출력 4개 — acuity 제거(CS1501 fix)
                     HOperatorSet.FindShapeModel(
@@ -443,21 +528,9 @@ namespace ReringProject.Halcon.Algorithms
                 if (searchRect != null) { try { searchRect.Dispose(); } catch { } }
                 if (reducedImage != null) { try { reducedImage.Dispose(); } catch { } }
                 if (scaledImage != null) { try { scaledImage.Dispose(); } catch { } }
-                if (modelId != null)
-                {
-                    try
-                    {
-                        if (string.Equals(engine, "NCC", StringComparison.OrdinalIgnoreCase))
-                        {
-                            HOperatorSet.ClearNccModel(modelId);
-                        }
-                        else
-                        {
-                            HOperatorSet.ClearShapeModel(modelId);
-                        }
-                    }
-                    catch { }
-                }
+                // modelId 는 더 이상 여기서 Clear 하지 않는다 — 캐시(GetOrLoadModel)가 소유권을 가지며,
+                // 재티칭(TryCreateModel -> InvalidateCache) 시점에만 Clear 된다. 매 호출마다 read+clear를
+                // 반복하던 것이 이번 캐싱 작업(quick-260805-ojq)의 근본 수정 대상이었다.
             }
         }
 

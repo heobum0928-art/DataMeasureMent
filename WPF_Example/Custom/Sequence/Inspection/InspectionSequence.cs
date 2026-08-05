@@ -82,6 +82,10 @@ namespace ReringProject.Sequence {
         private int m_nCurrentZIndex = 0;            // 이번 $TEST z_index (RequestPacket.TestID 파싱 결과)
         private int m_nLastZIndex = 0;               // 레시피 Shot z_index 최댓값 = 마지막 Index (D-03, ComputeLastZIndex 산출)
 
+        // 260805 quick-260805-f3w D-F3W-02-REV: 검사 사이클 1회당 Flow 로그 1줄용 tact 측정.
+        private readonly System.Diagnostics.Stopwatch _flowStopwatch = new System.Diagnostics.Stopwatch();
+        private bool _bFlowCycleLogged = false;   // 종료 이벤트 중복 발화 시 두 줄 나가는 것 방지
+
         //260619 hbk Phase 57 #6 leveling 제거 — 레벨링 각도 캐시 멤버/메서드 폐기 (ALIGN 대체, D-12/D-13)
 
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
@@ -99,6 +103,13 @@ namespace ReringProject.Sequence {
             // 런 시작 시 이 시퀀스 shot 의 모든 측정 결과 초기화 (안 돈 측정 stale 방지).
             //  OnStart 는 단일 Start(int) + StartAll 모두에서 발화 → 단일/전체 모두 런 시작에 일괄 초기화.
             OnStart += HandleRunStartResetResults;
+            // 260805 quick-260805-f3w D-F3W-02-REV: 검사 사이클 1회당 Flow 로그 1줄 배선.
+            //  시작(OnStart)은 시계만 리셋 — 출력 없음(압축 결정). 종료는 OnFinish/OnStop/OnError 셋 다 구독하고
+            //  핸들러 안의 _bFlowCycleLogged 가드로 중복 발화 시 두 줄 나가는 것을 막는다.
+            OnStart += HandleFlowLogCycleBegin;
+            OnFinish += HandleFlowLogCycleEnd;
+            OnStop += HandleFlowLogCycleEnd;
+            OnError += HandleFlowLogCycleEnd;
         }
 
         // 종합 판정 + FAI별 결과 TCP 전송. 3-state cycle hierarchy + FAIResults P/F/N 분기.
@@ -260,6 +271,70 @@ namespace ReringProject.Sequence {
                 }
             } catch (Exception ex) {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        // 260805 quick-260805-f3w D-F3W-02-REV: 사이클 시작 — 시계만 리셋한다. 여기서는 아무것도 출력하지 않는다
+        //  (사이클 시작 줄은 압축 결정으로 제외됨. Flow 로그는 사이클당 딱 1줄, 종료 시에만 나간다).
+        private void HandleFlowLogCycleBegin(SequenceContext context) {
+            try {
+                _flowStopwatch.Restart();
+                _bFlowCycleLogged = false;
+            } catch {
+            }
+        }
+
+        // 260805 quick-260805-f3w D-F3W-02-REV: 사이클 종료(OnFinish/OnStop/OnError 공통 구독) — Flow 요약 1줄.
+        //  이 핸들러는 어떤 경우에도 예외를 밖으로 던지면 안 된다(SequenceBase 이벤트 발화 실패 시 잠금 영구화 위험).
+        private void HandleFlowLogCycleEnd(SequenceContext context) {
+            try {
+                if (_bFlowCycleLogged) return;
+                _bFlowCycleLogged = true;
+                _flowStopwatch.Stop();
+
+                int nMeasured;
+                int nNg;
+                CountFlowCycleResults(out nMeasured, out nNg);
+
+                if (nMeasured == 0) return; // 이 시퀀스가 이번 사이클에 한 일이 없으면 조용히 넘어간다.
+
+                bool bAllPass = (nNg == 0) && (nMeasured > 0);
+                FlowLog.CycleEnd(Name, bAllPass, nMeasured, nNg, _flowStopwatch.Elapsed.TotalSeconds);
+            } catch {
+            }
+        }
+
+        // Flow 요약줄용 집계. HandleRunStartResetResults 의 순회 패턴을 그대로 사용해 이 시퀀스가 소유한 측정만 센다.
+        //  시도된 항목 = 이번 사이클에 측정됐거나(LastHasResult) skip 처리된(LastSkipReason 있음) 항목.
+        private void CountFlowCycleResults(out int nMeasured, out int nNg) {
+            nMeasured = 0;
+            nNg = 0;
+            if (Actions == null) return;
+            foreach (var act in Actions) {
+                var faiAct = act as Action_FAIMeasurement;
+                if (faiAct == null) continue;
+                var shot = faiAct.ShotParam;
+                if (shot == null) continue;
+                foreach (var fai in shot.FAIList) {
+                    if (fai == null) continue;
+                    if (fai.Measurements == null) continue;
+                    foreach (var m in fai.Measurements) {
+                        if (m == null) continue;
+                        bool bAttempted;
+                        if (m.LastHasResult == true) {
+                            bAttempted = true;
+                        } else if (string.IsNullOrEmpty(m.LastSkipReason) == false) {
+                            bAttempted = true;
+                        } else {
+                            bAttempted = false;
+                        }
+                        if (bAttempted == false) continue;
+                        nMeasured++;
+                        if (m.LastJudgement == false) {
+                            nNg++;
+                        }
+                    }
+                }
             }
         }
 
@@ -1853,10 +1928,6 @@ namespace ReringProject.Sequence {
                 + " patAngDeg=" + curAngleDeg.ToString("F3") + " refPatAngDeg=" + datum.RefMatchAngleDeg.ToString("F3")
                 + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=pattern"
                 + " score=" + curScore.ToString("F3") + " angleExtentDeg=" + datum.PatternAngleExtentDeg.ToString("F1"));
-            //260728 hbk quick-diag(260728-mxj): 라이브 매칭 시점 실제 사용 modelPath + 이미지 크기 (ref-refresh 시점과 육안 대조용)
-            HTuple diagImgW, diagImgH;
-            refImage.GetImageSize(out diagImgW, out diagImgH);
-            Logging.PrintLog((int)ELogType.Trace, "[ALIGN-DIAG-LIVE] p1 modelPath=" + modelPath + " imgWH=" + diagImgW.ToString() + "x" + diagImgH.ToString());
             // ②-2 Phase 55 ALIGN-02 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
             //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
@@ -1865,8 +1936,6 @@ namespace ReringProject.Sequence {
                 //260728 hbk quick-fix(260728-n7b): Name(=실행 중 인스턴스명) 대신 datum.OwnerName 사용 — Test Find 호출부는 GetAnyInspectionSequence() 로 임의 인스턴스(항상 TOP)를 골라 호출하므로 Name 기준이면 datum 소속과 무관한 폴더의 .shm 을 읽는다.
                 //  패턴1 및 기준값 저장측(MainView.RefreshPatternRefPoseAfterTeach)이 이미 datum.OwnerName 기준이라 여기도 통일한다. (260723 취지 — 전역 Shots[0] 폴백 결함 제거 — 는 유지)
                 string modelPath2 = ResolveDatumModelPath2(datum, datum.OwnerName);
-                //260728 hbk quick-diag(260728-mxj): 라이브 매칭 시점 패턴2 실제 사용 modelPath2 (ref-refresh 시점 modelPath2 와 육안 대조용)
-                Logging.PrintLog((int)ELogType.Trace, "[ALIGN-DIAG-LIVE] p2 modelPath2=" + modelPath2 + " seqName=" + (Name ?? "") + " ownerName=" + (datum.OwnerName ?? "(null)"));
                 double cur2Row, cur2Col, cur2AngleDeg, cur2Score; string err2;
                 if (svc.TryFindPose(refImage, datum.PatternEngine, modelPath2,
                         datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,

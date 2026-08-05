@@ -47,6 +47,139 @@ namespace ReringProject.Sequence {
             return seqId == ESequence.Side;
         }
 
+        //260805 hbk Phase 69 D-01: RUN 게이트를 "전역 IsIdle" 에서 "시퀀스 단위 + 물리 카메라 공유 시에만 상호배타" 로 좁힌다.
+        //  기존 StateAll/IsIdle 은 등록된 시퀀스 중 하나라도 non-Idle 이면 전체를 non-Idle 로 본다 → TOP 이 도는 중
+        //  놀고 있는 BOTTOM 도 RUN 이 막혔다(간헐적 "RUN 미동작"의 실제 원인).
+        //  단, 실 HW TopBottom 역할에서는 CAM_TOP/CAM_BOTTOM 이 같은 MilCamera 인스턴스를 공유하고
+        //  (DeviceHandler.cs sharedMil 경로) grab 경로에 lock 이 없다 → 그 조합만은 반드시 상호배타로 남겨야 한다.
+        //  판정 근거는 역할 이름 문자열이 아니라 DeviceHandler 가 돌려주는 실제 카메라 객체의 참조 동일성이다
+        //  (디바이스 등록 구조가 바뀌어도 안전성이 깨지지 않도록).
+        //  StateAll/IsIdle 자체는 건드리지 않는다 — TCP/MainWindow/MainView 호출부 회귀 0.
+        /// <summary>
+        /// 지정한 시퀀스를 지금 RUN 해도 되는지 판정한다.
+        /// </summary>
+        /// <param name="eTargetSeqId">실행하려는 시퀀스</param>
+        /// <param name="sBlockingSeqName">차단된 경우 원인 시퀀스 이름. 실행 가능하면 null.</param>
+        /// <returns>차단되어야 하면 true</returns>
+        public bool TryGetBlockingSequence(ESequence eTargetSeqId, out string sBlockingSeqName) {
+            sBlockingSeqName = FindBlockingSequenceName(eTargetSeqId);
+            if (sBlockingSeqName == null) {
+                return false;
+            }
+            //260805 hbk Phase 69: 차단 사실을 남겨야 "왜 안 눌렸는지" 사후 추적이 된다(사용자 클릭 빈도라 로그 폭주 없음).
+            Logging.PrintLog((int)ELogType.Trace, "[RUN-GATE] blocked: target={0}, busy={1}",
+                ResolveSequenceName(eTargetSeqId), sBlockingSeqName);
+            return true;
+        }
+
+        //260805 hbk Phase 69 D-01: 차단 원인 시퀀스 이름을 찾는다. 실행 가능하면 null.
+        private string FindBlockingSequenceName(ESequence eTargetSeqId) {
+            SequenceBase seqTarget = this[eTargetSeqId];
+            if (seqTarget == null) {
+                //이 PC(CameraRole)에 등록되지 않은 시퀀스 — 실행 대상 자체가 없으므로 차단한다.
+                return ResolveSequenceName(eTargetSeqId);
+            }
+
+            //1) 자기 자신이 Idle 이 아니면 무조건 차단 (기존 동작 유지. Finish/Error 도 non-Idle 로 본다)
+            if (seqTarget.State != EContextState.Idle) {
+                return seqTarget.Name;
+            }
+
+            //2) 물리 카메라를 실제로 공유하는 다른 시퀀스가 non-Idle 이면 차단
+            for (int i = 0; i < Count; i++) {
+                SequenceBase seqOther = this[i];
+                if (seqOther == null) {
+                    continue;
+                }
+                if (ReferenceEquals(seqOther, seqTarget)) {
+                    continue;
+                }
+                if (seqOther.State == EContextState.Idle) {
+                    continue;
+                }
+                if (SharesCameraDevice(seqTarget, seqOther) == false) {
+                    continue;
+                }
+                return seqOther.Name;
+            }
+
+            return null;
+        }
+
+        //260805 hbk Phase 69 D-01: 두 시퀀스가 같은 물리 카메라 객체를 쓰는지 참조 동일성으로 판정한다.
+        //  해석 불가(이름 공백/미등록/DeviceHandler null)는 "공유한다"로 간주 — 안전한 쪽(fail-closed)으로만 틀리게 한다.
+        private bool SharesCameraDevice(SequenceBase seqA, SequenceBase seqB) {
+            List<VirtualCamera> listCamA = new List<VirtualCamera>();
+            List<VirtualCamera> listCamB = new List<VirtualCamera>();
+
+            if (TryCollectSequenceCameras(seqA, listCamA) == false) {
+                return true;
+            }
+            if (TryCollectSequenceCameras(seqB, listCamB) == false) {
+                return true;
+            }
+
+            for (int i = 0; i < listCamA.Count; i++) {
+                for (int j = 0; j < listCamB.Count; j++) {
+                    if (ReferenceEquals(listCamA[i], listCamB[j])) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        //260805 hbk Phase 69 D-01: 시퀀스가 grab 에 쓰는 카메라 객체를 모은다.
+        //  마스터 파라미터(CameraMasterParam.DeviceName) + 각 Action 의 ICameraParam.DeviceName 을 모두 본다 —
+        //  자식 Action 이 마스터와 다른 DeviceName 을 가질 수 있기 때문(SequenceBase.cs L109-110 상속은 빈 값일 때만).
+        //  하나라도 해석 실패하면 false 를 돌려 호출부가 fail-closed 로 처리하게 한다.
+        private bool TryCollectSequenceCameras(SequenceBase seq, List<VirtualCamera> listOut) {
+            if (seq == null) {
+                return false;
+            }
+            DeviceHandler devs = SystemHandler.Handle.Devices;
+            if (devs == null) {
+                return false;
+            }
+
+            List<string> listNames = new List<string>();
+
+            CameraMasterParam masterParam = seq.Param as CameraMasterParam;
+            if (masterParam != null) {
+                listNames.Add(masterParam.DeviceName);
+            }
+            for (int i = 0; i < seq.ActionCount; i++) {
+                ActionBase act = seq[i];
+                if (act == null) {
+                    continue;
+                }
+                ICameraParam camParam = act.Param as ICameraParam;
+                if (camParam == null) {
+                    continue;
+                }
+                listNames.Add(camParam.DeviceName);
+            }
+
+            for (int i = 0; i < listNames.Count; i++) {
+                string sName = listNames[i];
+                if (string.IsNullOrEmpty(sName)) {
+                    //빈 이름은 마스터에서 상속받는 자식 — 마스터 항목으로 이미 커버된다.
+                    continue;
+                }
+                VirtualCamera cam = devs[sName];
+                if (cam == null) {
+                    //등록되지 않은 디바이스 이름 — 어느 물리 카메라인지 알 수 없으므로 해석 실패로 처리.
+                    return false;
+                }
+                if (listOut.Contains(cam) == false) {
+                    listOut.Add(cam);
+                }
+            }
+
+            //하나도 못 모았으면 판정 근거가 없다 → 해석 실패.
+            return listOut.Count > 0;
+        }
+
         private void RegisterSequences() {
             //260409 hbk Phase 5: 동적 FAI 모드용 InspectionSequence (D-07)
             //260526 hbk Phase 33 — Side/Bottom 도 InspectionSequence 마이그레이션 (D-01)

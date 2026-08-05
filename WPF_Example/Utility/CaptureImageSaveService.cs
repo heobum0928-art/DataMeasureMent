@@ -84,6 +84,18 @@ namespace ReringProject.Utility {
         // 워커 전용 렌더러. 단일 워커 스레드에서만 사용(직렬) → 버퍼윈도우 경합 없음.
         private static readonly OverlayCaptureRenderer _renderer = new OverlayCaptureRenderer();
 
+        // 저장 큐 상한. 항목 1건이 Shot 원본 HImage(12MP mono ≈ 12MB)를 refcount 로 붙잡으므로
+        // 상한 × 이미지 크기가 곧 상주 메모리 상한이다(50 × 12MB ≈ 600MB). 상한 없이 두면
+        // 일괄검사에서 생산(사이클) > 소비(저장, 건당 수백 ms) 불균형이 그대로 누적돼 프로세스가 죽는다.
+        private const int MAX_QUEUE_DEPTH = 50;
+        private const int BACKPRESSURE_POLL_MS = 20;
+        private const int BACKPRESSURE_MAX_WAIT_MS = 30000;   // 워커가 완전히 멈춘 경우에도 검사가 영구 정지하지 않도록 하는 절대 상한
+        private const int BACKPRESSURE_LOG_THRESHOLD_MS = 1000; // 이 시간 이상 대기했을 때만 로그(20ms 폴링 노이즈 차단)
+        private int _nQueueDepth; // 큐 대기 + 처리중(in-flight) 합계. Interlocked/Volatile 로만 접근.
+
+        /// <summary>현재 저장 대기 + 처리중 항목 수(진단용).</summary>
+        public int QueueDepth { get { return Volatile.Read(ref _nQueueDepth); } }
+
         public CaptureImageSaveService() {
             _workerThread = new Thread(WorkLoop) {
                 IsBackground = true,
@@ -109,14 +121,47 @@ namespace ReringProject.Utility {
                 return;
             }
 
+            WaitForQueueSpace(); // 상한 초과 시 호출 스레드(시퀀스 스레드) 감속 = 백프레셔
+            Interlocked.Increment(ref _nQueueDepth);
             _queue.Enqueue(request);
             _signal.Set();
+        }
+
+        // 큐가 상한 이상이면 워커가 자리를 비울 때까지 호출 스레드를 짧게 재운다.
+        //  이미지 폐기/스킵은 하지 않는다 — 캡쳐 이미지는 불량 판정의 증거 자료라 유실이 허용되지 않는다.
+        //  따라서 이 메서드는 "enqueue 여부"가 아니라 "enqueue 시점"만 늦춘다. 반환 후 enqueue 는 항상 수행된다.
+        //  생산자가 여러 시퀀스 스레드일 수 있어 상한은 hard cap 이 아닌 soft cap 이다(초과분 ≤ 동시 생산자 수).
+        private void WaitForQueueSpace() {
+            if (!_isStarted || _isStopping) {
+                return; // 워커가 소비하지 않는 상태에서 기다리면 무의미한 행(hang)이 된다
+            }
+
+            int nWaitedMs = 0;
+            while (Volatile.Read(ref _nQueueDepth) >= MAX_QUEUE_DEPTH) {
+                if (_isStopping || !_workerThread.IsAlive) {
+                    break; // 종료 중이거나 워커가 죽었다 → 더 기다려봐야 자리가 나지 않는다
+                }
+                if (nWaitedMs >= BACKPRESSURE_MAX_WAIT_MS) {
+                    Logging.PrintErrLog((int)ELogType.Error, string.Format(
+                        "[CaptureImageSaveService] 저장 큐 백프레셔 타임아웃 ({0}ms, depth={1}) — 대기를 포기하고 그대로 저장 큐에 넣습니다(이미지 유실 없음). 저장 경로 속도/워커 상태 확인 필요.",
+                        nWaitedMs, Volatile.Read(ref _nQueueDepth)));
+                    break; // 유실 금지 — 대기만 포기하고 enqueue 는 반드시 수행한다
+                }
+                Thread.Sleep(BACKPRESSURE_POLL_MS);
+                nWaitedMs += BACKPRESSURE_POLL_MS;
+            }
+
+            if (nWaitedMs >= BACKPRESSURE_LOG_THRESHOLD_MS) {
+                Logging.PrintLog((int)ELogType.Error, string.Format(
+                    "[CaptureImageSaveService] 저장 지연으로 검사 사이클 대기 {0}ms (depth={1}/{2}).",
+                    nWaitedMs, Volatile.Read(ref _nQueueDepth), MAX_QUEUE_DEPTH));
+            }
         }
 
         private void WorkLoop() {
             while (!_isStopping) {
                 if (_queue.TryDequeue(out CaptureImageSaveRequest request)) {
-                    SaveRequest(request);
+                    ProcessDequeued(request);
                     continue;
                 }
 
@@ -124,7 +169,18 @@ namespace ReringProject.Utility {
             }
 
             while (_queue.TryDequeue(out CaptureImageSaveRequest pending)) {
-                SaveRequest(pending);
+                ProcessDequeued(pending);
+            }
+        }
+
+        // dequeue 1건 = 카운터 -1 을 단일 지점에서 보장(감소 누락 시 큐가 영구 포화되어 검사가 멈춘다).
+        //  처리 완료 후 감소시키므로 처리중(in-flight) 1건도 상한에 포함된다 = 카운터가 실제 상주 메모리와 일치.
+        private void ProcessDequeued(CaptureImageSaveRequest request) {
+            try {
+                SaveRequest(request);
+            }
+            finally {
+                Interlocked.Decrement(ref _nQueueDepth);
             }
         }
 

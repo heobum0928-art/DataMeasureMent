@@ -18,6 +18,9 @@ namespace ReringProject.Sequence {
         public int DelayMs { get; set; }
 
         [Category("Shot|Simulation")]
+        // PropertyGrid 표시만 숨김 — MainView Load 버튼/툴바 폴더 일괄 할당/검사Grab 이 채우고 SIMUL·오프라인 검사와 레시피 INI 가 읽는 값이라
+        //  System.ComponentModel.Browsable / Newtonsoft.Json.JsonIgnore 는 절대 추가 금지(직렬화가 끊겨 값이 소실된다).
+        [PropertyTools.DataAnnotations.Browsable(false)]
         public string SimulImagePath { get; set; } = "";
 
         // IOfflineImageParam — MainView Load 버튼이 SHOT 노드 선택 시 경로 저장

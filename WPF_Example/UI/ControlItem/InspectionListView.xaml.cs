@@ -618,7 +618,7 @@ namespace ReringProject.UI {
             dlg.InitialDirectory = initialDir;
 
             if (dlg.ShowDialog() == true) {
-                bool ok = ReringProject.Export.RepeatExcelExportService.Export(
+                bool ok = ReringProject.Export.RepeatExcelExportService.ExportBatch(
                     _batchAccumulated, recipeName, dlg.FileName);
                 string msg;
                 if (ok) msg = "저장 완료:\n" + dlg.FileName; else msg = "export 실패 (로그 확인)";

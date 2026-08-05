@@ -6,6 +6,7 @@ using ReringProject.UI;
 using ReringProject.Utility;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;   // Stopwatch (전체 대기 예산)
 using System.Linq;
 
 namespace ReringProject.Export
@@ -18,6 +19,14 @@ namespace ReringProject.Export
     /// </summary>
     public static class RepeatExcelExportService
     {
+        private const string DETAIL_SHEET_NAME = "회차별 상세";
+        private const int DETAIL_CAPTURE_IMAGE_COLUMN = 12;   // 회차(1) 가 앞에 붙어 단일 cycle 포맷보다 1 밀림
+
+        // cycle 수에 비례해 늘리되 상한을 둔다. UI 스레드 동기 호출이므로 무한정 블로킹은 금지 (E1L-05).
+        private const int BATCH_CAPTURE_WAIT_PER_CYCLE_MS = 1000;
+        private const int BATCH_CAPTURE_WAIT_BUDGET_MIN_MS = 5000;
+        private const int BATCH_CAPTURE_WAIT_BUDGET_MAX_MS = 15000;
+
         private class AlgoAggData
         {
             public string Category;
@@ -27,10 +36,23 @@ namespace ReringProject.Export
         }
 
         /// <summary>
-        /// 수집된 CycleResultDto 목록으로 2-시트 xlsx 를 생성한다.
-        /// 실패 시 false 반환 + Logging.
+        /// 반복검사(Gage R&R) export. 집계 2시트만 생성한다 — 기존 동작/포맷 그대로.
         /// </summary>
         public static bool Export(List<CycleResultDto> cycles, string recipeName, string outputPath)
+        {
+            return ExportInternal(cycles, recipeName, outputPath, false);
+        }
+
+        /// <summary>
+        /// 일괄검사(Batch) export. 집계 2시트 + 회차별 상세 시트(캡쳐이미지 포함)를 생성한다.
+        /// 회차별 실물 부품이 서로 다르므로 cycle 별 측정값/이미지가 의미를 가진다.
+        /// </summary>
+        public static bool ExportBatch(List<CycleResultDto> cycles, string recipeName, string outputPath)
+        {
+            return ExportInternal(cycles, recipeName, outputPath, true);
+        }
+
+        private static bool ExportInternal(List<CycleResultDto> cycles, string recipeName, string outputPath, bool bWithDetailSheet)
         {
             if (cycles == null || cycles.Count == 0 || string.IsNullOrEmpty(outputPath))
             {
@@ -173,6 +195,11 @@ namespace ReringProject.Export
 
                     ws2.Columns().AdjustToContents();
 
+                    if (bWithDetailSheet)
+                    {
+                        AppendDetailSheet(wb, cycles);
+                    }
+
                     wb.SaveAs(outputPath);
                 }
 
@@ -188,6 +215,156 @@ namespace ReringProject.Export
 
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 회차별 상세 시트: cycle(=실물 부품 1개) × Shot × FAI × 측정을 1행씩 펼치고 캡쳐이미지를 셀에 넣는다.
+        /// 이미지 로드/삽입은 ExcelExportService 헬퍼를 그대로 재사용한다 (로직 복제 금지).
+        /// </summary>
+        private static void AppendDetailSheet(XLWorkbook wb, List<CycleResultDto> cycles)
+        {
+            var ws = wb.Worksheets.Add(DETAIL_SHEET_NAME);
+
+            string[] h3 = { "회차", "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정",
+                            "원본이미지 경로", "캡쳐이미지 경로", "캡쳐이미지" };
+            for (int i = 0; i < h3.Length; i++)
+            {
+                ws.Cell(1, i + 1).Value = h3[i];
+            }
+
+            // cycle 수에 비례한 대기 예산(하한/상한 클램프). 곱셈 오버플로 방지를 위해 상한 초과 여부를 먼저 판정한다.
+            int nCycleCount = cycles.Count;
+            int nBudgetMs = BATCH_CAPTURE_WAIT_BUDGET_MAX_MS;
+            bool bUnderMaxCycles = nCycleCount < (BATCH_CAPTURE_WAIT_BUDGET_MAX_MS / BATCH_CAPTURE_WAIT_PER_CYCLE_MS);
+            if (bUnderMaxCycles)
+            {
+                nBudgetMs = nCycleCount * BATCH_CAPTURE_WAIT_PER_CYCLE_MS;
+            }
+            if (nBudgetMs < BATCH_CAPTURE_WAIT_BUDGET_MIN_MS)
+            {
+                nBudgetMs = BATCH_CAPTURE_WAIT_BUDGET_MIN_MS;
+            }
+
+            // 시트 전체에서 공유하는 캐시/Stopwatch 1개 — cycle 마다 새로 만들면 예산이 곱해져 상한이 무의미해진다.
+            var dicCaptureCache = new Dictionary<string, byte[]>();
+            var swWaitBudget = Stopwatch.StartNew();
+
+            int nRow = 2;
+            int nCycleNo = 1;
+            foreach (var cycle in cycles)
+            {
+                if (cycle == null)
+                {
+                    nCycleNo++;
+                    continue;
+                }
+
+                if (cycle.Shots == null)
+                {
+                    nCycleNo++;
+                    continue;
+                }
+
+                foreach (var shot in cycle.Shots)
+                {
+                    if (shot.FAIs == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var fai in shot.FAIs)
+                    {
+                        if (fai.Measurements == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (var m in fai.Measurements)
+                        {
+                            WriteDetailRow(ws, nRow, nCycleNo, shot, fai, m, dicCaptureCache, swWaitBudget, nBudgetMs);
+                            nRow++;
+                        }
+                    }
+                }
+
+                nCycleNo++;
+            }
+
+            ws.Columns().AdjustToContents();
+            ExcelExportService.ApplyCaptureColumnWidth(ws, DETAIL_CAPTURE_IMAGE_COLUMN);
+        }
+
+        /// <summary>
+        /// 상세 시트 1행 = 측정 1건. 값/판정은 단일 cycle 포맷(ExcelExportService)과 동일하게 맞춘다.
+        /// </summary>
+        private static void WriteDetailRow(IXLWorksheet ws, int nRow, int nCycleNo, ShotResultDto shot, FaiResultDto fai,
+                                           MeasurementResultDto m, Dictionary<string, byte[]> dicCache, Stopwatch swBudget, int nBudgetMs)
+        {
+            ws.Cell(nRow, 1).Value = nCycleNo;
+
+            if (shot.ShotName != null)
+            {
+                ws.Cell(nRow, 2).Value = shot.ShotName;
+            }
+            else
+            {
+                ws.Cell(nRow, 2).Value = "";
+            }
+
+            if (fai.FAIName != null)
+            {
+                ws.Cell(nRow, 3).Value = fai.FAIName;
+            }
+            else
+            {
+                ws.Cell(nRow, 3).Value = "";
+            }
+
+            if (m.MeasurementName != null)
+            {
+                ws.Cell(nRow, 4).Value = m.MeasurementName;
+            }
+            else
+            {
+                ws.Cell(nRow, 4).Value = "";
+            }
+
+            ws.Cell(nRow, 5).Value = m.NominalValue;
+            ws.Cell(nRow, 6).Value = m.TolerancePlus;
+            ws.Cell(nRow, 7).Value = m.ToleranceMinus;
+
+            // 측정값: 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 (CO-23-01).
+            if (m.LastHasResult)
+            {
+                ws.Cell(nRow, 8).Value = m.LastMeasuredValue;
+            }
+            else
+            {
+                ws.Cell(nRow, 8).Value = "-";
+            }
+
+            ws.Cell(nRow, 9).Value = ExcelExportService.BuildJudgementText(m);
+
+            if (fai.OriginImageFileName != null)
+            {
+                ws.Cell(nRow, 10).Value = fai.OriginImageFileName;
+            }
+            else
+            {
+                ws.Cell(nRow, 10).Value = "";
+            }
+
+            if (fai.CaptureImageFileName != null)
+            {
+                ws.Cell(nRow, 11).Value = fai.CaptureImageFileName;
+            }
+            else
+            {
+                ws.Cell(nRow, 11).Value = "";
+            }
+
+            byte[] arrCaptureBytes = ExcelExportService.LoadCaptureImageBytes(fai.CaptureImageFileName, dicCache, swBudget, nBudgetMs);
+            ExcelExportService.TryInsertCaptureImage(ws, nRow, DETAIL_CAPTURE_IMAGE_COLUMN, arrCaptureBytes);
         }
 
         private static string MapAlgorithmCategory(string typeName)

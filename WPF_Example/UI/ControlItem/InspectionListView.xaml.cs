@@ -613,7 +613,74 @@ namespace ReringProject.UI {
                 if (_inspectionVm != null && _batchShots != null) {
                     _inspectionVm.ShowMeasurementsForShots(_batchShots);
                 }
+                // quick-260806-dsn Part B: 배치 사이클이 완전히 끝나는 유일한 시점(이 콜백, 사이클당 1회) —
+                //  현재 화면에 표시 중인 노드를 제외한 나머지 SHOT의 대용량 이미지 캐시를 즉시 해제한다.
+                CleanupBatchImageMemoryAfterCycle(_batchShots);
             }));
+        }
+
+        // quick-260806-dsn Part B: 사이클 완료 후 메모리 정리. 현재 트리 선택(SelectedParam)이 가리키는 SHOT은
+        //  제외하고, 각 SHOT의 이미지 캐시(ShotConfig._image)와 대응 Action의 표시용 클론
+        //  (ActionContext.ResultHalconImage)을 Dispose한다. 재클릭 시 재현할 디스크 폴백
+        //  (ShotConfig.ResolveFallbackImagePath)이 없는 SHOT은 정리를 건너뛴다 — 메모리 절감보다 빈 화면 회귀
+        //  방지가 우선(사용자 확인 요구사항). 크로스-Z 저장소도 같은 시점에 함께 정리한다.
+        //  단일 RUN(Btn_start_Click)이나 사이클 도중에는 이 메서드가 호출되지 않는다(OnBatchComplete 전용 경로).
+        //  동시 접근 안전성: 이 시점에 사이클을 실행한 시퀀스 스레드는 이 델리게이트가 반환할 때까지
+        //  Dispatcher.Invoke 안에서 동기적으로 블로킹되어 있다(BatchRunService.HandleFinish → OnBatchComplete
+        //  이벤트 발화 → 여기 UI 스레드 콜백이 끝나야 그 Invoke 호출이 리턴) — 따라서 아래에서
+        //  ActionContext/ShotConfig 를 건드리는 동안 시퀀스 스레드가 같은 객체를 동시에 재실행할 수 없다.
+        private void CleanupBatchImageMemoryAfterCycle(List<ShotConfig> shots) {
+            if (shots == null || shots.Count == 0) return;
+
+            ShotConfig currentShot = ResolveCurrentlyDisplayedShot();
+
+            foreach (ShotConfig shot in shots) {
+                if (shot == null) continue;
+                if (ReferenceEquals(shot, currentShot)) continue; // 현재 표시 중인 노드는 보존
+
+                string fallbackPath = shot.ResolveFallbackImagePath();
+                if (string.IsNullOrEmpty(fallbackPath)) continue; // 재현 불가 SHOT은 정리 skip(회귀 방지 우선)
+
+                shot.ClearImage(); // ShotConfig.cs 기존 _imageLock 보호 dispose+null 재사용
+
+                InspectionSequence shotSeq = shot.Parent as InspectionSequence;
+                if (shotSeq == null) continue;
+                for (int i = 0; i < shotSeq.ActionCount; i++) {
+                    ActionBase act = shotSeq.GetAction(i);
+                    if (act != null && ReferenceEquals(act.Param, shot)) {
+                        if (act.Context != null && act.Context.ResultHalconImage != null) {
+                            act.Context.ResultHalconImage.Dispose();
+                            act.Context.ResultHalconImage = null;
+                        }
+                        break; // SHOT 당 Action 1개 (1:1)
+                    }
+                }
+            }
+
+            // 일괄검사는 단일 시퀀스 내 SHOT만 허용(Btn_batchInspect_Click 검증) — shots[0]의 소속 시퀀스로 충분.
+            InspectionSequence batchSeq = shots[0].Parent as InspectionSequence;
+            if (batchSeq != null) {
+                batchSeq.ClearCrossZImagesAfterBatchCycle();
+            }
+        }
+
+        // quick-260806-dsn Part B: 현재 트리에서 선택된 노드(SelectedParam)가 속한 ShotConfig를 역추적한다.
+        //  MainView.GetCurrentShotContext()와 동일 목적이나 그 메서드는 private이라 직접 참조할 수 없어
+        //  _batchShots 스코프 내에서 자체 해석한다(측정 노드는 이 배치에 속한 SHOT 안에서만 검색하면 충분).
+        private ShotConfig ResolveCurrentlyDisplayedShot() {
+            ParamBase sel = SelectedParam;
+            if (sel == null) return null;
+            if (sel is ShotConfig shotSel) return shotSel;
+            if (sel is FAIConfig faiSel) return faiSel.Owner as ShotConfig;
+            if (sel is MeasurementBase measSel && _batchShots != null) {
+                foreach (ShotConfig shot in _batchShots) {
+                    if (shot == null || shot.FAIList == null) continue;
+                    foreach (FAIConfig fai in shot.FAIList) {
+                        if (fai.Measurements != null && fai.Measurements.Contains(measSel)) return shot;
+                    }
+                }
+            }
+            return null;
         }
 
         //260616 hbk Phase 51 BATCH-01: 누적분 수동 엑셀 Export (D-05/D-06 Phase 40 포맷 재사용)

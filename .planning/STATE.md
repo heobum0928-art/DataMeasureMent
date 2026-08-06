@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 71-02-PLAN.md (조명 자동 소등 훅)
-last_updated: "2026-08-06T13:09:56.147Z"
+stopped_at: Completed 71-03-PLAN.md (UAT-A/UAT-B PASS)
+last_updated: "2026-08-06T13:39:59.778Z"
 last_activity: 2026-08-06
 progress:
   total_phases: 15
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 71-prep-op-plc-off-p-f — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Last activity: 2026-08-06
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
@@ -253,6 +253,7 @@ Last activity: 2026-08-06
 | Phase 68 P12 | 15min | 3 tasks | 4 files |
 | Phase 71-prep-op-plc-off-p-f P01 | 6min | 2 tasks | 3 files |
 | Phase 71-prep-op-plc-off-p-f P02 | 4min | 2 tasks | 1 files |
+| Phase 71-prep-op-plc-off-p-f P03 | 27min | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -507,6 +508,7 @@ Recent decisions affecting current work:
 - TurnOffPrepLights() 는 호출자 0개인 채로 삭제하지 않고 유지 — CONTEXT.md locked decision, 71-02 가 InspectionSequence 쪽에 별도 소등 훅 추가 예정
 - 71-02: TryTurnOffLightsOnCycleEnd 를 판정 함수(ApplyCycleJudgement/TryApplyCrossZDatumImmediateFail/BuildDatumShotResponse) 바깥 단일 헬퍼로 두고 IsBuffer==false 게이트 재사용 — 새 상태 플래그 없이 3개 종료 경로 전부 커버
 - 71-02: HandleDatumIndexResponse 에 두 번째 훅 필수 — Index 0 Datum 즉시 F 는 BuildScopedResponse 를 거치지 않는 별도 종료 경로(CONTEXT.md 지목 누락위험)
+- D-71-03: PcRole 1->2 임시 변경(운영데이터, Setting.ini, 코드 아님)으로 UAT-B 진행 - 원복 여부는 사용자 결정 대기
 
 ### Quick Tasks Completed
 
@@ -608,7 +610,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-None yet.
+- T-71-21 미검증: A-5 N/A(실 PLC 미연결) - 핸들러 펌웨어가 3필드 $PREP_ACK 파서로 갱신됐는지 미확인. 배포 타이밍 제어팀(김민우 선임) 조율 필요
 
 ## Deferred Items
 
@@ -692,9 +694,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-08-06T13:09:56.133Z
-Stopped at: Completed 71-02-PLAN.md (조명 자동 소등 훅)
-Resume file: 71-03-PLAN.md
+Last session: 2026-08-06T13:39:59.764Z
+Stopped at: Completed 71-03-PLAN.md (UAT-A/UAT-B PASS)
+Resume file: 71-04-PLAN.md
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 
 **v1.1 Phase Map:**

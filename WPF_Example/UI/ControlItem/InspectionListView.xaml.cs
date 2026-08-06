@@ -34,6 +34,15 @@ namespace ReringProject.UI {
         //260617 hbk Quick 260617-cq2: 일괄 검사 완료 시 결과 그리드에 펼쳐 표시할 체크 SHOT 목록
         private List<ShotConfig> _batchShots;
 
+        // quick-260806-dsn-2: 사이클 종료 시점에 저장 큐가 아직 파일을 다 쓰지 못해 즉시 정리를 skip한 SHOT의
+        //  재시도 대기열. DispatcherTimer(UI 스레드)가 이 목록을 몇 초 간격으로 재확인한다.
+        private List<ShotConfig> _pendingImageCleanup = new List<ShotConfig>();
+        // SHOT별 재시도 횟수 — 저장이 영구 실패(디스크 오류 등)해도 무한 재시도하지 않도록 상한 판단에 사용.
+        private Dictionary<ShotConfig, int> _pendingImageCleanupRetryCount = new Dictionary<ShotConfig, int>();
+        private DispatcherTimer _pendingImageCleanupTimer;
+        private const int PENDING_CLEANUP_INTERVAL_SECONDS = 5;
+        private const int PENDING_CLEANUP_MAX_RETRY_TICKS = 24; // 5초 x 24회 = 2분 — 이 이상 안 비워지면 조용히 포기
+
         // 자동 속성(set;/get;)은 INotifyPropertyChanged 미발동 → SelectedObject null 후 재할당으로 강제 재렌더
         public void RefreshParamEditor() {
             if (ParamEditor == null) return;
@@ -619,11 +628,11 @@ namespace ReringProject.UI {
             }));
         }
 
-        // quick-260806-dsn Part B: 사이클 완료 후 메모리 정리. 현재 트리 선택(SelectedParam)이 가리키는 SHOT은
-        //  제외하고, 각 SHOT의 이미지 캐시(ShotConfig._image)와 대응 Action의 표시용 클론
-        //  (ActionContext.ResultHalconImage)을 Dispose한다. 재클릭 시 재현할 디스크 폴백
-        //  (ShotConfig.ResolveFallbackImagePath)이 없는 SHOT은 정리를 건너뛴다 — 메모리 절감보다 빈 화면 회귀
-        //  방지가 우선(사용자 확인 요구사항). 크로스-Z 저장소도 같은 시점에 함께 정리한다.
+        // quick-260806-dsn Part B / quick-260806-dsn-2: 사이클 완료 후 메모리 정리. 현재 트리 선택
+        //  (SelectedParam)이 가리키는 SHOT은 제외하고, 폴백 파일이 이미 존재하는 SHOT은 즉시 정리한다(배치
+        //  앞쪽 SHOT — 무변경, 기존과 동일하게 동작). 폴백이 아직 없는 SHOT(배치 뒤쪽 — 저장 큐가 못 따라간
+        //  것뿐)은 여기서 버리지 않고 재시도 대기열로 넘긴다(quick-260806-dsn-2, 확정 원인 수정).
+        //  크로스-Z 저장소는 파일 폴백 대상이 아니므로(재현 판단 불필요) 이 시점에 곧바로 정리한다.
         //  단일 RUN(Btn_start_Click)이나 사이클 도중에는 이 메서드가 호출되지 않는다(OnBatchComplete 전용 경로).
         //  동시 접근 안전성: 이 시점에 사이클을 실행한 시퀀스 스레드는 이 델리게이트가 반환할 때까지
         //  Dispatcher.Invoke 안에서 동기적으로 블로킹되어 있다(BatchRunService.HandleFinish → OnBatchComplete
@@ -639,28 +648,124 @@ namespace ReringProject.UI {
                 if (ReferenceEquals(shot, currentShot)) continue; // 현재 표시 중인 노드는 보존
 
                 string fallbackPath = shot.ResolveFallbackImagePath();
-                if (string.IsNullOrEmpty(fallbackPath)) continue; // 재현 불가 SHOT은 정리 skip(회귀 방지 우선)
-
-                shot.ClearImage(); // ShotConfig.cs 기존 _imageLock 보호 dispose+null 재사용
-
-                InspectionSequence shotSeq = shot.Parent as InspectionSequence;
-                if (shotSeq == null) continue;
-                for (int i = 0; i < shotSeq.ActionCount; i++) {
-                    ActionBase act = shotSeq.GetAction(i);
-                    if (act != null && ReferenceEquals(act.Param, shot)) {
-                        if (act.Context != null && act.Context.ResultHalconImage != null) {
-                            act.Context.ResultHalconImage.Dispose();
-                            act.Context.ResultHalconImage = null;
-                        }
-                        break; // SHOT 당 Action 1개 (1:1)
+                if (string.IsNullOrEmpty(fallbackPath)) {
+                    // quick-260806-dsn-2: 폴백이 아직 없다 — 저장 큐가 이 SHOT의 파일을 못 따라간 것뿐이므로
+                    //  버리지 않고 재시도 대기열에 넣는다(이미 있으면 중복 추가하지 않는다).
+                    if (!_pendingImageCleanup.Contains(shot)) {
+                        _pendingImageCleanup.Add(shot);
                     }
+                    continue;
                 }
+
+                // quick-260806-dsn-2: 지난 사이클부터 재시도 대기 중이던 SHOT이 이번엔 즉시 성공한 경우를 대비해
+                //  대기열/재시도 카운트에서도 제거한다(다음 타이머 틱에서 같은 SHOT을 중복 처리하지 않도록 — 새
+                //  배치 사이클이 이전 사이클의 대기열 항목과 같은 SHOT 객체를 재사용하는 경우의 상호작용 대비).
+                _pendingImageCleanup.Remove(shot);
+                _pendingImageCleanupRetryCount.Remove(shot);
+                ClearShotImageCache(shot);
+            }
+
+            if (_pendingImageCleanup.Count > 0) {
+                EnsurePendingImageCleanupTimer();
+                _pendingImageCleanupTimer.Start(); // 이미 실행 중이면 WPF 특성상 안전한 no-op(간격 재시작 아님)
             }
 
             // 일괄검사는 단일 시퀀스 내 SHOT만 허용(Btn_batchInspect_Click 검증) — shots[0]의 소속 시퀀스로 충분.
             InspectionSequence batchSeq = shots[0].Parent as InspectionSequence;
             if (batchSeq != null) {
                 batchSeq.ClearCrossZImagesAfterBatchCycle();
+            }
+        }
+
+        // quick-260806-dsn-2: 즉시 정리 경로와 재시도 경로가 공유하는 단일 SHOT 정리 로직.
+        //  기존 534c742 커밋의 로직을 그대로 옮긴 것 — 동작 변경 없음, 중복 구현 방지 목적으로만 분리.
+        private void ClearShotImageCache(ShotConfig shot) {
+            shot.ClearImage(); // ShotConfig.cs 기존 _imageLock 보호 dispose+null 재사용
+
+            InspectionSequence shotSeq = shot.Parent as InspectionSequence;
+            if (shotSeq == null) return;
+            for (int i = 0; i < shotSeq.ActionCount; i++) {
+                ActionBase act = shotSeq.GetAction(i);
+                if (act != null && ReferenceEquals(act.Param, shot)) {
+                    if (act.Context != null && act.Context.ResultHalconImage != null) {
+                        act.Context.ResultHalconImage.Dispose();
+                        act.Context.ResultHalconImage = null;
+                    }
+                    break; // SHOT 당 Action 1개 (1:1)
+                }
+            }
+        }
+
+        // quick-260806-dsn-2: 대기열에 재시도 대상이 처음 생겼을 때만 타이머 인스턴스를 만든다(지연 생성).
+        private void EnsurePendingImageCleanupTimer() {
+            if (_pendingImageCleanupTimer != null) return;
+            _pendingImageCleanupTimer = new DispatcherTimer();
+            _pendingImageCleanupTimer.Interval = TimeSpan.FromSeconds(PENDING_CLEANUP_INTERVAL_SECONDS);
+            _pendingImageCleanupTimer.Tick += PendingImageCleanupTimer_Tick;
+        }
+
+        // quick-260806-dsn-2: 재시도 루프 본체. DispatcherTimer는 WPF Dispatcher 큐를 통해 항상 UI 스레드에서만
+        //  Tick 이 실행되도록 보장되므로(공식 WPF 설계), CleanupBatchImageMemoryAfterCycle(역시 UI 스레드,
+        //  Dispatcher.Invoke 콜백)과 동일 스레드 친화적이라 이 메서드와 그 메서드 사이에는 별도 락이 불필요하다.
+        //  단, "새 배치 사이클이 이 SHOT을 실제로 재실행 중"인 레이스만은 남는다 — 재실행 중인 SHOT의 시퀀스는
+        //  EContextState.Running 이므로, 이 상태인 동안은 정리를 건너뛰고 다음 틱에서 다시 확인한다
+        //  (시퀀스 스레드가 ActionContext.ResultHalconImage 를 그 순간 쓰고 있을 수 있어 안전하지 않기 때문 —
+        //  재시도 횟수도 이 경우엔 소모하지 않는다).
+        private void PendingImageCleanupTimer_Tick(object sender, EventArgs e) {
+            if (_pendingImageCleanup.Count == 0) {
+                _pendingImageCleanupTimer.Stop();
+                return;
+            }
+
+            ShotConfig currentShot = ResolveCurrentlyDisplayedShot(); // 매 틱 재조회 — 사이클 종료 시점 값을 재사용하지 않는다
+
+            var stillPending = new List<ShotConfig>();
+            foreach (ShotConfig shot in _pendingImageCleanup) {
+                if (shot == null) continue;
+
+                if (ReferenceEquals(shot, currentShot)) {
+                    // 지금 사용자가 보고 있는 SHOT — 정리하지 않고 대기열에서 제거(더 이상 재시도 불필요)
+                    _pendingImageCleanupRetryCount.Remove(shot);
+                    continue;
+                }
+
+                InspectionSequence shotSeq = shot.Parent as InspectionSequence;
+                if (shotSeq != null && shotSeq.State == EContextState.Running) {
+                    // 이 SHOT이 속한 시퀀스가 지금 재실행 중 — ResultHalconImage 를 그 순간 쓰고 있을 수 있어
+                    //  건드리지 않고 다음 틱까지 그대로 대기열에 남긴다(재시도 횟수도 소모하지 않음).
+                    stillPending.Add(shot);
+                    continue;
+                }
+
+                string fallbackPath = shot.ResolveFallbackImagePath();
+                if (!string.IsNullOrEmpty(fallbackPath)) {
+                    ClearShotImageCache(shot);
+                    _pendingImageCleanupRetryCount.Remove(shot);
+                    Logging.PrintLog((int)ELogType.Trace, string.Format(
+                        "[BatchImageCleanup] 재시도 성공: shot={0}", shot.ShotName));
+                    continue;
+                }
+
+                int nRetryCount;
+                if (!_pendingImageCleanupRetryCount.TryGetValue(shot, out nRetryCount)) {
+                    nRetryCount = 0;
+                }
+                nRetryCount++;
+                if (nRetryCount >= PENDING_CLEANUP_MAX_RETRY_TICKS) {
+                    // 영구 실패로 간주 — 조용히 포기한다(메모리 절감 실패를 감수, 예외/사용자 알림 없음).
+                    _pendingImageCleanupRetryCount.Remove(shot);
+                    Logging.PrintLog((int)ELogType.Trace, string.Format(
+                        "[BatchImageCleanup] 재시도 포기(상한 {0}회 도달): shot={1}", PENDING_CLEANUP_MAX_RETRY_TICKS, shot.ShotName));
+                    continue;
+                }
+
+                _pendingImageCleanupRetryCount[shot] = nRetryCount;
+                stillPending.Add(shot);
+            }
+
+            _pendingImageCleanup = stillPending;
+            if (_pendingImageCleanup.Count == 0) {
+                _pendingImageCleanupTimer.Stop();
             }
         }
 

@@ -39,7 +39,15 @@
 
 ### Claude's Discretion
 - 기존 `$PREP:site,z_index,Op@`(3필드, 구 클라이언트) 요청이 왔을 때: 파서가 3번째 필드를 완전히 무시하고 앞 2필드만 보게 할지, 필드 개수 불일치로 파싱 실패시킬지 — planner가 하위호환 범위를 판단해 결정(완료 기준에 명시된 확인 항목).
-- 프로토콜 문서(디팜스테크_Vision_Protocol_vX.X.xlsx)의 정확한 파일 경로/시트/행 위치는 planner가 리포지토리에서 확인.
+
+### 확정: 프로토콜 문서는 이미 목표 상태로 갱신되어 있음 (2026-08-06, 사용자 제공)
+**정확한 경로**: `Z:\DOC_EXPORT\2026-08-06[17.51.59]\디팜스테크_Vision_Protocol_v1.3.xlsx` (패턴매퍼가 추측한 `C:\Info\Doc\2.디팜스테크\...` 경로는 틀림 — 무시할 것).
+
+사용자가 이 문서의 PREP/PREP_ACK 행 스크린샷을 직접 제공, 내용이 이 CONTEXT.md의 목표 상태와 완전히 일치함을 확인:
+- `PREP ★`: 필드 `$PREP:site,z_index@` / 설명: "site: PC 번호(PC1=1,PC2=2), z_index: Z축 인덱스(0,1,2...) 0=Datum 샷" / 응답 `$PREP_ACK:site,z_index,OK@` 또는 `$PREP_ACK:site,z_index,FAIL@` / 비고: "비전이 z_index 맞는 조명 자동 선정 / ACK = 조명 안정/촬영 준비 완료 신호 / HW 트리거 전환 시에도 PREP 유지(트리거만 교체)" / 예시: `[조명 ON] $PREP:1,0@ → $PREP_ACK:1,0,OK@`, `[조명 OFF] $PREP:1,0@ → $PREP_ACK:1,0,OK@` (ON/OFF 예시가 동일 메시지 형태 — Op 필드가 없으므로 당연함).
+- `PREP_ACK`: 필드 `$PREP_ACK:site,z_index,OK@` / `$PREP_ACK:site,z_index,FAIL@` / 설명: "z_index: Echo, OK: 조명 점등/소등 완료, FAIL: 해당 z_index Shot 없음 등" / 트리거: "$PREP 수신 후" / 비고: "ACK = 촬영/소등 완료 확인(HW 트리거 준비)"
+
+**결론(locked)**: 이 xlsx 파일 자체는 이미 목표 상태 — planner는 이 문서를 "편집"하는 태스크를 만들 필요 없다. 대신 이 문서를 코드 변경의 **근거/검증 기준**으로 참조만 하면 된다(코드가 이 문서와 일치하는지 확인하는 용도). 문서 편집이 실제로 필요한지(예: 리포지토리 내 다른 사본이 구버전으로 남아있는지)는 발견되면 planner가 별도로 플래그.
 
 </decisions>
 
@@ -68,7 +76,8 @@
 <canonical_refs>
 ## Canonical References
 
-No external specs beyond the protocol Excel doc referenced above (planner should locate it in the repo — see "완료 기준" for the update requirement). Requirements fully captured in decisions above.
+### 프로토콜 사양 (검증 기준)
+- `Z:\DOC_EXPORT\2026-08-06[17.51.59]\디팜스테크_Vision_Protocol_v1.3.xlsx` — PREP/PREP_ACK 행이 이미 목표 상태(Op 없음)로 갱신되어 있음. 코드 변경의 정답지로 사용할 것.
 
 </canonical_refs>
 

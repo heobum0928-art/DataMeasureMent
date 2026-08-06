@@ -782,8 +782,9 @@ namespace ReringProject {
         }
 
         //260625 hbk Phase 64 LIGHT-01 (D-12): $PREP 처리.
-        //260626 hbk v3.0: Op 분기 — 1=ON(z_index 샷 조명 점등) / 0=OFF(사이클 종료 소등). $LIGHT 폐기 대체.
-        //  HW 트리거 전환 대비: 조명 ON/OFF 가 $PREP(준비 단계)에 통합 → $TEST(트리거)는 조명 무관.
+        //260806 hbk Phase 71: Op 필드 폐기 — $PREP 는 항상 "이 z_index 조명 점등" 단일 의미.
+        //  소등은 PLC 요청이 아니라 사이클 P/F 확정 시 InspectionSequence 가 자동 수행(71-02, TryTurnOffLightsOnCycleEnd).
+        //  HW 트리거 전환 대비: 조명 점등이 $PREP(준비 단계)에 통합 → $TEST(트리거)는 조명 무관.
         //  Site 필드는 ACK 에 echo만 함. 실제 시퀀스 라우팅은 이 PC 소속 InspectionSequence 전부 대상.
         private PrepAckPacket ProcessPrep(PrepPacket packet)
         {
@@ -796,26 +797,13 @@ namespace ReringProject {
             ackPacket.Target = packet.Sender;
             ackPacket.Site = packet.Site;
             ackPacket.ZIndex = packet.ZIndex;
-            ackPacket.Op = packet.Op;          //260626 hbk Op echo (1=ON / 0=OFF)
             ackPacket.IsOk = false; // 기본값 FAIL — 성공 시 true 로 덮어씀
 
-            bool bIsOn = packet.Op != 0;       //260626 hbk Op!=0 → ON (미수신 기본 1=ON)
-            if (bIsOn)
+            _lastPrepZIndex = packet.ZIndex; //260626 hbk z_index 저장 → ProcessTest 주입용
+            bool bApplied = ApplyPrepToSequences(packet.ZIndex);
+            if (bApplied)
             {
-                _lastPrepZIndex = packet.ZIndex; //260626 hbk ON 일 때만 z_index 저장 → ProcessTest 주입용
-                bool bApplied = ApplyPrepToSequences(packet.ZIndex);
-                if (bApplied)
-                {
-                    ackPacket.IsOk = true;
-                }
-            }
-            else
-            {
-                bool bOff = TurnOffPrepLights(); //260626 hbk Op==0 → 전 시퀀스 소등
-                if (bOff)
-                {
-                    ackPacket.IsOk = true;
-                }
+                ackPacket.IsOk = true;
             }
             return ackPacket;
         }
@@ -838,7 +826,6 @@ namespace ReringProject {
 
             PrepPacket prepPacket = new PrepPacket();
             prepPacket.ZIndex = zIndex;
-            prepPacket.Op = 1;
             PrepAckPacket ack = ProcessPrep(prepPacket);
 
             bool bPrepOk = ack != null && ack.IsOk;
@@ -883,8 +870,10 @@ namespace ReringProject {
             return bAnyApplied;
         }
 
-        //260626 hbk v3.0: $PREP Op==0(사이클 종료 OFF) 처리 — 전 InspectionSequence 소등.
-        //  하나라도 InspectionSequence 가 있으면 true(소등 ACK). $LIGHT OFF 대체.
+        //260626 hbk v3.0: 전 InspectionSequence 소등 헬퍼(하나라도 있으면 true).
+        //260806 hbk Phase 71: $PREP Op 폐기로 현재 호출자 없음 — CONTEXT locked decision 에 따라 삭제하지 않고 유지한다.
+        //  소등 주체가 "PLC 의 명시 요청" → "사이클 P/F 확정 시 자동"(InspectionSequence.TryTurnOffLightsOnCycleEnd, 71-02)으로 이동했을 뿐이며,
+        //  향후 "PC 단위 전 시퀀스 강제 소등"(예: 비상정지/레시피 전환)이 필요해지면 이 헬퍼를 그대로 재사용한다.
         private bool TurnOffPrepLights()
         {
             bool bAnyOff = false;

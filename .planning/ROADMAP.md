@@ -1003,10 +1003,13 @@ Plans:
 **Requirements**: PROTO-PREP-01 (임시 라벨 — discuss-phase 이후 REQUIREMENTS.md 정식 등록 여부는 사용자 결정)
 **Depends on:** 없음 (독립적인 프로토콜/조명 변경, 다른 진행 중 Phase와 무관하게 병행 가능)
 **Background:** 사용자가 이미 파일/라인 레벨로 상세 스펙 제공(discuss급 상세도) — `ApplyShotLightsInternal`(`InspectionSequence.cs:650`)이 매 호출마다 모든 채널을 선언적으로 완전 재적용하기 때문에 Op=1(ON)은 사실상 항상 필요하고, Op=0(OFF)은 "사이클 완전 종료 후 전부 소등"이라는 측정 정확도와 무관한 별도 목적(LED 수명/안전)으로만 쓰인다. 변경 대상 5곳: `VisionRequestPacket.TryParsePrepFields`(:415-439, 3필드→2필드), `PrepPacket.Op`(제거), `SystemHandler.ProcessPrep`(:788-821, ON/OFF 분기 제거), `VisionResponsePacket.BuildPrepAckMessage`(:438-459, Op echo 제거), `PrepAckPacket.Op`(제거). 조명 자동소등은 `TurnOffPrepLights`/`InspectionSequence.TurnOffShotLights` 메서드 재사용(삭제 금지), 호출 시점만 이동 — 사이클 종료 경로가 2곳(`ApplyCycleJudgement`의 정상 종료 :1591-1612, `TryApplyCrossZDatumImmediateFail`의 Datum 즉시실패 조기종료 :1393-1424)이라 개별 수정보다 `BuildScopedResponse`(:1338~)에서 두 호출 후 `packet.IsBuffer==false` 단일 지점 체크 권장(누락 위험 최소화). 하위호환(구 3필드 요청 처리 방식)과 프로토콜 엑셀 문서 갱신도 스코프에 포함. 비목표: `$PREP`/`$TEST` 통합(HW 트리거 호환성 때문에 별도 논의 후 기각됨), 조명 안정화 대기(ACK 타이밍) 로직 무수정.
-**Plans:** 0 plans
+**Plans:** 4 plans (3 waves)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 71 to break down)
+- [ ] 71-01-PLAN.md — $PREP wire 포맷에서 Op 필드 완전 제거 (파서 2필드화 + ACK Op echo 제거 + ProcessPrep 단일 경로) [wave 1]
+- [ ] 71-02-PLAN.md — 사이클 P/F 확정 시 조명 자동소등 훅 (종료 경로 2곳: BuildScopedResponse + HandleDatumIndexResponse) [wave 1]
+- [ ] 71-03-PLAN.md — 통합 빌드 + 정적 전수검증 + UAT-A/B (프로토콜 wire 하위호환 / z_index 다중전환 회귀 0) [wave 2]
+- [ ] 71-04-PLAN.md — UAT-C/D/E (정상 P 소등 / NG 누적 F 소등 / Datum 즉시실패 F 소등) [wave 3]
 
 ---
 

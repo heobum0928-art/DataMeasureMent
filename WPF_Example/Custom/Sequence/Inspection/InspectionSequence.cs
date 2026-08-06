@@ -1743,7 +1743,8 @@ namespace ReringProject.Sequence {
             if (string.IsNullOrEmpty(name)) datumName = $"Datum_{DatumConfigs.Count + 1}";
             else datumName = name;
             var datum = new DatumConfig(this);
-            datum.DatumName = datumName;
+            // quick-260806-nrm: 세터를 쓰면 초기값 "Datum_1" → 지정이름 변경이 개명으로 오인돼 1번 Datum 의 모델 파일을 옮겨간다.
+            datum.InitializeDatumName(datumName);
             DatumConfigs.Add(datum);
             return datum;
         }

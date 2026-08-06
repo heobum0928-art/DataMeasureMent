@@ -15,13 +15,93 @@ namespace ReringProject.Sequence {
 
         // INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
         private string _datumName = "Datum_1";
+
+        // quick-260806-nrm: 모델 파일 리네임을 '사용자의 PropertyGrid 개명' 에서만 발동시키기 위한 억제 플래그.
+        //  INI 로드/신규추가 경로도 리플렉션·대입으로 이 세터를 때리는데, 거기서 리네임이 돌면
+        //  초기값 "Datum_1" 기준 경로를 옮겨버려 멀쩡한 1번 Datum 의 모델을 훔쳐간다.
+        //  단일 인스턴스 안에서 UI 스레드로만 켜고 끄므로 별도 동기화는 두지 않는다.
+        private bool _suppressModelRename;
+
+        // quick-260806-nrm: 이름이 바뀌면 패턴 모델 파일(.shm/.ncm, _2 페어 포함)도 새 이름 경로로 따라 옮긴다.
+        //  모델 경로는 저장되지 않고 DatumName 에서 매번 재계산되므로(ResolveDatumModelPath), 이름만 바꾸면
+        //  디스크 파일은 옛 이름에 남아 ReadShapeModel 이 조용히 실패 → MarkAlignFailed(모달 없음) → 전항목 Fail 이 된다.
+        //  2026-07-10 티칭감사 carry-over #1(모델파일 고아) 해소.
         [Category("Datum|Identity")]
         public string DatumName {
             get { return _datumName; }
             set {
                 if (_datumName == value) return;
+                string oldName = _datumName;
+                // 리졸버가 _datumName 을 live 로 읽으므로 옛 경로는 반드시 대입 '전에' 확보해야 한다.
+                string oldPath1 = null;
+                string oldPath2 = null;
+                bool shouldRename = false;
+                if (!_suppressModelRename && !string.IsNullOrEmpty(oldName) && !string.IsNullOrEmpty(value)) {
+                    shouldRename = true;
+                    oldPath1 = TryResolveModelPathQuiet(false);
+                    oldPath2 = TryResolveModelPathQuiet(true);
+                }
                 _datumName = value;
+                if (shouldRename) {
+                    string newPath1 = TryResolveModelPathQuiet(false);
+                    string newPath2 = TryResolveModelPathQuiet(true);
+                    MoveModelFileIfPresent(oldPath1, newPath1, oldName, value);
+                    MoveModelFileIfPresent(oldPath2, newPath2, oldName, value);
+                }
                 RaisePropertyChanged(nameof(DatumName));
+            }
+        }
+
+        // quick-260806-nrm: 신규 Datum 생성 시 초기 이름 주입 전용(AddDatum). 세터를 우회해 리네임을 발동시키지 않는다.
+        //  새 객체의 초기값 "Datum_1" 에서 지정 이름으로 바뀌는 것뿐인데, 그걸 개명으로 오인하면
+        //  실제 1번 Datum 이 티칭해 둔 모델 파일을 빼앗아 간다.
+        public void InitializeDatumName(string name) {
+            _datumName = name;
+            RaisePropertyChanged(nameof(DatumName));
+        }
+
+        // quick-260806-nrm: 경로 계산은 SystemHandler 싱글턴(레시피명/Shots)에 의존한다. 앱 초기화 이전이나
+        //  레시피 미로드 시점에 불리면 NullReference 가 날 수 있으므로 삼키고 null 을 돌려준다 — 리네임만 포기하고
+        //  이름 변경 자체는 그대로 성립시킨다.
+        //  오버로드는 반드시 (datum, OwnerName) 2-arg 를 쓴다. 1-arg 는 SourceShotName 미매칭 시 전역 Shots[0] 로
+        //  폴백해 티칭이 실제로 쓴 폴더와 다른 경로를 만든다(260723 quick-fix 가 고친 결함).
+        private string TryResolveModelPathQuiet(bool isSecondPattern) {
+            try {
+                if (isSecondPattern) return InspectionSequence.ResolveDatumModelPath2(this, OwnerName);
+                return InspectionSequence.ResolveDatumModelPath(this, OwnerName);
+            }
+            catch {
+                return null;
+            }
+        }
+
+        // quick-260806-nrm: 옛 경로 파일이 있으면 새 경로로 옮긴다. 판정표:
+        //   경로 계산 실패(null/빈값) → skip
+        //   옛 == 새             → skip (엔진/폴더가 같고 이름만 대소문자 차이 등)
+        //   옛 파일 없음          → 조용히 skip. 티칭 전 Datum 의 정상 케이스라 오류가 아니다.
+        //   새 경로에 파일 존재    → 덮어쓰지 않고 Error 로그. 다른 Datum 의 모델을 조용히 파괴하면 안 된다.
+        //   그 외 예외(잠김/권한)  → Error 로그만. 이름 변경을 되돌리지 않는다 — 사용자는 이름을 바꿀 수 있어야 하고,
+        //                          로그로 "재티칭 필요" 를 알면 된다.
+        private static void MoveModelFileIfPresent(string oldPath, string newPath, string oldName, string newName) {
+            if (string.IsNullOrEmpty(oldPath)) return;
+            if (string.IsNullOrEmpty(newPath)) return;
+            if (string.Equals(oldPath, newPath, System.StringComparison.OrdinalIgnoreCase)) return;
+            try {
+                if (!System.IO.File.Exists(oldPath)) return;
+                if (System.IO.File.Exists(newPath)) {
+                    Logging.PrintErrLog((int)ReringProject.Setting.ELogType.Error,
+                        "[DatumRename] 대상 경로에 파일이 이미 있어 모델 파일을 옮기지 않았다(덮어쓰기 금지). '"
+                        + oldName + "' -> '" + newName + "' : " + newPath);
+                    return;
+                }
+                System.IO.File.Move(oldPath, newPath);
+                Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
+                    "[DatumRename] 패턴 모델 파일 이동 완료. '" + oldName + "' -> '" + newName + "' : " + newPath);
+            }
+            catch (System.Exception ex) {
+                Logging.PrintErrLog((int)ReringProject.Setting.ELogType.Error,
+                    "[DatumRename] 모델 파일 이동 실패 — 해당 Datum 재티칭 필요. '"
+                    + oldName + "' -> '" + newName + "' : " + ex.Message);
             }
         }
 
@@ -1071,7 +1151,16 @@ namespace ReringProject.Sequence {
         //  EnsurePerRoiDefaults() 는 find-time 훅이라 로드 시점 0/미설정 구분이 불가해 이 Load override 를 신설한다
         //  (MeasurementBase.Load/CameraSlaveParam.Load 의 ContainsKey 가드와 동일 패턴).
         public override bool Load(IniFile loadFile, string groupName) {
-            bool result = base.Load(loadFile, groupName);
+            // quick-260806-nrm: base.Load 는 리플렉션 SetValue 로 DatumName 세터를 때린다(초기값 "Datum_1" → 저장된 이름).
+            //  이 구간에서 리네임이 돌면 다른 Datum 의 모델 파일을 옮겨버리므로 반드시 끈다.
+            bool result;
+            _suppressModelRename = true;
+            try {
+                result = base.Load(loadFile, groupName);
+            }
+            finally {
+                _suppressModelRename = false;
+            }
             IniSection sec;
             if (!loadFile.TryGetSection(groupName, out sec) || sec == null) {
                 ZIndexA = -1;

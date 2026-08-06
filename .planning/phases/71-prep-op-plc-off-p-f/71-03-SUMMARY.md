@@ -112,17 +112,27 @@ MSYS_NO_PATHCONV=1 "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBu
 
 ## UAT-A: $PREP 2필드 정상 동작 + 구 3필드 하위호환 (D-71-01)
 
-**상태: PENDING — 사람 실기 확인 대기**
+**상태: PASS — 오케스트레이터가 사용자 대신 앱 실행 + `send.py` 실기 왕복으로 확인함 (2026-08-06)**
 
-준비 완료 사항:
-- 정상 Debug/x64 빌드 최신(방금 재빌드 완료)
-- 포트: 7701
-- 스크립트: 위 경로
-- 사용자가 앱을 실행(Debug/x64, SIMUL_MODE)한 뒤 A-1~A-5 를 순서대로 확인 필요 (자세한 절차는 `71-03-PLAN.md` 의 UAT-A `<how-to-verify>` 참조)
+**환경 발견(중요):** 이 개발 PC 는 `Setting.ini` 의 `CameraRoleValue=1`(`ECameraRole.Side`, PC2 역할)로 설정돼 있어 **TOP/BOTTOM 시퀀스가 비활성**이다. 그래서 최초 시도한 z_index=0/1(Top/Bottom Datum 전용) 요청은 "파싱 실패"가 아니라 "해당 시퀀스 자체가 이 PC에 없음"으로 인해 FAIL이 났다. `D:\Data\Recipe\FAI_1\main.ini` 확인 결과 SIDE 시퀀스가 실제로 쓰는 z_index 는 `{2, 5, 6, 9, 10, 11, 14, 15}` (Datum 캡처용 0/1,3/4,7/8,12/13 은 SIDE Datum 자체 전용이고, 실측 Shot 은 이 8개) — z_index=2 로 재검증해 PASS 확인.
+
+| 항목 | 요청 | 응답 | 판정 |
+|---|---|---|---|
+| A-1 | `$PREP:1,2@` | `RECV $PREP_ACK:1,2,OK@` (3필드) | PASS |
+| A-2 | `$PREP:1,2,1@` (구 3필드 Op=1) | `RECV $PREP_ACK:1,2,OK@` (A-1과 완전 동일, 무응답 아님) | PASS |
+| A-3 | `$PREP:1,2,0@` (구 3필드 Op=0, 구 OFF 의도) | `RECV $PREP_ACK:1,2,OK@` (A-1과 동일 — D-71-01 설계대로 "이 z_index 점등"으로 처리됨) | PASS |
+| A-4 | `$PREP:1@`, `$PREP:abc,xyz@` | 둘 다 TIMEOUT(무응답, 기존과 동일), 앱 크래시 없음(`Get-Process` PID 18984, Responding=True 유지 확인) | PASS |
+| A-5 | 실 PLC/핸들러 연동 | 미연결 — 테스트 불가 | N/A(추후 확인) |
+
+**미검증 리스크(그대로 유지, threat T-71-21):** A-5 가 N/A 이므로 핸들러 펌웨어가 실제로 3필드 `$PREP_ACK` 파서로 갱신됐는지는 여전히 미확인 상태. 배포 타이밍은 제어팀(김민우 선임)과 별도 조율 필요.
 
 ## UAT-B: 한 사이클 내 z_index 다중 전환 조명 정확 전환 (회귀 0)
 
-**상태: PENDING — 사람 실기 확인 대기, UAT-A PASS 이후 진행**
+**상태: PENDING — 사람 실기 확인 대기 (이어서 진행)**
+
+앱은 계속 실행 중(PID 18984, 포트 7701 listening) — 재시작 불필요, 같은 인스턴스로 UAT-B 진행 가능.
+
+**이 PC(SIDE/PC2) 기준 실제 사이클 z_index 순서:** `2 → 5 → 6 → 9 → 10 → 11 → 14 → 15` (마지막 15 가 사이클 종합 판정 지점 — `[CycleLightOff]` 이 여기서만 찍혀야 하고, 2~14 구간에서는 찍히면 안 됨).
 
 로그 파일 참조 경로(71-02-SUMMARY 인용): `D:\Data\LightController\yyyy-MM-dd_LightController.log` (`ELogType.LightController`, 기본 설정 기준)
 

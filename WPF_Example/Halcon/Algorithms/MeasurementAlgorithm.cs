@@ -184,23 +184,31 @@ namespace ReringProject.Halcon.Algorithms
                 if (string.Equals(roi.EdgeSelection, "Last", StringComparison.OrdinalIgnoreCase)) selection = "last";
                 else if (string.Equals(roi.EdgeSelection, "All", StringComparison.OrdinalIgnoreCase)) selection = "all";
                 else selection = "first";
-                HOperatorSet.MeasurePos(
-                    image,
-                    handle,
-                    Math.Max(0.4, roi.Sigma),
-                    Math.Max(1, roi.EdgeThreshold),
-                    polarity,
-                    selection,
-                    out rows,
-                    out cols,
-                    out amp,
-                    out dist);
-                HOperatorSet.CloseMeasure(handle);
-
-                if (rows.TupleLength() > 0)
+                try
                 {
-                    HOperatorSet.TupleConcat(allRows, rows, out allRows);
-                    HOperatorSet.TupleConcat(allCols, cols, out allCols);
+                    HOperatorSet.MeasurePos(
+                        image,
+                        handle,
+                        Math.Max(0.4, roi.Sigma),
+                        Math.Max(1, roi.EdgeThreshold),
+                        polarity,
+                        selection,
+                        out rows,
+                        out cols,
+                        out amp,
+                        out dist);
+
+                    if (rows.TupleLength() > 0)
+                    {
+                        HOperatorSet.TupleConcat(allRows, rows, out allRows);
+                        HOperatorSet.TupleConcat(allCols, cols, out allCols);
+                    }
+                }
+                finally
+                {
+                    // MeasurePos 예외 시에도 handle 이 반드시 해제되도록 finally 로 이동 (handle 누수 방지).
+                    // VisionAlgorithmService.AppendStrip / FAIEdgeMeasurementService 의 try-finally 패턴과 동일.
+                    HOperatorSet.CloseMeasure(handle);
                 }
             }
 

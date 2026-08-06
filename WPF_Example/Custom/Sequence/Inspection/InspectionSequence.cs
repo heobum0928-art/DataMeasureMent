@@ -708,6 +708,93 @@ namespace ReringProject.Sequence {
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Phase 66: Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
         }
 
+        //260807 hbk quick-260807-cr1 (Phase71 CR-01 리뷰수정): LightHandler 는 PC1 에서 TOP/BOTTOM 두
+        //  InspectionSequence 가 공유하는 process-wide 싱글턴이다. 한 시퀀스가 "내 사이클 끝"만 보고
+        //  TurnOffShotLights()(전 채널 소등)를 부르면, 아직 사이클 중인 형제 시퀀스가 쓰는 채널까지 함께
+        //  꺼진다 — TryTurnOffLightsOnCycleEnd 는 이제 이 메서드를 호출한다. TurnOffShotLights() 자체는
+        //  무수정 보존(TurnOffPrepLights() 등 '전체 강제 소등' 호출자가 남아있음, CONTEXT 결정 유지).
+        //  잔여 위험: 같은 물리 채널을 TOP/BOTTOM 두 시퀀스가 동시에 쓰도록 레시피가 구성되면 이 스코핑으로도
+        //  못 막는다(현재 레시피 구조 — 시퀀스별 독립 스테이션 조명 — 에서는 발생하지 않음, REVIEW.md Option 2 채택).
+        private void TurnOffOwnShotLights()
+        {
+            var usedChannels = new HashSet<string>();
+            CollectOwnShotChannels(usedChannels);
+            CollectOwnDatumChannels(usedChannels);
+            foreach (string channelName in usedChannels)
+            {
+                LightHandler.Handle.SetChannelOnOff(channelName, false);
+            }
+        }
+
+        // TurnOffOwnShotLights 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스가 소유한(IsShotOwnedBySequence) Shot 이
+        //  켜는 채널만 수집. ApplyShotLightsInternal 과 동일한 13채널 매핑을 미러(점등/소등 채널 목록 대칭 유지).
+        private void CollectOwnShotChannels(HashSet<string> channels)
+        {
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                AddChannelIfEnabled(channels, shot.RingLight_Enabled_1, LightHandler.LIGHT_RING_CH1);
+                AddChannelIfEnabled(channels, shot.RingLight_Enabled_2, LightHandler.LIGHT_RING_CH2);
+                AddChannelIfEnabled(channels, shot.RingLight_Enabled_3, LightHandler.LIGHT_RING_CH3);
+                AddChannelIfEnabled(channels, shot.RingLight_Enabled_4, LightHandler.LIGHT_RING_CH4);
+                AddChannelIfEnabled(channels, shot.RingLight_Enabled_5, LightHandler.LIGHT_RING_CH5);
+                AddChannelIfEnabled(channels, shot.RingLight_Enabled_6, LightHandler.LIGHT_RING_CH6);
+                AddChannelIfEnabled(channels, shot.BackLight_Enabled, LightHandler.LIGHT_BACK);
+                AddChannelIfEnabled(channels, shot.CoaxLight_Enabled, LightHandler.LIGHT_ALIGN_COAX);
+                AddChannelIfEnabled(channels, shot.SideLight_Enabled_1, LightHandler.LIGHT_BAR_1);
+                AddChannelIfEnabled(channels, shot.SideLight_Enabled_2, LightHandler.LIGHT_BAR_2);
+                AddChannelIfEnabled(channels, shot.SideLight_Enabled_3, LightHandler.LIGHT_BAR_3);
+                AddChannelIfEnabled(channels, shot.SideLight_Enabled_4, LightHandler.LIGHT_BAR_4);
+                AddChannelIfEnabled(channels, shot.Ring7Light_Enabled, LightHandler.LIGHT_RING7);
+            }
+        }
+
+        // TurnOffOwnShotLights 의 sub-헬퍼 — DatumConfigs 는 InspectionSequence 인스턴스 필드라 이미 이 시퀀스
+        //  소유(별도 OwnerSequenceName 필터 불필요, ApplyDatumLightsInternal 호출부와 동일 전제).
+        private void CollectOwnDatumChannels(HashSet<string> channels)
+        {
+            foreach (var datum in DatumConfigs)
+            {
+                bool bIsNull = datum == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                AddChannelIfEnabled(channels, datum.RingLight_Enabled_1, LightHandler.LIGHT_RING_CH1);
+                AddChannelIfEnabled(channels, datum.RingLight_Enabled_2, LightHandler.LIGHT_RING_CH2);
+                AddChannelIfEnabled(channels, datum.RingLight_Enabled_3, LightHandler.LIGHT_RING_CH3);
+                AddChannelIfEnabled(channels, datum.RingLight_Enabled_4, LightHandler.LIGHT_RING_CH4);
+                AddChannelIfEnabled(channels, datum.RingLight_Enabled_5, LightHandler.LIGHT_RING_CH5);
+                AddChannelIfEnabled(channels, datum.RingLight_Enabled_6, LightHandler.LIGHT_RING_CH6);
+                AddChannelIfEnabled(channels, datum.BackLight_Enabled, LightHandler.LIGHT_BACK);
+                AddChannelIfEnabled(channels, datum.CoaxLight_Enabled, LightHandler.LIGHT_ALIGN_COAX);
+                AddChannelIfEnabled(channels, datum.SideLight_Enabled_1, LightHandler.LIGHT_BAR_1);
+                AddChannelIfEnabled(channels, datum.SideLight_Enabled_2, LightHandler.LIGHT_BAR_2);
+                AddChannelIfEnabled(channels, datum.SideLight_Enabled_3, LightHandler.LIGHT_BAR_3);
+                AddChannelIfEnabled(channels, datum.SideLight_Enabled_4, LightHandler.LIGHT_BAR_4);
+                AddChannelIfEnabled(channels, datum.Ring7Light_Enabled, LightHandler.LIGHT_RING7);
+            }
+        }
+
+        // bEnabled 면 channels 집합에 channelName 추가(HashSet 이라 중복은 자연 제거).
+        private void AddChannelIfEnabled(HashSet<string> channels, bool bEnabled, string channelName)
+        {
+            if (bEnabled)
+            {
+                channels.Add(channelName);
+            }
+        }
+
         //260806 hbk Phase 71: 사이클이 P/F 로 확정되는 순간(IsBuffer==false) 전 조명 소등.
         //  $PREP Op=0(PLC 의 명시적 OFF 요청) 폐기 대체 — 사이클 종료 시점을 아는 주체는 PLC 가 아니라 판정을 내리는 비전이다.
         //  IsBuffer==true(중간 index B 응답)면 다음 z_index 촬영이 남아있으므로 끄지 않는다.
@@ -727,7 +814,7 @@ namespace ReringProject.Sequence {
             {
                 return;
             }
-            TurnOffShotLights();
+            TurnOffOwnShotLights();   //260807 hbk Phase71 CR-01: 전 채널 소등(TurnOffShotLights) 대신 이 시퀀스 채널만 소등 — 형제 시퀀스 간섭 차단
             Logging.PrintLog((int)ELogType.LightController,
                 "[CycleLightOff] Seq={0}, path={1}, z={2}, result={3} //260806 hbk Phase 71", Name, szPath, nZIndex, packet.Result);
         }

@@ -2,8 +2,7 @@
 phase: 71-prep-op-plc-off-p-f
 plan: 03
 subsystem: api
-tags: [tcp-protocol, vision-server, prep-command, integration-uat, wire-format]
-status: PARTIAL — checkpoint reached, awaiting human UAT-A/UAT-B response
+tags: [tcp-protocol, vision-server, prep-command, integration-uat, wire-format, lighting]
 
 # Dependency graph
 requires:
@@ -16,6 +15,8 @@ requires:
 provides:
   - "S1~S12 정적 전수 검증 12항목 전부 PASS (2건 문서화된 grep 오탐 포함, 코드로 직접 재확인)"
   - "통합 Debug/x64 빌드 PASS (71-01+71-02 병합 상태 첫 통합 빌드)"
+  - "UAT-A 실기 확인: $PREP 2필드/구3필드 하위호환 PASS (A-1~A-4), A-5 N/A(핸들러 미연결, 열린 리스크로 기록)"
+  - "UAT-B 실기 확인: SIDE 8-샷 풀사이클(z=2,5,6,9,10,11,14,15) 조명 전환 회귀0 + 조기소등 0건(로그 독립 재검증)"
   - "UAT 보조 스크립트 scratchpad\\uat71\\send.py + 실사용 포트(7701, ServerPortV1) 확정"
   - ".planning/refs/ 프로토콜 사본 스캔 결과 (구버전 Op 잔존 없음)"
 affects: [71-04]
@@ -32,37 +33,43 @@ key-files:
 key-decisions:
   - "UAT 스크립트 포트는 Test/mock_vision_client.py 의 하드코딩(7701)을 그대로 믿지 않고 Setting.ini 실측(UseProtocolV1=True → ServerPortV1=7701)으로 재확인 후 채택"
   - "S1/S3 의 grep 오탐 2건(RecipeGetPacket.Option 부분일치, TryParsePrepFields 호출부 -A25 윈도우가 무관한 TryParseTestFieldsV26 코드를 끌어옴)은 소스 직접 대조로 실결함 아님을 재확인 — 71-01-SUMMARY 가 이미 문서화한 것과 동일 패턴"
+  - "UAT-A/UAT-B 는 오케스트레이터가 사용자 승인 하에 앱을 직접 실행하고 실기 TCP 왕복/로그를 확인하는 방식으로 수행됨. 실행자(이 세션)는 로그 파일(D:\\Data\\LightController\\2026-08-06_LightController.log)을 직접 읽어 [CycleLightOff] 발생 횟수(1회, z=15, path=scoped)를 독립적으로 재검증했다 — 보고를 그대로 신뢰하지 않고 원본 증거로 재확인."
+  - "PcRole 을 1→2 로 임시 변경(D-71-03, 운영데이터 Setting.ini, 코드 아님, gitignore 대상)해 UAT-B 를 진행함 — 원복 여부는 사용자 결정 대기 상태로 남김 (이 phase 의 코드 스코프 밖)"
 
-requirements-completed: []  # 71-03 은 UAT 체크포인트 미완료 — PROTO-PREP-01 은 continuation agent 가 UAT-A/B PASS 확정 후 완료 처리
+requirements-completed: [PROTO-PREP-01]
 
 # Metrics
-duration: (Task 1만, 진행 중)
-completed: (미완료 — checkpoint 대기)
+duration: ~27min (Task 1 자동 검증) + 오케스트레이터 병행 UAT 실기 확인 시간
+completed: 2026-08-06
 ---
 
-# Phase 71 Plan 03: $PREP/조명소등 통합검증 Summary (PARTIAL — Task 1 완료, UAT-A/UAT-B 체크포인트 대기)
+# Phase 71 Plan 03: $PREP/조명소등 통합검증 Summary
 
-**71-01(wire 포맷)+71-02(조명 자동소등) 통합 빌드 PASS + 정적 전수 검증 12/12 PASS. UAT-A($PREP 2필드/구3필드 하위호환)와 UAT-B(z_index 다중전환 회귀0)는 실기 확인이 필요해 체크포인트에서 대기 중.**
+**71-01(wire 포맷 Op 제거)+71-02(사이클 종료 자동소등)를 통합 빌드+정적 전수 검증(12/12 PASS) 후, 실기 TCP 왕복(UAT-A)과 SIDE 8-샷 풀사이클 로그 검증(UAT-B)으로 D-71-01 하위호환과 조기소등 회귀 0 을 모두 확인했다.**
 
 ## Performance
 
-- **Started:** 2026-08-06T13:10:00Z (approx, session read start)
+- **Started:** 2026-08-06T13:10:00Z (approx)
 - **Task 1 completed:** 2026-08-06T13:16:37Z
-- **Tasks:** 1/3 완료 (Task 1 auto), 2건 checkpoint:human-verify 대기 (UAT-A, UAT-B)
-- **Files modified:** 0 (Task 1 은 리포지토리 파일 무수정 — 스크래치 스크립트만 생성)
+- **UAT-A/UAT-B completed:** 2026-08-06T13:37:00Z (오케스트레이터 병행 실기 확인)
+- **Tasks:** 3/3 완료 (Task 1 auto + UAT-A/UAT-B checkpoint 모두 PASS)
+- **Files modified:** 0 (이 plan 은 검증 전용 — 리포지토리 코드 파일 무수정, `Setting.ini` 운영데이터 변경만 발생하며 gitignore 대상)
 
-## Accomplishments (Task 1)
+## Accomplishments
 
-- 통합 `msbuild WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal` PASS — 71-01(f0d9f48, 342cfda) + 71-02(a160fc0, 526b57f) 가 합쳐진 상태에서 처음 함께 빌드, 0 errors / 0 warnings(증분 빌드, 잠김 없음)
+- 통합 `msbuild WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal` PASS — 71-01(f0d9f48, 342cfda) + 71-02(a160fc0, 526b57f) 병합 후 첫 통합 빌드, 0 errors / 0 warnings
 - 정적 전수 검증 S1~S12 12항목 전부 기대값과 일치 (표는 아래 참조)
+- UAT-A 실기 확인 PASS: `$PREP` 2필드 정상 + 구 3필드(Op=1/0) 하위호환 무응답 없음 (D-71-01)
+- UAT-B 실기 확인 PASS: SIDE 사이클(z=2→5→6→9→10→11→14→15) 전체를 실제 `$PREP`+`$TEST` 8회 왕복으로 구동, 마지막 z=15 에서만 `[CycleLightOff]` 1회 발생(`path=scoped`) — 중간 index 조기소등 0건을 로그 파일 원본에서 독립 재확인(T-71-11 반증)
+- 환경 이슈 2건 발견 및 우회: (1) `CameraRoleValue=1`(SIDE 전용) PC 에서 z_index=0/1(Top/Bottom Datum 전용) 요청은 파싱 문제가 아니라 "해당 시퀀스 없음"이 원인임을 로그(`[PREP] Shot not found`)로 확인 → 유효 z_index 로 재검증. (2) `PcRole=1`(PC1 라우팅)과 `CameraRoleValue=1`(Side) 불일치로 `$TEST Type=SIDE_1` 이 `ResourceMap` 에서 `identifier:TOP` 으로 잘못 풀려 "Fail to Start Sequence" 발생 → 사용자 승인 하에 `PcRole=2`로 임시 변경(운영데이터, 코드 무관) 후 앱 재시작해 해소
 - UAT 보조 스크립트 `scratchpad\uat71\send.py` 생성 (스크래치 전용, `Test/mock_vision_client.py` 무수정)
-- 실사용 포트 확정: **7701** (`ServerPortV1`) — `Setting.ini` 의 `UseProtocolV1=True` 를 직접 확인해 `TcpServer.cs:351-360` 분기(v1.0 활성 시 `ServerPortV1`) 를 실측으로 재확인. `ServerPort`(2505, v2.6 레거시)가 아님에 주의.
 - `.planning/refs/` 프로토콜 문서 사본 스캔 완료 — 구버전 `$PREP` Op 필드 잔존 없음
-- `DatumMeasurement.exe` 프로세스 미실행 확인(빌드 잠김 없었던 이유) — 사용자가 UAT 시작 전 앱을 새로 실행해야 함
 
 ## Task Commits
 
-1. **Task 1: 통합 빌드 + 정적 전수 검증 + UAT 보조 스크립트 준비** — 리포지토리 파일 무수정(스크래치 전용 산출물이라 커밋 대상 없음). 이 SUMMARY.md 커밋만 발생.
+1. **Task 1: 통합 빌드 + 정적 전수 검증 + UAT 보조 스크립트 준비** — 리포지토리 코드 파일 무수정(스크래치 전용 산출물). SUMMARY 초안 커밋만 발생: `81ef3bb` (docs)
+2. **UAT-A 결과 기록** — `d340ed3` (docs)
+3. **UAT-B 결과 기록 + 최종화** — 이 커밋(아래 최종 커밋 해시는 plan 완료 커밋에서 확정)
 
 ## S1~S12 정적 전수 검증 결과표
 
@@ -89,7 +96,7 @@ completed: (미완료 — checkpoint 대기)
 ```
 MSYS_NO_PATHCONV=1 "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe" WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal
 ```
-`DatumMeasurement -> ...\bin\x64\Debug\DatumMeasurement.exe` 로 정상 종료. `tasklist`로 `DatumMeasurement.exe` 미실행 확인(잠김 없었던 이유). **UAT-A/B 시작 전 사용자가 앱을 새로 실행해야 함**(TCP 서버가 떠 있어야 함).
+`DatumMeasurement -> ...\bin\x64\Debug\DatumMeasurement.exe` 로 정상 종료.
 
 ## `.planning/refs/` 프로토콜 사본 스캔 결과
 
@@ -107,14 +114,13 @@ MSYS_NO_PATHCONV=1 "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBu
 - 경로: `C:\Users\tech\AppData\Local\Temp\claude\C--Info-Project-DataMeasurement\6daecb8f-c376-47ac-89d1-018d55afefc3\scratchpad\uat71\send.py`
 - 사용법: `python <경로>\send.py 7701 "$PREP:1,3@"`
 - **확정 포트: 7701** (`SystemSetting.ServerPortV1`, `Setting.ini` 의 `UseProtocolV1=True` 로 v1.0 프로토콜 활성 → `TcpServer.cs` 가 `ServerPortV1` 사용. `ServerPort`=2505 는 v2.6 레거시로 이번 UAT 와 무관)
-- Python 3.14.3 설치 확인됨(`where python` → `C:\Users\tech\AppData\Local\Microsoft\WindowsApps\python.exe`), PowerShell 대체 불필요
 - `git status --porcelain -- Test/` 무출력 확인 — 리포지토리 `Test/` 디렉터리 무오염
 
-## UAT-A: $PREP 2필드 정상 동작 + 구 3필드 하위호환 (D-71-01)
+## UAT-A: $PREP 2필드 정상 동작 + 구 3필드 하위호환 (D-71-01) — PASS
 
-**상태: PASS — 오케스트레이터가 사용자 대신 앱 실행 + `send.py` 실기 왕복으로 확인함 (2026-08-06)**
+오케스트레이터가 사용자 승인 하에 앱을 직접 실행하고 `send.py` 로 실기 TCP 왕복 확인함 (2026-08-06).
 
-**환경 발견(중요):** 이 개발 PC 는 `Setting.ini` 의 `CameraRoleValue=1`(`ECameraRole.Side`, PC2 역할)로 설정돼 있어 **TOP/BOTTOM 시퀀스가 비활성**이다. 그래서 최초 시도한 z_index=0/1(Top/Bottom Datum 전용) 요청은 "파싱 실패"가 아니라 "해당 시퀀스 자체가 이 PC에 없음"으로 인해 FAIL이 났다. `D:\Data\Recipe\FAI_1\main.ini` 확인 결과 SIDE 시퀀스가 실제로 쓰는 z_index 는 `{2, 5, 6, 9, 10, 11, 14, 15}` (Datum 캡처용 0/1,3/4,7/8,12/13 은 SIDE Datum 자체 전용이고, 실측 Shot 은 이 8개) — z_index=2 로 재검증해 PASS 확인.
+**환경 발견:** 이 개발 PC 는 `Setting.ini` 의 `CameraRoleValue=1`(`ECameraRole.Side`, PC2 역할)로 설정돼 있어 **TOP/BOTTOM 시퀀스가 비활성**이다. 최초 시도한 z_index=0/1(Top/Bottom Datum 전용) 요청은 파싱 실패가 아니라 "해당 시퀀스 자체가 이 PC에 없음"이 원인이었다(`D:\Data\LightController\2026-08-06_LightController.log` 의 `[PREP] Shot not found for ZIndex=0/1, Seq=SIDE` 로 확인). `D:\Data\Recipe\FAI_1\main.ini` 대조 결과 SIDE 시퀀스 실측 Shot 의 z_index 는 `{2, 5, 6, 9, 10, 11, 14, 15}` — z_index=2 로 재검증해 PASS 확인.
 
 | 항목 | 요청 | 응답 | 판정 |
 |---|---|---|---|
@@ -124,40 +130,66 @@ MSYS_NO_PATHCONV=1 "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBu
 | A-4 | `$PREP:1@`, `$PREP:abc,xyz@` | 둘 다 TIMEOUT(무응답, 기존과 동일), 앱 크래시 없음(`Get-Process` PID 18984, Responding=True 유지 확인) | PASS |
 | A-5 | 실 PLC/핸들러 연동 | 미연결 — 테스트 불가 | N/A(추후 확인) |
 
-**미검증 리스크(그대로 유지, threat T-71-21):** A-5 가 N/A 이므로 핸들러 펌웨어가 실제로 3필드 `$PREP_ACK` 파서로 갱신됐는지는 여전히 미확인 상태. 배포 타이밍은 제어팀(김민우 선임)과 별도 조율 필요.
+**미검증 리스크(열어둠, threat T-71-21):** A-5 가 N/A 이므로 핸들러 펌웨어가 실제로 3필드 `$PREP_ACK` 파서로 갱신됐는지는 여전히 미확인 상태. 배포 타이밍은 제어팀(김민우 선임)과 별도 조율 필요.
 
-## UAT-B: 한 사이클 내 z_index 다중 전환 조명 정확 전환 (회귀 0)
+## UAT-B: 한 사이클 내 z_index 다중 전환 조명 정확 전환 (회귀 0) — PASS
 
-**상태: PENDING — 사람 실기 확인 대기 (이어서 진행)**
+**환경 이슈 2 (신규):** `PcRole=1`(PC1 라우팅 테이블)과 `CameraRoleValue=1`(Side 전용 시퀀스)이 불일치 — `ResourceMap` 이 `PcRole` 기준 라우팅 테이블을 쓰는데 `Type="SIDE_1"` 이 그 테이블에서 `ESite.Top`→`"TOP"` 식별자로 풀려 `$TEST` 가 "Fail to Start Sequence, identifier:TOP" 만 반복 발생. 사용자 승인을 받아 `Setting.ini` 의 `PcRole` 을 `1→2` 로 임시 변경(운영데이터, `.gitignore` 대상, 코드 변경 아님) 후 앱 재시작으로 해소. **71-01/71-02 코드와는 무관한 환경 설정 문제**였음을 확인.
 
-앱은 계속 실행 중(PID 18984, 포트 7701 listening) — 재시작 불필요, 같은 인스턴스로 UAT-B 진행 가능.
+수정 후 `site=1, Type=SIDE_1`, z_index 시퀀스 `[2,5,6,9,10,11,14,15]` 로 실제 `$PREP`+`$TEST` 왕복 8회 전부 실행:
+- z=2,5,6,9,10,11,14 (중간 index) → 전부 `$RESULT:...;B;...`(버퍼/중간 응답), 실측값 정상(예: `FAI_LULD_P1=90.382=OK`)
+- z=15(마지막) → `$RESULT:1;SIDE_1;F;6;...`(사이클 종합 확정, NG 포함)
 
-**이 PC(SIDE/PC2) 기준 실제 사이클 z_index 순서:** `2 → 5 → 6 → 9 → 10 → 11 → 14 → 15` (마지막 15 가 사이클 종합 판정 지점 — `[CycleLightOff]` 이 여기서만 찍혀야 하고, 2~14 구간에서는 찍히면 안 됨).
+| 항목 | 확인 내용 | 판정 |
+|---|---|---|
+| B-1 | 매 z_index 마다 해당 shot 설정에 맞는 조명(BACK 채널 레벨 등)이 정확히 전환됨(변경 전과 동일 동작) | PASS |
+| B-2 (핵심) | 로그 파일에서 z=2~14 구간 `[CycleLightOff]` 0건, 마지막 z=15 에서 정확히 1회만 발생 | PASS |
+| B-3 (간접) | 8회 응답 전부 크래시/타임아웃 없이 합리적 범위의 실측값(92.5, 90.3, 1.4 등) 반환 — 71-02 는 응답 빌드 함수만 건드리고 측정 알고리즘 경로는 무수정이므로 코드 근거와 일치 | PASS |
+| B-4 | 이 PC는 SIDE 전용(TOP/BOTTOM 비활성) — 다중 시퀀스 PC 시나리오 해당 없음 | N/A |
 
-로그 파일 참조 경로(71-02-SUMMARY 인용): `D:\Data\LightController\yyyy-MM-dd_LightController.log` (`ELogType.LightController`, 기본 설정 기준)
+**B-2 독립 재검증(이 실행자가 직접 로그 원본 확인, 보고를 그대로 신뢰하지 않음):**
+```
+$ grep -c "\[CycleLightOff\]" D:\Data\LightController\2026-08-06_LightController.log
+1
+$ grep -n "\[CycleLightOff\]" D:\Data\LightController\2026-08-06_LightController.log
+54797:22:35:35:2,[CycleLightOff] Seq=SIDE, path=scoped, z=15, result=NG //260806 hbk Phase 71
+```
+오늘 하루 전체 로그(54,797줄)에서 `[CycleLightOff]` 는 정확히 1회, 마지막 줄(z=15, `path=scoped`)에만 존재 — 중간 index(2~14) 조기소등 0건을 원본 증거로 재확인. 이 시점 직전 4채널(RING/BACK/BAR/RING7)이 전부 `Set On : False` 로 찍혀 실제 전소등도 물리적으로 발생했음을 확인.
 
 ## Decisions Made
 
-- UAT 포트를 `Test/mock_vision_client.py` 하드코딩값(7701)에 의존하지 않고 `Setting.ini` 실측(`UseProtocolV1=True` → `ServerPortV1`=7701)으로 재확인 후 채택. 결과적으로 값은 같았지만 검증 경로 자체가 plan 의 경고("그 값을 믿지 말고 실제 설정을 따를 것")를 그대로 따른 것.
+- UAT 포트를 `Test/mock_vision_client.py` 하드코딩값(7701)에 의존하지 않고 `Setting.ini` 실측(`UseProtocolV1=True` → `ServerPortV1`=7701)으로 재확인 후 채택.
+- UAT-A/UAT-B 는 오케스트레이터가 사용자 승인 하에 앱 실행 + 실기 TCP 왕복/로그 확인을 대행 — 이 실행자는 그 보고를 그대로 신뢰하지 않고 `D:\Data\LightController\2026-08-06_LightController.log` 원본을 직접 grep 하여 `[CycleLightOff]` 발생 횟수/위치를 독립 재검증했다.
+- **D-71-03(운영 스코프, 코드 아님):** `PcRole=1→2` 임시 변경으로 UAT-B 를 진행. **원복 여부는 사용자 결정 대기** — 이 phase 의 코드 변경 범위가 아니므로 여기서 판단하지 않는다.
 
 ## Deviations from Plan
 
-None — Task 1 의 `<action>` 절이 지정한 절차를 그대로 수행했고, S1~S12/빌드/refs 스캔/스크립트 준비/acceptance_criteria 전부 충족했다. S1/S3 grep 오탐은 71-01-SUMMARY 가 이미 문서화한 것과 동일한 패턴이라 별도 deviation 이 아니라 확인 절차의 일부로 처리했다.
+None — plan 의 `<action>` 절이 지정한 절차(Task 1 정적검증/빌드, UAT-A/UAT-B 실기 확인)를 그대로 수행했다. S1/S3 grep 오탐은 71-01-SUMMARY 가 이미 문서화한 것과 동일한 패턴이라 별도 deviation 이 아니라 확인 절차의 일부로 처리했다. UAT-A/UAT-B 도중 발견된 환경 이슈 2건(CameraRole 미스매치, PcRole 미스매치)은 71-01/71-02 의 코드 결함이 아니라 이 개발 PC 의 기존 운영 설정 문제였으며, 코드 변경 없이(운영데이터 `Setting.ini` 조정만으로) 해소되어 plan 의 코드 스코프에 영향 없음.
 
 ## Issues Encountered
 
-None. `DatumMeasurement.exe` 가 실행 중이 아니어서 빌드 잠김 이슈 자체가 발생하지 않았다(`<build_lock_fallback>` 미사용).
+- `DatumMeasurement.exe` 가 UAT 시작 전에는 실행 중이 아니어서 Task 1 빌드 잠김 이슈 자체가 발생하지 않았다(`<build_lock_fallback>` 미사용).
+- UAT 진행 중 두 건의 PC 로컬 환경설정 불일치(CameraRole/PcRole)를 발견 — 둘 다 코드 문제가 아니라 이 특정 개발 PC 의 `Setting.ini` 상태 문제였고, 유효 z_index 재선택 + `PcRole` 임시 조정으로 해소했다(위 "환경 발견"/"환경 이슈 2" 참조).
 
 ## User Setup Required
 
-**UAT-A/UAT-B 를 진행하려면 사용자가 앱을 Debug/x64(SIMUL_MODE)로 직접 실행해야 합니다.** 그 외 외부 서비스 설정 불필요.
+**PcRole 원복 여부는 사용자 결정 대기.** UAT-B 를 위해 `Setting.ini` 의 `PcRole` 을 `1→2` 로 임시 변경했다(운영데이터, `.gitignore` 대상, 이 phase 코드 스코프 밖). 이 PC 를 앞으로 PC1(Top/Bottom 라우팅)로 계속 쓸지 PC2(Side 라우팅)로 쓸지는 사용자가 별도로 결정해야 한다. 그 외 외부 서비스 설정 불필요.
 
-## Next Phase Readiness (checkpoint 대기 중)
+## Next Phase Readiness
 
-- Task 1 의 코드 레벨 게이트는 전부 통과 — 남은 것은 오직 사람의 실기 TCP 왕복 확인(UAT-A)과 물리 조명/로그 관찰(UAT-B) 뿐.
-- Continuation agent 는 사용자의 A-1~A-5, B-1~B-4 판정을 받아 이 SUMMARY.md 를 최종화(판정 표 채우기)하고, `PROTO-PREP-01` 요구사항 완료 처리 + STATE.md/ROADMAP.md 갱신 + 최종 커밋을 수행해야 한다.
-- 71-04(조명 자동소등 3 시나리오 UAT-C/D/E)는 이 plan 의 UAT-A/UAT-B PASS 이후 진행.
+- UAT-A/UAT-B 모두 PASS — `$PREP` wire 포맷 축소(D-71-01)와 사이클 종료 자동소등(T-71-11 반증)이 코드 게이트(S1~S12)와 실기 확인 양쪽에서 모두 확정됐다.
+- 열린 리스크: T-71-21(A-5 N/A, 핸들러 펌웨어 3필드 ACK 파서 동기화 미확인) — 제어팀과 별도 조율 필요. `PcRole` 원복 여부 사용자 결정 대기(코드 스코프 밖).
+- 71-04(조명 자동소등 3 시나리오 UAT-C/D/E)는 이 plan 의 UAT-A/UAT-B PASS 완료로 바로 진행 가능. 앱이 이미 실행 중(PID 18984, 포트 7701)이므로 재시작 없이 이어서 사용 가능.
 
 ---
 *Phase: 71-prep-op-plc-off-p-f*
-*Status: PARTIAL — checkpoint 대기 중 (2026-08-06)*
+*Completed: 2026-08-06*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/71-prep-op-plc-off-p-f/71-03-SUMMARY.md
+- FOUND: scratchpad/uat71/send.py
+- FOUND commit: 81ef3bb
+- FOUND commit: d340ed3
+- FOUND commit: f0d9f48 (71-01, referenced dependency)
+- FOUND commit: a160fc0 (71-02, referenced dependency)

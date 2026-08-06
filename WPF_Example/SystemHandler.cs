@@ -118,6 +118,14 @@ namespace ReringProject {
             //  기능/정확성에는 영향 없다. Devices/Sequences 등 이후의 모든 Halcon 이미지 처리에 적용되도록
             //  이 메서드의 첫 실행문으로 둔다. 실패해도(캐시 힌트 실패일 뿐) 앱 시작을 막지 않는다.
             try {
+                // quick-260806-dsn3: 위 3줄(캐시 idle)로도 메모리가 안 돌아오는 경우를 위한 같은 챕터의 다음 단계 —
+                //  HALCON 내부 힙 할당자를 Windows 기본값 mimalloc 에서 Win32 기본 힙(system)으로 전환한다.
+                //  문서 원문: "mimalloc tends to cache memory more aggressively than the Win32 default heap
+                //  allocator ... set_system('memory_allocator', 'system')". 격리 하네스 실측에서 121MB HImage를
+                //  생성/Dispose 반복 시 mimalloc 은 8회차부터 WorkingSet 이 ~152MB 에 영구 고착(GC.Collect 무효)한 반면
+                //  'system' 은 15회 전부 ~30MB 로 반환됐다. 할당자 종류 설정이므로 다른 SetSystem 보다 먼저 둔다.
+                //  HALCON 내부 할당 경로만 바꾸므로 이미지 데이터/측정 수치에는 영향이 없다.
+                HOperatorSet.SetSystem("memory_allocator", "system");
                 HOperatorSet.SetSystem("global_mem_cache", "idle");
                 HOperatorSet.SetSystem("temporary_mem_cache", "idle");
                 HOperatorSet.SetSystem("image_cache_capacity", 0);

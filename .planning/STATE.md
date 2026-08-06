@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 68-12-PLAN.md
-last_updated: "2026-08-05T06:30:00.000Z"
-last_activity: 2026-08-05
+stopped_at: Phase 70 context gathered
+last_updated: "2026-08-05T07:38:55.869Z"
+last_activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over).
 progress:
-  total_phases: 23
-  completed_phases: 19
-  total_plans: 80
-  completed_plans: 76
-  percent: 83
+  total_phases: 15
+  completed_phases: 14
+  total_plans: 49
+  completed_plans: 46
+  percent: 94
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -654,6 +654,7 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ### Roadmap Evolution
 
+- 2026-08-05: Phase 70 added — 종합판정(cycle judgement) 시퀀스 소유권 스코프 조사. 사용자가 코드 추적 완료해 제기: `ComputeOverallResult`/`BatchRunService.HandleFinish`/`AddResponse()`(v2.6 레거시) 3곳이 `recipeManager.Shots`를 `OwnerSequenceName` 필터 없이 전역 순회 — 단독 시퀀스 RUN 시 무관 시퀀스의 미측정 shot(`IsPass` 기본값 false)이 섞여 오판정 가능성. v1.0 경로(`AddResponseV1Cycle`)는 이미 필터링돼 있어 영향 없음 확인. Phase 69와 무관한 별개 이슈(사용자 확인, 신규 Phase 선택). ※ Phase 69와 동일 사유로 `gsd-sdk phase.add` CLI 오작동 예상돼 처음부터 수동 생성. 다음 = /gsd-discuss-phase 70.
 - 2026-08-05: Phase 69 added — 메인 화면 POC 패널(z_index 수동 트리거, MainView.xaml:583-600) 유지/삭제/단순화 결정 + RUN 버튼(btn_start/btn_batchRun) 간헐적 미동작 원인 조사(유력 용의자: SequenceHandler.IsIdle 이 Top/Side/Bottom 3개 시퀀스를 하나로 묶어 판정). 사용자가 상세 코드 추적을 이미 완료해 제공, discuss-phase 로 그레이존 확정 예정. ※ **gsd-sdk phase.add CLI 가 phase_number 를 또 54 로 오산정**(기존 Phase 54 ALIGN-01 충돌 — Phase 31/32/57.1/63 과 동일한 반복 버그, `project_gsd_insert_phase_cli_bug` 메모리 패턴과 일치하나 이번엔 phase.insert 아닌 phase.add 에서도 재현 확인) → 생성된 중복 Phase 54 섹션과 빈 디렉토리(.planning/phases/54-poc-run/) 즉시 git checkout 으로 롤백 후 **수동 69 보정**. 다음 = /gsd-discuss-phase 69.
 - 2026-07-21: Phase 68 added — Z축 교차(Cross-Z) Dual-Image 측정 지원. 프로토콜 요구사항 3-2(Vision-Protocol-v1.0.md: "Z1 정보 보유 → Z2에서 측정", 영향도 LARGE로 기명시, POC 이후 착수 대상). SHOT_E5(BOTTOM, D:\Data\Recipe\FAI_1\main.ini) DualImageEdgeDistance 실사용 중 대화로 발견. 코드 조사(디버그 세션 shared-lighthandler-race 진행 중 파생 질의)로 확정된 갭 2가지: (1) z_index가 응답집계/조명선택에만 쓰이고 실행단 필터링이 없어 $TEST 가 오면 z_index 무관 시퀀스 전체 Shot 재grab됨, (2) OnStart/Shot Init 마다 결과 초기화라 Z1 검출값을 Z2 처리 시점까지 보존할 상태가 없음. 추가 스코프: DualImageEdgeDistanceMeasurement에 ZIndexA/ZIndexB 필드(PropertyGrid+INI, 기존 레시피 하위호환), TCP RESULT 보고를 완성 시점(z2) Index 에만 담기도록 조정(기존 B/P/F 3-state 그대로 재사용, 신규 상태 불필요 — Datum 샷의 count=0 B 응답과 동일 패턴). 참고 선례: DatumConfig.SourceShotName(다른 Shot 이름 참조, 단 실패시 Shots[0] 조용한 폴백은 반면교사 — DatumRef 미해결 패턴처럼 명시적 NG 처리 필요). 별건: DualImageEdgeDistance 가 실HW(non-SIMUL/non-offline)에서도 라이브 grab 무시하고 static teaching 파일 재사용하는 기존 버그 발견(Action_FAIMeasurement.TryGrabOrLoadFaiDualImages) — 이 phase 포함 여부 discuss 단계에서 결정. 다음 = /gsd-plan-phase 68 (또는 먼저 discuss).
 - 2026-06-24: Phase 63 added — TCP 프로토콜 Type 필드 반영 및 Align TCP 통합. 디팜스테크 v3.0 엑셀 스펙(D:\…v3_3.xlsx, Type 모델+다이어그램 셀 재작성 완성)을 코드 반영. Grabber $TEST/$RESULT 에 Type(site=PC#/Type=대상) + Align 커맨드($ALIGN_TEST/CALIB/RESULT) TCP 통합을 한 phase 로(같은 TCP 경계 파일). 만질 파일=VisionRequestPacket/VisionResponsePacket/ResourceMap/SystemHandler/InspectionSequence. Phase 59/60(Custom/EthernetVision/)과 무겹침 → 병렬 가능. ※ gsd-sdk phase.add CLI 가 phase_number 를 54 로 오산정(기존 Phase 54 ALIGN-01 충돌) → **수동 63 보정**(반복 버그, Phase 31/32/57.1 동일). 다음 = /gsd-plan-phase 63.
@@ -679,9 +680,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-07-22T06:39:27.355Z
-Stopped at: Completed 68-12-PLAN.md
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 70 context gathered
+Resume file: --resume-file
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 
 **v1.1 Phase Map:**

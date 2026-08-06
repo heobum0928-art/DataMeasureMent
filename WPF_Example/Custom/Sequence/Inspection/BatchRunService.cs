@@ -91,12 +91,39 @@ namespace ReringProject.Sequence
                     return;
                 }
 
+                //260805 hbk Phase 70 WR-02: _seq 를 한 번만 읽어 로컬에 고정한다. 기존에는 null 체크와
+                //  .Name 접근에서 _seq 를 두 번 읽어, 그 사이 다른 스레드(Stop())가 _seq=null 로 바꾸면
+                //  seqName 이 null 로 빠지고 — IsShotOwnedBySequence 계약상 null 은 "전체 매칭" 이라 이번
+                //  Phase 70 필터가 그 좁은 창에서 조용히 무력화될 위험이 있었다(TOCTOU). 로컬 1회 읽기로 차단.
+                InspectionSequence seqRef = _seq;
+                //260805 hbk Phase 70 D-02-2: 이 배치를 실제로 돌린 시퀀스 이름. 아래 종합판정 스코프와
+                //  BuildDto 의 shot 스코프가 같은 기준을 쓰도록 한 곳에서만 산출한다.
+                string seqName;
+                if (seqRef != null)
+                {
+                    seqName = seqRef.Name;
+                }
+                else
+                {
+                    seqName = null; // 소유 시퀀스 미상 → IsShotOwnedBySequence 가 레거시 전역 동작 유지
+                }
+
                 bool anySkip = false;
                 bool allPass = true;
+                //260805 hbk Phase 70 WR-01: 소유권 필터가 0건을 매칭하면 아래 초기값(anySkip=false/allPass=true)이
+                //  그대로 남아 "측정 0건인데 OK" 를 조용히 반환한다 — 이 카운터로 그 빈 스코프를 잡는다.
+                int nMatchedFaiCount = 0;
                 foreach (var shot in recipeManager.Shots)
                 {
+                    //260805 hbk Phase 70 D-02-2: 이 시퀀스 소유 shot 만 종합판정에 포함.
+                    bool bOwnedByThisSeq = InspectionSequence.IsShotOwnedBySequence(shot, seqName);
+                    if (!bOwnedByThisSeq)
+                    {
+                        continue;
+                    }
                     foreach (var fai in shot.FAIList)
                     {
+                        nMatchedFaiCount++;
                         if (fai.WasDatumSkipped)
                         {
                             anySkip = true;
@@ -108,8 +135,14 @@ namespace ReringProject.Sequence
                     }
                 }
 
+                bool bEmptyScope = nMatchedFaiCount == 0;
                 EVisionResultType resultType;
-                if (anySkip)
+                if (bEmptyScope)
+                {
+                    try { Logging.PrintErrLog((int)ELogType.Error, "[Phase70] BatchRunService " + seqName + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
+                    resultType = EVisionResultType.NotExist;
+                }
+                else if (anySkip)
                 {
                     resultType = EVisionResultType.NotExist;
                 }
@@ -123,7 +156,6 @@ namespace ReringProject.Sequence
                 }
 
                 string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
-                string seqName = _seq != null ? _seq.Name : null;
                 CycleResultDto dto = CycleResultSerializer.BuildDto(
                     recipeManager, resultType, DateTime.Now, recipeName, seqName);
 

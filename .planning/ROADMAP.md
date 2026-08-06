@@ -990,6 +990,13 @@ Plans:
 - [ ] 69-01-PLAN.md — RUN 게이트를 시퀀스 단위 판정으로 교체(물리 카메라 공유 시에만 상호배타, D-01) + 차단 사유 메시지(D-03) [Wave 1]
 - [ ] 69-02-PLAN.md — SIMUL_MODE RUN 게이트 실측 UAT + 실HW 공유 카메라 carry-over 기록(→ 69-UAT.md) [Wave 2, autonomous:false]
 
+### Phase 70: 종합판정 시퀀스 소유권 스코프 조사 (신설 2026-08-05)
+
+**Goal:** 종합판정 함수 `InspectionSequence.ComputeOverallResult`/`BatchRunService.HandleFinish`/`InspectionSequence.AddResponse()`(v2.6 레거시 TCP 경로)가 `recipeManager.Shots`를 `OwnerSequenceName == Name` 필터 없이 전역 순회해, 단독 시퀀스 RUN 시 무관한 다른 시퀀스(Top/Side/Bottom)의 미측정/리셋된 shot(`FAIConfig.IsPass` 기본값 false)까지 판정에 섞여 잘못된 NG/NotExist가 나올 수 있는지 확인하고, 수정 범위와 방식을 확정한다.
+**Requirements**: JUDGE-01 (임시 라벨 — discuss-phase 이후 REQUIREMENTS.md 정식 등록 여부는 사용자 결정)
+**Depends on:** 없음 (독립적인 조사 작업, Phase 69 진행과 무관하게 병행 가능)
+**Background:** 사용자가 코드 추적으로 제기 + 세션에서 직접 코드 검증 완료. 필터 누락 확인 3곳: `ComputeOverallResult`(InspectionSequence.cs:342-359), `BatchRunService.HandleFinish`(BatchRunService.cs:78-147), `AddResponse()` v2.6 레거시 경로(InspectionSequence.cs:119-206, 라인144 — `UseProtocolV1=false`일 때만 실행). 대조군(필터 있음, 영향 없음): v1.0 경로 `AddResponseV1Cycle`→`AggregateIndexFais`(:1452-1485)와 `ComputeLastZIndex`(:369-397) 전부 `bool bOwnedByThisSeq = shot.OwnerSequenceName == Name; if (!bOwnedByThisSeq) continue;` 패턴 사용 확인. 리셋 함수 `HandleRunStartResetResults`(:237-275)는 이 시퀀스 소유 Actions만 리셋(주석 명시, 구현 일치) — 판정은 전역, 리셋은 시퀀스 스코프인 비대칭이 근본 원인 후보. 핵심 그레이존: v2.6 `AddResponse()` 상단 주석(:122)에 "v2.6 면 기존 전체-Shot 경로로 폴백(회귀 0)"이라 명시돼 있어, 이 전역순회가 Phase 49(v1.0 도입) 이전부터 있던 의도된 설계(다중 시퀀스 항상 동시 완료 전제)인지 아니면 미필터링 버그인지 discuss-phase에서 먼저 판단 필요.
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)

@@ -1011,6 +1011,8 @@ Plans:
 - [x] 71-03-PLAN.md — 통합 빌드 + 정적 전수검증 + UAT-A/B (프로토콜 wire 하위호환 / z_index 다중전환 회귀 0) [wave 2] ✅ 2026-08-06 (81ef3bb, d340ed3, 9ca2553)
 - [x] 71-04-PLAN.md — UAT-C/D/E (정상 P 소등 / NG 누적 F 소등 / Datum 즉시실패 F 소등) [wave 3] ✅ 2026-08-06 — UAT-C 4/4 실기 PASS, UAT-D 71-03 재인용 PASS, UAT-E 정적검증만 PASS(실기는 SIDE 전용 PC 환경제약으로 불가, T-71-38 open) — Phase 71 CONTEXT 8항목 중 7 완전충족 + 1 PARTIAL
 
+**코드리뷰(71-REVIEW.md, standard depth) + 수정 완료 (2026-08-07):** CR-01(Critical) — 신규 조명소등 훅이 "이 시퀀스 혼자만의 마지막 z_index"로 발동하는데 `TurnOffShotLights()`가 물리 조명 전 그룹을 끄는 구조라, TOP/BOTTOM처럼 같은 PC(PC1)·같은 `LightHandler` 싱글턴을 공유하는 시퀀스 간 조명 간섭(한쪽이 끝났다고 다른 쪽이 촬영 중인 조명을 꺼버림) 위험 발견 — SIDE 전용 PC 실기 UAT로는 구조적으로 잡을 수 없던 결함. WR-01(Warning) — `Error()`/`Stop()` 중단 시 `IsBuffer` 게이트를 못 넘어 소등 훅이 발동 안 함(Op 제거로 PLC 강제소등 폴백도 사라져 순수 회귀). 둘 다 즉시 수정: `TurnOffOwnShotLights()`(이 시퀀스 소유 Shot/Datum이 실제 켠 채널만 역산해서 끔, `2d6ed5a`) + `OnStop`/`OnError` 훅으로 비정상종료 시에도 소등 보장(`1af63e7`). 실기 재검증(SIDE, 재빌드 후 전체 사이클): `[CycleLightOff]` 정상 발동, 이번엔 `BACK` 채널 하나만 꺼짐(이 레시피가 실제 쓰는 채널만, 예전처럼 전체 그룹 강제소등 아님) — 스코프 축소 확인. 잔여 위험(문서화): 두 시퀀스가 물리적으로 동일 채널명을 공유하도록 레시피가 재구성되는 극단 케이스는 여전히 미해결(Option 1 크로스시퀀스 코디네이션은 의도적으로 미구현, 현재 레시피 구조에선 발생 안 함).
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)

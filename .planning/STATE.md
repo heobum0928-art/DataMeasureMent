@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 71-prep-op-plc-off-p-f
+**Current focus:** Phase 71 완료 — 다음 우선순위(Phase 69 Wave 2 재개, Phase 70 discuss, 또는 프로토콜 문서 갱신 확인) 사용자 결정 대기
 
 ## Current Position
 
-Phase: 71-prep-op-plc-off-p-f — EXECUTING
-Plan: 4 of 4
-Last activity: 2026-08-06
+Phase: 71-prep-op-plc-off-p-f — COMPLETE (4/4 plans + 코드리뷰 수정 완료, T-71-38 open으로 이월)
+Plan: 4 of 4 + code-review-fix
+Last activity: 2026-08-07
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
 
@@ -56,6 +56,8 @@ Last activity: 2026-08-06
 **크로스세션 조율**: 별도 워크트리 세션(vigilant-yonath-576919, MeasurementAlgorithm.cs CloseMeasure try/finally 수정, 커밋 ab3cc38/7fdf4eb/60bc516, 버전 1.7.5.0)을 main에 `--no-ff` merge 완료(이 STATE.md 충돌만 발생, PatternMatchService.cs/SystemHandler.cs 등 코드 파일은 겹치지 않아 자동 병합됨). Quick 260805-ok2(MeasurementAlgorithm.TryInspectSingleEdgeInternal measure handle 예외-경로 누수, [Obsolete] 구경로 전용) 완료 반영.
 
 **2026-08-06 실사고 — SIDE Datum 개명 후 일괄검사 전부 Fail (quick-260806-nrm):** 사용자가 SIDE 4개 Datum 이름을 변경(Side_Datum_1→3-1, 2→3-2, 3→4-2, 4→4-1)한 직후 발생. 근본원인: 패턴매칭 모델 파일 경로가 `DatumName`으로 매 호출 실시간 재계산(teach-time 스냅샷 아님)인데 실제 `.shm` 파일은 옛 이름 그대로 → `ReadShapeModel` 못 찾음 → **모달 없이 조용히** align 실패 → 하위 FAI 전부 Fail. 이 실패 모드는 27일 전(2026-07-10) 티칭감사에서 이미 발견되어 carry-over #1("모델파일 고아")로 기록돼 있었으나 "동작변경 수반, 별도판단 필요"로 미뤄져 있던 것 — 이번에 그 판단이 내려짐(자동 리네임 구현 결정). 응급조치로 실제 파일 16개(`D:\Data\Recipe\FAI_1\SIDE\` + `D:\디팜스자료\Side_Info\Data\Recipe\FAI_1\SIDE\` 두 위치, 각 8개)를 수동 리네임해 SIDE 즉시 복구, 이어서 재발방지 코드 수정(quick-260806-nrm, 커밋 `c8a1e1f`) — `DatumConfig.DatumName` setter 리네임 훅 + `ParamBase.Load`(레시피 로드)/`InspectionSequence.AddDatum`(신규 Datum) 두 오발동 경로 가드. 실기 UAT(Test 1~4) 승인 대기. 참고로 `D:\디팜스자료\Side_Info\Data\Recipe\FAI_1\TOP\`에 "Side_Datum" 이름이 붙은 파일들이 존재하는 걸 발견했으나(예: `DatumSide_Datum_1.shm`), 이번 리네임 대상(SIDE 폴더)이 아니라 손대지 않음 — 과거 오복사 잔재로 추정, 별도 확인 필요(carry-over로 남김).
+
+**2026-08-07 Phase 71 완료 — $PREP Op 제거 + 조명 자동소등 (4 plans + 코드리뷰 수정):** 사용자가 discuss급 상세 스펙을 직접 제공해 CONTEXT.md로 전사, discuss/research 생략하고 바로 planner→plan-checker(PASS)→실행. 71-01(wire 포맷 Op 제거, `f0d9f48`/`342cfda`) + 71-02(사이클 P/F 확정 시 조명소등 훅, 종료경로 2곳 배선, `a160fc0`/`526b57f`) + 71-03(정적검증 12/12 + UAT-A/B, 오케스트레이터가 이 세션에서 앱 직접 기동해 TCP로 실측 — 사용자 대리 실행) + 71-04(UAT-C/D/E). 과정에서 이 개발 PC의 `PcRole`(=1, PC1 라우팅)과 `CameraRoleValue`(=1, Side 전용 시퀀스)가 서로 안 맞는 애드혹 설정임을 발견 — 사용자 승인 하에 PcRole→2 임시 변경(운영설정, 코드 아님)으로 SIDE 라우팅 정상화. UAT-C(정상 P 소등)는 레시피의 NG 5개 지점 공차를 정확한 원본값 기록 후 임시 확대→실측→즉시 원복(반복 3회, 매번 원복 확인)으로 검증. UAT-D는 71-03 UAT-B 재인용(레시피 대조로 "중간 index NG" 조건 보강확인). UAT-E(Datum 즉시실패 `path=datum-index0`)는 이중으로 구조적 도달불가 확정(① SIDE 4개 Datum 전부 DualImage라 완성판정이 z=0이 아닌 z=1/4/8/13에서만 발생, ② z=0/1 같은 순수 Datum 전용 index는 `$PREP` 단계(`ApplyPrepToSequences`)부터 Shot을 못 찾아 처리 자체가 안 됨) — 71-03 S9 정적검증만으로 코드 커버리지 남기고 T-71-38 open risk로 이월(TOP/BOTTOM 활성 PC에서 후속 실측 필요). **코드리뷰(standard depth)가 실기 UAT로는 못 잡을 구조적 결함 발견**: CR-01(Critical) — 신규 소등훅이 "이 시퀀스만의 마지막 index"로 발동하는데 실제 소등은 물리 조명 전 그룹 강제 OFF라, TOP/BOTTOM처럼 같은 PC·같은 LightHandler 싱글턴 공유하는 시퀀스 사이에 한쪽이 다른 쪽 촬영중 조명을 꺼버릴 위험(SIDE 전용 PC 실기 UAT로는 원천적으로 재현 불가한 카테고리). WR-01(Warning) — 에러/중단 시 소등 훅 미발동(Op 제거로 PLC 강제소등 폴백 소실에 따른 순수 회귀). 즉시 수정(`2d6ed5a`+`1af63e7`, `TurnOffOwnShotLights()` 채널 스코프 축소 + `OnStop`/`OnError` 훅) + 재빌드 후 실기 재검증(이번엔 `BACK` 채널 하나만 꺼짐 확인, 스코프 축소 증명). 잔여위험(문서화): 두 시퀀스가 동일 물리채널명을 공유하는 극단적 레시피 재구성 케이스는 Option 2(스코프 축소, 구현됨) 한계상 미해결 — 현재 레시피 구조에선 발생 안 함, Option 1(크로스시퀀스 코디네이션)은 의도적 미구현.
 
 **Phase 61.1 hotfix F4 (2026-06-25, commit 316497b):** 2차 실측서 Align 검출 에지 polyline 이 패턴1 끝점→패턴2 시작점을 대각선으로 잘못 연결하는 버그 발견. 점 추출/polyline 방식 폐기, AlignShapeMatchService.Run 이 두 패턴 contour 를 affine_trans_contour_xld + concat_obj 로 단일 XLD 생성 → AlignResult.DetectedContourXld(HObject, 소유권 뷰어 이전) → MainResultViewerControl.SetAlignContourXld(교체/clear/Dispose 시 HObject.Dispose, 에지 토글 게이트) → HalconDisplayService.RenderAlignContourXld(window.DispObj). EdgeContourRows/Cols/BuildEdgeOverlays/AlignEdge polyline 분기 전부 제거. 빌드 Debug/x64 PASS, 검사(MainView) 회귀 0. UAT Test 2 재실측 대기(재티칭 후 ROI 크기 + 대각선 無 확인).
 

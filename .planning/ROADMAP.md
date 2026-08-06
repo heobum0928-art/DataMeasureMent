@@ -997,6 +997,17 @@ Plans:
 **Depends on:** 없음 (독립적인 조사 작업, Phase 69 진행과 무관하게 병행 가능)
 **Background:** 사용자가 코드 추적으로 제기 + 세션에서 직접 코드 검증 완료. 필터 누락 확인 3곳: `ComputeOverallResult`(InspectionSequence.cs:342-359), `BatchRunService.HandleFinish`(BatchRunService.cs:78-147), `AddResponse()` v2.6 레거시 경로(InspectionSequence.cs:119-206, 라인144 — `UseProtocolV1=false`일 때만 실행). 대조군(필터 있음, 영향 없음): v1.0 경로 `AddResponseV1Cycle`→`AggregateIndexFais`(:1452-1485)와 `ComputeLastZIndex`(:369-397) 전부 `bool bOwnedByThisSeq = shot.OwnerSequenceName == Name; if (!bOwnedByThisSeq) continue;` 패턴 사용 확인. 리셋 함수 `HandleRunStartResetResults`(:237-275)는 이 시퀀스 소유 Actions만 리셋(주석 명시, 구현 일치) — 판정은 전역, 리셋은 시퀀스 스코프인 비대칭이 근본 원인 후보. 핵심 그레이존: v2.6 `AddResponse()` 상단 주석(:122)에 "v2.6 면 기존 전체-Shot 경로로 폴백(회귀 0)"이라 명시돼 있어, 이 전역순회가 Phase 49(v1.0 도입) 이전부터 있던 의도된 설계(다중 시퀀스 항상 동시 완료 전제)인지 아니면 미필터링 버그인지 discuss-phase에서 먼저 판단 필요.
 
+### Phase 71: $PREP Op 필드 제거 + 조명 소등 자동화 (신설 2026-08-06)
+
+**Goal:** `$PREP:site,z_index,Op@`에서 Op 필드를 완전히 제거하고(항상 ON 의미로 통일), 대신 사이클이 P 또는 F로 확정되는 순간 비전이 자동으로 전체 조명을 소등하도록 전환한다. PLC는 더 이상 명시적으로 OFF를 요청할 필요가 없어진다.
+**Requirements**: PROTO-PREP-01 (임시 라벨 — discuss-phase 이후 REQUIREMENTS.md 정식 등록 여부는 사용자 결정)
+**Depends on:** 없음 (독립적인 프로토콜/조명 변경, 다른 진행 중 Phase와 무관하게 병행 가능)
+**Background:** 사용자가 이미 파일/라인 레벨로 상세 스펙 제공(discuss급 상세도) — `ApplyShotLightsInternal`(`InspectionSequence.cs:650`)이 매 호출마다 모든 채널을 선언적으로 완전 재적용하기 때문에 Op=1(ON)은 사실상 항상 필요하고, Op=0(OFF)은 "사이클 완전 종료 후 전부 소등"이라는 측정 정확도와 무관한 별도 목적(LED 수명/안전)으로만 쓰인다. 변경 대상 5곳: `VisionRequestPacket.TryParsePrepFields`(:415-439, 3필드→2필드), `PrepPacket.Op`(제거), `SystemHandler.ProcessPrep`(:788-821, ON/OFF 분기 제거), `VisionResponsePacket.BuildPrepAckMessage`(:438-459, Op echo 제거), `PrepAckPacket.Op`(제거). 조명 자동소등은 `TurnOffPrepLights`/`InspectionSequence.TurnOffShotLights` 메서드 재사용(삭제 금지), 호출 시점만 이동 — 사이클 종료 경로가 2곳(`ApplyCycleJudgement`의 정상 종료 :1591-1612, `TryApplyCrossZDatumImmediateFail`의 Datum 즉시실패 조기종료 :1393-1424)이라 개별 수정보다 `BuildScopedResponse`(:1338~)에서 두 호출 후 `packet.IsBuffer==false` 단일 지점 체크 권장(누락 위험 최소화). 하위호환(구 3필드 요청 처리 방식)과 프로토콜 엑셀 문서 갱신도 스코프에 포함. 비목표: `$PREP`/`$TEST` 통합(HW 트리거 호환성 때문에 별도 논의 후 기각됨), 조명 안정화 대기(ACK 타이밍) 로직 무수정.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 71 to break down)
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)

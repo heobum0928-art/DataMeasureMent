@@ -708,6 +708,30 @@ namespace ReringProject.Sequence {
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Phase 66: Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
         }
 
+        //260806 hbk Phase 71: 사이클이 P/F 로 확정되는 순간(IsBuffer==false) 전 조명 소등.
+        //  $PREP Op=0(PLC 의 명시적 OFF 요청) 폐기 대체 — 사이클 종료 시점을 아는 주체는 PLC 가 아니라 판정을 내리는 비전이다.
+        //  IsBuffer==true(중간 index B 응답)면 다음 z_index 촬영이 남아있으므로 끄지 않는다.
+        //  소등해도 다음 촬영은 안전하다: 모든 $TEST 앞에 $PREP 가 선행하고 ApplyShotLightsInternal 이 전 채널을 선언적으로 재적용한다.
+        //  호출 지점 2곳(둘 다 필요, 중복 아님):
+        //   (a) BuildScopedResponse — 정상 마지막 index P/F + 크로스-Z Datum 즉시 F
+        //   (b) HandleDatumIndexResponse — Index 0 Datum 즉시 F (BuildScopedResponse 를 거치지 않는 별도 경로)
+        private void TryTurnOffLightsOnCycleEnd(TestResultPacket packet, string szPath, int nZIndex)
+        {
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return;
+            }
+            bool bCycleEnded = !packet.IsBuffer;   // B(=buffer) 가 아니면 P 또는 F 로 확정된 것 = 사이클 끝
+            if (!bCycleEnded)
+            {
+                return;
+            }
+            TurnOffShotLights();
+            Logging.PrintLog((int)ELogType.LightController,
+                "[CycleLightOff] Seq={0}, path={1}, z={2}, result={3} //260806 hbk Phase 71", Name, szPath, nZIndex, packet.Result);
+        }
+
         //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 조명 → LightHandler 적용.
         //  Ring → RING_CH1~6 채널별 개별 적용 / Bar → BAR_1~4 채널별 개별 적용 (quick-260713-nse: 그룹→채널 개별 전환)
         //  Back → BACK 그룹 / Coax → ALIGN_COAX 그룹 / Ring7 → RING7 그룹 (1채널이라 그룹 API 그대로 유지)
@@ -1415,6 +1439,7 @@ namespace ReringProject.Sequence {
             WarnIfEmptyScope(packet, nMatchedShots, nZIndex);   // BLOCKER 1: ZIndex 매칭 0건 경고(조용한 빈 B 금지)
             ApplyCycleJudgement(packet, bIsLastIndex, nMatchedShots);   // B vs 종합 P/F (D-03/불변식), WR-01: 매칭 0건 전달
             TryApplyCrossZDatumImmediateFail(packet, nZIndex);   //260722 hbk Phase 68 GAP-3(68-10): 완성 index 크로스-Z Datum 실패 재평가(게이팅, 기본 OFF no-op)
+            TryTurnOffLightsOnCycleEnd(packet, "scoped", nZIndex);   //260806 hbk Phase 71: 위 두 판정이 모두 끝난 뒤 IsBuffer==false 단일 게이트로 소등(개별 함수 수정 없이 누락 방지)
             pMyContext.ResultInfo = packet.Result;
             return packet;
         }

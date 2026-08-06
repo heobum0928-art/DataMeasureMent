@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Phase 70 context gathered
-last_updated: "2026-08-06T09:29:38.210Z"
-last_activity: "2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over). **Phase 69 Wave 2(69-02) UAT 도중 Test 3에서 실제 프로세스 크래시 발생 확인 → 사용자 지시("이런 건 막아야지")로 3건 긴급 quick-fix 발주 및 실행: 260805-mze(Btn_batchRun_Click 전역 IsIdle 원복, 크래시 방지, 코드/빌드/plan-check 전부 PASS) 완료 · 260805-mzh(VisionAlgorithmService horotteRect 리전 누수 제거, 순수삭제 회귀0) 완료 · 260805-mzf(CaptureImageSaveService 큐 백프레셔) Task 1(코드) 완료·Task 2(사람 실측) 대기.** mzf 적용 후에도 사용자가 재빌드 재현 테스트에서 메모리 폭증(53.2GB, 멈춰도 감소 없음)이 계속됨을 보고 → 광범위 재조사(자동화 워크플로우 13-agent + MeasurePos 전수조사 + 수동 코드추적 다수, 전부 반증) 끝에 **사용자가 직접 결정적 재현("Bottom Datum Test Find 반복클릭→메모리상승", "Bottom=NCC/Top=Shape 차이")을 제공해 진짜 근본원인 확정** → **260805-ojq(PatternMatchService NCC/Shape 모델 read+clear 반복→static 캐시, plan-check PASS, Task 1 코드 완료·커밋 7004151, 12MP 실규모+300~500회 반복 격리 하네스로 (a)/(c) 자동 검증 PASS)** 신설·실행 — **ojq는 완전히 확정된 근본원인으로 간주(코드+실측 이중검증), 더 이상 의심 대상 아님.**"
+stopped_at: Completed 71-01-PLAN.md ( Op 필드 제거)
+last_updated: "2026-08-06T12:58:03.038Z"
+last_activity: 2026-08-06
 progress:
   total_phases: 15
   completed_phases: 14
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 69 — poc-run (메인 화면 POC 패널 정리 + RUN 버튼 간헐적 미동작)
+**Current focus:** Phase 71-prep-op-plc-off-p-f
 
 ## Current Position
 
-Phase: 69 (poc-run) — EXECUTING
-Plan: 1 of 2 (69-01 완료 — `SequenceHandler.TryGetBlockingSequence`/`FindBlockingSequenceName`/`SharesCameraDevice`/`TryCollectSequenceCameras` 신설(순수 추가, 기존 StateAll/IsIdle/_StateSeqName 무변경) + RUN 진입점 4곳(Btn_start_Click/Btn_batchRun_Click 및 지연 rebuild 게이트 2곳)을 시퀀스 단위 판정으로 교체, 차단 사유 메시지에 시퀀스명 포함. 카메라 공유 판정은 role 문자열이 아니라 DeviceHandler 참조 동일성(ReferenceEquals) 기반, 판정 실패 시 전부 fail-closed(차단). Debug/x64 빌드 PASS. 69-02(육안 검증 체크포인트) 대기 중. 이전 Phase 68 은 기능적으로 gap-closure 전체 완료 상태로 병행 유지.)
-Last activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over). **Phase 69 Wave 2(69-02) UAT 도중 Test 3에서 실제 프로세스 크래시 발생 확인 → 사용자 지시("이런 건 막아야지")로 3건 긴급 quick-fix 발주 및 실행: 260805-mze(Btn_batchRun_Click 전역 IsIdle 원복, 크래시 방지, 코드/빌드/plan-check 전부 PASS) 완료 · 260805-mzh(VisionAlgorithmService horotteRect 리전 누수 제거, 순수삭제 회귀0) 완료 · 260805-mzf(CaptureImageSaveService 큐 백프레셔) Task 1(코드) 완료·Task 2(사람 실측) 대기.** mzf 적용 후에도 사용자가 재빌드 재현 테스트에서 메모리 폭증(53.2GB, 멈춰도 감소 없음)이 계속됨을 보고 → 광범위 재조사(자동화 워크플로우 13-agent + MeasurePos 전수조사 + 수동 코드추적 다수, 전부 반증) 끝에 **사용자가 직접 결정적 재현("Bottom Datum Test Find 반복클릭→메모리상승", "Bottom=NCC/Top=Shape 차이")을 제공해 진짜 근본원인 확정** → **260805-ojq(PatternMatchService NCC/Shape 모델 read+clear 반복→static 캐시, plan-check PASS, Task 1 코드 완료·커밋 7004151, 12MP 실규모+300~500회 반복 격리 하네스로 (a)/(c) 자동 검증 PASS)** 신설·실행 — **ojq는 완전히 확정된 근본원인으로 간주(코드+실측 이중검증), 더 이상 의심 대상 아님.**
+Phase: 71-prep-op-plc-off-p-f — EXECUTING
+Plan: 2 of 4
+Last activity: 2026-08-06
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
 
@@ -251,6 +251,7 @@ Last activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고
 | Phase 68 P09 | 15min | 1 tasks | 1 files |
 | Phase 68 P10 | 15min | 2 tasks | 2 files |
 | Phase 68 P12 | 15min | 3 tasks | 4 files |
+| Phase 71-prep-op-plc-off-p-f P01 | 6min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -501,6 +502,8 @@ Recent decisions affecting current work:
 - [Phase 68-11]: 68-GAP-UAT.md 실측 중 GAP-2(f)'s WarnIfEmptyScope 억제가 크로스-Z **Datum**-only index만 커버하고 크로스-Z **Measurement** capture-only index(예: SHOT_E5 own ZIndex=0, ZIndexA=1)는 놓쳐서 매 사이클 스퓨리어스 Error 로그가 나는 걸 실측으로 발견 — BuildCrossZDatumIndexSet 대칭 구조로 BuildCrossZMeasurementIndexSet/IsZIndexUsedByCrossZMeasurement 신설, WarnIfEmptyScope 억제조건 확장. 재빌드+재트리거로 Error 로그 0 재확인.
 - [Phase 68-11]: 혼합 Shot 오염(지침 #9, 68-VALIDATION.md 운영규칙)을 SHOT_E5(E5_P2=크로스Z(1,2), E5_P1=일반(-1,-1))로 실측 재현(E5_P1이 z=1에서도 잘못 보고됨) → 사용자 지시로 실행 로직 변경 대신 **저장 시점 차단** 채택(리스크 최소화). InspectionRecipeManager.FindMixedCrossZShots/ShotHasInconsistentCrossZPairs 신설 — 규칙은 사용자가 직접 일반화: "같은 Shot 안 모든 측정은 (ZIndexA,ZIndexB) 짝이 전부 동일해야 함"(크로스-Z+일반 혼합뿐 아니라 (1,2)+(3,2) 같은 서로 다른 크로스-Z 짝 혼합도 차단). MainWindow.SaveRecipe 가 저장 직전 CustomMessageBox 로 차단, 파일 미변경 확인(main.ini mtime 불변 실측).
 - [Phase 68-11]: GAP-3(EnableCrossZDatumImmediateFail) 는 이 환경에 Side 크로스-Z Datum 레시피가 없어 기능 검증 불가로 blocked 처리(코드 기본값 true 는 68-10 결정대로 확인됨). 추가로 로컬 Setting.ini(68-10 이전 생성)가 여전히 False 로 영속화돼있어 신규 기본값 미반영 — 배포 시 기존 Setting.ini 존재 PC 대상 확인 필요(carry-over, 이번 범위 밖).
+- D-71-01 하위호환: dataList.Length>=2 유지, 3번째 필드(구 Op)는 코드에서 읽지 않고 무시 — 엄격 거부는 무응답(라인 정지) 리스크
+- TurnOffPrepLights() 는 호출자 0개인 채로 삭제하지 않고 유지 — CONTEXT.md locked decision, 71-02 가 InspectionSequence 쪽에 별도 소등 훅 추가 예정
 
 ### Quick Tasks Completed
 
@@ -686,9 +689,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 70 context gathered
-Resume file: --resume-file
+Last session: 2026-08-06T12:58:03.023Z
+Stopped at: Completed 71-01-PLAN.md ( Op 필드 제거)
+Resume file: 71-02-PLAN.md
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 
 **v1.1 Phase Map:**

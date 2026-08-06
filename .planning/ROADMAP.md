@@ -1006,7 +1006,7 @@ Plans:
 **Plans:** 4 plans (3 waves)
 
 Plans:
-- [ ] 71-01-PLAN.md — $PREP wire 포맷에서 Op 필드 완전 제거 (파서 2필드화 + ACK Op echo 제거 + ProcessPrep 단일 경로) [wave 1]
+- [x] 71-01-PLAN.md — $PREP wire 포맷에서 Op 필드 완전 제거 (파서 2필드화 + ACK Op echo 제거 + ProcessPrep 단일 경로) [wave 1] ✅ 2026-08-06 (f0d9f48, 342cfda)
 - [ ] 71-02-PLAN.md — 사이클 P/F 확정 시 조명 자동소등 훅 (종료 경로 2곳: BuildScopedResponse + HandleDatumIndexResponse) [wave 1]
 - [ ] 71-03-PLAN.md — 통합 빌드 + 정적 전수검증 + UAT-A/B (프로토콜 wire 하위호환 / z_index 다중전환 회귀 0) [wave 2]
 - [ ] 71-04-PLAN.md — UAT-C/D/E (정상 P 소등 / NG 누적 F 소등 / Datum 즉시실패 F 소등) [wave 3]

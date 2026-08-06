@@ -110,6 +110,11 @@ namespace ReringProject.Sequence {
             OnFinish += HandleFlowLogCycleEnd;
             OnStop += HandleFlowLogCycleEnd;
             OnError += HandleFlowLogCycleEnd;
+            // 260807 hbk quick-260807-wr1 (Phase71 WR-01 리뷰수정): 정상종료(OnFinish)는 AddResponse→BuildScopedResponse
+            //  의 TryTurnOffLightsOnCycleEnd 훅이 이미 커버하므로 여기서는 OnStop/OnError 만 구독 — 중간 index 에서
+            //  중단되면 IsBuffer=true 로 남아 그 훅이 못 끄는 경로를 무조건 소등으로 메운다($PREP Op=0 폐기로 대체 경로 없음).
+            OnStop += HandleAbnormalCycleLightOff;
+            OnError += HandleAbnormalCycleLightOff;
         }
 
         // 종합 판정 + FAI별 결과 TCP 전송. 3-state cycle hierarchy + FAIResults P/F/N 분기.
@@ -315,6 +320,25 @@ namespace ReringProject.Sequence {
 
                 bool bAllPass = (nNg == 0) && (nMeasured > 0);
                 FlowLog.CycleEnd(Name, bAllPass, nMeasured, nNg, _flowStopwatch.Elapsed.TotalSeconds);
+            } catch {
+            }
+        }
+
+        // 260807 hbk quick-260807-wr1 (Phase71 WR-01 리뷰수정): Error()/Stop() 중단은 AddResponse 를 거쳐도
+        //  마지막 index 가 아니면 IsBuffer=true 로 남아 TryTurnOffLightsOnCycleEnd 게이트를 못 지난다 — $PREP Op=0
+        //  폐기로 이제 다른 소등 경로가 없어 조명이 계속 켜진 채로 남는다. OnStop/OnError 는 IsBuffer 판정과 무관하게
+        //  항상 발화하므로 여기서 무조건 이 시퀀스 채널만 소등(TurnOffOwnShotLights, CR-01 스코핑 재사용)한다.
+        //  HandleFlowLogCycleEnd 와 동일 원칙 — 예외를 절대 밖으로 던지지 않는다(SequenceBase 이벤트 발화 실패 시
+        //  잠금 영구화 위험, SaveResultImage 와 동일 격리 규약).
+        private void HandleAbnormalCycleLightOff(SequenceContext context) {
+            try {
+                TurnOffOwnShotLights();
+                string szState = "unknown";
+                if (context != null) {
+                    szState = context.State.ToString();
+                }
+                Logging.PrintLog((int)ELogType.LightController,
+                    "[CycleLightOff] Seq={0}, path=abnormal-{1}, z={2} //260807 hbk Phase71 WR-01", Name, szState, m_nCurrentZIndex);
             } catch {
             }
         }

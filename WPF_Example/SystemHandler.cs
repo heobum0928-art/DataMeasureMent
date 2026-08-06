@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using HalconDotNet;
 using ReringProject.Utility;
 using ReringProject.Setting;
 using ReringProject.Sequence;
@@ -111,6 +112,20 @@ namespace ReringProject {
         
         // Call after constructor to fully initialize runtime components.
         public void Initialize() {
+            // quick-260806-dsn Part A: HALCON 자체 캐시(mimalloc, HALCON 24.11 Windows 기본 할당자)가 해제된
+            //  메모리를 OS에 즉시 반환하지 않고 계속 쌓아두는 문제의 공식 완화책(memory_management 챕터,
+            //  "Handling Suspected Memory Leaks in HALCON" 권장 3줄, 앱 시작 시 1회). 캐시 정책만 바꿀 뿐
+            //  기능/정확성에는 영향 없다. Devices/Sequences 등 이후의 모든 Halcon 이미지 처리에 적용되도록
+            //  이 메서드의 첫 실행문으로 둔다. 실패해도(캐시 힌트 실패일 뿐) 앱 시작을 막지 않는다.
+            try {
+                HOperatorSet.SetSystem("global_mem_cache", "idle");
+                HOperatorSet.SetSystem("temporary_mem_cache", "idle");
+                HOperatorSet.SetSystem("image_cache_capacity", 0);
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[STARTUP] HALCON SetSystem memory cache config failed: {0}", ex.Message);
+            }
+
             Stopwatch sw = Stopwatch.StartNew(); //260528 hbk Phase 38 #11
             long prev = 0; //260528 hbk Phase 38 #11 — 직전 단계 누적 시각 (delta 계산용)
 

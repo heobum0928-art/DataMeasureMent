@@ -1418,6 +1418,7 @@ namespace ReringProject.Sequence {
             m_nLastZIndex = ComputeLastZIndex(recipeManager);   // 리셋 직후 재산출(호출부 의무, ResetCycleState 주석)
             m_bCycleDatumFailed = DetectDatumFailure();         // D-04: Datum 검출 실패 감지
             TestResultPacket datumPacket = BuildDatumShotResponse();
+            TryTurnOffLightsOnCycleEnd(datumPacket, "datum-index0", DATUM_Z_INDEX);   //260806 hbk Phase 71: Index 0 즉시-F 는 BuildScopedResponse 를 안 거치는 별도 종료 경로 — 두 번째 훅 필수
             PersistAndEnqueueV1(recipeManager, datumPacket);
         }
 

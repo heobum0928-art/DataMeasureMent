@@ -1009,7 +1009,7 @@ Plans:
 - [x] 71-01-PLAN.md — $PREP wire 포맷에서 Op 필드 완전 제거 (파서 2필드화 + ACK Op echo 제거 + ProcessPrep 단일 경로) [wave 1] ✅ 2026-08-06 (f0d9f48, 342cfda)
 - [x] 71-02-PLAN.md — 사이클 P/F 확정 시 조명 자동소등 훅 (종료 경로 2곳: BuildScopedResponse + HandleDatumIndexResponse) [wave 1] ✅ 2026-08-06 (a160fc0, 526b57f)
 - [x] 71-03-PLAN.md — 통합 빌드 + 정적 전수검증 + UAT-A/B (프로토콜 wire 하위호환 / z_index 다중전환 회귀 0) [wave 2] ✅ 2026-08-06 (81ef3bb, d340ed3, 9ca2553)
-- [ ] 71-04-PLAN.md — UAT-C/D/E (정상 P 소등 / NG 누적 F 소등 / Datum 즉시실패 F 소등) [wave 3]
+- [x] 71-04-PLAN.md — UAT-C/D/E (정상 P 소등 / NG 누적 F 소등 / Datum 즉시실패 F 소등) [wave 3] ✅ 2026-08-06 — UAT-C 4/4 실기 PASS, UAT-D 71-03 재인용 PASS, UAT-E 정적검증만 PASS(실기는 SIDE 전용 PC 환경제약으로 불가, T-71-38 open) — Phase 71 CONTEXT 8항목 중 7 완전충족 + 1 PARTIAL
 
 ---
 

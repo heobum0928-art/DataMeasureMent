@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 71-03-PLAN.md (UAT-A/UAT-B PASS)
-last_updated: "2026-08-06T13:39:59.778Z"
+stopped_at: Completed 71-04-PLAN.md (UAT-C PASS, UAT-D PASS-by-reference, UAT-E partial/open-risk) - Phase 71 7/8 items fully closed
+last_updated: "2026-08-06T15:14:28.903Z"
 last_activity: 2026-08-06
 progress:
   total_phases: 15
@@ -254,6 +254,7 @@ Last activity: 2026-08-06
 | Phase 71-prep-op-plc-off-p-f P01 | 6min | 2 tasks | 3 files |
 | Phase 71-prep-op-plc-off-p-f P02 | 4min | 2 tasks | 1 files |
 | Phase 71-prep-op-plc-off-p-f P03 | 27min | 1 tasks | 0 files |
+| Phase 71-prep-op-plc-off-p-f P04 | 90min | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -509,6 +510,8 @@ Recent decisions affecting current work:
 - 71-02: TryTurnOffLightsOnCycleEnd 를 판정 함수(ApplyCycleJudgement/TryApplyCrossZDatumImmediateFail/BuildDatumShotResponse) 바깥 단일 헬퍼로 두고 IsBuffer==false 게이트 재사용 — 새 상태 플래그 없이 3개 종료 경로 전부 커버
 - 71-02: HandleDatumIndexResponse 에 두 번째 훅 필수 — Index 0 Datum 즉시 F 는 BuildScopedResponse 를 거치지 않는 별도 종료 경로(CONTEXT.md 지목 누락위험)
 - D-71-03: PcRole 1->2 임시 변경(운영데이터, Setting.ini, 코드 아님)으로 UAT-B 진행 - 원복 여부는 사용자 결정 대기
+- UAT-E(path=datum-index0)는 SIDE 전용 PC에서 TCP 실기검증 구조적으로 불가(크로스-Z Datum z=0 캡처-only + $PREP Shot 미등록 이중확정) - 정적검증(71-03 S9)만으로 코드 커버리지, 실기는 TOP/BOTTOM PC에서 후속 확인 필요(T-71-38 open)
+- UAT-D(NG누적F 전체소등)는 71-03 UAT-B 데이터 재인용으로 충족 - D-1(중간 index NG) 요구사항을 main.ini 대조로 보강확인(FAI_3-1_D1@z=2, FAI_C13-14_P1@z=11 모두 중간index)
 
 ### Quick Tasks Completed
 
@@ -694,9 +697,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-08-06T13:39:59.764Z
-Stopped at: Completed 71-03-PLAN.md (UAT-A/UAT-B PASS)
-Resume file: 71-04-PLAN.md
+Last session: 2026-08-06T15:14:28.887Z
+Stopped at: Completed 71-04-PLAN.md (UAT-C PASS, UAT-D PASS-by-reference, UAT-E partial/open-risk) - Phase 71 7/8 items fully closed
+Resume file: None
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 
 **v1.1 Phase Map:**

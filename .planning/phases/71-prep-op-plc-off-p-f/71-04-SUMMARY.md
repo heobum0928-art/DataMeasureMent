@@ -144,3 +144,17 @@ completed: 2026-08-06
 ---
 *Phase: 71-prep-op-plc-off-p-f*
 *Completed: 2026-08-06*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/71-prep-op-plc-off-p-f/71-04-SUMMARY.md
+- FOUND commit: f0d9f48 (71-01, referenced)
+- FOUND commit: 342cfda (71-01, referenced)
+- FOUND commit: a160fc0 (71-02, referenced)
+- FOUND commit: 526b57f (71-02, referenced)
+- FOUND commit: 81ef3bb (71-03, referenced)
+- FOUND commit: d340ed3 (71-03, referenced)
+- FOUND commit: 9ca2553 (71-03, referenced)
+- FOUND commit: e346be2 (71-03 completion, referenced)
+- CONFIRMED: `git status --short` shows zero unintended repository changes from this plan (only pre-existing untouched user-experiment files remain modified, per repo_state_warning)
+- CONFIRMED: `D:\Data\Recipe\FAI_1\main.ini` PatternMinScore(Side_Datum_3-1)=0.6 (original value, reverted)

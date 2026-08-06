@@ -202,6 +202,21 @@ namespace ReringProject.UI {
                     if (img != null) img.Dispose();
                 }
             } else {
+                // quick-260806-dsn Part B: 배치 사이클 종료 후 메모리 정리(InspectionListView.CleanupBatchImageMemoryAfterCycle)로
+                //  shot._image 가 비워졌을 수 있다 — FAI 원본 캡쳐 파일(overlay 미포함, RenderStoredOverlaysForFai 가
+                //  overlay 는 별도로 그림)로 재로드를 시도한 뒤에도 없으면 기존과 동일하게 "NO Image" 표시.
+                string fallbackPath = null;
+                if (shot != null) fallbackPath = shot.ResolveFallbackImagePath();
+                if (!string.IsNullOrEmpty(fallbackPath) && File.Exists(fallbackPath)) {
+                    try {
+                        halconViewer.LoadImage(fallbackPath);
+                        _lastDisplayedImageShot = shot;
+                        label_message.Visibility = Visibility.Collapsed;
+                        return;
+                    } catch (Exception ex) {
+                        Logging.PrintErrLog((int)ELogType.Error, ex.Message);
+                    }
+                }
                 _lastDisplayedImageShot = null;
                 label_message.Content = "NO Image";
                 label_message.Visibility = Visibility.Visible;

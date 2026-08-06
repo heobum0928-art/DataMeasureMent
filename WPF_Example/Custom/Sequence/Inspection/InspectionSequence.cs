@@ -874,6 +874,15 @@ namespace ReringProject.Sequence {
             ClearCrossZImages();
         }
 
+        // quick-260806-dsn Part B: 배치 사이클 "완료" 후 메모리 정리 전용 진입점. ClearCrossZImages 를 그대로
+        //  재사용하지만, BeginCrossZImageCycle(다음 z=0 $TEST 수신 시 프로토콜 계약상 "유일한 진입점" — 위 주석
+        //  참고)과는 호출 시점이 전혀 다르다(이번 사이클 완료 직후, UI 레벨 정리) — 그 주석이 가리키는 프로토콜
+        //  계약을 깨지 않도록 이름을 분리해 별도 진입점으로 노출한다.
+        public void ClearCrossZImagesAfterBatchCycle()
+        {
+            ClearCrossZImages();
+        }
+
         //260722 hbk Phase 68 D-02a: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST
         //  z_index 를 조회해야 하므로 ParseCurrentZIndex(private) 를 public 래퍼로 노출. RequestPacket 은
         //  SequenceBase.StartCore 에서 Run() 진입 전에 이미 세팅되므로 실행 시점에도 정확한 값을 반환한다.

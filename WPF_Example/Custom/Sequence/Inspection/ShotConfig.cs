@@ -414,6 +414,25 @@ namespace ReringProject.Sequence {
             }
         }
 
+        /// <summary>
+        /// quick-260806-dsn Part B: 배치 사이클 완료 후 메모리 정리로 _image 가 비워진 뒤에도 화면 재현이 가능한지
+        /// 판단하기 위한 디스크 폴백 경로 조회. FAIList 의 각 FAI가 보유한 원본 캡쳐 파일
+        /// (FAIConfig.LastOriginImageFileName — CaptureImageSaveService 가 매 검사마다 overlay 없이 저장하는 원본,
+        /// Action_FAIMeasurement.QueueFaiCapture 가 기록) 중 실제 존재하는 첫 경로를 반환한다.
+        /// overlay 는 이 경로와 별개로 FAIConfig.LastOverlays 를 통해 항상 재현되므로(RenderStoredOverlaysForFai),
+        /// 여기서는 원본(overlay 미포함) 이미지 경로만 반환하면 된다.
+        /// 반환값이 null/빈 문자열이면 호출자는 _image 정리를 건너뛰어야 한다(재클릭 시 빈 화면 회귀 방지).
+        /// </summary>
+        public string ResolveFallbackImagePath() {
+            if (FAIList == null) return null;
+            foreach (var fai in FAIList) {
+                if (fai == null) continue;
+                string path = fai.LastOriginImageFileName;
+                if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) return path;
+            }
+            return null;
+        }
+
         // 빈값 폴백 + 향후 ShotConfig 신규 필드 default 정규화 단일 진입점.
         //  InspectionRecipeManager.LoadPhase6Format 의 shot.Load 다음에 호출.
         public void ApplyShotDefaults() {

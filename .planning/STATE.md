@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: Phases
 status: unknown
 stopped_at: Phase 70 context gathered
-last_updated: "2026-08-05T07:38:55.869Z"
-last_activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over).
+last_updated: "2026-08-06T09:29:38.210Z"
+last_activity: "2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over). **Phase 69 Wave 2(69-02) UAT 도중 Test 3에서 실제 프로세스 크래시 발생 확인 → 사용자 지시("이런 건 막아야지")로 3건 긴급 quick-fix 발주 및 실행: 260805-mze(Btn_batchRun_Click 전역 IsIdle 원복, 크래시 방지, 코드/빌드/plan-check 전부 PASS) 완료 · 260805-mzh(VisionAlgorithmService horotteRect 리전 누수 제거, 순수삭제 회귀0) 완료 · 260805-mzf(CaptureImageSaveService 큐 백프레셔) Task 1(코드) 완료·Task 2(사람 실측) 대기.** mzf 적용 후에도 사용자가 재빌드 재현 테스트에서 메모리 폭증(53.2GB, 멈춰도 감소 없음)이 계속됨을 보고 → 광범위 재조사(자동화 워크플로우 13-agent + MeasurePos 전수조사 + 수동 코드추적 다수, 전부 반증) 끝에 **사용자가 직접 결정적 재현("Bottom Datum Test Find 반복클릭→메모리상승", "Bottom=NCC/Top=Shape 차이")을 제공해 진짜 근본원인 확정** → **260805-ojq(PatternMatchService NCC/Shape 모델 read+clear 반복→static 캐시, plan-check PASS, Task 1 코드 완료·커밋 7004151, 12MP 실규모+300~500회 반복 격리 하네스로 (a)/(c) 자동 검증 PASS)** 신설·실행 — **ojq는 완전히 확정된 근본원인으로 간주(코드+실측 이중검증), 더 이상 의심 대상 아님.**"
 progress:
   total_phases: 15
   completed_phases: 14
@@ -32,6 +32,7 @@ Plan: 1 of 2 (69-01 완료 — `SequenceHandler.TryGetBlockingSequence`/`FindBlo
 Last activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고정(260805-ivy), SimulImagePath 숨김(260805-iz8), Shot 복사 FAI 유실 수정(260805-iw0), 흐름 로그(260805-f3w) 전부 완료(사용자 실기 승인). Quick 260805-jtj(CAM_BOTTOM MilCamera 공유 시 REVERSE_X_BOTTOM 미반영) 완료(실HW 검증 carry-over). **Phase 69 Wave 2(69-02) UAT 도중 Test 3에서 실제 프로세스 크래시 발생 확인 → 사용자 지시("이런 건 막아야지")로 3건 긴급 quick-fix 발주 및 실행: 260805-mze(Btn_batchRun_Click 전역 IsIdle 원복, 크래시 방지, 코드/빌드/plan-check 전부 PASS) 완료 · 260805-mzh(VisionAlgorithmService horotteRect 리전 누수 제거, 순수삭제 회귀0) 완료 · 260805-mzf(CaptureImageSaveService 큐 백프레셔) Task 1(코드) 완료·Task 2(사람 실측) 대기.** mzf 적용 후에도 사용자가 재빌드 재현 테스트에서 메모리 폭증(53.2GB, 멈춰도 감소 없음)이 계속됨을 보고 → 광범위 재조사(자동화 워크플로우 13-agent + MeasurePos 전수조사 + 수동 코드추적 다수, 전부 반증) 끝에 **사용자가 직접 결정적 재현("Bottom Datum Test Find 반복클릭→메모리상승", "Bottom=NCC/Top=Shape 차이")을 제공해 진짜 근본원인 확정** → **260805-ojq(PatternMatchService NCC/Shape 모델 read+clear 반복→static 캐시, plan-check PASS, Task 1 코드 완료·커밋 7004151, 12MP 실규모+300~500회 반복 격리 하네스로 (a)/(c) 자동 검증 PASS)** 신설·실행 — **ojq는 완전히 확정된 근본원인으로 간주(코드+실측 이중검증), 더 이상 의심 대상 아님.**
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
+
 1. `OverlayCaptureRenderer.RenderToHImage`의 매 호출 `open_window`/`close_window` 가설 → **사용자가 직접 해당 호출을 주석처리+재빌드해서 재현 결과 폭증 동일 재현 → 반증 확정.** 이 파일/함수 재조사 금지.
 2. `ShotConfig._image`/`ActionContext.ResultHalconImage`/크로스-Z 저장소가 사이클 종료 후에도 "다음 실행 시점까지" 영구 보존됨을 코드로 확정(30개 Shot × 실측 127MB(!, 12MB 아님 — `D:\Data\Image\OfflineInspect\FAI_1\*.bmp` 실측) = 8GB+) + HALCON 자체 mimalloc 캐시가 해제 메모리를 OS에 안 돌려주는 문제(공식 문서 확인, `C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\doc\html\manuals\memory_management\`) → **260806-dsn**(Part A: `SystemHandler.Initialize()`에 `SetSystem` idle 3줄, 커밋 `3a5f4b4` / Part B: 사이클 종료 시 비표시 SHOT 이미지 dispose+디스크 폴백 안전망, 커밋 `8c327c5`+`534c742`) plan-check PASS 후 실행 완료.
 3. **Task 4 실기 검증 실패** — "30초 후에도 메모리 안 줄어듦, 계속 누르면 조금씩 올라감". 독립 에이전트가 코드추적+**실제 파일 타임스탬프 대조**(파일명에 박힌 큐투입시각 vs 실제 디스크기록시각)로 원인을 실증 확정: `ResolveFallbackImagePath()`의 `File.Exists()` 안전장치가 배치 사이클 종료 **밀리초 후**에 도는데, 비동기 저장 큐(단일 워커스레드)는 그 시점 **10~16초+(세션 진행할수록 증가)** 뒤처져 있음(`[CaptureImageSaveService] 저장 지연...depth=49/50` 로그로 큐 상시 포화 확인) → 배치 뒤쪽 1/3~1/2 SHOT이 매 사이클 확정적으로 정리 skip됨. **여기까지는 100% 실증된 사실.**
@@ -39,6 +40,7 @@ Last activity: 2026-08-05 - Phase 69 Wave 1(69-01) 완료. Manual Measure 축고
 5. **Task 2 실기 검증도 실패 — 그런데 이번엔 원인이 다르다.** 1~2분 이상 관찰해도 메모리 그대로(16.7GB대 고정). **BUT 로그 확인 결과 재시도 로직 자체는 정상 작동 중임을 직접 확인**(`[BatchImageCleanup] 재시도 성공: shot=SHOT_F1_P1` 등 다수, 실제로 `ClearShotImageCache`가 호출되고 있음 — dispose+null 둘 다 이미 정확히 수행됨, 사용자 질문에 코드로 확인 답변함). **즉 "정리 로직을 못 찾아서 못 지운다"는 문제는 완전히 해결됐는데, 그럼에도 `Process.WorkingSet64`가 안 떨어진다** — 이는 dispose 호출 자체가 OS에 보이는 메모리 반환으로 이어지지 않는다는 뜻이며, 지금까지의 "어떤 객체를 못 찾아서 못 지웠다" 계열 가설과는 **완전히 다른, 더 근본적인 층(HALCON 네이티브 할당자/OS 메모리 반환 메커니즘)의 문제**로 추정됨. Part A의 `SetSystem(...,"idle")` 설정을 이미 적용했음에도 이 현상이 계속되는 것으로 보아, 127MB급 대용량 블록에는 이 설정만으로 불충분하거나 다른 메커니즘이 작용 중일 가능성.
 
 **세션 종료 시점 상태(다음 세션 시작점)**:
+
 - mze/mzf/mzh/ojq: 근본원인 확정 + 코드 완료 + (ojq는 이중 실측 검증까지 완료). **더 이상 의심 대상 아님.**
 - dsn(Part A+B, 커밋 `3a5f4b4`/`8c327c5`/`534c742`) + dsn-2(재시도 대기열, 커밋 `b133c32`): 코드 정상 동작 확인됨(로그로 실증, 정리 로직 자체는 완벽하게 작동), **그러나 여전히 프로세스 메모리가 안 줄어드는 미해결 증상 존재.**
 - **다음 세션 최우선 조사 과제**: 격리 테스트 하네스(어제 `ojq-verify` 패턴 재사용 가능, `C:\Users\tech\AppData\Local\Temp\claude\...\scratchpad\ojq-verify\`)로 "실제 127MB급 HImage를 생성→Dispose(+null)→WorkingSet64 관찰"을 반복해서, **Dispose 자체가 이 환경에서 OS 메모리 반환을 유발하는지 최소 재현으로 직접 확인할 것.** 이게 재현 안 되면(즉 격리 상태에서도 Dispose 후 메모리가 안 줄면) 이건 앱 코드 문제가 아니라 HALCON 24.11 Windows mimalloc 할당자의 근본적 특성이므로, 접근 자체를 바꿔야 함(예: 주기적 `set_system('global_mem_cache','cleanup')` 명시적 플러시 호출, 또는 "이 정도 상주 메모리는 정상"으로 사용자와 재합의). 재현되면(격리 환경에선 잘 줄어드는데 실제 앱에선 안 줄면) 아직 못 찾은 별도의 대용량 보유 지점이 남아있다는 뜻이므로 재조사 계속.
@@ -706,4 +708,4 @@ Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure pla
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 67 (양산 이력 통계 분석 (STAT-01)) — 3 plans — 2026-07-07T01:09:44.516Z
+**Planned Phase:** 71 (prep-op-plc-off-p-f) — 4 plans — 2026-08-06T09:29:38.197Z

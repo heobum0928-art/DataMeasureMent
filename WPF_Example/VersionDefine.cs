@@ -118,10 +118,15 @@ namespace ReringProject
         Date = "2026-08-05",
         Change = "MeasurementAlgorithm.TryInspectSingleEdgeInternal 의 strip 측정 루프에서 확정된 HALCON measure handle 누수를 예외-경로 한정으로 수정 — handle 을 닫는 CloseMeasure(handle) 호출이 try/finally 밖의 평문이라, 바로 앞 MeasurePos 호출이 예외를 던지면 실행되지 않고 handle 이 새며, 그 예외는 상위 TryInspectSingleEdge 래퍼의 빈 catch{return false;}에 조용히 삼켜져 겉으로 드러나지 않았다. 형제 구현체(VisionAlgorithmService.AppendStrip, FAIEdgeMeasurementService)와 동일한 try-finally 패턴으로 통일 — MeasurePos 호출과 뒤따르는 결과 누적 블록을 try 안으로, CloseMeasure(handle)을 finally 로 이동. catch 는 추가하지 않아 예외 전파(ROI 전체 실패 처리) 동작과 판정/반환값 로직은 완전히 그대로 보존. 이 메서드는 [Obsolete] 구 액션(TopInspectionAction/BottomInspectionAction) 경로로만 도달하고 표준 운영 경로(RebuildInspectionActions→Action_FAIMeasurement)에서는 실행되지 않지만, TeachingWindow 의 수동 test 버튼에서는 여전히 도달 가능해 확정 누수로 판단해 수정."
     )]
+    [Version(
+        Number = "1.7.6.0",
+        Date = "2026-08-06",
+        Change = "카메라(Top/Side/Bottom) 하나만 골라서 RUN 해도 최종 합격/불합격 판정이 다른 카메라 것까지 같이 보고 매겨지던 문제 수정 — 검사 항목 목록이 세 카메라 것 전부 한 곳에 같이 저장돼 있는데, 판정할 때 그중 '지금 돌린 카메라 것'만 골라내는 절차가 빠져 있었다. 그래서 예를 들어 Top만 돌렸을 때 Side/Bottom 쪽 항목이 이번에 측정을 안 해서 비어 있으면 그걸 불합격으로 잘못 읽어, Top 자체는 전부 정상인데도 최종 결과가 불합격(또는 검출실패)으로 뜰 수 있었다. 판정하는 4곳(수동 RUN 판정, 일괄검사 판정, 반복검사 판정, 실제 제어반으로 나가는 통신 응답) 전부에 '지금 돌린 카메라 것만 본다'는 필터를 추가해서 바로잡았다. 필터링 결과 항목이 하나도 안 걸리는 예외 상황(레시피 설정 오류 등)에는 조용히 합격 처리되지 않고 검출실패로 표시되도록 안전장치도 같이 넣었다. 합격/불합격을 가르는 기준 자체는 전혀 안 바꿨다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.5.0";
-        public const string BUILD_DATE = "2026-08-05";
+        public const string VERSION = "1.7.6.0";
+        public const string BUILD_DATE = "2026-08-06";
     }
 }

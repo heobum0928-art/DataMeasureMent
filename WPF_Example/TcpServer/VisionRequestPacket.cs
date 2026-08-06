@@ -410,8 +410,10 @@ namespace ReringProject.Network {
             return true;
         }
 
-        //260626 hbk v3.0: $PREP 수신 파서. dataList[0]=site, [1]=z_index, [2]=Op(1=ON/0=OFF, 선택).
-        //  Op 미수신 시 1(ON) — 구 $PREP:site,z_index@ 하위호환. 필드 부족/비정수 → false(null 응답).
+        //260626 hbk v3.0: $PREP 수신 파서. dataList[0]=site, [1]=z_index.
+        //260806 hbk Phase 71: Op 필드 폐기(소등은 사이클 P/F 확정 시 비전이 자동 수행) — 2필드 고정.
+        //  하위호환(D-71-01): 구 펌웨어가 $PREP:site,z_index,Op@ 3필드를 보내도 3번째 필드를 아예 읽지 않고 무시한다.
+        //  필드 수 초과를 실패로 만들면 호출부(:296)가 null 을 반환해 응답 자체가 안 나가고 → PLC 가 ACK 를 무한 대기(라인 정지)한다.
         private static bool TryParsePrepFields(string[] dataList, PrepPacket prepPacket)
         {
             bool bHasFields = dataList != null && dataList.Length >= 2;
@@ -427,14 +429,7 @@ namespace ReringProject.Network {
             if (!bZIndexOk) { return false; }
             prepPacket.ZIndex = nZIndex;
 
-            bool bHasOp = dataList.Length >= 3;   //260626 hbk Op 선택 필드
-            if (bHasOp)
-            {
-                int nOp = 1;
-                bool bOpOk = Int32.TryParse(dataList[2], out nOp);
-                if (bOpOk) { prepPacket.Op = nOp; }
-            }
-
+            // Op 파싱 블록 제거 //260806 hbk Phase 71: dataList[2]=구 Op(수신해도 읽지 않음)
             return true;
         }
 
@@ -575,10 +570,9 @@ namespace ReringProject.Network {
     }
 
     //260625 hbk Phase 64 LIGHT-01: $PREP 수신 패킷. ZIndex = 조명 세팅 대상 Shot z_index.
-    //260626 hbk v3.0: Op 추가 — 1=ON(z_index 샷 조명 점등) / 0=OFF(사이클 종료 소등). 미수신 시 1(하위호환).
+    // Op 프로퍼티 제거 //260806 hbk Phase 71: $PREP 는 항상 점등 의미 — 소등은 사이클 P/F 확정 시 자동
     public class PrepPacket : VisionRequestPacket {
         public int ZIndex { get; set; }
-        public int Op { get; set; } = 1;   //260626 hbk 1=ON / 0=OFF (기본 ON = 구 $PREP:site,z_index@ 호환)
 
         public PrepPacket() : base(VisionRequestType.Prep) {
         }

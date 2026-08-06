@@ -433,8 +433,9 @@ namespace ReringProject.Network {
             return szMsg;
         }
 
-        //260626 hbk v3.0: $PREP_ACK:site,z_index,Op,OK|FAIL@ 직렬화.
-        //  Op echo(1=ON점등 / 0=OFF소등). IsOk=true → OK, false → FAIL. 헝가리언 + if-else.
+        //260626 hbk v3.0: $PREP_ACK 직렬화.
+        //260806 hbk Phase 71: Op echo 제거 → $PREP_ACK:site,z_index,OK|FAIL@ (구분자 2개).
+        //  IsOk=true → OK, false → FAIL. 헝가리언 + if-else.
         private static string BuildPrepAckMessage(PrepAckPacket packet)
         {
             string szMsg = "";
@@ -443,8 +444,6 @@ namespace ReringProject.Network {
             szMsg += packet.Site.ToString();
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
             szMsg += packet.ZIndex.ToString();
-            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
-            szMsg += packet.Op.ToString();                 //260626 hbk Op echo
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
             bool bIsOk = packet.IsOk;
             if (bIsOk)
@@ -724,11 +723,10 @@ namespace ReringProject.Network {
         }
     }
 
-    //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답 패킷.
-    //260626 hbk v3.0: Op echo 추가 → $PREP_ACK:site,z_index,Op,OK|FAIL@ (Op 1=ON점등 / 0=OFF소등 확인).
+    //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답 패킷. IsOk=true → $PREP_ACK:site,z_index,OK@ / IsOk=false → $PREP_ACK:site,z_index,FAIL@
+    // Op 프로퍼티 제거 //260806 hbk Phase 71: $PREP Op 필드 폐기 → echo 대상 없음
     public class PrepAckPacket : VisionResponsePacket {
         public int ZIndex { get; set; }
-        public int Op { get; set; } = 1;   //260626 hbk 1=ON / 0=OFF echo
         public bool IsOk { get; set; }
 
         public PrepAckPacket() : base(EVisionResponseType.PrepAck) {

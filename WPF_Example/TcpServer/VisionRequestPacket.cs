@@ -11,6 +11,7 @@ namespace ReringProject.Network {
         AlignCalib,     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 타입
         Prep,           //260625 hbk Phase 64 LIGHT-01: $PREP 수신 타입
         Alive,          //260625 hbk v3.0: $ALIVE heartbeat 수신 타입
+        Reset,          //260807 hbk quick-260807-lh7: $RESET 수신 타입 (z_index/시퀀스 상태 복구용)
 
         Unknown = 999
     }
@@ -27,6 +28,7 @@ namespace ReringProject.Network {
         public const string CMD_RECV_ALIGN_CALIB = "ALIGN_CALIB"; //260624 hbk Phase 63 AV-09
         public const string CMD_RECV_PREP = "PREP";               //260625 hbk Phase 64 LIGHT-01: $PREP 수신 커맨드
         public const string CMD_RECV_ALIVE = "ALIVE";             //260625 hbk v3.0: $ALIVE heartbeat 수신 커맨드
+        public const string CMD_RECV_RESET = "RESET";             //260807 hbk quick-260807-lh7: $RESET 수신 커맨드
 
         //260622 hbk Phase 48
         // PROTO-01: v1.0 TEST 유연 파서 상수 ($TEST:site,MaterialNumber,null,z_index@).
@@ -152,6 +154,10 @@ namespace ReringProject.Network {
 
                 //260625 hbk v3.0: ALIVE는 내용 필드 없이 '$ALIVE@' 형식 허용
                 if (msgList[0] == CMD_RECV_ALIVE) { return new AlivePacket(); }
+
+                //260807 hbk quick-260807-lh7: '$RESET@'(site 없음)도 null 로 떨어뜨리지 않는다 — null 이면 응답 자체가
+                //  안 나가 PLC 가 ACK 무한 대기(라인 정지). 413-416번째 줄 PREP 하위호환 주석과 동일한 위험.
+                if (msgList[0] == CMD_RECV_RESET && msgList.Length < 2) { return new ResetPacket(); }
 
                 if (msgList.Length < 2) return null;
 
@@ -296,6 +302,12 @@ namespace ReringProject.Network {
                     bool bPrepOk = TryParsePrepFields(dataList, prepPacket);
                     if (!bPrepOk) { return null; }
                     break;
+                case CMD_RECV_RESET: //260807 hbk quick-260807-lh7
+                    packet = new ResetPacket();
+                    ResetPacket resetPacket = packet.AsReset();
+                    dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
+                    TryParseResetFields(dataList, resetPacket);   // 반환값 무시 — 이 파서는 항상 true (아래 주석 참고)
+                    break;
             }
 
             return packet;
@@ -433,6 +445,23 @@ namespace ReringProject.Network {
             return true;
         }
 
+        //260807 hbk quick-260807-lh7: $RESET 수신 파서. dataList[0]=site(echo 전용).
+        //  절대 false 를 반환하지 않는다 — false 면 호출부가 null 을 반환해 응답이 안 나가고 PLC 가 ACK 를
+        //  무한 대기(라인 정지)한다. TryParsePrepFields(413-416번째 줄) 하위호환 주석이 기록한 그 위험을
+        //  $RESET 에서는 아예 구조적으로 제거한다: site 파싱 실패는 0 폴백, 필드 초과는 무시.
+        //  site 는 ACK echo 에만 쓰이고 라우팅에는 관여하지 않으므로 0 폴백이 오동작을 만들지 않는다.
+        private static bool TryParseResetFields(string[] dataList, ResetPacket resetPacket)
+        {
+            int nSite = 0;
+            bool bHasField = dataList != null && dataList.Length >= 1;
+            if (bHasField)
+            {
+                Int32.TryParse(dataList[0], out nSite);   // 실패 시 nSite=0 유지 (out 규약)
+            }
+            resetPacket.Site = nSite;
+            return true;
+        }
+
         public RecipeChangePacket AsRecipeChange() {
             if (RequestType != VisionRequestType.RecipeChange) return null;
             RecipeChangePacket recipePacket = this as RecipeChangePacket;
@@ -485,6 +514,12 @@ namespace ReringProject.Network {
         public AlivePacket AsAlive() {
             if (RequestType != VisionRequestType.Alive) return null;
             return this as AlivePacket;
+        }
+
+        //260807 hbk quick-260807-lh7
+        public ResetPacket AsReset() {
+            if (RequestType != VisionRequestType.Reset) return null;
+            return this as ResetPacket;
         }
 
     }
@@ -575,6 +610,12 @@ namespace ReringProject.Network {
         public int ZIndex { get; set; }
 
         public PrepPacket() : base(VisionRequestType.Prep) {
+        }
+    }
+
+    //260807 hbk quick-260807-lh7: $RESET 수신 패킷. 고유 필드 없음 — site 는 베이스 VisionRequestPacket.Site 사용(ACK echo 전용).
+    public class ResetPacket : VisionRequestPacket {
+        public ResetPacket() : base(VisionRequestType.Reset) {
         }
     }
 

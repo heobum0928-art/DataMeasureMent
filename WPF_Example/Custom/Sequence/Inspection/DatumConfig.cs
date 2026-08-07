@@ -153,6 +153,9 @@ namespace ReringProject.Sequence {
         [System.ComponentModel.Description("매칭 허용 각도 범위 (도). coarse x,y 전용이므로 작은 값 권장. sentinel 0 → 10° 복원.")]
         public double PatternAngleExtentDeg { get; set; } = 0.0;
         [Category("Datum|PatternAlign")]
+        [System.ComponentModel.Description("런타임 Find 각도 검색범위 (±도). 3 → -3°~+3° 범위 검색. 모델 '생성'용 PatternAngleExtentDeg 와는 별개 필드. sentinel 0 → 3° 복원.")]
+        public double FindAngleExtentDeg { get; set; } = 0.0;
+        [Category("Datum|PatternAlign")]
         [System.ComponentModel.Description("검색 영역 = template ROI ± margin (픽셀). sentinel 0 → 100px 복원.")]
         public double PatternSearchMarginPx { get; set; } = 0.0;
 
@@ -1053,6 +1056,7 @@ namespace ReringProject.Sequence {
             // sentinel 0 → SIMUL 튜닝 기본값 복원 (의미값이 이미 있으면 미변경 — 멱등성 보장)
             if (PatternMinScore <= 0.0) PatternMinScore = 0.6;           // SIMUL 튜닝 기본 (Claude's Discretion)
             if (PatternAngleExtentDeg <= 0.0) PatternAngleExtentDeg = 10.0; // coarse x,y 전용 → 작은 angle range (D-01b)
+            if (FindAngleExtentDeg <= 0.0) FindAngleExtentDeg = 3.0; // quick-260807: 런타임 Find 는 ±3° 로 충분 (넓으면 false match)
             if (PatternSearchMarginPx <= 0.0) PatternSearchMarginPx = 100.0; // template ROI ± margin (D-06)
 
             //260723 hbk NOTE: Line1_Erosion/Line2_Erosion/Vertical_Erosion/Horizontal_A_Erosion/Horizontal_B_Erosion 는

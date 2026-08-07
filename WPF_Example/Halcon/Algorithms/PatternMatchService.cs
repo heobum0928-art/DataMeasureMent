@@ -248,6 +248,7 @@ namespace ReringProject.Halcon.Algorithms
         /// <param name="refAngleDeg">ref pose 각도(deg, 출력)</param>
         /// <param name="refScore">매칭 점수 (출력)</param>
         /// <param name="error">오류 메시지(성공 시 null)</param>
+        /// <param name="angleExtentDeg">Find 각도 검색범위(±도). 기본 180 = 전방위(기존 동작).</param>
         /// <returns>성공 여부</returns>
         public bool TryFindRefPose(
             HImage templateImage,
@@ -258,7 +259,8 @@ namespace ReringProject.Halcon.Algorithms
             out double refCol,
             out double refAngleDeg,
             out double refScore,
-            out string error)
+            out string error,
+            double angleExtentDeg = 180.0)
         {
             refRow = refCol = refAngleDeg = refScore = 0;
             error = null;
@@ -276,6 +278,10 @@ namespace ReringProject.Halcon.Algorithms
 
             HTuple modelId = null;
 
+            // quick-260807: Find 각도 검색범위 = ±angleExtentDeg. 선택적 파라미터인 이유 =
+            //  Align(AlignShapeMatchService) 호출부가 인자를 생략해도 기존 전방위(±180°) 검색을 그대로 유지해야 하기 때문.
+            double findAngleExtentRad = angleExtentDeg * Math.PI / 180.0;
+
             try
             {
                 bool isNcc = string.Equals(engine, "NCC", StringComparison.OrdinalIgnoreCase);
@@ -287,11 +293,11 @@ namespace ReringProject.Halcon.Algorithms
                     HTuple row, col, angle, score;
                     HOperatorSet.FindNccModel(
                         templateImage, modelId,
-                        -Math.PI, 2.0 * Math.PI,
+                        -findAngleExtentRad, 2.0 * findAngleExtentRad,
                         minScore,
                         1,          // NumMatches=1
                         0.5,        // MaxOverlap
-                        "true",     // SubPixel
+                        "false",     // SubPixel
                         DEFAULT_NCC_NUM_LEVELS,
                         out row, out col, out angle, out score);
 
@@ -314,7 +320,7 @@ namespace ReringProject.Halcon.Algorithms
                     HTuple row, col, angle, score;
                     HOperatorSet.FindShapeModel(
                         templateImage, modelId,
-                        -Math.PI, 2.0 * Math.PI,
+                        -findAngleExtentRad, 2.0 * findAngleExtentRad,
                         minScore,
                         1,          // NumMatches=1
                         0.5,        // MaxOverlap
@@ -382,6 +388,7 @@ namespace ReringProject.Halcon.Algorithms
         /// <param name="curAngleDeg">검출된 매칭 각도(deg, 거침 — 측정 미사용, 출력)</param>
         /// <param name="curScore">매칭 점수 (출력)</param>
         /// <param name="error">오류 메시지(성공 시 null)</param>
+        /// <param name="angleExtentDeg">Find 각도 검색범위(±도). 기본 180 = 전방위(기존 동작).</param>
         /// <returns>성공 여부</returns>
         public bool TryFindPose(
             HImage runtimeImage,
@@ -396,7 +403,8 @@ namespace ReringProject.Halcon.Algorithms
             out double curCol,
             out double curAngleDeg,
             out double curScore,
-            out string error)
+            out string error,
+            double angleExtentDeg = 180.0)
         {
             curRow = curCol = curAngleDeg = curScore = 0;
             error = null;
@@ -455,6 +463,9 @@ namespace ReringProject.Halcon.Algorithms
                 // 모델 로드 및 find
                 HTuple rawRow, rawCol, rawAngle, rawScore;
 
+                // quick-260807: ±angleExtentDeg → rad
+                double findAngleExtentRad = angleExtentDeg * Math.PI / 180.0;
+
                 if (isNcc)
                 {
                     // 캐시 hit 이면 디스크 재읽기 없이 재사용, miss 면 1회 로드 후 캐시 적재(lazy load).
@@ -463,11 +474,11 @@ namespace ReringProject.Halcon.Algorithms
 
                     HOperatorSet.FindNccModel(
                         findTarget, modelId,
-                        -Math.PI, 2.0 * Math.PI,
+                        -findAngleExtentRad, 2.0 * findAngleExtentRad,
                         minScore,
                         1,
                         0.5,
-                        "true",
+                        "false",
                         DEFAULT_NCC_NUM_LEVELS,
                         out rawRow, out rawCol, out rawAngle, out rawScore);
                 }
@@ -479,7 +490,7 @@ namespace ReringProject.Halcon.Algorithms
                     //260618 hbk find_shape_model 출력 4개 — acuity 제거(CS1501 fix)
                     HOperatorSet.FindShapeModel(
                         findTarget, modelId,
-                        -Math.PI, 2.0 * Math.PI,
+                        -findAngleExtentRad, 2.0 * findAngleExtentRad,
                         minScore,
                         1,
                         0.5,

@@ -292,6 +292,10 @@ namespace ReringProject.Sequence {
                                 double pixRes = ShotParam != null ? ShotParam.GetEffectivePixelResolution() : 1.0; //260615 hbk Phase 42 D-01 Shot 단일소스
                                 // (구) ±2% 가드레일 경고 제거 — CorrectionFactor 를 배율 보정(예: 0.72)까지 포함한 단일 보정 knob 으로
                                 //  운용하기로 결정. ±2% 초과가 정상 사용이 되어 매 검사 Error 로그를 헛되이 채우던 노이즈였음(로그 전용, 검사 영향 0).
+                                //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 원본(origin) 이미지는 이 Shot 의 모든 FAI 가
+                                //  sharedSrc 를 통해 완전히 동일한 내용을 참조한다 — FAI 마다 반복 저장(127MP 기준 실측 ~1초/장)하지
+                                //  않고 Shot 당 1회만 큐에 넣는다. 큐 상한(50=FAI 25개분)을 넘는 FAI 부터 저장 대기가 걸리던 원인.
+                                string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
                                 try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
@@ -439,15 +443,18 @@ namespace ReringProject.Sequence {
                                     }
                                     try {
                                         if (crossZRoleImage == null) {
-                                            AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot); //260702 hbk Extract Method(Task2)
+                                            AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath); //260702 hbk Extract Method(Task2)
                                         } else {
                                             //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
                                             //  대신 실제 측정에 쓰인 role 이미지로 교체한다(T-HWB-02). sharedSrc 의 기존 소유권
                                             //  계약(L284-285/L443-445, AddRef/Release, 워커 요청과 독립)을 그대로 미러한다.
+                                            //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 크로스-Z 는 FAI 마다 실제로
+                                            //  다른 role 이미지를 참조할 수 있어 Shot 공유 origin 재사용 대상이 아니다 — origin path
+                                            //  null 로 넘겨 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
                                             SharedHImage crossZSharedSrc = null;
                                             try {
                                                 try { crossZSharedSrc = new SharedHImage(crossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
-                                                AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot);
+                                                AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot, null);
                                             } finally {
                                                 if (crossZSharedSrc != null) crossZSharedSrc.Release();
                                             }
@@ -840,14 +847,47 @@ namespace ReringProject.Sequence {
             return list;
         }
 
+        //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: Shot 안의 모든(비-크로스-Z) FAI 가 sharedSrc 를 통해
+        //  완전히 동일한 원본 이미지를 참조하므로, origin 저장은 Shot 당 1회만 큐에 넣는다(기존: FAI 마다 매번,
+        //  127MP 기준 실측 ~1초/장 — FAICount=35 면 35회 중복 저장). 반환값은 모든 FAI 가 공유할 파일 경로(파일명만
+        //  Shot 단위로 결정 — 개별 FAI 판정/측정점 세그먼트는 담지 않음, 애초에 Shot 전체가 공유하는 파일이므로).
+        //  saver/sharedSrc 가 없으면 enqueue 없이 경로만 반환(호출부가 기존과 동일하게 파일명 메타를 채울 수 있도록).
+        private string QueueSharedShotOrigin(SharedHImage sharedSrc, InspectionSequence parentSeq) {
+            if (ShotParam == null) return "";
+            DateTime ts = DateTime.Now;
+            string sequenceName = ShotParam.OwnerSequenceName ?? "";
+            int nIndexNumber = -1;
+            bool bHasRequest = parentSeq != null && parentSeq.RequestPacket != null;
+            if (bHasRequest) nIndexNumber = parentSeq.RequestPacket.IndexNumber;
+
+            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, ShotParam.ShotName, "", "", ts, nIndexNumber);
+            string originPath = CaptureImageSaveService.BuildFilePath(false, originName, ts);
+
+            var saver = SystemHandler.Handle.CaptureImageSaver;
+            if (saver != null && sharedSrc != null) {
+                sharedSrc.AddRef();
+                saver.Enqueue(new CaptureImageSaveRequest {
+                    Shared = sharedSrc,
+                    NeedsRender = false,
+                    FileName = originName,
+                    IsCapture = false,
+                    Timestamp = ts
+                });
+            }
+            return originPath;
+        }
+
         // FAI별 원본/캡쳐 이미지를 비동기 저장 큐에 넣고, 파일명을 fai 에 동기 write-back.
         //  파일명은 BuildDto(AddResponse) 가 읽으므로 enqueue 전에 동기 확정. PNG write 만 워커가 비동기 수행.
         //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
-        //  sharedSrc(Shot당 1회 복사 공유)를 받아 origin/capture 요청에 ref 공유. 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
-        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName) {
+        //  sharedSrc(Shot당 1회 복사 공유)를 받아 capture 요청에 ref 공유. 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
+        //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: szSharedOriginPath 가 있으면(비-크로스-Z, 일반 경로)
+        //  origin 은 이미 QueueSharedShotOrigin 으로 Shot 당 1회 저장됐으므로 여기선 경로만 기록하고 재저장하지 않는다.
+        //  null 이면(크로스-Z — FAI 마다 실제로 다른 role 이미지 가능) 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
+        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName, string szSharedOriginPath) {
             if (fai == null) return;
             var saver = SystemHandler.Handle.CaptureImageSaver;
-            DateTime ts = DateTime.Now; // origin/capture 동일 timestamp 공유 (쌍)
+            DateTime ts = DateTime.Now; // origin(개별 저장 시)/capture 동일 timestamp 공유 (쌍)
             string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); // P1/P1P2/빈값
             string judge;
             if (fai.IsPass) judge = "OK";
@@ -871,24 +911,32 @@ namespace ReringProject.Sequence {
                 nIndexNumber = parentSeq.RequestPacket.IndexNumber;
             }
 
-            string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
             string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);  //260622 hbk Phase 48 PROTO-01
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
             // 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
-            fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);
             fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts);
-            if (saver == null || sharedSrc == null) return; // 서비스/공유 미존재 시 파일명만 기록, PNG skip
 
-            // 원본 enqueue — 공유 이미지 직접 write (FAI별 복사 없음). 요청 1건당 ref 1 추가.
-            sharedSrc.AddRef();
-            saver.Enqueue(new CaptureImageSaveRequest
-            {
-                Shared = sharedSrc,
-                NeedsRender = false,
-                FileName = originName,
-                IsCapture = false,
-                Timestamp = ts
-            });
+            bool bUseSharedOrigin = !string.IsNullOrEmpty(szSharedOriginPath);
+            if (bUseSharedOrigin) {
+                fai.LastOriginImageFileName = szSharedOriginPath; // Shot 공유 origin — 이미 저장됨, 경로만 기록
+            } else {
+                // 크로스-Z 등 FAI 마다 원본 내용이 실제로 다를 수 있는 경로 — 기존과 동일하게 FAI 마다 개별 저장.
+                string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
+                fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);
+                if (saver != null && sharedSrc != null) {
+                    sharedSrc.AddRef();
+                    saver.Enqueue(new CaptureImageSaveRequest
+                    {
+                        Shared = sharedSrc,
+                        NeedsRender = false,
+                        FileName = originName,
+                        IsCapture = false,
+                        Timestamp = ts
+                    });
+                }
+            }
+
+            if (saver == null || sharedSrc == null) return; // 서비스/공유 미존재 시 파일명만 기록, PNG skip
 
             // capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
             //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
@@ -1299,7 +1347,7 @@ namespace ReringProject.Sequence {
         }
 
         //260702 hbk Extract Method(Task2): FAIConfig legacy 필드(IsPass/MeasuredValue) 집계 + QueueFaiCapture 호출, 원본 인라인 이식
-        private void AggregateFaiResult(FAIConfig fai, bool faiAllPass, List<EdgeInspectionOverlay> faiOverlays, SharedHImage sharedSrc, List<DatumCaptureOverlay> datumSnapshot) {
+        private void AggregateFaiResult(FAIConfig fai, bool faiAllPass, List<EdgeInspectionOverlay> faiOverlays, SharedHImage sharedSrc, List<DatumCaptureOverlay> datumSnapshot, string szSharedOriginPath) {
             // FAIConfig legacy 필드(IsPass/MeasuredValue)에 대표 결과 집계 —
             // 첫 Measurement 결과를 사용해 UI/TCP 호환 유지
             if (fai.Measurements.Count > 0) {
@@ -1319,7 +1367,7 @@ namespace ReringProject.Sequence {
                 string ownerSeqName;
                 if (ShotParam != null) ownerSeqName = ShotParam.OwnerSequenceName;
                 else ownerSeqName = "";
-                QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ownerSeqName);
+                QueueFaiCapture(fai, sharedSrc, faiOverlays, datumSnapshot, ownerSeqName, szSharedOriginPath);
             } else {
                 fai.ClearResult();
                 if (fai.LastOverlays != null) fai.LastOverlays.Clear(); // Measurements 0 케이스 명시적 클리어

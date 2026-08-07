@@ -288,6 +288,30 @@ namespace ReringProject.Sequence {
                 //  가 z=2 도착 전에 지워지는 FIX-0 류 회귀는 발생하지 않는다(사이클 내 크로스-Z 공유 보존).
                 if (!IsProtocolDrivenCycle()) {
                     BeginCrossZImageCycle();
+                    //260807 hbk quick-260807: Datum transform 캐시(_datumTransforms/_failedDatums)도 이 지점을
+                    //  "새 사이클 시작"의 단일 소스로 삼는다 — Action_FAIMeasurement.EStep.DatumPhase 가 더 이상
+                    //  매 진입마다 무조건 비우지 않고 비-크로스-Z Datum 을 캐시 재사용으로 skip 하게 됐으므로,
+                    //  수동 RUN(단일 Start(int)/StartAll/RepeatRunService/BatchRunService, RequestPacket==null)
+                    //  경로에서 다음 부품으로 넘어갈 때 이전 부품의 검출 성공 캐시가 새 사이클로 새지 않도록 여기서
+                    //  명시적으로 비운다. 프로토콜 경로(z=0 $TEST)는 바로 아래 else-if 분기에서 별도로 처리한다
+                    //  (z=1..N 은 같은 사이클 연속이라 절대 여기서 지우면 안 됨 — 위 BeginCrossZImageCycle 주석과
+                    //  동일 논리).
+                    ClearDatumTransforms();
+                } else if (GetExecutionZIndex() == DATUM_Z_INDEX) {
+                    //260807 hbk quick-260807-fix2: 프로토콜(z=0 $TEST) 사이클의 "새 사이클 시작" Clear 지점.
+                    //  이전 시도는 SystemHandler.StartV1Scoped 에서 State==Idle 사전 체크 후 Clear 하는 방식이었는데,
+                    //  체크와 StartSubset/StartAll 호출 사이에 이전 사이클 시퀀스 스레드가 State 를 Idle 로 독립적으로
+                    //  바꿔버릴 수 있는 TOCTOU 레이스였다(리뷰로 확증). 이 OnStart 핸들러는 StartCore 의 _startLock
+                    //  안에서 State 가 Idle→Running 으로 원자적으로 점유되고 RequestPacket 이 세팅된 "직후"(락 해제
+                    //  직후, Action 실행 시작 전) 같은 스레드에서 동기 호출되므로 레이스 창이 없다 — 이 핸들러가
+                    //  불렸다는 사실 자체가 이번 StartCore 가 점유에 성공했다는 증거다.
+                    //  GetExecutionZIndex() 는 RequestPacket.TestID(=SystemHandler.ProcessTest 가 미리 세팅한
+                    //  _lastPrepZIndex)를 파싱한다 — RequestPacket 은 OnStart 발화 전에 이미 세팅 완료(SequenceBase.
+                    //  StartCore 참고)이므로 이 시점에 정확한 이번 tick 의 z_index 를 돌려준다. z==DATUM_Z_INDEX(0)
+                    //  일 때만 "새 부품의 새 사이클 시작" 이고, z>=1 은 같은 사이클의 연속 tick(중간 Shot 진행)이라
+                    //  여기서 Clear 하면 그 사이클 내에서 이미 캐시된 비-크로스-Z Datum 검출 결과가 z 진행 중에
+                    //  지워져 캐시-재사용 스킵 최적화 자체가 무력화된다 — 그래서 반드시 z==0 에서만 호출한다.
+                    ClearDatumTransforms();
                 }
             } catch (Exception ex) {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
@@ -1971,6 +1995,24 @@ namespace ReringProject.Sequence {
             return !string.IsNullOrEmpty(datumRef) && _alignFailedDatums.Contains(datumRef);
         }
 
+        //260807 hbk quick-260807: per-datum 성공 시 그 datum 1건에 한해 스테일 실패 신호를 제거한다.
+        //  배경: ClearDatumTransforms() 가 매 Shot 마다(Action_FAIMeasurement.EStep.DatumPhase 진입 시) 무조건
+        //  전체를 비우던 구동작이 사이클 시작 1회로 옮겨졌다(260807 quick-260807, HasCachedDatumTransform 스킵과 짝).
+        //  그 결과 Z1 에서 검출 실패(MarkDatumFailed/MarkAlignFailed → _failedDatums 추가, RuntimeDetectFailed=true)했던
+        //  datum 이 Z2 에서 재시도해 성공해도(_datumTransforms 갱신) _failedDatums/RuntimeDetectFailed 잔여값이 그대로
+        //  남아 IsDatumFailed 게이트가 계속 true 를 반환 — Z2 이후 그 datum 참조 측정 전부가 강제 NG 되는 회귀가
+        //  생긴다. 검출/align 성공 지점(TryRunSingleDatum, TryComposeAlign)에서 그 datum 하나만 구
+        //  ClearDatumTransforms() 가 하던 일의 부분집합(실패 신호 제거)을 재현해 막는다 — 사이클 전체 리셋은 아님,
+        //  다른 datum 의 _failedDatums/RuntimeDetectFailed 는 그대로 둔다.
+        private void ClearStaleDatumFailure(DatumConfig datum)
+        {
+            if (datum == null) return;
+            string key = datum.DatumName;
+            if (string.IsNullOrEmpty(key)) return;
+            _failedDatums.Remove(key);
+            _alignFailedDatums.Remove(key);
+        }
+
         //260618 hbk Phase 54 ALIGN-01 datum 모델 경로 단일 소스 (D-07) — 54-04(런타임 load)·54-05(티칭 save) 공유.
         //  키 도출 로직 단일화 → 경로 불일치 구조적 차단. SourceShotName → ShotConfig.OwnerSequenceName 역추적 (InspectionListView.ResolveDatumCameraParam 선례).
         public static string ResolveDatumModelPath(DatumConfig datum)
@@ -2227,6 +2269,10 @@ namespace ReringProject.Sequence {
             datum.CurrentTransform = datumTransform;
             string datumKey = datum.DatumName;
             if (datumKey == null) datumKey = "";
+            //260807 hbk quick-260807: 이번 Z 에서 align 성공 — 이전 Z 에서 남았을 수 있는 이 datum 의 스테일
+            //  실패 신호(_failedDatums/_alignFailedDatums, RuntimeDetectFailed) 제거. 상세 사유는 ClearStaleDatumFailure 주석 참고.
+            ClearStaleDatumFailure(datum);
+            datum.RuntimeDetectFailed = false;
             //260618 hbk Phase 54 ALIGN-01 carry-over#1 확증로그: datum 검출각(수평 결합선) 회전분 vs 패턴 θ.
             //  strip θ회전 적용 후 datumDetectRotDeg 가 patternThetaDeg 로 수렴(편차~0)하면 datum 검출각 정확 = 먼 측정점 정상.
             //  축정렬 strip 가설은 0.1-0.2° 편차. UAT 1회로 메커니즘 확증.
@@ -2265,6 +2311,13 @@ namespace ReringProject.Sequence {
                 ok = service.TryFindDatum(imageH, datum, out transform, out datumError);
             }
             if (!ok) { datum.LastFindSucceeded = false; error = datumError; return false; }
+            //260807 hbk quick-260807: 이번 Z 에서 검출 성공 — 이전 Z 에서 남았을 수 있는 이 datum 의 스테일
+            //  실패 신호(_failedDatums/_alignFailedDatums, RuntimeDetectFailed) 제거. 상세 사유는 ClearStaleDatumFailure 주석 참고.
+            //  주의: 바로 아래 "미교시(IsConfigured=false)" 분기가 이번 호출 결과로 RuntimeDetectFailed 를 다시
+            //  true 로 세팅할 수 있는데, 그건 "이전 Z 잔여값"이 아니라 "이번 Z 의 실제 판정"이므로 여기서 먼저
+            //  false 로 리셋한 뒤 그 분기가 마지막에 덮어써도 의미가 맞다(구 ClearDatumTransforms 의 reset-then-decide 순서와 동일).
+            ClearStaleDatumFailure(datum);
+            datum.RuntimeDetectFailed = false;
             //260716 hbk 미교시 Datum 런타임 사용 감지 — DatumFindingService.TryFindDatum 은 IsConfigured=false 면
             //  identity 를 세팅한 채 true 를 반환한다(D-08 pass-through: FAI ROI 사전 배치 편의를 위한 의도된 설계).
             //  문제는 그 결과가 '검출 성공'과 완전히 동일하게 취급돼(로그 없음, DETECT FAIL 배지 조건도 IsConfigured=true 를
@@ -2292,6 +2345,14 @@ namespace ReringProject.Sequence {
                 return true;
             }
             return _datumTransforms.TryGetValue(datumRef, out transform);
+        }
+
+        //260807 hbk quick-260807: Action_FAIMeasurement.EStep.DatumPhase 의 비-크로스-Z 재검출 skip 판단 전용 조회.
+        //  TryGetDatumTransform 은 datumRef 가 비어있으면 "무보정 허용" 의미로 identity+true 를 돌려주는데(위 메서드),
+        //  그 의미와 "이 이름의 Datum 이 이번 사이클에 실제로 검출 성공해 캐시됐는가"는 서로 다르다 — 섞어 쓰면 이름
+        //  없는(빈 문자열) Datum 이 항상 "이미 성공"으로 오판될 수 있어 전용 helper 로 분리한다.
+        public bool HasCachedDatumTransform(string datumName) {
+            return !string.IsNullOrEmpty(datumName) && _datumTransforms.ContainsKey(datumName);
         }
 
         //260619 hbk Phase 57 #6 leveling 제거 — TryComputeLevelingAngle 메서드 폐기 (ALIGN 위치/tilt 보정으로 대체, D-12/D-13)

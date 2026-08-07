@@ -85,16 +85,33 @@ namespace ReringProject.Sequence {
 
                 // DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적.
                 // datum 부분 실패는 skip+log (lenient, abort 없음).
+                //260807 hbk quick-260807: ClearDatumTransforms() 를 여기(매 Action 의 DatumPhase 진입마다)에서
+                //  더 이상 호출하지 않는다 — 사이클 경계(InspectionSequence.HandleRunStartResetResults 수동 RUN /
+                //  SystemHandler.StartV1Scoped z=0 프로토콜 진입, $RESET 은 기존 ResetCycleStateForProtocolReset
+                //  그대로)로 이동했다. 이유: 이 case 는 시퀀스의 Shot(=Z) 수만큼 반복 실행되는데, 매번 무조건
+                //  비우면 물리적으로 고정된(Z 무관) Datum 기준물까지 Shot 마다 재조명+재grab+재정렬+재검출(실측
+                //  0.9~1.4초/회)하게 된다 — 아래 루프의 캐시-재사용 스킵과 짝을 이루는 변경.
                 case EStep.DatumPhase: {
                     InspectionSequence parentSeq;
                     if (ShotParam != null) parentSeq = ShotParam.Parent as InspectionSequence;
                     else parentSeq = null;
                     if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
-                        parentSeq.ClearDatumTransforms();
                         //260618 hbk Phase 54 ALIGN-01 이미지 회전(datumLevelOn/datumLevelAngle) 폐기 (D-03/D-05 warp 0회).
                         //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 이전 datumLevelOn/datumLevelAngle 지역변수 제거.
                         foreach (var datum in parentSeq.DatumConfigs) {
                             if (datum == null) continue;
+                            //260807 hbk quick-260807: 크로스-Z(ZIndexA/B 중 하나라도 설정된 DualImage) 가 아닌 Datum 은
+                            //  고정 기준물이라 Z 가 바뀌어도 위치가 바뀌지 않는다 — 이번 사이클에서 이미 검출 성공해
+                            //  _datumTransforms 에 값이 있으면(성공시에만 저장됨) 이 Shot 에서는 재조명/재grab/재정렬/
+                            //  재검출을 전부 건너뛰고 캐시를 그대로 쓴다(실측 0.9~1.4초/회 절감 × 같은 시퀀스의 남은 Shot 수).
+                            //  이전 Z 에서 검출이 "실패"했던 datum 은 캐시에 안 남으므로 여기서 그대로 다시 시도된다
+                            //  (lenient 원칙 유지, D-04 요구사항). 크로스-Z 는 여러 Z 의 이미지를 조합해야 하므로
+                            //  이 스킵 대상에서 완전히 제외 — 아래 분기는 기존과 동일하게 매번 재실행된다.
+                            bool bIsCrossZDatum = datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
+                                && !(datum.ZIndexA == UNSET_ZINDEX && datum.ZIndexB == UNSET_ZINDEX);
+                            if (!bIsCrossZDatum && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
+                                continue; // 이번 사이클 기 검출 성공 — skip
+                            }
                             // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
                             //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
                             parentSeq.ApplyDatumLights(datum);

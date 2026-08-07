@@ -251,6 +251,19 @@ namespace ReringProject {
                     return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
                 }
                 inspDatumSeq.BeginCrossZImageCycle();
+                //260807 hbk quick-260807-fix2: Datum transform 캐시(_datumTransforms/_failedDatums) Clear 를
+                //  여기서 직접 호출하던 이전 시도(State==Idle 사전 체크 후 Clear)는 TOCTOU 레이스였다 — 이 체크와
+                //  StartSubset/StartAll 호출 사이에 "이전 사이클" 시퀀스 스레드가 (SequenceBase.MainExecute 5ms
+                //  polling 으로) State 를 Finish/Error→Idle 로 독립적으로 바꿔버릴 수 있어, "State!=Idle 이라 Clear
+                //  건너뜀" 과 "그 직후 StartSubset/StartAll 은 Idle 이라 통과" 가 동시에 성립하는 창이 있었다 — 그
+                //  결과 새 부품의 새 사이클이 이전 부품의 스테일 _datumTransforms/_failedDatums 캐시를 그대로 물고
+                //  시작할 수 있었다(조용한 오검출, 크래시 없음). Clear 지점을 InspectionSequence.
+                //  HandleRunStartResetResults(OnStart 구독)로 옮겼다 — OnStart 는 StartCore 의 _startLock 안에서
+                //  State 를 Idle→Running 으로 원자적으로 점유하고 RequestPacket 을 세팅한 "직후"(락 해제 후, Action
+                //  실행 전) 같은 스레드 동기 호출로 발화되므로, 그 시점엔 이전 사이클 스레드가 이미 확실히
+                //  물러났고(그렇지 않았다면 State!=Idle 이라 이번 StartCore 자체가 실패해 OnStart 가 아예 발화되지
+                //  않는다) 다음 사이클 스레드는 아직 첫 Action 도 시작 전이라 두 컬렉션을 아무도 건드릴 수 없다 —
+                //  Idle 사전-체크가 필요 없는, 진짜 락-프리 안전 지점.
                 //260722 hbk Phase 68(68-12, GAP-3 z=0 낭비 제거): z=0 이 더 이상 무조건 StartAll 전량 실행하지
                 //  않는다 — 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행하고, 다른 측정 Shot
                 //  의 Grab/Measure 는 EStep.DatumPhase 종료부(ShouldSkipMeasurementAfterDatumPhase)에서 스킵된다.

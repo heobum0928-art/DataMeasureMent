@@ -77,7 +77,7 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 3단 구분자 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@).
         public const char MSG_RESULT_HEADER_SEP = ';';   // 헤더 구분자 (site/판정/count 사이)
-        public const char MSG_RESULT_ITEM_SEP   = ',';   // 항목 간 구분자
+        public const char MSG_RESULT_ITEM_SEP   = ',';   //260807 hbk quick-260807-omy v-next $RESULT 항목목록 폐기로 현재 미사용 (선언은 유지)
         public const char MSG_RESULT_INNER_SEP  = '=';   // 항목 내부 구분자 (id=val=judge)
         public const string TEST_RESULT_BUFFER  = "B";   // cycle 진행 중(Buffer) 판정
         
@@ -276,9 +276,11 @@ namespace ReringProject.Network {
             return msg;
         }
 
-        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화. $RESULT:site;P|F|B;count;id=val=judge,...@ (STX/ETX 는 TcpServer 부착).
-        // FAICount=0(Datum 샷)이면 BuildFaiItemsV1 가 빈 문자열 반환 → 'RESULT:{site};B;0;' (마지막 ';' 뒤 항목 없음).
-        //260624 hbk Phase 63 PROTO-Type: site 뒤 ;Type; echo 삽입 → $RESULT:site;Type;P|F|B;count;id=val=judge,...@ (Type 빈값이면 ;; 자리 보존).
+        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화.
+        //260807 hbk quick-260807-omy v-next: $RESULT:site;Type;P|F|B@ (STX/ETX 는 TcpServer 부착).
+        //  count/개별 FAI 항목목록은 v-next 에서 와이어에서만 제거되었으며, 내부 FAICount/FAIResults 는 그대로 살아있다(UI·엑셀export 계속 소비).
+        //  Datum 샷(FAICount=0)일 때 옛 형식이 만들던 trailing ';' 도 함께 사라진다.
+        //260624 hbk Phase 63 PROTO-Type: site 뒤 ;Type; echo 삽입 (Type 빈값이면 ;; 자리 보존).
         private static string BuildResultMessageV1(TestResultPacket testPacket)
         {
             string szMsg = "";
@@ -289,10 +291,6 @@ namespace ReringProject.Network {
             szMsg += testPacket.Type;                     //260624 hbk Phase 63 Type echo (빈값이면 빈 토큰)
             szMsg += MSG_RESULT_HEADER_SEP;               // ';'  //260624 hbk Phase 63
             szMsg += MapCycleJudgement(testPacket);       // P|F|B
-            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
-            szMsg += testPacket.FAICount.ToString();      // count
-            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
-            szMsg += BuildFaiItemsV1(testPacket);         // id=val=judge,...  (count=0 이면 빈 문자열)
             return szMsg;
         }
 
@@ -313,39 +311,6 @@ namespace ReringProject.Network {
             }
 
             return TEST_RESULT_FAIL;
-        }
-
-        // 260622 hbk Phase 48 PROTO-02: FAI 항목 판정 → OK|NG. (cycle 판정과 별개 — 항목 단위.)
-        private static string MapFaiJudgement(FAIResultData faiData)
-        {
-            bool bIsOk = faiData.Result == EVisionResultType.OK;
-            if (bIsOk)
-            {
-                return RESULT_OK;   // "OK"
-            }
-            return RESULT_NG;       // "NG"
-        }
-
-        // 260622 hbk Phase 48 PROTO-02: FAI 항목들을 id=val=judge,... 로 직렬화 (항목 간 ',').
-        private static string BuildFaiItemsV1(TestResultPacket testPacket)
-        {
-            string szItems = "";
-            int nCount = testPacket.FAICount;
-            for (int i = 0; i < nCount; i++)
-            {
-                FAIResultData faiData = testPacket.FAIResults[i];
-                bool bNeedsSeparator = i > 0;
-                if (bNeedsSeparator)
-                {
-                    szItems += MSG_RESULT_ITEM_SEP;               // ','
-                }
-                szItems += faiData.FAIName;                       // id
-                szItems += MSG_RESULT_INNER_SEP;                  // '='
-                szItems += faiData.DistanceMm.ToString("0.000");  // val
-                szItems += MSG_RESULT_INNER_SEP;                  // '='
-                szItems += MapFaiJudgement(faiData);              // OK|NG
-            }
-            return szItems;
         }
 
         //260626 hbk v3.0: $ALIGN_RESULT 직렬화.

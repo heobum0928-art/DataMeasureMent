@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;   //260807 hbk Live 폴링 타이머(DispatcherTimer)
 using HalconDotNet;
 using ReringProject.Device;
 using ReringProject.Halcon.Models;
@@ -35,6 +36,10 @@ namespace ReringProject.Custom.UI {
 
         // D-03: 외부 주입 공유 뷰어 (소유하지 않음 — MainWindow 가 관리)
         private MainResultViewerControl _viewer;
+
+        //260807 hbk Live 모드 뷰어 주기 갱신 타이머 — 카메라 최대 4.5fps 라 200ms(5fps) 폴링으로 충분.
+        //  재트리거(Grab) 없이 PeekLastImage()로 최근 스트리밍 프레임만 읽어와 뷰어에 반영.
+        private DispatcherTimer _liveTimer;
 
         // 2-ROI 티칭 슬롯: DrawRoi1→DrawRoi2 순서로 슬롯 채움
         private RoiDefinition _roi1;
@@ -129,13 +134,19 @@ namespace ReringProject.Custom.UI {
             try {
                 bool bOk = EthernetVisionHandler.Handle.Camera.Live();
                 if (bOk) {
-                    lbl_status.Text = "LIVE";
+                    btn_live.Content = "Live On";   //260807 hbk 버튼 자체 글자 토글
+                    //260807 hbk Live/Grab 상호 배타 — Live 중엔 Grab 금지, Live 버튼도 재클릭 방지(Stop 으로만 해제)
+                    btn_grab.IsEnabled = false;
+                    btn_live.IsEnabled = false;
+                    StartLiveTimer();
                 }
                 else {
+                    btn_live.Content = "Live Off";
                     lbl_status.Text = "미연결";
                 }
             }
             catch (Exception ex) {
+                btn_live.Content = "Live Off";
                 lbl_status.Text = "Live 오류: " + ex.Message;
             }
         }
@@ -147,11 +158,56 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
+                StopLiveTimer();
                 EthernetVisionHandler.Handle.Camera.Stop();
+                btn_live.Content = "Live Off";   //260807 hbk 버튼 자체 글자 토글
+                //260807 hbk Live 종료 — Grab/Live 버튼 재활성화
+                btn_grab.IsEnabled = true;
+                btn_live.IsEnabled = true;
                 lbl_status.Text = "대기";
             }
             catch (Exception ex) {
                 lbl_status.Text = "Stop 오류: " + ex.Message;
+            }
+        }
+
+        /// <summary>260807 hbk Live 타이머 시작 — 이미 도는 중이면 재사용(중복 타이머 방지).</summary>
+        private void StartLiveTimer() {
+            if (_liveTimer != null) {
+                return;
+            }
+            _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+            _liveTimer.Tick += LiveTimer_Tick;
+            _liveTimer.Start();
+        }
+
+        /// <summary>260807 hbk Live 타이머 정지 — Stop 클릭 또는 뷰 전환/언로드 시 반드시 호출.</summary>
+        private void StopLiveTimer() {
+            if (_liveTimer == null) {
+                return;
+            }
+            _liveTimer.Stop();
+            _liveTimer.Tick -= LiveTimer_Tick;
+            _liveTimer = null;
+        }
+
+        /// <summary>260807 hbk 재트리거 없이 최근 스트리밍 프레임만 읽어와 뷰어에 반영.</summary>
+        private void LiveTimer_Tick(object sender, EventArgs e) {
+            if (EthernetVisionHandler.Handle.Camera == null || _viewer == null) {
+                return;
+            }
+            HImage img = null;
+            try {
+                img = EthernetVisionHandler.Handle.Camera.PeekLastImage();
+                if (img != null) {
+                    _viewer.LoadImage(img);   // LoadImage 가 내부 Clone — 즉시 Dispose 안전
+                }
+            }
+            catch {
+                // Live 폴링 실패는 상태 라벨을 건드리지 않음 — 다음 틱에서 자연 복구 기대
+            }
+            finally {
+                img?.Dispose();
             }
         }
 

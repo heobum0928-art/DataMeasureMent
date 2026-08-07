@@ -401,7 +401,7 @@ namespace ReringProject.Network {
             return szItems;
         }
 
-        //260625 hbk v3.0: $ALIGN_CALIB:BOTTOM,CMD,OK@ / STEP이면 $ALIGN_CALIB:BOTTOM,STEP,N,OK@ 직렬화.
+        //260807 hbk quick-260807-omy v-next: $ALIGN_CALIB:BOTTOM,1,N,OK@ / STEP(1)이면 StepNo 필드 부착. CmdStr 은 숫자 코드("0"~"3").
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
@@ -409,8 +409,14 @@ namespace ReringProject.Network {
             szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
             szMsg += packet.AlignTarget;                    // BOTTOM
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
-            szMsg += packet.CmdStr;                         // START/STEP/END/ABORT
-            bool bIsStep = packet.CmdStr == "STEP";
+            szMsg += packet.CmdStr;                         //260807 hbk quick-260807-omy 수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT)
+            int nCmdCode = 0;                                                    //260807 hbk quick-260807-omy
+            bool bCmdIsNumeric = Int32.TryParse(packet.CmdStr, out nCmdCode);    //260807 hbk quick-260807-omy
+            bool bIsStep = false;                                                //260807 hbk quick-260807-omy
+            if (bCmdIsNumeric)                                                   //260807 hbk quick-260807-omy
+            {
+                bIsStep = nCmdCode == AlignCalibPacket.CMD_CODE_STEP;
+            }
             if (bIsStep)
             {
                 szMsg += VisionServer.MSG_CONTENTS_SEPERATOR; // ','

@@ -637,7 +637,15 @@ namespace ReringProject {
 
             string szCmd = packet.CmdStr;
 
-            bool bIsStart = string.Equals(szCmd, "START", StringComparison.OrdinalIgnoreCase);
+            int nCmd = 0;                                                    //260807 hbk quick-260807-omy
+            bool bCmdIsNumeric = Int32.TryParse(szCmd, out nCmd);             //260807 hbk quick-260807-omy
+            if (!bCmdIsNumeric)                                               //260807 hbk quick-260807-omy 비숫자 가드 — 코드 비교보다 반드시 먼저 (0=START 오인식 방지)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 숫자가 아닌 CmdStr: {0}", szCmd);
+                return resultPacket;
+            }
+
+            bool bIsStart = nCmd == AlignCalibPacket.CMD_CODE_START;
             if (bIsStart)
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
@@ -660,7 +668,7 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            bool bIsStep = string.Equals(szCmd, "STEP", StringComparison.OrdinalIgnoreCase);
+            bool bIsStep = nCmd == AlignCalibPacket.CMD_CODE_STEP;
             if (bIsStep)
             {
                 bool bCameraReady = EthernetVisionHandler.Handle.Camera != null;
@@ -728,7 +736,7 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            bool bIsEnd = string.Equals(szCmd, "END", StringComparison.OrdinalIgnoreCase);
+            bool bIsEnd = nCmd == AlignCalibPacket.CMD_CODE_END;
             if (bIsEnd)
             {
                 double dRow, dCol, dRad;
@@ -758,7 +766,7 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            bool bIsAbort = string.Equals(szCmd, "ABORT", StringComparison.OrdinalIgnoreCase);
+            bool bIsAbort = nCmd == AlignCalibPacket.CMD_CODE_ABORT;
             if (bIsAbort)
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();

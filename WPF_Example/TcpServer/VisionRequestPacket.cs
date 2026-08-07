@@ -412,13 +412,13 @@ namespace ReringProject.Network {
         }
 
         //260625 hbk v3.0: ALIGN_CALIB 수신 파서.
-        //  dataList[0]=BOTTOM(고정), [1]=CmdStr(START/STEP/END/ABORT). AlignFace 제거.
+        //260807 hbk quick-260807-omy v-next: dataList[0]=BOTTOM(고정), [1]=CmdStr(숫자 코드 "0"~"3" = START/STEP/END/ABORT). AlignFace 제거.
         private static bool TryParseAlignCalibFields(string[] dataList, AlignCalibPacket alignPacket)
         {
             bool bHasFields = dataList != null && dataList.Length >= 2;
             if (!bHasFields) { return false; }
             alignPacket.AlignTarget = dataList[0];  // BOTTOM (고정)
-            alignPacket.CmdStr = dataList[1];       // START/STEP/END/ABORT
+            alignPacket.CmdStr = dataList[1];       //260807 hbk quick-260807-omy 숫자 코드 문자열(0=START/1=STEP/2=END/3=ABORT)
             return true;
         }
 
@@ -590,9 +590,16 @@ namespace ReringProject.Network {
 
     //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 수신 패킷.
     //260625 hbk v3.0: CmdStr 추가([1]=START/STEP/END/ABORT). AlignFace 제거.
+    //260807 hbk quick-260807-omy v-next: CmdStr 값이 텍스트에서 숫자 코드로 전환. CMD_CODE_* 가 단일 진실 원천 —
+    //  Custom/SystemHandler.cs 와 VisionResponsePacket.cs 두 파일이 이 상수를 참조한다(값 복제 금지).
     public class AlignCalibPacket : VisionRequestPacket {
+        public const int CMD_CODE_START = 0;   //260807 hbk quick-260807-omy
+        public const int CMD_CODE_STEP  = 1;   //260807 hbk quick-260807-omy
+        public const int CMD_CODE_END   = 2;   //260807 hbk quick-260807-omy
+        public const int CMD_CODE_ABORT = 3;   //260807 hbk quick-260807-omy
+
         public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(BOTTOM 고정)
-        public string CmdStr      { get; set; } = "";   //260625 hbk v3.0: START/STEP/END/ABORT
+        public string CmdStr      { get; set; } = "";   //260807 hbk quick-260807-omy v-next: 숫자 코드 문자열("0"~"3") — CMD_CODE_START/STEP/END/ABORT
 
         public AlignCalibPacket() : base(VisionRequestType.AlignCalib) {
         }

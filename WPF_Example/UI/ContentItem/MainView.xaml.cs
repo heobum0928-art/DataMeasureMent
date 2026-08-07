@@ -3670,7 +3670,7 @@ namespace ReringProject.UI {
             if (svc.TryFindPose(patternImage, datum.PatternEngine, modelPath,
                     datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
                     datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                    out rr, out rc, out ra, out rs, out refErr)) {
+                    out rr, out rc, out ra, out rs, out refErr, datum.FindAngleExtentDeg)) {
                 datum.RefMatchRow = rr;
                 datum.RefMatchCol = rc;
                 datum.RefMatchAngleDeg = ra;
@@ -3686,7 +3686,7 @@ namespace ReringProject.UI {
                             && svc.TryFindPose(patternImage, datum.PatternEngine, modelPath2,
                                     datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
                                     datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                                    out rr2, out rc2, out ra2, out rs2, out refErr2)) {
+                                    out rr2, out rc2, out ra2, out rs2, out refErr2, datum.FindAngleExtentDeg)) {
                         datum.RefMatch2Row = rr2;
                         datum.RefMatch2Col = rc2;
                         //260728 hbk quick-diag(260728-mxj): ref-refresh 시점 패턴2 실제 사용 modelPath2
@@ -3884,7 +3884,7 @@ namespace ReringProject.UI {
                 if (svc.TryFindPose(img, datum.PatternEngine, modelPath,
                         datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
                         datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                        out rr, out rc, out ra, out rs, out refError)) {
+                        out rr, out rc, out ra, out rs, out refError, datum.FindAngleExtentDeg)) {
                     datum.RefMatchRow     = rr;
                     datum.RefMatchCol     = rc;
                     datum.RefMatchAngleDeg = ra;
@@ -3903,7 +3903,7 @@ namespace ReringProject.UI {
                             if (svc.TryFindPose(img, datum.PatternEngine, modelPath2,
                                     datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
                                     datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                                    out rr2, out rc2, out ra2, out rs2, out refErr2)) {
+                                    out rr2, out rc2, out ra2, out rs2, out refErr2, datum.FindAngleExtentDeg)) {
                                 datum.RefMatch2Row = rr2;
                                 datum.RefMatch2Col = rc2;
                                 alignMsg = "\n패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성";

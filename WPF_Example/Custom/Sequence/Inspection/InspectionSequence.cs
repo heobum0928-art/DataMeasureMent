@@ -2125,7 +2125,7 @@ namespace ReringProject.Sequence {
                     //  검색 이미지를 0.5배로 줄이면 패턴이 50% 크기 → find_shape_model "no match"(티칭 score 1.0 인데 런타임 0건).
                     //  속도 다운샘플은 모델 자체 피라미드(NumLevels)가 담당 — 검색 이미지 물리 축소는 금지.
                     datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                    out curRow, out curCol, out curAngleDeg, out curScore, out error))
+                    out curRow, out curCol, out curAngleDeg, out curScore, out error, datum.FindAngleExtentDeg))
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
             }
@@ -2153,7 +2153,7 @@ namespace ReringProject.Sequence {
                 if (svc.TryFindPose(refImage, datum.PatternEngine, modelPath2,
                         datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
                         datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                        out cur2Row, out cur2Col, out cur2AngleDeg, out cur2Score, out err2))
+                        out cur2Row, out cur2Col, out cur2AngleDeg, out cur2Score, out err2, datum.FindAngleExtentDeg))
                 {
                     double refBaseline = System.Math.Atan2(-(datum.RefMatch2Row - datum.RefMatchRow), datum.RefMatch2Col - datum.RefMatchCol);
                     double curBaseline = System.Math.Atan2(-(cur2Row - curRow), cur2Col - curCol);

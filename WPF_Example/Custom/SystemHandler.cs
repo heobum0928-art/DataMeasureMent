@@ -74,6 +74,9 @@ namespace ReringProject {
                     case VisionRequestType.Alive:                                  //260625 hbk v3.0
                         responsePacket = ProcessAlive(packet.AsAlive());
                         break;
+                    case VisionRequestType.Reset:                                  //260807 hbk quick-260807-lh7
+                        responsePacket = ProcessReset(packet.AsReset());
+                        break;
                     case VisionRequestType.Unknown:
                         //occurs error
                         break;
@@ -808,6 +811,34 @@ namespace ReringProject {
             return ackPacket;
         }
 
+        //260807 hbk quick-260807-lh7 (D-LH7-01): $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
+        //  왜 필요한가: $PREP 이 저장한 _lastPrepZIndex 는 다음 $PREP 이 올 때까지 계속 남는데 되돌릴 수단이 앱 재시작뿐이라,
+        //  실측 중 상태가 꼬이면 복구가 불가능했다. 그 복구 수단이 이 명령이다.
+        //  Site 필드는 ACK 에 echo 만 한다 — 라우팅에 쓰지 않는다. site 로 Top/Bottom 을 구분하는 것이 불가능한 것은
+        //  이미 확인된 설계 제약이며, ApplyPrepToSequences($PREP)와 동일하게 "이 PC 의 InspectionSequence 전부"가 대상이다.
+        //  IsOk 의미: true = 모든 대상 시퀀스가 실제로 리셋됨 / false = 하나 이상이 실행 중이라 건너뜀(또는 대상 0개).
+        //  실패여도 ACK 는 반드시 보낸다 — 무응답은 PLC 를 ACK 무한 대기(라인 정지)시킨다.
+        private ResetAckPacket ProcessReset(ResetPacket packet)
+        {
+            ResetAckPacket ackPacket = new ResetAckPacket();
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return null;
+            }
+            ackPacket.Target = packet.Sender;
+            ackPacket.Site = packet.Site;
+
+            _lastPrepZIndex = 0; //260807 hbk volatile int — 어느 스레드에서 써도 안전. 0 = "다음 $TEST 는 Datum(z=0)" 보수적 초기값.
+
+            bool bAllReset = ResetSequenceCycleStates();
+            ackPacket.IsOk = bAllReset;
+
+            Logging.PrintLog((int)ELogType.Trace,
+                "[RESET] site={0} 수신 — _lastPrepZIndex=0, 시퀀스 리셋 결과={1} //260807 hbk", packet.Site, bAllReset);
+            return ackPacket;
+        }
+
         // [임시 / TEMP] 수동 Z축 트리거 브리지.
         // 존재 이유: Z축을 아직 수동 지그(다이얼)로 맞추는 단계라, 조작자가 맞춘 z_index 로
         //   검사를 돌리도록 알리는 로컬 경로가 없다($PREP+$TEST TCP 패킷만 존재). 이 wrapper 는
@@ -891,6 +922,49 @@ namespace ReringProject {
                 bAnyOff = true;
             }
             return bAnyOff;
+        }
+
+        //260807 hbk quick-260807-lh7: Sequences 순회 → InspectionSequence 만 골라 클린 슬레이트 리셋.
+        //  ▶ Idle 게이트(스레드 안전성의 핵심): 이 메서드는 MainRun 폴링 스레드에서 돈다. 리셋이 건드리는
+        //    _datumTransforms/_failedDatums 에는 락이 없어서, 검사 실행 중인 시퀀스 스레드가 그 컬렉션을 Add 하는
+        //    동안 여기서 Clear 하면 컬렉션 내부가 깨진다(무한루프/예외). 그래서 State==Idle 인 시퀀스만 리셋하고
+        //    실행 중인 시퀀스는 손대지 않고 건너뛴다 — 조용히 넘기지 않고 Error 로그를 남겨 PLC 측 재전송 판단을 돕는다.
+        //  ▶ Stop() 을 먼저 부르지 않는 이유: SequenceBase.Stop() 은 RequestPacket!=null 이면 AddResponse() 를 호출해
+        //    PLC 가 요청하지도 않은 $RESULT 를 한 장 더 내보낸다 — 복구 명령이 프로토콜을 더 꼬는 부작용이라 미채택.
+        //  ▶ 반환값: 대상이 1개 이상이고 그 전부를 리셋했을 때만 true(=ACK OK). 부분 리셋은 클린 슬레이트가 아니므로 false.
+        private bool ResetSequenceCycleStates()
+        {
+            int nFound = 0;
+            int nReset = 0;
+            int nCount = Sequences.Count;
+            for (int i = 0; i < nCount; i++)
+            {
+                SequenceBase seqBase = Sequences[i];
+                InspectionSequence inspSeq = seqBase as InspectionSequence;
+                bool bIsInsp = inspSeq != null;
+                if (!bIsInsp)
+                {
+                    continue;
+                }
+                nFound++;
+
+                bool bIsIdle = inspSeq.State == EContextState.Idle;
+                if (!bIsIdle)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[RESET] Seq={0} 실행 중(State={1}) — 상태 리셋 건너뜀(스레드 안전). 사이클 종료 후 $RESET 재전송 필요. //260807 hbk",
+                        inspSeq.Name, inspSeq.State.ToString());
+                    continue;
+                }
+
+                inspSeq.ResetCycleStateForProtocolReset();
+                nReset++;
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[RESET] Seq={0} 클린 슬레이트 완료 //260807 hbk", inspSeq.Name);
+            }
+
+            bool bAllReset = nFound > 0 && nReset == nFound;
+            return bAllReset;
         }
 
         //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)

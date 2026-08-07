@@ -1084,6 +1084,22 @@ namespace ReringProject.Sequence {
             ClearCrossZImages();
         }
 
+        //260807 hbk quick-260807-lh7: $RESET 수신 시 이 시퀀스의 사이클 누적 상태를 클린 슬레이트로 되돌리는 유일한 공개 진입점.
+        //  public 인 이유: Custom/SystemHandler.ProcessReset(다른 클래스)이 직접 호출 — ApplyShotLights/BeginCrossZImageCycle 과
+        //  동일한 cross-class 노출 컨벤션.
+        //  ▶ 호출 규약(중요): 반드시 호출부가 State == EContextState.Idle 을 먼저 확인한 뒤 호출할 것.
+        //    이 메서드가 건드리는 _datumTransforms(Dictionary)/_failedDatums·_alignFailedDatums(HashSet)에는 락이 없어서,
+        //    시퀀스 스레드가 DatumPhase 에서 Add 하는 중에 다른 스레드가 Clear 하면 컬렉션 내부가 깨진다(무한루프/예외).
+        //    m_bCycleHasNG 등 판정 래치도 실행 중 리셋하면 그 사이클의 P/F 가 오염된다. 그래서 Idle 게이트가 필수다.
+        //  ▶ m_nLastZIndex=0 은 재산출하지 않는다: 이 필드를 읽는 두 지점(AddResponseV1Cycle 1517→1518, HandleDatumIndexResponse
+        //    1529)이 모두 읽기 직전에 ComputeLastZIndex() 로 스스로 덮으므로 0 인 상태가 판정에 관여할 수 없다.
+        public void ResetCycleStateForProtocolReset()
+        {
+            ResetCycleState();        // 판정 래치(NG/Datum실패/즉시-F) + z_index 캐시 초기화
+            ClearCrossZImages();      // 크로스-Z 이미지 저장소 Dispose+Clear (_crossZImageLock 내부 처리)
+            ClearDatumTransforms();   // Datum transform 캐시 + 검출/align 실패 집합 + RuntimeDetectFailed 플래그
+        }
+
         //260722 hbk Phase 68 D-02a: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST
         //  z_index 를 조회해야 하므로 ParseCurrentZIndex(private) 를 public 래퍼로 노출. RequestPacket 은
         //  SequenceBase.StartCore 에서 Run() 진입 전에 이미 세팅되므로 실행 시점에도 정확한 값을 반환한다.

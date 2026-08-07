@@ -20,6 +20,7 @@ namespace ReringProject.Network {
         AlignCalib,    //260624 hbk Phase 63 AV-09: Align 캘리브 ack 응답 ($ALIGN_CALIB)
         PrepAck,       //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답
         Alive,         //260625 hbk v3.0: $ALIVE heartbeat 응답
+        ResetAck,      //260807 hbk quick-260807-lh7: $RESET_ACK 응답
 
         Unknown = 999
     }
@@ -59,6 +60,7 @@ namespace ReringProject.Network {
         public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Phase 63 AV-09: Align 캘리브 ack 송신 커맨드
         public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 송신 커맨드
         public const string CMD_SEND_ALIVE = "ALIVE";                  //260625 hbk v3.0: $ALIVE heartbeat 송신 커맨드
+        public const string CMD_SEND_RESET_ACK = "RESET_ACK";          //260807 hbk quick-260807-lh7: $RESET_ACK 송신 커맨드
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
@@ -265,6 +267,9 @@ namespace ReringProject.Network {
                 case EVisionResponseType.Alive:
                     msg += BuildAliveMessage(packet.AsAlive()); //260625 hbk v3.0
                     break;
+                case EVisionResponseType.ResetAck:
+                    msg += BuildResetAckMessage(packet.AsResetAck()); //260807 hbk quick-260807-lh7
+                    break;
                 case EVisionResponseType.Unknown:
                     return null;
             }
@@ -457,6 +462,28 @@ namespace ReringProject.Network {
             return szMsg;
         }
 
+        //260807 hbk quick-260807-lh7: $RESET_ACK 직렬화 → $RESET_ACK:site,OK|FAIL@ (STX/ETX 는 TcpServer 부착).
+        //  PREP_ACK 와 동일 스타일이되 z_index 필드가 없어 구분자가 1개 적다. site 는 요청 echo.
+        //  IsOk=false 는 "리셋을 못 했다"(예: 시퀀스가 검사 실행 중이라 건너뜀)는 뜻 — 통신 실패가 아니다.
+        private static string BuildResetAckMessage(ResetAckPacket packet)
+        {
+            string szMsg = "";
+            szMsg += CMD_SEND_RESET_ACK;
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;       // ':'
+            szMsg += packet.Site.ToString();
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
+            bool bIsOk = packet.IsOk;
+            if (bIsOk)
+            {
+                szMsg += "OK";
+            }
+            else
+            {
+                szMsg += "FAIL";
+            }
+            return szMsg;
+        }
+
         public void Dispose() {
         }
 
@@ -512,6 +539,12 @@ namespace ReringProject.Network {
         public AliveResponsePacket AsAlive() {
             if (ResponseType != EVisionResponseType.Alive) return null;
             return this as AliveResponsePacket;
+        }
+
+        //260807 hbk quick-260807-lh7
+        public ResetAckPacket AsResetAck() {
+            if (ResponseType != EVisionResponseType.ResetAck) return null;
+            return this as ResetAckPacket;
         }
     }
 
@@ -730,6 +763,15 @@ namespace ReringProject.Network {
         public bool IsOk { get; set; }
 
         public PrepAckPacket() : base(EVisionResponseType.PrepAck) {
+        }
+    }
+
+    //260807 hbk quick-260807-lh7: $RESET_ACK 응답 패킷. IsOk=true → $RESET_ACK:site,OK@ / false → $RESET_ACK:site,FAIL@
+    //  site 는 베이스 VisionResponsePacket.Site 사용(요청 echo 전용).
+    public class ResetAckPacket : VisionResponsePacket {
+        public bool IsOk { get; set; }
+
+        public ResetAckPacket() : base(EVisionResponseType.ResetAck) {
         }
     }
 

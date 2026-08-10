@@ -35,7 +35,7 @@ namespace ReringProject.Device {
         public const bool REVERSE_X_SIDE = false;
         public const bool REVERSE_Y_SIDE = false;
 
-        public const bool REVERSE_X_BOTTOM = true;  // 02.06
+        public const bool REVERSE_X_BOTTOM = false;  // 02.06
         public const bool REVERSE_Y_BOTTOM = false;
 
         

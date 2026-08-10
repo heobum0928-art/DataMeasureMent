@@ -361,7 +361,7 @@ namespace ReringProject.Network {
                 }
                 szItems += item.ItemName;                   // OffsetX / OffsetY / Theta
                 szItems += MSG_RESULT_INNER_SEP;            // '='
-                szItems += item.Value.ToString("0.000");    // val
+                szItems += item.Value.ToString("+0.000;-0.000;+0.000");    // val //260810 hbk quick-260810-cgl: 고정폭 파싱 위해 양수/0 도 '+' 부호 고정 (펨텍 PLC팀 요청)
             }
             return szItems;
         }

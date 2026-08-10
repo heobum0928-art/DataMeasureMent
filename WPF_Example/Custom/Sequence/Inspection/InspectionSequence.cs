@@ -67,6 +67,18 @@ namespace ReringProject.Sequence {
         //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
+        //260810 hbk reset-datum-clear-race Round2: _datumTransforms/_failedDatums/_alignFailedDatums 3개 컬렉션
+        //  전용 락. Round1(_startLock 재사용, TryExecuteIfIdle)은 $RESET-vs-Start(State Idle→Running 원자 점유)
+        //  TOCTOU 만 닫았을 뿐, 이 3개 컬렉션 자체의 동시 접근은 여전히 무방비였다 — TryComposeAlign/TryRunSingleDatum
+        //  이 (a) $RESET(ClearDatumTransforms), (b) 시퀀스 자체 워커 스레드(Action_FAIMeasurement.DatumPhase),
+        //  (c) UI Test-Find(MainView.BtnTestFindDatum_Click/TryFindTransformForReanchor) 세 스레드 중 어디서든
+        //  호출될 수 있기 때문. Test Find 는 "시퀀스 실행 상태 무관"이 설계 의도(TryComposeAlign 선언부 주석 참고)라
+        //  _startLock(Idle 게이트)을 재사용하면 Running 중 Test Find 가 no-op 되어 의도된 기능이 깨진다 — 그래서
+        //  State 와 무관하게 이 3개 컬렉션만 짧게 보호하는 별도 락을 둔다. 임계구역은 순수 Dictionary/HashSet
+        //  연산만 포함할 것(HALCON 패턴매칭·Dispatcher 대기 등 블로킹 호출을 락 안에 절대 넣지 말 것 — StartCore/
+        //  TryExecuteIfIdle 이 세운 것과 동일한 원칙). 인스턴스 필드라 Top/Side/Bottom 시퀀스끼리는 서로 간섭 없음.
+        private readonly object _datumStateLock = new object();
+
         //260623 hbk Phase 49 PROTO-03/05 (D-02): 멀티샷 사이클 누적 상태 — 신규 클래스 미도입, _failedDatums 와 동일 lifecycle 멤버.
         //  ClearDatumTransforms() 와 별도로 Index 0 수신 시 ResetCycleState() 로 리셋(D-08).
         //  49-02 가 AddResponseV1Cycle 에서 read 연결 → CS0414(미사용) 해소, #pragma 제거함.
@@ -1108,20 +1120,30 @@ namespace ReringProject.Sequence {
             ClearCrossZImages();
         }
 
-        //260807 hbk quick-260807-lh7: $RESET 수신 시 이 시퀀스의 사이클 누적 상태를 클린 슬레이트로 되돌리는 유일한 공개 진입점.
-        //  public 인 이유: Custom/SystemHandler.ProcessReset(다른 클래스)이 직접 호출 — ApplyShotLights/BeginCrossZImageCycle 과
-        //  동일한 cross-class 노출 컨벤션.
-        //  ▶ 호출 규약(중요): 반드시 호출부가 State == EContextState.Idle 을 먼저 확인한 뒤 호출할 것.
-        //    이 메서드가 건드리는 _datumTransforms(Dictionary)/_failedDatums·_alignFailedDatums(HashSet)에는 락이 없어서,
-        //    시퀀스 스레드가 DatumPhase 에서 Add 하는 중에 다른 스레드가 Clear 하면 컬렉션 내부가 깨진다(무한루프/예외).
-        //    m_bCycleHasNG 등 판정 래치도 실행 중 리셋하면 그 사이클의 P/F 가 오염된다. 그래서 Idle 게이트가 필수다.
-        //  ▶ m_nLastZIndex=0 은 재산출하지 않는다: 이 필드를 읽는 두 지점(AddResponseV1Cycle 1517→1518, HandleDatumIndexResponse
-        //    1529)이 모두 읽기 직전에 ComputeLastZIndex() 로 스스로 덮으므로 0 인 상태가 판정에 관여할 수 없다.
-        public void ResetCycleStateForProtocolReset()
+        //260807 hbk quick-260807-lh7: $RESET 수신 시 이 시퀀스의 사이클 누적 상태를 클린 슬레이트로 되돌리는 진입점.
+        //  260810 hbk reset-datum-clear-race 수정: 더 이상 "호출부가 State==Idle 을 먼저 확인" 하는 계약에 의존하지
+        //  않는다(그 계약이 실제로는 락 없는 TOCTOU 였음 — 사전 체크와 이 메서드 호출 사이에 StartCore 가 끼어들면
+        //  실행 중인 시퀀스 스레드와 락 없는 _datumTransforms 등을 동시에 건드릴 수 있었다). 이제 private 으로 감추고,
+        //  아래 TryResetCycleStateForProtocolReset() 하나만 공개 진입점으로 노출 — SequenceBase.TryExecuteIfIdle 이
+        //  StartCore 와 동일한 _startLock 안에서 State 체크와 이 메서드 실행을 원자적으로 묶는다.
+        private void ResetCycleStateForProtocolReset()
         {
             ResetCycleState();        // 판정 래치(NG/Datum실패/즉시-F) + z_index 캐시 초기화
             ClearCrossZImages();      // 크로스-Z 이미지 저장소 Dispose+Clear (_crossZImageLock 내부 처리)
             ClearDatumTransforms();   // Datum transform 캐시 + 검출/align 실패 집합 + RuntimeDetectFailed 플래그
+        }
+
+        //260810 hbk reset-datum-clear-race: $RESET 의 유일한 공개 진입점. public 인 이유: Custom/SystemHandler.
+        //  ResetSequenceCycleStates(다른 클래스)가 직접 호출 — ApplyShotLights/BeginCrossZImageCycle 과 동일한
+        //  cross-class 노출 컨벤션. "State==Idle 이면 리셋 실행, 아니면 스킵"을 SequenceBase.TryExecuteIfIdle 를
+        //  통해 StartCore 의 _startLock 안에서 원자적으로 수행한다 — 체크와 실행 사이에 다른 스레드가 끼어들 수
+        //  없으므로(StartCore 가 먼저 락을 잡았으면 여기선 State!=Idle 로 관측되어 그대로 스킵, 이 메서드가 먼저
+        //  락을 잡았으면 StartCore 는 리셋이 끝나고 락이 풀릴 때까지 대기했다가 이미 클린해진 상태에서 시작).
+        //  반환값: true = 실제로 Idle 이었고 리셋 실행됨 / false = Idle 이 아니어서(또는 그 사이 Running 으로
+        //  전환되어) 스킵됨 — 호출부(SystemHandler)가 이 값으로 기존과 동일한 "부분 리셋" 로그/ACK 판정을 한다.
+        public bool TryResetCycleStateForProtocolReset()
+        {
+            return TryExecuteIfIdle(ResetCycleStateForProtocolReset);
         }
 
         //260722 hbk Phase 68 D-02a: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST
@@ -1935,12 +1957,17 @@ namespace ReringProject.Sequence {
         //260710 hbk 죽은 코드 제거: 미사용 Datum phase 실행 오버로드 2종(1-image/2-image) 호출부 0건 확인 후 삭제 (quick 260710-di7)
 
         // DatumPhase loop 시작 전 1회 호출 (per-datum 누적 전 초기화)
+        //260810 hbk reset-datum-clear-race Round2: 3개 컬렉션 Clear 를 _datumStateLock 으로 감쌌다 — 호출부가
+        //  $RESET(TryExecuteIfIdle/_startLock 안), OnStart 훅(HandleRunStartResetResults, _startLock 밖), 어느
+        //  쪽이든 이 메서드 안에서는 TryComposeAlign/TryRunSingleDatum/UI Test-Find 와 안전하게 상호 배타적이다.
         public void ClearDatumTransforms() {
-            _datumTransforms.Clear();
-            _failedDatums.Clear(); // _datumTransforms 와 동일 lifecycle
-            //260618 hbk Phase 54 ALIGN-01 align 실패 set 도 동일 lifecycle 리셋 (D-10)
-            _alignFailedDatums.Clear();
-            // RuntimeDetectFailed 도 일괄 리셋 (이전 사이클 잔여 신호 제거)
+            lock (_datumStateLock) {
+                _datumTransforms.Clear();
+                _failedDatums.Clear(); // _datumTransforms 와 동일 lifecycle
+                //260618 hbk Phase 54 ALIGN-01 align 실패 set 도 동일 lifecycle 리셋 (D-10)
+                _alignFailedDatums.Clear();
+            }
+            // RuntimeDetectFailed 는 DatumConfig 소유 필드(공유 컬렉션 아님 — _datumStateLock 범위 밖, 기존과 동일 시점).
             foreach (var d in DatumConfigs)
             {
                 if (d != null) d.RuntimeDetectFailed = false;
@@ -1950,16 +1977,24 @@ namespace ReringProject.Sequence {
 
         // 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.
         //  _failedDatums 단일 set 에 idempotent add.
+        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(아래 MarkAlignFailed 가 재진입 호출).
         public void MarkDatumFailed(string datumName)
         {
-            if (!string.IsNullOrEmpty(datumName)) _failedDatums.Add(datumName);
+            if (string.IsNullOrEmpty(datumName)) return;
+            lock (_datumStateLock) {
+                _failedDatums.Add(datumName);
+            }
         }
 
         // per-FAI gate 조회. Measurement.DatumRef 가 실패 datum 이름과 일치하면 true.
         //  빈 DatumRef = 무보정 의도이므로 게이트 무관 (false 반환 — TryGetDatumTransform identity fallback 경로로 진행).
+        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_failedDatums 읽기).
         public bool IsDatumFailed(string datumRef)
         {
-            return !string.IsNullOrEmpty(datumRef) && _failedDatums.Contains(datumRef);
+            if (string.IsNullOrEmpty(datumRef)) return false;
+            lock (_datumStateLock) {
+                return _failedDatums.Contains(datumRef);
+            }
         }
 
         //260716 hbk DatumRef 참조 불일치 감지 — datumRef 가 비어있지 않은데 현재 DatumConfigs 어디에도 그 이름이 없는 경우 true.
@@ -1980,19 +2015,25 @@ namespace ReringProject.Sequence {
 
         //260618 hbk Phase 54 ALIGN-01 패턴매칭 실패 datum 기록 (D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
         //  _failedDatums 에도 add 하여 기존 IsDatumFailed 게이트가 NG 를 강제하도록 한다.
+        //260810 hbk reset-datum-clear-race Round2: 두 Add 를 _datumStateLock 하나의 임계구역으로 묶는다(원자성) —
+        //  MarkDatumFailed 내부에서 같은 락을 재획득하지만 C# lock(Monitor)은 동일 스레드 재진입을 지원해 안전.
         public void MarkAlignFailed(string datumName)
         {
-            if (!string.IsNullOrEmpty(datumName))
-            {
+            if (string.IsNullOrEmpty(datumName)) return;
+            lock (_datumStateLock) {
                 _alignFailedDatums.Add(datumName);
-                MarkDatumFailed(datumName); // 측정 NG 강제 위해 기존 게이트 set 에도 add
+                MarkDatumFailed(datumName); // 측정 NG 강제 위해 기존 게이트 set 에도 add (재진입 lock, 안전)
             }
         }
 
         //260618 hbk Phase 54 ALIGN-01 align 실패 datum 여부 조회 — 게이트가 ALIGN_FAIL vs DATUM_FAIL 표기 구분에 사용 (D-10).
+        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_alignFailedDatums 읽기).
         public bool IsAlignFailed(string datumRef)
         {
-            return !string.IsNullOrEmpty(datumRef) && _alignFailedDatums.Contains(datumRef);
+            if (string.IsNullOrEmpty(datumRef)) return false;
+            lock (_datumStateLock) {
+                return _alignFailedDatums.Contains(datumRef);
+            }
         }
 
         //260807 hbk quick-260807: per-datum 성공 시 그 datum 1건에 한해 스테일 실패 신호를 제거한다.
@@ -2004,13 +2045,17 @@ namespace ReringProject.Sequence {
         //  생긴다. 검출/align 성공 지점(TryRunSingleDatum, TryComposeAlign)에서 그 datum 하나만 구
         //  ClearDatumTransforms() 가 하던 일의 부분집합(실패 신호 제거)을 재현해 막는다 — 사이클 전체 리셋은 아님,
         //  다른 datum 의 _failedDatums/RuntimeDetectFailed 는 그대로 둔다.
+        //260810 hbk reset-datum-clear-race Round2: 두 Remove 를 _datumStateLock 으로 감쌈 — TryComposeAlign/
+        //  TryRunSingleDatum(둘 다 워커/UI 스레드에서 호출 가능) 이 호출하는 지점.
         private void ClearStaleDatumFailure(DatumConfig datum)
         {
             if (datum == null) return;
             string key = datum.DatumName;
             if (string.IsNullOrEmpty(key)) return;
-            _failedDatums.Remove(key);
-            _alignFailedDatums.Remove(key);
+            lock (_datumStateLock) {
+                _failedDatums.Remove(key);
+                _alignFailedDatums.Remove(key);
+            }
         }
 
         //260618 hbk Phase 54 ALIGN-01 datum 모델 경로 단일 소스 (D-07) — 54-04(런타임 load)·54-05(티칭 save) 공유.
@@ -2286,7 +2331,12 @@ namespace ReringProject.Sequence {
             //  검출-datum transform 은 tilt 서 패턴(정답) 대비 ~130px 어긋남(먼 측정 ROI lever-arm) → EDGE_FAIL "—"(quick 260618-o2m [ALIGN-CHK] 확인).
             //  패턴 pose 는 부품 회전/이동을 강건히 반영 → 먼 측정점 ROI 정상 위치. datum 검출 origin(DetectedOrigin*)은 거리 기준으로 계속 사용(nominal 보존).
             //  2-패턴 baseline(양 대각 끝 ROI 2개 → 두 점 각도) 정밀화는 후속 phase. 직선 ROI(AlignLineRoi) 각도 경로는 폐기 확정(CO-54-04).
-            _datumTransforms[datumKey] = alignRigid; // 측정 ROI 위치 = 패턴 pose (검출-datum 130px 오차 회피)
+            //260810 hbk reset-datum-clear-race Round2: 이 Dictionary 대입만 _datumStateLock 으로 감싼다 — 이 지점
+            //  위의 HALCON 패턴매칭/검출(수십~수백ms)은 절대 락 안에 넣지 않는다(TryComposeAlign 은 "실행상태 무관"
+            //  호출 가능해야 하므로 락 보유 시간을 최소화해 $RESET/워커스레드/다른 Test-Find 호출을 오래 막지 않음).
+            lock (_datumStateLock) {
+                _datumTransforms[datumKey] = alignRigid; // 측정 ROI 위치 = 패턴 pose (검출-datum 130px 오차 회피)
+            }
             //260619 hbk Phase 56 Wave 2 — 보정 ROI 표시도 측정과 동일 transform(alignRigid) 사용해야 일치.
             //  line 542 는 검출-datum transform(datumTransform)을 CurrentTransform 에 넣지만, 측정은 alignRigid 사용(먼 ROI 130px 오차 회피).
             //  CurrentTransform 소비처 = 보정 ROI 표시 전용(MainView)뿐 → alignRigid 로 덮어써 측정과 박스 위치 일치시킴.
@@ -2334,25 +2384,37 @@ namespace ReringProject.Sequence {
             datum.CurrentTransform = transform;
             string datumKey = datum.DatumName;
             if (datumKey == null) datumKey = "";
-            _datumTransforms[datumKey] = transform; // 누적 저장
+            //260810 hbk reset-datum-clear-race Round2: Dictionary 대입만 _datumStateLock 으로 감쌈 — 위 HALCON
+            //  검출(service.TryFindDatum, 수십~수백ms)은 락 밖에서 이미 끝난 뒤라 영향 없음.
+            lock (_datumStateLock) {
+                _datumTransforms[datumKey] = transform; // 누적 저장
+            }
             return true;
         }
 
         // DatumRef → transform 조회
+        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_datumTransforms 읽기 — TryGetValue 를
+        //  Clear()/indexer-set 과 동시에 실행하면 잘못된 값/예외 위험이 있었다).
         public bool TryGetDatumTransform(string datumRef, out HTuple transform) {
             if (string.IsNullOrEmpty(datumRef)) {
                 HOperatorSet.HomMat2dIdentity(out transform);
                 return true;
             }
-            return _datumTransforms.TryGetValue(datumRef, out transform);
+            lock (_datumStateLock) {
+                return _datumTransforms.TryGetValue(datumRef, out transform);
+            }
         }
 
         //260807 hbk quick-260807: Action_FAIMeasurement.EStep.DatumPhase 의 비-크로스-Z 재검출 skip 판단 전용 조회.
         //  TryGetDatumTransform 은 datumRef 가 비어있으면 "무보정 허용" 의미로 identity+true 를 돌려주는데(위 메서드),
         //  그 의미와 "이 이름의 Datum 이 이번 사이클에 실제로 검출 성공해 캐시됐는가"는 서로 다르다 — 섞어 쓰면 이름
         //  없는(빈 문자열) Datum 이 항상 "이미 성공"으로 오판될 수 있어 전용 helper 로 분리한다.
+        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_datumTransforms 읽기).
         public bool HasCachedDatumTransform(string datumName) {
-            return !string.IsNullOrEmpty(datumName) && _datumTransforms.ContainsKey(datumName);
+            if (string.IsNullOrEmpty(datumName)) return false;
+            lock (_datumStateLock) {
+                return _datumTransforms.ContainsKey(datumName);
+            }
         }
 
         //260619 hbk Phase 57 #6 leveling 제거 — TryComputeLevelingAngle 메서드 폐기 (ALIGN 위치/tilt 보정으로 대체, D-12/D-13)

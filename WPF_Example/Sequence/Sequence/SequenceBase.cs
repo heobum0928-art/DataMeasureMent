@@ -361,6 +361,25 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260810 hbk reset-datum-clear-race 수정: "State==Idle 이면 X 실행"을 StartCore 와 동일한 _startLock 안에서
+        //  원자적으로 수행하는 공용 진입점. 배경: $RESET(InspectionSequence.ResetCycleStateForProtocolReset, 락 없는
+        //  _datumTransforms/_failedDatums 등을 건드림) 처럼 "Idle 인 시퀀스에만 안전하게 적용해야 하는" 외부 요청이,
+        //  기존엔 State 를 락 밖에서 읽고 그 결과를 근거로 나중에(같은 원자성 없이) 실행해 StartCore 의 Idle→Running
+        //  원자 점유와 TOCTOU 로 경합했다(체크 통과 직후 StartCore 가 먼저 점유하면, 실행 중인 시퀀스 스레드와
+        //  락 없는 컬렉션을 동시에 건드리게 됨). 해결: 같은 _startLock 을 공유해 두 경로를 상호 배타적으로 만든다.
+        //  ▶ OnStart 훅(HandleRunStartResetResults) 패턴과 다른 용도: OnStart 는 "Start 가 성공했을 때"만 발화하는
+        //    사이클-시작 훅이고, 이 메서드는 "지금 Idle 인가"를 성공 전제 없이 즉시 판정해야 하는 명시적 외부 요청
+        //    (RESET 등) 전용이다 — 서로 대체 관계가 아니라 별도 목적.
+        //  ▶ action 은 락 안에서 동기 실행된다 — UI Dispatcher 대기/블로킹 호출을 넣지 말 것(StartCore 가 OnStart 를
+        //    락 밖에서 발화하는 이유와 동일한 데드락 회피 원칙). 순수 필드대입/컬렉션 Clear 류에만 사용할 것.
+        protected bool TryExecuteIfIdle(Action action) {
+            lock (_startLock) {
+                if (State != EContextState.Idle) return false; // StartCore 가 이미 점유했거나 다른 사유로 Idle 아님
+                action();
+                return true;
+            }
+        }
+
         //260409 hbk Phase 5: 모든 Action 순차 실행 (D-01)
         public bool StartAll(TestPacket packet) {
             if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)

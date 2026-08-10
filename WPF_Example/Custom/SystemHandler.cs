@@ -946,10 +946,12 @@ namespace ReringProject {
         }
 
         //260807 hbk quick-260807-lh7: Sequences 순회 → InspectionSequence 만 골라 클린 슬레이트 리셋.
-        //  ▶ Idle 게이트(스레드 안전성의 핵심): 이 메서드는 MainRun 폴링 스레드에서 돈다. 리셋이 건드리는
-        //    _datumTransforms/_failedDatums 에는 락이 없어서, 검사 실행 중인 시퀀스 스레드가 그 컬렉션을 Add 하는
-        //    동안 여기서 Clear 하면 컬렉션 내부가 깨진다(무한루프/예외). 그래서 State==Idle 인 시퀀스만 리셋하고
-        //    실행 중인 시퀀스는 손대지 않고 건너뛴다 — 조용히 넘기지 않고 Error 로그를 남겨 PLC 측 재전송 판단을 돕는다.
+        //  260810 hbk reset-datum-clear-race 수정: 이전엔 여기서 State==Idle 을 락 없이 미리 읽고, 그 결과를 근거로
+        //  (같은 원자성 없이) ResetCycleStateForProtocolReset() 을 나중에 호출했다 — 그 사이 SequenceBase.StartCore
+        //  가 끼어들어 Idle→Running 원자 점유에 성공하면, 이 스레드는 이미 지난 "Idle" 판단을 근거로 그대로 Clear 를
+        //  실행해 실행 중인 시퀀스 스레드와 락 없는 _datumTransforms 등을 동시에 건드릴 수 있었다(TOCTOU, 크래시/
+        //  무한루프 가능). InspectionSequence.TryResetCycleStateForProtocolReset() 하나로 교체 — 내부에서
+        //  SequenceBase.TryExecuteIfIdle 이 StartCore 와 동일한 _startLock 안에서 "체크+실행"을 원자적으로 묶는다.
         //  ▶ Stop() 을 먼저 부르지 않는 이유: SequenceBase.Stop() 은 RequestPacket!=null 이면 AddResponse() 를 호출해
         //    PLC 가 요청하지도 않은 $RESULT 를 한 장 더 내보낸다 — 복구 명령이 프로토콜을 더 꼬는 부작용이라 미채택.
         //  ▶ 반환값: 대상이 1개 이상이고 그 전부를 리셋했을 때만 true(=ACK OK). 부분 리셋은 클린 슬레이트가 아니므로 false.
@@ -969,16 +971,15 @@ namespace ReringProject {
                 }
                 nFound++;
 
-                bool bIsIdle = inspSeq.State == EContextState.Idle;
-                if (!bIsIdle)
+                bool bDidReset = inspSeq.TryResetCycleStateForProtocolReset(); // Idle 체크 + 실행이 _startLock 안에서 원자적
+                if (!bDidReset)
                 {
                     Logging.PrintLog((int)ELogType.Error,
-                        "[RESET] Seq={0} 실행 중(State={1}) — 상태 리셋 건너뜀(스레드 안전). 사이클 종료 후 $RESET 재전송 필요. //260807 hbk",
+                        "[RESET] Seq={0} 실행 중(State={1}) — 상태 리셋 건너뜀(스레드 안전). 사이클 종료 후 $RESET 재전송 필요. //260807 hbk //260810 hbk 원자적 판정으로 교체",
                         inspSeq.Name, inspSeq.State.ToString());
                     continue;
                 }
 
-                inspSeq.ResetCycleStateForProtocolReset();
                 nReset++;
                 Logging.PrintLog((int)ELogType.Trace,
                     "[RESET] Seq={0} 클린 슬레이트 완료 //260807 hbk", inspSeq.Name);

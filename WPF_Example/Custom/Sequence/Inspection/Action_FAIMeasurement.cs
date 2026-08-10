@@ -276,10 +276,19 @@ namespace ReringProject.Sequence {
                         if (image != null) {
                             //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
                             //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
-                            ShotParam.SetImage(image);
+                            ShotParam.SetImage(image); // 측정 소스(데이터 경로) — 표시 설정과 무관하게 항상 설정한다.
+                            //260810 hbk quick-260810-egx: 아래는 "표시 전용" 사본(127MP memcpy). 자동검사 중 표시를 끄면 생략한다.
+                            InspectionSequence parentSeqForView;
+                            if (ShotParam != null) parentSeqForView = ShotParam.Parent as InspectionSequence;
+                            else parentSeqForView = null;
+                            bool bSkipViewer = IsViewerUpdateSkipped(parentSeqForView);
                             if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
-                            pMyContext.ResultHalconImage = image.CopyImage();
-                            image.Dispose();
+                            if (bSkipViewer) {
+                                pMyContext.ResultHalconImage = null; // 표시사본 미생성. HalconImageBridge.Clone(null)==null 이라 뒤쪽은 조용히 no-op.
+                            } else {
+                                pMyContext.ResultHalconImage = image.CopyImage();
+                            }
+                            image.Dispose(); // 누수 방지 — 조건과 무관하게 항상 수행.
                         }
                     }
                     Step = (int)EStep.Measure;
@@ -475,7 +484,10 @@ namespace ReringProject.Sequence {
                                             } finally {
                                                 if (crossZSharedSrc != null) crossZSharedSrc.Release();
                                             }
-                                            if (!bShotDisplayImageReplaced) {
+                                            //260810 hbk quick-260810-egx: 표시 전용 교체 블록 — 자동검사 중 표시를 끄면 통째로 건너뛴다
+                                            //  (127MP memcpy 제거). 위 AggregateFaiResult/crossZSharedSrc 저장 경로와 아래 finally 의
+                                            //  crossZRoleImage.Dispose() 는 조건과 무관하게 그대로 수행된다.
+                                            if (!bShotDisplayImageReplaced && !IsViewerUpdateSkipped(parentSeq2)) {
                                                 //260729 hbk quick-fix(260729-hwb): Shot 전체에서 첫 크로스-Z 캡처가 화면을
                                                 //  차지한다(결정론적 규칙) — 정적 대표 사진 대신 실제 측정 사진을 표시.
                                                 if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
@@ -578,6 +590,27 @@ namespace ReringProject.Sequence {
                 }
             }
             return image;
+        }
+
+        //260810 hbk quick-260810-egx: 자동검사(TCP $PREP/$TEST) 사이클에서 "표시 전용" 127MP 사본 생성을 생략할지 판단.
+        //  true 면 pMyContext.ResultHalconImage 를 만들지 않는다(Shot 당 memcpy 2회 제거: 여기 + SequenceContext.CopyFrom clone).
+        //  세 조건 AND:
+        //   1) 프로토콜(자동) 사이클 — 수동 RUN / 티칭 / 일괄검사(RepeatRun/BatchRun)는 RequestPacket==null 이라 항상 false → 표시 유지.
+        //   2) 설정 DisableViewerDuringAutoInspect 가 ON (opt-in, 기본 false = 기존 동작).
+        //   3) SaveFailImage 가 OFF — 이게 핵심 가드다. SaveFailImage 가 ON 이면 SequenceBase.SaveResultImage 가
+        //      Context.ResultHalconImage 를 실제 "저장 소스"(데이터 경로)로 사용하므로, 표시사본을 없애면 결과이미지 저장이
+        //      조용히 깨진다. 이 가드로 데이터 경로 영향 0 을 코드로 보장한다.
+        //  Setting 이 null 인 극단 상황은 false(=기존 동작 유지) 로 폴백한다.
+        //  주의: 이 판단은 "화면 표시"에만 적용된다 — capture/original 저장(QueueFaiCapture/CaptureImageSaveService)은 무관하며
+        //        OK/NG 전부 기존과 동일하게 저장된다.
+        private bool IsViewerUpdateSkipped(InspectionSequence parentSeq) {
+            if (parentSeq == null) return false;
+            if (!parentSeq.IsProtocolDrivenCycle()) return false;
+            SystemSetting setting = SystemSetting.Handle;
+            if (setting == null) return false;
+            if (!setting.DisableViewerDuringAutoInspect) return false;
+            if (setting.SaveFailImage) return false;
+            return true;
         }
 
         // DualImage 변형용 두 이미지 동시 로드 (per-datum).

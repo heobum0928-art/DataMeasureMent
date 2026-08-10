@@ -64,6 +64,7 @@ namespace ReringProject.Network {
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
+        public const int ALIGN_CALIB_NG_STEP_NO = 97;   //260810 hbk quick-260810-olh: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 N값(제어팀 요청)
 
         public const string TEST_RESULT_PASS = "P";
         public const string TEST_RESULT_FAIL = "F";
@@ -366,7 +367,11 @@ namespace ReringProject.Network {
             return szItems;
         }
 
-        //260807 hbk quick-260807-omy v-next: $ALIGN_CALIB:BOTTOM,1,N,OK@ / STEP(1)이면 StepNo 필드 부착. CmdStr 은 숫자 코드("0"~"3").
+        //260810 hbk quick-260810-olh: 제어팀 요청 — N(현재 스텝 번호) 필드를 명령 종류(START/STEP/END/ABORT) 무관하게
+        //  항상 출력한다. 성공 시 의미는 ProcessAlignCalib 가 세팅한 packet.StepNo 그대로(START=0/STEP=1~36/END=99/
+        //  ABORT=98), 실패(NG) 시엔 명령 종류 무관하게 항상 ALIGN_CALIB_NG_STEP_NO(97) — 이 실패 sentinel 결정을
+        //  여기 한 곳으로 중앙화해 ProcessAlignCalib 의 여러 실패 반환 지점(5곳)이 개별로 StepNo=97 을 챙길 필요가
+        //  없도록 한다(빠뜨림 방지, 근거: .planning/quick/260810-olh-align-calib-stepno-all-commands/).
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
@@ -374,21 +379,14 @@ namespace ReringProject.Network {
             szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
             szMsg += packet.AlignTarget;                    // BOTTOM
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
-            szMsg += packet.CmdStr;                         //260807 hbk quick-260807-omy 수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT)
-            int nCmdCode = 0;                                                    //260807 hbk quick-260807-omy
-            bool bCmdIsNumeric = Int32.TryParse(packet.CmdStr, out nCmdCode);    //260807 hbk quick-260807-omy
-            bool bIsStep = false;                                                //260807 hbk quick-260807-omy
-            if (bCmdIsNumeric)                                                   //260807 hbk quick-260807-omy
-            {
-                bIsStep = nCmdCode == AlignCalibPacket.CMD_CODE_STEP;
-            }
-            if (bIsStep)
-            {
-                szMsg += VisionServer.MSG_CONTENTS_SEPERATOR; // ','
-                szMsg += packet.StepNo.ToString();           // N
-            }
-            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += packet.CmdStr;                         // 수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT)
+
             bool bIsPass = packet.IsPass;
+            int nOutStepNo = bIsPass ? packet.StepNo : ALIGN_CALIB_NG_STEP_NO;
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += nOutStepNo.ToString();                 // N
+
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
             if (bIsPass)
             {
                 szMsg += RESULT_OK;                         // "OK"

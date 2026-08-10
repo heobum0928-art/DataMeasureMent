@@ -703,6 +703,7 @@ namespace ReringProject {
                         "[ALIGN_CALIB] START: 모델 로드 실패 ({0})", loadErr);
                 }
                 resultPacket.IsPass = true;
+                resultPacket.StepNo = 0;    //260810 hbk quick-260810-olh: N=0 고정(제어팀 요청, START 의미)
                 Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] START — 누적 초기화, model={0}", bLoaded);
                 return resultPacket;
             }
@@ -786,6 +787,7 @@ namespace ReringProject {
                 if (bOk)
                 {
                     resultPacket.IsPass = true;
+                    resultPacket.StepNo = 99;    //260810 hbk quick-260810-olh: N=99 고정(제어팀 요청, END=완료 의미)
                     //260630 hbk — END 성공: 피커센터 즉시 저장 (비정상 종료 시 손실 방지)
                     SystemSetting.Handle.Save();
                     var endCb = EthernetVisionHandler.Handle.OnCalibEndViewer;
@@ -810,6 +812,7 @@ namespace ReringProject {
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
                 resultPacket.IsPass = true;
+                resultPacket.StepNo = 98;    //260810 hbk quick-260810-olh: N=98 고정(제어팀 요청, ABORT=취소 의미)
                 Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] ABORT — 누적 초기화");
                 return resultPacket;
             }

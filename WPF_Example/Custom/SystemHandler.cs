@@ -243,7 +243,11 @@ namespace ReringProject {
         //  StartSubset 은 매칭 인덱스의 min-max 연속구간만 실행(D-01b, SequenceHandler.RebuildInspectionActions 의
         //  ZIndex 안정 정렬이 same-ZIndex Shot 인접을 보장) — 스파스 크로스-Z 매칭으로 min-max 구간이 확장되어 그 사이
         //  무관 Shot 이 재실행될 가능성은 Plan 05 UAT 시나리오 1의 명시적 PASS/FAIL 게이트로 검증한다(T-68-01 mitigation).
-        //  매칭 0건(레시피 ZIndex 미설정 등 운용 오류) → 조용한 무시 금지, 로그 남기고 StartAll 폴백(T-68-01: DoS 방지).
+        //  매칭 0건(레시피 ZIndex 미설정 등 운용 오류 또는 의도적으로 shot 이 없는 빈 z_index) → 조용한 무시 금지,
+        //  로그는 남기되 Action 은 실행하지 않고 즉시 빈 응답으로 응답한다(StartEmptyScope, 260810 hbk
+        //  bottom-empty-zindex-tcp-delay 수정 — 기존 StartAll 폴백은 이 시퀀스의 무관한 다른 z 의 shot 을 전부
+        //  재실행했을 뿐 응답 내용에는 전혀 기여하지 않으면서 실기 재현 7,485ms 응답 지연을 유발했다. 상세 근거는
+        //  StartEmptyScope 호출부 주석 참고).
         private bool StartV1Scoped(SequenceBase seq, TestPacket packet)
         {
             bool bIsDatumZIndex = _lastPrepZIndex == DATUM_TEST_Z_INDEX;
@@ -315,10 +319,22 @@ namespace ReringProject {
                     return seq.StartSubset(datumIndices.ToArray(), packet); // Error 로그 없음 — Side z=1 의 설계된 정상 경로
                 }
             }
+            //260810 hbk bottom-empty-zindex-tcp-delay: 진짜 "매칭 0건"(크로스-Z Datum 전용도 아님) — 기존엔
+            //  여기서 StartAll 로 이 시퀀스 전체(다른 모든 z 의 shot)를 재실행했다. 이는 InspectionSequence.
+            //  WarnIfEmptyScope 주석(Phase 49 BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
+            //  모순되는 별도 레이어(Phase 68 실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
+            //  3/22 는 원래부터 BOTTOM 소유 shot 이 0개인 정상 구성)에서 7,485ms 응답 지연을 유발했다 —
+            //  StartAll 로 실행된 다른 z 의 shot 은 AggregateIndexFais(nZIndex=_lastPrepZIndex) 필터에 절대
+            //  포함되지 않으므로(별개 z), 응답 내용은 Action 미실행 시와 100% 동일(B, FAIResults 0건) — 즉
+            //  StartAll 은 응답 정확성에 전혀 기여하지 않고 지연만 유발했다(근본원인 확정,
+            //  .planning/debug/bottom-empty-zindex-tcp-delay.md). StartEmptyScope 는 Action 실행 없이
+            //  BuildScopedResponse/WarnIfEmptyScope(그대로 경고 로그 유지)만 거쳐 즉시 응답한다(회귀 0 설계 —
+            //  응답 산출 로직은 1바이트도 변경하지 않음, 달라지는 것은 오직 "그 사이 무관한 shot 을 재실행하지
+            //  않는다"는 점 뿐이다).
             Logging.PrintLog((int)ELogType.Error,
-                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — StartAll 폴백. 레시피 ZIndex 설정 확인 필요. //260722 hbk",
+                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — Action 미실행, 즉시 빈 응답(B/F). 레시피 ZIndex 설정 확인 필요(의도된 빈 z_index 라면 정상). //260810 hbk",
                     _lastPrepZIndex, seq.Name));
-            return seq.StartAll(packet);
+            return seq.StartEmptyScope(packet);
         }
 
         private TestResultPacket SendTestError(TestPacket packet) {

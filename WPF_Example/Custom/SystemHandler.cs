@@ -23,6 +23,16 @@ namespace ReringProject {
             for (int i = 0; i < Sequences.Count; i++) {
                 TestResultPacket response = Sequences[i].PopResponse();
                 if (response == null) continue;
+                //260810 hbk manual-inspect-null-target-crash: 수동(메뉴얼) 트리거(DebugManualZTrigger)는
+                //  실제 TCP 클라이언트가 없어 RequestPacket.Sender가 null로 남고, 그게 Target으로 그대로
+                //  echo되어 여기까지 도달한다. Target이 비어있으면 보낼 대상이 없는 정상 케이스이므로
+                //  TCP 전송만 스킵한다(응답 생성/영속화는 이미 끝난 뒤라 그대로 유지됨) — 크래시 방지.
+                if (string.IsNullOrEmpty(response.Target)) {
+                    Logging.PrintLog((int)ELogType.Trace,
+                        "[MainRun] TestResultPacket.Target empty — TCP 전송 스킵(수동 트리거 등 응답 대상 없음). site={0}",
+                        response.Site);
+                    continue;
+                }
                 if (!Server.SendPacket(response.Target, response)) {
                     //occurs error
                 }

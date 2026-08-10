@@ -476,6 +476,11 @@ namespace ReringProject.Network {
             DisconnectAll();
         }
         public ConnectedClient GetClient(string ipAddress) {
+            //260810 hbk manual-inspect-null-target-crash: 방어적 안전망. 상위(SystemHandler.MainRun)에서
+            //  Target null/empty 를 이미 걸러내지만, 이 메서드 단독으로도 null 가드가 없으면
+            //  string.Contains(null) 이 ArgumentNullException 을 던진다(실기 크래시 재현 스택트레이스와 일치).
+            //  향후 다른 호출부가 같은 실수를 해도 "클라이언트 없음"으로 안전하게 처리되도록 한다.
+            if (string.IsNullOrEmpty(ipAddress)) return null;
             lock (mListInterlock) {
                 for (int i = 0; i < mConnectedClientList.Count; i++) {
                     if (mConnectedClientList[i].GetIpAddress().Contains(ipAddress)) return mConnectedClientList[i];

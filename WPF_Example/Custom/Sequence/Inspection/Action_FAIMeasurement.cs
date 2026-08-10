@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using HalconDotNet;
 using ReringProject.Define;
@@ -312,6 +313,12 @@ namespace ReringProject.Sequence {
                                 var capSaver = SystemHandler.Handle.CaptureImageSaver;
                                 SharedHImage sharedSrc = null;
                                 if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
+                                //260810 hbk quick-debug(capture-render-per-fai-slow) round4 fix: try/finally 를 sharedSrc
+                                //  생성 직후로 넓혔다(기존엔 BuildDatumCaptureSnapshot/GetEffectivePixelResolution/
+                                //  QueueSharedShotOrigin 이 try 밖에 있어, 이 구간에서 예외가 나면 sharedSrc(ref 1, 검사
+                                //  루프 소유)가 release 안 되고 새는 결함이 있었다 — QueueSharedShotOrigin 이 이미
+                                //  AddRef 까지 해둔 뒤 예외가 나면 ref 2개가 동시에 샐 수 있었다).
+                                try {
                                 // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
                                 List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
                                 //260619 hbk per-shot 보정계수 적용 = PixelResolution × CorrectionFactor (단일소스 GetEffectivePixelResolution). PixelResolution 저장값 불변.
@@ -322,7 +329,6 @@ namespace ReringProject.Sequence {
                                 //  sharedSrc 를 통해 완전히 동일한 내용을 참조한다 — FAI 마다 반복 저장(127MP 기준 실측 ~1초/장)하지
                                 //  않고 Shot 당 1회만 큐에 넣는다. 큐 상한(50=FAI 25개분)을 넘는 FAI 부터 저장 대기가 걸리던 원인.
                                 string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
-                                try {
                                 foreach (var fai in ShotParam.FAIList) {
                                     bool faiAllPass = true;
                                     var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
@@ -936,74 +942,105 @@ namespace ReringProject.Sequence {
         //  null 이면(크로스-Z — FAI 마다 실제로 다른 role 이미지 가능) 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
         private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName, string szSharedOriginPath) {
             if (fai == null) return;
-            var saver = SystemHandler.Handle.CaptureImageSaver;
-            DateTime ts = DateTime.Now; // origin(개별 저장 시)/capture 동일 timestamp 공유 (쌍)
-            string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); // P1/P1P2/빈값
-            string judge;
-            if (fai.IsPass) judge = "OK";
-            else judge = "NG"; // 캡쳐/원본 파일명에 OK/NG 삽입. origin/capture 쌍 동일.
+            // 260810 hbk quick-debug(capture-render-per-fai-slow) 계측: 창 재사용 최적화([CaptureRender] 로그) 적용
+            //  후에도 z=1 총 소요가 FAI개수×렌더시간과 거의 일치해, "검사 스레드가 실제로 렌더(워커)를 기다리는가"가
+            //  새로운 핵심 질문이 됨. QueueFaiCapture 는 이론상 Enqueue(비블로킹, 큐 depth<50 이면 즉시 반환)만
+            //  하고 끝나야 한다 — 이 total 이 실기에서 몇 ms 인지 직접 측정해 (a) 진짜 블로킹인지 (b) 아니면
+            //  측정 스레드 자체의 고유 비용이 우연히 렌더 비용과 자릿수가 비슷해 "따라가는 것처럼 보였을 뿐"인지
+            //  가른다. total 이 크면(200ms+) prep/origin/snapshot/captureEnqueue 중 어느 stage 가 지배적인지로
+            //  숨은 비용 위치를 좁힌다. finally 로 항상 1회 로깅 — 중간 return 경로도 stage 값(-1=미도달)으로 판별 가능.
+            var swTotal = Stopwatch.StartNew();
+            var swStage = new Stopwatch();
+            long msPrep = -1, msOrigin = -1, msSnapshot = -1, msCaptureEnqueue = -1;
+            try {
+                var saver = SystemHandler.Handle.CaptureImageSaver;
+                DateTime ts = DateTime.Now; // origin(개별 저장 시)/capture 동일 timestamp 공유 (쌍)
 
-            //260622 hbk Phase 48 PROTO-01: 자재번호 추출 — 부모 시퀀스 RequestPacket(TCP TEST 패킷). null 이면 -1 폴백.
-            //  부모 시퀀스가 없거나 InspectionSequence 아닌 경우에도 -1(생략), 회귀 0.
-            int nIndexNumber = -1;
-            InspectionSequence parentSeq;
-            if (ShotParam != null)
-            {
-                parentSeq = ShotParam.Parent as InspectionSequence;
-            }
-            else
-            {
-                parentSeq = null;
-            }
-            bool bHasRequest = parentSeq != null && parentSeq.RequestPacket != null;
-            if (bHasRequest)
-            {
-                nIndexNumber = parentSeq.RequestPacket.IndexNumber;
-            }
+                swStage.Restart();
+                string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); // P1/P1P2/빈값
+                string judge;
+                if (fai.IsPass) judge = "OK";
+                else judge = "NG"; // 캡쳐/원본 파일명에 OK/NG 삽입. origin/capture 쌍 동일.
 
-            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);  //260622 hbk Phase 48 PROTO-01
-            // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
-            // 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
-            fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts);
-
-            bool bUseSharedOrigin = !string.IsNullOrEmpty(szSharedOriginPath);
-            if (bUseSharedOrigin) {
-                fai.LastOriginImageFileName = szSharedOriginPath; // Shot 공유 origin — 이미 저장됨, 경로만 기록
-            } else {
-                // 크로스-Z 등 FAI 마다 원본 내용이 실제로 다를 수 있는 경로 — 기존과 동일하게 FAI 마다 개별 저장.
-                string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
-                fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);
-                if (saver != null && sharedSrc != null) {
-                    sharedSrc.AddRef();
-                    saver.Enqueue(new CaptureImageSaveRequest
-                    {
-                        Shared = sharedSrc,
-                        NeedsRender = false,
-                        FileName = originName,
-                        IsCapture = false,
-                        Timestamp = ts
-                    });
+                //260622 hbk Phase 48 PROTO-01: 자재번호 추출 — 부모 시퀀스 RequestPacket(TCP TEST 패킷). null 이면 -1 폴백.
+                //  부모 시퀀스가 없거나 InspectionSequence 아닌 경우에도 -1(생략), 회귀 0.
+                int nIndexNumber = -1;
+                InspectionSequence parentSeq;
+                if (ShotParam != null)
+                {
+                    parentSeq = ShotParam.Parent as InspectionSequence;
                 }
+                else
+                {
+                    parentSeq = null;
+                }
+                bool bHasRequest = parentSeq != null && parentSeq.RequestPacket != null;
+                if (bHasRequest)
+                {
+                    nIndexNumber = parentSeq.RequestPacket.IndexNumber;
+                }
+
+                string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);  //260622 hbk Phase 48 PROTO-01
+                // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
+                // 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
+                fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts);
+                msPrep = swStage.ElapsedMilliseconds;
+
+                swStage.Restart();
+                bool bUseSharedOrigin = !string.IsNullOrEmpty(szSharedOriginPath);
+                if (bUseSharedOrigin) {
+                    fai.LastOriginImageFileName = szSharedOriginPath; // Shot 공유 origin — 이미 저장됨, 경로만 기록
+                } else {
+                    // 크로스-Z 등 FAI 마다 원본 내용이 실제로 다를 수 있는 경로 — 기존과 동일하게 FAI 마다 개별 저장.
+                    string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
+                    fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);
+                    if (saver != null && sharedSrc != null) {
+                        sharedSrc.AddRef();
+                        saver.Enqueue(new CaptureImageSaveRequest
+                        {
+                            Shared = sharedSrc,
+                            NeedsRender = false,
+                            FileName = originName,
+                            IsCapture = false,
+                            Timestamp = ts
+                        });
+                    }
+                }
+                msOrigin = swStage.ElapsedMilliseconds;
+
+                if (saver == null || sharedSrc == null) return; // 서비스/공유 미존재 시 파일명만 기록, PNG skip
+
+                // capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
+                //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
+                swStage.Restart();
+                List<EdgeInspectionOverlay> overlaySnapshot;
+                if (faiOverlays != null) overlaySnapshot = new List<EdgeInspectionOverlay>(faiOverlays);
+                else overlaySnapshot = null;
+                msSnapshot = swStage.ElapsedMilliseconds;
+
+                swStage.Restart();
+                sharedSrc.AddRef();
+                saver.Enqueue(new CaptureImageSaveRequest
+                {
+                    Shared = sharedSrc,
+                    NeedsRender = true,
+                    Overlays = overlaySnapshot,
+                    DatumOverlays = datumSnapshot, // datum 검출 오버레이(녹색 원) 포함
+                    FileName = captureName,
+                    IsCapture = true,
+                    Timestamp = ts
+                });
+                msCaptureEnqueue = swStage.ElapsedMilliseconds;
             }
-
-            if (saver == null || sharedSrc == null) return; // 서비스/공유 미존재 시 파일명만 기록, PNG skip
-
-            // capture 렌더(리전 disp_obj)는 워커 스레드가 공유 이미지 + 오버레이 스냅샷으로 수행.
-            //  오버레이는 새 List 로 스냅샷 — fai.LastOverlays 와 참조 공유로 인한 후속 변형 위험 차단.
-            List<EdgeInspectionOverlay> overlaySnapshot;
-            if (faiOverlays != null) overlaySnapshot = new List<EdgeInspectionOverlay>(faiOverlays);
-            else overlaySnapshot = null;
-            sharedSrc.AddRef();
-            saver.Enqueue(new CaptureImageSaveRequest
-            {
-                Shared = sharedSrc,
-                NeedsRender = true,
-                Overlays = overlaySnapshot,
-                DatumOverlays = datumSnapshot, // datum 검출 오버레이(녹색 원) 포함
-                FileName = captureName,
-                IsCapture = true,
-                Timestamp = ts
-            });
+            finally {
+                // reused/setup/dispBase/dump 는 워커 스레드에서 [CaptureRender] 로 별도 기록된다(비동기, 여기 total 과 무관).
+                //  이 total 이 거의 0ms 인데 실기에서 FAI-간 지연이 여전히 [CaptureRender] total 과 비슷하게 남아있다면
+                //  검사 스레드는 렌더를 기다리는 게 아니다 — 지연은 측정 스레드 자체의 고유 비용(HALCON 연산 등)일 가능성.
+                //  반대로 이 total 이 200ms+ 로 크면 prep/origin/snapshot/captureEnqueue 중 큰 stage 가 숨은 병목이다.
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[QueueFaiCapture] fai={0} prep={1}ms origin={2}ms snapshot={3}ms captureEnqueue={4}ms total={5}ms",
+                    fai.FAIName, msPrep, msOrigin, msSnapshot, msCaptureEnqueue, swTotal.ElapsedMilliseconds);
+            }
         }
 
         //260702 hbk Extract Method(Task1): datum/align 실패로 인한 measurement skip 처리 (원본 case EStep.Measure 인라인 이식, 동치 보장)

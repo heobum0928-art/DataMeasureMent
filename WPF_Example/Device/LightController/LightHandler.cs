@@ -67,6 +67,31 @@ namespace ReringProject.Device {
         private LightCommandData[,] CmdTable;
         private int[] FailControllerTable;
 
+        // 260808 hbk 조명 Apply 성능개선: SetOnOff/SetLevel 스킵 최적화용 "실제 쓰기 성공 확인" 플래그.
+        //  Channels[].On/.Level (VirtualLightController) 자체는 스킵 판단 기준으로 신뢰할 수 없다 —
+        //  JPFLightController.WriteOnOff/WriteLevel 은 실제 시리얼 전송 성공 여부와 무관하게 "쓰기 시도" 시점에
+        //  먼저 그 필드를 target 값으로 갱신해버린다(전송이 예외로 실패해도 필드는 이미 target). 그 필드만 보고
+        //  스킵하면 실패한 쓰기를 "이미 반영됨"으로 오판해 Execute() 의 무한 재시도(플래그 미클리어)를 스킵으로
+        //  틀어막는, 기존보다 더 나쁜 회귀가 생긴다. 그래서 이 두 배열은 Execute() 의 "성공" 분기(:~583, :~602)에서만
+        //  true 로 세팅한다. 컨트롤러가 (재)Open 될 때(WasOpenTable 로 IsOpen false→true 전이 감지, Execute() 상단)
+        //  전부 false 로 초기화해, 최초 1회 및 재연결 직후 채널은 절대 스킵하지 않도록 한다
+        //  (LightHandlerWindow/LightControllerView 의 수동 재연결도 이 전이 감지로 함께 커버됨 — 그 UI 코드는
+        //  건드리지 않음, 이미 동일한 int 인덱스 SetOnOff/SetLevel 을 호출하므로 자동으로 적용됨).
+        //  잔존 위험: WriteOnOff 성공은 JPF 기준 실 하드웨어 전송이 아니라 필드 갱신뿐이라(:84-114, 실제 On/Off 는
+        //  뒤이은 강제 Level 쓰기가 담당) StateConfirmed=true 시점이 물리적 On/Off 확정을 보장하진 않는다 — 다만
+        //  그 강제 Level 쓰기는 Execute() 캐스케이드(IsWriteValue=true)로 스킵 로직과 무관하게 항상 큐잉되고
+        //  성공할 때까지 재시도되므로, 실질적 물리 반영은 기존과 동일하게 보장된다. 의도적으로 수용.
+        private bool[,] StateConfirmed;
+        private bool[,] LevelConfirmed;
+        private bool[] WasOpenTable;
+
+        // 260808 hbk Round3 BUG B/C 수정: CmdTable/StateConfirmed/LevelConfirmed 전체를 감싸는 단일 락.
+        //  호출 빈도가 낮아(그룹당 채널 수 개, 조명 Apply 시점) 셀별 락보다 단순함 우선(ShotConfig._imageLock,
+        //  Logging.lockObject 와 동일 관례). 절대 이 락을 잡은 채로 실제 시리얼 I/O(Controllers[i].WriteOnOff/
+        //  WriteLevel, 수 ms 블로킹)를 호출하지 않는다 — ProcessLightSet 이 MainRun 스레드(1ms 폴링, 다른 TCP
+        //  트래픽 지연에 민감)에서 SetOnOff/SetLevel 을 호출하기 때문. 락은 필드 read/write 만 짧게 감싼다.
+        private readonly object _cmdLock = new object();
+
         //group
         public List<LightGroup> Groups { get; private set; } = new List<LightGroup>();
 
@@ -86,6 +111,10 @@ namespace ReringProject.Device {
                 }
             }
             FailControllerTable = new int[Controllers.Count];
+            //260808 hbk: bool[,]/bool[] 기본값이 이미 false 라 별도 루프 초기화 불필요.
+            StateConfirmed = new bool[Controllers.Count, CHANNEL_LIMIT];
+            LevelConfirmed = new bool[Controllers.Count, CHANNEL_LIMIT];
+            WasOpenTable = new bool[Controllers.Count];
 
             Load();
             bool openResult = OpenAll();
@@ -333,8 +362,34 @@ namespace ReringProject.Device {
 
         public void SetOnOff(int index, int channel, bool on) {
             if (index >= Controllers.Count) return;
-            CmdTable[index, channel].IsWriteState = true;
-            CmdTable[index, channel].WriteState = on;
+            //260808 hbk 조명 Apply 성능개선: target 이 이미 "성공 확인된"(StateConfirmed) 마지막 상태와 같으면
+            //  큐잉 자체를 생략 — Execute() 폴링 지연 + Thread.Sleep(2)x2 + 실 시리얼 전송 비용을 절감한다.
+            //  StateConfirmed 가 false 인 채널(최초 1회, 컨트롤러 재연결 직후)은 절대 스킵하지 않는다.
+            //260808 hbk 추가 가드(리뷰 3건 공통 지적, BUG A/B/C):
+            //  1) Controllers[index].IsOpen 이 false 면 스킵하지 않는다 — 닫힌 채로 호출이 들어오면 재오픈 시
+            //     Execute() 가 자동으로 집어갈 수 있게 정상적으로 큐잉시켜야 한다(스킵하면 재오픈 후에도 영영
+            //     반영 안 됨. WasOpenTable 리셋은 "재오픈 이후" 호출만 커버, 닫힌 동안의 호출은 못 구제한다).
+            //  2) CmdTable[index,channel] 에 IsWriteState 또는 IsWriteValue 가 이미 true(= Execute() 가 아직
+            //     못 비운 대기 중 쓰기)면 스킵하지 않는다 — StateConfirmed/필드는 Execute() 가 "그 쓰기를 처리한
+            //     시점"에만 갱신되므로, 대기 중인 이전 쓰기가 있는 동안 들어온 이번 호출은 그 이전 쓰기 완료 후의
+            //     최신 상태를 보는 게 아니라 "아직 반영 안 된 과거" 를 보고 판단하게 된다. IsWriteValue 는 On/Off
+            //     전용 스킵에서도 함께 확인한다 — JPF 캐스케이드가 State 쓰기 뒤에 강제 Level 쓰기를 체이닝하므로,
+            //     어느 쪽이 걸려 있어도 "이 채널은 아직 안정 상태가 아니다"로 취급.
+            //260808 hbk Round3(BUG B/C 수정, CLOSED): 아래 check-and-set 전체를 _cmdLock 으로 감싸 원자화했다.
+            //  BUG B(TOCTOU): 이전엔 "확인 읽기"와 "IsWriteState=true; WriteState=on;" 두 문장 쓰기 사이에 다른
+            //  스레드(ProcessLightSet↔InspectionSequence 자체 스레드, 또는 LightHandlerWindow 수동 토글)가 끼어들
+            //  수 있었다 — 이제 이 블록 전체가 하나의 임계구역이라 더 이상 끼어들 수 없다.
+            //  BUG C(진행 중 쓰기 유실): Execute() 가 이 셀의 I/O 를 처리하는 동안에도 IsWriteState 는 계속 true 로
+            //  유지되므로(Execute() 쪽 변경, 아래 참고) 위 2)번 가드가 항상 걸려 스킵하지 않고 정상적으로 큐잉된다 —
+            //  I/O 진행 중 들어온 새 값이 조용히 버려지지 않는다. 락은 필드 read/write 만 감싸며 시리얼 I/O 는
+            //  절대 감싸지 않는다(MainRun 스레드 지연 없음).
+            lock (_cmdLock) {
+                if (Controllers[index].IsOpen &&
+                    StateConfirmed[index, channel] && Controllers[index].GetOnOff(channel) == on &&
+                    !CmdTable[index, channel].IsWriteState && !CmdTable[index, channel].IsWriteValue) return;
+                CmdTable[index, channel].IsWriteState = true;
+                CmdTable[index, channel].WriteState = on;
+            }
         }
 
         // SetOnOff/SetLevel(및 SetChannelOnOff/SetChannelLevel)은 CmdTable 에 플래그만 세팅하고 즉시 반환한다 —
@@ -384,8 +439,24 @@ namespace ReringProject.Device {
 
         public void SetLevel(int index, int channel, int level) {
             if (index >= Controllers.Count) return;
-            CmdTable[index, channel].IsWriteValue = true;
-            CmdTable[index, channel].WriteValue = level;
+            //260808 hbk 조명 Apply 성능개선: target 이 이미 "성공 확인된"(LevelConfirmed) 마지막 상태와 같으면
+            //  큐잉 자체를 생략 (근거/잔존위험은 StateConfirmed 필드 선언부 주석 및 SetOnOff 참고).
+            //260808 hbk 추가 가드(리뷰 3건 공통 지적, BUG A/B/C) — SetOnOff 와 동일 근거:
+            //  컨트롤러가 닫혀 있으면(Controllers[index].IsOpen==false) 스킵하지 않고 정상 큐잉해 재오픈 후
+            //  Execute() 가 집어가게 한다. 그리고 이 채널에 IsWriteState/IsWriteValue 대기 중 쓰기가 이미 있으면
+            //  (다른 호출이 큐잉해두고 Execute() 가 아직 못 비운 상태) 스킵하지 않는다 — LevelConfirmed/필드는
+            //  그 대기 중 쓰기가 아직 반영 전인 과거 값이라, 순차 TOCTOU 나 ProcessLightSet↔InspectionSequence
+            //  동시 호출에서 최종 의도가 조용히 유실되는 것을 막는다. 자세한 근거는 SetOnOff 주석 참고.
+            //260808 hbk Round3(BUG B/C 수정, CLOSED): SetOnOff 와 동일하게 check-and-set 전체를 _cmdLock 으로
+            //  감싸 원자화했다 — TOCTOU(BUG B)와 I/O 진행 중 쓰기 유실(BUG C) 모두 SetOnOff 주석의 근거 그대로
+            //  닫힌다. 자세한 근거는 SetOnOff 주석 참고.
+            lock (_cmdLock) {
+                if (Controllers[index].IsOpen &&
+                    LevelConfirmed[index, channel] && Controllers[index].GetLevel(channel) == level &&
+                    !CmdTable[index, channel].IsWriteState && !CmdTable[index, channel].IsWriteValue) return;
+                CmdTable[index, channel].IsWriteValue = true;
+                CmdTable[index, channel].WriteValue = level;
+            }
         }
 
         /// <summary>
@@ -532,7 +603,24 @@ namespace ReringProject.Device {
         private void Execute() {
             while (!IsTerminated) {
                 for(int i = 0; i < Controllers.Count; i++) {
-                    if (Controllers[i].IsOpen == false) continue;
+                    bool isOpenNow = Controllers[i].IsOpen;
+                    if (isOpenNow && !WasOpenTable[i]) {
+                        //260808 hbk: 컨트롤러가 새로 Open 됨(최초 Initialize, 또는 LightHandlerWindow/LightControllerView 의
+                        //  수동 재연결) — 재연결 전 Confirmed 상태는 이전 세션 하드웨어를 반영한 것이라 무효다. JPF 는
+                        //  Open() 자체가 전 채널을 물리적으로 리셋하므로(#Oa1&→레벨150→레벨0, JPFLightController.cs:36-40)
+                        //  초기화하지 않으면 재연결 직후 우연히 같은 target 이 들어왔을 때 실제 명령 없이 스킵되는
+                        //  회귀가 생긴다.
+                        //260808 hbk Round3: StateConfirmed/LevelConfirmed 는 _cmdLock 이 지키는 상태이므로
+                        //  일관되게 락 하에 초기화한다.
+                        lock (_cmdLock) {
+                            for (int j = 0; j < CHANNEL_LIMIT; j++) {
+                                StateConfirmed[i, j] = false;
+                                LevelConfirmed[i, j] = false;
+                            }
+                        }
+                    }
+                    WasOpenTable[i] = isOpenNow;
+                    if (isOpenNow == false) continue;
 
                     for (int j = 0; j < CHANNEL_LIMIT; j++) {
                         if (j >= Controllers[i].MaxChannel) continue; //최대 채널을 넘지 않도록 한다.
@@ -571,7 +659,13 @@ namespace ReringProject.Device {
                         if (CmdTable[i, j].IsWriteState) {
                             Thread.Sleep(2);
 
-                            if (Controllers[i].WriteOnOff(j, CmdTable[i, j].WriteState) == false) {
+                            //260808 hbk Round3(BUG C 수정): I/O 직전 target 을 락 하에 스냅샷 — 이 스냅샷 이후 I/O
+                            //  완료까지는 IsWriteState 를 아직 클리어하지 않으므로(else 분기 참고) 동시 SetOnOff 호출은
+                            //  스킵 가드에 걸려 무조건 정상 큐잉된다(조용한 유실 없음).
+                            bool targetState;
+                            lock (_cmdLock) { targetState = CmdTable[i, j].WriteState; }
+
+                            if (Controllers[i].WriteOnOff(j, targetState) == false) {
                                 FailControllerTable[i]++;
                                 if (FailControllerTable[i] > FAIL_LIMIT) {
                                     if (OnError != null) OnError(new LightFailEventArgs(ELightErrorType.WriteFail, i, j, Controllers[i][j].Name));
@@ -579,8 +673,19 @@ namespace ReringProject.Device {
                                 }
                             }
                             else {
-                                CmdTable[i, j].IsWriteState = false;
-                                CmdTable[i, j].IsWriteValue = true;
+                                //260808 hbk Round3(BUG C 수정): I/O 도중(위 Sleep+WriteOnOff 구간) 다른 스레드가
+                                //  SetOnOff 로 더 최신 값을 밀어넣었을 수 있다 — WriteState 가 스냅샷(targetState)과
+                                //  여전히 같을 때만 "확정"(IsWriteState=false, StateConfirmed=true) 처리한다. 값이
+                                //  달라졌다면 그 사이 들어온 더 최신 의도이므로 IsWriteState=true 를 그대로 두어 다음
+                                //  Execute() 루프에서 최신 값으로 재시도되게 한다 — StateConfirmed 도 세우지 않는다
+                                //  (하드웨어가 아직 최신 target 을 반영한 게 아니므로).
+                                lock (_cmdLock) {
+                                    CmdTable[i, j].IsWriteValue = true;
+                                    if (CmdTable[i, j].WriteState == targetState) {
+                                        CmdTable[i, j].IsWriteState = false;
+                                        StateConfirmed[i, j] = true; //260808 hbk: 실제 쓰기 성공 시점에만 확인 플래그 세팅(스킵 최적화용)
+                                    }
+                                }
                                 //write에 성공하면 이후에 1회 read한다.
                                 //CmdTable[i, j].IsReadState = true;
                             }
@@ -590,7 +695,11 @@ namespace ReringProject.Device {
                         if (CmdTable[i, j].IsWriteValue) {
                             Thread.Sleep(2);
 
-                            if (Controllers[i].WriteLevel(j, CmdTable[i, j].WriteValue) == false) {
+                            //260808 hbk Round3(BUG C 수정): Write onOff 블록과 동일 근거로 I/O 직전 target 스냅샷.
+                            int targetValue;
+                            lock (_cmdLock) { targetValue = CmdTable[i, j].WriteValue; }
+
+                            if (Controllers[i].WriteLevel(j, targetValue) == false) {
                                 FailControllerTable[i]++;
                                 if (FailControllerTable[i] > FAIL_LIMIT) {
                                     if (OnError != null) OnError(new LightFailEventArgs(ELightErrorType.WriteFail, i, j, Controllers[i][j].Name));
@@ -598,7 +707,15 @@ namespace ReringProject.Device {
                                 }
                             }
                             else {
-                                CmdTable[i, j].IsWriteValue = false;
+                                //260808 hbk Round3(BUG C 수정): I/O 도중 WriteValue 가 바뀌었으면(더 최신 의도)
+                                //  IsWriteValue=true 를 그대로 두어 다음 루프에서 재시도, LevelConfirmed 도 세우지
+                                //  않는다. Write onOff 블록과 동일 근거.
+                                lock (_cmdLock) {
+                                    if (CmdTable[i, j].WriteValue == targetValue) {
+                                        CmdTable[i, j].IsWriteValue = false;
+                                        LevelConfirmed[i, j] = true; //260808 hbk: 실제 쓰기 성공 시점에만 확인 플래그 세팅(스킵 최적화용)
+                                    }
+                                }
 
                                 //write에 성공하면 이후에 1회 read한다.
                                 //CmdTable[i, j].IsReadValue = true;

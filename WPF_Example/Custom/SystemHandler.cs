@@ -23,6 +23,16 @@ namespace ReringProject {
             for (int i = 0; i < Sequences.Count; i++) {
                 TestResultPacket response = Sequences[i].PopResponse();
                 if (response == null) continue;
+                //260810 hbk manual-inspect-null-target-crash: 수동(메뉴얼) 트리거(DebugManualZTrigger)는
+                //  실제 TCP 클라이언트가 없어 RequestPacket.Sender가 null로 남고, 그게 Target으로 그대로
+                //  echo되어 여기까지 도달한다. Target이 비어있으면 보낼 대상이 없는 정상 케이스이므로
+                //  TCP 전송만 스킵한다(응답 생성/영속화는 이미 끝난 뒤라 그대로 유지됨) — 크래시 방지.
+                if (string.IsNullOrEmpty(response.Target)) {
+                    Logging.PrintLog((int)ELogType.Trace,
+                        "[MainRun] TestResultPacket.Target empty — TCP 전송 스킵(수동 트리거 등 응답 대상 없음). site={0}",
+                        response.Site);
+                    continue;
+                }
                 if (!Server.SendPacket(response.Target, response)) {
                     //occurs error
                 }
@@ -73,6 +83,9 @@ namespace ReringProject {
                         break;
                     case VisionRequestType.Alive:                                  //260625 hbk v3.0
                         responsePacket = ProcessAlive(packet.AsAlive());
+                        break;
+                    case VisionRequestType.Reset:                                  //260807 hbk quick-260807-lh7
+                        responsePacket = ProcessReset(packet.AsReset());
                         break;
                     case VisionRequestType.Unknown:
                         //occurs error
@@ -230,7 +243,11 @@ namespace ReringProject {
         //  StartSubset 은 매칭 인덱스의 min-max 연속구간만 실행(D-01b, SequenceHandler.RebuildInspectionActions 의
         //  ZIndex 안정 정렬이 same-ZIndex Shot 인접을 보장) — 스파스 크로스-Z 매칭으로 min-max 구간이 확장되어 그 사이
         //  무관 Shot 이 재실행될 가능성은 Plan 05 UAT 시나리오 1의 명시적 PASS/FAIL 게이트로 검증한다(T-68-01 mitigation).
-        //  매칭 0건(레시피 ZIndex 미설정 등 운용 오류) → 조용한 무시 금지, 로그 남기고 StartAll 폴백(T-68-01: DoS 방지).
+        //  매칭 0건(레시피 ZIndex 미설정 등 운용 오류 또는 의도적으로 shot 이 없는 빈 z_index) → 조용한 무시 금지,
+        //  로그는 남기되 Action 은 실행하지 않고 즉시 빈 응답으로 응답한다(StartEmptyScope, 260810 hbk
+        //  bottom-empty-zindex-tcp-delay 수정 — 기존 StartAll 폴백은 이 시퀀스의 무관한 다른 z 의 shot 을 전부
+        //  재실행했을 뿐 응답 내용에는 전혀 기여하지 않으면서 실기 재현 7,485ms 응답 지연을 유발했다. 상세 근거는
+        //  StartEmptyScope 호출부 주석 참고).
         private bool StartV1Scoped(SequenceBase seq, TestPacket packet)
         {
             bool bIsDatumZIndex = _lastPrepZIndex == DATUM_TEST_Z_INDEX;
@@ -248,6 +265,19 @@ namespace ReringProject {
                     return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
                 }
                 inspDatumSeq.BeginCrossZImageCycle();
+                //260807 hbk quick-260807-fix2: Datum transform 캐시(_datumTransforms/_failedDatums) Clear 를
+                //  여기서 직접 호출하던 이전 시도(State==Idle 사전 체크 후 Clear)는 TOCTOU 레이스였다 — 이 체크와
+                //  StartSubset/StartAll 호출 사이에 "이전 사이클" 시퀀스 스레드가 (SequenceBase.MainExecute 5ms
+                //  polling 으로) State 를 Finish/Error→Idle 로 독립적으로 바꿔버릴 수 있어, "State!=Idle 이라 Clear
+                //  건너뜀" 과 "그 직후 StartSubset/StartAll 은 Idle 이라 통과" 가 동시에 성립하는 창이 있었다 — 그
+                //  결과 새 부품의 새 사이클이 이전 부품의 스테일 _datumTransforms/_failedDatums 캐시를 그대로 물고
+                //  시작할 수 있었다(조용한 오검출, 크래시 없음). Clear 지점을 InspectionSequence.
+                //  HandleRunStartResetResults(OnStart 구독)로 옮겼다 — OnStart 는 StartCore 의 _startLock 안에서
+                //  State 를 Idle→Running 으로 원자적으로 점유하고 RequestPacket 을 세팅한 "직후"(락 해제 후, Action
+                //  실행 전) 같은 스레드 동기 호출로 발화되므로, 그 시점엔 이전 사이클 스레드가 이미 확실히
+                //  물러났고(그렇지 않았다면 State!=Idle 이라 이번 StartCore 자체가 실패해 OnStart 가 아예 발화되지
+                //  않는다) 다음 사이클 스레드는 아직 첫 Action 도 시작 전이라 두 컬렉션을 아무도 건드릴 수 없다 —
+                //  Idle 사전-체크가 필요 없는, 진짜 락-프리 안전 지점.
                 //260722 hbk Phase 68(68-12, GAP-3 z=0 낭비 제거): z=0 이 더 이상 무조건 StartAll 전량 실행하지
                 //  않는다 — 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행하고, 다른 측정 Shot
                 //  의 Grab/Measure 는 EStep.DatumPhase 종료부(ShouldSkipMeasurementAfterDatumPhase)에서 스킵된다.
@@ -289,10 +319,22 @@ namespace ReringProject {
                     return seq.StartSubset(datumIndices.ToArray(), packet); // Error 로그 없음 — Side z=1 의 설계된 정상 경로
                 }
             }
+            //260810 hbk bottom-empty-zindex-tcp-delay: 진짜 "매칭 0건"(크로스-Z Datum 전용도 아님) — 기존엔
+            //  여기서 StartAll 로 이 시퀀스 전체(다른 모든 z 의 shot)를 재실행했다. 이는 InspectionSequence.
+            //  WarnIfEmptyScope 주석(Phase 49 BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
+            //  모순되는 별도 레이어(Phase 68 실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
+            //  3/22 는 원래부터 BOTTOM 소유 shot 이 0개인 정상 구성)에서 7,485ms 응답 지연을 유발했다 —
+            //  StartAll 로 실행된 다른 z 의 shot 은 AggregateIndexFais(nZIndex=_lastPrepZIndex) 필터에 절대
+            //  포함되지 않으므로(별개 z), 응답 내용은 Action 미실행 시와 100% 동일(B, FAIResults 0건) — 즉
+            //  StartAll 은 응답 정확성에 전혀 기여하지 않고 지연만 유발했다(근본원인 확정,
+            //  .planning/debug/bottom-empty-zindex-tcp-delay.md). StartEmptyScope 는 Action 실행 없이
+            //  BuildScopedResponse/WarnIfEmptyScope(그대로 경고 로그 유지)만 거쳐 즉시 응답한다(회귀 0 설계 —
+            //  응답 산출 로직은 1바이트도 변경하지 않음, 달라지는 것은 오직 "그 사이 무관한 shot 을 재실행하지
+            //  않는다"는 점 뿐이다).
             Logging.PrintLog((int)ELogType.Error,
-                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — StartAll 폴백. 레시피 ZIndex 설정 확인 필요. //260722 hbk",
+                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — Action 미실행, 즉시 빈 응답(B/F). 레시피 ZIndex 설정 확인 필요(의도된 빈 z_index 라면 정상). //260810 hbk",
                     _lastPrepZIndex, seq.Name));
-            return seq.StartAll(packet);
+            return seq.StartEmptyScope(packet);
         }
 
         private TestResultPacket SendTestError(TestPacket packet) {
@@ -634,7 +676,15 @@ namespace ReringProject {
 
             string szCmd = packet.CmdStr;
 
-            bool bIsStart = string.Equals(szCmd, "START", StringComparison.OrdinalIgnoreCase);
+            int nCmd = 0;                                                    //260807 hbk quick-260807-omy
+            bool bCmdIsNumeric = Int32.TryParse(szCmd, out nCmd);             //260807 hbk quick-260807-omy
+            if (!bCmdIsNumeric)                                               //260807 hbk quick-260807-omy 비숫자 가드 — 코드 비교보다 반드시 먼저 (0=START 오인식 방지)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 숫자가 아닌 CmdStr: {0}", szCmd);
+                return resultPacket;
+            }
+
+            bool bIsStart = nCmd == AlignCalibPacket.CMD_CODE_START;
             if (bIsStart)
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
@@ -657,7 +707,7 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            bool bIsStep = string.Equals(szCmd, "STEP", StringComparison.OrdinalIgnoreCase);
+            bool bIsStep = nCmd == AlignCalibPacket.CMD_CODE_STEP;
             if (bIsStep)
             {
                 bool bCameraReady = EthernetVisionHandler.Handle.Camera != null;
@@ -725,7 +775,7 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            bool bIsEnd = string.Equals(szCmd, "END", StringComparison.OrdinalIgnoreCase);
+            bool bIsEnd = nCmd == AlignCalibPacket.CMD_CODE_END;
             if (bIsEnd)
             {
                 double dRow, dCol, dRad;
@@ -755,7 +805,7 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            bool bIsAbort = string.Equals(szCmd, "ABORT", StringComparison.OrdinalIgnoreCase);
+            bool bIsAbort = nCmd == AlignCalibPacket.CMD_CODE_ABORT;
             if (bIsAbort)
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
@@ -805,6 +855,34 @@ namespace ReringProject {
             {
                 ackPacket.IsOk = true;
             }
+            return ackPacket;
+        }
+
+        //260807 hbk quick-260807-lh7 (D-LH7-01): $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
+        //  왜 필요한가: $PREP 이 저장한 _lastPrepZIndex 는 다음 $PREP 이 올 때까지 계속 남는데 되돌릴 수단이 앱 재시작뿐이라,
+        //  실측 중 상태가 꼬이면 복구가 불가능했다. 그 복구 수단이 이 명령이다.
+        //  Site 필드는 ACK 에 echo 만 한다 — 라우팅에 쓰지 않는다. site 로 Top/Bottom 을 구분하는 것이 불가능한 것은
+        //  이미 확인된 설계 제약이며, ApplyPrepToSequences($PREP)와 동일하게 "이 PC 의 InspectionSequence 전부"가 대상이다.
+        //  IsOk 의미: true = 모든 대상 시퀀스가 실제로 리셋됨 / false = 하나 이상이 실행 중이라 건너뜀(또는 대상 0개).
+        //  실패여도 ACK 는 반드시 보낸다 — 무응답은 PLC 를 ACK 무한 대기(라인 정지)시킨다.
+        private ResetAckPacket ProcessReset(ResetPacket packet)
+        {
+            ResetAckPacket ackPacket = new ResetAckPacket();
+            bool bHasPacket = packet != null;
+            if (!bHasPacket)
+            {
+                return null;
+            }
+            ackPacket.Target = packet.Sender;
+            ackPacket.Site = packet.Site;
+
+            _lastPrepZIndex = 0; //260807 hbk volatile int — 어느 스레드에서 써도 안전. 0 = "다음 $TEST 는 Datum(z=0)" 보수적 초기값.
+
+            bool bAllReset = ResetSequenceCycleStates();
+            ackPacket.IsOk = bAllReset;
+
+            Logging.PrintLog((int)ELogType.Trace,
+                "[RESET] site={0} 수신 — _lastPrepZIndex=0, 시퀀스 리셋 결과={1} //260807 hbk", packet.Site, bAllReset);
             return ackPacket;
         }
 
@@ -891,6 +969,50 @@ namespace ReringProject {
                 bAnyOff = true;
             }
             return bAnyOff;
+        }
+
+        //260807 hbk quick-260807-lh7: Sequences 순회 → InspectionSequence 만 골라 클린 슬레이트 리셋.
+        //  260810 hbk reset-datum-clear-race 수정: 이전엔 여기서 State==Idle 을 락 없이 미리 읽고, 그 결과를 근거로
+        //  (같은 원자성 없이) ResetCycleStateForProtocolReset() 을 나중에 호출했다 — 그 사이 SequenceBase.StartCore
+        //  가 끼어들어 Idle→Running 원자 점유에 성공하면, 이 스레드는 이미 지난 "Idle" 판단을 근거로 그대로 Clear 를
+        //  실행해 실행 중인 시퀀스 스레드와 락 없는 _datumTransforms 등을 동시에 건드릴 수 있었다(TOCTOU, 크래시/
+        //  무한루프 가능). InspectionSequence.TryResetCycleStateForProtocolReset() 하나로 교체 — 내부에서
+        //  SequenceBase.TryExecuteIfIdle 이 StartCore 와 동일한 _startLock 안에서 "체크+실행"을 원자적으로 묶는다.
+        //  ▶ Stop() 을 먼저 부르지 않는 이유: SequenceBase.Stop() 은 RequestPacket!=null 이면 AddResponse() 를 호출해
+        //    PLC 가 요청하지도 않은 $RESULT 를 한 장 더 내보낸다 — 복구 명령이 프로토콜을 더 꼬는 부작용이라 미채택.
+        //  ▶ 반환값: 대상이 1개 이상이고 그 전부를 리셋했을 때만 true(=ACK OK). 부분 리셋은 클린 슬레이트가 아니므로 false.
+        private bool ResetSequenceCycleStates()
+        {
+            int nFound = 0;
+            int nReset = 0;
+            int nCount = Sequences.Count;
+            for (int i = 0; i < nCount; i++)
+            {
+                SequenceBase seqBase = Sequences[i];
+                InspectionSequence inspSeq = seqBase as InspectionSequence;
+                bool bIsInsp = inspSeq != null;
+                if (!bIsInsp)
+                {
+                    continue;
+                }
+                nFound++;
+
+                bool bDidReset = inspSeq.TryResetCycleStateForProtocolReset(); // Idle 체크 + 실행이 _startLock 안에서 원자적
+                if (!bDidReset)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[RESET] Seq={0} 실행 중(State={1}) — 상태 리셋 건너뜀(스레드 안전). 사이클 종료 후 $RESET 재전송 필요. //260807 hbk //260810 hbk 원자적 판정으로 교체",
+                        inspSeq.Name, inspSeq.State.ToString());
+                    continue;
+                }
+
+                nReset++;
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[RESET] Seq={0} 클린 슬레이트 완료 //260807 hbk", inspSeq.Name);
+            }
+
+            bool bAllReset = nFound > 0 && nReset == nFound;
+            return bAllReset;
         }
 
         //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)

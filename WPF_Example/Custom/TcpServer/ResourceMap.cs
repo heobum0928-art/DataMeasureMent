@@ -127,12 +127,14 @@ namespace ReringProject.Network {
             return ESite.Top;
         }
 
-        private const string TYPE_TOKEN_TOP = "TOP";            //260624 hbk Phase 63
-        private const string TYPE_TOKEN_BOTTOM = "BOTTOM";      //260624 hbk Phase 63
-        private const string TYPE_TOKEN_SIDE_PREFIX = "SIDE_";  //260624 hbk Phase 63 SIDE_1~4 공통 접두
+        private const int TYPE_CODE_TOP = 0;
+        private const int TYPE_CODE_BOTTOM = 1;
+        private const int TYPE_CODE_SIDE_MIN = 2;  // "SIDE_1"       //260807 hbk quick-260807-omy
+        private const int TYPE_CODE_SIDE_MAX = 5;  // "SIDE_4"       //260807 hbk quick-260807-omy
 
-        //260624 hbk Phase 63 PROTO-Type: Type 토큰 → ESite 슬롯. 인식 실패 시 false 반환(호출부가 Site 폴백).
-        //  TOP→Top 슬롯, BOTTOM→Side 슬롯(PC1 Side 슬롯=BOTTOM 자원), SIDE_*→Top 슬롯(PC2 양 슬롯 SIDE 동일).
+        //260807 hbk quick-260807-omy v-next PROTO-Type: Type 필드가 텍스트 토큰에서 숫자 코드로 전환됨. 인식 실패 시 false 반환(호출부가 Site 폴백).
+        //  0=TOP→Top 슬롯, 1=BOTTOM→Side 슬롯(PC1 Side 슬롯=BOTTOM 자원), 2~5=SIDE_1~4→Top 슬롯(PC2 양 슬롯 SIDE 동일).
+        //  경고: Int32.TryParse 실패 시 out 값이 0(=TOP 코드)이 되므로, 비숫자 가드를 반드시 코드 비교보다 먼저 배치할 것.
         // T-63-08/T-63-09 mitigation: 등록된 ESite.Top/Side 슬롯만 산출 → KeyNotFoundException/오라우팅 회피.
         private bool TryResolveSlotByType(string szType, out ESite eSlot)
         {
@@ -142,19 +144,25 @@ namespace ReringProject.Network {
             {
                 return false;
             }
-            bool bIsTop = szType == TYPE_TOKEN_TOP;
+            int nCode = 0;                                                //260807 hbk quick-260807-omy
+            bool bIsNumeric = Int32.TryParse(szType, out nCode);           //260807 hbk quick-260807-omy
+            if (!bIsNumeric)                                               //260807 hbk quick-260807-omy 비숫자 가드 — 코드 비교보다 반드시 먼저
+            {
+                return false;
+            }
+            bool bIsTop = nCode == TYPE_CODE_TOP;
             if (bIsTop)
             {
                 eSlot = ESite.Top;
                 return true;
             }
-            bool bIsBottom = szType == TYPE_TOKEN_BOTTOM;
+            bool bIsBottom = nCode == TYPE_CODE_BOTTOM;
             if (bIsBottom)
             {
                 eSlot = ESite.Side;
                 return true;
             }
-            bool bIsSide = szType.StartsWith(TYPE_TOKEN_SIDE_PREFIX);
+            bool bIsSide = nCode >= TYPE_CODE_SIDE_MIN && nCode <= TYPE_CODE_SIDE_MAX;
             if (bIsSide)
             {
                 eSlot = ESite.Top;

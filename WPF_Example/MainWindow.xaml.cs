@@ -157,21 +157,45 @@ namespace ReringProject {
             }));
         }
 
+        //260810 hbk quick-260810-egx: 자동검사(TCP $PREP/$TEST) 사이클 동안 화면 실시간 표시를 끌지 판단.
+        //  설정 DisableViewerDuringAutoInspect 가 ON 이고, 해당 시퀀스가 프로토콜 구동 사이클일 때만 true.
+        //  수동 RUN / 티칭 / 일괄검사(RepeatRun/BatchRun)는 RequestPacket==null → IsProtocolDrivenCycle()==false → 항상 표시 유지.
+        //  Setting null 또는 캐스팅 실패 시 false(=표시 유지) 로 폴백한다.
+        //  **반드시 핸들러 진입 직후(시퀀스 스레드)에서 호출해 로컬 bool 로 캡처할 것** — Dispatcher.BeginInvoke 람다는
+        //  UI 스레드에서 지연 실행되며 그 시점엔 RequestPacket 이 이미 클리어됐을 수 있다(판정이 뒤집힘).
+        private bool ShouldSkipViewerUpdate(SequenceBase seq) {
+            InspectionSequence inspectionSeq = seq as InspectionSequence;
+            if (inspectionSeq == null) return false;
+            SystemSetting setting = SystemSetting.Handle;
+            if (setting == null) return false;
+            if (!setting.DisableViewerDuringAutoInspect) return false;
+            if (!inspectionSeq.IsProtocolDrivenCycle()) return false;
+            return true;
+        }
+
         // SetManualToolsEnabled(true) + DisplaySequenceContext + 상태바 갱신을 단일 BeginInvoke 로 통합.
         //  기존: SetManualToolsEnabled(true)는 BeginInvoke, DisplaySequenceContext/SetText는 시퀀스 스레드 직접 호출.
         //  수정: 모두 BeginInvoke 내부에서 순서대로 실행 — 잠금 해제 → 결과 표시 순서 보장.
         private void OnSequenceError(SequenceContext context) {
             Logging.PrintLog((int)ELogType.Result, context.ToString());
+            //260810 hbk quick-260810-egx: 시퀀스 스레드에서 판정 캡처(람다 안에서 재계산 금지).
+            //  Display 호출만 게이트한다 — SetManualToolsEnabled(true)/상태바/로그는 무조건 실행(잠금 영구화 사고 방지).
+            bool bSkipViewer = ShouldSkipViewerUpdate(context.Source);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.SetManualToolsEnabled(true);
-                mainView.DisplaySequenceContext(context);
+                if (!bSkipViewer) mainView.DisplaySequenceContext(context);
                 statusBar.Model.SetText(string.Format("{0} Error.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString()));
             }));
         }
 
         private void OnActionChanged(ActionContext context) {
+            //260810 hbk quick-260810-egx: ActionContext.Source 는 ActionBase → Param.Parent 로 소유 시퀀스를 얻는다.
+            //  skip 이면 검사 중 결과행 실시간 갱신만 중단된다(상태바/로그는 그대로).
+            SequenceBase ownerSeq = null;
+            if (context.Source != null && context.Source.Param != null) ownerSeq = context.Source.Param.Parent;
+            bool bSkipViewer = ShouldSkipViewerUpdate(ownerSeq);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
-                mainView.DisplayActionContext(context);
+                if (!bSkipViewer) mainView.DisplayActionContext(context);
                 string actName;
                 if (context.Source != null) {
                     actName = context.Source.Name;
@@ -191,9 +215,12 @@ namespace ReringProject {
             Logging.PrintLog((int)ELogType.Result, "Sequence {0} Final Result: {1} ({2}ms)",
                 context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds);
             Logging.PrintLog((int)ELogType.Result, context.ToString());
+            //260810 hbk quick-260810-egx: 시퀀스 스레드에서 판정 캡처(람다 안에서 재계산 금지).
+            //  Display 호출만 게이트 — SetManualToolsEnabled(true)/상태바/로그는 무조건 실행.
+            bool bSkipViewer = ShouldSkipViewerUpdate(context.Source);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 mainView.SetManualToolsEnabled(true);
-                mainView.DisplaySequenceContext(context);
+                if (!bSkipViewer) mainView.DisplaySequenceContext(context);
                 statusBar.Model.SetText(string.Format("{0} Finished.({1},{2}ms)", context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds.ToString()));
             }));
         }

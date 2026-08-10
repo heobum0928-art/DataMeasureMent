@@ -168,6 +168,15 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool OfflineInspectMode { get; set; } = false;
 
+        //260810 hbk quick-260810-egx
+        // 자동검사(TCP $PREP/$TEST) 사이클 동안 화면 실시간 표시를 끄는 모드(tact 우선).
+        //  ON 이면 표시 목적의 127MP 이미지 복사 2회/Shot(Action 사본 + SequenceContext clone) 과
+        //  UI 뷰어 로드를 자동검사 중에만 생략한다. 수동 RUN / 티칭 / 일괄검사는 이 설정과 무관하게 항상 표시된다.
+        //  주의: 저장되는 capture/original 이미지는 이 설정과 무관하게 OK/NG 전부 기존 그대로 저장된다(저장 경로 무변경).
+        //  누락 INI 키 → false 로드(SystemSetting.Load 의 ToBool 기본) 이므로 기존 설치본은 자동으로 기존 동작 유지.
+        [Category("System|Enviroment")]
+        public bool DisableViewerDuringAutoInspect { get; set; } = false;
+
 
         [Category("System|Localize")]
         [ItemsSourceProperty("LanguageList")]

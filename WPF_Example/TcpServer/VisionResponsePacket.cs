@@ -20,6 +20,7 @@ namespace ReringProject.Network {
         AlignCalib,    //260624 hbk Phase 63 AV-09: Align 캘리브 ack 응답 ($ALIGN_CALIB)
         PrepAck,       //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답
         Alive,         //260625 hbk v3.0: $ALIVE heartbeat 응답
+        ResetAck,      //260807 hbk quick-260807-lh7: $RESET_ACK 응답
 
         Unknown = 999
     }
@@ -59,6 +60,7 @@ namespace ReringProject.Network {
         public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Phase 63 AV-09: Align 캘리브 ack 송신 커맨드
         public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 송신 커맨드
         public const string CMD_SEND_ALIVE = "ALIVE";                  //260625 hbk v3.0: $ALIVE heartbeat 송신 커맨드
+        public const string CMD_SEND_RESET_ACK = "RESET_ACK";          //260807 hbk quick-260807-lh7: $RESET_ACK 송신 커맨드
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
@@ -75,7 +77,7 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 3단 구분자 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@).
         public const char MSG_RESULT_HEADER_SEP = ';';   // 헤더 구분자 (site/판정/count 사이)
-        public const char MSG_RESULT_ITEM_SEP   = ',';   // 항목 간 구분자
+        public const char MSG_RESULT_ITEM_SEP   = ',';   //260807 hbk quick-260807-omy v-next $RESULT 항목목록 폐기로 현재 미사용 (선언은 유지)
         public const char MSG_RESULT_INNER_SEP  = '=';   // 항목 내부 구분자 (id=val=judge)
         public const string TEST_RESULT_BUFFER  = "B";   // cycle 진행 중(Buffer) 판정
         
@@ -265,15 +267,20 @@ namespace ReringProject.Network {
                 case EVisionResponseType.Alive:
                     msg += BuildAliveMessage(packet.AsAlive()); //260625 hbk v3.0
                     break;
+                case EVisionResponseType.ResetAck:
+                    msg += BuildResetAckMessage(packet.AsResetAck()); //260807 hbk quick-260807-lh7
+                    break;
                 case EVisionResponseType.Unknown:
                     return null;
             }
             return msg;
         }
 
-        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화. $RESULT:site;P|F|B;count;id=val=judge,...@ (STX/ETX 는 TcpServer 부착).
-        // FAICount=0(Datum 샷)이면 BuildFaiItemsV1 가 빈 문자열 반환 → 'RESULT:{site};B;0;' (마지막 ';' 뒤 항목 없음).
-        //260624 hbk Phase 63 PROTO-Type: site 뒤 ;Type; echo 삽입 → $RESULT:site;Type;P|F|B;count;id=val=judge,...@ (Type 빈값이면 ;; 자리 보존).
+        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화.
+        //260807 hbk quick-260807-omy v-next: $RESULT:site;Type;P|F|B@ (STX/ETX 는 TcpServer 부착).
+        //  count/개별 FAI 항목목록은 v-next 에서 와이어에서만 제거되었으며, 내부 FAICount/FAIResults 는 그대로 살아있다(UI·엑셀export 계속 소비).
+        //  Datum 샷(FAICount=0)일 때 옛 형식이 만들던 trailing ';' 도 함께 사라진다.
+        //260624 hbk Phase 63 PROTO-Type: site 뒤 ;Type; echo 삽입 (Type 빈값이면 ;; 자리 보존).
         private static string BuildResultMessageV1(TestResultPacket testPacket)
         {
             string szMsg = "";
@@ -284,10 +291,6 @@ namespace ReringProject.Network {
             szMsg += testPacket.Type;                     //260624 hbk Phase 63 Type echo (빈값이면 빈 토큰)
             szMsg += MSG_RESULT_HEADER_SEP;               // ';'  //260624 hbk Phase 63
             szMsg += MapCycleJudgement(testPacket);       // P|F|B
-            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
-            szMsg += testPacket.FAICount.ToString();      // count
-            szMsg += MSG_RESULT_HEADER_SEP;               // ';'
-            szMsg += BuildFaiItemsV1(testPacket);         // id=val=judge,...  (count=0 이면 빈 문자열)
             return szMsg;
         }
 
@@ -308,39 +311,6 @@ namespace ReringProject.Network {
             }
 
             return TEST_RESULT_FAIL;
-        }
-
-        // 260622 hbk Phase 48 PROTO-02: FAI 항목 판정 → OK|NG. (cycle 판정과 별개 — 항목 단위.)
-        private static string MapFaiJudgement(FAIResultData faiData)
-        {
-            bool bIsOk = faiData.Result == EVisionResultType.OK;
-            if (bIsOk)
-            {
-                return RESULT_OK;   // "OK"
-            }
-            return RESULT_NG;       // "NG"
-        }
-
-        // 260622 hbk Phase 48 PROTO-02: FAI 항목들을 id=val=judge,... 로 직렬화 (항목 간 ',').
-        private static string BuildFaiItemsV1(TestResultPacket testPacket)
-        {
-            string szItems = "";
-            int nCount = testPacket.FAICount;
-            for (int i = 0; i < nCount; i++)
-            {
-                FAIResultData faiData = testPacket.FAIResults[i];
-                bool bNeedsSeparator = i > 0;
-                if (bNeedsSeparator)
-                {
-                    szItems += MSG_RESULT_ITEM_SEP;               // ','
-                }
-                szItems += faiData.FAIName;                       // id
-                szItems += MSG_RESULT_INNER_SEP;                  // '='
-                szItems += faiData.DistanceMm.ToString("0.000");  // val
-                szItems += MSG_RESULT_INNER_SEP;                  // '='
-                szItems += MapFaiJudgement(faiData);              // OK|NG
-            }
-            return szItems;
         }
 
         //260626 hbk v3.0: $ALIGN_RESULT 직렬화.
@@ -391,12 +361,12 @@ namespace ReringProject.Network {
                 }
                 szItems += item.ItemName;                   // OffsetX / OffsetY / Theta
                 szItems += MSG_RESULT_INNER_SEP;            // '='
-                szItems += item.Value.ToString("0.000");    // val
+                szItems += item.Value.ToString("+0.000;-0.000;+0.000");    // val //260810 hbk quick-260810-cgl: 고정폭 파싱 위해 양수/0 도 '+' 부호 고정 (펨텍 PLC팀 요청)
             }
             return szItems;
         }
 
-        //260625 hbk v3.0: $ALIGN_CALIB:BOTTOM,CMD,OK@ / STEP이면 $ALIGN_CALIB:BOTTOM,STEP,N,OK@ 직렬화.
+        //260807 hbk quick-260807-omy v-next: $ALIGN_CALIB:BOTTOM,1,N,OK@ / STEP(1)이면 StepNo 필드 부착. CmdStr 은 숫자 코드("0"~"3").
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
@@ -404,8 +374,14 @@ namespace ReringProject.Network {
             szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
             szMsg += packet.AlignTarget;                    // BOTTOM
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
-            szMsg += packet.CmdStr;                         // START/STEP/END/ABORT
-            bool bIsStep = packet.CmdStr == "STEP";
+            szMsg += packet.CmdStr;                         //260807 hbk quick-260807-omy 수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT)
+            int nCmdCode = 0;                                                    //260807 hbk quick-260807-omy
+            bool bCmdIsNumeric = Int32.TryParse(packet.CmdStr, out nCmdCode);    //260807 hbk quick-260807-omy
+            bool bIsStep = false;                                                //260807 hbk quick-260807-omy
+            if (bCmdIsNumeric)                                                   //260807 hbk quick-260807-omy
+            {
+                bIsStep = nCmdCode == AlignCalibPacket.CMD_CODE_STEP;
+            }
             if (bIsStep)
             {
                 szMsg += VisionServer.MSG_CONTENTS_SEPERATOR; // ','
@@ -444,6 +420,28 @@ namespace ReringProject.Network {
             szMsg += packet.Site.ToString();
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
             szMsg += packet.ZIndex.ToString();
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
+            bool bIsOk = packet.IsOk;
+            if (bIsOk)
+            {
+                szMsg += "OK";
+            }
+            else
+            {
+                szMsg += "FAIL";
+            }
+            return szMsg;
+        }
+
+        //260807 hbk quick-260807-lh7: $RESET_ACK 직렬화 → $RESET_ACK:site,OK|FAIL@ (STX/ETX 는 TcpServer 부착).
+        //  PREP_ACK 와 동일 스타일이되 z_index 필드가 없어 구분자가 1개 적다. site 는 요청 echo.
+        //  IsOk=false 는 "리셋을 못 했다"(예: 시퀀스가 검사 실행 중이라 건너뜀)는 뜻 — 통신 실패가 아니다.
+        private static string BuildResetAckMessage(ResetAckPacket packet)
+        {
+            string szMsg = "";
+            szMsg += CMD_SEND_RESET_ACK;
+            szMsg += VisionServer.MSG_CMD_SEPERATOR;       // ':'
+            szMsg += packet.Site.ToString();
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
             bool bIsOk = packet.IsOk;
             if (bIsOk)
@@ -512,6 +510,12 @@ namespace ReringProject.Network {
         public AliveResponsePacket AsAlive() {
             if (ResponseType != EVisionResponseType.Alive) return null;
             return this as AliveResponsePacket;
+        }
+
+        //260807 hbk quick-260807-lh7
+        public ResetAckPacket AsResetAck() {
+            if (ResponseType != EVisionResponseType.ResetAck) return null;
+            return this as ResetAckPacket;
         }
     }
 
@@ -730,6 +734,15 @@ namespace ReringProject.Network {
         public bool IsOk { get; set; }
 
         public PrepAckPacket() : base(EVisionResponseType.PrepAck) {
+        }
+    }
+
+    //260807 hbk quick-260807-lh7: $RESET_ACK 응답 패킷. IsOk=true → $RESET_ACK:site,OK@ / false → $RESET_ACK:site,FAIL@
+    //  site 는 베이스 VisionResponsePacket.Site 사용(요청 echo 전용).
+    public class ResetAckPacket : VisionResponsePacket {
+        public bool IsOk { get; set; }
+
+        public ResetAckPacket() : base(EVisionResponseType.ResetAck) {
         }
     }
 

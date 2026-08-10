@@ -134,6 +134,28 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[STARTUP] HALCON SetSystem memory cache config failed: {0}", ex.Message);
             }
 
+            // quick-260807-lbu: OfflineInspectMode 는 레시피가 아니라 SystemSetting(시스템 전역·영속)이라
+            //  한 번 켜두면 앱을 껐다 켜도 켜진 채로 시작한다. 그 상태에서는 실물 촬영 없이 저장 이미지로
+            //  검사가 돌아가는데(Action_FAIMeasurement 의 EStep.Grab / GrabOrLoadDatumImage), UI RUN 버튼과 달리
+            //  TCP $TEST 경로에는 확인 팝업이 없어 핸들러/PLC 쪽에서 알아챌 방법이 전혀 없다 — 실제 사고 발생.
+            //  시작할 때는 무조건 OFF 로 둔다. 켜는 것은 실행 중 Settings 창에서 사용자가 직접 할 때만 허용(그 경로 무변경).
+            //  Setting.Load() 는 생성자(Setting = SystemSetting.Handle)에서 이미 끝났고, 이 값을 읽는 코드는
+            //  전부 이 시점보다 뒤(Sequences step 2, VisionServer step 3, UI)라 여기가 안전한 지점이다.
+            if (Setting.OfflineInspectMode) {
+                Setting.OfflineInspectMode = false;
+                Logging.PrintLog((int)ELogType.Trace, "[STARTUP] OfflineInspectMode was ON in Setting.ini - forced OFF at startup.");
+                // 메모리만 끄면 Setting.ini 엔 True 가 남는다. 그러면 Settings 창을 여는 순간 생성자의
+                //  pSetting.Load()(SettingWindow.xaml.cs:26)가 디스크의 True 를 다시 읽어 조용히 되살린다.
+                //  그래서 실제로 껐을 때만 디스크까지 반영한다(이미 false 인 정상 기동에는 디스크 쓰기 0).
+                //  Save 실패(파일 잠김/권한)해도 메모리는 이미 OFF 이므로 앱 시작을 막지 않는다.
+                try {
+                    Setting.Save();
+                }
+                catch (Exception ex) {
+                    Logging.PrintLog((int)ELogType.Error, "[STARTUP] OfflineInspectMode reset save failed: {0}", ex.Message);
+                }
+            }
+
             Stopwatch sw = Stopwatch.StartNew(); //260528 hbk Phase 38 #11
             long prev = 0; //260528 hbk Phase 38 #11 — 직전 단계 누적 시각 (delta 계산용)
 
@@ -248,6 +270,18 @@ namespace ReringProject {
 
             // Release device resources.
             Devices.Dispose();
+
+            //quick-260810-e1t: 이더넷 정렬 카메라(Bottom/Tray)는 Devices(Grabber)와 별도 핸들러라 여기서
+            // 명시적으로 닫아야 한다 — 안 그러면 프로세스 종료 후에도 카메라 연결이 안 끊긴다.
+            // EthernetVisionHandler.Release() 는 내부 전체 try-catch 로 보호되어 절대 throw 하지 않는다
+            // (Initialize() 와 동일 패턴, SystemHandler.Initialize() 234~243행 전례). 이 외부 catch 는
+            // 방어적 레이어로만 존재.
+            try {
+                EthernetVisionHandler.Handle.Release();
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Release failed: {0}", ex.Message);
+            }
 
             //260510 hbk Phase 21: BUF-02 channel #1 — subscriber 해제 (Sequences 가 살아있는 동안 unwire)
             UnwireBufferLifecycle();

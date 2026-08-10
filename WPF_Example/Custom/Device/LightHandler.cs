@@ -33,8 +33,8 @@ namespace ReringProject.Device {
 
         /// <summary>
         /// 사용되는 조명 컨트롤러 및 조명 그룹 (제어 단위) 을 설정합니다.
-        /// D-06: Controller A (Index=0) Ring CH1~CH6 + Back + Ring7 = 8채널
-        /// D-07: Controller B (Index=1) Bar×4 + AlignCoax = 5채널
+        /// 260807 hbk 실배선표 반영: Controller A (Index=0, COM2) Ring CH1~CH6 + Back + Ring7 = 8채널
+        ///  Controller B (Index=1, COM3) Bar×4 + AlignCoax = 5채널. COM 포트/보드레이트는 light.ini 에서 설정.
         /// D-08: Ring 6채널은 RING 통합 그룹으로 동시 제어
         /// D-09: LightGroup 5종 — RING/BACK/BAR/RING7/ALIGN_COAX
         /// </summary>

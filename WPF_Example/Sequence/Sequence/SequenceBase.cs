@@ -361,6 +361,25 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260810 hbk reset-datum-clear-race 수정: "State==Idle 이면 X 실행"을 StartCore 와 동일한 _startLock 안에서
+        //  원자적으로 수행하는 공용 진입점. 배경: $RESET(InspectionSequence.ResetCycleStateForProtocolReset, 락 없는
+        //  _datumTransforms/_failedDatums 등을 건드림) 처럼 "Idle 인 시퀀스에만 안전하게 적용해야 하는" 외부 요청이,
+        //  기존엔 State 를 락 밖에서 읽고 그 결과를 근거로 나중에(같은 원자성 없이) 실행해 StartCore 의 Idle→Running
+        //  원자 점유와 TOCTOU 로 경합했다(체크 통과 직후 StartCore 가 먼저 점유하면, 실행 중인 시퀀스 스레드와
+        //  락 없는 컬렉션을 동시에 건드리게 됨). 해결: 같은 _startLock 을 공유해 두 경로를 상호 배타적으로 만든다.
+        //  ▶ OnStart 훅(HandleRunStartResetResults) 패턴과 다른 용도: OnStart 는 "Start 가 성공했을 때"만 발화하는
+        //    사이클-시작 훅이고, 이 메서드는 "지금 Idle 인가"를 성공 전제 없이 즉시 판정해야 하는 명시적 외부 요청
+        //    (RESET 등) 전용이다 — 서로 대체 관계가 아니라 별도 목적.
+        //  ▶ action 은 락 안에서 동기 실행된다 — UI Dispatcher 대기/블로킹 호출을 넣지 말 것(StartCore 가 OnStart 를
+        //    락 밖에서 발화하는 이유와 동일한 데드락 회피 원칙). 순수 필드대입/컬렉션 Clear 류에만 사용할 것.
+        protected bool TryExecuteIfIdle(Action action) {
+            lock (_startLock) {
+                if (State != EContextState.Idle) return false; // StartCore 가 이미 점유했거나 다른 사유로 Idle 아님
+                action();
+                return true;
+            }
+        }
+
         //260409 hbk Phase 5: 모든 Action 순차 실행 (D-01)
         public bool StartAll(TestPacket packet) {
             if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
@@ -383,6 +402,44 @@ namespace ReringProject.Sequence {
 
             //260716 hbk StartCore 로 통일 (StartAll 과 동일 규약)
             return StartCore(first, last, packet);
+        }
+
+        //260810 hbk bottom-empty-zindex-tcp-delay: z_index 매칭 Shot/Action 이 하나도 없는 "빈" z_index(예:
+        //  BOTTOM z=3/z=22 — 레시피에 그 z 를 쓰는 shot 자체가 없는 정상 구성) 전용 즉시-응답 진입점.
+        //  StartAll/StartSubset 과 달리 어떤 Action 도 실행하지 않는다 — Action 실행이 필요 없는 이유는
+        //  AddResponse()(InspectionSequence.BuildScopedResponse/AggregateIndexFais)가 nZIndex 로 shot 을
+        //  필터링해 응답을 조립하므로, 무관한 다른 z 의 shot 을 실행해도(구 StartAll 폴백) 이 응답 내용에는
+        //  아무 영향이 없기 때문이다(0-매칭 응답은 Action 실행 여부와 무관하게 항상 동일) — 상세 근거는
+        //  Custom/SystemHandler.StartV1Scoped 호출부 주석과 .planning/debug/bottom-empty-zindex-tcp-delay.md 참고.
+        //  StartCore 와 동일한 _startLock 원자 점유 계약을 따르되(Idle 아니면 실패), Command=Start 로 워커
+        //  스레드(MainExecute)에 넘기지 않고 이 스레드(TCP 처리 스레드, MainRun)에서 곧바로 Finish() 를 호출해
+        //  완료 처리한다 — 실행할 Action 이 아예 없으므로 워커 스레드 개입이 불필요하다.
+        //  OnStart 는 StartCore 와 동일하게 반드시 발화한다(락 밖에서, 동일한 데드락 회피 원칙) — 최초 설계에서는
+        //  "아무것도 시작하지 않으니 생략" 하려 했으나, MainWindow.OnSequenceStart/OnSequenceFinish 가
+        //  mainView.SetManualToolsEnabled(false/true) 를 이 인스턴스가 아닌 "모든 시퀀스가 공유하는 단일 UI"에
+        //  거는 잠금/해제 쌍이라는 사실을 뒤늦게 확인했다(adversarial 재검증) — OnStart 없이 OnFinish(Finish() 내부)
+        //  만 발화하면 이 잠금이 비대칭(해제만 발생)이 되어, 동시에 실행 중인 다른 시퀀스(예: TOP)의 진짜 작업
+        //  중에 이 인스턴스의 빈 z_index tick 이 매뉴얼 도구 잠금을 조기 해제해버리는 회귀를 만든다. 그래서 OnStart
+        //  도 반드시 짝을 맞춰 발화한다 — HandleRunStartResetResults(fai 결과 재초기화)/HandleFlowLogCycleBegin
+        //  (Flow stopwatch 리셋) 도 함께 재실행되지만 이미 모든 z tick 마다 무조건 재실행되는 기존 동작과 동일해
+        //  추가 회귀는 없다.
+        //  AddResponse()/OnFinish 는 그대로 발화(기존 Finish() 계약 100% 재사용, BuildScopedResponse/
+        //  WarnIfEmptyScope/ApplyCycleJudgement 무변경 — 회귀 0 설계).
+        public bool StartEmptyScope(TestPacket packet) {
+            lock (_startLock) {
+                if (State != EContextState.Idle) return false; // StartCore 와 동일 원자 점유 계약
+
+                RequestPacket = packet; // 점유 성공 후에만 기록 (StartCore 와 동일 규약 — 경합 시 덮어쓰기 방지)
+                Context.Clear();
+                IsFinished = false;
+                // Running 전이/Command=Start 없음 — 실행할 Action 이 없어 워커 스레드에 넘기지 않는다.
+            }
+
+            if (OnStart != null) { // StartCore 와 동일하게 락 밖에서 발화(Dispatcher 데드락 회피 원칙 동일 적용)
+                OnStart.Invoke(Context);
+            }
+
+            return Finish(); // Action 실행 없이 즉시 완료 — AddResponse() 가 0-매칭 빈 응답(B 또는 F)을 조립/전송한다.
         }
 
         public bool Stop() {

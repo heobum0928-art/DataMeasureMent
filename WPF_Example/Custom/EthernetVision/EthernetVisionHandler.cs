@@ -90,6 +90,23 @@ namespace ReringProject {
             }
         }
 
+        //quick-260810-e1t: 프로그램 종료 시 이 카메라 연결을 끊는 진입점이 지금까지 없었다
+        // (EthernetAlignCamera.Close() 를 호출하는 곳이 코드 전체에 단 한 곳도 없었음) → 앱이 꺼져도
+        // 카메라 연결이 안 끊긴 채 남는 문제. Camera 는 Mode==None 이면 null 이므로 반드시 가드.
+        // 절대 throw 하지 않는다 — Initialize() 와 동일한 방어적 컨벤션(SystemHandler.Release() 가
+        // 앱 종료 경로에서 호출하므로 여기서 예외가 새면 다른 리소스 정리가 중단된다).
+        public void Release() {
+            try {
+                if (Camera != null) {
+                    Camera.Close();
+                    Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] camera closed on release");
+                }
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Release error: {0}", ex.Message);
+            }
+        }
+
         //quick-260807-htd: 연결 실패가 로그에만 남아 사용자가 몰랐다 → 기존 카메라 실패 알림과 같은 수단으로 통일.
         // 스레드 마샬링을 여기서 하지 않는 이유: CustomMessageBox.Show 가 내부에서 이미
         // App.Current.Dispatcher.BeginInvoke 로 넘기므로 호출 스레드 무관하게 안전하다(이중 마샬링 금지).

@@ -271,6 +271,18 @@ namespace ReringProject {
             // Release device resources.
             Devices.Dispose();
 
+            //quick-260810-e1t: 이더넷 정렬 카메라(Bottom/Tray)는 Devices(Grabber)와 별도 핸들러라 여기서
+            // 명시적으로 닫아야 한다 — 안 그러면 프로세스 종료 후에도 카메라 연결이 안 끊긴다.
+            // EthernetVisionHandler.Release() 는 내부 전체 try-catch 로 보호되어 절대 throw 하지 않는다
+            // (Initialize() 와 동일 패턴, SystemHandler.Initialize() 234~243행 전례). 이 외부 catch 는
+            // 방어적 레이어로만 존재.
+            try {
+                EthernetVisionHandler.Handle.Release();
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Release failed: {0}", ex.Message);
+            }
+
             //260510 hbk Phase 21: BUF-02 channel #1 — subscriber 해제 (Sequences 가 살아있는 동안 unwire)
             UnwireBufferLifecycle();
             //260510 hbk Phase 21: BUF-02 channel #3 (app shutdown buffer flush — Sequences.Dispose 가 ClearShots 를 호출하지 않으므로 명시 dispose)

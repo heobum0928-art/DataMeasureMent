@@ -1022,12 +1022,23 @@ namespace ReringProject {
         private void WireBufferLifecycle() {
             //260510 hbk Phase 21: OnRecipeChanged subscriber 등록 — Sequences 가 SequenceHandler.Handle 로 초기화된 후 호출되어야 함
             Sequences.OnRecipeChanged += OnRecipeChanged_FlushBuffers;
+
+            //260811 hbk plc-spec-260811-alignment(조명): 이 메서드가 SystemHandler.Initialize() Step 6(root,
+            //  READ-ONLY)에서 호출되는 유일한 Custom-측 wiring 지점이라 재사용한다 — Lights(Step 1)/Sequences
+            //  (Step 2) 둘 다 이 시점엔 이미 준비돼 있다. 이름은 "BufferLifecycle" 이지만 "기동 시 1회 wiring"
+            //  이라는 본질은 동일해 새 이름의 별도 메서드를 추가하고 root 에서 호출부를 새로 추가하는 것보다
+            //  이 지점에 얹는 편이 root 파일 무변경 제약을 지키면서 가장 자연스럽다.
+            Lights.OnError += OnLightHandlerError;
         }
 
         //260510 hbk Phase 21: BUF-02 channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호 — D-04 Claude's Discretion)
         internal void UnwireBufferLifecycle() {
             //260510 hbk Phase 21: 멱등 — 미등록 상태에서도 안전 (delegate -= null 무동작)
             Sequences.OnRecipeChanged -= OnRecipeChanged_FlushBuffers;
+
+            //260811 hbk plc-spec-260811-alignment(조명): WireBufferLifecycle 과 대칭 — root Release()(READ-ONLY)가
+            //  이미 이 메서드를 호출하므로 동일한 지점에서 해제한다.
+            Lights.OnError -= OnLightHandlerError;
         }
 
         //260510 hbk Phase 21: BUF-02 channel #1 — recipe change 훅 (wire/unwire lifecycle 유지용)
@@ -1036,6 +1047,57 @@ namespace ReringProject {
             //  이 훅이 방금 로드된 Shots 컬렉션을 전부 삭제하는 silent data-loss 유발.
             //  LoadPhase6Format 내부에서 Shots 재구성을 직접 수행하므로 여기서 ClearShots 호출 불필요.
             //  app shutdown 시 buffer dispose 는 Release() 의 channel #3 (SystemHandler.cs:176) 이 담당.
+        }
+
+        //260811 hbk plc-spec-260811-alignment(조명 하드웨어 에러 → E, 카메라 절반 커밋 6697fc4 의 나머지 절반):
+        //  LightHandler.OnError 핸들러. LightHandler.Execute() 전용 백그라운드 스레드(1ms 폴링)에서, 컨트롤러/
+        //  채널 단위 Read/Write 가 FAIL_LIMIT(3) 회 연속 실패했을 때 발화된다 — 이 메서드 자체가 그 스레드에서
+        //  실행된다(SystemHandler/MainRun 스레드 아님).
+        //
+        //  설계 결정 1(비동기-사이클 상관, 사용자 승인 "조명에러도 E로 처리"):
+        //  FAIL_LIMIT 누적 지연 때문에 이 이벤트는 실패가 "확정"된 한참 뒤에야 발화된다 — 그 사이 관련 사이클의
+        //  $RESULT 가 이미 나갔을 수 있다. 완벽한 상관은 불가능하므로 현실적으로: 이 이벤트가 발화된 "지금"
+        //  State==Running 인 시퀀스만 마킹한다(카메라 경로와 동일한 MarkCycleHardwareError 진입점 재사용,
+        //  InspectionSequence.cs 주석 참고). 이미 응답이 나가버린 사이클은 소급 정정하지 않는다 — 대신
+        //  Error 로그로 명확히 남겨 사후 추적 가능하게 한다(응답 재전송/철회는 시도하지 않음).
+        //
+        //  설계 결정 2(어느 시퀀스를 마킹할지 — 정밀 채널→시퀀스 역매핑 대신 광범위 마킹 채택):
+        //  LightFailEventArgs 는 controllerIndex/channel/channelName 을 담고 있어 정밀 타겟팅을 시도할 수도
+        //  있었지만, Custom/TcpServer/ResourceMap.cs 의 조명 자원 매핑(MapPc1Resources/MapPc2Resources/그 외
+        //  role)은 PC1/PC2 역할별로 Site→LightGroup 매핑이 서로 다르고(예: ESite.Side 가 PC1 에선 LIGHT_BAR,
+        //  PC2 role 에 따라 LIGHT_BACK 또는 LIGHT_BAR), 게다가 물리 컨트롤러/채널 2개(RING7, ALIGN_COAX,
+        //  Custom/Device/LightHandler.cs RegisterLightController)는 이 매핑에 아예 등록돼 있지 않다(별도 Align
+        //  플로우 전용) — 컨트롤러/채널 인덱스 → Site → InspectionSequence 로의 안전한 역추적이 자명하지 않다.
+        //  그래서 이 코드베이스의 기존 원칙("조명/카메라 에러가 정상 NG 판정으로 위장되면 안 된다")에 따라
+        //  더 단순하고 안전한 방향(정밀도 낮음, 과잉 마킹 허용)을 택한다: 조명 에러 발생 시 그 순간
+        //  State==Running 인 모든 InspectionSequence(Top/Side/Bottom, 최대 3개)를 전부 마킹한다. 사용자
+        //  승인 사항("2번 항목은 명확치 않으면 이 단순 대안 채택 가능") 그대로.
+        private void OnLightHandlerError(LightFailEventArgs args) {
+            Logging.PrintLog((int)ELogType.Error,
+                "[Light] 하드웨어 에러 감지(ErrorType={0}, Controller={1}, Channel={2}({3})) — 진행 중인 검사 사이클을 " +
+                "$RESULT E 로 마킹 시도(이미 응답이 나간 사이클은 소급 정정 불가).",
+                args.ErrorType, args.Index, args.Channel, args.Name);
+
+            int nMarked = 0;
+            for (int i = 0; i < Sequences.Count; i++) {
+                SequenceBase seq = Sequences[i];
+                if (seq == null) continue;
+                if (seq.State != EContextState.Running) continue;
+
+                InspectionSequence inspSeq = seq as InspectionSequence;
+                if (inspSeq == null) continue;
+
+                inspSeq.MarkCycleHardwareError();
+                nMarked++;
+                Logging.PrintLog((int)ELogType.Error,
+                    "[Light] Seq={0} 진행 중 사이클에 하드웨어 에러 마킹 완료(다음 $RESULT 는 E).", inspSeq.Name);
+            }
+
+            if (nMarked == 0) {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[Light] 조명 에러 발생 시점에 Running 상태인 시퀀스가 없음 — 마킹 대상 없음(이미 응답이 " +
+                    "나갔거나, 검사와 무관한 조명 채널의 에러일 수 있음). 실기 조사 필요.");
+            }
         }
 
     }

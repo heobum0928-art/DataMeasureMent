@@ -90,7 +90,14 @@ namespace ReringProject.Sequence {
         //  (B/P/F 무관) E 로 강제(제어팀 확정 스펙, 엑셀 63행). Action_FAIMeasurement.MarkCycleHardwareError()
         //  가 SIMUL_MODE/OfflineInspectMode 가 아닌 실기 grab 이 null 반환했을 때만 세팅한다 — 공차 불합격
         //  (m_bCycleHasNG)과는 완전히 별개 신호. ResetCycleState 에서 사이클 시작마다 초기화.
-        private bool m_bCycleHasHardwareError = false;
+        //260811 hbk plc-spec-260811-alignment(조명): MarkCycleHardwareError() 는 이제 두 종류의 스레드에서
+        //  호출된다 — (1) 카메라 경로: 이 시퀀스 자신의 워커 스레드(Action_FAIMeasurement, 기존과 동일),
+        //  (2) 조명 경로(신규): LightHandler.Execute() 의 전용 백그라운드 스레드(Custom/SystemHandler.cs
+        //  OnLightHandlerError 훅을 거쳐 호출). 단일-스레드 전제가 깨졌으므로 volatile 로 승격 — 이 필드는
+        //  사이클 내내 false→true 단방향 래치(다시 false 로 세팅하는 곳은 ResetCycleState 뿐, 그건 항상 이
+        //  시퀀스의 소유 스레드에서만 실행됨)라 volatile 만으로 충분하다(lock 불필요, 다른 사이클 플래그들과
+        //  달리 조명 스레드 쪽 쓰기는 읽기와 진짜로 경합할 수 있어 가시성 보장이 필요).
+        private volatile bool m_bCycleHasHardwareError = false;
         //260722 hbk Phase 68 GAP-3(68-10, 지침 #6): 한 사이클에 즉시-F 가 최대 1회만 나가도록 하는 latch.
         //  z=0 즉시-F 분기(BuildDatumShotResponse)와 완성 index 재평가(TryApplyCrossZDatumImmediateFail) 양쪽
         //  모두 세팅 — 어느 한쪽만 세팅하면 한 사이클에 F 가 2번 나가는 중복-F blocking 회귀 발생(T-68-11).
@@ -1024,6 +1031,12 @@ namespace ReringProject.Sequence {
         //260811 hbk plc-spec-260811-alignment: Action_FAIMeasurement(다른 클래스)가 실기 카메라 grab 실패를
         //  감지했을 때 호출하는 공개 진입점. 같은 시퀀스 스레드에서만 호출되므로(Action 은 이 시퀀스 소유
         //  스레드 안에서 실행) 별도 락 불필요 — m_bCycleHasNG 등 기존 사이클 플래그와 동일한 스레드 안전성 전제.
+        //260811 hbk plc-spec-260811-alignment(조명): Custom/SystemHandler.OnLightHandlerError(다른 클래스, 다른
+        //  스레드 — LightHandler.Execute() 백그라운드 스레드)도 이 진입점을 재사용한다. 단순 bool 대입(단방향
+        //  래치, volatile)이라 이 두 번째 호출자 추가에 락 도입 불필요 — 필드 선언부 주석 참고. 타이밍 레이스
+        //  주의: 이 시퀀스가 State==Running 이 아닐 때(사이클이 이미 끝나 응답을 보낸 뒤) 호출되면 플래그만
+        //  세워질 뿐 이미 나간 응답을 소급 정정하지 않는다 — 호출부(OnLightHandlerError)가 Running 사이클에만
+        //  한정해서 호출하도록 필터링한다.
         public void MarkCycleHardwareError()
         {
             m_bCycleHasHardwareError = true;

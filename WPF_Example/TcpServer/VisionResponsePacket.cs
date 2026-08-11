@@ -301,9 +301,11 @@ namespace ReringProject.Network {
         // 판정 '결정' 로직은 Phase 49. 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
         //260811 hbk plc-spec-260811-alignment: HasHardwareError 를 IsBuffer 보다도 먼저 확인 — 카메라
         //  하드웨어 grab 실패는 "측정을 아예 못 했다"는 뜻이라 진행 중(B)이든 완료(P/F)든 사이클 상태와
-        //  무관하게 무조건 E 로 나가야 한다(제어팀 확정 스펙, 엑셀 63행). 조명 하드웨어 에러 신호는 현재
-        //  코드에 존재하지 않아(조사 결과, .planning/debug/plc-spec-260811-alignment.md) 이 필드엔 아직
-        //  반영되지 않는다 — 카메라 전용으로 스코프 제한.
+        //  무관하게 무조건 E 로 나가야 한다(제어팀 확정 스펙, 엑셀 63행). 이 필드는 두 신호가 OR 로 합쳐진
+        //  결과다 — (1) 카메라: Action_FAIMeasurement 의 실기 grab 실패 감지(EStep.Grab/GrabOrLoadDatumImage),
+        //  (2) 조명(260811 후속): Custom/SystemHandler.OnLightHandlerError(LightHandler.OnError 구독) 가
+        //  진행 중(State==Running)인 시퀀스에 대해 동일한 InspectionSequence.MarkCycleHardwareError() 를
+        //  호출 — 둘 다 이 한 필드로 수렴하므로 이 메서드 자체는 신호의 출처를 구분하지 않는다.
         private static string MapCycleJudgement(TestResultPacket testPacket)
         {
             bool bIsHardwareError = testPacket.HasHardwareError;

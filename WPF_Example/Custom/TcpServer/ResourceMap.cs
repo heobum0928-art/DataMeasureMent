@@ -127,13 +127,22 @@ namespace ReringProject.Network {
             return ESite.Top;
         }
 
-        private const int TYPE_CODE_TOP = 0;
-        private const int TYPE_CODE_BOTTOM = 1;
-        private const int TYPE_CODE_SIDE_MIN = 2;  // "SIDE_1"       //260807 hbk quick-260807-omy
-        private const int TYPE_CODE_SIDE_MAX = 5;  // "SIDE_4"       //260807 hbk quick-260807-omy
+        // 260811 hbk plc-spec-260811-alignment: 제어팀 확정 스펙 — 6지그, Type 0~5 1:1 매핑.
+        //  0=3D지그1(Top, 예비) / 1=3D지그2(Bottom, 예비) / 2="Top+Side1" 2D지그(Top) /
+        //  3="Bottom+Side2" 2D지그(Bottom) / 4="Side3" 2D지그(물리 Side 카메라 1대뿐 — Top 슬롯 폴백 무해) /
+        //  5="Side4" 2D지그(Type 4 와 동일 사유로 Top 슬롯 폴백).
+        private const int TYPE_CODE_TOP = 0;              // 3D지그1 (Top, 예비)
+        private const int TYPE_CODE_BOTTOM = 1;            // 3D지그2 (Bottom, 예비)
+        private const int TYPE_CODE_TOP_SIDE1 = 2;         // "Top+Side1" 2D지그
+        private const int TYPE_CODE_BOTTOM_SIDE2 = 3;      // "Bottom+Side2" 2D지그 — PC1 에서 Bottom 자원으로 라우팅 필수
+        private const int TYPE_CODE_SIDE3 = 4;             // "Side3" 2D지그 (물리 Side 카메라 1대 — Top 슬롯 폴백)
+        private const int TYPE_CODE_SIDE4 = 5;             // "Side4" 2D지그 (물리 Side 카메라 1대 — Top 슬롯 폴백)
 
         //260807 hbk quick-260807-omy v-next PROTO-Type: Type 필드가 텍스트 토큰에서 숫자 코드로 전환됨. 인식 실패 시 false 반환(호출부가 Site 폴백).
-        //  0=TOP→Top 슬롯, 1=BOTTOM→Side 슬롯(PC1 Side 슬롯=BOTTOM 자원), 2~5=SIDE_1~4→Top 슬롯(PC2 양 슬롯 SIDE 동일).
+        //260811 hbk plc-spec-260811-alignment: Type=3("Bottom+Side2" 지그)이 기존엔 Type 2~5 단일 분기에 묶여
+        //  Top 슬롯으로 잘못 라우팅되던 버그 수정 — Type=1,3 만 Bottom 슬롯(ESite.Side, PC1 에서 CAMERA_BOTTOM
+        //  매핑), 나머지(0,2,4,5)는 Top 슬롯. 근거: MapPc1Resources 에서 Add(Camera, ESite.Side, CAMERA_BOTTOM)
+        //  확정, 사용자 물리 지그 배치 대조 확인 완료(.planning/debug/plc-spec-260811-alignment.md).
         //  경고: Int32.TryParse 실패 시 out 값이 0(=TOP 코드)이 되므로, 비숫자 가드를 반드시 코드 비교보다 먼저 배치할 것.
         // T-63-08/T-63-09 mitigation: 등록된 ESite.Top/Side 슬롯만 산출 → KeyNotFoundException/오라우팅 회피.
         private bool TryResolveSlotByType(string szType, out ESite eSlot)
@@ -150,20 +159,15 @@ namespace ReringProject.Network {
             {
                 return false;
             }
-            bool bIsTop = nCode == TYPE_CODE_TOP;
-            if (bIsTop)
-            {
-                eSlot = ESite.Top;
-                return true;
-            }
-            bool bIsBottom = nCode == TYPE_CODE_BOTTOM;
-            if (bIsBottom)
+            bool bIsBottomSlot = nCode == TYPE_CODE_BOTTOM || nCode == TYPE_CODE_BOTTOM_SIDE2;   //260811 hbk plc-spec-260811-alignment
+            if (bIsBottomSlot)
             {
                 eSlot = ESite.Side;
                 return true;
             }
-            bool bIsSide = nCode >= TYPE_CODE_SIDE_MIN && nCode <= TYPE_CODE_SIDE_MAX;
-            if (bIsSide)
+            bool bIsTopSlot = nCode == TYPE_CODE_TOP || nCode == TYPE_CODE_TOP_SIDE1              //260811 hbk plc-spec-260811-alignment
+                || nCode == TYPE_CODE_SIDE3 || nCode == TYPE_CODE_SIDE4;
+            if (bIsTopSlot)
             {
                 eSlot = ESite.Top;
                 return true;

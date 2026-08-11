@@ -3274,12 +3274,22 @@ namespace ReringProject.UI {
                 }
                 if (camShot == null) return null;
 
+                // 260811 hbk quick-debug(bottom-align-live-view-stutter) 계측: 이 메서드 전체가 UI 스레드
+                //  동기 실행(Task.Run 없음, GrabImageButton_Click 이 직접 호출)이라 grab/저장 구간별 실측이
+                //  버벅임 원인 검증에 필요 — 검사Grab tact 로깅(1359행 대)과 동일 패턴 재사용.
+                var swGrab = System.Diagnostics.Stopwatch.StartNew();
                 HImage grabbed = pDev.GrabHalconImage(camShot);
+                swGrab.Stop();
                 if (grabbed == null) return null;
 
                 //260623 hbk Phase 53 WR-02: SaveTempImage 는 grabbed 를 borrow 만 하므로 직접 Dispose (누수 방지)
                 try {
-                    return HalconTeachingHelper.SaveTempImage("Calibration_" + activeSeq, grabbed);
+                    var swSave = System.Diagnostics.Stopwatch.StartNew();
+                    string path = HalconTeachingHelper.SaveTempImage("Calibration_" + activeSeq, grabbed);
+                    swSave.Stop();
+                    Logging.PrintLog((int)ELogType.Trace, "[캘리브 라이브촬상 tact] grab=" + swGrab.ElapsedMilliseconds
+                        + "ms, 저장(bmp)=" + swSave.ElapsedMilliseconds + "ms, 총=" + (swGrab.ElapsedMilliseconds + swSave.ElapsedMilliseconds) + "ms, path=" + path);
+                    return path;
                 }
                 finally {
                     grabbed.Dispose();

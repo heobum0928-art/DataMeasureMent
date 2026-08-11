@@ -6,6 +6,8 @@ using System.Windows;
 using Microsoft.Win32;
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Halcon.Models;   //260623 hbk: EdgeInspectionOverlay/Point
+using ReringProject.Setting;         //260811 hbk quick-debug(bottom-align-live-view-stutter): ELogType.Trace
+using ReringProject.Utility;         //260811 hbk quick-debug(bottom-align-live-view-stutter): Logging.PrintLog
 
 namespace ReringProject.UI
 {
@@ -80,7 +82,14 @@ namespace ReringProject.UI
                 CalibrationStatusTextBlock.Text = "라이브 촬상 불가 (grabber 미주입).";
                 return;
             }
+            // 260811 hbk quick-debug(bottom-align-live-view-stutter) 계측: ImageGrabber() 자체는
+            //  MainView.GrabCalibrationImage() 내부에서 grab/저장 구간을 별도로 Trace 로깅(그쪽 로그 참고).
+            //  여기서는 이 버튼(클릭 핸들러, UI 스레드 동기)의 남은 구간 — 방금 저장한 파일을 다시 읽어
+            //  디코드+렌더하는 재로드 구간만 측정. grab+저장 로그와 합산하면 클릭~표시 전체 체감 지연을
+            //  구간별로 재구성할 수 있다.
+            var swGrabTotal = System.Diagnostics.Stopwatch.StartNew();
             string path = ImageGrabber();
+            swGrabTotal.Stop();
             if (string.IsNullOrWhiteSpace(path))
             {
                 CalibrationStatusTextBlock.Text = "라이브 촬상 실패.";
@@ -88,7 +97,12 @@ namespace ReringProject.UI
             }
             try
             {
+                var swReload = System.Diagnostics.Stopwatch.StartNew();
                 CalibrationViewer.LoadImage(path);
+                swReload.Stop();
+                Logging.PrintLog((int)ELogType.Trace, "[캘리브 라이브촬상 tact] ImageGrabber(grab+저장)="
+                    + swGrabTotal.ElapsedMilliseconds + "ms, 재로드(디코드+렌더)=" + swReload.ElapsedMilliseconds
+                    + "ms, 클릭~표시 총=" + (swGrabTotal.ElapsedMilliseconds + swReload.ElapsedMilliseconds) + "ms, path=" + path);
             }
             catch (Exception ex)
             {

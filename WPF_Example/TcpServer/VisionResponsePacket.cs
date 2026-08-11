@@ -64,12 +64,15 @@ namespace ReringProject.Network {
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
+        public const int ALIGN_CALIB_NG_STEP_NO = 97;   //260810 hbk quick-260810-olh: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 N값(제어팀 요청)
+        public const string ALIGN_CALIB_NG_CMD = "4";   //260811 hbk plc-spec-260811-alignment: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 CMD값(제어팀 확정 스펙, 엑셀 R179행)
 
         public const string TEST_RESULT_PASS = "P";
         public const string TEST_RESULT_FAIL = "F";
         public const string TEST_RESULT_NOTEXIST = "N";
         public const string TEST_RESULT_ANGLE_FAIL = "A";           //12.21
         public const string TEST_RESULT_TEACHING = "T";             //05.20 Insert
+        public const string TEST_RESULT_ERROR = "E";       //260811 hbk plc-spec-260811-alignment: 카메라/조명 하드웨어 에러 전용(측정은 됐으나 공차 불합격=F 와 구분, 엑셀 63행)
 
         public const string SITE_STATUS_READY = "READY";
         public const string SITE_STATUS_BUSY = "BUSY";
@@ -296,8 +299,21 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: cycle 종합 판정 → P/F/B 매핑. IsBuffer 최우선(진행 중), OK=P, 그 외=F.
         // 판정 '결정' 로직은 Phase 49. 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
+        //260811 hbk plc-spec-260811-alignment: HasHardwareError 를 IsBuffer 보다도 먼저 확인 — 카메라
+        //  하드웨어 grab 실패는 "측정을 아예 못 했다"는 뜻이라 진행 중(B)이든 완료(P/F)든 사이클 상태와
+        //  무관하게 무조건 E 로 나가야 한다(제어팀 확정 스펙, 엑셀 63행). 이 필드는 두 신호가 OR 로 합쳐진
+        //  결과다 — (1) 카메라: Action_FAIMeasurement 의 실기 grab 실패 감지(EStep.Grab/GrabOrLoadDatumImage),
+        //  (2) 조명(260811 후속): Custom/SystemHandler.OnLightHandlerError(LightHandler.OnError 구독) 가
+        //  진행 중(State==Running)인 시퀀스에 대해 동일한 InspectionSequence.MarkCycleHardwareError() 를
+        //  호출 — 둘 다 이 한 필드로 수렴하므로 이 메서드 자체는 신호의 출처를 구분하지 않는다.
         private static string MapCycleJudgement(TestResultPacket testPacket)
         {
+            bool bIsHardwareError = testPacket.HasHardwareError;
+            if (bIsHardwareError)
+            {
+                return TEST_RESULT_ERROR;
+            }
+
             bool bIsBuffer = testPacket.IsBuffer;
             if (bIsBuffer)
             {
@@ -366,29 +382,32 @@ namespace ReringProject.Network {
             return szItems;
         }
 
-        //260807 hbk quick-260807-omy v-next: $ALIGN_CALIB:BOTTOM,1,N,OK@ / STEP(1)이면 StepNo 필드 부착. CmdStr 은 숫자 코드("0"~"3").
+        //260810 hbk quick-260810-olh: 제어팀 요청 — N(현재 스텝 번호) 필드를 명령 종류(START/STEP/END/ABORT) 무관하게
+        //  항상 출력한다. 성공 시 의미는 ProcessAlignCalib 가 세팅한 packet.StepNo 그대로(START=0/STEP=1~36/END=99/
+        //  ABORT=98), 실패(NG) 시엔 명령 종류 무관하게 항상 ALIGN_CALIB_NG_STEP_NO(97) — 이 실패 sentinel 결정을
+        //  여기 한 곳으로 중앙화해 ProcessAlignCalib 의 여러 실패 반환 지점(5곳)이 개별로 StepNo=97 을 챙길 필요가
+        //  없도록 한다(빠뜨림 방지, 근거: .planning/quick/260810-olh-align-calib-stepno-all-commands/).
+        //260811 hbk plc-spec-260811-alignment: 제어팀 확정 스펙(엑셀 R179행) — CMD 필드도 N 값과 동일 원칙으로
+        //  실패(NG) 시엔 수신 명령 종류(0~3) 무관하게 항상 ALIGN_CALIB_NG_CMD("4") 고정. 성공 시엔 기존대로
+        //  packet.CmdStr echo 유지(회귀 0). CMD/N 두 값 모두 이 한 곳(bIsPass 분기)에서만 결정한다.
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
             szMsg += CMD_SEND_ALIGN_CALIB;
             szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
             szMsg += packet.AlignTarget;                    // BOTTOM
-            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
-            szMsg += packet.CmdStr;                         //260807 hbk quick-260807-omy 수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT)
-            int nCmdCode = 0;                                                    //260807 hbk quick-260807-omy
-            bool bCmdIsNumeric = Int32.TryParse(packet.CmdStr, out nCmdCode);    //260807 hbk quick-260807-omy
-            bool bIsStep = false;                                                //260807 hbk quick-260807-omy
-            if (bCmdIsNumeric)                                                   //260807 hbk quick-260807-omy
-            {
-                bIsStep = nCmdCode == AlignCalibPacket.CMD_CODE_STEP;
-            }
-            if (bIsStep)
-            {
-                szMsg += VisionServer.MSG_CONTENTS_SEPERATOR; // ','
-                szMsg += packet.StepNo.ToString();           // N
-            }
-            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+
             bool bIsPass = packet.IsPass;
+            string szOutCmd = bIsPass ? packet.CmdStr : ALIGN_CALIB_NG_CMD;
+            int nOutStepNo = bIsPass ? packet.StepNo : ALIGN_CALIB_NG_STEP_NO;
+
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += szOutCmd;                              // CMD: 성공=수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT), 실패=4 고정
+
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += nOutStepNo.ToString();                 // N
+
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
             if (bIsPass)
             {
                 szMsg += RESULT_OK;                         // "OK"
@@ -629,6 +648,11 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: v1.0 B(Buffer) 상태 플래그. 직렬화가 P/F 보다 우선 평가. 판정 엔진(Phase 49)이 set.
         public bool IsBuffer { get; set; } = false;
+
+        // 260811 hbk plc-spec-260811-alignment: 카메라 하드웨어 grab 실패 플래그. 직렬화가 IsBuffer 보다도
+        //  우선 평가되어 'E' 로 나간다(MapCycleJudgement). InspectionSequence 가 사이클 스코프로 set —
+        //  공차 불합격(NG/F)과는 별개로, "측정 자체가 불가능했다"는 뜻이라 무조건 최우선.
+        public bool HasHardwareError { get; set; } = false;
 
         // 비전 결과 데이터를 저장할 List 생성
         public const int MaxListCount = 10;

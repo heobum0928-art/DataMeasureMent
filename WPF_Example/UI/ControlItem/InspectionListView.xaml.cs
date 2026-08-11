@@ -679,6 +679,23 @@ namespace ReringProject.UI {
 
         // quick-260806-dsn-2: 즉시 정리 경로와 재시도 경로가 공유하는 단일 SHOT 정리 로직.
         //  기존 534c742 커밋의 로직을 그대로 옮긴 것 — 동작 변경 없음, 중복 구현 방지 목적으로만 분리.
+        //
+        // 260811 odo 잔여 리스크 마커(코드 동작 변경 없음, 주석만):
+        //  아래 act.Context.ResultHalconImage(ActionContext 쪽, SequenceContext 와는 다른 클래스)에는
+        //  이번 소유권 모델(SetResultImageOwned/AcquireResultImage)이 적용되지 않았다 — 원자적이지 않은
+        //  "null 체크 → Dispose() → null 대입" 그대로다. 이유와 조건:
+        //  (a) 이 UI 정리 경로와 SequenceContext.Clear() 안의 `act.Context.Clear()` 루프가 둘 다 이
+        //      ActionContext.ResultHalconImage 의 해제자다. 후자는 StartCore 에서 시퀀스 State 가
+        //      Running 으로 점유되기 *직전*에 도는데, 이 메서드의 호출부(PendingImageCleanupTimer_Tick)
+        //      가 보는 `EContextState.Running` 가드는 그 찰나의 창을 막지 못한다 — 이론상 이중 해제 창이
+        //      남아있다.
+        //  (b) 근본 수정은 ActionContext 결과 이미지에도 SequenceContext 와 동일한 원자적 소유권 모델을
+        //      적용하는 것이지만, 그 writer(Action_TopInspection.cs, Action_FAIMeasurement.cs,
+        //      Action_BottomInspection.cs)가 이번 작업의 수정 금지 파일에 있어 여기서 손대지 않았다 —
+        //      writer 쪽을 비원자적으로 남긴 채 이 소비 지점만 고치면 use-after-dispose 가 그대로
+        //      성립하므로 "절반만 고치면 오히려 위험"하다고 판단해 범위에서 제외했다.
+        //  (c) 다음에 이 영역을 만지는 사람을 위한 후속 작업 형태: Action_*.cs 3개(수정 금지 해제 후)에
+        //      SharedHImage refcount 소유권을 ActionContext.ResultHalconImage 에도 동일하게 적용.
         private void ClearShotImageCache(ShotConfig shot) {
             shot.ClearImage(); // ShotConfig.cs 기존 _imageLock 보호 dispose+null 재사용
 

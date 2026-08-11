@@ -265,8 +265,15 @@ namespace ReringProject.Sequence
 
             if (_seq.State == EContextState.Idle)
             {
-                // Dispatcher.BeginInvoke(Normal) 로 큐된 OnSequenceFinish 핸들러(이미지 표시)가
-                // Background 보다 먼저 실행되어 ResultHalconImage.Dispose() 경합이 해소된다.
+                // 260811 odo: SequenceContext 결과 이미지에 refcount 소유권 모델이 도입되면서(SetResultImageOwned/
+                //  AcquireResultImage), 이 Background 우회의 "안전(크래시 방지)" 역할은 이제 상위 계층
+                //  (SequenceContext)에서 구조적으로 이미 보장된다 — 더 이상 이 우회가 경합을 "해소"하는 게
+                //  아니다. 그럼에도 코드는 그대로 유지한다: Dispatcher.BeginInvoke(Normal) 로 큐된
+                //  OnSequenceFinish 핸들러(이미지 표시)가 Background 보다 먼저 실행되게 하는 "순서 보장"
+                //  역할은 여전히 유효하고, 그 순서 보장이 수동 반복검사에서 표시 신선도를 지켜준다(먼저
+                //  그려진 뒤에야 다음 사이클이 시작됨). 제거하면 크래시하지는 않지만 반복검사 표시가 드물게
+                //  스킵되는 회귀만 생기므로 의도적으로 유지한다. 두 수정(여기 + SequenceContext)은 모순되지
+                //  않는다 — 안전 책임과 순서 보장 책임이 분리된 것뿐이다.
                 // 사이클이 누적될수록 Normal 큐가 밀려 50ms 만으로는 보장이 안 되므로 우선순위 기반으로 교체.
                 System.Windows.Application.Current.Dispatcher.BeginInvoke(
                     System.Windows.Threading.DispatcherPriority.Background,

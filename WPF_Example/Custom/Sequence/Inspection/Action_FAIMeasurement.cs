@@ -263,6 +263,7 @@ namespace ReringProject.Sequence {
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
                         HImage image = null;
+                        bool bIsLiveGrabAttempt = false;   //260811 hbk plc-spec-260811-alignment: 실기 카메라 grab 여부(하드웨어 에러=E 판정용) — SIMUL_MODE/OfflineInspectMode 경로에선 절대 true 로 세팅 안 함
                         // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
                         #if SIMUL_MODE
                         image = LoadShotInspectionImage(); // SIMUL: 항상 저장 이미지(ShotParam.SimulImagePath) 로드
@@ -271,9 +272,18 @@ namespace ReringProject.Sequence {
                             // 오프라인(수동 지그): 라이브 grab 대신 노드 저장 이미지 로드. 각 SHOT 이 자기 Z 이미지라 정합 성립.
                             image = LoadShotInspectionImage();
                         } else {
+                            bIsLiveGrabAttempt = true;
                             image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
                         }
                         #endif
+                        //260811 hbk plc-spec-260811-alignment: 실기 grab 이 null 을 반환한 경우만(SIMUL_MODE/오프라인
+                        //  경로는 절대 해당 없음) 사이클 하드웨어 에러로 마킹 — $RESULT 응답이 F 대신 E 로 나간다
+                        //  (제어팀 확정 스펙). Step 은 그대로 Measure 로 진행(기존 lenient 동작 유지, 회귀 0).
+                        if (image == null && bIsLiveGrabAttempt) {
+                            InspectionSequence parentSeqForHwErr = ShotParam.Parent as InspectionSequence;
+                            if (parentSeqForHwErr != null) parentSeqForHwErr.MarkCycleHardwareError();
+                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
+                        }
                         if (image != null) {
                             //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
                             //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
@@ -571,6 +581,15 @@ namespace ReringProject.Sequence {
                 image = LoadDatumImageFromPath(datum, teachingPath, false);
             } else {
                 image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                //260811 hbk plc-spec-260811-alignment: 이 분기는 실기 grab 만 도달(SIMUL_MODE/오프라인 배제) —
+                //  null 이면 카메라 하드웨어 에러로 마킹, $RESULT 응답이 F 대신 E 로 나간다(제어팀 확정 스펙).
+                if (image == null) {
+                    InspectionSequence parentSeqForHwErr = ShotParam.Parent as InspectionSequence;
+                    if (parentSeqForHwErr != null) parentSeqForHwErr.MarkCycleHardwareError();
+                    string dNameForLog = "";
+                    if (datum != null) dNameForLog = datum.DatumName ?? "";
+                    Logging.PrintLog((int)ELogType.Error, "[Datum] '" + dNameForLog + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
+                }
             }
             #endif
             return image;

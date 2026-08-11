@@ -72,6 +72,7 @@ namespace ReringProject.Network {
         public const string TEST_RESULT_NOTEXIST = "N";
         public const string TEST_RESULT_ANGLE_FAIL = "A";           //12.21
         public const string TEST_RESULT_TEACHING = "T";             //05.20 Insert
+        public const string TEST_RESULT_ERROR = "E";       //260811 hbk plc-spec-260811-alignment: 카메라/조명 하드웨어 에러 전용(측정은 됐으나 공차 불합격=F 와 구분, 엑셀 63행)
 
         public const string SITE_STATUS_READY = "READY";
         public const string SITE_STATUS_BUSY = "BUSY";
@@ -298,8 +299,19 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: cycle 종합 판정 → P/F/B 매핑. IsBuffer 최우선(진행 중), OK=P, 그 외=F.
         // 판정 '결정' 로직은 Phase 49. 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
+        //260811 hbk plc-spec-260811-alignment: HasHardwareError 를 IsBuffer 보다도 먼저 확인 — 카메라
+        //  하드웨어 grab 실패는 "측정을 아예 못 했다"는 뜻이라 진행 중(B)이든 완료(P/F)든 사이클 상태와
+        //  무관하게 무조건 E 로 나가야 한다(제어팀 확정 스펙, 엑셀 63행). 조명 하드웨어 에러 신호는 현재
+        //  코드에 존재하지 않아(조사 결과, .planning/debug/plc-spec-260811-alignment.md) 이 필드엔 아직
+        //  반영되지 않는다 — 카메라 전용으로 스코프 제한.
         private static string MapCycleJudgement(TestResultPacket testPacket)
         {
+            bool bIsHardwareError = testPacket.HasHardwareError;
+            if (bIsHardwareError)
+            {
+                return TEST_RESULT_ERROR;
+            }
+
             bool bIsBuffer = testPacket.IsBuffer;
             if (bIsBuffer)
             {
@@ -634,6 +646,11 @@ namespace ReringProject.Network {
 
         // 260622 hbk Phase 48 PROTO-02: v1.0 B(Buffer) 상태 플래그. 직렬화가 P/F 보다 우선 평가. 판정 엔진(Phase 49)이 set.
         public bool IsBuffer { get; set; } = false;
+
+        // 260811 hbk plc-spec-260811-alignment: 카메라 하드웨어 grab 실패 플래그. 직렬화가 IsBuffer 보다도
+        //  우선 평가되어 'E' 로 나간다(MapCycleJudgement). InspectionSequence 가 사이클 스코프로 set —
+        //  공차 불합격(NG/F)과는 별개로, "측정 자체가 불가능했다"는 뜻이라 무조건 최우선.
+        public bool HasHardwareError { get; set; } = false;
 
         // 비전 결과 데이터를 저장할 List 생성
         public const int MaxListCount = 10;

@@ -1666,14 +1666,25 @@ namespace ReringProject.UI {
             if (rois == null) roiList = new List<RoiDefinition>();
             else              roiList = rois.ToList();
 
-            if (context.ResultHalconImage != null) {
+            // 260811 odo: 확정 크래시 지점(use-after-dispose AVE) — 원시 필드 대신 획득 구간으로 감싼다.
+            //  AcquireResultImage() 성공 시에는 참조 카운트가 1 이상으로 유지되어 해제될 수 없다(반대 스레드의
+            //  Clear()/CopyFrom() 은 여기 finally Release() 전까지 실제 Dispose 를 수행하지 못한다). 이
+            //  한 지점 수정으로 UI 독자 2개(DisplaySequenceContext 경로와 InspectionListView 트리 클릭 →
+            //  DisplayParam 경로)가 동시에 닫힌다 — 둘 다 이 DisplayContextToViewer 를 통과하기 때문.
+            //  LoadImage 는 내부에서 clone 하므로(기존과 동일 동작) 이 획득 구간을 벗어난 뒤에는 뷰어가
+            //  자기 사본만 들고 있다 — Release() 이후에도 뷰어 표시는 안전하다.
+            SharedHImage sharedResult = context.AcquireResultImage();
+            if (sharedResult != null) {
                 try {
-                    halconViewer.LoadImage(context.ResultHalconImage);
+                    halconViewer.LoadImage(sharedResult.Image);
                     halconViewer.UpdateDisplayState(roiList, context.InspectionOverlays, context.DisplayMessages);
                     return true;
                 }
                 catch (Exception ex) {
                     Logging.PrintErrLog((int)ELogType.Error, ex.Message);
+                }
+                finally {
+                    sharedResult.Release();
                 }
             }
 

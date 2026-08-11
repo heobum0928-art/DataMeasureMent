@@ -465,8 +465,10 @@ namespace ReringProject.Sequence {
                     return;
                 }
 
-                if (Context.ResultHalconImage != null) {
-                    HImage snapshot = Context.ResultHalconImage.CopyImage();
+                // 260811 odo: 원시 필드 대신 소유권 API 경유 — 획득→CopyImage→Release 를 원자적으로
+                //  수행해 use-after-dispose 레이스를 차단한다(복사 1회, 기존과 동일).
+                HImage snapshot = Context.CloneResultImage();
+                if (snapshot != null) {
                     Task.Factory.StartNew((object obj) => {
                         HImage resultImage = obj as HImage;
                         try {

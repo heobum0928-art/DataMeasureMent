@@ -34,12 +34,33 @@ namespace ReringProject.Utility {
             _ref = 1; // 생성자(검사 루프)가 1 보유
         }
 
-        /// <summary>읽기 전용 소스. 워커(여러 스레드 가능, 읽기 전용 접근만 허용)가 참조.</summary>
+        /// <summary>
+        /// 읽기 전용 소스. 워커(여러 스레드 가능, 읽기 전용 접근만 허용)가 참조.
+        /// 260811 odo: 이 게터는 <see cref="TryAddRef"/> 가 true 를 반환한 시점부터 대응하는
+        /// <see cref="Release"/> 호출 전까지만 유효하다 — 그 구간에서는 참조 카운트가 1 이상으로
+        /// 유지되므로 내부 이미지가 해제될 수 없다(다른 스레드가 이미 해제된 힙을 읽는 use-after-dispose
+        /// 를 구조적으로 차단). 이 계약 밖에서 읽으면 다시 레이스가 성립한다.
+        /// </summary>
         public HImage Image { get { return _image; } }
 
+        // 260811 odo: 성공 여부를 알려주지 않던 기존 AddRef() 를 TryAddRef() 로 위임한다.
+        //  기존 호출부(CaptureImageSaveRequest 등)는 이미 살아있음이 보장된 상태에서만 AddRef() 를
+        //  호출하므로 동작은 완전히 동일하다(회귀 0) — 차이는 "이미 해제됨"을 원자적으로 알려주는
+        //  새 API(TryAddRef)가 SequenceContext 소유권 모델(AcquireResultImage)에 필요하다는 것뿐이다.
         public void AddRef() {
+            TryAddRef();
+        }
+
+        /// <summary>
+        /// 획득 시도. 내부 이미지가 이미 해제(마지막 Release 로 null)됐으면 카운트를 올리지 않고 false 를
+        /// 반환한다. 살아 있으면 카운트를 올리고 true 를 반환한다 — "해제 여부"를 원자적으로 호출자에게
+        /// 알려준다는 점이 유일한 차이(락 안에서 판정 + 증가가 함께 일어나 TOCTOU 없음).
+        /// </summary>
+        public bool TryAddRef() {
             lock (_lock) {
-                if (_image != null) { _ref++; }
+                if (_image == null) { return false; }
+                _ref++;
+                return true;
             }
         }
 

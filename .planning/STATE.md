@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
+current_phase: 71
+current_phase_name: 4/4 plans + 코드리뷰 수정 완료, T-71-38 open으로 이월
 status: unknown
-stopped_at: 두 병렬 세션 병합 — origin(TOP/BOTTOM PC, ~quick-260810-egx까지, v1.7.11.0) + local(SIDE PC, quick-260807-iml/jhg/jx1: 조명 8/5채널 재편성, Release OutputPath D:\Data 고정, TrayAlign 라이브뷰 타이머 수정) merge 완료
-last_updated: "2026-08-10T00:00:00.000Z"
-last_activity: 2026-08-07
+stopped_at: Completed quick task 260811-odo (SequenceContext ResultHalconImage use-after-dispose fix)
+last_updated: "2026-08-11T09:10:46.569Z"
+last_activity: 2026-08-11
+last_activity_desc: "Completed quick task 260811-odo(`SequenceContext.ResultHalconImage` use-after-dispose AVE 근본 수정 — SharedHImage refcount 소유권 모델 도입, 트리클릭 UI 독자 신규 발견해 동시 차단, 레이스 하네스 PASS. 실기 UAT 대기). 이전: 2026-08-10 quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)"
 progress:
-  total_phases: 15
-  completed_phases: 14
-  total_plans: 49
-  completed_plans: 46
+  total_phases: 16
+  completed_phases: 15
+  total_plans: 50
+  completed_plans: 47
   percent: 94
 ---
 
@@ -29,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 71-prep-op-plc-off-p-f — COMPLETE (4/4 plans + 코드리뷰 수정 완료, T-71-38 open으로 이월)
 Plan: 4 of 4 + code-review-fix
-Last activity: 2026-08-10 - Completed quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)
+Last activity: 2026-08-11 - Completed quick task 260811-odo(`SequenceContext.ResultHalconImage` use-after-dispose AVE 근본 수정 — SharedHImage refcount 소유권 모델 도입, 트리클릭 UI 독자 신규 발견해 동시 차단, 레이스 하네스 PASS. 실기 UAT 대기). 이전: 2026-08-10 quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
 
@@ -514,11 +517,13 @@ Recent decisions affecting current work:
 - D-71-03: PcRole 1->2 임시 변경(운영데이터, Setting.ini, 코드 아님)으로 UAT-B 진행 - 원복 여부는 사용자 결정 대기
 - UAT-E(path=datum-index0)는 SIDE 전용 PC에서 TCP 실기검증 구조적으로 불가(크로스-Z Datum z=0 캡처-only + $PREP Shot 미등록 이중확정) - 정적검증(71-03 S9)만으로 코드 커버리지, 실기는 TOP/BOTTOM PC에서 후속 확인 필요(T-71-38 open)
 - UAT-D(NG누적F 전체소등)는 71-03 UAT-B 데이터 재인용으로 충족 - D-1(중간 index NG) 요구사항을 main.ini 대조로 보강확인(FAI_3-1_D1@z=2, FAI_C13-14_P1@z=11 모두 중간index)
+- [Phase ?]: 260811-odo: SequenceContext 결과 이미지 use-after-dispose(AVE) 근본 수정 — SharedHImage refcount 소유권 모델(AcquireResultImage/SetResultImageOwned/CloneResultImage) 채택, 소유권 이전/락 보호 2안은 각각 트리클릭 독자 미커버/택트 회귀 위험으로 탈락
 
 ### Quick Tasks Completed
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| 260811-odo | 2026-08-11 | **`SequenceContext.ResultHalconImage` use-after-dispose(AccessViolationException, catch 불가한 Corrupted State Exception) 근본 수정 — Top/Bottom/Side 실기 자동검사 중 확정 재현된 크래시.** 두 독립 조사 에이전트 + 플래너가 코드 직접 확인으로 크래시 콜스택(`HImage.CopyImage→HalconImageBridge.Clone→MainResultViewerControl.LoadImage→MainView.DisplayContextToViewer→MainView.DisplaySequenceContext→MainWindow.OnSequenceFinish`), 해제자 3곳, 독자 4개(플래너가 새로 발견한 트리 노드 클릭 → `DisplayParam` 경로 포함)를 전수 확정. 3안(소유권 이전/락 보호/refcount 재사용) 평가 후 **refcount(`SharedHImage`, 260810 라운드에서 이미 하드닝된 저장소 관용구) 재사용을 채택** — 독자 4개를 하나의 모델로 전부 덮고, 시퀀스 스레드(`ThreadPriority.Highest`) 블로킹 0, 127MP 복사 횟수 불변(하드 제약)을 모두 만족하는 유일한 안. `SequenceContext`에 `AcquireResultImage`/`SetResultImageOwned`/`CloneResultImage` 3개 API + `SharedHImage.TryAddRef()`(해제 여부 원자적 통지) 신설, 원시 `HImage` 공개 프로퍼티 완전 제거(컴파일 성공=전수 이관 증명). 확정 크래시 지점(`MainView.DisplayContextToViewer`)을 획득 구간으로 감싸 UI 독자 2개(표시 경로+트리클릭 경로) 동시에 닫음. 저장소 밖(scratchpad) 독립 하네스가 실제 HALCON 이미지(1024x1024/4000x4000 두 페이즈)로 쓰기 1+읽기 2 스레드 경합을 자동 검증(합산 135,815세대, 획득성공 117,074, sentinel 무결성실패 0, 예외 0, PASS). `RepeatRunService`의 `DispatcherPriority.Background` 우회는 코드 유지(안전 역할은 상위로 이전, 순서보장 역할은 여전히 유효 — 주석만 갱신). `ActionContext.ResultHalconImage`(다른 클래스, writer가 `Action_Top/Bottom/FAIMeasurement.cs`)는 수정 금지 파일 제약으로 범위 밖 — 이중 해제 잔여 창을 코드 주석으로 조건과 함께 명시, 근본 수정은 향후 그 파일들 수정 금지 해제 시 착수. 금지 4개 파일(`SystemSetting.cs`/`Action_FAIMeasurement.cs`/`Action_TopInspection.cs`/`DatumMeasurement.csproj`, 전부 사용자 미커밋 실HW 세팅) `git hash-object` 대조로 완전 미접촉 확인, `MainWindow.xaml.cs` diff 0줄. Debug/x64 빌드 에러 0(2회 재확인). | 8c06ce0,27cc255 | 코드 PASS · 정적게이트 전부 PASS · 하네스 PASS(무결성실패 0/예외 0) · 빌드 PASS(2회) · **실기 UAT는 이 플랜 범위 밖 — 자동 연속반복 크래시 미재현/표시 육안확인/DisableViewerDuringAutoInspect 양쪽/트리클릭 동시검사 4종 사용자 승인 대기** |
 | 260807-jx1 | 2026-08-07 | **TrayAlign 라이브뷰 안 뜨는 버그 수정** — `TrayVisionView.xaml.cs`의 `LiveButton_Click`이 `Camera.Live()`(HIK SDK 스트림 시작)만 호출하고 뷰어 갱신 타이머가 없어서, 카메라/스트림 자체는 정상인데(로그로 실증: `[ETHERNET] connected`, `OnGrabResult` 200ms 간격 성공) 화면엔 아무것도 안 뜸. `BottomVisionView.xaml.cs`(정상 동작 확인된 참조 구현)의 `DispatcherTimer` 200ms 폴링(`PeekLastImage()`→뷰어) 패턴을 1:1 포팅. Live/Grab 버튼 상호배타, Stop 시 타이머 정지+버튼 재활성도 동일 포팅. `TrayVisionView.xaml.cs` 한 파일만 수정, Bottom 쪽/EthernetAlignCamera.cs 무변경. Debug/x64 빌드 PASS. 실기 UAT(Live 눌러서 실제 화면 갱신 확인)는 이 dev PC에서 검증 불가 — SIDE 실기에서 확인 필요. | 97de921 | 코드 PASS · 빌드 PASS · **실기 UAT 대기** |
 | 260807-jhg | 2026-08-07 | **Release\|x64 OutputPath 상대경로→절대경로 고정** — `..\..\..\..\Data\`(체크아웃 위치에 따라 우연히 달라짐, 이 PC에선 `C:\Data\`로 떨어져 네이티브 DLL 누락 크래시 유발)를 `D:\Data\`(실제 배포 폴더)로 교체. 같은 PropertyGroup 안에 있던 기존 미커밋 변경(`DefineConstants` SIMUL_MODE 제거, 세션 시작 전부터 있던 것)도 사용자 확인 후 같이 커밋. Debug/x64 빌드 재확인 PASS. 후속: `D:\Data\Setting.ini`(기존 FinalVision 스키마, EthernetCameraIp 등 키 없음)를 `Setting.ini.finalvision.bak`으로 백업 후 `bin\x64\Debug\Setting.ini`와 동일한 DataMeasurement 스키마로 교체(EthernetCameraIp=TrayAlign 포함) — 사용자 확인("finalvision은 신경쓰지마") 후 진행, Release 빌드도 D:\Data에서 Debug와 동일 설정으로 동작하도록 함. | ca3b213 | 코드 PASS · 빌드 PASS · D:\Data\Setting.ini 동기화 완료 |
 | 260807-iml | 2026-08-07 | **SIDE PC 조명 채널 재편성 — `LightHandler.cs` `RegisterLightController()`를 7채널/6채널 구조에서 8채널/5채널 구조로 재배치**(TOP/BOTTOM PC에 이미 적용된 동일 배선 변경을 SIDE PC 저장소 체크아웃에 반영). Controller A(Index=0, COM2): RING_CH1~6 + BACK + RING7 = 8채널(구 7채널, ALIGN_COAX 제외됨). Controller B(Index=1, COM3): BAR_1~4 + ALIGN_COAX = 5채널(구 6채널, BACK/RING7 제외됨). `LIGHT_*` 상수 15개 선언 순서를 소속 컨트롤러 기준으로 재편(값/이름 무변경), XML doc D-06/D-07 및 구 7/6채널 서술 주석 전부 갱신. `Groups.Add(...)` 5종(RING/BACK/BAR/RING7/ALIGN_COAX)은 이름 기반 조회라 원문 그대로 보존(플래너가 위험 요소로 명시 식별 후 게이트로 차단). 정적 게이트 9개 + 13개 채널명 유일성 검사 + Debug/x64 빌드로 3중 검증 전부 PASS. 이어서(같은 요청, 저장소 밖 직접 처리): `D:\Data\Light\light.ini`을 신규 8/5채널 이름 목록으로 재작성(Controller1 Baudrate 9600→19200 포함 — `LightHandler.Load()`가 ini의 `ChannelNames`를 코드 배치 위에 override하므로 미동기화 시 무음 오배선 위험을 플래너가 T-IML-04로 명시 식별), `bin\x64\Debug\Setting.ini`의 `EthernetCameraIp`를 리터럴 IP(169.254.140.178)에서 이 PC 정렬카메라 Device User ID인 `TrayAlign`으로 교체(TOP/BOTTOM PC는 `BottomAlign`). `bin\x64\Release\Setting.ini`/`D:\Data\Setting.ini`는 스키마가 전혀 다른 구버전(옛 FinalVision 레거시 프로그램 소유로 추정, `EthernetCameraIp` 키 자체 없음) 확인 후 미접촉. D:\Data 최상위 고아 파일(짝 exe 없는 config/pdb) 스캔 결과 `Final_Inspect.cfg` 1건만 해당(FinalVision.exe/PcPlcEmulator.exe는 이 PC에 온전히 남아있어 그 `.config`/`.pdb`는 정상 페어링, TOP/BOTTOM PC와 다른 상태) — 사용자 확인 후 삭제 완료. 최종 Debug/x64 전체 빌드 재확인 exit 0. | 8b07410 | 코드 PASS · plan-check 없음(quick 표준모드) · 빌드 PASS(정적게이트 9/9 + 유일성검사 PASS + 최종 재빌드 exit 0) · light.ini/Setting.ini 동기화 완료 · D:\Data 고아파일(Final_Inspect.cfg) 삭제 완료 |
@@ -711,8 +716,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-08-06T15:14:28.887Z
-Stopped at: Completed 71-04-PLAN.md (UAT-C PASS, UAT-D PASS-by-reference, UAT-E partial/open-risk) - Phase 71 7/8 items fully closed
+Last session: 2026-08-11T09:10:30.008Z
+Stopped at: Completed quick task 260811-odo (SequenceContext ResultHalconImage use-after-dispose fix)
 Resume file: None
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 

@@ -65,6 +65,7 @@ namespace ReringProject.Network {
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
         public const int ALIGN_CALIB_NG_STEP_NO = 97;   //260810 hbk quick-260810-olh: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 N값(제어팀 요청)
+        public const string ALIGN_CALIB_NG_CMD = "4";   //260811 hbk plc-spec-260811-alignment: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 CMD값(제어팀 확정 스펙, 엑셀 R179행)
 
         public const string TEST_RESULT_PASS = "P";
         public const string TEST_RESULT_FAIL = "F";
@@ -372,17 +373,23 @@ namespace ReringProject.Network {
         //  ABORT=98), 실패(NG) 시엔 명령 종류 무관하게 항상 ALIGN_CALIB_NG_STEP_NO(97) — 이 실패 sentinel 결정을
         //  여기 한 곳으로 중앙화해 ProcessAlignCalib 의 여러 실패 반환 지점(5곳)이 개별로 StepNo=97 을 챙길 필요가
         //  없도록 한다(빠뜨림 방지, 근거: .planning/quick/260810-olh-align-calib-stepno-all-commands/).
+        //260811 hbk plc-spec-260811-alignment: 제어팀 확정 스펙(엑셀 R179행) — CMD 필드도 N 값과 동일 원칙으로
+        //  실패(NG) 시엔 수신 명령 종류(0~3) 무관하게 항상 ALIGN_CALIB_NG_CMD("4") 고정. 성공 시엔 기존대로
+        //  packet.CmdStr echo 유지(회귀 0). CMD/N 두 값 모두 이 한 곳(bIsPass 분기)에서만 결정한다.
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
         {
             string szMsg = "";
             szMsg += CMD_SEND_ALIGN_CALIB;
             szMsg += VisionServer.MSG_CMD_SEPERATOR;        // ':'
             szMsg += packet.AlignTarget;                    // BOTTOM
-            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
-            szMsg += packet.CmdStr;                         // 수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT)
 
             bool bIsPass = packet.IsPass;
+            string szOutCmd = bIsPass ? packet.CmdStr : ALIGN_CALIB_NG_CMD;
             int nOutStepNo = bIsPass ? packet.StepNo : ALIGN_CALIB_NG_STEP_NO;
+
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
+            szMsg += szOutCmd;                              // CMD: 성공=수신 숫자 코드 echo(0=START/1=STEP/2=END/3=ABORT), 실패=4 고정
+
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;   // ','
             szMsg += nOutStepNo.ToString();                 // N
 

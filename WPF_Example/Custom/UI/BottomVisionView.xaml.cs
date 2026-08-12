@@ -832,19 +832,22 @@ namespace ReringProject.Custom.UI {
 #endif
 
                 double foundRow, foundCol;
+                double calScore;   //quick-260812: 이미 계산된 검색 점수 수신(등급 표시용)
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
                     img,
                     _calRoiRect.Row1, _calRoiRect.Column1,
                     _calRoiRect.Row2, _calRoiRect.Column2,
-                    out foundRow, out foundCol, out error);
+                    out foundRow, out foundCol, out calScore, out error);
 #if !SIMUL_MODE
                 img.Dispose();
 #endif
 
                 if (bOk) {
                     int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
-                    lbl_calStatus.Text = "누적 " + stepCount + "  last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")";
+                    //quick-260812: lbl_calStatus 는 이 파일에 36곳 대입 — 여기만 색을 칠하면 stale 색이 남는다. 기호만 붙인다.
+                    ETeachGrade calGrade = TeachDiag.ClassifyScore(calScore, PickerCenterCalibrationService.FindMinScore);
+                    lbl_calStatus.Text = TeachDiag.ToStatusLine(calGrade, "누적 " + stepCount + "  last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")  score " + calScore.ToString("F3"));
                     if (_viewer != null) {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
                         _viewer.SetAlignContourXld(vizXld); // 소유권 이전

@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using ReringProject.Sequence;
 using System.Diagnostics;
+using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
+using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
 namespace ReringProject {
     public sealed partial class SystemHandler {
@@ -739,10 +741,11 @@ namespace ReringProject {
                     double dSearchCol2 = SystemSetting.Handle.CalibSearchCol2;
 
                     double dFoundRow, dFoundCol;
+                    double dScore;   //quick-260812: 이미 계산된 검색 점수 수신(등급 로그용)
                     string error;
                     bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
                         img, dSearchRow1, dSearchCol1, dSearchRow2, dSearchCol2,
-                        out dFoundRow, out dFoundCol, out error);
+                        out dFoundRow, out dFoundCol, out dScore, out error);
 
                     if (bOk)
                     {
@@ -756,8 +759,10 @@ namespace ReringProject {
                             HImage imgRef = img; // finally 전에 캡처
                             System.Windows.Application.Current.Dispatcher.Invoke(() => viewerCb(imgRef, vizXld));
                         }
+                        //quick-260812: 이번 Quick 은 로그까지. 화면 노출은 Quick #3(TCP 자동경로) 범위.
+                        ETeachGrade calGrade = TeachDiag.ClassifyScore(dScore, PickerCenterCalibrationService.FindMinScore);
                         Logging.PrintLog((int)ELogType.Trace,
-                            "[ALIGN_CALIB] STEP {0} OK", resultPacket.StepNo);
+                            "[ALIGN_CALIB] STEP {0} OK score={1:F3} grade={2}", resultPacket.StepNo, dScore, calGrade);
                     }
                     else
                     {

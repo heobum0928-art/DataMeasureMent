@@ -65,6 +65,11 @@ namespace ReringProject {
             get { return _modelLoaded; }
         }
 
+        /// <summary>quick-260812: 등급 산정용 최소 스코어(읽기 전용). FIND_MIN_SCORE 의 값·용도는 무변경.</summary>
+        public static double FindMinScore {
+            get { return FIND_MIN_SCORE; }
+        }
+
         // ─── 초기화/정리 ────────────────────────────────────────────────────────
 
         // D-01: 누적 초기화. 모델은 유지(재로드 불필요). 시각화 XLD 클리어.
@@ -214,9 +219,11 @@ namespace ReringProject {
         public bool TryAddStep(HImage img,
             double roiRow1, double roiCol1, double roiRow2, double roiCol2,
             out double foundRow, out double foundCol,
+            out double dScore,   //quick-260812: 이미 계산된 검색 점수 노출(추가 HALCON 호출 0)
             out string error) {
             foundRow = 0.0;
             foundCol = 0.0;
+            dScore   = 0.0;
             error    = null;
 
             if (!_modelLoaded) {
@@ -263,6 +270,7 @@ namespace ReringProject {
                 _cols.Add(dCol);
                 foundRow = dRow;
                 foundCol = dCol;
+                dScore   = score[0].D;   //quick-260812: finally 의 Dispose 전에 값만 복사
 
                 AppendCrossToViz(dRow, dCol);
 

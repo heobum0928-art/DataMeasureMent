@@ -165,10 +165,12 @@ namespace ReringProject.Halcon.Display
 
         // 색상 규칙은 HalconDisplayService.Render 의 FAI 오버레이 색상과 일치: FAI-Edge*(녹/적),
         // FAI-DistLine(청록), FAI-EdgeRaw(노랑 점), 그 외(파랑). FAI-Edge* 검출점 X 마커는 magenta.
-        private const double LineThicknessRadius = 2.0; // 에지/마커 리전 두께(dilation 반경)
-        private const double DistLineThicknessRadius = 3.1; // 측정 거리선(cyan) 두께(사용자 요청, 2.6→3.1)
+        // quick-260812-fq4: 캡쳐 오버레이가 얇아 잘 안 보인다는 요청 → 두께 3종을 비율 유지한 채 일괄 1.5배.
+        //  4.65 는 임의값이 아니라 3.1×1.5 다. 길이 상수(MarkerHalfSize/CrossHalf)는 두께가 아니므로 무변경.
+        private const double LineThicknessRadius = 3.0; // 에지/마커 리전 두께(dilation 반경)
+        private const double DistLineThicknessRadius = 4.65; // 측정 거리선(cyan) 두께(사용자 요청, 2.6→3.1→4.65)
         private const double MarkerHalfSize = 8.0; // X 마커 반길이(HalconDisplayService size=8.0 일치)
-        private const double DatumRingThickness = 6.0; // datum 검출 원 링 두께(px), pale green 가시성↑
+        private const double DatumRingThickness = 9.0; // datum 검출 원 링 두께(px), pale green 가시성↑
         private const double DatumCircleCenterCrossHalf = 12.0; // 원 중심 십자 반길이(UI L913 일치)
         private const double DatumOriginCrossHalf = 20.0; // 검출 원점 십자 반길이(UI L318 일치)
 

@@ -116,6 +116,19 @@ namespace ReringProject.Custom.UI {
                     if (xld != null) { try { xld.Dispose(); } catch { } }
                 }
             };
+
+            //quick-260812: 자동경로 실패 알림 등록. 형제 콜백과 같은 대입(=) 방식 —
+            //  이 메서드는 모드 전환마다 다시 불리므로 += 로 붙이면 핸들러가 중복 누적된다.
+            //  본문이 UI 스레드에서 도는 것은 호출 측이 이미 보장한다(형제 콜백과 동일).
+            //  색은 칠하지 않는다 — 이 라벨은 이 파일에 대입 지점이 아주 많아 일부만 칠하면 색이 남는다.
+            EthernetVisionHandler.Handle.OnCalibError = (msg) => {
+                string szMsg = msg;
+                if (string.IsNullOrEmpty(szMsg))
+                {
+                    szMsg = "원인이 기록되지 않은 오류";
+                }
+                lbl_calStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, szMsg);
+            };
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────

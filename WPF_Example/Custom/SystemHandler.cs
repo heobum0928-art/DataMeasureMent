@@ -332,7 +332,7 @@ namespace ReringProject {
             //  응답 산출 로직은 1바이트도 변경하지 않음, 달라지는 것은 오직 "그 사이 무관한 shot 을 재실행하지
             //  않는다"는 점 뿐이다).
             Logging.PrintLog((int)ELogType.Error,
-                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — Action 미실행, 즉시 빈 응답(B/F). 레시피 ZIndex 설정 확인 필요(의도된 빈 z_index 라면 정상). //260810 hbk",
+                string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — Action 미실행, 즉시 빈 응답(B/F). 레시피 ZIndex 설정 확인 필요(의도된 빈 z_index 라면 정상).",
                     _lastPrepZIndex, seq.Name));
             return seq.StartEmptyScope(packet);
         }
@@ -380,7 +380,7 @@ namespace ReringProject {
             if (!bSlotValid)
             {
                 Logging.PrintLog((int)ELogType.Error,
-                    "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~5) //260626 hbk", packet.AlignFace);
+                    "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~5)", packet.AlignFace);
                 FillAlignPoseZero(resultPacket); //260626 hbk WR-01: PLC 필드 수 일관성 — pose=0 채움 후 NG 반환
                 resultPacket.IsPass = false; //260626 hbk NG 안전 거부 (T-65-01)
                 return resultPacket;
@@ -404,7 +404,7 @@ namespace ReringProject {
                 if (!bHasTemplate)
                 {
                     Logging.PrintLog((int)ELogType.Error,
-                        "[ALIGN_TEST] Bottom slot={0} 미티칭 — 모델 없음 NG 반환 //260626 hbk", (int)slot);
+                        "[ALIGN_TEST] Bottom slot={0} 미티칭 — 모델 없음 NG 반환", (int)slot);
                     FillAlignPoseZero(pResult); //260626 hbk PLC 형식 일관성 — pose=0 채움
                     return false;
                 }
@@ -414,7 +414,7 @@ namespace ReringProject {
                 if (!bCameraReady)
                 {
                     Logging.PrintLog((int)ELogType.Error,
-                        "[ALIGN_TEST] 이더넷 카메라 미연결(null) — NG 반환 //260626 hbk");
+                        "[ALIGN_TEST] 이더넷 카메라 미연결(null) — NG 반환");
                     FillAlignPoseZero(pResult);
                     return false;
                 }
@@ -430,7 +430,7 @@ namespace ReringProject {
                     if (img == null)
                     {
                         Logging.PrintLog((int)ELogType.Error,
-                            "[ALIGN_TEST] Bottom slot={0} grab 실패(null) — NG 반환 //260626 hbk", (int)slot);
+                            "[ALIGN_TEST] Bottom slot={0} grab 실패(null) — NG 반환", (int)slot);
                         FillAlignPoseZero(pResult);
                         return false;
                     }
@@ -440,7 +440,7 @@ namespace ReringProject {
                     if (!res.Found)
                     {
                         Logging.PrintLog((int)ELogType.Error,
-                            "[ALIGN_TEST] Bottom slot={0} 검출 실패(Found=false) — NG 반환 //260626 hbk", (int)slot);
+                            "[ALIGN_TEST] Bottom slot={0} 검출 실패(Found=false) — NG 반환", (int)slot);
                         FillAlignPoseZero(pResult); //260626 hbk 검출 실패 시 pose=0 (T-65-05: 잘못된 보정값 미전송)
                         return false;
                     }
@@ -448,7 +448,7 @@ namespace ReringProject {
                     //260626 hbk 검출 성공 — pose Items 채움 (D-07)
                     FillAlignPose(pResult, res);
                     Logging.PrintLog((int)ELogType.Trace,
-                        "[ALIGN_TEST] Bottom slot={0} PASS off=({1:0.000},{2:0.000}) theta={3:0.000} //260626 hbk",
+                        "[ALIGN_TEST] Bottom slot={0} PASS off=({1:0.000},{2:0.000}) theta={3:0.000}",
                         (int)slot, res.OffsetXmm, res.OffsetYmm, res.ThetaDeg);
                     return true;
                 }
@@ -473,7 +473,7 @@ namespace ReringProject {
             {
                 //260626 hbk 예외 → throw 금지, false 반환 (TCP 스레드 크래시 방지, T-65-06)
                 Logging.PrintLog((int)ELogType.Error,
-                    "[ALIGN_TEST] RunBottomAlign 예외: {0} //260626 hbk", ex.Message);
+                    "[ALIGN_TEST] RunBottomAlign 예외: {0}", ex.Message);
                 FillAlignPoseZero(pResult); //260626 hbk WR-02: 외부 catch — 빈 Items 응답 방지, pose=0 채움
                 return false;
             }
@@ -487,7 +487,7 @@ namespace ReringProject {
                 bool bHasTemplate = EthernetVisionHandler.Handle.Matcher.HasTemplate(EEthernetVisionMode.Tray);
                 if (!bHasTemplate)
                 {
-                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 미티칭 — 모델 없음 NG //260630 hbk");
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 미티칭 — 모델 없음 NG");
                     FillAlignPoseZero(pResult);
                     return false;
                 }
@@ -495,7 +495,7 @@ namespace ReringProject {
                 bool bCameraReady = EthernetVisionHandler.Handle.Camera != null;
                 if (!bCameraReady)
                 {
-                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] 이더넷 카메라 미연결 — NG //260630 hbk");
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] 이더넷 카메라 미연결 — NG");
                     FillAlignPoseZero(pResult);
                     return false;
                 }
@@ -508,7 +508,7 @@ namespace ReringProject {
                     img = EthernetVisionHandler.Handle.Camera.Grab();
                     if (img == null)
                     {
-                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray grab 실패(null) — NG //260630 hbk");
+                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray grab 실패(null) — NG");
                         FillAlignPoseZero(pResult);
                         return false;
                     }
@@ -516,14 +516,14 @@ namespace ReringProject {
                     res = EthernetVisionHandler.Handle.Matcher.Run(img, EEthernetVisionMode.Tray);
                     if (!res.Found)
                     {
-                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 검출 실패 — NG //260630 hbk");
+                        Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 검출 실패 — NG");
                         FillAlignPoseZero(pResult);
                         return false;
                     }
 
                     FillAlignPose(pResult, res);
                     Logging.PrintLog((int)ELogType.Trace,
-                        "[ALIGN_TEST] Tray PASS off=({0:0.000},{1:0.000}) theta={2:0.000} //260630 hbk",
+                        "[ALIGN_TEST] Tray PASS off=({0:0.000},{1:0.000}) theta={2:0.000}",
                         res.OffsetXmm, res.OffsetYmm, res.ThetaDeg);
                     return true;
                 }
@@ -544,7 +544,7 @@ namespace ReringProject {
             }
             catch (Exception ex)
             {
-                Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] RunTrayAlign 예외: {0} //260630 hbk", ex.Message);
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] RunTrayAlign 예외: {0}", ex.Message);
                 FillAlignPoseZero(pResult);
                 return false;
             }
@@ -578,7 +578,7 @@ namespace ReringProject {
             catch (Exception ex)
             {
                 Logging.PrintLog((int)ELogType.Error,
-                    "[ALIGN_TEST] ApplyCoaxLightForTray 예외: {0} //260630 hbk", ex.Message);
+                    "[ALIGN_TEST] ApplyCoaxLightForTray 예외: {0}", ex.Message);
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
             }
         }
@@ -611,7 +611,7 @@ namespace ReringProject {
             catch (Exception ex)
             {
                 Logging.PrintLog((int)ELogType.Error,
-                    "[ALIGN_TEST] ApplyCoaxLightForSlot 예외: {0} //260626 hbk", ex.Message);   //260626 hbk 로그 후 off
+                    "[ALIGN_TEST] ApplyCoaxLightForSlot 예외: {0}", ex.Message);   //260626 hbk 로그 후 off
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);   //260626 hbk 예외 시 안전 off (throw 금지)
             }
         }
@@ -885,7 +885,7 @@ namespace ReringProject {
             ackPacket.IsOk = bAllReset;
 
             Logging.PrintLog((int)ELogType.Trace,
-                "[RESET] site={0} 수신 — _lastPrepZIndex=0, 시퀀스 리셋 결과={1} //260807 hbk", packet.Site, bAllReset);
+                "[RESET] site={0} 수신 — _lastPrepZIndex=0, 시퀀스 리셋 결과={1}", packet.Site, bAllReset);
             return ackPacket;
         }
 
@@ -1004,14 +1004,14 @@ namespace ReringProject {
                 if (!bDidReset)
                 {
                     Logging.PrintLog((int)ELogType.Error,
-                        "[RESET] Seq={0} 실행 중(State={1}) — 상태 리셋 건너뜀(스레드 안전). 사이클 종료 후 $RESET 재전송 필요. //260807 hbk //260810 hbk 원자적 판정으로 교체",
+                        "[RESET] Seq={0} 실행 중(State={1}) — 상태 리셋 건너뜀(스레드 안전). 사이클 종료 후 $RESET 재전송 필요.",
                         inspSeq.Name, inspSeq.State.ToString());
                     continue;
                 }
 
                 nReset++;
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[RESET] Seq={0} 클린 슬레이트 완료 //260807 hbk", inspSeq.Name);
+                    "[RESET] Seq={0} 클린 슬레이트 완료", inspSeq.Name);
             }
 
             bool bAllReset = nFound > 0 && nReset == nFound;

@@ -386,7 +386,7 @@ namespace ReringProject.Sequence {
                     szState = context.State.ToString();
                 }
                 Logging.PrintLog((int)ELogType.LightController,
-                    "[CycleLightOff] Seq={0}, path=abnormal-{1}, z={2} //260807 hbk Phase71 WR-01", Name, szState, m_nCurrentZIndex);
+                    "[CycleLightOff] Seq={0}, path=abnormal-{1}, z={2}", Name, szState, m_nCurrentZIndex);
             } catch {
             }
         }
@@ -654,7 +654,7 @@ namespace ReringProject.Sequence {
                 if (bCrossZOwned)
                 {
                     Logging.PrintLog((int)ELogType.LightController,
-                        "[PREP CrossZ] Shot={0}, ShotZIndex={1}, RequestedZIndex={2}, Seq={3} //260729 hbk quick-fix(260729-hwb)",
+                        "[PREP CrossZ] Shot={0}, ShotZIndex={1}, RequestedZIndex={2}, Seq={3}",
                         shot.ShotName, shot.ZIndex, nZIndex, Name);
                     return shot;
                 }
@@ -754,7 +754,7 @@ namespace ReringProject.Sequence {
             if (!bHasShot)
             {
                 Logging.PrintLog((int)ELogType.LightController,
-                    "[PREP] Shot not found for ZIndex={0}, Seq={1} //260625 hbk Phase 64", nZIndex, Name);
+                    "[PREP] Shot not found for ZIndex={0}, Seq={1}", nZIndex, Name);
                 return false;
             }
             ApplyShotLightsInternal(shot);
@@ -888,7 +888,7 @@ namespace ReringProject.Sequence {
             }
             TurnOffOwnShotLights();   //260807 hbk Phase71 CR-01: 전 채널 소등(TurnOffShotLights) 대신 이 시퀀스 채널만 소등 — 형제 시퀀스 간섭 차단
             Logging.PrintLog((int)ELogType.LightController,
-                "[CycleLightOff] Seq={0}, path={1}, z={2}, result={3} //260806 hbk Phase 71", Name, szPath, nZIndex, packet.Result);
+                "[CycleLightOff] Seq={0}, path={1}, z={2}, result={3}", Name, szPath, nZIndex, packet.Result);
         }
 
         //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 조명 → LightHandler 적용.
@@ -1445,7 +1445,7 @@ namespace ReringProject.Sequence {
                 datumName = "";
             }
             Logging.PrintLog((int)ELogType.Error,
-                "[V1Scope] Datum '" + datumName + "' SourceShotName 미해결 — 첫 owned Action(index=" + nFirstOwnedIndex + ")을 DatumPhase 트리거로 사용. //260722 hbk");
+                "[V1Scope] Datum '" + datumName + "' SourceShotName 미해결 — 첫 owned Action(index=" + nFirstOwnedIndex + ")을 DatumPhase 트리거로 사용.");
             triggerIndices.Add(nFirstOwnedIndex);
         }
 
@@ -1871,7 +1871,7 @@ namespace ReringProject.Sequence {
             if (bEmptyScope)
             {
                 Logging.PrintErrLog((int)ELogType.Error,
-                    "[V1Cycle] BuildScopedResponse 빈 결과: ZIndex 매칭 0건 (Seq=" + Name + ", z=" + nZIndex + ", last=" + m_nLastZIndex + "). 레시피 ZIndex 설정 확인 필요. //260623 hbk");
+                    "[V1Cycle] BuildScopedResponse 빈 결과: ZIndex 매칭 0건 (Seq=" + Name + ", z=" + nZIndex + ", last=" + m_nLastZIndex + "). 레시피 ZIndex 설정 확인 필요.");
             }
             else
             {

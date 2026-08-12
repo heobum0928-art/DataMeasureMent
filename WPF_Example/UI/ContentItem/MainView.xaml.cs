@@ -3851,7 +3851,7 @@ namespace ReringProject.UI {
             else                                                               datum = null;
             if (datum == null) {
                 //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
-                CustomMessageBox.Show("모델 생성 실패", "Datum 티칭 존을 먼저 선택하세요.");
+                CustomMessageBox.Show("모델 생성 실패", "Datum 티칭 존을 먼저 선택하세요.", MessageBoxImage.Error, true, false);
                 return;
             }
 
@@ -3861,13 +3861,13 @@ namespace ReringProject.UI {
 
             HImage img = halconViewer.CurrentImage;
             if (img == null) {
-                CustomMessageBox.Show("모델 생성 실패", "이미지가 없습니다. 먼저 Grab 또는 Load Image 를 수행하세요.");
+                CustomMessageBox.Show("모델 생성 실패", "이미지가 없습니다. 먼저 Grab 또는 Load Image 를 수행하세요.", MessageBoxImage.Error, true, false);
                 return;
             }
 
             // W2: PatternRoi 미확보 시 모델 생성 차단 (silent 실패 0)
             if (datum.PatternRoi_Length1 <= 0.0 || datum.PatternRoi_Length2 <= 0.0) {
-                CustomMessageBox.Show("모델 생성 실패", "패턴 ROI(Rect) 를 먼저 그리세요. ([패턴 ROI] 버튼)");
+                CustomMessageBox.Show("모델 생성 실패", "패턴 ROI(Rect) 를 먼저 그리세요. ([패턴 ROI] 버튼)", MessageBoxImage.Error, true, false);
                 return;
             }
 
@@ -3887,7 +3887,7 @@ namespace ReringProject.UI {
             // 54-04 런타임 load 와 동일 키 (D-07) — 직접 경로 도출 금지, 헬퍼만 사용
             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
             if (string.IsNullOrEmpty(modelPath)) {
-                CustomMessageBox.Show("모델 생성 실패", "모델 경로 도출 실패 (레시피/Shot 확인).");
+                CustomMessageBox.Show("모델 생성 실패", "모델 경로 도출 실패 (레시피/Shot 확인).", MessageBoxImage.Error, true, false);
                 return;
             }
 
@@ -3929,10 +3929,10 @@ namespace ReringProject.UI {
                                 datum.RefMatch2Col = rc2;
                                 alignMsg = "\n패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성";
                             } else {
-                                alignMsg = "\n[경고] 패턴 2 모델 생성됨, ref pose 기록 실패 → 단일 패턴 폴백: " + (refErr2 ?? "");
+                                alignMsg = "\n[경고] 패턴 2 모델 생성됨, ref pose 기록 실패 → 단일 패턴 폴백: " + TeachDiagnostics.ToKoreanMessage(refErr2);
                             }
                         } else {
-                            alignMsg = "\n[경고] 패턴 2 모델 생성 실패 → 단일 패턴 폴백: " + (err2 ?? "");
+                            alignMsg = "\n[경고] 패턴 2 모델 생성 실패 → 단일 패턴 폴백: " + TeachDiagnostics.ToKoreanMessage(err2);
                         }
                     } else {
                         alignMsg = "\n(패턴 2 미설정 — 단일 패턴 x,y+단일각 보정만. [패턴 2] 버튼으로 그리면 2-점 baseline 회전보정)";
@@ -3956,7 +3956,7 @@ namespace ReringProject.UI {
                         catch (Exception saveEx) {
                             //260710 hbk 저장 실패해도 티칭 흐름/메모리 RefMatch 는 그대로 유지. 로그+경고만.
                             Logging.PrintErrLog((int)ELogType.Error, "패턴 모델 Recipe Save 실패: " + saveEx.Message);
-                            CustomMessageBox.Show("저장 실패", "Recipe Save 실패 — 티칭 상태는 유지됩니다. 수동 저장 필요.\n" + saveEx.Message);
+                            CustomMessageBox.Show("저장 실패", "Recipe Save 실패 — 티칭 상태는 유지됩니다. 수동 저장 필요.\n" + saveEx.Message, MessageBoxImage.Error, true, false);
                         }
                     }
                     else {
@@ -3965,11 +3965,11 @@ namespace ReringProject.UI {
                     }
                 }
                 else {
-                    CustomMessageBox.Show("ref pose 기록 실패", refError);
+                    CustomMessageBox.Show("기준 위치 기록 실패", TeachDiagnostics.ToKoreanMessage(refError), MessageBoxImage.Error, true, false);
                 }
             }
             else {
-                CustomMessageBox.Show("모델 생성 실패", error);
+                CustomMessageBox.Show("모델 생성 실패", TeachDiagnostics.ToKoreanMessage(error), MessageBoxImage.Error, true, false);
             }
         }
 

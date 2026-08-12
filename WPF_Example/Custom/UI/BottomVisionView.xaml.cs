@@ -12,6 +12,8 @@ using ReringProject.Halcon.Models;
 using ReringProject.Sequence;
 using ReringProject.Setting;
 using ReringProject.UI;
+using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
+using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
 namespace ReringProject.Custom.UI {
 
@@ -443,7 +445,8 @@ namespace ReringProject.Custom.UI {
 
             // T-65-04: 슬롯 미선택 시 조기 반환 — 의도치 않은 단일경로 덮어쓰기 방지
             if (_selectedSlot == EBottomAlignSlot.None) {
-                lbl_teachStatus.Text = "면 슬롯을 먼저 선택하세요"; //260626 hbk 슬롯 미선택 가드
+                lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Weak, "면 슬롯을 먼저 선택하세요"); //260626 hbk 슬롯 미선택 가드
+                lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
                 return;
             }
 
@@ -461,7 +464,8 @@ namespace ReringProject.Custom.UI {
                 // 두 ROI 모두 유효한지 검증
                 string validErr = ValidateRois();
                 if (validErr != null) {
-                    lbl_teachStatus.Text = validErr;
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Weak, validErr);
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
                     return;
                 }
 
@@ -485,18 +489,21 @@ namespace ReringProject.Custom.UI {
                 if (bOk) {
                     bool bHas = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE, _selectedSlot); //260626 hbk 슬롯별 HasTemplate 확인
                     string slotLabel = EBottomAlignSlotMap.ToDisplayLabel(_selectedSlot);
-                    lbl_teachStatus.Text = "[" + slotLabel + "] 티칭 OK (HasTemplate=" + bHas + ")"; //260626 hbk 슬롯 라벨 포함 메시지
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Good, "[" + slotLabel + "] 티칭 OK (HasTemplate=" + bHas + ")"); //260626 hbk 슬롯 라벨 포함 메시지
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Good);
 
                     // 티칭 성공 시 이 슬롯의 ROI 쌍을 영구 보관
                     _slotRois[_selectedSlot] = new RoiDefinition[] { _roi1, _roi2 }; //260626 hbk 슬롯별 ROI 보관 (슬롯 전환 후 복원용)
                 }
                 else {
-                    lbl_teachStatus.Text = "티칭 실패: " + error;
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Bad);
                 }
                 _drawingSlot = 0;
             }
             catch (Exception ex) {
-                lbl_teachStatus.Text = "티칭 예외: " + ex.Message;
+                lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 예외: " + TeachDiag.ToKoreanMessage(ex.Message));
+                lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Bad);
             }
         }
 
@@ -943,20 +950,24 @@ namespace ReringProject.Custom.UI {
             if (_selectedSlot == EBottomAlignSlot.None) {
                 // 슬롯 미선택: 단일 경로 상태 표시
                 if (bHasTemplate) {
-                    lbl_teachStatus.Text = "티칭 OK (단일 경로)"; //260626 hbk None=단일 경로 상태
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Good, "티칭 OK (단일 경로)"); //260626 hbk None=단일 경로 상태
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Good);
                 }
                 else {
-                    lbl_teachStatus.Text = "티칭 없음 (슬롯 선택 필요)"; //260626 hbk None=슬롯 선택 안내
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Weak, "티칭 없음 (슬롯 선택 필요)"); //260626 hbk None=슬롯 선택 안내
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
                 }
             }
             else {
                 // 슬롯 선택: 슬롯 라벨 포함 상태 표시
                 string slotLabel = EBottomAlignSlotMap.ToDisplayLabel(_selectedSlot);
                 if (bHasTemplate) {
-                    lbl_teachStatus.Text = "[" + slotLabel + "] 티칭 OK"; //260626 hbk 슬롯 라벨 포함 OK
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Good, "[" + slotLabel + "] 티칭 OK"); //260626 hbk 슬롯 라벨 포함 OK
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Good);
                 }
                 else {
-                    lbl_teachStatus.Text = "[" + slotLabel + "] 티칭 없음"; //260626 hbk 슬롯 라벨 포함 없음
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Weak, "[" + slotLabel + "] 티칭 없음"); //260626 hbk 슬롯 라벨 포함 없음
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
                 }
             }
         }

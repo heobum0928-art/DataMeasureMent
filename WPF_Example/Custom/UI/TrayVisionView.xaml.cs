@@ -12,6 +12,8 @@ using ReringProject.Halcon.Models;
 using ReringProject.Sequence;
 using ReringProject.Setting;
 using ReringProject.UI;
+using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
+using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
 namespace ReringProject.Custom.UI {
 
@@ -286,7 +288,8 @@ namespace ReringProject.Custom.UI {
                 // 두 ROI 모두 유효한지 검증
                 string validErr = ValidateRois();
                 if (validErr != null) {
-                    lbl_teachStatus.Text = validErr;
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Weak, validErr);
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
                     return;
                 }
 
@@ -308,15 +311,18 @@ namespace ReringProject.Custom.UI {
 
                 if (bOk) {
                     bool bHas = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE);
-                    lbl_teachStatus.Text = "티칭 OK (HasTemplate=" + bHas + ")";
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Good, "티칭 OK (HasTemplate=" + bHas + ")");
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Good);
                 }
                 else {
-                    lbl_teachStatus.Text = "티칭 실패: " + error;
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Bad);
                 }
                 _drawingSlot = 0;
             }
             catch (Exception ex) {
-                lbl_teachStatus.Text = "티칭 예외: " + ex.Message;
+                lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 예외: " + TeachDiag.ToKoreanMessage(ex.Message));
+                lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Bad);
             }
         }
 
@@ -577,10 +583,12 @@ namespace ReringProject.Custom.UI {
             }
 
             if (bHasTemplate) {
-                lbl_teachStatus.Text = "티칭 OK (HasTemplate=True)";
+                lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Good, "티칭 OK (HasTemplate=True)");
+                lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Good);
             }
             else {
-                lbl_teachStatus.Text = "티칭 없음";
+                lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Weak, "티칭 없음");
+                lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
             }
         }
 

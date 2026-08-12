@@ -36,6 +36,11 @@ namespace ReringProject {
         // (row, col, rad, vizXld). 라벨 + 뷰어 피팅원 표시. BottomVisionView.AttachSharedViewer 에서 등록.
         public Action<double, double, double, HObject> OnCalibEndViewer { get; set; }
 
+        //quick-260812: TCP ALIGN_CALIB 실패를 화면에도 알리는 콜백(문구 1개).
+        // 지금까지 자동경로 실패는 로그 파일에만 남아 운영자가 알 방법이 없었다.
+        // BottomVisionView.AttachSharedViewer 에서 등록. UI 스레드 마샬링은 호출 측 책임(형제 콜백과 동일).
+        public Action<string> OnCalibError { get; set; }
+
         private EthernetVisionHandler() {
         }
 

@@ -658,6 +658,35 @@ namespace ReringProject {
             pkt.Items.Add(itemTheta);
         }
 
+        //quick-260812: TCP 자동경로의 캘 실패를 화면에도 알린다. 로그·판정·응답은 그대로 둔다.
+        //  마샬링을 여기(호출 측)에서 하는 이유: 통신 스레드가 라벨을 직접 만지면 안 되고,
+        //  기존 뷰어 콜백 2개도 정확히 같은 위치에서 같은 방식으로 넘긴다.
+        //  구독자가 없거나(창 미부착) 앱 종료 중이면 조용히 지나간다.
+        //  전체를 try 로 감싸는 이유: 여기서 예외가 새면 통신 응답 흐름이 끊긴다.
+        private void NotifyAlignCalibError(string szMessage)
+        {
+            try
+            {
+                Action<string> errCb = EthernetVisionHandler.Handle.OnCalibError;
+                bool bHasSubscriber = errCb != null;
+                if (!bHasSubscriber)
+                {
+                    return;
+                }
+                System.Windows.Application app = System.Windows.Application.Current;
+                bool bHasApp = app != null;
+                if (!bHasApp)
+                {
+                    return;
+                }
+                app.Dispatcher.Invoke(() => errCb(szMessage));
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 화면 알림 전달 실패: {0}", ex.Message);
+            }
+        }
+
         //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리.
         //260625 hbk v3.0: CmdStr echo 추가. AlignFace 제거됨.
         //260630 hbk Phase 60: 스텁 → 실 구현 (START/STEP/END/ABORT 분기 + PickerCal 연결).
@@ -681,6 +710,7 @@ namespace ReringProject {
             if (!bCmdIsNumeric)                                               //260807 hbk quick-260807-omy 비숫자 가드 — 코드 비교보다 반드시 먼저 (0=START 오인식 방지)
             {
                 Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 숫자가 아닌 CmdStr: {0}", szCmd);
+                NotifyAlignCalibError("[자동] 명령 형식 오류: " + szCmd);
                 return resultPacket;
             }
 
@@ -701,6 +731,7 @@ namespace ReringProject {
                 {
                     Logging.PrintLog((int)ELogType.Error,
                         "[ALIGN_CALIB] START: 모델 로드 실패 ({0})", loadErr);
+                    NotifyAlignCalibError("[자동] START 모델 로드 실패: " + loadErr);
                 }
                 resultPacket.IsPass = true;
                 resultPacket.StepNo = 0;    //260810 hbk quick-260810-olh: N=0 고정(제어팀 요청, START 의미)
@@ -715,6 +746,7 @@ namespace ReringProject {
                 if (!bCameraReady)
                 {
                     Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] STEP: 카메라 미연결");
+                    NotifyAlignCalibError("[자동] STEP: 카메라 미연결");
                     return resultPacket;
                 }
 
@@ -731,6 +763,7 @@ namespace ReringProject {
                     if (!bGrabOk)
                     {
                         Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] STEP: Grab 실패");
+                        NotifyAlignCalibError("[자동] STEP: Grab 실패");
                         return resultPacket;
                     }
 
@@ -767,6 +800,7 @@ namespace ReringProject {
                     else
                     {
                         Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] STEP 실패: {0}", error);
+                        NotifyAlignCalibError("[자동] STEP 실패: " + error);
                     }
                 }
                 finally
@@ -806,6 +840,7 @@ namespace ReringProject {
                 else
                 {
                     Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] END 산출 실패: {0}", error);
+                    NotifyAlignCalibError("[자동] END 산출 실패: " + error);
                 }
                 return resultPacket;
             }
@@ -821,6 +856,7 @@ namespace ReringProject {
             }
 
             Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 알 수 없는 CmdStr: {0}", szCmd);
+            NotifyAlignCalibError("[자동] 알 수 없는 명령: " + szCmd);
             return resultPacket;
         }
 

@@ -67,7 +67,7 @@ namespace ReringProject.Sequence {
                 return false;
             }
             //260805 hbk Phase 69: 차단 사실을 남겨야 "왜 안 눌렸는지" 사후 추적이 된다(사용자 클릭 빈도라 로그 폭주 없음).
-            Logging.PrintLog((int)ELogType.Trace, "[RUN-GATE] blocked: target={0}, busy={1}",
+            Logging.PrintLog((int)ELogType.Trace, "[검사 시작 차단] {0} 시작 못 함 — {1}이(가) 이미 검사 중",
                 ResolveSequenceName(eTargetSeqId), sBlockingSeqName);
             return true;
         }

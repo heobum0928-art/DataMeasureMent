@@ -337,7 +337,7 @@ namespace ReringProject.Sequence {
         public bool Start(TestPacket packet) {
             if (packet == null) return false;
             if ((ETestType)packet.TestType == ETestType.Calibration) {
-                Logging.PrintLog((int)ELogType.Trace, "Calibration test requests are blocked from automatic sequence execution.");
+                Logging.PrintLog((int)ELogType.Trace, "[요청 거부] 캘리브레이션 요청은 자동 검사 흐름에서 처리하지 않음");
                 return false;
             }
             string seqName = packet.Identifier;

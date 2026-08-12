@@ -20,7 +20,7 @@ must_haves:
     - "[A-경계] 문자열 밖의 '진짜 코드 주석' `//YYMMDD hbk` 는 단 하나도 지워지지 않는다 — 특히 `Custom/SystemHandler.cs` 의 `//260626 hbk 로그 후 off`, `InspectionSequence.cs` 의 `szFaiName = \"FAI\"; //260629 hbk ...` 는 그대로 남는다"
     - "[B] 개발 진단 전용 `Logging.PrintLog` 호출 9개가 통째로 사라진다 — InspectionSequence 3([ALIGN]×2/[ALIGN2]×1) + Action_FAIMeasurement 2([FAI CrossZ IMG]/[QueueFaiCapture]) + Sequence/SequenceHandler 3([STARTUP-WHITE] f1/f2/f3) + Custom/SystemHandler 1([V1Scope] StartAll 폴백)"
     - "[B] 삭제된 로그에만 쓰이던 지역변수/계측 스캐폴딩이 함께 사라져 신규 `warning CS` 0 을 유지한다 — `datumDetectRotDeg`, `szShotNameForLog`, `crossZCapturedRoleLabel/MeasName/Z`, `swTotal/swStage/msPrep/msOrigin/msSnapshot/msCaptureEnqueue`"
-    - "[B-경계] 다른 곳에서도 쓰이는 심볼은 남는다 — `CROSS_Z_ROLE_SUFFIX_A`(746/780/1378/1390 사용), `GetExecutionZIndex()`, `TakeCrossZImageCopy()` 는 무변경"
+    - "[B-경계] 다른 곳에서도 쓰이는 심볼은 남는다 — `CROSS_Z_ROLE_SUFFIX_A`(746/780/1378/1390/1409 사용), `GetExecutionZIndex()`, `TakeCrossZImageCopy()` 는 무변경"
     - "[B-경계] 운영자에게 의미 있는 실패 로그는 살아남는다 — `InspectionSequence.cs` 의 `[ALIGN2] ... 패턴2 매칭 실패 → 단일 패턴 θ 폴백` (ELogType.Error) 은 삭제 대상이 아니다"
     - "[B-경계] `[STARTUP-WHITE]` 삭제는 `WPF_Example/Sequence/SequenceHandler.cs` 의 (f1)(f2)(f3) 3개뿐이다 — `App.xaml.cs` 의 (a)(e), `MainWindow.xaml.cs` 의 (b)(c)(d) 는 이번 범위 밖이라 diff 에 등장하지 않는다"
     - "[C] 3개 로그 문구가 초보 운영자도 읽을 수 있는 한글로 바뀐다 — `[RUN-GATE] blocked:` → 한글, 영어 원문 `Calibration test requests are blocked...` → 한글, `라이브 이미지로 폴백(회귀 0)` → `(회귀 0)` 제거"
@@ -219,9 +219,9 @@ must_haves:
 
 4. **`[MainRun] TestResultPacket.Target empty ...` (Custom/SystemHandler.cs 31~33)** — 무변경.
 
-5. **`[STARTUP-WHITE]` 중 이번 범위 밖인 것** — `App.xaml.cs` 의 `(a)`/`(e)`,
-   `MainWindow.xaml.cs` 의 `(b)`/`(c)`/`(d)`.
-   ⚠ `grep STARTUP-WHITE` 하면 8개가 나온다. **삭제 대상은 `WPF_Example/Sequence/SequenceHandler.cs` 의 (f1)(f2)(f3) 3개뿐이다.**
+5. **`[STARTUP-WHITE]` 중 이번 범위 밖인 것** — `App.xaml.cs` 의 `(a)`/`(e)` + 라벨 없는 1개(L41, `catch` 블록의 스플래시 실패 로그, `ELogType.Error`),
+   `MainWindow.xaml.cs` 의 `(b)`/`(c)`/`(d)`, base `WPF_Example/SystemHandler.cs`(Custom 아님)의 `(f)`/`(g)`(L248/L262, `LoadRecipe` 레시피 로드 시작/완료 계측).
+   ⚠ 전체 리포지토리에서 `grep STARTUP-WHITE` 하면 총 11개가 나온다(plan-checker 재검증, 2026-08-12). **삭제 대상은 `WPF_Example/Sequence/SequenceHandler.cs` 의 (f1)(f2)(f3) 3개뿐이고, 나머지 8개(App.xaml.cs 3 + MainWindow.xaml.cs 3 + base SystemHandler.cs 2)는 전부 범위 밖이라 손대지 않는다.**
 
 6. **`[ALIGN2] ... 패턴2 매칭 실패 → 단일 패턴 θ 폴백` (InspectionSequence.cs 2302)**
    — `ELogType.Error`. 운영자에게 의미 있는 실패 경고다. B그룹 삭제 대상 3개에 **포함되지 않는다.**
@@ -301,7 +301,7 @@ must_haves:
                                                     crossZCapturedZ = parentSeq2.GetExecutionZIndex();
                                                 }
 // → `if (crossZRoleImage != null) { }` 가 통째로 빈 껍데기가 되므로 그 if 도 삭제한다.
-// → CROSS_Z_ROLE_SUFFIX_A(L46 const) 는 L746/780/1378/1390 에서 계속 쓴다. 절대 삭제 금지.
+// → CROSS_Z_ROLE_SUFFIX_A(L46 const) 는 L746/780/1378/1390/1409 에서 계속 쓴다. 절대 삭제 금지.
 
 // L512~513 — 지역변수 + PrintLog 2줄 삭제. 위아래 표시 이미지 교체 로직(509~511)은 유지
                                                 string szShotNameForLog = ShotParam != null ? ShotParam.ShotName : "";
@@ -468,7 +468,7 @@ private void QueueFaiCapture(FAIConfig fai, ...) {                 // L962  유�
    - L424~431 의 `if (crossZRoleImage != null) { …5줄… }` **블록 통째 삭제**
      (안이 전부 로그용 대입이라 빈 껍데기가 된다). 바로 위 `crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);` 와
      그것을 감싸는 바깥 `if (bCaptureOk && crossZRoleImage == null && ...)` 는 **유지**.
-   - 🚫 `CROSS_Z_ROLE_SUFFIX_A`(L46 const)는 L746/780/1378/1390 에서 계속 쓴다 — **삭제 금지**.
+   - 🚫 `CROSS_Z_ROLE_SUFFIX_A`(L46 const)는 L746/780/1378/1390/1409 에서 계속 쓴다 — **삭제 금지**.
 
 **(C) `WPF_Example/Sequence/SequenceHandler.cs`(base) — 3개**
 
@@ -478,8 +478,8 @@ private void QueueFaiCapture(FAIConfig fai, ...) {                 // L962  유�
    사이의 `OnRecipeChanged?.Invoke(...)` 와 `if (result) ExecOnLoad(name);` 는 **유지**.
    Phase 43.2 기동 지연 조사는 이미 SIGNED_OFF 됐다.
 
-> 🚫 **`App.xaml.cs`(a)(e), `MainWindow.xaml.cs`(b)(c)(d) 의 `[STARTUP-WHITE]` 는 이번 범위 밖.**
-> 두 파일은 `files_modified` 에 없다 — 열지도 말 것.
+> 🚫 **`App.xaml.cs`(a)(e)+라벨없음 1개(L41), `MainWindow.xaml.cs`(b)(c)(d), base `WPF_Example/SystemHandler.cs`(f)(g, L248/L262) 의 `[STARTUP-WHITE]` 는 이번 범위 밖.**
+> 세 파일 모두 `files_modified` 에 없다 — 열지도 말 것.
 
 **(D) `Custom/SystemHandler.cs` — 1개**
 
@@ -498,12 +498,12 @@ private void QueueFaiCapture(FAIConfig fai, ...) {                 // L962  유�
 - 로직 줄(대입/호출/분기/return)은 단 하나도 지우지 않는다. 지우는 건 로그와 **로그 전용 지역변수**뿐이다.
   </action>
   <verify>
-    <automated>cd "C:/Info/Project/DataMeasurement" && S=WPF_Example/Custom/SystemHandler.cs; I=WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs; F=WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs; B=WPF_Example/Sequence/SequenceHandler.cs; echo "=== [기대 1] InspectionSequence 잔존 ALIGN 로그 = Error 폴백 1개뿐 ===" && grep -c '\[ALIGN2\?\] ' $I && echo "=== [기대 1] 그 1개가 '패턴2 매칭 실패' 인지 ===" && grep -c '패턴2 매칭 실패' $I && echo "=== [기대 0] datumDetectRotDeg ===" && grep -c 'datumDetectRotDeg' $I; echo "=== [기대 0] FAI CrossZ IMG / szShotNameForLog / crossZCaptured ===" && grep -c 'FAI CrossZ IMG' $F; grep -c 'szShotNameForLog' $F; grep -c 'crossZCaptured' $F; echo "=== [기대 5] CROSS_Z_ROLE_SUFFIX_A 보존 (46/746/780/1378/1390) ===" && grep -c 'CROSS_Z_ROLE_SUFFIX_A' $F && echo "=== [기대 0] base SequenceHandler STARTUP-WHITE ===" && grep -c 'STARTUP-WHITE' $B; echo "=== [기대 5] 범위밖 STARTUP-WHITE 는 그대로 (App 2 + MainWindow 3) ===" && grep -c 'STARTUP-WHITE' WPF_Example/App.xaml.cs && grep -c 'STARTUP-WHITE' WPF_Example/MainWindow.xaml.cs && echo "=== [기대 0] 범위밖 2파일 diff 무등장 ===" && git status --porcelain -- WPF_Example/App.xaml.cs WPF_Example/MainWindow.xaml.cs | wc -l && echo "=== [기대 0] V1Scope z=0 폴백 로그 + 잔존 문자열내 태그 ===" && grep -c 'z=0: DatumConfigs 비어있음' $S; grep -c 'V1Scope\].*//26' $S; echo "=== [기대 3] D그룹 무변경 ===" && grep -c '임시 수동Z트리거' $S && echo "=== 컴파일(스크래치 OutDir) ===" && "/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe" "WPF_Example/DatumMeasurement.csproj" //p:Configuration=Debug //p:Platform=x64 //p:OutputPath="$TEMP/gsd-fye-scratch/bin/" //p:BaseIntermediateOutputPath="$TEMP/gsd-fye-scratch/obj/" //v:minimal //nologo 2>&1 | grep -iE "error CS|warning CS|Build succeeded" | head -20</automated>
+    <automated>cd "C:/Info/Project/DataMeasurement" && S=WPF_Example/Custom/SystemHandler.cs; I=WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs; F=WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs; B=WPF_Example/Sequence/SequenceHandler.cs; echo "=== [기대 1] InspectionSequence 잔존 ALIGN 로그 = Error 폴백 1개뿐 ===" && grep -c '\[ALIGN2\?\] ' $I && echo "=== [기대 1] 그 1개가 '패턴2 매칭 실패' 인지 ===" && grep -c '패턴2 매칭 실패' $I && echo "=== [기대 0] datumDetectRotDeg ===" && grep -c 'datumDetectRotDeg' $I; echo "=== [기대 0] FAI CrossZ IMG / szShotNameForLog / crossZCaptured ===" && grep -c 'FAI CrossZ IMG' $F; grep -c 'szShotNameForLog' $F; grep -c 'crossZCaptured' $F; echo "=== [기대 6] CROSS_Z_ROLE_SUFFIX_A 보존 (46/746/780/1378/1390/1409) ===" && grep -c 'CROSS_Z_ROLE_SUFFIX_A' $F && echo "=== [기대 0] base SequenceHandler(Sequence/) STARTUP-WHITE ===" && grep -c 'STARTUP-WHITE' $B; echo "=== [기대 3/3/2] 범위밖 STARTUP-WHITE 는 그대로 (App.xaml.cs 3 + MainWindow.xaml.cs 3 + base WPF_Example/SystemHandler.cs 2) ===" && grep -c 'STARTUP-WHITE' WPF_Example/App.xaml.cs && grep -c 'STARTUP-WHITE' WPF_Example/MainWindow.xaml.cs && grep -c 'STARTUP-WHITE' WPF_Example/SystemHandler.cs && echo "=== [기대 0] 범위밖 3파일 diff 무등장 ===" && git status --porcelain -- WPF_Example/App.xaml.cs WPF_Example/MainWindow.xaml.cs WPF_Example/SystemHandler.cs | wc -l && echo "=== [기대 0] V1Scope z=0 폴백 로그 + 잔존 문자열내 태그 ===" && grep -c 'z=0: DatumConfigs 비어있음' $S; grep -c 'V1Scope\].*//26' $S; echo "=== [기대 3] D그룹 무변경 ===" && grep -c '임시 수동Z트리거' $S && echo "=== 컴파일(스크래치 OutDir) ===" && "/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe" "WPF_Example/DatumMeasurement.csproj" //p:Configuration=Debug //p:Platform=x64 //p:OutputPath="$TEMP/gsd-fye-scratch/bin/" //p:BaseIntermediateOutputPath="$TEMP/gsd-fye-scratch/obj/" //v:minimal //nologo 2>&1 | grep -iE "error CS|warning CS|Build succeeded" | head -20</automated>
   </verify>
   <done>
 - `[ALIGN]`/`[ALIGN2]` 로그 잔존 1건 = `패턴2 매칭 실패` Error 로그(보존 대상). `datumDetectRotDeg` 0건.
-- `FAI CrossZ IMG` / `szShotNameForLog` / `crossZCaptured*` 0건, `CROSS_Z_ROLE_SUFFIX_A` 5건 보존.
-- base `Sequence/SequenceHandler.cs` 의 `STARTUP-WHITE` 0건. `App.xaml.cs` 2건 / `MainWindow.xaml.cs` 3건 그대로이고 두 파일 모두 미변경(`git status` 0줄).
+- `FAI CrossZ IMG` / `szShotNameForLog` / `crossZCaptured*` 0건, `CROSS_Z_ROLE_SUFFIX_A` 6건 보존(46/746/780/1378/1390/1409).
+- base `Sequence/SequenceHandler.cs`(파일 A) 의 `STARTUP-WHITE` 0건. `App.xaml.cs` 3건 / `MainWindow.xaml.cs` 3건 / base `WPF_Example/SystemHandler.cs` 2건 그대로이고 세 파일 모두 미변경(`git status` 0줄).
 - `z=0: DatumConfigs 비어있음` 0건, `V1Scope].*//26` 0건(Task 1 잔여분까지 소멸).
 - 삭제된 PrintLog 누적 8개. 신규 `error CS` 0건, 신규 `warning CS` 0건.
   </done>
@@ -591,7 +591,7 @@ verify 블록이 A/B/C/D 4개 그룹 + Picker 파일 baseline + 변경 파일 �
 3. **C그룹(문구)** — 3곳 문자열만 교체. `git diff` 에서 해당 줄의 변경이 **문자열 리터럴 안에 국한**되고
    조건문/반환값/인자 목록이 컨텍스트로만 등장(변경 줄 아님).
 4. **D그룹(무변경)** — `git diff -U0` 에 `임시 수동Z트리거`/`ALIGN_CALIB`/`[MainRun]` 0건.
-5. **범위 밖 파일** — `App.xaml.cs`, `MainWindow.xaml.cs`, `PickerCenterCalibrationService.cs` 미변경.
+5. **범위 밖 파일** — `App.xaml.cs`, `MainWindow.xaml.cs`, base `WPF_Example/SystemHandler.cs`, `PickerCenterCalibrationService.cs` 미변경.
 6. **빌드** — Debug/x64 신규 `error CS` 0 / 신규 `warning CS` 0.
 </verification>
 
@@ -611,7 +611,7 @@ SUMMARY 에 반드시 포함:
 - 그룹별 처리 건수 (A: 25곳 / B: 9개 PrintLog + 전용변수 6종 / C: 3곳 / D: 0곳)
 - **A-EXT 확장 사실** — 브리핑 4곳 → 실제 25곳으로 확장한 근거와, 확장분이 순수 문자열 접미부 삭제였다는 점
 - `QueueFaiCapture` 의 `try/finally` 해체 사실과 "예외 전파·return 동작 동일" 근거
-- 보존 판단한 로그 목록 (`[ALIGN2] 패턴2 매칭 실패`, `[ALIGN_CALIB]`, `[MainRun]`, `[임시 수동Z트리거]`, 범위 밖 `[STARTUP-WHITE]` 5개)
+- 보존 판단한 로그 목록 (`[ALIGN2] 패턴2 매칭 실패`, `[ALIGN_CALIB]`, `[MainRun]`, `[임시 수동Z트리거]`, 범위 밖 `[STARTUP-WHITE]` 8개: App.xaml.cs 3 + MainWindow.xaml.cs 3 + base SystemHandler.cs 2)
 - 빌드 방식 (정상 Rebuild 인지 / 산출물 잠김으로 스크래치 컴파일인지)
 </output>
 </content>

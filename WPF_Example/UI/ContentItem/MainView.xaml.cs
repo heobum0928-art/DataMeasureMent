@@ -3927,7 +3927,9 @@ namespace ReringProject.UI {
                                     out rr2, out rc2, out ra2, out rs2, out refErr2, datum.FindAngleExtentDeg)) {
                                 datum.RefMatch2Row = rr2;
                                 datum.RefMatch2Col = rc2;
-                                alignMsg = "\n패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성";
+                                //quick-260812: 이미 계산된 rs2 재사용 — 새 검색 호출 없음
+                                ETeachGrade grade2 = TeachDiagnostics.ClassifyScore(rs2, datum.PatternMinScore);
+                                alignMsg = "\n" + TeachDiagnostics.ToStatusLine(grade2, "패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성");
                             } else {
                                 alignMsg = "\n[경고] 패턴 2 모델 생성됨, ref pose 기록 실패 → 단일 패턴 폴백: " + TeachDiagnostics.ToKoreanMessage(refErr2);
                             }
@@ -3942,9 +3944,11 @@ namespace ReringProject.UI {
                     if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
                     //260710 hbk desync 차단: 모델 생성 성공 시 Recipe Save 확인 모달. Yes → 즉시 저장(.shm↔RefMatch 함께 영속화).
                     //  No/닫기 → 오늘과 동일(경고만). 저장 실패해도 티칭 상태(메모리 RefMatch) 유지.
+                    //quick-260812: 이미 계산된 rs 재사용 — 새 검색 호출 없음. 최소점수 기본값 복원은 이 메서드 상단이 이미 처리
+                    ETeachGrade grade1 = TeachDiagnostics.ClassifyScore(rs, datum.PatternMinScore);
                     MessageBoxResult saveChoice = CustomMessageBox.ShowConfirmation(
                         "모델 생성 완료",
-                        "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ")" + alignMsg
+                        TeachDiagnostics.ToStatusLine(grade1, "패턴 모델 생성·ref pose 기록 완료 (score " + rs.ToString("F3") + ")") + alignMsg
                             + "\n\n지금 Recipe Save 하시겠습니까? (.shm 모델과 RefMatch 기준값이 함께 저장됩니다.\n현재 미저장 편집이 함께 저장됩니다.)\n\n저장하지 않으면 다음 저장 시점까지 모델↔기준값이 어긋날 수 있습니다.",
                         MessageBoxButton.YesNo);
                     if (saveChoice == MessageBoxResult.Yes) {

@@ -26,6 +26,9 @@ namespace ReringProject {
         // D-03: 최소 스코어. NumLevels(4)/MinContrast(10)은 PatternMatchService 내부 const — 재선언 불필요.
         private const double MIN_SCORE = 0.5;
 
+        //quick-260812: 등급 산정용 최소 스코어 노출(읽기 전용). MIN_SCORE 의 값·용도는 무변경.
+        public static double TeachMinScore { get { return MIN_SCORE; } }
+
         // D-03': 모드별 angle extent 기본값(deg). 런타임/UAT 튜닝 가능 const.
         private const double TRAY_ANGLE_EXTENT_DEG   = 10.0;   // Tray = 위치 위주, 작은 범위
         private const double BOTTOM_ANGLE_EXTENT_DEG = 45.0;   // Bottom = Theta 산출, 넓은 범위
@@ -55,6 +58,12 @@ namespace ReringProject {
         private const double PICKER_ROTATION_SIGN = 1.0;
 
         private readonly PatternMatchService _matcher;
+
+        //quick-260812: 코어 TryTeach 가 이미 계산한 기준 검색 스코어 2개를 밖으로 넘기기 위한 캡처.
+        //  판정에 관여하지 않는다(진단 표시 전용). 성공 경로에서만 기록되고,
+        //  스코어 오버로드가 bOk==true 일 때만 동기적으로 읽는다(티칭 = UI 스레드 단독 경로).
+        private double _lastTeachScore1 = double.NaN;
+        private double _lastTeachScore2 = double.NaN;
 
         public AlignShapeMatchService() {
             _matcher = new PatternMatchService();   // composition — D-01 (PatternMatchService 무수정 재사용)
@@ -392,6 +401,7 @@ namespace ReringProject {
                     error = "TryFindRefPose[1]: " + findErr1;
                     return false;
                 }
+                _lastTeachScore1 = r1Score;   //quick-260812: 이미 계산된 스코어 캡처(판정 무관)
 
                 // Step 4: 동일 이미지에서 BR find → 레퍼런스 중심2 산출
                 double r2Row, r2Col, r2AngleDeg, r2Score;
@@ -403,6 +413,7 @@ namespace ReringProject {
                     error = "TryFindRefPose[2]: " + findErr2;
                     return false;
                 }
+                _lastTeachScore2 = r2Score;   //quick-260812: 이미 계산된 스코어 캡처(판정 무관)
 
                 // Step 5: D-05' — 레퍼런스 baseline = angle_lx(Ref1, Ref2)
                 double refBaselineRad = ComputeAngleLx(r1Row, r1Col, r2Row, r2Col);
@@ -429,6 +440,45 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[ALIGN_SVC] TryTeach exception: {0}", ex.Message);
                 return false;
             }
+        }
+
+        //quick-260812: 스코어 노출 오버로드(무-슬롯) — 기존 무-슬롯 오버로드와 동일하게 slot=None 으로 위임.
+        public bool TryTeach(
+            HImage img,
+            double roi1Row, double roi1Col, double roi1Phi, double roi1Len1, double roi1Len2,
+            double roi2Row, double roi2Col, double roi2Phi, double roi2Len1, double roi2Len2,
+            EEthernetVisionMode mode,
+            out double dScore1, out double dScore2,
+            out string error)
+        {
+            return TryTeach(img,
+                roi1Row, roi1Col, roi1Phi, roi1Len1, roi1Len2,
+                roi2Row, roi2Col, roi2Phi, roi2Len1, roi2Len2,
+                mode, EBottomAlignSlot.None, out dScore1, out dScore2, out error);
+        }
+
+        //quick-260812: 스코어 노출 오버로드(슬롯) — 기존 코어 TryTeach 를 그대로 호출하고
+        //  코어가 캡처해 둔 기준 검색 스코어 2개를 넘긴다. 새 HALCON 호출 0회.
+        public bool TryTeach(
+            HImage img,
+            double roi1Row, double roi1Col, double roi1Phi, double roi1Len1, double roi1Len2,
+            double roi2Row, double roi2Col, double roi2Phi, double roi2Len1, double roi2Len2,
+            EEthernetVisionMode mode,
+            EBottomAlignSlot slot,
+            out double dScore1, out double dScore2,
+            out string error)
+        {
+            dScore1 = double.NaN;
+            dScore2 = double.NaN;
+            bool bOk = TryTeach(img,
+                roi1Row, roi1Col, roi1Phi, roi1Len1, roi1Len2,
+                roi2Row, roi2Col, roi2Phi, roi2Len1, roi2Len2,
+                mode, slot, out error);
+            if (bOk) {
+                dScore1 = _lastTeachScore1;
+                dScore2 = _lastTeachScore2;
+            }
+            return bOk;
         }
 
         // ─── 런타임 위치보정 ─────────────────────────────────────────────────────

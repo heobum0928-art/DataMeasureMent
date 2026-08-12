@@ -302,17 +302,22 @@ namespace ReringProject.Custom.UI {
 
                 ApplyCoaxLight(); //260626 hbk Phase 66 — 티칭 직전 동축 자동 적용(D-07 티칭=런타임 조명 일치)
                 string error;
+                double dScore1, dScore2;   //quick-260812: 티칭이 이미 계산한 스코어 수신(등급 표시용)
                 bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
                     _viewer.CurrentImage,
                     r1, c1, phi1, l1_1, l1_2,
                     r2, c2, phi2, l2_1, l2_2,
                     VIEW_MODE,
+                    out dScore1, out dScore2,
                     out error);
 
                 if (bOk) {
                     bool bHas = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE);
-                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Good, "티칭 OK (HasTemplate=" + bHas + ")");
-                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Good);
+                    //quick-260812: 두 패턴 중 낮은 쪽 = 보수적 지표(런타임 검사와 같은 규칙)
+                    double dMinScore = Math.Min(dScore1, dScore2);
+                    ETeachGrade teachGrade = TeachDiag.ClassifyScore(dMinScore, AlignShapeMatchService.TeachMinScore);
+                    lbl_teachStatus.Text = TeachDiag.ToStatusLine(teachGrade, "티칭 OK (HasTemplate=" + bHas + ", score " + dMinScore.ToString("F3") + ")");
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(teachGrade);
                 }
                 else {
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));

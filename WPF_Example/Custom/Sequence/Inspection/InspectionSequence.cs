@@ -2266,13 +2266,6 @@ namespace ReringProject.Sequence {
             double dRow = curRow - datum.RefMatchRow;
             double dCol = curCol - datum.RefMatchCol;
             double thetaRad = (curAngleDeg - datum.RefMatchAngleDeg) * System.Math.PI / 180.0;
-            //260618 hbk Phase 54 ALIGN-01 진단 로그 — 매칭/θ 수치 확인용 (CO-54-04)
-            Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + (datum.DatumName ?? "")
-                + " cur=(" + curRow.ToString("F1") + "," + curCol.ToString("F1") + ")"
-                + " d=(" + dRow.ToString("F1") + "," + dCol.ToString("F1") + ")"
-                + " patAngDeg=" + curAngleDeg.ToString("F3") + " refPatAngDeg=" + datum.RefMatchAngleDeg.ToString("F3")
-                + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + " src=pattern"
-                + " score=" + curScore.ToString("F3") + " angleExtentDeg=" + datum.PatternAngleExtentDeg.ToString("F1"));
             // ②-2 Phase 55 ALIGN-02 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
             //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
@@ -2290,12 +2283,6 @@ namespace ReringProject.Sequence {
                     double refBaseline = System.Math.Atan2(-(datum.RefMatch2Row - datum.RefMatchRow), datum.RefMatch2Col - datum.RefMatchCol);
                     double curBaseline = System.Math.Atan2(-(cur2Row - curRow), cur2Col - curCol);
                     thetaRad = curBaseline - refBaseline;
-                    Logging.PrintLog((int)ELogType.Trace, "[ALIGN2] " + (datum.DatumName ?? "")
-                        + " p2cur=(" + cur2Row.ToString("F1") + "," + cur2Col.ToString("F1") + ")"
-                        + " refBaseDeg=" + (refBaseline * 180.0 / System.Math.PI).ToString("F3")
-                        + " curBaseDeg=" + (curBaseline * 180.0 / System.Math.PI).ToString("F3")
-                        + " thetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3")
-                        + " score2=" + cur2Score.ToString("F3") + " (baseline θ)");
                 }
                 else
                 {
@@ -2347,15 +2334,6 @@ namespace ReringProject.Sequence {
             //  실패 신호(_failedDatums/_alignFailedDatums, RuntimeDetectFailed) 제거. 상세 사유는 ClearStaleDatumFailure 주석 참고.
             ClearStaleDatumFailure(datum);
             datum.RuntimeDetectFailed = false;
-            //260618 hbk Phase 54 ALIGN-01 carry-over#1 확증로그: datum 검출각(수평 결합선) 회전분 vs 패턴 θ.
-            //  strip θ회전 적용 후 datumDetectRotDeg 가 patternThetaDeg 로 수렴(편차~0)하면 datum 검출각 정확 = 먼 측정점 정상.
-            //  축정렬 strip 가설은 0.1-0.2° 편차. UAT 1회로 메커니즘 확증.
-            double datumDetectRotDeg = datum.DetectedAngleDeg - (datum.RefAngleRad * 180.0 / System.Math.PI);
-            Logging.PrintLog((int)ELogType.Trace, "[ALIGN] " + datumKey
-                + " datumDetectAngleDeg=" + datum.DetectedAngleDeg.ToString("F3")
-                + " datumDetectRotDeg=" + datumDetectRotDeg.ToString("F3")
-                + " vs patternThetaDeg=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3")
-                + " (strip θ-rot applied)");
             //260619 hbk Phase 54 ALIGN-01 — 측정 transform 을 검출-datum 대신 패턴 pose(alignRigid)로 전환(단일 패턴 검증 단계).
             //  검출-datum transform 은 tilt 서 패턴(정답) 대비 ~130px 어긋남(먼 측정 ROI lever-arm) → EDGE_FAIL "—"(quick 260618-o2m [ALIGN-CHK] 확인).
             //  패턴 pose 는 부품 회전/이동을 강건히 반영 → 먼 측정점 ROI 정상 위치. datum 검출 origin(DetectedOrigin*)은 거리 기준으로 계속 사용(nominal 보존).

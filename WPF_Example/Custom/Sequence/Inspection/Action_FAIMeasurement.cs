@@ -346,9 +346,6 @@ namespace ReringProject.Sequence {
                                     //  소유 사본(같은 FAI 안에서 첫 캡처가 이김). null 이면 AggregateFaiResult 는 종전과
                                     //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
                                     HImage crossZRoleImage = null;
-                                    string crossZCapturedRoleLabel = null; // 표시 이미지 교체 로그용 — role(A/B) 표시
-                                    string crossZCapturedMeasName = null;  // 표시 이미지 교체 로그용 — 측정명
-                                    int crossZCapturedZ = UNSET_ZINDEX;    // 표시 이미지 교체 로그용 — 캡처 당시 z
                                     foreach (var meas in fai.Measurements) {
                                         // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
                                         // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
@@ -421,14 +418,6 @@ namespace ReringProject.Sequence {
                                                 //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
                                                 //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
                                                 crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);
-                                                if (crossZRoleImage != null)
-                                                {
-                                                    if (szCapturedRoleKey.EndsWith(CROSS_Z_ROLE_SUFFIX_A, StringComparison.Ordinal)) crossZCapturedRoleLabel = "A";
-                                                    else crossZCapturedRoleLabel = "B";
-                                                    crossZCapturedMeasName = meas.MeasurementName;
-                                                    if (crossZCapturedMeasName == null) crossZCapturedMeasName = meas.TypeName;
-                                                    crossZCapturedZ = parentSeq2.GetExecutionZIndex();
-                                                }
                                             }
                                             if (!bCompleted)
                                             {
@@ -509,8 +498,6 @@ namespace ReringProject.Sequence {
                                                 if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
                                                 pMyContext.ResultHalconImage = crossZRoleImage.CopyImage();
                                                 bShotDisplayImageReplaced = true;
-                                                string szShotNameForLog = ShotParam != null ? ShotParam.ShotName : "";
-                                                Logging.PrintLog((int)ELogType.Trace, "[FAI CrossZ IMG] Shot=" + szShotNameForLog + ", Meas=" + crossZCapturedMeasName + ", Role=" + crossZCapturedRoleLabel + ", Z=" + crossZCapturedZ + " //260729 hbk quick-fix(260729-hwb)");
                                             }
                                         }
                                         if (!faiAllPass) allPass = false;

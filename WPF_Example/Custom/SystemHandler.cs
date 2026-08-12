@@ -282,16 +282,14 @@ namespace ReringProject {
                 //  않는다 — 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행하고, 다른 측정 Shot
                 //  의 Grab/Measure 는 EStep.DatumPhase 종료부(ShouldSkipMeasurementAfterDatumPhase)에서 스킵된다.
                 //  DatumConfigs 가 비어있거나(엣지 케이스) 대표 트리거가 하나도 해석 안 되면 정상적으로 가능한
-                //  레시피 구성(운영 오류 아님)이므로 Trace 로그만 남기고 StartAll 로 안전 폴백한다(회귀 0, T-68-16
-                //  — z>=1 분기의 "매칭 0건" Error 로그와는 성격이 다름).
+                //  레시피 구성(운영 오류 아님)이므로 StartAll 로 안전 폴백한다.
+                //  quick-260812: 진단 로그 제거 — 정상 폴백 경로라 운영자에게 알릴 내용이 없다.
                 List<int> datumZeroIndices = inspDatumSeq.FindZeroIndexDatumTriggerActionIndices();
                 bool bHasDatumZeroTrigger = datumZeroIndices != null && datumZeroIndices.Count > 0;
                 if (bHasDatumZeroTrigger)
                 {
                     return seq.StartSubset(datumZeroIndices.ToArray(), packet);
                 }
-                Logging.PrintLog((int)ELogType.Trace,
-                    string.Format("[V1Scope] Seq={0} z=0: DatumConfigs 비어있음(또는 트리거 미해결) — StartAll 폴백. //260722 hbk", seq.Name));
                 return seq.StartAll(packet);
             }
             InspectionSequence inspSeq = seq as InspectionSequence; //260722 hbk dynamic-FAI 런타임 타입은 항상 InspectionSequence

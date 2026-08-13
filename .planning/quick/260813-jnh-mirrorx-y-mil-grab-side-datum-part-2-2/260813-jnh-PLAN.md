@@ -10,7 +10,6 @@ files_modified:
   - WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
   - WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs
   - WPF_Example/UI/ContentItem/MainView.xaml.cs
-  - D:/Data/Recipe/FAI_1/main.ini
 autonomous: false
 requirements: [QUICK-260813-JNH]
 
@@ -18,10 +17,10 @@ must_haves:
   truths:
     - "SIDE 카메라 grab 이 Datum 의 MirrorX/MirrorY 값에 따라 MIL 하드웨어 grab 방향(M_GRAB_DIRECTION_X/Y)이 반전된 이미지를 돌려준다"
     - "MirrorX/MirrorY 가 둘 다 꺼진 Datum·Shot 은 변경 전과 완전히 동일한 무미러 역할 식별자로 grab 된다 (회귀 0)"
-    - "Shot 검사이미지 grab 이 그 Shot 의 DatumRef 를 통해 소유 Datum 의 미러 설정을 그대로 따라간다 (z=14 Shot 이 z=12/13 Datum 과 같은 방향으로 찍힘)"
+    - "Shot 검사이미지 grab 이 그 Shot 의 측정들이 참조하는 DatumRef 를 통해 소유 Datum 의 미러 설정을 그대로 따라간다"
     - "DatumRef 가 현재 레시피에서 해석되지 않으면 미러를 적용하지 않고(fail-safe) Error 로그에 Shot 이름과 미해석 DatumRef 값이 남는다"
-    - "SIDE_SHOT_3_H5 의 stale DatumRef 가 현재 Datum 이름으로 교정되어 InspectionSequence.IsDatumRefUnresolvable 이 false 를 반환한다"
     - "HALCON 소프트웨어 미러(mirror_image / RotateImage) 호출이 diff 에 0건이다"
+    - "운영 레시피 파일(D:\\Data\\Recipe\\**)은 읽기만 하고 이번 작업에서 편집되지 않는다"
   artifacts:
     - path: "WPF_Example/Custom/Device/DeviceHandler.cs"
       provides: "미러 역할 식별자 생성(BuildGrabRoleIdentifier) + 미러 역할 DeviceInfo 클론 생성(BuildMirrorRoleInfos/CloneRoleInfo)"
@@ -36,8 +35,6 @@ must_haves:
       provides: "생산 경로 grab 2곳 배선 (Shot 검사이미지 grab / Datum 검출 grab)"
     - path: "WPF_Example/UI/ContentItem/MainView.xaml.cs"
       provides: "티칭 경로 grab 3곳 배선 (일반 Grab / Datum Grab / 검사이미지 Grab)"
-    - path: "D:/Data/Recipe/FAI_1/main.ini"
-      provides: "SIDE_SHOT_3_H5 의 stale DatumRef 교정 (Side_Datum_3 → Side_Datum_4-2)"
   key_links:
     - from: "Action_FAIMeasurement.cs EStep.Grab"
       to: "InspectionSequence.ResolveShotGrabMirror"
@@ -48,7 +45,7 @@ must_haves:
       via: "DeviceHandler.BuildGrabRoleIdentifier(param.DeviceName, mirrorX, mirrorY)"
       pattern: "GrabHalconImage\\([A-Za-z]+, "
     - from: "DeviceHandler.Initialize() MIL 분기"
-      to: "MilCamera._roleInfoMap (4개 SIDE 역할)"
+      to: "MilCamera._roleInfoMap (역할별 미러 3조합)"
       via: "milCam.RegisterRoleInfo(mirrorInfo) — MilCamera.cs 무수정"
       pattern: "RegisterRoleInfo"
     - from: "MilCamera.ResolveRoleInfo(requestIdentifier)"
@@ -58,16 +55,17 @@ must_haves:
 ---
 
 <objective>
-Part 1(quick-260813-fdt, 커밋 b49d14f)에서 `DatumConfig` 에 추가만 해두고 아무도 읽지 않던 `MirrorX`/`MirrorY` 설정값을, 실제 MIL 카메라 grab 방향 반전으로 연결한다. 추가로 조사 과정에서 실 레시피에서 발견된 고아 `DatumRef` 데이터 결함 1건을 교정한다.
+Part 1(quick-260813-fdt, 커밋 b49d14f)에서 `DatumConfig` 에 추가만 해두고 아무도 읽지 않던 `MirrorX`/`MirrorY` 설정값을, 실제 MIL 카메라 grab 방향 반전으로 연결한다.
 
-Purpose: SIDE 지그의 특정 물리 포즈(`Side_Datum_4-1`, z=12/13/14)는 카메라가 뒤집힌 방향으로 찍어야 한다. 소프트웨어 미러(HALCON `mirror_image`, ~27ms/장)는 택타임 비용 때문에 이미 기각됐고, MIL 하드웨어 grab 방향 반전(비용 0)만 사용한다.
+Purpose: SIDE 지그의 특정 물리 포즈(`Side_Datum_4-1` 계열)는 카메라가 뒤집힌 방향으로 찍어야 한다. 소프트웨어 미러(HALCON `mirror_image`, ~27ms/장)는 택타임 비용 때문에 이미 기각됐고, MIL 하드웨어 grab 방향 반전(비용 0)만 사용한다.
 
 Output:
-- SIDE MIL 역할 4종(무미러 기준 + 미러 3조합)이 앱 시작 시 정적 등록됨
+- MIL 역할별 4종(무미러 기준 + 미러 3조합)이 앱 시작 시 정적 등록됨
 - `DeviceHandler.GrabHalconImage(ICameraParam, string)` 2-인자 오버로드 신설
 - grab 호출부 5곳이 올바른 역할 식별자를 선택
 - Shot→Datum 역추적 헬퍼 + 해석 실패 시 fail-safe(무미러) + 경고 로그
-- 실 레시피의 stale `DatumRef` 1건 교정
+
+**이 작업은 코드만 바꾼다. 운영 레시피 파일은 한 바이트도 편집하지 않는다.**
 </objective>
 
 <execution_context>
@@ -79,17 +77,28 @@ Output:
 @.planning/quick/260813-jnh-mirrorx-y-mil-grab-side-datum-part-2-2/260813-jnh-RESEARCH.md
 @CLAUDE.md
 
-RESEARCH.md 를 먼저 읽어라. 이 plan 의 모든 file:line 은 거기서 실측 확인된 것이고, 아래 `<interfaces>` 는 plan 작성 시점에 재확인해 옮겨둔 것이다. **코드베이스 재탐색 없이 바로 구현 가능하다.**
+## ⚠ RESEARCH.md 신뢰 범위 (반드시 먼저 읽을 것)
+
+RESEARCH.md 는 **두 부분으로 나뉘고 신뢰도가 다르다.**
+
+| RESEARCH.md 내용 | 신뢰도 | 근거 |
+|---|---|---|
+| **소스코드 조사**(파일 경로, file:line, 인터페이스, 설계 A/대안 기각 근거) | ✅ **신뢰 가능** | plan-checker 가 현재 소스 트리와 전부 대조해 일치 확인 |
+| **실 레시피(`D:\Data\Recipe\FAI_1\main.ini`) 관련 서술 전부** | ❌ **전면 무효 — 실제 파일과 일치하지 않음** | plan-checker + orchestrator 가 라이브 파일을 직접 반복 확인. 파일 크기·Shot 이름·라인 번호·"고아 DatumRef" 주장이 **모두 실제와 불일치** |
+
+**따라서: RESEARCH.md 안의 어떤 레시피 관련 이름/라인번호/수치도 그대로 쓰지 마라.** 레시피에 관한 사실이 필요하면 아래 "실 레시피 실측 결과(2026-08-13 재확인)" 표만 쓰거나, 직접 파일을 다시 읽어라. 특히 RESEARCH.md 가 주장한 "고아/stale DatumRef 데이터 결함"은 **현재 라이브 레시피에 존재하지 않는다** — 고칠 대상이 없으므로 이 plan 에는 레시피 편집 태스크가 없다.
+
+아래 `<interfaces>` 는 plan 작성 시점에 실제 소스에서 재확인해 옮겨둔 것이다. **코드베이스 재탐색 없이 바로 구현 가능하다.**
 
 ## 이 작업의 배경 (한 문장)
 
-SIDE 지그의 4-1 포즈는 물리적으로 뒤집혀 있어서, 그 포즈에서 찍는 사진 3장(Datum 용 z=12, z=13 + 측정 이미지용 z=14)을 카메라가 상하/좌우로 뒤집어서 찍어줘야 한다. Part 1 에서 "뒤집을까요?" 라는 설정 스위치만 만들어 뒀고, 이번 작업이 그 스위치를 실제 카메라에 연결한다.
+SIDE 지그의 4-1 포즈는 물리적으로 뒤집혀 있어서, 그 포즈에서 찍는 사진(Datum 검출용 + 측정 이미지용)을 카메라가 상하/좌우로 뒤집어서 찍어줘야 한다. Part 1 에서 "뒤집을까요?" 라는 설정 스위치만 만들어 뒀고, 이번 작업이 그 스위치를 실제 카메라에 연결한다.
 
 ## 설계 요약 (RESEARCH "설계 A" — 확정, 재검토 불필요)
 
 미러 조합은 (MirrorX, MirrorY) 불리언 2개 = **최대 4가지**뿐이다. 그래서 레시피를 스캔할 필요 없이 **앱 시작 시 4가지 역할을 전부 정적 등록**해두고, grab 할 때 식별자 문자열만 골라 넘긴다.
 
-이 설계를 택한 이유(대안 기각 근거는 RESEARCH §3/§4):
+이 설계를 택한 이유(대안 기각 근거는 RESEARCH §3/§4 — 소스코드 조사분이므로 신뢰 가능):
 - 레시피는 카메라 초기화보다 **한참 뒤에** 로드된다 → "레시피 보고 등록" 은 구조적으로 불가능
 - `MilCamera._roleInfoMap` 에는 `Remove`/`Clear` 가 없다 → 레시피 교체형 등록은 유령 역할이 남는다
 - `Devices` 딕셔너리에 가짜 카메라 키를 넣는 방식은 INI 오염 + UI 드롭다운 노출 + SIMUL 전면 실패를 유발한다
@@ -98,13 +107,14 @@ SIDE 지그의 4-1 포즈는 물리적으로 뒤집혀 있어서, 그 포즈에�
 
 | 대상 | 이유 |
 |---|---|
+| `D:\Data\Recipe\**` 전체 (라이브 레시피·백업 사본 모두) | **읽기 전용.** 이번 plan 에는 레시피 편집 태스크가 없다. 어떤 write 도구도 이 경로에 쓰지 마라 |
 | `WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs` | Part 1 완료분(b49d14f). `MirrorX`/`MirrorY`/`_suppressMirrorWarning` 재수정 금지 |
 | `WPF_Example/Device/Camera/Mil/MilCamera.cs` | `RegisterRoleInfo`/`ResolveRoleInfo`/`GrabFromBuffer` 가 이미 필요한 걸 전부 제공한다. **신규 코드 0줄** |
 | TCP 프로토콜 코드 | 범위 밖 |
 | TOP/BOTTOM 카메라 설정값(`REVERSE_X_TOP` 등 상수) | 범위 밖. 상수는 한 글자도 바꾸지 않는다 |
 | 기존 Datum 판정/측정 로직 | 범위 밖. 이번 변경은 "어떤 방향으로 찍을지" 선택뿐이다 |
-| `D:\Data\Recipe\FAI_1\main.ini.bak_gapuat` 등 백업 파일 | 라이브 레시피만 수정한다 |
 | HALCON `mirror_image` / `HImage.RotateImage` | 소프트웨어 미러 전면 금지 (택타임 비용) |
+| 실행 중인 `DatumMeasurement.exe` 프로세스 | 빌드 산출물이 잠겨도 **프로세스를 죽이지 마라.** 스크래치 OutDir 로 컴파일만 검증한다(이 plan 의 빌드 스크립트가 이미 그렇게 되어 있다) |
 
 ## 코딩 규칙 (매 태스크 적용)
 
@@ -256,83 +266,100 @@ if (parentSeq2 != null && parentSeq2.DatumConfigs != null && !string.IsNullOrEmp
 :1375  GrabSaveAndDisplay(ICameraParam displayParam, DatumConfig datum, ...) grabbedHalconImage = pDev.GrabHalconImage(param);
 ```
 세 곳 모두 `param is ShotConfig shotForGrab` 패턴매칭(C# 7.0)을 이미 쓰고 있고, `SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence` 로 시퀀스를 얻는 선례가 바로 위 줄에 있다.
+
+**DatumConfig.cs:231-261 — Part 1 결과물 (무수정 대상, 읽기만)**
+```csharp
+private bool _mirrorX;   // C# 초기값 false
+public bool MirrorX { get; set; }   // [Category("Datum|Mirror")]
+private bool _mirrorY;   // C# 초기값 false
+public bool MirrorY { get; set; }   // [Category("Datum|Mirror")]
+// 파일 주석(:233-234): "INI 키 미존재 시 ParamBase.Load 의 Boolean case 가 false 를 넣는데
+//  C# 초기값과 같으므로 Load 오버라이드 폴백이 필요 없다" — 아래 회귀 0 근거의 핵심
+```
 </interfaces>
 
-## 실 레시피 실측 결과 (plan 작성 시 직접 확인 — Part B 근거)
+## 실 레시피 실측 결과 (2026-08-13 orchestrator 직접 재확인 — RESEARCH.md 서술을 대체함)
 
-`D:\Data\Recipe\FAI_1\main.ini` (2026-08-13 13:52, 214,395 bytes)
+`D:\Data\Recipe\FAI_1\main.ini` — **261,714 bytes / 11,169 lines / 최종 저장 2026-07-29 17:40**
 
-| 섹션 | ShotName | ZIndex | DatumRef | 판정 |
+### 현재 존재하는 Datum 6개 (전부)
+
+| 섹션 | DatumName |
+|---|---|
+| `[FIXTURE_DATUM_0]` (L12) | `Top_Datum` |
+| `[FIXTURE_SIDE_DATUM_0]` (L193) | `Side_Datum_3-1` |
+| `[FIXTURE_SIDE_DATUM_1]` (L337) | `Side_Datum_3-2` |
+| `[FIXTURE_SIDE_DATUM_2]` (L481) | `Side_Datum_4-1` |
+| `[FIXTURE_SIDE_DATUM_3]` (L625) | `Side_Datum_4-2` |
+| `[FIXTURE_BOTTOM_DATUM_0]` (L773) | `Bottom_Datum` |
+
+### SIDE 시퀀스가 소유한 Shot 7개 (`OwnerSequenceName=SIDE`)
+
+| 섹션 | ShotName | ZIndex | 참조 DatumRef | 측정 수 |
 |---|---|---|---|---|
-| `[SHOT_3_FAI_0_MEAS_0]` (L5033) | SIDE_SHOT_3_H5 (L4925) | 9 | `Side_Datum_3` | ⚠ **stale** — 이 이름의 Datum 은 현재 레시피에 없음 |
-| `[SHOT_5_FAI_0_MEAS_0/1/2]` (L5326/5365/5404) | **SIDE_SHOT_4-1_F9** (L5218) | **14** | `Side_Datum_4-1` | ✅ **정상** |
-| `[SHOT_4_FAI_0_MEAS_0/1]` (L5160/5199) | SIDE_SHOT_1_D1 | 2 | `Side_Datum_3-1` | ✅ 정상 |
-| `[SHOT_6_FAI_0_MEAS_0/1]` (L5531/5570) | SIDE_SHOT_2_1_D1 | 5 | `Side_Datum_3-2` | ✅ 정상 |
+| `[SHOT_3]` (L4790) | `SHOT_3-1` | 0 | `Side_Datum_3-1` | 2 |
+| `[SHOT_4]` (L4956) | `SHOT_3-2-1` | 0 | `Side_Datum_3-2` | 2 |
+| `[SHOT_5]` (L5122) | `SHOT_3-2-2` | 0 | `Side_Datum_3-2` | 2 |
+| `[SHOT_6]` (L5288) | **`SHOT_4-1-1`** | 0 | **`Side_Datum_4-1`** | 6 |
+| `[SHOT_22]` (L8109) | **`SHOT_4-1-2`** | 0 | **`Side_Datum_4-1`** | 3 |
+| `[SHOT_23]` (L8314) | `SHOT_4-2-1` | 0 | `Side_Datum_4-2` | 1 |
+| `[SHOT_24]` (L8441) | `SHOT_4-2-2` | 0 | `Side_Datum_4-2` | 6 |
 
-현재 존재하는 Datum 이름 6개: `Top_Datum`(L13), `Side_Datum_3-1`(L189), `Side_Datum_3-2`(L369), `Side_Datum_4-2`(L549), `Side_Datum_4-1`(L729), `Bottom_Datum`(L913).
+### 확정 사실 3가지
 
-**핵심 결론 (Part A 차단 아님):** 이번 작업의 실제 대상인 **`SIDE_SHOT_4-1_F9`(z=14) 의 DatumRef 3개는 이미 전부 `Side_Datum_4-1` 로 정확하다.** 즉 설계 A 의 Shot 측 역추적은 이 포즈에서 정상 동작한다. `SIDE_SHOT_3_H5` 의 stale 참조는 **조사 중 곁가지로 발견된 별개 데이터 결함**이며 Part A 정확성을 막지 않는다 — 그래도 고칠 가치가 있어 Task 1 로 분리했다.
+1. **고아/미해석 `DatumRef` 는 0건이다.** 파일 전체의 `DatumRef=` 값 122건을 전수 확인했고, 전부 위 6개 Datum 이름 중 하나와 정확히 일치한다(`Top_Datum` 61, `Bottom_Datum` 39, `Side_Datum_4-1` 9, `Side_Datum_4-2` 7, `Side_Datum_3-2` 4, `Side_Datum_3-1` 2). → **레시피 데이터 수정 태스크가 필요 없다.** RESEARCH.md 의 "stale DatumRef" 주장은 실제 파일과 무관한 내용이었다.
 
-미러 키 현황(전부 False, L219/220, 399/400, 579/580, 759/760) — 즉 **현재 레시피 기준 실행 경로는 100% 무미러**다. 이 사실이 회귀 0 을 구조적으로 보장한다(무미러 = 기존 식별자 그대로).
+2. **`Mirror` 문자열이 파일 전체에 0건이다** (대소문자 무시 검색). 즉 `MirrorX=`/`MirrorY=` 키가 아직 저장돼 있지 않다 — 이 레시피는 2026-07-29 저장분이고 Part 1(b49d14f)은 2026-08-13 커밋이라 시점상 당연하다. 다음 번 레시피 저장 때 키가 새로 기록된다.
+
+3. **위 2번이 곧 회귀 0 의 구조적 근거다.** 키 부재 → `ParamBase.Load` 의 Boolean case 가 `false` 를 넣고, C# 초기값도 `false` 다(`DatumConfig.cs:233-234` 주석이 명시). 두 경로 모두 `false` → 모든 Datum 이 무미러 → `BuildGrabRoleIdentifier` 가 base 이름을 **그대로** 반환 → `cam.GrabHalconImage(param.DeviceName)` 와 완전히 동일한 인자. **사용자가 직접 미러를 켜기 전까지는 grab 인자가 바이트 단위로 변경 전과 같다.**
 
 ## Part 1 경고 문구에 대한 메모 (코드 변경 아님)
 
 `DatumConfig.cs:238,252` 의 사용자 안내 문구는 "프로그램을 다시 시작해야 적용된다" 라고 말한다. 그런데 `MilCamera.cs:322-323` 은 **매 grab 직전마다** `MdigControl(M_GRAB_DIRECTION_X/Y)` 를 재적용한다(quick-260805-jtj 이후 확립된 기존 동작). 설계 A 는 레시피 로드에 의존하지 않으므로 실제로는 **재시작 없이도 즉시 반영된다.**
 
-→ 이건 기능상 **무해한 과잉보수 문구**다. `DatumConfig.cs` 는 수정 금지 대상이므로 **이번 작업에서 고치지 않는다.** SUMMARY 에 "알려진 기존 문구 부정확 (무해, 이번 범위 밖)" 으로만 기록하고, Task 4 실기 검증에서 재시작 없이도 되는지 관찰만 남긴다.
+→ 이건 기능상 **무해한 과잉보수 문구**다. `DatumConfig.cs` 는 수정 금지 대상이므로 **이번 작업에서 고치지 않는다.** SUMMARY 에 "알려진 기존 문구 부정확 (무해, 이번 범위 밖)" 으로만 기록하고, Task 3 실기 검증에서 재시작 없이도 되는지 관찰만 남긴다.
+
+## 빌드 검증 규약 (Task 1·2 공통 — 반드시 이 형태로)
+
+- **정상 출력 폴더(`bin/x64/*`)로 빌드하지 마라.** 지금 이 PC 에서 `DatumMeasurement.exe` 가 실행 중이라 Debug/x64 정상 경로 빌드는 `MSB3027`/`MSB3021`(파일 잠김)로 **실패한다**(plan-checker 실측 확인, PID 31328). 프로젝트 규칙상 **프로세스를 죽이는 것은 금지**다.
+- 그래서 이 plan 의 모든 컴파일 검증은 **스크래치 OutDir + `-t:Rebuild`** 로 한다. 잠김을 원천 회피하면서 매번 전체 컴파일이라 warning 수가 증분빌드에 따라 흔들리지 않는다.
+- 성공 판정은 **MSBuild 프로세스 종료 코드**로 한다. `-v:minimal -nologo` 는 "Build succeeded." 문자열을 출력하지 않으므로 문자열 판정은 무조건 실패한다.
+- 경로는 **슬래시 방향을 섞지 말 것.** 이 plan 은 **forward slash + 끝에 `/`** 로 통일한다(quick-260813-fdt 에서 실제 성공한 형태).
+  - ❌ `-p:OutputPath="C:\...\bin\"` — bash 큰따옴표 안의 끝 `\"` 가 따옴표를 이스케이프해서 명령이 깨진다
+  - ❌ `//p:OutputPath=...` — Git Bash(MSYS)가 UNC 경로로 오인해 `MSB1001`
+  - ✅ `-p:OutputPath="$SCRATCH/jnh-bin-debug/"`
+- **Debug|x64 는 `SIMUL_MODE` 를 정의**해서 MIL 등록 분기(`#else`)를 컴파일조차 하지 않는다. **Release|x64 만이 신규 MIL 코드의 유일한 컴파일 검증 수단**이다. 둘 다 돌린다.
+- Debug/x64 warning baseline = **12** (이 저장소의 오래된 고정값, quick-260813-fdt 재확인).
+- Release/x64 warning baseline = **사전 미확정값**. plan-checker 가 오늘 측정한 값은 `errors=0, warnings=10` 이지만, **믿을 기준은 Task 1 이 수정 전에 직접 측정해 파일로 기록한 값**이다.
 </context>
 
 <tasks>
 
 <task type="auto">
-  <name>Task 1: 실 레시피의 stale DatumRef 교정 (Part B — 데이터 수정, 백업 먼저)</name>
-  <files>D:/Data/Recipe/FAI_1/main.ini</files>
-  <action>
-`SIDE_SHOT_3_H5`(`[SHOT_3]`, ZIndex=9) 의 측정이 참조하는 `DatumRef=Side_Datum_3` 는 개명 잔재다. 현재 이 이름의 Datum 은 레시피에 존재하지 않으며(개명 후 이름은 `Side_Datum_4-2`), `InspectionSequence.IsDatumRefUnresolvable` 이 true 를 돌려주는 상태다.
-
-**이건 코드가 아니라 운영 레시피 데이터 수정이다. 아래 순서를 반드시 지켜라.**
-
-1. **백업 먼저.** 편집 전에 스크래치로 원본을 복사한다:
-   `cp "D:/Data/Recipe/FAI_1/main.ini" "$SCRATCH/main.ini.pre-jnh"`
-   (`$SCRATCH` = `C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad`)
-   백업이 실제로 생성됐는지 `ls -la` 로 확인한 뒤에만 편집으로 넘어간다.
-
-2. **정확히 1줄만 바꾼다.** 파일 **5033번째 줄**의
-   `DatumRef=Side_Datum_3`  →  `DatumRef=Side_Datum_4-2`
-
-   ⚠ **치명적 주의 — 단순 문자열 치환(sed s/Side_Datum_3/.../g) 절대 금지.** 같은 파일에 `Side_Datum_3-1`(2곳), `Side_Datum_3-2`(2곳) 가 있어서 부분일치로 함께 망가진다. **행 전체가 정확히 `DatumRef=Side_Datum_3` 인 줄 하나**만 교체하라(이 값을 가진 줄은 파일 전체에서 L5033 단 하나뿐임을 이미 확인함). 파일 쓰기 도구를 쓰되, 앵커 문자열은 반드시 줄 시작(`^`)과 줄 끝(`$`)이 고정된 완전 일치로 잡아라.
-
-3. **다른 레시피 사본은 손대지 않는다.** `main.ini.bak_gapuat` 등 백업 파일, `D:\디팜스자료\...` 아래 사본은 **읽기만 하고 수정 금지**. 다른 위치에 같은 stale 값을 가진 라이브 레시피가 또 있는지 조사해서 **발견하면 SUMMARY 에 보고만** 하고 편집하지 마라(사용자 판단 사항).
-
-4. Part A 대상인 `SIDE_SHOT_4-1_F9` 의 DatumRef 3개(L5326/5365/5404 = `Side_Datum_4-1`)는 **이미 정확하므로 절대 건드리지 마라.**
-
-INI 파싱 정합성은 GUI 없이 검증한다: 백업 대비 diff 가 정확히 1줄이고, 줄 수가 동일하고, 다른 DatumRef 값들의 등장 횟수가 그대로면 파서 관점에서 안전하다(`ParamBase.Load` 는 `키=값` 라인 단위 리플렉션이므로 값 문자열 교체만으로 구조가 깨지지 않는다).
-  </action>
-  <verify>
-    <automated>
-SCRATCH="C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad"
-INI="D:/Data/Recipe/FAI_1/main.ini"
-echo "--- 백업 존재 ---"; ls -la "$SCRATCH/main.ini.pre-jnh"
-echo "--- stale 값 0건이어야 함 ---"; grep -c "^DatumRef=Side_Datum_3$" "$INI" || echo 0
-echo "--- 교정 값 1건이어야 함 ---"; grep -c "^DatumRef=Side_Datum_4-2$" "$INI" || echo 0
-echo "--- 무변경 대조: 3-1=2, 3-2=2, 4-1=3 ---"
-grep -c "^DatumRef=Side_Datum_3-1$" "$INI" || echo 0
-grep -c "^DatumRef=Side_Datum_3-2$" "$INI" || echo 0
-grep -c "^DatumRef=Side_Datum_4-1$" "$INI" || echo 0
-echo "--- diff 는 정확히 1줄 변경 => '<' 1 + '>' 1 = 2 ---"; diff "$SCRATCH/main.ini.pre-jnh" "$INI" | grep -c "^[<>]" || echo 0
-echo "--- 줄 수 동일해야 함 ---"; wc -l < "$SCRATCH/main.ini.pre-jnh"; wc -l < "$INI"
-    </automated>
-  </verify>
-  <done>
-백업 `main.ini.pre-jnh` 존재. `^DatumRef=Side_Datum_3$` = 0건, `^DatumRef=Side_Datum_4-2$` = 1건. `3-1`=2, `3-2`=2, `4-1`=3 (전부 무변경). diff 변경 라인 = 정확히 2(`<` 1줄 + `>` 1줄). 두 파일 줄 수 동일. 다른 위치의 라이브 레시피 사본 조사 결과가 SUMMARY 에 기록됨(수정하지 않음).
-  </done>
-</task>
-
-<task type="auto">
-  <name>Task 2: MIL 미러 역할 4종 정적 등록 + 2-인자 grab 오버로드 (Part A 인프라)</name>
+  <name>Task 1: MIL 미러 역할 4종 정적 등록 + 2-인자 grab 오버로드 (인프라)</name>
   <files>WPF_Example/Custom/Device/DeviceHandler.cs, WPF_Example/Device/DeviceHandler.cs</files>
   <action>
-**먼저 Release/x64 빌드 baseline 을 잡아라.** 이번 신규 코드의 절반(MIL 등록 분기)은 `#else`(비-SIMUL) 안에 들어가는데, Debug/x64 는 `SIMUL_MODE` 를 정의하므로 **Debug 빌드로는 그 코드가 아예 컴파일되지 않는다.** Release/x64(`DefineConstants=TRACE`, csproj:72-74)만이 유일한 컴파일 검증 수단이다. Matrox MIL .NET 참조(`C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll`)가 이 PC 에 실재함은 확인했다. **수정 전에** Release/x64 를 1회 빌드해 error/warning 개수를 기록해 둬라(Release baseline 은 Debug 의 12 와 다를 수 있고, 사전에 알려진 값이 없다).
+### (0) ⚠ 코드를 한 글자도 고치기 **전에** Release/x64 baseline 을 측정해 파일로 기록한다
+
+이 단계를 건너뛰면 Task 1·2 의 `<verify>` 가 `RELEASE_BASELINE=MISSING` 으로 실패한다. 기억에 의존하지 말고 **반드시 파일에 남겨라.**
+
+```bash
+MSB="C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
+PROJ="C:/Info/Project/DataMeasurement/WPF_Example/DatumMeasurement.csproj"
+SCRATCH="C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad"
+mkdir -p "$SCRATCH"
+
+# 수정 전 Release/x64 — 스크래치 OutDir 로 전체 재빌드 (bin/x64 잠김 회피 + 전체 컴파일 보장)
+"$MSB" "$PROJ" -t:Rebuild -p:Configuration=Release -p:Platform=x64 -v:minimal -nologo \
+  -p:OutputPath="$SCRATCH/jnh-bin-release/" > "$SCRATCH/jnh-baseline-release.log" 2>&1
+RC=$?
+echo "BASELINE_BUILD_RC=$RC"
+echo "BASELINE_ERRORS=$(grep -c ': error' "$SCRATCH/jnh-baseline-release.log")"
+grep -c 'warning CS' "$SCRATCH/jnh-baseline-release.log" > "$SCRATCH/jnh-release-baseline.txt"
+echo "BASELINE_WARN_CS_RECORDED=$(cat "$SCRATCH/jnh-release-baseline.txt")"
+```
+
+`BASELINE_BUILD_RC` 가 0 이 아니면 **여기서 멈추고 사용자에게 보고하라** — 수정 전 코드가 이미 안 빌드된다는 뜻이므로 이번 작업의 전제가 깨진다. (참고: plan-checker 는 오늘 `RC=0 / errors=0 / warnings=10` 을 관측했다.)
 
 ### (1) `WPF_Example/Custom/Device/DeviceHandler.cs` — 상수 + 순수 헬퍼 3개 추가
 
@@ -406,7 +433,7 @@ foreach (DeviceInfo mirrorInfo in BuildMirrorRoleInfos(id)) {
 
 `SetRequiredDevice` 는 **호출하지 않는다**(그건 `IDList` → `Devices` 경로다).
 
-**등록 범위 판단(명시적 결정):** `BuildMirrorRoleInfos` 는 등록되는 MIL 역할 **모두**에 대해 호출된다. `CameraRole.Side`(PC2)에서는 `CAM_SIDE` 하나만 등록되므로 **정확히 SIDE 역할 4종**(`CAM_SIDE`, `CAM_SIDE#MX`, `CAM_SIDE#MY`, `CAM_SIDE#MXY`)이 만들어진다 — 요구사항 충족. PC1(TopBottom)에서도 같은 코드가 TOP/BOTTOM 변형을 만들지만, **기본 역할의 값은 한 비트도 바뀌지 않고**(상수 무수정) 변형 역할은 어떤 Datum 도 MirrorX/Y 를 켜지 않는 한 조회되지 않는다 → TOP/BOTTOM 동작 무변경. 특수 분기를 넣지 않는 편이 오히려 안전한 이유: 미등록 식별자는 `ResolveRoleInfo` 가 **기본 `Info` 로 조용히 폴백**하는데, 공유 인스턴스에서 `Info` 는 첫 등록 역할(PC1 이면 TOP)이라 BOTTOM 이 TOP 의 방향을 쓰게 되는 함정이 생긴다. 전 역할 등록이 그 함정을 원천 제거한다.
+**등록 범위 판단(명시적 결정):** `BuildMirrorRoleInfos` 는 등록되는 MIL 역할 **모두**에 대해 호출된다. `CameraRole.Side`(PC2)에서는 `CAM_SIDE` 하나만 등록되므로 **정확히 SIDE 역할 4종**(`CAM_SIDE`, `CAM_SIDE#MX`, `CAM_SIDE#MY`, `CAM_SIDE#MXY`)이 만들어진다 — 요구사항 충족. PC1(TopBottom)에서도 같은 코드가 TOP/BOTTOM 변형을 만들지만, **기본 역할의 값은 한 비트도 바뀌지 않고**(상수 무수정) 변형 역할은 어떤 Datum 도 MirrorX/Y 를 켜지 않는 한 조회되지 않는다 → TOP/BOTTOM 동작 무변경. 특수 분기(SIDE 전용)를 넣지 않는 편이 오히려 안전한 이유: 미등록 식별자는 `ResolveRoleInfo` 가 **기본 `Info` 로 조용히 폴백**하는데, 공유 인스턴스에서 `Info` 는 첫 등록 역할(PC1 이면 TOP)이라 BOTTOM 이 TOP 의 방향을 쓰게 되는 함정이 생긴다. 전 역할 등록이 그 함정을 원천 제거한다.
 
 ### (3) `WPF_Example/Device/DeviceHandler.cs:329-335` — 2-인자 오버로드 신설
 
@@ -432,44 +459,67 @@ public HImage GrabHalconImage(ICameraParam param, string requestIdentifier) {
   <verify>
     <automated>
 MSB="C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
-SCRATCH="C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad"
 PROJ="C:/Info/Project/DataMeasurement/WPF_Example/DatumMeasurement.csproj"
+SCRATCH="C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad"
 
-echo "===== Debug/x64 (SIMUL_MODE) ====="
-"$MSB" "$PROJ" -t:Build -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo > "$SCRATCH/jnh-t2-debug.log" 2>&1
-echo "BUILD_RC=$?"
-echo -n "errors="; grep -c ": error" "$SCRATCH/jnh-t2-debug.log" || echo 0
-echo -n "warnCS="; grep -c "warning CS" "$SCRATCH/jnh-t2-debug.log" || echo 0
+echo "===== [0] 수정 전 Release baseline 이 파일로 기록돼 있는가 ====="
+if [ -f "$SCRATCH/jnh-release-baseline.txt" ]; then
+  BASE_R=$(cat "$SCRATCH/jnh-release-baseline.txt")
+else
+  BASE_R="MISSING"
+fi
+echo "RELEASE_BASELINE=$BASE_R"
 
-echo "===== Release/x64 (비-SIMUL, MIL 분기 실제 컴파일) ====="
-"$MSB" "$PROJ" -t:Build -p:Configuration=Release -p:Platform=x64 -v:minimal -nologo > "$SCRATCH/jnh-t2-release.log" 2>&1
-echo "BUILD_RC=$?"
-echo -n "errors="; grep -c ": error" "$SCRATCH/jnh-t2-release.log" || echo 0
-echo -n "warnCS="; grep -c "warning CS" "$SCRATCH/jnh-t2-release.log" || echo 0
+echo "===== [1] Debug/x64 (SIMUL_MODE) — 스크래치 OutDir Rebuild (bin 잠김 회피, 프로세스 종료 금지) ====="
+"$MSB" "$PROJ" -t:Rebuild -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo \
+  -p:OutputPath="$SCRATCH/jnh-bin-debug/" > "$SCRATCH/jnh-t1-debug.log" 2>&1
+RC_D=$?
+echo "DEBUG_BUILD_RC=$RC_D"
+echo "DEBUG_ERRORS=$(grep -c ': error' "$SCRATCH/jnh-t1-debug.log")"
+WARN_D=$(grep -c 'warning CS' "$SCRATCH/jnh-t1-debug.log")
+echo "DEBUG_WARN_CS=$WARN_D (기대 12)"
+if [ "$RC_D" != "0" ]; then echo "MSB3027_HINT: 잠김이면 OutputPath 가 스크래치인지 확인. 절대 프로세스를 죽이지 말 것"; fi
+
+echo "===== [2] Release/x64 (비-SIMUL, MIL 분기 실제 컴파일) — 스크래치 OutDir Rebuild ====="
+"$MSB" "$PROJ" -t:Rebuild -p:Configuration=Release -p:Platform=x64 -v:minimal -nologo \
+  -p:OutputPath="$SCRATCH/jnh-bin-release/" > "$SCRATCH/jnh-t1-release.log" 2>&1
+RC_R=$?
+echo "RELEASE_BUILD_RC=$RC_R"
+echo "RELEASE_ERRORS=$(grep -c ': error' "$SCRATCH/jnh-t1-release.log")"
+WARN_R=$(grep -c 'warning CS' "$SCRATCH/jnh-t1-release.log")
+echo "RELEASE_WARN_CS=$WARN_R"
+if [ "$WARN_R" = "$BASE_R" ]; then echo "RELEASE_WARN_MATCH=YES"; else echo "RELEASE_WARN_MATCH=NO (baseline=$BASE_R, now=$WARN_R)"; fi
 
 cd "C:/Info/Project/DataMeasurement"
-echo "===== 신규 심볼 존재 ====="
+echo "===== [3] 신규 심볼 존재 ====="
 grep -n "BuildGrabRoleIdentifier\|BuildMirrorRoleInfos\|CloneRoleInfo\|MIRROR_ROLE_SUFFIX" WPF_Example/Custom/Device/DeviceHandler.cs
 grep -n "GrabHalconImage(ICameraParam param, string requestIdentifier)\|registeredMil" WPF_Example/Device/DeviceHandler.cs
-echo "===== 금지 패턴 (전부 0건이어야 함) ====="
-echo -n "Devices.Add 미러키="; git diff -- WPF_Example/Device/DeviceHandler.cs | grep -c "^+.*Devices.Add.*#M" || echo 0
-echo -n "SetRequiredDevice 신규="; git diff -- WPF_Example/Custom/Device/DeviceHandler.cs WPF_Example/Device/DeviceHandler.cs | grep -c "^+.*SetRequiredDevice" || echo 0
-echo -n "삼항="; git diff -- WPF_Example/Custom/Device/DeviceHandler.cs WPF_Example/Device/DeviceHandler.cs | grep "^+" | grep -c "[^?]? [^ ]* : " || echo 0
-echo -n "REVERSE/ROTATE 상수변경="; git diff -- WPF_Example/Custom/Device/DeviceHandler.cs | grep -c "^-.*REVERSE_\|^-.*ROTATE_" || echo 0
-echo -n "MilCamera.cs 수정="; git diff --name-only | grep -c "MilCamera.cs" || echo 0
-echo -n "DatumConfig.cs 수정="; git diff --name-only | grep -c "DatumConfig.cs" || echo 0
+
+echo "===== [4] 금지 패턴 (전부 0건이어야 함) ====="
+echo "Devices.Add 미러키=$(git diff -- WPF_Example/Device/DeviceHandler.cs | grep -c '^+.*Devices.Add.*#M')"
+echo "SetRequiredDevice 신규=$(git diff -- WPF_Example/Custom/Device/DeviceHandler.cs WPF_Example/Device/DeviceHandler.cs | grep -c '^+.*SetRequiredDevice')"
+echo "삼항=$(git diff -- WPF_Example/Custom/Device/DeviceHandler.cs WPF_Example/Device/DeviceHandler.cs | grep '^+' | grep -c '[^?]? [^ ]* : ')"
+echo "REVERSE/ROTATE 상수변경=$(git diff -- WPF_Example/Custom/Device/DeviceHandler.cs | grep -c '^-.*REVERSE_\|^-.*ROTATE_')"
+echo "MilCamera.cs 수정=$(git diff --name-only | grep -c 'MilCamera.cs')"
+echo "DatumConfig.cs 수정=$(git diff --name-only | grep -c 'DatumConfig.cs')"
+
+echo "===== [5] 레시피 무편집 확인 (정보성 — 이 plan 은 레시피에 write 하지 않는다) ====="
+ls -la "D:/Data/Recipe/FAI_1/main.ini"
+echo "기준값(2026-08-13 실측): 261714 bytes / 11169 lines / mtime 2026-07-29 17:40"
     </automated>
   </verify>
   <done>
-Debug/x64: `BUILD_RC=0`, errors=0, warnCS=12 (기존 baseline 유지).
-Release/x64: `BUILD_RC=0`, errors=0, warnCS = 이 태스크 시작 시 기록한 수정 전 Release baseline 과 동일 (증가 0). — Release baseline 이 사전 미지값이므로 반드시 수정 전 측정치와 대조할 것.
+`RELEASE_BASELINE` 이 `MISSING` 이 아니다 (수정 전 측정값이 `jnh-release-baseline.txt` 에 기록됨).
+Debug/x64: `DEBUG_BUILD_RC=0`, `DEBUG_ERRORS=0`, `DEBUG_WARN_CS=12`.
+Release/x64: `RELEASE_BUILD_RC=0`, `RELEASE_ERRORS=0`, `RELEASE_WARN_MATCH=YES` (파일에 기록된 수정 전 baseline 과 정확히 일치 — 증가 0).
 `BuildGrabRoleIdentifier`/`BuildMirrorRoleInfos`/`CloneRoleInfo`/`MIRROR_ROLE_SUFFIX_*` 가 Custom/Device/DeviceHandler.cs 에 존재. 2-인자 `GrabHalconImage` 오버로드 + `registeredMil` 루프가 Device/DeviceHandler.cs 에 존재.
 금지 패턴 전부 0건: 미러 키의 `Devices.Add` 없음, 신규 `SetRequiredDevice` 없음, 삼항 없음, `REVERSE_*`/`ROTATE_*` 상수 변경 없음, `MilCamera.cs`/`DatumConfig.cs` 무수정.
+빌드가 실행 중 프로세스를 죽이지 않고 스크래치 OutDir 로 성공했다.
   </done>
 </task>
 
 <task type="auto">
-  <name>Task 3: Shot→Datum 미러 역추적(fail-safe) + grab 호출부 5곳 배선</name>
+  <name>Task 2: Shot→Datum 미러 역추적(fail-safe) + grab 호출부 5곳 배선</name>
   <files>WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs, WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs, WPF_Example/UI/ContentItem/MainView.xaml.cs</files>
   <action>
 ### (1) `InspectionSequence.cs` — `ResolveShotGrabMirror` 신설
@@ -479,10 +529,10 @@ Release/x64: `BUILD_RC=0`, errors=0, warnCS = 이 태스크 시작 시 기록한
 ```csharp
 // quick-260813-jnh: Shot 검사이미지 grab 의 미러 방향 해석. 미러 플래그는 DatumConfig 에만 있고 ShotConfig 에는
 //  없으므로, 이 Shot 의 측정들이 참조하는 DatumRef 로 소유 Datum 을 역추적한다(레시피에 실재하는 유일한 연결고리 —
-//  '+1 규칙' 같은 새 규약을 발명하지 않는다). 한 물리 포즈가 여러 z 에 걸쳐 있어서(4-1 = Datum z12/13 + Shot z14),
+//  '+1 규칙' 같은 새 규약을 발명하지 않는다). 한 물리 포즈를 Datum 검출용 Shot 과 측정용 Shot 이 나눠 쓰는 구조라,
 //  Datum 만 미러하고 Shot 을 안 하면 미러된 좌표계로 안 뒤집힌 이미지를 측정하게 되어 전 항목이 어긋난다.
-// ※ 해석 실패는 전부 fail-safe(무미러) + Error 로그. 실제로 이 결함 사례(SIDE_SHOT_3_H5)가 라이브 레시피에서
-//    발견됐기 때문에, 데이터 1건을 고쳤다고 재발이 없다고 믿지 않는다.
+// ※ 해석 실패는 전부 fail-safe(무미러) + Error 로그. 2026-08-13 기준 라이브 레시피에는 미해석 DatumRef 가
+//    0건임을 전수 확인했지만, Datum 개명/삭제로 언제든 생길 수 있는 종류의 결함이라 방어한다.
 public void ResolveShotGrabMirror(ShotConfig shot, out bool bMirrorX, out bool bMirrorY)
 ```
 
@@ -503,6 +553,8 @@ public void ResolveShotGrabMirror(ShotConfig shot, out bool bMirrorX, out bool b
    ```
 
 로그 빈도: 이탈 시 **즉시 return** 하므로 grab 1회당 최대 1줄이다. 기존 `MarkMeasurementDatumRefMissing`(Action_FAIMeasurement.cs:1048)이 같은 조건을 이미 measurement 단위로 로깅하고 있으므로 새로운 노이즈 선례를 만드는 것이 아니다.
+
+참고(설계 타당성): 라이브 레시피의 SIDE Shot 7개는 전부 **한 Shot 이 단일 Datum 만** 참조한다(`SHOT_4-1-1`→`Side_Datum_4-1` 6건, `SHOT_4-1-2`→`Side_Datum_4-1` 3건 등). 즉 8번(혼재) 분기는 현재 데이터에서 발동하지 않는 순수 방어 코드다.
 
 30~40줄을 넘으면 내부 measurement 루프를 private sub-헬퍼로 분리해라.
 
@@ -570,99 +622,130 @@ private static string ResolveGrabRoleIdentifier(ICameraParam param, DatumConfig 
 `:3292` 근처 캘리브레이션 grab 등 **그 외 grab 호출부는 손대지 마라** — 1-인자 오버로드가 그대로 유지되므로 자동으로 기존 동작이다.
 
 ### 회귀 0 의 구조적 근거 (SUMMARY 에 기록할 것)
-현 레시피의 미러 플래그는 8개 전부 `False`(main.ini L219/220, 399/400, 579/580, 759/760)다. `BuildGrabRoleIdentifier` 는 둘 다 false 면 **base 이름을 그대로** 돌려주고, 그러면 `cam.GrabHalconImage(param.DeviceName)` 와 완전히 동일한 인자가 된다 → 모든 기존 Datum/Shot 은 변경 전과 **바이트 단위로 같은 역할**로 grab 된다.
+라이브 레시피(`main.ini`, 2026-08-13 실측)에는 `MirrorX=`/`MirrorY=` 키가 **0건**이다(파일 전체 대소문자 무시 `mirror` 검색 0건 — 레시피 최종 저장 2026-07-29 이 Part 1 커밋 b49d14f 보다 앞선다). 키 부재 시 `ParamBase.Load` 의 Boolean case 가 `false` 를 넣고 C# 초기값도 `false` 이므로(`DatumConfig.cs:233-234` 주석이 명시), 현재 모든 Datum 은 무미러다. `BuildGrabRoleIdentifier` 는 둘 다 false 면 **base 이름을 그대로** 돌려주고, 그러면 `cam.GrabHalconImage(param.DeviceName)` 와 완전히 동일한 인자가 된다 → 사용자가 직접 미러를 켜기 전까지 모든 기존 Datum/Shot 은 변경 전과 **바이트 단위로 같은 역할**로 grab 된다.
   </action>
   <verify>
     <automated>
 MSB="C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
-SCRATCH="C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad"
 PROJ="C:/Info/Project/DataMeasurement/WPF_Example/DatumMeasurement.csproj"
+SCRATCH="C:/Users/tech/AppData/Local/Temp/claude/C--Info-Project-DataMeasurement/9d3a7b4d-2314-4b14-8686-52fd6346a1f9/scratchpad"
 
-echo "===== Debug/x64 ====="
-"$MSB" "$PROJ" -t:Build -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo > "$SCRATCH/jnh-t3-debug.log" 2>&1
-echo "BUILD_RC=$?"
-echo -n "errors="; grep -c ": error" "$SCRATCH/jnh-t3-debug.log" || echo 0
-echo -n "warnCS="; grep -c "warning CS" "$SCRATCH/jnh-t3-debug.log" || echo 0
+echo "===== [0] Task 1 이 기록한 수정 전 Release baseline 읽기 ====="
+if [ -f "$SCRATCH/jnh-release-baseline.txt" ]; then
+  BASE_R=$(cat "$SCRATCH/jnh-release-baseline.txt")
+else
+  BASE_R="MISSING"
+fi
+echo "RELEASE_BASELINE=$BASE_R"
 
-echo "===== Release/x64 (비-SIMUL 분기 컴파일) ====="
-"$MSB" "$PROJ" -t:Build -p:Configuration=Release -p:Platform=x64 -v:minimal -nologo > "$SCRATCH/jnh-t3-release.log" 2>&1
-echo "BUILD_RC=$?"
-echo -n "errors="; grep -c ": error" "$SCRATCH/jnh-t3-release.log" || echo 0
-echo -n "warnCS="; grep -c "warning CS" "$SCRATCH/jnh-t3-release.log" || echo 0
+echo "===== [1] Debug/x64 — 스크래치 OutDir Rebuild (bin 잠김 회피, 프로세스 종료 금지) ====="
+"$MSB" "$PROJ" -t:Rebuild -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo \
+  -p:OutputPath="$SCRATCH/jnh-bin-debug/" > "$SCRATCH/jnh-t2-debug.log" 2>&1
+RC_D=$?
+echo "DEBUG_BUILD_RC=$RC_D"
+echo "DEBUG_ERRORS=$(grep -c ': error' "$SCRATCH/jnh-t2-debug.log")"
+echo "DEBUG_WARN_CS=$(grep -c 'warning CS' "$SCRATCH/jnh-t2-debug.log") (기대 12)"
+if [ "$RC_D" != "0" ]; then echo "MSB3027_HINT: 잠김이면 OutputPath 가 스크래치인지 확인. 절대 프로세스를 죽이지 말 것"; fi
+
+echo "===== [2] Release/x64 (비-SIMUL 분기 컴파일) — 스크래치 OutDir Rebuild ====="
+"$MSB" "$PROJ" -t:Rebuild -p:Configuration=Release -p:Platform=x64 -v:minimal -nologo \
+  -p:OutputPath="$SCRATCH/jnh-bin-release/" > "$SCRATCH/jnh-t2-release.log" 2>&1
+RC_R=$?
+echo "RELEASE_BUILD_RC=$RC_R"
+echo "RELEASE_ERRORS=$(grep -c ': error' "$SCRATCH/jnh-t2-release.log")"
+WARN_R=$(grep -c 'warning CS' "$SCRATCH/jnh-t2-release.log")
+echo "RELEASE_WARN_CS=$WARN_R"
+if [ "$WARN_R" = "$BASE_R" ]; then echo "RELEASE_WARN_MATCH=YES"; else echo "RELEASE_WARN_MATCH=NO (baseline=$BASE_R, now=$WARN_R)"; fi
 
 cd "C:/Info/Project/DataMeasurement"
-echo "===== 배선 확인 ====="
-echo -n "ResolveShotGrabMirror 정의="; grep -c "public void ResolveShotGrabMirror" WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs || echo 0
-echo -n "ShotMirror 경고로그="; grep -c "\[ShotMirror\]" WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs || echo 0
-echo -n "FAIMeasurement 2-인자 grab="; grep -c "GrabHalconImage(ShotParam, sz" WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs || echo 0
-echo -n "MainView 2-인자 grab="; grep -c "GrabHalconImage(param, ResolveGrabRoleIdentifier" WPF_Example/UI/ContentItem/MainView.xaml.cs || echo 0
+echo "===== [3] 배선 확인 ====="
+echo "ResolveShotGrabMirror 정의=$(grep -c 'public void ResolveShotGrabMirror' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs)"
+echo "ShotMirror 경고로그=$(grep -c '\[ShotMirror\]' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs)"
+echo "FAIMeasurement 2-인자 grab=$(grep -c 'GrabHalconImage(ShotParam, sz' WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs)"
+echo "MainView 2-인자 grab=$(grep -c 'GrabHalconImage(param, ResolveGrabRoleIdentifier' WPF_Example/UI/ContentItem/MainView.xaml.cs)"
 echo "--- 남아있는 1-인자 grab (MainView 3곳은 0이어야 함) ---"
 grep -n "pDev.GrabHalconImage(param)" WPF_Example/UI/ContentItem/MainView.xaml.cs || echo "none"
 
-echo "===== 금지 패턴 (전부 0건) ====="
-echo -n "HALCON 소프트미러="; git diff | grep "^+" | grep -ci "mirror_image\|MirrorImage\|RotateImage" || echo 0
-echo -n "삼항="; git diff | grep "^+" | grep -c "[^?]? [^ ]* : " || echo 0
-echo -n "금지파일 수정="; git diff --name-only | grep -c "MilCamera.cs\|DatumConfig.cs" || echo 0
-echo -n "IsDatumRefUnresolvable 계약변경="; git diff -- WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs | grep -c "^-.*IsDatumRefUnresolvable" || echo 0
-echo "--- 변경 파일 목록 (예상 5개 + 무관 PickerCenterCalibrationService.cs) ---"
+echo "===== [4] 금지 패턴 (전부 0건) ====="
+echo "HALCON 소프트미러=$(git diff | grep '^+' | grep -ci 'mirror_image\|MirrorImage\|RotateImage')"
+echo "삼항=$(git diff | grep '^+' | grep -c '[^?]? [^ ]* : ')"
+echo "금지파일 수정=$(git diff --name-only | grep -c 'MilCamera.cs\|DatumConfig.cs')"
+echo "IsDatumRefUnresolvable 계약변경=$(git diff -- WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs | grep -c '^-.*IsDatumRefUnresolvable')"
+echo "--- 변경 파일 목록 (예상: 이 plan 의 5개 소스 + 무관한 기존 미커밋 PickerCenterCalibrationService.cs) ---"
 git diff --name-only
+
+echo "===== [5] 레시피 무편집 확인 (정보성) ====="
+ls -la "D:/Data/Recipe/FAI_1/main.ini"
+echo "기준값(2026-08-13 실측): 261714 bytes / 11169 lines / mtime 2026-07-29 17:40"
     </automated>
   </verify>
   <done>
-Debug/x64: `BUILD_RC=0`, errors=0, warnCS=12.
-Release/x64: `BUILD_RC=0`, errors=0, warnCS = Task 2 에서 기록한 수정 전 Release baseline 과 동일.
+`RELEASE_BASELINE` 이 `MISSING` 이 아니다.
+Debug/x64: `DEBUG_BUILD_RC=0`, `DEBUG_ERRORS=0`, `DEBUG_WARN_CS=12`.
+Release/x64: `RELEASE_BUILD_RC=0`, `RELEASE_ERRORS=0`, `RELEASE_WARN_MATCH=YES` (파일에 기록된 수정 전 baseline 과 일치).
 `ResolveShotGrabMirror` 정의 1건 + `[ShotMirror]` 로그 2건 존재. `Action_FAIMeasurement.cs` 2-인자 grab 2건, `MainView.xaml.cs` 2-인자 grab 3건. `MainView.xaml.cs` 에 남은 1-인자 `pDev.GrabHalconImage(param)` 0건.
 금지 패턴 전부 0건: HALCON 소프트웨어 미러 0, 삼항 0, `MilCamera.cs`/`DatumConfig.cs` 무수정, `IsDatumRefUnresolvable` 반환 계약 무변경.
-변경 파일이 이 plan 의 5개 소스 파일로 한정됨(기존 미커밋 `PickerCenterCalibrationService.cs` 는 이번 작업과 무관 — 커밋에 포함하지 말 것).
+변경 파일이 이 plan 의 5개 소스 파일로 한정됨(기존 미커밋 `PickerCenterCalibrationService.cs` 는 이번 작업과 무관 — 커밋에 포함하지 말 것). `D:/Data/Recipe/**` 에 어떤 write 도 하지 않았다.
   </done>
 </task>
 
 <task type="checkpoint:human-verify" gate="blocking">
-  <name>Task 4: 실기 MIL 하드웨어 미러 육안 확인 (SIMUL 로 대체 불가)</name>
+  <name>Task 3: 실기 MIL 하드웨어 미러 육안 확인 (SIMUL 로 대체 불가)</name>
   <files>(코드 변경 없음 — 실기 육안 검증 전용 체크포인트)</files>
-  <action>실행을 멈추고 사용자에게 아래 what-built / how-to-verify 내용을 그대로 제시한다. 이 태스크에서는 코드나 레시피를 추가로 수정하지 마라. 사용자의 resume-signal 응답을 받은 뒤 그 결과(PASS / 실패한 Test 번호 / defer)를 SUMMARY 에 기록한다.</action>
+  <action>실행을 멈추고 사용자에게 아래 what-built / how-to-verify 내용을 그대로 제시한다. 이 태스크에서는 코드를 추가로 수정하지 마라. 사용자의 resume-signal 응답을 받은 뒤 그 결과(PASS / 실패한 Test 번호 / defer)를 SUMMARY 에 기록한다.</action>
   <what-built>
 **로컬에서 이미 검증된 것(재확인 불필요):**
-- Debug/x64 + Release/x64 컴파일 통과 (Release 는 SIMUL_MODE 가 없어 MIL 등록 분기가 실제로 컴파일됨)
-- SIDE MIL 역할 4종(`CAM_SIDE`, `CAM_SIDE#MX`, `CAM_SIDE#MY`, `CAM_SIDE#MXY`) 등록 코드
+- Debug/x64 + Release/x64 컴파일 통과 (Release 는 SIMUL_MODE 가 없어 MIL 등록 분기가 실제로 컴파일됨). 실행 중인 앱을 죽이지 않고 스크래치 OutDir 로 검증
+- MIL 역할 4종(`CAM_SIDE`, `CAM_SIDE#MX`, `CAM_SIDE#MY`, `CAM_SIDE#MXY`) 등록 코드
 - Shot→DatumRef→Datum 미러 역추적 + 해석 실패 시 무미러 fail-safe + Error 로그
-- 실 레시피 stale `DatumRef` 교정 (`SIDE_SHOT_3_H5`: `Side_Datum_3` → `Side_Datum_4-2`), 백업 보관됨
-- HALCON 소프트웨어 미러 0건, 삼항 0건
+- HALCON 소프트웨어 미러 0건, 삼항 0건, 운영 레시피 무편집
 
 **로컬에서 원리적으로 검증 불가능한 것 = 아래 확인 대상:**
 이 개발 PC 의 Debug 빌드는 `SIMUL_MODE` 라서 `MilCamera` 객체 자체가 생성되지 않고 `VirtualCamera` 로 대체된다. `VirtualCamera.GrabHalconImage(string)` 은 **식별자를 통째로 무시**한다(VirtualCamera.cs:460-462). 즉 시뮬에서는 어떤 식별자를 넘겨도 조용히 무시되므로 회귀 위험은 0 이지만, **실제 반전 동작은 절대 재현되지 않는다.** 물리 CXP 카메라가 붙은 SIDE PC 에서만 확인 가능하다.
   </what-built>
   <how-to-verify>
+**아래 Datum/Shot 이름은 2026-08-13 라이브 레시피(`D:\Data\Recipe\FAI_1\main.ini`)를 직접 읽어 확인한 실제 이름이다.** 실기 PC 의 레시피가 다른 파일이면 트리에 보이는 이름을 우선하고, 그 사실을 알려주세요.
+
 **사전 준비 (중요):**
 - 실기 SIDE PC(`CameraRole = Side`)에 **Release/x64 빌드**를 배포한다. Debug 빌드는 SIMUL_MODE 라 MIL grab 자체를 안 한다.
 - **DeviceSelector 라이브뷰 창을 반드시 닫아라.** 스트리밍 중이면 검사 grab 이 아예 `null` 을 반환한다(`MilCamera.cs:267-270`). 창을 열어둔 채 "미러가 안 먹는다" 로 오진하기 가장 쉬운 함정이다.
 - 참고: 라이브 미리보기 화면은 원래 항상 기본 역할을 쓰므로(`MilCamera.cs:500 LiveLoop`) 미러가 적용되지 않는 게 정상이다. 판단 근거로 쓰지 마라.
+- 참고: 현재 레시피에는 아직 `MirrorX`/`MirrorY` 키가 **저장돼 있지 않다**(레시피가 Part 1 이전인 2026-07-29 저장분). 키가 없으면 꺼짐(false)으로 읽히므로 정상이며, 아래 Test 1 에서 값을 바꾸고 저장하면 그때 키가 기록된다.
 
 **Test 1 — Datum 이미지 반전 (핵심)**
-1. 트리에서 `Side_Datum_4-1` 선택 → PropertyGrid `Datum|Mirror` 에서 `MirrorY = True` 로 변경 (경고창 뜨면 읽고 닫기) → 레시피 저장
+1. 트리에서 **`Side_Datum_4-1`** 선택 → PropertyGrid `Datum|Mirror` 에서 `MirrorY = True` 로 변경 (경고창 뜨면 읽고 닫기) → 레시피 저장
 2. 같은 Datum 노드에서 `검사이미지 Grab` 실행
 3. 저장된 bmp 를 열어 **상하가 뒤집혀 있는지** 육안 확인
 4. 기대: 뒤집힘. → PASS
 
-**Test 2 — Shot 이미지가 같은 방향으로 따라오는지 (RESEARCH 가정 A1 검증, 이 작업의 존재 이유)**
-1. Test 1 과 같은 상태에서 `SIDE_SHOT_4-1_F9`(z=14) 노드 선택 → `검사이미지 Grab`
-2. 기대: Datum 이미지와 **동일한 방향으로** 반전됨 (이게 안 되면 미러된 좌표계로 안 뒤집힌 이미지를 측정하게 되어 전 FAI 가 어긋난다)
+**Test 2 — Shot 이미지가 같은 방향으로 따라오는지 (설계 A 의 핵심 가정 검증, 이 작업의 존재 이유)**
+1. Test 1 과 같은 상태에서 **`SHOT_4-1-1`** 노드 선택 → `검사이미지 Grab`
+2. 이어서 **`SHOT_4-1-2`** 노드도 같은 방식으로 Grab
+3. 두 Shot 모두 측정이 `Side_Datum_4-1` 을 참조하므로(레시피 실측: `SHOT_4-1-1` 6건, `SHOT_4-1-2` 3건 전부 `Side_Datum_4-1`), Test 1 의 Datum 이미지와 **동일한 방향으로** 반전돼야 한다
+4. 기대: Datum 이미지와 같은 방향. (이게 안 되면 미러된 좌표계로 안 뒤집힌 이미지를 측정하게 되어 전 FAI 가 어긋난다)
 
 **Test 3 — 회귀 0 확인 (가장 중요)**
-1. `MirrorX/MirrorY` 가 둘 다 `False` 인 나머지 SIDE Datum 3개(`Side_Datum_3-1`, `Side_Datum_3-2`, `Side_Datum_4-2`)와 그에 대응하는 Shot 들을 각각 Grab
+1. `MirrorX/MirrorY` 를 건드리지 않은 나머지 SIDE Datum 3개와 그에 대응하는 Shot 을 각각 Grab:
+   - `Side_Datum_3-1` ↔ `SHOT_3-1`
+   - `Side_Datum_3-2` ↔ `SHOT_3-2-1`, `SHOT_3-2-2`
+   - `Side_Datum_4-2` ↔ `SHOT_4-2-1`, `SHOT_4-2-2`
 2. 기대: 이번 변경 **이전과 완전히 동일한 방향**(=아무 변화 없음)
 
 **Test 4 — 전체 사이클**
-1. `MirrorY=True` 유지한 채 TCP `$PREP`/`$TEST` 또는 화면의 수동 z 트리거로 z=12 → 13 → 14 전체 사이클 실행
-2. 기대: Datum 검출 성공 + FAI 측정값이 미러 전과 정합적(부호 뒤집힘 없이 같은 값 계열)
+1. `Side_Datum_4-1` 의 `MirrorY=True` 를 유지한 채 SIDE 시퀀스 전체 검사 사이클을 1회 실행한다 (TCP `$PREP`/`$TEST` 또는 화면의 수동 실행 중 평소 쓰는 방법)
+2. 기대: `Side_Datum_4-1` Datum 검출 성공 + 해당 FAI 측정값이 미러 전과 정합적(부호 뒤집힘 없이 같은 값 계열)
+3. 같은 사이클에서 `Side_Datum_3-1` / `3-2` / `4-2` 계열 FAI 측정값도 미러 전과 동일한지 확인(회귀 0)
 
-**Test 5 — 로그 확인 (Part B fail-safe 검증)**
-1. 사이클 로그에서 `[ShotMirror]` Error 가 **0건**인지 확인 (stale DatumRef 를 고쳤으므로 0 이어야 정상)
-2. (선택) 일부러 어떤 Shot 의 `DatumRef` 를 없는 이름으로 바꿔 1회 grab → `[ShotMirror] ... 레시피에 없음 — 미러 미적용(무미러)으로 grab` 로그가 뜨고 이미지는 안 뒤집히는지 확인 → 즉시 원복
+**Test 5 — fail-safe 로그 확인**
+1. 사이클 로그에서 `[ShotMirror]` Error 가 **0건**인지 확인
+   (근거: 2026-08-13 실측으로 라이브 레시피의 `DatumRef` 122건이 전부 실재하는 Datum 6개 중 하나와 정확히 일치함을 확인했다 → 정상 상태에서는 0건이어야 한다)
+2. (선택) 일부러 어떤 Shot 측정의 `DatumRef` 를 없는 이름으로 바꿔 1회 grab → `[ShotMirror] ... 레시피에 없음 — 미러 미적용(무미러)으로 grab` 로그가 뜨고 이미지는 안 뒤집히는지 확인 → **즉시 원복**
 
 **Test 6 — 재시작 필요 여부 관찰 (기록용, 판정 아님)**
 1. `MirrorY` 를 켜고 **앱을 재시작하지 않은 채로** Grab 해본다
 2. 관찰 결과를 기록만 한다. `MilCamera.cs:322-323` 은 매 grab 마다 방향을 재적용하므로 **재시작 없이도 반영될 것으로 예상**된다. Part 1 의 "프로그램을 다시 시작해야 적용된다" 안내 문구는 실제보다 보수적인 것으로 보이나, `DatumConfig.cs` 는 이번 작업의 수정 금지 대상이므로 **문구는 고치지 않는다.** 관찰 결과만 SUMMARY 에 남긴다.
+
+**마무리:** Test 1 에서 켠 `Side_Datum_4-1` 의 `MirrorY` 를 실제 운용값(뒤집혀야 하면 True 유지, 아니면 False 로 원복)으로 정리하고 저장해 주세요.
   </how-to-verify>
   <resume-signal>"approved" 입력, 또는 실패한 Test 번호와 관찰 내용을 알려주세요. 실기 카메라가 없어 지금 확인이 불가능하면 "defer" 라고 알려주시면 실기 UAT 미수행 상태로 기록하고 마무리합니다.</resume-signal>
 </task>
@@ -674,27 +757,29 @@ Release/x64: `BUILD_RC=0`, errors=0, warnCS = Task 2 에서 기록한 수정 전
 
 | Boundary | Description |
 |----------|-------------|
-| 운영 레시피 파일 → 앱 | `D:\Data\Recipe\FAI_1\main.ini` 는 사용자가 편집하는 신뢰 데이터지만, 개명/삭제로 내부 참조가 깨질 수 있다(이번에 실제 1건 발견) |
+| 운영 레시피 파일 → 앱 | `D:\Data\Recipe\FAI_1\main.ini` 는 사용자가 편집하는 신뢰 데이터지만, Datum 개명/삭제로 내부 참조가 언제든 깨질 수 있다(현재는 0건) |
 | Datum 설정 → 카메라 하드웨어 | `MirrorX/MirrorY` 가 물리 grab 방향을 바꾼다 — 같은 카메라를 쓰는 다른 측정까지 영향 |
+| 실행 중 프로세스 → 빌드 산출물 | `bin/x64/Debug` 가 실행 중 앱에 잠긴다. 잘못 대응하면 사용자 프로세스를 죽이는 사고로 이어진다 |
 
 ## STRIDE Threat Register
 
 | Threat ID | Category | Component | Disposition | Mitigation Plan |
 |-----------|----------|-----------|-------------|-----------------|
-| T-JNH-01 | Tampering (데이터 무결성) | `main.ini` DatumRef 교정 | mitigate | 편집 전 스크래치 백업 필수 + 정확 라인 1건만 교체(부분일치 치환 금지) + diff/줄수/등장횟수 대조 검증 (Task 1) |
-| T-JNH-02 | Information Disclosure (조용한 오검) | `ResolveShotGrabMirror` 참조 해석 실패 | mitigate | fail-safe 무미러 + `ELogType.Error` 경고 로그에 Shot 이름·미해석 DatumRef 명시 (Task 3) |
-| T-JNH-03 | Denial of Service (UI 오염) | `Devices` 딕셔너리에 미러 키 추가 시 UI 드롭다운/INI 오염 | mitigate | 미러 역할은 `_roleInfoMap` 에만 등록, `Devices.Add`/`SetRequiredDevice` 미사용 — verify 에서 grep 로 0건 강제 (Task 2) |
-| T-JNH-04 | Elevation of Privilege | 해당 없음 (로컬 데스크톱 앱, 인증 경계 없음) | accept | 이번 변경은 네트워크/인증 경계를 넘지 않는다 |
-| T-JNH-05 | Repudiation | 미러 적용 여부가 로그에 안 남음 | accept | 실패 경로만 로깅. 정상 경로 로깅은 매 grab 노이즈 대비 이득이 없음(육안 확인이 1차 수단) |
+| T-JNH-01 | Tampering (운영 데이터 무결성) | `D:\Data\Recipe\**` | mitigate | **이 plan 은 레시피를 읽기만 한다.** 편집 태스크가 존재하지 않으며, Task 1·2 verify 가 파일 크기/줄수/mtime 을 기준값과 함께 출력해 무편집을 눈으로 확인시킨다. (조사 단계에서 보고된 "고아 DatumRef" 는 실측 결과 존재하지 않았고, 근거 없는 데이터 수정이 더 큰 위험이라 판단해 제거함) |
+| T-JNH-02 | Information Disclosure (조용한 오검) | `ResolveShotGrabMirror` 참조 해석 실패 | mitigate | fail-safe 무미러 + `ELogType.Error` 경고 로그에 Shot 이름·미해석 DatumRef 명시 (Task 2) |
+| T-JNH-03 | Denial of Service (UI 오염) | `Devices` 딕셔너리에 미러 키 추가 시 UI 드롭다운/INI 오염 | mitigate | 미러 역할은 `_roleInfoMap` 에만 등록, `Devices.Add`/`SetRequiredDevice` 미사용 — verify 에서 grep 로 0건 강제 (Task 1) |
+| T-JNH-04 | Denial of Service (사용자 작업 파괴) | 빌드 산출물 잠김 대응 중 실행 중인 앱 강제 종료 | mitigate | 모든 컴파일 검증이 스크래치 OutDir 로 나가 잠김 자체가 발생하지 않는다. verify 스크립트에 프로세스 종료 금지 힌트 문구 인라인 |
+| T-JNH-05 | Elevation of Privilege | 해당 없음 (로컬 데스크톱 앱, 인증 경계 없음) | accept | 이번 변경은 네트워크/인증 경계를 넘지 않는다 |
+| T-JNH-06 | Repudiation | 미러 적용 여부가 로그에 안 남음 | accept | 실패 경로만 로깅. 정상 경로 로깅은 매 grab 노이즈 대비 이득이 없음(육안 확인이 1차 수단) |
 </threat_model>
 
 <verification>
-1. **빌드 (필수 2종)**
-   - Debug/x64: `BUILD_RC=0`, `: error` 0건, `warning CS` **12건**(이 저장소 기존 baseline — 0 아님)
-   - Release/x64: `BUILD_RC=0`, `: error` 0건, `warning CS` 는 Task 2 시작 시 기록한 **수정 전 Release baseline 과 동일**
-   - Release 를 반드시 도는 이유: Debug 는 `SIMUL_MODE` 를 정의해서 MIL 등록 분기(`#else`)를 **컴파일조차 하지 않는다**. Release/x64 만이 신규 MIL 코드의 유일한 컴파일 검증 수단이다.
-   - MSBuild: `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe` (vswhere 로 확인 완료). 성공 판정은 **프로세스 종료 코드**로 한다 — `-v:minimal -nologo` 는 "Build succeeded." 문자열을 아예 출력하지 않는다.
-   - 출력 폴더가 실행 중인 앱에 잠겨 있으면 **프로세스를 죽이지 마라.** 스크래치 OutDir 로 컴파일만 검증하거나 잠김 사실을 보고한다. OutDir 처럼 **값에 슬래시가 들어가는 스위치는 반드시 단일 대시 `-p:Name=값`** 을 쓴다(`//p:` 는 UNC 경로로 뭉개져 MSB1001 발생).
+1. **빌드 (필수 2종, 둘 다 스크래치 OutDir + `-t:Rebuild`)**
+   - Debug/x64: `DEBUG_BUILD_RC=0`, `: error` 0건, `warning CS` **12건**(이 저장소 기존 baseline — 0 아님)
+   - Release/x64: `RELEASE_BUILD_RC=0`, `: error` 0건, `RELEASE_WARN_MATCH=YES` — Task 1 이 **수정 전에 측정해 `$SCRATCH/jnh-release-baseline.txt` 에 기록한 값**과 일치. 이 파일이 없으면(`MISSING`) 검증 실패로 간주한다
+   - Release 를 반드시 도는 이유: Debug 는 `SIMUL_MODE` 를 정의해서 MIL 등록 분기(`#else`)를 **컴파일조차 하지 않는다**. Release/x64 만이 신규 MIL 코드의 유일한 컴파일 검증 수단이다
+   - MSBuild: `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe`. 성공 판정은 **프로세스 종료 코드**로 한다 — `-v:minimal -nologo` 는 "Build succeeded." 문자열을 아예 출력하지 않는다
+   - **잠김 대응:** `bin/x64/*` 로는 아예 빌드하지 않는다. 실행 중인 앱이 Debug 산출물을 잠그고 있고(plan-checker 실측 `MSB3027`/`MSB3021`), 프로젝트 규칙상 **프로세스를 죽이는 것은 금지**다. 스위치는 단일 대시 `-p:` + **forward slash 통일 + 끝에 `/`** (`//p:` 는 MSB1001, 끝 `\"` 는 bash 이스케이프 사고)
 
 2. **금지 패턴 (전부 0건, grep 강제)**
    - HALCON 소프트웨어 미러: `mirror_image` / `MirrorImage` / `RotateImage` 추가 0건
@@ -703,42 +788,39 @@ Release/x64: `BUILD_RC=0`, errors=0, warnCS = Task 2 에서 기록한 수정 전
    - 미러 식별자에 대한 `Devices.Add` / `SetRequiredDevice` 0건
    - `REVERSE_X_*` / `REVERSE_Y_*` / `ROTATE_*` 상수 변경 0건
 
-3. **레시피 데이터**
-   - `^DatumRef=Side_Datum_3$` 0건, `^DatumRef=Side_Datum_4-2$` 1건
-   - `Side_Datum_3-1`=2, `Side_Datum_3-2`=2, `Side_Datum_4-1`=3 (전부 무변경)
-   - 백업 대비 diff 가 정확히 1줄 변경, 줄 수 동일
+3. **레시피 무편집**
+   - `D:\Data\Recipe\**` 에 어떤 write 도구도 사용하지 않았다
+   - Task 1·2 verify 의 `ls -la` 출력이 기준값(261714 bytes, 최종 저장 2026-07-29 17:40)과 같다. 다르면 앱이 저장한 것인지 확인만 하고, 편집 도구로 만진 적이 없음을 SUMMARY 에 명시한다
 
-4. **실기 (Task 4 체크포인트)** — SIMUL 로 대체 불가. 물리 CXP 카메라가 붙은 SIDE PC 필요.
+4. **실기 (Task 3 체크포인트)** — SIMUL 로 대체 불가. 물리 CXP 카메라가 붙은 SIDE PC 필요.
 </verification>
 
 <success_criteria>
-- SIDE MIL 역할 4종(무미러 기준 + `#MX`/`#MY`/`#MXY`)이 `MilCamera._roleInfoMap` 에 앱 시작 시 등록된다. **`MilCamera.cs` 변경 0줄.**
+- MIL 역할 4종(무미러 기준 + `#MX`/`#MY`/`#MXY`)이 `MilCamera._roleInfoMap` 에 앱 시작 시 등록된다. **`MilCamera.cs` 변경 0줄.**
 - `DeviceHandler.GrabHalconImage(ICameraParam, string)` 오버로드 존재. 기존 1-인자는 시그니처·동작 무변경으로 위임만 한다.
 - Datum 을 손에 쥔 호출부(티칭 Datum grab, 티칭 검사이미지 Grab, 생산 Datum grab)는 `datum.MirrorX/MirrorY` 를 **직접** 읽는다.
 - Shot grab 호출부(생산 `EStep.Grab`, 티칭 Shot grab)는 `MeasurementBase.DatumRef` 로 소유 Datum 을 역추적하고, **해석 실패 시 무미러 + Error 로그**로 fail-safe 한다.
-- `SIDE_SHOT_4-1_F9` 의 `DatumRef` 가 `Side_Datum_4-1` 로 정확함이 실측 확인됐다(이미 정상 — 수정 불필요, 이 사실을 SUMMARY 에 명시).
-- `SIDE_SHOT_3_H5` 의 stale `DatumRef` 가 `Side_Datum_4-2` 로 교정되고 백업이 보관됐다.
-- 미러 플래그가 둘 다 꺼진 Datum/Shot(현 레시피 8/8 전부)은 변경 전과 **동일한 역할 식별자**로 grab 된다.
-- Debug/x64 + Release/x64 빌드가 baseline 대로 통과한다.
-- 실기 확인이 필요한 항목이 Task 4 체크포인트로 분리돼 있고, 로컬 검증 가능 항목과 명확히 구분돼 있다.
+- 라이브 레시피의 SIDE Shot ↔ Datum 참조가 실측 확인됐다: `SHOT_4-1-1`(6건)·`SHOT_4-1-2`(3건) → `Side_Datum_4-1`. 미해석 `DatumRef` 0건 → 레시피 수정 불필요(SUMMARY 에 명시).
+- 미러 플래그가 꺼진 Datum/Shot(현 레시피 전부 — `Mirror` 키 자체가 0건)은 변경 전과 **동일한 역할 식별자**로 grab 된다.
+- Debug/x64 + Release/x64 빌드가 baseline 대로 통과하고, 그 과정에서 실행 중인 앱 프로세스를 죽이지 않았다.
+- 운영 레시피 파일이 이번 작업에서 편집되지 않았다.
+- 실기 확인이 필요한 항목이 Task 3 체크포인트로 분리돼 있고, 로컬 검증 가능 항목과 명확히 구분돼 있다.
 </success_criteria>
 
 <output>
 완료 후 `.planning/quick/260813-jnh-mirrorx-y-mil-grab-side-datum-part-2-2/260813-jnh-SUMMARY.md` 를 작성한다.
 
 SUMMARY 에 반드시 포함할 것:
-1. `SIDE_SHOT_4-1_F9` 의 `DatumRef` 는 **이미 정상**이었고 Part A 를 차단하지 않았다는 실측 결과
-2. `SIDE_SHOT_3_H5` stale `DatumRef` 교정 내역 + 백업 경로 + 다른 위치 레시피 사본 조사 결과(수정하지 않음)
+1. **RESEARCH.md 의 레시피 관련 서술이 실제 파일과 불일치했다는 사실과 그 처리** — 원래 계획돼 있던 "stale DatumRef 교정" 태스크는 대상 결함이 라이브 레시피에 존재하지 않아(2026-08-13 전수 실측: `DatumRef=` 122건 전부 실재 Datum 6개와 일치) **plan 에서 제거**했고, 레시피 파일은 한 바이트도 편집하지 않았다
+2. 라이브 레시피 실측 결과: Datum 6개(`Top_Datum`/`Side_Datum_3-1`/`Side_Datum_3-2`/`Side_Datum_4-1`/`Side_Datum_4-2`/`Bottom_Datum`), SIDE Shot 7개와 그 `DatumRef` 매핑
 3. Part 1 의 "프로그램을 다시 시작해야 적용된다" 안내 문구가 실제보다 보수적이라는 점 — `MilCamera.cs:322-323` 이 매 grab 마다 방향을 재적용하므로 재시작 없이 반영될 것으로 예상. **무해한 기존 과잉보수 문구이며 이번 범위 밖(`DatumConfig.cs` 수정 금지)**
-4. 회귀 0 의 구조적 근거: 현 레시피 미러 플래그 8/8 전부 False → `BuildGrabRoleIdentifier` 가 base 이름 그대로 반환 → 기존과 동일 인자
-5. Release/x64 baseline 실측값(수정 전/후)
-6. Task 4 실기 UAT 결과 (또는 "실기 카메라 미보유로 defer")
+4. 회귀 0 의 구조적 근거: 현 레시피에 `Mirror` 키 0건(레시피가 Part 1 커밋보다 앞선 2026-07-29 저장분) → 전부 false 로드 → `BuildGrabRoleIdentifier` 가 base 이름 그대로 반환 → 기존과 동일 인자
+5. Release/x64 baseline 실측값(수정 전 기록값 / 수정 후 값)과 Debug/x64 12 warning 유지 여부. 스크래치 OutDir 을 쓴 이유(실행 중 앱이 `bin/x64/Debug` 를 잠금, 프로세스 종료 금지 규칙)
+6. Task 3 실기 UAT 결과 (또는 "실기 카메라 미보유로 defer")
 
 커밋은 Task 별 원자 커밋 권장:
-- Task 1: 레시피는 저장소 밖 파일이므로 코드 커밋 없음 — SUMMARY 기록으로 갈음
-- Task 2: `feat(quick-260813-jnh): SIDE MIL 미러 역할 4종 등록 + grab 2-인자 오버로드`
-- Task 3: `feat(quick-260813-jnh): Datum/Shot 미러 설정을 MIL grab 방향에 배선 (fail-safe 포함)`
+- Task 1: `feat(quick-260813-jnh): MIL 미러 역할 4종 등록 + grab 2-인자 오버로드`
+- Task 2: `feat(quick-260813-jnh): Datum/Shot 미러 설정을 MIL grab 방향에 배선 (fail-safe 포함)`
 
 ⚠ 커밋 시 기존 미커밋 파일 `WPF_Example/Custom/EthernetVision/PickerCenterCalibrationService.cs` 는 **이번 작업과 무관하므로 절대 포함하지 마라.** 파일을 명시 지정해 커밋한다.
 </output>
-</content>

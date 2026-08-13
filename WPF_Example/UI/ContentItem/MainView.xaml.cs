@@ -1193,6 +1193,25 @@ namespace ReringProject.UI {
             }
         }
 
+        // quick-260813-jnh: grab 역할 식별자 산출. Datum 노드 grab 이면 그 Datum 의 미러를 직접 쓰고,
+        //  Shot 노드 grab 이면 Shot→DatumRef 역추적으로 소유 Datum 의 미러를 따라간다. 티칭에서 저장한
+        //  검사이미지를 OfflineInspectMode 검사가 그대로 로드하므로, 여기서 방향이 어긋나면 오프라인 결과가
+        //  실기와 달라진다 — 그래서 Shot 경로도 생산과 같은 규칙을 쓴다.
+        private static string ResolveGrabRoleIdentifier(ICameraParam param, DatumConfig datum) {
+            if (param == null) return null;
+            bool bMirrorX = false;
+            bool bMirrorY = false;
+            if (datum != null) {
+                bMirrorX = datum.MirrorX;
+                bMirrorY = datum.MirrorY;
+            }
+            else if (param is ShotConfig shotForMirror) {
+                InspectionSequence mirrorSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence;  // :1208/1271/1363 동일 선례
+                if (mirrorSeq != null) mirrorSeq.ResolveShotGrabMirror(shotForMirror, out bMirrorX, out bMirrorY);
+            }
+            return DeviceHandler.BuildGrabRoleIdentifier(param.DeviceName, bMirrorX, bMirrorY);
+        }
+
         public async void GrabAndDisplay(ICameraParam param, bool eventCall = false) {
             if (param == null || !pSeq.IsIdle || GrabTask != null) return;
 
@@ -1213,7 +1232,7 @@ namespace ReringProject.UI {
                     }
                     // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
                     LightHandler.Handle.WaitForPendingWrites();
-                    grabbedHalconImage = pDev.GrabHalconImage(param);
+                    grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, null));
                     param.PutImage(grabbedHalconImage);
                 }
                 // ---- 락 해제 후 UI 디스패치(락 쥔 채 Dispatcher.Invoke 금지) ----
@@ -1280,7 +1299,7 @@ namespace ReringProject.UI {
                     }
                     // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
                     LightHandler.Handle.WaitForPendingWrites();
-                    grabbedHalconImage = pDev.GrabHalconImage(param);
+                    grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, datum));
                     param.PutImage(grabbedHalconImage);
                 }
                 // ---- 락 해제 후 UI 디스패치(락 쥔 채 Dispatcher.Invoke 금지) ----
@@ -1372,7 +1391,7 @@ namespace ReringProject.UI {
                     }
                     // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
                     LightHandler.Handle.WaitForPendingWrites();
-                    grabbedHalconImage = pDev.GrabHalconImage(param);
+                    grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, datum));
                     // 디스크 저장은 락 밖에서 수행하므로, 락 안에서 독립 사본을 떠 둔다 — 같은 HImage 를 저장(백그라운드)과
                     //  표시(UI)가 크로스스레드로 동시 접근하지 않도록 분리(표시는 grabbedHalconImage, 저장은 imageToSave 사용).
                     if (grabbedHalconImage != null) imageToSave = grabbedHalconImage.CopyImage();

@@ -2042,6 +2042,63 @@ namespace ReringProject.Sequence {
             return true; // 이름은 지정됐는데 대응 DatumConfig 없음
         }
 
+        // quick-260813-jnh: Shot 검사이미지 grab 의 미러 방향 해석. 미러 플래그는 DatumConfig 에만 있고 ShotConfig 에는
+        //  없으므로, 이 Shot 의 측정들이 참조하는 DatumRef 로 소유 Datum 을 역추적한다(레시피에 실재하는 유일한 연결고리 —
+        //  '+1 규칙' 같은 새 규약을 발명하지 않는다). 한 물리 포즈를 Datum 검출용 Shot 과 측정용 Shot 이 나눠 쓰는 구조라,
+        //  Datum 만 미러하고 Shot 을 안 하면 미러된 좌표계로 안 뒤집힌 이미지를 측정하게 되어 전 항목이 어긋난다.
+        // ※ 해석 실패는 전부 fail-safe(무미러) + Error 로그. 2026-08-13 기준 라이브 레시피에는 미해석 DatumRef 가
+        //    0건임을 전수 확인했지만, Datum 개명/삭제로 언제든 생길 수 있는 종류의 결함이라 방어한다.
+        public void ResolveShotGrabMirror(ShotConfig shot, out bool bMirrorX, out bool bMirrorY)
+        {
+            bMirrorX = false;
+            bMirrorY = false;
+            if (shot == null || shot.FAIList == null || DatumConfigs == null) return;
+
+            DatumConfig firstDatum = null;
+            foreach (var fai in shot.FAIList)
+            {
+                if (fai == null || fai.Measurements == null) continue;
+                foreach (var meas in fai.Measurements)
+                {
+                    if (meas == null || string.IsNullOrEmpty(meas.DatumRef)) continue; // 무보정 의도 — 경고 없음
+
+                    DatumConfig dc = FindDatumByName(meas.DatumRef);
+                    if (dc == null)
+                    {
+                        bMirrorX = false;
+                        bMirrorY = false;
+                        Logging.PrintLog((int)ELogType.Error, "[ShotMirror] SHOT '" + (shot.ShotName ?? "") + "' 의 DatumRef '" + meas.DatumRef + "' 에 해당하는 Datum 이 레시피에 없음 — 미러 미적용(무미러)으로 grab. Datum 개명/삭제 확인 필요.");
+                        return;
+                    }
+
+                    if (firstDatum == null)
+                    {
+                        firstDatum = dc;
+                        bMirrorX = dc.MirrorX;
+                        bMirrorY = dc.MirrorY;
+                    }
+                    else if (dc.MirrorX != firstDatum.MirrorX || dc.MirrorY != firstDatum.MirrorY)
+                    {
+                        bMirrorX = false;
+                        bMirrorY = false;
+                        Logging.PrintLog((int)ELogType.Error, "[ShotMirror] SHOT '" + (shot.ShotName ?? "") + "' 이 미러 설정이 서로 다른 Datum 을 함께 참조 — 미러 미적용(무미러)으로 grab. 레시피 확인 필요.");
+                        return;
+                    }
+                }
+            }
+        }
+
+        // ResolveShotGrabMirror / IsDatumRefUnresolvable 공용 DatumName 조회. IsDatumRefUnresolvable 의 반환 계약은 그대로 둔다.
+        private DatumConfig FindDatumByName(string datumRef)
+        {
+            if (DatumConfigs == null) return null;
+            foreach (var d in DatumConfigs)
+            {
+                if (d != null && d.DatumName == datumRef) return d;
+            }
+            return null;
+        }
+
         //260618 hbk Phase 54 ALIGN-01 패턴매칭 실패 datum 기록 (D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
         //  _failedDatums 에도 add 하여 기존 IsDatumFailed 게이트가 NG 를 강제하도록 한다.
         //260810 hbk reset-datum-clear-race Round2: 두 Add 를 _datumStateLock 하나의 임계구역으로 묶는다(원자성) —

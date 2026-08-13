@@ -273,7 +273,13 @@ namespace ReringProject.Sequence {
                             image = LoadShotInspectionImage();
                         } else {
                             bIsLiveGrabAttempt = true;
-                            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                            // quick-260813-jnh: Shot 검사이미지 grab — 참조 DatumRef 로 소유 Datum 을 역추적해 MIL 미러 방향을 결정한다.
+                            InspectionSequence parentSeqForMirror = ShotParam.Parent as InspectionSequence;   // :283 에 동일 선례
+                            bool bShotMirrorX = false;
+                            bool bShotMirrorY = false;
+                            if (parentSeqForMirror != null) parentSeqForMirror.ResolveShotGrabMirror(ShotParam, out bShotMirrorX, out bShotMirrorY);
+                            string szShotRoleId = DeviceHandler.BuildGrabRoleIdentifier(ShotParam.DeviceName, bShotMirrorX, bShotMirrorY);
+                            image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam, szShotRoleId);
                         }
                         #endif
                         //260811 hbk plc-spec-260811-alignment: 실기 grab 이 null 을 반환한 경우만(SIMUL_MODE/오프라인
@@ -567,7 +573,15 @@ namespace ReringProject.Sequence {
                 // 오프라인(수동 지그): datum 저장 이미지 로드. datum 은 초점 맞는 자기 이미지라 정합 성립. grab 폴백 없음(잘못된 Z 은폐 금지).
                 image = LoadDatumImageFromPath(datum, teachingPath, false);
             } else {
-                image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam);
+                // quick-260813-jnh: Datum 검출 grab — datum 객체를 손에 쥐고 있으므로 MirrorX/Y 를 직접 읽는다(역추적 불필요).
+                bool bDatumMirrorX = false;
+                bool bDatumMirrorY = false;
+                if (datum != null) {
+                    bDatumMirrorX = datum.MirrorX;
+                    bDatumMirrorY = datum.MirrorY;
+                }
+                string szDatumRoleId = DeviceHandler.BuildGrabRoleIdentifier(ShotParam.DeviceName, bDatumMirrorX, bDatumMirrorY);
+                image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam, szDatumRoleId);
                 //260811 hbk plc-spec-260811-alignment: 이 분기는 실기 grab 만 도달(SIMUL_MODE/오프라인 배제) —
                 //  null 이면 카메라 하드웨어 에러로 마킹, $RESULT 응답이 F 대신 E 로 나간다(제어팀 확정 스펙).
                 if (image == null) {

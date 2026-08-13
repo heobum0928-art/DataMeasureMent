@@ -262,9 +262,14 @@ namespace ReringProject.Sequence {
 
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
+                        //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): grab/load 순수시간 vs 표시사본 복사시간 분리
+                        var swGrabTotal = Stopwatch.StartNew();
+                        long msAcquire = 0;
+                        long msDisplayCopy = 0;
                         HImage image = null;
                         bool bIsLiveGrabAttempt = false;   //260811 hbk plc-spec-260811-alignment: 실기 카메라 grab 여부(하드웨어 에러=E 판정용) — SIMUL_MODE/OfflineInspectMode 경로에선 절대 true 로 세팅 안 함
                         // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
+                        var swAcquire = Stopwatch.StartNew();
                         #if SIMUL_MODE
                         image = LoadShotInspectionImage(); // SIMUL: 항상 저장 이미지(ShotParam.SimulImagePath) 로드
                         #else
@@ -282,6 +287,7 @@ namespace ReringProject.Sequence {
                             image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam, szShotRoleId);
                         }
                         #endif
+                        msAcquire = swAcquire.ElapsedMilliseconds;
                         //260811 hbk plc-spec-260811-alignment: 실기 grab 이 null 을 반환한 경우만(SIMUL_MODE/오프라인
                         //  경로는 절대 해당 없음) 사이클 하드웨어 에러로 마킹 — $RESULT 응답이 F 대신 E 로 나간다
                         //  (제어팀 확정 스펙). Step 은 그대로 Measure 로 진행(기존 lenient 동작 유지, 회귀 0).
@@ -300,18 +306,27 @@ namespace ReringProject.Sequence {
                             else parentSeqForView = null;
                             bool bSkipViewer = IsViewerUpdateSkipped(parentSeqForView);
                             if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
+                            var swDisplayCopy = Stopwatch.StartNew();
                             if (bSkipViewer) {
                                 pMyContext.ResultHalconImage = null; // 표시사본 미생성. HalconImageBridge.Clone(null)==null 이라 뒤쪽은 조용히 no-op.
                             } else {
                                 pMyContext.ResultHalconImage = image.CopyImage();
                             }
+                            msDisplayCopy = swDisplayCopy.ElapsedMilliseconds;
                             image.Dispose(); // 누수 방지 — 조건과 무관하게 항상 수행.
                         }
+                        Logging.PrintLog((int)ELogType.Trace,
+                            "[FaiTiming] shot={0} stage=Grab acquire={1}ms displayCopy={2}ms total={3}ms",
+                            ShotParam.ShotName ?? "", msAcquire, msDisplayCopy, swGrabTotal.ElapsedMilliseconds);
                     }
                     Step = (int)EStep.Measure;
                     break;
 
                 case EStep.Measure: {
+                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): Shot 단위 Measure 단계 breakdown
+                    var swMeasureTotal = Stopwatch.StartNew();
+                    long msMeasureExec = 0;  // TryExecuteMeasurement/TryExecuteCrossZMeasurement 순수 실행시간 누적
+                    long msSaveQueue = 0;    // AggregateFaiResult(결과이미지 저장 큐 enqueue 포함) 누적
                     InspectionSequence parentSeq2;
                     if (ShotParam != null) parentSeq2 = ShotParam.Parent as InspectionSequence;
                     else parentSeq2 = null;
@@ -453,6 +468,7 @@ namespace ReringProject.Sequence {
                                         string measError;
                                         List<EdgeInspectionOverlay> measOverlays;
                                         bool ok;
+                                        var swMeasureExec = Stopwatch.StartNew(); //TEMP 계측(top-release-2x-slower): HALCON 측정 실행 순수시간
                                         if (bHasAnyZIndex)
                                         {
                                             ok = TryExecuteCrossZMeasurement(dualMeasForGate, parentSeq2, transform, pixRes, out resultValue, out measError, out measOverlays); //260722 hbk Phase 68 D-02a: 완성 index 크로스-Z 실행
@@ -461,6 +477,7 @@ namespace ReringProject.Sequence {
                                         {
                                             ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
                                         }
+                                        msMeasureExec += swMeasureExec.ElapsedMilliseconds;
                                         if (ok) {
                                             meas.EvaluateJudgement(resultValue);
                                         } else {
@@ -480,7 +497,9 @@ namespace ReringProject.Sequence {
                                     }
                                     try {
                                         if (crossZRoleImage == null) {
+                                            var swSaveQueue = Stopwatch.StartNew(); //TEMP 계측(top-release-2x-slower): 결과이미지 저장 큐 enqueue 시간
                                             AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath); //260702 hbk Extract Method(Task2)
+                                            msSaveQueue += swSaveQueue.ElapsedMilliseconds;
                                         } else {
                                             //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
                                             //  대신 실제 측정에 쓰인 role 이미지로 교체한다(T-HWB-02). sharedSrc 의 기존 소유권
@@ -491,7 +510,9 @@ namespace ReringProject.Sequence {
                                             SharedHImage crossZSharedSrc = null;
                                             try {
                                                 try { crossZSharedSrc = new SharedHImage(crossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
+                                                var swSaveQueueCrossZ = Stopwatch.StartNew(); //TEMP 계측(top-release-2x-slower): 결과이미지 저장 큐 enqueue 시간
                                                 AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot, null);
+                                                msSaveQueue += swSaveQueueCrossZ.ElapsedMilliseconds;
                                             } finally {
                                                 if (crossZSharedSrc != null) crossZSharedSrc.Release();
                                             }
@@ -526,6 +547,13 @@ namespace ReringProject.Sequence {
                     pMyContext.AllPass = allPass;
                     pMyContext.MeasuredCount = measuredCount;
                     pMyContext.InspectionOverlays = overlayAcc; // overlay 누적 결과 반영
+                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): Shot 단위 Measure 단계 breakdown 로그
+                    string szMeasureShotName;
+                    if (ShotParam != null) szMeasureShotName = ShotParam.ShotName ?? "";
+                    else szMeasureShotName = "";
+                    Logging.PrintLog((int)ELogType.Trace,
+                        "[FaiTiming] shot={0} stage=Measure measuredCount={1} measureExec={2}ms saveQueueEnqueue={3}ms total={4}ms",
+                        szMeasureShotName, measuredCount, msMeasureExec, msSaveQueue, swMeasureTotal.ElapsedMilliseconds);
                     Step = (int)EStep.End;
                     break;
                 }

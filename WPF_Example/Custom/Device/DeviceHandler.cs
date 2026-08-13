@@ -124,5 +124,40 @@ namespace ReringProject.Device {
                 reverseY,
                 rotate);
         }
+
+        // quick-260813-jnh: 미러 조합은 (X,Y) 불리언 2개 = 최대 4가지뿐이라, 레시피를 스캔하지 않고 앱 시작 시
+        //  4가지 역할을 전부 정적 등록해 둔다. 레시피 로드 타이밍(카메라 초기화보다 한참 뒤)과 _roleInfoMap 의
+        //  stale 역할 문제를 동시에 회피하는 유일한 저위험 설계.
+        public const string MIRROR_ROLE_SUFFIX_X  = "#MX";
+        public const string MIRROR_ROLE_SUFFIX_Y  = "#MY";
+        public const string MIRROR_ROLE_SUFFIX_XY = "#MXY";
+
+        // 미러 플래그 → grab 역할 식별자. 둘 다 꺼짐이면 기존 식별자를 그대로 돌려준다(회귀 0의 근거).
+        public static string BuildGrabRoleIdentifier(string szBaseDeviceName, bool bMirrorX, bool bMirrorY) {
+            if (string.IsNullOrEmpty(szBaseDeviceName)) return szBaseDeviceName;
+            if (bMirrorX && bMirrorY) return szBaseDeviceName + MIRROR_ROLE_SUFFIX_XY;
+            if (bMirrorX)             return szBaseDeviceName + MIRROR_ROLE_SUFFIX_X;
+            if (bMirrorY)             return szBaseDeviceName + MIRROR_ROLE_SUFFIX_Y;
+            return szBaseDeviceName;
+        }
+
+        // 기준 역할(무미러)로부터 미러 3조합의 DeviceInfo 클론을 만든다. 기준값(REVERSE_X_SIDE 등)의 논리 반대가 미러다.
+        private List<DeviceInfo> BuildMirrorRoleInfos(DeviceInfo baseInfo) {
+            List<DeviceInfo> mirrorInfos = new List<DeviceInfo>();
+            if (baseInfo == null || string.IsNullOrEmpty(baseInfo.Identifier)) return mirrorInfos;
+            mirrorInfos.Add(CloneRoleInfo(baseInfo, MIRROR_ROLE_SUFFIX_X, !baseInfo.ReverseX, baseInfo.ReverseY));
+            mirrorInfos.Add(CloneRoleInfo(baseInfo, MIRROR_ROLE_SUFFIX_Y, baseInfo.ReverseX, !baseInfo.ReverseY));
+            mirrorInfos.Add(CloneRoleInfo(baseInfo, MIRROR_ROLE_SUFFIX_XY, !baseInfo.ReverseX, !baseInfo.ReverseY));
+            return mirrorInfos;
+        }
+
+        // DeviceInfo 생성자가 TriggerSource 를 대입하지 않는 기존 결함이 있어(:28-39) 클론 후 명시 복사한다.
+        //  원본 생성자는 다른 호출부 회귀 위험 때문에 고치지 않는다.
+        private DeviceInfo CloneRoleInfo(DeviceInfo baseInfo, string szSuffix, bool bReverseX, bool bReverseY) {
+            DeviceInfo clone = new DeviceInfo(baseInfo.CamType, baseInfo.ImageType, baseInfo.TriggerSource,
+                baseInfo.Identifier + szSuffix, baseInfo.Width, baseInfo.Height, bReverseX, bReverseY, baseInfo.RotateAngle);
+            clone.TriggerSource = baseInfo.TriggerSource;
+            return clone;
+        }
     }
 }

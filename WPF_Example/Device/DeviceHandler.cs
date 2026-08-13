@@ -229,11 +229,13 @@ namespace ReringProject.Device {
                         //  RapixoCXP 는 MsysAlloc 을 보드당 1회만 허용 → 2번 열면 "Too many systems have already been allocated".
                         //  144MB grab 버퍼 중복 할당도 방지. Top/Bottom 두 시퀀스가 같은 인스턴스를 공유(같은 보드가 시점만 달리 grab).
                         MilCamera sharedMil = Devices.Values.FirstOrDefault(c => c.CamType == ECameraType.MIL) as MilCamera;
+                        MilCamera registeredMil = null;
                         if (sharedMil != null) {
                             // 물리 MIL 핸들은 공유하지만, ReverseX/Y·RotateAngle 같은 역할별 grab 방향 설정은 별도로 등록해야
                             // grab 시점(GrabFromBuffer)에 요청한 논리 카메라(CAM_TOP/CAM_BOTTOM)에 맞는 방향이 적용된다.
                             sharedMil.RegisterRoleInfo(id);
                             Devices.Add(id.Identifier, sharedMil);
+                            registeredMil = sharedMil;
                         }
                         else {
                             MilCamera newCam = new MilCamera(Config, id);
@@ -243,6 +245,13 @@ namespace ReringProject.Device {
                                 continue;
                             }
                             Devices.Add(id.Identifier, newCam);
+                            registeredMil = newCam;
+                        }
+                        // quick-260813-jnh: 이 역할의 미러 3조합을 _roleInfoMap 에만 추가 등록한다.
+                        //  Devices 딕셔너리에는 절대 넣지 않는다 — ShotConfig.DeviceName 이 INI 에 영속 저장되는 값이고,
+                        //  CameraParam.DeviceNameList 가 Devices 로 UI 드롭다운을 만들기 때문(가짜 장치 노출 금지).
+                        foreach (DeviceInfo mirrorInfo in BuildMirrorRoleInfos(id)) {
+                            registeredMil.RegisterRoleInfo(mirrorInfo);
                         }
 #endif
                     }
@@ -327,13 +336,19 @@ namespace ReringProject.Device {
         }
 
         public HImage GrabHalconImage(ICameraParam param) {
-            VirtualCamera cam = this[param.DeviceName];
+            return GrabHalconImage(param, param.DeviceName);   // 기존과 완전히 동일한 동작
+        }
+
+        // quick-260813-jnh: 카메라 조회(param.DeviceName)와 grab 역할 해석(requestIdentifier)을 분리한다.
+        //  SIMUL 의 VirtualCamera 는 requestIdentifier 를 무시하므로(VirtualCamera.cs:460-462) 시뮬 회귀 위험 0.
+        public HImage GrabHalconImage(ICameraParam param, string requestIdentifier) {
+            VirtualCamera cam = this[param.DeviceName];        // ← 조회는 계속 base 이름으로
             if (cam == null) return null;
             if (cam.Properties == null) return null;
             if (!cam.Properties.ApplyFromParam(param)) return null;
-            return cam.GrabHalconImage(param.DeviceName);
+            return cam.GrabHalconImage(requestIdentifier);
         }
-        
+
 
         public void Dispose() {
             //Config.Save();

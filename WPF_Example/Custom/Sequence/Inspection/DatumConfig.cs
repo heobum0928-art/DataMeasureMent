@@ -222,6 +222,63 @@ namespace ReringProject.Sequence {
         [System.ComponentModel.Description("LineROI 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
         public int ZIndexB { get; set; } = -1;
 
+        // quick-260813: 경고를 '사용자의 PropertyGrid 편집' 에서만 띄우기 위한 억제 플래그.
+        //  ParamBase.Load(INI 리플렉션 SetValue)와 CopyPublicPropertiesTo(붙여넣기)가 같은 세터를 때리므로,
+        //  가드가 없으면 레시피 로드/붙여넣기마다 경고창이 뜬다. 위 _suppressModelRename 과 동일한 패턴이며,
+        //  단일 인스턴스 안에서 UI 스레드로만 켜고 끄므로 별도 동기화는 두지 않는다.
+        private bool _suppressMirrorWarning;
+
+        // quick-260813: 카메라 하드웨어 촬영 방향(좌우/상하 뒤집기) 설정. 여기서는 값만 보관하고 실제 뒤집기는
+        //  하지 않는다 — MIL grab 배선은 후속 별도 작업이며, 앱 시작 시 1회 적용될 예정이다.
+        //  INI 키 미존재 시 ParamBase.Load 의 Boolean case 가 false 를 넣는데 C# 초기값과 같으므로
+        //  ZIndexA/ZIndexB 같은 Load 오버라이드 폴백이 필요 없다.
+        private bool _mirrorX;
+
+        [Category("Datum|Mirror")]
+        [System.ComponentModel.Description("카메라가 사진을 좌우로 뒤집어 찍게 한다. 기본 꺼짐. 프로그램을 다시 시작해야 적용된다.")]
+        public bool MirrorX {
+            get { return _mirrorX; }
+            set {
+                if (_mirrorX == value) return; // 같은 값 재저장 시 경고 반복 방지
+                _mirrorX = value;
+                RaisePropertyChanged(nameof(MirrorX));
+                WarnMirrorChanged("좌우 반전(MirrorX)", value);
+            }
+        }
+
+        private bool _mirrorY;
+
+        [Category("Datum|Mirror")]
+        [System.ComponentModel.Description("카메라가 사진을 상하로 뒤집어 찍게 한다. 기본 꺼짐. 프로그램을 다시 시작해야 적용된다.")]
+        public bool MirrorY {
+            get { return _mirrorY; }
+            set {
+                if (_mirrorY == value) return; // 같은 값 재저장 시 경고 반복 방지
+                _mirrorY = value;
+                RaisePropertyChanged(nameof(MirrorY));
+                WarnMirrorChanged("상하 반전(MirrorY)", value);
+            }
+        }
+
+        // quick-260813: 이 값은 '카메라가 찍어오는 사진 자체' 를 바꾸므로 이 Datum 하나가 아니라 같은 카메라를 쓰는
+        //  다른 측정까지 영향을 받는다. 초보 작업자가 무심코 켰다가 원인 모를 전항목 틀어짐을 겪지 않도록 알린다.
+        //  메시지박스 호출은 내부에서 Dispatcher.BeginInvoke 로 넘어가므로 세터를 블로킹하지 않는다
+        //  (PropertyGrid 쓰기가 끝난 뒤 창이 뜬다 — 재진입 없음). 이중 마샬링 금지.
+        //  isAutoClosing=false : 기본 7초 자동닫힘을 끈다. 읽고 직접 닫아야 하는 경고다.
+        private void WarnMirrorChanged(string label, bool isOn) {
+            if (_suppressMirrorWarning) return;
+            string stateText;
+            if (isOn) stateText = "켜짐";
+            else      stateText = "꺼짐";
+            string message =
+                "[" + label + "] 설정을 '" + stateText + "' 으로 바꿨습니다.\n\n" +
+                "1. 이 설정은 카메라가 사진을 찍어오는 방향 자체를 뒤집습니다. 화면에 보이는 그림만 돌리는 것이 아닙니다.\n\n" +
+                "2. 같은 카메라로 찍는 다른 검사 항목의 측정값까지 함께 틀어질 수 있습니다. 잘 모르면 바꾸지 마시고, 바꿨다면 다른 항목들도 꼭 다시 확인하세요.\n\n" +
+                "3. 지금 바로 적용되지 않습니다. 프로그램을 완전히 종료했다가 다시 실행해야 반영됩니다.";
+            ReringProject.UI.CustomMessageBox.Show("촬영 방향(반전) 설정 변경", message,
+                System.Windows.MessageBoxImage.Warning, true, false);
+        }
+
         // IOfflineImageParam — Datum 노드 Load 버튼이 선택 경로를 TeachingImagePath 에 기록.
         //  Shot 노드(ShotConfig)는 SimulImagePath, Datum 노드는 TeachingImagePath 로 역할 분리.
         /// <summary>
@@ -1159,11 +1216,13 @@ namespace ReringProject.Sequence {
             //  이 구간에서 리네임이 돌면 다른 Datum 의 모델 파일을 옮겨버리므로 반드시 끈다.
             bool result;
             _suppressModelRename = true;
+            _suppressMirrorWarning = true; // quick-260813: 리플렉션 SetValue 가 Mirror 세터를 때려 경고창이 뜨는 것을 막는다
             try {
                 result = base.Load(loadFile, groupName);
             }
             finally {
                 _suppressModelRename = false;
+                _suppressMirrorWarning = false;
             }
             IniSection sec;
             if (!loadFile.TryGetSection(groupName, out sec) || sec == null) {
@@ -1210,7 +1269,14 @@ namespace ReringProject.Sequence {
             DatumConfig target = param as DatumConfig;
             if (target == null) return false;
             base.CopyTo(param);
-            CopyPublicPropertiesTo(target, _copyExclude);
+            // quick-260813: 붙여넣기는 리플렉션으로 target 세터를 때린다. 사용자의 직접 편집이 아니므로 경고를 끈다.
+            target._suppressMirrorWarning = true;
+            try {
+                CopyPublicPropertiesTo(target, _copyExclude);
+            }
+            finally {
+                target._suppressMirrorWarning = false;
+            }
             return true;
         }
     }

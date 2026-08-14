@@ -435,13 +435,11 @@ namespace ReringProject {
             this.ContentRendered -= Window_ContentRendered_LoadRecipe; // 1회 실행 후 구독 해제
             if (mSystemHandler.Setting.CurrentRecipeName == null) {
                 mSystemHandler.IsRecipeReady = true; // 레시피 없어도 guard 해제
-                mSystemHandler.StartMeasureWarmupAsync(); //260814 hbk quick-260814-dxy: 레시피 없음 — 내부에서 즉시 게이트 개방
                 return;
             }
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
                 mSystemHandler.LoadRecipe(mSystemHandler.Setting.CurrentRecipeName);
                 mSystemHandler.IsRecipeReady = true; //260615 hbk Phase 43.2: 로드 완료(성공/실패 무관) → TCP guard 해제 (D-B)
-                mSystemHandler.StartMeasureWarmupAsync(); //260814 hbk quick-260814-dxy: 레시피 로드 직후 측정 파이프라인 워밍업 백그라운드 시작(UI 스레드 논블로킹)
             }));
         }
 

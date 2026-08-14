@@ -69,17 +69,6 @@ namespace ReringProject.Sequence {
         public TestPacket RequestPacket { get; private set; } = null;
         public ConcurrentQueue<TestResultPacket> ResponseQueue { get; private set; } = new ConcurrentQueue<TestResultPacket>();
 
-        //260814 hbk quick-260814-warmup-thread-fix: 이 시퀀스의 MainThread 위에서 외부 콜백을 실행하기 위한 큐.
-        //  HALCON temp-mem 캐시는 스레드별로 관리되므로, "실제 검사가 도는 그 스레드"에서 실행돼야 의미 있는
-        //  작업(예: 측정 파이프라인 워밍업)을 Task.Run(스레드풀) 대신 여기로 넘긴다. MainExecute 가 매
-        //  iteration 드레인한다.
-        public ConcurrentQueue<Action> CallbackQueue { get; private set; } = new ConcurrentQueue<Action>();
-
-        public void EnqueueCallback(Action callback) {
-            if (callback == null) return;
-            CallbackQueue.Enqueue(callback);
-        }
-
         public SequenceBase(ESequence id, string name) {
             ID = id;
             Name = name;
@@ -258,8 +247,6 @@ namespace ReringProject.Sequence {
             ReinforceThreadMemoryCache(); //260814 hbk quick-260814-kx5: 이 스레드가 HALCON을 처음 쓰기 전, 스레드 진입 시 1회만
 
             while(IsTerminated == false) {
-                DrainCallbackQueue(); //260814 hbk quick-260814-warmup-thread-fix: Command/bCreated 상태 무관하게 매 iteration 드레인
-
                 if (bCreated == false) {
                     Thread.Sleep(1000);
                     continue;
@@ -315,20 +302,6 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260814 hbk quick-260814-warmup-thread-fix: CallbackQueue 에 쌓인 콜백을 이 스레드(MainThread) 위에서
-        //  순서대로 실행한다. 콜백 예외는 이 시퀀스 스레드 자체를 죽이면 안 되므로 개별적으로 흡수한다.
-        private void DrainCallbackQueue() {
-            Action callback;
-            while (CallbackQueue.TryDequeue(out callback)) {
-                try {
-                    callback();
-                }
-                catch (Exception ex) {
-                    Logging.PrintErrLog((int)ELogType.Error,
-                        string.Format("[MainExecute] CallbackQueue exception in sequence '{0}': {1}", Name, ex.Message));
-                }
-            }
-        }
         public virtual void OnLoad() {
             foreach(ActionBase act in Actions) {
                 act.OnLoad();

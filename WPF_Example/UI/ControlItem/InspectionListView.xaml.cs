@@ -375,13 +375,6 @@ namespace ReringProject.UI {
         }
 
         private void Btn_start_Click(object sender, RoutedEventArgs e) {
-            //260814 hbk quick-260814-dxy: 측정 파이프라인 워밍업 완료 전에는 수동 RUN 도 막는다(TCP $TEST 와 동일 게이트).
-            if (!SystemHandler.Handle.IsMeasureWarmupComplete) {
-                CustomMessageBox.Show("측정 파이프라인 준비 중",
-                    "앱이 측정 파이프라인을 준비하는 중입니다. 잠시 후 다시 시도하세요.",
-                    MessageBoxImage.Warning);
-                return;
-            }
             if (treeListBox_sequence.SelectedIndex < 0) return;
             if (!(treeListBox_sequence.SelectedItem is NodeViewModel node)) return;
 
@@ -539,13 +532,6 @@ namespace ReringProject.UI {
 
         //260616 hbk Phase 51 BATCH-01: 선택 SHOT 일괄 검사 (D-01/D-02/D-03)
         private void Btn_batchRun_Click(object sender, RoutedEventArgs e) {
-            //260814 hbk quick-260814-dxy: 측정 파이프라인 워밍업 완료 전에는 일괄검사도 막는다.
-            if (!SystemHandler.Handle.IsMeasureWarmupComplete) {
-                CustomMessageBox.Show("측정 파이프라인 준비 중",
-                    "앱이 측정 파이프라인을 준비하는 중입니다. 잠시 후 다시 시도하세요.",
-                    MessageBoxImage.Warning);
-                return;
-            }
             var root = treeListBox_sequence.Items.Count > 0 ? treeListBox_sequence.Items[0] as NodeViewModel : null;
             var checkedShots = new List<NodeViewModel>();
             if (root != null) {

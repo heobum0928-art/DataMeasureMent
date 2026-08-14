@@ -119,11 +119,15 @@ namespace ReringProject.Sequence {
                             }
                             // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
                             //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
+                            var swDatumLight = Stopwatch.StartNew(); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
                             parentSeq.ApplyDatumLights(datum);
+                            long msApplyDatumLights = swDatumLight.ElapsedMilliseconds; //TEMP 계측
                             // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
                             //  (기존엔 수동 UI grab 경로에만 있던 대기를 자동 검사 사이클에도 배선. SIMUL/오프라인처럼
                             //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)
+                            var swDatumLightWait = Stopwatch.StartNew(); //TEMP 계측
                             LightHandler.Handle.WaitForPendingWrites();
+                            long msWaitForPendingWrites = swDatumLightWait.ElapsedMilliseconds; //TEMP 계측
                             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
                                 //260722 hbk Phase 68 D-05: Datum ZIndexA/B 오설정 게이트 — TryGrabOrLoadDualDatumImages 호출 전
                                 //  명시적 실패 처리(조용한 static 폴백 금지). 미설정(-1/-1)은 게이트 미해당 → 기존 static 경로.
@@ -231,9 +235,10 @@ namespace ReringProject.Sequence {
                                             parentSeq.MarkDatumFailed(datum.DatumName);
                                         }
                                     }
-                                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
-                                    Logging.PrintLog((int)ELogType.Trace, "[FaiTiming] datum={0} stage=DatumDetail grab={1}ms detect={2}ms",
-                                        (datum.DatumName != null ? datum.DatumName : "?"), msDatumGrab, swDatumDetect.ElapsedMilliseconds);
+                                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): thread=MemCacheWarmup의 seq 스레드ID와 대조용, dbg=디버거 부착 여부 직접 확인
+                                    Logging.PrintLog((int)ELogType.Trace, "[FaiTiming] datum={0} stage=DatumDetail light={1}ms lightWait={2}ms grab={3}ms detect={4}ms thread={5} dbg={6}",
+                                        (datum.DatumName != null ? datum.DatumName : "?"), msApplyDatumLights, msWaitForPendingWrites, msDatumGrab, swDatumDetect.ElapsedMilliseconds,
+                                        System.Threading.Thread.CurrentThread.ManagedThreadId, System.Diagnostics.Debugger.IsAttached);
                                 } finally {
                                     img.Dispose();
                                 }
@@ -565,8 +570,9 @@ namespace ReringProject.Sequence {
                     if (ShotParam != null) szMeasureShotName = ShotParam.ShotName ?? "";
                     else szMeasureShotName = "";
                     Logging.PrintLog((int)ELogType.Trace,
-                        "[FaiTiming] shot={0} stage=Measure measuredCount={1} measureExec={2}ms saveQueueEnqueue={3}ms total={4}ms",
-                        szMeasureShotName, measuredCount, msMeasureExec, msSaveQueue, swMeasureTotal.ElapsedMilliseconds);
+                        "[FaiTiming] shot={0} stage=Measure measuredCount={1} measureExec={2}ms saveQueueEnqueue={3}ms total={4}ms thread={5} dbg={6}",
+                        szMeasureShotName, measuredCount, msMeasureExec, msSaveQueue, swMeasureTotal.ElapsedMilliseconds,
+                        System.Threading.Thread.CurrentThread.ManagedThreadId, System.Diagnostics.Debugger.IsAttached); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): 실행 스레드 ID, dbg=디버거 부착 여부 직접 확인
                     Step = (int)EStep.End;
                     break;
                 }

@@ -191,7 +191,9 @@ namespace ReringProject.Sequence {
                                     if (imgV != null) { try { imgV.Dispose(); } catch { } }
                                 }
                             } else { // 1-image datum
+                                var swDatumGrab = Stopwatch.StartNew(); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
                                 HImage img = GrabOrLoadDatumImage(datum);
+                                long msDatumGrab = swDatumGrab.ElapsedMilliseconds; //TEMP 계측
                                 if (img == null) {
                                     string datumName = datum.DatumName;
                                     if (datumName == null) datumName = "";
@@ -203,6 +205,7 @@ namespace ReringProject.Sequence {
                                 }
                                 //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 (D-02/D-04/D-05). 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
                                 //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
+                                var swDatumDetect = Stopwatch.StartNew(); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
                                 try {
                                     if (datum.IsPatternAlignEnabled) {
                                         string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
@@ -228,6 +231,9 @@ namespace ReringProject.Sequence {
                                             parentSeq.MarkDatumFailed(datum.DatumName);
                                         }
                                     }
+                                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
+                                    Logging.PrintLog((int)ELogType.Trace, "[FaiTiming] datum={0} stage=DatumDetail grab={1}ms detect={2}ms",
+                                        (datum.DatumName != null ? datum.DatumName : "?"), msDatumGrab, swDatumDetect.ElapsedMilliseconds);
                                 } finally {
                                     img.Dispose();
                                 }

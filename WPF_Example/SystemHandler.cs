@@ -74,6 +74,12 @@ namespace ReringProject {
         private volatile bool _isRecipeReady = false;
         public bool IsRecipeReady { get { return _isRecipeReady; } set { _isRecipeReady = value; } }
 
+        //260814 hbk quick-260814-dxy: 측정 파이프라인 워밍업(Custom/SystemHandler.cs StartMeasureWarmupAsync)
+        //  완료 신호. IsRecipeReady 와 별도 플래그인 이유: 레시피 로드는 끝나도 워밍업은 아직 진행 중일 수
+        //  있어서다. ProcessTest / Btn_start_Click / Btn_batchRun_Click 게이트로 쓰인다.
+        private volatile bool _isMeasureWarmupComplete = false;
+        public bool IsMeasureWarmupComplete { get { return _isMeasureWarmupComplete; } set { _isMeasureWarmupComplete = value; } }
+
         private SystemHandler() {
             // 1) System setting
             Setting = SystemSetting.Handle;
@@ -125,6 +131,7 @@ namespace ReringProject {
                 //  생성/Dispose 반복 시 mimalloc 은 8회차부터 WorkingSet 이 ~152MB 에 영구 고착(GC.Collect 무효)한 반면
                 //  'system' 은 15회 전부 ~30MB 로 반환됐다. 할당자 종류 설정이므로 다른 SetSystem 보다 먼저 둔다.
                 //  HALCON 내부 할당 경로만 바꾸므로 이미지 데이터/측정 수치에는 영향이 없다.
+
                 HOperatorSet.SetSystem("memory_allocator", "system");
                 HOperatorSet.SetSystem("global_mem_cache", "idle");
                 HOperatorSet.SetSystem("temporary_mem_cache", "idle");

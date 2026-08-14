@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using ReringProject.Sequence;
 using System.Diagnostics;
+using System.IO; //260814 hbk quick-260814-dxy: File.Exists (FindMeasureWarmupShot)
+using ReringProject.Halcon.Models; //260814 hbk quick-260814-dxy: EdgeInspectionOverlay (TryWarmupOneMeasurement)
 using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
 using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
@@ -228,6 +230,12 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[RECIPE] TEST rejected — recipe not yet loaded (IsRecipeReady=false)");
                 return false;
             }
+            //260814 hbk quick-260814-dxy: 측정 파이프라인 워밍업 완료 전에는 TEST 거부 — Release 콜드스타트
+            //  임시 완화(StartMeasureWarmupAsync). "완전 해결"이 아니라 "완화 시도" — top-release-2x-slower.md.
+            if (!IsMeasureWarmupComplete) {
+                Logging.PrintLog((int)ELogType.Error, "[MeasureWarmup] TEST rejected — 측정 파이프라인 워밍업 진행 중(IsMeasureWarmupComplete=false)");
+                return false;
+            }
             packet.TestID = _lastPrepZIndex.ToString(); //260626 hbk $PREP z_index 주입
             if (Sequences.IsDynamicFAIMode) {
                 string seqName = packet.Identifier;
@@ -347,6 +355,171 @@ namespace ReringProject {
             resultPacket.Result = EVisionResultType.NG;
 
             return resultPacket;
+        }
+
+        //260814 hbk quick-260814-dxy: Release 콜드스타트 measureExec(MeasurePos/MeasurePairs) 수 배~10배
+        //  저하(.planning/debug/top-release-2x-slower.md) 원인 불명 임시 완화. 그 비용을 실제 검사 사이클이
+        //  아니라 기동 시점에 미리 확정적으로 치르게 한다 — "완전 해결"이 아니라 "완화 시도"임을 명심할 것.
+        //  레시피 로드 직후 MainWindow.Window_ContentRendered_LoadRecipe 가 호출한다.
+        private const int MEASURE_WARMUP_ITERATIONS = 15; // 관측된 워밍업 문턱(7~36회+, 들쭉날쭉)의 중간값 근사치
+        private const int MEASURE_WARMUP_SYNTHETIC_IMAGE_SIZE = 2048; // 저장 이미지가 전혀 없을 때만 쓰는 최후 폴백
+
+        //260814 hbk 워밍업 진입점 — UI 스레드를 블로킹하지 않도록 Task.Run 으로 던진다.
+        //  Shot 이 하나도 없으면(레시피 없음/구형식) 즉시 게이트를 연다 — 영원히 막히면 안 된다.
+        public void StartMeasureWarmupAsync()
+        {
+            bool bHasShots = Sequences != null && Sequences.RecipeManager != null && Sequences.RecipeManager.ShotCount > 0;
+            if (!bHasShots)
+            {
+                Logging.PrintLog((int)ELogType.Trace, "[MeasureWarmup] 대상 Shot 없음 — 워밍업 스킵, 즉시 게이트 개방");
+                IsMeasureWarmupComplete = true;
+                return;
+            }
+            Task.Run(() =>
+            {
+                try
+                {
+                    RunMeasureWarmup();
+                }
+                catch (Exception ex)
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[MeasureWarmup] 예외 — 워밍업 실패, 정상 기동 계속: {0}", ex.Message);
+                }
+                finally
+                {
+                    IsMeasureWarmupComplete = true;
+                }
+            });
+        }
+
+        //260814 hbk 대표 Shot 하나를 골라 그 FAI/Measurement 를 N회 반복 실행(TryExecuteMeasurement 와
+        //  동일한 meas.TryExecute 호출 경로). EvaluateJudgement/ClearResult 는 호출하지 않는다 — 결과를
+        //  완전히 버려서 실제 판정 로직/화면 표시에 어떤 영향도 주지 않는다.
+        private void RunMeasureWarmup()
+        {
+            Stopwatch sw = Stopwatch.StartNew();
+            HImage img = null;
+            try
+            {
+                bool bIsSynthetic;
+                ShotConfig shot = FindMeasureWarmupShot(out img, out bIsSynthetic);
+                if (shot == null || img == null)
+                {
+                    Logging.PrintLog((int)ELogType.Trace, "[MeasureWarmup] 측정 항목 있는 Shot 없음 — 워밍업 스킵");
+                    return;
+                }
+
+                int nSuccessCount = 0;
+                int nFailCount = 0;
+                for (int i = 0; i < MEASURE_WARMUP_ITERATIONS; i++)
+                {
+                    foreach (FAIConfig fai in shot.FAIList)
+                    {
+                        foreach (MeasurementBase meas in fai.Measurements)
+                        {
+                            bool bOk = TryWarmupOneMeasurement(meas, img);
+                            if (bOk) nSuccessCount++;
+                            else nFailCount++;
+                        }
+                    }
+                }
+
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[MeasureWarmup] 완료 shot={0} iterations={1} synthetic={2} success={3} fail={4} elapsed={5}ms",
+                    shot.ShotName, MEASURE_WARMUP_ITERATIONS, bIsSynthetic, nSuccessCount, nFailCount, sw.ElapsedMilliseconds);
+            }
+            finally
+            {
+                if (img != null) img.Dispose();
+            }
+        }
+
+        //260814 hbk 단일 측정 1회 실행 — 실제 TryExecuteMeasurement(Action_FAIMeasurement.cs) 의 DualImage
+        //  주입 패턴을 그대로 미러링한다. datumTransform=null 은 MeasurementBase.TryExecute 계약상 identity
+        //  와 동일(EdgeToLineDistanceMeasurement 등에서 이미 null 체크로 identity 처리하는 기존 관례).
+        private bool TryWarmupOneMeasurement(MeasurementBase meas, HImage img)
+        {
+            DualImageEdgeDistanceMeasurement dualMeas = meas as DualImageEdgeDistanceMeasurement;
+            bool bIsDual = dualMeas != null;
+            if (bIsDual)
+            {
+                dualMeas.RuntimeImageA = img;
+                dualMeas.RuntimeImageB = img;
+            }
+            try
+            {
+                double resultValue;
+                string error;
+                List<EdgeInspectionOverlay> overlays;
+                return meas.TryExecute(img, null, 1.0, out resultValue, out error, out overlays);
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (bIsDual)
+                {
+                    dualMeas.RuntimeImageA = null;
+                    dualMeas.RuntimeImageB = null;
+                }
+            }
+        }
+
+        //260814 hbk 워밍업용 Shot+더미이미지 선택. 우선순위: (1) 측정 있는 Shot 중 SimulImagePath 파일이
+        //  실존하는 첫 Shot(진짜 코드 경로 재현, 가장 신뢰도 높음) → (2) 그런 Shot 이 하나도 없으면 측정
+        //  있는 첫 Shot + 합성 이미지(GenImageConst, 캐시 워밍 목적이라 검출 성공 여부 무관).
+        private ShotConfig FindMeasureWarmupShot(out HImage img, out bool bIsSynthetic)
+        {
+            img = null;
+            bIsSynthetic = false;
+            ShotConfig shotWithMeasurements = null;
+
+            foreach (ShotConfig shot in Sequences.RecipeManager.Shots)
+            {
+                bool bHasMeasurements = ShotHasAnyMeasurement(shot);
+                if (!bHasMeasurements) continue;
+                if (shotWithMeasurements == null) shotWithMeasurements = shot;
+
+                bool bHasValidImage = !string.IsNullOrEmpty(shot.SimulImagePath) && File.Exists(shot.SimulImagePath);
+                if (!bHasValidImage) continue;
+                try
+                {
+                    img = new HImage(shot.SimulImagePath);
+                    return shot;
+                }
+                catch
+                {
+                    img = null; // 이 Shot 은 포기, 다음 Shot 계속 탐색
+                }
+            }
+
+            if (shotWithMeasurements == null) return null;
+
+            try
+            {
+                HObject hobjConst;
+                HOperatorSet.GenImageConst(out hobjConst, "byte", MEASURE_WARMUP_SYNTHETIC_IMAGE_SIZE, MEASURE_WARMUP_SYNTHETIC_IMAGE_SIZE);
+                img = new HImage(hobjConst);
+                bIsSynthetic = true;
+                return shotWithMeasurements;
+            }
+            catch
+            {
+                img = null;
+                return null;
+            }
+        }
+
+        private bool ShotHasAnyMeasurement(ShotConfig shot)
+        {
+            if (shot.FAIList == null) return false;
+            foreach (FAIConfig fai in shot.FAIList)
+            {
+                if (fai.Measurements != null && fai.Measurements.Count > 0) return true;
+            }
+            return false;
         }
 
         //260626 hbk Phase 65 Plan 03 AV-08: $ALIGN_TEST 처리 — stub(IsPass=true echo) → 실측 grab+Run+pose 채움.

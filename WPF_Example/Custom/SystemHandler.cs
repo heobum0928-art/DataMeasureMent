@@ -363,9 +363,18 @@ namespace ReringProject {
         //  레시피 로드 직후 MainWindow.Window_ContentRendered_LoadRecipe 가 호출한다.
         private const int MEASURE_WARMUP_ITERATIONS = 15; // 관측된 워밍업 문턱(7~36회+, 들쭉날쭉)의 중간값 근사치
         private const int MEASURE_WARMUP_SYNTHETIC_IMAGE_SIZE = 2048; // 저장 이미지가 전혀 없을 때만 쓰는 최후 폴백
+        private const int MEASURE_WARMUP_TIMEOUT_MS = 30000; //260814 hbk quick-260814-warmup-thread-fix: fail-open 타임아웃 — 콜백이 끝내 안 돌아도 결국 게이트를 연다
 
-        //260814 hbk 워밍업 진입점 — UI 스레드를 블로킹하지 않도록 Task.Run 으로 던진다.
-        //  Shot 이 하나도 없으면(레시피 없음/구형식) 즉시 게이트를 연다 — 영원히 막히면 안 된다.
+        //260814 hbk quick-260814-dxy: Release 콜드스타트 measureExec(MeasurePos/MeasurePairs) 수 배~10배
+        //  저하(.planning/debug/top-release-2x-slower.md) 원인 불명 임시 완화. 그 비용을 실제 검사 사이클이
+        //  아니라 기동 시점에 미리 확정적으로 치르게 한다 — "완전 해결"이 아니라 "완화 시도"임을 명심할 것.
+        //  레시피 로드 직후 MainWindow.Window_ContentRendered_LoadRecipe 가 호출한다.
+        //260814 hbk quick-260814-warmup-thread-fix(root cause fix): HALCON temp-mem 캐시는 스레드별로 관리되는
+        //  per-thread proc-handle 에 붙는다(MVTec 공식 "HALCON Memory Management" 기술노트). Task.Run(스레드풀
+        //  임의 스레드)에서 워밍업을 돌리면 실제 검사가 도는 SequenceBase.MainThread(시퀀스별 전용 Thread)를
+        //  전혀 데우지 못해 헛수고였다 — 대상 시퀀스 각각의 MainThread 위에서 워밍업 콜백이 실행되도록 바꾼다.
+        //  등록된 모든 시퀀스(SequenceHandler — 이 PC 의 PcRole/CameraRole 로 이미 필터링된 실제 활성 시퀀스만)에
+        //  콜백을 넣고, 전부 완료되거나 타임아웃(30s)되면 게이트를 연다(fail-open 유지).
         public void StartMeasureWarmupAsync()
         {
             bool bHasShots = Sequences != null && Sequences.RecipeManager != null && Sequences.RecipeManager.ShotCount > 0;
@@ -375,37 +384,77 @@ namespace ReringProject {
                 IsMeasureWarmupComplete = true;
                 return;
             }
+
+            int nSequenceCount = Sequences.Count;
+            if (nSequenceCount == 0)
+            {
+                Logging.PrintLog((int)ELogType.Trace, "[MeasureWarmup] 등록된 시퀀스 없음 — 워밍업 스킵, 즉시 게이트 개방");
+                IsMeasureWarmupComplete = true;
+                return;
+            }
+
+            int nPendingCount = nSequenceCount; //260814 hbk quick-260814-warmup-thread-fix: 클로저로 캡처되어 각 시퀀스 콜백/감시자가 공유하는 카운트다운
+            for (int i = 0; i < nSequenceCount; i++)
+            {
+                SequenceBase targetSeq = Sequences[i];
+                string sequenceName = targetSeq.Name; //260814 hbk iteration 별 로컬 캡처 — 클로저 버그 방지
+                targetSeq.EnqueueCallback(() =>
+                {
+                    try
+                    {
+                        RunMeasureWarmup(sequenceName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logging.PrintLog((int)ELogType.Error, "[MeasureWarmup] 예외(seq={0}) — 워밍업 실패, 정상 진행: {1}", sequenceName, ex.Message);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref nPendingCount);
+                    }
+                });
+            }
+
+            //260814 hbk quick-260814-warmup-thread-fix: 각 시퀀스 스레드 콜백이 다 돌 때까지 기다리는 감시자.
+            //  이 감시자 자체는 폴링만 할 뿐 HALCON 코드를 건드리지 않으므로 스레드풀(Task.Run)에서 돌아도 무방하다.
+            //  fail-open: 타임아웃이면 일부 미완료여도 게이트를 강제로 연다.
             Task.Run(() =>
             {
-                try
+                int nWaitedMs = 0;
+                const int POLL_INTERVAL_MS = 200;
+                while (Volatile.Read(ref nPendingCount) > 0 && nWaitedMs < MEASURE_WARMUP_TIMEOUT_MS)
                 {
-                    RunMeasureWarmup();
+                    Thread.Sleep(POLL_INTERVAL_MS);
+                    nWaitedMs += POLL_INTERVAL_MS;
                 }
-                catch (Exception ex)
+                int nRemaining = Volatile.Read(ref nPendingCount);
+                if (nRemaining > 0)
                 {
-                    Logging.PrintLog((int)ELogType.Error, "[MeasureWarmup] 예외 — 워밍업 실패, 정상 기동 계속: {0}", ex.Message);
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[MeasureWarmup] 타임아웃({0}ms) — 시퀀스 {1}/{2} 워밍업 미완료, fail-open 게이트 개방",
+                        MEASURE_WARMUP_TIMEOUT_MS, nRemaining, nSequenceCount);
                 }
-                finally
-                {
-                    IsMeasureWarmupComplete = true;
-                }
+                IsMeasureWarmupComplete = true;
             });
         }
 
         //260814 hbk 대표 Shot 하나를 골라 그 FAI/Measurement 를 N회 반복 실행(TryExecuteMeasurement 와
         //  동일한 meas.TryExecute 호출 경로). EvaluateJudgement/ClearResult 는 호출하지 않는다 — 결과를
         //  완전히 버려서 실제 판정 로직/화면 표시에 어떤 영향도 주지 않는다.
-        private void RunMeasureWarmup()
+        //260814 hbk quick-260814-warmup-thread-fix: sequenceName 파라미터 추가 — 이 메서드는 이제 그 시퀀스의
+        //  MainThread 콜백(EnqueueCallback)으로 호출되므로, FindMeasureWarmupShot 이 가능하면 그 시퀀스가
+        //  실제로 소유한 Shot 을 골라 프로덕션과 최대한 가깝게 재현한다.
+        private void RunMeasureWarmup(string sequenceName)
         {
             Stopwatch sw = Stopwatch.StartNew();
             HImage img = null;
             try
             {
                 bool bIsSynthetic;
-                ShotConfig shot = FindMeasureWarmupShot(out img, out bIsSynthetic);
+                ShotConfig shot = FindMeasureWarmupShot(sequenceName, out img, out bIsSynthetic);
                 if (shot == null || img == null)
                 {
-                    Logging.PrintLog((int)ELogType.Trace, "[MeasureWarmup] 측정 항목 있는 Shot 없음 — 워밍업 스킵");
+                    Logging.PrintLog((int)ELogType.Trace, "[MeasureWarmup] seq={0} 측정 항목 있는 Shot 없음 — 워밍업 스킵", sequenceName);
                     return;
                 }
 
@@ -454,8 +503,8 @@ namespace ReringProject {
                 }
 
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[MeasureWarmup] 완료 shot={0} iterations={1} synthetic={2} success={3} fail={4} skip={5} elapsed={6}ms",
-                    shot.ShotName, MEASURE_WARMUP_ITERATIONS, bIsSynthetic, nSuccessCount, nFailCount, nSkipCount, sw.ElapsedMilliseconds);
+                    "[MeasureWarmup] 완료 seq={0} shot={1} iterations={2} synthetic={3} success={4} fail={5} skip={6} elapsed={7}ms",
+                    sequenceName, shot.ShotName, MEASURE_WARMUP_ITERATIONS, bIsSynthetic, nSuccessCount, nFailCount, nSkipCount, sw.ElapsedMilliseconds);
             }
             finally
             {
@@ -513,20 +562,28 @@ namespace ReringProject {
             }
         }
 
-        //260814 hbk 워밍업용 Shot+더미이미지 선택. 우선순위: (1) 측정 있는 Shot 중 SimulImagePath 파일이
-        //  실존하는 첫 Shot(진짜 코드 경로 재현, 가장 신뢰도 높음) → (2) 그런 Shot 이 하나도 없으면 측정
-        //  있는 첫 Shot + 합성 이미지(GenImageConst, 캐시 워밍 목적이라 검출 성공 여부 무관).
-        private ShotConfig FindMeasureWarmupShot(out HImage img, out bool bIsSynthetic)
+        //260814 hbk 워밍업용 Shot+더미이미지 선택.
+        //260814 hbk quick-260814-warmup-thread-fix: sequenceName 파라미터 추가. 우선순위:
+        //  (1) sequenceName 소유 Shot 중 SimulImagePath 파일이 실존하는 첫 Shot(가장 신뢰도 높음, 그 시퀀스의
+        //      실제 프로덕션 경로를 최대한 재현) → (2) 소유 Shot 이미지가 없으면 소유 여부 무관 아무 Shot 이나
+        //      실제 이미지로 폴백(quick-260814-dxy 원래 동작, 완전 스킵보다 낫다) → (3) 그마저 없으면 합성
+        //      이미지(GenImageConst, 소유 Shot 우선 → 아무 Shot). 측정 있는 Shot 자체가 하나도 없으면 null.
+        private ShotConfig FindMeasureWarmupShot(string sequenceName, out HImage img, out bool bIsSynthetic)
         {
             img = null;
             bIsSynthetic = false;
-            ShotConfig shotWithMeasurements = null;
+
+            ShotConfig ownedShot = null;
+            ShotConfig anyShot = null;
 
             foreach (ShotConfig shot in Sequences.RecipeManager.Shots)
             {
-                bool bHasMeasurements = ShotHasAnyMeasurement(shot);
-                if (!bHasMeasurements) continue;
-                if (shotWithMeasurements == null) shotWithMeasurements = shot;
+                if (!ShotHasAnyMeasurement(shot)) continue;
+                if (anyShot == null) anyShot = shot;
+
+                bool bIsOwned = string.Equals(shot.OwnerSequenceName, sequenceName, StringComparison.OrdinalIgnoreCase);
+                if (!bIsOwned) continue;
+                if (ownedShot == null) ownedShot = shot;
 
                 bool bHasValidImage = !string.IsNullOrEmpty(shot.SimulImagePath) && File.Exists(shot.SimulImagePath);
                 if (!bHasValidImage) continue;
@@ -537,11 +594,29 @@ namespace ReringProject {
                 }
                 catch
                 {
-                    img = null; // 이 Shot 은 포기, 다음 Shot 계속 탐색
+                    img = null; // 이 Shot 은 포기, 다음 후보 계속 탐색
                 }
             }
 
-            if (shotWithMeasurements == null) return null;
+            foreach (ShotConfig shot in Sequences.RecipeManager.Shots)
+            {
+                if (!ShotHasAnyMeasurement(shot)) continue;
+                bool bHasValidImage = !string.IsNullOrEmpty(shot.SimulImagePath) && File.Exists(shot.SimulImagePath);
+                if (!bHasValidImage) continue;
+                try
+                {
+                    img = new HImage(shot.SimulImagePath);
+                    return shot;
+                }
+                catch
+                {
+                    img = null;
+                }
+            }
+
+            ShotConfig fallbackShot = ownedShot;
+            if (fallbackShot == null) fallbackShot = anyShot;
+            if (fallbackShot == null) return null;
 
             try
             {
@@ -549,7 +624,7 @@ namespace ReringProject {
                 HOperatorSet.GenImageConst(out hobjConst, "byte", MEASURE_WARMUP_SYNTHETIC_IMAGE_SIZE, MEASURE_WARMUP_SYNTHETIC_IMAGE_SIZE);
                 img = new HImage(hobjConst);
                 bIsSynthetic = true;
-                return shotWithMeasurements;
+                return fallbackShot;
             }
             catch
             {

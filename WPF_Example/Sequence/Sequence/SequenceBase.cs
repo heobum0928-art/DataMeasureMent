@@ -273,9 +273,18 @@ namespace ReringProject.Sequence {
                     IsDoneBegin = false;
                     try { Error(); } catch { } //260517 hbk Error() 내 2차 예외도 무시 (로그 스레드 재진입 방지)
                 }
+                //260814 hbk TEMP 계측(top-release-2x-slower): 이미 있던 Sleep(5) 의 "실제" 소요를 잰다.
+                //  타이머 해상도가 1ms 로 살아있으면 5~6ms, 기본값(15.6ms)으로 회수됐으면 15~16ms 가 나온다 —
+                //  NtQueryTimerResolution 은 시스템 전역값이라 프로세스별 실효 상태를 못 보여주므로 이 실측이 유일한 판별법.
+                //  Sleep 은 원래 있던 것이라 추가 비용 0.
+                var swSleep = System.Diagnostics.Stopwatch.StartNew();
                 Thread.Sleep(5);
+                LastSleepMs = swSleep.Elapsed.TotalMilliseconds;
             }
         }
+
+        //260814 hbk TEMP 계측(top-release-2x-slower): 직전 루프의 Sleep(5) 실측 소요(ms). FaiTiming 로그에 같이 찍는다.
+        public double LastSleepMs { get; private set; }
 
         //260814 hbk quick-260814-kx5: 스레드 전용(tsp_) 재적용은 제거함 — 오늘 하루 종일 inherited 값이 항상
         //  이미 "idle"로 확인돼(SystemHandler.Initialize() 전역 설정이 이 스레드 생성보다 먼저 실행되므로

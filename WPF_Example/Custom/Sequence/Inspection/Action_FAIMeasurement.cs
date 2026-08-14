@@ -569,10 +569,16 @@ namespace ReringProject.Sequence {
                     string szMeasureShotName;
                     if (ShotParam != null) szMeasureShotName = ShotParam.ShotName ?? "";
                     else szMeasureShotName = "";
+                    //TEMP 계측: sleep5=시퀀스 루프의 Sleep(5) 실측치 — 타이머 해상도 실효 상태 판별(1ms 살아있으면 ~5-6ms, 회수됐으면 ~15-16ms)
+                    double dLastSleepMs;
+                    SequenceBase measureSeq = null;
+                    if (ShotParam != null) measureSeq = ShotParam.Parent as SequenceBase;
+                    if (measureSeq != null) dLastSleepMs = measureSeq.LastSleepMs;
+                    else dLastSleepMs = -1.0;
                     Logging.PrintLog((int)ELogType.Trace,
-                        "[FaiTiming] shot={0} stage=Measure measuredCount={1} measureExec={2}ms saveQueueEnqueue={3}ms total={4}ms thread={5} dbg={6}",
+                        "[FaiTiming] shot={0} stage=Measure measuredCount={1} measureExec={2}ms saveQueueEnqueue={3}ms total={4}ms thread={5} dbg={6} sleep5={7:F1}ms",
                         szMeasureShotName, measuredCount, msMeasureExec, msSaveQueue, swMeasureTotal.ElapsedMilliseconds,
-                        System.Threading.Thread.CurrentThread.ManagedThreadId, System.Diagnostics.Debugger.IsAttached); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): 실행 스레드 ID, dbg=디버거 부착 여부 직접 확인
+                        System.Threading.Thread.CurrentThread.ManagedThreadId, System.Diagnostics.Debugger.IsAttached, dLastSleepMs); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
                     Step = (int)EStep.End;
                     break;
                 }

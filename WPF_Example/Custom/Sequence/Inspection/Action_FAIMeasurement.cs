@@ -93,6 +93,10 @@ namespace ReringProject.Sequence {
                 //  비우면 물리적으로 고정된(Z 무관) Datum 기준물까지 Shot 마다 재조명+재grab+재정렬+재검출(실측
                 //  0.9~1.4초/회)하게 된다 — 아래 루프의 캐시-재사용 스킵과 짝을 이루는 변경.
                 case EStep.DatumPhase: {
+                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): [FaiTiming]이 Grab/Measure만 재고
+                    //  이 DatumPhase 단계는 안 재고 있어서, Grab+Measure 합계와 실제 사이클 전체 시간 사이의 차이가
+                    //  이 단계에서 나는지 확인하기 위한 임시 로그.
+                    var swDatumPhase = Stopwatch.StartNew();
                     InspectionSequence parentSeq;
                     if (ShotParam != null) parentSeq = ShotParam.Parent as InspectionSequence;
                     else parentSeq = null;
@@ -252,6 +256,9 @@ namespace ReringProject.Sequence {
                         nCurZ = parentSeq.GetExecutionZIndex();
                         bDatumOnly = parentSeq.ShouldSkipMeasurementAfterDatumPhase(nCurZ);
                     }
+                    //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
+                    Logging.PrintLog((int)ELogType.Trace, "[FaiTiming] shot={0} stage=Datum total={1}ms",
+                        (ShotParam != null ? ShotParam.ShotName : "?"), swDatumPhase.ElapsedMilliseconds);
                     if (bDatumOnly) {
                         Step = (int)EStep.End;
                     } else {

@@ -679,9 +679,9 @@ namespace ReringProject.Sequence {
         //  BeginCrossZImageCycle() 클린 슬레이트 조치로는 커버되지 않는다: 저장소가 비어있어도 nCurZ 가 애초에
         //  ZIndexA/B 와 매칭될 수 없으므로 여전히 bPending=true 로 매번 skip 된다). 프로토콜 $TEST/DebugManualZTrigger
         //  (Custom/SystemHandler.cs, RequestPacket!=null, 실제 z_index 스텝)는 완전히 무변경 — 수동 경로만 tick 게이트를
-        //  우회해 기존 static 경로(TeachingImagePath/_Vertical, 무 z 의존)로 동기 취득한다. 주의: 이 fallback 은 해당
-        //  datum 의 TeachingImagePath/_Vertical 이 채워져 있어야 성립 — 비어있으면 TryLoadStaticDualDatumImages 가
-        //  false 를 반환해 명시적 DETECT FAIL/NG 로 이어진다(조용한 stale 재사용보다 안전한 실패 모드, 회귀 아님).
+        //  우회해 기존 static 경로(TeachingImagePath/_Vertical, 무 z 의존)로 동기 취득한다. TeachingImagePath/_Vertical 이
+        //  비어 있으면 SHOT 검사이미지(ShotParam.SimulImagePath)로 폴백하고(1-image datum 경로와 동일 패턴), 그것마저
+        //  없을 때만 TryLoadStaticDualDatumImages 가 false 를 반환해 명시적 DETECT FAIL/NG 로 이어진다(조용한 stale 재사용 금지).
         private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
             imageHorizontal = null;
             imageVertical = null;
@@ -698,27 +698,38 @@ namespace ReringProject.Sequence {
             return TryLoadStaticDualDatumImages(datum, out imageHorizontal, out imageVertical);
         }
 
-        // 기존 static teaching 파일 로드 경로 (ZIndexA/B 미설정, D-07 회귀 0) — 원본 TryGrabOrLoadDualDatumImages 로직 그대로.
-        //  imageHorizontal: datum.TeachingImagePath 에서 로드 (가로축 ROI 검출용)
-        //  imageVertical:   datum.TeachingImagePath_Vertical 에서 로드 (세로축 ROI 검출용)
-        //  빈 경로 또는 파일 없음 / HImage 생성 실패 시 false + 로그.
+        // 기존 static teaching 파일 로드 경로 (ZIndexA/B 미설정, D-07 회귀 0).
+        //  imageHorizontal: datum.TeachingImagePath  → 부재/로드실패 시 ShotParam.SimulImagePath 폴백
+        //  imageVertical:   datum.TeachingImagePath_Vertical → 부재/로드실패 시 동일 ShotParam.SimulImagePath 폴백
+        //  폴백은 1-image datum 경로(LoadDatumImageFromPath)가 이미 쓰던 것과 동일한 것을 재사용한다 — SIMUL/오프라인
+        //  통신테스트에서 datum 티칭 이미지 미확보만으로 $TEST 가 즉시 F 로 끝나 프로토콜 왕복 검증 자체가 막히던
+        //  문제를 닫기 위함. 두 축이 같은 SHOT 검사이미지 한 장을 쓰는 것은 271줄 "Simul 에서 두 경로 동일 파일 가능"
+        //  전제와 동일. SimulImagePath 조차 없으면 종전대로 false(명시적 DETECT FAIL/NG).
+        //  주의: 두 out 파라미터는 호출부 finally 에서 각각 Dispose 되므로 폴백 시에도 반드시 서로 다른 HImage
+        //  인스턴스여야 한다 — LoadDatumImageFromPath 를 두 번 호출해 각각 새로 생성한다(참조 공유 금지).
         private bool TryLoadStaticDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) {
             imageHorizontal = null;
             imageVertical = null;
             string pathH = datum.TeachingImagePath;
             string pathV = datum.TeachingImagePath_Vertical;
 
-            if (string.IsNullOrEmpty(pathH) || !File.Exists(pathH)) {
-                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage).");
-                return false;
-            }
-            if (string.IsNullOrEmpty(pathV) || !File.Exists(pathV)) {
-                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 티칭 이미지 경로가 비어 있거나 파일이 없습니다 (DualImage).");
-                return false;
-            }
+            bool bFallbackH = string.IsNullOrEmpty(pathH) || !File.Exists(pathH);
+            bool bFallbackV = string.IsNullOrEmpty(pathV) || !File.Exists(pathV);
 
-            try { imageHorizontal = new HImage(pathH); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 이미지 로드 실패: " + ex.Message); imageHorizontal = null; }
-            try { imageVertical = new HImage(pathV); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 이미지 로드 실패: " + ex.Message); imageVertical = null; }
+            imageHorizontal = LoadDatumImageFromPath(datum, pathH, false); // teachingPath → SimulImagePath 폴백 (grab 없음)
+            imageVertical = LoadDatumImageFromPath(datum, pathV, false);   // 동일 폴백, 별도 인스턴스
+
+            if (imageHorizontal == null) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 이미지 확보 실패 — TeachingImagePath / ShotParam.SimulImagePath 모두 없음 (DualImage).");
+            } else if (bFallbackH) {
+                // 폴백이 조용히 일어나면 "티칭 이미지로 검출했다" 고 오해할 수 있어 흔적을 남긴다.
+                Logging.PrintLog((int)ELogType.Trace, "[Datum] 가로축 티칭 이미지 부재 — SHOT 검사이미지(SimulImagePath)로 폴백 (DualImage).");
+            }
+            if (imageVertical == null) {
+                Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 이미지 확보 실패 — TeachingImagePath_Vertical / ShotParam.SimulImagePath 모두 없음 (DualImage).");
+            } else if (bFallbackV) {
+                Logging.PrintLog((int)ELogType.Trace, "[Datum] 세로축 티칭 이미지 부재 — SHOT 검사이미지(SimulImagePath)로 폴백 (DualImage).");
+            }
 
             if (imageHorizontal == null || imageVertical == null) {
                 if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } }

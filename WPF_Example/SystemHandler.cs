@@ -124,9 +124,52 @@ namespace ReringProject {
         [System.Runtime.InteropServices.DllImport("ntdll.dll", SetLastError = true)]
         private static extern int NtQueryTimerResolution(out uint MinimumResolution, out uint MaximumResolution, out uint CurrentResolution);
 
+        //260814 hbk Windows 11 공식 문서(SetProcessInformation Remarks): "창을 가진 프로세스가 최소화되거나
+        //  완전히 가려지면(fully occluded/minimized), Windows는 그 프로세스의 timeBeginPeriod 요청을 자동으로
+        //  무시할 수 있다" — 실측(창을 다른 창으로 덮으면 sleep5 가 5ms→16ms 로 회수, 재현됨)과 정확히 일치한다.
+        //  현장 PC는 PLC 가 TCP 로 트리거해서 아무도 창을 보지 않으므로(최소화/타 창에 가려짐 상시), 이 회수가
+        //  상시 발동할 위험이 있다. PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION 을 명시적으로 "끔"으로
+        //  설정하면(ControlMask 지정+StateMask=0) 이 자동회수 자체를 프로세스 단위로 옵트아웃할 수 있다 —
+        //  이것도 같은 SetProcessInformation 문서가 공식 제공하는 대응 API. 관리자 권한/재부팅 불필요.
+        //  EXECUTION_SPEED 플래그도 같이 꺼서 최소화 시 CPU 클럭/코어 배정이 낮아지는 것까지 예방(오늘은 이게
+        //  원인이 아니었다고 확인됐지만, 무인 운영 PC라 방어적으로 같이 막아둔다).
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct PROCESS_POWER_THROTTLING_STATE {
+            public uint Version;
+            public uint ControlMask;
+            public uint StateMask;
+        }
+
+        private const uint PROCESS_POWER_THROTTLING_CURRENT_VERSION = 1;
+        private const uint PROCESS_POWER_THROTTLING_EXECUTION_SPEED = 0x1;
+        private const uint PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION = 0x4;
+        private const int ProcessPowerThrottling = 4; // PROCESS_INFORMATION_CLASS.ProcessPowerThrottling
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetProcessInformation(IntPtr hProcess, int ProcessInformationClass,
+            ref PROCESS_POWER_THROTTLING_STATE ProcessInformation, uint ProcessInformationSize);
+
+        //260814 hbk 최소화/가려짐 상태에서도 요청한 타이머 해상도가 회수되지 않도록 프로세스 단위로 옵트아웃.
+        private void DisableTimerResolutionThrottling() {
+            try {
+                var state = new PROCESS_POWER_THROTTLING_STATE {
+                    Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+                    ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+                    StateMask = 0 // 두 플래그 모두 "끔" — 스로틀링/타이머해상도 무시 둘 다 옵트아웃
+                };
+                bool ok = SetProcessInformation(Process.GetCurrentProcess().Handle, ProcessPowerThrottling,
+                    ref state, (uint)System.Runtime.InteropServices.Marshal.SizeOf(state));
+                Logging.PrintLog((int)ELogType.Trace, "[TimerRes] SetProcessInformation(IgnoreTimerResolution+ExecutionSpeed off) ok={0}", ok);
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[TimerRes] SetProcessInformation 실패(무시하고 계속): {0}", ex.Message);
+            }
+        }
+
         //260814 hbk 적용 전/후 실제 해상도를 100ns 단위로 되읽어 로그로 남긴다(추측이 아니라 실측 확인).
         private void ApplyHighResolutionTimer() {
             try {
+                DisableTimerResolutionThrottling(); // timeBeginPeriod 보다 먼저 — 요청이 회수되지 않게 먼저 옵트아웃부터
                 uint minRes, maxRes, beforeRes;
                 NtQueryTimerResolution(out minRes, out maxRes, out beforeRes);
                 uint rc = TimeBeginPeriod(1);

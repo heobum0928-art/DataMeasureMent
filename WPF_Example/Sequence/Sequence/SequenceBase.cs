@@ -302,7 +302,7 @@ namespace ReringProject.Sequence {
             try {
                 HTuple inheritedMode;
                 HOperatorSet.GetSystem("tsp_temporary_mem_cache", out inheritedMode);
-                HOperatorSet.SetSystem("tsp_temporary_mem_cache", "aggregate");
+                HOperatorSet.SetSystem("tsp_temporary_mem_cache", "idle"); //260814 hbk quick-260814-kx5 REVERTED: aggregate가 더 느려서 idle로 되돌림(SystemHandler.cs 참고)
                 HTuple confirmedMode;
                 HOperatorSet.GetSystem("tsp_temporary_mem_cache", out confirmedMode);
                 Logging.PrintLog((int)ELogType.Trace,

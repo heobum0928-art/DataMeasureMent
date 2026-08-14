@@ -134,25 +134,11 @@ namespace ReringProject {
 
                 HOperatorSet.SetSystem("memory_allocator", "system");
                 HOperatorSet.SetSystem("global_mem_cache", "idle");
-                //260814 hbk quick-260814-kx5: 'idle'→'aggregate'. 근거: HALCON 공식 기술노트("HALCON Memory
-                //  Management" §2.3)상 기본 'exclusive' 모드는 스레드별 스택 구조라 크기가 들쭉날쭉한 연속
-                //  요청(SHOT_A1-23-C1-C12 35개 ROI)마다 새 슈퍼블록 생성+구블록 OS 반납을 반복하는 캐시
-                //  스래싱이 생길 수 있음(.planning/debug/top-release-2x-slower.md 저녁 재조사 Evidence).
-                //  'aggregate'는 작은 블록을 스레드별로 하나로 합쳐 필요한 만큼 성장시키고 큰 블록만 공유
-                //  reservoir로 보내 스래싱을 줄이면서 'exclusive'보다는 메모리를 아낀다(공식문서 표현:
-                //  "a good balance between memory usage and speed"). ⚠ 'idle'이 갖던 "temp 메모리 즉시 전량
-                //  반환" 특성은 사라진다 — project_batch_memory_never_shrinks_260806(과거 30항목 배치
-                //  34~41GB 미해결 이슈)와 상충 가능성이 있어 실기 배치 검사 중 WorkingSet 추이를 사용자가
-                //  직접 관찰해야 한다(코드만으로 이 트레이드오프의 실제 영향은 검증 불가).
-                //  스레드 범위(set_system.html / memory_management_0007.html "Switching between cache modes",
-                //  로컬 설치본 재확인 완료): tsp_ 없이 호출 시 호출 스레드 즉시 적용 + 이후 시작되는 스레드에
-                //  적용, 이미 실행 중인 스레드는 미적용. 이 호출은 바로 아래 Sequences = SequenceHandler.Handle
-                //  (SequenceBase.MainThread 생성 지점)보다 먼저 실행되므로 이론상 이미 각 시퀀스 스레드에
-                //  적용되지만, 초기화 순서 변경에도 안전하도록 SequenceBase.MainExecute() 시작부에 스레드
-                //  전용(tsp_) 재적용 + 실측 로그를 추가해뒀다([MemCacheWarmup], SequenceBase.cs 참고).
-                //  ※ "시도"이지 검증된 해결책이 아니다 — 근본원인은 top-release-2x-slower.md 기준 여전히
-                //  미확정이며 실기 재현 확인은 사용자 몫이다.
-                HOperatorSet.SetSystem("temporary_mem_cache", "aggregate");
+                //260814 hbk quick-260814-kx5 REVERTED: measure_pos 콜드스타트 완화를 위해 'idle'→'aggregate'로
+                //  바꿔 시도했으나(HALCON Memory Management §2.3 근거), 실기 테스트 결과 오히려 더 느려져서
+                //  원래 값('idle')으로 되돌림. SequenceBase.ReinforceThreadMemoryCache()도 'idle'로 맞춰뒀다.
+                //  top-release-2x-slower.md 근본원인은 여전히 미확정.
+                HOperatorSet.SetSystem("temporary_mem_cache", "idle");
                 HOperatorSet.SetSystem("image_cache_capacity", 0);
             }
             catch (Exception ex) {

@@ -244,7 +244,7 @@ namespace ReringProject.Sequence {
         }
 
         private void MainExecute() {
-            ReinforceThreadMemoryCache(); //260814 hbk quick-260814-kx5: 이 스레드가 HALCON을 처음 쓰기 전, 스레드 진입 시 1회만
+            LogThreadMemoryCacheState(); //260814 hbk quick-260814-kx5: 이 스레드가 HALCON을 처음 쓰기 전, 스레드 진입 시 1회만
 
             while(IsTerminated == false) {
                 if (bCreated == false) {
@@ -277,28 +277,21 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260814 hbk quick-260814-kx5: 이 스레드(SequenceBase.MainThread) 전용 방어적 재적용 + 실측 로그.
-        //  SystemHandler.Initialize() 의 전역 SetSystem("temporary_mem_cache","aggregate") 이 이 스레드
-        //  생성(Sequences = SequenceHandler.Handle)보다 먼저 실행되므로 공식문서(HALCON Memory Management
-        //  §2.3 "Switching between cache modes")상 이미 상속돼야 정상이지만, 초기화 순서가 향후 바뀌어도
-        //  안전하도록 스레드 전용(tsp_) 변형으로 한 번 더 걸고, 재적용 전(inherited)/후(confirmed) 값을 모두
-        //  GetSystem 으로 되읽어 로그로 남긴다 — "이론상 상속됨"이 아니라 실측으로 확인하기 위함
-        //  (inherited=aggregate 면 위 상속 이론이 실측으로 확인된 것). 중복 SetSystem 호출은 멱등이라 무해하고,
-        //  실패해도(캐시 힌트 실패일 뿐) 스레드 시작을 막지 않는다.
-        private void ReinforceThreadMemoryCache() {
+        //260814 hbk quick-260814-kx5: 스레드 전용(tsp_) 재적용은 제거함 — 오늘 하루 종일 inherited 값이 항상
+        //  이미 "idle"로 확인돼(SystemHandler.Initialize() 전역 설정이 이 스레드 생성보다 먼저 실행되므로
+        //  정상 상속됨), 재적용이 실제로 뭔가를 바꾼 적이 한 번도 없었다 — 불필요한 방어코드였음이 로그로
+        //  증명됨. 이 스레드의 HALCON 캐시 상태를 확인하는 진단 로그만 남긴다.
+        private void LogThreadMemoryCacheState() {
             try {
-                HTuple inheritedMode;
-                HOperatorSet.GetSystem("tsp_temporary_mem_cache", out inheritedMode);
-                HOperatorSet.SetSystem("tsp_temporary_mem_cache", "idle"); //260814 hbk quick-260814-kx5 REVERTED: aggregate가 더 느려서 idle로 되돌림(SystemHandler.cs 참고)
-                HTuple confirmedMode;
-                HOperatorSet.GetSystem("tsp_temporary_mem_cache", out confirmedMode);
+                HTuple mode;
+                HOperatorSet.GetSystem("tsp_temporary_mem_cache", out mode);
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[MemCacheWarmup] seq={0} thread={1} inherited={2} confirmed={3}",
-                    Name, Thread.CurrentThread.ManagedThreadId, inheritedMode.S, confirmedMode.S);
+                    "[MemCacheWarmup] seq={0} thread={1} mode={2}",
+                    Name, Thread.CurrentThread.ManagedThreadId, mode.S);
             }
             catch (Exception ex) {
                 Logging.PrintErrLog((int)ELogType.Error,
-                    string.Format("[MemCacheWarmup] seq={0} SetSystem/GetSystem exception: {1}", Name, ex.Message));
+                    string.Format("[MemCacheWarmup] seq={0} GetSystem exception: {1}", Name, ex.Message));
             }
         }
 

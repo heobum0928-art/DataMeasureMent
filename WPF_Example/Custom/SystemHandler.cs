@@ -409,15 +409,44 @@ namespace ReringProject {
                     return;
                 }
 
+                //260814 hbk quick-260814-warmup-transform-fix(root cause fix): null 대신 identity HTuple 을
+                //  넘긴다. EdgeToLineDistanceMeasurement.TryExecute 는 datumTransform==null 이면 진입부에서
+                //  즉시 "Datum not found" 로 false 반환한다(HALCON measure_pos 자체가 호출 안 됨) — 이전
+                //  quick-260814-dxy 코드의 "null=identity 로 처리되는 기존 관례" 가정은 VisionAlgorithmService.
+                //  TryFitLine 내부에만 해당하고, 그 앞단의 이 가드를 놓쳤던 것이 근본원인이다. identity 를 쓰는
+                //  이유: Point_Row/Col(ROI 정의)은 교시 시점 절대 이미지 좌표이고, datumTransform 은 그 위에
+                //  얹는 "교시→현재 사이클" 미세 보정 델타일 뿐이다(DatumFindingService.TryFindTwoLineIntersect
+                //  참고). 워밍업은 라이브 검출이 없어 그 델타를 알 수 없으므로, 프로덕션 ResolveDatumTransform
+                //  이 "Fixture 미존재/미지정" 상황에 쓰는 것과 동일한 identity(무보정)로 대체한다 — 워밍업이
+                //  재생하는 이미지가 SimulImagePath(=실제 검사에도 쓰이는 정적 이미지)라 무보정으로도 ROI 는
+                //  교시된 실제 위치를 가리킨다.
+                HTuple identityTransform;
+                try
+                {
+                    HOperatorSet.HomMat2dIdentity(out identityTransform);
+                }
+                catch
+                {
+                    Logging.PrintLog((int)ELogType.Error, "[MeasureWarmup] identity transform 생성 실패 — 워밍업 스킵");
+                    return;
+                }
+
                 int nSuccessCount = 0;
                 int nFailCount = 0;
+                int nSkipCount = 0; //260814 hbk quick-260814-warmup-transform-fix: Datum 참조는 있는데 한 번도
+                                     //  검출 성공한 적 없는 측정 — identity 강제 실행 시 즉시실패만 반복하므로 skip.
                 for (int i = 0; i < MEASURE_WARMUP_ITERATIONS; i++)
                 {
                     foreach (FAIConfig fai in shot.FAIList)
                     {
                         foreach (MeasurementBase meas in fai.Measurements)
                         {
-                            bool bOk = TryWarmupOneMeasurement(meas, img);
+                            if (IsWarmupSkipTarget(meas))
+                            {
+                                nSkipCount++;
+                                continue;
+                            }
+                            bool bOk = TryWarmupOneMeasurement(meas, img, identityTransform);
                             if (bOk) nSuccessCount++;
                             else nFailCount++;
                         }
@@ -425,8 +454,8 @@ namespace ReringProject {
                 }
 
                 Logging.PrintLog((int)ELogType.Trace,
-                    "[MeasureWarmup] 완료 shot={0} iterations={1} synthetic={2} success={3} fail={4} elapsed={5}ms",
-                    shot.ShotName, MEASURE_WARMUP_ITERATIONS, bIsSynthetic, nSuccessCount, nFailCount, sw.ElapsedMilliseconds);
+                    "[MeasureWarmup] 완료 shot={0} iterations={1} synthetic={2} success={3} fail={4} skip={5} elapsed={6}ms",
+                    shot.ShotName, MEASURE_WARMUP_ITERATIONS, bIsSynthetic, nSuccessCount, nFailCount, nSkipCount, sw.ElapsedMilliseconds);
             }
             finally
             {
@@ -434,10 +463,27 @@ namespace ReringProject {
             }
         }
 
+        //260814 hbk quick-260814-warmup-transform-fix: Datum 참조(DatumRef)가 있는데 그 Datum 좌표가 이
+        //  측정 객체에 한 번도 주입된 적 없는(IDatumOriginConsumer.DatumOriginRow/Col 둘 다 0.0) 경우만
+        //  스킵 대상으로 판단한다. DatumRef 가 빈 문자열이면(무보정 의도) 스킵 아님 — identity 로 정상 실행.
+        //  IDatumOriginConsumer 를 구현하지 않는 타입(PointToLineDistance 등)은 이 판단 근거 자체가 없으므로
+        //  스킵하지 않고 identity 로 그대로 시도한다.
+        private bool IsWarmupSkipTarget(MeasurementBase meas)
+        {
+            if (meas == null) return true;
+            if (string.IsNullOrEmpty(meas.DatumRef)) return false;
+            IDatumOriginConsumer consumer = meas as IDatumOriginConsumer;
+            if (consumer == null) return false;
+            bool bHasInjectedOrigin = (consumer.DatumOriginRow != 0.0 || consumer.DatumOriginCol != 0.0);
+            return !bHasInjectedOrigin;
+        }
+
         //260814 hbk 단일 측정 1회 실행 — 실제 TryExecuteMeasurement(Action_FAIMeasurement.cs) 의 DualImage
-        //  주입 패턴을 그대로 미러링한다. datumTransform=null 은 MeasurementBase.TryExecute 계약상 identity
-        //  와 동일(EdgeToLineDistanceMeasurement 등에서 이미 null 체크로 identity 처리하는 기존 관례).
-        private bool TryWarmupOneMeasurement(MeasurementBase meas, HImage img)
+        //  주입 패턴을 그대로 미러링한다.
+        //260814 hbk quick-260814-warmup-transform-fix: datumTransform 은 호출부(RunMeasureWarmup)가 미리
+        //  만든 identity HTuple 을 받는다 — null 을 넘기면 EdgeToLineDistanceMeasurement 등이 진입부에서
+        //  즉시 reject 하므로 반드시 유효한 non-null/non-empty HTuple 이어야 한다.
+        private bool TryWarmupOneMeasurement(MeasurementBase meas, HImage img, HTuple datumTransform)
         {
             DualImageEdgeDistanceMeasurement dualMeas = meas as DualImageEdgeDistanceMeasurement;
             bool bIsDual = dualMeas != null;
@@ -451,7 +497,7 @@ namespace ReringProject {
                 double resultValue;
                 string error;
                 List<EdgeInspectionOverlay> overlays;
-                return meas.TryExecute(img, null, 1.0, out resultValue, out error, out overlays);
+                return meas.TryExecute(img, datumTransform, 1.0, out resultValue, out error, out overlays);
             }
             catch
             {

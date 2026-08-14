@@ -255,6 +255,8 @@ namespace ReringProject.Sequence {
         }
 
         private void MainExecute() {
+            ReinforceThreadMemoryCache(); //260814 hbk quick-260814-kx5: 이 스레드가 HALCON을 처음 쓰기 전, 스레드 진입 시 1회만
+
             while(IsTerminated == false) {
                 DrainCallbackQueue(); //260814 hbk quick-260814-warmup-thread-fix: Command/bCreated 상태 무관하게 매 iteration 드레인
 
@@ -285,6 +287,31 @@ namespace ReringProject.Sequence {
                     try { Error(); } catch { } //260517 hbk Error() 내 2차 예외도 무시 (로그 스레드 재진입 방지)
                 }
                 Thread.Sleep(5);
+            }
+        }
+
+        //260814 hbk quick-260814-kx5: 이 스레드(SequenceBase.MainThread) 전용 방어적 재적용 + 실측 로그.
+        //  SystemHandler.Initialize() 의 전역 SetSystem("temporary_mem_cache","aggregate") 이 이 스레드
+        //  생성(Sequences = SequenceHandler.Handle)보다 먼저 실행되므로 공식문서(HALCON Memory Management
+        //  §2.3 "Switching between cache modes")상 이미 상속돼야 정상이지만, 초기화 순서가 향후 바뀌어도
+        //  안전하도록 스레드 전용(tsp_) 변형으로 한 번 더 걸고, 재적용 전(inherited)/후(confirmed) 값을 모두
+        //  GetSystem 으로 되읽어 로그로 남긴다 — "이론상 상속됨"이 아니라 실측으로 확인하기 위함
+        //  (inherited=aggregate 면 위 상속 이론이 실측으로 확인된 것). 중복 SetSystem 호출은 멱등이라 무해하고,
+        //  실패해도(캐시 힌트 실패일 뿐) 스레드 시작을 막지 않는다.
+        private void ReinforceThreadMemoryCache() {
+            try {
+                HTuple inheritedMode;
+                HOperatorSet.GetSystem("tsp_temporary_mem_cache", out inheritedMode);
+                HOperatorSet.SetSystem("tsp_temporary_mem_cache", "aggregate");
+                HTuple confirmedMode;
+                HOperatorSet.GetSystem("tsp_temporary_mem_cache", out confirmedMode);
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[MemCacheWarmup] seq={0} thread={1} inherited={2} confirmed={3}",
+                    Name, Thread.CurrentThread.ManagedThreadId, inheritedMode.S, confirmedMode.S);
+            }
+            catch (Exception ex) {
+                Logging.PrintErrLog((int)ELogType.Error,
+                    string.Format("[MemCacheWarmup] seq={0} SetSystem/GetSystem exception: {1}", Name, ex.Message));
             }
         }
 

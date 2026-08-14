@@ -110,8 +110,42 @@ namespace ReringProject {
             
         }
         
+        //260814 hbk top-release-2x-slower 조사: Windows 시스템 타이머 해상도(기본 15.6ms)를 1ms 로 올린다.
+        //  근거: 같은 exe 를 (a) 그냥 실행하면 HALCON 연산이 느리고 (b) 실행 중인 그 프로세스에 나중에 VS 디버거를
+        //  붙이면 즉시 빨라지는 현상을 실측 확인했다(10/10 재현). 프로세스 생성 시점에 고정되는 요인(디버그 힙,
+        //  환경변수/어피니티 상속 등)은 "이미 돌고 있는 프로세스에 나중에 붙였는데 빨라짐"을 설명할 수 없으므로
+        //  전부 배제되고, 디버거가 붙어있는 "동안만" 달라지는 런타임 요인만 남는다. 그 후보 중 하나가 타이머
+        //  해상도다 — 디버거/개발도구가 timeBeginPeriod(1) 을 호출하면 스레드 스케줄링 granularity 가 15.6ms 에서
+        //  1ms 로 내려가고, 시퀀스 스레드처럼 Sleep/선점이 잦은 워크로드는 그만큼 대기 손실이 줄어든다.
+        //  timeBeginPeriod 는 문서화된 공개 Win32 API 이고 정확성에 영향이 없다(전력 소모만 소폭 증가).
+        [System.Runtime.InteropServices.DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+        private static extern uint TimeBeginPeriod(uint uMilliseconds);
+
+        [System.Runtime.InteropServices.DllImport("ntdll.dll", SetLastError = true)]
+        private static extern int NtQueryTimerResolution(out uint MinimumResolution, out uint MaximumResolution, out uint CurrentResolution);
+
+        //260814 hbk 적용 전/후 실제 해상도를 100ns 단위로 되읽어 로그로 남긴다(추측이 아니라 실측 확인).
+        private void ApplyHighResolutionTimer() {
+            try {
+                uint minRes, maxRes, beforeRes;
+                NtQueryTimerResolution(out minRes, out maxRes, out beforeRes);
+                uint rc = TimeBeginPeriod(1);
+                uint afterRes;
+                NtQueryTimerResolution(out minRes, out maxRes, out afterRes);
+                Logging.PrintLog((int)ELogType.Trace,
+                    "[TimerRes] timeBeginPeriod(1) rc={0} before={1:F3}ms after={2:F3}ms (min={3:F3}ms max={4:F3}ms)",
+                    rc, beforeRes / 10000.0, afterRes / 10000.0, minRes / 10000.0, maxRes / 10000.0);
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[TimerRes] timeBeginPeriod 실패(무시하고 계속): {0}", ex.Message);
+            }
+        }
+
         // Call after constructor to fully initialize runtime components.
         public void Initialize() {
+            ApplyHighResolutionTimer(); //260814 hbk top-release-2x-slower 조사 — HALCON SetSystem 보다 먼저, 최대한 이른 시점에
+
+
             // quick-260806-dsn Part A: HALCON 자체 캐시(mimalloc, HALCON 24.11 Windows 기본 할당자)가 해제된
             //  메모리를 OS에 즉시 반환하지 않고 계속 쌓아두는 문제의 공식 완화책(memory_management 챕터,
             //  "Handling Suspected Memory Leaks in HALCON" 권장 3줄, 앱 시작 시 1회). 캐시 정책만 바꿀 뿐
@@ -126,14 +160,14 @@ namespace ReringProject {
                 //  'system' 은 15회 전부 ~30MB 로 반환됐다. 할당자 종류 설정이므로 다른 SetSystem 보다 먼저 둔다.
                 //  HALCON 내부 할당 경로만 바꾸므로 이미지 데이터/측정 수치에는 영향이 없다.
 
-                //HOperatorSet.SetSystem("memory_allocator", "system");
-                //HOperatorSet.SetSystem("global_mem_cache", "idle");
-                ////260814 hbk quick-260814-kx5 REVERTED: measure_pos 콜드스타트 완화를 위해 'idle'→'aggregate'로
-                ////  바꿔 시도했으나(HALCON Memory Management §2.3 근거), 실기 테스트 결과 오히려 더 느려져서
-                ////  원래 값('idle')으로 되돌림. SequenceBase.ReinforceThreadMemoryCache()도 'idle'로 맞춰뒀다.
-                ////  top-release-2x-slower.md 근본원인은 여전히 미확정.
-                //HOperatorSet.SetSystem("temporary_mem_cache", "idle");
-                //HOperatorSet.SetSystem("image_cache_capacity", 0);
+                HOperatorSet.SetSystem("memory_allocator", "system");
+                HOperatorSet.SetSystem("global_mem_cache", "idle");
+                //260814 hbk quick-260814-kx5 REVERTED: measure_pos 콜드스타트 완화를 위해 'idle'→'aggregate'로
+                //  바꿔 시도했으나(HALCON Memory Management §2.3 근거), 실기 테스트 결과 오히려 더 느려져서
+                //  원래 값('idle')으로 되돌림. SequenceBase.ReinforceThreadMemoryCache()도 'idle'로 맞춰뒀다.
+                //  top-release-2x-slower.md 근본원인은 여전히 미확정.
+                HOperatorSet.SetSystem("temporary_mem_cache", "idle");
+                HOperatorSet.SetSystem("image_cache_capacity", 0);
             }
             catch (Exception ex) {
                 Logging.PrintLog((int)ELogType.Error, "[STARTUP] HALCON SetSystem memory cache config failed: {0}", ex.Message);

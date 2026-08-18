@@ -70,7 +70,11 @@ namespace ReringProject.Sequence {
         //  로그 실패가 검사를 막으면 안 되므로 예외는 전부 삼킨다.
         private const char chAlgoMul = '×'; // '×' — 알고리즘 종류별 횟수 표기용
 
-        private void LogSeqStep(string szStepName, string szDetail) {
+        //260818 hbk 로그 끝에 "@파일명:줄번호" 를 자동으로 붙인다(C# CallerFilePath/CallerLineNumber, 컴파일 타임에
+        //  박히므로 런타임 비용 없음). 로그 한 줄을 그대로 복사해 편집기에서 열면 바로 그 코드로 갈 수 있다.
+        private void LogSeqStep(string szStepName, string szDetail,
+            [System.Runtime.CompilerServices.CallerFilePath] string szCallerFile = "",
+            [System.Runtime.CompilerServices.CallerLineNumber] int nCallerLine = 0) {
             try {
                 string szSeqName = "?";
                 string szShotName = "?";
@@ -79,18 +83,23 @@ namespace ReringProject.Sequence {
                     SequenceBase seq = ShotParam.Parent as SequenceBase;
                     if (seq != null && seq.Name != null) szSeqName = seq.Name;
                 }
-                Logging.PrintLog((int)ELogType.Trace, "[SEQ]   {0} · {1} · [{2}] {3}",
-                    szSeqName, szShotName, szStepName, szDetail);
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ]   {0} · {1} · [{2}] {3}   @{4}:{5}",
+                    szSeqName, szShotName, szStepName, szDetail,
+                    System.IO.Path.GetFileName(szCallerFile), nCallerLine);
             }
             catch { }
         }
 
         //260818 hbk 어떤 알고리즘 함수를 탔는지 한 줄 — 상세 수치는 Algorithm 탭, 여기는 "경로" 확인용.
-        private void LogSeqAlgo(string szStepName, string szTargetName, string szAlgoPath) {
+        //  호출부의 파일/줄을 그대로 넘겨서, 이 헬퍼가 아니라 실제 호출 지점이 로그에 찍히게 한다.
+        private void LogSeqAlgo(string szStepName, string szTargetName, string szAlgoPath,
+            [System.Runtime.CompilerServices.CallerFilePath] string szCallerFile = "",
+            [System.Runtime.CompilerServices.CallerLineNumber] int nCallerLine = 0) {
             try {
                 string szTarget = szTargetName;
                 if (string.IsNullOrEmpty(szTarget)) szTarget = "?";
-                LogSeqStep(szStepName, string.Format("'{0}' 알고리즘 → {1}", szTarget, szAlgoPath));
+                LogSeqStep(szStepName, string.Format("'{0}' 알고리즘 → {1}", szTarget, szAlgoPath),
+                    szCallerFile, nCallerLine);
             }
             catch { }
         }

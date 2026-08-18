@@ -35,7 +35,11 @@ Trace 탭이 너무 복잡해지지 않도록, 측정/검출 알고리즘 내부
 | `[CaptureRender]` | `WPF_Example/Halcon/Display/OverlayCaptureRenderer.cs` |
 | `[CaptureSave]` | `WPF_Example/Utility/CaptureImageSaveService.cs` |
 | `[ALIGN_SVC]` | `WPF_Example/Custom/EthernetVision/AlignShapeMatchService.cs` |
-| `[FaiTiming]` | `Action_FAIMeasurement.cs` (임시 성능 조사용, 추후 정리 예정) |
+
+> **삭제된 태그:** `[FaiTiming]` — 타이머 해상도 근본원인이 확정 수정(`327cb73`/`369811c`)된 뒤
+> 임시 진단 계측이었던 이 태그는 quick-260818-ef5 에서 코드에서 완전히 제거됐습니다. 이제 안 찍힙니다.
+> (`SequenceBase.cs:344` 주석에 이름만 남아 있는데, 이건 실제 출력이 아니라 옛 설명입니다.)
+> 단계별 소요시간은 `[SEQ]` 로그의 각 단계 끝 `(N.NN초)` 로 대체됐습니다.
 
 ## 예시
 

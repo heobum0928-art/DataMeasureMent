@@ -496,6 +496,27 @@ namespace ReringProject.UI
                 CustomMessageBox.Show("반복도 엑셀 export", msg, icon);
             }
         }
+
+        /// 오프스크린 Canvas → PNG 캡처가 실제로 그림을 만드는지 점검한다(빈 이미지 회귀 감시).
+        private void Button_ChartSmoke_Click(object sender, RoutedEventArgs e)
+        {
+            string szFolder = SystemHandler.Handle.Setting.ResultSavePath;
+            string szMessage;
+            bool bOk = ReringProject.Export.ChartImageCapture.TrySaveSmokePng(szFolder, out szMessage);
+
+            string szTitle = "차트 이미지 캡처 점검";
+            MessageBoxImage icon;
+            if (bOk)
+            {
+                icon = MessageBoxImage.Information;
+            }
+            else
+            {
+                icon = MessageBoxImage.Error;
+            }
+
+            CustomMessageBox.Show(szTitle, szMessage, icon);
+        }
     }
 
     /// <summary>ListBox 각 항목 — FolderPath(역직렬화 시 경로), DisplayText(시각·종합판정).</summary>

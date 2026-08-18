@@ -1017,13 +1017,19 @@ Plans:
 
 ### Phase 72: CPK 데이터 리포트 출력 재설계 — 고객 참고양식(Rapid City A8.1_Z Stopper Data Report R04) 대조 기반: RAW DATA 가로형 매트릭스 신설, Cpk 엑셀 export 복원(Phase 51에서 제거됨), Cp 신규 계산, USL/LSL 명시적 컬럼화, 그래프 방식(이미지 삽입 vs 라이브러리 교체) 결정 (신설 2026-08-18)
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** 고객 참고양식(Rapid City A8.1_Z Stopper Data Report R04)과 대조해 확인된 갭을 메워, 반복/일괄 검사 결과를 고객이 실제로 보는 2장짜리 엑셀 리포트(`RAW DATA(1)` 가로형 매트릭스 + `1Cav 세부치수_Cpk` 통계시트)로 출력한다.
+**Requirements**: (고객 양식 주도 phase — 공식 REQ-ID 미매핑)
 **Depends on:** Phase 71
-**Plans:** 0 plans
+**Plans:** 7 plans (5 waves)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 72 to break down)
+- [ ] 72-01-PLAN.md — RepeatMeasurementStats 확장 (Cp/UCPK/LCPK/Min/Max + GetSeries)
+- [ ] 72-02-PLAN.md — ChartRenderService 추출 (Canvas 드로잉을 Window 에서 분리)
+- [ ] 72-03-PLAN.md — D-05 폴더 반복검사 자재번호 입력·전파 + 누적 실행
+- [ ] 72-04-PLAN.md — ChartImageCapture 오프스크린 PNG 캡처 + 조기 육안 검증
+- [ ] 72-05-PLAN.md — CpkReportExportService 신설 + RAW DATA(1) 가로형 시트
+- [ ] 72-06-PLAN.md — 1Cav 세부치수_Cpk 통계 시트 (Cp/UCPK/LCPK/USL/LSL/판정/요약)
+- [ ] 72-07-PLAN.md — 그래프 이미지 삽입 + 리뷰어 export 버튼 + 실데이터 UAT
 
 ---
 

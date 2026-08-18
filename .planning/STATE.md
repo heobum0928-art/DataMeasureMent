@@ -4,8 +4,8 @@ milestone: v1.2
 milestone_name: Phases
 status: unknown
 stopped_at: quick-260814-dxy 완료 — 측정 파이프라인 워밍업 임시 완화(commits 2fbbe94, 79974f6), 근본원인 미확정 상태 유지
-last_updated: "2026-08-14T01:44:58.646Z"
-last_activity: "2026-08-11 - Completed quick task 260811-odo(`SequenceContext.ResultHalconImage` use-after-dispose AVE 근본 수정 — SharedHImage refcount 소유권 모델 도입, 트리클릭 UI 독자 신규 발견해 동시 차단, 레이스 하네스 PASS. 실기 UAT 대기). 이전: 2026-08-10 quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)"
+last_updated: "2026-08-18T09:19:20.847Z"
+last_activity: "2026-08-18 - Completed quick task 260818-ef5(Action_FAIMeasurement.cs Run() 가독성 리팩토링 — 무회귀 최우선. 592줄 단일 Run()을 11줄 switch 디스패치 + private 메서드 11개로 추출, 삼항연산자 10개 전부 if-else 전개, 타이머해상도 조사용 임시 [FaiTiming] 계측 전부 제거, [SEQ]/[ALGO] 사용자용 로그는 보존. discuss+research+plan-checker(2회, 실행 전 false-fail grep 버그 1건+Mark* 카운트 누락 1건 발견해 수정)+code-review+verifier 전체 파이프라인 통과, must-haves 9/9 검증. 커밋 eefda4a/2b30ded/12fa8aa). 이전: 2026-08-18 - Completed quick task 260818-el1(현장 운영자용 Word 매뉴얼 신규 작성 — 원본 NewDDA 매뉴얼과 무관하게 현재 코드 기준으로 처음부터 작성, 그림 자리표시자 36개, "Operator" 계정 등급 미존재 사실을 코드로 확인해 정확히 반영. 스크린샷 36장 삽입 전까지는 초안 상태. 관리자/엔지니어용 "티칭" 챕터(Datum+패턴+Align) 추가 작업이 같은 세션에서 이어서 진행 중). 이전: 2026-08-11 - Completed quick task 260811-odo(`SequenceContext.ResultHalconImage` use-after-dispose AVE 근본 수정 — SharedHImage refcount 소유권 모델 도입, 트리클릭 UI 독자 신규 발견해 동시 차단, 레이스 하네스 PASS. 실기 UAT 대기). 이전: 2026-08-10 quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)"
 progress:
   total_phases: 15
   completed_phases: 14
@@ -748,4 +748,4 @@ Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure pla
 
 **Completed Phase:** 34 (Datum VerticalTwoHorizontal 듀얼 티칭 이미지) — 4 plans — partial signed_off 2026-05-27T05:00:00Z (Test 1+5 PASS · Test 3 PARTIAL · Test 2/4 PENDING → Phase 34.1 일괄)
 
-**Planned Phase:** 71 (prep-op-plc-off-p-f) — 4 plans — 2026-08-06T09:29:38.197Z
+**Planned Phase:** 72 (CPK 데이터 리포트 출력 재설계) — 7 plans — 2026-08-18T09:19:20.832Z

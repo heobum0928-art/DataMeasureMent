@@ -95,14 +95,25 @@ namespace ReringProject.Sequence {
             catch { }
         }
 
+        //260818 hbk [초보자용 개요] 이 Run() 메서드는 프로그램이 살아있는 동안 아주 짧은 간격(수 ms)으로 계속
+        //  반복 호출됩니다. 매번 호출될 때마다 지금이 몇 번째 "단계"(Step)인지 보고, 그 단계에 해당하는
+        //  case 블록 하나만 실행합니다 — 이런 구조를 "상태 머신(state machine)"이라고 부릅니다.
+        //  한 Shot(사진 한 장 분량의 검사)이 끝나기까지 아래 순서로 단계가 넘어갑니다:
+        //    Init(초기화) → MoveZ(높이 이동) → DatumPhase(기준점 찾기) → Grab(촬영) → Measure(측정) → End(종료)
+        //  각 case 는 자기 할 일을 끝내면 `Step = (int)EStep.다음단계;` 로 다음 단계를 예약하고 `break;`로
+        //  빠져나갑니다. 다음 호출 때 그 다음 단계 case 가 실행되는 식입니다. 그래서 이 메서드 안에서
+        //  "루프"를 직접 도는 게 아니라, 밖에서(SequenceBase) 반복 호출해주는 걸 받아서 한 걸음씩 전진합니다.
         public override ActionContext Run() {
             switch ((EStep)Step) {
+                //260818 hbk [초보자용] 검사 시작 직전 정리 단계 — 지난번 검사 결과가 남아있으면 지우고 바로 다음 단계로 넘어갑니다.
                 case EStep.Init:
                     // Run 사이클 진입 시 image buffer + FAI results dispose
                     if (ShotParam != null) ShotParam.ClearAllResults();
                     Step = (int)EStep.MoveZ;
                     break;
 
+                //260818 hbk [초보자용] 이 Shot이 필요로 하는 높이(Z)로 이동하는 단계입니다. 지금은 실제 축 이동 장치가
+                //  아직 없어서(주석의 SIMUL/실장비 분기 참고) 사실상 대기만 하거나 건너뜁니다.
                 case EStep.MoveZ:
                     //260818 hbk [SEQ] 단계 로그 — 대괄호 안 이름은 코드의 EStep 값과 1:1 이라, 로그에서 본 단계명으로
                     //  Action_FAIMeasurement.cs 의 'case EStep.<이름>:' 을 바로 찾아갈 수 있다.
@@ -128,6 +139,9 @@ namespace ReringProject.Sequence {
                 //  그대로)로 이동했다. 이유: 이 case 는 시퀀스의 Shot(=Z) 수만큼 반복 실행되는데, 매번 무조건
                 //  비우면 물리적으로 고정된(Z 무관) Datum 기준물까지 Shot 마다 재조명+재grab+재정렬+재검출(실측
                 //  0.9~1.4초/회)하게 된다 — 아래 루프의 캐시-재사용 스킵과 짝을 이루는 변경.
+                //260818 hbk [초보자용] "기준점(Datum)"을 찾는 단계입니다. 사진에서 측정을 하려면 먼저 "여기가 기준이다"라는
+                //  위치를 알아야 하는데, 그걸 찾는 게 이 단계입니다. 부품이 움직이지 않는 한 기준점 위치도 안 바뀌므로,
+                //  이번 검사(사이클)에서 이미 한 번 찾았으면 다시 찾지 않고 그 결과를 재사용합니다(아래 캐시 로직).
                 case EStep.DatumPhase: {
                     //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): [FaiTiming]이 Grab/Measure만 재고
                     //  이 DatumPhase 단계는 안 재고 있어서, Grab+Measure 합계와 실제 사이클 전체 시간 사이의 차이가
@@ -331,6 +345,8 @@ namespace ReringProject.Sequence {
                     break;
                 }
 
+                //260818 hbk [초보자용] 실제로 카메라로 사진을 찍는(또는 SIMUL 모드면 저장된 사진을 불러오는) 단계입니다.
+                //  이미 이 Shot이 사진을 갖고 있으면(HasImage) 다시 찍지 않고 그대로 다음 단계로 넘어갑니다.
                 case EStep.Grab:
                     if (ShotParam != null && !ShotParam.HasImage) {
                         //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): grab/load 순수시간 vs 표시사본 복사시간 분리
@@ -396,6 +412,9 @@ namespace ReringProject.Sequence {
                     Step = (int)EStep.Measure;
                     break;
 
+                //260818 hbk [초보자용] 찍은 사진 위에서 진짜 "측정"을 하는 단계입니다. 이 Shot에 등록된 FAI(검사 그룹)와
+                //  그 안의 개별 측정 항목(길이/각도/지름 등)을 하나씩 돌면서 값을 재고, 공차(허용 범위) 안에 드는지
+                //  판정합니다. 하나라도 공차를 벗어나면 이 Shot 전체가 불합격(NG)으로 표시됩니다.
                 case EStep.Measure: {
                     LogSeqStep("Measure", string.Format("측정 시작 — FAI {0}개",
                         (ShotParam != null && ShotParam.FAIList != null ? ShotParam.FAIList.Count : 0))); //260818 hbk [SEQ]
@@ -665,6 +684,8 @@ namespace ReringProject.Sequence {
                     break;
                 }
 
+                //260818 hbk [초보자용] 이 Shot의 검사가 다 끝났다고 알리는 마지막 단계입니다. Measure 단계에서 하나라도
+                //  불합격이 있었으면 전체를 Fail로, 전부 합격이면 Pass로 확정해서 이 Action을 종료합니다.
                 case EStep.End:
                     EContextResult finishResult;
                     if (pMyContext.AllPass) finishResult = EContextResult.Pass;

@@ -21,6 +21,11 @@ namespace ReringProject.Sequence
         public double StdDev { get; set; }
         public double Range { get; set; }
         public double Cpk { get; set; }
+        public double Cp { get; set; }
+        public double UCpk { get; set; }
+        public double LCpk { get; set; }
+        public double MinValue { get; set; }
+        public double MaxValue { get; set; }
         public double NominalValue { get; set; }
         public double TolerancePlus { get; set; }
         public double ToleranceMinus { get; set; }
@@ -142,6 +147,11 @@ namespace ReringProject.Sequence
                 double stddev = 0;
                 double range = 0;
                 double cpk = 0;
+                double cp = 0;
+                double ucpk = 0;
+                double lcpk = 0;
+                double minValOut = 0;
+                double maxValOut = 0;
 
                 if (n > 0)
                 {
@@ -166,6 +176,8 @@ namespace ReringProject.Sequence
                     }
 
                     range = maxVal - minVal;
+                    minValOut = minVal;
+                    maxValOut = maxVal;
 
                     if (n > 1)
                     {
@@ -177,12 +189,18 @@ namespace ReringProject.Sequence
                     double lsl = d.LastNominal - Math.Abs(d.LastTolMinus);
                     if (stddev == 0)
                     {
+                        cp = double.PositiveInfinity;
+                        ucpk = double.PositiveInfinity;
+                        lcpk = double.PositiveInfinity;
                         cpk = double.PositiveInfinity;
                     }
                     else
                     {
+                        cp = (d.LastTolPlus + Math.Abs(d.LastTolMinus)) / (6 * stddev);
                         double cpkUpper = (usl - mean) / (3 * stddev);
                         double cpkLower = (mean - lsl) / (3 * stddev);
+                        ucpk = cpkUpper;
+                        lcpk = cpkLower;
                         cpk = Math.Min(cpkUpper, cpkLower);
                     }
                 }
@@ -198,6 +216,11 @@ namespace ReringProject.Sequence
                     StdDev = stddev,
                     Range = range,
                     Cpk = cpk,
+                    Cp = cp,
+                    UCpk = ucpk,
+                    LCpk = lcpk,
+                    MinValue = minValOut,
+                    MaxValue = maxValOut,
                     NominalValue = d.LastNominal,
                     TolerancePlus = d.LastTolPlus,
                     ToleranceMinus = d.LastTolMinus,

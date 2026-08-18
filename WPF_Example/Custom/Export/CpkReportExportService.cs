@@ -49,6 +49,7 @@ namespace ReringProject.Export
 
         private const string INFINITY_TEXT = "∞";
         private const int STAT_DECIMALS = 6;
+        private const string INSPECT_METHOD_TEXT = "AOI";
 
         /// <summary>RAW DATA 의 샘플 열 1개. cycle(검사 1회차) 1개 = 열 1개. 자재번호는 열 묶음 라벨.</summary>
         private class SampleColumn
@@ -93,6 +94,17 @@ namespace ReringProject.Export
                 {
                     var wsRaw = wb.Worksheets.Add(RAW_SHEET_NAME);
                     WriteRawDataSheet(wsRaw, columns, rows, recipeName);
+
+                    var stats = new RepeatMeasurementStats();
+                    foreach (var c in cycles)
+                    {
+                        stats.AddSample(c);
+                    }
+
+                    Dictionary<string, MeasurementStat> statDict = stats.ComputeAll();
+
+                    var wsCpk = wb.Worksheets.Add(CPK_SHEET_NAME);
+                    WriteCpkSheet(wsCpk, rows, statDict);
 
                     wb.SaveAs(outputPath);
                 }
@@ -178,6 +190,118 @@ namespace ReringProject.Export
             ws.Row(RAW_HEADER_ROW).Style.Font.Bold = true;
             ws.SheetView.FreezeRows(RAW_HEADER_ROW);
             ws.SheetView.FreezeColumns(RAW_FIRST_SAMPLE_COLUMN - 1);
+            ws.Columns().AdjustToContents();
+        }
+
+        /// <summary>1Cav 세부치수_Cpk 통계 시트를 기록한다. 행 순서는 RAW DATA 시트와 동일하다.</summary>
+        private static void WriteCpkSheet(IXLWorksheet ws, List<RawRow> rows, Dictionary<string, MeasurementStat> statDict)
+        {
+            string[] hLeft = { "SPC", "FAI#", "측정 방식", "Datum 유형", "공차 유형",
+                               "기준 치수", "+ 공차", "- 공차", "검사 방법", "USL", "LSL" };
+            for (int i = 0; i < hLeft.Length; i++)
+            {
+                ws.Cell(CPK_HEADER_ROW, CPK_LEFT_FIRST_COLUMN + i).Value = hLeft[i];
+            }
+
+            string[] hRight = { "Maximum", "Minimum", "Mean", "#1 Target Std Dev", "Std Dev",
+                                "Cp", "UCPK", "LCPK", "Cpk" };
+            for (int i = 0; i < hRight.Length; i++)
+            {
+                ws.Cell(CPK_HEADER_ROW, CPK_RIGHT_FIRST_COLUMN + i).Value = hRight[i];
+            }
+
+            ws.Cell(CPK_HEADER_ROW, CPK_JUDGE_COLUMN).Value = "Judgment";
+
+            int nRow = CPK_FIRST_DATA_ROW;
+            int nSpc = 1;
+            int nOk = 0;
+            int nNg = 0;
+            var ngNames = new List<string>();
+
+            foreach (var row in rows)
+            {
+                double dUsl = row.NominalValue + row.TolerancePlus;
+                double dLsl = row.NominalValue - Math.Abs(row.ToleranceMinus);
+
+                MeasurementStat stat;
+                if (!statDict.TryGetValue(row.Key, out stat))
+                {
+                    stat = null;
+                }
+
+                ws.Cell(nRow, 2).Value = nSpc;
+                ws.Cell(nRow, 3).Value = row.FAIName;
+                ws.Cell(nRow, 4).Value = row.TypeName;
+                ws.Cell(nRow, 5).Value = NO_VALUE_TEXT;                                   // Datum 유형 (DTO 미보유, 항상 "-")
+                ws.Cell(nRow, 6).Value = BuildToleranceTypeText(row.TolerancePlus, row.ToleranceMinus);
+                ws.Cell(nRow, 7).Value = row.NominalValue;
+                ws.Cell(nRow, 8).Value = row.TolerancePlus;
+                ws.Cell(nRow, 9).Value = row.ToleranceMinus;
+                ws.Cell(nRow, 10).Value = INSPECT_METHOD_TEXT;
+                ws.Cell(nRow, 11).Value = Math.Round(dUsl, STAT_DECIMALS);
+                ws.Cell(nRow, 12).Value = Math.Round(dLsl, STAT_DECIMALS);
+
+                // N==0 엔트리(DATUM_FAIL/NO_IMAGE 만 있는 측정키)는 stat 이 null 이 아니지만 값이 전부 0 이다.
+                // 그대로 쓰면 통계칸에 0 이 찍히고 판정만 "-" 가 되어 일관성이 깨지므로 N 까지 확인한다.
+                bool bHasStat = stat != null && stat.N > 0;
+                if (bHasStat)
+                {
+                    WriteStatCell(ws, nRow, 14, stat.MaxValue);
+                    WriteStatCell(ws, nRow, 15, stat.MinValue);
+                    WriteStatCell(ws, nRow, 16, stat.Mean);
+                    ws.Cell(nRow, 17).Value = NO_VALUE_TEXT;                              // #1 Target Std Dev (양식 고유, 항상 "-")
+                    WriteStatCell(ws, nRow, 18, stat.StdDev);
+                    WriteStatCell(ws, nRow, 19, stat.Cp);
+                    WriteStatCell(ws, nRow, 20, stat.UCpk);
+                    WriteStatCell(ws, nRow, 21, stat.LCpk);
+                    WriteStatCell(ws, nRow, 22, stat.Cpk);
+                }
+                else
+                {
+                    for (int nCol = 14; nCol <= 22; nCol++)
+                    {
+                        ws.Cell(nRow, nCol).Value = NO_VALUE_TEXT;
+                    }
+                }
+
+                string szJudge = BuildCpkJudgement(stat, dUsl, dLsl);
+                ws.Cell(nRow, CPK_JUDGE_COLUMN).Value = szJudge;
+
+                if (szJudge == JUDGE_OK)
+                {
+                    nOk++;
+                }
+                else if (szJudge == JUDGE_NG)
+                {
+                    nNg++;
+                    if (!ngNames.Contains(row.FAIName))
+                    {
+                        ngNames.Add(row.FAIName);
+                    }
+                }
+
+                nRow++;
+                nSpc++;
+            }
+
+            int nTotal = rows.Count;
+            ws.Cell(CPK_SUMMARY_OK_ROW, 1).Value = "OK / Total";
+            ws.Cell(CPK_SUMMARY_OK_ROW, 2).Value = nOk + " / " + nTotal;
+            ws.Cell(CPK_SUMMARY_NG_ROW, 1).Value = "NG / Total";
+            ws.Cell(CPK_SUMMARY_NG_ROW, 2).Value = nNg + " / " + nTotal;
+            ws.Cell(CPK_SUMMARY_LIST_ROW, 1).Value = "NG FAI# 항목";
+
+            if (ngNames.Count > 0)
+            {
+                ws.Cell(CPK_SUMMARY_LIST_ROW, 2).Value = string.Join(", ", ngNames);
+            }
+            else
+            {
+                ws.Cell(CPK_SUMMARY_LIST_ROW, 2).Value = NO_VALUE_TEXT;
+            }
+
+            ws.Row(CPK_HEADER_ROW).Style.Font.Bold = true;
+            ws.SheetView.FreezeRows(CPK_HEADER_ROW);
             ws.Columns().AdjustToContents();
         }
 

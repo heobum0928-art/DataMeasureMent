@@ -90,6 +90,76 @@ namespace ReringProject.Export
             }
         }
 
+        /// <summary>RAW DATA(1) 가로형 매트릭스 시트를 기록한다. 1행 = 측정 항목, 열 = 검사 회차(샘플).</summary>
+        private static void WriteRawDataSheet(IXLWorksheet ws, List<SampleColumn> columns, List<RawRow> rows, string recipeName)
+        {
+            ws.Cell(1, 1).Value = "모델명";
+            if (recipeName != null)
+            {
+                ws.Cell(1, 2).Value = recipeName;
+            }
+            else
+            {
+                ws.Cell(1, 2).Value = "";
+            }
+
+            ws.Cell(2, 1).Value = "측정일시";
+            ws.Cell(2, 2).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            ws.Cell(3, 1).Value = "샘플 수";
+            ws.Cell(3, 2).Value = columns.Count;
+
+            string[] hFixed = { "Number", "도면항목설명", "측정방식", "설계값", "상한 공차", "하한 공차" };
+            for (int i = 0; i < hFixed.Length; i++)
+            {
+                ws.Cell(RAW_HEADER_ROW, i + 1).Value = hFixed[i];
+            }
+
+            for (int i = 0; i < columns.Count; i++)
+            {
+                int nCol = RAW_FIRST_SAMPLE_COLUMN + i;
+                ws.Cell(RAW_MATERIAL_ROW, nCol).Value = columns[i].MaterialLabel;
+                ws.Cell(RAW_HEADER_ROW, nCol).Value = columns[i].HeaderLabel;
+            }
+
+            int nRow = RAW_FIRST_DATA_ROW;
+            foreach (var row in rows)
+            {
+                ws.Cell(nRow, 1).Value = row.FAIName;
+                ws.Cell(nRow, 2).Value = row.MeasurementName;
+                ws.Cell(nRow, 3).Value = row.TypeName;
+                ws.Cell(nRow, 4).Value = row.NominalValue;
+                ws.Cell(nRow, 5).Value = row.TolerancePlus;
+                ws.Cell(nRow, 6).Value = row.ToleranceMinus;
+
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    int nCol = RAW_FIRST_SAMPLE_COLUMN + i;
+
+                    bool bHas = false;
+                    if (i < row.HasValues.Count)
+                    {
+                        bHas = row.HasValues[i];
+                    }
+
+                    if (bHas)
+                    {
+                        ws.Cell(nRow, nCol).Value = Math.Round(row.Values[i], 6);
+                    }
+                    else
+                    {
+                        ws.Cell(nRow, nCol).Value = NO_VALUE_TEXT;
+                    }
+                }
+
+                nRow++;
+            }
+
+            ws.Row(RAW_HEADER_ROW).Style.Font.Bold = true;
+            ws.SheetView.FreezeRows(RAW_HEADER_ROW);
+            ws.SheetView.FreezeColumns(RAW_FIRST_SAMPLE_COLUMN - 1);
+            ws.Columns().AdjustToContents();
+        }
+
         /// <summary>
         /// cycle 목록을 자재번호 오름차순(같은 자재 내에서는 입력 순서)으로 정렬해 샘플 열을 만든다.
         /// 열 1개 = cycle 1개(검사 1회차)다 — D-03 의 100회+ 반복을 표현하려면 회차가 열 축이어야 한다.

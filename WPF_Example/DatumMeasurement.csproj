@@ -256,6 +256,7 @@
     <Compile Include="Custom\Sequence\Inspection\Action_FAIMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\InspectionSequence.cs" />
     <Compile Include="Custom\Export\ChartImageCapture.cs" />
+    <Compile Include="Custom\Export\CpkReportExportService.cs" />
     <Compile Include="Custom\Export\ExcelExportSmokeTest.cs" />
     <!--260601 hbk Phase 40 OUT-02 ClosedXML smoke test-->
     <Compile Include="Custom\Export\ExcelExportService.cs" />

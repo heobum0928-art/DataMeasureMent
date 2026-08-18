@@ -28,8 +28,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Last activity: 2026-08-18
+
+**72-06 완료 (2026-08-18):** `1Cav 세부치수_Cpk` 통계 시트 구현 (`affd046`, `3bd6943`). 빌드 PASS(에러 0, 경고 12줄 baseline). `ExportCpkReport` 가 이제 **시트 2장 고정**(RAW DATA(1) + 1Cav 세부치수_Cpk)으로 저장한다 — `Worksheets.Add` 2회, D-04 준수. Cp/UCPK/LCPK/Cpk + USL/LSL 명시 컬럼 + NG>Cpk경고(1.33)>OK 3단계 판정 + 상단 OK/NG/NG목록 요약. StdDev==0 → `∞` 텍스트, `stat.N == 0` 항목은 통계 9칸 전부 `-`. ⚠ E열(Datum 유형)/Q열(#1 Target Std Dev)은 시스템 미보유라 **항상 `-`** (양식 유지용, 72-07 UAT 확인 항목). ⚠ `ExportCpkReport` 는 **여전히 호출자가 없다** — UI Export 버튼 연결은 72-07 소관. 72-07 이 시트를 더 추가하면 D-04 위반이므로 차트/이미지는 기존 2장 안에 배치할 것.
 
 **72-05 완료 (2026-08-18):** `CpkReportExportService` 신설 + `RAW DATA(1)` 가로형 매트릭스 시트 구현 (`bc0566b`, `9da6cec`). 빌드 PASS(경고 12줄 baseline). 열 축 = **검사 1회차 1열**, 자재번호는 4행 열 그룹 라벨(자재 오름차순 정렬로 같은 자재 회차가 인접 구간에 모임). `Worksheets.Add` 는 현재 1회 — 72-06 이 `1Cav 세부치수_Cpk` 2번째 시트를 같은 `ExportCpkReport` 안에 추가한다. ⚠ `ExportCpkReport` 는 아직 호출자가 없다(UI Export 버튼 미연결, 후속 plan 소관). ⚠ Git Bash 에서 `grep 'Custom\\Export\\...' csproj` 는 MSYS 경로변환 때문에 항상 0 을 반환한다 — `grep -F 'Custom\Export\...'` 를 쓸 것.
 

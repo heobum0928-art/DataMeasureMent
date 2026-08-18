@@ -34,7 +34,7 @@
 - Phase 41.1이 "검증용 반복 이미지 부족"으로 DEFERRED됐던 것과 같은 문제를 이번엔 `WPF_Example/Custom/Sequence/Inspection/RepeatRunService.cs`의 `StartFromImages(seq, imagePaths)`(quick-260615-dx7, 폴더-이미지 자동 반복 검사 모드)로 해결한다. 실기 없이도 폴더에 이미지를 여러 장 준비해 100회 이상 자동 순회 가능.
 - UAT 단계에서 실제 100회 이상 데이터를 이 방식으로 확보할 것 — 신규 인프라 구현 불필요, 기존 기능 재사용.
 
-### D-04 (REVISED 260818). 시트 2장 고정 + 자재번호는 "열", 시트가 아님
+### D-04 (REVISED 260818). 시트 2장 고정 + 자재번호는 "열 그룹 라벨", 시트가 아님
 
 **⚠ 최초 D-04는 틀렸음 — 참고파일 실데이터를 다시 세어 정정함. 아래가 확정본이다.**
 
@@ -48,23 +48,25 @@
   | `2Cav 세부치수_Cpk` | hidden | `0 OK / 0` — 빔 |
   | `검사성적서` | hidden | 4개 셀만 발췌한 수기 계산 |
   | `Data Report 안내사항` | hidden | 가이드 |
-- `#1`~`#32` 헤더는 **양식의 빈 칸 용량**일 뿐 — 실제 데이터는 `#1`,`#2`,`#3` 3개.
-- 사용자 확정 해석: `#1`/`#2`/`#3` = **서로 다른 자재 3개를 각각 1번씩 측정한 것**. 같은 부품의 3회 반복이 아니다. 즉 Cpk가 "자재 간 산포"로 계산되는 정상적인 공정능력지수 의미와 일치한다.
+- `#1`~`#32` 헤더는 **양식의 빈 칸 용량**일 뿐 — 참고파일의 실제 데이터는 `#1`,`#2`,`#3` 3개.
+- 사용자 확정 해석: 참고파일의 `#1`/`#2`/`#3` 은 **서로 다른 자재 3개를 각각 1번씩 측정한 것**. 같은 부품의 3회 반복이 아니다. 즉 Cpk가 "자재 간 산포"로 계산되는 정상적인 공정능력지수 의미와 일치한다.
 
 **따라서 축 매핑 확정:**
 - **행** = FAI 측정 항목 (A1_P1, A1_P2, ...)
-- **열(`#1`,`#2`,`#3`...)** = 자재 1개당 1열. 자재번호는 **열 축**이지 시트 축이 아니다.
+- **열(`#1`,`#2`,`#3`...)** = **검사 1회차당 1열**(자재번호는 열 그룹 라벨). D-03의 100회+ 반복과 양립하도록 회차 축으로 확정 — 260818 사용자 확인.
+  - *부연:* 최초 문구는 "열 = 자재 1개당 1열"이었으나, 그러면 100회를 돌려도 열이 자재 종류 수로 접혀 D-03(100회+ 반복 검증)이 성립하지 않는다. 또한 참고파일의 `#1`~`#32` 헤더 용량 자체가 회차 축을 전제한다. 자재번호는 열을 **묶는 라벨**로 쓰며, 자재번호 오름차순 정렬 덕분에 같은 자재의 여러 회차가 인접 열 구간으로 모인다 — "자재별 구간 분리"라는 원래 목적은 그대로 달성된다.
+  - 참고파일이 자재 3개 × 1회씩이었던 것은 그 파일의 운용 사례일 뿐이며, 우리 시스템은 같은 열 축(회차) 위에서 자재 라벨만 다르게 붙이면 동일하게 표현된다.
 - **시트** = 참고파일에선 Cavity(금형 캐비티) 축이었으나, 실제로는 1Cavity만 사용됨. 우리 시스템에 Cavity 개념이 없으므로(코드 전수검색 `Cavity`/`Cav[0-9]` 매치 0건) **시트는 1세트 고정**.
 
 **확정 산출물 — 시트 2장만 생성 (사용자 선택: "보이는 2장만"):**
-1. `RAW DATA(1)` — 1행=FAI 항목, `#1`부터 오른쪽으로 자재 1개씩. 헤더: `Number(FAI명)/도면항목설명/측정방식/설계값/상한공차/하한공차/#1~#N`.
+1. `RAW DATA(1)` — 1행=FAI 항목, `#1`부터 오른쪽으로 검사 회차 1개씩(자재 라벨은 4행). 헤더: `Number(FAI명)/도면항목설명/측정방식/설계값/상한공차/하한공차/#1~#N`.
 2. `1Cav 세부치수_Cpk` — 1행=FAI 항목. 좌측(B~L): `SPC/FAI#/측정방식/Datum유형/공차유형/기준치수/+공차/-공차/검사방법/USL/LSL`. 우측(N~V): `Maximum/Minimum/Mean/#1 Target StdDev/Std Dev/Cp/UCPK/LCPK/Cpk`. X열 판정. 상단 `OK/Total`·`NG/Total`·`NG FAI# 항목`.
 - 숨겨진 4개 시트(`검사성적서`, `2Cav`, `RAW DATA(2)`, `안내사항`)는 **만들지 않는다**. 특히 `검사성적서`의 "4개 셀 발췌" 규칙은 일반화 불가능한 수기 작업이므로 재현 시도 자체를 하지 않는다.
 
 ### D-05 (신규 260818). 폴더 반복검사에 자재번호 입력 추가
-- 문제: `RepeatRunService`/`BatchRunService`가 결과 DTO의 자재번호(`IndexNumber`)를 항상 -1로 남긴다 — 자재번호는 TCP `$TEST` 경로로 요청이 올 때만 채워진다(코드 확인: `BuildDto()` 호출 시 `nIndexNumber` 인자 미전달). 따라서 오프라인 폴더 반복만으로는 "자재별 열 분리"를 검증할 수 없다.
-- 결정(사용자 선택: "추가한다"): 폴더 반복검사 시작 시 **자재번호를 지정할 수 있는 입력 경로를 추가**한다. 자재 1번으로 N장, 자재 2번으로 N장 돌리면 RAW DATA에 열이 2개 생기는지를 사무실에서 검증 가능하게 한다.
-- 자재번호가 지정되지 않은(-1) 결과는 단일 열로 취급(폴백).
+- 문제: `RepeatRunService`/`BatchRunService`가 결과 DTO의 자재번호(`IndexNumber`)를 항상 -1로 남긴다 — 자재번호는 TCP `$TEST` 경로로 요청이 올 때만 채워진다(코드 확인: `BuildDto()` 호출 시 `nIndexNumber` 인자 미전달). 따라서 오프라인 폴더 반복만으로는 "자재별 열 구간 분리"를 검증할 수 없다.
+- 결정(사용자 선택: "추가한다"): 폴더 반복검사 시작 시 **자재번호를 지정할 수 있는 입력 경로를 추가**한다. 자재 1번으로 N장, 자재 2번으로 N장 돌리면 RAW DATA에 자재 1 구간과 자재 2 구간이 좌→우로 나뉘는지를 사무실에서 검증 가능하게 한다.
+- 자재번호가 지정되지 않은(-1) 결과는 `미지정` 라벨 구간으로 취급(폴백).
 
 ### Claude's Discretion
 - RAW DATA 시트와 Cpk 상세 시트를 하나의 export 흐름(신규 서비스 또는 `RepeatExcelExportService` 확장) 중 어느 쪽으로 구현할지의 정확한 클래스/메서드 배치.
@@ -86,7 +88,7 @@
   - `V(Cpk) = MIN(UCPK, LCPK)`
   - 판정(X열): `min<LSL 또는 max>USL → "NG"`, 아니고 `Cpk<1.33 → "Cpk"`(경고), 아니면 `"OK"`
   - 상단 요약: `OK/Total`, `NG/Total`, `NG FAI# 항목 리스트`
-- `검사성적서` 시트는 `1Cav_Cpk`와 거의 동일한 좌측 컬럼(SPC~LSL, N~S Max/Min/Mean/StdDev/Cp)이지만 자재 통합 합계로 추정 — 자재번호 축을 합친 전체 요약 시트로 볼 수 있음(추가 재확인 필요, 연구 단계에서 명확화).
+- ~~`검사성적서` 시트는 `1Cav_Cpk`와 거의 동일한 좌측 컬럼이지만 자재 통합 합계로 추정~~ **무효** — D-04 확정으로 이 시트는 만들지 않는다(연구 결과 4개 셀만 발췌한 수기 계산이라 일반화 불가).
 
 </specifics>
 
@@ -100,7 +102,7 @@
 - `.planning/phases/51-export-2026-06-16-poc-3/51-02-SUMMARY.md:21` — CPK/StdDev/Range를 엑셀에서 제거했던 근거 커밋(이번 Phase는 이걸 복원하는 성격, 파괴적 변경 아님)
 - `.planning/ROADMAP.md` Phase 41.1 항목 — "⏸ DEFERRED 2026-06-16 (검증용 반복 이미지 부족)", 가로형 원본 매트릭스 개념이 이 Phase에서 처음 계획되었다가 실행 0건으로 보류된 것을 이번 Phase가 재개
 - ~~`.planning/phases/40-2-*` — 헤드리스 HALCON 버퍼윈도우 dump 선례~~ **무효**: 연구 결과 `OverlayCaptureRenderer.cs` 주석 확인 — 그 window-dump 방식은 성능 문제로 2026-08-10에 채널 분해 픽셀 페인팅으로 완전 교체됨. WPF Canvas 캡처는 별개 기술이라 참고 가치 없음.
-- `.planning/phases/72-.../72-RESEARCH.md` — 이번 Phase 연구 산출물. `## User Constraints` / `## Architecture Patterns`(Pattern 1~5) / `## Common Pitfalls` 우선 참조.
+- `.planning/phases/72-.../72-RESEARCH.md` — 이번 Phase 연구 산출물. `## User Constraints` / `## Architecture Patterns`(Pattern 1~5) / `## Common Pitfalls` 우선 참조. **주의: Pattern 4(자재번호별 동적 시트 그룹핑)와 A2(검사성적서 전제)는 D-04로 폐기됨 — RESEARCH.md 본문에 SUPERSEDED 표기 있음.**
 
 </canonical_refs>
 
@@ -109,6 +111,7 @@
 
 ### Reusable Assets
 - `WPF_Example/Custom/Sequence/Inspection/RepeatMeasurementStats.cs` — `AddSample(CycleResultDto)`/`ComputeAll()` → `N/Mean/StdDev/Range/Cpk/NominalValue/TolerancePlus/ToleranceMinus/OkCount/NgCount/DetectFailCount`. Cpk 계산 이미 존재·검증됨: `usl=Nominal+TolPlus`, `lsl=Nominal-|TolMinus|`, `cpk=min(cpkUpper,cpkLower)`. **Cp는 여기에도 없음 — 신규 추가 필요.**
+  - **함정:** `AddSample`은 DATUM_FAIL/NO_IMAGE만 있는 측정키에도 `KeyData`를 만들므로 `ComputeAll()` 결과에 `N==0` 엔트리가 남는다(통계값 전부 0). 소비자는 `stat != null` 이 아니라 `stat.N > 0` 까지 확인해야 한다.
 - `WPF_Example/UI/Statistics/StatisticsWindow.xaml.cs` (Phase 67/STAT-01) — `RenderHistogram()`/`RenderTrend()`, USL/LSL/평균 기준선 포함 Canvas 렌더. 그래프 export의 기반.
 - `WPF_Example/Custom/Sequence/Inspection/RepeatRunService.cs` — `StartFromImages(seq, imagePaths)`, 폴더-이미지 자동 반복 검사. 100회+ UAT 데이터 확보 수단.
 - `WPF_Example/Custom/Export/RepeatExcelExportService.cs` — `Export()`/`ExportBatch()`, ClosedXML 사용 패턴(시트 추가, 헤더 스타일 등)의 기존 관례.
@@ -119,7 +122,7 @@
 
 ### Integration Points
 - 자재번호 = `CycleResultDto.IndexNumber`. **연구 확인: `RepeatRunService`/`BatchRunService`는 `BuildDto()` 호출 시 `nIndexNumber` 인자를 넘기지 않아 항상 -1이 된다** — TCP `$TEST` 경로만 실제 값을 채운다. D-05가 이 갭을 메운다.
-- RAW DATA의 열 축(`#1`,`#2`,...)이 이 `IndexNumber` 값으로 결정된다(D-04 개정본).
+- RAW DATA의 열 축은 **cycle(검사 회차)** 이며, `IndexNumber` 는 열 정렬 키 + 4행 라벨로 쓰인다(D-04 개정본).
 
 </code_context>
 
@@ -138,3 +141,4 @@
 
 *Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e*
 *Context gathered: 2026-08-18*
+*Revised 2026-08-18: D-04 열 축을 "검사 1회차당 1열(자재번호=열 그룹 라벨)"로 정정*

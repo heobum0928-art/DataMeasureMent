@@ -186,6 +186,8 @@ using (var ms = new MemoryStream())
 
 ### Pattern 4: 자재번호별 동적 시트 그룹핑
 
+> **SUPERSEDED by CONTEXT.md D-04 (REVISED)** — 시트는 2장 고정, 자재번호는 열 축이다. 이 패턴의 동적 시트 생성 부분은 사용하지 말 것.
+
 **What:** `List<CycleResultDto>`를 `IndexNumber`로 `GroupBy` 후 distinct 개수만큼 시트 생성.
 
 ```csharp
@@ -320,23 +322,26 @@ else
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
 | A1 | bare `Canvas`(Window 미소속)를 `Measure/Arrange/UpdateLayout` 후 `RenderTargetBitmap.Render()`로 캡처하는 것이 이 프로젝트 환경(.NET FW 4.8 WPF)에서 그대로 동작한다 | Architecture Patterns > Pattern 3 | 만약 `Canvas` 단독으로 폰트 렌더링(TextBlock 등)이 `Window`의 `TextOptions`/`DPI` 컨텍스트 없이 어긋나면, 렌더 결과가 흐리거나 텍스트 크기가 예상과 다를 수 있음 — 실제 빌드+수동 캡처 1회 테스트로 조기 검증 권장 |
-| A2 | `검사성적서`를 "전체 자재 통합 풀링" 재정의로 구현하는 것이 사용자 의도에 부합한다 | Common Pitfalls #2, Open Questions | 사용자가 실제로는 참고파일의 "자재당 2개 발췌" 규칙을 원했다면 재작업 필요 — 반드시 discuss/plan 단계에서 확인 필요 |
+| A2 | ~~`검사성적서`를 "전체 자재 통합 풀링" 재정의로 구현하는 것이 사용자 의도에 부합한다~~ **무효 — 검사성적서는 만들지 않음(D-04)** | Common Pitfalls #2, Open Questions | 무효 처리됨. 이 가정에 의존하는 설계·코드는 작성하지 말 것 |
 
 **참고:** D-01/D-02/D-03/D-04 자체는 이미 CONTEXT.md에서 사용자 확정 결정이므로 여기 Assumptions Log에 포함하지 않음(재검토 대상 아님). 위 A1/A2는 본 연구가 CONTEXT.md 이후 새로 발견/도출한 보조 주장만 포함.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`검사성적서` 시트를 어떻게 재정의할 것인가?**
+   - **RESOLVED (260818, CONTEXT.md D-04):** 재정의하지 않는다 — `검사성적서` 시트 자체를 만들지 않는다. 참고파일에서 숨김 상태이고 4개 셀만 발췌한 수기 계산이라 일반화 불가능하다고 사용자가 확정했다.
    - What we know: 참고파일에서는 자재당 2개 샘플만 풀링한 별도 계산(재현 가치 낮음, Pitfall 2 참고). FAI 항목 리스트와 컬럼 레이아웃은 `1Cav_Cpk`와 동일.
    - What's unclear: 사용자가 "전체 자재 통합 뷰"를 원하는지, 아니면 이 시트를 아예 생략하고 자재별 시트만 남길지, 혹은 특정 자재(예: 가장 최근/가장 많이 검사된 자재)를 대표로 쓸지.
    - Recommendation: discuss-phase 또는 plan 단계에서 "전체 자재번호 통합 풀링(모든 cycle 합산)"으로 확정 제안 — 참고파일이 손상되지 않은 원본 의도(다자재 통합 최종 성적서)를 보존하면서 임의성을 제거하는 가장 단순한 해석.
 
 2. **RAW DATA 시트의 "회차 누락"(측정 skip) 표시 규칙**
+   - **RESOLVED (260818, CONTEXT.md D-04):** 기존 관례대로 `"-"` 로 표시한다(빈 셀도, 사유 텍스트도 아님). 판별은 값이 아니라 `LastHasResult` 플래그로 한다(0.0 도 정상값이므로).
    - What we know: 참고파일 RAW DATA는 매 열이 실제 측정값(숫자)만 있고 빈칸/에러 표시 규칙이 명시적이지 않음. 이 코드베이스는 `LastHasResult=false`(DATUM_FAIL/NO_IMAGE 등)를 명확히 구분한다(`ExcelExportService.BuildJudgementText` 패턴).
    - What's unclear: RAW DATA 가로형 매트릭스에서 skip된 회차를 빈 셀로 둘지, "-"로 표시할지, 텍스트 사유(DETECT FAIL 등)를 넣을지.
    - Recommendation: 기존 세로형 상세 시트의 `"-"` 관례(측정값 없음 표시)를 그대로 재사용 — 신규 규칙 발명 불필요.
 
 3. **1개 워크북 내 시트 수 상한 이슈**
+   - **RESOLVED (260818, CONTEXT.md D-04):** 쟁점 소멸 — 시트가 2장 고정이므로 자재 종류가 늘어도 시트 수는 변하지 않는다. 대신 열 수 폭증(Excel 16384열 상한)이 남은 리스크이며, 실사용 규모(100~300 회차)에서는 문제없다.
    - What we know: 자재번호 수 × 2(Cpk 시트 + RAW DATA 시트) + 안내/검사성적서 2개 = 예상 시트 수. UAT에서 자재 2~3종이면 6~8개 시트, 문제 없음.
    - What's unclear: 실운영에서 자재번호 종류가 매우 많아지면(예: 수십 종) 시트 수가 폭증할 위험 — CONTEXT.md는 이를 "하드코딩 금지, 동적 생성"으로만 명시했지 상한을 두지 않음.
    - Recommendation: 이번 Phase 범위에서는 상한 없이 구현(사용자 결정 범위 밖으로 판단), 실사용 패턴 관찰 후 필요 시 별도 Phase에서 페이지네이션/필터 고려.
@@ -359,7 +364,7 @@ else
 | D-01 | 그래프 이미지가 xlsx에 삽입됨(육안 확인) | manual-only | 없음(엑셀 열어 육안 확인) | N/A |
 | D-02 | 셀 값이 수식이 아닌 고정값(`.Value`)으로 기록됨 | manual/코드리뷰 | 엑셀 셀 클릭 시 수식 표시줄에 값만 나오는지 확인, 또는 코드리뷰로 `.FormulaA1` 미사용 확인 | N/A |
 | D-03 | 100회+ 반복 데이터로 통계가 정상 계산됨 | manual UAT | `RepeatRunService.StartFromImages` 실행 후 export → N=100+ 확인 | 기존 기능(신규 아님) |
-| D-04 | 자재번호별 시트가 동적으로 생성됨(1개/2개/3개+ 모두) | manual UAT | Pitfall 1의 test-harness IndexNumber patch 방법으로 자재군 2~3개 시뮬레이션 후 export | N/A |
+| D-04 | 시트 2장 고정(`RAW DATA(1)`, `1Cav 세부치수_Cpk`), 자재번호는 열 축 — 자재가 2~3종이어도 시트 수는 2장 그대로이고 열 구간만 나뉜다 | manual UAT | D-05 자재번호 입력 + 누적 실행으로 자재 2종을 만든 뒤 export → 시트 2장 / 자재별 열 구간 확인 | N/A |
 
 ### Sampling Rate
 - **Per task commit:** msbuild Debug/x64 빌드 확인(CS 에러 0)

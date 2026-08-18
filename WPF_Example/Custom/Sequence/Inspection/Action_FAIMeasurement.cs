@@ -39,6 +39,18 @@ namespace ReringProject.Sequence {
             End
         }
 
+        //260818 hbk 크로스-Z 게이트 상태 — ProcessOneMeasurement 게이트 블록 전용.
+        //  프로토콜/비프로토콜 구분(NotMyTick 의 2갈래, HalfPending 의 2갈래)은 멤버로 쪼개지 않고
+        //  case 안에서 bNonProtocolCycle if-else 로 처리한다 — 원본 if 구조와 1:1 로 남겨야
+        //  리팩토링 전후 대조가 가능하기 때문이다.
+        private enum ECrossZGate {
+            Misconfigured,
+            NotMyTick,
+            CaptureFailed,
+            HalfPending,
+            BothReady
+        }
+
         private FAIMeasurementContext pMyContext;
         private VirtualCamera pCamera;
 
@@ -547,73 +559,69 @@ namespace ReringProject.Sequence {
             bool bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
             if (bHasAnyZIndex)
             {
+                //260818 hbk 게이트 판정을 명시적 상태(ECrossZGate)로 뽑아 아래 switch 한 곳에서 처리한다.
+                //  ⚠ 판정에 필요한 호출 중 ProcessCrossZCaptureTick 은 순수하지 않다(실제 캡처/저장 수행).
+                //    그래서 분류 함수 안으로 숨기지 않고 switch '앞'에 그대로 둔다 —
+                //    "IsZIndexMisconfigured 를 통과한 경우에만 캡처한다"는 원본 단락(short-circuit)
+                //    순서와 호출 횟수를 눈에 보이게 보존하기 위함이다.
+                //    순수한 것은 out 3개 bool → enum 변환뿐이고, 그 부분만 ResolveCrossZGate 로 뺐다.
+                bool bRelevant = false;
+                bool bCaptureOk = false;
+                bool bCompleted = false;
+                string szCapturedRoleKey = null;
+                bool bNonProtocolCycle = false;
+                ECrossZGate eGate;
                 bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
                 if (bMisconfigured)
                 {
-                    MarkMeasurementZIndexMisconfigured(meas);
-                    faiAllPass = false;
-                    measuredCount++;
-                    return;
+                    eGate = ECrossZGate.Misconfigured;
                 }
-                bool bRelevant, bCaptureOk, bCompleted;
-                string szCapturedRoleKey;
-                ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
-                //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
-                //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
-                //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
-                //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
-                //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
-                //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
-                //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
-                //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
-                bool bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
-                if (!bRelevant)
+                else
                 {
-                    if (bNonProtocolCycle)
-                    {
-                        MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
+                    ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
+                    //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
+                    //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
+                    //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
+                    //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
+                    //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
+                    //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
+                    //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
+                    //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
+                    bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
+                    eGate = ResolveCrossZGate(bRelevant, bCaptureOk, bCompleted);
+                }
+                //260818 hbk default: 를 두지 않는다 — 5개 멤버를 전부 다루고 있고, default 를 추가하면
+                //  감사되지 않은 6번째 경로가 생긴다. 멤버를 늘릴 일이 생기면 반드시 이 switch 도 함께 고칠 것.
+                switch (eGate)
+                {
+                    case ECrossZGate.Misconfigured:
+                        MarkMeasurementZIndexMisconfigured(meas);
                         faiAllPass = false;
                         measuredCount++;
-                    }
-                    return; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
-                }
-                if (!bCaptureOk)
-                {
-                    meas.ClearResult();
-                    meas.LastSkipReason = SkipReason.NO_IMAGE;
-                    meas.LastJudgement = false;
-                    faiAllPass = false;
-                    measuredCount++;
-                    return;
-                }
-                if (bCaptureOk && crossZRoleImage == null && !string.IsNullOrEmpty(szCapturedRoleKey) && parentSeq2 != null)
-                {
-                    //260729 hbk quick-fix(260729-hwb): 이번 tick 에서 실제로 캡처된 role 이미지의
-                    //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
-                    //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
-                    crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);
-                }
-                if (!bCompleted)
-                {
-                    if (bNonProtocolCycle)
-                    {
-                        MarkMeasurementCrossZIncomplete(meas, true, false, parentSeq2);
+                        return;
+                    case ECrossZGate.NotMyTick:
+                        if (bNonProtocolCycle)
+                        {
+                            MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
+                            faiAllPass = false;
+                            measuredCount++;
+                        }
+                        return; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
+                    case ECrossZGate.CaptureFailed:
+                        meas.ClearResult();
+                        meas.LastSkipReason = SkipReason.NO_IMAGE;
+                        meas.LastJudgement = false;
                         faiAllPass = false;
-                    }
-                    else
-                    {
-                        //260729 hbk quick-fix(260729-hwb): 프로토콜 사이클(수동 Z트리거 포함)도
-                        //  짝이 아직 미완성인 tick 에서 faiAllPass 기본값 true 로 방치하지 않고
-                        //  CROSS_Z_INCOMPLETE 로 명시 표시한다(T-HWB-01). AddFaiResult 의 완성
-                        //  index 게이트가 미완성 index 를 애초에 보고 대상에서 제외하므로 PLC
-                        //  응답은 오염되지 않는다 — 영향 범위는 화면/캡처 파일명/cycle.json 뿐.
-                        MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
-                        faiAllPass = false;
-                    }
-                    measuredCount++; // 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
-                    return;
+                        measuredCount++;
+                        return;
+                    case ECrossZGate.HalfPending:
+                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref crossZRoleImage);
+                        MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref faiAllPass, ref measuredCount);
+                        return;
+                    case ECrossZGate.BothReady:
+                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref crossZRoleImage);
+                        break; // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
                 }
-                // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
             }
             HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
             InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
@@ -665,6 +673,50 @@ namespace ReringProject.Sequence {
                 faiAllPass = false;
             }
             measuredCount++;
+        }
+
+        //260818 hbk 크로스-Z 게이트 상태 분류 — 순수 함수다(인자 3개 bool 외에는 아무것도 읽지 않고,
+        //  아무것도 쓰지 않는다). 부수효과가 있는 IsZIndexMisconfigured / ProcessCrossZCaptureTick /
+        //  IsProtocolDrivenCycle 호출은 일부러 호출부에 남겼다.
+        //  판정 순서(bRelevant → bCaptureOk → bCompleted)는 원본 중첩 if 순서와 1:1 이다.
+        private ECrossZGate ResolveCrossZGate(bool bRelevant, bool bCaptureOk, bool bCompleted) {
+            if (!bRelevant) return ECrossZGate.NotMyTick;
+            if (!bCaptureOk) return ECrossZGate.CaptureFailed;
+            if (!bCompleted) return ECrossZGate.HalfPending;
+            return ECrossZGate.BothReady;
+        }
+
+        //260729 hbk quick-fix(260729-hwb): 이번 tick 에서 실제로 캡처된 role 이미지의
+        //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
+        //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
+        //260818 hbk ⚠ 부수효과 있음 — 원본에서 이 문장은 !bCaptureOk 게이트와 !bCompleted 게이트
+        //  '사이'에 있었다. 그래서 HalfPending / BothReady 두 case 의 '첫 줄'에서만 호출한다.
+        //  조건식은 원문 그대로 둔다(첫 항 bCaptureOk 는 호출 지점상 항상 참이지만 대조 근거로 유지).
+        private void TakeCrossZRoleImageIfFirst(InspectionSequence parentSeq2, bool bCaptureOk, string szCapturedRoleKey, ref HImage crossZRoleImage) {
+            if (bCaptureOk && crossZRoleImage == null && !string.IsNullOrEmpty(szCapturedRoleKey) && parentSeq2 != null)
+            {
+                crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);
+            }
+        }
+
+        //260818 hbk HalfPending(A/B 중 한쪽만 모임) case 본문 — 원본 if(!bCompleted){…} 블록의 순수 이동.
+        private void MarkCrossZHalfPending(MeasurementBase meas, InspectionSequence parentSeq2, bool bNonProtocolCycle, ref bool faiAllPass, ref int measuredCount) {
+            if (bNonProtocolCycle)
+            {
+                MarkMeasurementCrossZIncomplete(meas, true, false, parentSeq2);
+                faiAllPass = false;
+            }
+            else
+            {
+                //260729 hbk quick-fix(260729-hwb): 프로토콜 사이클(수동 Z트리거 포함)도
+                //  짝이 아직 미완성인 tick 에서 faiAllPass 기본값 true 로 방치하지 않고
+                //  CROSS_Z_INCOMPLETE 로 명시 표시한다(T-HWB-01). AddFaiResult 의 완성
+                //  index 게이트가 미완성 index 를 애초에 보고 대상에서 제외하므로 PLC
+                //  응답은 오염되지 않는다 — 영향 범위는 화면/캡처 파일명/cycle.json 뿐.
+                MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
+                faiAllPass = false;
+            }
+            measuredCount++; // 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
         }
 
         //260702 hbk Extract Method(Task3): Measure per-FAI 저장/표시 마무리(원본 meas 루프 뒤 try/finally, 동치 보장)

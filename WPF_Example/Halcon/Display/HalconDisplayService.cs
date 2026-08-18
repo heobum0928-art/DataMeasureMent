@@ -882,100 +882,13 @@ namespace ReringProject.Halcon.Display
                                 && datum.LastTeachSucceeded
                                 && !isEditMode;
 
-                // RenderDatumOverlay 슬롯 분기: AlgorithmType 별로 그릴 슬롯을 분기.
-                //    TwoLineIntersect       → Line1_*  ("L1" 라벨)
-                //    VerticalTwoHorizontal  → Vertical_* ("Vert" 라벨)
-                //    CircleTwoHorizontal    → 둘 다 미사용 (legacy INI 의 Line1_* 잔류값이 잘못 렌더되지 않음)
-                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect)
-                {
-                    if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
-                    {
-                        HOperatorSet.DispRectangle2(window,
-                            datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
-                            datum.Line1_Length1, datum.Line1_Length2);
+                RenderDatumSlotRoi(window, datum);
 
-                        DrawRoiLabel(window, datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
-                            datum.Line1_Length1, datum.Line1_Length2, "L1");
-                    }
-                }
-                // DualImage 도 Vertical 슬롯 렌더 필요.
-                else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal
-                      || datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage)
-                {
-                    if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0)
-                    {
-                        HOperatorSet.DispRectangle2(window,
-                            datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Phi,
-                            datum.Vertical_Length1, datum.Vertical_Length2);
+                RenderDatumLine2Roi(window, datum);
 
-                        DrawRoiLabel(window, datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Phi,
-                            datum.Vertical_Length1, datum.Vertical_Length2, "Vert");
-                    }
-                }
-                // CircleTwoHorizontal: Line1/Vertical 모두 렌더하지 않음 (의도적). Horizontal A/B + Circle 만 아래 블록에서 그림.
+                RenderDatumCircleRoi(window, datum, color, lineWidth, cthHideRois);
 
-                // Line2 Rectangle2 는 TwoLineIntersect 에서만 렌더 (Circle/Vertical-TwoHorizontal 은 Line2 미사용)
-                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect
-                    && datum.Line2_Length1 > 0 && datum.Line2_Length2 > 0)
-                {
-                    HOperatorSet.DispRectangle2(window,
-                        datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
-                        datum.Line2_Length1, datum.Line2_Length2);
-
-                    // "L2" 라벨
-                    DrawRoiLabel(window, datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
-                        datum.Line2_Length1, datum.Line2_Length2, "L2");
-                }
-
-                // Circle ROI 검색 영역 (CircleTwoHorizontal 일 때만 렌더, Line1/Line2 와 동일 색)
-                //  cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Circle ROI + Strip 시각화 hide
-                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
-                    && datum.CircleROI_Radius > 0
-                    && !cthHideRois)
-                {
-                    HOperatorSet.SetColor(window, color);
-                    HOperatorSet.SetLineWidth(window, lineWidth);
-                    HOperatorSet.DispCircle(window,
-                        datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius);
-
-                    // "Circle" 라벨 (원 위쪽 외곽 바로 바깥)
-                    DrawRoiLabelAt(window,
-                        datum.CircleROI_Row - datum.CircleROI_Radius - 22,
-                        datum.CircleROI_Col - datum.CircleROI_Radius,
-                        "Circle");
-
-                    // pre-teach Strip 사각형 stepCount 개 정적 시각화 (z-order: ROI 경계 위)
-                    RenderCircleStripOverlay(window, datum);
-                }
-
-                // Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
-                //  cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Horizontal_A/B hide. VTH 는 cthHideRois=false → 영향 0.
-                if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect
-                    && !cthHideRois)
-                {
-                    HOperatorSet.SetColor(window, color);
-                    HOperatorSet.SetLineWidth(window, lineWidth);
-                    if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
-                    {
-                        HOperatorSet.DispRectangle2(window,
-                            datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Phi,
-                            datum.Horizontal_A_Length1, datum.Horizontal_A_Length2);
-
-                        // "H-A" 라벨
-                        DrawRoiLabel(window, datum.Horizontal_A_Row, datum.Horizontal_A_Col,
-                            datum.Horizontal_A_Phi, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2, "H-A");
-                    }
-                    if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
-                    {
-                        HOperatorSet.DispRectangle2(window,
-                            datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Phi,
-                            datum.Horizontal_B_Length1, datum.Horizontal_B_Length2);
-
-                        // "H-B" 라벨
-                        DrawRoiLabel(window, datum.Horizontal_B_Row, datum.Horizontal_B_Col,
-                            datum.Horizontal_B_Phi, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2, "H-B");
-                    }
-                }
+                RenderDatumHorizontalRois(window, datum, color, lineWidth, cthHideRois);
 
                 // Draw reference origin cross if configured
                 if (datum.IsConfigured)
@@ -1095,6 +1008,119 @@ namespace ReringProject.Halcon.Display
             catch
             {
                 // Suppress display errors
+            }
+        }
+
+        //260818 hbk Extract Method: RenderDatumOverlay 의 슬롯 분기 구역을 그대로 옮긴 것.
+        //  창(window) 의 색상·선굵기 상태는 호출 전에 이미 설정돼 있고 그 상태가 이어진다 — 여기서 다시 설정하면 안 된다.
+        private void RenderDatumSlotRoi(HWindow window, DatumConfig datum)
+        {
+            // RenderDatumOverlay 슬롯 분기: AlgorithmType 별로 그릴 슬롯을 분기.
+            //    TwoLineIntersect       → Line1_*  ("L1" 라벨)
+            //    VerticalTwoHorizontal  → Vertical_* ("Vert" 라벨)
+            //    CircleTwoHorizontal    → 둘 다 미사용 (legacy INI 의 Line1_* 잔류값이 잘못 렌더되지 않음)
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect)
+            {
+                if (datum.Line1_Length1 > 0 && datum.Line1_Length2 > 0)
+                {
+                    HOperatorSet.DispRectangle2(window,
+                        datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
+                        datum.Line1_Length1, datum.Line1_Length2);
+
+                    DrawRoiLabel(window, datum.Line1_Row, datum.Line1_Col, datum.Line1_Phi,
+                        datum.Line1_Length1, datum.Line1_Length2, "L1");
+                }
+            }
+            // DualImage 도 Vertical 슬롯 렌더 필요.
+            else if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontal
+                  || datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage)
+            {
+                if (datum.Vertical_Length1 > 0 && datum.Vertical_Length2 > 0)
+                {
+                    HOperatorSet.DispRectangle2(window,
+                        datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Phi,
+                        datum.Vertical_Length1, datum.Vertical_Length2);
+
+                    DrawRoiLabel(window, datum.Vertical_Row, datum.Vertical_Col, datum.Vertical_Phi,
+                        datum.Vertical_Length1, datum.Vertical_Length2, "Vert");
+                }
+            }
+            // CircleTwoHorizontal: Line1/Vertical 모두 렌더하지 않음 (의도적). Horizontal A/B + Circle 만 아래 블록에서 그림.
+        }
+
+        //260818 hbk Extract Method: Line2 사각형 구역을 그대로 옮긴 것. 색상 상태는 호출자에서 이어진다.
+        private void RenderDatumLine2Roi(HWindow window, DatumConfig datum)
+        {
+            // Line2 Rectangle2 는 TwoLineIntersect 에서만 렌더 (Circle/Vertical-TwoHorizontal 은 Line2 미사용)
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.TwoLineIntersect
+                && datum.Line2_Length1 > 0 && datum.Line2_Length2 > 0)
+            {
+                HOperatorSet.DispRectangle2(window,
+                    datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
+                    datum.Line2_Length1, datum.Line2_Length2);
+
+                // "L2" 라벨
+                DrawRoiLabel(window, datum.Line2_Row, datum.Line2_Col, datum.Line2_Phi,
+                    datum.Line2_Length1, datum.Line2_Length2, "L2");
+            }
+        }
+
+        //260818 hbk Extract Method: Circle 검색 영역 구역을 그대로 옮긴 것.
+        //  cthHideRois / color / lineWidth 는 호출자 지역변수와 같은 이름의 값 전달 파라미터다(구역 안에서 읽기만 하므로 ref 불필요).
+        private void RenderDatumCircleRoi(HWindow window, DatumConfig datum, string color, int lineWidth, bool cthHideRois)
+        {
+            // Circle ROI 검색 영역 (CircleTwoHorizontal 일 때만 렌더, Line1/Line2 와 동일 색)
+            //  cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Circle ROI + Strip 시각화 hide
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
+                && datum.CircleROI_Radius > 0
+                && !cthHideRois)
+            {
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, lineWidth);
+                HOperatorSet.DispCircle(window,
+                    datum.CircleROI_Row, datum.CircleROI_Col, datum.CircleROI_Radius);
+
+                // "Circle" 라벨 (원 위쪽 외곽 바로 바깥)
+                DrawRoiLabelAt(window,
+                    datum.CircleROI_Row - datum.CircleROI_Radius - 22,
+                    datum.CircleROI_Col - datum.CircleROI_Radius,
+                    "Circle");
+
+                // pre-teach Strip 사각형 stepCount 개 정적 시각화 (z-order: ROI 경계 위)
+                RenderCircleStripOverlay(window, datum);
+            }
+        }
+
+        //260818 hbk Extract Method: 수평 A/B 검색 영역 구역을 그대로 옮긴 것. 파라미터 취급은 위와 동일.
+        private void RenderDatumHorizontalRois(HWindow window, DatumConfig datum, string color, int lineWidth, bool cthHideRois)
+        {
+            // Horizontal A/B ROI Rectangle2 (CircleTwoHorizontal + VerticalTwoHorizontal 공용)
+            //  cthHideRois 가드: CTH Edit 모드 OFF + 티칭 완료 시 Horizontal_A/B hide. VTH 는 cthHideRois=false → 영향 0.
+            if (datum.AlgorithmTypeEnum != EDatumAlgorithm.TwoLineIntersect
+                && !cthHideRois)
+            {
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, lineWidth);
+                if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
+                {
+                    HOperatorSet.DispRectangle2(window,
+                        datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Phi,
+                        datum.Horizontal_A_Length1, datum.Horizontal_A_Length2);
+
+                    // "H-A" 라벨
+                    DrawRoiLabel(window, datum.Horizontal_A_Row, datum.Horizontal_A_Col,
+                        datum.Horizontal_A_Phi, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2, "H-A");
+                }
+                if (datum.Horizontal_B_Length1 > 0 && datum.Horizontal_B_Length2 > 0)
+                {
+                    HOperatorSet.DispRectangle2(window,
+                        datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Phi,
+                        datum.Horizontal_B_Length1, datum.Horizontal_B_Length2);
+
+                    // "H-B" 라벨
+                    DrawRoiLabel(window, datum.Horizontal_B_Row, datum.Horizontal_B_Col,
+                        datum.Horizontal_B_Phi, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2, "H-B");
+                }
             }
         }
 

@@ -322,7 +322,7 @@ namespace ReringProject.Utility {
                 toWrite.WriteImage("jpeg", 0, filePath);
                 long msWrite = swWrite.ElapsedMilliseconds;
 
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     "[CaptureSave] file={0} needsRender={1} write={2}ms total={3}ms",
                     fileName, request.NeedsRender, msWrite, swTotal.ElapsedMilliseconds);
             }

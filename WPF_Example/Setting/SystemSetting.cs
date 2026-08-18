@@ -24,6 +24,10 @@ namespace ReringProject.Setting {
         Image = 5,
         Error = 6,
         Flow = 7,
+        //260818 hbk 알고리즘 내부 진단 전용 로그 신설 — 측정/검출 알고리즘이 측정 항목마다 수십~수백 줄을
+        //  Trace 에 쏟아내 시퀀스 흐름이 안 보이던 문제. Trace 는 시퀀스/운영 흐름 전용으로 되돌리고,
+        //  strip/에지/피팅/렌더/저장 같은 알고리즘 계측은 전부 이 탭으로 분리한다.
+        Algorithm = 8,
     }
     
     public partial class SystemSetting {
@@ -94,6 +98,11 @@ namespace ReringProject.Setting {
         [DirectoryPath]
         [AutoUpdateText]
         public string FlowLogSavePath { get; set; } = @"D:\Data\Flow";
+
+        //260818 hbk 알고리즘 내부 진단 로그(ELogType.Algorithm) 저장 경로
+        [DirectoryPath]
+        [AutoUpdateText]
+        public string AlgorithmLogSavePath { get; set; } = @"D:\Data\Algorithm";
 
         public int LogDeleteDay { get; set; } = 30;
 
@@ -247,6 +256,9 @@ namespace ReringProject.Setting {
                     break;
                 case ELogType.Flow:
                     basePath = FlowLogSavePath;
+                    break;
+                case ELogType.Algorithm: //260818 hbk 알고리즘 내부 진단 로그
+                    basePath = AlgorithmLogSavePath;
                     break;
             }
 

@@ -73,7 +73,7 @@ namespace ReringProject.Halcon.Algorithms
                         {
                             string roiId = fai.FAIName;
                             if (string.IsNullOrEmpty(roiId)) roiId = "";
-                            Logging.PrintLog((int)ELogType.Trace, "[ALIGN-ROI] " + roiId
+                            Logging.PrintLog((int)ELogType.Algorithm, "[ALIGN-ROI] " + roiId
                                 + " roiPhiDeg=" + (fai.ROI_Phi * 180.0 / Math.PI).ToString("F3")
                                 + " rotAngleDeg=" + (rotAngle * 180.0 / Math.PI).ToString("F3")
                                 + " appliedPhiDeg=" + (roiPhi * 180.0 / Math.PI).ToString("F3"));

@@ -117,7 +117,7 @@ namespace ReringProject.Halcon.Display
                 result = new HImage(paintedObj);
                 msCompose = swStage.ElapsedMilliseconds;
 
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     "[CaptureRender] prep={0}ms decompose={1}ms channelCopy={2}ms paint={3}ms compose={4}ms total={5}ms",
                     msPrep, msDecompose, msChannelCopy, msPaint, msCompose, swTotal.ElapsedMilliseconds);
 

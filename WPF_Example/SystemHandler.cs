@@ -93,6 +93,8 @@ namespace ReringProject {
             Logging.SetLog((int)ELogType.Error, Enum.GetName(typeof(ELogType), ELogType.Error), Setting.GetLogSavePath(ELogType.Error));
             Logging.SetLog((int)ELogType.LightController, Enum.GetName(typeof(ELogType), ELogType.LightController), Setting.GetLogSavePath(ELogType.LightController));
             Logging.SetLog((int)ELogType.Flow, Enum.GetName(typeof(ELogType), ELogType.Flow), Setting.GetLogSavePath(ELogType.Flow));
+            //260818 hbk 알고리즘 내부 진단 전용 탭/파일 — LogView 가 등록된 로그마다 탭을 자동 생성한다.
+            Logging.SetLog((int)ELogType.Algorithm, Enum.GetName(typeof(ELogType), ELogType.Algorithm), Setting.GetLogSavePath(ELogType.Algorithm));
             Logging.Start();
 
             // 5) Device init (camera, IO, etc.)

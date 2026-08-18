@@ -179,7 +179,7 @@ namespace ReringProject.Halcon.Algorithms
                 int edgeCount = allRows.TupleLength();
 
                 // strip 성공률 관측 로그 — 실패 경로(edgeCount < 2)에서도 통계가 남도록 게이트 앞에 배치
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     string.Format("[FitLine] strips ok {0}/{1} (noEdge {2}, failed {3}) -> {4} edge points",
                         okStrips, stripCount, noEdgeStrips, failedStrips, edgeCount));
 
@@ -211,7 +211,7 @@ namespace ReringProject.Halcon.Algorithms
                 {
                     fitResidual = df.D;
                 }
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     string.Format("[FitLine] fit residual(df)={0:F4} from {1} edges (strips ok {2}/{3})",
                         fitResidual, edgeCount, okStrips, stripCount));
 

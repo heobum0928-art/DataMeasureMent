@@ -1043,7 +1043,7 @@ namespace ReringProject.Halcon.Algorithms
                 HTuple circleEdgeRows, circleEdgeCols;
                 string circleError;
                 // 진단 로그 (FAIL contingency 대비, PASS 후 주석 처리 가능)
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     "TryTeachCircleTwoHorizontal: ROI=(" + config.CircleROI_Row + "," + config.CircleROI_Col + ",r=" + config.CircleROI_Radius + ") " +
                     "polar(step=" + config.Circle_PolarStepDeg + " L1=" + config.Circle_RectL1Ratio + " L2=" + config.Circle_RectL2Ratio + ")");
                 // Circle_RadialDirection ("Inward"/"Outward") → polarity ("positive"/"negative") override (EdgePolarity 무시)
@@ -1684,7 +1684,7 @@ namespace ReringProject.Halcon.Algorithms
             string scanLabel = "vertical";
             if (scanHorizontal) scanLabel = "horizontal";
 
-            Logging.PrintLog((int)ELogType.Trace,
+            Logging.PrintLog((int)ELogType.Algorithm,
                 string.Format("[Datum.{0}] strip-loop: bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
                     lbl, top, left, bottom, right,
                     scanLabel,
@@ -1769,14 +1769,14 @@ namespace ReringProject.Halcon.Algorithms
                     erodedImage = new HImage(erodedObj);
                     stripImage = erodedImage;
                     erosionSw.Stop();
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         string.Format("[Datum.{0}] {1} tact = {2}ms (erosion={3}px, canvas={4}x{4}, polarity={5})", lbl, opName, erosionSw.ElapsedMilliseconds, erosion, canvasSize, polarity));
                 }
                 catch (Exception erodeEx)
                 {
                     erosionSw.Stop();
                     // erosion 전처리 실패는 non-critical: 원본 image 로 폴백 (strip swallow 정책과 동일 사상)
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         string.Format("[Datum.{0}] {1}(directional) skipped after {2}ms (fallback to source image): {3}", lbl, opName, erosionSw.ElapsedMilliseconds, erodeEx.Message));
                     stripImage = image;
                 }
@@ -1830,7 +1830,7 @@ namespace ReringProject.Halcon.Algorithms
                 }
 
                 int edgeCount = allRows.TupleLength();
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     string.Format("[Datum.{0}] strip-loop accumulated {1} edge points across {2} strips (ok {3}, noEdge {4}, failed {5})",
                         lbl, edgeCount, stripCount, nOkStrips, nNoEdgeStrips, nFailedStrips));
 
@@ -1839,7 +1839,7 @@ namespace ReringProject.Halcon.Algorithms
                 edgeCount = allRows.TupleLength();
                 if (trimCount > 0)
                 {
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         string.Format("[Datum.{0}] trimmed {1}% from each end -> {2} edges remain",
                             lbl, trimCount, edgeCount));
                 }
@@ -1850,7 +1850,7 @@ namespace ReringProject.Halcon.Algorithms
                         "[{0}] insufficient edges across {1} strips: got {2} (need >=2). sigma={3:F2} threshold={4} polarity={5} scan={6}",
                         lbl, stripCount, edgeCount, sigma, threshold, polarity,
                         scanLabel);
-                    Logging.PrintLog((int)ELogType.Trace, error);
+                    Logging.PrintLog((int)ELogType.Algorithm, error);
                     return false;
                 }
 
@@ -1969,7 +1969,7 @@ namespace ReringProject.Halcon.Algorithms
             string scanLabel = "vertical";
             if (scanHorizontal) scanLabel = "horizontal";
 
-            Logging.PrintLog((int)ELogType.Trace,
+            Logging.PrintLog((int)ELogType.Algorithm,
                 string.Format("[Datum.{0}] strip-loop(extract): bounds top={1:F1} left={2:F1} bottom={3:F1} right={4:F1}  scan={5}  stripCount={6}  sigma={7:F2} threshold={8} polarity={9}",
                     lbl, top, left, bottom, right,
                     scanLabel,
@@ -2037,14 +2037,14 @@ namespace ReringProject.Halcon.Algorithms
                     erodedImage = new HImage(erodedObj);
                     stripImage = erodedImage;
                     erosionSw.Stop();
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         string.Format("[Datum.{0}] {1} tact = {2}ms (erosion={3}px, canvas={4}x{4}, polarity={5})", lbl, opName, erosionSw.ElapsedMilliseconds, erosion, canvasSize, polarity));
                 }
                 catch (Exception erodeEx)
                 {
                     erosionSw.Stop();
                     // erosion 전처리 실패는 non-critical: 원본 image 로 폴백 (strip swallow 정책과 동일 사상)
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         string.Format("[Datum.{0}] {1}(directional) skipped after {2}ms (fallback to source image): {3}", lbl, opName, erosionSw.ElapsedMilliseconds, erodeEx.Message));
                     stripImage = image;
                 }
@@ -2098,7 +2098,7 @@ namespace ReringProject.Halcon.Algorithms
                 }
 
                 int edgeCount = allRows.TupleLength();
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     string.Format("[Datum.{0}] strip-loop(extract) accumulated {1} edge points across {2} strips (ok {3}, noEdge {4}, failed {5})",
                         lbl, edgeCount, stripCount, nOkStrips, nNoEdgeStrips, nFailedStrips));
 
@@ -2107,7 +2107,7 @@ namespace ReringProject.Halcon.Algorithms
                 edgeCount = allRows.TupleLength();
                 if (trimCount > 0)
                 {
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         string.Format("[Datum.{0}] trimmed {1}% from each end -> {2} edges remain",
                             lbl, trimCount, edgeCount));
                 }
@@ -2122,7 +2122,7 @@ namespace ReringProject.Halcon.Algorithms
                         "[{0}] no edges found across {1} strips. sigma={2:F2} threshold={3} polarity={4} scan={5}",
                         lbl, stripCount, sigma, threshold, polarity,
                         scanLabel);
-                    Logging.PrintLog((int)ELogType.Trace, error);
+                    Logging.PrintLog((int)ELogType.Algorithm, error);
                     return false;
                 }
 
@@ -2228,7 +2228,7 @@ namespace ReringProject.Halcon.Algorithms
                     {
                         string lblCatch = "?";
                         if (roiLabel != null) lblCatch = roiLabel;
-                        Logging.PrintLog((int)ELogType.Trace,
+                        Logging.PrintLog((int)ELogType.Algorithm,
                             string.Format("[Datum.{0}] strip swallowed: {1}", lblCatch, ex.Message));
                     }
                     catch { }

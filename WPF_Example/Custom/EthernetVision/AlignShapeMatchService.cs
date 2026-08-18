@@ -635,7 +635,7 @@ namespace ReringProject {
                 }
 
                 bool bHasXld = (result.DetectedContourXld != null);
-                Logging.PrintLog((int)ELogType.Trace,
+                Logging.PrintLog((int)ELogType.Algorithm,
                     "[ALIGN_SVC] run OK ({0}/{1}): off=({2:F4},{3:F4})mm theta={4:F3} score1={5:F3} score2={6:F3} contourXld={7}",
                     mode, slot, result.OffsetXmm, result.OffsetYmm, result.ThetaDeg, f1Score, f2Score,
                     bHasXld); //260626 hbk 슬롯 로그 추가

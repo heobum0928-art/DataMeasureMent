@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -236,7 +236,7 @@ namespace ReringProject.Sequence {
                                         }
                                     }
                                     //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거): thread=MemCacheWarmup의 seq 스레드ID와 대조용, dbg=디버거 부착 여부 직접 확인
-                                    Logging.PrintLog((int)ELogType.Trace, "[FaiTiming] datum={0} stage=DatumDetail light={1}ms lightWait={2}ms grab={3}ms detect={4}ms thread={5} dbg={6}",
+                                    Logging.PrintLog((int)ELogType.Algorithm, "[FaiTiming] datum={0} stage=DatumDetail light={1}ms lightWait={2}ms grab={3}ms detect={4}ms thread={5} dbg={6}",
                                         (datum.DatumName != null ? datum.DatumName : "?"), msApplyDatumLights, msWaitForPendingWrites, msDatumGrab, swDatumDetect.ElapsedMilliseconds,
                                         System.Threading.Thread.CurrentThread.ManagedThreadId, System.Diagnostics.Debugger.IsAttached);
                                 } finally {
@@ -268,7 +268,7 @@ namespace ReringProject.Sequence {
                         bDatumOnly = parentSeq.ShouldSkipMeasurementAfterDatumPhase(nCurZ);
                     }
                     //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)
-                    Logging.PrintLog((int)ELogType.Trace, "[FaiTiming] shot={0} stage=Datum total={1}ms",
+                    Logging.PrintLog((int)ELogType.Algorithm, "[FaiTiming] shot={0} stage=Datum total={1}ms",
                         (ShotParam != null ? ShotParam.ShotName : "?"), swDatumPhase.ElapsedMilliseconds);
                     if (bDatumOnly) {
                         Step = (int)EStep.End;
@@ -333,7 +333,7 @@ namespace ReringProject.Sequence {
                             msDisplayCopy = swDisplayCopy.ElapsedMilliseconds;
                             image.Dispose(); // 누수 방지 — 조건과 무관하게 항상 수행.
                         }
-                        Logging.PrintLog((int)ELogType.Trace,
+                        Logging.PrintLog((int)ELogType.Algorithm,
                             "[FaiTiming] shot={0} stage=Grab acquire={1}ms displayCopy={2}ms total={3}ms",
                             ShotParam.ShotName ?? "", msAcquire, msDisplayCopy, swGrabTotal.ElapsedMilliseconds);
                     }
@@ -575,7 +575,7 @@ namespace ReringProject.Sequence {
                     if (ShotParam != null) measureSeq = ShotParam.Parent as SequenceBase;
                     if (measureSeq != null) dLastSleepMs = measureSeq.LastSleepMs;
                     else dLastSleepMs = -1.0;
-                    Logging.PrintLog((int)ELogType.Trace,
+                    Logging.PrintLog((int)ELogType.Algorithm,
                         "[FaiTiming] shot={0} stage=Measure measuredCount={1} measureExec={2}ms saveQueueEnqueue={3}ms total={4}ms thread={5} dbg={6} sleep5={7:F1}ms",
                         szMeasureShotName, measuredCount, msMeasureExec, msSaveQueue, swMeasureTotal.ElapsedMilliseconds,
                         System.Threading.Thread.CurrentThread.ManagedThreadId, System.Diagnostics.Debugger.IsAttached, dLastSleepMs); //TEMP 계측(top-release-2x-slower 조사용, 원인 확인 후 제거)

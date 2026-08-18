@@ -69,6 +69,41 @@ namespace ReringProject.Sequence {
         public TestPacket RequestPacket { get; private set; } = null;
         public ConcurrentQueue<TestResultPacket> ResponseQueue { get; private set; } = new ConcurrentQueue<TestResultPacket>();
 
+        //260818 hbk 시퀀스 tact 계측 — Trace 를 시퀀스 흐름 전용으로 정리하면서, 어디서 시간이 가는지
+        //  로그만 보고 알 수 있도록 두 층위를 기록한다.
+        //   · 액션(Shot) 단위: ExecuteAction 의 첫 tick(OnBegin) → Finish/Error 까지
+        //   · 루틴 단위: StartCore(점유 성공) → Finish/Error 까지 = 이 시퀀스 1회 실행 전체
+        //  둘 다 원래 있던 실행 경로에 Stopwatch 만 얹은 것이라 동작/판정에는 영향이 없다.
+        private readonly System.Diagnostics.Stopwatch _actionTactSw = new System.Diagnostics.Stopwatch();
+        private readonly System.Diagnostics.Stopwatch _routineTactSw = new System.Diagnostics.Stopwatch();
+        private int _routineActionCount = 0; // 이번 루틴에서 실행 완료한 액션 수
+
+        //260818 hbk 액션 1개 완료 시점의 tact 로그. 액션명은 Shot 이름과 1:1 이라 어느 자리가 느린지 바로 보인다.
+        private void LogActionTact(ActionBase action, string szResult) {
+            try {
+                if (!_actionTactSw.IsRunning) return; // OnBegin 을 거치지 않은 경로 방어
+                _actionTactSw.Stop();
+                _routineActionCount++;
+                string szActionName;
+                if (action != null && action.Name != null) szActionName = action.Name;
+                else szActionName = "?";
+                Logging.PrintLog((int)ELogType.Trace, "[Tact] {0} · {1} {2} — {3:F2}초",
+                    Name, szActionName, szResult, _actionTactSw.Elapsed.TotalSeconds);
+            }
+            catch { } // 계측 실패가 검사를 막으면 안 된다
+        }
+
+        //260818 hbk 루틴(이 시퀀스 1회 실행) 전체 tact 로그. Finish/Error 양쪽에서 호출된다.
+        private void LogRoutineTact(string szResult) {
+            try {
+                if (!_routineTactSw.IsRunning) return;
+                _routineTactSw.Stop();
+                Logging.PrintLog((int)ELogType.Trace, "[Tact] {0} · 루틴 종료 {1} — 액션 {2}개, 합계 {3:F2}초",
+                    Name, szResult, _routineActionCount, _routineTactSw.Elapsed.TotalSeconds);
+            }
+            catch { }
+        }
+
         public SequenceBase(ESequence id, string name) {
             ID = id;
             Name = name;
@@ -207,6 +242,8 @@ namespace ReringProject.Sequence {
                 Context.ActionParam = action.Param;
                 if (TargetID != null)
                     Context.TargetCode = TargetID;
+                //260818 hbk 액션(Shot) 단위 tact 계측 시작 — 이 액션의 첫 tick 에서만 리셋된다.
+                _actionTactSw.Restart();
                 action.OnBegin(Context);
                 IsDoneBegin = true;
             }
@@ -214,6 +251,7 @@ namespace ReringProject.Sequence {
             ActionContext actionContext = action.Run();
 
             if (actionContext.Result == EContextResult.Error) {
+                LogActionTact(action, "ERROR"); //260818 hbk 실패로 끝난 액션도 tact 를 남긴다(느린 실패 추적용)
                 CurAction.OnEnd();
                 IsDoneBegin = false;
 
@@ -225,6 +263,7 @@ namespace ReringProject.Sequence {
                 Error();
             }
             else if (actionContext.State == EContextState.Finish) {
+                LogActionTact(action, "OK"); //260818 hbk 액션(Shot) 단위 tact
                 CurAction.OnEnd();
                 IsDoneBegin = false;
 
@@ -378,6 +417,9 @@ namespace ReringProject.Sequence {
                 Context.Clear();
                 IsFinished = false;
                 State = EContextState.Running; // 즉시 점유 → 이후 호출자는 위 State 체크에서 탈락
+                //260818 hbk 루틴 tact 시작 — 점유에 성공한 호출만 여기 도달하므로 경합해도 이중 시작되지 않는다.
+                _routineTactSw.Restart();
+                _routineActionCount = 0;
             }
 
             //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화한다.
@@ -528,6 +570,7 @@ namespace ReringProject.Sequence {
         }
 
         protected bool Error() {
+            LogRoutineTact("ERROR"); //260818 hbk 실패로 끝난 루틴도 tact 를 남긴다
             Context.State = EContextState.Error;
             Context.Result = EContextResult.Error;
 
@@ -546,6 +589,7 @@ namespace ReringProject.Sequence {
         }
 
         protected bool Finish() {
+            LogRoutineTact("OK"); //260818 hbk 루틴 전체 tact — 응답/이벤트 발화 전에 찍어 흐름 순서를 유지
             Context.State = EContextState.Finish;
             IsFinished = true;
 

@@ -1,4 +1,4 @@
-using ReringProject.Define;
+﻿using ReringProject.Define;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -78,8 +78,19 @@ namespace ReringProject.Sequence {
         private readonly System.Diagnostics.Stopwatch _routineTactSw = new System.Diagnostics.Stopwatch();
         private int _routineActionCount = 0; // 이번 루틴에서 실행 완료한 액션 수
 
-        //260818 hbk 액션 1개 완료 시점의 tact 로그. 액션명은 Shot 이름과 1:1 이라 어느 자리가 느린지 바로 보인다.
-        private void LogActionTact(ActionBase action, string szResult) {
+        //260818 hbk 액션(Shot) 시작 — 여기부터 그 Shot 의 단계별 [SEQ] 줄이 이어진다.
+        private void LogActionBegin(ActionBase action) {
+            try {
+                string szActionName;
+                if (action != null && action.Name != null) szActionName = action.Name;
+                else szActionName = "?";
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} · {1} 시작", Name, szActionName);
+            }
+            catch { } // 로그 실패가 검사를 막으면 안 된다
+        }
+
+        //260818 hbk 액션 1개 완료. 액션명은 Shot 이름과 1:1 이라 어느 자리가 느린지 바로 보인다.
+        private void LogActionEnd(ActionBase action, string szResult) {
             try {
                 if (!_actionTactSw.IsRunning) return; // OnBegin 을 거치지 않은 경로 방어
                 _actionTactSw.Stop();
@@ -87,18 +98,25 @@ namespace ReringProject.Sequence {
                 string szActionName;
                 if (action != null && action.Name != null) szActionName = action.Name;
                 else szActionName = "?";
-                Logging.PrintLog((int)ELogType.Trace, "[Tact] {0} · {1} {2} — {3:F2}초",
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} · {1} 완료 {2} — {3:F2}초",
                     Name, szActionName, szResult, _actionTactSw.Elapsed.TotalSeconds);
             }
-            catch { } // 계측 실패가 검사를 막으면 안 된다
+            catch { }
         }
 
-        //260818 hbk 루틴(이 시퀀스 1회 실행) 전체 tact 로그. Finish/Error 양쪽에서 호출된다.
-        private void LogRoutineTact(string szResult) {
+        //260818 hbk 루틴(이 시퀀스 1회 실행) 시작/종료. Finish/Error 양쪽에서 종료가 호출된다.
+        private void LogRoutineBegin(int nActionCount) {
+            try {
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] ── {0} 루틴 시작 (대상 액션 {1}개) ──", Name, nActionCount);
+            }
+            catch { }
+        }
+
+        private void LogRoutineEnd(string szResult) {
             try {
                 if (!_routineTactSw.IsRunning) return;
                 _routineTactSw.Stop();
-                Logging.PrintLog((int)ELogType.Trace, "[Tact] {0} · 루틴 종료 {1} — 액션 {2}개, 합계 {3:F2}초",
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] ── {0} 루틴 종료 {1} — 액션 {2}개, 합계 {3:F2}초 ──",
                     Name, szResult, _routineActionCount, _routineTactSw.Elapsed.TotalSeconds);
             }
             catch { }
@@ -244,6 +262,7 @@ namespace ReringProject.Sequence {
                     Context.TargetCode = TargetID;
                 //260818 hbk 액션(Shot) 단위 tact 계측 시작 — 이 액션의 첫 tick 에서만 리셋된다.
                 _actionTactSw.Restart();
+                LogActionBegin(action);
                 action.OnBegin(Context);
                 IsDoneBegin = true;
             }
@@ -251,7 +270,7 @@ namespace ReringProject.Sequence {
             ActionContext actionContext = action.Run();
 
             if (actionContext.Result == EContextResult.Error) {
-                LogActionTact(action, "ERROR"); //260818 hbk 실패로 끝난 액션도 tact 를 남긴다(느린 실패 추적용)
+                LogActionEnd(action, "ERROR"); //260818 hbk 실패로 끝난 액션도 tact 를 남긴다(느린 실패 추적용)
                 CurAction.OnEnd();
                 IsDoneBegin = false;
 
@@ -263,7 +282,7 @@ namespace ReringProject.Sequence {
                 Error();
             }
             else if (actionContext.State == EContextState.Finish) {
-                LogActionTact(action, "OK"); //260818 hbk 액션(Shot) 단위 tact
+                LogActionEnd(action, "OK"); //260818 hbk 액션(Shot) 단위 tact
                 CurAction.OnEnd();
                 IsDoneBegin = false;
 
@@ -405,6 +424,7 @@ namespace ReringProject.Sequence {
         //  OnStart.Invoke 는 락 밖에서 호출 — 구독자(MainWindow.OnSequenceStart)가 Dispatcher 로 UI 에 접근하므로,
         //  락을 쥔 채 UI 를 기다리면 UI 스레드가 같은 락을 요청할 때 데드락 위험이 있다(오늘 grab 데드락과 동일 클래스).
         private bool StartCore(int actionIndex, int endActionIndex, TestPacket packet) {
+            int nRoutineActionCount; //260818 hbk 루틴 시작 로그용 — 락 안에서 계산, 락 밖에서 출력
             lock (_startLock) {
                 if (State != EContextState.Idle) return false; // 원자 점유 — 여기서만 승자가 결정된다
                 if (Actions == null || Actions.Length == 0) return false;
@@ -420,7 +440,9 @@ namespace ReringProject.Sequence {
                 //260818 hbk 루틴 tact 시작 — 점유에 성공한 호출만 여기 도달하므로 경합해도 이중 시작되지 않는다.
                 _routineTactSw.Restart();
                 _routineActionCount = 0;
+                nRoutineActionCount = endActionIndex - actionIndex + 1;
             }
+            LogRoutineBegin(nRoutineActionCount); //260818 hbk 락 밖에서 로그(락 보유 중 I/O 최소화)
 
             //260517 hbk OnStart 이벤트를 Command=Start 이전에 발화한다.
             //  이로써 Dispatcher 큐에 SetManualToolsEnabled(false) [잠금] 이 먼저 등록되고,
@@ -570,7 +592,7 @@ namespace ReringProject.Sequence {
         }
 
         protected bool Error() {
-            LogRoutineTact("ERROR"); //260818 hbk 실패로 끝난 루틴도 tact 를 남긴다
+            LogRoutineEnd("ERROR"); //260818 hbk 실패로 끝난 루틴도 tact 를 남긴다
             Context.State = EContextState.Error;
             Context.Result = EContextResult.Error;
 
@@ -589,7 +611,7 @@ namespace ReringProject.Sequence {
         }
 
         protected bool Finish() {
-            LogRoutineTact("OK"); //260818 hbk 루틴 전체 tact — 응답/이벤트 발화 전에 찍어 흐름 순서를 유지
+            LogRoutineEnd("OK"); //260818 hbk 루틴 전체 tact — 응답/이벤트 발화 전에 찍어 흐름 순서를 유지
             Context.State = EContextState.Finish;
             IsFinished = true;
 

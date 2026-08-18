@@ -18,6 +18,9 @@ namespace ReringProject.Sequence
     {
         public const int DEFAULT_REPEAT_COUNT = 50;
 
+        /// <summary>자재번호 미지정 sentinel. CycleResultDto.IndexNumber 기본값과 동일.</summary>
+        public const int MATERIAL_NOT_SET = -1;
+
         /// <summary>모든 반복이 완료되면 발화. arg = 누적된 CycleResultDto 전체 목록.</summary>
         public event Action<List<CycleResultDto>> OnRepeatComplete;
 
@@ -27,6 +30,12 @@ namespace ReringProject.Sequence
         public bool IsRunning { get; private set; }
         public int CompletedCount { get; private set; }
         public int TargetCount { get; private set; }
+
+        /// <summary>
+        /// 이번 실행에 부여할 자재번호. Start/StartFromImages 호출 전에 설정한다.
+        /// MATERIAL_NOT_SET(-1) 이면 기존 동작 그대로(미지정) — TCP $TEST 경로와 무관.
+        /// </summary>
+        public int MaterialIndexNumber { get; set; } = MATERIAL_NOT_SET;
 
         private InspectionSequence _seq;
         private List<CycleResultDto> _collected;
@@ -233,7 +242,7 @@ namespace ReringProject.Sequence
 
                 string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName;
                 CycleResultDto dto = CycleResultSerializer.BuildDto(
-                    recipeManager, resultType, DateTime.Now, recipeName, seqName);
+                    recipeManager, resultType, DateTime.Now, recipeName, seqName, MaterialIndexNumber);
 
                 // 기존 경로 영속화 유지 (HandleManualCyclePersist 와 중복 저장 주의 — 반복 모드에서는 수동 경로이므로 OnFinish 가 1회 발화)
                 CycleResultSerializer.SaveAsync(dto);

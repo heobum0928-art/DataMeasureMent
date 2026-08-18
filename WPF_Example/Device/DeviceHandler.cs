@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using HalconDotNet;
 using ReringProject.Device;
 using ReringProject.Sequence;
+using ReringProject.Setting;
 
 namespace ReringProject.Device {
     /// <summary>
@@ -54,11 +55,6 @@ namespace ReringProject.Device {
 
     public sealed partial class DeviceHandler : IDisposable {
         public static DeviceHandler Handle { get; } = new DeviceHandler();
-
-#if SIMUL_MODE
-        //260317 offline auto-run test image
-        private const string SimulatedImagePath = @"D:\1.bmp";
-#endif
 
         private List<DeviceInfo> IDList = new List<DeviceInfo>();
 
@@ -313,7 +309,12 @@ namespace ReringProject.Device {
             vCam.Open(id.Width, id.Height);
 #if SIMUL_MODE
             //260317 offline auto-run test image
-            vCam.BackgroundImagePath = SimulatedImagePath;
+            //260818 hbk D 드라이브 없는 PC 대응 — 경로를 SystemSetting(INI) 로 설정화(RestoreDataPathDefaults 가 기존 배포와 동일한 D:\1.bmp 기본값 보장)
+            //  주의: 여기서 SystemHandler.Handle 을 쓰면 안 됨 — 이 코드 자체가 SystemHandler 생성자
+            //  (Devices.Initialize() 호출) 안에서 실행되므로 SystemHandler.Handle 은 아직 null 이라
+            //  NullReferenceException 이 난다(순환 초기화). SystemSetting.Handle 은 SystemHandler 생성자보다
+            //  먼저(Setting = SystemSetting.Handle; 이 79번째 줄) 이미 완전히 만들어져 있어 안전하다.
+            vCam.BackgroundImagePath = SystemSetting.Handle.SimulatedImagePath;
 #endif
             Devices.Add(id.Identifier, vCam);
         }

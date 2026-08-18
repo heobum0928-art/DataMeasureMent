@@ -16,7 +16,7 @@ namespace ReringProject.Device {
 
         private const int DEFAULT_WIDTH = 5120;     // MV-CH250-90GM 플레이스홀더 (Open 후 실 해상도로 덮어씀)
         private const int DEFAULT_HEIGHT = 5120;
-        private const string ALIGN_FALLBACK_IMAGE_PATH = @"D:\align_test.bmp"; // D-04 SIMUL/실패 폴백
+        // D-04 SIMUL/실패 폴백. 260818 hbk D 드라이브 없는 PC 대응 — SystemSetting.AlignFallbackImagePath(INI) 로 설정화(기본값은 여전히 D:\align_test.bmp).
         private static readonly string[] IMAGE_EXTENSIONS = { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff" };
 
         private HikCamera _hikCamera = null;    // composed instance (HikCamera 미수정, DeviceHandler 미등록)
@@ -117,7 +117,7 @@ namespace ReringProject.Device {
 
         /// <summary>
         /// 카메라에서 단일 이미지를 소프트웨어 트리거로 취득.
-        /// 미연결 또는 Grab 실패 시 D:\align_test.bmp 폴백 이미지를 반환.
+        /// 미연결 또는 Grab 실패 시 SystemSetting.AlignFallbackImagePath(기본값 D:\align_test.bmp) 폴백 이미지를 반환.
         /// 반환된 HImage 는 호출자가 Dispose() 책임.
         /// </summary>
         /// <returns>취득 이미지(HImage). 폴백도 실패하면 null.</returns>
@@ -208,7 +208,7 @@ namespace ReringProject.Device {
         }
 
         /// <summary>
-        /// D:\align_test.bmp 를 읽어 HImage 로 반환.
+        /// SystemSetting.AlignFallbackImagePath(기본값 D:\align_test.bmp)를 읽어 HImage 로 반환.
         /// 컬러 이미지이면 Gray8 으로 변환.
         /// 반환된 HImage 는 호출자가 Dispose() 책임.
         /// </summary>
@@ -219,7 +219,10 @@ namespace ReringProject.Device {
             HImage loaded = null;
             try {
                 // 260630 hbk — SIMUL 캘: 폴더 등록 시 순차 이미지 반환. 마지막 도달 시 마지막 이미지 반복.
-                string imagePath = ALIGN_FALLBACK_IMAGE_PATH;
+                // 260818 hbk SystemHandler.Handle 대신 SystemSetting.Handle 직접 참조 — DeviceHandler.AddVirtualCamera 에서
+                //  겪은 것과 같은 순환 초기화 NullReferenceException 을 원천 차단(SystemSetting.Handle 은 SystemHandler
+                //  생성자보다 먼저 완전히 만들어짐).
+                string imagePath = SystemSetting.Handle.AlignFallbackImagePath;
                 bool bHasSimul = _simulImagePaths != null && _simulImagePaths.Length > 0;
                 if (bHasSimul)
                 {

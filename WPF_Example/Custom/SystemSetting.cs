@@ -38,6 +38,21 @@ namespace ReringProject.Setting {
         // 두 판정 기준을 단일 소스로 통일. AlignShapeMatchService 는 이 public const 를 참조.
         public const double PICKER_CENTER_ZERO_EPS = 1e-6; //260624 hbk Phase 60
 
+        // D 드라이브가 없는 PC(예: 노트북)에 배포할 때 이 두 값만 INI 로 다른 드라이브를 가리키게 할 수 있도록
+        // 설정화. 이전에는 DeviceHandler.SimulatedImagePath / EthernetAlignCamera.ALIGN_FALLBACK_IMAGE_PATH 가
+        // 각각 D:\1.bmp, D:\align_test.bmp 로 코드에 고정돼 있어 INI 로 바꿀 방법이 없었다.
+        // 260818 hbk [Category("...")] 를 이 파일의 using System.ComponentModel; 때문에 System.ComponentModel.CategoryAttribute
+        //  로 잘못 쓰면 안 됨 — base SystemSetting.Load()/Save() 는 PropertyTools.DataAnnotations.CategoryAttribute 만 인식해서
+        //  그룹이 항상 [Default]로 새는 실사용 버그로 확인됨(이 파일의 CameraRoleValue/ETHERNET_VISION 항목들도 원래 이 문제가
+        //  있었음 — 여기선 새 프로퍼티 2개만 완전정규화로 고치고, 기존 항목은 이번 범위 밖이라 손대지 않는다).
+        [PropertyTools.DataAnnotations.Category("Path|Simul")]
+        [PropertyTools.DataAnnotations.AutoUpdateText]
+        public string SimulatedImagePath { get; set; } = @"D:\1.bmp";
+
+        [PropertyTools.DataAnnotations.Category("Path|Simul")]
+        [PropertyTools.DataAnnotations.AutoUpdateText]
+        public string AlignFallbackImagePath { get; set; } = @"D:\align_test.bmp";
+
         partial void AfterLoad()
         {
             RestorePcRoleDefault();
@@ -51,6 +66,8 @@ namespace ReringProject.Setting {
         //  기존에 이미 돌아가던 모든 PC의 Setting.ini 에는 이 키가 없다. reflection Load 의 "String" case 는
         //  키 부재 시 null 을 그대로 SetValue 해버려(PcRole 의 int 0 폴백과 동일한 계열 문제, 문자열판)
         //  C# 기본값이 null 로 덮어써진다 — 방치하면 이번 배포에서 ACCOUNT_FILE 등이 null 이 되는 회귀 발생.
+        //  SimulatedImagePath/AlignFallbackImagePath 도 260818 에 새로 추가된 프로퍼티라 동일한 문제가 있어
+        //  같은 방식으로 방어한다.
         private void RestoreDataPathDefaults()
         {
             if (string.IsNullOrEmpty(AccountDbFilePath))
@@ -64,6 +81,14 @@ namespace ReringProject.Setting {
             if (string.IsNullOrEmpty(DisplayConfigFilePath))
             {
                 DisplayConfigFilePath = @"D:\Data\DisplayConfig.ini";
+            }
+            if (string.IsNullOrEmpty(SimulatedImagePath))
+            {
+                SimulatedImagePath = @"D:\1.bmp";
+            }
+            if (string.IsNullOrEmpty(AlignFallbackImagePath))
+            {
+                AlignFallbackImagePath = @"D:\align_test.bmp";
             }
         }
 

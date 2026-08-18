@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 72-02-PLAN.md
-last_updated: "2026-08-18T09:43:38.365Z"
+stopped_at: Completed 72-03-PLAN.md
+last_updated: "2026-08-18T09:49:35.857Z"
 last_activity: 2026-08-18
 progress:
   total_phases: 15
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Last activity: 2026-08-18
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
@@ -259,6 +259,7 @@ Last activity: 2026-08-18
 | Phase 71-prep-op-plc-off-p-f P04 | 90min | 3 tasks | 0 files |
 | Phase 72 P01 | 6m | 2 tasks | 1 files |
 | Phase 72 P02 | 12m | 2 tasks | 3 files |
+| Phase 72 P03 | 9m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -523,6 +524,8 @@ Recent decisions affecting current work:
 - 72-01: MeasurementStat 신규 필드는 기존 필드 사이가 아닌 Cpk 뒤에 append (기존 object initializer 참조 보호)
 - 72-02: 차트 드로잉 폭/높이를 인자로 승격 — 오프스크린 Canvas 는 ActualWidth==0 이라 export 그래프가 빈 이미지가 된다
 - 72-02: ChartRenderService 내 .ActualWidth/.ActualHeight 프로퍼티 접근 0건 강제 (실패 모드 원천 차단)
+- 72-03: MaterialIndexNumber 는 Stop() 에서 리셋하지 않고 호출자가 매 실행 전 지정하는 계약
+- 72-03: BatchRunService 는 프로퍼티만 추가하고 UI 입력은 미연결 (기본 -1, 회귀 0)
 
 ### Quick Tasks Completed
 
@@ -732,8 +735,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-08-18T09:43:29.399Z
-Stopped at: Completed 72-02-PLAN.md
+Last session: 2026-08-18T09:49:25.938Z
+Stopped at: Completed 72-03-PLAN.md
 Resume file: None
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 

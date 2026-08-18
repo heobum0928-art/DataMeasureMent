@@ -232,5 +232,23 @@ namespace ReringProject.Sequence
 
             return result;
         }
+
+        /// <summary>
+        /// 측정키별 원시 측정값 리스트를 반환한다. 차트(히스토그램/추이) 렌더 전용.
+        /// 내부 리스트를 그대로 주면 외부에서 변조될 수 있으므로 복사본을 만든다.
+        /// 주의: DATUM_FAIL / NO_IMAGE 회차는 애초에 누적되지 않으므로 이 리스트로는
+        /// "몇 번째 회차 값인지"를 알 수 없다 — RAW DATA 열 정렬에는 쓰지 말 것.
+        /// </summary>
+        public Dictionary<string, List<double>> GetSeries()
+        {
+            var result = new Dictionary<string, List<double>>();
+
+            foreach (var kv in _data)
+            {
+                result[kv.Key] = new List<double>(kv.Value.Values);
+            }
+
+            return result;
+        }
     }
 }

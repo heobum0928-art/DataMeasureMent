@@ -29,6 +29,27 @@ namespace ReringProject.Export
         private const string MATERIAL_UNSET_LABEL = "미지정";
         private const int MATERIAL_NOT_SET = -1;
 
+        private const string CPK_SHEET_NAME = "1Cav 세부치수_Cpk";
+        private const double CPK_WARN_THRESHOLD = 1.33;
+
+        private const int CPK_SUMMARY_OK_ROW = 1;
+        private const int CPK_SUMMARY_NG_ROW = 2;
+        private const int CPK_SUMMARY_LIST_ROW = 3;
+        private const int CPK_HEADER_ROW = 5;
+        private const int CPK_FIRST_DATA_ROW = 6;
+
+        // 좌측 블록 B~L, 우측 통계 블록 N~V, 판정 X (참고양식 열 배치 유지, M/W 는 구분 공백열)
+        private const int CPK_LEFT_FIRST_COLUMN = 2;    // B
+        private const int CPK_RIGHT_FIRST_COLUMN = 14;  // N
+        private const int CPK_JUDGE_COLUMN = 24;        // X
+
+        private const string JUDGE_NG = "N G";
+        private const string JUDGE_WARN = "Cpk";
+        private const string JUDGE_OK = "O K";
+
+        private const string INFINITY_TEXT = "∞";
+        private const int STAT_DECIMALS = 6;
+
         /// <summary>RAW DATA 의 샘플 열 1개. cycle(검사 1회차) 1개 = 열 1개. 자재번호는 열 묶음 라벨.</summary>
         private class SampleColumn
         {
@@ -158,6 +179,77 @@ namespace ReringProject.Export
             ws.SheetView.FreezeRows(RAW_HEADER_ROW);
             ws.SheetView.FreezeColumns(RAW_FIRST_SAMPLE_COLUMN - 1);
             ws.Columns().AdjustToContents();
+        }
+
+        /// <summary>
+        /// 통계 셀 1칸을 기록한다. StdDev==0 이면 Cp/UCPK/LCPK/Cpk 가 PositiveInfinity 이므로
+        /// raw double 을 넣으면 엑셀이 깨진다 — 텍스트로 치환한다(StatisticsWindow.CpkToText 미러).
+        /// </summary>
+        private static void WriteStatCell(IXLWorksheet ws, int nRow, int nColumn, double dValue)
+        {
+            if (double.IsPositiveInfinity(dValue))
+            {
+                ws.Cell(nRow, nColumn).Value = INFINITY_TEXT;
+                return;
+            }
+
+            if (double.IsNegativeInfinity(dValue) || double.IsNaN(dValue))
+            {
+                ws.Cell(nRow, nColumn).Value = NO_VALUE_TEXT;
+                return;
+            }
+
+            ws.Cell(nRow, nColumn).Value = Math.Round(dValue, STAT_DECIMALS);
+        }
+
+        /// <summary>
+        /// 3단계 판정. 참고파일의 다른 시트에는 참/거짓 분기가 동일한 수식 오류
+        /// (IF(V&lt;1.33,"O K","O K"))가 있으나 이를 재현하지 않고 모든 항목에 동일 규칙을 적용한다.
+        /// 표본이 없으면(N==0) 판정 불가이므로 "-".
+        /// min &lt; LSL 또는 max &gt; USL → "N G" / Cpk &lt; 1.33 → "Cpk" / 그 외 → "O K".
+        /// </summary>
+        private static string BuildCpkJudgement(MeasurementStat stat, double dUsl, double dLsl)
+        {
+            if (stat == null || stat.N <= 0)
+            {
+                return NO_VALUE_TEXT;
+            }
+
+            if (stat.MinValue < dLsl || stat.MaxValue > dUsl)
+            {
+                return JUDGE_NG;
+            }
+
+            if (stat.Cpk < CPK_WARN_THRESHOLD)
+            {
+                return JUDGE_WARN;
+            }
+
+            return JUDGE_OK;
+        }
+
+        /// <summary>공차 유형 라벨. 상/하한 공차 존재 여부로 결정한다.</summary>
+        private static string BuildToleranceTypeText(double dTolPlus, double dTolMinus)
+        {
+            bool bHasUpper = dTolPlus != 0.0;
+            bool bHasLower = Math.Abs(dTolMinus) != 0.0;
+
+            if (bHasUpper && bHasLower)
+            {
+                return "양측";
+            }
+
+            if (bHasUpper)
+            {
+                return "상한";
+            }
+
+            if (bHasLower)
+            {
+                return "하한";
+            }
+
+            return "없음";
         }
 
         /// <summary>

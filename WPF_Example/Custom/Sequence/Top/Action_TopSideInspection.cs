@@ -227,14 +227,17 @@ namespace ReringProject.Sequence {
     }
 
     //260526 hbk Phase 33 — Action_FAIMeasurement 로 마이그레이션됨 (D-05)
+    //260818 hbk RegisterActions() 에서 Top 뿐 아니라 Side 시퀀스 등록에도 이 클래스가 그대로 재사용되고 있어(별도
+    //  SideInspectionAction 클래스 없음), "Top"만 쓰는 것처럼 보이는 이름이 오해를 불러 TopSideInspectionAction 으로 개명.
+    //  순수 이름 변경 — 로직/시그니처/동작 무변경(기존 기능 영향 0).
     [System.Obsolete("Phase 33 — Action_FAIMeasurement 로 마이그레이션됨", false)]
-    public class TopInspectionAction : ActionBase {
+    public class TopSideInspectionAction : ActionBase {
         private readonly RoiLineIntersectionAlgorithm _algorithm = new RoiLineIntersectionAlgorithm();
         private TopInspectionContext pMyContext;
         private TopInspectionParam pMyParam;
         private VirtualCamera pCamera;
 
-        public TopInspectionAction(EAction id, string name, int algIndex, int modelIndex) : base(id, name) {
+        public TopSideInspectionAction(EAction id, string name, int algIndex, int modelIndex) : base(id, name) {
             Context = new TopInspectionContext(this);
             pMyContext = Context as TopInspectionContext;
             Param = new TopInspectionParam(this, algIndex, modelIndex);

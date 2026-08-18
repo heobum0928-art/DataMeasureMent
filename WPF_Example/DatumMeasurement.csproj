@@ -231,7 +231,7 @@
     <Compile Include="Custom\Define\ID.cs" />
     <Compile Include="Custom\Device\DeviceHandler.cs" />
     <Compile Include="Custom\Device\LightHandler.cs" />
-    <Compile Include="Custom\Sequence\Top\Action_TopInspection.cs" />
+    <Compile Include="Custom\Sequence\Top\Action_TopSideInspection.cs" />
     <Compile Include="Custom\Sequence\Bottom\Sequence_Bottom.cs" />
     <Compile Include="Custom\Sequence\Top\Sequence_Top.cs" />
     <Compile Include="Custom\TcpServer\ResourceMap.cs" />

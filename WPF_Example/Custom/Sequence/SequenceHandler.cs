@@ -199,9 +199,9 @@ namespace ReringProject.Sequence {
             //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스의 Action 만 등록(InitializeSequences 의 AddAction 과 1:1 대응).
             var acts = new List<ActionBase>();
             if (IsSequenceActive(ESequence.Top))
-                acts.Add(new TopInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index));
+                acts.Add(new TopSideInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index));
             if (IsSequenceActive(ESequence.Side))
-                acts.Add(new TopInspectionAction(EAction.Side_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
+                acts.Add(new TopSideInspectionAction(EAction.Side_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
             if (IsSequenceActive(ESequence.Bottom))
                 acts.Add(new BottomInspectionAction(EAction.Bottom_Inspection, ACT_INSPECT, Bottom_Alg_Index, Inspection_Model_Index));
             SequenceBuilder.RegisterAction(acts.ToArray());

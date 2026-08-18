@@ -174,145 +174,7 @@ namespace ReringProject.Sequence {
                 //260618 hbk Phase 54 ALIGN-01 이미지 회전(datumLevelOn/datumLevelAngle) 폐기 (D-03/D-05 warp 0회).
                 //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 이전 datumLevelOn/datumLevelAngle 지역변수 제거.
                 foreach (var datum in parentSeq.DatumConfigs) {
-                    if (datum == null) continue;
-                    //260807 hbk quick-260807: 크로스-Z(ZIndexA/B 중 하나라도 설정된 DualImage) 가 아닌 Datum 은
-                    //  고정 기준물이라 Z 가 바뀌어도 위치가 바뀌지 않는다 — 이번 사이클에서 이미 검출 성공해
-                    //  _datumTransforms 에 값이 있으면(성공시에만 저장됨) 이 Shot 에서는 재조명/재grab/재정렬/
-                    //  재검출을 전부 건너뛰고 캐시를 그대로 쓴다(실측 0.9~1.4초/회 절감 × 같은 시퀀스의 남은 Shot 수).
-                    //  이전 Z 에서 검출이 "실패"했던 datum 은 캐시에 안 남으므로 여기서 그대로 다시 시도된다
-                    //  (lenient 원칙 유지, D-04 요구사항). 크로스-Z 는 여러 Z 의 이미지를 조합해야 하므로
-                    //  이 스킵 대상에서 완전히 제외 — 아래 분기는 기존과 동일하게 매번 재실행된다.
-                    bool bIsCrossZDatum = datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
-                        && !(datum.ZIndexA == UNSET_ZINDEX && datum.ZIndexB == UNSET_ZINDEX);
-                    if (!bIsCrossZDatum && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
-                        nDatumCached++; //260818 hbk [SEQ] 요약: 이번 사이클 이미 검출됨 → 재검출 생략
-                        continue; // 이번 사이클 기 검출 성공 — skip
-                    }
-                    // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
-                    //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
-                    parentSeq.ApplyDatumLights(datum);
-                    // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
-                    //  (기존엔 수동 UI grab 경로에만 있던 대기를 자동 검사 사이클에도 배선. SIMUL/오프라인처럼
-                    //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)
-                    LightHandler.Handle.WaitForPendingWrites();
-                    if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
-                        //260722 hbk Phase 68 D-05: Datum ZIndexA/B 오설정 게이트 — TryGrabOrLoadDualDatumImages 호출 전
-                        //  명시적 실패 처리(조용한 static 폴백 금지). 미설정(-1/-1)은 게이트 미해당 → 기존 static 경로.
-                        bool bDatumZIndexMisconfigured = IsDatumZIndexMisconfigured(datum, parentSeq);
-                        if (bDatumZIndexMisconfigured) {
-                            string misName = datum.DatumName;
-                            if (misName == null) misName = "";
-                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
-                            datum.RuntimeDetectFailed = true;
-                            parentSeq.MarkDatumFailed(datum.DatumName);
-                            continue; // datum skip, abort 안 함
-                        }
-                        //260722 hbk Phase 68 D-06 (WARNING 2): Datum 크로스-Z 는 별도 z_index→Datum 매핑 조회를
-                        //  추가하지 않는다 — (a) 바로 이 루프가 매 실행 Action 마다 시퀀스 DatumConfigs 전체를
-                        //  재검출하고 (b) Plan 02 ProcessTest 의 빈-매칭→StartAll 폴백에 의존해, 두 z_index
-                        //  모두에서 이 Datum 검출이 실행된다는 사실이 크로스-Z 정정성의 전제다. 이 두 동작(전체
-                        //  재검출 / 빈-매칭 폴백)을 향후 변경할 때는 Datum 크로스-Z 재검증이 반드시 필요하다.
-                        HImage imgH = null, imgV = null;
-                        bool bDatumCrossZPending;
-                        try {
-                            if (!TryGrabOrLoadDualDatumImages(datum, parentSeq, out imgH, out imgV, out bDatumCrossZPending)) {
-                                if (bDatumCrossZPending) {
-                                    continue; // Z1(비완성 index): 캡처만 — 실패 아님(MarkDatumFailed 미설정), 완성 z_index에서 검출(D-02a)
-                                }
-                                string datumName = datum.DatumName;
-                                if (datumName == null) datumName = "";
-                                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' DualImage 취득 실패 (skip)");
-                                // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
-                                datum.LastFindSucceeded = false;
-                                // 티칭 여부 무관 라벨 신호
-                                datum.RuntimeDetectFailed = true;
-                                // per-FAI gate 신호 기록
-                                parentSeq.MarkDatumFailed(datum.DatumName);
-                                continue; // datum skip, abort 안 함
-                            }
-                            //260619 hbk Phase 57 #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
-                            //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
-                            //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
-                            if (datum.IsPatternAlignEnabled) {
-                                string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
-                                string alignErr;
-                                if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
-                                    string dn = datum.DatumName;
-                                    if (dn == null) dn = "";
-                                    string ae = alignErr;
-                                    if (ae == null) ae = "";
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
-                                    datum.RuntimeDetectFailed = true;
-                                    parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
-                                }
-                            } else {
-                                string derr;
-                                if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
-                                    string datumName = datum.DatumName;
-                                    if (datumName == null) datumName = "";
-                                    string derrStr = derr;
-                                    if (derrStr == null) derrStr = "";
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
-                                    datum.RuntimeDetectFailed = true;
-                                    parentSeq.MarkDatumFailed(datum.DatumName);
-                                }
-                            }
-                        } finally {
-                            if (imgH != null) { try { imgH.Dispose(); } catch { } }
-                            if (imgV != null) { try { imgV.Dispose(); } catch { } }
-                        }
-                    } else { // 1-image datum
-                        HImage img = GrabOrLoadDatumImage(datum);
-                        if (img == null) {
-                            string datumName = datum.DatumName;
-                            if (datumName == null) datumName = "";
-                            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 이미지 취득 실패 (skip)");
-                            datum.LastFindSucceeded = false;
-                            datum.RuntimeDetectFailed = true;
-                            parentSeq.MarkDatumFailed(datum.DatumName);
-                            continue;
-                        }
-                        //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 (D-02/D-04/D-05). 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
-                        //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
-                        try {
-                            if (datum.IsPatternAlignEnabled) {
-                                string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
-                                string alignErr;
-                                if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
-                                    string dn = datum.DatumName;
-                                    if (dn == null) dn = "";
-                                    string ae = alignErr;
-                                    if (ae == null) ae = "";
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
-                                    datum.RuntimeDetectFailed = true;
-                                    parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
-                                    nDatumFail++;
-                                } else {
-                                    nDatumOk++;
-                                }
-                                //260818 hbk [SEQ] 패턴매칭 경로를 탔음을 표시
-                                LogSeqAlgo("Datum", datum.DatumName, "TryComposeAlign(패턴매칭)");
-                            } else {
-                                string derr;
-                                if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
-                                    string datumName = datum.DatumName;
-                                    if (datumName == null) datumName = "";
-                                    string derrStr = derr;
-                                    if (derrStr == null) derrStr = "";
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
-                                    datum.RuntimeDetectFailed = true;
-                                    parentSeq.MarkDatumFailed(datum.DatumName);
-                                    nDatumFail++;
-                                } else {
-                                    nDatumOk++;
-                                }
-                                //260818 hbk [SEQ] 어떤 검출 알고리즘을 탔는지 표시 — 알고리즘 탭에서 상세 확인
-                                LogSeqAlgo("Datum", datum.DatumName, "TryRunSingleDatum/" + datum.AlgorithmTypeEnum);
-                            }
-                        } finally {
-                            img.Dispose();
-                        }
-                    }
+                    ProcessOneDatum(datum, parentSeq, ref nDatumOk, ref nDatumFail, ref nDatumCached);
                 }
                 // Datum grab 동안 켜져 있던 datum 전용 조명을 이 Shot 본연의 조명으로 되돌린다.
                 //  이후 EStep.Grab 의 측정 grab 이 datum 조명이 아니라 $PREP 로 세팅된 Shot 조명 아래서 이뤄져야 한다.
@@ -344,6 +206,159 @@ namespace ReringProject.Sequence {
                 Step = (int)EStep.End;
             } else {
                 Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행
+            }
+        }
+
+        //260702 hbk Extract Method(Task3): DatumPhase per-datum loop 본문(원본 foreach 내부, 동치 보장, continue->return)
+        private void ProcessOneDatum(DatumConfig datum, InspectionSequence parentSeq, ref int nDatumOk, ref int nDatumFail, ref int nDatumCached) {
+            if (datum == null) return;
+            //260807 hbk quick-260807: 크로스-Z(ZIndexA/B 중 하나라도 설정된 DualImage) 가 아닌 Datum 은
+            //  고정 기준물이라 Z 가 바뀌어도 위치가 바뀌지 않는다 — 이번 사이클에서 이미 검출 성공해
+            //  _datumTransforms 에 값이 있으면(성공시에만 저장됨) 이 Shot 에서는 재조명/재grab/재정렬/
+            //  재검출을 전부 건너뛰고 캐시를 그대로 쓴다(실측 0.9~1.4초/회 절감 × 같은 시퀀스의 남은 Shot 수).
+            //  이전 Z 에서 검출이 "실패"했던 datum 은 캐시에 안 남으므로 여기서 그대로 다시 시도된다
+            //  (lenient 원칙 유지, D-04 요구사항). 크로스-Z 는 여러 Z 의 이미지를 조합해야 하므로
+            //  이 스킵 대상에서 완전히 제외 — 아래 분기는 기존과 동일하게 매번 재실행된다.
+            bool bIsCrossZDatum = datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
+                && !(datum.ZIndexA == UNSET_ZINDEX && datum.ZIndexB == UNSET_ZINDEX);
+            if (!bIsCrossZDatum && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
+                nDatumCached++; //260818 hbk [SEQ] 요약: 이번 사이클 이미 검출됨 → 재검출 생략
+                return; // 이번 사이클 기 검출 성공 — skip
+            }
+            // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
+            //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
+            parentSeq.ApplyDatumLights(datum);
+            // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
+            //  (기존엔 수동 UI grab 경로에만 있던 대기를 자동 검사 사이클에도 배선. SIMUL/오프라인처럼
+            //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)
+            LightHandler.Handle.WaitForPendingWrites();
+            if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
+                ProcessDatumDualImage(datum, parentSeq);
+            } else { // 1-image datum
+                ProcessDatumSingleImage(datum, parentSeq, ref nDatumOk, ref nDatumFail);
+            }
+        }
+
+        //260702 hbk Extract Method(Task3): DatumPhase DUAL(VerticalTwoHorizontalDualImage) 분기 본문 -- 카운터(nDatumOk/nDatumFail) 미접근 구조 고정(D-1)
+        private void ProcessDatumDualImage(DatumConfig datum, InspectionSequence parentSeq) {
+            //260722 hbk Phase 68 D-05: Datum ZIndexA/B 오설정 게이트 — TryGrabOrLoadDualDatumImages 호출 전
+            //  명시적 실패 처리(조용한 static 폴백 금지). 미설정(-1/-1)은 게이트 미해당 → 기존 static 경로.
+            bool bDatumZIndexMisconfigured = IsDatumZIndexMisconfigured(datum, parentSeq);
+            if (bDatumZIndexMisconfigured) {
+                string misName = datum.DatumName;
+                if (misName == null) misName = "";
+                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
+                datum.RuntimeDetectFailed = true;
+                parentSeq.MarkDatumFailed(datum.DatumName);
+                return; // datum skip, abort 안 함
+            }
+            //260722 hbk Phase 68 D-06 (WARNING 2): Datum 크로스-Z 는 별도 z_index→Datum 매핑 조회를
+            //  추가하지 않는다 — (a) 바로 이 루프가 매 실행 Action 마다 시퀀스 DatumConfigs 전체를
+            //  재검출하고 (b) Plan 02 ProcessTest 의 빈-매칭→StartAll 폴백에 의존해, 두 z_index
+            //  모두에서 이 Datum 검출이 실행된다는 사실이 크로스-Z 정정성의 전제다. 이 두 동작(전체
+            //  재검출 / 빈-매칭 폴백)을 향후 변경할 때는 Datum 크로스-Z 재검증이 반드시 필요하다.
+            HImage imgH = null, imgV = null;
+            bool bDatumCrossZPending;
+            try {
+                if (!TryGrabOrLoadDualDatumImages(datum, parentSeq, out imgH, out imgV, out bDatumCrossZPending)) {
+                    if (bDatumCrossZPending) {
+                        return; // Z1(비완성 index): 캡처만 — 실패 아님(MarkDatumFailed 미설정), 완성 z_index에서 검출(D-02a)
+                    }
+                    string datumName = datum.DatumName;
+                    if (datumName == null) datumName = "";
+                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' DualImage 취득 실패 (skip)");
+                    // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
+                    datum.LastFindSucceeded = false;
+                    // 티칭 여부 무관 라벨 신호
+                    datum.RuntimeDetectFailed = true;
+                    // per-FAI gate 신호 기록
+                    parentSeq.MarkDatumFailed(datum.DatumName);
+                    return; // datum skip, abort 안 함
+                }
+                //260619 hbk Phase 57 #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
+                //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
+                //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
+                if (datum.IsPatternAlignEnabled) {
+                    string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
+                    string alignErr;
+                    if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
+                        string dn = datum.DatumName;
+                        if (dn == null) dn = "";
+                        string ae = alignErr;
+                        if (ae == null) ae = "";
+                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                        datum.RuntimeDetectFailed = true;
+                        parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
+                    }
+                } else {
+                    string derr;
+                    if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
+                        string datumName = datum.DatumName;
+                        if (datumName == null) datumName = "";
+                        string derrStr = derr;
+                        if (derrStr == null) derrStr = "";
+                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                        datum.RuntimeDetectFailed = true;
+                        parentSeq.MarkDatumFailed(datum.DatumName);
+                    }
+                }
+            } finally {
+                if (imgH != null) { try { imgH.Dispose(); } catch { } }
+                if (imgV != null) { try { imgV.Dispose(); } catch { } }
+            }
+        }
+
+        //260702 hbk Extract Method(Task3): DatumPhase 1-image 분기 본문
+        private void ProcessDatumSingleImage(DatumConfig datum, InspectionSequence parentSeq, ref int nDatumOk, ref int nDatumFail) {
+            HImage img = GrabOrLoadDatumImage(datum);
+            if (img == null) {
+                string datumName = datum.DatumName;
+                if (datumName == null) datumName = "";
+                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 이미지 취득 실패 (skip)");
+                datum.LastFindSucceeded = false;
+                datum.RuntimeDetectFailed = true;
+                parentSeq.MarkDatumFailed(datum.DatumName);
+                return;
+            }
+            //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 (D-02/D-04/D-05). 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
+            //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
+            try {
+                if (datum.IsPatternAlignEnabled) {
+                    string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
+                    string alignErr;
+                    if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
+                        string dn = datum.DatumName;
+                        if (dn == null) dn = "";
+                        string ae = alignErr;
+                        if (ae == null) ae = "";
+                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                        datum.RuntimeDetectFailed = true;
+                        parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
+                        nDatumFail++;
+                    } else {
+                        nDatumOk++;
+                    }
+                    //260818 hbk [SEQ] 패턴매칭 경로를 탔음을 표시
+                    LogSeqAlgo("Datum", datum.DatumName, "TryComposeAlign(패턴매칭)");
+                } else {
+                    string derr;
+                    if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
+                        string datumName = datum.DatumName;
+                        if (datumName == null) datumName = "";
+                        string derrStr = derr;
+                        if (derrStr == null) derrStr = "";
+                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                        datum.RuntimeDetectFailed = true;
+                        parentSeq.MarkDatumFailed(datum.DatumName);
+                        nDatumFail++;
+                    } else {
+                        nDatumOk++;
+                    }
+                    //260818 hbk [SEQ] 어떤 검출 알고리즘을 탔는지 표시 — 알고리즘 탭에서 상세 확인
+                    LogSeqAlgo("Datum", datum.DatumName, "TryRunSingleDatum/" + datum.AlgorithmTypeEnum);
+                }
+            } finally {
+                img.Dispose();
             }
         }
 
@@ -461,183 +476,9 @@ namespace ReringProject.Sequence {
                             //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
                             HImage crossZRoleImage = null;
                             foreach (var meas in fai.Measurements) {
-                                // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
-                                // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
-                                // 빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
-                                if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
-                                {
-                                    MarkMeasurementDatumSkipped(meas, parentSeq2); //260702 hbk Extract Method(Task1)
-                                    faiAllPass = false;
-                                    measuredCount++; // 시도 회수 통계
-                                    continue; // 다음 measurement 진행 (TryExecute 호출 안 함)
-                                }
-                                //260716 hbk DatumRef 참조 불일치 게이트 — 오타/개명/삭제로 실존하지 않는 datum 을 가리키면
-                                //  검출 시도 자체가 없어 IsDatumFailed 게이트를 우회하고 identity(무보정)로 조용히 측정되던 결함 차단.
-                                //  '무보정 의도(빈 DatumRef)'와 '참조 깨짐'을 구분해 후자만 NG 로 승격(기존 lenient 구조 유지).
-                                if (parentSeq2 != null && parentSeq2.IsDatumRefUnresolvable(meas.DatumRef))
-                                {
-                                    MarkMeasurementDatumRefMissing(meas);
-                                    faiAllPass = false;
-                                    measuredCount++;
-                                    continue;
-                                }
-                                //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
-                                //  ZIndexA/B 둘 다 -1(미설정) 이면 이 블록 진입 안 함 → 기존 경로 그대로(D-07 회귀 0).
-                                var dualMeasForGate = meas as DualImageEdgeDistanceMeasurement;
-                                bool bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
-                                if (bHasAnyZIndex)
-                                {
-                                    bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
-                                    if (bMisconfigured)
-                                    {
-                                        MarkMeasurementZIndexMisconfigured(meas);
-                                        faiAllPass = false;
-                                        measuredCount++;
-                                        continue;
-                                    }
-                                    bool bRelevant, bCaptureOk, bCompleted;
-                                    string szCapturedRoleKey;
-                                    ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
-                                    //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
-                                    //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
-                                    //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
-                                    //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
-                                    //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
-                                    //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
-                                    //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
-                                    //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
-                                    bool bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
-                                    if (!bRelevant)
-                                    {
-                                        if (bNonProtocolCycle)
-                                        {
-                                            MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
-                                            faiAllPass = false;
-                                            measuredCount++;
-                                        }
-                                        continue; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
-                                    }
-                                    if (!bCaptureOk)
-                                    {
-                                        meas.ClearResult();
-                                        meas.LastSkipReason = SkipReason.NO_IMAGE;
-                                        meas.LastJudgement = false;
-                                        faiAllPass = false;
-                                        measuredCount++;
-                                        continue;
-                                    }
-                                    if (bCaptureOk && crossZRoleImage == null && !string.IsNullOrEmpty(szCapturedRoleKey) && parentSeq2 != null)
-                                    {
-                                        //260729 hbk quick-fix(260729-hwb): 이번 tick 에서 실제로 캡처된 role 이미지의
-                                        //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
-                                        //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
-                                        crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);
-                                    }
-                                    if (!bCompleted)
-                                    {
-                                        if (bNonProtocolCycle)
-                                        {
-                                            MarkMeasurementCrossZIncomplete(meas, true, false, parentSeq2);
-                                            faiAllPass = false;
-                                        }
-                                        else
-                                        {
-                                            //260729 hbk quick-fix(260729-hwb): 프로토콜 사이클(수동 Z트리거 포함)도
-                                            //  짝이 아직 미완성인 tick 에서 faiAllPass 기본값 true 로 방치하지 않고
-                                            //  CROSS_Z_INCOMPLETE 로 명시 표시한다(T-HWB-01). AddFaiResult 의 완성
-                                            //  index 게이트가 미완성 index 를 애초에 보고 대상에서 제외하므로 PLC
-                                            //  응답은 오염되지 않는다 — 영향 범위는 화면/캡처 파일명/cycle.json 뿐.
-                                            MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
-                                            faiAllPass = false;
-                                        }
-                                        measuredCount++; // 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
-                                        continue;
-                                    }
-                                    // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
-                                }
-                                HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
-                                InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
-                                double resultValue;
-                                string measError;
-                                List<EdgeInspectionOverlay> measOverlays;
-                                bool ok;
-                                var swMeasureExec = Stopwatch.StartNew(); //260818 hbk 알고리즘 로그용 측정 실행시간
-                                if (bHasAnyZIndex)
-                                {
-                                    ok = TryExecuteCrossZMeasurement(dualMeasForGate, parentSeq2, transform, pixRes, out resultValue, out measError, out measOverlays); //260722 hbk Phase 68 D-02a: 완성 index 크로스-Z 실행
-                                }
-                                else
-                                {
-                                    ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
-                                }
-                                //260818 hbk 어떤 측정 알고리즘을 탔는지 — Shot 요약용 집계 + Algorithm 탭 상세 1줄
-                                string szAlgoType = meas.TypeName;
-                                if (string.IsNullOrEmpty(szAlgoType)) szAlgoType = "?";
-                                string szAlgoEntry;
-                                if (bHasAnyZIndex) szAlgoEntry = "TryExecuteCrossZMeasurement";
-                                else szAlgoEntry = "TryExecuteMeasurement";
-                                if (dctAlgoUsed.ContainsKey(szAlgoType)) dctAlgoUsed[szAlgoType]++;
-                                else dctAlgoUsed[szAlgoType] = 1;
-                                string szAlgoShotName;
-                                if (ShotParam != null) szAlgoShotName = ShotParam.ShotName;
-                                else szAlgoShotName = "?";
-                                string szAlgoResult;
-                                if (ok) szAlgoResult = "OK";
-                                else szAlgoResult = "FAIL";
-                                Logging.PrintLog((int)ELogType.Algorithm, "[ALGO] {0} · {1} type={2} → {3} ({4}) {5}ms",
-                                    szAlgoShotName,
-                                    (meas.MeasurementName ?? szAlgoType), szAlgoType, szAlgoEntry,
-                                    szAlgoResult, swMeasureExec.ElapsedMilliseconds);
-                                if (ok) {
-                                    meas.EvaluateJudgement(resultValue);
-                                    if (!meas.LastJudgement) nMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
-                                } else {
-                                    string measName = meas.MeasurementName;
-                                    if (measName == null) measName = meas.TypeName;
-                                    string measErrorStr = measError;
-                                    if (measErrorStr == null) measErrorStr = "";
-                                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
-                                    meas.ClearResult();
-                                    meas.LastJudgement = false;
-                                }
-                                ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
-                                if (!meas.LastJudgement) {
-                                    faiAllPass = false;
-                                }
-                                measuredCount++;
+                                ProcessOneMeasurement(meas, parentSeq2, image, pixRes, ref crossZRoleImage, ref faiAllPass, ref measuredCount, ref nMeasNg, overlayAcc, faiOverlays, dctAlgoUsed);
                             }
-                            try {
-                                if (crossZRoleImage == null) {
-                                    AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath); //260702 hbk Extract Method(Task2)
-                                } else {
-                                    //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
-                                    //  대신 실제 측정에 쓰인 role 이미지로 교체한다(T-HWB-02). sharedSrc 의 기존 소유권
-                                    //  계약(L284-285/L443-445, AddRef/Release, 워커 요청과 독립)을 그대로 미러한다.
-                                    //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 크로스-Z 는 FAI 마다 실제로
-                                    //  다른 role 이미지를 참조할 수 있어 Shot 공유 origin 재사용 대상이 아니다 — origin path
-                                    //  null 로 넘겨 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
-                                    SharedHImage crossZSharedSrc = null;
-                                    try {
-                                        try { crossZSharedSrc = new SharedHImage(crossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
-                                        AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot, null);
-                                    } finally {
-                                        if (crossZSharedSrc != null) crossZSharedSrc.Release();
-                                    }
-                                    //260810 hbk quick-260810-egx: 표시 전용 교체 블록 — 자동검사 중 표시를 끄면 통째로 건너뛴다
-                                    //  (127MP memcpy 제거). 위 AggregateFaiResult/crossZSharedSrc 저장 경로와 아래 finally 의
-                                    //  crossZRoleImage.Dispose() 는 조건과 무관하게 그대로 수행된다.
-                                    if (!bShotDisplayImageReplaced && !IsViewerUpdateSkipped(parentSeq2)) {
-                                        //260729 hbk quick-fix(260729-hwb): Shot 전체에서 첫 크로스-Z 캡처가 화면을
-                                        //  차지한다(결정론적 규칙) — 정적 대표 사진 대신 실제 측정 사진을 표시.
-                                        if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
-                                        pMyContext.ResultHalconImage = crossZRoleImage.CopyImage();
-                                        bShotDisplayImageReplaced = true;
-                                    }
-                                }
-                                if (!faiAllPass) allPass = false;
-                            } finally {
-                                if (crossZRoleImage != null) { try { crossZRoleImage.Dispose(); } catch { } crossZRoleImage = null; }
-                            }
+                            FinalizeFaiTick(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref crossZRoleImage, ref bShotDisplayImageReplaced, ref allPass);
                         }
                         } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
                             if (sharedSrc != null) sharedSrc.Release();
@@ -670,6 +511,201 @@ namespace ReringProject.Sequence {
                 measuredCount, nMeasNg, szMeasureVerdict, swMeasureTotal.Elapsed.TotalSeconds,
                 szAlgoSummary));
             Step = (int)EStep.End;
+        }
+
+        //260702 hbk Extract Method(Task3): Measure per-measurement 루프 본문(원본 foreach meas 내부, 동치 보장, continue->return)
+        private void ProcessOneMeasurement(MeasurementBase meas, InspectionSequence parentSeq2,
+                                     HImage image, double pixRes,
+                                     ref HImage crossZRoleImage, ref bool faiAllPass,
+                                     ref int measuredCount, ref int nMeasNg,
+                                     List<EdgeInspectionOverlay> overlayAcc,
+                                     List<EdgeInspectionOverlay> faiOverlays,
+                                     Dictionary<string, int> dctAlgoUsed) {
+            // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
+            // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
+            // 빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
+            if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
+            {
+                MarkMeasurementDatumSkipped(meas, parentSeq2); //260702 hbk Extract Method(Task1)
+                faiAllPass = false;
+                measuredCount++; // 시도 회수 통계
+                return; // 다음 measurement 진행 (TryExecute 호출 안 함)
+            }
+            //260716 hbk DatumRef 참조 불일치 게이트 — 오타/개명/삭제로 실존하지 않는 datum 을 가리키면
+            //  검출 시도 자체가 없어 IsDatumFailed 게이트를 우회하고 identity(무보정)로 조용히 측정되던 결함 차단.
+            //  '무보정 의도(빈 DatumRef)'와 '참조 깨짐'을 구분해 후자만 NG 로 승격(기존 lenient 구조 유지).
+            if (parentSeq2 != null && parentSeq2.IsDatumRefUnresolvable(meas.DatumRef))
+            {
+                MarkMeasurementDatumRefMissing(meas);
+                faiAllPass = false;
+                measuredCount++;
+                return;
+            }
+            //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
+            //  ZIndexA/B 둘 다 -1(미설정) 이면 이 블록 진입 안 함 → 기존 경로 그대로(D-07 회귀 0).
+            var dualMeasForGate = meas as DualImageEdgeDistanceMeasurement;
+            bool bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
+            if (bHasAnyZIndex)
+            {
+                bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
+                if (bMisconfigured)
+                {
+                    MarkMeasurementZIndexMisconfigured(meas);
+                    faiAllPass = false;
+                    measuredCount++;
+                    return;
+                }
+                bool bRelevant, bCaptureOk, bCompleted;
+                string szCapturedRoleKey;
+                ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
+                //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
+                //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
+                //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
+                //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
+                //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
+                //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
+                //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
+                //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
+                bool bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
+                if (!bRelevant)
+                {
+                    if (bNonProtocolCycle)
+                    {
+                        MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
+                        faiAllPass = false;
+                        measuredCount++;
+                    }
+                    return; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
+                }
+                if (!bCaptureOk)
+                {
+                    meas.ClearResult();
+                    meas.LastSkipReason = SkipReason.NO_IMAGE;
+                    meas.LastJudgement = false;
+                    faiAllPass = false;
+                    measuredCount++;
+                    return;
+                }
+                if (bCaptureOk && crossZRoleImage == null && !string.IsNullOrEmpty(szCapturedRoleKey) && parentSeq2 != null)
+                {
+                    //260729 hbk quick-fix(260729-hwb): 이번 tick 에서 실제로 캡처된 role 이미지의
+                    //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
+                    //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
+                    crossZRoleImage = parentSeq2.TakeCrossZImageCopy(szCapturedRoleKey);
+                }
+                if (!bCompleted)
+                {
+                    if (bNonProtocolCycle)
+                    {
+                        MarkMeasurementCrossZIncomplete(meas, true, false, parentSeq2);
+                        faiAllPass = false;
+                    }
+                    else
+                    {
+                        //260729 hbk quick-fix(260729-hwb): 프로토콜 사이클(수동 Z트리거 포함)도
+                        //  짝이 아직 미완성인 tick 에서 faiAllPass 기본값 true 로 방치하지 않고
+                        //  CROSS_Z_INCOMPLETE 로 명시 표시한다(T-HWB-01). AddFaiResult 의 완성
+                        //  index 게이트가 미완성 index 를 애초에 보고 대상에서 제외하므로 PLC
+                        //  응답은 오염되지 않는다 — 영향 범위는 화면/캡처 파일명/cycle.json 뿐.
+                        MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
+                        faiAllPass = false;
+                    }
+                    measuredCount++; // 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(Task4 index 게이트가 보장)
+                    return;
+                }
+                // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
+            }
+            HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
+            InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
+            double resultValue;
+            string measError;
+            List<EdgeInspectionOverlay> measOverlays;
+            bool ok;
+            var swMeasureExec = Stopwatch.StartNew(); //260818 hbk 알고리즘 로그용 측정 실행시간
+            if (bHasAnyZIndex)
+            {
+                ok = TryExecuteCrossZMeasurement(dualMeasForGate, parentSeq2, transform, pixRes, out resultValue, out measError, out measOverlays); //260722 hbk Phase 68 D-02a: 완성 index 크로스-Z 실행
+            }
+            else
+            {
+                ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
+            }
+            //260818 hbk 어떤 측정 알고리즘을 탔는지 — Shot 요약용 집계 + Algorithm 탭 상세 1줄
+            string szAlgoType = meas.TypeName;
+            if (string.IsNullOrEmpty(szAlgoType)) szAlgoType = "?";
+            string szAlgoEntry;
+            if (bHasAnyZIndex) szAlgoEntry = "TryExecuteCrossZMeasurement";
+            else szAlgoEntry = "TryExecuteMeasurement";
+            if (dctAlgoUsed.ContainsKey(szAlgoType)) dctAlgoUsed[szAlgoType]++;
+            else dctAlgoUsed[szAlgoType] = 1;
+            string szAlgoShotName;
+            if (ShotParam != null) szAlgoShotName = ShotParam.ShotName;
+            else szAlgoShotName = "?";
+            string szAlgoResult;
+            if (ok) szAlgoResult = "OK";
+            else szAlgoResult = "FAIL";
+            Logging.PrintLog((int)ELogType.Algorithm, "[ALGO] {0} · {1} type={2} → {3} ({4}) {5}ms",
+                szAlgoShotName,
+                (meas.MeasurementName ?? szAlgoType), szAlgoType, szAlgoEntry,
+                szAlgoResult, swMeasureExec.ElapsedMilliseconds);
+            if (ok) {
+                meas.EvaluateJudgement(resultValue);
+                if (!meas.LastJudgement) nMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
+            } else {
+                string measName = meas.MeasurementName;
+                if (measName == null) measName = meas.TypeName;
+                string measErrorStr = measError;
+                if (measErrorStr == null) measErrorStr = "";
+                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
+                meas.ClearResult();
+                meas.LastJudgement = false;
+            }
+            ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
+            if (!meas.LastJudgement) {
+                faiAllPass = false;
+            }
+            measuredCount++;
+        }
+
+        //260702 hbk Extract Method(Task3): Measure per-FAI 저장/표시 마무리(원본 meas 루프 뒤 try/finally, 동치 보장)
+        private void FinalizeFaiTick(FAIConfig fai, bool faiAllPass,
+                                     List<EdgeInspectionOverlay> faiOverlays, SharedHImage sharedSrc,
+                                     List<DatumCaptureOverlay> datumSnapshot, string szSharedOriginPath,
+                                     InspectionSequence parentSeq2,
+                                     ref HImage crossZRoleImage, ref bool bShotDisplayImageReplaced,
+                                     ref bool allPass) {
+            try {
+                if (crossZRoleImage == null) {
+                    AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath); //260702 hbk Extract Method(Task2)
+                } else {
+                    //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
+                    //  대신 실제 측정에 쓰인 role 이미지로 교체한다(T-HWB-02). sharedSrc 의 기존 소유권
+                    //  계약(L284-285/L443-445, AddRef/Release, 워커 요청과 독립)을 그대로 미러한다.
+                    //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 크로스-Z 는 FAI 마다 실제로
+                    //  다른 role 이미지를 참조할 수 있어 Shot 공유 origin 재사용 대상이 아니다 — origin path
+                    //  null 로 넘겨 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
+                    SharedHImage crossZSharedSrc = null;
+                    try {
+                        try { crossZSharedSrc = new SharedHImage(crossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
+                        AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot, null);
+                    } finally {
+                        if (crossZSharedSrc != null) crossZSharedSrc.Release();
+                    }
+                    //260810 hbk quick-260810-egx: 표시 전용 교체 블록 — 자동검사 중 표시를 끄면 통째로 건너뛴다
+                    //  (127MP memcpy 제거). 위 AggregateFaiResult/crossZSharedSrc 저장 경로와 아래 finally 의
+                    //  crossZRoleImage.Dispose() 는 조건과 무관하게 그대로 수행된다.
+                    if (!bShotDisplayImageReplaced && !IsViewerUpdateSkipped(parentSeq2)) {
+                        //260729 hbk quick-fix(260729-hwb): Shot 전체에서 첫 크로스-Z 캡처가 화면을
+                        //  차지한다(결정론적 규칙) — 정적 대표 사진 대신 실제 측정 사진을 표시.
+                        if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
+                        pMyContext.ResultHalconImage = crossZRoleImage.CopyImage();
+                        bShotDisplayImageReplaced = true;
+                    }
+                }
+                if (!faiAllPass) allPass = false;
+            } finally {
+                if (crossZRoleImage != null) { try { crossZRoleImage.Dispose(); } catch { } crossZRoleImage = null; }
+            }
         }
 
         //260818 hbk [초보자용] 이 Shot의 검사가 다 끝났다고 알리는 마지막 단계입니다. Measure 단계에서 하나라도

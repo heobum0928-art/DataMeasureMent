@@ -638,24 +638,7 @@ namespace ReringProject.Sequence {
             {
                 ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
             }
-            //260818 hbk 어떤 측정 알고리즘을 탔는지 — Shot 요약용 집계 + Algorithm 탭 상세 1줄
-            string szAlgoType = meas.TypeName;
-            if (string.IsNullOrEmpty(szAlgoType)) szAlgoType = "?";
-            string szAlgoEntry;
-            if (bHasAnyZIndex) szAlgoEntry = "TryExecuteCrossZMeasurement";
-            else szAlgoEntry = "TryExecuteMeasurement";
-            if (dctAlgoUsed.ContainsKey(szAlgoType)) dctAlgoUsed[szAlgoType]++;
-            else dctAlgoUsed[szAlgoType] = 1;
-            string szAlgoShotName;
-            if (ShotParam != null) szAlgoShotName = ShotParam.ShotName;
-            else szAlgoShotName = "?";
-            string szAlgoResult;
-            if (ok) szAlgoResult = "OK";
-            else szAlgoResult = "FAIL";
-            Logging.PrintLog((int)ELogType.Algorithm, "[ALGO] {0} · {1} type={2} → {3} ({4}) {5}ms",
-                szAlgoShotName,
-                (meas.MeasurementName ?? szAlgoType), szAlgoType, szAlgoEntry,
-                szAlgoResult, swMeasureExec.ElapsedMilliseconds);
+            LogAndTallyAlgorithm(meas, bHasAnyZIndex, ok, dctAlgoUsed, swMeasureExec);
             if (ok) {
                 meas.EvaluateJudgement(resultValue);
                 if (!meas.LastJudgement) nMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
@@ -673,6 +656,34 @@ namespace ReringProject.Sequence {
                 faiAllPass = false;
             }
             measuredCount++;
+        }
+
+        //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.
+        //  ⚠ 이름에 Tally 가 붙은 이유 — 로그만 찍지 않는다. dctAlgoUsed(Shot 단위 알고리즘 사용 횟수)를
+        //    갱신하는 부수효과가 있고, 이 집계값을 RunMeasure 끝의 [SEQ] Measure 요약 로그가 소비한다.
+        //    Dictionary 는 참조형이라 값 전달로도 호출자 인스턴스가 그대로 갱신된다(ref 불필요).
+        //  ⚠ Stopwatch 를 통째로 받는다 — ms 를 호출부에서 미리 계산해 넘기면 읽는 시점이 앞당겨져
+        //    로그 숫자가 달라진다. 아래 PrintLog 인자 위치에서 읽어야 원본과 동일 시점이다.
+        private void LogAndTallyAlgorithm(MeasurementBase meas, bool bHasAnyZIndex, bool bOk,
+                                          Dictionary<string, int> dctAlgoUsed, Stopwatch swMeasureExec) {
+            //260818 hbk 어떤 측정 알고리즘을 탔는지 — Shot 요약용 집계 + Algorithm 탭 상세 1줄
+            string szAlgoType = meas.TypeName;
+            if (string.IsNullOrEmpty(szAlgoType)) szAlgoType = "?";
+            string szAlgoEntry;
+            if (bHasAnyZIndex) szAlgoEntry = "TryExecuteCrossZMeasurement";
+            else szAlgoEntry = "TryExecuteMeasurement";
+            if (dctAlgoUsed.ContainsKey(szAlgoType)) dctAlgoUsed[szAlgoType]++;
+            else dctAlgoUsed[szAlgoType] = 1;
+            string szAlgoShotName;
+            if (ShotParam != null) szAlgoShotName = ShotParam.ShotName;
+            else szAlgoShotName = "?";
+            string szAlgoResult;
+            if (bOk) szAlgoResult = "OK";
+            else szAlgoResult = "FAIL";
+            Logging.PrintLog((int)ELogType.Algorithm, "[ALGO] {0} · {1} type={2} → {3} ({4}) {5}ms",
+                szAlgoShotName,
+                (meas.MeasurementName ?? szAlgoType), szAlgoType, szAlgoEntry,
+                szAlgoResult, swMeasureExec.ElapsedMilliseconds);
         }
 
         //260818 hbk 크로스-Z 게이트 상태 분류 — 순수 함수다(인자 3개 bool 외에는 아무것도 읽지 않고,

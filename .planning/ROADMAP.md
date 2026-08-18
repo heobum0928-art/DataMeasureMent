@@ -1020,10 +1020,10 @@ Plans:
 **Goal:** 고객 참고양식(Rapid City A8.1_Z Stopper Data Report R04)과 대조해 확인된 갭을 메워, 반복/일괄 검사 결과를 고객이 실제로 보는 2장짜리 엑셀 리포트(`RAW DATA(1)` 가로형 매트릭스 + `1Cav 세부치수_Cpk` 통계시트)로 출력한다.
 **Requirements**: (고객 양식 주도 phase — 공식 REQ-ID 미매핑)
 **Depends on:** Phase 71
-**Plans:** 7 plans (5 waves)
+**Plans:** 7 plans (7 waves — 공유 csproj/obj msbuild 충돌 회피 위해 전부 직렬화)
 
 Plans:
-- [ ] 72-01-PLAN.md — RepeatMeasurementStats 확장 (Cp/UCPK/LCPK/Min/Max + GetSeries)
+- [x] 72-01-PLAN.md — RepeatMeasurementStats 확장 (Cp/UCPK/LCPK/Min/Max + GetSeries)
 - [ ] 72-02-PLAN.md — ChartRenderService 추출 (Canvas 드로잉을 Window 에서 분리)
 - [ ] 72-03-PLAN.md — D-05 폴더 반복검사 자재번호 입력·전파 + 누적 실행
 - [ ] 72-04-PLAN.md — ChartImageCapture 오프스크린 PNG 캡처 + 조기 육안 검증

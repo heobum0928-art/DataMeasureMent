@@ -47,6 +47,14 @@ namespace ReringProject.Export
         private const string JUDGE_WARN = "Cpk";
         private const string JUDGE_OK = "O K";
 
+        // 그래프는 데이터 영역 아래 별도 블록에 놓는다(데이터 행 높이를 건드리지 않기 위함).
+        private const int CHART_BLOCK_GAP_ROWS = 3;    // 마지막 데이터 행과 차트 블록 사이 여백
+        private const int CHART_BLOCK_ROW_STEP = 15;   // 항목 1개당 차지하는 행 수(라벨 1 + 이미지 약 13)
+        private const int CHART_HIST_COLUMN = 2;       // B
+        private const int CHART_TREND_COLUMN = 9;      // I
+        private const int CHART_MIN_SAMPLES = 2;       // 값이 2개 미만이면 차트를 만들지 않는다
+        private const int MAX_CHART_ROWS = 30;         // export 시간 폭증 방지 상한(DoS 가드)
+
         private const string INFINITY_TEXT = "∞";
         private const int STAT_DECIMALS = 6;
         private const string INSPECT_METHOD_TEXT = "AOI";
@@ -105,6 +113,9 @@ namespace ReringProject.Export
 
                     var wsCpk = wb.Worksheets.Add(CPK_SHEET_NAME);
                     WriteCpkSheet(wsCpk, rows, statDict);
+
+                    Dictionary<string, List<double>> seriesDict = stats.GetSeries();
+                    AppendChartBlock(wsCpk, rows, statDict, seriesDict);
 
                     wb.SaveAs(outputPath);
                 }
@@ -303,6 +314,69 @@ namespace ReringProject.Export
             ws.Row(CPK_HEADER_ROW).Style.Font.Bold = true;
             ws.SheetView.FreezeRows(CPK_HEADER_ROW);
             ws.Columns().AdjustToContents();
+        }
+
+        /// <summary>
+        /// Cpk 시트의 마지막 데이터 행 아래에 항목별 히스토그램/추이 그래프 이미지를 붙인다.
+        /// 항목 수가 많으면 export 가 끝나지 않으므로 MAX_CHART_ROWS 개까지만 만든다.
+        /// 렌더/삽입 실패는 무시하고 계속 — 그래프가 없다고 리포트를 실패시키지 않는다.
+        /// </summary>
+        private static void AppendChartBlock(
+            IXLWorksheet ws,
+            List<RawRow> rows,
+            Dictionary<string, MeasurementStat> statDict,
+            Dictionary<string, List<double>> seriesDict)
+        {
+            int nAnchorRow = CPK_FIRST_DATA_ROW + rows.Count + CHART_BLOCK_GAP_ROWS;
+
+            ws.Cell(nAnchorRow, 1).Value = "측정 항목별 분포/추이 그래프";
+            ws.Cell(nAnchorRow, 1).Style.Font.Bold = true;
+            nAnchorRow = nAnchorRow + 2;
+
+            int nMade = 0;
+            foreach (var row in rows)
+            {
+                if (nMade >= MAX_CHART_ROWS)
+                {
+                    break;
+                }
+
+                List<double> values;
+                if (!seriesDict.TryGetValue(row.Key, out values))
+                {
+                    continue;
+                }
+
+                if (values == null || values.Count < CHART_MIN_SAMPLES)
+                {
+                    continue;
+                }
+
+                MeasurementStat stat;
+                if (!statDict.TryGetValue(row.Key, out stat))
+                {
+                    continue;
+                }
+
+                double dUsl = row.NominalValue + row.TolerancePlus;
+                double dLsl = row.NominalValue - Math.Abs(row.ToleranceMinus);
+
+                ws.Cell(nAnchorRow, 1).Value = row.FAIName + " / " + row.MeasurementName;
+
+                byte[] arrHist = ChartImageCapture.RenderHistogramPng(values, dUsl, dLsl);
+                byte[] arrTrend = ChartImageCapture.RenderTrendPng(values, stat.Mean, dUsl, dLsl);
+
+                ChartImageCapture.TryInsertChartPicture(ws, nAnchorRow + 1, CHART_HIST_COLUMN, arrHist);
+                ChartImageCapture.TryInsertChartPicture(ws, nAnchorRow + 1, CHART_TREND_COLUMN, arrTrend);
+
+                nAnchorRow = nAnchorRow + CHART_BLOCK_ROW_STEP;
+                nMade++;
+            }
+
+            if (nMade >= MAX_CHART_ROWS)
+            {
+                ws.Cell(nAnchorRow, 1).Value = "그래프는 상위 " + MAX_CHART_ROWS + "개 항목만 표시됩니다.";
+            }
         }
 
         /// <summary>

@@ -28,8 +28,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Last activity: 2026-08-18
+
+**결정 (2026-08-18): 72-04 Task 3 육안 검증 보류 — 72-07 UAT 시점에 함께 확인.** 72-04 는 Task 1/2(ChartImageCapture 오프스크린 PNG 캡처 + ReviewerWindow "차트 이미지 캡처 점검" 진단 버튼)만 완료(`9de4402`, `a6e8e59`), blocking 체크포인트인 Task 3(캡처된 PNG 육안 확인)은 사용자 모바일 환경으로 PC 접근 불가하여 **미수행 deferred**. 자체 승인하지 않았다. ⚠ `RenderTargetBitmap` 오프스크린 캡처는 이 코드베이스 전례 0건이고 실패 시 **예외 없이 빈(백지) PNG** 가 나오므로, 이 경로에 의존하는 **72-07 엑셀 차트 블록이 조용히 백지가 될 수 있다.** 72-07 착수/UAT 최초에 리뷰어 창 "차트 이미지 캡처 점검" 버튼부터 눌러 `D:\Data\Result\chart_smoke_histogram.png` / `chart_smoke_trend.png` 2장(각 5KB 초과)을 먼저 확인할 것. 절차 전문은 `.planning/phases/72-.../72-04-SUMMARY.md` 의 "⚠ 미검증 리스크" 섹션.
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
 

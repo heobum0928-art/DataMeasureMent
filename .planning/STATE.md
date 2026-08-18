@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: quick-260814-dxy 완료 — 측정 파이프라인 워밍업 임시 완화(commits 2fbbe94, 79974f6), 근본원인 미확정 상태 유지
-last_updated: "2026-08-18T09:19:20.847Z"
-last_activity: "2026-08-18 - Completed quick task 260818-ef5(Action_FAIMeasurement.cs Run() 가독성 리팩토링 — 무회귀 최우선. 592줄 단일 Run()을 11줄 switch 디스패치 + private 메서드 11개로 추출, 삼항연산자 10개 전부 if-else 전개, 타이머해상도 조사용 임시 [FaiTiming] 계측 전부 제거, [SEQ]/[ALGO] 사용자용 로그는 보존. discuss+research+plan-checker(2회, 실행 전 false-fail grep 버그 1건+Mark* 카운트 누락 1건 발견해 수정)+code-review+verifier 전체 파이프라인 통과, must-haves 9/9 검증. 커밋 eefda4a/2b30ded/12fa8aa). 이전: 2026-08-18 - Completed quick task 260818-el1(현장 운영자용 Word 매뉴얼 신규 작성 — 원본 NewDDA 매뉴얼과 무관하게 현재 코드 기준으로 처음부터 작성, 그림 자리표시자 36개, "Operator" 계정 등급 미존재 사실을 코드로 확인해 정확히 반영. 스크린샷 36장 삽입 전까지는 초안 상태. 관리자/엔지니어용 "티칭" 챕터(Datum+패턴+Align) 추가 작업이 같은 세션에서 이어서 진행 중). 이전: 2026-08-11 - Completed quick task 260811-odo(`SequenceContext.ResultHalconImage` use-after-dispose AVE 근본 수정 — SharedHImage refcount 소유권 모델 도입, 트리클릭 UI 독자 신규 발견해 동시 차단, 레이스 하네스 PASS. 실기 UAT 대기). 이전: 2026-08-10 quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)"
+stopped_at: Completed 72-01-PLAN.md
+last_updated: "2026-08-18T09:36:11.358Z"
+last_activity: 2026-08-18 -- 72-01 완료 (RepeatMeasurementStats Cp/UCpk/LCpk/Min/Max + GetSeries)
 progress:
   total_phases: 15
   completed_phases: 14
@@ -23,13 +23,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 71 완료 — 다음 우선순위(Phase 69 Wave 2 재개, Phase 70 discuss, 또는 프로토콜 문서 갱신 확인) 사용자 결정 대기
+**Current focus:** Phase --phase — 72
 
 ## Current Position
 
-Phase: 71-prep-op-plc-off-p-f — COMPLETE (4/4 plans + 코드리뷰 수정 완료, T-71-38 open으로 이월)
-Plan: 4 of 4 + code-review-fix
-Last activity: 2026-08-18 - Completed quick task 260818-ef5(Action_FAIMeasurement.cs Run() 가독성 리팩토링 — 무회귀 최우선. 592줄 단일 Run()을 11줄 switch 디스패치 + private 메서드 11개로 추출, 삼항연산자 10개 전부 if-else 전개, 타이머해상도 조사용 임시 [FaiTiming] 계측 전부 제거, [SEQ]/[ALGO] 사용자용 로그는 보존. discuss+research+plan-checker(2회, 실행 전 false-fail grep 버그 1건+Mark* 카운트 누락 1건 발견해 수정)+code-review+verifier 전체 파이프라인 통과, must-haves 9/9 검증. 커밋 eefda4a/2b30ded/12fa8aa). 이전: 2026-08-18 - Completed quick task 260818-el1(현장 운영자용 Word 매뉴얼 신규 작성 — 원본 NewDDA 매뉴얼과 무관하게 현재 코드 기준으로 처음부터 작성, 그림 자리표시자 36개, "Operator" 계정 등급 미존재 사실을 코드로 확인해 정확히 반영. 스크린샷 36장 삽입 전까지는 초안 상태. 관리자/엔지니어용 "티칭" 챕터(Datum+패턴+Align) 추가 작업이 같은 세션에서 이어서 진행 중). 이전: 2026-08-11 - Completed quick task 260811-odo(`SequenceContext.ResultHalconImage` use-after-dispose AVE 근본 수정 — SharedHImage refcount 소유권 모델 도입, 트리클릭 UI 독자 신규 발견해 동시 차단, 레이스 하네스 PASS. 실기 UAT 대기). 이전: 2026-08-10 quick task 260810-olh($ALIGN_CALIB 응답 N(스텝번호) 필드를 START/STEP/END/ABORT 전 명령에 항상 출력, 실패시 97 통일 — 제어팀/PLC 요청). 이전: 260810-e1t(EthernetVisionHandler 카메라 Close 배선) + 260810-egx(자동검사 중 실시간 화면 표시 끄기, DisableViewerDuringAutoInspect). 같은 날 별도 debug 세션으로 87b08dc($RESET vs Start/Test-Find 레이스 컨디션 2라운드 수정)도 진행됨(datum-recheck-every-zindex/light-channel-redundant-commands 등과 함께 .planning/debug/ 참고)
+Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
+Plan: 2 of 7
+Last activity: 2026-08-18 -- 72-01 완료 (RepeatMeasurementStats Cp/UCpk/LCpk/Min/Max + GetSeries)
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
 
@@ -257,6 +257,7 @@ Last activity: 2026-08-18 - Completed quick task 260818-ef5(Action_FAIMeasuremen
 | Phase 71-prep-op-plc-off-p-f P02 | 4min | 2 tasks | 1 files |
 | Phase 71-prep-op-plc-off-p-f P03 | 27min | 1 tasks | 0 files |
 | Phase 71-prep-op-plc-off-p-f P04 | 90min | 3 tasks | 0 files |
+| Phase 72 P01 | 6m | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -517,6 +518,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 260811-odo: SequenceContext 결과 이미지 use-after-dispose(AVE) 근본 수정 — SharedHImage refcount 소유권 모델(AcquireResultImage/SetResultImageOwned/CloneResultImage) 채택, 소유권 이전/락 보호 2안은 각각 트리클릭 독자 미커버/택트 회귀 위험으로 탈락
 - quick-260813-jnh: MIL 미러 역할 4종을 등록되는 모든 MIL 카메라에 대해 정적 등록(SIDE 전용 분기 미사용) — ResolveRoleInfo 기본 Info 폴백 함정(TOP/BOTTOM 방향 오염) 원천 차단
 - quick-260814-dxy: 측정 파이프라인 워밍업(IsMeasureWarmupComplete 게이트+대표 Shot 15회 반복)을 Release 콜드스타트 measureExec 저하의 임시 완화책으로 추가 — top-release-2x-slower.md 근본원인은 여전히 미확정, 이 SUMMARY는 해결이 아니라 완화 시도로 취급할 것
+- 72-01: stddev==0 가드를 Cpk와 분리하지 않고 Cp/UCpk/LCpk/Cpk 를 동일 블록에서 PositiveInfinity 대입
+- 72-01: MeasurementStat 신규 필드는 기존 필드 사이가 아닌 Cpk 뒤에 append (기존 object initializer 참조 보호)
 
 ### Quick Tasks Completed
 
@@ -726,8 +729,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-08-14T01:44:58.630Z
-Stopped at: quick-260814-dxy 완료 — 측정 파이프라인 워밍업 임시 완화(commits 2fbbe94, 79974f6), 근본원인 미확정 상태 유지
+Last session: 2026-08-18T09:36:11.343Z
+Stopped at: Completed 72-01-PLAN.md
 Resume file: None
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 

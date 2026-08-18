@@ -360,6 +360,18 @@ namespace ReringProject.UI
                 return;
             }
 
+            //260818 Phase 72 D-05: 자재번호는 정수만 허용 — 시트명/파일명으로 흘러가는 자유 텍스트 차단.
+            int nMaterialIndex = RepeatRunService.MATERIAL_NOT_SET;
+            string szMaterial = txt_materialIndex.Text;
+            if (!string.IsNullOrWhiteSpace(szMaterial))
+            {
+                if (!int.TryParse(szMaterial.Trim(), out nMaterialIndex))
+                {
+                    CustomMessageBox.Show("반복 검사", "자재번호는 숫자만 입력하세요.", MessageBoxImage.Warning);
+                    return;
+                }
+            }
+
             InspectionSequence activeSeq = null;
             var seqHandler = SystemHandler.Handle.Sequences;
             if (seqHandler != null)
@@ -382,12 +394,21 @@ namespace ReringProject.UI
                 return;
             }
 
-            _repeatCycles = null;
+            //260818 Phase 72 D-05: 누적 체크 시 이전 실행 결과를 보존해야 자재 2종 열 분리를 검증할 수 있다.
+            bool bAccumulate = chk_repeatAccumulate.IsChecked == true;
+            if (!bAccumulate)
+            {
+                _repeatCycles = null;
+            }
+
+            List<CycleResultDto> prevCycles = _repeatCycles;
+
             btn_repeatExport.IsEnabled = false;
             btn_repeatRun.Content = "중단";
             lbl_repeatProgress.Text = "진행 중: 0/" + imagePaths.Count;
 
             _repeatService = new RepeatRunService();
+            _repeatService.MaterialIndexNumber = nMaterialIndex;
             _repeatService.OnProgressChanged += (current, total) =>
             {
                 Dispatcher.Invoke(() =>
@@ -399,10 +420,30 @@ namespace ReringProject.UI
             {
                 Dispatcher.Invoke(() =>
                 {
-                    _repeatCycles = cycles;
-                    lbl_repeatProgress.Text = "완료: " + (cycles != null ? cycles.Count : 0) + "회";
+                    if (bAccumulate && prevCycles != null && prevCycles.Count > 0)
+                    {
+                        var merged = new List<CycleResultDto>(prevCycles);
+                        if (cycles != null)
+                        {
+                            merged.AddRange(cycles);
+                        }
+
+                        _repeatCycles = merged;
+                    }
+                    else
+                    {
+                        _repeatCycles = cycles;
+                    }
+
+                    int nTotal = 0;
+                    if (_repeatCycles != null)
+                    {
+                        nTotal = _repeatCycles.Count;
+                    }
+
+                    lbl_repeatProgress.Text = "완료: " + nTotal + "회 (누적)";
                     btn_repeatRun.Content = "이미지 폴더 반복 검사";
-                    btn_repeatExport.IsEnabled = (cycles != null && cycles.Count > 0);
+                    btn_repeatExport.IsEnabled = nTotal > 0;
                 });
             };
 

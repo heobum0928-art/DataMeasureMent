@@ -28,8 +28,10 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Last activity: 2026-08-18
+
+**72-05 완료 (2026-08-18):** `CpkReportExportService` 신설 + `RAW DATA(1)` 가로형 매트릭스 시트 구현 (`bc0566b`, `9da6cec`). 빌드 PASS(경고 12줄 baseline). 열 축 = **검사 1회차 1열**, 자재번호는 4행 열 그룹 라벨(자재 오름차순 정렬로 같은 자재 회차가 인접 구간에 모임). `Worksheets.Add` 는 현재 1회 — 72-06 이 `1Cav 세부치수_Cpk` 2번째 시트를 같은 `ExportCpkReport` 안에 추가한다. ⚠ `ExportCpkReport` 는 아직 호출자가 없다(UI Export 버튼 미연결, 후속 plan 소관). ⚠ Git Bash 에서 `grep 'Custom\\Export\\...' csproj` 는 MSYS 경로변환 때문에 항상 0 을 반환한다 — `grep -F 'Custom\Export\...'` 를 쓸 것.
 
 **결정 (2026-08-18): 72-04 Task 3 육안 검증 보류 — 72-07 UAT 시점에 함께 확인.** 72-04 는 Task 1/2(ChartImageCapture 오프스크린 PNG 캡처 + ReviewerWindow "차트 이미지 캡처 점검" 진단 버튼)만 완료(`9de4402`, `a6e8e59`), blocking 체크포인트인 Task 3(캡처된 PNG 육안 확인)은 사용자 모바일 환경으로 PC 접근 불가하여 **미수행 deferred**. 자체 승인하지 않았다. ⚠ `RenderTargetBitmap` 오프스크린 캡처는 이 코드베이스 전례 0건이고 실패 시 **예외 없이 빈(백지) PNG** 가 나오므로, 이 경로에 의존하는 **72-07 엑셀 차트 블록이 조용히 백지가 될 수 있다.** 72-07 착수/UAT 최초에 리뷰어 창 "차트 이미지 캡처 점검" 버튼부터 눌러 `D:\Data\Result\chart_smoke_histogram.png` / `chart_smoke_trend.png` 2장(각 5KB 초과)을 먼저 확인할 것. 절차 전문은 `.planning/phases/72-.../72-04-SUMMARY.md` 의 "⚠ 미검증 리스크" 섹션.
 
@@ -738,7 +740,7 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 ## Session Continuity
 
 Last session: 2026-08-18T09:49:25.938Z
-Stopped at: Completed 72-03-PLAN.md
+Stopped at: Completed 72-05-PLAN.md
 Resume file: None
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 

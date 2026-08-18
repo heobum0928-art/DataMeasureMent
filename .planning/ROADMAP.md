@@ -1026,8 +1026,8 @@ Plans:
 - [x] 72-01-PLAN.md — RepeatMeasurementStats 확장 (Cp/UCPK/LCPK/Min/Max + GetSeries)
 - [x] 72-02-PLAN.md — ChartRenderService 추출 (Canvas 드로잉을 Window 에서 분리)
 - [x] 72-03-PLAN.md — D-05 폴더 반복검사 자재번호 입력·전파 + 누적 실행
-- [ ] 72-04-PLAN.md — ChartImageCapture 오프스크린 PNG 캡처 + 조기 육안 검증
-- [ ] 72-05-PLAN.md — CpkReportExportService 신설 + RAW DATA(1) 가로형 시트
+- [~] 72-04-PLAN.md — ChartImageCapture 오프스크린 PNG 캡처 + 조기 육안 검증 — 코드 완료, 육안 검증 보류
+- [x] 72-05-PLAN.md — CpkReportExportService 신설 + RAW DATA(1) 가로형 시트
 - [ ] 72-06-PLAN.md — 1Cav 세부치수_Cpk 통계 시트 (Cp/UCPK/LCPK/USL/LSL/판정/요약)
 - [ ] 72-07-PLAN.md — 그래프 이미지 삽입 + 리뷰어 export 버튼 + 실데이터 UAT
 

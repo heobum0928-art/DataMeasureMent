@@ -455,54 +455,7 @@ namespace ReringProject.Sequence {
             //  크로스-Z role 이미지로 이미 교체했는지 여부 — 첫 크로스-Z 캡처가 화면을 차지한다(결정론적 규칙).
             bool bShotDisplayImageReplaced = false;
             if (ShotParam != null) {
-                using (var image = ShotParam.GetImage()) {
-                    if (image != null) {
-                        // Shot당 1회 복사 공유(refcount). 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
-                        // 한 Shot 의 모든 FAI origin/capture 요청이 이 1개 복사본을 공유. capSaver 없으면 복사 자체 생략.
-                        var capSaver = SystemHandler.Handle.CaptureImageSaver;
-                        SharedHImage sharedSrc = null;
-                        if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
-                        //260810 hbk quick-debug(capture-render-per-fai-slow) round4 fix: try/finally 를 sharedSrc
-                        //  생성 직후로 넓혔다(기존엔 BuildDatumCaptureSnapshot/GetEffectivePixelResolution/
-                        //  QueueSharedShotOrigin 이 try 밖에 있어, 이 구간에서 예외가 나면 sharedSrc(ref 1, 검사
-                        //  루프 소유)가 release 안 되고 새는 결함이 있었다 — QueueSharedShotOrigin 이 이미
-                        //  AddRef 까지 해둔 뒤 예외가 나면 ref 2개가 동시에 샐 수 있었다).
-                        try {
-                        // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
-                        List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
-                        //260619 hbk per-shot 보정계수 적용 = PixelResolution × CorrectionFactor (단일소스 GetEffectivePixelResolution). PixelResolution 저장값 불변.
-                        double pixRes; //260615 hbk Phase 42 D-01 Shot 단일소스
-                        if (ShotParam != null) pixRes = ShotParam.GetEffectivePixelResolution();
-                        else pixRes = 1.0;
-                        // (구) ±2% 가드레일 경고 제거 — CorrectionFactor 를 배율 보정(예: 0.72)까지 포함한 단일 보정 knob 으로
-                        //  운용하기로 결정. ±2% 초과가 정상 사용이 되어 매 검사 Error 로그를 헛되이 채우던 노이즈였음(로그 전용, 검사 영향 0).
-                        //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 원본(origin) 이미지는 이 Shot 의 모든 FAI 가
-                        //  sharedSrc 를 통해 완전히 동일한 내용을 참조한다 — FAI 마다 반복 저장(127MP 기준 실측 ~1초/장)하지
-                        //  않고 Shot 당 1회만 큐에 넣는다. 큐 상한(50=FAI 25개분)을 넘는 FAI 부터 저장 대기가 걸리던 원인.
-                        string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
-                        foreach (var fai in ShotParam.FAIList) {
-                            bool faiAllPass = true;
-                            var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
-                            //260729 hbk quick-fix(260729-hwb): 이 FAI tick 에서 실제로 캡처된 크로스-Z role 이미지의
-                            //  소유 사본(같은 FAI 안에서 첫 캡처가 이김). null 이면 AggregateFaiResult 는 종전과
-                            //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
-                            HImage crossZRoleImage = null;
-                            foreach (var meas in fai.Measurements) {
-                                ProcessOneMeasurement(meas, parentSeq2, image, pixRes, ref crossZRoleImage, ref faiAllPass, ref measuredCount, ref nMeasNg, overlayAcc, faiOverlays, dctAlgoUsed);
-                            }
-                            FinalizeFaiTick(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref crossZRoleImage, ref bShotDisplayImageReplaced, ref allPass);
-                        }
-                        } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
-                            if (sharedSrc != null) sharedSrc.Release();
-                        }
-                    } else {
-                        //260616 hbk simul-shot-cascade: 이미지 미취득(SimulImagePath 무효) SHOT 은 모든 measurement NG 처리.
-                        //  과거엔 공유 카메라 캐시 fallback 으로 항상 이미지가 채워져 이 분기가 사실상 미도달 → fallback 제거 후
-                        //  무효 경로 SHOT 이 image==null 도달. allPass 가 default true 로 남아 잘못 PASS 되는 것을 차단.
-                        allPass = false;
-                        MarkAllMeasurementsNoImage(ref measuredCount); //260702 hbk Extract Method(Task2)
-                    }
-                }
+                MeasureShotFaiList(parentSeq2, overlayAcc, dctAlgoUsed, ref allPass, ref measuredCount, ref nMeasNg, ref bShotDisplayImageReplaced);
             }
             pMyContext.AllPass = allPass;
             pMyContext.MeasuredCount = measuredCount;
@@ -523,6 +476,68 @@ namespace ReringProject.Sequence {
                 measuredCount, nMeasNg, szMeasureVerdict, swMeasureTotal.Elapsed.TotalSeconds,
                 szAlgoSummary));
             Step = (int)EStep.End;
+        }
+
+        //260818 hbk Extract Method: RunMeasure 의 if(ShotParam != null) 안쪽 전체를 그대로 옮긴 것.
+        //  ⚠ 조기 return 을 쓰지 않았다 — 호출부의 if 를 그대로 둬야 ShotParam==null 일 때도
+        //    뒤이은 pMyContext.AllPass 기록 / [SEQ] 요약 로그 / Step=End 가 원본대로 실행된다.
+        //  ⚠ 값형 4개는 반드시 ref 다(allPass/measuredCount/nMeasNg/bShotDisplayImageReplaced).
+        //    ref 를 빠뜨려도 컴파일은 통과하지만 호출자 카운터가 조용히 0 으로 남는다.
+        //    참조형 3개(parentSeq2/overlayAcc/dctAlgoUsed)는 재대입이 없어 값 전달로 충분하다.
+        //  ⚠ using / try-finally 는 통째로 함께 이동했다. 상대 위치를 바꾸면 260810 round4 누수 수정이 무효화된다.
+        private void MeasureShotFaiList(InspectionSequence parentSeq2,
+                                        List<EdgeInspectionOverlay> overlayAcc,
+                                        Dictionary<string, int> dctAlgoUsed,
+                                        ref bool allPass, ref int measuredCount,
+                                        ref int nMeasNg, ref bool bShotDisplayImageReplaced) {
+            using (var image = ShotParam.GetImage()) {
+                if (image != null) {
+                    // Shot당 1회 복사 공유(refcount). 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
+                    // 한 Shot 의 모든 FAI origin/capture 요청이 이 1개 복사본을 공유. capSaver 없으면 복사 자체 생략.
+                    var capSaver = SystemHandler.Handle.CaptureImageSaver;
+                    SharedHImage sharedSrc = null;
+                    if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
+                    //260810 hbk quick-debug(capture-render-per-fai-slow) round4 fix: try/finally 를 sharedSrc
+                    //  생성 직후로 넓혔다(기존엔 BuildDatumCaptureSnapshot/GetEffectivePixelResolution/
+                    //  QueueSharedShotOrigin 이 try 밖에 있어, 이 구간에서 예외가 나면 sharedSrc(ref 1, 검사
+                    //  루프 소유)가 release 안 되고 새는 결함이 있었다 — QueueSharedShotOrigin 이 이미
+                    //  AddRef 까지 해둔 뒤 예외가 나면 ref 2개가 동시에 샐 수 있었다).
+                    try {
+                    // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
+                    List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
+                    //260619 hbk per-shot 보정계수 적용 = PixelResolution × CorrectionFactor (단일소스 GetEffectivePixelResolution). PixelResolution 저장값 불변.
+                    double pixRes; //260615 hbk Phase 42 D-01 Shot 단일소스
+                    if (ShotParam != null) pixRes = ShotParam.GetEffectivePixelResolution();
+                    else pixRes = 1.0;
+                    // (구) ±2% 가드레일 경고 제거 — CorrectionFactor 를 배율 보정(예: 0.72)까지 포함한 단일 보정 knob 으로
+                    //  운용하기로 결정. ±2% 초과가 정상 사용이 되어 매 검사 Error 로그를 헛되이 채우던 노이즈였음(로그 전용, 검사 영향 0).
+                    //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 원본(origin) 이미지는 이 Shot 의 모든 FAI 가
+                    //  sharedSrc 를 통해 완전히 동일한 내용을 참조한다 — FAI 마다 반복 저장(127MP 기준 실측 ~1초/장)하지
+                    //  않고 Shot 당 1회만 큐에 넣는다. 큐 상한(50=FAI 25개분)을 넘는 FAI 부터 저장 대기가 걸리던 원인.
+                    string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
+                    foreach (var fai in ShotParam.FAIList) {
+                        bool faiAllPass = true;
+                        var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
+                        //260729 hbk quick-fix(260729-hwb): 이 FAI tick 에서 실제로 캡처된 크로스-Z role 이미지의
+                        //  소유 사본(같은 FAI 안에서 첫 캡처가 이김). null 이면 AggregateFaiResult 는 종전과
+                        //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
+                        HImage crossZRoleImage = null;
+                        foreach (var meas in fai.Measurements) {
+                            ProcessOneMeasurement(meas, parentSeq2, image, pixRes, ref crossZRoleImage, ref faiAllPass, ref measuredCount, ref nMeasNg, overlayAcc, faiOverlays, dctAlgoUsed);
+                        }
+                        FinalizeFaiTick(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref crossZRoleImage, ref bShotDisplayImageReplaced, ref allPass);
+                    }
+                    } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
+                        if (sharedSrc != null) sharedSrc.Release();
+                    }
+                } else {
+                    //260616 hbk simul-shot-cascade: 이미지 미취득(SimulImagePath 무효) SHOT 은 모든 measurement NG 처리.
+                    //  과거엔 공유 카메라 캐시 fallback 으로 항상 이미지가 채워져 이 분기가 사실상 미도달 → fallback 제거 후
+                    //  무효 경로 SHOT 이 image==null 도달. allPass 가 default true 로 남아 잘못 PASS 되는 것을 차단.
+                    allPass = false;
+                    MarkAllMeasurementsNoImage(ref measuredCount); //260702 hbk Extract Method(Task2)
+                }
+            }
         }
 
         //260702 hbk Extract Method(Task3): Measure per-measurement 루프 본문(원본 foreach meas 내부, 동치 보장, continue->return)

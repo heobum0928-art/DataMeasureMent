@@ -54,6 +54,10 @@
                         Click="Button_RepeatExport_Click"
                         IsEnabled="False"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
+                <Button x:Name="btn_cpkReportExport" Content="CPK 리포트 export"
+                        Click="Button_CpkReportExport_Click"
+                        IsEnabled="False"
+                        Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
                 <Button x:Name="btn_chartSmoke" Content="차트 이미지 캡처 점검"
                         Click="Button_ChartSmoke_Click"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>

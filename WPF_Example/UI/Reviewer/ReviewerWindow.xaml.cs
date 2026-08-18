@@ -404,6 +404,7 @@ namespace ReringProject.UI
             List<CycleResultDto> prevCycles = _repeatCycles;
 
             btn_repeatExport.IsEnabled = false;
+            btn_cpkReportExport.IsEnabled = false;
             btn_repeatRun.Content = "중단";
             lbl_repeatProgress.Text = "진행 중: 0/" + imagePaths.Count;
 
@@ -444,6 +445,7 @@ namespace ReringProject.UI
                     lbl_repeatProgress.Text = "완료: " + nTotal + "회 (누적)";
                     btn_repeatRun.Content = "이미지 폴더 반복 검사";
                     btn_repeatExport.IsEnabled = nTotal > 0;
+                    btn_cpkReportExport.IsEnabled = nTotal > 0;
                 });
             };
 
@@ -494,6 +496,55 @@ namespace ReringProject.UI
                 }
 
                 CustomMessageBox.Show("반복도 엑셀 export", msg, icon);
+            }
+        }
+
+        /// CPK 데이터 리포트(RAW DATA(1) + 1Cav 세부치수_Cpk) export.
+        /// 버튼 클릭 핸들러 = UI/STA 스레드이므로 차트 Canvas 렌더가 안전하다.
+        private void Button_CpkReportExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (_repeatCycles == null || _repeatCycles.Count == 0)
+            {
+                CustomMessageBox.Show("CPK 리포트 export", "반복 실행 완료 후 사용하세요.", MessageBoxImage.Warning);
+                return;
+            }
+
+            string initialDir = SystemHandler.Handle.Setting.ResultSavePath;
+            string recipeName = SystemHandler.Handle.Setting.CurrentRecipeName ?? "";
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
+                FileName = "cpk_report_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xlsx",
+                InitialDirectory = initialDir
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                bool ok = ReringProject.Export.CpkReportExportService.ExportCpkReport(
+                    _repeatCycles, recipeName, dlg.FileName);
+
+                string msg;
+                if (ok)
+                {
+                    msg = "저장 완료:\n" + dlg.FileName;
+                }
+                else
+                {
+                    msg = "export 실패 (로그 확인)";
+                }
+
+                MessageBoxImage icon;
+                if (ok)
+                {
+                    icon = MessageBoxImage.Information;
+                }
+                else
+                {
+                    icon = MessageBoxImage.Error;
+                }
+
+                CustomMessageBox.Show("CPK 리포트 export", msg, icon);
             }
         }
 

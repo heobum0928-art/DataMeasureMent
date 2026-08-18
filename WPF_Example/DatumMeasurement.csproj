@@ -402,6 +402,7 @@
       <!--260601 hbk Phase 40 OUT-01-->
       <DependentUpon>ReviewerWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="UI\Statistics\ChartRenderService.cs" />
     <Compile Include="UI\Statistics\StatisticsWindow.xaml.cs">
       <!--260707 hbk STAT-01-->
       <DependentUpon>StatisticsWindow.xaml</DependentUpon>

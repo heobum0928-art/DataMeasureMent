@@ -890,120 +890,15 @@ namespace ReringProject.Halcon.Display
 
                 RenderDatumHorizontalRois(window, datum, color, lineWidth, cthHideRois);
 
-                // Draw reference origin cross if configured
-                if (datum.IsConfigured)
-                {
-                    HOperatorSet.SetColor(window, "magenta");
-                    HOperatorSet.SetLineWidth(window, 2);
-                    double crossSize = 15;
-                    // Horizontal line
-                    HOperatorSet.DispLine(window,
-                        datum.RefOriginRow, datum.RefOriginCol - crossSize,
-                        datum.RefOriginRow, datum.RefOriginCol + crossSize);
-                    // Vertical line
-                    HOperatorSet.DispLine(window,
-                        datum.RefOriginRow - crossSize, datum.RefOriginCol,
-                        datum.RefOriginRow + crossSize, datum.RefOriginCol);
-                    // Label
-                    HOperatorSet.SetColor(window, "magenta");
-                    EnsureFontInitialized(window);
-                    HOperatorSet.SetTposition(window, datum.RefOriginRow - crossSize - 15, datum.RefOriginCol + 5);
-                    HOperatorSet.WriteString(window, "Datum Origin");
-                }
+                RenderDatumRefOriginCross(window, datum);
 
-                // 검출 라인 2개 + 교점 오버레이 (TryTeachDatum 성공 시에만, 기존 cyan/blue/magenta 팔레트는 건드리지 않음)
-                if (datum.LastTeachSucceeded)
-                {
-                    // Line1 detected 외삽 (yellow)
-                    HOperatorSet.SetColor(window, "yellow");
-                    HOperatorSet.SetLineWidth(window, 2);
-                    DrawExtendedLine(window,
-                        datum.Line1Detected_RBegin, datum.Line1Detected_CBegin,
-                        datum.Line1Detected_REnd,   datum.Line1Detected_CEnd);
-
-                    // Line2 detected 외삽 (cyan)
-                    HOperatorSet.SetColor(window, "cyan");
-                    DrawExtendedLine(window,
-                        datum.Line2Detected_RBegin, datum.Line2Detected_CBegin,
-                        datum.Line2Detected_REnd,   datum.Line2Detected_CEnd);
-
-                    // Intersection cross (red, 20px half-length, line width 2) — UI-SPEC Datum overlay palette
-                    HOperatorSet.SetColor(window, "red");
-                    HOperatorSet.SetLineWidth(window, 2);
-                    const double crossHalf = 20.0;
-                    HOperatorSet.DispLine(window, datum.RefOriginRow - crossHalf, datum.RefOriginCol,
-                                                  datum.RefOriginRow + crossHalf, datum.RefOriginCol);
-                    HOperatorSet.DispLine(window, datum.RefOriginRow, datum.RefOriginCol - crossHalf,
-                                                  datum.RefOriginRow, datum.RefOriginCol + crossHalf);
-
-                    // 5 ROI raw 검출 에지점 (있을 때만) — ROI 별 색상 구분
-                    //  z-order 정렬: Raw edge points 먼저 그린 후 검출 원 + center cross (top) 로 center 가 가려지지 않게.
-                    RenderRawEdgePoints(window, datum.Line1_DetectedEdgeRows,        datum.Line1_DetectedEdgeCols,        "cyan");
-                    RenderRawEdgePoints(window, datum.Line2_DetectedEdgeRows,        datum.Line2_DetectedEdgeCols,        "magenta");
-                    // Circle raw points = 회색 작은 십자가 size=4 (검출 trace 용, yellow 와 시각 구분)
-                    RenderRawEdgePoints(window, datum.Circle_DetectedEdgeRows,       datum.Circle_DetectedEdgeCols,       "gray", 4.0);
-                    RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
-                    RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
-                    // Vertical 그룹 raw 점 (Line1 cyan 과 시각 구분: orange)
-                    RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows,     datum.Vertical_DetectedEdgeCols,     "orange");
-
-                    // CircleTwoHorizontal 검출 원 오버레이 (녹색 원 + 노란 중심 십자)
-                    //  z-order: 검출 원 그린 후 center cross (top) — center 가 가려지지 않게.
-                    if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
-                        && datum.CircleDetected_Radius > 0)
-                    {
-                        // 검출 원 = 녹색. "light green" 비표준 색상명 → HALCON SetColor 예외 → catch swallow → 미표시 결함. hex "#90EE90" 으로 교체.
-                        HOperatorSet.SetColor(window, "#90EE90");
-                        HOperatorSet.SetLineWidth(window, 2);
-                        HOperatorSet.DispCircle(window,
-                            datum.CircleCenter_Row, datum.CircleCenter_Col, datum.CircleDetected_Radius);
-
-                        // Center cross = 노란색 + size=12 + line width 3 (굵기 강조)
-                        HOperatorSet.SetColor(window, "yellow");
-                        HOperatorSet.SetLineWidth(window, 3);
-                        const double circleCenterCrossHalf = 12.0;
-                        HOperatorSet.DispLine(window,
-                            datum.CircleCenter_Row - circleCenterCrossHalf, datum.CircleCenter_Col,
-                            datum.CircleCenter_Row + circleCenterCrossHalf, datum.CircleCenter_Col);
-                        HOperatorSet.DispLine(window,
-                            datum.CircleCenter_Row, datum.CircleCenter_Col - circleCenterCrossHalf,
-                            datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
-                    }
-
-                }
+                RenderDatumDetectedOverlay(window, datum);
 
                 // RenderDatumFindResult 를 LastTeachSucceeded 블록 밖에서 호출.
                 //  검출 십자는 자체 LastFindSucceeded 게이트(메서드 내부)만 따르면 충분 → 레시피 로드/swap 후(teach 미수행) Test Find 결과도 표시. z-stack last 유지.
                 RenderDatumFindResult(window, datum);
 
-                // Datum 검출 실패 시 'DETECT FAIL' 적색 라벨 렌더.
-                //  분기: RuntimeDetectFailed (게이트 발동) OR (IsConfigured && !LastFindSucceeded) (티칭 한 경우 fallback).
-                //  색상: "red" 표준명 (비표준명은 SetColor catch swallow 로 silent 미표시 위험).
-                if (datum.RuntimeDetectFailed || (datum.IsConfigured && !datum.LastFindSucceeded))
-                {
-                    try
-                    {
-                        EnsureFontInitialized(window);
-                        HOperatorSet.SetColor(window, "red");
-                        // 위치: 이미지 오른쪽 상단 (GetPart 로 현재 표시 영역 좌표 얻기).
-                        //  datum 이름 hash 기반 row stagger 로 여러 datum 동시 실패 시 라벨 겹침 회피 (6단계 25px 간격).
-                        HTuple partRow1, partCol1, partRow2, partCol2;
-                        HOperatorSet.GetPart(window, out partRow1, out partCol1, out partRow2, out partCol2);
-                        string datumNameKey = datum.DatumName;
-                        if (datumNameKey == null) datumNameKey = "";
-                        int hashStagger = System.Math.Abs((datumNameKey.GetHashCode()) % 6) * 25; // 0/25/50/75/100/125 중 하나
-                        double labelRow = (double)partRow1.D + 20.0 + hashStagger; // 상단 20px + stagger
-                        double labelCol = (double)partCol2.D - 280.0; // 오른쪽 가장자리에서 280px 안쪽 (라벨 길이 고려)
-                        HOperatorSet.SetTposition(window, labelRow, labelCol);
-                        string datumLabel = datum.DatumName;
-                        if (datumLabel == null) datumLabel = "Datum";
-                        HOperatorSet.WriteString(window, "DETECT FAIL: " + datumLabel);
-                    }
-                    catch
-                    {
-                        // Suppress display errors (기존 RenderDatumOverlay catch 컨벤션)
-                    }
-                }
+                RenderDatumDetectFailLabel(window, datum);
             }
             catch
             {
@@ -1120,6 +1015,131 @@ namespace ReringProject.Halcon.Display
                     // "H-B" 라벨
                     DrawRoiLabel(window, datum.Horizontal_B_Row, datum.Horizontal_B_Col,
                         datum.Horizontal_B_Phi, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2, "H-B");
+                }
+            }
+        }
+
+        //260818 hbk Extract Method: 기준 원점 십자 구역을 그대로 옮긴 것.
+        private void RenderDatumRefOriginCross(HWindow window, DatumConfig datum)
+        {
+            // Draw reference origin cross if configured
+            if (datum.IsConfigured)
+            {
+                HOperatorSet.SetColor(window, "magenta");
+                HOperatorSet.SetLineWidth(window, 2);
+                double crossSize = 15;
+                // Horizontal line
+                HOperatorSet.DispLine(window,
+                    datum.RefOriginRow, datum.RefOriginCol - crossSize,
+                    datum.RefOriginRow, datum.RefOriginCol + crossSize);
+                // Vertical line
+                HOperatorSet.DispLine(window,
+                    datum.RefOriginRow - crossSize, datum.RefOriginCol,
+                    datum.RefOriginRow + crossSize, datum.RefOriginCol);
+                // Label
+                HOperatorSet.SetColor(window, "magenta");
+                EnsureFontInitialized(window);
+                HOperatorSet.SetTposition(window, datum.RefOriginRow - crossSize - 15, datum.RefOriginCol + 5);
+                HOperatorSet.WriteString(window, "Datum Origin");
+            }
+        }
+
+        //260818 hbk Extract Method: 검출 결과 오버레이(LastTeachSucceeded 블록) 전체를 그대로 옮긴 것.
+        //  블록 안 그리기 순서가 곧 화면 겹침 순서다 — 한 줄이라도 앞뒤로 옮기면 위에 와야 할 것이 가려진다.
+        private void RenderDatumDetectedOverlay(HWindow window, DatumConfig datum)
+        {
+            // 검출 라인 2개 + 교점 오버레이 (TryTeachDatum 성공 시에만, 기존 cyan/blue/magenta 팔레트는 건드리지 않음)
+            if (datum.LastTeachSucceeded)
+            {
+                // Line1 detected 외삽 (yellow)
+                HOperatorSet.SetColor(window, "yellow");
+                HOperatorSet.SetLineWidth(window, 2);
+                DrawExtendedLine(window,
+                    datum.Line1Detected_RBegin, datum.Line1Detected_CBegin,
+                    datum.Line1Detected_REnd,   datum.Line1Detected_CEnd);
+
+                // Line2 detected 외삽 (cyan)
+                HOperatorSet.SetColor(window, "cyan");
+                DrawExtendedLine(window,
+                    datum.Line2Detected_RBegin, datum.Line2Detected_CBegin,
+                    datum.Line2Detected_REnd,   datum.Line2Detected_CEnd);
+
+                // Intersection cross (red, 20px half-length, line width 2) — UI-SPEC Datum overlay palette
+                HOperatorSet.SetColor(window, "red");
+                HOperatorSet.SetLineWidth(window, 2);
+                const double crossHalf = 20.0;
+                HOperatorSet.DispLine(window, datum.RefOriginRow - crossHalf, datum.RefOriginCol,
+                                              datum.RefOriginRow + crossHalf, datum.RefOriginCol);
+                HOperatorSet.DispLine(window, datum.RefOriginRow, datum.RefOriginCol - crossHalf,
+                                              datum.RefOriginRow, datum.RefOriginCol + crossHalf);
+
+                // 5 ROI raw 검출 에지점 (있을 때만) — ROI 별 색상 구분
+                //  z-order 정렬: Raw edge points 먼저 그린 후 검출 원 + center cross (top) 로 center 가 가려지지 않게.
+                RenderRawEdgePoints(window, datum.Line1_DetectedEdgeRows,        datum.Line1_DetectedEdgeCols,        "cyan");
+                RenderRawEdgePoints(window, datum.Line2_DetectedEdgeRows,        datum.Line2_DetectedEdgeCols,        "magenta");
+                // Circle raw points = 회색 작은 십자가 size=4 (검출 trace 용, yellow 와 시각 구분)
+                RenderRawEdgePoints(window, datum.Circle_DetectedEdgeRows,       datum.Circle_DetectedEdgeCols,       "gray", 4.0);
+                RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
+                RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
+                // Vertical 그룹 raw 점 (Line1 cyan 과 시각 구분: orange)
+                RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows,     datum.Vertical_DetectedEdgeCols,     "orange");
+
+                // CircleTwoHorizontal 검출 원 오버레이 (녹색 원 + 노란 중심 십자)
+                //  z-order: 검출 원 그린 후 center cross (top) — center 가 가려지지 않게.
+                if (datum.AlgorithmTypeEnum == EDatumAlgorithm.CircleTwoHorizontal
+                    && datum.CircleDetected_Radius > 0)
+                {
+                    // 검출 원 = 녹색. "light green" 비표준 색상명 → HALCON SetColor 예외 → catch swallow → 미표시 결함. hex "#90EE90" 으로 교체.
+                    HOperatorSet.SetColor(window, "#90EE90");
+                    HOperatorSet.SetLineWidth(window, 2);
+                    HOperatorSet.DispCircle(window,
+                        datum.CircleCenter_Row, datum.CircleCenter_Col, datum.CircleDetected_Radius);
+
+                    // Center cross = 노란색 + size=12 + line width 3 (굵기 강조)
+                    HOperatorSet.SetColor(window, "yellow");
+                    HOperatorSet.SetLineWidth(window, 3);
+                    const double circleCenterCrossHalf = 12.0;
+                    HOperatorSet.DispLine(window,
+                        datum.CircleCenter_Row - circleCenterCrossHalf, datum.CircleCenter_Col,
+                        datum.CircleCenter_Row + circleCenterCrossHalf, datum.CircleCenter_Col);
+                    HOperatorSet.DispLine(window,
+                        datum.CircleCenter_Row, datum.CircleCenter_Col - circleCenterCrossHalf,
+                        datum.CircleCenter_Row, datum.CircleCenter_Col + circleCenterCrossHalf);
+                }
+
+            }
+        }
+
+        //260818 hbk Extract Method: 검출 실패 라벨 구역을 그대로 옮긴 것.
+        //  안쪽 예외 처리 블록은 통째로 함께 옮겼다 — 경계를 쪼개면 삼켜지는 예외 범위가 달라져 렌더가 부분적으로 사라진다.
+        private void RenderDatumDetectFailLabel(HWindow window, DatumConfig datum)
+        {
+            // Datum 검출 실패 시 'DETECT FAIL' 적색 라벨 렌더.
+            //  분기: RuntimeDetectFailed (게이트 발동) OR (IsConfigured && !LastFindSucceeded) (티칭 한 경우 fallback).
+            //  색상: "red" 표준명 (비표준명은 SetColor catch swallow 로 silent 미표시 위험).
+            if (datum.RuntimeDetectFailed || (datum.IsConfigured && !datum.LastFindSucceeded))
+            {
+                try
+                {
+                    EnsureFontInitialized(window);
+                    HOperatorSet.SetColor(window, "red");
+                    // 위치: 이미지 오른쪽 상단 (GetPart 로 현재 표시 영역 좌표 얻기).
+                    //  datum 이름 hash 기반 row stagger 로 여러 datum 동시 실패 시 라벨 겹침 회피 (6단계 25px 간격).
+                    HTuple partRow1, partCol1, partRow2, partCol2;
+                    HOperatorSet.GetPart(window, out partRow1, out partCol1, out partRow2, out partCol2);
+                    string datumNameKey = datum.DatumName;
+                    if (datumNameKey == null) datumNameKey = "";
+                    int hashStagger = System.Math.Abs((datumNameKey.GetHashCode()) % 6) * 25; // 0/25/50/75/100/125 중 하나
+                    double labelRow = (double)partRow1.D + 20.0 + hashStagger; // 상단 20px + stagger
+                    double labelCol = (double)partCol2.D - 280.0; // 오른쪽 가장자리에서 280px 안쪽 (라벨 길이 고려)
+                    HOperatorSet.SetTposition(window, labelRow, labelCol);
+                    string datumLabel = datum.DatumName;
+                    if (datumLabel == null) datumLabel = "Datum";
+                    HOperatorSet.WriteString(window, "DETECT FAIL: " + datumLabel);
+                }
+                catch
+                {
+                    // Suppress display errors (기존 RenderDatumOverlay catch 컨벤션)
                 }
             }
         }

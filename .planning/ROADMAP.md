@@ -1015,6 +1015,18 @@ Plans:
 
 ---
 
+### Phase 72: CPK 데이터 리포트 출력 재설계 — 고객 참고양식(Rapid City A8.1_Z Stopper Data Report R04) 대조 기반: RAW DATA 가로형 매트릭스 신설, Cpk 엑셀 export 복원(Phase 51에서 제거됨), Cp 신규 계산, USL/LSL 명시적 컬럼화, 그래프 방식(이미지 삽입 vs 라이브러리 교체) 결정 (신설 2026-08-18)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 71
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 72 to break down)
+
+---
+
 ## Progress Table (v1.3 — Align 비전)
 
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |

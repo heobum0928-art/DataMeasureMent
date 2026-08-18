@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 72-01-PLAN.md
-last_updated: "2026-08-18T09:36:11.358Z"
-last_activity: 2026-08-18 -- 72-01 완료 (RepeatMeasurementStats Cp/UCpk/LCpk/Min/Max + GetSeries)
+stopped_at: Completed 72-02-PLAN.md
+last_updated: "2026-08-18T09:43:38.365Z"
+last_activity: 2026-08-18
 progress:
   total_phases: 15
   completed_phases: 14
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
-Plan: 2 of 7
-Last activity: 2026-08-18 -- 72-01 완료 (RepeatMeasurementStats Cp/UCpk/LCpk/Min/Max + GetSeries)
+Plan: 3 of 7
+Last activity: 2026-08-18
 
 **2026-08-06 이어서(같은 방 스레드, 새 날짜) — Bottom "30개 항목 체크 + 일괄검사" 시나리오에서 메모리가 34~41GB까지 폭증 + halcon.DLL 네이티브 크래시(0xc0000005, Windows WER 이력 2026-08-05 15시~2026-08-06 09시대 최소 10회) 실기 재현(오케스트레이터가 화면자동화로 직접 재현) → 순차적으로 원인 좁혀나감(전부 코드/로그/실측 증거로 확정, 추측 아님):**
 
@@ -258,6 +258,7 @@ Last activity: 2026-08-18 -- 72-01 완료 (RepeatMeasurementStats Cp/UCpk/LCpk/M
 | Phase 71-prep-op-plc-off-p-f P03 | 27min | 1 tasks | 0 files |
 | Phase 71-prep-op-plc-off-p-f P04 | 90min | 3 tasks | 0 files |
 | Phase 72 P01 | 6m | 2 tasks | 1 files |
+| Phase 72 P02 | 12m | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -520,6 +521,8 @@ Recent decisions affecting current work:
 - quick-260814-dxy: 측정 파이프라인 워밍업(IsMeasureWarmupComplete 게이트+대표 Shot 15회 반복)을 Release 콜드스타트 measureExec 저하의 임시 완화책으로 추가 — top-release-2x-slower.md 근본원인은 여전히 미확정, 이 SUMMARY는 해결이 아니라 완화 시도로 취급할 것
 - 72-01: stddev==0 가드를 Cpk와 분리하지 않고 Cp/UCpk/LCpk/Cpk 를 동일 블록에서 PositiveInfinity 대입
 - 72-01: MeasurementStat 신규 필드는 기존 필드 사이가 아닌 Cpk 뒤에 append (기존 object initializer 참조 보호)
+- 72-02: 차트 드로잉 폭/높이를 인자로 승격 — 오프스크린 Canvas 는 ActualWidth==0 이라 export 그래프가 빈 이미지가 된다
+- 72-02: ChartRenderService 내 .ActualWidth/.ActualHeight 프로퍼티 접근 0건 강제 (실패 모드 원천 차단)
 
 ### Quick Tasks Completed
 
@@ -729,8 +732,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-08-18T09:36:11.343Z
-Stopped at: Completed 72-01-PLAN.md
+Last session: 2026-08-18T09:43:29.399Z
+Stopped at: Completed 72-02-PLAN.md
 Resume file: None
 Next action: Phase 68 Plan 11 — 68-05 UAT 재개 전 마지막 gap-closure plan
 

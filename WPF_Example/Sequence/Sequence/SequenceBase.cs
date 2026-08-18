@@ -79,23 +79,18 @@ namespace ReringProject.Sequence {
         private int _routineActionCount = 0; // 이번 루틴에서 실행 완료한 액션 수
 
         //260818 hbk 액션(Shot) 시작 — 여기부터 그 Shot 의 단계별 [SEQ] 줄이 이어진다.
-        private void LogActionBegin(ActionBase action,
-            [System.Runtime.CompilerServices.CallerFilePath] string szCallerFile = "",
-            [System.Runtime.CompilerServices.CallerLineNumber] int nCallerLine = 0) {
+        private void LogActionBegin(ActionBase action) {
             try {
                 string szActionName;
                 if (action != null && action.Name != null) szActionName = action.Name;
                 else szActionName = "?";
-                Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} · {1} 시작   @{2}:{3}",
-                    Name, szActionName, System.IO.Path.GetFileName(szCallerFile), nCallerLine);
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} · {1} 시작", Name, szActionName);
             }
             catch { } // 로그 실패가 검사를 막으면 안 된다
         }
 
         //260818 hbk 액션 1개 완료. 액션명은 Shot 이름과 1:1 이라 어느 자리가 느린지 바로 보인다.
-        private void LogActionEnd(ActionBase action, string szResult,
-            [System.Runtime.CompilerServices.CallerFilePath] string szCallerFile = "",
-            [System.Runtime.CompilerServices.CallerLineNumber] int nCallerLine = 0) {
+        private void LogActionEnd(ActionBase action, string szResult) {
             try {
                 if (!_actionTactSw.IsRunning) return; // OnBegin 을 거치지 않은 경로 방어
                 _actionTactSw.Stop();
@@ -103,33 +98,26 @@ namespace ReringProject.Sequence {
                 string szActionName;
                 if (action != null && action.Name != null) szActionName = action.Name;
                 else szActionName = "?";
-                Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} · {1} 완료 {2} — {3:F2}초   @{4}:{5}",
-                    Name, szActionName, szResult, _actionTactSw.Elapsed.TotalSeconds,
-                    System.IO.Path.GetFileName(szCallerFile), nCallerLine);
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} · {1} 완료 {2} — {3:F2}초",
+                    Name, szActionName, szResult, _actionTactSw.Elapsed.TotalSeconds);
             }
             catch { }
         }
 
         //260818 hbk 루틴(이 시퀀스 1회 실행) 시작/종료. Finish/Error 양쪽에서 종료가 호출된다.
-        private void LogRoutineBegin(int nActionCount,
-            [System.Runtime.CompilerServices.CallerFilePath] string szCallerFile = "",
-            [System.Runtime.CompilerServices.CallerLineNumber] int nCallerLine = 0) {
+        private void LogRoutineBegin(int nActionCount) {
             try {
-                Logging.PrintLog((int)ELogType.Trace, "[SEQ] ── {0} 루틴 시작 (대상 액션 {1}개) ──   @{2}:{3}",
-                    Name, nActionCount, System.IO.Path.GetFileName(szCallerFile), nCallerLine);
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] ── {0} 루틴 시작 (대상 액션 {1}개) ──", Name, nActionCount);
             }
             catch { }
         }
 
-        private void LogRoutineEnd(string szResult,
-            [System.Runtime.CompilerServices.CallerFilePath] string szCallerFile = "",
-            [System.Runtime.CompilerServices.CallerLineNumber] int nCallerLine = 0) {
+        private void LogRoutineEnd(string szResult) {
             try {
                 if (!_routineTactSw.IsRunning) return;
                 _routineTactSw.Stop();
-                Logging.PrintLog((int)ELogType.Trace, "[SEQ] ── {0} 루틴 종료 {1} — 액션 {2}개, 합계 {3:F2}초 ──   @{4}:{5}",
-                    Name, szResult, _routineActionCount, _routineTactSw.Elapsed.TotalSeconds,
-                    System.IO.Path.GetFileName(szCallerFile), nCallerLine);
+                Logging.PrintLog((int)ELogType.Trace, "[SEQ] ── {0} 루틴 종료 {1} — 액션 {2}개, 합계 {3:F2}초 ──",
+                    Name, szResult, _routineActionCount, _routineTactSw.Elapsed.TotalSeconds);
             }
             catch { }
         }

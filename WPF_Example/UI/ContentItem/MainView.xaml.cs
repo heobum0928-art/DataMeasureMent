@@ -3293,7 +3293,8 @@ namespace ReringProject.UI {
             string hLabel;
             string vLabel;
             if (shot == null) {
-                resultText = string.Format("{0:F1}px (FAI 미선택 -- mm 환산 불가)", pixelDistance);
+                //260820 hbk quick-fix: 어떻게 하면 mm 환산되는지 사용자가 바로 알 수 있도록 안내 문구 구체화.
+                resultText = string.Format("{0:F1}px (mm 환산하려면 아래 목록에서 FAI 항목을 먼저 선택하세요)", pixelDistance);
                 hLabel = string.Format("가로 {0:F1}px", Math.Abs(dx));
                 vLabel = string.Format("세로 {0:F1}px", Math.Abs(dy));
             }

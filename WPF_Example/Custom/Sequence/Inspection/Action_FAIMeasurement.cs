@@ -1249,15 +1249,9 @@ namespace ReringProject.Sequence {
             return originPath;
         }
 
-        // 원본/캡처 이미지를 비동기 저장 큐에 넣고, 파일명은 즉시(동기) 확정해둔다 — 결과 데이터가
-        //  이 파일명을 바로 읽어가므로 미리 정해둬야 한다. 실제 PNG 저장만 백그라운드에서 나중에 한다.
-        // 원본이 Shot 당 한 번만 저장된 경우엔 여기서 다시 저장하지 않고 경로만 기록한다 —
-        //  크로스-Z(항목마다 다른 이미지일 수 있음)는 항목마다 따로 저장한다.
-        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName, string szSharedOriginPath) {
-            if (fai == null) return;
-            var saver = SystemHandler.Handle.CaptureImageSaver;
-            DateTime ts = DateTime.Now; // origin(개별 저장 시)/capture 동일 timestamp 공유 (쌍)
-
+        //260819 hbk quick-260819-rle: 파일명/경로 결정(순수 계산 + fai.Last*ImageFileName 기록)과
+        //  큐잉(Enqueue) 부수효과를 분리 — originName == null 이면 공유 origin 재사용(큐잉 불필요).
+        private void ResolveFaiCaptureFileNames(FAIConfig fai, List<EdgeInspectionOverlay> faiOverlays, string sequenceName, string szSharedOriginPath, DateTime ts, out string captureName, out string originName) {
             string seg = OverlayCaptureRenderer.BuildMeasurePointSegment(faiOverlays); // P1/P1P2/빈값
             string judge;
             if (fai.IsPass) judge = "OK";
@@ -1281,7 +1275,7 @@ namespace ReringProject.Sequence {
                 nIndexNumber = parentSeq.RequestPacket.IndexNumber;
             }
 
-            string captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);  //260622 hbk Phase 48 PROTO-01
+            captureName = CaptureImageSaveService.BuildFileName("capture", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);  //260622 hbk Phase 48 PROTO-01
             // 동기 write-back — BuildDto 가 즉시 읽을 수 있도록 (PNG write 실패와 무관하게 경로는 확정)
             // 엑셀/cycle.json 에 절대 경로(경로\파일명) 표기. 실제 저장 경로와 동일한 BuildFilePath 로 기록.
             fai.LastCaptureImageFileName = CaptureImageSaveService.BuildFilePath(true, captureName, ts);
@@ -1289,21 +1283,37 @@ namespace ReringProject.Sequence {
             bool bUseSharedOrigin = !string.IsNullOrEmpty(szSharedOriginPath);
             if (bUseSharedOrigin) {
                 fai.LastOriginImageFileName = szSharedOriginPath; // Shot 공유 origin — 이미 저장됨, 경로만 기록
+                originName = null;
             } else {
                 // 크로스-Z 등 FAI 마다 원본 내용이 실제로 다를 수 있는 경로 — 기존과 동일하게 FAI 마다 개별 저장.
-                string originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
+                originName = CaptureImageSaveService.BuildFileName("origin", sequenceName, fai.FAIName, seg, judge, ts, nIndexNumber);   //260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명
                 fai.LastOriginImageFileName = CaptureImageSaveService.BuildFilePath(false, originName, ts);
-                if (saver != null && sharedSrc != null) {
-                    sharedSrc.AddRef();
-                    saver.Enqueue(new CaptureImageSaveRequest
-                    {
-                        Shared = sharedSrc,
-                        NeedsRender = false,
-                        FileName = originName,
-                        IsCapture = false,
-                        Timestamp = ts
-                    });
-                }
+            }
+        }
+
+        // 원본/캡처 이미지를 비동기 저장 큐에 넣고, 파일명은 즉시(동기) 확정해둔다 — 결과 데이터가
+        //  이 파일명을 바로 읽어가므로 미리 정해둬야 한다. 실제 PNG 저장만 백그라운드에서 나중에 한다.
+        // 원본이 Shot 당 한 번만 저장된 경우엔 여기서 다시 저장하지 않고 경로만 기록한다 —
+        //  크로스-Z(항목마다 다른 이미지일 수 있음)는 항목마다 따로 저장한다.
+        private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName, string szSharedOriginPath) {
+            if (fai == null) return;
+            var saver = SystemHandler.Handle.CaptureImageSaver;
+            DateTime ts = DateTime.Now; // origin(개별 저장 시)/capture 동일 timestamp 공유 (쌍)
+
+            string captureName;
+            string originName;
+            ResolveFaiCaptureFileNames(fai, faiOverlays, sequenceName, szSharedOriginPath, ts, out captureName, out originName);
+
+            if (originName != null && saver != null && sharedSrc != null) {
+                sharedSrc.AddRef();
+                saver.Enqueue(new CaptureImageSaveRequest
+                {
+                    Shared = sharedSrc,
+                    NeedsRender = false,
+                    FileName = originName,
+                    IsCapture = false,
+                    Timestamp = ts
+                });
             }
 
             if (saver == null || sharedSrc == null) return; // 서비스/공유 미존재 시 파일명만 기록, PNG skip

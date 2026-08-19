@@ -620,24 +620,7 @@ namespace ReringProject.Sequence {
             {
                 ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays); //260702 hbk Extract Method(Task1)
             }
-            LogAndTallyAlgorithm(meas, bHasAnyZIndex, ok, dctAlgoUsed, swMeasureExec);
-            if (ok) {
-                meas.EvaluateJudgement(resultValue);
-                if (!meas.LastJudgement) acc.NMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
-            } else {
-                string measName = meas.MeasurementName;
-                if (measName == null) measName = meas.TypeName;
-                string measErrorStr = measError;
-                if (measErrorStr == null) measErrorStr = "";
-                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
-                meas.ClearResult();
-                meas.LastJudgement = false;
-            }
-            ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
-            if (!meas.LastJudgement) {
-                acc.FaiAllPass = false;
-            }
-            acc.MeasuredCount++;
+            RecordMeasurementResult(meas, bHasAnyZIndex, ok, resultValue, measError, measOverlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
         }
 
         //260819 hbk quick-260819-hyk: ProcessOneMeasurement 의 초기 게이트 2개를 그대로 옮긴 것.
@@ -748,6 +731,35 @@ namespace ReringProject.Sequence {
                 }
             }
             return true; // 크로스-Z 가 아닌 일반 측정 — 원본에서 if 블록을 건너뛰던 경로와 동치
+        }
+
+        //260819 hbk quick-260819-hyk: ProcessOneMeasurement 의 마무리부(판정 / 실패로그 / 오버레이 누적 /
+        //  카운터)를 그대로 옮긴 것. 이 구간에는 제어흐름 문장이 애초에 0개라 순수 이동이다.
+        //  Stopwatch 를 통째로 받는 이유는 LogAndTallyAlgorithm 과 같다 — 호출부에서 ms 를 미리 읽으면
+        //  로그에 찍히는 숫자가 달라진다.
+        private void RecordMeasurementResult(MeasurementBase meas, bool bHasAnyZIndex, bool ok,
+                                             double resultValue, string measError, List<EdgeInspectionOverlay> measOverlays,
+                                             List<EdgeInspectionOverlay> overlayAcc, List<EdgeInspectionOverlay> faiOverlays,
+                                             Dictionary<string, int> dctAlgoUsed, Stopwatch swMeasureExec,
+                                             ShotMeasureAccumulator acc) {
+            LogAndTallyAlgorithm(meas, bHasAnyZIndex, ok, dctAlgoUsed, swMeasureExec);
+            if (ok) {
+                meas.EvaluateJudgement(resultValue);
+                if (!meas.LastJudgement) acc.NMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
+            } else {
+                string measName = meas.MeasurementName;
+                if (measName == null) measName = meas.TypeName;
+                string measErrorStr = measError;
+                if (measErrorStr == null) measErrorStr = "";
+                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
+                meas.ClearResult();
+                meas.LastJudgement = false;
+            }
+            ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
+            if (!meas.LastJudgement) {
+                acc.FaiAllPass = false;
+            }
+            acc.MeasuredCount++;
         }
 
         //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.

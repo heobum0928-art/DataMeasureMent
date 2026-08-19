@@ -143,6 +143,8 @@ namespace ReringProject.UI
         private string _polygonColor = "blue";
 
         private IList<Point> _calibrationPoints;
+        //260819 hbk quick-fix(260819-click2): 두 점 옆에 같이 그릴 결과 문구(거리측정 결과). null 이면 점/선만.
+        private string _calibrationLabel;
 
         public MainResultViewerControl()
         {
@@ -791,14 +793,23 @@ namespace ReringProject.UI
 
         public void SetCalibrationOverlay(IList<Point> points)
         {
+            SetCalibrationOverlay(points, null);
+        }
+
+        //260819 hbk quick-fix(260819-click2): labelText 오버로드 — 측정 결과를 HALCON 창 안(선 옆)에 같이 그린다.
+        //  캔버스 위 WPF Label 은 HWND airspace 로 가려져 안 보이므로 창 내부 렌더가 유일하게 확실한 표시 경로다.
+        public void SetCalibrationOverlay(IList<Point> points, string labelText)
+        {
             if (points != null) _calibrationPoints = new List<Point>(points);
             else                _calibrationPoints = null;
+            _calibrationLabel = labelText;
             Render();
         }
 
         public void ClearCalibrationOverlay()
         {
             _calibrationPoints = null;
+            _calibrationLabel = null;
             Render();
         }
 
@@ -875,7 +886,7 @@ namespace ReringProject.UI
 
             if (_calibrationPoints != null && _calibrationPoints.Count > 0)
             {
-                _displayService.RenderCalibrationOverlay(ViewerHost.HalconWindow, _calibrationPoints);
+                _displayService.RenderCalibrationOverlay(ViewerHost.HalconWindow, _calibrationPoints, _calibrationLabel);
             }
 
             if (_datumConfig != null && _datumOverlayVisible)

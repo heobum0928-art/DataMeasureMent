@@ -3297,17 +3297,9 @@ namespace ReringProject.UI {
             label_drawHint.Content = resultText;
             label_drawHint.Foreground = new SolidColorBrush(Colors.White);
             label_drawHint.Visibility = Visibility.Visible;
-            // 어느 두 점을 쟀는지 결과와 함께 보이도록 점 오버레이를 다시 올린다(ExitCanvasMode 가 지운 것을 복원).
-            halconViewer.SetCalibrationOverlay(shownPoints);
-
-            var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(DistanceResultDisplaySeconds);
-            timer.Tick += (s, args) => {
-                timer.Stop();
-                label_drawHint.Visibility = Visibility.Collapsed;
-                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
-            };
-            timer.Start();
+            // 잰 두 점 + 결과 문구를 HALCON 창 안에 함께 올린다(ExitCanvasMode 가 지운 것을 복원).
+            //  창 내부 렌더라 airspace 영향을 받지 않고, 다음 캔버스 작업 전까지 계속 남아 있는다.
+            halconViewer.SetCalibrationOverlay(shownPoints, resultText);
         }
 
         //260623 hbk Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).

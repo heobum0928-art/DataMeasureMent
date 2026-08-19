@@ -623,7 +623,10 @@ namespace ReringProject.Halcon.Display
         }
 
         /// <summary>Renders calibration crosshairs and connecting line.</summary>
-        public void RenderCalibrationOverlay(HWindow window, IList<Point> points)
+        //260819 hbk quick-fix(260819-click2): labelText 추가 — 측정 결과를 HALCON 창 "안에" 그린다.
+        //  캔버스 위에 얹은 WPF Label 은 HWND airspace 로 항상 가려져 안 보이므로(실기 확인),
+        //  결과 숫자는 선 옆에 직접 렌더해야 사용자 눈에 들어온다. null 이면 기존 동작 그대로(점/선만).
+        public void RenderCalibrationOverlay(HWindow window, IList<Point> points, string labelText = null)
         {
             if (window == null || points == null || points.Count == 0) return;
             int crossSize = 20;
@@ -646,6 +649,17 @@ namespace ReringProject.Halcon.Display
                 window.SetColor("green");
                 window.SetLineWidth(1);
                 window.DispLine(p1.Y, p1.X, p2.Y, p2.X);
+
+                // 측정 결과 텍스트 (선 중점 위쪽). 좌표는 이미지 픽셀 단위라 확대/축소해도 선을 따라다닌다.
+                if (!string.IsNullOrEmpty(labelText))
+                {
+                    double midRow = (p1.Y + p2.Y) / 2.0;
+                    double midCol = (p1.X + p2.X) / 2.0;
+                    window.SetColor("yellow");
+                    EnsureFontInitialized(window);
+                    HOperatorSet.SetTposition(window, midRow - crossSize - 10, midCol);
+                    HOperatorSet.WriteString(window, labelText);
+                }
             }
         }
 

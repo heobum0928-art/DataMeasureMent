@@ -667,8 +667,11 @@ namespace ReringProject.Halcon.Display
                 {
                     double midRow = (p1.Y + p2.Y) / 2.0;
                     double midCol = (p1.X + p2.X) / 2.0;
+                    // 이미지 상단 근처를 재면 라벨 행이 음수가 되어 글자가 잘려 안 보인다 — 0 으로 클램프.
+                    double labelRow = midRow - crossSize - 10;
+                    if (labelRow < 0.0) labelRow = 0.0;
                     window.SetColor("green");
-                    HOperatorSet.SetTposition(window, midRow - crossSize - 10, midCol);
+                    HOperatorSet.SetTposition(window, labelRow, midCol);
                     HOperatorSet.WriteString(window, labelText);
                 }
 

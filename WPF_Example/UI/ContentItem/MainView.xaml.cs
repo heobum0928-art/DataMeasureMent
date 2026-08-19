@@ -3252,8 +3252,8 @@ namespace ReringProject.UI {
         }
 
         //quick-260819-n4d: 두 클릭 사이 픽셀거리 -> 선택 FAI 의 Shot.GetEffectivePixelResolution() 으로 mm 환산해
-        //  label_message 에 총/가로/세로 3값으로 표시. FAI 미선택/Shot 해석 불가 시 픽셀-only 로 조용히 폴백(크래시 금지).
-        //  아무 것도 저장하지 않는다 -- PixelResolution/PixelResolutionX/Y 쓰기 없음(Calibrate 와의 핵심 차이).
+        //  HALCON 창 안 직각삼각형(빗변/가로변/세로변) + 툴바에 표시. FAI 미선택/Shot 해석 불가 시 픽셀-only 로
+        //  조용히 폴백(크래시 금지). 아무 것도 저장하지 않는다 -- PixelResolution 쓰기 없음(Calibrate 와의 핵심 차이).
         private void FinishDistanceMeasure() {
             var p1 = _measurePoints[0];
             var p2 = _measurePoints[1];

@@ -1010,10 +1010,9 @@ namespace ReringProject.Sequence {
             bool bIsRoleB = nCurZ == datum.ZIndexB;
             bool bRelevant = bIsRoleA || bIsRoleB;
             if (!bRelevant) {
-                //260722 hbk Phase 68 CROSS-1(68-GAP-ANALYSIS.md): 소비 index(자기 ZIndexA/B 아님, 예 z=2 측정)
-                //  — ClearDatumTransforms 가 매 Action 의 EStep.DatumPhase 진입마다 _datumTransforms 를 비우므로,
-                //  여기서 재검출 없이 그냥 skip 하면 ResolveDatumTransform 이 identity 로 조용히 폴백해 무보정
-                //  측정이 정상 측정처럼 P/F 를 낸다. 양 role 이 저장소에 이미 있으면 결정론적으로 재검출한다.
+                // 이 tick 과 무관한 기준점은 여기서 다시 검출하지 않고 건너뛴다 — 매 단계 진입마다
+                //  기존 검출 결과가 지워지므로, 이미 두 이미지가 다 모여 있는 기준점만 여기서
+                //  다시 검출해 정확한 값을 만든다.
                 bool bBothStored = IsCrossZDatumBothStored(datum, parentSeq);
                 if (bBothStored) {
                     return TryReDetectCrossZDatumFromStore(datum, parentSeq, out imageHorizontal, out imageVertical);
@@ -1107,15 +1106,11 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        //260722 hbk Phase 68 D-08 회귀수정(D-09): pathA(PointROI) 소스 우선순위 결정을 별도 함수로 추출(30줄 초과 방지).
-        //  회귀 원인: b28beca 가 ShotParam.HasImage 를 최우선으로 승격했으나, SIMUL_MODE/OfflineInspectMode(이 사이트의
-        //  실제 운영 모드, Z모터 없는 수동지그) 에서는 EStep.Grab 이 매 사이클 LoadShotInspectionImage()+SetImage() 를
-        //  거쳐 HasImage 가 Measure 시점엔 항상 true 임 → 라이브 분기를 최우선에 두면 TeachingImagePath_Horizontal 이
-        //  도달 불가능한 죽은 코드가 되어, 운영자가 명시 지정한 PointROI 교시 이미지가 매번 무시됨
-        //  (DualImage 측정값 미산출 증상). 올바른 우선순위:
-        //  (1) TeachingImagePath_Horizontal 명시 경로 — 운영자 명시 설정은 절대 자동 override 되면 안 됨.
-        //  (2) ShotParam.HasImage(라이브 grab) — 명시 경로 없을 때만, 불필요한 파일 재로드 회피(D-08 원 의도 보존).
-        //  (3) ShotParam.SimulImagePath 폴백.
+        // 이미지 소스 우선순위를 정하는 부분만 따로 뺐다.
+        //  예전에 실기 촬영을 최우선으로 두는 버그가 있었다 — 이 현장처럼 매 사이클 이미지를
+        //  자동으로 채워두는 운영 모드에서는 그게 항상 참이 되어, 운영자가 직접 지정한 교시
+        //  이미지가 매번 무시되는 문제가 있었다(측정값이 안 나오는 증상). 지금 순서: ①운영자가
+        //  직접 지정한 경로 ②실기 촬영 ③기본 검사 이미지.
         private void ResolveFaiImageASource(DualImageEdgeDistanceMeasurement dualMeas, out string pathA, out HImage liveImageA, out bool bPathALoadNeeded) {
             bool bHasExplicitTeachingPath = !string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal);
             bool bHasLiveImage = ShotParam.HasImage;
@@ -1215,11 +1210,9 @@ namespace ReringProject.Sequence {
             return list;
         }
 
-        //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: Shot 안의 모든(비-크로스-Z) FAI 가 sharedSrc 를 통해
-        //  완전히 동일한 원본 이미지를 참조하므로, origin 저장은 Shot 당 1회만 큐에 넣는다(기존: FAI 마다 매번,
-        //  127MP 기준 실측 ~1초/장 — FAICount=35 면 35회 중복 저장). 반환값은 모든 FAI 가 공유할 파일 경로(파일명만
-        //  Shot 단위로 결정 — 개별 FAI 판정/측정점 세그먼트는 담지 않음, 애초에 Shot 전체가 공유하는 파일이므로).
-        //  saver/sharedSrc 가 없으면 enqueue 없이 경로만 반환(호출부가 기존과 동일하게 파일명 메타를 채울 수 있도록).
+        // Shot 안의 모든 FAI 가 완전히 같은 원본 이미지를 보므로, 원본 저장은 Shot 당 한 번만
+        //  큐에 넣는다(항목마다 저장하면 항목 수만큼 느려진다). 파일 경로만 돌려주고 판정 값은
+        //  담지 않는다 — 어차피 Shot 전체가 공유하는 파일이라서다.
         private string QueueSharedShotOrigin(SharedHImage sharedSrc, InspectionSequence parentSeq) {
             if (ShotParam == null) return "";
             DateTime ts = DateTime.Now;
@@ -1245,13 +1238,10 @@ namespace ReringProject.Sequence {
             return originPath;
         }
 
-        // FAI별 원본/캡쳐 이미지를 비동기 저장 큐에 넣고, 파일명을 fai 에 동기 write-back.
-        //  파일명은 BuildDto(AddResponse) 가 읽으므로 enqueue 전에 동기 확정. PNG write 만 워커가 비동기 수행.
-        //  origin/capture 가 동일 timestamp·segment 쌍을 유지한다.
-        //  sharedSrc(Shot당 1회 복사 공유)를 받아 capture 요청에 ref 공유. 파일명 write-back 은 saver/공유 유무와 무관하게 항상 수행.
-        //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: szSharedOriginPath 가 있으면(비-크로스-Z, 일반 경로)
-        //  origin 은 이미 QueueSharedShotOrigin 으로 Shot 당 1회 저장됐으므로 여기선 경로만 기록하고 재저장하지 않는다.
-        //  null 이면(크로스-Z — FAI 마다 실제로 다른 role 이미지 가능) 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
+        // 원본/캡처 이미지를 비동기 저장 큐에 넣고, 파일명은 즉시(동기) 확정해둔다 — 결과 데이터가
+        //  이 파일명을 바로 읽어가므로 미리 정해둬야 한다. 실제 PNG 저장만 백그라운드에서 나중에 한다.
+        // 원본이 Shot 당 한 번만 저장된 경우엔 여기서 다시 저장하지 않고 경로만 기록한다 —
+        //  크로스-Z(항목마다 다른 이미지일 수 있음)는 항목마다 따로 저장한다.
         private void QueueFaiCapture(FAIConfig fai, SharedHImage sharedSrc, List<EdgeInspectionOverlay> faiOverlays, List<DatumCaptureOverlay> datumSnapshot, string sequenceName, string szSharedOriginPath) {
             if (fai == null) return;
             var saver = SystemHandler.Handle.CaptureImageSaver;
@@ -1396,18 +1386,12 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
         }
 
-        //260729 hbk quick-fix(260729-e9q): MarkMeasurementZIndexMisconfigured 미러 — 비프로토콜 실행(RUN 버튼/
-        //  RepeatRunService·BatchRunService 일괄검사)에서 크로스-Z A/B 짝이 구조적으로 완성 불가일 때의 명시적
-        //  미측정 NG. GetExecutionZIndex() 가 항상 0(RequestPacket==null, D-08 안전 폴백)이므로 ZIndexA!=ZIndexB
-        //  중 최대 한쪽만 매칭될 수 있고, 이 Shot 의 EStep.Measure 는 이번 tick 한 번뿐이라 뒤이어 완성될 tick 이
-        //  존재하지 않는다. 기존엔 그대로 continue 해 faiAllPass 가 true 로 남았고 AggregateFaiResult 가
-        //  fai.IsPass=true 로 확정 → 한 번도 측정하지 않은 항목이 작업자/외부 핸들러에 PASS 로 보고됐다(안전 결함).
-        //  bRelevantTick=true = 한쪽 role 이미지만 캡처됨 / false = z=0 이 A·B 어느 쪽도 아니라 캡처조차 없음.
-        //260729 hbk quick-fix(260729-hwb): bProtocolCycle 파라미터 추가 — 상태 마킹부(ClearResult/LastSkipReason/
-        //  LastJudgement)는 e9q 와 동일하게 유지하고, 로그 문구만 분기한다. bProtocolCycle=false 는 e9q 문구를
-        //  한 글자도 바꾸지 않고 그대로 출력(비프로토콜 실행 안내). bProtocolCycle=true 는 프로토콜 사이클(수동
-        //  Z트리거 포함)의 정상 흐름 중간 상태임을 명시해 운영자가 고장으로 오인하지 않게 별도 문구를 출력한다.
-        //  parentSeq2 는 bProtocolCycle=true 일 때만 현재 tick 의 z(GetExecutionZIndex) 를 로그에 남기는 데 쓴다.
+        // 수동(RUN/반복/일괄) 검사에서 크로스-Z 짝이 절대 완성될 수 없는 상황의 처리 — 예전엔
+        //  그냥 넘어가서 "한 번도 측정 안 한 항목"이 합격으로 보고되는 안전 문제가 있었다.
+        //  지금은 명시적으로 불합격 처리한다.
+        // 로그 문구만 상황에 따라 다르게 낸다 — 수동 검사는 기존 안내 문구 그대로, 자동(PLC) 검사
+        //  중간 상태는 "고장이 아니라 정상 대기"라는 걸 알 수 있게 별도 문구를 쓴다. 판정 자체는
+        //  둘 다 동일하다.
         private void MarkMeasurementCrossZIncomplete(MeasurementBase meas, bool bRelevantTick, bool bProtocolCycle, InspectionSequence parentSeq2)
         {
             meas.ClearResult();
@@ -1437,11 +1421,9 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' 미측정 NG — 비프로토콜 실행(RUN 버튼/일괄검사)은 z_index 가 항상 0 이라 ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 짝을 완성할 수 없음(" + szCase + "). 실제로 측정하려면 PLC/$TEST 또는 수동 Z 트리거로 두 z 위치를 모두 실행할 것 (" + meas.LastSkipReason + ")");
         }
 
-        //260722 hbk Phase 68 D-05: Datum(VerticalTwoHorizontalDualImage) ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/
-        //  존재하지 않는 z_index 참조 → true. 측정 레벨 IsZIndexMisconfigured 와 달리 호출부가 "하나라도 설정됨"을
-        //  미리 걸러주지 않고 이 알고리즘의 모든 datum 에 대해 무조건 호출되므로(호출부: EStep.DatumPhase 진입 직후),
-        //  둘 다 -1(미설정)인 경우를 별도로 먼저 통과시켜야 한다 — 그렇지 않으면 -1==-1 이 bSameValue 로 오판정된다
-        //  (D-07 회귀 0 보장). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
+        // 기준점의 A/B 짝 설정 오류 판정 — 하나만 설정됐거나, 같은 값이거나, 존재하지 않는 값을
+        //  가리키면 오류다. 단 둘 다 "설정 안 함"(-1)인 경우는 정상이니 먼저 걸러내야 한다 —
+        //  안 그러면 -1 과 -1 이 같은 값이라고 오판정한다.
         private bool IsDatumZIndexMisconfigured(DatumConfig datum, InspectionSequence parentSeq)
         {
             bool bAUnset = datum.ZIndexA == UNSET_ZINDEX;
@@ -1571,21 +1553,13 @@ namespace ReringProject.Sequence {
             return shotName + "|" + measName;
         }
 
-        //260722 hbk Phase 68 GAP-4(68-GAP-ANALYSIS.md 사후발견): 크로스-Z role별 이미지 대체.
-        //  SIMUL_MODE 에서 Shot 은 SimulImagePath 단일 고정 이미지만 가져(1-Shot-1-file) role A(ZIndexA tick)/
-        //  role B(ZIndexB tick) 가 매 tick ShotParam.GetImage() 를 호출해도 항상 동일 이미지를 반환한다 — 크로스-Z
-        //  거리계산 전제(서로 다른 두 Z 위치 이미지)가 SIMUL 에서 구조적으로 성립 불가능해 UAT 검증이 막혀 있었다
-        //  (사용자 디버거 실측: TakeCrossZImageCopy 로 취득한 imgA/imgB 가 동일 사진이었음).
-        //  대체 소스는 기존 static DualImage 경로가 이미 쓰는 두 필드를 재사용(신규 필드 도입 없음):
-        //  role A(ZIndexA tick) → TeachingImagePath_Horizontal, role B(ZIndexB tick) → TeachingImagePath_Vertical.
-        //  경로 미설정/파일없음 → 기존 ShotParam.GetImage() 라이브 폴백(이 두 경로를 설정 안 한 기존 레시피는 회귀 0).
-        //260729 hbk quick-fix(260729-jdi): #if SIMUL_MODE 게이트 제거. SIMUL_MODE 가 정의되지 않은 빌드
-        //  구성(Debug|x64)에서는 #else 가 무조건 ShotParam.GetImage() 를 반환해 role A/B 가 항상 같은 이미지를
-        //  받았다 — 가로 이미지 기준 PointROI 가 세로 이미지를 보게 되어 실기 크로스-Z 측정이 에지 0개로
-        //  실패했다(BOTTOM SHOT_E5 E5_P1/E5_P2 재현). 비-크로스-Z 경로 ResolveFaiImageASource/
-        //  TryGrabOrLoadFaiDualImages 는 애초에 컴파일 게이트 없이 "경로가 설정되어 있으면 항상 그 파일 사용"
-        //  정책이므로, 크로스-Z 도 같은 정책으로 통일해 빌드 구성에 관계없이 동일하게 동작시킨다. 경로 미설정
-        //  레시피는 여전히 라이브(ShotParam.GetImage()) 폴백이라 회귀 0.
+        // 시뮬레이션 모드에서는 Shot 이 사진 한 장만 고정으로 갖고 있어서, 크로스-Z 의 두 촬영(A/B)이
+        //  항상 같은 사진이 되어 거리 계산 자체가 성립하지 않았다(실측 확인됨) — 그래서 시뮬레이션
+        //  으로는 크로스-Z 를 검증할 방법이 없었다. 이제 A/B 각각 정해둔 교시 이미지가 있으면
+        //  그걸 대신 쓴다(경로 안 정해놨으면 기존처럼 실기 촬영으로 폴백, 회귀 없음).
+        // 처음엔 시뮬레이션 모드에서만 이 대체를 켰는데, 그러면 실기 빌드에서는 여전히 A/B 가
+        //  같은 사진이 되는 버그가 남아있었다(실기에서 재현된 실패 사례 있음) — 지금은 빌드
+        //  종류와 무관하게 항상 같은 규칙(경로가 정해져 있으면 그 파일 사용)으로 동작한다.
         private HImage LoadCrossZRoleImage(bool bIsRoleA, DualImageEdgeDistanceMeasurement dualMeas)
         {
             string szRoleTeachingPath;
@@ -1611,16 +1585,11 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 D-02a: 크로스-Z 캡처 tick 처리 — 이 측정과 무관(bRelevant=false) / 캡처 실패
-        //  (bCaptureOk=false) / 완성 여부(bCompleted) 3-state 판정. 새 라이브 grab 호출 없음 — EStep.DatumPhase
-        //  (GrabSyncLock 안)에서 이미 확보된 ShotParam.GetImage() 클론 재사용이 기본(lock 위반 없음, shared-
-        //  lighthandler-race 준수). role별 교시 경로가 설정돼 있으면 LoadCrossZRoleImage(GAP-4)
-        //  가 대신 그 파일에서 로드 — 파일 읽기이므로 GrabSyncLock/라이브 캡처와 무관, lock 계약 영향 없음.
-        //  완성(bCompleted=true) 이면 호출부가 TryExecuteCrossZMeasurement 로 이어간다.
-        //260729 hbk quick-fix(260729-hwb): out szCapturedRoleKey 추가 — 이번 tick 에서 실제로 캡처된 role 저장소
-        //  키를 호출부에 알려준다. 캡처 성공(bCaptureOk=true) 이외의 모든 조기 return 경로는 null 로 나간다.
-        //  화면/저장 표시가 항상 정적 SimulImagePath 였던 결함(T-HWB-02) 을 닫기 위해 호출부가 이 키로
-        //  TakeCrossZImageCopy 사본을 받아 표시/저장 소스로 쓴다.
+        // 크로스-Z 촬영 한 번(tick)을 처리한다 — 이 측정과 무관한지 / 촬영에 실패했는지 / A·B 가
+        //  다 모였는지 세 가지로 판정한다. 새로 촬영하지 않고 이미 찍어둔 사진을 재사용하는 게
+        //  기본이다(교시 경로가 지정돼 있으면 그 파일을 대신 읽는다).
+        // 이번에 실제로 캡처된 이미지가 어느 쪽(A/B)인지 호출부에 알려준다 — 화면/저장이 항상
+        //  고정 이미지만 보여주던 문제를 막기 위해, 호출부가 이 정보로 실제 측정 이미지를 표시/저장한다.
         private void ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, out bool bRelevant, out bool bCaptureOk, out bool bCompleted, out string szCapturedRoleKey)
         {
             bRelevant = false;

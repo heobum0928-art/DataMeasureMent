@@ -51,6 +51,25 @@ namespace ReringProject.Sequence {
             BothReady
         }
 
+        //260819 hbk quick-260819-gf1: Shot 측정 루프의 누적 상태 묶음.
+        //  왜 필요한가 — 종전엔 이 값들을 MeasureShotFaiList → ProcessOneMeasurement / FinalizeFaiTick 로
+        //  ref 파라미터에 실어 날랐다. ref 키워드를 하나만 빠뜨려도 컴파일은 통과하고 호출자 카운터만
+        //  조용히 0 으로 남는 구조였다. 참조형 1개로 묶으면 그 실수를 할 자리 자체가 사라진다.
+        //  ⚠ 프로퍼티가 아니라 반드시 '필드' 여야 한다 — 아직 ref 로 받는 헬퍼가 남아 있고
+        //    (TakeCrossZRoleImageIfFirst / MarkCrossZHalfPending / MarkAllMeasurementsNoImage),
+        //    C# 은 프로퍼티를 ref 인자로 넘기지 못한다(CS0206).
+        //  ⚠ 수명이 두 종류로 섞여 있다:
+        //    Shot 전체 수명 = AllPass / MeasuredCount / NMeasNg / ShotDisplayImageReplaced
+        //    FAI 1개 수명   = FaiAllPass / CrossZRoleImage → FAI 루프 진입마다 반드시 리셋한다.
+        private class ShotMeasureAccumulator {
+            public bool AllPass;
+            public int MeasuredCount;
+            public int NMeasNg;
+            public bool ShotDisplayImageReplaced;
+            public bool FaiAllPass;
+            public HImage CrossZRoleImage;
+        }
+
         private FAIMeasurementContext pMyContext;
         private VirtualCamera pCamera;
 
@@ -510,6 +529,13 @@ namespace ReringProject.Sequence {
                                         Dictionary<string, int> dctAlgoUsed,
                                         ref bool allPass, ref int measuredCount,
                                         ref int nMeasNg, ref bool bShotDisplayImageReplaced) {
+            //260819 hbk quick-260819-gf1: 바깥 시그니처(ref 4개)는 RunMeasure 와의 계약이라 그대로 둔다.
+            //  안쪽에서만 누적 객체로 바꿔 쓰고, 메서드 끝에서 딱 한 번 되쓴다.
+            var acc = new ShotMeasureAccumulator();
+            acc.AllPass = allPass;
+            acc.MeasuredCount = measuredCount;
+            acc.NMeasNg = nMeasNg;
+            acc.ShotDisplayImageReplaced = bShotDisplayImageReplaced;
             using (var image = ShotParam.GetImage()) {
                 if (image != null) {
                     // Shot당 1회 복사 공유(refcount). 검사 스레드의 FAI별 대용량 CopyImage 제거(throughput).
@@ -536,16 +562,16 @@ namespace ReringProject.Sequence {
                     //  않고 Shot 당 1회만 큐에 넣는다. 큐 상한(50=FAI 25개분)을 넘는 FAI 부터 저장 대기가 걸리던 원인.
                     string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
                     foreach (var fai in ShotParam.FAIList) {
-                        bool faiAllPass = true;
+                        acc.FaiAllPass = true;
                         var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
                         //260729 hbk quick-fix(260729-hwb): 이 FAI tick 에서 실제로 캡처된 크로스-Z role 이미지의
                         //  소유 사본(같은 FAI 안에서 첫 캡처가 이김). null 이면 AggregateFaiResult 는 종전과
                         //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
-                        HImage crossZRoleImage = null;
+                        acc.CrossZRoleImage = null;
                         foreach (var meas in fai.Measurements) {
-                            ProcessOneMeasurement(meas, parentSeq2, image, pixRes, ref crossZRoleImage, ref faiAllPass, ref measuredCount, ref nMeasNg, overlayAcc, faiOverlays, dctAlgoUsed);
+                            ProcessOneMeasurement(meas, parentSeq2, image, pixRes, ref acc.CrossZRoleImage, ref acc.FaiAllPass, ref acc.MeasuredCount, ref acc.NMeasNg, overlayAcc, faiOverlays, dctAlgoUsed);
                         }
-                        FinalizeFaiTick(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref crossZRoleImage, ref bShotDisplayImageReplaced, ref allPass);
+                        FinalizeFaiTick(fai, acc.FaiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref acc.CrossZRoleImage, ref acc.ShotDisplayImageReplaced, ref acc.AllPass);
                     }
                     } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
                         if (sharedSrc != null) sharedSrc.Release();
@@ -554,10 +580,18 @@ namespace ReringProject.Sequence {
                     //260616 hbk simul-shot-cascade: 이미지 미취득(SimulImagePath 무효) SHOT 은 모든 measurement NG 처리.
                     //  과거엔 공유 카메라 캐시 fallback 으로 항상 이미지가 채워져 이 분기가 사실상 미도달 → fallback 제거 후
                     //  무효 경로 SHOT 이 image==null 도달. allPass 가 default true 로 남아 잘못 PASS 되는 것을 차단.
-                    allPass = false;
-                    MarkAllMeasurementsNoImage(ref measuredCount); //260702 hbk Extract Method(Task2)
+                    acc.AllPass = false;
+                    MarkAllMeasurementsNoImage(ref acc.MeasuredCount); //260702 hbk Extract Method(Task2)
                 }
             }
+            //260819 hbk quick-260819-gf1: 되쓰기 — using 블록 바깥이라 image!=null / image==null 두 경로가
+            //  전부 여기로 합류한다. 예외로 탈출하는 경우 되쓰기는 생략되지만 관측 불가하다 —
+            //  RunMeasure 에는 try/catch 가 없어(실측) 호출부도 함께 unwind 되고,
+            //  ref 로 읽는 지점(원래 RunMeasure 대입문) 이후 문장에 애초에 도달하지 못한다.
+            allPass = acc.AllPass;
+            measuredCount = acc.MeasuredCount;
+            nMeasNg = acc.NMeasNg;
+            bShotDisplayImageReplaced = acc.ShotDisplayImageReplaced;
         }
 
         //260702 hbk Extract Method(Task3): Measure per-measurement 루프 본문(원본 foreach meas 내부, 동치 보장, continue->return)

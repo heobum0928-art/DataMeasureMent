@@ -25,6 +25,9 @@
                 <ComboBox x:Name="combo_Recipe" Width="180" VerticalAlignment="Center"/>
                 <Button x:Name="btn_Query" Content="조회" Click="Btn_Query_Click"
                         Padding="14,4" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                <Button x:Name="btn_CpkExport" Content="CPK 리포트 export" Click="Btn_CpkExport_Click"
+                        IsEnabled="False"
+                        Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 

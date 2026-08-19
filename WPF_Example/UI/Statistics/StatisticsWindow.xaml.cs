@@ -71,6 +71,36 @@ namespace ReringProject.UI
 
         private void Btn_Query_Click(object sender, RoutedEventArgs e)
         {
+            string szRecipe = GetSelectedRecipeFilter();
+
+            DoQuery(szRecipe);
+        }
+
+        /// <summary>기간(DatePicker)/레시피 필터로 조회 후 테이블/드롭다운/차트를 갱신한다. 실패해도 크래시 없이 빈 상태 폴백.</summary>
+        private void DoQuery(string szRecipeFilter)
+        {
+            try
+            {
+                DateTime dtFrom;
+                DateTime dtTo;
+                GetSelectedRange(out dtFrom, out dtTo);
+
+                m_lastResult = MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szRecipeFilter);
+                PopulateRecipeCombo(m_lastResult.RecipeNames, szRecipeFilter);
+                grid_Stats.ItemsSource = BuildRows(m_lastResult.Stats);
+                ClearCharts();   // 새 조회 직후 → 이전 선택 차트 비움(행 선택 시 다시 갱신)
+                UpdateExportButtonState();
+            }
+            catch (Exception ex)   //260707 hbk 조회 실패해도 UI 크래시 없이 빈 상태 폴백(ReviewerWindow 패턴)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[StatisticsWindow] DoQuery: " + ex.Message); } catch { }
+                UpdateExportButtonState();   // 예외로 중단되어도 버튼이 이전 상태로 남지 않게 한다
+            }
+        }
+
+        /// <summary>레시피 콤보 현재 선택 → 필터 문자열. "전체" 또는 미선택이면 빈 문자열(=필터 없음).</summary>
+        private string GetSelectedRecipeFilter()
+        {
             string szRecipe = "";
             if (combo_Recipe.SelectedItem != null)
             {
@@ -81,34 +111,103 @@ namespace ReringProject.UI
                 }
             }
 
-            DoQuery(szRecipe);
+            return szRecipe;
         }
 
-        /// <summary>기간(DatePicker)/레시피 필터로 조회 후 테이블/드롭다운/차트를 갱신한다. 실패해도 크래시 없이 빈 상태 폴백.</summary>
-        private void DoQuery(string szRecipeFilter)
+        /// <summary>DatePicker 두 개 → 조회 기간. 미선택이면 오늘로 폴백(기존 DoQuery 동작 동일).</summary>
+        private void GetSelectedRange(out DateTime dtFrom, out DateTime dtTo)
+        {
+            dtFrom = DateTime.Today;
+            if (dp_From.SelectedDate.HasValue)
+            {
+                dtFrom = dp_From.SelectedDate.Value;
+            }
+
+            dtTo = DateTime.Today;
+            if (dp_To.SelectedDate.HasValue)
+            {
+                dtTo = dp_To.SelectedDate.Value;
+            }
+        }
+
+        /// <summary>조회 결과가 있을 때만 export 버튼을 연다. 조회 전/0건이면 비활성.</summary>
+        private void UpdateExportButtonState()
+        {
+            bool bEnable = false;
+            if (m_lastResult != null && m_lastResult.TotalRowCount > 0)
+            {
+                bEnable = true;
+            }
+
+            btn_CpkExport.IsEnabled = bEnable;
+        }
+
+        /// <summary>
+        /// 현재 조회 조건(기간/레시피)으로 CSV 이력을 사이클 단위로 재조립해 CPK 리포트 xlsx 를 저장한다.
+        /// 화면 통계와 달리 사이클 재구성이 필요하므로 Query() 가 아니라 QueryCycles() 를 쓴다.
+        /// </summary>
+        private void Btn_CpkExport_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                DateTime dtFrom = DateTime.Today;
-                if (dp_From.SelectedDate.HasValue)
+                DateTime dtFrom;
+                DateTime dtTo;
+                GetSelectedRange(out dtFrom, out dtTo);
+                string szRecipeFilter = GetSelectedRecipeFilter();
+
+                List<CycleResultDto> cycles = MeasurementHistoryCsvLoader.QueryCycles(dtFrom, dtTo, szRecipeFilter);
+                if (cycles == null || cycles.Count == 0)
                 {
-                    dtFrom = dp_From.SelectedDate.Value;
+                    CustomMessageBox.Show("CPK 리포트 export", "해당 기간에 데이터가 없습니다.", MessageBoxImage.Warning);
+                    return;
                 }
 
-                DateTime dtTo = DateTime.Today;
-                if (dp_To.SelectedDate.HasValue)
+                string szRecipeName = szRecipeFilter;
+                if (string.IsNullOrEmpty(szRecipeName))
                 {
-                    dtTo = dp_To.SelectedDate.Value;
+                    szRecipeName = RECIPE_ALL;
                 }
 
-                m_lastResult = MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szRecipeFilter);
-                PopulateRecipeCombo(m_lastResult.RecipeNames, szRecipeFilter);
-                grid_Stats.ItemsSource = BuildRows(m_lastResult.Stats);
-                ClearCharts();   // 새 조회 직후 → 이전 선택 차트 비움(행 선택 시 다시 갱신)
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel 파일 (*.xlsx)|*.xlsx",
+                    FileName = "cpk_report_" + dtFrom.ToString("yyyyMMdd") + "_" + dtTo.ToString("yyyyMMdd") + ".xlsx",
+                    InitialDirectory = SystemHandler.Handle.Setting.ResultSavePath
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    bool bOk = ReringProject.Export.CpkReportExportService.ExportCpkReport(
+                        cycles, szRecipeName, dlg.FileName,
+                        ReringProject.Export.CpkReportExportService.DEFAULT_MAX_RAW_COLUMNS);
+
+                    string szMsg;
+                    if (bOk)
+                    {
+                        szMsg = "저장 완료:\n" + dlg.FileName;
+                    }
+                    else
+                    {
+                        szMsg = "export 실패 (로그 확인)";
+                    }
+
+                    MessageBoxImage icon;
+                    if (bOk)
+                    {
+                        icon = MessageBoxImage.Information;
+                    }
+                    else
+                    {
+                        icon = MessageBoxImage.Error;
+                    }
+
+                    CustomMessageBox.Show("CPK 리포트 export", szMsg, icon);
+                }
             }
-            catch (Exception ex)   //260707 hbk 조회 실패해도 UI 크래시 없이 빈 상태 폴백(ReviewerWindow 패턴)
+            catch (Exception ex)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[StatisticsWindow] DoQuery: " + ex.Message); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[StatisticsWindow] Btn_CpkExport_Click: " + ex.Message); } catch { }
+                CustomMessageBox.Show("CPK 리포트 export", "export 중 오류가 발생했습니다 (로그 확인)", MessageBoxImage.Error);
             }
         }
 

@@ -1065,6 +1065,10 @@ namespace ReringProject.UI
         {
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
+            //260819 hbk quick-diag(260819-click2r2): 재현 재확인용 임시 진단 로그.
+            ReringProject.Utility.Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
+                "[CLICK-DIAG2] HMouseDown 진입 buttons={0} isEditMode={1} hasImage={2} pt=({3:F1},{4:F1})",
+                mouseState.Buttons, _isEditMode, HasImage, mouseState.ImagePoint.X, mouseState.ImagePoint.Y);
             if ((mouseState.Buttons & HalconRightButton) == HalconRightButton)
             {
                 // 우클릭 시 Edit 모드 무관 hit-test 로 _selectedRoiId 갱신.

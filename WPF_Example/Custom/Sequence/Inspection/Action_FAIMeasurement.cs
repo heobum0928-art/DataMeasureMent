@@ -296,36 +296,42 @@ namespace ReringProject.Sequence {
                     parentSeq.MarkDatumFailed(datum.DatumName);
                     return; // datum skip, abort 안 함
                 }
-                //260619 hbk Phase 57 #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
-                //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
-                //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
-                if (datum.IsPatternAlignEnabled) {
-                    string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
-                    string alignErr;
-                    if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
-                        string dn = datum.DatumName;
-                        dn = dn ?? "";
-                        string ae = alignErr;
-                        ae = ae ?? "";
-                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
-                        datum.RuntimeDetectFailed = true;
-                        parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
-                    }
-                } else {
-                    string derr;
-                    if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
-                        string datumName = datum.DatumName;
-                        datumName = datumName ?? "";
-                        string derrStr = derr;
-                        derrStr = derrStr ?? "";
-                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
-                        datum.RuntimeDetectFailed = true;
-                        parentSeq.MarkDatumFailed(datum.DatumName);
-                    }
-                }
+                RunDatumDualImageDetection(datum, parentSeq, imgH, imgV); //260819 hbk quick-260819-s05: align/detect 분기를 RunDatumDualImageDetection 헬퍼로 추출(측정 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와 동일 패턴)
             } finally {
                 SafeDisposeImage(imgH);
                 SafeDisposeImage(imgV);
+            }
+        }
+
+        //260819 hbk quick-260819-s05: ProcessDatumDualImage 의 align/detect 분기 본문 추출 — 측정 쪽 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와
+        //  동일한 "오케스트레이터가 같은 모양의 헬퍼를 호출" 패턴. 카운터(nDatumOk/nDatumFail) 미접근 구조 그대로 유지(원본 ProcessDatumDualImage 도 카운터 미사용, D-1).
+        private void RunDatumDualImageDetection(DatumConfig datum, InspectionSequence parentSeq, HImage imgH, HImage imgV) {
+            //260619 hbk Phase 57 #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
+            //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
+            //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
+            if (datum.IsPatternAlignEnabled) {
+                string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
+                string alignErr;
+                if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
+                    string dn = datum.DatumName;
+                    dn = dn ?? "";
+                    string ae = alignErr;
+                    ae = ae ?? "";
+                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                    datum.RuntimeDetectFailed = true;
+                    parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
+                }
+            } else {
+                string derr;
+                if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
+                    string datumName = datum.DatumName;
+                    datumName = datumName ?? "";
+                    string derrStr = derr;
+                    derrStr = derrStr ?? "";
+                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                    datum.RuntimeDetectFailed = true;
+                    parentSeq.MarkDatumFailed(datum.DatumName);
+                }
             }
         }
 

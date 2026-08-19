@@ -640,12 +640,9 @@ namespace ReringProject.Sequence {
             bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
             if (bHasAnyZIndex)
             {
-                //260818 hbk 게이트 판정을 명시적 상태(ECrossZGate)로 뽑아 아래 switch 한 곳에서 처리한다.
-                //  ⚠ 판정에 필요한 호출 중 ProcessCrossZCaptureTick 은 순수하지 않다(실제 캡처/저장 수행).
-                //    그래서 분류 함수 안으로 숨기지 않고 switch '앞'에 그대로 둔다 —
-                //    "IsZIndexMisconfigured 를 통과한 경우에만 캡처한다"는 원본 단락(short-circuit)
-                //    순서와 호출 횟수를 눈에 보이게 보존하기 위함이다.
-                //    순수한 것은 out 3개 bool → enum 변환뿐이고, 그 부분만 ResolveCrossZGate 로 뺐다.
+                // 판정을 명시적인 상태값(ECrossZGate)으로 뽑아서 아래 switch 한 곳에서만 처리한다.
+                //  실제 캡처/저장을 수행하는 ProcessCrossZCaptureTick 호출은 일부러 switch 밖에 남겨뒀다 —
+                //  "설정 오류를 통과한 경우에만 캡처한다"는 순서와 호출 횟수를 그대로 보존하기 위해서다.
                 bool bRelevant = false;
                 bool bCaptureOk = false;
                 bool bCompleted = false;
@@ -660,14 +657,9 @@ namespace ReringProject.Sequence {
                 else
                 {
                     ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
-                    //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
-                    //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
-                    //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
-                    //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
-                    //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
-                    //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
-                    //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
-                    //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
+                    // 수동으로 RUN 버튼을 눌러 검사할 때는 한 번만 찍어서 크로스-Z 두 장이 절대 안 모인다 —
+                    //  조용히 넘어가면 "안 잰 것도 합격"되는 버그가 있어 NG 처리한다.
+                    // 자동(PLC) 촬영은 다음 번에 나머지가 채워지니 그냥 기다린다.
                     bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
                     eGate = ResolveCrossZGate(bRelevant, bCaptureOk, bCompleted);
                 }
@@ -736,12 +728,9 @@ namespace ReringProject.Sequence {
             acc.MeasuredCount++;
         }
 
-        //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.
-        //   이름에 Tally 가 붙은 이유 — 로그만 찍지 않는다. dctAlgoUsed(Shot 단위 알고리즘 사용 횟수)를
-        //    갱신하는 부수효과가 있고, 이 집계값을 RunMeasure 끝의 [SEQ] Measure 요약 로그가 소비한다.
-        //    Dictionary 는 참조형이라 값 전달로도 호출자 인스턴스가 그대로 갱신된다(ref 불필요).
-        //   Stopwatch 를 통째로 받는다 — ms 를 호출부에서 미리 계산해 넘기면 읽는 시점이 앞당겨져
-        //    로그 숫자가 달라진다. 아래 PrintLog 인자 위치에서 읽어야 원본과 동일 시점이다.
+        // 이름에 Tally 가 붙은 건 로그만 찍는 게 아니라서다 — dctAlgoUsed(Shot 안에서 어떤 알고리즘을
+        //  몇 번 썼는지)를 같이 갱신한다. Stopwatch 를 통째로 넘기는 이유는, 시간을 미리 재서 넘기면
+        //  로그에 찍히는 숫자가 실제보다 앞당겨지기 때문이다 — 로그를 찍는 시점에 직접 읽어야 한다.
         private void LogAndTallyAlgorithm(MeasurementBase meas, bool bHasAnyZIndex, bool bOk,
                                           Dictionary<string, int> dctAlgoUsed, Stopwatch swMeasureExec) {
             //260818 hbk 어떤 측정 알고리즘을 탔는지 — Shot 요약용 집계 + Algorithm 탭 상세 1줄
@@ -775,12 +764,10 @@ namespace ReringProject.Sequence {
             return ECrossZGate.BothReady;
         }
 
-        //260729 hbk quick-fix(260729-hwb): 이번 tick 에서 실제로 캡처된 role 이미지의
-        //  소유 사본을 받아둔다(같은 FAI 안에서 첫 캡처가 결정론적으로 이긴다).
-        //  AggregateFaiResult 의 표시/저장 소스로 sharedSrc 대신 사용된다(아래).
-        //260818 hbk ⚠ 부수효과 있음 — 원본에서 이 문장은 !bCaptureOk 게이트와 !bCompleted 게이트
-        //  '사이'에 있었다. 그래서 HalfPending / BothReady 두 case 의 '첫 줄'에서만 호출한다.
-        //  조건식은 원문 그대로 둔다(첫 항 bCaptureOk 는 호출 지점상 항상 참이지만 대조 근거로 유지).
+        // 이번 tick 에서 실제로 캡처된 이미지의 사본을 받아둔다(같은 FAI 안에서 먼저
+        //  캡처된 쪽이 이긴다) — 화면 표시/저장에 이 사본을 쓴다.
+        // 조건식은 원래 코드 그대로 뒀다 — 지금은 항상 참인 항이 있지만, 나중에 코드가
+        //  바뀌어도 안전하도록 남겨둔다.
         private void TakeCrossZRoleImageIfFirst(InspectionSequence parentSeq2, bool bCaptureOk, string szCapturedRoleKey, ref HImage crossZRoleImage) {
             if (bCaptureOk && crossZRoleImage == null && !string.IsNullOrEmpty(szCapturedRoleKey) && parentSeq2 != null)
             {
@@ -797,11 +784,9 @@ namespace ReringProject.Sequence {
             }
             else
             {
-                //260729 hbk quick-fix(260729-hwb): 프로토콜 사이클(수동 Z트리거 포함)도
-                //  짝이 아직 미완성인 tick 에서 faiAllPass 기본값 true 로 방치하지 않고
-                //  CROSS_Z_INCOMPLETE 로 명시 표시한다(T-HWB-01). AddFaiResult 의 완성
-                //  index 게이트가 미완성 index 를 애초에 보고 대상에서 제외하므로 PLC
-                //  응답은 오염되지 않는다 — 영향 범위는 화면/캡처 파일명/cycle.json 뿐.
+                // 자동(PLC) 촬영이든 수동이든, 짝이 아직 안 모인 상태를 "합격"으로 방치하지 않고
+                //  명시적으로 미완성 표시한다. 이 표시는 화면/파일명에만 영향을 주고, PLC 로 나가는
+                //  최종 응답에는 영향이 없다(미완성 tick 은 애초에 보고 대상에서 빠지기 때문).
                 MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
                 faiAllPass = false;
             }
@@ -818,12 +803,9 @@ namespace ReringProject.Sequence {
                 if (acc.CrossZRoleImage == null) {
                     AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath); //260702 hbk Extract Method(Task2)
                 } else {
-                    //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
-                    //  대신 실제 측정에 쓰인 role 이미지로 교체한다(T-HWB-02). sharedSrc 의 기존 소유권
-                    //  계약(L284-285/L443-445, AddRef/Release, 워커 요청과 독립)을 그대로 미러한다.
-                    //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 크로스-Z 는 FAI 마다 실제로
-                    //  다른 role 이미지를 참조할 수 있어 Shot 공유 origin 재사용 대상이 아니다 — origin path
-                    //  null 로 넘겨 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
+                    // 크로스-Z 측정의 캡처/저장은 고정 사본 대신 실제로 측정에 쓰인 이미지를 쓴다.
+                    // 크로스-Z 는 FAI 마다 다른 이미지를 참조할 수 있어서 Shot 공유 저장을 못 쓴다 —
+                    //  FAI 마다 따로 저장한다(회귀 없음).
                     SharedHImage crossZSharedSrc = null;
                     try {
                         try { crossZSharedSrc = new SharedHImage(acc.CrossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
@@ -857,11 +839,10 @@ namespace ReringProject.Sequence {
             FinishAction(finishResult);
         }
 
-        // SIMUL / 오프라인 공용: SHOT 검사 이미지는 ShotParam.SimulImagePath 단일소스. 실패 시 null + 로그.
-        //  경로 무효/로드 실패 시 공유 VirtualCamera 캐시(BackgroundImagePath 하드코딩 / stale LastGrabHalconImage)로
-        //  silent fallback 하지 않는다 — fallback 은 시퀀스 전 SHOT 공유 캐시의 임의 이미지를 반환해 경로 오류 SHOT 이
-        //  엉뚱/직전 이미지로 측정되는 캐스케이드(번짐)를 유발했었다. 무효 경로 SHOT 은 null 로 유지 → Measure 단계
-        //  GetImage()==null 로 해당 SHOT 만 측정 skip, SHOT 간 전파 차단.
+        // 검사 이미지 경로가 하나뿐이고 실패하면 null + 로그만 남긴다.
+        //  예전엔 실패 시 다른 카메라의 캐시 이미지로 몰래 대체했었는데, 그러면 경로가 잘못된 SHOT 이
+        //  엉뚱한(또는 방금 전) 이미지로 측정되는 문제가 있었다 — 지금은 그 SHOT 만 측정 skip 하고
+        //  다른 SHOT 에는 영향을 주지 않는다.
         private HImage LoadShotInspectionImage() {
             if (ShotParam == null) return null;
             if (!string.IsNullOrEmpty(ShotParam.SimulImagePath) && File.Exists(ShotParam.SimulImagePath)) {
@@ -935,17 +916,12 @@ namespace ReringProject.Sequence {
             return image;
         }
 
-        //260810 hbk quick-260810-egx: 자동검사(TCP $PREP/$TEST) 사이클에서 "표시 전용" 127MP 사본 생성을 생략할지 판단.
-        //  true 면 pMyContext.ResultHalconImage 를 만들지 않는다(Shot 당 memcpy 2회 제거: 여기 + SequenceContext.CopyFrom clone).
-        //  세 조건 AND:
-        //   1) 프로토콜(자동) 사이클 — 수동 RUN / 티칭 / 일괄검사(RepeatRun/BatchRun)는 RequestPacket==null 이라 항상 false → 표시 유지.
-        //   2) 설정 DisableViewerDuringAutoInspect 가 ON (opt-in, 기본 false = 기존 동작).
-        //   3) SaveFailImage 가 OFF — 이게 핵심 가드다. SaveFailImage 가 ON 이면 SequenceBase.SaveResultImage 가
-        //      Context.ResultHalconImage 를 실제 "저장 소스"(데이터 경로)로 사용하므로, 표시사본을 없애면 결과이미지 저장이
-        //      조용히 깨진다. 이 가드로 데이터 경로 영향 0 을 코드로 보장한다.
-        //  Setting 이 null 인 극단 상황은 false(=기존 동작 유지) 로 폴백한다.
-        //  주의: 이 판단은 "화면 표시"에만 적용된다 — capture/original 저장(QueueFaiCapture/CaptureImageSaveService)은 무관하며
-        //        OK/NG 전부 기존과 동일하게 저장된다.
+        // 자동(PLC) 검사 중 화면표시용 이미지 사본 만들기를 생략할지 정한다 — 생략하면 Shot 당
+        //  대용량 복사 2번을 아낀다. 세 조건이 다 맞을 때만 생략한다: ①자동 검사일 것(수동/티칭은
+        //  항상 표시 유지) ②설정에서 켜져 있을 것(기본은 꺼짐=기존 동작) ③불량 이미지 저장 설정이
+        //  꺼져 있을 것 — 이게 핵심 조건이다. 불량 이미지 저장이 켜져 있으면 이 표시용 사본이
+        //  실제 저장 데이터로도 쓰이므로, 생략하면 저장이 조용히 깨진다.
+        // 이 설정은 "화면 표시"에만 적용된다 — 결과 이미지 저장 자체는 이 값과 무관하게 항상 된다.
         private bool IsViewerUpdateSkipped(InspectionSequence parentSeq) {
             if (parentSeq == null) return false;
             if (!parentSeq.IsProtocolDrivenCycle()) return false;
@@ -956,21 +932,13 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        // DualImage 변형용 두 이미지 동시 로드 (per-datum).
-        //  ZIndexA/ZIndexB 둘 다 설정(-1 아님) → 크로스-Z 라이브 캡처 경로(D-06). 미설정(-1/-1) → 기존 static 경로(D-07 회귀 0).
-        //  bPending=true 는 "실패 아님, 다음 z_index 대기"(D-02a) — 호출부가 MarkDatumFailed 를 걸지 않는 근거.
-        //260724 hbk quick-fix(재발, SIDE_SHOT_F9/Side_Datum_4): 수동(RUN/Repeat/Batch) 경로는 RequestPacket==null
-        //  이라 GetExecutionZIndex() 가 항상 0 을 반환(D-08 안전 폴백)해 이 datum의 ZIndexA/ZIndexB(예: 7/8, 11/12)와
-        //  결코 일치할 수 없다 — 크로스-Z tick 상태기계가 구조적으로 완주 불가능. 방치 시 datum 이 매 RUN 마다 조용히
-        //  skip(bPending, MarkDatumFailed 미설정)되어 DatumConfig.DetectedOriginRow/Col/RefAngle/RefAngle2(직전 성공
-        //  검출 잔여값 — 몇 시간/며칠 전일 수 있음)이 InjectDatumOrigin 을 통해 아무 실패 표시 없이 재사용된다
-        //  (m_dicCrossZImages 케이스와 동일 계열의 stale 재사용, 계층만 다름 — 오늘자 HandleRunStartResetResults 의
-        //  BeginCrossZImageCycle() 클린 슬레이트 조치로는 커버되지 않는다: 저장소가 비어있어도 nCurZ 가 애초에
-        //  ZIndexA/B 와 매칭될 수 없으므로 여전히 bPending=true 로 매번 skip 된다). 프로토콜 $TEST/DebugManualZTrigger
-        //  (Custom/SystemHandler.cs, RequestPacket!=null, 실제 z_index 스텝)는 완전히 무변경 — 수동 경로만 tick 게이트를
-        //  우회해 기존 static 경로(TeachingImagePath/_Vertical, 무 z 의존)로 동기 취득한다. TeachingImagePath/_Vertical 이
-        //  비어 있으면 SHOT 검사이미지(ShotParam.SimulImagePath)로 폴백하고(1-image datum 경로와 동일 패턴), 그것마저
-        //  없을 때만 TryLoadStaticDualDatumImages 가 false 를 반환해 명시적 DETECT FAIL/NG 로 이어진다(조용한 stale 재사용 금지).
+        // 양쪽(A/B) 이미지를 동시에 로드한다. 둘 다 설정돼 있으면 크로스-Z 실시간 촬영 경로,
+        //  하나도 없으면 기존 고정 이미지 경로다. "대기 중"(bPending) 은 실패가 아니라 다음 촬영을
+        //  기다리는 정상 상태다.
+        // 수동(RUN/반복/일괄) 검사는 이 기준점의 짝(A/B)이 절대 완성될 수 없는 구조다 — 방치하면
+        //  이 기준점이 매번 조용히 건너뛰어지고(실패로 표시되지 않음), 예전에 검출 성공했을 때의
+        //  위치(몇 시간~며칠 전 값일 수 있음)가 실패 표시 없이 계속 재사용된다. 자동(PLC) 검사는
+        //  이 문제와 무관하며 완전히 그대로 동작한다.
         private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
             imageHorizontal = null;
             imageVertical = null;
@@ -987,15 +955,11 @@ namespace ReringProject.Sequence {
             return TryLoadStaticDualDatumImages(datum, out imageHorizontal, out imageVertical);
         }
 
-        // 기존 static teaching 파일 로드 경로 (ZIndexA/B 미설정, D-07 회귀 0).
-        //  imageHorizontal: datum.TeachingImagePath  → 부재/로드실패 시 ShotParam.SimulImagePath 폴백
-        //  imageVertical:   datum.TeachingImagePath_Vertical → 부재/로드실패 시 동일 ShotParam.SimulImagePath 폴백
-        //  폴백은 1-image datum 경로(LoadDatumImageFromPath)가 이미 쓰던 것과 동일한 것을 재사용한다 — SIMUL/오프라인
-        //  통신테스트에서 datum 티칭 이미지 미확보만으로 $TEST 가 즉시 F 로 끝나 프로토콜 왕복 검증 자체가 막히던
-        //  문제를 닫기 위함. 두 축이 같은 SHOT 검사이미지 한 장을 쓰는 것은 271줄 "Simul 에서 두 경로 동일 파일 가능"
-        //  전제와 동일. SimulImagePath 조차 없으면 종전대로 false(명시적 DETECT FAIL/NG).
-        //  주의: 두 out 파라미터는 호출부 finally 에서 각각 Dispose 되므로 폴백 시에도 반드시 서로 다른 HImage
-        //  인스턴스여야 한다 — LoadDatumImageFromPath 를 두 번 호출해 각각 새로 생성한다(참조 공유 금지).
+        // 기존 고정 이미지 로드 경로 — 가로/세로 각각 교시 이미지가 우선이고, 없거나 로드 실패하면
+        //  이 Shot 의 검사 이미지로 대신한다. 교시 이미지가 아직 없어도 통신 테스트가 막히지 않게
+        //  하기 위한 폴백이다. 검사 이미지조차 없으면 그대로 실패 처리한다.
+        // 두 반환 이미지는 호출부에서 각각 따로 해제(Dispose)하므로, 폴백 때도 서로 다른 인스턴스로
+        //  각각 새로 만들어야 한다(같은 인스턴스를 공유하면 안 됨).
         private bool TryLoadStaticDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) {
             imageHorizontal = null;
             imageVertical = null;

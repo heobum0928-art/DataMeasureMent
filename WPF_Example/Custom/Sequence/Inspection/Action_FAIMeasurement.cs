@@ -67,7 +67,6 @@ namespace ReringProject.Sequence {
         }
 
         private FAIMeasurementContext pMyContext;
-        private VirtualCamera pCamera;
 
         //260722 hbk Phase 68 D-09: 매직넘버 상수화 — ZIndexA/B 미설정 sentinel + 크로스-Z 저장소 역할(A/B) 키 접미사.
         private const int UNSET_ZINDEX = -1;
@@ -85,9 +84,6 @@ namespace ReringProject.Sequence {
         }
 
         public override void OnLoad() {
-            if (ShotParam != null) {
-                pCamera = SystemHandler.Handle.Devices[ShotParam.DeviceName];
-            }
             base.OnLoad();
         }
 
@@ -126,6 +122,11 @@ namespace ReringProject.Sequence {
         private static void SafeDisposeImage(HImage image) {
             if (image == null) return;
             try { image.Dispose(); } catch { }
+        }
+
+        //260819 hbk quick-260819-q9t: 측정 이름 미교시(null)면 TypeName 으로 대체 — 5곳 중복 통합.
+        private static string GetMeasurementDisplayName(MeasurementBase meas) {
+            return meas.MeasurementName ?? meas.TypeName;
         }
 
         // 이 메서드는 프로그램이 켜져 있는 동안 아주 짧은 간격으로 계속 호출됩니다. 호출될 때마다
@@ -719,8 +720,7 @@ namespace ReringProject.Sequence {
                 meas.EvaluateJudgement(resultValue);
                 if (!meas.LastJudgement) acc.NMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
             } else {
-                string measName = meas.MeasurementName;
-                if (measName == null) measName = meas.TypeName;
+                string measName = GetMeasurementDisplayName(meas);
                 string measErrorStr = measError;
                 if (measErrorStr == null) measErrorStr = "";
                 Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
@@ -1330,8 +1330,7 @@ namespace ReringProject.Sequence {
             if (parentSeq2.IsAlignFailed(meas.DatumRef)) meas.LastSkipReason = SkipReason.ALIGN_FAIL; //260710 hbk 상수화
             else meas.LastSkipReason = SkipReason.DATUM_FAIL; //260710 hbk 상수화
             meas.LastJudgement = false; // skip 도 NG 강도
-            string measName = meas.MeasurementName;
-            if (measName == null) measName = meas.TypeName;
+            string measName = GetMeasurementDisplayName(meas);
             string datumRef = meas.DatumRef;
             if (datumRef == null) datumRef = "";
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
@@ -1343,8 +1342,7 @@ namespace ReringProject.Sequence {
             meas.ClearResult();
             meas.LastSkipReason = SkipReason.DATUM_REF_MISSING;
             meas.LastJudgement = false; // skip 도 NG 강도(기존 규약 동일)
-            string measName = meas.MeasurementName;
-            if (measName == null) measName = meas.TypeName;
+            string measName = GetMeasurementDisplayName(meas);
             string datumRef = meas.DatumRef;
             if (datumRef == null) datumRef = "";
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
@@ -1379,8 +1377,7 @@ namespace ReringProject.Sequence {
             meas.ClearResult();
             meas.LastSkipReason = SkipReason.ZINDEX_MISCONFIGURED;
             meas.LastJudgement = false;
-            string measName = meas.MeasurementName;
-            if (measName == null) measName = meas.TypeName;
+            string measName = GetMeasurementDisplayName(meas);
             int nZA = UNSET_ZINDEX;
             int nZB = UNSET_ZINDEX;
             var dualMeas = meas as DualImageEdgeDistanceMeasurement;
@@ -1403,8 +1400,7 @@ namespace ReringProject.Sequence {
             meas.ClearResult();
             meas.LastSkipReason = SkipReason.CROSS_Z_INCOMPLETE;
             meas.LastJudgement = false;
-            string measName = meas.MeasurementName;
-            if (measName == null) measName = meas.TypeName;
+            string measName = GetMeasurementDisplayName(meas);
             int nZA = UNSET_ZINDEX;
             int nZB = UNSET_ZINDEX;
             var dualMeas = meas as DualImageEdgeDistanceMeasurement;

@@ -55,6 +55,17 @@ namespace ReringProject.Sequence
             public double LastTolMinus;
         }
 
+        //260819 hbk quick-260819-dvf: 표준편차 "0" 판정 임계값. == 0.0 직접 비교 금지
+        //  (SystemSetting.PICKER_CENTER_ZERO_EPS 의 WR-03 fix 와 같은 계열 조치).
+        //  왜 필요한가: 동일 이미지를 반복검사하면 측정값이 수학적으로는 전부 같지만
+        //  Math.Sqrt(sumSq/(n-1)) 부동소수점 결과는 정확히 0 이 아니라 3.077e-15 가 된다(실측).
+        //  == 0 가드는 이를 통과시켜 아래 /(6*stddev) 가 극소값으로 나눠지고
+        //  Cp/Cpk 가 3.25e12 같은 거대 유한수로 리포트에 찍혔다(고객 제출 불가).
+        //  왜 1e-9 인가: 관측 잡음 3e-15 보다 6자리 위, 실제 비전 측정의 최소 산포 하한
+        //  (~1e-5 mm, 실측 이미지 2장 간 편차 0.0008mm) 보다 4자리 아래 — 양쪽 실패 모드에서 멀다.
+        //  임계값을 키우면 진짜 산포를 0 으로 오인해 Cpk 를 ∞ 로 감추는(불량 은폐) 방향이므로 올리지 말 것.
+        private const double STDDEV_ZERO_EPS = 1e-9;
+
         private readonly Dictionary<string, KeyData> _data = new Dictionary<string, KeyData>();
 
         /// <summary>
@@ -133,7 +144,7 @@ namespace ReringProject.Sequence
 
         /// <summary>
         /// 누적된 샘플로 각 MeasurementKey 의 통계를 계산하여 반환한다.
-        /// Cpk = min((USL-mean)/(3σ), (mean-LSL)/(3σ)), σ=0 이면 PositiveInfinity.
+        /// Cpk = min((USL-mean)/(3σ), (mean-LSL)/(3σ)), σ가 STDDEV_ZERO_EPS 미만이면 PositiveInfinity.
         /// </summary>
         public Dictionary<string, MeasurementStat> ComputeAll()
         {
@@ -187,7 +198,7 @@ namespace ReringProject.Sequence
                     // Cpk = min((USL-mean)/(3*sigma), (mean-LSL)/(3*sigma))
                     double usl = d.LastNominal + d.LastTolPlus;
                     double lsl = d.LastNominal - Math.Abs(d.LastTolMinus);
-                    if (stddev == 0)
+                    if (stddev < STDDEV_ZERO_EPS)   //260819 hbk quick-260819-dvf: == 0 → 임계 비교(선언부 주석에 근거)
                     {
                         cp = double.PositiveInfinity;
                         ucpk = double.PositiveInfinity;

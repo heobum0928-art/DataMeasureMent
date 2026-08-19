@@ -571,7 +571,7 @@ namespace ReringProject.Sequence {
                         foreach (var meas in fai.Measurements) {
                             ProcessOneMeasurement(meas, parentSeq2, image, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
                         }
-                        FinalizeFaiTick(fai, acc.FaiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref acc.CrossZRoleImage, ref acc.ShotDisplayImageReplaced, ref acc.AllPass);
+                        FinalizeFaiTick(fai, acc.FaiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, acc);
                     }
                     } finally { // 검사 루프 소유 ref 1 해제(워커 요청들의 ref 와 독립). 마지막 Release 시 공유 이미지 dispose.
                         if (sharedSrc != null) sharedSrc.Release();
@@ -803,10 +803,9 @@ namespace ReringProject.Sequence {
                                      List<EdgeInspectionOverlay> faiOverlays, SharedHImage sharedSrc,
                                      List<DatumCaptureOverlay> datumSnapshot, string szSharedOriginPath,
                                      InspectionSequence parentSeq2,
-                                     ref HImage crossZRoleImage, ref bool bShotDisplayImageReplaced,
-                                     ref bool allPass) {
+                                     ShotMeasureAccumulator acc) {
             try {
-                if (crossZRoleImage == null) {
+                if (acc.CrossZRoleImage == null) {
                     AggregateFaiResult(fai, faiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath); //260702 hbk Extract Method(Task2)
                 } else {
                     //260729 hbk quick-fix(260729-hwb): 크로스-Z tick 의 캡처/저장 소스를 정적 sharedSrc
@@ -817,25 +816,25 @@ namespace ReringProject.Sequence {
                     //  null 로 넘겨 기존과 동일하게 FAI 마다 개별 저장(회귀 0).
                     SharedHImage crossZSharedSrc = null;
                     try {
-                        try { crossZSharedSrc = new SharedHImage(crossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
+                        try { crossZSharedSrc = new SharedHImage(acc.CrossZRoleImage.CopyImage()); } catch { crossZSharedSrc = null; }
                         AggregateFaiResult(fai, faiAllPass, faiOverlays, crossZSharedSrc, datumSnapshot, null);
                     } finally {
                         if (crossZSharedSrc != null) crossZSharedSrc.Release();
                     }
                     //260810 hbk quick-260810-egx: 표시 전용 교체 블록 — 자동검사 중 표시를 끄면 통째로 건너뛴다
                     //  (127MP memcpy 제거). 위 AggregateFaiResult/crossZSharedSrc 저장 경로와 아래 finally 의
-                    //  crossZRoleImage.Dispose() 는 조건과 무관하게 그대로 수행된다.
-                    if (!bShotDisplayImageReplaced && !IsViewerUpdateSkipped(parentSeq2)) {
+                    //  acc.CrossZRoleImage.Dispose() 는 조건과 무관하게 그대로 수행된다.
+                    if (!acc.ShotDisplayImageReplaced && !IsViewerUpdateSkipped(parentSeq2)) {
                         //260729 hbk quick-fix(260729-hwb): Shot 전체에서 첫 크로스-Z 캡처가 화면을
                         //  차지한다(결정론적 규칙) — 정적 대표 사진 대신 실제 측정 사진을 표시.
                         if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
-                        pMyContext.ResultHalconImage = crossZRoleImage.CopyImage();
-                        bShotDisplayImageReplaced = true;
+                        pMyContext.ResultHalconImage = acc.CrossZRoleImage.CopyImage();
+                        acc.ShotDisplayImageReplaced = true;
                     }
                 }
-                if (!faiAllPass) allPass = false;
+                if (!faiAllPass) acc.AllPass = false;
             } finally {
-                if (crossZRoleImage != null) { try { crossZRoleImage.Dispose(); } catch { } crossZRoleImage = null; }
+                if (acc.CrossZRoleImage != null) { try { acc.CrossZRoleImage.Dispose(); } catch { } acc.CrossZRoleImage = null; }
             }
         }
 

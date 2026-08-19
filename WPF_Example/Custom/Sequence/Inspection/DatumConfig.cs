@@ -1169,6 +1169,7 @@ namespace ReringProject.Sequence {
         //   VTH: Vertical_* + Horizontal_A_*/Horizontal_B_* 노출 — Line1_*/Line2_*, Circle_* 숨김
         private static bool IsHiddenForAlgorithm(string name, EDatumAlgorithm alg) {
             if (name == "TwoLineAngleToleranceDeg") return true; // 모든 알고리즘에서 PropertyGrid 숨김 (직각 게이트 로직은 DatumFindingService 에 보존)
+            if (name == "PixelToUM_Offset" || name == "MotorXPos" || name == "MotorYPos" || name == "FrameWidth" || name == "FrameHeight" || name == "PartNo") return true; // Datum 미사용 legacy CameraSlaveParam 필드 숨김
             switch (alg) {
                 case EDatumAlgorithm.TwoLineIntersect:
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide

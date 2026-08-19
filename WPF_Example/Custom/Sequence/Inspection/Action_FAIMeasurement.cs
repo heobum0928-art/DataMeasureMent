@@ -122,6 +122,12 @@ namespace ReringProject.Sequence {
             catch { }
         }
 
+        //260819 hbk quick-260819-q9t: Dispose try/catch 반복 제거 — null 이면 그냥 반환, catch 는 기존과 동일하게 예외를 삼킨다.
+        private static void SafeDisposeImage(HImage image) {
+            if (image == null) return;
+            try { image.Dispose(); } catch { }
+        }
+
         // 이 메서드는 프로그램이 켜져 있는 동안 아주 짧은 간격으로 계속 호출됩니다. 호출될 때마다
         //  지금이 몇 번째 단계인지 보고 그 단계에 맞는 case 하나만 실행하는 식으로 동작합니다.
         //  한 장 촬영하는 데 Init(초기화) → MoveZ(이동) → DatumPhase(기준점) → Grab(촬영) →
@@ -312,8 +318,8 @@ namespace ReringProject.Sequence {
                     }
                 }
             } finally {
-                if (imgH != null) { try { imgH.Dispose(); } catch { } }
-                if (imgV != null) { try { imgV.Dispose(); } catch { } }
+                SafeDisposeImage(imgH);
+                SafeDisposeImage(imgV);
             }
         }
 
@@ -826,7 +832,7 @@ namespace ReringProject.Sequence {
                 }
                 if (!faiAllPass) acc.AllPass = false;
             } finally {
-                if (acc.CrossZRoleImage != null) { try { acc.CrossZRoleImage.Dispose(); } catch { } acc.CrossZRoleImage = null; }
+                SafeDisposeImage(acc.CrossZRoleImage); acc.CrossZRoleImage = null;
             }
         }
 
@@ -985,8 +991,8 @@ namespace ReringProject.Sequence {
             }
 
             if (imageHorizontal == null || imageVertical == null) {
-                if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } }
-                if (imageVertical != null) { try { imageVertical.Dispose(); } catch { } }
+                SafeDisposeImage(imageHorizontal);
+                SafeDisposeImage(imageVertical);
                 imageHorizontal = null;
                 imageVertical = null;
                 return false;
@@ -1038,7 +1044,7 @@ namespace ReringProject.Sequence {
             if (bIsRoleA) roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_A;
             else roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_B;
             parentSeq.StoreCrossZImage(roleKey, capturedImage);
-            try { capturedImage.Dispose(); } catch { } // Store 가 CopyImage 로 소유 클론 저장 — 원본은 여기서 즉시 해제
+            SafeDisposeImage(capturedImage); // Store 가 CopyImage 로 소유 클론 저장 — 원본은 여기서 즉시 해제
             return true;
         }
 
@@ -1097,8 +1103,8 @@ namespace ReringProject.Sequence {
             imageVertical = parentSeq.TakeCrossZImageCopy(keyB);
             bool bBothLoaded = imageHorizontal != null && imageVertical != null;
             if (!bBothLoaded) {
-                if (imageHorizontal != null) { try { imageHorizontal.Dispose(); } catch { } }
-                if (imageVertical != null) { try { imageVertical.Dispose(); } catch { } }
+                SafeDisposeImage(imageHorizontal);
+                SafeDisposeImage(imageVertical);
                 imageHorizontal = null;
                 imageVertical = null;
                 return false; // 완성 index 인데 클론 취득 실패 — 실제 실패
@@ -1166,8 +1172,8 @@ namespace ReringProject.Sequence {
             }
             try { imageB = new HImage(pathB); } catch (Exception ex) { Logging.PrintErrLog((int)ELogType.Error, "[FAI DualImage] LineROI 이미지 로드 실패: " + ex.Message); imageB = null; }
             if (imageA == null || imageB == null) {
-                if (imageA != null) { try { imageA.Dispose(); } catch { } }
-                if (imageB != null) { try { imageB.Dispose(); } catch { } }
+                SafeDisposeImage(imageA);
+                SafeDisposeImage(imageB);
                 imageA = null; imageB = null;
                 return false;
             }
@@ -1518,8 +1524,8 @@ namespace ReringProject.Sequence {
                         ok = false; resultValue = 0; measError = "DualImage 이미지 로드 실패"; measOverlays = null;
                     }
                 } finally {
-                    if (imgA != null) { try { imgA.Dispose(); } catch { } }
-                    if (imgB != null) { try { imgB.Dispose(); } catch { } }
+                    SafeDisposeImage(imgA);
+                    SafeDisposeImage(imgB);
                     dualMeas.RuntimeImageA = null;
                     dualMeas.RuntimeImageB = null;
                 }
@@ -1659,8 +1665,8 @@ namespace ReringProject.Sequence {
             }
             finally
             {
-                if (imgA != null) { try { imgA.Dispose(); } catch { } }
-                if (imgB != null) { try { imgB.Dispose(); } catch { } }
+                SafeDisposeImage(imgA);
+                SafeDisposeImage(imgB);
                 dualMeas.RuntimeImageA = null;
                 dualMeas.RuntimeImageB = null;
             }

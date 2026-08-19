@@ -3149,6 +3149,7 @@ namespace ReringProject.UI {
             dlg.Title = "실제 거리 입력";
             dlg.Owner = Window.GetWindow(this);
 
+            string confirmText = null;
             if (dlg.ShowDialog() == true) {
                 double realMm;
                 if (double.TryParse(dlg.Text, out realMm) && realMm > 0) {
@@ -3156,18 +3157,7 @@ namespace ReringProject.UI {
 
                     ApplyCalibrationResult(mmPerPixel);
 
-                    // Show confirmation for 3 seconds (per UI-SPEC)
-                    label_message.Content = string.Format("1 px = {0:F4} mm 적용됨", mmPerPixel);
-                    label_message.Foreground = new SolidColorBrush(Colors.White);
-                    label_message.Visibility = Visibility.Visible;
-
-                    var timer = new System.Windows.Threading.DispatcherTimer();
-                    timer.Interval = TimeSpan.FromSeconds(MessageDisplaySeconds);
-                    timer.Tick += (s, args) => {
-                        timer.Stop();
-                        label_message.Visibility = Visibility.Collapsed;
-                    };
-                    timer.Start();
+                    confirmText = string.Format("1 px = {0:F4} mm 적용됨", mmPerPixel);
                 }
                 else {
                     CustomMessageBox.Show("유효한 숫자를 입력하세요.", "캘리브레이션");
@@ -3175,6 +3165,25 @@ namespace ReringProject.UI {
             }
 
             ExitCanvasMode();
+
+            //260819 hbk quick-fix(260819-click2): 적용 확인 문구를 캔버스 위 label_message 가 아니라 툴바에 띄운다.
+            //  HALCON 뷰어는 Win32 창(HWND)이라 그 위의 WPF Label 은 airspace 로 항상 가려져 화면에 안 보인다
+            //  (사용자 실기 보고: "이 다음 이벤트 없음"). 툴바는 창 바깥이라 정상 표시된다.
+            //  ExitCanvasMode 가 label_drawHint 를 Collapsed 로 되돌리므로 반드시 그 뒤에 설정해야 한다.
+            if (confirmText != null) {
+                label_drawHint.Content = confirmText;
+                label_drawHint.Foreground = new SolidColorBrush(Colors.White);
+                label_drawHint.Visibility = Visibility.Visible;
+
+                var timer = new System.Windows.Threading.DispatcherTimer();
+                timer.Interval = TimeSpan.FromSeconds(DistanceResultDisplaySeconds);
+                timer.Tick += (s, args) => {
+                    timer.Stop();
+                    label_drawHint.Visibility = Visibility.Collapsed;
+                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
+                };
+                timer.Start();
+            }
         }
 
         /// <summary>Applies mm/pixel calibration to the current camera's CameraSlaveParam and all FAIs (per D-12).</summary>

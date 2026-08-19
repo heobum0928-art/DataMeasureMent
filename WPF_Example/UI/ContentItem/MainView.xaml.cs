@@ -27,6 +27,8 @@ namespace ReringProject.UI {
         private const int MinPolygonPoints = 3;
         private const double MinCalibrationPixelDistance = 1.0;
         private const double MessageDisplaySeconds = 3.0;
+        //260819 hbk 거리측정 결과는 사람이 숫자를 읽고 기록해야 하므로 일반 안내(3초)보다 길게 띄운다.
+        private const double DistanceResultDisplaySeconds = 15.0;
         private MainWindow mParentWindow;
         private DeviceHandler pDev;
         private SequenceHandler pSeq;
@@ -3218,10 +3220,6 @@ namespace ReringProject.UI {
         }
 
         private void HalconViewer_MeasureMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
-            //260819 hbk quick-diag(260819-click2r2): 재현 재확인용 임시 진단 로그.
-            Logging.PrintLog((int)ELogType.Trace,
-                "[CLICK-DIAG2] HalconViewer_MeasureMouseDown 진입 canvasMode={0} 기존포인트수={1}",
-                _canvasMode, _measurePoints.Count);
             if (_canvasMode != ECanvasMode.DistanceMeasure) return;
 
             var pos = new System.Windows.Point(e.X, e.Y);
@@ -3264,10 +3262,9 @@ namespace ReringProject.UI {
             if (anchorFai != null) shot = anchorFai.Owner as ShotConfig;
             else                   shot = null;
 
+            string resultText;
             if (shot == null) {
-                label_message.Content = string.Format("픽셀거리: {0:F1}px (FAI 미선택 -- mm 환산 불가)", pixelDistance);
-                label_message.Foreground = new SolidColorBrush(Colors.White);
-                label_message.Visibility = Visibility.Visible;
+                resultText = string.Format("픽셀거리: {0:F1}px (FAI 미선택 -- mm 환산 불가)", pixelDistance);
             }
             else {
                 double pixelResolution = shot.GetEffectivePixelResolution();
@@ -3275,22 +3272,33 @@ namespace ReringProject.UI {
                 double dxMm = dx * pixelResolution;
                 double dyMm = dy * pixelResolution;
 
-                label_message.Content = string.Format(
+                resultText = string.Format(
                     "거리: {0:F3}mm (가로 {1:F3}mm, 세로 {2:F3}mm)  |  픽셀거리: {3:F1}px",
                     totalMm, Math.Abs(dxMm), Math.Abs(dyMm), pixelDistance);
-                label_message.Foreground = new SolidColorBrush(Colors.White);
-                label_message.Visibility = Visibility.Visible;
             }
 
+            //260819 hbk quick-fix(260819-click2): 결과를 캔버스 위 label_message 가 아니라 툴바의 label_drawHint 에 띄운다.
+            //  HALCON 뷰어는 Win32 창(HWND)이라 그 위에 얹은 WPF 요소는 airspace 때문에 Visible 이어도 항상 창 뒤로
+            //  가려져 화면에 안 보인다 -- 실기 로그로 label_message 가 Visible+내용 설정까지 정상 도달함을 확인했으나
+            //  사용자 눈에는 끝까지 안 보였다. 툴바는 창 바깥이라 정상 표시된다.
+            //  ExitCanvasMode 가 label_drawHint 를 Collapsed 로 되돌리므로 반드시 그 뒤에 설정해야 한다.
+            var shownPoints = new List<System.Windows.Point>(_measurePoints);
+            ExitCanvasMode();
+
+            label_drawHint.Content = resultText;
+            label_drawHint.Foreground = new SolidColorBrush(Colors.White);
+            label_drawHint.Visibility = Visibility.Visible;
+            // 어느 두 점을 쟀는지 결과와 함께 보이도록 점 오버레이를 다시 올린다(ExitCanvasMode 가 지운 것을 복원).
+            halconViewer.SetCalibrationOverlay(shownPoints);
+
             var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(MessageDisplaySeconds);
+            timer.Interval = TimeSpan.FromSeconds(DistanceResultDisplaySeconds);
             timer.Tick += (s, args) => {
                 timer.Stop();
-                label_message.Visibility = Visibility.Collapsed;
+                label_drawHint.Visibility = Visibility.Collapsed;
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
             };
             timer.Start();
-
-            ExitCanvasMode();
         }
 
         //260623 hbk Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).

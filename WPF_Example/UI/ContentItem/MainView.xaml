@@ -433,11 +433,8 @@
         <!-- Canvas area -->
         <Grid Grid.Row="1" Background="#FF303030">
             <dmv:MainResultViewerControl x:Name="halconViewer"/>
-            <!--260819 hbk quick-fix(260819-click2): 흰 글씨가 밝은 이미지 영역과 겹치면 안 보이던 문제 —
-                 텍스트 뒤에 반투명 검정 배경을 깔아 어떤 이미지 위에서도 항상 읽히도록 함.-->
             <Label x:Name="label_message" FontSize="24" Foreground="#FFAAAAAA"
                    Content="NO Image"
-                   Background="#B3000000"
                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                    IsHitTestVisible="False"/>

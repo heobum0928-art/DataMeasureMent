@@ -3204,6 +3204,9 @@ namespace ReringProject.UI {
         //  실제 거리(mm)를 즉시 계산해 보여주기만 한다 -- 아무 것도 저장.변경하지 않는다(read-only).
         private void MeasureDistanceButton_Click(object sender, RoutedEventArgs e) {
             ExitCanvasMode();
+            //260819 hbk quick-fix: Edit 모드가 켜져 있으면 기존 ROI 위 클릭이 "ROI 이동"으로 가로채져
+            //  ImageLeftClicked 가 아예 안 뜬다(Pick Point 1 에서 멈추는 원인) — 이 모드에선 강제로 꺼둔다.
+            halconViewer.IsEditMode = false;
             _canvasMode = ECanvasMode.DistanceMeasure;
             _measurePoints.Clear();
 

@@ -1065,10 +1065,6 @@ namespace ReringProject.UI
         {
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
-            //260819 hbk quick-diag(260819-click2): 거리측정 2번째 클릭 미반응 원인 추적용 임시 진단 로그.
-            ReringProject.Utility.Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
-                "[CLICK-DIAG] HMouseDown 진입 buttons={0} isEditMode={1} hasImage={2} pt=({3:F1},{4:F1})",
-                mouseState.Buttons, _isEditMode, HasImage, mouseState.ImagePoint.X, mouseState.ImagePoint.Y);
             if ((mouseState.Buttons & HalconRightButton) == HalconRightButton)
             {
                 // 우클릭 시 Edit 모드 무관 hit-test 로 _selectedRoiId 갱신.
@@ -1180,10 +1176,6 @@ namespace ReringProject.UI
                 return;
             }
 
-            //260819 hbk quick-diag(260819-click2): ImageLeftClicked 구독자 존재 여부 추적용 임시 진단 로그.
-            ReringProject.Utility.Logging.PrintLog((int)ReringProject.Setting.ELogType.Trace,
-                "[CLICK-DIAG] ImageLeftClicked 직전 hasSubscriber={0} hasImage={1}",
-                ImageLeftClicked != null, HasImage);
             if (ImageLeftClicked != null && HasImage)
             {
                 var pt = mouseState.ImagePoint;

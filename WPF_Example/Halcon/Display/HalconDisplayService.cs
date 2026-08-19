@@ -623,10 +623,13 @@ namespace ReringProject.Halcon.Display
         }
 
         /// <summary>Renders calibration crosshairs and connecting line.</summary>
-        //260819 hbk quick-fix(260819-click2): labelText 추가 — 측정 결과를 HALCON 창 "안에" 그린다.
+        //260819 hbk quick-fix(260819-click2): 라벨 3종 추가 — 측정 결과를 HALCON 창 "안에" 직각삼각형으로 그린다.
         //  캔버스 위에 얹은 WPF Label 은 HWND airspace 로 항상 가려져 안 보이므로(실기 확인),
-        //  결과 숫자는 선 옆에 직접 렌더해야 사용자 눈에 들어온다. null 이면 기존 동작 그대로(점/선만).
-        public void RenderCalibrationOverlay(HWindow window, IList<Point> points, string labelText = null)
+        //  숫자는 창 내부에 직접 렌더해야 사용자 눈에 들어온다.
+        //  빗변=두 점 직선거리, 가로변/세로변=성분 — 어느 값이 어디에 해당하는지 눈으로 바로 알 수 있게 한다.
+        //  세 라벨 모두 null 이면 기존 동작 그대로(점 십자 + 연결선만).
+        public void RenderCalibrationOverlay(HWindow window, IList<Point> points,
+                                             string labelText = null, string hLabel = null, string vLabel = null)
         {
             if (window == null || points == null || points.Count == 0) return;
             int crossSize = 20;
@@ -645,20 +648,46 @@ namespace ReringProject.Halcon.Display
                 window.DispLine(p2.Y - crossSize, p2.X, p2.Y + crossSize, p2.X);
                 window.DispLine(p2.Y, p2.X - crossSize, p2.Y, p2.X + crossSize);
 
-                // 두 점 사이 연결선
+                // 직각삼각형의 두 변 (가로변/세로변). 직각 꼭짓점 = (p1 의 행, p2 의 열).
+                //  빗변(연결선)과 색을 달리해 성분 값과 시각적으로 짝지어지게 한다.
+                window.SetColor("cyan");
+                window.SetLineWidth(1);
+                window.DispLine(p1.Y, p1.X, p1.Y, p2.X);   // 가로변
+                window.DispLine(p1.Y, p2.X, p2.Y, p2.X);   // 세로변
+
+                // 두 점 사이 연결선(빗변)
                 window.SetColor("green");
                 window.SetLineWidth(1);
                 window.DispLine(p1.Y, p1.X, p2.Y, p2.X);
 
-                // 측정 결과 텍스트 (선 중점 위쪽). 좌표는 이미지 픽셀 단위라 확대/축소해도 선을 따라다닌다.
+                EnsureFontInitialized(window);
+
+                // 빗변 라벨 (선 중점 위쪽). 좌표는 이미지 픽셀 단위라 확대/축소해도 선을 따라다닌다.
                 if (!string.IsNullOrEmpty(labelText))
                 {
                     double midRow = (p1.Y + p2.Y) / 2.0;
                     double midCol = (p1.X + p2.X) / 2.0;
-                    window.SetColor("yellow");
-                    EnsureFontInitialized(window);
+                    window.SetColor("green");
                     HOperatorSet.SetTposition(window, midRow - crossSize - 10, midCol);
                     HOperatorSet.WriteString(window, labelText);
+                }
+
+                // 가로변 라벨 (가로변 중점 아래쪽)
+                if (!string.IsNullOrEmpty(hLabel))
+                {
+                    double hMidCol = (p1.X + p2.X) / 2.0;
+                    window.SetColor("cyan");
+                    HOperatorSet.SetTposition(window, p1.Y + 5, hMidCol);
+                    HOperatorSet.WriteString(window, hLabel);
+                }
+
+                // 세로변 라벨 (세로변 중점 오른쪽)
+                if (!string.IsNullOrEmpty(vLabel))
+                {
+                    double vMidRow = (p1.Y + p2.Y) / 2.0;
+                    window.SetColor("cyan");
+                    HOperatorSet.SetTposition(window, vMidRow, p2.X + 8);
+                    HOperatorSet.WriteString(window, vLabel);
                 }
             }
         }

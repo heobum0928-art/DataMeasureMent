@@ -27,8 +27,6 @@ namespace ReringProject.UI {
         private const int MinPolygonPoints = 3;
         private const double MinCalibrationPixelDistance = 1.0;
         private const double MessageDisplaySeconds = 3.0;
-        //260819 hbk 거리측정 결과는 사람이 숫자를 읽고 기록해야 하므로 일반 안내(3초)보다 길게 띄운다.
-        private const double DistanceResultDisplaySeconds = 15.0;
         private MainWindow mParentWindow;
         private DeviceHandler pDev;
         private SequenceHandler pSeq;
@@ -3142,6 +3140,14 @@ namespace ReringProject.UI {
                 return;
             }
 
+            //260819 hbk quick-fix(260819-click2): mm 를 입력하기 전에 무엇을 쟀는지 눈으로 확인할 수 있도록
+            //  잰 두 점을 직각삼각형 + 픽셀 성분값으로 창 안에 먼저 그린다(모달 대화상자 뒤에서도 보인다).
+            var calibPoints = new List<System.Windows.Point>(_calibrationPoints);
+            halconViewer.SetCalibrationOverlay(calibPoints,
+                string.Format("{0:F1}px", pixelDistance),
+                string.Format("가로 {0:F1}px", Math.Abs(dx)),
+                string.Format("세로 {0:F1}px", Math.Abs(dy)));
+
             // NOTE: class name typo in original code: TextInputBoxWinidow (not Window)
             var dlg = new TextInputBoxWinidow(
                 string.Format("두 점 사이의 실제 거리(mm)를 입력하세요:\n(픽셀 거리: {0:F1} px)", pixelDistance),
@@ -3150,6 +3156,9 @@ namespace ReringProject.UI {
             dlg.Owner = Window.GetWindow(this);
 
             string confirmText = null;
+            string appliedHLabel = null;
+            string appliedVLabel = null;
+            string appliedTotalLabel = null;
             if (dlg.ShowDialog() == true) {
                 double realMm;
                 if (double.TryParse(dlg.Text, out realMm) && realMm > 0) {
@@ -3158,6 +3167,10 @@ namespace ReringProject.UI {
                     ApplyCalibrationResult(mmPerPixel);
 
                     confirmText = string.Format("1 px = {0:F4} mm 적용됨", mmPerPixel);
+                    // 방금 정한 분해능으로 환산한 성분값 — 입력값이 제대로 반영됐는지 삼각형 위에서 바로 확인 가능.
+                    appliedTotalLabel = string.Format("{0:F3}mm ({1:F1}px)", realMm, pixelDistance);
+                    appliedHLabel = string.Format("가로 {0:F3}mm", Math.Abs(dx) * mmPerPixel);
+                    appliedVLabel = string.Format("세로 {0:F3}mm", Math.Abs(dy) * mmPerPixel);
                 }
                 else {
                     CustomMessageBox.Show("유효한 숫자를 입력하세요.", "캘리브레이션");
@@ -3174,15 +3187,8 @@ namespace ReringProject.UI {
                 label_drawHint.Content = confirmText;
                 label_drawHint.Foreground = new SolidColorBrush(Colors.White);
                 label_drawHint.Visibility = Visibility.Visible;
-
-                var timer = new System.Windows.Threading.DispatcherTimer();
-                timer.Interval = TimeSpan.FromSeconds(DistanceResultDisplaySeconds);
-                timer.Tick += (s, args) => {
-                    timer.Stop();
-                    label_drawHint.Visibility = Visibility.Collapsed;
-                    label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFAAAAAA"));
-                };
-                timer.Start();
+                // 적용 결과를 삼각형 라벨에도 mm 로 다시 올린다(ExitCanvasMode 가 지운 것을 복원).
+                halconViewer.SetCalibrationOverlay(calibPoints, appliedTotalLabel, appliedHLabel, appliedVLabel);
             }
         }
 
@@ -3271,9 +3277,14 @@ namespace ReringProject.UI {
             if (anchorFai != null) shot = anchorFai.Owner as ShotConfig;
             else                   shot = null;
 
+            // 빗변/가로변/세로변 각각의 라벨 — 화면에 직각삼각형으로 그려질 때 어느 변이 어느 값인지 바로 보이게 한다.
             string resultText;
+            string hLabel;
+            string vLabel;
             if (shot == null) {
-                resultText = string.Format("픽셀거리: {0:F1}px (FAI 미선택 -- mm 환산 불가)", pixelDistance);
+                resultText = string.Format("{0:F1}px (FAI 미선택 -- mm 환산 불가)", pixelDistance);
+                hLabel = string.Format("가로 {0:F1}px", Math.Abs(dx));
+                vLabel = string.Format("세로 {0:F1}px", Math.Abs(dy));
             }
             else {
                 double pixelResolution = shot.GetEffectivePixelResolution();
@@ -3281,9 +3292,9 @@ namespace ReringProject.UI {
                 double dxMm = dx * pixelResolution;
                 double dyMm = dy * pixelResolution;
 
-                resultText = string.Format(
-                    "거리: {0:F3}mm (가로 {1:F3}mm, 세로 {2:F3}mm)  |  픽셀거리: {3:F1}px",
-                    totalMm, Math.Abs(dxMm), Math.Abs(dyMm), pixelDistance);
+                resultText = string.Format("{0:F3}mm ({1:F1}px)", totalMm, pixelDistance);
+                hLabel = string.Format("가로 {0:F3}mm", Math.Abs(dxMm));
+                vLabel = string.Format("세로 {0:F3}mm", Math.Abs(dyMm));
             }
 
             //260819 hbk quick-fix(260819-click2): 결과를 캔버스 위 label_message 가 아니라 툴바의 label_drawHint 에 띄운다.
@@ -3294,12 +3305,12 @@ namespace ReringProject.UI {
             var shownPoints = new List<System.Windows.Point>(_measurePoints);
             ExitCanvasMode();
 
-            label_drawHint.Content = resultText;
+            label_drawHint.Content = string.Format("거리 {0}  |  {1}  |  {2}", resultText, hLabel, vLabel);
             label_drawHint.Foreground = new SolidColorBrush(Colors.White);
             label_drawHint.Visibility = Visibility.Visible;
-            // 잰 두 점 + 결과 문구를 HALCON 창 안에 함께 올린다(ExitCanvasMode 가 지운 것을 복원).
+            // 잰 두 점 + 결과 문구를 HALCON 창 안에 직각삼각형으로 올린다(ExitCanvasMode 가 지운 것을 복원).
             //  창 내부 렌더라 airspace 영향을 받지 않고, 다음 캔버스 작업 전까지 계속 남아 있는다.
-            halconViewer.SetCalibrationOverlay(shownPoints, resultText);
+            halconViewer.SetCalibrationOverlay(shownPoints, resultText, hLabel, vLabel);
         }
 
         //260623 hbk Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).

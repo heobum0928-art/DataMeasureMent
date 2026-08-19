@@ -3171,6 +3171,15 @@ namespace ReringProject.UI {
                     appliedTotalLabel = string.Format("{0:F3}mm ({1:F1}px)", realMm, pixelDistance);
                     appliedHLabel = string.Format("가로 {0:F3}mm", Math.Abs(dx) * mmPerPixel);
                     appliedVLabel = string.Format("세로 {0:F3}mm", Math.Abs(dy) * mmPerPixel);
+
+                    //260820 hbk quick-fix: ApplyCalibrationResult 는 메모리 반영만 하고 레시피 파일 저장은 안 한다
+                    //  (체커보드 캘리브와 달리 SaveRecipe 호출 없음) — 저장 안 하면 재시작 시 조용히 예전 값으로
+                    //  되돌아갈 수 있어 경고 다이얼로그로 명시 안내.
+                    CustomMessageBox.Show("캘리브레이션 적용", string.Format(
+                        "1px = {0:F4}mm 로 적용했습니다.\n\n" +
+                        "이 값은 아직 메모리에만 반영됐고, 레시피 파일에는 저장되지 않았습니다.\n" +
+                        "계속 유지하려면 지금 '레시피 저장'을 눌러주세요 — 저장하지 않으면 프로그램을 다시 켤 때 예전 값으로 되돌아갑니다.",
+                        mmPerPixel), MessageBoxImage.Warning);
                 }
                 else {
                     CustomMessageBox.Show("유효한 숫자를 입력하세요.", "캘리브레이션");
@@ -3292,9 +3301,10 @@ namespace ReringProject.UI {
                 double dxMm = dx * pixelResolution;
                 double dyMm = dy * pixelResolution;
 
+                //260820 hbk quick-fix: 가로/세로 성분도 총거리와 동일하게 mm+px 를 같이 표기한다(기존엔 mm 만).
                 resultText = string.Format("{0:F3}mm ({1:F1}px)", totalMm, pixelDistance);
-                hLabel = string.Format("가로 {0:F3}mm", Math.Abs(dxMm));
-                vLabel = string.Format("세로 {0:F3}mm", Math.Abs(dyMm));
+                hLabel = string.Format("가로 {0:F3}mm ({1:F1}px)", Math.Abs(dxMm), Math.Abs(dx));
+                vLabel = string.Format("세로 {0:F3}mm ({1:F1}px)", Math.Abs(dyMm), Math.Abs(dy));
             }
 
             //260819 hbk quick-fix(260819-click2): 결과를 캔버스 위 label_message 가 아니라 툴바의 label_drawHint 에 띄운다.

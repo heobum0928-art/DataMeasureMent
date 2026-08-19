@@ -900,8 +900,7 @@ namespace ReringProject.Custom.UI {
                     out r, out c, out rad, out error);
 
                 if (bOk) {
-                    lbl_pickerCenter.Text = string.Format(
-                        "피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
+                    lbl_pickerCenter.Text = BuildPickerCenterText(r, c, rad);
                     if (_viewer != null) {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
                         _viewer.SetAlignContourXld(vizXld);
@@ -927,6 +926,40 @@ namespace ReringProject.Custom.UI {
             catch (Exception ex) {
                 lbl_calStatus.Text = "계산 오류: " + ex.Message;
             }
+        }
+
+        // quick-260819: 피커센터 계산결과에 화면(이미지) 중심 대비 실제 오프셋 거리(mm)를 붙여서 보여준다.
+        //  r,c,rad 는 TryComputePickerCenter 가 돌려주는 픽셀 좌표 그대로이고, 여기서는 표시용으로만 mm 환산한다
+        //  (판정/저장 로직은 손대지 않는다). _viewer.CurrentImage 가 없으면(오프라인 등) 계산 불가하므로
+        //  기존 픽셀-only 문구로 조용히 폴백한다 — 예외를 던지지 않는다.
+        //  TCP 자동경로(OnCalibEndViewer, L107 부근)는 이 헬퍼를 쓰지 않는다 — 이번 범위 밖(수동 버튼 한정).
+        private string BuildPickerCenterText(double r, double c, double rad) {
+            const double UM_PER_MM = 1000.0; // µm/px → mm/px (AlignShapeMatchService.cs 와 동일 상수/변환)
+            string pixelOnlyText = string.Format(
+                "피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
+
+            if (_viewer == null || _viewer.CurrentImage == null) {
+                return pixelOnlyText;
+            }
+
+            HTuple imageWidth;
+            HTuple imageHeight;
+            _viewer.CurrentImage.GetImageSize(out imageWidth, out imageHeight);
+            double imgCenterCol = imageWidth.D / 2.0;
+            double imgCenterRow = imageHeight.D / 2.0;
+
+            double dRowPx = r - imgCenterRow; // 세로(수직) 오프셋
+            double dColPx = c - imgCenterCol; // 가로(수평) 오프셋
+            double totalPx = Math.Sqrt(dRowPx * dRowPx + dColPx * dColPx);
+
+            double resMm = SystemSetting.Handle.EthernetPixelResolution / UM_PER_MM;
+            double totalMm = totalPx * resMm;
+            double dRowMm = dRowPx * resMm;
+            double dColMm = dColPx * resMm;
+
+            return pixelOnlyText + string.Format(
+                "  |  중심오프셋 {0:F3}mm (가로 {1:F3}mm, 세로 {2:F3}mm)",
+                totalMm, dColMm, dRowMm);
         }
 
         // ─── private 헬퍼 ────────────────────────────────────────────────────────

@@ -264,7 +264,7 @@ namespace ReringProject.Sequence {
             bool bDatumZIndexMisconfigured = IsDatumZIndexMisconfigured(datum, parentSeq);
             if (bDatumZIndexMisconfigured) {
                 string misName = datum.DatumName;
-                if (misName == null) misName = "";
+                misName = misName ?? "";
                 Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
                 datum.RuntimeDetectFailed = true;
                 parentSeq.MarkDatumFailed(datum.DatumName);
@@ -281,7 +281,7 @@ namespace ReringProject.Sequence {
                         return; // Z1(비완성 index): 캡처만 — 실패 아님(MarkDatumFailed 미설정), 완성 z_index에서 검출(D-02a)
                     }
                     string datumName = datum.DatumName;
-                    if (datumName == null) datumName = "";
+                    datumName = datumName ?? "";
                     Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' DualImage 취득 실패 (skip)");
                     // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
                     datum.LastFindSucceeded = false;
@@ -299,9 +299,9 @@ namespace ReringProject.Sequence {
                     string alignErr;
                     if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
                         string dn = datum.DatumName;
-                        if (dn == null) dn = "";
+                        dn = dn ?? "";
                         string ae = alignErr;
-                        if (ae == null) ae = "";
+                        ae = ae ?? "";
                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
                         datum.RuntimeDetectFailed = true;
                         parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
@@ -310,9 +310,9 @@ namespace ReringProject.Sequence {
                     string derr;
                     if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
                         string datumName = datum.DatumName;
-                        if (datumName == null) datumName = "";
+                        datumName = datumName ?? "";
                         string derrStr = derr;
-                        if (derrStr == null) derrStr = "";
+                        derrStr = derrStr ?? "";
                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
                         datum.RuntimeDetectFailed = true;
                         parentSeq.MarkDatumFailed(datum.DatumName);
@@ -329,7 +329,7 @@ namespace ReringProject.Sequence {
             HImage img = GrabOrLoadDatumImage(datum);
             if (img == null) {
                 string datumName = datum.DatumName;
-                if (datumName == null) datumName = "";
+                datumName = datumName ?? "";
                 Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 이미지 취득 실패 (skip)");
                 datum.LastFindSucceeded = false;
                 datum.RuntimeDetectFailed = true;
@@ -344,9 +344,9 @@ namespace ReringProject.Sequence {
                     string alignErr;
                     if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
                         string dn = datum.DatumName;
-                        if (dn == null) dn = "";
+                        dn = dn ?? "";
                         string ae = alignErr;
-                        if (ae == null) ae = "";
+                        ae = ae ?? "";
                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
                         datum.RuntimeDetectFailed = true;
                         parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
@@ -360,9 +360,9 @@ namespace ReringProject.Sequence {
                     string derr;
                     if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
                         string datumName = datum.DatumName;
-                        if (datumName == null) datumName = "";
+                        datumName = datumName ?? "";
                         string derrStr = derr;
-                        if (derrStr == null) derrStr = "";
+                        derrStr = derrStr ?? "";
                         Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
                         datum.RuntimeDetectFailed = true;
                         parentSeq.MarkDatumFailed(datum.DatumName);
@@ -722,7 +722,7 @@ namespace ReringProject.Sequence {
             } else {
                 string measName = GetMeasurementDisplayName(meas);
                 string measErrorStr = measError;
-                if (measErrorStr == null) measErrorStr = "";
+                measErrorStr = measErrorStr ?? "";
                 Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
                 meas.ClearResult();
                 meas.LastJudgement = false;
@@ -1332,7 +1332,7 @@ namespace ReringProject.Sequence {
             meas.LastJudgement = false; // skip 도 NG 강도
             string measName = GetMeasurementDisplayName(meas);
             string datumRef = meas.DatumRef;
-            if (datumRef == null) datumRef = "";
+            datumRef = datumRef ?? "";
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
         }
 
@@ -1344,7 +1344,7 @@ namespace ReringProject.Sequence {
             meas.LastJudgement = false; // skip 도 NG 강도(기존 규약 동일)
             string measName = GetMeasurementDisplayName(meas);
             string datumRef = meas.DatumRef;
-            if (datumRef == null) datumRef = "";
+            datumRef = datumRef ?? "";
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
         }
 
@@ -1737,7 +1737,7 @@ namespace ReringProject.Sequence {
                 }
             }
             string shotName = ShotParam.ShotName;
-            if (shotName == null) shotName = "";
+            shotName = shotName ?? "";
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + shotName + "' 검사 이미지 없음 — 모든 measurement NG 처리 (캐스케이드 차단)");
         }
     }

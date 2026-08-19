@@ -602,76 +602,9 @@ namespace ReringProject.Sequence {
                                      List<EdgeInspectionOverlay> faiOverlays,
                                      Dictionary<string, int> dctAlgoUsed) {
             if (!TryGateMeasurement(meas, parentSeq2, acc)) return;
-            //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
-            //  ZIndexA/B 둘 다 -1(미설정) 이면 이 블록 진입 안 함 → 기존 경로 그대로(D-07 회귀 0).
-            var dualMeasForGate = meas as DualImageEdgeDistanceMeasurement;
-            bool bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
-            if (bHasAnyZIndex)
-            {
-                //260818 hbk 게이트 판정을 명시적 상태(ECrossZGate)로 뽑아 아래 switch 한 곳에서 처리한다.
-                //  ⚠ 판정에 필요한 호출 중 ProcessCrossZCaptureTick 은 순수하지 않다(실제 캡처/저장 수행).
-                //    그래서 분류 함수 안으로 숨기지 않고 switch '앞'에 그대로 둔다 —
-                //    "IsZIndexMisconfigured 를 통과한 경우에만 캡처한다"는 원본 단락(short-circuit)
-                //    순서와 호출 횟수를 눈에 보이게 보존하기 위함이다.
-                //    순수한 것은 out 3개 bool → enum 변환뿐이고, 그 부분만 ResolveCrossZGate 로 뺐다.
-                bool bRelevant = false;
-                bool bCaptureOk = false;
-                bool bCompleted = false;
-                string szCapturedRoleKey = null;
-                bool bNonProtocolCycle = false;
-                ECrossZGate eGate;
-                bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
-                if (bMisconfigured)
-                {
-                    eGate = ECrossZGate.Misconfigured;
-                }
-                else
-                {
-                    ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
-                    //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
-                    //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
-                    //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
-                    //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
-                    //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
-                    //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
-                    //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
-                    //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
-                    bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
-                    eGate = ResolveCrossZGate(bRelevant, bCaptureOk, bCompleted);
-                }
-                //260818 hbk default: 를 두지 않는다 — 5개 멤버를 전부 다루고 있고, default 를 추가하면
-                //  감사되지 않은 6번째 경로가 생긴다. 멤버를 늘릴 일이 생기면 반드시 이 switch 도 함께 고칠 것.
-                switch (eGate)
-                {
-                    case ECrossZGate.Misconfigured:
-                        MarkMeasurementZIndexMisconfigured(meas);
-                        acc.FaiAllPass = false;
-                        acc.MeasuredCount++;
-                        return;
-                    case ECrossZGate.NotMyTick:
-                        if (bNonProtocolCycle)
-                        {
-                            MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
-                            acc.FaiAllPass = false;
-                            acc.MeasuredCount++;
-                        }
-                        return; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
-                    case ECrossZGate.CaptureFailed:
-                        meas.ClearResult();
-                        meas.LastSkipReason = SkipReason.NO_IMAGE;
-                        meas.LastJudgement = false;
-                        acc.FaiAllPass = false;
-                        acc.MeasuredCount++;
-                        return;
-                    case ECrossZGate.HalfPending:
-                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
-                        MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref acc.FaiAllPass, ref acc.MeasuredCount);
-                        return;
-                    case ECrossZGate.BothReady:
-                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
-                        break; // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
-                }
-            }
+            DualImageEdgeDistanceMeasurement dualMeasForGate;
+            bool bHasAnyZIndex;
+            if (!EvaluateCrossZGate(meas, parentSeq2, acc, out dualMeasForGate, out bHasAnyZIndex)) return;
             HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
             InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
             double resultValue;
@@ -733,6 +666,88 @@ namespace ReringProject.Sequence {
                 return false;
             }
             return true; // 두 게이트 모두 통과 — 호출부는 측정 실행 경로로 계속 진행
+        }
+
+        //260819 hbk quick-260819-hyk: 크로스-Z 게이트 판정 전체를 그대로 옮긴 것.
+        //  반환값 계약 — false 는 "이 tick 에 측정을 실행하지 않는다"(설정오류 / 무관tick / 캡처실패 /
+        //  짝 미완성 = 4경로), true 는 "공용 실행 경로로 계속 진행한다"(짝 완성 1경로 + 크로스-Z 가
+        //  아닌 일반 측정 1경로 = 2경로) 를 뜻한다. 원본에서 각각 return / fall-through 였던 것이다.
+        //  case 본문(로그·누적·캡처 호출)은 한 글자도 바뀌지 않았다. 바뀐 것은 각 case 끝의
+        //  제어흐름 키워드 1단어뿐이다.
+        //  out 2개는 본문 첫 2줄에서 무조건 대입되므로 모든 반환 경로에서 확정 대입이다.
+        private bool EvaluateCrossZGate(MeasurementBase meas, InspectionSequence parentSeq2, ShotMeasureAccumulator acc,
+                                        out DualImageEdgeDistanceMeasurement dualMeasForGate, out bool bHasAnyZIndex) {
+            //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
+            //  ZIndexA/B 둘 다 -1(미설정) 이면 이 블록 진입 안 함 → 기존 경로 그대로(D-07 회귀 0).
+            dualMeasForGate = meas as DualImageEdgeDistanceMeasurement;
+            bHasAnyZIndex = dualMeasForGate != null && (dualMeasForGate.ZIndexA != UNSET_ZINDEX || dualMeasForGate.ZIndexB != UNSET_ZINDEX);
+            if (bHasAnyZIndex)
+            {
+                //260818 hbk 게이트 판정을 명시적 상태(ECrossZGate)로 뽑아 아래 switch 한 곳에서 처리한다.
+                //  ⚠ 판정에 필요한 호출 중 ProcessCrossZCaptureTick 은 순수하지 않다(실제 캡처/저장 수행).
+                //    그래서 분류 함수 안으로 숨기지 않고 switch '앞'에 그대로 둔다 —
+                //    "IsZIndexMisconfigured 를 통과한 경우에만 캡처한다"는 원본 단락(short-circuit)
+                //    순서와 호출 횟수를 눈에 보이게 보존하기 위함이다.
+                //    순수한 것은 out 3개 bool → enum 변환뿐이고, 그 부분만 ResolveCrossZGate 로 뺐다.
+                bool bRelevant = false;
+                bool bCaptureOk = false;
+                bool bCompleted = false;
+                string szCapturedRoleKey = null;
+                bool bNonProtocolCycle = false;
+                ECrossZGate eGate;
+                bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
+                if (bMisconfigured)
+                {
+                    eGate = ECrossZGate.Misconfigured;
+                }
+                else
+                {
+                    ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
+                    //260729 hbk quick-fix(260729-e9q): 비프로토콜 사이클(RUN 버튼/일괄검사,
+                    //  RequestPacket==null)은 이 Shot 의 EStep.Measure 가 이번 tick 단 한 번뿐이고
+                    //  GetExecutionZIndex() 도 항상 0 이라 크로스-Z 짝이 절대 완성되지 않는다 —
+                    //  조용히 continue 하면 측정한 적 없는 항목이 PASS 로 집계된다(안전 결함).
+                    //  프로토콜 사이클(RequestPacket!=null)은 다음 z tick 에서 짝이 완성되므로
+                    //  기존 defer 동작을 그대로 유지한다(회귀 0 하드 요구).
+                    //  parentSeq2==null 은 여기 도달 불가(IsZIndexMisconfigured 가 먼저 걸러냄)이나,
+                    //  도달하더라도 짝 완성 경로가 없으므로 비프로토콜과 동일하게 NG 로 본다.
+                    bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
+                    eGate = ResolveCrossZGate(bRelevant, bCaptureOk, bCompleted);
+                }
+                //260818 hbk default: 를 두지 않는다 — 5개 멤버를 전부 다루고 있고, default 를 추가하면
+                //  감사되지 않은 6번째 경로가 생긴다. 멤버를 늘릴 일이 생기면 반드시 이 switch 도 함께 고칠 것.
+                switch (eGate)
+                {
+                    case ECrossZGate.Misconfigured:
+                        MarkMeasurementZIndexMisconfigured(meas);
+                        acc.FaiAllPass = false;
+                        acc.MeasuredCount++;
+                        return false;
+                    case ECrossZGate.NotMyTick:
+                        if (bNonProtocolCycle)
+                        {
+                            MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
+                            acc.FaiAllPass = false;
+                            acc.MeasuredCount++;
+                        }
+                        return false; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
+                    case ECrossZGate.CaptureFailed:
+                        meas.ClearResult();
+                        meas.LastSkipReason = SkipReason.NO_IMAGE;
+                        meas.LastJudgement = false;
+                        acc.FaiAllPass = false;
+                        acc.MeasuredCount++;
+                        return false;
+                    case ECrossZGate.HalfPending:
+                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
+                        MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref acc.FaiAllPass, ref acc.MeasuredCount);
+                        return false;
+                    case ECrossZGate.BothReady:
+                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
+                        return true; // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
+                }
+            }
+            return true; // 크로스-Z 가 아닌 일반 측정 — 원본에서 if 블록을 건너뛰던 경로와 동치
         }
 
         //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.

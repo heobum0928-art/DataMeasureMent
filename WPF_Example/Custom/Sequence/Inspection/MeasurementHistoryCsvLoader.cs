@@ -42,6 +42,8 @@ namespace ReringProject.Sequence
         private const int COL_TOLMINUS = 9;
         private const int COL_MEASURED = 10;
         private const int COL_JUDGE = 11;
+        private const int COL_INDEX = 2;
+        private const int COL_OVERALL = 13;
 
         /// <summary>
         /// dtFrom~dtTo 기간의 일자별 CSV 를 읽어 통계/추이/레시피목록을 반환한다.
@@ -208,6 +210,224 @@ namespace ReringProject.Sequence
             }
 
             return meas;
+        }
+
+        /// <summary>
+        /// QueryCycles 의 사이클 경계 판정 상태. CSV 는 사이클 단위 append 라 행이 항상 연속이므로
+        /// 전체를 메모리에 모으지 않고 직전 행과의 비교만으로 경계를 찾는다.
+        /// </summary>
+        private class CycleGroupState
+        {
+            public List<CycleResultDto> Cycles = new List<CycleResultDto>();
+            public CycleResultDto Current;
+            public string LastTime;
+            public string LastRecipe;
+            public string LastIndex;
+            public HashSet<string> SeenKeys = new HashSet<string>();
+            public Dictionary<string, ShotResultDto> ShotMap = new Dictionary<string, ShotResultDto>();
+            public Dictionary<string, FaiResultDto> FaiMap = new Dictionary<string, FaiResultDto>();
+        }
+
+        /// <summary>
+        /// dtFrom~dtTo 기간의 일자별 CSV 를 읽어 검사 사이클 단위 DTO 목록으로 재조립한다.
+        /// CPK 리포트 export 전용 — 화면 통계는 Query() 를 쓴다(무변경).
+        /// 반환 순서는 시간 오름차순(오래된 것 → 최신)이며, CSV 의 append 순서를 그대로 따른다.
+        /// </summary>
+        public static List<CycleResultDto> QueryCycles(DateTime dtFrom, DateTime dtTo, string szRecipeFilter)
+        {
+            var state = new CycleGroupState();
+
+            try
+            {
+                string szDir = SystemHandler.Handle.Setting.StatisticsSavePath;
+                if (string.IsNullOrEmpty(szDir))
+                {
+                    return state.Cycles;
+                }
+
+                if (dtTo.Date < dtFrom.Date)
+                {
+                    return state.Cycles;
+                }
+
+                for (DateTime d = dtFrom.Date; d <= dtTo.Date; d = d.AddDays(1))
+                {
+                    string szPath = Path.Combine(szDir, d.ToString("yyyyMMdd") + CSV_EXT);
+                    if (!File.Exists(szPath))
+                    {
+                        continue;
+                    }
+
+                    LoadCyclesFromFile(szPath, szRecipeFilter, state);
+                }
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] QueryCycles failed: " + ex.Message); } catch { }
+            }
+
+            return state.Cycles;
+        }
+
+        /// <summary>szPath 1개 CSV 파일을 사이클 재조립 상태에 누적한다. 파일 단위 실패는 격리한다(LoadFile 동일 패턴).</summary>
+        private static void LoadCyclesFromFile(string szPath, string szRecipeFilter, CycleGroupState state)
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(szPath, Encoding.UTF8);
+
+                foreach (string line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        continue;
+                    }
+
+                    List<string> fields = ParseCsvLine(line);
+                    if (fields.Count < COLUMN_COUNT)
+                    {
+                        continue;
+                    }
+
+                    if (fields[COL_TIME] == HEADER_FIRST_TOKEN)
+                    {
+                        continue;
+                    }
+
+                    ProcessCycleRow(fields, szRecipeFilter, state);
+                }
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] LoadCyclesFromFile failed: " + szPath + " / " + ex.Message); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// 새 사이클이 시작되는 행인지 판정한다. CSV 타임스탬프가 초 단위라 서로 다른 사이클이
+        /// 같은 초에 겹치는 일이 실제로 발생하므로(실데이터 14건) 시간만으로는 나눌 수 없다.
+        /// 측정키 재등장을 마지막 방어선으로 둔다 — 한 사이클 안에서 같은 Shot/FAI/측정명은 한 번뿐이다.
+        /// </summary>
+        private static bool IsNewCycleBoundary(CycleGroupState state, string szTime, string szRecipe, string szIndex, string szKey)
+        {
+            if (state.Current == null)
+            {
+                return true;
+            }
+
+            if (szTime != state.LastTime || szRecipe != state.LastRecipe)
+            {
+                return true;
+            }
+
+            if (szIndex != state.LastIndex)
+            {
+                return true;
+            }
+
+            if (state.SeenKeys.Contains(szKey))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>CSV 1행을 사이클 재조립 상태에 반영한다. 측정 DTO 복원은 BuildMeasFromRow 를 그대로 재사용한다(DRY).</summary>
+        private static void ProcessCycleRow(List<string> fields, string szRecipeFilter, CycleGroupState state)
+        {
+            string szRecipe = fields[COL_RECIPE];
+            if (!string.IsNullOrEmpty(szRecipeFilter) && szRecipe != szRecipeFilter)
+            {
+                return;
+            }
+
+            string szTime = fields[COL_TIME];
+            string szIndex = fields[COL_INDEX];
+            string szShot = fields[COL_SHOT];
+            string szFai = fields[COL_FAI];
+            string szName = fields[COL_MEASNAME];
+            string szKey = szShot + "/" + szFai + "/" + szName;
+
+            if (IsNewCycleBoundary(state, szTime, szRecipe, szIndex, szKey))
+            {
+                var cycle = new CycleResultDto();
+                cycle.InspectionTime = ParseInspectionTime(szTime);
+                cycle.RecipeName = szRecipe;
+                cycle.IndexNumber = ParseIndexNumber(szIndex);
+                cycle.OverallJudgement = MapOverallBack(fields[COL_OVERALL]);
+
+                state.Cycles.Add(cycle);
+                state.Current = cycle;
+                state.SeenKeys.Clear();
+                state.ShotMap.Clear();
+                state.FaiMap.Clear();
+            }
+
+            ShotResultDto shot;
+            if (!state.ShotMap.TryGetValue(szShot, out shot))
+            {
+                shot = new ShotResultDto { ShotName = szShot };
+                state.Current.Shots.Add(shot);
+                state.ShotMap[szShot] = shot;
+            }
+
+            // FAI 맵 키에 ShotName 을 포함해야 다른 Shot 의 동명 FAI 가 섞이지 않는다.
+            string szFaiKey = szShot + "/" + szFai;
+            FaiResultDto fai;
+            if (!state.FaiMap.TryGetValue(szFaiKey, out fai))
+            {
+                fai = new FaiResultDto { FAIName = szFai };
+                shot.FAIs.Add(fai);
+                state.FaiMap[szFaiKey] = fai;
+            }
+
+            fai.Measurements.Add(BuildMeasFromRow(fields));
+
+            state.SeenKeys.Add(szKey);
+            state.LastTime = szTime;
+            state.LastRecipe = szRecipe;
+            state.LastIndex = szIndex;
+        }
+
+        /// <summary>"yyyy-MM-dd HH:mm:ss" 파싱. 실패 시 DateTime.MinValue — 그룹핑은 원본 문자열로 하므로 영향 없다.</summary>
+        private static DateTime ParseInspectionTime(string sz)
+        {
+            DateTime dt;
+            if (DateTime.TryParseExact(sz, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+            {
+                return dt;
+            }
+
+            return DateTime.MinValue;
+        }
+
+        /// <summary>자재번호 파싱. 공백/실패는 -1(CycleResultDto.IndexNumber 의 미지정 sentinel).</summary>
+        private static int ParseIndexNumber(string sz)
+        {
+            int n;
+            if (int.TryParse(sz, NumberStyles.Integer, CultureInfo.InvariantCulture, out n))
+            {
+                return n;
+            }
+
+            return -1;
+        }
+
+        /// <summary>CSV 의 P/F/N 을 CycleResultDto.OverallJudgement 값으로 되돌린다(Writer.MapOverall 의 역함수).</summary>
+        private static string MapOverallBack(string sz)
+        {
+            if (sz == "P")
+            {
+                return "OK";
+            }
+
+            if (sz == "F")
+            {
+                return "NG";
+            }
+
+            return "DETECT_FAIL";
         }
 
         /// <summary>InvariantCulture 숫자 파싱. 실패 시 0.0 폴백(T-67-04).</summary>

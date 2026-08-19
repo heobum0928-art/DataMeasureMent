@@ -3249,6 +3249,11 @@ namespace ReringProject.UI {
             double dy = p2.Y - p1.Y;
             double pixelDistance = Math.Sqrt(dx * dx + dy * dy);
 
+            //260819 hbk quick-diag(260819-click2): FinishDistanceMeasure 진입/픽셀거리 확인용 임시 진단 로그.
+            Logging.PrintLog((int)ELogType.Trace,
+                "[CLICK-DIAG] FinishDistanceMeasure 진입 pixelDistance={0:F2} min={1:F2}",
+                pixelDistance, MinCalibrationPixelDistance);
+
             if (pixelDistance < MinCalibrationPixelDistance) {
                 CustomMessageBox.Show("두 점 사이의 거리가 너무 가깝습니다.", "거리측정");
                 ExitCanvasMode();
@@ -3281,6 +3286,11 @@ namespace ReringProject.UI {
                 label_message.Foreground = new SolidColorBrush(Colors.White);
                 label_message.Visibility = Visibility.Visible;
             }
+
+            //260819 hbk quick-diag(260819-click2): label_message 최종 상태 확인용 임시 진단 로그.
+            Logging.PrintLog((int)ELogType.Trace,
+                "[CLICK-DIAG] label_message 설정 완료 visibility={0} content={1}",
+                label_message.Visibility, label_message.Content);
 
             var timer = new System.Windows.Threading.DispatcherTimer();
             timer.Interval = TimeSpan.FromSeconds(MessageDisplaySeconds);

@@ -51,16 +51,12 @@ namespace ReringProject.Sequence {
             BothReady
         }
 
-        //260819 hbk quick-260819-gf1: Shot 측정 루프의 누적 상태 묶음.
-        //  왜 필요한가 — 종전엔 이 값들을 MeasureShotFaiList → ProcessOneMeasurement / FinalizeFaiTick 로
-        //  ref 파라미터에 실어 날랐다. ref 키워드를 하나만 빠뜨려도 컴파일은 통과하고 호출자 카운터만
-        //  조용히 0 으로 남는 구조였다. 참조형 1개로 묶으면 그 실수를 할 자리 자체가 사라진다.
-        //  ⚠ 프로퍼티가 아니라 반드시 '필드' 여야 한다 — 아직 ref 로 받는 헬퍼가 남아 있고
-        //    (TakeCrossZRoleImageIfFirst / MarkCrossZHalfPending / MarkAllMeasurementsNoImage),
-        //    C# 은 프로퍼티를 ref 인자로 넘기지 못한다(CS0206).
-        //  ⚠ 수명이 두 종류로 섞여 있다:
-        //    Shot 전체 수명 = AllPass / MeasuredCount / NMeasNg / ShotDisplayImageReplaced
-        //    FAI 1개 수명   = FaiAllPass / CrossZRoleImage → FAI 루프 진입마다 반드시 리셋한다.
+        // Shot 측정 루프에서 쓰는 값들을 한데 묶은 것 — 예전엔 이 값들을 메서드 사이에 ref 로 넘겼는데,
+        //  ref 를 하나만 빠뜨려도 컴파일은 되고 값만 조용히 0 으로 남는 실수가 나기 쉬웠다.
+        //  ⚠ 프로퍼티가 아니라 반드시 필드로 선언해야 한다 — 아직 ref 로 받는 곳이 남아있는데
+        //    C# 은 프로퍼티를 ref 로 못 넘긴다.
+        //  ⚠ 값 중 FaiAllPass/CrossZRoleImage 는 FAI 하나 처리할 때마다 리셋해야 한다 —
+        //    나머지는 Shot 전체가 끝날 때까지 유지되는 값이다.
         private class ShotMeasureAccumulator {
             public bool AllPass;
             public int MeasuredCount;
@@ -126,14 +122,10 @@ namespace ReringProject.Sequence {
             catch { }
         }
 
-        //260818 hbk [초보자용 개요] 이 Run() 메서드는 프로그램이 살아있는 동안 아주 짧은 간격(수 ms)으로 계속
-        //  반복 호출됩니다. 매번 호출될 때마다 지금이 몇 번째 "단계"(Step)인지 보고, 그 단계에 해당하는
-        //  case 블록 하나만 실행합니다 — 이런 구조를 "상태 머신(state machine)"이라고 부릅니다.
-        //  한 Shot(사진 한 장 분량의 검사)이 끝나기까지 아래 순서로 단계가 넘어갑니다:
-        //    Init(초기화) → MoveZ(높이 이동) → DatumPhase(기준점 찾기) → Grab(촬영) → Measure(측정) → End(종료)
-        //  각 case 는 자기 할 일을 끝내면 `Step = (int)EStep.다음단계;` 로 다음 단계를 예약하고 `break;`로
-        //  빠져나갑니다. 다음 호출 때 그 다음 단계 case 가 실행되는 식입니다. 그래서 이 메서드 안에서
-        //  "루프"를 직접 도는 게 아니라, 밖에서(SequenceBase) 반복 호출해주는 걸 받아서 한 걸음씩 전진합니다.
+        // 이 메서드는 프로그램이 켜져 있는 동안 아주 짧은 간격으로 계속 호출됩니다. 호출될 때마다
+        //  지금이 몇 번째 단계인지 보고 그 단계에 맞는 case 하나만 실행하는 식으로 동작합니다.
+        //  한 장 촬영하는 데 Init(초기화) → MoveZ(이동) → DatumPhase(기준점) → Grab(촬영) →
+        //  Measure(측정) → End(종료) 순서로 단계가 넘어갑니다.
         public override ActionContext Run() {
             switch ((EStep)Step) {
                 case EStep.Init:       RunInit();       break;
@@ -178,17 +170,12 @@ namespace ReringProject.Sequence {
             Step = (int)EStep.DatumPhase;
         }
 
-        // DatumConfigs 전체를 per-datum loop 하여 각자 자기 이미지로 검출, _datumTransforms 누적.
-        // datum 부분 실패는 skip+log (lenient, abort 없음).
-        //260807 hbk quick-260807: ClearDatumTransforms() 를 여기(매 Action 의 DatumPhase 진입마다)에서
-        //  더 이상 호출하지 않는다 — 사이클 경계(InspectionSequence.HandleRunStartResetResults 수동 RUN /
-        //  SystemHandler.StartV1Scoped z=0 프로토콜 진입, $RESET 은 기존 ResetCycleStateForProtocolReset
-        //  그대로)로 이동했다. 이유: 이 case 는 시퀀스의 Shot(=Z) 수만큼 반복 실행되는데, 매번 무조건
-        //  비우면 물리적으로 고정된(Z 무관) Datum 기준물까지 Shot 마다 재조명+재grab+재정렬+재검출(실측
-        //  0.9~1.4초/회)하게 된다 — 아래 루프의 캐시-재사용 스킵과 짝을 이루는 변경.
-        //260818 hbk [초보자용] "기준점(Datum)"을 찾는 단계입니다. 사진에서 측정을 하려면 먼저 "여기가 기준이다"라는
-        //  위치를 알아야 하는데, 그걸 찾는 게 이 단계입니다. 부품이 움직이지 않는 한 기준점 위치도 안 바뀌므로,
-        //  이번 검사(사이클)에서 이미 한 번 찾았으면 다시 찾지 않고 그 결과를 재사용합니다(아래 캐시 로직).
+        // 등록된 Datum 전부를 순서대로 검출해서 _datumTransforms 에 쌓는다. 일부가 실패해도 나머지는 계속
+        //  진행한다(중단하지 않음).
+        // "기준점(Datum)"은 사진에서 측정 위치를 정할 때 기준이 되는 점입니다. 부품이 움직이지 않는 한
+        //  기준점도 안 바뀌므로, 이번 검사에서 이미 찾았으면 다시 찾지 않고 재사용합니다(아래 캐시).
+        // 이 초기화는 여기서 하지 않는다 — 사이클이 시작될 때 한 번만 한다. 매번 하면 Shot 마다
+        //  안 움직이는 기준점까지 매번 다시 찾게 되어 느려진다(실측 회당 0.9~1.4초).
         private void RunDatumPhase() {
             //260818 hbk [SEQ] DatumPhase 단계 tact 측정용 — 아래 "완료 —" 단계 요약 로그가 소비한다.
             var swDatumPhase = Stopwatch.StartNew();
@@ -216,14 +203,10 @@ namespace ReringProject.Sequence {
                     LightHandler.Handle.WaitForPendingWrites();
                 }
             }
-            // DatumConfigs 비어있으면 무보정 pass-through — abort 없음 (lenient)
-            //260722 hbk Phase 68 GAP-2(AdvanceAfterDatumPhase, 68-GAP-ANALYSIS.md 우선순위 2)→68-12: datum-only
-            //  index(예: Side z=1, 오직 크로스-Z Datum 만 씀) 뿐 아니라 z=0(이 시퀀스의 대표 Datum 트리거
-            //  실행)에서도 이 Action 은 DatumPhase(Datum 캡처+검출)를 트리거하려고만 실행됐다 — 이 Shot 의
-            //  Grab/Measure 를 그대로 진행하면 이 Shot의 일반 측정이 잘못된 물리 Z(z=1 은 Datum 위치, z=0 은
-            //  아직 이 Shot 차례가 아님)에서 재실행되어 cycle.json/저장이미지/화면표시가 오염된다(GAP-2 남은
-            //  리스크). 판정은 이제 InspectionSequence.ShouldSkipMeasurementAfterDatumPhase 단일 소스(기존
-            //  IsDatumOnlyExecutionIndex z>=1 경로 + 신규 z=0 대표트리거 경로 OR 결합)로 통합됐다.
+            // Datum 설정이 없으면 그냥 통과(보정 없이 진행) — 중단하지 않는다.
+            // 이 Shot이 기준점만 찾으러 실행된 경우(다른 Shot의 기준점을 대신 찾아주는 역할)에는 여기서
+            //  멈추고 이 Shot 자신의 촬영/측정은 하지 않는다 — 계속 진행하면 잘못된 위치에서 측정이 실행돼
+            //  결과와 저장 이미지가 엉뚱하게 오염된다.
             int nCurZ = 0;
             bool bDatumOnly = false;
             if (parentSeq != null) {
@@ -243,13 +226,10 @@ namespace ReringProject.Sequence {
         //260702 hbk Extract Method(Task3): DatumPhase per-datum loop 본문(원본 foreach 내부, 동치 보장, continue->return)
         private void ProcessOneDatum(DatumConfig datum, InspectionSequence parentSeq, ref int nDatumOk, ref int nDatumFail, ref int nDatumCached) {
             if (datum == null) return;
-            //260807 hbk quick-260807: 크로스-Z(ZIndexA/B 중 하나라도 설정된 DualImage) 가 아닌 Datum 은
-            //  고정 기준물이라 Z 가 바뀌어도 위치가 바뀌지 않는다 — 이번 사이클에서 이미 검출 성공해
-            //  _datumTransforms 에 값이 있으면(성공시에만 저장됨) 이 Shot 에서는 재조명/재grab/재정렬/
-            //  재검출을 전부 건너뛰고 캐시를 그대로 쓴다(실측 0.9~1.4초/회 절감 × 같은 시퀀스의 남은 Shot 수).
-            //  이전 Z 에서 검출이 "실패"했던 datum 은 캐시에 안 남으므로 여기서 그대로 다시 시도된다
-            //  (lenient 원칙 유지, D-04 요구사항). 크로스-Z 는 여러 Z 의 이미지를 조합해야 하므로
-            //  이 스킵 대상에서 완전히 제외 — 아래 분기는 기존과 동일하게 매번 재실행된다.
+            // 크로스-Z 가 아닌 기준점은 위치가 고정이라, 이번 검사에서 이미 한 번 찾았으면 다시 찾지 않고
+            //  캐시를 그대로 쓴다(회당 0.9~1.4초 절약). 전에 실패했던 기준점은 캐시에 안 남으므로
+            //  다시 시도한다. 크로스-Z 기준점은 여러 장을 조합해야 해서 이 캐시 대상에서 제외한다 —
+            //  매번 다시 실행한다.
             bool bIsCrossZDatum = datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
                 && !(datum.ZIndexA == UNSET_ZINDEX && datum.ZIndexB == UNSET_ZINDEX);
             if (!bIsCrossZDatum && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
@@ -283,11 +263,9 @@ namespace ReringProject.Sequence {
                 parentSeq.MarkDatumFailed(datum.DatumName);
                 return; // datum skip, abort 안 함
             }
-            //260722 hbk Phase 68 D-06 (WARNING 2): Datum 크로스-Z 는 별도 z_index→Datum 매핑 조회를
-            //  추가하지 않는다 — (a) 바로 이 루프가 매 실행 Action 마다 시퀀스 DatumConfigs 전체를
-            //  재검출하고 (b) Plan 02 ProcessTest 의 빈-매칭→StartAll 폴백에 의존해, 두 z_index
-            //  모두에서 이 Datum 검출이 실행된다는 사실이 크로스-Z 정정성의 전제다. 이 두 동작(전체
-            //  재검출 / 빈-매칭 폴백)을 향후 변경할 때는 Datum 크로스-Z 재검증이 반드시 필요하다.
+            // 이 검출 루프가 매번 전체 Datum 목록을 다시 검출한다는 전제, 그리고 두 z_index 모두에서 이
+            //  Datum 검출이 실행된다는 전제가 크로스-Z 결과 정확성의 바탕이다 — 이 두 동작을 바꿀 때는
+            //  크로스-Z 쪽도 반드시 다시 검증해야 한다.
             HImage imgH = null, imgV = null;
             bool bDatumCrossZPending;
             try {
@@ -543,11 +521,8 @@ namespace ReringProject.Sequence {
                     var capSaver = SystemHandler.Handle.CaptureImageSaver;
                     SharedHImage sharedSrc = null;
                     if (capSaver != null) { try { sharedSrc = new SharedHImage(image.CopyImage()); } catch { sharedSrc = null; } }
-                    //260810 hbk quick-debug(capture-render-per-fai-slow) round4 fix: try/finally 를 sharedSrc
-                    //  생성 직후로 넓혔다(기존엔 BuildDatumCaptureSnapshot/GetEffectivePixelResolution/
-                    //  QueueSharedShotOrigin 이 try 밖에 있어, 이 구간에서 예외가 나면 sharedSrc(ref 1, 검사
-                    //  루프 소유)가 release 안 되고 새는 결함이 있었다 — QueueSharedShotOrigin 이 이미
-                    //  AddRef 까지 해둔 뒤 예외가 나면 ref 2개가 동시에 샐 수 있었다).
+                    // try 를 sharedSrc 를 만들자마자로 넓혔다 — 그 전에는 사이에서 예외가 나면 이 이미지가
+                    //  release 안 되고 새는 버그가 있었다(참조 카운트가 이중으로 새는 경우까지 있었음).
                     try {
                     // datum 검출 오버레이 스냅샷(시퀀스 단위, 전 FAI 공유). 값만 추출해 워커 async race 차단.
                     List<DatumCaptureOverlay> datumSnapshot = BuildDatumCaptureSnapshot(parentSeq2);
@@ -555,11 +530,10 @@ namespace ReringProject.Sequence {
                     double pixRes; //260615 hbk Phase 42 D-01 Shot 단일소스
                     if (ShotParam != null) pixRes = ShotParam.GetEffectivePixelResolution();
                     else pixRes = 1.0;
-                    // (구) ±2% 가드레일 경고 제거 — CorrectionFactor 를 배율 보정(예: 0.72)까지 포함한 단일 보정 knob 으로
-                    //  운용하기로 결정. ±2% 초과가 정상 사용이 되어 매 검사 Error 로그를 헛되이 채우던 노이즈였음(로그 전용, 검사 영향 0).
-                    //260807 hbk quick-debug(top-z1-measure-8sec-slow) fix: 원본(origin) 이미지는 이 Shot 의 모든 FAI 가
-                    //  sharedSrc 를 통해 완전히 동일한 내용을 참조한다 — FAI 마다 반복 저장(127MP 기준 실측 ~1초/장)하지
-                    //  않고 Shot 당 1회만 큐에 넣는다. 큐 상한(50=FAI 25개분)을 넘는 FAI 부터 저장 대기가 걸리던 원인.
+                    // ±2% 를 넘으면 경고 로그를 남기던 걸 뺐다 — 이제 보정계수 자체가 배율까지 포함하는 방식이라
+                    //  ±2% 초과가 정상 범위라서, 매번 뜨는 경고가 그냥 노이즈였다(로그만 영향, 검사엔 무관).
+                    // 원본 이미지는 이 Shot 의 모든 FAI 가 완전히 같은 걸 보므로, FAI 마다 따로 저장하지 않고
+                    //  Shot 당 한 번만 저장 큐에 넣는다(항목별로 매번 저장하면 느려진다).
                     string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
                     foreach (var fai in ShotParam.FAIList) {
                         acc.FaiAllPass = true;

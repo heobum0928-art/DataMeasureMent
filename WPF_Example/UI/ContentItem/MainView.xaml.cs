@@ -43,7 +43,7 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2 } //260618 hbk Phase 54 ALIGN-01 / 260619 Phase 55 ALIGN-02 (PatternRoi2, AlignLineRoi 제거)
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2, DistanceMeasure } //260618 hbk Phase 54 ALIGN-01 / 260619 Phase 55 ALIGN-02 (PatternRoi2, AlignLineRoi 제거) / 260819 hbk quick-260819-n4d (DistanceMeasure 추가)
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private MeasurementBase _editingCircleMeasurement;
@@ -75,6 +75,7 @@ namespace ReringProject.UI {
         }
         private readonly List<System.Windows.Point> _polygonPoints = new List<System.Windows.Point>();
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
+        private readonly List<System.Windows.Point> _measurePoints = new List<System.Windows.Point>();
         private double _lastPointerRow, _lastPointerCol;
 
         public MainView() {
@@ -2622,6 +2623,8 @@ namespace ReringProject.UI {
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRectCompleted;
             //260619 hbk Phase 55 ALIGN-02 패턴 2 핸들러 unsubscribe
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRect2Completed;
+            // 거리측정 핸들러 unsubscribe (quick-260819-n4d)
+            halconViewer.ImageLeftClicked -= HalconViewer_MeasureMouseDown;
 
             _canvasMode = ECanvasMode.None;
             _editingFai = null;
@@ -2644,6 +2647,10 @@ namespace ReringProject.UI {
             halconViewer.ClearCalibrationOverlay();
             btn_calibrate.Content = "Calibrate";
             _calibrationPoints.Clear();
+
+            // Distance measure cleanup (quick-260819-n4d) -- 오버레이는 위 Calibration cleanup 의 ClearCalibrationOverlay() 가 공용 처리하므로 여기서 재호출하지 않는다
+            btn_measureDistance.Content = "거리측정";
+            _measurePoints.Clear();
         }
 
         private void RectRoiButton_Click(object sender, RoutedEventArgs e) {
@@ -3190,6 +3197,93 @@ namespace ReringProject.UI {
                     fai.PixelResolutionY = mmPerPixel;
                 }
             }
+        }
+
+        //quick-260819-n4d: 거리측정 -- 기존 Calibrate(2점+실측입력->mm/px 재계산.저장)와 완전히 별개 도구.
+        //  이미 설정되어 있는 PixelResolution(보정계수 포함 GetEffectivePixelResolution)으로 두 클릭 사이의
+        //  실제 거리(mm)를 즉시 계산해 보여주기만 한다 -- 아무 것도 저장.변경하지 않는다(read-only).
+        private void MeasureDistanceButton_Click(object sender, RoutedEventArgs e) {
+            ExitCanvasMode();
+            _canvasMode = ECanvasMode.DistanceMeasure;
+            _measurePoints.Clear();
+
+            btn_measureDistance.Content = "Pick Point 1";
+            label_drawHint.Content = "캔버스에서 첫 번째 점을 클릭하세요";
+            label_drawHint.Visibility = Visibility.Visible;
+
+            halconViewer.ImageLeftClicked += HalconViewer_MeasureMouseDown;
+        }
+
+        private void HalconViewer_MeasureMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
+            if (_canvasMode != ECanvasMode.DistanceMeasure) return;
+
+            var pos = new System.Windows.Point(e.X, e.Y);
+            _measurePoints.Add(pos);
+            halconViewer.SetCalibrationOverlay(_measurePoints);
+
+            if (_measurePoints.Count == 1) {
+                btn_measureDistance.Content = "Pick Point 2";
+                label_drawHint.Content = "캔버스에서 두 번째 점을 클릭하세요";
+            }
+            else if (_measurePoints.Count == 2) {
+                halconViewer.ImageLeftClicked -= HalconViewer_MeasureMouseDown;
+                FinishDistanceMeasure();
+            }
+        }
+
+        //quick-260819-n4d: 두 클릭 사이 픽셀거리 -> 선택 FAI 의 Shot.GetEffectivePixelResolution() 으로 mm 환산해
+        //  label_message 에 총/가로/세로 3값으로 표시. FAI 미선택/Shot 해석 불가 시 픽셀-only 로 조용히 폴백(크래시 금지).
+        //  아무 것도 저장하지 않는다 -- PixelResolution/PixelResolutionX/Y 쓰기 없음(Calibrate 와의 핵심 차이).
+        private void FinishDistanceMeasure() {
+            var p1 = _measurePoints[0];
+            var p2 = _measurePoints[1];
+
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double pixelDistance = Math.Sqrt(dx * dx + dy * dy);
+
+            if (pixelDistance < MinCalibrationPixelDistance) {
+                CustomMessageBox.Show("두 점 사이의 거리가 너무 가깝습니다.", "거리측정");
+                ExitCanvasMode();
+                return;
+            }
+
+            var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
+            FAIConfig anchorFai;
+            if (selectedRow != null) anchorFai = FindFAIByName(selectedRow.FAIName);
+            else                     anchorFai = null;
+
+            ShotConfig shot;
+            if (anchorFai != null) shot = anchorFai.Owner as ShotConfig;
+            else                   shot = null;
+
+            if (shot == null) {
+                label_message.Content = string.Format("픽셀거리: {0:F1}px (FAI 미선택 -- mm 환산 불가)", pixelDistance);
+                label_message.Foreground = new SolidColorBrush(Colors.White);
+                label_message.Visibility = Visibility.Visible;
+            }
+            else {
+                double pixelResolution = shot.GetEffectivePixelResolution();
+                double totalMm = pixelDistance * pixelResolution;
+                double dxMm = dx * pixelResolution;
+                double dyMm = dy * pixelResolution;
+
+                label_message.Content = string.Format(
+                    "거리: {0:F3}mm (가로 {1:F3}mm, 세로 {2:F3}mm)  |  픽셀거리: {3:F1}px",
+                    totalMm, Math.Abs(dxMm), Math.Abs(dyMm), pixelDistance);
+                label_message.Foreground = new SolidColorBrush(Colors.White);
+                label_message.Visibility = Visibility.Visible;
+            }
+
+            var timer = new System.Windows.Threading.DispatcherTimer();
+            timer.Interval = TimeSpan.FromSeconds(MessageDisplaySeconds);
+            timer.Tick += (s, args) => {
+                timer.Stop();
+                label_message.Visibility = Visibility.Collapsed;
+            };
+            timer.Start();
+
+            ExitCanvasMode();
         }
 
         //260623 hbk Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).

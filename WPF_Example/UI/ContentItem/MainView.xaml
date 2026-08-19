@@ -347,6 +347,25 @@
                         </Button.Template>
                     </Button>
 
+                    <!--260819 hbk quick-260819-n4d: 거리측정 — 기존 Calibrate(2점+실측입력->재보정)와 별도, 이미 있는 PixelResolution 으로 즉시 mm 거리 표시(read-only).-->
+                    <Button x:Name="btn_measureDistance" Content="거리측정"
+                        Click="MeasureDistanceButton_Click"
+                        MinWidth="80" Height="28" Padding="12,4" Margin="4,0,0,0"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#7C3AED" Foreground="White"
+                        BorderBrush="#6D28D9" BorderThickness="1">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <!--260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 진입점 (기존 2점 Calibrate 와 별도, D-04 별도 Window).-->
                     <Button x:Name="btn_checkerboardCalibrate" Content="체커보드 캘리브"
                         Click="OpenCheckerboardCalibrationButton_Click"

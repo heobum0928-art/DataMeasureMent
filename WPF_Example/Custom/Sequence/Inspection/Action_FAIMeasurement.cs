@@ -380,34 +380,7 @@ namespace ReringProject.Sequence {
             if (ShotParam != null && !ShotParam.HasImage) {
                 //260818 hbk [SEQ] Grab 단계 tact 측정용 — 아래 "촬영 완료" 단계 요약 로그가 소비한다.
                 var swGrabTotal = Stopwatch.StartNew();
-                HImage image = null;
-                bool bIsLiveGrabAttempt = false;   //260811 hbk plc-spec-260811-alignment: 실기 카메라 grab 여부(하드웨어 에러=E 판정용) — SIMUL_MODE/OfflineInspectMode 경로에선 절대 true 로 세팅 안 함
-                // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
-                #if SIMUL_MODE
-                image = LoadShotInspectionImage(); // SIMUL: 항상 저장 이미지(ShotParam.SimulImagePath) 로드
-                #else
-                if (SystemSetting.Handle.OfflineInspectMode) {
-                    // 오프라인(수동 지그): 라이브 grab 대신 노드 저장 이미지 로드. 각 SHOT 이 자기 Z 이미지라 정합 성립.
-                    image = LoadShotInspectionImage();
-                } else {
-                    bIsLiveGrabAttempt = true;
-                    // quick-260813-jnh: Shot 검사이미지 grab — 참조 DatumRef 로 소유 Datum 을 역추적해 MIL 미러 방향을 결정한다.
-                    InspectionSequence parentSeqForMirror = ShotParam.Parent as InspectionSequence;   // :283 에 동일 선례
-                    bool bShotMirrorX = false;
-                    bool bShotMirrorY = false;
-                    if (parentSeqForMirror != null) parentSeqForMirror.ResolveShotGrabMirror(ShotParam, out bShotMirrorX, out bShotMirrorY);
-                    string szShotRoleId = DeviceHandler.BuildGrabRoleIdentifier(ShotParam.DeviceName, bShotMirrorX, bShotMirrorY);
-                    image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam, szShotRoleId);
-                }
-                #endif
-                //260811 hbk plc-spec-260811-alignment: 실기 grab 이 null 을 반환한 경우만(SIMUL_MODE/오프라인
-                //  경로는 절대 해당 없음) 사이클 하드웨어 에러로 마킹 — $RESULT 응답이 F 대신 E 로 나간다
-                //  (제어팀 확정 스펙). Step 은 그대로 Measure 로 진행(기존 lenient 동작 유지, 회귀 0).
-                if (image == null && bIsLiveGrabAttempt) {
-                    InspectionSequence parentSeqForHwErr = ShotParam.Parent as InspectionSequence;
-                    if (parentSeqForHwErr != null) parentSeqForHwErr.MarkCycleHardwareError();
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
-                }
+                HImage image = AcquireShotImage();
                 if (image != null) {
                     //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
                     //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
@@ -430,6 +403,44 @@ namespace ReringProject.Sequence {
                     swGrabTotal.Elapsed.TotalSeconds));
             }
             Step = (int)EStep.Measure;
+        }
+
+        //260819 hbk Extract Method: RunGrab 의 촬영 구역을 그대로 옮긴 것(순수 이동, 동작 무변경).
+        //  ⚠ 조건부 컴파일 3줄이 반드시 이 메서드 안에 함께 있어야 한다. 하나라도 경계를 넘으면
+        //    한쪽 빌드에서만 조용히 다른 코드가 된다. Debug(SIMUL ON)/비-SIMUL 두 빌드로 검증한다.
+        //  ⚠ 실기 grab 여부 플래그는 선언·대입·읽기가 전부 이 메서드 안에 있어야 한다 —
+        //    쪼개면 SIMUL 빌드에서 "대입되지만 사용 안 됨" 경고(CS0219 계열)가 새로 생긴다.
+        //  ⚠ tact Stopwatch 는 호출부(RunGrab)에 남겼다. 여기로 옮기면 측정 구간이 달라져 [SEQ] 로그 숫자가 바뀐다.
+        private HImage AcquireShotImage() {
+            HImage image = null;
+            bool bIsLiveGrabAttempt = false;   //260811 hbk plc-spec-260811-alignment: 실기 카메라 grab 여부(하드웨어 에러=E 판정용) — SIMUL_MODE/OfflineInspectMode 경로에선 절대 true 로 세팅 안 함
+            // ShotParam.SimulImagePath = InspectionImagePath 역할 (검사 사이클 마다 로드). 티칭 기준 이미지는 별도 DatumConfig.TeachingImagePath (셋업 시 1회, INI 보존) 사용 — 역할 분리. Simul 에서 두 경로 동일 파일 가능.
+            #if SIMUL_MODE
+            image = LoadShotInspectionImage(); // SIMUL: 항상 저장 이미지(ShotParam.SimulImagePath) 로드
+            #else
+            if (SystemSetting.Handle.OfflineInspectMode) {
+                // 오프라인(수동 지그): 라이브 grab 대신 노드 저장 이미지 로드. 각 SHOT 이 자기 Z 이미지라 정합 성립.
+                image = LoadShotInspectionImage();
+            } else {
+                bIsLiveGrabAttempt = true;
+                // quick-260813-jnh: Shot 검사이미지 grab — 참조 DatumRef 로 소유 Datum 을 역추적해 MIL 미러 방향을 결정한다.
+                InspectionSequence parentSeqForMirror = ShotParam.Parent as InspectionSequence;   // :283 에 동일 선례
+                bool bShotMirrorX = false;
+                bool bShotMirrorY = false;
+                if (parentSeqForMirror != null) parentSeqForMirror.ResolveShotGrabMirror(ShotParam, out bShotMirrorX, out bShotMirrorY);
+                string szShotRoleId = DeviceHandler.BuildGrabRoleIdentifier(ShotParam.DeviceName, bShotMirrorX, bShotMirrorY);
+                image = SystemHandler.Handle.Devices.GrabHalconImage(ShotParam, szShotRoleId);
+            }
+            #endif
+            //260811 hbk plc-spec-260811-alignment: 실기 grab 이 null 을 반환한 경우만(SIMUL_MODE/오프라인
+            //  경로는 절대 해당 없음) 사이클 하드웨어 에러로 마킹 — $RESULT 응답이 F 대신 E 로 나간다
+            //  (제어팀 확정 스펙). Step 은 그대로 Measure 로 진행(기존 lenient 동작 유지, 회귀 0).
+            if (image == null && bIsLiveGrabAttempt) {
+                InspectionSequence parentSeqForHwErr = ShotParam.Parent as InspectionSequence;
+                if (parentSeqForHwErr != null) parentSeqForHwErr.MarkCycleHardwareError();
+                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
+            }
+            return image;
         }
 
         //260818 hbk [초보자용] 찍은 사진 위에서 진짜 "측정"을 하는 단계입니다. 이 Shot에 등록된 FAI(검사 그룹)와

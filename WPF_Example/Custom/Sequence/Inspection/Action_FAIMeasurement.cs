@@ -674,10 +674,10 @@ namespace ReringProject.Sequence {
         }
 
         //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.
-        //  ⚠ 이름에 Tally 가 붙은 이유 — 로그만 찍지 않는다. dctAlgoUsed(Shot 단위 알고리즘 사용 횟수)를
+        //   이름에 Tally 가 붙은 이유 — 로그만 찍지 않는다. dctAlgoUsed(Shot 단위 알고리즘 사용 횟수)를
         //    갱신하는 부수효과가 있고, 이 집계값을 RunMeasure 끝의 [SEQ] Measure 요약 로그가 소비한다.
         //    Dictionary 는 참조형이라 값 전달로도 호출자 인스턴스가 그대로 갱신된다(ref 불필요).
-        //  ⚠ Stopwatch 를 통째로 받는다 — ms 를 호출부에서 미리 계산해 넘기면 읽는 시점이 앞당겨져
+        //   Stopwatch 를 통째로 받는다 — ms 를 호출부에서 미리 계산해 넘기면 읽는 시점이 앞당겨져
         //    로그 숫자가 달라진다. 아래 PrintLog 인자 위치에서 읽어야 원본과 동일 시점이다.
         private void LogAndTallyAlgorithm(MeasurementBase meas, bool bHasAnyZIndex, bool bOk,
                                           Dictionary<string, int> dctAlgoUsed, Stopwatch swMeasureExec) {

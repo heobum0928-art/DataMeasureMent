@@ -385,17 +385,7 @@ namespace ReringProject.Sequence {
                     //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
                     //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
                     ShotParam.SetImage(image); // 측정 소스(데이터 경로) — 표시 설정과 무관하게 항상 설정한다.
-                    //260810 hbk quick-260810-egx: 아래는 "표시 전용" 사본(127MP memcpy). 자동검사 중 표시를 끄면 생략한다.
-                    InspectionSequence parentSeqForView;
-                    if (ShotParam != null) parentSeqForView = ShotParam.Parent as InspectionSequence;
-                    else parentSeqForView = null;
-                    bool bSkipViewer = IsViewerUpdateSkipped(parentSeqForView);
-                    if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
-                    if (bSkipViewer) {
-                        pMyContext.ResultHalconImage = null; // 표시사본 미생성. HalconImageBridge.Clone(null)==null 이라 뒤쪽은 조용히 no-op.
-                    } else {
-                        pMyContext.ResultHalconImage = image.CopyImage();
-                    }
+                    UpdateViewerCopy(image);
                     image.Dispose(); // 누수 방지 — 조건과 무관하게 항상 수행.
                 }
                 //260818 hbk [SEQ] Grab 단계 요약 (tact 포함)
@@ -441,6 +431,25 @@ namespace ReringProject.Sequence {
                 Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
             }
             return image;
+        }
+
+        //260819 hbk Extract Method: RunGrab 의 화면표시용 사본 처리를 그대로 옮긴 것(순수 이동, 동작 무변경).
+        //  ⚠ 측정 소스 설정(데이터 경로)과 원본 이미지 해제는 호출부에 남겼다 — 여기 들어오면
+        //    "조건과 무관하게 항상 수행" 계약이 조기 return 등으로 깨질 여지가 생긴다.
+        //  ⚠ 안쪽 null 재확인은 원형 그대로다. 바깥 호출부가 이미 non-null 을 보장하지만,
+        //    지우면 순수 이동이 아니게 되므로 중복 방어를 유지한다.
+        private void UpdateViewerCopy(HImage image) {
+            //260810 hbk quick-260810-egx: 아래는 "표시 전용" 사본(127MP memcpy). 자동검사 중 표시를 끄면 생략한다.
+            InspectionSequence parentSeqForView;
+            if (ShotParam != null) parentSeqForView = ShotParam.Parent as InspectionSequence;
+            else parentSeqForView = null;
+            bool bSkipViewer = IsViewerUpdateSkipped(parentSeqForView);
+            if (pMyContext.ResultHalconImage != null) pMyContext.ResultHalconImage.Dispose();
+            if (bSkipViewer) {
+                pMyContext.ResultHalconImage = null; // 표시사본 미생성. HalconImageBridge.Clone(null)==null 이라 뒤쪽은 조용히 no-op.
+            } else {
+                pMyContext.ResultHalconImage = image.CopyImage();
+            }
         }
 
         //260818 hbk [초보자용] 찍은 사진 위에서 진짜 "측정"을 하는 단계입니다. 이 Shot에 등록된 FAI(검사 그룹)와

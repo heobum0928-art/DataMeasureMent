@@ -350,42 +350,48 @@ namespace ReringProject.Sequence {
             //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 (D-02/D-04/D-05). 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
             //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
             try {
-                if (datum.IsPatternAlignEnabled) {
-                    string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
-                    string alignErr;
-                    if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
-                        string dn = datum.DatumName;
-                        dn = dn ?? "";
-                        string ae = alignErr;
-                        ae = ae ?? "";
-                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
-                        datum.RuntimeDetectFailed = true;
-                        parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
-                        nDatumFail++;
-                    } else {
-                        nDatumOk++;
-                    }
-                    //260818 hbk [SEQ] 패턴매칭 경로를 탔음을 표시
-                    LogSeqAlgo("Datum", datum.DatumName, "TryComposeAlign(패턴매칭)");
-                } else {
-                    string derr;
-                    if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
-                        string datumName = datum.DatumName;
-                        datumName = datumName ?? "";
-                        string derrStr = derr;
-                        derrStr = derrStr ?? "";
-                        Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
-                        datum.RuntimeDetectFailed = true;
-                        parentSeq.MarkDatumFailed(datum.DatumName);
-                        nDatumFail++;
-                    } else {
-                        nDatumOk++;
-                    }
-                    //260818 hbk [SEQ] 어떤 검출 알고리즘을 탔는지 표시 — 알고리즘 탭에서 상세 확인
-                    LogSeqAlgo("Datum", datum.DatumName, "TryRunSingleDatum/" + datum.AlgorithmTypeEnum);
-                }
+                RunDatumSingleImageDetection(datum, parentSeq, img, ref nDatumOk, ref nDatumFail); //260819 hbk quick-260819-s05: align/detect 분기를 RunDatumSingleImageDetection 헬퍼로 추출(측정 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와 동일 패턴)
             } finally {
                 img.Dispose();
+            }
+        }
+
+        //260819 hbk quick-260819-s05: ProcessDatumSingleImage 의 align/detect 분기 본문 추출 — 측정 쪽 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와
+        //  동일한 "오케스트레이터가 같은 모양의 헬퍼를 호출" 패턴. ref nDatumOk/nDatumFail 은 이 분기 안에서 실제로 증가되므로 ref 그대로 전달(out 아님).
+        private void RunDatumSingleImageDetection(DatumConfig datum, InspectionSequence parentSeq, HImage img, ref int nDatumOk, ref int nDatumFail) {
+            if (datum.IsPatternAlignEnabled) {
+                string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
+                string alignErr;
+                if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
+                    string dn = datum.DatumName;
+                    dn = dn ?? "";
+                    string ae = alignErr;
+                    ae = ae ?? "";
+                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                    datum.RuntimeDetectFailed = true;
+                    parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
+                    nDatumFail++;
+                } else {
+                    nDatumOk++;
+                }
+                //260818 hbk [SEQ] 패턴매칭 경로를 탔음을 표시
+                LogSeqAlgo("Datum", datum.DatumName, "TryComposeAlign(패턴매칭)");
+            } else {
+                string derr;
+                if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
+                    string datumName = datum.DatumName;
+                    datumName = datumName ?? "";
+                    string derrStr = derr;
+                    derrStr = derrStr ?? "";
+                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                    datum.RuntimeDetectFailed = true;
+                    parentSeq.MarkDatumFailed(datum.DatumName);
+                    nDatumFail++;
+                } else {
+                    nDatumOk++;
+                }
+                //260818 hbk [SEQ] 어떤 검출 알고리즘을 탔는지 표시 — 알고리즘 탭에서 상세 확인
+                LogSeqAlgo("Datum", datum.DatumName, "TryRunSingleDatum/" + datum.AlgorithmTypeEnum);
             }
         }
 

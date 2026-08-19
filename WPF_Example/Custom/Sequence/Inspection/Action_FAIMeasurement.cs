@@ -1374,27 +1374,44 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
         }
 
-        //260722 hbk Phase 68 D-05: DualImage 측정의 ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/존재하지 않는
-        //  z_index 참조 → true. 호출부가 이미 "둘 중 하나라도 설정됨"을 확인한 뒤에만 호출한다(둘 다 -1 미설정인
-        //  기존 레시피는 이 검사 자체를 타지 않음 — D-07 회귀 0). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
-        private bool IsZIndexMisconfigured(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2)
+        //260819 hbk quick-260819-sxj: IsZIndexMisconfigured / IsDatumZIndexMisconfigured 공용 로직 추출.
+        //  두 호출부의 전제가 다르다 — EvaluateCrossZGate 는 호출 전 "둘 중 하나라도 설정됨"을
+        //  이미 확인했고(둘 다 -1 인 채로 여기 들어올 수 없음), ProcessDatumDualImage 는 모든 Datum에
+        //  대해 무조건 호출한다(둘 다 -1 인 일반 Datum이 훨씬 흔함). 그래서 bBothUnset 가드가
+        //  반드시 있어야 하며, 이 가드가 있어도 EvaluateCrossZGate 쪽 동작은 바뀌지 않는다(그 경로는
+        //  가드에 도달할 수 없는 입력만 들어오기 때문 — 도달 불가능이지 무관한 게 아니다).
+        private bool IsCrossZIndexPairMisconfigured(int zIndexA, int zIndexB, InspectionSequence parentSeq)
         {
-            bool bAUnset = dualMeas.ZIndexA == UNSET_ZINDEX;
-            bool bBUnset = dualMeas.ZIndexB == UNSET_ZINDEX;
+            bool bAUnset = zIndexA == UNSET_ZINDEX;
+            bool bBUnset = zIndexB == UNSET_ZINDEX;
             bool bSingleSet = bAUnset != bBUnset;
             if (bSingleSet)
             {
                 return true;
             }
-            bool bSameValue = dualMeas.ZIndexA == dualMeas.ZIndexB;
+            bool bBothUnset = bAUnset && bBUnset;
+            if (bBothUnset)
+            {
+                return false; // 미설정(-1/-1) — 게이트 미해당, 기존 static 경로(D-07)
+            }
+            bool bSameValue = zIndexA == zIndexB;
             if (bSameValue)
             {
                 return true;
             }
-            bool bAExists = parentSeq2 != null && parentSeq2.DoesZIndexExistInRecipe(dualMeas.ZIndexA);
-            bool bBExists = parentSeq2 != null && parentSeq2.DoesZIndexExistInRecipe(dualMeas.ZIndexB);
+            bool bAExists = parentSeq != null && parentSeq.DoesZIndexExistInRecipe(zIndexA);
+            bool bBExists = parentSeq != null && parentSeq.DoesZIndexExistInRecipe(zIndexB);
             bool bBothExist = bAExists && bBExists;
             return !bBothExist;
+        }
+
+        //260722 hbk Phase 68 D-05: DualImage 측정의 ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/존재하지 않는
+        //  z_index 참조 → true. 호출부가 이미 "둘 중 하나라도 설정됨"을 확인한 뒤에만 호출한다(둘 다 -1 미설정인
+        //  기존 레시피는 이 검사 자체를 타지 않음 — D-07 회귀 0). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
+        //260819 hbk quick-260819-sxj: 본문을 IsCrossZIndexPairMisconfigured 로 위임(로직 무변경, 시그니처 무변경).
+        private bool IsZIndexMisconfigured(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2)
+        {
+            return IsCrossZIndexPairMisconfigured(dualMeas.ZIndexA, dualMeas.ZIndexB, parentSeq2);
         }
 
         //260722 hbk Phase 68 D-05: MarkMeasurementDatumRefMissing 미러 — 크로스-Z 오설정 명시적 NG(조용한 폴백 금지).
@@ -1452,29 +1469,10 @@ namespace ReringProject.Sequence {
         // 기준점의 A/B 짝 설정 오류 판정 — 하나만 설정됐거나, 같은 값이거나, 존재하지 않는 값을
         //  가리키면 오류다. 단 둘 다 "설정 안 함"(-1)인 경우는 정상이니 먼저 걸러내야 한다 —
         //  안 그러면 -1 과 -1 이 같은 값이라고 오판정한다.
+        //260819 hbk quick-260819-sxj: 본문을 IsCrossZIndexPairMisconfigured 로 위임(로직 무변경, 시그니처 무변경).
         private bool IsDatumZIndexMisconfigured(DatumConfig datum, InspectionSequence parentSeq)
         {
-            bool bAUnset = datum.ZIndexA == UNSET_ZINDEX;
-            bool bBUnset = datum.ZIndexB == UNSET_ZINDEX;
-            bool bSingleSet = bAUnset != bBUnset;
-            if (bSingleSet)
-            {
-                return true;
-            }
-            bool bBothUnset = bAUnset && bBUnset;
-            if (bBothUnset)
-            {
-                return false; // 미설정(-1/-1) — 게이트 미해당, 기존 static 경로(D-07)
-            }
-            bool bSameValue = datum.ZIndexA == datum.ZIndexB;
-            if (bSameValue)
-            {
-                return true;
-            }
-            bool bAExists = parentSeq != null && parentSeq.DoesZIndexExistInRecipe(datum.ZIndexA);
-            bool bBExists = parentSeq != null && parentSeq.DoesZIndexExistInRecipe(datum.ZIndexB);
-            bool bBothExist = bAExists && bBExists;
-            return !bBothExist;
+            return IsCrossZIndexPairMisconfigured(datum.ZIndexA, datum.ZIndexB, parentSeq);
         }
 
         //260702 hbk Extract Method(Task1): datum transform 해석 (fixture 미존재/미지정 시 identity fallback), 원본 인라인 이식

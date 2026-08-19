@@ -3218,6 +3218,10 @@ namespace ReringProject.UI {
         }
 
         private void HalconViewer_MeasureMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
+            //260819 hbk quick-diag(260819-click2): 거리측정 2번째 클릭 미반응 원인 추적용 임시 진단 로그.
+            Logging.PrintLog((int)ELogType.Trace,
+                "[CLICK-DIAG] HalconViewer_MeasureMouseDown 진입 canvasMode={0} 기존포인트수={1}",
+                _canvasMode, _measurePoints.Count);
             if (_canvasMode != ECanvasMode.DistanceMeasure) return;
 
             var pos = new System.Windows.Point(e.X, e.Y);

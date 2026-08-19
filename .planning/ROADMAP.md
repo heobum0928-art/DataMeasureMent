@@ -494,6 +494,25 @@ Plans:
 
 ## Backlog
 
+### Phase 999.3: 날짜 범위 CPK 리포트 — 양산 CSV 이력에서 직접 뽑기 (신설 2026-08-19)
+
+**Goal:** 자동(PLC/TCP) 운전으로 일자별 CSV에 쌓인 양산 이력을, 날짜 범위로 골라 Phase 72의 2장짜리 CPK 엑셀 리포트로 출력한다.
+
+**왜 필요한가:** 현재 CPK 리포트 버튼은 **방금 돌린 반복검사 결과(메모리)** 만 읽는다. 양산으로 쌓인 CSV는 통계분석 창에서 화면으로만 보이고 엑셀로 못 나간다 — 현장에서 실제 공정능력을 제출하려면 이 연결이 필요하다(2026-08-19 사용자 확인).
+
+**이미 있는 부품 (신규 구현 최소):**
+- `MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szRecipeFilter)` — 날짜 범위 CSV 로드. 내부에서 `RepeatMeasurementStats.ComputeAll()` 사용 → **72-01 이 추가한 Cp/UCpk/LCpk/MinValue/MaxValue 가 이미 딸려 나온다**(추가 계산 불필요).
+- `StatisticsQueryResult.Series` — 측정키별 원시값 순서 유지 리스트(RAW DATA 열의 재료).
+- `CpkReportExportService` — 시트 2장 작성기(Phase 72).
+- `StatisticsWindow` — `dp_From`/`dp_To`/`combo_Recipe`/`btn_Query` 날짜 UI + `m_lastResult` 이미 보유.
+
+**결정사항 (2026-08-19 사용자 확정):**
+- **D-1 버튼 위치:** 통계분석 창(`StatisticsWindow`). 날짜 UI가 이미 있으므로 조회 결과 옆에 export 버튼만 추가.
+- **D-2 열 상한:** RAW DATA 시트는 **조회 범위 중 최근 N회만**(기본 100). Cpk 통계 시트는 **전체 데이터로 계산**(숫자는 안 버림). 근거: 양산 수천 건이면 열이 수천 개가 되어 엑셀이 무거워지고 참고양식(#1~#32)과도 안 맞음.
+- **D-3 자재번호:** **자재별 열 그룹 라벨 필요**(반복검사 리포트와 동일하게 4행에 `자재 1`/`자재 2`). ⚠ 현재 `StatisticsQueryResult`/`Series` 가 `IndexNumber` 를 버리고 있으므로 **로더에서 자재번호를 살려 전달하는 작업이 추가로 필요하다**(CSV 컬럼엔 이미 있음 — `COL_INDEXNUMBER`).
+
+**Depends on:** Phase 72 (UAT 완료 후 착수 — 이 기능이 Phase 72 의 export 코드를 그대로 재사용하므로, 그 시트가 먼저 검증돼야 문제 발생 시 원인 구분이 된다)
+
 ### Phase 999.2: 측정 부호·기하 정리 배치 (감사 5건) (신설 2026-06-25)
 
 **Goal:** quick-260625-lo5 후속 에이전트 팀 감사에서 확정된 측정/Datum/투영 잠재 결함 5건을 일괄 정리. 현 운영(datum선 한쪽 고정·소변형)에선 미발현 = 활성 버그 0, 배치 처리.

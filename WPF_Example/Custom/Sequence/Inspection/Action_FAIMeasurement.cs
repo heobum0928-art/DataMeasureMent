@@ -667,10 +667,9 @@ namespace ReringProject.Sequence {
                 // 판정을 명시적인 상태값(ECrossZGate)으로 뽑아서 아래 switch 한 곳에서만 처리한다.
                 //  실제 캡처/저장을 수행하는 ProcessCrossZCaptureTick 호출은 일부러 switch 밖에 남겨뒀다 —
                 //  "설정 오류를 통과한 경우에만 캡처한다"는 순서와 호출 횟수를 그대로 보존하기 위해서다.
-                bool bRelevant = false;
-                bool bCaptureOk = false;
-                bool bCompleted = false;
-                string szCapturedRoleKey = null;
+                //260819 hbk quick-260819-sgg: ProcessCrossZCaptureTick 4-out → CrossZCaptureTickResult. tickResult 를
+                //  all-default 로 미리 선언 — bMisconfigured 분기는 ProcessCrossZCaptureTick 을 안 부르므로 원본 초기값과 동치.
+                CrossZCaptureTickResult tickResult = new CrossZCaptureTickResult();
                 bool bNonProtocolCycle = false;
                 ECrossZGate eGate;
                 bool bMisconfigured = IsZIndexMisconfigured(dualMeasForGate, parentSeq2);
@@ -680,12 +679,12 @@ namespace ReringProject.Sequence {
                 }
                 else
                 {
-                    ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2, out bRelevant, out bCaptureOk, out bCompleted, out szCapturedRoleKey);
+                    tickResult = ProcessCrossZCaptureTick(dualMeasForGate, parentSeq2);
                     // 수동으로 RUN 버튼을 눌러 검사할 때는 한 번만 찍어서 크로스-Z 두 장이 절대 안 모인다 —
                     //  조용히 넘어가면 "안 잰 것도 합격"되는 버그가 있어 NG 처리한다.
                     // 자동(PLC) 촬영은 다음 번에 나머지가 채워지니 그냥 기다린다.
                     bNonProtocolCycle = parentSeq2 == null || !parentSeq2.IsProtocolDrivenCycle();
-                    eGate = ResolveCrossZGate(bRelevant, bCaptureOk, bCompleted);
+                    eGate = ResolveCrossZGate(tickResult.Relevant, tickResult.CaptureOk, tickResult.Completed);
                 }
                 //260818 hbk default: 를 두지 않는다 — 5개 멤버를 전부 다루고 있고, default 를 추가하면
                 //  감사되지 않은 6번째 경로가 생긴다. 멤버를 늘릴 일이 생기면 반드시 이 switch 도 함께 고칠 것.
@@ -712,11 +711,11 @@ namespace ReringProject.Sequence {
                         acc.MeasuredCount++;
                         return false;
                     case ECrossZGate.HalfPending:
-                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
+                        TakeCrossZRoleImageIfFirst(parentSeq2, tickResult.CaptureOk, tickResult.CapturedRoleKey, ref acc.CrossZRoleImage);
                         MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref acc.FaiAllPass, ref acc.MeasuredCount);
                         return false;
                     case ECrossZGate.BothReady:
-                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
+                        TakeCrossZRoleImageIfFirst(parentSeq2, tickResult.CaptureOk, tickResult.CapturedRoleKey, ref acc.CrossZRoleImage);
                         return true; // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
                 }
             }
@@ -1614,28 +1613,34 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //260819 hbk quick-260819-sgg: ProcessCrossZCaptureTick 의 4개 out 파라미터를 이름 있는 필드로 교체 —
+        //  파일 상단 ShotMeasureAccumulator 와 동일한 필드(프로퍼티 아님)+K&R 스타일을 따른다.
+        private class CrossZCaptureTickResult {
+            public bool Relevant;
+            public bool CaptureOk;
+            public bool Completed;
+            public string CapturedRoleKey;
+        }
+
         // 크로스-Z 촬영 한 번(tick)을 처리한다 — 이 측정과 무관한지 / 촬영에 실패했는지 / A·B 가
         //  다 모였는지 세 가지로 판정한다. 새로 촬영하지 않고 이미 찍어둔 사진을 재사용하는 게
         //  기본이다(교시 경로가 지정돼 있으면 그 파일을 대신 읽는다).
         // 이번에 실제로 캡처된 이미지가 어느 쪽(A/B)인지 호출부에 알려준다 — 화면/저장이 항상
         //  고정 이미지만 보여주던 문제를 막기 위해, 호출부가 이 정보로 실제 측정 이미지를 표시/저장한다.
-        private void ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2, out bool bRelevant, out bool bCaptureOk, out bool bCompleted, out string szCapturedRoleKey)
+        private CrossZCaptureTickResult ProcessCrossZCaptureTick(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2)
         {
-            bRelevant = false;
-            bCaptureOk = false;
-            bCompleted = false;
-            szCapturedRoleKey = null;
+            CrossZCaptureTickResult result = new CrossZCaptureTickResult();
             if (parentSeq2 == null || ShotParam == null)
             {
-                return;
+                return result;
             }
             int nCurZ = parentSeq2.GetExecutionZIndex();
             bool bIsRoleA = nCurZ == dualMeas.ZIndexA;
             bool bIsRoleB = nCurZ == dualMeas.ZIndexB;
-            bRelevant = bIsRoleA || bIsRoleB;
-            if (!bRelevant)
+            result.Relevant = bIsRoleA || bIsRoleB;
+            if (!result.Relevant)
             {
-                return; // 이 tick 은 이 측정의 ZIndexA/B 어느 쪽도 아님 — 상태변화 없음(안전망)
+                return result; // 이 tick 은 이 측정의 ZIndexA/B 어느 쪽도 아님 — 상태변화 없음(안전망)
             }
             string baseKey = BuildCrossZMeasurementKey(dualMeas);
             string roleKey;
@@ -1645,15 +1650,16 @@ namespace ReringProject.Sequence {
             {
                 if (capturedImage == null)
                 {
-                    return; // 캡처 실패 — 호출부가 NG 처리
+                    return result; // 캡처 실패 — 호출부가 NG 처리
                 }
                 parentSeq2.StoreCrossZImage(roleKey, capturedImage);
-                bCaptureOk = true;
-                szCapturedRoleKey = roleKey;
+                result.CaptureOk = true;
+                result.CapturedRoleKey = roleKey;
             }
             string keyA = baseKey + CROSS_Z_ROLE_SUFFIX_A;
             string keyB = baseKey + CROSS_Z_ROLE_SUFFIX_B;
-            bCompleted = parentSeq2.HasCrossZImage(keyA) && parentSeq2.HasCrossZImage(keyB);
+            result.Completed = parentSeq2.HasCrossZImage(keyA) && parentSeq2.HasCrossZImage(keyB);
+            return result;
         }
 
         //260722 hbk Phase 68 D-02a: 완성 index 실행 — 저장소의 A/B 클론을 RuntimeImageA/B 에 주입해 기존 TryExecute

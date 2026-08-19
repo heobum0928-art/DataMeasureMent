@@ -569,7 +569,7 @@ namespace ReringProject.Sequence {
                         //  동일하게 sharedSrc 를 쓴다(비-크로스-Z 회귀 0). 새 필드 아님 — per-FAI 지역변수.
                         acc.CrossZRoleImage = null;
                         foreach (var meas in fai.Measurements) {
-                            ProcessOneMeasurement(meas, parentSeq2, image, pixRes, ref acc.CrossZRoleImage, ref acc.FaiAllPass, ref acc.MeasuredCount, ref acc.NMeasNg, overlayAcc, faiOverlays, dctAlgoUsed);
+                            ProcessOneMeasurement(meas, parentSeq2, image, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
                         }
                         FinalizeFaiTick(fai, acc.FaiAllPass, faiOverlays, sharedSrc, datumSnapshot, szSharedOriginPath, parentSeq2, ref acc.CrossZRoleImage, ref acc.ShotDisplayImageReplaced, ref acc.AllPass);
                     }
@@ -597,8 +597,7 @@ namespace ReringProject.Sequence {
         //260702 hbk Extract Method(Task3): Measure per-measurement 루프 본문(원본 foreach meas 내부, 동치 보장, continue->return)
         private void ProcessOneMeasurement(MeasurementBase meas, InspectionSequence parentSeq2,
                                      HImage image, double pixRes,
-                                     ref HImage crossZRoleImage, ref bool faiAllPass,
-                                     ref int measuredCount, ref int nMeasNg,
+                                     ShotMeasureAccumulator acc,
                                      List<EdgeInspectionOverlay> overlayAcc,
                                      List<EdgeInspectionOverlay> faiOverlays,
                                      Dictionary<string, int> dctAlgoUsed) {
@@ -608,8 +607,8 @@ namespace ReringProject.Sequence {
             if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
             {
                 MarkMeasurementDatumSkipped(meas, parentSeq2); //260702 hbk Extract Method(Task1)
-                faiAllPass = false;
-                measuredCount++; // 시도 회수 통계
+                acc.FaiAllPass = false;
+                acc.MeasuredCount++; // 시도 회수 통계
                 return; // 다음 measurement 진행 (TryExecute 호출 안 함)
             }
             //260716 hbk DatumRef 참조 불일치 게이트 — 오타/개명/삭제로 실존하지 않는 datum 을 가리키면
@@ -618,8 +617,8 @@ namespace ReringProject.Sequence {
             if (parentSeq2 != null && parentSeq2.IsDatumRefUnresolvable(meas.DatumRef))
             {
                 MarkMeasurementDatumRefMissing(meas);
-                faiAllPass = false;
-                measuredCount++;
+                acc.FaiAllPass = false;
+                acc.MeasuredCount++;
                 return;
             }
             //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
@@ -665,30 +664,30 @@ namespace ReringProject.Sequence {
                 {
                     case ECrossZGate.Misconfigured:
                         MarkMeasurementZIndexMisconfigured(meas);
-                        faiAllPass = false;
-                        measuredCount++;
+                        acc.FaiAllPass = false;
+                        acc.MeasuredCount++;
                         return;
                     case ECrossZGate.NotMyTick:
                         if (bNonProtocolCycle)
                         {
                             MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
-                            faiAllPass = false;
-                            measuredCount++;
+                            acc.FaiAllPass = false;
+                            acc.MeasuredCount++;
                         }
                         return; // 프로토콜: 이 tick 은 이 측정과 무관 — 상태변화 없음(안전망, 무변경)
                     case ECrossZGate.CaptureFailed:
                         meas.ClearResult();
                         meas.LastSkipReason = SkipReason.NO_IMAGE;
                         meas.LastJudgement = false;
-                        faiAllPass = false;
-                        measuredCount++;
+                        acc.FaiAllPass = false;
+                        acc.MeasuredCount++;
                         return;
                     case ECrossZGate.HalfPending:
-                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref crossZRoleImage);
-                        MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref faiAllPass, ref measuredCount);
+                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
+                        MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref acc.FaiAllPass, ref acc.MeasuredCount);
                         return;
                     case ECrossZGate.BothReady:
-                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref crossZRoleImage);
+                        TakeCrossZRoleImageIfFirst(parentSeq2, bCaptureOk, szCapturedRoleKey, ref acc.CrossZRoleImage);
                         break; // 완성 index — 아래 공용 실행 경로로 계속 진행(transform/InjectDatumOrigin 재사용)
                 }
             }
@@ -710,7 +709,7 @@ namespace ReringProject.Sequence {
             LogAndTallyAlgorithm(meas, bHasAnyZIndex, ok, dctAlgoUsed, swMeasureExec);
             if (ok) {
                 meas.EvaluateJudgement(resultValue);
-                if (!meas.LastJudgement) nMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
+                if (!meas.LastJudgement) acc.NMeasNg++; //260818 hbk [SEQ] 요약용 공차이탈 집계
             } else {
                 string measName = meas.MeasurementName;
                 if (measName == null) measName = meas.TypeName;
@@ -722,9 +721,9 @@ namespace ReringProject.Sequence {
             }
             ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
             if (!meas.LastJudgement) {
-                faiAllPass = false;
+                acc.FaiAllPass = false;
             }
-            measuredCount++;
+            acc.MeasuredCount++;
         }
 
         //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.

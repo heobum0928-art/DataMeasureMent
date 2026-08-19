@@ -601,26 +601,7 @@ namespace ReringProject.Sequence {
                                      List<EdgeInspectionOverlay> overlayAcc,
                                      List<EdgeInspectionOverlay> faiOverlays,
                                      Dictionary<string, int> dctAlgoUsed) {
-            // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
-            // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
-            // 빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
-            if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
-            {
-                MarkMeasurementDatumSkipped(meas, parentSeq2); //260702 hbk Extract Method(Task1)
-                acc.FaiAllPass = false;
-                acc.MeasuredCount++; // 시도 회수 통계
-                return; // 다음 measurement 진행 (TryExecute 호출 안 함)
-            }
-            //260716 hbk DatumRef 참조 불일치 게이트 — 오타/개명/삭제로 실존하지 않는 datum 을 가리키면
-            //  검출 시도 자체가 없어 IsDatumFailed 게이트를 우회하고 identity(무보정)로 조용히 측정되던 결함 차단.
-            //  '무보정 의도(빈 DatumRef)'와 '참조 깨짐'을 구분해 후자만 NG 로 승격(기존 lenient 구조 유지).
-            if (parentSeq2 != null && parentSeq2.IsDatumRefUnresolvable(meas.DatumRef))
-            {
-                MarkMeasurementDatumRefMissing(meas);
-                acc.FaiAllPass = false;
-                acc.MeasuredCount++;
-                return;
-            }
+            if (!TryGateMeasurement(meas, parentSeq2, acc)) return;
             //260722 hbk Phase 68 D-02a/D-05: 크로스-Z(ZIndexA/B 둘 다 -1 아님) 측정 게이트/캡처.
             //  ZIndexA/B 둘 다 -1(미설정) 이면 이 블록 진입 안 함 → 기존 경로 그대로(D-07 회귀 0).
             var dualMeasForGate = meas as DualImageEdgeDistanceMeasurement;
@@ -724,6 +705,34 @@ namespace ReringProject.Sequence {
                 acc.FaiAllPass = false;
             }
             acc.MeasuredCount++;
+        }
+
+        //260819 hbk quick-260819-hyk: ProcessOneMeasurement 의 초기 게이트 2개를 그대로 옮긴 것.
+        //  원본에서 이 자리의 'return;' 2곳은 ProcessOneMeasurement 자체를 빠져나가는 문장이었다.
+        //  여기서는 false 를 돌려주고, 호출부가 false 를 받으면 즉시 return 해서 동일한 탈출을 재현한다.
+        //  게이트 본문(Mark 호출 / 누적 대입 / 시도회수 통계)은 한 글자도 바뀌지 않았다.
+        private bool TryGateMeasurement(MeasurementBase meas, InspectionSequence parentSeq2, ShotMeasureAccumulator acc) {
+            // per-FAI gate: 해당 datum 이 검출 실패했으면 측정 skip, NG 누적, 다음 meas 진행.
+            // Step=Grab 변경 안 함 (lenient 유지). 본 게이트는 Measure 루프 안에서만 동작.
+            // 빈 DatumRef (무보정) 또는 성공 datum 참조는 IsDatumFailed=false → 기존 identity fallback / transform 경로 진행.
+            if (parentSeq2 != null && parentSeq2.IsDatumFailed(meas.DatumRef))
+            {
+                MarkMeasurementDatumSkipped(meas, parentSeq2); //260702 hbk Extract Method(Task1)
+                acc.FaiAllPass = false;
+                acc.MeasuredCount++; // 시도 회수 통계
+                return false; // 다음 measurement 진행 (TryExecute 호출 안 함)
+            }
+            //260716 hbk DatumRef 참조 불일치 게이트 — 오타/개명/삭제로 실존하지 않는 datum 을 가리키면
+            //  검출 시도 자체가 없어 IsDatumFailed 게이트를 우회하고 identity(무보정)로 조용히 측정되던 결함 차단.
+            //  '무보정 의도(빈 DatumRef)'와 '참조 깨짐'을 구분해 후자만 NG 로 승격(기존 lenient 구조 유지).
+            if (parentSeq2 != null && parentSeq2.IsDatumRefUnresolvable(meas.DatumRef))
+            {
+                MarkMeasurementDatumRefMissing(meas);
+                acc.FaiAllPass = false;
+                acc.MeasuredCount++;
+                return false;
+            }
+            return true; // 두 게이트 모두 통과 — 호출부는 측정 실행 경로로 계속 진행
         }
 
         //260818 hbk Extract Method: ProcessOneMeasurement 의 알고리즘 로그 조립부를 그대로 옮긴 것.

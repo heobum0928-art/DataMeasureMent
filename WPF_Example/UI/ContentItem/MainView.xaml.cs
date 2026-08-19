@@ -3148,9 +3148,11 @@ namespace ReringProject.UI {
                 string.Format("가로 {0:F1}px", Math.Abs(dx)),
                 string.Format("세로 {0:F1}px", Math.Abs(dy)));
 
+            //260820 hbk quick-fix: 입력을 확정(OK)하기 전에도 경고가 보이도록, 사후 다이얼로그뿐 아니라
+            //  입력창 프롬프트 문구 자체에 미리 안내한다(체커보드 캘리브 확인창의 "[경고]" 표기와 동일 스타일).
             // NOTE: class name typo in original code: TextInputBoxWinidow (not Window)
             var dlg = new TextInputBoxWinidow(
-                string.Format("두 점 사이의 실제 거리(mm)를 입력하세요:\n(픽셀 거리: {0:F1} px)", pixelDistance),
+                string.Format("두 점 사이의 실제 거리(mm)를 입력하세요:\n(픽셀 거리: {0:F1} px)\n\n[경고] 여기서 값을 입력하고 확인을 누르면 시스템의 보정값(mm/px)이 즉시 바뀝니다.", pixelDistance),
                 "");
             dlg.Title = "실제 거리 입력";
             dlg.Owner = Window.GetWindow(this);

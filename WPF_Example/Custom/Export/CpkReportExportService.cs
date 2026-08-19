@@ -25,6 +25,9 @@ namespace ReringProject.Export
         private const int RAW_FIRST_DATA_ROW = 6;
         private const int RAW_FIRST_SAMPLE_COLUMN = 7; // A~F 가 고정 6열이므로 샘플은 G(7)부터
 
+        /// <summary>날짜 범위 export 의 RAW DATA 열 기본 상한. 양산 수천 건이면 열이 수천 개가 되어 엑셀이 무거워진다.</summary>
+        public const int DEFAULT_MAX_RAW_COLUMNS = 100;
+
         private const string NO_VALUE_TEXT = "-";
         private const string MATERIAL_UNSET_LABEL = "미지정";
         private const int MATERIAL_NOT_SET = -1;
@@ -88,6 +91,15 @@ namespace ReringProject.Export
         /// </summary>
         public static bool ExportCpkReport(List<CycleResultDto> cycles, string recipeName, string outputPath)
         {
+            return ExportCpkReport(cycles, recipeName, outputPath, int.MaxValue);
+        }
+
+        /// <summary>
+        /// nMaxRawColumns 로 RAW DATA 시트 열 수를 제한한 CPK 리포트 export.
+        /// Cpk 통계 시트 숫자는 제한 없이 cycles 전체로 계산한다(D-2) — 표시만 줄이고 숫자는 안 버린다.
+        /// </summary>
+        public static bool ExportCpkReport(List<CycleResultDto> cycles, string recipeName, string outputPath, int nMaxRawColumns)
+        {
             if (cycles == null || cycles.Count == 0 || string.IsNullOrEmpty(outputPath))
             {
                 return false;
@@ -95,13 +107,13 @@ namespace ReringProject.Export
 
             try
             {
-                var columns = BuildSampleColumns(cycles);
+                var columns = BuildSampleColumns(TakeRecentCycles(cycles, nMaxRawColumns));
                 var rows = BuildRawRows(columns);
 
                 using (var wb = new XLWorkbook())
                 {
                     var wsRaw = wb.Worksheets.Add(RAW_SHEET_NAME);
-                    WriteRawDataSheet(wsRaw, columns, rows, recipeName);
+                    WriteRawDataSheet(wsRaw, columns, rows, recipeName, cycles.Count);
 
                     var stats = new RepeatMeasurementStats();
                     foreach (var c in cycles)
@@ -134,8 +146,28 @@ namespace ReringProject.Export
             }
         }
 
+        /// <summary>
+        /// 시간 오름차순 목록에서 뒤쪽(최신) nMax 개만 남긴다. 상한 이하면 원본을 그대로 돌려준다.
+        /// 주의: 잘라낸 뒤 등장하지 않는 측정 항목은 Cpk 시트 행에서도 빠진다 —
+        /// 행 식별/스펙 컬럼이 RAW 행 목록에서 나오기 때문이다. 그래서 잘린 사실을 시트에 남긴다(WriteRawDataSheet).
+        /// </summary>
+        private static List<CycleResultDto> TakeRecentCycles(List<CycleResultDto> cycles, int nMax)
+        {
+            if (nMax <= 0)
+            {
+                return cycles;
+            }
+
+            if (cycles.Count <= nMax)
+            {
+                return cycles;
+            }
+
+            return cycles.GetRange(cycles.Count - nMax, nMax);
+        }
+
         /// <summary>RAW DATA(1) 가로형 매트릭스 시트를 기록한다. 1행 = 측정 항목, 열 = 검사 회차(샘플).</summary>
-        private static void WriteRawDataSheet(IXLWorksheet ws, List<SampleColumn> columns, List<RawRow> rows, string recipeName)
+        private static void WriteRawDataSheet(IXLWorksheet ws, List<SampleColumn> columns, List<RawRow> rows, string recipeName, int nTotalCycleCount)
         {
             ws.Cell(1, 1).Value = "모델명";
             if (recipeName != null)
@@ -151,6 +183,11 @@ namespace ReringProject.Export
             ws.Cell(2, 2).Value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             ws.Cell(3, 1).Value = "샘플 수";
             ws.Cell(3, 2).Value = columns.Count;
+            if (nTotalCycleCount > columns.Count)
+            {
+                // 잘린 사실을 리포트 안에 남긴다 — Cpk 숫자는 전체 기준이라 열 수와 안 맞아 보일 수 있다(D-2).
+                ws.Cell(3, 3).Value = "전체 " + nTotalCycleCount + "회 중 최근 " + columns.Count + "회만 표시 (Cpk 통계는 전체 기준)";
+            }
 
             string[] hFixed = { "Number", "도면항목설명", "측정방식", "설계값", "상한 공차", "하한 공차" };
             for (int i = 0; i < hFixed.Length; i++)

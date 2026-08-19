@@ -221,13 +221,18 @@ namespace ReringProject.Sequence {
                 bDatumOnly = parentSeq.ShouldSkipMeasurementAfterDatumPhase(nCurZ);
             }
             //260818 hbk [SEQ] DatumPhase 결과 요약 (tact 포함)
-            LogSeqStep("DatumPhase", string.Format("완료 — 검출성공 {0} / 실패 {1} / 캐시재사용 {2} ({3:F2}초)",
-                nDatumOk, nDatumFail, nDatumCached, swDatumPhase.Elapsed.TotalSeconds));
+            LogDatumPhaseSummary(nDatumOk, nDatumFail, nDatumCached, swDatumPhase);
             if (bDatumOnly) {
                 Step = (int)EStep.End;
             } else {
                 Step = (int)EStep.Grab; // datum 부분 실패해도 측정 진행
             }
+        }
+
+        //260819 hbk quick-260819-rle: DatumPhase 완료 요약 로그 — LogAndTallyAlgorithm 과 대칭되는 소규모 로깅 헬퍼.
+        private void LogDatumPhaseSummary(int nDatumOk, int nDatumFail, int nDatumCached, Stopwatch swDatumPhase) {
+            LogSeqStep("DatumPhase", string.Format("완료 — 검출성공 {0} / 실패 {1} / 캐시재사용 {2} ({3:F2}초)",
+                nDatumOk, nDatumFail, nDatumCached, swDatumPhase.Elapsed.TotalSeconds));
         }
 
         //260702 hbk Extract Method(Task3): DatumPhase per-datum loop 본문(원본 foreach 내부, 동치 보장, continue->return)

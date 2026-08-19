@@ -43,6 +43,10 @@ namespace ReringProject.Sequence {
         //  프로토콜/비프로토콜 구분(NotMyTick 의 2갈래, HalfPending 의 2갈래)은 멤버로 쪼개지 않고
         //  case 안에서 bNonProtocolCycle if-else 로 처리한다 — 원본 if 구조와 1:1 로 남겨야
         //  리팩토링 전후 대조가 가능하기 때문이다.
+        //260819 hbk quick-260819-tcs 문서화 전용(로직 무변경) — NotMyTick/HalfPending 두 case 내부의
+        //  bNonProtocolCycle 분기(parentSeq2.IsProtocolDrivenCycle() 로 읽음, 위 주석 참고)까지 합치면
+        //  실제 상태 조합은 5개보다 많다. 즉 이 enum 은 완전한 상태표가 아니라 상위(top-level) 분류이며,
+        //  두 번째 축(bNonProtocolCycle)은 의도적으로 enum 멤버로 인코딩하지 않는다.
         private enum ECrossZGate {
             Misconfigured,
             NotMyTick,
@@ -74,6 +78,8 @@ namespace ReringProject.Sequence {
         private const string CROSS_Z_ROLE_SUFFIX_B = "_ZB";
         //260722 hbk Phase 68 D-06/D-09: Datum 크로스-Z 저장소 키 접두사 — 측정 키(ShotName|MeasName)와 네임스페이스 구분.
         private const string CROSS_Z_DATUM_KEY_PREFIX = "DATUM|";
+        //260819 hbk quick-260819-tcs: 로그 태그 리터럴 17곳 중복 제거 — 문자열 값(태그 뒤 공백 포함) 은 그대로, 표기만 상수 참조로 치환. 공백을 상수 안에 둬서 호출부마다 손으로 입력할 필요를 없앴다.
+        private const string LOG_TAG = "[FAIMeasurement] ";
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -270,7 +276,7 @@ namespace ReringProject.Sequence {
             if (bDatumZIndexMisconfigured) {
                 string misName = datum.DatumName;
                 misName = misName ?? "";
-                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
                 datum.RuntimeDetectFailed = true;
                 parentSeq.MarkDatumFailed(datum.DatumName);
                 return; // datum skip, abort 안 함
@@ -287,7 +293,7 @@ namespace ReringProject.Sequence {
                     }
                     string datumName = datum.DatumName;
                     datumName = datumName ?? "";
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' DualImage 취득 실패 (skip)");
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' DualImage 취득 실패 (skip)");
                     // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
                     datum.LastFindSucceeded = false;
                     // 티칭 여부 무관 라벨 신호
@@ -317,7 +323,7 @@ namespace ReringProject.Sequence {
                     dn = dn ?? "";
                     string ae = alignErr;
                     ae = ae ?? "";
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
                 }
@@ -328,7 +334,7 @@ namespace ReringProject.Sequence {
                     datumName = datumName ?? "";
                     string derrStr = derr;
                     derrStr = derrStr ?? "";
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkDatumFailed(datum.DatumName);
                 }
@@ -341,7 +347,7 @@ namespace ReringProject.Sequence {
             if (img == null) {
                 string datumName = datum.DatumName;
                 datumName = datumName ?? "";
-                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 이미지 취득 실패 (skip)");
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' 이미지 취득 실패 (skip)");
                 datum.LastFindSucceeded = false;
                 datum.RuntimeDetectFailed = true;
                 parentSeq.MarkDatumFailed(datum.DatumName);
@@ -367,7 +373,7 @@ namespace ReringProject.Sequence {
                     dn = dn ?? "";
                     string ae = alignErr;
                     ae = ae ?? "";
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
                     nDatumFail++;
@@ -383,7 +389,7 @@ namespace ReringProject.Sequence {
                     datumName = datumName ?? "";
                     string derrStr = derr;
                     derrStr = derrStr ?? "";
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkDatumFailed(datum.DatumName);
                     nDatumFail++;
@@ -449,7 +455,7 @@ namespace ReringProject.Sequence {
             if (image == null && bIsLiveGrabAttempt) {
                 InspectionSequence parentSeqForHwErr = ShotParam.Parent as InspectionSequence;
                 if (parentSeqForHwErr != null) parentSeqForHwErr.MarkCycleHardwareError();
-                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "SHOT '" + (ShotParam.ShotName ?? "") + "' 실기 카메라 grab 실패 — $RESULT E(하드웨어 에러) 처리");
             }
             return image;
         }
@@ -739,7 +745,7 @@ namespace ReringProject.Sequence {
                 string measName = GetMeasurementDisplayName(meas);
                 string measErrorStr = measError;
                 measErrorStr = measErrorStr ?? "";
-                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' failed: " + measErrorStr);
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' failed: " + measErrorStr);
                 meas.ClearResult();
                 meas.LastJudgement = false;
             }
@@ -871,11 +877,11 @@ namespace ReringProject.Sequence {
                 try {
                     return new HImage(ShotParam.SimulImagePath);
                 } catch (Exception ex) {
-                    Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 검사이미지 로드 실패: " + ex.Message);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "SHOT '" + (ShotParam.ShotName ?? "") + "' 검사이미지 로드 실패: " + ex.Message);
                     return null;
                 }
             }
-            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + (ShotParam.ShotName ?? "") + "' 검사이미지 경로 비어있음/파일없음 — 이 SHOT 만 측정 skip (공유 카메라 캐시 fallback 차단). 오프라인 모드면 '검사이미지 Grab' 으로 먼저 확보 필요.");
+            Logging.PrintLog((int)ELogType.Error, LOG_TAG + "SHOT '" + (ShotParam.ShotName ?? "") + "' 검사이미지 경로 비어있음/파일없음 — 이 SHOT 만 측정 skip (공유 카메라 캐시 fallback 차단). 오프라인 모드면 '검사이미지 Grab' 으로 먼저 확보 필요.");
             return null;
         }
 
@@ -1359,7 +1365,7 @@ namespace ReringProject.Sequence {
             string measName = GetMeasurementDisplayName(meas);
             string datumRef = meas.DatumRef;
             datumRef = datumRef ?? "";
-            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
+            Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' skipped — datum '" + datumRef + "' 실패 (" + meas.LastSkipReason + ")");
         }
 
         //260716 hbk DatumRef 가 실존하지 않는 datum 이름을 가리킬 때 skip 처리(MarkMeasurementDatumSkipped 와 동일 규약).
@@ -1371,7 +1377,7 @@ namespace ReringProject.Sequence {
             string measName = GetMeasurementDisplayName(meas);
             string datumRef = meas.DatumRef;
             datumRef = datumRef ?? "";
-            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
+            Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' skipped — DatumRef '" + datumRef + "' 에 해당하는 Datum 이 레시피에 없음 (오타/개명/삭제 확인 필요, " + meas.LastSkipReason + ")");
         }
 
         //260819 hbk quick-260819-sxj: IsZIndexMisconfigured / IsDatumZIndexMisconfigured 공용 로직 추출.
@@ -1429,7 +1435,7 @@ namespace ReringProject.Sequence {
                 nZA = dualMeas.ZIndexA;
                 nZB = dualMeas.ZIndexB;
             }
-            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
+            Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
         }
 
         // 수동(RUN/반복/일괄) 검사에서 크로스-Z 짝이 절대 완성될 수 없는 상황의 처리 — 예전엔
@@ -1457,13 +1463,13 @@ namespace ReringProject.Sequence {
                 int nCurZ;
                 if (parentSeq2 != null) nCurZ = parentSeq2.GetExecutionZIndex();
                 else nCurZ = UNSET_ZINDEX;
-                Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' CROSS_Z_INCOMPLETE — ZIndexA=" + nZA + ", ZIndexB=" + nZB + ", CurrentZ=" + nCurZ + ": 프로토콜 사이클 정상 흐름의 중간 상태(고장 아님) — 짝이 되는 나머지 z 트리거 대기 중, 아직 측정되지 않음(PASS 아님) (" + meas.LastSkipReason + ")");
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' CROSS_Z_INCOMPLETE — ZIndexA=" + nZA + ", ZIndexB=" + nZB + ", CurrentZ=" + nCurZ + ": 프로토콜 사이클 정상 흐름의 중간 상태(고장 아님) — 짝이 되는 나머지 z 트리거 대기 중, 아직 측정되지 않음(PASS 아님) (" + meas.LastSkipReason + ")");
                 return;
             }
             string szCase;
             if (bRelevantTick) szCase = "한쪽 z 이미지만 확보, 나머지 tick 없음";
             else szCase = "z=0 이 ZIndexA/B 어느 쪽도 아님, 캡처 없음";
-            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] Measurement '" + measName + "' 미측정 NG — 비프로토콜 실행(RUN 버튼/일괄검사)은 z_index 가 항상 0 이라 ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 짝을 완성할 수 없음(" + szCase + "). 실제로 측정하려면 PLC/$TEST 또는 수동 Z 트리거로 두 z 위치를 모두 실행할 것 (" + meas.LastSkipReason + ")");
+            Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' 미측정 NG — 비프로토콜 실행(RUN 버튼/일괄검사)은 z_index 가 항상 0 이라 ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 짝을 완성할 수 없음(" + szCase + "). 실제로 측정하려면 PLC/$TEST 또는 수동 Z 트리거로 두 z 위치를 모두 실행할 것 (" + meas.LastSkipReason + ")");
         }
 
         // 기준점의 A/B 짝 설정 오류 판정 — 하나만 설정됐거나, 같은 값이거나, 존재하지 않는 값을
@@ -1769,7 +1775,7 @@ namespace ReringProject.Sequence {
             }
             string shotName = ShotParam.ShotName;
             shotName = shotName ?? "";
-            Logging.PrintLog((int)ELogType.Error, "[FAIMeasurement] SHOT '" + shotName + "' 검사 이미지 없음 — 모든 measurement NG 처리 (캐스케이드 차단)");
+            Logging.PrintLog((int)ELogType.Error, LOG_TAG + "SHOT '" + shotName + "' 검사 이미지 없음 — 모든 measurement NG 처리 (캐스케이드 차단)");
         }
     }
 }

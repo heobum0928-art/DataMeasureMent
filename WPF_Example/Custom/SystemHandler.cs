@@ -970,6 +970,19 @@ namespace ReringProject {
         //  하나라도 성공하면 true 반환. 매칭 InspectionSequence 없으면 false.
         private bool ApplyPrepToSequences(int nZIndex)
         {
+            //260820 hbk quick-fix: z=0(InspectionSequence.DATUM_Z_INDEX — PLC $PREP 프로토콜의 "기준점 전용"
+            //  값)은 Shot 이 아니라 Datum 조명 담당 영역이라, 애초에 대응하는 Shot 이 없는 게 정상이다
+            //  (Datum 조명은 여기서 미리 켜지 않고 ApplyDatumLights 가 실제 grab 직전에 별도로 적용한다 —
+            //  InspectionSequence.ApplyDatumLights 코드 주석 참고). 그런데 ApplyShotLights(0)이 "Shot 못
+            //  찾음"을 실패로 보고해 $PREP_ACK:site,0,FAIL@ 이 PLC 로 나가고 있었다 — 실제 PLC 는 FAIL 을
+            //  진짜 오류로 해석하므로 반드시 고쳐야 하는 결함(실측: TOP 레시피는 ZIndex=0 Shot 이 하나도
+            //  없어 매번 FAIL, SIDE 는 우연히 ZIndex=0 Shot 이 있어 지금까지 가려져 있었을 뿐). 이 함수는
+            //  $PREP 전용 진입점(ProcessPrep 의 유일한 호출부)이라 여기서만 z=0 을 무조건 성공 처리해도
+            //  ApplyShotLights 자체(Datum grab 후 Shot 자기 조명 복귀 등 다른 호출부 존재)는 그대로 둔다.
+            if (nZIndex == 0)
+            {
+                return true;
+            }
             bool bAnyApplied = false;
             int nCount = Sequences.Count;
             for (int i = 0; i < nCount; i++)

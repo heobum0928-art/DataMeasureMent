@@ -970,19 +970,10 @@ namespace ReringProject {
         //  하나라도 성공하면 true 반환. 매칭 InspectionSequence 없으면 false.
         private bool ApplyPrepToSequences(int nZIndex)
         {
-            //260820 hbk quick-fix: z=0(InspectionSequence.DATUM_Z_INDEX — PLC $PREP 프로토콜의 "기준점 전용"
-            //  값)은 Shot 이 아니라 Datum 조명 담당 영역이라, 애초에 대응하는 Shot 이 없는 게 정상이다
-            //  (Datum 조명은 여기서 미리 켜지 않고 ApplyDatumLights 가 실제 grab 직전에 별도로 적용한다 —
-            //  InspectionSequence.ApplyDatumLights 코드 주석 참고). 그런데 ApplyShotLights(0)이 "Shot 못
-            //  찾음"을 실패로 보고해 $PREP_ACK:site,0,FAIL@ 이 PLC 로 나가고 있었다 — 실제 PLC 는 FAIL 을
-            //  진짜 오류로 해석하므로 반드시 고쳐야 하는 결함(실측: TOP 레시피는 ZIndex=0 Shot 이 하나도
-            //  없어 매번 FAIL, SIDE 는 우연히 ZIndex=0 Shot 이 있어 지금까지 가려져 있었을 뿐). 이 함수는
-            //  $PREP 전용 진입점(ProcessPrep 의 유일한 호출부)이라 여기서만 z=0 을 무조건 성공 처리해도
-            //  ApplyShotLights 자체(Datum grab 후 Shot 자기 조명 복귀 등 다른 호출부 존재)는 그대로 둔다.
-            if (nZIndex == 0)
-            {
-                return true;
-            }
+            //260820 hbk quick-fix(리비전): 먼저 기존과 동일하게 모든 시퀀스에 대해 z_index 에 맞는 Shot 조명을
+            //  실제로 찾아서 켠다 — SIDE 처럼 z=0 자리에 진짜 Shot(조명 설정)이 있는 경우, 그 조명은 여기서
+            //  반드시 정상 적용되어야 한다(이전 리비전은 z=0 을 무조건 성공 처리하며 이 루프 자체를 건너뛰어
+            //  SIDE 의 z=0 Shot 조명 적용까지 함께 막아버리는 회귀가 있었음 — 사용자 지적으로 발견/수정).
             bool bAnyApplied = false;
             int nCount = Sequences.Count;
             for (int i = 0; i < nCount; i++)
@@ -999,6 +990,16 @@ namespace ReringProject {
                 {
                     bAnyApplied = true;
                 }
+            }
+            //  z=0(InspectionSequence.DATUM_Z_INDEX — PLC $PREP 프로토콜의 "기준점 전용" 값)은 Shot 이 아니라
+            //  Datum 조명 담당 영역이라, TOP/BOTTOM 처럼 대응하는 Shot 이 아예 없는 시퀀스가 있는 게 정상이다
+            //  (Datum 조명은 여기서 미리 켜지 않고 ApplyDatumLights 가 실제 grab 직전에 별도 적용 —
+            //  InspectionSequence.ApplyDatumLights 코드 주석 참고). 위 루프에서 아무도 못 찾았을 때(bAnyApplied
+            //  =false)에 한해서만 z=0 을 "정상적으로 준비할 Shot 조명이 없는 상태"로 보고 성공 처리한다 — SIDE
+            //  처럼 위에서 이미 찾아 적용했으면(bAnyApplied=true) 이 분기를 타지 않고 그 결과를 그대로 쓴다.
+            if (nZIndex == 0 && !bAnyApplied)
+            {
+                return true;
             }
             return bAnyApplied;
         }

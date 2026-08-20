@@ -250,6 +250,14 @@ namespace ReringProject.Sequence {
             //  매번 다시 실행한다.
             bool bIsCrossZDatum = datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
                 && !(datum.ZIndexA == UNSET_ZINDEX && datum.ZIndexB == UNSET_ZINDEX);
+            // 260820 hbk quick-fix: 크로스-Z Datum 은 캐시가 안 되다 보니(위 주석), 이 Shot 과 무관한 크로스-Z
+            //  Datum 까지 DatumPhase 가 등록 Datum 전부를 매번 순회하며 같이 재검출하고 있었다 — 반복검사(일괄검사)로
+            //  Shot 1개만 계속 돌려도 매 회 무관한 다른 Datum까지 strip-loop 를 다시 도는 게 실측(gray_erosion/
+            //  strip-loop 타임스탬프)으로 확인됨. 이 Shot 이 실제로 소유/참조하는 크로스-Z Datum 만 검출하도록 제한.
+            //  비-크로스-Z Datum 은 캐시가 있어 재검출 비용이 사실상 0 이라 건드리지 않는다(회귀 위험 최소화).
+            if (bIsCrossZDatum && !IsDatumOwnedByCurrentShot(datum)) {
+                return; // 이 Shot 과 무관한 크로스-Z Datum — 검출 생략(집계 카운터 미증가, 실패 아님)
+            }
             if (!bIsCrossZDatum && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
                 nDatumCached++; //260818 hbk [SEQ] 요약: 이번 사이클 이미 검출됨 → 재검출 생략
                 return; // 이번 사이클 기 검출 성공 — skip
@@ -266,6 +274,32 @@ namespace ReringProject.Sequence {
             } else { // 1-image datum
                 ProcessDatumSingleImage(datum, parentSeq, ref nDatumOk, ref nDatumFail);
             }
+        }
+
+        // 260820 hbk quick-fix(리비전): 이 Datum 이 현재 실행 중인 Shot(ShotParam) 과 관련 있는지 판정 — 셋 중
+        //  하나면 소유(=검출 진행).
+        //  1) datum.SourceShotName 이 이 Shot 을 명시적으로 캡처 담당으로 지정.
+        //  2) 이 Shot 의 FAI 측정 중 하나라도 DatumRef 로 이 Datum 을 직접 참조.
+        //  3) datum.SourceShotName 이 비어있음(미설정) — InspectionSequence.AddDatumTriggerActionIndex 가 이
+        //     경우 "이 시퀀스의 첫 owned Action" 으로 트리거를 폴백시키는데(로그: "SourceShotName 미해결 — 첫
+        //     owned Action 을 DatumPhase 트리거로 사용"), 그 폴백이 정확히 어느 Shot으로 갈지는 이 함수가 알 수
+        //     없다 — 잘못 스킵하면 크로스-Z 이미지 짝이 영원히 안 채워져 사이클이 멈춘다(실측: SIDE 반복검사 중
+        //     무응답 hang 재현, Trace.log 가 크래시/예외 없이 그냥 끊김). 그래서 SourceShotName 미해결 크로스-Z
+        //     Datum 은 안전하게 "항상 소유"로 보고 스킵하지 않는다 — 최적화 대상에서 제외, 정확성 우선.
+        private bool IsDatumOwnedByCurrentShot(DatumConfig datum) {
+            if (ShotParam == null) return true; // 방어적 폴백 — 판정 불가 시 기존 동작(항상 검출) 유지
+            bool bSourceShotUnresolved = string.IsNullOrEmpty(datum.SourceShotName);
+            if (bSourceShotUnresolved) return true; // 폴백 트리거 대상을 알 수 없음 — 안전하게 항상 검출
+            string shotName = ShotParam.ShotName ?? "";
+            bool bSourceShotMatches = datum.SourceShotName == shotName;
+            if (bSourceShotMatches) return true;
+            foreach (var fai in ShotParam.FAIList) {
+                if (fai == null) continue;
+                foreach (var meas in fai.Measurements) {
+                    if (meas != null && meas.DatumRef == datum.DatumName) return true;
+                }
+            }
+            return false;
         }
 
         //260702 hbk Extract Method(Task3): DatumPhase DUAL(VerticalTwoHorizontalDualImage) 분기 본문 -- 카운터(nDatumOk/nDatumFail) 미접근 구조 고정(D-1)

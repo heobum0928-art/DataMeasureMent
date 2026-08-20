@@ -344,6 +344,9 @@ namespace ReringProject {
             resultPacket.Target = sendPacket.Sender;
             resultPacket.Site = sendPacket.Site;
             resultPacket.InspectionType = sendPacket.TestType;
+            resultPacket.Type = sendPacket.Type;   //260820 hbk quick-fix: 이 폴백 경로가 Type echo 를 빼먹어서
+                                                    //  v1.0 $RESULT 의 Type 필드가 빈 값으로 나가던 버그 수정
+                                                    //  (실측: SIDE 마지막 z_index 응답에서 $RESULT:site;;F@ 확인).
             resultPacket.Result = EVisionResultType.NG;
 
             return resultPacket;
@@ -975,6 +978,7 @@ namespace ReringProject {
             //  반드시 정상 적용되어야 한다(이전 리비전은 z=0 을 무조건 성공 처리하며 이 루프 자체를 건너뛰어
             //  SIDE 의 z=0 Shot 조명 적용까지 함께 막아버리는 회귀가 있었음 — 사용자 지적으로 발견/수정).
             bool bAnyApplied = false;
+            bool bIsDatumOnlyForSomeSeq = false;
             int nCount = Sequences.Count;
             for (int i = 0; i < nCount; i++)
             {
@@ -990,14 +994,26 @@ namespace ReringProject {
                 {
                     bAnyApplied = true;
                 }
+                //260820 hbk quick-fix: z=0 뿐 아니라 크로스-Z Datum 의 두 번째 캡처 tick(예: Datum_3-1 의 z=0,1
+                //  중 z=1)도 Shot 조명 없이 이미지만 찍는 "Datum 전용" 인덱스다 — 실측(SIDE_1 반복테스트)에서
+                //  z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나오는 걸 확인(SIDE의 4개 Datum 모두 ZIndexA/B 쌍의
+                //  두 번째 값이 여기 해당). IsDatumOnlyExecutionIndex 가 이미 이 판정을 정확히 갖고 있어 재사용.
+                bool bDatumOnlyHere = inspSeq.IsDatumOnlyExecutionIndex(nZIndex);
+                if (bDatumOnlyHere)
+                {
+                    bIsDatumOnlyForSomeSeq = true;
+                }
             }
-            //  z=0(InspectionSequence.DATUM_Z_INDEX — PLC $PREP 프로토콜의 "기준점 전용" 값)은 Shot 이 아니라
-            //  Datum 조명 담당 영역이라, TOP/BOTTOM 처럼 대응하는 Shot 이 아예 없는 시퀀스가 있는 게 정상이다
-            //  (Datum 조명은 여기서 미리 켜지 않고 ApplyDatumLights 가 실제 grab 직전에 별도 적용 —
-            //  InspectionSequence.ApplyDatumLights 코드 주석 참고). 위 루프에서 아무도 못 찾았을 때(bAnyApplied
-            //  =false)에 한해서만 z=0 을 "정상적으로 준비할 Shot 조명이 없는 상태"로 보고 성공 처리한다 — SIDE
-            //  처럼 위에서 이미 찾아 적용했으면(bAnyApplied=true) 이 분기를 타지 않고 그 결과를 그대로 쓴다.
-            if (nZIndex == 0 && !bAnyApplied)
+            //  z=0(InspectionSequence.DATUM_Z_INDEX — PLC $PREP 프로토콜의 "기준점 전용" 값) 이거나, 위에서 확인한
+            //  크로스-Z Datum 전용 캡처 tick 은 Shot 이 아니라 Datum 조명 담당 영역이라, TOP/BOTTOM 처럼 대응하는
+            //  Shot 이 아예 없는 시퀀스가 있는 게 정상이다(Datum 조명은 여기서 미리 켜지 않고 ApplyDatumLights 가
+            //  실제 grab 직전에 별도 적용 — InspectionSequence.ApplyDatumLights 코드 주석 참고). 위 루프에서
+            //  아무도 못 찾았을 때(bAnyApplied=false)에 한해서만 이걸 "정상적으로 준비할 Shot 조명이 없는 상태"로
+            //  보고 성공 처리한다 — SIDE 처럼 위에서 이미 찾아 적용했으면(bAnyApplied=true) 이 분기를 타지 않고
+            //  그 결과를 그대로 쓴다.
+            bool bIsDatumOnlyZero = nZIndex == 0;
+            bool bTreatAsDatumOnly = bIsDatumOnlyZero || bIsDatumOnlyForSomeSeq;
+            if (bTreatAsDatumOnly && !bAnyApplied)
             {
                 return true;
             }

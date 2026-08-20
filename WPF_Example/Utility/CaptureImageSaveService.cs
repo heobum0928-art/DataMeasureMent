@@ -318,8 +318,15 @@ namespace ReringProject.Utility {
                 //  계측했고 그 다음 단계(디스크 쓰기)는 완전한 계측 공백이었다 — worker=2 증설이 실기에서
                 //  거의 효과가 없었던 이유가 렌더가 아니라 디스크 쓰기 병목일 가능성을 확인하기 위함
                 //  (디스크 I/O 는 워커 수를 늘려도 물리 디스크 대역폭에 막히면 그대로 병목일 수 있다).
+                // 260820 hbk 원본(origin, IsCapture==false)만 Setting.OriginImageFormat(JPG/BMP) 따름 —
+                //  capture(오버레이 렌더)는 파일명(ResolveExtension)과 짝을 맞춰 기존 JPEG 고정 유지.
+                string szFormat = "jpeg";
+                bool bIsOriginWrite = !request.IsCapture;
+                if (bIsOriginWrite && string.Equals(SystemSetting.Handle.OriginImageFormat, "BMP", StringComparison.OrdinalIgnoreCase)) {
+                    szFormat = "bmp";
+                }
                 var swWrite = Stopwatch.StartNew();
-                toWrite.WriteImage("jpeg", 0, filePath);
+                toWrite.WriteImage(szFormat, 0, filePath);
                 long msWrite = swWrite.ElapsedMilliseconds;
 
                 Logging.PrintLog((int)ELogType.Algorithm,
@@ -351,7 +358,16 @@ namespace ReringProject.Utility {
             string name = prefix + "_" + seq + "_" + fai;
             if (!string.IsNullOrEmpty(seg)) { name += "_" + seg; }
             if (!string.IsNullOrEmpty(judge)) { name += "_" + judge; }
-            return name + "_" + time + ".jpg";
+            return name + "_" + time + ResolveExtension(prefix);
+        }
+
+        // 260820 hbk 원본(origin) 이미지만 Setting.OriginImageFormat(JPG/BMP)을 따른다 — capture(오버레이
+        //  렌더)는 사용자 확정 범위 밖이라 기존 JPEG 고정 그대로 유지.
+        private static string ResolveExtension(string prefix) {
+            bool bIsOrigin = prefix == "origin";
+            if (!bIsOrigin) { return ".jpg"; }
+            bool bIsBmp = string.Equals(SystemSetting.Handle.OriginImageFormat, "BMP", StringComparison.OrdinalIgnoreCase);
+            return bIsBmp ? ".bmp" : ".jpg";
         }
 
         // 260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명 오버로드.
@@ -378,7 +394,7 @@ namespace ReringProject.Utility {
             if (!string.IsNullOrEmpty(szMat))  { name += "_M" + szMat; }
             if (!string.IsNullOrEmpty(seg))    { name += "_" + seg; }
             if (!string.IsNullOrEmpty(judge))  { name += "_" + judge; }
-            return name + "_" + time + ".jpg";
+            return name + "_" + time + ResolveExtension(prefix);
         }
 
         // 저장 디렉토리 계산 단일 소스. SaveRequest 와 write-back 경로가 반드시 일치하도록 공유.

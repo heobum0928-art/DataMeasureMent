@@ -186,6 +186,15 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool DisableViewerDuringAutoInspect { get; set; } = false;
 
+        // 260820 hbk 원본(origin) 캡쳐 이미지 저장 포맷 선택 — CaptureImageSaveService.SaveWorker 가 참조.
+        //  capture(오버레이 렌더) 이미지는 이 설정과 무관하게 기존대로 JPEG 고정(범위 밖, 사용자 확정).
+        [Category("System|Enviroment")]
+        [ItemsSourceProperty("OriginImageFormatList")]
+        public string OriginImageFormat { get; set; } = "JPG";
+
+        [Browsable(false)]
+        public string[] OriginImageFormatList { get; } = { "JPG", "BMP" };
+
 
         [Category("System|Localize")]
         [ItemsSourceProperty("LanguageList")]

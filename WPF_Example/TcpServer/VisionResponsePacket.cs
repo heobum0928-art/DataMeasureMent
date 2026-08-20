@@ -60,7 +60,7 @@ namespace ReringProject.Network {
         public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Phase 63 AV-09: Align 캘리브 ack 송신 커맨드
         public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 송신 커맨드
         public const string CMD_SEND_ALIVE = "ALIVE";                  //260625 hbk v3.0: $ALIVE heartbeat 송신 커맨드
-        public const string CMD_SEND_RESET_ACK = "RESET_ACK";          //260807 hbk quick-260807-lh7: $RESET_ACK 송신 커맨드
+        public const string CMD_SEND_RESET_ACK = "RESET";              //260820 hbk 응답 커맨드명을 RESET_ACK → RESET 으로 변경(제어팀 요청, 실제 페이로드 포맷($RESET:site,OK|FAIL@)은 무변경)
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
@@ -452,7 +452,8 @@ namespace ReringProject.Network {
             return szMsg;
         }
 
-        //260807 hbk quick-260807-lh7: $RESET_ACK 직렬화 → $RESET_ACK:site,OK|FAIL@ (STX/ETX 는 TcpServer 부착).
+        //260807 hbk quick-260807-lh7: $RESET 응답 직렬화 → $RESET:site,OK|FAIL@ (STX/ETX 는 TcpServer 부착).
+        //  260820 hbk 커맨드명 RESET_ACK → RESET 변경(제어팀 요청) — CMD_SEND_RESET_ACK 상수 값만 바뀌었을 뿐 이 메서드 로직은 무변경.
         //  PREP_ACK 와 동일 스타일이되 z_index 필드가 없어 구분자가 1개 적다. site 는 요청 echo.
         //  IsOk=false 는 "리셋을 못 했다"(예: 시퀀스가 검사 실행 중이라 건너뜀)는 뜻 — 통신 실패가 아니다.
         private static string BuildResetAckMessage(ResetAckPacket packet)

@@ -117,7 +117,19 @@ namespace ReringProject.Device {
             WasOpenTable = new bool[Controllers.Count];
 
             Load();
-            bool openResult = OpenAll();
+            bool openResult;
+#if SIMUL_MODE
+            //260820 hbk quick-fix: 하드웨어가 아예 없는 SIMUL 전용 PC(테스트용 노트북 등)에서 앱이 "기동중"에서
+            //  멈추던 문제 — OpenAll()이 실제 시리얼 포트(SerialPort.Open)를 열려고 시도하는데, 존재하지 않거나
+            //  응답 없는 COM 포트에서 이 호출이 오래 걸리거나 막힐 수 있다(재현 확인: 조명 컨트롤러 미연결 노트북).
+            //  SIMUL_MODE 빌드는 실제 조명 하드웨어를 켤 일이 없으므로 물리 연결 시도 자체를 건너뛴다 — 컨트롤러는
+            //  IsOpen=false 로 남고, Execute() 폴링 루프는 IsOpen=false 인 컨트롤러를 그냥 건너뛰도록 이미 돼있어
+            //  (아래 continue 분기) 부작용 없다.
+            openResult = true;
+            Logging.PrintLog((int)ELogType.LightController, "[SIMUL] 조명 컨트롤러 실제 연결 생략(하드웨어 없음 전제)");
+#else
+            openResult = OpenAll();
+#endif
 
             mThread = new Thread(Execute);
             mThread.Name = "LightHandler";

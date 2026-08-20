@@ -960,6 +960,16 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        //260820 hbk quick-260820-dfw: 6개 함수(가로/세로 이미지+bPending)를 관통하던 out 3종 조합을
+        //  DualDatumImageResult 필드로 교체 — 파일 상단 ShotMeasureAccumulator/CrossZCaptureTickResult 와
+        //  동일한 필드(프로퍼티 아님)+K&R 스타일을 따른다. 외부 호출부 1곳(ProcessDatumDualImage)에
+        //  보이는 이 함수의 out 시그니처는 그대로 유지 — 내부 5개 함수만 result 객체로 배선.
+        private class DualDatumImageResult {
+            public HImage Horizontal;
+            public HImage Vertical;
+            public bool Pending;
+        }
+
         // 양쪽(A/B) 이미지를 동시에 로드한다. 둘 다 설정돼 있으면 크로스-Z 실시간 촬영 경로,
         //  하나도 없으면 기존 고정 이미지 경로다. "대기 중"(bPending) 은 실패가 아니라 다음 촬영을
         //  기다리는 정상 상태다.
@@ -977,10 +987,17 @@ namespace ReringProject.Sequence {
             }
             bool bIsProtocolDriven = parentSeq != null && parentSeq.IsProtocolDrivenCycle();
             bool bCrossZEnabled = bIsProtocolDriven && datum.ZIndexA != UNSET_ZINDEX && datum.ZIndexB != UNSET_ZINDEX;
+            DualDatumImageResult result = new DualDatumImageResult();
+            bool bOk;
             if (bCrossZEnabled) {
-                return TryGrabOrLoadCrossZDatumImages(datum, parentSeq, out imageHorizontal, out imageVertical, out bPending);
+                bOk = TryGrabOrLoadCrossZDatumImages(datum, parentSeq, result);
+            } else {
+                bOk = TryLoadStaticDualDatumImages(datum, result);
             }
-            return TryLoadStaticDualDatumImages(datum, out imageHorizontal, out imageVertical);
+            imageHorizontal = result.Horizontal;
+            imageVertical = result.Vertical;
+            bPending = result.Pending;
+            return bOk;
         }
 
         // 기존 고정 이미지 로드 경로 — 가로/세로 각각 교시 이미지가 우선이고, 없거나 로드 실패하면
@@ -988,35 +1005,33 @@ namespace ReringProject.Sequence {
         //  하기 위한 폴백이다. 검사 이미지조차 없으면 그대로 실패 처리한다.
         // 두 반환 이미지는 호출부에서 각각 따로 해제(Dispose)하므로, 폴백 때도 서로 다른 인스턴스로
         //  각각 새로 만들어야 한다(같은 인스턴스를 공유하면 안 됨).
-        private bool TryLoadStaticDualDatumImages(DatumConfig datum, out HImage imageHorizontal, out HImage imageVertical) {
-            imageHorizontal = null;
-            imageVertical = null;
+        private bool TryLoadStaticDualDatumImages(DatumConfig datum, DualDatumImageResult result) {
             string pathH = datum.TeachingImagePath;
             string pathV = datum.TeachingImagePath_Vertical;
 
             bool bFallbackH = string.IsNullOrEmpty(pathH) || !File.Exists(pathH);
             bool bFallbackV = string.IsNullOrEmpty(pathV) || !File.Exists(pathV);
 
-            imageHorizontal = LoadDatumImageFromPath(datum, pathH, false); // teachingPath → SimulImagePath 폴백 (grab 없음)
-            imageVertical = LoadDatumImageFromPath(datum, pathV, false);   // 동일 폴백, 별도 인스턴스
+            result.Horizontal = LoadDatumImageFromPath(datum, pathH, false); // teachingPath → SimulImagePath 폴백 (grab 없음)
+            result.Vertical = LoadDatumImageFromPath(datum, pathV, false);   // 동일 폴백, 별도 인스턴스
 
-            if (imageHorizontal == null) {
+            if (result.Horizontal == null) {
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] 가로축 이미지 확보 실패 — TeachingImagePath / ShotParam.SimulImagePath 모두 없음 (DualImage).");
             } else if (bFallbackH) {
                 // 폴백이 조용히 일어나면 "티칭 이미지로 검출했다" 고 오해할 수 있어 흔적을 남긴다.
                 Logging.PrintLog((int)ELogType.Trace, "[Datum] 가로축 티칭 이미지 부재 — SHOT 검사이미지(SimulImagePath)로 폴백 (DualImage).");
             }
-            if (imageVertical == null) {
+            if (result.Vertical == null) {
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] 세로축 이미지 확보 실패 — TeachingImagePath_Vertical / ShotParam.SimulImagePath 모두 없음 (DualImage).");
             } else if (bFallbackV) {
                 Logging.PrintLog((int)ELogType.Trace, "[Datum] 세로축 티칭 이미지 부재 — SHOT 검사이미지(SimulImagePath)로 폴백 (DualImage).");
             }
 
-            if (imageHorizontal == null || imageVertical == null) {
-                SafeDisposeImage(imageHorizontal);
-                SafeDisposeImage(imageVertical);
-                imageHorizontal = null;
-                imageVertical = null;
+            if (result.Horizontal == null || result.Vertical == null) {
+                SafeDisposeImage(result.Horizontal);
+                SafeDisposeImage(result.Vertical);
+                result.Horizontal = null;
+                result.Vertical = null;
                 return false;
             }
             return true;
@@ -1025,10 +1040,7 @@ namespace ReringProject.Sequence {
         //260722 hbk Phase 68 D-06/D-02a: Datum 크로스-Z 라이브 캡처/주입 — 완성 z_index=max(ZIndexA,ZIndexB)
         //  (측정 레벨 TryExecuteCrossZMeasurement 완성 index 정의와 통일). 현재 tick 이 이 datum 의 ZIndexA/B
         //  어느 쪽도 아니면 무관(bPending=true, 상태변화 없음 — ProcessCrossZCaptureTick bRelevant 미러).
-        private bool TryGrabOrLoadCrossZDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
-            imageHorizontal = null;
-            imageVertical = null;
-            bPending = false;
+        private bool TryGrabOrLoadCrossZDatumImages(DatumConfig datum, InspectionSequence parentSeq, DualDatumImageResult result) {
             if (parentSeq == null) {
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] 크로스-Z: parentSeq null");
                 return false;
@@ -1043,15 +1055,15 @@ namespace ReringProject.Sequence {
                 //  다시 검출해 정확한 값을 만든다.
                 bool bBothStored = IsCrossZDatumBothStored(datum, parentSeq);
                 if (bBothStored) {
-                    return TryReDetectCrossZDatumFromStore(datum, parentSeq, out imageHorizontal, out imageVertical);
+                    return TryReDetectCrossZDatumFromStore(datum, parentSeq, result);
                 }
-                bPending = true; // 저장 미완성 + 이 tick 무관 — 상태변화 없음(안전망)
+                result.Pending = true; // 저장 미완성 + 이 tick 무관 — 상태변화 없음(안전망)
                 return false;
             }
             if (!CaptureAndStoreCrossZDatumImage(datum, parentSeq, bIsRoleA)) {
                 return false; // 실제 캡처 실패 — 호출부가 MarkDatumFailed(실패 확정)
             }
-            return TryTakeCompletedCrossZDatumImages(datum, parentSeq, out imageHorizontal, out imageVertical, out bPending);
+            return TryTakeCompletedCrossZDatumImages(datum, parentSeq, result);
         }
 
         // 현재 tick 이미지를 라이브 grab(기존 Shot 라이브 grab 선례 GrabOrLoadDatumImage 재사용, 새 메커니즘 금지 D-01)해
@@ -1071,18 +1083,15 @@ namespace ReringProject.Sequence {
         }
 
         // 양 role(A/B) 저장 완료 여부 판정 — 완성이면 클론 반환(호출부 finally Dispose 계약), 아니면 bPending=true(Z1 캡처만).
-        private bool TryTakeCompletedCrossZDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
-            imageHorizontal = null;
-            imageVertical = null;
-            bPending = false;
+        private bool TryTakeCompletedCrossZDatumImages(DatumConfig datum, InspectionSequence parentSeq, DualDatumImageResult result) {
             string keyA, keyB;
             ResolveCrossZDatumRoleKeys(datum, out keyA, out keyB);
             bool bCompleted = parentSeq.HasCrossZImage(keyA) && parentSeq.HasCrossZImage(keyB);
             if (!bCompleted) {
-                bPending = true; // Z1(비완성 index): 캡처만 — 실패 아님
+                result.Pending = true; // Z1(비완성 index): 캡처만 — 실패 아님
                 return false;
             }
-            return TryTakeCrossZImageClones(keyA, keyB, parentSeq, out imageHorizontal, out imageVertical);
+            return TryTakeCrossZImageClones(keyA, keyB, parentSeq, result);
         }
 
         // 크로스-Z 저장소 키 = "DATUM|" 접두사 + DatumName — 측정 키(ShotName|MeasName)와 네임스페이스 구분(충돌 방지).
@@ -1112,23 +1121,23 @@ namespace ReringProject.Sequence {
         //260722 hbk Phase 68 CROSS-1: 크로스-Z Datum 소비 index(자기 ZIndexA/B 아님) 결정론적 재검출 —
         //  양 role 이미지가 저장소에 이미 있을 때 클론을 반환해 호출부(EStep.DatumPhase)가 TryRunSingleDatum/
         //  TryComposeAlign 을 그대로 재실행하도록 한다. 클론 소유권은 호출부 finally Dispose 계약(기존과 동일).
-        private bool TryReDetectCrossZDatumFromStore(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical) {
+        private bool TryReDetectCrossZDatumFromStore(DatumConfig datum, InspectionSequence parentSeq, DualDatumImageResult result) {
             string keyA, keyB;
             ResolveCrossZDatumRoleKeys(datum, out keyA, out keyB);
-            return TryTakeCrossZImageClones(keyA, keyB, parentSeq, out imageHorizontal, out imageVertical);
+            return TryTakeCrossZImageClones(keyA, keyB, parentSeq, result);
         }
 
         // 저장소 키 두 개로부터 클론 취득 공용 로직 — TryTakeCompletedCrossZDatumImages/TryReDetectCrossZDatumFromStore
         //  가 공유(D-09 동일 로직 2회 이상 반복 금지). 한쪽만 취득 성공 시 누수 방지를 위해 양쪽 모두 Dispose.
-        private bool TryTakeCrossZImageClones(string keyA, string keyB, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical) {
-            imageHorizontal = parentSeq.TakeCrossZImageCopy(keyA);
-            imageVertical = parentSeq.TakeCrossZImageCopy(keyB);
-            bool bBothLoaded = imageHorizontal != null && imageVertical != null;
+        private bool TryTakeCrossZImageClones(string keyA, string keyB, InspectionSequence parentSeq, DualDatumImageResult result) {
+            result.Horizontal = parentSeq.TakeCrossZImageCopy(keyA);
+            result.Vertical = parentSeq.TakeCrossZImageCopy(keyB);
+            bool bBothLoaded = result.Horizontal != null && result.Vertical != null;
             if (!bBothLoaded) {
-                SafeDisposeImage(imageHorizontal);
-                SafeDisposeImage(imageVertical);
-                imageHorizontal = null;
-                imageVertical = null;
+                SafeDisposeImage(result.Horizontal);
+                SafeDisposeImage(result.Vertical);
+                result.Horizontal = null;
+                result.Vertical = null;
                 return false; // 완성 index 인데 클론 취득 실패 — 실제 실패
             }
             return true;

@@ -1,0 +1,785 @@
+<title>현장 디버깅 정비 매뉴얼</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:        #F2F0EB;
+    --panel:         #FFFFFF;
+    --panel-sunk:    #E8E5DE;
+    --ink:           #1C1B18;
+    --ink-soft:      #55524A;
+    --ink-faint:     #8A867C;
+    --rule:          #D3CFC5;
+    --rule-strong:   #B5B0A3;
+    --accent:        #0B5C4B;
+    --accent-soft:   #E2EDE9;
+    --warn:          #A8590C;
+    --warn-soft:     #F7EBDC;
+    --crit:          #A32B21;
+    --crit-soft:     #F8E4E1;
+    --ok:            #2F6B34;
+    --ok-soft:       #E5EFE4;
+
+    --f-sans: "IBM Plex Sans KR", "Malgun Gothic", -apple-system, system-ui, sans-serif;
+    --f-mono: "IBM Plex Mono", "D2Coding", Consolas, monospace;
+
+    --shadow: 0 1px 2px rgba(28,27,24,.06), 0 4px 14px rgba(28,27,24,.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #16181A;
+      --panel:       #1F2225;
+      --panel-sunk:  #141618;
+      --ink:         #E8E6E1;
+      --ink-soft:    #A9A69F;
+      --ink-faint:   #77746D;
+      --rule:        #33383C;
+      --rule-strong: #4A5054;
+      --accent:      #58C4A8;
+      --accent-soft: #16302B;
+      --warn:        #E0A264;
+      --warn-soft:   #33261A;
+      --crit:        #EE8C82;
+      --crit-soft:   #351D1B;
+      --ok:          #86C08A;
+      --ok-soft:     #1C2A1D;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #16181A;
+    --panel:       #1F2225;
+    --panel-sunk:  #141618;
+    --ink:         #E8E6E1;
+    --ink-soft:    #A9A69F;
+    --ink-faint:   #77746D;
+    --rule:        #33383C;
+    --rule-strong: #4A5054;
+    --accent:      #58C4A8;
+    --accent-soft: #16302B;
+    --warn:        #E0A264;
+    --warn-soft:   #33261A;
+    --crit:        #EE8C82;
+    --crit-soft:   #351D1B;
+    --ok:          #86C08A;
+    --ok-soft:     #1C2A1D;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-sans);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 56px 0 20px;
+    margin-bottom: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .masthead h1 {
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .masthead .sub {
+    margin: 10px 0 0;
+    color: var(--ink-soft);
+    font-size: 15px;
+    max-width: 54ch;
+  }
+  .stamp {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    line-height: 1.9;
+    color: var(--ink-faint);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .stamp b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---------- section ---------- */
+  section { margin-bottom: 56px; scroll-margin-top: 20px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1px solid var(--rule-strong);
+    padding-bottom: 8px;
+    margin-bottom: 22px;
+  }
+  .sec-head h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .sec-head .tag {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 32px 0 10px;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0 0 14px; max-width: 68ch; }
+  .lead { color: var(--ink-soft); }
+
+  /* ---------- table ---------- */
+  .tablewrap { overflow-x: auto; margin: 0 0 20px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    min-width: 520px;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 0 14px 7px 0;
+    white-space: nowrap;
+  }
+  td {
+    border-bottom: 1px solid var(--rule);
+    padding: 11px 14px 11px 0;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td:last-child, th:last-child { padding-right: 0; }
+
+  code, .mono { font-family: var(--f-mono); font-size: .89em; }
+  td code {
+    background: var(--panel-sunk);
+    padding: 1.5px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ---------- log block ---------- */
+  pre {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    line-height: 1.75;
+    background: var(--panel-sunk);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 18px;
+  }
+  pre .hl { color: var(--crit); font-weight: 600; }
+  pre .dim { color: var(--ink-faint); }
+  pre .good { color: var(--ok); font-weight: 600; }
+
+  /* ---------- fault card ---------- */
+  .fault {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .fault > h3 { margin-top: 0; }
+  .fault-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .sig {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 3px;
+  }
+  .sig.crit { color: var(--crit); background: var(--crit-soft); }
+  .sig.warn { color: var(--warn); background: var(--warn-soft); }
+  .sig.info { color: var(--accent); background: var(--accent-soft); }
+  .fault-head .what {
+    font-size: 15.5px;
+    font-weight: 600;
+  }
+  .freq {
+    margin-left: auto;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .fault p { margin-bottom: 10px; }
+  .fault ol, .fault ul { margin: 0 0 12px; padding-left: 22px; }
+  .fault li { margin-bottom: 5px; }
+
+  .where {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--rule);
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .where b {
+    font-size: 11px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .where code {
+    display: inline-block;
+    background: var(--panel-sunk);
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin: 2px 6px 2px 0;
+  }
+
+  /* ---------- pipeline ---------- */
+  .pipe {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .stage {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    border-radius: 5px;
+    padding: 13px 15px;
+    box-shadow: var(--shadow);
+  }
+  .stage .n {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: .08em;
+  }
+  .stage .nm {
+    font-family: var(--f-mono);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 2px 0 5px;
+  }
+  .stage .ds { font-size: 12.5px; color: var(--ink-soft); line-height: 1.55; }
+
+  /* ---------- callout ---------- */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 13px 18px;
+    border-radius: 0 4px 4px 0;
+    margin: 0 0 20px;
+    font-size: 14.5px;
+  }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note.crit { border-left-color: var(--crit); background: var(--crit-soft); }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 8px; }
+  .note strong { font-weight: 600; }
+
+  /* ---------- tools ---------- */
+  .tools { display: grid; gap: 14px; }
+  .tool {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .tool .idx {
+    font-family: var(--f-mono);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--rule-strong);
+    line-height: 1;
+    padding-top: 2px;
+  }
+  .tool h3 { margin: 0 0 6px; font-size: 16px; }
+  .tool p { margin: 0 0 8px; font-size: 14.5px; }
+  .tool .where { margin-top: 10px; }
+
+  /* ---------- checklist ---------- */
+  .check { list-style: none; padding: 0; margin: 0; }
+  .check li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 15px;
+  }
+  .check li:last-child { border-bottom: none; }
+  .check .box {
+    width: 15px; height: 15px;
+    border: 1.5px solid var(--rule-strong);
+    border-radius: 3px;
+    margin-top: 5px;
+  }
+  .check b { font-weight: 600; }
+  .check .why { display: block; color: var(--ink-soft); font-size: 13.5px; margin-top: 2px; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 60px;
+    padding-top: 18px;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  @media (max-width: 600px) {
+    .masthead { padding-top: 36px; }
+    .stamp { text-align: left; }
+    .tool { grid-template-columns: 1fr; gap: 8px; }
+    .tool .idx { font-size: 20px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>현장 디버깅 정비 매뉴얼</h1>
+      <p class="sub">시퀀스와 알고리즘에서 실제로 발생하는 고장 신호를, 로그 위치와 코드 위치로 바로 추적하기 위한 현장용 문서입니다.</p>
+    </div>
+    <div class="stamp">
+      <div><b>대상</b> &nbsp;DataMeasurement</div>
+      <div><b>버전</b> &nbsp;1.7.21.0</div>
+      <div><b>기준일</b> &nbsp;2026-08-21</div>
+      <div><b>코드 기준</b> &nbsp;WPF_Example/</div>
+    </div>
+  </header>
+
+  <!-- ============ 1. 로그 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>로그가 7개로 나뉘어 있습니다</h2>
+      <span class="tag">먼저 읽기</span>
+    </div>
+
+    <p class="lead">문제 유형마다 봐야 할 파일이 다릅니다. 이걸 모르면 엉뚱한 로그만 계속 뒤지게 됩니다. 전부 <code>D:\Data\</code> 아래에 날짜별로 쌓입니다.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th style="width:190px">파일</th><th>무엇이 들어있나</th><th style="width:110px">언제 보나</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Trace\</code></td><td>검사가 <b>어느 단계까지 갔는지</b> — <code>[SEQ]</code> 태그, 단계별 소요시간 포함</td><td>항상 1순위</td></tr>
+          <tr><td><code>Error\</code></td><td>실패한 것만 모아놓음 — 실패 사유 문자열이 여기 있음</td><td>2순위</td></tr>
+          <tr><td><code>Algorithm\</code></td><td>에지 검출 <b>내부 수치</b> — <code>[Datum.*]</code> ROI 좌표·파라미터·검출 개수</td><td>알고리즘 파고들 때</td></tr>
+          <tr><td><code>TcpConnection\</code></td><td>PLC와 주고받은 원문</td><td>통신 의심 시</td></tr>
+          <tr><td><code>LightController\</code></td><td>조명 명령 송신 기록</td><td>조명 의심 시</td></tr>
+          <tr><td><code>Camera\</code></td><td>촬영 관련</td><td>Grab 실패 시</td></tr>
+          <tr><td><code>Flow\</code></td><td>사이클 흐름</td><td>보조</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p><strong>추적 순서.</strong> Trace에서 <em>어디서 멈췄나</em>를 찾고 → Error에서 <em>왜</em>를 찾고 → 숫자가 필요하면 Algorithm을 엽니다. 이 순서를 지키면 대부분 3분 안에 원인 구간이 좁혀집니다.</p>
+    </div>
+
+    <div class="where">
+      <b>코드 위치 — 로그 등록</b>
+      <code>SystemHandler.cs:89–98</code> 각 로그 종류를 파일에 연결하는 곳입니다. 로그가 아예 안 남으면 여기부터 확인합니다.
+    </div>
+  </section>
+
+  <!-- ============ 2. 4단계 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>검사 한 사이클은 4단계로 흘러갑니다</h2>
+      <span class="tag">구조</span>
+    </div>
+
+    <p class="lead">Shot 하나가 실행될 때 항상 이 순서를 지납니다. <b>어느 단계에서 끊겼는지</b>가 문제의 절반을 좁혀줍니다.</p>
+
+    <div class="pipe">
+      <div class="stage">
+        <div class="n">STEP 1</div>
+        <div class="nm">MoveZ</div>
+        <div class="ds">높이(Z) 이동. 여기서 끊기면 축·PLC 문제입니다.</div>
+      </div>
+      <div class="stage">
+        <div class="n">STEP 2</div>
+        <div class="nm">DatumPhase</div>
+        <div class="ds">기준점 검출. <b>현장 문제의 대부분이 여기서 납니다.</b></div>
+      </div>
+      <div class="stage">
+        <div class="n">STEP 3</div>
+        <div class="nm">Grab</div>
+        <div class="ds">검사 이미지 촬영. 카메라·조명 문제.</div>
+      </div>
+      <div class="stage">
+        <div class="n">STEP 4</div>
+        <div class="nm">Measure</div>
+        <div class="ds">실제 측정과 판정. ROI·알고리즘 문제.</div>
+      </div>
+    </div>
+
+    <p>Trace 로그에는 이렇게 찍힙니다. 각 단계마다 <b>소요시간이 초 단위로</b> 같이 나오므로, tact 분석도 이 로그 하나로 합니다.</p>
+
+<pre>[SEQ] SIDE · SIDE_SHOT_3-1_D1 시작
+[SEQ]   · [MoveZ]      Z축 이동 (ZIndex=2, Delay=0ms)
+[SEQ]   · [DatumPhase] 기준점 검출 — 등록 Datum 4개
+[SEQ]   · [DatumPhase] 완료 — 검출성공 <span class="hl">0</span> / 실패 0 / 캐시재사용 0 <span class="dim">(1.59초)</span>
+[SEQ]   · [Grab]       검사 이미지 촬영 완료 <span class="dim">(0.22초)</span>
+[SEQ]   · [Measure]    완료 — 측정 2개 (공차이탈 2개), 판정 <span class="hl">NG</span> <span class="dim">(0.07초)</span>
+[SEQ] SIDE · SIDE_SHOT_3-1_D1 완료 OK — 1.94초</pre>
+
+    <div class="note warn">
+      <p><strong>“검출성공 0”을 놓치지 마세요.</strong> 위 예시처럼 DatumPhase가 <em>완료</em>로 찍혀도 검출성공이 0이면 기준점을 하나도 못 잡은 것입니다. 그 뒤 측정은 전부 무의미한 값이거나 skip됩니다. 단계 이름만 보고 넘어가면 놓칩니다.</p>
+    </div>
+
+    <div class="where">
+      <b>코드 위치 — 단계 실행부</b>
+      <code>Action_FAIMeasurement.cs:32</code> EStep 정의<br>
+      <code>Action_FAIMeasurement.cs:144–149</code> 단계 분기 <span class="mono">switch</span><br>
+      <code>Action_FAIMeasurement.cs:163</code> RunMoveZ &nbsp;
+      <code>:192</code> RunDatumPhase &nbsp;
+      <code>:245</code> ProcessOneDatum<br>
+      <code>Action_FAIMeasurement.cs:102</code> LogSeqStep — 로그 문구와 코드가 1:1로 대응합니다. 로그에서 본 단계명으로 <span class="mono">case EStep.&lt;이름&gt;</span>을 바로 찾을 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ============ 3. 고장 유형 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>실제로 만나게 될 고장 7가지</h2>
+      <span class="tag">고장 도감</span>
+    </div>
+
+    <!-- 1 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig crit">ALIGN_FAIL</span>
+        <span class="what">패턴 정렬 실패</span>
+        <span class="freq">현장 최빈</span>
+      </div>
+<pre>[ALIGN2] Side_Datum_3-1 패턴2 매칭 실패 → 단일 패턴 θ 폴백: <span class="hl">no match found</span>
+[FAIMeasurement] Datum 'Side_Datum_3-1' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip)</pre>
+      <p><b>뜻.</b> 티칭해둔 패턴 모양을 지금 이미지에서 못 찾았습니다.</p>
+      <p><b>의심 순서</b></p>
+      <ol>
+        <li><b>조명이 티칭할 때와 다름</b> — 현장에서 압도적으로 많습니다</li>
+        <li>자재가 크게 틀어져 놓여 검색 범위 밖 (<code>PatternSearchMarginPx=100</code>)</li>
+        <li>초점이 나감</li>
+        <li>패턴 점수 기준이 빡빡함 (<code>PatternMinScore=0.6</code>)</li>
+      </ol>
+      <p><b>조치.</b> 조명부터 확인하고, 그래도 안 되면 재티칭합니다.</p>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>Action_FAIMeasurement.cs:348</code> RunDatumDualImageDetection — align 분기<br>
+        <code>Action_FAIMeasurement.cs:306</code> ProcessDatumDualImage — 실패 시 MarkDatumFailed 처리
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig crit">insufficient edges</span>
+        <span class="what">에지를 하나도 못 찾음</span>
+        <span class="freq">빈발</span>
+      </div>
+<pre>Vertical: [Vertical] <span class="hl">insufficient edges across 100 strips: got 0</span> (need &gt;=2).
+          sigma=2.00 threshold=15 polarity=negative scan=horizontal</pre>
+      <p><b>뜻.</b> ROI 안에서 경계선을 못 찾았습니다. <b>쓰인 파라미터가 로그에 그대로 찍히므로</b> 추측할 필요가 없습니다.</p>
+      <p><b>의심 순서</b></p>
+      <ol>
+        <li><b>ROI가 엉뚱한 곳에 가 있음</b> — 앞단 패턴 정렬이 틀어져 ROI가 통째로 이동한 경우. <span class="mono">ALIGN_FAIL</span>과 연쇄로 발생합니다</li>
+        <li><code>threshold</code>가 너무 높음 (대비가 약한데 15/30/50을 요구)</li>
+        <li><code>polarity</code>가 반대 — <span class="mono">negative</span>로 걸었는데 실제로는 밝아지는 에지</li>
+        <li>조명이 약해 경계가 흐림</li>
+      </ol>
+      <p><b>조치.</b> Algorithm 로그의 <code>bounds top/left/bottom/right</code> 값을 읽어 그 위치에 실제로 경계가 있는지 화면에서 눈으로 확인합니다.</p>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>DatumFindingService.cs:1615</code> TryFindLine — 라인 검출 본체<br>
+        <code>DatumFindingService.cs:1688</code> strip-loop 진입 로그 (ROI 좌표·파라미터 출력)<br>
+        <code>DatumFindingService.cs:1834</code> 검출 개수 집계 로그 (ok / noEdge / failed)<br>
+        <code>DatumFindingService.cs:1636–1643</code> 파라미터 clamp — 값이 비어 있을 때 채워지는 기본값
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig crit">perpendicularity violated</span>
+        <span class="what">가로·세로가 직각이 아님</span>
+      </div>
+<pre>Horizontal/Vertical perpendicularity violated: <span class="hl">delta=71.0 deg</span> (expected 90 +/-10.0 deg)</pre>
+      <p><b>뜻.</b> 선을 찾긴 했는데 <b>엉뚱한 선을 잡았습니다.</b> 직각이어야 할 두 선이 71°로 나온 상태입니다.</p>
+      <p><b>조치.</b> ROI가 옆의 다른 경계까지 물고 있는 것이므로, 순수한 직선 구간만 덮도록 ROI를 좁힙니다.</p>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>DatumFindingService.cs:556</code> / <code>:742</code> — Find 경로 직각 검증 게이트<br>
+        <code>DatumFindingService.cs:1202</code> — Teach 경로 게이트
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig warn">DATUM_REF_MISSING</span>
+        <span class="what">기준점 이름이 안 맞음</span>
+      </div>
+      <p><b>뜻.</b> 측정이 참조하는 Datum 이름이 레시피에 존재하지 않습니다. <b>Datum 이름을 바꿨는데 측정 쪽이 안 따라간 경우</b>가 전형적입니다.</p>
+      <p><b>좋은 소식.</b> 조용히 틀린 값을 내지 않고 명시적으로 NG 처리되므로, 로그만 보면 즉시 확인됩니다.</p>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>InspectionSequence.cs:2036</code> IsDatumRefUnresolvable — 판정<br>
+        <code>Action_FAIMeasurement.cs:1418</code> skip 사유 기록
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig warn">ZINDEX_MISCONFIGURED</span>
+        <span class="sig warn">CROSS_Z_INCOMPLETE</span>
+        <span class="what">크로스-Z 설정 문제</span>
+        <span class="freq">SIDE 주의</span>
+      </div>
+      <p><b>뜻.</b> 가로·세로를 두 번에 나눠 찍는 기준점인데, z_index 설정이 잘못됐거나(같은 값, 한쪽만 설정) 짝이 채워지지 않았습니다.</p>
+      <p><b>SIDE는 특히 주의.</b> Datum 4개가 전부 이 방식입니다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Datum</th><th>촬영 z</th><th>측정 z</th></tr></thead>
+          <tbody>
+            <tr><td><code>Side_Datum_3-1</code></td><td>0, 1</td><td>2</td></tr>
+            <tr><td><code>Side_Datum_3-2</code></td><td>3, 4</td><td>5, 6</td></tr>
+            <tr><td><code>Side_Datum_4-2</code></td><td>7, 8</td><td>9</td></tr>
+            <tr><td><code>Side_Datum_4-1</code></td><td>12, 13</td><td>14, 15</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>조치.</b> 각 Datum의 ZIndexA / ZIndexB가 서로 다른 값으로 제대로 들어갔는지 레시피에서 확인합니다.</p>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>Action_FAIMeasurement.cs:309</code> IsDatumZIndexMisconfigured 게이트<br>
+        <code>Action_FAIMeasurement.cs:1493</code> CROSS_Z_INCOMPLETE 기록<br>
+        <code>InspectionSequence.cs:1354</code> IsDatumOnlyExecutionIndex — “이 z는 촬영 전용”인지 판정
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig crit">Light 그룹 비어있음</span>
+        <span class="what">조명이 조용히 안 켜짐</span>
+      </div>
+<pre>[Light] 그룹 'ALIGN_COAX' 이 비어있음(채널 매핑 소실) — SetOnOff 무동작.
+        light.ini ChannelNames 오타/누락 확인</pre>
+      <p><b>뜻.</b> <code>light.ini</code>의 채널 이름이 코드가 기대하는 이름과 다릅니다. <b>오류 없이 조명만 안 켜지므로</b> 가장 속기 쉬운 고장입니다.</p>
+      <p><b>조치.</b> 셋업 후 Error 로그에서 이 메시지가 <b>0건</b>인지 반드시 확인합니다.</p>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>LightHandler.cs:226</code> SetOnOff 가드 &nbsp; <code>:247</code> SetLevel 가드<br>
+        <code>Custom/Device/LightHandler.cs:14–32</code> 채널·그룹 이름 상수 — <b>light.ini는 이 이름과 정확히 일치해야 합니다</b>
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="fault">
+      <div class="fault-head">
+        <span class="sig info">[V1Scope] 매칭 Shot 0건</span>
+        <span class="what">그 z에 할 일이 없음</span>
+      </div>
+      <p><b>뜻.</b> PLC가 보낸 z_index에 해당하는 Shot이 레시피에 없습니다.</p>
+      <div class="note">
+        <p><strong>이게 항상 오류는 아닙니다.</strong> 크로스-Z 기준점만 있는 자리는 원래 Shot이 없는 것이 정상입니다. 위 SIDE 표와 대조해 실제로 비어야 할 자리인지 먼저 확인하세요.</p>
+      </div>
+      <div class="where">
+        <b>코드 위치</b>
+        <code>Custom/SystemHandler.cs:253</code> StartV1Scoped — z별 실행 범위 결정<br>
+        <code>InspectionSequence.cs:1860</code> WarnIfEmptyScope — 이 경고를 내는 곳<br>
+        <code>InspectionSequence.cs:710</code> FindActionIndicesByZIndex — z ↔ Shot 매칭 규칙
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. 무기 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>현장에서 쓸 도구 3가지</h2>
+      <span class="tag">장비</span>
+    </div>
+
+    <div class="tools">
+      <div class="tool">
+        <div class="idx">01</div>
+        <div>
+          <h3>수동 Z 트리거</h3>
+          <p>화면 하단 주황색 바 — <span class="mono">시퀀스 [SIDE] &nbsp; zindex [0] &nbsp; [수동 트리거 실행]</span></p>
+          <p>PLC 없이 <b>원하는 z만 딱 찍어서</b> 실행합니다. z=2 하나만 반복하며 파라미터를 조정할 때 씁니다.</p>
+          <div class="where">
+            <b>코드 위치</b>
+            <code>MainView.xaml:614</code> 버튼 &nbsp; <code>MainView.xaml.cs:150</code> 핸들러<br>
+            <code>Custom/SystemHandler.cs:941</code> DebugManualZTrigger — 실제 PREP+TEST 경로로 흘려보냄
+          </div>
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="idx">02</div>
+        <div>
+          <h3>Test Find</h3>
+          <p>기준점 검출만 단독 실행합니다. 측정까지 가지 않고 <b>기준점이 잡히는지만</b> 확인하므로, 앞의 1·2·3번 고장을 잡을 때 필수입니다.</p>
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="idx">03</div>
+        <div>
+          <h3>오프라인 검사 모드</h3>
+          <p>실패한 이미지를 저장해두고 <b>같은 이미지로 반복 재현</b>하며 파라미터를 조정합니다. 자재를 계속 다시 놓을 필요가 없어, 원인 추적 속도가 크게 달라집니다.</p>
+          <div class="where">
+            <b>설정 위치</b>
+            <code>Setting.ini → OfflineInspectMode</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. 최단 경로 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>증상에서 원인까지 최단 경로</h2>
+      <span class="tag">분류표</span>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:180px">증상</th><th>추적 순서</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>판정이 전부 NG</b></td>
+            <td>Trace에서 DatumPhase “검출성공 0” 확인 → Error에서 <span class="mono">ALIGN_FAIL</span> / <span class="mono">insufficient edges</span> 확인 → <b>조명부터</b></td>
+          </tr>
+          <tr>
+            <td><b>값은 나오는데 틀림</b></td>
+            <td>측정 자체는 되는 것이므로 <b>정합성 문제</b> → 현미경 대조 → Shot의 <span class="mono">CorrectionFactor</span> 조정</td>
+          </tr>
+          <tr>
+            <td><b>값이 들쭉날쭉</b></td>
+            <td>반복성 시험(자재 안 건드리고 N회) → 표준편차 확인 → 조명 / 초점</td>
+          </tr>
+          <tr>
+            <td><b>PLC가 FAIL 받음</b></td>
+            <td>TcpConnection 로그에서 주고받은 원문 확인 → Trace의 <span class="mono">[V1Scope]</span></td>
+          </tr>
+          <tr>
+            <td><b>특정 z만 실패</b></td>
+            <td>그 z가 크로스-Z 촬영 전용인지 확인 → ZIndexA / ZIndexB 설정</td>
+          </tr>
+          <tr>
+            <td><b>느림</b></td>
+            <td>Trace의 단계별 소요시간(초) → 어느 단계가 먹는지 → 그 단계만 파고들기</td>
+          </tr>
+          <tr>
+            <td><b>앱이 멈춤</b></td>
+            <td>Trace <b>마지막 줄</b>이 어느 단계인지 → 그 단계의 코드</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 6. 첫날 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>셋업 첫날 미리 해둘 것</h2>
+      <span class="tag">체크리스트</span>
+    </div>
+
+    <ul class="check">
+      <li>
+        <span class="box"></span>
+        <span>
+          <b>Error 로그를 비우고 시작</b>
+          <span class="why">과거 에러와 섞이면 “지금 난 것”을 구분할 수 없습니다.</span>
+        </span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span>
+          <b>정상 1사이클의 Trace 로그를 따로 저장</b>
+          <span class="why">“정상일 때 이렇게 찍힌다”는 기준선이 됩니다. 나중에 이상할 때 나란히 놓고 비교하면 차이가 바로 보입니다. 이 문서에서 가장 권하는 항목입니다.</span>
+        </span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span>
+          <b>통계 CSV 백업 후 비우기</b>
+          <span class="why">v1.7.21.0부터 CSV 맨 뒤에 <span class="mono">검사구분</span>(자동/수동) 칸이 붙습니다. 새 파일로 시작해야 헤더까지 정상으로 생성되고, 티칭 중 누른 수동 RUN이 반복성 통계에 섞이지 않습니다.</span>
+        </span>
+      </li>
+      <li>
+        <span class="box"></span>
+        <span>
+          <b>조명 에러 0건 확인</b>
+          <span class="why">Error 로그에 <span class="mono">[Light] 그룹 … 비어있음</span>이 하나도 없어야 합니다.</span>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    코드 위치는 <span class="mono">WPF_Example/</span> 기준 상대 경로이며, 줄 번호는 v1.7.21.0 시점입니다. 코드가 바뀌면 줄 번호는 이동할 수 있으니, 함수 이름으로 찾는 것을 권합니다.
+  </footer>
+
+</div>

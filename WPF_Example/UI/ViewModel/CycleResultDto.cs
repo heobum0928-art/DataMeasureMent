@@ -18,6 +18,13 @@ namespace ReringProject.UI
         //260622 hbk Phase 48 PROTO-01: 자재번호 (TestPacket.IndexNumber 에서 전파됨). -1 = 미수신(sentinel).
         public int IndexNumber { get; set; } = -1;
 
+        //260820 hbk 이 사이클이 PLC 프로토콜($TEST)로 시작됐는지(=자동), 아니면 화면 RUN/일괄검사/반복검사로
+        //  시작됐는지(=수동) 구분. 판정 근거는 InspectionSequence.IsProtocolDrivenCycle() 단일 소스.
+        //  배경: 셋업 중 티칭하며 누른 수동 RUN 결과가 같은 날짜 통계 CSV 에 그대로 섞여, 반복성/재현성 시험
+        //  통계를 오염시킨다. 자재번호 -1 로는 구분이 안 된다 — PLC 가 자재번호를 'null'/비정수로 보내도
+        //  똑같이 -1 이 되므로(VisionRequestPacket.ParseMaterialField), -1 은 "수동"이 아니라 "자재번호 없음"이다.
+        public bool IsProtocolDriven { get; set; } = false;
+
         /// <summary>종합 판정. "OK" / "NG" / "DETECT_FAIL" (3-state hierarchy).</summary>
         public string OverallJudgement { get; set; }
 

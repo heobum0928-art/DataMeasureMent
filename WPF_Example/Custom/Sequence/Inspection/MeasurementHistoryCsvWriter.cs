@@ -18,7 +18,14 @@ namespace ReringProject.Sequence
     public static class MeasurementHistoryCsvWriter
     {
         private const string CSV_EXT = ".csv";
-        private const string CSV_HEADER = "검사일시,RecipeName,IndexNumber,ShotName,FAIName,MeasurementName,TypeName,NominalValue,TolerancePlus,ToleranceMinus,MeasuredValue,Judgement,HasResult,OverallCycleResult";
+        //260820 hbk 검사구분(자동/수동) 컬럼은 반드시 맨 뒤에 추가한다 — MeasurementHistoryCsvLoader 가 고정
+        //  컬럼 인덱스(COL_TIME=0 ~ COL_OVERALL=13)로 읽고 "fields.Count < COLUMN_COUNT(14)" 로만 가드하므로,
+        //  뒤에 붙이면 기존 14컬럼 파일도 그대로 읽히고 앞 컬럼 위치도 안 바뀐다(하위호환).
+        private const string CSV_HEADER = "검사일시,RecipeName,IndexNumber,ShotName,FAIName,MeasurementName,TypeName,NominalValue,TolerancePlus,ToleranceMinus,MeasuredValue,Judgement,HasResult,OverallCycleResult,검사구분";
+
+        //260820 hbk 검사구분 표기값 — 사람이 엑셀에서 바로 읽고 필터할 수 있게 한글 고정 문자열.
+        private const string RUNMODE_AUTO = "자동";
+        private const string RUNMODE_MANUAL = "수동";
         private const string NUM_FORMAT = "F4";
 
         private static readonly object s_lock = new object();   //260707 hbk STAT-01 D-05: 복수 InspectionSequence append 경합 방지
@@ -84,7 +91,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        /// <summary>14개 컬럼을 CSV_HEADER 순서대로 콤마 join 하여 1행 문자열을 생성한다.</summary>
+        /// <summary>15개 컬럼을 CSV_HEADER 순서대로 콤마 join 하여 1행 문자열을 생성한다.</summary>
         private static string BuildLine(CycleResultDto dto, ShotResultDto shot, FaiResultDto fai, MeasurementResultDto meas, string szOverall)
         {
             var fields = new List<string>
@@ -102,10 +109,21 @@ namespace ReringProject.Sequence
                 meas.LastMeasuredValue.ToString(NUM_FORMAT, CultureInfo.InvariantCulture),
                 MapJudgement(meas),
                 meas.LastHasResult.ToString(),
-                Esc(szOverall)
+                Esc(szOverall),
+                MapRunMode(dto)   //260820 hbk 검사구분(자동/수동) — 맨 뒤 컬럼(하위호환)
             };
 
             return string.Join(",", fields);
+        }
+
+        //260820 hbk 검사구분 매핑 — PLC $TEST 로 시작한 사이클이면 "자동", 화면 RUN/일괄검사/반복검사면 "수동".
+        private static string MapRunMode(CycleResultDto dto)
+        {
+            if (dto.IsProtocolDriven)
+            {
+                return RUNMODE_AUTO;
+            }
+            return RUNMODE_MANUAL;
         }
 
         /// <summary>RepeatMeasurementStats.AddSample 정책과 일치하는 측정 판정 문자열 매핑.</summary>

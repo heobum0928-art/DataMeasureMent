@@ -44,6 +44,11 @@ namespace ReringProject.Sequence
         private const int COL_JUDGE = 11;
         private const int COL_INDEX = 2;
         private const int COL_OVERALL = 13;
+        //260820 hbk 검사구분(자동/수동) 컬럼. 이 컬럼 도입(260820) 이전에 쓰인 CSV 는 14컬럼이라 이 인덱스가
+        //  아예 없다 — 반드시 fields.Count 확인 후 읽고, 없으면 기존 동작 그대로(수동=false) 취급한다.
+        //  COLUMN_COUNT 는 14 로 유지한다: 15 로 올리면 기존 14컬럼 파일이 전부 "손상 행"으로 걸러진다.
+        private const int COL_RUNMODE = 14;
+        private const string RUNMODE_AUTO_TEXT = "자동";
 
         /// <summary>
         /// dtFrom~dtTo 기간의 일자별 CSV 를 읽어 통계/추이/레시피목록을 반환한다.
@@ -356,6 +361,7 @@ namespace ReringProject.Sequence
                 cycle.RecipeName = szRecipe;
                 cycle.IndexNumber = ParseIndexNumber(szIndex);
                 cycle.OverallJudgement = MapOverallBack(fields[COL_OVERALL]);
+                cycle.IsProtocolDriven = ParseRunMode(fields);   //260820 hbk 자동/수동 복원(구 14컬럼 파일이면 false)
 
                 state.Cycles.Add(cycle);
                 state.Current = cycle;
@@ -400,6 +406,18 @@ namespace ReringProject.Sequence
             }
 
             return DateTime.MinValue;
+        }
+
+        //260820 hbk 검사구분 복원. 컬럼 자체가 없는 구 CSV(14컬럼)는 false(수동) — 그 시절엔 자동/수동을
+        //  기록하지 않았으므로 "자동이었다"고 단정할 근거가 없다. 보수적으로 수동 취급한다.
+        private static bool ParseRunMode(List<string> fields)
+        {
+            bool bHasColumn = fields.Count > COL_RUNMODE;
+            if (!bHasColumn)
+            {
+                return false;
+            }
+            return fields[COL_RUNMODE] == RUNMODE_AUTO_TEXT;
         }
 
         /// <summary>자재번호 파싱. 공백/실패는 -1(CycleResultDto.IndexNumber 의 미지정 sentinel).</summary>

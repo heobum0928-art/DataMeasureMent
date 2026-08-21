@@ -238,7 +238,8 @@ namespace ReringProject.Sequence {
                     System.DateTime.Now,
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name,           // 이 시퀀스 소유 shot 만 cycle 에 포함
-                    nIndexNumber);  //260622 hbk Phase 48 PROTO-01: 자재번호 전파
+                    nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파
+                    IsProtocolDrivenCycle());   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                 CycleResultSerializer.SaveAsync(cycleDto);
             }
             catch (Exception ex)
@@ -1923,7 +1924,8 @@ namespace ReringProject.Sequence {
                     System.DateTime.Now,
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name,
-                    nIndexNumber);
+                    nIndexNumber,
+                    IsProtocolDrivenCycle());   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                 CycleResultSerializer.SaveAsync(cycleDto);
             }
             catch (Exception ex)

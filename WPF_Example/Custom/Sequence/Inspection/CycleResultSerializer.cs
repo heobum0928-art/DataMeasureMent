@@ -38,7 +38,8 @@ namespace ReringProject.Sequence
             DateTime when,
             string recipeName,
             string ownerSequenceName = null,
-            int nIndexNumber = -1)   //260622 hbk Phase 48 PROTO-01: 자재번호 전파 (기본 -1 미수신)
+            int nIndexNumber = -1,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파 (기본 -1 미수신)
+            bool bIsProtocolDriven = false)   //260820 hbk 자동(PLC $TEST)/수동(화면 RUN·일괄·반복) 구분. 기본 false=수동
         {
             string recipeNameStr = recipeName;
             if (recipeNameStr == null) recipeNameStr = "";
@@ -47,7 +48,8 @@ namespace ReringProject.Sequence
                 InspectionTime = when,
                 RecipeName = recipeNameStr,
                 OverallJudgement = MapJudgement(cycleResult),
-                IndexNumber = nIndexNumber   //260622 hbk Phase 48 PROTO-01: 자재번호 dto 대입
+                IndexNumber = nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 dto 대입
+                IsProtocolDriven = bIsProtocolDriven   //260820 hbk 자동/수동 dto 대입
                 // CycleFolderPath 는 SaveAsync 에서 계산 후 설정
             };
 

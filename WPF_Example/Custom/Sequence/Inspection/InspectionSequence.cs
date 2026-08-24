@@ -2358,7 +2358,7 @@ namespace ReringProject.Sequence {
                     datum.Align2Status = EDatumAlign2Status.Applied;
                     datum.Align2Score = cur2Score;
                     // 성공도 남긴다 — 종전에는 실패만 기록해서 "2-패턴이 실제로 켜져 돌고 있는지" 를 로그로 확인할 수 없었다.
-                    Logging.PrintLog((int)ELogType.Trace, "[ALIGN2]" + GetCycleModeTag() + " " + (datum.DatumName ?? "")
+                    Logging.PrintLog((int)ELogType.Algorithm, "[ALIGN2]" + GetCycleModeTag() + " " + (datum.DatumName ?? "")
                         + " 패턴2 baseline 적용 — score=" + cur2Score.ToString("F3")
                         + ", θ=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + "deg");
                 }

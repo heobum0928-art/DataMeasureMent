@@ -4389,7 +4389,10 @@ namespace ReringProject.UI {
                 if (mParentWindow != null && mParentWindow.inspectionList != null) {
                     mParentWindow.inspectionList.RefreshParamEditor();
                 }
-                // 성공 시 모달 X — 사용자가 캔버스 시각화로 즉시 확인
+                // 성공 모달 — 종전에는 성공 시 모달 없이 캔버스 시각화만 했는데, 그러면 버튼을 눌러도
+                //  아무 반응이 없는 것처럼 보이고(특히 패턴2 성공/미설정이 둘 다 무음) 성공 여부를
+                //  로그에서도 확인할 수 없었다(사용자 보고).
+                CustomMessageBox.Show("Datum Find 성공", BuildTestFindSuccessMessage(datum));
             }
             else {
                 // Find 실패 사유 모달. FormatFindError 가 EdgeDirection 힌트 통합.
@@ -4397,6 +4400,38 @@ namespace ReringProject.UI {
                 // 실패 시 오버레이 clear (이전 성공 십자 잔상 제거)
                 halconViewer.ClearDatumFindResultOverlay();
             }
+        }
+
+        // Test Find 성공 모달 본문. 패턴2(2-패턴 baseline) 적용 여부를 명시하는 것이 핵심 —
+        //  이게 없으면 "정밀한 2점 각도로 돌고 있는지" 를 사용자가 확인할 방법이 없다.
+        private string BuildTestFindSuccessMessage(DatumConfig datum) {
+            if (datum == null) return "Find 성공";
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            sb.AppendLine("Datum : " + (datum.DatumName ?? ""));
+            sb.AppendLine("알고리즘 : " + datum.AlgorithmType);
+            if (datum.IsPatternAlignEnabled) {
+                sb.AppendLine("검출 방식 : 패턴 정렬 (" + datum.PatternEngine + ")");
+                string szAlign2;
+                if (datum.Align2Status == EDatumAlign2Status.Applied) {
+                    szAlign2 = "적용됨 (score " + datum.Align2Score.ToString("F3") + ") — 2점 baseline 회전보정";
+                }
+                else if (datum.Align2Status == EDatumAlign2Status.MatchFailed) {
+                    szAlign2 = "매칭 실패 → 단일 패턴 각도로 폴백 (정밀도 저하)";
+                }
+                else if (datum.Align2Status == EDatumAlign2Status.NotConfigured) {
+                    szAlign2 = "미설정 → 단일 패턴 각도 사용";
+                }
+                else {
+                    szAlign2 = "미평가";
+                }
+                sb.AppendLine("패턴 2 : " + szAlign2);
+                sb.AppendLine("회전보정 : " + datum.AlignThetaDeg.ToString("F3") + " deg");
+            }
+            else {
+                sb.AppendLine("검출 방식 : 라인핏 (패턴 정렬 미사용)");
+            }
+            sb.AppendLine("검출 원점 : (" + datum.DetectedOriginRow.ToString("F1") + ", " + datum.DetectedOriginCol.ToString("F1") + ")");
+            return sb.ToString();
         }
 
         // 테스트 이미지 소스 다이얼로그: 현재 halconViewer.CurrentImage / OpenFileDialog / 취소

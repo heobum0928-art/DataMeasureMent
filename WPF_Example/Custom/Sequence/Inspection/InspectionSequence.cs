@@ -1194,6 +1194,13 @@ namespace ReringProject.Sequence {
             return bHasRequestPacket;
         }
 
+        // 로그에서 자동(PLC 프로토콜) 사이클과 수동(RUN/반복/일괄/Test Find) 을 구분하기 위한 태그.
+        private string GetCycleModeTag()
+        {
+            if (IsProtocolDrivenCycle()) return "[AUTO]";
+            return "[수동]";
+        }
+
         //260722 hbk Phase 68 GAP-1/GAP-2 (68-GAP-ANALYSIS.md, D-09): "이 z_index 가 크로스-Z Datum 에 쓰이는가"의
         //  단일 소스 헬퍼 — DatumConfigs 순회하여 ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 set 에 모은다.
         //  BuildDeclaredZIndexSet(GAP-1 유니버스)과 IsDatumOnlyExecutionIndex(GAP-2 실행스코프)가 이 하나를 공유 —
@@ -2328,7 +2335,13 @@ namespace ReringProject.Sequence {
             // ②-2 Phase 55 ALIGN-02 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
             //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
-            if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0)
+            bool bPattern2Configured = datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0;
+            if (!bPattern2Configured)
+            {
+                datum.Align2Status = EDatumAlign2Status.NotConfigured;
+                datum.Align2Score = 0.0;
+            }
+            if (bPattern2Configured)
             {
                 //260728 hbk quick-fix(260728-n7b): Name(=실행 중 인스턴스명) 대신 datum.OwnerName 사용 — Test Find 호출부는 GetAnyInspectionSequence() 로 임의 인스턴스(항상 TOP)를 골라 호출하므로 Name 기준이면 datum 소속과 무관한 폴더의 .shm 을 읽는다.
                 //  패턴1 및 기준값 저장측(MainView.RefreshPatternRefPoseAfterTeach)이 이미 datum.OwnerName 기준이라 여기도 통일한다. (260723 취지 — 전역 Shots[0] 폴백 결함 제거 — 는 유지)
@@ -2342,13 +2355,22 @@ namespace ReringProject.Sequence {
                     double refBaseline = System.Math.Atan2(-(datum.RefMatch2Row - datum.RefMatchRow), datum.RefMatch2Col - datum.RefMatchCol);
                     double curBaseline = System.Math.Atan2(-(cur2Row - curRow), cur2Col - curCol);
                     thetaRad = curBaseline - refBaseline;
+                    datum.Align2Status = EDatumAlign2Status.Applied;
+                    datum.Align2Score = cur2Score;
+                    // 성공도 남긴다 — 종전에는 실패만 기록해서 "2-패턴이 실제로 켜져 돌고 있는지" 를 로그로 확인할 수 없었다.
+                    Logging.PrintLog((int)ELogType.Trace, "[ALIGN2]" + GetCycleModeTag() + " " + (datum.DatumName ?? "")
+                        + " 패턴2 baseline 적용 — score=" + cur2Score.ToString("F3")
+                        + ", θ=" + (thetaRad * 180.0 / System.Math.PI).ToString("F3") + "deg");
                 }
                 else
                 {
-                    Logging.PrintLog((int)ELogType.Error, "[ALIGN2] " + (datum.DatumName ?? "")
+                    datum.Align2Status = EDatumAlign2Status.MatchFailed;
+                    datum.Align2Score = 0.0;
+                    Logging.PrintLog((int)ELogType.Error, "[ALIGN2]" + GetCycleModeTag() + " " + (datum.DatumName ?? "")
                         + " 패턴2 매칭 실패 → 단일 패턴 θ 폴백: " + (err2 ?? ""));
                 }
             }
+            datum.AlignThetaDeg = thetaRad * 180.0 / System.Math.PI;
             // ③ transform 산출 (사용자 레시피): identity → rotate(θ, RefMatch 중심) → translate(dRow,dCol).
             //  회전 중심은 무관(rotate 후 translate 로 x,y 보정) — RefMatch 위치 사용. θ 부호 = 측정−Ref.
             HTuple alignRigid;

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Utility;
@@ -964,6 +964,27 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore]
         public EAngleValidationStatus AngleValidationStatus { get; set; }
 
+        // 패턴2(2-패턴 baseline 회전보정) 적용 결과 (transient). TryComposeAlign write-back.
+        //  Test Find 성공 모달과 [ALIGN2] 로그가 이 값을 읽는다 — 종전에는 실패만 로그에 남아
+        //  "2-패턴이 실제로 켜져 돌고 있는지" 와 "패턴2 미설정으로 건너뛴 것" 을 구분할 수 없었다.
+        //  ParamBase 가 enum 직렬화 미지원 → INI write 안 됨(데코는 PropertyGrid hiding 담당).
+        [System.ComponentModel.Browsable(false)]
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        [Newtonsoft.Json.JsonIgnore]
+        public EDatumAlign2Status Align2Status { get; set; }
+
+        // 패턴2 매칭 score. DetectedOrigin* 와 동일한 transient 취급(double 이라 INI 에 키는 생기나 소비처 없음).
+        [System.ComponentModel.Browsable(false)]
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        [Newtonsoft.Json.JsonIgnore]
+        public double Align2Score { get; set; }
+
+        // 이번 align 에서 실제 적용된 회전보정 각도(deg). 패턴2 성공 시 baseline 각, 실패/미설정 시 단일 패턴 각.
+        [System.ComponentModel.Browsable(false)]
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        [Newtonsoft.Json.JsonIgnore]
+        public double AlignThetaDeg { get; set; }
+
         // CircleTwoHorizontal 검출 원(B1 홀) 중심. CompoundAngle 주입용 (DatumOriginConsumer 채널).
         [System.ComponentModel.Browsable(false)]
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -1281,4 +1302,12 @@ namespace ReringProject.Sequence {
             return true;
         }
     }
+    // 패턴2(2-패턴 baseline) 적용 상태. None = 미평가(align 미수행).
+    public enum EDatumAlign2Status {
+        None,
+        NotConfigured,   // 패턴2 ROI 미설정 → 단일 패턴 각도 사용(정상)
+        Applied,         // 패턴2 매칭 성공 → baseline 각 적용
+        MatchFailed      // 패턴2 매칭 실패 → 단일 패턴 각도로 폴백
+    }
+
 }

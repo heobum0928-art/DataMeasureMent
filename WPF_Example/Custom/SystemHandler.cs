@@ -934,12 +934,13 @@ namespace ReringProject {
         // 수동 사이클 트리거 브리지 — PLC 대역(代役).
         // 존재 이유: PLC 없이 검사 사이클을 로컬에서 발행하는 유일한 경로다($PREP+$TEST TCP 패킷만
         //   존재). 이 wrapper 는 그 두 패킷을 코드로 만들어 실제 처리 경로(ProcessPrep→ProcessTest)로
-        //   그대로 흘려보낸다. PLC 장애 시 "비전 문제냐 PLC 문제냐" 를 가르는 절개선이므로 PLC 연동
-        //   이후에도 유지한다.
+        //   그대로 흘려보낸다. PLC 연동 안정화 전까지 쓰는 셋업/진단 도구이며, 연동 검증 후 존치
+        //   여부를 재검토할 것.
         // zIndex 는 축 좌표가 아니다 — 이 메서드는 Z축을 움직이지 않는다. 조명 선택 + Datum 단계
-        //   지정에만 쓰인다(축 이동은 실장비에서 사람이 지그로 수행).
-        // 크로스-Z Datum 은 z=0, z=1 로 두 번 호출하면 성립한다. 프로토콜 경로이므로 z=0 에서만
-        //   BeginCrossZImageCycle 이 돌고 z=1 은 저장소를 보존한다(InspectionSequence 참고).
+        //   지정에만 쓰인다.
+        // 커버 범위는 단일-Z 항목뿐이다. 두 장 조합(크로스-Z)은 서로 다른 높이의 이미지 두 장이
+        //   필요한데 이 메서드는 축을 움직이지 못하므로 재현할 수 없다 — 실장비에서는 PLC 가 해당
+        //   z 를 순서대로 송신해야 하고, 오프라인에서는 RUN 버튼(정적 2장 경로)을 쓴다.
         // 주의: ProcessPrep/ProcessTest 는 프로덕션 TCP 경로 — 시그니처/로직 변경 금지, 호출만 한다.
         internal bool TriggerInspectionCycleManually(string seqName, int zIndex)
         {

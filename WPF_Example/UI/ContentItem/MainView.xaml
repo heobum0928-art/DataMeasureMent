@@ -599,8 +599,10 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- 수동 사이클 트리거 패널. PLC 없이 검사 사이클을 로컬에서 발행하는 정식 진단 경로다.
-             존재 이유: PLC 장애 시 "비전 문제냐 PLC 문제냐" 를 가르는 절개선 — PLC 연동 후에도 유지한다.
+        <!-- 수동 사이클 트리거 패널. PLC 연동이 안정화되기 전까지 쓰는 셋업/진단 도구다.
+             축을 움직이지 않으므로 단일-Z 항목만 커버한다 — 두 장 조합(SIDE 기준점)은 이 버튼으로
+             재현할 수 없다(사무실=RUN 버튼, 실장비=PLC 가 z 를 순서대로 송신).
+             PLC 연동 검증 후 존치 여부를 재검토할 것.
              주의: $PREP + $TEST 를 실제 프로덕션 TCP 경로로 그대로 흘려보낸다(ADMIN 권한 필요). -->
         <Border x:Name="panel_ManualCycleTrigger" Grid.Row="4"
                 Background="#4A2A00" BorderBrush="#FFA500" BorderThickness="0,2,0,0"
@@ -612,9 +614,9 @@
                 <Label Content="시퀀스:" Foreground="White" VerticalContentAlignment="Center"/>
                 <ComboBox x:Name="combo_ManualCycleSeq" Width="160" VerticalAlignment="Center" Margin="0,0,12,0"/>
                 <Label Content="z_index:" Foreground="White" VerticalContentAlignment="Center"
-                       ToolTip="축 좌표가 아니라 조명/촬영 단계 번호입니다.&#10;실장비 크로스-Z: 0 실행 → 지그 이동 → 1 실행 순서로 두 번 실행.&#10;SIMUL/오프라인: 축 이동 없이 저장된 티칭 이미지를 사용합니다."/>
+                       ToolTip="축 좌표가 아니라 조명/촬영 단계 번호입니다. 이 버튼은 축을 움직이지 않습니다.&#10;단일-Z 검사 전용입니다.&#10;두 장 조합(SIDE 기준점 등)은 사무실에서는 RUN 버튼, 실장비에서는 PLC 가 z 를 순서대로 보내야 합니다."/>
                 <TextBox x:Name="txt_ManualCycleZIndex" Width="60" Text="0" VerticalAlignment="Center" Margin="0,0,12,0"
-                         ToolTip="축 좌표가 아니라 조명/촬영 단계 번호입니다.&#10;실장비 크로스-Z: 0 실행 → 지그 이동 → 1 실행 순서로 두 번 실행.&#10;SIMUL/오프라인: 축 이동 없이 저장된 티칭 이미지를 사용합니다."/>
+                         ToolTip="축 좌표가 아니라 조명/촬영 단계 번호입니다. 이 버튼은 축을 움직이지 않습니다.&#10;단일-Z 검사 전용입니다.&#10;두 장 조합(SIDE 기준점 등)은 사무실에서는 RUN 버튼, 실장비에서는 PLC 가 z 를 순서대로 보내야 합니다."/>
                 <Button x:Name="btn_ManualCycleTrigger" Content="수동 트리거 실행"
                         Click="ManualCycleTriggerButton_Click"
                         Height="28" Padding="12,4" VerticalAlignment="Center"

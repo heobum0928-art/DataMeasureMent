@@ -133,8 +133,9 @@ namespace ReringProject.UI {
             }
         }
 
-        // 수동 사이클 트리거 — PLC 없이 검사 사이클을 로컬에서 발행하는 정식 진단 경로.
-        //  PLC 장애 시 "비전 문제냐 PLC 문제냐" 를 가르는 절개선이므로 PLC 연동 후에도 유지한다.
+        // 수동 사이클 트리거 — PLC 연동 안정화 전까지 쓰는 셋업/진단 도구.
+        //  축을 움직이지 않으므로 단일-Z 항목만 커버한다. 두 장 조합(SIDE 기준점)은 이 버튼으로
+        //  재현 불가 — 사무실은 RUN 버튼, 실장비는 PLC 가 z 를 순서대로 보내야 한다.
         //  실제 프로덕션 TCP 경로($PREP + $TEST)를 그대로 태우기 때문에 ADMIN 권한을 요구한다.
         private void ManualCycleTriggerButton_Click(object sender, RoutedEventArgs e) {
             try {

@@ -250,6 +250,13 @@ namespace ReringProject.Sequence {
             //  매번 다시 실행한다.
             bool bIsCrossZDatum = datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
                 && !(datum.ZIndexA == UNSET_ZINDEX && datum.ZIndexB == UNSET_ZINDEX);
+            // 크로스-Z 로 "설정"된 것과 이번 사이클에 실제로 크로스-Z 경로를 "타는" 것은 다르다.
+            //  TryGrabOrLoadDualDatumImages 의 bCrossZEnabled 와 같은 조건 — 프로토콜 사이클이 아니면
+            //  크로스-Z 설정 Datum 도 정적 2장(TeachingImagePath[_Vertical]) 경로로 검출된다. 정적 경로는
+            //  Shot 과 무관하게 매번 같은 입력/같은 결과라 사이클 내 캐시가 성립한다(캐시는 사이클 시작에
+            //  ClearDatumTransforms 로 비워진다). 프로토콜 사이클에서는 z 마다 이미지가 누적되므로 종전대로
+            //  캐시 대상에서 제외한다.
+            bool bTakesCrossZPath = bIsCrossZDatum && parentSeq.IsProtocolDrivenCycle();
             // 260820 hbk quick-fix: 크로스-Z Datum 은 캐시가 안 되다 보니(위 주석), 이 Shot 과 무관한 크로스-Z
             //  Datum 까지 DatumPhase 가 등록 Datum 전부를 매번 순회하며 같이 재검출하고 있었다 — 반복검사(일괄검사)로
             //  Shot 1개만 계속 돌려도 매 회 무관한 다른 Datum까지 strip-loop 를 다시 도는 게 실측(gray_erosion/
@@ -258,7 +265,7 @@ namespace ReringProject.Sequence {
             if (bIsCrossZDatum && !IsDatumOwnedByCurrentShot(datum)) {
                 return; // 이 Shot 과 무관한 크로스-Z Datum — 검출 생략(집계 카운터 미증가, 실패 아님)
             }
-            if (!bIsCrossZDatum && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
+            if (!bTakesCrossZPath && parentSeq.HasCachedDatumTransform(datum.DatumName)) {
                 nDatumCached++; //260818 hbk [SEQ] 요약: 이번 사이클 이미 검출됨 → 재검출 생략
                 return; // 이번 사이클 기 검출 성공 — skip
             }

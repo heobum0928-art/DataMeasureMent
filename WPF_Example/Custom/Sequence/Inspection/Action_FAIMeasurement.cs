@@ -308,9 +308,7 @@ namespace ReringProject.Sequence {
             //  명시적 실패 처리(조용한 static 폴백 금지). 미설정(-1/-1)은 게이트 미해당 → 기존 static 경로.
             bool bDatumZIndexMisconfigured = IsDatumZIndexMisconfigured(datum, parentSeq);
             if (bDatumZIndexMisconfigured) {
-                string misName = datum.DatumName;
-                misName = misName ?? "";
-                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + misName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' ZIndexA=" + datum.ZIndexA + ", ZIndexB=" + datum.ZIndexB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + SkipReason.ZINDEX_MISCONFIGURED + ")");
                 datum.RuntimeDetectFailed = true;
                 parentSeq.MarkDatumFailed(datum.DatumName);
                 return; // datum skip, abort 안 함
@@ -325,9 +323,7 @@ namespace ReringProject.Sequence {
                     if (bDatumCrossZPending) {
                         return; // Z1(비완성 index): 캡처만 — 실패 아님(MarkDatumFailed 미설정), 완성 z_index에서 검출(D-02a)
                     }
-                    string datumName = datum.DatumName;
-                    datumName = datumName ?? "";
-                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' DualImage 취득 실패 (skip)");
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' DualImage 취득 실패 (skip)");
                     // 이미지 취득 실패 시 RenderDatumOverlay DETECT FAIL 라벨 분기 조건 충족 (TryRunSingleDatum 미호출 경로)
                     datum.LastFindSucceeded = false;
                     // 티칭 여부 무관 라벨 신호
@@ -353,22 +349,14 @@ namespace ReringProject.Sequence {
                 string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
                 string alignErr;
                 if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
-                    string dn = datum.DatumName;
-                    dn = dn ?? "";
-                    string ae = alignErr;
-                    ae = ae ?? "";
-                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + dn + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + alignErr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
                 }
             } else {
                 string derr;
                 if (!parentSeq.TryRunSingleDatum(datum, imgH, imgV, out derr)) { // 기존 검출 경로 무수정
-                    string datumName = datum.DatumName;
-                    datumName = datumName ?? "";
-                    string derrStr = derr;
-                    derrStr = derrStr ?? "";
-                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' 검출 실패 (skip): " + derr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkDatumFailed(datum.DatumName);
                 }
@@ -379,9 +367,7 @@ namespace ReringProject.Sequence {
         private void ProcessDatumSingleImage(DatumConfig datum, InspectionSequence parentSeq, ref int nDatumOk, ref int nDatumFail) {
             HImage img = GrabOrLoadDatumImage(datum);
             if (img == null) {
-                string datumName = datum.DatumName;
-                datumName = datumName ?? "";
-                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' 이미지 취득 실패 (skip)");
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' 이미지 취득 실패 (skip)");
                 datum.LastFindSucceeded = false;
                 datum.RuntimeDetectFailed = true;
                 parentSeq.MarkDatumFailed(datum.DatumName);
@@ -403,11 +389,7 @@ namespace ReringProject.Sequence {
                 string modelPath = InspectionSequence.ResolveDatumModelPath(datum, parentSeq.Name); // 260723 hbk quick-fix: 전역 Shots[0] 폴백 결함 수정 — 소유 시퀀스명 명시 전달 (D-07)
                 string alignErr;
                 if (!parentSeq.TryComposeAlign(datum, img, modelPath, out alignErr)) {
-                    string dn = datum.DatumName;
-                    dn = dn ?? "";
-                    string ae = alignErr;
-                    ae = ae ?? "";
-                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + dn + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + ae);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' 패턴매칭 실패 (ALIGN_FAIL, skip): " + alignErr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkAlignFailed(datum.DatumName); // D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함
                     nDatumFail++;
@@ -419,11 +401,7 @@ namespace ReringProject.Sequence {
             } else {
                 string derr;
                 if (!parentSeq.TryRunSingleDatum(datum, img, null, out derr)) { // 기존 검출 경로 무수정
-                    string datumName = datum.DatumName;
-                    datumName = datumName ?? "";
-                    string derrStr = derr;
-                    derrStr = derrStr ?? "";
-                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datumName + "' 검출 실패 (skip): " + derrStr);
+                    Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' 검출 실패 (skip): " + derr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkDatumFailed(datum.DatumName);
                     nDatumFail++;

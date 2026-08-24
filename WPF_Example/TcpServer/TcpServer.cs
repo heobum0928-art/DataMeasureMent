@@ -123,10 +123,42 @@ namespace ReringProject.Network {
                 return mClient.Client.RemoteEndPoint.ToString();
             }
 
-            public bool IsConnected() { 
+            // 소켓에 직접 물어 "살아있음" 이 확인되면 즉시 true — 할당 0, OS 연결테이블 조회 없음.
+            //  아래 IsConnectedByOsTable 은 이 PC 의 전체 TCP 연결마다 객체를 새로 만든다(연결 하나당
+            //  TcpConnectionInformation + IPEndPoint 2개 + IPAddress). Execute 루프와 SystemHandler.MainRun 이
+            //  1ms 주기로 이 함수를 불러 초당 수십만 개를 할당하고 있었다(GC 상시 발동, 실측 확인).
+            //  연결이 살아있는 동안은 그 비용을 피하고, "끊김 의심" 으로 나올 때만 기존 경로로 확정한다 —
+            //  끊김 감지 판정 자체는 종전 로직 그대로다.
+            public bool IsConnected() {
                 if (mClient == null) return false;
 
-                ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+                bool bFastAlive = IsSocketAliveFast();
+                if (bFastAlive) return true;
+
+                return IsConnectedByOsTable();
+            }
+
+            // Poll(SelectRead) 이 true 인데 읽을 데이터가 0 이면 상대가 FIN/RST 를 보낸 상태다(표준 관용구).
+            //  그 외에는 마지막 I/O 기준의 Socket.Connected 를 쓴다. 조금이라도 불확실하면 false 를 돌려
+            //  호출부가 기존 OS 테이블 경로로 확정하게 한다 — 이 빠른 경로가 단독으로 연결을 끊는 일은 없다.
+            private bool IsSocketAliveFast() {
+                try {
+                    Socket socket = mClient.Client;
+                    if (socket == null) return false;
+                    bool bPeerClosed = socket.Poll(0, SelectMode.SelectRead) && socket.Available == 0;
+                    if (bPeerClosed) return false;
+                    return socket.Connected;
+                }
+                catch {
+                    return false;
+                }
+            }
+
+            // 기존 판정 로직 — 본문 무변경. 정적 필드였던 두 변수만 지역변수로 내렸다: 클라이언트별 수신
+            //  스레드가 같은 static 을 덮어써 서로의 판정을 오염시킬 수 있었다(클라이언트 2개 이상에서 발현).
+            private bool IsConnectedByOsTable() {
+                IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+                TcpConnectionInformation [] tcpConnections;
                 try {
                     tcpConnections = ipProperties.GetActiveTcpConnections().Where(x => x.LocalEndPoint.Equals(mClient.Client.LocalEndPoint) && x.RemoteEndPoint.Equals(mClient.Client.RemoteEndPoint)).ToArray();
                 }
@@ -335,8 +367,6 @@ namespace ReringProject.Network {
 
         private Thread mConnectionThread;
 
-        private static IPGlobalProperties ipProperties;
-        private static TcpConnectionInformation [] tcpConnections;
 
         public event MessageEventHandler OnRecvMessage;
         public event MessageEventHandler OnSendMessage;

@@ -748,6 +748,125 @@
     </div>
   </section>
 
+  <!-- ============ 코드 흐름도 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>코드는 어디를 거쳐 가나</h2>
+      <span class="tag">호출 경로</span>
+    </div>
+
+    <p class="lead">PLC가 보낸 <code>$TEST</code> 한 줄이 응답으로 돌아 나오기까지 지나는 파일들입니다. 로그에서 문제 구간을 찾았으면, 이 그림에서 <b>열어야 할 파일</b>을 바로 짚을 수 있습니다.</p>
+
+    <figure>
+      <div class="figscroll">
+        <svg viewBox="0 0 940 584" role="img"
+             aria-label="TCP 수신부터 응답 송신까지 코드 호출 경로. VisionServer가 받아 SystemHandler MainRun이 분기하고, SequenceBase가 스레드로 실행하며, Action_FAIMeasurement가 네 단계를 돌면서 DatumFindingService와 측정 알고리즘과 카메라를 호출하고, InspectionSequence가 응답을 조립해 VisionResponsePacket으로 내보낸다">
+          <defs>
+            <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="arS" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+
+          <!-- ===== 메인 흐름 (왼쪽) ===== -->
+          <g fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="40" y="44"  width="360" height="52" rx="5"/>
+            <rect x="40" y="116" width="360" height="86" rx="5"/>
+            <rect x="40" y="222" width="360" height="62" rx="5"/>
+            <rect x="40" y="304" width="360" height="96" rx="5"/>
+            <rect x="40" y="420" width="360" height="72" rx="5"/>
+            <rect x="40" y="512" width="360" height="44" rx="5"/>
+          </g>
+
+          <!-- 세로 화살표 -->
+          <g stroke="currentColor" stroke-width="1.5" fill="none">
+            <line x1="220" y1="96"  x2="220" y2="112" marker-end="url(#arF)"/>
+            <line x1="220" y1="202" x2="220" y2="218" marker-end="url(#arF)"/>
+            <line x1="220" y1="284" x2="220" y2="300" marker-end="url(#arF)"/>
+            <line x1="220" y1="400" x2="220" y2="416" marker-end="url(#arF)"/>
+            <line x1="220" y1="492" x2="220" y2="508" marker-end="url(#arF)"/>
+          </g>
+
+          <!-- 1 TCP 수신 -->
+          <text x="58" y="66" font-size="13" font-weight="600" fill="currentColor">① TCP 수신</text>
+          <text x="58" y="86" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">TcpServer/VisionServer.cs · VisionRequestPacket.cs</text>
+
+          <!-- 2 디스패치 -->
+          <text x="58" y="138" font-size="13" font-weight="600" fill="currentColor">② 디스패치 — 1ms 폴링</text>
+          <text x="58" y="156" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">Custom/SystemHandler.cs:23  MainRun()</text>
+          <text x="58" y="174" font-size="11" fill="currentColor">:884 <tspan font-family="monospace">ProcessPrep</tspan> — 조명 세팅</text>
+          <text x="58" y="192" font-size="11" fill="currentColor">:226 <tspan font-family="monospace">ProcessTest</tspan> → :253 <tspan font-family="monospace">StartV1Scoped</tspan></text>
+
+          <!-- 3 시퀀스 -->
+          <text x="58" y="244" font-size="13" font-weight="600" fill="currentColor">③ 시퀀스 실행 — 전용 스레드</text>
+          <text x="58" y="262" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">Sequence/Sequence/SequenceBase.cs</text>
+          <text x="58" y="278" font-size="11" font-family="monospace" fill="currentColor">:478 StartAll · :487 StartSubset · :522 Empty</text>
+
+          <!-- 4 Shot 4단계 -->
+          <text x="58" y="326" font-size="13" font-weight="600" fill="currentColor">④ Shot 실행 — 4단계</text>
+          <text x="58" y="344" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">Custom/…/Action_FAIMeasurement.cs:144</text>
+          <text x="58" y="364" font-size="11" font-family="monospace" fill="currentColor">:163 MoveZ → :192 DatumPhase</text>
+          <text x="58" y="382" font-size="11" font-family="monospace" fill="currentColor">→ :440 Grab → :519 Measure</text>
+
+          <!-- 5 응답 조립 -->
+          <text x="58" y="442" font-size="13" font-weight="600" fill="currentColor">⑤ 응답 조립</text>
+          <text x="58" y="460" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">Custom/…/InspectionSequence.cs:148 AddResponse</text>
+          <text x="58" y="478" font-size="11" font-family="monospace" fill="currentColor">:1631 BuildScoped → :1886 판정 B / P / F</text>
+
+          <!-- 6 송신 -->
+          <text x="58" y="532" font-size="13" font-weight="600" fill="currentColor">⑥ 송신</text>
+          <text x="58" y="549" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">TcpServer/VisionResponsePacket.cs:287</text>
+
+          <!-- ===== 오른쪽 : 불려 가는 곳 ===== -->
+          <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="5 3" opacity=".8">
+            <rect x="520" y="126" width="380" height="54" rx="5"/>
+            <rect x="520" y="300" width="380" height="104" rx="5"/>
+            <rect x="520" y="424" width="380" height="64" rx="5"/>
+          </g>
+
+          <!-- 가로 연결 -->
+          <g stroke="currentColor" stroke-width="1.3" fill="none" opacity=".7">
+            <line x1="404" y1="153" x2="512" y2="153" marker-end="url(#arF)"/>
+            <line x1="404" y1="352" x2="512" y2="352" marker-end="url(#arF)"/>
+          </g>
+          <line x1="404" y1="456" x2="512" y2="456" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arS)"/>
+
+          <!-- 조명 -->
+          <text x="538" y="148" font-size="12" font-weight="600" fill="currentColor">조명</text>
+          <text x="538" y="168" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".65">Device/LightController/LightHandler.cs</text>
+
+          <!-- 장치·알고리즘 -->
+          <text x="538" y="322" font-size="12" font-weight="600" fill="currentColor">장치 · 알고리즘</text>
+          <text x="538" y="344" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".8">Halcon/Algorithms/DatumFindingService.cs:1615</text>
+          <text x="552" y="360" font-size="10.5" fill="currentColor" opacity=".6">기준점 라인 검출 — 에지 실패는 여기</text>
+          <text x="538" y="378" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".8">Custom/…/Measurements/*.cs — 측정 14종</text>
+          <text x="538" y="396" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".8">Device/DeviceHandler.cs → VirtualCamera</text>
+
+          <!-- 저장 -->
+          <text x="538" y="446" font-size="12" font-weight="600" fill="var(--accent)">저장 — 응답과 별개로 갈라짐</text>
+          <text x="538" y="466" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".8">CycleResultSerializer.cs:164 → cycle.json</text>
+          <text x="538" y="482" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".8">MeasurementHistoryCsvWriter.cs → 통계 CSV</text>
+
+          <!-- 수동 경로 -->
+          <path d="M 20 250 L 20 253 L 36 253" fill="none" stroke="currentColor" stroke-width="1.3"
+                stroke-dasharray="4 3" opacity=".6" marker-end="url(#arF)"/>
+          <text x="20" y="242" font-size="10" fill="currentColor" opacity=".6">수동 RUN</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>도표 5 — <code>$TEST</code> 한 줄이 지나는 파일들.</b> 왼쪽이 주 흐름, 오른쪽 점선이 거기서 불려 나가는 곳입니다.
+        <b>①~⑥ 중 어디가 문제인지는 로그가 알려주고</b>, 그 자리에서 열 파일을 이 그림이 알려줍니다 —
+        예를 들어 에지가 안 잡히면 ④ DatumPhase에서 오른쪽 <code>DatumFindingService.cs</code>로, 응답 형식이 이상하면 ⑤⑥으로 갑니다.
+        <b>저장은 응답과 별개 갈래</b>라, 통신이 정상이어도 저장만 실패할 수 있고 그 반대도 됩니다.
+        왼쪽 <b>수동 RUN</b> 화살표가 ③으로 바로 들어가는 것에 주의하세요 — 화면에서 누른 검사는 ②를 거치지 않아 <code>RequestPacket</code>이 <code>null</code>이고, 그래서 자재번호가 <code>-1</code>이 됩니다.
+      </figcaption>
+    </figure>
+  </section>
+
   <!-- ============ 조명 배선도 ============ -->
   <section>
     <div class="sec-head">

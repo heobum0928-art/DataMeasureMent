@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -115,49 +115,58 @@ namespace ReringProject.UI {
             UpdatePointerLabel(0, 0, null);
             PreviewKeyDown += MainView_PreviewKeyDown;
 
-            PopulateManualZSeqCombo(); // [임시 / TEMP] 수동 Z 트리거 콤보 채우기
+            PopulateManualCycleSeqCombo();
         }
 
-        // [임시 / TEMP] 수동 Z 트리거. IAxisController 자동 Z축 구현 완료 시 이 메서드/핸들러 + XAML 패널 삭제.
-        private void PopulateManualZSeqCombo() {
+        // 수동 사이클 트리거 — 시퀀스 선택 콤보 채우기.
+        private void PopulateManualCycleSeqCombo() {
             if (SystemHandler.Handle == null || SystemHandler.Handle.Sequences == null) {
                 return;
             }
             SequenceHandler seqHandler = SystemHandler.Handle.Sequences;
-            combo_ManualZSeq.Items.Clear();
+            combo_ManualCycleSeq.Items.Clear();
             for (int i = 0; i < seqHandler.Count; i++) {
-                combo_ManualZSeq.Items.Add(seqHandler[i].Name);
+                combo_ManualCycleSeq.Items.Add(seqHandler[i].Name);
             }
             if (seqHandler.Count > 0) {
-                combo_ManualZSeq.SelectedIndex = 0;
+                combo_ManualCycleSeq.SelectedIndex = 0;
             }
         }
 
-        // [임시 / TEMP] 수동 Z 트리거. IAxisController 자동 Z축 구현 완료 시 이 메서드/핸들러 + XAML 패널 삭제.
-        private void ManualZTriggerButton_Click(object sender, RoutedEventArgs e) {
+        // 수동 사이클 트리거 — PLC 없이 검사 사이클을 로컬에서 발행하는 정식 진단 경로.
+        //  PLC 장애 시 "비전 문제냐 PLC 문제냐" 를 가르는 절개선이므로 PLC 연동 후에도 유지한다.
+        //  실제 프로덕션 TCP 경로($PREP + $TEST)를 그대로 태우기 때문에 ADMIN 권한을 요구한다.
+        private void ManualCycleTriggerButton_Click(object sender, RoutedEventArgs e) {
             try {
-                if (combo_ManualZSeq.SelectedItem == null) {
+                // 권한은 패널 Visibility 가 아니라 클릭 시점에 확인한다 — Loaded 시점 로그인 상태로
+                //  한 번만 숨기면 이후 로그인/로그아웃 변화를 따라가지 못한다.
+                bool bIsAdmin = SystemHandler.Handle.Login.IsLogin && (SystemHandler.Handle.Login.LoginAccount.Grade >= Login.EAccountGrade.Admin);
+                if (!bIsAdmin) {
+                    MessageBox.Show("수동 사이클 트리거는 ADMIN 권한이 필요합니다.");
+                    return;
+                }
+                if (combo_ManualCycleSeq.SelectedItem == null) {
                     MessageBox.Show("시퀀스를 선택하세요");
                     return;
                 }
                 int nZIndex;
-                bool bParsed = int.TryParse(txt_ManualZIndex.Text, out nZIndex);
+                bool bParsed = int.TryParse(txt_ManualCycleZIndex.Text, out nZIndex);
                 if (!bParsed) {
                     MessageBox.Show("z_index 는 정수를 입력하세요");
                     return;
                 }
-                string seqName = combo_ManualZSeq.SelectedItem.ToString();
-                bool bOk = SystemHandler.Handle.DebugManualZTrigger(seqName, nZIndex);
+                string seqName = combo_ManualCycleSeq.SelectedItem.ToString();
+                bool bOk = SystemHandler.Handle.TriggerInspectionCycleManually(seqName, nZIndex);
                 if (bOk) {
-                    Logging.PrintLog((int)ELogType.Trace, "[임시 수동Z트리거 UI] 시퀀스={0} z_index={1} 성공", seqName, nZIndex);
+                    Logging.PrintLog((int)ELogType.Trace, "[수동 사이클 트리거] 시퀀스={0} z_index={1} 성공", seqName, nZIndex);
                     MessageBox.Show(string.Format("트리거 성공\n시퀀스: {0}\nz_index: {1}", seqName, nZIndex));
                 } else {
-                    Logging.PrintLog((int)ELogType.Error, "[임시 수동Z트리거 UI] 시퀀스={0} z_index={1} 실패", seqName, nZIndex);
+                    Logging.PrintLog((int)ELogType.Error, "[수동 사이클 트리거] 시퀀스={0} z_index={1} 실패", seqName, nZIndex);
                     MessageBox.Show(string.Format("트리거 실패\n시퀀스: {0}\nz_index: {1}", seqName, nZIndex));
                 }
             } catch (Exception ex) {
-                Logging.PrintLog((int)ELogType.Error, "[임시 수동Z트리거 UI] 예외: {0}", ex.Message);
-                MessageBox.Show("수동 Z 트리거 중 예외 발생: " + ex.Message);
+                Logging.PrintLog((int)ELogType.Error, "[수동 사이클 트리거] 예외: {0}", ex.Message);
+                MessageBox.Show("수동 사이클 트리거 중 예외 발생: " + ex.Message);
             }
         }
 

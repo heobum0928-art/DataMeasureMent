@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using HalconDotNet;
@@ -306,7 +306,7 @@ namespace ReringProject.Sequence {
                 //  있으면 그걸 재사용(TryReDetectCrossZDatumFromStore)한다 — 수동 경로는 이 저장소를 지금까지
                 //  전혀 리셋하지 않았으므로, 예전(다른 프로토콜/수동 사이클)에 캡처된 낡은 이미지가 이후의
                 //  모든 RUN 에서 계속 재사용된다(신규 검사이미지 Grab 이후에도 동일 증상 — 실측 재현 버그).
-                //  DebugManualZTrigger/PLC 프로토콜 z=0 사이클은 StartV1Scoped 가 BeginCrossZImageCycle() 을
+                //  TriggerInspectionCycleManually/PLC 프로토콜 z=0 사이클은 StartV1Scoped 가 BeginCrossZImageCycle() 을
                 //  호출해 매 사이클 시작마다 이미 클린 슬레이트라 재현되지 않았다. 여기서는 수동 경로에서만
                 //  (RequestPacket==null, 즉 !IsProtocolDrivenCycle()) 동일하게 클린 슬레이트를 적용한다 —
                 //  프로토콜 z=1..N 사이클(RequestPacket!=null)은 절대 건드리지 않으므로, z=1 에서 저장된 role A

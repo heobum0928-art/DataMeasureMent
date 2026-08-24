@@ -1,4 +1,4 @@
-using HalconDotNet; //260626 hbk HImage 참조 (RunBottomAlign 로컬 변수)
+﻿using HalconDotNet; //260626 hbk HImage 참조 (RunBottomAlign 로컬 변수)
 using ReringProject.Device; //260626 hbk Phase 66 D-06 — LightHandler.LIGHT_ALIGN_COAX 참조 (ApplyCoaxLightForSlot)
 using ReringProject.Setting;
 using ReringProject.Network;
@@ -25,7 +25,7 @@ namespace ReringProject {
             for (int i = 0; i < Sequences.Count; i++) {
                 TestResultPacket response = Sequences[i].PopResponse();
                 if (response == null) continue;
-                //260810 hbk manual-inspect-null-target-crash: 수동(메뉴얼) 트리거(DebugManualZTrigger)는
+                //260810 hbk manual-inspect-null-target-crash: 수동(메뉴얼) 트리거(TriggerInspectionCycleManually)는
                 //  실제 TCP 클라이언트가 없어 RequestPacket.Sender가 null로 남고, 그게 Target으로 그대로
                 //  echo되어 여기까지 도달한다. Target이 비어있으면 보낼 대상이 없는 정상 케이스이므로
                 //  TCP 전송만 스킵한다(응답 생성/영속화는 이미 끝난 뒤라 그대로 유지됨) — 크래시 방지.
@@ -931,19 +931,22 @@ namespace ReringProject {
             return ackPacket;
         }
 
-        // [임시 / TEMP] 수동 Z축 트리거 브리지.
-        // 존재 이유: Z축을 아직 수동 지그(다이얼)로 맞추는 단계라, 조작자가 맞춘 z_index 로
-        //   검사를 돌리도록 알리는 로컬 경로가 없다($PREP+$TEST TCP 패킷만 존재). 이 wrapper 는
-        //   그 두 패킷을 코드로 만들어 실제 처리 경로(ProcessPrep→ProcessTest)로 그대로 흘려보낸다.
-        // 삭제 조건: POC 장비의 자동 Z축(IAxisController) 실제 구현이 완료되면
-        //   이 메서드 전체 + MainView 의 수동 Z 트리거 UI 패널 전체를 삭제할 것.
+        // 수동 사이클 트리거 브리지 — PLC 대역(代役).
+        // 존재 이유: PLC 없이 검사 사이클을 로컬에서 발행하는 유일한 경로다($PREP+$TEST TCP 패킷만
+        //   존재). 이 wrapper 는 그 두 패킷을 코드로 만들어 실제 처리 경로(ProcessPrep→ProcessTest)로
+        //   그대로 흘려보낸다. PLC 장애 시 "비전 문제냐 PLC 문제냐" 를 가르는 절개선이므로 PLC 연동
+        //   이후에도 유지한다.
+        // zIndex 는 축 좌표가 아니다 — 이 메서드는 Z축을 움직이지 않는다. 조명 선택 + Datum 단계
+        //   지정에만 쓰인다(축 이동은 실장비에서 사람이 지그로 수행).
+        // 크로스-Z Datum 은 z=0, z=1 로 두 번 호출하면 성립한다. 프로토콜 경로이므로 z=0 에서만
+        //   BeginCrossZImageCycle 이 돌고 z=1 은 저장소를 보존한다(InspectionSequence 참고).
         // 주의: ProcessPrep/ProcessTest 는 프로덕션 TCP 경로 — 시그니처/로직 변경 금지, 호출만 한다.
-        internal bool DebugManualZTrigger(string seqName, int zIndex)
+        internal bool TriggerInspectionCycleManually(string seqName, int zIndex)
         {
             bool bHasSeqName = !string.IsNullOrEmpty(seqName);
             if (!bHasSeqName)
             {
-                Logging.PrintLog((int)ELogType.Error, "[임시 수동Z트리거] 시퀀스 이름이 비어있음 — 트리거 취소");
+                Logging.PrintLog((int)ELogType.Error, "[수동 사이클 트리거] 시퀀스 이름이 비어있음 — 트리거 취소");
                 return false;
             }
 
@@ -955,7 +958,7 @@ namespace ReringProject {
             if (!bPrepOk)
             {
                 Logging.PrintLog((int)ELogType.Error,
-                    "[임시 수동Z트리거] 시퀀스={0} z_index={1} PREP 실패 — TEST 진행하지 않음", seqName, zIndex);
+                    "[수동 사이클 트리거] 시퀀스={0} z_index={1} PREP 실패 — TEST 진행하지 않음", seqName, zIndex);
                 return false;
             }
 
@@ -964,7 +967,7 @@ namespace ReringProject {
             bool bTestOk = ProcessTest(testPacket);
 
             Logging.PrintLog((int)ELogType.Trace,
-                "[임시 수동Z트리거] 시퀀스={0} z_index={1} PREP={2} TEST={3}", seqName, zIndex, bPrepOk, bTestOk);
+                "[수동 사이클 트리거] 시퀀스={0} z_index={1} PREP={2} TEST={3}", seqName, zIndex, bPrepOk, bTestOk);
 
             return bTestOk;
         }

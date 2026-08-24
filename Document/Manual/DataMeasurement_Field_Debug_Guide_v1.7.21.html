@@ -310,6 +310,34 @@
   }
   .stage .ds { font-size: 12.5px; color: var(--ink-soft); line-height: 1.55; }
 
+  /* ---------- figure ---------- */
+  figure {
+    margin: 0 0 26px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 22px 22px 16px;
+    box-shadow: var(--shadow);
+  }
+  figure svg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    color: var(--ink);
+  }
+  figcaption {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+  .figscroll { overflow-x: auto; }
+  .figscroll svg { min-width: 620px; }
+
   /* ---------- callout ---------- */
   .note {
     border-left: 3px solid var(--accent);
@@ -441,11 +469,194 @@
   <!-- ============ 2. 4단계 ============ -->
   <section>
     <div class="sec-head">
-      <h2>검사 한 사이클은 4단계로 흘러갑니다</h2>
+      <h2>시퀀스가 어떻게 도는가</h2>
       <span class="tag">구조</span>
     </div>
 
-    <p class="lead">Shot 하나가 실행될 때 항상 이 순서를 지납니다. <b>어느 단계에서 끊겼는지</b>가 문제의 절반을 좁혀줍니다.</p>
+    <p class="lead">고장을 읽으려면 정상 흐름을 먼저 알아야 합니다. 바깥(PLC 통신)에서 안(측정 단계)으로 세 겹으로 들어갑니다.</p>
+
+    <!-- FIGURE 1 : 프로토콜 한 tick -->
+    <figure>
+      <div class="figscroll">
+        <svg viewBox="0 0 720 278" role="img"
+             aria-label="PLC와 비전이 z 하나마다 PREP과 TEST를 한 번씩 주고받고, 응답이 B이면 z를 올려 반복하고 마지막 z에서 P 또는 F를 받는다">
+          <defs>
+            <marker id="arR" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+
+          <!-- 양쪽 기둥 -->
+          <rect x="24" y="20" width="140" height="236" rx="5"
+                fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <text x="94" y="46" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">PLC</text>
+          <text x="94" y="66" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">제어</text>
+
+          <rect x="556" y="20" width="140" height="236" rx="5"
+                fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <text x="626" y="46" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">비전 PC</text>
+          <text x="626" y="66" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">DataMeasurement</text>
+
+          <!-- 1 PREP -->
+          <text x="360" y="94" text-anchor="middle" font-size="12" font-family="monospace" fill="currentColor">$PREP:site,z@</text>
+          <line x1="168" y1="102" x2="548" y2="102" stroke="currentColor" stroke-width="1.5" marker-end="url(#arR)"/>
+          <text x="360" y="116" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">이번 z 준비 — 조명 세팅</text>
+
+          <!-- 2 ACK -->
+          <text x="360" y="141" text-anchor="middle" font-size="12" font-family="monospace" fill="currentColor">$PREP_ACK:site,z,OK@</text>
+          <line x1="548" y1="149" x2="168" y2="149" stroke="currentColor" stroke-width="1.5" marker-end="url(#arR)"/>
+
+          <!-- 3 TEST -->
+          <text x="360" y="186" text-anchor="middle" font-size="12" font-family="monospace" fill="currentColor">$TEST:site,Type,자재번호@</text>
+          <line x1="168" y1="194" x2="548" y2="194" stroke="currentColor" stroke-width="1.5" marker-end="url(#arR)"/>
+          <text x="360" y="208" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">검사 실행</text>
+
+          <!-- 4 RESULT -->
+          <text x="360" y="233" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--accent)" font-weight="600">$RESULT:site;Type;B@</text>
+          <line x1="548" y1="241" x2="168" y2="241" stroke="var(--accent)" stroke-width="2" marker-end="url(#arA)"/>
+
+          <!-- 반복 표시 -->
+          <text x="360" y="270" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">B 면 z + 1 하고 처음부터 다시 · 마지막 z 에서만 P 또는 F</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>도표 1 — z 하나가 도는 한 바퀴.</b> PLC가 <code>$PREP</code>로 “z번 자리 준비해”라고 하고, <code>$TEST</code>로 “찍어”라고 합니다.
+        돌아온 응답이 <b>B</b>(진행 중)이면 PLC가 z를 1 올려 이 네 줄을 처음부터 다시 합니다. 마지막 z에서만 <b>P</b>(합격) 또는 <b>F</b>(불합격)가 돌아오고 그 부품의 검사가 끝납니다.
+        <b>몇 번 반복할지는 미리 정해져 있지 않고</b>, B가 그만 올 때까지입니다.
+      </figcaption>
+    </figure>
+
+    <!-- FIGURE 2 : SIDE z 지도 -->
+    <figure>
+      <div class="figscroll">
+        <svg viewBox="0 0 980 300" role="img"
+             aria-label="SIDE 한 사이클의 z 0번부터 15번까지 지도. 기준점 4개가 각각 두 번씩 촬영되고 그 뒤 측정이 따라오며, z10과 z11은 사용하지 않고, z15에서 최종 판정이 나온다">
+          <defs>
+            <marker id="arD" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- 그룹 밴드 -->
+          <rect x="38"  y="28" width="156" height="26" rx="4" fill="currentColor" opacity=".07"/>
+          <rect x="206" y="28" width="212" height="26" rx="4" fill="currentColor" opacity=".07"/>
+          <rect x="430" y="28" width="156" height="26" rx="4" fill="currentColor" opacity=".07"/>
+          <rect x="598" y="28" width="100" height="26" rx="4" fill="currentColor" opacity=".03"/>
+          <rect x="710" y="28" width="212" height="26" rx="4" fill="currentColor" opacity=".07"/>
+
+          <text x="116" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Datum_3-1</text>
+          <text x="312" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Datum_3-2</text>
+          <text x="508" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Datum_4-2</text>
+          <text x="648" y="46" text-anchor="middle" font-size="11" fill="currentColor" opacity=".45">미사용</text>
+          <text x="816" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Datum_4-1</text>
+
+          <!-- z 칸 : i center = 60 + i*56 -->
+          <!-- 촬영(테두리만) : 0,1,3,4,7,8,12,13 / 측정(채움) : 2,5,6,9,14,15 / 미사용 : 10,11 -->
+          <g font-size="13" font-family="monospace" text-anchor="middle">
+            <!-- 촬영 -->
+            <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3">
+              <rect x="38"  y="86" width="44" height="40" rx="4"/>
+              <rect x="94"  y="86" width="44" height="40" rx="4"/>
+              <rect x="206" y="86" width="44" height="40" rx="4"/>
+              <rect x="262" y="86" width="44" height="40" rx="4"/>
+              <rect x="430" y="86" width="44" height="40" rx="4"/>
+              <rect x="486" y="86" width="44" height="40" rx="4"/>
+              <rect x="710" y="86" width="44" height="40" rx="4"/>
+              <rect x="766" y="86" width="44" height="40" rx="4"/>
+            </g>
+            <!-- 미사용 -->
+            <g fill="none" stroke="currentColor" stroke-width="1" opacity=".3">
+              <rect x="598" y="86" width="44" height="40" rx="4"/>
+              <rect x="654" y="86" width="44" height="40" rx="4"/>
+            </g>
+            <!-- 측정 -->
+            <g fill="var(--accent)" stroke="none">
+              <rect x="150" y="86" width="44" height="40" rx="4"/>
+              <rect x="318" y="86" width="44" height="40" rx="4"/>
+              <rect x="374" y="86" width="44" height="40" rx="4"/>
+              <rect x="542" y="86" width="44" height="40" rx="4"/>
+              <rect x="822" y="86" width="44" height="40" rx="4"/>
+              <rect x="878" y="86" width="44" height="40" rx="4"/>
+            </g>
+
+            <!-- z 숫자 -->
+            <g fill="currentColor">
+              <text x="60"  y="112">0</text>
+              <text x="116" y="112">1</text>
+              <text x="228" y="112">3</text>
+              <text x="284" y="112">4</text>
+              <text x="452" y="112">7</text>
+              <text x="508" y="112">8</text>
+              <text x="732" y="112">12</text>
+              <text x="788" y="112">13</text>
+            </g>
+            <g fill="currentColor" opacity=".35">
+              <text x="620" y="112">10</text>
+              <text x="676" y="112">11</text>
+            </g>
+            <g fill="var(--panel)" font-weight="600">
+              <text x="172" y="112">2</text>
+              <text x="340" y="112">5</text>
+              <text x="396" y="112">6</text>
+              <text x="564" y="112">9</text>
+              <text x="844" y="112">14</text>
+              <text x="900" y="112">15</text>
+            </g>
+          </g>
+
+          <!-- 촬영 두 장 → 기준점 완성 → 측정 : 네 그룹 모두 동일 패턴 -->
+          <g fill="none" stroke="currentColor" stroke-width="1.3" opacity=".6">
+            <path d="M 60 126 L 60 152 L 172 152 L 172 132" marker-end="url(#arD)"/>
+            <path d="M 116 126 L 116 152"/>
+            <path d="M 228 126 L 228 152 L 340 152 L 340 132" marker-end="url(#arD)"/>
+            <path d="M 284 126 L 284 152"/>
+            <path d="M 452 126 L 452 152 L 564 152 L 564 132" marker-end="url(#arD)"/>
+            <path d="M 508 126 L 508 152"/>
+            <path d="M 732 126 L 732 152 L 844 152 L 844 132" marker-end="url(#arD)"/>
+            <path d="M 788 126 L 788 152"/>
+          </g>
+          <text x="116" y="172" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">두 장이 모여야 기준점 완성</text>
+
+          <!-- 범례 -->
+          <g font-size="11" fill="currentColor">
+            <rect x="38" y="196" width="22" height="14" rx="3"
+                  fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <text x="68" y="207" opacity=".8">촬영만 — 켤 Shot 조명 없는 것이 정상</text>
+
+            <rect x="330" y="196" width="22" height="14" rx="3" fill="var(--accent)" stroke="none"/>
+            <text x="360" y="207" opacity=".8">측정 실행</text>
+
+            <rect x="452" y="196" width="22" height="14" rx="3"
+                  fill="none" stroke="currentColor" stroke-width="1" opacity=".3"/>
+            <text x="482" y="207" opacity=".8">이 레시피에서 미사용</text>
+          </g>
+
+          <!-- 최종 판정 -->
+          <line x1="900" y1="126" x2="900" y2="222" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="900" y="242" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">최종 P / F</text>
+          <text x="900" y="258" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">여기까지 와야 끝</text>
+
+          <!-- 축 -->
+          <line x1="38" y1="276" x2="922" y2="276" stroke="currentColor" stroke-width="1" opacity=".25"/>
+          <text x="38" y="290" font-size="10.5" fill="currentColor" opacity=".5">z_index →</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>도표 2 — SIDE 한 사이클의 z 지도.</b> 기준점 4개가 각각 <b>두 번에 나눠 촬영</b>됩니다(점선 칸). 가로 한 장, 세로 한 장을 따로 찍어야 하기 때문이고,
+        <b>두 장이 다 모이는 두 번째 촬영에서야 기준점이 완성</b>됩니다. 그 뒤 채워진 칸에서 실제 측정이 일어납니다.
+        점선 칸은 사진만 찍는 자리라 <b>켤 조명(Shot)이 없는 것이 정상</b>입니다 — 예전에 이 자리에서 <code>$PREP_ACK … FAIL</code>이 나오던 것이 v1.7.20.0에서 고쳐진 문제입니다.
+        z10·z11은 이 레시피에서 쓰지 않습니다.
+      </figcaption>
+    </figure>
+
+    <h3>그 안에서 무슨 일이 일어나나</h3>
+    <p>위 도표에서 <code>$TEST</code> 한 번을 받으면, Shot 하나가 아래 네 단계를 차례로 지납니다. <b>어느 단계에서 끊겼는지</b>가 문제의 절반을 좁혀줍니다.</p>
 
     <div class="pipe">
       <div class="stage">

@@ -111,6 +111,7 @@ namespace ReringProject.UI
             // 새 cycle 표시 시 DualImage 전환 버튼 숨김 (행 클릭 전까지 비노출)
             panel_dualToggle.Visibility = Visibility.Collapsed;
             _selectedRow = null;
+            halconViewer.SetHighlightMeasurementName(null);   // 전체 보기 = 특정 측정 강조 해제
 
             if (cycle == null || cycle.Shots == null)
             {
@@ -268,6 +269,26 @@ namespace ReringProject.UI
             else
                 faiOverlays = new List<EdgeInspectionOverlay>();
             halconViewer.SetInspectionOverlays(faiOverlays);
+            ApplyMeasurementNameLabel(row);
+        }
+
+        // 선택 행의 측정 이름을 화면 라벨로 표시(체크박스 ON 일 때만).
+        //  한 FAI 에 측정이 여러 개(F9_P1/P2/P3)라 overlay 가 섞여 표시되는데, 그중 어느 선이
+        //  방금 클릭한 항목인지 구분할 방법이 없어 추가했다.
+        private void ApplyMeasurementNameLabel(ReviewMeasurementRow row)
+        {
+            bool bShowName = chk_showMeasName.IsChecked == true;
+            if (!bShowName || row == null)
+            {
+                halconViewer.SetHighlightMeasurementName(null);
+                return;
+            }
+            halconViewer.SetHighlightMeasurementName(row.MeasurementName);
+        }
+
+        private void ChkShowMeasName_Changed(object sender, RoutedEventArgs e)
+        {
+            ApplyMeasurementNameLabel(_selectedRow);
         }
 
         private void Button_AxisHorizontal_Click(object sender, RoutedEventArgs e)

@@ -186,6 +186,14 @@ namespace ReringProject.UI
             Render();
         }
 
+        // 화면에 이름을 표시할 측정 지정. null/빈 문자열이면 라벨 없음(기본).
+        //  결과 리뷰어가 측정 행 클릭 시 호출 — "그 항목이 화면 어디인지" 짚어준다.
+        public void SetHighlightMeasurementName(string measurementName)
+        {
+            _displayService.HighlightMeasurementName = measurementName;
+            Render();
+        }
+
         public void SetDisplayMessages(IEnumerable<string> messages)
         {
             _displayMessages.Clear();

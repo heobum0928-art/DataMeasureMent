@@ -91,6 +91,11 @@
         <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,1">
             <DockPanel LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" Text="이미지 / Overlay" VerticalAlignment="Center" FontSize="11" Foreground="Gray"/>
+                <!-- 선택한 측정 이름을 이미지 위에 표시 — 한 FAI 에 측정이 여러 개일 때 어느 선인지 식별 -->
+                <CheckBox x:Name="chk_showMeasName" DockPanel.Dock="Right" Content="측정명 표시"
+                          IsChecked="True" VerticalAlignment="Center" FontSize="11" Foreground="#334155"
+                          Margin="12,0,0,0"
+                          Checked="ChkShowMeasName_Changed" Unchecked="ChkShowMeasName_Changed"/>
                 <StackPanel x:Name="panel_dualToggle" DockPanel.Dock="Right" Orientation="Horizontal"
                             Visibility="Collapsed">
                     <TextBlock Text="축 전환:" VerticalAlignment="Center" FontSize="11" Foreground="#334155" Margin="0,0,6,0"/>

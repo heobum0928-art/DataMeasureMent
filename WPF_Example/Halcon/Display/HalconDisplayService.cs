@@ -15,6 +15,14 @@ namespace ReringProject.Halcon.Display
         private static readonly HTuple MessageTextParamNames = new HTuple("box");
         private static readonly HTuple MessageTextParamValues = new HTuple("false");
 
+        // 측정 이름 라벨 offset(px) — 선 중점 기준. 선과 글자가 겹치지 않을 만큼만 띄운다.
+        private const double LABEL_ROW_OFFSET = 18.0;
+        private const double LABEL_COL_OFFSET = 6.0;
+
+        // 화면에 이름을 표시할 측정. null/빈 문자열이면 아무 라벨도 그리지 않는다(기존 동작 그대로).
+        //  결과 리뷰어에서 측정 행을 클릭했을 때 "그 항목이 화면 어디인지" 짚어주는 용도 — 표시 전용.
+        public string HighlightMeasurementName { get; set; }
+
         public void Render(
             HWindow window,
             HImage image,
@@ -265,6 +273,11 @@ namespace ReringProject.Halcon.Display
                     }
 
                     window.DispLine(overlay.LineRow1, overlay.LineColumn1, overlay.LineRow2, overlay.LineColumn2);
+
+                    // 선택된 측정에만 이름 라벨을 붙인다(B안 — 전부 표시하면 측정 20여 개에서 글자가 겹친다).
+                    //  라인 색을 이미 세팅한 뒤라 여기서 색을 바꾸므로, 다음 overlay 는 루프 앞에서 다시 세팅된다.
+                    RenderMeasurementNameLabel(window, overlay);
+
                     if (overlay.Points == null)
                     {
                         continue;
@@ -445,6 +458,31 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.SetLineStyle(window, new HTuple()); // 점선 해제 (다른 렌더 영향 0)
             }
             catch { /* Suppress display errors */ }
+        }
+
+        // HighlightMeasurementName 과 일치하는 overlay 옆에 측정 이름을 쓴다.
+        //  일치하지 않거나 이름이 비어 있으면 아무것도 하지 않는다 — 기존 화면 대비 회귀 0.
+        //  라벨 위치는 그려진 선의 중점 살짝 위로, 선과 겹치지 않게 offset 을 준다.
+        private void RenderMeasurementNameLabel(HWindow window, EdgeInspectionOverlay overlay)
+        {
+            if (window == null || overlay == null) return;
+            if (string.IsNullOrEmpty(HighlightMeasurementName)) return;
+            if (string.IsNullOrEmpty(overlay.MeasurementName)) return;
+            if (!string.Equals(overlay.MeasurementName, HighlightMeasurementName, StringComparison.OrdinalIgnoreCase)) return;
+
+            try
+            {
+                EnsureFontInitialized(window);
+                double labelRow = (overlay.LineRow1 + overlay.LineRow2) / 2.0 - LABEL_ROW_OFFSET;
+                double labelCol = (overlay.LineColumn1 + overlay.LineColumn2) / 2.0 + LABEL_COL_OFFSET;
+                window.SetColor("orange");   // 선 색(녹/적/청록)과 겹치지 않는 색 — 라벨임을 한눈에 구분
+                HOperatorSet.SetTposition(window, labelRow, labelCol);
+                HOperatorSet.WriteString(window, overlay.MeasurementName);
+            }
+            catch
+            {
+                // 표시 실패는 삼킨다 — 라벨 하나 때문에 나머지 overlay 렌더가 중단되면 안 된다(기존 관습).
+            }
         }
 
         private void EnsureFontInitialized(HWindow window)

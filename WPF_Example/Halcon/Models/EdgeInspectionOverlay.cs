@@ -41,6 +41,12 @@ namespace ReringProject.Halcon.Models
     {
         public string RoiId { get; set; }
 
+        // 이 overlay 를 만든 측정 이름(F9_P1 등). 화면에서 "이 선이 어느 항목이냐"를 표시하기 위한 것으로,
+        //  RoiId 와 분리한 이유는 RoiId 가 색상/판정 분기(FAI-Edge* StartsWith, -OK/-NG EndsWith)에 쓰이는
+        //  식별자라 여기에 이름을 섞으면 그 분기가 전부 깨지기 때문이다. 표시 전용이며 판정에 관여하지 않는다.
+        //  구 cycle.json 에는 이 필드가 없어 null 로 로드된다 → 라벨 미표시로 자연 폴백(하위호환).
+        public string MeasurementName { get; set; }
+
         public List<EdgeInspectionPoint> Points { get; set; } = new List<EdgeInspectionPoint>();
 
         public double LineRow1 { get; set; }
@@ -59,6 +65,7 @@ namespace ReringProject.Halcon.Models
             return new EdgeInspectionOverlay
             {
                 RoiId = RoiId,
+                MeasurementName = MeasurementName,
                 Points = clonedPoints,
                 LineRow1 = LineRow1,
                 LineColumn1 = LineColumn1,

@@ -19,6 +19,9 @@ namespace ReringProject.Halcon.Display
         private const double LABEL_ROW_OFFSET = 18.0;
         private const double LABEL_COL_OFFSET = 6.0;
 
+        // 이번 렌더 패스에서 측정명 라벨을 이미 그렸는지. Render 의 overlay 루프 진입 시 false 로 초기화된다.
+        private bool _measNameLabelDrawn;
+
         // 화면에 이름을 표시할 측정. null/빈 문자열이면 아무 라벨도 그리지 않는다(기존 동작 그대로).
         //  결과 리뷰어에서 측정 행을 클릭했을 때 "그 항목이 화면 어디인지" 짚어주는 용도 — 표시 전용.
         public string HighlightMeasurementName { get; set; }
@@ -140,6 +143,10 @@ namespace ReringProject.Halcon.Display
 
             if (inspectionOverlays != null)
             {
+                // 측정 하나가 overlay 를 여러 개(에지선 + 거리선 등) 만들기 때문에, 이름 라벨을
+                //  overlay 마다 그리면 같은 글자가 중복 표시된다(실사용에서 C14_P2 가 2개로 관측).
+                //  이 렌더 패스에서 한 번만 그리도록 여기서 초기화한다.
+                _measNameLabelDrawn = false;
                 foreach (var overlay in inspectionOverlays)
                 {
                     if (string.Equals(overlay.RoiId, "Group-H", StringComparison.OrdinalIgnoreCase))
@@ -466,6 +473,7 @@ namespace ReringProject.Halcon.Display
         private void RenderMeasurementNameLabel(HWindow window, EdgeInspectionOverlay overlay)
         {
             if (window == null || overlay == null) return;
+            if (_measNameLabelDrawn) return;   // 측정당 1회만 — 같은 이름이 여러 overlay 에 걸려 중복 표시되는 것 방지
             if (string.IsNullOrEmpty(HighlightMeasurementName)) return;
             if (string.IsNullOrEmpty(overlay.MeasurementName)) return;
             if (!string.Equals(overlay.MeasurementName, HighlightMeasurementName, StringComparison.OrdinalIgnoreCase)) return;
@@ -478,6 +486,7 @@ namespace ReringProject.Halcon.Display
                 window.SetColor("orange");   // 선 색(녹/적/청록)과 겹치지 않는 색 — 라벨임을 한눈에 구분
                 HOperatorSet.SetTposition(window, labelRow, labelCol);
                 HOperatorSet.WriteString(window, overlay.MeasurementName);
+                _measNameLabelDrawn = true;   // 성공했을 때만 세운다 — 예외로 못 그렸으면 다음 overlay 에서 재시도
             }
             catch
             {

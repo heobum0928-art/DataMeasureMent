@@ -74,9 +74,11 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <!--260626 hbk Phase 66 D-04 — RowDefinition 1개 추가(총 8개). 동축 GroupBox=Row6, 여백=Row7.-->
+                    <!--픽셀 캘리브레이션 GroupBox 추가(총 9개) — 동축=Row6, 캘리브=Row7, 여백=Row8.-->
 
                     <!--Row 0: 헤더-->
                     <StackPanel Grid.Row="0" Margin="0,0,0,10">
@@ -243,8 +245,32 @@
                         </StackPanel>
                     </GroupBox>
 
-                    <!--Row 7: 여백 (기존 Row 6 에서 이동 —260626 hbk Phase 66 RowDefinition 추가로 Row 번호 이동)-->
-                    <Grid Grid.Row="7"/>
+                    <!--Row 7: 픽셀 분해능 캘리브레이션. Bottom 은 6-슬롯 모두 같은 카메라/렌즈 공유 →
+                         SystemSetting.EthernetPixelResolution 단일 소스(슬롯 무관)에 직접 씀. Tray 와 동일 필드,
+                         PC 가 Tray/Bottom 모드 배타(같은 PC 에서 동시에 둘 다 켜지지 않음)라 값 충돌 없음.-->
+                    <GroupBox Grid.Row="7" Header="픽셀 캘리브레이션" Margin="0,0,0,8">
+                        <StackPanel Margin="8">
+                            <WrapPanel>
+                                <Button x:Name="btn_checkerboardCalibrate"
+                                        Content="체커보드 캘리브"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        Click="OpenCheckerboardCalibrationButton_Click"/>
+                                <Button x:Name="btn_calibrateDistance"
+                                        Content="거리 캘리브"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        Click="CalibrateDistanceButton_Click"/>
+                            </WrapPanel>
+                            <TextBlock x:Name="lbl_pixelCalibStatus"
+                                       Margin="0,6,0,0"
+                                       FontSize="12"
+                                       Foreground="#475569"
+                                       Text="캘리브 안 함"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!--Row 8: 여백 (기존 Row 7 에서 이동)-->
+                    <Grid Grid.Row="8"/>
                 </Grid>
             </ScrollViewer>
         </Border>

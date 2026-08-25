@@ -8,10 +8,13 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using HalconDotNet;
 using ReringProject.Device;   //260626 hbk Phase 66 — LightHandler 참조(동축 ON/OFF+Level)
+using ReringProject.Halcon.Algorithms;   //260824 hbk 픽셀 캘리브레이션: CalibrationResult
 using ReringProject.Halcon.Models;
+using ReringProject.Halcon.Services;     //260824 hbk 픽셀 캘리브레이션: HalconTeachingHelper.SaveTempImage
 using ReringProject.Sequence;
 using ReringProject.Setting;
 using ReringProject.UI;
+using ReringProject.Utility;             //260824 hbk 픽셀 캘리브레이션: Logging
 using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
 using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
@@ -66,6 +69,12 @@ namespace ReringProject.Custom.UI {
 
         //260626 hbk WR-02: 동축 UI 로드 중 이벤트 연쇄 저장 차단 플래그. true 이면 CoaxSlider_ValueChanged/CoaxCheckBox_Changed 즉시 return.
         private bool _isLoadingCoax = false;
+
+        //260824 hbk 픽셀 캘리브레이션(거리 캘리브 — 2점 클릭 + 실측 mm 입력). 최소 픽셀 거리는
+        //  MainView.MinCalibrationPixelDistance 와 동일 기준.
+        private const double MIN_CALIB_PIXEL_DISTANCE = 1.0;
+        private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
+        private bool _isCalibratingDistance = false;   // ROI/캘 ROI 드로잉과 클릭 핸들러 충돌 방지 가드
 
         public BottomVisionView() {
             InitializeComponent();
@@ -389,6 +398,176 @@ namespace ReringProject.Custom.UI {
             finally {
                 img?.Dispose();
             }
+        }
+
+        // ─── 픽셀 캘리브레이션 핸들러 ────────────────────────────────────────────────
+        //  SystemSetting.EthernetPixelResolution(μm/px) 단일 소스에 직접 쓴다 — Bottom 6-슬롯은 모두
+        //  같은 카메라/렌즈를 공유하므로 슬롯 무관 단일값이다. 이 PC 는 Tray/Bottom 모드가 배타적이라
+        //  (EthernetVisionMode 1개) Tray 쪽과도 값 충돌이 없다.
+        //  기존 MainView 의 두 캘리브 방식(체커보드 지그 / 2점+실측mm)을 그대로 이식했다.
+
+        // 체커보드 캘리브 — CalibrationWindow(기존, MainView 와 공유)를 열고 결과를 적용한다.
+        private void OpenCheckerboardCalibrationButton_Click(object sender, RoutedEventArgs e) {
+            var window = new CalibrationWindow { Owner = Window.GetWindow(this) };
+            window.ImageGrabber = GrabEthernetCalibrationImage;
+            window.ApplyRequested += ApplyEthernetCheckerboardCalibration;
+            try {
+                window.ShowDialog();
+            }
+            finally {
+                window.ApplyRequested -= ApplyEthernetCheckerboardCalibration;
+            }
+        }
+
+        // CalibrationWindow.ImageGrabber 델리게이트 — SIMUL 은 파일 선택(기존 GrabButton_Click 과 동일 관용구),
+        //  실장비는 라이브 grab 후 임시 파일로 저장해 경로를 돌려준다(CalibrationWindow 계약: Func<string>).
+        private string GrabEthernetCalibrationImage() {
+#if SIMUL_MODE
+            try {
+                Ookii.Dialogs.Wpf.VistaOpenFileDialog dlg = new Ookii.Dialogs.Wpf.VistaOpenFileDialog();
+                dlg.Filter = "이미지 파일|*.bmp;*.png;*.jpg;*.jpeg;*.tif;*.tiff|모든 파일|*.*";
+                bool? bResult = dlg.ShowDialog();
+                if (bResult == true) {
+                    return dlg.FileName;
+                }
+                return null;
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[캘리브] 이미지 선택 실패: " + ex.Message);
+                return null;
+            }
+#else
+            if (EthernetVisionHandler.Handle.Camera == null) {
+                return null;
+            }
+            HImage grabbed = null;
+            try {
+                grabbed = EthernetVisionHandler.Handle.Camera.Grab();
+                if (grabbed == null) {
+                    return null;
+                }
+                return HalconTeachingHelper.SaveTempImage("EthernetCalibration_Bottom", grabbed);
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, "[캘리브] 라이브촬상 실패: " + ex.Message);
+                return null;
+            }
+            finally {
+                grabbed?.Dispose();
+            }
+#endif
+        }
+
+        // CalibrationWindow.ApplyRequested 핸들러 — 체커보드 결과(mm/px) → EthernetPixelResolution(μm/px) 반영.
+        private void ApplyEthernetCheckerboardCalibration(CalibrationResult result) {
+            if (result == null) return;
+            double mmPerPixel = result.MmPerPixel;
+
+            string warnLine;
+            if (result.IsDistortionWarn) warnLine = string.Format("\n[경고] 외곽 왜곡 {0:F2}% — undistort 검토 권장", result.CenterOuterDeviationPct);
+            else                         warnLine = "";
+
+            string msg = string.Format(
+                "Bottom 픽셀 분해능(6-슬롯 공용)을 1 px = {0:F5} mm 로 덮어씁니다.{1}\n적용하시겠습니까?",
+                mmPerPixel, warnLine);
+            MessageBoxResult confirm = CustomMessageBox.ShowConfirmation("캘리브레이션 적용", msg, MessageBoxButton.OKCancel);
+            if (confirm != MessageBoxResult.OK) return;
+
+            ApplyEthernetPixelResolutionMm(mmPerPixel);
+            lbl_pixelCalibStatus.Text = string.Format("체커보드 캘리브 적용: 1px = {0:F5}mm (분해능 {1:F3}um/px)",
+                mmPerPixel, SystemSetting.Handle.EthernetPixelResolution);
+            CustomMessageBox.Show("캘리브레이션", string.Format("적용 + 저장 완료 (1 px = {0:F5} mm)", mmPerPixel));
+        }
+
+        // 거리 캘리브 — 뷰어에서 2점 클릭 → 실제 거리(mm) 입력 → mm/px 역산. MainView.CalibrateButton_Click 과 동일 흐름.
+        private void CalibrateDistanceButton_Click(object sender, RoutedEventArgs e) {
+            if (_viewer == null) {
+                lbl_pixelCalibStatus.Text = "뷰어 미연결";
+                return;
+            }
+            _isCalibratingDistance = true;
+            _calibrationPoints.Clear();
+            btn_calibrateDistance.Content = "Pick Point 1";
+            lbl_pixelCalibStatus.Text = "캔버스에서 첫 번째 점을 클릭하세요";
+            _viewer.ImageLeftClicked += Viewer_CalibrationDistanceMouseDown;
+        }
+
+        private void Viewer_CalibrationDistanceMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
+            if (!_isCalibratingDistance) return;
+
+            var pos = new System.Windows.Point(e.X, e.Y);
+            _calibrationPoints.Add(pos);
+            _viewer.SetCalibrationOverlay(_calibrationPoints);
+
+            if (_calibrationPoints.Count == 1) {
+                btn_calibrateDistance.Content = "Pick Point 2";
+                lbl_pixelCalibStatus.Text = "캔버스에서 두 번째 점을 클릭하세요";
+            }
+            else if (_calibrationPoints.Count == 2) {
+                _viewer.ImageLeftClicked -= Viewer_CalibrationDistanceMouseDown;
+                _isCalibratingDistance = false;
+                FinishCalibrateDistance();
+            }
+        }
+
+        private void FinishCalibrateDistance() {
+            var p1 = _calibrationPoints[0];
+            var p2 = _calibrationPoints[1];
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double pixelDistance = Math.Sqrt(dx * dx + dy * dy);
+
+            btn_calibrateDistance.Content = "거리 캘리브";
+
+            if (pixelDistance < MIN_CALIB_PIXEL_DISTANCE) {
+                CustomMessageBox.Show("두 점 사이의 거리가 너무 가깝습니다.", "캘리브레이션");
+                lbl_pixelCalibStatus.Text = "캘리브 취소 (거리 부족)";
+                return;
+            }
+
+            var calibPoints = new List<System.Windows.Point>(_calibrationPoints);
+            _viewer.SetCalibrationOverlay(calibPoints,
+                string.Format("{0:F1}px", pixelDistance),
+                string.Format("가로 {0:F1}px", Math.Abs(dx)),
+                string.Format("세로 {0:F1}px", Math.Abs(dy)));
+
+            var dlg = new TextInputBoxWinidow(
+                string.Format("두 점 사이의 실제 거리(mm)를 입력하세요:\n(픽셀 거리: {0:F1} px)\n\n[경고] 여기서 값을 입력하고 확인을 누르면 Bottom 픽셀 분해능이 즉시 바뀝니다.", pixelDistance),
+                "");
+            dlg.Title = "실제 거리 입력";
+            dlg.Owner = Window.GetWindow(this);
+
+            if (dlg.ShowDialog() != true) {
+                lbl_pixelCalibStatus.Text = "캘리브 취소";
+                return;
+            }
+            double realMm;
+            if (!double.TryParse(dlg.Text, out realMm) || realMm <= 0) {
+                CustomMessageBox.Show("유효한 숫자를 입력하세요.", "캘리브레이션");
+                lbl_pixelCalibStatus.Text = "캘리브 취소 (입력값 오류)";
+                return;
+            }
+
+            double mmPerPixel = realMm / pixelDistance;
+            ApplyEthernetPixelResolutionMm(mmPerPixel);
+
+            string appliedTotalLabel = string.Format("{0:F3}mm ({1:F1}px)", realMm, pixelDistance);
+            string appliedHLabel = string.Format("가로 {0:F3}mm", Math.Abs(dx) * mmPerPixel);
+            string appliedVLabel = string.Format("세로 {0:F3}mm", Math.Abs(dy) * mmPerPixel);
+            _viewer.SetCalibrationOverlay(calibPoints, appliedTotalLabel, appliedHLabel, appliedVLabel);
+
+            lbl_pixelCalibStatus.Text = string.Format("거리 캘리브 적용: 1px = {0:F4}mm (분해능 {1:F3}um/px)",
+                mmPerPixel, SystemSetting.Handle.EthernetPixelResolution);
+            CustomMessageBox.Show("캘리브레이션 적용", string.Format("1px = {0:F4}mm 로 적용 + 저장했습니다.", mmPerPixel));
+        }
+
+        // mm/px → μm/px(EthernetPixelResolution 단위) 변환 후 반영 + 즉시 저장. 두 캘리브 방식의 공통 종착점.
+        //  MainView 의 체커보드/거리 캘리브와 달리 즉시 SystemSetting.Save() 한다 — Tray/Bottom 은 shot 단위
+        //  레시피가 아니라 PC 단위 설정값이라 "레시피 저장을 눌러야 반영" 이라는 사용자 개념 자체가 없다.
+        private void ApplyEthernetPixelResolutionMm(double mmPerPixel) {
+            const double UM_PER_MM = 1000.0;
+            SystemSetting.Handle.EthernetPixelResolution = mmPerPixel * UM_PER_MM;
+            SystemSetting.Handle.Save();
         }
 
         // ─── 티칭 핸들러 ─────────────────────────────────────────────────────────

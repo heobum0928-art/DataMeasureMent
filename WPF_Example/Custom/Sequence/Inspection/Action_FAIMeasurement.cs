@@ -1741,8 +1741,12 @@ namespace ReringProject.Sequence {
                 string suffix;
                 if (meas.LastJudgement) suffix = "-OK";
                 else suffix = "-NG";
+                string szMeasName = GetMeasurementDisplayName(meas);
                 foreach (var ov in measOverlays) {
                     if (ov == null) continue;
+                    // 표시 전용 — 이 overlay 가 어느 측정에서 나왔는지 기록한다(RoiId 는 색상 분기용이라 무관하게 유지).
+                    //  RoiId 가 비어 있어도 이름은 채운다: 아래 suffix 분기는 건너뛰지만 라벨 표시 대상은 될 수 있다.
+                    ov.MeasurementName = szMeasName;
                     if (string.IsNullOrEmpty(ov.RoiId)) continue;
                     if (ov.RoiId.StartsWith("FAI-Edge", StringComparison.OrdinalIgnoreCase)) {
                         ov.RoiId = ov.RoiId + suffix;

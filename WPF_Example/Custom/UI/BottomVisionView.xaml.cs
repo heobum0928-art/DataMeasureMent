@@ -489,6 +489,11 @@ namespace ReringProject.Custom.UI {
             _calibrationPoints.Clear();
             btn_calibrateDistance.Content = "Pick Point 1";
             lbl_pixelCalibStatus.Text = "캔버스에서 첫 번째 점을 클릭하세요";
+            // 버튼을 두 번 이상 눌러 재진입해도(1점만 찍고 다시 누르는 등) 중복 구독이 쌓이지 않도록
+            //  먼저 해제 후 구독한다 — 구독이 2개 쌓이면 클릭 1번에 핸들러가 2번 불려 같은 좌표가
+            //  두 번 Add 되고, 그 두 "점"의 거리가 0이라 "너무 가깝습니다" 오류로 즉시 실패한다(실사용 재현).
+            //  -= 는 구독 안 된 상태에서 호출해도 안전(no-op) — MainView.ExitCanvasMode 와 동일 관용구.
+            _viewer.ImageLeftClicked -= Viewer_CalibrationDistanceMouseDown;
             _viewer.ImageLeftClicked += Viewer_CalibrationDistanceMouseDown;
         }
 

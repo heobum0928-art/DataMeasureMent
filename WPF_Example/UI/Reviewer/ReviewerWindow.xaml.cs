@@ -277,6 +277,14 @@ namespace ReringProject.UI
         //  방금 클릭한 항목인지 구분할 방법이 없어 추가했다.
         private void ApplyMeasurementNameLabel(ReviewMeasurementRow row)
         {
+            // InitializeComponent 진행 중 방어: XAML 에서 체크박스(헤더, Row0)가 뷰어(Row1)보다 먼저 생성되는데,
+            //  IsChecked="True" 초기값이 그 시점에 Checked 이벤트를 발화시켜 이 메서드가 불린다 —
+            //  그때 halconViewer 필드는 아직 대입 전(null)이라 그대로 두면 창이 열릴 때마다 NullReference 가 난다.
+            //  생성이 끝난 뒤 DisplayCycle/행 클릭 경로에서 정상적으로 다시 호출되므로 여기서는 조용히 빠져나간다.
+            if (halconViewer == null || chk_showMeasName == null)
+            {
+                return;
+            }
             bool bShowName = chk_showMeasName.IsChecked == true;
             if (!bShowName || row == null)
             {

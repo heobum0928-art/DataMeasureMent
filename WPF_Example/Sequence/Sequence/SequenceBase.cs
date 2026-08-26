@@ -666,7 +666,20 @@ namespace ReringProject.Sequence {
             }
         }
 
+        // 응답은 이 시퀀스가 "다음 요청을 받을 수 있는 상태(Idle)"가 된 뒤에만 내보낸다.
+        //  배경: Finish()/Error()/Stop() 은 응답을 큐에 넣고 Command=Stop 만 세운 뒤 돌아가고,
+        //  State 가 실제로 Idle 이 되는 것은 MainExecute(5ms tick)가 그 Command 를 처리할 때다.
+        //  반면 MainRun(1ms)은 큐를 즉시 비워 보내므로, PLC 는 "끝났다"는 응답을 받고 곧바로 다음
+        //  $TEST 를 보낸다 — 그 사이 최대 5ms 동안 StartCore 의 Idle 게이트에 걸려 시작이 거부되고,
+        //  그 거부가 F 로 나가 사이클이 통째로 중단된다(실측: 응답 후 7ms 요청 실패 / 8ms 성공,
+        //  1ms 차이로 갈리는 경합. 2026-08-26 SIDE 자동검사 z=4·z=8·z=15 등 매번 다른 지점에서 발생).
+        //  여기서 Idle 을 기다렸다 내보내면 "응답 도착 = 수락 준비 완료"가 성립해 그 창이 사라진다.
+        //  응답은 큐에 남아 다음 MainRun tick(≤1ms)에 다시 시도되므로 유실되지 않는다.
+        //  지연은 사이클당 z tick 수 × ≤5ms(SIDE 16 tick 기준 ≤80ms, 사이클 10.9초 대비 무시 가능).
         public TestResultPacket PopResponse() {
+            if (State != EContextState.Idle) {
+                return null; // 아직 정리 중 — 큐에 그대로 두고 다음 tick 에 재시도
+            }
             if(IsResponseReady > 0) {
                 if(ResponseQueue.TryDequeue(out TestResultPacket respInfo)) {
                     return respInfo;

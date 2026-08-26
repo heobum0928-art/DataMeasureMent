@@ -106,7 +106,7 @@ Type 라우팅: `Type 2→SIDE_1 / 3→SIDE_2 / 4→SIDE_3 / 5→SIDE_4`
 
    과거 CameraRole 전환 후 저장 시 비활성 시퀀스 Datum 이 소실된 사고(커밋 `3faa91b`)가 있었다.
    **시퀀스 구성 변경이 정확히 그 지뢰밭.** SIDE Datum 4개는 현재 유일본이다.
-   → **백업 완료:** `D:\Data\Recipe\FAI_1_backup_before_phase73_260826\` (.shm 31개 포함, 2026-08-26)
+   → **백업 완료:** `D:\Backup\FAI_1_backup_before_phase73_260826\` (.shm 31개 포함, 2026-08-26)
 
 2. **크로스-Z 재매김 회귀** — 2026-08-26 커밋 `8d6982c`(SIMUL role B 세로 이미지 결함) 수정 직후라
    기준선이 막 잡힌 상태다. ZIndexA/B 재매김이 이걸 깨뜨리지 않는지 확인 필수.

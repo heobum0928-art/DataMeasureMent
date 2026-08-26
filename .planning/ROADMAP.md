@@ -1066,7 +1066,7 @@ Plans:
 
 **변경 범위(2026-08-26 실측):** `SEQ_SIDE`/`ESequence.Side` 참조 16곳 / 5파일 — `Custom/Define/ID.cs`(enum), `Custom/Sequence/SequenceHandler.cs`(상수·IsSequenceActive·RegisterSequences·RegisterActions·InitializeSequences·CanRunSequence), `Custom/TcpServer/ResourceMap.cs`(Type 라우팅), `InspectionRecipeManager.cs`, `ShotConfig.cs`, `UI/ContentItem/MainView.xaml.cs`. 4개 시퀀스 모두 `CAMERA_SIDE`+`LIGHT_BAR` 공유(Top/Bottom sharedMil 선례). 레시피는 `OwnerSequenceName` 이 INI 에 그대로 저장돼 있어(35건, SIDE 4건) 스크립트 편집 가능.
 
-**위험:** ①**Datum 소실 이력** — `InspectionRecipeManager.cs:88` "시퀀스 미등록 시 DatumCount=0 덮어쓰기 금지", 과거 CameraRole 전환 저장에서 Datum 소실 사고(`3faa91b`). SIDE Datum 4개는 유일본 → **백업 완료** `D:\Data\Recipe\FAI_1_backup_before_phase73_260826\`(.shm 31개). ②크로스-Z ZIndexA/B 재매김 회귀(커밋 `8d6982c` 직후라 기준선이 막 잡힘). ③`TeachingStorageService.cs:229` 의 `Contains("SIDE")` 가 SIDE_1~4 를 같은 폴더로 보내 `.shm` 덮어쓰기 위험.
+**위험:** ①**Datum 소실 이력** — `InspectionRecipeManager.cs:88` "시퀀스 미등록 시 DatumCount=0 덮어쓰기 금지", 과거 CameraRole 전환 저장에서 Datum 소실 사고(`3faa91b`). SIDE Datum 4개는 유일본 → **백업 완료** `D:\Backup\FAI_1_backup_before_phase73_260826\`(.shm 31개). ②크로스-Z ZIndexA/B 재매김 회귀(커밋 `8d6982c` 직후라 기준선이 막 잡힘). ③`TeachingStorageService.cs:229` 의 `Contains("SIDE")` 가 SIDE_1~4 를 같은 폴더로 보내 `.shm` 덮어쓰기 위험.
 
 **검증 baseline(확보 완료):** 2026-08-26 09:17 SIDE_3 자동검사 — z=0~15 완주, 측정 25개 전부 실행, 공차이탈 합계 7개(3-1_D1 2/2, 3_2_D1 2/0 ×2, 4-2_H5 1/0, 4-2_C13-14_P1 6/3, 4-2_F9 3/0, 4-1_F9 3/0, 4-1_C13-14 6/2). 분리 후에도 **같은 측정값·같은 이탈 개수**여야 한다.
 

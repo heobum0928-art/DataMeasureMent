@@ -51,7 +51,7 @@ MVVM 작업이 통째로 붙는다. 이름 규칙 자동 배정은 레시피 이
 - `ZIndex` / `ZIndexA` / `ZIndexB` 를 위 표대로 재계산
 
 **안전장치(필수):**
-- 백업 완료: `D:\Data\Recipe\FAI_1_backup_before_phase73_260826\` (.shm 31개 포함)
+- 백업 완료: `D:\Backup\FAI_1_backup_before_phase73_260826\` (.shm 31개 포함)
 - 스크립트는 **원본을 덮지 말고 새 파일로 출력** → diff 확인 후 교체
 - 편집 전후 Datum 개수/Shot 개수/측정 개수 카운트 비교(0 클로버 방지)
 - `InspectionRecipeManager.cs:88` 의 "비활성 시퀀스 Datum 보존" 경로가 살아있는지 확인

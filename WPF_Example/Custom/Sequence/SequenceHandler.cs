@@ -12,6 +12,11 @@ namespace ReringProject.Sequence {
 
         public const string SEQ_TOP = "TOP";
         public const string SEQ_SIDE = "SIDE";
+        //SEQ_SIDE 는 삭제하지 않는다 — 구 레시피의 OwnerSequenceName 값이자 마이그레이션 기준값이다.
+        public const string SEQ_SIDE_1 = "SIDE_1";
+        public const string SEQ_SIDE_2 = "SIDE_2";
+        public const string SEQ_SIDE_3 = "SIDE_3";
+        public const string SEQ_SIDE_4 = "SIDE_4";
         public const string SEQ_BOTTOM = "BOTTOM";
 
         public const string ACT_INSPECT = "Inspect";
@@ -26,9 +31,18 @@ namespace ReringProject.Sequence {
         public static string ResolveSequenceName(ESequence seqId) {
             switch (seqId) {
                 case ESequence.Top: return SEQ_TOP;
-                case ESequence.Side: return SEQ_SIDE;
+                case ESequence.Side: return SEQ_SIDE;      // 레거시 식별자 — 등록되지 않음
                 case ESequence.Bottom: return SEQ_BOTTOM;
-                default: return SEQ_TOP; // D-B1 폴백 — 예상치 못한 enum 값도 안전한 동작
+                case ESequence.Side1: return SEQ_SIDE_1;
+                case ESequence.Side2: return SEQ_SIDE_2;
+                case ESequence.Side3: return SEQ_SIDE_3;
+                case ESequence.Side4: return SEQ_SIDE_4;
+                default:
+                    // 조용한 TOP 폴백은 SIDE_3 을 TOP 으로 해석해 원인 추적을 불가능하게 만든다.
+                    // 폴백 자체는 유지하되(예외로 라인을 세우지 않는다) 반드시 흔적을 남긴다.
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[SEQ] ResolveSequenceName 미등록 enum 값 {0} — TOP 으로 폴백(호출부 확인 필요)", (int)seqId);
+                    return SEQ_TOP;
             }
         }
 
@@ -37,14 +51,19 @@ namespace ReringProject.Sequence {
         public bool IsDynamicFAIMode { get; private set; } = false;
 
         // 이 PC(CameraRole)에서 활성화할 시퀀스 판단.
-        //  SIMUL 은 전체 활성(단일 PC 전 시퀀스 테스트). 실 HW 는 PC1=Top/Bottom, PC2=Side 만 활성 →
+        //  PC1(TopBottom)=Top/Bottom, PC2(Side)=SIDE_1~4 만 활성 →
         //  비활성 시퀀스를 아예 생성하지 않아, 카메라 미등록으로 인한 OnCreate Error(StateAll 비-Idle) 를 원천 차단.
-        //  DeviceHandler.RegisterRequiredDevices 의 등록 정책과 1:1 동기화. TopBottom=Top/Bottom, Side=Side 만 활성.
+        //  DeviceHandler.RegisterRequiredDevices 의 등록 정책과 1:1 동기화.
         private static bool IsSequenceActive(ESequence seqId) {
             ECameraRole role = SystemSetting.Handle.CameraRole;
-            if (role == ECameraRole.TopBottom)
+            if (role == ECameraRole.TopBottom) {
                 return seqId == ESequence.Top || seqId == ESequence.Bottom;
-            return seqId == ESequence.Side;
+            }
+            // Side 역할 PC 는 지그 4개를 독립 시퀀스로 전부 활성화한다.
+            // 레거시 ESequence.Side 는 여기서 의도적으로 제외 — SIDE_1~4 로 대체됐다.
+            bool bIsSideJig = seqId == ESequence.Side1 || seqId == ESequence.Side2
+                || seqId == ESequence.Side3 || seqId == ESequence.Side4;
+            return bIsSideJig;
         }
 
         //260805 hbk Phase 69 D-01: RUN 게이트를 "전역 IsIdle" 에서 "시퀀스 단위 + 물리 카메라 공유 시에만 상호배타" 로 좁힌다.

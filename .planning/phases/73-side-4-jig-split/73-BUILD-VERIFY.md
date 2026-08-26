@@ -19,7 +19,11 @@ MSBUILD : error MSB1008: 프로젝트를 하나만 지정할 수 있습니다.
 ## 2. SIMUL_MODE ON 빌드
 
 ```bash
-SCR="$SCRATCHPAD"   # 세션 스크래치패드 경로
+# ⚠ $SCRATCHPAD 는 이 셸에 정의돼 있지 않다(echo 하면 빈값).
+#    설정하지 않고 실행하면 -p:OutDir="/b73on/" 가 되어 C:73on\ 에 산출된다.
+#    실행 전에 세션 스크래치패드 절대경로로 직접 설정할 것.
+SCR="/c/Users/tech/AppData/Local/Temp/claude/<session>/scratchpad"   # ← 실제 경로로 교체
+test -n "$SCR" && mkdir -p "$SCR" || { echo "SCR 미설정 — 중단"; exit 1; }
 MSBuild.exe WPF_Example/DatumMeasurement.csproj -t:Rebuild \
   -p:Configuration=Debug -p:Platform=x64 \
   -p:OutDir="$SCR/b73on/" -p:IntermediateOutputPath="$SCR/objon/" -v:m -nologo

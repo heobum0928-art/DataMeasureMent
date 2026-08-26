@@ -16,8 +16,46 @@ using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
 namespace ReringProject {
     public sealed partial class SystemHandler {
-        //260626 hbk z_index=$PREP 분리: $PREP 수신 시 저장, $TEST 라우팅 시 주입. volatile=MainRun/시퀀스 스레드 안전.
-        private volatile int _lastPrepZIndex = 0;
+        // $PREP 이 저장한 z_index. 시퀀스마다 z 가 0 부터 독립 시작하므로 값이 겹친다 —
+        // 전역 단일 변수로 두면 대상이 섞일 때 조용히 오염된다(R2/R3). 시퀀스 이름별로 분리 보관한다.
+        // MainRun(폴링 스레드)과 시퀀스 스레드가 함께 접근하므로 모든 읽기/쓰기를 _prepZIndexLock 으로 감싼다.
+        private readonly Dictionary<string, int> _lastPrepZIndexBySeq = new Dictionary<string, int>();
+        private readonly object _prepZIndexLock = new object();
+
+        private void StorePrepZIndex(string szSeqName, int nZIndex)
+        {
+            bool bHasName = !string.IsNullOrEmpty(szSeqName);
+            if (!bHasName)
+            {
+                return;
+            }
+            lock (_prepZIndexLock)
+            {
+                _lastPrepZIndexBySeq[szSeqName] = nZIndex;
+            }
+        }
+
+        // 해당 시퀀스의 마지막 $PREP z_index. $PREP 없이 $TEST 가 오면 0(=Datum 인덱스) 보수적 폴백.
+        private int GetPrepZIndex(string szSeqName)
+        {
+            bool bHasName = !string.IsNullOrEmpty(szSeqName);
+            if (!bHasName)
+            {
+                return 0;
+            }
+            lock (_prepZIndexLock)
+            {
+                int nStored = 0;
+                bool bFound = _lastPrepZIndexBySeq.TryGetValue(szSeqName, out nStored);
+                if (bFound)
+                {
+                    return nStored;
+                }
+            }
+            Logging.PrintLog((int)ELogType.Error,
+                "[PREP] 시퀀스 '{0}' 에 대한 $PREP 기록이 없다 — z_index=0 으로 폴백(선행 $PREP 누락 의심)", szSeqName);
+            return 0;
+        }
 
         //project 별, sequence 정의
         private void MainRun() {
@@ -220,7 +258,7 @@ namespace ReringProject {
 
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
         //260615 hbk Phase 43.2: IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
-        //260626 hbk z_index=$PREP 분리: $TEST z_index 필드 제거 → _lastPrepZIndex 주입.
+        //260626 hbk z_index=$PREP 분리: $TEST z_index 필드 제거 → 대상 시퀀스의 $PREP z_index 주입(_lastPrepZIndexBySeq).
         //260722 hbk Phase 68 D-01/D-01a/D-01b: v1.0 실행(grab) 레벨 z_index 스코프 필터링 배선(StartV1Scoped 위임) —
         //  Phase 49 D-01이 응답 집계 레벨(AggregateIndexFais)에서만 구현되고 실행 레벨에서는 갭이던 것을 닫는다.
         private bool ProcessTest(TestPacket packet) {
@@ -228,18 +266,21 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[RECIPE] TEST rejected — recipe not yet loaded (IsRecipeReady=false)");
                 return false;
             }
-            packet.TestID = _lastPrepZIndex.ToString(); //260626 hbk $PREP z_index 주입
+            string szTargetSeqName = packet.Identifier;
+            int nPrepZIndex = GetPrepZIndex(szTargetSeqName);
+            packet.TestID = nPrepZIndex.ToString(); //260626 hbk $PREP z_index 주입
             if (Sequences.IsDynamicFAIMode) {
                 string seqName = packet.Identifier;
                 SequenceBase seq = Sequences[seqName];
                 if (seq == null) return false;
-                return StartV1Scoped(seq, packet); //260722 hbk Phase 68 D-01/D-01a: z=0 StartAll / z>=1 StartSubset(+폴백)
+                return StartV1Scoped(seq, packet, nPrepZIndex); //260722 hbk Phase 68 D-01/D-01a: z=0 StartAll / z>=1 StartSubset(+폴백)
             }
             return Sequences.Start(packet);
         }
 
         //260722 hbk Phase 68 D-01/D-01a/D-01b: v1.0(UseProtocolV1+IsDynamicFAIMode) $TEST 실행 스코프 배선.
-        //  _lastPrepZIndex 가 이번 $TEST 의 z_index 단일 소스(packet.TestID 는 방금 이 값으로 대입됐을 뿐 재파싱 안 함).
+        //  대상 시퀀스의 $PREP z_index(_lastPrepZIndexBySeq 조회 결과 = 파라미터 nPrepZIndex)가 이번 $TEST 의
+        //  z_index 단일 소스(packet.TestID 는 방금 이 값으로 대입됐을 뿐 재파싱 안 함).
         //  z_index==0(Datum) → StartAll(D-01a, 회귀 0). z_index>=1 → InspectionSequence.FindActionIndicesByZIndex 로
         //  매핑 Shot(own-ZIndex + 크로스-Z ZIndexA/ZIndexB owning Shot, D-01) 만 StartSubset 실행.
         //  StartSubset 은 매칭 인덱스의 min-max 연속구간만 실행(D-01b, SequenceHandler.RebuildInspectionActions 의
@@ -250,9 +291,9 @@ namespace ReringProject {
         //  bottom-empty-zindex-tcp-delay 수정 — 기존 StartAll 폴백은 이 시퀀스의 무관한 다른 z 의 shot 을 전부
         //  재실행했을 뿐 응답 내용에는 전혀 기여하지 않으면서 실기 재현 7,485ms 응답 지연을 유발했다. 상세 근거는
         //  StartEmptyScope 호출부 주석 참고).
-        private bool StartV1Scoped(SequenceBase seq, TestPacket packet)
+        private bool StartV1Scoped(SequenceBase seq, TestPacket packet, int nPrepZIndex)
         {
-            bool bIsDatumZIndex = _lastPrepZIndex == DATUM_TEST_Z_INDEX;
+            bool bIsDatumZIndex = nPrepZIndex == DATUM_TEST_Z_INDEX;
             if (bIsDatumZIndex)
             {
                 //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소 리셋을 z=0 응답 생성 시점
@@ -300,7 +341,7 @@ namespace ReringProject {
             {
                 return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
             }
-            List<int> matchedIndices = inspSeq.FindActionIndicesByZIndex(_lastPrepZIndex);
+            List<int> matchedIndices = inspSeq.FindActionIndicesByZIndex(nPrepZIndex);
             bool bHasMatch = matchedIndices != null && matchedIndices.Count > 0;
             if (bHasMatch)
             {
@@ -309,10 +350,10 @@ namespace ReringProject {
             //260722 hbk Phase 68 GAP-2(68-GAP-ANALYSIS.md 우선순위 2): 빈-매칭이 전부 운용 오류인 것은 아니다 —
             //  오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1)는 own ZIndex/측정 ZIndexA/B 매칭이 없는 게 정상이다.
             //  StartAll 폴백(무관 Shot 전체 재-grab + 매 사이클 Error 로그) 대신 datum-only 최소 Action 만 실행한다.
-            bool bDatumOnly = inspSeq.IsDatumOnlyExecutionIndex(_lastPrepZIndex);
+            bool bDatumOnly = inspSeq.IsDatumOnlyExecutionIndex(nPrepZIndex);
             if (bDatumOnly)
             {
-                List<int> datumIndices = inspSeq.FindDatumOnlyActionIndices(_lastPrepZIndex);
+                List<int> datumIndices = inspSeq.FindDatumOnlyActionIndices(nPrepZIndex);
                 bool bHasDatumTrigger = datumIndices != null && datumIndices.Count > 0;
                 if (bHasDatumTrigger)
                 {
@@ -324,7 +365,7 @@ namespace ReringProject {
             //  WarnIfEmptyScope 주석(Phase 49 BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
             //  모순되는 별도 레이어(Phase 68 실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
             //  3/22 는 원래부터 BOTTOM 소유 shot 이 0개인 정상 구성)에서 7,485ms 응답 지연을 유발했다 —
-            //  StartAll 로 실행된 다른 z 의 shot 은 AggregateIndexFais(nZIndex=_lastPrepZIndex) 필터에 절대
+            //  StartAll 로 실행된 다른 z 의 shot 은 AggregateIndexFais(nZIndex=이번  의 z_index) 필터에 절대
             //  포함되지 않으므로(별개 z), 응답 내용은 Action 미실행 시와 100% 동일(B, FAIResults 0건) — 즉
             //  StartAll 은 응답 정확성에 전혀 기여하지 않고 지연만 유발했다(근본원인 확정,
             //  .planning/debug/bottom-empty-zindex-tcp-delay.md). StartEmptyScope 는 Action 실행 없이
@@ -333,7 +374,7 @@ namespace ReringProject {
             //  않는다"는 점 뿐이다).
             Logging.PrintLog((int)ELogType.Error,
                 string.Format("[V1Scope] ZIndex={0} 매칭 Shot 0건(Seq={1}) — Action 미실행, 즉시 빈 응답(B/F). 레시피 ZIndex 설정 확인 필요(의도된 빈 z_index 라면 정상).",
-                    _lastPrepZIndex, seq.Name));
+                    nPrepZIndex, seq.Name));
             return seq.StartEmptyScope(packet);
         }
 
@@ -880,7 +921,8 @@ namespace ReringProject {
         //260806 hbk Phase 71: Op 필드 폐기 — $PREP 는 항상 "이 z_index 조명 점등" 단일 의미.
         //  소등은 PLC 요청이 아니라 사이클 P/F 확정 시 InspectionSequence 가 자동 수행(71-02, TryTurnOffLightsOnCycleEnd).
         //  HW 트리거 전환 대비: 조명 점등이 $PREP(준비 단계)에 통합 → $TEST(트리거)는 조명 무관.
-        //  Site 필드는 ACK 에 echo만 함. 실제 시퀀스 라우팅은 이 PC 소속 InspectionSequence 전부 대상.
+        //  Phase 73: Site 필드는 ACK echo 전용이고, 실제 라우팅은 Type 이 정한다(ResourceMap.SetIdentifier 가
+        //  packet.Identifier 에 대상 시퀀스 이름을 채워 준다). 더 이상 "이 PC 소속 InspectionSequence 전부"가 아니다.
         private PrepAckPacket ProcessPrep(PrepPacket packet)
         {
             PrepAckPacket ackPacket = new PrepAckPacket();
@@ -891,23 +933,44 @@ namespace ReringProject {
             }
             ackPacket.Target = packet.Sender;
             ackPacket.Site = packet.Site;
+            ackPacket.Type = packet.Type;
             ackPacket.ZIndex = packet.ZIndex;
-            ackPacket.IsOk = false; // 기본값 FAIL — 성공 시 true 로 덮어씀
+            ackPacket.IsOk = false;   // 기본 FAIL — 아래 전 단계를 통과해야만 OK 로 승격
 
-            _lastPrepZIndex = packet.ZIndex; //260626 hbk z_index 저장 → ProcessTest 주입용
-            bool bApplied = ApplyPrepToSequences(packet.ZIndex);
-            if (bApplied)
+            // 규격 위반 요청($PREP:site,Type,z_index@ 3필드 아님) — 조명을 건드리지 않고 FAIL 회신.
+            // 무응답은 절대 금지(PLC ACK 무한 대기 = 라인 정지).
+            bool bIsRequestValid = packet.IsRequestValid;
+            if (!bIsRequestValid)
             {
-                ackPacket.IsOk = true;
+                Logging.PrintLog((int)ELogType.Error, "[PREP] 규격 위반 요청 — FAIL ACK 회신, 조명 무변경");
+                return ackPacket;
             }
+
+            string szSeqName = packet.Identifier;
+            bool bHasSeqName = !string.IsNullOrEmpty(szSeqName);
+            if (!bHasSeqName)
+            {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[PREP] Type='{0}' 로 대상 시퀀스를 해석하지 못함 — FAIL ACK 회신", packet.Type);
+                return ackPacket;
+            }
+
+            StorePrepZIndex(szSeqName, packet.ZIndex);
+            bool bApplied = ApplyPrepToSequence(szSeqName, packet.ZIndex);
+            ackPacket.IsOk = bApplied;
+
+            Logging.PrintLog((int)ELogType.Trace,
+                "[PREP] site={0} Type={1} seq={2} z={3} 조명세팅={4}",
+                packet.Site, packet.Type, szSeqName, packet.ZIndex, bApplied);
             return ackPacket;
         }
 
         //260807 hbk quick-260807-lh7 (D-LH7-01): $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
-        //  왜 필요한가: $PREP 이 저장한 _lastPrepZIndex 는 다음 $PREP 이 올 때까지 계속 남는데 되돌릴 수단이 앱 재시작뿐이라,
+        //  왜 필요한가: $PREP 이 저장한 시퀀스별 z_index 는 다음 $PREP 이 올 때까지 계속 남는데 되돌릴 수단이 앱 재시작뿐이라,
         //  실측 중 상태가 꼬이면 복구가 불가능했다. 그 복구 수단이 이 명령이다.
         //  Site 필드는 ACK 에 echo 만 한다 — 라우팅에 쓰지 않는다. site 로 Top/Bottom 을 구분하는 것이 불가능한 것은
-        //  이미 확인된 설계 제약이며, ApplyPrepToSequences($PREP)와 동일하게 "이 PC 의 InspectionSequence 전부"가 대상이다.
+        //  이미 확인된 설계 제약이며, $RESET 은 대상을 가리지 않고 "이 PC 의 InspectionSequence 전부"를 리셋한다
+        //  (Phase 73 이후 $PREP 은 Type 으로 대상 1개를 정하지만, $RESET 은 전체 클린 슬레이트가 목적이라 그대로 둔다).
         //  IsOk 의미: true = 모든 대상 시퀀스가 실제로 리셋됨 / false = 하나 이상이 실행 중이라 건너뜀(또는 대상 0개).
         //  실패여도 ACK 는 반드시 보낸다 — 무응답은 PLC 를 ACK 무한 대기(라인 정지)시킨다.
         private ResetAckPacket ProcessReset(ResetPacket packet)
@@ -921,13 +984,16 @@ namespace ReringProject {
             ackPacket.Target = packet.Sender;
             ackPacket.Site = packet.Site;
 
-            _lastPrepZIndex = 0; //260807 hbk volatile int — 어느 스레드에서 써도 안전. 0 = "다음 $TEST 는 Datum(z=0)" 보수적 초기값.
+            lock (_prepZIndexLock)
+            {
+                _lastPrepZIndexBySeq.Clear();   // 전 시퀀스의 z_index 기억을 지운다 = 다음 $TEST 는 z=0(Datum) 보수적 초기값
+            }
 
             bool bAllReset = ResetSequenceCycleStates();
             ackPacket.IsOk = bAllReset;
 
             Logging.PrintLog((int)ELogType.Trace,
-                "[RESET] site={0} 수신 — _lastPrepZIndex=0, 시퀀스 리셋 결과={1}", packet.Site, bAllReset);
+                "[RESET] site={0} 수신 — _lastPrepZIndexBySeq=clear, 시퀀스 리셋 결과={1}", packet.Site, bAllReset);
             return ackPacket;
         }
 
@@ -953,6 +1019,11 @@ namespace ReringProject {
 
             PrepPacket prepPacket = new PrepPacket();
             prepPacket.ZIndex = zIndex;
+            // 수동 트리거는 TCP 를 거치지 않아 ResourceMap.SetIdentifier 가 돌지 않는다 —
+            // Identifier/IsRequestValid 를 직접 채워야 ProcessPrep 이 올바른 시퀀스에 조명을 건다.
+            prepPacket.Identifier = seqName;
+            prepPacket.Type = ResolveTypeCodeBySequenceName(seqName);
+            prepPacket.IsRequestValid = true;
             PrepAckPacket ack = ProcessPrep(prepPacket);
 
             bool bPrepOk = ack != null && ack.IsOk;
@@ -973,55 +1044,39 @@ namespace ReringProject {
             return bTestOk;
         }
 
-        //260625 hbk Phase 64 LIGHT-01: Sequences 순회 → InspectionSequence 찾기 → ApplyShotLights 호출.
-        //  하나라도 성공하면 true 반환. 매칭 InspectionSequence 없으면 false.
-        private bool ApplyPrepToSequences(int nZIndex)
+        // $PREP 대상 시퀀스 1개에만 조명을 적용한다.
+        //  이전 구현은 전 시퀀스를 순회하며 마지막이 이기는 구조라, z 값이 대상을 암시한다는 전제 위에
+        //  서 있었다 — Phase 73 이 그 전제를 깬다(지그마다 z 가 0 부터 시작).
+        //  반환값 의미(D-73-08): true = 조명 세팅 성공 / false = 조명 세팅 실패.
+        //  ⚠ "이 z 에 Shot 이 있는가"는 더 이상 판정하지 않는다. Shot 이 없는 z(기준점 전용 z, 아직 항목을
+        //  안 넣은 빈 z)는 조명을 건드릴 대상이 없을 뿐이며 정상이므로 true 다.
+        private bool ApplyPrepToSequence(string szSeqName, int nZIndex)
         {
-            //260820 hbk quick-fix(리비전): 먼저 기존과 동일하게 모든 시퀀스에 대해 z_index 에 맞는 Shot 조명을
-            //  실제로 찾아서 켠다 — SIDE 처럼 z=0 자리에 진짜 Shot(조명 설정)이 있는 경우, 그 조명은 여기서
-            //  반드시 정상 적용되어야 한다(이전 리비전은 z=0 을 무조건 성공 처리하며 이 루프 자체를 건너뛰어
-            //  SIDE 의 z=0 Shot 조명 적용까지 함께 막아버리는 회귀가 있었음 — 사용자 지적으로 발견/수정).
-            bool bAnyApplied = false;
-            bool bIsDatumOnlyForSomeSeq = false;
-            int nCount = Sequences.Count;
-            for (int i = 0; i < nCount; i++)
+            SequenceBase seqBase = Sequences[szSeqName];
+            InspectionSequence inspSeq = seqBase as InspectionSequence;
+            bool bIsInsp = inspSeq != null;
+            if (!bIsInsp)
             {
-                SequenceBase seqBase = Sequences[i];
-                InspectionSequence inspSeq = seqBase as InspectionSequence;
-                bool bIsInsp = inspSeq != null;
-                if (!bIsInsp)
-                {
-                    continue;
-                }
-                bool bOk = inspSeq.ApplyShotLights(nZIndex);
-                if (bOk)
-                {
-                    bAnyApplied = true;
-                }
-                //260820 hbk quick-fix: z=0 뿐 아니라 크로스-Z Datum 의 두 번째 캡처 tick(예: Datum_3-1 의 z=0,1
-                //  중 z=1)도 Shot 조명 없이 이미지만 찍는 "Datum 전용" 인덱스다 — 실측(SIDE_1 반복테스트)에서
-                //  z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나오는 걸 확인(SIDE의 4개 Datum 모두 ZIndexA/B 쌍의
-                //  두 번째 값이 여기 해당). IsDatumOnlyExecutionIndex 가 이미 이 판정을 정확히 갖고 있어 재사용.
-                bool bDatumOnlyHere = inspSeq.IsDatumOnlyExecutionIndex(nZIndex);
-                if (bDatumOnlyHere)
-                {
-                    bIsDatumOnlyForSomeSeq = true;
-                }
+                Logging.PrintLog((int)ELogType.Error,
+                    "[PREP] 시퀀스 '{0}' 를 찾을 수 없다(이 PC 에 미등록) — 조명 세팅 실패", szSeqName);
+                return false;
             }
-            //  z=0(InspectionSequence.DATUM_Z_INDEX — PLC $PREP 프로토콜의 "기준점 전용" 값) 이거나, 위에서 확인한
-            //  크로스-Z Datum 전용 캡처 tick 은 Shot 이 아니라 Datum 조명 담당 영역이라, TOP/BOTTOM 처럼 대응하는
-            //  Shot 이 아예 없는 시퀀스가 있는 게 정상이다(Datum 조명은 여기서 미리 켜지 않고 ApplyDatumLights 가
-            //  실제 grab 직전에 별도 적용 — InspectionSequence.ApplyDatumLights 코드 주석 참고). 위 루프에서
-            //  아무도 못 찾았을 때(bAnyApplied=false)에 한해서만 이걸 "정상적으로 준비할 Shot 조명이 없는 상태"로
-            //  보고 성공 처리한다 — SIDE 처럼 위에서 이미 찾아 적용했으면(bAnyApplied=true) 이 분기를 타지 않고
-            //  그 결과를 그대로 쓴다.
-            bool bIsDatumOnlyZero = nZIndex == 0;
-            bool bTreatAsDatumOnly = bIsDatumOnlyZero || bIsDatumOnlyForSomeSeq;
-            if (bTreatAsDatumOnly && !bAnyApplied)
+            return inspSeq.ApplyShotLights(nZIndex);
+        }
+
+        // 수동 트리거 전용 — 시퀀스 이름에서 프로토콜 Type 코드 문자열을 되돌린다(ACK echo 용).
+        private static string ResolveTypeCodeBySequenceName(string szSeqName)
+        {
+            switch (szSeqName)
             {
-                return true;
+                case SequenceHandler.SEQ_TOP:    return "0";
+                case SequenceHandler.SEQ_BOTTOM: return "1";
+                case SequenceHandler.SEQ_SIDE_1: return "2";
+                case SequenceHandler.SEQ_SIDE_2: return "3";
+                case SequenceHandler.SEQ_SIDE_3: return "4";
+                case SequenceHandler.SEQ_SIDE_4: return "5";
+                default:                         return "";
             }
-            return bAnyApplied;
         }
 
         //260626 hbk v3.0: 전 InspectionSequence 소등 헬퍼(하나라도 있으면 true).

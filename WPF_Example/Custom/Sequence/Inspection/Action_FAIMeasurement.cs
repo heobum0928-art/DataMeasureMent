@@ -904,6 +904,56 @@ namespace ReringProject.Sequence {
             return null;
         }
 
+        // 크로스-Z role(A/B) 전용 이미지 취득.
+        //  실기(라이브 grab)는 z 를 옮겨가며 매 tick 새로 촬영하므로 role 구분이 필요 없다 — 기존 경로 그대로 위임한다.
+        //  반면 SIMUL_MODE / OfflineInspectMode 는 카메라가 없어 저장 이미지를 읽는데, 기존 GrabOrLoadDatumImage 는
+        //  role 을 보지 않고 항상 TeachingImagePath(가로) 한 장만 돌려줬다. 그래서 role B(세로) 자리에도 가로 사진이
+        //  들어가 "Vertical: insufficient edges ... got 0" 으로 기준점 검출이 통째로 실패했다(SIMUL+자동 조합에서만
+        //  발생. RUN 버튼은 비프로토콜이라 정적 2장 경로를 타서 정상이었다).
+        //  role A ↔ TeachingImagePath, role B ↔ TeachingImagePath_Vertical 대응은 정적 2장 경로
+        //  (TryLoadStaticDualDatumImages)와 결과 매핑(TryTakeCrossZImageClones: keyA→Horizontal, keyB→Vertical)에
+        //  이미 확립된 규약이라 그대로 따른다.
+        private HImage GrabOrLoadCrossZRoleImage(DatumConfig datum, bool bIsRoleA) {
+            if (ShotParam == null) return null;
+
+            // role A 는 어느 모드에서도 기존 동작과 동일(TeachingImagePath) — 분기 불필요.
+            if (bIsRoleA) {
+                return GrabOrLoadDatumImage(datum);
+            }
+
+            bool bUseStoredImage = false;
+            #if SIMUL_MODE
+            bUseStoredImage = true;
+            #else
+            bUseStoredImage = SystemSetting.Handle.OfflineInspectMode;
+            #endif
+            if (!bUseStoredImage) {
+                return GrabOrLoadDatumImage(datum);   // 실기 라이브 grab — 무변경 경로
+            }
+
+            string verticalPath;
+            if (datum != null) verticalPath = datum.TeachingImagePath_Vertical;
+            else verticalPath = null;
+            bool bHasVerticalPath = !string.IsNullOrEmpty(verticalPath) && File.Exists(verticalPath);
+            if (!bHasVerticalPath) {
+                // 세로 티칭 이미지가 없으면 예전처럼 가로를 쓴다 — 검출은 실패하겠지만 여기서 null 을 돌려
+                // "캡처 실패"로 확정해버리는 것보다, 기존과 동일한 실패 경로(에지 0 → ALIGN_FAIL)로 흘려보내는 편이
+                // 로그 내용이 종전과 같아 진단에 혼선이 없다.
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + (datum != null ? (datum.DatumName ?? "") : "")
+                    + "' 크로스-Z role B 세로 티칭 이미지 없음 — 가로 이미지로 폴백(검출 실패 예상). TeachingImagePath_Vertical 확인 필요.");
+                return GrabOrLoadDatumImage(datum);
+            }
+
+            try {
+                return new HImage(verticalPath);
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + (datum != null ? (datum.DatumName ?? "") : "")
+                    + "' 크로스-Z role B 세로 이미지 로드 실패: " + ex.Message);
+                return null;
+            }
+        }
+
         // per-datum 1-image 로드 (TeachingImagePath → SimulImagePath 폴백 → grab).
         private HImage GrabOrLoadDatumImage(DatumConfig datum) {
             if (ShotParam == null) return null;
@@ -1088,7 +1138,7 @@ namespace ReringProject.Sequence {
         // 현재 tick 이미지를 라이브 grab(기존 Shot 라이브 grab 선례 GrabOrLoadDatumImage 재사용, 새 메커니즘 금지 D-01)해
         //  크로스-Z 저장소에 역할(A/B) 키로 저장. GrabSyncLock 은 호출부(EStep.DatumPhase)가 이미 보유 — 새 lock 없음.
         private bool CaptureAndStoreCrossZDatumImage(DatumConfig datum, InspectionSequence parentSeq, bool bIsRoleA) {
-            HImage capturedImage = GrabOrLoadDatumImage(datum);
+            HImage capturedImage = GrabOrLoadCrossZRoleImage(datum, bIsRoleA);
             if (capturedImage == null) {
                 return false;
             }

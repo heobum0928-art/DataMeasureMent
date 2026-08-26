@@ -97,6 +97,20 @@ Type 이 숫자이므로 **파싱은 성공하고 z_index 로 오인**된다 —
 
 **Type ↔ 시퀀스 매핑:** 0=TOP, 1=BOTTOM, 2=SIDE_1, 3=SIDE_2, 4=SIDE_3, 5=SIDE_4
 
+**z_index 의미 확정 (2026-08-26):** 와이어로 오는 z 는 **Type 안에서 0 부터 시작하는 지역 번호**다.
+제어 HMI 의 `2D Side Vision Index 위치` 40칸 테이블은 **PLC 측 물리 위치(mm) 저장소**이며,
+스펙 표의 `z_index: 검사위치(0~40)` 는 그 저장소 크기를 적은 것이지 와이어 값 범위가 아니다.
+(Type, z) → 테이블 행 매핑은 PLC 내부 책임. **우리가 받는 z 는 최대 9.**
+
+지그별 소요: Side#1 5 + Side#2 8 + Side#3 10 + Side#4 10 = **33칸** (40칸 중 여유 7).
+
+**$PREP_ACK 도 Type 을 갖는다:** `$PREP_ACK:site,Type,z_index,OK|FAIL@`
+→ VisionResponsePacket.cs:434~453 송신부 수정 필요(M12).
+
+**FAIL 정의:** "해당 z_index 가 없을 때"(범위 밖 요청). 기준점 전용 z(Datum ZIndexA/B)와
+아직 항목을 안 넣은 빈 z 는 **OK 로 응답**한다 — 현 코드가 이미 그렇게 동작하므로 무수정.
+(과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 고친 결과물 — 되돌리지 말 것.)
+
 ---
 
 ## D-73-06. 검증으로 확인된 사실 (에이전트 2종 교차검증, 2026-08-26)
@@ -140,7 +154,9 @@ SIDE_1~4 는 `LIGHT_BAR_1~4` **같은 상수**를 쓴다. `TurnOffOwnShotLights`
 `InspectionSequence.cs:783~790` 주석이 기록한 "현재 레시피에서는 발생하지 않음" 조건을
 **이번 분리가 정확히 만든다.** 상호배타 게이트(`FindBlockingSequenceName`)는 **UI RUN 전용**이고
 TCP `$TEST` 경로는 거치지 않는다. `OnStop`/`OnError` 소등은 무조건 발화.
-→ 형제 시퀀스 non-Idle 채널 제외, 또는 소등을 4-SIDE 전체 종료로 이동. **설계 결정 필요.**
+→ **채택: (a) 형제 시퀀스 non-Idle 채널 제외.** 지그별 독립 사이클이라는 이번 phase 취지를
+유지하려면 소등도 지그 단위여야 한다. (b) "4-SIDE 전체 종료 후 소등" 은 단순하지만 4개를 다시
+하나의 묶음으로 되돌리는 셈이라 기각. plan 단계에서 재확인할 것.
 
 **R2. `_lastPrepZIndex` 전역 단일 변수** (SystemHandler.cs:20,216,236,273,282,285)
 z 가 시퀀스마다 0 부터 시작하면 값이 겹친다. **조건부 위험** — `$PREP`/`$TEST` 가 대상 간

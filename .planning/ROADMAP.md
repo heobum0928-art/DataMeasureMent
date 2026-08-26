@@ -1072,9 +1072,15 @@ Plans:
 
 **품질 게이트(사용자 명시):** 코드는 **삼항/`??`/`?.` 축약 전면 금지, 분기는 `if/else` 또는 전통 `switch`(C# 8.0 switch expression 금지) 만, 초보자가 봐도 이해되게**(긴 조건은 이름 있는 bool 로 선추출). **UI 는 MVVM** — 새 로직은 ViewModel 에 두고 `MainView.xaml.cs`(4,300줄, 최대 문제 파일)에 추가하지 않는다. 단 이번 phase 는 리팩토링이 목적이 아니므로 **이번에 손대는 3곳**(MainView.xaml.cs:4149, InspectionRecipeManager.cs:193/272)에만 적용하고 나머지 기존 code-behind 는 그대로 둔다. 실행 후 `gsd-code-reviewer` **필수** — 삼항 잔존 0건·참조 16곳 전수 대조·Datum 보존·`.shm` 경로 충돌·크로스-Z 완성 index 계약·`CanRunSequence` 상호배타 6항목 지정 검토. 테스트는 정적 검증으로 끝내지 않고 **SIMUL 실기 7종(T1~T7)** 수행 — RUN 회귀 / Type 2·3·4·5 개별 / 4연속(측정 25·이탈 7 baseline 일치) / 반복 5회 무결 / 리뷰어 / Top·Bottom 회귀.
 
-**미결(discuss 확정):** Side1~4 실제 z 상한(제시 0~4/0~7/0~10/0~11 vs 현 레시피 최소 0~2/0~3/0~4/0~3) · Datum 시퀀스 이동 수단(`OwnerName` 은 `AddDatum()` 경로로만 결정) · 제어팀 확정 통보 여부 · 테스트 클라이언트(`CommunicationTest`) "전체" 모드 대응(현재 Type 2~5 로 각각 z=0~15 를 돌려 같은 검사 4회 반복, 44초).
+**확정(discuss 완료 2026-08-26, CONTEXT `73-CONTEXT.md`):**
+- **z 배정(연속·빈칸 없음)** — SIDE_1 z=0~2 / SIDE_2 z=0~3 / SIDE_3 z=0~4 / SIDE_4 z=0~3. Datum 은 각 시퀀스 z=0,1. 여유 z 예약 없음(제어 요구) → 마지막 z 에 항상 Shot 이 있으므로 `ComputeLastZIndex` 그대로 최종 P/F 시점이 됨(`MaxZIndex` 선언 불필요).
+- **제어 협의 완료(김민욱선임)** — `$PREP:site,Type,z_index@` / `$PREP_ACK:site,Type,z_index,OK|FAIL@`, TOP/BOTTOM(Type 0,1) 포함 전 대상. **지그별 개별 P/F 확정**(지그 안 중간 z 는 B). `$PREP_ACK` 의 **FAIL = 조명 세팅 실패 전용**(검사 항목 유무 무관) — 규격서 `FAIL: 해당 z_index Shot 없음` 문구 교체.
+- **제어 공정이 순차** — Side#1 검사 → 피커 이송 → 바텀얼라인 → Side#2. SIDE_1~4 동시 실행 창 없음 → 조명 소등 충돌/`_lastPrepZIndex` 오염의 실제 발생 가능성 하락(단 코드 강제 아님, 수정은 유지).
+- **Datum/Shot 소속 이동** = 레시피 INI 스크립트 편집(UI 기능 추가 없음). **`.shm` = 기존 SIDE 폴더 유지**(Datum 파일명이 Datum 이름 기준이라 충돌 없음 → 재티칭 0). **테스트 클라이언트 대응 이번 phase 포함**.
 
-Plans: (discuss 후 확정)
+**변경 범위 정정:** 위 "16곳/5파일" 은 **초기 grep 이며 불완전**. 에이전트 2종 교차검증으로 확정된 실제 범위는 `73-CONTEXT.md` D-73-07 참조 — **위험 6건**(R1 `LIGHT_BAR` 공유 소등 충돌 / R2 `_lastPrepZIndex` 전역 단일 / R3 z==0 사이클 리셋 전역 판정 / R4 `SaveToIni` Param 위치 인덱스 시프트로 구 레시피 무효 / R5 `IsSequenceActive` 미추가 시 시퀀스 미생성 / R6 `ResolveSequenceName` default→SEQ_TOP 조용한 폴백), **수정필요 12건**(M2 수동 트리거 Type / M3 `ESite` 3슬롯 한계 / M4 `FIXTURE_SIDE` 4분할+마이그레이션 / M5 `RebuildInspectionActions` / M6 `OwnerSequenceName` 마이그레이션 / M7 `Contains("SIDE")` / M8 `Site==(int)ESequence.Bottom` 커플링 / M9 `MainView.xaml.cs:4149` roles 배열 / M10 `$PREP` 파서 재작성+`ResourceMap.SetIdentifier` Prep case 신설 / M11 `$RESET` Type 리셋 / M12 `$PREP_ACK` 송신부 Type / **M13 범위 밖 z 방어** — ACK 가 더는 걸러주지 않아 측정 0건 최종 P/F 위험). **M1 은 FAIL 정의 변경으로 소멸.**
+
+Plans: (plan 단계 진행 중)
 
 ---
 

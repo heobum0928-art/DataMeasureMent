@@ -2153,6 +2153,27 @@ namespace ReringProject.Sequence {
             }
         }
 
+        // 패턴 모델(.shm/.ncm) 저장 폴더 이름 정규화.
+        //  Phase 73 이 SIDE 를 SIDE_1~4 로 쪼갰지만 모델 파일은 기존 FAI_1\SIDE\ 폴더에 그대로 둔다
+        //  (Datum 파일명이 DatumName 기준이라 4개가 서로 겹치지 않는다 → 재티칭 비용 0, D-73-03).
+        //  이 정규화가 없으면 OwnerSequenceName="SIDE_1" 이 FAI_1\SIDE_1\ 를 가리켜 기존 모델을 못 찾고
+        //  전 항목이 조용히 실패한다(예외 없음, 로그 없음).
+        //  저장/로드가 같은 함수를 통과하므로 이 한 곳만 바꾸면 대칭이 유지된다.
+        public static string NormalizeModelFolderName(string szSeqName)
+        {
+            bool bIsEmpty = string.IsNullOrEmpty(szSeqName);
+            if (bIsEmpty)
+            {
+                return SequenceHandler.SEQ_TOP;
+            }
+            bool bIsSideJig = szSeqName.StartsWith(SequenceHandler.SEQ_SIDE, StringComparison.OrdinalIgnoreCase);
+            if (bIsSideJig)
+            {
+                return SequenceHandler.SEQ_SIDE;
+            }
+            return szSeqName;
+        }
+
         //260618 hbk Phase 54 ALIGN-01 datum 모델 경로 단일 소스 (D-07) — 54-04(런타임 load)·54-05(티칭 save) 공유.
         //  키 도출 로직 단일화 → 경로 불일치 구조적 차단. SourceShotName → ShotConfig.OwnerSequenceName 역추적 (InspectionListView.ResolveDatumCameraParam 선례).
         public static string ResolveDatumModelPath(DatumConfig datum)
@@ -2176,6 +2197,7 @@ namespace ReringProject.Sequence {
             string actName = "Datum"; // 결정적 상수 — propertyName=DatumName 이 유일성 보장
             string propertyName = datum.DatumName;
             if (propertyName == null) propertyName = "";
+            seqName = NormalizeModelFolderName(seqName);
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
@@ -2221,7 +2243,10 @@ namespace ReringProject.Sequence {
             string actName = "Datum";
             string propertyName = datum.DatumName;
             if (propertyName == null) propertyName = "";
-            return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
+            seqName = NormalizeModelFolderName(seqName);
+            string szModelPath = SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
+            Logging.PrintLog((int)ELogType.Trace, "[DatumModelPath] owner={0} folder={1} path={2}", ownerSeqName, seqName, szModelPath);
+            return szModelPath;
         }
 
         //260619 hbk Phase 55 ALIGN-02 패턴2 모델 경로 — ResolveDatumModelPath 미러, propertyName 에 "_2" 접미사 → 별도 .shm.
@@ -2245,6 +2270,7 @@ namespace ReringProject.Sequence {
             }
             string actName = "Datum";
             string propertyName = (datum.DatumName ?? "") + "_2";
+            seqName = NormalizeModelFolderName(seqName);
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
@@ -2287,6 +2313,7 @@ namespace ReringProject.Sequence {
             string propertyName = datum.DatumName;
             if (propertyName == null) propertyName = "";
             propertyName = propertyName + "_2";
+            seqName = NormalizeModelFolderName(seqName);
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 

@@ -20,9 +20,9 @@ MSBUILD : error MSB1008: 프로젝트를 하나만 지정할 수 있습니다.
 
 ```bash
 SCR="$SCRATCHPAD"   # 세션 스크래치패드 경로
-MSBuild.exe WPF_Example/DatumMeasurement.csproj \
+MSBuild.exe WPF_Example/DatumMeasurement.csproj -t:Rebuild \
   -p:Configuration=Debug -p:Platform=x64 \
-  -p:OutDir="$SCR/b73on/" -v:m -nologo
+  -p:OutDir="$SCR/b73on/" -p:IntermediateOutputPath="$SCR/objon/" -v:m -nologo
 ```
 
 ## 3. SIMUL_MODE OFF 빌드 — `Release|x64` 를 쓰면 안 된다
@@ -35,11 +35,18 @@ MSBuild.exe WPF_Example/DatumMeasurement.csproj \
 **csproj 를 수정하지 말고** `DefineConstants` 를 커맨드라인에서 덮어쓴다:
 
 ```bash
-MSBuild.exe WPF_Example/DatumMeasurement.csproj \
+MSBuild.exe WPF_Example/DatumMeasurement.csproj -t:Rebuild \
   -p:Configuration=Debug -p:Platform=x64 \
   -p:DefineConstants=TRACE%3BDEBUG \
-  -p:OutDir="$SCR/b73off/" -v:m -nologo
+  -p:OutDir="$SCR/b73off/" -p:IntermediateOutputPath="$SCR/objoff/" -v:m -nologo
 ```
+
+⚠ **`-t:Rebuild` 는 필수다.** 증분 상태로 돌리면 컴파일이 스킵돼 **경고 0줄**이 나온다
+(실행 확인: exit 0 / warning 0). 그 결과로 아래 18/16 기준을 적용하면 판정이 통째로 무의미해진다.
+`-p:IntermediateOutputPath` 도 스크래치로 돌려 `obj/` 캐시 영향을 배제한다.
+
+SIMUL-OFF 가 실제로 적용됐는지는 **CS0162 가 2→0 으로 사라지는지**로 교차 확인한다
+(CS0162 는 SIMUL 전용 분기에서만 나온다).
 
 ## 4. 경고 baseline — 73-01 실행 시점에 값이 바뀐다
 

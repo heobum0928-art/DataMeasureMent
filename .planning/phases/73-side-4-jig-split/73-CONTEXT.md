@@ -309,7 +309,10 @@ case 미추가 시 SIDE_3 이 **TOP 으로 조용히 해석**되고 로그도 �
 - UI 는 MVVM. MainView.xaml.cs(4,300줄)에 새 로직 추가 금지
 - 헝가리언 접두사(b/n/sz), C# 7.2 만, 파일별 중괄호 스타일 유지
 - 날짜 주석(//YYMMDD hbk) 규칙 폐기 — 비자명한 "왜" 만 최소 주석
-- 빌드 경고 baseline **12줄(CS0618×10 + CS0162×2)** — "경고 0" 을 통과 기준으로 쓰지 말 것
+- 빌드 경고 baseline — **Phase 73 착수 전 SIMUL-ON 12줄(CS0618×10 + CS0162×2) / SIMUL-OFF 10줄**.
+  단 73-01 이 `RegisterActions()` 의 Side 호출을 1→4줄로 늘려 CS0618 이 6줄 증가하므로,
+  **73-01 완료 후에는 SIMUL-ON 18줄 / SIMUL-OFF 16줄이 정상**이다. 상세·명령은 `73-BUILD-VERIFY.md`.
+  "경고 0" 을 통과 기준으로 쓰지 말 것. 숫자를 맞추려고 `[Obsolete]` 제거/`#pragma warning disable`/`NoWarn` 금지
 - 실행 중 프로세스 종료 금지 — 잠김 시 스크래치 OutDir 로 컴파일 검증
 - SIMUL_MODE ON/OFF 양쪽 빌드 검증
 - `DatumMeasurement.csproj` 는 로컬 전용 → 커밋 금지

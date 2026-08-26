@@ -1103,6 +1103,13 @@ Plans:
 - **B1/B2/B3 빌드 검증 규격** — `73-BUILD-VERIFY.md` 신설(단일 소스). ①`/p:` 는 MSYS 경로변환으로 MSB1008 실패 → `-p:` ②`Release|x64` 는 SIMUL-OFF 가 **아니다**(로컬 csproj 가 SIMUL_MODE 를 켬) → `-p:DefineConstants=TRACE%3BDEBUG` ③73-01 이 CS0618 을 6줄 늘리므로 baseline 12 → **SIMUL-ON 18 / SIMUL-OFF 16**. 통과 기준 1순위는 "에러 0 + 새 경고 코드 종류 0건".
 - **W1** `ResolveDatumModelPath` 계열은 3개가 아니라 **4개**(`:2253` 누락 시 패턴2 `.shm` 이 조용히 실패) → `== 5` 고정. **W7** SIDE 는 BAR 를 안 켠다(실제는 BACK 8/8, COAX 1/8) → 조명 시나리오 전면 교체. **W8** 스코프 밖 잔광 잔여 위험 · **W10** `$SITE_STATUS` 대상 특정 불가 → `73-HUMAN-UAT.md` K1/K2 로 이월. **W4/W6/W12** vacuous·exit-1·오탐 acceptance 교체. **W5** 삼항 2건. **W11** DisplayName 지그별 구분. **W13** CRLF 보존(`newline=''`).
 
+**plan-check 2차 반영 (2026-08-26, 신규 blocker 2건 + 잔재 13건):**
+- **N2 [최우선] 검증 절차 자체가 유일본을 파괴하던 경로 차단** — B6 실동작 검증(마이그레이션 전 Save)이 원본 `FAI_1` 에서 수행되면, 73-01 Task1 적용 상태라 `[Param0..7]` 삭제 + `[FIXTURE_SIDE_1..4] DatumCount=0` 추가가 일어나 Task3 스크립트 입력이 오염되고, `Utility/Ini.cs:487` 딕셔너리 충돌로 SIDE Datum 4개가 소실될 수 있었다. → 검증을 **사본 `FAI_1_b6test`** 에서 수행하고 **`sha256sum -c` 로 원본 무변경을 증명**, 사본은 삭제. Task3 에는 **입력 원본성 사전 확인**(`[Param0]` 1 / `OwnerSequenceName=` 35 / `[FIXTURE_SIDE_1-4]` 0 — 실측 일치 확인함) 게이트 추가.
+- **N1 완료 게이트 영구 실패 차단** — TOP shot 3개·BOTTOM shot 16개는 조명 Enabled 가 **0건**이라 `CollectOwnedChannelScope()` 가 TOP={COAX} / BOTTOM={} 이 된다. S9 의 "TOP `LIGHT_RING*` 호출 존재" / "BOTTOM `LIGHT_BACK` 호출 존재" 는 관측 불가 → **라우팅 로그(`seq=TOP`/`seq=BOTTOM`) 양성 + TOP 은 `LIGHT_ALIGN_COAX` 로만 조명 양성 + BOTTOM 은 호출 0건이 정상**으로 교체.
+- **W-o 증분 빌드 오작동** — `-t:Rebuild` 없이 돌리면 컴파일 스킵으로 경고 0줄이 나와 18/16 기준이 무의미해진다 → `-t:Rebuild` + 스크래치 `IntermediateOutputPath` 명시. SIMUL-OFF 적용 여부는 CS0162 2→0 으로 교차 확인.
+- **실행 실패 acceptance 교체** — W-c(줄번호 awk → 메서드명 awk) · W-d(`IsRequestValid` >=6 → ==3) · W-e(sln 은 상위 폴더, 하위서 실행 시 MSB1009) · W-f(`ResolveMaxZIndexByType` >=4 → ==3) · W-g(`file`/`grep -P` 미지원 → `grep -c $'$'` 로 교체, 실측 9596/9596·BOM 없음 확인).
+- **잔재 정리** — W-a(73-05·CONTEXT 의 12줄 baseline) · W-b(action 의 "Release\|x64 양쪽") · W-i(vacuous ROADMAP 조건 → `- [x]` 7건) · W-j(73-06/07 `@` 참조 추가) · W-k(CommunicationTest 에 SIMUL baseline 무의미 → 제거) · W-l(`_MEAS_` 전체 115 / SIDE 스코프 25 구분) · W-m(18항목 → 20행) · W-n($PREP 3필드 정확비교가 구 `Op` 패킷을 오파싱하는 알려진 제약을 파서 주석 + D-71-01 주석 갱신으로 명시).
+
 **R1 범위 확장:** 조명 **점등에도** 소등과 대칭인 "자기 소유 채널만" 스코핑을 넣는다. 현재 `ApplyShotLightsInternal` 이 13채널을 절대값으로 덮어써 PC1 의 `$PREP z=0` 에서 BOTTOM 이 TOP 예열을 지우고 있다(SIDE_1~4 는 `LIGHT_BAR_1~4` 공유라 실제 피해 발생). 자기 채널 집합 **안에서는** 기존대로 `Enabled=false → OFF` 를 유지한다(잔광 방지).
 
 ---

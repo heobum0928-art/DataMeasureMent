@@ -223,6 +223,9 @@ namespace ReringProject.Network {
                             msg += faiData.DistanceMm.ToString("0.000");
                         }
                     }
+                    // ⚠ 커플링 결함: 와이어 site 정수를 내부 ESequence enum 값과 직접 비교한다.
+                    //  Phase 73 은 ESequence.Bottom=3 을 유지하므로 동작 회귀는 없으나, enum 번호를 재배치하면
+                    //  이 비교가 조용히 깨진다. v2.6 경로 전용이라 이번 phase 에서는 동작을 바꾸지 않는다.
                     else if ((testPacket.InspectionType == (int)ETestType.Inspection) && testPacket.Site == (int)ESequence.Bottom)
                     {
                         for (int i = 0; i < 10; i++)
@@ -428,15 +431,23 @@ namespace ReringProject.Network {
             return szMsg;
         }
 
-        //260626 hbk v3.0: $PREP_ACK 직렬화.
-        //260806 hbk Phase 71: Op echo 제거 → $PREP_ACK:site,z_index,OK|FAIL@ (구분자 2개).
-        //  IsOk=true → OK, false → FAIL. 헝가리언 + if-else.
+        // $PREP_ACK 직렬화 → $PREP_ACK:site,Type,z_index,OK|FAIL@ (구분자 3개).
+        //  Type 은 요청 echo. 규격 위반 요청이라 Type 을 못 읽었으면 빈 필드를 그대로 내보낸다 —
+        //  임의 기본값("0"=TOP)을 채우면 제어가 "우리가 안 보낸 Type 을 받았다"고 오해한다.
+        //  IsOk 의미(D-73-08 확정): FAIL = 조명 세팅 실패 또는 요청 규격 위반. 검사 항목 유무는 반영하지 않는다.
         private static string BuildPrepAckMessage(PrepAckPacket packet)
         {
             string szMsg = "";
             szMsg += CMD_SEND_PREP_ACK;
             szMsg += VisionServer.MSG_CMD_SEPERATOR;       // ':'
             szMsg += packet.Site.ToString();
+            szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
+            string szType = packet.Type;
+            bool bHasType = !string.IsNullOrEmpty(szType);
+            if (bHasType)
+            {
+                szMsg += szType;
+            }
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
             szMsg += packet.ZIndex.ToString();
             szMsg += VisionServer.MSG_CONTENTS_SEPERATOR;  // ','
@@ -752,11 +763,14 @@ namespace ReringProject.Network {
         }
     }
 
-    //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답 패킷. IsOk=true → $PREP_ACK:site,z_index,OK@ / IsOk=false → $PREP_ACK:site,z_index,FAIL@
-    // Op 프로퍼티 제거 //260806 hbk Phase 71: $PREP Op 필드 폐기 → echo 대상 없음
+    //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답 패킷.
+    // Phase 73: Type echo 추가 → IsOk=true 면 $PREP_ACK:site,Type,z_index,OK@ / false 면 ...,FAIL@
     public class PrepAckPacket : VisionResponsePacket {
         public int ZIndex { get; set; }
         public bool IsOk { get; set; }
+
+        // 요청 $PREP 의 Type 을 그대로 echo 한다. 규격 위반 요청(FAIL ACK)이면 "" 가 들어온다.
+        public string Type { get; set; } = "";
 
         public PrepAckPacket() : base(EVisionResponseType.PrepAck) {
         }

@@ -1095,6 +1095,14 @@ Plans:
 
 **하위호환 폐기:** 제어와 **동시 교체**하며 구버전 펌웨어가 없으므로 `$PREP` 는 3필드 전용이다(필드 개수 분기 없음). 단 파서는 **절대 `null` 을 반환하지 않고** `IsRequestValid=false` 로 넘겨 FAIL ACK 를 보장한다 — 무응답은 PLC ACK 무한 대기(라인 정지)다.
 
+**plan-check 반영 (2026-08-26, blocker 7 / warning 13 — 전부 실측 명령으로 검증됨):**
+- **B6 데이터 손실 차단** — 마이그레이션 **전** 저장 시 구 `[FIXTURE_SIDE]`(Datum 4개, 유일본)가 소실되는 경로 발견. PC2 에서는 SIDE_1~4 시퀀스가 존재해 `PreserveFixtureFromExisting` 을 타지 않고 `DatumCount=0` 을 쓰며, 새 `IniFile` 은 명시적으로 쓴 섹션만 남긴다(3faa91b 동일 경로). → 저장 시 `existingFile` 에 구 섹션이 있으면 무조건 carry-over 하는 가드 추가.
+- **B7 백업 격리** — 유일 백업이 `RecipeSavePath`(`D:\Data\Recipe`) **안**에 있어 앱 레시피 목록에 노출·덮어쓰기 가능. 73-03 체크포인트 0번 항목으로 `D:\Backup\` 이동을 선행 조건화.
+- **B5 PC1 회귀 차단** — `$PREP` 에는 `$TEST` 같은 슬롯 폴백이 없어 PC1 의 TOP/BOTTOM 조명 예열이 전부 FAIL 로 사라질 뻔했다(phase 목표와 정면 충돌). Type 0/1 → SEQ_TOP/SEQ_BOTTOM 분기 + Prep case 슬롯 폴백 추가. 73-07 S9 를 "있어야 할 조명 호출이 **존재**" 하는 양성 조건으로 교체(기존 음성-only 조건은 호출 0건일 때도 통과).
+- **B4 카운트 정정** — `OwnerSequenceName=SIDE` 는 8이 아니라 **16**(8건은 레거시 `[Param0..7]`). 전부 `[SHOT_*_CAM]` 스코프 카운트로 교체하고, `[ParamN]` 은 **손대지 말 것**을 명시(죽은 경로이며 73-01 이후 자연 소멸).
+- **B1/B2/B3 빌드 검증 규격** — `73-BUILD-VERIFY.md` 신설(단일 소스). ①`/p:` 는 MSYS 경로변환으로 MSB1008 실패 → `-p:` ②`Release|x64` 는 SIMUL-OFF 가 **아니다**(로컬 csproj 가 SIMUL_MODE 를 켬) → `-p:DefineConstants=TRACE%3BDEBUG` ③73-01 이 CS0618 을 6줄 늘리므로 baseline 12 → **SIMUL-ON 18 / SIMUL-OFF 16**. 통과 기준 1순위는 "에러 0 + 새 경고 코드 종류 0건".
+- **W1** `ResolveDatumModelPath` 계열은 3개가 아니라 **4개**(`:2253` 누락 시 패턴2 `.shm` 이 조용히 실패) → `== 5` 고정. **W7** SIDE 는 BAR 를 안 켠다(실제는 BACK 8/8, COAX 1/8) → 조명 시나리오 전면 교체. **W8** 스코프 밖 잔광 잔여 위험 · **W10** `$SITE_STATUS` 대상 특정 불가 → `73-HUMAN-UAT.md` K1/K2 로 이월. **W4/W6/W12** vacuous·exit-1·오탐 acceptance 교체. **W5** 삼항 2건. **W11** DisplayName 지그별 구분. **W13** CRLF 보존(`newline=''`).
+
 **R1 범위 확장:** 조명 **점등에도** 소등과 대칭인 "자기 소유 채널만" 스코핑을 넣는다. 현재 `ApplyShotLightsInternal` 이 13채널을 절대값으로 덮어써 PC1 의 `$PREP z=0` 에서 BOTTOM 이 TOP 예열을 지우고 있다(SIDE_1~4 는 `LIGHT_BAR_1~4` 공유라 실제 피해 발생). 자기 채널 집합 **안에서는** 기존대로 `Enabled=false → OFF` 를 유지한다(잔광 방지).
 
 ---

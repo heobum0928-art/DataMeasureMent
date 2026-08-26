@@ -179,7 +179,11 @@ namespace ReringProject.Network {
         // Type(검사 대상 코드) → 시퀀스 이름 직접 해석. ESite 는 3슬롯이라 SIDE_1~4 를 담을 수 없어
         // 시퀀스 라우팅만 이 경로로 분리한다(카메라/조명 슬롯 매핑은 기존 ESite 경로 그대로).
         // PcRole 별 의미:
-        //   PC2(Side)  : 0/1 은 이 PC 대상이 아니므로 실패 반환 / 2~5 = SIDE_1~4
+        //   PC2(Side)  : 2~5 = SIDE_1~4. 0/1 은 이 메서드에서 false 를 돌려주지만, 호출부가
+        //     TryResolveSlotByType 폴백을 태우고 PC2 자원맵은 ESite.Top/Side 를 둘 다 SEQ_SIDE_1 로
+        //     매핑하므로 결과적으로 SIDE_1 으로 흘러간다(오설정 시 Error 로그는 남는다).
+        //     의도된 동작이다 — 여기서 FAIL 로 막으면 $PREP 과 $TEST 의 라우팅이 갈려
+        //     "조명 켠 시퀀스 ≠ 검사 도는 시퀀스" 가 되기 때문. $TEST 와 결과를 일치시키는 쪽을 택했다.
         //   PC1(TopBottom): Phase 73 이전 라우팅을 그대로 보존한다(회귀 0). 0,2,4,5 → TOP / 1,3 → BOTTOM.
         //     ⚠ 제어 스펙상 2~5 는 SIDE 이므로 PC1 이 이 값을 받을 일은 없다. 값이 실제로 오면
         //     기존 동작(폴백)을 유지하되 로그로 남긴다 — 조용한 라우팅 변경이 더 위험하다.

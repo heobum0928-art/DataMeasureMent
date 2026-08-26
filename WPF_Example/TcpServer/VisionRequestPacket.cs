@@ -168,6 +168,15 @@ namespace ReringProject.Network {
                 //  안 나가 PLC 가 ACK 무한 대기(라인 정지). 413-416번째 줄 PREP 하위호환 주석과 동일한 위험.
                 if (msgList[0] == CMD_RECV_RESET && msgList.Length < 2) { return new ResetPacket(); }
 
+                // '$PREP@'(내용 필드 통째로 없음)도 null 로 떨어뜨리지 않는다 — 위 $RESET 과 같은 이유로
+                //  응답이 안 나가면 PLC 가 ACK 를 무한 대기한다. IsRequestValid=false 로 넘기면
+                //  ProcessPrep 이 FAIL ACK 를 회신하므로 라인이 서지 않고 원인도 로그에 남는다.
+                if (msgList[0] == CMD_RECV_PREP && msgList.Length < 2) {
+                    PrepPacket emptyPrepPacket = new PrepPacket();
+                    emptyPrepPacket.IsRequestValid = false;
+                    return emptyPrepPacket;
+                }
+
                 if (msgList.Length < 2) return null;
 
             //cmd 구분

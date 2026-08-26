@@ -201,12 +201,24 @@ namespace ReringProject.Sequence {
             }
 
             // 기존 Param0~N 방식
-            int m = 0;
-            for (int i = 0; i < Sequences.Count; i++) {
-                for (int j = 0; j < this[i].ActionCount; j++) {
-                    ParamBase param = this[i][j].Param;
-                    param.Load(loadFile, "Param" + m.ToString());
-                    m++;
+            // 레거시 Param0..N 은 저장 당시의 시퀀스/Action 나열 순서에 위치로 묶여 있다.
+            // 시퀀스 개수가 달라진 뒤 그대로 읽으면 값이 엉뚱한 Action 에 실리므로 아예 건너뛴다.
+            int nSavedSeqCount = loadFile["Info"]["ParamSequenceCount"].ToInt();
+            bool bHasSavedSeqCount = nSavedSeqCount > 0;
+            bool bSeqCountMismatch = bHasSavedSeqCount && nSavedSeqCount != Sequences.Count;
+            if (bSeqCountMismatch) {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[RECIPE] 레거시 Param 매핑 불일치 — 저장 시 시퀀스 {0}개 / 현재 {1}개. Param0..N 로드를 건너뛴다(오매핑 방지).",
+                    nSavedSeqCount, Sequences.Count);
+            }
+            if (!bSeqCountMismatch) {
+                int m = 0;
+                for (int i = 0; i < Sequences.Count; i++) {
+                    for (int j = 0; j < this[i].ActionCount; j++) {
+                        ParamBase param = this[i][j].Param;
+                        param.Load(loadFile, "Param" + m.ToString());
+                        m++;
+                    }
                 }
             }
 
@@ -238,14 +250,22 @@ namespace ReringProject.Sequence {
                 SaveNewFormat(saveFile, existingFile); //260611 hbk existingFile 전달
             }
 
-            // 기존 Param0~N 방식도 항상 저장 (하위 호환)
-            int m = 0;
-            for (int i = 0; i < Sequences.Count; i++) {
-                for (int j = 0; j < this[i].ActionCount; j++) {
-                    ParamBase param = this[i][j].Param;
-                    param.Save(saveFile, "Param" + m.ToString());
-                    m++;
+            // 레거시 Param0..N 은 위치 인덱스 기반이라 시퀀스/Action 개수가 바뀌면 매핑이 통째로 밀린다.
+            // 동적 FAI 모드 레시피는 SHOTS 포맷이 단일 소스이고 로드 시 이 키를 읽지 않으므로 저장하지 않는다.
+            bool bSkipLegacyParam = IsDynamicFAIMode;
+            if (bSkipLegacyParam) {
+                saveFile["Info"]["ParamSequenceCount"] = 0;
+            }
+            else {
+                int m = 0;
+                for (int i = 0; i < Sequences.Count; i++) {
+                    for (int j = 0; j < this[i].ActionCount; j++) {
+                        ParamBase param = this[i][j].Param;
+                        param.Save(saveFile, "Param" + m.ToString());
+                        m++;
+                    }
                 }
+                saveFile["Info"]["ParamSequenceCount"] = Sequences.Count;
             }
 
             saveFile.Save(recipeFile);

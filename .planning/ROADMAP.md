@@ -1080,7 +1080,22 @@ Plans:
 
 **변경 범위 정정:** 위 "16곳/5파일" 은 **초기 grep 이며 불완전**. 에이전트 2종 교차검증으로 확정된 실제 범위는 `73-CONTEXT.md` D-73-07 참조 — **위험 6건**(R1 `LIGHT_BAR` 공유 소등 충돌 / R2 `_lastPrepZIndex` 전역 단일 / R3 z==0 사이클 리셋 전역 판정 / R4 `SaveToIni` Param 위치 인덱스 시프트로 구 레시피 무효 / R5 `IsSequenceActive` 미추가 시 시퀀스 미생성 / R6 `ResolveSequenceName` default→SEQ_TOP 조용한 폴백), **수정필요 12건**(M2 수동 트리거 Type / M3 `ESite` 3슬롯 한계 / M4 `FIXTURE_SIDE` 4분할+마이그레이션 / M5 `RebuildInspectionActions` / M6 `OwnerSequenceName` 마이그레이션 / M7 `Contains("SIDE")` / M8 `Site==(int)ESequence.Bottom` 커플링 / M9 `MainView.xaml.cs:4149` roles 배열 / M10 `$PREP` 파서 재작성+`ResourceMap.SetIdentifier` Prep case 신설 / M11 `$RESET` Type 리셋 / M12 `$PREP_ACK` 송신부 Type / **M13 범위 밖 z 방어** — ACK 가 더는 걸러주지 않아 측정 0건 최종 P/F 위험). **M1 은 FAIL 정의 변경으로 소멸.**
 
-Plans: (plan 단계 진행 중)
+**Plans:** 7 plans / 4 waves (plan 완료 2026-08-26)
+
+Plans:
+- [ ] 73-01-PLAN.md — 시퀀스 골격 4분할 (ESequence/EAction SIDE_1~4, IsSequenceActive/ResolveSequenceName/Register/Initialize/Rebuild 6분기, R4 레거시 Param 인덱스 차단) [wave 1]
+- [ ] 73-02-PLAN.md — `$PREP` 3필드 전용 파서 재작성 + `$PREP_ACK` Type echo (M10/M12/M8, 파싱 실패도 FAIL ACK 보장 = 무응답 0) [wave 1]
+- [ ] 73-03-PLAN.md — 레시피 4분할 저장/로드 + main.ini 마이그레이션 스크립트 + .shm 폴더 정규화 (M4/M6/M7/M9, 사람 승인 체크포인트) [wave 2]
+- [ ] 73-04-PLAN.md — Type→시퀀스 라우팅 + 시퀀스별 `_lastPrepZIndex` 사전 + 단일 시퀀스 조명 적용 (M3/M2/M11, R2/R3, M1 소멸) [wave 2]
+- [ ] 73-05-PLAN.md — 조명 점등/소등 시퀀스 소유 채널 스코핑(R1 양방향) + 조명 실패 bool 전파 + 범위 밖 z 방어(M13) [wave 3]
+- [ ] 73-06-PLAN.md — 테스트 클라이언트(CommunicationTest) Type별 z 범위 + 3필드 `$PREP` (D-73-04, SIMUL 검증 선행조건) [wave 2]
+- [ ] 73-07-PLAN.md — 정적 R/M 18항목 대조 + 코드리뷰 + **SIMUL+TCP S1~S9 검증**(완료 조건) + 실기 항목 `73-HUMAN-UAT.md` 분리 [wave 4]
+
+**검증 방식 확정:** 실장비를 당장 쓸 수 없으므로 **SIMUL_MODE + TCP 테스트 클라이언트만으로 phase 완료를 판정**한다(Type 라우팅 / 지그별 개별 P/F / 측정 25·이탈 7 baseline / `$PREP` 3필드 + FAIL 회신 / M13 / Top·Bottom 회귀 / 마이그레이션 무결성 / SIMUL ON·OFF 빌드). 조명 FAIL 은 `light.ini` 그룹명 오타 주입으로 재현하고 **원복 확인까지** 검증에 포함한다. 실기 필요 항목(조명 예열 산포 정량화 · 실제 Z축 타이밍 · PLC 실송신 순서 · 크로스-Z 실촬영 · 조명 감지 한계 통보 · 지그별 배출 연동)은 `73-HUMAN-UAT.md` 로 분리 추적하며 **phase 완료를 막지 않는다**(Phase 65 선례).
+
+**하위호환 폐기:** 제어와 **동시 교체**하며 구버전 펌웨어가 없으므로 `$PREP` 는 3필드 전용이다(필드 개수 분기 없음). 단 파서는 **절대 `null` 을 반환하지 않고** `IsRequestValid=false` 로 넘겨 FAIL ACK 를 보장한다 — 무응답은 PLC ACK 무한 대기(라인 정지)다.
+
+**R1 범위 확장:** 조명 **점등에도** 소등과 대칭인 "자기 소유 채널만" 스코핑을 넣는다. 현재 `ApplyShotLightsInternal` 이 13채널을 절대값으로 덮어써 PC1 의 `$PREP z=0` 에서 BOTTOM 이 TOP 예열을 지우고 있다(SIDE_1~4 는 `LIGHT_BAR_1~4` 공유라 실제 피해 발생). 자기 채널 집합 **안에서는** 기존대로 `Enabled=false → OFF` 를 유지한다(잔광 방지).
 
 ---
 

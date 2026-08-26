@@ -206,8 +206,15 @@ namespace ReringProject.Sequence {
             var seqs = new List<SequenceBase>();
             if (IsSequenceActive(ESequence.Top))
                 seqs.Add(new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_RING)); //260625 hbk Phase 64 LIGHT-01
-            if (IsSequenceActive(ESequence.Side))
-                seqs.Add(new InspectionSequence(ESequence.Side, SEQ_SIDE, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR)); //260625 hbk Phase 64 LIGHT-01
+            //SIDE 지그 4개는 같은 카메라/조명 그룹을 공유하되 시퀀스로는 독립이다(지그별 z 와 개별 P/F).
+            if (IsSequenceActive(ESequence.Side1))
+                seqs.Add(new InspectionSequence(ESequence.Side1, SEQ_SIDE_1, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR));
+            if (IsSequenceActive(ESequence.Side2))
+                seqs.Add(new InspectionSequence(ESequence.Side2, SEQ_SIDE_2, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR));
+            if (IsSequenceActive(ESequence.Side3))
+                seqs.Add(new InspectionSequence(ESequence.Side3, SEQ_SIDE_3, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR));
+            if (IsSequenceActive(ESequence.Side4))
+                seqs.Add(new InspectionSequence(ESequence.Side4, SEQ_SIDE_4, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR));
             if (IsSequenceActive(ESequence.Bottom))
                 seqs.Add(new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BACK)); //260625 hbk Phase 64 LIGHT-01
             SequenceBuilder.RegisterSequence(seqs.ToArray());
@@ -219,8 +226,14 @@ namespace ReringProject.Sequence {
             var acts = new List<ActionBase>();
             if (IsSequenceActive(ESequence.Top))
                 acts.Add(new TopSideInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index));
-            if (IsSequenceActive(ESequence.Side))
-                acts.Add(new TopSideInspectionAction(EAction.Side_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
+            if (IsSequenceActive(ESequence.Side1))
+                acts.Add(new TopSideInspectionAction(EAction.Side1_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
+            if (IsSequenceActive(ESequence.Side2))
+                acts.Add(new TopSideInspectionAction(EAction.Side2_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
+            if (IsSequenceActive(ESequence.Side3))
+                acts.Add(new TopSideInspectionAction(EAction.Side3_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
+            if (IsSequenceActive(ESequence.Side4))
+                acts.Add(new TopSideInspectionAction(EAction.Side4_Inspection, ACT_INSPECT, Side_Alg_Index, Inspection_Model_Index));
             if (IsSequenceActive(ESequence.Bottom))
                 acts.Add(new BottomInspectionAction(EAction.Bottom_Inspection, ACT_INSPECT, Bottom_Alg_Index, Inspection_Model_Index));
             SequenceBuilder.RegisterAction(acts.ToArray());
@@ -233,10 +246,25 @@ namespace ReringProject.Sequence {
                 seqTop.AddAction(EAction.Top_Inspection);
                 RegisterSequence(seqTop);
             }
-            if (IsSequenceActive(ESequence.Side)) {
-                SequenceBuilder seqSide = SequenceBuilder.CreateSequence(ESequence.Side);
-                seqSide.AddAction(EAction.Side_Inspection);
-                RegisterSequence(seqSide);
+            if (IsSequenceActive(ESequence.Side1)) {
+                SequenceBuilder seqSide1 = SequenceBuilder.CreateSequence(ESequence.Side1);
+                seqSide1.AddAction(EAction.Side1_Inspection);
+                RegisterSequence(seqSide1);
+            }
+            if (IsSequenceActive(ESequence.Side2)) {
+                SequenceBuilder seqSide2 = SequenceBuilder.CreateSequence(ESequence.Side2);
+                seqSide2.AddAction(EAction.Side2_Inspection);
+                RegisterSequence(seqSide2);
+            }
+            if (IsSequenceActive(ESequence.Side3)) {
+                SequenceBuilder seqSide3 = SequenceBuilder.CreateSequence(ESequence.Side3);
+                seqSide3.AddAction(EAction.Side3_Inspection);
+                RegisterSequence(seqSide3);
+            }
+            if (IsSequenceActive(ESequence.Side4)) {
+                SequenceBuilder seqSide4 = SequenceBuilder.CreateSequence(ESequence.Side4);
+                seqSide4.AddAction(EAction.Side4_Inspection);
+                RegisterSequence(seqSide4);
             }
             if (IsSequenceActive(ESequence.Bottom)) {
                 SequenceBuilder seqBottom = SequenceBuilder.CreateSequence(ESequence.Bottom);
@@ -327,7 +355,10 @@ namespace ReringProject.Sequence {
             //  이전 = Top 만 호출 → Side/Bottom Shot 이 INI 로드 후 seq.ActionCount=0 → 트리(InspectionListViewModel.CreateSequenceNode)에 안 보임
             //  RebuildInspectionActions 자체가 OwnerSequenceName 으로 필터링하므로 시퀀스별로 자기 소유 Shot 만 attach
             RebuildInspectionActions(ESequence.Top);
-            RebuildInspectionActions(ESequence.Side);
+            RebuildInspectionActions(ESequence.Side1);
+            RebuildInspectionActions(ESequence.Side2);
+            RebuildInspectionActions(ESequence.Side3);
+            RebuildInspectionActions(ESequence.Side4);
             RebuildInspectionActions(ESequence.Bottom);
             return true;
         }

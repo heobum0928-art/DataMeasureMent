@@ -1089,7 +1089,7 @@ Plans:
 - [ ] 73-04-PLAN.md — Type→시퀀스 라우팅 + 시퀀스별 `_lastPrepZIndex` 사전 + 단일 시퀀스 조명 적용 (M3/M2/M11, R2/R3, M1 소멸) [wave 2]
 - [ ] 73-05-PLAN.md — 조명 점등/소등 시퀀스 소유 채널 스코핑(R1 양방향) + 조명 실패 bool 전파 + 범위 밖 z 방어(M13) [wave 3]
 - [ ] 73-06-PLAN.md — 테스트 클라이언트(CommunicationTest) Type별 z 범위 + 3필드 `$PREP` (D-73-04, SIMUL 검증 선행조건) [wave 2]
-- [ ] 73-07-PLAN.md — 정적 R/M 18항목 대조 + 코드리뷰 + **SIMUL+TCP S1~S9 검증**(완료 조건) + 실기 항목 `73-HUMAN-UAT.md` 분리 [wave 4]
+- [ ] 73-07-PLAN.md — 정적 R/M 21행 대조 + 코드리뷰 + **SIMUL+TCP S1~S9 검증**(완료 조건) + 실기 항목 `73-HUMAN-UAT.md` 분리 [wave 4]
 
 **검증 방식 확정:** 실장비를 당장 쓸 수 없으므로 **SIMUL_MODE + TCP 테스트 클라이언트만으로 phase 완료를 판정**한다(Type 라우팅 / 지그별 개별 P/F / 측정 25·이탈 7 baseline / `$PREP` 3필드 + FAIL 회신 / M13 / Top·Bottom 회귀 / 마이그레이션 무결성 / SIMUL ON·OFF 빌드). 조명 FAIL 은 `light.ini` 그룹명 오타 주입으로 재현하고 **원복 확인까지** 검증에 포함한다. 실기 필요 항목(조명 예열 산포 정량화 · 실제 Z축 타이밍 · PLC 실송신 순서 · 크로스-Z 실촬영 · 조명 감지 한계 통보 · 지그별 배출 연동)은 `73-HUMAN-UAT.md` 로 분리 추적하며 **phase 완료를 막지 않는다**(Phase 65 선례).
 
@@ -1107,8 +1107,16 @@ Plans:
 - **N2 [최우선] 검증 절차 자체가 유일본을 파괴하던 경로 차단** — B6 실동작 검증(마이그레이션 전 Save)이 원본 `FAI_1` 에서 수행되면, 73-01 Task1 적용 상태라 `[Param0..7]` 삭제 + `[FIXTURE_SIDE_1..4] DatumCount=0` 추가가 일어나 Task3 스크립트 입력이 오염되고, `Utility/Ini.cs:487` 딕셔너리 충돌로 SIDE Datum 4개가 소실될 수 있었다. → 검증을 **사본 `FAI_1_b6test`** 에서 수행하고 **`sha256sum -c` 로 원본 무변경을 증명**, 사본은 삭제. Task3 에는 **입력 원본성 사전 확인**(`[Param0]` 1 / `OwnerSequenceName=` 35 / `[FIXTURE_SIDE_1-4]` 0 — 실측 일치 확인함) 게이트 추가.
 - **N1 완료 게이트 영구 실패 차단** — TOP shot 3개·BOTTOM shot 16개는 조명 Enabled 가 **0건**이라 `CollectOwnedChannelScope()` 가 TOP={COAX} / BOTTOM={} 이 된다. S9 의 "TOP `LIGHT_RING*` 호출 존재" / "BOTTOM `LIGHT_BACK` 호출 존재" 는 관측 불가 → **라우팅 로그(`seq=TOP`/`seq=BOTTOM`) 양성 + TOP 은 `LIGHT_ALIGN_COAX` 로만 조명 양성 + BOTTOM 은 호출 0건이 정상**으로 교체.
 - **W-o 증분 빌드 오작동** — `-t:Rebuild` 없이 돌리면 컴파일 스킵으로 경고 0줄이 나와 18/16 기준이 무의미해진다 → `-t:Rebuild` + 스크래치 `IntermediateOutputPath` 명시. SIMUL-OFF 적용 여부는 CS0162 2→0 으로 교차 확인.
-- **실행 실패 acceptance 교체** — W-c(줄번호 awk → 메서드명 awk) · W-d(`IsRequestValid` >=6 → ==3) · W-e(sln 은 상위 폴더, 하위서 실행 시 MSB1009) · W-f(`ResolveMaxZIndexByType` >=4 → ==3) · W-g(`file`/`grep -P` 미지원 → `grep -c $'$'` 로 교체, 실측 9596/9596·BOM 없음 확인).
-- **잔재 정리** — W-a(73-05·CONTEXT 의 12줄 baseline) · W-b(action 의 "Release\|x64 양쪽") · W-i(vacuous ROADMAP 조건 → `- [x]` 7건) · W-j(73-06/07 `@` 참조 추가) · W-k(CommunicationTest 에 SIMUL baseline 무의미 → 제거) · W-l(`_MEAS_` 전체 115 / SIDE 스코프 25 구분) · W-m(18항목 → 20행) · W-n($PREP 3필드 정확비교가 구 `Op` 패킷을 오파싱하는 알려진 제약을 파서 주석 + D-71-01 주석 갱신으로 명시).
+- **실행 실패 acceptance 교체** — W-c(줄번호 awk → 메서드명 awk) · W-d(`IsRequestValid` >=6 → ==3) · W-e(sln 은 상위 폴더, 하위서 실행 시 MSB1009) · W-f(`ResolveMaxZIndexByType` >=4 → ==3) · W-g(`file`/`grep -P` 미지원 → `grep -c $'
+$'` 로 교체, 실측 9596/9596·BOM 없음 확인).
+- **잔재 정리** — W-a(73-05·CONTEXT 의 12줄 baseline) · W-b(action 의 "Release\|x64 양쪽") · W-i(vacuous ROADMAP 조건 → `- [x]` 7건) · W-j(73-06/07 `@` 참조 추가) · W-k(CommunicationTest 에 SIMUL baseline 무의미 → 제거) · W-l(`_MEAS_` 전체 115 / SIDE 스코프 25 구분) · W-m(항목 수 표기 정정) · W-n($PREP 3필드 정확비교가 구 `Op` 패킷을 오파싱하는 알려진 제약을 파서 주석 + D-71-01 주석 갱신으로 명시).
+
+**plan-check 3차 반영 (2026-08-26, blocker 2건 + warning 15건):**
+- **B-1 완료 게이트 경로 오류** — `light.ini` 는 레시피 폴더가 아니라 **`D:\Data\Light\light.ini`**(`Setting.ini` 의 `LightConfigPath`, `LightHandler.GetLightIniPath`). 73-07 S7 의 경로 4곳을 교체하고, "그룹명을 틀린다"→**"`[Controller0] ChannelNames` 의 `BACK` 항목을 틀린다"**로 정정(그룹은 C# 하드코딩, light.ini 가 통제하는 건 ChannelNames → `RebindChannels` 가 group.Count=0 을 만들어 FAIL 재현).
+- **B-2 2차 수정이 만든 신규 결함** — B5 폴백이 무조건 `ResolveSiteSlot(packet.Site)` 를 타는 바람에 **미지 Type(9)도 PC2 에서 SEQ_SIDE_1 으로 흘러 OK 가 나가고** 남의 지그 z_index 까지 세팅됐다(S8 4번째 달성 불가 + T-73-11 자기모순). → 폴백을 **`TryResolveSlotByType` 성공(=Type 0~5)으로 게이트**. PC1 Type 0/1 은 `TryResolveSequenceNameByType` 이 명시 해석하므로 **B5 는 폴백 없이 보장**된다. 73-04 에 `<routing_matrix>` (PC1/PC2 × 9케이스)를 추가해 실행자가 자체 대조하도록 했다.
+- **W6 로그 문자열** — `LightHandler.cs:234` 는 groupName **값**을 찍어 실제 출력이 `BACK - Set On : True` / `ALIGN_COAX - Set On : False` 다(`LIGHT_` 접두사 없음). `LIGHT_*` 로 grep 하면 양성조건 false-negative·음성조건 vacuous → 73-05/73-07 표기를 전부 접두사 없는 이름으로 교체.
+- **W8 사본 검증의 함정** — `LoadFromIni:189` 가 `ModelName` 을 **파일 안 `[Info]ModelName`** 에서 읽고 `SaveToIni(null)` 이 그 값으로 경로를 만들기 때문에, `cp -r` 사본을 로드해도 `mw.SaveRecipe()` 가 **원본 FAI_1 에 쓴다.** → 사본 생성 직후 `ModelName` 을 `FAI_1_b6test` 로 치환하는 단계 추가 + "트리 메뉴 Save 만 사용, 재티칭/캘리브 모달은 전부 아니오" 명시(sha256 검사가 최종 backstop).
+- **W7** `[DatumModelPath]` 는 RUN/[Test Find] 경로에서만 발생 → 절차에 명시. **W2** 73-01 인라인 명령에 `-t:Rebuild`·`IntermediateOutputPath` 반영. **W4** 20행 표의 bare filename → 전체 경로. **W5** M6 주석 8→16. **W9** `ELogType` 은 `ReringProject.Setting`(Define 아님). **W10** CONTEXT D-73-05 FAIL 정의를 D-73-08 로 폐기 표기. **W11** 리터럴 CR 바이트 제거. **W12** `files_modified` 보강. **W13** `CanRunSequence` → **`TryGetBlockingSequence`**(존재하지 않는 심볼 정정). **W14** baseline 표 `3_2_D1` 이 Shot 2개 묶음임을 명시(행 합 23 ≠ 합계 25). **W1/W3/W15** 잔재 정리.
 
 **R1 범위 확장:** 조명 **점등에도** 소등과 대칭인 "자기 소유 채널만" 스코핑을 넣는다. 현재 `ApplyShotLightsInternal` 이 13채널을 절대값으로 덮어써 PC1 의 `$PREP z=0` 에서 BOTTOM 이 TOP 예열을 지우고 있다(SIDE_1~4 는 `LIGHT_BAR_1~4` 공유라 실제 피해 발생). 자기 채널 집합 **안에서는** 기존대로 `Enabled=false → OFF` 를 유지한다(잔광 방지).
 

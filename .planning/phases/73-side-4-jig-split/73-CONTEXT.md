@@ -112,9 +112,11 @@ Type 이 숫자이므로 **파싱은 성공하고 z_index 로 오인**된다 —
 **$PREP_ACK 도 Type 을 갖는다:** `$PREP_ACK:site,Type,z_index,OK|FAIL@`
 → VisionResponsePacket.cs:434~453 송신부 수정 필요(M12).
 
-**FAIL 정의:** "해당 z_index 가 없을 때"(범위 밖 요청). 기준점 전용 z(Datum ZIndexA/B)와
-아직 항목을 안 넣은 빈 z 는 **OK 로 응답**한다 — 현 코드가 이미 그렇게 동작하므로 무수정.
-(과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 고친 결과물 — 되돌리지 말 것.)
+**FAIL 정의:** ⚠ **이 문단은 D-73-08 (3)으로 폐기됐다.** 아래 D-73-08 이 최종이다 —
+**FAIL = 조명 세팅 실패(또는 요청 규격 위반) 전용**이며, 검사 항목 유무는 응답에 반영하지 않는다.
+기준점 전용 z(Datum ZIndexA/B)와 아직 항목을 안 넣은 빈 z 는 **OK 로 응답**한다
+(과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 고친 결과물 — 되돌리지 말 것).
+범위 밖 z 를 ACK 가 더 이상 걸러주지 않아 생기는 갭은 **M13**(범위 밖 z 방어)이 담당한다.
 
 ---
 
@@ -259,13 +261,16 @@ case 미추가 시 SIDE_3 이 **TOP 으로 조용히 해석**되고 로그도 �
 | Shot | 측정 | 이탈 |
 |---|---|---|
 | 3-1_D1 | 2 | 2 |
-| 3_2_D1 (×2) | 2 | 0 |
+| 3_2_D1 (**Shot 2개, 각각** 2측정 → 소계 4) | 2 (×2) | 0 |
 | 4-2_H5 | 1 | 0 |
 | 4-2_C13-14_P1 | 6 | 3 |
 | 4-2_F9 | 3 | 0 |
 | 4-1_F9 | 3 | 0 |
 | 4-1_C13-14 | 6 | 2 |
 | **합계** | **25** | **7** |
+
+⚠ 표의 `3_2_D1` 행은 **Shot 2개를 한 행으로 묶은 것**이다(각 2측정, 소계 4).
+행 값을 그대로 더하면 23 이 되므로 주의 — 실제 합계는 25 다.
 
 추가 확인: 지그별 P/F 가 각 시퀀스의 마지막 z 에서 **개별적으로** 나올 것.
 
@@ -278,7 +283,8 @@ case 미추가 시 SIDE_3 이 **TOP 으로 조용히 해석**되고 로그도 �
 2. **크로스-Z 회귀** — 2026-08-26 커밋 8d6982c(SIMUL role B 세로 이미지) 직후라 기준선이 막 잡혔다.
    ZIndexA/B 재매김이 이 수정을 깨뜨리지 않는지 반드시 확인.
 3. **.shm 경로 이동** — D-73-03 후단 참조.
-4. **Phase 69 상호배타(CanRunSequence)** — SIDE 4개가 같은 카메라 객체를 공유한다.
+4. **Phase 69 상호배타(`TryGetBlockingSequence`** — `CanRunSequence` 는 존재하지 않는 심볼이다,
+   `Custom/Sequence/SequenceHandler.cs:64`**)** — SIDE 4개가 같은 카메라 객체를 공유한다.
    참조 동일성 기반 판정이라 자동으로 걸릴 것으로 보이나 **검증 필요**.
 
 ---
@@ -289,7 +295,7 @@ case 미추가 시 SIDE_3 이 **TOP 으로 조용히 해석**되고 로그도 �
 
 - `Custom/Define/ID.cs` — `ESequence { Top=1, Side=2, Bottom=3 }` → Side 4종
 - `Custom/Sequence/SequenceHandler.cs` — SEQ_SIDE 상수 4개, IsSequenceActive,
-  RegisterSequences / RegisterActions / InitializeSequences 1→4, CanRunSequence
+  RegisterSequences / RegisterActions / InitializeSequences 1→4, `TryGetBlockingSequence`(상호배타; `CanRunSequence` 는 오표기)
 - `Custom/TcpServer/ResourceMap.cs` — TryResolveSlotByType 의 Type 2~5 Top 슬롯 폴백 → SIDE_1~4 라우팅
 - `Custom/Sequence/Inspection/InspectionRecipeManager.cs` — ESequence.Side 참조
 - `Custom/Sequence/Inspection/ShotConfig.cs` — ESequence.Side 참조

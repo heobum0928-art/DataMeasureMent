@@ -1464,8 +1464,10 @@ namespace ReringProject.UI {
             //  (a) DeviceName이 비어 있어 DeviceHandler.GrabHalconImage(this[param.DeviceName])가 실패("Device Not Opened").
             //  (b) Parent가 null이라 CameraSlaveParam.SequenceName도 null이 되어, MainView.GrabAndDisplay의
             //      Sequences[param.SequenceName] 조회가 실패해 ApplyShotLightsDirect 자체가 호출되지 않음
-            //      (ApplyShotLightsInternal은 shot 자신의 필드 + static LightHandler.Handle만 사용하므로 어떤
-            //      InspectionSequence 인스턴스로 호출하든 결과는 같다 — 문제는 그 인스턴스를 못 찾는 것뿐).
+            //      (Phase 73 이전에는 ApplyShotLightsInternal 이 shot 자신의 필드 + static LightHandler.Handle 만
+            //      써서 어떤 InspectionSequence 인스턴스로 호출하든 결과가 같았다. 지금은 아니다 — 자기 소유
+            //      채널 집합(CollectOwnedChannelScope) 안에서만 조명을 건드리므로, 반드시 그 shot 의
+            //      OwnerSequenceName 과 같은 인스턴스로 호출해야 조명이 실제로 켜진다).
             //  즉 "같은 원인 하나"가 아니라 서로 다른 필드에서 비롯된 두 개의 별개 결함이다.
             //  둘 다 재시작 시 SequenceHandler.TryLoadNewFormat → RebuildInspectionActions → SequenceBase.AddAction이
             //  채워주지만, AddAction은 Actions[]/ChildList 전체를 재구성하는 무거운 경로라 Add-Shot 클릭마다 돌리면

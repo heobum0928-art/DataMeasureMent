@@ -1017,6 +1017,23 @@ namespace ReringProject.Sequence {
             return bAllOk;
         }
 
+        // "켜달라"는 요청인데 이 시퀀스 소유 채널 집합 밖이면 그건 정상 상황이 아니다.
+        //  ownedScope 는 소유 Shot/Datum 의 Enabled=true 플래그에서 그대로 만들어지므로, 켜달라는 채널이
+        //  거기 없다는 건 소유권 판정이 어긋났다는 뜻이다(예: 다른 시퀀스 인스턴스로 ApplyShotLightsDirect 호출,
+        //  레시피 매니저 미로딩). 이 경우 조명은 안 켜진 채 grab 이 진행돼 이미지가 조용히 어두워진다 —
+        //  스코핑 도입으로 새로 생긴 무음 실패 경로라 반드시 로그로 드러낸다.
+        //  Enabled=false 인 스코프 밖 채널은 원래 "남의 채널 안 건드림" 이 목적이므로 로그하지 않는다.
+        private void WarnIfEnabledOutOfScope(bool bEnabled, string szLightName)
+        {
+            if (!bEnabled)
+            {
+                return;
+            }
+            Logging.PrintLog((int)ELogType.Error,
+                "[LightSet] Seq={0} 조명 {1} 을 켜달라고 요청했으나 이 시퀀스 소유 채널이 아니라 무시함 — Shot/Datum 의 OwnerSequenceName 확인 필요",
+                Name, szLightName);
+        }
+
         // 채널 하나의 On/Off + 밝기 적용. Enabled=true 면 On 후 SetLevel, false 면 Off 만 (기존 그룹 로직과 순서 동일).
         //  반환값 = 조명 세팅 성공 여부.
         //  ownedScope 에 없는 채널은 이 시퀀스 소유가 아니므로 아예 건드리지 않는다(true 반환).
@@ -1032,6 +1049,7 @@ namespace ReringProject.Sequence {
             bool bIsOwned = ownedScope.Contains(channelName);
             if (!bIsOwned)
             {
+                WarnIfEnabledOutOfScope(bEnabled, channelName);
                 return true;
             }
             if (bEnabled)
@@ -1051,6 +1069,7 @@ namespace ReringProject.Sequence {
             bool bIsOwned = ownedScope.Contains(groupName);
             if (!bIsOwned)
             {
+                WarnIfEnabledOutOfScope(bEnabled, groupName);
                 return true;
             }
             if (bEnabled)

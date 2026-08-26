@@ -160,6 +160,26 @@ Shot 유무를 ACK 에 반영하지 않으므로 `ApplyPrepToSequences` 의 예�
 
 ---
 
+## D-73-10. `$RESULT` 는 3필드가 정상 — count 없음 (확인 2026-08-26)
+
+실기 로그에서 `$RESULT:2;4;B@` / `$RESULT:2;4;F@` 처럼 **count 가 없는 것을 확인**했고,
+사용자 확인 결과 **제어는 판정(P|F|B)까지만 읽는다.** 정상 동작이다.
+
+**이번 phase 가 뺀 것이 아니다** — 커밋 `f7ed10c`(quick-260807-omy, 2026-08-07)가
+"RESULT 응답 count/FAI 항목목록 제거 (site;Type;P|F|B 3필드)" 로 의도적으로 제거했다.
+`VisionResponsePacket.cs:287` 주석: *"count/개별 FAI 항목목록은 v-next 에서 **와이어에서만**
+제거되었으며, 내부 FAICount/FAIResults 는 그대로 살아있다(UI·엑셀 export 계속 소비)"*.
+
+| | 와이어 | 내부 |
+|---|---|---|
+| count / FAI 항목목록 | 없음 (제거됨) | 살아있음 (리뷰어·엑셀 export 소비) |
+
+⚠ ROADMAP 의 **Phase 63** 항목에 `$RESULT:site;Type;P|F|B;count;id=val=judge,...@` 로 적힌
+줄이 있으나 그건 **당시 이력 기록**이다. 현재 규격이 아니므로 이번 phase 검증에서
+"count 누락" 으로 판정하지 말 것. 이번 phase 가 바꾼 응답은 `$PREP_ACK` 뿐이다.
+
+---
+
 ## D-73-06. 검증으로 확인된 사실 (에이전트 2종 교차검증, 2026-08-26)
 
 ### 확정된 사실

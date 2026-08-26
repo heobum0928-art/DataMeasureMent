@@ -746,8 +746,11 @@ namespace ReringProject.Sequence {
         }
 
         //260625 hbk Phase 64 LIGHT-01 (D-10/D-12): $PREP 수신 → z_index Shot 조회 → 조명 세팅.
-        //  ProcessPrep() 이 호출하는 public 진입점. Shot 없으면 false.
+        //  ProcessPrep() 이 호출하는 public 진입점.
         //  CoaxLight_* 는 ALIGN_COAX 그룹으로 매핑 (D-11: INI 키 이름 보존, 그룹명만 변경).
+        //  반환값 = 조명 세팅 성공 여부($PREP_ACK 의 OK/FAIL). D-73-08: 검사 항목 유무는 반영하지 않는다 —
+        //  Shot 이 없는 z(기준점 전용 z, 아직 항목을 안 넣은 빈 z)는 켤 대상이 없을 뿐이므로 OK 다.
+        //  (과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 되돌리지 않기 위한 계약.)
         public bool ApplyShotLights(int nZIndex)
         {
             ShotConfig shot = FindShotByZIndex(nZIndex);
@@ -755,19 +758,18 @@ namespace ReringProject.Sequence {
             if (!bHasShot)
             {
                 Logging.PrintLog((int)ELogType.LightController,
-                    "[PREP] Shot not found for ZIndex={0}, Seq={1}", nZIndex, Name);
-                return false;
+                    "[LightSet] Seq={0} z={1} 에 Shot 없음 — 조명 세팅 대상 없음(OK)", Name, nZIndex);
+                return true;
             }
-            ApplyShotLightsInternal(shot);
-            return true;
+            return ApplyShotLightsInternal(shot);
         }
 
         // 티칭 Grab 등 $PREP/z_index 프로토콜 밖에서 이미 ShotConfig 객체를 들고 있을 때 쓰는 진입점.
         //  ApplyShotLights(int) 처럼 FindShotByZIndex 조회를 거치지 않고 바로 적용 — ApplyDatumLights(DatumConfig) 와 동일 패턴.
-        public void ApplyShotLightsDirect(ShotConfig shot)
+        public bool ApplyShotLightsDirect(ShotConfig shot)
         {
-            if (shot == null) return;
-            ApplyShotLightsInternal(shot);
+            if (shot == null) return false;
+            return ApplyShotLightsInternal(shot);
         }
 
         //260626 hbk v3.0: $PREP Op==0(사이클 종료) → 전 조명 그룹 소등. ApplyShotLightsInternal 의 4그룹 OFF.
@@ -824,9 +826,7 @@ namespace ReringProject.Sequence {
         //  로 비-Idle 형제 시퀀스의 채널을 소등 대상에서 뺀다(스코핑만으로는 못 막던 구멍을 닫은 것).
         private void TurnOffOwnShotLights()
         {
-            var usedChannels = new HashSet<string>();
-            CollectOwnShotChannels(usedChannels);
-            CollectOwnDatumChannels(usedChannels);
+            HashSet<string> usedChannels = CollectOwnedChannelScope();
 
             // 형제 지그가 아직 검사 중이면 그 채널은 남겨 둔다(공유 채널 소등 충돌 차단).
             HashSet<string> busyChannels = CollectBusySiblingChannels();
@@ -844,6 +844,18 @@ namespace ReringProject.Sequence {
             {
                 LightHandler.Handle.SetChannelOnOff(channelName, false);
             }
+        }
+
+        // 이 시퀀스가 소유한(자기 Shot + 자기 Datum) 조명 채널 집합.
+        //  점등(ApplyShotLightsInternal/ApplyDatumLightsInternal)과 소등(TurnOffOwnShotLights)이
+        //  반드시 같은 기준을 쓰게 하는 단일 소스 — 기준이 갈리면 "켠 채널을 안 끄거나 안 켠 채널을 끄는"
+        //  비대칭이 생긴다.
+        private HashSet<string> CollectOwnedChannelScope()
+        {
+            var channels = new HashSet<string>();
+            CollectOwnShotChannels(channels);
+            CollectOwnDatumChannels(channels);
+            return channels;
         }
 
         // TurnOffOwnShotLights 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스가 소유한(IsShotOwnedBySequence) Shot 이
@@ -944,118 +956,110 @@ namespace ReringProject.Sequence {
         //  Back → BACK 그룹 / Coax → ALIGN_COAX 그룹 / Ring7 → RING7 그룹 (1채널이라 그룹 API 그대로 유지)
         //  Enabled=true: SetOnOff(true) 먼저, 이후 SetLevel (ApplyLight 순서 동일).
         //  Enabled=false: SetOnOff(false) 만 호출.
-        private void ApplyShotLightsInternal(ShotConfig shot)
+        //  반환값 = 13채널 세팅이 전부 성공했는지(AND 집계). 중간에 return 하지 않는다 — 절대값 덮어쓰기라는
+        //   기존 성질을 유지해야 자기 스코프 안의 "안 쓰는 채널 OFF" 가 빠짐없이 걸린다.
+        private bool ApplyShotLightsInternal(ShotConfig shot)
         {
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH1, shot.RingLight_Enabled_1, shot.RingLight_Brightness_1);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH2, shot.RingLight_Enabled_2, shot.RingLight_Brightness_2);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH3, shot.RingLight_Enabled_3, shot.RingLight_Brightness_3);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH4, shot.RingLight_Enabled_4, shot.RingLight_Brightness_4);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH5, shot.RingLight_Enabled_5, shot.RingLight_Brightness_5);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH6, shot.RingLight_Enabled_6, shot.RingLight_Brightness_6);
-
-            if (shot.BackLight_Enabled)
+            HashSet<string> ownedScope = CollectOwnedChannelScope();
+            bool bAllOk = true;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH1, shot.RingLight_Enabled_1, shot.RingLight_Brightness_1) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH2, shot.RingLight_Enabled_2, shot.RingLight_Brightness_2) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH3, shot.RingLight_Enabled_3, shot.RingLight_Brightness_3) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH4, shot.RingLight_Enabled_4, shot.RingLight_Brightness_4) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH5, shot.RingLight_Enabled_5, shot.RingLight_Brightness_5) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH6, shot.RingLight_Enabled_6, shot.RingLight_Brightness_6) && bAllOk;
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_BACK, shot.BackLight_Enabled, shot.BackLight_Brightness) && bAllOk;
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_ALIGN_COAX, shot.CoaxLight_Enabled, shot.CoaxLight_Brightness) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_1, shot.SideLight_Enabled_1, shot.SideLight_Brightness_1) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_2, shot.SideLight_Enabled_2, shot.SideLight_Brightness_2) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_3, shot.SideLight_Enabled_3, shot.SideLight_Brightness_3) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_4, shot.SideLight_Enabled_4, shot.SideLight_Brightness_4) && bAllOk;
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_RING7, shot.Ring7Light_Enabled, shot.Ring7Light_Brightness) && bAllOk;   //260626 hbk Phase 66 D-02: Ring7Light → LIGHT_RING7 매핑
+            if (!bAllOk)
             {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_BACK, shot.BackLight_Brightness);
+                Logging.PrintLog((int)ELogType.Error,
+                    "[LightSet] Seq={0} shot={1} 조명 세팅 실패 — light.ini 그룹/채널명 확인 필요", Name, shot.ShotName);
             }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
-            }
-
-            if (shot.CoaxLight_Enabled)
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, shot.CoaxLight_Brightness);
-            }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
-            }
-
-            ApplyChannelLight(LightHandler.LIGHT_BAR_1, shot.SideLight_Enabled_1, shot.SideLight_Brightness_1);
-            ApplyChannelLight(LightHandler.LIGHT_BAR_2, shot.SideLight_Enabled_2, shot.SideLight_Brightness_2);
-            ApplyChannelLight(LightHandler.LIGHT_BAR_3, shot.SideLight_Enabled_3, shot.SideLight_Brightness_3);
-            ApplyChannelLight(LightHandler.LIGHT_BAR_4, shot.SideLight_Enabled_4, shot.SideLight_Brightness_4);
-
-            if (shot.Ring7Light_Enabled)   //260626 hbk Phase 66 D-02: Ring7Light → LIGHT_RING7 매핑 추가(검사 조명 정합)
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, true);   //260626 hbk Ring7 ON
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_RING7, shot.Ring7Light_Brightness);   //260626 hbk Ring7 밝기
-            }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Ring7 OFF
-            }
+            return bAllOk;
         }
 
         // Datum 전용 조명 적용 — Action_FAIMeasurement.EStep.DatumPhase 가 datum grab 직전 호출한다.
         //  ShotConfig 와 달리 Datum 은 $PREP/z_index 로 세팅되지 않으므로(Shot 소속 무관 순수 datum grab) 별도 진입점.
-        public void ApplyDatumLights(DatumConfig datum)
+        public bool ApplyDatumLights(DatumConfig datum)
         {
-            if (datum == null) return;
-            ApplyDatumLightsInternal(datum);
+            if (datum == null) return false;
+            return ApplyDatumLightsInternal(datum);
         }
 
         // ApplyShotLightsInternal 과 완전히 동일한 채널 매핑(Ring 6개별/Bar 4개별/Back·Coax·Ring7 그룹) — Datum 소스만 다르다.
-        private void ApplyDatumLightsInternal(DatumConfig datum)
+        private bool ApplyDatumLightsInternal(DatumConfig datum)
         {
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH1, datum.RingLight_Enabled_1, datum.RingLight_Brightness_1);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH2, datum.RingLight_Enabled_2, datum.RingLight_Brightness_2);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH3, datum.RingLight_Enabled_3, datum.RingLight_Brightness_3);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH4, datum.RingLight_Enabled_4, datum.RingLight_Brightness_4);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH5, datum.RingLight_Enabled_5, datum.RingLight_Brightness_5);
-            ApplyChannelLight(LightHandler.LIGHT_RING_CH6, datum.RingLight_Enabled_6, datum.RingLight_Brightness_6);
-
-            if (datum.BackLight_Enabled)
+            HashSet<string> ownedScope = CollectOwnedChannelScope();
+            bool bAllOk = true;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH1, datum.RingLight_Enabled_1, datum.RingLight_Brightness_1) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH2, datum.RingLight_Enabled_2, datum.RingLight_Brightness_2) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH3, datum.RingLight_Enabled_3, datum.RingLight_Brightness_3) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH4, datum.RingLight_Enabled_4, datum.RingLight_Brightness_4) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH5, datum.RingLight_Enabled_5, datum.RingLight_Brightness_5) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_RING_CH6, datum.RingLight_Enabled_6, datum.RingLight_Brightness_6) && bAllOk;
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_BACK, datum.BackLight_Enabled, datum.BackLight_Brightness) && bAllOk;
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_ALIGN_COAX, datum.CoaxLight_Enabled, datum.CoaxLight_Brightness) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_1, datum.SideLight_Enabled_1, datum.SideLight_Brightness_1) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_2, datum.SideLight_Enabled_2, datum.SideLight_Brightness_2) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_3, datum.SideLight_Enabled_3, datum.SideLight_Brightness_3) && bAllOk;
+            bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_4, datum.SideLight_Enabled_4, datum.SideLight_Brightness_4) && bAllOk;
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_RING7, datum.Ring7Light_Enabled, datum.Ring7Light_Brightness) && bAllOk;
+            if (!bAllOk)
             {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_BACK, datum.BackLight_Brightness);
+                Logging.PrintLog((int)ELogType.Error,
+                    "[LightSet] Seq={0} datum={1} 조명 세팅 실패 — light.ini 그룹/채널명 확인 필요", Name, datum.DatumName);
             }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
-            }
-
-            if (datum.CoaxLight_Enabled)
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_ALIGN_COAX, datum.CoaxLight_Brightness);
-            }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
-            }
-
-            ApplyChannelLight(LightHandler.LIGHT_BAR_1, datum.SideLight_Enabled_1, datum.SideLight_Brightness_1);
-            ApplyChannelLight(LightHandler.LIGHT_BAR_2, datum.SideLight_Enabled_2, datum.SideLight_Brightness_2);
-            ApplyChannelLight(LightHandler.LIGHT_BAR_3, datum.SideLight_Enabled_3, datum.SideLight_Brightness_3);
-            ApplyChannelLight(LightHandler.LIGHT_BAR_4, datum.SideLight_Enabled_4, datum.SideLight_Brightness_4);
-
-            if (datum.Ring7Light_Enabled)
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, true);
-                LightHandler.Handle.SetLevel(LightHandler.LIGHT_RING7, datum.Ring7Light_Brightness);
-            }
-            else
-            {
-                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);
-            }
+            return bAllOk;
         }
 
         // 채널 하나의 On/Off + 밝기 적용. Enabled=true 면 On 후 SetLevel, false 면 Off 만 (기존 그룹 로직과 순서 동일).
-        //  Ring/Bar 채널별 반복 호출 지점(ApplyShotLightsInternal) 코드 중복 축소용 헬퍼.
-        private void ApplyChannelLight(string channelName, bool bEnabled, int nBrightness)
+        //  반환값 = 조명 세팅 성공 여부.
+        //  ownedScope 에 없는 채널은 이 시퀀스 소유가 아니므로 아예 건드리지 않는다(true 반환).
+        //   -> PC1 의 $PREP z=0 에서 BOTTOM 이 TOP 조명을 덮어쓰던 문제, SIDE_1~4 가 공유
+        //      LIGHT_BAR_1~4 를 서로 덮어쓰는 문제를 둘 다 막는다.
+        //  스코프 안에서는 기존 동작을 그대로 유지한다 — Enabled=false 면 반드시 OFF 를 건다.
+        //   그러지 않으면 이전 사이클 조명이 남는다.
+        //  false 가 나오는 경우는 두 가지뿐이다(LightHandler.cs:216): (1) light.ini 에 그룹/채널명이 없다
+        //  (2) 채널 매핑이 소실됐다. 실제 시리얼 전송은 void 라 케이블 단선/컨트롤러 전원 OFF/LED 고장은
+        //  여기서 잡히지 않는다 — "FAIL 이 없었으니 조명은 정상"이라는 뜻이 아니다.
+        private bool ApplyChannelLight(HashSet<string> ownedScope, string channelName, bool bEnabled, int nBrightness)
         {
+            bool bIsOwned = ownedScope.Contains(channelName);
+            if (!bIsOwned)
+            {
+                return true;
+            }
             if (bEnabled)
             {
-                LightHandler.Handle.SetChannelOnOff(channelName, true);
-                LightHandler.Handle.SetChannelLevel(channelName, nBrightness);
+                bool bOnOk = LightHandler.Handle.SetChannelOnOff(channelName, true);
+                bool bLevelOk = LightHandler.Handle.SetChannelLevel(channelName, nBrightness);
+                return bOnOk && bLevelOk;
             }
-            else
+            return LightHandler.Handle.SetChannelOnOff(channelName, false);
+        }
+
+        // 그룹 API(SetOnOff/SetLevel)를 쓰는 조명의 스코프 적용판. 채널 API 판(ApplyChannelLight)과 규칙 동일.
+        //  Back / Coax / Ring7 은 1채널 그룹이라 예전부터 그룹 API 를 써 왔다 — 그 호출 방식만 보존하고
+        //  스코프 판정과 성공 집계는 채널판과 똑같이 한다.
+        private bool ApplyGroupLight(HashSet<string> ownedScope, string groupName, bool bEnabled, int nBrightness)
+        {
+            bool bIsOwned = ownedScope.Contains(groupName);
+            if (!bIsOwned)
             {
-                LightHandler.Handle.SetChannelOnOff(channelName, false);
+                return true;
             }
+            if (bEnabled)
+            {
+                bool bOnOk = LightHandler.Handle.SetOnOff(groupName, true);
+                bool bLevelOk = LightHandler.Handle.SetLevel(groupName, nBrightness);
+                return bOnOk && bLevelOk;
+            }
+            return LightHandler.Handle.SetOnOff(groupName, false);
         }
 
         //260623 hbk Phase 49 PROTO-05 (D-08): Index 0(Datum 샷) 수신 = 사이클 시작 → 누적 상태 클린 슬레이트.

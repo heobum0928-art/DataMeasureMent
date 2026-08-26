@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Completed 72-03-PLAN.md
-last_updated: "2026-08-18T09:49:35.857Z"
-last_activity: 2026-08-18
+stopped_at: Phase 73 discuss complete (73-CONTEXT.md)
+last_updated: "2026-08-26T00:00:00.000Z"
+last_activity: 2026-08-26
 progress:
   total_phases: 15
   completed_phases: 14
@@ -23,11 +23,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase --phase — 72
+**Current focus:** Phase 73 — SIDE 시퀀스 4지그 분리
 
 ## Current Position
 
-Phase: 72-cpk-rapid-city-a8-1-z-stopper-data-report-r04-raw-data-cpk-e (72) — EXECUTING
+Phase: 73-side-4-jig-split (73) — DISCUSSED (plan 대기)
 Plan: 7 of 7
 Last activity: 2026-08-20 - quick-260820-dfw 완료: `Action_FAIMeasurement.cs` Datum DualImage 가로/세로 이미지 로드 체인 6개 함수의 `out HImage/HImage/bool` 3종 조합을 `DualDatumImageResult`(K&R+public 필드, CrossZCaptureTickResult 와 동일 스타일) 클래스 리턴값으로 교체하는 순수 시그니처 리팩토링. 유일한 외부 호출부(`ProcessDatumDualImage`)를 가진 `TryGrabOrLoadDualDatumImages` 만 out 시그니처 유지, 나머지 5개 함수는 out 완전 제거. 외부 호출부는 xxd byte-diff 로 완전 무변경 확인(hunk 0개), `wc -l` 1781→1790(+9) 사전예측과 정확 일치, 빌드 error0/warning12 baseline 유지, 커밋 084ff87 1개 파일만, csproj 끝까지 unstaged. 세션 종료 전 점검(260819) 결과도 이어서 유효: git status 깨끗, Debug|x64 clean rebuild PASS, 오늘(260819) 6-bundle 리팩토링(q9t/rle/s05/sgg/sxj/tcs) + click2 전부 완료. 남은 것 = 실기 육안 확인 대기 항목들(거리측정/Calibrate 삼각형 표시, 피커센터 실거리, 의미있는 Cpk 수치) — 전부 실물 카메라/화면 필요, 이 세션에서 확인 불가.
 

@@ -1,4 +1,6 @@
 ﻿using System;
+using ReringProject.Setting;
+using ReringProject.Utility;
 
 namespace ReringProject.Network {
     public enum VisionRequestType {
@@ -44,6 +46,13 @@ namespace ReringProject.Network {
         private const int TEST_MIN_FIELD_TYPE = 2;           //260624 hbk Phase 63 Type 필드 존재 최소 길이
         private const int TEST_MIN_FIELD_MATERIAL = 3;       //260624 hbk Phase 63 자재번호 필드 존재 최소 길이 (2→3 시프트)
         // TEST_FIELD_ZINDEX/TEST_MIN_FIELD_ZINDEX 제거 //260626 hbk z_index=$PREP 분리 → $TEST에서 z_index 삭제
+
+        // $PREP 필드 인덱스 — 제어 협의 확정 포맷 $PREP:site,Type,z_index@ 전용(3필드 고정).
+        // 구버전 펌웨어는 존재하지 않는다(제어와 동시 교체) — 필드 개수 분기 없음.
+        private const int PREP_FIELD_SITE = 0;
+        private const int PREP_FIELD_TYPE = 1;
+        private const int PREP_FIELD_ZINDEX = 2;
+        private const int PREP_FIELD_COUNT = 3;
 
         public VisionRequestType RequestType { get; }
 
@@ -299,8 +308,7 @@ namespace ReringProject.Network {
                     packet = new PrepPacket();
                     PrepPacket prepPacket = packet.AsPrep();
                     dataList = msgList[1].Split(VisionServer.MSG_CONTENTS_SEPERATOR);
-                    bool bPrepOk = TryParsePrepFields(dataList, prepPacket);
-                    if (!bPrepOk) { return null; }
+                    TryParsePrepFields(dataList, prepPacket);   // 반환값 무시 — 이 파서는 항상 true(파서 주석 참고)
                     break;
                 case CMD_RECV_RESET: //260807 hbk quick-260807-lh7
                     packet = new ResetPacket();
@@ -422,26 +430,61 @@ namespace ReringProject.Network {
             return true;
         }
 
-        //260626 hbk v3.0: $PREP 수신 파서. dataList[0]=site, [1]=z_index.
-        //260806 hbk Phase 71: Op 필드 폐기(소등은 사이클 P/F 확정 시 비전이 자동 수행) — 2필드 고정.
-        //  하위호환(D-71-01): 구 펌웨어가 $PREP:site,z_index,Op@ 3필드를 보내도 3번째 필드를 아예 읽지 않고 무시한다.
-        //  필드 수 초과를 실패로 만들면 호출부(:296)가 null 을 반환해 응답 자체가 안 나가고 → PLC 가 ACK 를 무한 대기(라인 정지)한다.
+        // $PREP 수신 파서 — $PREP:site,Type,z_index@ (3필드 고정).
+        //  절대 false 를 반환하지 않는다. 규격 위반 입력은 IsRequestValid=false 로 표시해서 넘기고,
+        //  ProcessPrep 이 $PREP_ACK ... FAIL 을 회신한다. false 를 반환하면 호출부가 null 을 돌려
+        //  응답 자체가 사라지고 PLC 가 ACK 무한 대기(라인 정지)에 빠진다.
+        // ⚠ 알려진 제약(Phase 73): 구 펌웨어의 $PREP:site,z_index,Op@ 도 3필드라 개수로는 구분되지 않는다.
+        //  그 패킷이 오면 Type=z_index / z_index=Op 로 조용히 오파싱된다(예외·FAIL 없음).
+        //  제어와 동시 교체를 전제로 수용한 위험이다 — 구 펌웨어와 혼용하지 말 것.
         private static bool TryParsePrepFields(string[] dataList, PrepPacket prepPacket)
         {
-            bool bHasFields = dataList != null && dataList.Length >= 2;
-            if (!bHasFields) { return false; }
+            prepPacket.IsRequestValid = false;   // 아래 전 항목을 통과해야만 true 로 승격
+            prepPacket.Site = 0;
+            prepPacket.Type = "";
+            prepPacket.ZIndex = 0;
+
+            bool bHasExactFields = dataList != null && dataList.Length == PREP_FIELD_COUNT;
+            if (!bHasExactFields)
+            {
+                int nGotLength = 0;
+                if (dataList != null) { nGotLength = dataList.Length; }
+                Logging.PrintLog((int)ELogType.Error,
+                    "[PREP] 규격 위반 — 필드 {0}개 수신(기대 {1}개: site,Type,z_index). FAIL ACK 회신.",
+                    nGotLength, PREP_FIELD_COUNT);
+                return true;
+            }
 
             int nSite = 0;
-            bool bSiteOk = Int32.TryParse(dataList[0], out nSite);
-            if (!bSiteOk) { return false; }
-            prepPacket.Site = nSite;
+            bool bSiteOk = Int32.TryParse(dataList[PREP_FIELD_SITE], out nSite);
+            if (!bSiteOk)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[PREP] site 파싱 실패 — 원본='{0}'. FAIL ACK 회신.", dataList[PREP_FIELD_SITE]);
+                return true;
+            }
 
             int nZIndex = 0;
-            bool bZIndexOk = Int32.TryParse(dataList[1], out nZIndex);
-            if (!bZIndexOk) { return false; }
-            prepPacket.ZIndex = nZIndex;
+            bool bZIndexOk = Int32.TryParse(dataList[PREP_FIELD_ZINDEX], out nZIndex);
+            if (!bZIndexOk)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[PREP] z_index 파싱 실패 — 원본='{0}'. FAIL ACK 회신.", dataList[PREP_FIELD_ZINDEX]);
+                return true;
+            }
 
-            // Op 파싱 블록 제거 //260806 hbk Phase 71: dataList[2]=구 Op(수신해도 읽지 않음)
+            string szType = dataList[PREP_FIELD_TYPE];
+            if (szType == null) { szType = ""; }
+            szType = szType.Trim();
+            bool bHasType = szType.Length > 0;
+            if (!bHasType)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[PREP] Type 필드 비어 있음. FAIL ACK 회신.");
+                return true;
+            }
+
+            prepPacket.Site = nSite;
+            prepPacket.Type = szType;
+            prepPacket.ZIndex = nZIndex;
+            prepPacket.IsRequestValid = true;
             return true;
         }
 
@@ -615,6 +658,14 @@ namespace ReringProject.Network {
     // Op 프로퍼티 제거 //260806 hbk Phase 71: $PREP 는 항상 점등 의미 — 소등은 사이클 P/F 확정 시 자동
     public class PrepPacket : VisionRequestPacket {
         public int ZIndex { get; set; }
+
+        // 검사 대상 코드(0=TOP / 1=BOTTOM / 2~5=SIDE_1~4). 라우팅 해석은 ResourceMap 이 담당한다.
+        public string Type { get; set; } = "";
+
+        // 수신 필드가 규격($PREP:site,Type,z_index@)을 만족했는지. false 면 ProcessPrep 이 FAIL ACK 를 회신한다.
+        // 파서가 실패를 이 플래그로 넘기는 이유: 파서가 false 를 반환하면 호출부가 null 을 반환해
+        // 응답 자체가 안 나가고 PLC 가 ACK 를 무한 대기(라인 정지)한다. TryParseResetFields 와 같은 설계.
+        public bool IsRequestValid { get; set; } = true;
 
         public PrepPacket() : base(VisionRequestType.Prep) {
         }

@@ -1662,9 +1662,27 @@ namespace ReringProject.Sequence {
                 HandleDatumIndexResponse(recipeManager);   // D-08 리셋 + 재산출 + Datum 응답 + 영속화 (ComputeLastZIndex 1회)
                 return;
             }
-            // 측정 Index (중간 or 마지막) — m_nLastZIndex 는 이 경로에서 1회만 산출(이중 호출 제거, BLOCKER 2-a).
+            // 측정 Index (중간 / 마지막 / 범위 밖) — m_nLastZIndex 는 이 경로에서 1회만 산출(이중 호출 제거, BLOCKER 2-a).
             m_nLastZIndex = ComputeLastZIndex(recipeManager);
-            bool bIsLastIndex = m_nCurrentZIndex >= m_nLastZIndex;
+
+            // M13: $PREP_ACK 이 더 이상 "해당 z 없음"을 걸러주지 않으므로(D-73-08 FAIL=조명 전용),
+            //  자기 범위 밖 z 가 여기까지 들어온다. 그때 최종 P/F 를 내면 측정 0건으로 P 가 나갈 수 있다.
+            //  범위 밖은 판정을 미루고(B) 로그만 남긴다.
+            //  m_nLastZIndex == 0 (이 시퀀스에 측정 Shot 이 없는 레시피)은 범위 밖으로 취급하지 않는다 —
+            //  그 경우는 기존 WR-01 가드(마지막 Index 매칭 0건이면 F 강제)가 false-PASS 를 막아야 한다.
+            bool bHasMeasurementShots = m_nLastZIndex > 0;
+            bool bIsBeyondRange = bHasMeasurementShots && m_nCurrentZIndex > m_nLastZIndex;
+            if (bIsBeyondRange)
+            {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[SEQ] {0} 범위 밖 z_index 수신 — z={1}, 이 시퀀스 최대 z={2}. 최종 판정을 내지 않고 B 로 응답한다.",
+                    Name, m_nCurrentZIndex, m_nLastZIndex);
+            }
+            bool bIsLastIndex = false;
+            if (!bIsBeyondRange)
+            {
+                bIsLastIndex = m_nCurrentZIndex >= m_nLastZIndex;
+            }
             TestResultPacket packet = BuildScopedResponse(recipeManager, m_nCurrentZIndex, bIsLastIndex);
             PersistAndEnqueueV1(recipeManager, packet);
         }

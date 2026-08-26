@@ -190,7 +190,22 @@ namespace ReringProject.Sequence {
                 PreserveFixtureFromExisting(saveFile, existingFile, "FIXTURE");
             }
 
-            SaveFixtureForSequence(saveFile, ESequence.Side, "FIXTURE_SIDE", existingFile);
+            SaveFixtureForSequence(saveFile, ESequence.Side1, "FIXTURE_SIDE_1", existingFile);
+            SaveFixtureForSequence(saveFile, ESequence.Side2, "FIXTURE_SIDE_2", existingFile);
+            SaveFixtureForSequence(saveFile, ESequence.Side3, "FIXTURE_SIDE_3", existingFile);
+            SaveFixtureForSequence(saveFile, ESequence.Side4, "FIXTURE_SIDE_4", existingFile);
+
+            // [B6] 마이그레이션 전 레시피 보호. 위 4줄은 SIDE_1~4 시퀀스가 메모리에 존재하므로
+            //  PreserveFixtureFromExisting 을 타지 않고 DatumCount=0 을 쓴다. 그 상태로 저장하면
+            //  구 [FIXTURE_SIDE] 의 Datum 4개(유일본)가 아무도 쓰지 않아 파일에서 사라진다(3faa91b 동일 경로).
+            //  마이그레이션이 끝나면 existingFile 에 이 섹션이 없으므로 이 블록은 자동으로 no-op 이 된다.
+            bool bHasLegacySideFixture = existingFile != null && existingFile.ContainsSection("FIXTURE_SIDE");
+            if (bHasLegacySideFixture) {
+                PreserveFixtureFromExisting(saveFile, existingFile, "FIXTURE_SIDE");
+                Logging.PrintLog((int)ELogType.Error,
+                    "[RECIPE] 구 [FIXTURE_SIDE] 섹션을 그대로 보존해 저장했다 — Phase 73 마이그레이션 미적용 상태. 마이그레이션 후에는 이 로그가 사라진다.");
+            }
+
             SaveFixtureForSequence(saveFile, ESequence.Bottom, "FIXTURE_BOTTOM", existingFile);
 
             saveFile["SHOTS"]["Count"] = Shots.Count;
@@ -269,7 +284,18 @@ namespace ReringProject.Sequence {
                 }
             }
 
-            LoadFixtureForSequence(loadFile, ESequence.Side, "FIXTURE_SIDE");
+            LoadFixtureForSequence(loadFile, ESequence.Side1, "FIXTURE_SIDE_1");
+            LoadFixtureForSequence(loadFile, ESequence.Side2, "FIXTURE_SIDE_2");
+            LoadFixtureForSequence(loadFile, ESequence.Side3, "FIXTURE_SIDE_3");
+            LoadFixtureForSequence(loadFile, ESequence.Side4, "FIXTURE_SIDE_4");
+
+            // 구 포맷(Phase 73 이전) 감지 — 마이그레이션 누락 시 SIDE Datum 이 통째로 안 보이는 것처럼 되므로 반드시 알린다.
+            bool bHasLegacySideFixture = loadFile.ContainsSection("FIXTURE_SIDE");
+            if (bHasLegacySideFixture) {
+                Logging.PrintLog((int)ELogType.Error,
+                    "[RECIPE] 구 포맷 [FIXTURE_SIDE] 섹션이 남아 있다 — Phase 73 마이그레이션(scripts/migrate_phase73_recipe.py) 미적용. SIDE Datum 은 SIDE_1~4 로 로드되지 않으며, 저장 시 원본 섹션을 그대로 보존한다.");
+            }
+
             LoadFixtureForSequence(loadFile, ESequence.Bottom, "FIXTURE_BOTTOM");
 
             // --- Shots ---

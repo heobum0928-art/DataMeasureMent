@@ -4146,7 +4146,7 @@ namespace ReringProject.UI {
         //  datum 이 딸린 시퀀스를 써야 하는 호출은 반드시 GetInspectionSequenceForDatum(datum) 을 쓴다.
         private ReringProject.Sequence.InspectionSequence GetAnyInspectionSequence() {
             if (pSeq == null) return null;
-            ESequence[] roles = new ESequence[] { ESequence.Top, ESequence.Side, ESequence.Bottom };
+            ESequence[] roles = new ESequence[] { ESequence.Top, ESequence.Side1, ESequence.Side2, ESequence.Side3, ESequence.Side4, ESequence.Bottom };
             for (int i = 0; i < roles.Length; i++) {
                 ReringProject.Sequence.InspectionSequence seq = pSeq[roles[i]] as ReringProject.Sequence.InspectionSequence;
                 if (seq != null) return seq;

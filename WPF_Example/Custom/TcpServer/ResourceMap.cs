@@ -1,6 +1,7 @@
 using ReringProject.Device;
 using ReringProject.Sequence;
 using ReringProject.Setting;
+using ReringProject.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,7 +66,7 @@ namespace ReringProject.Network {
 
             //sequence
             Add(EResource.Sequence, ESite.Top, SequenceHandler.SEQ_TOP);
-            Add(EResource.Sequence, ESite.Side, SequenceHandler.SEQ_SIDE);
+            Add(EResource.Sequence, ESite.Side, SequenceHandler.SEQ_SIDE_1);
             Add(EResource.Sequence, ESite.Bottom, SequenceHandler.SEQ_BOTTOM);
 
             Add(EResource.Action, ESite.Top, ETestType.Inspection, SequenceHandler.ACT_INSPECT);
@@ -109,8 +110,8 @@ namespace ReringProject.Network {
             Add(EResource.Camera,   ESite.Side, DeviceHandler.CAMERA_SIDE);
             Add(EResource.Light,    ESite.Top,  LightHandler.LIGHT_BAR); //260625 hbk Phase 64 LIGHT-01
             Add(EResource.Light,    ESite.Side, LightHandler.LIGHT_BAR); //260625 hbk Phase 64 LIGHT-01
-            Add(EResource.Sequence, ESite.Top,  SequenceHandler.SEQ_SIDE);
-            Add(EResource.Sequence, ESite.Side, SequenceHandler.SEQ_SIDE);
+            Add(EResource.Sequence, ESite.Top,  SequenceHandler.SEQ_SIDE_1);
+            Add(EResource.Sequence, ESite.Side, SequenceHandler.SEQ_SIDE_1);
             Add(EResource.Action,   ESite.Top,  ETestType.Inspection, SequenceHandler.ACT_INSPECT);
             Add(EResource.Action,   ESite.Side, ETestType.Inspection, SequenceHandler.ACT_INSPECT);
         }
@@ -133,10 +134,10 @@ namespace ReringProject.Network {
         //  5="Side4" 2D지그(Type 4 와 동일 사유로 Top 슬롯 폴백).
         private const int TYPE_CODE_TOP = 0;              // 3D지그1 (Top, 예비)
         private const int TYPE_CODE_BOTTOM = 1;            // 3D지그2 (Bottom, 예비)
-        private const int TYPE_CODE_TOP_SIDE1 = 2;         // "Top+Side1" 2D지그
-        private const int TYPE_CODE_BOTTOM_SIDE2 = 3;      // "Bottom+Side2" 2D지그 — PC1 에서 Bottom 자원으로 라우팅 필수
-        private const int TYPE_CODE_SIDE3 = 4;             // "Side3" 2D지그 (물리 Side 카메라 1대 — Top 슬롯 폴백)
-        private const int TYPE_CODE_SIDE4 = 5;             // "Side4" 2D지그 (물리 Side 카메라 1대 — Top 슬롯 폴백)
+        private const int TYPE_CODE_TOP_SIDE1 = 2;         // SIDE_1 지그 (PC2). 상수 이름은 구 스펙 잔재 — 이름/값 변경 금지(외부 참조 회귀 방지)
+        private const int TYPE_CODE_BOTTOM_SIDE2 = 3;      // SIDE_2 지그 (PC2). PC1 에서는 여전히 Bottom 슬롯 폴백
+        private const int TYPE_CODE_SIDE3 = 4;             // SIDE_3 지그 (PC2)
+        private const int TYPE_CODE_SIDE4 = 5;             // SIDE_4 지그 (PC2)
 
         //260807 hbk quick-260807-omy v-next PROTO-Type: Type 필드가 텍스트 토큰에서 숫자 코드로 전환됨. 인식 실패 시 false 반환(호출부가 Site 폴백).
         //260811 hbk plc-spec-260811-alignment: Type=3("Bottom+Side2" 지그)이 기존엔 Type 2~5 단일 분기에 묶여
@@ -175,6 +176,60 @@ namespace ReringProject.Network {
             return false;
         }
 
+        // Type(검사 대상 코드) → 시퀀스 이름 직접 해석. ESite 는 3슬롯이라 SIDE_1~4 를 담을 수 없어
+        // 시퀀스 라우팅만 이 경로로 분리한다(카메라/조명 슬롯 매핑은 기존 ESite 경로 그대로).
+        // PcRole 별 의미:
+        //   PC2(Side)  : 0/1 은 이 PC 대상이 아니므로 실패 반환 / 2~5 = SIDE_1~4
+        //   PC1(TopBottom): Phase 73 이전 라우팅을 그대로 보존한다(회귀 0). 0,2,4,5 → TOP / 1,3 → BOTTOM.
+        //     ⚠ 제어 스펙상 2~5 는 SIDE 이므로 PC1 이 이 값을 받을 일은 없다. 값이 실제로 오면
+        //     기존 동작(폴백)을 유지하되 로그로 남긴다 — 조용한 라우팅 변경이 더 위험하다.
+        private bool TryResolveSequenceNameByType(string szType, out string szSeqName)
+        {
+            szSeqName = null;
+            bool bHasType = !string.IsNullOrEmpty(szType);
+            if (!bHasType)
+            {
+                return false;
+            }
+            int nCode = 0;
+            bool bIsNumeric = Int32.TryParse(szType, out nCode);
+            if (!bIsNumeric)
+            {
+                return false;
+            }
+            int nPcRole = (int)SystemSetting.Handle.PcRole;
+            bool bIsPc2Side = nPcRole == (int)EPcRole.PC2_Side;
+            if (bIsPc2Side)
+            {
+                switch (nCode)
+                {
+                    case TYPE_CODE_TOP_SIDE1:    szSeqName = SequenceHandler.SEQ_SIDE_1; return true;
+                    case TYPE_CODE_BOTTOM_SIDE2: szSeqName = SequenceHandler.SEQ_SIDE_2; return true;
+                    case TYPE_CODE_SIDE3:        szSeqName = SequenceHandler.SEQ_SIDE_3; return true;
+                    case TYPE_CODE_SIDE4:        szSeqName = SequenceHandler.SEQ_SIDE_4; return true;
+                    default:
+                        Logging.PrintLog((int)ELogType.Error,
+                            "[ROUTE] PC2(Side)에서 지원하지 않는 Type={0} 수신 — 시퀀스 해석 실패", nCode);
+                        return false;
+                }
+            }
+            // PC1(TopBottom). $PREP 에는 $TEST 같은 ESite 슬롯 폴백이 없으므로 여기서 해석하지 않으면
+            //  TOP/BOTTOM 조명 예열이 통째로 사라진다(FAIL ACK 만 나감) — phase 목표 "TOP/BOTTOM 포함
+            //  전 대상 Type 적용" 과 정면 충돌하는 회귀다.
+            //  Type 0/1 은 제어 스펙상 TOP/BOTTOM 으로 확정이라 그대로 해석한다.
+            //  Type 2~5(SIDE)는 PC1 대상이 아니다 — 해석하지 않고 false 를 돌려 기존 ESite 슬롯 폴백
+            //  ($TEST 의 TryResolveSlotByType 경로, Phase 73 이전 라우팅)을 그대로 쓰게 둔다(회귀 0).
+            switch (nCode)
+            {
+                case TYPE_CODE_TOP:    szSeqName = SequenceHandler.SEQ_TOP;    return true;
+                case TYPE_CODE_BOTTOM: szSeqName = SequenceHandler.SEQ_BOTTOM; return true;
+                default:
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[ROUTE] PC1(TopBottom)에서 SIDE 계열 Type={0} 수신 — 이 PC 대상이 아니다. 기존 슬롯 폴백 사용", nCode);
+                    return false;
+            }
+        }
+
         public bool SetIdentifier(ref VisionRequestPacket packet) {
             switch (packet.RequestType) {
                 case VisionRequestType.Light:
@@ -192,6 +247,9 @@ namespace ReringProject.Network {
                 case VisionRequestType.RecipeGet:
                     //no identifier
                     break;
+                // ⚠ 알려진 제약(Phase 73): SIDE 가 SIDE_1~4 로 분리됐지만 이 조회는 ESite 슬롯 1개만 본다 —
+                //  PC2 에서는 SEQ_SIDE_1 상태만 보고된다(SIDE_2~4 가 검사 중이어도 Idle 로 보일 수 있다).
+                //  $SITE_STATUS 에 Type 필드가 없어 대상을 특정할 수 없는 것이 근본 원인이다. 제어와 재협의 필요.
                 case VisionRequestType.SiteStatus:
                     packet.Identifier = Find(EResource.Sequence, (ESite)packet.Site);
                     break;
@@ -210,13 +268,22 @@ namespace ReringProject.Network {
                     bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
                     if (bUseV1)
                     {
+                        string szSeqByType;
+                        bool bSeqResolved = TryResolveSequenceNameByType(testPacket.Type, out szSeqByType);
                         ESite eSlot;                                                                       //260624 hbk Phase 63
                         bool bTypeResolved = TryResolveSlotByType(testPacket.Type, out eSlot);             //260624 hbk Phase 63
                         if (!bTypeResolved)                                                                //260624 hbk Phase 63
                         {
                             eSlot = ResolveSiteSlot(testPacket.Site);                                     //260624 hbk Phase 63 폴백
                         }
-                        testPacket.Identifier  = Find(EResource.Sequence, eSlot);
+                        if (bSeqResolved)
+                        {
+                            testPacket.Identifier = szSeqByType;          // PC2: Type 이 시퀀스를 직접 정한다
+                        }
+                        else
+                        {
+                            testPacket.Identifier = Find(EResource.Sequence, eSlot);
+                        }
                         // v1.0 은 항상 Inspection action 매핑 (TestType 명시 필드 없음 — D-01 SUMMARY 기록).
                         testPacket.Identifier2 = Find(EResource.Action, eSlot, ETestType.Inspection);
                     }
@@ -224,6 +291,31 @@ namespace ReringProject.Network {
                     {
                         testPacket.Identifier  = Find(EResource.Sequence, (ESite)testPacket.Site);
                         testPacket.Identifier2 = Find(EResource.Action, (ESite)testPacket.Site, (ETestType)testPacket.TestType);
+                    }
+                    break;
+                case VisionRequestType.Prep:
+                    PrepPacket prepPacket = packet.AsPrep();
+                    string szPrepSeqName;
+                    bool bPrepSeqResolved = TryResolveSequenceNameByType(prepPacket.Type, out szPrepSeqName);
+                    if (bPrepSeqResolved)
+                    {
+                        prepPacket.Identifier = szPrepSeqName;
+                    }
+                    else
+                    {
+                        // [B-2] Type 해석 실패 시의 폴백은 **알려진 Type(0~5)에 한정**한다.
+                        //  ResolveSiteSlot(packet.Site) 로 무조건 폴백하면 미지 Type(예: 9)도 슬롯을 얻어
+                        //  PC2 에서 SEQ_SIDE_1 으로 흘러들어가 조용히 OK 가 나가고, 남의 지그 z_index 까지 세팅된다.
+                        //  TryResolveSlotByType 은 Type 0~5 에서만 true 이므로(그 밖 / 비숫자 / 빈값 → false)
+                        //  이 게이트 하나로 "미지 Type → Identifier 미설정 → FAIL ACK" 가 성립한다.
+                        //  동시에 $TEST 와 같은 슬롯 규칙을 쓰므로 PREP/TEST 라우팅이 어긋나지 않는다.
+                        ESite ePrepSlot;
+                        bool bPrepSlotResolved = TryResolveSlotByType(prepPacket.Type, out ePrepSlot);
+                        if (bPrepSlotResolved)
+                        {
+                            prepPacket.Identifier = Find(EResource.Sequence, ePrepSlot);
+                        }
+                        // 미지 Type 은 Identifier 를 세팅하지 않는다 → ProcessPrep 이 FAIL ACK 회신.
                     }
                     break;
                 case VisionRequestType.Unknown:

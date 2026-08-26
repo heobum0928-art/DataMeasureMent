@@ -781,18 +781,65 @@ namespace ReringProject.Sequence {
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Phase 66: Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
         }
 
+        // 지금 검사 중(비-Idle)인 다른 InspectionSequence 가 쓰는 조명 채널을 모은다.
+        //  Phase 73 이 SIDE 를 4개로 쪼개면서 SIDE_1~4 가 LIGHT_BAR_1~4 라는 같은 물리 채널을 공유한다 —
+        //  "자기 채널만 끈다"는 스코핑만으로는 형제 지그의 조명을 끄는 것을 막지 못한다.
+        //  제어 공정은 지그를 순차 진행하지만 그 순서를 코드가 강제하지는 않으므로 여기서 막는다.
+        private HashSet<string> CollectBusySiblingChannels()
+        {
+            var busyChannels = new HashSet<string>();
+            int nCount = SystemHandler.Handle.Sequences.Count;
+            for (int i = 0; i < nCount; i++)
+            {
+                SequenceBase seqBase = SystemHandler.Handle.Sequences[i];
+                InspectionSequence sibling = seqBase as InspectionSequence;
+                bool bIsInsp = sibling != null;
+                if (!bIsInsp)
+                {
+                    continue;
+                }
+                bool bIsSelf = ReferenceEquals(sibling, this);
+                if (bIsSelf)
+                {
+                    continue;
+                }
+                bool bIsIdle = sibling.State == EContextState.Idle;
+                if (bIsIdle)
+                {
+                    continue;
+                }
+                sibling.CollectOwnShotChannels(busyChannels);
+                sibling.CollectOwnDatumChannels(busyChannels);
+            }
+            return busyChannels;
+        }
+
         //260807 hbk quick-260807-cr1 (Phase71 CR-01 리뷰수정): LightHandler 는 PC1 에서 TOP/BOTTOM 두
         //  InspectionSequence 가 공유하는 process-wide 싱글턴이다. 한 시퀀스가 "내 사이클 끝"만 보고
         //  TurnOffShotLights()(전 채널 소등)를 부르면, 아직 사이클 중인 형제 시퀀스가 쓰는 채널까지 함께
         //  꺼진다 — TryTurnOffLightsOnCycleEnd 는 이제 이 메서드를 호출한다. TurnOffShotLights() 자체는
         //  무수정 보존(TurnOffPrepLights() 등 '전체 강제 소등' 호출자가 남아있음, CONTEXT 결정 유지).
-        //  잔여 위험: 같은 물리 채널을 TOP/BOTTOM 두 시퀀스가 동시에 쓰도록 레시피가 구성되면 이 스코핑으로도
-        //  못 막는다(현재 레시피 구조 — 시퀀스별 독립 스테이션 조명 — 에서는 발생하지 않음, REVIEW.md Option 2 채택).
+        //  Phase 73: 위 주석이 "현재 레시피 구조에서는 발생하지 않음" 이라고 적어 둔 조건 — 같은 물리 채널을 두
+        //  시퀀스가 동시에 쓰는 구성 — 을 SIDE_1~4 분리가 정확히 만든다. 그래서 이제 CollectBusySiblingChannels()
+        //  로 비-Idle 형제 시퀀스의 채널을 소등 대상에서 뺀다(스코핑만으로는 못 막던 구멍을 닫은 것).
         private void TurnOffOwnShotLights()
         {
             var usedChannels = new HashSet<string>();
             CollectOwnShotChannels(usedChannels);
             CollectOwnDatumChannels(usedChannels);
+
+            // 형제 지그가 아직 검사 중이면 그 채널은 남겨 둔다(공유 채널 소등 충돌 차단).
+            HashSet<string> busyChannels = CollectBusySiblingChannels();
+            foreach (string busyName in busyChannels)
+            {
+                bool bRemoved = usedChannels.Remove(busyName);
+                if (bRemoved)
+                {
+                    Logging.PrintLog((int)ELogType.LightController,
+                        "[CycleLightOff] Seq={0} 채널 {1} 소등 보류 — 형제 시퀀스가 사용 중", Name, busyName);
+                }
+            }
+
             foreach (string channelName in usedChannels)
             {
                 LightHandler.Handle.SetChannelOnOff(channelName, false);

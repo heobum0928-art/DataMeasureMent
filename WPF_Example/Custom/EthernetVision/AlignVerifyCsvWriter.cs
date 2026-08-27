@@ -41,6 +41,10 @@ namespace ReringProject {
         //  또 병합해 기록이 중복된다(보관 파일을 조회하려고 엑셀로 열어두면 바로 발생).
         private const string MERGING_SUFFIX = "_pending.merging";
 
+        // 마지막으로 지난 날짜 보관 파일을 훑은 날짜. 앱 시작 직후와 자정 넘김 때만 훑는다.
+        //  매 기록마다 디렉터리를 훑으면 PLC 응답 경로에 불필요한 파일 I/O 가 얹힌다.
+        private static string s_szLastSweepDate = "";
+
         private static readonly object s_lock = new object();
 
         /// <summary>rec 1건을 {AlignVerifySavePath}\yyyyMMdd.csv 에 1행 append 한다.</summary>
@@ -85,6 +89,28 @@ namespace ReringProject {
                 }
 
                 FlushMergingFile(szPath, szMergingPath, szPendingPath);
+            }
+            catch (Exception) {
+            }
+        }
+
+        // 디렉터리에 남아 있는 모든 보관 파일을 각자의 날짜 본 파일로 합친다.
+        //  파일명 규약: yyyyMMdd_pending.csv → yyyyMMdd.csv
+        private static void SweepOrphanPending(string szDir) {
+            try {
+                string[] files = Directory.GetFiles(szDir, "*" + PENDING_SUFFIX + CSV_EXT);
+                foreach (string szOnePending in files) {
+                    string szName = Path.GetFileNameWithoutExtension(szOnePending);
+                    bool bBadName = szName.EndsWith(PENDING_SUFFIX, StringComparison.Ordinal) == false;
+                    if (bBadName) {
+                        continue;
+                    }
+
+                    string szDateTag = szName.Substring(0, szName.Length - PENDING_SUFFIX.Length);
+                    string szMainPath = Path.Combine(szDir, szDateTag + CSV_EXT);
+                    string szMergingPath = Path.Combine(szDir, szDateTag + MERGING_SUFFIX + CSV_EXT);
+                    TryMergePending(szMainPath, szOnePending, szMergingPath);
+                }
             }
             catch (Exception) {
             }
@@ -159,6 +185,17 @@ namespace ReringProject {
 
                     // 잠김이 풀렸으면 밀려 있던 것부터 본 파일로 되돌린다 — 자가 복구.
                     TryMergePending(szPath, szPendingPath, szMergingPath);
+
+                    // 지난 날짜의 보관 파일은 그날 기록이 더 들어오지 않으므로 영영 안 합쳐진다.
+                    //  자정을 넘겨 날짜가 바뀌면 어제 보관분이 그대로 고아가 된다(실측 260828).
+                    //  조회는 보관 파일도 읽으니 값이 사라지진 않지만, 그날 CSV 를 그대로
+                    //  증거로 내보내면 그 건이 빠진다. 그래서 남은 보관 파일을 훑어 합친다.
+                    string szTodayTag = rec.RecordTime.ToString(FILE_DATE_FORMAT);
+                    bool bNeedSweep = string.Equals(s_szLastSweepDate, szTodayTag, StringComparison.Ordinal) == false;
+                    if (bNeedSweep) {
+                        s_szLastSweepDate = szTodayTag;
+                        SweepOrphanPending(szDir);
+                    }
 
                     bool bWritten = TryAppendBody(szPath, sb.ToString());
                     if (bWritten) {

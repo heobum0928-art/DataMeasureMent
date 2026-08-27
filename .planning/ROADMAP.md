@@ -1164,6 +1164,38 @@ Plans: (discuss 후 확정)
 
 ---
 
+### Phase 75: Align 보정 이미지 저장 — 정합 근거 자료 (신설 2026-08-27)
+
+**Goal:** Bottom Align 실행 시 **보정을 적용한 이미지를 저장**해, 나중에 "Align 이 잘못됐다"는 이의가 제기될 때 **레퍼런스 이미지와 차분(difference)해 0 에 수렴함**을 보여줄 수 있게 한다.
+
+**배경 (사용자 요구 2026-08-27):** *"나중에 Align 이 잘못됐다는 소리 할까봐. 그 저장한 이미지들을 모아서 레퍼런스 이미지와 빼면 0 이 나오자나."* 현재 Align 실행 경로에는 **이미지 저장이 전혀 없다**(grep 확인). 결과 수치(OffsetX/Y/Theta)만 남아 사후 검증 수단이 없다.
+
+**기반 (이미 있음):**
+- 저장 서비스 2종 — `Utility/RawImageSaveService.cs`, `Utility/CaptureImageSaveService.cs`(큐 상한 50 + 생산측 백프레셔, 유실 0 보장 — 커밋 `44339bc`)
+- 보정 변환 — `Custom/EthernetVision/AlignShapeMatchService.cs:756` `VectorAngleToRigid`, `:809~810` `HomMat2dIdentity`/`HomMat2dRotate`
+- Align 실행 경로에 저장 호출은 **0건** — 신규 배선 필요
+
+**범위:**
+1. Align 실행 시 **보정 적용 이미지** 생성 (`AffineTransImage` 로 변환 적용)
+2. 저장 배선 — 기존 큐 서비스 재사용(메모리 폭증 이력 있음, 큐 상한·백프레셔 필수)
+3. 파일명 규약 — 슬롯/시각/판정이 드러나게(사후 추적용)
+4. **레퍼런스 이미지도 같이 저장/지정** — 차분 대상이 없으면 근거가 성립하지 않음
+5. 옵션 토글 + 보관 기간/용량 정책(무한 누적 방지)
+6. (선택) 차분 확인 도구 — 저장 이미지 ↔ 레퍼런스 차분 표시
+
+**⚠ 주의 — 이 저장소 기확인 사고:**
+- 일괄검사에서 이미지 큐가 무제한으로 쌓여 **메모리 58.3GB 폭증**(`project_capture_queue_memory_leak`). 큐 상한 50 + 백프레셔로 해결됨. **같은 실수를 반복하지 말 것.**
+- Shot 이미지 영구보존 + 비동기 저장 레이스로 **34~41GB + halcon.DLL 크래시** 이력(`project_batch_memory_never_shrinks_260806`). Dispose 해도 OS 메모리 미반환 문제는 **미해결**.
+
+**Requirements:** AV 계열 (Align 비전) — 공식 REQ-ID 미매핑
+**Depends on:** Phase 60 (ALIGN_CALIB), Phase 65 (Bottom 6슬롯 면별 Align)
+
+**코딩 규칙:** 삼항 `?:` / `??` / `?.` 금지, 전통 `switch` 만, C# 7.2, 헝가리언, 날짜 주석 신규 금지, UI 는 MVVM, 빌드 경고 baseline 준수. **HImage 는 반드시 Dispose** — 이 phase 는 메모리 사고 이력 구간이다.
+
+Plans: (discuss 후 확정)
+
+---
+
 ## Progress Table (v1.3 — Align 비전)
 
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |

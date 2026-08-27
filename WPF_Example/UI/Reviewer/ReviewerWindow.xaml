@@ -70,6 +70,9 @@
                 <Button x:Name="btn_chartSmoke" Content="차트 이미지 캡처 점검"
                         Click="Button_ChartSmoke_Click"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
+                <Button x:Name="btn_alignVerify" Content="Align 정합 조회"
+                        Click="Button_AlignVerify_Click"
+                        Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
             </StackPanel>
 
             <!-- cycle 목록 — 남는 세로 공간 전부 사용 -->

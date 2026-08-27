@@ -597,6 +597,19 @@ namespace ReringProject.UI
 
             CustomMessageBox.Show(szTitle, szMessage, icon);
         }
+
+        // Align 정합 조회 창 열기. 이 화면의 자재번호 입력란 값을 초기값으로 복사해 넘긴다
+        //  (txt_materialIndex 는 "이미지 폴더 반복 검사" 입력란이라 용도는 그대로 둔다).
+        private void Button_AlignVerify_Click(object sender, RoutedEventArgs e)
+        {
+            AlignVerifyWindow win = new AlignVerifyWindow();
+            win.Owner = this;
+            if (txt_materialIndex != null)
+            {
+                win.SetInitialMaterial(txt_materialIndex.Text);
+            }
+            win.Show();
+        }
     }
 
     /// <summary>ListBox 각 항목 — FolderPath(역직렬화 시 경로), DisplayText(시각·종합판정).</summary>

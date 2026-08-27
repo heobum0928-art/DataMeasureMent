@@ -978,7 +978,13 @@ namespace ReringProject.Custom.UI {
                 if (datumRects == null) {
                     datumRects = new List<double[]>();
                 }
-                _viewer.SetResultRoiOverlays(null, datumRects);
+                // Phase 74: 검출 박스에도 이름표를 붙인다. 박스만 있으면 어느 패턴인지 알 수 없고,
+                //  라벨 없이 교체하면 티칭 때 보이던 "ROI 1/ROI 2" 가 검사 후 사라진 것처럼 보인다.
+                List<string> datumLabels = new List<string>();
+                for (int i = 0; i < datumRects.Count; i++) {
+                    datumLabels.Add("ROI " + (i + 1).ToString());
+                }
+                _viewer.SetResultRoiOverlays(null, datumRects, datumLabels);
             }
             catch {
                 // ROI 렌더 실패 무시

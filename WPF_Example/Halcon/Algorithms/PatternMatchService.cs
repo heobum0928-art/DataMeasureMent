@@ -38,6 +38,10 @@ namespace ReringProject.Halcon.Algorithms
         // NCC 기본 NumLevels
         private const int DEFAULT_NCC_NUM_LEVELS = 4;
 
+        // 마스크를 뺀 뒤 남은 ROI 면적의 최소 허용치(px). 이보다 작으면 create_*_model 이
+        //  난해한 HALCON 예외를 내므로, 그 전에 사람이 읽을 수 있는 오류로 바꿔 돌려준다.
+        private const double MIN_MASKED_ROI_AREA_PX = 100.0;
+
         // 캐시 동시성 보호용 락. Top/Side/Bottom 시퀀스가 각자 스레드에서 서로 다른(또는 같은) modelPath 로
         // 동시에 캐시에 접근할 수 있으므로, 딕셔너리 조회/삽입/제거는 전부 이 락 아래에서 수행한다.
         // FindNccModel/FindShapeModel(모델을 조회만 하는 호출) 자체는 이 락 밖에서 실행된다 — 같은 modelId 를
@@ -119,6 +123,7 @@ namespace ReringProject.Halcon.Algorithms
         /// template ROI(Rect2)로 reduce_domain 한 영역에서 모델 생성 후 engine 별 파일 저장.
         /// engine "NCC" → create_ncc_model/write_ncc_model, 그 외 → create_shape_model/write_shape_model.
         /// angleExtentDeg = 0 → angle off (작은 range, D-01b). modelPath = 호출부 전달(GetPatternModelFilePath 결과).
+        /// SystemSetting.UsePatternBrushMask 가 true 이고 modelPath 옆에 마스크 파일이 있으면 ROI 에서 마스크를 뺀다(D-74-03).
         /// </summary>
         /// <param name="templateImage">티칭 이미지</param>
         /// <param name="roiRow">template ROI 중심 row</param>
@@ -155,6 +160,7 @@ namespace ReringProject.Halcon.Algorithms
 
             HObject rect = null;
             HObject reducedImage = null;
+            HObject maskRegion = null;   // 브러시 마스크(D-74-02). 옵션 OFF 면 끝까지 null 이다.
             HTuple modelId = null;
 
             try
@@ -165,6 +171,32 @@ namespace ReringProject.Halcon.Algorithms
 
                 // Step 1: template ROI 생성 → reduce_domain
                 HOperatorSet.GenRectangle2(out rect, roiRow, roiCol, roiPhi, roiLen1, roiLen2);
+
+                // 브러시 마스크 적용(D-74-02/03). TryLoadMask 는 옵션 OFF 또는 마스크 파일 없음이면 false 를
+                //  돌려주므로, 이 분기에 들어가지 않으면 아래 ReduceDomain 은 기존과 완전히 동일한 rect 를 받는다(회귀 0).
+                bool bMaskLoaded = ReringProject.Halcon.Services.PatternMaskService.TryLoadMask(modelPath, out maskRegion);
+                if (bMaskLoaded == true && maskRegion != null)
+                {
+                    HObject maskedRect = null;
+                    HOperatorSet.Difference(rect, maskRegion, out maskedRect);
+                    try { rect.Dispose(); } catch { }
+                    rect = maskedRect;   // finally 가 그대로 Dispose 하도록 같은 변수에 재대입
+
+                    HTuple hvArea, hvCenterRow, hvCenterCol;
+                    HOperatorSet.AreaCenter(rect, out hvArea, out hvCenterRow, out hvCenterCol);
+                    double dRemainArea = 0.0;
+                    if (hvArea.Length > 0)
+                    {
+                        dRemainArea = hvArea[0].D;
+                    }
+                    if (dRemainArea < MIN_MASKED_ROI_AREA_PX)
+                    {
+                        error = "브러시 마스크가 패턴 ROI 를 거의 전부 덮었습니다(남은 면적 "
+                              + dRemainArea.ToString("F0") + "px). 마스크를 지우고 다시 시도하세요.";
+                        return false;
+                    }
+                }
+
                 HOperatorSet.ReduceDomain(templateImage, rect, out reducedImage);
 
                 bool isNcc = string.Equals(engine, "NCC", StringComparison.OrdinalIgnoreCase);
@@ -217,6 +249,7 @@ namespace ReringProject.Halcon.Algorithms
             {
                 if (rect != null) { try { rect.Dispose(); } catch { } }
                 if (reducedImage != null) { try { reducedImage.Dispose(); } catch { } }
+                if (maskRegion != null) { try { maskRegion.Dispose(); } catch { } }
                 if (modelId != null)
                 {
                     try

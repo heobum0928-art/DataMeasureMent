@@ -186,6 +186,13 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool DisableViewerDuringAutoInspect { get; set; } = false;
 
+        // Phase 74 — 패턴 모델(.shm/.ncm) 생성 시 브러시 마스크를 적용할지 여부(D-74-02/03).
+        //  기본 false = 기존 경로 그대로(회귀 0). false 인 동안에는 마스크 파일이 디스크에 남아 있어도
+        //  PatternMaskService.TryLoadMask 가 파일 존재 여부를 보지도 않고 즉시 false 를 돌려준다.
+        //  INI 키 누락 시 Load 의 ToBool 기본값이 false 라 기존 설치본은 자동으로 기존 동작을 유지한다.
+        [Category("System|Enviroment")]
+        public bool UsePatternBrushMask { get; set; } = false;
+
         // 260820 hbk 원본(origin) 캡쳐 이미지 저장 포맷 선택 — CaptureImageSaveService.SaveWorker 가 참조.
         //  capture(오버레이 렌더) 이미지는 이 설정과 무관하게 기존대로 JPEG 고정(범위 밖, 사용자 확정).
         [Category("System|Enviroment")]

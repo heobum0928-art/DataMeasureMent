@@ -64,8 +64,11 @@
 
         <!--좌측 컬럼: 컨트롤 패널 (네이티브 HWND 밖 — WPF 오버레이 가능)-->
         <Border Grid.Column="0" Margin="12" Padding="12" Background="#F8FAFC" CornerRadius="10">
-            <Grid>
-                <Grid.RowDefinitions>
+            <!--Phase 74: 좌측 패널이 길어져 아래 내용(검사 결과 체크박스 · 동축 · 픽셀 캘리브)이
+                 잘려 보이지 않았다. Bottom 비전과 동일하게 세로 스크롤을 붙인다.-->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid>
+                    <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -233,7 +236,8 @@
 
                 <!--Row 7: 여백 (기존 Row 6 에서 이동)-->
                 <Grid Grid.Row="7"/>
-            </Grid>
+                </Grid>
+            </ScrollViewer>
         </Border>
 
         <!--우측 컬럼: 뷰어 호스트 Border (외부 MainWindow 가 AttachSharedViewer 로 자식 주입 — D-03)-->

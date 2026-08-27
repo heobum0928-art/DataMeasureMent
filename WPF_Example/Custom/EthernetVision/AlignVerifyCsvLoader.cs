@@ -87,6 +87,10 @@ namespace ReringProject {
         private const string HEADER_FIRST_TOKEN = "기록시각";
         private const string CSV_EXT = ".csv";
         private const string FILE_DATE_FORMAT = "yyyyMMdd";
+
+        // 본 파일이 잠겨 있는 동안 기록이 쌓이는 옆 파일(AlignVerifyCsvWriter 와 같은 규약).
+        //  병합 전이라도 조회에서 빠지면 안 되므로 같이 읽는다.
+        private const string PENDING_SUFFIX = "_pending";
         private const int MAX_DAY_SPAN = 3660;   // 폭주 방어 — 약 10년
 
         /// <summary>
@@ -170,6 +174,12 @@ namespace ReringProject {
                 string szPath = Path.Combine(szDir, dtCursor.ToString(FILE_DATE_FORMAT) + CSV_EXT);
                 if (File.Exists(szPath)) {
                     LoadOneFile(szPath, all);
+                }
+
+                string szPendingPath = Path.Combine(
+                    szDir, dtCursor.ToString(FILE_DATE_FORMAT) + PENDING_SUFFIX + CSV_EXT);
+                if (File.Exists(szPendingPath)) {
+                    LoadOneFile(szPendingPath, all);
                 }
                 dtCursor = dtCursor.AddDays(1);
             }

@@ -20,6 +20,11 @@ namespace ReringProject {
         //  소모되므로 그대로 택트 지연이다.
         private const double RECHECK_ANGLE_EXTENT_DEG = 5.0;
 
+        // 보정이 맞았다면 패턴은 기준 위치(Ref1/Ref2) 그 자리에 와 있어야 한다. 그러니 그 근처만 본다.
+        //  각도만 좁혔을 때 rematch 가 68ms 였는데(실측 260827 17:14), 남은 비용은 각도가 아니라
+        //  사진 전체를 훑는 탐색 넓이였다. ±150px 면 정상 잔여(0.0001mm 수준)를 한참 덮는다.
+        private const double RECHECK_SEARCH_HALF_LEN_PX = 150.0;
+
         // 좁혀서 못 찾았을 때만 쓰는 전탐색 각도. 기존 동작과 동일한 값이다.
         private const double FULL_ANGLE_EXTENT_DEG = 180.0;
 
@@ -29,13 +34,16 @@ namespace ReringProject {
         //  느려지는 것은 그 예외 건뿐이라 정상 사이클의 택트에는 영향이 없다.
         private bool TryRefindAfterCorrection(
             HImage correctedImage, string szShm,
+            double dExpectRow, double dExpectCol,
             out double dRow, out double dCol, out double dAngleDeg, out double dScore,
             out bool bUsedFullSearch, out string szErr) {
 
+            // 1차 — 기대 위치 ±150px, 각도 ±5°. 정상 건은 여기서 끝난다.
             bUsedFullSearch = false;
             bool bNarrowFound = _matcher.TryFindPose(
                 correctedImage, ENGINE, szShm,
-                0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
+                dExpectRow, dExpectCol,
+                RECHECK_SEARCH_HALF_LEN_PX, RECHECK_SEARCH_HALF_LEN_PX,
                 0.0, MIN_SCORE, 1.0,
                 out dRow, out dCol, out dAngleDeg, out dScore, out szErr,
                 RECHECK_ANGLE_EXTENT_DEG);
@@ -43,6 +51,7 @@ namespace ReringProject {
                 return true;
             }
 
+            // 2차 — 기존과 완전히 동일한 전체 탐색. 수치를 잃지 않기 위한 폴백이다.
             bUsedFullSearch = true;
             return _matcher.TryFindPose(
                 correctedImage, ENGINE, szShm,
@@ -188,7 +197,7 @@ namespace ReringProject {
                 long nRematchStart = swVerify.ElapsedMilliseconds;
                 bool bWide1 = false;
                 bool bRe1 = TryRefindAfterCorrection(
-                    correctedImage, szShm1,
+                    correctedImage, szShm1, refPose.Ref1Row, refPose.Ref1Col,
                     out c1Row, out c1Col, out c1AngleDeg, out c1Score, out bWide1, out szReErr1);
                 if (bWide1) { bUsedFullAngle = true; }
                 if (!bRe1) {
@@ -199,7 +208,7 @@ namespace ReringProject {
 
                 bool bWide2 = false;
                 bool bRe2 = TryRefindAfterCorrection(
-                    correctedImage, szShm2,
+                    correctedImage, szShm2, refPose.Ref2Row, refPose.Ref2Col,
                     out c2Row, out c2Col, out c2AngleDeg, out c2Score, out bWide2, out szReErr2);
                 if (bWide2) { bUsedFullAngle = true; }
                 nMsRematch = swVerify.ElapsedMilliseconds - nRematchStart;

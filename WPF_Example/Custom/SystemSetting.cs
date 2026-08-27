@@ -35,6 +35,10 @@ namespace ReringProject.Setting {
         //260630 hbk Phase 60 사각형 ROI 전환: 미설정 시 전 이미지 커버 기본값 (row2/col2)
         private const double CALIB_SEARCH_MAX_DEFAULT = 99999.0;
 
+        // 피커센터 캘 스텝당 회전각(deg) 기본값. 360/각도 = 필요 스텝 수(10도 → 36스텝).
+        private const double PICKER_CAL_STEP_ANGLE_DEFAULT = 10.0;
+        private const double PICKER_CAL_FULL_TURN_DEG = 360.0;
+
         // Align 정합 검증 보관 상한 기본값. 매직넘버 금지.
         private const int ALIGN_VERIFY_KEEP_DAYS_DEFAULT = 180;
         private const int ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT = 30;
@@ -83,6 +87,23 @@ namespace ReringProject.Setting {
         [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
         public double AlignVerifySeatLimitMm { get; set; } = 0.0;
 
+        // 피커센터 캘리브레이션에서 한 스텝마다 피커를 몇 도 돌리는지. 검사용 각도범위와는 별개다.
+        //  10 → 36스텝, 20 → 18스텝, 30 → 12스텝. 화면이 이 값으로 필요 스텝 수를 계산해 보여준다.
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        public double PickerCalStepAngleDeg { get; set; } = PICKER_CAL_STEP_ANGLE_DEFAULT;
+
+        /// <summary>360/스텝각 = 한 바퀴에 필요한 스텝 수. 값이 이상하면 기본값 기준으로 돌려준다.</summary>
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public int PickerCalRequiredSteps {
+            get {
+                double dAngle = PickerCalStepAngleDeg;
+                if (dAngle <= 0.0) {
+                    dAngle = PICKER_CAL_STEP_ANGLE_DEFAULT;
+                }
+                return (int)System.Math.Round(PICKER_CAL_FULL_TURN_DEG / dAngle);
+            }
+        }
+
         partial void AfterLoad()
         {
             RestorePcRoleDefault();
@@ -100,6 +121,10 @@ namespace ReringProject.Setting {
             if (string.IsNullOrEmpty(AlignVerifySavePath))
             {
                 AlignVerifySavePath = ALIGN_VERIFY_SAVE_PATH_DEFAULT;
+            }
+            if (PickerCalStepAngleDeg <= 0.0)
+            {
+                PickerCalStepAngleDeg = PICKER_CAL_STEP_ANGLE_DEFAULT;
             }
             bool bKeepDaysMissing = AlignVerifyKeepDays <= 0;
             if (bKeepDaysMissing)

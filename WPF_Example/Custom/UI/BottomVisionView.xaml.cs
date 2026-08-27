@@ -107,6 +107,7 @@ namespace ReringProject.Custom.UI {
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
             UpdateSlotGate();       // Phase 74: 슬롯 미선택이면 티칭/브러시 잠금
             _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
+            LoadCalStepAngleToUi(); // Phase 74: 저장된 캘 스텝 각도 반영
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
@@ -918,6 +919,60 @@ namespace ReringProject.Custom.UI {
             }
             bool bShow = (chk_showCenterCross.IsChecked == true);
             _viewer.SetCenterCrossVisible(bShow);
+        }
+
+
+        // Phase 74: 캘 스텝당 피커 회전각(검사용 각도범위와 별개). 360/각도 = 필요 스텝 수.
+        private void CalStepAngleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            try {
+                ComboBoxItem item = cmb_calStepAngle.SelectedItem as ComboBoxItem;
+                if (item == null) {
+                    return;
+                }
+                double dAngle = 0.0;
+                double.TryParse(item.Content.ToString(), out dAngle);
+                if (dAngle <= 0.0) {
+                    return;
+                }
+                SystemSetting.Handle.PickerCalStepAngleDeg = dAngle;
+                RefreshCalStepInfo();
+            }
+            catch {
+                // 선택 반영 실패는 캘 흐름을 막지 않는다.
+            }
+        }
+
+        // 현재 스텝 각도로 필요한 스텝 수를 화면에 보여준다.
+        private void RefreshCalStepInfo() {
+            if (lbl_calStepInfo == null) {
+                return;
+            }
+            int nSteps = SystemSetting.Handle.PickerCalRequiredSteps;
+            lbl_calStepInfo.Text = "deg · " + nSteps.ToString() + "스텝";
+        }
+
+        // 저장된 스텝 각도를 콤보에 반영한다.
+        private void LoadCalStepAngleToUi() {
+            try {
+                if (cmb_calStepAngle == null) {
+                    return;
+                }
+                string szCurrent = SystemSetting.Handle.PickerCalStepAngleDeg.ToString("F0");
+                foreach (object o in cmb_calStepAngle.Items) {
+                    ComboBoxItem item = o as ComboBoxItem;
+                    if (item == null) {
+                        continue;
+                    }
+                    if (item.Content.ToString() == szCurrent) {
+                        cmb_calStepAngle.SelectedItem = item;
+                        break;
+                    }
+                }
+                RefreshCalStepInfo();
+            }
+            catch {
+                // 표시 실패는 캘 흐름을 막지 않는다.
+            }
         }
 
         private void ShowTeachRoiOverlays() {

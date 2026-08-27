@@ -201,8 +201,21 @@
                     </GroupBox>
 
                     <!--Row 5: 피커센터 캘리브레이션 패널 (Bottom 전용 — AV-05)-->
-                    <GroupBox Grid.Row="5" Header="피커센터 캘 (36-스텝)" Margin="0,0,0,8">
+                    <GroupBox Grid.Row="5" Header="피커센터 캘" Margin="0,0,0,8">
                         <StackPanel Margin="8">
+                            <!--Phase 74: 캘 스텝당 피커 회전각. 검사용 각도범위와는 별개다.
+                                 10도 → 36스텝, 20도 → 18스텝, 30도 → 12스텝.-->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="스텝 각도:" VerticalAlignment="Center" FontSize="12" Width="66"/>
+                                <ComboBox x:Name="cmb_calStepAngle" Width="70" Height="22" FontSize="12"
+                                          SelectionChanged="CalStepAngleComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="10"/>
+                                    <ComboBoxItem Content="20"/>
+                                    <ComboBoxItem Content="30"/>
+                                </ComboBox>
+                                <TextBlock x:Name="lbl_calStepInfo" Text="deg · 36스텝" VerticalAlignment="Center"
+                                           FontSize="12" Margin="6,0,0,0"/>
+                            </StackPanel>
                             <!--초기화: 누적 스텝 클리어-->
                             <Button x:Name="btn_calReset"
                                     Content="초기화"

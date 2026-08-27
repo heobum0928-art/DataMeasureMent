@@ -219,7 +219,7 @@
                             <!--Phase 74: 거리 재기. 캘리브 값은 바꾸지 않고 두 점 사이 거리만 보여준다.-->
                             <Button x:Name="btn_measureDistance"
                                     Content="거리 측정"
-                                    Style="{StaticResource BottomActionButtonStyle}"
+                                    Style="{StaticResource TrayActionButtonStyle}"
                                     Click="MeasureDistanceButton_Click"/>
                         </WrapPanel>
                         <TextBlock x:Name="lbl_pixelCalibStatus"

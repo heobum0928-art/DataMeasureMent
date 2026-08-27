@@ -55,6 +55,8 @@ namespace ReringProject.UI {
         private enum EDatumTeachStep { Line1, Line2, Circle, Vertical, HorizontalA, HorizontalB, Done }
         private EDatumTeachStep _datumTeachStep = EDatumTeachStep.Line1;
         private DatumConfig _editingDatum;
+        // 브러시 마스킹 대상 Datum. PublishDatumRoiCandidates(선택 변경) 에서만 갱신한다.
+        private DatumConfig _brushTargetDatum;
         // 현재 캔버스에 표시 중인 이미지 축 (가로/세로). DualImage 변형에서만 의미 있음. 세션 한정, INI 미저장 (Datum 노드 이동 시 가로축으로 리셋).
         private ReringProject.Sequence.EImageSource _currentImageSource = ReringProject.Sequence.EImageSource.Horizontal;
         // 현재 선택된 Datum (teach 모드 무관, swap UI 의 대상).
@@ -114,6 +116,13 @@ namespace ReringProject.UI {
             DrawScale = pDev.Config.DrawScale;
             UpdatePointerLabel(0, 0, null);
             PreviewKeyDown += MainView_PreviewKeyDown;
+
+            // Phase 74 브러시 마스킹 배선. 훅 2개만 채우면 저장/재생성/상태문구는 ViewModel 이 처리한다.
+            if (brushPanel != null) {
+                brushPanel.ViewModel.ModelPathsProvider = () => ReringProject.Halcon.Services.DatumPatternModelRegenService.GetModelPathsForMask(_brushTargetDatum);
+                brushPanel.ViewModel.ModelRegenerator = RegenerateDatumPatternSilent;
+                brushPanel.ViewModel.Attach(halconViewer);
+            }
 
             PopulateManualCycleSeqCombo();
         }
@@ -2484,6 +2493,10 @@ namespace ReringProject.UI {
                     break;
             }
             halconViewer.SetDatumRoiCandidates(list);
+
+            // Phase 74: 브러시 마스킹 대상 갱신 + 그 Datum 의 마스크를 화면에 다시 올린다.
+            _brushTargetDatum = datum;
+            if (brushPanel != null) { brushPanel.ViewModel.ReloadMaskFromDisk(); }
         }
 
         // PublishDatumRoiCandidates 대칭. Measurement DualImage 노드 선택 시 swap UI owner set + 가로축 리셋 + Visibility 제어.
@@ -4002,6 +4015,39 @@ namespace ReringProject.UI {
         }
 
         //260619 hbk Phase 55 ALIGN-02: 직선 ROI 그리기/write-back 핸들러(DrawAlignLineRoiButton_Click + HalconViewer_AlignLineRectCompleted) 제거 — [패턴 2] 버튼으로 대체.
+
+        // Phase 74: 브러시 패널 열기/닫기. 패널은 HALCON 창 밖(툴바 아래 줄)이라 airspace 영향이 없다.
+        private void BrushMaskToggleButton_Click(object sender, RoutedEventArgs e) {
+            if (brushPanel == null) {
+                return;
+            }
+            bool bOn = false;
+            if (btn_brushMask.IsChecked == true) {
+                bOn = true;
+            }
+            if (bOn == true) {
+                brushPanel.Visibility = Visibility.Visible;
+                brushPanel.ViewModel.ReloadMaskFromDisk();
+            }
+            else {
+                brushPanel.ViewModel.IsBrushActive = false;
+                brushPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        // Phase 74 D-74-04: 칠하기가 끝나면 ViewModel 이 이 훅을 부른다. 성공=null, 실패=오류 문자열.
+        //  계산은 DatumPatternModelRegenService 가 한다 — 이 메서드는 호출 + 화면 갱신만.
+        private string RegenerateDatumPatternSilent() {
+            string szError = ReringProject.Halcon.Services.DatumPatternModelRegenService.RegenerateSilent(
+                _brushTargetDatum, halconViewer.CurrentImage);
+            try { if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor(); } catch { }
+            if (szError == null) {
+                label_drawHint.Content = "마스크 반영 모델 재생성 완료 — 종료 전 Recipe Save 필요 (.shm 은 저장됨, 기준값은 메모리)";
+                label_drawHint.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF4ADE80"));
+                label_drawHint.Visibility = Visibility.Visible;
+            }
+            return szError;
+        }
 
         //260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09) — InvokeTryTeachDatum 패턴 미러
         private void CreatePatternModelButton_Click(object sender, RoutedEventArgs e) {

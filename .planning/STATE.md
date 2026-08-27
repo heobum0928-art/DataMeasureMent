@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Phase 73 COMPLETE (SIMUL 검증 PASS, S7 조명FAIL 만 이월)
+stopped_at: Phase 74/75 plan 완료 — 다음 세션에서 plan-checker 검증 → 실행
 last_updated: "2026-08-27T00:00:00.000Z"
 last_activity: 2026-08-27
 progress:
@@ -27,9 +27,39 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 73-side-4-jig-split (73) — ✅ COMPLETE (7/7 plans, SIMUL 검증 PASS)
+Phase: 73 ✅ COMPLETE · Phase 74/75 plan 완료(검증 대기)
 
-다음: Phase 74(브러시 마스킹) / 75(Align 보정본 저장) — 둘 다 Bottom Align 캘리브 실측 후 착수 권장
+## 다음 세션 인수인계 (2026-08-27)
+
+**바로 할 일 — plan-checker 검증부터**
+```
+Phase 74: 6 plans / 4 waves  (커밋 c542c18)
+Phase 75: 6 plans / 3 waves  (커밋 eb355f6)
+```
+Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건은 실행 중에 터졌으면
+유일본 Datum 이 날아갔을 것들이다. **74/75 도 반드시 검증 후 실행할 것.**
+
+검증기에 넘길 때 반드시 알려줄 것(Phase 73 실측):
+- `MSBuild.exe` 는 PATH 에 없다 → `/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe`
+- msbuild 는 **대시 형식만** (`-p:` `-v:m` `-nologo`). `/p:` 는 MSYS 경로 변환으로 깨진다
+- 빌드 경고 baseline **SIMUL-ON 18줄 / SIMUL-OFF 16줄**. "경고 0" 은 항상 거짓 실패
+- SIMUL-OFF 는 `-p:DefineConstants=TRACE%3BDEBUG` (`Release|x64` 는 로컬 csproj 가 SIMUL 을 켜 놔서 OFF 아님)
+- `$SCR` 미정의면 `C:73on\` 에 산출됨 — 절대경로 지정 필요
+- grep 카운트는 **편집 전 실측값 확인 + 주석 포함 여부 검토**. 숫자를 맞추려 코드를 지우는 사고 이력 있음
+
+**착수 전 권고:** Bottom Align 캘리브레이션을 한 번 돌려 노이즈 수준·산포를 볼 것.
+- Phase 74 는 옵션이라 노이즈가 없어도 만들어 두는 건 무해
+- Phase 75 의 판정 임계값은 **실측 없이 정할 수 없다**(1차는 숫자만 표시)
+
+**미처리 이월**
+| | 내용 |
+|---|---|
+| S7 | 조명 FAIL 재현 (`D:\Data\Light\light.ini` 의 `BACK`→`BACKX`, 원복 필수) |
+| E5 티칭 | BOTTOM `SHOT_E5` 크로스-Z 검출이 회차마다 갈림 — 재티칭 필요 |
+| WR-03 | TCP `$TEST` 에 상호배타 게이트 없음(UI RUN 에만 있음) |
+| 재발방지 3건 | 레시피 이상 감지 부재 / 키 누락 0 클로버 / 이미지 경로 절대경로 박힘 |
+
+상세: `73-HUMAN-UAT.md`, `73-RECIPE-RESTORE.md`, `73-REVIEW.md`
 Plan: 7 of 7
 Last activity: 2026-08-20 - quick-260820-dfw 완료: `Action_FAIMeasurement.cs` Datum DualImage 가로/세로 이미지 로드 체인 6개 함수의 `out HImage/HImage/bool` 3종 조합을 `DualDatumImageResult`(K&R+public 필드, CrossZCaptureTickResult 와 동일 스타일) 클래스 리턴값으로 교체하는 순수 시그니처 리팩토링. 유일한 외부 호출부(`ProcessDatumDualImage`)를 가진 `TryGrabOrLoadDualDatumImages` 만 out 시그니처 유지, 나머지 5개 함수는 out 완전 제거. 외부 호출부는 xxd byte-diff 로 완전 무변경 확인(hunk 0개), `wc -l` 1781→1790(+9) 사전예측과 정확 일치, 빌드 error0/warning12 baseline 유지, 커밋 084ff87 1개 파일만, csproj 끝까지 unstaged. 세션 종료 전 점검(260819) 결과도 이어서 유효: git status 깨끗, Debug|x64 clean rebuild PASS, 오늘(260819) 6-bundle 리팩토링(q9t/rle/s05/sgg/sxj/tcs) + click2 전부 완료. 남은 것 = 실기 육안 확인 대기 항목들(거리측정/Calibrate 삼각형 표시, 피커센터 실거리, 의미있는 Cpk 수치) — 전부 실물 카메라/화면 필요, 이 세션에서 확인 불가.
 

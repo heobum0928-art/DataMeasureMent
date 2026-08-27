@@ -806,20 +806,21 @@ namespace ReringProject.Custom.UI {
             }
             try {
                 List<double[]> rects = new List<double[]>();
-                AddTeachRoiRect(rects, _roi1);
-                AddTeachRoiRect(rects, _roi2);
+                List<string> labels = new List<string>();
+                AddTeachRoiRect(rects, labels, _roi1, "ROI 1");
+                AddTeachRoiRect(rects, labels, _roi2, "ROI 2");
                 // 캘리브레이션 검색 ROI 도 확정 후 사라지던 문제 — 같이 표시한다.
                 if (_calRoiSet == true) {
-                    AddTeachRoiRect(rects, _calRoiRect);
+                    AddTeachRoiRect(rects, labels, _calRoiRect, "캘 검색 ROI");
                 }
-                _viewer.SetResultRoiOverlays(null, rects);
+                _viewer.SetResultRoiOverlays(null, rects, labels);
             }
             catch {
                 // 표시 실패는 티칭 흐름에 영향을 주지 않는다.
             }
         }
 
-        private void AddTeachRoiRect(List<double[]> rects, RoiDefinition roi) {
+        private void AddTeachRoiRect(List<double[]> rects, List<string> labels, RoiDefinition roi, string szLabel) {
             if (roi == null) {
                 return;
             }
@@ -830,6 +831,7 @@ namespace ReringProject.Custom.UI {
                 return;
             }
             rects.Add(new double[] { row, col, phi, len1, len2 });
+            labels.Add(szLabel);
         }
 
         private string RegenerateTeachSilent() {
@@ -1085,9 +1087,16 @@ namespace ReringProject.Custom.UI {
 
             try {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
-                lbl_calStatus.Text = "누적 0";
                 lbl_pickerCenter.Text = "";
                 _calRoiSet = false;
+                // 화면만 지우면 안 된다 — 저장된 검색 ROI 값이 남아 있으면 TCP $ALIGN_CALIB STEP 경로가
+                //  계속 옛 ROI 를 쓴다. 실제로 지운다.
+                _calRoiRect = null;
+                SystemSetting.Handle.CalibSearchRow1 = 0.0;
+                SystemSetting.Handle.CalibSearchCol1 = 0.0;
+                SystemSetting.Handle.CalibSearchRow2 = 0.0;
+                SystemSetting.Handle.CalibSearchCol2 = 0.0;
+                lbl_calStatus.Text = "누적 0 · 검색 ROI 삭제됨";
                 if (_viewer != null) {
                     _viewer.SetAlignContourXld(null); //260630 hbk — 오버레이 클리어
                 }

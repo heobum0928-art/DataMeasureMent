@@ -627,6 +627,8 @@ namespace ReringProject.UI
         private List<ResultRoiBox> _resultRoiOverlays = new List<ResultRoiBox>();
         //260619 hbk Phase 56 Wave 2 — 보정 Datum 검색 ROI(원/수평) 표시 전용 (측정 ROI 와 색 구분). 항목 = {row,col,phi,l1,l2} 또는 {row,col,radius}.
         private List<double[]> _resultDatumRoiOverlays = new List<double[]>();
+        // Phase 74: 위 박스와 1:1 대응하는 라벨(ROI 1 / ROI 2 / 캘 ROI). 비어 있으면 라벨 없이 그린다.
+        private List<string> _resultDatumRoiLabels = new List<string>();
         private bool _datumSelected;
         // Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
         private bool _datumIsEditMode = false;
@@ -726,10 +728,19 @@ namespace ReringProject.UI
             Render();
         }
 
+        /// <summary>Phase 74: datumRects 각 박스에 붙일 라벨을 함께 지정한다(개수가 달라도 안전).</summary>
+        public void SetResultRoiOverlays(List<ResultRoiBox> measRects, List<double[]> datumRects, List<string> datumLabels)
+        {
+            if (datumLabels == null) _resultDatumRoiLabels = new List<string>();
+            else                     _resultDatumRoiLabels = datumLabels;
+            SetResultRoiOverlays(measRects, datumRects);
+        }
+
         public void ClearResultRoiOverlays()
         {
             _resultRoiOverlays = new List<ResultRoiBox>();
             _resultDatumRoiOverlays = new List<double[]>();
+            _resultDatumRoiLabels = new List<string>();
             Render();
         }
 
@@ -1147,7 +1158,7 @@ namespace ReringProject.UI
             //260619 hbk Phase 56 Wave 2 — 보정(회전) Datum 검색 ROI (orange, 측정 green 과 구분). datum 토글 게이트.
             if (_datumOverlayVisible && _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0)
             {
-                _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultDatumRoiOverlays, "orange", 2);
+                _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultDatumRoiOverlays, "orange", 2, _resultDatumRoiLabels);
             }
 
             //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 직접 표시 (녹색, 에지 토글 게이트).

@@ -582,16 +582,17 @@ namespace ReringProject.Custom.UI {
             }
             try {
                 List<double[]> rects = new List<double[]>();
-                AddTeachRoiRect(rects, _roi1);
-                AddTeachRoiRect(rects, _roi2);
-                _viewer.SetResultRoiOverlays(null, rects);
+                List<string> labels = new List<string>();
+                AddTeachRoiRect(rects, labels, _roi1, "ROI 1");
+                AddTeachRoiRect(rects, labels, _roi2, "ROI 2");
+                _viewer.SetResultRoiOverlays(null, rects, labels);
             }
             catch {
                 // 표시 실패는 티칭 흐름에 영향을 주지 않는다.
             }
         }
 
-        private void AddTeachRoiRect(List<double[]> rects, RoiDefinition roi) {
+        private void AddTeachRoiRect(List<double[]> rects, List<string> labels, RoiDefinition roi, string szLabel) {
             if (roi == null) {
                 return;
             }
@@ -602,6 +603,7 @@ namespace ReringProject.Custom.UI {
                 return;
             }
             rects.Add(new double[] { row, col, phi, len1, len2 });
+            labels.Add(szLabel);
         }
 
         private string RegenerateTeachSilent() {

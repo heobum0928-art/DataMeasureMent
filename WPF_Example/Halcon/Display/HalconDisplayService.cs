@@ -550,17 +550,55 @@ namespace ReringProject.Halcon.Display
         //  rect 인자 = {row, col, phi, length1, length2} (TryFitLine 의 gen_measure_rectangle2 와 동일 순서/규약).
         public void RenderResultRoiBoxes(HWindow window, IList<double[]> rects, string color, int lineWidth)
         {
+            RenderResultRoiBoxes(window, rects, color, lineWidth, null);
+        }
+
+        // ROI 라벨을 박스 위쪽 바깥에 띄우는 간격(px). 박스 선과 글자가 겹치지 않게 한다.
+        private const double RoiLabelOffsetPx = 20.0;
+
+        // Phase 74: 라벨(ROI 1 / ROI 2 / 캘 ROI)을 박스 좌측 상단 바깥에 함께 그리는 오버로드.
+        //  labels 가 null 이거나 짧으면 그 박스는 라벨 없이 기존과 동일하게 그린다(회귀 0).
+        //  라벨은 HALCON 창 "안"에 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.
+        public void RenderResultRoiBoxes(HWindow window, IList<double[]> rects, string color, int lineWidth, IList<string> labels)
+        {
             if (window == null || rects == null) return;
             try
             {
                 HOperatorSet.SetColor(window, color);
                 HOperatorSet.SetLineWidth(window, lineWidth);
                 HOperatorSet.SetDraw(window, "margin"); // 외곽선 (datum ROI rectangle2 렌더와 동일)
-                foreach (double[] r in rects)
+                for (int i = 0; i < rects.Count; i++)
                 {
+                    double[] r = rects[i];
                     if (r == null) continue;
                     if (r.Length == 3) HOperatorSet.DispCircle(window, r[0], r[1], r[2]);                       // {row,col,radius} 원 ROI
                     else if (r.Length >= 5) HOperatorSet.DispRectangle2(window, r[0], r[1], r[2], r[3], r[4]); // {row,col,phi,l1,l2} 사각 ROI
+
+                    bool bHasLabel = (labels != null) && (i < labels.Count) && (string.IsNullOrEmpty(labels[i]) == false);
+                    if (bHasLabel == false) continue;
+
+                    // 좌측 상단 바깥. r = {row(중심), col(중심), phi, len1(=Col 반폭), len2(=Row 반폭)}
+                    double labelRow = r[0] - RoiLabelOffsetPx;
+                    double labelCol = r[1];
+                    if (r.Length >= 5)
+                    {
+                        labelRow = r[0] - r[4] - RoiLabelOffsetPx;
+                        labelCol = r[1] - r[3];
+                    }
+                    else if (r.Length == 3)
+                    {
+                        labelRow = r[0] - r[2] - RoiLabelOffsetPx;
+                        labelCol = r[1] - r[2];
+                    }
+                    if (labelRow < 0.0) labelRow = 0.0;
+                    if (labelCol < 0.0) labelCol = 0.0;
+
+                    try
+                    {
+                        HOperatorSet.SetTposition(window, labelRow, labelCol);
+                        HOperatorSet.WriteString(window, labels[i]);
+                    }
+                    catch { /* 라벨 실패해도 박스는 그린다 */ }
                 }
             }
             catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }

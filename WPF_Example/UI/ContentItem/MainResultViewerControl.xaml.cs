@@ -639,6 +639,40 @@ namespace ReringProject.UI
         // Phase 74: 화면 좌상단 고정 정보 라벨(예: 선택된 면 슬롯). 비어 있으면 표시하지 않는다.
         private string _infoLabel = "";
 
+        // Phase 74: 마우스 좌표/밝기를 HALCON 창 안에 직접 표시할지. WPF 라벨은 좌측 패널 스크롤에 가려진다.
+        private bool _pointerHudVisible;
+
+        /// <summary>마우스 좌표/밝기(X/Y/Gray)를 이미지 위에 표시할지.</summary>
+        public void SetPointerHudVisible(bool visible)
+        {
+            _pointerHudVisible = visible;
+            Render();
+        }
+
+        /// <summary>현재 포인터 위치의 X/Y/Gray 표시 문자열. 이미지가 없으면 빈 문자열.</summary>
+        private string BuildPointerHudText()
+        {
+            if (CurrentImage == null) return "";
+            if (_imageWidth <= 0.0 || _imageHeight <= 0.0) return "";
+            try
+            {
+                double x = Math.Max(0.0, Math.Min(_imageWidth - 1.0, _lastMouseImagePoint.X));
+                double y = Math.Max(0.0, Math.Min(_imageHeight - 1.0, _lastMouseImagePoint.Y));
+                string szGray = "-";
+                try
+                {
+                    double dGray = CurrentImage.GetGrayval((int)Math.Round(y), (int)Math.Round(x))[0].D;
+                    szGray = dGray.ToString("F0");
+                }
+                catch { /* 좌표가 도메인 밖이면 밝기만 생략 */ }
+                return "X: " + x.ToString("F0") + "   Y: " + y.ToString("F0") + "   Gray: " + szGray;
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
         /// <summary>화면 좌상단에 고정 표시할 안내 문구. null/빈 문자열이면 지운다.</summary>
         public void SetInfoLabel(string text)
         {
@@ -1259,6 +1293,14 @@ namespace ReringProject.UI
 
             // Phase 74: 좌상단 정보 라벨(면 슬롯 등). 메시지 줄 아래에 붙인다.
             _displayService.RenderInfoLabel(ViewerHost.HalconWindow, _infoLabel, _displayMessages.Count);
+
+            // Phase 74: 마우스 좌표/밝기. 정보 라벨 바로 아래 줄에 붙인다.
+            if (_pointerHudVisible)
+            {
+                int nHudLine = _displayMessages.Count;
+                if (string.IsNullOrEmpty(_infoLabel) == false) { nHudLine = nHudLine + 1; }
+                _displayService.RenderInfoLabel(ViewerHost.HalconWindow, BuildPointerHudText(), nHudLine);
+            }
 
             // Phase 74: 중심 십자선. 다른 오버레이 위에 오도록 마지막 근처에서 그린다.
             if (_centerCrossVisible)
@@ -2016,6 +2058,13 @@ namespace ReringProject.UI
 
         private void PublishPointerInfo()
         {
+            // Phase 74: 좌표/밝기를 이미지 위에 그리는 중이면 포인터가 움직일 때마다 다시 그린다.
+            //  Render() 는 _renderPending 으로 스로틀되므로 이동마다 불러도 안전하다.
+            if (_pointerHudVisible)
+            {
+                Render();
+            }
+
             if (CurrentImage == null)
             {
                 var pointerInfoChangedHandlerNull = PointerInfoChanged;

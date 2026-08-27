@@ -97,6 +97,7 @@ namespace ReringProject.Custom.UI {
             // Phase 74: 좌표/밝기 구독(중복 방지: -= 후 +=)
             _viewer.PointerInfoChanged -= OnViewerPointerInfoChanged;
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
+            _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
             _viewer.SetInfoLabel("Tray Align"); // Phase 74: 어느 화면인지 이미지 위에 표시
         }
 

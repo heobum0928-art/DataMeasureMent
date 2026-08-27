@@ -11,18 +11,22 @@
             <CheckBox x:Name="chk_maskEnabled" Content="브러시 마스킹 사용 (끄면 기존 동작)"
                       IsChecked="{Binding IsMaskEnabled, Mode=TwoWay}"/>
 
+            <!--칠하기/지우개는 상호배타. 옵션이 꺼져 있으면 둘 다 비활성 — 반영되지도 않을 마스크를 칠하게 두지 않는다.-->
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <ToggleButton x:Name="btn_brushActive" Content="칠하기 모드"
                               IsChecked="{Binding IsBrushActive, Mode=TwoWay}"
+                              IsEnabled="{Binding IsMaskEnabled}"
                               MinWidth="90" Height="26" Margin="0,0,6,0"/>
                 <ToggleButton x:Name="btn_eraseMode" Content="지우개"
                               IsChecked="{Binding IsEraseMode, Mode=TwoWay}"
+                              IsEnabled="{Binding IsMaskEnabled}"
                               MinWidth="70" Height="26"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <TextBlock Text="굵기:" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="12"/>
                 <Slider x:Name="sld_brushRadius" Minimum="5" Maximum="200" Width="180"
+                        IsEnabled="{Binding IsMaskEnabled}"
                         VerticalAlignment="Center" Value="{Binding BrushRadiusPx, Mode=TwoWay}"/>
                 <TextBlock Text="{Binding BrushRadiusPx, StringFormat={}{0:F0}px}" Width="46"
                            Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"/>

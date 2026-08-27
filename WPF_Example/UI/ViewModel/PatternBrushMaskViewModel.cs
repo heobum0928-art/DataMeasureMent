@@ -50,7 +50,7 @@ namespace ReringProject.UI
             _viewer.BrushStrokeCompleted -= OnBrushStrokeCompleted;
             _viewer.BrushStrokeCompleted += OnBrushStrokeCompleted;
             _viewer.BrushRadiusPx = BrushRadiusPx;
-            _viewer.IsBrushEraseMode = IsEraseMode;
+            UpdateViewerBrushMode();
             RefreshStatus();
         }
 
@@ -65,19 +65,31 @@ namespace ReringProject.UI
             _viewer = null;
         }
 
-        /// <summary>시스템 설정과 양방향. 설정 저장은 기존 설정 화면 담당 — 여기서는 세션 내 즉시 적용만 한다.</summary>
+        /// <summary>
+        /// 시스템 설정과 양방향. 설정 저장은 기존 설정 화면 담당 — 여기서는 세션 내 즉시 적용만 한다.
+        /// 끄면 칠하기/지우개도 함께 꺼진다 — 반영되지도 않을 마스크를 칠하게 두면 안 된다.
+        /// </summary>
         public bool IsMaskEnabled
         {
             get { return SystemSetting.Handle.UsePatternBrushMask; }
             set
             {
                 SystemSetting.Handle.UsePatternBrushMask = value;
+                if (value == false)
+                {
+                    _isBrushActive = false;
+                    _isEraseMode = false;
+                    UpdateViewerBrushMode();
+                    Raise(nameof(IsBrushActive));
+                    Raise(nameof(IsEraseMode));
+                }
                 Raise();
                 RefreshStatus();
             }
         }
 
         private bool _isBrushActive;
+        /// <summary>칠하기 모드. 지우개와 상호배타 — 켜면 지우개가 꺼진다.</summary>
         public bool IsBrushActive
         {
             get { return _isBrushActive; }
@@ -87,37 +99,74 @@ namespace ReringProject.UI
                 {
                     return;
                 }
-                _isBrushActive = value;
-                if (_viewer != null)
+                // 옵션이 꺼져 있으면 칠할 수 없다. 체크박스를 원래대로 되돌린다.
+                if (value == true && IsMaskEnabled == false)
                 {
-                    if (_isBrushActive == true)
-                    {
-                        _viewer.StartBrushMasking();
-                    }
-                    else
-                    {
-                        _viewer.StopBrushMasking();
-                    }
+                    SetStatus("먼저 [브러시 마스킹 사용] 을 체크하세요 — 꺼진 상태에서는 칠할 수 없습니다");
+                    Raise();
+                    return;
                 }
+
+                _isBrushActive = value;
+                if (_isBrushActive == true)
+                {
+                    _isEraseMode = false;   // 상호배타
+                    Raise(nameof(IsEraseMode));
+                }
+                UpdateViewerBrushMode();
                 Raise();
                 RefreshStatus();
             }
         }
 
         private bool _isEraseMode;
+        /// <summary>지우개 모드. 칠하기와 상호배타 — 켜면 칠하기가 꺼진다.</summary>
         public bool IsEraseMode
         {
             get { return _isEraseMode; }
             set
             {
-                _isEraseMode = value;
-                if (_viewer != null)
+                if (_isEraseMode == value)
                 {
-                    _viewer.IsBrushEraseMode = value;
+                    return;
                 }
+                if (value == true && IsMaskEnabled == false)
+                {
+                    SetStatus("먼저 [브러시 마스킹 사용] 을 체크하세요 — 꺼진 상태에서는 지울 수 없습니다");
+                    Raise();
+                    return;
+                }
+
+                _isEraseMode = value;
+                if (_isEraseMode == true)
+                {
+                    _isBrushActive = false;   // 상호배타
+                    Raise(nameof(IsBrushActive));
+                }
+                UpdateViewerBrushMode();
                 Raise();
                 RefreshStatus();
             }
+        }
+
+        // 칠하기/지우개 중 하나라도 켜져 있으면 뷰어 브러시 모드가 살아 있어야 한다.
+        //  둘 다 꺼지면 모드를 끈다(마스크 자체는 지우지 않는다).
+        private void UpdateViewerBrushMode()
+        {
+            if (_viewer == null)
+            {
+                return;
+            }
+            bool bAnyActive = _isBrushActive || _isEraseMode;
+            if (bAnyActive == true)
+            {
+                _viewer.StartBrushMasking();
+            }
+            else
+            {
+                _viewer.StopBrushMasking();
+            }
+            _viewer.IsBrushEraseMode = _isEraseMode;
         }
 
         private double _brushRadiusPx = BrushRadiusDefaultPx;
@@ -149,10 +198,14 @@ namespace ReringProject.UI
         /// <summary>지금 상태를 한 문장으로 알려준다.</summary>
         public void RefreshStatus()
         {
-            string szMode = "칠하기";
+            string szMode = "대기";
             if (IsEraseMode == true)
             {
                 szMode = "지우개";
+            }
+            else if (IsBrushActive == true)
+            {
+                szMode = "칠하기";
             }
 
             string szMask = "마스크 없음";

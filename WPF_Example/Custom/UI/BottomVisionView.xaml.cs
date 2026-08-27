@@ -743,6 +743,10 @@ namespace ReringProject.Custom.UI {
                 List<double[]> rects = new List<double[]>();
                 AddTeachRoiRect(rects, _roi1);
                 AddTeachRoiRect(rects, _roi2);
+                // 캘리브레이션 검색 ROI 도 확정 후 사라지던 문제 — 같이 표시한다.
+                if (_calRoiSet == true) {
+                    AddTeachRoiRect(rects, _calRoiRect);
+                }
                 _viewer.SetResultRoiOverlays(null, rects);
             }
             catch {
@@ -962,6 +966,7 @@ namespace ReringProject.Custom.UI {
                 double dW = roi.Column2 - roi.Column1;
                 double dH = roi.Row2 - roi.Row1;
                 lbl_calStatus.Text = "검색 ROI 설정됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")";
+                ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 캘 검색 ROI 가 보이게 유지
             }
             catch (Exception ex) {
                 lbl_calStatus.Text = "ROI 수거 오류: " + ex.Message;
@@ -991,6 +996,7 @@ namespace ReringProject.Custom.UI {
                 if (_viewer != null) {
                     _viewer.SetAlignContourXld(null); //260630 hbk — 오버레이 클리어
                 }
+                ShowTeachRoiOverlays(); // Phase 74: 캘 ROI 해제를 화면에도 반영
             }
             catch (Exception ex) {
                 lbl_calStatus.Text = "초기화 오류: " + ex.Message;

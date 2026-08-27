@@ -914,6 +914,13 @@ namespace ReringProject.Custom.UI {
                     lbl_result.Text = "검출 실패";
                     ClearAlignVisualization();             //260625 hbk Phase 61.1 이전 오버레이 제거
                 }
+                // D-75-01 보강: 화면 [검사] 도 ① 기록을 남긴다.
+                //  PLC 가 없는 셋업 기간에도 잔여 산포가 쌓여야 임계값을 정할 수 있다.
+                //  자재번호는 -1(수동). 검출 성공=OK / 실패=NG 로만 적는다 —
+                //  공차 P/F 는 PLC 사이클의 판단이라 여기서 흉내내지 않는다.
+                SystemHandler.Handle.RecordAlignVerifyManual(
+                    VIEW_MODE, EBottomAlignSlot.None, _viewer.CurrentImage, res, res.Found);
+
                 lbl_status.Text = "대기";
             }
             catch (Exception ex) {

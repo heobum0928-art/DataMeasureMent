@@ -456,7 +456,7 @@ namespace ReringProject {
                     Logging.PrintLog((int)ELogType.Error,
                         "[ALIGN_TEST] Bottom slot={0} 미티칭 — 모델 없음 NG 반환", (int)slot);
                     FillAlignPoseZero(pResult); //260626 hbk PLC 형식 일관성 — pose=0 채움
-                    RecordAlignFailureOnly(EEthernetVisionMode.Bottom, slot, pResult, "미티칭");
+                    RecordAlignFailureOnly(EEthernetVisionMode.Bottom, slot, pResult.MaterialNo, "미티칭");
                     return false;
                 }
 
@@ -467,7 +467,7 @@ namespace ReringProject {
                     Logging.PrintLog((int)ELogType.Error,
                         "[ALIGN_TEST] 이더넷 카메라 미연결(null) — NG 반환");
                     FillAlignPoseZero(pResult);
-                    RecordAlignFailureOnly(EEthernetVisionMode.Bottom, slot, pResult, "카메라 미연결");
+                    RecordAlignFailureOnly(EEthernetVisionMode.Bottom, slot, pResult.MaterialNo, "카메라 미연결");
                     return false;
                 }
 
@@ -509,7 +509,7 @@ namespace ReringProject {
                 finally
                 {
                     // ① 은 img 가 살아 있는 동안 돌아야 한다 — 아래 Dispose 보다 반드시 앞이다.
-                    RecordAlignVerify(EEthernetVisionMode.Bottom, slot, pResult, img, res, bAlignPass);
+                    RecordAlignVerify(EEthernetVisionMode.Bottom, slot, pResult.MaterialNo, img, res, bAlignPass);
                     //260626 hbk HImage Dispose — 호출자가 Dispose 책임(EthernetAlignCamera.Grab 규약)
                     if (img != null)
                     {
@@ -545,7 +545,7 @@ namespace ReringProject {
                 {
                     Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 미티칭 — 모델 없음 NG");
                     FillAlignPoseZero(pResult);
-                    RecordAlignFailureOnly(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult, "미티칭");
+                    RecordAlignFailureOnly(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult.MaterialNo, "미티칭");
                     return false;
                 }
 
@@ -554,7 +554,7 @@ namespace ReringProject {
                 {
                     Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] 이더넷 카메라 미연결 — NG");
                     FillAlignPoseZero(pResult);
-                    RecordAlignFailureOnly(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult, "카메라 미연결");
+                    RecordAlignFailureOnly(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult.MaterialNo, "카메라 미연결");
                     return false;
                 }
 
@@ -590,7 +590,7 @@ namespace ReringProject {
                 finally
                 {
                     // ① 은 img 가 살아 있는 동안 돌아야 한다 — 아래 Dispose 보다 반드시 앞이다.
-                    RecordAlignVerify(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult, img, res, bAlignPass);
+                    RecordAlignVerify(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult.MaterialNo, img, res, bAlignPass);
                     if (img != null)
                     {
                         img.Dispose();
@@ -724,7 +724,7 @@ namespace ReringProject {
         //  분쟁은 나중에 생긴다 — "그 건은 OK 라 안 남겼습니다" 는 방어가 안 된다.
         //  실패해도 throw 하지 않는다(TCP 스레드 크래시 방지). Align 응답에는 일절 영향을 주지 않는다.
         private void RecordAlignVerify(EEthernetVisionMode mode, EBottomAlignSlot slot,
-                                       AlignResultPacket pResult, HImage img, AlignResult res, bool bAlignPass)
+                                       int nMaterialNo, HImage img, AlignResult res, bool bAlignPass)
         {
             HImage corrected = null;
             AlignVerifyResult verify = null;
@@ -745,7 +745,7 @@ namespace ReringProject {
                 AlignVerifyRecord rec = new AlignVerifyRecord();
                 rec.RecordTime = DateTime.Now;
                 rec.Kind = AlignVerifyRecord.KIND_ALIGN;
-                rec.MaterialNo = pResult.MaterialNo;
+                rec.MaterialNo = nMaterialNo;
 
                 if (mode == EEthernetVisionMode.Bottom)
                 {
@@ -799,7 +799,7 @@ namespace ReringProject {
                 bool bNeedImage = (!bAlignPass) || bVerifyFailed;
                 if (bNeedImage)
                 {
-                    rec.ImageFileName = EnqueueAlignEvidenceImage(corrected, img, pResult, mode, slot, rec.RecordTime);
+                    rec.ImageFileName = EnqueueAlignEvidenceImage(corrected, img, nMaterialNo, mode, slot, rec.RecordTime);
                 }
 
                 AlignVerifyCsvWriter.Append(rec);
@@ -818,16 +818,33 @@ namespace ReringProject {
             }
         }
 
+        // 화면 [검사] 버튼용 진입점. PLC 없이 셋업하는 동안에도 ① 잔여 산포를 쌓기 위한 것이다.
+        //  임계값을 정하려면 데이터가 있어야 하는데, 정작 정할 시기(셋업)에는 PLC 가 없다.
+        //  자재번호는 NO_MATERIAL(-1) — ② 수동 RUN 과 같은 규약이라 나중에 사이클 건과 구분된다.
+        //  실패해도 조용히 삼킨다. 화면 검사 결과 표시에는 일절 영향을 주지 않는다.
+        public void RecordAlignVerifyManual(EEthernetVisionMode mode, EBottomAlignSlot slot,
+                                            HImage img, AlignResult res, bool bAlignPass)
+        {
+            try
+            {
+                RecordAlignVerify(mode, slot, AlignVerifyRecord.NO_MATERIAL, img, res, bAlignPass);
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_VERIFY] 수동 검사 기록 실패: {0}", ex.Message);
+            }
+        }
+
         // 이미지 없이 실패한 Align(미티칭/카메라 미연결)도 기록은 남긴다 — D-75-01.
         private void RecordAlignFailureOnly(EEthernetVisionMode mode, EBottomAlignSlot slot,
-                                            AlignResultPacket pResult, string szReason)
+                                            int nMaterialNo, string szReason)
         {
             try
             {
                 AlignVerifyRecord rec = new AlignVerifyRecord();
                 rec.RecordTime = DateTime.Now;
                 rec.Kind = AlignVerifyRecord.KIND_ALIGN;
-                rec.MaterialNo = pResult.MaterialNo;
+                rec.MaterialNo = nMaterialNo;
 
                 if (mode == EEthernetVisionMode.Bottom)
                 {
@@ -858,7 +875,7 @@ namespace ReringProject {
 
         // NG 증거 이미지 1장 큐잉. 저장 실패/생략은 기록의 다른 값에 영향을 주지 않는다.
         //  반환값 = 저장될 파일명(생략 시 빈 문자열).
-        private string EnqueueAlignEvidenceImage(HImage corrected, HImage raw, AlignResultPacket pResult,
+        private string EnqueueAlignEvidenceImage(HImage corrected, HImage raw, int nMaterialNo,
                                                  EEthernetVisionMode mode, EBottomAlignSlot slot, DateTime ts)
         {
             try
@@ -910,7 +927,7 @@ namespace ReringProject {
 
                 string szFileName = CaptureImageSaveService.BuildFileName(
                     szPrefix, "ALIGN_" + szTargetToken, szSlotToken, "",
-                    AlignVerifyRecord.JUDGE_NG, ts, pResult.MaterialNo);
+                    AlignVerifyRecord.JUDGE_NG, ts, nMaterialNo);
                 string szDir = AlignVerifyRetention.BuildAlignImageDirectory(ts);
 
                 // src.CopyImage() 를 쓰는 이유: img/corrected 의 수명은 호출부(finally)가 이미 소유한다.

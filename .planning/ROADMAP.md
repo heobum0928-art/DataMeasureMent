@@ -1196,7 +1196,21 @@ Align 측정 → ① 보정 후 다시 재봄 → 피커가 놓음 → ② 검�
 
 **선행:** Bottom Align 캘리브레이션 실측 후 착수. 판정 임계값(몇 mm 를 "벗어남"으로 볼지)은 실측 데이터 없이 정할 수 없다.
 
-Plans: (discuss 후 확정)
+**Plans:** 6 plans (3 waves) — plan 완료 2026-08-27
+
+**확정 결정(discuss, `75-CONTEXT.md`):** D-75-01 ① 재매칭 = **매 Align 마다**(정상/NG 무관) · D-75-02 ② 는 **기록만**(실시간 판정 미사용, 기존 P/F 로직 무변경) · D-75-03 **별도 CSV 신설**(기존 측정이력 포맷 무변경) · D-75-04 보정 이미지는 **NG 일 때만** 저장.
+
+**설계 확정(plan 단계):** ① = 검출 자세 → 기준 자세 강체변환을 이미지에 적용(`affine_trans_image`, `AdaptImageSize=false`) 후 **재매칭**하여 잔여 offset/theta 산출 — 피커센터 재표현(`PICKER_ROTATION_SIGN` 미확정)은 ① 범위 밖이며 ②가 잡는다(미결 D 해소). CSV 는 **행 1건 = 이벤트 1건**(`ALIGN`/`SEAT` 구분 컬럼), 조인은 조회 시점에 자재번호로 — ①을 메모리에 붙들고 ②를 기다리면 Align NG 시 ① 기록이 유실되고 대기열이 곧 메모리가 된다. ② 는 `LastFindTimeUtc >= 사이클시작` stale 게이트로 지난 사이클 잔여 좌표를 배제한다. **판정 임계 2종은 기본값 0 = 미설정**이며 미설정 동안 화면은 숫자만 표시하고 판정하지 않는다.
+
+**회귀 0 강제:** 기존 파일 수정은 전부 **순수 삽입(삭제 0줄)** 이며 각 plan 의 acceptance 가 `git diff | grep '^-' | wc -l == 0` 으로 검증한다.
+
+Plans:
+- [ ] 75-01-PLAN.md — ① 보정 후 재매칭 엔진(`RunCorrectedRecheck`) + `AlignVerifyResult` [wave 1]
+- [ ] 75-02-PLAN.md — 전용 CSV 기록 계층(20컬럼) + 설정 5종 + 보관 상한 [wave 1]
+- [ ] 75-03-PLAN.md — Align 경로 ① 배선 + NG 보정 이미지 저장(큐 가드/refcount/Dispose) [wave 2]
+- [ ] 75-04-PLAN.md — ② 검사 Datum 원점 기록(기록 전용, 판정 무변경) [wave 2]
+- [ ] 75-05-PLAN.md — 결과 리뷰어 "Align 정합 조회" 화면(MVVM, 자재번호 조인 + 추세) [wave 2]
+- [ ] 75-06-PLAN.md — 한계 문서화 + 통합 빌드/회귀 0 증거 + 버전 1.7.26.0 + 실기 UAT 체크포인트 [wave 3]
 
 ---
 

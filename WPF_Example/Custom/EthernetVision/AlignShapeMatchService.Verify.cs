@@ -39,6 +39,9 @@ namespace ReringProject {
             out HImage correctedImage) {
 
             System.Diagnostics.Stopwatch swVerify = System.Diagnostics.Stopwatch.StartNew();
+            // 구간 계측 — elapsed 가 택트를 먹을 때 "보정이 무거운가 재매칭이 무거운가" 를 가른다.
+            long nMsAffine = 0;
+            long nMsRematch = 0;
 
             correctedImage = null;
             AlignVerifyResult result = new AlignVerifyResult();
@@ -130,16 +133,19 @@ namespace ReringProject {
 
                 // 마지막 인자 AdaptImageSize 는 반드시 "false" — "true" 로 두면 이미지 원점이 이동해
                 //  refPose 좌표계가 무효가 되고 잔여값이 통째로 틀린다.
+                long nAffineStart = swVerify.ElapsedMilliseconds;
                 HOperatorSet.AffineTransImage(img, out correctedObj, homMat, "bilinear", "false");
                 correctedImage = new HImage(correctedObj);
                 correctedObj.Dispose();
                 correctedObj = null;
+                nMsAffine = swVerify.ElapsedMilliseconds - nAffineStart;
 
                 // 재매칭 — 1차와 완전히 동일한 인자
                 double c1Row, c1Col, c1AngleDeg, c1Score;
                 double c2Row, c2Col, c2AngleDeg, c2Score;
                 string szReErr1, szReErr2;
 
+                long nRematchStart = swVerify.ElapsedMilliseconds;
                 bool bRe1 = _matcher.TryFindPose(
                     correctedImage, ENGINE, szShm1,
                     0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
@@ -156,6 +162,7 @@ namespace ReringProject {
                     0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
                     0.0, MIN_SCORE, 1.0,
                     out c2Row, out c2Col, out c2AngleDeg, out c2Score, out szReErr2);
+                nMsRematch = swVerify.ElapsedMilliseconds - nRematchStart;
                 if (!bRe2) {
                     result.FailReason = "재검출 실패[2]";
                     return result;
@@ -204,11 +211,12 @@ namespace ReringProject {
                 // elapsed 는 PLC 응답 경로에 얹은 실제 지연이다. 택트 문제가 났을 때 원인을 즉시 가르는 근거.
                 try {
                     Logging.PrintLog((int)ELogType.Algorithm,
-                        "[ALIGN_VERIFY] recheck ({0}/{1}) verified={2} residual=({3:F4},{4:F4})mm dist={5:F4}mm theta={6:F4} score={7:F3} reused={8} elapsed={9}ms reason={10}",
+                        "[ALIGN_VERIFY] recheck ({0}/{1}) verified={2} residual=({3:F4},{4:F4})mm dist={5:F4}mm theta={6:F4} score={7:F3} reused={8} elapsed={9}ms(affine={11} rematch={12}) reason={10}",
                         mode, slot, result.Verified,
                         result.ResidualOffsetXmm, result.ResidualOffsetYmm, result.ResidualDistanceMm,
                         result.ResidualThetaDeg, result.Score,
-                        bHasDetection, swVerify.ElapsedMilliseconds, result.FailReason);
+                        bHasDetection, swVerify.ElapsedMilliseconds, result.FailReason,
+                        nMsAffine, nMsRematch);
                 }
                 catch { }
             }

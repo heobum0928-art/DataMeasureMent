@@ -156,3 +156,28 @@ SIDE_2~4 가 검사 중이어도 Idle 로 보일 수 있다.
 - 실기 확인 후 `result: [pending]` 을 `result: PASS` / `result: FAIL — 사유` 로 바꾼다.
 - FAIL 이면 신규 phase 또는 quick 으로 이월하고 그 링크를 여기에 남긴다.
 - H1 은 실측 수치를 반드시 함께 적는다. 수치 없는 "효과 있음" 기재 금지(D-73-06).
+
+---
+
+## 별도 확인 사항 — BOTTOM `SHOT_E5` 티칭 (2026-08-27)
+
+Phase 73 과 무관하나 TOP/BOTTOM 복원 검증 중 드러나 기록한다.
+
+**증상:** 크로스-Z 측정 `E5_P1`/`E5_P2` 가 회차마다 결과가 갈린다.
+```
+10:27 사이클 → F   [FitLine] ok 0/20 (noEdge 20)
+                   'E5_P2' failed: insufficient edge points (0) across 20 strips
+10:30 사이클 → P   DualImageEdgeDistance×2 정상, 에러 로그 없음
+```
+
+**원인:** 사용자 확인 — **E5 티칭 문제**. 에지 검출이 경계에 걸쳐 있어 간헐적으로 실패한다.
+
+**Phase 73 과 무관한 근거:**
+- 레시피 설정이 08-14 백업과 **한 글자도 다르지 않음**
+  (`ZIndexA=23 / ZIndexB=24 / TeachingImagePath_Horizontal / _Vertical` 전부 동일)
+- 크로스-Z 조합 로직 자체는 정상 작동(`DualImageEdgeDistance×2` 실행 확인)
+- 이번 세션 초반에도 같은 항목이 오설정으로 지적된 바 있음(그때 "나중에" 로 보류)
+
+**조치:** E5 재티칭 필요. 별도 작업으로 처리.
+
+**상태: PENDING**

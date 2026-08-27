@@ -105,6 +105,7 @@ namespace ReringProject.Custom.UI {
                 brushPanel.ViewModel.ReloadMaskFromDisk();
             }
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
+            UpdateSlotGate();       // Phase 74: 슬롯 미선택이면 티칭/브러시 잠금
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
@@ -235,12 +236,14 @@ namespace ReringProject.Custom.UI {
                 if (selectedItem == null) {
                     _selectedSlot = EBottomAlignSlot.None; //260626 hbk 선택 없음 → None
                     lbl_slotStatus.Text = "슬롯 선택 필요";
+                    UpdateSlotGate();
                     return;
                 }
 
                 if (!(selectedItem.Tag is EBottomAlignSlot)) {
                     _selectedSlot = EBottomAlignSlot.None; //260626 hbk Tag 타입 불일치 방어
                     lbl_slotStatus.Text = "슬롯 선택 필요";
+                    UpdateSlotGate();
                     return;
                 }
 
@@ -268,6 +271,7 @@ namespace ReringProject.Custom.UI {
 
                 string displayLabel = EBottomAlignSlotMap.ToDisplayLabel(newSlot);
                 lbl_slotStatus.Text = "선택: " + displayLabel; //260626 hbk 선택 슬롯 라벨 표시
+                UpdateSlotGate();
 
                 LoadSlotCoaxToUi(); //260626 hbk Phase 66 — 슬롯 동축값 복원(슬롯 전환 시 JSON에서 CoaxEnabled/CoaxLevel 복원)
                 RefreshStatus(); //260626 hbk 슬롯별 HasTemplate 상태 갱신
@@ -771,6 +775,28 @@ namespace ReringProject.Custom.UI {
             }
             catch {
                 // 확정 실패는 기존 흐름(버튼 클릭 시 확정)으로 폴백된다.
+            }
+        }
+
+
+        // Phase 74: 슬롯을 고르지 않으면 티칭/브러시가 아무 데도 저장되지 않는다.
+        //  경고 문구만 띄우면 계속 헛돌게 되므로 컨트롤 자체를 잠근다.
+        //  Bottom 은 Phase 65 이후 면 6개가 각각 독립 모델이라 "어느 면의 모델인지" 없이는 저장 대상이 없다.
+        private void UpdateSlotGate() {
+            bool bSlotChosen = (_selectedSlot != EBottomAlignSlot.None);
+            try {
+                if (btn_drawRoi1 != null) { btn_drawRoi1.IsEnabled = bSlotChosen; }
+                if (btn_drawRoi2 != null) { btn_drawRoi2.IsEnabled = bSlotChosen; }
+                if (btn_teach != null) { btn_teach.IsEnabled = bSlotChosen; }
+                if (brushPanel != null) { brushPanel.IsEnabled = bSlotChosen; }
+
+                if (bSlotChosen == false) {
+                    lbl_teachStatus.Text = "▲ 먼저 위쪽 [면 슬롯] 을 선택하세요 — 선택 전에는 티칭/브러시가 저장되지 않습니다";
+                    lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
+                }
+            }
+            catch {
+                // 게이트 갱신 실패가 화면을 막지 않는다.
             }
         }
 

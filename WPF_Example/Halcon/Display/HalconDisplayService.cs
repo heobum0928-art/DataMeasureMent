@@ -642,6 +642,60 @@ namespace ReringProject.Halcon.Display
             }
         }
 
+        // 브러시 마스크 표시. HWND airspace 때문에 창 위에 얹은 WPF 요소는 가려지므로 HALCON 창 안에 직접 그린다.
+        //  채우기 색은 '#rrggbbaa' RGBA 표기 — HALCON 24.11 set_color 가 공식 지원하는 유일한 반투명 수단이다.
+        //  표준 색상명에는 알파가 없어서 이미지가 완전히 가려진다.
+        //  ⚠ SetDraw 를 'fill' 로 바꾸므로 반드시 'margin' 으로 원복한다(Render 전역 규약).
+        public void RenderBrushMask(HWindow window, HObject maskRegion, string fillColor, string outlineColor)
+        {
+            if (window == null) return;
+            if (maskRegion == null) return;
+
+            try
+            {
+                HOperatorSet.SetDraw(window, "fill");
+                HOperatorSet.SetColor(window, fillColor);
+                window.DispObj(maskRegion);
+            }
+            catch
+            {
+                // '#rrggbbaa' 를 못 받는 환경이면 채우기를 포기한다. 아래 외곽선으로 최소한 위치는 보이게 한다.
+            }
+
+            try
+            {
+                HOperatorSet.SetDraw(window, "margin");
+                HOperatorSet.SetColor(window, outlineColor);
+                HOperatorSet.SetLineWidth(window, 2);
+                window.DispObj(maskRegion);
+            }
+            catch
+            {
+                // 표시 실패는 삼킨다(기존 렌더 catch 관습).
+            }
+
+            // 채우기 시도 여부와 무관하게 전역 SetDraw 를 'margin' 으로 되돌린다.
+            try { HOperatorSet.SetDraw(window, "margin"); } catch { }
+        }
+
+        // 브러시 크기 미리보기 원(외곽선만). 지금 클릭하면 얼마나 칠해지는지 눈으로 확인시킨다.
+        public void RenderBrushCursor(HWindow window, double row, double col, double radius, string color)
+        {
+            if (window == null) return;
+            if (radius <= 0.0) return;
+            try
+            {
+                HOperatorSet.SetDraw(window, "margin");
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, 1);
+                window.DispCircle(row, col, radius);
+            }
+            catch
+            {
+                // 표시 실패는 삼킨다(기존 렌더 catch 관습).
+            }
+        }
+
         /// <summary>Renders polygon draft points (large cross marks + connecting lines during drawing).</summary>
         public void RenderPolygonPoints(HWindow window, IList<Point> points, string color)
         {

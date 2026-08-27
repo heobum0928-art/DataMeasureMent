@@ -70,6 +70,14 @@ namespace ReringProject.UI
     {
         private const double ZoomInScaleFactor = 0.65;
         private const double ZoomOutScaleFactor = 1.55;
+        // 브러시 마스크 표시색. '#rrggbbaa' 의 마지막 2자리가 알파(0x60 ≒ 38%) — HALCON 정식 반투명 표기.
+        private const string BrushMaskFillColor = "#ff3b3b60";
+        private const string BrushMaskOutlineColor = "red";
+        private const string BrushCursorColor = "yellow";
+        private const double BrushRadiusMinPx = 5.0;
+        private const double BrushRadiusMaxPx = 200.0;
+        private const double BrushRadiusDefaultPx = 20.0;
+
         private const int HalconLeftButton = 1;
         private const int HalconRightButton = 4;
         //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
@@ -430,7 +438,8 @@ namespace ReringProject.UI
 
         private bool IsAnyDrawingModeActive()
         {
-            return _isDrawingRect || _isDrawingCircle
+            // 브러시 모드에서 ROI 편집 핸들 드래그가 함께 걸리면 두 동작이 겹친다. Rect/Circle 과 동일 취급.
+            return _isBrushMasking || _isDrawingRect || _isDrawingCircle
                 || (_polygonDraftPoints != null && _polygonDraftPoints.Count > 0)
                 || (_calibrationPoints != null && _calibrationPoints.Count > 0);
         }
@@ -644,6 +653,15 @@ namespace ReringProject.UI
         //  _measurementOverlayVisible(에지 토글) 게이트로 RenderNow 에서 window.DispObj. 이미지 재로드 시에도 재렌더.
         private HObject _alignContourXld;
 
+        // 브러시 마스킹 상태. 소유권=이 컨트롤(SetAlignContourXld 와 동일 규약).
+        private bool _isBrushMasking;
+        private bool _isBrushStroking;          // 좌버튼을 누른 채 끄는 중인지
+        private HObject _brushMaskRegion;       // 누적 마스크. 비어 있으면 null
+        private System.Windows.Point _brushLastPoint;
+        private bool _hasBrushLastPoint;
+        private double _brushRadiusPx = BrushRadiusDefaultPx;
+        private bool _isBrushEraseMode;
+
         // isEditMode 옵션 인자 (기본 false). MainView.GetDatumEditMode() / IsDatumTeachActive 기반 전달.
         public void SetDatumOverlay(DatumConfig datum, bool isSelected, bool isEditMode = false)
         {
@@ -774,6 +792,206 @@ namespace ReringProject.UI
             }
         }
 
+        #region 브러시 마스킹 공개 API (Phase 74)
+
+        /// <summary>칠하기 1획이 끝난 시점(마우스 놓기)에 1회 발생 — D-74-04 자동 재생성 트리거.</summary>
+        public event EventHandler BrushStrokeCompleted;
+
+        public void StartBrushMasking()
+        {
+            _isBrushMasking = true;
+            _isBrushStroking = false;
+            _hasBrushLastPoint = false;
+            Render();
+        }
+
+        /// <summary>모드만 끈다. 누적 마스크 자체는 지우지 않는다.</summary>
+        public void StopBrushMasking()
+        {
+            _isBrushMasking = false;
+            _isBrushStroking = false;
+            _hasBrushLastPoint = false;
+            Render();
+        }
+
+        public bool IsBrushMaskingActive { get { return _isBrushMasking; } }
+
+        public bool HasBrushMask
+        {
+            get
+            {
+                if (_brushMaskRegion == null) { return false; }
+                return true;
+            }
+        }
+
+        /// <summary>브러시 굵기(이미지 픽셀). setter 에서 5.0~200.0 으로 클램프한다.</summary>
+        public double BrushRadiusPx
+        {
+            get { return _brushRadiusPx; }
+            set
+            {
+                double dValue = value;
+                if (dValue < BrushRadiusMinPx) { dValue = BrushRadiusMinPx; }
+                if (dValue > BrushRadiusMaxPx) { dValue = BrushRadiusMaxPx; }
+                _brushRadiusPx = dValue;
+                Render();
+            }
+        }
+
+        public bool IsBrushEraseMode
+        {
+            get { return _isBrushEraseMode; }
+            set
+            {
+                _isBrushEraseMode = value;
+                Render();
+            }
+        }
+
+        /// <summary>누적 마스크의 복사본. 비어 있으면 null. 반환본 Dispose 는 호출자 책임.</summary>
+        public HObject CloneBrushMaskRegion()
+        {
+            if (_brushMaskRegion == null)
+            {
+                return null;
+            }
+            try
+            {
+                HObject copied;
+                HOperatorSet.CopyObj(_brushMaskRegion, out copied, 1, -1);
+                return copied;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>마스크를 설정한다. 내부에 복사본을 보관하므로 호출자는 인자를 계속 소유한다. null 이면 초기화.</summary>
+        public void SetBrushMaskRegion(HObject region)
+        {
+            if (region == null)
+            {
+                ClearBrushMask();
+                return;
+            }
+            try
+            {
+                // 새 것을 만든 뒤 옛 것을 버린다(순서를 뒤집으면 렌더가 죽은 핸들을 본다).
+                HObject copied;
+                HOperatorSet.CopyObj(region, out copied, 1, -1);
+                DisposeBrushMaskRegion();
+                _brushMaskRegion = copied;
+            }
+            catch
+            {
+                // 복사 실패 시 기존 마스크를 유지한다.
+            }
+            Render();
+        }
+
+        public void ClearBrushMask()
+        {
+            DisposeBrushMaskRegion();
+            Render();
+        }
+
+        private void DisposeBrushMaskRegion()
+        {
+            if (_brushMaskRegion != null)
+            {
+                try { _brushMaskRegion.Dispose(); } catch { }
+                _brushMaskRegion = null;
+            }
+        }
+
+        // 한 번의 마우스 이동 구간(prev -> cur)을 브러시 굵기의 자국으로 만들어 누적/차감한다.
+        //  점 하나만 찍는 경우(누른 직후)는 GenCircle, 끌고 간 경우는 선을 굵히는 DilationCircle 을 쓴다.
+        //  선을 굵히는 방식이라 마우스 이벤트가 듬성듬성 와도 자국이 끊기지 않는다.
+        private void ApplyBrushStamp(System.Windows.Point curPoint)
+        {
+            HObject stamp = null;
+            HObject merged = null;
+            try
+            {
+                if (_hasBrushLastPoint == false)
+                {
+                    HOperatorSet.GenCircle(out stamp, curPoint.Y, curPoint.X, _brushRadiusPx);
+                }
+                else
+                {
+                    HObject line = null;
+                    try
+                    {
+                        HOperatorSet.GenRegionLine(out line, _brushLastPoint.Y, _brushLastPoint.X, curPoint.Y, curPoint.X);
+                        HOperatorSet.DilationCircle(line, out stamp, _brushRadiusPx);
+                    }
+                    finally
+                    {
+                        if (line != null) { try { line.Dispose(); } catch { } }
+                    }
+                }
+
+                if (_brushMaskRegion == null)
+                {
+                    if (_isBrushEraseMode == true)
+                    {
+                        // 아직 칠한 게 없으면 지울 것도 없다.
+                        return;
+                    }
+                    HOperatorSet.CopyObj(stamp, out merged, 1, -1);
+                }
+                else
+                {
+                    if (_isBrushEraseMode == true)
+                    {
+                        HOperatorSet.Difference(_brushMaskRegion, stamp, out merged);
+                    }
+                    else
+                    {
+                        HOperatorSet.Union2(_brushMaskRegion, stamp, out merged);
+                    }
+                }
+
+                // 새 것을 만든 뒤 옛 것을 버린다(순서를 뒤집으면 렌더가 죽은 핸들을 본다).
+                HObject old = _brushMaskRegion;
+                _brushMaskRegion = merged;
+                merged = null;
+                if (old != null) { try { old.Dispose(); } catch { } }
+
+                // 지우개로 전부 지워 빈 region 이 되면 null 로 정규화한다(HasBrushMask 가 거짓말하지 않게).
+                if (_brushMaskRegion != null)
+                {
+                    HTuple hvArea, hvRow, hvCol;
+                    HOperatorSet.AreaCenter(_brushMaskRegion, out hvArea, out hvRow, out hvCol);
+                    double dArea = 0.0;
+                    if (hvArea.Length > 0)
+                    {
+                        dArea = hvArea[0].D;
+                    }
+                    if (dArea <= 0.0)
+                    {
+                        DisposeBrushMaskRegion();
+                    }
+                }
+            }
+            catch
+            {
+                // 자국 하나 실패로 칠하기 세션을 죽이지 않는다.
+            }
+            finally
+            {
+                if (stamp != null) { try { stamp.Dispose(); } catch { } }
+                if (merged != null) { try { merged.Dispose(); } catch { } }
+            }
+
+            _brushLastPoint = curPoint;
+            _hasBrushLastPoint = true;
+        }
+
+        #endregion
+
         private List<RoiDefinition> _datumRoiCandidates = new List<RoiDefinition>();
 
         public void SetDatumRoiCandidates(IList<RoiDefinition> datumRois)
@@ -830,6 +1048,7 @@ namespace ReringProject.UI
         {
             DisposeImage();
             DisposeAlignContourXld();   //260625 hbk Phase 61.1 F4 — 보관 Align XLD 누수 방지
+            DisposeBrushMaskRegion();
         }
 
         private void MainResultViewerControl_Unloaded(object sender, RoutedEventArgs e)
@@ -999,6 +1218,17 @@ namespace ReringProject.UI
                 _displayService.RenderCircleDraft(ViewerHost.HalconWindow, _circleDraftCenter.Y, _circleDraftCenter.X, _circleDraftRadius);
             }
 
+            // 브러시 마스크는 HALCON 창 안에 직접 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.
+            //  브러시 모드가 아니어도 마스크가 있으면 계속 보여준다(무엇이 빠진 채 모델이 만들어졌는지 확인용).
+            if (_brushMaskRegion != null)
+            {
+                _displayService.RenderBrushMask(ViewerHost.HalconWindow, _brushMaskRegion, BrushMaskFillColor, BrushMaskOutlineColor);
+            }
+            if (_isBrushMasking && HasImage)
+            {
+                _displayService.RenderBrushCursor(ViewerHost.HalconWindow, _lastMouseImagePoint.Y, _lastMouseImagePoint.X, _brushRadiusPx, BrushCursorColor);
+            }
+
             RenderEditHandles();
         }
 
@@ -1120,6 +1350,17 @@ namespace ReringProject.UI
                 return;
             }
 
+            // 브러시 마스킹은 좌클릭 드래그 전용. 다른 어떤 좌클릭 동작보다 먼저 가로챈다.
+            if (_isBrushMasking && HasImage)
+            {
+                _isBrushStroking = true;
+                _hasBrushLastPoint = false;
+                ApplyBrushStamp(mouseState.ImagePoint);
+                Render();
+                PublishPointerInfo();
+                return;
+            }
+
             // Edit 모드 단일 gate: Edit ON 일 때만 ROI 변형(핸들 리사이즈 + 바디 이동) 허용.
             if (_isEditMode && !IsAnyDrawingModeActive() && HasImage)
             {
@@ -1233,6 +1474,19 @@ namespace ReringProject.UI
 
             var mouseState = GetMouseState();
             _lastMouseImagePoint = mouseState.ImagePoint;
+
+            if (_isBrushMasking)
+            {
+                bool bLeftHeld = (mouseState.Buttons & HalconLeftButton) == HalconLeftButton;
+                if (_isBrushStroking && bLeftHeld)
+                {
+                    ApplyBrushStamp(mouseState.ImagePoint);
+                }
+                // 끌지 않는 동안에도 브러시 크기 미리보기 원이 포인터를 따라다니게 매번 재렌더한다.
+                Render();
+                PublishPointerInfo();
+                return;
+            }
 
             if (_isResizingRoi && _resizingRoiSnapshot != null)
             {
@@ -1358,6 +1612,18 @@ namespace ReringProject.UI
 
         private void ViewerHost_HMouseUp(object sender, HMouseEventArgsWPF e)
         {
+            if (_isBrushStroking)
+            {
+                _isBrushStroking = false;
+                _hasBrushLastPoint = false;
+                Render();
+                // D-74-04: 자국 하나마다가 아니라 '칠하기가 끝난 시점'에 딱 1회만 알린다.
+                //  호출부(ViewModel)가 이 시점에 마스크를 저장하고 모델을 재생성한다.
+                var brushStrokeCompletedHandler = BrushStrokeCompleted;
+                if (brushStrokeCompletedHandler != null) { brushStrokeCompletedHandler(this, EventArgs.Empty); }
+                return;
+            }
+
             if (_isResizingRoi && _resizingRoiSnapshot != null)
             {
                 var target = _rois.FirstOrDefault(r => r.Id == _resizingRoiSnapshot.Id);

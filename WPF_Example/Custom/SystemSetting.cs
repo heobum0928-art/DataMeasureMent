@@ -34,6 +34,11 @@ namespace ReringProject.Setting {
         private const double ETHERNET_PIXEL_RESOLUTION_DEFAULT = 8.652; //260623 hbk Phase 58
         //260630 hbk Phase 60 사각형 ROI 전환: 미설정 시 전 이미지 커버 기본값 (row2/col2)
         private const double CALIB_SEARCH_MAX_DEFAULT = 99999.0;
+
+        // Align 정합 검증 보관 상한 기본값. 매직넘버 금지.
+        private const int ALIGN_VERIFY_KEEP_DAYS_DEFAULT = 180;
+        private const int ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT = 30;
+        private const string ALIGN_VERIFY_SAVE_PATH_DEFAULT = @"D:\Data\AlignVerify";
         // WR-03 fix //260624 hbk: 피커센터 미캘 판정 임계 — AlignShapeMatchService.PICKER_CENTER_ZERO_EPS 와 동일.
         // 두 판정 기준을 단일 소스로 통일. AlignShapeMatchService 는 이 public const 를 참조.
         public const double PICKER_CENTER_ZERO_EPS = 1e-6; //260624 hbk Phase 60
@@ -53,6 +58,31 @@ namespace ReringProject.Setting {
         [PropertyTools.DataAnnotations.AutoUpdateText]
         public string AlignFallbackImagePath { get; set; } = @"D:\align_test.bmp";
 
+        // Align 정합 검증(①/② 증거) 저장 설정.
+        //  이 파일은 using System.ComponentModel; 을 들고 있어 짧은 [Category(...)] 는
+        //  System.ComponentModel.CategoryAttribute 로 잡힌다. SystemSetting.Load()/Save() 는
+        //  PropertyTools.DataAnnotations.CategoryAttribute 만 인식하므로 그룹이 조용히 [Default] 로 샌다.
+        //  → 아래 어트리뷰트는 전부 완전정규화로 쓴다.
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        [PropertyTools.DataAnnotations.DirectoryPath]
+        [PropertyTools.DataAnnotations.AutoUpdateText]
+        public string AlignVerifySavePath { get; set; } = ALIGN_VERIFY_SAVE_PATH_DEFAULT;
+
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        public int AlignVerifyKeepDays { get; set; } = ALIGN_VERIFY_KEEP_DAYS_DEFAULT;
+
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        public int AlignVerifyImageKeepDays { get; set; } = ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT;
+
+        // 판정 임계값 2종 — 기본값 0.0 = "미설정 = 판정 없음".
+        //  실측 산포가 쌓이기 전에는 값을 넣지 않는다. 잘못 잡은 임계는 정상품을 버린다.
+        //  0 = 미설정이며, 이 경우 화면은 숫자만 보여주고 정상/벗어남 판정을 하지 않는다.
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        public double AlignVerifyResidualLimitMm { get; set; } = 0.0;
+
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        public double AlignVerifySeatLimitMm { get; set; } = 0.0;
+
         partial void AfterLoad()
         {
             RestorePcRoleDefault();
@@ -60,6 +90,28 @@ namespace ReringProject.Setting {
             RestorePickerCenterDefault(); //260624 hbk Phase 60
             RestoreCalibSearchDefault(); //260630 hbk Phase 60 (Row2/Col2 기본값 복원)
             RestoreDataPathDefaults(); //260723 hbk: 신규 경로 프로퍼티 3종 — 기존 배포 INI엔 키가 없어 문자열 case가 null로 로드하는 문제 방어
+            RestoreAlignVerifyDefaults();
+        }
+
+        // 신규 프로퍼티라 기존 배포 PC 의 Setting.ini 에는 이 키가 없다.
+        //  reflection Load 는 키 부재 시 string=null / int=0 을 그대로 덮어쓴다 → C# 초기값이 날아간다.
+        private void RestoreAlignVerifyDefaults()
+        {
+            if (string.IsNullOrEmpty(AlignVerifySavePath))
+            {
+                AlignVerifySavePath = ALIGN_VERIFY_SAVE_PATH_DEFAULT;
+            }
+            bool bKeepDaysMissing = AlignVerifyKeepDays <= 0;
+            if (bKeepDaysMissing)
+            {
+                AlignVerifyKeepDays = ALIGN_VERIFY_KEEP_DAYS_DEFAULT;
+            }
+            bool bImageKeepDaysMissing = AlignVerifyImageKeepDays <= 0;
+            if (bImageKeepDaysMissing)
+            {
+                AlignVerifyImageKeepDays = ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT;
+            }
+            // 임계값 2종은 0 = 미설정이 곧 올바른 초기값이므로 복원하지 않는다.
         }
 
         //260723 hbk: AccountDbFilePath/CameraConfigPath/DisplayConfigFilePath 는 이번에 새로 추가된 프로퍼티라

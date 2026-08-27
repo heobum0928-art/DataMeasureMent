@@ -267,6 +267,7 @@ namespace ReringProject {
             RawImageSaver = new RawImageSaveService();
             RawImageSaver.Start();
             CaptureImageSaver = new CaptureImageSaveService(); //260610 hbk Phase 40.2
+            AlignVerifyRetention.Cleanup();   // 보관 상한 초과분 정리 — 실패해도 초기화를 막지 않는다(내부 try/catch)
             CaptureImageSaver.Start(); //260610 hbk Phase 40.2
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
             prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11

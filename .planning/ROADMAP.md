@@ -1119,13 +1119,48 @@ $'` 로 교체, 실측 9596/9596·BOM 없음 확인).
 - **W7** `[DatumModelPath]` 는 RUN/[Test Find] 경로에서만 발생 → 절차에 명시. **W2** 73-01 인라인 명령에 `-t:Rebuild`·`IntermediateOutputPath` 반영. **W4** 20행 표의 bare filename → 전체 경로. **W5** M6 주석 8→16. **W9** `ELogType` 은 `ReringProject.Setting`(Define 아님). **W10** CONTEXT D-73-05 FAIL 정의를 D-73-08 로 폐기 표기. **W11** 리터럴 CR 바이트 제거. **W12** `files_modified` 보강. **W13** `TryGetBlockingSequence` → **`TryGetBlockingSequence`**(존재하지 않는 심볼 정정). **W14** baseline 표 `3_2_D1` 이 Shot 2개 묶음임을 명시(행 합 23 ≠ 합계 25). **W1/W3/W15** 잔재 정리.
 
 **plan-check 4차 반영 (2026-08-26, blocker 2건 + warning 10건 — 전부 acceptance 교체, 코드 설계 무변경):**
-- **B-1 CRLF 검증이 3라운드 연속 vacuous** — `grep -P` → 리터럴 CR → 리터럴 LF 로 재생산됐다. 이 환경에서는 `grep -c $'$'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모드에서 CR 제거). `tr -dc` 바이트 카운트로 교체하고 **정상 출력/LF-only 출력 양쪽에 실행해 PASS/FAIL 이 갈리는 것까지 확인**(CR_OUT 9596 vs 0). 이 검증은 Task4 사람 승인 게이트(유일본 Datum 보호)의 전제다.
+- **B-1 CRLF 검증이 3라운드 연속 vacuous** — `grep -P` → 리터럴 CR → 리터럴 LF 로 재생산됐다. 이 환경에서는 `grep -c $'
+$'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모드에서 CR 제거). `tr -dc` 바이트 카운트로 교체하고 **정상 출력/LF-only 출력 양쪽에 실행해 PASS/FAIL 이 갈리는 것까지 확인**(CR_OUT 9596 vs 0). 이 검증은 Task4 사람 승인 게이트(유일본 Datum 보호)의 전제다.
 - **B-2 `SEQ_SIDE_1 == 4` 확정 실패** — 3차에 추가한 설명 주석 2건이 함께 잡혀 실제는 6이다. 숫자를 맞추려면 B-2 게이트 근거나 W10 제약 주석을 지워야 해서 `알려진 제약(Phase 73) == 1` 과 충돌했다. → **`grep -c "SequenceHandler\.SEQ_SIDE_1" == 4`**(코드 참조만) 로 한정. 합성 파일로 loose 6 / precise 4 실행 확인.
 - **W-B 첫 빌드 CS0103** — `ResourceMap.cs` 에 `using ReringProject.Utility;` 가 없는데(현재 `Logging.` 사용 0건) 73-04 가 `Logging.PrintLog` 를 추가한다 → using 추가를 Task 최상단 (0)번으로 명시.
 - **W-G 범위 오산** — `_lastPrepZIndex` 는 4곳이 아니라 **14곳**(실측). 선언/코드/로그문자열/주석 4곳을 표로 분해해 `== 0` 달성 경로를 명시.
 - **W-A** `IsRequestValid == 3` → **4**(파서 주석 누락). **W-E** `$SCRATCHPAD` 미정의 → 절대경로 지정 + `mkdir -p` 가드. **W-I** 사본 삭제를 `test ! -d` hard assertion 으로 승격. **W-C** bare filename → 전체 경로. **W-F** routing 불변식에 "미지 Type 은 의도적 불일치" 단서. **W-D** `sed -i` 의 CRLF→LF 부작용 부기(사본 폐기라 무해). **W-H** ROADMAP `CanRunSequence` → `TryGetBlockingSequence`. **W-J** awk 정의를 사용처 앞으로 이동.
 
 **R1 범위 확장:** 조명 **점등에도** 소등과 대칭인 "자기 소유 채널만" 스코핑을 넣는다. 현재 `ApplyShotLightsInternal` 이 13채널을 절대값으로 덮어써 PC1 의 `$PREP z=0` 에서 BOTTOM 이 TOP 예열을 지우고 있다(SIDE_1~4 는 `LIGHT_BAR_1~4` 공유라 실제 피해 발생). 자기 채널 집합 **안에서는** 기존대로 `Enabled=false → OFF` 를 유지한다(잔광 방지).
+
+---
+
+### Phase 74: 패턴 모델 생성 시 브러시 마스킹 (옵션) — Bottom Align 캘리브레이션 노이즈 대응 (신설 2026-08-27)
+
+**Goal:** Shape/NCC 모델을 만들 때 **원하지 않는 영역을 브러시로 칠해 제외**하고 모델을 등록할 수 있게 한다. 노이즈가 많은 영상에서 배경·반사·이물이 모델에 섞여 매칭 점수를 떨어뜨리는 문제를 셋업 단계에서 차단한다. **옵션 기능** — 체크를 끄면 기존과 완전히 동일하게 동작한다(회귀 0).
+
+**배경:** Bottom Align 캘리브레이션 착수 예정. 영상이 깨끗하면 불필요하나, 노이즈가 많으면 모델 ROI 안에 원치 않는 구조가 함께 들어가 매칭이 불안정해진다. 사용자 제안: *"모델 딸 때 원하는 부분만 따게 붓 브러쉬 같은 걸로 제거하고 모델을 등록"*.
+
+**기반 (이미 있음 — 신규 구축 불필요):**
+- `ReduceDomain` 8곳 사용 중 (`PatternMatchService.cs:168`, `PickerCenterCalibrationService.cs:134/246`, `DatumFindingService.cs:1749/1759/2017/2027`, `CheckerboardCalibrationService.cs:83`)
+- 모델 생성 진입점 2곳 — `PatternMatchService.cs:175`(NCC) / `:190`(Shape), `PickerCenterCalibrationService.cs:137`(Shape)
+- 마우스 클릭 처리 선례 3종 — `MainView.xaml.cs` 의 `HalconViewer_PolygonMouseDown`(:3053) / `_MeasureMouseDown` / `_CalibrationMouseDown`, 이벤트는 `ImageLeftClicked`
+
+**동작:** 모델 ROI 지정 → 브러시로 제외 영역 칠하기(원 영역 누적) → ROI 에서 `Difference` → `ReduceDomain` → `CreateShapeModel`. 지우개는 `Union`.
+
+**⚠ UI 제약 (이 프로젝트 기확인 사항):** `HWindowControlWPF` 는 HWND 라 **그 위에 얹은 WPF 요소가 airspace 로 가려진다.** 따라서 브러시 자국·미리보기는 **HALCON 창 안에서** `DispRegion` 으로 렌더하고, 브러시 크기·모드(칠하기/지우개)·초기화 컨트롤은 **창 밖 사이드 패널**에 둔다.
+
+**범위:**
+1. 브러시 영역 누적 (마우스 이동 + 원 영역 Union/Difference)
+2. HALCON 창 내부 반투명 오버레이 실시간 표시
+3. 모델 생성 경로에 마스크 반영 (`ReduceDomain` 입력에 합성)
+4. **마스크 레시피 저장/복원** — 저장하지 않으면 모델 재생성 때마다 다시 칠해야 함
+5. 옵션 토글 (기본 off, 끄면 기존 경로 그대로)
+6. UI 패널 (브러시 크기 / 모드 / 초기화 / 미리보기)
+
+**Requirements:** AV 계열 (Align 비전) — 공식 REQ-ID 미매핑
+**Depends on:** Phase 73 (완료 후 착수), Phase 60 (ALIGN_CALIB 피커센터)
+
+**선행 확인:** Bottom Align 캘리브레이션을 **먼저 돌려보고 노이즈 수준을 확인**한다. 영상이 깨끗하면 이 phase 자체가 불필요할 수 있다.
+
+**코딩 규칙:** 삼항 `?:` / `??` / `?.` 금지, 전통 `switch` 만(C# 8.0 switch expression 금지), C# 7.2, 헝가리언, 날짜 주석 신규 금지, **UI 는 MVVM**(`MainView.xaml.cs` 에 새 로직 추가 금지 — 새 ViewModel 로), 빌드 경고 baseline 준수.
+
+Plans: (discuss 후 확정)
 
 ---
 

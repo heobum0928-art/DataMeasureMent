@@ -635,7 +635,11 @@ namespace ReringProject.Custom.UI {
             try {
                 // 슬롯 1 진행 중이었으면 확정
                 if (_drawingSlot == 1) {
-                    _roi1 = _viewer.CommitActiveRectangle();
+                    // 드래그 종료 시 이미 확정됐을 수 있다 — 그 경우 null 이 돌아오므로 덮어쓰지 않는다.
+                    RoiDefinition committed1 = _viewer.CommitActiveRectangle();
+                    if (committed1 != null) {
+                        _roi1 = committed1;
+                    }
                     ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 ROI 가 보이게 유지
                 }
 
@@ -669,7 +673,10 @@ namespace ReringProject.Custom.UI {
             try {
                 // 슬롯 2 진행 중이었으면 확정
                 if (_drawingSlot == 2) {
-                    _roi2 = _viewer.CommitActiveRectangle();
+                    RoiDefinition committed2 = _viewer.CommitActiveRectangle();
+                    if (committed2 != null) {
+                        _roi2 = committed2;
+                    }
                     ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 ROI 가 보이게 유지
                 }
 
@@ -735,6 +742,37 @@ namespace ReringProject.Custom.UI {
         //  CommitActiveRectangle 은 확정과 동시에 draft 를 지우므로, 그대로 두면 그린 직후 ROI 가 사라진다.
         //  브러시로 "이 ROI 안의 어느 부분을 뺄지" 칠하려면 경계가 보여야 한다 — 안 보이면 눈 감고 칠하는 셈이다.
         //  detection 결과 오버레이와 같은 채널(orange)을 쓰므로 [검사] 를 돌리면 그 결과로 교체된다(의도된 동작).
+        // Phase 74: 티칭 ROI 는 드래그를 마쳐도 다음 버튼([ROI 2 그리기]/[티칭 저장])을 누를 때까지
+        //  draft(빨간 사각형) 상태로 남아 있었다. 그래서 "ROI 2 를 그렸는데 주황색이 안 나온다" 가 됐다.
+        //  드로잉 완료 이벤트에서 즉시 확정해 주황 사각형으로 바꾼다.
+        private void CommitTeachRoiOnDraw() {
+            if (_viewer == null) {
+                return;
+            }
+            bool bTeachSlot = (_drawingSlot == 1) || (_drawingSlot == 2);
+            if (bTeachSlot == false) {
+                return;
+            }
+            try {
+                RoiDefinition roi = _viewer.CommitActiveRectangle();
+                if (roi == null) {
+                    return;
+                }
+                if (_drawingSlot == 1) {
+                    _roi1 = roi;
+                    lbl_status.Text = "ROI 1 확정 — [ROI 2 그리기] 를 클릭하세요";
+                }
+                else {
+                    _roi2 = roi;
+                    lbl_status.Text = "ROI 2 확정 — [티칭 저장] 을 클릭하세요";
+                }
+                ShowTeachRoiOverlays();
+            }
+            catch {
+                // 확정 실패는 기존 흐름(버튼 클릭 시 확정)으로 폴백된다.
+            }
+        }
+
         private void ShowTeachRoiOverlays() {
             if (_viewer == null) {
                 return;
@@ -946,6 +984,7 @@ namespace ReringProject.Custom.UI {
             //260630 hbk Phase 60 — RectDrawingCompleted 이벤트 수거: 검색 ROI(사각형) 좌표 저장.
             // _isCalRoiDrawing=false 이면 티칭 ROI 드로잉 완료이므로 무시.
             if (!_isCalRoiDrawing) {
+                CommitTeachRoiOnDraw(); // Phase 74: 드래그를 마치는 즉시 확정 — 다음 버튼까지 기다리지 않는다
                 return;
             }
             _isCalRoiDrawing = false;

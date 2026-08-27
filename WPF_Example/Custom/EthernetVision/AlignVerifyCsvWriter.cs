@@ -35,6 +35,12 @@ namespace ReringProject {
         //  75 는 분쟁 대비 증거라 "그때 파일이 열려 있었습니다" 는 성립하지 않는다.
         private const string PENDING_SUFFIX = "_pending";
 
+        // 병합 중임을 나타내는 중간 이름. 보관 파일을 이 이름으로 "옮긴 뒤에" 읽는다.
+        //  옮기기가 성공했다 = 아무도 그 파일을 안 잡고 있다 = 병합 후 확실히 지울 수 있다.
+        //  이 단계 없이 곧바로 읽고 지우면, 지우기가 실패했을 때 다음 번에 같은 내용을
+        //  또 병합해 기록이 중복된다(보관 파일을 조회하려고 엑셀로 열어두면 바로 발생).
+        private const string MERGING_SUFFIX = "_pending.merging";
+
         private static readonly object s_lock = new object();
 
         /// <summary>rec 1건을 {AlignVerifySavePath}\yyyyMMdd.csv 에 1행 append 한다.</summary>
@@ -53,15 +59,41 @@ namespace ReringProject {
             }
         }
 
-        // 보관 파일의 내용을 본 파일 뒤에 붙이고 보관 파일을 지운다.
-        //  본 파일이 아직 잠겨 있으면 아무것도 하지 않는다 — 다음 기록 때 다시 시도한다.
-        private static void TryMergePending(string szPath, string szPendingPath) {
+        // 보관 파일을 본 파일로 되돌린다. 중복 없이, 잃지 않고.
+        //  1) 보관 → 병합중 으로 "이름 바꾸기" 를 먼저 한다. 성공했다는 것 자체가
+        //     아무도 그 파일을 안 잡고 있다는 증거라, 나중에 확실히 지울 수 있다.
+        //     실패하면 아직 잠긴 것이므로 아무 일도 하지 않고 다음 기록 때 다시 시도한다.
+        //  2) 병합중 파일 내용을 본 파일에 붙인다. 실패하면 보관 이름으로 되돌려 놓는다.
+        //  3) 성공하면 병합중 파일을 지운다.
+        private static void TryMergePending(string szPath, string szPendingPath, string szMergingPath) {
             try {
+                // 이전에 중단된 병합이 남아 있으면 그것부터 처리한다(앱 강제종료 등).
+                if (File.Exists(szMergingPath)) {
+                    FlushMergingFile(szPath, szMergingPath, szPendingPath);
+                }
+
                 if (File.Exists(szPendingPath) == false) {
                     return;
                 }
 
-                string[] lines = File.ReadAllLines(szPendingPath, Encoding.UTF8);
+                try {
+                    File.Move(szPendingPath, szMergingPath);
+                }
+                catch (Exception) {
+                    // 보관 파일이 잠겨 있다(누가 열어 봤다). 다음 기록 때 다시 시도한다.
+                    return;
+                }
+
+                FlushMergingFile(szPath, szMergingPath, szPendingPath);
+            }
+            catch (Exception) {
+            }
+        }
+
+        // 병합중 파일을 본 파일에 붙이고 지운다. 본 파일이 잠겨 있으면 보관 이름으로 되돌린다.
+        private static void FlushMergingFile(string szPath, string szMergingPath, string szPendingPath) {
+            try {
+                string[] lines = File.ReadAllLines(szMergingPath, Encoding.UTF8);
                 var sbMerge = new StringBuilder();
                 int nRows = 0;
                 foreach (string line in lines) {
@@ -79,16 +111,21 @@ namespace ReringProject {
                 }
 
                 if (nRows == 0) {
-                    try { File.Delete(szPendingPath); } catch { }
+                    try { File.Delete(szMergingPath); } catch { }
                     return;
                 }
 
                 bool bMerged = TryAppendBody(szPath, sbMerge.ToString());
                 if (bMerged == false) {
+                    // 본 파일이 아직 잠겼다 — 보관 이름으로 되돌려 다음 기회를 기다린다.
+                    bool bPendingFree = File.Exists(szPendingPath) == false;
+                    if (bPendingFree) {
+                        try { File.Move(szMergingPath, szPendingPath); } catch { }
+                    }
                     return;
                 }
 
-                try { File.Delete(szPendingPath); } catch { }
+                try { File.Delete(szMergingPath); } catch { }
                 try {
                     Logging.PrintLog((int)ELogType.Error,
                         "[AlignVerifyCsvWriter] 보관 파일 {0}건을 본 파일로 병합했습니다", nRows);
@@ -114,12 +151,14 @@ namespace ReringProject {
 
                 string szPendingPath = Path.Combine(
                     szDir, rec.RecordTime.ToString(FILE_DATE_FORMAT) + PENDING_SUFFIX + CSV_EXT);
+                string szMergingPath = Path.Combine(
+                    szDir, rec.RecordTime.ToString(FILE_DATE_FORMAT) + MERGING_SUFFIX + CSV_EXT);
 
                 lock (s_lock) {
                     Directory.CreateDirectory(szDir);
 
                     // 잠김이 풀렸으면 밀려 있던 것부터 본 파일로 되돌린다 — 자가 복구.
-                    TryMergePending(szPath, szPendingPath);
+                    TryMergePending(szPath, szPendingPath, szMergingPath);
 
                     bool bWritten = TryAppendBody(szPath, sb.ToString());
                     if (bWritten) {

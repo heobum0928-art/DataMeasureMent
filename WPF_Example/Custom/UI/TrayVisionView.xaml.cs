@@ -711,6 +711,81 @@ namespace ReringProject.Custom.UI {
             }
         }
 
+
+        // Phase 74: 거리 재기. 캘리브레이션 값은 건드리지 않고 두 점 사이 거리만 보여준다.
+        //  캘리브와 같은 2점 클릭 방식이라 조작이 익숙하고, 오버레이도 같은 삼각형 표시를 쓴다.
+        private bool _isMeasuringDistance;
+        private readonly List<System.Windows.Point> _measurePoints = new List<System.Windows.Point>();
+
+        private void MeasureDistanceButton_Click(object sender, RoutedEventArgs e) {
+            if (_viewer == null) {
+                lbl_pixelCalibStatus.Text = "뷰어 미연결";
+                return;
+            }
+            _isMeasuringDistance = true;
+            _measurePoints.Clear();
+            btn_measureDistance.Content = "측정: 점1 클릭";
+            lbl_pixelCalibStatus.Text = "거리 측정 — 첫 번째 점을 클릭하세요";
+            // 재진입 시 중복 구독 방지(캘리브 경로와 동일 규약)
+            _viewer.ImageLeftClicked -= Viewer_MeasureDistanceMouseDown;
+            _viewer.ImageLeftClicked += Viewer_MeasureDistanceMouseDown;
+        }
+
+        private void Viewer_MeasureDistanceMouseDown(object sender, MainViewerPointerChangedEventArgs e) {
+            if (!_isMeasuringDistance) {
+                return;
+            }
+
+            System.Windows.Point pos = new System.Windows.Point(e.X, e.Y);
+            _measurePoints.Add(pos);
+            _viewer.SetCalibrationOverlay(_measurePoints);
+
+            if (_measurePoints.Count == 1) {
+                btn_measureDistance.Content = "측정: 점2 클릭";
+                lbl_pixelCalibStatus.Text = "거리 측정 — 두 번째 점을 클릭하세요";
+                return;
+            }
+
+            _viewer.ImageLeftClicked -= Viewer_MeasureDistanceMouseDown;
+            _isMeasuringDistance = false;
+            btn_measureDistance.Content = "거리 측정";
+            FinishMeasureDistance();
+        }
+
+        private void FinishMeasureDistance() {
+            const double UM_PER_MM = 1000.0;
+            System.Windows.Point p1 = _measurePoints[0];
+            System.Windows.Point p2 = _measurePoints[1];
+            double dx = p2.X - p1.X;
+            double dy = p2.Y - p1.Y;
+            double dPixel = Math.Sqrt(dx * dx + dy * dy);
+
+            // EthernetPixelResolution 은 μm/px — 1000 으로 나눠야 mm/px 다. 헷갈리면 1000배 틀린다.
+            double dMmPerPixel = SystemSetting.Handle.EthernetPixelResolution / UM_PER_MM;
+            bool bCalibrated = dMmPerPixel > 0.0;
+
+            string szTotal;
+            string szH;
+            string szV;
+            if (bCalibrated) {
+                szTotal = string.Format("{0:F3}mm ({1:F1}px)", dPixel * dMmPerPixel, dPixel);
+                szH = string.Format("가로 {0:F3}mm", Math.Abs(dx) * dMmPerPixel);
+                szV = string.Format("세로 {0:F3}mm", Math.Abs(dy) * dMmPerPixel);
+                lbl_pixelCalibStatus.Text = string.Format("측정 결과: {0:F3} mm  ({1:F1} px)  가로 {2:F3} / 세로 {3:F3} mm",
+                    dPixel * dMmPerPixel, dPixel, Math.Abs(dx) * dMmPerPixel, Math.Abs(dy) * dMmPerPixel);
+            }
+            else {
+                // 캘리브 전이면 mm 로 환산하지 않는다 — 0 을 곱해 0mm 로 보여주면 오독된다.
+                szTotal = string.Format("{0:F1}px", dPixel);
+                szH = string.Format("가로 {0:F1}px", Math.Abs(dx));
+                szV = string.Format("세로 {0:F1}px", Math.Abs(dy));
+                lbl_pixelCalibStatus.Text = string.Format("측정 결과: {0:F1} px (거리 캘리브 전 — mm 환산 불가)", dPixel);
+            }
+
+            List<System.Windows.Point> pts = new List<System.Windows.Point>(_measurePoints);
+            _viewer.SetCalibrationOverlay(pts, szTotal, szH, szV);
+        }
+
         private void ShowTeachRoiOverlays() {
             if (_viewer == null) {
                 return;

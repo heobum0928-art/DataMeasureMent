@@ -1160,7 +1160,29 @@ $'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모�
 
 **코딩 규칙:** 삼항 `?:` / `??` / `?.` 금지, 전통 `switch` 만(C# 8.0 switch expression 금지), C# 7.2, 헝가리언, 날짜 주석 신규 금지, **UI 는 MVVM**(`MainView.xaml.cs` 에 새 로직 추가 금지 — 새 ViewModel 로), 빌드 경고 baseline 준수.
 
-**Plans:** 6 plans / 4 waves
+**Plans:** 6 plans / 4 waves — **실행 완료 2026-08-27 (실기 UAT 대기)**
+
+- [x] `74-01-PLAN.md` — 마스크 코어(PatternMaskService + TryCreateModel Difference) — `facd2c0`
+- [x] `74-02-PLAN.md` — 뷰어 브러시 입력 + HALCON 창 내부 반투명 표시 — `889efe2`
+- [x] `74-03-PLAN.md` — 브러시 ViewModel + 사이드 패널(MVVM) — `8783013`
+- [x] `74-04-PLAN.md` — Align 화면(Bottom/Tray) 배선 — `3444e82` (+ `17da571` ROI 표시, `252345c` 슬롯 가드)
+- [x] `74-05-PLAN.md` — Datum 화면 + **B-1 툴바 고정 높이 해제** — `191ade2`
+- [x] `74-06-PLAN.md` — 정적 통합 검증 — **Task 2 실기 UAT(A~G) 사용자 확인 대기**
+
+**실행 결과:** SIMUL-ON 에러 0 / 경고 18줄, SIMUL-OFF 에러 0 / 경고 16줄 — 둘 다 baseline 유지.
+Phase 74 전체 커밋의 `WPF_Example/` **삭제 줄 총 2줄**(`class`→`partial class` 무관, 여기서는
+`SetDraw` 관련 없음 — 74-02 의 뷰어 1줄 + 74-05 의 툴바 `Height`→`MinHeight` 1줄)로,
+나머지는 전부 순수 추가다. `PatternMaskService` 참조가 4파일(그중 1건은 주석)이며
+**시퀀스·액션·TCP·런타임 검사 경로에는 하나도 없다.**
+
+**실행 중 추가 대응 2건 (계획 밖, 사용자 지적/실기 흔적 기반):**
+- `17da571` — 티칭 ROI 가 확정 즉시 화면에서 사라져 "어디를 칠하는지" 보이지 않던 문제.
+  `CommitActiveRectangle` 이 draft 를 지우는데 Align 뷰가 확정 ROI 를 뷰어에 되돌려주지
+  않던 기존 동작. `ShowTeachRoiOverlays()` 로 확정 후에도 유지. **브러시 사용의 전제조건.**
+- `252345c` — Bottom 슬롯 미선택 시 구형 경로(`Bottom_1/2.shm`)에 마스크만 저장되고
+  모델 재생성은 막히던 경로. 대상 없음으로 처리. 실기 흔적(`Bottom_1.mask.hobj`)에서 발견.
+
+**한계/주의:** ROI 밖에 칠한 자국은 모델에 영향이 없으나 화면에는 보인다(사용자 결정: 현행 유지).
 
 Plans:
 - [ ] 74-01-PLAN.md — 마스크 저장소(PatternMaskService) + SystemSetting 토글 + TryCreateModel Difference (wave 1)

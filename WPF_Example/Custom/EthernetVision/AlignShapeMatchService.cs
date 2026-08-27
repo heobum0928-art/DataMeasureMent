@@ -29,6 +29,31 @@ namespace ReringProject {
         //quick-260812: 등급 산정용 최소 스코어 노출(읽기 전용). MIN_SCORE 의 값·용도는 무변경.
         public static double TeachMinScore { get { return MIN_SCORE; } }
 
+        // Phase 74: 티칭 시 사용할 각도 검색범위(deg) / 최소 스코어. 0 = 기본값 사용.
+        //  슬롯마다 대상이 달라 필요한 값이 다르다. UI 가 티칭 직전에 설정하고, 티칭이 슬롯 JSON 에 영속한다.
+        //  런타임(Run)은 이 프로퍼티가 아니라 JSON 에 저장된 값을 읽으므로 TCP 스레드와 경합하지 않는다.
+        public double TeachAngleExtentDeg { get; set; }
+        public double TeachMinScoreOverride { get; set; }
+
+        /// <summary>mode 별 기본 각도범위. 0 이하 override 면 기본값.</summary>
+        public double ResolveAngleExtentDeg(EEthernetVisionMode mode, double dOverride) {
+            if (dOverride > 0.0) {
+                return dOverride;
+            }
+            if (mode == EEthernetVisionMode.Bottom) {
+                return BOTTOM_ANGLE_EXTENT_DEG;
+            }
+            return TRAY_ANGLE_EXTENT_DEG;
+        }
+
+        /// <summary>0 이하면 기본 MIN_SCORE.</summary>
+        public double ResolveMinScore(double dOverride) {
+            if (dOverride > 0.0) {
+                return dOverride;
+            }
+            return MIN_SCORE;
+        }
+
         // D-03': 모드별 angle extent 기본값(deg). 런타임/UAT 튜닝 가능 const.
         private const double TRAY_ANGLE_EXTENT_DEG   = 10.0;   // Tray = 위치 위주, 작은 범위
         private const double BOTTOM_ANGLE_EXTENT_DEG = 45.0;   // Bottom = Theta 산출, 넓은 범위
@@ -174,6 +199,7 @@ namespace ReringProject {
             double ref2Row, double ref2Col,
             double refBaselineRad,
             double angleExtentDeg,
+            double minScore,
             double roi1Len1, double roi1Len2,
             double roi2Len1, double roi2Len2,
             out string error) {
@@ -186,6 +212,7 @@ namespace ReringProject {
                 refPose.Ref2Col        = ref2Col;
                 refPose.RefBaselineRad = refBaselineRad;
                 refPose.AngleExtentDeg = angleExtentDeg;
+                refPose.MinScore       = minScore;   // Phase 74: 런타임이 이 값을 읽는다
                 refPose.Engine         = ENGINE;
                 refPose.Roi1Len1 = roi1Len1;   //260625 hbk Phase 61.1 F2
                 refPose.Roi1Len2 = roi1Len2;
@@ -437,13 +464,9 @@ namespace ReringProject {
                     return false;
                 }
 
-                double angleExtentDeg;
-                if (mode == EEthernetVisionMode.Bottom) {
-                    angleExtentDeg = BOTTOM_ANGLE_EXTENT_DEG;
-                }
-                else {
-                    angleExtentDeg = TRAY_ANGLE_EXTENT_DEG;
-                }
+                // Phase 74: UI 가 지정한 값이 있으면 그것을, 없으면 mode 기본값을 쓴다.
+                double angleExtentDeg = ResolveAngleExtentDeg(mode, TeachAngleExtentDeg);
+                double dTeachMinScore = ResolveMinScore(TeachMinScoreOverride);
 
                 // Step 1: TL 모델 생성 (_1.shm)
                 string createErr1;
@@ -469,7 +492,7 @@ namespace ReringProject {
                 double r1Row, r1Col, r1AngleDeg, r1Score;
                 string findErr1;
                 bool bRef1 = _matcher.TryFindRefPose(
-                    img, ENGINE, shmPath1, MIN_SCORE,
+                    img, ENGINE, shmPath1, dTeachMinScore,
                     out r1Row, out r1Col, out r1AngleDeg, out r1Score, out findErr1);
                 if (!bRef1) {
                     error = "TryFindRefPose[1]: " + findErr1;
@@ -481,7 +504,7 @@ namespace ReringProject {
                 double r2Row, r2Col, r2AngleDeg, r2Score;
                 string findErr2;
                 bool bRef2 = _matcher.TryFindRefPose(
-                    img, ENGINE, shmPath2, MIN_SCORE,
+                    img, ENGINE, shmPath2, dTeachMinScore,
                     out r2Row, out r2Col, out r2AngleDeg, out r2Score, out findErr2);
                 if (!bRef2) {
                     error = "TryFindRefPose[2]: " + findErr2;
@@ -499,6 +522,7 @@ namespace ReringProject {
                 // Step 6: 사이드카 JSON 저장 (두 중심 + baseline)
                 bool bSaved = TrySaveRefPose(jsonPath,
                     r1Row, r1Col, r2Row, r2Col, refBaselineRad, angleExtentDeg,
+                    dTeachMinScore,   // Phase 74: 슬롯별 최소 스코어 영속
                     roi1Len1, roi1Len2, roi2Len1, roi2Len2, out error);   //260625 hbk Phase 61.1 F2
                 if (!bSaved) {
                     return false;
@@ -587,6 +611,9 @@ namespace ReringProject {
                     return noRef;
                 }
 
+                // Phase 74: 티칭이 저장한 최소 스코어를 쓴다. 구 JSON(키 없음 → 0)이면 기본값 폴백.
+                double dRunMinScore = ResolveMinScore(refPose.MinScore);
+
                 // Step 1: TL 모델 find (전체 이미지 검색, downsample=1.0)
                 double f1Row, f1Col, f1AngleDeg, f1Score;
                 string findErr1;
@@ -594,7 +621,7 @@ namespace ReringProject {
                     img, ENGINE, shmPath1,
                     0.0, 0.0,
                     FULL_SEARCH_LEN, FULL_SEARCH_LEN,
-                    0.0, MIN_SCORE, 1.0,
+                    0.0, dRunMinScore, 1.0,
                     out f1Row, out f1Col, out f1AngleDeg, out f1Score, out findErr1);
                 if (!bFound1) {
                     Logging.PrintLog((int)ELogType.Error,
@@ -611,7 +638,7 @@ namespace ReringProject {
                     img, ENGINE, shmPath2,
                     0.0, 0.0,
                     FULL_SEARCH_LEN, FULL_SEARCH_LEN,
-                    0.0, MIN_SCORE, 1.0,
+                    0.0, dRunMinScore, 1.0,
                     out f2Row, out f2Col, out f2AngleDeg, out f2Score, out findErr2);
                 if (!bFound2) {
                     Logging.PrintLog((int)ELogType.Error,

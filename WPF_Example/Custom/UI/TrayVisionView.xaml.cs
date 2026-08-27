@@ -100,6 +100,7 @@ namespace ReringProject.Custom.UI {
         private void TrayVisionView_Loaded(object sender, RoutedEventArgs e) {
             RefreshStatus();
             LoadTrayCoaxToUi(); //260626 hbk Phase 66 — Tray 동축값 복원(창 진입 시 Tray.json에서 CoaxEnabled/CoaxLevel 복원)
+            LoadTeachParamsToUi(EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None)); // Phase 74
         }
 
         // ─── 카메라 핸들러 ────────────────────────────────────────────────────────
@@ -507,6 +508,7 @@ namespace ReringProject.Custom.UI {
                 ApplyCoaxLight(); //260626 hbk Phase 66 — 티칭 직전 동축 자동 적용(D-07 티칭=런타임 조명 일치)
                 string error;
                 double dScore1, dScore2;   //quick-260812: 티칭이 이미 계산한 스코어 수신(등급 표시용)
+                ApplyTeachParams();  // Phase 74: 각도범위/최소 Score 반영
                 bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
                     _viewer.CurrentImage,
                     r1, c1, phi1, l1_1, l1_2,
@@ -573,6 +575,55 @@ namespace ReringProject.Custom.UI {
             }
             catch {
                 // 확정 실패는 기존 흐름(버튼 클릭 시 확정)으로 폴백된다.
+            }
+        }
+
+
+        // Phase 74: 티칭 파라미터(각도범위/최소 Score) 입력을 서비스에 적용한다.
+        //  비어 있거나 숫자가 아니면 0 → 서비스가 기본값(각도 Bottom 45/Tray 10, 스코어 0.5)을 쓴다.
+        private void ApplyTeachParams() {
+            double dAngle = 0.0;
+            double dScore = 0.0;
+            if (txt_angleExtent != null) {
+                double.TryParse(txt_angleExtent.Text, out dAngle);
+            }
+            if (txt_minScore != null) {
+                double.TryParse(txt_minScore.Text, out dScore);
+            }
+            bool bScoreOutOfRange = (dScore < 0.0) || (dScore > 1.0);
+            if (bScoreOutOfRange) {
+                dScore = 0.0;   // 잘못된 입력은 기본값으로
+            }
+            EthernetVisionHandler.Handle.Matcher.TeachAngleExtentDeg = dAngle;
+            EthernetVisionHandler.Handle.Matcher.TeachMinScoreOverride = dScore;
+        }
+
+        // 저장된 슬롯 JSON 의 값을 입력란에 되돌려 보여준다. 없으면 비워 둔다(= 기본값 사용).
+        private void LoadTeachParamsToUi(AlignRefPose refPose) {
+            try {
+                if (txt_angleExtent == null || txt_minScore == null) {
+                    return;
+                }
+                if (refPose == null) {
+                    txt_angleExtent.Text = "";
+                    txt_minScore.Text = "";
+                    return;
+                }
+                if (refPose.AngleExtentDeg > 0.0) {
+                    txt_angleExtent.Text = refPose.AngleExtentDeg.ToString("F1");
+                }
+                else {
+                    txt_angleExtent.Text = "";
+                }
+                if (refPose.MinScore > 0.0) {
+                    txt_minScore.Text = refPose.MinScore.ToString("F2");
+                }
+                else {
+                    txt_minScore.Text = "";
+                }
+            }
+            catch {
+                // 표시 실패는 티칭에 영향을 주지 않는다.
             }
         }
 

@@ -136,6 +136,20 @@
                                 Style="{StaticResource TrayActionButtonStyle}"
                                 HorizontalAlignment="Left"
                                 Click="TeachButton_Click"/>
+                        <!--Phase 74: 티칭 파라미터. 비워두면 기본값(각도 Bottom 45/Tray 10, 스코어 0.5)을 쓴다.
+                             슬롯마다 대상이 달라 필요한 값이 다르므로 슬롯별 JSON 에 저장된다.-->
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="각도범위:" VerticalAlignment="Center" FontSize="12" Width="66"/>
+                            <TextBox x:Name="txt_angleExtent" Width="60" Height="22" FontSize="12"
+                                 VerticalContentAlignment="Center"/>
+                            <TextBlock Text="deg" VerticalAlignment="Center" FontSize="12" Margin="4,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="최소 Score:" VerticalAlignment="Center" FontSize="12" Width="66"/>
+                            <TextBox x:Name="txt_minScore" Width="60" Height="22" FontSize="12"
+                                 VerticalContentAlignment="Center"/>
+                            <TextBlock Text="(0~1)" VerticalAlignment="Center" FontSize="12" Margin="4,0,0,0"/>
+                        </StackPanel>
                         <TextBlock x:Name="lbl_teachStatus"
                                    Margin="0,6,0,0"
                                    FontSize="12"

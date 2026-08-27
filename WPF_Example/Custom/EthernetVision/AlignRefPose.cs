@@ -27,6 +27,12 @@ namespace ReringProject {
         /// <summary>티칭 시 사용한 모드별 angle extent(deg). 진단/재현용 기록.</summary>
         public double AngleExtentDeg { get; set; }
 
+        /// <summary>
+        /// 매칭 최소 스코어(0~1). 0 = 미설정 → 서비스 기본값(MIN_SCORE) 사용.
+        /// 슬롯마다 대상이 달라 필요한 값이 다르므로 슬롯별 JSON 에 보관한다.
+        /// </summary>
+        public double MinScore { get; set; }
+
         /// <summary>모델 엔진명("Shape"). 진단/검증용.</summary>
         public string Engine { get; set; }
 

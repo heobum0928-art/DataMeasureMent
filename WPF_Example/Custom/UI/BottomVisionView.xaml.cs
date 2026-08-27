@@ -104,6 +104,7 @@ namespace ReringProject.Custom.UI {
                 brushPanel.ViewModel.Attach(viewer);
                 brushPanel.ViewModel.ReloadMaskFromDisk();
             }
+            ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
@@ -270,6 +271,7 @@ namespace ReringProject.Custom.UI {
 
                 LoadSlotCoaxToUi(); //260626 hbk Phase 66 — 슬롯 동축값 복원(슬롯 전환 시 JSON에서 CoaxEnabled/CoaxLevel 복원)
                 RefreshStatus(); //260626 hbk 슬롯별 HasTemplate 상태 갱신
+                ShowTeachRoiOverlays(); // Phase 74: 복원된 슬롯 ROI 를 화면에 다시 표시
                 if (brushPanel != null) {
                     brushPanel.ViewModel.ReloadMaskFromDisk(); // 슬롯이 바뀌면 그 슬롯의 마스크를 화면에 다시 올린다
                 }
@@ -634,6 +636,7 @@ namespace ReringProject.Custom.UI {
                 // 슬롯 1 진행 중이었으면 확정
                 if (_drawingSlot == 1) {
                     _roi1 = _viewer.CommitActiveRectangle();
+                    ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 ROI 가 보이게 유지
                 }
 
                 _roi2 = null;
@@ -667,6 +670,7 @@ namespace ReringProject.Custom.UI {
                 // 슬롯 2 진행 중이었으면 확정
                 if (_drawingSlot == 2) {
                     _roi2 = _viewer.CommitActiveRectangle();
+                    ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 ROI 가 보이게 유지
                 }
 
                 // 두 ROI 모두 유효한지 검증
@@ -726,6 +730,39 @@ namespace ReringProject.Custom.UI {
         // 마스크가 바뀌었을 때 모달 없이 같은 ROI 로 다시 티칭한다(D-74-04).
         //  TryTeach 가 모델 재생성 + ref pose 재기록을 전부 담당하므로 여기서 새 로직을 만들지 않는다.
         //  성공하면 null, 실패하면 오류 문자열을 돌려준다(ViewModel 계약).
+
+        // Phase 74: 티칭 ROI(1/2)를 뷰어에 계속 보이게 한다.
+        //  CommitActiveRectangle 은 확정과 동시에 draft 를 지우므로, 그대로 두면 그린 직후 ROI 가 사라진다.
+        //  브러시로 "이 ROI 안의 어느 부분을 뺄지" 칠하려면 경계가 보여야 한다 — 안 보이면 눈 감고 칠하는 셈이다.
+        //  detection 결과 오버레이와 같은 채널(orange)을 쓰므로 [검사] 를 돌리면 그 결과로 교체된다(의도된 동작).
+        private void ShowTeachRoiOverlays() {
+            if (_viewer == null) {
+                return;
+            }
+            try {
+                List<double[]> rects = new List<double[]>();
+                AddTeachRoiRect(rects, _roi1);
+                AddTeachRoiRect(rects, _roi2);
+                _viewer.SetResultRoiOverlays(null, rects);
+            }
+            catch {
+                // 표시 실패는 티칭 흐름에 영향을 주지 않는다.
+            }
+        }
+
+        private void AddTeachRoiRect(List<double[]> rects, RoiDefinition roi) {
+            if (roi == null) {
+                return;
+            }
+            double row, col, phi, len1, len2;
+            RectToTeachParams(roi, out row, out col, out phi, out len1, out len2);
+            bool bValid = (len1 > 0.0) && (len2 > 0.0);
+            if (bValid == false) {
+                return;
+            }
+            rects.Add(new double[] { row, col, phi, len1, len2 });
+        }
+
         private string RegenerateTeachSilent() {
             if (_viewer == null) {
                 return "뷰어 없음";

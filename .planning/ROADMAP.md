@@ -1160,7 +1160,17 @@ $'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모�
 
 **코딩 규칙:** 삼항 `?:` / `??` / `?.` 금지, 전통 `switch` 만(C# 8.0 switch expression 금지), C# 7.2, 헝가리언, 날짜 주석 신규 금지, **UI 는 MVVM**(`MainView.xaml.cs` 에 새 로직 추가 금지 — 새 ViewModel 로), 빌드 경고 baseline 준수.
 
-Plans: (discuss 후 확정)
+**Plans:** 6 plans / 4 waves
+
+Plans:
+- [ ] 74-01-PLAN.md — 마스크 저장소(PatternMaskService) + SystemSetting 토글 + TryCreateModel Difference (wave 1)
+- [ ] 74-02-PLAN.md — 뷰어 드래그 브러시 입력 + HALCON 창 내부 반투명 렌더 (wave 1)
+- [ ] 74-03-PLAN.md — PatternBrushMaskViewModel + 공용 PatternBrushPanel (wave 2)
+- [ ] 74-04-PLAN.md — Align 화면 배선(Bottom/Tray) + 모달 없는 재티칭 (wave 3)
+- [ ] 74-05-PLAN.md — Datum 화면 배선(MainView) + DatumPatternModelRegenService (wave 3)
+- [ ] 74-06-PLAN.md — 정적 통합 검증 + 사람 확인 체크포인트 (wave 4)
+
+**확정된 미결 4건:** 브러시 크기 5~200px(기본 20, 이미지 픽셀) · 마스크 파일 `<모델basename>.mask.hobj`(HALCON HOBJ, 모델과 같은 폴더) · 옵션 토글 `SystemSetting.UsePatternBrushMask`(기본 false) · 마스크 표시는 패널 상태 문구("마스크 있음/없음")
 
 ---
 

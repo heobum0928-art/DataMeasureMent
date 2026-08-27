@@ -320,6 +320,14 @@ namespace ReringProject {
             if (mode == EEthernetVisionMode.None) {
                 return list;
             }
+            // Bottom 은 Phase 65 이후 항상 슬롯별 모델(Bottom_{token}_1/2.shm)을 쓴다.
+            //  슬롯 미선택(None)이면 BuildShmPath 가 구형 Bottom_1/2.shm 경로를 돌려주는데,
+            //  그 모델은 이 화면에서 재티칭할 수 없어(TryTeach 가 슬롯을 요구) 마스크만 남고
+            //  모델에는 영원히 반영되지 않는다. 대상이 없다고 보고 빈 목록을 돌려준다.
+            bool bBottomWithoutSlot = (mode == EEthernetVisionMode.Bottom) && (slot == EBottomAlignSlot.None);
+            if (bBottomWithoutSlot == true) {
+                return list;
+            }
             string szPath1 = BuildShmPath(mode, 1, slot);
             string szPath2 = BuildShmPath(mode, 2, slot);
             if (string.IsNullOrEmpty(szPath1) == false) {

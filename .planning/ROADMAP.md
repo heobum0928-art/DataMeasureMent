@@ -1206,7 +1206,22 @@ Align 측정 → ① 보정 후 다시 재봄 → 피커가 놓음 → ② 검�
 
 **선행:** Bottom Align 캘리브레이션 실측 후 착수. 판정 임계값(몇 mm 를 "벗어남"으로 볼지)은 실측 데이터 없이 정할 수 없다.
 
-**Plans:** 6 plans (3 waves) — plan 완료 2026-08-27
+**Plans:** 6 plans (3 waves) — **실행 완료 2026-08-27 (실기 UAT 대기)**
+
+- [x] `75-01-PLAN.md` — ① 재매칭 엔진 `RunCorrectedRecheck` (오버로드 2종) — `2d57439`
+- [x] `75-02-PLAN.md` — 전용 CSV 기록 계층 + 설정 5종 + 보관 상한 — `fd4a20d`
+- [x] `75-03-PLAN.md` — ① 을 Align 경로에 배선 + NG 이미지 저장 — `04e1d81`
+- [x] `75-04-PLAN.md` — ② 안착 위치 기록(기록 전용) — `0a16350`
+- [x] `75-05-PLAN.md` — Align 정합 조회 화면 — `83f1162`
+- [x] `75-06-PLAN.md` — 한계 문서 + 통합 빌드 + 버전 1.7.26.0 — **Task 3 실기 UAT(U-1~U-6) 사용자 확인 대기**
+
+**실행 결과:** 통합 빌드 SIMUL-ON 에러 0 / 경고 18줄, SIMUL-OFF 에러 0 / 경고 16줄 — 둘 다 baseline 유지,
+새 경고 코드 종류 0건. **Phase 75 전체 커밋의 `WPF_Example/` 삭제 줄이 총 1줄**
+(`AlignShapeMatchService.cs` 의 `class` → `partial class` 한 단어)로, 판정·응답·직렬화 경로 무접촉이
+git 으로 증명된다. `CycleResultSerializer.cs` / `MeasurementHistoryCsv*.cs` 는 변경 파일 목록에 없다.
+
+**한계 문서:** `75-KNOWN-LIMITS.md` (6개 절) — SIDE 깊이 미검증 · ① 검증 범위 · 임계 미설정 ·
+기록 누락 Datum · 증거 이미지 부재 조건 · ①② 별도 행 조인
 
 **확정 결정(discuss, `75-CONTEXT.md`):** D-75-01 ① 재매칭 = **매 Align 마다**(정상/NG 무관) · D-75-02 ② 는 **기록만**(실시간 판정 미사용, 기존 P/F 로직 무변경) · D-75-03 **별도 CSV 신설**(기존 측정이력 포맷 무변경) · D-75-04 보정 이미지는 **NG 일 때만** 저장.
 

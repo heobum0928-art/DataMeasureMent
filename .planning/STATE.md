@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
 status: unknown
-stopped_at: Phase 74/75 plan 완료 — 다음 세션에서 plan-checker 검증 → 실행
+stopped_at: Phase 75 실행 완료 (6/6 plans) — 실기 UAT U-1~U-6 사용자 확인 대기
 last_updated: "2026-08-27T00:00:00.000Z"
 last_activity: 2026-08-27
 progress:
@@ -23,11 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 73 완료 — 다음은 Bottom Align 캘리브레이션 셋업
+**Current focus:** Phase 75 코드 완료(v1.7.26.0) — 실기 UAT 대기. 다음은 Bottom Align 캘리브레이션 실측 → 판정 임계값 설정
 
 ## Current Position
 
-Phase: 73 ✅ COMPLETE · Phase 74/75 plan 완료(검증 대기)
+Phase: 75 — 코드 완료 · 실기 UAT 대기 (75-HUMAN-UAT.md U-1~U-6)
+Plan: 6 of 6
 
 ## 다음 세션 인수인계 (2026-08-27)
 

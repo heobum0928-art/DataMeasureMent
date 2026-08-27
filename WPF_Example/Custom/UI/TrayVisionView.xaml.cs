@@ -93,6 +93,7 @@ namespace ReringProject.Custom.UI {
             _viewer.RectDrawingCompleted -= OnTeachRectDrawn;
             _viewer.RectDrawingCompleted += OnTeachRectDrawn;
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
+            _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────
@@ -625,6 +626,16 @@ namespace ReringProject.Custom.UI {
             catch {
                 // 표시 실패는 티칭에 영향을 주지 않는다.
             }
+        }
+
+
+        // Phase 74: 이미지 중심 십자선 토글. 라이브/정지 화면 모두에서 가운데 위치를 눈으로 잡는 용도.
+        private void ShowCenterCrossCheckBox_Changed(object sender, RoutedEventArgs e) {
+            if (_viewer == null) {
+                return;
+            }
+            bool bShow = (chk_showCenterCross.IsChecked == true);
+            _viewer.SetCenterCrossVisible(bShow);
         }
 
         private void ShowTeachRoiOverlays() {

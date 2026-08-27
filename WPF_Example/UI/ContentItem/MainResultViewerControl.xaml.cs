@@ -636,6 +636,18 @@ namespace ReringProject.UI
         // 측정 overlay 토글 게이트 (기본 ON)
         private bool _measurementOverlayVisible = true;
         // Datum 라인 토글 게이트 (기본 ON)
+        // Phase 74: 이미지 중심 십자선(라이브/정지 화면에서 가운데 위치 확인용). 기본 꺼짐.
+        private bool _centerCrossVisible;
+
+        /// <summary>이미지 중심을 가로지르는 십자선 표시 토글.</summary>
+        public void SetCenterCrossVisible(bool visible)
+        {
+            _centerCrossVisible = visible;
+            Render();
+        }
+
+        public bool IsCenterCrossVisible { get { return _centerCrossVisible; } }
+
         private bool _datumOverlayVisible = true;
         //260619 hbk Phase 57 #2 패턴 ROI 토글 게이트 (기본 ON, _datumOverlayVisible 미러)
         private bool _patternRoiOverlayVisible = true;
@@ -1227,6 +1239,12 @@ namespace ReringProject.UI
             if (_isDrawingCircle && _circleDraftRadius > 0)
             {
                 _displayService.RenderCircleDraft(ViewerHost.HalconWindow, _circleDraftCenter.Y, _circleDraftCenter.X, _circleDraftRadius);
+            }
+
+            // Phase 74: 중심 십자선. 다른 오버레이 위에 오도록 마지막 근처에서 그린다.
+            if (_centerCrossVisible)
+            {
+                _displayService.RenderCenterCross(ViewerHost.HalconWindow, _imageWidth, _imageHeight, "cyan", 1);
             }
 
             // 브러시 마스크는 HALCON 창 안에 직접 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.

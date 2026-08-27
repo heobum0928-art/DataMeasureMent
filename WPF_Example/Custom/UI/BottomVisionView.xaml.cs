@@ -106,6 +106,7 @@ namespace ReringProject.Custom.UI {
             }
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
             UpdateSlotGate();       // Phase 74: 슬롯 미선택이면 티칭/브러시 잠금
+            _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
@@ -849,6 +850,16 @@ namespace ReringProject.Custom.UI {
             catch {
                 // 표시 실패는 티칭에 영향을 주지 않는다.
             }
+        }
+
+
+        // Phase 74: 이미지 중심 십자선 토글. 라이브/정지 화면 모두에서 가운데 위치를 눈으로 잡는 용도.
+        private void ShowCenterCrossCheckBox_Changed(object sender, RoutedEventArgs e) {
+            if (_viewer == null) {
+                return;
+            }
+            bool bShow = (chk_showCenterCross.IsChecked == true);
+            _viewer.SetCenterCrossVisible(bShow);
         }
 
         private void ShowTeachRoiOverlays() {

@@ -325,6 +325,37 @@ namespace ReringProject.Halcon.Display
         }
 
         // Circle 드래그 미리보기 (rubber-band, 빨강)
+        // Phase 74: 이미지 중심을 가로지르는 전체 십자선. 라이브/정지 화면에서 가운데 위치를 눈으로 잡는 용도.
+        //  HALCON 창 "안"에 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.
+        //  중심에 작은 사각형을 함께 그려 교차점이 선에 묻히지 않게 한다.
+        public void RenderCenterCross(HWindow window, double imageWidth, double imageHeight, string color, int lineWidth)
+        {
+            if (window == null) return;
+            if (imageWidth <= 0.0 || imageHeight <= 0.0) return;
+            try
+            {
+                double centerRow = imageHeight / 2.0;
+                double centerCol = imageWidth / 2.0;
+
+                HOperatorSet.SetColor(window, color);
+                HOperatorSet.SetLineWidth(window, lineWidth);
+                HOperatorSet.SetDraw(window, "margin");
+
+                // 이미지 끝에서 끝까지
+                window.DispLine(centerRow, 0.0, centerRow, imageWidth - 1.0);
+                window.DispLine(0.0, centerCol, imageHeight - 1.0, centerCol);
+
+                // 교차점 표식
+                HOperatorSet.DispRectangle1(window,
+                    centerRow - CenterMarkHalfPx, centerCol - CenterMarkHalfPx,
+                    centerRow + CenterMarkHalfPx, centerCol + CenterMarkHalfPx);
+            }
+            catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }
+        }
+
+        // 중심 교차점 표식 반폭(px).
+        private const double CenterMarkHalfPx = 10.0;
+
         public void RenderCircleDraft(HWindow window, double centerRow, double centerCol, double radius)
         {
             if (window == null || radius <= 0) return;

@@ -742,21 +742,26 @@ namespace ReringProject.UI
         }
 
         //260619 hbk Phase 56 Wave 2 — 결과용 보정(회전) ROI 박스 오버레이 설정/제거 (표시 전용, 편집 무관).
+        /// <summary>
+        /// 라벨 없이 박스만 지정한다.
+        /// ⚠ 이전에 설정된 라벨은 반드시 함께 지운다 — 남겨두면 개수가 다른 새 박스에
+        /// 옛 라벨이 순서대로 잘못 붙는다(예: 검출 박스에 "캘 검색 ROI" 가 표시되는 사고).
+        /// </summary>
         public void SetResultRoiOverlays(List<ResultRoiBox> measRects, List<double[]> datumRects)
         {
-            if (measRects == null) _resultRoiOverlays = new List<ResultRoiBox>();
-            else                   _resultRoiOverlays = measRects;
-            if (datumRects == null) _resultDatumRoiOverlays = new List<double[]>();
-            else                    _resultDatumRoiOverlays = datumRects;
-            Render();
+            SetResultRoiOverlays(measRects, datumRects, null);
         }
 
         /// <summary>Phase 74: datumRects 각 박스에 붙일 라벨을 함께 지정한다(개수가 달라도 안전).</summary>
         public void SetResultRoiOverlays(List<ResultRoiBox> measRects, List<double[]> datumRects, List<string> datumLabels)
         {
+            if (measRects == null) _resultRoiOverlays = new List<ResultRoiBox>();
+            else                   _resultRoiOverlays = measRects;
+            if (datumRects == null) _resultDatumRoiOverlays = new List<double[]>();
+            else                    _resultDatumRoiOverlays = datumRects;
             if (datumLabels == null) _resultDatumRoiLabels = new List<string>();
             else                     _resultDatumRoiLabels = datumLabels;
-            SetResultRoiOverlays(measRects, datumRects);
+            Render();
         }
 
         public void ClearResultRoiOverlays()

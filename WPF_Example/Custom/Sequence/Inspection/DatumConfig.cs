@@ -837,6 +837,9 @@ namespace ReringProject.Sequence {
             get { return _lastFindSucceeded; }
             set
             {
+                // 스탬프는 반드시 아래 idempotent 가드보다 위다. 연속 사이클에서 true→true 가 되면
+                //  가드가 즉시 return 해 스탬프가 갱신되지 않고, 그 Datum 이 영원히 "묵은 값" 으로 걸러진다.
+                if (value) { _lastFindTimeUtc = System.DateTime.UtcNow; }
                 if (_lastFindSucceeded == value) return; // idempotent 가드
                 _lastFindSucceeded = value;
                 RaisePropertyChanged(nameof(LastFindSucceeded));
@@ -942,6 +945,16 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         [Newtonsoft.Json.JsonIgnore]
         public double DetectedOriginCol { get; set; }
+
+        // 이번 사이클에 실제로 검출됐는지 구분하기 위한 시각 스탬프(기록 전용 — 판정에 관여하지 않는다).
+        //  DetectedOrigin*/LastFindSucceeded 는 사이클 단위로 초기화되지 않아, 이번 사이클에 돌지 않은
+        //  Datum 이 지난 사이클 좌표를 그대로 들고 있다. 그 묵은 값을 기록에서 걸러내는 유일한 근거다.
+        private System.DateTime _lastFindTimeUtc;
+        [System.ComponentModel.Browsable(false)]
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        [Newtonsoft.Json.JsonIgnore]
+        public System.DateTime LastFindTimeUtc { get { return _lastFindTimeUtc; } }
+
         [System.ComponentModel.Browsable(false)]
         [PropertyTools.DataAnnotations.Browsable(false)]
         [Newtonsoft.Json.JsonIgnore]
@@ -1269,6 +1282,7 @@ namespace ReringProject.Sequence {
             "DatumName",
             // (b-1) 티칭 검출 오버레이 transient
             "LastFindSucceeded", "RuntimeDetectFailed", "LastTeachSucceeded",
+            "LastFindTimeUtc",
             "Line1Detected_RBegin", "Line1Detected_CBegin", "Line1Detected_REnd", "Line1Detected_CEnd",
             "Line2Detected_RBegin", "Line2Detected_CBegin", "Line2Detected_REnd", "Line2Detected_CEnd",
             "CircleCenter_Row", "CircleCenter_Col", "CircleDetected_Radius",

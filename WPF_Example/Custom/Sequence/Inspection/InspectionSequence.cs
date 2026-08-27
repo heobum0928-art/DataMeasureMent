@@ -51,6 +51,9 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<DatumConfig> DatumConfigs { get; private set; } = new List<DatumConfig>();
 
+        // 이번 런의 시작 시각(UTC). Datum 검출 스탬프와 비교해 "이번 사이클에 실제로 검출된 것" 만 기록한다.
+        private DateTime _dtCycleStartUtc = DateTime.MinValue;
+
         // 런타임 transform 캐시
         private readonly Dictionary<string, HTuple> _datumTransforms = new Dictionary<string, HTuple>();
 
@@ -241,6 +244,7 @@ namespace ReringProject.Sequence {
                     nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파
                     IsProtocolDrivenCycle());   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                 CycleResultSerializer.SaveAsync(cycleDto);
+                RecordSeatingEvidence(nIndexNumber);
             }
             catch (Exception ex)
             {
@@ -266,10 +270,77 @@ namespace ReringProject.Sequence {
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name); // 이 시퀀스 소유 shot 만 cycle 에 포함
                 CycleResultSerializer.SaveAsync(cycleDto);
+                // 수동 RUN 은 자재번호가 없다. 그래도 기록한다 — 셋업 단계에서 산포 데이터를 모으는 유일한 경로다.
+                RecordSeatingEvidence(AlignVerifyRecord.NO_MATERIAL);
             }
             catch (Exception ex)
             {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] 수동 cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        // D-75-02: ② 안착 위치를 "기록만" 한다. 판정/응답/cycle.json 에 일절 관여하지 않는다.
+        //  DetectedOrigin* 는 이미 매 사이클 계산되고 버려지던 값이다 — 읽어서 저장만 한다.
+        //  실패해도 throw 하지 않는다(검사 스레드 보호).
+        private void RecordSeatingEvidence(int nIndexNumber) {
+            try {
+                if (DatumConfigs == null) { return; }
+                DateTime dtNow = DateTime.Now;
+                foreach (DatumConfig d in DatumConfigs) {
+                    if (d == null) { continue; }
+                    if (!d.LastFindSucceeded) { continue; }
+
+                    // 지난 사이클 잔여값 배제 — 이번 사이클에 안 돈 Datum 은 옛 좌표를 그대로 들고 있다.
+                    bool bFreshDetection = d.LastFindTimeUtc >= _dtCycleStartUtc;
+                    if (!bFreshDetection) { continue; }
+
+                    // Action_FAIMeasurement 의 원점 유효 게이트와 동일 조건
+                    bool bHasOrigin = (d.DetectedOriginRow != 0.0) || (d.DetectedOriginCol != 0.0);
+                    if (!bHasOrigin) { continue; }
+
+                    AlignVerifyRecord rec = new AlignVerifyRecord();
+                    rec.RecordTime = dtNow;
+                    rec.Kind = AlignVerifyRecord.KIND_SEAT;
+                    rec.MaterialNo = nIndexNumber;
+                    rec.SequenceName = Name;                    // TOP / BOTTOM / SIDE_1~4 — 지그별 집계 단위
+                    rec.DatumName = d.DatumName;
+                    rec.Judgement = AlignVerifyRecord.JUDGE_DETECT_OK;
+                    rec.DetectedRow = d.DetectedOriginRow;
+                    rec.DetectedCol = d.DetectedOriginCol;
+                    rec.RefRow = d.RefOriginRow;
+                    rec.RefCol = d.RefOriginCol;
+                    rec.PixelResolutionMmPerPx = ResolveDatumPixelResolutionMm(d);
+                    rec.DetectTime = d.LastFindTimeUtc.ToLocalTime();
+                    rec.HasSeatOrigin = true;
+                    AlignVerifyCsvWriter.Append(rec);
+                }
+            }
+            catch (Exception ex) {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SeatEvidence] 기록 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        // Datum 이 속한 SHOT 의 픽셀 해상도(mm/px). 못 찾으면 0 — 조회 화면이 "환산 불가" 로 표시한다.
+        //  CorrectionFactor 는 곱하지 않는다: 이 값은 측정값이 아니라 "어디에 놓였나" 하는 위치 증거다.
+        //  (이 프로젝트에는 CorrectionFactor 이중 적용 사고 이력이 있어 적용 지점을 늘리지 않는다.)
+        private double ResolveDatumPixelResolutionMm(DatumConfig d) {
+            try {
+                if (d == null) { return 0.0; }
+                if (Actions == null) { return 0.0; }
+                foreach (var act in Actions) {
+                    var faiAct = act as Action_FAIMeasurement;
+                    if (faiAct == null) { continue; }
+                    var shot = faiAct.ShotParam;
+                    if (shot == null) { continue; }
+                    bool bSameShot = string.Equals(shot.ShotName, d.SourceShotName, StringComparison.Ordinal);
+                    if (bSameShot) {
+                        return shot.PixelResolution;
+                    }
+                }
+                return 0.0;
+            }
+            catch {
+                return 0.0;
             }
         }
 
@@ -281,6 +352,7 @@ namespace ReringProject.Sequence {
         //  범위: 이 시퀀스 shot 만 (Actions 순회) → Top/Bottom/Side 병렬 실행 간섭 없음. 실행되는 shot 은 Measure 루프가 다시 채운다.
         private void HandleRunStartResetResults(SequenceContext context) {
             try {
+                _dtCycleStartUtc = DateTime.UtcNow;   // 기록 전용 — 판정/초기화 로직에 관여하지 않는다
                 if (Actions == null) return;
                 foreach (var act in Actions) {
                     var faiAct = act as Action_FAIMeasurement;
@@ -2022,6 +2094,12 @@ namespace ReringProject.Sequence {
                     nIndexNumber,
                     IsProtocolDrivenCycle());   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                 CycleResultSerializer.SaveAsync(cycleDto);
+                // z_index 마다 호출되는 경로다. 마지막에 한 번만 기록해야 사이클당 1세트가 된다.
+                bool bLastIndexOfCycle = !packet.IsBuffer;
+                if (bLastIndexOfCycle)
+                {
+                    RecordSeatingEvidence(nIndexNumber);
+                }
             }
             catch (Exception ex)
             {

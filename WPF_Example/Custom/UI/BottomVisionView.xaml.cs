@@ -107,6 +107,9 @@ namespace ReringProject.Custom.UI {
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
             UpdateSlotGate();       // Phase 74: 슬롯 미선택이면 티칭/브러시 잠금
             _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
+            // Phase 74: 좌표/밝기 구독(중복 방지: -= 후 +=)
+            _viewer.PointerInfoChanged -= OnViewerPointerInfoChanged;
+            _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             LoadCalStepAngleToUi(); // Phase 74: 저장된 캘 스텝 각도 반영
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
@@ -972,6 +975,26 @@ namespace ReringProject.Custom.UI {
             }
             catch {
                 // 표시 실패는 캘 흐름을 막지 않는다.
+            }
+        }
+
+
+        // Phase 74: 마우스 위치의 이미지 좌표와 밝기(Gray) 표시. 뷰어의 기존 PointerInfoChanged 를 그대로 쓴다.
+        private void OnViewerPointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e) {
+            if (lbl_hoverInfo == null) {
+                return;
+            }
+            try {
+                string szGray = "-";
+                if (e.GrayValue.HasValue) {
+                    szGray = e.GrayValue.Value.ToString("F0");
+                }
+                lbl_hoverInfo.Text = "X: " + e.X.ToString("F0")
+                                   + "  Y: " + e.Y.ToString("F0")
+                                   + "  Gray: " + szGray;
+            }
+            catch {
+                // 표시 실패는 다른 동작에 영향을 주지 않는다.
             }
         }
 

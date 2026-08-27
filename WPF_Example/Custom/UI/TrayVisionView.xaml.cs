@@ -94,6 +94,9 @@ namespace ReringProject.Custom.UI {
             _viewer.RectDrawingCompleted += OnTeachRectDrawn;
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
             _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
+            // Phase 74: 좌표/밝기 구독(중복 방지: -= 후 +=)
+            _viewer.PointerInfoChanged -= OnViewerPointerInfoChanged;
+            _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             _viewer.SetInfoLabel("Tray Align"); // Phase 74: 어느 화면인지 이미지 위에 표시
         }
 
@@ -685,6 +688,26 @@ namespace ReringProject.Custom.UI {
             }
             bool bShow = (chk_showCenterCross.IsChecked == true);
             _viewer.SetCenterCrossVisible(bShow);
+        }
+
+
+        // Phase 74: 마우스 위치의 이미지 좌표와 밝기(Gray) 표시. 뷰어의 기존 PointerInfoChanged 를 그대로 쓴다.
+        private void OnViewerPointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e) {
+            if (lbl_hoverInfo == null) {
+                return;
+            }
+            try {
+                string szGray = "-";
+                if (e.GrayValue.HasValue) {
+                    szGray = e.GrayValue.Value.ToString("F0");
+                }
+                lbl_hoverInfo.Text = "X: " + e.X.ToString("F0")
+                                   + "  Y: " + e.Y.ToString("F0")
+                                   + "  Gray: " + szGray;
+            }
+            catch {
+                // 표시 실패는 다른 동작에 영향을 주지 않는다.
+            }
         }
 
         private void ShowTeachRoiOverlays() {

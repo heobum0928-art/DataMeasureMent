@@ -191,6 +191,9 @@
                             <!--Phase 74: 라이브/정지 화면에서 이미지 중심(가운데)을 눈으로 잡기 위한 전체 십자선.-->
                             <CheckBox x:Name="chk_showCenterCross" Content="중심 십자" IsChecked="False" Margin="0,4,0,0"
                                       Checked="ShowCenterCrossCheckBox_Changed" Unchecked="ShowCenterCrossCheckBox_Changed"/>
+                            <!--Phase 74: 마우스 위치의 좌표와 밝기. 검사 화면과 동일한 뷰어 이벤트를 쓴다.-->
+                            <TextBlock x:Name="lbl_hoverInfo" Text="X: -  Y: -  Gray: -" Margin="0,6,0,0"
+                                       FontSize="12" Foreground="#475569"/>
                             <TextBlock x:Name="lbl_result"
                                        Margin="0,6,0,0"
                                        FontSize="12"

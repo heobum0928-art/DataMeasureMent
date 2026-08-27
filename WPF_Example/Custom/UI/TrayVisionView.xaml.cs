@@ -94,6 +94,7 @@ namespace ReringProject.Custom.UI {
             _viewer.RectDrawingCompleted += OnTeachRectDrawn;
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
             _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
+            _viewer.SetInfoLabel("Tray Align"); // Phase 74: 어느 화면인지 이미지 위에 표시
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────

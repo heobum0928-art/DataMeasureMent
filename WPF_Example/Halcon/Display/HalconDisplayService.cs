@@ -324,6 +324,20 @@ namespace ReringProject.Halcon.Display
             }
         }
 
+        // Phase 74: 화면 좌상단 고정 정보 라벨(예: "면 슬롯: 3D_Bottom").
+        //  "window" 좌표라 팬/줌과 무관하게 항상 같은 자리에 붙는다. 메시지 줄(노랑) 아래에 그린다.
+        public void RenderInfoLabel(HWindow window, string text, int messageLineCount)
+        {
+            if (window == null) return;
+            if (string.IsNullOrWhiteSpace(text)) return;
+            try
+            {
+                int nRow = 12 + (messageLineCount * 28);
+                window.DispText(text, "window", nRow, 12, "cyan", MessageTextParamNames, MessageTextParamValues);
+            }
+            catch { /* suppress display errors (기존 렌더 catch 관습 유지) */ }
+        }
+
         // Circle 드래그 미리보기 (rubber-band, 빨강)
         // Phase 74: 이미지 중심을 가로지르는 전체 십자선. 라이브/정지 화면에서 가운데 위치를 눈으로 잡는 용도.
         //  HALCON 창 "안"에 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.

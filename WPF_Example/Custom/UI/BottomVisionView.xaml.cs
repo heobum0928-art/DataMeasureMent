@@ -797,6 +797,16 @@ namespace ReringProject.Custom.UI {
                     lbl_teachStatus.Text = "▲ 먼저 위쪽 [면 슬롯] 을 선택하세요 — 선택 전에는 티칭/브러시가 저장되지 않습니다";
                     lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Weak);
                 }
+
+                // Phase 74: 지금 어느 면 슬롯을 만지고 있는지 이미지 위에 항상 보이게 한다.
+                if (_viewer != null) {
+                    if (bSlotChosen == true) {
+                        _viewer.SetInfoLabel("면 슬롯: " + EBottomAlignSlotMap.ToDisplayLabel(_selectedSlot));
+                    }
+                    else {
+                        _viewer.SetInfoLabel("면 슬롯: 미선택");
+                    }
+                }
             }
             catch {
                 // 게이트 갱신 실패가 화면을 막지 않는다.

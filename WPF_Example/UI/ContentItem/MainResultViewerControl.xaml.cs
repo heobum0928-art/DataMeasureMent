@@ -636,6 +636,17 @@ namespace ReringProject.UI
         // 측정 overlay 토글 게이트 (기본 ON)
         private bool _measurementOverlayVisible = true;
         // Datum 라인 토글 게이트 (기본 ON)
+        // Phase 74: 화면 좌상단 고정 정보 라벨(예: 선택된 면 슬롯). 비어 있으면 표시하지 않는다.
+        private string _infoLabel = "";
+
+        /// <summary>화면 좌상단에 고정 표시할 안내 문구. null/빈 문자열이면 지운다.</summary>
+        public void SetInfoLabel(string text)
+        {
+            if (text == null) _infoLabel = "";
+            else              _infoLabel = text;
+            Render();
+        }
+
         // Phase 74: 이미지 중심 십자선(라이브/정지 화면에서 가운데 위치 확인용). 기본 꺼짐.
         private bool _centerCrossVisible;
 
@@ -1240,6 +1251,9 @@ namespace ReringProject.UI
             {
                 _displayService.RenderCircleDraft(ViewerHost.HalconWindow, _circleDraftCenter.Y, _circleDraftCenter.X, _circleDraftRadius);
             }
+
+            // Phase 74: 좌상단 정보 라벨(면 슬롯 등). 메시지 줄 아래에 붙인다.
+            _displayService.RenderInfoLabel(ViewerHost.HalconWindow, _infoLabel, _displayMessages.Count);
 
             // Phase 74: 중심 십자선. 다른 오버레이 위에 오도록 마지막 근처에서 그린다.
             if (_centerCrossVisible)

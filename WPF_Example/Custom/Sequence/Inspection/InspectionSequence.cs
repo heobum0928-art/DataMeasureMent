@@ -326,16 +326,37 @@ namespace ReringProject.Sequence {
         private double ResolveDatumPixelResolutionMm(DatumConfig d) {
             try {
                 if (d == null) { return 0.0; }
-                if (Actions == null) { return 0.0; }
-                foreach (var act in Actions) {
-                    var faiAct = act as Action_FAIMeasurement;
-                    if (faiAct == null) { continue; }
-                    var shot = faiAct.ShotParam;
-                    if (shot == null) { continue; }
-                    bool bSameShot = string.Equals(shot.ShotName, d.SourceShotName, StringComparison.Ordinal);
-                    if (bSameShot) {
-                        return shot.PixelResolution;
+                var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+                if (shots == null) { return 0.0; }
+
+                // 1) SourceShotName 이 shot 을 명시했으면 그것을 쓴다.
+                bool bHasSourceShot = string.IsNullOrEmpty(d.SourceShotName) == false;
+                if (bHasSourceShot) {
+                    foreach (ShotConfig s in shots) {
+                        if (s == null) { continue; }
+                        bool bSameShot = string.Equals(s.ShotName, d.SourceShotName, StringComparison.Ordinal);
+                        if (bSameShot) {
+                            return s.PixelResolution;
+                        }
                     }
+                }
+
+                // 2) 미설정/미매칭 폴백 — 이 시퀀스 소유 shot 중 ZIndex 최솟값.
+                //  SourceShotName 은 실제 레시피에서 비어 있는 것이 정상이다(FAI_1 은 6개 Datum 전부 빈 값).
+                //  그래서 명시 매칭만 하면 해상도가 항상 0 이 되어 안착 편차를 mm 로 환산할 수 없었다.
+                //  폴백 규약은 ResolveDatumModelPath / InspectionListView.ResolveDatumCameraParam 과 동일하게 맞춘다.
+                ShotConfig ownedFirst = null;
+                foreach (ShotConfig s in shots) {
+                    if (s == null) { continue; }
+                    string szOwner = s.OwnerSequenceName;
+                    if (string.IsNullOrEmpty(szOwner)) { szOwner = SequenceHandler.SEQ_TOP; }
+                    bool bMine = string.Equals(szOwner, Name, StringComparison.Ordinal);
+                    if (bMine == false) { continue; }
+                    bool bBetter = (ownedFirst == null) || (s.ZIndex < ownedFirst.ZIndex);
+                    if (bBetter) { ownedFirst = s; }
+                }
+                if (ownedFirst != null) {
+                    return ownedFirst.PixelResolution;
                 }
                 return 0.0;
             }

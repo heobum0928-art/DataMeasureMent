@@ -24,7 +24,11 @@ namespace ReringProject {
         private const string ENGINE = "Shape";
 
         // D-03: 최소 스코어. NumLevels(4)/MinContrast(10)은 PatternMatchService 내부 const — 재선언 불필요.
-        private const double MIN_SCORE = 0.5;
+        //  Phase 74: 기본값 0.5 → 0.3 (사용자 지정). 슬롯별로 UI 에서 덮어쓸 수 있다.
+        private const double MIN_SCORE = 0.3;
+
+        // Phase 74: 각도 검색범위 하한(deg). 너무 좁으면 살짝만 돌아가도 못 찾는다.
+        private const double MIN_ANGLE_EXTENT_DEG = 5.0;
 
         //quick-260812: 등급 산정용 최소 스코어 노출(읽기 전용). MIN_SCORE 의 값·용도는 무변경.
         public static double TeachMinScore { get { return MIN_SCORE; } }
@@ -35,16 +39,26 @@ namespace ReringProject {
         public double TeachAngleExtentDeg { get; set; }
         public double TeachMinScoreOverride { get; set; }
 
-        /// <summary>mode 별 기본 각도범위. 0 이하 override 면 기본값.</summary>
+        /// <summary>mode 별 기본 각도범위. 0 이하 override 면 기본값. 하한 MIN_ANGLE_EXTENT_DEG 로 클램프.</summary>
         public double ResolveAngleExtentDeg(EEthernetVisionMode mode, double dOverride) {
+            double dValue;
             if (dOverride > 0.0) {
-                return dOverride;
+                dValue = dOverride;
             }
-            if (mode == EEthernetVisionMode.Bottom) {
-                return BOTTOM_ANGLE_EXTENT_DEG;
+            else if (mode == EEthernetVisionMode.Bottom) {
+                dValue = BOTTOM_ANGLE_EXTENT_DEG;
             }
-            return TRAY_ANGLE_EXTENT_DEG;
+            else {
+                dValue = TRAY_ANGLE_EXTENT_DEG;
+            }
+            if (dValue < MIN_ANGLE_EXTENT_DEG) {
+                dValue = MIN_ANGLE_EXTENT_DEG;   // 하한 강제 — 너무 좁으면 살짝만 돌아가도 못 찾는다
+            }
+            return dValue;
         }
+
+        /// <summary>UI 표시용 각도범위 하한(deg).</summary>
+        public static double MinAngleExtentDeg { get { return MIN_ANGLE_EXTENT_DEG; } }
 
         /// <summary>0 이하면 기본 MIN_SCORE.</summary>
         public double ResolveMinScore(double dOverride) {

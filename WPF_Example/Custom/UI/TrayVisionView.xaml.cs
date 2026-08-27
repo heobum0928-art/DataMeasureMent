@@ -510,7 +510,10 @@ namespace ReringProject.Custom.UI {
                 ApplyCoaxLight(); //260626 hbk Phase 66 — 티칭 직전 동축 자동 적용(D-07 티칭=런타임 조명 일치)
                 string error;
                 double dScore1, dScore2;   //quick-260812: 티칭이 이미 계산한 스코어 수신(등급 표시용)
-                ApplyTeachParams();  // Phase 74: 각도범위/최소 Score 반영
+                if (ApplyTeachParams(true) == false) {   // Phase 74: 값이 바뀌었으면 확인
+                    lbl_teachStatus.Text = "티칭 취소 — 값 변경을 진행하지 않았습니다";
+                    return;
+                }
                 bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
                     _viewer.CurrentImage,
                     r1, c1, phi1, l1_1, l1_2,
@@ -583,7 +586,11 @@ namespace ReringProject.Custom.UI {
 
         // Phase 74: 티칭 파라미터(각도범위/최소 Score) 입력을 서비스에 적용한다.
         //  비어 있거나 숫자가 아니면 0 → 서비스가 기본값(각도 Bottom 45/Tray 10, 스코어 0.5)을 쓴다.
-        private void ApplyTeachParams() {
+        // Phase 74: 티칭 파라미터(각도범위/최소 Score)를 서비스에 적용한다.
+        //  bAskOnChange=true 면 저장값과 다를 때 확인을 받는다(티칭은 모델을 다시 만드는 작업이라
+        //  실수로 바꾸면 되돌리기 어렵다). 브러시 자동 재생성 경로는 모달 금지라 false 로 부른다.
+        //  반환 false = 사용자가 취소.
+        private bool ApplyTeachParams(bool bAskOnChange) {
             double dAngle = 0.0;
             double dScore = 0.0;
             if (txt_angleExtent != null) {
@@ -592,36 +599,77 @@ namespace ReringProject.Custom.UI {
             if (txt_minScore != null) {
                 double.TryParse(txt_minScore.Text, out dScore);
             }
+
+            // 각도 하한 강제 — 입력이 하한보다 작으면 하한으로 올리고 화면에도 반영한다.
+            double dAngleFloor = AlignShapeMatchService.MinAngleExtentDeg;
+            if (dAngle > 0.0 && dAngle < dAngleFloor) {
+                dAngle = dAngleFloor;
+                if (txt_angleExtent != null) {
+                    txt_angleExtent.Text = dAngle.ToString("F1");
+                }
+            }
+
             bool bScoreOutOfRange = (dScore < 0.0) || (dScore > 1.0);
             if (bScoreOutOfRange) {
                 dScore = 0.0;   // 잘못된 입력은 기본값으로
             }
+
+            if (bAskOnChange == true) {
+                AlignRefPose saved = EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None);
+                if (saved != null) {
+                    double dSavedAngle = saved.AngleExtentDeg;
+                    double dSavedScore = saved.MinScore;
+                    double dNewAngle = EthernetVisionHandler.Handle.Matcher.ResolveAngleExtentDeg(VIEW_MODE, dAngle);
+                    double dNewScore = EthernetVisionHandler.Handle.Matcher.ResolveMinScore(dScore);
+                    bool bAngleChanged = (dSavedAngle > 0.0) && (Math.Abs(dSavedAngle - dNewAngle) > 0.001);
+                    bool bScoreChanged = (dSavedScore > 0.0) && (Math.Abs(dSavedScore - dNewScore) > 0.001);
+                    if (bAngleChanged || bScoreChanged) {
+                        string szMsg = "티칭 값을 바꿔 모델을 다시 만듭니다." + Environment.NewLine + Environment.NewLine
+                                     + "각도범위: " + dSavedAngle.ToString("F1") + " → " + dNewAngle.ToString("F1") + " deg" + Environment.NewLine
+                                     + "최소 Score: " + dSavedScore.ToString("F2") + " → " + dNewScore.ToString("F2") + Environment.NewLine + Environment.NewLine
+                                     + "진행할까요?";
+                        MessageBoxResult confirm = CustomMessageBox.ShowConfirmation("티칭 값 변경", szMsg, MessageBoxButton.YesNo);
+                        if (confirm != MessageBoxResult.Yes) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
             EthernetVisionHandler.Handle.Matcher.TeachAngleExtentDeg = dAngle;
             EthernetVisionHandler.Handle.Matcher.TeachMinScoreOverride = dScore;
+            return true;
         }
 
         // 저장된 슬롯 JSON 의 값을 입력란에 되돌려 보여준다. 없으면 비워 둔다(= 기본값 사용).
+        /// <summary>이 화면의 기본 각도범위(deg) 표시 문자열.</summary>
+        private string ResolveDefaultAngleText() {
+            double dDefault = EthernetVisionHandler.Handle.Matcher.ResolveAngleExtentDeg(VIEW_MODE, 0.0);
+            return dDefault.ToString("F1");
+        }
+
         private void LoadTeachParamsToUi(AlignRefPose refPose) {
             try {
                 if (txt_angleExtent == null || txt_minScore == null) {
                     return;
                 }
                 if (refPose == null) {
-                    txt_angleExtent.Text = "";
-                    txt_minScore.Text = "";
+                    // 저장값이 없으면 기본값을 그대로 보여준다 — 빈칸이면 무엇이 쓰이는지 알 수 없다.
+                    txt_angleExtent.Text = ResolveDefaultAngleText();
+                    txt_minScore.Text = AlignShapeMatchService.TeachMinScore.ToString("F2");
                     return;
                 }
                 if (refPose.AngleExtentDeg > 0.0) {
                     txt_angleExtent.Text = refPose.AngleExtentDeg.ToString("F1");
                 }
                 else {
-                    txt_angleExtent.Text = "";
+                    txt_angleExtent.Text = ResolveDefaultAngleText();
                 }
                 if (refPose.MinScore > 0.0) {
                     txt_minScore.Text = refPose.MinScore.ToString("F2");
                 }
                 else {
-                    txt_minScore.Text = "";
+                    txt_minScore.Text = AlignShapeMatchService.TeachMinScore.ToString("F2");
                 }
             }
             catch {
@@ -685,6 +733,8 @@ namespace ReringProject.Custom.UI {
             RectToTeachParams(_roi1, out r1, out c1, out phi1, out l1_1, out l1_2);
             double r2, c2, phi2, l2_1, l2_2;
             RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
+
+            ApplyTeachParams(false);   // Phase 74: 브러시 경로는 모달 금지 — 확인 없이 현재 값 사용
 
             string szError;
             double dScore1, dScore2;

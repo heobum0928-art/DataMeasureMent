@@ -721,6 +721,7 @@ namespace ReringProject.Custom.UI {
                     if (brushPanel != null) {
                         brushPanel.ViewModel.ReloadMaskFromDisk(); // 새로 티칭한 슬롯의 마스크 상태를 화면과 맞춘다
                     }
+                    ShowTeachedContour(); // Phase 74: 티칭 직후에도 모델 외곽선(녹색) 표시
                 }
                 else {
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));
@@ -835,9 +836,31 @@ namespace ReringProject.Custom.UI {
                 out dScore1, out dScore2,
                 out szError);
             if (bOk == true) {
+                ShowTeachedContour(); // Phase 74: 마스크 반영 결과를 녹색 외곽선으로 즉시 보여준다
                 return null;
             }
             return szError;
+        }
+
+        // Phase 74: 티칭된 모델의 외곽선을 녹색으로 표시한다.
+        //  예전에는 [검사] 를 돌려야만 녹색이 보여서, 브러시로 뺀 영역이 실제로 모델에서
+        //  빠졌는지 티칭 직후에 확인할 방법이 없었다.
+        private void ShowTeachedContour() {
+            if (_viewer == null) {
+                return;
+            }
+            try {
+                HObject xld;
+                string szError;
+                bool bOk = EthernetVisionHandler.Handle.Matcher.TryBuildTeachedContourXld(
+                    VIEW_MODE, _selectedSlot, out xld, out szError);
+                if (bOk == true) {
+                    _viewer.SetAlignContourXld(xld); // 소유권 이전 — 뷰어가 Dispose
+                }
+            }
+            catch {
+                // 표시 실패는 티칭 결과에 영향을 주지 않는다.
+            }
         }
 
         // ─── 검사 핸들러 ─────────────────────────────────────────────────────────
@@ -848,6 +871,13 @@ namespace ReringProject.Custom.UI {
             if (_viewer == null || _viewer.CurrentImage == null) {
                 lbl_status.Text = "이미지 없음 — Grab 먼저";
                 return;
+            }
+
+            // Phase 74: 검사 전에 브러시 작업을 끝낸다 — 마스크 자국이 검사 결과(녹색) 위를 덮지 않게.
+            //  마스크 자체는 유지된다(모드를 다시 켜면 그대로 보인다).
+            if (brushPanel != null) {
+                brushPanel.ViewModel.IsBrushActive = false;
+                brushPanel.ViewModel.IsEraseMode = false;
             }
 
             //260702 hbk 모델 미티칭 상태에서 검사 방지 — 안내 후 중단(선택 슬롯 기준)

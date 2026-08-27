@@ -312,6 +312,53 @@ namespace ReringProject {
             return File.Exists(shmPath1) && File.Exists(shmPath2) && File.Exists(jsonPath);
         }
 
+        // 방금 티칭한(또는 저장돼 있는) 모델의 외곽선을 기준 pose 위치에 그린 XLD 로 돌려준다(Phase 74).
+        //  티칭 저장 직후에는 녹색 외곽선이 표시되지 않아(검사를 돌려야만 보였다) 브러시로 뺀 영역이
+        //  실제로 모델에서 빠졌는지 눈으로 확인할 방법이 없었다. 그 확인 수단이다.
+        //  성공 시 outXld 소유권을 호출자에게 이전한다(뷰어가 Dispose). 실패는 throw 없이 false.
+        public bool TryBuildTeachedContourXld(
+            EEthernetVisionMode mode, EBottomAlignSlot slot, out HObject outXld, out string error) {
+            outXld = null;
+            error = null;
+
+            try {
+                if (mode == EEthernetVisionMode.None) {
+                    error = "모드 None";
+                    return false;
+                }
+                string szShm1 = BuildShmPath(mode, 1, slot);
+                string szShm2 = BuildShmPath(mode, 2, slot);
+                string szJson = BuildJsonPath(mode, slot);
+                bool bPathMissing = string.IsNullOrEmpty(szShm1)
+                                 || string.IsNullOrEmpty(szShm2)
+                                 || string.IsNullOrEmpty(szJson);
+                if (bPathMissing) {
+                    error = "경로 미설정";
+                    return false;
+                }
+                if (File.Exists(szShm1) == false || File.Exists(szShm2) == false) {
+                    error = "모델 파일 없음";
+                    return false;
+                }
+
+                AlignRefPose refPose = LoadRefPose(szJson);
+                if (refPose == null) {
+                    error = "기준 pose 없음";
+                    return false;
+                }
+
+                // 모델은 기준 pose 위치에서 각도 0 으로 티칭됐다 — 그 자리에 그대로 그린다.
+                return TryBuildDetectedContourXld(
+                    szShm1, refPose.Ref1Row, refPose.Ref1Col, 0.0,
+                    szShm2, refPose.Ref2Row, refPose.Ref2Col, 0.0,
+                    out outXld, out error);
+            }
+            catch (Exception ex) {
+                error = "TryBuildTeachedContourXld: " + ex.Message;
+                return false;
+            }
+        }
+
         // 브러시 마스크를 붙일 대상 모델 파일 경로 2개(_1.shm, _2.shm)를 돌려준다(Phase 74 D-74-02).
         //  BuildShmPath 를 쓰는 이유 = 순수 문자열 도출이라 폴더를 만들지 않는다.
         //  GetShmPath 는 Directory.CreateDirectory 부작용이 있어 '조회' 용도로는 쓰면 안 된다.

@@ -1219,8 +1219,10 @@ namespace ReringProject.UI
             }
 
             // 브러시 마스크는 HALCON 창 안에 직접 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.
-            //  브러시 모드가 아니어도 마스크가 있으면 계속 보여준다(무엇이 빠진 채 모델이 만들어졌는지 확인용).
-            if (_brushMaskRegion != null)
+            //  브러시 모드일 때만 표시한다. 칠하기가 끝나면 마스크는 모델에 반영된 상태이므로,
+            //  검사 결과(녹색 외곽선) 위에 계속 덮여 있으면 "무엇이 빠졌는지" 를 오히려 가린다.
+            //  마스크 자체는 사라지지 않는다 — 모드를 다시 켜면 그대로 보인다.
+            if (_brushMaskRegion != null && _isBrushMasking)
             {
                 _displayService.RenderBrushMask(ViewerHost.HalconWindow, _brushMaskRegion, BrushMaskFillColor, BrushMaskOutlineColor);
             }

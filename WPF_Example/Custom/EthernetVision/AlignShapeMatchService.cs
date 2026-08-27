@@ -18,7 +18,7 @@ namespace ReringProject {
     /// Tray = X/Y 오프셋, Bottom = X/Y/Theta. PatternMatchService 는 무수정.
     /// AV-03 (teach→.shm→find) + AV-04 (Tray X/Y / Bottom X/Y/Theta).
     /// </summary>
-    public class AlignShapeMatchService {
+    public partial class AlignShapeMatchService {
 
         // D-01: Shape 엔진 고정 (PatternMatchService 의 "Shape" 분기 사용)
         private const string ENGINE = "Shape";

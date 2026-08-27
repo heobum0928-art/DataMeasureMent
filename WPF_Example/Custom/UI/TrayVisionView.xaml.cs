@@ -81,6 +81,14 @@ namespace ReringProject.Custom.UI {
             }
             _viewer = viewer;
             ViewerHostBorder.Child = viewer;
+
+            // Phase 74 브러시 마스킹 배선. Tray 는 슬롯이 없어 항상 None 경로를 쓴다.
+            if (brushPanel != null) {
+                brushPanel.ViewModel.ModelPathsProvider = () => EthernetVisionHandler.Handle.Matcher.GetModelPathsForMask(VIEW_MODE, EBottomAlignSlot.None);
+                brushPanel.ViewModel.ModelRegenerator = RegenerateTeachSilent;
+                brushPanel.ViewModel.Attach(viewer);
+                brushPanel.ViewModel.ReloadMaskFromDisk();
+            }
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────
@@ -501,6 +509,9 @@ namespace ReringProject.Custom.UI {
                     ETeachGrade teachGrade = TeachDiag.ClassifyScore(dMinScore, AlignShapeMatchService.TeachMinScore);
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(teachGrade, "티칭 OK (HasTemplate=" + bHas + ", score " + dMinScore.ToString("F3") + ")");
                     lbl_teachStatus.Foreground = TeachDiag.GradeBrush(teachGrade);
+                    if (brushPanel != null) {
+                        brushPanel.ViewModel.ReloadMaskFromDisk();
+                    }
                 }
                 else {
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));
@@ -512,6 +523,40 @@ namespace ReringProject.Custom.UI {
                 lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 예외: " + TeachDiag.ToKoreanMessage(ex.Message));
                 lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Bad);
             }
+        }
+
+        // 마스크가 바뀌었을 때 모달 없이 같은 ROI 로 다시 티칭한다(D-74-04).
+        //  성공하면 null, 실패하면 오류 문자열을 돌려준다(ViewModel 계약).
+        private string RegenerateTeachSilent() {
+            if (_viewer == null) {
+                return "뷰어 없음";
+            }
+            if (_viewer.CurrentImage == null) {
+                return "이미지 없음 — Grab 먼저";
+            }
+            string szValid = ValidateRois();
+            if (szValid != null) {
+                return szValid;
+            }
+
+            double r1, c1, phi1, l1_1, l1_2;
+            RectToTeachParams(_roi1, out r1, out c1, out phi1, out l1_1, out l1_2);
+            double r2, c2, phi2, l2_1, l2_2;
+            RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
+
+            string szError;
+            double dScore1, dScore2;
+            bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
+                _viewer.CurrentImage,
+                r1, c1, phi1, l1_1, l1_2,
+                r2, c2, phi2, l2_1, l2_2,
+                VIEW_MODE,
+                out dScore1, out dScore2,
+                out szError);
+            if (bOk == true) {
+                return null;
+            }
+            return szError;
         }
 
         // ─── 검사 핸들러 ─────────────────────────────────────────────────────────

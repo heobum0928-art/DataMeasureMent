@@ -97,6 +97,14 @@ namespace ReringProject.Custom.UI {
             _viewer = viewer;
             ViewerHostBorder.Child = viewer;
 
+            // Phase 74 브러시 마스킹 배선. 훅 2개만 채우면 저장/재생성/상태문구는 ViewModel 이 처리한다.
+            if (brushPanel != null) {
+                brushPanel.ViewModel.ModelPathsProvider = () => EthernetVisionHandler.Handle.Matcher.GetModelPathsForMask(VIEW_MODE, _selectedSlot);
+                brushPanel.ViewModel.ModelRegenerator = RegenerateTeachSilent;
+                brushPanel.ViewModel.Attach(viewer);
+                brushPanel.ViewModel.ReloadMaskFromDisk();
+            }
+
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
             _viewer.RectDrawingCompleted += OnCalRectDrawn;
@@ -262,6 +270,9 @@ namespace ReringProject.Custom.UI {
 
                 LoadSlotCoaxToUi(); //260626 hbk Phase 66 — 슬롯 동축값 복원(슬롯 전환 시 JSON에서 CoaxEnabled/CoaxLevel 복원)
                 RefreshStatus(); //260626 hbk 슬롯별 HasTemplate 상태 갱신
+                if (brushPanel != null) {
+                    brushPanel.ViewModel.ReloadMaskFromDisk(); // 슬롯이 바뀌면 그 슬롯의 마스크를 화면에 다시 올린다
+                }
             }
             catch (Exception ex) {
                 lbl_slotStatus.Text = "슬롯 전환 오류: " + ex.Message;
@@ -696,6 +707,9 @@ namespace ReringProject.Custom.UI {
 
                     // 티칭 성공 시 이 슬롯의 ROI 쌍을 영구 보관
                     _slotRois[_selectedSlot] = new RoiDefinition[] { _roi1, _roi2 }; //260626 hbk 슬롯별 ROI 보관 (슬롯 전환 후 복원용)
+                    if (brushPanel != null) {
+                        brushPanel.ViewModel.ReloadMaskFromDisk(); // 새로 티칭한 슬롯의 마스크 상태를 화면과 맞춘다
+                    }
                 }
                 else {
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));
@@ -707,6 +721,44 @@ namespace ReringProject.Custom.UI {
                 lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 예외: " + TeachDiag.ToKoreanMessage(ex.Message));
                 lbl_teachStatus.Foreground = TeachDiag.GradeBrush(ETeachGrade.Bad);
             }
+        }
+
+        // 마스크가 바뀌었을 때 모달 없이 같은 ROI 로 다시 티칭한다(D-74-04).
+        //  TryTeach 가 모델 재생성 + ref pose 재기록을 전부 담당하므로 여기서 새 로직을 만들지 않는다.
+        //  성공하면 null, 실패하면 오류 문자열을 돌려준다(ViewModel 계약).
+        private string RegenerateTeachSilent() {
+            if (_viewer == null) {
+                return "뷰어 없음";
+            }
+            if (_viewer.CurrentImage == null) {
+                return "이미지 없음 — Grab 먼저";
+            }
+            if (_selectedSlot == EBottomAlignSlot.None) {
+                return "면 슬롯을 먼저 선택하세요";
+            }
+            string szValid = ValidateRois();
+            if (szValid != null) {
+                return szValid;
+            }
+
+            double r1, c1, phi1, l1_1, l1_2;
+            RectToTeachParams(_roi1, out r1, out c1, out phi1, out l1_1, out l1_2);
+            double r2, c2, phi2, l2_1, l2_2;
+            RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
+
+            string szError;
+            double dScore1, dScore2;
+            bool bOk = EthernetVisionHandler.Handle.Matcher.TryTeach(
+                _viewer.CurrentImage,
+                r1, c1, phi1, l1_1, l1_2,
+                r2, c2, phi2, l2_1, l2_2,
+                VIEW_MODE, _selectedSlot,
+                out dScore1, out dScore2,
+                out szError);
+            if (bOk == true) {
+                return null;
+            }
+            return szError;
         }
 
         // ─── 검사 핸들러 ─────────────────────────────────────────────────────────

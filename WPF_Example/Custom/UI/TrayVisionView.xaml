@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="clr-namespace:ReringProject.UI"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="860">
@@ -141,6 +142,8 @@
                                    Foreground="#475569"
                                    Text="티칭 없음"
                                    TextWrapping="Wrap"/>
+                        <!--Phase 74: 브러시 마스킹 패널. HALCON 창 밖(좌측 WPF 패널)이라 airspace 안전.-->
+                        <ui:PatternBrushPanel x:Name="brushPanel" Margin="0,8,0,0"/>
                     </StackPanel>
                 </GroupBox>
 

@@ -312,6 +312,25 @@ namespace ReringProject {
             return File.Exists(shmPath1) && File.Exists(shmPath2) && File.Exists(jsonPath);
         }
 
+        // 브러시 마스크를 붙일 대상 모델 파일 경로 2개(_1.shm, _2.shm)를 돌려준다(Phase 74 D-74-02).
+        //  BuildShmPath 를 쓰는 이유 = 순수 문자열 도출이라 폴더를 만들지 않는다.
+        //  GetShmPath 는 Directory.CreateDirectory 부작용이 있어 '조회' 용도로는 쓰면 안 된다.
+        public IList<string> GetModelPathsForMask(EEthernetVisionMode mode, EBottomAlignSlot slot = EBottomAlignSlot.None) {
+            List<string> list = new List<string>();
+            if (mode == EEthernetVisionMode.None) {
+                return list;
+            }
+            string szPath1 = BuildShmPath(mode, 1, slot);
+            string szPath2 = BuildShmPath(mode, 2, slot);
+            if (string.IsNullOrEmpty(szPath1) == false) {
+                list.Add(szPath1);
+            }
+            if (string.IsNullOrEmpty(szPath2) == false) {
+                list.Add(szPath2);
+            }
+            return list;
+        }
+
         // ─── 티칭 ────────────────────────────────────────────────────────────────
 
         // D-07': TryTeach = 2-ROI 입력 → TryCreateModel×2 + TryFindRefPose×2 + baseline angle_lx + 사이드카 JSON 저장.

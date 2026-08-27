@@ -108,6 +108,63 @@ WPF 기반 산업용 비전 검사 시스템. Halcon 이미지 처리를 사용�
 - Member names: PascalCase (e.g., `EAction.Top_Inspection`, `ESequence.Top`)
 - Step enums inside action classes: private `enum EStep { Init, Grab, Measure, End }` pattern
 ## Code Style
+
+### 🔒 MANDATORY — 가독성 규칙 (예외 없음, 협상 대상 아님)
+
+이 프로젝트의 코드는 **C# 초보자가 읽어도 흐름이 보여야 한다.** 아래는 스타일 취향이 아니라 규칙이다.
+신규 코드·수정 코드 모두에 적용되며, 위반은 회귀로 간주한다. 하위 에이전트/서브태스크 프롬프트에도
+매번 명시할 것.
+
+**1) 조건 연산자 금지 — 이항 · 삼항 전부**
+
+- **삼항 `?:` 금지** → 반드시 `if / else`
+- **이항 null 병합 `??` / `??=` 금지** → 명시적 null 분기
+- **null 조건 `?.` / `?[]` 금지** → 명시적 null 체크
+- 한 줄로 줄이려고 조건을 식에 밀어넣지 않는다. **줄 수보다 읽히는 것이 우선이다.**
+
+**2) `if` / `switch` 가독성**
+
+- **C# 8.0 `switch` 식(`=>`) 금지** → 전통 `switch` 문만. `case` 마다 `break`
+- **C# 7.2 문법만** (`.csproj` 설정. nullable 참조형식 / `record` / 신 패턴매칭 금지)
+- **긴 조건은 이름 있는 `bool` 로 선추출** — 조건식에 `&&`/`||` 를 3개 이상 늘어놓지 않는다
+  ```csharp
+  // 이렇게
+  bool bPathMissing = string.IsNullOrEmpty(szShm1) || string.IsNullOrEmpty(szJson);
+  if (bPathMissing) { ... }
+
+  // 이렇게 말고
+  if (string.IsNullOrEmpty(szShm1) || string.IsNullOrEmpty(szJson) || refPose == null) { ... }
+  ```
+- 중괄호는 **한 줄짜리 분기라도 생략하지 않는다**
+- 가드 절(early return)로 중첩을 낮춘다. `if` 중첩 3단계 이상이면 메서드를 쪼갠다
+
+**3) 이름 규칙**
+
+- **헝가리언 접두사**: `b`(bool) `n`(int) `sz`(string) `d`(double) `hv`(HTuple)
+- **매직넘버 금지** — 이름 있는 `const` 로
+
+**4) UI 는 MVVM**
+
+- 새 UI 로직은 **ViewModel** 에 둔다. code-behind 에는 **배선만** (이벤트 핸들러 → VM 메서드 호출 1줄)
+- `MainView.xaml.cs`(4,400줄+) 처럼 이미 비대한 code-behind 에 **새 로직을 추가하지 않는다**
+- 단, 리팩토링이 목적인 phase 가 아니면 **이번에 손대는 지점에만** 적용하고 기존 code-behind 는 그대로 둔다
+- 상태/표시 문자열은 VM 에서 만들어 바인딩한다. View 에서 계산하지 않는다
+
+**5) 주석 · 자원 해제**
+
+- **날짜 주석(`//YYMMDD hbk`) 신규 금지** (2026-06-11 정책 전환). 비자명한 "왜" 만 최소한으로
+- **`HImage` / `HObject` / `HTuple` 은 반드시 Dispose** (`finally` 에서 `try { x.Dispose(); } catch { }`)
+
+검증용 grep (신규/수정 파일에 대해 전부 `0` 이어야 한다):
+```bash
+grep -cE '\?[^\?]*:' FILE   # 삼항
+grep -cF '??' FILE          # null 병합
+grep -cF '?.' FILE          # null 조건
+grep -cE 'switch.*=>' FILE  # switch 식
+grep -cF 'hbk' FILE         # 날짜 주석
+```
+
+### 기타 포맷
 - No `.editorconfig` or `.prettierrc` detected; formatting is inconsistent between modules
 - Older code (Logging, SequenceBase, VirtualCamera): K&R brace style — opening brace on same line as declaration
 - Newer Halcon code (MeasurementAlgorithm, RoiDefinition, TeachingStorageService): Allman brace style — opening brace on its own line

@@ -14,6 +14,44 @@ namespace ReringProject {
     /// </summary>
     public partial class AlignShapeMatchService {
 
+        // 보정이 맞았다면 패턴은 각도 0 근처에 있어야 한다. 그러니 재매칭은 그 근처만 보면 된다.
+        //  기존에는 각도범위를 안 넘겨 기본값 ±180 전탐색으로 돌았고, 재매칭 2회가 112~130ms 를
+        //  먹었다(실측 260827). 이 시간은 RunBottomAlign 의 finally 에서 = PLC 응답이 나가기 전에
+        //  소모되므로 그대로 택트 지연이다.
+        private const double RECHECK_ANGLE_EXTENT_DEG = 5.0;
+
+        // 좁혀서 못 찾았을 때만 쓰는 전탐색 각도. 기존 동작과 동일한 값이다.
+        private const double FULL_ANGLE_EXTENT_DEG = 180.0;
+
+        // 보정 이미지에서 패턴 1개를 다시 찾는다. 좁은 각도 우선, 실패하면 전탐색으로 한 번 더.
+        //  좁혀서 실패했다는 건 보정이 크게 어긋났다는 뜻인데, 바로 그때 "얼마나 어긋났나" 하는
+        //  수치가 필요하다. 그래서 못 찾았다고 끝내지 않고 전탐색으로 기어이 값을 건진다.
+        //  느려지는 것은 그 예외 건뿐이라 정상 사이클의 택트에는 영향이 없다.
+        private bool TryRefindAfterCorrection(
+            HImage correctedImage, string szShm,
+            out double dRow, out double dCol, out double dAngleDeg, out double dScore,
+            out bool bUsedFullSearch, out string szErr) {
+
+            bUsedFullSearch = false;
+            bool bNarrowFound = _matcher.TryFindPose(
+                correctedImage, ENGINE, szShm,
+                0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
+                0.0, MIN_SCORE, 1.0,
+                out dRow, out dCol, out dAngleDeg, out dScore, out szErr,
+                RECHECK_ANGLE_EXTENT_DEG);
+            if (bNarrowFound) {
+                return true;
+            }
+
+            bUsedFullSearch = true;
+            return _matcher.TryFindPose(
+                correctedImage, ENGINE, szShm,
+                0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
+                0.0, MIN_SCORE, 1.0,
+                out dRow, out dCol, out dAngleDeg, out dScore, out szErr,
+                FULL_ANGLE_EXTENT_DEG);
+        }
+
         /// <summary>
         /// ① 자체 검출판 — 1차 검출을 직접 수행한다(TryFindPose 4회). 오프라인/단독 호출용.
         /// 실운전 경로는 아래 검출 재사용판을 쓴다.
@@ -42,6 +80,8 @@ namespace ReringProject {
             // 구간 계측 — elapsed 가 택트를 먹을 때 "보정이 무거운가 재매칭이 무거운가" 를 가른다.
             long nMsAffine = 0;
             long nMsRematch = 0;
+            // 전탐색 폴백이 돌았는지 — 정상 건이라면 항상 false 여야 한다.
+            bool bUsedFullAngle = false;
 
             correctedImage = null;
             AlignVerifyResult result = new AlignVerifyResult();
@@ -146,22 +186,22 @@ namespace ReringProject {
                 string szReErr1, szReErr2;
 
                 long nRematchStart = swVerify.ElapsedMilliseconds;
-                bool bRe1 = _matcher.TryFindPose(
-                    correctedImage, ENGINE, szShm1,
-                    0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
-                    0.0, MIN_SCORE, 1.0,
-                    out c1Row, out c1Col, out c1AngleDeg, out c1Score, out szReErr1);
+                bool bWide1 = false;
+                bool bRe1 = TryRefindAfterCorrection(
+                    correctedImage, szShm1,
+                    out c1Row, out c1Col, out c1AngleDeg, out c1Score, out bWide1, out szReErr1);
+                if (bWide1) { bUsedFullAngle = true; }
                 if (!bRe1) {
                     // correctedImage 는 Dispose 하지 않고 out 으로 넘긴다 — 실패한 보정 이미지가 곧 NG 증거다.
                     result.FailReason = "재검출 실패[1]";
                     return result;
                 }
 
-                bool bRe2 = _matcher.TryFindPose(
-                    correctedImage, ENGINE, szShm2,
-                    0.0, 0.0, FULL_SEARCH_LEN, FULL_SEARCH_LEN,
-                    0.0, MIN_SCORE, 1.0,
-                    out c2Row, out c2Col, out c2AngleDeg, out c2Score, out szReErr2);
+                bool bWide2 = false;
+                bool bRe2 = TryRefindAfterCorrection(
+                    correctedImage, szShm2,
+                    out c2Row, out c2Col, out c2AngleDeg, out c2Score, out bWide2, out szReErr2);
+                if (bWide2) { bUsedFullAngle = true; }
                 nMsRematch = swVerify.ElapsedMilliseconds - nRematchStart;
                 if (!bRe2) {
                     result.FailReason = "재검출 실패[2]";
@@ -211,12 +251,12 @@ namespace ReringProject {
                 // elapsed 는 PLC 응답 경로에 얹은 실제 지연이다. 택트 문제가 났을 때 원인을 즉시 가르는 근거.
                 try {
                     Logging.PrintLog((int)ELogType.Algorithm,
-                        "[ALIGN_VERIFY] recheck ({0}/{1}) verified={2} residual=({3:F4},{4:F4})mm dist={5:F4}mm theta={6:F4} score={7:F3} reused={8} elapsed={9}ms(affine={11} rematch={12}) reason={10}",
+                        "[ALIGN_VERIFY] recheck ({0}/{1}) verified={2} residual=({3:F4},{4:F4})mm dist={5:F4}mm theta={6:F4} score={7:F3} reused={8} elapsed={9}ms(affine={11} rematch={12} wideFallback={13}) reason={10}",
                         mode, slot, result.Verified,
                         result.ResidualOffsetXmm, result.ResidualOffsetYmm, result.ResidualDistanceMm,
                         result.ResidualThetaDeg, result.Score,
                         bHasDetection, swVerify.ElapsedMilliseconds, result.FailReason,
-                        nMsAffine, nMsRematch);
+                        nMsAffine, nMsRematch, bUsedFullAngle);
                 }
                 catch { }
             }

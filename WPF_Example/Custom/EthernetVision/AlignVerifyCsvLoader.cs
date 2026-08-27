@@ -31,9 +31,16 @@ namespace ReringProject {
         public double MaterialAlignDistanceMm;
         public double MaterialAlignThetaDeg;
 
+        /// <summary>조회 자재에 SEAT 행이 하나라도 있었나.</summary>
         public bool HasMaterialSeat;
+        /// <summary>mm 환산된 행들의 평균. MaterialSeatHasResolution 이 false 면 무의미.</summary>
         public double MaterialSeatDeviationMm;
+        /// <summary>mm 환산 가능한 행이 하나 이상 있었나. false 면 화면은 Px 값을 써야 한다.</summary>
         public bool MaterialSeatHasResolution;
+        /// <summary>전체 SEAT 행의 px 평균. 해상도 0 인 건이 섞여도 항상 유효하다.</summary>
+        public double MaterialSeatDeviationPx;
+        /// <summary>해상도가 없어 mm 환산에서 빠진 행 수. 0 보다 크면 화면이 그 사실을 알려야 한다.</summary>
+        public int MaterialSeatNoResolutionCount;
 
         public int TrendAlignCount;
         public double TrendAlignAvgMm;
@@ -247,9 +254,12 @@ namespace ReringProject {
                 return;
             }
 
-            double dSeatSum = 0.0;
-            int nSeatCount = 0;
-            bool bSeatResolutionOk = true;
+            // mm 집계와 px 집계를 분리한다. 섞으면 해상도 없는 행 하나 때문에 멀쩡한 mm 값이 통째로 가려진다.
+            double dSeatSumMm = 0.0;
+            int nSeatCountMm = 0;
+            double dSeatSumPx = 0.0;
+            int nSeatCountAll = 0;
+            int nNoResolution = 0;
 
             foreach (AlignVerifyRecord rec in all) {
                 if (rec.MaterialNo != nMaterialNo) {
@@ -272,20 +282,29 @@ namespace ReringProject {
                 if (bIsSeat) {
                     double dPx, dMm;
                     bool bHasMm = TryComputeSeatDeviation(rec, out dPx, out dMm);
+
+                    nSeatCountAll = nSeatCountAll + 1;
+                    dSeatSumPx = dSeatSumPx + dPx;
+
                     if (bHasMm) {
-                        dSeatSum = dSeatSum + dMm;
-                        nSeatCount = nSeatCount + 1;
+                        dSeatSumMm = dSeatSumMm + dMm;
+                        nSeatCountMm = nSeatCountMm + 1;
                     }
                     else {
-                        bSeatResolutionOk = false;
+                        nNoResolution = nNoResolution + 1;
                     }
                 }
             }
 
-            if (nSeatCount > 0) {
-                result.MaterialSeatDeviationMm = dSeatSum / nSeatCount;
+            if (nSeatCountAll > 0) {
                 result.HasMaterialSeat = true;
-                result.MaterialSeatHasResolution = bSeatResolutionOk;
+                result.MaterialSeatDeviationPx = dSeatSumPx / nSeatCountAll;
+                result.MaterialSeatNoResolutionCount = nNoResolution;
+            }
+            if (nSeatCountMm > 0) {
+                // 해상도가 있는 행들만의 평균. 일부만 해상도가 없어도 나머지 mm 값은 그대로 보여준다.
+                result.MaterialSeatDeviationMm = dSeatSumMm / nSeatCountMm;
+                result.MaterialSeatHasResolution = true;
             }
         }
 

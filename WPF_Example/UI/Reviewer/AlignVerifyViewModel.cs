@@ -252,13 +252,22 @@ namespace ReringProject.UI
 
             if (result.MaterialSeatHasResolution == false)
             {
-                // 해상도 0 을 곱해 0mm 로 보여주면 "편차 없음" 으로 오독된다.
-                SeatValueText = "환산 불가(px 만) — 해상도 미상";
+                // mm 환산 가능한 행이 하나도 없다. 해상도 0 을 곱해 0mm 로 보여주면 "편차 없음" 으로 오독된다.
+                SeatValueText = "환산 불가(px 만): "
+                              + result.MaterialSeatDeviationPx.ToString(PX_FORMAT, CultureInfo.InvariantCulture) + "px";
                 SeatJudgeText = "-";
                 return;
             }
 
-            SeatValueText = result.MaterialSeatDeviationMm.ToString(NUM_FORMAT, CultureInfo.InvariantCulture) + " mm";
+            // 일부 행만 해상도가 없을 수 있다. mm 평균은 해상도 있는 행들만의 값이므로 그 사실을 함께 알린다.
+            string szPartialNotice = "";
+            bool bHasPartialMissing = result.MaterialSeatNoResolutionCount > 0;
+            if (bHasPartialMissing)
+            {
+                szPartialNotice = "   (해상도 미상 " + result.MaterialSeatNoResolutionCount.ToString(CultureInfo.InvariantCulture) + "건 제외)";
+            }
+
+            SeatValueText = result.MaterialSeatDeviationMm.ToString(NUM_FORMAT, CultureInfo.InvariantCulture) + " mm" + szPartialNotice;
             SeatJudgeText = ResolveSeatJudge(true, result.MaterialSeatDeviationMm);
         }
 

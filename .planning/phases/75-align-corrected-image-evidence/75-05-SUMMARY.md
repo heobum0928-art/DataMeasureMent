@@ -124,3 +124,39 @@ XAML 오타는 컴파일 에러로 잡히므로 이 빌드가 창 XAML 의 실�
 - 해상도 0 이 `0mm` 로 표시되지 않는다 ✅
 - 한계 문구가 조건 없이 항상 보인다 ✅
 - code-behind 는 배선만 (MVVM) ✅
+
+---
+
+## 사후 검증에서 발견·수정 (2026-08-27, 실행 직후 공동 검증)
+
+### 검증 A — writer ↔ 헤더 ↔ loader 3자 컬럼 정렬 (PASS)
+
+`AlignVerifyCsvWriter.BuildLine` 의 필드 순서 20개, `CSV_HEADER` 컬럼 20개,
+`AlignVerifyCsvLoader` 의 `COL_*` 인덱스 20개를 나란히 뽑아 대조했다 — **20/20 전부 의미까지 일치.**
+어긋나면 조용히 엉뚱한 값이 표시되는 지점이라 우선 확인했다.
+
+### 검증 B — ② 요약값 집계 결함 발견 → 수정
+
+**증상 1 (값 은폐).** SEAT 행 중 **일부만** 해상도가 없으면
+(`MaterialSeatHasResolution = false`) 화면이 "환산 불가" 로 바뀌어,
+**해상도가 멀쩡한 나머지 행들의 mm 값까지 통째로 가려졌다.**
+
+**증상 2 (도달 불가 분기).** SEAT 행이 **전부** 해상도 0 이면 `nSeatCount` 가 0 이라
+`HasMaterialSeat` 자체가 false 가 되어, px 폴백 표시(`"환산 불가(px 만): …px"`)에
+**영원히 도달하지 못했다.** 화면에는 그냥 `-` 만 떴다.
+
+**원인.** mm 집계와 px 집계를 한 카운터로 처리했다.
+
+**수정.**
+- `AlignVerifyCsvLoader.FillMaterialSection` — mm/px 카운터 분리
+  - `HasMaterialSeat` = SEAT 행이 **하나라도** 있음
+  - `MaterialSeatHasResolution` = mm 환산된 행이 **하나 이상** 있음
+  - `MaterialSeatDeviationMm` = **해상도 있는 행들만의** 평균
+  - `MaterialSeatDeviationPx`(신규) = **전체 SEAT 행**의 px 평균 — 항상 유효
+  - `MaterialSeatNoResolutionCount`(신규) = mm 집계에서 빠진 행 수
+- `AlignVerifyViewModel.UpdateSeatSection`
+  - 전부 해상도 0 → `"환산 불가(px 만): {px:F2}px"` (이제 실제로 도달한다)
+  - 일부만 없음 → mm 평균을 정상 표시하고 뒤에 `"(해상도 미상 N건 제외)"` 를 붙여 사실을 알린다
+
+**재빌드:** SIMUL-ON 에러 0 / 경고 18줄 / 코드 종류 `CS0162`·`CS0618` 2종 — baseline 유지.
+두 파일 `?:` / `??` / `?.` 각 0건.

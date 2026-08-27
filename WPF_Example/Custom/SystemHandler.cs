@@ -22,6 +22,12 @@ namespace ReringProject {
         private readonly Dictionary<string, int> _lastPrepZIndexBySeq = new Dictionary<string, int>();
         private readonly object _prepZIndexLock = new object();
 
+        // Align 증거 이미지는 "있으면 좋은" 보조 자료다. 저장 큐가 밀렸을 때 TCP 응답 스레드를
+        // 백프레셔로 세우면 PLC 사이클이 지연된다 — 그 상황에서는 이미지를 포기하고 숫자만 남긴다.
+        private const int ALIGN_IMAGE_MAX_QUEUE_DEPTH = 25;
+        private const string ALIGN_IMAGE_PREFIX_CORRECTED = "aligncorr";
+        private const string ALIGN_IMAGE_PREFIX_RAW = "alignraw";
+
         private void StorePrepZIndex(string szSeqName, int nZIndex)
         {
             bool bHasName = !string.IsNullOrEmpty(szSeqName);
@@ -450,6 +456,7 @@ namespace ReringProject {
                     Logging.PrintLog((int)ELogType.Error,
                         "[ALIGN_TEST] Bottom slot={0} 미티칭 — 모델 없음 NG 반환", (int)slot);
                     FillAlignPoseZero(pResult); //260626 hbk PLC 형식 일관성 — pose=0 채움
+                    RecordAlignFailureOnly(EEthernetVisionMode.Bottom, slot, pResult, "미티칭");
                     return false;
                 }
 
@@ -460,11 +467,13 @@ namespace ReringProject {
                     Logging.PrintLog((int)ELogType.Error,
                         "[ALIGN_TEST] 이더넷 카메라 미연결(null) — NG 반환");
                     FillAlignPoseZero(pResult);
+                    RecordAlignFailureOnly(EEthernetVisionMode.Bottom, slot, pResult, "카메라 미연결");
                     return false;
                 }
 
                 HImage img = null; //260626 hbk finally 에서 Dispose 보장
                 AlignResult res = null;
+                bool bAlignPass = false;
                 try
                 {
                     //260626 hbk Phase 66 D-06/D-07 — grab 직전 해당 슬롯 동축값 자동 적용(티칭=런타임 조명 일치)
@@ -494,10 +503,13 @@ namespace ReringProject {
                     Logging.PrintLog((int)ELogType.Trace,
                         "[ALIGN_TEST] Bottom slot={0} PASS off=({1:0.000},{2:0.000}) theta={3:0.000}",
                         (int)slot, res.OffsetXmm, res.OffsetYmm, res.ThetaDeg);
+                    bAlignPass = true;
                     return true;
                 }
                 finally
                 {
+                    // ① 은 img 가 살아 있는 동안 돌아야 한다 — 아래 Dispose 보다 반드시 앞이다.
+                    RecordAlignVerify(EEthernetVisionMode.Bottom, slot, pResult, img, res, bAlignPass);
                     //260626 hbk HImage Dispose — 호출자가 Dispose 책임(EthernetAlignCamera.Grab 규약)
                     if (img != null)
                     {
@@ -533,6 +545,7 @@ namespace ReringProject {
                 {
                     Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] Tray 미티칭 — 모델 없음 NG");
                     FillAlignPoseZero(pResult);
+                    RecordAlignFailureOnly(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult, "미티칭");
                     return false;
                 }
 
@@ -541,11 +554,13 @@ namespace ReringProject {
                 {
                     Logging.PrintLog((int)ELogType.Error, "[ALIGN_TEST] 이더넷 카메라 미연결 — NG");
                     FillAlignPoseZero(pResult);
+                    RecordAlignFailureOnly(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult, "카메라 미연결");
                     return false;
                 }
 
                 HImage img = null;
                 AlignResult res = null;
+                bool bAlignPass = false;
                 try
                 {
                     ApplyCoaxLightForTray(); //260630 hbk grab 직전 Tray 동축 조명 적용
@@ -569,10 +584,13 @@ namespace ReringProject {
                     Logging.PrintLog((int)ELogType.Trace,
                         "[ALIGN_TEST] Tray PASS off=({0:0.000},{1:0.000}) theta={2:0.000}",
                         res.OffsetXmm, res.OffsetYmm, res.ThetaDeg);
+                    bAlignPass = true;
                     return true;
                 }
                 finally
                 {
+                    // ① 은 img 가 살아 있는 동안 돌아야 한다 — 아래 Dispose 보다 반드시 앞이다.
+                    RecordAlignVerify(EEthernetVisionMode.Tray, EBottomAlignSlot.None, pResult, img, res, bAlignPass);
                     if (img != null)
                     {
                         img.Dispose();
@@ -700,6 +718,228 @@ namespace ReringProject {
             itemTheta.ItemName = "Theta";
             itemTheta.Value    = 0.0; //260626 hbk NG 시 0
             pkt.Items.Add(itemTheta);
+        }
+
+        // D-75-01: 정상/NG 무관 매 Align 마다 ① 재매칭 결과를 기록한다.
+        //  분쟁은 나중에 생긴다 — "그 건은 OK 라 안 남겼습니다" 는 방어가 안 된다.
+        //  실패해도 throw 하지 않는다(TCP 스레드 크래시 방지). Align 응답에는 일절 영향을 주지 않는다.
+        private void RecordAlignVerify(EEthernetVisionMode mode, EBottomAlignSlot slot,
+                                       AlignResultPacket pResult, HImage img, AlignResult res, bool bAlignPass)
+        {
+            HImage corrected = null;
+            AlignVerifyResult verify = null;
+            try
+            {
+                bool bCanRecheck = (img != null) && (res != null) && res.Found;
+                if (bCanRecheck)
+                {
+                    // 검출 재사용판을 쓴다 — Run() 이 방금 낸 1차 검출을 넘겨 TryFindPose 2회를 아낀다.
+                    //  응답 경로에서 동기로 도는 코드라 여기서 아끼는 시간이 곧 택트다.
+                    //  res.HasDetection 이 false 면 그 안에서 자체 검출로 폴백한다.
+                    verify = EthernetVisionHandler.Handle.Matcher.RunCorrectedRecheck(
+                        img, mode, slot,
+                        res.HasDetection, res.DetectedRow1, res.DetectedCol1, res.DetectedRow2, res.DetectedCol2,
+                        out corrected);
+                }
+
+                AlignVerifyRecord rec = new AlignVerifyRecord();
+                rec.RecordTime = DateTime.Now;
+                rec.Kind = AlignVerifyRecord.KIND_ALIGN;
+                rec.MaterialNo = pResult.MaterialNo;
+
+                if (mode == EEthernetVisionMode.Bottom)
+                {
+                    rec.Target = AlignVerifyRecord.TARGET_BOTTOM;
+                }
+                else
+                {
+                    rec.Target = AlignVerifyRecord.TARGET_TRAY;
+                }
+
+                bool bHasSlot = (mode == EEthernetVisionMode.Bottom) && (slot != EBottomAlignSlot.None);
+                if (bHasSlot)
+                {
+                    rec.SlotToken = EBottomAlignSlotMap.ToFileToken(slot);
+                }
+
+                if (bAlignPass)
+                {
+                    rec.Judgement = AlignVerifyRecord.JUDGE_OK;
+                }
+                else
+                {
+                    rec.Judgement = AlignVerifyRecord.JUDGE_NG;
+                }
+
+                bool bResidualValid = (verify != null) && verify.Verified;
+                if (bResidualValid)
+                {
+                    rec.ResidualOffsetXmm = verify.ResidualOffsetXmm;
+                    rec.ResidualOffsetYmm = verify.ResidualOffsetYmm;
+                    rec.ResidualThetaDeg = verify.ResidualThetaDeg;
+                    rec.Score = verify.Score;
+                    rec.HasResidual = true;
+                }
+
+                if (verify != null)
+                {
+                    rec.FailReason = verify.FailReason;
+                }
+                else
+                {
+                    rec.FailReason = "Align 검출 실패";
+                }
+
+                // D-75-04: 이미지는 NG 건만 남긴다. 정상 건은 CopyImage 조차 하지 않는다.
+                bool bVerifyFailed = false;
+                if (verify != null)
+                {
+                    if (!verify.Verified) { bVerifyFailed = true; }
+                }
+                bool bNeedImage = (!bAlignPass) || bVerifyFailed;
+                if (bNeedImage)
+                {
+                    rec.ImageFileName = EnqueueAlignEvidenceImage(corrected, img, pResult, mode, slot, rec.RecordTime);
+                }
+
+                AlignVerifyCsvWriter.Append(rec);
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_VERIFY] 기록 실패: {0}", ex.Message);
+            }
+            finally
+            {
+                if (corrected != null)
+                {
+                    try { corrected.Dispose(); } catch { }
+                    corrected = null;
+                }
+            }
+        }
+
+        // 이미지 없이 실패한 Align(미티칭/카메라 미연결)도 기록은 남긴다 — D-75-01.
+        private void RecordAlignFailureOnly(EEthernetVisionMode mode, EBottomAlignSlot slot,
+                                            AlignResultPacket pResult, string szReason)
+        {
+            try
+            {
+                AlignVerifyRecord rec = new AlignVerifyRecord();
+                rec.RecordTime = DateTime.Now;
+                rec.Kind = AlignVerifyRecord.KIND_ALIGN;
+                rec.MaterialNo = pResult.MaterialNo;
+
+                if (mode == EEthernetVisionMode.Bottom)
+                {
+                    rec.Target = AlignVerifyRecord.TARGET_BOTTOM;
+                }
+                else
+                {
+                    rec.Target = AlignVerifyRecord.TARGET_TRAY;
+                }
+
+                bool bHasSlot = (mode == EEthernetVisionMode.Bottom) && (slot != EBottomAlignSlot.None);
+                if (bHasSlot)
+                {
+                    rec.SlotToken = EBottomAlignSlotMap.ToFileToken(slot);
+                }
+
+                rec.Judgement = AlignVerifyRecord.JUDGE_NG;
+                rec.HasResidual = false;
+                rec.FailReason = szReason;
+
+                AlignVerifyCsvWriter.Append(rec);
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_VERIFY] 실패기록 실패: {0}", ex.Message);
+            }
+        }
+
+        // NG 증거 이미지 1장 큐잉. 저장 실패/생략은 기록의 다른 값에 영향을 주지 않는다.
+        //  반환값 = 저장될 파일명(생략 시 빈 문자열).
+        private string EnqueueAlignEvidenceImage(HImage corrected, HImage raw, AlignResultPacket pResult,
+                                                 EEthernetVisionMode mode, EBottomAlignSlot slot, DateTime ts)
+        {
+            try
+            {
+                CaptureImageSaveService saver = SystemHandler.Handle.CaptureImageSaver;
+                if (saver == null)
+                {
+                    return "";
+                }
+
+                // 큐 포화 가드 — Enqueue 의 백프레셔가 TCP 응답 스레드를 세우면 PLC 사이클이 지연된다.
+                bool bQueueBusy = saver.QueueDepth >= ALIGN_IMAGE_MAX_QUEUE_DEPTH;
+                if (bQueueBusy)
+                {
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[ALIGN_VERIFY] 저장 큐 혼잡(depth={0}) — 증거 이미지 생략, 수치 기록은 유지",
+                        saver.QueueDepth);
+                    return "";
+                }
+
+                // 보정 이미지가 있으면 그것을 우선 저장한다 — 원 요구가 "보정한 이미지 저장" 이다.
+                //  보정 자체가 불가능했던 건(검출 실패)은 원본이라도 남긴다.
+                HImage src = null;
+                string szPrefix = ALIGN_IMAGE_PREFIX_RAW;
+                if (corrected != null)
+                {
+                    src = corrected;
+                    szPrefix = ALIGN_IMAGE_PREFIX_CORRECTED;
+                }
+                else if (raw != null)
+                {
+                    src = raw;
+                }
+                if (src == null)
+                {
+                    return "";
+                }
+
+                string szTargetToken = AlignVerifyRecord.TARGET_TRAY;
+                if (mode == EEthernetVisionMode.Bottom)
+                {
+                    szTargetToken = AlignVerifyRecord.TARGET_BOTTOM;
+                }
+                string szSlotToken = "";
+                if (slot != EBottomAlignSlot.None)
+                {
+                    szSlotToken = EBottomAlignSlotMap.ToFileToken(slot);
+                }
+
+                string szFileName = CaptureImageSaveService.BuildFileName(
+                    szPrefix, "ALIGN_" + szTargetToken, szSlotToken, "",
+                    AlignVerifyRecord.JUDGE_NG, ts, pResult.MaterialNo);
+                string szDir = AlignVerifyRetention.BuildAlignImageDirectory(ts);
+
+                // src.CopyImage() 를 쓰는 이유: img/corrected 의 수명은 호출부(finally)가 이미 소유한다.
+                //  같은 핸들을 워커에 넘기면 이중 Dispose / use-after-dispose 가 된다.
+                //  NG 건에서만 일어나는 복사다.
+                SharedHImage shared = new SharedHImage(src.CopyImage());   // ref=1
+                try
+                {
+                    shared.AddRef();                                        // ref=2 (요청 소유)
+                    CaptureImageSaveRequest req = new CaptureImageSaveRequest();
+                    req.Shared = shared;
+                    req.NeedsRender = false;        // 오버레이 렌더 불필요 — 원본/보정본 그대로
+                    req.IsCapture = true;           // jpeg 고정 경로(파일명 확장자와 일치)
+                    req.Timestamp = ts;
+                    req.DirectoryOverride = szDir;
+                    req.FileName = szFileName;
+                    saver.Enqueue(req);
+                }
+                finally
+                {
+                    shared.Release();               // 생성자 소유 해제. 워커의 req.Dispose() 와 합쳐 ref 0 → HImage Dispose
+                }
+                return szFileName;
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN_VERIFY] 증거 이미지 큐잉 실패: {0}", ex.Message);
+                return "";
+            }
         }
 
         //quick-260812: TCP 자동경로의 캘 실패를 화면에도 알린다. 로그·판정·응답은 그대로 둔다.

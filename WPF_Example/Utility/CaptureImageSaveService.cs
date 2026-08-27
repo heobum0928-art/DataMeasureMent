@@ -99,6 +99,11 @@ namespace ReringProject.Utility {
         public bool IsCapture { get; set; }
         /// <summary>yyMMdd/HHmm 폴더 계산용. 기본값 = 생성 시각.</summary>
         public DateTime Timestamp { get; set; } = DateTime.Now;
+        /// <summary>
+        /// 저장 폴더 강제 지정. 비어 있으면 기존 BuildDirectory(IsCapture, Timestamp) 규칙을 그대로 쓴다.
+        /// Align 정합 증거 이미지를 검사 이미지 트리와 분리해 별도 보관 정책을 걸기 위해 도입.
+        /// </summary>
+        public string DirectoryOverride { get; set; }
 
         public void Dispose() {
             // 요청 1건당 ref 1 해제 (마지막 해제 시 공유 이미지 dispose). Interlocked.Exchange 로 동시
@@ -309,6 +314,8 @@ namespace ReringProject.Utility {
                 }
 
                 string baseDirectory = BuildDirectory(request.IsCapture, request.Timestamp);
+                bool bHasDirOverride = !string.IsNullOrEmpty(request.DirectoryOverride);
+                if (bHasDirOverride) { baseDirectory = request.DirectoryOverride; }
                 Directory.CreateDirectory(baseDirectory);
                 string fileName = SanitizeFileName(request.FileName); // 완성 파일명 2차 방어
                 string filePath = Path.Combine(baseDirectory, fileName);

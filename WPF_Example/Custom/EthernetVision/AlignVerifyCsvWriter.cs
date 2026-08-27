@@ -90,8 +90,8 @@ namespace ReringProject {
 
                 try { File.Delete(szPendingPath); } catch { }
                 try {
-                    Logging.PrintErrLog((int)ELogType.Error,
-                        "[AlignVerifyCsvWriter] 보관 파일 " + nRows + "건을 본 파일로 병합했습니다");
+                    Logging.PrintLog((int)ELogType.Error,
+                        "[AlignVerifyCsvWriter] 보관 파일 {0}건을 본 파일로 병합했습니다", nRows);
                 }
                 catch { }
             }
@@ -132,16 +132,16 @@ namespace ReringProject {
                     bool bSpilled = TryAppendBody(szPendingPath, sb.ToString());
                     if (bSpilled) {
                         try {
-                            Logging.PrintErrLog((int)ELogType.Error,
-                                "[AlignVerifyCsvWriter] 본 파일 잠김 — " + PENDING_SUFFIX
-                                + " 파일로 보관함(잠김 해제 시 자동 병합)");
+                            Logging.PrintLog((int)ELogType.Error,
+                                "[AlignVerifyCsvWriter] 본 파일 잠김 — {0} 파일로 보관함(잠김 해제 시 자동 병합)",
+                                PENDING_SUFFIX);
                         }
                         catch { }
                         return;
                     }
 
                     try {
-                        Logging.PrintErrLog((int)ELogType.Error,
+                        Logging.PrintLog((int)ELogType.Error,
                             "[AlignVerifyCsvWriter] 본/보관 파일 모두 기록 실패 — 1건 유실");
                     }
                     catch { }

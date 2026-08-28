@@ -323,41 +323,76 @@ namespace ReringProject.Sequence {
         // Datum 이 속한 SHOT 의 픽셀 해상도(mm/px). 못 찾으면 0 — 조회 화면이 "환산 불가" 로 표시한다.
         //  CorrectionFactor 는 곱하지 않는다: 이 값은 측정값이 아니라 "어디에 놓였나" 하는 위치 증거다.
         //  (이 프로젝트에는 CorrectionFactor 이중 적용 사고 이력이 있어 적용 지점을 늘리지 않는다.)
+        // 캘리브레이션을 한 번도 안 한 shot 의 PixelResolution 기본값. 1 mm/px 는 이 설비에서
+        //  물리적으로 불가능한 값이다(실제는 0.0024 수준). 각도 측정만 하는 shot 은 해상도가
+        //  필요 없어 캘을 안 하므로 이 값이 그대로 남는다 — 실제로 SIDE_1/2/3 의 각도 전용
+        //  shot 4개가 그렇다. 이 값을 그대로 쓰면 안착 편차가 400배 부풀어 기록된다.
+        private const double UNCALIBRATED_RESOLUTION_MM_PER_PX = 1.0;
+
+        private static bool IsCalibratedResolution(double dResolutionMm) {
+            if (dResolutionMm <= 0.0) { return false; }
+            if (dResolutionMm >= UNCALIBRATED_RESOLUTION_MM_PER_PX) { return false; }
+            return true;
+        }
+
         private double ResolveDatumPixelResolutionMm(DatumConfig d) {
             try {
                 if (d == null) { return 0.0; }
                 var shots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
                 if (shots == null) { return 0.0; }
 
-                // 1) SourceShotName 이 shot 을 명시했으면 그것을 쓴다.
+                // 1) SourceShotName 이 shot 을 명시했고 그 shot 이 캘 되어 있으면 그것을 쓴다.
                 bool bHasSourceShot = string.IsNullOrEmpty(d.SourceShotName) == false;
                 if (bHasSourceShot) {
                     foreach (ShotConfig s in shots) {
                         if (s == null) { continue; }
                         bool bSameShot = string.Equals(s.ShotName, d.SourceShotName, StringComparison.Ordinal);
-                        if (bSameShot) {
+                        if (bSameShot && IsCalibratedResolution(s.PixelResolution)) {
                             return s.PixelResolution;
                         }
                     }
                 }
 
-                // 2) 미설정/미매칭 폴백 — 이 시퀀스 소유 shot 중 ZIndex 최솟값.
-                //  SourceShotName 은 실제 레시피에서 비어 있는 것이 정상이다(FAI_1 은 6개 Datum 전부 빈 값).
-                //  그래서 명시 매칭만 하면 해상도가 항상 0 이 되어 안착 편차를 mm 로 환산할 수 없었다.
-                //  폴백 규약은 ResolveDatumModelPath / InspectionListView.ResolveDatumCameraParam 과 동일하게 맞춘다.
+                // 2) 미설정/미매칭 폴백 — 이 시퀀스 소유 shot 중 캘 된 것의 ZIndex 최솟값.
+                //  SourceShotName 은 실제 레시피에서 비어 있는 것이 정상이다(FAI_1 은 Datum 6개 전부 빈 값).
+                //  폴백 규약은 ResolveDatumModelPath / InspectionListView.ResolveDatumCameraParam 과 동일.
                 ShotConfig ownedFirst = null;
+                ShotConfig ownedAny = null;
                 foreach (ShotConfig s in shots) {
                     if (s == null) { continue; }
                     string szOwner = s.OwnerSequenceName;
                     if (string.IsNullOrEmpty(szOwner)) { szOwner = SequenceHandler.SEQ_TOP; }
                     bool bMine = string.Equals(szOwner, Name, StringComparison.Ordinal);
                     if (bMine == false) { continue; }
+
+                    if (ownedAny == null) { ownedAny = s; }
+                    if (IsCalibratedResolution(s.PixelResolution) == false) { continue; }
                     bool bBetter = (ownedFirst == null) || (s.ZIndex < ownedFirst.ZIndex);
                     if (bBetter) { ownedFirst = s; }
                 }
                 if (ownedFirst != null) {
                     return ownedFirst.PixelResolution;
                 }
+
+                // 3) 이 시퀀스에 캘 된 shot 이 하나도 없다(각도 전용 지그). 같은 카메라의 다른 shot 에서 빌린다.
+                //  해상도는 shot 이 아니라 카메라+렌즈의 성질이라 같은 카메라면 같은 값이다.
+                //  예: SIDE_1 은 각도 전용이라 캘이 없지만 같은 CAM_SIDE 를 쓰는 SIDE_4 는 캘이 되어 있다.
+                if (ownedAny != null) {
+                    string szCam = ownedAny.DeviceName;
+                    bool bHasCam = string.IsNullOrEmpty(szCam) == false;
+                    if (bHasCam) {
+                        foreach (ShotConfig s in shots) {
+                            if (s == null) { continue; }
+                            bool bSameCam = string.Equals(s.DeviceName, szCam, StringComparison.Ordinal);
+                            if (bSameCam && IsCalibratedResolution(s.PixelResolution)) {
+                                return s.PixelResolution;
+                            }
+                        }
+                    }
+                }
+
+                // 4) 끝내 못 찾으면 0 — 조회 화면이 "환산 불가" 로 표시하고 px 로만 보여준다.
+                //  틀린 mm 를 적는 것보다 모른다고 적는 것이 낫다. 증거 기록이다.
                 return 0.0;
             }
             catch {

@@ -242,6 +242,12 @@
     <Compile Include="Custom\Sequence\Inspection\EDatumAlgorithm.cs" />
     <Compile Include="Custom\EthernetVision\AlignRefPose.cs" />
     <Compile Include="Custom\EthernetVision\AlignResult.cs" />
+    <Compile Include="Custom\EthernetVision\AlignVerifyResult.cs" />
+    <Compile Include="Custom\EthernetVision\AlignShapeMatchService.Verify.cs" />
+    <Compile Include="Custom\EthernetVision\AlignVerifyRecord.cs" />
+    <Compile Include="Custom\EthernetVision\AlignVerifyCsvWriter.cs" />
+    <Compile Include="Custom\EthernetVision\AlignVerifyRetention.cs" />
+    <Compile Include="Custom\EthernetVision\AlignVerifyCsvLoader.cs" />
     <Compile Include="Custom\EthernetVision\EBottomAlignSlot.cs" />
     <Compile Include="Custom\EthernetVision\EEthernetVisionMode.cs" />
     <Compile Include="Custom\EthernetVision\EthernetAlignCamera.cs" />
@@ -368,6 +374,7 @@
       <DependentUpon>TcpServerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\ViewModel\CalibrationViewModel.cs" />
+    <Compile Include="UI\ViewModel\PatternBrushMaskViewModel.cs" />
     <Compile Include="UI\ViewModel\ModelFinderViewModel.cs" />
     <Compile Include="Utility\RecipeFileHelper.cs" />
     <Compile Include="Utility\RawImageSaveService.cs" />
@@ -403,6 +410,10 @@
     <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs">
       <!--260601 hbk Phase 40 OUT-01-->
       <DependentUpon>ReviewerWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Reviewer\AlignVerifyViewModel.cs" />
+    <Compile Include="UI\Reviewer\AlignVerifyWindow.xaml.cs">
+      <DependentUpon>AlignVerifyWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Statistics\ChartRenderService.cs" />
     <Compile Include="UI\Statistics\StatisticsWindow.xaml.cs">
@@ -447,6 +458,9 @@
     </Compile>
     <Compile Include="UI\ContentItem\MainResultViewerControl.xaml.cs">
       <DependentUpon>MainResultViewerControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UI\ControlItem\PatternBrushPanel.xaml.cs">
+      <DependentUpon>PatternBrushPanel.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\ControlItem\InspectionListView.xaml.cs">
       <DependentUpon>InspectionListView.xaml</DependentUpon>
@@ -497,6 +511,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="UI\ControlItem\PatternBrushPanel.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="UI\ControlItem\InspectionListView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -539,6 +557,10 @@
     </Page>
     <Page Include="UI\Reviewer\ReviewerWindow.xaml">
       <!--260601 hbk Phase 40 OUT-01-->
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\Reviewer\AlignVerifyWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -592,6 +614,8 @@
     <Compile Include="Halcon\Models\RoiLineInspectionResult.cs" />
     <Compile Include="Halcon\Models\TeachingJob.cs" />
     <Compile Include="Halcon\Services\TeachingStorageService.cs" />
+    <Compile Include="Halcon\Services\PatternMaskService.cs" />
+    <Compile Include="Halcon\Services\DatumPatternModelRegenService.cs" />
     <Compile Include="UI\Dialog\CalibrationWindow.xaml.cs">
       <DependentUpon>CalibrationWindow.xaml</DependentUpon>
     </Compile>

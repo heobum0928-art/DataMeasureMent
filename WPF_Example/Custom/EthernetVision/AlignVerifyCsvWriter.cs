@@ -47,7 +47,33 @@ namespace ReringProject {
 
         private static readonly object s_lock = new object();
 
+        // 병합은 이미 끝났지만 파일 삭제가 실패한 병합중 파일 경로(모든 접근은 s_lock 안).
+        //  이 안에 있는 파일은 내용이 이미 본 파일에 들어가 있어, 다시 읽어 병합하면 중복이 된다.
+        //  그래서 재병합 대신 삭제만 재시도한다. (직전 구현은 삭제 실패를 조용히 삼켜
+        //  다음 Append 가 같은 행들을 또 병합할 수 있었다.)
+        private static readonly HashSet<string> s_flushedMergingPaths =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>rec 1건을 {AlignVerifySavePath}\yyyyMMdd.csv 에 1행 append 한다.</summary>
+        // 병합이 끝난 병합중 파일을 치운다. 삭제가 막히면(백신/일시 잠금) 내용 비우기로
+        //  2차 시도한다 — 비워두면 이후 재병합이 0건이 되어 중복이 원천 차단된다.
+        //  그마저 실패하면 경로를 기억해 두어 다음번에 재병합 대신 삭제만 재시도한다.
+        private static void RemoveFlushedMergingFile(string szMergingPath) {
+            try {
+                File.Delete(szMergingPath);
+                s_flushedMergingPaths.Remove(szMergingPath);
+                return;
+            }
+            catch (Exception) {
+            }
+            try {
+                File.WriteAllText(szMergingPath, "", Encoding.UTF8);
+            }
+            catch (Exception) {
+            }
+            s_flushedMergingPaths.Add(szMergingPath);
+        }
+
         // 한 번만 시도한다. 실패 사유는 호출부가 판단한다(잠김이면 보관 파일로 간다).
         private static bool TryAppendBody(string szPath, string szBody) {
             try {
@@ -73,7 +99,14 @@ namespace ReringProject {
             try {
                 // 이전에 중단된 병합이 남아 있으면 그것부터 처리한다(앱 강제종료 등).
                 if (File.Exists(szMergingPath)) {
-                    FlushMergingFile(szPath, szMergingPath, szPendingPath);
+                    bool bAlreadyFlushed = s_flushedMergingPaths.Contains(szMergingPath);
+                    if (bAlreadyFlushed) {
+                        // 내용은 이미 본 파일에 들어갔다 — 다시 읽으면 중복이므로 삭제만 재시도.
+                        RemoveFlushedMergingFile(szMergingPath);
+                    }
+                    else {
+                        FlushMergingFile(szPath, szMergingPath, szPendingPath);
+                    }
                 }
 
                 if (File.Exists(szPendingPath) == false) {
@@ -98,6 +131,30 @@ namespace ReringProject {
         //  파일명 규약: yyyyMMdd_pending.csv → yyyyMMdd.csv
         private static void SweepOrphanPending(string szDir) {
             try {
+                // 크래시 잔재 병합중 파일부터 훑는다 — 보관 파일보다 오래된 데이터라 먼저 되돌린다.
+                //  이걸 안 훑으면: 병합 도중 앱이 죽고 자정을 넘긴 경우, 그 날짜로는 Append 가
+                //  더 안 와서 아래 보관 파일 훑기(*_pending.csv 글롭에 안 걸림)로도 영영 못 찾고,
+                //  Retention 의 *.csv 정리에 걸려 언젠가 삭제된다 = 증거 무음 유실.
+                string[] mergingFiles = Directory.GetFiles(szDir, "*" + MERGING_SUFFIX + CSV_EXT);
+                foreach (string szOneMerging in mergingFiles) {
+                    // 파일명 규칙: yyyyMMdd_pending.merging.csv → 확장자 떼면 yyyyMMdd_pending.merging
+                    string szMergName = Path.GetFileNameWithoutExtension(szOneMerging);
+                    bool bBadMergName = szMergName.EndsWith(MERGING_SUFFIX, StringComparison.Ordinal) == false;
+                    if (bBadMergName) {
+                        continue;
+                    }
+                    string szMergDateTag = szMergName.Substring(0, szMergName.Length - MERGING_SUFFIX.Length);
+                    string szMergMainPath = Path.Combine(szDir, szMergDateTag + CSV_EXT);
+                    string szMergPendingPath = Path.Combine(szDir, szMergDateTag + PENDING_SUFFIX + CSV_EXT);
+                    bool bAlreadyFlushedOrphan = s_flushedMergingPaths.Contains(szOneMerging);
+                    if (bAlreadyFlushedOrphan) {
+                        RemoveFlushedMergingFile(szOneMerging);
+                    }
+                    else {
+                        FlushMergingFile(szMergMainPath, szOneMerging, szMergPendingPath);
+                    }
+                }
+
                 string[] files = Directory.GetFiles(szDir, "*" + PENDING_SUFFIX + CSV_EXT);
                 foreach (string szOnePending in files) {
                     string szName = Path.GetFileNameWithoutExtension(szOnePending);
@@ -137,7 +194,7 @@ namespace ReringProject {
                 }
 
                 if (nRows == 0) {
-                    try { File.Delete(szMergingPath); } catch { }
+                    RemoveFlushedMergingFile(szMergingPath);
                     return;
                 }
 
@@ -151,7 +208,7 @@ namespace ReringProject {
                     return;
                 }
 
-                try { File.Delete(szMergingPath); } catch { }
+                RemoveFlushedMergingFile(szMergingPath);
                 try {
                     Logging.PrintLog((int)ELogType.Error,
                         "[AlignVerifyCsvWriter] 보관 파일 {0}건을 본 파일로 병합했습니다", nRows);

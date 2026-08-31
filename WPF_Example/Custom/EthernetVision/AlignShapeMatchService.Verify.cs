@@ -199,6 +199,9 @@ namespace ReringProject {
                 bool bRe1 = TryRefindAfterCorrection(
                     correctedImage, szShm1, refPose.Ref1Row, refPose.Ref1Col,
                     out c1Row, out c1Col, out c1AngleDeg, out c1Score, out bWide1, out szReErr1);
+                // 여기서 한 번 기록해 둔다 — 아래 실패 return 으로 빠져도 로그의 rematch= 가
+                //  실제 소모 시간을 보여야 한다(실패 경로가 가장 느린데 0 으로 찍히던 결함).
+                nMsRematch = swVerify.ElapsedMilliseconds - nRematchStart;
                 if (bWide1) { bUsedFullAngle = true; }
                 if (!bRe1) {
                     // correctedImage 는 Dispose 하지 않고 out 으로 넘긴다 — 실패한 보정 이미지가 곧 NG 증거다.
@@ -232,9 +235,19 @@ namespace ReringProject {
                 // ApplyPickerCenterCorrection 은 호출하지 않는다.
                 //  ① 은 검출+강체변환 자기일관성만 검증한다. 피커센터 재표현은 부호 규약(PICKER_ROTATION_SIGN)이
                 //  아직 UAT 미확정이라 여기 넣으면 미확정 규약을 검증 결과로 오해하게 된다. 그 구간은 ②가 잡는다.
-                result.ResidualOffsetXmm = dCol * dResMm;   // Col → X (Run() 규약과 동일)
-                result.ResidualOffsetYmm = dRow * dResMm;   // Row → Y
-                result.ResidualThetaDeg = (dCheckBaselineRad - refPose.RefBaselineRad) * 180.0 / Math.PI;
+                // 부호 상수를 Run() 과 똑같이 곱한다. 현장에서 상수를 -1 로 뒤집는 순간
+                //  PLC 전송값/화면값과 이 CSV 잔여값의 부호 규약이 갈라지면, 증거로 쓸 때
+                //  "장비로 보낸 방향과 기록이 반대" 로 읽히는 사고가 된다. Y 는 상수가 없다(축 일치).
+                double dOffsetXSign = TRAY_OFFSET_X_SIGN;
+                double dThetaSign = TRAY_THETA_SIGN;
+                bool bBottomSignMode = (mode == EEthernetVisionMode.Bottom);
+                if (bBottomSignMode) {
+                    dOffsetXSign = BOTTOM_OFFSET_X_SIGN;
+                    dThetaSign = BOTTOM_THETA_SIGN;
+                }
+                result.ResidualOffsetXmm = dOffsetXSign * dCol * dResMm;   // Col → X (Run() 규약과 동일)
+                result.ResidualOffsetYmm = dRow * dResMm;                  // Row → Y
+                result.ResidualThetaDeg = dThetaSign * (dCheckBaselineRad - refPose.RefBaselineRad) * 180.0 / Math.PI;
                 result.ResidualDistanceMm = Math.Sqrt(
                     result.ResidualOffsetXmm * result.ResidualOffsetXmm
                   + result.ResidualOffsetYmm * result.ResidualOffsetYmm);

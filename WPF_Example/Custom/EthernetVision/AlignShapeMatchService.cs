@@ -96,6 +96,28 @@ namespace ReringProject {
         //260624 hbk Phase 60 — D-05: 회전중심 보정 부호/회전방향 (피커 컨트롤러 규약 — UAT 확정 전 기본 +1).
         private const double PICKER_ROTATION_SIGN = 1.0;
 
+        // ── 축 부호 (현장 실측으로만 확정 가능) ───────────────────────────────
+        // 기계 축과 영상 축이 어긋날 때 여기 숫자만 -1.0 으로 바꾼다. 코드 구조는 건드리지 않는다.
+        // 전부 1.0 이면 종전 동작과 완전히 동일하다.
+        //
+        // 계통도(TIS, 260820) 기준 기계 축 방향:
+        //   Inspector(Bottom) : +X = 오른쪽,  +Y = 아래
+        //   LD(Tray)          : +X = 왼쪽,    +Y = 아래
+        //   → X 는 서로 반대, Y 는 같다. 그런데 코드는 두 모드를 같은 식으로 계산한다.
+        //     Bottom 피커 카메라는 밑에서 위를 올려다보므로 영상이 좌우로 뒤집혀 있을 수 있다
+        //     (거울상). 실제로 뒤집혔는지는 광학 경로에 달려 있어 코드로는 판별 불가.
+        //
+        // 확인 방법: 부품을 오른쪽으로 밀고 Align 실행 → Bottom 은 X 가 +, Tray 는 X 가 - 로
+        //   나와야 한다. 반대로 나오면 해당 상수를 -1.0 으로.
+        //
+        // ⚠ 좌우가 뒤집힌 영상은 회전 방향도 함께 뒤집는다. BOTTOM_OFFSET_X_SIGN 을 바꾸면
+        //   BOTTOM_THETA_SIGN 과 PICKER_ROTATION_SIGN 도 반드시 같이 검토할 것.
+        //   X 만 바꾸면 작은 각도에서는 멀쩡해 보이고 큰 각도에서만 틀어져 발견이 매우 늦다.
+        private const double BOTTOM_OFFSET_X_SIGN = 1.0;   // Bottom OffsetX 부호
+        private const double BOTTOM_THETA_SIGN    = 1.0;   // Bottom Theta 부호 (X 와 함께 검토)
+        private const double TRAY_OFFSET_X_SIGN   = 1.0;   // Tray OffsetX 부호
+        // Y(Row) 는 Inspector/LD 모두 "아래가 +" 로 일치하므로 부호 상수를 두지 않는다.
+
         private readonly PatternMatchService _matcher;
 
         //quick-260812: 코어 TryTeach 가 이미 계산한 기준 검색 스코어 2개를 밖으로 넘기기 위한 캡처.
@@ -693,14 +715,14 @@ namespace ReringProject {
                     //260624 hbk Phase 60 — D-05: Bottom 은 피커센터 기준 강체보정 적용(미캘 시 폴백).
                     double corrRow, corrCol;
                     ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, out corrRow, out corrCol);
-                    result.OffsetXmm = corrCol * resMm;   // Col → X (UAT 에서 부호 확정)
-                    result.OffsetYmm = corrRow * resMm;   // Row → Y
-                    result.ThetaDeg = thetaDeg;
+                    result.OffsetXmm = BOTTOM_OFFSET_X_SIGN * corrCol * resMm;   // Col → X
+                    result.OffsetYmm = corrRow * resMm;                          // Row → Y (부호 상수 없음)
+                    result.ThetaDeg = BOTTOM_THETA_SIGN * thetaDeg;
                     result.HasTheta = true;
                 }
                 else {
-                    result.OffsetXmm = dCol * resMm;   // Tray = 미보정 midpoint offset (Phase 59 동작)
-                    result.OffsetYmm = dRow * resMm;
+                    result.OffsetXmm = TRAY_OFFSET_X_SIGN * dCol * resMm;   // Tray = 미보정 midpoint offset (Phase 59 동작)
+                    result.OffsetYmm = dRow * resMm;                        // Row → Y (부호 상수 없음)
                     result.ThetaDeg = thetaDeg; //260630 hbk 비전 원값 그대로 전송 (피커 캘리브 없음)
                     result.HasTheta = true; //260630 hbk
                 }

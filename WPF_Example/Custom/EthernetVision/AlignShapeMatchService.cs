@@ -116,6 +116,7 @@ namespace ReringProject {
         private const double BOTTOM_OFFSET_X_SIGN = 1.0;   // Bottom OffsetX 부호
         private const double BOTTOM_THETA_SIGN    = 1.0;   // Bottom Theta 부호 (X 와 함께 검토)
         private const double TRAY_OFFSET_X_SIGN   = 1.0;   // Tray OffsetX 부호
+        private const double TRAY_THETA_SIGN      = 1.0;   // Tray Theta 부호 (X 와 함께 검토, Bottom 과 별개)
         // Y(Row) 는 Inspector/LD 모두 "아래가 +" 로 일치하므로 부호 상수를 두지 않는다.
 
         private readonly PatternMatchService _matcher;
@@ -723,7 +724,7 @@ namespace ReringProject {
                 else {
                     result.OffsetXmm = TRAY_OFFSET_X_SIGN * dCol * resMm;   // Tray = 미보정 midpoint offset (Phase 59 동작)
                     result.OffsetYmm = dRow * resMm;                        // Row → Y (부호 상수 없음)
-                    result.ThetaDeg = thetaDeg; //260630 hbk 비전 원값 그대로 전송 (피커 캘리브 없음)
+                    result.ThetaDeg = TRAY_THETA_SIGN * thetaDeg; //260630 hbk 비전 원값 그대로 전송(피커 캘리브 없음) — 부호만 상수화
                     result.HasTheta = true; //260630 hbk
                 }
 

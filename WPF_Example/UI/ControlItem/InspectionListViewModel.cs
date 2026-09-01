@@ -1,4 +1,5 @@
 ﻿using ReringProject.Define;
+using ReringProject.Device;
 using ReringProject.Sequence;
 using System;
 using System.Collections;
@@ -13,6 +14,10 @@ namespace ReringProject.UI {
     public class InspectionListViewModel : Observable {
         
         private SystemHandler pSystemHandle = null;
+
+        // 트리에서 직전에 MIL 라이브 미러 역할을 지정했던 장치 이름.
+        // 다른 노드로 옮겼을 때 그 장치를 무미러로 되돌리기 위해 필요하다.
+        private string _szLiveRoleDeviceName = null;
 
         //tree list box
         private CompositeNode Model { get; set; }
@@ -211,6 +216,47 @@ namespace ReringProject.UI {
             faiNode.Children.Add(measVm);
             // 자동정렬 비활성
             //SortNodeChildren(faiNode);
+        }
+
+        // Shot 노드의 라이브 미러 역할 계산. 순수 로직(InspectionSequence.ResolveShotGrabMirror 재사용)이며
+        // 트리 UI 상태에 의존하지 않는다 — MainView.ResolveGrabRoleIdentifier(단발 grab)와 동일 규칙.
+        public void ResolveShotLiveMirror(ShotConfig shotCfg, out string szDeviceName, out bool bMirrorX, out bool bMirrorY) {
+            szDeviceName = null;
+            bMirrorX = false;
+            bMirrorY = false;
+            if (shotCfg == null) {
+                return;
+            }
+            szDeviceName = shotCfg.DeviceName;
+            InspectionSequence mirrorSeq = pSystemHandle.Sequences[shotCfg.SequenceName] as InspectionSequence;
+            if (mirrorSeq != null) {
+                mirrorSeq.ResolveShotGrabMirror(shotCfg, out bMirrorX, out bMirrorY);
+            }
+        }
+
+        // 트리 선택 노드의 미러 역할을 MIL 라이브(MilCamera)에 적용한다.
+        // szDeviceName 이 비어 있으면(미러와 무관한 노드) 직전 장치를 무미러로 되돌리고 종료한다.
+        // UI 스레드에서 호출되고, 장치 쪽(_liveRoleInfo)은 별도 락 없는 참조 스왑으로 반영된다(MilCamera.SetLiveGrabRole 참조).
+        public void ApplyLiveMirror(string szDeviceName, bool bMirrorX, bool bMirrorY) {
+            bool bPrevDeviceExists = !string.IsNullOrEmpty(_szLiveRoleDeviceName);
+            bool bDeviceChanged = false;
+            if (bPrevDeviceExists) {
+                if (_szLiveRoleDeviceName != szDeviceName) {
+                    bDeviceChanged = true;
+                }
+            }
+            if (bDeviceChanged) {
+                pSystemHandle.Devices.ApplyLiveGrabRole(_szLiveRoleDeviceName, null);
+            }
+
+            if (string.IsNullOrEmpty(szDeviceName)) {
+                _szLiveRoleDeviceName = null;
+                return;
+            }
+
+            string szRoleIdentifier = DeviceHandler.BuildGrabRoleIdentifier(szDeviceName, bMirrorX, bMirrorY);
+            pSystemHandle.Devices.ApplyLiveGrabRole(szDeviceName, szRoleIdentifier);
+            _szLiveRoleDeviceName = szDeviceName;
         }
 
         /// <summary>트리를 재구축한다. Dynamic FAI 모드 전환 후 호출.

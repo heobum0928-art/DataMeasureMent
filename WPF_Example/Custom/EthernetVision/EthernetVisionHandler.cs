@@ -50,13 +50,16 @@ namespace ReringProject {
             //quick-260807-htd: 예외 경로에서도 같은 알람을 띄우려면 모드/설정값이 try 밖에 살아 있어야 한다.
             bool bModeOn = false;
             string camIp = null;
+            // 알람 문구를 Tray/Bottom 으로 가르려면 모드도 예외 경로까지 살아 있어야 한다(위와 같은 이유).
+            EEthernetVisionMode activeMode = EEthernetVisionMode.None;
             try {
                 //260624 hbk Phase 59 — D-02: Matcher 는 stateless → 모드/연결 결과 무관하게 항상 생성
                 Matcher = new AlignShapeMatchService();
                 //260624 hbk Phase 60 — D-01: PickerCal stateful → 모드/연결 결과 무관 항상 생성
                 PickerCal = new PickerCenterCalibrationService();
 
-                bool bModeOff = SystemSetting.Handle.EthernetVisionMode == EEthernetVisionMode.None;
+                activeMode = SystemSetting.Handle.EthernetVisionMode;
+                bool bModeOff = activeMode == EEthernetVisionMode.None;
                 if (bModeOff) {
                     Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] mode = None, skip connect");
                     IsInitialized = false;
@@ -74,7 +77,7 @@ namespace ReringProject {
                 }
                 else {
                     Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] connect failed (fallback active): {0}", camIp);
-                    ShowConnectFailAlarm(camIp, null);
+                    ShowConnectFailAlarm(activeMode, camIp, null);
                 }
             }
             catch (Exception ex) {
@@ -90,7 +93,7 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Initialize error: {0}", ex.Message);
                 //quick-260807-htd: 모드가 켜져 있었는데 예외로 죽은 것 = 사용자 입장에선 똑같은 "연결 실패"다.
                 if (bModeOn) {
-                    ShowConnectFailAlarm(camIp, ex.Message);
+                    ShowConnectFailAlarm(activeMode, camIp, ex.Message);
                 }
             }
         }
@@ -116,29 +119,42 @@ namespace ReringProject {
         // 스레드 마샬링을 여기서 하지 않는 이유: CustomMessageBox.Show 가 내부에서 이미
         // App.Current.Dispatcher.BeginInvoke 로 넘기므로 호출 스레드 무관하게 안전하다(이중 마샬링 금지).
         // isAutoClosing=false : 기본 7초 자동닫힘을 끈다. 알람은 사용자가 직접 닫아야 한다.
-        private void ShowConnectFailAlarm(string camIp, string exMessage) {
+        private void ShowConnectFailAlarm(EEthernetVisionMode activeMode, string camIp, string exMessage) {
             try {
                 string target = camIp;
                 if (string.IsNullOrEmpty(target)) {
                     target = "(설정값 없음)";
                 }
+                string szCameraLabel = ResolveAlignCameraLabel(activeMode);
                 string message = string.Format(
-                    "BottomAlign 정렬 카메라(이더넷 / Hik GigE)에 연결하지 못했습니다.\n\n" +
-                    "설정값 : {0}\n" +
+                    "{0} 정렬 카메라(이더넷 / Hik GigE)에 연결하지 못했습니다.\n\n" +
+                    "설정값 : {1}\n" +
                     "(설정 창 > ETHERNET_VISION > EthernetCameraIp)\n\n" +
                     "확인할 것 : 카메라 전원 / 랜선 / IP 대역 / 다른 프로그램의 카메라 점유\n" +
                     "자세한 원인은 Camera 로그의 [ETHERNET] 항목에 있습니다.\n\n" +
                     "연결될 때까지 정렬은 폴백 이미지로 동작합니다. (일반 검사 기능은 영향 없음)",
-                    target);
+                    szCameraLabel, target);
                 if (string.IsNullOrEmpty(exMessage) == false) {
                     message = message + "\n\n예외 : " + exMessage;
                 }
-                CustomMessageBox.Show("카메라 연결 실패", message, System.Windows.MessageBoxImage.Error, true, false);
+                CustomMessageBox.Show(szCameraLabel + " 카메라 연결 실패", message, System.Windows.MessageBoxImage.Error, true, false);
             }
             catch (Exception ex) {
                 //알림 실패가 초기화를 막으면 안 된다 (CustomMessageBox 내부도 방어하지만 이중 방어)
                 Logging.PrintLog((int)ELogType.Error, "[ETHERNET] connect fail alarm show error: {0}", ex.Message);
             }
+        }
+
+        // 알람 문구용 카메라 이름. Tray 를 쓰는 PC 에서 "BottomAlign 연결 실패" 가 뜨면
+        //  운영자가 엉뚱한 장비를 확인하게 되므로 모드별로 갈라준다.
+        private static string ResolveAlignCameraLabel(EEthernetVisionMode activeMode) {
+            if (activeMode == EEthernetVisionMode.Tray) {
+                return "TrayAlign";
+            }
+            if (activeMode == EEthernetVisionMode.Bottom) {
+                return "BottomAlign";
+            }
+            return "정렬"; // 모드 ON 일 때만 알람이 뜨므로 실제로는 도달하지 않는 방어값
         }
     }
 }

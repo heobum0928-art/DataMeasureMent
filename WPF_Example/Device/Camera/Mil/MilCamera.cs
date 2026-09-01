@@ -19,6 +19,11 @@ namespace ReringProject.Device {
         // ReverseX/ReverseY/RotateAngle 을 따로 보관한다 — 공유 Info 하나만으로는 두 역할을 구분할 수 없다.
         private Dictionary<string, DeviceInfo> _roleInfoMap = new Dictionary<string, DeviceInfo>();
 
+        // 검사 트리에서 선택된 노드의 미러 역할을 라이브(LiveLoop) 에도 반영하기 위한 참조.
+        // null 이면 기본 Info 로 무미러 라이브(기존 동작). #if !SIMUL_MODE 밖에 둔다 —
+        // SIMUL_MODE 에서는 LiveLoop 자체가 없어 참조되지 않을 뿐이다.
+        private DeviceInfo _liveRoleInfo = null;
+
 #if !SIMUL_MODE
         // MIL 라이브(연속 grab) 스레드 제어
         private Thread _liveThread = null;
@@ -68,6 +73,17 @@ namespace ReringProject.Device {
                 return roleInfo;
             }
             return Info;
+        }
+
+        // UI 스레드(트리 선택)에서 호출되고 LiveLoop 는 백그라운드 스레드에서 읽는다.
+        // 주고받는 값이 DeviceInfo 참조 하나뿐이고 C# 에서 참조 대입/읽기는 원자적이라 찢어진 값이 보일 수 없다.
+        // 최악의 경우 한 프레임 늦게 반영될 뿐이므로 락을 걸지 않는다(락을 걸면 grab 구간과 UI 가 얽혀 데드락 위험만 늘어남).
+        public override void SetLiveGrabRole(string szRoleIdentifier) {
+            if (string.IsNullOrEmpty(szRoleIdentifier)) {
+                _liveRoleInfo = null;
+                return;
+            }
+            _liveRoleInfo = ResolveRoleInfo(szRoleIdentifier);
         }
 
         private string GetMilErrorMessage() {
@@ -487,6 +503,7 @@ namespace ReringProject.Device {
 
             IsGrabbing = false;
             CaptureMode = ECaptureModeType.Stop;
+            _liveRoleInfo = null; // 라이브 재시작 시 이전 트리 선택이 남지 않도록 초기화
             base.StopStream(); // 마지막 프레임 정리(ClearLastFrame)
         }
 
@@ -496,8 +513,13 @@ namespace ReringProject.Device {
         private void LiveLoop() {
             while (_liveRunning) {
                 try {
-                    // 한 프레임 grab (버퍼와 분리된 독립 복사본) — 라이브 미리보기는 이 인스턴스 자신의 기본 Info 사용
-                    HImage frame = GrabFromBuffer(Info);
+                    // 한 프레임 grab (버퍼와 분리된 독립 복사본) — 트리에서 선택된 노드의 미러 역할이 있으면
+                    // 그것을 사용하고, 없으면 이 인스턴스 자신의 기본 Info(무미러) 사용
+                    DeviceInfo liveInfo = _liveRoleInfo;      // 루프 1회당 1번만 읽어 프레임 도중 바뀌어도 일관되게 사용
+                    if (liveInfo == null) {
+                        liveInfo = Info;
+                    }
+                    HImage frame = GrabFromBuffer(liveInfo);
                     if (frame != null) {
                         lock (Interlock) {
                             // 이전 프레임 해제 후 교체

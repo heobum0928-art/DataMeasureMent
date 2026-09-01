@@ -336,6 +336,15 @@ namespace ReringProject.Device {
             return cam.Properties.ApplyFromParam(param);
         }
 
+        // 이름으로 카메라를 조회해 라이브(연속 grab) 역할을 지정하는 파사드.
+        // 조회는 항상 base 장치 이름으로 — GrabHalconImage(param, requestIdentifier) 와 동일 규약.
+        public void ApplyLiveGrabRole(string szDeviceName, string szRoleIdentifier) {
+            if (string.IsNullOrEmpty(szDeviceName)) return;
+            VirtualCamera cam = this[szDeviceName];
+            if (cam == null) return;
+            cam.SetLiveGrabRole(szRoleIdentifier);
+        }
+
         public HImage GrabHalconImage(ICameraParam param) {
             return GrabHalconImage(param, param.DeviceName);   // 기존과 완전히 동일한 동작
         }

@@ -461,6 +461,11 @@ namespace ReringProject.Device {
             return GrabHalconImage();
         }
 
+        // 라이브(연속 grab) 방향을 역할별로 바꿀 수 있는 카메라만 override(현재 MilCamera).
+        // Hik/Basler 는 no-op 이라 회귀 0.
+        public virtual void SetLiveGrabRole(string szRoleIdentifier) {
+        }
+
         public virtual bool StartStream() {
             CaptureMode = ECaptureModeType.Streaming;
 

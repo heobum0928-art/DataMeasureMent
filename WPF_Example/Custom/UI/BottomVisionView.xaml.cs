@@ -124,6 +124,7 @@ namespace ReringProject.Custom.UI {
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
             LoadCalStepAngleToUi(); // Phase 74: 저장된 캘 스텝 각도 반영
+            LoadCalFindMinScoreToUi(); // 260901 hbk quick-mc1: 저장된 캘 최소 Score 반영
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
@@ -985,6 +986,53 @@ namespace ReringProject.Custom.UI {
                     }
                 }
                 RefreshCalStepInfo();
+            }
+            catch {
+                // 표시 실패는 캘 흐름을 막지 않는다.
+            }
+        }
+
+        // 260901 hbk quick-mc1 — find_shape_model 최소 Score. 지그 검출이 안 될 때 현장에서 낮춰볼 수 있게 노출.
+        //  PickerCalStepAngleDeg 콤보와 동일한 저장 관용구(런타임 프로퍼티만 갱신, 즉시 Save() 는 안 함).
+        private void CalFindMinScoreComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            try {
+                ComboBoxItem item = cmb_calFindMinScore.SelectedItem as ComboBoxItem;
+                if (item == null) {
+                    return;
+                }
+                double dScore = 0.0;
+                bool bParsed = double.TryParse(item.Content.ToString(), out dScore);
+                if (!bParsed) {
+                    return;
+                }
+                bool bScoreOutOfRange = (dScore <= 0.0) || (dScore > 1.0);
+                if (bScoreOutOfRange) {
+                    return;
+                }
+                SystemSetting.Handle.PickerCalFindMinScore = dScore;
+            }
+            catch {
+                // 선택 반영 실패는 캘 흐름을 막지 않는다.
+            }
+        }
+
+        // 저장된 최소 Score 를 콤보에 반영한다.
+        private void LoadCalFindMinScoreToUi() {
+            try {
+                if (cmb_calFindMinScore == null) {
+                    return;
+                }
+                string szCurrent = SystemSetting.Handle.PickerCalFindMinScore.ToString("F1");
+                foreach (object o in cmb_calFindMinScore.Items) {
+                    ComboBoxItem item = o as ComboBoxItem;
+                    if (item == null) {
+                        continue;
+                    }
+                    if (item.Content.ToString() == szCurrent) {
+                        cmb_calFindMinScore.SelectedItem = item;
+                        break;
+                    }
+                }
             }
             catch {
                 // 표시 실패는 캘 흐름을 막지 않는다.

@@ -221,6 +221,19 @@
                                 <TextBlock x:Name="lbl_calStepInfo" Text="deg · 36스텝" VerticalAlignment="Center"
                                            FontSize="12" Margin="6,0,0,0"/>
                             </StackPanel>
+                            <!--260901 hbk quick-mc1 — find_shape_model 최소 Score. 지그 검출이 안 될 때
+                                 현장에서 낮춰볼 수 있게 노출. 등급 기준(FindMinScore)도 이 값을 그대로 따라간다.-->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="최소 Score:" VerticalAlignment="Center" FontSize="12" Width="66"/>
+                                <ComboBox x:Name="cmb_calFindMinScore" Width="70" Height="22" FontSize="12"
+                                          SelectionChanged="CalFindMinScoreComboBox_SelectionChanged">
+                                    <ComboBoxItem Content="0.3"/>
+                                    <ComboBoxItem Content="0.4"/>
+                                    <ComboBoxItem Content="0.5"/>
+                                    <ComboBoxItem Content="0.6"/>
+                                    <ComboBoxItem Content="0.7"/>
+                                </ComboBox>
+                            </StackPanel>
                             <!--초기화: 누적 스텝 클리어-->
                             <Button x:Name="btn_calReset"
                                     Content="초기화"

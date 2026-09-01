@@ -30,7 +30,8 @@ namespace ReringProject {
         private const double MAX_RADIUS_PX = 100000.0;
 
         // find_shape_model 파라미터.
-        private const double FIND_MIN_SCORE   = 0.5;
+        // 260901 hbk quick-mc1 — MinScore 는 SystemSetting.Handle.PickerCalFindMinScore 로 운영자 조절 가능하게
+        //  전환(지그 검출이 안 될 때 현장에서 낮춰볼 수 있어야 한다는 요구). Greediness/MaxOverlap 은 이번 범위 밖.
         private const double FIND_GREEDINESS  = 0.7;
         private const double FIND_MAX_OVERLAP = 0.5;
 
@@ -65,9 +66,13 @@ namespace ReringProject {
             get { return _modelLoaded; }
         }
 
-        /// <summary>quick-260812: 등급 산정용 최소 스코어(읽기 전용). FIND_MIN_SCORE 의 값·용도는 무변경.</summary>
+        /// <summary>
+        /// quick-260812: 등급 산정용 최소 스코어(읽기 전용).
+        /// 260901 hbk quick-mc1 — 값의 출처가 하드코딩 상수에서 SystemSetting.Handle.PickerCalFindMinScore 로
+        /// 바뀌었다. 임계값이 바뀌면 등급 기준도 같이 따라가야 일관성이 유지되므로 그대로 반영한다.
+        /// </summary>
         public static double FindMinScore {
-            get { return FIND_MIN_SCORE; }
+            get { return SystemSetting.Handle.PickerCalFindMinScore; }
         }
 
         // ─── 초기화/정리 ────────────────────────────────────────────────────────
@@ -249,7 +254,7 @@ namespace ReringProject {
                     imgReduced, _modelId,
                     new HTuple(0.0),
                     new HTuple(Math.PI * 2.0),
-                    new HTuple(FIND_MIN_SCORE),
+                    new HTuple(SystemSetting.Handle.PickerCalFindMinScore),
                     new HTuple(1),
                     new HTuple(FIND_MAX_OVERLAP),
                     new HTuple("least_squares"),

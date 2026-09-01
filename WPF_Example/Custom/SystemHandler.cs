@@ -1118,9 +1118,10 @@ namespace ReringProject {
             if (bIsEnd)
             {
                 double dRow, dCol, dRad;
+                double dResidualRmsPx, dResidualMaxPx;   //260901 hbk quick-mc1 — 사후 분석용 피팅 잔차(px)
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryComputePickerCenter(
-                    out dRow, out dCol, out dRad, out error);
+                    out dRow, out dCol, out dRad, out dResidualRmsPx, out dResidualMaxPx, out error);
 
                 if (bOk)
                 {
@@ -1136,7 +1137,8 @@ namespace ReringProject {
                         System.Windows.Application.Current.Dispatcher.Invoke(() => endCb(r, c, rad, vizXld));
                     }
                     Logging.PrintLog((int)ELogType.Trace,
-                        "[ALIGN_CALIB] END — 피커센터=({0:F2},{1:F2}) r={2:F2}", dRow, dCol, dRad);
+                        "[ALIGN_CALIB] END — 피커센터=({0:F2},{1:F2}) r={2:F2} residual_rms={3:F2}px residual_max={4:F2}px",
+                        dRow, dCol, dRad, dResidualRmsPx, dResidualMaxPx);
                 }
                 else
                 {

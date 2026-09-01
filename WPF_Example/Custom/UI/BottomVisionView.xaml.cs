@@ -35,6 +35,10 @@ namespace ReringProject.Custom.UI {
         // 최소 ROI 크기 임계 (px) — 너무 작은 ROI 는 티칭 불가
         private const double MIN_ROI_HALF_LENGTH = 1.0;
 
+        // 260901 hbk quick-mc1 — 피팅 잔차(원형도) 등급 기준. ClassifyScore 의 여유 임계(0.15)와 합쳐져
+        // 대략: 잔차가 반경의 5% 이하면 ●, 5~20% 면 ▲, 20% 초과면 ✕. 현장 실측 전 1차 기준이며 표시 전용.
+        private const double FIT_SCORE_MIN = 0.80;
+
         //260625 hbk Phase 61.1 오프라인 이미지 로더 상태
         private const string LOADER_IMAGE_EXTS = ".bmp;.png;.jpg;.jpeg;.tif;.tiff";  // 지원 확장자
         private List<string> _loadedImagePaths = new List<string>();
@@ -1613,9 +1617,10 @@ namespace ReringProject.Custom.UI {
 
             try {
                 double r, c, rad;
+                double dRmsPx, dMaxPx;   //260901 hbk quick-mc1 — 피팅 잔차(RMS/최대, px)
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryComputePickerCenter(
-                    out r, out c, out rad, out error);
+                    out r, out c, out rad, out dRmsPx, out dMaxPx, out error);
 
                 if (bOk) {
                     lbl_pickerCenter.Text = BuildPickerCenterText(r, c, rad);
@@ -1623,17 +1628,20 @@ namespace ReringProject.Custom.UI {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
                         _viewer.SetAlignContourXld(vizXld);
                     }
-                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지)
+                    string szFitQuality = BuildFitQualityText(dRmsPx, dMaxPx);
+                    //quick-260812 관용구 재사용: lbl_calStatus 는 36곳 대입 — 색은 칠하지 않고 기호만 붙인다.
+                    ETeachGrade fitGrade = TeachDiag.ClassifyScore(ToCircularityScore(dRmsPx, rad), FIT_SCORE_MIN);
+                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지). 260901 hbk — 잔차를 저장 여부 결정 전에 보여준다.
                     string msg = string.Format(
-                        "피커센터를 저장하시겠습니까?\n\nRow: {0:F2}  Col: {1:F2}  r: {2:F2}", r, c, rad);
+                        "피커센터를 저장하시겠습니까?\n\nRow: {0:F2}  Col: {1:F2}  r: {2:F2}\n{3}", r, c, rad, szFitQuality);
                     MessageBoxResult dlgResult = MessageBox.Show(
                         msg, "피커센터 저장", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (dlgResult == MessageBoxResult.Yes) {
                         SystemSetting.Handle.Save();
-                        lbl_calStatus.Text = "피커센터 저장 완료";
+                        lbl_calStatus.Text = TeachDiag.ToStatusLine(fitGrade, "피커센터 저장 완료 · " + szFitQuality);
                     }
                     else {
-                        lbl_calStatus.Text = "저장 취소 (값은 런타임 유지, 재시작 시 초기화)";
+                        lbl_calStatus.Text = TeachDiag.ToStatusLine(fitGrade, "저장 취소 (값은 런타임 유지, 재시작 시 초기화) · " + szFitQuality);
                     }
                 }
                 else {
@@ -1644,6 +1652,19 @@ namespace ReringProject.Custom.UI {
             catch (Exception ex) {
                 lbl_calStatus.Text = "계산 오류: " + ex.Message;
             }
+        }
+
+        // 260901 hbk quick-mc1 — 반경 대비 잔차 비율을 0~1 점수로 뒤집어(원형도) ClassifyScore 에 통과시킨다.
+        // 반경이 클수록 같은 절대 잔차가 덜 치명적이므로 비율이 맞는 척도다.
+        private static double ToCircularityScore(double dRmsPx, double dRadiusPx) {
+            if (dRadiusPx <= 0.0) {
+                return 0.0;
+            }
+            double dRatio = dRmsPx / dRadiusPx;
+            if (dRatio >= 1.0) {
+                return 0.0;
+            }
+            return 1.0 - dRatio;
         }
 
         // quick-260819: 피커센터 계산결과에 화면(이미지) 중심 대비 실제 오프셋 거리(mm)를 붙여서 보여준다.
@@ -1678,6 +1699,22 @@ namespace ReringProject.Custom.UI {
             return pixelOnlyText + string.Format(
                 "  |  중심오프셋 {0:F3}mm (가로 {1:F3}mm, 세로 {2:F3}mm)",
                 totalMm, dColMm, dRowMm);
+        }
+
+        // 260901 hbk quick-mc1 — 편심원 피팅 잔차를 µm 주 단위(px 괄호 병기)로 표시.
+        // 잔차는 보통 수십 µm 수준이라 mm 로 찍으면 0.0xx 가 되어 읽기 나쁘므로 µm 을 주 단위로 한다.
+        // EthernetPixelResolution 이 0 이하(미설정)면 0 나눗셈/무의미 값 방어로 px 만 담은 문구를 돌려준다.
+        private string BuildFitQualityText(double dRmsPx, double dMaxPx) {
+            double dPixelResolutionUmPerPx = SystemSetting.Handle.EthernetPixelResolution;
+            bool bResolutionInvalid = (dPixelResolutionUmPerPx <= 0.0);
+            if (bResolutionInvalid) {
+                return string.Format("피팅잔차 RMS {0:F2}px · 최대 {1:F2}px", dRmsPx, dMaxPx);
+            }
+
+            double dRmsUm = dRmsPx * dPixelResolutionUmPerPx;
+            double dMaxUm = dMaxPx * dPixelResolutionUmPerPx;
+            return string.Format("피팅잔차 RMS {0:F1}µm({1:F2}px) · 최대 {2:F1}µm({3:F2}px)",
+                dRmsUm, dRmsPx, dMaxUm, dMaxPx);
         }
 
         // ─── private 헬퍼 ────────────────────────────────────────────────────────

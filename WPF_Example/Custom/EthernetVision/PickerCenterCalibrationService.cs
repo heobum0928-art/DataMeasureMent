@@ -301,9 +301,23 @@ namespace ReringProject {
         /// 성공 시 _vizXld 에 피팅 원 + 중심 십자 추가.
         /// </summary>
         public bool TryComputePickerCenter(out double row, out double col, out double radius, out string error) {
+            double dResidualRmsPx;
+            double dResidualMaxPx;
+            return TryComputePickerCenter(out row, out col, out radius, out dResidualRmsPx, out dResidualMaxPx, out error);
+        }
+
+        /// <summary>
+        /// 260901 hbk quick-mc1 — 4-out 과 동일한 계산에 편심원 피팅 잔차(RMS/최대, px)를 추가로 반환한다.
+        /// 잔차는 표시 전용이다 — 반환값·성공/실패 계약(반경 가드 포함)은 4-out 과 완전히 동일하며
+        /// 잔차 값으로 새로 실패시키는 분기는 없다(임계값을 정할 실측 산포 데이터가 아직 없기 때문).
+        /// </summary>
+        public bool TryComputePickerCenter(out double row, out double col, out double radius,
+            out double dResidualRmsPx, out double dResidualMaxPx, out string error) {
             row    = 0.0;
             col    = 0.0;
             radius = 0.0;
+            dResidualRmsPx = 0.0;
+            dResidualMaxPx = 0.0;
             error  = null;
 
             if (_rows.Count < MIN_STEPS) {
@@ -346,6 +360,8 @@ namespace ReringProject {
                     return false;
                 }
 
+                ComputeFitResiduals(fittedRow, fittedCol, fittedRad, out dResidualRmsPx, out dResidualMaxPx);
+
                 // 피커센터 설정 (Save는 UI 확인 후 호출자 책임).
                 SystemSetting.Handle.PickerCenterRow = fittedRow; //260630 hbk — Save 분리: UI 확인 후 저장
                 SystemSetting.Handle.PickerCenterCol = fittedCol;
@@ -359,8 +375,8 @@ namespace ReringProject {
                 AppendCrossToViz(fittedRow, fittedCol);
 
                 Logging.PrintLog((int)ELogType.Camera,
-                    "[PICKER_CAL] computed: center=({0:F2},{1:F2}) r={2:F2} from {3} steps",
-                    fittedRow, fittedCol, fittedRad, _rows.Count);
+                    "[PICKER_CAL] computed: center=({0:F2},{1:F2}) r={2:F2} from {3} steps residual_rms={4:F2}px residual_max={5:F2}px",
+                    fittedRow, fittedCol, fittedRad, _rows.Count, dResidualRmsPx, dResidualMaxPx);
                 return true;
             }
             catch (Exception ex) {
@@ -402,6 +418,36 @@ namespace ReringProject {
         }
 
         // ─── private 헬퍼 ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 260901 hbk quick-mc1 — 누적점(_rows/_cols)이 피팅된 원에서 얼마나 벗어났는지(잔차)를 산출한다.
+        /// 각 점의 중심거리에서 피팅 반경을 뺀 값이 그 점의 오차이고, 오차의 RMS 와 절대 최대값을 반환한다.
+        /// fit_circle_contour_xld 를 다시 부르지 않고 이미 가진 값만으로 순수 C# 산술로 계산한다.
+        /// </summary>
+        private void ComputeFitResiduals(double dCenterRow, double dCenterCol, double dRadius,
+            out double dRmsPx, out double dMaxPx) {
+            dRmsPx = 0.0;
+            dMaxPx = 0.0;
+
+            int nCount = _rows.Count;
+            if (nCount <= 0) {
+                return;
+            }
+
+            double dSumSq = 0.0;
+            for (int i = 0; i < nCount; i++) {
+                double dDr = _rows[i] - dCenterRow;
+                double dDc = _cols[i] - dCenterCol;
+                double dDist = Math.Sqrt((dDr * dDr) + (dDc * dDc));
+                double dErr = dDist - dRadius;
+                double dAbsErr = Math.Abs(dErr);
+                dSumSq = dSumSq + (dErr * dErr);
+                if (dAbsErr > dMaxPx) {
+                    dMaxPx = dAbsErr;
+                }
+            }
+            dRmsPx = Math.Sqrt(dSumSq / nCount);
+        }
 
         private void AppendCrossToViz(double row, double col) {
             try {

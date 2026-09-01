@@ -39,7 +39,7 @@ namespace ReringProject.Setting {
         private const double PICKER_CAL_STEP_ANGLE_DEFAULT = 10.0;
         private const double PICKER_CAL_FULL_TURN_DEG = 360.0;
 
-        // 260901 hbk quick-mc1 — 피커센터 캘 find_shape_model 최소 Score 기본값(기존 하드코딩 값과 동일).
+        // quick-mc1 — 피커센터 캘 find_shape_model 최소 Score 기본값(기존 하드코딩 값과 동일).
         private const double PICKER_CAL_FIND_MIN_SCORE_DEFAULT = 0.5;
 
         // Align 정합 검증 보관 상한 기본값. 매직넘버 금지.
@@ -95,7 +95,7 @@ namespace ReringProject.Setting {
         [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
         public double PickerCalStepAngleDeg { get; set; } = PICKER_CAL_STEP_ANGLE_DEFAULT;
 
-        // 260901 hbk quick-mc1 — 피커센터 캘 find_shape_model 최소 Score(0~1). 지그 검출이 안 될 때
+        // quick-mc1 — 피커센터 캘 find_shape_model 최소 Score(0~1). 지그 검출이 안 될 때
         //  현장에서 낮춰볼 수 있도록 노출. 기본값은 기존 하드코딩 값(0.5)과 동일 — 회귀 없음.
         [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
         public double PickerCalFindMinScore { get; set; } = PICKER_CAL_FIND_MIN_SCORE_DEFAULT;
@@ -134,7 +134,7 @@ namespace ReringProject.Setting {
             {
                 PickerCalStepAngleDeg = PICKER_CAL_STEP_ANGLE_DEFAULT;
             }
-            // 260901 hbk quick-mc1 — find_shape_model MinScore 는 0~1 범위. 범위 밖(구 INI 키 부재로 0
+            // quick-mc1 — find_shape_model MinScore 는 0~1 범위. 범위 밖(구 INI 키 부재로 0
             //  로드되는 경우 포함)이면 기본값으로 복원한다.
             bool bFindMinScoreInvalid = (PickerCalFindMinScore <= 0.0) || (PickerCalFindMinScore > 1.0);
             if (bFindMinScoreInvalid)

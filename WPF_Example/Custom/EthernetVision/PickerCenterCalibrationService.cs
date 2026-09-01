@@ -30,7 +30,7 @@ namespace ReringProject {
         private const double MAX_RADIUS_PX = 100000.0;
 
         // find_shape_model 파라미터.
-        // 260901 hbk quick-mc1 — MinScore 는 SystemSetting.Handle.PickerCalFindMinScore 로 운영자 조절 가능하게
+        // quick-mc1 — MinScore 는 SystemSetting.Handle.PickerCalFindMinScore 로 운영자 조절 가능하게
         //  전환(지그 검출이 안 될 때 현장에서 낮춰볼 수 있어야 한다는 요구). Greediness/MaxOverlap 은 이번 범위 밖.
         private const double FIND_GREEDINESS  = 0.7;
         private const double FIND_MAX_OVERLAP = 0.5;
@@ -68,7 +68,7 @@ namespace ReringProject {
 
         /// <summary>
         /// quick-260812: 등급 산정용 최소 스코어(읽기 전용).
-        /// 260901 hbk quick-mc1 — 값의 출처가 하드코딩 상수에서 SystemSetting.Handle.PickerCalFindMinScore 로
+        /// quick-mc1 — 값의 출처가 하드코딩 상수에서 SystemSetting.Handle.PickerCalFindMinScore 로
         /// 바뀌었다. 임계값이 바뀌면 등급 기준도 같이 따라가야 일관성이 유지되므로 그대로 반영한다.
         /// </summary>
         public static double FindMinScore {
@@ -312,7 +312,7 @@ namespace ReringProject {
         }
 
         /// <summary>
-        /// 260901 hbk quick-mc1 — 4-out 과 동일한 계산에 편심원 피팅 잔차(RMS/최대, px)를 추가로 반환한다.
+        /// quick-mc1 — 4-out 과 동일한 계산에 편심원 피팅 잔차(RMS/최대, px)를 추가로 반환한다.
         /// 잔차는 표시 전용이다 — 반환값·성공/실패 계약(반경 가드 포함)은 4-out 과 완전히 동일하며
         /// 잔차 값으로 새로 실패시키는 분기는 없다(임계값을 정할 실측 산포 데이터가 아직 없기 때문).
         /// </summary>
@@ -425,7 +425,7 @@ namespace ReringProject {
         // ─── private 헬퍼 ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 260901 hbk quick-mc1 — 누적점(_rows/_cols)이 피팅된 원에서 얼마나 벗어났는지(잔차)를 산출한다.
+        /// quick-mc1 — 누적점(_rows/_cols)이 피팅된 원에서 얼마나 벗어났는지(잔차)를 산출한다.
         /// 각 점의 중심거리에서 피팅 반경을 뺀 값이 그 점의 오차이고, 오차의 RMS 와 절대 최대값을 반환한다.
         /// fit_circle_contour_xld 를 다시 부르지 않고 이미 가진 값만으로 순수 C# 산술로 계산한다.
         /// </summary>

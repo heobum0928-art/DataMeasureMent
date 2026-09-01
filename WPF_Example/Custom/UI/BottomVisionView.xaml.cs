@@ -35,7 +35,7 @@ namespace ReringProject.Custom.UI {
         // 최소 ROI 크기 임계 (px) — 너무 작은 ROI 는 티칭 불가
         private const double MIN_ROI_HALF_LENGTH = 1.0;
 
-        // 260901 hbk quick-mc1 — 피팅 잔차(원형도) 등급 기준. ClassifyScore 의 여유 임계(0.15)와 합쳐져
+        // quick-mc1 — 피팅 잔차(원형도) 등급 기준. ClassifyScore 의 여유 임계(0.15)와 합쳐져
         // 대략: 잔차가 반경의 5% 이하면 ●, 5~20% 면 ▲, 20% 초과면 ✕. 현장 실측 전 1차 기준이며 표시 전용.
         private const double FIT_SCORE_MIN = 0.80;
 
@@ -124,7 +124,7 @@ namespace ReringProject.Custom.UI {
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
             LoadCalStepAngleToUi(); // Phase 74: 저장된 캘 스텝 각도 반영
-            LoadCalFindMinScoreToUi(); // 260901 hbk quick-mc1: 저장된 캘 최소 Score 반영
+            LoadCalFindMinScoreToUi(); // quick-mc1: 저장된 캘 최소 Score 반영
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
@@ -992,7 +992,7 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        // 260901 hbk quick-mc1 — find_shape_model 최소 Score. 지그 검출이 안 될 때 현장에서 낮춰볼 수 있게 노출.
+        // quick-mc1 — find_shape_model 최소 Score. 지그 검출이 안 될 때 현장에서 낮춰볼 수 있게 노출.
         //  PickerCalStepAngleDeg 콤보와 동일한 저장 관용구(런타임 프로퍼티만 갱신, 즉시 Save() 는 안 함).
         private void CalFindMinScoreComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             try {
@@ -1475,7 +1475,7 @@ namespace ReringProject.Custom.UI {
         }
 
         /// <summary>
-        /// 260901 hbk quick-mc1 — 피커 캘리브 이미지 소스를 전처리기 분기 대신 런타임으로 판단한다.
+        /// quick-mc1 — 피커 캘리브 이미지 소스를 전처리기 분기 대신 런타임으로 판단한다.
         /// 오프라인(폴더 로더로 불러온 화면 영상) 우선, 없으면 라이브 카메라 Grab 로 폴백.
         /// bOwnsImage 로 소유권을 명확히 구분한다 — false 면 뷰어 소유(Dispose 금지), true 면 호출자 소유(Dispose 책임).
         /// </summary>
@@ -1529,7 +1529,7 @@ namespace ReringProject.Custom.UI {
 
         private void CalTeachModelButton_Click(object sender, RoutedEventArgs e) {
             //260630 hbk Phase 60 — Grab → ROI(사각형) 내 ShapeModel 생성 → 저장 + 캐시 로드.
-            //260901 hbk quick-mc1 — 이미지 소스를 컴파일 분기 대신 TryResolveCalSourceImage 런타임 판단으로 전환.
+            //quick-mc1 — 이미지 소스를 컴파일 분기 대신 TryResolveCalSourceImage 런타임 판단으로 전환.
             if (!_calRoiSet) {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
@@ -1575,7 +1575,7 @@ namespace ReringProject.Custom.UI {
         private void CalAddStepButton_Click(object sender, RoutedEventArgs e) {
             //260624 hbk Phase 61 — 한 스텝: Grab + find_shape_model → 중심 누적
             //260630 hbk Phase 60 — 사각형 ROI 전환: out foundRow/foundCol + 시각화 XLD 갱신
-            //260901 hbk quick-mc1 — 이미지 소스를 컴파일 분기 대신 TryResolveCalSourceImage 런타임 판단으로 전환.
+            //quick-mc1 — 이미지 소스를 컴파일 분기 대신 TryResolveCalSourceImage 런타임 판단으로 전환.
             if (!_calRoiSet) {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
@@ -1623,7 +1623,7 @@ namespace ReringProject.Custom.UI {
                         _viewer.SetAlignContourXld(vizXld); // 소유권 이전
                     }
 
-                    // 260901 hbk quick-mc1 — 오프라인 이미지로 스텝을 잡았을 때만 자동으로 다음 이미지로 넘어간다.
+                    // quick-mc1 — 오프라인 이미지로 스텝을 잡았을 때만 자동으로 다음 이미지로 넘어간다.
                     // 라이브 grab 스텝은 폴더 인덱스와 무관하므로 자동 넘김 대상이 아니다.
                     bool bUsedOfflineImage = (bOwnsImage == false);
                     if (bUsedOfflineImage) {
@@ -1665,7 +1665,7 @@ namespace ReringProject.Custom.UI {
 
             try {
                 double r, c, rad;
-                double dRmsPx, dMaxPx;   //260901 hbk quick-mc1 — 피팅 잔차(RMS/최대, px)
+                double dRmsPx, dMaxPx;   //quick-mc1 — 피팅 잔차(RMS/최대, px)
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryComputePickerCenter(
                     out r, out c, out rad, out dRmsPx, out dMaxPx, out error);
@@ -1679,7 +1679,7 @@ namespace ReringProject.Custom.UI {
                     string szFitQuality = BuildFitQualityText(dRmsPx, dMaxPx);
                     //quick-260812 관용구 재사용: lbl_calStatus 는 36곳 대입 — 색은 칠하지 않고 기호만 붙인다.
                     ETeachGrade fitGrade = TeachDiag.ClassifyScore(ToCircularityScore(dRmsPx, rad), FIT_SCORE_MIN);
-                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지). 260901 hbk — 잔차를 저장 여부 결정 전에 보여준다.
+                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지). quick-mc1 — 잔차를 저장 여부 결정 전에 보여준다.
                     string msg = string.Format(
                         "피커센터를 저장하시겠습니까?\n\nRow: {0:F2}  Col: {1:F2}  r: {2:F2}\n{3}", r, c, rad, szFitQuality);
                     MessageBoxResult dlgResult = MessageBox.Show(
@@ -1702,7 +1702,7 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        // 260901 hbk quick-mc1 — 반경 대비 잔차 비율을 0~1 점수로 뒤집어(원형도) ClassifyScore 에 통과시킨다.
+        // quick-mc1 — 반경 대비 잔차 비율을 0~1 점수로 뒤집어(원형도) ClassifyScore 에 통과시킨다.
         // 반경이 클수록 같은 절대 잔차가 덜 치명적이므로 비율이 맞는 척도다.
         private static double ToCircularityScore(double dRmsPx, double dRadiusPx) {
             if (dRadiusPx <= 0.0) {
@@ -1749,7 +1749,7 @@ namespace ReringProject.Custom.UI {
                 totalMm, dColMm, dRowMm);
         }
 
-        // 260901 hbk quick-mc1 — 편심원 피팅 잔차를 µm 주 단위(px 괄호 병기)로 표시.
+        // quick-mc1 — 편심원 피팅 잔차를 µm 주 단위(px 괄호 병기)로 표시.
         // 잔차는 보통 수십 µm 수준이라 mm 로 찍으면 0.0xx 가 되어 읽기 나쁘므로 µm 을 주 단위로 한다.
         // EthernetPixelResolution 이 0 이하(미설정)면 0 나눗셈/무의미 값 방어로 px 만 담은 문구를 돌려준다.
         private string BuildFitQualityText(double dRmsPx, double dMaxPx) {
@@ -2026,7 +2026,7 @@ namespace ReringProject.Custom.UI {
 
 #if SIMUL_MODE
                 //260630 hbk — SIMUL: TCP STEP 경로가 폴더 이미지를 순차 사용하도록 카메라에 등록
-                // 260901 hbk quick-mc1 — 실HW 에서는 절대 열지 않는다(의도적 SIMUL 전용 유지).
+                // quick-mc1 — 실HW 에서는 절대 열지 않는다(의도적 SIMUL 전용 유지).
                 // LoadSimulFolder 로 등록한 경로는 EthernetAlignCamera.LoadFallbackImage() 안에서만 소비되고,
                 // 그 경로는 카메라가 안 열렸거나 grab 이 실패했을 때만 도달한다. 실HW 에서 이걸 열어두면
                 // 생산 중 카메라가 끊긴 순간 TCP $ALIGN_CALIB STEP 경로가 운영자가 예전에 열어둔 폴더 이미지를

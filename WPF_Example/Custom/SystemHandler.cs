@@ -1118,7 +1118,7 @@ namespace ReringProject {
             if (bIsEnd)
             {
                 double dRow, dCol, dRad;
-                double dResidualRmsPx, dResidualMaxPx;   //260901 hbk quick-mc1 — 사후 분석용 피팅 잔차(px)
+                double dResidualRmsPx, dResidualMaxPx;   //quick-mc1 — 사후 분석용 피팅 잔차(px)
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryComputePickerCenter(
                     out dRow, out dCol, out dRad, out dResidualRmsPx, out dResidualMaxPx, out error);

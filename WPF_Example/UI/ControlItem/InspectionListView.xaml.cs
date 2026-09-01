@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using PropertyTools.Wpf;
 using ReringProject.Define;
+using ReringProject.Device;
 using ReringProject.Sequence;
 using ReringProject.Setting;
 using ReringProject.Utility;
@@ -27,6 +28,10 @@ namespace ReringProject.UI {
         private ParamBase CopiedParam = null;
         // SelectedObject 재할당 중 ComboBox 초기화 이벤트가 bubble되어 SelectionChanged 무한루프가 발생하는 것을 차단
         private bool _isRebinding = false;
+
+        // quick-260901-k7a: 트리에서 직전에 MIL 라이브 미러 역할을 지정했던 장치 이름.
+        // 다른 노드로 옮겼을 때 그 장치를 무미러로 되돌리기 위해 필요하다.
+        private string _szLiveRoleDeviceName = null;
 
         //260616 hbk Phase 51 BATCH-01: 일괄 검사 누적 결과 + 서비스 인스턴스 (UI 소유, static 금지)
         private List<CycleResultDto> _batchAccumulated = new List<CycleResultDto>();
@@ -882,6 +887,7 @@ namespace ReringProject.UI {
                 if(list.SelectedItem is NodeViewModel) {
                     NodeViewModel item = list.SelectedItem as NodeViewModel;
                     object itemParam = item.Param;
+                    ApplyLiveMirrorForNode(itemParam);
 
                     mParentWindow.mainView.halconViewer.ClearDatumOverlay();
                     mParentWindow.mainView.halconViewer.ClearDatumRoiCandidates();
@@ -1333,6 +1339,66 @@ namespace ReringProject.UI {
                 if (ownedFirst != null) return ownedFirst;
             }
             return shots[0];
+        }
+
+        // quick-260901-k7a: MainView.ResolveGrabRoleIdentifier(:1220) 와 같은 규칙을 쓰되, MainView 는 손대지 않고
+        //  여기 별도 구현한다. Datum 노드는 이 트리에서 특정 Shot 에 종속되지 않으므로(Sequence 의 직접 자식) DeviceName 을
+        //  얻으려면 ResolveDatumCameraParam(단발 grab 버튼과 동일 선례)으로 소유 Shot 을 먼저 찾아야 한다 —
+        //  DatumConfig 는 ICameraParam 이 아니라 DeviceName 이 없다(planning 당시 가정과 달리 인터페이스 미구현 확인됨).
+        //  인스턴스 상태(treeListBox_sequence, SystemHandler.Handle)를 쓰는 ResolveDatumCameraParam 을 호출해야 하므로 static 이 아니다.
+        private string ResolveLiveRoleIdentifier(object itemParam, out string szDeviceName) {
+            szDeviceName = null;
+            bool bMirrorX = false;
+            bool bMirrorY = false;
+
+            if (itemParam is DatumConfig) {
+                DatumConfig datumCfg = itemParam as DatumConfig;
+                bMirrorX = datumCfg.MirrorX;
+                bMirrorY = datumCfg.MirrorY;
+                ICameraParam ownerCamParam = ResolveDatumCameraParam(datumCfg);
+                if (ownerCamParam == null) {
+                    return null;
+                }
+                szDeviceName = ownerCamParam.DeviceName;
+            }
+            else if (itemParam is ShotConfig) {
+                ShotConfig shotCfg = itemParam as ShotConfig;
+                szDeviceName = shotCfg.DeviceName;
+                InspectionSequence mirrorSeq = SystemHandler.Handle.Sequences[shotCfg.SequenceName] as InspectionSequence;
+                if (mirrorSeq != null) {
+                    mirrorSeq.ResolveShotGrabMirror(shotCfg, out bMirrorX, out bMirrorY);
+                }
+            }
+            else {
+                return null;
+            }
+
+            return DeviceHandler.BuildGrabRoleIdentifier(szDeviceName, bMirrorX, bMirrorY);
+        }
+
+        // quick-260901-k7a: 트리 선택이 바뀔 때마다 MIL 라이브 미리보기의 미러 방향을 그 노드에 맞춘다.
+        //  라이브 표시 편의 기능이므로 어떤 경우에도 트리 선택 처리를 깨뜨리면 안 된다(전체 try/catch).
+        private void ApplyLiveMirrorForNode(object itemParam) {
+            try {
+                string szNewDevice;
+                string szRoleIdentifier = ResolveLiveRoleIdentifier(itemParam, out szNewDevice);
+
+                bool bDeviceChanged = !string.IsNullOrEmpty(_szLiveRoleDeviceName) && (_szLiveRoleDeviceName != szNewDevice);
+                if (bDeviceChanged) {
+                    SystemHandler.Handle.Devices.ApplyLiveGrabRole(_szLiveRoleDeviceName, null);
+                }
+
+                if (string.IsNullOrEmpty(szNewDevice)) {
+                    _szLiveRoleDeviceName = null;
+                    return;
+                }
+
+                SystemHandler.Handle.Devices.ApplyLiveGrabRole(szNewDevice, szRoleIdentifier);
+                _szLiveRoleDeviceName = szNewDevice;
+            }
+            catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Camera, "[WARN] ApplyLiveMirrorForNode 실패: {0}", ex.Message);
+            }
         }
 
         private void button_light_Click(object sender, RoutedEventArgs e) {

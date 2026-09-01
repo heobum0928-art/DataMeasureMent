@@ -1679,7 +1679,8 @@ namespace ReringProject.Custom.UI {
                     string szFitQuality = BuildFitQualityText(dRmsPx, dMaxPx);
                     //quick-260812 관용구 재사용: lbl_calStatus 는 36곳 대입 — 색은 칠하지 않고 기호만 붙인다.
                     ETeachGrade fitGrade = TeachDiag.ClassifyScore(ToCircularityScore(dRmsPx, rad), FIT_SCORE_MIN);
-                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지). quick-mc1 — 잔차를 저장 여부 결정 전에 보여준다.
+                    //260630 hbk — 저장 확인 다이얼로그 (잘못 누름 방지)
+                    // quick-mc1 — 잔차를 저장 여부 결정 전에 보여준다.
                     string msg = string.Format(
                         "피커센터를 저장하시겠습니까?\n\nRow: {0:F2}  Col: {1:F2}  r: {2:F2}\n{3}", r, c, rad, szFitQuality);
                     MessageBoxResult dlgResult = MessageBox.Show(

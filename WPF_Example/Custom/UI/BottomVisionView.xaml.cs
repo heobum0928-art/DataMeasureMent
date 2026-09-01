@@ -1422,8 +1422,62 @@ namespace ReringProject.Custom.UI {
             }
         }
 
+        /// <summary>
+        /// 260901 hbk quick-mc1 — 피커 캘리브 이미지 소스를 전처리기 분기 대신 런타임으로 판단한다.
+        /// 오프라인(폴더 로더로 불러온 화면 영상) 우선, 없으면 라이브 카메라 Grab 로 폴백.
+        /// bOwnsImage 로 소유권을 명확히 구분한다 — false 면 뷰어 소유(Dispose 금지), true 면 호출자 소유(Dispose 책임).
+        /// </summary>
+        private bool TryResolveCalSourceImage(out HImage img, out bool bOwnsImage) {
+            img = null;
+            bOwnsImage = false;
+
+            // 오프라인 우선: LoadImage(string)(폴더 로더) 만 CurrentImagePath 를 채운다.
+            // Grab/Live 폴링은 LoadImage(HImage) 를 쓰므로 CurrentImagePath 가 null 이 된다.
+            bool bViewerExists = (_viewer != null);
+            bool bViewerHasImage = false;
+            if (bViewerExists) {
+                bViewerHasImage = (_viewer.CurrentImage != null);
+            }
+            bool bViewerHasPath = false;
+            if (bViewerHasImage) {
+                bViewerHasPath = !string.IsNullOrEmpty(_viewer.CurrentImagePath);
+            }
+            bool bViewerHasFileImage = bViewerExists && bViewerHasImage && bViewerHasPath;
+            if (bViewerHasFileImage) {
+                img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
+                bOwnsImage = false;
+                return true;
+            }
+
+            // 라이브 폴백. IsOpen 을 반드시 확인하는 이유: EthernetAlignCamera.Grab() 은 카메라가 안 열려
+            // 있으면 AlignFallbackImagePath 의 정지 이미지를 조용히 돌려준다. 그걸 그대로 누적하면 운영자는
+            // 실패를 인지하지 못한 채 엉뚱한 이미지로 캘 데이터를 쌓게 된다 — 소스가 불확실하면 쌓지 않는다.
+            EthernetAlignCamera cam = EthernetVisionHandler.Handle.Camera;
+            bool bCameraReady = false;
+            if (cam != null) {
+                bCameraReady = cam.IsOpen;
+            }
+            if (!bCameraReady) {
+                lbl_calStatus.Text = "이미지 없음 — [폴더 열기] 로 영상을 불러오거나 카메라 연결을 확인하세요";
+                return false;
+            }
+
+            HImage grabbed = cam.Grab();
+            if (grabbed == null) {
+                lbl_calStatus.Text = "Grab 실패";
+                return false;
+            }
+            if (_viewer != null) {
+                _viewer.LoadImage(grabbed); // 뷰어가 내부 Clone — 원본 소유권은 이쪽에 남는다
+            }
+            img = grabbed;
+            bOwnsImage = true;
+            return true;
+        }
+
         private void CalTeachModelButton_Click(object sender, RoutedEventArgs e) {
             //260630 hbk Phase 60 — Grab → ROI(사각형) 내 ShapeModel 생성 → 저장 + 캐시 로드.
+            //260901 hbk quick-mc1 — 이미지 소스를 컴파일 분기 대신 TryResolveCalSourceImage 런타임 판단으로 전환.
             if (!_calRoiSet) {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
@@ -1433,28 +1487,13 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
+            HImage img = null;
+            bool bOwnsImage = false;
             try {
-#if SIMUL_MODE
-                //260630 hbk — SIMUL: Camera.Grab() 대신 뷰어 CurrentImage 사용 (오프라인 티칭)
-                if (_viewer == null || _viewer.CurrentImage == null) {
-                    lbl_calStatus.Text = "이미지 없음 — [폴더 열기] 후 이미지 로드 먼저";
+                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage);
+                if (!bResolved) {
                     return;
                 }
-                HImage img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
-#else
-                if (EthernetVisionHandler.Handle.Camera == null) {
-                    lbl_calStatus.Text = "미연결";
-                    return;
-                }
-                HImage img = EthernetVisionHandler.Handle.Camera.Grab();
-                if (img == null) {
-                    lbl_calStatus.Text = "Grab 실패";
-                    return;
-                }
-                if (_viewer != null) {
-                    _viewer.LoadImage(img);
-                }
-#endif
 
                 string error;
                 bool bOk = EthernetVisionHandler.Handle.PickerCal.TryTeachModel(
@@ -1462,9 +1501,6 @@ namespace ReringProject.Custom.UI {
                     _calRoiRect.Row1, _calRoiRect.Column1,
                     _calRoiRect.Row2, _calRoiRect.Column2,
                     out error);
-#if !SIMUL_MODE
-                img.Dispose();
-#endif
 
                 if (bOk) {
                     lbl_calStatus.Text = "모델 티칭 완료";
@@ -1476,11 +1512,18 @@ namespace ReringProject.Custom.UI {
             catch (Exception ex) {
                 lbl_calStatus.Text = "모델 티칭 오류: " + ex.Message;
             }
+            finally {
+                bool bShouldDispose = bOwnsImage && (img != null);
+                if (bShouldDispose) {
+                    try { img.Dispose(); } catch { }
+                }
+            }
         }
 
         private void CalAddStepButton_Click(object sender, RoutedEventArgs e) {
             //260624 hbk Phase 61 — 한 스텝: Grab + find_shape_model → 중심 누적
             //260630 hbk Phase 60 — 사각형 ROI 전환: out foundRow/foundCol + 시각화 XLD 갱신
+            //260901 hbk quick-mc1 — 이미지 소스를 컴파일 분기 대신 TryResolveCalSourceImage 런타임 판단으로 전환.
             if (!_calRoiSet) {
                 lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
                 return;
@@ -1501,28 +1544,13 @@ namespace ReringProject.Custom.UI {
                 lbl_calStatus.Text = "모델 로드됨";
             }
 
+            HImage img = null;
+            bool bOwnsImage = false;
             try {
-#if SIMUL_MODE
-                //260630 hbk — SIMUL: Camera.Grab() 대신 뷰어 CurrentImage 사용 (오프라인 폴더 순차 테스트)
-                if (_viewer == null || _viewer.CurrentImage == null) {
-                    lbl_calStatus.Text = "이미지 없음 — [폴더 열기] 후 이미지 로드 먼저";
+                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage);
+                if (!bResolved) {
                     return;
                 }
-                HImage img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
-#else
-                if (EthernetVisionHandler.Handle.Camera == null) {
-                    lbl_calStatus.Text = "미연결";
-                    return;
-                }
-                HImage img = EthernetVisionHandler.Handle.Camera.Grab();
-                if (img == null) {
-                    lbl_calStatus.Text = "Grab 실패";
-                    return;
-                }
-                if (_viewer != null) {
-                    _viewer.LoadImage(img);
-                }
-#endif
 
                 double foundRow, foundCol;
                 double calScore;   //quick-260812: 이미 계산된 검색 점수 수신(등급 표시용)
@@ -1532,9 +1560,6 @@ namespace ReringProject.Custom.UI {
                     _calRoiRect.Row1, _calRoiRect.Column1,
                     _calRoiRect.Row2, _calRoiRect.Column2,
                     out foundRow, out foundCol, out calScore, out error);
-#if !SIMUL_MODE
-                img.Dispose();
-#endif
 
                 if (bOk) {
                     int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
@@ -1545,16 +1570,23 @@ namespace ReringProject.Custom.UI {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
                         _viewer.SetAlignContourXld(vizXld); // 소유권 이전
                     }
-#if SIMUL_MODE
-                    //260630 hbk — SIMUL: 스텝 성공 시 다음 이미지로 자동 이동
-                    if (_loadedImageIndex < _loadedImagePaths.Count - 1) {
-                        _loadedImageIndex = _loadedImageIndex + 1;
-                        LoadCurrentLoaderImage();
+
+                    // 260901 hbk quick-mc1 — 오프라인 이미지로 스텝을 잡았을 때만 자동으로 다음 이미지로 넘어간다.
+                    // 라이브 grab 스텝은 폴더 인덱스와 무관하므로 자동 넘김 대상이 아니다.
+                    bool bUsedOfflineImage = (bOwnsImage == false);
+                    if (bUsedOfflineImage) {
+                        // LoadCurrentLoaderImage() 는 뷰어의 기존 CurrentImage 를 Dispose 한다.
+                        // 이 지역 참조가 이후 dangling 참조가 될 수 없도록 자동 넘김 실행 직전에 끊는다.
+                        img = null;
+                        bool bHasNextImage = (_loadedImageIndex >= 0) && (_loadedImageIndex < _loadedImagePaths.Count - 1);
+                        if (bHasNextImage) {
+                            _loadedImageIndex = _loadedImageIndex + 1;
+                            LoadCurrentLoaderImage();
+                        }
+                        else {
+                            lbl_loaderStatus.Text = "마지막 이미지 도달";
+                        }
                     }
-                    else {
-                        lbl_loaderStatus.Text = "마지막 이미지 도달";
-                    }
-#endif
                 }
                 else {
                     lbl_calStatus.Text = "스텝 실패: " + error;
@@ -1562,6 +1594,12 @@ namespace ReringProject.Custom.UI {
             }
             catch (Exception ex) {
                 lbl_calStatus.Text = "스텝 오류: " + ex.Message;
+            }
+            finally {
+                bool bShouldDispose = bOwnsImage && (img != null);
+                if (bShouldDispose) {
+                    try { img.Dispose(); } catch { }
+                }
             }
         }
 
@@ -1903,6 +1941,12 @@ namespace ReringProject.Custom.UI {
 
 #if SIMUL_MODE
                 //260630 hbk — SIMUL: TCP STEP 경로가 폴더 이미지를 순차 사용하도록 카메라에 등록
+                // 260901 hbk quick-mc1 — 실HW 에서는 절대 열지 않는다(의도적 SIMUL 전용 유지).
+                // LoadSimulFolder 로 등록한 경로는 EthernetAlignCamera.LoadFallbackImage() 안에서만 소비되고,
+                // 그 경로는 카메라가 안 열렸거나 grab 이 실패했을 때만 도달한다. 실HW 에서 이걸 열어두면
+                // 생산 중 카메라가 끊긴 순간 TCP $ALIGN_CALIB STEP 경로가 운영자가 예전에 열어둔 폴더 이미지를
+                // 순차로 조용히 먹기 시작한다(등록 해제 경로도 없다). 이 오프라인 캘 흐름(TryResolveCalSourceImage)은
+                // _viewer.CurrentImage 를 직접 읽으므로 카메라 쪽 등록이 전혀 필요 없다.
                 if (EthernetVisionHandler.Handle.Camera != null) {
                     EthernetVisionHandler.Handle.Camera.LoadSimulFolder(folder);
                 }

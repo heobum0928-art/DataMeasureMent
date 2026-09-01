@@ -41,6 +41,14 @@ namespace ReringProject.Custom.UI {
         private int _loadedImageIndex = -1;   // -1 = 미로드
         private static string _lastImageFolder = null;   // 폴더 마지막 위치 기억 (static — 탭 전환에도 유지)
 
+        // 이미지 저장 상태
+        private const string SAVE_IMAGE_PREFIX = "BottomAlign";
+        private const string SAVE_IMAGE_SUBFOLDER = "AlignCapture";
+        private const string SAVE_IMAGE_TIMESTAMP_FORMAT = "yyyyMMdd_HHmmss";
+        private const string SAVE_IMAGE_EXTENSION = ".bmp";
+        private const string SAVE_IMAGE_FORMAT = "bmp";
+        private static string _lastSaveFolder = null;   // 저장 마지막 폴더 기억 (static — 탭 전환에도 유지)
+
         // D-03: 외부 주입 공유 뷰어 (소유하지 않음 — MainWindow 가 관리)
         private MainResultViewerControl _viewer;
 
@@ -1986,6 +1994,70 @@ namespace ReringProject.Custom.UI {
                 Path.GetFileName(path));
 
             lbl_status.Text = "대기";
+        }
+
+        /// <summary>
+        /// 화면에 보이는 현재 영상(_viewer.CurrentImage)을 bmp 로 저장한다.
+        /// _viewer.CurrentImage 는 뷰어 소유이므로 여기서 Dispose 하지 않는다.
+        /// </summary>
+        private void SaveImageButton_Click(object sender, RoutedEventArgs e) {
+            bool bViewerMissing = (_viewer == null);
+            if (bViewerMissing) {
+                lbl_loaderStatus.Text = "저장할 이미지가 없습니다 — Grab 또는 [폴더 열기] 로 영상을 먼저 띄우세요";
+                return;
+            }
+
+            bool bNoCurrentImage = (_viewer.CurrentImage == null);
+            if (bNoCurrentImage) {
+                lbl_loaderStatus.Text = "저장할 이미지가 없습니다 — Grab 또는 [폴더 열기] 로 영상을 먼저 띄우세요";
+                return;
+            }
+
+            string szInitialDir = null;
+            if (!string.IsNullOrEmpty(_lastSaveFolder)) {
+                szInitialDir = _lastSaveFolder;
+            }
+            else if (!string.IsNullOrEmpty(SystemSetting.Handle.ImageSavePath)) {
+                szInitialDir = Path.Combine(SystemSetting.Handle.ImageSavePath, SAVE_IMAGE_SUBFOLDER);
+            }
+
+            if (!string.IsNullOrEmpty(szInitialDir) && !Directory.Exists(szInitialDir)) {
+                try {
+                    Directory.CreateDirectory(szInitialDir);
+                }
+                catch (Exception) {
+                    szInitialDir = null;   // 생성 실패 시 다이얼로그 기본 위치에 맡긴다
+                }
+            }
+
+            var dlg = new Ookii.Dialogs.Wpf.VistaSaveFileDialog();
+            dlg.Filter = "BMP 이미지|*.bmp";
+            dlg.DefaultExt = "bmp";
+            dlg.AddExtension = true;
+            dlg.OverwritePrompt = true;
+            if (!string.IsNullOrEmpty(szInitialDir)) {
+                dlg.InitialDirectory = szInitialDir;
+            }
+
+            dlg.FileName = SAVE_IMAGE_PREFIX + "_" + DateTime.Now.ToString(SAVE_IMAGE_TIMESTAMP_FORMAT) + SAVE_IMAGE_EXTENSION;
+
+            bool? bResult = dlg.ShowDialog();
+            if (bResult == true) {
+                string szPath = dlg.FileName;
+                try {
+                    string szDir = Path.GetDirectoryName(szPath);
+                    if (!string.IsNullOrEmpty(szDir) && !Directory.Exists(szDir)) {
+                        Directory.CreateDirectory(szDir);
+                    }
+
+                    _viewer.CurrentImage.WriteImage(SAVE_IMAGE_FORMAT, 0, szPath);
+                    _lastSaveFolder = Path.GetDirectoryName(szPath);
+                    lbl_loaderStatus.Text = "저장 완료: " + Path.GetFileName(szPath);
+                }
+                catch (Exception ex) {
+                    lbl_loaderStatus.Text = "저장 실패: " + ex.Message;
+                }
+            }
         }
     }
 }

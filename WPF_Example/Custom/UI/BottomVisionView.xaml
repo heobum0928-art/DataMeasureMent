@@ -125,6 +125,8 @@
                                         Style="{StaticResource BottomActionButtonStyle}" Click="PrevImageButton_Click"/>
                                 <Button x:Name="btn_nextImage" Content="다음 ▶"
                                         Style="{StaticResource BottomActionButtonStyle}" Click="NextImageButton_Click"/>
+                                <Button x:Name="btn_saveImage" Content="이미지 저장"
+                                        Style="{StaticResource BottomActionButtonStyle}" Click="SaveImageButton_Click"/>
                             </WrapPanel>
                             <TextBlock x:Name="lbl_loaderStatus" Margin="8,0,0,4" FontSize="12"
                                        Foreground="#475569" Text="로드된 이미지 없음" TextWrapping="Wrap"/>

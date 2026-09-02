@@ -366,10 +366,19 @@ namespace ReringProject
                  "이번 변경은 정렬 화면의 수동 촬영/라이브 버튼에만 해당하며, 자동 검사 사이클과 티칭 과정의 조명 동작은 " +
                  "그대로 두었다."
     )]
+    [Version(
+        Number = "1.7.31.0",
+        Date = "2026-09-02",
+        Change = "이더넷 정렬 카메라(BottomAlign/TrayAlign)의 화면 좌우/상하 반전이 카메라 쪽에 설정해 놔도 계속 풀리던 문제를 고쳤다. " +
+                 "원인: 프로그램이 카메라에 연결할 때마다 반전값을 '끔'으로 다시 써 넣고 있었다. 정렬 카메라는 연결 코드가 반전을 " +
+                 "항상 끔으로 넘기게 되어 있어서, MVS 같은 카메라 전용 프로그램으로 반전을 켜 두어도 연결하는 순간 원래대로 돌아갔다. " +
+                 "이제 프로그램이 반전값을 건드리지 않으므로, 카메라에 저장해 둔 설정이 그대로 유지된다 — 반전이 필요하면 카메라 쪽에서 켜면 된다. " +
+                 "검사 카메라(Top/Bottom/Side)는 다른 종류(CXP)라 이 코드를 쓰지 않으므로 영향이 없다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.30.0";
+        public const string VERSION = "1.7.31.0";
         public const string BUILD_DATE = "2026-09-02";
     }
 }

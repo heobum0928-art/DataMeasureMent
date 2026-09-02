@@ -350,26 +350,30 @@ namespace ReringProject.Device {
                     Properties.Height = Info.Height;
                     Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set Height to {1} failed!", Info.Identifier, Info.Height);
                 }
-                bool boolVal = true;
-                CameraHandle.SetBoolValue("ReverseX", Info.ReverseX);
-                if(CameraHandle.GetBoolValue("ReverseX", ref boolVal) == CErrorDefine.MV_OK) {
-                    if(Info.ReverseX != boolVal) {
-                        Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseX to {1} failed!", Info.Identifier, Info.ReverseX);
-                    }
-                }
-                else {
-                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseX to {1} failed!", Info.Identifier, Info.ReverseX);
-                }
+                // ReverseX/ReverseY 를 여기서 쓰지 않는다 — 카메라 자체 설정(MVS 등으로 저장한 user set)을 그대로 존중한다.
+                //  이 블록이 살아 있으면 Open 때마다 Info.ReverseX/Y 를 카메라에 밀어넣는데, 이더넷 정렬 카메라는
+                //  EthernetAlignCamera.Connect 가 DeviceInfo 를 false/false 로 만들어 넘기므로 카메라에 설정해 둔
+                //  반전이 연결할 때마다 꺼져 버린다(실기에서 반전이 안 먹던 원인). 되살리려면 그 하드코딩부터 걷어낼 것.
+                //bool boolVal = true;
+                //CameraHandle.SetBoolValue("ReverseX", Info.ReverseX);
+                //if(CameraHandle.GetBoolValue("ReverseX", ref boolVal) == CErrorDefine.MV_OK) {
+                //    if(Info.ReverseX != boolVal) {
+                //        Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseX to {1} failed!", Info.Identifier, Info.ReverseX);
+                //    }
+                //}
+                //else {
+                //    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseX to {1} failed!", Info.Identifier, Info.ReverseX);
+                //}
 
-                CameraHandle.SetBoolValue("ReverseY", Info.ReverseY);
-                if(CameraHandle.GetBoolValue("ReverseY", ref boolVal) == CErrorDefine.MV_OK) {
-                    if(Info.ReverseY != boolVal) {
-                        Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseY to {1} failed!", Info.Identifier, Info.ReverseY);
-                    }
-                }
-                else {
-                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseY to {1} failed!", Info.Identifier, Info.ReverseY);
-                }
+                //CameraHandle.SetBoolValue("ReverseY", Info.ReverseY);
+                //if(CameraHandle.GetBoolValue("ReverseY", ref boolVal) == CErrorDefine.MV_OK) {
+                //    if(Info.ReverseY != boolVal) {
+                //        Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseY to {1} failed!", Info.Identifier, Info.ReverseY);
+                //    }
+                //}
+                //else {
+                //    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Set ReverseY to {1} failed!", Info.Identifier, Info.ReverseY);
+                //}
                 
                 CameraHandle.SetEnumValue("AcquisitionMode", (uint)MV_CAM_ACQUISITION_MODE.MV_ACQ_MODE_CONTINUOUS);
                 CameraHandle.SetEnumValue("ExposureAutoMode", (uint)MV_CAM_EXPOSURE_AUTO_MODE.MV_EXPOSURE_AUTO_MODE_OFF);

@@ -152,12 +152,14 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
+                <!--Quick 260902-oys: Col0 을 * 로 전환 — WrapPanel 이 유한 폭으로 measure 되어야 실제로 줄바꿈이 일어난다.
+                     Auto 컬럼 안의 WrapPanel 은 PositiveInfinity 로 measure 되어 절대 접히지 않는다. Col1 은 그래서 Auto 로 내린다.-->
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <WrapPanel Grid.Column="0" Orientation="Horizontal">
                     <ToggleButton x:Name="btn_rectRoi" Content="Rect ROI"
                         Click="RectRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
@@ -419,7 +421,7 @@
                         IsChecked="True"
                         Checked="Chk_overlayPattern_Changed" Unchecked="Chk_overlayPattern_Changed"
                         Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
-                </StackPanel>
+                </WrapPanel>
                 <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"
                        HorizontalAlignment="Center" VerticalContentAlignment="Center"

@@ -364,6 +364,8 @@ namespace ReringProject.Custom.UI {
                     //260724 hbk Live/Grab 상호 배타 — Live 중엔 Grab 금지, Live 버튼도 재클릭 방지(Stop 으로만 해제)
                     btn_grab.IsEnabled = false;
                     btn_live.IsEnabled = false;
+                    // Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(D-07 연장).
+                    ApplyCoaxLight();
                     StartLiveTimer();
                 }
                 else {
@@ -386,6 +388,8 @@ namespace ReringProject.Custom.UI {
             try {
                 StopLiveTimer();
                 EthernetVisionHandler.Handle.Camera.Stop();
+                // Live 를 껐으면 조명도 꺼야 한다 — UI 체크 상태와 무관하게 무조건 소등.
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
                 btn_live.Content = "Live Off";   //260724 hbk 버튼 자체 글자 토글
                 //260724 hbk Live 종료 — Grab/Live 버튼 재활성화
                 btn_grab.IsEnabled = true;

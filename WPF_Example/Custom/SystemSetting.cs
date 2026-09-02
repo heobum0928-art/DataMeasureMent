@@ -50,6 +50,10 @@ namespace ReringProject.Setting {
         // 두 판정 기준을 단일 소스로 통일. AlignShapeMatchService 는 이 public const 를 참조.
         public const double PICKER_CENTER_ZERO_EPS = 1e-6; //260624 hbk Phase 60
 
+        // quick-260902-fwj — 얼라인 화면 수동 Grab 뒤 동축을 자동으로 끄기까지의 대기 시간(ms).
+        //  0 이하로 두면 자동 소등을 하지 않는다(기존 동작 유지).
+        private const int ALIGN_COAX_AUTO_OFF_MS_DEFAULT = 3000;
+
         // D 드라이브가 없는 PC(예: 노트북)에 배포할 때 이 두 값만 INI 로 다른 드라이브를 가리키게 할 수 있도록
         // 설정화. 이전에는 DeviceHandler.SimulatedImagePath / EthernetAlignCamera.ALIGN_FALLBACK_IMAGE_PATH 가
         // 각각 D:\1.bmp, D:\align_test.bmp 로 코드에 고정돼 있어 INI 로 바꿀 방법이 없었다.
@@ -275,5 +279,13 @@ namespace ReringProject.Setting {
 
         [Category("ETHERNET_VISION")]
         public double CalibSearchCol2 { get; set; } = 99999.0;
+
+        // quick-260902-fwj — AlignCoaxAutoOffMs: 얼라인 화면 Grab 버튼(수동 촬영) 전용 설정이다.
+        //  이 시간(ms) 이 지나면 동축 조명을 자동으로 끈다. 0 이하면 자동 소등을 하지 않는다.
+        //  자동 검사 사이클/티칭 경로의 조명 동작과는 무관하다(그쪽은 손대지 않음).
+        //  기존 Setting.ini 에는 이 키가 없어 처음에는 0(자동 소등 꺼짐)으로 로드된다 —
+        //  설정 창에서 값을 한 번 넣어 저장해야 기능이 켜진다.
+        [Category("ETHERNET_VISION")]
+        public int AlignCoaxAutoOffMs { get; set; } = ALIGN_COAX_AUTO_OFF_MS_DEFAULT;
     }
 }

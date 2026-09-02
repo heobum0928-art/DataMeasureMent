@@ -54,6 +54,10 @@ namespace ReringProject.Custom.UI {
         //  재트리거(Grab) 없이 PeekLastImage()로 최근 스트리밍 프레임만 읽어와 뷰어에 반영.
         private DispatcherTimer _liveTimer;
 
+        // quick-260902-fwj — Grab 버튼(수동 촬영) 전용 동축 자동 소등 타이머. 1회성 — Tick 에서
+        //  즉시 자기 자신을 정지한다. 자동 검사 사이클/티칭 경로와는 무관하다.
+        private DispatcherTimer _coaxAutoOffTimer;
+
         // 2-ROI 티칭 슬롯: DrawRoi1→DrawRoi2 순서로 슬롯 채움
         private RoiDefinition _roi1;
         private RoiDefinition _roi2;
@@ -160,6 +164,11 @@ namespace ReringProject.Custom.UI {
             catch (Exception ex) {
                 lbl_status.Text = "Grab 오류: " + ex.Message;
             }
+            // 성공/취득실패/예외 세 경로 모두 위 ApplyCoaxLight() 가 이미 실행되어 조명이 켜져 있다.
+            //  세 경로 전부에서 빠짐없이 소등을 예약한다.
+            finally {
+                StartCoaxAutoOffTimer();
+            }
 #endif
         }
 
@@ -176,6 +185,8 @@ namespace ReringProject.Custom.UI {
                     //260807 hbk Live/Grab 상호 배타 — Live 중엔 Grab 금지, Live 버튼도 재클릭 방지(Stop 으로만 해제)
                     btn_grab.IsEnabled = false;
                     btn_live.IsEnabled = false;
+                    // 직전 Grab 이 걸어둔 소등 예약이 Live 도중에 터져 조명을 꺼버리는 것을 막는다.
+                    CancelCoaxAutoOffTimer();
                     // Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(D-07 연장).
                     ApplyCoaxLight();
                     StartLiveTimer();
@@ -199,6 +210,7 @@ namespace ReringProject.Custom.UI {
 
             try {
                 StopLiveTimer();
+                CancelCoaxAutoOffTimer();   // 잔여 소등 예약 정리 — 아래에서 이미 무조건 소등하므로 중복 방지.
                 EthernetVisionHandler.Handle.Camera.Stop();
                 // Live 를 껐으면 조명도 꺼야 한다 — UI 체크 상태와 무관하게 무조건 소등.
                 LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
@@ -250,6 +262,39 @@ namespace ReringProject.Custom.UI {
             }
             finally {
                 img?.Dispose();
+            }
+        }
+
+        /// <summary>Grab 버튼 뒤 설정된 시간(ms)이 지나면 동축 조명을 끄도록 1회성 타이머를 예약한다.</summary>
+        private void StartCoaxAutoOffTimer() {
+            CancelCoaxAutoOffTimer();   // 연속 Grab 시 마지막 Grab 기준으로 소등 시각을 다시 계산한다.
+            int nDelayMs = SystemSetting.Handle.AlignCoaxAutoOffMs;
+            if (nDelayMs <= 0) {
+                return;   // 0 이하 = 자동 소등 비활성(기존 동작 유지)
+            }
+            _coaxAutoOffTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(nDelayMs) };
+            _coaxAutoOffTimer.Tick += CoaxAutoOffTimer_Tick;
+            _coaxAutoOffTimer.Start();
+        }
+
+        /// <summary>대기 중인 동축 자동 소등 예약을 취소한다. 예약이 없으면 아무 일도 하지 않는다.</summary>
+        private void CancelCoaxAutoOffTimer() {
+            if (_coaxAutoOffTimer == null) {
+                return;
+            }
+            _coaxAutoOffTimer.Stop();
+            _coaxAutoOffTimer.Tick -= CoaxAutoOffTimer_Tick;
+            _coaxAutoOffTimer = null;
+        }
+
+        /// <summary>예약된 시간이 지나 동축 조명을 끈다. 1회만 발화하고 스스로 정지한다.</summary>
+        private void CoaxAutoOffTimer_Tick(object sender, EventArgs e) {
+            CancelCoaxAutoOffTimer();   // 1회성 — 반복 소등 방지를 위해 자기 자신부터 먼저 정지한다.
+            try {
+                LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
+            }
+            catch (Exception ex) {
+                lbl_status.Text = "동축 소등 오류: " + ex.Message;
             }
         }
 

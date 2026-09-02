@@ -1879,6 +1879,16 @@ namespace ReringProject.UI
 
         private void ClearMeasureMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            ClearManualMeasure();
+        }
+
+        /// <summary>
+        /// 수동 거리측정 표시(두 점 + 선)를 지운다. 크로스헤어 등 다른 도구 상태는 건드리지 않는다
+        /// (ResetManualToolState 는 크로스헤어까지 끄므로 이 용도로 재사용하면 안 된다).
+        /// 검사 시작처럼 바깥에서 측정 자국만 치워야 할 때 호출한다.
+        /// </summary>
+        public void ClearManualMeasure()
+        {
             _manualMeasureStartPoint = null;
             _manualMeasureEndPoint = null;
             _manualMeasureMode = false;

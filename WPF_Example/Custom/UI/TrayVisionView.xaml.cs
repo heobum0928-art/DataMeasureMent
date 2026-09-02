@@ -944,6 +944,9 @@ namespace ReringProject.Custom.UI {
                 brushPanel.ViewModel.IsEraseMode = false;
             }
 
+            // 같은 이유로 직전에 재본 수동 거리측정 자국도 지운다 — 검사 결과 위에 남아 겹쳐 보인다.
+            _viewer.ClearManualMeasure();
+
             //260702 hbk 모델 미티칭 상태에서 검사 방지 — 안내 후 중단
             bool bHasModel = false; //260702 hbk 기본 false: 예외/미초기화 시 검사 차단
             try {

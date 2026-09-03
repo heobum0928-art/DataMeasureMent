@@ -129,12 +129,14 @@ namespace ReringProject.Custom.UI {
             _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
             LoadCalStepAngleToUi(); // Phase 74: 저장된 캘 스텝 각도 반영
             LoadCalFindMinScoreToUi(); // quick-mc1: 저장된 캘 최소 Score 반영
+            UpdateCalButtonState(); // 뷰어 재주입 시에도 캘 버튼 활성 상태를 최신으로 갱신
 
             // 캘 ROI 사각형 드로잉 완료 구독 (중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
             _viewer.RectDrawingCompleted += OnCalRectDrawn;
 
             //260630 hbk — TCP ALIGN_CALIB STEP 경로 뷰어 콜백 등록
+            // TCP 경로로도 누적 스텝 수가 바뀌므로 버튼 게이팅을 같이 갱신한다(수동 버튼과 상태 공유).
             EthernetVisionHandler.Handle.OnCalibStepViewer = (img, xld) => {
                 if (_viewer == null)
                 {
@@ -143,12 +145,12 @@ namespace ReringProject.Custom.UI {
                 }
                 _viewer.LoadImage(img); // 내부 Clone — img 외부 dispose 안전
                 _viewer.SetAlignContourXld(xld); // 소유권 이전
+                UpdateCalButtonState();
             };
 
             //260630 hbk — TCP ALIGN_CALIB END 경로 뷰어+라벨 콜백 등록
             EthernetVisionHandler.Handle.OnCalibEndViewer = (r, c, rad, xld) => {
                 lbl_pickerCenter.Text = string.Format("피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
-                lbl_calStatus.Text = "END 수신 — 피커센터 산출 완료";
                 if (_viewer != null)
                 {
                     _viewer.SetAlignContourXld(xld); // 소유권 이전
@@ -157,6 +159,7 @@ namespace ReringProject.Custom.UI {
                 {
                     if (xld != null) { try { xld.Dispose(); } catch { } }
                 }
+                UpdateCalButtonState("END 수신 — 피커센터 산출 완료");
             };
 
             //quick-260812: 자동경로 실패 알림 등록. 형제 콜백과 같은 대입(=) 방식 —
@@ -202,7 +205,7 @@ namespace ReringProject.Custom.UI {
             _calRoiSet = true;
             double dW = c2 - c1;
             double dH = r2 - r1;
-            lbl_calStatus.Text = "ROI 복원됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")";
+            UpdateCalButtonState("ROI 복원됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")");
         }
 
         /// <summary>
@@ -1460,8 +1463,8 @@ namespace ReringProject.Custom.UI {
                 SystemSetting.Handle.CalibSearchCol2 = roi.Column2;
                 double dW = roi.Column2 - roi.Column1;
                 double dH = roi.Row2 - roi.Row1;
-                lbl_calStatus.Text = "검색 ROI 설정됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")";
                 ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 캘 검색 ROI 가 보이게 유지
+                UpdateCalButtonState("검색 ROI 설정됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")");
             }
             catch (Exception ex) {
                 lbl_calStatus.Text = "ROI 수거 오류: " + ex.Message;
@@ -1494,14 +1497,41 @@ namespace ReringProject.Custom.UI {
                 SystemSetting.Handle.CalibSearchCol1 = 0.0;
                 SystemSetting.Handle.CalibSearchRow2 = 0.0;
                 SystemSetting.Handle.CalibSearchCol2 = 0.0;
-                lbl_calStatus.Text = "누적 0 · 검색 ROI 삭제됨";
                 if (_viewer != null) {
                     _viewer.SetAlignContourXld(null); //260630 hbk — 오버레이 클리어
                 }
                 ShowTeachRoiOverlays(); // Phase 74: 캘 ROI 해제를 화면에도 반영
+                UpdateCalButtonState("누적 0 · 검색 ROI 삭제됨");
             }
             catch (Exception ex) {
                 lbl_calStatus.Text = "초기화 오류: " + ex.Message;
+            }
+        }
+
+        // 수동 반복(자재를 손으로 놓고 찍기) 중 한 번만 잘못돼도 [초기화]로 전부 다시 하지
+        //  않도록, 누적의 마지막 1개만 제거한다. Reset() 과 달리 확인 다이얼로그를 두지 않는다 —
+        //  이 동작 자체가 방금 실수를 되돌리는 되돌리기 동작이라 나머지 스텝은 그대로 유지된다.
+        private void CalRemoveLastStepButton_Click(object sender, RoutedEventArgs e) {
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            try {
+                bool bRemoved = EthernetVisionHandler.Handle.PickerCal.TryRemoveLastStep();
+                if (!bRemoved) {
+                    UpdateCalButtonState("취소할 스텝이 없습니다");
+                    return;
+                }
+                if (_viewer != null) {
+                    // TryRemoveLastStep 이 서비스 내부 _vizXld 를 비웠다 — 화면 오버레이도 같이 정리한다.
+                    _viewer.SetAlignContourXld(null);
+                }
+                int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
+                UpdateCalButtonState("마지막 스텝 취소됨 · 누적 " + stepCount);
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "마지막 취소 오류: " + ex.Message;
             }
         }
 
@@ -1527,10 +1557,14 @@ namespace ReringProject.Custom.UI {
         /// quick-mc1 — 피커 캘리브 이미지 소스를 전처리기 분기 대신 런타임으로 판단한다.
         /// 오프라인(폴더 로더로 불러온 화면 영상) 우선, 없으면 라이브 카메라 Grab 로 폴백.
         /// bOwnsImage 로 소유권을 명확히 구분한다 — false 면 뷰어 소유(Dispose 금지), true 면 호출자 소유(Dispose 책임).
+        /// 이 우선순위는 그대로 유지한다 — [폴더 열기]로 예전 사진을 열어둔 채 캘을 누르면 낡은
+        /// 사진으로 캘이 잡히는 결함이 알려져 있지만(코드리뷰 지적, 별도 결정 대기), 이 작업 범위는
+        /// 어느 소스를 썼는지 szSourceLabel 로 화면에 표시하는 것뿐이고 분기 순서는 바꾸지 않는다.
         /// </summary>
-        private bool TryResolveCalSourceImage(out HImage img, out bool bOwnsImage) {
+        private bool TryResolveCalSourceImage(out HImage img, out bool bOwnsImage, out string szSourceLabel) {
             img = null;
             bOwnsImage = false;
+            szSourceLabel = "";
 
             // 오프라인 우선: LoadImage(string)(폴더 로더) 만 CurrentImagePath 를 채운다.
             // Grab/Live 폴링은 LoadImage(HImage) 를 쓰므로 CurrentImagePath 가 null 이 된다.
@@ -1547,6 +1581,7 @@ namespace ReringProject.Custom.UI {
             if (bViewerHasFileImage) {
                 img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
                 bOwnsImage = false;
+                szSourceLabel = "저장 이미지";
                 return true;
             }
 
@@ -1573,6 +1608,7 @@ namespace ReringProject.Custom.UI {
             }
             img = grabbed;
             bOwnsImage = true;
+            szSourceLabel = "라이브";
             return true;
         }
 
@@ -1590,8 +1626,9 @@ namespace ReringProject.Custom.UI {
 
             HImage img = null;
             bool bOwnsImage = false;
+            string szSourceLabel;
             try {
-                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage);
+                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage, out szSourceLabel);
                 if (!bResolved) {
                     return;
                 }
@@ -1604,7 +1641,7 @@ namespace ReringProject.Custom.UI {
                     out error);
 
                 if (bOk) {
-                    lbl_calStatus.Text = "모델 티칭 완료";
+                    UpdateCalButtonState("모델 티칭 완료 (" + szSourceLabel + ")");
                 }
                 else {
                     lbl_calStatus.Text = "모델 티칭 실패: " + error;
@@ -1647,8 +1684,9 @@ namespace ReringProject.Custom.UI {
 
             HImage img = null;
             bool bOwnsImage = false;
+            string szSourceLabel;
             try {
-                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage);
+                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage, out szSourceLabel);
                 if (!bResolved) {
                     return;
                 }
@@ -1663,10 +1701,9 @@ namespace ReringProject.Custom.UI {
                     out foundRow, out foundCol, out calScore, out error);
 
                 if (bOk) {
-                    int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
-                    //quick-260812: lbl_calStatus 는 이 파일에 36곳 대입 — 여기만 색을 칠하면 stale 색이 남는다. 기호만 붙인다.
                     ETeachGrade calGrade = TeachDiag.ClassifyScore(calScore, PickerCenterCalibrationService.FindMinScore);
-                    lbl_calStatus.Text = TeachDiag.ToStatusLine(calGrade, "누적 " + stepCount + "  last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")  score " + calScore.ToString("F3"));
+                    string szStepDetail = TeachDiag.ToStatusLine(calGrade,
+                        szSourceLabel + " · last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")  score " + calScore.ToString("F3"));
                     if (_viewer != null) {
                         HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
                         _viewer.SetAlignContourXld(vizXld); // 소유권 이전
@@ -1688,6 +1725,7 @@ namespace ReringProject.Custom.UI {
                             lbl_loaderStatus.Text = "마지막 이미지 도달";
                         }
                     }
+                    UpdateCalButtonState(szStepDetail);
                 }
                 else {
                     lbl_calStatus.Text = "스텝 실패: " + error;
@@ -1736,14 +1774,14 @@ namespace ReringProject.Custom.UI {
                         msg, "피커센터 저장", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (dlgResult == MessageBoxResult.Yes) {
                         SystemSetting.Handle.Save();
-                        lbl_calStatus.Text = TeachDiag.ToStatusLine(fitGrade, "피커센터 저장 완료 · " + szFitQuality);
+                        UpdateCalButtonState(TeachDiag.ToStatusLine(fitGrade, "피커센터 저장 완료 · " + szFitQuality));
                     }
                     else {
-                        lbl_calStatus.Text = TeachDiag.ToStatusLine(fitGrade, "저장 취소 (값은 런타임 유지, 재시작 시 초기화) · " + szFitQuality);
+                        UpdateCalButtonState(TeachDiag.ToStatusLine(fitGrade, "저장 취소 (값은 런타임 유지, 재시작 시 초기화) · " + szFitQuality));
                     }
                 }
                 else {
-                    lbl_calStatus.Text = "계산 실패: " + error;
+                    UpdateCalButtonState("계산 실패: " + error);
                     lbl_pickerCenter.Text = "";
                 }
             }
@@ -1815,6 +1853,81 @@ namespace ReringProject.Custom.UI {
                 dRmsUm, dRmsPx, dMaxUm, dMaxPx);
         }
 
+        // 피커센터 캘 버튼(②③④ + 마지막 취소) 활성/비활성을 한 곳에서 일괄 갱신한다. 잘못된
+        //  순서를 에러 메시지로 사후 통보하는 대신 애초에 못 누르게 막는 것이 목적이다.
+        //  szDetail 이 있으면 방금 수행한 동작의 결과 문구 뒤에 현재 진행 단계 배너를 이어 붙인다.
+        private void UpdateCalButtonState() {
+            UpdateCalButtonState(null);
+        }
+
+        private void UpdateCalButtonState(string szDetail) {
+            PickerCenterCalibrationService pickerCal = EthernetVisionHandler.Handle.PickerCal;
+
+            bool bHasModel = false;
+            int nStepCount = 0;
+            int nMinSteps = 1;
+            if (pickerCal != null) {
+                bHasModel  = pickerCal.HasModel;
+                nStepCount = pickerCal.StepCount;
+                nMinSteps  = pickerCal.MinSteps;
+            }
+
+            bool bCanTeach      = _calRoiSet;
+            bool bCanAddStep    = _calRoiSet && bHasModel;
+            bool bCanRemoveLast = (nStepCount > 0);
+            bool bCanCompute    = bHasModel && (nStepCount >= nMinSteps);
+
+            if (btn_calTeachModel != null) {
+                btn_calTeachModel.IsEnabled = bCanTeach;
+            }
+            if (btn_calAddStep != null) {
+                btn_calAddStep.IsEnabled = bCanAddStep;
+            }
+            if (btn_calRemoveLastStep != null) {
+                btn_calRemoveLastStep.IsEnabled = bCanRemoveLast;
+            }
+            if (btn_calCompute != null) {
+                btn_calCompute.IsEnabled = bCanCompute;
+            }
+
+            if (lbl_calStatus == null) {
+                return;
+            }
+
+            ETeachGrade stageGrade;
+            string szStage = BuildCalStageStatus(bHasModel, nStepCount, nMinSteps, out stageGrade);
+
+            bool bHasDetail = !string.IsNullOrEmpty(szDetail);
+            if (bHasDetail) {
+                lbl_calStatus.Text = szDetail + " · " + szStage;
+            }
+            else {
+                lbl_calStatus.Text = szStage;
+            }
+            lbl_calStatus.Foreground = TeachDiag.GradeBrush(stageGrade);
+        }
+
+        // 현재 캘 진행 단계를 번호 배너로 만든다. stageGrade 는 lbl_calStatus 색 구분용 —
+        //  아직 준비 안 됨(①②③)은 Weak(주황), 계산 가능(④, 최소 스텝 충족)은 Good(초록).
+        //  이 등급은 표시 전용이며 검사 판정(P/F)과 무관하다(TeachDiagnostics 의 기존 계약과 동일).
+        private string BuildCalStageStatus(bool bHasModel, int nStepCount, int nMinSteps, out ETeachGrade stageGrade) {
+            if (!_calRoiSet) {
+                stageGrade = ETeachGrade.Weak;
+                return "① 검색 ROI 지정 필요";
+            }
+            if (!bHasModel) {
+                stageGrade = ETeachGrade.Weak;
+                return "② 모델 티칭 필요 (ROI 지정됨)";
+            }
+            bool bEnoughSteps = (nStepCount >= nMinSteps);
+            if (!bEnoughSteps) {
+                stageGrade = ETeachGrade.Weak;
+                return "③ 스텝 추가 — 누적 " + nStepCount + " / 최소 " + nMinSteps;
+            }
+            stageGrade = ETeachGrade.Good;
+            return "④ 계산 가능 — 누적 " + nStepCount + " / 최소 " + nMinSteps;
+        }
+
         // ─── private 헬퍼 ────────────────────────────────────────────────────────
 
         /// <summary>
@@ -1831,12 +1944,7 @@ namespace ReringProject.Custom.UI {
 
             RefreshTeachStatus(); //260626 hbk Phase 65 Plan 02 — 슬롯별 티칭 상태 갱신 분리
 
-            // 누적 스텝 수 표시 (PickerCal null 안전 처리)
-            int stepCount = 0;
-            if (EthernetVisionHandler.Handle.PickerCal != null) {
-                stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
-            }
-            lbl_calStatus.Text = "누적 " + stepCount;
+            UpdateCalButtonState(); // 캘 버튼 활성/비활성 + 진행 단계 배너 갱신
         }
 
         /// <summary>

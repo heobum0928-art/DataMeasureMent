@@ -205,7 +205,11 @@
                         </StackPanel>
                     </GroupBox>
 
-                    <!--Row 5: 피커센터 캘리브레이션 패널 (Bottom 전용 — AV-05)-->
+                    <!--Row 5: 피커센터 캘리브레이션 패널 (Bottom 전용 — AV-05).
+                         Tray 화면에 이식했던 순서번호+게이팅 UX 를 Bottom 에도 동일하게 적용한다
+                         (버튼에 수행 순서 ①②③④ 를 붙이고, 아직 할 수 없는 단계는 code-behind
+                         의 UpdateCalButtonState 가 IsEnabled=false 로 막는다 — 에러 메시지로
+                         사후 통보하지 않는다). Bottom/Tray 가 같은 방식으로 가르치게 맞춘다.-->
                     <GroupBox Grid.Row="5" Header="피커센터 캘" Margin="0,0,0,8">
                         <StackPanel Margin="8">
                             <!--Phase 74: 캘 스텝당 피커 회전각. 검사용 각도범위와는 별개다.
@@ -234,44 +238,64 @@
                                     <ComboBoxItem Content="0.7"/>
                                 </ComboBox>
                             </StackPanel>
-                            <!--초기화: 누적 스텝 클리어-->
-                            <Button x:Name="btn_calReset"
-                                    Content="초기화"
-                                    Style="{StaticResource BottomActionButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    Click="CalResetButton_Click"/>
-                            <!--검색 ROI(원) 지정: Circle 드로잉 시작-->
+                            <!--이 캘은 전 과정이 수동이다(피커 이동/회전 자동화 없음). 운영자가
+                                 자재를 손으로 놓고 찍기를 여러 번 반복한다. 원 피팅은 회전각을 몰라도
+                                 되므로 대충 돌려도 되지만, 점이 좁은 구간에 몰리면 피팅이 불안정해진다.-->
+                            <TextBlock Text="각도는 정확하지 않아도 됩니다. 한쪽에 몰리지 않게 고루 돌려 주세요."
+                                       Margin="0,0,0,6" FontSize="11" Foreground="#64748B" TextWrapping="Wrap"/>
+                            <!--초기화 / 마지막 취소: 순서 번호 없음 — 언제든 눌러 되돌릴 수 있는 보조 동작.
+                                 ↺ 마지막 취소는 수동 반복 중 한 번만 잘못돼도 전부 다시 하지 않도록,
+                                 누적의 마지막 1개만 제거한다(TryRemoveLastStep). 누적이 1개 이상일 때만 활성.-->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Button x:Name="btn_calReset"
+                                        Content="초기화"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        HorizontalAlignment="Left"
+                                        Click="CalResetButton_Click"/>
+                                <Button x:Name="btn_calRemoveLastStep"
+                                        Content="↺ 마지막 취소"
+                                        Style="{StaticResource BottomActionButtonStyle}"
+                                        HorizontalAlignment="Left"
+                                        Click="CalRemoveLastStepButton_Click"/>
+                            </StackPanel>
+                            <!--버튼에 수행 순서 번호(①②③④)를 붙이고, 아직 할 수 없는 단계는
+                                 code-behind(UpdateCalButtonState)가 IsEnabled=false 로 눌러도 반응
+                                 없게 막는다 — 에러 메시지로 사후 통보하지 않고 애초에 못 누르게 한다.-->
+                            <!--① 검색 ROI(원) 지정: Circle 드로잉 시작. 항상 활성(맨 처음 단계).-->
                             <Button x:Name="btn_calDrawRoi"
-                                    Content="검색 ROI(원) 지정"
+                                    Content="① 검색 ROI(원) 지정"
                                     Style="{StaticResource BottomActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     Click="CalDrawRoiButton_Click"/>
-                            <!--Cal 모델 티칭: Grab → ROI 내 ShapeModel 생성/저장-->
+                            <!--② Cal 모델 티칭: 검색 ROI 지정 후에만 활성.-->
                             <Button x:Name="btn_calTeachModel"
-                                    Content="Cal 모델 티칭"
+                                    Content="② Cal 모델 티칭"
                                     Style="{StaticResource BottomActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     Click="CalTeachModelButton_Click"/>
-                            <!--스텝 추가: Grab + find_shape_model → 중심 누적-->
+                            <!--③ 스텝 추가: 모델이 티칭/로드된 후에만 활성.-->
                             <Button x:Name="btn_calAddStep"
-                                    Content="스텝 추가 (Grab+검출)"
+                                    Content="③ 스텝 추가 (Grab+검출)"
                                     Style="{StaticResource BottomActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     Click="CalAddStepButton_Click"/>
-                            <!--피커센터 계산: 누적 지그 중심 → 편심원 피팅-->
+                            <!--④ 피커센터 계산: 누적 스텝이 최소 개수 이상일 때만 활성.-->
                             <Button x:Name="btn_calCompute"
-                                    Content="피커센터 계산"
+                                    Content="④ 피커센터 계산"
                                     Style="{StaticResource BottomActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     Click="CalComputeButton_Click"/>
-                            <!--캘 상태: 누적 스텝 수 표시-->
+                            <!--캘 상태: 진행 단계 + 누적/최소 스텝 수 표시. 여러 번 반복해서 누르는
+                                 동안 버튼이 밀리지 않도록 MinHeight 로 최소 분량을 미리 확보한다
+                                 (텍스트 길이 변화에도 버튼 위치 고정).-->
                             <TextBlock x:Name="lbl_calStatus"
                                        Margin="0,6,0,0"
+                                       MinHeight="34"
                                        FontSize="12"
                                        Foreground="#475569"
                                        Text="누적 0"
                                        TextWrapping="Wrap"/>
-                            <!--피커센터 결과: 산출된 row/col/radius 표시-->
+                            <!--피커센터 결과: 산출된 row/col/radius + 피팅 잔차(RMS/최대) 표시-->
                             <TextBlock x:Name="lbl_pickerCenter"
                                        Margin="0,4,0,0"
                                        FontSize="12"

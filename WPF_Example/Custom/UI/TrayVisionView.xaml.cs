@@ -74,6 +74,17 @@ namespace ReringProject.Custom.UI {
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private bool _isCalibratingDistance = false;   // ROI 드로잉과 클릭 핸들러 충돌 방지 가드
 
+        // quick-260903-dpy — 피커센터 캘 (Bottom AV-05 이식). 편심원 피팅 원형도 최소 점수(0~1).
+        //  Bottom 의 FIT_SCORE_MIN 과 동일 값 — 등급 표시 전용, 판정 로직에는 쓰이지 않는다.
+        private const double FIT_SCORE_MIN = 0.80;
+
+        // 캘 검색 ROI(사각형 드로잉으로 수거). EthernetVisionHandler.Handle.PickerCal 이 Bottom/Tray
+        //  공용 단일 인스턴스라(Task 4) 검색 ROI 좌표도 SystemSetting.CalibSearchRow1/Col1/Row2/Col2
+        //  공용 값을 그대로 쓴다 — PC 당 EthernetVisionModeValue 가 하나라 동시 사용 충돌이 없다.
+        private RoiDefinition _calRoiRect = null;
+        private bool _calRoiSet = false;
+        private bool _isCalRoiDrawing = false;   // 티칭 ROI 드로잉과 구분용 플래그
+
         public TrayVisionView() {
             InitializeComponent();
             Loaded += TrayVisionView_Loaded;
@@ -104,6 +115,11 @@ namespace ReringProject.Custom.UI {
             // Phase 74: 드래그 종료 즉시 ROI 를 확정하기 위한 구독(중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnTeachRectDrawn;
             _viewer.RectDrawingCompleted += OnTeachRectDrawn;
+            // quick-260903-dpy — 캘 ROI 사각형 드로잉 완료 구독(중복 방지: -= 후 +=).
+            //  OnTeachRectDrawn 과 같은 이벤트를 같이 구독한다 — 각자 자기 게이트(_drawingSlot / _isCalRoiDrawing)
+            //  로 자기 몫이 아니면 조용히 반환하므로 서로 간섭하지 않는다.
+            _viewer.RectDrawingCompleted -= OnCalRectDrawn;
+            _viewer.RectDrawingCompleted += OnCalRectDrawn;
             ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
             _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
             // Phase 74: 좌표/밝기 구독(중복 방지: -= 후 +=)
@@ -111,6 +127,8 @@ namespace ReringProject.Custom.UI {
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
             _viewer.SetInfoLabel("Tray Align"); // Phase 74: 어느 화면인지 이미지 위에 표시
+            LoadCalStepAngleToUi(); // quick-260903-dpy — 저장된 캘 스텝 각도 반영(Bottom 과 공용 설정)
+            UpdateCalButtonState(); // quick-260903-dpy — 뷰어 재주입 시에도 캘 버튼 활성 상태를 최신으로 갱신
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────
@@ -119,6 +137,7 @@ namespace ReringProject.Custom.UI {
             RefreshStatus();
             LoadTrayCoaxToUi(); //260626 hbk Phase 66 — Tray 동축값 복원(창 진입 시 Tray.json에서 CoaxEnabled/CoaxLevel 복원)
             LoadTeachParamsToUi(EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None)); // Phase 74
+            UpdateCalButtonState(); // quick-260903-dpy — 피커센터 캘 버튼 초기 활성/비활성 + 진행 단계 라벨 반영
         }
 
         // ─── 카메라 핸들러 ────────────────────────────────────────────────────────
@@ -491,6 +510,7 @@ namespace ReringProject.Custom.UI {
 
             _roi1 = null;
             _drawingSlot = 1;
+            _isCalRoiDrawing = false;   // quick-260903-dpy — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
             try {
                 _viewer.StartRectangleDrawing();
                 lbl_status.Text = "ROI 1 드래그 후 ROI 2 버튼을 클릭하세요";
@@ -528,6 +548,7 @@ namespace ReringProject.Custom.UI {
 
                 _roi2 = null;
                 _drawingSlot = 2;
+                _isCalRoiDrawing = false;   // quick-260903-dpy — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
                 _viewer.StartRectangleDrawing();
                 lbl_status.Text = "ROI 2 드래그 후 티칭 저장을 클릭하세요";
             }
@@ -852,6 +873,12 @@ namespace ReringProject.Custom.UI {
                 List<string> labels = new List<string>();
                 AddTeachRoiRect(rects, labels, _roi1, "ROI 1");
                 AddTeachRoiRect(rects, labels, _roi2, "ROI 2");
+                // quick-260903-dpy — 캘리브레이션 검색 ROI 도 확정 후 사라지지 않도록 같이 표시한다
+                //  (Bottom 의 동일 관용구). SetResultRoiOverlays 는 매번 전체를 덮어쓰므로 별도 메서드로
+                //  분리하면 서로 지워버린다 — 반드시 이 한 메서드 안에서 같이 그린다.
+                if (_calRoiSet == true) {
+                    AddTeachRoiRect(rects, labels, _calRoiRect, "캘 검색 ROI");
+                }
                 _viewer.SetResultRoiOverlays(null, rects, labels);
             }
             catch {
@@ -1180,6 +1207,551 @@ namespace ReringProject.Custom.UI {
             catch {
                 // 클리어 실패 무시
             }
+        }
+
+        // ─── 피커센터 캘 핸들러 (quick-260903-dpy — Bottom AV-05 이식, Tray 전용 회전중심) ──────
+        //  EthernetVisionHandler.Handle.PickerCal 은 Bottom/Tray 공용 단일 인스턴스다(Task 4).
+        //  모델 경로도 {Recipe}\ETHERNET_ALIGN\picker_cal.shm 로 모드 무관 고정이지만, 이 PC 는
+        //  EthernetVisionModeValue 가 하나뿐이라 Bottom/Tray 동시 사용이 없어 충돌하지 않는다.
+        //  모드별로 인스턴스/모델을 분리하는 구조 변경은 하지 않는다(불필요한 구조 변경 금지).
+
+        // 캘 스텝당 피커 회전각(검사용 각도범위와 별개). 360/각도 = 필요 스텝 수.
+        //  SystemSetting.PickerCalStepAngleDeg 는 Bottom 과 공용 설정이다(Task 1 범위 밖 — 새로 안 늘림).
+        private void CalStepAngleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            try {
+                ComboBoxItem item = cmb_calStepAngle.SelectedItem as ComboBoxItem;
+                if (item == null) {
+                    return;
+                }
+                double dAngle = 0.0;
+                double.TryParse(item.Content.ToString(), out dAngle);
+                if (dAngle <= 0.0) {
+                    return;
+                }
+                SystemSetting.Handle.PickerCalStepAngleDeg = dAngle;
+                RefreshCalStepInfo();
+            }
+            catch {
+                // 선택 반영 실패는 캘 흐름을 막지 않는다.
+            }
+        }
+
+        // 현재 스텝 각도로 필요한 스텝 수를 화면에 보여준다.
+        private void RefreshCalStepInfo() {
+            if (lbl_calStepInfo == null) {
+                return;
+            }
+            int nSteps = SystemSetting.Handle.PickerCalRequiredSteps;
+            lbl_calStepInfo.Text = "deg · " + nSteps.ToString() + "스텝";
+        }
+
+        // 저장된 스텝 각도를 콤보에 반영한다.
+        private void LoadCalStepAngleToUi() {
+            try {
+                if (cmb_calStepAngle == null) {
+                    return;
+                }
+                string szCurrent = SystemSetting.Handle.PickerCalStepAngleDeg.ToString("F0");
+                foreach (object o in cmb_calStepAngle.Items) {
+                    ComboBoxItem item = o as ComboBoxItem;
+                    if (item == null) {
+                        continue;
+                    }
+                    if (item.Content.ToString() == szCurrent) {
+                        cmb_calStepAngle.SelectedItem = item;
+                        break;
+                    }
+                }
+                RefreshCalStepInfo();
+            }
+            catch {
+                // 표시 실패는 캘 흐름을 막지 않는다.
+            }
+        }
+
+        // 캘 ROI 사각형 완료 수거. 티칭 ROI 확정(_roi1/_roi2)은 OnTeachRectDrawn 이 전담하므로
+        //  Bottom 의 else 분기(CommitTeachRoiOnDraw)에 대응하는 로직은 Tray 에 이식하지 않는다
+        //  (같은 이벤트에 두 핸들러가 이미 구독돼 있어 중복 처리가 된다 — AttachSharedViewer 참고).
+        //  _isCalRoiDrawing 이 false 면 이 이벤트는 캘 ROI 몫이 아니므로 관여하지 않는다.
+        private void OnCalRectDrawn(object sender, EventArgs e) {
+            if (!_isCalRoiDrawing) {
+                return;
+            }
+            _isCalRoiDrawing = false;
+
+            try {
+                RoiDefinition roi = _viewer.CommitActiveRectangle();
+                if (roi == null) {
+                    lbl_calStatus.Text = "ROI 수거 실패";
+                    return;
+                }
+                _calRoiRect = roi;
+                _calRoiSet  = true;
+                // TCP $ALIGN_CALIB STEP 경로 공유를 위해 SystemSetting 에도 동시 저장(Bottom 과 공용 값)
+                SystemSetting.Handle.CalibSearchRow1 = roi.Row1;
+                SystemSetting.Handle.CalibSearchCol1 = roi.Column1;
+                SystemSetting.Handle.CalibSearchRow2 = roi.Row2;
+                SystemSetting.Handle.CalibSearchCol2 = roi.Column2;
+                double dW = roi.Column2 - roi.Column1;
+                double dH = roi.Row2 - roi.Row1;
+                ShowTeachRoiOverlays(); // 확정 후에도 캘 검색 ROI 가 보이게 유지(ShowTeachRoiOverlays 가 함께 그림)
+                UpdateCalButtonState("검색 ROI 설정됨 (w=" + dW.ToString("F0") + " h=" + dH.ToString("F0") + ")");
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "ROI 수거 오류: " + ex.Message;
+            }
+        }
+
+        private void CalResetButton_Click(object sender, RoutedEventArgs e) {
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            MessageBoxResult confirmReset = CustomMessageBox.ShowConfirmation(
+                "캘 초기화", "캘리브레이션 모델/누적 데이터를 삭제하시겠습니까?", MessageBoxButton.YesNo);
+            if (confirmReset != MessageBoxResult.Yes) {
+                lbl_calStatus.Text = "초기화 취소";
+                return;
+            }
+
+            try {
+                EthernetVisionHandler.Handle.PickerCal.Reset();
+                lbl_pickerCenter.Text = "";
+                _calRoiSet = false;
+                // 화면만 지우면 안 된다 — 저장된 검색 ROI 값이 남아 있으면 TCP $ALIGN_CALIB STEP 경로가
+                //  계속 옛 ROI 를 쓴다. 실제로 지운다(Bottom 과 공용 값이라 Bottom 초기화와도 동일 효과).
+                _calRoiRect = null;
+                SystemSetting.Handle.CalibSearchRow1 = 0.0;
+                SystemSetting.Handle.CalibSearchCol1 = 0.0;
+                SystemSetting.Handle.CalibSearchRow2 = 0.0;
+                SystemSetting.Handle.CalibSearchCol2 = 0.0;
+                if (_viewer != null) {
+                    _viewer.SetAlignContourXld(null);
+                }
+                ShowTeachRoiOverlays(); // 캘 ROI 해제를 화면에도 반영
+                UpdateCalButtonState("누적 0 · 검색 ROI 삭제됨");
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "초기화 오류: " + ex.Message;
+            }
+        }
+
+        // quick-260903-dpy — 수동 반복(자재를 손으로 놓고 찍기) 중 한 번만 잘못돼도 [초기화]로
+        //  전부 다시 하지 않도록, 누적의 마지막 1개만 제거한다. Reset() 과 달리 확인 다이얼로그를
+        //  두지 않는다 — 이 동작 자체가 "방금 실수를 되돌리는" 되돌리기 동작이라 나머지 스텝은 그대로 유지된다.
+        private void CalRemoveLastStepButton_Click(object sender, RoutedEventArgs e) {
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            try {
+                bool bRemoved = EthernetVisionHandler.Handle.PickerCal.TryRemoveLastStep();
+                if (!bRemoved) {
+                    UpdateCalButtonState("취소할 스텝이 없습니다");
+                    return;
+                }
+                if (_viewer != null) {
+                    // TryRemoveLastStep 이 서비스 내부 _vizXld 를 비웠다 — 화면 오버레이도 같이 정리한다.
+                    _viewer.SetAlignContourXld(null);
+                }
+                int stepCount = EthernetVisionHandler.Handle.PickerCal.StepCount;
+                UpdateCalButtonState("마지막 스텝 취소됨 · 누적 " + stepCount);
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "마지막 취소 오류: " + ex.Message;
+            }
+        }
+
+        private void CalDrawRoiButton_Click(object sender, RoutedEventArgs e) {
+            if (_viewer == null) {
+                lbl_calStatus.Text = "뷰어 미연결";
+                return;
+            }
+
+            try {
+                _isCalRoiDrawing = true; // 사각형 완료 이벤트를 캘 ROI 로 처리할 플래그 세트
+                _viewer.StartRectangleDrawing();
+                lbl_calStatus.Text = "검색 ROI 를 드래그하세요";
+            }
+            catch (Exception ex) {
+                _isCalRoiDrawing = false;
+                lbl_calStatus.Text = "ROI 드로잉 오류: " + ex.Message;
+            }
+        }
+
+        /// <summary>
+        /// quick-260903-dpy — 사용자 결정: Tray 는 카메라 그랩을 우선한다(Bottom 의 TryResolveCalSourceImage
+        /// 와 반대 순서). Bottom 은 뷰어에 파일 이미지가 열려 있으면 카메라를 아예 안 찍고 그 파일을
+        /// 그대로 쓴다 — [폴더 열기]로 예전 사진을 열어둔 채 [Cal 모델 티칭]/[스텝 추가]를 누르면
+        /// 경고 없이 낡은 사진으로 캘이 잡히는 결함이 있다(코드리뷰 지적, 미수정). Tray 에 그 결함을
+        /// 그대로 이식하지 않기 위해 우선순위를 뒤집는다: 카메라가 열려 있으면 항상 Grab, 카메라를
+        /// 못 쓸 때만 뷰어의 현재 이미지로 폴백(오프라인 테스트용). IsOpen 을 반드시 먼저 확인하는
+        /// 이유는 EthernetAlignCamera.Grab() 이 카메라 미연결 시 AlignFallbackImagePath 정지 이미지를
+        /// 조용히 돌려주기 때문 — 그걸 그대로 쓰면 운영자가 실패를 인지 못한 채 캘 데이터를 쌓는다.
+        /// szSourceLabel 은 어느 소스를 썼는지 lbl_calStatus 에 표시하기 위한 값이다(재발 방지책).
+        /// bOwnsImage: false 면 뷰어 소유(Dispose 금지), true 면 호출자 소유(Dispose 책임).
+        /// </summary>
+        private bool TryResolveCalSourceImage(out HImage img, out bool bOwnsImage, out string szSourceLabel) {
+            img = null;
+            bOwnsImage = false;
+            szSourceLabel = "";
+
+            EthernetAlignCamera cam = EthernetVisionHandler.Handle.Camera;
+            bool bCameraReady = false;
+            if (cam != null) {
+                bCameraReady = cam.IsOpen;
+            }
+            if (bCameraReady) {
+                HImage grabbed = cam.Grab();
+                if (grabbed == null) {
+                    lbl_calStatus.Text = "Grab 실패";
+                    return false;
+                }
+                if (_viewer != null) {
+                    _viewer.LoadImage(grabbed); // 뷰어가 내부 Clone — 원본 소유권은 이쪽에 남는다
+                }
+                img = grabbed;
+                bOwnsImage = true;
+                szSourceLabel = "라이브";
+                return true;
+            }
+
+            // 카메라 미연결/미오픈 — 뷰어의 현재 이미지로 폴백(오프라인 테스트용).
+            bool bViewerHasImage = (_viewer != null) && (_viewer.CurrentImage != null);
+            if (bViewerHasImage) {
+                img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
+                bOwnsImage = false;
+                szSourceLabel = "저장 이미지";
+                return true;
+            }
+
+            lbl_calStatus.Text = "이미지 없음 — 카메라 연결을 확인하거나 [폴더 열기] 로 영상을 불러오세요";
+            return false;
+        }
+
+        private void CalTeachModelButton_Click(object sender, RoutedEventArgs e) {
+            if (!_calRoiSet) {
+                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
+                return;
+            }
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            HImage img = null;
+            bool bOwnsImage = false;
+            string szSourceLabel;
+            try {
+                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage, out szSourceLabel);
+                if (!bResolved) {
+                    return;
+                }
+
+                string error;
+                bool bOk = EthernetVisionHandler.Handle.PickerCal.TryTeachModel(
+                    img,
+                    _calRoiRect.Row1, _calRoiRect.Column1,
+                    _calRoiRect.Row2, _calRoiRect.Column2,
+                    out error);
+
+                if (bOk) {
+                    UpdateCalButtonState("모델 티칭 완료 (" + szSourceLabel + ")");
+                }
+                else {
+                    lbl_calStatus.Text = "모델 티칭 실패: " + error;
+                }
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "모델 티칭 오류: " + ex.Message;
+            }
+            finally {
+                bool bShouldDispose = bOwnsImage && (img != null);
+                if (bShouldDispose) {
+                    try { img.Dispose(); } catch { }
+                }
+            }
+        }
+
+        private void CalAddStepButton_Click(object sender, RoutedEventArgs e) {
+            if (!_calRoiSet) {
+                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
+                return;
+            }
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            // 모델 미로드 시 파일에서 자동 로드 시도 (TCP START 경로와 동일)
+            if (!EthernetVisionHandler.Handle.PickerCal.HasModel) {
+                string loadErr;
+                bool bLoaded = EthernetVisionHandler.Handle.PickerCal.TryLoadModel(out loadErr);
+                if (!bLoaded) {
+                    lbl_calStatus.Text = "모델 미로드 — [Cal 모델 티칭] 먼저 실행하세요";
+                    return;
+                }
+                lbl_calStatus.Text = "모델 로드됨";
+            }
+
+            HImage img = null;
+            bool bOwnsImage = false;
+            string szSourceLabel;
+            try {
+                bool bResolved = TryResolveCalSourceImage(out img, out bOwnsImage, out szSourceLabel);
+                if (!bResolved) {
+                    return;
+                }
+
+                double foundRow, foundCol;
+                double calScore;
+                string error;
+                bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
+                    img,
+                    _calRoiRect.Row1, _calRoiRect.Column1,
+                    _calRoiRect.Row2, _calRoiRect.Column2,
+                    out foundRow, out foundCol, out calScore, out error);
+
+                if (bOk) {
+                    ETeachGrade calGrade = TeachDiag.ClassifyScore(calScore, PickerCenterCalibrationService.FindMinScore);
+                    string szStepDetail = TeachDiag.ToStatusLine(calGrade,
+                        szSourceLabel + " · last=(" + foundRow.ToString("F1") + "," + foundCol.ToString("F1") + ")  score " + calScore.ToString("F3"));
+                    if (_viewer != null) {
+                        HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
+                        _viewer.SetAlignContourXld(vizXld); // 소유권 이전
+                    }
+
+                    // 저장 이미지(폴더 로더)로 스텝을 잡았을 때만 자동으로 다음 이미지로 넘어간다.
+                    //  라이브 grab 스텝은 폴더 인덱스와 무관하므로 자동 넘김 대상이 아니다.
+                    bool bUsedOfflineImage = (bOwnsImage == false);
+                    if (bUsedOfflineImage) {
+                        // LoadCurrentLoaderImage() 는 뷰어의 기존 CurrentImage 를 Dispose 한다.
+                        // 이 지역 참조가 이후 dangling 참조가 될 수 없도록 자동 넘김 실행 직전에 끊는다.
+                        img = null;
+                        bool bHasNextImage = (_loadedImageIndex >= 0) && (_loadedImageIndex < _loadedImagePaths.Count - 1);
+                        if (bHasNextImage) {
+                            _loadedImageIndex = _loadedImageIndex + 1;
+                            LoadCurrentLoaderImage();
+                        }
+                        else {
+                            lbl_loaderStatus.Text = "마지막 이미지 도달";
+                        }
+                    }
+                    UpdateCalButtonState(szStepDetail);
+                }
+                else {
+                    lbl_calStatus.Text = "스텝 실패: " + error;
+                }
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "스텝 오류: " + ex.Message;
+            }
+            finally {
+                bool bShouldDispose = bOwnsImage && (img != null);
+                if (bShouldDispose) {
+                    try { img.Dispose(); } catch { }
+                }
+            }
+        }
+
+        private void CalComputeButton_Click(object sender, RoutedEventArgs e) {
+            if (EthernetVisionHandler.Handle.PickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+
+            // PickerCenterCalibrationService.TryComputePickerCenter(수정 금지 대상)는 내부적으로
+            //  SystemSetting.Handle.PickerCenterRow/Col(Bottom 값)에도 같은 결과를 대입한다 —
+            //  Bottom/Tray 가 PickerCal 공용 인스턴스를 쓰기 때문(Task 4). Tray 화면에서 계산했다고
+            //  Bottom 의 설정값이 (저장은 안 되더라도) 런타임에서 바뀌어 있는 상태로 남는 것은
+            //  이 작업 범위 밖의 부수효과이므로, 호출 전후로 Bottom 값을 그대로 복원해 무효화한다.
+            //  Tray 자신의 결과는 아래 out r/c 로 별도로 받아 TrayPickerCenterRow/Col 에 저장한다.
+            double savedBottomPickerRow = SystemSetting.Handle.PickerCenterRow;
+            double savedBottomPickerCol = SystemSetting.Handle.PickerCenterCol;
+
+            try {
+                double r, c, rad;
+                double dRmsPx, dMaxPx;
+                string error;
+                bool bOk = EthernetVisionHandler.Handle.PickerCal.TryComputePickerCenter(
+                    out r, out c, out rad, out dRmsPx, out dMaxPx, out error);
+
+                if (bOk) {
+                    // quick-260903-dpy — 잔차(RMS/최대)는 이 값을 믿어도 되는지 판단하는 유일한 근거라
+                    //  중심좌표/반경과 함께 lbl_pickerCenter 에 항상 노출한다.
+                    string szFitQuality = BuildFitQualityText(dRmsPx, dMaxPx);
+                    lbl_pickerCenter.Text = BuildPickerCenterText(r, c, rad) + "  |  " + szFitQuality;
+                    if (_viewer != null) {
+                        HObject vizXld = EthernetVisionHandler.Handle.PickerCal.GetVisualizationXld();
+                        _viewer.SetAlignContourXld(vizXld);
+                    }
+                    ETeachGrade fitGrade = TeachDiag.ClassifyScore(ToCircularityScore(dRmsPx, rad), FIT_SCORE_MIN);
+                    string msg = string.Format(
+                        "Tray 피커센터를 저장하시겠습니까?\n\nRow: {0:F2}  Col: {1:F2}  r: {2:F2}\n{3}", r, c, rad, szFitQuality);
+                    MessageBoxResult dlgResult = MessageBox.Show(
+                        msg, "피커센터 저장", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (dlgResult == MessageBoxResult.Yes) {
+                        // Bottom 의 PickerCenterRow/Col 이 아니라 Tray 전용 값에 저장한다 — 안전장치(미캘=0)의 핵심.
+                        SystemSetting.Handle.TrayPickerCenterRow = r;
+                        SystemSetting.Handle.TrayPickerCenterCol = c;
+                        SystemSetting.Handle.Save();
+                        UpdateCalButtonState(TeachDiag.ToStatusLine(fitGrade, "피커센터 저장 완료 · " + szFitQuality));
+                    }
+                    else {
+                        UpdateCalButtonState(TeachDiag.ToStatusLine(fitGrade, "저장 취소 (값은 런타임 유지, 재시작 시 초기화) · " + szFitQuality));
+                    }
+                }
+                else {
+                    UpdateCalButtonState("계산 실패: " + error);
+                    lbl_pickerCenter.Text = "";
+                }
+            }
+            catch (Exception ex) {
+                lbl_calStatus.Text = "계산 오류: " + ex.Message;
+            }
+            finally {
+                // Bottom 값 원복 — TryComputePickerCenter 의 부수효과를 여기서 무효화한다(위 주석 참고).
+                SystemSetting.Handle.PickerCenterRow = savedBottomPickerRow;
+                SystemSetting.Handle.PickerCenterCol = savedBottomPickerCol;
+            }
+        }
+
+        // 반경 대비 잔차 비율을 0~1 점수로 뒤집어(원형도) ClassifyScore 에 통과시킨다.
+        // 반경이 클수록 같은 절대 잔차가 덜 치명적이므로 비율이 맞는 척도다.
+        private static double ToCircularityScore(double dRmsPx, double dRadiusPx) {
+            if (dRadiusPx <= 0.0) {
+                return 0.0;
+            }
+            double dRatio = dRmsPx / dRadiusPx;
+            if (dRatio >= 1.0) {
+                return 0.0;
+            }
+            return 1.0 - dRatio;
+        }
+
+        // 피커센터 계산결과에 화면(이미지) 중심 대비 실제 오프셋 거리(mm)를 붙여서 보여준다.
+        //  판정/저장 로직은 손대지 않는다 — 표시 전용. _viewer.CurrentImage 가 없으면(오프라인 등)
+        //  계산 불가하므로 기존 픽셀-only 문구로 조용히 폴백한다(throw 금지).
+        private string BuildPickerCenterText(double r, double c, double rad) {
+            const double UM_PER_MM = 1000.0; // µm/px → mm/px (AlignShapeMatchService.cs 와 동일 상수/변환)
+            string pixelOnlyText = string.Format(
+                "피커센터 ({0:F2},{1:F2}) r={2:F2}", r, c, rad);
+
+            bool bNoImage = (_viewer == null) || (_viewer.CurrentImage == null);
+            if (bNoImage) {
+                return pixelOnlyText;
+            }
+
+            HTuple imageWidth;
+            HTuple imageHeight;
+            _viewer.CurrentImage.GetImageSize(out imageWidth, out imageHeight);
+            double imgCenterCol = imageWidth.D / 2.0;
+            double imgCenterRow = imageHeight.D / 2.0;
+
+            double dRowPx = r - imgCenterRow; // 세로(수직) 오프셋
+            double dColPx = c - imgCenterCol; // 가로(수평) 오프셋
+            double totalPx = Math.Sqrt(dRowPx * dRowPx + dColPx * dColPx);
+
+            double resMm = SystemSetting.Handle.EthernetPixelResolution / UM_PER_MM;
+            double totalMm = totalPx * resMm;
+            double dRowMm = dRowPx * resMm;
+            double dColMm = dColPx * resMm;
+
+            return pixelOnlyText + string.Format(
+                "  |  중심오프셋 {0:F3}mm (가로 {1:F3}mm, 세로 {2:F3}mm)",
+                totalMm, dColMm, dRowMm);
+        }
+
+        // 편심원 피팅 잔차를 µm 주 단위(px 괄호 병기)로 표시.
+        // EthernetPixelResolution 이 0 이하(미설정)면 0 나눗셈/무의미 값 방어로 px 만 담은 문구를 돌려준다.
+        private string BuildFitQualityText(double dRmsPx, double dMaxPx) {
+            double dPixelResolutionUmPerPx = SystemSetting.Handle.EthernetPixelResolution;
+            bool bResolutionInvalid = (dPixelResolutionUmPerPx <= 0.0);
+            if (bResolutionInvalid) {
+                return string.Format("피팅잔차 RMS {0:F2}px · 최대 {1:F2}px", dRmsPx, dMaxPx);
+            }
+
+            double dRmsUm = dRmsPx * dPixelResolutionUmPerPx;
+            double dMaxUm = dMaxPx * dPixelResolutionUmPerPx;
+            return string.Format("피팅잔차 RMS {0:F1}µm({1:F2}px) · 최대 {2:F1}µm({3:F2}px)",
+                dRmsUm, dRmsPx, dMaxUm, dMaxPx);
+        }
+
+        // quick-260903-dpy — 피커센터 캘 버튼(②③④ + 마지막 취소) 활성/비활성을 한 곳에서 일괄
+        //  갱신한다. 잘못된 순서를 에러 메시지로 사후 통보하는 대신 애초에 못 누르게 막는 것이 목적.
+        //  szDetail 이 있으면 방금 수행한 동작의 결과 문구 뒤에 현재 진행 단계 배너를 이어 붙인다.
+        private void UpdateCalButtonState() {
+            UpdateCalButtonState(null);
+        }
+
+        private void UpdateCalButtonState(string szDetail) {
+            PickerCenterCalibrationService pickerCal = EthernetVisionHandler.Handle.PickerCal;
+
+            bool bHasModel = false;
+            int nStepCount = 0;
+            int nMinSteps = 1;
+            if (pickerCal != null) {
+                bHasModel  = pickerCal.HasModel;
+                nStepCount = pickerCal.StepCount;
+                nMinSteps  = pickerCal.MinSteps;
+            }
+
+            bool bCanTeach      = _calRoiSet;
+            bool bCanAddStep    = _calRoiSet && bHasModel;
+            bool bCanRemoveLast = (nStepCount > 0);
+            bool bCanCompute    = bHasModel && (nStepCount >= nMinSteps);
+
+            if (btn_calTeachModel != null) {
+                btn_calTeachModel.IsEnabled = bCanTeach;
+            }
+            if (btn_calAddStep != null) {
+                btn_calAddStep.IsEnabled = bCanAddStep;
+            }
+            if (btn_calRemoveLastStep != null) {
+                btn_calRemoveLastStep.IsEnabled = bCanRemoveLast;
+            }
+            if (btn_calCompute != null) {
+                btn_calCompute.IsEnabled = bCanCompute;
+            }
+
+            if (lbl_calStatus == null) {
+                return;
+            }
+
+            ETeachGrade stageGrade;
+            string szStage = BuildCalStageStatus(bHasModel, nStepCount, nMinSteps, out stageGrade);
+
+            bool bHasDetail = !string.IsNullOrEmpty(szDetail);
+            if (bHasDetail) {
+                lbl_calStatus.Text = szDetail + " · " + szStage;
+            }
+            else {
+                lbl_calStatus.Text = szStage;
+            }
+            lbl_calStatus.Foreground = TeachDiag.GradeBrush(stageGrade);
+        }
+
+        // 현재 캘 진행 단계를 번호 배너로 만든다. stageGrade 는 lbl_calStatus 색 구분용 —
+        //  아직 준비 안 됨(①②③)은 Weak(주황), 계산 가능(④, 최소 스텝 충족)은 Good(초록).
+        //  이 등급은 표시 전용이며 검사 판정(P/F)과 무관하다(TeachDiagnostics 의 기존 계약과 동일).
+        private string BuildCalStageStatus(bool bHasModel, int nStepCount, int nMinSteps, out ETeachGrade stageGrade) {
+            if (!_calRoiSet) {
+                stageGrade = ETeachGrade.Weak;
+                return "① 검색 ROI 지정 필요";
+            }
+            if (!bHasModel) {
+                stageGrade = ETeachGrade.Weak;
+                return "② 모델 티칭 필요 (ROI 지정됨)";
+            }
+            bool bEnoughSteps = (nStepCount >= nMinSteps);
+            if (!bEnoughSteps) {
+                stageGrade = ETeachGrade.Weak;
+                return "③ 스텝 추가 — 누적 " + nStepCount + " / 최소 " + nMinSteps;
+            }
+            stageGrade = ETeachGrade.Good;
+            return "④ 계산 가능 — 누적 " + nStepCount + " / 최소 " + nMinSteps;
         }
 
         // ─── private 헬퍼 ────────────────────────────────────────────────────────

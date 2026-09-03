@@ -1566,50 +1566,45 @@ namespace ReringProject.Custom.UI {
             bOwnsImage = false;
             szSourceLabel = "";
 
-            // 오프라인 우선: LoadImage(string)(폴더 로더) 만 CurrentImagePath 를 채운다.
-            // Grab/Live 폴링은 LoadImage(HImage) 를 쓰므로 CurrentImagePath 가 null 이 된다.
-            bool bViewerExists = (_viewer != null);
-            bool bViewerHasImage = false;
-            if (bViewerExists) {
-                bViewerHasImage = (_viewer.CurrentImage != null);
+            // 카메라 우선(Tray 와 동일 규약). 예전에는 폴더 로더로 열어둔 저장 이미지가 우선이라,
+            // 예전 사진을 잠깐 열어보고 닫지 않은 채 캘을 진행하면 눈앞의 피커가 아니라 그 낡은
+            // 사진으로 회전중심이 잡혔다(경고 없음). 캘은 항상 지금 상태를 봐야 하므로 카메라가
+            // 살아 있으면 매번 새로 Grab 한다. 오프라인 캘은 카메라가 없을 때 그대로 동작한다.
+            //
+            // IsOpen 을 반드시 확인하는 이유: EthernetAlignCamera.Grab() 은 카메라가 안 열려 있으면
+            // AlignFallbackImagePath 의 정지 이미지를 조용히 돌려준다. 그걸 그대로 누적하면 실패를
+            // 인지하지 못한 채 엉뚱한 이미지로 캘 데이터를 쌓게 된다 — 소스가 불확실해진다.
+            EthernetAlignCamera cam = EthernetVisionHandler.Handle.Camera;
+            bool bCameraReady = false;
+            if (cam != null) {
+                bCameraReady = cam.IsOpen;
             }
-            bool bViewerHasPath = false;
+            if (bCameraReady) {
+                HImage grabbed = cam.Grab();
+                if (grabbed == null) {
+                    lbl_calStatus.Text = "Grab 실패";
+                    return false;
+                }
+                if (_viewer != null) {
+                    _viewer.LoadImage(grabbed); // 뷰어가 내부 Clone — 원본 소유권은 이쪽에 남는다
+                }
+                img = grabbed;
+                bOwnsImage = true;
+                szSourceLabel = "라이브";
+                return true;
+            }
+
+            // 카메라 미연결/미오픈 — 뷰어의 현재 이미지로 폴백(오프라인 캘 유지).
+            bool bViewerHasImage = (_viewer != null) && (_viewer.CurrentImage != null);
             if (bViewerHasImage) {
-                bViewerHasPath = !string.IsNullOrEmpty(_viewer.CurrentImagePath);
-            }
-            bool bViewerHasFileImage = bViewerExists && bViewerHasImage && bViewerHasPath;
-            if (bViewerHasFileImage) {
                 img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
                 bOwnsImage = false;
                 szSourceLabel = "저장 이미지";
                 return true;
             }
 
-            // 라이브 폴백. IsOpen 을 반드시 확인하는 이유: EthernetAlignCamera.Grab() 은 카메라가 안 열려
-            // 있으면 AlignFallbackImagePath 의 정지 이미지를 조용히 돌려준다. 그걸 그대로 누적하면 운영자는
-            // 실패를 인지하지 못한 채 엉뚱한 이미지로 캘 데이터를 쌓게 된다 — 소스가 불확실하면 쌓지 않는다.
-            EthernetAlignCamera cam = EthernetVisionHandler.Handle.Camera;
-            bool bCameraReady = false;
-            if (cam != null) {
-                bCameraReady = cam.IsOpen;
-            }
-            if (!bCameraReady) {
-                lbl_calStatus.Text = "이미지 없음 — [폴더 열기] 로 영상을 불러오거나 카메라 연결을 확인하세요";
-                return false;
-            }
-
-            HImage grabbed = cam.Grab();
-            if (grabbed == null) {
-                lbl_calStatus.Text = "Grab 실패";
-                return false;
-            }
-            if (_viewer != null) {
-                _viewer.LoadImage(grabbed); // 뷰어가 내부 Clone — 원본 소유권은 이쪽에 남는다
-            }
-            img = grabbed;
-            bOwnsImage = true;
-            szSourceLabel = "라이브";
-            return true;
+            lbl_calStatus.Text = "이미지 없음 — 카메라 연결을 확인하거나 [폴더 열기] 로 영상을 불러오세요";
+            return false;
         }
 
         private void CalTeachModelButton_Click(object sender, RoutedEventArgs e) {

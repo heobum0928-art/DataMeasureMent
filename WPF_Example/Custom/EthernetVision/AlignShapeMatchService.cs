@@ -120,7 +120,7 @@ namespace ReringProject {
         // Y(Row) 는 Inspector/LD 모두 "아래가 +" 로 일치하므로 부호 상수를 두지 않는다.
 
         private readonly PatternMatchService _matcher;
-
+        private readonly PatternMatchService _matcher2;
         //quick-260812: 코어 TryTeach 가 이미 계산한 기준 검색 스코어 2개를 밖으로 넘기기 위한 캡처.
         //  판정에 관여하지 않는다(진단 표시 전용). 성공 경로에서만 기록되고,
         //  스코어 오버로드가 bOk==true 일 때만 동기적으로 읽는다(티칭 = UI 스레드 단독 경로).

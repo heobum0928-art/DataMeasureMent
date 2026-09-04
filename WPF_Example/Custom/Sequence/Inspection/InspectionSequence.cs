@@ -83,9 +83,11 @@ namespace ReringProject.Sequence {
         private readonly object _datumStateLock = new object();
 
         //260623 hbk Phase 49 PROTO-03/05 (D-02): 멀티샷 사이클 누적 상태 — 신규 클래스 미도입, _failedDatums 와 동일 lifecycle 멤버.
-        //  ClearDatumTransforms() 와 별도로 Index 0 수신 시 ResetCycleState() 로 리셋(D-08).
+        //  ClearDatumTransforms() 와 별도로 기준점 index 수신 시 ResetCycleState() 로 리셋(D-08).
         //  49-02 가 AddResponseV1Cycle 에서 read 연결 → CS0414(미사용) 해소, #pragma 제거함.
-        private const int DATUM_Z_INDEX = 0;         //260623 hbk Phase 49 (D-08): Index 0 = Datum 샷 (매직넘버 상수화, D-10)
+        //  quick-260904-iwm: 시퀀스마다 다른 기준점 z_index 를 가질 수 있게 되면서 고정 0 상수를 폐기했다 —
+        //  이후 모든 "기준점인가" 판정은 GetDatumZIndex()(Datum 속성창 지정값 -> 소유 Shot 최솟값 -> 0 순으로
+        //  파생되는 이 시퀀스의 실효 기준점)를 소비한다.
         private const int CROSS_Z_UNSET = -1;        //260722 hbk Phase 68 D-09: ZIndexA/B 미설정 sentinel (매직넘버 상수화)
         // quick-260904-iwm: 시퀀스별 기준점(Datum) z_index 설정화 — 두 개념을 분리한다.
         //  MIN_VALID_Z_INDEX: 유효한 가장 작은 z. 지정값 유효성 판정과 "소유 Shot 없음" 폴백 둘 다 쓴다.
@@ -93,7 +95,6 @@ namespace ReringProject.Sequence {
         // UNSET_CYCLE_Z_INDEX: "이번 tick 의 요청 패킷 자체가 없음"(수동 RUN/일괄검사) 을 뜻하는 값이며, 이 시퀀스의
         //  기준점(GetDatumZIndex())과는 다른 개념이다. 값은 우연히 0 으로 같지만, 진짜 프로토콜 z=0 과 "프로토콜
         //  자체가 없음"의 구분은 IsProtocolDrivenCycle() 이 별도로 담당한다 — 여기서 값을 바꾸면 안 된다.
-        //  이 상수는 이 태스크에서는 선언만 하고, 소비(치환)는 Task 2 에서 한다.
         private const int UNSET_CYCLE_Z_INDEX = 0;
         private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
         private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
@@ -447,6 +448,13 @@ namespace ReringProject.Sequence {
                 //  (RequestPacket==null, 즉 !IsProtocolDrivenCycle()) 동일하게 클린 슬레이트를 적용한다 —
                 //  프로토콜 z=1..N 사이클(RequestPacket!=null)은 절대 건드리지 않으므로, z=1 에서 저장된 role A
                 //  가 z=2 도착 전에 지워지는 FIX-0 류 회귀는 발생하지 않는다(사이클 내 크로스-Z 공유 보존).
+                // quick-260904-iwm: 기준점 z_index 는 이제 시퀀스마다 다를 수 있다(예: Bottom=11) — 상수 0 비교를
+                //  이 시퀀스의 실효 기준점(GetDatumZIndex())과의 비교로 치환한다. 프로토콜에서 GetExecutionZIndex()
+                //  는 $PREP 가 넣어준 실제 버퍼 번호를 돌려주므로, 그 값이 이 시퀀스의 기준점과 같을 때가 곧
+                //  "구간 시작 = 새 부품"이다. 나머지 번호는 같은 사이클의 연속 tick 이므로 Clear 하면 안 된다 —
+                //  이 불변식은 기준점이 0 이든 아니든 그대로 성립한다(기준점 0 인 시퀀스는 비교 대상 값이 여전히
+                //  0 이라 회귀도 0).
+                bool bIsAtSequenceDatumIndex = GetExecutionZIndex() == GetDatumZIndex();
                 if (!IsProtocolDrivenCycle()) {
                     BeginCrossZImageCycle();
                     //260807 hbk quick-260807: Datum transform 캐시(_datumTransforms/_failedDatums)도 이 지점을
@@ -454,11 +462,11 @@ namespace ReringProject.Sequence {
                     //  매 진입마다 무조건 비우지 않고 비-크로스-Z Datum 을 캐시 재사용으로 skip 하게 됐으므로,
                     //  수동 RUN(단일 Start(int)/StartAll/RepeatRunService/BatchRunService, RequestPacket==null)
                     //  경로에서 다음 부품으로 넘어갈 때 이전 부품의 검출 성공 캐시가 새 사이클로 새지 않도록 여기서
-                    //  명시적으로 비운다. 프로토콜 경로(z=0 $TEST)는 바로 아래 else-if 분기에서 별도로 처리한다
-                    //  (z=1..N 은 같은 사이클 연속이라 절대 여기서 지우면 안 됨 — 위 BeginCrossZImageCycle 주석과
-                    //  동일 논리).
+                    //  명시적으로 비운다. 프로토콜 경로(기준점 $TEST)는 바로 아래 else-if 분기에서 별도로 처리한다
+                    //  (기준점 이후의 연속 tick 은 같은 사이클 연속이라 절대 여기서 지우면 안 됨 — 위
+                    //  BeginCrossZImageCycle 주석과 동일 논리).
                     ClearDatumTransforms();
-                } else if (GetExecutionZIndex() == DATUM_Z_INDEX) {
+                } else if (bIsAtSequenceDatumIndex) {
                     //260807 hbk quick-260807-fix2: 프로토콜(z=0 $TEST) 사이클의 "새 사이클 시작" Clear 지점.
                     //  이전 시도는 SystemHandler.StartV1Scoped 에서 State==Idle 사전 체크 후 Clear 하는 방식이었는데,
                     //  체크와 StartSubset/StartAll 호출 사이에 이전 사이클 시퀀스 스레드가 State 를 Idle 로 독립적으로
@@ -468,10 +476,10 @@ namespace ReringProject.Sequence {
                     //  불렸다는 사실 자체가 이번 StartCore 가 점유에 성공했다는 증거다.
                     //  GetExecutionZIndex() 는 RequestPacket.TestID(=SystemHandler.ProcessTest 가 미리 세팅한
                     //  _lastPrepZIndex)를 파싱한다 — RequestPacket 은 OnStart 발화 전에 이미 세팅 완료(SequenceBase.
-                    //  StartCore 참고)이므로 이 시점에 정확한 이번 tick 의 z_index 를 돌려준다. z==DATUM_Z_INDEX(0)
-                    //  일 때만 "새 부품의 새 사이클 시작" 이고, z>=1 은 같은 사이클의 연속 tick(중간 Shot 진행)이라
-                    //  여기서 Clear 하면 그 사이클 내에서 이미 캐시된 비-크로스-Z Datum 검출 결과가 z 진행 중에
-                    //  지워져 캐시-재사용 스킵 최적화 자체가 무력화된다 — 그래서 반드시 z==0 에서만 호출한다.
+                    //  StartCore 참고)이므로 이 시점에 정확한 이번 tick 의 z_index 를 돌려준다. z == 이 시퀀스의
+                    //  기준점일 때만 "새 부품의 새 사이클 시작"이고, 그 외 번호는 같은 사이클의 연속 tick(중간 Shot
+                    //  진행)이라 여기서 Clear 하면 그 사이클 내에서 이미 캐시된 비-크로스-Z Datum 검출 결과가 z
+                    //  진행 중에 지워져 캐시-재사용 스킵 최적화 자체가 무력화된다 — 그래서 반드시 기준점에서만 호출한다.
                     ClearDatumTransforms();
                 }
             } catch (Exception ex) {
@@ -1348,8 +1356,10 @@ namespace ReringProject.Sequence {
             m_bCycleDatumFailed = false;
             m_bCycleHasHardwareError = false;   //260811 hbk plc-spec-260811-alignment: 사이클 시작마다 초기화 — 다음 부품으로 누수 방지.
             m_bImmediateFailSent = false;   //260722 hbk Phase 68 GAP-3(68-10, T-68-13): latch 도 사이클 시작에 초기화 — 다음 부품으로 누수 방지.
-            m_nCurrentZIndex = 0;
-            m_nLastZIndex = 0;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무 //260623 hbk
+            // quick-260904-iwm: 이 두 0 은 기준점이 아니라 다음 tick 에 즉시 덮어써지는 중립값이다. $RESET 경로에서도
+            //  이 시퀀스의 기준점(GetDatumZIndex())으로 세팅할 이유가 없다 — 값은 그대로 0(UNSET_CYCLE_Z_INDEX) 유지.
+            m_nCurrentZIndex = UNSET_CYCLE_Z_INDEX;
+            m_nLastZIndex = UNSET_CYCLE_Z_INDEX;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무
         }
 
         //260811 hbk plc-spec-260811-alignment: Action_FAIMeasurement(다른 클래스)가 실기 카메라 grab 실패를
@@ -1678,12 +1688,18 @@ namespace ReringProject.Sequence {
 
         //260722 hbk Phase 68 GAP-2(68-GAP-ANALYSIS.md 우선순위 2): 오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1) 도착 시,
         //  실행 스코프(FindActionIndicesByZIndex)가 매칭 0건이라도 StartAll 폴백 대신 datum-only 최소 실행으로 라우팅해야 함을 판정.
-        //  ★ 필수 가드(지침 #5): nZIndex==DATUM_Z_INDEX(z=0) 이면 최상단에서 무조건 false — D-01a(z=0 StartAll 전량 실행)가
-        //  datum-only 오판정으로 무너지는 것을 방지. 그 다음: 크로스-Z Datum 이 쓰는 index 이면서 동시에 일반 실행 매칭(own ZIndex/측정 ZIndexA/B)이
-        //  없는 경우만 true.
+        //  ★ 필수 가드(지침 #5): nZIndex==이 시퀀스의 기준점(GetDatumZIndex()) 이면 최상단에서 무조건 false —
+        //  D-01a(기준점 StartAll 전량 실행)가 datum-only 오판정으로 무너지는 것을 방지. 그 다음: 크로스-Z Datum
+        //  이 쓰는 index 이면서 동시에 일반 실행 매칭(own ZIndex/측정 ZIndexA/B)이 없는 경우만 true.
+        //  quick-260904-iwm: 기준점이 0 이 아닌 시퀀스(예: Bottom=11)에서는 수동 RUN(요청 없음, GetExecutionZIndex()
+        //  가 0 을 반환)의 0 이 이 최상단 가드를 통과할 수 있다. 그래도 안전한 이유: 그 다음 조건이
+        //  IsZIndexUsedByCrossZDatum(0) 인데, 구간 배정상 그런 시퀀스의 크로스-Z Datum 이 ZIndexA/B=0 을 선언하는
+        //  일은 없으므로 false 로 빠진다. 여기에 IsProtocolDrivenCycle() 가드를 추가하면 안 된다 — 이 함수는
+        //  SystemHandler.StartV1Scoped 에서 StartSubset/StartAll 이전 시점에도 호출되는데, 그 시점엔 RequestPacket
+        //  이 아직 이번 사이클 값으로 세팅되지 않아(이전 사이클 잔값 또는 null) 프로토콜 경로가 깨진다.
         public bool IsDatumOnlyExecutionIndex(int nZIndex)
         {
-            bool bIsDatumTestZIndex = nZIndex == DATUM_Z_INDEX;
+            bool bIsDatumTestZIndex = nZIndex == GetDatumZIndex();
             if (bIsDatumTestZIndex)
             {
                 return false;
@@ -1780,12 +1796,15 @@ namespace ReringProject.Sequence {
             triggerIndices.Add(nFirstOwnedIndex);
         }
 
-        //260722 hbk Phase 68(68-12, 68-GAP-ANALYSIS.md 후속): z=0(Datum) 자신에서 이 시퀀스의 대표 Datum
-        //  트리거 Action(들)을 해석 — FindDatumOnlyActionIndices(z>=1 크로스-Z 전용)와 달리 ZIndexA/ZIndexB
-        //  필터를 두지 않는다. 일반(비-크로스-Z) Datum 은 ZIndexA/B 개념 자체가 없어(-1/-1) 그 필터로는 절대
-        //  매칭되지 않지만, z=0 이 곧 그 Datum 의 검출 시점이라는 사실만으로 대표 Action 이 필요하기 때문이다.
+        //260722 Phase 68(68-12, 68-GAP-ANALYSIS.md 후속): 기준점 index(Datum) 자신에서 이 시퀀스의 대표 Datum
+        //  트리거 Action(들)을 해석 — FindDatumOnlyActionIndices(크로스-Z 전용, 기준점 아닌 index)와 달리
+        //  ZIndexA/ZIndexB 필터를 두지 않는다. 일반(비-크로스-Z) Datum 은 ZIndexA/B 개념 자체가 없어(-1/-1) 그
+        //  필터로는 절대 매칭되지 않지만, 기준점 index 가 곧 그 Datum 의 검출 시점이라는 사실만으로 대표 Action
+        //  이 필요하기 때문이다.
         //  AddDatumTriggerActionIndex(SourceShotName 역추적 + 미해결시 로그폴백)를 그대로 재사용해 로직 중복을 피한다(D-09).
-        public List<int> FindZeroIndexDatumTriggerActionIndices()
+        //  quick-260904-iwm: 이전 이름의 "Zero" 는 z=0 전용이 아니라 "기준점 index 의 대표 트리거"라는 의미가
+        //  정확해 메서드 이름을 정정했다(동작 변경 없음).
+        public List<int> FindDatumIndexTriggerActionIndices()
         {
             var triggerIndices = new HashSet<int>();
             bool bHasActions = Actions != null;
@@ -1805,22 +1824,23 @@ namespace ReringProject.Sequence {
             return new List<int>(triggerIndices);
         }
 
-        //260722 hbk Phase 68(68-12): z=0 대표 트리거 실행 후 이 Action 의 Grab/Measure 를 건너뛸지 판정하는
-        //  단일 진입점 — 기존 IsDatumOnlyExecutionIndex(z>=1 크로스-Z 전용 경로, 무변경)와 신규 z=0 대표트리거
-        //  경로를 OR 결합한다. IsDatumOnlyExecutionIndex 를 직접 수정하지 않는 이유: 그 술어의 계약("크로스-Z
-        //  Datum 만 쓰고 일반 실행 매칭 없음")은 일반(비-크로스-Z) Datum 에는 애초에 성립하지 않는 개념이며,
-        //  IsZIndexUsedByCrossZDatum 은 WarnIfEmptyScope/GAP-1 BuildDeclaredZIndexSet 도 소비하므로 억지로
-        //  의미를 넓히면 그 소비처들의 의미까지 오염시킬 위험이 있다(68-12-PLAN.md investigation_findings) —
-        //  그래서 이 메서드가 병행 경로로 OR 만 담당한다.
-        //260722 hbk Phase 68 REGR-1(68-GAP-ANALYSIS.md): z=0 대표트리거 스킵(FindZeroIndexDatumTriggerActionIndices
-        //  경로)은 IsProtocolDrivenCycle()==true 일 때만 적용한다 — 프로토콜 $TEST(z=0) 는 이 Shot 의 진짜 측정이
-        //  나중 z_index 에 다시 트리거되므로 이번 z=0 측정을 건너뛰어도 안전하지만, 수동(UI) RUN 과
-        //  RepeatRunService 배치런은 packet==null 이라 GetExecutionZIndex()==0 으로 동일하게 관측되면서도 이후
-        //  z_index 트리거가 전혀 오지 않는다 — 여기서 스킵하면 그 Shot 은 이번 사이클에 영구히 미측정('—')이
-        //  된다(이 사이트의 실제 생산 워크플로인 수동 지그 RUN 버튼 회귀, 260722 확인). IsDatumOnlyExecutionIndex
-        //  (z>=1 경로) 는 이 가드가 필요 없다 — packet==null 이면 ParseCurrentZIndex 가 항상 0 을 반환하므로
-        //  nZIndex 는 여기 도달할 때 이미 0 이고, 그 함수 최상단의 nZIndex==DATUM_Z_INDEX 가드가 이미 false 를
-        //  강제한다(호출부 GetExecutionZIndex() 도달 경로 분석으로 확인, 별도 가드 중복 불필요).
+        //260722 Phase 68(68-12): 기준점 index 대표 트리거 실행 후 이 Action 의 Grab/Measure 를 건너뛸지
+        //  판정하는 단일 진입점 — 기존 IsDatumOnlyExecutionIndex(크로스-Z 전용 경로, 무변경)와 신규 기준점
+        //  대표트리거 경로를 OR 결합한다. IsDatumOnlyExecutionIndex 를 직접 수정하지 않는 이유: 그 술어의
+        //  계약("크로스-Z Datum 만 쓰고 일반 실행 매칭 없음")은 일반(비-크로스-Z) Datum 에는 애초에 성립하지
+        //  않는 개념이며, IsZIndexUsedByCrossZDatum 은 WarnIfEmptyScope/GAP-1 BuildDeclaredZIndexSet 도
+        //  소비하므로 억지로 의미를 넓히면 그 소비처들의 의미까지 오염시킬 위험이 있다(68-12-PLAN.md
+        //  investigation_findings) — 그래서 이 메서드가 병행 경로로 OR 만 담당한다.
+        //260722 Phase 68 REGR-1(68-GAP-ANALYSIS.md): 기준점 대표트리거 스킵(FindDatumIndexTriggerActionIndices
+        //  경로)은 IsProtocolDrivenCycle()==true 일 때만 적용한다 — 프로토콜 $TEST(기준점) 는 이 Shot 의 진짜
+        //  측정이 나중 z_index 에 다시 트리거되므로 이번 기준점 측정을 건너뛰어도 안전하지만, 수동(UI) RUN 과
+        //  RepeatRunService 배치런은 packet==null 이라 GetExecutionZIndex()==UNSET_CYCLE_Z_INDEX(0) 으로 동일하게
+        //  관측되면서도 이후 z_index 트리거가 전혀 오지 않는다 — 여기서 스킵하면 그 Shot 은 이번 사이클에
+        //  영구히 미측정('—')이 된다(이 사이트의 실제 생산 워크플로인 수동 지그 RUN 버튼 회귀, 260722 확인).
+        //  IsDatumOnlyExecutionIndex(크로스-Z 경로) 는 이 가드가 필요 없다 — packet==null 이면 ParseCurrentZIndex
+        //  가 항상 UNSET_CYCLE_Z_INDEX(0) 을 반환하므로 nZIndex 는 여기 도달할 때 이미 0 이고, 기준점이 0 이 아닌
+        //  시퀀스라도 그 함수 최상단의 nZIndex==GetDatumZIndex() 가드가 이미 false 를 강제한다(호출부
+        //  GetExecutionZIndex() 도달 경로 분석으로 확인, 별도 가드 중복 불필요).
         public bool ShouldSkipMeasurementAfterDatumPhase(int nZIndex)
         {
             bool bIsCrossZDatumOnly = IsDatumOnlyExecutionIndex(nZIndex);
@@ -1828,8 +1848,8 @@ namespace ReringProject.Sequence {
             {
                 return true;
             }
-            bool bIsZeroIndex = nZIndex == DATUM_Z_INDEX;
-            if (!bIsZeroIndex)
+            bool bIsDatumIndex = nZIndex == GetDatumZIndex();
+            if (!bIsDatumIndex)
             {
                 return false;
             }
@@ -1838,14 +1858,18 @@ namespace ReringProject.Sequence {
             {
                 return false;
             }
-            return FindZeroIndexDatumTriggerActionIndices().Count > 0;
+            return FindDatumIndexTriggerActionIndices().Count > 0;
         }
 
         //260623 hbk Phase 49 PROTO-03 (D-08): RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.
-        //  파싱 실패/미수신/음수 → 0(Datum/Idx0 폴백) 으로 안전 정규화 (T-49-03 mitigation).
+        //  파싱 실패/미수신/음수 → UNSET_CYCLE_Z_INDEX(0) 으로 안전 정규화 (T-49-03 mitigation).
+        //  quick-260904-iwm: 이 0 은 기준점이 아니라 "요청 패킷 없음"(수동 RUN/일괄검사) 을 뜻한다. 이 값을
+        //  기준점 값(예 11)으로 정규화하면 Action_FAIMeasurement 의 크로스-Z 역할 판정(nCurZ==datum.ZIndexA)이
+        //  수동 RUN 에서 갑자기 role A 캡처로 매칭되는 회귀가 생긴다 — 그래서 값은 그대로 두고 동작을 바꾸지
+        //  않는다. 진짜 프로토콜 z=0 과 "프로토콜 자체가 없음"의 구분은 IsProtocolDrivenCycle() 이 담당한다.
         private int ParseCurrentZIndex()
         {
-            int nZ = 0;
+            int nZ = UNSET_CYCLE_Z_INDEX;
             bool bHasRequest = RequestPacket != null;
             if (!bHasRequest)
             {
@@ -1928,7 +1952,7 @@ namespace ReringProject.Sequence {
         {
             var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
             m_nCurrentZIndex = ParseCurrentZIndex();
-            bool bIsDatumShot = m_nCurrentZIndex == DATUM_Z_INDEX;
+            bool bIsDatumShot = m_nCurrentZIndex == GetDatumZIndex();
             if (bIsDatumShot)
             {
                 HandleDatumIndexResponse(recipeManager);   // D-08 리셋 + 재산출 + Datum 응답 + 영속화 (ComputeLastZIndex 1회)
@@ -1942,6 +1966,9 @@ namespace ReringProject.Sequence {
             //  범위 밖은 판정을 미루고(B) 로그만 남긴다.
             //  m_nLastZIndex == 0 (이 시퀀스에 측정 Shot 이 없는 레시피)은 범위 밖으로 취급하지 않는다 —
             //  그 경우는 기존 WR-01 가드(마지막 Index 매칭 0건이면 F 강제)가 false-PASS 를 막아야 한다.
+            //  quick-260904-iwm: 이 0 은 기준점이 아니라 "이 시퀀스 소유 Shot 이 0건"이라는 별개의 센티널이다
+            //  (ComputeLastZIndex 는 소유 Shot 이 0건이면 0 을 반환 — 기준점이 11 이어도 Bottom 은 최댓값 40 이라
+            //  >0 이 성립하므로 이 비교는 손대지 않는다).
             bool bHasMeasurementShots = m_nLastZIndex > 0;
             bool bIsBeyondRange = bHasMeasurementShots && m_nCurrentZIndex > m_nLastZIndex;
             if (bIsBeyondRange)
@@ -1961,14 +1988,16 @@ namespace ReringProject.Sequence {
 
         //260623 hbk Phase 49 PROTO-04/05 (D-08): Index 0(Datum 샷) 처리 — 사이클 리셋 + Datum 검출 감지 + 응답 + 영속화.
         //  ResetCycleState() 가 m_nLastZIndex=0 으로 덮으므로 직후 단 1회 재산출(BLOCKER 2-a, 측정 경로는 자체 산출).
+        //  quick-260904-iwm: GetDatumZIndex() 를 지역변수 nDatumZ 로 한 번만 받아 두 번 계산하지 않는다.
         private void HandleDatumIndexResponse(InspectionRecipeManager recipeManager)
         {
             ResetCycleState();                                  // D-08: 사이클 시작 = 클린 슬레이트
-            m_nCurrentZIndex = DATUM_Z_INDEX;
+            int nDatumZ = GetDatumZIndex();
+            m_nCurrentZIndex = nDatumZ;
             m_nLastZIndex = ComputeLastZIndex(recipeManager);   // 리셋 직후 재산출(호출부 의무, ResetCycleState 주석)
             m_bCycleDatumFailed = DetectDatumFailure();         // D-04: Datum 검출 실패 감지
             TestResultPacket datumPacket = BuildDatumShotResponse();
-            TryTurnOffLightsOnCycleEnd(datumPacket, "datum-index0", DATUM_Z_INDEX);   //260806 hbk Phase 71: Index 0 즉시-F 는 BuildScopedResponse 를 안 거치는 별도 종료 경로 — 두 번째 훅 필수
+            TryTurnOffLightsOnCycleEnd(datumPacket, "datum-index", nDatumZ);   //260806 Phase 71: 기준점 즉시-F 는 BuildScopedResponse 를 안 거치는 별도 종료 경로 — 두 번째 훅 필수(nZIndex 인자는 로그 전용, quick-260904-iwm)
             PersistAndEnqueueV1(recipeManager, datumPacket);
         }
 

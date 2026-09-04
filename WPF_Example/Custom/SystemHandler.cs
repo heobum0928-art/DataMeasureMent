@@ -41,13 +41,15 @@ namespace ReringProject {
             }
         }
 
-        // 해당 시퀀스의 마지막 $PREP z_index. $PREP 없이 $TEST 가 오면 0(=Datum 인덱스) 보수적 폴백.
+        // 해당 시퀀스의 마지막 $PREP z_index. $PREP 없이 $TEST 가 오면 그 시퀀스의 기준점(GetDatumZIndex())
+        // 으로 보수적 폴백한다 — quick-260904-iwm: 시퀀스마다 기준점이 다를 수 있어(예: Bottom=11) 더 이상
+        // 고정 0 으로 폴백하지 않는다.
         private int GetPrepZIndex(string szSeqName)
         {
             bool bHasName = !string.IsNullOrEmpty(szSeqName);
             if (!bHasName)
             {
-                return 0;
+                return NO_SEQUENCE_DATUM_Z_INDEX;
             }
             lock (_prepZIndexLock)
             {
@@ -58,9 +60,13 @@ namespace ReringProject {
                     return nStored;
                 }
             }
+            // quick-260904-iwm: ResolveDatumZIndex 는 시퀀스/레시피를 조회하므로 _prepZIndexLock 밖에서 호출한다
+            // (기존 락 범위 원칙 — 락 안에서 시퀀스/레시피를 만지지 않는다).
+            int nFallbackDatumZ = ResolveDatumZIndex(szSeqName);
             Logging.PrintLog((int)ELogType.Error,
-                "[PREP] 시퀀스 '{0}' 에 대한 $PREP 기록이 없다 — z_index=0 으로 폴백(선행 $PREP 누락 의심)", szSeqName);
-            return 0;
+                "[PREP] 시퀀스 '{0}' 에 대한 $PREP 기록이 없다 — 그 시퀀스의 기준점 z_index={1} 으로 폴백(선행 $PREP 누락 의심)",
+                szSeqName, nFallbackDatumZ);
+            return nFallbackDatumZ;
         }
 
         //project 별, sequence 정의
@@ -253,14 +259,31 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260722 hbk Phase 68 D-01a→68-12: z=0(Datum) 판별 매직넘버 상수화 (D-09). Datum 검출(EStep.DatumPhase)은
-        //  독립 Shot이 아니라 모든 Action 실행 안에 내장되어 매번 재수행되는 phase다. Plan 12(z=0 낭비 제거)부터
-        //  z=0 도 더 이상 무조건 StartAll 하지 않는다 — InspectionSequence.FindZeroIndexDatumTriggerActionIndices()
+        //260722 Phase 68 D-01a→68-12: 기준점(Datum) 판별 매직넘버 상수화 (D-09). Datum 검출(EStep.DatumPhase)은
+        //  독립 Shot이 아니라 모든 Action 실행 안에 내장되어 매번 재수행되는 phase다. Plan 12(기준점 낭비 제거)
+        //  부터 기준점도 더 이상 무조건 StartAll 하지 않는다 — InspectionSequence.FindDatumIndexTriggerActionIndices()
         //  가 고른 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행한다(DatumConfigs 가 비어있거나
         //  대표 트리거가 하나도 해석 안 되면 그때만 StartAll 로 폴백). 대표 Action(들)도 DatumPhase 종료 후
         //  Grab/Measure 를 건너뛴다(Action_FAIMeasurement.ShouldSkipMeasurementAfterDatumPhase) — 68-10 Task2가
         //  stale 주석을 새 동작에 맞게 다시 쓴 선례와 동일 패턴으로 이 주석도 갱신한다.
-        private const int DATUM_TEST_Z_INDEX = 0;
+        // quick-260904-iwm: 시퀀스마다 기준점 z_index 가 다를 수 있게 되면서(예: Bottom=11) 상수 이름을
+        //  NO_SEQUENCE_DATUM_Z_INDEX 로 바꾸고 뜻도 "시퀀스를 해석할 수 없을 때의 폴백 기준점"으로 좁혔다 —
+        //  정상 경로의 기준점 판정은 이제 이 상수가 아니라 ResolveDatumZIndex()/InspectionSequence.GetDatumZIndex()
+        //  가 돌려주는 그 시퀀스의 실효 기준점을 쓴다.
+        private const int NO_SEQUENCE_DATUM_Z_INDEX = 0;
+
+        // quick-260904-iwm: 대상 시퀀스의 실효 기준점(GetDatumZIndex()) 조회 헬퍼 — InspectionSequence 캐스트
+        // 실패(시퀀스 미해석) 시에만 NO_SEQUENCE_DATUM_Z_INDEX 로 폴백한다. GetPrepZIndex/StartV1Scoped 양쪽이
+        // 이 헬퍼로 통일해 "기준점 판정 로직은 한 곳"을 유지한다.
+        private int ResolveDatumZIndex(string szSeqName)
+        {
+            InspectionSequence inspSeq = Sequences[szSeqName] as InspectionSequence;
+            if (inspSeq == null)
+            {
+                return NO_SEQUENCE_DATUM_Z_INDEX;
+            }
+            return inspSeq.GetDatumZIndex();
+        }
 
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
         //260615 hbk Phase 43.2: IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
@@ -299,7 +322,21 @@ namespace ReringProject {
         //  StartEmptyScope 호출부 주석 참고).
         private bool StartV1Scoped(SequenceBase seq, TestPacket packet, int nPrepZIndex)
         {
-            bool bIsDatumZIndex = nPrepZIndex == DATUM_TEST_Z_INDEX;
+            // quick-260904-iwm: 캐스트를 함수 최상단으로 hoist — 기준점 판정(nDatumZ)과 아래 일반 실행 스코프
+            // 판정이 모두 같은 InspectionSequence 참조를 공유한다. 캐스트 실패(방어적, 실제로는 도달하지 않음)면
+            // NO_SEQUENCE_DATUM_Z_INDEX 로 폴백해 종전과 동일하게 동작한다.
+            InspectionSequence inspSeq = seq as InspectionSequence; // dynamic-FAI 런타임 타입은 항상 InspectionSequence
+            bool bIsInspectionSeq = inspSeq != null;
+            int nDatumZ;
+            if (bIsInspectionSeq)
+            {
+                nDatumZ = inspSeq.GetDatumZIndex();
+            }
+            else
+            {
+                nDatumZ = NO_SEQUENCE_DATUM_Z_INDEX;
+            }
+            bool bIsDatumZIndex = nPrepZIndex == nDatumZ;
             if (bIsDatumZIndex)
             {
                 //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소 리셋을 z=0 응답 생성 시점
@@ -307,13 +344,11 @@ namespace ReringProject {
                 //  수신 즉시(StartAll=z=0 Action 실행 시작 전)로 이동한다 — role A 이미지가 같은 z=0 tick의
                 //  응답 단계에서 지워지지 않고 z=1 도착까지 살아남게 하기 위함. 캐스트 실패(방어적, 미도달)면
                 //  리셋 없이 StartAll 만 수행.
-                InspectionSequence inspDatumSeq = seq as InspectionSequence;
-                bool bIsInspSeq = inspDatumSeq != null;
-                if (!bIsInspSeq)
+                if (!bIsInspectionSeq)
                 {
                     return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
                 }
-                inspDatumSeq.BeginCrossZImageCycle();
+                inspSeq.BeginCrossZImageCycle();
                 //260807 hbk quick-260807-fix2: Datum transform 캐시(_datumTransforms/_failedDatums) Clear 를
                 //  여기서 직접 호출하던 이전 시도(State==Idle 사전 체크 후 Clear)는 TOCTOU 레이스였다 — 이 체크와
                 //  StartSubset/StartAll 호출 사이에 "이전 사이클" 시퀀스 스레드가 (SequenceBase.MainExecute 5ms
@@ -333,16 +368,16 @@ namespace ReringProject {
                 //  DatumConfigs 가 비어있거나(엣지 케이스) 대표 트리거가 하나도 해석 안 되면 정상적으로 가능한
                 //  레시피 구성(운영 오류 아님)이므로 StartAll 로 안전 폴백한다.
                 //  quick-260812: 진단 로그 제거 — 정상 폴백 경로라 운영자에게 알릴 내용이 없다.
-                List<int> datumZeroIndices = inspDatumSeq.FindZeroIndexDatumTriggerActionIndices();
-                bool bHasDatumZeroTrigger = datumZeroIndices != null && datumZeroIndices.Count > 0;
-                if (bHasDatumZeroTrigger)
+                // quick-260904-iwm: 대표 트리거 조회 메서드 이름 정정(기준점 index 의미로), inspDatumSeq 는
+                // 위에서 hoist 한 inspSeq 를 재사용.
+                List<int> datumTriggerIndices = inspSeq.FindDatumIndexTriggerActionIndices();
+                bool bHasDatumTrigger = datumTriggerIndices != null && datumTriggerIndices.Count > 0;
+                if (bHasDatumTrigger)
                 {
-                    return seq.StartSubset(datumZeroIndices.ToArray(), packet);
+                    return seq.StartSubset(datumTriggerIndices.ToArray(), packet);
                 }
                 return seq.StartAll(packet);
             }
-            InspectionSequence inspSeq = seq as InspectionSequence; //260722 hbk dynamic-FAI 런타임 타입은 항상 InspectionSequence
-            bool bIsInspectionSeq = inspSeq != null;
             if (!bIsInspectionSeq)
             {
                 return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)

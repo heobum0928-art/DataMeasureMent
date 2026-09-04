@@ -152,32 +152,32 @@
             </Grid.RowDefinitions>
 
             <!-- Recipe Name -->
-            <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3">
+            <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" ClipToBounds="True">
                 <!-- 260616 hbk Phase 51 BATCH-01: 일괄검사/Export 버튼 추가로 3열 → 5열 확장 -->
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="6*"></ColumnDefinition>  <!-- RecipeName -->
-                    <ColumnDefinition Width="2*"></ColumnDefinition>  <!-- btn_start (RUN) -->
-                    <ColumnDefinition Width="3*"></ColumnDefinition>  <!-- btn_batchRun (일괄검사) -->
-                    <ColumnDefinition Width="3*"></ColumnDefinition>  <!-- btn_batchExport (일괄Export) -->
-                    <ColumnDefinition Width="2*"></ColumnDefinition>  <!-- btn_RecipeSelect (...) -->
+                    <ColumnDefinition Width="*"></ColumnDefinition>  <!-- RecipeName -->
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>  <!-- btn_start (RUN) -->
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>  <!-- btn_batchRun (일괄검사) -->
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>  <!-- btn_batchExport (일괄Export) -->
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>  <!-- btn_RecipeSelect (...) -->
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition></RowDefinition>
                 </Grid.RowDefinitions>
                 <TextBox x:Name="tb_RecipeName" Grid.Column="0" Grid.Row="0" Margin="0,2,2,2" FontSize="19" IsReadOnly="True" Text="{Binding CurrentRecipe}"></TextBox>
 
-                <Button x:Name="btn_start" Grid.Column="1" Grid.Row="0" Margin="0,2,0,2" FontSize="18" Click="Btn_start_Click">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                        <Image Source="/resource/process.png"></Image>
-                        <TextBlock Text="RUN"></TextBlock>
+                <Button x:Name="btn_start" Grid.Column="1" Grid.Row="0" Margin="0,2,0,2" FontSize="18" Padding="4,0" Click="Btn_start_Click">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Image Source="/resource/process.png" Width="20" Height="20" VerticalAlignment="Center"></Image>
+                        <TextBlock Text="RUN" VerticalAlignment="Center"></TextBlock>
                     </StackPanel>
                 </Button>
                 <!-- 260616 hbk Phase 51 BATCH-01: 선택 SHOT 일괄 검사 -->
-                <Button x:Name="btn_batchRun" Grid.Column="2" Grid.Row="0" Margin="2,2,2,2" FontSize="16" Click="Btn_batchRun_Click">
+                <Button x:Name="btn_batchRun" Grid.Column="2" Grid.Row="0" Margin="2,2,2,2" FontSize="16" Padding="4,0" Click="Btn_batchRun_Click">
                     <TextBlock Text="일괄검사" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                 </Button>
                 <!-- 260616 hbk Phase 51 BATCH-01: 누적분 수동 엑셀 Export (D-05) -->
-                <Button x:Name="btn_batchExport" Grid.Column="3" Grid.Row="0" Margin="2,2,2,2" FontSize="16" IsEnabled="False" Click="Btn_batchExport_Click">
+                <Button x:Name="btn_batchExport" Grid.Column="3" Grid.Row="0" Margin="2,2,2,2" FontSize="16" Padding="4,0" IsEnabled="False" Click="Btn_batchExport_Click">
                     <TextBlock Text="일괄Export" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                 </Button>
                 <Button x:Name="btn_RecipeSelect" Grid.Column="4" Grid.Row="0" Margin="2,2,2,2" FontSize="18" Content="..." ContextMenu="{StaticResource menu_control}" Click="Btn_RecipeSelect_Click">

@@ -77,9 +77,11 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <!--260626 hbk Phase 66 D-04 — RowDefinition 1개 추가(총 7개). 동축 GroupBox=Row5, 여백=Row6.-->
                 <!--픽셀 캘리브레이션 GroupBox 추가(총 8개) — 동축=Row5, 캘리브=Row6, 여백=Row7.-->
+                <!--quick-260903-dpy — RowDefinition 1개 추가(총 9개). 피커센터 캘 GroupBox=Row8(기존 Row 뒤에 추가, 기존 Row 번호는 그대로 둔다).-->
 
                 <!--Row 0: 헤더-->
                 <StackPanel Grid.Row="0" Margin="0,0,0,10">
@@ -238,6 +240,91 @@
 
                 <!--Row 7: 여백 (기존 Row 6 에서 이동)-->
                 <Grid Grid.Row="7"/>
+
+                <!--Row 8: 피커센터 캘리브레이션 패널 (quick-260903-dpy — Bottom AV-05 이식, Tray 전용 피커 회전중심).
+                     Tray 는 카메라·피커가 같은 Y축 위 약 20cm 떨어져 있고 피커가 부품 각도만큼 회전한다.
+                     "놓고 재고 → 집어서 각도 바꿔 다시 놓고 재고"를 반복해 얻은 지그 중심들은 Bottom 과
+                     같은 원을 그리므로 계산부(원 피팅)를 그대로 재사용한다. 저장 대상만 TrayPickerCenterRow/Col.-->
+                <GroupBox Grid.Row="8" Header="피커센터 캘" Margin="0,0,0,8">
+                    <StackPanel Margin="8">
+                        <!--캘 스텝당 피커 회전각. 검사용 각도범위와는 별개다.
+                             10도 → 36스텝, 20도 → 18스텝, 30도 → 12스텝.-->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="스텝 각도:" VerticalAlignment="Center" FontSize="12" Width="66"/>
+                            <ComboBox x:Name="cmb_calStepAngle" Width="70" Height="22" FontSize="12"
+                                      SelectionChanged="CalStepAngleComboBox_SelectionChanged">
+                                <ComboBoxItem Content="10"/>
+                                <ComboBoxItem Content="20"/>
+                                <ComboBoxItem Content="30"/>
+                            </ComboBox>
+                            <TextBlock x:Name="lbl_calStepInfo" Text="deg · 36스텝" VerticalAlignment="Center"
+                                       FontSize="12" Margin="6,0,0,0"/>
+                        </StackPanel>
+                        <!--quick-260903-dpy — 이 캘은 전 과정이 수동이다(피커 이동/회전 자동화 없음).
+                             운영자가 자재를 손으로 놓고 찍기를 10회 안팎 반복한다. 원 피팅은 회전각을
+                             몰라도 되므로 대충 돌려도 되지만, 점이 좁은 구간에 몰리면 피팅이 불안정해진다.-->
+                        <TextBlock Text="각도는 정확하지 않아도 됩니다. 한쪽에 몰리지 않게 고루 돌려 주세요."
+                                   Margin="0,0,0,6" FontSize="11" Foreground="#64748B" TextWrapping="Wrap"/>
+                        <!--초기화 / 마지막 취소: 순서 번호 없음 — 언제든 눌러 되돌릴 수 있는 보조 동작.
+                             ↺ 마지막 취소는 10회 수동 반복 중 한 번만 잘못돼도 전부 다시 하지 않도록,
+                             누적의 마지막 1개만 제거한다(TryRemoveLastStep). 누적이 1개 이상일 때만 활성.-->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Button x:Name="btn_calReset"
+                                    Content="초기화"
+                                    Style="{StaticResource TrayActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    Click="CalResetButton_Click"/>
+                            <Button x:Name="btn_calRemoveLastStep"
+                                    Content="↺ 마지막 취소"
+                                    Style="{StaticResource TrayActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    Click="CalRemoveLastStepButton_Click"/>
+                        </StackPanel>
+                        <!--quick-260903-dpy — 버튼에 수행 순서 번호(①②③④)를 붙이고, 아직 할 수 없는
+                             단계는 code-behind(UpdateCalButtonState)가 IsEnabled=false 로 눌러도 반응 없게
+                             막는다 — 에러 메시지로 사후 통보하지 않고 애초에 못 누르게 한다.-->
+                        <!--① 검색 ROI(원) 지정: Circle 드로잉 시작. 항상 활성(맨 처음 단계).-->
+                        <Button x:Name="btn_calDrawRoi"
+                                Content="① 검색 ROI(원) 지정"
+                                Style="{StaticResource TrayActionButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Click="CalDrawRoiButton_Click"/>
+                        <!--② Cal 모델 티칭: 검색 ROI 지정 후에만 활성.-->
+                        <Button x:Name="btn_calTeachModel"
+                                Content="② Cal 모델 티칭"
+                                Style="{StaticResource TrayActionButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Click="CalTeachModelButton_Click"/>
+                        <!--③ 스텝 추가: 모델이 티칭/로드된 후에만 활성.-->
+                        <Button x:Name="btn_calAddStep"
+                                Content="③ 스텝 추가 (Grab+검출)"
+                                Style="{StaticResource TrayActionButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Click="CalAddStepButton_Click"/>
+                        <!--④ 피커센터 계산: 누적 스텝이 최소 개수 이상일 때만 활성.-->
+                        <Button x:Name="btn_calCompute"
+                                Content="④ 피커센터 계산"
+                                Style="{StaticResource TrayActionButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Click="CalComputeButton_Click"/>
+                        <!--캘 상태: 진행 단계 + 누적/최소 스텝 수 표시. 10회 반복 중 버튼이 밀리지
+                             않도록 MinHeight 로 최소 2줄 분량을 미리 확보한다(텍스트 길이 변화 대비).-->
+                        <TextBlock x:Name="lbl_calStatus"
+                                   Margin="0,6,0,0"
+                                   MinHeight="34"
+                                   FontSize="12"
+                                   Foreground="#475569"
+                                   Text="누적 0"
+                                   TextWrapping="Wrap"/>
+                        <!--피커센터 결과: 산출된 row/col/radius + 피팅 잔차(RMS/최대) 표시-->
+                        <TextBlock x:Name="lbl_pickerCenter"
+                                   Margin="0,4,0,0"
+                                   FontSize="12"
+                                   Foreground="#1E3A8A"
+                                   Text=""
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </GroupBox>
                 </Grid>
             </ScrollViewer>
         </Border>

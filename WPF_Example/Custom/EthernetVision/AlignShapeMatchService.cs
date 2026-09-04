@@ -714,18 +714,27 @@ namespace ReringProject {
 
                 if (bBottom) {
                     //260624 hbk Phase 60 — D-05: Bottom 은 피커센터 기준 강체보정 적용(미캘 시 폴백).
+                    double bottomPickerRow = SystemSetting.Handle.PickerCenterRow;
+                    double bottomPickerCol = SystemSetting.Handle.PickerCenterCol;
                     double corrRow, corrCol;
-                    ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, out corrRow, out corrCol);
+                    ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, bottomPickerRow, bottomPickerCol, out corrRow, out corrCol);
                     result.OffsetXmm = BOTTOM_OFFSET_X_SIGN * corrCol * resMm;   // Col → X
                     result.OffsetYmm = corrRow * resMm;                          // Row → Y (부호 상수 없음)
                     result.ThetaDeg = BOTTOM_THETA_SIGN * thetaDeg;
                     result.HasTheta = true;
                 }
                 else {
-                    result.OffsetXmm = TRAY_OFFSET_X_SIGN * dCol * resMm;   // Tray = 미보정 midpoint offset (Phase 59 동작)
-                    result.OffsetYmm = dRow * resMm;                        // Row → Y (부호 상수 없음)
-                    result.ThetaDeg = TRAY_THETA_SIGN * thetaDeg; //260630 hbk 비전 원값 그대로 전송(피커 캘리브 없음) — 부호만 상수화
-                    result.HasTheta = true; //260630 hbk
+                    // quick-260903-dpy — Tray 도 Bottom 과 동일한 피커센터 기준 강체보정 적용.
+                    //  TrayPickerCenterRow/Col 이 미캘(0,0)이면 ApplyPickerCenterCorrection 내부 EPS 폴백으로
+                    //  corrRow/corrCol == dRow/dCol 이 되어 아래 산식은 이전(미보정 midpoint offset)과 완전히 동일하다.
+                    double trayPickerRow = SystemSetting.Handle.TrayPickerCenterRow;
+                    double trayPickerCol = SystemSetting.Handle.TrayPickerCenterCol;
+                    double trayCorrRow, trayCorrCol;
+                    ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, trayPickerRow, trayPickerCol, out trayCorrRow, out trayCorrCol);
+                    result.OffsetXmm = TRAY_OFFSET_X_SIGN * trayCorrCol * resMm;   // Col → X
+                    result.OffsetYmm = trayCorrRow * resMm;                        // Row → Y (부호 상수 없음)
+                    result.ThetaDeg = TRAY_THETA_SIGN * thetaDeg;
+                    result.HasTheta = true;
                 }
 
                 //260625 hbk Phase 61.1 — 시각화 필드 채우기(검출 좌표/ROI박스/에지 contour).
@@ -920,15 +929,17 @@ namespace ReringProject {
         // 부호/회전중심 규약은 피커 컨트롤러 기준 — UAT/통합 확정 (PICKER_ROTATION_SIGN 파라미터화).
         // TODO(Phase 61 UAT): PICKER_ROTATION_SIGN 및 회전 적용점 실 피커 기준 확정.
         // 실패 시 입력값 그대로 반환(throw 금지, D-06).
+        // quick-260903-dpy — pickerRow/pickerCol 을 인자로 받도록 변경(기존엔 SystemSetting.Handle.PickerCenterRow/Col
+        //  을 직접 읽었다). Bottom/Tray 가 서로 다른 설정 프로퍼티(PickerCenterRow/Col vs TrayPickerCenterRow/Col)를
+        //  쓰므로 호출부가 어느 값을 넘길지 결정한다 — 이 함수 자체의 보정 수식/EPS 폴백은 무변경.
         private void ApplyPickerCenterCorrection(
             double dRow, double dCol, double thetaDeg,
+            double pickerRow, double pickerCol,
             out double corrRow, out double corrCol)
         {
             corrRow = dRow;
             corrCol = dCol;
 
-            double pickerRow = SystemSetting.Handle.PickerCenterRow;
-            double pickerCol = SystemSetting.Handle.PickerCenterCol;
             bool bUncalibrated = (Math.Abs(pickerRow) <= SystemSetting.PICKER_CENTER_ZERO_EPS)
                               && (Math.Abs(pickerCol) <= SystemSetting.PICKER_CENTER_ZERO_EPS);
             if (bUncalibrated) {

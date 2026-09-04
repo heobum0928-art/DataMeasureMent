@@ -152,12 +152,14 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
+                <!--Quick 260902-oys: Col0 을 * 로 전환 — WrapPanel 이 유한 폭으로 measure 되어야 실제로 줄바꿈이 일어난다.
+                     Auto 컬럼 안의 WrapPanel 은 PositiveInfinity 로 measure 되어 절대 접히지 않는다. Col1 은 그래서 Auto 로 내린다.-->
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <WrapPanel Grid.Column="0" Orientation="Horizontal">
                     <ToggleButton x:Name="btn_rectRoi" Content="Rect ROI"
                         Click="RectRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
@@ -255,10 +257,12 @@
                         </Button.Template>
                     </Button>
 
-                    <!--Phase 74: 브러시 마스킹 패널 열기/닫기. 패널 자체는 HALCON 창 밖(툴바 아래 줄)에 있다.-->
+                    <!--Phase 74: 브러시 마스킹 패널 열기/닫기. 패널 자체는 HALCON 창 밖(툴바 아래 줄)에 있다.
+                         검사(측정) 화면 진입점 숨김 — 정렬 비전(Bottom/Tray) 브러시 UI 는 계속 사용, 핸들러/패널/배선은 보존.-->
                     <ToggleButton x:Name="btn_brushMask" Content="브러시"
                         Click="BrushMaskToggleButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
+                        Visibility="Collapsed"
                         MinWidth="70" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
                         ToolTip="패턴 모델에서 제외할 영역을 브러시로 칠합니다. 칠하기를 마치면 모델이 자동으로 다시 만들어집니다."/>
@@ -417,7 +421,7 @@
                         IsChecked="True"
                         Checked="Chk_overlayPattern_Changed" Unchecked="Chk_overlayPattern_Changed"
                         Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
-                </StackPanel>
+                </WrapPanel>
                 <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"
                        HorizontalAlignment="Center" VerticalContentAlignment="Center"

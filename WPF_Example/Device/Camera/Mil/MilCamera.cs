@@ -24,6 +24,11 @@ namespace ReringProject.Device {
         // SIMUL_MODE 에서는 LiveLoop 자체가 없어 참조되지 않을 뿐이다.
         private DeviceInfo _liveRoleInfo = null;
 
+        // 트리가 마지막으로 지정한 "원하는" 역할 식별자. _liveRoleInfo(라이브 스트리밍 중에만
+        // 의미 있는 유효 역할)와 달리 라이브 정지/재시작을 넘어 계속 보존된다.
+        // StartStream() 이 재시작 시 이 값을 다시 해석해 _liveRoleInfo 를 복원한다.
+        private string _szLiveRoleIdentifier = null;
+
 #if !SIMUL_MODE
         // MIL 라이브(연속 grab) 스레드 제어
         private Thread _liveThread = null;
@@ -80,10 +85,18 @@ namespace ReringProject.Device {
         // 최악의 경우 한 프레임 늦게 반영될 뿐이므로 락을 걸지 않는다(락을 걸면 grab 구간과 UI 가 얽혀 데드락 위험만 늘어남).
         public override void SetLiveGrabRole(string szRoleIdentifier) {
             if (string.IsNullOrEmpty(szRoleIdentifier)) {
+                // 미러 무관 노드 선택(무미러 복귀) — 유효 역할뿐 아니라 원하는 역할 식별자도
+                // 함께 지워야 두 필드가 항상 일치한다.
+                _szLiveRoleIdentifier = null;
                 _liveRoleInfo = null;
                 return;
             }
-            _liveRoleInfo = ResolveRoleInfo(szRoleIdentifier);
+            // 인자를 필드에 먼저 저장한 뒤, 필드를 경유해 ResolveRoleInfo 를 호출한다.
+            // 이유: (1) 두 필드가 절대 어긋나지 않음이 한눈에 보인다.
+            // (2) SIMUL_MODE 빌드에서는 StartStream 이 통째로 컴파일 제외되므로,
+            //     여기서 필드를 읽지 않으면 "대입만 되고 읽히지 않는 필드" 경고가 새로 생긴다.
+            _szLiveRoleIdentifier = szRoleIdentifier;
+            _liveRoleInfo = ResolveRoleInfo(_szLiveRoleIdentifier);
         }
 
         private string GetMilErrorMessage() {
@@ -469,6 +482,12 @@ namespace ReringProject.Device {
                 return false;
             }
 
+            // 정지 시 유효 역할(_liveRoleInfo)만 비웠으므로, 재시작할 때 마지막 트리 선택을
+            // 다시 해석해 복원한다. 이게 없으면 트리 선택이 그대로여도 무미러로 돌아간다.
+            if (!string.IsNullOrEmpty(_szLiveRoleIdentifier)) {
+                _liveRoleInfo = ResolveRoleInfo(_szLiveRoleIdentifier);
+            }
+
             _liveRunning = true;
             CaptureMode  = ECaptureModeType.Streaming;
             // Basler/HikCamera는 SDK 콜백(OnGrabStarted/OnGrabStopped)에서 세팅하지만 MIL은 콜백이 없어
@@ -503,7 +522,9 @@ namespace ReringProject.Device {
 
             IsGrabbing = false;
             CaptureMode = ECaptureModeType.Stop;
-            _liveRoleInfo = null; // 라이브 재시작 시 이전 트리 선택이 남지 않도록 초기화
+            // 유효 역할만 비운다. 원하는 역할 식별자(_szLiveRoleIdentifier)는 남겨 두어
+            // 재시작 시 StartStream() 이 이를 다시 해석해 _liveRoleInfo 를 복원한다.
+            _liveRoleInfo = null;
             base.StopStream(); // 마지막 프레임 정리(ClearLastFrame)
         }
 

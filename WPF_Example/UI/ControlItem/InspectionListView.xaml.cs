@@ -28,6 +28,9 @@ namespace ReringProject.UI {
         // SelectedObject 재할당 중 ComboBox 초기화 이벤트가 bubble되어 SelectionChanged 무한루프가 발생하는 것을 차단
         private bool _isRebinding = false;
 
+        // 라이브 미러 재적용을 위해 현재 PropertyChanged 를 구독 중인 Datum. 선택이 바뀌면 반드시 해제한다.
+        private DatumConfig _liveMirrorWatchedDatum = null;
+
         //260616 hbk Phase 51 BATCH-01: 일괄 검사 누적 결과 + 서비스 인스턴스 (UI 소유, static 금지)
         private List<CycleResultDto> _batchAccumulated = new List<CycleResultDto>();
         private BatchRunService _batchService;
@@ -1343,6 +1346,21 @@ namespace ReringProject.UI {
         //  라이브 표시 편의 기능이므로 어떤 경우에도 트리 선택 처리를 깨뜨리면 안 된다(전체 try/catch).
         private void ApplyLiveMirrorForNode(object itemParam) {
             try {
+                // 구독 swap — 이 메서드가 선택 변경마다 반드시 지나가는 유일한 지점이므로,
+                // 여기에 두면 이전 Datum 의 구독 해제 누락이 구조적으로 불가능하다.
+                DatumConfig datumForWatch = itemParam as DatumConfig;
+                if (!object.ReferenceEquals(_liveMirrorWatchedDatum, datumForWatch)) {
+                    if (_liveMirrorWatchedDatum != null) {
+                        _liveMirrorWatchedDatum.PropertyChanged -= OnLiveMirrorDatumPropertyChanged;
+                    }
+                    _liveMirrorWatchedDatum = datumForWatch;
+                    if (_liveMirrorWatchedDatum != null) {
+                        _liveMirrorWatchedDatum.PropertyChanged += OnLiveMirrorDatumPropertyChanged;
+                    }
+                }
+                // 같은 참조면 swap 을 건너뛴다 — 핸들러가 이 메서드를 재호출하므로, 매번
+                // 해제/재구독하면 이벤트 발화 도중 구독 리스트를 흔들게 된다.
+
                 if (itemParam is DatumConfig) {
                     DatumConfig datumCfg = itemParam as DatumConfig;
                     ICameraParam ownerCamParam = ResolveDatumCameraParam(datumCfg);
@@ -1367,6 +1385,29 @@ namespace ReringProject.UI {
             catch (Exception ex) {
                 Logging.PrintLog((int)ELogType.Camera, "[WARN] ApplyLiveMirrorForNode 실패: {0}", ex.Message);
             }
+        }
+
+        // 선택 중인 Datum 의 MirrorX/MirrorY 가 PropertyGrid 로 바뀌면 라이브 미러를 즉시 재적용한다.
+        //  화이트리스트(MirrorX/MirrorY 만): 다른 속성 변경이나 대량 갱신(string.Empty)까지 통과시키면
+        //  장치 역할을 불필요하게 매번 다시 밀어 넣게 되므로 여기서는 두 속성만 허용한다.
+        //  stale 방어: 트리 재구축 등으로 더 이상 선택돼 있지 않은 옛 Datum 의 이벤트가 잘못된
+        //  미러를 적용하지 않도록, 현재 트리 선택과 참조가 일치할 때만 재적용한다.
+        private void OnLiveMirrorDatumPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e) {
+            if (e == null) return;
+
+            bool bMirrorProperty = false;
+            if (e.PropertyName == nameof(DatumConfig.MirrorX)) bMirrorProperty = true;
+            if (e.PropertyName == nameof(DatumConfig.MirrorY)) bMirrorProperty = true;
+            if (!bMirrorProperty) return;
+
+            DatumConfig changedDatum = sender as DatumConfig;
+            if (changedDatum == null) return;
+
+            NodeViewModel selectedNode = treeListBox_sequence.SelectedItem as NodeViewModel;
+            if (selectedNode == null) return;
+            if (!object.ReferenceEquals(selectedNode.Param, changedDatum)) return;
+
+            ApplyLiveMirrorForNode(changedDatum);
         }
 
         private void button_light_Click(object sender, RoutedEventArgs e) {

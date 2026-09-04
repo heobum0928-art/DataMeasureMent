@@ -235,7 +235,7 @@ namespace ReringProject.Sequence {
         private bool _mirrorX;
 
         [Category("Datum|Mirror")]
-        [System.ComponentModel.Description("카메라가 사진을 좌우로 뒤집어 찍게 한다. 기본 꺼짐. 프로그램을 다시 시작해야 적용된다.")]
+        [System.ComponentModel.Description("카메라가 사진을 좌우로 뒤집어 찍게 한다. 기본 꺼짐. 다음 촬영부터 바로 적용된다.")]
         public bool MirrorX {
             get { return _mirrorX; }
             set {
@@ -249,7 +249,7 @@ namespace ReringProject.Sequence {
         private bool _mirrorY;
 
         [Category("Datum|Mirror")]
-        [System.ComponentModel.Description("카메라가 사진을 상하로 뒤집어 찍게 한다. 기본 꺼짐. 프로그램을 다시 시작해야 적용된다.")]
+        [System.ComponentModel.Description("카메라가 사진을 상하로 뒤집어 찍게 한다. 기본 꺼짐. 다음 촬영부터 바로 적용된다.")]
         public bool MirrorY {
             get { return _mirrorY; }
             set {
@@ -274,7 +274,7 @@ namespace ReringProject.Sequence {
                 "[" + label + "] 설정을 '" + stateText + "' 으로 바꿨습니다.\n\n" +
                 "1. 이 설정은 카메라가 사진을 찍어오는 방향 자체를 뒤집습니다. 화면에 보이는 그림만 돌리는 것이 아닙니다.\n\n" +
                 "2. 같은 카메라로 찍는 다른 검사 항목의 측정값까지 함께 틀어질 수 있습니다. 잘 모르면 바꾸지 마시고, 바꿨다면 다른 항목들도 꼭 다시 확인하세요.\n\n" +
-                "3. 지금 바로 적용되지 않습니다. 프로그램을 완전히 종료했다가 다시 실행해야 반영됩니다.";
+                "3. 다음 촬영부터 바로 적용됩니다. 바꾼 뒤에는 다른 항목들을 곧바로 다시 확인하세요.";
             ReringProject.UI.CustomMessageBox.Show("촬영 방향(반전) 설정 변경", message,
                 System.Windows.MessageBoxImage.Warning, true, false);
         }

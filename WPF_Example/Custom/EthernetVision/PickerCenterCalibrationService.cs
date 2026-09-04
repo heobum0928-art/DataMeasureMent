@@ -67,6 +67,15 @@ namespace ReringProject {
         }
 
         /// <summary>
+        /// quick-260903-dpy — 편심원 피팅에 필요한 최소 누적 스텝 수(읽기 전용).
+        /// UI 가 [피커센터 계산] 버튼 활성화 조건을 판단할 때 MIN_STEPS 를 새로 하드코딩하지
+        /// 않도록 노출한다. 알고리즘/판정 로직은 변경하지 않는다.
+        /// </summary>
+        public int MinSteps {
+            get { return MIN_STEPS; }
+        }
+
+        /// <summary>
         /// quick-260812: 등급 산정용 최소 스코어(읽기 전용).
         /// quick-mc1 — 값의 출처가 하드코딩 상수에서 SystemSetting.Handle.PickerCalFindMinScore 로
         /// 바뀌었다. 임계값이 바뀌면 등급 기준도 같이 따라가야 일관성이 유지되므로 그대로 반영한다.
@@ -88,6 +97,25 @@ namespace ReringProject {
         public void FullReset() {
             Reset();
             ClearModel();
+        }
+
+        /// <summary>
+        /// quick-260903-dpy — 수동 반복(자재를 손으로 놓고 찍기)중 마지막 스텝 1개만 취소한다.
+        /// 10회 안팎을 손으로 반복하다 한 번 잘못 찍혀도 Reset() 으로 전부 되돌리지 않고 이어서
+        /// 계속할 수 있게 한다. 누적이 비어 있으면 false. 원 피팅 알고리즘/기존 메서드 시그니처는
+        /// 손대지 않는다 — _rows/_cols 마지막 원소만 제거한다.
+        /// 시각화(_vizXld)는 스텝별 재구성 대상이 아니므로 함께 지운다 — 다음 TryAddStep 또는
+        /// TryComputePickerCenter 호출 시 남은 점 기준으로 다시 그려진다.
+        /// </summary>
+        public bool TryRemoveLastStep() {
+            bool bEmpty = (_rows.Count == 0);
+            if (bEmpty) {
+                return false;
+            }
+            _rows.RemoveAt(_rows.Count - 1);
+            _cols.RemoveAt(_cols.Count - 1);
+            ClearVizXld();
+            return true;
         }
 
         // ─── 모델 경로 ──────────────────────────────────────────────────────────

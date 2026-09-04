@@ -266,6 +266,16 @@ namespace ReringProject.Setting {
         [Category("ETHERNET_VISION")]
         public double PickerCenterCol { get; set; } = 0.0;
 
+        // quick-260903-dpy — Tray 전용 피커 회전중심. Bottom 의 PickerCenterRow/Col 과 완전히 같은
+        //  관용구(같은 머신 단위 HW 캘 결과, 레시피 아님)라 나란히 둔다. 0 = 미캘이 곧 올바른 초기값이므로
+        //  reflection Load 가 구 INI 의 누락 키를 0 으로 덮어써도 문제가 되지 않는다 — 위 PickerCenterRow/Col 이
+        //  같은 이유로 AfterLoad() 복원 가드가 없는 것과 동일하다. 새 복원 로직을 추가하지 않는다.
+        [Category("ETHERNET_VISION")]
+        public double TrayPickerCenterRow { get; set; } = 0.0;
+
+        [Category("ETHERNET_VISION")]
+        public double TrayPickerCenterCol { get; set; } = 0.0;
+
         //260630 hbk Phase 60 사각형 ROI 전환: 피커캘 STEP 검색 ROI(사각형). TCP $ALIGN_CALIB:BOTTOM,STEP@ 수신 시 Grab→TryAddStep 에 전달.
         // 기본값 Row1=0/Col1=0/Row2=99999/Col2=99999 → 전 이미지 커버 (HALCON GenRectangle1 이 이미지 도메인 내부로 클립).
         [Category("ETHERNET_VISION")]

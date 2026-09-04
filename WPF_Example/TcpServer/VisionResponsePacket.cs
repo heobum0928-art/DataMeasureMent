@@ -178,7 +178,9 @@ namespace ReringProject.Network {
                     //msg += VisionServer.MSG_CONTENTS_SEPERATOR;
                     msg += sitePacket.Site.ToString();
                     msg += VisionServer.MSG_CONTENTS_SEPERATOR;
-                    msg += sitePacket.Result;
+                    // enum 을 그대로 붙이면 멤버 이름("Ready")이 나가 제어가 파싱에 실패한다.
+                    //  규약 상수(READY/BUSY/ERROR)로 변환해 보낸다.
+                    msg += sitePacket.GetSiteStatusString();
 
                     break;
                 case EVisionResponseType.Test:

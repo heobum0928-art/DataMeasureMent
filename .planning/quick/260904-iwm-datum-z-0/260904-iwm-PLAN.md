@@ -5,31 +5,42 @@ type: execute
 wave: 1
 depends_on: []
 files_modified:
+  - WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
   - WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-  - WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs
   - WPF_Example/Custom/SystemHandler.cs
-  - WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs
 autonomous: false
 requirements: [QUICK-260904-IWM]
 
 must_haves:
   truths:
     - "시퀀스마다 '기준점(Datum) 촬영 = 새 사이클 시작' 인 z_index 를 다르게 가질 수 있다 (Top=0, Bottom=11, Side2=11 …)"
-    - "아무 설정도 하지 않으면 그 시퀀스가 소유한 Shot 의 ZIndex 최솟값이 자동으로 기준점이 된다"
-    - "기존 레시피(Shot 이 0 부터 시작)는 자동값이 0 이라 동작이 지금과 100% 같다 (회귀 0)"
-    - "사용자가 직접 넣은 값은 자동값보다 우선하며, Shot 최솟값과 다르면 경고가 보이되 저장은 막히지 않는다"
-    - "기준점 값은 레시피 FIXTURE 섹션에 저장되고, 비활성 시퀀스(다른 CameraRole)의 값도 저장 시 보존된다"
+    - "Datum 노드 속성창(PropertyGrid)에 기준점 Z 번호 입력칸이 보이며, Datum 알고리즘 종류와 무관하게 4개 알고리즘 전부에서 보인다"
+    - "아무 설정도 하지 않으면(-1 = 자동) 그 시퀀스가 소유한 Shot 의 ZIndex 최솟값이 자동으로 기준점이 된다"
+    - "기존 레시피(INI 키 없음 → -1 자동, Shot 이 0 부터 시작)는 동작이 지금과 100% 같다 (회귀 0)"
+    - "사용자가 직접 넣은 값은 자동값보다 우선하며, Shot 최솟값과 다르면 경고창이 뜨되 저장은 막히지 않는다"
+    - "기준점 값은 레시피 {prefix}_DATUM_{d} 섹션에 자동 저장/로드되고, 비활성 시퀀스(다른 CameraRole)의 값도 기존 섹션-통째-보존 경로로 유지된다"
     - "Debug|x64 빌드 error CS 0"
   artifacts:
+    - path: "WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs"
+      provides: "DatumZIndex 프로퍼티(+자동 sentinel) + 사용자 편집 시에만 뜨는 경고 + Load 키부재 가드"
+      contains: "DatumZIndex"
     - path: "WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs"
-      provides: "DatumZIndexOverride 필드 + GetDatumZIndex() 실효값 접근자 + 모든 판정 지점 치환"
-    - path: "WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs"
-      provides: "FIXTURE 섹션 DatumZIndex 키 저장/로드/보존 3경로"
+      provides: "TryGetOwnedShotZIndexRange + GetDatumZIndex() 실효값 접근자 + 모든 판정 지점 치환"
     - path: "WPF_Example/Custom/SystemHandler.cs"
       provides: "StartV1Scoped 사이클 시작 판정 + GetPrepZIndex 폴백을 시퀀스 실효값으로 치환"
-    - path: "WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs"
-      provides: "PropertyGrid 기준점 입력 + 실효값/경고 표시(읽기 전용)"
   key_links:
+    - from: "DatumConfig.DatumZIndex"
+      to: "InspectionSequence.GetDatumZIndex()"
+      via: "소유 DatumConfigs 순회 → 지정값들의 최솟값"
+      pattern: "DatumZIndex"
+    - from: "DatumConfig 세터"
+      to: "소유 InspectionSequence"
+      via: "Owner as InspectionSequence (생성 경로가 AddDatum 단일)"
+      pattern: "Owner as InspectionSequence"
+    - from: "DatumConfig.Save/Load"
+      to: "레시피 INI {prefix}_DATUM_{d} 섹션"
+      via: "ParamBase 리플렉션 Int32 자동 직렬화 + Load 오버라이드 ContainsKey 가드"
+      pattern: "ContainsKey\\(\"DatumZIndex\"\\)"
     - from: "SystemHandler.StartV1Scoped"
       to: "InspectionSequence.GetDatumZIndex()"
       via: "seq as InspectionSequence 캐스트 후 비교 대상 값만 치환"
@@ -38,21 +49,15 @@ must_haves:
       to: "GetDatumZIndex()"
       via: "const DATUM_Z_INDEX 제거 후 전 판정 지점이 같은 접근자를 소비"
       pattern: "GetDatumZIndex\\(\\)"
-    - from: "InspectionRecipeManager FIXTURE 섹션"
-      to: "InspectionSequence.DatumZIndexOverride"
-      via: "INI 키 DatumZIndex (키 부재 = -1 = 자동)"
-      pattern: "\\[\"DatumZIndex\"\\]"
-    - from: "InspectionMasterParam.DatumZIndexOverride"
-      to: "InspectionSequence.DatumZIndexOverride"
-      via: "DisplayName 과 동일한 프록시 프로퍼티 관용구"
-      pattern: "_insp.DatumZIndexOverride"
 ---
 
 <objective>
-시퀀스별 "기준점(Datum) 촬영 = 새 사이클 시작" 인 z_index 를 설정값으로 만든다.
+시퀀스별 "기준점(Datum) 촬영 = 새 사이클 시작" 인 z_index 를 **Datum 노드 속성창에서 직접 넣는 설정값**으로 만든다.
 
 Purpose: 제어(PLC)가 40개 버퍼 번호를 시퀀스마다 구간으로 나눠 배정한다(Top=0~4, Bottom=11~40, Side1=0~3, Side2=11~13 …). 각 구간의 **시작 번호가 그 시퀀스의 기준점 촬영이고 새 사이클 시작**이다. 그런데 프로그램은 지금 "z_index 0" 하나만 기준점으로 취급하도록 상수로 박혀 있어서, Bottom 처럼 11 부터 시작하는 시퀀스는 사이클이 영원히 시작되지 않는다. 값 매칭(어떤 번호가 오면 같은 ZIndex 의 Shot 을 찍는다)은 이미 되고 있고, $PREP z 도 시퀀스별로 기억된다. 남은 걸림돌은 "기준점 = 0 고정" 하나뿐이다.
-Output: 시퀀스에 기준점 인덱스 개념(사용자 지정값 + 자동 실효값) 추가 → 레시피 저장 → 판정 지점 전면 치환 → UI 입력/경고.
+Output: Datum 속성창에 기준점 Z 번호 입력칸 추가(저장은 기존 Datum 섹션에 자동) → 시퀀스 실효값 접근자 → 판정 지점 전면 치환.
+
+**사용자 확정 결정:** 입력칸은 **Datum 노드 속성창(DatumConfig)** 에 둔다. 시퀀스 노드(InspectionMasterParam 프록시)는 쓰지 않는다.
 </objective>
 
 <execution_context>
@@ -62,10 +67,10 @@ Output: 시퀀스에 기준점 인덱스 개념(사용자 지정값 + 자동 실
 <context>
 @CLAUDE.md
 
+@WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
 @WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-@WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs
 @WPF_Example/Custom/SystemHandler.cs
-@WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs
+@WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs
 </context>
 
 <analysis>
@@ -120,102 +125,154 @@ Output: 시퀀스에 기준점 인덱스 개념(사용자 지정값 + 자동 실
 **(5) `FindZeroIndexDatumTriggerActionIndices` 이름 — 정정한다.**
 "Zero" 가 의미상 어긋난다(z=0 전용이 아니라 "기준점 index 의 대표 트리거"). 호출부가 단 2곳(`SystemHandler.cs:336`, `InspectionSequence.cs:1716`)뿐이라 안전하다 → `FindDatumIndexTriggerActionIndices` 로 rename 하고 두 호출부 + 관련 주석(`SystemHandler.cs:258`, `InspectionSequence.cs:1657-1662`, `:1690-1698`)의 "z=0" 표현도 "기준점 index" 로 정정한다.
 
-### 저장 경로 (요구사항 2) — 실측 확인
+### 노출/저장 경로 — 사용자 결정("입력칸은 Datum 속성창") 기준으로 재조사함
 
-`InspectionRecipeManager.cs`
-- `:181-190` TOP 인라인 저장 블록 (`saveFile["FIXTURE"]["DisplayName"]`, `["DatumCount"]`)
-- `:85-101` `SaveFixtureForSequence` — SIDE_1~4(`:193-196`), BOTTOM(`:209`) 공용
-- `:106-122` `PreserveFixtureFromExisting` — **섹션 통째 대입**(`saveFile[prefix] = existingFile[prefix]`)이라 신규 키도 자동 보존됨. 손댈 곳은 "보존할 기존 데이터 없음" 빈 분기(`:108-113`) 하나뿐이다.
-- `:126-148` `LoadFixtureForSequence`, `:271-285` TOP 인라인 로드 블록
-- INI 미존재 키는 `IniValue.Default` 를 돌려주고(`Ini.cs:953-960`) `.ToInt(v)` 는 변환 실패 시 인자값을 반환한다(`Ini.cs:179-185`) → **`ToInt(NO_DATUM_Z_INDEX_OVERRIDE)` 한 줄로 "키 부재 = 자동" 이 성립한다.** `ContainsKey` 가드는 불필요.
+**(A) Datum 속성창 노출은 프로퍼티 추가만으로 끝난다 — UI 파일 무수정.**
+- Datum 노드 PropertyGrid 의 소스는 `DatumConfig` 자신이다. `DatumConfig` 는 `ParamBase` + `ICustomTypeDescriptor` 이며, 진입점 `BuildFilteredProperties`(`DatumConfig.cs:1170-1186`) → `DynamicPropertyHelper.FilterProperties`(`DynamicPropertyHelper.cs:20-48`) 는 `TypeDescriptor.GetProperties(obj, true)` **전체**를 가져와 `IsHiddenForAlgorithm(name)` 이 true 인 이름만 뺀다.
+- 따라서 `[Category]` 가 붙은 public 프로퍼티를 하나 추가하고 **`IsHiddenForAlgorithm` 에 이름을 넣지 않으면 4개 알고리즘 전부에서 항상 보인다.** (`ZIndexA/ZIndexB` 는 `IsHiddenForAlgorithm` 의 TLI/CTH/VTH 3개 case 에서 명시적으로 hide 되어 DualImage 전용이 된 것 — 새 프로퍼티는 그 목록에 넣지 않는다.)
+- `sourceNames` 화이트리스트는 `[Browsable(false)]` 인 ItemsSource 소스 전용 안전판이라 일반 프로퍼티와 무관하다.
+- 이름 주의: hide 규칙이 접두사 매칭(`Line1_`, `Line2_`, `Circle`, `Vertical_`, `Horizontal_A_`, `Horizontal_B_`)이므로 새 이름이 이 접두사로 시작하면 안 된다. `DatumZIndex` 는 안전하다.
 
-### UI 경로 (요구사항 4) — 기존 관례 그대로
+**(B) 저장/로드/보존 3경로 전부 자동 — `InspectionRecipeManager.cs` 무변경.**
+- 저장: `SaveFixtureForSequence:97-100` 이 `seq.DatumConfigs[d].Save(saveFile, $"{sectionPrefix}_DATUM_{d}")` 를 호출하고, `ParamBase.Save` 가 Int32 public 프로퍼티를 리플렉션으로 자동 직렬화한다.
+- 로드: `LoadFixtureForSequence:141-145` 의 `datum.Load(loadFile, datumSection)` 로 자동.
+- 비활성 시퀀스(다른 CameraRole) 보존: `PreserveFixtureFromExisting:115-121` 이 `saveFile[datumSection] = existingFile[datumSection]` 로 **섹션을 통째로 복사**하므로 신규 키도 자동 보존된다.
 
-- 트리 Sequence 노드의 PropertyGrid 소스는 `seq.Param` = `InspectionMasterParam` 이다 (`InspectionListViewModel.cs:109`, `InspectionListView.xaml:303-310` 이 `SelectedItem.Param` 에 바인딩).
-- `InspectionMasterParam.DisplayName`(`:18-31`) 이 **이미 정확히 같은 패턴**이다 — 실체는 `InspectionSequence.DisplayName`, 저장은 FIXTURE 섹션, PropertyGrid 는 프록시 프로퍼티로 편집. 이걸 그대로 복제하면 code-behind 0 줄, XAML 0 줄 수정으로 끝난다(= 최소 침습 + MVVM 요구 자동 충족).
-- 시퀀스 `Param` 은 **어떤 파일로도 직렬화되지 않는다**(`Param.Save`/`Load` 호출부 grep 0건) → FIXTURE 섹션이 단일 저장원이고 이중 저장 위험 없음.
-- `ParamBase` 는 `Load`(`:373`)/`CopyTo`(`:449`) 양쪽에서 `!prop.CanWrite → continue` 가드가 있으므로 **getter 전용 계산 프로퍼티를 추가해도 복사/붙여넣기가 깨지지 않는다.**
-- 읽기 전용 표시 관례는 `DatumConfig.cs:1018-1035` — `[System.ComponentModel.ReadOnly(true)]` + `[PropertyTools.DataAnnotations.ReadOnly(true)]` **둘 다** 부착.
+**(C) 그러나 "키 부재 = -1(자동)" 은 자동으로 성립하지 않는다 — Load 오버라이드 가드가 필수다.**
+- `ParamBase.Load:377-380` 은 `case "Int32": loadFile[group][name].ToInt();` 를 **인자 없이** 호출하고, `IniValue.ToInt(int valueIfInvalid = 0)`(`Ini.cs:179-185`)의 기본값이 0 이다. → **INI 에 키가 없으면 0 이 들어간다.**
+- 이 기능에서 0 은 "z=0 을 기준점으로 명시 지정" 이라는 **유효값**이라 자동(-1)과 반드시 구별해야 한다. 구 레시피가 전부 0 으로 로드되면 Bottom 같은 시퀀스가 영영 사이클을 시작하지 못한다.
+- 이것이 `ZIndexA/ZIndexB` 가 `DatumConfig.Load` 오버라이드(`:1249-1268`)에 `ContainsKey` 가드를 둔 것과 **정확히 같은 사유**다. `DatumConfig.cs:1153-1157` 주석이 이 대조("ZIndexA/ZIndexB 는 0 이 의미값이라 오버라이드가 필요했던 것과 대조")를 이미 명문화해 두었다.
+- → 같은 Load 오버라이드에 `DatumZIndex` 가드 2줄(섹션 없음 분기 + ContainsKey 분기)을 추가한다.
+- **주의:** 옛 계획이 근거로 삼았던 `.ToInt(기본값)` 경로는 `InspectionRecipeManager` 가 INI 를 **직접 호출**하는 자리에만 해당한다. 리플렉션 직렬화 경로에는 적용되지 않는다.
+
+**(D) "사용자 편집일 때만 경고" 선례 — `_suppressMirrorWarning` 을 그대로 따른다.**
+- 선언 `DatumConfig.cs:229`, 판독 `:269`(`WarnMirrorChanged` 최상단), 켜고 끄는 곳 `Load :1253-1260` 과 `CopyTo :1309-1314`. 리플렉션 SetValue(INI 로드)와 붙여넣기가 같은 세터를 때리기 때문에 두 경로에서 끈다.
+- `MirrorX/MirrorY` 세터(`:238-262`)는 `if (_mirrorX == value) return;` 로 **같은 값 재저장 시 경고 반복까지** 막는다.
+- 경고 표시는 `ReringProject.UI.CustomMessageBox.Show(title, message, MessageBoxImage.Warning, true, false)` — 마지막 인자 `isAutoClosing=false`(자동닫힘 끔). 내부가 `Dispatcher.BeginInvoke` 로 넘기므로 세터를 블로킹하지 않는다(`CustomMessageBox.cs:24-35`). **이중 마샬링 금지.**
+
+**(E) 소유 시퀀스 접근 경로 — `Owner as InspectionSequence` 를 쓴다.**
+- `DatumConfig` 생성 경로는 `InspectionSequence.AddDatum():2199-2208` 의 `new DatumConfig(this)` **단 하나**다(전 저장소 grep 확인. `MainView.xaml.cs:4206` 주석도 같은 사실을 기록). 레시피 로드도 `LoadFixtureForSequence` 가 `seq.AddDatum()` 후 `datum.Load(...)` 를 부르므로 예외 없다.
+- `ParamBase.CopyPublicPropertiesTo:451` 이 `Owner` 를 복사 대상에서 제외하므로 붙여넣기로도 소유 관계가 깨지지 않는다.
+- `OwnerName`(`ParamBase.cs:41-49`)은 문자열만 돌려주어 `SystemHandler.Handle.Sequences[name]`(문자열 인덱서, 미존재 시 null — `SequenceHandler.cs:138-150`) 를 한 번 더 타야 한다. **불필요하므로 쓰지 않는다.**
+- `DatumConfig` 와 `InspectionSequence` 는 같은 `namespace ReringProject.Sequence` 라 별도 using 이 필요 없다.
 
 </analysis>
 
 <tasks>
 
 <task type="auto">
-  <name>Task 1: 기준점 인덱스 개념 + 레시피 저장</name>
-  <files>WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs, WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs</files>
+  <name>Task 1: Datum 속성창에 기준점 Z 번호 + 시퀀스 실효값 접근자</name>
+  <files>WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs, WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs</files>
   <action>
-**이 태스크에서는 판정 지점을 아직 건드리지 않는다.** `DATUM_Z_INDEX`(:88) 는 그대로 두고 API 와 저장만 추가한다 — 태스크 경계에서 항상 빌드가 통과해야 한다.
+**이 태스크에서는 판정 지점을 아직 건드리지 않는다.** `DATUM_Z_INDEX`(InspectionSequence:88) 는 그대로 두고 속성·저장·접근자만 추가한다 — 태스크 경계에서 항상 빌드가 통과해야 한다.
+**`InspectionRecipeManager.cs` 는 한 줄도 고치지 않는다**(analysis (B)). **UI 3파일(`InspectionListView.xaml`, `.xaml.cs`, `InspectionListViewModel.cs`)도 손대지 않는다**(analysis (A)).
 
-### 1-A. `InspectionSequence.cs` — 상수 3개
+### 1-A. `DatumConfig.cs` — 억제 플래그 개명 (기계적, 7곳)
 
-`:86-88` 의 기존 상수 블록(`DATUM_Z_INDEX` / `CROSS_Z_UNSET`) 옆에 추가한다.
+경고 억제 플래그가 이제 Mirror 전용이 아니게 되므로 `_suppressMirrorWarning` → `_suppressUserEditWarning` 으로 rename 한다. 컴파일러가 누락을 잡아주는 안전한 변경이며, 같은 시점에 켜고 꺼야 하는 플래그를 두 개로 늘리지 않기 위함이다.
+- 선언 `:229`, 판독 `:269`(`WarnMirrorChanged` 최상단), `Load` `:1254`/`:1260`, `CopyTo` `:1309`/`:1314`. 새 경고 메서드에서 1회 더 읽으므로 최종 7곳.
+- `:226-228` 주석의 "Mirror 세터" 표현을 "사용자 편집 대상 세터(Mirror / 기준점 Z 번호)" 로 넓힌다. `:1254` 인라인 주석도 같이 정정.
+- **이 rename 외에 Mirror 관련 동작을 바꾸지 말 것.**
 
-- `public const int NO_DATUM_Z_INDEX_OVERRIDE = -1;` — "사용자 미지정 = 자동". public 인 이유는 `InspectionRecipeManager` 와 `InspectionMasterParam` 이 같은 센티널을 공유해야 하기 때문(값 복제 금지).
+### 1-B. `DatumConfig.cs` — 기준점 Z 번호 프로퍼티
+
+`ZIndexA/ZIndexB` 블록(`:212-222`) **아래**, `_suppressUserEditWarning` 선언 **위**에 넣는다(관련 코드 인접 배치).
+
+1. sentinel 상수 — **매직넘버 금지**
+   `public const int AUTO_DATUM_Z_INDEX = -1;`
+   public 인 이유: `InspectionSequence` 가 같은 sentinel 로 "지정/자동" 을 판정해야 하며 값 복제를 금지하기 때문.
+
+2. 백킹 필드 `private int _datumZIndex = AUTO_DATUM_Z_INDEX;`
+
+3. 프로퍼티
+   - `[Category("Datum|Cycle")]` — 새 그룹. **`IsHiddenForAlgorithm` 에는 절대 추가하지 말 것**(모든 알고리즘에서 보여야 한다, analysis (A)).
+   - `[System.ComponentModel.Description("-1=자동(이 시퀀스 Shot 번호 중 가장 작은 값). 이 시퀀스의 새 사이클이 시작되는 Z 번호")]`
+   - `public int DatumZIndex { get; set; }` — get 은 `_datumZIndex` 반환.
+   - set 순서: (a) 지역 `int nNormalized` 에 값을 담되 **음수는 전부 `AUTO_DATUM_Z_INDEX` 로 정규화**(사용자가 -5 를 넣어도 "자동"). (b) `if (_datumZIndex == nNormalized) { return; }` — 같은 값 재저장 시 경고 반복 방지(Mirror 선례 `:239`/`:253`). (c) 대입. (d) `RaisePropertyChanged(nameof(DatumZIndex));` (e) `WarnDatumZIndexChanged();`
+
+4. `private void WarnDatumZIndexChanged()` — `WarnMirrorChanged`(`:266-282`) 바로 아래, 같은 관용구로.
+   가드 순서(전부 `if` + 중괄호, 삼항 금지):
+   - `if (_suppressUserEditWarning) { return; }` — INI 로드/붙여넣기에서는 조용히.
+   - `if (_datumZIndex == AUTO_DATUM_Z_INDEX) { return; }` — 자동이면 경고 없음.
+   - `InspectionSequence owner = Owner as InspectionSequence;` → `if (owner == null) { return; }`
+   - `int nMin; int nMax;` → `if (!owner.TryGetOwnedShotZIndexRange(out nMin, out nMax)) { return; }` — 소유 Shot 이 없으면 경고 없음.
+   - `if (_datumZIndex == nMin) { return; }` — 시작 번호와 같으면 정상.
+   - 그 외에만 `ReringProject.UI.CustomMessageBox.Show("기준점 Z 번호 확인", message, System.Windows.MessageBoxImage.Warning, true, false);`
+   메시지는 **초보 작업자가 읽는 평이한 한국어**로, 숫자는 실제값을 넣어 조립한다. 취지:
+   1) 이 시퀀스가 쓰는 촬영 번호는 {nMin} 부터 {nMax} 까지인데 방금 넣은 {값} 은 그 시작 번호({nMin}) 가 아니다.
+   2) 기준점 번호는 "새 제품 하나가 시작되는 번호" 다. 시작 번호와 다르면 사이클이 제때 시작되지 않을 수 있다.
+   3) 그래도 저장은 된다. 일부러 넣은 값이 아니면 칸에 -1 을 넣어 자동으로 되돌려라.
+   **저장을 막지 말 것**(반환값을 쓰지 않는다).
+
+5. **문자열/주석에 물음표 문자를 쓰지 말 것.** 삼항 금지 게이트(`grep -cE '\?[^?]*:'`)가 한글 문장의 물음표+콜론 조합에 오탐한다.
+
+### 1-C. `DatumConfig.cs` — Load 오버라이드에 키부재 가드 (analysis (C), 필수)
+
+기존 오버라이드(`:1249-1268`)에 `ZIndexA/ZIndexB` 와 **같은 자리, 같은 형태**로 2줄 추가:
+- 섹션 자체가 없는 조기 return 분기(`:1262-1266`)에 `DatumZIndex = AUTO_DATUM_Z_INDEX;`
+- `if (!sec.ContainsKey("ZIndexA")) ...` 옆에 `if (!sec.ContainsKey("DatumZIndex")) { DatumZIndex = AUTO_DATUM_Z_INDEX; }`
+- 헤더 주석(`:1244-1248`)에 `DatumZIndex` 도 같은 사유(0 이 유효 지정값)로 가드가 필요함을 한 줄 덧붙인다.
+- 이 대입들은 세터를 타지만 값이 `AUTO_DATUM_Z_INDEX` 라 `WarnDatumZIndexChanged` 가 두 번째 가드에서 즉시 빠져나온다 → 로드 중 경고창 없음. 이 근거를 주석에 남긴다.
+- `_copyExclude`(`:1281-1300`) 에는 **추가하지 말 것** — 기준점 번호는 붙여넣기로 복사되는 게 맞다.
+
+### 1-D. `InspectionSequence.cs` — 상수 2개
+
+`:86-88` 의 기존 상수 블록(`DATUM_Z_INDEX` / `CROSS_Z_UNSET`) 옆에 추가한다. 이 태스크에서 `UNSET_CYCLE_Z_INDEX` 는 선언만 하고 소비는 Task 2 에서 한다(`const` 라 미사용도 경고 없음).
 - `private const int MIN_VALID_Z_INDEX = 0;` — 유효한 가장 작은 z. 지정값 유효성 판정과 "소유 Shot 없음" 폴백에 둘 다 쓴다.
 - `private const int UNSET_CYCLE_Z_INDEX = 0;` — "이번 tick 의 요청 자체가 없음". **기준점과 다른 개념이라는 것을 주석으로 못박을 것**(analysis 판단 (1)).
 
-### 1-B. `InspectionSequence.cs` — 필드
+### 1-E. `InspectionSequence.cs` — 공개 API 2개
 
-`:45-46` `DisplayName` 바로 아래, 같은 관용구로:
-
-```
-public int DatumZIndexOverride { get; set; } = NO_DATUM_Z_INDEX_OVERRIDE;
-```
-주석: 사용자가 직접 넣은 기준점 z_index. 음수 = 미지정(자동). 실효값은 반드시 `GetDatumZIndex()` 로만 읽을 것.
-
-### 1-C. `InspectionSequence.cs` — 공개 API 3개
-
-`ComputeLastZIndex`(:636) 바로 위/아래에 붙여 "z_index 산출" 코드를 한곳에 모은다. 브레이스 스타일은 그 주변(Allman)을 따른다.
+`ComputeLastZIndex`(:636) 바로 위에 붙여 "z_index 산출" 코드를 한곳에 모은다. 브레이스 스타일은 그 주변(Allman)을 따른다.
 
 1. `public bool TryGetOwnedShotZIndexRange(out int nMin, out int nMax)`
-   - `SystemHandler.Handle.Sequences.RecipeManager` 를 읽고, `shot.OwnerSequenceName == Name` 인 Shot 만 순회 — **`ComputeLastZIndex` 와 완전히 같은 소유 판정식을 쓸 것**(레거시 빈 OwnerSequenceName 처리 일관성).
-   - 소유 Shot 0건 또는 recipeManager null → `nMin=0, nMax=0, return false`.
+   - `SystemHandler.Handle` **및** `SystemHandler.Handle.Sequences.RecipeManager` 를 각각 null 체크할 것 — 이 메서드는 PropertyGrid 세터(=앱 초기화 이후지만 레시피 미로드 가능)에서도 호출된다. `ComputeLastZIndex` 의 호출부와 달리 무가드 접근을 하면 안 된다.
+   - `shot.OwnerSequenceName == Name` 인 Shot 만 순회 — **`ComputeLastZIndex:645-655` 와 완전히 같은 소유 판정식을 쓸 것**(레거시 빈 OwnerSequenceName 처리 일관성).
+   - 소유 Shot 0건 또는 매니저 없음 → `nMin=0, nMax=0, return false`.
    - 크로스-Z 완성 index(`MaxCrossZCompletionZIndex`)는 **여기에 절대 섞지 말 것**(analysis (4)).
 
 2. `public int GetDatumZIndex()`
-   - `DatumZIndexOverride >= MIN_VALID_Z_INDEX` 면 그 값을 반환(0 도 정당한 지정값이다).
-   - 아니면 `TryGetOwnedShotZIndexRange` 의 `nMin`.
-   - Shot 이 없으면 `MIN_VALID_Z_INDEX`.
+   - **1순위:** 소유 `DatumConfigs` 를 순회해 `d.DatumZIndex >= MIN_VALID_Z_INDEX` 인 값들의 **최솟값**을 반환한다(하나라도 있으면). 0 도 정당한 지정값이다.
+     - 한 시퀀스에 Datum 이 여러 개고 서로 다른 값이 들어간 경우도 최솟값을 쓴다 — 그 상황 자체는 1-B 의 세터 경고가 사용자에게 알린다.
+     - `DatumConfigs` null 가드 필수.
+   - **2순위:** `TryGetOwnedShotZIndexRange` 의 `nMin`.
+   - **3순위:** `MIN_VALID_Z_INDEX`.
    - 캐시하지 말 것 — 레시피 교체/Shot 편집 후 스테일 값이 사이클 시작을 망가뜨리는 위험이 캐시 이득보다 크다. `ComputeLastZIndex` 가 이미 매 응답마다 같은 순회를 하고 있으므로 비용 근거도 동일하다. 이 근거를 주석으로 남긴다.
-
-3. `public bool TryGetDatumZIndexWarning(out string szWarning)`
-   - 미지정(자동)이면 `false`(경고 없음).
-   - 소유 Shot 이 없으면 `false`(경고 없음).
-   - 지정값 == `nMin` 이면 `false`.
-   - 그 외 `true` + 문구: `"기준점 z=7 이 이 시퀀스 Shot 범위(4~7)의 시작 번호(4)가 아닙니다 — PLC 구간 시작 번호와 일치하는지 확인하세요."` (숫자는 실제값으로 포맷)
-   - **판정만 한다. 여기서 로그/메시지박스를 띄우지 말 것**(표시 빈도를 호출부가 정한다).
-
-### 1-D. `InspectionRecipeManager.cs` — FIXTURE 키 `DatumZIndex` 5곳
-
-저장 3경로 + 로드 2경로. 키 이름은 정확히 `"DatumZIndex"`.
-
-- `:181-190` TOP 저장: `DatumCount` 줄 다음에 `saveFile["FIXTURE"]["DatumZIndex"] = fixtureSeq.DatumZIndexOverride;`
-- `:85-101` `SaveFixtureForSequence`: 같은 위치에 `saveFile[sectionPrefix]["DatumZIndex"] = seq.DatumZIndexOverride;`
-- `:106-122` `PreserveFixtureFromExisting`: **빈 분기(`:108-113`)에만** `saveFile[sectionPrefix]["DatumZIndex"] = InspectionSequence.NO_DATUM_Z_INDEX_OVERRIDE;` 추가. 그 아래 섹션 통째 대입 경로는 신규 키를 자동 보존하므로 **손대지 말 것**.
-- `:271-285` TOP 로드: `if (fixtureSeq != null)` 를 기존 `if (fixtureSeq != null && loadFile.ContainsSection("FIXTURE"))` **앞에** 별도로 하나 두어 `fixtureSeq.DatumZIndexOverride = InspectionSequence.NO_DATUM_Z_INDEX_OVERRIDE;` 로 먼저 초기화하고, 기존 if 블록 안에서 `fixtureSeq.DatumZIndexOverride = loadFile["FIXTURE"]["DatumZIndex"].ToInt(InspectionSequence.NO_DATUM_Z_INDEX_OVERRIDE);` 로 덮는다.
-  이유: 섹션이 없는 레시피로 교체했을 때 이전 레시피의 기준점이 살아남으면 엉뚱한 사이클 시작이 된다.
-- `:126-148` `LoadFixtureForSequence`: `seq.DatumConfigs.Clear();` 바로 다음(= `ContainsSection` 조기 return **앞**)에 `seq.DatumZIndexOverride = InspectionSequence.NO_DATUM_Z_INDEX_OVERRIDE;` 를 넣고, 섹션이 있을 때 `.ToInt(...)` 로 덮는다.
-
-`ContainsKey` 가드는 넣지 말 것 — `ToInt(기본값)` 이 이미 "키 부재 = 자동" 을 보장한다(analysis 참조).
   </action>
   <verify>
     <automated><![CDATA[
 set -e
 cd /c/code/DataMeasurement
 
-# 1) API/키가 실제로 들어갔는지
-grep -q 'public const int NO_DATUM_Z_INDEX_OVERRIDE' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-grep -q 'public int DatumZIndexOverride' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-grep -q 'public int GetDatumZIndex()' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-grep -q 'public bool TryGetOwnedShotZIndexRange' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-grep -q 'public bool TryGetDatumZIndexWarning' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-# 저장 3 + 로드 2 = DatumZIndex 키 참조 5회 이상
-test "$(grep -c '"DatumZIndex"' WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs)" -ge 5
+# 1) DatumConfig — 프로퍼티/sentinel/키부재 가드/경고
+grep -q 'public const int AUTO_DATUM_Z_INDEX' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
+grep -q 'public int DatumZIndex' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
+grep -q 'Category("Datum|Cycle")' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
+grep -q 'ContainsKey("DatumZIndex")' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
+grep -q 'WarnDatumZIndexChanged' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
+grep -q 'Owner as InspectionSequence' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs
 
-# 2) 하드룰 — 추가 라인만 검사 (기존 라인의 hbk 주석은 대상 아님)
-git diff -U0 -- WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs \
-                WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs \
+# 모든 알고리즘에서 보여야 한다 — hide 목록 오염 금지
+sed -n '/private static bool IsHiddenForAlgorithm/,/^        }$/p' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs > /tmp/iwm_hide.txt
+test "$(grep -c 'DatumZIndex' /tmp/iwm_hide.txt)" = "0"
+test "$(grep -c 'DatumZIndex' WPF_Example/Custom/Sequence/Inspection/DynamicPropertyHelper.cs)" = "0"
+
+# 2) 억제 플래그 개명 완료 (구 이름 잔존 0, 신 이름 7곳 이상)
+test "$(grep -rn '_suppressMirrorWarning' WPF_Example --include=*.cs | wc -l)" = "0"
+test "$(grep -c '_suppressUserEditWarning' WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs)" -ge 7
+
+# 3) InspectionSequence — 접근자
+grep -q 'public bool TryGetOwnedShotZIndexRange' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
+grep -q 'public int GetDatumZIndex()' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
+grep -q 'MIN_VALID_Z_INDEX' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
+
+# 4) 무변경 계약 — 레시피 매니저와 UI 는 손대지 않았다
+test "$(git diff --name-only -- WPF_Example/Custom/Sequence/Inspection/InspectionRecipeManager.cs | wc -l)" = "0"
+test "$(git diff --name-only -- WPF_Example/UI | wc -l)" = "0"
+
+# 5) 하드룰 — 추가 라인만 검사 (기존 라인의 hbk 주석은 대상 아님)
+git diff -U0 -- WPF_Example/Custom/Sequence/Inspection/DatumConfig.cs \
+                WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs \
   | grep '^+' | grep -v '^+++' > /tmp/iwm_t1.txt
 test "$(grep -cF 'hbk' /tmp/iwm_t1.txt)" = "0"
 test "$(grep -cF '??' /tmp/iwm_t1.txt)" = "0"
@@ -223,16 +280,16 @@ test "$(grep -cF '?.' /tmp/iwm_t1.txt)" = "0"
 test "$(grep -cE 'switch.*=>' /tmp/iwm_t1.txt)" = "0"
 test "$(grep -cE '\?[^?]*:' /tmp/iwm_t1.txt)" = "0"
 
-# 3) 빌드 — error CS 0 (MSB3027 bin 복사 실패는 게이트 아님)
+# 6) 빌드 — error CS 0 (MSB3027 bin 복사 실패는 게이트 아님)
 "/c/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" \
   WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo \
   2>&1 | tee /tmp/iwm_build1.log
 test "$(grep -cE 'error CS' /tmp/iwm_build1.log)" = "0"
 echo T1_OK
 ]]></automated>
-    <manual>삼항 게이트가 히트하면 코드가 아니라 한글 주석의 `?` + `:` 조합일 수 있다. 육안 확인 후 **주석 문구를 고쳐 0 을 만든다** — 게이트를 완화하거나 우회하지 말 것.</manual>
+    <manual>삼항 게이트가 히트하면 코드가 아니라 한글 주석/메시지의 물음표 + 콜론 조합일 수 있다. 육안 확인 후 **문구에서 물음표를 빼 0 을 만든다** — 게이트를 완화하거나 우회하지 말 것.</manual>
   </verify>
-  <done>`GetDatumZIndex()` 가 존재하고, 지정값이 없으면 소유 Shot ZIndex 최솟값을(Shot 이 없으면 0을) 반환한다. FIXTURE 섹션 5경로에 `DatumZIndex` 키가 배선됐고 키 부재 시 -1(자동)로 로드된다. 판정 지점은 아직 변경 전이며 빌드 error CS 0.</done>
+  <done>Datum 속성창용 `DatumZIndex` 프로퍼티가 `DatumConfig` 에 있고(모든 알고리즘에서 노출), INI 키가 없으면 -1(자동)로 로드되며, 사용자가 직접 바꿨을 때만 Shot 시작 번호와 다르면 경고창이 뜬다(저장은 막지 않음). `GetDatumZIndex()` 는 지정값들의 최솟값 → 소유 Shot ZIndex 최솟값 → 0 순으로 실효값을 돌려준다. `InspectionRecipeManager.cs` 와 UI 3파일은 변경 0. 판정 지점은 아직 변경 전이며 빌드 error CS 0.</done>
 </task>
 
 <task type="auto">
@@ -240,6 +297,8 @@ echo T1_OK
   <files>WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs, WPF_Example/Custom/SystemHandler.cs</files>
   <action>
 **원칙: 로직 구조는 그대로 두고 비교 대상 값만 바꾼다.** 특히 `StartV1Scoped` 는 과거 TOCTOU 경합을 잡은 예민한 지점이다 — `BeginCrossZImageCycle()` 호출 위치, `StartSubset`/`StartAll` 순서, `State==Idle` 사전체크 부재를 **절대 바꾸지 말 것**(`SystemHandler.cs:304-334` 의 긴 주석이 그 이유다).
+
+실효값의 출처는 Task 1 이 만든 `InspectionSequence.GetDatumZIndex()` 이며, 그 값은 **Datum 속성창의 `DatumZIndex` 지정값(최솟값) → 소유 Shot ZIndex 최솟값 → 0** 순으로 파생된다. FIXTURE 키를 읽는 코드가 아니다 — 이 태스크에서 INI 를 직접 읽는 코드를 새로 만들지 말 것.
 
 ### 2-A. `InspectionSequence.cs`
 
@@ -261,9 +320,7 @@ echo T1_OK
 
 1. `:263` `DATUM_TEST_Z_INDEX` → `private const int NO_SEQUENCE_DATUM_Z_INDEX = 0;` 으로 **의미 변경 + 개명**. 뜻: "시퀀스를 해석할 수 없을 때의 폴백 기준점". `:255-262` 주석도 "z=0" → "그 시퀀스의 기준점 index" 로 정정.
 2. 신규 private 헬퍼:
-   ```
-   private int ResolveDatumZIndex(string szSeqName)
-   ```
+   `private int ResolveDatumZIndex(string szSeqName)`
    `Sequences[szSeqName]`(문자열 인덱서는 미존재 시 null 반환 — `SequenceHandler.cs:138-150` 확인함) → `as InspectionSequence` → null 이면 `NO_SEQUENCE_DATUM_Z_INDEX`, 아니면 `insp.GetDatumZIndex()`.
 3. `:44-60` `GetPrepZIndex`:
    - 이름 없음 분기의 `return 0` → `return NO_SEQUENCE_DATUM_Z_INDEX;`
@@ -282,11 +339,11 @@ echo T1_OK
 set -e
 cd /c/code/DataMeasurement
 
-# 1) 옛 상수/옛 이름이 완전히 사라졌는지 (주석 본문 포함). \b 경계라 NO_DATUM_Z_INDEX_OVERRIDE 는 매치되지 않는다.
+# 1) 옛 상수/옛 이름이 완전히 사라졌는지 (주석 본문 포함)
 test "$(grep -cE '\bDATUM_Z_INDEX\b' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs)" = "0"
 test "$(grep -rnE '\bDATUM_TEST_Z_INDEX\b|FindZeroIndexDatumTriggerActionIndices' WPF_Example --include=*.cs | wc -l)" = "0"
 
-# 2) 새 접근자가 판정 지점에서 실제로 소비되는지 (InspectionSequence 4곳 이상 + SystemHandler)
+# 2) 새 접근자가 판정 지점에서 실제로 소비되는지 (InspectionSequence 5곳 이상 + SystemHandler)
 test "$(grep -c 'GetDatumZIndex()' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs)" -ge 5
 grep -q 'GetDatumZIndex()' WPF_Example/Custom/SystemHandler.cs
 grep -q 'FindDatumIndexTriggerActionIndices' WPF_Example/Custom/SystemHandler.cs
@@ -294,7 +351,7 @@ grep -q 'private int ResolveDatumZIndex' WPF_Example/Custom/SystemHandler.cs
 
 # 3) 무변경 계약 — 이 3줄은 그대로 남아 있어야 한다
 grep -q 'm_nLastZIndex > 0' WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs
-grep -q 'inspDatumSeq\|inspSeq' WPF_Example/Custom/SystemHandler.cs
+grep -q 'inspSeq' WPF_Example/Custom/SystemHandler.cs
 grep -q 'BeginCrossZImageCycle();' WPF_Example/Custom/SystemHandler.cs
 
 # 4) 하드룰 — 추가 라인만
@@ -307,7 +364,15 @@ test "$(grep -cF '?.' /tmp/iwm_t2.txt)" = "0"
 test "$(grep -cE 'switch.*=>' /tmp/iwm_t2.txt)" = "0"
 test "$(grep -cE '\?[^?]*:' /tmp/iwm_t2.txt)" = "0"
 
-# 5) 빌드
+# 5) 범위 — 변경 파일 정확히 3개, UI/레시피매니저/csproj 무변경, 신규 소스파일 0
+git diff --name-only -- WPF_Example | sort > /tmp/iwm_files.txt
+test "$(wc -l < /tmp/iwm_files.txt)" = "3"
+test "$(grep -c 'DatumMeasurement.csproj' /tmp/iwm_files.txt)" = "0"
+test "$(grep -c 'InspectionRecipeManager.cs' /tmp/iwm_files.txt)" = "0"
+test "$(git diff --name-only -- WPF_Example/UI | wc -l)" = "0"
+test "$(git status --short | grep -cE '^\?\? .*\.(cs|xaml)$')" = "0"
+
+# 6) 빌드
 "/c/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" \
   WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo \
   2>&1 | tee /tmp/iwm_build2.log
@@ -315,118 +380,53 @@ test "$(grep -cE 'error CS' /tmp/iwm_build2.log)" = "0"
 echo T2_OK
 ]]></automated>
   </verify>
-  <done>`DATUM_Z_INDEX` / `DATUM_TEST_Z_INDEX` 상수가 사라지고 모든 기준점 판정이 `GetDatumZIndex()` 를 소비한다. `GetPrepZIndex` 폴백이 시퀀스 실효값을 돌려준다. `m_nLastZIndex > 0`, `ParseCurrentZIndex` 반환값(0), `StartV1Scoped` 의 `BeginCrossZImageCycle`/`StartSubset` 순서는 그대로다. 빌드 error CS 0.</done>
-</task>
-
-<task type="auto">
-  <name>Task 3: 트리 시퀀스 노드에 기준점 입력 + 경고 표시</name>
-  <files>WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs</files>
-  <action>
-**이 파일 1개만 수정한다.** `InspectionListView.xaml`, `InspectionListView.xaml.cs`, `InspectionListViewModel.cs` 는 **손대지 말 것** — 트리 Sequence 노드는 이미 `seq.Param`(= 이 클래스)을 PropertyGrid 에 바인딩하고 있으므로 프로퍼티만 추가하면 UI 가 완성된다(= code-behind 0 줄, MVVM 요구 충족). 브레이스 스타일은 이 파일의 K&R 을 따른다.
-
-기존 `DisplayName`(:18-31) 프록시 관용구를 그대로 복제한다. `_insp` null 가드 필수(base 생성자 시점에는 아직 null 이다).
-
-1. 편집 프로퍼티
-   ```
-   [Category("Fixture|Datum")]
-   public int DatumZIndexOverride { get; set; }
-   ```
-   - getter: `_insp` null 이면 `InspectionSequence.NO_DATUM_Z_INDEX_OVERRIDE`, 아니면 `_insp.DatumZIndexOverride`.
-   - setter: 같은 값이면 return. 음수는 전부 `NO_DATUM_Z_INDEX_OVERRIDE` 로 정규화해서 대입(사용자가 -5 를 넣어도 "자동" 이 되게).
-   - setter 끝에서 `RaisePropertyChanged("DatumZIndexOverride")` **와** `RaisePropertyChanged("DatumZIndexInfo")` 를 둘 다 발화.
-   - setter 안에서 `_insp.TryGetDatumZIndexWarning(out szWarning)` 이 true 면 `Logging.PrintLog((int)ELogType.Error, ...)` 로 1회 기록한다. **메시지박스를 띄우지 말 것** — 이 클래스는 Sequence 네임스페이스라 UI 를 소유하지 않으며, 저장을 막지 않는다는 요구와도 맞다.
-   - 주석에 "-1 = 자동(소유 Shot ZIndex 최솟값)" 을 남긴다.
-
-2. 표시 전용 프로퍼티 (getter 만)
-   ```
-   [Category("Fixture|Datum")]
-   [System.ComponentModel.ReadOnly(true)]
-   [PropertyTools.DataAnnotations.ReadOnly(true)]
-   public string DatumZIndexInfo { get { ... } }
-   ```
-   문자열 4형태(모두 `if/else`, 삼항 금지):
-   - `_insp` null → `""`
-   - 자동 + Shot 있음 → `"자동 — 현재 {실효값} (Shot 범위 {min}~{max})"`
-   - 자동 + Shot 없음 → `"자동 — 이 시퀀스 소유 Shot 없음, 0 사용"`
-   - 지정 + 경고 있음 → `"⚠ " + 경고문구` (`TryGetDatumZIndexWarning` 결과 그대로)
-   - 지정 + 경고 없음 → `"지정 {값} (Shot 범위 {min}~{max})"`
-
-   setter 를 만들지 말 것. `ParamBase.Load`/`CopyTo` 는 `CanWrite` 가드가 있어 안전함을 확인했다.
-
-**알려진 한계 — 이걸로 시간 쓰지 말 것:** PropertyTools 가 읽기 전용 항목을 즉시 갱신하지 않아 값을 바꾼 직후 안내문이 그대로일 수 있다. 그 경우 다른 노드를 선택했다 돌아오면 갱신된다. **이 한계를 우회하려고 code-behind 나 XAML 을 건드리지 말 것** — 경고는 로그에도 남으므로 요구는 충족된다.
-  </action>
-  <verify>
-    <automated><![CDATA[
-set -e
-cd /c/code/DataMeasurement
-
-grep -q 'public int DatumZIndexOverride' WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs
-grep -q 'DatumZIndexInfo' WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs
-grep -q 'PropertyTools.DataAnnotations.ReadOnly(true)' WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs
-# 최소 침습 — UI 3파일은 변경 0
-test "$(git diff --name-only -- WPF_Example/UI | wc -l)" = "0"
-
-git diff -U0 -- WPF_Example/Custom/Sequence/Inspection/InspectionMasterParam.cs \
-  | grep '^+' | grep -v '^+++' > /tmp/iwm_t3.txt
-test "$(grep -cF 'hbk' /tmp/iwm_t3.txt)" = "0"
-test "$(grep -cF '??' /tmp/iwm_t3.txt)" = "0"
-test "$(grep -cF '?.' /tmp/iwm_t3.txt)" = "0"
-test "$(grep -cE 'switch.*=>' /tmp/iwm_t3.txt)" = "0"
-test "$(grep -cE '\?[^?]*:' /tmp/iwm_t3.txt)" = "0"
-
-# 범위 — 변경 파일 4개 고정, 신규 소스파일 0, csproj 미변경
-git diff --name-only -- WPF_Example | sort > /tmp/iwm_files.txt
-test "$(wc -l < /tmp/iwm_files.txt)" = "4"
-test "$(grep -c 'DatumMeasurement.csproj' /tmp/iwm_files.txt)" = "0"
-test "$(git status --short | grep -cE '^\?\? .*\.(cs|xaml)$')" = "0"
-
-"/c/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/MSBuild.exe" \
-  WPF_Example/DatumMeasurement.csproj -p:Configuration=Debug -p:Platform=x64 -v:minimal -nologo \
-  2>&1 | tee /tmp/iwm_build3.log
-test "$(grep -cE 'error CS' /tmp/iwm_build3.log)" = "0"
-echo T3_OK
-]]></automated>
-  </verify>
-  <done>트리에서 시퀀스 노드를 선택하면 PropertyGrid `Fixture|Datum` 그룹에 기준점 입력칸과 안내문(자동/지정/경고)이 보인다. UI 3파일과 csproj 는 변경되지 않았고 빌드 error CS 0.</done>
+  <done>`DATUM_Z_INDEX` / `DATUM_TEST_Z_INDEX` 상수가 사라지고 모든 기준점 판정이 `GetDatumZIndex()` 를 소비한다. `GetPrepZIndex` 폴백이 시퀀스 실효값을 돌려준다. `m_nLastZIndex > 0`, `ParseCurrentZIndex` 반환값(0), `StartV1Scoped` 의 `BeginCrossZImageCycle`/`StartSubset` 순서는 그대로다. 변경 파일 정확히 3개, 빌드 error CS 0.</done>
 </task>
 
 <task type="checkpoint:human-verify" gate="blocking">
-  <name>Task 4: 실기 확인 (기존 레시피 회귀 + Bottom 11 사이클 시작 + 경고)</name>
+  <name>Task 3: 실기 확인 (속성창 입력칸 + 기존 레시피 회귀 + Bottom 11 사이클 시작 + 경고)</name>
   <action>아래 <how-to-verify> 절차를 사용자에게 그대로 제시하고 응답을 기다린다. 코드 수정 없음.</action>
   <what-built>
     시퀀스마다 "기준점(= 그 시퀀스 구간의 시작 번호, 여기서 새 사이클이 시작됨)" 을 따로 정할 수 있게 했다.
-    아무것도 설정하지 않으면 **그 시퀀스가 가진 Shot 번호 중 가장 작은 번호**가 자동으로 기준점이 된다.
+    입력칸은 **Datum 속성창**(왼쪽 트리에서 Datum 항목을 클릭했을 때 오른쪽에 뜨는 설정창)의 `Datum|Cycle` 그룹에 있다.
+    아무것도 설정하지 않으면(-1) **그 시퀀스가 가진 Shot 번호 중 가장 작은 번호**가 자동으로 기준점이 된다.
     그래서 Bottom 이 11~40 을 쓰면 11 이 자동으로 사이클 시작이 되고, 기존 레시피(0 부터 시작)는 예전과 완전히 똑같이 동작한다.
-    직접 숫자를 넣으면 그 값이 우선하고, Shot 의 가장 작은 번호와 다르면 안내문에 경고가 뜨지만 저장은 막지 않는다.
+    직접 숫자를 넣으면 그 값이 우선하고, Shot 의 가장 작은 번호와 다르면 경고창이 뜨지만 저장은 막지 않는다.
   </what-built>
   <how-to-verify>
     `bin/x64/Debug/DatumMeasurement.exe` 실행.
 
-    **1) 기존 레시피 회귀 (가장 중요)**
+    **1) 속성창에 칸이 보이는가 (이번 수정의 핵심)**
+    - 왼쪽 트리에서 Datum 항목(예 `Datum_1`)을 클릭한다.
+    - 오른쪽 설정창에 `Datum|Cycle` 그룹과 그 안의 기준점 Z 번호 칸이 보이는가.
+    - Datum 알고리즘 종류를 바꿔가며(TwoLineIntersect / CircleTwoHorizontal / VerticalTwoHorizontal / VerticalTwoHorizontalDualImage) **네 가지 전부에서 칸이 그대로 보이는지** 확인한다.
+    - 처음 값이 `-1` 인가.
+
+    **2) 기존 레시피 회귀 (가장 중요)**
     - 지금 쓰던 레시피를 그대로 열고 평소처럼 검사를 한 번 돌린다(PLC 또는 수동 지그 RUN 버튼).
     - 결과·응답이 **어제와 똑같은지** 확인한다. 뭔가 달라졌으면 즉시 실패로 보고할 것.
+    - 레시피를 여는 동안 **경고창이 하나도 뜨지 않아야** 한다.
 
-    **2) 자동값 확인**
-    - 좌측 트리에서 시퀀스 이름(예 `BOTTOM`)을 클릭한다.
-    - 우측 속성창 `Fixture|Datum` 그룹에 기준점 칸과 안내문이 보이는가?
-    - 안내문이 `자동 — 현재 N (Shot 범위 N~M)` 형태이고, **N 이 그 시퀀스 Shot 중 가장 작은 번호와 같은가?**
+    **3) 저장 / 다시 불러오기**
+    - 기준점 칸에 값을 넣고(예 Bottom 이면 11) 레시피를 저장한다.
+    - 프로그램을 껐다 켜고 같은 레시피를 다시 연다 → **값이 그대로 남아 있는가.**
+    - `main.ini` 를 메모장으로 열어 해당 Datum 섹션(예 `[FIXTURE_BOTTOM_DATUM_0]`)에 `DatumZIndex` 줄이 있는지 확인한다.
+    - 현재 모드에 없는 시퀀스(예 Side 모드에서 Bottom)의 값도 저장 후 파일에 그대로 남아 있는가.
 
-    **3) Bottom 11 로 실기 확인** (Bottom Shot 이 11~40 인 레시피 필요)
+    **4) Bottom 11 로 실기 확인** (Bottom Shot 이 11~40 인 레시피 필요)
     - 제어 쪽에서 `$PREP:1,1,11@` 다음에 `$TEST` 를 보낸다.
     - 이때 **새 사이클로 시작되는지**(기준점 촬영 응답 `B`, 이전 부품 결과가 초기화됨) 확인한다.
     - 이어서 12, 13 … 을 보내고 마지막 번호(40)에서 종합 판정(P 또는 F)이 나오는지 확인한다.
+    - 기준점 칸을 `-1`(자동)로 두고도 같은 동작이 되는지 한 번 더 확인한다.
 
-    **4) 경고 확인**
+    **5) 경고 확인**
     - 기준점 칸에 일부러 엉뚱한 값(예 Shot 이 11~40 인데 `40`)을 넣는다.
-    - 안내문에 `⚠ ... 시작 번호(11)가 아닙니다` 가 뜨는가? (바로 안 바뀌면 다른 노드를 클릭했다 돌아와 볼 것)
-    - **저장이 막히지 않는지** 확인한다. 확인 후 값을 지워 자동(-1)으로 되돌린다.
-
-    **5) 저장/불러오기**
-    - 기준점을 정한 뒤 레시피 저장 → 프로그램 재시작 → 같은 레시피 열기 → 값이 그대로 남아 있는가?
-    - 현재 모드에 없는 시퀀스(예 Side 모드에서 Bottom)의 기준점 값이 저장 후에도 파일에 남아 있는가?
-      (`main.ini` 의 `[FIXTURE_BOTTOM]` 에 `DatumZIndex` 줄이 살아 있는지 메모장으로 확인)
+    - **경고창이 뜨는가.** 내용이 "시작 번호(11)가 아니다" 취지로 읽히는가.
+    - 창을 닫은 뒤 **저장이 막히지 않는지** 확인한다.
+    - 같은 값(40)을 한 번 더 넣어도 창이 다시 뜨지 않는가. (같은 값 재저장은 조용해야 정상)
+    - 확인 후 값을 `-1` 로 되돌린다.
   </how-to-verify>
-  <resume-signal>"approved" 또는 어긋난 항목(항목 번호 + 시퀀스 이름 + 보낸 번호 + 실제로 나온 응답)을 알려주세요</resume-signal>
+  <resume-signal>"approved" 또는 어긋난 항목(항목 번호 + 시퀀스/Datum 이름 + 보낸 번호 + 실제로 나온 응답)을 알려주세요</resume-signal>
 </task>
 
 </tasks>
@@ -437,35 +437,37 @@ echo T3_OK
 | Boundary | Description |
 |----------|-------------|
 | PLC/호스트 → TCP `$PREP`/`$TEST` z_index | 외부에서 들어온 정수 버퍼 번호가 "사이클 시작" 판정에 쓰인다 |
-| 운영자 → PropertyGrid 기준점 입력 | 사람이 넣은 값이 사이클 시작 판정을 바꾼다 |
+| 운영자 → Datum 속성창 기준점 입력 | 사람이 넣은 값이 사이클 시작 판정을 바꾼다 |
 
 ## STRIDE Threat Register
 
 | Threat ID | Category | Component | Disposition | Mitigation Plan |
 |-----------|----------|-----------|-------------|-----------------|
-| T-IWM-01 | Denial of Service | `StartV1Scoped` 기준점 분기 | mitigate | 기준점을 잘못 지정하면 사이클이 시작되지 않는다 → 기본값을 "자동(Shot 최솟값)" 으로 두어 오설정 자체가 발생하지 않게 하고, 수동 지정이 Shot 최솟값과 다르면 `TryGetDatumZIndexWarning` 경고 + 로그 |
+| T-IWM-01 | Denial of Service | `StartV1Scoped` 기준점 분기 | mitigate | 기준점을 잘못 지정하면 사이클이 시작되지 않는다 → 기본값을 "자동(-1, Shot 최솟값)" 으로 두어 오설정 자체가 발생하지 않게 하고, 수동 지정이 Shot 최솟값과 다르면 `WarnDatumZIndexChanged` 경고창 |
 | T-IWM-02 | Repudiation | `GetPrepZIndex` 폴백 | mitigate | `$PREP` 누락 폴백 로그에 실제 사용한 기준점 값을 함께 찍어 사후 추적 가능하게 한다 |
-| T-IWM-03 | Tampering | 레시피 INI `DatumZIndex` 키 | accept | 로컬 파일이며 기존 FIXTURE 키(DisplayName/DatumCount)와 동일한 신뢰 수준. 음수는 setter/실효값 계산에서 "자동" 으로 정규화되어 잘못된 값이 판정에 흘러들지 않는다 |
+| T-IWM-03 | Tampering | 레시피 INI `{prefix}_DATUM_{d}` 의 `DatumZIndex` 키 | accept | 로컬 파일이며 기존 Datum 키(ZIndexA/ZIndexB)와 동일한 신뢰 수준. 음수는 세터에서 "자동" 으로 정규화되고, 키 부재는 `Load` 오버라이드가 -1 로 강제하므로 잘못된 값이 판정에 흘러들지 않는다 |
+| T-IWM-04 | Denial of Service | `DatumConfig` 세터 → `SystemHandler.Handle` 접근 | mitigate | 세터는 UI 스레드에서 임의 시점에 불릴 수 있다 → `TryGetOwnedShotZIndexRange` 가 `SystemHandler.Handle` 과 `RecipeManager` 를 각각 null 체크하고 실패 시 조용히 경고를 건너뛴다(예외로 PropertyGrid 편집을 깨뜨리지 않는다) |
 | T-IWM-SC | Tampering | 패키지 설치 | n/a | 신규 패키지 설치 없음(npm/pip/cargo 미사용, 신규 파일 0개) |
 </threat_model>
 
 <verification>
 1. Debug|x64 빌드 **error CS 0** (`MSB3027` bin 복사 실패는 게이트 아님, 실행 중인 프로세스를 강제 종료하지 말 것).
 2. 하드룰 grep — **추가된 diff 라인 기준** 전항목 0: 삼항 / `??` / `?.` / `switch.*=>` / `hbk`.
-3. 옛 상수 소멸: `DATUM_Z_INDEX`, `DATUM_TEST_Z_INDEX`, `FindZeroIndexDatumTriggerActionIndices` 전 저장소 grep 0건.
-4. 무변경 계약 유지: `m_nLastZIndex > 0`, `ParseCurrentZIndex` 반환 0, `BeginCrossZImageCycle()` 호출 위치, `StartSubset/StartAll` 순서, `ComputeLastZIndex` 최댓값 로직.
-5. 회귀 0 코드 경로 확인: 지정값 없음 + Shot 이 0 부터 시작 → `GetDatumZIndex()==0` → 모든 판정 지점이 종전과 동일한 값을 비교한다.
-6. 변경 파일 정확히 4개, 신규 소스파일 0개, `DatumMeasurement.csproj` 미변경/미스테이징 (이 파일에는 이 PC 전용 로컬 설정이 들어 있을 수 있다).
+3. 옛 상수/옛 이름 소멸: `DATUM_Z_INDEX`, `DATUM_TEST_Z_INDEX`, `FindZeroIndexDatumTriggerActionIndices`, `_suppressMirrorWarning` 전 저장소 grep 0건.
+4. 무변경 계약 유지: `m_nLastZIndex > 0`, `ParseCurrentZIndex` 반환 0, `BeginCrossZImageCycle()` 호출 위치, `StartSubset/StartAll` 순서, `ComputeLastZIndex` 최댓값 로직, `IsHiddenForAlgorithm` 목록(새 이름 미추가).
+5. 회귀 0 코드 경로 확인: INI 키 없음 → `Load` 오버라이드가 -1 → `GetDatumZIndex()` 가 Shot 최솟값(기존 레시피는 0) → 모든 판정 지점이 종전과 동일한 값을 비교한다.
+6. 변경 파일 정확히 3개(`DatumConfig.cs`, `InspectionSequence.cs`, `Custom/SystemHandler.cs`), 신규 소스파일 0개, `InspectionRecipeManager.cs`·`WPF_Example/UI`·`DatumMeasurement.csproj` 미변경/미스테이징.
 7. 스테이징은 수정 파일만 명시적으로 — `git add .` / `git add -A` **금지**.
 </verification>
 
 <success_criteria>
-- 기준점 인덱스가 시퀀스별 설정값이 되고, 실효값 접근자(`GetDatumZIndex()`)를 **모든** 판정 지점이 소비한다.
-- 미지정 시 자동으로 소유 Shot ZIndex 최솟값이 쓰이고, Shot 이 없으면 0 이다.
-- 기존 레시피는 자동값이 0 이라 동작이 종전과 100% 동일하다.
-- 기준점 값이 레시피 FIXTURE 섹션에 저장/로드되고, 비활성 시퀀스의 값도 저장 시 보존된다.
-- 트리 시퀀스 노드에서 값을 편집할 수 있고 실효값과 경고가 보이며, 경고가 저장을 막지 않는다.
-- 빌드 error CS 0, 하드룰 grep 전항목 0.
+- Datum 노드 속성창에 기준점 Z 번호 입력칸이 있고, Datum 알고리즘 4종 전부에서 보인다.
+- 기준점 인덱스가 설정값이 되고, 실효값 접근자(`GetDatumZIndex()`)를 **모든** 판정 지점이 소비한다.
+- 미지정(-1) 시 자동으로 소유 Shot ZIndex 최솟값이 쓰이고, Shot 이 없으면 0 이다.
+- 기존 레시피는 INI 키 부재 → -1 → 자동값 0 이라 동작이 종전과 100% 동일하고, 로드 중 경고창이 뜨지 않는다.
+- 기준점 값이 레시피 `{prefix}_DATUM_{d}` 섹션에 저장/로드되고, 비활성 시퀀스의 값도 저장 시 보존된다(`InspectionRecipeManager` 무변경으로 달성).
+- 사용자가 직접 값을 바꿨고 Shot 최솟값과 다르면 경고창이 뜨며, 경고가 저장을 막지 않고 같은 값 재저장 시 반복되지 않는다.
+- 빌드 error CS 0, 하드룰 grep 전항목 0, 변경 파일 3개.
 </success_criteria>
 
 <output>

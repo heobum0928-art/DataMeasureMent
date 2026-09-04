@@ -222,11 +222,73 @@ namespace ReringProject.Sequence {
         [System.ComponentModel.Description("LineROI 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
         public int ZIndexB { get; set; } = -1;
 
+        // quick-260904-iwm: 시퀀스별 "기준점(Datum 촬영) = 새 사이클 시작" Z 번호. -1(자동)이면 이 시퀀스가
+        //  소유한 Shot 의 ZIndex 최솟값을 런타임에 자동으로 쓴다(InspectionSequence.GetDatumZIndex 참고). 사용자가
+        //  직접 넣은 값이 있으면 그 값이 최우선이다. public 인 이유: InspectionSequence 가 같은 sentinel 로
+        //  "지정/자동" 을 판정해야 하며 값 복제를 금지하기 때문.
+        public const int AUTO_DATUM_Z_INDEX = -1;
+
+        private int _datumZIndex = AUTO_DATUM_Z_INDEX;
+
+        [Category("Datum|Cycle")]
+        [System.ComponentModel.Description("-1=자동(이 시퀀스 Shot 번호 중 가장 작은 값). 이 시퀀스의 새 사이클이 시작되는 Z 번호")]
+        public int DatumZIndex {
+            get {
+                return _datumZIndex;
+            }
+            set {
+                int nNormalized = value;
+                bool bIsNegative = value < 0;
+                if (bIsNegative) {
+                    nNormalized = AUTO_DATUM_Z_INDEX; // 사용자가 임의 음수를 넣어도 "자동" 으로 정규화
+                }
+                if (_datumZIndex == nNormalized) {
+                    return; // 같은 값 재저장 시 경고 반복 방지(Mirror 선례)
+                }
+                _datumZIndex = nNormalized;
+                RaisePropertyChanged(nameof(DatumZIndex));
+                WarnDatumZIndexChanged();
+            }
+        }
+
+        // quick-260904-iwm: DatumZIndex 를 사용자가 직접 바꿨는데 이 시퀀스가 쓰는 Shot 시작 번호와 다르면
+        //  알린다. INI 로드/붙여넣기(리플렉션 SetValue)에서는 조용히 지나간다(_suppressUserEditWarning, Mirror
+        //  와 동일 관용구). 저장은 절대 막지 않는다 — 반환값을 쓰지 않는다.
+        private void WarnDatumZIndexChanged() {
+            if (_suppressUserEditWarning) {
+                return;
+            }
+            if (_datumZIndex == AUTO_DATUM_Z_INDEX) {
+                return;
+            }
+            InspectionSequence owner = Owner as InspectionSequence;
+            if (owner == null) {
+                return;
+            }
+            int nMin;
+            int nMax;
+            bool bHasRange = owner.TryGetOwnedShotZIndexRange(out nMin, out nMax);
+            if (!bHasRange) {
+                return;
+            }
+            if (_datumZIndex == nMin) {
+                return;
+            }
+            string message =
+                "이 시퀀스가 쓰는 촬영 번호는 " + nMin + " 부터 " + nMax + " 까지인데, 방금 넣은 " + _datumZIndex +
+                " 은 그 시작 번호(" + nMin + ")가 아닙니다.\n\n" +
+                "기준점 번호는 새 제품 하나가 시작되는 번호입니다. 시작 번호와 다르면 사이클이 제때 시작되지 않을 수 있습니다.\n\n" +
+                "그래도 저장은 됩니다. 일부러 넣은 값이 아니라면 칸에 -1 을 넣어 자동으로 되돌리세요.";
+            ReringProject.UI.CustomMessageBox.Show("기준점 Z 번호 확인", message,
+                System.Windows.MessageBoxImage.Warning, true, false);
+        }
+
         // quick-260813: 경고를 '사용자의 PropertyGrid 편집' 에서만 띄우기 위한 억제 플래그.
-        //  ParamBase.Load(INI 리플렉션 SetValue)와 CopyPublicPropertiesTo(붙여넣기)가 같은 세터를 때리므로,
-        //  가드가 없으면 레시피 로드/붙여넣기마다 경고창이 뜬다. 위 _suppressModelRename 과 동일한 패턴이며,
-        //  단일 인스턴스 안에서 UI 스레드로만 켜고 끄므로 별도 동기화는 두지 않는다.
-        private bool _suppressMirrorWarning;
+        //  ParamBase.Load(INI 리플렉션 SetValue)와 CopyPublicPropertiesTo(붙여넣기)가 사용자 편집 대상
+        //  세터(Mirror / 기준점 Z 번호)를 같은 방식으로 때리므로, 가드가 없으면 레시피 로드/붙여넣기마다
+        //  경고창이 뜬다. 위 _suppressModelRename 과 동일한 패턴이며, 단일 인스턴스 안에서 UI 스레드로만
+        //  켜고 끄므로 별도 동기화는 두지 않는다.
+        private bool _suppressUserEditWarning;
 
         // quick-260813: 카메라 하드웨어 촬영 방향(좌우/상하 뒤집기) 설정. 여기서는 값만 보관하고 실제 뒤집기는
         //  하지 않는다 — MIL grab 배선은 후속 별도 작업이며, 앱 시작 시 1회 적용될 예정이다.
@@ -266,7 +328,9 @@ namespace ReringProject.Sequence {
         //  (PropertyGrid 쓰기가 끝난 뒤 창이 뜬다 — 재진입 없음). 이중 마샬링 금지.
         //  isAutoClosing=false : 기본 7초 자동닫힘을 끈다. 읽고 직접 닫아야 하는 경고다.
         private void WarnMirrorChanged(string label, bool isOn) {
-            if (_suppressMirrorWarning) return;
+            if (_suppressUserEditWarning) {
+                return;
+            }
             string stateText;
             if (isOn) stateText = "켜짐";
             else      stateText = "꺼짐";
@@ -1246,27 +1310,38 @@ namespace ReringProject.Sequence {
         //  0 으로 로드되면 "z_index=0 명시"로 오인되어 크로스-Z 실행 스코프/캡처가 오작동한다(T-68-03).
         //  EnsurePerRoiDefaults() 는 find-time 훅이라 로드 시점 0/미설정 구분이 불가해 이 Load override 를 신설한다
         //  (MeasurementBase.Load/CameraSlaveParam.Load 의 ContainsKey 가드와 동일 패턴).
+        //  quick-260904-iwm: DatumZIndex 도 같은 사유로 가드가 필요하다 — 0 이 "z=0 을 기준점으로 명시 지정"이라는
+        //  유효값이라 자동(-1)과 반드시 구별해야 한다. 구 레시피가 전부 0 으로 로드되면 Bottom 같은 시퀀스가
+        //  영영 사이클을 시작하지 못한다.
         public override bool Load(IniFile loadFile, string groupName) {
             // quick-260806-nrm: base.Load 는 리플렉션 SetValue 로 DatumName 세터를 때린다(초기값 "Datum_1" → 저장된 이름).
             //  이 구간에서 리네임이 돌면 다른 Datum 의 모델 파일을 옮겨버리므로 반드시 끈다.
             bool result;
             _suppressModelRename = true;
-            _suppressMirrorWarning = true; // quick-260813: 리플렉션 SetValue 가 Mirror 세터를 때려 경고창이 뜨는 것을 막는다
+            _suppressUserEditWarning = true; // quick-260813/260904-iwm: 리플렉션 SetValue 가 Mirror/DatumZIndex 세터를 때려 경고창이 뜨는 것을 막는다
             try {
                 result = base.Load(loadFile, groupName);
             }
             finally {
                 _suppressModelRename = false;
-                _suppressMirrorWarning = false;
+                _suppressUserEditWarning = false;
             }
             IniSection sec;
             if (!loadFile.TryGetSection(groupName, out sec) || sec == null) {
                 ZIndexA = -1;
                 ZIndexB = -1;
+                DatumZIndex = AUTO_DATUM_Z_INDEX;
                 return result;
             }
             if (!sec.ContainsKey("ZIndexA")) ZIndexA = -1;
             if (!sec.ContainsKey("ZIndexB")) ZIndexB = -1;
+            // quick-260904-iwm: DatumZIndex 도 0 이 유효 지정값이므로 키 부재 시 -1(자동)로 강제한다. 이 대입은
+            //  세터를 타지만 값이 AUTO_DATUM_Z_INDEX 라 WarnDatumZIndexChanged 의 두 번째 가드에서 즉시 빠져나온다
+            //  — 로드 중 경고창은 뜨지 않는다.
+            bool bDatumZIndexKeyMissing = !sec.ContainsKey("DatumZIndex");
+            if (bDatumZIndexKeyMissing) {
+                DatumZIndex = AUTO_DATUM_Z_INDEX;
+            }
             return result;
         }
 
@@ -1305,13 +1380,13 @@ namespace ReringProject.Sequence {
             DatumConfig target = param as DatumConfig;
             if (target == null) return false;
             base.CopyTo(param);
-            // quick-260813: 붙여넣기는 리플렉션으로 target 세터를 때린다. 사용자의 직접 편집이 아니므로 경고를 끈다.
-            target._suppressMirrorWarning = true;
+            // quick-260813/260904-iwm: 붙여넣기는 리플렉션으로 target 세터를 때린다. 사용자의 직접 편집이 아니므로 경고를 끈다.
+            target._suppressUserEditWarning = true;
             try {
                 CopyPublicPropertiesTo(target, _copyExclude);
             }
             finally {
-                target._suppressMirrorWarning = false;
+                target._suppressUserEditWarning = false;
             }
             return true;
         }

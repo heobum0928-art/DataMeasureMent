@@ -87,6 +87,14 @@ namespace ReringProject.Sequence {
         //  49-02 가 AddResponseV1Cycle 에서 read 연결 → CS0414(미사용) 해소, #pragma 제거함.
         private const int DATUM_Z_INDEX = 0;         //260623 hbk Phase 49 (D-08): Index 0 = Datum 샷 (매직넘버 상수화, D-10)
         private const int CROSS_Z_UNSET = -1;        //260722 hbk Phase 68 D-09: ZIndexA/B 미설정 sentinel (매직넘버 상수화)
+        // quick-260904-iwm: 시퀀스별 기준점(Datum) z_index 설정화 — 두 개념을 분리한다.
+        //  MIN_VALID_Z_INDEX: 유효한 가장 작은 z. 지정값 유효성 판정과 "소유 Shot 없음" 폴백 둘 다 쓴다.
+        private const int MIN_VALID_Z_INDEX = 0;
+        // UNSET_CYCLE_Z_INDEX: "이번 tick 의 요청 패킷 자체가 없음"(수동 RUN/일괄검사) 을 뜻하는 값이며, 이 시퀀스의
+        //  기준점(GetDatumZIndex())과는 다른 개념이다. 값은 우연히 0 으로 같지만, 진짜 프로토콜 z=0 과 "프로토콜
+        //  자체가 없음"의 구분은 IsProtocolDrivenCycle() 이 별도로 담당한다 — 여기서 값을 바꾸면 안 된다.
+        //  이 상수는 이 태스크에서는 선언만 하고, 소비(치환)는 Task 2 에서 한다.
+        private const int UNSET_CYCLE_Z_INDEX = 0;
         private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
         private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
         //260811 hbk plc-spec-260811-alignment: 사이클 중 실기 카메라 grab 실패 1건이라도 발견 → 모든 응답
@@ -623,6 +631,123 @@ namespace ReringProject.Sequence {
             if (anyDatumSkip) return EVisionResultType.NotExist; // 검출실패 최우선
             if (!allPass) return EVisionResultType.NG;
             return EVisionResultType.OK;
+        }
+
+        // quick-260904-iwm: 이 시퀀스가 소유한 Shot 의 ZIndex 최솟값/최댓값. GetDatumZIndex() 의 "자동" 폴백
+        //  (Datum 속성창에서 기준점을 지정하지 않았을 때)과, DatumConfig.WarnDatumZIndexChanged() 의 경고 문구용
+        //  범위 표시 둘 다 이 메서드를 쓴다. 크로스-Z 완성 index(MaxCrossZCompletionZIndex)는 "마지막 Index"
+        //  개념이지 "기준점(구간 시작 번호)" 개념과 무관하므로 여기에 절대 섞지 않는다.
+        //  ComputeLastZIndex(:644 인근)와 완전히 같은 소유 판정식(shot.OwnerSequenceName == Name)을 쓴다 — 레거시
+        //  빈 OwnerSequenceName 처리까지 두 메서드가 일관되게 움직여야 하기 때문이다.
+        //  PropertyGrid 세터(DatumConfig.DatumZIndex)에서도 호출되므로 SystemHandler.Handle/Sequences/RecipeManager
+        //  를 각각 null 가드한다 — 앱 초기화 이후지만 레시피 미로드 시점에 불릴 수 있다(ComputeLastZIndex 의
+        //  호출부와 달리 여기서는 무가드 접근을 하면 안 된다).
+        public bool TryGetOwnedShotZIndexRange(out int nMin, out int nMax)
+        {
+            nMin = MIN_VALID_Z_INDEX;
+            nMax = MIN_VALID_Z_INDEX;
+            SystemHandler handler = SystemHandler.Handle;
+            if (handler == null)
+            {
+                return false;
+            }
+            if (handler.Sequences == null)
+            {
+                return false;
+            }
+            InspectionRecipeManager recipeManager = handler.Sequences.RecipeManager;
+            if (recipeManager == null)
+            {
+                return false;
+            }
+            bool bFoundAny = false;
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                if (!bFoundAny)
+                {
+                    nMin = shot.ZIndex;
+                    nMax = shot.ZIndex;
+                    bFoundAny = true;
+                    continue;
+                }
+                if (shot.ZIndex < nMin)
+                {
+                    nMin = shot.ZIndex;
+                }
+                if (shot.ZIndex > nMax)
+                {
+                    nMax = shot.ZIndex;
+                }
+            }
+            if (!bFoundAny)
+            {
+                nMin = MIN_VALID_Z_INDEX;
+                nMax = MIN_VALID_Z_INDEX;
+                return false;
+            }
+            return true;
+        }
+
+        // quick-260904-iwm: 이 시퀀스의 "기준점(Datum 촬영) = 새 사이클 시작" 실효 z_index. 판정 우선순위:
+        //  1순위 — 소유 DatumConfigs 중 사용자가 직접 지정한 값(>=MIN_VALID_Z_INDEX)들의 최솟값. 0 도 정당한
+        //          지정값이다. 한 시퀀스에 서로 다른 값을 지정한 Datum 이 여럿이면 최솟값을 쓴다(그 상황 자체는
+        //          DatumConfig.WarnDatumZIndexChanged 의 경고가 사용자에게 알린다).
+        //  2순위 — 지정값이 하나도 없으면(전부 -1=자동) TryGetOwnedShotZIndexRange 의 nMin(소유 Shot 최솟값).
+        //  3순위 — 소유 Shot 도 없으면 MIN_VALID_Z_INDEX(0).
+        //  캐시하지 않는다 — 레시피 교체/Shot 편집 후 스테일 값이 사이클 시작을 망가뜨리는 위험이 캐시 이득보다
+        //  크다. ComputeLastZIndex 가 이미 매 응답마다 같은 순회를 하고 있으므로 비용 근거도 동일하다.
+        public int GetDatumZIndex()
+        {
+            bool bHasAnySpecified = false;
+            int nSpecifiedMin = MIN_VALID_Z_INDEX;
+            if (DatumConfigs != null)
+            {
+                foreach (var datum in DatumConfigs)
+                {
+                    bool bDatumNull = datum == null;
+                    if (bDatumNull)
+                    {
+                        continue;
+                    }
+                    bool bIsSpecified = datum.DatumZIndex >= MIN_VALID_Z_INDEX;
+                    if (!bIsSpecified)
+                    {
+                        continue;
+                    }
+                    if (!bHasAnySpecified)
+                    {
+                        nSpecifiedMin = datum.DatumZIndex;
+                        bHasAnySpecified = true;
+                        continue;
+                    }
+                    if (datum.DatumZIndex < nSpecifiedMin)
+                    {
+                        nSpecifiedMin = datum.DatumZIndex;
+                    }
+                }
+            }
+            if (bHasAnySpecified)
+            {
+                return nSpecifiedMin;
+            }
+            int nOwnedMin;
+            int nOwnedMax;
+            bool bHasOwnedShots = TryGetOwnedShotZIndexRange(out nOwnedMin, out nOwnedMax);
+            if (bHasOwnedShots)
+            {
+                return nOwnedMin;
+            }
+            return MIN_VALID_Z_INDEX;
         }
 
         //260623 hbk Phase 49 PROTO-03 (D-03): 레시피 Shot 들의 z_index 최댓값 = "마지막 Index".

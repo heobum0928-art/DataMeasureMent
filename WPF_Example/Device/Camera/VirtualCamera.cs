@@ -439,7 +439,7 @@ namespace ReringProject.Device {
             get {
                 if (BackgroundImagePath != null) return string.Format("{0}({1}/{2})", CurrentBackgroundImageFile, BackgroundImageIndex, BackgroundImageCount);
                 else if (IsGrabbing) return "Grabbing";
-                else return "Ready";
+                else return "READY";
             }
         }
 

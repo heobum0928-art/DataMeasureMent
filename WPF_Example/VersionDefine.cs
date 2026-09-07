@@ -443,10 +443,26 @@ namespace ReringProject
                  "확대·스크롤과 상관없이 지금 보이는 화면의 정중앙에 연두색 십자를 띄울 수 있게 했다(설정 저장됨). " +
                  "실기 확인 완료: 휠 줌 커서 고정, 이미지 중심 십자 위치, 화면 중앙 십자."
     )]
+    [Version(
+        Number = "1.7.36.0",
+        Date = "2026-09-07",
+        Change = "수동 지그(Z 모터 없음) 검사 편의와 조명 타이밍을 손봤다. " +
+                 "① 조명 안정화 대기: 조명 명령을 보낸 뒤 '전송 완료'까지만 기다리고 바로 찍어서, 조명이 덜 올라온 사진이 나오거나 " +
+                 "기준점 검출이 실패하던 것(실기 로그: 명령 0.1초 뒤 촬영)을 고쳤다. Setting 의 LightSettleMs(기본 100ms)만큼 더 기다린 뒤 " +
+                 "찍는다 — 기준점 촬영, Shot 촬영, 수동 Grab/검사Grab 모두. 0 이면 예전과 같다. " +
+                 "② 조명 소등: Grab/검사Grab 으로 찍은 직후, 그리고 수동 RUN 이 끝났을 때 그 시퀀스가 켠 조명(링/바/백라이트)을 끈다. " +
+                 "예전에는 자동 운전의 P/F 응답 때만 껐기 때문에 수동으로 찍으면 바 조명이 계속 켜져 있었다. " +
+                 "③ 기준점 재사용: 기준점 높이에서 Test Find 를 성공하면 그 결과를 기억해 두고, Z 를 옮긴 뒤의 수동 RUN 이 기준점을 " +
+                 "다시 찾지 않고 그대로 쓴다. 예전에는 RUN 이 시작할 때마다 기준점을 지우고 지금 높이에서 다시 찾아, 기준점과 높이가 " +
+                 "다른 자리(BOTTOM I6 등)는 초점이 안 맞아 실패했다(로그: Circle polar samples 0). 새 Test Find, $RESET, 자동 운전의 " +
+                 "기준점 번호, 레시피 재로드 때 기억이 갱신·해제된다. 자동 운전 경로는 무변경. " +
+                 "④ 검사 트리 paste 는 한 번 붙이면 복사본을 비우고 버튼을 잠근다(실수로 두 번 붙는 것 방지). " +
+                 "⑤ 카메라 창: 화면 중앙 십자(Display 탭 Draw view center line)를 십자만으로 단순화."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.35.0";
+        public const string VERSION = "1.7.36.0";
         public const string BUILD_DATE = "2026-09-07";
     }
 }

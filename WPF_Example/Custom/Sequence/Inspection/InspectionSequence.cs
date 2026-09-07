@@ -466,8 +466,8 @@ namespace ReringProject.Sequence {
                     //  명시적으로 비운다. 프로토콜 경로(기준점 $TEST)는 바로 아래 else-if 분기에서 별도로 처리한다
                     //  (기준점 이후의 연속 tick 은 같은 사이클 연속이라 절대 여기서 지우면 안 됨 — 위
                     //  BeginCrossZImageCycle 주석과 동일 논리).
-                    if (HoldDatumForManualRun) {
-                        Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} 기준점 유지 ON — 수동 RUN 시작 시 기준점 캐시를 비우지 않음(이전 검출 결과 재사용)", Name);
+                    if (_bManualDatumHeld) {
+                        Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} Test Find 로 잡아둔 기준점 재사용 — 수동 RUN 시작 시 기준점 캐시를 비우지 않음", Name);
                     } else {
                         ClearDatumTransforms();
                     }
@@ -1031,10 +1031,16 @@ namespace ReringProject.Sequence {
         //  반환값 = 조명 세팅 성공 여부($PREP_ACK 의 OK/FAIL). D-73-08: 검사 항목 유무는 반영하지 않는다 —
         //  Shot 이 없는 z(기준점 전용 z, 아직 항목을 안 넣은 빈 z)는 켤 대상이 없을 뿐이므로 OK 다.
         //  (과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 되돌리지 않기 위한 계약.)
-        // 수동 지그용 "기준점 유지": 켜져 있으면 수동 RUN 시작 때 기준점 캐시를 비우지 않는다. 사용자가 기준점 높이에서
-        //  Test Find(TryComposeAlign 이 캐시에 저장) 또는 RUN 으로 잡아둔 기준점 결과를, Z 를 옮긴 뒤의 다음 수동 RUN 이
-        //  그대로 재사용(DatumPhase 캐시재사용)한다. 프로토콜(자동) 사이클에는 영향 없음. 세션 한정(저장 안 함), 기본 꺼짐.
-        public bool HoldDatumForManualRun { get; set; } = false;
+        // 수동 지그용 "기준점 유지": Test Find 가 성공하면 그 결과(TryComposeAlign 이 캐시에 저장)를 다음 수동 RUN 들이
+        //  그대로 재사용한다 — 사용자가 기준점 높이에서 Test Find 로 잡고, Z 를 Shot 높이로 옮겨 RUN 하는 순서를 위한 것.
+        //  ClearDatumTransforms(새 부품/$RESET/프로토콜 기준점 index/레시피 재로드) 가 불리면 자동 해제된다.
+        //  프로토콜(자동) 사이클 경로에는 영향 없음. 세션 한정(저장 안 함).
+        private bool _bManualDatumHeld = false;
+
+        public void HoldManualDatum(string szDatumName) {
+            _bManualDatumHeld = true;
+            Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} 기준점 '{1}' Test Find 성공 — 다음 수동 RUN 부터 이 기준점을 재사용(새 Test Find/부품 교체 시 갱신)", Name, szDatumName);
+        }
 
         public bool ApplyShotLights(int nZIndex)
         {
@@ -2407,6 +2413,7 @@ namespace ReringProject.Sequence {
         //  $RESET(TryExecuteIfIdle/_startLock 안), OnStart 훅(HandleRunStartResetResults, _startLock 밖), 어느
         //  쪽이든 이 메서드 안에서는 TryComposeAlign/TryRunSingleDatum/UI Test-Find 와 안전하게 상호 배타적이다.
         public void ClearDatumTransforms() {
+            _bManualDatumHeld = false;
             lock (_datumStateLock) {
                 _datumTransforms.Clear();
                 _failedDatums.Clear(); // _datumTransforms 와 동일 lifecycle

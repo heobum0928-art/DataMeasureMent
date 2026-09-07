@@ -3129,11 +3129,6 @@ namespace ReringProject.UI {
         }
 
         //260619 hbk Phase 57 #2 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
-        // "기준점 유지" 토글 배선 — 실제 동작은 InspectionSequence.HoldDatumForManualRun 이 담당.
-        private void Chk_holdDatum_Changed(object sender, RoutedEventArgs e) {
-            SystemHandler.Handle.Sequences.SetHoldDatumForManualRun(chk_holdDatum.IsChecked == true);
-        }
-
         private void Chk_overlayPattern_Changed(object sender, RoutedEventArgs e) {
             if (halconViewer == null) return;
             halconViewer.SetPatternRoiOverlayVisible(chk_overlayPattern.IsChecked == true);
@@ -4457,6 +4452,11 @@ namespace ReringProject.UI {
                 // 성공 모달 — 종전에는 성공 시 모달 없이 캔버스 시각화만 했는데, 그러면 버튼을 눌러도
                 //  아무 반응이 없는 것처럼 보이고(특히 패턴2 성공/미설정이 둘 다 무음) 성공 여부를
                 //  로그에서도 확인할 수 없었다(사용자 보고).
+                // Test Find 로 잡은 기준점을 다음 수동 RUN 이 재사용하게 표시(수동 지그: 기준점 높이 → Shot 높이 순서).
+                ReringProject.Sequence.InspectionSequence heldSeq = GetInspectionSequenceForDatum(datum);
+                if (heldSeq != null) {
+                    heldSeq.HoldManualDatum(datum.DatumName);
+                }
                 CustomMessageBox.Show("Datum Find 성공", BuildTestFindSuccessMessage(datum));
             }
             else {

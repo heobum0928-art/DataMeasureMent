@@ -1123,6 +1123,10 @@ namespace ReringProject.UI {
                 RefreshChildNodesAfterPaste(pasteTargetNode);
                 //success
                 mParentWindow.statusBar.Model.SetText(string.Format("Pasted : {0} to {1}",CopiedParam.ToString(), SelectedParam.ToString()));
+                // 붙여넣기는 1회용 — 복사본을 비우고 paste 버튼을 다시 잠가 실수로 한 번 더 눌러
+                //  같은 내용이 중복 추가되는 것을 막는다. 다시 붙이려면 Copy 부터 다시 한다.
+                CopiedParam = null;
+                button_paste.IsEnabled = false;
                 int index = treeListBox_sequence.SelectedIndex;
 
                 //reselect (update)

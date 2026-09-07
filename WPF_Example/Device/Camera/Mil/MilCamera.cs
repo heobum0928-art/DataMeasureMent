@@ -29,6 +29,10 @@ namespace ReringProject.Device {
         // StartStream() 이 재시작 시 이 값을 다시 해석해 _liveRoleInfo 를 복원한다.
         private string _szLiveRoleIdentifier = null;
 
+        // 진단: M_GRAB_DIRECTION 설정을 보드가 거부했을 때 로그를 인스턴스당 1회만 남기기 위한 플래그
+        // (LiveLoop 가 매 프레임 GrabFromBuffer 를 부르므로 폭주 방지).
+        private bool _bGrabDirectionErrorLogged = false;
+
 #if !SIMUL_MODE
         // MIL 라이브(연속 grab) 스레드 제어
         private Thread _liveThread = null;
@@ -77,6 +81,9 @@ namespace ReringProject.Device {
             if (_roleInfoMap.TryGetValue(requestIdentifier, out roleInfo)) {
                 return roleInfo;
             }
+            // 진단: 요청한 역할이 미등록이면 조용히 무미러로 떨어지므로, 그 사실을 로그로 드러낸다.
+            Logging.PrintLog((int)ELogType.Camera, "[WARN] {0} 역할 '{1}' 미등록 — 기본(무미러) Info 로 폴백. 등록된 역할 수={2}",
+                             Name, requestIdentifier, _roleInfoMap.Count);
             return Info;
         }
 
@@ -97,6 +104,9 @@ namespace ReringProject.Device {
             //     여기서 필드를 읽지 않으면 "대입만 되고 읽히지 않는 필드" 경고가 새로 생긴다.
             _szLiveRoleIdentifier = szRoleIdentifier;
             _liveRoleInfo = ResolveRoleInfo(_szLiveRoleIdentifier);
+            // 진단: 트리 선택이 실제로 어떤 방향값으로 라이브에 반영됐는지 1회 기록(선택 변경 시에만 호출됨).
+            Logging.PrintLog((int)ELogType.Camera, "[INFO] {0} 라이브 역할 적용: {1} (ReverseX={2}, ReverseY={3})",
+                             Name, _liveRoleInfo.Identifier, _liveRoleInfo.ReverseX, _liveRoleInfo.ReverseY);
         }
 
         private string GetMilErrorMessage() {
@@ -350,6 +360,18 @@ namespace ReringProject.Device {
             }
             MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_X, grabDirectionX);
             MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_Y, grabDirectionY);
+
+            // 진단: MdigControl 은 실패해도 예외 없이 MIL 내부 에러만 세우고, 뒤이은 MdigGrab 이 성공하면
+            // 그 에러가 덮여 사라진다. 보드가 방향 설정을 거부하는지 여기서 바로 확인해 1회만 기록한다.
+            if (!_bGrabDirectionErrorLogged) {
+                MIL_INT directionError = MIL.M_NULL;
+                MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref directionError);
+                if (directionError != MIL.M_NULL) {
+                    _bGrabDirectionErrorLogged = true;
+                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} M_GRAB_DIRECTION 설정 거부 (MIL error {1}: {2}) ReverseX={3} ReverseY={4}",
+                                     roleInfo.Identifier, (int)directionError, GetMilErrorMessage(), roleInfo.ReverseX, roleInfo.ReverseY);
+                }
+            }
 
             // 동기 단발 grab (free-run / 소프트 트리거)
             MIL.MdigGrab(MilDigitizer, MilBuffer);

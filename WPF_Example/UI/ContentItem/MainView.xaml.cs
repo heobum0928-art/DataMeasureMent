@@ -3129,6 +3129,11 @@ namespace ReringProject.UI {
         }
 
         //260619 hbk Phase 57 #2 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
+        // "기준점 유지" 토글 배선 — 실제 동작은 InspectionSequence.HoldDatumForManualRun 이 담당.
+        private void Chk_holdDatum_Changed(object sender, RoutedEventArgs e) {
+            SystemHandler.Handle.Sequences.SetHoldDatumForManualRun(chk_holdDatum.IsChecked == true);
+        }
+
         private void Chk_overlayPattern_Changed(object sender, RoutedEventArgs e) {
             if (halconViewer == null) return;
             halconViewer.SetPatternRoiOverlayVisible(chk_overlayPattern.IsChecked == true);

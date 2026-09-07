@@ -466,7 +466,11 @@ namespace ReringProject.Sequence {
                     //  명시적으로 비운다. 프로토콜 경로(기준점 $TEST)는 바로 아래 else-if 분기에서 별도로 처리한다
                     //  (기준점 이후의 연속 tick 은 같은 사이클 연속이라 절대 여기서 지우면 안 됨 — 위
                     //  BeginCrossZImageCycle 주석과 동일 논리).
-                    ClearDatumTransforms();
+                    if (HoldDatumForManualRun) {
+                        Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} 기준점 유지 ON — 수동 RUN 시작 시 기준점 캐시를 비우지 않음(이전 검출 결과 재사용)", Name);
+                    } else {
+                        ClearDatumTransforms();
+                    }
                 } else if (bIsAtSequenceDatumIndex) {
                     //260807 hbk quick-260807-fix2: 프로토콜(z=0 $TEST) 사이클의 "새 사이클 시작" Clear 지점.
                     //  이전 시도는 SystemHandler.StartV1Scoped 에서 State==Idle 사전 체크 후 Clear 하는 방식이었는데,
@@ -1027,6 +1031,11 @@ namespace ReringProject.Sequence {
         //  반환값 = 조명 세팅 성공 여부($PREP_ACK 의 OK/FAIL). D-73-08: 검사 항목 유무는 반영하지 않는다 —
         //  Shot 이 없는 z(기준점 전용 z, 아직 항목을 안 넣은 빈 z)는 켤 대상이 없을 뿐이므로 OK 다.
         //  (과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 되돌리지 않기 위한 계약.)
+        // 수동 지그용 "기준점 유지": 켜져 있으면 수동 RUN 시작 때 기준점 캐시를 비우지 않는다. 사용자가 기준점 높이에서
+        //  Test Find(TryComposeAlign 이 캐시에 저장) 또는 RUN 으로 잡아둔 기준점 결과를, Z 를 옮긴 뒤의 다음 수동 RUN 이
+        //  그대로 재사용(DatumPhase 캐시재사용)한다. 프로토콜(자동) 사이클에는 영향 없음. 세션 한정(저장 안 함), 기본 꺼짐.
+        public bool HoldDatumForManualRun { get; set; } = false;
+
         public bool ApplyShotLights(int nZIndex)
         {
             ShotConfig shot = FindShotByZIndex(nZIndex);

@@ -421,6 +421,12 @@
                         IsChecked="True"
                         Checked="Chk_overlayPattern_Changed" Unchecked="Chk_overlayPattern_Changed"
                         Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
+                    <!-- 수동 지그: 기준점 높이에서 Test Find 로 잡은 기준점을 Z 를 옮긴 뒤 RUN 에서 재사용 -->
+                    <CheckBox x:Name="chk_holdDatum" Content="기준점 유지"
+                        IsChecked="False"
+                        ToolTip="켜면 수동 RUN 이 기준점을 다시 찾지 않고, 직전에 Test Find/RUN 으로 잡은 기준점을 그대로 씁니다 (수동 지그에서 기준점 높이 → Shot 높이 순서로 검사할 때). 자동 운전에는 영향 없음."
+                        Checked="Chk_holdDatum_Changed" Unchecked="Chk_holdDatum_Changed"
+                        Foreground="Yellow" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="12"/>
                 </WrapPanel>
                 <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"

@@ -371,7 +371,16 @@ namespace ReringProject.Sequence {
             if (!IsDynamicFAIMode) return false;
             return RecipeManager.Save(saveFile, existingFile);
         }
+
+        // 검사 화면 "기준점 유지" 토글 → 모든 검사 시퀀스에 일괄 반영(세션 한정).
+        public void SetHoldDatumForManualRun(bool bHold) {
+            for (int i = 0; i < Count; i++) {
+                InspectionSequence inspSeq = this[i] as InspectionSequence;
+                if (inspSeq != null) {
+                    inspSeq.HoldDatumForManualRun = bHold;
+                }
+            }
+            Logging.PrintLog((int)ELogType.Trace, "[SEQ] 기준점 유지(수동 RUN) = {0}", bHold);
+        }
     }
 }
-
-

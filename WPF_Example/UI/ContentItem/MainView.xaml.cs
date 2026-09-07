@@ -1254,6 +1254,7 @@ namespace ReringProject.UI {
                     LightHandler.Handle.WaitForLightsSettled();
                     grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, null));
                     param.PutImage(grabbedHalconImage);
+                    TurnOffLightsAfterManualGrab(param);
                 }
                 // ---- 락 해제 후 UI 디스패치(락 쥔 채 Dispatcher.Invoke 금지) ----
                 ExecuteOnUi(() => {
@@ -1299,6 +1300,17 @@ namespace ReringProject.UI {
         // Datum 티칭 grab 오버로드. 기존 1-인자 오버로드는 무변경 유지(비-Datum 호출부 회귀 방지) —
         //  본문은 조명 적용 한 줄만 다르고 나머지는 그대로 복제. datum 이 넘어오면 그 Datum 전용 조명을 켠 채로 grab한다
         //  (기존에는 param.LightGroupName 이 ShotConfig 에서 한 번도 세팅된 적이 없어 ApplyLight(param) 이 사실상 무동작이었음).
+        // 수동 Grab/검사Grab 촬영 직후 조명 소등 배선 — 실제 소등 범위 판단은 InspectionSequence 가 한다.
+        private void TurnOffLightsAfterManualGrab(ICameraParam param) {
+            if (param == null) {
+                return;
+            }
+            InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence;
+            if (lightSeq != null) {
+                lightSeq.TurnOffLightsAfterManualGrab();
+            }
+        }
+
         public async void GrabAndDisplay(ICameraParam param, DatumConfig datum, bool eventCall = false) {
             if (param == null || !pSeq.IsIdle || GrabTask != null) return;
 
@@ -1321,6 +1333,7 @@ namespace ReringProject.UI {
                     LightHandler.Handle.WaitForLightsSettled();
                     grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, datum));
                     param.PutImage(grabbedHalconImage);
+                    TurnOffLightsAfterManualGrab(param);
                 }
                 // ---- 락 해제 후 UI 디스패치(락 쥔 채 Dispatcher.Invoke 금지) ----
                 ExecuteOnUi(() => {
@@ -1416,6 +1429,7 @@ namespace ReringProject.UI {
                     //  표시(UI)가 크로스스레드로 동시 접근하지 않도록 분리(표시는 grabbedHalconImage, 저장은 imageToSave 사용).
                     if (grabbedHalconImage != null) imageToSave = grabbedHalconImage.CopyImage();
                     param.PutImage(grabbedHalconImage);
+                    TurnOffLightsAfterManualGrab(param);
                 }
                 swLightGrab.Stop();
                 // ---- 락 해제됨: 이 지점부터는 어떤 대기도 mDrawInterlock 을 쥐지 않는다 ----

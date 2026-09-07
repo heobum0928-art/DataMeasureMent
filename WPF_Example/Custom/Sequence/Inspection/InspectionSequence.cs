@@ -151,6 +151,7 @@ namespace ReringProject.Sequence {
             //  중단되면 IsBuffer=true 로 남아 그 훅이 못 끄는 경로를 무조건 소등으로 메운다($PREP Op=0 폐기로 대체 경로 없음).
             OnStop += HandleAbnormalCycleLightOff;
             OnError += HandleAbnormalCycleLightOff;
+            OnFinish += HandleManualRunLightOff;
         }
 
         // 종합 판정 + FAI별 결과 TCP 전송. 3-state cycle hierarchy + FAIResults P/F/N 분기.
@@ -523,6 +524,20 @@ namespace ReringProject.Sequence {
         //  항상 발화하므로 여기서 무조건 이 시퀀스 채널만 소등(TurnOffOwnShotLights, CR-01 스코핑 재사용)한다.
         //  HandleFlowLogCycleEnd 와 동일 원칙 — 예외를 절대 밖으로 던지지 않는다(SequenceBase 이벤트 발화 실패 시
         //  잠금 영구화 위험, SaveResultImage 와 동일 격리 규약).
+        // 수동 RUN(트리 선택 → RUN, 프로토콜 패킷 없음)은 자동 사이클과 달리 P/F 응답 경로를 타지 않아 조명이 켜진 채
+        //  남았다. 정상 종료(OnFinish)에서 비프로토콜일 때만 이 시퀀스 채널을 소등한다 — 프로토콜 사이클은 중간 index(B)마다
+        //  OnFinish 가 나므로 여기서 끄면 안 되고, 기존 TryTurnOffLightsOnCycleEnd(P/F 확정 시)가 담당한다.
+        private void HandleManualRunLightOff(SequenceContext context) {
+            try {
+                if (IsProtocolDrivenCycle()) {
+                    return;
+                }
+                TurnOffOwnShotLights();
+                Logging.PrintLog((int)ELogType.LightController, "[CycleLightOff] Seq={0}, path=manual-run", Name);
+            } catch {
+            }
+        }
+
         private void HandleAbnormalCycleLightOff(SequenceContext context) {
             try {
                 TurnOffOwnShotLights();
@@ -1085,6 +1100,14 @@ namespace ReringProject.Sequence {
         //  Phase 73: 위 주석이 "현재 레시피 구조에서는 발생하지 않음" 이라고 적어 둔 조건 — 같은 물리 채널을 두
         //  시퀀스가 동시에 쓰는 구성 — 을 SIDE_1~4 분리가 정확히 만든다. 그래서 이제 CollectBusySiblingChannels()
         //  로 비-Idle 형제 시퀀스의 채널을 소등 대상에서 뺀다(스코핑만으로는 못 막던 구멍을 닫은 것).
+        // 수동 Grab/검사Grab(MainView) 이 촬영을 마친 직후 부르는 공개 진입점 — 촬영용으로 켠 이 시퀀스의 조명만 끈다.
+        //  자동 사이클 종료 소등(TryTurnOffLightsOnCycleEnd)과 같은 스코프 규칙(TurnOffOwnShotLights)을 재사용한다.
+        public void TurnOffLightsAfterManualGrab()
+        {
+            TurnOffOwnShotLights();
+            Logging.PrintLog((int)ELogType.LightController, "[CycleLightOff] Seq={0}, path=manual-grab", Name);
+        }
+
         private void TurnOffOwnShotLights()
         {
             HashSet<string> usedChannels = CollectOwnedChannelScope();

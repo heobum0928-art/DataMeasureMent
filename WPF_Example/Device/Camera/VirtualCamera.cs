@@ -82,6 +82,7 @@ namespace ReringProject.Device {
 
 
         private System.Windows.Media.Pen DrawPen = null;
+        private const double CENTER_PEN_THICKNESS = 4;
         public void ResetGrabCount() {
             Interlocked.Exchange(ref imageCount, 0);
             Interlocked.Exchange(ref errorCount, 0);
@@ -143,7 +144,7 @@ namespace ReringProject.Device {
             this.Name = Info.Identifier;
             this.CamType = camType;
 
-            DrawPen = new System.Windows.Media.Pen(System.Windows.Media.Brushes.Fuchsia, 4);
+            DrawPen = new System.Windows.Media.Pen(System.Windows.Media.Brushes.Fuchsia, CENTER_PEN_THICKNESS);
             DrawPen.DashStyle = DashStyles.Dash;
         }
 
@@ -277,6 +278,43 @@ namespace ReringProject.Device {
             if (pConfig.DrawCenterCircle) {
                 double ScaledCircleRadius = pConfig.CenterCircleRadius;
                 dc.DrawEllipse(System.Windows.Media.Brushes.Transparent, DrawPen, new System.Windows.Point(ScaledCenterX, ScaledCenterY), ScaledCircleRadius, ScaledCircleRadius);
+            }
+        }
+
+        // DeviceSelector 미리보기 전용: CanvasViewer 가 RenderTransform(ScaleTransform) 안에서 그리므로,
+        // 화면상 선 두께가 배율과 무관하게 일정하도록 두께를 dViewScale 로 나눈 로컬 Pen 을 사용한다.
+        public virtual void RenderCenterLine(DrawingContext dc, double dViewScale) {
+            if (dViewScale <= 0) {
+                RenderCenterLine(dc);
+                return;
+            }
+
+            System.Windows.Media.Pen ScaledPen = new System.Windows.Media.Pen(System.Windows.Media.Brushes.Fuchsia, CENTER_PEN_THICKNESS / dViewScale);
+            ScaledPen.DashStyle = DashStyles.Dash;
+
+            double ScaledCenterX = CenterX;
+            double ScaledCenterY = CenterY;
+            double ScaledWidth = Properties.Width;
+            double ScaledHeight = Properties.Height;
+
+            if (pConfig.DrawCenterLine) {
+                dc.DrawLine(ScaledPen, new System.Windows.Point(0, ScaledCenterY), new System.Windows.Point(ScaledWidth, ScaledCenterY));
+                dc.DrawLine(ScaledPen, new System.Windows.Point(ScaledCenterX, 0), new System.Windows.Point(ScaledCenterX, ScaledHeight));
+            }
+            if (pConfig.DrawCenterRect) {
+                double ScaledRectWidth = pConfig.CenterRectWidth;
+                double ScaledRectHeight = pConfig.CenterRectHeight;
+
+                double left = ScaledCenterX - (ScaledRectWidth / 2);
+                double top = ScaledCenterY - (ScaledRectHeight / 2);
+                double width = ScaledRectWidth;
+                double height = ScaledRectHeight;
+                System.Windows.Rect rect = new System.Windows.Rect(left, top, width, height);
+                dc.DrawRectangle(System.Windows.Media.Brushes.Transparent, ScaledPen, rect);
+            }
+            if (pConfig.DrawCenterCircle) {
+                double ScaledCircleRadius = pConfig.CenterCircleRadius;
+                dc.DrawEllipse(System.Windows.Media.Brushes.Transparent, ScaledPen, new System.Windows.Point(ScaledCenterX, ScaledCenterY), ScaledCircleRadius, ScaledCircleRadius);
             }
         }
 

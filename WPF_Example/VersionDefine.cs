@@ -419,10 +419,23 @@ namespace ReringProject
                  "Tray 정렬 화면에서 검사를 누르면, 그 전에 화면에서 재본 수동 거리측정 표시(점 두 개와 선)가 자동으로 지워지도록 했다 — " +
                  "예전에는 검사 결과 위에 겹쳐 남아 헷갈렸다."
     )]
+    [Version(
+        Number = "1.7.34.0",
+        Date = "2026-09-07",
+        Change = "Datum 의 좌우/상하 반전(MirrorX/Y)을 켜도 라이브 화면과 Grab 사진이 뒤집히지 않던 문제를 고쳤다. " +
+                 "원인: 지금까지는 촬영 직전에 카메라 보드(Matrox Rapixo CXP)에 '거꾸로 찍어라'는 MIL 설정을 보냈는데, " +
+                 "이 보드+카메라 조합은 그 설정을 '잘못된 파라미터'(MIL 6407)로 거절했다. 거절해도 바로 뒤의 촬영 명령이 " +
+                 "성공하면서 오류가 덮여 화면·로그 어디에도 표시되지 않았고, 8월에 만든 이 기능은 실물 카메라가 없어 " +
+                 "실기 확인이 한 번도 안 된 상태였다(2026-09-07 Top/Bottom PC 로그로 확인). 카메라 자체 반전 기능도 " +
+                 "이 장비에서는 막혀 있어 하드웨어 쪽 길은 둘 다 없다. 조치: 보드에는 아무것도 요청하지 않고, 사진을 받은 " +
+                 "직후 프로그램이 직접 뒤집는다(HALCON mirror_image). 반전을 켠 자리에서만 동작하며 이 PC 실측으로 " +
+                 "좌우 11ms·상하 8ms·둘 다 26ms 가 촬영 시간(160~220ms)에 더해진다. 반전을 안 켠 자리는 예전과 완전히 같다. " +
+                 "실기 확인 완료: Top_Datum 반전 ON 에서 Grab·카메라 창 라이브 모두 뒤집힘."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.33.0";
-        public const string BUILD_DATE = "2026-09-04";
+        public const string VERSION = "1.7.34.0";
+        public const string BUILD_DATE = "2026-09-07";
     }
 }

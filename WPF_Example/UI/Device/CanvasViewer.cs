@@ -57,7 +57,6 @@ namespace ReringProject.UI {
     // 이미지 중심 십자(CanvasViewer, 자홍색)와 구분되도록 연두색을 쓴다.
     public class ViewCenterOverlay : FrameworkElement {
         private const double LINE_THICKNESS = 2.0;
-        private const double CENTER_GAP = 12.0;   // 정중앙은 비워 표적이 가려지지 않게 한다
         private static readonly Pen VIEW_CENTER_PEN = CreatePen();
 
         private static Pen CreatePen() {
@@ -74,11 +73,8 @@ namespace ReringProject.UI {
             }
             double dCx = ActualWidth / 2;
             double dCy = ActualHeight / 2;
-            dc.DrawLine(VIEW_CENTER_PEN, new Point(0, dCy), new Point(dCx - CENTER_GAP, dCy));
-            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx + CENTER_GAP, dCy), new Point(ActualWidth, dCy));
-            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx, 0), new Point(dCx, dCy - CENTER_GAP));
-            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx, dCy + CENTER_GAP), new Point(dCx, ActualHeight));
-            dc.DrawEllipse(null, VIEW_CENTER_PEN, new Point(dCx, dCy), CENTER_GAP, CENTER_GAP);
+            dc.DrawLine(VIEW_CENTER_PEN, new Point(0, dCy), new Point(ActualWidth, dCy));
+            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx, 0), new Point(dCx, ActualHeight));
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) {

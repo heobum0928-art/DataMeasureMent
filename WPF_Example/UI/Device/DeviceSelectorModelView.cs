@@ -111,7 +111,47 @@ namespace ReringProject.UI {
                 DeviceList.Add(new DeviceModelView(pDevs[i], imagePath));
             }
         }
-        
 
+
+    }
+
+    // 마우스 휠 줌 계산 전용 순수 함수 모음. UI(코드비하인드)는 배선만 담당하고
+    // 배율/오프셋 산출은 여기서 처리한다 (MVVM 분리).
+    public static class PreviewZoomCalculator {
+        public const double ZOOM_STEP_FACTOR = 1.25;
+
+        public static double GetNextScale(double dCurrentScale, bool bZoomIn) {
+            double dNext;
+            if (bZoomIn) {
+                dNext = dCurrentScale * ZOOM_STEP_FACTOR;
+            }
+            else {
+                dNext = dCurrentScale / ZOOM_STEP_FACTOR;
+            }
+
+            if (dNext < DisplayConfig.DrawScaleLowLimit) {
+                dNext = DisplayConfig.DrawScaleLowLimit;
+            }
+            if (dNext > DisplayConfig.DrawScaleHighLimit) {
+                dNext = DisplayConfig.DrawScaleHighLimit;
+            }
+
+            return dNext;
+        }
+
+        public static void GetAnchoredOffset(double dOldScale, double dNewScale, double dOldOffsetX, double dOldOffsetY, double dCursorViewX, double dCursorViewY, out double dNewOffsetX, out double dNewOffsetY) {
+            if (dOldScale <= 0) {
+                dNewOffsetX = dOldOffsetX;
+                dNewOffsetY = dOldOffsetY;
+                return;
+            }
+
+            double dImageX = (dOldOffsetX + dCursorViewX) / dOldScale;
+            double dImageY = (dOldOffsetY + dCursorViewY) / dOldScale;
+
+            // 음수/최대 클램프는 여기서 하지 않는다 - ScrollViewer.ScrollToHorizontalOffset/VerticalOffset 이 extent 기준으로 자체 클램프한다.
+            dNewOffsetX = (dImageX * dNewScale) - dCursorViewX;
+            dNewOffsetY = (dImageY * dNewScale) - dCursorViewY;
+        }
     }
 }

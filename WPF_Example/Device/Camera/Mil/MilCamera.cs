@@ -29,10 +29,6 @@ namespace ReringProject.Device {
         // StartStream() 이 재시작 시 이 값을 다시 해석해 _liveRoleInfo 를 복원한다.
         private string _szLiveRoleIdentifier = null;
 
-        // 진단: M_GRAB_DIRECTION 설정을 보드가 거부했을 때 로그를 인스턴스당 1회만 남기기 위한 플래그
-        // (LiveLoop 가 매 프레임 GrabFromBuffer 를 부르므로 폭주 방지).
-        private bool _bGrabDirectionErrorLogged = false;
-
 #if !SIMUL_MODE
         // MIL 라이브(연속 grab) 스레드 제어
         private Thread _liveThread = null;
@@ -227,11 +223,9 @@ namespace ReringProject.Device {
                               MIL.M_DEFAULT, ref MilDigitizer);
                 if (MilDigitizer == MIL.M_NULL) throw new Exception("MdigAlloc failed");
 
-                // 좌우/상하 반전 — 카메라 GenICam ReverseX/Y feature 쓰기는 이 장비에서 막혀있으므로(바로 아래 NOTE),
-                // HikCamera처럼 카메라 쪽에 요청하는 대신 그래버(digitizer) 단에서 grab 방향을 반전한다
-                // (M_GRAB_DIRECTION_X/Y — MdigControlFeature와 달리 이 옵션은 디지타이저 자체 기능이라 제약이 없다).
-                MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_X, Info.ReverseX ? MIL.M_REVERSE : MIL.M_NORMAL);
-                MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_Y, Info.ReverseY ? MIL.M_REVERSE : MIL.M_NORMAL);
+                // 좌우/상하 반전 — 카메라 GenICam ReverseX/Y feature 쓰기도, 디지타이저 M_GRAB_DIRECTION_X/Y 도
+                // 이 장비(RapixoCXP)에서는 거부된다(후자는 MIL 6407, 2026-09-07 실기 확인). 그래서 하드웨어에는
+                // 아무것도 요청하지 않고 GrabFromBuffer 가 grab 직후 HALCON mirror_image 로 소프트웨어 반전한다.
 
                 // NOTE: 이 장비에서는 MdigControlFeature(Width/Height/PixelFormat) 쓰기가 불가하다
                 //       ("Requested operation not supported"). 해상도/tap 기하는 반드시 DCF 로 설정해야 한다.
@@ -342,36 +336,9 @@ namespace ReringProject.Device {
         /// MilBuffer 는 매 grab 마다 재사용되므로, 반드시 버퍼와 분리된 복사본을 반환해야 한다.
         /// </summary>
         private HImage GrabFromBuffer(DeviceInfo roleInfo) {
-            // 물리 MilCamera 인스턴스를 Top/Bottom 이 공유할 수 있으므로, grab 방향(ReverseX/Y)을
-            // 매 grab 직전 요청자(roleInfo)의 값으로 재적용한다 — Open() 시점 값은 공유 시 한쪽에만 반영된다.
-            MIL_INT grabDirectionX;
-            if (roleInfo.ReverseX) {
-                grabDirectionX = MIL.M_REVERSE;
-            }
-            else {
-                grabDirectionX = MIL.M_NORMAL;
-            }
-            MIL_INT grabDirectionY;
-            if (roleInfo.ReverseY) {
-                grabDirectionY = MIL.M_REVERSE;
-            }
-            else {
-                grabDirectionY = MIL.M_NORMAL;
-            }
-            MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_X, grabDirectionX);
-            MIL.MdigControl(MilDigitizer, MIL.M_GRAB_DIRECTION_Y, grabDirectionY);
-
-            // 진단: MdigControl 은 실패해도 예외 없이 MIL 내부 에러만 세우고, 뒤이은 MdigGrab 이 성공하면
-            // 그 에러가 덮여 사라진다. 보드가 방향 설정을 거부하는지 여기서 바로 확인해 1회만 기록한다.
-            if (!_bGrabDirectionErrorLogged) {
-                MIL_INT directionError = MIL.M_NULL;
-                MIL.MappGetError(MilApplication, MIL.M_CURRENT, ref directionError);
-                if (directionError != MIL.M_NULL) {
-                    _bGrabDirectionErrorLogged = true;
-                    Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} M_GRAB_DIRECTION 설정 거부 (MIL error {1}: {2}) ReverseX={3} ReverseY={4}",
-                                     roleInfo.Identifier, (int)directionError, GetMilErrorMessage(), roleInfo.ReverseX, roleInfo.ReverseY);
-                }
-            }
+            // 반전(ReverseX/Y)은 여기서 보드에 요청하지 않는다 — RapixoCXP 는 M_GRAB_DIRECTION_X/Y 를
+            // "Invalid parameter"(MIL 6407)로 거부한다(2026-09-07 실기 로그로 확인). 대신 grab 이 끝난 뒤
+            // 아래에서 HALCON mirror_image 로 소프트웨어 반전한다(요청자 roleInfo 기준, 회전보다 먼저).
 
             // 동기 단발 grab (free-run / 소프트 트리거)
             MIL.MdigGrab(MilDigitizer, MilBuffer);
@@ -426,6 +393,19 @@ namespace ReringProject.Device {
             MIL.MbufControl(MilBuffer, MIL.M_UNLOCK, MIL.M_DEFAULT);
 
             // 회전 처리 (HikCamera.OnGrabResult L458-470 동일)
+            // 소프트웨어 반전 — HALCON mirror_image: 'column' = 좌우 반전(ReverseX), 'row' = 상하 반전(ReverseY).
+            // 무반전 역할(기본)에서는 아무 복사도 일어나지 않아 기존 tact 와 동일하다.
+            if (roleInfo.ReverseX) {
+                HImage mirroredX = sourceImage.MirrorImage("column");
+                sourceImage.Dispose();
+                sourceImage = mirroredX;
+            }
+            if (roleInfo.ReverseY) {
+                HImage mirroredY = sourceImage.MirrorImage("row");
+                sourceImage.Dispose();
+                sourceImage = mirroredY;
+            }
+
             HImage rotatedImage = sourceImage;
             if (roleInfo.RotateAngle == ERotateAngleType._90) {
                 rotatedImage = sourceImage.RotateImage(90.0, "constant");

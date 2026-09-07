@@ -87,6 +87,20 @@ namespace ReringProject.Device {
             }
         }
 
+        // 확대/스크롤 상태와 무관하게 "지금 보이는 화면"의 정중앙에 십자를 띄운다(카메라 창 미리보기 전용).
+        //  DrawCenterLine(이미지 중심)과 별개 토글.
+        private bool drawViewCenterLine = false;
+        public bool DrawViewCenterLine {
+            get { return drawViewCenterLine; }
+            set {
+                drawViewCenterLine = value;
+                PropertyChangedEventHandler handler = PropertyChanged;
+                if (handler != null) {
+                    handler(this, new PropertyChangedEventArgs("DrawViewCenterLine"));
+                }
+            }
+        }
+
         private bool drawCenterRect = false;
         public bool DrawCenterRect {
             get { return drawCenterRect; }

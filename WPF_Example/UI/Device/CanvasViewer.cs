@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -48,6 +49,41 @@ namespace ReringProject.UI {
                 pCamera.RenderCenterLine(dc, dViewScale * dViewScale);
                 dc.Pop();
             }
+        }
+    }
+
+    // 카메라 창 미리보기 위에 겹쳐서, 스크롤/확대와 무관하게 "지금 보이는 영역"의 정중앙에 십자를 그린다.
+    // ScrollViewer 바깥(같은 Grid 셀)에 놓이므로 캔버스 배율/스크롤의 영향을 받지 않는다.
+    // 이미지 중심 십자(CanvasViewer, 자홍색)와 구분되도록 연두색을 쓴다.
+    public class ViewCenterOverlay : FrameworkElement {
+        private const double LINE_THICKNESS = 2.0;
+        private const double CENTER_GAP = 12.0;   // 정중앙은 비워 표적이 가려지지 않게 한다
+        private static readonly Pen VIEW_CENTER_PEN = CreatePen();
+
+        private static Pen CreatePen() {
+            Pen pen = new Pen(Brushes.Lime, LINE_THICKNESS);
+            pen.Freeze();
+            return pen;
+        }
+
+        protected override void OnRender(DrawingContext dc) {
+            base.OnRender(dc);
+            bool bNoArea = ActualWidth <= 0 || ActualHeight <= 0;
+            if (bNoArea) {
+                return;
+            }
+            double dCx = ActualWidth / 2;
+            double dCy = ActualHeight / 2;
+            dc.DrawLine(VIEW_CENTER_PEN, new Point(0, dCy), new Point(dCx - CENTER_GAP, dCy));
+            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx + CENTER_GAP, dCy), new Point(ActualWidth, dCy));
+            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx, 0), new Point(dCx, dCy - CENTER_GAP));
+            dc.DrawLine(VIEW_CENTER_PEN, new Point(dCx, dCy + CENTER_GAP), new Point(dCx, ActualHeight));
+            dc.DrawEllipse(null, VIEW_CENTER_PEN, new Point(dCx, dCy), CENTER_GAP, CENTER_GAP);
+        }
+
+        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo) {
+            base.OnRenderSizeChanged(sizeInfo);
+            InvalidateVisual();
         }
     }
 }

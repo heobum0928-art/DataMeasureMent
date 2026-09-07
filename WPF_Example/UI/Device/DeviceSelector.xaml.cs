@@ -301,10 +301,10 @@ namespace ReringProject.UI {
         
 
         public void ZoomValueChanged() {
-            //resize 
+            //resize
             if (pSelectedDevice == null) return;
             if (pSelectedDevice.Properties == null) return;
-        
+
             scaleTransform.ScaleX = pDevs.Config.DrawScale;
             scaleTransform.ScaleY = pDevs.Config.DrawScale;
 
@@ -312,6 +312,58 @@ namespace ReringProject.UI {
             canvas_preview.Height = pSelectedDevice.Properties.Height * pDevs.Config.DrawScale;
             image_foreground.Width = canvas_preview.Width;
             image_foreground.Height = canvas_preview.Height;
+
+            // 스트리밍이 멈춘 상태(Background 미갱신)에서 배율만 바뀌면 CanvasViewer.OnRender 가
+            // 다시 호출되지 않아 십자가 옛 배율로 남는다. 스크롤 오프셋은 여기서 절대 건드리지 않는다
+            // (DisplayToBackground 가 100ms 마다 호출하므로 줌/스크롤 위치가 리셋되면 안 된다).
+            canvas_preview.InvalidateVisual();
+        }
+
+        private void ScrollViewer_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e) {
+            if (pSelectedDevice == null) {
+                e.Handled = true;
+                return;
+            }
+            if (pSelectedDevice.Properties == null) {
+                e.Handled = true;
+                return;
+            }
+
+            double dOldScale = pDevs.Config.DrawScale;
+            bool bZoomIn = (e.Delta > 0);
+            double dNewScale = PreviewZoomCalculator.GetNextScale(dOldScale, bZoomIn);
+            if (dNewScale == dOldScale) {
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl 조합 없이 휠만으로 동작 - Keyboard.Modifiers 검사하지 않는다.
+            System.Windows.Point ptCursor = e.GetPosition(scrollViewer);
+            double dOldOffsetX = scrollViewer.HorizontalOffset;
+            double dOldOffsetY = scrollViewer.VerticalOffset;
+
+            // 배율 단일 소스: ModelView.DrawScale 세터가 pDevs.Config.DrawScale 갱신 + ZoomValueChanged() +
+            // PropertyChanged 로 spin_zoom 까지 갱신한다. 여기서 scaleTransform/canvas 크기를 직접 만지지 않는다.
+            ModelView.DrawScale = dNewScale;
+
+            // DisplayConfig 세터가 범위 밖 값을 조용히 무시했을 수 있으므로 실제 반영값을 다시 읽는다.
+            double dAppliedScale = pDevs.Config.DrawScale;
+            if (dAppliedScale == dOldScale) {
+                e.Handled = true;
+                return;
+            }
+
+            // canvas_preview.Width/Height 변경이 extent 에 반영된 뒤라야 ScrollTo* 가 원하는 값으로 클램프된다.
+            scrollViewer.UpdateLayout();
+
+            double dNewOffsetX;
+            double dNewOffsetY;
+            PreviewZoomCalculator.GetAnchoredOffset(dOldScale, dAppliedScale, dOldOffsetX, dOldOffsetY, ptCursor.X, ptCursor.Y, out dNewOffsetX, out dNewOffsetY);
+
+            scrollViewer.ScrollToHorizontalOffset(dNewOffsetX);
+            scrollViewer.ScrollToVerticalOffset(dNewOffsetY);
+
+            e.Handled = true;
         }
 
         private void Menu_nextImage_Click(object sender, RoutedEventArgs e) {

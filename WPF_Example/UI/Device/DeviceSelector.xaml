@@ -175,7 +175,7 @@
         </Grid>
         
         <!-- image display Original -->
-        <ScrollViewer x:Name="scrollViewer" Grid.Column="0" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#FF303030">
+        <ScrollViewer x:Name="scrollViewer" Grid.Column="0" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#FF303030" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
             <local:CanvasViewer x:Name="canvas_preview" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Canvas.Background>
                     <ImageBrush Stretch="None" AlignmentX="Left" AlignmentY="Top"></ImageBrush>

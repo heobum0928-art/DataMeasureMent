@@ -430,6 +430,17 @@ namespace ReringProject.Device {
             }
         }
 
+        // 조명 명령이 실제로 전송된 뒤에도 컨트롤러가 밝기를 올리는 데 시간이 걸린다(실기: 명령 0.1초 뒤 촬영 시
+        //  조명이 덜 올라온 상태로 찍힘). 전송 완료 대기에 더해 설정된 안정화 시간(SystemSetting.LightSettleMs)만큼
+        //  기다린 뒤 돌아온다 — 기준점/Shot/수동 Grab 직전 공통 진입점. 0 이면 기존과 동일(전송 완료까지만 대기).
+        public void WaitForLightsSettled() {
+            WaitForPendingWrites();
+            int nSettleMs = SystemSetting.Handle.LightSettleMs;
+            if (nSettleMs > 0) {
+                Thread.Sleep(nSettleMs);
+            }
+        }
+
         public async Task<bool> ReadOnOffAsync(int index, int channel) {
             CmdTable[index, channel].IsReadState = true;
 

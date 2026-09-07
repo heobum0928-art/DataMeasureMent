@@ -213,7 +213,7 @@ namespace ReringProject.Sequence {
                     parentSeq.ApplyShotLights(ShotParam.ZIndex);
                     // EStep.Grab 의 실제 촬영은 다음 Run() 호출(시퀀스 스레드 다음 tick)에서 이뤄지므로,
                     //  여기서 큐가 비워질 때까지 동기 대기해두면 그 사이 조명 복귀가 실제로 반영된다.
-                    LightHandler.Handle.WaitForPendingWrites();
+                    LightHandler.Handle.WaitForLightsSettled();
                 }
             }
             // Datum 설정이 없으면 그냥 통과(보정 없이 진행) — 중단하지 않는다.
@@ -275,7 +275,7 @@ namespace ReringProject.Sequence {
             // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
             //  (기존엔 수동 UI grab 경로에만 있던 대기를 자동 검사 사이클에도 배선. SIMUL/오프라인처럼
             //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)
-            LightHandler.Handle.WaitForPendingWrites();
+            LightHandler.Handle.WaitForLightsSettled();
             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
                 ProcessDatumDualImage(datum, parentSeq);
             } else { // 1-image datum

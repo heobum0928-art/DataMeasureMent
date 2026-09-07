@@ -1251,7 +1251,7 @@ namespace ReringProject.UI {
                         pLight.ApplyLight(param);
                     }
                     // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
-                    LightHandler.Handle.WaitForPendingWrites();
+                    LightHandler.Handle.WaitForLightsSettled();
                     grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, null));
                     param.PutImage(grabbedHalconImage);
                 }
@@ -1318,7 +1318,7 @@ namespace ReringProject.UI {
                         pLight.ApplyLight(param);
                     }
                     // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
-                    LightHandler.Handle.WaitForPendingWrites();
+                    LightHandler.Handle.WaitForLightsSettled();
                     grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, datum));
                     param.PutImage(grabbedHalconImage);
                 }
@@ -1410,7 +1410,7 @@ namespace ReringProject.UI {
                         pLight.ApplyLight(param);
                     }
                     // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
-                    LightHandler.Handle.WaitForPendingWrites();
+                    LightHandler.Handle.WaitForLightsSettled();
                     grabbedHalconImage = pDev.GrabHalconImage(param, ResolveGrabRoleIdentifier(param, datum));
                     // 디스크 저장은 락 밖에서 수행하므로, 락 안에서 독립 사본을 떠 둔다 — 같은 HImage 를 저장(백그라운드)과
                     //  표시(UI)가 크로스스레드로 동시 접근하지 않도록 분리(표시는 grabbedHalconImage, 저장은 imageToSave 사용).

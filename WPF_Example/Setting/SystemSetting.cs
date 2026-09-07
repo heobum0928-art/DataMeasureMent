@@ -162,10 +162,16 @@ namespace ReringProject.Setting {
         [Category("Connection|Server")]
         public int ServerPortV1 { get; set; } = 7701;
 
+        private const int LIGHT_SETTLE_MS_DEFAULT = 100;
         //config
 
         [Category("System|Enviroment")]
         public int TestTimeOut { get; set; } = 2000;
+
+        // 조명 명령 전송이 끝난 뒤에도 컨트롤러가 실제 밝기에 도달하는 데 시간이 걸린다 — grab 직전에 추가로
+        //  기다리는 시간(ms). 0 이면 대기 없음. 기준점 촬영·Shot 촬영·수동 Grab 모두 LightHandler.WaitForLightsSettled 가 쓴다.
+        [Category("System|Enviroment")]
+        public int LightSettleMs { get; set; } = LIGHT_SETTLE_MS_DEFAULT;
 
         public bool AutoLogoutWhenRecvTest { get; set; } = true;
 

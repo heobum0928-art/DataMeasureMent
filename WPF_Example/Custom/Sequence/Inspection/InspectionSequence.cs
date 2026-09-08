@@ -245,6 +245,13 @@ namespace ReringProject.Sequence {
                 {
                     nIndexNumber = RequestPacket.IndexNumber;
                 }
+                // 이 tick 의 z 번호 — 수동 RUN 은 ParseCurrentZIndex 가 0 을 돌려줘 "진짜 z=0" 과 구별이
+                //  안 되므로 프로토콜 구동 사이클에서만 실효값을 읽는다(IsProtocolDrivenCycle 게이트).
+                int nCycleZIndex = -1;
+                if (IsProtocolDrivenCycle())
+                {
+                    nCycleZIndex = GetExecutionZIndex();
+                }
                 var cycleDto = CycleResultSerializer.BuildDto(
                     recipeManager,
                     responsePacket.Result,
@@ -252,7 +259,8 @@ namespace ReringProject.Sequence {
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name,           // 이 시퀀스 소유 shot 만 cycle 에 포함
                     nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파
-                    IsProtocolDrivenCycle());   //260820 hbk 자동/수동 구분 — 판정 단일 소스
+                    IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
+                    nCycleZIndex);
                 CycleResultSerializer.SaveAsync(cycleDto);
                 RecordSeatingEvidence(nIndexNumber);
             }
@@ -2333,6 +2341,11 @@ namespace ReringProject.Sequence {
                 {
                     nIndexNumber = RequestPacket.IndexNumber;
                 }
+                int nCycleZIndex = -1;
+                if (IsProtocolDrivenCycle())
+                {
+                    nCycleZIndex = GetExecutionZIndex();
+                }
                 var cycleDto = CycleResultSerializer.BuildDto(
                     recipeManager,
                     packet.Result,
@@ -2340,7 +2353,8 @@ namespace ReringProject.Sequence {
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name,
                     nIndexNumber,
-                    IsProtocolDrivenCycle());   //260820 hbk 자동/수동 구분 — 판정 단일 소스
+                    IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
+                    nCycleZIndex);
                 CycleResultSerializer.SaveAsync(cycleDto);
                 // z_index 마다 호출되는 경로다. 마지막에 한 번만 기록해야 사이클당 1세트가 된다.
                 bool bLastIndexOfCycle = !packet.IsBuffer;

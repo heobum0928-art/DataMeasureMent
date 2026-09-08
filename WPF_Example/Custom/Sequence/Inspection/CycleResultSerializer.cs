@@ -39,7 +39,8 @@ namespace ReringProject.Sequence
             string recipeName,
             string ownerSequenceName = null,
             int nIndexNumber = -1,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파 (기본 -1 미수신)
-            bool bIsProtocolDriven = false)   //260820 hbk 자동(PLC $TEST)/수동(화면 RUN·일괄·반복) 구분. 기본 false=수동
+            bool bIsProtocolDriven = false,   //260820 hbk 자동(PLC $TEST)/수동(화면 RUN·일괄·반복) 구분. 기본 false=수동
+            int nZIndex = -1)   // 이 tick 의 z 번호. 기본 -1 = 없음/수동(호출부 4곳 무수정 컴파일 보장)
         {
             string recipeNameStr = recipeName;
             if (recipeNameStr == null) recipeNameStr = "";
@@ -49,7 +50,8 @@ namespace ReringProject.Sequence
                 RecipeName = recipeNameStr,
                 OverallJudgement = MapJudgement(cycleResult),
                 IndexNumber = nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 dto 대입
-                IsProtocolDriven = bIsProtocolDriven   //260820 hbk 자동/수동 dto 대입
+                IsProtocolDriven = bIsProtocolDriven,   //260820 hbk 자동/수동 dto 대입
+                ZIndex = nZIndex
                 // CycleFolderPath 는 SaveAsync 에서 계산 후 설정
             };
 
@@ -155,7 +157,52 @@ namespace ReringProject.Sequence
                 dto.Shots.Add(shotDto);
             }
 
+            FillTickSummary(dto);
             return dto;
+        }
+
+        /// <summary>
+        /// dto.Shots 를 순회해 이 tick 에서 실제 다뤄진 항목만으로 TickJudgement/MeasuredShotNames 를 채운다.
+        /// OverallJudgement/MapJudgement 는 절대 건드리지 않는다 — tick 단위 판정과 사이클 종합 판정은 별개다.
+        /// </summary>
+        private static void FillTickSummary(CycleResultDto dto)
+        {
+            bool bAnyHandled = false;
+            bool bAnyNg = false;
+            foreach (var shot in dto.Shots)
+            {
+                bool bShotHandled = false;
+                foreach (var fai in shot.FAIs)
+                {
+                    foreach (var m in fai.Measurements)
+                    {
+                        bool bHasResult = m.LastHasResult;
+                        bool bHasReason = !string.IsNullOrEmpty(m.LastSkipReason) && m.LastSkipReason != SkipReason.CROSS_Z_INCOMPLETE;
+                        bool bHandled = bHasResult || bHasReason;
+                        if (!bHandled)
+                        {
+                            continue;
+                        }
+                        bAnyHandled = true;
+                        bShotHandled = true;
+                        bool bNg = (bHasResult && !m.LastJudgement) || bHasReason;
+                        if (bNg)
+                        {
+                            bAnyNg = true;
+                        }
+                    }
+                }
+                bool bShotNameEmpty = string.IsNullOrEmpty(shot.ShotName);
+                if (bShotHandled && !bShotNameEmpty && !dto.MeasuredShotNames.Contains(shot.ShotName))
+                {
+                    dto.MeasuredShotNames.Add(shot.ShotName);
+                }
+            }
+            if (bAnyHandled)
+            {
+                if (bAnyNg) dto.TickJudgement = CycleResultDto.TICK_NG;
+                else dto.TickJudgement = CycleResultDto.TICK_OK;
+            }
         }
 
         /// <summary>

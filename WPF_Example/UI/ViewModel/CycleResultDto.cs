@@ -31,6 +31,24 @@ namespace ReringProject.UI
         // cycle 폴더 절대 경로 (SaveAsync 에서 설정됨)
         public string CycleFolderPath { get; set; }
 
+        /// <summary>tick 판정 상수 — 실제 측정된 항목만 본 판정.</summary>
+        public const string TICK_OK = "OK";
+
+        /// <summary>tick 판정 상수 — 실제 측정된 항목만 본 판정.</summary>
+        public const string TICK_NG = "NG";
+
+        /// <summary>
+        /// 이 tick 에서 실제 측정된 항목만 본 판정("OK"/"NG"). 측정된 항목이 없으면 null.
+        /// 옛 cycle.json 은 이 키가 없어 null 로 역직렬화되며, 이는 리뷰어의 OverallJudgement 폴백 신호로 쓰인다.
+        /// </summary>
+        public string TickJudgement { get; set; }
+
+        /// <summary>이 tick 에서 결과가 있는 Shot 이름 목록. 옛 cycle.json 은 빈 리스트로 남는다(폴백은 Shots 순회).</summary>
+        public List<string> MeasuredShotNames { get; set; } = new List<string>();
+
+        /// <summary>이 tick 의 z 번호. -1 = 없음/수동(옛 cycle.json 포함).</summary>
+        public int ZIndex { get; set; } = -1;
+
         // 측정 데이터 — Shot > FAI > Measurement 계층
         public List<ShotResultDto> Shots { get; set; } = new List<ShotResultDto>();
     }

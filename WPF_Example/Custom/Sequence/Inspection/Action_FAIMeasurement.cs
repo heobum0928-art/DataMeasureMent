@@ -55,6 +55,10 @@ namespace ReringProject.Sequence {
             BothReady
         }
 
+        // 측정 실패 에러 원문을 LastErrorMessage 에 남길 때 최대 보관 길이(문자 수). 정보 과다 노출/과도한
+        //  길이 방지용 절단 기준 — 개행 치환 후 이 길이를 넘으면 잘라낸다.
+        private const int MEASURE_ERROR_MAX_LEN = 200;
+
         // Shot 측정 루프에서 쓰는 값들을 한데 묶은 것 — 예전엔 이 값들을 메서드 사이에 ref 로 넘겼는데,
         //  ref 를 하나만 빠뜨려도 컴파일은 되고 값만 조용히 0 으로 남는 실수가 나기 쉬웠다.
         //  ⚠ 프로퍼티가 아니라 반드시 필드로 선언해야 한다 — 아직 ref 로 받는 곳이 남아있는데
@@ -780,6 +784,14 @@ namespace ReringProject.Sequence {
                 Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' failed: " + measErrorStr);
                 meas.ClearResult();
                 meas.LastJudgement = false;
+                meas.LastSkipReason = SkipReason.MEASURE_FAIL;
+                string szSanitizedError = measErrorStr.Replace("\r", " ").Replace("\n", " ");
+                if (szSanitizedError.Length > MEASURE_ERROR_MAX_LEN) {
+                    szSanitizedError = szSanitizedError.Substring(0, MEASURE_ERROR_MAX_LEN);
+                }
+                if (szSanitizedError.Length > 0) {
+                    meas.LastErrorMessage = szSanitizedError;
+                }
             }
             ApplyOverlaySuffixAndAccumulate(meas, measOverlays, overlayAcc, faiOverlays); //260702 hbk Extract Method(Task2)
             if (!meas.LastJudgement) {

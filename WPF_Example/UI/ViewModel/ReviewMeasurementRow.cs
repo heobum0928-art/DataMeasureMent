@@ -10,6 +10,9 @@ namespace ReringProject.UI
     /// </summary>
     public class ReviewMeasurementRow
     {
+        /// <summary>SkipReason.MEASURE_FAIL 일 때의 JudgeText 라벨. ExcelExportService/ReviewerListLabelBuilder 가 재사용한다.</summary>
+        public const string JUDGE_MEASURE_FAIL = "측정실패";
+
         public string ShotName { get; set; }
 
         public string FAIName { get; set; }
@@ -92,6 +95,10 @@ namespace ReringProject.UI
             else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 비프로토콜 실행 크로스-Z 미측정 — 일반 대기 표시와 반드시 구분
             {
                 JudgeText = "CROSS-Z INCOMPLETE";
+            }
+            else if (m.LastSkipReason == SkipReason.MEASURE_FAIL)
+            {
+                JudgeText = JUDGE_MEASURE_FAIL;
             }
             else if (m.LastHasResult)
             {

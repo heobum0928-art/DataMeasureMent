@@ -127,7 +127,8 @@ namespace ReringProject.Sequence
                             LastMeasuredValue = meas.LastMeasuredValue,
                             LastJudgement = meas.LastJudgement,
                             LastHasResult = meas.LastHasResult,       // 0.0 정상 결과 구분
-                            LastSkipReason = meas.LastSkipReason      // null or "DATUM_FAIL"
+                            LastSkipReason = meas.LastSkipReason,     // null or "DATUM_FAIL"
+                            LastErrorMessage = meas.LastErrorMessage  // MEASURE_FAIL 원본 에러(절단됨)
                         };
 
                         // DualImage 측정이면 가로축/세로축 2장 경로 기록 (리뷰어 전환 버튼용).

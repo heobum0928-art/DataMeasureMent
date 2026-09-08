@@ -96,6 +96,9 @@ namespace ReringProject.UI
         /// <summary>null = 정상 측정, "DATUM_FAIL" = datum 검출 실패로 skip.</summary>
         public string LastSkipReason { get; set; }
 
+        /// <summary>LastSkipReason == MEASURE_FAIL 일 때의 원본 에러 문자열(절단됨). 그 외에는 null.</summary>
+        public string LastErrorMessage { get; set; }
+
         /// <summary>true = DualImage 측정(가로축/세로축 2장). 리뷰어가 전환 버튼을 노출하는 신호.</summary>
         public bool IsDualImage { get; set; }
 

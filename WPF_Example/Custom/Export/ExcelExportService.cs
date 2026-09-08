@@ -313,7 +313,7 @@ namespace ReringProject.Export
         }
 
         /// <summary>
-        /// 측정 1건의 판정 표시 문자열. DATUM_FAIL > NO_IMAGE > CROSS_Z_INCOMPLETE > OK/NG > "-" 순서.
+        /// 측정 1건의 판정 표시 문자열. DATUM_FAIL > NO_IMAGE > CROSS_Z_INCOMPLETE > MEASURE_FAIL > OK/NG > "-" 순서.
         /// ReviewMeasurementRow 로직과 일치해야 하며, 일괄검사 상세 시트도 이 함수를 공유한다.
         /// </summary>
         internal static string BuildJudgementText(MeasurementResultDto m)
@@ -334,6 +334,10 @@ namespace ReringProject.Export
             else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 크로스-Z 미측정 라벨 (ReviewMeasurementRow 로직 일치)
             {
                 return "CROSS-Z INCOMPLETE";
+            }
+            else if (m.LastSkipReason == SkipReason.MEASURE_FAIL)
+            {
+                return ReviewMeasurementRow.JUDGE_MEASURE_FAIL;
             }
             else if (m.LastHasResult)
             {

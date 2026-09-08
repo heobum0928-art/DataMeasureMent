@@ -109,6 +109,12 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public string LastSkipReason { get; set; }
 
+        // 측정 실패(MEASURE_FAIL) 시 원본 에러 문자열 보관용. 프로퍼티가 아닌 public 필드로 선언한 이유:
+        //  ParamBase.Save/Load(ParamBase.cs:318, 364)는 GetProperties 로 프로퍼티만 순회해 INI 에 쓰므로,
+        //  필드로 두면 INI 레시피에 실패 문자열이 새어 들어가지 않는다(에러 문자열에 '='/개행이 섞이면 INI 파손 위험).
+        //  CopyPublicPropertiesTo 도 프로퍼티 기반이라 _copyExclude 수정이 불필요하다.
+        public string LastErrorMessage;
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } // MeasurementFactory 키
 
@@ -172,6 +178,7 @@ namespace ReringProject.Sequence
             LastJudgement = false;
             LastHasResult = false; // 미측정 상태 복원
             LastSkipReason = null; // datum-skip subtype 리셋
+            LastErrorMessage = null; // 이전 사이클 잔재 방지
         }
 
         // 하위호환: ParamBase.Load 는 INI 누락 double 키를 0 으로 덮어쓴다. 구 레시피엔 MeasCorrectionFactor 키가 없어

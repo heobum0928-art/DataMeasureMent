@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using ReringProject.Halcon.Models;
+using ReringProject.Sequence; // SkipReason 상수 참조용
 
 namespace ReringProject.UI
 {
@@ -125,5 +127,178 @@ namespace ReringProject.UI
 
         /// <summary>세로축 티칭 이미지 경로 (DualImage).</summary>
         public string VerticalImagePath { get; set; }
+    }
+
+    /// <summary>
+    /// 리뷰어 좌측 cycle 목록의 표시 문자열을 조립하는 순수 로직. UI 타입 참조 금지(ReviewerWindow code-behind 는
+    /// 호출·바인딩만). 옛 cycle.json(TickJudgement/MeasuredShotNames/ZIndex 없음)도 크래시 없이 폴백 표시한다.
+    /// </summary>
+    public static class ReviewerListLabelBuilder
+    {
+        private const string SEP = "  ";
+        private const string ARROW = " ← ";
+        private const string OVERALL_PREFIX = " · 종합 ";
+        private const string ITEM_SEP = ", ";
+        private const string ETC_PREFIX = " 외 ";
+        private const int MAX_NG_ITEMS = 3;
+
+        /// <summary>측정 1건의 사유 표시 텍스트. ReviewMeasurementRow/ExcelExportService 라벨과 동일 규칙.</summary>
+        private static string BuildReasonText(MeasurementResultDto m)
+        {
+            if (m.LastSkipReason == SkipReason.DATUM_FAIL)
+            {
+                return "DETECT FAIL";
+            }
+            else if (m.LastSkipReason == SkipReason.NO_IMAGE)
+            {
+                return "NO IMAGE";
+            }
+            else if (m.LastSkipReason == SkipReason.MEASURE_FAIL)
+            {
+                return ReviewMeasurementRow.JUDGE_MEASURE_FAIL;
+            }
+            else
+            {
+                return "공차이탈"; // LastHasResult && !LastJudgement
+            }
+        }
+
+        /// <summary>이 측정 항목이 이 tick 에서 다뤄졌는지(Task 2 FillTickSummary 규칙과 동일).</summary>
+        private static bool IsHandled(MeasurementResultDto m, out bool bNg)
+        {
+            bool bHasResult = m.LastHasResult;
+            bool bHasReason = !string.IsNullOrEmpty(m.LastSkipReason) && m.LastSkipReason != SkipReason.CROSS_Z_INCOMPLETE;
+            bNg = (bHasResult && !m.LastJudgement) || bHasReason;
+            return bHasResult || bHasReason;
+        }
+
+        /// <summary>tick 판정 라벨 — TickJudgement 우선, 비어 있으면(옛 JSON) OverallJudgement 폴백.</summary>
+        private static string ResolveTickJudgement(CycleResultDto dto)
+        {
+            if (!string.IsNullOrEmpty(dto.TickJudgement))
+            {
+                return dto.TickJudgement;
+            }
+            return dto.OverallJudgement;
+        }
+
+        public static bool IsFailTick(CycleResultDto dto)
+        {
+            if (dto == null)
+            {
+                return false;
+            }
+            string szTick = ResolveTickJudgement(dto);
+            if (szTick == CycleResultDto.TICK_NG)
+            {
+                return true;
+            }
+            if (dto.OverallJudgement != CycleResultDto.TICK_OK)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public static string Build(CycleResultDto dto)
+        {
+            if (dto == null)
+            {
+                return "";
+            }
+
+            string szTick = ResolveTickJudgement(dto);
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append(dto.InspectionTime.ToString("HH:mm:ss"));
+
+            if (dto.ZIndex >= 0)
+            {
+                sb.Append(SEP);
+                sb.Append("z=");
+                sb.Append(dto.ZIndex.ToString("D2"));
+            }
+
+            if (!string.IsNullOrEmpty(szTick))
+            {
+                sb.Append(SEP);
+                sb.Append(szTick);
+            }
+
+            List<string> lstShotNames;
+            if (dto.MeasuredShotNames != null && dto.MeasuredShotNames.Count > 0)
+            {
+                lstShotNames = dto.MeasuredShotNames;
+            }
+            else
+            {
+                lstShotNames = new List<string>();
+                if (dto.Shots != null)
+                {
+                    foreach (var shot in dto.Shots)
+                    {
+                        if (!string.IsNullOrEmpty(shot.ShotName))
+                        {
+                            lstShotNames.Add(shot.ShotName);
+                        }
+                    }
+                }
+            }
+            if (lstShotNames.Count > 0)
+            {
+                sb.Append(SEP);
+                sb.Append(string.Join(ITEM_SEP, lstShotNames));
+            }
+
+            if (szTick == CycleResultDto.TICK_NG)
+            {
+                List<string> lstNgItems = new List<string>();
+                if (dto.Shots != null)
+                {
+                    foreach (var shot in dto.Shots)
+                    {
+                        if (shot.FAIs == null) continue;
+                        foreach (var fai in shot.FAIs)
+                        {
+                            if (fai.Measurements == null) continue;
+                            foreach (var m in fai.Measurements)
+                            {
+                                bool bNg;
+                                bool bHandled = IsHandled(m, out bNg);
+                                if (bHandled && bNg)
+                                {
+                                    string szMeasName = m.MeasurementName;
+                                    if (string.IsNullOrEmpty(szMeasName)) szMeasName = m.TypeName;
+                                    lstNgItems.Add(szMeasName + "(" + BuildReasonText(m) + ")");
+                                }
+                            }
+                        }
+                    }
+                }
+                if (lstNgItems.Count > 0)
+                {
+                    sb.Append(ARROW);
+                    int nShowCount = lstNgItems.Count;
+                    if (nShowCount > MAX_NG_ITEMS) nShowCount = MAX_NG_ITEMS;
+                    List<string> lstShown = lstNgItems.GetRange(0, nShowCount);
+                    sb.Append(string.Join(ITEM_SEP, lstShown));
+                    int nRemain = lstNgItems.Count - nShowCount;
+                    if (nRemain > 0)
+                    {
+                        sb.Append(ETC_PREFIX);
+                        sb.Append(nRemain);
+                    }
+                }
+            }
+
+            bool bBothPresent = !string.IsNullOrEmpty(dto.TickJudgement) && !string.IsNullOrEmpty(dto.OverallJudgement);
+            if (bBothPresent && dto.TickJudgement != dto.OverallJudgement)
+            {
+                sb.Append(OVERALL_PREFIX);
+                sb.Append(dto.OverallJudgement);
+            }
+
+            return sb.ToString();
+        }
     }
 }

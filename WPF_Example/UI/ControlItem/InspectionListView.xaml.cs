@@ -20,8 +20,8 @@ namespace ReringProject.UI {
     /// InspectionListView.xaml에 대한 상호 작용 논리
     /// </summary>
     public partial class InspectionListView : UserControl {
-        // Shot 노드 선택 시 기본으로 여는 PropertyGrid 탭(카테고리 "Shot|..." 의 탭 이름)
-        private const string SHOT_DEFAULT_TAB_ID = "Shot";
+        // Shot 노드 선택 시 기본으로 여는 PropertyGrid 탭 순번 — 탭은 프로퍼티 선언 순서(ShotConfig=0, Shot=1, Light, General, Device)
+        private const int SHOT_DEFAULT_TAB_INDEX = 1;
         private MainWindow mParentWindow;
         private InspectionListViewModel ViewModel;
         private InspectionViewModel _inspectionVm;
@@ -1049,8 +1049,8 @@ namespace ReringProject.UI {
                             // Shot 노드는 첫 탭(ShotConfig) 대신 ZIndex/이름이 있는 "Shot" 탭을 기본으로 연다(매 샷 티칭 편의).
                             //  탭은 SelectedObject 재할당 뒤 비동기로 만들어지므로 한 틱 뒤에 고른다.
                             if (itemParam is ShotConfig) {
-                                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
-                                    ParamEditor.SelectedTabId = SHOT_DEFAULT_TAB_ID;
+                                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, new Action(() => {
+                                    ParamEditor.SelectedTabIndex = SHOT_DEFAULT_TAB_INDEX;
                                 }));
                             }
                         }

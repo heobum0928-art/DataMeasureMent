@@ -33,6 +33,50 @@ namespace ReringProject.Sequence {
             SimulImagePath = imagePath;
         }
 
+        // 이 Shot 에 두 장(가로/세로)이 필요한 측정(DualImageEdgeDistance)이 하나라도 있는가.
+        public bool HasDualImageMeasurement()
+        {
+            for (int i = 0; i < FAIList.Count; i++)
+            {
+                FAIConfig fai = FAIList[i];
+                if (fai == null) { continue; }
+                for (int j = 0; j < fai.Measurements.Count; j++)
+                {
+                    if (fai.Measurements[j] is DualImageEdgeDistanceMeasurement) { return true; }
+                }
+            }
+            return false;
+        }
+
+        // 검사Grab/Load(가로·세로 토글)로 얻은 사진 경로를 이 Shot 의 모든 두 장짜리 측정에 배분한다.
+        //  가로 = PointROI 쪽(TeachingImagePath_Horizontal, 동시에 Shot 검사용 사진 SimulImagePath 도 갱신),
+        //  세로 = LineROI 쪽(TeachingImagePath_Vertical). 속성창에서는 두 경로가 숨겨져 있어 이 길이 유일한 입력 경로다.
+        public void SetDualImagePathForMeasurements(bool bVertical, string szPath)
+        {
+            if (!bVertical)
+            {
+                SimulImagePath = szPath;
+            }
+            for (int i = 0; i < FAIList.Count; i++)
+            {
+                FAIConfig fai = FAIList[i];
+                if (fai == null) { continue; }
+                for (int j = 0; j < fai.Measurements.Count; j++)
+                {
+                    DualImageEdgeDistanceMeasurement dual = fai.Measurements[j] as DualImageEdgeDistanceMeasurement;
+                    if (dual == null) { continue; }
+                    if (bVertical)
+                    {
+                        dual.TeachingImagePath_Vertical = szPath;
+                    }
+                    else
+                    {
+                        dual.TeachingImagePath_Horizontal = szPath;
+                    }
+                }
+            }
+        }
+
         [Browsable(false)]
         public List<FAIConfig> FAIList { get; private set; } = new List<FAIConfig>();
 

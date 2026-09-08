@@ -1388,8 +1388,13 @@ namespace ReringProject.UI {
             // 260723 hbk: DualImage datum(가로/세로 두 이미지 필요)은 두 캡처가 동일 savePath 를 써서 서로
             //  덮어쓰던 문제 — _currentImageSource(가로/세로 토글) 기준으로 파일명에 _horizontal/_vertical 을
             //  붙여 두 파일을 분리한다. 일반 datum/Shot(1이미지)은 기존 파일명 그대로(회귀 0).
-            if (datum != null && datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage) {
-                string suffix = (_currentImageSource == ReringProject.Sequence.EImageSource.Vertical) ? "_vertical" : "_horizontal";
+            ShotConfig dualShotForSave = displayParam as ShotConfig;
+            bool bDualDatumSave = datum != null && datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage;
+            bool bDualShotSave = datum == null && dualShotForSave != null && dualShotForSave.HasDualImageMeasurement();
+            // 두 장짜리 Shot(E5 등)도 Datum 과 같은 규칙으로 가로/세로 파일을 분리 저장한다.
+            if (bDualDatumSave || bDualShotSave) {
+                string suffix;
+                if (_currentImageSource == ReringProject.Sequence.EImageSource.Vertical) { suffix = "_vertical"; } else { suffix = "_horizontal"; }
                 string dir = Path.GetDirectoryName(savePath);
                 string nameNoExt = Path.GetFileNameWithoutExtension(savePath);
                 string ext = Path.GetExtension(savePath);
@@ -1482,6 +1487,10 @@ namespace ReringProject.UI {
                             && _currentImageSource == ReringProject.Sequence.EImageSource.Vertical) {
                             datumSink.TeachingImagePath_Vertical = savePath;
                         }
+                        else if (bDualShotSave) {
+                            // 두 장짜리 Shot: 토글에 따라 측정 항목의 가로/세로 경로에 배분(가로면 Shot 검사용 사진도 갱신)
+                            dualShotForSave.SetDualImagePathForMeasurements(_currentImageSource == ReringProject.Sequence.EImageSource.Vertical, savePath);
+                        }
                         else {
                             pathSinkParam.SetLatestImagePath(savePath);
                         }
@@ -1545,6 +1554,10 @@ namespace ReringProject.UI {
                         && datumSink.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage
                         && _currentImageSource == ReringProject.Sequence.EImageSource.Vertical) {
                         datumSink.TeachingImagePath_Vertical = dialog.FileName;
+                    }
+                    else if (displayParam is ShotConfig dualShotForLoad && ReferenceEquals(displayParam, pathSinkParam) && dualShotForLoad.HasDualImageMeasurement()) {
+                        // 두 장짜리 Shot: 토글에 따라 측정 항목의 가로/세로 경로에 배분
+                        dualShotForLoad.SetDualImagePathForMeasurements(_currentImageSource == ReringProject.Sequence.EImageSource.Vertical, dialog.FileName);
                     }
                     else {
                         pathSinkParam.SetLatestImagePath(dialog.FileName); // 기본 (가로 또는 1-image)
@@ -2515,6 +2528,23 @@ namespace ReringProject.UI {
 
         // PublishDatumRoiCandidates 대칭. Measurement DualImage 노드 선택 시 swap UI owner set + 가로축 리셋 + Visibility 제어.
         //  mutex: 본 메서드와 PublishDatumRoiCandidates 는 _selectedDatumForSwap / _selectedDualImageMeasurement 중 하나만 non-null 임을 보장.
+        // Shot 노드 선택: 그 Shot 의 첫 두 장짜리 측정을 토글 대상으로 올린다(없으면 null → 토글 숨김).
+        //  검사Grab/Load(가로·세로 토글)가 ShotConfig.SetDualImagePathForMeasurements 로 경로를 배분하는 전제.
+        public void PublishShotDualImageSelection(ShotConfig shot) {
+            DualImageEdgeDistanceMeasurement firstDual = null;
+            if (shot != null) {
+                for (int i = 0; i < shot.FAIList.Count && firstDual == null; i++) {
+                    FAIConfig fai = shot.FAIList[i];
+                    if (fai == null) { continue; }
+                    for (int j = 0; j < fai.Measurements.Count; j++) {
+                        DualImageEdgeDistanceMeasurement dual = fai.Measurements[j] as DualImageEdgeDistanceMeasurement;
+                        if (dual != null) { firstDual = dual; break; }
+                    }
+                }
+            }
+            PublishMeasurementDualImageSelection(firstDual);
+        }
+
         public void PublishMeasurementDualImageSelection(DualImageEdgeDistanceMeasurement meas) {
             _selectedDualImageMeasurement = meas;
 

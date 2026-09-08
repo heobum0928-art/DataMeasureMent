@@ -23,11 +23,21 @@ namespace ReringProject.Sequence {
         //  System.ComponentModel.Browsable / Newtonsoft.Json.JsonIgnore 는 절대 추가 금지(직렬화가 끊겨 값이 소실된다).
         public string SimulImagePath { get; set; } = "";
 
+        // 두 장짜리 측정이 있는 Shot 인지 — 아래 가로/세로 경로 칸의 표시 조건(VisibleBy). 속성창에는 안 보인다.
+        //  ParamBase 가 INI 로 저장/로드해도 무해하도록 setter 는 비워 둔다(getter 전용이면 로드 시 오류 로그가 남는다).
+        [PropertyTools.DataAnnotations.Browsable(false)]
+        public bool IsDualImageShot
+        {
+            get { return HasDualImageMeasurement(); }
+            set { }
+        }
+
         // 두 장짜리 Shot(E5 등) 전용: 측정 항목 안에 숨겨진 가로(점)/세로(선) 사진 경로를 Shot 속성창에서 보고 고칠 수 있게 한다.
         //  값은 이 Shot 의 모든 두 장짜리 측정(TeachingImagePath_Horizontal/_Vertical)에 그대로 배분된다.
         //  두 장짜리 측정이 없는 Shot 에서는 빈 칸으로 보이고, 입력해도 무시된다(INI 저장/로드 시 부작용 없음).
         [Category("Shot|Simulation")]
         [DisplayName("가로(점) 이미지 — 두 장짜리 Shot")]
+        [VisibleBy(nameof(IsDualImageShot))]
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
         public string DualImagePath_Horizontal
@@ -47,6 +57,7 @@ namespace ReringProject.Sequence {
 
         [Category("Shot|Simulation")]
         [DisplayName("세로(선) 이미지 — 두 장짜리 Shot")]
+        [VisibleBy(nameof(IsDualImageShot))]
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
         public string DualImagePath_Vertical

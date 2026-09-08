@@ -984,10 +984,6 @@ namespace ReringProject.UI {
                         if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase meas)
                             mParentWindow.mainView.RenderInspectionResultForNode(meas);
                         // 측정 노드 선택 시 그 측정의 DatumRef가 가리키는 시퀀스 datum 1개를 결과 화면에 표시
-                        // 두 장짜리 측정(E5 등)을 가진 Shot 노드: 가로/세로 토글을 띄워 검사Grab/Load 가 측정 항목의 가로·세로 경로에 배분되게 한다.
-                        if (mParentWindow != null && mParentWindow.mainView != null && itemParam is ShotConfig shotForDualToggle) {
-                            mParentWindow.mainView.PublishShotDualImageSelection(shotForDualToggle);
-                        }
                         if (mParentWindow != null && mParentWindow.mainView != null && itemParam is MeasurementBase measForDatum) {
                             List<DatumConfig> datumsForMeas = ResolveDatumsForMeasurement(item.SequenceID, measForDatum);
                             mParentWindow.mainView.ShowResultDatumOverlays(datumsForMeas);
@@ -1030,6 +1026,10 @@ namespace ReringProject.UI {
                         }
                         if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotSel)
                             mParentWindow.mainView.DisplayShotImage(shotSel);
+                        // 두 장짜리 측정(E5 등)을 가진 Shot 노드: 가로/세로 토글을 띄워 검사Grab/Load 가 측정 항목의 가로·세로 경로에 배분되게 한다.
+                        if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotForDualToggle) {
+                            mParentWindow.mainView.PublishShotDualImageSelection(shotForDualToggle);
+                        }
                         if (mParentWindow != null && mParentWindow.mainView != null && item.Param is ShotConfig shotForDatum) {
                             List<DatumConfig> datumsForShot = ResolveDatumsForShot(item.SequenceID, shotForDatum);
                             mParentWindow.mainView.ShowResultDatumOverlays(datumsForShot);

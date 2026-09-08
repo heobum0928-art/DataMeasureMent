@@ -723,6 +723,12 @@ namespace ReringProject.Sequence {
                     case ECrossZGate.NotMyTick:
                         if (bNonProtocolCycle)
                         {
+                            // 수동 RUN: 가로/세로 두 파일이 준비돼 있으면(검사Grab·Load) 크로스-Z 짝 대신 그 두 장으로 측정한다.
+                            if (HasStaticDualImages(dualMeasForGate))
+                            {
+                                Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "Measurement '" + GetMeasurementDisplayName(meas) + "' 수동 RUN — ZIndexA/B 대신 저장된 가로/세로 두 장으로 측정");
+                                return true;
+                            }
                             MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
                             acc.FaiAllPass = false;
                             acc.MeasuredCount++;
@@ -736,6 +742,11 @@ namespace ReringProject.Sequence {
                         acc.MeasuredCount++;
                         return false;
                     case ECrossZGate.HalfPending:
+                        if (bNonProtocolCycle && HasStaticDualImages(dualMeasForGate))
+                        {
+                            Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "Measurement '" + GetMeasurementDisplayName(meas) + "' 수동 RUN — ZIndexA/B 대신 저장된 가로/세로 두 장으로 측정");
+                            return true;
+                        }
                         TakeCrossZRoleImageIfFirst(parentSeq2, tickResult.CaptureOk, tickResult.CapturedRoleKey, ref acc.CrossZRoleImage);
                         MarkCrossZHalfPending(meas, parentSeq2, bNonProtocolCycle, ref acc.FaiAllPass, ref acc.MeasuredCount);
                         return false;
@@ -1514,6 +1525,16 @@ namespace ReringProject.Sequence {
                 nZB = dualMeas.ZIndexB;
             }
             Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Measurement '" + measName + "' skipped — ZIndexA=" + nZA + ", ZIndexB=" + nZB + " 크로스-Z 오설정(동일값/단일설정/존재하지 않는 index, " + meas.LastSkipReason + ")");
+        }
+
+        // 수동 RUN 폴백 조건: 측정 항목에 가로(점)/세로(선) 파일이 둘 다 있으면 크로스-Z 없이도 잴 수 있다.
+        //  (TryGrabOrLoadFaiDualImages 가 명시 가로 경로를 최우선으로 쓰므로 라이브 한 장과 섞이지 않는다.)
+        private static bool HasStaticDualImages(DualImageEdgeDistanceMeasurement dualMeas)
+        {
+            if (dualMeas == null) { return false; }
+            bool bHasH = !string.IsNullOrEmpty(dualMeas.TeachingImagePath_Horizontal) && File.Exists(dualMeas.TeachingImagePath_Horizontal);
+            bool bHasV = !string.IsNullOrEmpty(dualMeas.TeachingImagePath_Vertical) && File.Exists(dualMeas.TeachingImagePath_Vertical);
+            return bHasH && bHasV;
         }
 
         // 수동(RUN/반복/일괄) 검사에서 크로스-Z 짝이 절대 완성될 수 없는 상황의 처리 — 예전엔

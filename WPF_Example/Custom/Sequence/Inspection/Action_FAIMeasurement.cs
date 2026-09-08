@@ -727,6 +727,7 @@ namespace ReringProject.Sequence {
                             if (HasStaticDualImages(dualMeasForGate))
                             {
                                 Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "Measurement '" + GetMeasurementDisplayName(meas) + "' 수동 RUN — ZIndexA/B 대신 저장된 가로/세로 두 장으로 측정");
+                                bHasAnyZIndex = false; // 크로스-Z 저장소가 아니라 정적 두 장 경로(TryExecuteMeasurement)로 실행
                                 return true;
                             }
                             MarkMeasurementCrossZIncomplete(meas, false, false, parentSeq2);
@@ -745,6 +746,7 @@ namespace ReringProject.Sequence {
                         if (bNonProtocolCycle && HasStaticDualImages(dualMeasForGate))
                         {
                             Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "Measurement '" + GetMeasurementDisplayName(meas) + "' 수동 RUN — ZIndexA/B 대신 저장된 가로/세로 두 장으로 측정");
+                            bHasAnyZIndex = false; // 크로스-Z 저장소가 아니라 정적 두 장 경로(TryExecuteMeasurement)로 실행
                             return true;
                         }
                         TakeCrossZRoleImageIfFirst(parentSeq2, tickResult.CaptureOk, tickResult.CapturedRoleKey, ref acc.CrossZRoleImage);

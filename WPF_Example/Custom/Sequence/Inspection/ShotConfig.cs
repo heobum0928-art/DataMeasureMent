@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HalconDotNet;
 using PropertyTools.DataAnnotations;
+using ReringProject.Device;
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence {
@@ -21,6 +22,47 @@ namespace ReringProject.Sequence {
         // MainView Load 버튼/툴바 폴더 일괄 할당/검사Grab 이 채우고 SIMUL·오프라인 검사와 레시피 INI 가 읽는 값이다.
         //  System.ComponentModel.Browsable / Newtonsoft.Json.JsonIgnore 는 절대 추가 금지(직렬화가 끊겨 값이 소실된다).
         public string SimulImagePath { get; set; } = "";
+
+        // 두 장짜리 Shot(E5 등) 전용: 측정 항목 안에 숨겨진 가로(점)/세로(선) 사진 경로를 Shot 속성창에서 보고 고칠 수 있게 한다.
+        //  값은 이 Shot 의 모든 두 장짜리 측정(TeachingImagePath_Horizontal/_Vertical)에 그대로 배분된다.
+        //  두 장짜리 측정이 없는 Shot 에서는 빈 칸으로 보이고, 입력해도 무시된다(INI 저장/로드 시 부작용 없음).
+        [Category("Shot|Simulation")]
+        [DisplayName("가로(점) 이미지 — 두 장짜리 Shot")]
+        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
+        [AutoUpdateText]
+        public string DualImagePath_Horizontal
+        {
+            get
+            {
+                string szH;
+                string szV;
+                if (TryGetDualImagePaths(out szH, out szV)) { return szH; }
+                return "";
+            }
+            set
+            {
+                if (HasDualImageMeasurement()) { SetDualImagePathForMeasurements(false, value); }
+            }
+        }
+
+        [Category("Shot|Simulation")]
+        [DisplayName("세로(선) 이미지 — 두 장짜리 Shot")]
+        [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
+        [AutoUpdateText]
+        public string DualImagePath_Vertical
+        {
+            get
+            {
+                string szH;
+                string szV;
+                if (TryGetDualImagePaths(out szH, out szV)) { return szV; }
+                return "";
+            }
+            set
+            {
+                if (HasDualImageMeasurement()) { SetDualImagePathForMeasurements(true, value); }
+            }
+        }
 
         // IOfflineImageParam — MainView Load 버튼이 SHOT 노드 선택 시 경로 저장
         public string GetLatestImagePath()

@@ -459,10 +459,24 @@ namespace ReringProject
                  "④ 검사 트리 paste 는 한 번 붙이면 복사본을 비우고 버튼을 잠근다(실수로 두 번 붙는 것 방지). " +
                  "⑤ 카메라 창: 화면 중앙 십자(Display 탭 Draw view center line)를 십자만으로 단순화."
     )]
+    [Version(
+        Number = "1.7.37.0",
+        Date = "2026-09-08",
+        Change = "두 장짜리 측정 자리(Bottom E5: 높이 14 점 사진 + 높이 15 선 사진)를 수동으로 검사할 수 있게 했다. " +
+                 "① 그동안 E5 의 가로/세로 사진 경로는 측정 항목 속에 숨겨져 있었는데 그걸 채워 주는 화면 동작이 Datum 에만 있고 " +
+                 "Shot 에는 없어서, 사진을 넣을 방법 자체가 없었다(기존 파일은 7/29 잔재). 이제 SHOT_E5 를 고르면 가로/세로 버튼이 뜨고, " +
+                 "가로 상태에서 검사Grab/Load → 점 사진(_horizontal), 세로 상태에서 → 선 사진(_vertical)이 저장되어 측정 항목 2개에 " +
+                 "자동으로 들어간다. Shot 속성창에도 '가로(점) 이미지 / 세로(선) 이미지' 칸을 두어 확인·수정할 수 있고, 두 장짜리 " +
+                 "측정이 없는 Shot 에서는 이 칸이 숨겨진다. " +
+                 "② RUN 버튼: 측정 항목에 자동 운전용 번호(ZIndexA=14/B=15)가 있으면 '수동은 짝을 못 채운다'며 재지 않고 NG 였다. " +
+                 "가로/세로 파일이 둘 다 있으면 그 두 장으로 바로 재도록 바꿨다(번호는 그대로, 자동 운전 무변경). " +
+                 "③ Shot 노드를 고르면 속성창이 ShotConfig 탭 대신 이름·ZIndex 가 있는 'Shot' 탭으로 열린다. " +
+                 "실기 확인 완료(E5 RUN 측정, 경로 칸 표시/숨김, 기본 탭)."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.36.0";
-        public const string BUILD_DATE = "2026-09-07";
+        public const string VERSION = "1.7.37.0";
+        public const string BUILD_DATE = "2026-09-08";
     }
 }

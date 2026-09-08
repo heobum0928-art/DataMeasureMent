@@ -48,6 +48,27 @@ namespace ReringProject.Sequence {
             return false;
         }
 
+        // 두 장짜리 Shot 의 현재 가로(점)/세로(선) 사진 경로. 첫 두 장짜리 측정의 값을 돌려준다(전 측정 동일 배분 전제).
+        public bool TryGetDualImagePaths(out string szHorizontal, out string szVertical)
+        {
+            szHorizontal = "";
+            szVertical = "";
+            for (int i = 0; i < FAIList.Count; i++)
+            {
+                FAIConfig fai = FAIList[i];
+                if (fai == null) { continue; }
+                for (int j = 0; j < fai.Measurements.Count; j++)
+                {
+                    DualImageEdgeDistanceMeasurement dual = fai.Measurements[j] as DualImageEdgeDistanceMeasurement;
+                    if (dual == null) { continue; }
+                    szHorizontal = dual.TeachingImagePath_Horizontal;
+                    szVertical = dual.TeachingImagePath_Vertical;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // 검사Grab/Load(가로·세로 토글)로 얻은 사진 경로를 이 Shot 의 모든 두 장짜리 측정에 배분한다.
         //  가로 = PointROI 쪽(TeachingImagePath_Horizontal, 동시에 Shot 검사용 사진 SimulImagePath 도 갱신),
         //  세로 = LineROI 쪽(TeachingImagePath_Vertical). 속성창에서는 두 경로가 숨겨져 있어 이 길이 유일한 입력 경로다.

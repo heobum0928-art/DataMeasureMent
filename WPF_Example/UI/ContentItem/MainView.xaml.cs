@@ -2280,6 +2280,18 @@ namespace ReringProject.UI {
                 txt_imageSourceLabel.Visibility = Visibility.Visible;
                 return;
             }
+            // 두 장짜리 Shot(E5 등): 숨겨진 가로/세로 경로를 여기서 같이 보여준다(속성창에는 한 칸만 있음).
+            string szDualH;
+            string szDualV;
+            if (shotConfig != null && shotConfig.TryGetDualImagePaths(out szDualH, out szDualV)) {
+                string szH = szDualH;
+                string szV = szDualV;
+                if (string.IsNullOrEmpty(szH)) { szH = "(없음)"; }
+                if (string.IsNullOrEmpty(szV)) { szV = "(없음)"; }
+                txt_imageSourceLabel.Text = "가로(점) 사진: " + szH + "   |   세로(선) 사진: " + szV;
+                txt_imageSourceLabel.Visibility = Visibility.Visible;
+                return;
+            }
             if (shotConfig != null && !string.IsNullOrEmpty(shotConfig.SimulImagePath)) {
                 txt_imageSourceLabel.Text = "검사 이미지: " + shotConfig.SimulImagePath;
                 txt_imageSourceLabel.Visibility = Visibility.Visible;

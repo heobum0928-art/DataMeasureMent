@@ -2523,6 +2523,132 @@ namespace ReringProject.Sequence {
             return null;
         }
 
+        // Datum 개명 전파 — DatumConfig.DatumName 세터의 shouldRename 블록에서만 호출된다.
+        //  개명 전에는 이 Datum 을 참조하던 측정들의 DatumRef 가 옛 이름 그대로 남아, Action_FAIMeasurement 의
+        //  참조 해석이 실패해 SkipReason.DATUM_REF_MISSING 으로 전부 skip(NG) 된다. 같은 시퀀스 안에서 옛/새
+        //  이름이 다른 Datum 과 겹치면(모호) 어느 쪽으로 재배선해야 할지 알 수 없으므로 갱신을 포기하고
+        //  Error 로그만 남긴다 — 조용한 오검보다, 기존 DATUM_REF_MISSING 안전망이 시끄럽게 NG 를 내는 편이 안전하다.
+        public void UpdateMeasurementDatumRefsAfterRename(DatumConfig renamedDatum, string szOldName, string szNewName)
+        {
+            if (renamedDatum == null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(szOldName) || string.IsNullOrEmpty(szNewName))
+            {
+                return;
+            }
+            if (string.Equals(szOldName, szNewName, StringComparison.Ordinal))
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(Name))
+            {
+                // shot 소유 판정 헬퍼는 시퀀스명이 비면 "전체 매칭"을 반환하는 계약이다(읽기에는 과대판정=안전).
+                // 여기는 쓰기(mutation)라 전 시퀀스를 갈아엎게 되므로 시퀀스 Name 미상일 때는 아예 중단한다.
+                return;
+            }
+
+            bool bOldNameStillUsed = false;
+            bool bNewNameCollides = false;
+            if (DatumConfigs != null)
+            {
+                foreach (DatumConfig d in DatumConfigs)
+                {
+                    if (d == null)
+                    {
+                        continue;
+                    }
+                    if (object.ReferenceEquals(d, renamedDatum))
+                    {
+                        continue;
+                    }
+                    if (string.Equals(d.DatumName, szOldName, StringComparison.Ordinal))
+                    {
+                        bOldNameStillUsed = true;
+                    }
+                    if (string.Equals(d.DatumName, szNewName, StringComparison.Ordinal))
+                    {
+                        bNewNameCollides = true;
+                    }
+                }
+            }
+            bool bAmbiguous = bOldNameStillUsed || bNewNameCollides;
+            if (bAmbiguous)
+            {
+                Logging.PrintErrLog((int)ELogType.Error, "[DatumRename] 시퀀스 '" + Name + "' 에 동명 Datum 이 있어 측정 참조(DatumRef)를 갱신하지 않았다. 옛 이름='" + szOldName + "', 새 이름='" + szNewName + "'");
+                return;
+            }
+
+            SystemHandler handler = SystemHandler.Handle;
+            if (handler == null)
+            {
+                return;
+            }
+            if (handler.Sequences == null)
+            {
+                return;
+            }
+            InspectionRecipeManager recipeManager = handler.Sequences.RecipeManager;
+            if (recipeManager == null)
+            {
+                return;
+            }
+            if (recipeManager.Shots == null)
+            {
+                return;
+            }
+
+            int nUpdated = 0;
+            foreach (ShotConfig shot in recipeManager.Shots)
+            {
+                if (shot == null)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                if (shot.FAIList == null)
+                {
+                    continue;
+                }
+                foreach (FAIConfig fai in shot.FAIList)
+                {
+                    if (fai == null)
+                    {
+                        continue;
+                    }
+                    if (fai.Measurements == null)
+                    {
+                        continue;
+                    }
+                    foreach (MeasurementBase meas in fai.Measurements)
+                    {
+                        if (meas == null)
+                        {
+                            continue;
+                        }
+                        if (string.IsNullOrEmpty(meas.DatumRef))
+                        {
+                            continue;
+                        }
+                        if (!string.Equals(meas.DatumRef, szOldName, StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
+                        meas.DatumRef = szNewName;
+                        nUpdated++;
+                    }
+                }
+            }
+
+            // 0건이어도 반드시 남긴다 — 사용자가 "참조가 원래 없었다" 와 "기능이 안 돌았다" 를 구분해야 한다.
+            Logging.PrintLog((int)ELogType.Trace, "[DatumRename] 시퀀스 '" + Name + "' 옛 이름='" + szOldName + "' → 새 이름='" + szNewName + "' 갱신 " + nUpdated + "건");
+        }
+
         //260618 hbk Phase 54 ALIGN-01 패턴매칭 실패 datum 기록 (D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
         //  _failedDatums 에도 add 하여 기존 IsDatumFailed 게이트가 NG 를 강제하도록 한다.
         //260810 hbk reset-datum-clear-race Round2: 두 Add 를 _datumStateLock 하나의 임계구역으로 묶는다(원자성) —

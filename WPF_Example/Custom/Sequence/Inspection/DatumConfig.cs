@@ -20,6 +20,8 @@ namespace ReringProject.Sequence {
         //  INI 로드/신규추가 경로도 리플렉션·대입으로 이 세터를 때리는데, 거기서 리네임이 돌면
         //  초기값 "Datum_1" 기준 경로를 옮겨버려 멀쩡한 1번 Datum 의 모델을 훔쳐간다.
         //  단일 인스턴스 안에서 UI 스레드로만 켜고 끄므로 별도 동기화는 두지 않는다.
+        //  quick-260909-ktj: 이제 모델 파일 이동과 측정 DatumRef 전파(UpdateMeasurementDatumRefsAfterRename)
+        //  두 효과를 함께 게이트한다 — 둘 다 "사용자가 진짜로 개명했다" 는 같은 전제에 의존한다.
         private bool _suppressModelRename;
 
         // quick-260806-nrm: 이름이 바뀌면 패턴 모델 파일(.shm/.ncm, _2 페어 포함)도 새 이름 경로로 따라 옮긴다.
@@ -47,6 +49,13 @@ namespace ReringProject.Sequence {
                     string newPath2 = TryResolveModelPathQuiet(true);
                     MoveModelFileIfPresent(oldPath1, newPath1, oldName, value);
                     MoveModelFileIfPresent(oldPath2, newPath2, oldName, value);
+                    // quick-260909-ktj: 모델 파일 이동과 같은 조건(shouldRename)으로 측정 DatumRef 도 함께 전파한다.
+                    //  Owner 가 InspectionSequence 가 아니면(레시피 미로드/독립 생성) 조용히 생략 — 모델 파일 이동은
+                    //  이미 위에서 끝났으므로 영향 없다.
+                    InspectionSequence ownerSeq = Owner as InspectionSequence;
+                    if (ownerSeq != null) {
+                        ownerSeq.UpdateMeasurementDatumRefsAfterRename(this, oldName, value);
+                    }
                 }
                 RaisePropertyChanged(nameof(DatumName));
             }

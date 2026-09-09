@@ -32,6 +32,9 @@ namespace ReringProject.UI
         // '불량만 보기' 필터의 원본(전체) 행. 필터는 이 위에서 추려 ItemsSource 로 적용.
         private List<ReviewMeasurementRow> _allRows = new List<ReviewMeasurementRow>();
 
+        // 좌측 cycle 목록의 원본(전체) 항목. '불량만 보기' 필터는 이 위에서 추려 ItemsSource 로 적용.
+        private List<CycleListItem> _allCycleItems = new List<CycleListItem>();
+
         public ReviewerWindow()
         {
             InitializeComponent();
@@ -57,6 +60,7 @@ namespace ReringProject.UI
                 // Directory.Exists 가드 → 없는 폴더 → 빈 목록, 크래시 없음
                 if (string.IsNullOrEmpty(dateFolderPath) || !Directory.Exists(dateFolderPath))
                 {
+                    _allCycleItems = new List<CycleListItem>();
                     listBox_cycles.ItemsSource = null;
                     return;
                 }
@@ -68,16 +72,18 @@ namespace ReringProject.UI
                     {
                         var dto = CycleResultSerializer.Load(Path.Combine(d, "cycle.json"));
                         // 손상 cycle.json → Load 가 null 반환 → DisplayText 폴더명 폴백
-                        string display;
-                        if (dto != null)
-                            display = dto.InspectionTime.ToString("HH:mm:ss") + "  " + dto.OverallJudgement;
-                        else
+                        string display = ReviewerListLabelBuilder.Build(dto);
+                        if (string.IsNullOrEmpty(display))
+                        {
                             display = Path.GetFileName(d);
-                        return new CycleListItem { FolderPath = d, DisplayText = display };
+                        }
+                        bool bIsNg = ReviewerListLabelBuilder.IsFailTick(dto);
+                        return new CycleListItem { FolderPath = d, DisplayText = display, IsNg = bIsNg };
                     })
                     .ToList();
 
-                listBox_cycles.ItemsSource = items;
+                _allCycleItems = items;
+                ApplyCycleListFilter();
             }
             catch (Exception ex)
             {
@@ -87,6 +93,23 @@ namespace ReringProject.UI
                 }
                 catch { }
             }
+        }
+
+        // '불량만 보기' 체크 시 좌측 cycle 목록도 불량 tick 만 남긴다. ItemsSource 대입만 하고
+        // 선택 항목은 건드리지 않는다 — SelectionChanged 로 우측 표/이미지가 튀는 것을 방지한다.
+        private void ApplyCycleListFilter()
+        {
+            bool bFailOnly = chk_failOnly.IsChecked == true;
+            List<CycleListItem> visible;
+            if (bFailOnly)
+            {
+                visible = _allCycleItems.Where(i => i.IsNg).ToList();
+            }
+            else
+            {
+                visible = _allCycleItems;
+            }
+            listBox_cycles.ItemsSource = visible;
         }
 
         private void CycleList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -183,13 +206,13 @@ namespace ReringProject.UI
             bool failOnly = chk_failOnly.IsChecked == true;
             List<ReviewMeasurementRow> visible;
             if (failOnly)
-                visible = _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE").ToList(); //260616 hbk NO_IMAGE 불량 포함
+                visible = _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE" || r.JudgeText == ReviewMeasurementRow.JUDGE_MEASURE_FAIL).ToList(); //260616 hbk NO_IMAGE 불량 포함
             else
                 visible = _allRows;
             dataGrid_measurements.ItemsSource = visible;
 
             // 첫 불량 행 자동 선택 → SelectionChanged 가 해당 FAI 이미지/overlay 로 포커스 (행 생성 후 지연 실행)
-            var firstFail = visible.FirstOrDefault(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE"); //260616 hbk NO_IMAGE 불량 포함
+            var firstFail = visible.FirstOrDefault(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE" || r.JudgeText == ReviewMeasurementRow.JUDGE_MEASURE_FAIL); //260616 hbk NO_IMAGE 불량 포함
             if (firstFail != null)
             {
                 Dispatcher.BeginInvoke(
@@ -204,6 +227,7 @@ namespace ReringProject.UI
 
         private void ChkFailOnly_Changed(object sender, RoutedEventArgs e)
         {
+            ApplyCycleListFilter();
             ApplyRowFilter();
         }
 
@@ -618,6 +642,9 @@ namespace ReringProject.UI
         public string FolderPath { get; set; }
 
         public string DisplayText { get; set; }
+
+        /// <summary>이 tick 이 불량(NG)인지 — 목록 글자색/'불량만 보기' 필터용. ReviewerListLabelBuilder.IsFailTick 로 계산.</summary>
+        public bool IsNg { get; set; }
 
         public override string ToString()
         {

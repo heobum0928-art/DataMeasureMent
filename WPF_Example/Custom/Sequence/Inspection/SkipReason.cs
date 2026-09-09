@@ -14,5 +14,7 @@ namespace ReringProject.Sequence
         //  ZIndexA!=ZIndexB 크로스-Z 짝이 구조적으로 완성 불가 → 측정 자체가 수행되지 않음. 조용한 PASS 집계 금지용
         //  명시적 미측정 NG 사유. ZINDEX_MISCONFIGURED(레시피 설정 오류)와 구분: 설정은 정상인데 실행 방식이 부적합.
         public const string CROSS_Z_INCOMPLETE = "CROSS_Z_INCOMPLETE";
+        // 측정 알고리즘 실행 실패 — 에지 부족 등
+        public const string MEASURE_FAIL = "MEASURE_FAIL";
     }
 }

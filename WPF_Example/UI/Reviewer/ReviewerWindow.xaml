@@ -81,7 +81,17 @@
                      ScrollViewer.VerticalScrollBarVisibility="Auto">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" Padding="1"/>
+                        <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" Padding="1">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsNg}" Value="True">
+                                            <Setter Property="Foreground" Value="#C62828"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -176,6 +186,9 @@
                         </DataTrigger>
                         <DataTrigger Binding="{Binding JudgeText}" Value="OK">
                             <Setter Property="Background" Value="#E2F3E5"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding JudgeText}" Value="측정실패">
+                            <Setter Property="Background" Value="#FFD6D6"/>
                         </DataTrigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="BorderBrush" Value="#1565C0"/>

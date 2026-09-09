@@ -317,7 +317,9 @@ namespace ReringProject.Setting {
                 try {
                     switch (type) {
                         case "Int32":
-                            int iValue = loadFile[group][name].ToInt();
+                            // 키가 없으면 IniValue.Default(Value == null) 라 ToInt() 기본값 0 이 코드 기본값을 덮어쓴다 — 현재 값을 폴백으로 넘겨 방지한다.
+                            int nCodeDefault = (int)prop.GetValue(this);
+                            int iValue = loadFile[group][name].ToInt(nCodeDefault);
                             prop.SetValue(this, iValue);
                             break;
                         case "Double":

@@ -3247,7 +3247,7 @@ namespace ReringProject.UI {
 
                     ApplyCalibrationResult(mmPerPixel);
 
-                    confirmText = string.Format("1 px = {0:F4} mm 적용됨", mmPerPixel);
+                    confirmText = string.Format("1 px = {0:F8} mm 적용됨", mmPerPixel);
                     // 방금 정한 분해능으로 환산한 성분값 — 입력값이 제대로 반영됐는지 삼각형 위에서 바로 확인 가능.
                     appliedTotalLabel = string.Format("{0:F3}mm ({1:F1}px)", realMm, pixelDistance);
                     appliedHLabel = string.Format("가로 {0:F3}mm", Math.Abs(dx) * mmPerPixel);
@@ -3257,7 +3257,7 @@ namespace ReringProject.UI {
                     //  (체커보드 캘리브와 달리 SaveRecipe 호출 없음) — 저장 안 하면 재시작 시 조용히 예전 값으로
                     //  되돌아갈 수 있어 경고 다이얼로그로 명시 안내.
                     CustomMessageBox.Show("캘리브레이션 적용", string.Format(
-                        "1px = {0:F4}mm 로 적용했습니다.\n\n" +
+                        "1px = {0:F8}mm 로 적용했습니다.\n\n" +
                         "이 값은 아직 메모리에만 반영됐고, 레시피 파일에는 저장되지 않았습니다.\n" +
                         "계속 유지하려면 지금 '레시피 저장'을 눌러주세요 — 저장하지 않으면 프로그램을 다시 켤 때 예전 값으로 되돌아갑니다.",
                         mmPerPixel), MessageBoxImage.Warning);
@@ -3405,9 +3405,9 @@ namespace ReringProject.UI {
             halconViewer.SetCalibrationOverlay(shownPoints, resultText, hLabel, vLabel);
         }
 
-        //260623 hbk Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).
-        //  기존 2점 캘리브(ApplyCalibrationResult)는 "선택 FAI shot 1개"에만 반영하지만,
-        //  체커보드 캘리브(D-03)는 동일 카메라/렌즈 가정으로 활성 시퀀스 전체 shot 에 일괄 반영한다.
+        // Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).
+        //  체커보드 캘리브(D-03)는 이제 레시피 전체 shot 에 일괄 반영하므로 이 메서드는 적용 범위를
+        //  더 이상 결정하지 않는다. 남은 용도는 라이브 촬상(GrabCalibrationImage) 카메라 선택뿐이다.
         private string ResolveActiveSequenceForCalibration() {
             FAIConfig fai;
             var row = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
@@ -3422,20 +3422,25 @@ namespace ReringProject.UI {
             return SequenceHandler.SEQ_TOP;
         }
 
-        //260623 hbk Phase 53: 체커보드 산출 mm/px 를 활성 시퀀스 전체 shot 의 PixelResolution 에 일괄 반영(D-03)
+        // Phase 53: 체커보드 산출 mm/px 를 레시피 전체 shot 의 PixelResolution 에 일괄 반영(D-03)
         //  + 확인 모달(D-06) 후에만 + SaveRecipe 로 영속화(Pitfall 4 — existingFile 보존 가드). plan 02 ApplyRequested 핸들러.
+        //  이 장비는 물리 카메라가 1대라 시퀀스 구분이 배율값에 의미가 없으므로 활성 시퀀스 필터 없이
+        //  전체 shot 에 한 번에 적용한다.
         private void ApplyCheckerboardCalibration(CalibrationResult result) {
             if (result == null) return;
             double mmPerPixel = result.MmPerPixel;
-            string activeSeq = ResolveActiveSequenceForCalibration();
 
             string warnLine;
             if (result.IsDistortionWarn) warnLine = string.Format("\n[경고] 외곽 왜곡 {0:F2}% — undistort 검토 권장", result.CenterOuterDeviationPct);
             else                         warnLine = "";
 
             string msg = string.Format(
-                "활성 시퀀스 [{0}] 전체 SHOT 의 PixelResolution 을\n1 px = {1:F5} mm 로 덮어씁니다.{2}\n적용하시겠습니까?",
-                activeSeq, mmPerPixel, warnLine);
+                "레시피의 전체 SHOT (이 PC 가 쓰지 않는 TOP / BOTTOM 샷까지 포함) 의 PixelResolution 을\n" +
+                "1 px = {0:F8} mm 로 덮어씁니다.{1}\n\n" +
+                "[주의] TOP / BOTTOM 은 원래 SIDE 와 다른 배율값을 갖습니다. 이 적용으로 그 값들도 SIDE 값으로 덮입니다.\n" +
+                "이 PC 는 SIDE 만 검사하므로 무해하지만, 이 레시피를 다른 PC 로 복사해 쓰면 그쪽 측정이 틀어집니다.\n" +
+                "되돌리기 어려운 덮어쓰기입니다. 적용하시겠습니까?",
+                mmPerPixel, warnLine);
 
             // D-06 확인 게이트 — 되돌리기 어려운 설정 덮어쓰기라 사용자 확인 필수.
             MessageBoxResult confirm = CustomMessageBox.ShowConfirmation("캘리브레이션 적용", msg, MessageBoxButton.OKCancel);
@@ -3453,10 +3458,6 @@ namespace ReringProject.UI {
             for (int i = 0; i < recipeManager.ShotCount; i++) {
                 ShotConfig shot = recipeManager.Shots[i];
                 if (shot == null) continue;
-                string owner;
-                if (string.IsNullOrEmpty(shot.OwnerSequenceName)) owner = SequenceHandler.SEQ_TOP;
-                else                                              owner = shot.OwnerSequenceName;
-                if (owner != activeSeq) continue;
 
                 shot.PixelResolution = mmPerPixel;                       // Phase 42 단일소스 (측정 소비처)
                 foreach (FAIConfig fai in shot.FAIList) {
@@ -3470,7 +3471,7 @@ namespace ReringProject.UI {
             MainWindow mw = Window.GetWindow(this) as MainWindow;
             if (mw != null) mw.SaveRecipe();
 
-            CustomMessageBox.Show("캘리브레이션", string.Format("{0}개 SHOT 에 적용 + 저장 완료 (1 px = {1:F5} mm)", applied, mmPerPixel));
+            CustomMessageBox.Show("캘리브레이션", string.Format("전체 {0}개 SHOT 에 적용 + 저장 완료 (1 px = {1:F8} mm)", applied, mmPerPixel));
         }
 
         //260623 hbk Phase 53: 체커보드 캘리브 버튼 → 창 진입 (XAML btn_checkerboardCalibrate).

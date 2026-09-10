@@ -193,7 +193,7 @@ namespace ReringProject.UI
             _lastCellMm = txt_cellMm.Text;   // D-01 직전값 갱신
             //260623 hbk: 중앙/외곽 평균(px) + X/Y 축별 편차% + 종합 편차% + 구조 점검 + 난반사(포화) 보강 리포트
             txt_report.Text = string.Format(CultureInfo.InvariantCulture,
-                "1 px = {0:F5} mm (X {1:F5} / Y {2:F5})\n평균 간격 {3:F2} px · 코너 {4}개{5}\n중앙부 {6:F2} px ↔ 외곽부 {7:F2} px\n편차 종합 {8:F2}% (X {9:F2}% / Y {10:F2}%)\n구조 점검: {11} (규칙성 변동 {12:F1}%)\n난반사/과노출: 포화 {13:F2}%",
+                "1 px = {0:F8} mm (X {1:F8} / Y {2:F8})\n평균 간격 {3:F2} px · 코너 {4}개{5}\n중앙부 {6:F2} px ↔ 외곽부 {7:F2} px\n편차 종합 {8:F2}% (X {9:F2}% / Y {10:F2}%)\n구조 점검: {11} (규칙성 변동 {12:F1}%)\n난반사/과노출: 포화 {13:F2}%",
                 result.MmPerPixel, result.MmPerPixelX, result.MmPerPixelY,
                 result.MeanSpacingPx, result.CornerCount, useRoi ? " · ROI 적용" : "",
                 result.CenterMeanPx, result.OuterMeanPx,

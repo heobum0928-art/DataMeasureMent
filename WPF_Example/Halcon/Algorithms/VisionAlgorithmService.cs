@@ -845,13 +845,41 @@ namespace ReringProject.Halcon.Algorithms
                 double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
                 HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
 
-                // 탐색 영역 관측 로그 — 실기에서 "그린 박스대로 탐색하는가"를 판정한다.
-                // 불변식: height == 2*halfRow, width == 2*halfCol (버그 상태면 정확히 반대로 찍힌다).
-                double dHeightPx = dGenLen2 + dGenLen2; // 행(세로) 전체 길이
-                double dWidthPx = dGenLen1 + dGenLen1; // 열(가로) 전체 길이
+                // 탐색 영역 실측 관측 로그 — HALCON 이 실제로 만든 region 을 되읽어 폭/높이를 찍는다.
+                // 인자에서 역산하면 "우리 가정"을 그대로 재출력하는 순환 로그가 되므로 그렇게 하지 않는다.
+                // 이 블록은 순수 관측용이다. 여기서 예외가 나면 바깥 catch 가 삼켜 측정이 조용히
+                // 실패하므로, region 조회는 자체 try/catch 로 격리하고 실패 시 센티넬만 남긴다.
+                // region(aabb) 는 축정렬 bounding box — cPhi=0 이면 사각형과 정확히 일치한다
+                // (cPhi != 0 이면 회전 사각형을 감싸는 AABB 라 값이 커진다).
+                // region(rect2) 는 HALCON 이 같은 region 을 gen_rectangle2 규약으로 되읽은 값.
+                // HALCON 이 Length1 >= Length2 로 정규화하므로 major/minor 로 표기했고,
+                // 가로/세로 구분자는 길이가 아니라 phi 다 (0 이면 긴 축이 열, ±pi/2 면 행).
+                const double PROBE_FAIL = -1.0;
+                double dAabbHeight = PROBE_FAIL;
+                double dAabbWidth = PROBE_FAIL;
+                double dFitPhi = PROBE_FAIL;
+                double dMajorLen = PROBE_FAIL;
+                double dMinorLen = PROBE_FAIL;
+                try
+                {
+                    HTuple hvBoxRow1, hvBoxCol1, hvBoxRow2, hvBoxCol2;
+                    HOperatorSet.SmallestRectangle1(rect, out hvBoxRow1, out hvBoxCol1, out hvBoxRow2, out hvBoxCol2);
+                    dAabbHeight = hvBoxRow2.D - hvBoxRow1.D;
+                    dAabbWidth = hvBoxCol2.D - hvBoxCol1.D;
+
+                    HTuple hvFitRow, hvFitCol, hvFitPhi, hvFitLen1, hvFitLen2;
+                    HOperatorSet.SmallestRectangle2(rect, out hvFitRow, out hvFitCol, out hvFitPhi, out hvFitLen1, out hvFitLen2);
+                    dFitPhi = hvFitPhi.D;
+                    dMajorLen = hvFitLen1.D;
+                    dMinorLen = hvFitLen2.D;
+                }
+                catch { }
+
                 Logging.PrintLog((int)ELogType.Algorithm,
-                    string.Format("[ContourRect] roi: row={0:F1} col={1:F1} phi={2:F4}  halfRow={3:F1} halfCol={4:F1}  gen_rectangle2: height={5:F1} width={6:F1}",
-                        cRow, cCol, cPhi, roiLength1, roiLength2, dHeightPx, dWidthPx));
+                    string.Format("[ContourRect] roi: row={0:F1} col={1:F1} phi={2:F4}  teach: halfRow={3:F1} halfCol={4:F1}  region(aabb): height={5:F1} width={6:F1}  region(rect2): phi={7:F4} major={8:F1} minor={9:F1}",
+                        cRow, cCol, cPhi, roiLength1, roiLength2,
+                        dAabbHeight, dAabbWidth,
+                        dFitPhi, dMajorLen, dMinorLen));
 
                 HOperatorSet.ReduceDomain(image, rect, out imageReduced);
 
@@ -986,13 +1014,37 @@ namespace ReringProject.Halcon.Algorithms
                 double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
                 HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
 
-                // 탐색 영역 관측 로그 — 실기에서 "그린 박스대로 탐색하는가"를 판정한다.
-                // 불변식: height == 2*halfRow, width == 2*halfCol (버그 상태면 정확히 반대로 찍힌다).
-                double dHeightPx = dGenLen2 + dGenLen2; // 행(세로) 전체 길이
-                double dWidthPx = dGenLen1 + dGenLen1; // 열(가로) 전체 길이
+                // 탐색 영역 실측 관측 로그 — HALCON 이 실제로 만든 region 을 되읽어 폭/높이를 찍는다.
+                // 인자에서 역산하면 순환 로그가 되므로, region 조회는 자체 try/catch 로 격리하고
+                // 실패 시 센티넬만 남긴다 (바깥 catch 로 새면 측정이 조용히 실패하기 때문).
+                // region(rect2) 는 HALCON 이 Length1 >= Length2 로 정규화하므로 major/minor 로
+                // 표기했고, 가로/세로 구분자는 길이가 아니라 phi 다.
+                const double PROBE_FAIL = -1.0;
+                double dAabbHeight = PROBE_FAIL;
+                double dAabbWidth = PROBE_FAIL;
+                double dFitPhi = PROBE_FAIL;
+                double dMajorLen = PROBE_FAIL;
+                double dMinorLen = PROBE_FAIL;
+                try
+                {
+                    HTuple hvBoxRow1, hvBoxCol1, hvBoxRow2, hvBoxCol2;
+                    HOperatorSet.SmallestRectangle1(rect, out hvBoxRow1, out hvBoxCol1, out hvBoxRow2, out hvBoxCol2);
+                    dAabbHeight = hvBoxRow2.D - hvBoxRow1.D;
+                    dAabbWidth = hvBoxCol2.D - hvBoxCol1.D;
+
+                    HTuple hvFitRow, hvFitCol, hvFitPhi, hvFitLen1, hvFitLen2;
+                    HOperatorSet.SmallestRectangle2(rect, out hvFitRow, out hvFitCol, out hvFitPhi, out hvFitLen1, out hvFitLen2);
+                    dFitPhi = hvFitPhi.D;
+                    dMajorLen = hvFitLen1.D;
+                    dMinorLen = hvFitLen2.D;
+                }
+                catch { }
+
                 Logging.PrintLog((int)ELogType.Algorithm,
-                    string.Format("[ShortAxis] roi: row={0:F1} col={1:F1} phi={2:F4}  halfRow={3:F1} halfCol={4:F1}  gen_rectangle2: height={5:F1} width={6:F1}",
-                        cRow, cCol, cPhi, roiLength1, roiLength2, dHeightPx, dWidthPx));
+                    string.Format("[ShortAxis] roi: row={0:F1} col={1:F1} phi={2:F4}  teach: halfRow={3:F1} halfCol={4:F1}  region(aabb): height={5:F1} width={6:F1}  region(rect2): phi={7:F4} major={8:F1} minor={9:F1}",
+                        cRow, cCol, cPhi, roiLength1, roiLength2,
+                        dAabbHeight, dAabbWidth,
+                        dFitPhi, dMajorLen, dMinorLen));
 
                 HOperatorSet.ReduceDomain(image, rect, out imageReduced);
                 HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh);

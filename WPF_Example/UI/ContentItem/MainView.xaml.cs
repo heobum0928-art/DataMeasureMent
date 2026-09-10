@@ -3516,6 +3516,23 @@ namespace ReringProject.UI {
                     camShot = shot;
                     break;
                 }
+                if (camShot == null) {
+                    // 활성 시퀀스 추정은 측정 결과표 선택 행에 의존한다 — 검사를 한 번도 돌리지 않아
+                    // 결과표가 빈 상태라면 이 추정이 빗나갈 수 있다. 이 장비는 물리 카메라가 1대라
+                    // 어느 Shot 을 잡아도 결국 같은 카메라이므로, 위 1순위 탐색이 실패했을 때만
+                    // 레시피의 첫 Shot 으로 폴백한다 (TOP / BOTTOM PC 는 위 1순위 탐색에서 대부분
+                    // 성공하므로 이 블록에 도달하지 않는다).
+                    for (int nIdx = 0; nIdx < recipeManager.ShotCount; nIdx++) {
+                        ShotConfig fallbackShot = recipeManager.Shots[nIdx];
+                        if (fallbackShot == null) continue;
+                        camShot = fallbackShot;
+                        break;
+                    }
+                    if (camShot != null) {
+                        Logging.PrintLog((int)ELogType.Trace, "[캘리브 라이브촬상] 활성 시퀀스 소유 Shot 을 찾지 못해 첫 Shot 으로 대체 - Shot="
+                            + camShot.ShotName + ", Camera=" + camShot.DeviceName);
+                    }
+                }
                 if (camShot == null) return null;
 
                 // 260811 hbk quick-debug(bottom-align-live-view-stutter) 계측: 이 메서드 전체가 UI 스레드

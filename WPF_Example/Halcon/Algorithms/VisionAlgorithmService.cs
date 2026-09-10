@@ -844,6 +844,15 @@ namespace ReringProject.Halcon.Algorithms
                 double dGenLen1 = roiLength2; // HALCON Length1 = Phi 방향 반장축 -> 열(가로) 반폭
                 double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
                 HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
+
+                // 탐색 영역 관측 로그 — 실기에서 "그린 박스대로 탐색하는가"를 판정한다.
+                // 불변식: height == 2*halfRow, width == 2*halfCol (버그 상태면 정확히 반대로 찍힌다).
+                double dHeightPx = dGenLen2 + dGenLen2; // 행(세로) 전체 길이
+                double dWidthPx = dGenLen1 + dGenLen1; // 열(가로) 전체 길이
+                Logging.PrintLog((int)ELogType.Algorithm,
+                    string.Format("[ContourRect] roi: row={0:F1} col={1:F1} phi={2:F4}  halfRow={3:F1} halfCol={4:F1}  gen_rectangle2: height={5:F1} width={6:F1}",
+                        cRow, cCol, cPhi, roiLength1, roiLength2, dHeightPx, dWidthPx));
+
                 HOperatorSet.ReduceDomain(image, rect, out imageReduced);
 
                 HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh);
@@ -976,6 +985,15 @@ namespace ReringProject.Halcon.Algorithms
                 double dGenLen1 = roiLength2; // HALCON Length1 = Phi 방향 반장축 -> 열(가로) 반폭
                 double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
                 HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
+
+                // 탐색 영역 관측 로그 — 실기에서 "그린 박스대로 탐색하는가"를 판정한다.
+                // 불변식: height == 2*halfRow, width == 2*halfCol (버그 상태면 정확히 반대로 찍힌다).
+                double dHeightPx = dGenLen2 + dGenLen2; // 행(세로) 전체 길이
+                double dWidthPx = dGenLen1 + dGenLen1; // 열(가로) 전체 길이
+                Logging.PrintLog((int)ELogType.Algorithm,
+                    string.Format("[ShortAxis] roi: row={0:F1} col={1:F1} phi={2:F4}  halfRow={3:F1} halfCol={4:F1}  gen_rectangle2: height={5:F1} width={6:F1}",
+                        cRow, cCol, cPhi, roiLength1, roiLength2, dHeightPx, dWidthPx));
+
                 HOperatorSet.ReduceDomain(image, rect, out imageReduced);
                 HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh);
                 HOperatorSet.UnionAdjacentContoursXld(edges, out unionContours, unionDistance, 1, "attr_keep");

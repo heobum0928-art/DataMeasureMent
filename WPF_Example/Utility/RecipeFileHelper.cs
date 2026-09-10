@@ -167,6 +167,55 @@ namespace ReringProject.Utility {
             return true;
         }
 
+        // quick-260909-mr4 — 오프라인 검사이미지 경로 규약(폴더/확장자/접두사/접미사). 수동 [검사Grab]
+        //  (InspectionListView)과 자동채움(Action_FAIMeasurement)이 이 상수를 공유한다 — 규약이 두 벌
+        //  존재하면 자동채움이 오프라인 검사가 읽지 않는 곳에 파일을 쓸 수 있으므로 반드시 한 곳에서만 정의한다.
+        public const string OFFLINE_FOLDER = "OfflineInspect";
+        public const string OFFLINE_EXT = ".bmp";
+        public const string OFFLINE_PREFIX_SHOT = "shot_";
+        public const string OFFLINE_PREFIX_DATUM = "datum_";
+        // 가로/세로 접미사는 MainView 의 수동 저장 접미사(TeachingImagePath / TeachingImagePath_Vertical 대응)와
+        //  반드시 같은 문자열이어야 한다 — 다르면 자동채움/수동저장이 서로 다른 파일을 가리키게 된다.
+        public const string OFFLINE_SUFFIX_HORIZONTAL = "_horizontal";
+        public const string OFFLINE_SUFFIX_VERTICAL = "_vertical";
+
+        private const string OFFLINE_RECIPE_FALLBACK = "default";
+        private const string OFFLINE_NODE_FALLBACK = "node";
+
+        // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.bmp.
+        //  폴더를 만들지 않는다 — 이 함수는 검사 스레드에서도 호출되므로 순수 문자열 계산이어야 하고,
+        //  실제 폴더 생성은 저장 직전에 각 저장 주체(CaptureImageSaveService 워커 / MainView 저장 구간)가
+        //  이미 수행한다. 실패 시 szError 에 메시지를 담고 null 을 반환한다.
+        //  포맷 = bmp(무압축) 고정 — 검사이미지는 라이브 grab 을 그대로 대체해야 하므로 손실압축(jpg) 불가,
+        //  무손실이어야 한다(PNG 는 무손실이지만 CXP 13376x9528(~1.27억 픽셀) 원본에서 DEFLATE 압축 자체가
+        //  tact 병목이 되어 bmp 로 전환 — 260716 검사Grab 지연 실측 대응. 되돌리지 말 것).
+        public static string BuildOfflineImagePath(string szBaseName, out string szError) {
+            szError = null;
+            try {
+                string szRoot = SystemHandler.Handle.Setting.ImageSavePath;
+                if (string.IsNullOrEmpty(szRoot)) szRoot = AppDomain.CurrentDomain.BaseDirectory;
+                string szRecipe = SystemHandler.Handle.Setting.CurrentRecipeName;
+                if (string.IsNullOrEmpty(szRecipe)) szRecipe = OFFLINE_RECIPE_FALLBACK;
+                szRecipe = SanitizeOfflineFilePart(szRecipe);
+                string szDir = Path.Combine(Path.Combine(szRoot, OFFLINE_FOLDER), szRecipe);
+                string szSafe = SanitizeOfflineFilePart(szBaseName);
+                if (string.IsNullOrEmpty(szSafe)) szSafe = OFFLINE_NODE_FALLBACK;
+                return Path.Combine(szDir, szSafe + OFFLINE_EXT);
+            }
+            catch (Exception ex) {
+                szError = ex.Message;
+                return null;
+            }
+        }
+
+        private static string SanitizeOfflineFilePart(string szName) {
+            if (string.IsNullOrEmpty(szName)) return szName;
+            foreach (char c in Path.GetInvalidFileNameChars()) {
+                szName = szName.Replace(c, '_');
+            }
+            return szName;
+        }
+
         //260716 hbk 복사본 INI 의 구-레시피 OfflineInspect 이미지 경로 제거. 실패해도 복사 자체는 성공으로 유지(로그만).
         private static void ClearCopiedOfflineImagePaths(string newDirPath, string prevName) {
             try {

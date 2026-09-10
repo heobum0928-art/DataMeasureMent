@@ -196,6 +196,13 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool UsePatternBrushMask { get; set; } = false;
 
+        // quick-260909-mr4 — 자동 검사 한 사이클이 촬영한 이미지를 각 Shot/Datum 노드의 오프라인
+        //  검사이미지 경로(OfflineInspect)에도 함께 저장한다. 평소 생산 중에는 끄고, 티칭을 새로
+        //  갱신하거나 [검사Grab] 수작업을 대체하고 싶을 때만 켜는 용도다.
+        //  INI 키 누락 시 Load 의 ToBool 기본값이 false 라 기존 설치본은 자동으로 꺼진 상태를 유지한다.
+        [Category("System|Enviroment")]
+        public bool AutoFillOfflineImages { get; set; } = false;
+
         // 260820 hbk 원본(origin) 캡쳐 이미지 저장 포맷 선택 — CaptureImageSaveService.SaveWorker 가 참조.
         //  capture(오버레이 렌더) 이미지는 이 설정과 무관하게 기존대로 JPEG 고정(범위 밖, 사용자 확정).
         [Category("System|Enviroment")]

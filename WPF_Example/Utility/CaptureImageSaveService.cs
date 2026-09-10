@@ -104,6 +104,12 @@ namespace ReringProject.Utility {
         /// Align 정합 증거 이미지를 검사 이미지 트리와 분리해 별도 보관 정책을 걸기 위해 도입.
         /// </summary>
         public string DirectoryOverride { get; set; }
+        /// <summary>
+        /// 저장 포맷 강제 지정("bmp"/"jpeg" 등). 비어 있으면 기존 규칙(origin=OriginImageFormat 설정,
+        /// capture=jpeg 고정) 그대로 적용한다. quick-260909-mr4 — 오프라인 검사이미지 자동채움은
+        /// OriginImageFormat 설정과 무관하게 항상 bmp(무압축)여야 하므로 요청 단위로 오버라이드한다.
+        /// </summary>
+        public string FormatOverride { get; set; }
 
         public void Dispose() {
             // 요청 1건당 ref 1 해제 (마지막 해제 시 공유 이미지 dispose). Interlocked.Exchange 로 동시
@@ -331,6 +337,11 @@ namespace ReringProject.Utility {
                 bool bIsOriginWrite = !request.IsCapture;
                 if (bIsOriginWrite && string.Equals(SystemSetting.Handle.OriginImageFormat, "BMP", StringComparison.OrdinalIgnoreCase)) {
                     szFormat = "bmp";
+                }
+                // quick-260909-mr4 — 요청 단위 포맷 오버라이드. 비어 있으면 위 기존 규칙을 그대로 쓴다(회귀 0).
+                bool bHasFormatOverride = !string.IsNullOrEmpty(request.FormatOverride);
+                if (bHasFormatOverride) {
+                    szFormat = request.FormatOverride;
                 }
                 var swWrite = Stopwatch.StartNew();
                 toWrite.WriteImage(szFormat, 0, filePath);

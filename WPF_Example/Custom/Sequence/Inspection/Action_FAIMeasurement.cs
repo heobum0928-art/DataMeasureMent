@@ -84,6 +84,8 @@ namespace ReringProject.Sequence {
         private const string CROSS_Z_DATUM_KEY_PREFIX = "DATUM|";
         //260819 hbk quick-260819-tcs: 로그 태그 리터럴 17곳 중복 제거 — 문자열 값(태그 뒤 공백 포함) 은 그대로, 표기만 상수 참조로 치환. 공백을 상수 안에 둬서 호출부마다 손으로 입력할 필요를 없앴다.
         private const string LOG_TAG = "[FAIMeasurement] ";
+        // quick-260909-mr4 — 오프라인 검사이미지 자동채움 저장 포맷. OriginImageFormat 설정과 무관하게 항상 bmp 고정.
+        private const string OFFLINE_AUTOFILL_FORMAT = "bmp";
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -588,6 +590,12 @@ namespace ReringProject.Sequence {
                     // 원본 이미지는 이 Shot 의 모든 FAI 가 완전히 같은 걸 보므로, FAI 마다 따로 저장하지 않고
                     //  Shot 당 한 번만 저장 큐에 넣는다(항목별로 매번 저장하면 느려진다).
                     string szSharedOriginPath = QueueSharedShotOrigin(sharedSrc, parentSeq2);
+                    // quick-260909-mr4 — 오프라인 검사이미지 자동채움(Shot). 게이트 OFF/SIMUL/OfflineInspectMode
+                    //  에서는 완전히 no-op. sharedSrc 는 이미 만들어진 공유 사본이라 추가 복사 없음.
+                    bool bAutoFillShot = IsOfflineAutoFillEnabled() && IsLiveCaptureMode();
+                    if (bAutoFillShot) {
+                        AutoFillShotOfflineImage(sharedSrc);
+                    }
                     foreach (var fai in ShotParam.FAIList) {
                         acc.FaiAllPass = true;
                         var faiOverlays = new List<EdgeInspectionOverlay>(); // per-FAI overlay 누적 (LastOverlays write-back 용, 노드 클릭 재현)
@@ -1367,6 +1375,87 @@ namespace ReringProject.Sequence {
                 });
             }
             return originPath;
+        }
+
+        // quick-260909-mr4 — 오프라인 검사이미지 자동채움 인프라. 이 게이트 하나가 신규 코드 전부의
+        //  유일한 입구이며, 꺼져 있으면(기본값) 회귀가 구조적으로 0 이다.
+        private static bool IsOfflineAutoFillEnabled() {
+            return SystemSetting.Handle.AutoFillOfflineImages;
+        }
+
+        // "지금 라이브 촬영 중인가"를 판정한다. SIMUL_MODE 빌드와 OfflineInspectMode(실기 수동지그)는
+        //  둘 다 '저장된 파일을 읽는' 경로라서, 자동채움을 켜면 읽은 파일을 자기 자신에게 그대로
+        //  되쓰는 무의미한 왕복이 된다(투자정찰7 표 참조) — 그 왕복을 막기 위한 게이트.
+        //  조건부 컴파일 3줄이 이 메서드 밖으로 나가지 않게 한다(한쪽 빌드만 조용히 달라지는 사고 방지).
+        private static bool IsLiveCaptureMode() {
+            #if SIMUL_MODE
+            return false;
+            #else
+            return !SystemSetting.Handle.OfflineInspectMode;
+            #endif
+        }
+
+        // 이미 존재하는 공유 사본(SharedHImage)에 ref 1 을 더 얹어 오프라인 검사이미지 경로에도
+        //  큐잉한다(추가 메모리 복사 0). AddRef → Enqueue 짝은 QueueSharedShotOrigin 과 동일 규약 —
+        //  워커가 요청을 Dispose 하며 이 ref 를 Release 한다. 확정 경로를 돌려주고, 실패 시 null.
+        private static string EnqueueOfflineImage(SharedHImage shared, string szBaseName) {
+            if (shared == null) return null;
+            var saver = SystemHandler.Handle.CaptureImageSaver;
+            if (saver == null) return null;
+            string szError;
+            string szPath = RecipeFiles.BuildOfflineImagePath(szBaseName, out szError);
+            if (szPath == null) {
+                Logging.PrintErrLog((int)ELogType.Error, LOG_TAG + "오프라인 검사이미지 경로 계산 실패: " + szError);
+                return null;
+            }
+            shared.AddRef();
+            saver.Enqueue(new CaptureImageSaveRequest {
+                Shared = shared,
+                NeedsRender = false,
+                FileName = Path.GetFileName(szPath),
+                IsCapture = false,
+                DirectoryOverride = Path.GetDirectoryName(szPath),
+                FormatOverride = OFFLINE_AUTOFILL_FORMAT
+            });
+            return szPath;
+        }
+
+        // Datum 전용 — src 는 호출부 finally 에서 곧 Dispose 되므로(공유 사본 없음) 여기서 자체 사본을
+        //  뜬다. 수명: 생성자 ref 1 → EnqueueOfflineImage 가 AddRef 로 2 → 여기 finally 의 Release 로
+        //  1 → 워커가 요청 Dispose 하며 0(이미지 해제). 경로 계산 실패로 AddRef 가 없었으면 이 Release 가
+        //  곧바로 0 을 만든다(누수 없음). 소유권을 넘기는 방식(조건부 Dispose)은 과거 AccessViolation
+        //  을 낸 패턴이라 금지 — 항상 사본을 뜨고 우리가 우리 몫의 ref 를 직접 관리한다.
+        private static string EnqueueOfflineImageCopy(HImage src, string szBaseName) {
+            if (src == null) return null;
+            SharedHImage shared = null;
+            try {
+                shared = new SharedHImage(src.CopyImage());
+            }
+            catch (Exception ex) {
+                Logging.PrintErrLog((int)ELogType.Error, LOG_TAG + "오프라인 검사이미지 사본 생성 실패: " + ex.Message);
+                return null;
+            }
+            try {
+                return EnqueueOfflineImage(shared, szBaseName);
+            }
+            finally {
+                shared.Release();
+            }
+        }
+
+        // Shot 자동채움 — 판정(OK/NG)은 보지 않는다. 측정이 NG 여도 이미지는 오프라인 재생용으로
+        //  유효하다는 사용자 확정 정책. 레시피 저장 함수는 호출하지 않는다(사용자 의도 없이 쓰지 않음).
+        private void AutoFillShotOfflineImage(SharedHImage sharedSrc) {
+            if (ShotParam == null) return;
+            if (string.IsNullOrEmpty(ShotParam.ShotName)) return; // 결정론적 파일명이 없으므로 건너뜀
+            string szPath = EnqueueOfflineImage(sharedSrc, RecipeFiles.OFFLINE_PREFIX_SHOT + ShotParam.ShotName);
+            if (szPath == null) return;
+            bool bPathChanged = !string.Equals(ShotParam.SimulImagePath, szPath, StringComparison.OrdinalIgnoreCase);
+            if (bPathChanged) {
+                ShotParam.SimulImagePath = szPath;
+                Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "오프라인 자동채움 — SHOT '" + ShotParam.ShotName +
+                    "' SimulImagePath 갱신: " + szPath + " (레시피 저장은 사용자가 직접 해야 반영됨)");
+            }
         }
 
         //260819 hbk quick-260819-rle: 파일명/경로 결정(순수 계산 + fai.Last*ImageFileName 기록)과

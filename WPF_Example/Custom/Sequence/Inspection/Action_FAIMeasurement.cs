@@ -331,8 +331,9 @@ namespace ReringProject.Sequence {
             //  크로스-Z 쪽도 반드시 다시 검증해야 한다.
             HImage imgH = null, imgV = null;
             bool bDatumCrossZPending;
+            bool bCrossZLiveCaptured;
             try {
-                if (!TryGrabOrLoadDualDatumImages(datum, parentSeq, out imgH, out imgV, out bDatumCrossZPending)) {
+                if (!TryGrabOrLoadDualDatumImages(datum, parentSeq, out imgH, out imgV, out bDatumCrossZPending, out bCrossZLiveCaptured)) {
                     if (bDatumCrossZPending) {
                         return; // Z1(비완성 index): 캡처만 — 실패 아님(MarkDatumFailed 미설정), 완성 z_index에서 검출(D-02a)
                     }
@@ -345,7 +346,19 @@ namespace ReringProject.Sequence {
                     parentSeq.MarkDatumFailed(datum.DatumName);
                     return; // datum skip, abort 안 함
                 }
-                RunDatumDualImageDetection(datum, parentSeq, imgH, imgV); //260819 hbk quick-260819-s05: align/detect 분기를 RunDatumDualImageDetection 헬퍼로 추출(측정 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와 동일 패턴)
+                bool bDetectOk = RunDatumDualImageDetection(datum, parentSeq, imgH, imgV); // align/detect 분기를 추출한 헬퍼(측정 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와 동일 패턴)
+                // quick-260909-mr4 — 오프라인 검사이미지 자동채움(크로스-Z Datum). 검출 성공 + 크로스-Z
+                //  라이브 캡처(정적 2장 경로 제외) + 게이트 ON + 라이브 캡처 모드일 때만 채운다.
+                bool bAutoFillDatum = bDetectOk && bCrossZLiveCaptured && IsOfflineAutoFillEnabled() && IsLiveCaptureMode();
+                if (bAutoFillDatum) {
+                    // imgH 는 반드시 가로(role A/ZIndexA, TeachingImagePath 대응), imgV 는 반드시 세로
+                    //  (role B/ZIndexB, TeachingImagePath_Vertical 대응)다 — 화면 토글이나 ZIndex 를 여기서
+                    //  다시 해석하지 않는다. 이 대응은 TryTakeCrossZImageClones(Horizontal=keyA, Vertical=keyB)
+                    //  와 TryLoadStaticDualDatumImages(pathH=TeachingImagePath, pathV=TeachingImagePath_Vertical)
+                    //  에 이미 확립된 규약이다.
+                    AutoFillDatumOfflineImage(datum, imgH, RecipeFiles.OFFLINE_SUFFIX_HORIZONTAL, false);
+                    AutoFillDatumOfflineImage(datum, imgV, RecipeFiles.OFFLINE_SUFFIX_VERTICAL, true);
+                }
             } finally {
                 SafeDisposeImage(imgH);
                 SafeDisposeImage(imgV);
@@ -354,7 +367,10 @@ namespace ReringProject.Sequence {
 
         //260819 hbk quick-260819-s05: ProcessDatumDualImage 의 align/detect 분기 본문 추출 — 측정 쪽 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와
         //  동일한 "오케스트레이터가 같은 모양의 헬퍼를 호출" 패턴. 카운터(nDatumOk/nDatumFail) 미접근 구조 그대로 유지(원본 ProcessDatumDualImage 도 카운터 미사용, D-1).
-        private void RunDatumDualImageDetection(DatumConfig datum, InspectionSequence parentSeq, HImage imgH, HImage imgV) {
+        //  quick-260909-mr4 — 반환형 void → bool: 검출 성공 여부를 호출부(ProcessDatumDualImage)에 알려
+        //  오프라인 검사이미지 자동채움 게이트로 쓴다. nDatumOk/nDatumFail 카운터에 접근하지 않는 기존
+        //  구조(D-1)는 유지 — 이 반환값은 카운터가 아니라 이번 tick 검출 성공/실패 bool 뿐이다.
+        private bool RunDatumDualImageDetection(DatumConfig datum, InspectionSequence parentSeq, HImage imgH, HImage imgV) {
             //260619 hbk Phase 57 #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
             //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용, D-01). disabled → 기존 2-image 검출(off 회귀 0).
             //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음(D-04).
@@ -365,6 +381,7 @@ namespace ReringProject.Sequence {
                     Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + alignErr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk Phase 57 #5 lenient — NG 강제, abort 안 함
+                    return false;
                 }
             } else {
                 string derr;
@@ -372,8 +389,10 @@ namespace ReringProject.Sequence {
                     Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' 검출 실패 (skip): " + derr);
                     datum.RuntimeDetectFailed = true;
                     parentSeq.MarkDatumFailed(datum.DatumName);
+                    return false;
                 }
             }
+            return true;
         }
 
         //260702 hbk Extract Method(Task3): DatumPhase 1-image 분기 본문
@@ -389,7 +408,19 @@ namespace ReringProject.Sequence {
             //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 (D-02/D-04/D-05). 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
             //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0, D-11).
             try {
+                // quick-260909-mr4 — 검출 직전/직후 카운터 차이로 이번 tick 성공 여부를 판정한다.
+                //  RunDatumSingleImageDetection 의 두 분기 모두 성공이면 nDatumOk, 실패면 nDatumFail 을
+                //  정확히 하나씩 올린다(RuntimeDetectFailed 는 성공 시 false 로 되돌려지지 않으므로 판정 근거로 쓰지 않는다).
+                int nOkBefore = nDatumOk;
                 RunDatumSingleImageDetection(datum, parentSeq, img, ref nDatumOk, ref nDatumFail); //260819 hbk quick-260819-s05: align/detect 분기를 RunDatumSingleImageDetection 헬퍼로 추출(측정 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와 동일 패턴)
+                bool bDetectOk = nDatumOk > nOkBefore;
+                // 오프라인 검사이미지 자동채움(1-image Datum). 저장은 반드시 finally 의 img.Dispose() 전에
+                //  일어나야 한다(사본을 뜨는 시점이라 원본이 살아 있어야 한다). 접미사 없음 =
+                //  수동 [검사Grab] 의 1-image datum 파일명(datum_<이름>.bmp)과 동일.
+                bool bAutoFillDatum = bDetectOk && IsOfflineAutoFillEnabled() && IsLiveCaptureMode();
+                if (bAutoFillDatum) {
+                    AutoFillDatumOfflineImage(datum, img, string.Empty, false);
+                }
             } finally {
                 img.Dispose();
             }
@@ -1079,16 +1110,21 @@ namespace ReringProject.Sequence {
         //  이 기준점이 매번 조용히 건너뛰어지고(실패로 표시되지 않음), 예전에 검출 성공했을 때의
         //  위치(몇 시간~며칠 전 값일 수 있음)가 실패 표시 없이 계속 재사용된다. 자동(PLC) 검사는
         //  이 문제와 무관하며 완전히 그대로 동작한다.
-        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending) {
+        //  bCrossZLiveCaptured — quick-260909-mr4: 크로스-Z 경로는 role A/B 를 매 tick 라이브 촬영하지만,
+        //  정적 2장 경로는 기존 티칭 파일을 읽기만 하므로 자동채움 대상이 아니다(읽은 파일을 되쓰게 된다).
+        //  조건을 호출부에서 다시 계산하지 않기 위해 이미 계산된 bCrossZEnabled 값을 그대로 내보낸다.
+        private bool TryGrabOrLoadDualDatumImages(DatumConfig datum, InspectionSequence parentSeq, out HImage imageHorizontal, out HImage imageVertical, out bool bPending, out bool bCrossZLiveCaptured) {
             imageHorizontal = null;
             imageVertical = null;
             bPending = false;
+            bCrossZLiveCaptured = false;
             if (datum == null) {
                 Logging.PrintErrLog((int)ELogType.Error, "[Datum] DualImage: datum 이 null 입니다.");
                 return false;
             }
             bool bIsProtocolDriven = parentSeq != null && parentSeq.IsProtocolDrivenCycle();
             bool bCrossZEnabled = bIsProtocolDriven && datum.ZIndexA != UNSET_ZINDEX && datum.ZIndexB != UNSET_ZINDEX;
+            bCrossZLiveCaptured = bCrossZEnabled;
             DualDatumImageResult result = new DualDatumImageResult();
             bool bOk;
             if (bCrossZEnabled) {
@@ -1440,6 +1476,32 @@ namespace ReringProject.Sequence {
             }
             finally {
                 shared.Release();
+            }
+        }
+
+        // Datum 자동채움 — 1-image/크로스-Z 공용. img 는 호출부가 소유(finally 에서 Dispose) — 여기서는
+        //  사본만 뜬다(EnqueueOfflineImageCopy). write-back 대상은 bVerticalSink 로 선택한다:
+        //  true → TeachingImagePath_Vertical(세로), false → GetLatestImagePath/SetLatestImagePath
+        //  (=TeachingImagePath, 수동 저장이 쓰는 것과 같은 sink). 레시피 저장은 호출하지 않는다.
+        private void AutoFillDatumOfflineImage(DatumConfig datum, HImage img, string szSuffix, bool bVerticalSink) {
+            if (datum == null) return;
+            if (string.IsNullOrEmpty(datum.DatumName)) return;
+            string szPath = EnqueueOfflineImageCopy(img, RecipeFiles.OFFLINE_PREFIX_DATUM + datum.DatumName + szSuffix);
+            if (szPath == null) return;
+            if (bVerticalSink) {
+                bool bVerticalChanged = !string.Equals(datum.TeachingImagePath_Vertical, szPath, StringComparison.OrdinalIgnoreCase);
+                if (bVerticalChanged) {
+                    datum.TeachingImagePath_Vertical = szPath;
+                    Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "오프라인 자동채움 — Datum '" + datum.DatumName +
+                        "' TeachingImagePath_Vertical 갱신: " + szPath + " (레시피 저장은 사용자가 직접 해야 반영됨)");
+                }
+            } else {
+                bool bHorizontalChanged = !string.Equals(datum.GetLatestImagePath(), szPath, StringComparison.OrdinalIgnoreCase);
+                if (bHorizontalChanged) {
+                    datum.SetLatestImagePath(szPath);
+                    Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "오프라인 자동채움 — Datum '" + datum.DatumName +
+                        "' TeachingImagePath 갱신: " + szPath + " (레시피 저장은 사용자가 직접 해야 반영됨)");
+                }
             }
         }
 

@@ -1212,14 +1212,14 @@ namespace ReringProject.UI {
             if (SelectedParam is DatumConfig datumForGrab) {
                 ICameraParam resolved = ResolveDatumCameraParam(datumForGrab);
                 if (resolved == null) return;
-                string savePath = BuildOfflineImagePath("datum_" + datumForGrab.DatumName);
+                string savePath = BuildOfflineImagePath(RecipeFiles.OFFLINE_PREFIX_DATUM + datumForGrab.DatumName);
                 if (savePath == null) return;
                 await mParentWindow.mainView.GrabSaveAndDisplay(resolved, datumForGrab, datumForGrab, savePath);
                 RefreshParamEditor(); // TeachingImagePath write-back → PropertyGrid 갱신 (grab 완료 후)
                 return;
             }
             if (SelectedParam is ShotConfig shotForGrab) {
-                string savePath = BuildOfflineImagePath("shot_" + shotForGrab.ShotName);
+                string savePath = BuildOfflineImagePath(RecipeFiles.OFFLINE_PREFIX_SHOT + shotForGrab.ShotName);
                 if (savePath == null) return;
                 await mParentWindow.mainView.GrabSaveAndDisplay(shotForGrab, null, shotForGrab, savePath);
                 RefreshParamEditor(); // SimulImagePath write-back → PropertyGrid 갱신 (grab 완료 후)
@@ -1229,34 +1229,19 @@ namespace ReringProject.UI {
             CustomMessageBox.Show("검사이미지 Grab", "Datum 또는 Shot 노드를 선택하세요.", MessageBoxImage.Warning);
         }
 
-        // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.bmp. 폴더 자동생성. 실패 시 null.
-        //  포맷 = bmp(무압축). 검사이미지는 라이브 grab을 그대로 대체해야 하므로 손실압축(jpg) 불가, 무손실이어야 함
-        //  (PNG는 무손실이지만 CXP 13376x9528(~1.27억 픽셀) 원본에서 DEFLATE 압축 자체가 tact 병목이 되어 bmp로 전환 — 260716 검사Grab 지연 실측 대응).
+        // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.bmp.
+        //  quick-260909-mr4 — 경로 규약(폴더/확장자/접두사)을 RecipeFiles.BuildOfflineImagePath 로 위임한다.
+        //  자동채움(Action_FAIMeasurement)과 이 함수가 같은 계산을 공유해야 두 경로가 어긋나지 않는다.
+        //  폴더 생성은 여기서 하지 않는다 — MainView 의 저장 구간이 저장 직전에 이미 폴더를 만든다
+        //  (GrabSaveAndDisplay 호출 경로, `if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);`).
         private string BuildOfflineImagePath(string baseName) {
-            try {
-                string root = SystemHandler.Handle.Setting.ImageSavePath;
-                if (string.IsNullOrEmpty(root)) root = AppDomain.CurrentDomain.BaseDirectory;
-                string recipe = SystemHandler.Handle.Setting.CurrentRecipeName;
-                if (string.IsNullOrEmpty(recipe)) recipe = "default";
-                recipe = SanitizeFileName(recipe);
-                string dir = Path.Combine(Path.Combine(root, "OfflineInspect"), recipe);
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-                string safe = SanitizeFileName(baseName);
-                if (string.IsNullOrEmpty(safe)) safe = "node";
-                return Path.Combine(dir, safe + ".bmp");
-            }
-            catch (Exception ex) {
-                CustomMessageBox.Show("검사이미지 경로 오류", ex.Message, MessageBoxImage.Error);
+            string szError;
+            string szPath = RecipeFiles.BuildOfflineImagePath(baseName, out szError);
+            if (szPath == null) {
+                CustomMessageBox.Show("검사이미지 경로 오류", szError, MessageBoxImage.Error);
                 return null;
             }
-        }
-
-        private static string SanitizeFileName(string name) {
-            if (string.IsNullOrEmpty(name)) return name;
-            foreach (char c in Path.GetInvalidFileNameChars()) {
-                name = name.Replace(c, '_');
-            }
-            return name;
+            return szPath;
         }
 
         private void button_loadImage_Click(object sender, RoutedEventArgs e) {

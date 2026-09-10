@@ -834,7 +834,16 @@ namespace ReringProject.Halcon.Algorithms
                     catch { }
                 }
 
-                HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, roiLength1, roiLength2);
+                // 측정 Rect ROI 규약: roiLength1 = 행(세로) 반폭, roiLength2 = 열(가로) 반폭
+                // (MainView 티칭 드래그완료/리사이즈/표시 3경로가 전부 이 매핑을 쓴다).
+                // HALCON gen_rectangle2 는 Length1 = Phi 방향 반장축이라 축이 반대다 — cPhi=0 이면
+                // Phi 방향은 열(가로)이므로 넘길 때 뒤집는다. 강체 회전이므로 cPhi != 0 에서도 유지된다.
+                // 혼동 금지: 같은 파일의 TryFindCircleByPolarSampling(반경 기반, 티칭 필드 미사용),
+                // PatternMatchService(Datum PatternRoi_*), FAIEdgeMeasurementService(FAI ROI_*,
+                // CONTEXT.md D-02 LOCKED)는 HALCON 규약을 그대로 쓰는 별개 경로다. 이 뒤집기를 옮기지 말 것.
+                double dGenLen1 = roiLength2; // HALCON Length1 = Phi 방향 반장축 -> 열(가로) 반폭
+                double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
+                HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
                 HOperatorSet.ReduceDomain(image, rect, out imageReduced);
 
                 HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh);
@@ -962,7 +971,11 @@ namespace ReringProject.Halcon.Algorithms
                 }
 
                 // Step 1: ROI 영역 → reduce_domain → edges_sub_pix(canny) → union_adjacent_contours_xld
-                HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, roiLength1, roiLength2);
+                // 측정 Rect ROI 규약(Length1=행/세로, Length2=열/가로)을 HALCON Length1=Phi방향 규약으로
+                // 뒤집는다 — TryFindLargestContourRect 와 동일 이유. 강체 회전이므로 cPhi != 0 에서도 유지된다.
+                double dGenLen1 = roiLength2; // HALCON Length1 = Phi 방향 반장축 -> 열(가로) 반폭
+                double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
+                HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
                 HOperatorSet.ReduceDomain(image, rect, out imageReduced);
                 HOperatorSet.EdgesSubPix(imageReduced, out edges, "canny", cannyAlpha, cannyLow, cannyHigh);
                 HOperatorSet.UnionAdjacentContoursXld(edges, out unionContours, unionDistance, 1, "attr_keep");

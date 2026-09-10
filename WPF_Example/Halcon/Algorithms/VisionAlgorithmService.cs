@@ -135,6 +135,19 @@ namespace ReringProject.Halcon.Algorithms
                 int noEdgeStrips = 0;
                 int failedStrips = 0;
 
+                // 탐색 영역 관측 로그 — 실기에서 탐색 사각형을 눈으로 확인할 수 있도록 strip 루프 직전에 남긴다.
+                string szScanLabel = "vertical";
+                if (scanHorizontal)
+                {
+                    szScanLabel = "horizontal";
+                }
+
+                Logging.PrintLog((int)ELogType.Algorithm,
+                    string.Format("[FitLine] strip-loop: bounds top={0:F1} left={1:F1} bottom={2:F1} right={3:F1}  scan={4}  stripCount={5}  sigma={6:F2} threshold={7} polarity={8}",
+                        top, left, bottom, right,
+                        szScanLabel,
+                        stripCount, sigma, threshold, pol));
+
                 if (scanHorizontal)
                 {
                     for (int i = 0; i < stripCount; i++)

@@ -105,8 +105,16 @@ namespace ReringProject.Halcon.Algorithms
                 // 단일 MeasurePos 는 측정 축 1개에서만 에지 반환 → FitLineContourXld 입력 1~2점 → "insufficient edge
                 // points" → 측정 실패. ROI 를 stripCount 개 strip 으로 쪼개 strip 마다 MeasurePos 누적.
                 // rPhi 회전은 strip region 회전 대신 measurePhi 로 흡수 (축 정렬 strip + 회전된 측정 축). datum 회전 ROI 동일 경로.
-                double halfW = roiLength1;
-                double halfH = roiLength2;
+                //
+                // 측정 Point ROI 규약: roiLength1 = 행(세로) 반폭, roiLength2 = 열(가로) 반폭.
+                // MainView 의 티칭 3경로(드래그 완료 / ApplyPointRoiResize / BuildPointRoiDefinitions)가
+                // 모두 이 매핑으로 쓰고 읽으므로, 탐색 사각형도 동일해야 한다. 반대로 두면 중심은 같고
+                // 가로·세로만 뒤바뀐 사각형을 탐색하게 된다.
+                // 주의: FAIEdgeMeasurementService 의 FAI ROI 규약(ROI_Length1 = phi 방향 반장축,
+                // HALCON gen_measure_rectangle2 규약, CONTEXT.md D-02 LOCKED)과는 축이 반대다.
+                // 두 규약을 혼동하지 말 것.
+                double halfH = roiLength1;
+                double halfW = roiLength2;
                 double top = rRow - halfH;
                 double bottom = rRow + halfH;
                 double left = rCol - halfW;

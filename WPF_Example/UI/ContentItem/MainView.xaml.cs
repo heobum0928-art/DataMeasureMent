@@ -3435,10 +3435,10 @@ namespace ReringProject.UI {
             else                         warnLine = "";
 
             string msg = string.Format(
-                "레시피의 전체 SHOT (이 PC 가 쓰지 않는 TOP / BOTTOM 샷까지 포함) 의 PixelResolution 을\n" +
+                "이 레시피의 모든 SHOT 의 PixelResolution 을\n" +
                 "1 px = {0:F8} mm 로 덮어씁니다.{1}\n\n" +
-                "[주의] TOP / BOTTOM 은 원래 SIDE 와 다른 배율값을 갖습니다. 이 적용으로 그 값들도 SIDE 값으로 덮입니다.\n" +
-                "이 PC 는 SIDE 만 검사하므로 무해하지만, 이 레시피를 다른 PC 로 복사해 쓰면 그쪽 측정이 틀어집니다.\n" +
+                "[주의] 카메라가 여러 대인 장비라면 카메라마다 따로 잡아야 합니다.\n" +
+                "이 적용은 시퀀스를 가리지 않고 레시피 안의 모든 SHOT 을 같은 배율로 덮습니다.\n" +
                 "되돌리기 어려운 덮어쓰기입니다. 적용하시겠습니까?",
                 mmPerPixel, warnLine);
 

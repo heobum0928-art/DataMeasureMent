@@ -12,6 +12,14 @@ using ReringProject.Utility;
 
 namespace ReringProject.UI
 {
+    /// <summary>통계 행 상태 3단계. 정수값이 그대로 "나쁜 순" 정렬 순위(작을수록 나쁨, Task 1 R1/R3).</summary>
+    public enum EStatLevel
+    {
+        Bad = 0,
+        Warning = 1,
+        Normal = 2
+    }
+
     /// <summary>
     /// 통계 조회 결과 1행 — DataGrid 바인딩용 화면 모델(MeasurementStat 을 화면 표시용으로 변환).
     /// </summary>
@@ -48,6 +56,308 @@ namespace ReringProject.UI
         public double TolerancePlus { get; set; }
 
         public double ToleranceMinus { get; set; }
+
+        /// <summary>행 상태(R1) — RowStyle DataTrigger 바인딩 대상.</summary>
+        public EStatLevel StatusLevel { get; set; }
+
+        /// <summary>Cpk 칸 헤더 정렬용 숫자 키(R3, SortMemberPath 대상).</summary>
+        public double CpkSortValue { get; set; }
+
+        /// <summary>허용범위 칸 "하한 ~ 상한"(R4).</summary>
+        public string ToleranceRangeText { get; set; }
+
+        /// <summary>벗어난 양 칸 표시 문자열(R4).</summary>
+        public string OutOfRangeText { get; set; }
+
+        /// <summary>벗어난 양 칸 헤더 정렬용 숫자 키(R4). 범위 안/판정불가 = 0.</summary>
+        public double OutOfRangeAmount { get; set; }
+    }
+
+    /// <summary>
+    /// 통계 표 1행의 상태 판정·표시 문자열·정렬 키·요약·필터를 계산하는 순수 정적 헬퍼 (UI 비의존).
+    /// </summary>
+    public static class StatRowPresenter
+    {
+        private const double CPK_BAD_LIMIT = 1.0;              // Cpk 이 값 미만이면 불량
+        private const double CPK_WARN_LIMIT = 1.33;            // Cpk 이 값 미만이면 주의
+        private const int MIN_SAMPLES_FOR_CPK = 2;             // 표본 1개 이하면 산포가 없어 Cpk 판정에 쓰지 않음
+        private const double CPK_SORT_INFINITE = double.MaxValue;           // Cpk ∞(산포 0) 정렬 키 — 모든 유한값 뒤
+        private const double CPK_SORT_NOT_COMPUTABLE = double.PositiveInfinity; // 계산불가 정렬 키 — ∞ 보다도 뒤(맨 뒤)
+        private const string VALUE_FORMAT = "F4";
+        private const string CPK_FORMAT = "F3";
+        private const string YIELD_FORMAT = "F2";
+        private const double PERCENT_SCALE = 100.0;
+        private const string NO_VALUE_TEXT = "-";
+        private const string UPPER_PREFIX = "상한 +";
+        private const string LOWER_PREFIX = "하한 −";           // 유니코드 마이너스(U+2212)
+        private const string RANGE_SEPARATOR = " ~ ";
+
+        /// <summary>Stats 딕셔너리(Shot/FAI/측정명 키)를 DataGrid 바인딩용 화면 행 리스트로 변환한다.</summary>
+        public static List<StatRow> BuildRows(Dictionary<string, MeasurementStat> stats)
+        {
+            var rows = new List<StatRow>();
+            if (stats == null)
+            {
+                return rows;
+            }
+
+            foreach (var kv in stats)
+            {
+                MeasurementStat s = kv.Value;
+                var row = new StatRow();
+                row.Key = kv.Key;
+                row.ShotName = s.ShotName;
+                row.FAIName = s.FAIName;
+                row.MeasurementName = s.MeasurementName;
+                row.N = s.N;
+                row.Mean = s.Mean;
+                row.StdDev = s.StdDev;
+                row.Range = s.Range;
+                row.CpkText = CpkToText(s.Cpk);
+                row.OkCount = s.OkCount;
+                row.NgCount = s.NgCount;
+                row.DetectFailCount = s.DetectFailCount;
+                row.YieldRateText = YieldRateToText(s.OkCount, s.NgCount);   // 불량률→수율 긍정지표 전환
+                row.NominalValue = s.NominalValue;
+                row.TolerancePlus = s.TolerancePlus;
+                row.ToleranceMinus = s.ToleranceMinus;
+                row.StatusLevel = JudgeStatus(s);
+                row.CpkSortValue = GetCpkSortValue(s);
+                row.ToleranceRangeText = BuildToleranceRangeText(s);
+                FillOutOfRange(row, s);
+                rows.Add(row);
+            }
+
+            return rows;
+        }
+
+        /// <summary>Cpk 표시 문자열 — 무한대/NaN 방어(if/else, 삼항 금지).</summary>
+        public static string CpkToText(double dCpk)
+        {
+            if (double.IsPositiveInfinity(dCpk))
+            {
+                return "∞";   // ∞
+            }
+
+            if (double.IsNegativeInfinity(dCpk) || double.IsNaN(dCpk))
+            {
+                return NO_VALUE_TEXT;
+            }
+
+            return dCpk.ToString(CPK_FORMAT);
+        }
+
+        /// <summary>수율(Yield, %) 표시 문자열 = OK/(OK+NG). 값 클수록 좋음. 분모 0 방어(if/else, 삼항 금지).</summary>
+        public static string YieldRateToText(int nOk, int nNg)
+        {
+            int nTotal = nOk + nNg;
+            if (nTotal == 0)
+            {
+                return NO_VALUE_TEXT;
+            }
+
+            double d = nOk * PERCENT_SCALE / nTotal;
+            return d.ToString(YIELD_FORMAT) + "%";
+        }
+
+        /// <summary>공차 미설정이면 Cpk 가 0 이하로 계산돼(USL=LSL=Nominal) 거짓 불량이 되므로 판정에서 제외한다.</summary>
+        private static bool IsCpkUsable(MeasurementStat s)
+        {
+            bool bTooFewSamples = s.N < MIN_SAMPLES_FOR_CPK;
+            bool bNotFinite = double.IsInfinity(s.Cpk) || double.IsNaN(s.Cpk);
+            bool bNoTolerance = HasNoTolerance(s);
+
+            if (bTooFewSamples)
+            {
+                return false;
+            }
+
+            if (bNotFinite)
+            {
+                return false;
+            }
+
+            if (bNoTolerance)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool HasNoTolerance(MeasurementStat s)
+        {
+            return s.TolerancePlus == 0.0 && s.ToleranceMinus == 0.0;
+        }
+
+        /// <summary>행 상태 판정(R1). NG 1건이라도 있으면 항상 불량 — 은폐 방향 판정 없음.</summary>
+        public static EStatLevel JudgeStatus(MeasurementStat s)
+        {
+            if (s.NgCount > 0)
+            {
+                return EStatLevel.Bad;
+            }
+
+            if (!IsCpkUsable(s))
+            {
+                return EStatLevel.Normal;   // ∞/계산불가/공차 미설정/표본 부족 → 수율만으로 판정
+            }
+
+            if (s.Cpk < CPK_BAD_LIMIT)
+            {
+                return EStatLevel.Bad;
+            }
+
+            if (s.Cpk < CPK_WARN_LIMIT)
+            {
+                return EStatLevel.Warning;
+            }
+
+            return EStatLevel.Normal;
+        }
+
+        /// <summary>Cpk 헤더 정렬용 숫자 키(R3). 판정과 일관되게 계산불가 계열은 맨 뒤로 보낸다.</summary>
+        public static double GetCpkSortValue(MeasurementStat s)
+        {
+            if (double.IsPositiveInfinity(s.Cpk))
+            {
+                return CPK_SORT_INFINITE;
+            }
+
+            if (double.IsNegativeInfinity(s.Cpk) || double.IsNaN(s.Cpk))
+            {
+                return CPK_SORT_NOT_COMPUTABLE;
+            }
+
+            if (HasNoTolerance(s))
+            {
+                return CPK_SORT_NOT_COMPUTABLE;
+            }
+
+            if (s.N < MIN_SAMPLES_FOR_CPK)
+            {
+                return CPK_SORT_NOT_COMPUTABLE;
+            }
+
+            return s.Cpk;
+        }
+
+        /// <summary>허용범위 칸 문자열 "하한 ~ 상한"(R4). 공차 미설정이면 "-".</summary>
+        public static string BuildToleranceRangeText(MeasurementStat s)
+        {
+            if (HasNoTolerance(s))
+            {
+                return NO_VALUE_TEXT;
+            }
+
+            double dLsl = s.NominalValue - Math.Abs(s.ToleranceMinus);
+            double dUsl = s.NominalValue + s.TolerancePlus;
+            return dLsl.ToString(VALUE_FORMAT) + RANGE_SEPARATOR + dUsl.ToString(VALUE_FORMAT);
+        }
+
+        /// <summary>벗어난 양 칸(R4) — Text/Amount 를 함께 채운다. 기본값은 범위 안/판정불가.</summary>
+        private static void FillOutOfRange(StatRow row, MeasurementStat s)
+        {
+            row.OutOfRangeText = NO_VALUE_TEXT;
+            row.OutOfRangeAmount = 0.0;
+
+            if (HasNoTolerance(s))
+            {
+                return;
+            }
+
+            if (s.N == 0)
+            {
+                return;
+            }
+
+            double dLsl = s.NominalValue - Math.Abs(s.ToleranceMinus);
+            double dUsl = s.NominalValue + s.TolerancePlus;
+
+            if (s.Mean > dUsl)
+            {
+                row.OutOfRangeText = UPPER_PREFIX + (s.Mean - dUsl).ToString(VALUE_FORMAT);
+                row.OutOfRangeAmount = s.Mean - dUsl;
+            }
+            else if (s.Mean < dLsl)
+            {
+                row.OutOfRangeText = LOWER_PREFIX + (dLsl - s.Mean).ToString(VALUE_FORMAT);
+                row.OutOfRangeAmount = dLsl - s.Mean;
+            }
+        }
+
+        /// <summary>기본 정렬을 나쁜 순으로 바꾼다(R3). rows 가 null 이면 아무 것도 하지 않는다.</summary>
+        public static void SortWorstFirst(List<StatRow> rows)
+        {
+            if (rows == null)
+            {
+                return;
+            }
+
+            rows.Sort(CompareWorstFirst);
+        }
+
+        /// <summary>불량 → 주의 → 정상, 같은 상태 안에서는 Cpk 오름차순, 그다음 Key 로 안정 정렬을 흉내낸다.</summary>
+        private static int CompareWorstFirst(StatRow a, StatRow b)
+        {
+            int nLevelCompare = ((int)a.StatusLevel).CompareTo((int)b.StatusLevel);
+            if (nLevelCompare != 0)
+            {
+                return nLevelCompare;
+            }
+
+            int nCpkCompare = a.CpkSortValue.CompareTo(b.CpkSortValue);
+            if (nCpkCompare != 0)
+            {
+                return nCpkCompare;
+            }
+
+            return string.CompareOrdinal(a.Key, b.Key);
+        }
+
+        /// <summary>필터바 아래 요약 한 줄(R5). rows 는 필터 무관 전체 기준. null 이면 개수 0.</summary>
+        public static string BuildSummary(List<StatRow> rows)
+        {
+            int nBad = 0;
+            int nWarning = 0;
+            int nNormal = 0;
+
+            if (rows != null)
+            {
+                foreach (StatRow row in rows)
+                {
+                    switch (row.StatusLevel)
+                    {
+                        case EStatLevel.Bad:
+                            nBad++;
+                            break;
+                        case EStatLevel.Warning:
+                            nWarning++;
+                            break;
+                        case EStatLevel.Normal:
+                            nNormal++;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            int nTotal = nBad + nWarning + nNormal;
+            return "전체 " + nTotal + "항목 · 불량 " + nBad + " · 주의 " + nWarning + " · 정상 " + nNormal;
+        }
+
+        /// <summary>DataGrid Items.Filter(Predicate&lt;object&gt;) 용 — 문제(불량/주의) 행만 남긴다(R2).</summary>
+        public static bool IsProblemRow(object item)
+        {
+            StatRow row = item as StatRow;
+            if (row == null)
+            {
+                return false;
+            }
+
+            return row.StatusLevel != EStatLevel.Normal;
+        }
     }
 
     /// <summary>
@@ -87,7 +397,9 @@ namespace ReringProject.UI
 
                 m_lastResult = MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szRecipeFilter);
                 PopulateRecipeCombo(m_lastResult.RecipeNames, szRecipeFilter);
-                grid_Stats.ItemsSource = BuildRows(m_lastResult.Stats);
+                List<StatRow> rows = StatRowPresenter.BuildRows(m_lastResult.Stats);
+                StatRowPresenter.SortWorstFirst(rows);
+                grid_Stats.ItemsSource = rows;
                 ClearCharts();   // 새 조회 직후 → 이전 선택 차트 비움(행 선택 시 다시 갱신)
                 UpdateExportButtonState();
             }
@@ -232,70 +544,6 @@ namespace ReringProject.UI
             {
                 combo_Recipe.SelectedItem = RECIPE_ALL;
             }
-        }
-
-        /// <summary>Stats 딕셔너리(Shot/FAI/측정명 키)를 DataGrid 바인딩용 화면 행 리스트로 변환한다.</summary>
-        private List<StatRow> BuildRows(Dictionary<string, MeasurementStat> stats)
-        {
-            var rows = new List<StatRow>();
-            if (stats == null)
-            {
-                return rows;
-            }
-
-            foreach (var kv in stats)
-            {
-                MeasurementStat s = kv.Value;
-                var row = new StatRow();
-                row.Key = kv.Key;
-                row.ShotName = s.ShotName;
-                row.FAIName = s.FAIName;
-                row.MeasurementName = s.MeasurementName;
-                row.N = s.N;
-                row.Mean = s.Mean;
-                row.StdDev = s.StdDev;
-                row.Range = s.Range;
-                row.CpkText = CpkToText(s.Cpk);
-                row.OkCount = s.OkCount;
-                row.NgCount = s.NgCount;
-                row.DetectFailCount = s.DetectFailCount;
-                row.YieldRateText = YieldRateToText(s.OkCount, s.NgCount);   //260707 hbk 불량률→수율
-                row.NominalValue = s.NominalValue;
-                row.TolerancePlus = s.TolerancePlus;
-                row.ToleranceMinus = s.ToleranceMinus;
-                rows.Add(row);
-            }
-
-            return rows;
-        }
-
-        /// <summary>Cpk 표시 문자열 — 무한대/NaN 방어(if/else, 삼항 금지).</summary>
-        private string CpkToText(double dCpk)
-        {
-            if (double.IsPositiveInfinity(dCpk))
-            {
-                return "∞";   // ∞
-            }
-
-            if (double.IsNegativeInfinity(dCpk) || double.IsNaN(dCpk))
-            {
-                return "-";
-            }
-
-            return dCpk.ToString("F3");
-        }
-
-        /// <summary>수율(Yield, %) 표시 문자열 = OK/(OK+NG). 값 클수록 좋음. 분모 0 방어(if/else, 삼항 금지). //260707 hbk 불량률→수율 긍정지표 전환</summary>
-        private string YieldRateToText(int nOk, int nNg)   //260707 hbk 불량률(DefectRateToText)→수율로 대체
-        {
-            int nTotal = nOk + nNg;
-            if (nTotal == 0)
-            {
-                return "-";
-            }
-
-            double d = nOk * 100.0 / nTotal;   //260707 hbk OK 비율(수율) — 기존 NG 비율에서 뒤집음
-            return d.ToString("F2") + "%";
         }
 
         /// <summary>DataGrid 행 선택 시 해당 측정키(Series)의 히스토그램/추이 차트를 갱신한다(D-12).</summary>

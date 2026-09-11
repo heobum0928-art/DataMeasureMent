@@ -189,3 +189,19 @@ TOP/BOTTOM 은 알고리즘이 달라 옵션이 보이지 않으므로 오조작
 **리서치 근거(76-RESEARCH.md):** SIDE 는 전부 `IsPatternAlignEnabled=True` 이며 이 경로에서 측정 ROI 이동에 쓰이는
 `_datumTransforms[datumKey]` 는 이미 패턴매칭만으로 산출된 `alignRigid` 다(`InspectionSequence.cs:3044,3049`).
 라인 검출 결과는 즉시 버려지고, 세로선은 (1) 성공/실패 게이트 (2) 표시·부수 소비자용 `DetectedOrigin*` 채움에만 쓰인다.
+
+---
+
+<decisions>
+
+기계 판독용 요약 (위 본문 D-76-01~07 과 동일 내용 — 결정 커버리지 게이트 입력)
+
+- **D-76-01:** 옵션 단위 = Datum 별 `DatumConfig` 속성(레시피 저장), `VerticalTwoHorizontalDualImage` Datum 에만 노출 → SIDE 1~4 전용. INI 키 부재 시 false.
+- **D-76-02:** 옵션 ON 이면 세로는 항상 무시 — 세로 이미지가 선명해도 세로선 검출 자체를 돌리지 않는다.
+- **D-76-03:** 세로 이미지는 ZIndexB 에서 계속 촬영·저장 — z index / PLC 프로토콜 불변.
+- **D-76-04:** 옵션 ON 이면 Datum Find(자동 사이클 + 수동 Test Find) 는 가로선 + 패턴매칭 성공 시 OK.
+- **D-76-05:** 원점 X = 패턴매칭 변환, 원점 Y · 각도 = 가로 결합선. SIDE 는 매칭 항상 사용.
+- **D-76-06:** View 는 가로선만 — 세로선·세로 에지점·세로 기준방향(원점 십자 세로 팔 포함) 미표시.
+- **D-76-07:** 티칭 경로는 그대로 — 옵션 ON 이어도 티칭은 세로선으로 원점을 잡는다.
+
+</decisions>

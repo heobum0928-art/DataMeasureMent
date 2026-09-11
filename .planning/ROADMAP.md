@@ -1288,11 +1288,18 @@ Plans:
 
 **Requirements**: SDV-01 (옵션), SDV-02 (가로 전용 datum 산출), SDV-03 (가로 전용 표시), SDV-04 (회귀 0)
 **Depends on:** Phase 75
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 76 to break down)
+**Wave 1**
+- [ ] 76-01-PLAN.md — 옵션 `IsVerticalLineDisabled` 추가 + 옵션 ON 이면 세로선 검출 없이 가로선 + 패턴매칭으로 datum 생성 (SDV-01, SDV-02, SDV-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 76-02-PLAN.md — 옵션 ON 이면 화면·저장 캡처에서 세로선/세로 에지점/세로 기준선/원점 십자 세로 팔 미표시 (SDV-03, SDV-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 76-03-PLAN.md — 두 빌드 구성 회귀 0 증거 + 버전 표기 + SIDE PC 실기 UAT 체크포인트 (전 요구사항)
 
 ---
 

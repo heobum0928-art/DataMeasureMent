@@ -28,6 +28,9 @@
                 <Button x:Name="btn_CpkExport" Content="CPK 리포트 export" Click="Btn_CpkExport_Click"
                         IsEnabled="False"
                         Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
+                <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
+                           VerticalAlignment="Center" FontSize="12" Foreground="#B45309" Margin="16,0,0,0"/>
             </StackPanel>
         </Border>
 

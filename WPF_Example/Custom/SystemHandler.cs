@@ -116,6 +116,8 @@ namespace ReringProject {
                         break;
                     case VisionRequestType.Test:
                         if (Setting.AutoLogoutWhenRecvTest && Login.IsLogin) { Login.LogOut(); }
+                        // 네트워크(PLC)로 들어온 $TEST 만 해당 — 화면의 수동 사이클 트리거는 ProcessTest 를 직접 불러 여기를 안 거친다.
+                        ForceOfflineInspectModeOffForAutoTest();
 
                         if (!ProcessTest(packet.AsTest())) {
                             Logging.PrintLog((int)ELogType.Error, "Client {0} : Fail to Start Sequence. sender:{1}, identifier:{2}", i, packet.Sender, packet.Identifier);
@@ -283,6 +285,30 @@ namespace ReringProject {
                 return NO_SEQUENCE_DATUM_Z_INDEX;
             }
             return inspSeq.GetDatumZIndex();
+        }
+
+        // PLC $TEST(자동 검사)가 들어왔는데 OfflineInspectMode 가 켜져 있으면 강제로 끈다.
+        //  오프라인 모드는 저장된 사진으로 검사하는 수동 점검용이다. 켜진 채로 자동 검사를 받으면
+        //  카메라 앞의 실물이 아니라 옛 사진으로 판정이 나가는데, TCP 경로에는 확인창이 없어 PLC 쪽에서는
+        //  알아챌 방법이 없다(2026-08 실사고). 이 $TEST 부터 실물 촬영으로 돌아가도록 여기서 끈다.
+        //  시작 시 강제 OFF(SystemHandler.Initialize)와 같은 규칙: 메모리와 Setting.ini 둘 다 끄고,
+        //  저장이 실패해도 메모리는 이미 OFF 이므로 검사는 그대로 진행한다.
+        private void ForceOfflineInspectModeOffForAutoTest()
+        {
+            if (!Setting.OfflineInspectMode)
+            {
+                return;
+            }
+            Setting.OfflineInspectMode = false;
+            Logging.PrintLog((int)ELogType.Trace, "[AUTO] PLC $TEST 수신 — OfflineInspectMode 가 켜져 있어 강제로 껐다(이번 검사부터 실물 촬영).");
+            try
+            {
+                Setting.Save();
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[AUTO] OfflineInspectMode 끄기 저장 실패(메모리는 OFF): {0}", ex.Message);
+            }
         }
 
         //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)

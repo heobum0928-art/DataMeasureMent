@@ -49,6 +49,7 @@ namespace ReringProject.Sequence
         //  COLUMN_COUNT 는 14 로 유지한다: 15 로 올리면 기존 14컬럼 파일이 전부 "손상 행"으로 걸러진다.
         private const int COL_RUNMODE = 14;
         private const string RUNMODE_AUTO_TEXT = "자동";
+        private const string RUNMODE_MANUAL_TEXT = "수동";
 
         /// <summary>
         /// dtFrom~dtTo 기간의 일자별 CSV 를 읽어 통계/추이/레시피목록을 반환한다.
@@ -138,6 +139,10 @@ namespace ReringProject.Sequence
             recipeSet.Add(szRecipe);   //260707 hbk D-11 필터 전에 distinct 수집(드롭다운용)
 
             if (!string.IsNullOrEmpty(szRecipeFilter) && szRecipe != szRecipeFilter)
+            {
+                return;
+            }
+            if (IsManualRow(fields))
             {
                 return;
             }
@@ -346,6 +351,10 @@ namespace ReringProject.Sequence
             {
                 return;
             }
+            if (IsManualRow(fields))
+            {
+                return;
+            }
 
             string szTime = fields[COL_TIME];
             string szIndex = fields[COL_INDEX];
@@ -418,6 +427,21 @@ namespace ReringProject.Sequence
                 return false;
             }
             return fields[COL_RUNMODE] == RUNMODE_AUTO_TEXT;
+        }
+
+        // 양산 통계는 PLC 자동 검사만 집계한다 — 화면 RUN/일괄/반복 같은 수동 검사는 같은 부품을 몇 번이고
+        //  다시 재는 용도라, 섞이면 항목마다 N 이 들쭉날쭉해지고 수율·Cpk 가 왜곡된다(실측: 같은 날 A1-23 14회,
+        //  I9 11회, I10 9회로 갈라짐). "수동"이 명시된 행만 뺀다. 검사구분 컬럼이 없는 구 CSV(14컬럼)는
+        //  자동/수동을 가릴 근거가 없으므로 예전처럼 포함한다(과거 조회 결과가 갑자기 비지 않게).
+        //  CSV 파일 자체에는 수동 기록도 그대로 남는다 — 여기서는 통계에 넣지 않을 뿐이다.
+        private static bool IsManualRow(List<string> fields)
+        {
+            bool bHasColumn = fields.Count > COL_RUNMODE;
+            if (!bHasColumn)
+            {
+                return false;
+            }
+            return fields[COL_RUNMODE] == RUNMODE_MANUAL_TEXT;
         }
 
         /// <summary>자재번호 파싱. 공백/실패는 -1(CycleResultDto.IndexNumber 의 미지정 sentinel).</summary>

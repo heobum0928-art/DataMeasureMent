@@ -397,6 +397,8 @@ namespace ReringProject.Halcon.Display
             //260619 hbk Phase 56 — LastFindSucceeded OR 유효 DetectedOrigin 이면 렌더. 결과화면 datum 은 검사시 검출좌표는 유효한데
             //  LastFind 플래그가 false 인 경우 있음(복원/재티칭 경로 게이트) → 좌표 유효성으로 게이트 완화. (0,0)=휘발/미검출만 skip.
             if (!datum.LastFindSucceeded && datum.DetectedOriginRow == 0.0 && datum.DetectedOriginCol == 0.0) return;
+            // 세로선 끄기 Datum 은 세로 요소를 그리지 않는다 — DetectedRefAngle2 값에 기대면 각도 0 에서도 선이 그려진다(76-02).
+            bool bDrawVertical = !datum.IsHorizontalOnlyActive();
             try
             {
                 // 검출 origin 십자. RenderDatumOverlay 의 RefOrigin 십자(고정 15~20px)와 동일 방식.
@@ -404,9 +406,12 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.SetColor(window, "slate blue");
                 HOperatorSet.SetLineWidth(window, 2);
                 const double crossHalf = 20.0; // teach 오버레이와 동일 고정 크기
-                HOperatorSet.DispLine(window,
-                    datum.DetectedOriginRow - crossHalf, datum.DetectedOriginCol,
-                    datum.DetectedOriginRow + crossHalf, datum.DetectedOriginCol);
+                if (bDrawVertical)
+                {
+                    HOperatorSet.DispLine(window,
+                        datum.DetectedOriginRow - crossHalf, datum.DetectedOriginCol,
+                        datum.DetectedOriginRow + crossHalf, datum.DetectedOriginCol);
+                }
                 HOperatorSet.DispLine(window,
                     datum.DetectedOriginRow, datum.DetectedOriginCol - crossHalf,
                     datum.DetectedOriginRow, datum.DetectedOriginCol + crossHalf);
@@ -449,24 +454,27 @@ namespace ReringProject.Halcon.Display
                     datum.DetectedOriginRow + datumLineHalf * hSin, datum.DetectedOriginCol + datumLineHalf * hCos);
                 //260619 hbk Phase 56 — 수직 기준선: CTH(원검출 datum)는 교점(DetectedOrigin)↔원중심(DetectedCircle) 잇는 직선 → 교점·원중심 둘 다 확실히 통과(사용자 요구).
                 //  그 외 datum 은 검출 수직 기준각(DetectedRefAngle2) 방향. 둘 다 교점 피벗·이미지 전체 길이. ※'RefAngle+90°+원중심피벗' 은 교점 빗나가 회귀 → 금지.
-                double vDirRow, vDirCol;
-                if (datum.DetectedCircleRow != 0.0 || datum.DetectedCircleCol != 0.0)
+                if (bDrawVertical)
                 {
-                    vDirRow = datum.DetectedCircleRow - datum.DetectedOriginRow;
-                    vDirCol = datum.DetectedCircleCol - datum.DetectedOriginCol;
-                }
-                else
-                {
-                    vDirRow = System.Math.Sin(datum.DetectedRefAngle2);
-                    vDirCol = System.Math.Cos(datum.DetectedRefAngle2);
-                }
-                double vDirLen = System.Math.Sqrt(vDirRow * vDirRow + vDirCol * vDirCol);
-                if (vDirLen > 1e-6)
-                {
-                    double vur = vDirRow / vDirLen, vuc = vDirCol / vDirLen;
-                    HOperatorSet.DispLine(window,
-                        datum.DetectedOriginRow - datumLineHalf * vur, datum.DetectedOriginCol - datumLineHalf * vuc,
-                        datum.DetectedOriginRow + datumLineHalf * vur, datum.DetectedOriginCol + datumLineHalf * vuc);
+                    double vDirRow, vDirCol;
+                    if (datum.DetectedCircleRow != 0.0 || datum.DetectedCircleCol != 0.0)
+                    {
+                        vDirRow = datum.DetectedCircleRow - datum.DetectedOriginRow;
+                        vDirCol = datum.DetectedCircleCol - datum.DetectedOriginCol;
+                    }
+                    else
+                    {
+                        vDirRow = System.Math.Sin(datum.DetectedRefAngle2);
+                        vDirCol = System.Math.Cos(datum.DetectedRefAngle2);
+                    }
+                    double vDirLen = System.Math.Sqrt(vDirRow * vDirRow + vDirCol * vDirCol);
+                    if (vDirLen > 1e-6)
+                    {
+                        double vur = vDirRow / vDirLen, vuc = vDirCol / vDirLen;
+                        HOperatorSet.DispLine(window,
+                            datum.DetectedOriginRow - datumLineHalf * vur, datum.DetectedOriginCol - datumLineHalf * vuc,
+                            datum.DetectedOriginRow + datumLineHalf * vur, datum.DetectedOriginCol + datumLineHalf * vuc);
+                    }
                 }
 
                 // ExpectedAngleDeg 점선 화살표 (AngleTolerance > 0 sentinel 활성 시에만).

@@ -16,21 +16,32 @@
 
         <!-- Row0: 필터바 - 기간 DatePicker(기본 오늘, D-10) + 레시피 콤보 + 조회 버튼 (D-11) -->
         <Border Grid.Row="0" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="8,6">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="기간" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="0,0,6,0"/>
-                <DatePicker x:Name="dp_From" Width="130" VerticalAlignment="Center"/>
-                <TextBlock Text="~" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="6,0,6,0"/>
-                <DatePicker x:Name="dp_To" Width="130" VerticalAlignment="Center"/>
-                <TextBlock Text="레시피" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="16,0,6,0"/>
-                <ComboBox x:Name="combo_Recipe" Width="180" VerticalAlignment="Center"/>
-                <Button x:Name="btn_Query" Content="조회" Click="Btn_Query_Click"
-                        Padding="14,4" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                <Button x:Name="btn_CpkExport" Content="CPK 리포트 export" Click="Btn_CpkExport_Click"
-                        IsEnabled="False"
-                        Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
-                <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
-                           VerticalAlignment="Center" FontSize="12" Foreground="#B45309" Margin="16,0,0,0"/>
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="기간" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="0,0,6,0"/>
+                    <DatePicker x:Name="dp_From" Width="130" VerticalAlignment="Center"/>
+                    <TextBlock Text="~" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="6,0,6,0"/>
+                    <DatePicker x:Name="dp_To" Width="130" VerticalAlignment="Center"/>
+                    <TextBlock Text="레시피" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="16,0,6,0"/>
+                    <ComboBox x:Name="combo_Recipe" Width="180" VerticalAlignment="Center"/>
+                    <Button x:Name="btn_Query" Content="조회" Click="Btn_Query_Click"
+                            Padding="14,4" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                    <Button x:Name="btn_CpkExport" Content="CPK 리포트 export" Click="Btn_CpkExport_Click"
+                            IsEnabled="False"
+                            Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
+                    <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
+                               VerticalAlignment="Center" FontSize="12" Foreground="#B45309" Margin="16,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <CheckBox x:Name="chk_ProblemOnly" Content="문제 항목만 보기 (불량·주의)"
+                              Checked="Chk_ProblemOnly_Changed" Unchecked="Chk_ProblemOnly_Changed"
+                              VerticalAlignment="Center" FontSize="13"/>
+                    <TextBlock x:Name="txt_Summary" Margin="24,0,0,0" FontSize="13" FontWeight="SemiBold"
+                               Foreground="#334155" VerticalAlignment="Center"/>
+                    <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
+                               Margin="24,0,0,0" FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -49,6 +60,14 @@
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
+                        <DataTrigger Binding="{Binding StatusLevel}" Value="Bad">
+                            <Setter Property="Background" Value="#FEE2E2"/>
+                            <Setter Property="Foreground" Value="#991B1B"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding StatusLevel}" Value="Warning">
+                            <Setter Property="Background" Value="#FEF9C3"/>
+                            <Setter Property="Foreground" Value="#854D0E"/>
+                        </DataTrigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="BorderBrush" Value="#1565C0"/>
                             <Setter Property="BorderThickness" Value="2"/>
@@ -58,18 +77,21 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Shot"     Binding="{Binding ShotName}"        Width="70"/>
-                <DataGridTextColumn Header="FAI"      Binding="{Binding FAIName}"         Width="70"/>
-                <DataGridTextColumn Header="측정명"   Binding="{Binding MeasurementName}" Width="110"/>
-                <DataGridTextColumn Header="N"        Binding="{Binding N}"               Width="50"/>
-                <DataGridTextColumn Header="평균"     Binding="{Binding Mean, StringFormat=F4}"   Width="75"/>
-                <DataGridTextColumn Header="표준편차" Binding="{Binding StdDev, StringFormat=F4}" Width="80"/>
-                <DataGridTextColumn Header="범위"     Binding="{Binding Range, StringFormat=F4}"  Width="75"/>
-                <DataGridTextColumn Header="Cpk"      Binding="{Binding CpkText}"         Width="65"/>
-                <DataGridTextColumn Header="OK"       Binding="{Binding OkCount}"         Width="50"/>
-                <DataGridTextColumn Header="NG"       Binding="{Binding NgCount}"         Width="50"/>
-                <DataGridTextColumn Header="검출실패" Binding="{Binding DetectFailCount}" Width="65"/>
-                <DataGridTextColumn Header="수율"     Binding="{Binding YieldRateText}"   Width="70"/>
+                <DataGridTextColumn Header="Shot"       Binding="{Binding ShotName}"        Width="70"/>
+                <DataGridTextColumn Header="FAI"        Binding="{Binding FAIName}"         Width="70"/>
+                <DataGridTextColumn Header="측정명"     Binding="{Binding MeasurementName}" Width="110"/>
+                <DataGridTextColumn Header="기준"       Binding="{Binding NominalValue, StringFormat=F4}" Width="75"/>
+                <DataGridTextColumn Header="허용범위"   Binding="{Binding ToleranceRangeText}" Width="140"/>
+                <DataGridTextColumn Header="N"          Binding="{Binding N}"               Width="45"/>
+                <DataGridTextColumn Header="평균"       Binding="{Binding Mean, StringFormat=F4}"   Width="75"/>
+                <DataGridTextColumn Header="벗어난 양"  Binding="{Binding OutOfRangeText}" SortMemberPath="OutOfRangeAmount" Width="110"/>
+                <DataGridTextColumn Header="표준편차"   Binding="{Binding StdDev, StringFormat=F4}" Width="75"/>
+                <DataGridTextColumn Header="범위"       Binding="{Binding Range, StringFormat=F4}"  Width="70"/>
+                <DataGridTextColumn Header="Cpk"        Binding="{Binding CpkText}" SortMemberPath="CpkSortValue" Width="65"/>
+                <DataGridTextColumn Header="OK"         Binding="{Binding OkCount}"         Width="45"/>
+                <DataGridTextColumn Header="NG"         Binding="{Binding NgCount}"         Width="45"/>
+                <DataGridTextColumn Header="검출실패"   Binding="{Binding DetectFailCount}" Width="65"/>
+                <DataGridTextColumn Header="수율"       Binding="{Binding YieldRateText}"   Width="70"/>
             </DataGrid.Columns>
         </DataGrid>
 

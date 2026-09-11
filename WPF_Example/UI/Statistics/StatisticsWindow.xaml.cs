@@ -400,6 +400,8 @@ namespace ReringProject.UI
                 List<StatRow> rows = StatRowPresenter.BuildRows(m_lastResult.Stats);
                 StatRowPresenter.SortWorstFirst(rows);
                 grid_Stats.ItemsSource = rows;
+                ApplyProblemFilter();   // 새 ItemsSource 에도 현재 체크 상태 재적용
+                txt_Summary.Text = StatRowPresenter.BuildSummary(rows);   // 전체 rows 기준 — 필터 무관
                 ClearCharts();   // 새 조회 직후 → 이전 선택 차트 비움(행 선택 시 다시 갱신)
                 UpdateExportButtonState();
             }
@@ -601,6 +603,42 @@ namespace ReringProject.UI
         {
             canvas_Histogram.Children.Clear();
             canvas_Trend.Children.Clear();
+        }
+
+        /// <summary>"문제 항목만 보기" 체크 상태를 grid_Stats 뷰 필터에 반영한다(R2). ItemsSource 없으면 가드.</summary>
+        private void ApplyProblemFilter()
+        {
+            if (grid_Stats.ItemsSource == null)
+            {
+                return;
+            }
+
+            bool bOnlyProblem = chk_ProblemOnly.IsChecked == true;
+            if (bOnlyProblem)
+            {
+                grid_Stats.Items.Filter = new Predicate<object>(StatRowPresenter.IsProblemRow);
+            }
+            else
+            {
+                grid_Stats.Items.Filter = null;
+            }
+        }
+
+        /// <summary>"문제 항목만 보기" 체크박스 변경 시 즉시 필터를 적용한다. 선택 행이 걸러져 사라지면 차트를 비운다.</summary>
+        private void Chk_ProblemOnly_Changed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ApplyProblemFilter();
+                if (grid_Stats.SelectedItem == null)
+                {
+                    ClearCharts();
+                }
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[StatisticsWindow] Chk_ProblemOnly_Changed: " + ex.Message); } catch { }
+            }
         }
     }
 }

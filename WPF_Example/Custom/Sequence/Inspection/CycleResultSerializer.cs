@@ -14,7 +14,7 @@ namespace ReringProject.Sequence
     /// <summary>
     /// 검사 cycle 결과를 구조화 JSON 으로 저장/로드하는 정적 서비스.
     /// 리뷰어 재렌더와 xlsx export 의 공통 단일 데이터 소스.
-    /// 저장 경로: ResultSavePath/{YYYYMMDD}/{HHmmss}_cycle/cycle.json.
+    /// 저장 경로: ResultSavePath/{YYYYMMDD}/{HHmmssfff}_cycle/cycle.json.
     /// cycleDir 계산은 ResultSavePath + DateTime 포맷팅만 사용 — 외부 입력 없음, path traversal 불가.
     /// Load 는 TypeNameHandling.None 명시 + try/catch → null 반환 — RCE 방지.
     /// </summary>
@@ -216,14 +216,18 @@ namespace ReringProject.Sequence
                 return;
             }
 
-            // CycleFolderPath 계산: ResultSavePath + yyyyMMdd + HHmmss_cycle
+            // CycleFolderPath 계산: ResultSavePath + yyyyMMdd + HHmmssfff_cycle
             // 외부 입력 없음 — ResultSavePath + DateTime 포맷팅만 사용, path traversal 불가
+            //  밀리초까지 넣는다: 자동 검사는 z 한 칸이 1초 안에 끝나기도 해서, 초 단위 이름이면 같은 초에 끝난
+            //  두 tick 이 같은 폴더를 써 앞 tick 의 cycle.json 이 덮어써졌다(실측: 12:56:26 에 z=22 기록 소실 →
+            //  리뷰어 목록·저장 사진 재검사에서 그 부품이 빠짐). 이름 끝 "_cycle" 은 유지 — 리뷰어/재검사가
+            //  "*_cycle" 로 폴더를 찾고, 앞 6자리(HHmmss)는 그대로라 기존 폴더와 섞여도 시간 순 정렬이 유지된다.
             string dateDir = Path.Combine(
                 SystemHandler.Handle.Setting.ResultSavePath,
                 dto.InspectionTime.ToString("yyyyMMdd"));
             string cycleDir = Path.Combine(
                 dateDir,
-                dto.InspectionTime.ToString("HHmmss") + "_cycle");
+                dto.InspectionTime.ToString("HHmmssfff") + "_cycle");
 
             dto.CycleFolderPath = cycleDir;
 

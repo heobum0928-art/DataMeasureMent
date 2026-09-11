@@ -2,6 +2,8 @@
 //260707 hbk quick-260707-fdx ChartDirector(유료·워터마크) 제거 → 히스토그램/추이 차트를 WPF Canvas 도형으로 재구현
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -71,6 +73,15 @@ namespace ReringProject.UI
 
         /// <summary>벗어난 양 칸 헤더 정렬용 숫자 키(R4). 범위 안/판정불가 = 0.</summary>
         public double OutOfRangeAmount { get; set; }
+
+        /// <summary>quick-260911-fia Task 4: 재검사 표 전용 — 같은 키의 원래(재검사 전) 평균 표시. 비교 불가면 "-".</summary>
+        public string OriginalMeanText { get; set; }
+
+        /// <summary>quick-260911-fia Task 4: 재검사 평균 − 원래 평균 표시. 비교 불가면 "-".</summary>
+        public string DeltaText { get; set; }
+
+        /// <summary>quick-260911-fia Task 4: 변화 칸 헤더 정렬용 숫자 키 — 변화 크기(절댓값) 순 정렬.</summary>
+        public double DeltaSortValue { get; set; }
     }
 
     /// <summary>
@@ -358,6 +369,440 @@ namespace ReringProject.UI
 
             return row.StatusLevel != EStatLevel.Normal;
         }
+
+        /// <summary>재검사 전 통계 비교 불가(원래 데이터 없음/표본 0) 정렬 키 — 비교 가능한 값(항상 0 이상)보다 앞으로 보낸다.</summary>
+        private const double NO_ORIGINAL_SORT = -1.0;
+
+        /// <summary>
+        /// quick-260911-fia Task 4: rows(재검사 결과) 에 같은 키의 원래(재검사 전) 통계를 매칭해
+        /// OriginalMeanText/DeltaText/DeltaSortValue 를 채운다. 비교 불가(원래 통계 없음/표본 0)면 "-".
+        /// </summary>
+        public static void FillRerunComparison(List<StatRow> rows, Dictionary<string, MeasurementStat> originalStats)
+        {
+            if (rows == null)
+            {
+                return;
+            }
+
+            foreach (StatRow row in rows)
+            {
+                MeasurementStat original = null;
+                bool bHasOriginal = false;
+                if (originalStats != null)
+                {
+                    bHasOriginal = originalStats.TryGetValue(row.Key, out original);
+                }
+
+                bool bComparable = bHasOriginal && original.N > 0 && row.N > 0;
+                if (!bComparable)
+                {
+                    row.OriginalMeanText = NO_VALUE_TEXT;
+                    row.DeltaText = NO_VALUE_TEXT;
+                    row.DeltaSortValue = NO_ORIGINAL_SORT;
+                    continue;
+                }
+
+                row.OriginalMeanText = original.Mean.ToString(VALUE_FORMAT);
+
+                double dDelta = row.Mean - original.Mean;
+                string szDeltaText;
+                if (dDelta > 0.0)
+                {
+                    szDeltaText = "+" + dDelta.ToString(VALUE_FORMAT);
+                }
+                else
+                {
+                    szDeltaText = dDelta.ToString(VALUE_FORMAT);
+                }
+                row.DeltaText = szDeltaText;
+                // 가장 많이 변한 항목을 정렬로 쉽게 찾도록 절댓값을 정렬 키로 쓴다(방향 무관, 변화 크기 순).
+                row.DeltaSortValue = Math.Abs(dDelta);
+            }
+        }
+    }
+
+    /// <summary>
+    /// quick-260911-fia Task 4: "저장 사진으로 재검사" 화면 상태/흐름을 담당하는 ViewModel.
+    /// StatisticsWindow code-behind 는 배선만 하고, 계산 로직(계획 조회/통계 집계/원래 평균 비교)은
+    /// 이 클래스와 StatRowPresenter/SavedCycleRerunPlanner/RepeatMeasurementStats 에 둔다.
+    /// </summary>
+    public class StatisticsRerunViewModel : INotifyPropertyChanged
+    {
+        private const string EXPORT_PREFIX_RERUN = "cpk_rerun_";
+        private const string EXPORT_PREFIX_NORMAL = "cpk_report_";
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>재검사 결과 화면 갱신 준비 완료(통계/행 계산 끝) — UI 스레드에서 발화.</summary>
+        public event Action RerunViewReady;
+
+        private void RaisePropertyChanged(string szPropertyName)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, new PropertyChangedEventArgs(szPropertyName));
+            }
+        }
+
+        private List<string> _sequenceNames = new List<string>();
+        public List<string> SequenceNames
+        {
+            get { return _sequenceNames; }
+            private set { _sequenceNames = value; RaisePropertyChanged("SequenceNames"); }
+        }
+
+        private string _selectedSequenceName;
+        public string SelectedSequenceName
+        {
+            get { return _selectedSequenceName; }
+            set { _selectedSequenceName = value; RaisePropertyChanged("SelectedSequenceName"); }
+        }
+
+        private string _statusText = "";
+        public string StatusText
+        {
+            get { return _statusText; }
+            private set { _statusText = value; RaisePropertyChanged("StatusText"); }
+        }
+
+        private bool _bIsRerunning;
+        public bool IsRerunning
+        {
+            get { return _bIsRerunning; }
+            private set
+            {
+                _bIsRerunning = value;
+                RaisePropertyChanged("IsRerunning");
+                RaisePropertyChanged("CanStartRerun");
+            }
+        }
+
+        /// <summary>재검사 시작 버튼/시퀀스 콤보 활성화 조건 — 실행 중이 아닐 때만.</summary>
+        public bool CanStartRerun
+        {
+            get { return !IsRerunning; }
+        }
+
+        private bool _bIsShowingRerun;
+        public bool IsShowingRerun
+        {
+            get { return _bIsShowingRerun; }
+            private set { _bIsShowingRerun = value; RaisePropertyChanged("IsShowingRerun"); }
+        }
+
+        // 비바인딩(코드에서만 참조) — StatisticsWindow.ApplyRerunView 가 읽는다.
+        public List<StatRow> RerunRows { get; private set; } = new List<StatRow>();
+        public StatisticsQueryResult RerunResult { get; private set; }
+        public string RerunSummaryText { get; private set; } = "";
+        public List<CycleResultDto> RerunCycles { get; private set; } = new List<CycleResultDto>();
+        public string RerunRecipeName { get; private set; } = "";
+
+        private SavedCycleRerunPlan _currentPlan;
+        private Dictionary<string, MeasurementStat> _originalStatsForRerun = new Dictionary<string, MeasurementStat>();
+        private RepeatRunService _service;
+
+        /// <summary>이 시퀀스 소유 Shot 이 1개 이상인 InspectionSequence 이름만 콤보에 올린다. 첫 항목 선택.</summary>
+        public void LoadSequenceNames()
+        {
+            List<string> lstNames = new List<string>();
+            var seqHandler = SystemHandler.Handle.Sequences;
+            bool bHasRecipeManager = seqHandler != null && seqHandler.RecipeManager != null;
+            if (bHasRecipeManager)
+            {
+                for (int i = 0; i < seqHandler.Count; i++)
+                {
+                    InspectionSequence seq = seqHandler[i] as InspectionSequence;
+                    if (seq == null)
+                    {
+                        continue;
+                    }
+                    bool bHasOwnedShot = false;
+                    foreach (var shot in seqHandler.RecipeManager.Shots)
+                    {
+                        if (InspectionSequence.IsShotOwnedBySequence(shot, seq.Name))
+                        {
+                            bHasOwnedShot = true;
+                            break;
+                        }
+                    }
+                    if (bHasOwnedShot)
+                    {
+                        lstNames.Add(seq.Name);
+                    }
+                }
+            }
+
+            SequenceNames = lstNames;
+            if (lstNames.Count > 0)
+            {
+                SelectedSequenceName = lstNames[0];
+            }
+        }
+
+        private static InspectionSequence FindSequenceByName(string szName)
+        {
+            var seqHandler = SystemHandler.Handle.Sequences;
+            if (seqHandler == null)
+            {
+                return null;
+            }
+            for (int i = 0; i < seqHandler.Count; i++)
+            {
+                InspectionSequence seq = seqHandler[i] as InspectionSequence;
+                if (seq != null && string.Equals(seq.Name, szName, StringComparison.Ordinal))
+                {
+                    return seq;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>저장 사진 재검사를 시작한다. 동기 거부 사유는 szError 로 반환.</summary>
+        public bool TryStartRerun(DateTime dtFrom, DateTime dtTo, string szRecipeFilter, out string szError)
+        {
+            szError = null;
+
+            if (IsRerunning)
+            {
+                szError = "이미 재검사 중입니다";
+                return false;
+            }
+            if (string.IsNullOrEmpty(SelectedSequenceName))
+            {
+                szError = "재검사 시퀀스를 선택하세요";
+                return false;
+            }
+
+            InspectionSequence seq = FindSequenceByName(SelectedSequenceName);
+            if (seq == null)
+            {
+                szError = "시퀀스를 찾을 수 없습니다";
+                return false;
+            }
+
+            string szCurrentRecipe = SystemHandler.Handle.Setting.CurrentRecipeName;
+            if (string.IsNullOrEmpty(szCurrentRecipe))
+            {
+                szError = "현재 불러온 레시피가 없습니다";
+                return false;
+            }
+
+            bool bRecipeFilterMismatch = !string.IsNullOrEmpty(szRecipeFilter) && !string.Equals(szRecipeFilter, szCurrentRecipe, StringComparison.Ordinal);
+            if (bRecipeFilterMismatch)
+            {
+                szError = "재검사는 지금 불러온 레시피 파라미터로 돕니다. 레시피 콤보를 '전체' 또는 현재 레시피로 두세요";
+                return false;
+            }
+
+            if (seq.State != EContextState.Idle)
+            {
+                szError = "시퀀스가 실행 중입니다";
+                return false;
+            }
+
+            var seqHandler = SystemHandler.Handle.Sequences;
+            bool bNoRecipeManager = seqHandler == null || seqHandler.RecipeManager == null;
+            if (bNoRecipeManager)
+            {
+                szError = "레시피 정보를 찾을 수 없습니다";
+                return false;
+            }
+
+            IsRerunning = true;
+            StatusText = "저장 사이클 읽는 중";
+            RerunRecipeName = szCurrentRecipe;
+
+            var recipeManager = seqHandler.RecipeManager;
+            Task.Run(() =>
+            {
+                // 레시피 '전체' 선택 시 다른 레시피 값이 섞이지 않도록 원래 통계도 현재 레시피로 명시 조회한다.
+                SavedCycleRerunPlan plan = SavedCycleRerunPlanner.BuildPlan(dtFrom, dtTo, szCurrentRecipe, seq, recipeManager);
+                StatisticsQueryResult originalResult = MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szCurrentRecipe);
+                Application.Current.Dispatcher.BeginInvoke(new Action(() => OnPlanReady(plan, originalResult, seq)));
+            });
+
+            return true;
+        }
+
+        private void OnPlanReady(SavedCycleRerunPlan plan, StatisticsQueryResult originalResult, InspectionSequence seq)
+        {
+            _currentPlan = plan;
+            if (originalResult != null)
+            {
+                _originalStatsForRerun = originalResult.Stats;
+            }
+            else
+            {
+                _originalStatsForRerun = new Dictionary<string, MeasurementStat>();
+            }
+
+            if (plan.Parts.Count == 0)
+            {
+                StatusText = "재검사할 부품 없음 — " + plan.BuildExclusionSummary();
+                IsRerunning = false;
+                return;
+            }
+
+            _service = new RepeatRunService();
+            _service.OnProgressChanged += HandleServiceProgress;
+            _service.OnSavedCycleRerunEnded += HandleServiceEnded;
+
+            string szStartError;
+            bool bStarted = _service.StartFromSavedCycles(seq, plan, out szStartError);
+            if (!bStarted)
+            {
+                StatusText = szStartError;
+                IsRerunning = false;
+                _service.OnProgressChanged -= HandleServiceProgress;
+                _service.OnSavedCycleRerunEnded -= HandleServiceEnded;
+                _service = null;
+                return;
+            }
+
+            StatusText = "재검사 중 0/" + plan.Parts.Count + " 부품 (" + plan.BuildExclusionSummary() + ")";
+        }
+
+        // RepeatRunService.OnProgressChanged 는 시퀀스 스레드에서 발화(마샬 책임은 구독자) — Dispatcher.BeginInvoke
+        // 로 UI 스레드로 넘긴다(Invoke 동기 호출은 데드락 위험이 있어 금지).
+        private void HandleServiceProgress(int nCompleted, int nTarget)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                StatusText = "재검사 중 " + nCompleted + "/" + nTarget + " 부품 (" + BuildCurrentExclusionSummary() + ")";
+            }));
+        }
+
+        private void HandleServiceEnded(List<CycleResultDto> cycles, string szReason)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() => ApplyRerunEnded(cycles, szReason)));
+        }
+
+        private string BuildCurrentExclusionSummary()
+        {
+            if (_currentPlan == null)
+            {
+                return "";
+            }
+            return _currentPlan.BuildExclusionSummary();
+        }
+
+        private void ApplyRerunEnded(List<CycleResultDto> cycles, string szReason)
+        {
+            IsRerunning = false;
+            if (_service != null)
+            {
+                _service.OnProgressChanged -= HandleServiceProgress;
+                _service.OnSavedCycleRerunEnded -= HandleServiceEnded;
+                _service = null;
+            }
+
+            bool bNoResults = cycles == null || cycles.Count == 0;
+            if (bNoResults)
+            {
+                string szEmptyStatus = "재검사 결과 없음";
+                if (!string.IsNullOrEmpty(szReason))
+                {
+                    szEmptyStatus = szEmptyStatus + " — " + szReason;
+                }
+                StatusText = szEmptyStatus;
+                return;
+            }
+
+            var stats = new RepeatMeasurementStats();
+            foreach (var dto in cycles)
+            {
+                stats.AddSample(dto);
+            }
+            Dictionary<string, MeasurementStat> dictStats = stats.ComputeAll();
+            Dictionary<string, List<double>> dictSeries = stats.GetSeries();
+
+            var result = new StatisticsQueryResult();
+            result.Stats = dictStats;
+            result.Series = dictSeries;
+            result.RecipeNames = new List<string> { RerunRecipeName };
+            result.TotalRowCount = cycles.Count;
+            RerunResult = result;
+
+            List<StatRow> rows = StatRowPresenter.BuildRows(dictStats);
+            StatRowPresenter.FillRerunComparison(rows, _originalStatsForRerun);
+            StatRowPresenter.SortWorstFirst(rows);
+            RerunRows = rows;
+            RerunSummaryText = StatRowPresenter.BuildSummary(rows);
+            RerunCycles = cycles;
+
+            string szCompletedStatus = "재검사 결과 — 부품 " + cycles.Count + "개(" + BuildCurrentExclusionSummary() + ")";
+            if (!string.IsNullOrEmpty(szReason))
+            {
+                szCompletedStatus = szCompletedStatus + " · 중단: " + szReason;
+            }
+            StatusText = szCompletedStatus;
+            IsShowingRerun = true;
+
+            var readyHandler = RerunViewReady;
+            if (readyHandler != null)
+            {
+                readyHandler();
+            }
+        }
+
+        public void RequestStop()
+        {
+            if (_service != null)
+            {
+                _service.RequestStopSavedCycleRerun("사용자 중단");
+            }
+        }
+
+        public void ReturnToOriginal()
+        {
+            if (!IsRerunning)
+            {
+                IsShowingRerun = false;
+                StatusText = "";
+            }
+        }
+
+        /// <summary>통계 창이 닫힐 때 호출 — 실행 중이면 중단 요청(서비스가 스스로 끝까지 복원한다).</summary>
+        public void OnWindowClosing()
+        {
+            if (IsRerunning && _service != null)
+            {
+                _service.RequestStopSavedCycleRerun("통계 창 닫힘");
+            }
+        }
+
+        /// <summary>CPK export 대상 사이클 목록 — 재검사 결과를 보고 있으면 그 목록, 아니면 기존 CSV 조회.</summary>
+        public List<CycleResultDto> GetCyclesForExport(DateTime dtFrom, DateTime dtTo, string szRecipeFilter)
+        {
+            if (IsShowingRerun)
+            {
+                return RerunCycles;
+            }
+            return MeasurementHistoryCsvLoader.QueryCycles(dtFrom, dtTo, szRecipeFilter);
+        }
+
+        public string GetExportRecipeName(string szRecipeFilter, string szAllLabel)
+        {
+            if (IsShowingRerun)
+            {
+                return RerunRecipeName;
+            }
+            if (string.IsNullOrEmpty(szRecipeFilter))
+            {
+                return szAllLabel;
+            }
+            return szRecipeFilter;
+        }
+
+        public string GetExportFilePrefix()
+        {
+            if (IsShowingRerun)
+            {
+                return EXPORT_PREFIX_RERUN;
+            }
+            return EXPORT_PREFIX_NORMAL;
+        }
     }
 
     /// <summary>
@@ -371,19 +816,88 @@ namespace ReringProject.UI
 
         private StatisticsQueryResult m_lastResult;    //260707 hbk 마지막 조회 결과(Series 조회용 보관)
 
+        // quick-260911-fia Task 4: "저장 사진으로 재검사" 화면 상태 — 계산 로직은 전부 VM 에 있다.
+        private readonly StatisticsRerunViewModel m_rerunVm = new StatisticsRerunViewModel();
+
         public StatisticsWindow()
         {
             InitializeComponent();
             dp_From.SelectedDate = DateTime.Today;   //260707 hbk D-10 기본값 오늘
             dp_To.SelectedDate = DateTime.Today;
+            pnl_Rerun.DataContext = m_rerunVm;
+            m_rerunVm.RerunViewReady += ApplyRerunView;
+            m_rerunVm.LoadSequenceNames();
             DoQuery("");   // 오픈 시 오늘자 전체 레시피 조회
         }
 
         private void Btn_Query_Click(object sender, RoutedEventArgs e)
         {
+            m_rerunVm.ReturnToOriginal();
+            SetRerunColumnsVisible(false);
+
             string szRecipe = GetSelectedRecipeFilter();
 
             DoQuery(szRecipe);
+        }
+
+        /// <summary>quick-260911-fia Task 4: "저장 사진으로 재검사" 버튼 — 배선만, 계산은 VM.TryStartRerun.</summary>
+        private void Btn_Rerun_Click(object sender, RoutedEventArgs e)
+        {
+            DateTime dtFrom;
+            DateTime dtTo;
+            GetSelectedRange(out dtFrom, out dtTo);
+            string szRecipeFilter = GetSelectedRecipeFilter();
+
+            string szError;
+            if (!m_rerunVm.TryStartRerun(dtFrom, dtTo, szRecipeFilter, out szError))
+            {
+                CustomMessageBox.Show("저장 사진으로 재검사", szError, MessageBoxImage.Warning);
+            }
+        }
+
+        private void Btn_RerunStop_Click(object sender, RoutedEventArgs e)
+        {
+            m_rerunVm.RequestStop();
+        }
+
+        private void Btn_BackToOriginal_Click(object sender, RoutedEventArgs e)
+        {
+            m_rerunVm.ReturnToOriginal();
+            SetRerunColumnsVisible(false);
+            DoQuery(GetSelectedRecipeFilter());
+        }
+
+        /// <summary>quick-260911-fia Task 4: 재검사 종료(VM.RerunViewReady) 시 표/차트/버튼을 재검사 결과로 갱신한다.</summary>
+        private void ApplyRerunView()
+        {
+            m_lastResult = m_rerunVm.RerunResult;
+            grid_Stats.ItemsSource = m_rerunVm.RerunRows;
+            ApplyProblemFilter();
+            txt_Summary.Text = m_rerunVm.RerunSummaryText;
+            ClearCharts();
+            SetRerunColumnsVisible(true);
+            UpdateExportButtonState();
+        }
+
+        /// <summary>"원래 평균"/"변화" 칸 표시 여부 — 재검사 결과를 보고 있을 때만 보인다.</summary>
+        private void SetRerunColumnsVisible(bool bVisible)
+        {
+            Visibility visibility;
+            if (bVisible)
+            {
+                visibility = Visibility.Visible;
+            }
+            else
+            {
+                visibility = Visibility.Collapsed;
+            }
+            col_OriginalMean.Visibility = visibility;
+            col_Delta.Visibility = visibility;
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            m_rerunVm.OnWindowClosing();
         }
 
         /// <summary>기간(DatePicker)/레시피 필터로 조회 후 테이블/드롭다운/차트를 갱신한다. 실패해도 크래시 없이 빈 상태 폴백.</summary>
@@ -469,23 +983,20 @@ namespace ReringProject.UI
                 GetSelectedRange(out dtFrom, out dtTo);
                 string szRecipeFilter = GetSelectedRecipeFilter();
 
-                List<CycleResultDto> cycles = MeasurementHistoryCsvLoader.QueryCycles(dtFrom, dtTo, szRecipeFilter);
+                // quick-260911-fia Task 4: 지금 보고 있는 쪽(재검사 결과면 재검사 사이클 목록) 기준 export.
+                List<CycleResultDto> cycles = m_rerunVm.GetCyclesForExport(dtFrom, dtTo, szRecipeFilter);
                 if (cycles == null || cycles.Count == 0)
                 {
                     CustomMessageBox.Show("CPK 리포트 export", "해당 기간에 데이터가 없습니다.", MessageBoxImage.Warning);
                     return;
                 }
 
-                string szRecipeName = szRecipeFilter;
-                if (string.IsNullOrEmpty(szRecipeName))
-                {
-                    szRecipeName = RECIPE_ALL;
-                }
+                string szRecipeName = m_rerunVm.GetExportRecipeName(szRecipeFilter, RECIPE_ALL);
 
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
                     Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                    FileName = "cpk_report_" + dtFrom.ToString("yyyyMMdd") + "_" + dtTo.ToString("yyyyMMdd") + ".xlsx",
+                    FileName = m_rerunVm.GetExportFilePrefix() + dtFrom.ToString("yyyyMMdd") + "_" + dtTo.ToString("yyyyMMdd") + ".xlsx",
                     InitialDirectory = SystemHandler.Handle.Setting.ResultSavePath
                 };
 

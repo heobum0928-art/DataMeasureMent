@@ -5,8 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="양산 이력 통계 분석" Height="820" Width="1280"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        Closing="Window_Closing">
     <!--260707 hbk STAT-01 D-08/D-09 — 통계분석 비모달 별도 Window (ReviewerWindow 미러)-->
+    <Window.Resources>
+        <!-- quick-260911-fia Task 4: btn_BackToOriginal Visibility 바인딩용 -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -41,6 +46,26 @@
                                Foreground="#334155" VerticalAlignment="Center"/>
                     <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
                                Margin="24,0,0,0" FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
+                </StackPanel>
+                <!-- quick-260911-fia Task 4: 저장 사진으로 재검사 패널 -->
+                <StackPanel x:Name="pnl_Rerun" Orientation="Horizontal" Margin="0,6,0,0">
+                    <TextBlock Text="재검사 시퀀스" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="combo_RerunSeq" Width="110" VerticalAlignment="Center"
+                              ItemsSource="{Binding SequenceNames}"
+                              SelectedItem="{Binding SelectedSequenceName, Mode=TwoWay}"
+                              IsEnabled="{Binding CanStartRerun}"/>
+                    <Button x:Name="btn_Rerun" Content="저장 사진으로 재검사" Click="Btn_Rerun_Click"
+                            IsEnabled="{Binding CanStartRerun}"
+                            Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <Button x:Name="btn_RerunStop" Content="중단" Click="Btn_RerunStop_Click"
+                            IsEnabled="{Binding IsRerunning}"
+                            Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <Button x:Name="btn_BackToOriginal" Content="원래 통계로" Click="Btn_BackToOriginal_Click"
+                            Visibility="{Binding IsShowingRerun, Converter={StaticResource BoolToVis}}"
+                            Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="txt_RerunStatus" Text="{Binding StatusText}"
+                               VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"
+                               Foreground="#1D4ED8" Margin="16,0,0,0"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -84,6 +109,9 @@
                 <DataGridTextColumn Header="허용범위"   Binding="{Binding ToleranceRangeText}" Width="140"/>
                 <DataGridTextColumn Header="N"          Binding="{Binding N}"               Width="45"/>
                 <DataGridTextColumn Header="평균"       Binding="{Binding Mean, StringFormat=F4}"   Width="75"/>
+                <!-- quick-260911-fia Task 4: 재검사 결과에서만 보임(기본 숨김, SetRerunColumnsVisible 이 토글) -->
+                <DataGridTextColumn x:Name="col_OriginalMean" Header="원래 평균" Binding="{Binding OriginalMeanText}" Width="80" Visibility="Collapsed"/>
+                <DataGridTextColumn x:Name="col_Delta" Header="변화" Binding="{Binding DeltaText}" SortMemberPath="DeltaSortValue" Width="80" Visibility="Collapsed"/>
                 <DataGridTextColumn Header="벗어난 양"  Binding="{Binding OutOfRangeText}" SortMemberPath="OutOfRangeAmount" Width="110"/>
                 <DataGridTextColumn Header="표준편차"   Binding="{Binding StdDev, StringFormat=F4}" Width="75"/>
                 <DataGridTextColumn Header="범위"       Binding="{Binding Range, StringFormat=F4}"  Width="70"/>

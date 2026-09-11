@@ -2,15 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
+current_phase: 76
+current_phase_name: side-datum
 status: unknown
 stopped_at: Phase 74/75 코드 완료 — 양쪽 실기 UAT 대기
-last_updated: "2026-08-27T00:00:00.000Z"
-last_activity: 2026-08-27
+last_updated: "2026-09-11T10:30:00.638Z"
+last_activity: 2026-09-11
 progress:
-  total_phases: 15
-  completed_phases: 14
-  total_plans: 49
-  completed_plans: 46
+  total_phases: 16
+  completed_phases: 15
+  total_plans: 50
+  completed_plans: 47
   percent: 94
 ---
 
@@ -23,24 +25,27 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 **Core value:** Shot-FAI 2계층 동적 구조로 100개+ 검사 항목을 유연하게 관리하고, Halcon 에지 측정으로 정밀한 거리 측정(mm) + 공차 판정 + Datum 자동 보정 수행
-**Current focus:** Phase 74·75 코드 완료(v1.7.26.0) — 양쪽 실기 UAT 대기. 다음은 Bottom Align 캘리브레이션 실측 → 판정 임계값 설정
+**Current focus:** Phase 76 — side-datum (SIDE Datum 세로선 끄기 옵션) 실행 중. Phase 74·75 실기 UAT 는 여전히 대기(74-HUMAN-UAT.md A~G / 75-HUMAN-UAT.md U-1~U-6).
 
 ## Current Position
 
-Phase: 74 · 75 — 코드 완료 · 실기 UAT 대기 (74-HUMAN-UAT.md A~G / 75-HUMAN-UAT.md U-1~U-6)
-Plan: 6 of 6 (74) · 6 of 6 (75)
+Phase: 76 (side-datum) — EXECUTING
+Plan: 1 of 3
 
 ## 다음 세션 인수인계 (2026-08-27)
 
 **바로 할 일 — plan-checker 검증부터**
+
 ```
 Phase 74: 6 plans / 4 waves  (커밋 c542c18)
 Phase 75: 6 plans / 3 waves  (커밋 eb355f6)
 ```
+
 Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건은 실행 중에 터졌으면
 유일본 Datum 이 날아갔을 것들이다. **74/75 도 반드시 검증 후 실행할 것.**
 
 검증기에 넘길 때 반드시 알려줄 것(Phase 73 실측):
+
 - `MSBuild.exe` 는 PATH 에 없다 → `/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe`
 - msbuild 는 **대시 형식만** (`-p:` `-v:m` `-nologo`). `/p:` 는 MSYS 경로 변환으로 깨진다
 - 빌드 경고 baseline **SIMUL-ON 18줄 / SIMUL-OFF 16줄**. "경고 0" 은 항상 거짓 실패
@@ -49,6 +54,7 @@ Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건
 - grep 카운트는 **편집 전 실측값 확인 + 주석 포함 여부 검토**. 숫자를 맞추려 코드를 지우는 사고 이력 있음
 
 **착수 전 권고:** Bottom Align 캘리브레이션을 한 번 돌려 노이즈 수준·산포를 볼 것.
+
 - Phase 74 는 옵션이라 노이즈가 없어도 만들어 두는 건 무해
 - Phase 75 의 판정 임계값은 **실측 없이 정할 수 없다**(1차는 숫자만 표시)
 
@@ -62,7 +68,7 @@ Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건
 
 상세: `73-HUMAN-UAT.md`, `73-RECIPE-RESTORE.md`, `73-REVIEW.md`
 Plan: 7 of 7
-Last activity: 2026-09-08 - quick-260908-jzs 완료: 결과 리뷰어 목록에 z/Shot/NG 사유 표시 + 측정실패 기록 버그 수정, 실기 UAT 대기. 같은 날: E5 두 장짜리 수동 검사(가로/세로 검사Grab·Load, RUN 파일 폴백), Shot 기본 탭, 가로/세로 칸 조건 표시, CommunicationTest z 구간, LightSettleMs 300. 이전 항목: 2026-09-07 - quick-260907-fkh 완료: 카메라 창 라이브 미리보기 휠 줌(커서 고정) + 십자표시 이중 스케일 버그 수정, 실기 UAT 대기. 같은 날 선행: MIL 반전을 보드(M_GRAB_DIRECTION, 6407 거부) 대신 소프트웨어 mirror_image 로 전환(49ba7b04, 실기 확인 완료, v1.7.34.0). 이전 항목: 2026-09-04 - quick-260904-iwm 완료: "z_index 0 = 기준점(Datum) 촬영/새 사이클 시작" 코드 고정을 풀어 시퀀스마다 다른 시작 번호(Top=0, Bottom=11, Side2=11 …)로 동작하게 함 — 제어(PLC) 40버퍼 번호 구간 배정 규격 대응. Datum 속성창에 `DatumZIndex`(-1=자동: 소유 Shot 최솟값) 칸 신설, 시퀀스 실효값 `GetDatumZIndex()` 로 판정 지점 10곳 치환, 로드 시 키 부재→자동 가드(0 고정 회귀 차단), 최솟값과 다르게 입력 시 경고. 실기 UAT 확인 완료(2026-09-04, 사용자): 속성창 표시/저장·재로드/기존 레시피 회귀 0/Bottom z=11 사이클 시작/경고. VersionDefine 1.7.33.0 기록. 같은 날 선행: SITE_STATUS 대문자(ab1b8295), Tray 검사 시 거리측정 자동삭제(7af44cc4). 이전 항목: 2026-09-03 quick-260903-dpy 완료: Tray 정렬 화면에 피커 회전중심 캘리브레이션 패널 이식(Bottom 원 피팅 재사용) + Tray 분기 보정 적용. 미캘(0,0) EPS 폴백으로 캘 수행 전까지 $ALIGN_RESULT 무변경, Bottom 회귀 0. 실기 UAT 대기 — 캘 저장 후에는 Tray 응답값이 바뀌므로 PLC 측과 사전 합의 필요.
+Last activity: 2026-09-11
 
 **72-06 완료 (2026-08-18):** `1Cav 세부치수_Cpk` 통계 시트 구현 (`affd046`, `3bd6943`). 빌드 PASS(에러 0, 경고 12줄 baseline). `ExportCpkReport` 가 이제 **시트 2장 고정**(RAW DATA(1) + 1Cav 세부치수_Cpk)으로 저장한다 — `Worksheets.Add` 2회, D-04 준수. Cp/UCPK/LCPK/Cpk + USL/LSL 명시 컬럼 + NG>Cpk경고(1.33)>OK 3단계 판정 + 상단 OK/NG/NG목록 요약. StdDev==0 → `∞` 텍스트, `stat.N == 0` 항목은 통계 9칸 전부 `-`. ⚠ E열(Datum 유형)/Q열(#1 Target Std Dev)은 시스템 미보유라 **항상 `-`** (양식 유지용, 72-07 UAT 확인 항목). ⚠ `ExportCpkReport` 는 **여전히 호출자가 없다** — UI Export 버튼 연결은 72-07 소관. 72-07 이 시트를 더 추가하면 D-04 위반이므로 차트/이미지는 기존 2장 안에 배치할 것.
 

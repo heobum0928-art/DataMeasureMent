@@ -20,6 +20,14 @@ namespace ReringProject.Sequence
         // MeasurePos 'first'/'last'/'all' 의 Datum UI 표기.
         public static readonly List<string> Selections = new List<string> { "First", "Last", "All" };
 
+        // 측정 Point ROI(strip-loop, VisionAlgorithmService.TryFitLine) 전용 선택지 — Selections 에 "Strongest" 를 더한 것.
+        //  ROI 안에 에지가 두 줄 있을 때 "First" 는 앞쪽 흐린 에지가 문턱을 간신히 넘는 사이클마다 그 에지를 잡아
+        //  평균이 튄다(실측: 같은 부품 10회에서 0.04~0.09mm 두 값 사이를 오감). "Strongest" 는 strip 마다 가장 진한
+        //  에지 하나만 쓰므로 진짜 에지가 더 진한 한 매번 같은 에지를 잡는다. Datum 쪽(Selections)은 이 값을 해석하지
+        //  못하므로 공유 목록에는 넣지 않는다.
+        public const string EDGE_SELECTION_STRONGEST = "Strongest";
+        public static readonly List<string> MeasureSelections = new List<string> { "First", "Last", "All", EDGE_SELECTION_STRONGEST };
+
         // EdgePairDistance 전용 EdgeSelection 드롭다운 — "Both" 단일값만 노출.
         // FAIEdgeMeasurementService.TryMeasure 은 case-insensitive "Both" 만 실제 paired-edge 거리(TryMeasureBoth)로 라우팅하고,
         // 그 외 값은 전부 단일-에지 경로(TryMeasureSingle, DistanceMm=0 반환)로 빠져 자유 텍스트 오타 시 결과가 조용히 0이 되는

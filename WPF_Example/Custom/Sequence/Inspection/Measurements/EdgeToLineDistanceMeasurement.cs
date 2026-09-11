@@ -49,7 +49,7 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public List<string> EdgeSelectionList { get { return EdgeOptionLists.Selections; } }
+        public List<string> EdgeSelectionList { get { return EdgeOptionLists.MeasureSelections; } }
 
         // 측정 거리 축 선택: datum 어느 기준선까지의 거리를 잴지.
         //  "Y" = datum 수평선(x축)까지 수직거리 (+Y 위쪽 양수, D-02) — 수평 에지 측정용.

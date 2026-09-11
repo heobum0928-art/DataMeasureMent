@@ -89,6 +89,8 @@ namespace ReringProject.Halcon.Algorithms
 
                 // EdgeSelection 명시 처리
                 string measureSel;
+                // "Strongest": strip 마다 에지를 전부 받은 뒤 가장 진한 것 하나만 쓴다(AppendStrip 에서 선별).
+                bool bPickStrongest = string.Equals(selection, ReringProject.Sequence.EdgeOptionLists.EDGE_SELECTION_STRONGEST, StringComparison.OrdinalIgnoreCase);
                 if (string.Equals(selection, "First", StringComparison.OrdinalIgnoreCase))
                 {
                     measureSel = "first";
@@ -155,7 +157,7 @@ namespace ReringProject.Halcon.Algorithms
                         double r1 = top + (i * heightPx / stripCount);
                         double r2 = top + ((i + 1) * heightPx / stripCount);
                         EStripResult sr = AppendStrip(image, r1, left, r2, right, imageWidth, imageHeight,
-                            Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel,
+                            Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel, bPickStrongest,
                             ref allRows, ref allCols);
                         if (sr == EStripResult.Ok)
                         {
@@ -178,7 +180,7 @@ namespace ReringProject.Halcon.Algorithms
                         double c1 = left + (i * widthPx / stripCount);
                         double c2 = left + ((i + 1) * widthPx / stripCount);
                         EStripResult sr = AppendStrip(image, top, c1, bottom, c2, imageWidth, imageHeight,
-                            Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel,
+                            Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel, bPickStrongest,
                             ref allRows, ref allCols);
                         if (sr == EStripResult.Ok)
                         {
@@ -291,12 +293,35 @@ namespace ReringProject.Halcon.Algorithms
         //  measurePhi: caller 가 direction 매핑 + rPhi 회전 보정을 합산한 값을 전달
         //    → 헬퍼는 SmallestRectangle2 자동 phi(rp) 를 쓰지 않고 전달받은 measurePhi 만 사용.
         //  strip 실패(빈 결과 / 예외)는 swallow 하되 결과를 반환한다(호출자가 카운트) — 한 strip 실패가 전체 ROI 를 중단시키지 않음.
+        // MeasurePos 가 돌려준 amplitude 튜플에서 절댓값이 가장 큰 항목의 위치. 비었으면 -1.
+        //  극성(positive/negative)은 MeasurePos 가 이미 걸러서 주므로 여기서는 세기만 비교한다.
+        private static int FindStrongestEdgeIndex(HTuple amplitudes)
+        {
+            int nCount = amplitudes.TupleLength();
+            if (nCount <= 0)
+            {
+                return -1;
+            }
+            int nBest = 0;
+            double dBest = Math.Abs(amplitudes[0].D);
+            for (int i = 1; i < nCount; i++)
+            {
+                double dAbs = Math.Abs(amplitudes[i].D);
+                if (dAbs > dBest)
+                {
+                    dBest = dAbs;
+                    nBest = i;
+                }
+            }
+            return nBest;
+        }
+
         private EStripResult AppendStrip(
             HImage image,
             double row1, double col1, double row2, double col2,
             HTuple imageWidth, HTuple imageHeight,
             double sigma, int threshold, string polarity,
-            double measurePhi, string selection,
+            double measurePhi, string selection, bool bPickStrongest,
             ref HTuple allRows, ref HTuple allCols)
         {
             HObject stripRegion = null;
@@ -319,6 +344,19 @@ namespace ReringProject.Halcon.Algorithms
                 if (edgeRows.TupleLength() <= 0 || edgeCols.TupleLength() <= 0)
                 {
                     return EStripResult.NoEdge;
+                }
+                if (bPickStrongest)
+                {
+                    // 이 strip 에서 찾은 에지 중 |amplitude| 가 가장 큰 것 하나만 남긴다.
+                    int nStrongest = FindStrongestEdgeIndex(amp);
+                    bool bValidIndex = nStrongest >= 0 && nStrongest < edgeRows.TupleLength();
+                    if (!bValidIndex)
+                    {
+                        return EStripResult.NoEdge;
+                    }
+                    HOperatorSet.TupleConcat(allRows, edgeRows[nStrongest], out allRows);
+                    HOperatorSet.TupleConcat(allCols, edgeCols[nStrongest], out allCols);
+                    return EStripResult.Ok;
                 }
                 HOperatorSet.TupleConcat(allRows, edgeRows, out allRows);
                 HOperatorSet.TupleConcat(allCols, edgeCols, out allCols);

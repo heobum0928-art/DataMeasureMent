@@ -1298,6 +1298,7 @@ namespace ReringProject.Sequence {
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
                     if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
+                    if (name == nameof(IsVerticalLineDisabled)) { return true; } // DualImage 전용 옵션 hide (D-76-01)
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name.StartsWith("Horizontal_A_") || name.StartsWith("Horizontal_B_")) return true;
@@ -1306,6 +1307,7 @@ namespace ReringProject.Sequence {
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
                     if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
+                    if (name == nameof(IsVerticalLineDisabled)) { return true; } // DualImage 전용 옵션 hide (D-76-01)
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
@@ -1315,6 +1317,7 @@ namespace ReringProject.Sequence {
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
                     if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
+                    if (name == nameof(IsVerticalLineDisabled)) { return true; } // DualImage 전용 옵션 hide (D-76-01)
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;

@@ -37,6 +37,10 @@ namespace ReringProject.Halcon.Algorithms
         private const int HORIZONTAL_FIT_CLIP_END_POINTS = 0;
         private const int HORIZONTAL_FIT_ITERATIONS = 5;
         private const double HORIZONTAL_FIT_CLIP_FACTOR = 2.0;
+        // 76-01 Task 2: 각도 정규화용 (가로 방향 체크 wrap-around, AngleTolerance 배지 wrap-around).
+        private const double DEG_FULL_TURN = 360.0;
+        private const double DEG_HALF_TURN = 180.0;
+        private const double DEG_QUARTER_TURN = 90.0;
 
         //260618 hbk Phase 54 ALIGN-01 (사용자 설계): 패턴매칭 보정 transform. set 되면 datum 검출 ROI 중심을
         //  이 hom_mat2d 로 이동/회전(x,y,tilt)한 뒤 검출 → 틀어진 부품에서도 datum ROI 가 실제 에지를 덮음.
@@ -863,6 +867,16 @@ namespace ReringProject.Halcon.Algorithms
                 return false;
             }
 
+            // 76-01 Task 2: 티칭 없이 H-only 원점이 만들어지는 것을 막는다(티칭은 여전히 세로선으로 한다, D-76-07).
+            //  IsConfigured 는 보지 않는다 — DualImage 2-image 경로는 기존에도 이 플래그를 보지 않으므로 기존
+            //  SIDE 레시피가 이 가드에 걸리면 안 된다.
+            bool bOriginNotTaught = config.RefOriginRow == 0.0 && config.RefOriginCol == 0.0;
+            if (bOriginNotTaught)
+            {
+                error = "Vertical line disabled requires a taught origin: taught origin missing (RefOriginRow/RefOriginCol = 0) — teach the datum first";
+                return false;
+            }
+
             HTuple hvRow = null;
             HTuple hvCol = null;
             try
@@ -987,6 +1001,19 @@ namespace ReringProject.Halcon.Algorithms
                 double hcE = hvColEnd.D;
                 double dCurAngle = Math.Atan2(hrE - hrB, hcE - hcB);
 
+                // 76-01 Task 2: 가로 방향 검사 — ValidateHorizontalVerticalAngles(:1567-1581) 와 같은 정규화.
+                //  직각성 검사(세로각 필요)는 하지 않는다 — 세로선이 없으므로 정의되지 않는다.
+                double dHorizDeg = Math.Abs(dCurAngle * RAD_TO_DEG);
+                if (dHorizDeg > DEG_QUARTER_TURN)
+                {
+                    dHorizDeg = DEG_HALF_TURN - dHorizDeg;
+                }
+                if (dHorizDeg > HORIZONTAL_TOLERANCE_DEG)
+                {
+                    error = "Horizontal line orientation out of range: " + dHorizDeg.ToString("F1") + " deg (expected +/-" + HORIZONTAL_TOLERANCE_DEG.ToString("F1") + " deg)";
+                    return false;
+                }
+
                 double dSpanCol = hcE - hcB;
                 if (Math.Abs(dSpanCol) < MIN_HORIZONTAL_LINE_SPAN_PX)
                 {
@@ -1012,6 +1039,26 @@ namespace ReringProject.Halcon.Algorithms
                 config.DetectedEdgeCount = nTotalEdges;
                 config.DetectedFitRMSE = 0.0;
                 config.DetectedAngleDeg = dCurAngle * RAD_TO_DEG;
+
+                // ExpectedAngleDeg / AngleTolerance 게이트 — 기존 :772-785 와 같은 규칙(Find 는 성공 유지, 배지로만 표시).
+                if (config.AngleTolerance > 0.0)
+                {
+                    double dAngleDiff = config.DetectedAngleDeg - config.ExpectedAngleDeg;
+                    dAngleDiff = ((dAngleDiff + DEG_FULL_TURN + DEG_HALF_TURN) % DEG_FULL_TURN) - DEG_HALF_TURN;
+                    double dAngleDiffAbs = Math.Abs(dAngleDiff);
+                    if (dAngleDiffAbs <= config.AngleTolerance)
+                    {
+                        config.AngleValidationStatus = EAngleValidationStatus.Pass;
+                    }
+                    else
+                    {
+                        config.AngleValidationStatus = EAngleValidationStatus.Fail;
+                    }
+                }
+                else
+                {
+                    config.AngleValidationStatus = EAngleValidationStatus.None;
+                }
 
                 // 화면용 휘발 필드 — 세로 흔적은 지운다(이전 사이클·티칭 복원 값이 남아 그려지지 않게, D-76-06 근거. 표시 게이트는 76-02).
                 config.Line2Detected_RBegin = hrB;

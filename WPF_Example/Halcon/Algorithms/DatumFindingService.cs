@@ -23,6 +23,21 @@ namespace ReringProject.Halcon.Algorithms
         //  TODO: 사용자 튜닝 가능하도록 DatumConfig 필드화 검토. TwoLineAngleToleranceDeg 는 TwoLineIntersect 전용이라 이 경로에 미적용.
         private const double PERPENDICULAR_TOLERANCE_DEG = 10.0;
 
+        // 76-01: 세로선 끄기(H-only) 옵션 전용 상수. 세로 기준각 미설정 표식 — 캡처 게이트(Action_FAIMeasurement.cs
+        //  BuildDatumCaptureSnapshot)와 EdgeToLineDistance 의 DatumAngle2Rad != 0.0 판정이 0.0 을 "2차 축 없음"으로 읽는다(D-76-05).
+        private const double DETECTED_REF_ANGLE2_UNSET = 0.0;
+        // 가로 결합선 두 끝점의 열 차이 하한(px) — 이보다 작으면 열에서 행을 구하는 나눗셈이 무의미하다.
+        private const double MIN_HORIZONTAL_LINE_SPAN_PX = 1.0;
+        // 라디안 -> 도 변환 계수.
+        private const double RAD_TO_DEG = 180.0 / Math.PI;
+        // 아래 5개는 기존 가로선 피팅(FitLineContourXld, :708-710) 과 완전히 같은 값 — 값이 하나라도 다르면
+        //  옵션 ON/OFF 의 가로선이 달라져 측정값이 달라진다.
+        private const string HORIZONTAL_FIT_ALGORITHM = "tukey";
+        private const int HORIZONTAL_FIT_MAX_POINTS = -1;
+        private const int HORIZONTAL_FIT_CLIP_END_POINTS = 0;
+        private const int HORIZONTAL_FIT_ITERATIONS = 5;
+        private const double HORIZONTAL_FIT_CLIP_FACTOR = 2.0;
+
         //260618 hbk Phase 54 ALIGN-01 (사용자 설계): 패턴매칭 보정 transform. set 되면 datum 검출 ROI 중심을
         //  이 hom_mat2d 로 이동/회전(x,y,tilt)한 뒤 검출 → 틀어진 부품에서도 datum ROI 가 실제 에지를 덮음.
         //  null/빈 HTuple 이면 무보정(기존 동작). 검출 자체(line-fit/DetectedOrigin/angle)는 그대로 → nominal 불변.
@@ -627,6 +642,22 @@ namespace ReringProject.Halcon.Algorithms
             error = null;
             HOperatorSet.HomMat2dIdentity(out transform);
 
+            if (config.IsHorizontalOnlyActive())
+            {
+                bool bHorizontalOnlyOk = TryFindDualImageHorizontalOnly(imageHorizontal, config, out transform, out error);
+                if (!bHorizontalOnlyOk)
+                {
+                    string szDatumNameForLog = "";
+                    if (config.DatumName != null)
+                    {
+                        szDatumNameForLog = config.DatumName;
+                    }
+                    Logging.PrintLog((int)ELogType.Algorithm,
+                        string.Format("[Datum.HorizontalOnly] fail — datum={0}: {1}", szDatumNameForLog, error));
+                }
+                return bHorizontalOnlyOk;
+            }
+
             HObject contour = null;
             try
             {
@@ -814,6 +845,217 @@ namespace ReringProject.Halcon.Algorithms
             finally
             {
                 if (contour != null) { try { contour.Dispose(); } catch { } }
+            }
+        }
+
+        // D-76-05: 원점 X 산출 — 티칭 원점(RefOriginRow/Col)을 AlignPreTransform(패턴매칭 보정, TryComposeAlign 이
+        //  이미 주입)으로 옮긴 열을 원점 X 로 쓴다. TryFindCircleTwoHorizontal(:259-272) 의 ROI 중심 이동과 같은 규약.
+        //  transform 이 없거나 변환이 실패하면 원본 좌표로 조용히 되돌아가지 않고 실패한다(PR-2 — 매칭 없는 OK 금지).
+        private bool TryMapTaughtOriginColumn(DatumConfig config, out double dOriginCol, out string error)
+        {
+            dOriginCol = 0.0;
+            error = null;
+
+            bool bNoPatternTransform = AlignPreTransform == null || AlignPreTransform.Length == 0;
+            if (bNoPatternTransform)
+            {
+                error = "Vertical line disabled (IsVerticalLineDisabled) requires pattern align: no pattern-match transform (IsPatternAlignEnabled must be true)";
+                return false;
+            }
+
+            HTuple hvRow = null;
+            HTuple hvCol = null;
+            try
+            {
+                HOperatorSet.AffineTransPoint2d(AlignPreTransform, config.RefOriginRow, config.RefOriginCol, out hvRow, out hvCol);
+                dOriginCol = hvCol.D;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = "Pattern transform mapping of taught origin failed: " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                if (hvRow != null) { try { hvRow.Dispose(); } catch { } }
+                if (hvCol != null) { try { hvCol.Dispose(); } catch { } }
+            }
+        }
+
+        // D-76-02/D-76-04: 세로 ROI 라인 검출기를 호출하지 않는다 — 실패 시 세로 검출로 되돌아가는 폴백도 없다(PR-4).
+        //  가로 A/B 결합선 검출 + FitLineContourXld 는 기존 TryFindVerticalTwoHorizontalDualImage(:659-716,737) 와 동일하다.
+        private bool TryFindDualImageHorizontalOnly(HImage imageHorizontal, DatumConfig config, out HTuple transform, out string error)
+        {
+            error = null;
+            HOperatorSet.HomMat2dIdentity(out transform);
+
+            string szDatumName = "";
+            if (config.DatumName != null)
+            {
+                szDatumName = config.DatumName;
+            }
+
+            Logging.PrintLog((int)ELogType.Algorithm,
+                string.Format("[Datum.Vertical] skipped — datum={0} (IsVerticalLineDisabled): 세로선 검출 생략, 원점 X = 패턴매칭, 원점 Y·각도 = 가로 결합선", szDatumName));
+
+            double dOriginCol;
+            string szMapError;
+            if (!TryMapTaughtOriginColumn(config, out dOriginCol, out szMapError))
+            {
+                error = szMapError;
+                return false;
+            }
+
+            HObject contour = null;
+            HTuple hvWidth = null;
+            HTuple hvHeight = null;
+            HTuple hvAllRows = null;
+            HTuple hvAllCols = null;
+            HTuple hvRowBegin = null;
+            HTuple hvColBegin = null;
+            HTuple hvRowEnd = null;
+            HTuple hvColEnd = null;
+            HTuple hvNr = null;
+            HTuple hvNc = null;
+            HTuple hvDist = null;
+            try
+            {
+                imageHorizontal.GetImageSize(out hvWidth, out hvHeight);
+
+                // Horizontal A — 기존 :659-674 와 동일 ROI/파라미터/에러 문구
+                HTuple hvRowEdgeA, hvColEdgeA;
+                string szEdgeErrorA;
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, hvWidth, hvHeight,
+                        config.Horizontal_A_Row, config.Horizontal_A_Col, config.Horizontal_A_Phi,
+                        config.Horizontal_A_Length1, config.Horizontal_A_Length2,
+                        config.Horizontal_A_Sigma, config.Horizontal_A_EdgeThreshold, config.Horizontal_A_EdgePolarity,
+                        config.Horizontal_A_EdgeDirection, config.Horizontal_A_EdgeSelection,
+                        config.Horizontal_A_EdgeSampleCount, config.Horizontal_A_EdgeTrimCount, config.Horizontal_A_Erosion,
+                        out hvRowEdgeA, out hvColEdgeA, out szEdgeErrorA,
+                        "Horizontal_A"))
+                {
+                    error = "Horizontal_A: " + szEdgeErrorA;
+                    return false;
+                }
+
+                // Horizontal B — 기존 :676-691 와 동일 ROI/파라미터/에러 문구
+                HTuple hvRowEdgeB, hvColEdgeB;
+                string szEdgeErrorB;
+                if (!TryExtractEdgePoints(
+                        imageHorizontal, hvWidth, hvHeight,
+                        config.Horizontal_B_Row, config.Horizontal_B_Col, config.Horizontal_B_Phi,
+                        config.Horizontal_B_Length1, config.Horizontal_B_Length2,
+                        config.Horizontal_B_Sigma, config.Horizontal_B_EdgeThreshold, config.Horizontal_B_EdgePolarity,
+                        config.Horizontal_B_EdgeDirection, config.Horizontal_B_EdgeSelection,
+                        config.Horizontal_B_EdgeSampleCount, config.Horizontal_B_EdgeTrimCount, config.Horizontal_B_Erosion,
+                        out hvRowEdgeB, out hvColEdgeB, out szEdgeErrorB,
+                        "Horizontal_B"))
+                {
+                    error = "Horizontal_B: " + szEdgeErrorB;
+                    return false;
+                }
+
+                int nTotalEdges = hvRowEdgeA.TupleLength() + hvRowEdgeB.TupleLength();
+                if (nTotalEdges < MIN_HORIZONTAL_EDGES)
+                {
+                    error = "Horizontal line fit failed: insufficient edges (" + nTotalEdges + ")";
+                    return false;
+                }
+
+                hvAllRows = hvRowEdgeA.TupleConcat(hvRowEdgeB);
+                hvAllCols = hvColEdgeA.TupleConcat(hvColEdgeB);
+                HOperatorSet.GenContourPolygonXld(out contour, hvAllRows, hvAllCols);
+
+                try
+                {
+                    HOperatorSet.FitLineContourXld(
+                        contour, HORIZONTAL_FIT_ALGORITHM, HORIZONTAL_FIT_MAX_POINTS, HORIZONTAL_FIT_CLIP_END_POINTS,
+                        HORIZONTAL_FIT_ITERATIONS, HORIZONTAL_FIT_CLIP_FACTOR,
+                        out hvRowBegin, out hvColBegin, out hvRowEnd, out hvColEnd, out hvNr, out hvNc, out hvDist);
+                }
+                catch (Exception fitEx)
+                {
+                    error = "Horizontal line fit failed: " + fitEx.Message;
+                    return false;
+                }
+
+                double hrB = hvRowBegin.D;
+                double hcB = hvColBegin.D;
+                double hrE = hvRowEnd.D;
+                double hcE = hvColEnd.D;
+                double dCurAngle = Math.Atan2(hrE - hrB, hcE - hcB);
+
+                double dSpanCol = hcE - hcB;
+                if (Math.Abs(dSpanCol) < MIN_HORIZONTAL_LINE_SPAN_PX)
+                {
+                    error = "Horizontal line too short at origin column: span " + dSpanCol.ToString("F3") + " px";
+                    return false;
+                }
+
+                double dOriginRow = hrB + (dOriginCol - hcB) * (hrE - hrB) / dSpanCol;
+
+                // hom_mat2d 빌드 — 기존 :748-755 와 동일 구성(Identity -> Translate -> Rotate about origin)
+                double dRow = dOriginRow - config.RefOriginRow;
+                double dCol = dOriginCol - config.RefOriginCol;
+                double dAngle = dCurAngle - config.RefAngleRad;
+                HTuple hvMat;
+                HOperatorSet.HomMat2dIdentity(out hvMat);
+                HOperatorSet.HomMat2dTranslate(hvMat, dRow, dCol, out hvMat);
+                HOperatorSet.HomMat2dRotate(hvMat, dAngle, dOriginRow, dOriginCol, out transform);
+
+                config.DetectedOriginRow = dOriginRow;
+                config.DetectedOriginCol = dOriginCol;
+                config.DetectedRefAngle = dCurAngle;
+                config.DetectedRefAngle2 = DETECTED_REF_ANGLE2_UNSET;
+                config.DetectedEdgeCount = nTotalEdges;
+                config.DetectedFitRMSE = 0.0;
+                config.DetectedAngleDeg = dCurAngle * RAD_TO_DEG;
+
+                // 화면용 휘발 필드 — 세로 흔적은 지운다(이전 사이클·티칭 복원 값이 남아 그려지지 않게, D-76-06 근거. 표시 게이트는 76-02).
+                config.Line2Detected_RBegin = hrB;
+                config.Line2Detected_CBegin = hcB;
+                config.Line2Detected_REnd = hrE;
+                config.Line2Detected_CEnd = hcE;
+                config.Horizontal_A_DetectedEdgeRows = hvRowEdgeA;
+                config.Horizontal_A_DetectedEdgeCols = hvColEdgeA;
+                config.Horizontal_B_DetectedEdgeRows = hvRowEdgeB;
+                config.Horizontal_B_DetectedEdgeCols = hvColEdgeB;
+                config.Line1Detected_RBegin = 0.0;
+                config.Line1Detected_CBegin = 0.0;
+                config.Line1Detected_REnd = 0.0;
+                config.Line1Detected_CEnd = 0.0;
+                config.Vertical_DetectedEdgeRows = new HTuple();
+                config.Vertical_DetectedEdgeCols = new HTuple();
+
+                config.LastFindSucceeded = true;
+                Logging.PrintLog((int)ELogType.Algorithm,
+                    string.Format("[Datum.HorizontalOnly] ok — datum={0} origin=({1:F1}, {2:F1}) angle={3:F3}deg edges={4}",
+                        szDatumName, dOriginRow, dOriginCol, config.DetectedAngleDeg, nTotalEdges));
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                HOperatorSet.HomMat2dIdentity(out transform);
+                return false;
+            }
+            finally
+            {
+                if (contour != null) { try { contour.Dispose(); } catch { } }
+                if (hvWidth != null) { try { hvWidth.Dispose(); } catch { } }
+                if (hvHeight != null) { try { hvHeight.Dispose(); } catch { } }
+                if (hvAllRows != null) { try { hvAllRows.Dispose(); } catch { } }
+                if (hvAllCols != null) { try { hvAllCols.Dispose(); } catch { } }
+                if (hvRowBegin != null) { try { hvRowBegin.Dispose(); } catch { } }
+                if (hvColBegin != null) { try { hvColBegin.Dispose(); } catch { } }
+                if (hvRowEnd != null) { try { hvRowEnd.Dispose(); } catch { } }
+                if (hvColEnd != null) { try { hvColEnd.Dispose(); } catch { } }
+                if (hvNr != null) { try { hvNr.Dispose(); } catch { } }
+                if (hvNc != null) { try { hvNc.Dispose(); } catch { } }
+                if (hvDist != null) { try { hvDist.Dispose(); } catch { } }
             }
         }
 

@@ -426,6 +426,22 @@ namespace ReringProject.Sequence {
         [Category("Datum|Algorithm")]
         public double AngleTolerance { get; set; } = 0.0;
 
+        // Datum 별 세로선 끄기 옵션 (VerticalTwoHorizontalDualImage 전용). 기본 꺼짐 — INI 키 부재 시 false(D-76-01).
+        [Category("Datum|Algorithm")]
+        [System.ComponentModel.Description("세로선 끄기 (VerticalTwoHorizontalDualImage 전용). 켜면 세로 이미지(ZIndexB)는 그대로 촬영·저장하지만 세로선 검출은 하지 않고, 가로 결합선과 패턴매칭만으로 기준점을 만든다 — 원점 X = 패턴매칭으로 옮긴 티칭 원점 열, 원점 Y·각도 = 가로 결합선. 패턴 정렬(IsPatternAlignEnabled)이 켜져 있어야 하며 꺼져 있으면 Datum 찾기가 실패한다. 세로 기준각이 없으므로 이 Datum 을 참조하는 X축(MeasureAxis=X) 측정에는 쓰지 않는다. 티칭은 지금처럼 세로선이 필요하다. 기본 꺼짐.")]
+        public bool IsVerticalLineDisabled { get; set; } = false;
+
+        // 옵션이 실제로 효력을 갖는지 판정하는 유일한 규칙 — 검출·표시·캡처 모든 소비처가 이 메서드만 호출한다(TOP/BOTTOM 보호).
+        public bool IsHorizontalOnlyActive()
+        {
+            bool bDualImage = AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage;
+            if (!bDualImage)
+            {
+                return false;
+            }
+            return IsVerticalLineDisabled;
+        }
+
         /// <summary>
         /// Line1 ROI — 알고리즘별 의미:
         ///   TwoLineIntersect: 1st 라인 ROI (기준 X축 방향)

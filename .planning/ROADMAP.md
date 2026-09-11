@@ -1293,7 +1293,7 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 76-01-PLAN.md — 옵션 `IsVerticalLineDisabled` 추가 + 옵션 ON 이면 세로선 검출 없이 가로선 + 패턴매칭으로 datum 생성 (SDV-01, SDV-02, SDV-04)
+- [x] 76-01-PLAN.md — 옵션 `IsVerticalLineDisabled` 추가 + 옵션 ON 이면 세로선 검출 없이 가로선 + 패턴매칭으로 datum 생성 (SDV-01, SDV-02, SDV-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 76-02-PLAN.md — 옵션 ON 이면 화면·저장 캡처에서 세로선/세로 에지점/세로 기준선/원점 십자 세로 팔 미표시 (SDV-03, SDV-04)

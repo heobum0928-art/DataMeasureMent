@@ -1397,6 +1397,10 @@ namespace ReringProject.Sequence {
                         cap.HasAxis2 = true;
                         cap.Axis2AngleRad = dc.DetectedRefAngle2;
                     }
+                    if (dc.IsHorizontalOnlyActive()) { // 세로선 끄기 Datum — 2차 축 제거 + 원점 세로 팔 숨김(76-02, D-76-06)
+                        cap.HasAxis2 = false;
+                        cap.HideOriginVerticalArm = true;
+                    }
                 }
                 if (cap.HasCircle || cap.HasOrigin) {
                     if (list == null) list = new List<DatumCaptureOverlay>();

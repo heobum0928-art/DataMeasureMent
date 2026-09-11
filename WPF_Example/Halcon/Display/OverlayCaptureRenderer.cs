@@ -330,7 +330,17 @@ namespace ReringProject.Halcon.Display
                 }
                 if (d.HasOrigin)
                 {
-                    DrawCrossAsRegion(r, g, b, d.OriginRow, d.OriginCol, DatumOriginCrossHalf, "slate blue"); // 검출 원점 십자
+                    if (d.HideOriginVerticalArm) // 세로선 끄기 Datum — 원점 십자의 가로 팔만(76-02, D-76-06)
+                    {
+                        DrawLineAsRegion(r, g, b,
+                            d.OriginRow, d.OriginCol - DatumOriginCrossHalf,
+                            d.OriginRow, d.OriginCol + DatumOriginCrossHalf,
+                            "slate blue", LineThicknessRadius);
+                    }
+                    else
+                    {
+                        DrawCrossAsRegion(r, g, b, d.OriginRow, d.OriginCol, DatumOriginCrossHalf, "slate blue"); // 검출 원점 십자
+                    }
                 }
             }
         }

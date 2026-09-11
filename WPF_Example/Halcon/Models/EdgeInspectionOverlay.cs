@@ -35,6 +35,8 @@ namespace ReringProject.Halcon.Models
         public double Axis1AngleRad { get; set; }
         public bool HasAxis2 { get; set; }     // 2차(수직) 기준선
         public double Axis2AngleRad { get; set; }
+        // 세로선 끄기 Datum — 원점 십자의 세로 팔을 그리지 않는다(76-02, D-76-06). 기본 false, 메모리 스냅샷 전용(직렬화 대상 아님).
+        public bool HideOriginVerticalArm { get; set; }
     }
 
     public class EdgeInspectionOverlay

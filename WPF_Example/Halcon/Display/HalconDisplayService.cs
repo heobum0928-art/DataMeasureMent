@@ -1286,15 +1286,20 @@ namespace ReringProject.Halcon.Display
         //  블록 안 그리기 순서가 곧 화면 겹침 순서다 — 한 줄이라도 앞뒤로 옮기면 위에 와야 할 것이 가려진다.
         private void RenderDatumDetectedOverlay(HWindow window, DatumConfig datum)
         {
+            // 세로선 끄기 Datum 은 라이브 선택 화면에서도 세로 검출선·세로 에지점을 그리지 않는다(76-02, D-76-06).
+            bool bDrawVertical = !datum.IsHorizontalOnlyActive();
             // 검출 라인 2개 + 교점 오버레이 (TryTeachDatum 성공 시에만, 기존 cyan/blue/magenta 팔레트는 건드리지 않음)
             if (datum.LastTeachSucceeded)
             {
                 // Line1 detected 외삽 (yellow)
                 HOperatorSet.SetColor(window, "yellow");
                 HOperatorSet.SetLineWidth(window, 2);
-                DrawExtendedLine(window,
-                    datum.Line1Detected_RBegin, datum.Line1Detected_CBegin,
-                    datum.Line1Detected_REnd,   datum.Line1Detected_CEnd);
+                if (bDrawVertical)
+                {
+                    DrawExtendedLine(window,
+                        datum.Line1Detected_RBegin, datum.Line1Detected_CBegin,
+                        datum.Line1Detected_REnd,   datum.Line1Detected_CEnd);
+                }
 
                 // Line2 detected 외삽 (cyan)
                 HOperatorSet.SetColor(window, "cyan");
@@ -1320,7 +1325,10 @@ namespace ReringProject.Halcon.Display
                 RenderRawEdgePoints(window, datum.Horizontal_A_DetectedEdgeRows, datum.Horizontal_A_DetectedEdgeCols, "green");
                 RenderRawEdgePoints(window, datum.Horizontal_B_DetectedEdgeRows, datum.Horizontal_B_DetectedEdgeCols, "lime green");
                 // Vertical 그룹 raw 점 (Line1 cyan 과 시각 구분: orange)
-                RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows,     datum.Vertical_DetectedEdgeCols,     "orange");
+                if (bDrawVertical)
+                {
+                    RenderRawEdgePoints(window, datum.Vertical_DetectedEdgeRows, datum.Vertical_DetectedEdgeCols, "orange");
+                }
 
                 // CircleTwoHorizontal 검출 원 오버레이 (녹색 원 + 노란 중심 십자)
                 //  z-order: 검출 원 그린 후 center cross (top) — center 가 가려지지 않게.

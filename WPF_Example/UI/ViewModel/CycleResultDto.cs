@@ -51,8 +51,27 @@ namespace ReringProject.UI
         /// <summary>이 tick 의 z 번호. -1 = 없음/수동(옛 cycle.json 포함).</summary>
         public int ZIndex { get; set; } = -1;
 
+        /// <summary>
+        /// 자동 검사 tick 에서 새로 촬영·저장된 기준점 사진. 수동/캐시 재사용 tick/옛 cycle.json 은 빈 목록.
+        /// </summary>
+        public List<DatumImageRecordDto> DatumImages { get; set; } = new List<DatumImageRecordDto>();
+
         // 측정 데이터 — Shot > FAI > Measurement 계층
         public List<ShotResultDto> Shots { get; set; } = new List<ShotResultDto>();
+    }
+
+    /// <summary>기준점(Datum) 사진 1장의 기록. 크로스-Z 두 장짜리 기준점은 역할별로 2건.</summary>
+    public class DatumImageRecordDto
+    {
+        public const string ROLE_SINGLE = "";
+        public const string ROLE_HORIZONTAL = "H";
+        public const string ROLE_VERTICAL = "V";
+
+        public string DatumName { get; set; }
+
+        public string Role { get; set; }
+
+        public string Path { get; set; }
     }
 
     /// <summary>Shot 단위 결과 DTO.</summary>

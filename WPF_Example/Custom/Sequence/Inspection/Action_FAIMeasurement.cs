@@ -414,6 +414,8 @@ namespace ReringProject.Sequence {
                 int nOkBefore = nDatumOk;
                 RunDatumSingleImageDetection(datum, parentSeq, img, ref nDatumOk, ref nDatumFail); //260819 hbk quick-260819-s05: align/detect 분기를 RunDatumSingleImageDetection 헬퍼로 추출(측정 TryExecuteMeasurement/TryExecuteCrossZMeasurement 와 동일 패턴)
                 bool bDetectOk = nDatumOk > nOkBefore;
+                // quick-260911-fia Task 1: 자동 검사 tick 기준점 사진 저장 — 검출 성공/실패 무관하게 저장(요구 A).
+                ArchiveDatumImageForCycle(datum, parentSeq, img, ReringProject.UI.DatumImageRecordDto.ROLE_SINGLE);
                 // 오프라인 검사이미지 자동채움(1-image Datum). 저장은 반드시 finally 의 img.Dispose() 전에
                 //  일어나야 한다(사본을 뜨는 시점이라 원본이 살아 있어야 한다). 접미사 없음 =
                 //  수동 [검사Grab] 의 1-image datum 파일명(datum_<이름>.bmp)과 동일.
@@ -1216,6 +1218,14 @@ namespace ReringProject.Sequence {
             if (bIsRoleA) roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_A;
             else roleKey = baseKey + CROSS_Z_ROLE_SUFFIX_B;
             parentSeq.StoreCrossZImage(roleKey, capturedImage);
+            // quick-260911-fia Task 1: 크로스-Z 기준점 사진 저장 — role A=가로(keyA→Horizontal 기존 규약), role B=세로.
+            string szArchiveRole;
+            if (bIsRoleA) {
+                szArchiveRole = ReringProject.UI.DatumImageRecordDto.ROLE_HORIZONTAL;
+            } else {
+                szArchiveRole = ReringProject.UI.DatumImageRecordDto.ROLE_VERTICAL;
+            }
+            ArchiveDatumImageForCycle(datum, parentSeq, capturedImage, szArchiveRole);
             SafeDisposeImage(capturedImage); // Store 가 CopyImage 로 소유 클론 저장 — 원본은 여기서 즉시 해제
             return true;
         }
@@ -1476,6 +1486,64 @@ namespace ReringProject.Sequence {
             }
             finally {
                 shared.Release();
+            }
+        }
+
+        // quick-260911-fia Task 1: 자동 검사 기준점 사진 저장. EnqueueOfflineImageCopy 와 동일 수명 규약
+        //  (사본을 직접 뜨고 우리 몫의 ref 를 직접 관리) — 다만 DirectoryOverride/FormatOverride 없이
+        //  original 폴더 + OriginImageFormat 규칙을 그대로 따른다(기존 측정 원본 저장과 같은 규칙).
+        private static bool EnqueueCycleDatumImageCopy(HImage src, string szFileName, DateTime ts) {
+            var saver = SystemHandler.Handle.CaptureImageSaver;
+            if (saver == null || src == null) {
+                return false;
+            }
+            SharedHImage shared = null;
+            try {
+                shared = new SharedHImage(src.CopyImage());
+            }
+            catch (Exception ex) {
+                Logging.PrintErrLog((int)ELogType.Error, LOG_TAG + "기준점 사진 사본 생성 실패: " + ex.Message);
+                return false;
+            }
+            try {
+                shared.AddRef();
+                saver.Enqueue(new CaptureImageSaveRequest {
+                    Shared = shared,
+                    NeedsRender = false,
+                    FileName = szFileName,
+                    IsCapture = false,
+                    Timestamp = ts
+                });
+                return true;
+            }
+            finally {
+                shared.Release();
+            }
+        }
+
+        // quick-260911-fia Task 1: 자동 검사(PLC 프로토콜) 기준점 tick 에서만 datum_ 사진을 저장하고
+        //  cycle.json 에 기록한다(SIMUL/오프라인/수동 RUN 은 제외 — 요구 A/E). 검사 흐름·판정에 예외가
+        //  전파되지 않도록 전체를 try/catch 로 감싼다.
+        private void ArchiveDatumImageForCycle(DatumConfig datum, InspectionSequence parentSeq, HImage img, string szRole) {
+            try {
+                bool bMissingArg = img == null || datum == null || parentSeq == null || string.IsNullOrEmpty(datum.DatumName);
+                if (bMissingArg) {
+                    return;
+                }
+                bool bArchiveEnabled = IsLiveCaptureMode() && parentSeq.IsProtocolDrivenCycle();
+                if (!bArchiveEnabled) {
+                    return;
+                }
+                DateTime ts = DateTime.Now;
+                string szFileName = CaptureImageSaveService.BuildDatumFileName(parentSeq.Name, datum.DatumName, szRole, ts);
+                string szPath = CaptureImageSaveService.BuildFilePath(false, szFileName, ts);
+                bool bEnqueued = EnqueueCycleDatumImageCopy(img, szFileName, ts);
+                if (bEnqueued) {
+                    parentSeq.RecordTickDatumImage(datum.DatumName, szRole, szPath);
+                }
+            }
+            catch (Exception ex) {
+                Logging.PrintErrLog((int)ELogType.Error, LOG_TAG + "기준점 사진 저장 중 예외(무시): " + ex.Message);
             }
         }
 

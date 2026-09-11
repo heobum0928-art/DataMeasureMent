@@ -388,6 +388,34 @@ namespace ReringProject.Utility {
             return bIsBmp ? ".bmp" : ".jpg";
         }
 
+        /// <summary>기준점(Datum) 사진 파일명 prefix. Task 1: 자동 사이클 기준점 사진 저장.</summary>
+        public const string DATUM_PREFIX = "datum";
+
+        /// <summary>
+        /// 기준점(Datum) 사진 파일명. 결과: datum_시퀀스_기준점이름[_역할]_HHmmssfff.확장자.
+        /// 확장자는 원본(origin) 저장 규칙(OriginImageFormat)과 짝을 맞춘다 — SaveRequest 가 !IsCapture
+        /// 요청을 이 설정으로 write 하므로 파일명 확장자도 동일 규칙이어야 한다.
+        /// </summary>
+        public static string BuildDatumFileName(string szSequence, string szDatumName, string szRole, DateTime ts) {
+            string seq = SanitizeFilePart(szSequence, "SEQ");
+            string datum = SanitizeFilePart(szDatumName, "DATUM");
+            string role = SanitizeFilePart(szRole, "");
+            string time = ts.ToString("HHmmssfff");
+            string name = DATUM_PREFIX + "_" + seq + "_" + datum;
+            if (!string.IsNullOrEmpty(role)) { name += "_" + role; }
+            return name + "_" + time + ResolveOriginImageExtension();
+        }
+
+        // origin(원본) 이미지 확장자 단일 소스. 기존 ResolveExtension(prefix)의 origin 분기와 규칙은
+        //  같지만 삼항을 쓰지 않은 별도 헬퍼로 둔다(기존 ResolveExtension 수정 금지 규칙 준수).
+        private static string ResolveOriginImageExtension() {
+            bool bIsBmp = string.Equals(SystemSetting.Handle.OriginImageFormat, "BMP", StringComparison.OrdinalIgnoreCase);
+            if (bIsBmp) {
+                return ".bmp";
+            }
+            return ".jpg";
+        }
+
         // 260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명 오버로드.
         //  nIndexNumber >= 0 이면 _M{번호} 를 FAI 뒤(seg 앞)에 삽입, -1 이면 생략.
         //  결과: prefix_seq_fai[_M{자재번호}][_seg][_judge]_time.jpg

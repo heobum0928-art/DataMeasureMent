@@ -54,6 +54,11 @@ namespace ReringProject.Sequence {
         // 이번 런의 시작 시각(UTC). Datum 검출 스탬프와 비교해 "이번 사이클에 실제로 검출된 것" 만 기록한다.
         private DateTime _dtCycleStartUtc = DateTime.MinValue;
 
+        // quick-260911-fia Task 1: 이번 tick 에서 새로 촬영·저장된 기준점 사진 기록. 매 tick 시작(OnStart)에
+        //  비워지고, BuildDto 직후 스냅샷을 cycle.json 의 DatumImages 에 붙인다 — 캐시 재사용 tick 은 빈 목록.
+        private readonly object _tickDatumImageLock = new object();
+        private readonly List<DatumImageRecordDto> _tickDatumImages = new List<DatumImageRecordDto>();
+
         // 런타임 transform 캐시
         private readonly Dictionary<string, HTuple> _datumTransforms = new Dictionary<string, HTuple>();
 
@@ -261,6 +266,7 @@ namespace ReringProject.Sequence {
                     nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파
                     IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                     nCycleZIndex);
+                cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 RecordSeatingEvidence(nIndexNumber);
             }
@@ -427,6 +433,7 @@ namespace ReringProject.Sequence {
         private void HandleRunStartResetResults(SequenceContext context) {
             try {
                 _dtCycleStartUtc = DateTime.UtcNow;   // 기록 전용 — 판정/초기화 로직에 관여하지 않는다
+                ClearTickDatumImages();   // quick-260911-fia: 매 tick 시작마다 비움 — 기준점을 다시 안 찍은 tick 은 빈 목록
                 if (Actions == null) return;
                 foreach (var act in Actions) {
                     var faiAct = act as Action_FAIMeasurement;
@@ -497,6 +504,34 @@ namespace ReringProject.Sequence {
                 }
             } catch (Exception ex) {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        // quick-260911-fia Task 1: 자동 검사 기준점 사진 기록. Action_FAIMeasurement 가 실기 grab 후 사진을
+        //  큐잉에 성공했을 때만 호출한다(호출부 가드 — IsLiveCaptureMode && IsProtocolDrivenCycle).
+        public void RecordTickDatumImage(string szDatumName, string szRole, string szPath) {
+            bool bInvalid = string.IsNullOrEmpty(szDatumName) || string.IsNullOrEmpty(szPath);
+            if (bInvalid) {
+                return;
+            }
+            lock (_tickDatumImageLock) {
+                _tickDatumImages.Add(new DatumImageRecordDto {
+                    DatumName = szDatumName,
+                    Role = szRole,
+                    Path = szPath
+                });
+            }
+        }
+
+        private void ClearTickDatumImages() {
+            lock (_tickDatumImageLock) {
+                _tickDatumImages.Clear();
+            }
+        }
+
+        private List<DatumImageRecordDto> TakeTickDatumImagesSnapshot() {
+            lock (_tickDatumImageLock) {
+                return new List<DatumImageRecordDto>(_tickDatumImages);
             }
         }
 
@@ -2355,6 +2390,7 @@ namespace ReringProject.Sequence {
                     nIndexNumber,
                     IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                     nCycleZIndex);
+                cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 // z_index 마다 호출되는 경로다. 마지막에 한 번만 기록해야 사이클당 1세트가 된다.
                 bool bLastIndexOfCycle = !packet.IsBuffer;

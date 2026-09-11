@@ -517,6 +517,15 @@ namespace ReringProject
                  "이미 찍어 둔 사진을 한 벌 더 떨구는 방식이라 검사 시간은 늘지 않는다."
     )]
     [Version(
+        Number = "1.7.41.0",
+        Date = "2026-09-11",
+        Change = "SIDE Datum 세로선 끄기 옵션(IsVerticalLineDisabled, VerticalTwoHorizontalDualImage 전용, Datum 별) — 켜면 세로 이미지(ZIndexB)는 그대로 촬영·저장하지만 세로선 검출은 하지 않고 가로 결합선과 패턴매칭만으로 Datum 을 만든다(원점 X = 패턴매칭 transform 으로 옮긴 티칭 원점 열, 원점 Y·각도 = 가로 결합선, 세로 기준각은 미설정 0). " +
+                 "자동 사이클과 수동 Test Find 가 같은 규칙이고, 패턴 transform 이나 티칭 원점이 없으면 Datum 찾기가 실패한다(매칭 없는 OK 없음). " +
+                 "옵션 ON Datum 은 결과 화면·Test Find·Datum 선택 화면·저장 캡처에서 세로선, 세로 에지점, 세로 기준선, 원점 십자 세로 팔을 그리지 않는다. " +
+                 "옵션 OFF(기본, 키 없는 옛 레시피 포함)와 TOP/BOTTOM 은 기존 동작 그대로이며 기존 코드 줄 삭제 0. " +
+                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. (D-76-01 ~ D-76-07)"
+    )]
+    [Version(
         Number = "1.7.40.0",
         Date = "2026-09-11",
         Change = "반복성(같은 부품을 여러 번 찍었을 때 값이 같게 나오는가) 개선 묶음. " +
@@ -554,7 +563,7 @@ namespace ReringProject
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.40.0";
+        public const string VERSION = "1.7.41.0";
         public const string BUILD_DATE = "2026-09-11";
     }
 }

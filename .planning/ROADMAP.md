@@ -1261,6 +1261,41 @@ Plans:
 
 ---
 
+### Phase 76: SIDE Datum 세로선 끄기 옵션 (가로선+패턴매칭 전용 모드)
+
+**Goal:** SIDE 세로 기준 이미지의 **포커스가 자주 무너져** 세로선 검출이 실패하면 SIDE 검사 전체가 멈춘다. Datum 별 옵션으로 **세로선을 끄고 가로선 + 패턴매칭만으로 datum 을 만든다.** 세로 이미지는 그대로 찍어 z index/PLC 프로토콜은 불변.
+
+**왜 가능한가 (데이터로 확인, 2026-09-11)**
+
+| 세로선의 역할 | 끄면? |
+|---|---|
+| ① 원점 X (가로선과의 교점) | **패턴매칭이 대신한다** — SIDE 4개 Datum 모두 `IsPatternAlignEnabled=True`, 패턴 2개. 매칭이 이미 가로 이미지에서 X·Y·baseline 각을 준다 |
+| ② X축 측정용 2차 기준각 (`DatumAngle2Rad`) | **소비하는 SIDE 측정 0개** — SIDE 측정 25개 전부 가로선 기준 (EdgeToLineDistance `MeasureAxis=Y` 18 + EdgeToLineAngle 7) |
+| (각도/회전 보정) | 원래부터 가로선에서만 나온다 — 영향 없음 |
+
+두-이미지 알고리즘 `VerticalTwoHorizontalDualImage` 는 SIDE 1~4 만 사용 (TOP/BOTTOM 은 `CircleTwoHorizontal`) → 옵션을 이 알고리즘에만 노출하면 자동으로 SIDE 전용.
+
+**확정 결정 (사용자)** — 상세는 `76-CONTEXT.md`
+- Datum 별 옵션 / 옵션 ON 이면 세로는 **항상** 무시(검출 자체 안 함) / 세로 이미지는 계속 촬영·저장
+- Datum Find(자동 + 수동 Test Find) 는 가로선 + 매칭 성공 시 OK / View 는 가로선만 표시
+- 원점 X = 패턴매칭, 원점 Y·각도 = 가로선. "매칭은 무조건 할꺼야"
+
+**성공 기준**
+1. 옵션 ON Datum 은 세로 이미지가 흐려도 datum OK → 측정 진행, 사이클 완주
+2. 옵션 ON 결과가 옵션 OFF(세로 정상) 결과와 측정값 기준 동등 (좌우 이동 시에도 ROI 가 따라감)
+3. 옵션 OFF 는 현재 동작과 완전히 동일 — TOP/BOTTOM 및 기존 SIDE 회귀 0
+4. 기존 티칭 데이터 재사용 (재티칭 불필요가 목표)
+
+**Requirements**: SDV-01 (옵션), SDV-02 (가로 전용 datum 산출), SDV-03 (가로 전용 표시), SDV-04 (회귀 0)
+**Depends on:** Phase 75
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 76 to break down)
+
+---
+
 ## Progress Table (v1.3 — Align 비전)
 
 | Phase | 이름 | 요구사항 | 상태 | 완료일 | 비고 |

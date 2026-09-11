@@ -294,6 +294,12 @@ namespace ReringProject {
                 CustomMessageBox.Show("Error", SystemHandler.Handle.Localize["System Is Running"], MessageBoxImage.Error);
                 return;
             }
+            // quick-260911-fia Task 3 BLOCKER 수정: 저장 사진 재검사 중(부품 사이 Idle 포함)에는 레시피
+            //  저장을 막는다 — 재검사가 메모리에서만 바꾼 임시 경로가 레시피 파일로 새는 것을 방지(T-FIA-01).
+            if(RepeatRunService.IsSavedCycleRerunActive) {
+                CustomMessageBox.Show("저장 불가", "저장 사진 재검사 중에는 레시피를 저장할 수 없습니다. 재검사가 끝나거나 중단된 뒤 저장하세요.", MessageBoxImage.Warning);
+                return;
+            }
             //260723 hbk 촬영 자리(Shot) 하나에 서로 다른 z_index 짝을 쓰는 측정이 섞여 있으면 저장을
             //  막는다(2026-07-23 실측으로 확인된 낭비 문제 예방, 값 자체는 안 건드림).
             var mixedShotNames = mSystemHandler.Sequences.RecipeManager.FindMixedCrossZShots();
@@ -458,6 +464,9 @@ namespace ReringProject {
                 mSystemHandler.Sequences[i].OnFinish -= OnSequenceFinish;
                 mSystemHandler.Sequences[i].OnActionChanged -= OnActionChanged;
             }
+            // quick-260911-fia Task 3 BLOCKER 수정: Release()(Setting.Save 포함)보다 반드시 먼저 호출 —
+            //  활성 저장 사진 재검사가 있으면 강제로 끝내 OfflineInspectMode/경로를 원복한 뒤 저장한다.
+            RepeatRunService.RestoreActiveSavedCycleOverridesForShutdown();
             mSystemHandler.Release();
         }
 

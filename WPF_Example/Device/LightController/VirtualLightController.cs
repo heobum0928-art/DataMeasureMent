@@ -107,6 +107,14 @@ namespace ReringProject.Device {
         
         public bool IsOpen { get; protected set; }
 
+        // WriteOnOff 가 실제로 시리얼 명령을 보내는지. LightHandler 가 명령 사이 간격을 둘 때 쓴다 —
+        //  보내지 않는 컨트롤러(JPF: On/Off 는 뒤따르는 밝기 명령이 대신 보냄)에는 간격을 두지 않는다.
+        public virtual bool SendsOnOffCommand {
+            get {
+                return true;
+            }
+        }
+
         public virtual bool Open() {
             State = ELightControllerState.Idle;
             IsOpen = true;

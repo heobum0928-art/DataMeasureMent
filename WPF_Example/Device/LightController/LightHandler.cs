@@ -85,6 +85,11 @@ namespace ReringProject.Device {
         private bool[,] LevelConfirmed;
         private bool[] WasOpenTable;
 
+        // 컨트롤러별 "마지막 명령을 보낸 뒤 지난 시간" — IsCommandGapElapsed 가 명령 사이 간격을 지키는 데 쓴다. Execute 스레드만 만진다.
+        private Stopwatch[] LastCommandWatch;
+        private const int COMMAND_INTERVAL_MIN_MS = 2;
+        private const int PENDING_WRITE_TIMEOUT_MS = 500;
+
         // 260808 hbk Round3 BUG B/C 수정: CmdTable/StateConfirmed/LevelConfirmed 전체를 감싸는 단일 락.
         //  호출 빈도가 낮아(그룹당 채널 수 개, 조명 Apply 시점) 셀별 락보다 단순함 우선(ShotConfig._imageLock,
         //  Logging.lockObject 와 동일 관례). 절대 이 락을 잡은 채로 실제 시리얼 I/O(Controllers[i].WriteOnOff/
@@ -115,6 +120,10 @@ namespace ReringProject.Device {
             StateConfirmed = new bool[Controllers.Count, CHANNEL_LIMIT];
             LevelConfirmed = new bool[Controllers.Count, CHANNEL_LIMIT];
             WasOpenTable = new bool[Controllers.Count];
+            LastCommandWatch = new Stopwatch[Controllers.Count];
+            for (int i = 0; i < Controllers.Count; i++) {
+                LastCommandWatch[i] = Stopwatch.StartNew();
+            }
 
             Load();
             bool openResult;
@@ -133,7 +142,10 @@ namespace ReringProject.Device {
 
             mThread = new Thread(Execute);
             mThread.Name = "LightHandler";
-            mThread.Priority = ThreadPriority.Lowest;
+            // 검사 시퀀스 스레드(Highest)가 촬영 직전 이 스레드의 전송 완료를 기다린다(WaitForLightsSettled).
+            //  가장 낮은 우선순위면 영상 처리로 CPU 가 바쁠 때 전송이 밀려 대기 제한 시간을 넘길 수 있다.
+            //  이 스레드는 대부분 Sleep 이라 우선순위를 올려도 CPU 부담은 거의 없다.
+            mThread.Priority = ThreadPriority.AboveNormal;
             mThread.Start();
 
             return openResult;
@@ -395,10 +407,15 @@ namespace ReringProject.Device {
             //  유지되므로(Execute() 쪽 변경, 아래 참고) 위 2)번 가드가 항상 걸려 스킵하지 않고 정상적으로 큐잉된다 —
             //  I/O 진행 중 들어온 새 값이 조용히 버려지지 않는다. 락은 필드 read/write 만 감싸며 시리얼 I/O 는
             //  절대 감싸지 않는다(MainRun 스레드 지연 없음).
+            //  SystemSetting.LightSkipUnchangedCommands 가 false(기본)면 이 생략을 하지 않고 매번 보낸다 —
+            //  컨트롤러 응답이 없어 빠진 명령을 알 수 없고, 생략하면 빠진 상태가 계속 유지되기 때문이다.
             lock (_cmdLock) {
-                if (Controllers[index].IsOpen &&
-                    StateConfirmed[index, channel] && Controllers[index].GetOnOff(channel) == on &&
-                    !CmdTable[index, channel].IsWriteState && !CmdTable[index, channel].IsWriteValue) return;
+                bool bSkipEnabled = SystemSetting.Handle.LightSkipUnchangedCommands && Controllers[index].IsOpen;
+                bool bConfirmedSame = StateConfirmed[index, channel] && Controllers[index].GetOnOff(channel) == on;
+                bool bNoPendingWrite = !CmdTable[index, channel].IsWriteState && !CmdTable[index, channel].IsWriteValue;
+                if (bSkipEnabled && bConfirmedSame && bNoPendingWrite) {
+                    return;
+                }
                 CmdTable[index, channel].IsWriteState = true;
                 CmdTable[index, channel].WriteState = on;
             }
@@ -409,7 +426,8 @@ namespace ReringProject.Device {
         //  아직 전송 전이라 조명이 안 켜진 채로 촬영되는 문제가 있어(수동 UI 토글은 클릭↔다음 동작 사이 자연 지연이
         //  있어 우연히 문제가 없었을 뿐) — grab 직전에 이 메서드로 큐가 실제로 비워질 때까지 동기 대기한다.
         //  타임아웃은 안전장치(하드웨어 응답 없음 등으로 큐가 영영 안 비는 상황에서도 grab 자체는 진행되게).
-        public void WaitForPendingWrites(int timeoutMs = 500) {
+        //  반환값 = 제한 시간 안에 큐가 다 비었는지. false 면 조명이 덜 바뀐 채 촬영될 수 있으므로 로그를 남긴다.
+        public bool WaitForPendingWrites(int timeoutMs = PENDING_WRITE_TIMEOUT_MS) {
             Stopwatch sw = Stopwatch.StartNew();
             while (sw.ElapsedMilliseconds < timeoutMs) {
                 bool anyPending = false;
@@ -425,16 +443,24 @@ namespace ReringProject.Device {
                         }
                     }
                 }
-                if (!anyPending) return;
+                if (!anyPending) {
+                    return true;
+                }
                 Thread.Sleep(2);
             }
+            Logging.PrintLog((int)ELogType.LightController,
+                "[LightWait] 조명 명령 전송이 {0}ms 안에 끝나지 않음 — 조명이 덜 바뀐 채 촬영될 수 있음", timeoutMs);
+            return false;
         }
 
         // 조명 명령이 실제로 전송된 뒤에도 컨트롤러가 밝기를 올리는 데 시간이 걸린다(실기: 명령 0.1초 뒤 촬영 시
         //  조명이 덜 올라온 상태로 찍힘). 전송 완료 대기에 더해 설정된 안정화 시간(SystemSetting.LightSettleMs)만큼
         //  기다린 뒤 돌아온다 — 기준점/Shot/수동 Grab 직전 공통 진입점. 0 이면 기존과 동일(전송 완료까지만 대기).
+        //  명령을 전부 다시 보내므로(LightSkipUnchangedCommands=false) 채널 수 × 간격만큼 시간이 더 걸린다 —
+        //  기본 제한 시간에 그만큼을 더해, 간격을 늘렸다고 전송 도중에 촬영되는 일이 없게 한다.
         public void WaitForLightsSettled() {
-            WaitForPendingWrites();
+            int nTimeoutMs = PENDING_WRITE_TIMEOUT_MS + (Controllers.Count * CHANNEL_LIMIT * GetCommandIntervalMs());
+            WaitForPendingWrites(nTimeoutMs);
             int nSettleMs = SystemSetting.Handle.LightSettleMs;
             if (nSettleMs > 0) {
                 Thread.Sleep(nSettleMs);
@@ -473,10 +499,14 @@ namespace ReringProject.Device {
             //260808 hbk Round3(BUG B/C 수정, CLOSED): SetOnOff 와 동일하게 check-and-set 전체를 _cmdLock 으로
             //  감싸 원자화했다 — TOCTOU(BUG B)와 I/O 진행 중 쓰기 유실(BUG C) 모두 SetOnOff 주석의 근거 그대로
             //  닫힌다. 자세한 근거는 SetOnOff 주석 참고.
+            //  SystemSetting.LightSkipUnchangedCommands 가 false(기본)면 생략하지 않는다 — SetOnOff 주석 참고.
             lock (_cmdLock) {
-                if (Controllers[index].IsOpen &&
-                    LevelConfirmed[index, channel] && Controllers[index].GetLevel(channel) == level &&
-                    !CmdTable[index, channel].IsWriteState && !CmdTable[index, channel].IsWriteValue) return;
+                bool bSkipEnabled = SystemSetting.Handle.LightSkipUnchangedCommands && Controllers[index].IsOpen;
+                bool bConfirmedSame = LevelConfirmed[index, channel] && Controllers[index].GetLevel(channel) == level;
+                bool bNoPendingWrite = !CmdTable[index, channel].IsWriteState && !CmdTable[index, channel].IsWriteValue;
+                if (bSkipEnabled && bConfirmedSame && bNoPendingWrite) {
+                    return;
+                }
                 CmdTable[index, channel].IsWriteValue = true;
                 CmdTable[index, channel].WriteValue = level;
             }
@@ -623,6 +653,28 @@ namespace ReringProject.Device {
             return true;
         }
 
+        // 같은 컨트롤러로 보낸 직전 명령 뒤 SystemSetting.LightCommandIntervalMs 가 지났는지.
+        //  JPF 컨트롤러는 명령을 받았다는 응답이 없어, 너무 붙여 보내면 일부가 조용히 빠질 수 있다
+        //  (예전엔 고정 2ms — 9600bps 에서 명령 한 줄 전송에만 약 8ms 가 걸려 명령이 틈 없이 붙어 나갔다).
+        //  Execute 는 간격이 안 찬 컨트롤러를 기다리지 않고 건너뛰어 다른 컨트롤러(다른 포트)부터 보낸다 —
+        //  두 포트가 나란히 진행되므로 간격을 늘려도 전체 전송 시간은 채널이 많은 쪽 하나만큼만 늘어난다.
+        private bool IsCommandGapElapsed(int nController) {
+            long nElapsedMs = LastCommandWatch[nController].ElapsedMilliseconds;
+            return nElapsedMs >= GetCommandIntervalMs();
+        }
+
+        private void MarkCommandSent(int nController) {
+            LastCommandWatch[nController].Restart();
+        }
+
+        private int GetCommandIntervalMs() {
+            int nIntervalMs = SystemSetting.Handle.LightCommandIntervalMs;
+            if (nIntervalMs < COMMAND_INTERVAL_MIN_MS) {
+                nIntervalMs = COMMAND_INTERVAL_MIN_MS;
+            }
+            return nIntervalMs;
+        }
+
         private void Execute() {
             while (!IsTerminated) {
                 for(int i = 0; i < Controllers.Count; i++) {
@@ -680,7 +732,11 @@ namespace ReringProject.Device {
 
                         //Write onOff
                         if (CmdTable[i, j].IsWriteState) {
-                            Thread.Sleep(2);
+                            bool bSendsOnOff = Controllers[i].SendsOnOffCommand;
+                            bool bMustWaitGap = bSendsOnOff && !IsCommandGapElapsed(i);
+                            if (bMustWaitGap) {
+                                break;
+                            }
 
                             //260808 hbk Round3(BUG C 수정): I/O 직전 target 을 락 하에 스냅샷 — 이 스냅샷 이후 I/O
                             //  완료까지는 IsWriteState 를 아직 클리어하지 않으므로(else 분기 참고) 동시 SetOnOff 호출은
@@ -688,7 +744,11 @@ namespace ReringProject.Device {
                             bool targetState;
                             lock (_cmdLock) { targetState = CmdTable[i, j].WriteState; }
 
-                            if (Controllers[i].WriteOnOff(j, targetState) == false) {
+                            bool bStateWritten = Controllers[i].WriteOnOff(j, targetState);
+                            if (bSendsOnOff) {
+                                MarkCommandSent(i);
+                            }
+                            if (bStateWritten == false) {
                                 FailControllerTable[i]++;
                                 if (FailControllerTable[i] > FAIL_LIMIT) {
                                     if (OnError != null) OnError(new LightFailEventArgs(ELightErrorType.WriteFail, i, j, Controllers[i][j].Name));
@@ -716,13 +776,17 @@ namespace ReringProject.Device {
 
                         //Write level
                         if (CmdTable[i, j].IsWriteValue) {
-                            Thread.Sleep(2);
+                            if (!IsCommandGapElapsed(i)) {
+                                break;
+                            }
 
                             //260808 hbk Round3(BUG C 수정): Write onOff 블록과 동일 근거로 I/O 직전 target 스냅샷.
                             int targetValue;
                             lock (_cmdLock) { targetValue = CmdTable[i, j].WriteValue; }
 
-                            if (Controllers[i].WriteLevel(j, targetValue) == false) {
+                            bool bLevelWritten = Controllers[i].WriteLevel(j, targetValue);
+                            MarkCommandSent(i);
+                            if (bLevelWritten == false) {
                                 FailControllerTable[i]++;
                                 if (FailControllerTable[i] > FAIL_LIMIT) {
                                     if (OnError != null) OnError(new LightFailEventArgs(ELightErrorType.WriteFail, i, j, Controllers[i][j].Name));

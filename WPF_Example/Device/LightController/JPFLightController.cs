@@ -60,6 +60,15 @@ namespace ReringProject.Device
             base.Close();
         }
 
+        // WriteOnOff 는 필드만 바꾸고 아무것도 보내지 않는다 — 실제 켜기/끄기는 WriteLevel 의 "#A{ch}{level}&" 가 한다.
+        public override bool SendsOnOffCommand
+        {
+            get
+            {
+                return false;
+            }
+        }
+
         public override bool ReadOnOff(int channel)
         {
             return base.ReadOnOff(channel);

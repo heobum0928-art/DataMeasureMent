@@ -76,6 +76,9 @@ namespace ReringProject.Sequence {
 
         private FAIMeasurementContext pMyContext;
 
+        // 이번 DatumPhase 에서 기준점 조명을 켰는지 — 켰을 때만 끝나고 Shot 조명으로 되돌린다(RunDatumPhase). 시퀀스 스레드만 만진다.
+        private bool _bDatumLightsApplied;
+
         //260722 hbk Phase 68 D-09: 매직넘버 상수화 — ZIndexA/B 미설정 sentinel + 크로스-Z 저장소 역할(A/B) 키 접미사.
         private const int UNSET_ZINDEX = -1;
         private const string CROSS_Z_ROLE_SUFFIX_A = "_ZA";
@@ -210,13 +213,20 @@ namespace ReringProject.Sequence {
             if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
                 //260618 hbk Phase 54 ALIGN-01 이미지 회전(datumLevelOn/datumLevelAngle) 폐기 (D-03/D-05 warp 0회).
                 //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 이전 datumLevelOn/datumLevelAngle 지역변수 제거.
+                _bDatumLightsApplied = false;
                 foreach (var datum in parentSeq.DatumConfigs) {
                     ProcessOneDatum(datum, parentSeq, ref nDatumOk, ref nDatumFail, ref nDatumCached);
                 }
                 // Datum grab 동안 켜져 있던 datum 전용 조명을 이 Shot 본연의 조명으로 되돌린다.
                 //  이후 EStep.Grab 의 측정 grab 이 datum 조명이 아니라 $PREP 로 세팅된 Shot 조명 아래서 이뤄져야 한다.
+                //  자동(PLC) 사이클에서 이번에 기준점 조명을 켠 적이 없으면 $PREP 가 방금 Shot 조명을 전부 보냈으므로
+                //  되돌릴 것이 없다 — 조명 명령은 이제 매번 실제로 전송되므로(LightSkipUnchangedCommands) 같은 명령을
+                //  한 번 더 보내면 Shot 마다 촬영이 그만큼 늦어진다. 수동 RUN 은 $PREP 가 없으니 종전대로 항상 적용한다.
                 if (ShotParam != null) {
-                    parentSeq.ApplyShotLights(ShotParam.ZIndex);
+                    bool bRestoreShotLights = _bDatumLightsApplied || !parentSeq.IsProtocolDrivenCycle();
+                    if (bRestoreShotLights) {
+                        parentSeq.ApplyShotLights(ShotParam.ZIndex);
+                    }
                     // EStep.Grab 의 실제 촬영은 다음 Run() 호출(시퀀스 스레드 다음 tick)에서 이뤄지므로,
                     //  여기서 큐가 비워질 때까지 동기 대기해두면 그 사이 조명 복귀가 실제로 반영된다.
                     LightHandler.Handle.WaitForLightsSettled();
@@ -278,6 +288,7 @@ namespace ReringProject.Sequence {
             // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
             //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
             parentSeq.ApplyDatumLights(datum);
+            _bDatumLightsApplied = true;
             // 조명 명령은 큐잉만 되고 실제 전송은 백그라운드 스레드가 처리 — grab 전에 실제 반영을 기다린다.
             //  (기존엔 수동 UI grab 경로에만 있던 대기를 자동 검사 사이클에도 배선. SIMUL/오프라인처럼
             //  실제로 대기할 쓰기가 없으면 즉시 반환되므로 비용은 무시할 만큼 작다.)

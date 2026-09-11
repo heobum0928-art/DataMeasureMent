@@ -170,6 +170,19 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public int LightSettleMs { get; set; } = LIGHT_SETTLE_MS_DEFAULT;
 
+        private const int LIGHT_COMMAND_INTERVAL_MS_DEFAULT = 10;
+
+        // 같은 조명 컨트롤러로 연달아 보내는 명령 사이 최소 간격(ms). 컨트롤러가 "받았다"는 응답을 주지 않아서
+        //  너무 붙여 보내면 일부가 조용히 빠질 수 있다(9600bps 에서 명령 한 줄 전송에 약 8ms).
+        [Category("System|Enviroment")]
+        public int LightCommandIntervalMs { get; set; } = LIGHT_COMMAND_INTERVAL_MS_DEFAULT;
+
+        // true 면 이미 보낸 값과 같은 조명 명령은 다시 보내지 않는다(예전 동작). 기본 false = 조명을 맞출 때마다 전부 다시 보낸다.
+        //  컨트롤러가 명령을 받았는지 확인할 방법이 없어, 한 번 빠진 명령이 이 생략 때문에 사이클 끝까지 복구되지 않았다
+        //  (실측: 같은 부품 10회 중 3회가 조명이 틀린 채 촬영). INI 에 키가 없으면 bool 은 false 로 읽히므로 기본값이 false 가 되게 이름을 정했다.
+        [Category("System|Enviroment")]
+        public bool LightSkipUnchangedCommands { get; set; } = false;
+
         public bool AutoLogoutWhenRecvTest { get; set; } = true;
 
         public bool SaveFailImage { get; set; } = false;

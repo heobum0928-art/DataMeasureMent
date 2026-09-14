@@ -656,6 +656,9 @@ namespace ReringProject.UI
         private Dictionary<string, MeasurementStat> _originalStatsForRerun = new Dictionary<string, MeasurementStat>();
         private RepeatRunService _service;
 
+        /// <summary>재검사를 시작한 기간 — 재검사 결과를 보는 동안 화면 기간이 바뀌어도 export 파일명은 이 값을 따른다.</summary>
+        private StatisticsTimeRange _rerunRange;
+
         /// <summary>이 시퀀스 소유 Shot 이 1개 이상인 InspectionSequence 이름만 콤보에 올린다. 첫 항목 선택.</summary>
         public void LoadSequenceNames()
         {
@@ -713,13 +716,19 @@ namespace ReringProject.UI
         }
 
         /// <summary>저장 사진 재검사를 시작한다. 동기 거부 사유는 szError 로 반환.</summary>
-        public bool TryStartRerun(DateTime dtFrom, DateTime dtTo, string szRecipeFilter, out string szError)
+        public bool TryStartRerun(StatisticsTimeRange range, string szRecipeFilter, out string szError)
         {
             szError = null;
 
             if (IsRerunning)
             {
                 szError = "이미 재검사 중입니다";
+                return false;
+            }
+            bool bInvalidRange = range == null || range.IsEmpty;
+            if (bInvalidRange)
+            {
+                szError = StatisticsPeriodViewModel.INVALID_RANGE_TEXT;
                 return false;
             }
             if (string.IsNullOrEmpty(SelectedSequenceName))
@@ -766,13 +775,14 @@ namespace ReringProject.UI
             IsRerunning = true;
             StatusText = "저장 사이클 읽는 중";
             RerunRecipeName = szCurrentRecipe;
+            _rerunRange = range;
 
             var recipeManager = seqHandler.RecipeManager;
             Task.Run(() =>
             {
                 // 레시피 '전체' 선택 시 다른 레시피 값이 섞이지 않도록 원래 통계도 현재 레시피로 명시 조회한다.
-                SavedCycleRerunPlan plan = SavedCycleRerunPlanner.BuildPlan(dtFrom, dtTo, szCurrentRecipe, seq, recipeManager);
-                StatisticsQueryResult originalResult = MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szCurrentRecipe);
+                SavedCycleRerunPlan plan = SavedCycleRerunPlanner.BuildPlan(range, szCurrentRecipe, seq, recipeManager);
+                StatisticsQueryResult originalResult = MeasurementHistoryCsvLoader.Query(range, szCurrentRecipe);
                 Application.Current.Dispatcher.BeginInvoke(new Action(() => OnPlanReady(plan, originalResult, seq)));
             });
 
@@ -927,13 +937,25 @@ namespace ReringProject.UI
         }
 
         /// <summary>CPK export 대상 사이클 목록 — 재검사 결과를 보고 있으면 그 목록, 아니면 기존 CSV 조회.</summary>
-        public List<CycleResultDto> GetCyclesForExport(DateTime dtFrom, DateTime dtTo, string szRecipeFilter)
+        public List<CycleResultDto> GetCyclesForExport(StatisticsTimeRange range, string szRecipeFilter)
         {
             if (IsShowingRerun)
             {
                 return RerunCycles;
             }
-            return MeasurementHistoryCsvLoader.QueryCycles(dtFrom, dtTo, szRecipeFilter);
+            return MeasurementHistoryCsvLoader.QueryCycles(range, szRecipeFilter);
+        }
+
+        /// <summary>export 파일명에 쓸 기간 — 재검사 결과를 보고 있으면 재검사를 시작한 기간, 아니면 현재 조회 기간.
+        /// 재검사 뒤 화면 시각을 바꾸고 export 해도 파일명이 실제 담긴 사이클의 기간과 맞게 하기 위함이다.</summary>
+        public StatisticsTimeRange GetExportRange(StatisticsTimeRange currentRange)
+        {
+            bool bUseRerunRange = IsShowingRerun && _rerunRange != null;
+            if (bUseRerunRange)
+            {
+                return _rerunRange;
+            }
+            return currentRange;
         }
 
         public string GetExportRecipeName(string szRecipeFilter, string szAllLabel)
@@ -967,6 +989,7 @@ namespace ReringProject.UI
     public partial class StatisticsWindow : Window
     {
         private const string RECIPE_ALL = "전체";      //260707 hbk 레시피 필터 없음 표시 항목
+        private const string EXPORT_FILE_EXT = ".xlsx";
 
         private StatisticsQueryResult m_lastResult;    //260707 hbk 마지막 조회 결과(Series 조회용 보관)
 
@@ -999,13 +1022,10 @@ namespace ReringProject.UI
         /// <summary>quick-260911-fia Task 4: "저장 사진으로 재검사" 버튼 — 배선만, 계산은 VM.TryStartRerun.</summary>
         private void Btn_Rerun_Click(object sender, RoutedEventArgs e)
         {
-            DateTime dtFrom;
-            DateTime dtTo;
-            GetSelectedRange(out dtFrom, out dtTo);
             string szRecipeFilter = GetSelectedRecipeFilter();
 
             string szError;
-            if (!m_rerunVm.TryStartRerun(dtFrom, dtTo, szRecipeFilter, out szError))
+            if (!m_rerunVm.TryStartRerun(m_periodVm.BuildRange(), szRecipeFilter, out szError))
             {
                 CustomMessageBox.Show("저장 사진으로 재검사", szError, MessageBoxImage.Warning);
             }
@@ -1096,22 +1116,6 @@ namespace ReringProject.UI
             return szRecipe;
         }
 
-        /// <summary>DatePicker 두 개 → 조회 기간. 미선택이면 오늘로 폴백(기존 DoQuery 동작 동일).</summary>
-        private void GetSelectedRange(out DateTime dtFrom, out DateTime dtTo)
-        {
-            dtFrom = DateTime.Today;
-            if (dp_From.SelectedDate.HasValue)
-            {
-                dtFrom = dp_From.SelectedDate.Value;
-            }
-
-            dtTo = DateTime.Today;
-            if (dp_To.SelectedDate.HasValue)
-            {
-                dtTo = dp_To.SelectedDate.Value;
-            }
-        }
-
         /// <summary>조회 결과가 있을 때만 export 버튼을 연다. 조회 전/0건이면 비활성.</summary>
         private void UpdateExportButtonState()
         {
@@ -1132,13 +1136,11 @@ namespace ReringProject.UI
         {
             try
             {
-                DateTime dtFrom;
-                DateTime dtTo;
-                GetSelectedRange(out dtFrom, out dtTo);
+                StatisticsTimeRange range = m_periodVm.BuildRange();
                 string szRecipeFilter = GetSelectedRecipeFilter();
 
                 // quick-260911-fia Task 4: 지금 보고 있는 쪽(재검사 결과면 재검사 사이클 목록) 기준 export.
-                List<CycleResultDto> cycles = m_rerunVm.GetCyclesForExport(dtFrom, dtTo, szRecipeFilter);
+                List<CycleResultDto> cycles = m_rerunVm.GetCyclesForExport(range, szRecipeFilter);
                 if (cycles == null || cycles.Count == 0)
                 {
                     CustomMessageBox.Show("CPK 리포트 export", "해당 기간에 데이터가 없습니다.", MessageBoxImage.Warning);
@@ -1147,10 +1149,13 @@ namespace ReringProject.UI
 
                 string szRecipeName = m_rerunVm.GetExportRecipeName(szRecipeFilter, RECIPE_ALL);
 
+                // 재검사 결과를 보고 있으면 재검사를 시작한 기간으로 파일명을 만든다(화면 시각이 바뀌어도 실제 담긴 사이클 기간과 일치).
+                StatisticsTimeRange exportRange = m_rerunVm.GetExportRange(range);
+
                 var dlg = new Microsoft.Win32.SaveFileDialog
                 {
                     Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                    FileName = m_rerunVm.GetExportFilePrefix() + dtFrom.ToString("yyyyMMdd") + "_" + dtTo.ToString("yyyyMMdd") + ".xlsx",
+                    FileName = m_rerunVm.GetExportFilePrefix() + exportRange.BuildFileStamp() + EXPORT_FILE_EXT,
                     InitialDirectory = SystemHandler.Handle.Setting.ResultSavePath
                 };
 

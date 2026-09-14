@@ -414,6 +414,7 @@ namespace ReringProject.Sequence
         /// </summary>
         private class CycleGroupState
         {
+            public StatisticsTimeRange Range;
             public List<CycleResultDto> Cycles = new List<CycleResultDto>();
             public CycleResultDto Current;
             public string LastTime;
@@ -425,28 +426,54 @@ namespace ReringProject.Sequence
         }
 
         /// <summary>
-        /// dtFrom~dtTo 기간의 일자별 CSV 를 읽어 검사 사이클 단위 DTO 목록으로 재조립한다.
+        /// dtFrom~dtTo 기간(하루 전체)의 일자별 CSV 를 읽어 검사 사이클 단위 DTO 목록으로 재조립한다.
         /// CPK 리포트 export 전용 — 화면 통계는 Query() 를 쓴다(무변경).
         /// 반환 순서는 시간 오름차순(오래된 것 → 최신)이며, CSV 의 append 순서를 그대로 따른다.
         /// </summary>
         public static List<CycleResultDto> QueryCycles(DateTime dtFrom, DateTime dtTo, string szRecipeFilter)
         {
-            var state = new CycleGroupState();
+            return QueryCycles(StatisticsTimeRange.FromDates(dtFrom, dtTo), szRecipeFilter);
+        }
 
+        /// <summary>기간(날짜+시:분) 오버로드. 화면은 이 메서드를 쓴다.</summary>
+        public static List<CycleResultDto> QueryCycles(StatisticsTimeRange range, string szRecipeFilter)
+        {
             try
             {
                 string szDir = SystemHandler.Handle.Setting.StatisticsSavePath;
+                return QueryCyclesDirectory(szDir, range, szRecipeFilter);
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] QueryCycles failed: " + ex.Message); } catch { }
+                return new List<CycleResultDto>();
+            }
+        }
+
+        /// <summary>경로를 직접 받는 사이클 조회 — SystemHandler 없이 호출 가능. 화면은 QueryCycles 를 쓴다.</summary>
+        public static List<CycleResultDto> QueryCyclesDirectory(string szDir, StatisticsTimeRange range, string szRecipeFilter)
+        {
+            var state = new CycleGroupState();
+            state.Range = range;
+
+            try
+            {
+                if (range == null)
+                {
+                    return state.Cycles;
+                }
+
                 if (string.IsNullOrEmpty(szDir))
                 {
                     return state.Cycles;
                 }
 
-                if (dtTo.Date < dtFrom.Date)
+                if (range.IsEmpty)
                 {
                     return state.Cycles;
                 }
 
-                for (DateTime d = dtFrom.Date; d <= dtTo.Date; d = d.AddDays(1))
+                for (DateTime d = range.FirstDate; d <= range.LastDate; d = d.AddDays(1))
                 {
                     string szPath = Path.Combine(szDir, d.ToString("yyyyMMdd") + CSV_EXT);
                     if (!File.Exists(szPath))
@@ -459,7 +486,7 @@ namespace ReringProject.Sequence
             }
             catch (Exception ex)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] QueryCycles failed: " + ex.Message); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] QueryCyclesDirectory failed: " + ex.Message); } catch { }
             }
 
             return state.Cycles;
@@ -543,6 +570,16 @@ namespace ReringProject.Sequence
             }
 
             string szTime = fields[COL_TIME];
+            DateTime dtRow;
+            if (!TryParseInspectionTime(szTime, out dtRow))
+            {
+                return;
+            }
+            if (!state.Range.Contains(dtRow))
+            {
+                return;
+            }
+
             string szIndex = fields[COL_INDEX];
             string szShot = fields[COL_SHOT];
             string szFai = fields[COL_FAI];
@@ -552,7 +589,7 @@ namespace ReringProject.Sequence
             if (IsNewCycleBoundary(state, szTime, szRecipe, szIndex, szKey))
             {
                 var cycle = new CycleResultDto();
-                cycle.InspectionTime = ParseInspectionTime(szTime);
+                cycle.InspectionTime = dtRow;
                 cycle.RecipeName = szRecipe;
                 cycle.IndexNumber = ParseIndexNumber(szIndex);
                 cycle.OverallJudgement = MapOverallBack(fields[COL_OVERALL]);
@@ -589,18 +626,6 @@ namespace ReringProject.Sequence
             state.LastTime = szTime;
             state.LastRecipe = szRecipe;
             state.LastIndex = szIndex;
-        }
-
-        /// <summary>"yyyy-MM-dd HH:mm:ss" 파싱. 실패 시 DateTime.MinValue — 그룹핑은 원본 문자열로 하므로 영향 없다.</summary>
-        private static DateTime ParseInspectionTime(string sz)
-        {
-            DateTime dt;
-            if (DateTime.TryParseExact(sz, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
-            {
-                return dt;
-            }
-
-            return DateTime.MinValue;
         }
 
         //260820 hbk 검사구분 복원. 컬럼 자체가 없는 구 CSV(14컬럼)는 false(수동) — 그 시절엔 자동/수동을

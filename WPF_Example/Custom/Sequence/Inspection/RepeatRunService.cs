@@ -1150,18 +1150,19 @@ namespace ReringProject.Sequence
             return szDatumName + "|" + szRole;
         }
 
-        public static SavedCycleRerunPlan BuildPlan(DateTime dtFrom, DateTime dtTo, string szRecipeName, InspectionSequence seq, InspectionRecipeManager recipeManager)
+        public static SavedCycleRerunPlan BuildPlan(StatisticsTimeRange range, string szRecipeName, InspectionSequence seq, InspectionRecipeManager recipeManager)
         {
             SavedCycleRerunPlan plan = new SavedCycleRerunPlan();
-            bool bInvalidArgs = seq == null || recipeManager == null || string.IsNullOrEmpty(szRecipeName) || dtTo < dtFrom;
-            if (bInvalidArgs)
+            bool bMissingInputs = seq == null || recipeManager == null || string.IsNullOrEmpty(szRecipeName);
+            bool bInvalidRange = range == null || range.IsEmpty;
+            if (bMissingInputs || bInvalidRange)
             {
                 return plan;
             }
             plan.SequenceName = seq.Name;
             plan.RecipeName = szRecipeName;
 
-            List<CycleResultDto> lstTicks = CollectAutoTicks(dtFrom, dtTo, szRecipeName, seq);
+            List<CycleResultDto> lstTicks = CollectAutoTicks(range, szRecipeName, seq);
             plan.AutoTickCount = lstTicks.Count;
             lstTicks.Sort(CompareByInspectionTime);
 
@@ -1208,12 +1209,13 @@ namespace ReringProject.Sequence
         }
 
         // 지정 기간의 날짜 폴더를 순회하며 이 시퀀스/레시피의 자동(PLC 프로토콜) tick 만 수집한다.
+        //  cycle.json InspectionTime(소수 초 포함) 이 기간 안인 tick 만 담는다.
         //  폴더 하나가 깨져 있어도(손상 JSON 등) 나머지 날짜 수집을 막지 않는다(격리).
-        private static List<CycleResultDto> CollectAutoTicks(DateTime dtFrom, DateTime dtTo, string szRecipeName, InspectionSequence seq)
+        private static List<CycleResultDto> CollectAutoTicks(StatisticsTimeRange range, string szRecipeName, InspectionSequence seq)
         {
             List<CycleResultDto> lstResult = new List<CycleResultDto>();
-            DateTime dCurrent = dtFrom.Date;
-            DateTime dLast = dtTo.Date;
+            DateTime dCurrent = range.FirstDate;
+            DateTime dLast = range.LastDate;
             while (dCurrent <= dLast)
             {
                 try
@@ -1226,10 +1228,15 @@ namespace ReringProject.Sequence
                         {
                             string szJsonPath = Path.Combine(szCycleDir, CYCLE_JSON_FILE_NAME);
                             CycleResultDto dto = CycleResultSerializer.Load(szJsonPath);
-                            if (IsEligibleAutoTick(dto, szRecipeName, seq))
+                            if (!IsEligibleAutoTick(dto, szRecipeName, seq))
                             {
-                                lstResult.Add(dto);
+                                continue;
                             }
+                            if (!range.Contains(dto.InspectionTime))
+                            {
+                                continue;
+                            }
+                            lstResult.Add(dto);
                         }
                     }
                 }

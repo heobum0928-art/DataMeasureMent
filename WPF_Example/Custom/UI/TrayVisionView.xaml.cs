@@ -1963,9 +1963,18 @@ namespace ReringProject.Custom.UI {
         }
 
         /// <summary>
-        /// AlignResult → 결과 문자열 포맷 (Tray: X/Y Offset + Score, Theta 미표시).
+        /// AlignResult → 결과 문자열 포맷 (Tray: X/Y Offset + Theta + Score, Bottom 과 같은 형식).
+        /// Tray 도 Run() 이 ThetaDeg 를 계산하고 HasTheta=true 로 채운다(화면 반시계 +, TRAY_THETA_SIGN 반영값).
         /// </summary>
         private string FormatAlignResult(AlignResult res) {
+            if (res.HasTheta) {
+                return string.Format(
+                    "X: {0:F3} mm\nY: {1:F3} mm\nTheta: {2:F3} deg\nScore: {3:F3}",
+                    res.OffsetXmm,
+                    res.OffsetYmm,
+                    res.ThetaDeg,
+                    res.Score);
+            }
             return string.Format(
                 "X: {0:F3} mm\nY: {1:F3} mm\nScore: {2:F3}",
                 res.OffsetXmm,

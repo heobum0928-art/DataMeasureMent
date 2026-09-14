@@ -114,7 +114,7 @@ namespace ReringProject {
         //   BOTTOM_THETA_SIGN 과 PICKER_ROTATION_SIGN 도 반드시 같이 검토할 것.
         //   X 만 바꾸면 작은 각도에서는 멀쩡해 보이고 큰 각도에서만 틀어져 발견이 매우 늦다.
         private const double BOTTOM_OFFSET_X_SIGN = 1.0;   // Bottom OffsetX 부호
-        private const double BOTTOM_THETA_SIGN    = 1.0;   // Bottom Theta 부호 (X 와 함께 검토)
+        private const double BOTTOM_THETA_SIGN    = -1.0;   // Bottom Theta 부호 (X 와 함께 검토)
         private const double TRAY_OFFSET_X_SIGN   = 1.0;   // Tray OffsetX 부호
         private const double TRAY_THETA_SIGN      = 1.0;   // Tray Theta 부호 (X 와 함께 검토, Bottom 과 별개)
         // Y(Row) 는 Inspector/LD 모두 "아래가 +" 로 일치하므로 부호 상수를 두지 않는다.

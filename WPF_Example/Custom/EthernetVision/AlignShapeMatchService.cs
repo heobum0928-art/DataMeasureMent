@@ -256,6 +256,14 @@ namespace ReringProject {
                 refPose.Roi2Len1 = roi2Len1;
                 refPose.Roi2Len2 = roi2Len2;
 
+                // 동축 조명값은 티칭이 아니라 UI 체크박스/슬라이더(TrySaveCoax)가 저장한다.
+                // 새 객체 기본값(false/0)으로 덮어쓰면 자동검사가 조명 OFF 로 촬영하므로 기존 값을 옮겨 담는다.
+                AlignRefPose existingPose = LoadRefPose(jsonPath);
+                if (existingPose != null) {
+                    refPose.CoaxEnabled = existingPose.CoaxEnabled;
+                    refPose.CoaxLevel   = existingPose.CoaxLevel;
+                }
+
                 // IN-01 fix: 직렬화도 TypeNameHandling.None 명시 — 역직렬화 측 RCE 방지 설정과 대칭.
                 JsonSerializerSettings saveSettings = new JsonSerializerSettings();
                 saveSettings.TypeNameHandling = TypeNameHandling.None;

@@ -23,6 +23,95 @@ namespace ReringProject.Sequence
     }
 
     /// <summary>
+    /// 통계 조회 기간. [FromInclusive, ToExclusive) 반열린 구간 — To 는 선택한 분의 59초(소수 초 포함)까지 포함.
+    /// </summary>
+    public class StatisticsTimeRange
+    {
+        public const int LAST_HOUR = 23;
+        public const int LAST_MINUTE = 59;
+        private const int ONE_MINUTE = 1;
+        private const string FILE_DATE_FORMAT = "yyyyMMdd";
+        private const string FILE_DATETIME_FORMAT = "yyyyMMdd_HHmm";
+        private const string FILE_STAMP_SEPARATOR = "_";
+
+        public DateTime FromInclusive { get; private set; }
+
+        /// <summary>선택한 To 분의 시작(초=0) — 파일명 생성용.</summary>
+        public DateTime ToMinute { get; private set; }
+
+        public DateTime ToExclusive { get; private set; }
+
+        /// <summary>From 이 To 보다 늦은 경우(방어) — true 면 빈 결과로 취급한다.</summary>
+        public bool IsEmpty
+        {
+            get { return ToExclusive <= FromInclusive; }
+        }
+
+        /// <summary>From/To 가 둘 다 자정(하루 전체)인지 — export 파일명 형식 분기에 쓴다.</summary>
+        public bool IsWholeDays
+        {
+            get { return FromInclusive.TimeOfDay == TimeSpan.Zero && ToExclusive.TimeOfDay == TimeSpan.Zero; }
+        }
+
+        public DateTime FirstDate
+        {
+            get { return FromInclusive.Date; }
+        }
+
+        public DateTime LastDate
+        {
+            get { return ToMinute.Date; }
+        }
+
+        private static int ClampOrFallback(int nValue, int nMax, int nFallback)
+        {
+            bool bOutOfRange = nValue < 0 || nValue > nMax;
+            if (bOutOfRange)
+            {
+                return nFallback;
+            }
+
+            return nValue;
+        }
+
+        public static StatisticsTimeRange FromParts(DateTime dtFromDate, int nFromHour, int nFromMinute, DateTime dtToDate, int nToHour, int nToMinute)
+        {
+            int nClampedFromHour = ClampOrFallback(nFromHour, LAST_HOUR, 0);
+            int nClampedFromMinute = ClampOrFallback(nFromMinute, LAST_MINUTE, 0);
+            int nClampedToHour = ClampOrFallback(nToHour, LAST_HOUR, LAST_HOUR);
+            int nClampedToMinute = ClampOrFallback(nToMinute, LAST_MINUTE, LAST_MINUTE);
+
+            var range = new StatisticsTimeRange();
+            range.FromInclusive = dtFromDate.Date.AddHours(nClampedFromHour).AddMinutes(nClampedFromMinute);
+            range.ToMinute = dtToDate.Date.AddHours(nClampedToHour).AddMinutes(nClampedToMinute);
+            range.ToExclusive = range.ToMinute.AddMinutes(ONE_MINUTE);
+            return range;
+        }
+
+        /// <summary>날짜만 넘기던 기존 의미(하루 전체)와 같다 — From 00:00, To 23:59.</summary>
+        public static StatisticsTimeRange FromDates(DateTime dtFromDate, DateTime dtToDate)
+        {
+            return FromParts(dtFromDate, 0, 0, dtToDate, LAST_HOUR, LAST_MINUTE);
+        }
+
+        public bool Contains(DateTime dt)
+        {
+            return dt >= FromInclusive && dt < ToExclusive;
+        }
+
+        /// <summary>export 파일명용 시각 스탬프. 하루 전체면 기존 형식(yyyyMMdd_yyyyMMdd) 그대로, 아니면 시:분 포함.</summary>
+        public string BuildFileStamp()
+        {
+            if (IsWholeDays)
+            {
+                return FirstDate.ToString(FILE_DATE_FORMAT) + FILE_STAMP_SEPARATOR + LastDate.ToString(FILE_DATE_FORMAT);
+            }
+
+            return FromInclusive.ToString(FILE_DATETIME_FORMAT) + FILE_STAMP_SEPARATOR + ToMinute.ToString(FILE_DATETIME_FORMAT);
+        }
+    }
+
+    /// <summary>
     /// StatisticsSavePath\yyyyMMdd.csv 를 기간·레시피로 조회하여 통계/추이/레시피목록을 산출한다.
     /// 통계 계산은 RepeatMeasurementStats.AddSample/ComputeAll 을 그대로 재사용한다(DRY, 수정 없음).
     /// </summary>
@@ -50,32 +139,73 @@ namespace ReringProject.Sequence
         private const int COL_RUNMODE = 14;
         private const string RUNMODE_AUTO_TEXT = "자동";
         private const string RUNMODE_MANUAL_TEXT = "수동";
+        private const string INSPECTION_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+        /// <summary>"yyyy-MM-dd HH:mm:ss" 파싱 시도. 실패하면 false — 손상 행 가드로 쓴다.</summary>
+        private static bool TryParseInspectionTime(string sz, out DateTime dt)
+        {
+            return DateTime.TryParseExact(sz, INSPECTION_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt);
+        }
+
+        /// <summary>Query 조회 1회의 누적 상태. 매개변수 5개를 들고 다니지 않기 위한 묶음.</summary>
+        private class StatsQueryState
+        {
+            public StatisticsTimeRange Range;
+            public string RecipeFilter;
+            public RepeatMeasurementStats Stats = new RepeatMeasurementStats();
+            public StatisticsQueryResult Result = new StatisticsQueryResult();
+            public HashSet<string> RecipeSet = new HashSet<string>();
+        }
 
         /// <summary>
-        /// dtFrom~dtTo 기간의 일자별 CSV 를 읽어 통계/추이/레시피목록을 반환한다.
+        /// dtFrom~dtTo 기간(하루 전체)의 일자별 CSV 를 읽어 통계/추이/레시피목록을 반환한다.
         /// szRecipeFilter 가 null/빈문자열이면 전체 레시피를 집계한다.
         /// </summary>
         public static StatisticsQueryResult Query(DateTime dtFrom, DateTime dtTo, string szRecipeFilter)
         {
-            var result = new StatisticsQueryResult();
+            return Query(StatisticsTimeRange.FromDates(dtFrom, dtTo), szRecipeFilter);
+        }
+
+        /// <summary>기간(날짜+시:분) 오버로드. 화면은 이 메서드를 쓴다.</summary>
+        public static StatisticsQueryResult Query(StatisticsTimeRange range, string szRecipeFilter)
+        {
+            try
+            {
+                string szDir = SystemHandler.Handle.Setting.StatisticsSavePath;
+                return QueryDirectory(szDir, range, szRecipeFilter);
+            }
+            catch (Exception ex)   // 방어적 격리 — 조회 실패해도 UI 크래시 없이 빈 결과 반환
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] Query failed: " + ex.Message); } catch { }
+                return new StatisticsQueryResult();
+            }
+        }
+
+        /// <summary>경로를 직접 받는 조회 — SystemHandler 없이 호출 가능. 화면은 Query 를 쓴다.</summary>
+        public static StatisticsQueryResult QueryDirectory(string szDir, StatisticsTimeRange range, string szRecipeFilter)
+        {
+            var state = new StatsQueryState();
+            state.Range = range;
+            state.RecipeFilter = szRecipeFilter;
 
             try
             {
-                var stats = new RepeatMeasurementStats();
-                var recipeSet = new HashSet<string>();
+                if (range == null)
+                {
+                    return state.Result;
+                }
 
-                string szDir = SystemHandler.Handle.Setting.StatisticsSavePath;   //260707 hbk STAT-01 D-01
                 if (string.IsNullOrEmpty(szDir))
                 {
-                    return result;
+                    return state.Result;
                 }
 
-                if (dtTo.Date < dtFrom.Date)   //260707 hbk from>to 방어
+                if (range.IsEmpty)   // from>to 방어
                 {
-                    return result;
+                    return state.Result;
                 }
 
-                for (DateTime d = dtFrom.Date; d <= dtTo.Date; d = d.AddDays(1))
+                for (DateTime d = range.FirstDate; d <= range.LastDate; d = d.AddDays(1))
                 {
                     string szPath = Path.Combine(szDir, d.ToString("yyyyMMdd") + CSV_EXT);
                     if (!File.Exists(szPath))
@@ -83,23 +213,23 @@ namespace ReringProject.Sequence
                         continue;
                     }
 
-                    LoadFile(szPath, szRecipeFilter, stats, result, recipeSet);
+                    LoadFile(szPath, state);
                 }
 
-                result.RecipeNames = new List<string>(recipeSet);
-                result.RecipeNames.Sort();
-                result.Stats = stats.ComputeAll();
+                state.Result.RecipeNames = new List<string>(state.RecipeSet);
+                state.Result.RecipeNames.Sort();
+                state.Result.Stats = state.Stats.ComputeAll();
             }
             catch (Exception ex)   //260707 hbk 방어적 격리 — 조회 실패해도 UI 크래시 없이 빈 결과 반환
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] Query failed: " + ex.Message); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvLoader] QueryDirectory failed: " + ex.Message); } catch { }
             }
 
-            return result;
+            return state.Result;
         }
 
         /// <summary>szPath 1개 CSV 파일을 읽어 라인 단위로 ProcessRow 에 위임한다. 파일 단위 실패는 격리하여 다음 파일 로드를 막지 않는다.</summary>
-        private static void LoadFile(string szPath, string szRecipeFilter, RepeatMeasurementStats stats, StatisticsQueryResult result, HashSet<string> recipeSet)
+        private static void LoadFile(string szPath, StatsQueryState state)
         {
             try
             {
@@ -123,7 +253,7 @@ namespace ReringProject.Sequence
                         continue;
                     }
 
-                    ProcessRow(fields, szRecipeFilter, stats, result, recipeSet);
+                    ProcessRow(fields, state);
                 }
             }
             catch (Exception ex)   //260707 hbk 파일 단위 격리 — 손상 파일 1개가 전체 Query 를 중단시키지 않음
@@ -132,17 +262,33 @@ namespace ReringProject.Sequence
             }
         }
 
-        /// <summary>CSV 1행을 처리한다. distinct 레시피 수집(필터 전) → 필터 적용 → 통계 누적 → 추이 시계열 수집.</summary>
-        private static void ProcessRow(List<string> fields, string szRecipeFilter, RepeatMeasurementStats stats, StatisticsQueryResult result, HashSet<string> recipeSet)
+        /// <summary>CSV 1행을 처리한다. 검사일시 파싱 → distinct 레시피 수집(기간 안) → 필터 적용 → 기간 필터 → 통계 누적 → 추이 시계열 수집.</summary>
+        private static void ProcessRow(List<string> fields, StatsQueryState state)
         {
-            string szRecipe = fields[COL_RECIPE];
-            recipeSet.Add(szRecipe);   //260707 hbk D-11 필터 전에 distinct 수집(드롭다운용)
+            DateTime dtRow;
+            if (!TryParseInspectionTime(fields[COL_TIME], out dtRow))   // 손상 행 가드와 같은 취급
+            {
+                return;
+            }
 
-            if (!string.IsNullOrEmpty(szRecipeFilter) && szRecipe != szRecipeFilter)
+            bool bInRange = state.Range.Contains(dtRow);
+
+            if (bInRange)
+            {
+                state.RecipeSet.Add(fields[COL_RECIPE]);   // D-11 필터 전에 distinct 수집(드롭다운용, 기간 안 줄 기준)
+            }
+
+            string szRecipe = fields[COL_RECIPE];
+            if (!string.IsNullOrEmpty(state.RecipeFilter) && szRecipe != state.RecipeFilter)
             {
                 return;
             }
             if (IsManualRow(fields))
+            {
+                return;
+            }
+
+            if (!bInRange)
             {
                 return;
             }
@@ -159,23 +305,23 @@ namespace ReringProject.Sequence
             fai.Measurements.Add(meas);
             shot.FAIs.Add(fai);
             dto.Shots.Add(shot);
-            stats.AddSample(dto);
+            state.Stats.AddSample(dto);
 
             // 추이 시계열(D-13): OK/NG(측정값 있는 것)만 순서대로 수집
             if (meas.LastHasResult && string.IsNullOrEmpty(meas.LastSkipReason))
             {
                 string szKey = szShot + "/" + szFai + "/" + szName;   //260707 hbk RepeatMeasurementStats 키 포맷 일치
                 List<double> series;
-                if (!result.Series.TryGetValue(szKey, out series))
+                if (!state.Result.Series.TryGetValue(szKey, out series))
                 {
                     series = new List<double>();
-                    result.Series[szKey] = series;
+                    state.Result.Series[szKey] = series;
                 }
 
                 series.Add(meas.LastMeasuredValue);
             }
 
-            result.TotalRowCount++;
+            state.Result.TotalRowCount++;
         }
 
         /// <summary>CSV 필드를 MeasurementResultDto 로 역구성한다. Judgement 컬럼 5분기(D-06/D-07 정책 재현).</summary>

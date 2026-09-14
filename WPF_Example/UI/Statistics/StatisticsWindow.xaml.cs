@@ -422,6 +422,119 @@ namespace ReringProject.UI
     }
 
     /// <summary>
+    /// 통계 창 조회 기간(날짜 + 시:분) 선택 상태. 기본 From 00:00, To 23:59 = 하루 전체.
+    /// </summary>
+    public class StatisticsPeriodViewModel : INotifyPropertyChanged
+    {
+        private const int HOURS_PER_DAY = StatisticsTimeRange.LAST_HOUR + 1;
+        private const int MINUTES_PER_HOUR = StatisticsTimeRange.LAST_MINUTE + 1;
+        private const string TWO_DIGIT_FORMAT = "D2";
+        public const string INVALID_RANGE_TEXT = "기간 오류: 시작이 끝보다 늦습니다";
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void RaisePropertyChanged(string szPropertyName)
+        {
+            var handler = PropertyChanged;
+            if (handler != null)
+            {
+                handler(this, new PropertyChangedEventArgs(szPropertyName));
+            }
+        }
+
+        public List<string> HourItems { get; private set; }
+
+        public List<string> MinuteItems { get; private set; }
+
+        public StatisticsPeriodViewModel()
+        {
+            HourItems = new List<string>();
+            for (int i = 0; i < HOURS_PER_DAY; i++)
+            {
+                HourItems.Add(i.ToString(TWO_DIGIT_FORMAT));
+            }
+
+            MinuteItems = new List<string>();
+            for (int i = 0; i < MINUTES_PER_HOUR; i++)
+            {
+                MinuteItems.Add(i.ToString(TWO_DIGIT_FORMAT));
+            }
+        }
+
+        private DateTime? _fromDate = DateTime.Today;
+        public DateTime? FromDate
+        {
+            get { return _fromDate; }
+            set { _fromDate = value; RaisePropertyChanged("FromDate"); }
+        }
+
+        private DateTime? _toDate = DateTime.Today;
+        public DateTime? ToDate
+        {
+            get { return _toDate; }
+            set { _toDate = value; RaisePropertyChanged("ToDate"); }
+        }
+
+        private int _nFromHourIndex;
+        public int FromHourIndex
+        {
+            get { return _nFromHourIndex; }
+            set { _nFromHourIndex = value; RaisePropertyChanged("FromHourIndex"); }
+        }
+
+        private int _nFromMinuteIndex;
+        public int FromMinuteIndex
+        {
+            get { return _nFromMinuteIndex; }
+            set { _nFromMinuteIndex = value; RaisePropertyChanged("FromMinuteIndex"); }
+        }
+
+        private int _nToHourIndex = StatisticsTimeRange.LAST_HOUR;
+        public int ToHourIndex
+        {
+            get { return _nToHourIndex; }
+            set { _nToHourIndex = value; RaisePropertyChanged("ToHourIndex"); }
+        }
+
+        private int _nToMinuteIndex = StatisticsTimeRange.LAST_MINUTE;
+        public int ToMinuteIndex
+        {
+            get { return _nToMinuteIndex; }
+            set { _nToMinuteIndex = value; RaisePropertyChanged("ToMinuteIndex"); }
+        }
+
+        /// <summary>현재 선택 상태로 StatisticsTimeRange 를 만든다. 날짜 미선택은 오늘로 폴백한다.</summary>
+        public StatisticsTimeRange BuildRange()
+        {
+            DateTime dtFrom = DateTime.Today;
+            if (FromDate.HasValue)
+            {
+                dtFrom = FromDate.Value;
+            }
+
+            DateTime dtTo = DateTime.Today;
+            if (ToDate.HasValue)
+            {
+                dtTo = ToDate.Value;
+            }
+
+            return StatisticsTimeRange.FromParts(dtFrom, FromHourIndex, FromMinuteIndex, dtTo, ToHourIndex, ToMinuteIndex);
+        }
+
+        /// <summary>요약 줄 문자열 — 기간이 빈 경우(From > To) 오류 문구, 아니면 행 요약 그대로.</summary>
+        public string BuildSummaryText(StatisticsTimeRange range, string szRowSummary)
+        {
+            bool bInvalidRange = range != null && range.IsEmpty;
+            if (bInvalidRange)
+            {
+                return INVALID_RANGE_TEXT;
+            }
+
+            return szRowSummary;
+        }
+    }
+
+    /// <summary>
     /// quick-260911-fia Task 4: "저장 사진으로 재검사" 화면 상태/흐름을 담당하는 ViewModel.
     /// StatisticsWindow code-behind 는 배선만 하고, 계산 로직(계획 조회/통계 집계/원래 평균 비교)은
     /// 이 클래스와 StatRowPresenter/SavedCycleRerunPlanner/RepeatMeasurementStats 에 둔다.
@@ -819,15 +932,17 @@ namespace ReringProject.UI
         // quick-260911-fia Task 4: "저장 사진으로 재검사" 화면 상태 — 계산 로직은 전부 VM 에 있다.
         private readonly StatisticsRerunViewModel m_rerunVm = new StatisticsRerunViewModel();
 
+        // 조회 기간(날짜+시:분) 선택 상태 — 계산 로직은 전부 VM 에 있다.
+        private readonly StatisticsPeriodViewModel m_periodVm = new StatisticsPeriodViewModel();
+
         public StatisticsWindow()
         {
             InitializeComponent();
-            dp_From.SelectedDate = DateTime.Today;   //260707 hbk D-10 기본값 오늘
-            dp_To.SelectedDate = DateTime.Today;
+            pnl_Period.DataContext = m_periodVm;
             pnl_Rerun.DataContext = m_rerunVm;
             m_rerunVm.RerunViewReady += ApplyRerunView;
             m_rerunVm.LoadSequenceNames();
-            DoQuery("");   // 오픈 시 오늘자 전체 레시피 조회
+            DoQuery("");   // 오픈 시 기본 기간(오늘 00:00~23:59) 전체 레시피 조회
         }
 
         private void Btn_Query_Click(object sender, RoutedEventArgs e)
@@ -905,17 +1020,15 @@ namespace ReringProject.UI
         {
             try
             {
-                DateTime dtFrom;
-                DateTime dtTo;
-                GetSelectedRange(out dtFrom, out dtTo);
+                StatisticsTimeRange range = m_periodVm.BuildRange();
 
-                m_lastResult = MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szRecipeFilter);
+                m_lastResult = MeasurementHistoryCsvLoader.Query(range, szRecipeFilter);
                 PopulateRecipeCombo(m_lastResult.RecipeNames, szRecipeFilter);
                 List<StatRow> rows = StatRowPresenter.BuildRows(m_lastResult.Stats);
                 StatRowPresenter.SortWorstFirst(rows);
                 grid_Stats.ItemsSource = rows;
                 ApplyProblemFilter();   // 새 ItemsSource 에도 현재 체크 상태 재적용
-                txt_Summary.Text = StatRowPresenter.BuildSummary(rows);   // 전체 rows 기준 — 필터 무관
+                txt_Summary.Text = m_periodVm.BuildSummaryText(range, StatRowPresenter.BuildSummary(rows));   // 전체 rows 기준 — 필터 무관
                 ClearCharts();   // 새 조회 직후 → 이전 선택 차트 비움(행 선택 시 다시 갱신)
                 UpdateExportButtonState();
             }

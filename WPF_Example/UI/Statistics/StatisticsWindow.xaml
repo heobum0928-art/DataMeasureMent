@@ -19,14 +19,25 @@
             <RowDefinition Height="340"/>
         </Grid.RowDefinitions>
 
-        <!-- Row0: 필터바 - 기간 DatePicker(기본 오늘, D-10) + 레시피 콤보 + 조회 버튼 (D-11) -->
+        <!-- Row0: 필터바 - 기간 날짜 + 시:분(기본 00:00 ~ 23:59) + 레시피 콤보 + 조회 버튼 (D-11) -->
         <Border Grid.Row="0" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="8,6">
             <StackPanel Orientation="Vertical">
-                <StackPanel Orientation="Horizontal">
+                <StackPanel x:Name="pnl_Period" Orientation="Horizontal">
                     <TextBlock Text="기간" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="0,0,6,0"/>
-                    <DatePicker x:Name="dp_From" Width="130" VerticalAlignment="Center"/>
+                    <DatePicker x:Name="dp_From" Width="130" VerticalAlignment="Center" SelectedDate="{Binding FromDate, Mode=TwoWay}"/>
+                    <ComboBox x:Name="combo_FromHour" Width="52" VerticalAlignment="Center" Margin="4,0,0,0"
+                              ItemsSource="{Binding HourItems}" SelectedIndex="{Binding FromHourIndex, Mode=TwoWay}"/>
+                    <TextBlock Text=":" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="2,0,2,0"/>
+                    <ComboBox x:Name="combo_FromMinute" Width="52" VerticalAlignment="Center"
+                              ItemsSource="{Binding MinuteItems}" SelectedIndex="{Binding FromMinuteIndex, Mode=TwoWay}"/>
                     <TextBlock Text="~" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="6,0,6,0"/>
-                    <DatePicker x:Name="dp_To" Width="130" VerticalAlignment="Center"/>
+                    <DatePicker x:Name="dp_To" Width="130" VerticalAlignment="Center" SelectedDate="{Binding ToDate, Mode=TwoWay}"/>
+                    <ComboBox x:Name="combo_ToHour" Width="52" VerticalAlignment="Center" Margin="4,0,0,0"
+                              ItemsSource="{Binding HourItems}" SelectedIndex="{Binding ToHourIndex, Mode=TwoWay}"/>
+                    <TextBlock Text=":" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="2,0,2,0"/>
+                    <ComboBox x:Name="combo_ToMinute" Width="52" VerticalAlignment="Center"
+                              ItemsSource="{Binding MinuteItems}" SelectedIndex="{Binding ToMinuteIndex, Mode=TwoWay}"
+                              ToolTip="끝 시각은 그 분 59초까지 포함"/>
                     <TextBlock Text="레시피" VerticalAlignment="Center" FontSize="13" Foreground="#334155" Margin="16,0,6,0"/>
                     <ComboBox x:Name="combo_Recipe" Width="180" VerticalAlignment="Center"/>
                     <Button x:Name="btn_Query" Content="조회" Click="Btn_Query_Click"
@@ -34,9 +45,6 @@
                     <Button x:Name="btn_CpkExport" Content="CPK 리포트 export" Click="Btn_CpkExport_Click"
                             IsEnabled="False"
                             Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
-                    <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
-                               VerticalAlignment="Center" FontSize="12" Foreground="#B45309" Margin="16,0,0,0"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                     <CheckBox x:Name="chk_ProblemOnly" Content="문제 항목만 보기 (불량·주의)"
@@ -44,8 +52,13 @@
                               VerticalAlignment="Center" FontSize="13"/>
                     <TextBlock x:Name="txt_Summary" Margin="24,0,0,0" FontSize="13" FontWeight="SemiBold"
                                Foreground="#334155" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                     <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
-                               Margin="24,0,0,0" FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
+                               FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
+                    <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
+                    <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
+                               VerticalAlignment="Center" FontSize="12" Foreground="#B45309" Margin="24,0,0,0"/>
                 </StackPanel>
                 <!-- quick-260911-fia Task 4: 저장 사진으로 재검사 패널 -->
                 <StackPanel x:Name="pnl_Rerun" Orientation="Horizontal" Margin="0,6,0,0">

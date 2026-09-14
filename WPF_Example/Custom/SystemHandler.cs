@@ -1052,6 +1052,9 @@ namespace ReringProject {
         //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리.
         //260625 hbk v3.0: CmdStr echo 추가. AlignFace 제거됨.
         //260630 hbk Phase 60: 스텁 → 실 구현 (START/STEP/END/ABORT 분기 + PickerCal 연결).
+        // PLC 캘($ALIGN_CALIB) 명령에는 면 슬롯 필드가 없다. 피커 캘은 Bottom 3D_Top 면 슬롯의 동축 설정(슬롯 JSON)으로 찍는다.
+        private const EBottomAlignSlot PICKER_CAL_COAX_SLOT = EBottomAlignSlot.Slot3DTop;
+
         private AlignCalibResultPacket ProcessAlignCalib(AlignCalibPacket packet)
         {
             AlignCalibResultPacket resultPacket = new AlignCalibResultPacket();
@@ -1115,6 +1118,9 @@ namespace ReringProject {
                 HImage img = null;
                 try
                 {
+                    // 수동 캘·$ALIGN_TEST 와 같은 동축 조명으로 찍는다 — 조명 명령 없이 찍으면 어두운 사진으로 검출이 실패한다.
+                    ApplyCoaxLightForSlot(PICKER_CAL_COAX_SLOT);
+                    LightHandler.Handle.WaitForLightsSettled();
                     // 260724 hbk 임시 진단 — 동기 파일 기록으로 크래시 직전 상황 확실히 남김
                     try { System.IO.File.AppendAllText(@"D:\Data\Camera\crash_diag.log",
                         string.Format("{0} [ALIGN_CALIB] STEP: Camera.Grab() 호출 직전\r\n", DateTime.Now.ToString("HH:mm:ss.fff"))); } catch { }
@@ -1171,6 +1177,7 @@ namespace ReringProject {
                     {
                         img.Dispose();
                     }
+                    LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false); // STEP 완료 즉시 소등 — $ALIGN_TEST 와 동일
                 }
                 return resultPacket;
             }

@@ -1580,7 +1580,18 @@ namespace ReringProject.Custom.UI {
                 bCameraReady = cam.IsOpen;
             }
             if (bCameraReady) {
-                HImage grabbed = cam.Grab();
+                // 캘 티칭·스텝 Grab 도 일반 Grab 버튼과 같은 동축 조명으로 찍어야 모델과 검출 이미지의 밝기가 맞는다.
+                //  조명 명령 없이 찍으면 자동 소등 뒤에는 어두운 사진으로 티칭·검출되어 "Score 미달"로 실패한다.
+                CancelCoaxAutoOffTimer();
+                ApplyCoaxLight();
+                LightHandler.Handle.WaitForLightsSettled();
+                HImage grabbed = null;
+                try {
+                    grabbed = cam.Grab();
+                }
+                finally {
+                    StartCoaxAutoOffTimer();
+                }
                 if (grabbed == null) {
                     lbl_calStatus.Text = "Grab 실패";
                     return false;

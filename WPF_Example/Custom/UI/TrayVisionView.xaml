@@ -265,6 +265,11 @@
                              몰라도 되므로 대충 돌려도 되지만, 점이 좁은 구간에 몰리면 피팅이 불안정해진다.-->
                         <TextBlock Text="각도는 정확하지 않아도 됩니다. 한쪽에 몰리지 않게 고루 돌려 주세요."
                                    Margin="0,0,0,6" FontSize="11" Foreground="#64748B" TextWrapping="Wrap"/>
+                        <!--켜면 카메라가 연결돼 있어도 ②③ 이 새로 찍지 않고 [폴더 열기]로 띄운 저장 사진을 쓴다.
+                             기본은 꺼짐(재시작 시 꺼짐) — 예전 사진으로 모르고 캘을 잡는 사고를 막기 위해 명시적으로 켜야 한다.-->
+                        <CheckBox x:Name="chk_calUseSavedImages" Content="저장 사진으로 캘 (카메라 안 찍음)"
+                                  Margin="0,0,0,6" FontSize="12"
+                                  Checked="CalUseSavedImagesCheckBox_Changed" Unchecked="CalUseSavedImagesCheckBox_Changed"/>
                         <!--초기화 / 마지막 취소: 순서 번호 없음 — 언제든 눌러 되돌릴 수 있는 보조 동작.
                              ↺ 마지막 취소는 10회 수동 반복 중 한 번만 잘못돼도 전부 다시 하지 않도록,
                              누적의 마지막 1개만 제거한다(TryRemoveLastStep). 누적이 1개 이상일 때만 활성.-->
@@ -301,6 +306,13 @@
                                 Style="{StaticResource TrayActionButtonStyle}"
                                 HorizontalAlignment="Left"
                                 Click="CalAddStepButton_Click"/>
+                        <!--③ 폴더 전체: [폴더 열기]로 연 폴더의 사진 전부로 한 번에 스텝 누적. 카메라 연결 여부와 무관.
+                             활성 조건은 ③ 과 같다(검색 ROI + 모델).-->
+                        <Button x:Name="btn_calAddAllSteps"
+                                Content="③ 폴더 사진 전체로 스텝 추가"
+                                Style="{StaticResource TrayActionButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Click="CalAddAllStepsButton_Click"/>
                         <!--④ 피커센터 계산: 누적 스텝이 최소 개수 이상일 때만 활성.-->
                         <Button x:Name="btn_calCompute"
                                 Content="④ 피커센터 계산"

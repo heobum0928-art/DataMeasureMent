@@ -591,10 +591,19 @@ namespace ReringProject
                  "(피커센터 보정은 픽셀 좌표에서 먼저 계산한 뒤 X 부호를 곱하므로 영향 없음). PLC 로 보내는 X, 화면 X, " +
                  "AlignVerify CSV 잔여 X 가 모두 같이 뒤집힌다. Bottom 은 변경 없음."
     )]
+    [Version(
+        Number = "1.7.44.0",
+        Date = "2026-09-14",
+        Change = "Align 검사(Tray·Bottom) 이미지를 OK 건도 저장한다. 예전에는 NG 건만 D:\\Data\\Result\\AlignVerify\\<yyMMdd>\\ 에 " +
+                 "남겨서 정상 건 사진은 다시 볼 수 없었다. 파일명은 aligncorr_ALIGN_TRAY_FAI_M1_OK_<시각>.jpg 처럼 판정(OK/NG)이 붙는다" +
+                 "(판정 NG 이거나 보정 재확인 실패면 NG). CSV 마지막 열에 파일명이 같이 기록된다. " +
+                 "설정 AlignVerifySaveNgImageOnly(System 설정 Path|AlignVerify)를 켜면 예전처럼 NG 건만 저장. 기본은 꺼짐(전부 저장). " +
+                 "저장은 기존 백그라운드 큐를 쓰고 큐가 밀리면 사진만 건너뛰어 택트를 막지 않는다. 보관 30일 후 자동 삭제는 그대로."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.43.0";
+        public const string VERSION = "1.7.44.0";
         public const string BUILD_DATE = "2026-09-14";
     }
 }

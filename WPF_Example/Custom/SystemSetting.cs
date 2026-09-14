@@ -85,6 +85,12 @@ namespace ReringProject.Setting {
         [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
         public int AlignVerifyImageKeepDays { get; set; } = ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT;
 
+        // true 면 Align 검사 이미지를 NG 건만 저장한다(예전 동작). 기본 false = OK 건도 저장.
+        //  INI 에 키가 없으면 bool 은 false 로 읽히므로 기본값(전부 저장)이 false 가 되게 이름을 정했다.
+        //  OK 건까지 저장하면 건당 이미지 1장씩 디스크를 더 쓴다 — 보관 일수(AlignVerifyImageKeepDays)가 지나면 자동 삭제.
+        [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
+        public bool AlignVerifySaveNgImageOnly { get; set; } = false;
+
         // 판정 임계값 2종 — 기본값 0.0 = "미설정 = 판정 없음".
         //  실측 산포가 쌓이기 전에는 값을 넣지 않는다. 잘못 잡은 임계는 정상품을 버린다.
         //  0 = 미설정이며, 이 경우 화면은 숫자만 보여주고 정상/벗어남 판정을 하지 않는다.

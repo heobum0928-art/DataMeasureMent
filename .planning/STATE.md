@@ -570,6 +570,7 @@ Recent decisions affecting current work:
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| fast-260914d | 2026-09-14 | Align 검사 이미지 OK 건도 저장(Tray·Bottom 공용 RecordAlignVerify): 파일명 판정 OK/NG 반영, 설정 AlignVerifySaveNgImageOnly(기본 false=전부 저장). VersionDefine 1.7.44 | (this) | 코드 PASS · 하드룰 PASS · 빌드 PASS(error CS 0) · 실기 UAT 대기 |
 | fast-260914c | 2026-09-14 | Tray Align X 부호 반전 TRAY_OFFSET_X_SIGN 1.0→-1.0(사용자 현장 확인 후 직접 수정, 반영·빌드·기록). PLC/화면/AlignVerify CSV X 동시 반전, Y·Theta·피커센터 보정 무변경. VersionDefine 1.7.43 | (this) | 빌드 PASS(error CS 0) · 실기 UAT 대기 |
 | fast-260914b | 2026-09-14 | Tray 뷰어 사진 출처 표시: 이미지 좌상단 라벨 "Tray Align · 저장 사진 n/N 파일명 / Grab·Live·캘 Grab (카메라)" + 캘 ②③ 결과 문구에 파일명. VersionDefine 1.7.42 | (this) | 코드 PASS · 하드룰 PASS · 빌드 PASS · 실기 UAT 대기 |
 | fast-260914 | 2026-09-14 | Tray 피커센터 캘 저장 사진 지원: [저장 사진으로 캘] 체크박스(카메라 연결돼도 ②③ 이 뷰어 저장 사진 사용, 기본 꺼짐) + [③ 폴더 사진 전체로 스텝 추가] 버튼(PickerCenterCalibrationService.AddStepsFromFiles, 백그라운드, 실패 파일명 요약) + Tray 검사 결과 표시에 Theta 추가(이미 계산되던 값, 표시만). VersionDefine 1.7.41 | 7c33e6dc 외 | 코드 PASS · 하드룰 PASS · 빌드 PASS(error CS 0, 앱 실행 중이라 D:\Data 미배포) · 실기 UAT 대기 |

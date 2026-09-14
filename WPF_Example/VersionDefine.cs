@@ -583,10 +583,18 @@ namespace ReringProject
                  "'Live (카메라)' / '캘 Grab (카메라)' 로 바뀐다. 피커센터 캘 ②·③ 결과 문구에도 '저장 이미지 파일명' 으로 " +
                  "어떤 사진을 썼는지 나온다. 검사·캘 계산은 변경 없음."
     )]
+    [Version(
+        Number = "1.7.43.0",
+        Date = "2026-09-14",
+        Change = "Tray Align 의 X 보정값 부호를 뒤집었다(TRAY_OFFSET_X_SIGN 1.0 → -1.0, 현장 확인 후 사용자 수정). " +
+                 "계통도상 LD(Tray) 장비는 +X 가 왼쪽이라 영상의 오른쪽 + 와 반대. Y·Theta 부호와 피커센터 보정 계산은 그대로" +
+                 "(피커센터 보정은 픽셀 좌표에서 먼저 계산한 뒤 X 부호를 곱하므로 영향 없음). PLC 로 보내는 X, 화면 X, " +
+                 "AlignVerify CSV 잔여 X 가 모두 같이 뒤집힌다. Bottom 은 변경 없음."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.42.0";
+        public const string VERSION = "1.7.43.0";
         public const string BUILD_DATE = "2026-09-14";
     }
 }

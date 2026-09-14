@@ -570,6 +570,7 @@ Recent decisions affecting current work:
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| fast-260914e | 2026-09-14 | Align Y 부호 상수 추가 TRAY_OFFSET_Y_SIGN(-1.0, 사용자 지정)/BOTTOM_OFFSET_Y_SIGN(1.0) — Run() OffsetY 와 Verify 잔여 Y 에 동일 적용, Tray OffsetY 부호 반전. Theta 무변경(X·Y 동시 반전=180°). VersionDefine 1.7.45 | (this) | 코드 PASS · 빌드 PASS · 실기 Y 방향 확인 대기 |
 | fast-260914d | 2026-09-14 | Align 검사 이미지 OK 건도 저장(Tray·Bottom 공용 RecordAlignVerify): 파일명 판정 OK/NG 반영, 설정 AlignVerifySaveNgImageOnly(기본 false=전부 저장). VersionDefine 1.7.44 | (this) | 코드 PASS · 하드룰 PASS · 빌드 PASS(error CS 0) · 실기 UAT 대기 |
 | fast-260914c | 2026-09-14 | Tray Align X 부호 반전 TRAY_OFFSET_X_SIGN 1.0→-1.0(사용자 현장 확인 후 직접 수정, 반영·빌드·기록). PLC/화면/AlignVerify CSV X 동시 반전, Y·Theta·피커센터 보정 무변경. VersionDefine 1.7.43 | (this) | 빌드 PASS(error CS 0) · 실기 UAT 대기 |
 | fast-260914b | 2026-09-14 | Tray 뷰어 사진 출처 표시: 이미지 좌상단 라벨 "Tray Align · 저장 사진 n/N 파일명 / Grab·Live·캘 Grab (카메라)" + 캘 ②③ 결과 문구에 파일명. VersionDefine 1.7.42 | (this) | 코드 PASS · 하드룰 PASS · 빌드 PASS · 실기 UAT 대기 |

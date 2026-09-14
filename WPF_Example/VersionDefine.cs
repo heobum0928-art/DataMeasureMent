@@ -600,10 +600,19 @@ namespace ReringProject
                  "설정 AlignVerifySaveNgImageOnly(System 설정 Path|AlignVerify)를 켜면 예전처럼 NG 건만 저장. 기본은 꺼짐(전부 저장). " +
                  "저장은 기존 백그라운드 큐를 쓰고 큐가 밀리면 사진만 건너뛰어 택트를 막지 않는다. 보관 30일 후 자동 삭제는 그대로."
     )]
+    [Version(
+        Number = "1.7.45.0",
+        Date = "2026-09-14",
+        Change = "Align 보정값 Y 부호 상수 추가(TRAY_OFFSET_Y_SIGN, BOTTOM_OFFSET_Y_SIGN). 예전에는 X·Theta 만 " +
+                 "부호 상수가 있고 Y 는 '장비 +Y 아래 = 영상 Row 아래' 라는 가정으로 상수가 없어서, 현장에서 Y 가 반대로 나오면 " +
+                 "코드를 고쳐야 했다. 이제 X 처럼 숫자 하나로 PLC 전송 Y 와 AlignVerify CSV 잔여 Y 가 같이 바뀐다. " +
+                 "값 : Tray Y = -1.0(사용자 현장 확인 후 지정 — Tray 는 X·Y 모두 반전, 이번 버전부터 Tray OffsetY 부호가 뒤집힘), " +
+                 "Bottom Y = 1.0(변화 없음). Theta 부호는 그대로(X·Y 둘 다 뒤집으면 180° 회전과 같아 회전 방향은 안 바뀜)."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.44.0";
+        public const string VERSION = "1.7.45.0";
         public const string BUILD_DATE = "2026-09-14";
     }
 }

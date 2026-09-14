@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Threading.Tasks;
 using System.Windows.Threading;   //260807 hbk Live 폴링 타이머(DispatcherTimer)
 using HalconDotNet;
 using ReringProject.Device;
@@ -38,6 +39,13 @@ namespace ReringProject.Custom.UI {
         private List<string> _loadedImagePaths = new List<string>();
         private int _loadedImageIndex = -1;   // -1 = 미로드
         private static string _lastImageFolder = null;   // 폴더 마지막 위치 기억 (static — 탭 전환에도 유지)
+
+        // 뷰어에 지금 떠 있는 사진이 어디서 왔는지. 이미지 위 좌상단 라벨("Tray Align · 출처")과 캘 상태 문구에 쓴다.
+        //  _szViewerImageName: 저장 사진이면 파일명, 카메라(Grab/Live/캘 Grab) 사진이면 null.
+        private const string VIEWER_LABEL_BASE = "Tray Align";
+        private const string VIEWER_LABEL_SEPARATOR = " · ";
+        private string _szViewerImageName = null;
+        private string _szViewerSourceText = null;
 
         // 이미지 저장 상태
         private const string SAVE_IMAGE_PREFIX = "TrayAlign";
@@ -126,7 +134,7 @@ namespace ReringProject.Custom.UI {
             _viewer.PointerInfoChanged -= OnViewerPointerInfoChanged;
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
-            _viewer.SetInfoLabel("Tray Align"); // Phase 74: 어느 화면인지 이미지 위에 표시
+            UpdateViewerSourceLabel(); // 어느 화면인지 + 지금 사진의 출처(파일명/카메라)를 이미지 위에 표시
             LoadCalStepAngleToUi(); // quick-260903-dpy — 저장된 캘 스텝 각도 반영(Bottom 과 공용 설정)
             UpdateCalButtonState(); // quick-260903-dpy — 뷰어 재주입 시에도 캘 버튼 활성 상태를 최신으로 갱신
         }
@@ -153,7 +161,9 @@ namespace ReringProject.Custom.UI {
                     if (_viewer != null) {
                         _viewer.LoadImage(dlg.FileName);
                     }
-                    lbl_status.Text = "로드: " + System.IO.Path.GetFileName(dlg.FileName);
+                    string szPickedName = System.IO.Path.GetFileName(dlg.FileName);
+                    MarkViewerImageFromFile(szPickedName, "파일 " + szPickedName);
+                    lbl_status.Text = "로드: " + szPickedName;
                 }
             }
             catch (Exception ex) {
@@ -178,6 +188,7 @@ namespace ReringProject.Custom.UI {
                     _viewer.LoadImage(img);   // LoadImage 가 내부 Clone — 즉시 Dispose 안전
                 }
                 img.Dispose();
+                MarkViewerImageFromCamera("Grab (카메라)");
                 lbl_status.Text = "대기";
             }
             catch (Exception ex) {
@@ -209,6 +220,7 @@ namespace ReringProject.Custom.UI {
                     // Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(D-07 연장).
                     ApplyCoaxLight();
                     StartLiveTimer();
+                    MarkViewerImageFromCamera("Live (카메라)");
                 }
                 else {
                     btn_live.Content = "Live Off";
@@ -274,6 +286,11 @@ namespace ReringProject.Custom.UI {
                 img = EthernetVisionHandler.Handle.Camera.PeekLastImage();
                 if (img != null) {
                     _viewer.LoadImage(img);   // LoadImage 가 내부 Clone — 즉시 Dispose 안전
+                    // Live 도중 [폴더 열기]로 사진을 띄웠다가 다음 프레임에 덮였으면 라벨도 카메라로 되돌린다(매 틱 다시 그리지 않게 바뀐 경우만).
+                    bool bLabelShowsFile = (_szViewerImageName != null);
+                    if (bLabelShowsFile) {
+                        MarkViewerImageFromCamera("Live (카메라)");
+                    }
                 }
             }
             catch {
@@ -1401,6 +1418,21 @@ namespace ReringProject.Custom.UI {
             bOwnsImage = false;
             szSourceLabel = "";
 
+            // 운영자가 [저장 사진으로 캘]을 켰으면 카메라가 열려 있어도 찍지 않고 화면의 저장 사진을 쓴다.
+            //  위 결함(모르고 낡은 사진 사용)과 달리 운영자가 명시적으로 고른 경우라 허용한다.
+            bool bUseSavedImages = (chk_calUseSavedImages != null) && (chk_calUseSavedImages.IsChecked == true);
+            if (bUseSavedImages) {
+                bool bHasSavedImage = (_viewer != null) && (_viewer.CurrentImage != null);
+                if (!bHasSavedImage) {
+                    lbl_calStatus.Text = "저장 사진 없음 — [폴더 열기]로 사진을 먼저 여세요";
+                    return false;
+                }
+                img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
+                bOwnsImage = false;
+                szSourceLabel = BuildSavedImageSourceLabel();
+                return true;
+            }
+
             EthernetAlignCamera cam = EthernetVisionHandler.Handle.Camera;
             bool bCameraReady = false;
             if (cam != null) {
@@ -1426,6 +1458,7 @@ namespace ReringProject.Custom.UI {
                 if (_viewer != null) {
                     _viewer.LoadImage(grabbed); // 뷰어가 내부 Clone — 원본 소유권은 이쪽에 남는다
                 }
+                MarkViewerImageFromCamera("캘 Grab (카메라)");
                 img = grabbed;
                 bOwnsImage = true;
                 szSourceLabel = "라이브";
@@ -1437,7 +1470,7 @@ namespace ReringProject.Custom.UI {
             if (bViewerHasImage) {
                 img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
                 bOwnsImage = false;
-                szSourceLabel = "저장 이미지";
+                szSourceLabel = BuildSavedImageSourceLabel();
                 return true;
             }
 
@@ -1568,6 +1601,117 @@ namespace ReringProject.Custom.UI {
                     try { img.Dispose(); } catch { }
                 }
             }
+        }
+
+        private void CalUseSavedImagesCheckBox_Changed(object sender, RoutedEventArgs e) {
+            bool bUseSavedImages = (chk_calUseSavedImages != null) && (chk_calUseSavedImages.IsChecked == true);
+            if (bUseSavedImages) {
+                UpdateCalButtonState("저장 사진 모드 — ②③ 이 카메라로 찍지 않고 화면의 저장 사진을 씁니다");
+            }
+            else {
+                UpdateCalButtonState("라이브 모드 — 카메라가 연결돼 있으면 ②③ 이 새로 찍습니다");
+            }
+        }
+
+        // [폴더 열기]로 연 폴더의 사진 전부로 스텝을 한 번에 누적한다. 카메라 연결 여부와 무관.
+        //  기존 누적과 섞이면 어떤 사진이 들어갔는지 알 수 없으므로, 누적이 있으면 지우고 새로 시작할지 먼저 묻는다.
+        //  사진이 많으면 수 초 걸리므로 백그라운드에서 돌리고, 그동안 캘 버튼을 전부 막는다(누적 동시 변경 방지).
+        private async void CalAddAllStepsButton_Click(object sender, RoutedEventArgs e) {
+            if (!_calRoiSet) {
+                lbl_calStatus.Text = "검색 ROI 미설정 — ROI(사각형) 지정 먼저";
+                return;
+            }
+            PickerCenterCalibrationService pickerCal = EthernetVisionHandler.Handle.PickerCal;
+            if (pickerCal == null) {
+                lbl_calStatus.Text = "PickerCal 미초기화";
+                return;
+            }
+            bool bNoFolderImages = (_loadedImagePaths.Count == 0);
+            if (bNoFolderImages) {
+                lbl_calStatus.Text = "[폴더 열기]로 저장 사진 폴더를 먼저 여세요";
+                return;
+            }
+            if (!pickerCal.HasModel) {
+                string szLoadError;
+                bool bLoaded = pickerCal.TryLoadModel(out szLoadError);
+                if (!bLoaded) {
+                    lbl_calStatus.Text = "모델 미로드 — [Cal 모델 티칭] 먼저 실행하세요";
+                    return;
+                }
+            }
+
+            int nExistingSteps = pickerCal.StepCount;
+            if (nExistingSteps > 0) {
+                string szConfirm = string.Format(
+                    "기존 누적 {0}개를 지우고 폴더 사진 {1}장으로 새로 누적합니다. 진행할까요?",
+                    nExistingSteps, _loadedImagePaths.Count);
+                MessageBoxResult confirm = CustomMessageBox.ShowConfirmation(
+                    "폴더 사진으로 스텝 추가", szConfirm, MessageBoxButton.YesNo);
+                if (confirm != MessageBoxResult.Yes) {
+                    UpdateCalButtonState("폴더 사진 스텝 추가 취소");
+                    return;
+                }
+                pickerCal.Reset();
+                if (_viewer != null) {
+                    _viewer.SetAlignContourXld(null);
+                }
+            }
+
+            List<string> imagePaths = new List<string>(_loadedImagePaths);
+            List<string> failures = new List<string>();
+            double dRow1 = _calRoiRect.Row1;
+            double dCol1 = _calRoiRect.Column1;
+            double dRow2 = _calRoiRect.Row2;
+            double dCol2 = _calRoiRect.Column2;
+
+            SetCalPanelBusy(true);
+            lbl_calStatus.Text = string.Format("폴더 사진 {0}장 처리 중...", imagePaths.Count);
+            try {
+                int nAdded = await Task.Run(() => pickerCal.AddStepsFromFiles(imagePaths, dRow1, dCol1, dRow2, dCol2, failures));
+                if (_viewer != null) {
+                    HObject vizXld = pickerCal.GetVisualizationXld();
+                    _viewer.SetAlignContourXld(vizXld); // 소유권 이전
+                }
+                SetCalPanelBusy(false);
+                UpdateCalButtonState(BuildFolderStepSummary(imagePaths.Count, nAdded, failures));
+            }
+            catch (Exception ex) {
+                SetCalPanelBusy(false);
+                UpdateCalButtonState("폴더 사진 스텝 오류: " + ex.Message);
+            }
+        }
+
+        // 일괄 처리 중에는 캘 패널 버튼을 전부 막는다. 끝나면 ROI/초기화만 풀고 나머지는 UpdateCalButtonState 가 조건대로 푼다.
+        private void SetCalPanelBusy(bool bBusy) {
+            bool bEnabled = !bBusy;
+            btn_calReset.IsEnabled = bEnabled;
+            btn_calDrawRoi.IsEnabled = bEnabled;
+            chk_calUseSavedImages.IsEnabled = bEnabled;
+            if (bBusy) {
+                btn_calRemoveLastStep.IsEnabled = false;
+                btn_calTeachModel.IsEnabled = false;
+                btn_calAddStep.IsEnabled = false;
+                btn_calAddAllSteps.IsEnabled = false;
+                btn_calCompute.IsEnabled = false;
+            }
+        }
+
+        // "저장 사진 N장 중 M장 사용 · 실패 K장: a.bmp, b.bmp 외 n장" — 어떤 사진이 빠졌는지 바로 보이게 한다.
+        private const int MAX_FAILED_NAMES_SHOWN = 5;
+
+        private static string BuildFolderStepSummary(int nTotal, int nAdded, List<string> failures) {
+            string szSummary = string.Format("저장 사진 {0}장 중 {1}장 사용", nTotal, nAdded);
+            int nFailed = failures.Count;
+            if (nFailed == 0) {
+                return szSummary;
+            }
+            int nShown = Math.Min(nFailed, MAX_FAILED_NAMES_SHOWN);
+            string szNames = string.Join(", ", failures.GetRange(0, nShown));
+            int nHidden = nFailed - nShown;
+            if (nHidden > 0) {
+                szNames = szNames + " 외 " + nHidden + "장";
+            }
+            return szSummary + " · 실패 " + nFailed + "장: " + szNames;
         }
 
         private void CalComputeButton_Click(object sender, RoutedEventArgs e) {
@@ -1723,6 +1867,9 @@ namespace ReringProject.Custom.UI {
             if (btn_calAddStep != null) {
                 btn_calAddStep.IsEnabled = bCanAddStep;
             }
+            if (btn_calAddAllSteps != null) {
+                btn_calAddAllSteps.IsEnabled = bCanAddStep;
+            }
             if (btn_calRemoveLastStep != null) {
                 btn_calRemoveLastStep.IsEnabled = bCanRemoveLast;
             }
@@ -1844,14 +1991,62 @@ namespace ReringProject.Custom.UI {
         }
 
         /// <summary>
-        /// AlignResult → 결과 문자열 포맷 (Tray: X/Y Offset + Score, Theta 미표시).
+        /// AlignResult → 결과 문자열 포맷 (Tray: X/Y Offset + Theta + Score, Bottom 과 같은 형식).
+        /// Tray 도 Run() 이 ThetaDeg 를 계산하고 HasTheta=true 로 채운다(화면 반시계 +, TRAY_THETA_SIGN 반영값).
         /// </summary>
         private string FormatAlignResult(AlignResult res) {
+            if (res.HasTheta) {
+                return string.Format(
+                    "X: {0:F3} mm\nY: {1:F3} mm\nTheta: {2:F3} deg\nScore: {3:F3}",
+                    res.OffsetXmm,
+                    res.OffsetYmm,
+                    res.ThetaDeg,
+                    res.Score);
+            }
             return string.Format(
                 "X: {0:F3} mm\nY: {1:F3} mm\nScore: {2:F3}",
                 res.OffsetXmm,
                 res.OffsetYmm,
                 res.Score);
+        }
+
+        // ─── 뷰어 사진 출처 표시 ─────────────────────────────────────────────────
+
+        // 이미지 위 좌상단 라벨을 "Tray Align · 출처" 로 다시 그린다. 출처가 없으면 "Tray Align" 만.
+        private void UpdateViewerSourceLabel() {
+            if (_viewer == null) {
+                return;
+            }
+            bool bHasSource = !string.IsNullOrEmpty(_szViewerSourceText);
+            if (bHasSource) {
+                _viewer.SetInfoLabel(VIEWER_LABEL_BASE + VIEWER_LABEL_SEPARATOR + _szViewerSourceText);
+            }
+            else {
+                _viewer.SetInfoLabel(VIEWER_LABEL_BASE);
+            }
+        }
+
+        // 뷰어에 저장 사진 파일을 띄웠을 때 호출. szFileName 은 캘 상태 문구용, szSourceText 는 이미지 위 라벨용.
+        private void MarkViewerImageFromFile(string szFileName, string szSourceText) {
+            _szViewerImageName = szFileName;
+            _szViewerSourceText = szSourceText;
+            UpdateViewerSourceLabel();
+        }
+
+        // 뷰어에 카메라 사진(Grab/Live/캘 Grab)을 띄웠을 때 호출 — 파일명은 지운다.
+        private void MarkViewerImageFromCamera(string szSourceText) {
+            _szViewerImageName = null;
+            _szViewerSourceText = szSourceText;
+            UpdateViewerSourceLabel();
+        }
+
+        // 캘 상태 문구에 쓸 "저장 이미지 파일명". 파일명을 모르면(다른 화면이 뷰어를 바꾼 경우 등) "저장 이미지" 만.
+        private string BuildSavedImageSourceLabel() {
+            bool bHasName = !string.IsNullOrEmpty(_szViewerImageName);
+            if (bHasName) {
+                return "저장 이미지 " + _szViewerImageName;
+            }
+            return "저장 이미지";
         }
 
         // ─── 오프라인 이미지 로더 핸들러 ─────────────────────────────────────────
@@ -1955,6 +2150,10 @@ namespace ReringProject.Custom.UI {
                 lbl_loaderStatus.Text = "로드 오류: " + ex.Message;
                 return;
             }
+
+            string szFileName = Path.GetFileName(path);
+            MarkViewerImageFromFile(szFileName, string.Format(
+                "저장 사진 {0}/{1}  {2}", _loadedImageIndex + 1, _loadedImagePaths.Count, szFileName));
 
             lbl_loaderStatus.Text = string.Format(
                 "{0}/{1}  {2}",

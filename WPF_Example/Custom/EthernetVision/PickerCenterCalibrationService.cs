@@ -327,6 +327,56 @@ namespace ReringProject {
             }
         }
 
+        /// <summary>
+        /// 저장된 사진 파일들로 스텝을 한꺼번에 누적한다(카메라 불필요). 파일마다 TryAddStep 과 같은 검출을 하고,
+        /// 지그를 못 찾았거나 파일을 못 읽은 사진은 건너뛰며 그 파일 이름을 failures 에 담는다(사유는 로그).
+        /// 반환값 = 이번에 새로 누적된 스텝 수.
+        /// </summary>
+        public int AddStepsFromFiles(IList<string> imagePaths,
+            double roiRow1, double roiCol1, double roiRow2, double roiCol2,
+            List<string> failures) {
+            int nAdded = 0;
+            if (imagePaths == null) {
+                return nAdded;
+            }
+
+            foreach (string szPath in imagePaths) {
+                HImage img = null;
+                string szFailReason = null;
+                try {
+                    img = new HImage(szPath);
+                    double dRow, dCol, dScore;
+                    string szError;
+                    bool bOk = TryAddStep(img, roiRow1, roiCol1, roiRow2, roiCol2,
+                        out dRow, out dCol, out dScore, out szError);
+                    if (bOk) {
+                        nAdded++;
+                    }
+                    else {
+                        szFailReason = szError;
+                    }
+                }
+                catch (Exception ex) {
+                    szFailReason = "사진 읽기 실패: " + ex.Message;
+                }
+                finally {
+                    if (img != null) { try { img.Dispose(); } catch { } }
+                }
+
+                bool bFailed = !string.IsNullOrEmpty(szFailReason);
+                if (bFailed) {
+                    Logging.PrintLog((int)ELogType.Camera, "[PICKER_CAL] 저장 사진 스텝 실패: {0} — {1}", szPath, szFailReason);
+                    if (failures != null) {
+                        failures.Add(Path.GetFileName(szPath));
+                    }
+                }
+            }
+
+            Logging.PrintLog((int)ELogType.Camera, "[PICKER_CAL] 저장 사진 {0}장 중 {1}장 스텝 추가 (누적 {2})",
+                imagePaths.Count, nAdded, _rows.Count);
+            return nAdded;
+        }
+
         // ─── 피커센터 산출 ──────────────────────────────────────────────────────
 
         /// <summary>

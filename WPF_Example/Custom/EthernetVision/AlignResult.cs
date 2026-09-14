@@ -19,10 +19,10 @@ namespace ReringProject {
         /// <summary>Y Offset(mm) = dRow × (EthernetPixelResolution/1000). Row↔Y 규약.</summary>
         public double OffsetYmm { get; set; }
 
-        /// <summary>Theta(deg) = curAngleDeg − refAngleDeg. Tray 모드에서는 0 / HasTheta=false.</summary>
+        /// <summary>Theta(deg) = 현재 기준선 각도 − 티칭 기준선 각도(화면 기준 반시계 +), 모드별 THETA_SIGN 반영. Bottom·Tray 모두 계산.</summary>
         public double ThetaDeg { get; set; }
 
-        /// <summary>true = Bottom 모드 (ThetaDeg 유효). false = Tray 모드 (ThetaDeg=0 무시).</summary>
+        /// <summary>true = ThetaDeg 유효(Run() 성공 시 Bottom·Tray 모두 true). false = 각도 없음(검출 실패 등).</summary>
         public bool HasTheta { get; set; }
 
         //260625 hbk Phase 61.1 — 시각화 필드 (ADDITIVE). 기존 6필드 무수정.

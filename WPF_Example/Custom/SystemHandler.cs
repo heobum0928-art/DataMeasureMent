@@ -851,16 +851,24 @@ namespace ReringProject {
                     rec.FailReason = "Align 검출 실패";
                 }
 
-                // D-75-04: 이미지는 NG 건만 남긴다. 정상 건은 CopyImage 조차 하지 않는다.
+                // 이미지는 기본으로 OK 건도 남긴다(사용자 요청). AlignVerifySaveNgImageOnly=true 면 예전처럼 NG 건만 —
+                //  그때 정상 건은 CopyImage 조차 하지 않는다. 파일명의 OK/NG 는 판정 NG 이거나 재확인 실패면 NG.
                 bool bVerifyFailed = false;
                 if (verify != null)
                 {
                     if (!verify.Verified) { bVerifyFailed = true; }
                 }
-                bool bNeedImage = (!bAlignPass) || bVerifyFailed;
+                bool bIsNgEvidence = (!bAlignPass) || bVerifyFailed;
+                bool bSaveOkToo = !SystemSetting.Handle.AlignVerifySaveNgImageOnly;
+                bool bNeedImage = bIsNgEvidence || bSaveOkToo;
                 if (bNeedImage)
                 {
-                    rec.ImageFileName = EnqueueAlignEvidenceImage(corrected, img, nMaterialNo, mode, slot, rec.RecordTime);
+                    string szImageJudge = AlignVerifyRecord.JUDGE_OK;
+                    if (bIsNgEvidence)
+                    {
+                        szImageJudge = AlignVerifyRecord.JUDGE_NG;
+                    }
+                    rec.ImageFileName = EnqueueAlignEvidenceImage(corrected, img, nMaterialNo, mode, slot, rec.RecordTime, szImageJudge);
                 }
 
                 AlignVerifyCsvWriter.Append(rec);
@@ -934,10 +942,11 @@ namespace ReringProject {
             }
         }
 
-        // NG 증거 이미지 1장 큐잉. 저장 실패/생략은 기록의 다른 값에 영향을 주지 않는다.
-        //  반환값 = 저장될 파일명(생략 시 빈 문자열).
+        // Align 검사 이미지 1장 큐잉. 저장 실패/생략은 기록의 다른 값에 영향을 주지 않는다.
+        //  szJudge = 파일명에 붙는 OK/NG. 반환값 = 저장될 파일명(생략 시 빈 문자열).
         private string EnqueueAlignEvidenceImage(HImage corrected, HImage raw, int nMaterialNo,
-                                                 EEthernetVisionMode mode, EBottomAlignSlot slot, DateTime ts)
+                                                 EEthernetVisionMode mode, EBottomAlignSlot slot, DateTime ts,
+                                                 string szJudge)
         {
             try
             {
@@ -988,12 +997,12 @@ namespace ReringProject {
 
                 string szFileName = CaptureImageSaveService.BuildFileName(
                     szPrefix, "ALIGN_" + szTargetToken, szSlotToken, "",
-                    AlignVerifyRecord.JUDGE_NG, ts, nMaterialNo);
+                    szJudge, ts, nMaterialNo);
                 string szDir = AlignVerifyRetention.BuildAlignImageDirectory(ts);
 
                 // src.CopyImage() 를 쓰는 이유: img/corrected 의 수명은 호출부(finally)가 이미 소유한다.
                 //  같은 핸들을 워커에 넘기면 이중 Dispose / use-after-dispose 가 된다.
-                //  NG 건에서만 일어나는 복사다.
+                //  AlignVerifySaveNgImageOnly=false(기본)면 OK 건도 복사한다 — 큐 혼잡 가드(위)가 택트를 지킨다.
                 SharedHImage shared = new SharedHImage(src.CopyImage());   // ref=1
                 try
                 {

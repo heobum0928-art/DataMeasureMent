@@ -517,15 +517,6 @@ namespace ReringProject
                  "이미 찍어 둔 사진을 한 벌 더 떨구는 방식이라 검사 시간은 늘지 않는다."
     )]
     [Version(
-        Number = "1.7.41.0",
-        Date = "2026-09-11",
-        Change = "SIDE Datum 세로선 끄기 옵션(IsVerticalLineDisabled, VerticalTwoHorizontalDualImage 전용, Datum 별) — 켜면 세로 이미지(ZIndexB)는 그대로 촬영·저장하지만 세로선 검출은 하지 않고 가로 결합선과 패턴매칭만으로 Datum 을 만든다(원점 X = 패턴매칭 transform 으로 옮긴 티칭 원점 열, 원점 Y·각도 = 가로 결합선, 세로 기준각은 미설정 0). " +
-                 "자동 사이클과 수동 Test Find 가 같은 규칙이고, 패턴 transform 이나 티칭 원점이 없으면 Datum 찾기가 실패한다(매칭 없는 OK 없음). " +
-                 "옵션 ON Datum 은 결과 화면·Test Find·Datum 선택 화면·저장 캡처에서 세로선, 세로 에지점, 세로 기준선, 원점 십자 세로 팔을 그리지 않는다. " +
-                 "옵션 OFF(기본, 키 없는 옛 레시피 포함)와 TOP/BOTTOM 은 기존 동작 그대로이며 기존 코드 줄 삭제 0. " +
-                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. (D-76-01 ~ D-76-07)"
-    )]
-    [Version(
         Number = "1.7.40.0",
         Date = "2026-09-11",
         Change = "반복성(같은 부품을 여러 번 찍었을 때 값이 같게 나오는가) 개선 묶음. " +
@@ -560,10 +551,84 @@ namespace ReringProject
                  "E1_P1(구멍 지름)은 사진 속 구멍 크기가 10장 모두 0.4µm 안에서 같은데 측정값이 13µm 오감 — 원 찾기 설정" +
                  "(둘레 36곳, 사각형 옆 폭 반지름의 20%, Sigma 1) 이 흔들림 원인. 보정계수·레시피는 이 버전에서 바꾸지 않았다."
     )]
+    [Version(
+        Number = "1.7.41.0",
+        Date = "2026-09-14",
+        Change = "Tray 피커센터 캘을 저장 사진으로 할 수 있게 했다. 예전에는 카메라가 연결돼 있으면 ②·③ 버튼이 " +
+                 "[폴더 열기]로 띄운 사진을 무시하고 항상 새로 찍어서, 사진을 찍어 저장해 두고 나중에 한꺼번에 캘을 잡을 " +
+                 "방법이 없었다(카메라를 빼야만 가능). " +
+
+                 "추가 1 — [저장 사진으로 캘] 체크박스 : 켜면 카메라가 연결돼 있어도 ② Cal 모델 티칭·③ 스텝 추가가 " +
+                 "화면에 띄운 저장 사진을 쓴다(③ 은 누를 때마다 다음 사진으로 자동 이동). 기본은 꺼짐이고 재시작하면 꺼진다 — " +
+                 "모르고 예전 사진으로 캘을 잡는 사고를 막기 위해 운영자가 직접 켜야 한다. " +
+
+                 "추가 2 — [③ 폴더 사진 전체로 스텝 추가] 버튼 : [폴더 열기]로 연 폴더의 사진 전부를 한 번에 검출해 누적한다" +
+                 "(카메라 연결 여부와 무관). 이미 누적된 스텝이 있으면 지우고 새로 할지 먼저 묻는다. 끝나면 " +
+                 "'저장 사진 N장 중 M장 사용 · 실패 K장: 파일명' 을 보여주고 실패 사유는 Camera 로그에 남긴다. " +
+                 "처리 중에는 캘 버튼을 모두 막는다. 이후 ④ 피커센터 계산은 기존과 같다. " +
+
+                 "쓰는 법 : Grab → [이미지 저장] 을 피커 각도를 바꿔가며 반복해 한 폴더에 모은다 → [폴더 열기] → " +
+                 "① 검색 ROI → [저장 사진으로 캘] 켜고 ② 모델 티칭 → [③ 폴더 사진 전체로 스텝 추가] → ④ 계산. " +
+                 "Bottom 화면의 피커센터 캘은 이번에 바꾸지 않았다. " +
+
+                 "Tray 검사 결과 표시에 각도(Theta) 추가 : 예전에는 X·Y·Score 만 보였다. 각도는 이미 계산되고 있었는데 " +
+                 "화면에만 안 나왔던 것이라 계산은 그대로다. 부호는 화면 기준 반시계가 +(TRAY_THETA_SIGN 반영값)."
+    )]
+    [Version(
+        Number = "1.7.42.0",
+        Date = "2026-09-14",
+        Change = "Tray 화면에서 지금 떠 있는 사진이 어떤 사진인지 이미지 위에 표시한다. 예전에는 [폴더 열기] 아래 글자로만 " +
+                 "파일명이 나와서 왼쪽 패널을 스크롤하면 안 보였고, Grab 으로 사진이 바뀌어도 알 수 없었다. " +
+                 "이미지 좌상단 라벨이 'Tray Align · 저장 사진 2/6  -1deg.bmp' / 'Tray Align · Grab (카메라)' / " +
+                 "'Live (카메라)' / '캘 Grab (카메라)' 로 바뀐다. 피커센터 캘 ②·③ 결과 문구에도 '저장 이미지 파일명' 으로 " +
+                 "어떤 사진을 썼는지 나온다. 검사·캘 계산은 변경 없음."
+    )]
+    [Version(
+        Number = "1.7.43.0",
+        Date = "2026-09-14",
+        Change = "Tray Align 의 X 보정값 부호를 뒤집었다(TRAY_OFFSET_X_SIGN 1.0 → -1.0, 현장 확인 후 사용자 수정). " +
+                 "계통도상 LD(Tray) 장비는 +X 가 왼쪽이라 영상의 오른쪽 + 와 반대. Y·Theta 부호와 피커센터 보정 계산은 그대로" +
+                 "(피커센터 보정은 픽셀 좌표에서 먼저 계산한 뒤 X 부호를 곱하므로 영향 없음). PLC 로 보내는 X, 화면 X, " +
+                 "AlignVerify CSV 잔여 X 가 모두 같이 뒤집힌다. Bottom 은 변경 없음."
+    )]
+    [Version(
+        Number = "1.7.44.0",
+        Date = "2026-09-14",
+        Change = "Align 검사(Tray·Bottom) 이미지를 OK 건도 저장한다. 예전에는 NG 건만 D:\\Data\\Result\\AlignVerify\\<yyMMdd>\\ 에 " +
+                 "남겨서 정상 건 사진은 다시 볼 수 없었다. 파일명은 aligncorr_ALIGN_TRAY_FAI_M1_OK_<시각>.jpg 처럼 판정(OK/NG)이 붙는다" +
+                 "(판정 NG 이거나 보정 재확인 실패면 NG). CSV 마지막 열에 파일명이 같이 기록된다. " +
+                 "설정 AlignVerifySaveNgImageOnly(System 설정 Path|AlignVerify)를 켜면 예전처럼 NG 건만 저장. 기본은 꺼짐(전부 저장). " +
+                 "저장은 기존 백그라운드 큐를 쓰고 큐가 밀리면 사진만 건너뛰어 택트를 막지 않는다. 보관 30일 후 자동 삭제는 그대로."
+    )]
+    [Version(
+        Number = "1.7.45.0",
+        Date = "2026-09-14",
+        Change = "Align 보정값 Y 부호 상수 추가(TRAY_OFFSET_Y_SIGN, BOTTOM_OFFSET_Y_SIGN). 예전에는 X·Theta 만 " +
+                 "부호 상수가 있고 Y 는 '장비 +Y 아래 = 영상 Row 아래' 라는 가정으로 상수가 없어서, 현장에서 Y 가 반대로 나오면 " +
+                 "코드를 고쳐야 했다. 이제 X 처럼 숫자 하나로 PLC 전송 Y 와 AlignVerify CSV 잔여 Y 가 같이 바뀐다. " +
+                 "값 : Tray Y = -1.0(사용자 현장 확인 후 지정 — Tray 는 X·Y 모두 반전, 이번 버전부터 Tray OffsetY 부호가 뒤집힘), " +
+                 "Bottom Y = 1.0(변화 없음). Theta 부호는 그대로(X·Y 둘 다 뒤집으면 180° 회전과 같아 회전 방향은 안 바뀜)."
+    )]
+    [Version(
+        Number = "1.7.46.0",
+        Date = "2026-09-14",
+        Change = "SIDE Datum 세로선 끄기 옵션(IsVerticalLineDisabled, VerticalTwoHorizontalDualImage 전용, Datum 별) — 켜면 세로 이미지(ZIndexB)는 그대로 촬영·저장하지만 세로선 검출은 하지 않고 가로 결합선과 패턴매칭만으로 Datum 을 만든다(원점 X = 패턴매칭 transform 으로 옮긴 티칭 원점 열, 원점 Y·각도 = 가로 결합선, 세로 기준각은 미설정 0). " +
+                 "자동 사이클과 수동 Test Find 가 같은 규칙이고, 패턴 transform 이나 티칭 원점이 없으면 Datum 찾기가 실패한다(매칭 없는 OK 없음). " +
+                 "옵션 ON Datum 은 결과 화면·Test Find·Datum 선택 화면·저장 캡처에서 세로선, 세로 에지점, 세로 기준선, 원점 십자 세로 팔을 그리지 않는다. " +
+                 "옵션 OFF(기본, 키 없는 옛 레시피 포함)와 TOP/BOTTOM 은 기존 동작 그대로이며 기존 코드 줄 삭제 0. " +
+                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. (D-76-01 ~ D-76-07) " +
+                 "(SIDE PC 에서 1.7.41.0 으로 만들었으나 Tray PC 의 1.7.41~1.7.45 와 번호가 겹쳐 병합 시 1.7.46.0 으로 옮김.) " +
+
+                 "Bottom Align 동축 조명 : 티칭 저장이 슬롯 JSON 의 동축 조명값(CoaxEnabled/CoaxLevel)을 꺼짐/0 으로 덮어써서, " +
+                 "재티칭 후 PLC 자동검사($ALIGN_TEST)와 피커 캘($ALIGN_CALIB STEP)이 조명 없이 찍고 검출 실패하던 문제를 고쳤다. " +
+                 "이제 티칭 저장은 기존 조명값을 그대로 둔다(조명값은 화면의 동축 체크박스·밝기 슬라이더가 저장). " +
+
+                 "Bottom Theta 부호 : BOTTOM_THETA_SIGN 1.0 → -1.0 (현장 확인 후 사용자 지정). PLC 로 보내는 Bottom Theta 부호가 뒤집힌다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.41.0";
-        public const string BUILD_DATE = "2026-09-11";
+        public const string VERSION = "1.7.46.0";
+        public const string BUILD_DATE = "2026-09-14";
     }
 }

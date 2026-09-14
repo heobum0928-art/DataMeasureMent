@@ -114,10 +114,14 @@ namespace ReringProject {
         //   BOTTOM_THETA_SIGN 과 PICKER_ROTATION_SIGN 도 반드시 같이 검토할 것.
         //   X 만 바꾸면 작은 각도에서는 멀쩡해 보이고 큰 각도에서만 틀어져 발견이 매우 늦다.
         private const double BOTTOM_OFFSET_X_SIGN = 1.0;   // Bottom OffsetX 부호
+        private const double BOTTOM_OFFSET_Y_SIGN = 1.0;   // Bottom OffsetY 부호
         private const double BOTTOM_THETA_SIGN    = -1.0;   // Bottom Theta 부호 (X 와 함께 검토)
-        private const double TRAY_OFFSET_X_SIGN   = 1.0;   // Tray OffsetX 부호
+        private const double TRAY_OFFSET_X_SIGN   = -1.0;   // Tray OffsetX 부호
+        private const double TRAY_OFFSET_Y_SIGN   = -1.0;   // Tray OffsetY 부호
         private const double TRAY_THETA_SIGN      = 1.0;   // Tray Theta 부호 (X 와 함께 검토, Bottom 과 별개)
-        // Y(Row) 는 Inspector/LD 모두 "아래가 +" 로 일치하므로 부호 상수를 두지 않는다.
+        // Y(Row) 는 계통도상 Inspector/LD 모두 "아래가 +" 로 영상 Row 방향과 같아 기본 1.0 이다.
+        //  확인 방법: 부품을 아래(+Y)로 밀고 Align 실행 → Y 가 + 로 나와야 한다. 반대면 해당 Y 상수를 -1.0 으로.
+        //  X·Y 중 한쪽만 뒤집으면 영상이 거울상이라는 뜻이라 Theta 부호도 함께 검토할 것(위 ⚠ 와 같은 이유).
 
         private readonly PatternMatchService _matcher;
         private readonly PatternMatchService _matcher2;
@@ -727,7 +731,7 @@ namespace ReringProject {
                     double corrRow, corrCol;
                     ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, bottomPickerRow, bottomPickerCol, out corrRow, out corrCol);
                     result.OffsetXmm = BOTTOM_OFFSET_X_SIGN * corrCol * resMm;   // Col → X
-                    result.OffsetYmm = corrRow * resMm;                          // Row → Y (부호 상수 없음)
+                    result.OffsetYmm = BOTTOM_OFFSET_Y_SIGN * corrRow * resMm;   // Row → Y
                     result.ThetaDeg = BOTTOM_THETA_SIGN * thetaDeg;
                     result.HasTheta = true;
                 }
@@ -740,7 +744,7 @@ namespace ReringProject {
                     double trayCorrRow, trayCorrCol;
                     ApplyPickerCenterCorrection(dRow, dCol, thetaDeg, trayPickerRow, trayPickerCol, out trayCorrRow, out trayCorrCol);
                     result.OffsetXmm = TRAY_OFFSET_X_SIGN * trayCorrCol * resMm;   // Col → X
-                    result.OffsetYmm = trayCorrRow * resMm;                        // Row → Y (부호 상수 없음)
+                    result.OffsetYmm = TRAY_OFFSET_Y_SIGN * trayCorrRow * resMm;   // Row → Y
                     result.ThetaDeg = TRAY_THETA_SIGN * thetaDeg;
                     result.HasTheta = true;
                 }

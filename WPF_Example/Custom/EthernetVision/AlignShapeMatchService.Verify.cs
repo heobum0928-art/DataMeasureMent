@@ -237,16 +237,18 @@ namespace ReringProject {
                 //  아직 UAT 미확정이라 여기 넣으면 미확정 규약을 검증 결과로 오해하게 된다. 그 구간은 ②가 잡는다.
                 // 부호 상수를 Run() 과 똑같이 곱한다. 현장에서 상수를 -1 로 뒤집는 순간
                 //  PLC 전송값/화면값과 이 CSV 잔여값의 부호 규약이 갈라지면, 증거로 쓸 때
-                //  "장비로 보낸 방향과 기록이 반대" 로 읽히는 사고가 된다. Y 는 상수가 없다(축 일치).
+                //  "장비로 보낸 방향과 기록이 반대" 로 읽히는 사고가 된다. X·Y·Theta 모두 같은 상수를 곱한다.
                 double dOffsetXSign = TRAY_OFFSET_X_SIGN;
+                double dOffsetYSign = TRAY_OFFSET_Y_SIGN;
                 double dThetaSign = TRAY_THETA_SIGN;
                 bool bBottomSignMode = (mode == EEthernetVisionMode.Bottom);
                 if (bBottomSignMode) {
                     dOffsetXSign = BOTTOM_OFFSET_X_SIGN;
+                    dOffsetYSign = BOTTOM_OFFSET_Y_SIGN;
                     dThetaSign = BOTTOM_THETA_SIGN;
                 }
                 result.ResidualOffsetXmm = dOffsetXSign * dCol * dResMm;   // Col → X (Run() 규약과 동일)
-                result.ResidualOffsetYmm = dRow * dResMm;                  // Row → Y
+                result.ResidualOffsetYmm = dOffsetYSign * dRow * dResMm;   // Row → Y (Run() 규약과 동일)
                 result.ResidualThetaDeg = dThetaSign * (dCheckBaselineRad - refPose.RefBaselineRad) * 180.0 / Math.PI;
                 result.ResidualDistanceMm = Math.Sqrt(
                     result.ResidualOffsetXmm * result.ResidualOffsetXmm

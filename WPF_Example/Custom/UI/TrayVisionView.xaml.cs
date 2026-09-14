@@ -40,6 +40,13 @@ namespace ReringProject.Custom.UI {
         private int _loadedImageIndex = -1;   // -1 = 미로드
         private static string _lastImageFolder = null;   // 폴더 마지막 위치 기억 (static — 탭 전환에도 유지)
 
+        // 뷰어에 지금 떠 있는 사진이 어디서 왔는지. 이미지 위 좌상단 라벨("Tray Align · 출처")과 캘 상태 문구에 쓴다.
+        //  _szViewerImageName: 저장 사진이면 파일명, 카메라(Grab/Live/캘 Grab) 사진이면 null.
+        private const string VIEWER_LABEL_BASE = "Tray Align";
+        private const string VIEWER_LABEL_SEPARATOR = " · ";
+        private string _szViewerImageName = null;
+        private string _szViewerSourceText = null;
+
         // 이미지 저장 상태
         private const string SAVE_IMAGE_PREFIX = "TrayAlign";
         private const string SAVE_IMAGE_SUBFOLDER = "AlignCapture";
@@ -127,7 +134,7 @@ namespace ReringProject.Custom.UI {
             _viewer.PointerInfoChanged -= OnViewerPointerInfoChanged;
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
             _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
-            _viewer.SetInfoLabel("Tray Align"); // Phase 74: 어느 화면인지 이미지 위에 표시
+            UpdateViewerSourceLabel(); // 어느 화면인지 + 지금 사진의 출처(파일명/카메라)를 이미지 위에 표시
             LoadCalStepAngleToUi(); // quick-260903-dpy — 저장된 캘 스텝 각도 반영(Bottom 과 공용 설정)
             UpdateCalButtonState(); // quick-260903-dpy — 뷰어 재주입 시에도 캘 버튼 활성 상태를 최신으로 갱신
         }
@@ -154,7 +161,9 @@ namespace ReringProject.Custom.UI {
                     if (_viewer != null) {
                         _viewer.LoadImage(dlg.FileName);
                     }
-                    lbl_status.Text = "로드: " + System.IO.Path.GetFileName(dlg.FileName);
+                    string szPickedName = System.IO.Path.GetFileName(dlg.FileName);
+                    MarkViewerImageFromFile(szPickedName, "파일 " + szPickedName);
+                    lbl_status.Text = "로드: " + szPickedName;
                 }
             }
             catch (Exception ex) {
@@ -179,6 +188,7 @@ namespace ReringProject.Custom.UI {
                     _viewer.LoadImage(img);   // LoadImage 가 내부 Clone — 즉시 Dispose 안전
                 }
                 img.Dispose();
+                MarkViewerImageFromCamera("Grab (카메라)");
                 lbl_status.Text = "대기";
             }
             catch (Exception ex) {
@@ -210,6 +220,7 @@ namespace ReringProject.Custom.UI {
                     // Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(D-07 연장).
                     ApplyCoaxLight();
                     StartLiveTimer();
+                    MarkViewerImageFromCamera("Live (카메라)");
                 }
                 else {
                     btn_live.Content = "Live Off";
@@ -275,6 +286,11 @@ namespace ReringProject.Custom.UI {
                 img = EthernetVisionHandler.Handle.Camera.PeekLastImage();
                 if (img != null) {
                     _viewer.LoadImage(img);   // LoadImage 가 내부 Clone — 즉시 Dispose 안전
+                    // Live 도중 [폴더 열기]로 사진을 띄웠다가 다음 프레임에 덮였으면 라벨도 카메라로 되돌린다(매 틱 다시 그리지 않게 바뀐 경우만).
+                    bool bLabelShowsFile = (_szViewerImageName != null);
+                    if (bLabelShowsFile) {
+                        MarkViewerImageFromCamera("Live (카메라)");
+                    }
                 }
             }
             catch {
@@ -1413,7 +1429,7 @@ namespace ReringProject.Custom.UI {
                 }
                 img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
                 bOwnsImage = false;
-                szSourceLabel = "저장 이미지";
+                szSourceLabel = BuildSavedImageSourceLabel();
                 return true;
             }
 
@@ -1431,6 +1447,7 @@ namespace ReringProject.Custom.UI {
                 if (_viewer != null) {
                     _viewer.LoadImage(grabbed); // 뷰어가 내부 Clone — 원본 소유권은 이쪽에 남는다
                 }
+                MarkViewerImageFromCamera("캘 Grab (카메라)");
                 img = grabbed;
                 bOwnsImage = true;
                 szSourceLabel = "라이브";
@@ -1442,7 +1459,7 @@ namespace ReringProject.Custom.UI {
             if (bViewerHasImage) {
                 img = _viewer.CurrentImage; // 뷰어 소유 — Dispose 금지
                 bOwnsImage = false;
-                szSourceLabel = "저장 이미지";
+                szSourceLabel = BuildSavedImageSourceLabel();
                 return true;
             }
 
@@ -1982,6 +1999,45 @@ namespace ReringProject.Custom.UI {
                 res.Score);
         }
 
+        // ─── 뷰어 사진 출처 표시 ─────────────────────────────────────────────────
+
+        // 이미지 위 좌상단 라벨을 "Tray Align · 출처" 로 다시 그린다. 출처가 없으면 "Tray Align" 만.
+        private void UpdateViewerSourceLabel() {
+            if (_viewer == null) {
+                return;
+            }
+            bool bHasSource = !string.IsNullOrEmpty(_szViewerSourceText);
+            if (bHasSource) {
+                _viewer.SetInfoLabel(VIEWER_LABEL_BASE + VIEWER_LABEL_SEPARATOR + _szViewerSourceText);
+            }
+            else {
+                _viewer.SetInfoLabel(VIEWER_LABEL_BASE);
+            }
+        }
+
+        // 뷰어에 저장 사진 파일을 띄웠을 때 호출. szFileName 은 캘 상태 문구용, szSourceText 는 이미지 위 라벨용.
+        private void MarkViewerImageFromFile(string szFileName, string szSourceText) {
+            _szViewerImageName = szFileName;
+            _szViewerSourceText = szSourceText;
+            UpdateViewerSourceLabel();
+        }
+
+        // 뷰어에 카메라 사진(Grab/Live/캘 Grab)을 띄웠을 때 호출 — 파일명은 지운다.
+        private void MarkViewerImageFromCamera(string szSourceText) {
+            _szViewerImageName = null;
+            _szViewerSourceText = szSourceText;
+            UpdateViewerSourceLabel();
+        }
+
+        // 캘 상태 문구에 쓸 "저장 이미지 파일명". 파일명을 모르면(다른 화면이 뷰어를 바꾼 경우 등) "저장 이미지" 만.
+        private string BuildSavedImageSourceLabel() {
+            bool bHasName = !string.IsNullOrEmpty(_szViewerImageName);
+            if (bHasName) {
+                return "저장 이미지 " + _szViewerImageName;
+            }
+            return "저장 이미지";
+        }
+
         // ─── 오프라인 이미지 로더 핸들러 ─────────────────────────────────────────
 
         private void OpenFolderButton_Click(object sender, RoutedEventArgs e) {
@@ -2083,6 +2139,10 @@ namespace ReringProject.Custom.UI {
                 lbl_loaderStatus.Text = "로드 오류: " + ex.Message;
                 return;
             }
+
+            string szFileName = Path.GetFileName(path);
+            MarkViewerImageFromFile(szFileName, string.Format(
+                "저장 사진 {0}/{1}  {2}", _loadedImageIndex + 1, _loadedImagePaths.Count, szFileName));
 
             lbl_loaderStatus.Text = string.Format(
                 "{0}/{1}  {2}",

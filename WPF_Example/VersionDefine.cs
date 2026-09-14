@@ -574,10 +574,19 @@ namespace ReringProject
                  "Tray 검사 결과 표시에 각도(Theta) 추가 : 예전에는 X·Y·Score 만 보였다. 각도는 이미 계산되고 있었는데 " +
                  "화면에만 안 나왔던 것이라 계산은 그대로다. 부호는 화면 기준 반시계가 +(TRAY_THETA_SIGN 반영값)."
     )]
+    [Version(
+        Number = "1.7.42.0",
+        Date = "2026-09-14",
+        Change = "Tray 화면에서 지금 떠 있는 사진이 어떤 사진인지 이미지 위에 표시한다. 예전에는 [폴더 열기] 아래 글자로만 " +
+                 "파일명이 나와서 왼쪽 패널을 스크롤하면 안 보였고, Grab 으로 사진이 바뀌어도 알 수 없었다. " +
+                 "이미지 좌상단 라벨이 'Tray Align · 저장 사진 2/6  -1deg.bmp' / 'Tray Align · Grab (카메라)' / " +
+                 "'Live (카메라)' / '캘 Grab (카메라)' 로 바뀐다. 피커센터 캘 ②·③ 결과 문구에도 '저장 이미지 파일명' 으로 " +
+                 "어떤 사진을 썼는지 나온다. 검사·캘 계산은 변경 없음."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.41.0";
+        public const string VERSION = "1.7.42.0";
         public const string BUILD_DATE = "2026-09-14";
     }
 }

@@ -32,6 +32,10 @@ namespace ReringProject.Sequence
         public int OkCount { get; set; }
         public int NgCount { get; set; }
         public int DetectFailCount { get; set; }
+
+        /// <summary>AddSample 로 이 키의 측정이 들어온 횟수(결과 유무·스킵 사유 무관). 통계 CSV 조회에서는
+        /// 기간 안 이 항목 줄 수 = 이 항목 시퀀스의 검사 틱 수. N 의 기대값이 아니다.</summary>
+        public int RecordCount { get; set; }
     }
 
     /// <summary>
@@ -50,6 +54,7 @@ namespace ReringProject.Sequence
             public int OkCount;
             public int NgCount;
             public int DetectFailCount;
+            public int RecordCount;
             public double LastNominal;
             public double LastTolPlus;
             public double LastTolMinus;
@@ -115,6 +120,8 @@ namespace ReringProject.Sequence
                             };
                             _data[key] = d;
                         }
+
+                        d.RecordCount++;
 
                         // 마지막 공차값으로 항상 갱신 (최신 레시피 반영)
                         d.LastNominal = m.NominalValue;
@@ -237,7 +244,8 @@ namespace ReringProject.Sequence
                     ToleranceMinus = d.LastTolMinus,
                     OkCount = d.OkCount,
                     NgCount = d.NgCount,
-                    DetectFailCount = d.DetectFailCount
+                    DetectFailCount = d.DetectFailCount,
+                    RecordCount = d.RecordCount
                 };
             }
 

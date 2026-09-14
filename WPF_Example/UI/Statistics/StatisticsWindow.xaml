@@ -47,14 +47,14 @@
                             Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <CheckBox x:Name="chk_ProblemOnly" Content="문제 항목만 보기 (불량·주의)"
+                    <CheckBox x:Name="chk_ProblemOnly" Content="문제 항목만 보기 (불량·결과 없음·주의)"
                               Checked="Chk_ProblemOnly_Changed" Unchecked="Chk_ProblemOnly_Changed"
                               VerticalAlignment="Center" FontSize="13"/>
                     <TextBlock x:Name="txt_Summary" Margin="24,0,0,0" FontSize="13" FontWeight="SemiBold"
                                Foreground="#334155" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
+                    <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 보라 = 결과 없음(기간 안 측정값 0건) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
                                FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
                     <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
                     <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
@@ -102,6 +102,10 @@
                             <Setter Property="Background" Value="#FEE2E2"/>
                             <Setter Property="Foreground" Value="#991B1B"/>
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding StatusLevel}" Value="NoResult">
+                            <Setter Property="Background" Value="#EDE9FE"/>
+                            <Setter Property="Foreground" Value="#5B21B6"/>
+                        </DataTrigger>
                         <DataTrigger Binding="{Binding StatusLevel}" Value="Warning">
                             <Setter Property="Background" Value="#FEF9C3"/>
                             <Setter Property="Foreground" Value="#854D0E"/>
@@ -120,7 +124,20 @@
                 <DataGridTextColumn Header="측정명"     Binding="{Binding MeasurementName}" Width="110"/>
                 <DataGridTextColumn Header="기준"       Binding="{Binding NominalValue, StringFormat=F4}" Width="75"/>
                 <DataGridTextColumn Header="허용범위"   Binding="{Binding ToleranceRangeText}" Width="140"/>
-                <DataGridTextColumn Header="N"          Binding="{Binding N}"               Width="45"/>
+                <DataGridTextColumn Header="기록(틱)"   Binding="{Binding RecordCount}"     Width="60">
+                    <DataGridTextColumn.HeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="ToolTip" Value="기간 안 이 항목이 기록된 자동 검사 틱 수. 한 부품을 여러 z 틱으로 나눠 찍고 항목마다 한 틱에서만 재므로 N 보다 큰 것이 정상 — 누락 수가 아님"/>
+                        </Style>
+                    </DataGridTextColumn.HeaderStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="N"          Binding="{Binding N}"               Width="45">
+                    <DataGridTextColumn.HeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="ToolTip" Value="기간 안 측정값이 나온 횟수(OK + NG)"/>
+                        </Style>
+                    </DataGridTextColumn.HeaderStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="평균"       Binding="{Binding Mean, StringFormat=F4}"   Width="75"/>
                 <!-- quick-260911-fia Task 4: 재검사 결과에서만 보임(기본 숨김, SetRerunColumnsVisible 이 토글) -->
                 <DataGridTextColumn x:Name="col_OriginalMean" Header="원래 평균" Binding="{Binding OriginalMeanText}" Width="80" Visibility="Collapsed"/>
@@ -131,7 +148,13 @@
                 <DataGridTextColumn Header="Cpk"        Binding="{Binding CpkText}" SortMemberPath="CpkSortValue" Width="65"/>
                 <DataGridTextColumn Header="OK"         Binding="{Binding OkCount}"         Width="45"/>
                 <DataGridTextColumn Header="NG"         Binding="{Binding NgCount}"         Width="45"/>
-                <DataGridTextColumn Header="검출실패"   Binding="{Binding DetectFailCount}" Width="65"/>
+                <DataGridTextColumn Header="검출실패"   Binding="{Binding DetectFailCount}" Width="65">
+                    <DataGridTextColumn.HeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="ToolTip" Value="기준점 검출 실패(DATUM_FAIL) + 사진 없음(NO_IMAGE) 줄 수. 측정 알고리즘 실패는 CSV 에 따로 남지 않아 여기에 포함되지 않음"/>
+                        </Style>
+                    </DataGridTextColumn.HeaderStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="수율"       Binding="{Binding YieldRateText}"   Width="70"/>
             </DataGrid.Columns>
         </DataGrid>

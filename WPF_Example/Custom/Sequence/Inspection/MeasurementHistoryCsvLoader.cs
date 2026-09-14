@@ -155,6 +155,10 @@ namespace ReringProject.Sequence
             public RepeatMeasurementStats Stats = new RepeatMeasurementStats();
             public StatisticsQueryResult Result = new StatisticsQueryResult();
             public HashSet<string> RecipeSet = new HashSet<string>();
+
+            /// <summary>기간 밖에서 발견된 항목(레시피·자동 필터는 통과). 기간 안 줄이 없어도 표에서 사라지지
+            /// 않도록 조회 끝에 Result.Stats 로 옮겨 담는다(N=0·기록=0·결과 없음으로 표시).</summary>
+            public Dictionary<string, MeasurementStat> KeysOutsideRange = new Dictionary<string, MeasurementStat>();
         }
 
         /// <summary>
@@ -219,6 +223,7 @@ namespace ReringProject.Sequence
                 state.Result.RecipeNames = new List<string>(state.RecipeSet);
                 state.Result.RecipeNames.Sort();
                 state.Result.Stats = state.Stats.ComputeAll();
+                AddKeysWithoutRowsInRange(state);
             }
             catch (Exception ex)   //260707 hbk 방어적 격리 — 조회 실패해도 UI 크래시 없이 빈 결과 반환
             {
@@ -288,6 +293,8 @@ namespace ReringProject.Sequence
                 return;
             }
 
+            RememberKeyOutsideRange(fields, state);
+
             if (!bInRange)
             {
                 return;
@@ -322,6 +329,39 @@ namespace ReringProject.Sequence
             }
 
             state.Result.TotalRowCount++;
+        }
+
+        /// <summary>레시피·수동 필터를 통과한 줄의 항목 키를 기억해 둔다(공차는 마지막 줄 값). 시간을 좁혔을 때
+        /// 그 기간 안에 줄이 없더라도 항목이 표에서 사라지지 않고 결과 없음으로 보이게 하기 위함이다.</summary>
+        private static void RememberKeyOutsideRange(List<string> fields, StatsQueryState state)
+        {
+            string szShot = fields[COL_SHOT];
+            string szFai = fields[COL_FAI];
+            string szName = fields[COL_MEASNAME];
+            string szKey = szShot + "/" + szFai + "/" + szName;
+
+            var stat = new MeasurementStat();
+            stat.ShotName = szShot;
+            stat.FAIName = szFai;
+            stat.MeasurementName = szName;
+            stat.TypeName = fields[COL_TYPE];
+            stat.NominalValue = ParseDouble(fields[COL_NOMINAL]);
+            stat.TolerancePlus = ParseDouble(fields[COL_TOLPLUS]);
+            stat.ToleranceMinus = ParseDouble(fields[COL_TOLMINUS]);
+
+            state.KeysOutsideRange[szKey] = stat;
+        }
+
+        /// <summary>Result.Stats 에 없는(=기간 안 줄이 없는) 항목을 N=0·기록=0 상태로 추가한다.</summary>
+        private static void AddKeysWithoutRowsInRange(StatsQueryState state)
+        {
+            foreach (var kv in state.KeysOutsideRange)
+            {
+                if (!state.Result.Stats.ContainsKey(kv.Key))
+                {
+                    state.Result.Stats[kv.Key] = kv.Value;
+                }
+            }
         }
 
         /// <summary>CSV 필드를 MeasurementResultDto 로 역구성한다. Judgement 컬럼 5분기(D-06/D-07 정책 재현).</summary>

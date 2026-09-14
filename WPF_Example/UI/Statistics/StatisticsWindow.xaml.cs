@@ -14,12 +14,14 @@ using ReringProject.Utility;
 
 namespace ReringProject.UI
 {
-    /// <summary>통계 행 상태 3단계. 정수값이 그대로 "나쁜 순" 정렬 순위(작을수록 나쁨, Task 1 R1/R3).</summary>
+    /// <summary>통계 행 상태 4단계. 정수값이 그대로 "나쁜 순" 정렬 순위(작을수록 나쁨, Task 1 R1/R3).
+    /// NoResult = 기간 안 측정값 0건 — 결과 없음은 불량 다음으로 나쁘다(데이터 누락 신호).</summary>
     public enum EStatLevel
     {
         Bad = 0,
-        Warning = 1,
-        Normal = 2
+        NoResult = 1,
+        Warning = 2,
+        Normal = 3
     }
 
     /// <summary>
@@ -48,6 +50,9 @@ namespace ReringProject.UI
         public int NgCount { get; set; }
 
         public int DetectFailCount { get; set; }
+
+        /// <summary>기간 안 이 항목 기록(틱) 수.</summary>
+        public int RecordCount { get; set; }
 
         public string YieldRateText { get; set; }  //260707 hbk 수율 OK/(OK+NG) — 값 클수록 좋음(불량률 대체)
 
@@ -124,10 +129,11 @@ namespace ReringProject.UI
                 row.Mean = s.Mean;
                 row.StdDev = s.StdDev;
                 row.Range = s.Range;
-                row.CpkText = CpkToText(s.Cpk);
+                row.CpkText = BuildCpkText(s);
                 row.OkCount = s.OkCount;
                 row.NgCount = s.NgCount;
                 row.DetectFailCount = s.DetectFailCount;
+                row.RecordCount = s.RecordCount;
                 row.YieldRateText = YieldRateToText(s.OkCount, s.NgCount);   // 불량률→수율 긍정지표 전환
                 row.NominalValue = s.NominalValue;
                 row.TolerancePlus = s.TolerancePlus;
@@ -156,6 +162,18 @@ namespace ReringProject.UI
             }
 
             return dCpk.ToString(CPK_FORMAT);
+        }
+
+        /// <summary>Cpk 칸 표시 문자열. N==0(결과 없음) 이면 "-" — 결과 없는 행이 "Cpk 0.000" 으로 보이는
+        /// 모순을 막는다.</summary>
+        private static string BuildCpkText(MeasurementStat s)
+        {
+            if (s.N == 0)
+            {
+                return NO_VALUE_TEXT;
+            }
+
+            return CpkToText(s.Cpk);
         }
 
         /// <summary>수율(Yield, %) 표시 문자열 = OK/(OK+NG). 값 클수록 좋음. 분모 0 방어(if/else, 삼항 금지).</summary>
@@ -201,12 +219,18 @@ namespace ReringProject.UI
             return s.TolerancePlus == 0.0 && s.ToleranceMinus == 0.0;
         }
 
-        /// <summary>행 상태 판정(R1). NG 1건이라도 있으면 항상 불량 — 은폐 방향 판정 없음.</summary>
+        /// <summary>행 상태 판정(R1). NG 1건이라도 있으면 항상 불량 — 은폐 방향 판정 없음.
+        /// 결과 없음은 불량 다음으로 나쁘다(데이터 누락 신호).</summary>
         public static EStatLevel JudgeStatus(MeasurementStat s)
         {
             if (s.NgCount > 0)
             {
                 return EStatLevel.Bad;
+            }
+
+            if (s.N == 0)
+            {
+                return EStatLevel.NoResult;
             }
 
             if (!IsCpkUsable(s))
@@ -326,10 +350,13 @@ namespace ReringProject.UI
             return string.CompareOrdinal(a.Key, b.Key);
         }
 
-        /// <summary>필터바 아래 요약 한 줄(R5). rows 는 필터 무관 전체 기준. null 이면 개수 0.</summary>
+        /// <summary>필터바 아래 요약 한 줄(R5). rows 는 필터 무관 전체 기준. null 이면 개수 0.
+        /// 결과 없음 중 기간 안 기록(틱) 자체가 없는 항목 수는 "(기록 없음 X)" 로 따로 덧붙인다.</summary>
         public static string BuildSummary(List<StatRow> rows)
         {
             int nBad = 0;
+            int nNoResult = 0;
+            int nNoRecord = 0;
             int nWarning = 0;
             int nNormal = 0;
 
@@ -341,6 +368,13 @@ namespace ReringProject.UI
                     {
                         case EStatLevel.Bad:
                             nBad++;
+                            break;
+                        case EStatLevel.NoResult:
+                            nNoResult++;
+                            if (row.RecordCount == 0)
+                            {
+                                nNoRecord++;
+                            }
                             break;
                         case EStatLevel.Warning:
                             nWarning++;
@@ -354,8 +388,15 @@ namespace ReringProject.UI
                 }
             }
 
-            int nTotal = nBad + nWarning + nNormal;
-            return "전체 " + nTotal + "항목 · 불량 " + nBad + " · 주의 " + nWarning + " · 정상 " + nNormal;
+            int nTotal = nBad + nNoResult + nWarning + nNormal;
+
+            string szNoResultPart = "결과 없음 " + nNoResult;
+            if (nNoRecord > 0)
+            {
+                szNoResultPart = szNoResultPart + "(기록 없음 " + nNoRecord + ")";
+            }
+
+            return "전체 " + nTotal + "항목 · 불량 " + nBad + " · " + szNoResultPart + " · 주의 " + nWarning + " · 정상 " + nNormal;
         }
 
         /// <summary>DataGrid Items.Filter(Predicate&lt;object&gt;) 용 — 문제(불량/주의) 행만 남긴다(R2).</summary>

@@ -179,6 +179,11 @@ namespace ReringProject.Utility {
         public const string OFFLINE_SUFFIX_HORIZONTAL = "_horizontal";
         public const string OFFLINE_SUFFIX_VERTICAL = "_vertical";
 
+        // Phase 77 D-77-06 ②: Z 범위 Shot 의 z 별 오프라인 사진 접미사 — shot_Shot이름_z번호.bmp.
+        //  자동채움(Action_FAIMeasurement.AutoFillZRangeOfflineImage)과 오프라인 검사(ResolveOfflineZRangeImagePath)
+        //  가 이 상수를 공유한다.
+        public const string OFFLINE_SUFFIX_Z = "_z";
+
         private const string OFFLINE_RECIPE_FALLBACK = "default";
         private const string OFFLINE_NODE_FALLBACK = "node";
 

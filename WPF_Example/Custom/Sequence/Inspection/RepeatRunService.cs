@@ -514,6 +514,10 @@ namespace ReringProject.Sequence
             {
                 pair.Key.TeachingImagePath_Vertical = pair.Value;
             }
+            foreach (var shot in snap.OwnedShots)
+            {
+                shot.RerunZRangeImagePaths = null; // Phase 77 D-77-06 ②: 부품마다 원복 후 재주입, 최종 종료 시 해제
+            }
         }
 
         /// <summary>
@@ -714,6 +718,11 @@ namespace ReringProject.Sequence
                 }
             }
 
+            foreach (var shot in _savedCycleSnapshot.OwnedShots)
+            {
+                shot.RerunZRangeImagePaths = BuildRerunZRangeMap(part, shot.ShotName); // Phase 77 D-77-06 ②/M-3
+            }
+
             foreach (var datum in _savedCycleSeq.DatumConfigs)
             {
                 string szKeySingle = SavedCycleRerunPlanner.BuildDatumRoleKey(datum.DatumName, DatumImageRecordDto.ROLE_SINGLE);
@@ -753,6 +762,23 @@ namespace ReringProject.Sequence
                     measRef.TeachingImagePath_Vertical = dual.VerticalPath;
                 }
             }
+        }
+
+        // Phase 77 D-77-06 ②: 부품(part)의 ZRangePhotoPaths 에서 이 Shot 몫만 새 사전으로 복사한다 — 항상
+        //  새 인스턴스를 반환해 스냅샷 사전과 공유되지 않게 한다.
+        private static Dictionary<int, string> BuildRerunZRangeMap(SavedCycleRerunPart part, string szShotName)
+        {
+            var dicResult = new Dictionary<int, string>();
+            Dictionary<int, string> dicShot;
+            bool bHasShot = part.ZRangePhotoPaths.TryGetValue(szShotName, out dicShot);
+            if (bHasShot)
+            {
+                foreach (var pair in dicShot)
+                {
+                    dicResult[pair.Key] = pair.Value;
+                }
+            }
+            return dicResult;
         }
 
         private DualImageEdgeDistanceMeasurement FindOwnedDualMeasurement(string szShotName, string szFaiName, string szMeasKey)
@@ -1085,6 +1111,12 @@ namespace ReringProject.Sequence
         public Dictionary<string, string> ShotPhotoPaths { get; set; } = new Dictionary<string, string>();
 
         public List<SavedCycleDualPhoto> DualPhotos { get; set; } = new List<SavedCycleDualPhoto>();
+
+        /// <summary>
+        /// Phase 77 D-77-06 ②: 키 = ShotName, 값 = z → 후보 사진 절대경로. 비어 있어도 부품은 제외하지
+        /// 않는다 — 1장 폴백으로 돈다.
+        /// </summary>
+        public Dictionary<string, Dictionary<int, string>> ZRangePhotoPaths { get; set; } = new Dictionary<string, Dictionary<int, string>>();
     }
 
     // quick-260911-fia Task 2: 저장 사이클(cycle.json) 을 읽어 만든 부품 단위 재검사 계획.
@@ -1173,6 +1205,7 @@ namespace ReringProject.Sequence
                 FillPartDatumPhotos(part);
                 FillPartShotPhotos(part);
                 FillPartDualPhotos(part, seq, recipeManager);
+                FillPartZRangePhotos(part); // Phase 77 D-77-06 ②
             }
 
             HashSet<string> setExpectedShots = new HashSet<string>();
@@ -1326,6 +1359,7 @@ namespace ReringProject.Sequence
         {
             bool bHasResult = meas.LastHasResult;
             bool bHasReason = !string.IsNullOrEmpty(meas.LastSkipReason) && meas.LastSkipReason != SkipReason.CROSS_Z_INCOMPLETE;
+            if (meas.LastSkipReason == SkipReason.Z_RANGE_PENDING) { bHasReason = false; } // Phase 77: 중간 z 대기도 CROSS_Z_INCOMPLETE 와 같이 처리됨에서 제외
             return bHasResult || bHasReason;
         }
 
@@ -1357,6 +1391,38 @@ namespace ReringProject.Sequence
                     if (!part.DatumPhotoPaths.ContainsKey(szKey))
                     {
                         part.DatumPhotoPaths[szKey] = img.Path;
+                    }
+                }
+            }
+        }
+
+        // Phase 77 D-77-06 ②: 저장된 cycle.json 의 ZRangeImages 를 Shot 별 z→경로 사전으로 모은다(첫 기록
+        //  우선, FillPartDatumPhotos 와 동일 원칙).
+        private static void FillPartZRangePhotos(SavedCycleRerunPart part)
+        {
+            foreach (var dto in part.Ticks)
+            {
+                if (dto.ZRangeImages == null)
+                {
+                    continue;
+                }
+                foreach (var img in dto.ZRangeImages)
+                {
+                    bool bInvalid = img == null || string.IsNullOrEmpty(img.ShotName) || string.IsNullOrEmpty(img.Path);
+                    if (bInvalid)
+                    {
+                        continue;
+                    }
+                    Dictionary<int, string> dicShot;
+                    bool bHasShot = part.ZRangePhotoPaths.TryGetValue(img.ShotName, out dicShot);
+                    if (!bHasShot)
+                    {
+                        dicShot = new Dictionary<int, string>();
+                        part.ZRangePhotoPaths[img.ShotName] = dicShot;
+                    }
+                    if (!dicShot.ContainsKey(img.ZIndex))
+                    {
+                        dicShot[img.ZIndex] = img.Path;
                     }
                 }
             }

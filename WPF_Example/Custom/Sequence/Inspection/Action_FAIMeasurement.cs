@@ -82,6 +82,8 @@ namespace ReringProject.Sequence {
         private int _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE;
         // Phase 77 리서치 Pitfall 4: 오설정 Shot 이 조용히 꺼지지 않게 — 사이클(RunInit)마다 1회만 로그한다.
         private bool _bZRangeMisconfigLogged = false;
+        // Phase 77 D-77-06 ①: 수동(라이브 RUN·수동 트리거)은 Z 선택을 안 한다는 안내를 사이클(RunInit)마다 1회만 남긴다.
+        private bool _bZRangeNoticeLogged = false;
 
         // 측정 실패 에러 원문을 LastErrorMessage 에 남길 때 최대 보관 길이(문자 수). 정보 과다 노출/과도한
         //  길이 방지용 절단 기준 — 개행 치환 후 이 길이를 넘으면 잘라낸다.
@@ -193,6 +195,7 @@ namespace ReringProject.Sequence {
             ReleaseZRangeCandidates(); // Phase 77 O-5: 이전 tick 잔여 후보 안전망(정상 흐름에서는 이미 비어 있음)
             _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE; // Phase 77 O-7: 이전 사이클 표시 z 잔재 방지
             _bZRangeMisconfigLogged = false; // Phase 77 Pitfall 4: 새 사이클마다 오설정 로그 1회 재허용
+            _bZRangeNoticeLogged = false; // Phase 77 D-77-06 ①: 새 사이클마다 수동 안내 로그 1회 재허용
             // Run 사이클 진입 시 image buffer + FAI results dispose
             if (ShotParam != null) ShotParam.ClearAllResults();
             Step = (int)EStep.MoveZ;
@@ -1956,9 +1959,10 @@ namespace ReringProject.Sequence {
             return ok;
         }
 
-        // Phase 77 SZF-02/SZF-05/D-77-06/P-10: 이번 tick 에서 범위 Shot 측정을 어떻게 다룰지 — 가드 순서가
+        // Phase 77 SZF-02/SZF-05/D-77-06/M-1: 이번 tick 에서 범위 Shot 측정을 어떻게 다룰지 — 가드 순서가
         //  회귀 0 을 보장한다. ShotParam.IsZRangeEnabled() 가 가장 먼저 걸리므로 범위 꺼짐/옛 레시피/TOP·BOTTOM
-        //  은 항상 Off 로 끝난다(SZF-05). 수동·오프라인 모드는 이 plan 에서 전부 Off — 77-04 가 확장한다.
+        //  은 항상 Off 로 끝난다(SZF-05). PLC(Sender 있음)만 Auto*, 그 외(수동 트리거/화면 RUN/오프라인·재검사)
+        //  는 ManualSingle 또는 OfflineSelect 로 갈린다.
         private EZRangeMode ResolveZRangeMode(InspectionSequence parentSeq2)
         {
             if (ShotParam == null)
@@ -1975,11 +1979,15 @@ namespace ReringProject.Sequence {
             }
             if (!parentSeq2.IsProtocolDrivenCycle())
             {
-                return EZRangeMode.Off; // 수동 RUN — 77-04 가 ManualSingle 로 바꾼다
+                if (IsLiveCaptureMode())
+                {
+                    return EZRangeMode.ManualSingle; // Phase 77 D-77-06 ①: 화면 RUN(라이브 빌드) — 1장 측정, 선택 없음
+                }
+                return EZRangeMode.OfflineSelect; // Phase 77 D-77-06 ②: 오프라인/저장 사진 재검사(비프로토콜 + 파일 읽기)
             }
             if (parentSeq2.IsManualTriggerCycle())
             {
-                return EZRangeMode.Off; // 수동 트리거 — 77-04 가 ManualSingle 로 바꾼다
+                return EZRangeMode.ManualSingle; // Phase 77 D-77-06 ①: 수동 트리거(Sender 없는 $TEST) — 1장 측정, 선택 없음
             }
             int nCurZ = parentSeq2.GetExecutionZIndex();
             if (nCurZ == ShotParam.ZIndexEnd)
@@ -2020,7 +2028,36 @@ namespace ReringProject.Sequence {
             }
             parentSeq.StoreZRangeImage(ShotParam.ShotName, nCurZ, image);
             SaveZRangeCandidateImageIfEnabled(image, parentSeq, nCurZ); // Phase 77 D-77-06 ③: 저장 체크박스 켜짐 + 라이브 PLC 일 때만 실제 저장
+            AutoFillZRangeOfflineImage(image, nCurZ); // Phase 77 D-77-06 ②/D-77-07 ⑦: AutoFillOfflineImages 켜짐 + 라이브일 때만 z 별 오프라인 사진도 채움
             Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "후보 저장 — " + ShotParam.ShotName + " z=" + nCurZ);
+        }
+
+        // Phase 77 D-77-06 ②/D-77-07 ⑦: AutoFillOfflineImages 가 켜진 라이브 PLC 자동 사이클에서 z 별 오프라인
+        //  사진도 함께 채운다(AutoFillShotOfflineImage 선례와 같은 규약) — Shot.SimulImagePath 는 건드리지 않는다.
+        private void AutoFillZRangeOfflineImage(HImage image, int nZIndex)
+        {
+            if (!IsOfflineAutoFillEnabled())
+            {
+                return;
+            }
+            if (!IsLiveCaptureMode())
+            {
+                return;
+            }
+            if (ShotParam == null)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(ShotParam.ShotName))
+            {
+                return;
+            }
+            string szBaseName = RecipeFiles.OFFLINE_PREFIX_SHOT + ShotParam.ShotName + RecipeFiles.OFFLINE_SUFFIX_Z + nZIndex;
+            string szPath = EnqueueOfflineImageCopy(image, szBaseName);
+            if (szPath != null)
+            {
+                Logging.PrintLog((int)ELogType.Trace, ZFOCUS_LOG_TAG + "오프라인 z 사진 자동채움 — " + ShotParam.ShotName + " z" + nZIndex + ": " + szPath);
+            }
         }
 
         // Phase 77 D-77-06 ③/T-77-17: 저장 체크박스가 켜진 라이브 PLC 자동 사이클에서만 후보 z 사진을
@@ -2102,7 +2139,53 @@ namespace ReringProject.Sequence {
                 }
                 return ExecuteZRangeSelection(meas, parentSeq2, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
             }
-            return false; // ManualSingle/OfflineSelect — 77-04
+            if (mode == EZRangeMode.ManualSingle)
+            {
+                LogZRangeManualNotice(); // Phase 77 D-77-06 ①: 라이브 수동은 선택 없이 1장으로 측정한다는 안내만 남긴다
+                return false; // 기존 단일 사진 경로 그대로
+            }
+            // mode == EZRangeMode.OfflineSelect (D-77-06 ②) — z 별 저장 사진으로 자동검사와 같은 선택 로직을 태운다.
+            bool bScoreSupportedOffline = dualMeasForGate == null && meas.SupportsEdgeStrengthScore();
+            if (bScoreSupportedOffline)
+            {
+                // 후보 0 이면 ExecuteZRangeSelection 이 '[ZFocus] 후보 사진 없음' Error 후 false 를 돌려주고
+                //  호출부가 기존 단일 사진 경로로 폴백한다(M-5, D-77-06 edge SZF-02 empty).
+                return ExecuteZRangeSelection(meas, parentSeq2, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
+            }
+            EnsureZRangeCandidatesLoaded(parentSeq2);
+            HImage baseImageOffline = FindZRangeCandidateImage(ShotParam.ZIndex);
+            if (baseImageOffline == null)
+            {
+                string measNameOffline = GetMeasurementDisplayName(meas);
+                string szShotNameOffline = "";
+                if (ShotParam != null)
+                {
+                    szShotNameOffline = ShotParam.ShotName;
+                }
+                Logging.PrintLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "기준 Z 사진 없음 — " + szShotNameOffline + " · " + measNameOffline + ": 현재 사진 1장으로 측정");
+                return false; // 기존 단일 사진 경로로 폴백(M-5)
+            }
+            _nZRangeDisplayZIndex = ShotParam.ZIndex;
+            ExecuteZRangeBaseImageMeasurement(meas, baseImageOffline, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
+            return true;
+        }
+
+        // Phase 77 D-77-06 ①: 라이브 수동(RUN·수동 트리거)은 선택 없이 1장으로 측정한다는 안내를 사이클당 1회
+        //  시퀀스 로그와 Algorithm 로그 두 곳에 남긴다 — 화면 코드(MainView.xaml.cs)는 수정하지 않는다(PR-5).
+        private void LogZRangeManualNotice()
+        {
+            if (_bZRangeNoticeLogged)
+            {
+                return;
+            }
+            _bZRangeNoticeLogged = true;
+            if (ShotParam == null)
+            {
+                return;
+            }
+            string szNotice = "Z 범위 Shot — 수동은 Z 선택 안 함, 현재 사진 1장으로 측정 (" + ShotParam.ShotName + " z" + ShotParam.ZIndex + "~z" + ShotParam.ZIndexEnd + ")";
+            LogSeqStep("Measure", szNotice);
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + szNotice);
         }
 
         // Phase 77 SZF-02/P-6: 중간 z tick — 후보 사진을 모으는 중이라 아직 측정 안 함. 크로스-Z 대기
@@ -2145,8 +2228,89 @@ namespace ReringProject.Sequence {
                 return;
             }
             List<int> lstIndices = parentSeq2.BuildZRangeCandidateIndices(ShotParam);
-            _lstZRangeCandidates = parentSeq2.TakeZRangeImages(ShotParam.ShotName, lstIndices);
+            EZRangeMode mode = ResolveZRangeMode(parentSeq2);
+            if (mode == EZRangeMode.OfflineSelect)
+            {
+                // Phase 77 D-77-06 ②: 오프라인/재검사는 자동 사이클 저장소 대신 z 별 오프라인 사진 파일에서 읽는다.
+                _lstZRangeCandidates = LoadOfflineZRangeCandidates(parentSeq2);
+            }
+            else
+            {
+                _lstZRangeCandidates = parentSeq2.TakeZRangeImages(ShotParam.ShotName, lstIndices);
+            }
             LogZRangeMissingCandidatesIfAny(lstIndices);
+        }
+
+        // Phase 77 D-77-06 ②: 오프라인·재검사 모드 전용 후보 로더 — z 별 오프라인 사진 파일을 읽어 후보 목록을
+        //  만든다. 반환된 사진은 기존 ReleaseZRangeCandidates 가 Dispose 한다(_lstZRangeCandidates 소유).
+        private List<KeyValuePair<int, HImage>> LoadOfflineZRangeCandidates(InspectionSequence parentSeq2)
+        {
+            var lstCandidates = new List<KeyValuePair<int, HImage>>();
+            List<int> lstIndices = parentSeq2.BuildZRangeCandidateIndices(ShotParam);
+            foreach (int nZ in lstIndices)
+            {
+                string szPath = ResolveOfflineZRangeImagePath(nZ);
+                if (string.IsNullOrEmpty(szPath))
+                {
+                    continue;
+                }
+                if (!File.Exists(szPath))
+                {
+                    continue;
+                }
+                try
+                {
+                    HImage candidate = new HImage(szPath);
+                    lstCandidates.Add(new KeyValuePair<int, HImage>(nZ, candidate));
+                }
+                catch (Exception ex)
+                {
+                    Logging.PrintLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "오프라인 z 사진 로드 실패 — " + szPath + ": " + ex.Message);
+                    continue;
+                }
+            }
+            return lstCandidates;
+        }
+
+        // Phase 77 D-77-06 ②/M-3: 재검사 경로 우선 — RerunZRangeImagePaths 가 null 이 아니면(재검사 중) 그
+        //  사전만 쓰고 오프라인 폴더로 폴백하지 않는다(다른 부품 사진이 섞이지 않게, T-77-19).
+        private string ResolveOfflineZRangeImagePath(int nZIndex)
+        {
+            if (ShotParam.RerunZRangeImagePaths != null)
+            {
+                string szRerunPath;
+                bool bFound = ShotParam.RerunZRangeImagePaths.TryGetValue(nZIndex, out szRerunPath);
+                if (bFound)
+                {
+                    return szRerunPath;
+                }
+                return string.Empty;
+            }
+            string szError;
+            string szPath = RecipeFiles.BuildOfflineImagePath(RecipeFiles.OFFLINE_PREFIX_SHOT + ShotParam.ShotName + RecipeFiles.OFFLINE_SUFFIX_Z + nZIndex, out szError);
+            if (szPath == null)
+            {
+                return string.Empty;
+            }
+            return szPath;
+        }
+
+        // Phase 77 D-77-06 ②: 후보 목록에서 z 가 같은 첫 사진을 찾는다(소유권 이동 없음 — ReleaseZRangeCandidates
+        //  가 Dispose 한다).
+        private HImage FindZRangeCandidateImage(int nZIndex)
+        {
+            if (_lstZRangeCandidates == null)
+            {
+                return null;
+            }
+            foreach (var kvp in _lstZRangeCandidates)
+            {
+                if (kvp.Key == nZIndex)
+                {
+                    return kvp.Value;
+                }
+            }
+            return null;
         }
 
         // Phase 77 O-4: 기대 z 목록(BuildZRangeCandidateIndices) 대비 실제로 받은 후보(_lstZRangeCandidates)를
@@ -2228,6 +2392,7 @@ namespace ReringProject.Sequence {
             LogZFocusSelection(meas, lstResults, chosen, swMeasureExec);
             RecordMeasurementResult(meas, false, chosen.Ok, chosen.Value, chosen.Error, chosen.Overlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
             meas.LastSelectedZIndex = chosen.ZIndex; // RecordMeasurementResult 실패 분기의 ClearResult 뒤라 여기서 다시 남긴다
+            ApplySelectedZLabel(chosen.Overlays, chosen.ZIndex); // Phase 77 O-7/D-77-07 ⑥: 오버레이 강조 라벨에 선택 Z 반영
             return true;
         }
 
@@ -2244,6 +2409,7 @@ namespace ReringProject.Sequence {
             bool ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays);
             RecordMeasurementResult(meas, false, ok, resultValue, measError, measOverlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
             meas.LastSelectedZIndex = _nZRangeDisplayZIndex;
+            ApplySelectedZLabel(measOverlays, _nZRangeDisplayZIndex); // Phase 77 O-7/D-77-07 ⑥: 오버레이 강조 라벨에 선택 Z 반영
             string measName = GetMeasurementDisplayName(meas);
             string szShotName = "";
             if (ShotParam != null)
@@ -2251,6 +2417,25 @@ namespace ReringProject.Sequence {
                 szShotName = ShotParam.ShotName;
             }
             Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "기준 Z 사진 사용 — " + szShotName + " · " + measName + " type=" + meas.TypeName + " z=" + _nZRangeDisplayZIndex + " (에지 강도 선택 미지원 타입)");
+        }
+
+        // Phase 77 O-7/D-77-07 ⑥: 선택된 Z 를 오버레이 강조 라벨에 반영한다 — 결과 화면·cycle.json 오버레이에
+        //  그대로 나타난다(EdgeInspectionOverlay.SelectedZLabel, 77-03 이 배선한 표시 자리).
+        private static void ApplySelectedZLabel(List<EdgeInspectionOverlay> lstOverlays, int nZIndex)
+        {
+            if (lstOverlays == null)
+            {
+                return;
+            }
+            string szLabel = MeasurementBase.FormatSelectedZ(nZIndex);
+            foreach (var overlay in lstOverlays)
+            {
+                if (overlay == null)
+                {
+                    continue;
+                }
+                overlay.SelectedZLabel = szLabel;
+            }
         }
 
         // Phase 77 O-7: ZIndexEnd tick 에서 화면·원본(측정 소스) 사진을 기준 Z(ShotParam.ZIndex) 사진으로 교체한다 —

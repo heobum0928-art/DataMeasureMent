@@ -218,6 +218,11 @@ namespace ReringProject.Sequence {
             return true;
         }
 
+        // Phase 77 D-77-06 ②: 저장 사이클 재검사 중에만 RepeatRunService 가 채우는 z→사진 경로다.
+        //  null 이면 재검사가 아니라는 뜻이다(오프라인 폴더 규약을 그대로 따른다). 필드다 —
+        //  런타임 전용 값이라 ParamBase 리플렉션 직렬화(INI)·PropertyGrid 붙여넣기 대상이 아니다.
+        public Dictionary<int, string> RerunZRangeImagePaths = null;
+
         // Phase 77 D-77-07 ①⑤: ZIndexEnd 가 0(꺼짐)이 아닌데 IsZRangeEnabled() 가 false 면 오설정 —
         //  ZIndex 미설정/역순/상한 초과 중 하나로 조용히 꺼진 상태다. 런타임 tick 경고(Action_FAIMeasurement)
         //  와 편집 즉시 경고(WarnZIndexEndChanged) 가 공유한다.

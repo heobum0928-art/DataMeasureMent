@@ -1,148 +1,310 @@
-# External Integrations
+---
+last_mapped_commit: f30f7c42
+analysis_date: 2026-09-15
+---
 
-**Analysis Date:** 2026-04-02
+# 외부 통합
 
-## APIs & External Services
+**분석 일시:** 2026-09-15
 
-**No cloud or internet APIs detected.** This is a fully on-premise, standalone industrial desktop application. All integrations are hardware protocols or local-network TCP.
+## 카메라 & 영상 입력
 
-## Camera Hardware (GigE/USB SDKs)
+### 카메라 하드웨어 추상화
 
-**Basler Pylon SDK:**
-- Purpose: Acquire frames from Basler GigE / USB3 Vision cameras
-- SDK: `Basler.Pylon` v1.1.0 (`bin/x64/Debug/Basler.Pylon.dll`)
-- Implementation: `WPF_Example/Device/Camera/Basler/BaslerCamera.cs`, `BaslerCameraProperty.cs`
-- Key classes: `Basler.Pylon.Camera`, `PixelDataConverter`
-- Connection: Camera identified by UserDefinedName, IP address, or FriendlyName (GigE discovery)
-- Config env var: None — discovery is automatic via Pylon runtime
+**공통 인터페이스:**
+- 추상 클래스: `VirtualCamera` (`WPF_Example/Device/Camera/VirtualCamera.cs`)
+- 모든 카메라는 `DeviceHandler.GrabHalconImage(param)` 호출로 `HImage` 반환
+- 실제 하드웨어 유형 (Basler, HIK, MIL) 또는 시뮬레이션 투명성 제공
 
-**Hikvision MvCam SDK:**
-- Purpose: Acquire frames from Hikvision / MvCam GigE cameras
-- SDK: `MvCamCtrl.Net` v4.1.0.3 (`bin/x64/Debug/MvCamCtrl.Net.dll`)
-- Implementation: `WPF_Example/Device/Camera/Hik/HikCamera.cs`, `HikCameraProperty.cs`
-- Key classes: `MvCamCtrl.NET.CCamera`, `CCameraInfo`
-- Connection: Enumerated at runtime via SDK; callback-based grab (`cbOutputExdelegate`)
-- Config env var: None — discovery via SDK
+**지원 카메라 타입:**
+```csharp
+public enum ECameraType {
+    Virtual,   // 시뮬레이션 (SIMUL_MODE)
+    Basler,    // 바슬러 GigE/USB
+    HIK,       // 하이크비전 (H264V, GB200, 등)
+    MIL,       // Matrox MIL Lite 10.0 (CXP 사용, Phase 41+)
+}
+```
 
-**Virtual Camera (Simulation):**
-- Purpose: Offline/simulation mode when no hardware is connected
-- Implementation: `WPF_Example/Device/Camera/VirtualCamera.cs`, `VirtualCameraProperty.cs`
-- Activated by: `#if SIMUL_MODE` compile flag (enabled in Debug builds); loads static image from `D:\1.bmp`
+### Basler 카메라
+**SDK:** Basler Pylon 1.1.0
+- 참조: `libs\Basler.Pylon.dll`
+- 구현: `WPF_Example/Device/Camera/Basler/BaslerCamera.cs` (Grab, Open, Close, 속성)
+- 속성: `WPF_Example/Device/Camera/Basler/BaslerCameraProperty.cs`
+- 기능:
+  - 디바이스 열거: `BaslerCamera.EnumerateDevice()`
+  - 디바이스명 조회: `BaslerCamera.GetDeviceName(index)`
+  - HALCON 이미지 획득: `GrabHalconImage()`
 
-## Light Controllers (Serial RS-232)
+### Hikvision (HIK/MvCam) 카메라
+**SDK:** MvCamCtrl.Net 4.1.0.3
+- 참조: `libs\MvCamCtrl.Net.dll`
+- 구현: `WPF_Example/Device/Camera/Hik/HikCamera.cs` (Grab, Open, Close, 속성)
+- 속성: `WPF_Example/Device/Camera/Hik/HikCameraProperty.cs`
+- 기능:
+  - 디바이스 열거: `HikCamera.EnumerateDevice()`
+  - 디바이스명 조회: `HikCamera.GetDeviceName(index)`
+  - HALCON 이미지 획득: `GrabHalconImage()` (픽셀 버퍼 unsafe 포인터 사용)
 
-**JPF Light Controller:**
-- Purpose: Multi-channel LED light intensity control
-- Protocol: RS-232 serial (`System.IO.Ports.SerialPort`)
-- Command format: `#Oa{n}&` (all channels on/off), `#Aa{nnn}&` (set level)
-- Implementation: `WPF_Example/Device/LightController/JPFLightController.cs`
-- Config: COM port number and baud rate set in `SystemSetting` / INI
+### Matrox MIL 카메라 (CXP)
+**SDK:** Matrox MIL Lite 10.0
+- 참조: `C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll`
+- 구현: `WPF_Example/Device/Camera/Mil/MilCamera.cs` (Grab, Open, Close, 속성)
+- 속성: `WPF_Example/Device/Camera/Mil/MilCameraProperty.cs`
+- 기능:
+  - CXP 카메라 그랩 (Phase 41 이후 추가)
+  - HALCON 이미지 변환
 
-**Pamtekbrand Light Controller:**
-- Purpose: Multi-channel LED light intensity/ampere control
-- Protocol: RS-232 serial (`System.IO.Ports.SerialPort`)
-- Command format: `#I{nnnn}&` (ampere limit), `#O{n}{n}&` (on/off per channel)
-- Implementation: `WPF_Example/Device/LightController/PamtekLightController.cs`
-- Config: COM port number and baud rate set in `SystemSetting` / INI
+### 가상 카메라 (시뮬레이션)
+**구현:** `WPF_Example/Device/Camera/VirtualCamera.cs`
+- SIMUL_MODE 활성화 시 사용 (개발/테스트 PC 전용)
+- 로컬 파일에서 테스트 이미지 로드 (`GetSimulatedImage()`)
+- 프로토타이핑, 수동 테스트용
 
-**Virtual Light Controller:**
-- Purpose: Simulation mode — no hardware required
-- Implementation: `WPF_Example/Device/LightController/VirtualLightController.cs`
+### 디바이스 등록 & 초기화
+**위치:** `WPF_Example/Device/DeviceHandler.cs` (프레임워크) + `WPF_Example/Custom/Device/DeviceHandler.cs` (프로젝트 특화)
+- 싱글턴: `DeviceHandler.Handle`
+- 메서드: `Initialize()` → 모든 카메라 열거 및 열기
+- 결과: `EInitializeResult` 플래그 (Success, NoCamera, NotEnoughCamera, OpenFail 등)
+- 등록: `AddVirtualCamera()`, `AddBaslerCamera()`, `AddHikCamera()`, `AddMilCamera()`
 
-## Machine Vision Engine
+**카메라 정보:**
+- 클래스: `DeviceInfo` — 카메라 타입, 해상도, 회전, 좌우뒤집기, 트리거 소스
+- 트리거 소스: Software, Hardware_Line0/1/2/3
 
-**MVTec HALCON 24.11 Progress Steady:**
-- Purpose: Core image processing engine — edge measurement, ROI analysis, calibration
-- SDK: `halcondotnet.dll` installed at `C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\bin\dotnet35\`
-- Usage areas:
-  - Edge measurement: `WPF_Example/Halcon/Algorithms/MeasurementAlgorithm.cs`
-  - ROI line intersection: `WPF_Example/Halcon/Algorithms/RoiLineIntersectionAlgorithm.cs`
-  - Image bridge (HImage ↔ OpenCvSharp Mat): `WPF_Example/Halcon/HalconImageBridge.cs`
-  - Teaching/recipe persistence: `WPF_Example/Halcon/Services/TeachingStorageService.cs`
-  - Camera drivers: `BaslerCamera.cs`, `HikCamera.cs` both use `HalconDotNet.HImage`
-- Key types used: `HImage`, `HTuple`, `HMeasure` (inferred from algorithm patterns)
+## 조명 제어
 
-**OpenCV (via OpenCvSharp4 v4.8):**
-- Purpose: Supplemental image processing — pixel buffer manipulation, Mat conversion, WPF display pipeline
-- Implementation: `WPF_Example/Halcon/HalconImageBridge.cs` (HImage→Mat), camera display pipelines
-- Used alongside HALCON — not a replacement
+### 조명 하드웨어 추상화
+**공통 인터페이스:**
+- 추상 클래스: `VirtualLightController` (`WPF_Example/Device/LightController/`)
+- 모든 조명은 `LightHandler.SetOnOff()`, `LightHandler.SetLevel()` 호출로 제어
+- 실제 하드웨어 (JPF, Pamtek) 또는 가상 투명성 제공
 
-## TCP Vision Server (Internal Network IPC)
+### JPF 조명 컨트롤러
+**하드웨어:** JPF-1208 (8 채널)
+- 구현: `WPF_Example/Device/LightController/JPFLightController.cs`
+- 통신: Serial COM 포트 (`System.IO.Ports.SerialPort`)
+- 프로토콜:
+  - ON 전체: `#Oa1&` (모든 채널 켜기)
+  - OFF 전체: `#Oa0&` (모든 채널 끄기)
+  - 채널 레벨 설정: `#A{channel}{level:000}&` (레벨 0-255)
+  - 전류 제한: `#I{ampere:0000}&` (최대 전류 설정, Phase 64 LIGHT-01)
+- 초기화: 모든 채널 ON → 레벨 150 → 레벨 0 시험
 
-- Purpose: Receives inspection commands from an external host/PLC/EQ controller over LAN
-- Protocol: Custom ASCII TCP over `System.Net.Sockets`
-- Port: 2505 (configurable via `SystemSetting.ServerPort`)
-- Implementation: `WPF_Example/TcpServer/TcpServer.cs`, `VisionServer.cs`
-- Packet types (defined in `WPF_Example/TcpServer/VisionRequestPacket.cs`):
-  - `RECIPE` — change active recipe
-  - `GET_RECIPE` — query recipe list
-  - `SITE_STATUS` — query sequence/site status
-  - `LIGHT` — control light channels
-  - `TEST` — trigger inspection (Calibration or Inspection, by Site: Top=1, Side=2, Bottom=3)
-- Response: `VisionResponsePacket` (`WPF_Example/TcpServer/VisionResponsePacket.cs`)
-- Resource mapping: `WPF_Example/Custom/TcpServer/ResourceMap.cs` — maps Site+TestType → Sequence/Action/Camera/Light identifiers
-- Events: `MessageEventHandler`, `AlarmEventHandler` (connect/disconnect/timeout/parse failures)
+### Pamtek 조명 컨트롤러
+**구현:** `WPF_Example/Device/LightController/PamtekLightController.cs`
+- 통신: Serial COM 포트 (`System.IO.Ports.SerialPort`)
+- 프로토콜: JPF와 유사
+  - 채널별 ON/OFF + 레벨: `#A{channel+1}{level:000}&`
+  - 전류 제한: `#I{ampere:0000}&`
 
-## Barcode / QR Reading
+### 가상 조명 컨트롤러
+**구현:** `WPF_Example/Device/LightController/VirtualLightController.cs`
+- 시뮬레이션 전용 (상태 메모리에만 보관, 실 송신 안 함)
+- 테스트, 개발용
 
-- Purpose: Target ID scanning (wafer ID, barcode on DUT)
-- Library: `ZXing.Net` v0.16.9
-- Implementation: `WPF_Example/Sequence/Sequence/SequenceBase.cs` (TargetID field); wafer scan actions under `WPF_Example/Custom/Sequence/Wafer/`
+### 조명 관리자
+**위치:** `WPF_Example/Device/LightController/LightHandler.cs` (프레임워크) + `WPF_Example/Custom/Device/LightHandler.cs` (프로젝트 특화)
+- 싱글턴: `LightHandler.Handle`
+- 주기: 조명 상태 체크/쓰기 스레드 (1ms 폴링)
+- 메서드:
+  - `SetOnOff(index, channel, state)` — 채널 ON/OFF
+  - `SetLevel(index, channel, level)` — 채널 레벨 설정 (0-255)
+- 오류 처리: 최대 3회 재시도, 초과 시 `LightFailEvent` 발생
 
-## Data Storage
+**채널 한계:**
+- `CHANNEL_LIMIT = 8` — 컨트롤러당 최대 채널 (JPF-1208 대응, Phase 64 LIGHT-01)
 
-**Databases:**
-- None — no SQL, SQLite, or ORM detected
+### 조명 그룹 (논리 그룹화)
+**구현:** `WPF_Example/Device/LightController/LightGroup.cs`
+- 물리 채널을 논리 그룹으로 매핑 (예: "TopLight", "SideLight", ...)
+- TCP 요청에서 그룹명 수신 → 실제 채널 번호로 변환
 
-**File Storage (all local filesystem):**
-- Recipes: INI files + thumbnails under `D:\Data\Recipe\{RecipeName}\` (path configurable)
-- Settings: `Setting.ini` + `Setting.json` in application base directory
-- Teaching data (ROI/job): JSON via `DataContractJsonSerializer` (`TeachingStorageService`)
-- Account database: `account.db` (JSON, encrypted with AES) in application base directory
-- Log files: `.log` files under categorized subdirectories (Trace, Camera, Result, Image, Error, LightController, TcpConnection)
-- Calibration data: files under `Calibration/` subdirectory
-- Raw image saves: background-queued HImage writes (`WPF_Example/Utility/RawImageSaveService.cs`)
+## TCP 통신 & 프로토콜
 
-**Caching:**
-- None — no in-memory or distributed caching
+### VisionServer (서버)
+**위치:** `WPF_Example/TcpServer/VisionServer.cs`
+- 부모 클래스: `TcpServer` (기본 TCP 구현 담당)
+- 기본 포트: 2505 (`SystemSetting.Handle.ServerPort`)
+- 프로토콜 프레임 형식: `$<COMMAND>:<Fields>@`
+  - STX (시작): `$` (0x24)
+  - ETX (종료): `@` (0x40)
+  - 필드 구분: `,` (쉼표)
+  - 명령 구분: `:` (콜론)
 
-## Authentication & Identity
+### 수신 명령 타입 (VisionRequestType)
+**정의:** `WPF_Example/TcpServer/VisionRequestPacket.cs`
 
-**Auth Provider:** Custom, local-only
+| 명령 | 상수 | 패킷 클래스 | 용도 |
+|------|------|-----------|------|
+| `$RECIPE:site,recipeName@` | RecipeChange | RecipeChangePacket | 레시피 변경 |
+| `$GET_RECIPE:site,maxCount,option@` | RecipeGet | RecipeGetPacket | 레시피 목록 조회 |
+| `$SITE_STATUS:site@` | SiteStatus | SiteStatusPacket | 사이트 상태 조회 |
+| `$LIGHT:site,type,onOffBits@` | Light | LightPacket | 조명 제어 |
+| `$TEST:site,type,materialNum[,zIndex]@` | Test | TestPacket | 검사 요청 (v1.0: Type 필드 포함) |
+| `$ALIGN_TEST:site,type@` | AlignTest | AlignTestPacket | 정렬 테스트 (Phase 63 AV-09) |
+| `$ALIGN_CALIB:site,type@` | AlignCalib | AlignCalibPacket | 정렬 캘리브레이션 (Phase 63 AV-09) |
+| `$PREP:site,type,zIndex@` | Prep | PrepPacket | 사전 준비/초점 설정 (Phase 64 LIGHT-01) |
+| `$ALIVE@` | Alive | AlivePacket | 하트비트 (v3.0) |
+| `$RESET@` | Reset | ResetPacket | 시퀀스 상태 복구 (quick-260807-lh7) |
 
-- Implementation: `WPF_Example/Login/LoginManager.cs`
-- Roles: `Admin`, `Engineer` (`EAccountGrade` enum)
-- Default accounts: `admin`/`admin`, `operator` (no password)
-- Storage: `account.db` JSON file in application directory
-- Encryption: AES-128 with hardcoded key derived from a literal password string in `LoginManager.cs`
-- No external identity provider (no LDAP, Active Directory, OAuth)
+### 프로토콜 버전 관리
+**v2.6 (레거시, 기본값):**
+- 포트 2505 (ServerPort)
+- Test 필드: `site,materialNum,...` (Type 없음)
+- 인코딩: 기본 (ASCII 호환성)
 
-## Monitoring & Observability
+**v1.0 (신규, 선택):**
+- 포트: 미정의 (향후 변경 가능)
+- Test 필드: `site,type,materialNum,...` (Type 필드 삽입, v2.6 대비 인덱스 +1 시프트)
+- 인코딩: UTF-8 강제 (Phase 48 PROTO-01)
+- 활성화 플래그: `SystemSetting.Handle.UseProtocolV1` (기본값 false)
+- 참고: Vision-Protocol-v1.0.md 문서 참고
 
-**Error Tracking:**
-- None — no Sentry, Application Insights, or similar
+### 응답 패킷 (VisionResponsePacket)
+**위치:** `WPF_Example/TcpServer/VisionResponsePacket.cs`
+- 형식: `$<RESPONSE>:<Fields>@`
+- 응답 타입: TestResponse, AlignTestResponse, AlignCalibResponse, PrepResponse, SiteStatusResponse, etc.
+- 판정 결과: Pass(P), Fail(F), Block(B — 다음 index 호출)
+- 필드: site, 측정값, 판정, 타임스탬프 등
 
-**Logs:**
-- Custom `Logging` utility (`WPF_Example/Utility/Logging.cs`) — file-based, queue-buffered, daily rotation
-- Log categories: Trace, Camera, LightController, TcpConnection, Result, Image, Error (defined by `ELogType` enum in `WPF_Example/Setting/SystemSetting.cs`)
-- Log files stored in per-type directories under `SystemSetting` configured paths
+### 리소스 매핑 (프로토콜 ↔ 내부명)
+**위치:** `WPF_Example/TcpServer/ResourceMap.cs` (프레임워크) + `WPF_Example/Custom/TcpServer/ResourceMap.cs` (프로젝트 특화)
+- TCP 필드 (숫자 사이트/타입 코드) → 내부 문자열 식별자 변환
+- 예: site=1, type=0 → SequenceName="Top", ActionName="TopInspection", CameraName="CAMERA_TOP"
+- 메서드: `SetIdentifier(ref packet)` — 수신 패킷에 내부명 기록
 
-## CI/CD & Deployment
+### TCP 처리 흐름
+**위치:** `WPF_Example/Custom/SystemHandler.cs` → `MainRun()` (1ms 폴링)
+1. `VisionServer.GetRecvPacket()` — TCP 수신 메시지 파싱
+2. `ResourceIdentifier.SetIdentifier()` — 필드 값 → 내부명 매핑
+3. `ProcessXxx()` 메서드 호출 — 요청 타입별 처리 (ProcessTest, ProcessLight, etc.)
+4. `VisionResponsePacket` 생성 및 `VisionServer.SendPacket()` — 응답 송신
 
-**Hosting:** Windows desktop machine (on-premise, factory floor)
+## 데이터 저장소
 
-**CI Pipeline:** Not detected — no GitHub Actions, Azure DevOps, or other CI configuration found
+### 파일 기반 저장
+**모든 데이터는 로컬 디스크 저장 (클라우드 없음)**
 
-**Distribution:** ClickOnce publishing configured in `.csproj` (`PublishUrl`, `IsWebBootstrapper=false`) but `UpdateEnabled=false`; primary distribution is direct binary copy
+**경로 관리:**
+- 설정 담당: `WPF_Example/Setting/SystemSetting.cs` (싱글턴, 모든 경로 속성)
+- 기본 저장소 루트: `D:\Data\` (실 운영 PC)
 
-## Webhooks & Callbacks
+**디렉토리 구조:**
 
-**Incoming:**
-- TCP connections from external equipment controller on port 2505 (see TCP Vision Server section)
+| 경로 | 용도 | 접근 |
+|------|------|------|
+| `D:\Data\Recipe\` | 검사 레시피 (INI, JSON) | RecipeSavePath |
+| `D:\Data\Calibration\` | 캘리브레이션 데이터 (Halcon ROI, 교정 파라미터) | CalibrationSavePath |
+| `D:\Data\Trace\` | 추적 로그 (시퀀스 흐름) | TraceLogSavePath |
+| `D:\Data\Image\` | 획득 원본 이미지 | ImageSavePath |
+| `D:\Data\Result\` | 검사 결과 이미지 (오버레이 포함) | ResultSavePath |
+| `D:\Data\Error\` | 에러 로그 이미지 | ErrorSavePath |
+| `D:\Data\Camera\` | 카메라 드라이버 로그 | CameraLogSavePath |
+| `D:\Data\Light\` | 조명 제어 로그 + light.ini (설정) | LightControllerPath, LightConfigPath |
+| `D:\Data\TcpConnection\` | TCP 통신 로그 | TcpConnectionPath |
+| `D:\Data\Flow\` | 흐름 진단 로그 (Phase 26+) | FlowLogSavePath |
+| `D:\Data\Algorithm\` | 알고리즘 진단 로그 (Phase 77+, ELogType.Algorithm) | AlgorithmLogSavePath |
+| `D:\Data\Statistics\` | 양산 이력 통계 CSV (Phase 40 STAT-01) | StatisticsSavePath |
+| `D:\Data\Load\`, `D:\Data\Save\` | 맵 데이터 로드/저장 | MapDataLoadPath, MapDataSavePath |
+| `D:\Data\account.db` | 사용자 계정 데이터베이스 (SQL Lite) | AccountDbFilePath |
+| `D:\Data\CameraConfig\` | 카메라 설정 파일 (.cfg, Basler/Hik 설정) | CameraConfigPath |
+| `D:\Data\DisplayConfig.ini` | 디스플레이 구성 파일 | DisplayConfigFilePath |
 
-**Outgoing:**
-- None — all communication is server-side response to client-initiated commands; no outgoing webhooks
+### 설정 파일 (INI & JSON)
+**위치:** 애플리케이션 기본 디렉토리 (bin\x64\Debug\ 등)
+
+| 파일 | 형식 | 내용 | 접근 클래스 |
+|------|------|------|-----------|
+| `Setting.ini` | INI | 호환성 유지 (구 포맷) | SystemSetting.Load/Save() |
+| `Setting.json` | JSON | 현재 설정 (신규) | SystemSetting.Load/Save() |
+| `light.ini` | INI | 조명 컨트롤러 포트/채널 매핑 | LightHandler 초기화 |
+
+### 로그 파일 정책
+**자동 삭제:** `LogDeleteDay` 일 이상 된 로그는 자동 삭제 (기본값 30일)
+- 구현: `Utility/Logging.cs` → `DeleteLogByDay()`
+- 로그 타입별 서로 다른 파일: Trace.log, Camera.log, Error.log, etc.
+
+### 검사 결과 저장
+**형식:**
+- 이미지: PNG (`Result/` 폴더)
+- 메타데이터: JSON (결과 값, 타임스탬프, 판정)
+- 통계: CSV (`Statistics/` 폴더, Phase 40 STAT-01+)
+- Excel: XLSX (CpkReport, MeasurementHistory, Phase 40 OUT-02)
+
+**구현:**
+- `RawImageSaveService` — 실시간 이미지 저장 (별도 큐 스레드)
+- `CaptureImageSaveService` — 캡처 이미지 저장
+- `ExcelExportService` — XLSX 내보내기 (ClosedXML 사용)
+
+## 인증 & 계정 관리
+
+### 로그인 시스템
+**구현:** `WPF_Example/Login/LoginManager.cs`
+- 저장소: SQLite DB (`D:\Data\account.db`)
+- 사용자명/비밀번호 검증
+- 권한 등급: Admin, User, Operator 등 (프로젝트 특화)
+
+### 자동 로그아웃
+**설정:** `SystemSetting.AutoLogoutWhenRecvTest` (bool)
+- 검사 요청($TEST) 수신 시 자동 로그아웃 가능 (보안 기능)
+
+## 모니터링 & 로깅
+
+### 로그 시스템
+**위치:** `WPF_Example/Utility/Logging.cs`
+- 싱글턴: `Logging.PrintLog()`, `Logging.PrintErrLog()`
+- 로그 타입 (ELogType enum):
+  - Trace (0) — 시퀀스 흐름, 액션 진행
+  - Camera (1) — 카메라 개폐, 그랩 상태
+  - LightController (2) — 조명 ON/OFF, 레벨 변경
+  - TcpConnection (3) — TCP 수신/응답
+  - Result (4) — 검사 판정 결과
+  - Image (5) — 이미지 저장 상태
+  - Error (6) — 예외, 에러 메시지
+  - Flow (7) — 상세 흐름 진단 (Phase 26+)
+  - Algorithm (8) — 알고리즘 진단 (Phase 77+)
+
+**기록:** 각 로그 타입마다 별도 파일 (D:\Data\Trace\, etc.)
+
+### 진단 로그 (FlowLog, AlgorithmLog)
+**FlowLog:** `WPF_Example/Utility/FlowLog.cs`
+- 매 액션 단계별 상세 로그 (Phase 26+)
+- 성능 병목 진단용
+
+**AlgorithmLog:** `ELogType.Algorithm` (Phase 77+)
+- 에지 검출, 피팅, 측정 상세 로그
+- Trace 탭을 오염시키지 않기 위해 분리
+
+## 외부 라이브러리 & 런타임
+
+### Halcon (이미지 처리 핵심)
+**버전:** HALCON 24.11 Progress Steady
+- 설치 위치: `C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\`
+- .NET 바인딩: `halcondotnet.dll` (버전 자동 감지)
+- 주요 기능:
+  - HImage — 이미지 객체 (grab 직후 → Dispose 필수)
+  - HTuple — 동적 배열/튜플
+  - HOperatorSet — 연산자 호출 (예: FindEdges, FitLine, etc.)
+- 사용 위치:
+  - `WPF_Example/Halcon/Algorithms/` — 에지 측정, 패턴 매칭, 캘리브레이션
+  - `Custom/Sequence/Inspection/Measurements/` — FAI 측정 알고리즘
+
+### OpenCV (보조 이미지 처리)
+**버전:** OpenCV 4.8 (OpenCvSharp4 바인딩)
+- 주요 기능: Mat 변환, 색 공간 변환, 기본 처리
+- HImage ↔ Mat 변환: `HalconImageBridge.cs`
+
+### 엑셀 내보내기 라이브러리
+**ClosedXML:** XLSX 생성 (Microsoft Office 미필요)
+- 용도: CpkReport, MeasurementHistory, BatchRun 결과
+
+## 웹훅 & 콜백
+
+**없음** — 모든 통신은 동기식 TCP 요청/응답 방식
+- TCP 서버가 외부 요청(PLC/Handler) 수신 → 처리 → 응답 송신
+- 비동기 콜백 없음 (단방향 폴링 모드)
 
 ---
 
-*Integration audit: 2026-04-02*
+*통합 감사: 2026-09-15*

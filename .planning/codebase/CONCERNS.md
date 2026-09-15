@@ -1,292 +1,332 @@
-# Codebase Concerns
+---
+last_mapped_commit: f30f7c42
+analysis_date: 2026-09-15
+focus: concerns
+---
 
-**Analysis Date:** 2026-04-02
+# 코드베이스 우려사항 (Technical Concerns)
+
+**분석 일시:** 2026-09-15
 
 ---
 
-## Tech Debt
+## 기술부채 (Tech Debt)
 
-**Namespace Mismatch (Project Identity)**
-- Issue: All source files use `namespace ReringProject.*` but the project is named `DatumMeasurement` / `DDA Vision Inspector`. This is a leftover from an earlier project skeleton that was never renamed.
-- Files: Every `.cs` file in `WPF_Example/` (129 files)
-- Impact: Confusing for new contributors; find/replace risks introduce typos; tooling (e.g., Roslyn analyzers) may flag this as a mismatch with the assembly name.
-- Fix approach: Global find-replace `ReringProject` → `DatumMeasurement` (or chosen canonical name), update `AssemblyInfo.cs`, and verify no external DLL references the old namespace.
+### 비대한 코드비하인드 (XAML Code-Behind Bloat)
 
-**Backup/Version Files Committed to Source Tree**
-- Issue: Multiple dated snapshots of the same files live inside the project directory and are tracked by git instead of using proper version control branches.
-- Files:
-  - `WPF_Example/Custom/Sequence/Bottom/Action_BottomCalibration_0311.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Action_BottomCalibration_0429.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Action_BottomCalibration_0502_Picker넘버변경테스트 진행중.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Action_BottomCalibration_0503_Cal파일저장.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Action_BottomInspection_0320.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Action_BottomInspection_0428.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Sequence_Bottom_0311.cs`
-  - `WPF_Example/Custom/Sequence/Bottom/Bottom_Sequence_0428.zip`
-  - `WPF_Example/Custom/Sequence/Wafer/Action_WaferScanInspection_0421_대표행렬위치VM코드주석.cs`
-  - `WPF_Example/Custom/Sequence/Wafer/Action_WaferScanInspection_0421_대표행렬위치VM코드주석제거.cs`
-  - `WPF_Example/Custom/Sequence/Wafer/Action_WaferScanInspection_1210.cs`
-  - `CodeBackUp/WPF_Example.zip`
-- Impact: Inflates build times and repository size; creates ambiguity about which file is authoritative; spaces and Korean characters in filenames can break build tools on non-Korean locales.
-- Fix approach: Delete all dated backup files; rely on `git log` / branches for history. Add a `.gitignore` rule for `*.zip` in source directories.
+**문제:** WPF UI 로직이 코드비하인드에 집중되어 있어 유지보수와 테스트가 어려움.
 
-**Dual Custom/Base Layer Duplication**
-- Issue: Two parallel handler trees exist side-by-side for several core concerns:
-  - `WPF_Example/Device/DeviceHandler.cs` (base) + `WPF_Example/Custom/Device/DeviceHandler.cs`
-  - `WPF_Example/SystemHandler.cs` (base) + `WPF_Example/Custom/SystemHandler.cs`
-  - `WPF_Example/TcpServer/ResourceMap.cs` + `WPF_Example/Custom/TcpServer/ResourceMap.cs`
-  - `WPF_Example/Setting/SystemSetting.cs` + `WPF_Example/Custom/SystemSetting.cs`
-- Impact: Unclear which layer is canonical; risk of diverging logic; partial classes (`partial class SystemHandler`) split across both layers make understanding initialization order non-trivial.
-- Fix approach: Consolidate custom/ overrides into proper subclasses or partial files within the same directory as the base.
+**파일:**
+- `WPF_Example/UI/ContentItem/MainView.xaml.cs` — **4,601줄** (가장 심각)
+- `WPF_Example/UI/ContentItem/MainResultViewerControl.xaml.cs` — 2,504줄
+- `WPF_Example/Custom/UI/BottomVisionView.xaml.cs` — 2,356줄
+- `WPF_Example/Custom/UI/TrayVisionView.xaml.cs` — 2,231줄
+- `WPF_Example/UI/ControlItem/InspectionListView.xaml.cs` — 1,726줄
+- `WPF_Example/UI/ContentItem/HalconViewerControl.xaml.cs` — 1,440줄
 
-**Large Monolithic Action Files**
-- Issue: Wafer inspection action files exceed 4,000+ lines per file.
-- Files:
-  - `WPF_Example/Custom/Sequence/Wafer/Action_WaferScanInspection.cs` (4,621 lines)
-  - `WPF_Example/Custom/Sequence/Wafer/Action_WaferScanInspection_1210.cs` (4,746 lines)
-  - `WPF_Example/Custom/Sequence/Wafer/Action_WaferScanCalibration.cs` (685 lines)
-- Impact: Very high cognitive load; difficult to review PRs; multiple responsibilities in a single class violate SRP; slow to navigate.
-- Fix approach: Break into sub-steps or strategy classes per inspection phase (Grab, Measure, Evaluate, Report).
+**영향:** 
+- 단일 파일에서 여러 책임 처리 (ROI 편집, Datum 교수, 이중 이미지 교환, 속성 갱신, 오버레이 렌더링)
+- 테스트 불가능
+- 코드 변경 시 회귀 위험 높음
 
-**Legacy MIL Algorithm Layer Still Present**
-- Issue: The full MIL (Matrox Imaging Library) algorithm wrapper is still in the codebase despite the project's stated goal of migrating to Halcon. These files reference `AlligatorAlgMil` which is the MIL-era library.
-- Files:
-  - `WPF_Example/ExternalLib/VisionLib/Alligator/Alligator.cs`
-  - `WPF_Example/ExternalLib/VisionLib/Alligator/AlligatorDef.cs`
-  - `WPF_Example/ExternalLib/VisionLib/AlligatorAlgMil/AlligatorAlgMil.cs`
-  - `WPF_Example/ExternalLib/VisionLib/AlligatorAlgMil/AlligatorAlgMilDef.cs`
-- Impact: Adds ~775 lines of unmaintained code that must not be compiled in production; `AlligatorAlgMil.cs` contains comments "테스트 필요함" (testing needed) at lines 757/770.
-- Fix approach: Remove or archive into a separate legacy branch once Halcon migration is verified complete.
-
-**FAI Measurement Stub Not Implemented**
-- Issue: `Action_FAIMeasurement.cs` contains a stub `EStep.Measure` case that always returns pass with nominal values instead of running real Halcon edge measurement.
-- Files: `WPF_Example/Custom/Sequence/Inspection/Action_FAIMeasurement.cs` (lines 70–76)
-- Impact: FAI inspection produces no real measurements. Any recipe using FAI mode will always pass regardless of actual die geometry.
-- Fix approach: Implement Halcon `MeasurePos` calls using `FAIConfig.ROI_*` parameters and `MeasurementAlgorithm` per Phase 8 plan.
+**해결 방법:**
+MVVM 패턴으로 점진적 리팩토링. 새로운 로직은 ViewModel에, 복잡한 이벤트 핸들러는 분리된 behavior 클래스로 이동. `MainView.xaml.cs` → ViewModel + Attached Behaviors로 분할.
 
 ---
 
-## Known Bugs
+## 알려진 버그 (Known Bugs)
 
-**Login Password Stored in Plaintext in AccountInfo**
-- Symptoms: `AccountInfo.Password` is stored as a plain string and compared directly in `Login()` with `==` (no hashing). The AES encryption only protects the file on disk — in memory, passwords are cleartext.
-- Files: `WPF_Example/Login/LoginManager.cs` (lines 51, 247)
-- Trigger: Any memory inspection of the process while a user is logged in exposes all passwords.
-- Workaround: None. The encrypted file at rest is protected, but in-memory exposure is unavoidable with current design.
+### 로그 메시지 손실 (Logging Message Loss on Native Crash)
 
-**Default Admin Credentials Hardcoded**
-- Symptoms: When no `account.db` file exists, the system creates an admin account with `id="admin"`, `password="admin"`. These defaults are never forced to change.
-- Files: `WPF_Example/Login/LoginManager.cs` (lines 79–80, 168, 182, 204)
-- Trigger: Fresh deployment or deleted `account.db`.
-- Workaround: Administrator must manually change the password after first login; there is no enforcement mechanism.
+**문제:** Logging 시스템이 비동기 `BeginInvoke()`를 사용하여, 네이티브 충돌 직전 대기 중인 로그 메시지가 파일/UI에 기록되지 않음.
 
-**Recv Buffer Overflow Risk in TcpServer**
-- Symptoms: `mRecvBuffer` is fixed at 1024 bytes. The `Recv()` loop writes `mRecvBuffer[RecvCount++]` without checking if `RecvCount` exceeds `SIZE_RECV_BUFFER`. A message longer than 1023 bytes will write past the buffer boundary.
-- Files: `WPF_Example/TcpServer/TcpServer.cs` (lines 65, 86, 254)
-- Trigger: Any incoming TCP message whose payload length exceeds 1023 bytes.
-- Workaround: Keep all protocol messages under 1023 bytes by convention (not enforced in code).
+**파일:** `WPF_Example/Utility/Logging.cs` 줄 385
+```csharp
+listView.Dispatcher.BeginInvoke( System.Windows.Threading.DispatcherPriority.Background, new Action(()=>{
+    // UI 업데이트 (비동기, 지연됨)
+}));
+```
 
-**Static Shared `ipProperties` and `tcpConnections` in TcpServer**
-- Symptoms: `ipProperties` and `tcpConnections` are declared as `static` fields on `TcpServer` (line 325–326). `IsConnected()` is called from multiple `ConnectedClient` threads simultaneously. When two clients check connectivity concurrently, both threads read/write the same static `tcpConnections` reference without synchronization.
-- Files: `WPF_Example/TcpServer/TcpServer.cs` (lines 120–141, 325–326)
-- Trigger: Any scenario with more than one concurrent client connection or rapid connection/disconnection.
-- Workaround: In practice `MAX_CONNECTION_COUNT = 1` limits active clients, but the code allows adding to the list without enforcing this limit.
+**증상:**
+- HALCON 또는 카메라 SDK 네이티브 충돌 발생 시, 그 직전의 로그 메시지가 손실됨
+- 디버깅 어려움
+- 사용자는 어떤 작업에서 충돌했는지 알 수 없음
 
-**`GetClient(string)` Uses `.Contains()` for IP Matching**
-- Symptoms: `GetClient(string ipAddress)` uses `Contains()` rather than exact equality. If client IP `192.168.1.1` is connected and `1.1` is passed as argument, it will match incorrectly.
-- Files: `WPF_Example/TcpServer/TcpServer.cs` (line 462)
-- Trigger: When IP address substrings overlap with any connected client's full address.
+**현재 완화책:** 메모리 노트: "Logging.PrintLog는 async이고 native crash 직전 메시지를 잃음; 동기 File.AppendAllText 사용"
 
-**`Disconnect()` Joins Thread But Ignores Timeout**
-- Symptoms: `Disconnect()` calls `mCommunicationThread.Join(1000)`. The return value of `Join()` is not checked. If the thread does not stop within 1 second, execution continues silently with the thread still running and holding the `NetworkStream`.
-- Files: `WPF_Example/TcpServer/TcpServer.cs` (line 286)
-- Trigger: Network I/O blocking or unresponsive system thread.
-
-**VirtualCamera `WaitForHalconTrigger` Busy-Waits Forever**
-- Symptoms: The virtual camera implementation of `WaitForHalconTrigger()` runs an empty `while(true)` loop until `timeOut` milliseconds elapse. This burns 100% of one CPU core during the wait and provides no image — it returns `LastHalconImage` which may be `null` if no background image is configured.
-- Files: `WPF_Example/Device/Camera/VirtualCamera.cs` (lines 547–559)
-- Trigger: Called in `SIMUL_MODE` or test setups using `VirtualCamera` with hardware trigger path.
-- Workaround: Use `DebugCheck=true` in `BottomInspectionParam` to avoid the hardware trigger path.
-
-**`IsAllOpen()` Only Checks Basler Count**
-- Symptoms: `DeviceHandler.IsAllOpen()` only verifies `Basler` camera count against required Basler count. HIK and Virtual cameras are never checked. A system configured for HIK cameras may report "all open" even with zero HIK cameras initialized.
-- Files: `WPF_Example/Device/DeviceHandler.cs` (lines 287–290)
-
-**`DeviceHandler.Initialize()` — `IDList.Select()` Used as Presence Check**
-- Symptoms: Lines 83 and 89 use `IDList.Select(id => id.CamType == ECameraType.Basler) != null` as a guard before enumerating devices. `Select()` never returns `null` on an `IEnumerable<T>` — this condition is always `true` and the guard has no effect.
-- Files: `WPF_Example/Device/DeviceHandler.cs` (lines 83–90)
-- Trigger: Always — the guard provides false safety, device enumeration always runs.
+**권장:**
+로그 큐 플러시 시 동기 파일 I/O 사용, 또는 네이티브 크래시 핸들러 등록 시 `Environment.FailFast()`로 프로세스 즉시 종료 전 로그 동기화.
 
 ---
 
-## Security Considerations
+## 보안 고려사항 (Security Considerations)
 
-**AES Encryption Key Hardcoded in Source**
-- Risk: The AES encryption passphrase `"1Alg!Young!Min22"` and IV seed `"ttEVbAqjGa9WTVYeexersfrvjc1nu7Cm"` are hardcoded string literals in source code. Anyone with repository access can decrypt any `account.db` file from any deployment.
-- Files: `WPF_Example/Login/LoginManager.cs` (lines 85, 279, 303)
-- Current mitigation: The account file is encrypted on disk using AES-256-CBC.
-- Recommendations: Move the key to a per-machine secret (Windows DPAPI, environment variable, or hardware key). At minimum, do not commit key material to source control.
+### INI 파일 기본값 위험 (INI Reflection Default Fallback Risk)
 
-**RijndaelManaged is Deprecated**
-- Risk: `RijndaelManaged` is marked obsolete in .NET 6+ (SYSLIB0022). On newer runtimes this will produce compilation warnings and may be removed in future framework versions.
-- Files: `WPF_Example/Login/LoginManager.cs` (lines 277, 301)
-- Current mitigation: None.
-- Recommendations: Replace with `System.Security.Cryptography.Aes.Create()`.
+**문제:** ParamBase 반사(reflection) 기반 INI 로드에서 누락된 정수 키가 자동으로 0으로 기본값 설정됨.
 
-**TCP Server Has No Authentication or TLS**
-- Risk: The `VisionServer` / `TcpServer` accept any TCP connection on the configured port with no authentication or encryption. Commands to trigger inspection, change recipes, or query status can be sent by any host on the network.
-- Files: `WPF_Example/TcpServer/TcpServer.cs`, `WPF_Example/TcpServer/VisionServer.cs`
-- Current mitigation: Relies on network-level isolation (factory LAN).
-- Recommendations: Add IP allowlist enforcement at the accept stage; consider HMAC message signing for the proprietary protocol if TLS is impractical.
+**파일:** `WPF_Example/Utility/Ini.cs` 줄 179
+```csharp
+public int ToInt(int valueIfInvalid = 0) {
+    // 키가 존재하지 않거나 파싱 실패 시 0 반환
+    ...
+    value = 0;
+    return false;
+}
+```
 
-**Simulation Mode Hard-Codes a Specific File Path**
-- Risk: `#if SIMUL_MODE` hard-codes `@"D:\1.bmp"` as the simulated image path. If this build flag is accidentally left enabled in a production build, the system will silently serve a static test image as inspection input.
-- Files: `WPF_Example/Device/DeviceHandler.cs` (lines 58–60)
-- Recommendations: Add a compile-time assertion or runtime warning when `SIMUL_MODE` is active.
+**파일:** `WPF_Example/Sequence/Param/ParamBase.cs` 줄 378
+```csharp
+case "Int32":
+    int iValue = loadFile[group][name].ToInt();  // 기본값 = 0
+    prop.SetValue(this, iValue);
+```
 
----
+**위험:**
+- 레시피 버전 업데이트 후 새로운 정수 파라미터가 추가되면, 구형 INI에서 읽을 때 0으로 설정됨
+- 0이 유효한 값이 아닌 경우 검사 오류 발생 (예: EdgeThreshold, SampleCount 등이 0이면 알고리즘 실패)
+- 조용한 실패 — 로그나 경고 없이 잘못된 파라미터로 실행
 
-## Performance Bottlenecks
-
-**`IsConnected()` Called in Hot Communication Loop**
-- Problem: `ConnectedClient.Execute()` calls `IsConnected()` on every loop iteration (every 1 ms sleep). `IsConnected()` calls `IPGlobalProperties.GetActiveTcpConnections()`, which enumerates all TCP connections on the machine — a potentially expensive syscall.
-- Files: `WPF_Example/TcpServer/TcpServer.cs` (lines 187–213)
-- Cause: Defensive TCP state polling chosen over socket exception handling.
-- Improvement path: Replace `IPGlobalProperties` polling with a flag set by `catch (SocketException)` in `Send()`/`Recv()`. The `try/catch` approach is O(1) on the happy path.
-
-**`BitmapSource` Created on Every `Display()` Call**
-- Problem: `VirtualCamera.GetPreviewBitmapSource()` creates a new `BitmapSource` (including full pixel array allocation) on every call. If the UI polls at 30 fps with a 2448×2048 camera, this allocates ~14 MB per second of short-lived objects, pressuring the GC.
-- Files: `WPF_Example/Device/Camera/VirtualCamera.cs` (lines 562–597)
-- Cause: No caching or change detection before re-creating the bitmap.
-- Improvement path: Cache the `BitmapSource` and only rebuild when `imageCount` increments.
-
-**`SystemProcess` Thread Runs at `ThreadPriority.Highest`**
-- Problem: The main system loop thread is set to `ThreadPriority.Highest`, as is one of the `SequenceBase` constructors. Running multiple Highest-priority threads can starve lower-priority system threads including the WPF dispatcher, causing UI hitches on underpowered hardware.
-- Files: `WPF_Example/SystemHandler.cs` (line 126), `WPF_Example/Sequence/Sequence/SequenceBase.cs` (line 81)
-- Improvement path: Use `AboveNormal` for the sequence thread; reserve `Highest` only for hard real-time hardware trigger threads.
-
-**Color BitmapSource Pixel Interleaving on Every Frame**
-- Problem: `CreateBitmapSource()` for color images manually interleaves R/G/B planar bytes into a packed RGB24 buffer in a C# loop. At 2448×2048 color, this is ~15M iterations per frame.
-- Files: `WPF_Example/Device/Camera/VirtualCamera.cs` (lines 580–596)
-- Improvement path: Use `Marshal.Copy` + `WriteableBitmap.Lock/WritePixels`, or convert on the Halcon side with `ConvertImageType` before reading pointers.
-
-**Temp Image Cleanup (`CleanupTempImages`) Calls `GetFiles` on Every Teaching Save**
-- Problem: Every time an image is saved for the teaching dialog, `CleanupTempImages` enumerates all `.png` files in a temp directory. On slow network drives or directories with many files, this adds latency inside the teaching workflow.
-- Files: `WPF_Example/Halcon/Services/TeachingStorageService.cs` (lines 143–160)
-- Improvement path: Keep an in-memory count and only trigger cleanup after N saves.
+**권장:**
+- 파라미터마다 의미 있는 기본값 설정 (0 대신 초기값 명시)
+- 누락된 키는 로그에 기록 → `Logging.PrintLog((int)ELogType.Error, "INI 키 누락: {0}", keyName)`
+- 중요 파라미터는 `required` 속성 추가
 
 ---
 
-## Fragile Areas
+## 성능 병목 (Performance Bottlenecks)
 
-**Sequence Action Step Machine — No Mutex on `Step` or `Command`**
-- Files: `WPF_Example/Sequence/Sequence/SequenceBase.cs`, `WPF_Example/Custom/Sequence/Bottom/Action_BottomInspection.cs`
-- Why fragile: `Command` and `Step` (integer on `ActionBase`) are read and written from both the `MainThread` (sequence thread) and the UI/system thread (which calls `Stop()`, `Pause()`, `Resume()`). No `volatile` or `Interlocked` usage exists on these fields.
-- Safe modification: Any change to state transitions should use `volatile` on `Command` or add a lock around state reads/writes.
-- Test coverage: No unit or integration tests exist for the sequence state machine.
+### 파라미터 로드 중 과도한 예외 생성 (Exception Storm on Recipe Load)
 
-**`BottomInspectionContext` Fixed-Size Arrays of 10**
-- Files: `WPF_Example/Custom/Sequence/Bottom/Action_BottomInspection.cs` (lines 52–59, 100–110)
-- Why fragile: All picker/die result arrays are statically sized to 10 (`new double[10]`, `new EVisionResultType[10]`). `Grab_Count` is clamped to `[1, 10]` at runtime but the size assumption is never validated against configuration. If requirements change to 12 pickers, silent index-out-of-range or data truncation occurs.
-- Safe modification: Replace magic-number arrays with `List<T>` or make array size a configurable constant derived from `Grab_Count`.
+**문제:** ParamBase.Load()에서 setter 없는 읽기전용 프로퍼티에 대해 `SetValue()` 호출 시 ArgumentException이 발생하고, 이를 예외 처리하면서 동기 파일 I/O 기반 로깅이 수행됨.
 
-**`SequenceBase` Thread Starts in Constructor Before `OnCreate()`**
-- Files: `WPF_Example/Sequence/Sequence/SequenceBase.cs` (lines 73–100)
-- Why fragile: Both `SequenceBase` constructors start `MainThread` immediately. `MainThread` polls `bCreated` every 1 second. If initialization (`OnCreate()`) throws, the thread continues running in a degraded `bCreated=false` state indefinitely.
-- Safe modification: Move `MainThread.Start()` to an explicit `Start()` method called after `OnCreate()` completes.
+**파일:** `WPF_Example/Sequence/Param/ParamBase.cs` 줄 369-373 (260615 hbk 주석)
+```csharp
+// 260615 hbk Phase 43.2: setter 없는 읽기전용(계산) 프로퍼티 건너뛰기 — 레시피 로드 11s 병목 제거.
+//  기존: 읽기전용 프로퍼티에도 prop.SetValue 호출 → ArgumentException → catch → PrintErrLog 동기 파일 I/O.
+//  레시피 1회 로드당 약 4948회 예외+파일쓰기 발생.
+if (!prop.CanWrite && type != "PropertyItem[]" && type != "ModelFinderViewModel") continue;
+```
 
-**`TeachingStorageService` Uses `DataContractJsonSerializer`**
-- Files: `WPF_Example/Halcon/Services/TeachingStorageService.cs` (lines 22–38)
-- Why fragile: `DataContractJsonSerializer` requires `[DataContract]` / `[DataMember]` attributes on all serialized types. If `TeachingJob` or `RoiDefinition` is extended with a new property without adding `[DataMember]`, the property is silently dropped on save/load with no error. Existing teaching data can become stale.
-- Safe modification: Switch to `Newtonsoft.Json` (already a dependency) for more forgiving serialization, or enforce `[DataMember]` via code review checklist.
+**영향:**
+- 레시피 로드 시간 11초 → 현재는 고정됨 (CanWrite 체크 추가)
+- 이전 버전: 파일 I/O가 동기식이라 시스템 전체 응답성 저하
 
-**`ResourceMap.Initialize()` Is Never Called**
-- Files: `WPF_Example/Custom/TcpServer/ResourceMap.cs` (lines 33–55), `WPF_Example/TcpServer/VisionServer.cs` (line 15)
-- Why fragile: `ResourceMap` is constructed in `VisionServer` with `new ResourceMap()`, but `Initialize()` (which populates the camera/light/sequence maps) is never invoked anywhere in the codebase. `SetIdentifier()` will return empty identifiers for all packets, causing every incoming TCP command to fail silently or be routed to null.
-- Safe modification: Call `ResourceIdentifier.Initialize()` in the `VisionServer` constructor.
-
-**Dual `Dispose()` / `Disconnect()` on `ConnectedClient`**
-- Files: `WPF_Example/TcpServer/TcpServer.cs` (lines 145–147, 282–287, 370–379)
-- Why fragile: `Dispose()` calls `Disconnect()`, and `OnAlarmProcess` also calls `Disconnect()` then `Dispose()`. A client that disconnects naturally goes through both paths, calling `Join()` twice on the same thread, and `mClient.Close()` twice (once in `Execute()` after `IsTerminated=true`, once if called externally).
-- Safe modification: Add `_disposed` guard flag; use `Interlocked.Exchange` on `IsTerminated`.
+**현재 상태:** 이미 개선됨 (CanWrite 가드 추가). 하지만 로거가 여전히 BeginInvoke를 사용하므로 다른 병목이 있을 수 있음.
 
 ---
 
-## Scaling Limits
+## 취약한 영역 (Fragile Areas)
 
-**TCP Server Hard-Limited to 1 Client**
-- Current capacity: `MAX_CONNECTION_COUNT = 1` — but this constant is only used as the initial list capacity, not enforced. Multiple clients can connect simultaneously.
-- Limit: Practically 1 simultaneous command client by convention.
-- Scaling path: Add an explicit early-rejection in `ConnectionExecute` when `mConnectedClientList.Count >= MAX_CONNECTION_COUNT`.
+### 비대한 코드비하인드의 상호작용 복잡성
 
-**INI-Based Recipe Format for FAI Shots**
-- Current capacity: INI sections `SHOT_0` through `SHOT_N` with `SHOT_0_FAI_0` through `SHOT_N_FAI_M`.
-- Limit: INI files have no schema validation; adding new FAI fields requires careful key-name management. Large recipes (many shots × many FAIs) degrade load performance due to O(n) key lookup in the custom `IniFile` class.
-- Scaling path: Migrate recipe persistence to JSON (`Newtonsoft.Json` is already a dependency) with schema versioning.
+**파일:** `WPF_Example/UI/ContentItem/MainView.xaml.cs`
 
----
+**취약한 이유:**
+- 이벤트 핸들러(`PointerInfoChanged`, `RoiMoveCompleted`, `RoiDeleteRequested`, `RoiGeometryChanged` 등)가 연쇄 상태 변경 트리거
+- 전역 상태 (_editingDatum, _editingFai, _editingMeasurement, _selectedDualImageMeasurement, _currentImageSource) 7개 이상 추적
+- ROI 편집 모드(RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2, DistanceMeasure) 8가지 상호 작용
+- 두 장짜리 이미지(DualImage) 토글 로직이 깊게 중첩
 
-## Dependencies at Risk
+**안전한 수정 방법:**
+1. 단일 이벤트 수정 시 해당 핸들러만 변경, 상태 변경은 최소화
+2. 새 기능은 별도 ViewModel + Behavior로 구현
+3. 변경 후 전체 ROI 편집/교육/검사 흐름 수동 테스트 필수
 
-**`RijndaelManaged` (Obsolete Crypto API)**
-- Risk: Deprecated in .NET 6 (SYSLIB0022); will throw `PlatformNotSupportedException` in restricted environments.
-- Impact: Login/account system fails entirely.
-- Migration plan: Replace with `Aes.Create()` in `WPF_Example/Login/LoginManager.cs`.
-
-**OpenCvSharp4 Two-Version Conflict**
-- Risk: Both `OpenCvSharp4.4.6.0.20220608` and `OpenCvSharp4.4.8.0.20230708` exist in the `packages/` directory, along with matching `OpenCvSharp4.Extensions` and `OpenCvSharp4.Windows` pairs. Only one version should be referenced; the presence of both suggests an incomplete upgrade.
-- Impact: Possible DLL conflicts at runtime if binding redirects are not correct.
-- Migration plan: Verify the `.csproj` references exactly one version and remove the stale package folder.
-
-**`System.Drawing.Common` Two-Version Conflict**
-- Risk: Both `System.Drawing.Common.5.0.3` and `System.Drawing.Common.7.0.0` exist in `packages/`. Same risk as OpenCvSharp.
-- Migration plan: Consolidate to the higher version and update the `.csproj`.
+**테스트 커버리지 격차:** UI 테스트 없음 (WPF의 한계)
 
 ---
 
-## Missing Critical Features
+### 여러 센터에서 HALCON 핸들 관리
 
-**No Bounds Check on TCP Recv Buffer**
-- Problem: The 1024-byte receive buffer has no overflow guard. Any protocol extension with larger payloads will silently corrupt memory.
-- Blocks: Safe protocol evolution.
+**파일:** `WPF_Example/Halcon/Algorithms/MeasurementAlgorithm.cs`
 
-**No Log Rotation or Disk Space Management**
-- Problem: `LogDeleteDay = 30` is defined in settings but there is no code that actually deletes old log files. Logs accumulate indefinitely.
-- Files: `WPF_Example/Setting/SystemSetting.cs` (line 81)
-- Blocks: Long-term unattended deployment without manual disk cleanup.
+**현재 패턴:**
+```csharp
+try {
+    HOperatorSet.GenMeasureRectangle2(... out handle);
+    HOperatorSet.MeasurePos(...);
+}
+finally {
+    HOperatorSet.CloseMeasure(handle);  // 항상 해제
+}
+```
 
-**No Recipe Schema Version**
-- Problem: Recipe INI files have no version field. If fields are added or removed, old recipes load silently with zero/default values for new fields, potentially causing incorrect inspection parameters.
-- Blocks: Safe recipe format evolution.
+**취약한 점:**
+- 모든 알고리즘 호출자가 `try/finally` 패턴을 강제하지 않음 (컨벤션일 뿐)
+- HALCON 3D 연산(MIL Phase 41) 추가 후 상호작용 미파악
+- 대용량 이미지(16544×9200) 처리 시 메모리 누수 위험
 
----
-
-## Test Coverage Gaps
-
-**No Test Project Exists**
-- What's not tested: The entire codebase — sequence state machine, algorithm logic, TCP protocol parsing, login/encryption, recipe load/save.
-- Files: Entire `WPF_Example/` directory.
-- Risk: Regressions in any subsystem are undetectable until runtime in a production environment.
-- Priority: High
-
-**Algorithm Logic Untested**
-- What's not tested: `MeasurementAlgorithm.TryInspectSingleEdgeInternal()`, `RoiLineIntersectionAlgorithm.TryRun()`, `TrimExtremePoints()`.
-- Files: `WPF_Example/Halcon/Algorithms/MeasurementAlgorithm.cs`, `WPF_Example/Halcon/Algorithms/RoiLineIntersectionAlgorithm.cs`
-- Risk: Edge detection regressions (wrong sigma, wrong threshold, wrong polarity) produce silent NG or false OK results with no automated catch.
-- Priority: High
-
-**TCP Protocol Parsing Untested**
-- What's not tested: `VisionRequestPacket.Convert()`, `VisionResponsePacket.ToString()`, `ResourceMap.SetIdentifier()`.
-- Files: `WPF_Example/TcpServer/VisionRequestPacket.cs`, `WPF_Example/TcpServer/VisionResponsePacket.cs`, `WPF_Example/TcpServer/ResourceMap.cs`
-- Risk: Protocol format regressions only caught when the physical PLC sends a malformed or unexpected packet.
-- Priority: High
-
-**Login and Crypto Untested**
-- What's not tested: `Encrypt()` / `Decrypt()` round-trip, `Login()` boundary cases, account persistence.
-- Files: `WPF_Example/Login/LoginManager.cs`
-- Risk: A `account.db` file written by one version of the software may not be readable by a future version if the crypto changes.
-- Priority: Medium
+**안전한 수정:**
+HALCON 핸들을 래핑한 `using` 지원 클래스 제작 → 모든 후보자는 자동 Dispose
 
 ---
 
-*Concerns audit: 2026-04-02*
+## 스케일링 한계 (Scaling Limits)
+
+### 메모리 사용 (이미지 크기 미최적화)
+
+**문제:** 특정 카메라(예: SIDE 뷰)가 매우 큰 해상도를 가질 수 있음 (16544×9200 추정, ≈152MB 단일 이미지).
+
+**파일:** `WPF_Example/Device/Camera/VirtualCamera.cs` (구체적 해상도는 Custom/Device/DeviceHandler에서 설정)
+
+**영향:**
+- 이미지 2-3장 동시 메모리 로드 시 400-600MB 점유
+- 특히 두 장짜리 검사(DualImage) 수행 시 각 Shot마다 2장 로드
+- 낮은 사양 PC에서 메모리 부족 가능성
+
+**현재 완화:** 
+- `RawImageSaveService` 비동기 큐를 사용해 메인 검사 스레드 블로킹 최소화
+- HALCON 메모리는 검사 후 즉시 해제 (`Dispose()`)
+
+**권장:**
+- 대용량 이미지는 타일(tile) 처리 또는 다운샘플링 고려
+- 메모리 풀 구현 (재사용 가능한 HImage 캐시)
+
+---
+
+## 위험한 의존성 (Dependencies at Risk)
+
+### PropertyTools.Wpf DLL 버전 혼동
+
+**문제:** 프로젝트는 `libs/PropertyTools.Wpf.dll` v1.0.0.0을 참조하지만, NuGet `packages/PropertyTools.Wpf.3.1.0`도 존재.
+
+**파일:** `WPF_Example/DatumMeasurement.csproj` 줄 150-152
+```xml
+<Reference Include="PropertyTools.Wpf, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+  <SpecificVersion>False</SpecificVersion>
+  <HintPath>libs\PropertyTools.Wpf.dll</HintPath>
+</Reference>
+```
+
+**위험:** 
+- 로컬 버전과 NuGet 버전이 다름
+- 빌드 환경이 바뀌거나 `libs/` DLL이 삭제되면 NuGet v3.1.0 로드 → 버전 미스매치 가능
+
+**권장:**
+- NuGet 의존성 통일 (v3.1.0으로 정규화)
+- 로컬 `libs/` DLL 제거 또는 버전 명시
+
+---
+
+### Matrox MIL 런타임 (Phase 41, CXP Grab)
+
+**파일:** `WPF_Example/DatumMeasurement.csproj` 줄 210-214
+```xml
+<!-- 260602 hbk Phase 41 — Matrox MIL Lite 10.0 .NET binding (CXP grab) -->
+<Reference Include="Matrox.MatroxImagingLibrary">
+  <HintPath>C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll</HintPath>
+  <Private>True</Private>
+</Reference>
+```
+
+**위험:**
+- 하드코드된 절대 경로 (`C:\Program Files\...`)
+- MIL 미설치 환경에서 빌드 실패
+- 현재 시스템은 주로 HALCON + HIK/Basler 카메라 사용 → MIL은 선택적 기능
+
+**영향:** CXP 카메라 (드물게 사용) 구동 불가
+
+**권장:**
+- 조건부 빌드 (MIL_ENABLED 심볼)
+- 또는 런타임 로드 + Reflection으로 Soft 의존성 처리
+
+---
+
+## 누락된 중요 기능 (Missing Critical Features)
+
+### 테스트 프레임워크 부재
+
+**문제:** 프로젝트에 xUnit/NUnit/MSTest 같은 단위 테스트 프레임워크가 없음.
+
+**파일:** `WPF_Example/` 디렉토리에 `*.csproj.Tests` 또는 `Test/` 폴더 없음
+
+**예외:** Python 목(mock) 스크립트만 존재
+- `Test/mock_vision_client.py` — TCP 클라이언트 시뮬레이션
+- `Test/mock_vision_server.py` — TCP 서버 시뮬레이션
+
+**영향:**
+- 알고리즘 변경 후 회귀 테스트 불가
+- HALCON 알고리즘(MeasurementAlgorithm, FAIEdgeMeasurementService 등)의 정확성을 자동 검증할 수 없음
+- 리팩토링 위험 높음
+
+**권장:**
+- xUnit 추가 → `Halcon.Algorithms.*` 테스트
+- 픽스처 이미지 준비 (공개 테스트 데이터)
+- CI 통합 (빌드마다 테스트 실행)
+
+---
+
+## 테스트 커버리지 격차 (Test Coverage Gaps)
+
+### HALCON 알고리즘 미테스트
+
+**테스트 안 되는 것:**
+- `MeasurementAlgorithm.TryInspectSingleEdge()` — 에지 검출 정확도
+- `FAIEdgeMeasurementService` — 각도/거리 측정 정확도
+- `DatumFindingService` — Datum 패턴 매칭
+- 모든 Measurement 파생 클래스 (`EdgePairDistanceMeasurement`, `CircleDiameterMeasurement`, `CompoundAngleMeasurement` 등)
+
+**파일:**
+- `WPF_Example/Halcon/Algorithms/`
+- `WPF_Example/Custom/Sequence/Inspection/Measurements/`
+
+**위험:** 
+- 알고리즘 버그 현장 배포 후 발견 (공차 판정 오류)
+- 회귀 추적 어려움
+
+**우선도:** **높음** — 검사 정확도 직결
+
+---
+
+### 네트워크 패킷 처리 미테스트
+
+**테스트 안 되는 것:**
+- `VisionRequestPacket` 파싱 (TCP 요청 직렬화/역직렬화)
+- `VisionResponsePacket` 구성 (응답 프로토콜)
+- `ResourceMap` 매핑 (사이트/테스트 타입 → 내부 이름)
+- 패킷 경계 케이스 (부분 수신, 손상된 데이터 등)
+
+**파일:**
+- `WPF_Example/TcpServer/VisionRequestPacket.cs`
+- `WPF_Example/TcpServer/VisionResponsePacket.cs`
+- `WPF_Example/Custom/TcpServer/ResourceMap.cs`
+
+**위험:**
+- 핸들러 호스트와의 통신 오류 검사 불완전
+- 새로운 패킷 타입 추가 시 회귀
+
+**우선도:** **중간** — 네트워크 안정성 영향
+
+---
+
+### UI 레이아웃/바인딩 미테스트
+
+**테스트 안 되는 것:**
+- XAML 바인딩 경로 (Typo 가능성)
+- 속성창 PropertyGrid 렌더링 (`PropertyTools` 커스텀 속성)
+- 데이터 템플릿 (테리토리 맵, 이중 이미지 스왑 UI)
+
+**파일:**
+- `WPF_Example/UI/` XAML 파일 (40개 이상)
+
+**우선도:** **낮음** — UI는 런타임 수동 테스트로 충분
+
+---
+
+## 관리 우선도 (Priority Matrix)
+
+| 항목 | 심각도 | 영향범위 | 권장조치 |
+|------|--------|---------|---------|
+| 비대한 MainView (4601줄) | 높음 | 유지보수 어려움 | MVVM 리팩토링 (점진적) |
+| 로그 메시지 손실 (네이티브 충돌) | 높음 | 디버깅 어려움 | 동기 로깅 또는 크래시 핸들러 추가 |
+| INI 기본값 (0) 위험 | 중간 | 조용한 파라미터 오류 | 기본값 명시 + 로깅 |
+| 파라미터 로드 예외 스톰 | 낮음 | 이미 해결됨 (CanWrite 체크) | 진행 중 |
+| PropertyTools.Wpf 버전 혼동 | 낮음 | 빌드 환경 민감 | NuGet 통일 |
+| HALCON 알고리즘 미테스트 | 매우높음 | 검사 정확도 직결 | xUnit 추가 + 픽스처 준비 |
+| 네트워크 패킷 미테스트 | 중간 | 통신 안정성 | 단위 테스트 추가 |
+
+---
+
+**분석 완료:** 2026-09-15  
+**코드베이스 버전:** f30f7c42 (docs: STATE — 재티칭 후 동축 조명값 유지 PASS)

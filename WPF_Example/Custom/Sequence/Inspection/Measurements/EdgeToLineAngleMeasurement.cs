@@ -88,6 +88,12 @@ namespace ReringProject.Sequence
 
         public EdgeToLineAngleMeasurement(object owner) : base(owner) { }
 
+        // Phase 77 SZF-03/D-77-07 ②: 이 측정도 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
+        public override bool SupportsEdgeStrengthScore()
+        {
+            return true;
+        }
+
         public override bool TryExecute(
             HImage image,
             HTuple datumTransform,
@@ -99,8 +105,11 @@ namespace ReringProject.Sequence
             resultValue = 0;
             error = null;
             overlays = new List<EdgeInspectionOverlay>();
+            LastFitScore = 0.0; // Phase 77: 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
 
             var svc = new VisionAlgorithmService();
+            var edgeScore = new EdgeStrengthScore(); // Phase 77 SZF-03: 에지 강도 점수 수집(opt-in)
+            svc.EdgeScore = edgeScore;
             double pr1, pc1, pr2, pc2;
             // strip-loop 누적 raw 에지점 수집용 (overlay 가시화)
             var rawEdges = new List<System.ValueTuple<double, double>>();
@@ -117,6 +126,7 @@ namespace ReringProject.Sequence
             {
                 return false;
             }
+            LastFitScore = edgeScore.Average; // Phase 77: Z 선택에 쓰는 점수(재계산 없이 채택된 결과에 남긴다)
 
             // Datum A 기준선: 교점 통과, 방향 = DatumAngleRad (1차 수평 기준선).
             // overlay 가 이미지 끝까지 그리도록 halfLength = 이미지 대각선

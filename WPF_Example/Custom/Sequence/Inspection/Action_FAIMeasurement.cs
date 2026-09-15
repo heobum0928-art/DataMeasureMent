@@ -68,11 +68,18 @@ namespace ReringProject.Sequence {
         private const string ZFOCUS_LOG_TAG = "[ZFocus] ";
         private const string ZFOCUS_SCORE_FORMAT = "F2";
         private const double ZFOCUS_FAILED_SCORE = 0.0;
+        // Phase 77 O-3/D-77-07 ③: 화면에 노출하지 않는 내부 동점 허용치(%) — 최고 점수 z 와 기준 Z 점수 차가
+        //  이 값 이하(경계 포함)면 기준 Z 를 채택한다.
+        private const double Z_FOCUS_TIE_PERCENT = 3.0;
+        private const double PERCENT_SCALE = 100.0;
 
         // Phase 77 SZF-02/O-5: 이번 tick 에서 로드된 범위 후보 이미지 — EnsureZRangeCandidatesLoaded 가 채우고
         //  ReleaseZRangeCandidates 가 비운다(측정 직후 즉시 Dispose, RunInit 이 안전망으로 한 번 더 비운다).
         private List<KeyValuePair<int, HImage>> _lstZRangeCandidates = null;
         private bool _bZRangeCandidatesLoaded = false;
+        // Phase 77 O-7: ZIndexEnd tick 에서 화면·미지원 측정에 실제로 쓰인 사진의 z — ApplyZRangeBaseImageForDisplay
+        //  가 갱신하고 ExecuteZRangeBaseImageMeasurement 가 meas.LastSelectedZIndex 에 그대로 옮긴다.
+        private int _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE;
 
         // 측정 실패 에러 원문을 LastErrorMessage 에 남길 때 최대 보관 길이(문자 수). 정보 과다 노출/과도한
         //  길이 방지용 절단 기준 — 개행 치환 후 이 길이를 넘으면 잘라낸다.
@@ -182,6 +189,7 @@ namespace ReringProject.Sequence {
         //260818 hbk [초보자용] 검사 시작 직전 정리 단계 — 지난번 검사 결과가 남아있으면 지우고 바로 다음 단계로 넘어갑니다.
         private void RunInit() {
             ReleaseZRangeCandidates(); // Phase 77 O-5: 이전 tick 잔여 후보 안전망(정상 흐름에서는 이미 비어 있음)
+            _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE; // Phase 77 O-7: 이전 사이클 표시 z 잔재 방지
             // Run 사이클 진입 시 image buffer + FAI results dispose
             if (ShotParam != null) ShotParam.ClearAllResults();
             Step = (int)EStep.MoveZ;
@@ -504,6 +512,7 @@ namespace ReringProject.Sequence {
                     StoreZRangeCandidateImage(image); // Phase 77 SZF-02: 범위 안 z 면 후보로 누적(꺼짐/범위 밖은 no-op)
                     UpdateViewerCopy(image);
                     image.Dispose(); // 누수 방지 — 조건과 무관하게 항상 수행.
+                    ApplyZRangeBaseImageForDisplay(); // Phase 77 O-7: 완성 tick 이면 화면·원본 사진을 기준 Z 사진으로 교체
                 }
                 //260818 hbk [SEQ] Grab 단계 요약 (tact 포함)
                 LogSeqStep("Grab", string.Format("검사 이미지 촬영 완료 ({0:F2}초)",
@@ -2039,7 +2048,9 @@ namespace ReringProject.Sequence {
                 bool bScoreSupported = dualMeasForGate == null && meas.SupportsEdgeStrengthScore();
                 if (!bScoreSupported)
                 {
-                    return false; // 미지원 타입 — 77-02 가 기준 Z 사진 1회 측정 경로로 바꾼다(D-77-07 ②)
+                    // Phase 77 D-77-07 ②: 미지원 타입 — 후보 반복 없이 기준 Z 사진(RunGrab 에서 이미 교체됨)으로 1회 측정.
+                    ExecuteZRangeBaseImageMeasurement(meas, image, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
+                    return true;
                 }
                 return ExecuteZRangeSelection(meas, parentSeq2, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
             }
@@ -2087,6 +2098,46 @@ namespace ReringProject.Sequence {
             }
             List<int> lstIndices = parentSeq2.BuildZRangeCandidateIndices(ShotParam);
             _lstZRangeCandidates = parentSeq2.TakeZRangeImages(ShotParam.ShotName, lstIndices);
+            LogZRangeMissingCandidatesIfAny(lstIndices);
+        }
+
+        // Phase 77 O-4: 기대 z 목록(BuildZRangeCandidateIndices) 대비 실제로 받은 후보(_lstZRangeCandidates)를
+        //  비교해 빠진 z 를 Error 로그 한 줄로 남긴다 — 측정은 중단하지 않는다(도착한 사진만으로 계속).
+        private void LogZRangeMissingCandidatesIfAny(List<int> lstExpectedIndices)
+        {
+            var receivedSet = new HashSet<int>();
+            foreach (var kvp in _lstZRangeCandidates)
+            {
+                receivedSet.Add(kvp.Key);
+            }
+            var lstMissing = new List<int>();
+            foreach (int nZ in lstExpectedIndices)
+            {
+                bool bReceived = receivedSet.Contains(nZ);
+                if (!bReceived)
+                {
+                    lstMissing.Add(nZ);
+                }
+            }
+            if (lstMissing.Count == 0)
+            {
+                return;
+            }
+            var sb = new StringBuilder();
+            for (int i = 0; i < lstMissing.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(",");
+                }
+                sb.Append(MeasurementBase.FormatSelectedZ(lstMissing[i]));
+            }
+            string szShotName = "";
+            if (ShotParam != null)
+            {
+                szShotName = ShotParam.ShotName;
+            }
+            Logging.PrintLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "후보 누락 — " + szShotName + ": " + sb.ToString() + " 사진 없음, 도착한 " + _lstZRangeCandidates.Count + "장으로 선택(사이클 계속)");
         }
 
         // Phase 77 O-5: 남은 후보를 전부 Dispose 하고 로드 상태를 리셋한다 — RunMeasure 직후(정상 흐름, 평가
@@ -2130,6 +2181,79 @@ namespace ReringProject.Sequence {
             RecordMeasurementResult(meas, false, chosen.Ok, chosen.Value, chosen.Error, chosen.Overlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
             meas.LastSelectedZIndex = chosen.ZIndex; // RecordMeasurementResult 실패 분기의 ClearResult 뒤라 여기서 다시 남긴다
             return true;
+        }
+
+        // Phase 77 D-77-07 ②: 에지 강도 선택 미지원 타입 — 기준 Z 사진(image, RunGrab/ApplyZRangeBaseImageForDisplay
+        //  가 이미 교체) 으로 공용 실행 경로를 1회만 태운다. 후보 반복·재선택 없음.
+        private void ExecuteZRangeBaseImageMeasurement(MeasurementBase meas, HImage image, HTuple transform, double pixRes,
+                                                        ShotMeasureAccumulator acc, List<EdgeInspectionOverlay> overlayAcc,
+                                                        List<EdgeInspectionOverlay> faiOverlays, Dictionary<string, int> dctAlgoUsed)
+        {
+            var swMeasureExec = Stopwatch.StartNew();
+            double resultValue;
+            string measError;
+            List<EdgeInspectionOverlay> measOverlays;
+            bool ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays);
+            RecordMeasurementResult(meas, false, ok, resultValue, measError, measOverlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
+            meas.LastSelectedZIndex = _nZRangeDisplayZIndex;
+            string measName = GetMeasurementDisplayName(meas);
+            string szShotName = "";
+            if (ShotParam != null)
+            {
+                szShotName = ShotParam.ShotName;
+            }
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "기준 Z 사진 사용 — " + szShotName + " · " + measName + " type=" + meas.TypeName + " z=" + _nZRangeDisplayZIndex + " (에지 강도 선택 미지원 타입)");
+        }
+
+        // Phase 77 O-7: ZIndexEnd tick 에서 화면·원본(측정 소스) 사진을 기준 Z(ShotParam.ZIndex) 사진으로 교체한다 —
+        //  화면 표시와 미지원 타입 측정(ExecuteZRangeBaseImageMeasurement)이 항상 같은 기준 Z 사진을 쓰게 한다.
+        //  RunGrab 의 image.Dispose() 직후에만 호출된다. 저장소의 기준 Z 원본은 지우지 않는다(후보로 계속 쓰인다).
+        private void ApplyZRangeBaseImageForDisplay()
+        {
+            if (ShotParam == null)
+            {
+                return;
+            }
+            InspectionSequence parentSeq = ShotParam.Parent as InspectionSequence;
+            if (parentSeq == null)
+            {
+                return;
+            }
+            EZRangeMode mode = ResolveZRangeMode(parentSeq);
+            if (mode != EZRangeMode.AutoCompletion)
+            {
+                return;
+            }
+            int nCurZ = parentSeq.GetExecutionZIndex();
+            _nZRangeDisplayZIndex = nCurZ;
+            if (ShotParam.ZIndex == nCurZ)
+            {
+                return;
+            }
+            bool bHasBaseImage = parentSeq.HasZRangeImage(ShotParam.ShotName, ShotParam.ZIndex);
+            if (!bHasBaseImage)
+            {
+                Logging.PrintLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "기준 Z 사진 없음 — " + ShotParam.ShotName + ": 화면·미지원 측정은 z" + nCurZ + " 사진 사용");
+                return;
+            }
+            HImage baseImage = null;
+            try
+            {
+                baseImage = parentSeq.TakeZRangeImageCopy(ShotParam.ShotName, ShotParam.ZIndex);
+                if (baseImage != null)
+                {
+                    ShotParam.SetImage(baseImage);
+                    UpdateViewerCopy(baseImage);
+                    _nZRangeDisplayZIndex = ShotParam.ZIndex;
+                }
+            }
+            finally
+            {
+                if (baseImage != null)
+                {
+                    try { baseImage.Dispose(); } catch { }
+                }
+            }
         }
 
         // Phase 77 SZF-03: 후보 목록(z 오름차순) 순서대로 기존 TryExecuteMeasurement 를 실제로 돌린다 —
@@ -2185,11 +2309,63 @@ namespace ReringProject.Sequence {
                     best = candidate;
                 }
             }
-            if (best != null)
+            if (best == null)
+            {
+                return lstResults[0]; // 전부 실패 — 첫 후보(기준 Z 쪽)의 실패를 그대로 기록
+            }
+            int nBaseZIndex = MeasurementBase.SELECTED_Z_NONE;
+            if (ShotParam != null)
+            {
+                nBaseZIndex = ShotParam.ZIndex;
+            }
+            ZFocusRunResult baseResult = FindZFocusResultByZ(lstResults, nBaseZIndex);
+            return ApplyBaseZTieRule(best, baseResult);
+        }
+
+        // Phase 77 O-3: z 가 같은 첫 결과(기준 Z 후보)를 찾는다. 없으면 null.
+        private static ZFocusRunResult FindZFocusResultByZ(List<ZFocusRunResult> lstResults, int nZIndex)
+        {
+            for (int i = 0; i < lstResults.Count; i++)
+            {
+                if (lstResults[i].ZIndex == nZIndex)
+                {
+                    return lstResults[i];
+                }
+            }
+            return null;
+        }
+
+        // Phase 77 O-3/D-77-07 ③: 최고 점수(best)와 기준 Z 결과(baseResult) 중 무엇을 채택할지 — 가드 절만으로
+        //  판정한다. 기준 Z 가 채택되면 기준 Z 자신의 Value/Error/Overlays 를 그대로 반환한다(재계산 없음, D-77-02).
+        //  경계 포함(이하), 반올림 없음.
+        private ZFocusRunResult ApplyBaseZTieRule(ZFocusRunResult best, ZFocusRunResult baseResult)
+        {
+            if (best == null)
+            {
+                return baseResult;
+            }
+            if (baseResult == null)
             {
                 return best;
             }
-            return lstResults[0]; // 전부 실패 — 첫 후보(기준 Z 쪽)의 실패를 그대로 기록
+            if (!baseResult.Ok)
+            {
+                return best;
+            }
+            if (best.ZIndex == baseResult.ZIndex)
+            {
+                return best;
+            }
+            if (best.Score <= ZFOCUS_FAILED_SCORE)
+            {
+                return baseResult; // 최고 점수도 0 이하 — 0 나눗셈 없이 기준 Z 채택(모두 에지 없음)
+            }
+            double dGapPercent = (best.Score - baseResult.Score) / best.Score * PERCENT_SCALE;
+            if (dGapPercent <= Z_FOCUS_TIE_PERCENT)
+            {
+                return baseResult;
+            }
+            return best;
         }
 
         // Phase 77 SZF-03/T-77-05: 어떤 z 가 왜 채택됐는지 Algorithm 로그 한 줄로 남긴다(재현성/디버깅).
@@ -2218,7 +2394,22 @@ namespace ReringProject.Sequence {
             {
                 szShotName = ShotParam.ShotName;
             }
-            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "선택 — " + szShotName + " · " + measName + " 후보 " + sb.ToString() + " → z" + chosen.ZIndex + " (" + sw.ElapsedMilliseconds + "ms)");
+            int nBaseZIndex = MeasurementBase.SELECTED_Z_NONE;
+            if (ShotParam != null)
+            {
+                nBaseZIndex = ShotParam.ZIndex;
+            }
+            ZFocusRunResult baseResult = FindZFocusResultByZ(lstResults, nBaseZIndex);
+            string szBaseInfo;
+            if (baseResult != null)
+            {
+                szBaseInfo = " 기준 z" + nBaseZIndex + "=" + baseResult.Score.ToString(ZFOCUS_SCORE_FORMAT) + " 허용 " + Z_FOCUS_TIE_PERCENT.ToString("F1") + "%";
+            }
+            else
+            {
+                szBaseInfo = " 기준 z" + nBaseZIndex + " 후보 없음";
+            }
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "선택 — " + szShotName + " · " + measName + " 후보 " + sb.ToString() + " → z" + chosen.ZIndex + " (" + sw.ElapsedMilliseconds + "ms)" + szBaseInfo);
         }
 
         //260722 hbk Phase 68 D-02a: 크로스-Z 저장소 키 = Shot 이름 + 측정 식별자(사이클 내 안정 문자열).

@@ -45,7 +45,7 @@ created: 2026-09-15
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 77-TBD | TBD | 1 | SZF-01 | — | N/A | build + grep | `grep -n "ZIndexStart\|ZIndexEnd" WPF_Example/Custom/Sequence/Inspection/ShotConfig.cs` + Debug|x64 빌드 | ✅ (기존 파일) | ⬜ pending |
+| 77-TBD | TBD | 1 | SZF-01 | — | N/A | build + grep | `grep -n "ZIndexEnd" WPF_Example/Custom/Sequence/Inspection/ShotConfig.cs` (그리고 `ZIndexStart` 0건 — D-77-07) + Debug|x64 빌드 | ✅ (기존 파일) | ⬜ pending |
 | 77-TBD | TBD | 1 | SZF-02 | T-77-01 | 레시피 범위 밖 z 는 저장 안 함(무한 증식 방지), 평가 후 Dispose | grep + UAT | `grep -n "ZRange" WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs` (저장/평가/정리 호출부 존재) | ✅ | ⬜ pending |
 | 77-TBD | TBD | 1 | SZF-03 | — | N/A | build + grep + SIMUL | `grep -n "EdgeStrengthScore" WPF_Example/Halcon/Algorithms/VisionAlgorithmService.cs WPF_Example/Custom/Sequence/Inspection/Measurements/EdgeToLineDistanceMeasurement.cs` + SIMUL 로그 strip 별 최대 amp·합·분모 육안 대조 | ✅ | ⬜ pending |
 | 77-TBD | TBD | 2 | SZF-04 | — | N/A | grep + CSV diff | `grep -n "SelectedZ" WPF_Example/Custom/Sequence/Inspection/MeasurementHistoryCsvWriter.cs WPF_Example/Custom/Sequence/Inspection/MeasurementHistoryCsvLoader.cs` + 기존 CSV 로드 호환 확인 | ✅ | ⬜ pending |

@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 77 (side-z-focus-select) — EXECUTING (6 plans / 5 waves, 순차 실행 — use_worktrees=false)
-Plan: 4 of 6 — 77-01 완료(69d5ba72), 77-02 완료(d60b3e7b·a712d3b5), 77-03 완료(49f1a29e·8fd236f9·ac74d1ce), 77-04 완료(5fba2496·d20ac23e), D-77-08 범위 변경 다이얼로그(b92d57e6), 77-05 완료(bbbda563 버전 1.7.47.0, 누적 회귀 감사 PASS), 다음: 77-06 UAT 절차서 + 사용자 승인 체크포인트 (77-06 은 사람 승인 체크포인트, SIDE 실기 U-9 는 O-1 PLC z 번호 협의 후)
+Plan: 4 of 6 — 77-01 완료(69d5ba72), 77-02 완료(d60b3e7b·a712d3b5), 77-03 완료(49f1a29e·8fd236f9·ac74d1ce), 77-04 완료(5fba2496·d20ac23e), D-77-08 범위 변경 다이얼로그(b92d57e6), 77-05 완료(bbbda563 버전 1.7.47.0, 누적 회귀 감사 PASS), 77-06 Task 1 UAT 절차서 커밋(4534b249) — **체크포인트 대기: 사용자 사무실 UAT U-1~U-8 결과(approved 또는 실패 U 번호) + U-4 A-77-E1 판단**, U-9 는 O-1 후 (77-06 은 사람 승인 체크포인트, SIDE 실기 U-9 는 O-1 PLC z 번호 협의 후)
 Phase 76 (side-datum): 76-01·76-02 완료, 76-03 실기 UAT 대기 (코드 origin 반영됨, 버전 1.7.46.0)
 
 ## 다음 세션 인수인계 (2026-08-27)

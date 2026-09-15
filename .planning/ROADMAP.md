@@ -1327,8 +1327,8 @@ Plans:
 - [x] 77-01-PLAN.md (69d5ba72) — tracer: 범위 Shot 1개 × EdgeToLineDistance 를 PLC 자동 사이클로 관통 — `ZIndexEnd`, z 누적·대기, 끝 z 에서 후보별 측정·최고 점수 채택, 평가 직후 해제 (SZF-01, SZF-02, SZF-03, SZF-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 77-02-PLAN.md — EdgeToLineAngle, 기준 Z 3% 동점, 미지원 타입 기준 Z, 누락 z 경고, 겹침 z 제외·$PREP 조명, 편집 경고 (SZF-01, SZF-02, SZF-03, SZF-05)
-- [ ] 77-03-PLAN.md — 선택 Z 기록·표시: cycle.json·CSV `선택Z`·결과/리뷰어 그리드·오버레이, 대기 상태 NG 집계 제외 (SZF-04, SZF-05)
+- [x] 77-02-PLAN.md (d60b3e7b·a712d3b5) — EdgeToLineAngle, 기준 Z 3% 동점, 미지원 타입 기준 Z, 누락 z 경고, 겹침 z 제외·$PREP 조명, 편집 경고 (SZF-01, SZF-02, SZF-03, SZF-05)
+- [x] 77-03-PLAN.md (49f1a29e·8fd236f9·ac74d1ce) — 선택 Z 기록·표시: cycle.json·CSV `선택Z`·결과/리뷰어 그리드·오버레이, 대기 상태 NG 집계 제외 (SZF-04, SZF-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 77-04-PLAN.md — 수동 라이브 1장 + 안내, 오프라인·재검사 z 별 사진 선택 재현, 후보 사진 저장 체크박스(기본 꺼짐) (SZF-02, SZF-03, SZF-04, SZF-05)

@@ -625,10 +625,29 @@ namespace ReringProject
 
                  "Bottom Theta 부호 : BOTTOM_THETA_SIGN 1.0 → -1.0 (현장 확인 후 사용자 지정). PLC 로 보내는 Bottom Theta 부호가 뒤집힌다."
     )]
+    [Version(
+        Number = "1.7.47.0",
+        Date = "2026-09-15",
+        Change = "SIDE Z 범위 자동 초점 선택. Shot 에 'Z 범위 끝'(ZIndexEnd, 기본 0=꺼짐) 한 칸을 추가하면 ZIndex(기준 Z)부터 " +
+                 "Z 범위 끝까지가 그 Shot 의 촬영 범위가 된다. PLC 가 범위 안의 z 번호마다 새로 $PREP/$TEST 를 보내 사진을 찍어 모으면, " +
+                 "마지막 z 도착 시 그 Shot 의 EdgeToLineDistance·EdgeToLineAngle 측정마다 후보 사진으로 실제 측정을 돌려 measure_pos " +
+                 "에지 강도(strip 안 최대 |amp| 의 평균)가 가장 높은 사진의 측정 결과를 채택한다. 최고 점수와 기준 Z 점수 차이가 3% 이내면 " +
+                 "흔들림 방지를 위해 기준 Z 를 그대로 채택한다(내부 기준, 화면 미노출). 범위 안에서 다른 Shot·기준점(Datum)이 쓰는 z 번호는 " +
+                 "후보에서 자동으로 빠지고, Z 범위 끝(또는 범위가 켜진 Shot 의 ZIndex)을 PropertyGrid 에서 바꿀 때마다 즉시 안내 다이얼로그가 " +
+                 "뜬다 : 정상 범위는 정보(zA~zB, N장이 필요하고 PLC 가 그 번호로 차례로 촬영해야 동작), 0 으로 바꾸면 정보(범위 꺼짐, " +
+                 "ZIndex 사진 1장으로 측정), 오입력이나 다른 Shot·기준점과 겹치면 경고(한 장만 쓰려면 0). INI 로드·붙여넣기에서는 뜨지 않고 " +
+                 "저장도 막지 않는다. 결과 그리드·리뷰어 화면·일자별 CSV 맨 끝에 측정마다 채택된 '선택Z'(예 z5) 한 칸이 표시·기록되고, " +
+                 "결과 오버레이의 측정 이름 라벨 뒤에도 같은 값이 붙는다(점수 상세는 Algorithm 로그에만 남김). 화면 RUN·수동 트리거 같은 " +
+                 "라이브 수동 실행은 현재 사진 1장으로만 측정하고 선택하지 않으며, 로그와 상태에 'Z 범위 Shot — 수동은 선택 안 함' 이 남는다. " +
+                 "오프라인 검사와 저장 사진 재검사는 z 별로 저장된 사진(shot_<Shot>_z<N>.bmp, 재검사는 cycle.json 의 ZRangeImages 기록)이 " +
+                 "있으면 자동검사와 같은 방식으로 선택하고, 없으면 1장으로 폴백하며 경고 로그를 남긴다. 후보 z 사진을 파일로 남기는 설정(체크박스, " +
+                 "기본 꺼짐)을 켜면 자동 사이클에서 찍은 z 별 사진을 전부 저장해 나중에 오프라인·재검사로 다시 확인할 수 있다. " +
+                 "Z 범위 끝을 설정하지 않은 Shot(기본, 키 없는 옛 레시피 포함)과 TOP/BOTTOM 카메라는 이 기능과 무관하게 기존 동작 그대로다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.46.0";
-        public const string BUILD_DATE = "2026-09-14";
+        public const string VERSION = "1.7.47.0";
+        public const string BUILD_DATE = "2026-09-15";
     }
 }

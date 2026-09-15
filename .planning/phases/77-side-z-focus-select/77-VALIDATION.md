@@ -45,11 +45,17 @@ created: 2026-09-15
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 77-TBD | TBD | 1 | SZF-01 | — | N/A | build + grep | `grep -n "ZIndexEnd" WPF_Example/Custom/Sequence/Inspection/ShotConfig.cs` (그리고 `ZIndexStart` 0건 — D-77-07) + Debug|x64 빌드 | ✅ (기존 파일) | ⬜ pending |
-| 77-TBD | TBD | 1 | SZF-02 | T-77-01 | 레시피 범위 밖 z 는 저장 안 함(무한 증식 방지), 평가 후 Dispose | grep + UAT | `grep -n "ZRange" WPF_Example/Custom/Sequence/Inspection/InspectionSequence.cs` (저장/평가/정리 호출부 존재) | ✅ | ⬜ pending |
-| 77-TBD | TBD | 1 | SZF-03 | — | N/A | build + grep + SIMUL | `grep -n "EdgeStrengthScore" WPF_Example/Halcon/Algorithms/VisionAlgorithmService.cs WPF_Example/Custom/Sequence/Inspection/Measurements/EdgeToLineDistanceMeasurement.cs` + SIMUL 로그 strip 별 최대 amp·합·분모 육안 대조 | ✅ | ⬜ pending |
-| 77-TBD | TBD | 2 | SZF-04 | — | N/A | grep + CSV diff | `grep -n "SelectedZ" WPF_Example/Custom/Sequence/Inspection/MeasurementHistoryCsvWriter.cs WPF_Example/Custom/Sequence/Inspection/MeasurementHistoryCsvLoader.cs` + 기존 CSV 로드 호환 확인 | ✅ | ⬜ pending |
-| 77-TBD | TBD | all | SZF-05 | — | N/A | diff 정적 단언 | 범위 꺼짐(0/0) 경로 함수(`FindShotByZIndex`, `FindActionIndicesByZIndex`, `RunGrab`, `TryExecuteMeasurement`, 기존 `TryFitLine` 호출부)의 diff 가 **가드 추가 외 기존 줄 삭제·변경 0** (`git diff --numstat` 삭제 줄 검토) | ✅ | ⬜ pending |
+| 77-01-T1 | 77-01 | 1 | SZF-01, SZF-02, SZF-03, SZF-05 | T-77-01, T-77-03 | 범위 밖 z 저장 안 함, 중간 z 측정은 응답 제외, 평가 직후 Dispose | tracer: build + 경로 배선 grep | 77-01 Task 1 verify (`zend`, `nostart=0`, `storecall`, `route`, `completion`, `addstrip`, `gate`, `release`, `offfirst`, 7파일 `deleted=0`) + Debug|x64 빌드 | ✅ (기존 파일) | ⬜ pending |
+| 77-02-T1 | 77-02 | 2 | SZF-03 | T-77-09, T-77-10 | 3% 기준 Z 동점, 0 점수 나눗셈 없음 | build + grep | 77-02 Task 1 verify (`tieconst`, `pickcall`, `display`, `baseexec`, `missing`) | ✅ | ⬜ pending |
+| 77-02-T2 | 77-02 | 2 | SZF-01, SZF-02 | T-77-07, T-77-08 | 남의 z 후보 제외, 오입력 즉시 경고 | build + grep | 77-02 Task 2 verify (`reserveguard`, `baseorder`, `norecurse=0`, `prep3`, `warncall`, `suppress=4`) | ✅ | ⬜ pending |
+| 77-03-T1 | 77-03 | 2 | SZF-04 | T-77-13, T-77-14 | 옛 CSV·JSON 안전 로드 | build + grep | 77-03 Task 1 verify (`sercopy`, `header`, `mapadd`, `colcount=1`, `parseguard`) — `grep -n "SelectedZ"` Writer/Loader 포함 | ✅ | ⬜ pending |
+| 77-03-T2 | 77-03 | 2 | SZF-04 | — | N/A | build + grep | 77-03 Task 2 verify (`mxcol`, `rxcol`, `codebehind=0`) | ✅ | ⬜ pending |
+| 77-03-T3 | 77-03 | 2 | SZF-04 | — | N/A | build + grep | 77-03 Task 3 verify (`clone`, `label`, `highlight`) | ✅ | ⬜ pending |
+| 77-04-T1 | 77-04 | 3 | SZF-02, SZF-04 | T-77-17 | 체크박스 꺼짐이면 저장 0 | build + grep | 77-04 Task 1 verify (`setting`, `savegate`, `livegate`, `attach=2`) | ✅ | ⬜ pending |
+| 77-04-T2 | 77-04 | 3 | SZF-02, SZF-03, SZF-05 | T-77-19, T-77-21 | 재검사 경로가 오프라인 폴더와 섞이지 않음, 수동 안내 | build + grep | 77-04 Task 2 verify (`modes`, `offfirst`, `rerunfirst`, `apply`, `restore`, `forbidden=0`) | ✅ | ⬜ pending |
+| 77-05-T1 | 77-05 | 4 | SZF-05 | T-77-22 | Debug|x64 만 빌드 | build + grep | 77-05 Task 1 verify (`entry`, `ver`, `deleted=2`) | ✅ | ⬜ pending |
+| 77-05-T2 | 77-05 | 4 | SZF-05 | T-77-23 | 기존 줄 삭제 허용 목록뿐 | diff 정적 감사 | 77-05 Task 2 verify — phase 누적 `git diff -w` 파일별 삭제(허용: CsvWriter 1, EdgeInspectionOverlay 1, VersionDefine 2), 하드룰 5종 0, `guard`, `offfirst`, `edgescore_setters` 2파일, csproj·MainView.xaml.cs 무변경 | ✅ | ⬜ pending |
+| 77-06-T1/T2 | 77-06 | 5 | SZF-01~05 | T-77-26, T-77-27 | 운영 레시피·배포 exe 무접촉 | UAT 문서 + human-verify | 77-HUMAN-UAT.md U-1(tracer 런타임 E2E)~U-8 사무실, U-9 SIDE 실기(O-1 후) | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

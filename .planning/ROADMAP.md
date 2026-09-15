@@ -1318,8 +1318,26 @@ Plans:
 4. 빠진 z 가 있어도 사이클 완주
 
 **Requirements**: SZF-01 (Shot Z 범위 설정), SZF-02 (범위 z 영상 누적), SZF-03 (측정별 강도 점수·선택), SZF-04 (기록·표시), SZF-05 (회귀 0)
-**Depends on:** Phase 76 · **Blocked:** z 번호 배정 제어팀 협의 (O-1, UAT 전)
-**Plans:** 0 plans (계획 전)
+**Depends on:** Phase 76 · **Blocked:** z 번호 배정 제어팀 협의 (O-1, SIDE 실기 UAT U-9 만)
+**Plans:** 6 plans (plan-checker PASS 2026-09-15)
+
+Plans:
+
+**Wave 1**
+- [ ] 77-01-PLAN.md — tracer: 범위 Shot 1개 × EdgeToLineDistance 를 PLC 자동 사이클로 관통 — `ZIndexEnd`, z 누적·대기, 끝 z 에서 후보별 측정·최고 점수 채택, 평가 직후 해제 (SZF-01, SZF-02, SZF-03, SZF-05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 77-02-PLAN.md — EdgeToLineAngle, 기준 Z 3% 동점, 미지원 타입 기준 Z, 누락 z 경고, 겹침 z 제외·$PREP 조명, 편집 경고 (SZF-01, SZF-02, SZF-03, SZF-05)
+- [ ] 77-03-PLAN.md — 선택 Z 기록·표시: cycle.json·CSV `선택Z`·결과/리뷰어 그리드·오버레이, 대기 상태 NG 집계 제외 (SZF-04, SZF-05)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 77-04-PLAN.md — 수동 라이브 1장 + 안내, 오프라인·재검사 z 별 사진 선택 재현, 후보 사진 저장 체크박스(기본 꺼짐) (SZF-02, SZF-03, SZF-04, SZF-05)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 77-05-PLAN.md — 버전 1.7.47.0 + 범위 꺼짐 경로 누적 회귀 감사 (SZF-05)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 77-06-PLAN.md — 77-HUMAN-UAT.md 사무실 U-1~U-8 사용자 승인 체크포인트, SIDE 실기 U-9 는 O-1 후 (전 요구사항)
 
 ---
 

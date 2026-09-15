@@ -16,5 +16,8 @@ namespace ReringProject.Sequence
         public const string CROSS_Z_INCOMPLETE = "CROSS_Z_INCOMPLETE";
         // 측정 알고리즘 실행 실패 — 에지 부족 등
         public const string MEASURE_FAIL = "MEASURE_FAIL";
+        // Phase 77 SZF-02: Z 범위 Shot 의 중간 z tick — 후보 사진을 모으는 중이라 아직 측정 안 함,
+        //  고장 아님, PASS 아님. ZIndexEnd tick 에서 한 번 평가된다.
+        public const string Z_RANGE_PENDING = "Z_RANGE_PENDING";
     }
 }

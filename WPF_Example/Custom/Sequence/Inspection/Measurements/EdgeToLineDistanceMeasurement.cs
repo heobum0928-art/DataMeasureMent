@@ -94,6 +94,12 @@ namespace ReringProject.Sequence
 
         public EdgeToLineDistanceMeasurement(object owner) : base(owner) { }
 
+        // Phase 77 SZF-03/D-77-07 ②: 이 측정은 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
+        public override bool SupportsEdgeStrengthScore()
+        {
+            return true;
+        }
+
         public override bool TryExecute(
             HImage image,
             HTuple datumTransform,
@@ -106,6 +112,7 @@ namespace ReringProject.Sequence
             error = null;
             // 실패 경로용 초기값 (성공 경로는 아래에서 채움)
             overlays = new List<EdgeInspectionOverlay>();
+            LastFitScore = 0.0; // Phase 77: 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
 
             // D-11 Datum 찾기 실패 가드 (upstream gating 은 보조 이중 안전망)
             if (datumTransform == null || datumTransform.Length == 0)
@@ -115,6 +122,8 @@ namespace ReringProject.Sequence
             }
 
             var svc = new VisionAlgorithmService();
+            var edgeScore = new EdgeStrengthScore(); // Phase 77 SZF-03: 에지 강도 점수 수집(opt-in)
+            svc.EdgeScore = edgeScore;
             double pr1, pc1, pr2, pc2;
             List<System.ValueTuple<double, double>> collectedEdgePoints = new List<System.ValueTuple<double, double>>();
             // strip-loop(stripCount 기본 20)가 First/Last 도 strip 마다 1점씩 누적 → 라인 피팅 충분.
@@ -129,6 +138,7 @@ namespace ReringProject.Sequence
             {
                 return false;
             }
+            LastFitScore = edgeScore.Average; // Phase 77: Z 선택에 쓰는 점수(재계산 없이 채택된 결과에 남긴다)
             double pRow = (pr1 + pr2) / 2.0; // 폴백(수집점 없음/전투영실패)·레거시경로용 중점
             double pCol = (pc1 + pc2) / 2.0;
 

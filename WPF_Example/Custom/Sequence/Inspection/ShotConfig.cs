@@ -181,6 +181,42 @@ namespace ReringProject.Sequence {
         //  ※ INI 호환 위해 PascalCase 프로퍼티명 유지(ParamBase 키=프로퍼티명) — 헝가리언 예외(직렬화 필드, D-10 적용범위 밖).
         public int ZIndex { get; set; } = 0;
 
+        // Phase 77 SZF-01: 범위 기능 꺼짐 표식(옛 레시피의 키 부재 로드값과 동일 — 회귀 0).
+        public const int Z_RANGE_OFF = 0;
+        // Phase 77 SZF-01: 기준점(ZIndex) 0 번은 범위 시작으로 쓸 수 없다(Datum 폴백 index 와 충돌).
+        public const int MIN_Z_RANGE_BASE_INDEX = 1;
+        // Phase 77 SZF-01: SIDE 사진 1장 약 127~152MB — z 개수 상한(O-5 메모리 가드).
+        public const int MAX_Z_RANGE_COUNT = 10;
+
+        // Phase 77 D-77-07 ①⑧: 범위 = ZIndex ~ ZIndexEnd(둘 다 포함), 기준 Z = ZIndex.
+        //  시작 번호 칸은 만들지 않는다 — 기존 ZIndex 를 그대로 범위 시작으로 쓴다.
+        //  ParamBase reflection 자동 직렬화 — INI 키 = "ZIndexEnd". 키 부재(옛 레시피) → 0 로드 = 범위 꺼짐.
+        private int _zIndexEnd = Z_RANGE_OFF;
+        [Category("Shot|Identity")]
+        [DisplayName("Z 범위 끝")]
+        [System.ComponentModel.Description("PLC 가 ZIndex~Z 범위 끝 번호로 차례로 촬영해야 동작")]
+        public int ZIndexEnd {
+            get { return _zIndexEnd; }
+            set {
+                if (_zIndexEnd == value) return;
+                _zIndexEnd = value;
+                RaisePropertyChanged(nameof(ZIndexEnd));
+            }
+        }
+
+        // Phase 77 SZF-01/SZF-05: 범위 기능이 켜져 있는지 판정하는 단일 진입점 — 이 값이 false 면
+        //  범위 관련 새 분기(저장·대기·선택·완성 index·마지막 index)가 전부 미도달이라 기존 동작과 같다.
+        //  프로퍼티가 아니라 메서드다 — ParamBase 리플렉션은 공개 프로퍼티를 전부 INI 에 쓰므로
+        //  bool 프로퍼티로 만들면 존재하지도 않는 파생 키가 레시피에 저장된다.
+        public bool IsZRangeEnabled() {
+            if (ZIndexEnd == Z_RANGE_OFF) { return false; }
+            if (ZIndex < MIN_Z_RANGE_BASE_INDEX) { return false; }
+            if (ZIndexEnd <= ZIndex) { return false; }
+            int nZCount = ZIndexEnd - ZIndex + 1;
+            if (nZCount > MAX_Z_RANGE_COUNT) { return false; }
+            return true;
+        }
+
         // Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (Ring/Bar 는 채널별 개별 제어로 대체, 아래 20개 참조)
         // 구 통합 필드 — PropertyGrid 에서 숨기되 삭제하지 않는다. Ring/Bar 채널별 키가 없는 구 레시피의 마이그레이션 소스(Load override)이자
         // 구버전 롤백 시 graceful downgrade 경로다. INI 키/직렬화는 그대로 유지된다.

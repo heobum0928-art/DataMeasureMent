@@ -72,6 +72,11 @@ namespace ReringProject.Sequence {
         private readonly object _crossZImageLock = new object();
         private readonly Dictionary<string, HImage> m_dicCrossZImages = new Dictionary<string, HImage>();
 
+        // Phase 77 SZF-02: Z 범위 Shot 후보 이미지 저장소 — 크로스-Z 저장소와 키 체계가 달라 별도 사전으로
+        //  둔다(섞지 않는다). 락은 _crossZImageLock 을 재사용한다(같은 사이클 안에서 함께 지켜지는 자원).
+        private readonly Dictionary<string, HImage> m_dicZRangeImages = new Dictionary<string, HImage>();
+        private const string ZRANGE_KEY_SEPARATOR = "|z";
+
         //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
@@ -855,6 +860,7 @@ namespace ReringProject.Sequence {
                 }
             }
             nMax = System.Math.Max(nMax, MaxCrossZCompletionZIndex(recipeManager));
+            nMax = System.Math.Max(nMax, MaxZRangeCompletionZIndex(recipeManager)); // Phase 77 SZF-02: ZIndexEnd 가 최댓값이면 마지막 Index 오판정 방지
             return nMax;
         }
 
@@ -1023,6 +1029,126 @@ namespace ReringProject.Sequence {
             return false;
         }
 
+        // Phase 77 SZF-01/SZF-02/SZF-05: 이 z 가 shot 의 켜진 Z 범위(ZIndex~ZIndexEnd)에 속하는가의 단일 소스.
+        //  가드 순서가 중요하다 — IsZRangeEnabled() 가 false 인 순간(옛 레시피 포함) 항상 false 로 끝나 회귀 0.
+        //  겹침 제외(다른 Shot/Datum 이 쓰는 z 배제) 가드는 77-02 가 이 마지막 return 앞에 추가한다.
+        public bool DoesShotOwnZRangeIndex(ShotConfig shot, int nZIndex)
+        {
+            if (shot == null)
+            {
+                return false;
+            }
+            if (!shot.IsZRangeEnabled())
+            {
+                return false;
+            }
+            bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+            if (!bOwnedByThisSeq)
+            {
+                return false;
+            }
+            if (nZIndex < shot.ZIndex)
+            {
+                return false;
+            }
+            if (nZIndex > shot.ZIndexEnd)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        // Phase 77 SZF-02: shot 의 범위(ZIndex~ZIndexEnd) 중 이 shot 이 실제로 소유하는 z 를 오름차순으로 나열.
+        //  꺼진 Shot 은 빈 목록 — 후보 로드(EnsureZRangeCandidatesLoaded)가 이 목록으로 저장소를 조회한다.
+        public List<int> BuildZRangeCandidateIndices(ShotConfig shot)
+        {
+            var lstIndices = new List<int>();
+            if (shot == null)
+            {
+                return lstIndices;
+            }
+            if (!shot.IsZRangeEnabled())
+            {
+                return lstIndices;
+            }
+            for (int nZ = shot.ZIndex; nZ <= shot.ZIndexEnd; nZ++)
+            {
+                bool bOwned = DoesShotOwnZRangeIndex(shot, nZ);
+                if (bOwned)
+                {
+                    lstIndices.Add(nZ);
+                }
+            }
+            return lstIndices;
+        }
+
+        // Phase 77 SZF-02: "이 z 가 어느 범위 Shot 의 후보 촬영에 쓰이는가" — WarnIfEmptyScope 가 중간 z 를
+        //  결과 0건 경고 대상에서 제외하는 데 쓴다(IsZIndexUsedByCrossZMeasurement 와 같은 역할, 다른 소스).
+        private bool IsZIndexUsedByZRangeCapture(int nZIndex)
+        {
+            var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return false;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bOwned = DoesShotOwnZRangeIndex(shot, nZIndex);
+                if (bOwned)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Phase 77 SZF-02: shot 의 범위가 이 z 에서 완성되는가(ZIndexEnd 와 같은가) — AggregateIndexFais 의
+        //  bCrossZCompletesHere 와 대칭 역할.
+        private bool ShotHasZRangeCompletingAt(ShotConfig shot, int nZIndex)
+        {
+            if (shot == null)
+            {
+                return false;
+            }
+            if (!shot.IsZRangeEnabled())
+            {
+                return false;
+            }
+            return shot.ZIndexEnd == nZIndex;
+        }
+
+        // Phase 77 SZF-02: 이 시퀀스 소유이고 켜진 범위 Shot 의 ZIndexEnd 최댓값(없으면 0) — ComputeLastZIndex 가
+        //  "마지막 Index" 산출에 반영해 ZIndexEnd 가 shot.ZIndex 최댓값을 넘는 경우 조기 오판정을 막는다.
+        private int MaxZRangeCompletionZIndex(InspectionRecipeManager recipeManager)
+        {
+            int nMax = 0;
+            bool bHasManager = recipeManager != null;
+            if (!bHasManager)
+            {
+                return nMax;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                if (!shot.IsZRangeEnabled())
+                {
+                    continue;
+                }
+                nMax = System.Math.Max(nMax, shot.ZIndexEnd);
+            }
+            return nMax;
+        }
+
         //260722 hbk Phase 68 D-01/D-01b: z_index → Actions[] 인덱스 다중매칭 헬퍼 (ShotConfig.ZIndex + owned ZIndexA/ZIndexB aware).
         //  사용자 확정 설계: 크로스-Z 측정의 owning Shot은 별도 Shot으로 쪼개지 않고, own-ZIndex 위치뿐 아니라 자신이 소유한
         //  DualImageEdgeDistanceMeasurement의 ZIndexA/ZIndexB 위치에서도 실행되어야 한다 — 그래서 한 Shot이 여러 z_index에
@@ -1060,6 +1186,11 @@ namespace ReringProject.Sequence {
                 bool bOwnZIndexMatch = shot.ZIndex == nZIndex;
                 bool bCrossZMatch = DoesShotOwnCrossZIndex(shot, nZIndex);
                 bool bMatch = bOwnZIndexMatch || bCrossZMatch;
+                bool bZRangeMatch = DoesShotOwnZRangeIndex(shot, nZIndex); // Phase 77 SZF-02
+                if (bZRangeMatch)
+                {
+                    bMatch = true;
+                }
                 if (bMatch)
                 {
                     matchedIndices.Add(i);
@@ -1524,6 +1655,128 @@ namespace ReringProject.Sequence {
             }
         }
 
+        // Phase 77 SZF-02/O-4: Z 범위 후보 저장소 키(Shot명|z번호) — 크로스-Z 키 체계와 다르므로 전용 헬퍼.
+        private static string BuildZRangeImageKey(string szShotName, int nZIndex)
+        {
+            return szShotName + ZRANGE_KEY_SEPARATOR + nZIndex;
+        }
+
+        // Phase 77 SZF-02: StoreCrossZImage 와 같은 소유 규약(기존 값 Dispose 후 CopyImage 저장) — z_range 전용 사전.
+        public void StoreZRangeImage(string szShotName, int nZIndex, HImage image)
+        {
+            bool bHasShotName = !string.IsNullOrEmpty(szShotName);
+            if (!bHasShotName)
+            {
+                return;
+            }
+            lock (_crossZImageLock)
+            {
+                string szKey = BuildZRangeImageKey(szShotName, nZIndex);
+                HImage existing;
+                bool bHasExisting = m_dicZRangeImages.TryGetValue(szKey, out existing);
+                if (bHasExisting && existing != null)
+                {
+                    try { existing.Dispose(); } catch { }
+                }
+                if (image != null)
+                {
+                    m_dicZRangeImages[szKey] = image.CopyImage();
+                }
+                else
+                {
+                    m_dicZRangeImages[szKey] = null;
+                }
+            }
+        }
+
+        // Phase 77 SZF-02: 저장된 후보 이미지의 CopyImage() 반환(호출부 소유, finally Dispose 책임).
+        public HImage TakeZRangeImageCopy(string szShotName, int nZIndex)
+        {
+            bool bHasShotName = !string.IsNullOrEmpty(szShotName);
+            if (!bHasShotName)
+            {
+                return null;
+            }
+            lock (_crossZImageLock)
+            {
+                string szKey = BuildZRangeImageKey(szShotName, nZIndex);
+                HImage existing;
+                bool bHasExisting = m_dicZRangeImages.TryGetValue(szKey, out existing);
+                bool bValid = bHasExisting && existing != null;
+                if (bValid)
+                {
+                    return existing.CopyImage();
+                }
+                return null;
+            }
+        }
+
+        // Phase 77 SZF-02: 완성 tick 판정(후보 존재 여부)에 사용.
+        public bool HasZRangeImage(string szShotName, int nZIndex)
+        {
+            bool bHasShotName = !string.IsNullOrEmpty(szShotName);
+            if (!bHasShotName)
+            {
+                return false;
+            }
+            lock (_crossZImageLock)
+            {
+                string szKey = BuildZRangeImageKey(szShotName, nZIndex);
+                HImage existing;
+                bool bHasExisting = m_dicZRangeImages.TryGetValue(szKey, out existing);
+                return bHasExisting && existing != null;
+            }
+        }
+
+        // Phase 77 SZF-02/O-5: lstZIndices 순서대로 저장소에서 키를 찾아 사전에서 제거하고 이미지 소유권을 그대로
+        //  넘긴다(추가 복사 없음 — 호출자가 목록 소비 후 각 항목 Dispose 책임). null 이미지 항목은 건너뛴다.
+        public List<KeyValuePair<int, HImage>> TakeZRangeImages(string szShotName, List<int> lstZIndices)
+        {
+            var lstResult = new List<KeyValuePair<int, HImage>>();
+            bool bHasShotName = !string.IsNullOrEmpty(szShotName);
+            bool bHasIndices = lstZIndices != null;
+            if (!bHasShotName || !bHasIndices)
+            {
+                return lstResult;
+            }
+            lock (_crossZImageLock)
+            {
+                foreach (int nZIndex in lstZIndices)
+                {
+                    string szKey = BuildZRangeImageKey(szShotName, nZIndex);
+                    HImage existing;
+                    bool bHasExisting = m_dicZRangeImages.TryGetValue(szKey, out existing);
+                    if (bHasExisting)
+                    {
+                        m_dicZRangeImages.Remove(szKey);
+                    }
+                    if (bHasExisting && existing != null)
+                    {
+                        lstResult.Add(new KeyValuePair<int, HImage>(nZIndex, existing));
+                    }
+                }
+            }
+            return lstResult;
+        }
+
+        // Phase 77 SZF-02/T-77-01: 사이클 시작(BeginCrossZImageCycle)·배치 정리·$RESET 에서 호출되는 전용 리셋 —
+        //  전 엔트리 Dispose 후 Clear. m_dicCrossZImages 와 같은 락(_crossZImageLock)을 재사용한다.
+        private void ClearZRangeImages()
+        {
+            lock (_crossZImageLock)
+            {
+                foreach (var kvp in m_dicZRangeImages)
+                {
+                    HImage img = kvp.Value;
+                    if (img != null)
+                    {
+                        try { img.Dispose(); } catch { }
+                    }
+                }
+                m_dicZRangeImages.Clear();
+            }
+        }
+
         //260722 hbk Phase 68 D-03: 사이클 시작(z=0, BeginCrossZImageCycle) 전용 리셋 — 전 엔트리 Dispose 후 Clear.
         //  Z2 미도달(PLC 중단/스킵)해도 다음 부품의 z=0 도착 시 자동 정리되어 누수 없음(T-68-05 mitigation).
         private void ClearCrossZImages()
@@ -1551,6 +1804,7 @@ namespace ReringProject.Sequence {
         public void BeginCrossZImageCycle()
         {
             ClearCrossZImages();
+            ClearZRangeImages(); // Phase 77 T-77-01: 사이클 시작 시 이전 부품의 z 범위 후보 잔재 제거
         }
 
         // quick-260806-dsn Part B: 배치 사이클 "완료" 후 메모리 정리 전용 진입점. ClearCrossZImages 를 그대로
@@ -1560,6 +1814,7 @@ namespace ReringProject.Sequence {
         public void ClearCrossZImagesAfterBatchCycle()
         {
             ClearCrossZImages();
+            ClearZRangeImages(); // Phase 77 T-77-01
         }
 
         //260807 hbk quick-260807-lh7: $RESET 수신 시 이 시퀀스의 사이클 누적 상태를 클린 슬레이트로 되돌리는 진입점.
@@ -1572,6 +1827,7 @@ namespace ReringProject.Sequence {
         {
             ResetCycleState();        // 판정 래치(NG/Datum실패/즉시-F) + z_index 캐시 초기화
             ClearCrossZImages();      // 크로스-Z 이미지 저장소 Dispose+Clear (_crossZImageLock 내부 처리)
+            ClearZRangeImages();      // Phase 77 T-77-01: z 범위 후보 저장소 Dispose+Clear
             ClearDatumTransforms();   // Datum transform 캐시 + 검출/align 실패 집합 + RuntimeDetectFailed 플래그
         }
 
@@ -1606,6 +1862,18 @@ namespace ReringProject.Sequence {
         {
             bool bHasRequestPacket = RequestPacket != null;
             return bHasRequestPacket;
+        }
+
+        // Phase 77 D-77-06/P-10: 수동 트리거(호스트 TCP 클라이언트 없이 눌린 $TEST)는 RequestPacket.Sender 가
+        //  비어 있다(Custom/SystemHandler.cs 수동 트리거 조립부). 자동 PLC 사이클과 구분해 범위 Shot 이
+        //  선택 없이 기존 단일 사진 경로를 타게 한다(라이브 수동은 이 plan 에서 미지원 — 77-04 가 다룬다).
+        public bool IsManualTriggerCycle()
+        {
+            if (RequestPacket == null)
+            {
+                return false;
+            }
+            return string.IsNullOrEmpty(RequestPacket.Sender);
         }
 
         // 로그에서 자동(PLC 프로토콜) 사이클과 수동(RUN/반복/일괄/Test Find) 을 구분하기 위한 태그.
@@ -2117,6 +2385,11 @@ namespace ReringProject.Sequence {
             {
                 return System.Math.Max(dualMeas.ZIndexA, dualMeas.ZIndexB);
             }
+            bool bZRangeShot = shot.IsZRangeEnabled(); // Phase 77 SZF-02: 범위 Shot 은 ZIndexEnd 에서 완성
+            if (bZRangeShot)
+            {
+                return shot.ZIndexEnd;
+            }
             return shot.ZIndex;
         }
 
@@ -2233,6 +2506,11 @@ namespace ReringProject.Sequence {
                 bool bZMatch = shot.ZIndex == nZIndex;
                 bool bCrossZCompletesHere = ShotHasCrossZMeasurementCompletingAt(shot, nZIndex);
                 bool bInScope = bOwnedByThisSeq && (bZMatch || bCrossZCompletesHere);
+                bool bZRangeCompletesHere = bOwnedByThisSeq && ShotHasZRangeCompletingAt(shot, nZIndex); // Phase 77 SZF-02
+                if (bZRangeCompletesHere)
+                {
+                    bInScope = true;
+                }
                 if (!bInScope)
                 {
                     continue;
@@ -2321,6 +2599,11 @@ namespace ReringProject.Sequence {
             bool bCrossZMeasurementCaptureIndex = IsZIndexUsedByCrossZMeasurement(nZIndex);
             bool bSuppressWarning = bDatumOnlyIndex || bCrossZMeasurementCaptureIndex;
             if (bSuppressWarning)
+            {
+                return;
+            }
+            bool bZRangeCaptureIndex = IsZIndexUsedByZRangeCapture(nZIndex); // Phase 77 SZF-02: 중간 z 는 결과 0건이 정상
+            if (bZRangeCaptureIndex)
             {
                 return;
             }

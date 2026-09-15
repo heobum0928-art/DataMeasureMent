@@ -115,6 +115,15 @@ namespace ReringProject.Sequence
         //  CopyPublicPropertiesTo 도 프로퍼티 기반이라 _copyExclude 수정이 불필요하다.
         public string LastErrorMessage;
 
+        // Phase 77 SZF-03: Z 범위 선택에 쓰인 에지 강도 점수(EdgeStrengthScore.Average)와 채택된 z 번호.
+        //  LastErrorMessage 와 같은 이유로 필드로 선언 — ParamBase.Save/Load 는 프로퍼티만 순회하므로
+        //  필드는 INI 레시피에 쓰이지 않고 CopyPublicPropertiesTo(붙여넣기)도 건드리지 않는다.
+        public const int SELECTED_Z_NONE = -1;
+        public const string SELECTED_Z_PREFIX = "z";
+        private const int MIN_SELECTED_Z_INDEX = 1;
+        public double LastFitScore;
+        public int LastSelectedZIndex = SELECTED_Z_NONE;
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } // MeasurementFactory 키
 
@@ -179,6 +188,34 @@ namespace ReringProject.Sequence
             LastHasResult = false; // 미측정 상태 복원
             LastSkipReason = null; // datum-skip subtype 리셋
             LastErrorMessage = null; // 이전 사이클 잔재 방지
+            LastFitScore = 0.0; // Phase 77: 이전 사이클 선택 점수 잔재 방지
+            LastSelectedZIndex = SELECTED_Z_NONE; // Phase 77: 이전 사이클 선택 Z 잔재 방지
+        }
+
+        // Phase 77 SZF-03/D-77-07 ②: 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.
+        //  기본값 false — 미지원 타입은 범위 켠 Shot 이어도 기존 단일 사진 경로를 탄다.
+        public virtual bool SupportsEdgeStrengthScore()
+        {
+            return false;
+        }
+
+        // Phase 77 D-77-07 ⑥: 결과 화면·CSV 의 "선택 Z" 표시·저장·로드 단일 규칙 — 여기 한 곳만 고치면 전부 맞는다.
+        public static string FormatSelectedZ(int nZIndex)
+        {
+            if (nZIndex < MIN_SELECTED_Z_INDEX) { return string.Empty; }
+            return SELECTED_Z_PREFIX + nZIndex.ToString();
+        }
+
+        public static int ParseSelectedZ(string szText)
+        {
+            if (string.IsNullOrEmpty(szText)) { return SELECTED_Z_NONE; }
+            if (!szText.StartsWith(SELECTED_Z_PREFIX)) { return SELECTED_Z_NONE; }
+            string szNumber = szText.Substring(SELECTED_Z_PREFIX.Length);
+            int nZIndex;
+            bool bParsed = int.TryParse(szNumber, out nZIndex);
+            if (!bParsed) { return SELECTED_Z_NONE; }
+            if (nZIndex < MIN_SELECTED_Z_INDEX) { return SELECTED_Z_NONE; }
+            return nZIndex;
         }
 
         // 하위호환: ParamBase.Load 는 INI 누락 double 키를 0 으로 덮어쓴다. 구 레시피엔 MeasCorrectionFactor 키가 없어

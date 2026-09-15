@@ -55,6 +55,25 @@ namespace ReringProject.Sequence {
             BothReady
         }
 
+        // Phase 77 SZF-02/SZF-03: 이번 tick 에서 범위 Shot 측정을 어떻게 다룰지 — TryHandleZRangeMeasurement 의
+        //  분기표. Off 는 범위 미사용(가장 먼저 가드, SZF-05 회귀 0). ManualSingle/OfflineSelect 는 77-04 가 채운다.
+        private enum EZRangeMode {
+            Off,            // IsZRangeEnabled()==false, 또는 프로토콜 사이클이 아니거나 수동 트리거
+            AutoPending,    // 자동 PLC 사이클, 중간 z tick — 후보만 모으고 아직 측정 안 함
+            AutoCompletion, // 자동 PLC 사이클, ZIndexEnd tick — 후보별 실행·선택
+            ManualSingle,   // 라이브 수동(RUN/수동 트리거) — 77-04
+            OfflineSelect   // 오프라인/저장사진 재검사 — 77-04
+        }
+
+        private const string ZFOCUS_LOG_TAG = "[ZFocus] ";
+        private const string ZFOCUS_SCORE_FORMAT = "F2";
+        private const double ZFOCUS_FAILED_SCORE = 0.0;
+
+        // Phase 77 SZF-02/O-5: 이번 tick 에서 로드된 범위 후보 이미지 — EnsureZRangeCandidatesLoaded 가 채우고
+        //  ReleaseZRangeCandidates 가 비운다(측정 직후 즉시 Dispose, RunInit 이 안전망으로 한 번 더 비운다).
+        private List<KeyValuePair<int, HImage>> _lstZRangeCandidates = null;
+        private bool _bZRangeCandidatesLoaded = false;
+
         // 측정 실패 에러 원문을 LastErrorMessage 에 남길 때 최대 보관 길이(문자 수). 정보 과다 노출/과도한
         //  길이 방지용 절단 기준 — 개행 치환 후 이 길이를 넘으면 잘라낸다.
         private const int MEASURE_ERROR_MAX_LEN = 200;
@@ -162,6 +181,7 @@ namespace ReringProject.Sequence {
 
         //260818 hbk [초보자용] 검사 시작 직전 정리 단계 — 지난번 검사 결과가 남아있으면 지우고 바로 다음 단계로 넘어갑니다.
         private void RunInit() {
+            ReleaseZRangeCandidates(); // Phase 77 O-5: 이전 tick 잔여 후보 안전망(정상 흐름에서는 이미 비어 있음)
             // Run 사이클 진입 시 image buffer + FAI results dispose
             if (ShotParam != null) ShotParam.ClearAllResults();
             Step = (int)EStep.MoveZ;
@@ -481,6 +501,7 @@ namespace ReringProject.Sequence {
                     //260618 hbk Phase 54 ALIGN-01 측정 이미지 회전(레벨링 warp) 폐기 (D-03/D-05 warp 0회).
                     //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
                     ShotParam.SetImage(image); // 측정 소스(데이터 경로) — 표시 설정과 무관하게 항상 설정한다.
+                    StoreZRangeCandidateImage(image); // Phase 77 SZF-02: 범위 안 z 면 후보로 누적(꺼짐/범위 밖은 no-op)
                     UpdateViewerCopy(image);
                     image.Dispose(); // 누수 방지 — 조건과 무관하게 항상 수행.
                 }
@@ -572,6 +593,7 @@ namespace ReringProject.Sequence {
             bool bShotDisplayImageReplaced = false;
             if (ShotParam != null) {
                 MeasureShotFaiList(parentSeq2, overlayAcc, dctAlgoUsed, ref allPass, ref measuredCount, ref nMeasNg, ref bShotDisplayImageReplaced);
+                ReleaseZRangeCandidates(); // Phase 77 O-5: 평가 직후 즉시 해제(이번 Shot 의 후보를 다음 Shot 으로 새지 않게)
             }
             pMyContext.AllPass = allPass;
             pMyContext.MeasuredCount = measuredCount;
@@ -686,6 +708,12 @@ namespace ReringProject.Sequence {
             if (!EvaluateCrossZGate(meas, parentSeq2, acc, out dualMeasForGate, out bHasAnyZIndex)) return;
             HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
             InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
+            // Phase 77 SZF-02/SZF-03: 범위 Shot 의 지원 측정은 여기서 대기 표시 또는 후보별 실행·선택까지
+            //  전부 처리하고 true 를 돌려준다 — 아래 공용 실행 경로(단일 사진)로는 내려가지 않는다.
+            if (TryHandleZRangeMeasurement(meas, parentSeq2, bHasAnyZIndex, dualMeasForGate, image, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed))
+            {
+                return;
+            }
             double resultValue;
             string measError;
             List<EdgeInspectionOverlay> measOverlays;
@@ -1915,6 +1943,284 @@ namespace ReringProject.Sequence {
             return ok;
         }
 
+        // Phase 77 SZF-02/SZF-05/D-77-06/P-10: 이번 tick 에서 범위 Shot 측정을 어떻게 다룰지 — 가드 순서가
+        //  회귀 0 을 보장한다. ShotParam.IsZRangeEnabled() 가 가장 먼저 걸리므로 범위 꺼짐/옛 레시피/TOP·BOTTOM
+        //  은 항상 Off 로 끝난다(SZF-05). 수동·오프라인 모드는 이 plan 에서 전부 Off — 77-04 가 확장한다.
+        private EZRangeMode ResolveZRangeMode(InspectionSequence parentSeq2)
+        {
+            if (ShotParam == null)
+            {
+                return EZRangeMode.Off;
+            }
+            if (!ShotParam.IsZRangeEnabled())
+            {
+                return EZRangeMode.Off;
+            }
+            if (parentSeq2 == null)
+            {
+                return EZRangeMode.Off;
+            }
+            if (!parentSeq2.IsProtocolDrivenCycle())
+            {
+                return EZRangeMode.Off; // 수동 RUN — 77-04 가 ManualSingle 로 바꾼다
+            }
+            if (parentSeq2.IsManualTriggerCycle())
+            {
+                return EZRangeMode.Off; // 수동 트리거 — 77-04 가 ManualSingle 로 바꾼다
+            }
+            int nCurZ = parentSeq2.GetExecutionZIndex();
+            if (nCurZ == ShotParam.ZIndexEnd)
+            {
+                return EZRangeMode.AutoCompletion;
+            }
+            return EZRangeMode.AutoPending;
+        }
+
+        // Phase 77 SZF-02/T-77-01: RunGrab 이 사진을 찍을 때마다 호출된다 — 범위 안 z 사진만 후보로 저장하고,
+        //  범위 밖 z(다른 Shot/Datum 이 쓰는 z 포함, 겹침 제외는 77-02) 저장은 DoesShotOwnZRangeIndex 가드가 막는다.
+        private void StoreZRangeCandidateImage(HImage image)
+        {
+            if (image == null)
+            {
+                return;
+            }
+            if (ShotParam == null)
+            {
+                return;
+            }
+            InspectionSequence parentSeq2 = ShotParam.Parent as InspectionSequence;
+            if (parentSeq2 == null)
+            {
+                return;
+            }
+            EZRangeMode mode = ResolveZRangeMode(parentSeq2);
+            bool bCapturingMode = mode == EZRangeMode.AutoPending || mode == EZRangeMode.AutoCompletion;
+            if (!bCapturingMode)
+            {
+                return;
+            }
+            int nCurZ = parentSeq2.GetExecutionZIndex();
+            bool bOwnsThisZ = parentSeq2.DoesShotOwnZRangeIndex(ShotParam, nCurZ);
+            if (!bOwnsThisZ)
+            {
+                return; // 범위 밖 z — 저장 금지(T-77-01)
+            }
+            parentSeq2.StoreZRangeImage(ShotParam.ShotName, nCurZ, image);
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "후보 저장 — " + ShotParam.ShotName + " z=" + nCurZ);
+        }
+
+        // Phase 77 SZF-02/SZF-03/P-6/P-7: ProcessOneMeasurement 가 InjectDatumOrigin 직후 호출한다. true 를
+        //  반환하면 호출부는 그 자리에서 return 하고(공용 단일 사진 실행 경로로 내려가지 않는다), false 면
+        //  호출부가 기존 경로를 그대로 이어간다.
+        private bool TryHandleZRangeMeasurement(MeasurementBase meas, InspectionSequence parentSeq2,
+                                                bool bHasAnyZIndex, DualImageEdgeDistanceMeasurement dualMeasForGate,
+                                                HImage image, HTuple transform, double pixRes,
+                                                ShotMeasureAccumulator acc,
+                                                List<EdgeInspectionOverlay> overlayAcc,
+                                                List<EdgeInspectionOverlay> faiOverlays,
+                                                Dictionary<string, int> dctAlgoUsed)
+        {
+            EZRangeMode mode = ResolveZRangeMode(parentSeq2);
+            if (mode == EZRangeMode.Off)
+            {
+                return false;
+            }
+            if (bHasAnyZIndex)
+            {
+                return false; // 크로스-Z 측정은 기존 ZIndexA/B 규칙 그대로(D-77-07 ②)
+            }
+            if (mode == EZRangeMode.AutoPending)
+            {
+                MarkMeasurementZRangePending(meas, parentSeq2, acc);
+                return true;
+            }
+            if (mode == EZRangeMode.AutoCompletion)
+            {
+                bool bScoreSupported = dualMeasForGate == null && meas.SupportsEdgeStrengthScore();
+                if (!bScoreSupported)
+                {
+                    return false; // 미지원 타입 — 77-02 가 기준 Z 사진 1회 측정 경로로 바꾼다(D-77-07 ②)
+                }
+                return ExecuteZRangeSelection(meas, parentSeq2, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
+            }
+            return false; // ManualSingle/OfflineSelect — 77-04
+        }
+
+        // Phase 77 SZF-02/P-6: 중간 z tick — 후보 사진을 모으는 중이라 아직 측정 안 함. 크로스-Z 대기
+        //  (MarkMeasurementCrossZIncomplete)와 같은 취지의 대기 표시. 응답은 완성 index 게이트로 빠진다(PR-1).
+        private void MarkMeasurementZRangePending(MeasurementBase meas, InspectionSequence parentSeq2, ShotMeasureAccumulator acc)
+        {
+            meas.ClearResult();
+            meas.LastSkipReason = SkipReason.Z_RANGE_PENDING;
+            meas.LastJudgement = false;
+            acc.FaiAllPass = false;
+            acc.MeasuredCount++;
+            string measName = GetMeasurementDisplayName(meas);
+            int nCurZ = UNSET_ZINDEX;
+            if (parentSeq2 != null)
+            {
+                nCurZ = parentSeq2.GetExecutionZIndex();
+            }
+            int nZIndexEnd = 0;
+            string szShotName = "";
+            if (ShotParam != null)
+            {
+                nZIndexEnd = ShotParam.ZIndexEnd;
+                szShotName = ShotParam.ShotName;
+            }
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "대기 — " + szShotName + " · " + measName + " z=" + nCurZ + " 끝=" + nZIndexEnd + ": 후보 사진을 모으는 중이라 아직 측정 안 함(PASS 아님)");
+        }
+
+        // Phase 77 SZF-02/O-4/O-5: 같은 Shot 의 지원 측정 여러 개가 ZIndexEnd tick 에서 공유하는 후보 로더 —
+        //  첫 지원 측정에서 1회만 저장소에서 소유권째 꺼내고(추가 복사 없음), 같은 Shot 의 다음 측정은 재사용한다.
+        private void EnsureZRangeCandidatesLoaded(InspectionSequence parentSeq2)
+        {
+            if (_bZRangeCandidatesLoaded)
+            {
+                return;
+            }
+            _bZRangeCandidatesLoaded = true;
+            if (ShotParam == null || parentSeq2 == null)
+            {
+                _lstZRangeCandidates = new List<KeyValuePair<int, HImage>>();
+                return;
+            }
+            List<int> lstIndices = parentSeq2.BuildZRangeCandidateIndices(ShotParam);
+            _lstZRangeCandidates = parentSeq2.TakeZRangeImages(ShotParam.ShotName, lstIndices);
+        }
+
+        // Phase 77 O-5: 남은 후보를 전부 Dispose 하고 로드 상태를 리셋한다 — RunMeasure 직후(정상 흐름, 평가
+        //  직후 즉시 해제)와 RunInit(다음 tick 진입 시 안전망)에서 호출된다.
+        private void ReleaseZRangeCandidates()
+        {
+            if (_lstZRangeCandidates != null)
+            {
+                foreach (var kvp in _lstZRangeCandidates)
+                {
+                    SafeDisposeImage(kvp.Value);
+                }
+            }
+            _lstZRangeCandidates = null;
+            _bZRangeCandidatesLoaded = false;
+        }
+
+        // Phase 77 SZF-03/O-4: ZIndexEnd tick 에서 지원 측정 1건을 후보별로 실제 측정하고 에지 강도 최고 점수의
+        //  결과를 채택한다 — 재계산 없음, 채택된 후보의 측정값·오버레이를 그대로 기록한다.
+        private bool ExecuteZRangeSelection(MeasurementBase meas, InspectionSequence parentSeq2, HTuple transform, double pixRes,
+                                            ShotMeasureAccumulator acc, List<EdgeInspectionOverlay> overlayAcc,
+                                            List<EdgeInspectionOverlay> faiOverlays, Dictionary<string, int> dctAlgoUsed)
+        {
+            EnsureZRangeCandidatesLoaded(parentSeq2);
+            bool bNoCandidates = _lstZRangeCandidates == null || _lstZRangeCandidates.Count == 0;
+            if (bNoCandidates)
+            {
+                string measName = GetMeasurementDisplayName(meas);
+                string szShotName = "";
+                if (ShotParam != null)
+                {
+                    szShotName = ShotParam.ShotName;
+                }
+                Logging.PrintLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "후보 사진 없음 — " + szShotName + " · " + measName + ": 현재 사진 1장으로 측정");
+                return false; // 기존 단일 사진 경로로 폴백 — PASS 로 비워 두지 않는다
+            }
+            var swMeasureExec = Stopwatch.StartNew();
+            List<ZFocusRunResult> lstResults = RunZFocusCandidates(meas, transform, pixRes);
+            ZFocusRunResult chosen = PickZFocusResult(lstResults);
+            LogZFocusSelection(meas, lstResults, chosen, swMeasureExec);
+            RecordMeasurementResult(meas, false, chosen.Ok, chosen.Value, chosen.Error, chosen.Overlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
+            meas.LastSelectedZIndex = chosen.ZIndex; // RecordMeasurementResult 실패 분기의 ClearResult 뒤라 여기서 다시 남긴다
+            return true;
+        }
+
+        // Phase 77 SZF-03: 후보 목록(z 오름차순) 순서대로 기존 TryExecuteMeasurement 를 실제로 돌린다 —
+        //  성공하면 meas.LastFitScore(TryFitLine 이 채운 에지 강도 점수)를 그대로 쓴다(재계산 없음).
+        private List<ZFocusRunResult> RunZFocusCandidates(MeasurementBase meas, HTuple transform, double pixRes)
+        {
+            var lstResults = new List<ZFocusRunResult>();
+            foreach (var kvp in _lstZRangeCandidates)
+            {
+                int nZIndex = kvp.Key;
+                HImage candidate = kvp.Value;
+                double resultValue;
+                string measError;
+                List<EdgeInspectionOverlay> measOverlays;
+                bool ok = TryExecuteMeasurement(meas, candidate, transform, pixRes, out resultValue, out measError, out measOverlays);
+                double dScore = ZFOCUS_FAILED_SCORE;
+                if (ok)
+                {
+                    dScore = meas.LastFitScore;
+                }
+                var result = new ZFocusRunResult();
+                result.ZIndex = nZIndex;
+                result.Ok = ok;
+                result.Score = dScore;
+                result.Value = resultValue;
+                result.Error = measError;
+                result.Overlays = measOverlays;
+                lstResults.Add(result);
+            }
+            return lstResults;
+        }
+
+        // Phase 77 SZF-03/PR-2: 성공한 결과 중 점수가 엄격히 더 높을 때만 교체한다 — 동점이면 먼저(작은 z)
+        //  평가된 후보를 유지한다(엄격한 초과 비교, 반올림 없이 double 원값 비교). 성공이 하나도 없으면 목록
+        //  첫 결과(가장 작은 z, 보통 기준 Z)를 그대로 반환해 그 실패가 기록되게 한다 — PASS 로 비워 두지 않는다.
+        private ZFocusRunResult PickZFocusResult(List<ZFocusRunResult> lstResults)
+        {
+            ZFocusRunResult best = null;
+            for (int i = 0; i < lstResults.Count; i++)
+            {
+                ZFocusRunResult candidate = lstResults[i];
+                if (!candidate.Ok)
+                {
+                    continue;
+                }
+                if (best == null)
+                {
+                    best = candidate;
+                    continue;
+                }
+                if (candidate.Score > best.Score)
+                {
+                    best = candidate;
+                }
+            }
+            if (best != null)
+            {
+                return best;
+            }
+            return lstResults[0]; // 전부 실패 — 첫 후보(기준 Z 쪽)의 실패를 그대로 기록
+        }
+
+        // Phase 77 SZF-03/T-77-05: 어떤 z 가 왜 채택됐는지 Algorithm 로그 한 줄로 남긴다(재현성/디버깅).
+        private void LogZFocusSelection(MeasurementBase meas, List<ZFocusRunResult> lstResults, ZFocusRunResult chosen, Stopwatch sw)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < lstResults.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(", ");
+                }
+                ZFocusRunResult r = lstResults[i];
+                if (r.Ok)
+                {
+                    sb.Append("z" + r.ZIndex + "=" + r.Score.ToString(ZFOCUS_SCORE_FORMAT));
+                }
+                else
+                {
+                    sb.Append("z" + r.ZIndex + "=실패");
+                }
+            }
+            string measName = GetMeasurementDisplayName(meas);
+            string szShotName = "";
+            if (ShotParam != null)
+            {
+                szShotName = ShotParam.ShotName;
+            }
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "선택 — " + szShotName + " · " + measName + " 후보 " + sb.ToString() + " → z" + chosen.ZIndex + " (" + sw.ElapsedMilliseconds + "ms)");
+        }
+
         //260722 hbk Phase 68 D-02a: 크로스-Z 저장소 키 = Shot 이름 + 측정 식별자(사이클 내 안정 문자열).
         //  Shot 이름을 포함해 서로 다른 Shot 의 동명 측정이 같은 저장소를 공유하는 충돌을 방지한다.
         private string BuildCrossZMeasurementKey(MeasurementBase meas)
@@ -1971,6 +2277,17 @@ namespace ReringProject.Sequence {
             public bool CaptureOk;
             public bool Completed;
             public string CapturedRoleKey;
+        }
+
+        // Phase 77 SZF-03: 후보 z 하나를 실제로 측정한 결과 — RunZFocusCandidates 가 채우고 PickZFocusResult 가
+        //  고른다. 같은 파일의 CrossZCaptureTickResult 와 동일한 필드(프로퍼티 아님) + K&R 스타일 선례를 따른다.
+        private class ZFocusRunResult {
+            public int ZIndex;
+            public bool Ok;
+            public double Score;
+            public double Value;
+            public string Error;
+            public List<EdgeInspectionOverlay> Overlays;
         }
 
         // 크로스-Z 촬영 한 번(tick)을 처리한다 — 이 측정과 무관한지 / 촬영에 실패했는지 / A·B 가

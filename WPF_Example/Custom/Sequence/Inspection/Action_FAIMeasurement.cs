@@ -2001,25 +2001,69 @@ namespace ReringProject.Sequence {
             {
                 return;
             }
-            InspectionSequence parentSeq2 = ShotParam.Parent as InspectionSequence;
-            if (parentSeq2 == null)
+            InspectionSequence parentSeq = ShotParam.Parent as InspectionSequence;
+            if (parentSeq == null)
             {
                 return;
             }
-            EZRangeMode mode = ResolveZRangeMode(parentSeq2);
+            EZRangeMode mode = ResolveZRangeMode(parentSeq);
             bool bCapturingMode = mode == EZRangeMode.AutoPending || mode == EZRangeMode.AutoCompletion;
             if (!bCapturingMode)
             {
                 return;
             }
-            int nCurZ = parentSeq2.GetExecutionZIndex();
-            bool bOwnsThisZ = parentSeq2.DoesShotOwnZRangeIndex(ShotParam, nCurZ);
+            int nCurZ = parentSeq.GetExecutionZIndex();
+            bool bOwnsThisZ = parentSeq.DoesShotOwnZRangeIndex(ShotParam, nCurZ);
             if (!bOwnsThisZ)
             {
                 return; // 범위 밖 z — 저장 금지(T-77-01)
             }
-            parentSeq2.StoreZRangeImage(ShotParam.ShotName, nCurZ, image);
+            parentSeq.StoreZRangeImage(ShotParam.ShotName, nCurZ, image);
+            SaveZRangeCandidateImageIfEnabled(image, parentSeq, nCurZ); // Phase 77 D-77-06 ③: 저장 체크박스 켜짐 + 라이브 PLC 일 때만 실제 저장
             Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "후보 저장 — " + ShotParam.ShotName + " z=" + nCurZ);
+        }
+
+        // Phase 77 D-77-06 ③/T-77-17: 저장 체크박스가 켜진 라이브 PLC 자동 사이클에서만 후보 z 사진을
+        //  원본 폴더에 저장하고 cycle.json 에 기록한다. 검사 흐름에 예외가 전파되지 않도록 전체를
+        //  try/catch 로 감싼다(ArchiveDatumImageForCycle 선례와 동일 수명 규약).
+        private void SaveZRangeCandidateImageIfEnabled(HImage image, InspectionSequence parentSeq, int nZIndex)
+        {
+            try
+            {
+                if (image == null)
+                {
+                    return;
+                }
+                if (parentSeq == null)
+                {
+                    return;
+                }
+                if (ShotParam == null)
+                {
+                    return;
+                }
+                if (!SystemSetting.Handle.SaveZRangeCandidateImages)
+                {
+                    return;
+                }
+                if (!IsLiveCaptureMode())
+                {
+                    return;
+                }
+                DateTime ts = DateTime.Now;
+                string szFileName = CaptureImageSaveService.BuildZRangeCandidateFileName(parentSeq.Name, ShotParam.ShotName, nZIndex, ts);
+                string szPath = CaptureImageSaveService.BuildFilePath(false, szFileName, ts);
+                bool bEnqueued = EnqueueCycleDatumImageCopy(image, szFileName, ts);
+                if (bEnqueued)
+                {
+                    parentSeq.RecordTickZRangeImage(ShotParam.ShotName, nZIndex, szPath);
+                    Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "후보 사진 저장 — " + ShotParam.ShotName + " z" + nZIndex + ": " + szPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintErrLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "후보 사진 저장 실패(무시): " + ex.Message);
+            }
         }
 
         // Phase 77 SZF-02/SZF-03/P-6/P-7: ProcessOneMeasurement 가 InjectDatumOrigin 직후 호출한다. true 를

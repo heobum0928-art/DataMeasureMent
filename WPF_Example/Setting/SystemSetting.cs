@@ -216,6 +216,13 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool AutoFillOfflineImages { get; set; } = false;
 
+        // Phase 77 D-77-06 ③/D-77-07 ④ — 자동 검사 중 Z 범위 Shot 의 후보 z 사진을 전부 원본(origin) 폴더에
+        //  저장하고 cycle.json 에 기록해 사무실 재검사로 선택 로직(동점 규칙 등)을 검증하는 용도다.
+        //  SIDE 한 장 약 127MB(bmp) 곱하기 z 개수가 사이클마다 쌓이므로 평소 생산 중에는 반드시 끈다.
+        //  INI 키 누락 시 Load 의 ToBool 기본값이 false 라 기존 설치본은 자동으로 꺼진 상태를 유지한다.
+        [Category("System|Enviroment")]
+        public bool SaveZRangeCandidateImages { get; set; } = false;
+
         // 260820 hbk 원본(origin) 캡쳐 이미지 저장 포맷 선택 — CaptureImageSaveService.SaveWorker 가 참조.
         //  capture(오버레이 렌더) 이미지는 이 설정과 무관하게 기존대로 JPEG 고정(범위 밖, 사용자 확정).
         [Category("System|Enviroment")]

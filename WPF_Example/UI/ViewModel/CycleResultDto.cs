@@ -56,6 +56,12 @@ namespace ReringProject.UI
         /// </summary>
         public List<DatumImageRecordDto> DatumImages { get; set; } = new List<DatumImageRecordDto>();
 
+        /// <summary>
+        /// Phase 77 D-77-06 ③: 자동 검사 tick 에서 저장된 Z 범위 후보 사진 — 설정(SaveZRangeCandidateImages)이
+        /// 꺼져 있거나 옛 cycle.json 이면 빈 목록.
+        /// </summary>
+        public List<ZRangeImageRecordDto> ZRangeImages { get; set; } = new List<ZRangeImageRecordDto>();
+
         // 측정 데이터 — Shot > FAI > Measurement 계층
         public List<ShotResultDto> Shots { get; set; } = new List<ShotResultDto>();
     }
@@ -70,6 +76,16 @@ namespace ReringProject.UI
         public string DatumName { get; set; }
 
         public string Role { get; set; }
+
+        public string Path { get; set; }
+    }
+
+    /// <summary>Z 범위 후보 z 사진 1장의 기록. Phase 77 D-77-06 ③.</summary>
+    public class ZRangeImageRecordDto
+    {
+        public string ShotName { get; set; }
+
+        public int ZIndex { get; set; }
 
         public string Path { get; set; }
     }

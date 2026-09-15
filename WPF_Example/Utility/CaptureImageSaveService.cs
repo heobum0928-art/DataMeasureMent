@@ -416,6 +416,24 @@ namespace ReringProject.Utility {
             return ".jpg";
         }
 
+        /// <summary>Z 범위 후보 z 사진 파일명 prefix. Phase 77 D-77-06 ③: 저장 체크박스가 켜졌을 때만 쓰인다.</summary>
+        public const string ZRANGE_CANDIDATE_PREFIX = "shotz";
+
+        // Z 범위 후보 파일명 안에서 z 번호 구간을 구분하는 세그먼트 — BuildZRangeCandidateFileName 전용.
+        private const string ZRANGE_FILE_Z_SEGMENT = "_z";
+
+        /// <summary>
+        /// Z 범위 후보 z 사진 파일명. 결과: shotz_시퀀스_Shot이름_z번호_HHmmssfff.확장자.
+        /// 확장자는 BuildDatumFileName 과 같은 origin 저장 규칙(OriginImageFormat)을 따른다.
+        /// </summary>
+        public static string BuildZRangeCandidateFileName(string szSequence, string szShotName, int nZIndex, DateTime ts) {
+            string seq = SanitizeFilePart(szSequence, "SEQ");
+            string shot = SanitizeFilePart(szShotName, "SHOT");
+            string time = ts.ToString("HHmmssfff");
+            string name = ZRANGE_CANDIDATE_PREFIX + "_" + seq + "_" + shot + ZRANGE_FILE_Z_SEGMENT + nZIndex;
+            return name + "_" + time + ResolveOriginImageExtension();
+        }
+
         // 260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명 오버로드.
         //  nIndexNumber >= 0 이면 _M{번호} 를 FAI 뒤(seg 앞)에 삽입, -1 이면 생략.
         //  결과: prefix_seq_fai[_M{자재번호}][_seg][_judge]_time.jpg

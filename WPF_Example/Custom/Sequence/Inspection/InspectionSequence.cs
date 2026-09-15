@@ -59,6 +59,9 @@ namespace ReringProject.Sequence {
         private readonly object _tickDatumImageLock = new object();
         private readonly List<DatumImageRecordDto> _tickDatumImages = new List<DatumImageRecordDto>();
 
+        // Phase 77 D-77-06 ③: 이번 tick 에서 저장된 Z 범위 후보 사진 기록 — _tickDatumImageLock 을 그대로 재사용한다.
+        private readonly List<ZRangeImageRecordDto> _tickZRangeImages = new List<ZRangeImageRecordDto>();
+
         // 런타임 transform 캐시
         private readonly Dictionary<string, HTuple> _datumTransforms = new Dictionary<string, HTuple>();
 
@@ -272,6 +275,7 @@ namespace ReringProject.Sequence {
                     IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                     nCycleZIndex);
                 cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
+                cycleDto.ZRangeImages = TakeTickZRangeImagesSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 RecordSeatingEvidence(nIndexNumber);
             }
@@ -531,12 +535,34 @@ namespace ReringProject.Sequence {
         private void ClearTickDatumImages() {
             lock (_tickDatumImageLock) {
                 _tickDatumImages.Clear();
+                _tickZRangeImages.Clear();
             }
         }
 
         private List<DatumImageRecordDto> TakeTickDatumImagesSnapshot() {
             lock (_tickDatumImageLock) {
                 return new List<DatumImageRecordDto>(_tickDatumImages);
+            }
+        }
+
+        // Phase 77 D-77-06 ③: Action_FAIMeasurement.SaveZRangeCandidateImageIfEnabled 가 저장 성공 시 호출한다.
+        public void RecordTickZRangeImage(string szShotName, int nZIndex, string szPath) {
+            bool bInvalid = string.IsNullOrEmpty(szShotName) || string.IsNullOrEmpty(szPath);
+            if (bInvalid) {
+                return;
+            }
+            lock (_tickDatumImageLock) {
+                _tickZRangeImages.Add(new ZRangeImageRecordDto {
+                    ShotName = szShotName,
+                    ZIndex = nZIndex,
+                    Path = szPath
+                });
+            }
+        }
+
+        private List<ZRangeImageRecordDto> TakeTickZRangeImagesSnapshot() {
+            lock (_tickDatumImageLock) {
+                return new List<ZRangeImageRecordDto>(_tickZRangeImages);
             }
         }
 
@@ -2822,6 +2848,7 @@ namespace ReringProject.Sequence {
                     IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                     nCycleZIndex);
                 cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
+                cycleDto.ZRangeImages = TakeTickZRangeImagesSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 // z_index 마다 호출되는 경로다. 마지막에 한 번만 기록해야 사이클당 1세트가 된다.
                 bool bLastIndexOfCycle = !packet.IsBuffer;

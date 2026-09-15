@@ -1334,7 +1334,7 @@ Plans:
 - [x] 77-04-PLAN.md (5fba2496·d20ac23e) — 수동 라이브 1장 + 안내, 오프라인·재검사 z 별 사진 선택 재현, 후보 사진 저장 체크박스(기본 꺼짐) (SZF-02, SZF-03, SZF-04, SZF-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 77-05-PLAN.md — 버전 1.7.47.0 + 범위 꺼짐 경로 누적 회귀 감사 (SZF-05)
+- [x] 77-05-PLAN.md (bbbda563) — 버전 1.7.47.0 + 범위 꺼짐 경로 누적 회귀 감사 (SZF-05) · D-77-08 범위 변경 다이얼로그 b92d57e6 포함
 
 **Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 77-06-PLAN.md — 77-HUMAN-UAT.md 사무실 U-1~U-8 사용자 승인 체크포인트, SIDE 실기 U-9 는 O-1 후 (전 요구사항)

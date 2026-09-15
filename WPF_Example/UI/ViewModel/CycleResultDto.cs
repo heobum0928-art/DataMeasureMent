@@ -202,8 +202,8 @@ namespace ReringProject.UI
         private const string Z_TICK_PREFIX = "z=";
         private const string Z_TICK_FORMAT = "D2";
 
-        // Quick 260915-k5g R3: 결과 줄 끝 사용 Z 요약용 상수
-        private const string USED_Z_PREFIX = " ";
+        // Quick 260915-k5g R3: 판정 바로 뒤에 붙는 사용 Z 요약용 상수 — 줄 끝에 두면 "종합 OK z3" 로 잘못 읽힌다
+        private const string USED_Z_PREFIX = "사용 ";
         private const string USED_Z_SEP = "·";
 
         /// <summary>측정 1건의 사유 표시 텍스트. ReviewMeasurementRow/ExcelExportService 라벨과 동일 규칙.</summary>
@@ -463,7 +463,7 @@ namespace ReringProject.UI
             return sb.ToString();
         }
 
-        /// <summary>결과 줄 끝에 붙는 사용 Z 요약(" z3" / " z3·z4") — 유효 판정은 MeasurementBase.FormatSelectedZ 단일 소스(K-5).</summary>
+        /// <summary>판정 바로 뒤에 붙는 사용 Z 요약("사용 z3" / "사용 z3·z4"), 범위 미사용이면 빈 문자열 — 유효 판정은 MeasurementBase.FormatSelectedZ 단일 소스(K-5).</summary>
         private static string BuildUsedZSummary(CycleResultDto dto)
         {
             List<MeasurementResultDto> lstMeasurements = CollectMeasurements(dto);
@@ -522,6 +522,13 @@ namespace ReringProject.UI
             {
                 sb.Append(SEP);
                 sb.Append(szTick);
+            }
+
+            string szUsedZ = BuildUsedZSummary(dto);
+            if (!string.IsNullOrEmpty(szUsedZ))
+            {
+                sb.Append(SEP);
+                sb.Append(szUsedZ);
             }
 
             List<string> lstShotNames;
@@ -596,8 +603,6 @@ namespace ReringProject.UI
                 sb.Append(OVERALL_PREFIX);
                 sb.Append(dto.OverallJudgement);
             }
-
-            sb.Append(BuildUsedZSummary(dto));
 
             return sb.ToString();
         }

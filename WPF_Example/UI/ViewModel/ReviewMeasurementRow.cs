@@ -13,6 +13,9 @@ namespace ReringProject.UI
         /// <summary>SkipReason.MEASURE_FAIL 일 때의 JudgeText 라벨. ExcelExportService/ReviewerListLabelBuilder 가 재사용한다.</summary>
         public const string JUDGE_MEASURE_FAIL = "측정실패";
 
+        /// <summary>SkipReason.Z_RANGE_PENDING 일 때의 JudgeText 라벨 — 중간 z tick 대기 표시(Phase 77 SZF-04).</summary>
+        public const string JUDGE_Z_RANGE_PENDING = "Z 범위 대기";
+
         public string ShotName { get; set; }
 
         public string FAIName { get; set; }
@@ -27,6 +30,9 @@ namespace ReringProject.UI
 
         /// <summary>LastHasResult ? LastMeasuredValue.ToString("F4") : "—" — 0.0 도 정상값으로 표시 (CO-23-01)</summary>
         public string ResultDisplay { get; set; }
+
+        /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸(Phase 77 SZF-04).</summary>
+        public string SelectedZText { get; set; }
 
         /// <summary>
         /// LastSkipReason == "DATUM_FAIL" → "DETECT FAIL" (Phase 39 WF-01 datum 검출 실패 표기).
@@ -82,6 +88,7 @@ namespace ReringProject.UI
 
             // 0.0 도 정상 결과 — HasResult 플래그로 판별 (MeasuredValue != 0 센티넬 금지)
             if (m.LastHasResult) ResultDisplay = m.LastMeasuredValue.ToString("F4"); else ResultDisplay = "—";
+            SelectedZText = MeasurementBase.FormatSelectedZ(m.SelectedZIndex);
 
             // 3분기: DATUM_FAIL > HasResult 유무 > OK/NG
             if (m.LastSkipReason == SkipReason.DATUM_FAIL) //260710 hbk 상수화
@@ -95,6 +102,10 @@ namespace ReringProject.UI
             else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 비프로토콜 실행 크로스-Z 미측정 — 일반 대기 표시와 반드시 구분
             {
                 JudgeText = "CROSS-Z INCOMPLETE";
+            }
+            else if (m.LastSkipReason == SkipReason.Z_RANGE_PENDING)
+            {
+                JudgeText = JUDGE_Z_RANGE_PENDING;
             }
             else if (m.LastSkipReason == SkipReason.MEASURE_FAIL)
             {

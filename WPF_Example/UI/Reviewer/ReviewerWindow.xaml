@@ -206,6 +206,7 @@
                 <DataGridTextColumn Header="Tol+"    Binding="{Binding TolerancePlus, StringFormat=F4}"  Width="55"/>
                 <DataGridTextColumn Header="Tol-"    Binding="{Binding ToleranceMinus, StringFormat=F4}" Width="55"/>
                 <DataGridTextColumn Header="측정값"  Binding="{Binding ResultDisplay}"  Width="75"/>
+                <DataGridTextColumn Header="선택Z"  Binding="{Binding SelectedZText}"  Width="50"/>
                 <DataGridTextColumn Header="판정"    Binding="{Binding JudgeText}"      Width="65"/>
             </DataGrid.Columns>
         </DataGrid>

@@ -61,6 +61,15 @@ namespace ReringProject.UI
 
         public string MeasuredValueText { get { if (HasResult) return MeasuredValue.ToString("F3"); return "—"; } }
 
+        // 범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸(Phase 77 SZF-04, D-77-07 ⑥).
+        public string SelectedZText
+        {
+            get
+            {
+                return MeasurementBase.FormatSelectedZ(_measurement.LastSelectedZIndex);
+            }
+        }
+
         public string SpecMinText { get { return (NominalValue + ToleranceMinus).ToString("F3"); } }
 
         public string SpecMaxText { get { return (NominalValue + TolerancePlus).ToString("F3"); } }
@@ -73,6 +82,7 @@ namespace ReringProject.UI
             RaisePropertyChanged("ResultDisplay");
             RaisePropertyChanged("JudgeText");
             RaisePropertyChanged("MeasuredValueText");
+            RaisePropertyChanged("SelectedZText");
         }
 
         // 외부에서 ROI 등 접근용

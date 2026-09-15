@@ -202,6 +202,10 @@ namespace ReringProject.UI
         private const string Z_TICK_PREFIX = "z=";
         private const string Z_TICK_FORMAT = "D2";
 
+        // Quick 260915-k5g R3: 결과 줄 끝 사용 Z 요약용 상수
+        private const string USED_Z_PREFIX = " ";
+        private const string USED_Z_SEP = "·";
+
         /// <summary>측정 1건의 사유 표시 텍스트. ReviewMeasurementRow/ExcelExportService 라벨과 동일 규칙.</summary>
         private static string BuildReasonText(MeasurementResultDto m)
         {
@@ -459,6 +463,36 @@ namespace ReringProject.UI
             return sb.ToString();
         }
 
+        /// <summary>결과 줄 끝에 붙는 사용 Z 요약(" z3" / " z3·z4") — 유효 판정은 MeasurementBase.FormatSelectedZ 단일 소스(K-5).</summary>
+        private static string BuildUsedZSummary(CycleResultDto dto)
+        {
+            List<MeasurementResultDto> lstMeasurements = CollectMeasurements(dto);
+            List<int> lstZ = new List<int>();
+            foreach (var m in lstMeasurements)
+            {
+                string szZ = MeasurementBase.FormatSelectedZ(m.SelectedZIndex);
+                if (string.IsNullOrEmpty(szZ))
+                {
+                    continue;
+                }
+                if (!lstZ.Contains(m.SelectedZIndex))
+                {
+                    lstZ.Add(m.SelectedZIndex);
+                }
+            }
+            if (lstZ.Count == 0)
+            {
+                return string.Empty;
+            }
+            lstZ.Sort();
+            List<string> lstZText = new List<string>();
+            foreach (int nZ in lstZ)
+            {
+                lstZText.Add(MeasurementBase.FormatSelectedZ(nZ));
+            }
+            return USED_Z_PREFIX + string.Join(USED_Z_SEP, lstZText);
+        }
+
         public static string Build(CycleResultDto dto)
         {
             if (dto == null)
@@ -562,6 +596,8 @@ namespace ReringProject.UI
                 sb.Append(OVERALL_PREFIX);
                 sb.Append(dto.OverallJudgement);
             }
+
+            sb.Append(BuildUsedZSummary(dto));
 
             return sb.ToString();
         }

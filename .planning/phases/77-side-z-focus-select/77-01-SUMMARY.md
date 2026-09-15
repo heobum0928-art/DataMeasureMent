@@ -179,6 +179,11 @@ None - no external service configuration required.
 - 77-04(수동/오프라인/재검사, 후보 사진 저장)는 `EZRangeMode.ManualSingle`/`OfflineSelect` 분기가 `ResolveZRangeMode`/`TryHandleZRangeMeasurement` 에 이미 자리만 비워둔 상태(현재는 둘 다 Off로 폴백)
 - **런타임 end-to-end 증거(SIMUL TCP 사이클의 `[ZFocus] 대기`·`[ZFocus] 선택`·`[FitLine] edge-strength` 로그와 PLC 응답 B/P/F)는 아직 확인되지 않음** — 이 코드베이스에는 앱을 자동 기동하는 테스트 하네스가 없어 77-06 UAT U-1 에서 사람이 직접 확인해야 한다. O-1(PLC z 번호 배정)도 제어팀 협의 전이라 SIDE 실기 UAT 는 77-06 체크포인트 이후로 남아있다.
 
+## Self-Check: PASSED
+
+- 7개 소스 파일 + SUMMARY.md 전부 FOUND
+- 커밋 2개(`69d5ba72` feat, `cbb65665` docs) 전부 FOUND in `git log --oneline --all`
+
 ---
 *Phase: 77-side-z-focus-select*
 *Completed: 2026-09-15*

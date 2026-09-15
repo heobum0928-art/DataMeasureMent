@@ -23,6 +23,7 @@ PLC  $PREP/$TEST z3 ─┐
 | D-77-02 | **선명도 점수:** 측정이 이미 계산하는 **`measure_pos` 에지 강도(\|amp\|) 평균.** sobel_amp 별도 계산 안 함. |
 | D-77-03 | **설정 단위:** **Shot 단위 Z 범위(ZIndexStart/ZIndexEnd)** + 그 Shot 의 **측정(ROI)마다 자동 선택.** 예: C13-14 FAI 의 EdgeToLineDistance 6개가 각자 다른 Z 를 고를 수 있다. |
 | D-77-04 | 사용자 원래 표현: "같은 shot 에서 ROI 내 에지들의 평균값으로 가장 강한 에지로 선택" |
+| D-77-05 | **strip 강도 = strip 안 가장 강한 \|amp\| 1개** (EdgeSelection 이 All 이라 strip 당 에지가 여러 개여도). 흐린 영상에서 약한 에지 개수가 변해도 점수가 흔들리지 않게. 점수 = Σ(strip 최대 \|amp\|) ÷ EdgeSampleCount, 에지 없는 strip = 0. (2026-09-15, 리서치 Open Question 1 결정) |
 
 ## 왜 가능한가 — 코드 조사 (2026-09-15)
 

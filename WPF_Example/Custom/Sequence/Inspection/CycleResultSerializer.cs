@@ -132,6 +132,7 @@ namespace ReringProject.Sequence
                             LastSkipReason = meas.LastSkipReason,     // null or "DATUM_FAIL"
                             LastErrorMessage = meas.LastErrorMessage  // MEASURE_FAIL 원본 에러(절단됨)
                         };
+                        measDto.SelectedZIndex = meas.LastSelectedZIndex;
 
                         // DualImage 측정이면 가로축/세로축 2장 경로 기록 (리뷰어 전환 버튼용).
                         // 가로축은 측정에 명시 경로 없으면 Shot 이미지로 fallback.
@@ -178,6 +179,7 @@ namespace ReringProject.Sequence
                     {
                         bool bHasResult = m.LastHasResult;
                         bool bHasReason = !string.IsNullOrEmpty(m.LastSkipReason) && m.LastSkipReason != SkipReason.CROSS_Z_INCOMPLETE;
+                        if (m.LastSkipReason == SkipReason.Z_RANGE_PENDING) { bHasReason = false; }
                         bool bHandled = bHasResult || bHasReason;
                         if (!bHandled)
                         {

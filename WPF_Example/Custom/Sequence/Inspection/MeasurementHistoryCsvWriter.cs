@@ -21,7 +21,8 @@ namespace ReringProject.Sequence
         //260820 hbk 검사구분(자동/수동) 컬럼은 반드시 맨 뒤에 추가한다 — MeasurementHistoryCsvLoader 가 고정
         //  컬럼 인덱스(COL_TIME=0 ~ COL_OVERALL=13)로 읽고 "fields.Count < COLUMN_COUNT(14)" 로만 가드하므로,
         //  뒤에 붙이면 기존 14컬럼 파일도 그대로 읽히고 앞 컬럼 위치도 안 바뀐다(하위호환).
-        private const string CSV_HEADER = "검사일시,RecipeName,IndexNumber,ShotName,FAIName,MeasurementName,TypeName,NominalValue,TolerancePlus,ToleranceMinus,MeasuredValue,Judgement,HasResult,OverallCycleResult,검사구분";
+        // Phase 77 SZF-04: 선택Z 는 검사구분 뒤 맨 끝(인덱스 15)에만 붙는다 — 로더는 COL_SELECTED_Z(15) 옵션 열로 읽는다.
+        private const string CSV_HEADER = "검사일시,RecipeName,IndexNumber,ShotName,FAIName,MeasurementName,TypeName,NominalValue,TolerancePlus,ToleranceMinus,MeasuredValue,Judgement,HasResult,OverallCycleResult,검사구분,선택Z";
 
         //260820 hbk 검사구분 표기값 — 사람이 엑셀에서 바로 읽고 필터할 수 있게 한글 고정 문자열.
         private const string RUNMODE_AUTO = "자동";
@@ -112,6 +113,7 @@ namespace ReringProject.Sequence
                 Esc(szOverall),
                 MapRunMode(dto)   //260820 hbk 검사구분(자동/수동) — 맨 뒤 컬럼(하위호환)
             };
+            fields.Add(MapSelectedZ(meas));   // Phase 77 SZF-04: 선택Z — 검사구분 뒤 맨 끝
 
             return string.Join(",", fields);
         }
@@ -124,6 +126,13 @@ namespace ReringProject.Sequence
                 return RUNMODE_AUTO;
             }
             return RUNMODE_MANUAL;
+        }
+
+        // Phase 77 SZF-04: 선택Z 표기 — 형식은 MeasurementBase.FormatSelectedZ 단일 소스, 여기서 규칙을 복제하지 않는다.
+        private static string MapSelectedZ(MeasurementResultDto meas)
+        {
+            if (meas == null) { return string.Empty; }
+            return MeasurementBase.FormatSelectedZ(meas.SelectedZIndex);
         }
 
         /// <summary>RepeatMeasurementStats.AddSample 정책과 일치하는 측정 판정 문자열 매핑.</summary>

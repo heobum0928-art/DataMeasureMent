@@ -137,6 +137,9 @@ namespace ReringProject.Sequence
         //  아예 없다 — 반드시 fields.Count 확인 후 읽고, 없으면 기존 동작 그대로(수동=false) 취급한다.
         //  COLUMN_COUNT 는 14 로 유지한다: 15 로 올리면 기존 14컬럼 파일이 전부 "손상 행"으로 걸러진다.
         private const int COL_RUNMODE = 14;
+        // Phase 77 SZF-04: 선택Z 컬럼. 이 컬럼 도입 전 파일은 이 인덱스가 없다 —
+        //  fields.Count 확인 후 읽고 없으면 -1(MeasurementBase.SELECTED_Z_NONE). COLUMN_COUNT 는 14 유지.
+        private const int COL_SELECTED_Z = 15;
         private const string RUNMODE_AUTO_TEXT = "자동";
         private const string RUNMODE_MANUAL_TEXT = "수동";
         private const string INSPECTION_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -405,6 +408,7 @@ namespace ReringProject.Sequence
                 meas.LastMeasuredValue = ParseDouble(fields[COL_MEASURED]);
             }
 
+            meas.SelectedZIndex = ParseSelectedZIndex(fields);
             return meas;
         }
 
@@ -653,6 +657,17 @@ namespace ReringProject.Sequence
                 return false;
             }
             return fields[COL_RUNMODE] == RUNMODE_MANUAL_TEXT;
+        }
+
+        // Phase 77 SZF-04: 선택Z 파싱 — 컬럼 없는 구 CSV 는 -1(미적용). 형식 규칙은 MeasurementBase.ParseSelectedZ 단일 소스.
+        private static int ParseSelectedZIndex(List<string> fields)
+        {
+            bool bHasColumn = fields.Count > COL_SELECTED_Z;
+            if (!bHasColumn)
+            {
+                return MeasurementBase.SELECTED_Z_NONE;
+            }
+            return MeasurementBase.ParseSelectedZ(fields[COL_SELECTED_Z]);
         }
 
         /// <summary>자재번호 파싱. 공백/실패는 -1(CycleResultDto.IndexNumber 의 미지정 sentinel).</summary>

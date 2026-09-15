@@ -146,6 +146,9 @@ namespace ReringProject.UI
 
         /// <summary>세로축 티칭 이미지 경로 (DualImage).</summary>
         public string VerticalImagePath { get; set; }
+
+        /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호. -1 = 범위 미적용·옛 JSON(Phase 77 SZF-04, D-77-07 ⑥).</summary>
+        public int SelectedZIndex { get; set; } = MeasurementBase.SELECTED_Z_NONE;
     }
 
     /// <summary>
@@ -187,6 +190,7 @@ namespace ReringProject.UI
         {
             bool bHasResult = m.LastHasResult;
             bool bHasReason = !string.IsNullOrEmpty(m.LastSkipReason) && m.LastSkipReason != SkipReason.CROSS_Z_INCOMPLETE;
+            if (m.LastSkipReason == SkipReason.Z_RANGE_PENDING) { bHasReason = false; }
             bNg = (bHasResult && !m.LastJudgement) || bHasReason;
             return bHasResult || bHasReason;
         }

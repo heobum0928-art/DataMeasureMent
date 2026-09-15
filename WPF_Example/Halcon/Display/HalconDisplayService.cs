@@ -18,6 +18,7 @@ namespace ReringProject.Halcon.Display
         // 측정 이름 라벨 offset(px) — 선 중점 기준. 선과 글자가 겹치지 않을 만큼만 띄운다.
         private const double LABEL_ROW_OFFSET = 18.0;
         private const double LABEL_COL_OFFSET = 6.0;
+        private const string LABEL_TEXT_SEPARATOR = " "; // 측정 이름 라벨 뒤 선택 Z 라벨 이어 쓰기 구분자(Phase 77 SZF-04)
 
         // 이번 렌더 패스에서 측정명 라벨을 이미 그렸는지. Render 의 overlay 루프 진입 시 false 로 초기화된다.
         private bool _measNameLabelDrawn;
@@ -539,6 +540,11 @@ namespace ReringProject.Halcon.Display
                 window.SetColor("orange");   // 선 색(녹/적/청록)과 겹치지 않는 색 — 라벨임을 한눈에 구분
                 HOperatorSet.SetTposition(window, labelRow, labelCol);
                 HOperatorSet.WriteString(window, overlay.MeasurementName);
+                bool bHasSelectedZ = !string.IsNullOrEmpty(overlay.SelectedZLabel);
+                if (bHasSelectedZ)
+                {
+                    HOperatorSet.WriteString(window, LABEL_TEXT_SEPARATOR + overlay.SelectedZLabel); // write_string 은 앞 문자열 뒤에 이어 쓴다
+                }
                 _measNameLabelDrawn = true;   // 성공했을 때만 세운다 — 예외로 못 그렸으면 다음 overlay 에서 재시도
             }
             catch

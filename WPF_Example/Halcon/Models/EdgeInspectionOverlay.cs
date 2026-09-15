@@ -49,6 +49,11 @@ namespace ReringProject.Halcon.Models
         //  구 cycle.json 에는 이 필드가 없어 null 로 로드된다 → 라벨 미표시로 자연 폴백(하위호환).
         public string MeasurementName { get; set; }
 
+        // 표시 전용 선택 Z 라벨("z5"). MeasurementName 에 섞지 않는 이유: 강조 대상 문자열 비교
+        //  (HighlightMeasurementName)가 MeasurementName 그대로를 기준으로 하기 때문에 섞으면 깨진다.
+        //  구 cycle.json 에는 이 필드가 없어 null 로 로드된다 → 라벨 미표시로 자연 폴백(하위호환).
+        public string SelectedZLabel { get; set; }
+
         public List<EdgeInspectionPoint> Points { get; set; } = new List<EdgeInspectionPoint>();
 
         public double LineRow1 { get; set; }
@@ -72,7 +77,8 @@ namespace ReringProject.Halcon.Models
                 LineRow1 = LineRow1,
                 LineColumn1 = LineColumn1,
                 LineRow2 = LineRow2,
-                LineColumn2 = LineColumn2
+                LineColumn2 = LineColumn2,
+                SelectedZLabel = SelectedZLabel
             };
         }
     }

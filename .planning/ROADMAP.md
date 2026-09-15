@@ -1301,6 +1301,25 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 76-03-PLAN.md — 두 빌드 구성 회귀 0 증거 + 버전 표기 + SIDE PC 실기 UAT 체크포인트 (전 요구사항)
 
+### Phase 77: SIDE Z 범위 자동 초점 선택 (측정별 최선 Z 영상)
+
+**Goal:** SIDE 측정 ROI 는 높이 차이로 한 Z 에서 전부 초점이 맞지 않는다. **Shot 에 Z index 범위(start~end)** 를 주고, PLC 가 범위의 z 마다 찍은 영상 중 **측정(ROI)마다 에지가 가장 강한 영상**을 골라 그 측정값을 쓴다.
+
+**확정 결정 (사용자, 2026-09-15)** — 상세는 `77-CONTEXT.md`
+- PLC 가 Z 높이마다 새 z 번호로 `$PREP`/`$TEST` (프로토콜 불변, 앱은 Z 축 미제어)
+- 점수 = 측정이 이미 계산하는 `measure_pos` 에지 강도 평균 (못 찾은 strip = 0)
+- Shot 단위 범위 + 측정별 자동 선택
+
+**성공 기준 (초안)**
+1. 범위 켠 Shot 은 측정마다 최선 Z 결과 사용 + 선택 Z·점수 기록
+2. 범위 끈 Shot(기본·옛 레시피)과 TOP/BOTTOM 은 현재와 동일 — 회귀 0
+3. 반복 사이클에서 선택 Z 흔들림으로 값이 튀지 않음 (동점 규칙)
+4. 빠진 z 가 있어도 사이클 완주
+
+**Requirements**: SZF-01 (Shot Z 범위 설정), SZF-02 (범위 z 영상 누적), SZF-03 (측정별 강도 점수·선택), SZF-04 (기록·표시), SZF-05 (회귀 0)
+**Depends on:** Phase 76 · **Blocked:** z 번호 배정 제어팀 협의 (O-1, UAT 전)
+**Plans:** 0 plans (계획 전)
+
 ---
 
 ## Progress Table (v1.3 — Align 비전)

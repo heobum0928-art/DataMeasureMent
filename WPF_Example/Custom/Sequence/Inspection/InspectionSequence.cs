@@ -989,6 +989,29 @@ namespace ReringProject.Sequence {
                     return shot;
                 }
             }
+            // Phase 77 D-77-07 ①: 3패스 — Z 범위 폴백. 1·2패스가 먼저 매칭되면 이 패스는 실행되지 않는다
+            //  (기존 매칭 결과 불변). $PREP 조명이 범위 z 에서도 그 범위를 소유한 Shot 의 조명으로 켜지게 한다.
+            foreach (var shot in recipeManager.Shots)
+            {
+                bool bIsNull = shot == null;
+                if (bIsNull)
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                bool bZRangeOwned = DoesShotOwnZRangeIndex(shot, nZIndex);
+                if (bZRangeOwned)
+                {
+                    Logging.PrintLog((int)ELogType.LightController,
+                        "[PREP ZRange] Shot={0}, ZIndex={1}~{2}, RequestedZIndex={3}, Seq={4}",
+                        shot.ShotName, shot.ZIndex, shot.ZIndexEnd, nZIndex, Name);
+                    return shot;
+                }
+            }
             return null;
         }
 
@@ -1055,7 +1078,125 @@ namespace ReringProject.Sequence {
             {
                 return false;
             }
+            if (nZIndex == shot.ZIndex)
+            {
+                return true; // 기준 Z 는 항상 소유 — 다른 Shot·Datum 이 겹쳐도 자기 자신은 후보에서 빠지지 않는다.
+            }
+            if (IsZIndexReservedOutsideZRange(shot, nZIndex))
+            {
+                return false; // 다른 Shot·Datum·다른 범위 Shot 이 쓰는 z — 이 Shot 후보에서 제외(T-77-07, D-77-07 ⑤)
+            }
             return true;
+        }
+
+        // Phase 77 T-77-07/D-77-07 ⑤: DoesShotOwnZRangeIndex 를 부르지 않는 원시 범위 포함 판정(재귀 방지용
+        //  sub-헬퍼). IsZIndexReservedOutsideZRange 가 다른 Shot 의 범위 겹침을 검사할 때만 쓴다.
+        private static bool IsZIndexInsideRawZRange(ShotConfig shot, int nZIndex)
+        {
+            if (shot == null)
+            {
+                return false;
+            }
+            if (!shot.IsZRangeEnabled())
+            {
+                return false;
+            }
+            bool bAtOrAfterStart = nZIndex >= shot.ZIndex;
+            bool bAtOrBeforeEnd = nZIndex <= shot.ZIndexEnd;
+            return bAtOrAfterStart && bAtOrBeforeEnd;
+        }
+
+        // Phase 77 T-77-07/D-77-07 ⑤: 이 z 가 rangeShot 이 아닌 다른 Shot·Datum·다른 범위 Shot 이 이미 쓰는
+        //  번호인가 — 겹치면 rangeShot 의 후보에서 제외해야 한다(다른 조명·높이로 찍힌 사진이 섞이지 않게).
+        //  PropertyGrid 편집 경로(ShotConfig.WarnZIndexEndChanged)에서도 불리므로 RecipeManager 접근을
+        //  TryGetOwnedShotZIndexRange 와 동일하게 단계별 null 가드한다.
+        private bool IsZIndexReservedOutsideZRange(ShotConfig rangeShot, int nZIndex)
+        {
+            if (nZIndex == GetDatumZIndex())
+            {
+                return true;
+            }
+            if (IsZIndexUsedByCrossZDatum(nZIndex))
+            {
+                return true;
+            }
+            SystemHandler handler = SystemHandler.Handle;
+            if (handler == null)
+            {
+                return false;
+            }
+            if (handler.Sequences == null)
+            {
+                return false;
+            }
+            InspectionRecipeManager recipeManager = handler.Sequences.RecipeManager;
+            if (recipeManager == null)
+            {
+                return false;
+            }
+            foreach (var shot in recipeManager.Shots)
+            {
+                if (shot == null)
+                {
+                    continue;
+                }
+                if (object.ReferenceEquals(shot, rangeShot))
+                {
+                    continue;
+                }
+                bool bOwnedByThisSeq = shot.OwnerSequenceName == Name;
+                if (!bOwnedByThisSeq)
+                {
+                    continue;
+                }
+                if (shot.ZIndex == nZIndex)
+                {
+                    return true;
+                }
+                if (DoesShotOwnCrossZIndex(shot, nZIndex))
+                {
+                    return true;
+                }
+                if (IsZIndexInsideRawZRange(shot, nZIndex))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Phase 77 D-77-07 ⑤: shot 의 범위(ZIndex+1~ZIndexEnd) 중 다른 Shot·기준점이 이미 쓰는 z 목록을
+        //  한국어 한 줄로 만든다 — ShotConfig.WarnZIndexEndChanged(편집 즉시 경고) 와
+        //  Action_FAIMeasurement.LogZRangeMisconfigIfNeeded(런타임 tick 경고) 가 공유한다.
+        public string BuildZRangeConflictText(ShotConfig shot)
+        {
+            if (shot == null)
+            {
+                return string.Empty;
+            }
+            if (!shot.IsZRangeEnabled())
+            {
+                return string.Empty;
+            }
+            string szConflictList = "";
+            for (int nZ = shot.ZIndex + 1; nZ <= shot.ZIndexEnd; nZ++)
+            {
+                bool bReserved = IsZIndexReservedOutsideZRange(shot, nZ);
+                if (!bReserved)
+                {
+                    continue;
+                }
+                if (szConflictList.Length > 0)
+                {
+                    szConflictList += ", ";
+                }
+                szConflictList += MeasurementBase.FormatSelectedZ(nZ);
+            }
+            if (szConflictList.Length == 0)
+            {
+                return string.Empty;
+            }
+            return "Z 범위 안의 " + szConflictList + " 은 다른 Shot·기준점이 쓰는 번호라 후보에서 빠집니다.";
         }
 
         // Phase 77 SZF-02: shot 의 범위(ZIndex~ZIndexEnd) 중 이 shot 이 실제로 소유하는 z 를 오름차순으로 나열.
@@ -2000,6 +2141,13 @@ namespace ReringProject.Sequence {
                 return;
             }
             declaredSet.Add(shot.ZIndex);
+            // Phase 77 T-77-07: 범위 z 도 "레시피에 존재하는 z" 로 선언 유니버스에 포함 — 안 그러면 다른 시퀀스의
+            //  범위 Shot 이 쓰는 z 가 크로스-Z 오설정(존재하지 않는 z_index 참조)으로 오탐된다.
+            List<int> lstZRangeIndices = BuildZRangeCandidateIndices(shot);
+            foreach (int nZ in lstZRangeIndices)
+            {
+                declaredSet.Add(nZ);
+            }
             foreach (var fai in shot.FAIList)
             {
                 AddFaiDeclaredZIndices(fai, declaredSet);

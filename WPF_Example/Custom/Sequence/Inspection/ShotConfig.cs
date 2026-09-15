@@ -201,6 +201,7 @@ namespace ReringProject.Sequence {
                 if (_zIndexEnd == value) return;
                 _zIndexEnd = value;
                 RaisePropertyChanged(nameof(ZIndexEnd));
+                WarnZIndexEndChanged();
             }
         }
 
@@ -215,6 +216,52 @@ namespace ReringProject.Sequence {
             int nZCount = ZIndexEnd - ZIndex + 1;
             if (nZCount > MAX_Z_RANGE_COUNT) { return false; }
             return true;
+        }
+
+        // Phase 77 D-77-07 ①⑤: ZIndexEnd 가 0(꺼짐)이 아닌데 IsZRangeEnabled() 가 false 면 오설정 —
+        //  ZIndex 미설정/역순/상한 초과 중 하나로 조용히 꺼진 상태다. 런타임 tick 경고(Action_FAIMeasurement)
+        //  와 편집 즉시 경고(WarnZIndexEndChanged) 가 공유한다.
+        public bool IsZRangeMisconfigured() {
+            bool bEndSet = ZIndexEnd != Z_RANGE_OFF;
+            bool bDisabled = !IsZRangeEnabled();
+            return bEndSet && bDisabled;
+        }
+
+        // Phase 77 D-77-07 ①⑤: 오설정 이유를 한국어 한 줄로. 가드 순서가 원인 우선순위다 — ZIndex 미설정이
+        //  가장 근본적인 원인이라 먼저 확인한다. 겹침(다른 Shot·기준점)은 BuildZRangeConflictText 가 담당한다.
+        public string BuildZRangeMisconfigText() {
+            if (ZIndexEnd == Z_RANGE_OFF) { return string.Empty; }
+            if (ZIndex < MIN_Z_RANGE_BASE_INDEX) {
+                return "ZIndex 가 1 이상이어야 Z 범위를 쓸 수 있어 Z 범위 기능이 꺼집니다.";
+            }
+            if (ZIndexEnd <= ZIndex) {
+                return "Z 범위 끝(" + ZIndexEnd + ")이 ZIndex(" + ZIndex + ") 이하라 Z 범위 기능이 꺼집니다.";
+            }
+            int nZCount = ZIndexEnd - ZIndex + 1;
+            if (nZCount > MAX_Z_RANGE_COUNT) {
+                return "Z 범위가 " + nZCount + "개로 최대 " + MAX_Z_RANGE_COUNT + "개를 넘어 Z 범위 기능이 꺼집니다.";
+            }
+            return string.Empty;
+        }
+
+        // quick-260813 선례(DatumConfig.WarnDatumZIndexChanged)와 동일한 관용구 — INI 로드·붙여넣기(리플렉션
+        //  SetValue)에서는 경고를 억제한다(_suppressUserEditWarning). 저장은 절대 막지 않는다.
+        private bool _suppressUserEditWarning;
+
+        // Phase 77 D-77-07 ①⑤: ZIndexEnd 를 사용자가 PropertyGrid 에서 직접 바꿨을 때 즉시 한국어 한 줄로
+        //  경고한다 — 오입력(ZIndex 미설정/역순/상한 초과)이거나 다른 Shot·기준점과 겹치면.
+        private void WarnZIndexEndChanged() {
+            if (_suppressUserEditWarning) { return; }
+            string szMessage = BuildZRangeMisconfigText();
+            if (string.IsNullOrEmpty(szMessage)) {
+                InspectionSequence owner = Parent as InspectionSequence;
+                if (owner != null) {
+                    szMessage = owner.BuildZRangeConflictText(this);
+                }
+            }
+            if (string.IsNullOrEmpty(szMessage)) { return; }
+            ReringProject.UI.CustomMessageBox.Show("Z 범위 확인", szMessage,
+                System.Windows.MessageBoxImage.Warning, true, false);
         }
 
         // Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (Ring/Bar 는 채널별 개별 제어로 대체, 아래 20개 참조)
@@ -418,7 +465,9 @@ namespace ReringProject.Sequence {
         //  CameraSlaveParam.Load(CorrectionFactor 복원) 선례를 그대로 따라, 신규 키 부재 시에만 구 통합 필드 값을 채널 전체로 브로드캐스트한다.
         //  신규 키가 이미 있으면(채널별 저장된 레시피) 아무것도 하지 않는다 — ParamBase 가 채널별로 정확히 로드했기 때문.
         public override bool Load(IniFile loadFile, string groupName) {
+            _suppressUserEditWarning = true; // Phase 77: INI 로드는 사용자 편집이 아니다 — 경고 억제
             bool result = base.Load(loadFile, groupName);
+            _suppressUserEditWarning = false;
 
             IniSection sec;
             bool bHasSection = loadFile.TryGetSection(groupName, out sec) && sec != null;
@@ -464,7 +513,9 @@ namespace ReringProject.Sequence {
             //  PasteFromCamera 를 트리거해 카메라 실측값으로 PropertyArray 를 되읽어오므로, 순서가 바뀌면
             //  아래에서 복사한 Exposure/Gain 값이 그 실측값에 덮여 사라진다.
             if (target != null) target.DeviceName = DeviceName;
+            if (target != null) target._suppressUserEditWarning = true; // Phase 77: 붙여넣기는 사용자 편집이 아니다 — 경고 억제
             bool result = base.CopyTo(param);
+            if (target != null) target._suppressUserEditWarning = false;
             if (target == null) return result;
 
             // PixelResolution/CorrectionFactor 는 CameraSlaveParam 소유이나 CameraSlaveParam.CopyTo 가 복사하지 않으므로 여기서 보완.

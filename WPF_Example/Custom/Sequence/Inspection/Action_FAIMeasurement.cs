@@ -80,6 +80,8 @@ namespace ReringProject.Sequence {
         // Phase 77 O-7: ZIndexEnd tick 에서 화면·미지원 측정에 실제로 쓰인 사진의 z — ApplyZRangeBaseImageForDisplay
         //  가 갱신하고 ExecuteZRangeBaseImageMeasurement 가 meas.LastSelectedZIndex 에 그대로 옮긴다.
         private int _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE;
+        // Phase 77 리서치 Pitfall 4: 오설정 Shot 이 조용히 꺼지지 않게 — 사이클(RunInit)마다 1회만 로그한다.
+        private bool _bZRangeMisconfigLogged = false;
 
         // 측정 실패 에러 원문을 LastErrorMessage 에 남길 때 최대 보관 길이(문자 수). 정보 과다 노출/과도한
         //  길이 방지용 절단 기준 — 개행 치환 후 이 길이를 넘으면 잘라낸다.
@@ -190,6 +192,7 @@ namespace ReringProject.Sequence {
         private void RunInit() {
             ReleaseZRangeCandidates(); // Phase 77 O-5: 이전 tick 잔여 후보 안전망(정상 흐름에서는 이미 비어 있음)
             _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE; // Phase 77 O-7: 이전 사이클 표시 z 잔재 방지
+            _bZRangeMisconfigLogged = false; // Phase 77 Pitfall 4: 새 사이클마다 오설정 로그 1회 재허용
             // Run 사이클 진입 시 image buffer + FAI results dispose
             if (ShotParam != null) ShotParam.ClearAllResults();
             Step = (int)EStep.MoveZ;
@@ -587,6 +590,7 @@ namespace ReringProject.Sequence {
             else nFaiCount = 0;
             LogSeqStep("Measure", string.Format("측정 시작 — FAI {0}개",
                 nFaiCount)); //260818 hbk [SEQ]
+            LogZRangeMisconfigIfNeeded(); // Phase 77 리서치 Pitfall 4: 오설정 범위 Shot 은 tick 마다 이유를 남긴다
             var dctAlgoUsed = new Dictionary<string, int>(); //260818 hbk 이번 Shot 에서 실제로 탄 측정 알고리즘 종류별 횟수
             int nMeasNg = 0;                                  //260818 hbk 공차 벗어난 측정 수
             //260818 hbk [SEQ] Measure 단계 tact 측정용 — 아래 "완료 —" 단계 요약 로그가 소비한다.
@@ -2254,6 +2258,41 @@ namespace ReringProject.Sequence {
                     try { baseImage.Dispose(); } catch { }
                 }
             }
+        }
+
+        // Phase 77 리서치 Pitfall 4: 범위 Shot 오설정(ZIndexEnd 오입력/겹침)이 조용히 꺼지지 않도록 Shot 사이클당
+        //  1회 Error/Algorithm 로그로 드러낸다 — ShotConfig.WarnZIndexEndChanged(편집 즉시 경고)와 같은 문구 소스.
+        private void LogZRangeMisconfigIfNeeded()
+        {
+            if (ShotParam == null)
+            {
+                return;
+            }
+            if (_bZRangeMisconfigLogged)
+            {
+                return;
+            }
+            _bZRangeMisconfigLogged = true;
+            if (ShotParam.IsZRangeMisconfigured())
+            {
+                Logging.PrintLog((int)ELogType.Error, ZFOCUS_LOG_TAG + "설정 확인 — " + ShotParam.ShotName + ": " + ShotParam.BuildZRangeMisconfigText() + " (기존 1장 경로로 측정)");
+                return;
+            }
+            if (!ShotParam.IsZRangeEnabled())
+            {
+                return;
+            }
+            InspectionSequence parentSeq3 = ShotParam.Parent as InspectionSequence;
+            if (parentSeq3 == null)
+            {
+                return;
+            }
+            string szConflictText = parentSeq3.BuildZRangeConflictText(ShotParam);
+            if (string.IsNullOrEmpty(szConflictText))
+            {
+                return;
+            }
+            Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "설정 확인 — " + ShotParam.ShotName + ": " + szConflictText);
         }
 
         // Phase 77 SZF-03: 후보 목록(z 오름차순) 순서대로 기존 TryExecuteMeasurement 를 실제로 돌린다 —

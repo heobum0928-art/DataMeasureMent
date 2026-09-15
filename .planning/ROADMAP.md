@@ -1324,7 +1324,7 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 77-01-PLAN.md — tracer: 범위 Shot 1개 × EdgeToLineDistance 를 PLC 자동 사이클로 관통 — `ZIndexEnd`, z 누적·대기, 끝 z 에서 후보별 측정·최고 점수 채택, 평가 직후 해제 (SZF-01, SZF-02, SZF-03, SZF-05)
+- [x] 77-01-PLAN.md (69d5ba72) — tracer: 범위 Shot 1개 × EdgeToLineDistance 를 PLC 자동 사이클로 관통 — `ZIndexEnd`, z 누적·대기, 끝 z 에서 후보별 측정·최고 점수 채택, 평가 직후 해제 (SZF-01, SZF-02, SZF-03, SZF-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 77-02-PLAN.md — EdgeToLineAngle, 기준 Z 3% 동점, 미지원 타입 기준 Z, 누락 z 경고, 겹침 z 제외·$PREP 조명, 편집 경고 (SZF-01, SZF-02, SZF-03, SZF-05)

@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 77 (side-z-focus-select) — READY TO EXECUTE (6 plans / 5 waves, plan-checker PASS 2026-09-15)
-Plan: 0 of 6 — 다음: /gsd-execute-phase 77 (77-06 은 사람 승인 체크포인트, SIDE 실기 U-9 는 O-1 PLC z 번호 협의 후)
+Phase: 77 (side-z-focus-select) — EXECUTING (6 plans / 5 waves, 순차 실행 — use_worktrees=false)
+Plan: 2 of 6 — 77-01 완료(69d5ba72, Debug 빌드 PASS·삭제 0·하드룰 0), wave 2 77-02 → 77-03 실행 (77-06 은 사람 승인 체크포인트, SIDE 실기 U-9 는 O-1 PLC z 번호 협의 후)
 Phase 76 (side-datum): 76-01·76-02 완료, 76-03 실기 UAT 대기 (코드 origin 반영됨, 버전 1.7.46.0)
 
 ## 다음 세션 인수인계 (2026-08-27)

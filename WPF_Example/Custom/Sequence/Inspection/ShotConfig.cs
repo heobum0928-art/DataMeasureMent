@@ -179,7 +179,19 @@ namespace ReringProject.Sequence {
         //  ※ 엣지케이스: ZIndex 미설정 레시피(전 Shot=0)는 Index 0 만 매칭됨 → 측정 Index(1+) 수신 시 BuildScopedResponse 매칭 0건.
         //     이 경우 49-02 BuildScopedResponse 가 빈 B 응답 + PrintErrLog 경고를 남김(조용한 빈 B 금지). 운용 시 레시피 ZIndex 설정 필요.
         //  ※ INI 호환 위해 PascalCase 프로퍼티명 유지(ParamBase 키=프로퍼티명) — 헝가리언 예외(직렬화 필드, D-10 적용범위 밖).
-        public int ZIndex { get; set; } = 0;
+        private int _zIndex = 0;
+        public int ZIndex {
+            get { return _zIndex; }
+            set {
+                if (_zIndex == value) { return; }
+                _zIndex = value;
+                RaisePropertyChanged(nameof(ZIndex));
+                // Phase 77 D-77-08: 범위가 켜진 Shot 은 ZIndex 가 범위 시작이라 바꾸면 범위도 바뀐다 — 같은 다이얼로그로 알린다.
+                if (ZIndexEnd != Z_RANGE_OFF) {
+                    WarnZIndexEndChanged();
+                }
+            }
+        }
 
         // Phase 77 SZF-01: 범위 기능 꺼짐 표식(옛 레시피의 키 부재 로드값과 동일 — 회귀 0).
         public const int Z_RANGE_OFF = 0;
@@ -253,20 +265,48 @@ namespace ReringProject.Sequence {
         //  SetValue)에서는 경고를 억제한다(_suppressUserEditWarning). 저장은 절대 막지 않는다.
         private bool _suppressUserEditWarning;
 
-        // Phase 77 D-77-07 ①⑤: ZIndexEnd 를 사용자가 PropertyGrid 에서 직접 바꿨을 때 즉시 한국어 한 줄로
-        //  경고한다 — 오입력(ZIndex 미설정/역순/상한 초과)이거나 다른 Shot·기준점과 겹치면.
+        private const string Z_RANGE_DIALOG_TITLE = "Z 범위 확인";
+        private const string Z_RANGE_SINGLE_IMAGE_HINT = "\n한 장만 쓰려면 Z 범위 끝을 0 으로 두세요.";
+
+        // Phase 77 D-77-07 ①⑤ + D-77-08: Z 범위 끝(또는 범위가 켜진 Shot 의 ZIndex)을 사용자가 PropertyGrid 에서
+        //  직접 바꾸면 항상 다이얼로그로 알린다 — 꺼짐·정상 범위는 정보, 오입력·겹침은 경고 + 한 장 안내.
         private void WarnZIndexEndChanged() {
             if (_suppressUserEditWarning) { return; }
-            string szMessage = BuildZRangeMisconfigText();
-            if (string.IsNullOrEmpty(szMessage)) {
-                InspectionSequence owner = Parent as InspectionSequence;
-                if (owner != null) {
-                    szMessage = owner.BuildZRangeConflictText(this);
-                }
+            if (ZIndexEnd == Z_RANGE_OFF) {
+                ReringProject.UI.CustomMessageBox.Show(Z_RANGE_DIALOG_TITLE, BuildZRangeOffText(),
+                    System.Windows.MessageBoxImage.Information, true, false);
+                return;
             }
-            if (string.IsNullOrEmpty(szMessage)) { return; }
-            ReringProject.UI.CustomMessageBox.Show("Z 범위 확인", szMessage,
-                System.Windows.MessageBoxImage.Warning, true, false);
+            string szMisconfig = BuildZRangeMisconfigText();
+            if (!string.IsNullOrEmpty(szMisconfig)) {
+                ReringProject.UI.CustomMessageBox.Show(Z_RANGE_DIALOG_TITLE, szMisconfig + Z_RANGE_SINGLE_IMAGE_HINT,
+                    System.Windows.MessageBoxImage.Warning, true, false);
+                return;
+            }
+            string szConflict = string.Empty;
+            InspectionSequence owner = Parent as InspectionSequence;
+            if (owner != null) {
+                szConflict = owner.BuildZRangeConflictText(this);
+            }
+            if (!string.IsNullOrEmpty(szConflict)) {
+                ReringProject.UI.CustomMessageBox.Show(Z_RANGE_DIALOG_TITLE, BuildZRangeOnText() + "\n" + szConflict + Z_RANGE_SINGLE_IMAGE_HINT,
+                    System.Windows.MessageBoxImage.Warning, true, false);
+                return;
+            }
+            ReringProject.UI.CustomMessageBox.Show(Z_RANGE_DIALOG_TITLE, BuildZRangeOnText(),
+                System.Windows.MessageBoxImage.Information, true, false);
+        }
+
+        // Phase 77 D-77-08: 정상 범위 알림 — 몇 장을 어느 번호로 찍어야 하는지 운영자가 바로 알게 한다.
+        private string BuildZRangeOnText() {
+            int nZCount = ZIndexEnd - ZIndex + 1;
+            return "Z 범위 z" + ZIndex + "~z" + ZIndexEnd + " (" + nZCount + "장) — 측정마다 가장 선명한 Z 를 자동으로 고릅니다.\n"
+                + "PLC 가 " + ZIndex + "~" + ZIndexEnd + " 번호로 차례로 촬영해야 동작합니다.";
+        }
+
+        // Phase 77 D-77-08: 꺼짐 알림 — 기본값 0 으로 되돌리면 예전처럼 한 장으로 측정한다.
+        private string BuildZRangeOffText() {
+            return "Z 범위 꺼짐 — ZIndex(" + ZIndex + ") 사진 1장으로 측정합니다.";
         }
 
         // Multi-Light — Ring/Back/Coax/Side 조명 필드 8개 (Ring/Bar 는 채널별 개별 제어로 대체, 아래 20개 참조)

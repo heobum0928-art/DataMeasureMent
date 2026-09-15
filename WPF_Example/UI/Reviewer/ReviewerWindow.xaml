@@ -73,6 +73,11 @@
                 <Button x:Name="btn_alignVerify" Content="Align 정합 조회"
                         Click="Button_AlignVerify_Click"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"/>
+                <!-- Quick 260915-k5g R2 — 기준점·Z 범위 대기 tick 은 기본 숨김, 이 체크로 회색 표시 복귀 -->
+                <CheckBox x:Name="chk_showIntermediate" Content="중간 단계도 보기"
+                          FontSize="11" Foreground="#334155"
+                          Margin="0,8,0,0"
+                          Checked="ChkShowIntermediate_Changed" Unchecked="ChkShowIntermediate_Changed"/>
             </StackPanel>
 
             <!-- cycle 목록 — 남는 세로 공간 전부 사용 -->
@@ -87,6 +92,9 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsNg}" Value="True">
                                             <Setter Property="Foreground" Value="#C62828"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsIntermediate}" Value="True">
+                                            <Setter Property="Foreground" Value="#9E9E9E"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

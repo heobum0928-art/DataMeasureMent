@@ -78,7 +78,8 @@ namespace ReringProject.UI
                             display = Path.GetFileName(d);
                         }
                         bool bIsNg = ReviewerListLabelBuilder.IsFailTick(dto);
-                        return new CycleListItem { FolderPath = d, DisplayText = display, IsNg = bIsNg };
+                        bool bIsIntermediate = ReviewerListLabelBuilder.IsIntermediateTick(dto);
+                        return new CycleListItem { FolderPath = d, DisplayText = display, IsNg = bIsNg, IsIntermediate = bIsIntermediate };
                     })
                     .ToList();
 
@@ -95,20 +96,13 @@ namespace ReringProject.UI
             }
         }
 
-        // '불량만 보기' 체크 시 좌측 cycle 목록도 불량 tick 만 남긴다. ItemsSource 대입만 하고
+        // '불량만 보기'·'중간 단계도 보기' 두 체크 상태로 좌측 목록을 거른다. ItemsSource 만 바꾸고
         // 선택 항목은 건드리지 않는다 — SelectionChanged 로 우측 표/이미지가 튀는 것을 방지한다.
         private void ApplyCycleListFilter()
         {
             bool bFailOnly = chk_failOnly.IsChecked == true;
-            List<CycleListItem> visible;
-            if (bFailOnly)
-            {
-                visible = _allCycleItems.Where(i => i.IsNg).ToList();
-            }
-            else
-            {
-                visible = _allCycleItems;
-            }
+            bool bShowIntermediate = chk_showIntermediate.IsChecked == true;
+            List<CycleListItem> visible = _allCycleItems.Where(i => ReviewerListLabelBuilder.IsListItemVisible(i.IsIntermediate, i.IsNg, bShowIntermediate, bFailOnly)).ToList();
             listBox_cycles.ItemsSource = visible;
         }
 
@@ -229,6 +223,12 @@ namespace ReringProject.UI
         {
             ApplyCycleListFilter();
             ApplyRowFilter();
+        }
+
+        // '중간 단계도 보기' 체크 시 기준점·Z 범위 대기 tick 을 회색으로 좌측 목록에 되돌린다.
+        private void ChkShowIntermediate_Changed(object sender, RoutedEventArgs e)
+        {
+            ApplyCycleListFilter();
         }
 
         // 측정 행 클릭 시 해당 측정이 속한 FAI 의 이미지 + overlay 만 표시 (decluttering).
@@ -645,6 +645,9 @@ namespace ReringProject.UI
 
         /// <summary>이 tick 이 불량(NG)인지 — 목록 글자색/'불량만 보기' 필터용. ReviewerListLabelBuilder.IsFailTick 로 계산.</summary>
         public bool IsNg { get; set; }
+
+        /// <summary>중간 단계(기준점·Z 범위 대기) tick 인지 — 목록 기본 숨김·회색 표시용. ReviewerListLabelBuilder.IsIntermediateTick 로 계산.</summary>
+        public bool IsIntermediate { get; set; }
 
         public override string ToString()
         {

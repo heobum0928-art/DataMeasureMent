@@ -168,6 +168,21 @@ namespace ReringProject.UI
     }
 
     /// <summary>
+    /// 리뷰어 좌측 cycle 목록에서 이 tick 이 어떤 종류인지 — 기본 표시 여부 분류용(Quick 260915-k5g R1).
+    /// </summary>
+    public enum EReviewerTickKind
+    {
+        /// <summary>측정 결과(또는 사유)가 있는 결과 줄 — 목록 기본 표시.</summary>
+        Result,
+
+        /// <summary>Z 범위 후보 사진만 모으는 중간 tick — 측정 결과 없음, 기본 숨김.</summary>
+        ZRangePending,
+
+        /// <summary>측정 결과가 전혀 없는 기준점 tick — 기본 숨김.</summary>
+        DatumOnly
+    }
+
+    /// <summary>
     /// 리뷰어 좌측 cycle 목록의 표시 문자열을 조립하는 순수 로직. UI 타입 참조 금지(ReviewerWindow code-behind 는
     /// 호출·바인딩만). 옛 cycle.json(TickJudgement/MeasuredShotNames/ZIndex 없음)도 크래시 없이 폴백 표시한다.
     /// </summary>
@@ -179,6 +194,13 @@ namespace ReringProject.UI
         private const string ITEM_SEP = ", ";
         private const string ETC_PREFIX = " 외 ";
         private const int MAX_NG_ITEMS = 3;
+
+        // Quick 260915-k5g R1/R2: 중간 단계 tick 라벨용 상수
+        private const string LABEL_Z_RANGE_PENDING = "대기";
+        private const string LABEL_DATUM_ONLY = "기준점";
+        private const string TIME_FORMAT = "HH:mm:ss";
+        private const string Z_TICK_PREFIX = "z=";
+        private const string Z_TICK_FORMAT = "D2";
 
         /// <summary>측정 1건의 사유 표시 텍스트. ReviewMeasurementRow/ExcelExportService 라벨과 동일 규칙.</summary>
         private static string BuildReasonText(MeasurementResultDto m)
@@ -239,11 +261,215 @@ namespace ReringProject.UI
             return false;
         }
 
+        /// <summary>dto 의 Shot &gt; FAI &gt; Measurement 전체를 null 가드하며 한 리스트로 모은다(중간 단계 분류·사용 Z 요약 공용).</summary>
+        private static List<MeasurementResultDto> CollectMeasurements(CycleResultDto dto)
+        {
+            List<MeasurementResultDto> lstResult = new List<MeasurementResultDto>();
+            if (dto == null || dto.Shots == null)
+            {
+                return lstResult;
+            }
+            foreach (var shot in dto.Shots)
+            {
+                if (shot == null || shot.FAIs == null)
+                {
+                    continue;
+                }
+                foreach (var fai in shot.FAIs)
+                {
+                    if (fai == null || fai.Measurements == null)
+                    {
+                        continue;
+                    }
+                    foreach (var m in fai.Measurements)
+                    {
+                        if (m == null)
+                        {
+                            continue;
+                        }
+                        lstResult.Add(m);
+                    }
+                }
+            }
+            return lstResult;
+        }
+
+        /// <summary>이 측정에 실제 결과(값 또는 결과성 사유)가 있는지 — Z_RANGE_PENDING 은 결과로 치지 않는다(K-2).</summary>
+        private static bool HasMeasuredResult(MeasurementResultDto m)
+        {
+            if (m.LastHasResult)
+            {
+                return true;
+            }
+            bool bHasReason = !string.IsNullOrEmpty(m.LastSkipReason) && m.LastSkipReason != SkipReason.Z_RANGE_PENDING;
+            return bHasReason;
+        }
+
+        /// <summary>이 Shot 의 측정 중 Z 범위 후보 대기(Z_RANGE_PENDING) 사유가 하나라도 있는지.</summary>
+        private static bool ShotHasZRangePending(ShotResultDto shot)
+        {
+            if (shot == null || shot.FAIs == null)
+            {
+                return false;
+            }
+            foreach (var fai in shot.FAIs)
+            {
+                if (fai == null || fai.Measurements == null)
+                {
+                    continue;
+                }
+                foreach (var m in fai.Measurements)
+                {
+                    if (m == null)
+                    {
+                        continue;
+                    }
+                    if (m.LastSkipReason == SkipReason.Z_RANGE_PENDING)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 이 tick 이 결과 줄인지, Z 범위 대기 중간 tick 인지, 기준점 전용 tick 인지 분류한다(K-1).
+        /// 순서 고정: dto null·ZIndex&lt;0(수동/옛 JSON)·불량 tick 은 항상 Result, 그 다음 결과 유무 → 대기 유무 → 기준점.
+        /// </summary>
+        public static EReviewerTickKind ClassifyTick(CycleResultDto dto)
+        {
+            if (dto == null)
+            {
+                return EReviewerTickKind.Result;
+            }
+            if (dto.ZIndex < 0)
+            {
+                return EReviewerTickKind.Result;
+            }
+            if (IsFailTick(dto))
+            {
+                return EReviewerTickKind.Result;
+            }
+
+            List<MeasurementResultDto> lstMeasurements = CollectMeasurements(dto);
+            bool bAnyResult = false;
+            foreach (var m in lstMeasurements)
+            {
+                if (HasMeasuredResult(m))
+                {
+                    bAnyResult = true;
+                    break;
+                }
+            }
+            if (bAnyResult)
+            {
+                return EReviewerTickKind.Result;
+            }
+
+            bool bAnyPending = false;
+            if (dto.Shots != null)
+            {
+                foreach (var shot in dto.Shots)
+                {
+                    if (ShotHasZRangePending(shot))
+                    {
+                        bAnyPending = true;
+                        break;
+                    }
+                }
+            }
+            if (bAnyPending)
+            {
+                return EReviewerTickKind.ZRangePending;
+            }
+
+            return EReviewerTickKind.DatumOnly;
+        }
+
+        /// <summary>true = 목록 기본 숨김 대상(대기·기준점). probe 가 리플렉션으로 이 이름을 찾는다 — 시그니처 변경 금지.</summary>
+        public static bool IsIntermediateTick(CycleResultDto dto)
+        {
+            EReviewerTickKind eKind = ClassifyTick(dto);
+            if (eKind == EReviewerTickKind.Result)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>'불량만 보기' ON 이면 불량 줄만, 중간 단계 줄은 '중간 단계도 보기' 를 체크했을 때만 보인다(K-4).</summary>
+        public static bool IsListItemVisible(bool bIsIntermediate, bool bIsNg, bool bShowIntermediate, bool bFailOnly)
+        {
+            bool bHiddenByFailOnly = bFailOnly && !bIsNg;
+            if (bHiddenByFailOnly)
+            {
+                return false;
+            }
+            bool bHiddenIntermediate = bIsIntermediate && !bShowIntermediate;
+            if (bHiddenIntermediate)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>대기/기준점 tick 의 회색 목록 문구 — 시각·z 번호·종류, 대기일 때만 대기 Shot 이름 목록(K-3).</summary>
+        private static string BuildIntermediateLabel(CycleResultDto dto, EReviewerTickKind eKind)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(dto.InspectionTime.ToString(TIME_FORMAT));
+            sb.Append(SEP);
+            sb.Append(Z_TICK_PREFIX);
+            sb.Append(dto.ZIndex.ToString(Z_TICK_FORMAT));
+            sb.Append(SEP);
+            if (eKind == EReviewerTickKind.ZRangePending)
+            {
+                sb.Append(LABEL_Z_RANGE_PENDING);
+            }
+            else
+            {
+                sb.Append(LABEL_DATUM_ONLY);
+            }
+
+            if (eKind == EReviewerTickKind.ZRangePending && dto.Shots != null)
+            {
+                List<string> lstPendingShots = new List<string>();
+                foreach (var shot in dto.Shots)
+                {
+                    if (shot == null)
+                    {
+                        continue;
+                    }
+                    bool bShotPending = ShotHasZRangePending(shot);
+                    bool bShotNameEmpty = string.IsNullOrEmpty(shot.ShotName);
+                    bool bShotEligible = bShotPending && !bShotNameEmpty;
+                    if (bShotEligible && !lstPendingShots.Contains(shot.ShotName))
+                    {
+                        lstPendingShots.Add(shot.ShotName);
+                    }
+                }
+                if (lstPendingShots.Count > 0)
+                {
+                    sb.Append(SEP);
+                    sb.Append(string.Join(ITEM_SEP, lstPendingShots));
+                }
+            }
+
+            return sb.ToString();
+        }
+
         public static string Build(CycleResultDto dto)
         {
             if (dto == null)
             {
                 return "";
+            }
+
+            EReviewerTickKind eKind = ClassifyTick(dto);
+            if (eKind != EReviewerTickKind.Result)
+            {
+                return BuildIntermediateLabel(dto, eKind);
             }
 
             string szTick = ResolveTickJudgement(dto);

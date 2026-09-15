@@ -1331,7 +1331,7 @@ Plans:
 - [x] 77-03-PLAN.md (49f1a29e·8fd236f9·ac74d1ce) — 선택 Z 기록·표시: cycle.json·CSV `선택Z`·결과/리뷰어 그리드·오버레이, 대기 상태 NG 집계 제외 (SZF-04, SZF-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 77-04-PLAN.md — 수동 라이브 1장 + 안내, 오프라인·재검사 z 별 사진 선택 재현, 후보 사진 저장 체크박스(기본 꺼짐) (SZF-02, SZF-03, SZF-04, SZF-05)
+- [x] 77-04-PLAN.md (5fba2496·d20ac23e) — 수동 라이브 1장 + 안내, 오프라인·재검사 z 별 사진 선택 재현, 후보 사진 저장 체크박스(기본 꺼짐) (SZF-02, SZF-03, SZF-04, SZF-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 77-05-PLAN.md — 버전 1.7.47.0 + 범위 꺼짐 경로 누적 회귀 감사 (SZF-05)

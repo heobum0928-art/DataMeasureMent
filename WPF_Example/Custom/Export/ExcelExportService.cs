@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Windows;
 
 namespace ReringProject.Export
 {
@@ -239,6 +240,734 @@ namespace ReringProject.Export
             {
                 return "-";
             }
+        }
+    }
+
+    /// <summary>NG 누적 엑셀 저장 1회 실행 결과 상태. 메시지·아이콘은 NgAccumulationExportService 가 이미 조립한다.</summary>
+    public enum ENgAccumExportStatus
+    {
+        Added,          // 새 NG 행을 1건 이상 추가하고 저장 완료
+        NothingNew,     // 전부 이미 들어 있어 추가 0건(저장 안 함)
+        NoNg,           // 날짜 폴더에 NG 가 없음(파일 안 건드림)
+        NoCycles,       // 날짜 폴더에 cycle.json 이 하나도 없음(파일 안 건드림)
+        NoFolder,       // 날짜 폴더를 열지 않았거나 존재하지 않음(파일 안 건드림)
+        FileLocked,     // 출력 xlsx 가 다른 프로그램에 열려 있어 쓰기 전에 중단(파일 안 건드림)
+        Failed          // 그 밖의 예외 — Error 로그 확인
+    }
+
+    /// <summary>NG 누적 엑셀 저장 1회 실행 결과. 화면에 그대로 보여 줄 한국어 메시지·아이콘까지 담는다.</summary>
+    public class NgAccumExportOutcome
+    {
+        public ENgAccumExportStatus Status { get; set; }
+
+        public int AddedCount { get; set; }
+
+        public int SkippedDuplicateCount { get; set; }
+
+        public int UnreadableCycleCount { get; set; }
+
+        public int TotalDataRows { get; set; }
+
+        public string Message { get; set; } = "";
+
+        public MessageBoxImage Icon { get; set; }
+    }
+
+    /// <summary>
+    /// 리뷰어가 연 날짜 폴더의 NG 측정만 한 xlsx 파일(NG_분석_누적.xlsx, 시트 "NG 누적")에 중복 없이 계속 누적한다(D-78-02).
+    /// 원인·근거·확인할 일·함께 의심·원인 코드는 화면 패널과 같은 NgCauseAnalyzer.Analyze 결과를 그대로 쓴다(D-78-04).
+    /// 이 클래스는 이 날짜 폴더의 cycle.json·사진을 읽기만 한다 — 쓰기는 출력 xlsx(와 같은 폴더 임시 xlsx) 뿐이다(PR-5).
+    /// </summary>
+    public static class NgAccumulationExportService
+    {
+        public const string OUTPUT_FILE_NAME = "NG_분석_누적.xlsx";
+        public const string SHEET_NAME = "NG 누적";
+        public const string MESSAGE_TITLE = "NG 누적 엑셀";
+
+        private const string TEMP_FILE_SUFFIX = "_저장중.xlsx";
+        private const string CYCLE_JSON_NAME = "cycle.json";
+
+        private const int HEADER_ROW = 1;
+        private const int FIRST_DATA_ROW = 2;
+
+        private const int COL_TIME = 1;
+        private const int COL_KIND = 2;
+        private const int COL_RECIPE = 3;
+        private const int COL_MATERIAL = 4;
+        private const int COL_SHOT = 5;
+        private const int COL_FAI = 6;
+        private const int COL_MEASUREMENT = 7;
+        private const int COL_VALUE = 8;
+        private const int COL_NOMINAL = 9;
+        private const int COL_TOL_PLUS = 10;
+        private const int COL_TOL_MINUS = 11;
+        private const int COL_JUDGE = 12;
+        private const int COL_SELECTED_Z = 13;
+        private const int COL_CAUSE = 14;
+        private const int COL_EVIDENCE = 15;
+        private const int COL_ACTION = 16;
+        private const int COL_SUSPECT = 17;
+        private const int COL_CAUSE_CODE = 18;
+        private const int COL_IMAGE_PATH = 19;
+        private const int COL_CYCLE_FOLDER = 20;
+
+        private const string TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+        private const string AUTO_TEXT = "자동";
+        private const string MANUAL_TEXT = "수동";
+        private const string NO_VALUE_TEXT = "-";
+        private const string KEY_SEPARATOR = "";
+        private const int LARGE_FILE_ROW_WARNING = 100000;
+
+        private const string MSG_NO_FOLDER = "먼저 '날짜 폴더 열기' 로 날짜 폴더를 여세요.";
+        private const string MSG_NO_CYCLES = "이 폴더에는 검사 결과(cycle.json)가 없습니다. 날짜 폴더(예: 20260916)를 여세요.";
+        private const string MSG_NO_NG = "이 날짜 폴더에는 NG 가 없습니다 (추가 0건).";
+        private const string MSG_NOTHING_NEW_FORMAT = "새로 추가할 NG 가 없습니다 — 이미 들어 있는 {0}건은 건너뛰었습니다.";
+        private const string MSG_ADDED_FORMAT = "NG {0}건을 추가했습니다 (이미 있던 {1}건 건너뜀).";
+        private const string MSG_FILE_LOCKED = "NG 누적 엑셀 파일이 열려 있어 저장하지 못했습니다. 엑셀을 닫고 다시 누르세요.";
+        private const string MSG_FAILED = "NG 누적 엑셀 저장에 실패했습니다 (Error 로그 확인).";
+        private const string MSG_UNREADABLE_FORMAT = "읽지 못한 검사 결과 {0}건 — 저장 중이었거나 손상된 파일입니다. 잠시 후 다시 누르면 추가됩니다.";
+        private const string MSG_LARGE_FILE_FORMAT = "파일이 커졌습니다({0}행). 파일 이름을 바꿔 보관하면 다음부터 새 파일로 시작합니다.";
+
+        private static readonly string[] HEADER_TEXTS = new string[]
+        {
+            "검사시각", "검사구분", "레시피", "자재번호", "Shot", "FAI", "측정명", "측정값",
+            "공칭", "공차+", "공차-", "판정", "사용 Z", "추정 원인", "근거", "확인할 일",
+            "함께 의심", "원인 코드", "사진 경로", "사이클 폴더"
+        };
+
+        // 날짜 폴더에서 읽은 cycle.json 1건(DTO + 실제 스캔한 하위 폴더 경로).
+        private class LoadedCycle
+        {
+            public CycleResultDto Dto;
+            public string FolderPath;
+        }
+
+        // xlsx 한 행에 들어갈 값(규격 표 20열)과 중복 판정용 키.
+        private class NgRowData
+        {
+            public DateTime InspectionTime;
+            public string Kind;
+            public string Recipe;
+            public string Material;
+            public string Shot;
+            public string Fai;
+            public string Measurement;
+            public bool HasValue;
+            public double Value;
+            public double Nominal;
+            public double TolPlus;
+            public double TolMinus;
+            public string Judge;
+            public string SelectedZ;
+            public string CauseText;
+            public string EvidenceText;
+            public string ActionText;
+            public string SuspectText;
+            public string CauseCode;
+            public string ImagePath;
+            public string CycleFolder;
+            public string DupKey;
+        }
+
+        /// <summary>ResultSavePath 아래 NG_분석_누적.xlsx 절대 경로. 경로가 비어 있으면 빈 문자열.</summary>
+        public static string BuildOutputPath(string szResultSavePath)
+        {
+            if (string.IsNullOrEmpty(szResultSavePath))
+            {
+                return "";
+            }
+            return Path.Combine(szResultSavePath, OUTPUT_FILE_NAME);
+        }
+
+        /// <summary>
+        /// 날짜 폴더(szDateFolderPath)의 NG 측정만 szOutputPath 의 "NG 누적" 시트에 중복 없이 추가한다.
+        /// 어떤 경우에도 예외를 밖으로 내보내지 않는다.
+        /// </summary>
+        public static NgAccumExportOutcome AppendDateFolder(string szDateFolderPath, string szOutputPath)
+        {
+            try
+            {
+                return AppendDateFolderInternal(szDateFolderPath, szOutputPath);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex.Message);
+                return BuildOutcome(ENgAccumExportStatus.Failed, 0, 0, 0, 0, szOutputPath);
+            }
+        }
+
+        private static NgAccumExportOutcome AppendDateFolderInternal(string szDateFolderPath, string szOutputPath)
+        {
+            bool bFolderMissing = string.IsNullOrEmpty(szDateFolderPath) || !Directory.Exists(szDateFolderPath);
+            if (bFolderMissing)
+            {
+                return BuildOutcome(ENgAccumExportStatus.NoFolder, 0, 0, 0, 0, szOutputPath);
+            }
+
+            if (string.IsNullOrEmpty(szOutputPath))
+            {
+                return BuildOutcome(ENgAccumExportStatus.Failed, 0, 0, 0, 0, szOutputPath);
+            }
+
+            int nUnreadable;
+            List<LoadedCycle> lstCycles = LoadDateFolderCycles(szDateFolderPath, out nUnreadable);
+
+            bool bNoCycles = lstCycles.Count == 0 && nUnreadable == 0;
+            if (bNoCycles)
+            {
+                return BuildOutcome(ENgAccumExportStatus.NoCycles, 0, 0, nUnreadable, 0, szOutputPath);
+            }
+
+            NgCauseHistory history = new NgCauseHistory();
+            for (int i = 0; i < lstCycles.Count; i++)
+            {
+                history.AddCycle(lstCycles[i].Dto);
+            }
+
+            List<NgRowData> lstRows = BuildNgRows(lstCycles, history);
+            if (lstRows.Count == 0)
+            {
+                return BuildOutcome(ENgAccumExportStatus.NoNg, 0, 0, nUnreadable, 0, szOutputPath);
+            }
+
+            bool bFileExists = File.Exists(szOutputPath);
+            if (bFileExists)
+            {
+                bool bLocked = IsFileLocked(szOutputPath);
+                if (bLocked)
+                {
+                    return BuildOutcome(ENgAccumExportStatus.FileLocked, 0, 0, nUnreadable, 0, szOutputPath);
+                }
+            }
+
+            return WriteRows(lstRows, szOutputPath, bFileExists, nUnreadable);
+        }
+
+        // 하위 폴더를 이름 ordinal 정렬해 cycle.json 있는 것만 로드한다. 손상 파일은 nUnreadable 로 센다.
+        private static List<LoadedCycle> LoadDateFolderCycles(string szDateFolderPath, out int nUnreadable)
+        {
+            nUnreadable = 0;
+            List<LoadedCycle> lstResult = new List<LoadedCycle>();
+
+            string[] arrDirs = Directory.GetDirectories(szDateFolderPath);
+            Array.Sort(arrDirs, StringComparer.Ordinal);
+
+            for (int i = 0; i < arrDirs.Length; i++)
+            {
+                string szDir = arrDirs[i];
+                string szJsonPath = Path.Combine(szDir, CYCLE_JSON_NAME);
+                bool bHasJson = File.Exists(szJsonPath);
+                if (!bHasJson)
+                {
+                    continue;
+                }
+
+                CycleResultDto dto = CycleResultSerializer.Load(szJsonPath);
+                if (dto == null)
+                {
+                    nUnreadable++;
+                    continue;
+                }
+
+                LoadedCycle loaded = new LoadedCycle();
+                loaded.Dto = dto;
+                loaded.FolderPath = szDir;
+                lstResult.Add(loaded);
+            }
+
+            lstResult.Sort(CompareLoadedCycle);
+            return lstResult;
+        }
+
+        // 정렬 순서: InspectionTime 오름차순 → 사이클 폴더 ordinal.
+        private static int CompareLoadedCycle(LoadedCycle a, LoadedCycle b)
+        {
+            int nTimeCompare = a.Dto.InspectionTime.CompareTo(b.Dto.InspectionTime);
+            if (nTimeCompare != 0)
+            {
+                return nTimeCompare;
+            }
+            return string.CompareOrdinal(a.FolderPath, b.FolderPath);
+        }
+
+        // 사이클·Shot·FAI·측정 순서대로 IsNgMeasurement 인 것만 Analyze 해서 행 데이터로 만든다.
+        private static List<NgRowData> BuildNgRows(List<LoadedCycle> lstCycles, NgCauseHistory history)
+        {
+            List<NgRowData> lstRows = new List<NgRowData>();
+
+            for (int c = 0; c < lstCycles.Count; c++)
+            {
+                LoadedCycle loaded = lstCycles[c];
+                CycleResultDto dto = loaded.Dto;
+                if (dto.Shots == null)
+                {
+                    continue;
+                }
+
+                foreach (var shot in dto.Shots)
+                {
+                    if (shot == null || shot.FAIs == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var fai in shot.FAIs)
+                    {
+                        if (fai == null || fai.Measurements == null)
+                        {
+                            continue;
+                        }
+
+                        foreach (var m in fai.Measurements)
+                        {
+                            if (m == null)
+                            {
+                                continue;
+                            }
+
+                            bool bIsNg = NgCauseAnalyzer.IsNgMeasurement(m);
+                            if (!bIsNg)
+                            {
+                                continue;
+                            }
+
+                            NgCauseResult cause = NgCauseAnalyzer.Analyze(dto, shot, fai, m, history);
+                            NgRowData row = BuildRowData(dto, loaded.FolderPath, shot, fai, m, cause);
+                            lstRows.Add(row);
+                        }
+                    }
+                }
+            }
+
+            return lstRows;
+        }
+
+        // 규격 표 20열 그대로 채운다(P-14 사진 우선순위·CycleFolderPath 폴백 포함).
+        private static NgRowData BuildRowData(CycleResultDto dto, string szScannedFolder, ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m, NgCauseResult cause)
+        {
+            NgRowData row = new NgRowData();
+            row.InspectionTime = dto.InspectionTime;
+
+            string szKind;
+            if (dto.IsProtocolDriven)
+            {
+                szKind = AUTO_TEXT;
+            }
+            else
+            {
+                szKind = MANUAL_TEXT;
+            }
+            row.Kind = szKind;
+
+            string szRecipe = dto.RecipeName;
+            if (szRecipe == null)
+            {
+                szRecipe = "";
+            }
+            row.Recipe = szRecipe;
+
+            bool bHasMaterial = dto.IndexNumber >= 0;
+            string szMaterial;
+            if (bHasMaterial)
+            {
+                szMaterial = dto.IndexNumber.ToString();
+            }
+            else
+            {
+                szMaterial = NO_VALUE_TEXT;
+            }
+            row.Material = szMaterial;
+
+            string szShotName = shot.ShotName;
+            if (szShotName == null)
+            {
+                szShotName = "";
+            }
+            row.Shot = szShotName;
+
+            string szFaiName = fai.FAIName;
+            if (szFaiName == null)
+            {
+                szFaiName = "";
+            }
+            row.Fai = szFaiName;
+
+            string szMeasName = m.MeasurementName;
+            if (szMeasName == null)
+            {
+                szMeasName = "";
+            }
+            row.Measurement = szMeasName;
+
+            row.HasValue = m.LastHasResult;
+            row.Value = m.LastMeasuredValue;
+            row.Nominal = m.NominalValue;
+            row.TolPlus = m.TolerancePlus;
+            row.TolMinus = m.ToleranceMinus;
+
+            row.Judge = ExcelExportService.BuildJudgementText(m);
+            row.SelectedZ = MeasurementBase.FormatSelectedZ(m.SelectedZIndex);
+
+            row.CauseText = cause.CauseText;
+            row.EvidenceText = cause.EvidenceText;
+            row.ActionText = cause.ActionText;
+            row.SuspectText = cause.SuspectText;
+            row.CauseCode = cause.CauseCode;
+
+            string szImagePath = fai.OriginImageFileName;
+            bool bImageEmpty = string.IsNullOrEmpty(szImagePath);
+            if (bImageEmpty)
+            {
+                szImagePath = shot.ResultImagePath;
+            }
+            row.ImagePath = szImagePath;
+
+            string szCycleFolder = dto.CycleFolderPath;
+            bool bCycleFolderEmpty = string.IsNullOrEmpty(szCycleFolder);
+            if (bCycleFolderEmpty)
+            {
+                szCycleFolder = szScannedFolder;
+            }
+            row.CycleFolder = szCycleFolder;
+
+            row.DupKey = BuildDupKey(row.CycleFolder, row.Shot, row.Fai, row.Measurement);
+
+            return row;
+        }
+
+        private static string BuildDupKey(string szCycleFolder, string szShot, string szFai, string szMeasurement)
+        {
+            return NormalizeFolderKey(szCycleFolder) + KEY_SEPARATOR + szShot + KEY_SEPARATOR + szFai + KEY_SEPARATOR + szMeasurement;
+        }
+
+        private static string NormalizeFolderKey(string szFolder)
+        {
+            if (szFolder == null)
+            {
+                return "";
+            }
+            return szFolder.TrimEnd('\\', '/').ToUpperInvariant();
+        }
+
+        // FileShare.None 으로 열어 보는 것만으로 잠금 여부를 판정한다(쓰기 전 선검사).
+        private static bool IsFileLocked(string szPath)
+        {
+            try
+            {
+                using (FileStream fs = new FileStream(szPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                }
+                return false;
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+        }
+
+        private static XLWorkbook OpenOrCreateWorkbook(bool bFileExists, string szOutputPath)
+        {
+            if (bFileExists)
+            {
+                return new XLWorkbook(szOutputPath);
+            }
+            return new XLWorkbook();
+        }
+
+        private static int ResolveNextRow(IXLWorksheet ws)
+        {
+            IXLRow usedRow = ws.LastRowUsed();
+            int nLastRow = HEADER_ROW;
+            bool bHasUsedRow = usedRow != null;
+            if (bHasUsedRow)
+            {
+                nLastRow = usedRow.RowNumber();
+            }
+
+            int nNextRow = nLastRow + 1;
+            if (nNextRow < FIRST_DATA_ROW)
+            {
+                nNextRow = FIRST_DATA_ROW;
+            }
+            return nNextRow;
+        }
+
+        private static void WriteHeader(IXLWorksheet ws)
+        {
+            for (int i = 0; i < HEADER_TEXTS.Length; i++)
+            {
+                ws.Cell(HEADER_ROW, i + 1).Value = HEADER_TEXTS[i];
+            }
+        }
+
+        // 기존 행 키를 전부 읽어 온다. 이 행 키에 이번에 추가하는 행 키도 계속 더해져 같은 실행 안 중복도 막는다.
+        private static HashSet<string> ReadExistingKeys(IXLWorksheet ws)
+        {
+            HashSet<string> setKeys = new HashSet<string>(StringComparer.Ordinal);
+
+            IXLRow usedRow = ws.LastRowUsed();
+            bool bHasData = usedRow != null && usedRow.RowNumber() >= FIRST_DATA_ROW;
+            if (!bHasData)
+            {
+                return setKeys;
+            }
+
+            int nLastRow = usedRow.RowNumber();
+            for (int r = FIRST_DATA_ROW; r <= nLastRow; r++)
+            {
+                string szShot = ws.Cell(r, COL_SHOT).GetString();
+                string szFai = ws.Cell(r, COL_FAI).GetString();
+                string szMeasurement = ws.Cell(r, COL_MEASUREMENT).GetString();
+                string szCycleFolder = ws.Cell(r, COL_CYCLE_FOLDER).GetString();
+                string szKey = BuildDupKey(szCycleFolder, szShot, szFai, szMeasurement);
+                setKeys.Add(szKey);
+            }
+            return setKeys;
+        }
+
+        private static void WriteRowCells(IXLWorksheet ws, int nRow, NgRowData row)
+        {
+            ws.Cell(nRow, COL_TIME).Value = row.InspectionTime.ToString(TIME_FORMAT);
+            ws.Cell(nRow, COL_KIND).Value = row.Kind;
+            ws.Cell(nRow, COL_RECIPE).Value = row.Recipe;
+            ws.Cell(nRow, COL_MATERIAL).Value = row.Material;
+            ws.Cell(nRow, COL_SHOT).Value = row.Shot;
+            ws.Cell(nRow, COL_FAI).Value = row.Fai;
+            ws.Cell(nRow, COL_MEASUREMENT).Value = row.Measurement;
+
+            if (row.HasValue)
+            {
+                ws.Cell(nRow, COL_VALUE).Value = row.Value;
+            }
+            else
+            {
+                ws.Cell(nRow, COL_VALUE).Value = NO_VALUE_TEXT;
+            }
+
+            ws.Cell(nRow, COL_NOMINAL).Value = row.Nominal;
+            ws.Cell(nRow, COL_TOL_PLUS).Value = row.TolPlus;
+            ws.Cell(nRow, COL_TOL_MINUS).Value = row.TolMinus;
+            ws.Cell(nRow, COL_JUDGE).Value = row.Judge;
+            ws.Cell(nRow, COL_SELECTED_Z).Value = row.SelectedZ;
+            ws.Cell(nRow, COL_CAUSE).Value = row.CauseText;
+            ws.Cell(nRow, COL_EVIDENCE).Value = row.EvidenceText;
+            ws.Cell(nRow, COL_ACTION).Value = row.ActionText;
+            ws.Cell(nRow, COL_SUSPECT).Value = row.SuspectText;
+            ws.Cell(nRow, COL_CAUSE_CODE).Value = row.CauseCode;
+
+            string szImagePath = row.ImagePath;
+            if (szImagePath == null)
+            {
+                szImagePath = "";
+            }
+            ws.Cell(nRow, COL_IMAGE_PATH).Value = szImagePath;
+
+            ws.Cell(nRow, COL_CYCLE_FOLDER).Value = row.CycleFolder;
+        }
+
+        // 시트 열기/새로 만들기 → 중복 제외 추가 → (추가 0 이면 저장 안 함) → 임시 xlsx SaveAs → File.Replace/Move.
+        private static NgAccumExportOutcome WriteRows(List<NgRowData> lstRows, string szOutputPath, bool bFileExists, int nUnreadable)
+        {
+            int nAdded = 0;
+            int nSkippedDuplicate = 0;
+            int nTotalDataRows = 0;
+            bool bHasNewRows;
+
+            string szTempPath = BuildTempPath(szOutputPath);
+            TryDeleteTempFile(szTempPath);
+
+            using (XLWorkbook wb = OpenOrCreateWorkbook(bFileExists, szOutputPath))
+            {
+                IXLWorksheet ws;
+                bool bHasSheet = wb.Worksheets.TryGetWorksheet(SHEET_NAME, out ws);
+                bool bNewSheet = !bHasSheet;
+                if (bNewSheet)
+                {
+                    ws = wb.Worksheets.Add(SHEET_NAME);
+                    WriteHeader(ws);
+                }
+
+                HashSet<string> setExistingKeys = ReadExistingKeys(ws);
+                int nRow = ResolveNextRow(ws);
+
+                for (int i = 0; i < lstRows.Count; i++)
+                {
+                    NgRowData row = lstRows[i];
+                    bool bDuplicate = setExistingKeys.Contains(row.DupKey);
+                    if (bDuplicate)
+                    {
+                        continue;
+                    }
+
+                    WriteRowCells(ws, nRow, row);
+                    setExistingKeys.Add(row.DupKey);
+                    nAdded++;
+                    nRow++;
+                }
+
+                nSkippedDuplicate = lstRows.Count - nAdded;
+                nTotalDataRows = (nRow - 1) - HEADER_ROW;
+
+                bHasNewRows = nAdded > 0;
+                if (bHasNewRows)
+                {
+                    if (bNewSheet)
+                    {
+                        ws.Columns().AdjustToContents();
+                    }
+                    wb.SaveAs(szTempPath);
+                }
+            }
+
+            if (!bHasNewRows)
+            {
+                return BuildOutcome(ENgAccumExportStatus.NothingNew, 0, nSkippedDuplicate, nUnreadable, 0, szOutputPath);
+            }
+
+            try
+            {
+                bool bTargetExists = File.Exists(szOutputPath);
+                if (bTargetExists)
+                {
+                    File.Replace(szTempPath, szOutputPath, null);
+                }
+                else
+                {
+                    File.Move(szTempPath, szOutputPath);
+                }
+            }
+            catch (IOException)
+            {
+                TryDeleteTempFile(szTempPath);
+                return BuildOutcome(ENgAccumExportStatus.FileLocked, nAdded, nSkippedDuplicate, nUnreadable, nTotalDataRows, szOutputPath);
+            }
+            catch (Exception ex)
+            {
+                TryDeleteTempFile(szTempPath);
+                LogError(ex.Message);
+                return BuildOutcome(ENgAccumExportStatus.Failed, nAdded, nSkippedDuplicate, nUnreadable, nTotalDataRows, szOutputPath);
+            }
+
+            return BuildOutcome(ENgAccumExportStatus.Added, nAdded, nSkippedDuplicate, nUnreadable, nTotalDataRows, szOutputPath);
+        }
+
+        private static string BuildTempPath(string szOutputPath)
+        {
+            string szDirectory = Path.GetDirectoryName(szOutputPath);
+            string szFileNameNoExt = Path.GetFileNameWithoutExtension(szOutputPath);
+            return Path.Combine(szDirectory, szFileNameNoExt + TEMP_FILE_SUFFIX);
+        }
+
+        // 임시 xlsx 삭제는 이 메서드 안 File.Delete 1곳뿐이다(PR-5).
+        private static void TryDeleteTempFile(string szTempPath)
+        {
+            bool bExists = File.Exists(szTempPath);
+            if (!bExists)
+            {
+                return;
+            }
+            try
+            {
+                File.Delete(szTempPath);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void LogError(string szMessage)
+        {
+            try
+            {
+                Logging.PrintErrLog((int)ELogType.Error, "[NgAccumulationExportService] " + szMessage);
+            }
+            catch
+            {
+            }
+        }
+
+        // 상태별 한국어 메시지·아이콘 조립(규격 문구 그대로). 읽지 못한 건수·대용량 안내 줄을 덧붙인다.
+        private static NgAccumExportOutcome BuildOutcome(ENgAccumExportStatus status, int nAdded, int nSkippedDuplicate, int nUnreadable, int nTotalDataRows, string szOutputPath)
+        {
+            NgAccumExportOutcome outcome = new NgAccumExportOutcome();
+            outcome.Status = status;
+            outcome.AddedCount = nAdded;
+            outcome.SkippedDuplicateCount = nSkippedDuplicate;
+            outcome.UnreadableCycleCount = nUnreadable;
+            outcome.TotalDataRows = nTotalDataRows;
+
+            string szMessage;
+            MessageBoxImage icon;
+
+            if (status == ENgAccumExportStatus.NoFolder)
+            {
+                szMessage = MSG_NO_FOLDER;
+                icon = MessageBoxImage.Warning;
+            }
+            else if (status == ENgAccumExportStatus.NoCycles)
+            {
+                szMessage = MSG_NO_CYCLES + "\n" + szOutputPath;
+                icon = MessageBoxImage.Warning;
+            }
+            else if (status == ENgAccumExportStatus.NoNg)
+            {
+                szMessage = MSG_NO_NG + "\n" + szOutputPath;
+                icon = MessageBoxImage.Information;
+            }
+            else if (status == ENgAccumExportStatus.NothingNew)
+            {
+                szMessage = string.Format(MSG_NOTHING_NEW_FORMAT, nSkippedDuplicate) + "\n" + szOutputPath;
+                icon = MessageBoxImage.Information;
+            }
+            else if (status == ENgAccumExportStatus.Added)
+            {
+                szMessage = string.Format(MSG_ADDED_FORMAT, nAdded, nSkippedDuplicate) + "\n" + szOutputPath;
+                icon = MessageBoxImage.Information;
+            }
+            else if (status == ENgAccumExportStatus.FileLocked)
+            {
+                szMessage = MSG_FILE_LOCKED + "\n" + szOutputPath;
+                icon = MessageBoxImage.Warning;
+            }
+            else
+            {
+                szMessage = MSG_FAILED + "\n" + szOutputPath;
+                icon = MessageBoxImage.Error;
+            }
+
+            bool bStatusEligibleForUnreadableNote;
+            if (status == ENgAccumExportStatus.Added)
+            {
+                bStatusEligibleForUnreadableNote = true;
+            }
+            else if (status == ENgAccumExportStatus.NothingNew)
+            {
+                bStatusEligibleForUnreadableNote = true;
+            }
+            else if (status == ENgAccumExportStatus.NoNg)
+            {
+                bStatusEligibleForUnreadableNote = true;
+            }
+            else
+            {
+                bStatusEligibleForUnreadableNote = false;
+            }
+
+            bool bAppendUnreadable = nUnreadable > 0 && bStatusEligibleForUnreadableNote;
+            if (bAppendUnreadable)
+            {
+                szMessage = szMessage + "\n" + string.Format(MSG_UNREADABLE_FORMAT, nUnreadable);
+            }
+
+            bool bAppendLargeFile = status == ENgAccumExportStatus.Added && nTotalDataRows >= LARGE_FILE_ROW_WARNING;
+            if (bAppendLargeFile)
+            {
+                szMessage = szMessage + "\n" + string.Format(MSG_LARGE_FILE_FORMAT, nTotalDataRows);
+            }
+
+            outcome.Message = szMessage;
+            outcome.Icon = icon;
+            return outcome;
         }
     }
 }

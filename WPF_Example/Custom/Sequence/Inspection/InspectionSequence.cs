@@ -276,6 +276,7 @@ namespace ReringProject.Sequence {
                     nCycleZIndex);
                 cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
                 cycleDto.ZRangeImages = TakeTickZRangeImagesSnapshot();
+                cycleDto.DatumDiagnostics = BuildTickDatumDiagnosticsSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 RecordSeatingEvidence(nIndexNumber);
             }
@@ -302,6 +303,7 @@ namespace ReringProject.Sequence {
                     System.DateTime.Now,
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name); // 이 시퀀스 소유 shot 만 cycle 에 포함
+                cycleDto.DatumDiagnostics = BuildTickDatumDiagnosticsSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 // 수동 RUN 은 자재번호가 없다. 그래도 기록한다 — 셋업 단계에서 산포 데이터를 모으는 유일한 경로다.
                 RecordSeatingEvidence(AlignVerifyRecord.NO_MATERIAL);
@@ -564,6 +566,32 @@ namespace ReringProject.Sequence {
             lock (_tickDatumImageLock) {
                 return new List<ZRangeImageRecordDto>(_tickZRangeImages);
             }
+        }
+
+        // Phase 78 NGA-07: tick 저장 시점 DatumConfigs 스냅샷을 진단 DTO 목록으로 복사만 한다(재검출 없음).
+        //  검사 스레드 보호 — 예외를 절대 밖으로 던지지 않는다(HandleFlowLogCycleEnd 와 동일 격리 규약).
+        private List<DatumDiagnosticDto> BuildTickDatumDiagnosticsSnapshot() {
+            var lst = new List<DatumDiagnosticDto>();
+            try {
+                if (DatumConfigs == null) {
+                    return lst;
+                }
+                for (int i = 0; i < DatumConfigs.Count; i++) {
+                    DatumConfig d = DatumConfigs[i];
+                    if (d == null) {
+                        continue;
+                    }
+                    DatumDiagnosticDto dto = CycleResultSerializer.BuildDatumDiagnostic(d, _dtCycleStartUtc);
+                    if (dto != null) {
+                        lst.Add(dto);
+                    }
+                }
+            }
+            catch (Exception ex) {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[NGA-07] 기준점 진단 기록 실패(무시): " + ex.Message); } catch { }
+                return new List<DatumDiagnosticDto>();
+            }
+            return lst;
         }
 
         // 260805 quick-260805-f3w D-F3W-02-REV: 사이클 시작 — 시계만 리셋한다. 여기서는 아무것도 출력하지 않는다
@@ -2849,6 +2877,7 @@ namespace ReringProject.Sequence {
                     nCycleZIndex);
                 cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
                 cycleDto.ZRangeImages = TakeTickZRangeImagesSnapshot();
+                cycleDto.DatumDiagnostics = BuildTickDatumDiagnosticsSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 // z_index 마다 호출되는 경로다. 마지막에 한 번만 기록해야 사이클당 1세트가 된다.
                 bool bLastIndexOfCycle = !packet.IsBuffer;
@@ -3391,6 +3420,11 @@ namespace ReringProject.Sequence {
             //  → 회전/이동으로 패턴이 이동하면 매칭 실패(ALIGN_FAIL). 멱등 폴백이므로 매 호출 안전.
             datum.EnsurePerRoiDefaults();
             var svc = new PatternMatchService();
+            // Phase 78 NGA-07: 매칭 실패 시 이전 값 잔재 방지
+            datum.LastAlignMatchScore = DatumConfig.ALIGN_MATCH_NONE;
+            datum.LastAlignMatchRow = DatumConfig.ALIGN_MATCH_NONE;
+            datum.LastAlignMatchCol = DatumConfig.ALIGN_MATCH_NONE;
+            datum.LastAlignMatchAngleDeg = DatumConfig.ALIGN_MATCH_NONE;
             double curRow, curCol, curAngleDeg, curScore;
             // ① 매칭 (보정 전 원본) → x,y
             if (!svc.TryFindPose(refImage, datum.PatternEngine, modelPath,
@@ -3403,6 +3437,11 @@ namespace ReringProject.Sequence {
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
             }
+            // Phase 78 NGA-07: 1번 패턴 매칭 결과 기록만 — 아래 보정 계산은 그대로
+            datum.LastAlignMatchScore = curScore;
+            datum.LastAlignMatchRow = curRow;
+            datum.LastAlignMatchCol = curCol;
+            datum.LastAlignMatchAngleDeg = curAngleDeg;
             // ② tilt(θ): 패턴 매칭 각도 사용. find_shape_model 이 부품 회전을 직접·강건하게 반환하고 부호도 일관.
             //   (직선 ROI θ 는 atan2 규약이라 패턴과 부호가 반대 + 멀리 있어 자주 실패 → 미사용. CO-54-04)
             double dRow = curRow - datum.RefMatchRow;

@@ -1087,6 +1087,18 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore]
         public double AlignThetaDeg { get; set; }
 
+        // Phase 78 NGA-07: 1번(주) 패턴 매칭 결과 — cycle.json 진단 기록 전용(판정 무관). TryComposeAlign 이 매칭 전 0 으로 지우고 성공 직후 기록한다.
+        //  프로퍼티가 아닌 필드라 INI·붙여넣기·PropertyGrid 에 나오지 않고, JsonIgnore 로 레시피 JSON 에서도 빠진다.
+        public const double ALIGN_MATCH_NONE = 0.0;
+        [Newtonsoft.Json.JsonIgnore]
+        public double LastAlignMatchScore;
+        [Newtonsoft.Json.JsonIgnore]
+        public double LastAlignMatchRow;
+        [Newtonsoft.Json.JsonIgnore]
+        public double LastAlignMatchCol;
+        [Newtonsoft.Json.JsonIgnore]
+        public double LastAlignMatchAngleDeg;
+
         // CircleTwoHorizontal 검출 원(B1 홀) 중심. CompoundAngle 주입용 (DatumOriginConsumer 채널).
         [System.ComponentModel.Browsable(false)]
         [PropertyTools.DataAnnotations.Browsable(false)]

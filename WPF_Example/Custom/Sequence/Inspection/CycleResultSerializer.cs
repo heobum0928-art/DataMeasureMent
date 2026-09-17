@@ -172,6 +172,66 @@ namespace ReringProject.Sequence
             return dto;
         }
 
+        // Phase 78 NGA-07: 비유한수(NaN/Infinity) 진단 값을 cycle.json 에 그대로 쓰지 않기 위한 대체값
+        private const double NON_FINITE_REPLACEMENT = 0.0;
+
+        // Phase 78 NGA-07: NaN·무한대는 NON_FINITE_REPLACEMENT 로 치환해 반환한다(기록만, 판정 무관)
+        private static double ToFiniteOrZero(double dValue)
+        {
+            bool bNonFinite = double.IsNaN(dValue) || double.IsInfinity(dValue);
+            if (bNonFinite)
+            {
+                return NON_FINITE_REPLACEMENT;
+            }
+            return dValue;
+        }
+
+        /// <summary>
+        /// tick 저장 시점 Datum 진단 스냅샷, 기록 전용(D-78-08). IsDetectedThisTick=false 면 이전 tick 값이다.
+        /// </summary>
+        public static DatumDiagnosticDto BuildDatumDiagnostic(DatumConfig datum, DateTime dtTickStartUtc)
+        {
+            if (datum == null)
+            {
+                return null;
+            }
+            bool bHasStamp = datum.LastFindTimeUtc > DateTime.MinValue;
+            bool bStampInTick = bHasStamp && datum.LastFindTimeUtc >= dtTickStartUtc;
+            bool bDetectedThisTick = datum.LastFindSucceeded && bStampInTick;
+
+            var dto = new DatumDiagnosticDto();
+            if (datum.DatumName == null)
+            {
+                dto.DatumName = "";
+            }
+            else
+            {
+                dto.DatumName = datum.DatumName;
+            }
+            dto.IsDetected = datum.LastFindSucceeded;
+            dto.IsDetectedThisTick = bDetectedThisTick;
+            if (bHasStamp)
+            {
+                dto.DetectTime = datum.LastFindTimeUtc.ToLocalTime();
+            }
+            else
+            {
+                dto.DetectTime = DateTime.MinValue;
+            }
+            dto.OriginRow = ToFiniteOrZero(datum.DetectedOriginRow);
+            dto.OriginCol = ToFiniteOrZero(datum.DetectedOriginCol);
+            dto.AngleDeg = ToFiniteOrZero(datum.DetectedAngleDeg);
+            dto.EdgeCount = datum.DetectedEdgeCount;
+            dto.FitRmse = ToFiniteOrZero(datum.DetectedFitRMSE);
+            dto.AlignMatchScore = ToFiniteOrZero(datum.LastAlignMatchScore);
+            dto.AlignMatchRow = ToFiniteOrZero(datum.LastAlignMatchRow);
+            dto.AlignMatchCol = ToFiniteOrZero(datum.LastAlignMatchCol);
+            dto.AlignMatchAngleDeg = ToFiniteOrZero(datum.LastAlignMatchAngleDeg);
+            dto.Align2Score = ToFiniteOrZero(datum.Align2Score);
+            dto.AlignThetaDeg = ToFiniteOrZero(datum.AlignThetaDeg);
+            return dto;
+        }
+
         /// <summary>
         /// dto.Shots 를 순회해 이 tick 에서 실제 다뤄진 항목만으로 TickJudgement/MeasuredShotNames 를 채운다.
         /// OverallJudgement/MapJudgement 는 절대 건드리지 않는다 — tick 단위 판정과 사이클 종합 판정은 별개다.

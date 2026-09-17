@@ -958,6 +958,27 @@ namespace ReringProject.UI
         public const string LABEL_R9 = "공차 경계 흔들림";
         public const string SUSPECT_SEPARATOR = ", ";
 
+        // Phase 78 NGA-01(78-02 Task 2): R5 기준점 흔들림
+        public const int R5_NEIGHBORS_EACH_SIDE = 2;
+        public const int R5_MIN_NEIGHBORS = 2;
+        public const int R5_MIN_SHARED_COUNT = 2;
+        public const double R5_MIN_SHIFT_TOL_RATIO = 0.15;
+        public const double R5_SIMILAR_FACTOR = 2.0;
+        public const string R5_SUPPORTED_TYPE_NAME = "EdgeToLineDistance";
+        public const string DIST_LINE_ROI_ID = "FAI-DistLine";
+        public const int DIST_LINE_FOOT_INDEX = 0;
+        public const int DIST_LINE_EDGE_INDEX = 1;
+        public const int DIST_LINE_MIN_POINTS = 2;
+        public const string R5_CAUSE_TEXT = "기준점 위치가 흔들렸습니다";
+        public const string R5_EVIDENCE_FORMAT = "같은 기준선을 쓰는 측정 {0}개가 이웃 검사보다 같은 방향으로 약 {1}mm 움직임 · {2}";
+        public const string R5_ACTION_TEXT = "자재 안착과 기준점 촬영(촬영 전 대기시간)이 흔들리지 않는지 확인하세요";
+        public const string R5_DATUM_FORMAT = "기준점 {0} 각도 {1}°";
+        public const string R5_DATUM_SCORE_FORMAT = " · 패턴 점수 {0}";
+        public const string ANGLE_FORMAT = "F3";
+        public const string MATCH_SCORE_FORMAT = "F2";
+        public const string R5_NO_DATUM_RECORD_TEXT = "기준점 기록 없음(이 기능 이전 데이터)";
+        public const string R5_NO_DATUM_DETECTED_TEXT = "기준점 검출 기록 없음";
+
         /// <summary>대표/함께 의심 조립용 규칙 발동 결과 1건.</summary>
         private class RuleHit
         {
@@ -965,6 +986,16 @@ namespace ReringProject.UI
             public string CauseText;
             public string EvidenceText;
             public string ActionText;
+        }
+
+        /// <summary>R5 묶음 멤버 1건 — 같은 기준선을 쓰는 측정의 이웃 대비 편차·기하·허용 폭.</summary>
+        private class R5Member
+        {
+            public MeasurementResultDto Measurement;
+            public double Deviation;
+            public double UnitRow;
+            public double UnitCol;
+            public double HalfWidth;
         }
 
         /// <summary>P-1 NG 범위: 측정 null → false, Z_RANGE_PENDING·CROSS_Z_INCOMPLETE → false, 그 밖 사유 있으면 true, 사유 없으면 LastHasResult 이고 LastJudgement false 일 때만 true.</summary>
@@ -1382,9 +1413,322 @@ namespace ReringProject.UI
             return BuildResult(true, CODE_R0, R0_CAUSE_TEXT, szR0Evidence, R0_ACTION_TEXT);
         }
 
+        /// <summary>값 목록의 중앙값(복사 정렬, 홀수 = 가운데, 짝수 = 가운데 두 값 평균).</summary>
+        private static double Median(List<double> lstValues)
+        {
+            List<double> lstSorted = new List<double>(lstValues);
+            lstSorted.Sort();
+            int nCount = lstSorted.Count;
+            if (nCount == 0)
+            {
+                return 0.0;
+            }
+            bool bOdd = (nCount % 2) == 1;
+            if (bOdd)
+            {
+                return lstSorted[nCount / 2];
+            }
+            int nHigh = nCount / 2;
+            int nLow = nHigh - 1;
+            return (lstSorted[nLow] + lstSorted[nHigh]) / 2.0;
+        }
+
+        /// <summary>fai.LastOverlays 에서 이 측정의 FAI-DistLine 오버레이 발끝→에지 단위벡터. 길이 0 은 제외(0 나눗셈 가드).</summary>
+        private static bool TryFindDistLineUnit(FaiResultDto fai, string szMeasName, out double dUnitRow, out double dUnitCol)
+        {
+            dUnitRow = 0.0;
+            dUnitCol = 0.0;
+            if (fai == null || fai.LastOverlays == null)
+            {
+                return false;
+            }
+            foreach (var overlay in fai.LastOverlays)
+            {
+                if (overlay == null)
+                {
+                    continue;
+                }
+                if (overlay.RoiId != DIST_LINE_ROI_ID)
+                {
+                    continue;
+                }
+                if (overlay.MeasurementName != szMeasName)
+                {
+                    continue;
+                }
+                if (overlay.Points == null || overlay.Points.Count < DIST_LINE_MIN_POINTS)
+                {
+                    continue;
+                }
+                var foot = overlay.Points[DIST_LINE_FOOT_INDEX];
+                var edge = overlay.Points[DIST_LINE_EDGE_INDEX];
+                if (foot == null || edge == null)
+                {
+                    continue;
+                }
+                double dRow = edge.Row - foot.Row;
+                double dCol = edge.Column - foot.Column;
+                double dLength = Math.Sqrt((dRow * dRow) + (dCol * dCol));
+                if (dLength <= 0.0)
+                {
+                    continue;
+                }
+                dUnitRow = dRow / dLength;
+                dUnitCol = dCol / dLength;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>이력 표본에서 이 사이클 앞 R5_NEIGHBORS_EACH_SIDE 개 + 뒤 R5_NEIGHBORS_EACH_SIDE 개(범위 밖은 잘림, 자기 제외).</summary>
+        private static List<double> CollectNeighborValues(List<NgHistorySample> lstSamples, string szCycleKey)
+        {
+            List<double> lstResult = new List<double>();
+            int nAnchorIndex = FindAnchorIndex(lstSamples, szCycleKey);
+            if (nAnchorIndex < 0)
+            {
+                return lstResult;
+            }
+            int nStart = nAnchorIndex - R5_NEIGHBORS_EACH_SIDE;
+            if (nStart < 0)
+            {
+                nStart = 0;
+            }
+            int nEnd = nAnchorIndex + R5_NEIGHBORS_EACH_SIDE;
+            if (nEnd >= lstSamples.Count)
+            {
+                nEnd = lstSamples.Count - 1;
+            }
+            for (int i = nStart; i <= nEnd; i++)
+            {
+                if (i == nAnchorIndex)
+                {
+                    continue;
+                }
+                lstResult.Add(lstSamples[i].Value);
+            }
+            return lstResult;
+        }
+
+        /// <summary>이 사이클·이 FAI 안에서 같은 기준선(FAI-DistLine)을 쓰는 EdgeToLineDistance 측정 묶음. 순서 = fai.Measurements.</summary>
+        private static List<R5Member> BuildR5Group(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai, NgCauseHistory history)
+        {
+            List<R5Member> lstResult = new List<R5Member>();
+            if (fai == null || fai.Measurements == null || shot == null)
+            {
+                return lstResult;
+            }
+            string szCycleKey = NgCauseHistory.ResolveCycleKey(cycle);
+            foreach (var g in fai.Measurements)
+            {
+                if (g == null)
+                {
+                    continue;
+                }
+                if (!g.LastHasResult)
+                {
+                    continue;
+                }
+                if (g.TypeName != R5_SUPPORTED_TYPE_NAME)
+                {
+                    continue;
+                }
+                double dUnitRow;
+                double dUnitCol;
+                bool bHasUnit = TryFindDistLineUnit(fai, g.MeasurementName, out dUnitRow, out dUnitCol);
+                if (!bHasUnit)
+                {
+                    continue;
+                }
+                string szKey = NgCauseHistory.BuildMeasurementKey(shot.ShotName, fai.FAIName, g.MeasurementName);
+                List<NgHistorySample> lstSamples = history.GetSamples(szKey);
+                List<double> lstNeighbors = CollectNeighborValues(lstSamples, szCycleKey);
+                bool bEnoughNeighbors = lstNeighbors.Count >= R5_MIN_NEIGHBORS;
+                if (!bEnoughNeighbors)
+                {
+                    continue;
+                }
+                double dNeighborMedian = Median(lstNeighbors);
+                R5Member member = new R5Member();
+                member.Measurement = g;
+                member.Deviation = g.LastMeasuredValue - dNeighborMedian;
+                member.UnitRow = dUnitRow;
+                member.UnitCol = dUnitCol;
+                member.HalfWidth = Math.Min(Math.Abs(g.TolerancePlus), Math.Abs(g.ToleranceMinus));
+                lstResult.Add(member);
+            }
+            return lstResult;
+        }
+
+        /// <summary>묶음 첫 측정의 단위벡터를 기준 축으로, 각 멤버 이동량(부호 정렬) 계산.</summary>
+        private static List<double> ComputeR5Movements(List<R5Member> lstGroup)
+        {
+            List<double> lstResult = new List<double>();
+            if (lstGroup.Count == 0)
+            {
+                return lstResult;
+            }
+            double dRefRow = lstGroup[0].UnitRow;
+            double dRefCol = lstGroup[0].UnitCol;
+            foreach (R5Member member in lstGroup)
+            {
+                double dDot = (member.UnitRow * dRefRow) + (member.UnitCol * dRefCol);
+                double dMovement;
+                if (dDot >= 0.0)
+                {
+                    dMovement = -member.Deviation;
+                }
+                else
+                {
+                    dMovement = member.Deviation;
+                }
+                lstResult.Add(dMovement);
+            }
+            return lstResult;
+        }
+
+        /// <summary>R5 근거의 기준점 설명 — 기록 없음/검출 없음/각도·패턴 점수.</summary>
+        private static string BuildDatumEvidenceText(CycleResultDto cycle)
+        {
+            bool bNoRecords = cycle == null || cycle.DatumDiagnostics == null || cycle.DatumDiagnostics.Count == 0;
+            if (bNoRecords)
+            {
+                return R5_NO_DATUM_RECORD_TEXT;
+            }
+            DatumDiagnosticDto latest = null;
+            foreach (DatumDiagnosticDto d in cycle.DatumDiagnostics)
+            {
+                if (d == null || !d.IsDetected)
+                {
+                    continue;
+                }
+                if (latest == null)
+                {
+                    latest = d;
+                    continue;
+                }
+                if (d.DetectTime > latest.DetectTime)
+                {
+                    latest = d;
+                }
+            }
+            if (latest == null)
+            {
+                return R5_NO_DATUM_DETECTED_TEXT;
+            }
+            string szText = string.Format(R5_DATUM_FORMAT, latest.DatumName, latest.AngleDeg.ToString(ANGLE_FORMAT));
+            if (latest.AlignMatchScore > 0.0)
+            {
+                szText += string.Format(R5_DATUM_SCORE_FORMAT, latest.AlignMatchScore.ToString(MATCH_SCORE_FORMAT));
+            }
+            return szText;
+        }
+
+        /// <summary>R5 기준점 흔들림. history null 이면 null. 강/약 판정은 bStrong 으로.</summary>
+        private static RuleHit TryEvaluateR5(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m,
+            double dLower, double dUpper, NgCauseHistory history, out bool bStrong)
+        {
+            bStrong = false;
+            if (history == null)
+            {
+                return null;
+            }
+            List<R5Member> lstGroup = BuildR5Group(cycle, shot, fai, history);
+            R5Member thisMember = null;
+            foreach (R5Member member in lstGroup)
+            {
+                if (member.Measurement == m)
+                {
+                    thisMember = member;
+                    break;
+                }
+            }
+            if (thisMember == null)
+            {
+                return null;
+            }
+            bool bEnoughShared = lstGroup.Count >= R5_MIN_SHARED_COUNT;
+            if (!bEnoughShared)
+            {
+                return null;
+            }
+
+            List<double> lstMovements = ComputeR5Movements(lstGroup);
+            bool bAllPositive = true;
+            bool bAllNegative = true;
+            foreach (double dMove in lstMovements)
+            {
+                if (dMove <= 0.0)
+                {
+                    bAllPositive = false;
+                }
+                if (dMove >= 0.0)
+                {
+                    bAllNegative = false;
+                }
+            }
+            bool bAllSameSign = bAllPositive || bAllNegative;
+            if (!bAllSameSign)
+            {
+                return null;
+            }
+
+            double dMedianMove = Median(lstMovements);
+            double dMinHalfWidth = double.MaxValue;
+            foreach (R5Member member in lstGroup)
+            {
+                if (member.HalfWidth < dMinHalfWidth)
+                {
+                    dMinHalfWidth = member.HalfWidth;
+                }
+            }
+            bool bShiftEnough = Math.Abs(dMedianMove) >= (R5_MIN_SHIFT_TOL_RATIO * dMinHalfWidth);
+            if (!bShiftEnough)
+            {
+                return null;
+            }
+
+            double dMaxAbsMove = 0.0;
+            double dMinAbsMove = double.MaxValue;
+            foreach (double dMove in lstMovements)
+            {
+                double dAbs = Math.Abs(dMove);
+                if (dAbs > dMaxAbsMove)
+                {
+                    dMaxAbsMove = dAbs;
+                }
+                if (dAbs < dMinAbsMove)
+                {
+                    dMinAbsMove = dAbs;
+                }
+            }
+            bool bSimilarMagnitude = dMaxAbsMove <= (R5_SIMILAR_FACTOR * dMinAbsMove);
+            if (!bSimilarMagnitude)
+            {
+                return null;
+            }
+
+            double dThisHalfWidth = Math.Min(Math.Abs(m.TolerancePlus), Math.Abs(m.ToleranceMinus));
+            bool bStrongByMagnitude = Math.Abs(dMedianMove) >= dThisHalfWidth;
+            double dAdjustedValue = m.LastMeasuredValue - thisMember.Deviation;
+            bool bStrongByAdjusted = dAdjustedValue >= dLower && dAdjustedValue <= dUpper;
+            bStrong = bStrongByMagnitude || bStrongByAdjusted;
+
+            string szDatumText = BuildDatumEvidenceText(cycle);
+            string szEvidence = string.Format(R5_EVIDENCE_FORMAT, lstGroup.Count, Math.Abs(dMedianMove).ToString(VALUE_FORMAT), szDatumText);
+            RuleHit hit = new RuleHit();
+            hit.Code = CODE_R5;
+            hit.CauseText = R5_CAUSE_TEXT;
+            hit.EvidenceText = szEvidence;
+            hit.ActionText = R5_ACTION_TEXT;
+            return hit;
+        }
+
         private static NgCauseResult BuildOutOfToleranceResult(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai,
             MeasurementResultDto m, NgCauseHistory history, double dLower, double dUpper)
         {
+            bool bR5Strong;
+            RuleHit r5 = TryEvaluateR5(cycle, shot, fai, m, dLower, dUpper, history, out bR5Strong);
             RuleHit r9 = null;
             RuleHit r6 = null;
             if (history != null)
@@ -1439,13 +1783,16 @@ namespace ReringProject.UI
             }
 
             RuleHit r8 = TryEvaluateR8(cycle, shot, m);
-            RuleHit r7 = TryEvaluateR7(cycle, m, dLower, dUpper, false, r6 != null, r9 != null);
+            RuleHit r7 = TryEvaluateR7(cycle, m, dLower, dUpper, bR5Strong, r6 != null, r9 != null);
 
             List<RuleHit> lstFired = new List<RuleHit>();
+            bool bR5Weak = r5 != null && !bR5Strong;
+            if (r5 != null && bR5Strong) { lstFired.Add(r5); }
             if (r9 != null) { lstFired.Add(r9); }
             if (r6 != null) { lstFired.Add(r6); }
             if (r8 != null) { lstFired.Add(r8); }
             if (r7 != null) { lstFired.Add(r7); }
+            if (bR5Weak) { lstFired.Add(r5); }
 
             if (lstFired.Count == 0)
             {

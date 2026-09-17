@@ -1379,7 +1379,7 @@ Plans:
 - [x] 78-05-PLAN.md (4b54c4d0·ff019e36) — NG 누적 엑셀 서비스(중복 키 = 사이클 폴더+Shot+FAI+측정명, 잠금 시 중단, 임시 파일→File.Replace) + 버튼 배선 (NGA-03, NGA-04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 78-06-PLAN.md — 버전 1.7.49.0 + phase 전체 회귀 감사(변경 파일 범위, 하드룰 grep, probe 전체) (NGA-05)
+- [x] 78-06-PLAN.md (e6f0266e) — 버전 1.7.49.0 + phase 전체 회귀 감사(변경 파일 범위, 하드룰 grep, probe 전체) (NGA-05)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 78-07-PLAN.md — UAT 절차서 + 사용자 사무실 확인 체크포인트 (NGA-01~07)

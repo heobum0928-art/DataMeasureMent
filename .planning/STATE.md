@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 Phase: 77 (side-z-focus-select) — EXECUTING (6 plans / 5 waves, 순차 실행 — use_worktrees=false)
 Plan: 4 of 6 — 77-01 완료(69d5ba72), 77-02 완료(d60b3e7b·a712d3b5), 77-03 완료(49f1a29e·8fd236f9·ac74d1ce), 77-04 완료(5fba2496·d20ac23e), D-77-08 범위 변경 다이얼로그(b92d57e6), 77-05 완료(bbbda563 버전 1.7.47.0, 누적 회귀 감사 PASS), 77-06 Task 1 UAT 절차서 커밋(4534b249) — **체크포인트 대기: 사용자 사무실 UAT U-1~U-8 결과(approved 또는 실패 U 번호) + U-4 A-77-E1 판단**, U-9 는 O-1 후 (77-06 은 사람 승인 체크포인트, SIDE 실기 U-9 는 O-1 PLC z 번호 협의 후)
-Next: Phase 78 (reviewer-ng-cause-analysis) — EXECUTING 7 plans / 5 waves (순차) — 78-01 완료(a2b1d62b·cd5b05c0·2543b9f1, R6 tracer·R1~R4·NGA-07 DTO), 78-02 완료(42a20b46·696bc7b8, R5·R7·R8·R9·대표 원인 조립), 78-03 완료(1622f78b·8c6e0e90, Z 후보 점수·검사 당시 Z 범위·기준점 진단 값 cycle.json 기록), 78-04 완료(9ca082ab·693a1424, 실제 촬영 사진·버튼 2개 삭제), 78-05 완료(4b54c4d0·ff019e36, NG 누적 엑셀)
+Next: Phase 78 (reviewer-ng-cause-analysis) — EXECUTING 7 plans / 5 waves (순차) — 78-01 완료(a2b1d62b·cd5b05c0·2543b9f1, R6 tracer·R1~R4·NGA-07 DTO), 78-02 완료(42a20b46·696bc7b8, R5·R7·R8·R9·대표 원인 조립), 78-03 완료(1622f78b·8c6e0e90, Z 후보 점수·검사 당시 Z 범위·기준점 진단 값 cycle.json 기록), 78-04 완료(9ca082ab·693a1424, 실제 촬영 사진·버튼 2개 삭제), 78-05 완료(4b54c4d0·ff019e36, NG 누적 엑셀), 78-06 완료(e6f0266e 버전 1.7.49.0, 누적 감사 PASS)
 Phase 76 (side-datum): 76-01·76-02 완료, 76-03 실기 UAT 대기 (코드 origin 반영됨, 버전 1.7.46.0)
 
 ## 다음 세션 인수인계 (2026-08-27)

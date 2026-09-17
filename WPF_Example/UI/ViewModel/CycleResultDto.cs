@@ -62,6 +62,9 @@ namespace ReringProject.UI
         /// </summary>
         public List<ZRangeImageRecordDto> ZRangeImages { get; set; } = new List<ZRangeImageRecordDto>();
 
+        /// <summary>Phase 78 NGA-07(D-78-08): 이 시퀀스 Datum 진단 값. 기록 전용, 옛 cycle.json 은 빈 목록.</summary>
+        public List<DatumDiagnosticDto> DatumDiagnostics { get; set; } = new List<DatumDiagnosticDto>();
+
         // 측정 데이터 — Shot > FAI > Measurement 계층
         public List<ShotResultDto> Shots { get; set; } = new List<ShotResultDto>();
     }
@@ -90,6 +93,53 @@ namespace ReringProject.UI
         public string Path { get; set; }
     }
 
+    /// <summary>Z 범위 Shot 에서 이 측정의 후보 z 하나를 실제로 측정한 결과(Phase 78 NGA-07, D-78-08). 평가 순서대로 기록.</summary>
+    public class ZCandidateScoreDto
+    {
+        public int ZIndex { get; set; }
+
+        public bool Ok { get; set; }
+
+        public double Score { get; set; }
+    }
+
+    /// <summary>
+    /// tick 저장 시점의 기준점 진단 값(기록 전용, 판정 무관 — D-78-08). IsDetectedThisTick=false 면 이전 tick 에서
+    /// 검출된 값.
+    /// </summary>
+    public class DatumDiagnosticDto
+    {
+        public string DatumName { get; set; }
+
+        public bool IsDetected { get; set; }
+
+        public bool IsDetectedThisTick { get; set; }
+
+        public DateTime DetectTime { get; set; }
+
+        public double OriginRow { get; set; }
+
+        public double OriginCol { get; set; }
+
+        public double AngleDeg { get; set; }
+
+        public int EdgeCount { get; set; }
+
+        public double FitRmse { get; set; }
+
+        public double AlignMatchScore { get; set; }
+
+        public double AlignMatchRow { get; set; }
+
+        public double AlignMatchCol { get; set; }
+
+        public double AlignMatchAngleDeg { get; set; }
+
+        public double Align2Score { get; set; }
+
+        public double AlignThetaDeg { get; set; }
+    }
+
     /// <summary>Shot 단위 결과 DTO.</summary>
     public class ShotResultDto
     {
@@ -102,6 +152,15 @@ namespace ReringProject.UI
         /// 리뷰어 재로드 및 xlsx 하이퍼링크에 사용된다.
         /// </summary>
         public string ResultImagePath { get; set; }
+
+        /// <summary>Phase 78 NGA-07(D-78-08): 범위 꺼짐·옛 cycle.json = -1.</summary>
+        public const int Z_RANGE_NONE = -1;
+
+        /// <summary>검사 당시 Shot 의 Z 범위 시작. R8 판정은 현재 레시피가 아니라 이 값을 쓴다.</summary>
+        public int ZRangeStartIndex { get; set; } = Z_RANGE_NONE;
+
+        /// <summary>검사 당시 Shot 의 Z 범위 끝. R8 판정은 현재 레시피가 아니라 이 값을 쓴다.</summary>
+        public int ZRangeEndIndex { get; set; } = Z_RANGE_NONE;
 
         public List<FaiResultDto> FAIs { get; set; } = new List<FaiResultDto>();
     }
@@ -165,6 +224,9 @@ namespace ReringProject.UI
 
         /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호. -1 = 범위 미적용·옛 JSON(Phase 77 SZF-04, D-77-07 ⑥).</summary>
         public int SelectedZIndex { get; set; } = MeasurementBase.SELECTED_Z_NONE;
+
+        /// <summary>Phase 78 NGA-07(D-78-08): 후보 z 별 선명도, 평가 순서대로. 범위 미적용·옛 JSON = 빈 목록.</summary>
+        public List<ZCandidateScoreDto> ZCandidateScores { get; set; } = new List<ZCandidateScoreDto>();
     }
 
     /// <summary>

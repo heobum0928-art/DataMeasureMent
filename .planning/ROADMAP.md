@@ -1373,7 +1373,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion — 세 계획 파일 겹침 없음)*
 - [x] 78-02-PLAN.md (42a20b46·696bc7b8) — R5 기준점 흔들림 · R7 한 곳만 · R8 초점 범위 끝 · R9 공차 경계 + 대표 원인/함께 의심 조립 (NGA-01, NGA-05)
 - [x] 78-03-PLAN.md (1622f78b·8c6e0e90) — cycle.json 기록 추가: Z 후보별 선명도, 검사 당시 Z 범위, 기준점 원점·각도·매칭 점수 (판정 경로 불변) (NGA-07, NGA-05)
-- [ ] 78-04-PLAN.md — 리뷰어 실제 촬영 사진(OriginImageFileName 우선) + 버튼 2개·전용 코드 삭제 (NGA-06, NGA-04)
+- [x] 78-04-PLAN.md (9ca082ab·693a1424) — 리뷰어 실제 촬영 사진(OriginImageFileName 우선) + 버튼 2개·전용 코드 삭제 (NGA-06, NGA-04)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 78-05-PLAN.md — NG 누적 엑셀 서비스(중복 키 = 사이클 폴더+Shot+FAI+측정명, 잠금 시 중단, 임시 파일→File.Replace) + 버튼 배선 (NGA-03, NGA-04)

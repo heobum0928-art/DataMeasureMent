@@ -13,19 +13,13 @@ using System.Threading;
 namespace ReringProject.Export
 {
     /// <summary>
-    /// 1회 검사 cycle 결과(CycleResultDto, Plan 01 단일 소스)를 xlsx 로 export 한다 (OUT-02).
-    /// 상단 메타 헤더 블록(모델명·검사일시·종합판정) + 1행=1측정 테이블(Shot/FAI/측정명/Nominal/Tol+/Tol-/측정값/판정)
-    /// + 이미지 하이퍼링크 컬럼. 리뷰어 [엑셀 export] 버튼이 현재 선택된 cycle 을 전달한다.
-    /// 예외는 전부 try/catch → false 반환 + Logging (T-40-12: 앱 크래시 0).
+    /// 결과 xlsx 공용 헬퍼 — 판정 문구, 캡쳐 JPG 대기·셀 삽입. 반복도·일괄검사 export(RepeatExcelExportService)가 공유한다.
     /// </summary>
     public static class ExcelExportService
     {
-        private const int CAPTURE_IMAGE_COLUMN = 11;          // 캡쳐이미지 경로(10) 바로 뒤
-
         // 비동기 write 레이스 대기 파라미터 (CONTEXT 재량 범위 1~2초 안에서 선택)
         private const int CAPTURE_WAIT_TIMEOUT_MS = 1500;     // 파일 1개당 최대 대기
         private const int CAPTURE_WAIT_POLL_MS = 100;         // 폴링 간격
-        private const int CAPTURE_WAIT_BUDGET_MS = 5000;      // export 1회 전체 대기 예산 상한
 
         // 셀 안 이미지 표시 박스(픽셀)
         private const int CAPTURE_BOX_WIDTH_PX = 160;
@@ -36,115 +30,6 @@ namespace ReringProject.Export
         private const double EXCEL_POINTS_PER_PIXEL = 0.75;
 
         private const int JPEG_MIN_BYTES = 4;                 // SOI(2) + EOI(2) 최소 길이
-
-        /// <summary>
-        /// cycle 을 outputPath 에 xlsx 로 저장한다. 성공 시 true, 실패(null 인자/예외) 시 false.
-        /// </summary>
-        public static bool Export(CycleResultDto cycle, string outputPath)
-        {
-            if (cycle == null || string.IsNullOrEmpty(outputPath))
-            {
-                return false;
-            }
-
-            try
-            {
-                using (var wb = new XLWorkbook())
-                {
-                    var ws = wb.Worksheets.Add("Result");
-
-                    // D-06 메타 헤더 블록 (행 1~3)
-                    ws.Cell(1, 1).Value = "모델명";
-                    ws.Cell(1, 2).Value = cycle.RecipeName != null ? cycle.RecipeName : "";
-                    ws.Cell(2, 1).Value = "검사일시";
-                    ws.Cell(2, 2).Value = cycle.InspectionTime.ToString("yyyy-MM-dd HH:mm:ss");
-                    ws.Cell(3, 1).Value = "종합판정";
-                    ws.Cell(3, 2).Value = cycle.OverallJudgement != null ? cycle.OverallJudgement : "";
-
-                    //260622 hbk Phase 48 PROTO-01: 자재번호 메타 행 (D-05). IndexNumber -1 = 미수신 → "-".
-                    ws.Cell(4, 1).Value = "자재번호";
-                    if (cycle.IndexNumber >= 0)
-                    {
-                        ws.Cell(4, 2).Value = cycle.IndexNumber;
-                    }
-                    else
-                    {
-                        ws.Cell(4, 2).Value = "-";
-                    }
-
-                    // D-05 테이블 헤더 (행 6 — 자재번호 행 추가로 5→6 이동)
-                    // "이미지" 하이퍼링크 컬럼 폐기 → 절대 경로(경로\파일명) 텍스트 2컬럼으로 교체.
-                    int hr = 6;  //260622 hbk Phase 48 PROTO-01: 자재번호 행(행 4) 추가에 따른 오프셋 조정 (5→6)
-                    string[] headers = { "Shot", "FAI", "측정명", "Nominal", "Tol+", "Tol-", "측정값", "판정", "원본이미지 경로", "캡쳐이미지 경로", "캡쳐이미지" };
-                    for (int i = 0; i < headers.Length; i++)
-                    {
-                        ws.Cell(hr, i + 1).Value = headers[i];
-                    }
-
-                    int row = hr + 1;
-                    List<ShotResultDto> shots = cycle.Shots != null ? cycle.Shots : new List<ShotResultDto>();
-
-                    // 같은 FAI 의 여러 측정 행은 캡쳐 경로가 동일하다 → 경로당 1회만 대기/읽기 (null 결과도 캐시해서 재대기 방지)
-                    var dicCaptureCache = new Dictionary<string, byte[]>();
-                    // export 1회 전체 폴링 대기 상한. UI 스레드 호출이므로 이미지가 통째로 없는 cycle 에서 수 분 멈추는 것을 막는다.
-                    var swWaitBudget = Stopwatch.StartNew();
-
-                    foreach (var shot in shots)
-                    {
-                        List<FaiResultDto> fais = shot.FAIs != null ? shot.FAIs : new List<FaiResultDto>();
-                        foreach (var fai in fais)
-                        {
-                            List<MeasurementResultDto> measurements = fai.Measurements != null ? fai.Measurements : new List<MeasurementResultDto>();
-                            foreach (var m in measurements)
-                            {
-                                ws.Cell(row, 1).Value = shot.ShotName != null ? shot.ShotName : "";
-                                ws.Cell(row, 2).Value = fai.FAIName != null ? fai.FAIName : "";
-                                ws.Cell(row, 3).Value = m.MeasurementName != null ? m.MeasurementName : "";
-                                ws.Cell(row, 4).Value = m.NominalValue;
-                                ws.Cell(row, 5).Value = m.TolerancePlus;
-                                ws.Cell(row, 6).Value = m.ToleranceMinus;
-
-                                // 측정값: CO-23-01 — 0.0 도 정상 결과, HasResult 플래그로 판별
-                                if (m.LastHasResult)
-                                {
-                                    ws.Cell(row, 7).Value = m.LastMeasuredValue;
-                                }
-                                else
-                                {
-                                    ws.Cell(row, 7).Value = "-";
-                                }
-
-                                // 판정 3분기: DATUM_FAIL > HasResult 유무 > OK/NG (ReviewMeasurementRow 로직 일치)
-                                ws.Cell(row, 8).Value = BuildJudgementText(m);
-
-                                // D-07 하이퍼링크 폐기(한글경로 file:/// 퍼센트인코딩 이슈 해소), 절대 경로 텍스트로 대체.
-                                ws.Cell(row, 9).Value  = fai.OriginImageFileName != null ? fai.OriginImageFileName : "";
-                                ws.Cell(row, 10).Value = fai.CaptureImageFileName != null ? fai.CaptureImageFileName : "";
-
-                                byte[] arrCaptureBytes = LoadCaptureImageBytes(fai.CaptureImageFileName, dicCaptureCache, swWaitBudget, CAPTURE_WAIT_BUDGET_MS);
-                                TryInsertCaptureImage(ws, row, CAPTURE_IMAGE_COLUMN, arrCaptureBytes);
-
-                                row++;
-                            }
-                        }
-                    }
-
-                    ws.Columns().AdjustToContents();
-                    ApplyCaptureColumnWidth(ws, CAPTURE_IMAGE_COLUMN);
-                    wb.SaveAs(outputPath);
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                try
-                {
-                    Logging.PrintErrLog((int)ELogType.Error, "[ExcelExportService] Export failed: " + ex.Message);
-                }
-                catch { }
-                return false;
-            }
-        }
 
         /// <summary>
         /// 캡쳐 JPG 를 바이트로 읽는다. 경로당 1회만 실제 대기/읽기 (결과가 null 이어도 캐시).

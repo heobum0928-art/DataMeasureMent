@@ -207,51 +207,5 @@ namespace ReringProject.Export
                 return false;
             }
         }
-
-        /// <summary>
-        /// 합성 샘플로 히스토그램/추이 PNG 2장을 지정 폴더에 저장한다. 오프스크린 렌더 동작 점검용.
-        /// 반환 = 성공 여부, szMessage = 저장 경로 또는 실패 사유.
-        /// </summary>
-        public static bool TrySaveSmokePng(string szFolder, out string szMessage)
-        {
-            szMessage = "";
-
-            try
-            {
-                var values = new List<double>();
-                var rnd = new Random(20260818);
-                for (int i = 0; i < 100; i++)
-                {
-                    values.Add(10.0 + (rnd.NextDouble() - 0.5) * 0.4);
-                }
-
-                double dNominal = 10.0;
-                double dUsl = dNominal + 0.2;
-                double dLsl = dNominal - 0.2;
-
-                byte[] arrHist = RenderHistogramPng(values, dUsl, dLsl);
-                byte[] arrTrend = RenderTrendPng(values, dNominal, dUsl, dLsl);
-
-                bool bBad = arrHist == null || arrHist.Length == 0 || arrTrend == null || arrTrend.Length == 0;
-                if (bBad)
-                {
-                    szMessage = "PNG 생성 실패 (빈 바이트) — 로그 확인";
-                    return false;
-                }
-
-                string szHist = Path.Combine(szFolder, "chart_smoke_histogram.png");
-                string szTrend = Path.Combine(szFolder, "chart_smoke_trend.png");
-                File.WriteAllBytes(szHist, arrHist);
-                File.WriteAllBytes(szTrend, arrTrend);
-
-                szMessage = szHist + "\n" + szTrend;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                szMessage = ex.Message;
-                return false;
-            }
-        }
     }
 }

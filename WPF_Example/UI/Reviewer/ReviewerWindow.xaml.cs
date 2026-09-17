@@ -125,8 +125,6 @@ namespace ReringProject.UI
             // 손상/악성 JSON → null (TypeNameHandling.None in CycleResultSerializer)
             _currentCycle = CycleResultSerializer.Load(jsonPath);
             DisplayCycle(_currentCycle);
-
-            btn_exportExcel.IsEnabled = (_currentCycle != null);
         }
 
         // cycle 결과 재렌더: 측정표 + 이미지 + overlay
@@ -335,42 +333,6 @@ namespace ReringProject.UI
         private void Button_AxisVertical_Click(object sender, RoutedEventArgs e)
         {
             ShowAxisImage(false);
-        }
-
-        // 현재 선택된 cycle 을 xlsx 로 export. 저장 위치 = cycle 폴더 기본 + 사용자 지정.
-        private void Button_ExportExcel_Click(object sender, RoutedEventArgs e)
-        {
-            if (_currentCycle == null)
-            {
-                CustomMessageBox.Show("엑셀 export", "먼저 cycle 을 선택하세요.", MessageBoxImage.Warning);
-                return;
-            }
-
-            // 저장 위치: 해당 cycle 폴더 기본, fallback ResultSavePath
-            string initialDir;
-            if (!string.IsNullOrEmpty(_currentCycle.CycleFolderPath) && Directory.Exists(_currentCycle.CycleFolderPath))
-                initialDir = _currentCycle.CycleFolderPath;
-            else
-                initialDir = SystemHandler.Handle.Setting.ResultSavePath;
-
-            var dlg = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "Excel 파일 (*.xlsx)|*.xlsx",
-                FileName = "result_" + _currentCycle.InspectionTime.ToString("yyyyMMdd_HHmmss") + ".xlsx",
-                InitialDirectory = initialDir
-            };
-
-            if (dlg.ShowDialog() == true)
-            {
-                bool ok = ExcelExportService.Export(_currentCycle, dlg.FileName);
-                string okMessage;
-                if (ok) okMessage = "저장 완료:\n" + dlg.FileName; else okMessage = "export 실패 (로그 확인)";
-                MessageBoxImage okIcon;
-                if (ok) okIcon = MessageBoxImage.Information; else okIcon = MessageBoxImage.Error;
-                CustomMessageBox.Show("엑셀 export",
-                    okMessage,
-                    okIcon);
-            }
         }
 
         //260615 hbk Quick 260615-dx7 이미지 폴더 반복 검사 버튼 핸들러 (고정 50회 → 폴더 N장 순회)
@@ -603,27 +565,6 @@ namespace ReringProject.UI
 
                 CustomMessageBox.Show("CPK 리포트 export", msg, icon);
             }
-        }
-
-        /// 오프스크린 Canvas → PNG 캡처가 실제로 그림을 만드는지 점검한다(빈 이미지 회귀 감시).
-        private void Button_ChartSmoke_Click(object sender, RoutedEventArgs e)
-        {
-            string szFolder = SystemHandler.Handle.Setting.ResultSavePath;
-            string szMessage;
-            bool bOk = ReringProject.Export.ChartImageCapture.TrySaveSmokePng(szFolder, out szMessage);
-
-            string szTitle = "차트 이미지 캡처 점검";
-            MessageBoxImage icon;
-            if (bOk)
-            {
-                icon = MessageBoxImage.Information;
-            }
-            else
-            {
-                icon = MessageBoxImage.Error;
-            }
-
-            CustomMessageBox.Show(szTitle, szMessage, icon);
         }
 
         // Align 정합 조회 창 열기. 이 화면의 자재번호 입력란 값을 초기값으로 복사해 넘긴다

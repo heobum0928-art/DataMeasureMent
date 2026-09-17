@@ -1363,7 +1363,26 @@ Plans:
 
 **Requirements**: NGA-01 (원인 규칙 엔진), NGA-02 (화면 표시), NGA-03 (NG 누적 엑셀), NGA-04 (리뷰어 기능 정리), NGA-05 (회귀 0·옛 데이터 호환), NGA-06 (리뷰어 실제 촬영 사진), NGA-07 (진단 값 cycle.json 기록)
 **Depends on:** Phase 77
-**Plans:** 0 plans (계획 전)
+**Plans:** 7 plans (plan-checker PASS 2026-09-17, 경고 1 = VALIDATION frontmatter 갱신 → 반영)
+
+Plans:
+
+**Wave 1**
+- [ ] 78-01-PLAN.md — tracer: R6(평균 치우침) 규칙 1개를 cycle.json → 규칙 엔진 → 리뷰어 행 3줄까지 관통(20260916 실데이터) + R1~R4 사유 규칙 + NGA-07 DTO 필드 선언 (NGA-01, NGA-02, NGA-05, NGA-07)
+
+**Wave 2** *(blocked on Wave 1 completion — 세 계획 파일 겹침 없음)*
+- [ ] 78-02-PLAN.md — R5 기준점 흔들림 · R7 한 곳만 · R8 초점 범위 끝 · R9 공차 경계 + 대표 원인/함께 의심 조립 (NGA-01, NGA-05)
+- [ ] 78-03-PLAN.md — cycle.json 기록 추가: Z 후보별 선명도, 검사 당시 Z 범위, 기준점 원점·각도·매칭 점수 (판정 경로 불변) (NGA-07, NGA-05)
+- [ ] 78-04-PLAN.md — 리뷰어 실제 촬영 사진(OriginImageFileName 우선) + 버튼 2개·전용 코드 삭제 (NGA-06, NGA-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 78-05-PLAN.md — NG 누적 엑셀 서비스(중복 키 = 사이클 폴더+Shot+FAI+측정명, 잠금 시 중단, 임시 파일→File.Replace) + 버튼 배선 (NGA-03, NGA-04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 78-06-PLAN.md — 버전 1.7.49.0 + phase 전체 회귀 감사(변경 파일 범위, 하드룰 grep, probe 전체) (NGA-05)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 78-07-PLAN.md — UAT 절차서 + 사용자 사무실 확인 체크포인트 (NGA-01~07)
 
 ---
 

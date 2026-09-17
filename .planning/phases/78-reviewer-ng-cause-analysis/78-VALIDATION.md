@@ -2,8 +2,8 @@
 phase: 78
 slug: reviewer-ng-cause-analysis
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
-status: draft
-nyquist_compliant: false
+status: validated
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-09-17
 ---

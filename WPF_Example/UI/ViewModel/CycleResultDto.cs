@@ -607,4 +607,468 @@ namespace ReringProject.UI
             return sb.ToString();
         }
     }
+
+    /// <summary>
+    /// NG 원인 규칙 1건의 판정 결과. 화면 패널과 NG 누적 엑셀이 같은 결과를 쓴다(D-78-04).
+    /// </summary>
+    public class NgCauseResult
+    {
+        public bool IsNg { get; set; }
+
+        public bool HasCause { get; set; }
+
+        public string CauseCode { get; set; } = "";
+
+        public string CauseText { get; set; } = "";
+
+        public string EvidenceText { get; set; } = "";
+
+        public string ActionText { get; set; } = "";
+
+        public List<string> SuspectCodes { get; set; } = new List<string>();
+
+        public string SuspectText { get; set; } = "";
+
+        public static NgCauseResult Empty()
+        {
+            return new NgCauseResult();
+        }
+
+        public static NgCauseResult NotNg()
+        {
+            NgCauseResult result = new NgCauseResult();
+            result.IsNg = false;
+            result.HasCause = false;
+            result.CauseText = NgCauseAnalyzer.NOT_NG_TEXT;
+            return result;
+        }
+    }
+
+    /// <summary>같은 (Shot,FAI,측정명) 이력의 사이클 1건 표본. 추세 규칙(R6/R9) 입력.</summary>
+    public class NgHistorySample
+    {
+        public DateTime InspectionTime { get; set; }
+
+        public string CycleKey { get; set; }
+
+        public double Value { get; set; }
+
+        public bool IsOk { get; set; }
+    }
+
+    /// <summary>
+    /// 같은 날짜 폴더 cycle.json 이력을 측정 키별로 모은다. 파일 I/O 없음 — 리뷰어가 이미 읽은 dto 를
+    /// AddCycle 로 누적할 뿐이다(RESEARCH Pitfall 3, D-78-03).
+    /// </summary>
+    public class NgCauseHistory
+    {
+        public const string KEY_SEPARATOR = "";
+        public const string CYCLE_KEY_TIME_PREFIX = "T";
+
+        private readonly Dictionary<string, List<NgHistorySample>> _dicSamples = new Dictionary<string, List<NgHistorySample>>();
+        private readonly HashSet<string> _setCycleKeys = new HashSet<string>(StringComparer.Ordinal);
+        private bool _bSorted = true;
+
+        public static string ResolveCycleKey(CycleResultDto dto)
+        {
+            if (dto == null)
+            {
+                return "";
+            }
+            if (!string.IsNullOrEmpty(dto.CycleFolderPath))
+            {
+                return dto.CycleFolderPath.TrimEnd('\\', '/');
+            }
+            return CYCLE_KEY_TIME_PREFIX + dto.InspectionTime.Ticks.ToString();
+        }
+
+        public static string BuildMeasurementKey(string szShot, string szFai, string szMeas)
+        {
+            string szShotSafe = szShot;
+            if (szShotSafe == null) { szShotSafe = ""; }
+            string szFaiSafe = szFai;
+            if (szFaiSafe == null) { szFaiSafe = ""; }
+            string szMeasSafe = szMeas;
+            if (szMeasSafe == null) { szMeasSafe = ""; }
+            return szShotSafe + KEY_SEPARATOR + szFaiSafe + KEY_SEPARATOR + szMeasSafe;
+        }
+
+        public int SampleCount
+        {
+            get
+            {
+                int nTotal = 0;
+                foreach (var kvp in _dicSamples)
+                {
+                    nTotal += kvp.Value.Count;
+                }
+                return nTotal;
+            }
+        }
+
+        public void AddCycle(CycleResultDto dto)
+        {
+            if (dto == null)
+            {
+                return;
+            }
+            string szCycleKey = ResolveCycleKey(dto);
+            if (_setCycleKeys.Contains(szCycleKey))
+            {
+                return;
+            }
+            _setCycleKeys.Add(szCycleKey);
+
+            if (dto.Shots == null)
+            {
+                return;
+            }
+            foreach (var shot in dto.Shots)
+            {
+                if (shot == null || shot.FAIs == null)
+                {
+                    continue;
+                }
+                foreach (var fai in shot.FAIs)
+                {
+                    if (fai == null || fai.Measurements == null)
+                    {
+                        continue;
+                    }
+                    foreach (var m in fai.Measurements)
+                    {
+                        if (m == null || !m.LastHasResult)
+                        {
+                            continue;
+                        }
+                        string szKey = BuildMeasurementKey(shot.ShotName, fai.FAIName, m.MeasurementName);
+                        List<NgHistorySample> lstSamples;
+                        bool bHasList = _dicSamples.TryGetValue(szKey, out lstSamples);
+                        if (!bHasList)
+                        {
+                            lstSamples = new List<NgHistorySample>();
+                            _dicSamples[szKey] = lstSamples;
+                        }
+                        NgHistorySample sample = new NgHistorySample();
+                        sample.InspectionTime = dto.InspectionTime;
+                        sample.CycleKey = szCycleKey;
+                        sample.Value = m.LastMeasuredValue;
+                        sample.IsOk = m.LastJudgement;
+                        lstSamples.Add(sample);
+                    }
+                }
+            }
+            _bSorted = false;
+        }
+
+        private static int CompareSamples(NgHistorySample a, NgHistorySample b)
+        {
+            int nTimeCompare = a.InspectionTime.CompareTo(b.InspectionTime);
+            if (nTimeCompare != 0)
+            {
+                return nTimeCompare;
+            }
+            return string.CompareOrdinal(a.CycleKey, b.CycleKey);
+        }
+
+        public List<NgHistorySample> GetSamples(string szMeasurementKey)
+        {
+            if (!_bSorted)
+            {
+                foreach (var kvp in _dicSamples)
+                {
+                    kvp.Value.Sort(CompareSamples);
+                }
+                _bSorted = true;
+            }
+            List<NgHistorySample> lstSamples;
+            bool bHasList = _dicSamples.TryGetValue(szMeasurementKey, out lstSamples);
+            if (!bHasList)
+            {
+                return new List<NgHistorySample>();
+            }
+            return lstSamples;
+        }
+    }
+
+    /// <summary>
+    /// NG 원인 추정 규칙 엔진. CycleResultDto/NgCauseHistory 만 입력받는 순수 정적 클래스 — 파일 I/O·전역
+    /// 싱글턴·레시피 참조 없음(P-2, D-78-03). 화면 패널과 NG 누적 엑셀이 이 클래스 하나만 호출한다(D-78-04).
+    /// </summary>
+    public static class NgCauseAnalyzer
+    {
+        public const string CODE_NONE = "";
+        public const string CODE_R0 = "R0";
+        public const string CODE_R1 = "R1";
+        public const string CODE_R2 = "R2";
+        public const string CODE_R3 = "R3";
+        public const string CODE_R4 = "R4";
+        public const string CODE_R5 = "R5";
+        public const string CODE_R6 = "R6";
+        public const string CODE_R7 = "R7";
+        public const string CODE_R8 = "R8";
+        public const string CODE_R9 = "R9";
+        public const string CODE_UNKNOWN = "RX";
+
+        public const string NOT_NG_TEXT = "이 항목은 NG 가 아니라 원인 분석 대상이 아닙니다";
+        public const string PANEL_CAUSE_PREFIX = "추정 원인: ";
+        public const string PANEL_EVIDENCE_PREFIX = "근거: ";
+        public const string PANEL_ACTION_PREFIX = "확인할 일: ";
+        public const string PANEL_SUSPECT_PREFIX = "함께 의심: ";
+        public const string PANEL_LINE_SEPARATOR = "\n";
+        public const string VALUE_FORMAT = "F4";
+        public const string SIDE_BIG_TEXT = "큰";
+        public const string SIDE_SMALL_TEXT = "작은";
+
+        public const int R6_WINDOW_SIZE = 5;
+        public const int R6_MIN_SAMPLES = 3;
+        public const string R6_CAUSE_TEXT = "보정값 또는 티칭이 한쪽으로 치우쳐 있습니다";
+        public const string R6_EVIDENCE_FORMAT = "최근 {0}회 평균 {1} · 기준 {2} (허용 {3} ~ {4}) · {0}회 모두 {5} 쪽";
+        public const string R6_ACTION_TEXT = "Shot 보정값과 이 측정의 티칭 위치를 확인하세요";
+
+        public const string R0_CAUSE_TEXT = "공차를 벗어났습니다 (규칙으로 원인을 특정하지 못함)";
+        public const string R0_EVIDENCE_FORMAT = "측정 {0} · 허용 {1} ~ {2} · {3} 벗어남";
+        public const string R0_ACTION_TEXT = "사진에서 측정 위치를 보고, 같은 자재로 다시 검사해 보세요";
+
+        public const string RX_CAUSE_TEXT = "알 수 없는 사유로 측정하지 못했습니다";
+        public const string RX_EVIDENCE_FORMAT = "사유 {0}";
+        public const string RX_ACTION_TEXT = "같은 시각의 Error 로그를 확인하세요";
+
+        /// <summary>P-1 NG 범위: 측정 null → false, Z_RANGE_PENDING·CROSS_Z_INCOMPLETE → false, 그 밖 사유 있으면 true, 사유 없으면 LastHasResult 이고 LastJudgement false 일 때만 true.</summary>
+        public static bool IsNgMeasurement(MeasurementResultDto m)
+        {
+            if (m == null)
+            {
+                return false;
+            }
+            if (m.LastSkipReason == SkipReason.Z_RANGE_PENDING)
+            {
+                return false;
+            }
+            if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE)
+            {
+                return false;
+            }
+            if (!string.IsNullOrEmpty(m.LastSkipReason))
+            {
+                return true;
+            }
+            return m.LastHasResult && !m.LastJudgement;
+        }
+
+        private static void ResolveToleranceBand(MeasurementResultDto m, out double dLower, out double dUpper)
+        {
+            double dLowerLocal = m.NominalValue - Math.Abs(m.ToleranceMinus);
+            double dUpperLocal = m.NominalValue + Math.Abs(m.TolerancePlus);
+            if (dLowerLocal > dUpperLocal)
+            {
+                double dTmp = dLowerLocal;
+                dLowerLocal = dUpperLocal;
+                dUpperLocal = dTmp;
+            }
+            dLower = dLowerLocal;
+            dUpper = dUpperLocal;
+        }
+
+        private static NgCauseResult BuildResult(bool bIsNg, string szCode, string szCause, string szEvidence, string szAction)
+        {
+            NgCauseResult result = new NgCauseResult();
+            result.IsNg = bIsNg;
+            result.HasCause = true;
+            result.CauseCode = szCode;
+            result.CauseText = szCause;
+            result.EvidenceText = szEvidence;
+            result.ActionText = szAction;
+            return result;
+        }
+
+        private static bool TryEvaluateR6(NgCauseHistory history, string szKey, string szCycleKey, double dNominal, double dLower, double dUpper,
+            out int nCount, out double dAverage, out bool bAboveUpper)
+        {
+            nCount = 0;
+            dAverage = 0.0;
+            bAboveUpper = false;
+
+            List<NgHistorySample> lstSamples = history.GetSamples(szKey);
+            int nAnchorIndex = -1;
+            for (int i = 0; i < lstSamples.Count; i++)
+            {
+                if (lstSamples[i].CycleKey == szCycleKey)
+                {
+                    nAnchorIndex = i;
+                    break;
+                }
+            }
+            if (nAnchorIndex < 0)
+            {
+                return false;
+            }
+
+            int nStart = nAnchorIndex - R6_WINDOW_SIZE + 1;
+            if (nStart < 0)
+            {
+                nStart = 0;
+            }
+            List<double> lstWindow = new List<double>();
+            for (int i = nStart; i <= nAnchorIndex; i++)
+            {
+                lstWindow.Add(lstSamples[i].Value);
+            }
+
+            int nForwardIndex = nAnchorIndex + 1;
+            while (lstWindow.Count < R6_MIN_SAMPLES && nForwardIndex < lstSamples.Count && lstWindow.Count < R6_WINDOW_SIZE)
+            {
+                lstWindow.Add(lstSamples[nForwardIndex].Value);
+                nForwardIndex++;
+            }
+
+            if (lstWindow.Count < R6_MIN_SAMPLES)
+            {
+                return false;
+            }
+
+            bool bAllAboveNominalStrict = true;
+            bool bAllBelowNominalStrict = true;
+            double dSum = 0.0;
+            foreach (double dValue in lstWindow)
+            {
+                dSum += dValue;
+                if (dValue <= dNominal)
+                {
+                    bAllAboveNominalStrict = false;
+                }
+                if (dValue >= dNominal)
+                {
+                    bAllBelowNominalStrict = false;
+                }
+            }
+            bool bAllOneSide = bAllAboveNominalStrict || bAllBelowNominalStrict;
+            if (!bAllOneSide)
+            {
+                return false;
+            }
+
+            double dAvg = dSum / lstWindow.Count;
+            bool bAvgOutOfRange = dAvg < dLower || dAvg > dUpper;
+            if (!bAvgOutOfRange)
+            {
+                return false;
+            }
+
+            nCount = lstWindow.Count;
+            dAverage = dAvg;
+            bAboveUpper = bAllAboveNominalStrict;
+            return true;
+        }
+
+        private static NgCauseResult BuildOutOfToleranceResult(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai,
+            MeasurementResultDto m, NgCauseHistory history, double dLower, double dUpper)
+        {
+            if (history != null)
+            {
+                string szShotName;
+                if (shot != null)
+                {
+                    szShotName = shot.ShotName;
+                }
+                else
+                {
+                    szShotName = null;
+                }
+                string szFaiName;
+                if (fai != null)
+                {
+                    szFaiName = fai.FAIName;
+                }
+                else
+                {
+                    szFaiName = null;
+                }
+                string szKey = NgCauseHistory.BuildMeasurementKey(szShotName, szFaiName, m.MeasurementName);
+                string szCycleKey = NgCauseHistory.ResolveCycleKey(cycle);
+                int nCount;
+                double dAverage;
+                bool bAboveUpper;
+                bool bR6 = TryEvaluateR6(history, szKey, szCycleKey, m.NominalValue, dLower, dUpper, out nCount, out dAverage, out bAboveUpper);
+                if (bR6)
+                {
+                    string szSide;
+                    if (bAboveUpper)
+                    {
+                        szSide = SIDE_BIG_TEXT;
+                    }
+                    else
+                    {
+                        szSide = SIDE_SMALL_TEXT;
+                    }
+                    string szEvidence = string.Format(R6_EVIDENCE_FORMAT, nCount, dAverage.ToString(VALUE_FORMAT),
+                        m.NominalValue.ToString(VALUE_FORMAT), dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT), szSide);
+                    return BuildResult(true, CODE_R6, R6_CAUSE_TEXT, szEvidence, R6_ACTION_TEXT);
+                }
+            }
+
+            string szOverText;
+            if (m.LastMeasuredValue > dUpper)
+            {
+                szOverText = (m.LastMeasuredValue - dUpper).ToString(VALUE_FORMAT);
+            }
+            else
+            {
+                szOverText = (dLower - m.LastMeasuredValue).ToString(VALUE_FORMAT);
+            }
+            string szR0Evidence = string.Format(R0_EVIDENCE_FORMAT, m.LastMeasuredValue.ToString(VALUE_FORMAT),
+                dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT), szOverText);
+            return BuildResult(true, CODE_R0, R0_CAUSE_TEXT, szR0Evidence, R0_ACTION_TEXT);
+        }
+
+        private static NgCauseResult BuildReasonResult(MeasurementResultDto m)
+        {
+            string szEvidence = string.Format(RX_EVIDENCE_FORMAT, m.LastSkipReason);
+            return BuildResult(true, CODE_UNKNOWN, RX_CAUSE_TEXT, szEvidence, RX_ACTION_TEXT);
+        }
+
+        /// <summary>원인 규칙 평가 진입점. cycle/m null → Empty, NG 아니면 NotNg, 사유 있으면 사유 규칙, 없으면 값 이탈 규칙.</summary>
+        public static NgCauseResult Analyze(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m, NgCauseHistory history)
+        {
+            if (cycle == null || m == null)
+            {
+                return NgCauseResult.Empty();
+            }
+            if (!IsNgMeasurement(m))
+            {
+                return NgCauseResult.NotNg();
+            }
+            if (!string.IsNullOrEmpty(m.LastSkipReason))
+            {
+                return BuildReasonResult(m);
+            }
+
+            double dLower;
+            double dUpper;
+            ResolveToleranceBand(m, out dLower, out dUpper);
+            return BuildOutOfToleranceResult(cycle, shot, fai, m, history, dLower, dUpper);
+        }
+
+        /// <summary>패널 3~4줄 조립. r null → 빈 문자열, 원인 없음 → CauseText 만, 있으면 원인/근거/확인할 일(+함께 의심).</summary>
+        public static string BuildPanelText(NgCauseResult r)
+        {
+            if (r == null)
+            {
+                return "";
+            }
+            if (!r.HasCause)
+            {
+                return r.CauseText;
+            }
+            List<string> lstLines = new List<string>();
+            lstLines.Add(PANEL_CAUSE_PREFIX + r.CauseText);
+            lstLines.Add(PANEL_EVIDENCE_PREFIX + r.EvidenceText);
+            lstLines.Add(PANEL_ACTION_PREFIX + r.ActionText);
+            if (!string.IsNullOrEmpty(r.SuspectText))
+            {
+                lstLines.Add(PANEL_SUSPECT_PREFIX + r.SuspectText);
+            }
+            return string.Join(PANEL_LINE_SEPARATOR, lstLines);
+        }
+    }
 }

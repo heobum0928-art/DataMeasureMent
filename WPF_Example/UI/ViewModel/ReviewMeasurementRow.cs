@@ -34,6 +34,12 @@ namespace ReringProject.UI
         /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸(Phase 77 SZF-04).</summary>
         public string SelectedZText { get; set; }
 
+        /// <summary>NG 원인 규칙 판정 결과(Phase 78 NGA-01). 3인자 생성자로 만든 행은 기본값(Empty).</summary>
+        public NgCauseResult Cause { get; set; } = NgCauseResult.Empty();
+
+        /// <summary>NG 원인 패널에 바인딩되는 표시 문자열 — NgCauseAnalyzer.BuildPanelText 결과(Phase 78 NGA-02).</summary>
+        public string CausePanelText { get; set; } = "";
+
         /// <summary>
         /// LastSkipReason == "DATUM_FAIL" → "DETECT FAIL" (Phase 39 WF-01 datum 검출 실패 표기).
         /// LastHasResult ? (LastJudgement ? "OK" : "NG") : "—"
@@ -119,6 +125,13 @@ namespace ReringProject.UI
             {
                 JudgeText = "—";
             }
+        }
+
+        /// <summary>Phase 78 NGA-01: cycle/history 를 받아 NG 원인 판정까지 채우는 생성자 — 리뷰어 배선 전용.</summary>
+        public ReviewMeasurementRow(ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m, CycleResultDto cycle, NgCauseHistory history) : this(shot, fai, m)
+        {
+            Cause = NgCauseAnalyzer.Analyze(cycle, shot, fai, m, history);
+            CausePanelText = NgCauseAnalyzer.BuildPanelText(Cause);
         }
     }
 }

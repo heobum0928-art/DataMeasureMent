@@ -35,6 +35,9 @@ namespace ReringProject.UI
         // 좌측 cycle 목록의 원본(전체) 항목. '불량만 보기' 필터는 이 위에서 추려 ItemsSource 로 적용.
         private List<CycleListItem> _allCycleItems = new List<CycleListItem>();
 
+        // Phase 78 NGA-01: 날짜 폴더 cycle.json 이력 — 추세 원인 규칙(R6) 입력.
+        private NgCauseHistory _ngCauseHistory = new NgCauseHistory();
+
         public ReviewerWindow()
         {
             InitializeComponent();
@@ -61,16 +64,19 @@ namespace ReringProject.UI
                 if (string.IsNullOrEmpty(dateFolderPath) || !Directory.Exists(dateFolderPath))
                 {
                     _allCycleItems = new List<CycleListItem>();
+                    _ngCauseHistory = new NgCauseHistory();
                     listBox_cycles.ItemsSource = null;
                     return;
                 }
 
+                NgCauseHistory history = new NgCauseHistory();
                 var items = Directory.GetDirectories(dateFolderPath)
                     .Where(d => File.Exists(Path.Combine(d, "cycle.json")))
                     .OrderByDescending(d => d)  // 최신 순
                     .Select(d =>
                     {
                         var dto = CycleResultSerializer.Load(Path.Combine(d, "cycle.json"));
+                        history.AddCycle(dto);
                         // 손상 cycle.json → Load 가 null 반환 → DisplayText 폴더명 폴백
                         string display = ReviewerListLabelBuilder.Build(dto);
                         if (string.IsNullOrEmpty(display))
@@ -84,6 +90,7 @@ namespace ReringProject.UI
                     .ToList();
 
                 _allCycleItems = items;
+                _ngCauseHistory = history;
                 ApplyCycleListFilter();
             }
             catch (Exception ex)
@@ -154,7 +161,7 @@ namespace ReringProject.UI
                     }
                     foreach (var m in fai.Measurements)
                     {
-                        rows.Add(new ReviewMeasurementRow(shot, fai, m));
+                        rows.Add(new ReviewMeasurementRow(shot, fai, m, cycle, _ngCauseHistory));
                     }
                 }
             }

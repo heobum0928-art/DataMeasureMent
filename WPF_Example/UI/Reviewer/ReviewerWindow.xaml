@@ -153,9 +153,15 @@
         <!--260601 hbk Phase 40 CO-40-04 — DualImage 토글은 헤더(Row0)로 이동 (HWindowControlWPF airspace 회피). 이 셀에는 오버레이 두지 않음.-->
         <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="2" Margin="1"/>
 
-        <!-- 우측: 측정 결과 DataGrid -->
+        <!-- 우측: 측정 결과 DataGrid + NG 원인 패널 -->
+        <!-- Phase 78 NGA-02: 측정표 아래(Halcon 창과 겹치지 않는 WPF 영역) NG 원인 패널 -->
+        <Grid Grid.Row="1" Grid.Column="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
         <DataGrid x:Name="dataGrid_measurements"
-                  Grid.Row="1" Grid.Column="4"
+                  Grid.Row="0"
                   SelectionChanged="MeasurementGrid_SelectionChanged"
                   SelectionMode="Single"
                   AutoGenerateColumns="False"
@@ -218,5 +224,13 @@
                 <DataGridTextColumn Header="판정"    Binding="{Binding JudgeText}"      Width="65"/>
             </DataGrid.Columns>
         </DataGrid>
+        <Border x:Name="border_ngCause" Grid.Row="1" BorderBrush="Gray" BorderThickness="0,1,0,0" Background="#FFF8E1" Padding="6,4">
+            <StackPanel>
+                <TextBlock x:Name="txt_ngCauseHeader" Text="NG 원인 분석 (추정)" FontSize="11" Foreground="Gray"/>
+                <TextBlock x:Name="txt_ngCausePanel" FontSize="12" TextWrapping="Wrap" Foreground="#334155"
+                           Text="{Binding SelectedItem.CausePanelText, ElementName=dataGrid_measurements, FallbackValue='NG 행을 누르면 추정 원인이 여기에 보입니다', TargetNullValue='NG 행을 누르면 추정 원인이 여기에 보입니다'}"/>
+            </StackPanel>
+        </Border>
+        </Grid>
     </Grid>
 </Window>

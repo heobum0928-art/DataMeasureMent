@@ -38,6 +38,11 @@
                 <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
                         Click="Button_LoadFolder_Click"
                         Padding="8,4" HorizontalAlignment="Stretch"/>
+                <!-- Phase 78 NGA-03: NG 만 한 엑셀 파일에 누적 (D-78-02) -->
+                <Button x:Name="btn_ngAccumExport" Content="NG 누적 엑셀 저장"
+                        Click="Button_NgAccumExport_Click"
+                        Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"
+                        ToolTip="열어 둔 날짜 폴더의 NG 를 NG_분석_누적.xlsx 한 파일에 추가 (이미 들어간 항목은 건너뜀)"/>
                 <!-- 260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 실행 UI -->
                 <Separator Margin="0,6,0,6"/>
                 <TextBlock Text="자재번호 (비우면 미지정)"

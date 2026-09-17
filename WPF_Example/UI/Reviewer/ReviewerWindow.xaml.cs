@@ -38,6 +38,9 @@ namespace ReringProject.UI
         // Phase 78 NGA-01: 날짜 폴더 cycle.json 이력 — 추세 원인 규칙(R6) 입력.
         private NgCauseHistory _ngCauseHistory = new NgCauseHistory();
 
+        // Phase 78 NGA-03: 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
+        private string _loadedDateFolder;
+
         public ReviewerWindow()
         {
             InitializeComponent();
@@ -60,6 +63,8 @@ namespace ReringProject.UI
         {
             try
             {
+                _loadedDateFolder = dateFolderPath;
+
                 // Directory.Exists 가드 → 없는 폴더 → 빈 목록, 크래시 없음
                 if (string.IsNullOrEmpty(dateFolderPath) || !Directory.Exists(dateFolderPath))
                 {
@@ -565,6 +570,14 @@ namespace ReringProject.UI
 
                 CustomMessageBox.Show("CPK 리포트 export", msg, icon);
             }
+        }
+
+        // Phase 78 NGA-03: 연 날짜 폴더의 NG 를 누적 엑셀에 추가 — 판단·문구는 서비스가 만든다
+        private void Button_NgAccumExport_Click(object sender, RoutedEventArgs e)
+        {
+            string szOutputPath = NgAccumulationExportService.BuildOutputPath(SystemHandler.Handle.Setting.ResultSavePath);
+            NgAccumExportOutcome outcome = NgAccumulationExportService.AppendDateFolder(_loadedDateFolder, szOutputPath);
+            CustomMessageBox.Show(NgAccumulationExportService.MESSAGE_TITLE, outcome.Message, outcome.Icon);
         }
 
         // Align 정합 조회 창 열기. 이 화면의 자재번호 입력란 값을 초기값으로 복사해 넘긴다

@@ -1368,7 +1368,7 @@ Plans:
 Plans:
 
 **Wave 1**
-- [ ] 78-01-PLAN.md — tracer: R6(평균 치우침) 규칙 1개를 cycle.json → 규칙 엔진 → 리뷰어 행 3줄까지 관통(20260916 실데이터) + R1~R4 사유 규칙 + NGA-07 DTO 필드 선언 (NGA-01, NGA-02, NGA-05, NGA-07)
+- [x] 78-01-PLAN.md (a2b1d62b·cd5b05c0·2543b9f1) — tracer: R6(평균 치우침) 규칙 1개를 cycle.json → 규칙 엔진 → 리뷰어 행 3줄까지 관통(20260916 실데이터) + R1~R4 사유 규칙 + NGA-07 DTO 필드 선언 (NGA-01, NGA-02, NGA-05, NGA-07)
 
 **Wave 2** *(blocked on Wave 1 completion — 세 계획 파일 겹침 없음)*
 - [ ] 78-02-PLAN.md — R5 기준점 흔들림 · R7 한 곳만 · R8 초점 범위 끝 · R9 공차 경계 + 대표 원인/함께 의심 조립 (NGA-01, NGA-05)

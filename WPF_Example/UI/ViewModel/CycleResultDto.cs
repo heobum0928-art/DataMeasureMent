@@ -919,6 +919,54 @@ namespace ReringProject.UI
         public const string R4_ACTION_ZINDEX_TEXT = "PLC z 번호와 레시피 Z 설정을 확인하세요";
         public const string R4_ACTION_CROSS_Z_TEXT = "PLC 자동 검사로 다시 확인하세요 (수동 실행은 두 장짜리 측정을 못 합니다)";
 
+        // Phase 78 NGA-01(78-02 Task 1): R9 공차 경계 흔들림
+        public const double R9_BOUNDARY_RATIO = 0.10;
+        public const double PERCENT_SCALE = 100.0;
+        public const string PERCENT_FORMAT = "F0";
+        public const string R9_CAUSE_TEXT = "공차 경계에서 값이 흔들립니다";
+        public const string R9_EVIDENCE_FORMAT = "측정 {0} · 허용 {1} ~ {2} · 경계를 {3} 넘음 (허용 폭의 {4}% 이내) · 직전 검사는 OK";
+        public const string R9_DIR_ABOVE_TEXT = "위로";
+        public const string R9_DIR_BELOW_TEXT = "아래로";
+        public const string R9_ACTION_TEXT = "같은 자재로 반복 검사를 해서 값이 흔들리는지 확인하세요";
+
+        // Phase 78 NGA-01(78-02 Task 1): R8 초점 범위 끝
+        public const int MIN_VALID_Z_INDEX = 1;
+        public const string R8_CAUSE_TEXT = "초점 범위가 부족할 수 있습니다";
+        public const string R8_EVIDENCE_FORMAT = "가장 선명한 사진이 범위 끝 {0} 에서 나옴 {1} · {2}";
+        public const string R8_RANGE_RECORDED_FORMAT = "(범위 {0}~{1})";
+        public const string R8_RANGE_END_ONLY_FORMAT = "(범위 끝 {0})";
+        public const string R8_RANGE_FALLBACK_TEXT = "(범위 끝 = 검사 당시 z 번호)";
+        public const string R8_SCORES_PREFIX = "선명도 ";
+        public const string R8_SCORE_ITEM_FORMAT = "{0}={1}";
+        public const string R8_SCORE_FAILED_TEXT = "실패";
+        public const string R8_SCORE_FORMAT = "F1";
+        public const string R8_SCORE_ITEM_SEPARATOR = " ";
+        public const string R8_NO_SCORES_TEXT = "후보별 선명도 기록 없음(이 기능 이전 데이터)";
+        public const string R8_ACTION_TEXT = "PLC 에 Z 범위를 끝 쪽으로 더 넓혀 달라고 요청하세요";
+
+        // Phase 78 NGA-01(78-02 Task 1): R7 한 곳만 벗어남
+        public const int R7_LONE_NG_COUNT = 1;
+        public const string R7_CAUSE_TEXT = "이 위치만 벗어났습니다 (실제 불량이나 이물 가능성)";
+        public const string R7_EVIDENCE_FORMAT = "이번 검사 NG 는 이 측정 1개뿐 · 측정 {0} · 허용 {1} ~ {2}";
+        public const string R7_ACTION_TEXT = "사진에서 이 위치를 보고 실물(이물·찍힘)을 확인하세요";
+
+        // Phase 78 NGA-01(78-02 Task 1): 함께 의심 라벨
+        public const string LABEL_R5 = "기준점 흔들림";
+        public const string LABEL_R6 = "보정값/티칭 치우침";
+        public const string LABEL_R7 = "한 곳만 벗어남";
+        public const string LABEL_R8 = "초점 범위 부족";
+        public const string LABEL_R9 = "공차 경계 흔들림";
+        public const string SUSPECT_SEPARATOR = ", ";
+
+        /// <summary>대표/함께 의심 조립용 규칙 발동 결과 1건.</summary>
+        private class RuleHit
+        {
+            public string Code;
+            public string CauseText;
+            public string EvidenceText;
+            public string ActionText;
+        }
+
         /// <summary>P-1 NG 범위: 측정 null → false, Z_RANGE_PENDING·CROSS_Z_INCOMPLETE → false, 그 밖 사유 있으면 true, 사유 없으면 LastHasResult 이고 LastJudgement false 일 때만 true.</summary>
         public static bool IsNgMeasurement(MeasurementResultDto m)
         {
@@ -1046,9 +1094,299 @@ namespace ReringProject.UI
             return true;
         }
 
+        /// <summary>공차를 넘은 쪽의 허용 폭·넘은 양·방향(위/아래). 이미 공차 밖인 값에만 호출한다(P-6 표).</summary>
+        private static void ResolveExceedSide(MeasurementResultDto m, double dLower, double dUpper,
+            out double dHalfWidth, out double dOverAmount, out bool bAboveUpper)
+        {
+            bAboveUpper = m.LastMeasuredValue > dUpper;
+            if (bAboveUpper)
+            {
+                dHalfWidth = Math.Abs(m.TolerancePlus);
+                dOverAmount = m.LastMeasuredValue - dUpper;
+            }
+            else
+            {
+                dHalfWidth = Math.Abs(m.ToleranceMinus);
+                dOverAmount = dLower - m.LastMeasuredValue;
+            }
+        }
+
+        /// <summary>이력 표본 목록에서 이 사이클 키의 위치. 없으면 -1.</summary>
+        private static int FindAnchorIndex(List<NgHistorySample> lstSamples, string szCycleKey)
+        {
+            for (int i = 0; i < lstSamples.Count; i++)
+            {
+                if (lstSamples[i].CycleKey == szCycleKey)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /// <summary>R9 공차 경계 흔들림: 넘은 양이 허용 폭의 R9_BOUNDARY_RATIO 이내이고 직전 표본이 OK.</summary>
+        private static RuleHit TryEvaluateR9(List<NgHistorySample> lstSamples, int nAnchorIndex, MeasurementResultDto m,
+            double dLower, double dUpper)
+        {
+            bool bHasPrevSample = nAnchorIndex > 0 && nAnchorIndex < lstSamples.Count;
+            if (!bHasPrevSample)
+            {
+                return null;
+            }
+            if (!lstSamples[nAnchorIndex - 1].IsOk)
+            {
+                return null;
+            }
+            double dHalfWidth;
+            double dOverAmount;
+            bool bAboveUpper;
+            ResolveExceedSide(m, dLower, dUpper, out dHalfWidth, out dOverAmount, out bAboveUpper);
+            if (dHalfWidth <= 0.0)
+            {
+                return null;
+            }
+            bool bWithinBoundary = dOverAmount <= (dHalfWidth * R9_BOUNDARY_RATIO);
+            if (!bWithinBoundary)
+            {
+                return null;
+            }
+            string szDir;
+            if (bAboveUpper)
+            {
+                szDir = R9_DIR_ABOVE_TEXT;
+            }
+            else
+            {
+                szDir = R9_DIR_BELOW_TEXT;
+            }
+            double dPercent = R9_BOUNDARY_RATIO * PERCENT_SCALE;
+            string szEvidence = string.Format(R9_EVIDENCE_FORMAT, m.LastMeasuredValue.ToString(VALUE_FORMAT),
+                dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT), szDir, dPercent.ToString(PERCENT_FORMAT));
+            RuleHit hit = new RuleHit();
+            hit.Code = CODE_R9;
+            hit.CauseText = R9_CAUSE_TEXT;
+            hit.EvidenceText = szEvidence;
+            hit.ActionText = R9_ACTION_TEXT;
+            return hit;
+        }
+
+        /// <summary>R8 범위 끝: shot 기록값 우선, 없으면 자동 tick 의 cycle.ZIndex 로 대체(현재 레시피 참조 없음 — PR-4).</summary>
+        private static int ResolveZRangeEnd(CycleResultDto cycle, ShotResultDto shot, MeasurementResultDto m, out bool bRecorded)
+        {
+            bool bShotRangeRecorded = shot != null && shot.ZRangeEndIndex >= MIN_VALID_Z_INDEX;
+            if (bShotRangeRecorded)
+            {
+                bRecorded = true;
+                return shot.ZRangeEndIndex;
+            }
+            bool bProtocolDriven = cycle != null && cycle.IsProtocolDriven;
+            bool bCycleZValid = cycle != null && cycle.ZIndex >= MIN_VALID_Z_INDEX;
+            bool bMeasZValid = m != null && m.SelectedZIndex >= MIN_VALID_Z_INDEX;
+            bool bFallbackEligible = bProtocolDriven && bCycleZValid && bMeasZValid;
+            if (bFallbackEligible)
+            {
+                bRecorded = false;
+                return cycle.ZIndex;
+            }
+            bRecorded = false;
+            return -1;
+        }
+
+        /// <summary>R8 근거의 후보별 선명도 정렬 보조 — z 오름차순, 같은 z 는 기록 순서(List.Sort 불안정성 회피).</summary>
+        private class ScoredCandidate
+        {
+            public int OriginalIndex;
+            public ZCandidateScoreDto Score;
+        }
+
+        private static int CompareScoredCandidate(ScoredCandidate a, ScoredCandidate b)
+        {
+            int nZCompare = a.Score.ZIndex.CompareTo(b.Score.ZIndex);
+            if (nZCompare != 0)
+            {
+                return nZCompare;
+            }
+            return a.OriginalIndex.CompareTo(b.OriginalIndex);
+        }
+
+        private static string BuildCandidateScoreText(List<ZCandidateScoreDto> lstScores)
+        {
+            bool bEmpty = lstScores == null || lstScores.Count == 0;
+            if (bEmpty)
+            {
+                return R8_NO_SCORES_TEXT;
+            }
+            List<ScoredCandidate> lstSorted = new List<ScoredCandidate>();
+            for (int i = 0; i < lstScores.Count; i++)
+            {
+                ScoredCandidate sc = new ScoredCandidate();
+                sc.OriginalIndex = i;
+                sc.Score = lstScores[i];
+                lstSorted.Add(sc);
+            }
+            lstSorted.Sort(CompareScoredCandidate);
+            List<string> lstItems = new List<string>();
+            foreach (ScoredCandidate sc in lstSorted)
+            {
+                string szZ = MeasurementBase.FormatSelectedZ(sc.Score.ZIndex);
+                string szScoreText;
+                if (sc.Score.Ok)
+                {
+                    szScoreText = sc.Score.Score.ToString(R8_SCORE_FORMAT);
+                }
+                else
+                {
+                    szScoreText = R8_SCORE_FAILED_TEXT;
+                }
+                lstItems.Add(string.Format(R8_SCORE_ITEM_FORMAT, szZ, szScoreText));
+            }
+            return R8_SCORES_PREFIX + string.Join(R8_SCORE_ITEM_SEPARATOR, lstItems.ToArray());
+        }
+
+        private static RuleHit TryEvaluateR8(CycleResultDto cycle, ShotResultDto shot, MeasurementResultDto m)
+        {
+            bool bRecorded;
+            int nRangeEnd = ResolveZRangeEnd(cycle, shot, m, out bRecorded);
+            bool bRangeEndValid = nRangeEnd >= MIN_VALID_Z_INDEX;
+            if (!bRangeEndValid)
+            {
+                return null;
+            }
+            bool bSelectedIsEnd = m.SelectedZIndex == nRangeEnd;
+            if (!bSelectedIsEnd)
+            {
+                return null;
+            }
+            string szRangeText;
+            if (bRecorded)
+            {
+                bool bStartValid = shot != null && shot.ZRangeStartIndex >= MIN_VALID_Z_INDEX;
+                if (bStartValid)
+                {
+                    szRangeText = string.Format(R8_RANGE_RECORDED_FORMAT, MeasurementBase.FormatSelectedZ(shot.ZRangeStartIndex),
+                        MeasurementBase.FormatSelectedZ(nRangeEnd));
+                }
+                else
+                {
+                    szRangeText = string.Format(R8_RANGE_END_ONLY_FORMAT, MeasurementBase.FormatSelectedZ(nRangeEnd));
+                }
+            }
+            else
+            {
+                szRangeText = R8_RANGE_FALLBACK_TEXT;
+            }
+            string szScoresText = BuildCandidateScoreText(m.ZCandidateScores);
+            string szEvidence = string.Format(R8_EVIDENCE_FORMAT, MeasurementBase.FormatSelectedZ(nRangeEnd), szRangeText, szScoresText);
+            RuleHit hit = new RuleHit();
+            hit.Code = CODE_R8;
+            hit.CauseText = R8_CAUSE_TEXT;
+            hit.EvidenceText = szEvidence;
+            hit.ActionText = R8_ACTION_TEXT;
+            return hit;
+        }
+
+        /// <summary>사이클 전체(모든 Shot/FAI/측정, null 가드)에서 IsNgMeasurement 인 측정 수.</summary>
+        private static int CountNgMeasurements(CycleResultDto cycle)
+        {
+            int nCount = 0;
+            if (cycle == null || cycle.Shots == null)
+            {
+                return nCount;
+            }
+            foreach (var shot in cycle.Shots)
+            {
+                if (shot == null || shot.FAIs == null)
+                {
+                    continue;
+                }
+                foreach (var fai in shot.FAIs)
+                {
+                    if (fai == null || fai.Measurements == null)
+                    {
+                        continue;
+                    }
+                    foreach (var mm in fai.Measurements)
+                    {
+                        if (mm == null)
+                        {
+                            continue;
+                        }
+                        if (IsNgMeasurement(mm))
+                        {
+                            nCount++;
+                        }
+                    }
+                }
+            }
+            return nCount;
+        }
+
+        /// <summary>R7 한 곳만 벗어남: 사이클 전체 NG 수가 1개이고 R5(강)·R6·R9 가 미발동일 때만.</summary>
+        private static RuleHit TryEvaluateR7(CycleResultDto cycle, MeasurementResultDto m, double dLower, double dUpper,
+            bool bR5StrongFired, bool bR6Fired, bool bR9Fired)
+        {
+            bool bSuppressed = bR5StrongFired || bR6Fired || bR9Fired;
+            if (bSuppressed)
+            {
+                return null;
+            }
+            int nNgCount = CountNgMeasurements(cycle);
+            bool bLoneNg = nNgCount == R7_LONE_NG_COUNT;
+            if (!bLoneNg)
+            {
+                return null;
+            }
+            string szEvidence = string.Format(R7_EVIDENCE_FORMAT, m.LastMeasuredValue.ToString(VALUE_FORMAT),
+                dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT));
+            RuleHit hit = new RuleHit();
+            hit.Code = CODE_R7;
+            hit.CauseText = R7_CAUSE_TEXT;
+            hit.EvidenceText = szEvidence;
+            hit.ActionText = R7_ACTION_TEXT;
+            return hit;
+        }
+
+        /// <summary>발동 규칙 코드 → 함께 의심 라벨. 전통 switch(case 마다 return).</summary>
+        private static string GetRuleLabel(string szCode)
+        {
+            switch (szCode)
+            {
+                case CODE_R5:
+                    return LABEL_R5;
+                case CODE_R6:
+                    return LABEL_R6;
+                case CODE_R7:
+                    return LABEL_R7;
+                case CODE_R8:
+                    return LABEL_R8;
+                case CODE_R9:
+                    return LABEL_R9;
+                default:
+                    return szCode;
+            }
+        }
+
+        private static NgCauseResult BuildR0Result(MeasurementResultDto m, double dLower, double dUpper)
+        {
+            string szOverText;
+            if (m.LastMeasuredValue > dUpper)
+            {
+                szOverText = (m.LastMeasuredValue - dUpper).ToString(VALUE_FORMAT);
+            }
+            else
+            {
+                szOverText = (dLower - m.LastMeasuredValue).ToString(VALUE_FORMAT);
+            }
+            string szR0Evidence = string.Format(R0_EVIDENCE_FORMAT, m.LastMeasuredValue.ToString(VALUE_FORMAT),
+                dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT), szOverText);
+            return BuildResult(true, CODE_R0, R0_CAUSE_TEXT, szR0Evidence, R0_ACTION_TEXT);
+        }
+
         private static NgCauseResult BuildOutOfToleranceResult(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai,
             MeasurementResultDto m, NgCauseHistory history, double dLower, double dUpper)
         {
+            RuleHit r9 = null;
+            RuleHit r6 = null;
             if (history != null)
             {
                 string szShotName;
@@ -1071,6 +1409,10 @@ namespace ReringProject.UI
                 }
                 string szKey = NgCauseHistory.BuildMeasurementKey(szShotName, szFaiName, m.MeasurementName);
                 string szCycleKey = NgCauseHistory.ResolveCycleKey(cycle);
+                List<NgHistorySample> lstSamples = history.GetSamples(szKey);
+                int nAnchorIndex = FindAnchorIndex(lstSamples, szCycleKey);
+                r9 = TryEvaluateR9(lstSamples, nAnchorIndex, m, dLower, dUpper);
+
                 int nCount;
                 double dAverage;
                 bool bAboveUpper;
@@ -1088,22 +1430,38 @@ namespace ReringProject.UI
                     }
                     string szEvidence = string.Format(R6_EVIDENCE_FORMAT, nCount, dAverage.ToString(VALUE_FORMAT),
                         m.NominalValue.ToString(VALUE_FORMAT), dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT), szSide);
-                    return BuildResult(true, CODE_R6, R6_CAUSE_TEXT, szEvidence, R6_ACTION_TEXT);
+                    r6 = new RuleHit();
+                    r6.Code = CODE_R6;
+                    r6.CauseText = R6_CAUSE_TEXT;
+                    r6.EvidenceText = szEvidence;
+                    r6.ActionText = R6_ACTION_TEXT;
                 }
             }
 
-            string szOverText;
-            if (m.LastMeasuredValue > dUpper)
+            RuleHit r8 = TryEvaluateR8(cycle, shot, m);
+            RuleHit r7 = TryEvaluateR7(cycle, m, dLower, dUpper, false, r6 != null, r9 != null);
+
+            List<RuleHit> lstFired = new List<RuleHit>();
+            if (r9 != null) { lstFired.Add(r9); }
+            if (r6 != null) { lstFired.Add(r6); }
+            if (r8 != null) { lstFired.Add(r8); }
+            if (r7 != null) { lstFired.Add(r7); }
+
+            if (lstFired.Count == 0)
             {
-                szOverText = (m.LastMeasuredValue - dUpper).ToString(VALUE_FORMAT);
+                return BuildR0Result(m, dLower, dUpper);
             }
-            else
+
+            RuleHit primary = lstFired[0];
+            NgCauseResult result = BuildResult(true, primary.Code, primary.CauseText, primary.EvidenceText, primary.ActionText);
+            List<string> lstSuspectLabels = new List<string>();
+            for (int i = 1; i < lstFired.Count; i++)
             {
-                szOverText = (dLower - m.LastMeasuredValue).ToString(VALUE_FORMAT);
+                result.SuspectCodes.Add(lstFired[i].Code);
+                lstSuspectLabels.Add(GetRuleLabel(lstFired[i].Code));
             }
-            string szR0Evidence = string.Format(R0_EVIDENCE_FORMAT, m.LastMeasuredValue.ToString(VALUE_FORMAT),
-                dLower.ToString(VALUE_FORMAT), dUpper.ToString(VALUE_FORMAT), szOverText);
-            return BuildResult(true, CODE_R0, R0_CAUSE_TEXT, szR0Evidence, R0_ACTION_TEXT);
+            result.SuspectText = string.Join(SUSPECT_SEPARATOR, lstSuspectLabels.ToArray());
+            return result;
         }
 
         /// <summary>사유 기반 규칙(R1~R4, RX) — 전통 if/else if 사슬, ReviewerListLabelBuilder.BuildReasonText 와 같은 스타일.</summary>

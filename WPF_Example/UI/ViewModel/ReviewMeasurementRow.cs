@@ -1,5 +1,6 @@
 using ReringProject.Sequence; //260710 hbk SkipReason 상수 참조용
 using ReringProject.UI;
+using System.IO;
 
 namespace ReringProject.UI
 {
@@ -132,6 +133,158 @@ namespace ReringProject.UI
         {
             Cause = NgCauseAnalyzer.Analyze(cycle, shot, fai, m, history);
             CausePanelText = NgCauseAnalyzer.BuildPanelText(Cause);
+        }
+    }
+
+    /// <summary>
+    /// 리뷰어가 띄울 사진 경로 — 그 검사의 실제 촬영 원본 우선, D-78-07. 순수 로직 + 파일 존재 확인만 한다.
+    /// </summary>
+    public static class ReviewerImagePathResolver
+    {
+        /// <summary>0바이트 = 워커가 막 만든 파일.</summary>
+        public const long MIN_IMAGE_FILE_BYTES = 1;
+
+        /// <summary>절대 경로·존재·크기 &gt; 0 을 전부 만족해야 사용 가능한 사진 파일이다.</summary>
+        public static bool IsUsableImageFile(string szPath)
+        {
+            if (string.IsNullOrEmpty(szPath))
+            {
+                return false;
+            }
+            try
+            {
+                if (!Path.IsPathRooted(szPath))
+                {
+                    return false;
+                }
+                if (!File.Exists(szPath))
+                {
+                    return false;
+                }
+                FileInfo info = new FileInfo(szPath);
+                if (info.Length < MIN_IMAGE_FILE_BYTES)
+                {
+                    return false;
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>기존 리뷰어 규칙 그대로 — ResultImagePath 폴백에만 쓴다(회귀 0).</summary>
+        private static bool IsExistingFile(string szPath)
+        {
+            if (string.IsNullOrEmpty(szPath))
+            {
+                return false;
+            }
+            try
+            {
+                return File.Exists(szPath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>이 FAI 가 측정 결과(또는 결과성 사유)를 가진 측정을 하나라도 가졌는지 — Z_RANGE_PENDING 뿐이면 false.</summary>
+        private static bool FaiHasMeasuredResult(FaiResultDto fai)
+        {
+            if (fai == null || fai.Measurements == null)
+            {
+                return false;
+            }
+            foreach (var m in fai.Measurements)
+            {
+                if (m == null)
+                {
+                    continue;
+                }
+                if (m.LastHasResult)
+                {
+                    return true;
+                }
+                bool bHasPendingReason = string.IsNullOrEmpty(m.LastSkipReason) || m.LastSkipReason == SkipReason.Z_RANGE_PENDING;
+                if (!bHasPendingReason)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>측정 행이 띄울 사진 — fai.OriginImageFileName 우선, 없으면 shot.ResultImagePath, 둘 다 없으면 null.</summary>
+        public static string ResolveRowImagePath(ShotResultDto shot, FaiResultDto fai)
+        {
+            bool bOriginUsable = fai != null && IsUsableImageFile(fai.OriginImageFileName);
+            if (bOriginUsable)
+            {
+                return fai.OriginImageFileName;
+            }
+            bool bFallbackUsable = shot != null && IsExistingFile(shot.ResultImagePath);
+            if (bFallbackUsable)
+            {
+                return shot.ResultImagePath;
+            }
+            return null;
+        }
+
+        /// <summary>사이클 전체 보기가 띄울 사진 — 측정 결과가 있는 첫 FAI 의 원본, 없으면 첫 Shot 의 ResultImagePath.</summary>
+        public static string ResolveCycleImagePath(CycleResultDto cycle)
+        {
+            if (cycle == null || cycle.Shots == null)
+            {
+                return null;
+            }
+            foreach (var shot in cycle.Shots)
+            {
+                string szOrigin = FindMeasuredOriginInShot(shot);
+                if (!string.IsNullOrEmpty(szOrigin))
+                {
+                    return szOrigin;
+                }
+            }
+            ShotResultDto firstShot = null;
+            if (cycle.Shots.Count > 0)
+            {
+                firstShot = cycle.Shots[0];
+            }
+            if (firstShot == null)
+            {
+                return null;
+            }
+            if (IsExistingFile(firstShot.ResultImagePath))
+            {
+                return firstShot.ResultImagePath;
+            }
+            return null;
+        }
+
+        /// <summary>이 Shot 의 FAI 들 중 측정 결과가 있고 사용 가능한 원본을 가진 첫 FAI 의 원본 경로. 없으면 null.</summary>
+        private static string FindMeasuredOriginInShot(ShotResultDto shot)
+        {
+            if (shot == null || shot.FAIs == null)
+            {
+                return null;
+            }
+            foreach (var fai in shot.FAIs)
+            {
+                if (fai == null)
+                {
+                    continue;
+                }
+                bool bMeasured = FaiHasMeasuredResult(fai);
+                bool bUsable = bMeasured && IsUsableImageFile(fai.OriginImageFileName);
+                if (bUsable)
+                {
+                    return fai.OriginImageFileName;
+                }
+            }
+            return null;
         }
     }
 }

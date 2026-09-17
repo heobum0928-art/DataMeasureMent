@@ -170,12 +170,10 @@ namespace ReringProject.UI
 
             // 기본 전체 보기: 첫 Shot 이미지 + 전 overlay (불량 자동 포커스 전 즉시 표시)
             // 순서 반드시: LoadImage → SetInspectionOverlays
-            var firstShot = cycle.Shots.FirstOrDefault();
-            if (firstShot != null
-                && !string.IsNullOrEmpty(firstShot.ResultImagePath)
-                && File.Exists(firstShot.ResultImagePath))  // 누락 이미지 시 overlay 만 렌더
+            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle); // Phase 78 NGA-06: 실제 촬영 원본 우선
+            if (!string.IsNullOrEmpty(szCycleImagePath))
             {
-                halconViewer.LoadImage(firstShot.ResultImagePath);
+                halconViewer.LoadImage(szCycleImagePath);
             }
 
             // overlay 재렌더: 전 Shot/FAI overlay 합산 (REPLACE 의미 — SetInspectionOverlays = Clear + AddRange)
@@ -259,9 +257,8 @@ namespace ReringProject.UI
             {
                 panel_dualToggle.Visibility = Visibility.Collapsed;
                 // 일반 측정: 해당 FAI 의 Shot 이미지 로드 (순서: LoadImage → SetInspectionOverlays)
-                string imgPath;
-                if (row.OwnerShot != null) imgPath = row.OwnerShot.ResultImagePath; else imgPath = null;
-                if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))
+                string imgPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); // Phase 78 NGA-06
+                if (!string.IsNullOrEmpty(imgPath))
                 {
                     halconViewer.LoadImage(imgPath);
                 }

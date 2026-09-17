@@ -1376,7 +1376,7 @@ Plans:
 - [x] 78-04-PLAN.md (9ca082ab·693a1424) — 리뷰어 실제 촬영 사진(OriginImageFileName 우선) + 버튼 2개·전용 코드 삭제 (NGA-06, NGA-04)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 78-05-PLAN.md — NG 누적 엑셀 서비스(중복 키 = 사이클 폴더+Shot+FAI+측정명, 잠금 시 중단, 임시 파일→File.Replace) + 버튼 배선 (NGA-03, NGA-04)
+- [x] 78-05-PLAN.md (4b54c4d0·ff019e36) — NG 누적 엑셀 서비스(중복 키 = 사이클 폴더+Shot+FAI+측정명, 잠금 시 중단, 임시 파일→File.Replace) + 버튼 배선 (NGA-03, NGA-04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 78-06-PLAN.md — 버전 1.7.49.0 + phase 전체 회귀 감사(변경 파일 범위, 하드룰 grep, probe 전체) (NGA-05)

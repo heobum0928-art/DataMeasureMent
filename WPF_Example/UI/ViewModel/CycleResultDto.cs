@@ -834,6 +834,29 @@ namespace ReringProject.UI
         public const string RX_EVIDENCE_FORMAT = "사유 {0}";
         public const string RX_ACTION_TEXT = "같은 시각의 Error 로그를 확인하세요";
 
+        public const string R1_CAUSE_TEXT = "사진이 안 찍혔습니다";
+        public const string R1_EVIDENCE_TEXT = "사진이 없어 측정하지 못함 (사유 NO_IMAGE)";
+        public const string R1_ACTION_TEXT = "카메라 연결과 PLC 촬영 신호(z 번호)를 확인하세요";
+
+        public const string R2_CAUSE_TEXT = "기준점을 못 찾았습니다";
+        public const string R2_EVIDENCE_DATUM_FAIL_TEXT = "기준선 검출 실패로 측정 안 함 (사유 DATUM_FAIL)";
+        public const string R2_EVIDENCE_ALIGN_FAIL_TEXT = "기준 패턴 매칭 실패로 측정 안 함 (사유 ALIGN_FAIL)";
+        public const string R2_EVIDENCE_REF_MISSING_TEXT = "측정이 가리키는 기준점 이름이 레시피에 없음 (사유 DATUM_REF_MISSING)";
+        public const string R2_ACTION_TEXT = "자재가 제대로 놓였는지, 기준점 티칭과 조명을 확인하세요";
+        public const string R2_ACTION_REF_MISSING_TEXT = "레시피에서 이 측정이 쓰는 기준점 이름을 확인하세요";
+
+        public const string R3_CAUSE_TEXT = "측정할 선(에지)을 못 찾았습니다";
+        public const string R3_EVIDENCE_FORMAT = "측정 실패 · {0}";
+        public const string R3_NO_ERROR_TEXT = "오류 내용 없음";
+        public const int EVIDENCE_ERROR_MAX_CHARS = 60;
+        public const string R3_ACTION_TEXT = "사진에서 측정 위치(ROI)·조명·초점을 확인하세요";
+
+        public const string R4_CAUSE_TEXT = "설정 오류로 측정하지 못했습니다";
+        public const string R4_EVIDENCE_ZINDEX_TEXT = "z 번호 설정이 맞지 않아 측정 안 함 (사유 ZINDEX_MISCONFIGURED)";
+        public const string R4_EVIDENCE_CROSS_Z_TEXT = "두 z 사진이 모두 필요한 측정인데 PLC 자동 검사가 아니라 측정 안 함 (사유 CROSS_Z_INCOMPLETE)";
+        public const string R4_ACTION_ZINDEX_TEXT = "PLC z 번호와 레시피 Z 설정을 확인하세요";
+        public const string R4_ACTION_CROSS_Z_TEXT = "PLC 자동 검사로 다시 확인하세요 (수동 실행은 두 장짜리 측정을 못 합니다)";
+
         /// <summary>P-1 NG 범위: 측정 null → false, Z_RANGE_PENDING·CROSS_Z_INCOMPLETE → false, 그 밖 사유 있으면 true, 사유 없으면 LastHasResult 이고 LastJudgement false 일 때만 true.</summary>
         public static bool IsNgMeasurement(MeasurementResultDto m)
         {
@@ -1021,18 +1044,60 @@ namespace ReringProject.UI
             return BuildResult(true, CODE_R0, R0_CAUSE_TEXT, szR0Evidence, R0_ACTION_TEXT);
         }
 
+        /// <summary>사유 기반 규칙(R1~R4, RX) — 전통 if/else if 사슬, ReviewerListLabelBuilder.BuildReasonText 와 같은 스타일.</summary>
         private static NgCauseResult BuildReasonResult(MeasurementResultDto m)
         {
-            string szEvidence = string.Format(RX_EVIDENCE_FORMAT, m.LastSkipReason);
-            return BuildResult(true, CODE_UNKNOWN, RX_CAUSE_TEXT, szEvidence, RX_ACTION_TEXT);
+            if (m.LastSkipReason == SkipReason.NO_IMAGE)
+            {
+                return BuildResult(true, CODE_R1, R1_CAUSE_TEXT, R1_EVIDENCE_TEXT, R1_ACTION_TEXT);
+            }
+            else if (m.LastSkipReason == SkipReason.DATUM_FAIL)
+            {
+                return BuildResult(true, CODE_R2, R2_CAUSE_TEXT, R2_EVIDENCE_DATUM_FAIL_TEXT, R2_ACTION_TEXT);
+            }
+            else if (m.LastSkipReason == SkipReason.ALIGN_FAIL)
+            {
+                return BuildResult(true, CODE_R2, R2_CAUSE_TEXT, R2_EVIDENCE_ALIGN_FAIL_TEXT, R2_ACTION_TEXT);
+            }
+            else if (m.LastSkipReason == SkipReason.DATUM_REF_MISSING)
+            {
+                return BuildResult(true, CODE_R2, R2_CAUSE_TEXT, R2_EVIDENCE_REF_MISSING_TEXT, R2_ACTION_REF_MISSING_TEXT);
+            }
+            else if (m.LastSkipReason == SkipReason.MEASURE_FAIL)
+            {
+                string szErrorText = m.LastErrorMessage;
+                if (string.IsNullOrEmpty(szErrorText))
+                {
+                    szErrorText = R3_NO_ERROR_TEXT;
+                }
+                else if (szErrorText.Length > EVIDENCE_ERROR_MAX_CHARS)
+                {
+                    szErrorText = szErrorText.Substring(0, EVIDENCE_ERROR_MAX_CHARS);
+                }
+                string szEvidence = string.Format(R3_EVIDENCE_FORMAT, szErrorText);
+                return BuildResult(true, CODE_R3, R3_CAUSE_TEXT, szEvidence, R3_ACTION_TEXT);
+            }
+            else if (m.LastSkipReason == SkipReason.ZINDEX_MISCONFIGURED)
+            {
+                return BuildResult(true, CODE_R4, R4_CAUSE_TEXT, R4_EVIDENCE_ZINDEX_TEXT, R4_ACTION_ZINDEX_TEXT);
+            }
+            else
+            {
+                string szEvidence = string.Format(RX_EVIDENCE_FORMAT, m.LastSkipReason);
+                return BuildResult(true, CODE_UNKNOWN, RX_CAUSE_TEXT, szEvidence, RX_ACTION_TEXT);
+            }
         }
 
-        /// <summary>원인 규칙 평가 진입점. cycle/m null → Empty, NG 아니면 NotNg, 사유 있으면 사유 규칙, 없으면 값 이탈 규칙.</summary>
+        /// <summary>원인 규칙 평가 진입점. cycle/m null → Empty, CROSS_Z_INCOMPLETE → NG 아님이지만 설명은 표시, 그 밖 NG 아니면 NotNg, 사유 있으면 사유 규칙, 없으면 값 이탈 규칙.</summary>
         public static NgCauseResult Analyze(CycleResultDto cycle, ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m, NgCauseHistory history)
         {
             if (cycle == null || m == null)
             {
                 return NgCauseResult.Empty();
+            }
+            if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE)
+            {
+                return BuildResult(false, CODE_R4, R4_CAUSE_TEXT, R4_EVIDENCE_CROSS_Z_TEXT, R4_ACTION_CROSS_Z_TEXT);
             }
             if (!IsNgMeasurement(m))
             {

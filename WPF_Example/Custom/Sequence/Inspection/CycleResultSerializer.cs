@@ -89,6 +89,12 @@ namespace ReringProject.Sequence
                     // GetLatestImagePath() = SimulImagePath — 측정 소스 이미지 (리뷰어 재로드용)
                     // SaveResultImage SaveFailImage 게이트에 의존하지 않음
                 };
+                bool bZRangeEnabled = shot.IsZRangeEnabled(); // Phase 78 NGA-07: 검사 당시 Z 범위 기록 — 리뷰어 R8 은 현재 레시피가 아니라 이 값을 쓴다
+                if (bZRangeEnabled)
+                {
+                    shotDto.ZRangeStartIndex = shot.ZIndex;
+                    shotDto.ZRangeEndIndex = shot.ZIndexEnd;
+                }
 
                 foreach (var fai in shot.FAIList)
                 {
@@ -133,6 +139,10 @@ namespace ReringProject.Sequence
                             LastErrorMessage = meas.LastErrorMessage  // MEASURE_FAIL 원본 에러(절단됨)
                         };
                         measDto.SelectedZIndex = meas.LastSelectedZIndex;
+                        if (meas.LastZCandidateScores != null)
+                        {
+                            measDto.ZCandidateScores = new List<ZCandidateScoreDto>(meas.LastZCandidateScores);
+                        }
 
                         // DualImage 측정이면 가로축/세로축 2장 경로 기록 (리뷰어 전환 버튼용).
                         // 가로축은 측정에 명시 경로 없으면 Shot 이미지로 fallback.

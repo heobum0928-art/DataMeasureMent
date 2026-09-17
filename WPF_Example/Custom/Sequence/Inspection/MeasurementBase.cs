@@ -123,6 +123,9 @@ namespace ReringProject.Sequence
         private const int MIN_SELECTED_Z_INDEX = 1;
         public double LastFitScore;
         public int LastSelectedZIndex = SELECTED_Z_NONE;
+        // Phase 78 NGA-07: Z 후보별 선명도 — cycle.json 기록 전용. 필드라 INI·붙여넣기 제외, JsonIgnore 로 레시피 JSON 제외
+        [Newtonsoft.Json.JsonIgnore]
+        public List<ReringProject.UI.ZCandidateScoreDto> LastZCandidateScores;
 
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } // MeasurementFactory 키
@@ -190,6 +193,7 @@ namespace ReringProject.Sequence
             LastErrorMessage = null; // 이전 사이클 잔재 방지
             LastFitScore = 0.0; // Phase 77: 이전 사이클 선택 점수 잔재 방지
             LastSelectedZIndex = SELECTED_Z_NONE; // Phase 77: 이전 사이클 선택 Z 잔재 방지
+            LastZCandidateScores = null; // Phase 78 NGA-07: 이전 사이클 후보 점수 잔재 방지
         }
 
         // Phase 77 SZF-03/D-77-07 ②: 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.

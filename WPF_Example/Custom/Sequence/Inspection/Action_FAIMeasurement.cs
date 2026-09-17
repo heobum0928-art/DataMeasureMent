@@ -2393,6 +2393,7 @@ namespace ReringProject.Sequence {
             RecordMeasurementResult(meas, false, chosen.Ok, chosen.Value, chosen.Error, chosen.Overlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
             meas.LastSelectedZIndex = chosen.ZIndex; // RecordMeasurementResult 실패 분기의 ClearResult 뒤라 여기서 다시 남긴다
             ApplySelectedZLabel(chosen.Overlays, chosen.ZIndex); // Phase 77 O-7/D-77-07 ⑥: 오버레이 강조 라벨에 선택 Z 반영
+            meas.LastZCandidateScores = BuildZCandidateScoreList(lstResults); // Phase 78 NGA-07: 이미 평가한 후보 결과를 복사만 한다(재계산 없음)
             return true;
         }
 
@@ -2552,6 +2553,31 @@ namespace ReringProject.Sequence {
                 lstResults.Add(result);
             }
             return lstResults;
+        }
+
+        // Phase 78 NGA-07: RunZFocusCandidates 가 만든 후보 결과를 cycle.json 기록용 DTO 목록으로 복사만 한다
+        //  (재계산 없음, D-78-08). 평가 순서 그대로 유지 — 정렬·중복 제거 없음.
+        private static List<ReringProject.UI.ZCandidateScoreDto> BuildZCandidateScoreList(List<ZFocusRunResult> lstResults)
+        {
+            var lstScores = new List<ReringProject.UI.ZCandidateScoreDto>();
+            if (lstResults == null)
+            {
+                return lstScores;
+            }
+            for (int i = 0; i < lstResults.Count; i++)
+            {
+                ZFocusRunResult result = lstResults[i];
+                if (result == null)
+                {
+                    continue;
+                }
+                var dto = new ReringProject.UI.ZCandidateScoreDto();
+                dto.ZIndex = result.ZIndex;
+                dto.Ok = result.Ok;
+                dto.Score = result.Score;
+                lstScores.Add(dto);
+            }
+            return lstScores;
         }
 
         // Phase 77 SZF-03/PR-2: 성공한 결과 중 점수가 엄격히 더 높을 때만 교체한다 — 동점이면 먼저(작은 z)

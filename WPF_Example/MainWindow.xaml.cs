@@ -88,6 +88,7 @@ namespace ReringProject {
 
             mSystemHandler.Sequences.OnRecipeChanged += this.OnLoadRecipe;
             ReviewerReinspectViewModel.Instance.MainNavigator = OnReviewerPhotosLoaded; // Phase 80 D-80-04
+            mSystemHandler.Sequences.OnRecipeChanged += ReviewerReinspectService.HandleRecipeChanged; // Phase 80 D-80-11
 
             mSystemHandler.Login.OnLoginStateChanged += this.OnLoginChanged;
 
@@ -317,7 +318,9 @@ namespace ReringProject {
                     MessageBoxImage.Error);
                 return;
             }
-            if(!mSystemHandler.Sequences.SaveRecipe(name, ERecipeFileType.Ini)) {
+            // Phase 80 D-80-10: 리뷰어 사진을 쓰는 중이면 저장하는 순간만 원래 사진 경로로 — 파라미터는 저장된다
+            bool bSaved = ReviewerReinspectService.RunWithOriginalPaths(() => mSystemHandler.Sequences.SaveRecipe(name, ERecipeFileType.Ini));
+            if(!bSaved) {
                 CustomMessageBox.Show("Error", SystemHandler.Handle.Localize["fail to save recipe"], MessageBoxImage.Error);
                 return;
             }
@@ -473,6 +476,8 @@ namespace ReringProject {
             // quick-260911-fia Task 3 BLOCKER 수정: Release()(Setting.Save 포함)보다 반드시 먼저 호출 —
             //  활성 저장 사진 재검사가 있으면 강제로 끝내 OfflineInspectMode/경로를 원복한 뒤 저장한다.
             RepeatRunService.RestoreActiveSavedCycleOverridesForShutdown();
+            // Phase 80 D-80-11/13: Release() 안의 Setting.Save 가 켜 둔 OfflineInspectMode 를 영속화하지 않도록 반드시 그 앞에서 되돌린다.
+            ReviewerReinspectService.Release(ReviewerReinspectService.RELEASE_REASON_SHUTDOWN);
             mSystemHandler.Release();
         }
 

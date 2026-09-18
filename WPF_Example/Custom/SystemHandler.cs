@@ -116,6 +116,8 @@ namespace ReringProject {
                         break;
                     case VisionRequestType.Test:
                         if (Setting.AutoLogoutWhenRecvTest && Login.IsLogin) { Login.LogOut(); }
+                        // Phase 80 D-80-11: PLC 자동 검사가 리뷰어 사진·오프라인 모드를 쓰지 않도록 ProcessTest 전에 먼저 되돌린다.
+                        ReviewerReinspectService.Release(ReviewerReinspectService.RELEASE_REASON_PLC_TEST);
                         // 네트워크(PLC)로 들어온 $TEST 만 해당 — 화면의 수동 사이클 트리거는 ProcessTest 를 직접 불러 여기를 안 거친다.
                         ForceOfflineInspectModeOffForAutoTest();
 

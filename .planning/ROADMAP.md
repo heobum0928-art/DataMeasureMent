@@ -1499,12 +1499,12 @@ Plans:
 
 **Requirements**: REQ-ID 없음 — 80-CONTEXT.md 결정 D-80-00~D-80-19 가 계약 (함께 처리 1~3 포함)
 **Depends on:** Phase 78 (리뷰어 실제 촬영 사진)
-**Plans:** 5 plans (4 waves, 순차 실행)
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 80-01-PLAN.md — tracer: 리뷰어 버튼 → NG 사진 → 메인 상태 줄/[해제] + 운영 레시피 보호(저장 시 원래 경로, PLC·레시피 변경·종료 자동 해제) (Wave 1)
+- [x] 80-01-PLAN.md — tracer: 리뷰어 버튼 → NG 사진 → 메인 상태 줄/[해제] + 운영 레시피 보호(저장 시 원래 경로, PLC·레시피 변경·종료 자동 해제) (Wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

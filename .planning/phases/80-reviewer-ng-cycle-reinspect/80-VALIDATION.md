@@ -44,8 +44,8 @@ created: 2026-09-18
 |------|----------|----------|-----------|---------------------------|--------|
 | 80-01-T1 (tracer) | D-80-00/01/02/03/12/13/17/18 | 리뷰어 버튼 → VM → 서비스 → 부품 진입점 → Shot 사진·OfflineInspectMode → 상태 줄 + [해제] | 정적 | chain_* grep, handler 1문장, csproj 2 | ⬜ pending |
 | 80-01-T2 | D-80-10/11 | 저장 시 원래 경로, PLC·레시피 변경·종료 자동 해제 | 정적 | save_wrap, plc_order_ok, closing_order_ok | ⬜ pending |
-| 80-02-T1 | 함께 처리 2 | 수동 RUN stale 재계산(TeachingImagePath 파일), PLC 가드 | 정적 | first_stmt_guard, same[...] 7개 md5 | ⬜ pending |
-| 80-02-T2 | D-80-06/15/18 | 대화상자 없는 공용 Test Find + 시험 찾기 서비스 | 정적 | compose/single/hold/busy, dialog_free=0 | ⬜ pending |
+| 80-02-T1 | 함께 처리 2, D-79-04 | 수동 RUN stale 재계산(TeachingImagePath 파일), PLC 가드, 잡아 둔 기준점 사진 출처 확인(1장 화면 사진 Test Find 면 다시 구하지 않음) | 정적 | first_stmt_guard, prov_order_ok, onlyadd[HoldManualDatum/ClearDatumTransforms], same[...] 7개 md5 | ⬜ pending |
+| 80-02-T2 | D-80-06/15/18 | 대화상자 없는 공용 Test Find(출처 기록) + 시험 찾기 서비스 | 정적 | compose/single/hold/busy, mark_after_hold, dialog_free=0 | ⬜ pending |
 | 80-02-T3 | D-80-15/00 | 기준 ROI 시험 찾기 버튼 + 라벨 결과 | 정적 | same[BtnTestFindDatum_Click]=1, mv_dialog=0 | ⬜ pending |
 | 80-03-T1 | D-80-07/19 | 같은 자재 묶기(GroupIntoParts) + 완전성 판정 + 재검사 상호 배제 | 정적 | group/collect/fromdates, same[...] 9개, deleted_vs_phase=0 | ⬜ pending |
 | 80-03-T2 | D-80-07/08/09/12/14 | 기준점(완전할 때만)·두 장짜리·Z·버퍼·리뷰어 선·알림·안내 | 정적 | complete_call, flag_in_apply, alert_call | ⬜ pending |

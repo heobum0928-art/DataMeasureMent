@@ -310,6 +310,27 @@
                         </Button.Template>
                     </Button>
 
+                    <!--Phase 80 D-80-15/D-80-00: 기준 ROI(Local Ref) 티칭 시 기준점 가로 사진(z1) 위에서 띠 에지 선을 바로 확인.-->
+                    <Button x:Name="btn_testFindLocalRef" Content="기준 ROI 시험 찾기"
+                        Click="BtnTestFindLocalRef_Click"
+                        MinWidth="80" Height="28" Padding="12,4"
+                        FontSize="13" FontWeight="SemiBold"
+                        Background="#EA580C" Foreground="White"
+                        BorderBrush="#C2410C" BorderThickness="1"
+                        Margin="0,0,4,0"
+                        ToolTip="국부 기준(Local Ref)을 켠 측정을 고른 뒤 누르면, 기준점 가로 사진(z1)에서 기준 ROI 의 띠 에지 선을 찾아 주황 선으로 보여 줍니다">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
                     <Button x:Name="btn_reanchor" Content="Re-anchor"
                         Click="BtnReanchor_Click"
                         IsEnabled="False"

@@ -4478,6 +4478,37 @@ namespace ReringProject.UI {
             if (datum != null) HighlightSelectedRoi(datum);
         }
 
+        // Phase 80 D-80-15/D-80-17: '기준 ROI 시험 찾기' 버튼 배선 — 판단·사진 로드·기준점 찾기·선 만들기·
+        //  문구는 LocalRefTestFindService(서비스)에 있다. 이 메서드는 선택된 파라미터를 넘기고 결과를 넘기는 배선뿐.
+        private void BtnTestFindLocalRef_Click(object sender, RoutedEventArgs e) {
+            ParamBase selected;
+            if (mParentWindow != null && mParentWindow.inspectionList != null) selected = mParentWindow.inspectionList.SelectedParam;
+            else                                                               selected = null;
+            LocalRefTestFindOutcome outcome = ReringProject.Sequence.LocalRefTestFindService.Run(selected);
+            ShowLocalRefTestFindOutcome(selected, outcome);
+        }
+
+        // Phase 80 D-80-00: 새 대화상자를 만들지 않는다 — 캔버스 표시(사진·기준 ROI 상자·주황 국부 기준선)와
+        //  기존 결과 라벨(label_testFindResult) 한 줄만 갱신한다. 계산·파일 판단은 이 메서드에 넣지 않는다.
+        private void ShowLocalRefTestFindOutcome(ParamBase selected, LocalRefTestFindOutcome outcome) {
+            bool bHasImage = !string.IsNullOrEmpty(outcome.ImagePath);
+            if (bHasImage) {
+                halconViewer.LoadImage(outcome.ImagePath);
+                _lastDisplayedImageShot = null; // 같은 Shot 재선택 캐시에 z1 사진이 남지 않게(DisplayShotImage 캐시)
+                label_message.Visibility = Visibility.Collapsed;
+                HighlightSelectedRoi(selected); // 편집 가능한 기준 ROI 상자
+                ShowResultDatumOverlays(new List<DatumConfig> { outcome.Datum }); // 보정 위치 초록 상자 + 기준점 선
+                halconViewer.SetInspectionOverlays(outcome.Overlays); // 주황 국부 기준선(FAI-RefLine)
+            }
+            label_testFindResult.Content = outcome.Message;
+            if (outcome.Ok) {
+                label_testFindResult.Foreground = Brushes.LimeGreen;
+            } else {
+                label_testFindResult.Foreground = Brushes.Red;
+            }
+            label_testFindResult.Visibility = Visibility.Visible;
+        }
+
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
             // Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
             DatumConfig datum;

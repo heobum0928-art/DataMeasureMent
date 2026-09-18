@@ -1499,7 +1499,7 @@ Plans:
 
 **Requirements**: REQ-ID 없음 — 80-CONTEXT.md 결정 D-80-00~D-80-19 가 계약 (함께 처리 1~3 포함)
 **Depends on:** Phase 78 (리뷰어 실제 촬영 사진)
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1513,7 +1513,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 80-04-PLAN.md — 메인 화면 이어받기: 리뷰어 최소화, NG 측정 노드 선택, 자동 Test Find, 측정 노드 RUN (Wave 3)
+- [x] 80-04-PLAN.md — 메인 화면 이어받기: 리뷰어 최소화, NG 측정 노드 선택, 자동 Test Find, 측정 노드 RUN (Wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 

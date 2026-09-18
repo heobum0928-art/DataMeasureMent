@@ -119,6 +119,10 @@ namespace ReringProject.Sequence {
         private const string LOG_TAG = "[FAIMeasurement] ";
         // quick-260909-mr4 — 오프라인 검사이미지 자동채움 저장 포맷. OriginImageFormat 설정과 무관하게 항상 bmp 고정.
         private const string OFFLINE_AUTOFILL_FORMAT = "bmp";
+        // Phase 80 함께 처리 2: 수동 RUN 에서 기준 ROI(Local Ref)를 고친 뒤 stale 국부 기준선을 기준점 가로
+        //  사진에서 다시 구했을 때/구하지 않았을 때의 Algorithm 로그 문구.
+        private const string LOCAL_REF_RECOMPUTED_TEXT = "기준 ROI·에지 설정이 바뀌어 기준점 가로 사진에서 국부 기준선을 다시 구함 — ";
+        private const string LOCAL_REF_NOT_TEACHING_PHOTO_TEXT = "기준점을 기준점 사진 파일이 아닌 사진으로 찾아서 국부 기준선을 다시 구하지 않음 (기준점 Test Find 또는 '기준 ROI 시험 찾기' 를 다시 누르세요) — ";
 
         public ShotConfig ShotParam => Param as ShotConfig;
 
@@ -172,6 +176,12 @@ namespace ReringProject.Sequence {
         //260819 hbk quick-260819-q9t: 측정 이름 미교시(null)면 TypeName 으로 대체 — 5곳 중복 통합.
         private static string GetMeasurementDisplayName(MeasurementBase meas) {
             return meas.MeasurementName ?? meas.TypeName;
+        }
+
+        // Phase 80 함께 처리 2: 다시 구하기·출처 미확인 로그 2곳이 같이 쓰는 Shot 이름 조회.
+        private string GetShotNameForLog() {
+            if (ShotParam == null) { return ""; }
+            return ShotParam.ShotName;
         }
 
         // 이 메서드는 프로그램이 켜져 있는 동안 아주 짧은 간격으로 계속 호출됩니다. 호출될 때마다
@@ -1942,6 +1952,97 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Error, EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG + "전역 기준선으로 전환 — " + szShotName + " · " + GetMeasurementDisplayName(meas) + ": " + szReason);
         }
 
+        // Phase 80 함께 처리 2: bStale 분기에서 다시 구하기를 시도한다 — 성공하면 다시 구한 선을 주입,
+        //  실패하면(가드·출처 미확인·사진 없음·에지 못 찾음) 지금과 같은 STALE 전환.
+        private bool TryUseRecomputedLocalRef(EdgeToLineDistanceMeasurement etld, InspectionSequence parentSeq2, out string szReason) {
+            LocalRefLineResult recomputed = TryRecomputeStaleLocalRef(etld, parentSeq2);
+            if (recomputed == null) {
+                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_STALE;
+                return false;
+            }
+            if (!recomputed.Found) {
+                szReason = BuildLocalRefFailReason(recomputed);
+                return false;
+            }
+            etld.InjectedLocalRef = recomputed;
+            szReason = null;
+            return true;
+        }
+
+        // Phase 80 함께 처리 2: TryResolveLocalRef 의 !result.Found 분기(:1967-1972)와 같은 규칙.
+        private static string BuildLocalRefFailReason(LocalRefLineResult result) {
+            if (string.IsNullOrEmpty(result.Error)) {
+                return EdgeToLineDistanceMeasurement.LOCAL_REF_ERR_FIT_FAILED;
+            }
+            return result.Error;
+        }
+
+        // Phase 80 함께 처리 2: 수동 RUN 에서 기준 ROI·에지 설정이 바뀌어 stale 이 된 국부 기준선을 기준점
+        //  가로 사진 파일(TeachingImagePath)에서 다시 구한다. D-79-05(z1 기준점 가로 사진만 사용) ·
+        //  D-79-04/08(PLC 자동 사이클은 비트 동일하게 유지) 을 지킨다. 실패하면 null(=지금과 같은 STALE 전환).
+        private LocalRefLineResult TryRecomputeStaleLocalRef(EdgeToLineDistanceMeasurement etld, InspectionSequence parentSeq2) {
+            // ① PLC 자동(프로토콜) 사이클은 사이클 중 설정이 바뀔 수 없고 결과가 지금과 비트 같아야 한다(D-79-04/08).
+            if (parentSeq2.IsProtocolDrivenCycle()) {
+                return null;
+            }
+            // ①-2 잡아 둔 기준점 변환이 지금의 티칭 사진 파일에서 나온 것으로 확인되지 않으면(예: 기존 1장
+            //  Test Find 의 화면 사진·고른 파일) 다시 구하지 않는다 — 다른 사진의 선을 '국부' 로 표시하는
+            //  조용한 오류를 막는다(D-79-04).
+            bool bFromTeachingPhotos = parentSeq2.IsDatumTransformFromTeachingPhotos(etld.DatumRef);
+            if (!bFromTeachingPhotos) {
+                Logging.PrintLog((int)ELogType.Algorithm, EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG
+                    + LOCAL_REF_NOT_TEACHING_PHOTO_TEXT + GetShotNameForLog() + " · " + GetMeasurementDisplayName(etld));
+                return null;
+            }
+            // ② 기준점 설정 조회
+            DatumConfig datum = FindSequenceDatum(parentSeq2, etld.DatumRef);
+            if (datum == null) {
+                return null;
+            }
+            // ③ 기준점 가로 사진 파일만 쓴다 — 라이브 촬영이나 측정 사진 폴백은 z1 규칙을 어긴다(D-79-05).
+            string szPath = datum.TeachingImagePath;
+            bool bNoPhoto = string.IsNullOrEmpty(szPath) || !File.Exists(szPath);
+            if (bNoPhoto) {
+                return null;
+            }
+            // ④ 잡아 둔 기준점 변환 — 시퀀스 캐시 객체라 Dispose 하지 않는다.
+            HTuple hvTransform;
+            bool bHasTransform = parentSeq2.TryGetDatumTransform(etld.DatumRef, out hvTransform);
+            if (!bHasTransform) {
+                return null;
+            }
+            // ⑤ 사진 로드 + 계산
+            HImage img = null;
+            LocalRefLineResult result = null;
+            try {
+                img = new HImage(szPath);
+                result = etld.ComputeLocalRefLine(img, hvTransform);
+            } catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG + "다시 구하기 실패 — " + ex.Message);
+                return null;
+            } finally {
+                SafeDisposeImage(img);
+            }
+            // ⑥ 저장소에 넣어 다음 RUN 이 사진을 다시 읽지 않게 한다.
+            parentSeq2.StoreRecomputedLocalRefLine(etld, result);
+            // ⑦ 다시 구함 로그
+            Logging.PrintLog((int)ELogType.Algorithm, EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG
+                + LOCAL_REF_RECOMPUTED_TEXT + GetShotNameForLog() + " · " + GetMeasurementDisplayName(etld));
+            // ⑧ 결과 반환
+            return result;
+        }
+
+        // Phase 80 함께 처리 2: InjectDatumOrigin(:1897-1903) 과 같은 규칙의 static 버전 — parentSeq2.DatumConfigs 를
+        //  이름으로 조회한다.
+        private static DatumConfig FindSequenceDatum(InspectionSequence seq, string szDatumName) {
+            if (string.IsNullOrEmpty(szDatumName)) { return null; }
+            if (seq == null || seq.DatumConfigs == null) { return null; }
+            foreach (var d in seq.DatumConfigs) {
+                if (d != null && d.DatumName == szDatumName) { return d; }
+            }
+            return null;
+        }
+
         // Phase 79 LSR-03/D-79-06: 국부 기준을 못 쓰는 5가지 원인을 순서대로 가려낸다. 성공하면 etld.InjectedLocalRef
         //  에 대입하고 true, 실패하면 szReason 에 원인 문구를 채우고 false — 값은 옵션 꺼짐과 비트 동일하게 흘러간다.
         private bool TryResolveLocalRef(EdgeToLineDistanceMeasurement etld, InspectionSequence parentSeq2, out string szReason) {
@@ -1974,8 +2075,7 @@ namespace ReringProject.Sequence {
             }
             bool bStale = result.SettingsKey != etld.BuildLocalRefSettingsKey();
             if (bStale) {
-                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_STALE;
-                return false;
+                return TryUseRecomputedLocalRef(etld, parentSeq2, out szReason);
             }
             etld.InjectedLocalRef = result;
             szReason = null;

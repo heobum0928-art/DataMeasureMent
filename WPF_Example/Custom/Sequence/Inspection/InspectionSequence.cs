@@ -87,6 +87,16 @@ namespace ReringProject.Sequence {
         //  _datumStateLock 으로 보호, 키 = 측정 객체 참조
         private readonly Dictionary<MeasurementBase, LocalRefLineResult> _localRefLines = new Dictionary<MeasurementBase, LocalRefLineResult>();
 
+        // Phase 80 함께 처리 2: 잡아 둔 기준점 변환이 지금의 티칭 사진 파일(TeachingImagePath[_Vertical])에서
+        //  나온 것인지 기록 — 다른 사진(화면 사진·고른 파일)에서 나온 변환에 티칭 사진의 국부 기준선을
+        //  섞으면 "국부" 로 표시되는 조용한 오측정이 된다(D-79-04). _datumStateLock 으로 보호, 키 = DatumName.
+        private sealed class TeachingPhotoProvenance {
+            public HTuple Transform; // 시퀀스 캐시(_datumTransforms)에 있는 그 참조 그대로 — 복사·Dispose 하지 않는다
+            public string HorizontalPath;
+            public string VerticalPath;
+        }
+        private readonly Dictionary<string, TeachingPhotoProvenance> _teachingPhotoProvenance = new Dictionary<string, TeachingPhotoProvenance>();
+
         //260810 hbk reset-datum-clear-race Round2: _datumTransforms/_failedDatums/_alignFailedDatums 3개 컬렉션
         //  전용 락. Round1(_startLock 재사용, TryExecuteIfIdle)은 $RESET-vs-Start(State Idle→Running 원자 점유)
         //  TOCTOU 만 닫았을 뿐, 이 3개 컬렉션 자체의 동시 접근은 여전히 무방비였다 — TryComposeAlign/TryRunSingleDatum
@@ -1412,6 +1422,7 @@ namespace ReringProject.Sequence {
 
         public void HoldManualDatum(string szDatumName) {
             _bManualDatumHeld = true;
+            RecordHeldDatumProvenance(szDatumName); // Phase 80 함께 처리 2: 두 장짜리는 티칭 사진 파일 출처로 기록, 1장은 출처 모름으로 지움
             Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} 기준점 '{1}' Test Find 성공 — 다음 수동 RUN 부터 이 기준점을 재사용(새 Test Find/부품 교체 시 갱신)", Name, szDatumName);
         }
 
@@ -2961,6 +2972,7 @@ namespace ReringProject.Sequence {
                 //260618 hbk Phase 54 ALIGN-01 align 실패 set 도 동일 lifecycle 리셋 (D-10)
                 _alignFailedDatums.Clear();
                 _localRefLines.Clear(); // Phase 79 LSR-05: 이전 사이클 국부 기준선 재사용 방지
+                _teachingPhotoProvenance.Clear(); // Phase 80 함께 처리 2: 잡아 둔 기준점의 사진 출처 기록도 같이 비운다
             }
             // RuntimeDetectFailed 는 DatumConfig 소유 필드(공유 컬렉션 아님 — _datumStateLock 범위 밖, 기존과 동일 시점).
             foreach (var d in DatumConfigs)
@@ -2968,6 +2980,89 @@ namespace ReringProject.Sequence {
                 if (d != null) d.RuntimeDetectFailed = false;
             }
             //260619 hbk Phase 57 #6 leveling 제거 — ResetLeveling() 호출 폐기 (ALIGN 대체, D-12/D-13)
+        }
+
+        // Phase 80 함께 처리 2: 이름으로 DatumConfig 조회 — InjectDatumOrigin(:1897-1903) 과 같은 규칙.
+        private DatumConfig FindDatumConfigByName(string szDatumName) {
+            if (string.IsNullOrEmpty(szDatumName)) { return null; }
+            if (DatumConfigs == null) { return null; }
+            foreach (var d in DatumConfigs) {
+                if (d != null && d.DatumName == szDatumName) { return d; }
+            }
+            return null;
+        }
+
+        // Phase 80 함께 처리 2: 지금 캐시된 변환이 티칭 사진 파일(TeachingImagePath[_Vertical])에서 나온
+        //  것으로 기록한다. 기록할 수 없는 상태(datum 없음·캐시 없음)면 지운다(무효화).
+        private void RecordTeachingPhotoProvenance(string szDatumName) {
+            if (string.IsNullOrEmpty(szDatumName)) { return; }
+            DatumConfig datum = FindDatumConfigByName(szDatumName);
+            lock (_datumStateLock) {
+                HTuple hvTransform;
+                bool bCached = _datumTransforms.TryGetValue(szDatumName, out hvTransform);
+                bool bCannotRecord = datum == null || !bCached;
+                if (bCannotRecord) {
+                    _teachingPhotoProvenance.Remove(szDatumName);
+                    return;
+                }
+                TeachingPhotoProvenance entry = new TeachingPhotoProvenance();
+                entry.Transform = hvTransform;
+                entry.HorizontalPath = datum.TeachingImagePath;
+                entry.VerticalPath = datum.TeachingImagePath_Vertical;
+                _teachingPhotoProvenance[szDatumName] = entry;
+            }
+        }
+
+        // Phase 80 함께 처리 2: 출처 기록을 지운다(1장 Test Find 처럼 출처를 모를 때, ClearDatumTransforms 등).
+        private void ForgetTeachingPhotoProvenance(string szDatumName) {
+            if (string.IsNullOrEmpty(szDatumName)) { return; }
+            lock (_datumStateLock) {
+                _teachingPhotoProvenance.Remove(szDatumName);
+            }
+        }
+
+        // Phase 80 함께 처리 2: HoldManualDatum(기존 Test Find 성공 뒤 호출)의 출처 판단 — 두 장짜리 기준점은
+        //  기존 Test Find 버튼이 TeachingImagePath·TeachingImagePath_Vertical 을 디스크에서 직접 읽고 없으면
+        //  중단하므로(MainView.xaml.cs:4501-4511) 출처가 확인된다. 1장 기준점은 화면 사진 또는 고른 파일일
+        //  수 있어(:4545-4547) 출처를 모른다 — 기록을 지운다.
+        private void RecordHeldDatumProvenance(string szDatumName) {
+            DatumConfig datum = FindDatumConfigByName(szDatumName);
+            bool bDualImage = datum != null && datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage;
+            if (bDualImage) {
+                RecordTeachingPhotoProvenance(szDatumName);
+            } else {
+                ForgetTeachingPhotoProvenance(szDatumName);
+            }
+        }
+
+        // Phase 80 함께 처리 2: DatumTestFindService 가 TeachingImagePath 파일(두 장짜리면 +세로)로 기준점을
+        //  찾은 직후 부른다(Task 2) — 1장·2장 모두 출처가 확인된 경로다.
+        public void MarkDatumFoundFromTeachingPhotos(string szDatumName) {
+            RecordTeachingPhotoProvenance(szDatumName);
+        }
+
+        // Phase 80 함께 처리 2: 지금 캐시의 변환이 기록한 그 객체이고(캐시가 다른 경로로 다시 쓰이면 새
+        //  HTuple 이라 달라진다) 티칭 사진 경로가 기록 때와 같을 때만 true. 확인되지 않으면 Task 1 의
+        //  다시 구하기를 하지 않는다(D-79-04 조용히 틀리지 않기).
+        public bool IsDatumTransformFromTeachingPhotos(string szDatumName) {
+            if (string.IsNullOrEmpty(szDatumName)) { return false; }
+            DatumConfig datum = FindDatumConfigByName(szDatumName);
+            if (datum == null) { return false; }
+            lock (_datumStateLock) {
+                TeachingPhotoProvenance entry;
+                bool bHasEntry = _teachingPhotoProvenance.TryGetValue(szDatumName, out entry);
+                if (!bHasEntry) { return false; }
+                HTuple hvCached;
+                bool bHasCached = _datumTransforms.TryGetValue(szDatumName, out hvCached);
+                if (!bHasCached) { return false; }
+                bool bSameTransform = ReferenceEquals(entry.Transform, hvCached);
+                if (!bSameTransform) { return false; }
+                bool bSameHorizontal = string.Equals(entry.HorizontalPath, datum.TeachingImagePath, StringComparison.Ordinal);
+                if (!bSameHorizontal) { return false; }
+                bool bSameVertical = string.Equals(entry.VerticalPath, datum.TeachingImagePath_Vertical, StringComparison.Ordinal);
+                if (!bSameVertical) { return false; }
+                return true;
+            }
         }
 
         // 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.
@@ -3734,6 +3829,15 @@ namespace ReringProject.Sequence {
             lock (_datumStateLock) {
                 _localRefLines[etld] = result;
             }
+        }
+
+        // Phase 80 함께 처리 2: 수동 RUN 에서 기준 ROI 를 고친 뒤 다시 구한 국부 기준선을 저장소에 바꿔
+        //  넣는다 — 다음 RUN 은 설정 키가 같아 사진을 다시 읽지 않는다.
+        public void StoreRecomputedLocalRefLine(EdgeToLineDistanceMeasurement etld, LocalRefLineResult result) {
+            bool bMissing = etld == null || result == null;
+            if (bMissing) { return; }
+            StoreLocalRefLine(etld, result);
+            LogLocalRefLine(result.DatumName, etld, result);
         }
 
         private void LogLocalRefLine(string szDatumName, EdgeToLineDistanceMeasurement etld, LocalRefLineResult result) {

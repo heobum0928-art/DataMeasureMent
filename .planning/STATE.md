@@ -5,8 +5,8 @@ milestone_name: Phases
 current_phase: 80
 current_phase_name: reviewer-ng-cycle-reinspect
 status: unknown
-stopped_at: Completed 80-04-PLAN.md
-last_updated: "2026-09-18T11:56:25.640Z"
+stopped_at: "80-05: Task 1-2 완료(버전 1.7.51.0 + 누적 감사 PASS + UAT 절차서), Task 3 체크포인트 대기 — 장비 PC Release UAT 사용자 승인 필요"
+last_updated: "2026-09-18T12:03:44.838Z"
 last_activity: 2026-09-18
 progress:
   total_phases: 16
@@ -764,6 +764,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - T-71-21 미검증: A-5 N/A(실 PLC 미연결) - 핸들러 펌웨어가 3필드 $PREP_ACK 파서로 갱신됐는지 미확인. 배포 타이밍 제어팀(김민우 선임) 조율 필요
+- 80-05 Task 3: 장비 PC Release 1.7.51.0 UAT(80-HUMAN-UAT.md U-1~U-11 + A-80-E1~E5) 사용자 승인 대기 — approved 또는 실패 U 번호 필요
 
 ## Deferred Items
 
@@ -851,9 +852,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-09-18T11:56:17.098Z
-Stopped at: Completed 80-04-PLAN.md
-Resume file: None
+Last session: 2026-09-18T12:03:44.445Z
+Stopped at: 80-05: Task 1-2 완료(버전 1.7.51.0 + 누적 감사 PASS + UAT 절차서), Task 3 체크포인트 대기 — 장비 PC Release UAT 사용자 승인 필요
+Resume file: .planning/phases/80-reviewer-ng-cycle-reinspect/80-HUMAN-UAT.md
 Next action: 현장 실기 — ① Tray 피커센터 캘 수행(잔차 확인 후 저장, **저장 시 $ALIGN_RESULT 변경 → PLC 합의 필수**) ② Mirror 실기 확인(라이브에서 방향 전환 확인) ③ 축 부호 4종 실측 확정 (BOTTOM/TRAY_OFFSET_X_SIGN·THETA_SIGN, 현재 전부 1.0) ④ 안착 데이터 20~30개 수집
 
 **미결(현장 판단 대기):** 측정 카메라 틸트 검증 UI(Z 스윕→원 중심 이동→각도) — 방법·견적은 메모리 `project_camera_tilt_verification_idea` 에 정리, 현장 이미지 보고 착수 결정.

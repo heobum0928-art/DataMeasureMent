@@ -79,6 +79,10 @@ namespace ReringProject.UI
         // Phase 80 D-80-04: MainWindow 가 채워, 불러오기 성공 시 메인 화면을 앞으로 가져온다.
         public Action<ReviewerReinspectLoadResult> MainNavigator { get; set; }
 
+        // Phase 80 D-80-05: 활성 상태에서 비활성으로 바뀐 순간(해제) 딱 한 번 발화. MainView 가 구독해
+        // Shot 사진 재표시 건너뛰기 캐시를 잊는다.
+        public event Action Released;
+
         // Phase 80 D-80-09/17: ReviewerWindow 가 채워, 기준점 사진 없음 알림(제목, 문구)을 띄운다.
         public Action<string, string> AlertPresenter { get; set; }
 
@@ -157,6 +161,7 @@ namespace ReringProject.UI
         private void RefreshFromService()
         {
             ReviewerReinspectState state = ReviewerReinspectService.GetState();
+            bool bWasActive = IsActive;
             IsActive = state.IsActive;
             if (state.IsActive)
             {
@@ -165,6 +170,17 @@ namespace ReringProject.UI
             else
             {
                 StatusText = "";
+            }
+
+            // Phase 80 D-80-05: 활성 → 비활성으로 바뀐 순간에만 알려 MainView 의 Shot 사진 캐시를 잊게 한다.
+            bool bJustReleased = bWasActive && !state.IsActive;
+            if (bJustReleased)
+            {
+                Action handler = Released;
+                if (handler != null)
+                {
+                    handler();
+                }
             }
         }
 

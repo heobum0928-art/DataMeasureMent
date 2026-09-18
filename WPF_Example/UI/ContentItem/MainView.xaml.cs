@@ -83,6 +83,7 @@ namespace ReringProject.UI {
         public MainView() {
             InitializeComponent();
             panel_reviewerReinspect.DataContext = ReviewerReinspectViewModel.Instance; // Phase 80 D-80-12/17
+            ReviewerReinspectViewModel.Instance.Released += ForgetDisplayedShotImage; // Phase 80 D-80-05
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
             halconViewer.RoiMoveCompleted += HalconViewer_RoiMoveCompleted;
             halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
@@ -204,6 +205,11 @@ namespace ReringProject.UI {
         //  (사용자 보고: ROI 편집/이동 중이나 같은 Shot 내 여러 측정 ROI를 확대해서 볼 때 잦은 강제 축소).
         //  다른 Shot 으로 전환할 때는 기존처럼 전체 보기로 리셋되는 게 맞다(사용자 확인) — 그 경우만 재로드한다.
         private ShotConfig _lastDisplayedImageShot;
+
+        // Phase 80 D-80-05: 리뷰어 사진을 불러오거나 해제한 뒤 같은 Shot 을 다시 눌러도 새 사진을 다시 읽게 한다.
+        public void ForgetDisplayedShotImage() {
+            _lastDisplayedImageShot = null;
+        }
 
         /// <summary>Displays the image stored in the given ShotConfig on the canvas.</summary>
         public void DisplayShotImage(ShotConfig shot) {

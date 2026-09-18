@@ -852,6 +852,42 @@ namespace ReringProject.UI {
             }
         }
 
+        // Phase 80 D-80-05: 리뷰어에서 불러온 NG 측정 노드를 선택해 속성창에 파라미터를 보인다.
+        //  측정을 못 찾으면 FAI, 그다음 Shot 순으로 다시 찾는다.
+        public void SelectShotAndMeasurement(ShotConfig liveShot, FAIConfig liveFai, MeasurementBase liveMeasurement) {
+            NodeViewModel root = ViewModel.RootModel;
+            if (root == null) { return; }
+            NodeViewModel found = FindNodeByParam(root, liveMeasurement);
+            if (found == null) { found = FindNodeByParam(root, liveFai); }
+            if (found == null) { found = FindNodeByParam(root, liveShot); }
+            if (found == null) {
+                Trace.WriteLine("[ReviewerLoad] 트리에서 노드를 찾지 못함");
+                return;
+            }
+            found.ExpandParents();
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => SelectNodeDeferred(found)));
+        }
+
+        // Phase 80 D-80-05: 트리 컨테이너 생성 중 동기 선택 크래시(:880-885 경고)를 피하려 Dispatcher
+        //  Background 로 미룬 뒤 실행한다. 같은 노드여도 선택을 풀었다 다시 걸어 새 사진·선으로 다시 그린다.
+        private void SelectNodeDeferred(NodeViewModel node) {
+            NodeViewModel prev = treeListBox_sequence.SelectedItem as NodeViewModel;
+            if (prev != null) { prev.IsSelected = false; }
+            node.IsSelected = true;
+            treeListBox_sequence.ScrollIntoView(node);
+        }
+
+        // Phase 80 D-80-05: NodeViewModel.Param(Node.ParamData) 참조 동일성으로 대상 노드를 찾는다.
+        private NodeViewModel FindNodeByParam(NodeViewModel node, object target) {
+            if (node == null || target == null) { return null; }
+            if (ReferenceEquals(node.Param, target)) { return node; }
+            foreach (NodeViewModel child in node.Children) {
+                NodeViewModel result = FindNodeByParam(child, target);
+                if (result != null) { return result; }
+            }
+            return null;
+        }
+
         private void InspectionList_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (mParentWindow == null) mParentWindow = (MainWindow)Window.GetWindow(this);
             button_light.IsEnabled = false;

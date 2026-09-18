@@ -293,7 +293,10 @@ namespace ReringProject {
 
         // Phase 80 D-80-04: 리뷰어에서 불러온 뒤 메인 화면을 앞으로 — 리뷰어 최소화·트리 선택은 80-04
         private void OnReviewerPhotosLoaded(ReviewerReinspectLoadResult result) {
+            if (mReviewerWindow != null) { mReviewerWindow.WindowState = WindowState.Minimized; }
             Activate();
+            mainView.ForgetDisplayedShotImage();
+            inspectionList.SelectShotAndMeasurement(result.LiveShot, result.LiveFai, result.LiveMeasurement);
         }
 
         public void SaveRecipe(string name=null) {
@@ -409,7 +412,10 @@ namespace ReringProject {
                     break;
                 case EPageType.Reviewer:   // Phase 40 OUT-01 D-08 — 비모달 Show() (ShowDialog 아님, 라이브 검사 방해 안 함)
                     if (mReviewerWindow != null && mReviewerWindow.IsLoaded) {
+                        // Phase 80 D-80-04: 불러오기로 최소화된 리뷰어를 메뉴로 다시 열면 복원 후 앞으로.
+                        if (mReviewerWindow.WindowState == WindowState.Minimized) { mReviewerWindow.WindowState = WindowState.Normal; }
                         mReviewerWindow.Show();
+                        mReviewerWindow.Activate();
                         return;
                     }
                     mReviewerWindow = new UI.ReviewerWindow();

@@ -62,6 +62,10 @@
 - **D-80-16:** **CLAUDE.md 🔒 가독성 규칙 필수.** 삼항 `?:`·null 병합 `??`/`??=`·null 조건 `?.`/`?[]`·switch 식 금지, 한 줄 분기도 중괄호, 긴 조건은 이름 있는 bool 로 추출, 헝가리언 접두사, 매직넘버는 const, C# 7.2 문법만, HImage/HObject/HTuple 은 finally 에서 Dispose, 날짜 주석 금지. 신규·수정 파일 모두 CLAUDE.md 의 검증 grep 5종이 0 이어야 한다.
 - **D-80-17:** **MVVM.** 불러오기·짝 맞추기·스냅샷/복원·상태 줄 문구는 서비스 + ViewModel 에 둔다. `ReviewerWindow.xaml.cs`·`MainView.xaml.cs` 에는 배선만(이벤트 → VM/서비스 호출 1줄). 버튼 활성·비활성 이유·상태 줄 문자열은 VM 에서 만들어 바인딩한다.
 
+### 계획 단계 추가 결정 (사용자 2026-09-18, plan-phase 중)
+- **D-80-18:** **새 .cs 파일 허용.** Phase 78·79 의 "신규 .cs 파일 금지"는 이번 phase 에 적용하지 않는다. 불러오기 서비스·ViewModel 을 새 파일로 분리하고 `WPF_Example/DatumMeasurement.csproj` 에 `<Compile Include>` 로 등록한다(기존 파일 비대화 방지, D-80-17 MVVM).
+- **D-80-19:** **기준점 사진이 일부만 있으면 "없음"과 같게 처리한다.** NG 측정이 쓰는 기준점에 필요한 사진(단일 / 가로 H / 세로 V) 중 하나라도 없으면 D-80-09 경로(알림 후 Shot 사진만, 기준점 사진은 현재 것 유지, 자동 Test Find 안 함). 짝이 반만 맞는 상태로 재검사하지 않는다.
+
 ### Claude's Discretion
 - 버튼·상태 줄의 정확한 문구·크기·색 (D-80-00 원칙 안에서)
 - 리뷰어 → 메인 화면 연결 방식(Owner 경유 등). 단 새 로직은 code-behind 가 아닌 서비스/VM 쪽에 두고, 비대한 `MainView.xaml.cs` 에는 배선만(CLAUDE.md 규칙 4)

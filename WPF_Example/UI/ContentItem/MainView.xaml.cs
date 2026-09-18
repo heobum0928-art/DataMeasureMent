@@ -521,6 +521,21 @@ namespace ReringProject.UI {
                 Column2 = pCol + pLen2,
                 IsTaught = true
             });
+            // Phase 79 LSR-01: 국부 기준 ROI(핀 옆 띠) — 티칭됐을 때만 두 번째 ROI 로 보여 준다(RoiId 끝 _LocalRef)
+            if (etld != null) {
+                bool bLocalRefTaught = etld.LocalRef_Length1 > 0 && etld.LocalRef_Length2 > 0;
+                if (bLocalRefTaught) {
+                    result.Add(new RoiDefinition {
+                        Id = faiName + "_" + measName + "_" + EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY,
+                        Name = measName + "_" + EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY,
+                        Row1 = etld.LocalRef_Row - etld.LocalRef_Length1,
+                        Column1 = etld.LocalRef_Col - etld.LocalRef_Length2,
+                        Row2 = etld.LocalRef_Row + etld.LocalRef_Length1,
+                        Column2 = etld.LocalRef_Col + etld.LocalRef_Length2,
+                        IsTaught = true
+                    });
+                }
+            }
             return result;
         }
 
@@ -860,6 +875,14 @@ namespace ReringProject.UI {
                         if (roiId == f.FAIName + "_" + measName + "_Line") { fai = f; meas = m; subKey = "Line"; return true; }
                         continue;
                     }
+                    // Phase 79 LSR-01: EdgeToLineDistance 의 국부 기준 ROI 는 subKey LocalRef 로 해석한다
+                    bool bIsLocalRefRoi = m is EdgeToLineDistanceMeasurement && roiId == f.FAIName + "_" + measName + "_" + EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
+                    if (bIsLocalRefRoi) {
+                        fai = f;
+                        meas = m;
+                        subKey = EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
+                        return true;
+                    }
                     bool isSinglePointType = m is EdgeToLineDistanceMeasurement || m is EdgeToLineAngleMeasurement
                         || m is ArcEdgeDistanceMeasurement || m is CompoundAngleMeasurement
                         || m is CompoundCenterCDistanceMeasurement || m is CompoundCenterBDistanceMeasurement
@@ -886,6 +909,14 @@ namespace ReringProject.UI {
             if (dual != null) {
                 if (subKey == "Point") { dual.PointROI_Row += deltaRow; dual.PointROI_Col += deltaCol; }
                 else if (subKey == "Line") { dual.LineROI_Row += deltaRow; dual.LineROI_Col += deltaCol; }
+                return;
+            }
+            // Phase 79 LSR-01: 국부 기준 ROI 이동 — Point ROI 는 아래 기존 줄이 그대로 처리한다
+            var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
+            bool bMoveLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
+            if (bMoveLocalRef) {
+                etldLocalRef.LocalRef_Row += deltaRow;
+                etldLocalRef.LocalRef_Col += deltaCol;
                 return;
             }
             var etld = meas as EdgeToLineDistanceMeasurement;
@@ -920,6 +951,14 @@ namespace ReringProject.UI {
                 if (subKey == "Point") { row = dual.PointROI_Row; col = dual.PointROI_Col; return true; }
                 if (subKey == "Line") { row = dual.LineROI_Row; col = dual.LineROI_Col; return true; }
                 return false;
+            }
+            // Phase 79 LSR-01: 국부 기준 ROI 중심 읽기(Edit 모드 드래그 역보정용)
+            var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
+            bool bCenterLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
+            if (bCenterLocalRef) {
+                row = etldLocalRef.LocalRef_Row;
+                col = etldLocalRef.LocalRef_Col;
+                return true;
             }
             var etld = meas as EdgeToLineDistanceMeasurement;
             if (etld != null) { row = etld.Point_Row; col = etld.Point_Col; return true; }
@@ -969,6 +1008,16 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row = cRow; dual.LineROI_Col = cCol; dual.LineROI_Length1 = halfR; dual.LineROI_Length2 = halfC; }
                 return;
             }
+            // Phase 79 LSR-01: 국부 기준 ROI 크기·위치 쓰기
+            var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
+            bool bResizeLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
+            if (bResizeLocalRef) {
+                etldLocalRef.LocalRef_Row = cRow;
+                etldLocalRef.LocalRef_Col = cCol;
+                etldLocalRef.LocalRef_Length1 = halfR;
+                etldLocalRef.LocalRef_Length2 = halfC;
+                return;
+            }
             var etld = meas as EdgeToLineDistanceMeasurement;
             if (etld != null) { etld.Point_Row = cRow; etld.Point_Col = cCol; etld.Point_Length1 = halfR; etld.Point_Length2 = halfC; return; }
             var etla = meas as EdgeToLineAngleMeasurement;
@@ -999,6 +1048,16 @@ namespace ReringProject.UI {
             if (dual != null) {
                 if (subKey == "Point") { dual.PointROI_Row = 0; dual.PointROI_Col = 0; dual.PointROI_Length1 = 0; dual.PointROI_Length2 = 0; }
                 else if (subKey == "Line") { dual.LineROI_Row = 0; dual.LineROI_Col = 0; dual.LineROI_Length1 = 0; dual.LineROI_Length2 = 0; }
+                return;
+            }
+            // Phase 79 LSR-01: 국부 기준 ROI 삭제(0 리셋) — 옵션 체크는 그대로라 다음 검사에서 '미티칭' 으로 전역 전환된다
+            var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
+            bool bClearLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
+            if (bClearLocalRef) {
+                etldLocalRef.LocalRef_Row = 0;
+                etldLocalRef.LocalRef_Col = 0;
+                etldLocalRef.LocalRef_Length1 = 0;
+                etldLocalRef.LocalRef_Length2 = 0;
                 return;
             }
             var etld = meas as EdgeToLineDistanceMeasurement;
@@ -1052,6 +1111,19 @@ namespace ReringProject.UI {
                 r = dual.PointROI_Row; c = dual.PointROI_Col; TransformPointInPlace(T, ref r, ref c); dual.PointROI_Row = r; dual.PointROI_Col = c; dual.PointROI_Phi = dual.PointROI_Phi + rot;
                 r = dual.LineROI_Row; c = dual.LineROI_Col; TransformPointInPlace(T, ref r, ref c); dual.LineROI_Row = r; dual.LineROI_Col = c; dual.LineROI_Phi = dual.LineROI_Phi + rot;
                 return;
+            }
+            // Phase 79 LSR-01: 마스터 재앵커 때 티칭된 국부 기준 ROI 도 같이 옮긴다 — 미티칭(0) 값은 그대로 둬 옛 레시피 값이 바뀌지 않게 한다. return 하지 않고 아래 기존 줄이 Point ROI 를 옮긴다
+            var etldLocalRef = m as EdgeToLineDistanceMeasurement;
+            if (etldLocalRef != null) {
+                bool bLocalRefTaught = etldLocalRef.LocalRef_Length1 > 0 && etldLocalRef.LocalRef_Length2 > 0;
+                if (bLocalRefTaught) {
+                    r = etldLocalRef.LocalRef_Row;
+                    c = etldLocalRef.LocalRef_Col;
+                    TransformPointInPlace(T, ref r, ref c);
+                    etldLocalRef.LocalRef_Row = r;
+                    etldLocalRef.LocalRef_Col = c;
+                    etldLocalRef.LocalRef_Phi = etldLocalRef.LocalRef_Phi + rot;
+                }
             }
             var etld = m as EdgeToLineDistanceMeasurement;
             if (etld != null) { r = etld.Point_Row; c = etld.Point_Col; TransformPointInPlace(T, ref r, ref c); etld.Point_Row = r; etld.Point_Col = c; etld.Point_Phi = etld.Point_Phi + rot; return; }

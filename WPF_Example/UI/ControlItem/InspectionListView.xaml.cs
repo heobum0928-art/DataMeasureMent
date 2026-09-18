@@ -382,6 +382,9 @@ namespace ReringProject.UI {
         private void Btn_start_Click(object sender, RoutedEventArgs e) {
             if (treeListBox_sequence.SelectedIndex < 0) return;
             if (!(treeListBox_sequence.SelectedItem is NodeViewModel node)) return;
+            // Phase 80: 측정·FAI 노드를 고른 채 RUN 을 누르면 그 측정이 속한 Shot 을 실행한다 — 리뷰어에서
+            //  불러와 파라미터를 고친 뒤 RUN 한 번(D-80-05/06)
+            node = ResolveRunNodeForSelection(node);
 
             // Sequence/Shot/Action 외 노드는 실행 불가
             if (node.NodeType != ENodeType.Sequence && node.NodeType != ENodeType.Action) {
@@ -422,7 +425,9 @@ namespace ReringProject.UI {
             //  수동 지그 셋업 후 끄는 걸 잊고 실물 라인에서 RUN 하면, 카메라 앞에 실제 부품이 있어도 과거 저장 이미지로
             //  조용히 측정되어 PASS/FAIL 이 실물과 무관하게 나온다(화면·로그 어디에도 표시 없음). 저장 이미지가 없으면
             //  NG+로그로 드러나지만, 있으면 정상 사이클과 구분 불가 — 그래서 트리거 시점에 명시적으로 확인한다.
-            if (SystemHandler.Handle.Setting.OfflineInspectMode) {
+            // Phase 80 D-80-00: 리뷰어 사진 사용 중에는 리뷰어가 켠 오프라인 모드이고 상태 줄이 보여 주므로 확인창을 띄우지 않는다
+            bool bAskOfflineConfirm = SystemHandler.Handle.Setting.OfflineInspectMode && !ReviewerReinspectService.IsActive;
+            if (bAskOfflineConfirm) {
                 MessageBoxResult offlineAnswer = CustomMessageBox.ShowConfirmation(
                     "오프라인 검사 모드",
                     "OfflineInspectMode 가 켜져 있습니다.\n\n"
@@ -443,6 +448,20 @@ namespace ReringProject.UI {
                 Debug.WriteLine(string.Format("Btn_start_Click: Start failed seq={0} actID={1} count={2} state={3}",
                     seq.Name, actID, seq.ActionCount, seq.State));
             }
+        }
+
+        // Phase 80 D-80-05/06: 측정·FAI 노드를 고른 채 RUN 을 누르면 그 노드가 속한 부모 Shot(Action) 노드를
+        //  대신 실행 대상으로 쓴다. Sequence·Shot(Action)·Datum 노드는 그대로 반환 — 동작 불변.
+        private static NodeViewModel ResolveRunNodeForSelection(NodeViewModel node) {
+            if (node == null) { return null; }
+            bool bIsShotChild = node.NodeType == ENodeType.FAI || node.NodeType == ENodeType.Measurement;
+            if (!bIsShotChild) { return node; }
+            NodeViewModel cur = node.Parent;
+            while (cur != null) {
+                if (cur.NodeType == ENodeType.Action) { return cur; }
+                cur = cur.Parent;
+            }
+            return node;
         }
 
         private bool ResolveRunnableAction(NodeViewModel node, SequenceBase seq, out EAction actID) {

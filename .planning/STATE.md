@@ -5,8 +5,8 @@ milestone_name: Phases
 current_phase: 80
 current_phase_name: reviewer-ng-cycle-reinspect
 status: unknown
-stopped_at: Completed 80-01-PLAN.md
-last_updated: "2026-09-18T11:08:48.151Z"
+stopped_at: Completed 80-02-PLAN.md
+last_updated: "2026-09-18T11:26:02.026Z"
 last_activity: 2026-09-18
 progress:
   total_phases: 16
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 ## Current Position
 
 Phase: 80 (reviewer-ng-cycle-reinspect) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Next: **Phase 79 완료** (2026-09-18, 5/5, UAT 승인 — C13_P3 A−B 48.7→8.4µm, 켤 측정 C13_P3·C14_P3, 기준값·공차는 도면·고객 확인 후 결정, U-7 TOP·BOTTOM 장비 PC 대기; 리뷰 경고 3건 수정 — 설치된 1.7.50.0 Release 는 수정 전 빌드지만 동작 동일) → 다음 = Phase 80 discuss (/gsd-discuss-phase 80) / 미처리: TOP 측정 ROI Edit 후 이동 안 됨(debug 대기), 커밋 push, 미추적 quick 폴더 2개
 Phase 78 (reviewer-ng-cause-analysis) — EXECUTING 7 plans / 5 waves (순차) — 78-01 완료(a2b1d62b·cd5b05c0·2543b9f1, R6 tracer·R1~R4·NGA-07 DTO), 78-02 완료(42a20b46·696bc7b8, R5·R7·R8·R9·대표 원인 조립), 78-03 완료(1622f78b·8c6e0e90, Z 후보 점수·검사 당시 Z 범위·기준점 진단 값 cycle.json 기록), 78-04 완료(9ca082ab·693a1424, 실제 촬영 사진·버튼 2개 삭제), 78-05 완료(4b54c4d0·ff019e36, NG 누적 엑셀), 78-06 완료(e6f0266e 버전 1.7.49.0, 누적 감사 PASS), 78-07 Task 1 UAT 절차서(183137f6) — **체크포인트 대기: 사용자 U-1~U-7 확인(+U-8 가능 시) 및 A-78-E1 문구 판단**
 Phase 76 (side-datum): 76-01·76-02 완료, 76-03 실기 UAT 대기 (코드 origin 반영됨, 버전 1.7.46.0)
@@ -313,6 +313,7 @@ Last activity: 2026-09-18
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 80 P01 | 25m | 2 tasks | 8 files |
+| Phase 80-reviewer-ng-cycle-reinspect P02 | 60min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -580,6 +581,8 @@ Recent decisions affecting current work:
 - 72-03: MaterialIndexNumber 는 Stop() 에서 리셋하지 않고 호출자가 매 실행 전 지정하는 계약
 - 72-03: BatchRunService 는 프로퍼티만 추가하고 UI 입력은 미연결 (기본 -1, 회귀 0)
 - [Phase ?]: Task 2 서비스 메서드(RunWithOriginalPaths/HandleRecipeChanged)가 Task 1 커밋에 이미 포함되어 있어, 이어달리기는 세 호출부 연결만 수행
+- [Phase 80-reviewer-ng-cycle-reinspect]: git diff -w -U0 재정렬 문제로 Task 1 신규 헬퍼 4개를 TryResolveLocalRef 앞(InjectLocalRef 뒤)으로 배치 — 동작·시그니처는 계획과 동일, 파일 내 물리적 위치만 다름
+- [Phase 80-reviewer-ng-cycle-reinspect]: acceptance_criteria 검증 스크립트가 소스 파일 내 리터럴 문자열도 grep 하므로 TryRecomputeStaleLocalRef 주석에서 SimulImagePath 리터럴을 빼고 서술형으로 표현
 
 ### Quick Tasks Completed
 
@@ -843,8 +846,8 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-09-18T11:08:48.107Z
-Stopped at: Completed 80-01-PLAN.md
+Last session: 2026-09-18T11:25:30.734Z
+Stopped at: Completed 80-02-PLAN.md
 Resume file: None
 Next action: 현장 실기 — ① Tray 피커센터 캘 수행(잔차 확인 후 저장, **저장 시 $ALIGN_RESULT 변경 → PLC 합의 필수**) ② Mirror 실기 확인(라이브에서 방향 전환 확인) ③ 축 부호 4종 실측 확정 (BOTTOM/TRAY_OFFSET_X_SIGN·THETA_SIGN, 현재 전부 1.0) ④ 안착 데이터 20~30개 수집
 

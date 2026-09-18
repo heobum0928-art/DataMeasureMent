@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Phases
-current_phase: 76
+current_phase: 77
 current_phase_name: side-datum
 status: unknown
-stopped_at: Phase 74/75 코드 완료 — 양쪽 실기 UAT 대기
-last_updated: "2026-09-11T10:30:00.638Z"
+stopped_at: Phase 80 context gathered
+last_updated: "2026-09-18T08:04:11.242Z"
 last_activity: 2026-09-11
 progress:
   total_phases: 16
@@ -837,9 +837,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-09-03T01:10:00.000Z
-Stopped at: quick-260903-dpy (Tray 피커센터 캘) 완료 — 빌드/규칙/회귀 검증 통과, 실기 UAT 대기
-Resume file: None
+Last session: 2026-09-18T08:04:11.183Z
+Stopped at: Phase 80 context gathered
+Resume file: .planning/phases/80-reviewer-ng-cycle-reinspect/80-CONTEXT.md
 Next action: 현장 실기 — ① Tray 피커센터 캘 수행(잔차 확인 후 저장, **저장 시 $ALIGN_RESULT 변경 → PLC 합의 필수**) ② Mirror 실기 확인(라이브에서 방향 전환 확인) ③ 축 부호 4종 실측 확정 (BOTTOM/TRAY_OFFSET_X_SIGN·THETA_SIGN, 현재 전부 1.0) ④ 안착 데이터 20~30개 수집
 
 **미결(현장 판단 대기):** 측정 카메라 틸트 검증 UI(Z 스윕→원 중심 이동→각도) — 방법·견적은 메모리 `project_camera_tilt_verification_idea` 에 정리, 현장 이미지 보고 착수 결정.

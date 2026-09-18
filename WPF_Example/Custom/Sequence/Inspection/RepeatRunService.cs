@@ -1,6 +1,7 @@
 //260612 hbk Phase 41.1 OUT-03 50회 반복 실행 서비스
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -23,6 +24,9 @@ namespace ReringProject.Sequence
 
         /// <summary>자재번호 미지정 sentinel. CycleResultDto.IndexNumber 기본값과 동일.</summary>
         public const int MATERIAL_NOT_SET = -1;
+
+        /// <summary>Phase 80 D-80-11 보강: 리뷰어 사진 사용 중에는 저장 사진 재검사를 시작할 수 없다.</summary>
+        public const string ERROR_REVIEWER_PHOTOS_ACTIVE = "리뷰어 사진 사용 중에는 저장 사진 재검사를 시작할 수 없습니다 — 메인 화면 상태 줄의 [해제] 를 누른 뒤 다시 시작하세요";
 
         /// <summary>모든 반복이 완료되면 발화. arg = 누적된 CycleResultDto 전체 목록.</summary>
         public event Action<List<CycleResultDto>> OnRepeatComplete;
@@ -530,6 +534,12 @@ namespace ReringProject.Sequence
             if (IsRunning)
             {
                 szError = "이미 반복 실행 중입니다";
+                return false;
+            }
+            // Phase 80: 리뷰어 경로 스냅샷과 재검사 스냅샷이 겹치면 해제 뒤 리뷰어 경로가 되살아난다
+            if (ReviewerReinspectService.IsActive)
+            {
+                szError = ERROR_REVIEWER_PHOTOS_ACTIVE;
                 return false;
             }
             lock (s_savedCycleLock)
@@ -1176,6 +1186,9 @@ namespace ReringProject.Sequence
         private const string CYCLE_JSON_FILE_NAME = "cycle.json";
         private const int DUAL_CROSS_Z_UNCONFIGURED = -1;
 
+        // Phase 80 D-80-07: 자정을 넘긴 자재를 위해 고른 사이클 날짜의 전날 폴더까지 본다.
+        private const int PREVIOUS_DAY_OFFSET = -1;
+
         /// <summary>DatumPhotoPaths/필요 역할 목록 공용 키. 예: "기준점A|H".</summary>
         public static string BuildDatumRoleKey(string szDatumName, string szRole)
         {
@@ -1241,9 +1254,12 @@ namespace ReringProject.Sequence
             return plan;
         }
 
-        // Phase 80 D-80-07/09: 리뷰어가 고른 사이클 하나가 속한 부품을 돌려준다. ValidatePart 를 타지 않으므로
-        //  기준점 사진이 없어도 부품은 돌아온다 — 없음 판단은 ReviewerReinspectService 가 한다(D-80-07/09).
-        //  같은 자재의 다른 tick 을 묶는 처리(GroupIntoParts 규칙과 같은 방식)는 80-03 Task 1 이 이 메서드 본문에 더한다.
+        // Phase 80 D-80-07/09: 리뷰어가 고른 사이클 하나가 속한 부품 전체(같은 자재)를 돌려준다.
+        //  ValidatePart 를 타지 않으므로 기준점 사진이 없어도 부품은 돌아온다 — 없음 판단은
+        //  ReviewerReinspectService 가 한다(D-80-07/09). 같은 자재 묶기(D-80-07): 고른 사이클 날짜와
+        //  전날 폴더까지 자동tick 을 모아 GroupIntoParts(반복검사와 같은 규칙)로 나눈 뒤, 고른 사이클이
+        //  속한 부품만 골라 쓴다. PLC 자동tick 이 아니면(수동 RUN 기록) 부품 개념이 없으므로 고른
+        //  사이클만으로 만든 부품을 그대로 쓴다.
         public static SavedCycleRerunPart BuildPartForSingleCycle(CycleResultDto selectedCycle, InspectionSequence seq, InspectionRecipeManager recipeManager)
         {
             bool bMissingArgs = selectedCycle == null || seq == null || recipeManager == null;
@@ -1251,9 +1267,157 @@ namespace ReringProject.Sequence
             {
                 return null;
             }
-            SavedCycleRerunPart part = BuildSelectedTickPart(selectedCycle);
-            FillPartDualPhotos(part, seq, recipeManager);
-            return part;
+
+            Stopwatch sw = Stopwatch.StartNew();
+            SavedCycleRerunPart selectedOnly = BuildSelectedTickPart(selectedCycle);
+
+            bool bAutoTick = IsEligibleAutoTick(selectedCycle, selectedCycle.RecipeName, seq);
+            if (!bAutoTick)
+            {
+                FillPartDualPhotos(selectedOnly, seq, recipeManager);
+                LogSingleCyclePart(seq, selectedOnly, "수동 기록 — 고른 사이클만", sw.ElapsedMilliseconds);
+                return selectedOnly;
+            }
+
+            DateTime dtDay = selectedCycle.InspectionTime.Date;
+            StatisticsTimeRange range = StatisticsTimeRange.FromDates(dtDay.AddDays(PREVIOUS_DAY_OFFSET), dtDay);
+            List<CycleResultDto> lstTicks = CollectAutoTicks(range, selectedCycle.RecipeName, seq);
+            lstTicks.Sort(CompareByInspectionTime);
+            List<SavedCycleRerunPart> lstParts = GroupIntoParts(lstTicks, seq, new SavedCycleRerunPlan());
+
+            string szCycleKey = NgCauseHistory.ResolveCycleKey(selectedCycle);
+            SavedCycleRerunPart target = FindPartContainingCycle(lstParts, szCycleKey);
+            if (target == null)
+            {
+                FillPartDualPhotos(selectedOnly, seq, recipeManager);
+                LogSingleCyclePart(seq, selectedOnly, "같은 자재 묶음을 찾지 못함 — 고른 사이클만", sw.ElapsedMilliseconds);
+                return selectedOnly;
+            }
+
+            SeedSelectedTickPhotos(target, selectedOnly);
+            FillPartDatumPhotos(target);
+            FillPartShotPhotos(target);
+            FillPartDualPhotos(target, seq, recipeManager);
+            FillPartZRangePhotos(target);
+            LogSingleCyclePart(seq, target, "같은 자재", sw.ElapsedMilliseconds);
+            return target;
+        }
+
+        // Phase 80 D-80-07: 부품 목록에서 이 사이클 키(NgCauseHistory.ResolveCycleKey)를 가진 tick 이
+        //  속한 첫 부품을 찾는다. 못 찾으면 null(기준점 tick 없이 시작된 사이클 등).
+        private static SavedCycleRerunPart FindPartContainingCycle(List<SavedCycleRerunPart> lstParts, string szCycleKey)
+        {
+            foreach (var part in lstParts)
+            {
+                bool bFound = PartContainsCycleKey(part, szCycleKey);
+                if (bFound)
+                {
+                    return part;
+                }
+            }
+            return null;
+        }
+
+        private static bool PartContainsCycleKey(SavedCycleRerunPart part, string szCycleKey)
+        {
+            foreach (var tick in part.Ticks)
+            {
+                string szTickKey = NgCauseHistory.ResolveCycleKey(tick);
+                if (string.Equals(szTickKey, szCycleKey, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Phase 80 D-80-07: 고른 사이클의 사진(selectedOnly)을 부품(target)에 먼저 넣어 Fill* 의
+        //  "첫 기록 우선" 규칙으로 고른 사이클 사진이 이기게 한다(리뷰어에서 본 사진과 같게).
+        private static void SeedSelectedTickPhotos(SavedCycleRerunPart target, SavedCycleRerunPart selectedOnly)
+        {
+            foreach (var pair in selectedOnly.ShotPhotoPaths)
+            {
+                target.ShotPhotoPaths[pair.Key] = pair.Value;
+            }
+            foreach (var pair in selectedOnly.ZRangePhotoPaths)
+            {
+                Dictionary<int, string> dicCopy = new Dictionary<int, string>();
+                foreach (var zPair in pair.Value)
+                {
+                    dicCopy[zPair.Key] = zPair.Value;
+                }
+                target.ZRangePhotoPaths[pair.Key] = dicCopy;
+            }
+        }
+
+        // Phase 80: 리뷰어 부품 조회 결과를 Trace 로그로 남긴다 — UI 스레드에서 두 날짜 폴더의 cycle.json
+        //  을 읽으므로 걸린 시간(ms)도 함께 남긴다.
+        private static void LogSingleCyclePart(InspectionSequence seq, SavedCycleRerunPart part, string szKind, long nElapsedMs)
+        {
+            try
+            {
+                string szLogLine = "[Rerun] 리뷰어 부품(" + szKind + ") — " + seq.Name + " tick " + part.Ticks.Count + "개 · Shot 사진 "
+                    + part.ShotPhotoPaths.Count + " · 기준점 사진 " + part.DatumPhotoPaths.Count + " · Z 후보 Shot "
+                    + part.ZRangePhotoPaths.Count + " · " + nElapsedMs + " ms";
+                Logging.PrintLog((int)ELogType.Trace, szLogLine);
+            }
+            catch { }
+        }
+
+        // Phase 80 D-80-19: 이 기준점에 필요한 사진(단일/H/V 중 이 기준점이 실제로 요구하는 역할만)이
+        //  하나라도 없거나 파일이 없으면 false — 짝이 반만 맞는 상태로 재검사하지 않는다(RepeatRunService
+        //  ApplySavedCyclePart 의 기준점 부분과 같은 역할 키를 쓴다). 요구 키가 없는 기준점(두 장짜리
+        //  정적)은 지금 티칭 사진을 그대로 쓰므로 true.
+        public static bool IsDatumPhotoSetComplete(SavedCycleRerunPart part, InspectionSequence seq, string szDatumName)
+        {
+            bool bMissingArgs = part == null || seq == null || string.IsNullOrEmpty(szDatumName);
+            if (bMissingArgs)
+            {
+                return false;
+            }
+            DatumConfig datum = FindDatumConfig(seq, szDatumName);
+            if (datum == null)
+            {
+                return false;
+            }
+
+            List<string> lstThisDatumKeys = new List<string>();
+            lstThisDatumKeys.Add(BuildDatumRoleKey(szDatumName, DatumImageRecordDto.ROLE_SINGLE));
+            lstThisDatumKeys.Add(BuildDatumRoleKey(szDatumName, DatumImageRecordDto.ROLE_HORIZONTAL));
+            lstThisDatumKeys.Add(BuildDatumRoleKey(szDatumName, DatumImageRecordDto.ROLE_VERTICAL));
+
+            List<string> lstRequiredKeys = ComputeRequiredDatumRoleKeys(seq);
+            foreach (string szKey in lstRequiredKeys)
+            {
+                bool bThisDatum = lstThisDatumKeys.Contains(szKey);
+                if (!bThisDatum)
+                {
+                    continue;
+                }
+                string szPath;
+                bool bHasPath = part.DatumPhotoPaths.TryGetValue(szKey, out szPath);
+                if (!bHasPath)
+                {
+                    return false;
+                }
+                if (!File.Exists(szPath))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static DatumConfig FindDatumConfig(InspectionSequence seq, string szDatumName)
+        {
+            foreach (var datum in seq.DatumConfigs)
+            {
+                if (string.Equals(datum.DatumName, szDatumName, StringComparison.Ordinal))
+                {
+                    return datum;
+                }
+            }
+            return null;
         }
 
         // Phase 80: 고른 사이클 tick 1개만으로 부품을 만든다(같은 자재 묶기는 80-03 Task 1).

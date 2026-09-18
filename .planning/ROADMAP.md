@@ -1428,7 +1428,7 @@ Plans:
 - [x] 79-03-PLAN.md (90fa884b·2541b15d) — 기준 ROI 캔버스 배선(MainView ROI 7함수 삽입) + 국부 기준선 오버레이 주황, 미티칭 측정 ROI 동작 비트 동일 (LSR-01, LSR-04, LSR-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 79-04-PLAN.md — 버전 1.7.50.0 + phase 전체 회귀 감사(파일 범위·삭제 범위·하드룰·Rebuild 경고·probe 전체·비트 비교) (LSR-05)
+- [x] 79-04-PLAN.md (aee7f913) — 버전 1.7.50.0 + phase 전체 회귀 감사(파일 범위·삭제 범위·하드룰·Rebuild 경고·probe 전체·비트 비교) (LSR-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 79-05-PLAN.md — realab(09-17 A·B 사진 C13·C14 6점 국부/전역 A−B + 추천 티칭 값) + UAT 절차서 + 사용자 확인 체크포인트 (LSR-06, LSR-01~05)

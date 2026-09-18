@@ -48,7 +48,14 @@ namespace ReringProject.UI
         {
             InitializeComponent();
             panel_reinspect.DataContext = _reinspectVm;
+            _reinspectVm.AlertPresenter = ShowReinspectAlert; // Phase 80 D-80-09/17: 알림 문구는 VM 이 준다
             _reinspectVm.EvaluateSelection(null, null); // 싱글턴 VM 재사용 — 창을 다시 열 때 이전 선택 상태가 남지 않게
+        }
+
+        // Phase 80 D-80-09: 기준점 사진 없음 알림 — 이 phase 의 유일한 새 대화상자(D-80-00).
+        private void ShowReinspectAlert(string szTitle, string szMessage)
+        {
+            CustomMessageBox.Show(szTitle, szMessage, MessageBoxImage.Warning);
         }
 
         private void Button_LoadFolder_Click(object sender, RoutedEventArgs e)
@@ -177,26 +184,16 @@ namespace ReringProject.UI
             // 필터 원본 보관, ItemsSource 는 ApplyRowFilter 가 설정
             _allRows = rows;
 
-            // 기본 전체 보기: 첫 Shot 이미지 + 전 overlay (불량 자동 포커스 전 즉시 표시)
-            // 순서 반드시: LoadImage → SetInspectionOverlays
-            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle); // Phase 78 NGA-06: 실제 촬영 원본 우선
+            // Phase 80 함께 처리 1: 화면에 띄운 사진을 낸 Shot 의 선만 그린다 — 전 Shot 선을 한 사진에 겹쳐
+            //  그리던 문제. 순서: LoadImage → SetInspectionOverlays
+            ShotResultDto ownerShot;
+            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle, out ownerShot); // Phase 78 NGA-06: 실제 촬영 원본 우선
             if (!string.IsNullOrEmpty(szCycleImagePath))
             {
                 halconViewer.LoadImage(szCycleImagePath);
             }
 
-            // overlay 재렌더: 전 Shot/FAI overlay 합산 (REPLACE 의미 — SetInspectionOverlays = Clear + AddRange)
-            var allOverlays = cycle.Shots
-                .SelectMany(s =>
-                {
-                    var t = s.FAIs;
-                    if (t == null) t = new List<FaiResultDto>();
-                    return t;
-                })
-                .Where(f => f.LastOverlays != null)
-                .SelectMany(f => f.LastOverlays)
-                .ToList();
-            halconViewer.SetInspectionOverlays(allOverlays);
+            halconViewer.SetInspectionOverlays(ReviewerImagePathResolver.CollectShotOverlays(ownerShot));
 
             ApplyRowFilter();
         }

@@ -1,6 +1,8 @@
 using ReringProject.Sequence; //260710 hbk SkipReason 상수 참조용
 using ReringProject.UI;
+using System.Collections.Generic;
 using System.IO;
+using ReringProject.Halcon.Models;
 
 namespace ReringProject.UI
 {
@@ -289,6 +291,60 @@ namespace ReringProject.UI
                 }
             }
             return null;
+        }
+
+        /// <summary>Phase 80 함께 처리 1: 사이클 전체 보기가 띄울 사진 + 그 사진을 낸 Shot 을 함께 돌려준다
+        /// (기존 오버로드와 같은 규칙) — 오버레이 겹침 버그 수정에 쓴다. 못 찾으면 ownerShot=null, 반환 null.</summary>
+        public static string ResolveCycleImagePath(CycleResultDto cycle, out ShotResultDto ownerShot)
+        {
+            ownerShot = null;
+            if (cycle == null || cycle.Shots == null)
+            {
+                return null;
+            }
+            foreach (var shot in cycle.Shots)
+            {
+                string szOrigin = FindMeasuredOriginInShot(shot);
+                if (!string.IsNullOrEmpty(szOrigin))
+                {
+                    ownerShot = shot;
+                    return szOrigin;
+                }
+            }
+            ShotResultDto firstShot = null;
+            if (cycle.Shots.Count > 0)
+            {
+                firstShot = cycle.Shots[0];
+            }
+            if (firstShot == null)
+            {
+                return null;
+            }
+            if (IsExistingFile(firstShot.ResultImagePath))
+            {
+                ownerShot = firstShot;
+                return firstShot.ResultImagePath;
+            }
+            return null;
+        }
+
+        /// <summary>Phase 80 함께 처리 1: 이 Shot 의 FAI 선만 모은다 — 다른 Shot 선이 한 사진에 섞이지 않게.</summary>
+        public static List<EdgeInspectionOverlay> CollectShotOverlays(ShotResultDto shot)
+        {
+            List<EdgeInspectionOverlay> lstResult = new List<EdgeInspectionOverlay>();
+            bool bHasFais = shot != null && shot.FAIs != null;
+            if (!bHasFais)
+            {
+                return lstResult;
+            }
+            foreach (var fai in shot.FAIs)
+            {
+                if (fai != null && fai.LastOverlays != null)
+                {
+                    lstResult.AddRange(fai.LastOverlays);
+                }
+            }
+            return lstResult;
         }
     }
 }

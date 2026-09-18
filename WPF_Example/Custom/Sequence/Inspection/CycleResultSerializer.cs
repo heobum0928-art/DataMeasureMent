@@ -139,6 +139,7 @@ namespace ReringProject.Sequence
                             LastErrorMessage = meas.LastErrorMessage  // MEASURE_FAIL 원본 에러(절단됨)
                         };
                         measDto.SelectedZIndex = meas.LastSelectedZIndex;
+                        measDto.RefSource = meas.LastRefSource; // Phase 79 LSR-04: 사용 기준(옵션 꺼짐 = null)
                         if (meas.LastZCandidateScores != null)
                         {
                             measDto.ZCandidateScores = new List<ZCandidateScoreDto>(meas.LastZCandidateScores);

@@ -229,6 +229,25 @@ namespace ReringProject.Sequence
             return nZIndex;
         }
 
+        // Phase 79 LSR-04: 사용 기준 표시·저장·로드 단일 규칙 — 결과 그리드·리뷰어·CSV 가 여기 한 곳만 쓴다. 옵션 꺼짐(null) = 빈칸(기존 전역 표시 불변, D-79-04)
+        public const string REF_SOURCE_LOCAL_TEXT = "국부";
+        public const string REF_SOURCE_FALLBACK_TEXT = "국부실패→전역";
+
+        public static string FormatRefSource(string szRefSource)
+        {
+            if (string.Equals(szRefSource, REF_SOURCE_LOCAL, StringComparison.Ordinal)) { return REF_SOURCE_LOCAL_TEXT; }
+            if (string.Equals(szRefSource, REF_SOURCE_FALLBACK, StringComparison.Ordinal)) { return REF_SOURCE_FALLBACK_TEXT; }
+            return string.Empty;
+        }
+
+        public static string ParseRefSource(string szText)
+        {
+            if (string.IsNullOrEmpty(szText)) { return null; }
+            if (string.Equals(szText, REF_SOURCE_LOCAL_TEXT, StringComparison.Ordinal)) { return REF_SOURCE_LOCAL; }
+            if (string.Equals(szText, REF_SOURCE_FALLBACK_TEXT, StringComparison.Ordinal)) { return REF_SOURCE_FALLBACK; }
+            return null;
+        }
+
         // 하위호환: ParamBase.Load 는 INI 누락 double 키를 0 으로 덮어쓴다. 구 레시피엔 MeasCorrectionFactor 키가 없어
         //  0 으로 로드되면 EvaluateJudgement 에서 value×0=0 → 전 측정 0/NG(회귀). 키 부재 시에만 1.0(무보정) 복원한다.
         //  (CameraSlaveParam.Load 의 CorrectionFactor 복원과 동일 패턴. 키 존재=사용자 설정값이면 그대로 둠.)

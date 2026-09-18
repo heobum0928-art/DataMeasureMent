@@ -227,6 +227,9 @@ namespace ReringProject.UI
 
         /// <summary>Phase 78 NGA-07(D-78-08): 후보 z 별 선명도, 평가 순서대로. 범위 미적용·옛 JSON = 빈 목록.</summary>
         public List<ZCandidateScoreDto> ZCandidateScores { get; set; } = new List<ZCandidateScoreDto>();
+
+        /// <summary>Phase 79 LSR-04(D-79-07): 사용 기준 코드 — "Local" = 핀 옆 띠(국부), "LocalFallback" = 국부 실패로 전역 전환, null = 옵션 꺼짐(전역, 기존과 같음)·옛 JSON.</summary>
+        public string RefSource { get; set; }
     }
 
     /// <summary>

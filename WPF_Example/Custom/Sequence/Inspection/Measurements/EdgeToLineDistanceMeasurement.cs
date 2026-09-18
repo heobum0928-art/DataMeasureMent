@@ -41,7 +41,7 @@ namespace ReringProject.Sequence
         private const string LOCAL_REF_DEFAULT_DIRECTION = "TtoB";
         private const string LOCAL_REF_DEFAULT_SELECTION = EdgeOptionLists.EDGE_SELECTION_STRONGEST;
         private const string SETTINGS_KEY_SEPARATOR = "|";
-        private const string SETTINGS_KEY_NUMBER_FORMAT = "R";
+        private const string SETTINGS_KEY_NUMBER_FORMAT = "G17";
 
         [Category("Point|ROI")]
         public double Point_Row { get; set; }

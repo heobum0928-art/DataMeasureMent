@@ -82,6 +82,7 @@ namespace ReringProject.UI {
 
         public MainView() {
             InitializeComponent();
+            panel_reviewerReinspect.DataContext = ReviewerReinspectViewModel.Instance; // Phase 80 D-80-12/17
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
             halconViewer.RoiMoveCompleted += HalconViewer_RoiMoveCompleted;
             halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
@@ -98,6 +99,11 @@ namespace ReringProject.UI {
                 }
             };
             Unloaded += MainView_Unloaded;
+        }
+
+        // Phase 80 D-80-11/17: 원래 사진 경로·OfflineInspectMode 복원 로직은 서비스에 있다 — 배선만.
+        private void BtnReviewerRelease_Click(object sender, RoutedEventArgs e) {
+            ReviewerReinspectViewModel.Instance.ReleaseByUser();
         }
 
         private void MainView_Loaded(object sender, RoutedEventArgs e) {

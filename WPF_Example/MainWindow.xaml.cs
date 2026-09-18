@@ -87,6 +87,7 @@ namespace ReringProject {
             //ComboLanguage.ItemsSource = Enum.GetValues(typeof(ELanguageType)).Cast<ELanguageType>();
 
             mSystemHandler.Sequences.OnRecipeChanged += this.OnLoadRecipe;
+            ReviewerReinspectViewModel.Instance.MainNavigator = OnReviewerPhotosLoaded; // Phase 80 D-80-04
 
             mSystemHandler.Login.OnLoginStateChanged += this.OnLoginChanged;
 
@@ -287,6 +288,11 @@ namespace ReringProject {
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
                 inspectionList.OnLoadRecipe(args.RecipeName);
             }));
+        }
+
+        // Phase 80 D-80-04: 리뷰어에서 불러온 뒤 메인 화면을 앞으로 — 리뷰어 최소화·트리 선택은 80-04
+        private void OnReviewerPhotosLoaded(ReviewerReinspectLoadResult result) {
+            Activate();
         }
 
         public void SaveRecipe(string name=null) {

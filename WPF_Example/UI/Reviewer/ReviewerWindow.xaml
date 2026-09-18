@@ -228,6 +228,22 @@
                 <TextBlock x:Name="txt_ngCauseHeader" Text="NG 원인 분석 (추정)" FontSize="11" Foreground="Gray"/>
                 <TextBlock x:Name="txt_ngCausePanel" FontSize="12" TextWrapping="Wrap" Foreground="#334155"
                            Text="{Binding SelectedItem.CausePanelText, ElementName=dataGrid_measurements, FallbackValue='NG 행을 누르면 추정 원인이 여기에 보입니다', TargetNullValue='NG 행을 누르면 추정 원인이 여기에 보입니다'}"/>
+
+                <!--Phase 80 D-80-01/02: 원인 설명 바로 아래, 큰 버튼 1개 + 비활성 이유 1줄. 더블클릭·우클릭 메뉴 없음.-->
+                <Grid x:Name="panel_reinspect" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="btn_applyRowToMain" Grid.Column="0"
+                            Content="이 사진으로 파라미터 수정" FontSize="15" FontWeight="Bold" Padding="14,8" MinHeight="38"
+                            Background="#1565C0" Foreground="White"
+                            IsEnabled="{Binding CanApply}" Click="Button_ApplyRowToMain_Click"
+                            ToolTip="이 검사의 사진(같은 자재의 Shot·기준점 사진)을 메인 화면에 불러옵니다. 레시피의 원래 사진 경로는 바뀌지 않습니다"/>
+                    <TextBlock x:Name="txt_applyRowReason" Grid.Column="1" Text="{Binding DisableReasonText}"
+                               FontSize="12" Foreground="#B45309" TextWrapping="Wrap"
+                               VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </Grid>
             </StackPanel>
         </Border>
         </Grid>

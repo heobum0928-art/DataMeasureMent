@@ -41,9 +41,14 @@ namespace ReringProject.UI
         // Phase 78 NGA-03: 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
         private string _loadedDateFolder;
 
+        // Phase 80 D-80-17: 버튼 활성·이유 계산은 전부 VM 이 한다 — 이 code-behind 는 배선만.
+        private readonly ReviewerReinspectViewModel _reinspectVm = ReviewerReinspectViewModel.Instance;
+
         public ReviewerWindow()
         {
             InitializeComponent();
+            panel_reinspect.DataContext = _reinspectVm;
+            _reinspectVm.EvaluateSelection(null, null); // 싱글턴 VM 재사용 — 창을 다시 열 때 이전 선택 상태가 남지 않게
         }
 
         private void Button_LoadFolder_Click(object sender, RoutedEventArgs e)
@@ -139,6 +144,7 @@ namespace ReringProject.UI
             panel_dualToggle.Visibility = Visibility.Collapsed;
             _selectedRow = null;
             halconViewer.SetHighlightMeasurementName(null);   // 전체 보기 = 특정 측정 강조 해제
+            _reinspectVm.EvaluateSelection(cycle, null); // Phase 80 D-80-02: 새 cycle 표시 시 버튼 상태 갱신
 
             if (cycle == null || cycle.Shots == null)
             {
@@ -250,6 +256,7 @@ namespace ReringProject.UI
                 return;
             }
             _selectedRow = row;
+            _reinspectVm.EvaluateSelection(_currentCycle, row); // Phase 80 D-80-02: 행 선택 시 버튼 상태 갱신
 
             if (row.Source != null && row.Source.IsDualImage)
             {
@@ -338,6 +345,12 @@ namespace ReringProject.UI
         private void Button_AxisVertical_Click(object sender, RoutedEventArgs e)
         {
             ShowAxisImage(false);
+        }
+
+        private void Button_ApplyRowToMain_Click(object sender, RoutedEventArgs e)
+        {
+            // Phase 80 D-80-01/03: 확인창 없이 바로 불러온다 — 로직은 VM·서비스
+            _reinspectVm.ApplySelection(_currentCycle, _selectedRow);
         }
 
         //260615 hbk Quick 260615-dx7 이미지 폴더 반복 검사 버튼 핸들러 (고정 50회 → 폴더 N장 순회)

@@ -151,6 +151,8 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <!--Phase 80 D-80-12: 리뷰어 사진 사용 중 상태 줄 전용 Row.-->
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <!--Quick 260902-oys: Col0 을 * 로 전환 — WrapPanel 이 유한 폭으로 measure 되어야 실제로 줄바꿈이 일어난다.
                      Auto 컬럼 안의 WrapPanel 은 PositiveInfinity 로 measure 되어 절대 접히지 않는다. Col1 은 그래서 Auto 로 내린다.-->
@@ -455,6 +457,32 @@
                                        Grid.Row="1" Grid.ColumnSpan="3"
                                        Visibility="Collapsed"
                                        Margin="0,6,0,0"/>
+
+                <!--Phase 80 D-80-12: 리뷰어 사진 사용 중 상태 줄 — 기본 숨김, IsActive 일 때만 표시.
+                     DataContext 는 code-behind 에서 ReviewerReinspectViewModel.Instance 로 지정한다(D-80-17).-->
+                <Border x:Name="panel_reviewerReinspect" Grid.Row="2" Grid.ColumnSpan="3"
+                        Margin="0,6,0,0" Padding="10,4" CornerRadius="4"
+                        Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="1">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel>
+                        <Button x:Name="btn_reviewerRelease" DockPanel.Dock="Right"
+                                Content="해제" MinWidth="70" Height="28" FontSize="13" FontWeight="SemiBold"
+                                Margin="10,0,0,0" Click="BtnReviewerRelease_Click"
+                                ToolTip="불러온 리뷰어 사진을 내려놓고 원래 사진으로 되돌립니다 (고친 파라미터는 그대로)"/>
+                        <TextBlock x:Name="txt_reviewerReinspectStatus" Text="{Binding StatusText}"
+                                   FontSize="14" FontWeight="SemiBold" Foreground="#92400E"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                </Border>
             </Grid>
         </Border>
 

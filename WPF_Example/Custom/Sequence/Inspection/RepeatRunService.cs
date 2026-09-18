@@ -1241,6 +1241,34 @@ namespace ReringProject.Sequence
             return plan;
         }
 
+        // Phase 80 D-80-07/09: 리뷰어가 고른 사이클 하나가 속한 부품을 돌려준다. ValidatePart 를 타지 않으므로
+        //  기준점 사진이 없어도 부품은 돌아온다 — 없음 판단은 ReviewerReinspectService 가 한다(D-80-07/09).
+        //  같은 자재의 다른 tick 을 묶는 처리(GroupIntoParts 규칙과 같은 방식)는 80-03 Task 1 이 이 메서드 본문에 더한다.
+        public static SavedCycleRerunPart BuildPartForSingleCycle(CycleResultDto selectedCycle, InspectionSequence seq, InspectionRecipeManager recipeManager)
+        {
+            bool bMissingArgs = selectedCycle == null || seq == null || recipeManager == null;
+            if (bMissingArgs)
+            {
+                return null;
+            }
+            SavedCycleRerunPart part = BuildSelectedTickPart(selectedCycle);
+            FillPartDualPhotos(part, seq, recipeManager);
+            return part;
+        }
+
+        // Phase 80: 고른 사이클 tick 1개만으로 부품을 만든다(같은 자재 묶기는 80-03 Task 1).
+        private static SavedCycleRerunPart BuildSelectedTickPart(CycleResultDto selectedCycle)
+        {
+            SavedCycleRerunPart part = new SavedCycleRerunPart();
+            part.StartTime = selectedCycle.InspectionTime;
+            part.IndexNumber = selectedCycle.IndexNumber;
+            part.Ticks.Add(selectedCycle);
+            FillPartDatumPhotos(part);
+            FillPartShotPhotos(part);
+            FillPartZRangePhotos(part);
+            return part;
+        }
+
         // 지정 기간의 날짜 폴더를 순회하며 이 시퀀스/레시피의 자동(PLC 프로토콜) tick 만 수집한다.
         //  cycle.json InspectionTime(소수 초 포함) 이 기간 안인 tick 만 담는다.
         //  폴더 하나가 깨져 있어도(손상 JSON 등) 나머지 날짜 수집을 막지 않는다(격리).

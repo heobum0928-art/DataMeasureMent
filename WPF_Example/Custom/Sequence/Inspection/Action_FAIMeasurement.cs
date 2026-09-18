@@ -1923,19 +1923,63 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 79 LSR-02: 기준점 검출 때 사전 계산해 둔 국부 기준선을 측정 직전 주입한다(측정당 tick 1번).
-        //  전환 원인·로그·설정 바뀜 감지는 Task 2(TryResolveLocalRef)가 이 메서드를 확장한다.
+        // Phase 79 LSR-02/LSR-03: 기준점 검출 때 사전 계산해 둔 국부 기준선을 측정 직전 주입한다(측정당 tick 1번).
+        //  주입에 실패하면 전환 원인을 TryResolveLocalRef 가 밝히고, 여기서 원인 로그 1줄만 남긴다(D-79-06).
         private void InjectLocalRef(MeasurementBase meas, InspectionSequence parentSeq2) {
             var etld = meas as EdgeToLineDistanceMeasurement;
             if (etld == null) return;
             etld.InjectedLocalRef = null;
             if (!etld.IsLocalRefEnabled) return;
-            if (parentSeq2 == null) return;
-            LocalRefLineResult result;
-            bool bResolved = parentSeq2.TryGetLocalRefLine(etld, out result);
-            if (bResolved && result.Found) {
-                etld.InjectedLocalRef = result;
+            string szReason;
+            bool bResolved = TryResolveLocalRef(etld, parentSeq2, out szReason);
+            if (bResolved) return;
+            string szShotName;
+            if (ShotParam == null) {
+                szShotName = "";
+            } else {
+                szShotName = ShotParam.ShotName;
             }
+            Logging.PrintLog((int)ELogType.Error, EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG + "전역 기준선으로 전환 — " + szShotName + " · " + GetMeasurementDisplayName(meas) + ": " + szReason);
+        }
+
+        // Phase 79 LSR-03/D-79-06: 국부 기준을 못 쓰는 5가지 원인을 순서대로 가려낸다. 성공하면 etld.InjectedLocalRef
+        //  에 대입하고 true, 실패하면 szReason 에 원인 문구를 채우고 false — 값은 옵션 꺼짐과 비트 동일하게 흘러간다.
+        private bool TryResolveLocalRef(EdgeToLineDistanceMeasurement etld, InspectionSequence parentSeq2, out string szReason) {
+            if (string.IsNullOrEmpty(etld.DatumRef)) {
+                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_NO_DATUM;
+                return false;
+            }
+            bool bNoOrigin = etld.DatumOriginRow == 0.0 && etld.DatumOriginCol == 0.0;
+            if (bNoOrigin) {
+                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_NO_DATUM_ORIGIN;
+                return false;
+            }
+            if (parentSeq2 == null) {
+                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_NOT_COMPUTED;
+                return false;
+            }
+            LocalRefLineResult result;
+            bool bHasResult = parentSeq2.TryGetLocalRefLine(etld, out result);
+            if (!bHasResult) {
+                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_NOT_COMPUTED;
+                return false;
+            }
+            if (!result.Found) {
+                if (string.IsNullOrEmpty(result.Error)) {
+                    szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_ERR_FIT_FAILED;
+                } else {
+                    szReason = result.Error;
+                }
+                return false;
+            }
+            bool bStale = result.SettingsKey != etld.BuildLocalRefSettingsKey();
+            if (bStale) {
+                szReason = EdgeToLineDistanceMeasurement.LOCAL_REF_REASON_STALE;
+                return false;
+            }
+            etld.InjectedLocalRef = result;
+            szReason = null;
+            return true;
         }
 
         //260702 hbk Extract Method(Task1): measurement 1건 실행 (DualImage/1-image 분기 포함), 원본 인라인 이식(finally 순서 보존)

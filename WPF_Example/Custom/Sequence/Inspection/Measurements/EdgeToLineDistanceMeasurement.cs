@@ -3,6 +3,7 @@ using HalconDotNet;
 using PropertyTools.DataAnnotations;
 using ReringProject.Halcon.Algorithms;
 using ReringProject.Halcon.Models;
+using ReringProject.Utility;
 
 namespace ReringProject.Sequence
 {
@@ -27,6 +28,10 @@ namespace ReringProject.Sequence
         public const string LOCAL_REF_ERR_NOT_TAUGHT = "기준 ROI 가 티칭되지 않음 (LocalRef_Length1/Length2 가 0)";
         public const string LOCAL_REF_ERR_NO_IMAGE = "기준점 가로 사진이 없음";
         public const string LOCAL_REF_ERR_FIT_FAILED = "기준 ROI 에서 띠 에지를 찾지 못함";
+        public const string LOCAL_REF_REASON_NO_DATUM = "이 측정에 기준점(DatumRef)이 지정되지 않음";
+        public const string LOCAL_REF_REASON_NO_DATUM_ORIGIN = "기준점 원점이 주입되지 않음";
+        public const string LOCAL_REF_REASON_NOT_COMPUTED = "이번 사이클에 기준점 가로 사진에서 국부 기준선을 구하지 않음 (Test Find 로 잡아 둔 기준점 재사용 등)";
+        public const string LOCAL_REF_REASON_STALE = "기준점을 찾은 뒤 기준 ROI 또는 에지 설정이 바뀜 — 기준점을 다시 찾으면 반영됨";
         private const double AXIS_HALF_LENGTH_PX = 200.0;
         private const int LOCAL_REF_DEFAULT_THRESHOLD = 10;
         private const double LOCAL_REF_DEFAULT_SIGMA = 1.0;
@@ -35,6 +40,8 @@ namespace ReringProject.Sequence
         private const string LOCAL_REF_DEFAULT_POLARITY = "DarkToLight";
         private const string LOCAL_REF_DEFAULT_DIRECTION = "TtoB";
         private const string LOCAL_REF_DEFAULT_SELECTION = EdgeOptionLists.EDGE_SELECTION_STRONGEST;
+        private const string SETTINGS_KEY_SEPARATOR = "|";
+        private const string SETTINGS_KEY_NUMBER_FORMAT = "R";
 
         [Category("Point|ROI")]
         public double Point_Row { get; set; }
@@ -487,6 +494,7 @@ namespace ReringProject.Sequence
         public LocalRefLineResult ComputeLocalRefLine(HImage imgHorizontal, HTuple datumTransform)
         {
             LocalRefLineResult result = new LocalRefLineResult();
+            result.SettingsKey = BuildLocalRefSettingsKey();
             if (DatumRef == null)
             {
                 result.DatumName = "";
@@ -557,6 +565,94 @@ namespace ReringProject.Sequence
             }
             return result;
         }
+
+        /// <summary>
+        /// 국부 기준선을 구할 때 쓴 기준 ROI·에지 설정·기준점 이름을 한 줄로 — 주입 때 달라졌으면 옛 결과로 보고 전환한다.
+        /// </summary>
+        public string BuildLocalRefSettingsKey()
+        {
+            List<string> lstParts = new List<string>();
+            lstParts.Add(LocalRef_Row.ToString(SETTINGS_KEY_NUMBER_FORMAT, System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRef_Col.ToString(SETTINGS_KEY_NUMBER_FORMAT, System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRef_Phi.ToString(SETTINGS_KEY_NUMBER_FORMAT, System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRef_Length1.ToString(SETTINGS_KEY_NUMBER_FORMAT, System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRef_Length2.ToString(SETTINGS_KEY_NUMBER_FORMAT, System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRefSigma.ToString(SETTINGS_KEY_NUMBER_FORMAT, System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRefEdgeThreshold.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRefEdgeSampleCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            lstParts.Add(LocalRefEdgeTrimCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            string szPolarity = LocalRefEdgePolarity;
+            if (szPolarity == null)
+            {
+                szPolarity = "";
+            }
+            lstParts.Add(szPolarity);
+            string szDirection = LocalRefEdgeDirection;
+            if (szDirection == null)
+            {
+                szDirection = "";
+            }
+            lstParts.Add(szDirection);
+            string szSelection = LocalRefEdgeSelection;
+            if (szSelection == null)
+            {
+                szSelection = "";
+            }
+            lstParts.Add(szSelection);
+            string szDatumRef = DatumRef;
+            if (szDatumRef == null)
+            {
+                szDatumRef = "";
+            }
+            lstParts.Add(szDatumRef);
+            return string.Join(SETTINGS_KEY_SEPARATOR, lstParts);
+        }
+
+        // Phase 79 LSR-01 하위호환: 옛 레시피엔 Local Ref 키가 없다 — 기본값이 0/false 가 아닌 7개만 키 없을 때 선언 기본값으로 되돌린다
+        public override bool Load(IniFile loadFile, string groupName)
+        {
+            bool bResult = base.Load(loadFile, groupName);
+            IniSection sec;
+            bool bHasSection = loadFile.TryGetSection(groupName, out sec) && sec != null;
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefEdgeThreshold)))
+            {
+                LocalRefEdgeThreshold = LOCAL_REF_DEFAULT_THRESHOLD;
+            }
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefSigma)))
+            {
+                LocalRefSigma = LOCAL_REF_DEFAULT_SIGMA;
+            }
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefEdgeSampleCount)))
+            {
+                LocalRefEdgeSampleCount = LOCAL_REF_DEFAULT_SAMPLE_COUNT;
+            }
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefEdgeTrimCount)))
+            {
+                LocalRefEdgeTrimCount = LOCAL_REF_DEFAULT_TRIM_PERCENT;
+            }
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefEdgePolarity)))
+            {
+                LocalRefEdgePolarity = LOCAL_REF_DEFAULT_POLARITY;
+            }
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefEdgeDirection)))
+            {
+                LocalRefEdgeDirection = LOCAL_REF_DEFAULT_DIRECTION;
+            }
+            if (IsKeyMissing(bHasSection, sec, nameof(LocalRefEdgeSelection)))
+            {
+                LocalRefEdgeSelection = LOCAL_REF_DEFAULT_SELECTION;
+            }
+            return bResult;
+        }
+
+        private static bool IsKeyMissing(bool bHasSection, IniSection sec, string szKey)
+        {
+            if (!bHasSection)
+            {
+                return true;
+            }
+            return !sec.ContainsKey(szKey);
+        }
     }
 
     // Phase 79 LSR-02: 기준점 검출 1번에 대한 국부 기준선 결과 — 만든 뒤 고치지 않는다.
@@ -570,6 +666,7 @@ namespace ReringProject.Sequence
         public double Col2 { get; set; }
         public double EdgeScore { get; set; }
         public string Error { get; set; }
+        public string SettingsKey { get; set; }
 
         private const double MIDPOINT_DIVISOR = 2.0;
 

@@ -6,8 +6,8 @@ current_phase: 77
 current_phase_name: side-datum
 status: unknown
 stopped_at: Phase 80 context gathered
-last_updated: "2026-09-18T08:04:11.242Z"
-last_activity: 2026-09-11
+last_updated: "2026-09-18T09:56:33.019Z"
+last_activity: 2026-09-18
 progress:
   total_phases: 16
   completed_phases: 15
@@ -71,7 +71,7 @@ Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건
 
 상세: `73-HUMAN-UAT.md`, `73-RECIPE-RESTORE.md`, `73-REVIEW.md`
 Plan: 7 of 7
-Last activity: 2026-09-11
+Last activity: 2026-09-18
 
 **72-06 완료 (2026-08-18):** `1Cav 세부치수_Cpk` 통계 시트 구현 (`affd046`, `3bd6943`). 빌드 PASS(에러 0, 경고 12줄 baseline). `ExportCpkReport` 가 이제 **시트 2장 고정**(RAW DATA(1) + 1Cav 세부치수_Cpk)으로 저장한다 — `Worksheets.Add` 2회, D-04 준수. Cp/UCPK/LCPK/Cpk + USL/LSL 명시 컬럼 + NG>Cpk경고(1.33)>OK 3단계 판정 + 상단 OK/NG/NG목록 요약. StdDev==0 → `∞` 텍스트, `stat.N == 0` 항목은 통계 9칸 전부 `-`. ⚠ E열(Datum 유형)/Q열(#1 Target Std Dev)은 시스템 미보유라 **항상 `-`** (양식 유지용, 72-07 UAT 확인 항목). ⚠ `ExportCpkReport` 는 **여전히 호출자가 없다** — UI Export 버튼 연결은 72-07 소관. 72-07 이 시트를 더 추가하면 D-04 위반이므로 차트/이미지는 기존 2장 안에 배치할 것.
 

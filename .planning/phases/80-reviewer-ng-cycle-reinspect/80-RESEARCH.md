@@ -539,19 +539,21 @@ OnRecipeChanged?.Invoke(this, new RecipeChangedEventArgs(name)); // ← Reviewer
 | A2 | `ComputeLocalRefLine` 에 identity transform 을 넘겨도 "시험 찾기"용 미리보기로 안전하다(정식 사이클 계산과 좌표계 불일치 없음) | Pattern 7 | `TryFitLine` 이 transform 을 단순 이동이 아니라 다른 방식으로 쓰면 미리보기 결과가 실제 런타임 값과 달라 보일 수 있음 — `VisionAlgorithmService.TryFitLine` 의 transform 파라미터 의미를 계획/구현 단계에서 한 번 더 정독 필요 |
 | A3 | `SelectedZText`/`RefSourceText` 표시 로직처럼, 리뷰어에서 불러온 임시 상태가 UI 스레드 바인딩만으로 충분히 즉시 반영된다(별도 강제 리프레시 불필요) | Pattern 2 | PropertyGrid/트리 캐시가 stale 하게 남으면 사용자가 "값이 안 바뀐다"고 오인할 수 있음 — `InspectionListView` 의 기존 `RefreshParamEditor()`/force-rebind 패턴(:939-947) 재사용 여부를 계획에서 명시할 것 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`ReviewerReinspectService` 를 신규 .cs 파일로 만들지, 기존 파일(예: `RepeatRunService.cs` 또는 `Action_FAIMeasurement.cs`)에 얹을지.**
+> 2026-09-18 plan 단계에서 모두 해결: Q1 → D-80-18(신규 .cs 허용, csproj 등록), Q2 → D-80-19(필요 사진 하나라도 없으면 없음과 같게, 80-03 IsDatumPhotoSetComplete), Q3 → 트리 선택은 측정 노드까지(D-80-05), 시험 찾기는 측정의 DatumRef 를 내부 조회(80-02 LocalRefTestFindService).
+
+1. **[RESOLVED → D-80-18]** **`ReviewerReinspectService` 를 신규 .cs 파일로 만들지, 기존 파일(예: `RepeatRunService.cs` 또는 `Action_FAIMeasurement.cs`)에 얹을지.**
    - What we know: Phase 79 는 "신규 .cs 파일 금지"를 명시적 제약으로 걸었지만(csproj `<Compile Include>` 스테이징 회피 목적), 80-CONTEXT.md 는 이 제약을 재확정하지 않았다.
    - What's unclear: 이 제약이 프로젝트 전반의 암묵적 관행인지, Phase 79 한정 리스크 회피였는지.
    - Recommendation: 계획 단계에서 사용자에게 1줄로 확인(신규 .cs 허용 여부). 허용되면 `ReviewerReinspectService.cs` 신규 파일이 가장 깨끗하다(기존 파일 비대화 방지, CLAUDE.md MVVM 원칙과도 부합).
 
-2. **D-80-09 의 "짝이 맞는 기준점 사진이 없음" 알림 다이얼로그 문구와, Branch A/B 판정에 쓸 정확한 "완전성" 기준.**
+2. **[RESOLVED → D-80-19]** **D-80-09 의 "짝이 맞는 기준점 사진이 없음" 알림 다이얼로그 문구와, Branch A/B 판정에 쓸 정확한 "완전성" 기준.**
    - What we know: `part.DatumPhotoPaths` 가 `ComputeRequiredDatumRoleKeys(seq)`(RepeatRunService.cs:1682, private static — 같은 클래스 내 재사용 가능)의 필요 키를 전부 채우면 완전.
    - What's unclear: DualImage Datum 중 한쪽(가로만 있고 세로 없음) 같은 부분 결손 시 D-80-09 를 "완전 폴백"으로 볼지 "있는 것만 적용"으로 볼지 CONTEXT.md 에 명시가 없다.
    - Recommendation: 계획 단계에서 discuss 하거나, 보수적으로 "필요 역할 키 중 하나라도 없으면 전체 폴백"(D-80-09 원문 "짝이 맞는"의 자연스러운 해석)으로 확정.
 
-3. **`SelectShotAndMeasurement` 가 DatumConfig 노드(Shot/FAI 가 아니라 Datum 자체)를 직접 선택해야 하는 경우가 있는가.**
+3. **[RESOLVED → D-80-05 / 80-02]** **`SelectShotAndMeasurement` 가 DatumConfig 노드(Shot/FAI 가 아니라 Datum 자체)를 직접 선택해야 하는 경우가 있는가.**
    - What we know: D-80-05 는 "NG 난 Shot + 그 측정(FAI)" 선택만 요구한다.
    - What's unclear: Local Ref 옵션이 켜진 측정을 열었을 때 사용자가 곧바로 "기준 ROI 시험 찾기"를 누르려면 그 측정의 `DatumRef` 를 알아야 하는데, 트리 선택 자체는 Datum 노드로 이동하지 않아도 되는지.
    - Recommendation: Pattern 7 의 버튼 핸들러가 `SelectedParam`(측정)에서 `DatumRef` 를 읽어 Datum 을 내부적으로만 조회하면 되므로, 트리 선택 자체는 D-80-05 그대로(측정 노드까지)로 충분 — 별도 조치 불필요, 계획에 명시만 할 것.

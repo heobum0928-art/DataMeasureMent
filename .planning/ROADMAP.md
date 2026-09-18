@@ -501,12 +501,14 @@ Plans:
 **왜 필요한가:** 현재 CPK 리포트 버튼은 **방금 돌린 반복검사 결과(메모리)** 만 읽는다. 양산으로 쌓인 CSV는 통계분석 창에서 화면으로만 보이고 엑셀로 못 나간다 — 현장에서 실제 공정능력을 제출하려면 이 연결이 필요하다(2026-08-19 사용자 확인).
 
 **이미 있는 부품 (신규 구현 최소):**
+
 - `MeasurementHistoryCsvLoader.Query(dtFrom, dtTo, szRecipeFilter)` — 날짜 범위 CSV 로드. 내부에서 `RepeatMeasurementStats.ComputeAll()` 사용 → **72-01 이 추가한 Cp/UCpk/LCpk/MinValue/MaxValue 가 이미 딸려 나온다**(추가 계산 불필요).
 - `StatisticsQueryResult.Series` — 측정키별 원시값 순서 유지 리스트(RAW DATA 열의 재료).
 - `CpkReportExportService` — 시트 2장 작성기(Phase 72).
 - `StatisticsWindow` — `dp_From`/`dp_To`/`combo_Recipe`/`btn_Query` 날짜 UI + `m_lastResult` 이미 보유.
 
 **결정사항 (2026-08-19 사용자 확정):**
+
 - **D-1 버튼 위치:** 통계분석 창(`StatisticsWindow`). 날짜 UI가 이미 있으므로 조회 결과 옆에 export 버튼만 추가.
 - **D-2 열 상한:** RAW DATA 시트는 **조회 범위 중 최근 N회만**(기본 100). Cpk 통계 시트는 **전체 데이터로 계산**(숫자는 안 버림). 근거: 양산 수천 건이면 열이 수천 개가 되어 엑셀이 무거워지고 참고양식(#1~#32)과도 안 맞음.
 - **D-3 자재번호:** **자재별 열 그룹 라벨 필요**(반복검사 리포트와 동일하게 4행에 `자재 1`/`자재 2`). ⚠ 현재 `StatisticsQueryResult`/`Series` 가 `IndexNumber` 를 버리고 있으므로 **로더에서 자재번호를 살려 전달하는 작업이 추가로 필요하다**(CSV 컬럼엔 이미 있음 — `COL_INDEXNUMBER`).
@@ -1006,6 +1008,7 @@ Plans:
 **Plans:** 2 plans (2 waves)
 
 Plans:
+
 - [ ] 69-01-PLAN.md — RUN 게이트를 시퀀스 단위 판정으로 교체(물리 카메라 공유 시에만 상호배타, D-01) + 차단 사유 메시지(D-03) [Wave 1]
 - [ ] 69-02-PLAN.md — SIMUL_MODE RUN 게이트 실측 UAT + 실HW 공유 카메라 carry-over 기록(→ 69-UAT.md) [Wave 2, autonomous:false]
 
@@ -1025,6 +1028,7 @@ Plans:
 **Plans:** 4 plans (3 waves)
 
 Plans:
+
 - [x] 71-01-PLAN.md — $PREP wire 포맷에서 Op 필드 완전 제거 (파서 2필드화 + ACK Op echo 제거 + ProcessPrep 단일 경로) [wave 1] ✅ 2026-08-06 (f0d9f48, 342cfda)
 - [x] 71-02-PLAN.md — 사이클 P/F 확정 시 조명 자동소등 훅 (종료 경로 2곳: BuildScopedResponse + HandleDatumIndexResponse) [wave 1] ✅ 2026-08-06 (a160fc0, 526b57f)
 - [x] 71-03-PLAN.md — 통합 빌드 + 정적 전수검증 + UAT-A/B (프로토콜 wire 하위호환 / z_index 다중전환 회귀 0) [wave 2] ✅ 2026-08-06 (81ef3bb, d340ed3, 9ca2553)
@@ -1042,6 +1046,7 @@ Plans:
 **Plans:** 7 plans (7 waves — 공유 csproj/obj msbuild 충돌 회피 위해 전부 직렬화)
 
 Plans:
+
 - [x] 72-01-PLAN.md — RepeatMeasurementStats 확장 (Cp/UCPK/LCPK/Min/Max + GetSeries)
 - [x] 72-02-PLAN.md — ChartRenderService 추출 (Canvas 드로잉을 Window 에서 분리)
 - [x] 72-03-PLAN.md — D-05 폴더 반복검사 자재번호 입력·전파 + 누적 실행
@@ -1073,6 +1078,7 @@ Plans:
 **품질 게이트(사용자 명시):** 코드는 **삼항/`??`/`?.` 축약 전면 금지, 분기는 `if/else` 또는 전통 `switch`(C# 8.0 switch expression 금지) 만, 초보자가 봐도 이해되게**(긴 조건은 이름 있는 bool 로 선추출). **UI 는 MVVM** — 새 로직은 ViewModel 에 두고 `MainView.xaml.cs`(4,300줄, 최대 문제 파일)에 추가하지 않는다. 단 이번 phase 는 리팩토링이 목적이 아니므로 **이번에 손대는 3곳**(MainView.xaml.cs:4149, InspectionRecipeManager.cs:193/272)에만 적용하고 나머지 기존 code-behind 는 그대로 둔다. 실행 후 `gsd-code-reviewer` **필수** — 삼항 잔존 0건·참조 16곳 전수 대조·Datum 보존·`.shm` 경로 충돌·크로스-Z 완성 index 계약·`TryGetBlockingSequence` 상호배타 6항목 지정 검토. 테스트는 정적 검증으로 끝내지 않고 **SIMUL 실기 7종(T1~T7)** 수행 — RUN 회귀 / Type 2·3·4·5 개별 / 4연속(측정 25·이탈 7 baseline 일치) / 반복 5회 무결 / 리뷰어 / Top·Bottom 회귀.
 
 **확정(discuss 완료 2026-08-26, CONTEXT `73-CONTEXT.md`):**
+
 - **z 배정(연속·빈칸 없음)** — SIDE_1 z=0~2 / SIDE_2 z=0~3 / SIDE_3 z=0~4 / SIDE_4 z=0~3. Datum 은 각 시퀀스 z=0,1. 여유 z 예약 없음(제어 요구) → 마지막 z 에 항상 Shot 이 있으므로 `ComputeLastZIndex` 그대로 최종 P/F 시점이 됨(`MaxZIndex` 선언 불필요).
 - **제어 협의 완료(김민욱선임)** — `$PREP:site,Type,z_index@` / `$PREP_ACK:site,Type,z_index,OK|FAIL@`, TOP/BOTTOM(Type 0,1) 포함 전 대상. **지그별 개별 P/F 확정**(지그 안 중간 z 는 B). `$PREP_ACK` 의 **FAIL = 조명 세팅 실패 전용**(검사 항목 유무 무관) — 규격서 `FAIL: 해당 z_index Shot 없음` 문구 교체.
 - **제어 공정이 순차** — Side#1 검사 → 피커 이송 → 바텀얼라인 → Side#2. SIDE_1~4 동시 실행 창 없음 → 조명 소등 충돌/`_lastPrepZIndex` 오염의 실제 발생 가능성 하락(단 코드 강제 아님, 수정은 유지).
@@ -1083,6 +1089,7 @@ Plans:
 **Plans:** 7 plans / 4 waves (plan 완료 2026-08-26) — **7/7 실행 완료 2026-08-26.** 정적 R/M 21행 대조 통과(1건은 D-73-09 "조건부 안전" 주석 포함으로 코드 2 + 주석 1 = 3, 조작 없이 보고), 삼항/`??`/`?.`/switch expression 신규 0건, SIMUL-ON 18줄 / SIMUL-OFF 16줄 빌드 에러 0(새 경고 코드 종류 0). 레시피 마이그레이션 교체 완료 + 실기 확인(2026-08-26 17:08 `[DatumModelPath] owner=SIDE_1 folder=SIDE`, RUN `3-1_D1` 측정 2/이탈 2 baseline 일치), TCP 실기 확인(17:36 SIDE_3 Type 4 자동 1사이클 — z=0~3 `B`, z=4 에서만 최종 판정, `$PREP_ACK` 전부 OK, 2368ms). **SIMUL S1~S9 사용자 검증은 `73-07-PLAN.md` Task 2 체크포인트로 대기 중.** 실기 이월 항목 6건(H1~H6) + 알려진 제약 2건(K1 조명 잔광 / K2 `$SITE_STATUS` 대상 특정 불가)은 `73-HUMAN-UAT.md` 로 분리 추적하며 phase 완료를 막지 않는다.
 
 Plans:
+
 - [x] 73-01-PLAN.md — 시퀀스 골격 4분할 (ESequence/EAction SIDE_1~4, IsSequenceActive/ResolveSequenceName/Register/Initialize/Rebuild 6분기, R4 레거시 Param 인덱스 차단) [wave 1]
 - [x] 73-02-PLAN.md — `$PREP` 3필드 전용 파서 재작성 + `$PREP_ACK` Type echo (M10/M12/M8, 파싱 실패도 FAIL ACK 보장 = 무응답 0) [wave 1]
 - [x] 73-03-PLAN.md — 레시피 4분할 저장/로드 + main.ini 마이그레이션 스크립트 + .shm 폴더 정규화 (M4/M6/M7/M9, 사람 승인 체크포인트) [wave 2]
@@ -1096,6 +1103,7 @@ Plans:
 **하위호환 폐기:** 제어와 **동시 교체**하며 구버전 펌웨어가 없으므로 `$PREP` 는 3필드 전용이다(필드 개수 분기 없음). 단 파서는 **절대 `null` 을 반환하지 않고** `IsRequestValid=false` 로 넘겨 FAIL ACK 를 보장한다 — 무응답은 PLC ACK 무한 대기(라인 정지)다.
 
 **plan-check 반영 (2026-08-26, blocker 7 / warning 13 — 전부 실측 명령으로 검증됨):**
+
 - **B6 데이터 손실 차단** — 마이그레이션 **전** 저장 시 구 `[FIXTURE_SIDE]`(Datum 4개, 유일본)가 소실되는 경로 발견. PC2 에서는 SIDE_1~4 시퀀스가 존재해 `PreserveFixtureFromExisting` 을 타지 않고 `DatumCount=0` 을 쓰며, 새 `IniFile` 은 명시적으로 쓴 섹션만 남긴다(3faa91b 동일 경로). → 저장 시 `existingFile` 에 구 섹션이 있으면 무조건 carry-over 하는 가드 추가.
 - **B7 백업 격리** — 유일 백업이 `RecipeSavePath`(`D:\Data\Recipe`) **안**에 있어 앱 레시피 목록에 노출·덮어쓰기 가능. 73-03 체크포인트 0번 항목으로 `D:\Backup\` 이동을 선행 조건화.
 - **B5 PC1 회귀 차단** — `$PREP` 에는 `$TEST` 같은 슬롯 폴백이 없어 PC1 의 TOP/BOTTOM 조명 예열이 전부 FAIL 로 사라질 뻔했다(phase 목표와 정면 충돌). Type 0/1 → SEQ_TOP/SEQ_BOTTOM 분기 + Prep case 슬롯 폴백 추가. 73-07 S9 를 "있어야 할 조명 호출이 **존재**" 하는 양성 조건으로 교체(기존 음성-only 조건은 호출 0건일 때도 통과).
@@ -1104,14 +1112,18 @@ Plans:
 - **W1** `ResolveDatumModelPath` 계열은 3개가 아니라 **4개**(`:2253` 누락 시 패턴2 `.shm` 이 조용히 실패) → `== 5` 고정. **W7** SIDE 는 BAR 를 안 켠다(실제는 BACK 8/8, COAX 1/8) → 조명 시나리오 전면 교체. **W8** 스코프 밖 잔광 잔여 위험 · **W10** `$SITE_STATUS` 대상 특정 불가 → `73-HUMAN-UAT.md` K1/K2 로 이월. **W4/W6/W12** vacuous·exit-1·오탐 acceptance 교체. **W5** 삼항 2건. **W11** DisplayName 지그별 구분. **W13** CRLF 보존(`newline=''`).
 
 **plan-check 2차 반영 (2026-08-26, 신규 blocker 2건 + 잔재 13건):**
+
 - **N2 [최우선] 검증 절차 자체가 유일본을 파괴하던 경로 차단** — B6 실동작 검증(마이그레이션 전 Save)이 원본 `FAI_1` 에서 수행되면, 73-01 Task1 적용 상태라 `[Param0..7]` 삭제 + `[FIXTURE_SIDE_1..4] DatumCount=0` 추가가 일어나 Task3 스크립트 입력이 오염되고, `Utility/Ini.cs:487` 딕셔너리 충돌로 SIDE Datum 4개가 소실될 수 있었다. → 검증을 **사본 `FAI_1_b6test`** 에서 수행하고 **`sha256sum -c` 로 원본 무변경을 증명**, 사본은 삭제. Task3 에는 **입력 원본성 사전 확인**(`[Param0]` 1 / `OwnerSequenceName=` 35 / `[FIXTURE_SIDE_1-4]` 0 — 실측 일치 확인함) 게이트 추가.
 - **N1 완료 게이트 영구 실패 차단** — TOP shot 3개·BOTTOM shot 16개는 조명 Enabled 가 **0건**이라 `CollectOwnedChannelScope()` 가 TOP={COAX} / BOTTOM={} 이 된다. S9 의 "TOP `LIGHT_RING*` 호출 존재" / "BOTTOM `LIGHT_BACK` 호출 존재" 는 관측 불가 → **라우팅 로그(`seq=TOP`/`seq=BOTTOM`) 양성 + TOP 은 `LIGHT_ALIGN_COAX` 로만 조명 양성 + BOTTOM 은 호출 0건이 정상**으로 교체.
 - **W-o 증분 빌드 오작동** — `-t:Rebuild` 없이 돌리면 컴파일 스킵으로 경고 0줄이 나와 18/16 기준이 무의미해진다 → `-t:Rebuild` + 스크래치 `IntermediateOutputPath` 명시. SIMUL-OFF 적용 여부는 CS0162 2→0 으로 교차 확인.
 - **실행 실패 acceptance 교체** — W-c(줄번호 awk → 메서드명 awk) · W-d(`IsRequestValid` >=6 → ==3) · W-e(sln 은 상위 폴더, 하위서 실행 시 MSB1009) · W-f(`ResolveMaxZIndexByType` >=4 → ==3) · W-g(`file`/`grep -P` 미지원 → `grep -c $'
+
 $'` 로 교체, 실측 9596/9596·BOM 없음 확인).
+
 - **잔재 정리** — W-a(73-05·CONTEXT 의 12줄 baseline) · W-b(action 의 "Release\|x64 양쪽") · W-i(vacuous ROADMAP 조건 → `- [x]` 7건) · W-j(73-06/07 `@` 참조 추가) · W-k(CommunicationTest 에 SIMUL baseline 무의미 → 제거) · W-l(`_MEAS_` 전체 115 / SIDE 스코프 25 구분) · W-m(항목 수 표기 정정) · W-n($PREP 3필드 정확비교가 구 `Op` 패킷을 오파싱하는 알려진 제약을 파서 주석 + D-71-01 주석 갱신으로 명시).
 
 **plan-check 3차 반영 (2026-08-26, blocker 2건 + warning 15건):**
+
 - **B-1 완료 게이트 경로 오류** — `light.ini` 는 레시피 폴더가 아니라 **`D:\Data\Light\light.ini`**(`Setting.ini` 의 `LightConfigPath`, `LightHandler.GetLightIniPath`). 73-07 S7 의 경로 4곳을 교체하고, "그룹명을 틀린다"→**"`[Controller0] ChannelNames` 의 `BACK` 항목을 틀린다"**로 정정(그룹은 C# 하드코딩, light.ini 가 통제하는 건 ChannelNames → `RebindChannels` 가 group.Count=0 을 만들어 FAIL 재현).
 - **B-2 2차 수정이 만든 신규 결함** — B5 폴백이 무조건 `ResolveSiteSlot(packet.Site)` 를 타는 바람에 **미지 Type(9)도 PC2 에서 SEQ_SIDE_1 으로 흘러 OK 가 나가고** 남의 지그 z_index 까지 세팅됐다(S8 4번째 달성 불가 + T-73-11 자기모순). → 폴백을 **`TryResolveSlotByType` 성공(=Type 0~5)으로 게이트**. PC1 Type 0/1 은 `TryResolveSequenceNameByType` 이 명시 해석하므로 **B5 는 폴백 없이 보장**된다. 73-04 에 `<routing_matrix>` (PC1/PC2 × 9케이스)를 추가해 실행자가 자체 대조하도록 했다.
 - **W6 로그 문자열** — `LightHandler.cs:234` 는 groupName **값**을 찍어 실제 출력이 `BACK - Set On : True` / `ALIGN_COAX - Set On : False` 다(`LIGHT_` 접두사 없음). `LIGHT_*` 로 grep 하면 양성조건 false-negative·음성조건 vacuous → 73-05/73-07 표기를 전부 접두사 없는 이름으로 교체.
@@ -1119,8 +1131,11 @@ $'` 로 교체, 실측 9596/9596·BOM 없음 확인).
 - **W7** `[DatumModelPath]` 는 RUN/[Test Find] 경로에서만 발생 → 절차에 명시. **W2** 73-01 인라인 명령에 `-t:Rebuild`·`IntermediateOutputPath` 반영. **W4** 20행 표의 bare filename → 전체 경로. **W5** M6 주석 8→16. **W9** `ELogType` 은 `ReringProject.Setting`(Define 아님). **W10** CONTEXT D-73-05 FAIL 정의를 D-73-08 로 폐기 표기. **W11** 리터럴 CR 바이트 제거. **W12** `files_modified` 보강. **W13** `TryGetBlockingSequence` → **`TryGetBlockingSequence`**(존재하지 않는 심볼 정정). **W14** baseline 표 `3_2_D1` 이 Shot 2개 묶음임을 명시(행 합 23 ≠ 합계 25). **W1/W3/W15** 잔재 정리.
 
 **plan-check 4차 반영 (2026-08-26, blocker 2건 + warning 10건 — 전부 acceptance 교체, 코드 설계 무변경):**
+
 - **B-1 CRLF 검증이 3라운드 연속 vacuous** — `grep -P` → 리터럴 CR → 리터럴 LF 로 재생산됐다. 이 환경에서는 `grep -c $'
+
 $'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모드에서 CR 제거). `tr -dc` 바이트 카운트로 교체하고 **정상 출력/LF-only 출력 양쪽에 실행해 PASS/FAIL 이 갈리는 것까지 확인**(CR_OUT 9596 vs 0). 이 검증은 Task4 사람 승인 게이트(유일본 Datum 보호)의 전제다.
+
 - **B-2 `SEQ_SIDE_1 == 4` 확정 실패** — 3차에 추가한 설명 주석 2건이 함께 잡혀 실제는 6이다. 숫자를 맞추려면 B-2 게이트 근거나 W10 제약 주석을 지워야 해서 `알려진 제약(Phase 73) == 1` 과 충돌했다. → **`grep -c "SequenceHandler\.SEQ_SIDE_1" == 4`**(코드 참조만) 로 한정. 합성 파일로 loose 6 / precise 4 실행 확인.
 - **W-B 첫 빌드 CS0103** — `ResourceMap.cs` 에 `using ReringProject.Utility;` 가 없는데(현재 `Logging.` 사용 0건) 73-04 가 `Logging.PrintLog` 를 추가한다 → using 추가를 Task 최상단 (0)번으로 명시.
 - **W-G 범위 오산** — `_lastPrepZIndex` 는 4곳이 아니라 **14곳**(실측). 선언/코드/로그문자열/주석 4곳을 표로 분해해 `== 0` 달성 경로를 명시.
@@ -1137,6 +1152,7 @@ $'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모�
 **배경:** Bottom Align 캘리브레이션 착수 예정. 영상이 깨끗하면 불필요하나, 노이즈가 많으면 모델 ROI 안에 원치 않는 구조가 함께 들어가 매칭이 불안정해진다. 사용자 제안: *"모델 딸 때 원하는 부분만 따게 붓 브러쉬 같은 걸로 제거하고 모델을 등록"*.
 
 **기반 (이미 있음 — 신규 구축 불필요):**
+
 - `ReduceDomain` 8곳 사용 중 (`PatternMatchService.cs:168`, `PickerCenterCalibrationService.cs:134/246`, `DatumFindingService.cs:1749/1759/2017/2027`, `CheckerboardCalibrationService.cs:83`)
 - 모델 생성 진입점 2곳 — `PatternMatchService.cs:175`(NCC) / `:190`(Shape), `PickerCenterCalibrationService.cs:137`(Shape)
 - 마우스 클릭 처리 선례 3종 — `MainView.xaml.cs` 의 `HalconViewer_PolygonMouseDown`(:3053) / `_MeasureMouseDown` / `_CalibrationMouseDown`, 이벤트는 `ImageLeftClicked`
@@ -1146,6 +1162,7 @@ $'` 조차 **CRLF 파일에서 0**을 돌려준다(MSYS grep 이 텍스트 모�
 **⚠ UI 제약 (이 프로젝트 기확인 사항):** `HWindowControlWPF` 는 HWND 라 **그 위에 얹은 WPF 요소가 airspace 로 가려진다.** 따라서 브러시 자국·미리보기는 **HALCON 창 안에서** `DispRegion` 으로 렌더하고, 브러시 크기·모드(칠하기/지우개)·초기화 컨트롤은 **창 밖 사이드 패널**에 둔다.
 
 **범위:**
+
 1. 브러시 영역 누적 (마우스 이동 + 원 영역 Union/Difference)
 2. HALCON 창 내부 반투명 오버레이 실시간 표시
 3. 모델 생성 경로에 마스크 반영 (`ReduceDomain` 입력에 합성)
@@ -1176,15 +1193,18 @@ Phase 74 전체 커밋의 `WPF_Example/` **삭제 줄 총 2줄**(`class`→`part
 **시퀀스·액션·TCP·런타임 검사 경로에는 하나도 없다.**
 
 **실행 중 추가 대응 2건 (계획 밖, 사용자 지적/실기 흔적 기반):**
+
 - `17da571` — 티칭 ROI 가 확정 즉시 화면에서 사라져 "어디를 칠하는지" 보이지 않던 문제.
   `CommitActiveRectangle` 이 draft 를 지우는데 Align 뷰가 확정 ROI 를 뷰어에 되돌려주지
   않던 기존 동작. `ShowTeachRoiOverlays()` 로 확정 후에도 유지. **브러시 사용의 전제조건.**
+
 - `252345c` — Bottom 슬롯 미선택 시 구형 경로(`Bottom_1/2.shm`)에 마스크만 저장되고
   모델 재생성은 막히던 경로. 대상 없음으로 처리. 실기 흔적(`Bottom_1.mask.hobj`)에서 발견.
 
 **한계/주의:** ROI 밖에 칠한 자국은 모델에 영향이 없으나 화면에는 보인다(사용자 결정: 현행 유지).
 
 Plans:
+
 - [ ] 74-01-PLAN.md — 마스크 저장소(PatternMaskService) + SystemSetting 토글 + TryCreateModel Difference (wave 1)
 - [ ] 74-02-PLAN.md — 뷰어 드래그 브러시 입력 + HALCON 창 내부 반투명 렌더 (wave 1)
 - [ ] 74-03-PLAN.md — PatternBrushMaskViewModel + 공용 PatternBrushPanel (wave 2)
@@ -1201,11 +1221,13 @@ Plans:
 **Goal:** 제품이 삐뚤게 놓였을 때 **비전 탓인지 피커 탓인지 갈라낸다.** 지금은 Align 결과 수치(Offset/Theta)만 남아 "그 숫자가 맞았다"는 증거가 없고, 분쟁 시 비전이 방어할 근거가 없다.
 
 **핵심 — 두 지점에서 잰다**
+
 ```
 Align 측정 → ① 보정 후 다시 재봄 → 피커가 놓음 → ② 검사 때 기준점 좌표
                   ↑                                      ↑
             비전 계산이 맞았나                      실제로 어디 놓였나
 ```
+
 | ① 보정 후 | ② 안착 위치 | 결론 |
 |---|---|---|
 | 0 에 가까움 | 정상 | 문제 없음 |
@@ -1252,6 +1274,7 @@ git 으로 증명된다. `CycleResultSerializer.cs` / `MeasurementHistoryCsv*.cs
 **회귀 0 강제:** 기존 파일 수정은 전부 **순수 삽입(삭제 0줄)** 이며 각 plan 의 acceptance 가 `git diff | grep '^-' | wc -l == 0` 으로 검증한다.
 
 Plans:
+
 - [ ] 75-01-PLAN.md — ① 보정 후 재매칭 엔진(`RunCorrectedRecheck`) + `AlignVerifyResult` [wave 1]
 - [ ] 75-02-PLAN.md — 전용 CSV 기록 계층(20컬럼) + 설정 5종 + 보관 상한 [wave 1]
 - [ ] 75-03-PLAN.md — Align 경로 ① 배선 + NG 보정 이미지 저장(큐 가드/refcount/Dispose) [wave 2]
@@ -1276,11 +1299,13 @@ Plans:
 두-이미지 알고리즘 `VerticalTwoHorizontalDualImage` 는 SIDE 1~4 만 사용 (TOP/BOTTOM 은 `CircleTwoHorizontal`) → 옵션을 이 알고리즘에만 노출하면 자동으로 SIDE 전용.
 
 **확정 결정 (사용자)** — 상세는 `76-CONTEXT.md`
+
 - Datum 별 옵션 / 옵션 ON 이면 세로는 **항상** 무시(검출 자체 안 함) / 세로 이미지는 계속 촬영·저장
 - Datum Find(자동 + 수동 Test Find) 는 가로선 + 매칭 성공 시 OK / View 는 가로선만 표시
 - 원점 X = 패턴매칭, 원점 Y·각도 = 가로선. "매칭은 무조건 할꺼야"
 
 **성공 기준**
+
 1. 옵션 ON Datum 은 세로 이미지가 흐려도 datum OK → 측정 진행, 사이클 완주
 2. 옵션 ON 결과가 옵션 OFF(세로 정상) 결과와 측정값 기준 동등 (좌우 이동 시에도 ROI 가 따라감)
 3. 옵션 OFF 는 현재 동작과 완전히 동일 — TOP/BOTTOM 및 기존 SIDE 회귀 0
@@ -1293,12 +1318,15 @@ Plans:
 Plans:
 
 **Wave 1**
+
 - [x] 76-01-PLAN.md — 옵션 `IsVerticalLineDisabled` 추가 + 옵션 ON 이면 세로선 검출 없이 가로선 + 패턴매칭으로 datum 생성 (SDV-01, SDV-02, SDV-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
+
 - [x] 76-02-PLAN.md — 옵션 ON 이면 화면·저장 캡처에서 세로선/세로 에지점/세로 기준선/원점 십자 세로 팔 미표시 (SDV-03, SDV-04)
 
 **Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 76-03-PLAN.md — 두 빌드 구성 회귀 0 증거 + 버전 표기 + SIDE PC 실기 UAT 체크포인트 (전 요구사항)
 
 ### Phase 77: SIDE Z 범위 자동 초점 선택 (측정별 최선 Z 영상)
@@ -1306,12 +1334,14 @@ Plans:
 **Goal:** SIDE 측정 ROI 는 높이 차이로 한 Z 에서 전부 초점이 맞지 않는다. **Shot 에 Z index 범위(start~end)** 를 주고, PLC 가 범위의 z 마다 찍은 영상 중 **측정(ROI)마다 에지가 가장 강한 영상**을 골라 그 측정값을 쓴다.
 
 **확정 결정 (사용자, 2026-09-15)** — 상세는 `77-CONTEXT.md`
+
 - PLC 가 Z 높이마다 새 z 번호로 `$PREP`/`$TEST` (프로토콜 불변, 앱은 Z 축 미제어)
 - 점수 = 측정이 이미 계산하는 `measure_pos` 에지 강도 평균 (못 찾은 strip = 0)
 - Shot 단위 범위(기존 `ZIndex` ~ 새 입력 1개 `ZIndexEnd`) + 측정별 자동 선택 · 운영 최소 입력(D-77-07)
 - 수동: 라이브 = 1장 / 오프라인·저장사진 재검사 = z 별 사진 있으면 선택 재현(D-77-06)
 
 **성공 기준 (초안)**
+
 1. 범위 켠 Shot 은 측정마다 최선 Z 결과 사용 + 선택 Z·점수 기록
 2. 범위 끈 Shot(기본·옛 레시피)과 TOP/BOTTOM 은 현재와 동일 — 회귀 0
 3. 반복 사이클에서 선택 Z 흔들림으로 값이 튀지 않음 (동점 규칙)
@@ -1324,19 +1354,24 @@ Plans:
 Plans:
 
 **Wave 1**
+
 - [x] 77-01-PLAN.md (69d5ba72) — tracer: 범위 Shot 1개 × EdgeToLineDistance 를 PLC 자동 사이클로 관통 — `ZIndexEnd`, z 누적·대기, 끝 z 에서 후보별 측정·최고 점수 채택, 평가 직후 해제 (SZF-01, SZF-02, SZF-03, SZF-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
+
 - [x] 77-02-PLAN.md (d60b3e7b·a712d3b5) — EdgeToLineAngle, 기준 Z 3% 동점, 미지원 타입 기준 Z, 누락 z 경고, 겹침 z 제외·$PREP 조명, 편집 경고 (SZF-01, SZF-02, SZF-03, SZF-05)
 - [x] 77-03-PLAN.md (49f1a29e·8fd236f9·ac74d1ce) — 선택 Z 기록·표시: cycle.json·CSV `선택Z`·결과/리뷰어 그리드·오버레이, 대기 상태 NG 집계 제외 (SZF-04, SZF-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
+
 - [x] 77-04-PLAN.md (5fba2496·d20ac23e) — 수동 라이브 1장 + 안내, 오프라인·재검사 z 별 사진 선택 재현, 후보 사진 저장 체크박스(기본 꺼짐) (SZF-02, SZF-03, SZF-04, SZF-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
+
 - [x] 77-05-PLAN.md (bbbda563) — 버전 1.7.47.0 + 범위 꺼짐 경로 누적 회귀 감사 (SZF-05) · D-77-08 범위 변경 다이얼로그 b92d57e6 포함
 
 **Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 77-06-PLAN.md — 77-HUMAN-UAT.md 사무실 U-1~U-8 사용자 승인 체크포인트, SIDE 실기 U-9 는 O-1 후 (전 요구사항)
 
 ---
@@ -1346,6 +1381,7 @@ Plans:
 **Goal:** NG 가 나면 **왜 났는지** 결과 리뷰어가 규칙으로 자동 추정해, 비전 초보 운영자도 화면과 엑셀에서 "무슨 문제 / 무엇을 확인" 을 바로 알게 한다. NG 만 한 엑셀 파일에 계속 누적한다. 리뷰어의 필요 없는 기능은 삭제한다.
 
 **확정 결정 (사용자, 2026-09-17)** — 상세는 `78-CONTEXT.md`
+
 - 목적 = NG 원인 분석 (D-78-01)
 - NG 만 저장, 한 파일에 계속 누적, 중복 사이클 제외 (D-78-02)
 - 규칙 기반 자동 판단 · 오프라인 · 근거 숫자 표시 · 외부 AI 없음 (D-78-03)
@@ -1355,6 +1391,7 @@ Plans:
 - 기준점 각도·원점·매칭 점수, Z 후보별 선명도 점수를 cycle.json 에 기록만 추가 (D-78-08)
 
 **성공 기준 (초안)**
+
 1. NG 행 선택 시 원인·근거·확인할 일이 보인다
 2. NG 누적 엑셀에 중복 없이 계속 쌓인다
 3. 09-15/09-16 실데이터에서 기준점 흔들림·치우침·초점 범위 끝값 원인이 판정된다
@@ -1368,20 +1405,25 @@ Plans:
 Plans:
 
 **Wave 1**
+
 - [x] 78-01-PLAN.md (a2b1d62b·cd5b05c0·2543b9f1) — tracer: R6(평균 치우침) 규칙 1개를 cycle.json → 규칙 엔진 → 리뷰어 행 3줄까지 관통(20260916 실데이터) + R1~R4 사유 규칙 + NGA-07 DTO 필드 선언 (NGA-01, NGA-02, NGA-05, NGA-07)
 
 **Wave 2** *(blocked on Wave 1 completion — 세 계획 파일 겹침 없음)*
+
 - [x] 78-02-PLAN.md (42a20b46·696bc7b8) — R5 기준점 흔들림 · R7 한 곳만 · R8 초점 범위 끝 · R9 공차 경계 + 대표 원인/함께 의심 조립 (NGA-01, NGA-05)
 - [x] 78-03-PLAN.md (1622f78b·8c6e0e90) — cycle.json 기록 추가: Z 후보별 선명도, 검사 당시 Z 범위, 기준점 원점·각도·매칭 점수 (판정 경로 불변) (NGA-07, NGA-05)
 - [x] 78-04-PLAN.md (9ca082ab·693a1424) — 리뷰어 실제 촬영 사진(OriginImageFileName 우선) + 버튼 2개·전용 코드 삭제 (NGA-06, NGA-04)
 
 **Wave 3** *(blocked on Wave 2 completion)*
+
 - [x] 78-05-PLAN.md (4b54c4d0·ff019e36) — NG 누적 엑셀 서비스(중복 키 = 사이클 폴더+Shot+FAI+측정명, 잠금 시 중단, 임시 파일→File.Replace) + 버튼 배선 (NGA-03, NGA-04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
+
 - [x] 78-06-PLAN.md (e6f0266e) — 버전 1.7.49.0 + phase 전체 회귀 감사(변경 파일 범위, 하드룰 grep, probe 전체) (NGA-05)
 
 **Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 78-07-PLAN.md — UAT 절차서 + 사용자 사무실 확인 체크포인트 (NGA-01~07)
 
 ---
@@ -1400,6 +1442,7 @@ Plans:
 z1 사진의 띠 이동량(B−A)이 위치마다 다르다: col 1490 +56µm / 3140 +45 / 7290 −3 / 10070 +8.5 / 12860 +41 → 띠가 곧지 않다.
 
 **확정 결정 (사용자)** — 상세는 `79-CONTEXT.md`
+
 - 도면의 C13·C14 높이 기준 = 핀 옆 띠 면 (2026-09-18) → 국부 기준이 도면 뜻과 맞다
 - EdgeToLineDistance 측정별 체크박스 + 기준 ROI 1개, **기본 꺼짐** (옛 레시피 영향 0)
 - 기준 ROI 는 **기준점 가로 사진(z1)**에서 찾는다 (09-18 개정 — 측정 사진에서는 띠가 흐림, 09-17 효과 분석도 z1 기준). 핀은 지금처럼 측정 사진에서 잰다
@@ -1409,6 +1452,7 @@ z1 사진의 띠 이동량(B−A)이 위치마다 다르다: col 1490 +56µm / 3
 - Z 범위 자동 선택·레시피 구조·PLC z 번호 불변. F9·다른 검사에 켜는 것은 효과 확인 후
 
 **성공 기준 (초안)**
+
 1. 옵션 켠 측정은 z1 사진의 핀 옆 띠를 기준으로 값을 낸다
 2. 자재 A·B 의 C13·C14 6점 편차가 지금(전역 기준)보다 줄어든다 — 09-17 분석값 수준(수 µm)이 목표
 3. 기준 ROI 를 못 찾아도 사이클이 멈추지 않고, 기존 기준선 값과 "전환됨" 표시가 남는다
@@ -1421,16 +1465,20 @@ z1 사진의 띠 이동량(B−A)이 위치마다 다르다: col 1490 +56µm / 3
 Plans:
 
 **Wave 1**
+
 - [x] 79-01-PLAN.md (f5948431·44f82975) — tracer: 옵션 켠 EdgeToLineDistance 1개를 기준점 검출 성공 지점(TryRunSingleDatum·TryComposeAlign)의 z1 기준 ROI 피팅 → 사이클 저장소 → 측정 직전 주입 → 국부 기준선 거리까지 관통 + 자동 전환 원인·로그 + 옛 레시피 기본값, 편집 전 exe 비트 비교 (LSR-01, LSR-02, LSR-03, LSR-05)
 
 **Wave 2** *(blocked on Wave 1 completion — 두 계획 저장소 파일 겹침 없음, 빌드·probe 공유로 순차 실행)*
+
 - [x] 79-02-PLAN.md (0332bbc3·49e8c685) — 사용 기준 기록·표시: cycle.json RefSource, CSV 끝 열 사용기준(COLUMN_COUNT 14 유지), 결과 그리드·리뷰어 '기준' 열 (LSR-04, LSR-05)
 - [x] 79-03-PLAN.md (90fa884b·2541b15d) — 기준 ROI 캔버스 배선(MainView ROI 7함수 삽입) + 국부 기준선 오버레이 주황, 미티칭 측정 ROI 동작 비트 동일 (LSR-01, LSR-04, LSR-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
+
 - [x] 79-04-PLAN.md (aee7f913) — 버전 1.7.50.0 + phase 전체 회귀 감사(파일 범위·삭제 범위·하드룰·Rebuild 경고·probe 전체·비트 비교) (LSR-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
+
 - [x] 79-05-PLAN.md (42ac43f3·4e8fa5bf, UAT 승인) — realab(09-17 A·B 사진 C13·C14 6점 국부/전역 A−B + 추천 티칭 값) + UAT 절차서 + 사용자 확인 체크포인트 (LSR-06, LSR-01~05)
 
 ---
@@ -1454,10 +1502,21 @@ Plans:
 **Plans:** 5 plans (4 waves, 순차 실행)
 
 Plans:
+**Wave 1**
+
 - [ ] 80-01-PLAN.md — tracer: 리뷰어 버튼 → NG 사진 → 메인 상태 줄/[해제] + 운영 레시피 보호(저장 시 원래 경로, PLC·레시피 변경·종료 자동 해제) (Wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 80-02-PLAN.md — Local Ref: 수동 RUN stale 재계산(함께 처리 2) + 기준 ROI 시험 찾기(D-80-15) + 대화상자 없는 공용 Test Find (Wave 2)
 - [ ] 80-03-PLAN.md — 같은 자재 Shot·기준점·Z 후보 사진 + 기준점 없음 알림 + 안내 + 리뷰어 선 겹침 수정(함께 처리 1) (Wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 80-04-PLAN.md — 메인 화면 이어받기: 리뷰어 최소화, NG 측정 노드 선택, 자동 Test Find, 측정 노드 RUN (Wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 80-05-PLAN.md — 버전 1.7.51.0 + 누적 감사 + 장비 PC Release UAT 체크포인트 (Wave 4)
 
 ---

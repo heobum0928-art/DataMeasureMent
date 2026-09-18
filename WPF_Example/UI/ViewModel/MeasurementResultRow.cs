@@ -70,6 +70,15 @@ namespace ReringProject.UI
             }
         }
 
+        // Phase 79 LSR-04(D-79-07): 사용 기준 표시 — 국부 / 국부실패→전역 / 옵션 꺼짐 빈칸
+        public string RefSourceText
+        {
+            get
+            {
+                return MeasurementBase.FormatRefSource(_measurement.LastRefSource);
+            }
+        }
+
         public string SpecMinText { get { return (NominalValue + ToleranceMinus).ToString("F3"); } }
 
         public string SpecMaxText { get { return (NominalValue + TolerancePlus).ToString("F3"); } }
@@ -83,6 +92,7 @@ namespace ReringProject.UI
             RaisePropertyChanged("JudgeText");
             RaisePropertyChanged("MeasuredValueText");
             RaisePropertyChanged("SelectedZText");
+            RaisePropertyChanged("RefSourceText");
         }
 
         // 외부에서 ROI 등 접근용

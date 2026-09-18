@@ -35,6 +35,9 @@ namespace ReringProject.UI
         /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸(Phase 77 SZF-04).</summary>
         public string SelectedZText { get; set; }
 
+        /// <summary>사용 기준 표시(Phase 79 LSR-04) — 국부 / 국부실패→전역, 옵션 꺼짐·옛 cycle.json 은 빈칸.</summary>
+        public string RefSourceText { get; set; }
+
         /// <summary>NG 원인 규칙 판정 결과(Phase 78 NGA-01). 3인자 생성자로 만든 행은 기본값(Empty).</summary>
         public NgCauseResult Cause { get; set; } = NgCauseResult.Empty();
 
@@ -96,6 +99,7 @@ namespace ReringProject.UI
             // 0.0 도 정상 결과 — HasResult 플래그로 판별 (MeasuredValue != 0 센티넬 금지)
             if (m.LastHasResult) ResultDisplay = m.LastMeasuredValue.ToString("F4"); else ResultDisplay = "—";
             SelectedZText = MeasurementBase.FormatSelectedZ(m.SelectedZIndex);
+            RefSourceText = MeasurementBase.FormatRefSource(m.RefSource);
 
             // 3분기: DATUM_FAIL > HasResult 유무 > OK/NG
             if (m.LastSkipReason == SkipReason.DATUM_FAIL) //260710 hbk 상수화

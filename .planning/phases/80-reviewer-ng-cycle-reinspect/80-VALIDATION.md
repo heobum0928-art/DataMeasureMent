@@ -38,21 +38,23 @@ created: 2026-09-18
 
 ## Per-Task Verification Map
 
-> plan 확정 후 task ID 로 갱신. 현재는 결정(D-80-xx) 단위 매핑.
+> plan 확정(2026-09-18) — task ID 매핑. 모든 task 의 `<automated>` = Debug|x64 빌드 + 배선/회귀 grep + 가독성 grep(새 파일 전체, 기존 파일은 더한 줄). 기준 해시는 `/c/Users/admin/AppData/Local/Temp/p80/base-80-*.txt`.
 
-| Decision | Behavior | Test Type | Automated Command / Check | Status |
-|----------|----------|-----------|---------------------------|--------|
-| D-80-01/02 | 리뷰어 버튼 1개(NG 원인 패널 아래), 비활성 시 이유 한 줄 | 정적 + 수동 | ReviewerWindow.xaml 에 버튼 1개 + VM 바인딩(IsEnabled/이유 문자열) 존재 grep | ⬜ pending |
-| D-80-07/08/19 | 같은 자재 Shot·기준점·Z 후보 사진 수집, 기준점 일부 결손 = 없음 | 정적 + 수동 | 신규 서비스가 `SavedCycleRerunPlanner` 경유(재구현 없음) grep, 실데이터 폴더 대조 | ⬜ pending |
-| D-80-09 | 기준점 사진 없음 → 알림 + Shot 만 + 자동 Test Find 안 함 | 수동 UAT | 수동 검사 기록으로 재현 | ⬜ pending |
-| D-80-10 | 저장 시 파라미터만, 사진 경로는 원래 값 | 정적 + 수동 | 저장 후 레시피 INI 의 SimulImagePath/TeachingImagePath 가 원래 값인지 확인 | ⬜ pending |
-| D-80-11/13 | 해제 4경로([해제]/PLC Test/레시피 변경/종료) + OfflineInspectMode 복원 | 정적 + 로그 | 각 훅 지점 호출 grep, 로그 1줄씩 | ⬜ pending |
-| D-80-12/14 | 상태 줄 1줄(+JPG 안내, [해제]) VM 바인딩 | 정적 + 수동 | 문자열이 VM 에서 생성되는지 grep(View 계산 없음) | ⬜ pending |
-| D-80-06 | 자동 Test Find 가 AskTestImageSource 대화상자를 거치지 않음 | 정적 + 수동 | 자동 경로에서 AskTestImageSource 미호출 | ⬜ pending |
-| 함께 처리 2 | 수동 RUN 에서 Local Ref ROI 수정 → 재계산, PLC 자동 경로 불변 | 정적 + 로그 | 재계산 분기가 비-PLC 조건으로 가드됨 grep, 로그 확인 | ⬜ pending |
-| 함께 처리 1 | 리뷰어 전체 보기 선 겹침 수정 | 수동 | 다중 Shot 사이클에서 표시 사진의 Shot 선만 | ⬜ pending |
-| D-80-15 | 기준 ROI 시험 찾기(z1 배경 + 선 표시) | 수동 UAT | 런타임과 같은 ComputeLocalRefLine 사용 grep | ⬜ pending |
-| D-80-16/17 | 가독성 규칙·MVVM | 자동 | grep 5종 0, code-behind 추가분은 배선 1줄 | ⬜ pending |
+| Task | Decision | Behavior | Test Type | Automated Command / Check | Status |
+|------|----------|----------|-----------|---------------------------|--------|
+| 80-01-T1 (tracer) | D-80-00/01/02/03/12/13/17/18 | 리뷰어 버튼 → VM → 서비스 → 부품 진입점 → Shot 사진·OfflineInspectMode → 상태 줄 + [해제] | 정적 | chain_* grep, handler 1문장, csproj 2 | ⬜ pending |
+| 80-01-T2 | D-80-10/11 | 저장 시 원래 경로, PLC·레시피 변경·종료 자동 해제 | 정적 | save_wrap, plc_order_ok, closing_order_ok | ⬜ pending |
+| 80-02-T1 | 함께 처리 2 | 수동 RUN stale 재계산(TeachingImagePath 파일), PLC 가드 | 정적 | first_stmt_guard, same[...] 7개 md5 | ⬜ pending |
+| 80-02-T2 | D-80-06/15/18 | 대화상자 없는 공용 Test Find + 시험 찾기 서비스 | 정적 | compose/single/hold/busy, dialog_free=0 | ⬜ pending |
+| 80-02-T3 | D-80-15/00 | 기준 ROI 시험 찾기 버튼 + 라벨 결과 | 정적 | same[BtnTestFindDatum_Click]=1, mv_dialog=0 | ⬜ pending |
+| 80-03-T1 | D-80-07/19 | 같은 자재 묶기(GroupIntoParts) + 완전성 판정 + 재검사 상호 배제 | 정적 | group/collect/fromdates, same[...] 9개, deleted_vs_phase=0 | ⬜ pending |
+| 80-03-T2 | D-80-07/08/09/12/14 | 기준점(완전할 때만)·두 장짜리·Z·버퍼·리뷰어 선·알림·안내 | 정적 | complete_call, flag_in_apply, alert_call | ⬜ pending |
+| 80-03-T3 | 함께 처리 1, D-80-09 | 전체 보기 선 겹침 수정 + 알림 배선 | 정적 | dc_collect, dc_selectmany=0, same[...] 6개 | ⬜ pending |
+| 80-04-T1 | D-80-04/05 | 리뷰어 최소화·복원, 측정 노드 선택, 캐시 잊기 | 정적 | select_def/deferred/reselect, nav_* | ⬜ pending |
+| 80-04-T2 | D-80-06 | 자동 Test Find(완전할 때만, 캐시 비운 뒤, 시퀀스 시작 없음) | 정적 | order_ok, no_seq_start=0 | ⬜ pending |
+| 80-04-T3 | D-80-05/00 | 측정 노드 RUN, 리뷰어 사용 중 오프라인 확인창 생략 | 정적 | resolve_before_check, same_resolve_runnable | ⬜ pending |
+| 80-05-T1 | D-80-00/16/17/18, 회귀 0 | 누적 감사 + 버전 1.7.51.0 | 정적 | audit-80.txt (UI 3개·대화상자 1·md5 14개) | ⬜ pending |
+| 80-05-T2/T3 | 전부 | 장비 PC Release UAT U-1~U-11 | 수동 | 80-HUMAN-UAT.md | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -60,8 +62,8 @@ created: 2026-09-18
 
 ## Wave 0 Requirements
 
-- [ ] `NodeViewModel.cs` 전체 재확인 — `Param`/`IsSelected`/`IsExpanded` 시그니처 (트리 프로그램 선택용)
-- [ ] 수동 검사(IsProtocolDriven=false) 사이클 폴더 1개 + PLC 자동 사이클(기준점 사진 포함) 폴더 1개 확보 — UAT 재현 데이터
+- [x] `NodeViewModel.cs` 전체 재확인 — `Param`(Node.ParamData)/`IsSelected`/`IsExpanded`/`Parent`/`Children`/`ExpandParents()` 존재 확인 (계획 단계 2026-09-18)
+- [ ] 수동 검사(IsProtocolDriven=false) 사이클 폴더 1개 + PLC 자동 사이클(기준점 사진 포함) 폴더 1개 확보 — UAT 재현 데이터 (장비 PC, 80-05 U-2/U-3)
 
 ---
 

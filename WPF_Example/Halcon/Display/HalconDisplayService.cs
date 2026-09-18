@@ -20,6 +20,10 @@ namespace ReringProject.Halcon.Display
         private const double LABEL_COL_OFFSET = 6.0;
         private const string LABEL_TEXT_SEPARATOR = " "; // 측정 이름 라벨 뒤 선택 Z 라벨 이어 쓰기 구분자(Phase 77 SZF-04)
 
+        // Phase 79 D-79-07: 국부 기준선(FAI-RefLine) 색·두께 — 거리선(청록)·에지선(녹/적)·그 밖의 선(파랑)과 구분한다
+        private const string LOCAL_REF_LINE_COLOR = "orange";
+        private const int LOCAL_REF_LINE_WIDTH = 2;
+
         // 이번 렌더 패스에서 측정명 라벨을 이미 그렸는지. Render 의 overlay 루프 진입 시 false 로 초기화된다.
         private bool _measNameLabelDrawn;
 
@@ -273,6 +277,12 @@ namespace ReringProject.Halcon.Display
                     {
                         window.SetColor("cyan");
                         window.SetLineWidth(1);
+                    }
+                    else if (string.Equals(overlay.RoiId, EdgeToLineDistanceMeasurement.LOCAL_REF_OVERLAY_ROI_ID, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Phase 79 D-79-07: 국부 기준선 — 국부를 쓴 측정에만 생긴다
+                        window.SetColor(LOCAL_REF_LINE_COLOR);
+                        window.SetLineWidth(LOCAL_REF_LINE_WIDTH);
                     }
                     else
                     {

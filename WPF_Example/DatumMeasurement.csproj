@@ -276,6 +276,8 @@
     <Compile Include="Custom\Sequence\Inspection\RepeatMeasurementStats.cs" />
     <Compile Include="Custom\Sequence\Inspection\RepeatRunService.cs" />
     <Compile Include="Custom\Sequence\Inspection\ReviewerReinspectService.cs" />
+    <Compile Include="Custom\Sequence\Inspection\DatumTestFindService.cs" />
+    <Compile Include="Custom\Sequence\Inspection\LocalRefTestFindService.cs" />
     <Compile Include="Custom\Sequence\Inspection\BatchRunService.cs" />
     <!--260601 hbk Phase 40 OUT-01/OUT-02-->
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />

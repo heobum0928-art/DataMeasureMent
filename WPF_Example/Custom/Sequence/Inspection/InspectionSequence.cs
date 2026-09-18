@@ -3677,7 +3677,10 @@ namespace ReringProject.Sequence {
             if (SystemHandler.Handle.Sequences.RecipeManager == null) { return lstResult; }
             List<ShotConfig> lstShots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
             if (lstShots == null) { return lstResult; }
-            foreach (var shot in lstShots) {
+            // Phase 79 WR-03: PropertyGrid 로 다른 Shot 레시피를 동시에 편집해도 "Collection was modified"
+            //  예외가 나지 않도록, 순회 직전에 스냅샷을 떠서 그 스냅샷만 읽는다(수집 대상은 그대로).
+            ShotConfig[] arrShotsSnapshot = lstShots.ToArray();
+            foreach (var shot in arrShotsSnapshot) {
                 bool bOwned = IsShotOwnedBySequence(shot, Name);
                 if (!bOwned) { continue; }
                 AppendShotLocalRefConsumers(shot, szDatumName, lstResult);
@@ -3688,10 +3691,12 @@ namespace ReringProject.Sequence {
         private static void AppendShotLocalRefConsumers(ShotConfig shot, string szDatumName, List<EdgeToLineDistanceMeasurement> lstConsumers) {
             if (shot == null) { return; }
             if (shot.FAIList == null) { return; }
-            foreach (var fai in shot.FAIList) {
+            FAIConfig[] arrFaiSnapshot = shot.FAIList.ToArray();
+            foreach (var fai in arrFaiSnapshot) {
                 if (fai == null) { continue; }
                 if (fai.Measurements == null) { continue; }
-                foreach (var meas in fai.Measurements) {
+                MeasurementBase[] arrMeasSnapshot = fai.Measurements.ToArray();
+                foreach (var meas in arrMeasSnapshot) {
                     bool bIsConsumer = IsLocalRefConsumer(meas, szDatumName);
                     if (bIsConsumer) {
                         lstConsumers.Add(meas as EdgeToLineDistanceMeasurement);

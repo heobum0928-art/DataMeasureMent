@@ -23,6 +23,14 @@ namespace ReringProject.Sequence
         SavedCycleRerunActive
     }
 
+    // Phase 80 D-80-06: LoadForRow 가 돌린 자동 Test Find 결과.
+    public enum EReviewerTestFindResult
+    {
+        NotRun,
+        Succeeded,
+        Failed
+    }
+
     // Phase 80: LoadForRow 결과. 실패 시 Live* 는 전부 비어 있다.
     public class ReviewerReinspectLoadResult
     {
@@ -55,6 +63,9 @@ namespace ReringProject.Sequence
         /// <summary>Phase 80 D-80-09/19: 기준점 사진 짝이 안 맞아 지금 기준점 사진을 그대로 쓴다.</summary>
         public bool IsDatumPhotoKept { get; set; }
 
+        /// <summary>Phase 80 D-80-06: 불러오기 직후 자동으로 돌린 기준점 Test Find 결과(기본 NotRun).</summary>
+        public EReviewerTestFindResult TestFindResult { get; set; }
+
         public ReviewerReinspectState Clone()
         {
             ReviewerReinspectState clone = new ReviewerReinspectState();
@@ -66,6 +77,7 @@ namespace ReringProject.Sequence
             clone.IsJpgPhoto = IsJpgPhoto;
             clone.IsZCandidateMissing = IsZCandidateMissing;
             clone.IsDatumPhotoKept = IsDatumPhotoKept;
+            clone.TestFindResult = TestFindResult;
             return clone;
         }
     }
@@ -455,6 +467,11 @@ namespace ReringProject.Sequence
                 newState.IsDatumPhotoKept = bNeedsDatum && !bDatumComplete;
                 s_state = newState;
 
+                // Phase 80 D-80-06: 기준점 사진이 완전할 때만 — 경로·버퍼·선이 다 채워진 뒤 대화상자 없이
+                //  한 번 돈다. 이 서비스는 시퀀스를 시작하지 않는다 — RUN 은 사용자가 직접 누른다.
+                bool bRunTestFind = bNeedsDatum && bDatumComplete;
+                s_state.TestFindResult = RunAutoTestFind(seq, szNgDatumRef, bRunTestFind);
+
                 try
                 {
                     string szDatumLogText;
@@ -466,9 +483,22 @@ namespace ReringProject.Sequence
                     {
                         szDatumLogText = "지금 것 유지";
                     }
+                    string szTestFindLogText;
+                    if (s_state.TestFindResult == EReviewerTestFindResult.Succeeded)
+                    {
+                        szTestFindLogText = "성공";
+                    }
+                    else if (s_state.TestFindResult == EReviewerTestFindResult.Failed)
+                    {
+                        szTestFindLogText = "실패";
+                    }
+                    else
+                    {
+                        szTestFindLogText = "안 함";
+                    }
                     string szLogLine = LOG_TAG + "불러옴 — " + seq.Name + " · " + cycle.InspectionTime.ToString(LOG_TIME_FORMAT)
                         + " · 자재 " + nIndexNumber + " · Shot 사진 " + nAppliedShotCount + "장 · OfflineInspectMode 켬=" + s_snapshot.OfflineSetByReviewer
-                        + " · 기준점 사진 " + szDatumLogText + " · Z 후보 " + nZCandidateCount + "장";
+                        + " · 기준점 사진 " + szDatumLogText + " · Z 후보 " + nZCandidateCount + "장 · 자동 Test Find " + szTestFindLogText;
                     Logging.PrintLog((int)ELogType.Trace, szLogLine);
                 }
                 catch { }
@@ -483,6 +513,41 @@ namespace ReringProject.Sequence
             result.LiveMeasurement = liveMeas;
             result.IsDatumPhotoMissing = bNeedsDatum && !bDatumComplete;
             return result;
+        }
+
+        // Phase 80 D-80-06/D-80-09: 기준점 사진이 없으면(bEligible=false) 자동 Test Find 를 하지 않는다.
+        //  대상 기준점을 찾아 DatumTestFindService(대화상자 없음)로 돌리고, 다음 수동 RUN 이 재사용하도록
+        //  bHoldForManualRun=true 로 넘긴다. 이 메서드는 시퀀스를 시작하지 않는다 — RUN 은 사용자가 직접.
+        private static EReviewerTestFindResult RunAutoTestFind(InspectionSequence seq, string szDatumRef, bool bEligible)
+        {
+            if (!bEligible)
+            {
+                return EReviewerTestFindResult.NotRun;
+            }
+            DatumConfig datum = null;
+            foreach (DatumConfig candidate in seq.DatumConfigs)
+            {
+                bool bMatch = string.Equals(candidate.DatumName, szDatumRef, StringComparison.Ordinal);
+                if (bMatch)
+                {
+                    datum = candidate;
+                    break;
+                }
+            }
+            if (datum == null)
+            {
+                Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "자동 Test Find — 기준점을 찾지 못함 · " + seq.Name + " · " + szDatumRef);
+                return EReviewerTestFindResult.Failed;
+            }
+            string szError;
+            bool bOk = DatumTestFindService.TryRunFromTeachingImages(seq, datum, true, out szError);
+            if (bOk)
+            {
+                Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "자동 Test Find — " + seq.Name + " · " + szDatumRef + " 성공");
+                return EReviewerTestFindResult.Succeeded;
+            }
+            Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "자동 Test Find — " + seq.Name + " · " + szDatumRef + " 실패: " + szError);
+            return EReviewerTestFindResult.Failed;
         }
 
         // Phase 80: RepeatRunService.BuildOverrideSnapshot(:455-491) 와 같은 필드·같은 순서.

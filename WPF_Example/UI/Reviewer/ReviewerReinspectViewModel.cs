@@ -35,6 +35,9 @@ namespace ReringProject.UI
         private const string HINT_Z_MISSING = "  (Z 후보 사진 없음 — 고른 z 사진 1장으로 검사)";
         private const string HINT_DATUM_KEPT = "  (기준점 사진 없음 — 지금 기준점 사진 사용)";
 
+        // Phase 80 D-80-06: 자동 Test Find 가 실패했을 때 상태 줄에 붙이는 안내.
+        private const string HINT_TESTFIND_FAILED = "  (기준점 찾기 실패 — 기준점 노드에서 Test Find 로 확인)";
+
         public static readonly ReviewerReinspectViewModel Instance = new ReviewerReinspectViewModel();
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -209,6 +212,10 @@ namespace ReringProject.UI
             if (state.IsDatumPhotoKept)
             {
                 szText += HINT_DATUM_KEPT;
+            }
+            if (state.TestFindResult == EReviewerTestFindResult.Failed)
+            {
+                szText += HINT_TESTFIND_FAILED;
             }
             return szText;
         }

@@ -675,10 +675,20 @@ namespace ReringProject
                  "형식에는 전혀 영향을 주지 않으며, 이 값이 없는 옛 cycle.json 도 그대로 열린다. " +
                  "리뷰어에서 쓰지 않는 버튼 2개(사이클 1건 엑셀 export, 차트 이미지 캡처 점검)를 지웠다. 반복검사 묶음 export 와 Align 정합 조회는 그대로 남아 있다."
     )]
+    [Version(
+        Number = "1.7.50.0",
+        Date = "2026-09-18",
+        Change = "EdgeToLineDistance 측정 속성창에 'Local Ref' 탭(국부 기준 사용 체크 IsLocalRefEnabled, 기준 ROI LocalRef_Row/Col/Phi/Length1/Length2, 기준 ROI 전용 에지 설정 7개)을 새로 추가했다 — 기본은 꺼짐이라 옛 레시피는 그대로다. " +
+                 "켜면 그 측정의 기준선 위치가, 기준점이 가로선을 찾은 사진(SIDE 는 기준점 가로 사진 z1)에서 기준 ROI(핀 바로 옆 띠)를 기준점을 찾을 때 한 번 선 피팅해 그 선의 가운데로 바뀐다(각도는 기존 전역 기준선 그대로 유지). 핀은 지금처럼 측정 사진에서 재고, Z 자동 선택 구조는 전혀 바뀌지 않는다. SIDE·TOP·BOTTOM 의 모든 EdgeToLineDistance 측정에서 레시피 설정만으로 켤 수 있다. " +
+                 "기준 ROI 를 못 찾거나(미티칭 또는 에지를 못 찾음), 이번 검사에서 국부 기준선이 계산되지 않았거나, 기준점을 찾은 뒤 기준 ROI·DatumRef 설정이 바뀌면 기존 전역 기준선으로 자동 전환하고 Error 로그 '[LocalRef] 전역 기준선으로 전환' 한 줄에 원인을 남긴다 — 검사는 멈추지 않고 계속된다. " +
+                 "어느 기준을 썼는지 결과에 기록·표시한다 — cycle.json 의 RefSource(Local 또는 LocalFallback), 일자별 CSV 맨 끝 열 '사용기준'(국부 또는 국부실패→전역), 결과 그리드·리뷰어의 '기준' 열, 화면의 주황색 국부 기준선(오버레이 FAI-RefLine). 옵션을 끈 측정은 이 칸들이 전부 빈칸이고, 기존 칸과 값은 그대로다. " +
+                 "캔버스에서 기준 ROI(이름 끝이 _LocalRef)를 끌어 옮기고 크기를 바꾸고 지울 수 있으며, 마스터 재-앵커 시 핀 ROI 와 같은 강체 변환으로 같이 이동한다. " +
+                 "옵션을 켜면 기준선 0점이 바뀌어 측정값 자체가 달라지므로, 켠 측정은 반드시 기준값·공차를 사람이 다시 확인해야 한다(코드가 자동으로 바꾸지 않는다)."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.49.0";
-        public const string BUILD_DATE = "2026-09-17";
+        public const string VERSION = "1.7.50.0";
+        public const string BUILD_DATE = "2026-09-18";
     }
 }

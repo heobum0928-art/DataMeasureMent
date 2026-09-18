@@ -3632,7 +3632,7 @@ namespace ReringProject.Sequence {
         // Phase 79 LSR-02: DatumRef → 국부 기준선 결과 조회 (Action_FAIMeasurement 가 측정 직전 주입할 때 사용).
         public bool TryGetLocalRefLine(MeasurementBase meas, out LocalRefLineResult result) {
             result = null;
-            if (meas == null) return false;
+            if (meas == null) { return false; }
             lock (_datumStateLock) {
                 return _localRefLines.TryGetValue(meas, out result);
             }
@@ -3644,7 +3644,7 @@ namespace ReringProject.Sequence {
         //  return true 바로 앞에서만 부른다.
         private void ComputeLocalRefLinesForDatum(DatumConfig datum, HImage imgHorizontal, HTuple transform) {
             bool bNoDatumName = datum == null || string.IsNullOrEmpty(datum.DatumName);
-            if (bNoDatumName) return;
+            if (bNoDatumName) { return; }
             try {
                 List<EdgeToLineDistanceMeasurement> lstConsumers = CollectLocalRefConsumers(datum.DatumName);
                 RemoveLocalRefLinesOfDatum(datum.DatumName);
@@ -3672,25 +3672,25 @@ namespace ReringProject.Sequence {
         //  EdgeToLineDistance 측정을 모은다. IsDatumOwnedByCurrentShot 이 쓰는 것과 같은 소유권 판정 재사용.
         private List<EdgeToLineDistanceMeasurement> CollectLocalRefConsumers(string szDatumName) {
             List<EdgeToLineDistanceMeasurement> lstResult = new List<EdgeToLineDistanceMeasurement>();
-            if (SystemHandler.Handle == null) return lstResult;
-            if (SystemHandler.Handle.Sequences == null) return lstResult;
-            if (SystemHandler.Handle.Sequences.RecipeManager == null) return lstResult;
+            if (SystemHandler.Handle == null) { return lstResult; }
+            if (SystemHandler.Handle.Sequences == null) { return lstResult; }
+            if (SystemHandler.Handle.Sequences.RecipeManager == null) { return lstResult; }
             List<ShotConfig> lstShots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
-            if (lstShots == null) return lstResult;
+            if (lstShots == null) { return lstResult; }
             foreach (var shot in lstShots) {
                 bool bOwned = IsShotOwnedBySequence(shot, Name);
-                if (!bOwned) continue;
+                if (!bOwned) { continue; }
                 AppendShotLocalRefConsumers(shot, szDatumName, lstResult);
             }
             return lstResult;
         }
 
         private static void AppendShotLocalRefConsumers(ShotConfig shot, string szDatumName, List<EdgeToLineDistanceMeasurement> lstConsumers) {
-            if (shot == null) return;
-            if (shot.FAIList == null) return;
+            if (shot == null) { return; }
+            if (shot.FAIList == null) { return; }
             foreach (var fai in shot.FAIList) {
-                if (fai == null) continue;
-                if (fai.Measurements == null) continue;
+                if (fai == null) { continue; }
+                if (fai.Measurements == null) { continue; }
                 foreach (var meas in fai.Measurements) {
                     bool bIsConsumer = IsLocalRefConsumer(meas, szDatumName);
                     if (bIsConsumer) {
@@ -3702,10 +3702,10 @@ namespace ReringProject.Sequence {
 
         private static bool IsLocalRefConsumer(MeasurementBase meas, string szDatumName) {
             var etld = meas as EdgeToLineDistanceMeasurement;
-            if (etld == null) return false;
+            if (etld == null) { return false; }
             bool bSameDatum = string.Equals(etld.DatumRef, szDatumName, StringComparison.Ordinal);
-            if (!bSameDatum) return false;
-            if (!etld.IsLocalRefEnabled) return false;
+            if (!bSameDatum) { return false; }
+            if (!etld.IsLocalRefEnabled) { return false; }
             return true;
         }
 

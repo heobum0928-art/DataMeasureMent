@@ -1927,12 +1927,12 @@ namespace ReringProject.Sequence {
         //  주입에 실패하면 전환 원인을 TryResolveLocalRef 가 밝히고, 여기서 원인 로그 1줄만 남긴다(D-79-06).
         private void InjectLocalRef(MeasurementBase meas, InspectionSequence parentSeq2) {
             var etld = meas as EdgeToLineDistanceMeasurement;
-            if (etld == null) return;
+            if (etld == null) { return; }
             etld.InjectedLocalRef = null;
-            if (!etld.IsLocalRefEnabled) return;
+            if (!etld.IsLocalRefEnabled) { return; }
             string szReason;
             bool bResolved = TryResolveLocalRef(etld, parentSeq2, out szReason);
-            if (bResolved) return;
+            if (bResolved) { return; }
             string szShotName;
             if (ShotParam == null) {
                 szShotName = "";

@@ -1416,7 +1416,7 @@ z1 사진의 띠 이동량(B−A)이 위치마다 다르다: col 1490 +56µm / 3
 
 **Requirements**: LSR-01 (옵션·기준 ROI), LSR-02 (국부 기준 측정), LSR-03 (자동 전환), LSR-04 (사용 기준 표시·기록), LSR-05 (회귀 0), LSR-06 (C13·C14 자재 A·B 검증)
 **Depends on:** Phase 77 (Z 범위 자동 선택), Phase 78 (cycle.json 진단 기록)
-**Plans:** 5 plans (2026-09-18 계획, 4 waves, 순차 실행)
+**Plans:** 5/5 complete (2026-09-18) — UAT 승인(C13_P3 A−B 48.7→8.4µm), 코드 리뷰 경고 3건 수정(bc1d7093·0609d78b·67e27fa3). 남은 것: 켤 측정의 기준값·공차 결정(도면·고객 확인 후), U-7 TOP·BOTTOM 장비 PC 확인
 
 Plans:
 
@@ -1431,7 +1431,7 @@ Plans:
 - [x] 79-04-PLAN.md (aee7f913) — 버전 1.7.50.0 + phase 전체 회귀 감사(파일 범위·삭제 범위·하드룰·Rebuild 경고·probe 전체·비트 비교) (LSR-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 79-05-PLAN.md — realab(09-17 A·B 사진 C13·C14 6점 국부/전역 A−B + 추천 티칭 값) + UAT 절차서 + 사용자 확인 체크포인트 (LSR-06, LSR-01~05)
+- [x] 79-05-PLAN.md (42ac43f3·4e8fa5bf, UAT 승인) — realab(09-17 A·B 사진 C13·C14 6점 국부/전역 A−B + 추천 티칭 값) + UAT 절차서 + 사용자 확인 체크포인트 (LSR-06, LSR-01~05)
 
 ---
 

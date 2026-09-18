@@ -39,16 +39,21 @@ Release 빌드 금지 (D:/Data 배포 exe 보호). Debug|x64 만.
 
 ## Per-Task Verification Map
 
-계획 확정 후 planner 가 Task ID 를 채운다. 요구사항별 검증 수단:
+planner 가 Task ID 로 채움(2026-09-18). probe 는 전부 저장소 밖 `C:/Users/admin/AppData/Local/Temp/p79-probe`(커밋 금지, 규격은 79-01-PLAN 'Probe 규격'). 모든 auto task 의 `<verify>` 는 Debug|x64 빌드 + probe + 추가 줄 하드룰 grep 을 함께 돈다.
 
-| Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
-|-------------|----------|-----------|-------------------|-------------|--------|
-| LSR-01 | 옵션·기준 ROI·전용 에지 설정 필드 존재, 옛 레시피 로드 시 기본값 유지 | 정적 grep + 빌드 | 필드명 grep, `MeasurementBase.Load` override grep | ✅ 기존 파일 확장 | ⬜ pending |
-| LSR-02 | 국부 기준선을 Datum 검출 tick 에서 1번만 계산 (Z 후보 수와 무관) | 로그 | `[LocalRef]` 로그 횟수 = Datum 검출 성공 횟수 | ❌ W0 | ⬜ pending |
-| LSR-03 | 기준 ROI 실패 시 전역 기준 전환 + 로그, 사이클 계속 | 오프라인 재검사 + 로그 | 기준 ROI 를 빈 영역에 두고 재검사 → 전환 로그·결과 존재 | ❌ W0 | ⬜ pending |
-| LSR-04 | 사용 기준(국부/전역/전환) 화면·cycle.json·CSV 표시 | grep + 육안 | cycle.json 신규 필드 grep, CSV `COLUMN_COUNT` 불변 grep | ❌ W0 | ⬜ pending |
-| LSR-05 | 옵션 OFF = 현재와 동일 | grep + 값 비교 | 옵션 OFF 레시피 오프라인 재검사 값 전/후 동일 | ❌ W0 | ⬜ pending |
-| LSR-06 | C13·C14 6점 자재 A·B 편차 감소 | 수동(오프라인 재검사 + 수치 비교) | — | — | ⬜ pending |
+| Task ID | Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
+|---------|-------------|----------|-----------|-------------------|-------------|--------|
+| 79-01-T1 (tracer) | LSR-02, LSR-03, LSR-05 | 기준점 가로 사진 피팅 → 저장소 → 주입 → 국부 거리(합성 5.6→5.0mm), 전환 비트 동일, 한 측정만 켜도 이웃 불변, X 축; 09-17 z1 띠 검출; 옵션 꺼짐 비트 동일 | 리플렉션 probe + 편집 전 exe 비트 비교 | `LocalRefProbe.exe <bin> synthetic` / `real1 <z1.jpg>`, `OffRegressProbe.exe` + `cmp regress-base.txt` | ❌ W0 (T1 이 만듦) | ⬜ pending |
+| 79-01-T2 | LSR-01, LSR-03 | 전환 원인 5가지·로그, 설정 바뀜 감지, 옛 레시피 기본값·INI 왕복 | probe | `LocalRefProbe.exe <bin> synthetic` / `ini <main-snapshot.ini>` | ❌ W0 | ⬜ pending |
+| 79-02-T1 | LSR-04, LSR-05 | cycle.json RefSource 왕복·옛 파일 null, CSV 사용기준(인덱스 16)·옛 15/16칸 행, 표시·파싱 경계 | probe | `LocalRefProbe.exe <bin> records <scratch> <old cycle.json ×2>` | ❌ W0 | ⬜ pending |
+| 79-02-T2 | LSR-04 | 결과 그리드·리뷰어 '기준' 열 VM 문자열 | probe + grep | `LocalRefProbe.exe <bin> display`, XAML 열 grep | ❌ W0 | ⬜ pending |
+| 79-03-T1 | LSR-01, LSR-05 | 기준 ROI 캔버스 배선(표시·해석·이동·크기·삭제·재앵커), 미티칭 측정 ROI 동작 비트 동일 | probe + 편집 전 exe 비트 비교 + 7함수 밖 diff | `LocalRefProbe.exe <bin> roidefs`, `RoiRegressProbe.exe` + `cmp roi-base.txt` | ❌ W0 | ⬜ pending |
+| 79-03-T2 | LSR-04 | FAI-RefLine 주황 렌더(버퍼 창 픽셀) | probe | `LocalRefProbe.exe <bin> overlaycolor` | ❌ W0 | ⬜ pending |
+| 79-04-T1 | — | 버전 1.7.50.0 changelog | grep + 빌드 | VersionDefine grep | ✅ | ⬜ pending |
+| 79-04-T2 | LSR-05 | 누적 감사 — 파일 범위 15개, 삭제 범위, 하드룰, Rebuild 경고 증가 0, probe 전체, 비트 비교 2종 | 감사 스크립트 | 79-04-PLAN Task 2 verify | ✅ | ⬜ pending |
+| 79-05-T1 | LSR-06 | 09-17 A 4·B 3 사이클 C13·C14 6점 국부/전역 A−B, 창·에지 조합 조사(P2 포함), 추천 티칭 값 | probe(운영 코드 경로) | `LocalRefProbe.exe <bin> realab <main-snapshot.ini>` | ❌ W0 | ⬜ pending |
+| 79-05-T2 | LSR-01~06 | UAT 절차서(티칭 표·A−B 표·U-1~U-8) | grep | 79-05-PLAN Task 2 verify | ❌ (T2 가 만듦) | ⬜ pending |
+| 79-05-T3 | LSR-01~06 | 사용자 확인(U-1~U-8), A-79-E1~E4 판단, 켤 측정·창·기준값 결정 | 수동 체크포인트 | — | — | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -56,9 +61,10 @@ Release 빌드 금지 (D:/Data 배포 exe 보호). Debug|x64 만.
 
 ## Wave 0 Requirements
 
-- [ ] P2 z1 사진 핀 위치 재프로브 (조사 Open Question)
-- [ ] 실제 HALCON `TryFitLine` 기반 스모크 — 09-17 z1 사진에서 기준 ROI 피팅 성공·에지 설정 확정
-- [ ] Debug|x64 빌드 경고 baseline 재측정
+- [ ] P2 z1 사진 핀 위치 재프로브 (조사 Open Question) → 79-05-T1 realab 의 stripM·stripM2 창 조사(7/7 조합 없으면 'P2 켜지 않음')
+- [ ] 실제 HALCON `TryFitLine` 기반 스모크 — 09-17 z1 사진에서 기준 ROI 피팅 성공·에지 설정 확정 → 79-01-T1 real1(stripL·stripR 8조합, anyfound=1), 에지 설정 확정은 79-05-T1 realab(7사이클 7/7)
+- [ ] Debug|x64 빌드 경고 baseline 재측정 → 79-01-T1 (0) 편집 전 Rebuild 로그 `build-base.log`, 79-04-T2 가 같은 정규화로 비교(`warn_added=0`)
+- [ ] 편집 전 exe 비트 비교 기준 → 79-01-T1 (0) `OffRegressProbe` + `regress-base.txt`, 79-03-T1 (0) `RoiRegressProbe` + `roi-base.txt`
 
 ---
 

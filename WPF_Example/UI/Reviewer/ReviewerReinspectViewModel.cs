@@ -25,6 +25,16 @@ namespace ReringProject.UI
         private const string REASON_SEQUENCE_BUSY = "검사가 진행 중입니다 — 끝난 뒤 다시 누르세요";
         private const string REASON_RERUN_ACTIVE = "저장 사진 재검사 중에는 쓸 수 없습니다";
 
+        // Phase 80 D-80-09/19: 기준점 사진 짝이 안 맞을 때 보여줄 알림 문구 — 이 phase 의 유일한 새 대화상자.
+        private const string ALERT_TITLE_DATUM_MISSING = "기준점 사진 없음";
+        private const string ALERT_TEXT_DATUM_MISSING = "이 검사에는 짝이 맞는 기준점 사진이 없습니다 (수동 검사 기록이거나 사진 파일이 없음).\n"
+            + "Shot 사진만 불러오고, 기준점 사진은 지금 것을 그대로 씁니다.\n기준점 Test Find 는 자동으로 하지 않습니다.";
+
+        // Phase 80 D-80-08/12/14: 상태 줄에 덧붙이는 안내 문구.
+        private const string HINT_JPG = "  (JPG 사진 — 실제 검사값과 조금 다를 수 있음)";
+        private const string HINT_Z_MISSING = "  (Z 후보 사진 없음 — 고른 z 사진 1장으로 검사)";
+        private const string HINT_DATUM_KEPT = "  (기준점 사진 없음 — 지금 기준점 사진 사용)";
+
         public static readonly ReviewerReinspectViewModel Instance = new ReviewerReinspectViewModel();
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -69,6 +79,9 @@ namespace ReringProject.UI
         // Phase 80 D-80-04: MainWindow 가 채워, 불러오기 성공 시 메인 화면을 앞으로 가져온다.
         public Action<ReviewerReinspectLoadResult> MainNavigator { get; set; }
 
+        // Phase 80 D-80-09/17: ReviewerWindow 가 채워, 기준점 사진 없음 알림(제목, 문구)을 띄운다.
+        public Action<string, string> AlertPresenter { get; set; }
+
         private ReviewerReinspectViewModel()
         {
             ReviewerReinspectService.StateChanged += OnServiceStateChanged;
@@ -103,6 +116,14 @@ namespace ReringProject.UI
                 return;
             }
             DisableReasonText = "";
+
+            // Phase 80 D-80-09: 기준점 사진 짝이 안 맞으면 메인 화면으로 넘어가기 전에 알림 1개.
+            bool bShowAlert = result.IsDatumPhotoMissing && AlertPresenter != null;
+            if (bShowAlert)
+            {
+                AlertPresenter(ALERT_TITLE_DATUM_MISSING, ALERT_TEXT_DATUM_MISSING);
+            }
+
             Action<ReviewerReinspectLoadResult> navigator = MainNavigator;
             if (navigator != null)
             {
@@ -158,7 +179,22 @@ namespace ReringProject.UI
             {
                 szMaterialPart = STATUS_MATERIAL_NONE;
             }
-            return STATUS_PREFIX + state.CycleTime.ToString(STATUS_TIME_FORMAT) + szMaterialPart;
+            string szText = STATUS_PREFIX + state.CycleTime.ToString(STATUS_TIME_FORMAT) + szMaterialPart;
+
+            // Phase 80 D-80-08/12/14: JPG·Z 후보·기준점 안내를 상태 줄 끝에 순서대로 붙인다.
+            if (state.IsJpgPhoto)
+            {
+                szText += HINT_JPG;
+            }
+            if (state.IsZCandidateMissing)
+            {
+                szText += HINT_Z_MISSING;
+            }
+            if (state.IsDatumPhotoKept)
+            {
+                szText += HINT_DATUM_KEPT;
+            }
+            return szText;
         }
 
         private string BuildReasonText(EReviewerRowBlock block, string szDetail)

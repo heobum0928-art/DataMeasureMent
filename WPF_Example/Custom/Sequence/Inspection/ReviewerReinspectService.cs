@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using HalconDotNet;
+using ReringProject.Halcon.Models;
 using ReringProject.Setting;
 using ReringProject.UI;
 using ReringProject.Utility;
@@ -31,6 +32,9 @@ namespace ReringProject.Sequence
         public ShotConfig LiveShot { get; set; }
         public FAIConfig LiveFai { get; set; }
         public MeasurementBase LiveMeasurement { get; set; }
+
+        /// <summary>Phase 80 D-80-09/19: NG 측정의 기준점 사진 짝이 맞지 않아 Shot 사진만 들어왔다.</summary>
+        public bool IsDatumPhotoMissing { get; set; }
     }
 
     // Phase 80 D-80-12: 메인 화면 상태 줄이 표시할 값. VM 이 문자열로 조립한다.
@@ -42,6 +46,15 @@ namespace ReringProject.Sequence
         public string ShotName { get; set; }
         public string MeasurementName { get; set; }
 
+        /// <summary>Phase 80 D-80-14: 불러온 NG Shot 사진이 .jpg/.jpeg 다.</summary>
+        public bool IsJpgPhoto { get; set; }
+
+        /// <summary>Phase 80 D-80-08: Z 범위 Shot 인데 z 후보 사진이 없어 고른 z 한 장으로만 검사한다.</summary>
+        public bool IsZCandidateMissing { get; set; }
+
+        /// <summary>Phase 80 D-80-09/19: 기준점 사진 짝이 안 맞아 지금 기준점 사진을 그대로 쓴다.</summary>
+        public bool IsDatumPhotoKept { get; set; }
+
         public ReviewerReinspectState Clone()
         {
             ReviewerReinspectState clone = new ReviewerReinspectState();
@@ -50,6 +63,9 @@ namespace ReringProject.Sequence
             clone.IndexNumber = IndexNumber;
             clone.ShotName = ShotName;
             clone.MeasurementName = MeasurementName;
+            clone.IsJpgPhoto = IsJpgPhoto;
+            clone.IsZCandidateMissing = IsZCandidateMissing;
+            clone.IsDatumPhotoKept = IsDatumPhotoKept;
             return clone;
         }
     }
@@ -70,6 +86,10 @@ namespace ReringProject.Sequence
         public const string RELEASE_REASON_SHUTDOWN = "프로그램 종료";
         private const string LOG_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
+        // Phase 80 D-80-14: 불러온 사진 확장자 판정용.
+        private const string JPG_EXTENSION = ".jpg";
+        private const string JPEG_EXTENSION = ".jpeg";
+
         // Phase 80: RepeatRunService.SavedCycleOverrideSnapshot(:442-453)과 같은 사전 5개 구성.
         private sealed class ReviewerOverrideSnapshot
         {
@@ -89,6 +109,13 @@ namespace ReringProject.Sequence
         private static SavedCycleRerunPart s_activePart;
         private static ReviewerReinspectState s_state;
         private static readonly List<ShotConfig> s_lstBufferedShots = new List<ShotConfig>();
+
+        // Phase 80 D-80-09/19: 이번 불러오기가 기준점 사진을 실제로 적용했는지(완전할 때만) — 저장 뒤
+        //  재적용(RunWithOriginalPaths)도 이 값을 따른다.
+        private static bool s_bDatumPhotosApplied;
+
+        // Phase 80 함께 처리 1: 이번 불러오기가 LastOverlays 를 복사해 넣은 FAI 들 — [해제]/다음 불러오기에서 비운다.
+        private static readonly List<FAIConfig> s_lstOverlayFais = new List<FAIConfig>();
 
         public static event Action StateChanged;
 
@@ -333,6 +360,23 @@ namespace ReringProject.Sequence
             InspectionRecipeManager recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
             SavedCycleRerunPart part = SavedCycleRerunPlanner.BuildPartForSingleCycle(cycle, seq, recipeManager);
 
+            // Phase 80 D-80-09/19: NG 측정이 쓰는 기준점의 사진 짝이 완전할 때만 기준점 사진을 적용한다.
+            string szNgDatumRef;
+            if (liveMeas != null)
+            {
+                szNgDatumRef = liveMeas.DatumRef;
+            }
+            else
+            {
+                szNgDatumRef = "";
+            }
+            bool bNeedsDatum = !string.IsNullOrEmpty(szNgDatumRef);
+            bool bDatumComplete = true;
+            if (bNeedsDatum)
+            {
+                bDatumComplete = SavedCycleRerunPlanner.IsDatumPhotoSetComplete(part, seq, szNgDatumRef);
+            }
+
             int nAppliedShotCount;
             lock (s_lock)
             {
@@ -357,6 +401,7 @@ namespace ReringProject.Sequence
                     RestorePathsOnly(s_snapshot);
                 }
 
+                s_bDatumPhotosApplied = bDatumComplete;
                 nAppliedShotCount = ApplyPartPaths(part);
 
                 bool bOfflineOff = !SystemSetting.Handle.OfflineInspectMode;
@@ -368,7 +413,20 @@ namespace ReringProject.Sequence
 
                 seq.ClearDatumTransforms();
 
-                LoadShotBuffer(liveShot);
+                // Phase 80 D-80-07: 사진이 들어온 소유 Shot 마다 화면 버퍼(전부, NG Shot 만이 아니다).
+                ClearReviewerBuffers();
+                foreach (ShotConfig ownedShot in s_snapshot.OwnedShots)
+                {
+                    bool bPhotoChanged = HasShotPhotoChanged(ownedShot);
+                    if (bPhotoChanged)
+                    {
+                        LoadShotBuffer(ownedShot);
+                    }
+                }
+
+                // Phase 80 함께 처리 1: 사진이 들어온 소유 Shot 마다 그 사진을 찍은 tick 의 FAI 선을 복사.
+                ClearReviewerOverlays();
+                ApplyReviewerOverlays(part, shotDto);
 
                 s_activePart = part;
                 ReviewerReinspectState newState = new ReviewerReinspectState();
@@ -391,12 +449,26 @@ namespace ReringProject.Sequence
                     szMeasName = BuildMeasurementKey(measDto.MeasurementName, measDto.TypeName);
                 }
                 newState.MeasurementName = szMeasName;
+                newState.IsJpgPhoto = IsJpgPath(liveShot.SimulImagePath);
+                int nZCandidateCount = CountZCandidates(part, liveShot.ShotName);
+                newState.IsZCandidateMissing = liveShot.IsZRangeEnabled() && nZCandidateCount == 0;
+                newState.IsDatumPhotoKept = bNeedsDatum && !bDatumComplete;
                 s_state = newState;
 
                 try
                 {
+                    string szDatumLogText;
+                    if (bNeedsDatum && bDatumComplete)
+                    {
+                        szDatumLogText = "적용";
+                    }
+                    else
+                    {
+                        szDatumLogText = "지금 것 유지";
+                    }
                     string szLogLine = LOG_TAG + "불러옴 — " + seq.Name + " · " + cycle.InspectionTime.ToString(LOG_TIME_FORMAT)
-                        + " · 자재 " + nIndexNumber + " · Shot 사진 " + nAppliedShotCount + "장 · OfflineInspectMode 켬=" + s_snapshot.OfflineSetByReviewer;
+                        + " · 자재 " + nIndexNumber + " · Shot 사진 " + nAppliedShotCount + "장 · OfflineInspectMode 켬=" + s_snapshot.OfflineSetByReviewer
+                        + " · 기준점 사진 " + szDatumLogText + " · Z 후보 " + nZCandidateCount + "장";
                     Logging.PrintLog((int)ELogType.Trace, szLogLine);
                 }
                 catch { }
@@ -409,6 +481,7 @@ namespace ReringProject.Sequence
             result.LiveShot = liveShot;
             result.LiveFai = liveFai;
             result.LiveMeasurement = liveMeas;
+            result.IsDatumPhotoMissing = bNeedsDatum && !bDatumComplete;
             return result;
         }
 
@@ -481,8 +554,10 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80 D-80-07: 부품의 Shot 사진을 소유 Shot 에 적용하고, 모든 소유 Shot 의 Z 후보 사전을
-        // 새로 채운다(비어 있어도 1장 폴백으로 동작). 적용된 Shot 사진 수를 반환한다(로그용).
+        // Phase 80 D-80-07/08/09: 부품의 Shot 사진을 소유 Shot 에 적용하고, 모든 소유 Shot 의 Z 후보 사전을
+        // 새로 채운다(비어 있어도 1장 폴백으로 동작). 기준점 사진은 완전할 때만(s_bDatumPhotosApplied),
+        // 두 장짜리 측정 사진은 있는 것만 적용한다. 적용된 Shot 사진 수를 반환한다(로그용). 저장 뒤 재적용
+        // (RunWithOriginalPaths)도 이 메서드를 그대로 호출하므로 같은 기준점 규칙을 따른다.
         private static int ApplyPartPaths(SavedCycleRerunPart part)
         {
             int nApplied = 0;
@@ -497,7 +572,277 @@ namespace ReringProject.Sequence
                 }
                 shot.RerunZRangeImagePaths = BuildZRangeMap(part, shot.ShotName);
             }
+            if (s_bDatumPhotosApplied)
+            {
+                ApplyDatumPhotos(part, s_snapshot.Sequence);
+            }
+            ApplyDualPhotos(part);
             return nApplied;
+        }
+
+        // Phase 80 D-80-07/09/19: 이 기준점의 사진 짝이 완전할 때만(RepeatRunService.ApplySavedCyclePart 와
+        // 같은 역할 키·같은 대상) 기준점 사진을 적용한다. 완전하지 않은 기준점은 하나도 바꾸지 않는다.
+        private static void ApplyDatumPhotos(SavedCycleRerunPart part, InspectionSequence seq)
+        {
+            foreach (DatumConfig datum in seq.DatumConfigs)
+            {
+                bool bComplete = SavedCycleRerunPlanner.IsDatumPhotoSetComplete(part, seq, datum.DatumName);
+                if (!bComplete)
+                {
+                    continue;
+                }
+
+                string szKeySingle = SavedCycleRerunPlanner.BuildDatumRoleKey(datum.DatumName, DatumImageRecordDto.ROLE_SINGLE);
+                string szKeyHorizontal = SavedCycleRerunPlanner.BuildDatumRoleKey(datum.DatumName, DatumImageRecordDto.ROLE_HORIZONTAL);
+                string szKeyVertical = SavedCycleRerunPlanner.BuildDatumRoleKey(datum.DatumName, DatumImageRecordDto.ROLE_VERTICAL);
+
+                string szPathSingle;
+                if (part.DatumPhotoPaths.TryGetValue(szKeySingle, out szPathSingle))
+                {
+                    datum.TeachingImagePath = szPathSingle;
+                }
+                string szPathHorizontal;
+                if (part.DatumPhotoPaths.TryGetValue(szKeyHorizontal, out szPathHorizontal))
+                {
+                    datum.TeachingImagePath = szPathHorizontal;
+                }
+                string szPathVertical;
+                if (part.DatumPhotoPaths.TryGetValue(szKeyVertical, out szPathVertical))
+                {
+                    datum.TeachingImagePath_Vertical = szPathVertical;
+                }
+            }
+        }
+
+        // Phase 80: RepeatRunService.ApplySavedCyclePart(:749-764)/FindOwnedDualMeasurement(:784-822) 와
+        // 같은 규칙 — 있는 경로만 적용한다.
+        private static void ApplyDualPhotos(SavedCycleRerunPart part)
+        {
+            foreach (var dual in part.DualPhotos)
+            {
+                DualImageEdgeDistanceMeasurement measRef = FindOwnedDualMeasurement(dual.ShotName, dual.FAIName, dual.MeasurementName);
+                if (measRef == null)
+                {
+                    continue;
+                }
+                if (!string.IsNullOrEmpty(dual.HorizontalPath))
+                {
+                    measRef.TeachingImagePath_Horizontal = dual.HorizontalPath;
+                }
+                if (!string.IsNullOrEmpty(dual.VerticalPath))
+                {
+                    measRef.TeachingImagePath_Vertical = dual.VerticalPath;
+                }
+            }
+        }
+
+        // Phase 80: RepeatRunService.FindOwnedDualMeasurement(:784-822) 와 같은 규칙 — 이름이 비면 TypeName 을 키로 쓴다.
+        private static DualImageEdgeDistanceMeasurement FindOwnedDualMeasurement(string szShotName, string szFaiName, string szMeasKey)
+        {
+            foreach (var shot in s_snapshot.OwnedShots)
+            {
+                if (!string.Equals(shot.ShotName, szShotName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                foreach (var fai in shot.FAIList)
+                {
+                    if (!string.Equals(fai.FAIName, szFaiName, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    foreach (var meas in fai.Measurements)
+                    {
+                        var dualMeas = meas as DualImageEdgeDistanceMeasurement;
+                        if (dualMeas == null)
+                        {
+                            continue;
+                        }
+                        string szKey;
+                        if (string.IsNullOrEmpty(dualMeas.MeasurementName))
+                        {
+                            szKey = dualMeas.TypeName;
+                        }
+                        else
+                        {
+                            szKey = dualMeas.MeasurementName;
+                        }
+                        if (string.Equals(szKey, szMeasKey, StringComparison.Ordinal))
+                        {
+                            return dualMeas;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Phase 80: 소유 Shot 의 SimulImagePath 가 스냅샷(불러오기 전 원래) 값과 달라졌는지 — 화면 버퍼·선
+        // 복사가 공유하는 "사진이 들어온 Shot" 판정.
+        private static bool HasShotPhotoChanged(ShotConfig shot)
+        {
+            string szSnapshotPath;
+            bool bHasSnapshot = s_snapshot.ShotSimulImagePaths.TryGetValue(shot, out szSnapshotPath);
+            if (!bHasSnapshot)
+            {
+                return false;
+            }
+            return !string.Equals(shot.SimulImagePath, szSnapshotPath, StringComparison.Ordinal);
+        }
+
+        // Phase 80 D-80-14: 확장자가 .jpg/.jpeg 면 true(팝업 없음, 상태 줄 안내만).
+        private static bool IsJpgPath(string szPath)
+        {
+            if (string.IsNullOrEmpty(szPath))
+            {
+                return false;
+            }
+            string szExt = Path.GetExtension(szPath);
+            bool bJpg = string.Equals(szExt, JPG_EXTENSION, StringComparison.OrdinalIgnoreCase);
+            bool bJpeg = string.Equals(szExt, JPEG_EXTENSION, StringComparison.OrdinalIgnoreCase);
+            return bJpg || bJpeg;
+        }
+
+        // Phase 80 D-80-08: 이 Shot 이 부품에서 가진 Z 후보 사진 수(0 = 후보 없음, 고른 z 한 장으로 폴백).
+        private static int CountZCandidates(SavedCycleRerunPart part, string szShotName)
+        {
+            Dictionary<int, string> dicShot;
+            bool bHasShot = part.ZRangePhotoPaths.TryGetValue(szShotName, out dicShot);
+            if (!bHasShot)
+            {
+                return 0;
+            }
+            return dicShot.Count;
+        }
+
+        // Phase 80 함께 처리 1: 사진이 들어온 소유 Shot 마다 그 사진을 찍은 tick 의 FAI 선을 메모리 FAI 에
+        // 복사한다 — 메인 화면에서 그 Shot/측정을 누르면 리뷰어에서 본 사진과 선이 보인다.
+        private static void ApplyReviewerOverlays(SavedCycleRerunPart part, ShotResultDto shotDto)
+        {
+            foreach (ShotConfig ownedShot in s_snapshot.OwnedShots)
+            {
+                bool bPhotoChanged = HasShotPhotoChanged(ownedShot);
+                if (!bPhotoChanged)
+                {
+                    continue;
+                }
+
+                ShotResultDto sourceShot;
+                bool bIsNgShot = shotDto != null && string.Equals(ownedShot.ShotName, shotDto.ShotName, StringComparison.Ordinal);
+                if (bIsNgShot)
+                {
+                    sourceShot = shotDto;
+                }
+                else
+                {
+                    sourceShot = FindSourceShotDto(part, ownedShot.ShotName, ownedShot.SimulImagePath);
+                }
+
+                CopyOverlaysToShot(ownedShot, sourceShot);
+            }
+        }
+
+        // 원천 ShotResultDto 의 FAI 마다 LastOverlays 를 라이브 FAIConfig 에 새 List 로 복사한다. 원천이
+        // 없거나 그 FAI 를 못 찾으면 빈 List(다른 자재의 선이 남지 않게).
+        private static void CopyOverlaysToShot(ShotConfig liveShot, ShotResultDto sourceShot)
+        {
+            foreach (FAIConfig fai in liveShot.FAIList)
+            {
+                FaiResultDto sourceFai = null;
+                bool bHasSourceShot = sourceShot != null && sourceShot.FAIs != null;
+                if (bHasSourceShot)
+                {
+                    sourceFai = FindFaiDtoByName(sourceShot.FAIs, fai.FAIName);
+                }
+                bool bHasSourceOverlays = sourceFai != null && sourceFai.LastOverlays != null;
+                if (bHasSourceOverlays)
+                {
+                    fai.LastOverlays = new List<EdgeInspectionOverlay>(sourceFai.LastOverlays);
+                }
+                else
+                {
+                    fai.LastOverlays = new List<EdgeInspectionOverlay>();
+                }
+                s_lstOverlayFais.Add(fai);
+            }
+        }
+
+        private static FaiResultDto FindFaiDtoByName(List<FaiResultDto> lstFais, string szFaiName)
+        {
+            foreach (FaiResultDto fai in lstFais)
+            {
+                bool bMatch = fai != null && string.Equals(fai.FAIName, szFaiName, StringComparison.Ordinal);
+                if (bMatch)
+                {
+                    return fai;
+                }
+            }
+            return null;
+        }
+
+        // Phase 80: 부품의 tick 들에서 이 Shot 이름 + 이 사진 경로(OriginImageFileName)를 낸 첫 ShotResultDto —
+        // NG Shot 이 아닌 다른 Shot(같은 자재의 다른 tick 사진)의 원천을 찾는다.
+        private static ShotResultDto FindSourceShotDto(SavedCycleRerunPart part, string szShotName, string szImagePath)
+        {
+            foreach (CycleResultDto dto in part.Ticks)
+            {
+                if (dto.Shots == null)
+                {
+                    continue;
+                }
+                ShotResultDto found = FindShotDtoInTick(dto.Shots, szShotName, szImagePath);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        private static ShotResultDto FindShotDtoInTick(List<ShotResultDto> lstShots, string szShotName, string szImagePath)
+        {
+            foreach (ShotResultDto shotDto in lstShots)
+            {
+                bool bNameMatch = string.Equals(shotDto.ShotName, szShotName, StringComparison.Ordinal);
+                if (!bNameMatch)
+                {
+                    continue;
+                }
+                bool bOriginMatch = ShotHasMatchingOrigin(shotDto, szImagePath);
+                if (bOriginMatch)
+                {
+                    return shotDto;
+                }
+            }
+            return null;
+        }
+
+        private static bool ShotHasMatchingOrigin(ShotResultDto shotDto, string szImagePath)
+        {
+            if (shotDto.FAIs == null)
+            {
+                return false;
+            }
+            foreach (FaiResultDto fai in shotDto.FAIs)
+            {
+                bool bMatch = fai != null && string.Equals(fai.OriginImageFileName, szImagePath, StringComparison.OrdinalIgnoreCase);
+                if (bMatch)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Phase 80 함께 처리 1: 이전 불러오기에서 복사한 FAI 들의 LastOverlays 를 새 빈 List 로 비운다
+        // (사용자 [해제] 전용 — 다른 해제 경로는 목록만 비우고 곧 새 검사가 선을 다시 채운다).
+        private static void ClearReviewerOverlays()
+        {
+            foreach (FAIConfig fai in s_lstOverlayFais)
+            {
+                fai.LastOverlays = new List<EdgeInspectionOverlay>();
+            }
+            s_lstOverlayFais.Clear();
         }
 
         // Phase 80: RepeatRunService.BuildRerunZRangeMap(:769-782) 와 같은 규칙 — 항상 새 사전을 반환한다.
@@ -516,10 +861,10 @@ namespace ReringProject.Sequence
             return dicResult;
         }
 
-        // Phase 80: 메인 캔버스가 Shot 버퍼(_image)를 먼저 보기 때문에, 새 경로를 즉시 HImage 로 읽어 넣는다.
+        // Phase 80 D-80-07: 메인 캔버스가 Shot 버퍼(_image)를 먼저 보기 때문에, 새 경로를 즉시 HImage 로
+        // 읽어 넣는다. 여러 Shot 을 이어서 채우므로 여기서는 버퍼를 비우지 않는다(호출자가 한 번만 비운다).
         private static void LoadShotBuffer(ShotConfig liveShot)
         {
-            ClearReviewerBuffers();
             if (liveShot == null)
             {
                 return;
@@ -565,7 +910,8 @@ namespace ReringProject.Sequence
             ReleaseCore(RELEASE_REASON_USER, true);
         }
 
-        // bClearDisplayState 는 이 plan 에서는 쓰지 않는다(80-03 이 화면 선 지우기에 쓸 예정).
+        // bClearDisplayState = true 는 사용자 [해제](UI 스레드) — 복사한 리뷰어 선을 비운다. false(PLC·
+        // 레시피 변경·프로그램 종료 — 백그라운드이거나 곧 새 검사가 선을 다시 채움)는 목록만 비운다.
         // 전체를 try/catch 로 감싸 절대 throw 하지 않는다(MainRun 스레드 보호).
         private static void ReleaseCore(string szReason, bool bClearDisplayState)
         {
@@ -586,6 +932,15 @@ namespace ReringProject.Sequence
                     }
                     s_snapshot.Sequence.ClearDatumTransforms();
                     ClearReviewerBuffers();
+                    if (bClearDisplayState)
+                    {
+                        ClearReviewerOverlays();
+                    }
+                    else
+                    {
+                        s_lstOverlayFais.Clear();
+                    }
+                    s_bDatumPhotosApplied = false;
                     try
                     {
                         Logging.PrintLog((int)ELogType.Trace, LOG_TAG + "해제 — " + szReason);

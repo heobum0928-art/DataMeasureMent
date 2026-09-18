@@ -1499,7 +1499,7 @@ Plans:
 
 **Requirements**: REQ-ID 없음 — 80-CONTEXT.md 결정 D-80-00~D-80-19 가 계약 (함께 처리 1~3 포함)
 **Depends on:** Phase 78 (리뷰어 실제 촬영 사진)
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1509,7 +1509,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 80-02-PLAN.md — Local Ref: 수동 RUN stale 재계산(함께 처리 2) + 기준 ROI 시험 찾기(D-80-15) + 대화상자 없는 공용 Test Find (Wave 2)
-- [ ] 80-03-PLAN.md — 같은 자재 Shot·기준점·Z 후보 사진 + 기준점 없음 알림 + 안내 + 리뷰어 선 겹침 수정(함께 처리 1) (Wave 2)
+- [x] 80-03-PLAN.md — 같은 자재 Shot·기준점·Z 후보 사진 + 기준점 없음 알림 + 안내 + 리뷰어 선 겹침 수정(함께 처리 1) (Wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 

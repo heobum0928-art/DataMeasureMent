@@ -1424,8 +1424,8 @@ Plans:
 - [x] 79-01-PLAN.md (f5948431·44f82975) — tracer: 옵션 켠 EdgeToLineDistance 1개를 기준점 검출 성공 지점(TryRunSingleDatum·TryComposeAlign)의 z1 기준 ROI 피팅 → 사이클 저장소 → 측정 직전 주입 → 국부 기준선 거리까지 관통 + 자동 전환 원인·로그 + 옛 레시피 기본값, 편집 전 exe 비트 비교 (LSR-01, LSR-02, LSR-03, LSR-05)
 
 **Wave 2** *(blocked on Wave 1 completion — 두 계획 저장소 파일 겹침 없음, 빌드·probe 공유로 순차 실행)*
-- [ ] 79-02-PLAN.md — 사용 기준 기록·표시: cycle.json RefSource, CSV 끝 열 사용기준(COLUMN_COUNT 14 유지), 결과 그리드·리뷰어 '기준' 열 (LSR-04, LSR-05)
-- [ ] 79-03-PLAN.md — 기준 ROI 캔버스 배선(MainView ROI 7함수 삽입) + 국부 기준선 오버레이 주황, 미티칭 측정 ROI 동작 비트 동일 (LSR-01, LSR-04, LSR-05)
+- [x] 79-02-PLAN.md (0332bbc3·49e8c685) — 사용 기준 기록·표시: cycle.json RefSource, CSV 끝 열 사용기준(COLUMN_COUNT 14 유지), 결과 그리드·리뷰어 '기준' 열 (LSR-04, LSR-05)
+- [x] 79-03-PLAN.md (90fa884b·2541b15d) — 기준 ROI 캔버스 배선(MainView ROI 7함수 삽입) + 국부 기준선 오버레이 주황, 미티칭 측정 ROI 동작 비트 동일 (LSR-01, LSR-04, LSR-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 79-04-PLAN.md — 버전 1.7.50.0 + phase 전체 회귀 감사(파일 범위·삭제 범위·하드룰·Rebuild 경고·probe 전체·비트 비교) (LSR-05)

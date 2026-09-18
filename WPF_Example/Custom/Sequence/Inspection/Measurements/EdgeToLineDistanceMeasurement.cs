@@ -19,6 +19,23 @@ namespace ReringProject.Sequence
     {
         public override string TypeName { get { return "EdgeToLineDistance"; } }
 
+        // Phase 79 LSR-01: 핀 옆 띠 기준(국부 기준선) 옵션 상수
+        public const string LOCAL_REF_LOG_TAG = "[LocalRef] ";
+        public const string LOCAL_REF_OVERLAY_ROI_ID = "FAI-RefLine";
+        public const string LOCAL_REF_ROI_SUBKEY = "LocalRef";
+        public const string LOCAL_REF_ERR_DISABLED = "국부 기준 옵션이 꺼져 있음";
+        public const string LOCAL_REF_ERR_NOT_TAUGHT = "기준 ROI 가 티칭되지 않음 (LocalRef_Length1/Length2 가 0)";
+        public const string LOCAL_REF_ERR_NO_IMAGE = "기준점 가로 사진이 없음";
+        public const string LOCAL_REF_ERR_FIT_FAILED = "기준 ROI 에서 띠 에지를 찾지 못함";
+        private const double AXIS_HALF_LENGTH_PX = 200.0;
+        private const int LOCAL_REF_DEFAULT_THRESHOLD = 10;
+        private const double LOCAL_REF_DEFAULT_SIGMA = 1.0;
+        private const int LOCAL_REF_DEFAULT_SAMPLE_COUNT = 20;
+        private const int LOCAL_REF_DEFAULT_TRIM_PERCENT = 10;
+        private const string LOCAL_REF_DEFAULT_POLARITY = "DarkToLight";
+        private const string LOCAL_REF_DEFAULT_DIRECTION = "TtoB";
+        private const string LOCAL_REF_DEFAULT_SELECTION = EdgeOptionLists.EDGE_SELECTION_STRONGEST;
+
         [Category("Point|ROI")]
         public double Point_Row { get; set; }
         public double Point_Col { get; set; }
@@ -61,6 +78,34 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> MeasureAxisList { get { return new List<string> { "Y", "X" }; } }
 
+        // Phase 79 LSR-01/D-79-03/D-79-04: 핀 옆 띠 기준(국부 기준선) 옵션. 기본값 false(선언 없음) — 옛 레시피와
+        //  옵션 꺼진 측정은 이 옵션이 생기기 전과 완전히 동일하게 동작한다.
+        [Category("Local Ref|Option")]
+        [DisplayName("국부 기준 사용 (핀 옆 띠)")]
+        [System.ComponentModel.Description("켜면 이 측정의 0점이 전역 기준선(띠 두 지점을 이은 직선) 대신 기준 ROI 에서 찾은 핀 옆 띠가 됩니다. 기준 ROI 는 기준점이 가로선을 찾은 사진(SIDE 는 z1)에서 찾고, 핀은 지금처럼 측정 사진에서 잽니다. 0점이 바뀌어 값이 달라지므로 켠 뒤 기준값·공차를 확인하세요. 기준 ROI 를 못 찾으면 전역 기준선으로 자동 전환되고 로그가 남습니다.")]
+        public bool IsLocalRefEnabled { get; set; }
+
+        [Category("Local Ref|ROI")]
+        [System.ComponentModel.Description("핀 바로 옆 띠 에지에 둡니다. 핀에 가장 가까운 창을 권장합니다(멀리 두면 다른 에지를 잡아 오히려 나빠질 수 있음). 좌표는 측정 Point ROI 와 같은 원본 좌표입니다.")]
+        public double LocalRef_Row { get; set; }
+        public double LocalRef_Col { get; set; }
+        public double LocalRef_Phi { get; set; }
+        public double LocalRef_Length1 { get; set; }
+        public double LocalRef_Length2 { get; set; }
+
+        [Category("Local Ref|Edge")]
+        public int LocalRefEdgeThreshold { get; set; } = LOCAL_REF_DEFAULT_THRESHOLD;
+        public double LocalRefSigma { get; set; } = LOCAL_REF_DEFAULT_SIGMA;
+        public int LocalRefEdgeSampleCount { get; set; } = LOCAL_REF_DEFAULT_SAMPLE_COUNT;
+        [DisplayName("Local Ref Edge Trim (%)")]
+        public int LocalRefEdgeTrimCount { get; set; } = LOCAL_REF_DEFAULT_TRIM_PERCENT;
+        [ItemsSourceProperty(nameof(EdgePolarityList))]
+        public string LocalRefEdgePolarity { get; set; } = LOCAL_REF_DEFAULT_POLARITY;
+        [ItemsSourceProperty(nameof(EdgeDirectionList))]
+        public string LocalRefEdgeDirection { get; set; } = LOCAL_REF_DEFAULT_DIRECTION;
+        [ItemsSourceProperty(nameof(EdgeSelectionList))]
+        public string LocalRefEdgeSelection { get; set; } = LOCAL_REF_DEFAULT_SELECTION;
+
         // datum 교점 좌표 runtime 주입 전용 (Action_FAIMeasurement 가 TryExecute 직전 주입).
         //  DatumConfig.DetectedOrigin* 패턴과 동일: 런타임 transient, PropertyGrid 미표시, JSON 직렬화 제외.
         //  ParamBase INI reflection 은 public double 을 0 으로 직렬화하나 DatumConfig 와 동일하게 수용.
@@ -92,6 +137,10 @@ namespace ReringProject.Sequence
         [Newtonsoft.Json.JsonIgnore]
         public double DatumDetectedCircleCol { get; set; }
 
+        // Phase 79 LSR-02: 기준점 검출 때 구해 둔 국부 기준선 — Action_FAIMeasurement 가 측정 직전 주입(필드라 INI·붙여넣기 제외)
+        [Newtonsoft.Json.JsonIgnore]
+        public LocalRefLineResult InjectedLocalRef;
+
         public EdgeToLineDistanceMeasurement(object owner) : base(owner) { }
 
         // Phase 77 SZF-03/D-77-07 ②: 이 측정은 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
@@ -113,6 +162,9 @@ namespace ReringProject.Sequence
             // 실패 경로용 초기값 (성공 경로는 아래에서 채움)
             overlays = new List<EdgeInspectionOverlay>();
             LastFitScore = 0.0; // Phase 77: 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
+            // Phase 79 LSR-02/LSR-03: 국부 기준선 사용 여부를 입구에서 한 번 정한다 — 실패 return 보다 먼저라 Z 후보마다 같은 값
+            bool bUseLocalRef = IsInjectedLocalRefUsable();
+            LastRefSource = ResolveRefSourceCode(bUseLocalRef);
 
             // D-11 Datum 찾기 실패 가드 (upstream gating 은 보조 이중 안전망)
             if (datumTransform == null || datumTransform.Length == 0)
@@ -183,30 +235,38 @@ namespace ReringProject.Sequence
                 {
                     if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; }
                 }
+                // Phase 79 LSR-02 (O-79-02 b): 위치만 국부 기준선 중점, 각도는 전역 그대로
+                double dAxisOriginRow = DatumOriginRow;
+                double dAxisOriginCol = DatumOriginCol;
+                if (bUseLocalRef)
+                {
+                    dAxisOriginRow = InjectedLocalRef.MidRow;
+                    dAxisOriginCol = InjectedLocalRef.MidCol;
+                }
                 double axisR1, axisC1, axisR2, axisC2; // projection_pl 대상 직선의 2점 (교점 ±200px, 길이는 직선 정의에 무관)
                 if (measureX) // datum 수직선(y축)
                 {
                     if (useAngle2) // 실 수직 기준선: 방향벡터 (sinθ2,cosθ2) — measureY 와 같은 공식 (각도만 θ→θ2)
                     {
-                        axisR1 = DatumOriginRow - 200.0 * sinT;
-                        axisC1 = DatumOriginCol - 200.0 * cosT;
-                        axisR2 = DatumOriginRow + 200.0 * sinT;
-                        axisC2 = DatumOriginCol + 200.0 * cosT;
+                        axisR1 = dAxisOriginRow - AXIS_HALF_LENGTH_PX * sinT;
+                        axisC1 = dAxisOriginCol - AXIS_HALF_LENGTH_PX * cosT;
+                        axisR2 = dAxisOriginRow + AXIS_HALF_LENGTH_PX * sinT;
+                        axisC2 = dAxisOriginCol + AXIS_HALF_LENGTH_PX * cosT;
                     }
                     else // 폴백: 가상 수직선 (DatumAngleRad+90° 가정)
                     {
-                        axisR1 = DatumOriginRow - 200.0 * cosT;
-                        axisC1 = DatumOriginCol + 200.0 * sinT;
-                        axisR2 = DatumOriginRow + 200.0 * cosT;
-                        axisC2 = DatumOriginCol - 200.0 * sinT;
+                        axisR1 = dAxisOriginRow - AXIS_HALF_LENGTH_PX * cosT;
+                        axisC1 = dAxisOriginCol + AXIS_HALF_LENGTH_PX * sinT;
+                        axisR2 = dAxisOriginRow + AXIS_HALF_LENGTH_PX * cosT;
+                        axisC2 = dAxisOriginCol - AXIS_HALF_LENGTH_PX * sinT;
                     }
                 }
                 else // datum 수평선(x축): 방향벡터 (sinθ,cosθ), 각도 θ
                 {
-                    axisR1 = DatumOriginRow - 200.0 * sinT;
-                    axisC1 = DatumOriginCol - 200.0 * cosT;
-                    axisR2 = DatumOriginRow + 200.0 * sinT;
-                    axisC2 = DatumOriginCol + 200.0 * cosT;
+                    axisR1 = dAxisOriginRow - AXIS_HALF_LENGTH_PX * sinT;
+                    axisC1 = dAxisOriginCol - AXIS_HALF_LENGTH_PX * cosT;
+                    axisR2 = dAxisOriginRow + AXIS_HALF_LENGTH_PX * sinT;
+                    axisC2 = dAxisOriginCol + AXIS_HALF_LENGTH_PX * cosT;
                 }
                 // per-edge-point signed projection 평균: collectedEdgePoints 각각을 axis(axisR1..axisC2) 에 투영,
                 //  부호식은 기존 3분기(measureX+useAngle2 / measureX 폴백 / Y)를 항별 그대로 재사용한다.
@@ -371,7 +431,156 @@ namespace ReringProject.Sequence
                 });
             }
 
+            // Phase 79 D-79-07: 국부 기준선(띠 에지) 표시 — 국부를 쓴 측정만
+            if (bUseLocalRef)
+            {
+                overlays.Add(new EdgeInspectionOverlay
+                {
+                    RoiId = LOCAL_REF_OVERLAY_ROI_ID,
+                    LineRow1 = InjectedLocalRef.Row1,
+                    LineColumn1 = InjectedLocalRef.Col1,
+                    LineRow2 = InjectedLocalRef.Row2,
+                    LineColumn2 = InjectedLocalRef.Col2
+                });
+            }
+
             return true;
+        }
+
+        // Phase 79 LSR-02/LSR-03: 옵션 켬 + 주입값 있음 + 그 주입값이 성공(Found)한 결과일 때만 국부 기준을 쓴다.
+        private bool IsInjectedLocalRefUsable()
+        {
+            if (!IsLocalRefEnabled)
+            {
+                return false;
+            }
+            if (InjectedLocalRef == null)
+            {
+                return false;
+            }
+            if (!InjectedLocalRef.Found)
+            {
+                return false;
+            }
+            bool bDatumOriginInjected = DatumOriginRow != 0.0 || DatumOriginCol != 0.0;
+            return bDatumOriginInjected;
+        }
+
+        // Phase 79 LSR-04: 이번 실행이 어느 기준선으로 값을 냈는지 코드로 남긴다. 옵션 꺼짐이면 null(표시 빈칸, 기존과 동일).
+        private string ResolveRefSourceCode(bool bUseLocalRef)
+        {
+            if (!IsLocalRefEnabled)
+            {
+                return null;
+            }
+            if (bUseLocalRef)
+            {
+                return MeasurementBase.REF_SOURCE_LOCAL;
+            }
+            return MeasurementBase.REF_SOURCE_FALLBACK;
+        }
+
+        /// <summary>
+        /// 기준점을 찾은 가로 사진에서 기준 ROI 의 띠 에지 선을 1번 피팅한다 — 기준점 검출 직후 InspectionSequence 가 부른다.
+        /// 항상 null 이 아닌 결과를 돌려준다.
+        /// </summary>
+        public LocalRefLineResult ComputeLocalRefLine(HImage imgHorizontal, HTuple datumTransform)
+        {
+            LocalRefLineResult result = new LocalRefLineResult();
+            if (DatumRef == null)
+            {
+                result.DatumName = "";
+            }
+            else
+            {
+                result.DatumName = DatumRef;
+            }
+            if (!IsLocalRefEnabled)
+            {
+                result.Found = false;
+                result.Error = LOCAL_REF_ERR_DISABLED;
+                return result;
+            }
+            bool bTaught = LocalRef_Length1 > 0 && LocalRef_Length2 > 0;
+            if (!bTaught)
+            {
+                result.Found = false;
+                result.Error = LOCAL_REF_ERR_NOT_TAUGHT;
+                return result;
+            }
+            if (imgHorizontal == null)
+            {
+                result.Found = false;
+                result.Error = LOCAL_REF_ERR_NO_IMAGE;
+                return result;
+            }
+            try
+            {
+                var svc = new VisionAlgorithmService();
+                var edgeScore = new EdgeStrengthScore(); // 이 측정의 Z 선택 점수와는 별개의 새 점수 수집기
+                svc.EdgeScore = edgeScore;
+                double r1, c1, r2, c2;
+                string szFitError;
+                bool bFitOk = svc.TryFitLine(imgHorizontal,
+                    LocalRef_Row, LocalRef_Col, LocalRef_Phi, LocalRef_Length1, LocalRef_Length2,
+                    datumTransform,
+                    LocalRefEdgeSampleCount, LocalRefEdgeTrimCount, LocalRefSigma, LocalRefEdgeThreshold,
+                    LocalRefEdgeDirection, LocalRefEdgePolarity,
+                    out r1, out c1, out r2, out c2, out szFitError,
+                    LocalRefEdgeSelection);
+                if (bFitOk)
+                {
+                    result.Found = true;
+                    result.Row1 = r1;
+                    result.Col1 = c1;
+                    result.Row2 = r2;
+                    result.Col2 = c2;
+                    result.EdgeScore = edgeScore.Average;
+                }
+                else
+                {
+                    result.Found = false;
+                    if (string.IsNullOrEmpty(szFitError))
+                    {
+                        result.Error = LOCAL_REF_ERR_FIT_FAILED;
+                    }
+                    else
+                    {
+                        result.Error = szFitError;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                result.Found = false;
+                result.Error = ex.Message;
+            }
+            return result;
+        }
+    }
+
+    // Phase 79 LSR-02: 기준점 검출 1번에 대한 국부 기준선 결과 — 만든 뒤 고치지 않는다.
+    public class LocalRefLineResult
+    {
+        public string DatumName { get; set; }
+        public bool Found { get; set; }
+        public double Row1 { get; set; }
+        public double Col1 { get; set; }
+        public double Row2 { get; set; }
+        public double Col2 { get; set; }
+        public double EdgeScore { get; set; }
+        public string Error { get; set; }
+
+        private const double MIDPOINT_DIVISOR = 2.0;
+
+        public double MidRow
+        {
+            get { return (Row1 + Row2) / MIDPOINT_DIVISOR; }
+        }
+
+        public double MidCol
+        {
+            get { return (Col1 + Col2) / MIDPOINT_DIVISOR; }
         }
     }
 }

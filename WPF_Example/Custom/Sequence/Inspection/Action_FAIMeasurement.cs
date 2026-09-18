@@ -724,6 +724,7 @@ namespace ReringProject.Sequence {
             if (!EvaluateCrossZGate(meas, parentSeq2, acc, out dualMeasForGate, out bHasAnyZIndex)) return;
             HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method(Task1)
             InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method(Task1)
+            InjectLocalRef(meas, parentSeq2); // Phase 79 LSR-02: 기준점 검출 때 구해 둔 국부 기준선 주입(측정당 tick 1번, Z 범위 처리 전)
             // Phase 77 SZF-02/SZF-03: 범위 Shot 의 지원 측정은 여기서 대기 표시 또는 후보별 실행·선택까지
             //  전부 처리하고 true 를 돌려준다 — 아래 공용 실행 경로(단일 사진)로는 내려가지 않는다.
             if (TryHandleZRangeMeasurement(meas, parentSeq2, bHasAnyZIndex, dualMeasForGate, image, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed))
@@ -1919,6 +1920,21 @@ namespace ReringProject.Sequence {
                     consumer.DatumDetectedCircleRow = 0.0;
                     consumer.DatumDetectedCircleCol = 0.0;
                 }
+            }
+        }
+
+        // Phase 79 LSR-02: 기준점 검출 때 사전 계산해 둔 국부 기준선을 측정 직전 주입한다(측정당 tick 1번).
+        //  전환 원인·로그·설정 바뀜 감지는 Task 2(TryResolveLocalRef)가 이 메서드를 확장한다.
+        private void InjectLocalRef(MeasurementBase meas, InspectionSequence parentSeq2) {
+            var etld = meas as EdgeToLineDistanceMeasurement;
+            if (etld == null) return;
+            etld.InjectedLocalRef = null;
+            if (!etld.IsLocalRefEnabled) return;
+            if (parentSeq2 == null) return;
+            LocalRefLineResult result;
+            bool bResolved = parentSeq2.TryGetLocalRefLine(etld, out result);
+            if (bResolved && result.Found) {
+                etld.InjectedLocalRef = result;
             }
         }
 

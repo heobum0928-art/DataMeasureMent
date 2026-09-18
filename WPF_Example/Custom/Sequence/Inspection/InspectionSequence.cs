@@ -83,6 +83,10 @@ namespace ReringProject.Sequence {
         //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
+        // Phase 79 LSR-02: 국부 기준선 사이클 저장소 — _datumTransforms 와 같은 수명(ClearDatumTransforms 에서 함께 비움),
+        //  _datumStateLock 으로 보호, 키 = 측정 객체 참조
+        private readonly Dictionary<MeasurementBase, LocalRefLineResult> _localRefLines = new Dictionary<MeasurementBase, LocalRefLineResult>();
+
         //260810 hbk reset-datum-clear-race Round2: _datumTransforms/_failedDatums/_alignFailedDatums 3개 컬렉션
         //  전용 락. Round1(_startLock 재사용, TryExecuteIfIdle)은 $RESET-vs-Start(State Idle→Running 원자 점유)
         //  TOCTOU 만 닫았을 뿐, 이 3개 컬렉션 자체의 동시 접근은 여전히 무방비였다 — TryComposeAlign/TryRunSingleDatum
@@ -2956,6 +2960,7 @@ namespace ReringProject.Sequence {
                 _failedDatums.Clear(); // _datumTransforms 와 동일 lifecycle
                 //260618 hbk Phase 54 ALIGN-01 align 실패 set 도 동일 lifecycle 리셋 (D-10)
                 _alignFailedDatums.Clear();
+                _localRefLines.Clear(); // Phase 79 LSR-05: 이전 사이클 국부 기준선 재사용 방지
             }
             // RuntimeDetectFailed 는 DatumConfig 소유 필드(공유 컬렉션 아님 — _datumStateLock 범위 밖, 기존과 동일 시점).
             foreach (var d in DatumConfigs)
@@ -3545,6 +3550,8 @@ namespace ReringProject.Sequence {
             //  CurrentTransform 소비처 = 보정 ROI 표시 전용(MainView)뿐 → alignRigid 로 덮어써 측정과 박스 위치 일치시킴.
             datum.CurrentTransform = alignRigid;
             datum.LastFindSucceeded = true;
+            // Phase 79 LSR-02: 기준점을 찾은 바로 이 사진에서 국부 기준선을 1번 구해 둔다(검출 결과·반환값 불변)
+            ComputeLocalRefLinesForDatum(datum, refImage, alignRigid);
             return true;
         }
 
@@ -3592,6 +3599,8 @@ namespace ReringProject.Sequence {
             lock (_datumStateLock) {
                 _datumTransforms[datumKey] = transform; // 누적 저장
             }
+            // Phase 79 LSR-02: 기준점을 찾은 바로 이 사진에서 국부 기준선을 1번 구해 둔다(검출 결과·반환값 불변)
+            ComputeLocalRefLinesForDatum(datum, imageH, transform);
             return true;
         }
 
@@ -3617,6 +3626,126 @@ namespace ReringProject.Sequence {
             if (string.IsNullOrEmpty(datumName)) return false;
             lock (_datumStateLock) {
                 return _datumTransforms.ContainsKey(datumName);
+            }
+        }
+
+        // Phase 79 LSR-02: DatumRef → 국부 기준선 결과 조회 (Action_FAIMeasurement 가 측정 직전 주입할 때 사용).
+        public bool TryGetLocalRefLine(MeasurementBase meas, out LocalRefLineResult result) {
+            result = null;
+            if (meas == null) return false;
+            lock (_datumStateLock) {
+                return _localRefLines.TryGetValue(meas, out result);
+            }
+        }
+
+        // Phase 79 LSR-02/D-79-09: 기준점 검출 성공 직후(이미지가 살아있는 그 순간) 이 Datum 을 참조하며
+        //  옵션을 켠 EdgeToLineDistance 측정 전부의 국부 기준선을 1번씩 계산해 사이클 저장소에 둔다.
+        //  실패해도(예외 포함) 검출 결과·반환값은 절대 바꾸지 않는다(D-79-08) — 호출부는 이 메서드를
+        //  return true 바로 앞에서만 부른다.
+        private void ComputeLocalRefLinesForDatum(DatumConfig datum, HImage imgHorizontal, HTuple transform) {
+            bool bNoDatumName = datum == null || string.IsNullOrEmpty(datum.DatumName);
+            if (bNoDatumName) return;
+            try {
+                List<EdgeToLineDistanceMeasurement> lstConsumers = CollectLocalRefConsumers(datum.DatumName);
+                RemoveLocalRefLinesOfDatum(datum.DatumName);
+                if (lstConsumers.Count == 0) return; // edge LSR-05 empty: 소비자 없음 — 로그 없음
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                int nFound = 0;
+                int nNotFound = 0;
+                foreach (var etld in lstConsumers) {
+                    LocalRefLineResult result = etld.ComputeLocalRefLine(imgHorizontal, transform); // 락 밖
+                    StoreLocalRefLine(etld, result);
+                    LogLocalRefLine(datum.DatumName, etld, result);
+                    if (result.Found) { nFound++; } else { nNotFound++; }
+                }
+                Logging.PrintLog((int)ELogType.Algorithm, string.Format(
+                    "{0}{1} · {2}: 국부 기준선 {3}개 계산 (찾음 {4} / 못 찾음 {5}, {6} ms)",
+                    EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG, Name, datum.DatumName,
+                    lstConsumers.Count, nFound, nNotFound, sw.ElapsedMilliseconds));
+            } catch (Exception ex) {
+                Logging.PrintLog((int)ELogType.Error, EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG
+                    + Name + " · " + datum.DatumName + ": 국부 기준선 계산 중 예외 — 전역 기준선으로 검사 계속: " + ex.Message);
+            }
+        }
+
+        // 이 시퀀스가 소유한 Shot 전체(IsShotOwnedBySequence)를 순회해 szDatumName 을 참조하며 옵션을 켠
+        //  EdgeToLineDistance 측정을 모은다. IsDatumOwnedByCurrentShot 이 쓰는 것과 같은 소유권 판정 재사용.
+        private List<EdgeToLineDistanceMeasurement> CollectLocalRefConsumers(string szDatumName) {
+            List<EdgeToLineDistanceMeasurement> lstResult = new List<EdgeToLineDistanceMeasurement>();
+            if (SystemHandler.Handle == null) return lstResult;
+            if (SystemHandler.Handle.Sequences == null) return lstResult;
+            if (SystemHandler.Handle.Sequences.RecipeManager == null) return lstResult;
+            List<ShotConfig> lstShots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
+            if (lstShots == null) return lstResult;
+            foreach (var shot in lstShots) {
+                bool bOwned = IsShotOwnedBySequence(shot, Name);
+                if (!bOwned) continue;
+                AppendShotLocalRefConsumers(shot, szDatumName, lstResult);
+            }
+            return lstResult;
+        }
+
+        private static void AppendShotLocalRefConsumers(ShotConfig shot, string szDatumName, List<EdgeToLineDistanceMeasurement> lstConsumers) {
+            if (shot == null) return;
+            if (shot.FAIList == null) return;
+            foreach (var fai in shot.FAIList) {
+                if (fai == null) continue;
+                if (fai.Measurements == null) continue;
+                foreach (var meas in fai.Measurements) {
+                    bool bIsConsumer = IsLocalRefConsumer(meas, szDatumName);
+                    if (bIsConsumer) {
+                        lstConsumers.Add(meas as EdgeToLineDistanceMeasurement);
+                    }
+                }
+            }
+        }
+
+        private static bool IsLocalRefConsumer(MeasurementBase meas, string szDatumName) {
+            var etld = meas as EdgeToLineDistanceMeasurement;
+            if (etld == null) return false;
+            bool bSameDatum = string.Equals(etld.DatumRef, szDatumName, StringComparison.Ordinal);
+            if (!bSameDatum) return false;
+            if (!etld.IsLocalRefEnabled) return false;
+            return true;
+        }
+
+        // Phase 79 LSR-05: 같은 기준점을 다시 검출하면 그 기준점 항목을 먼저 지운 뒤 새로 쓴다(스테일 방지).
+        private void RemoveLocalRefLinesOfDatum(string szDatumName) {
+            lock (_datumStateLock) {
+                List<MeasurementBase> lstKeysToRemove = new List<MeasurementBase>();
+                foreach (var kv in _localRefLines) {
+                    bool bSameDatum = kv.Value != null && string.Equals(kv.Value.DatumName, szDatumName, StringComparison.Ordinal);
+                    if (bSameDatum) {
+                        lstKeysToRemove.Add(kv.Key);
+                    }
+                }
+                foreach (var key in lstKeysToRemove) {
+                    _localRefLines.Remove(key);
+                }
+            }
+        }
+
+        private void StoreLocalRefLine(EdgeToLineDistanceMeasurement etld, LocalRefLineResult result) {
+            lock (_datumStateLock) {
+                _localRefLines[etld] = result;
+            }
+        }
+
+        private void LogLocalRefLine(string szDatumName, EdgeToLineDistanceMeasurement etld, LocalRefLineResult result) {
+            string szMeasName;
+            if (string.IsNullOrEmpty(etld.MeasurementName)) {
+                szMeasName = etld.TypeName;
+            } else {
+                szMeasName = etld.MeasurementName;
+            }
+            if (result.Found) {
+                Logging.PrintLog((int)ELogType.Algorithm, string.Format(
+                    "{0}기준선 찾음 — {1} · {2} · {3}: 중점 row={4:F2} col={5:F2} 에지세기={6:F1}",
+                    EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG, Name, szDatumName, szMeasName, result.MidRow, result.MidCol, result.EdgeScore));
+            } else {
+                Logging.PrintLog((int)ELogType.Error, string.Format(
+                    "{0}기준 ROI 실패 — {1} · {2} · {3}: {4}",
+                    EdgeToLineDistanceMeasurement.LOCAL_REF_LOG_TAG, Name, szDatumName, szMeasName, result.Error));
             }
         }
 

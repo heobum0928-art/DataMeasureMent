@@ -127,6 +127,12 @@ namespace ReringProject.Sequence
         [Newtonsoft.Json.JsonIgnore]
         public List<ReringProject.UI.ZCandidateScoreDto> LastZCandidateScores;
 
+        // Phase 79 LSR-04: 이 측정이 어느 기준선으로 값을 냈는지. null = 옵션 꺼짐(기존 전역, 표시 빈칸). 필드라 INI·붙여넣기 제외
+        public const string REF_SOURCE_LOCAL = "Local";
+        public const string REF_SOURCE_FALLBACK = "LocalFallback";
+        [Newtonsoft.Json.JsonIgnore]
+        public string LastRefSource;
+
         [PropertyTools.DataAnnotations.Browsable(false)]
         public abstract string TypeName { get; } // MeasurementFactory 키
 
@@ -194,6 +200,7 @@ namespace ReringProject.Sequence
             LastFitScore = 0.0; // Phase 77: 이전 사이클 선택 점수 잔재 방지
             LastSelectedZIndex = SELECTED_Z_NONE; // Phase 77: 이전 사이클 선택 Z 잔재 방지
             LastZCandidateScores = null; // Phase 78 NGA-07: 이전 사이클 후보 점수 잔재 방지
+            LastRefSource = null; // Phase 79 LSR-04: 이전 사이클 사용 기준 잔재 방지
         }
 
         // Phase 77 SZF-03/D-77-07 ②: 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.

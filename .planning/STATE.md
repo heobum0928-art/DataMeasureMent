@@ -4,16 +4,16 @@ milestone: v1.2
 milestone_name: Phases
 current_phase: 80
 current_phase_name: reviewer-ng-cycle-reinspect
-status: unknown
-stopped_at: "80-05: Task 1-2 완료(버전 1.7.51.0 + 누적 감사 PASS + UAT 절차서), Task 3 체크포인트 대기 — 장비 PC Release UAT 사용자 승인 필요"
-last_updated: "2026-09-18T12:03:44.838Z"
-last_activity: 2026-09-18
+status: phase_complete
+stopped_at: "80-05 완료 — Phase 80 전체 사용자 승인(approved, 2026-09-21), PENDING 4건 남음(Blockers/Concerns 참고)"
+last_updated: "2026-09-21T01:30:39.623Z"
+last_activity: 2026-09-21
 progress:
   total_phases: 16
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 50
-  completed_plans: 47
-  percent: 94
+  completed_plans: 48
+  percent: 96
 ---
 
 > **v1.2 는 닫지 않음 (열어둔 채 병행).** v1.2 carry-over: Phase 41 HW UAT 중단 · Phase 51 Wave 2 (일괄검사 UI) · Phase 52(레벨링 폐기) · Phase 53 캘리브 육안 UAT pending. v1.3 와 독립적으로 추후 재개 가능.
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-05-04 for v1.1)
 
 ## Current Position
 
-Phase: 80 (reviewer-ng-cycle-reinspect) — EXECUTING
-Plan: 5 of 5
+Phase: 80 (reviewer-ng-cycle-reinspect) — COMPLETE (5/5 plans, 사용자 승인 2026-09-21, PENDING 4건 — Blockers/Concerns 참고)
+Plan: 5 of 5 (완료)
 Next: **Phase 79 완료** (2026-09-18, 5/5, UAT 승인 — C13_P3 A−B 48.7→8.4µm, 켤 측정 C13_P3·C14_P3, 기준값·공차는 도면·고객 확인 후 결정, U-7 TOP·BOTTOM 장비 PC 대기; 리뷰 경고 3건 수정 — 설치된 1.7.50.0 Release 는 수정 전 빌드지만 동작 동일) → 다음 = Phase 80 discuss (/gsd-discuss-phase 80) / 미처리: TOP 측정 ROI Edit 후 이동 안 됨(debug 대기), 커밋 push, 미추적 quick 폴더 2개
 Phase 78 (reviewer-ng-cause-analysis) — EXECUTING 7 plans / 5 waves (순차) — 78-01 완료(a2b1d62b·cd5b05c0·2543b9f1, R6 tracer·R1~R4·NGA-07 DTO), 78-02 완료(42a20b46·696bc7b8, R5·R7·R8·R9·대표 원인 조립), 78-03 완료(1622f78b·8c6e0e90, Z 후보 점수·검사 당시 Z 범위·기준점 진단 값 cycle.json 기록), 78-04 완료(9ca082ab·693a1424, 실제 촬영 사진·버튼 2개 삭제), 78-05 완료(4b54c4d0·ff019e36, NG 누적 엑셀), 78-06 완료(e6f0266e 버전 1.7.49.0, 누적 감사 PASS), 78-07 Task 1 UAT 절차서(183137f6) — **체크포인트 대기: 사용자 U-1~U-7 확인(+U-8 가능 시) 및 A-78-E1 문구 판단**
 Phase 76 (side-datum): 76-01·76-02 완료, 76-03 실기 UAT 대기 (코드 origin 반영됨, 버전 1.7.46.0)
@@ -71,7 +71,7 @@ Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건
 
 상세: `73-HUMAN-UAT.md`, `73-RECIPE-RESTORE.md`, `73-REVIEW.md`
 Plan: 7 of 7
-Last activity: 2026-09-18
+Last activity: 2026-09-21
 
 **72-06 완료 (2026-08-18):** `1Cav 세부치수_Cpk` 통계 시트 구현 (`affd046`, `3bd6943`). 빌드 PASS(에러 0, 경고 12줄 baseline). `ExportCpkReport` 가 이제 **시트 2장 고정**(RAW DATA(1) + 1Cav 세부치수_Cpk)으로 저장한다 — `Worksheets.Add` 2회, D-04 준수. Cp/UCPK/LCPK/Cpk + USL/LSL 명시 컬럼 + NG>Cpk경고(1.33)>OK 3단계 판정 + 상단 OK/NG/NG목록 요약. StdDev==0 → `∞` 텍스트, `stat.N == 0` 항목은 통계 9칸 전부 `-`. ⚠ E열(Datum 유형)/Q열(#1 Target Std Dev)은 시스템 미보유라 **항상 `-`** (양식 유지용, 72-07 UAT 확인 항목). ⚠ `ExportCpkReport` 는 **여전히 호출자가 없다** — UI Export 버튼 연결은 72-07 소관. 72-07 이 시트를 더 추가하면 D-04 위반이므로 차트/이미지는 기존 2장 안에 배치할 것.
 
@@ -316,6 +316,7 @@ Last activity: 2026-09-18
 | Phase 80-reviewer-ng-cycle-reinspect P02 | 60min | 3 tasks | 5 files |
 | Phase 80 P03 | 70min | 3 tasks | 5 files |
 | Phase 80 P04 | 40min | 3 tasks | 5 files |
+| Phase 80 P05 | 25min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -588,6 +589,7 @@ Recent decisions affecting current work:
 - [Phase ?]: IsDatumPhotoSetComplete inlines File.Exists (not a helper) so the plan's verify-script grep matches the method body directly
 - [Phase ?]: ApplyPartPaths kept as int-returning (80-01 signature, used for shot-count log) — plan verify grep said void, corrected grep confirms s_bDatumPhotosApplied gating is present
 - [Phase ?]: 80-04: OnReviewerPhotosLoaded 위의 80-01 원본 주석을 고쳐 썼다가 Task 1 verify 의 deleted=0 기준이 깨져 원래 주석으로 되돌리고 코드만 추가했다
+- [Phase ?]: Phase 80 최종 승인(2026-09-21, approved) — U-9 UAT 후속 결함(시험 찾기 문구 잔류/과다 길이)은 837479b8 로 즉시 수정, 장비 미배포. PENDING: PLC 자동 검사 실동작 회귀(U-6/U-11), A-80-E3 미확인, 837479b8 재배포, 국부 기준선 재계산 실패 저장 동작 로그/UX 개선 후보.
 
 ### Quick Tasks Completed
 
@@ -764,7 +766,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - T-71-21 미검증: A-5 N/A(실 PLC 미연결) - 핸들러 펌웨어가 3필드 $PREP_ACK 파서로 갱신됐는지 미확인. 배포 타이밍 제어팀(김민우 선임) 조율 필요
-- 80-05 Task 3: 장비 PC Release 1.7.51.0 UAT(80-HUMAN-UAT.md U-1~U-11 + A-80-E1~E5) 사용자 승인 대기 — approved 또는 실패 U 번호 필요
+- Phase 80 후속 PENDING: PLC 자동 검사 실동작 회귀 확인(U-6 PLC 경로, U-11 항목4) — 장비 자동 가동 시점에만 확인 가능. A-80-E3(정적 두 장짜리 기준점 완전 간주) 미확인. UAT 후속 수정(837479b8) 장비 재배포 대기. 국부 기준선 재계산 실패 시 재실행해도 로그가 다시 안 찍히는 동작(설계상 폴백) — 로그/UX 개선 다음 phase 후보.
 
 ## Deferred Items
 
@@ -852,9 +854,9 @@ Note: WF/OUT/HW/QUAL-01 은 v1.2 재편 확정(사용자 2026-05-28). Quick-task
 
 ## Session Continuity
 
-Last session: 2026-09-18T12:03:44.445Z
-Stopped at: 80-05: Task 1-2 완료(버전 1.7.51.0 + 누적 감사 PASS + UAT 절차서), Task 3 체크포인트 대기 — 장비 PC Release UAT 사용자 승인 필요
-Resume file: .planning/phases/80-reviewer-ng-cycle-reinspect/80-HUMAN-UAT.md
+Last session: 2026-09-21T01:30:39.584Z
+Stopped at: 80-05 완료 — Phase 80 전체 사용자 승인(approved), PENDING 4건 남음(위 블로커 참고)
+Resume file: None
 Next action: 현장 실기 — ① Tray 피커센터 캘 수행(잔차 확인 후 저장, **저장 시 $ALIGN_RESULT 변경 → PLC 합의 필수**) ② Mirror 실기 확인(라이브에서 방향 전환 확인) ③ 축 부호 4종 실측 확정 (BOTTOM/TRAY_OFFSET_X_SIGN·THETA_SIGN, 현재 전부 1.0) ④ 안착 데이터 20~30개 수집
 
 **미결(현장 판단 대기):** 측정 카메라 틸트 검증 UI(Z 스윕→원 중심 이동→각도) — 방법·견적은 메모리 `project_camera_tilt_verification_idea` 에 정리, 현장 이미지 보고 착수 결정.

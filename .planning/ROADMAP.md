@@ -1499,7 +1499,7 @@ Plans:
 
 **Requirements**: REQ-ID 없음 — 80-CONTEXT.md 결정 D-80-00~D-80-19 가 계약 (함께 처리 1~3 포함)
 **Depends on:** Phase 78 (리뷰어 실제 촬영 사진)
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1517,7 +1517,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 80-05-PLAN.md — 버전 1.7.51.0 + 누적 감사 + 장비 PC Release UAT 체크포인트 (Wave 4)
+- [x] 80-05-PLAN.md — 버전 1.7.51.0 + 누적 감사 + 장비 PC Release UAT 체크포인트 (Wave 4)
 
 ---
 

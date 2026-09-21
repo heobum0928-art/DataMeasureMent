@@ -237,6 +237,80 @@ namespace ReringProject.Sequence
         private const string DATUM_NAMES_NONE = "없음";
         private const string DATUM_NAMES_SEPARATOR = ", ";
 
+        // 같은 자재 묶기 결과(부품)를 직전 1건만 기억한다 — 행을 옮길 때마다 날짜 폴더를 다시 훑지 않기 위함.
+        private static string s_szPartCacheKey = "";
+        private static SavedCycleRerunPart s_partCache;
+
+        private static SavedCycleRerunPart GetCachedPart(CycleResultDto cycle, ShotResultDto shotDto)
+        {
+            if (cycle == null || shotDto == null)
+            {
+                return null;
+            }
+            string szKey = cycle.CycleFolderPath;
+            if (string.IsNullOrEmpty(szKey))
+            {
+                szKey = cycle.InspectionTime.ToString("O");
+            }
+            szKey = szKey + "|" + shotDto.OwnerSequenceName;
+            if (string.Equals(szKey, s_szPartCacheKey, StringComparison.Ordinal))
+            {
+                return s_partCache;
+            }
+            SavedCycleRerunPart part = null;
+            try
+            {
+                InspectionSequence seq = ResolveSequence(shotDto.OwnerSequenceName);
+                if (seq != null)
+                {
+                    InspectionRecipeManager recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+                    part = SavedCycleRerunPlanner.BuildPartForSingleCycle(cycle, seq, recipeManager);
+                }
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, LOG_TAG + "같은 자재 사진 조회 실패: " + ex.Message); } catch { }
+                part = null;
+            }
+            s_szPartCacheKey = szKey;
+            s_partCache = part;
+            return part;
+        }
+
+        /// <summary>
+        /// 그 측정이 채택한 z 의 후보 사진 경로. z 사진은 기록마다 자기 z 1장만 들어 있으므로
+        /// 같은 자재의 앞 tick 들까지 묶어 찾는다. 없으면 null — 호출자가 기존 사진으로 넘어간다.
+        /// </summary>
+        public static string ResolveZPhotoPath(CycleResultDto cycle, ShotResultDto shotDto, int nZIndex)
+        {
+            if (nZIndex < 0 || shotDto == null)
+            {
+                return null;
+            }
+            SavedCycleRerunPart part = GetCachedPart(cycle, shotDto);
+            if (part == null)
+            {
+                return null;
+            }
+            Dictionary<int, string> dicShot;
+            bool bHasShot = part.ZRangePhotoPaths.TryGetValue(shotDto.ShotName, out dicShot);
+            if (!bHasShot || dicShot == null)
+            {
+                return null;
+            }
+            string szPath;
+            bool bHasZ = dicShot.TryGetValue(nZIndex, out szPath);
+            if (!bHasZ || string.IsNullOrEmpty(szPath))
+            {
+                return null;
+            }
+            if (!File.Exists(szPath))
+            {
+                return null;
+            }
+            return szPath;
+        }
+
         public static string DescribeDatumPhotoNames(CycleResultDto cycle, ShotResultDto shotDto)
         {
             if (cycle == null || shotDto == null)
@@ -256,11 +330,8 @@ namespace ReringProject.Sequence
             string szNames = DATUM_NAMES_NONE;
             try
             {
-                InspectionSequence seq = ResolveSequence(shotDto.OwnerSequenceName);
-                if (seq != null)
+                SavedCycleRerunPart part = GetCachedPart(cycle, shotDto);
                 {
-                    InspectionRecipeManager recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
-                    SavedCycleRerunPart part = SavedCycleRerunPlanner.BuildPartForSingleCycle(cycle, seq, recipeManager);
                     if (part != null && part.DatumPhotoPaths.Count > 0)
                     {
                         List<string> lstNames = new List<string>();

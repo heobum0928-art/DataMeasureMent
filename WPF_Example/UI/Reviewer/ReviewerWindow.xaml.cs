@@ -271,17 +271,36 @@ namespace ReringProject.UI
                 panel_dualToggle.Visibility = Visibility.Collapsed;
                 // 일반 측정: 그 측정이 쓴 z 사진을 먼저, 없으면 해당 FAI 의 Shot 이미지 로드
                 //  (순서: LoadImage → SetInspectionOverlays)
-                string imgPath = ReviewerImagePathResolver.ResolveMeasurementZImagePath(_currentCycle, row.OwnerShot, row.Source);
-                if (string.IsNullOrEmpty(imgPath))
-                {
-                    imgPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); // Phase 78 NGA-06
-                }
+                string imgPath = ResolveRowPhotoPath(row);
                 if (!string.IsNullOrEmpty(imgPath))
                 {
                     halconViewer.LoadImage(imgPath);
                 }
                 ApplyFaiOverlays(row);
             }
+        }
+
+        // 행이 띄울 사진 — 그 측정이 채택한 z 사진(같은 기록 → 같은 자재 앞 기록 순)을 먼저, 없으면 FAI 원본.
+        private string ResolveRowPhotoPath(ReviewMeasurementRow row)
+        {
+            if (row == null)
+            {
+                return null;
+            }
+            string szPath = ReviewerImagePathResolver.ResolveMeasurementZImagePath(_currentCycle, row.OwnerShot, row.Source);
+            if (!string.IsNullOrEmpty(szPath))
+            {
+                return szPath;
+            }
+            if (row.Source != null)
+            {
+                szPath = ReviewerReinspectService.ResolveZPhotoPath(_currentCycle, row.OwnerShot, row.Source.SelectedZIndex);
+                if (!string.IsNullOrEmpty(szPath))
+                {
+                    return szPath;
+                }
+            }
+            return ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); // Phase 78 NGA-06
         }
 
         // 고른 행의 원본 사진 파일명 + 그 검사가 쓴 기준점 사진 파일명을 헤더에 한 줄로 보여 준다.
@@ -300,11 +319,7 @@ namespace ReringProject.UI
             }
             else
             {
-                string szPath = ReviewerImagePathResolver.ResolveMeasurementZImagePath(_currentCycle, row.OwnerShot, row.Source);
-                if (string.IsNullOrEmpty(szPath))
-                {
-                    szPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai);
-                }
+                string szPath = ResolveRowPhotoPath(row);
                 if (!string.IsNullOrEmpty(szPath))
                 {
                     szShotName = Path.GetFileName(szPath);

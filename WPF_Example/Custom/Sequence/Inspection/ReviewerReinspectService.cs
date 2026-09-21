@@ -43,6 +43,9 @@ namespace ReringProject.Sequence
 
         /// <summary>Phase 80 D-80-09/19: NG 측정의 기준점 사진 짝이 맞지 않아 Shot 사진만 들어왔다.</summary>
         public bool IsDatumPhotoMissing { get; set; }
+
+        /// <summary>고른 측정이 실제로 쓴 z 사진 경로 — 메인 캔버스에 그 사진을 띄우기 위함. 없으면 빈 문자열.</summary>
+        public string SelectedZPhotoPath { get; set; } = "";
     }
 
     // Phase 80 D-80-12: 메인 화면 상태 줄이 표시할 값. VM 이 문자열로 조립한다.
@@ -647,6 +650,15 @@ namespace ReringProject.Sequence
             result.LiveFai = liveFai;
             result.LiveMeasurement = liveMeas;
             result.IsDatumPhotoMissing = bNeedsDatum && !bDatumComplete;
+            // 고른 측정이 실제로 쓴 z 사진을 메인 캔버스에 띄우기 위해 경로만 알려 준다(레시피 경로는 바꾸지 않는다).
+            if (measDto != null)
+            {
+                string szZPhoto = ResolveZPhotoPath(cycle, shotDto, measDto.SelectedZIndex);
+                if (!string.IsNullOrEmpty(szZPhoto))
+                {
+                    result.SelectedZPhotoPath = szZPhoto;
+                }
+            }
             return result;
         }
 

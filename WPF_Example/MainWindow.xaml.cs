@@ -297,6 +297,12 @@ namespace ReringProject {
             Activate();
             mainView.ForgetDisplayedShotImage();
             inspectionList.SelectShotAndMeasurement(result.LiveShot, result.LiveFai, result.LiveMeasurement);
+            // 트리 선택이 한 틱 뒤에 Shot 버퍼 사진을 띄우므로, 그 뒤에 그 측정이 쓴 z 사진으로 바꾼다.
+            string szZPhoto = result.SelectedZPhotoPath;
+            if (!string.IsNullOrEmpty(szZPhoto)) {
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,
+                    new Action(() => { mainView.ShowReviewerSelectedPhoto(szZPhoto); }));
+            }
         }
 
         public void SaveRecipe(string name=null) {

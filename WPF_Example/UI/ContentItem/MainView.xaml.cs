@@ -207,6 +207,20 @@ namespace ReringProject.UI {
         private ShotConfig _lastDisplayedImageShot;
 
         // Phase 80 D-80-05: 리뷰어 사진을 불러오거나 해제한 뒤 같은 Shot 을 다시 눌러도 새 사진을 다시 읽게 한다.
+        // 리뷰어에서 고른 측정이 실제로 쓴 z 사진을 캔버스에 띄운다(레시피 경로는 바꾸지 않는다).
+        //  다음에 Shot 노드를 다시 고르면 평소대로 Shot 버퍼 사진으로 돌아간다.
+        public void ShowReviewerSelectedPhoto(string szPath) {
+            if (string.IsNullOrEmpty(szPath)) {
+                return;
+            }
+            if (!File.Exists(szPath)) {
+                return;
+            }
+            halconViewer.LoadImage(szPath);
+            _lastDisplayedImageShot = null;
+            label_message.Visibility = Visibility.Collapsed;
+        }
+
         public void ForgetDisplayedShotImage() {
             _lastDisplayedImageShot = null;
         }

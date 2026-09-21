@@ -706,10 +706,17 @@ namespace ReringProject
                  "문구는 드래그로 선택해 Ctrl+C 나 오른쪽 클릭으로 복사할 수 있고, 길면 잘리되 마우스를 올리면 전체가 툴팁으로 보인다. " +
                  "기준점 사진 이름은 리뷰어 불러오기와 같은 '같은 자재 묶기' 로 찾으며, 같은 사이클을 다시 고르면 폴더를 다시 훑지 않는다."
     )]
+    [Version(
+        Number = "1.7.53.0",
+        Date = "2026-09-21",
+        Change = "결과 리뷰어에서 측정 행을 고르면 그 측정이 실제로 쓴 z 사진을 띄운다 — Z 범위 Shot 은 측정마다 채택한 z 가 다른데(예: C13_P1 은 z3, C13_P3 은 z6) 전에는 모두 같은 대표 사진을 보여 줘 검출 선과 사진이 어긋나 보였다. " +
+                 "'사용 Z' 에 해당하는 후보 사진(shotz_…_z{n}_…)을 먼저 찾고, 후보 사진이 저장되지 않았거나 옛 기록이면 지금까지와 같은 FAI 원본 사진으로 넘어간다. " +
+                 "헤더에 보이는 사진 파일명도 같은 규칙을 따르므로, 파일명만 보고도 어느 z 사진인지 알 수 있다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.52.0";
+        public const string VERSION = "1.7.53.0";
         public const string BUILD_DATE = "2026-09-21";
     }
 }

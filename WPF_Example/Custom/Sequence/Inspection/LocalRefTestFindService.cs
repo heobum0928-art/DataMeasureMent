@@ -26,13 +26,13 @@ namespace ReringProject.Sequence
     {
         public const string TITLE = "기준 ROI 시험 찾기";
         public const string MSG_FOUND_PREFIX = "띠 에지를 찾았습니다 — 에지 세기 ";
-        public const string MSG_SELECT_MEASUREMENT = "국부 기준(Local Ref)을 켠 EdgeToLineDistance 측정을 트리에서 먼저 고르세요";
-        public const string MSG_OPTION_OFF = "이 측정은 국부 기준(Local Ref)이 꺼져 있습니다 — 속성창 Local Ref 탭에서 켜세요";
-        public const string MSG_ROI_NOT_TAUGHT = "기준 ROI 가 아직 없습니다 — 속성창 Local Ref 탭에 숫자를 넣고 측정 노드를 다시 누르세요";
-        public const string MSG_NO_DATUM = "이 측정의 기준점(DatumRef)을 찾지 못했습니다";
-        public const string MSG_NO_PHOTO = "이 측정 기준점의 가로 사진(z1)이 없습니다 — 기준점 노드에서 사진을 먼저 불러오세요";
+        public const string MSG_SELECT_MEASUREMENT = "측정을 먼저 고르세요";
+        public const string MSG_OPTION_OFF = "국부 기준이 꺼져 있습니다 (Local Ref 탭)";
+        public const string MSG_ROI_NOT_TAUGHT = "기준 ROI 가 아직 없습니다 (Local Ref 탭)";
+        public const string MSG_NO_DATUM = "이 측정의 기준점을 찾지 못했습니다";
+        public const string MSG_NO_PHOTO = "기준점 가로 사진이 없습니다";
         public const string MSG_DATUM_FIND_FAILED_PREFIX = "기준점을 먼저 찾지 못했습니다: ";
-        public const string MSG_NOT_COMPUTED = "국부 기준선이 계산되지 않았습니다 — 측정의 DatumRef 와 Local Ref 설정을 확인하세요";
+        public const string MSG_NOT_COMPUTED = "국부 기준선이 계산되지 않았습니다";
         public const string MSG_EDGE_NOT_FOUND_PREFIX = "기준 ROI 에서 띠 에지를 찾지 못했습니다: ";
         private const string EDGE_SCORE_FORMAT = "F1";
 

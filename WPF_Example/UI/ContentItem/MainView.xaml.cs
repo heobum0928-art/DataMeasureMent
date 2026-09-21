@@ -4515,6 +4515,14 @@ namespace ReringProject.UI {
             label_testFindResult.Visibility = Visibility.Visible;
         }
 
+        // Phase 80 UAT: 트리에서 다른 노드를 고르면 시험 찾기 결과 문구를 지운다(InspectionListView 배선).
+        public void ClearLocalRefTestFindMessage() {
+            if (label_testFindResult == null) {
+                return;
+            }
+            label_testFindResult.Visibility = Visibility.Collapsed;
+        }
+
         private void BtnTestFindDatum_Click(object sender, RoutedEventArgs e) {
             // Datum 해결 (InspectionListView 선택 우선, _editingDatum fallback 없음 — teach 세션 독립)
             DatumConfig datum;

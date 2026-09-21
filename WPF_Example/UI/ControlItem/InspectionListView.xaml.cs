@@ -947,6 +947,8 @@ namespace ReringProject.UI {
                     mParentWindow.mainView.halconViewer.ClearDatumOverlay();
                     mParentWindow.mainView.halconViewer.ClearDatumRoiCandidates();
                     mParentWindow.mainView.halconViewer.ClearResultDatumOverlays();
+                    // Phase 80 UAT: 기준 ROI 시험 찾기 결과 문구는 다른 노드를 고르면 지운다(UI 단순, D-80-00).
+                    mParentWindow.mainView.ClearLocalRefTestFindMessage();
 
                     //param
                     if (itemParam is ParamBase) { //action or FAI

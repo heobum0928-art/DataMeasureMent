@@ -269,8 +269,13 @@ namespace ReringProject.UI
             else
             {
                 panel_dualToggle.Visibility = Visibility.Collapsed;
-                // 일반 측정: 해당 FAI 의 Shot 이미지 로드 (순서: LoadImage → SetInspectionOverlays)
-                string imgPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); // Phase 78 NGA-06
+                // 일반 측정: 그 측정이 쓴 z 사진을 먼저, 없으면 해당 FAI 의 Shot 이미지 로드
+                //  (순서: LoadImage → SetInspectionOverlays)
+                string imgPath = ReviewerImagePathResolver.ResolveMeasurementZImagePath(_currentCycle, row.OwnerShot, row.Source);
+                if (string.IsNullOrEmpty(imgPath))
+                {
+                    imgPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); // Phase 78 NGA-06
+                }
                 if (!string.IsNullOrEmpty(imgPath))
                 {
                     halconViewer.LoadImage(imgPath);
@@ -295,7 +300,11 @@ namespace ReringProject.UI
             }
             else
             {
-                string szPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai);
+                string szPath = ReviewerImagePathResolver.ResolveMeasurementZImagePath(_currentCycle, row.OwnerShot, row.Source);
+                if (string.IsNullOrEmpty(szPath))
+                {
+                    szPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai);
+                }
                 if (!string.IsNullOrEmpty(szPath))
                 {
                     szShotName = Path.GetFileName(szPath);

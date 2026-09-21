@@ -1,3 +1,4 @@
+using System;
 using ReringProject.Sequence; //260710 hbk SkipReason 상수 참조용
 using ReringProject.UI;
 using System.Collections.Generic;
@@ -224,6 +225,48 @@ namespace ReringProject.UI
         }
 
         /// <summary>측정 행이 띄울 사진 — fai.OriginImageFileName 우선, 없으면 shot.ResultImagePath, 둘 다 없으면 null.</summary>
+        /// <summary>
+        /// 그 측정이 실제로 쓴 z 사진을 먼저 찾는다(Z 범위 Shot 에서 측정마다 z 가 다를 수 있다).
+        /// 후보 사진이 저장되지 않았거나 z 가 없으면 null 을 반환해 기존 FAI 원본으로 넘어간다.
+        /// </summary>
+        public static string ResolveMeasurementZImagePath(CycleResultDto cycle, ShotResultDto shot, MeasurementResultDto meas)
+        {
+            if (cycle == null || shot == null || meas == null)
+            {
+                return null;
+            }
+            if (cycle.ZRangeImages == null || cycle.ZRangeImages.Count == 0)
+            {
+                return null;
+            }
+            int nSelectedZ = meas.SelectedZIndex;
+            if (nSelectedZ < 0)
+            {
+                return null;
+            }
+            foreach (ZRangeImageRecordDto rec in cycle.ZRangeImages)
+            {
+                if (rec == null)
+                {
+                    continue;
+                }
+                bool bSameShot = string.Equals(rec.ShotName, shot.ShotName, StringComparison.OrdinalIgnoreCase);
+                if (!bSameShot)
+                {
+                    continue;
+                }
+                if (rec.ZIndex != nSelectedZ)
+                {
+                    continue;
+                }
+                if (IsUsableImageFile(rec.Path))
+                {
+                    return rec.Path;
+                }
+            }
+            return null;
+        }
+
         public static string ResolveRowImagePath(ShotResultDto shot, FaiResultDto fai)
         {
             bool bOriginUsable = fai != null && IsUsableImageFile(fai.OriginImageFileName);

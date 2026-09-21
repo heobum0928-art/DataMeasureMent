@@ -698,10 +698,18 @@ namespace ReringProject
                  "리뷰어의 사이클 전체 보기에서 다른 Shot 의 선이 사진 한 장에 함께 겹쳐 그려지던 문제도 고쳤다. " +
                  "(UAT 후속) '기준 ROI 시험 찾기' 결과 문구는 트리에서 다른 노드를 고르면 사라지며, 실패 안내 문구를 짧게 줄여 툴바 버튼 줄이 밀리지 않게 했다."
     )]
+    [Version(
+        Number = "1.7.52.0",
+        Date = "2026-09-21",
+        Change = "결과 리뷰어에서 측정 행을 고르면 이미지 헤더에 그 행의 원본 사진 파일명과 그 검사가 쓴 기준점 사진 파일명이 한 줄로 보인다 — 탐색기에서 같은 이름을 눈으로 찾기 위한 표시이며 검사 동작과 기록 형식은 바뀌지 않는다. " +
+                 "두 장짜리 측정이면 가로·세로 사진 이름을 모두 보여 주고, 기준점 사진이 없는 검사(수동 검사 기록 등)는 '없음' 으로 표시한다. " +
+                 "문구는 드래그로 선택해 Ctrl+C 나 오른쪽 클릭으로 복사할 수 있고, 길면 잘리되 마우스를 올리면 전체가 툴팁으로 보인다. " +
+                 "기준점 사진 이름은 리뷰어 불러오기와 같은 '같은 자재 묶기' 로 찾으며, 같은 사이클을 다시 고르면 폴더를 다시 훑지 않는다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.51.0";
-        public const string BUILD_DATE = "2026-09-18";
+        public const string VERSION = "1.7.52.0";
+        public const string BUILD_DATE = "2026-09-21";
     }
 }

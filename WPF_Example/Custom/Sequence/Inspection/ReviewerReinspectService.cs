@@ -230,6 +230,70 @@ namespace ReringProject.Sequence
             return EReviewerRowBlock.None;
         }
 
+        // 리뷰어에서 고른 행이 쓴 기준점 사진 파일명을 한 줄로 만든다(파일 탐색 없이 눈으로 찾기 위함).
+        //  같은 사이클을 다시 고르면 폴더 스캔을 다시 하지 않도록 직전 결과 1건만 기억한다.
+        private static string s_szNamesCacheKey = "";
+        private static string s_szNamesCacheValue = "";
+        private const string DATUM_NAMES_NONE = "없음";
+        private const string DATUM_NAMES_SEPARATOR = ", ";
+
+        public static string DescribeDatumPhotoNames(CycleResultDto cycle, ShotResultDto shotDto)
+        {
+            if (cycle == null || shotDto == null)
+            {
+                return DATUM_NAMES_NONE;
+            }
+            string szKey = cycle.CycleFolderPath;
+            if (string.IsNullOrEmpty(szKey))
+            {
+                szKey = cycle.InspectionTime.ToString("O");
+            }
+            szKey = szKey + "|" + shotDto.OwnerSequenceName;
+            if (string.Equals(szKey, s_szNamesCacheKey, StringComparison.Ordinal))
+            {
+                return s_szNamesCacheValue;
+            }
+            string szNames = DATUM_NAMES_NONE;
+            try
+            {
+                InspectionSequence seq = ResolveSequence(shotDto.OwnerSequenceName);
+                if (seq != null)
+                {
+                    InspectionRecipeManager recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
+                    SavedCycleRerunPart part = SavedCycleRerunPlanner.BuildPartForSingleCycle(cycle, seq, recipeManager);
+                    if (part != null && part.DatumPhotoPaths.Count > 0)
+                    {
+                        List<string> lstNames = new List<string>();
+                        foreach (string szPath in part.DatumPhotoPaths.Values)
+                        {
+                            if (string.IsNullOrEmpty(szPath))
+                            {
+                                continue;
+                            }
+                            string szName = Path.GetFileName(szPath);
+                            if (!lstNames.Contains(szName))
+                            {
+                                lstNames.Add(szName);
+                            }
+                        }
+                        lstNames.Sort(StringComparer.OrdinalIgnoreCase);
+                        if (lstNames.Count > 0)
+                        {
+                            szNames = string.Join(DATUM_NAMES_SEPARATOR, lstNames.ToArray());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, LOG_TAG + "기준점 사진 이름 조회 실패: " + ex.Message); } catch { }
+                szNames = DATUM_NAMES_NONE;
+            }
+            s_szNamesCacheKey = szKey;
+            s_szNamesCacheValue = szNames;
+            return szNames;
+        }
+
         private static InspectionSequence ResolveSequence(string szOwnerName)
         {
             string szTargetName = szOwnerName;

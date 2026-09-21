@@ -110,6 +110,10 @@
         <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,1">
             <DockPanel LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" Text="이미지 / Overlay" VerticalAlignment="Center" FontSize="11" Foreground="Gray"/>
+                <!-- 고른 행의 원본 사진 파일명과 그 검사가 쓴 기준점 사진 파일명 (폴더에서 눈으로 찾기 위함) -->
+                <TextBlock x:Name="txt_photoFileNames" DockPanel.Dock="Left" Text="" VerticalAlignment="Center"
+                           FontSize="11" Foreground="#334155" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
                 <!-- 선택한 측정 이름을 이미지 위에 표시 — 한 FAI 에 측정이 여러 개일 때 어느 선인지 식별 -->
                 <CheckBox x:Name="chk_showMeasName" DockPanel.Dock="Right" Content="측정명 표시"
                           IsChecked="True" VerticalAlignment="Center" FontSize="11" Foreground="#334155"

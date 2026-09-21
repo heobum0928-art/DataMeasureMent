@@ -29,6 +29,11 @@ namespace ReringProject.UI
         // DualImage 전환 버튼이 참조할 현재 선택 행
         private ReviewMeasurementRow _selectedRow;
 
+        // 헤더 사진 파일명 표시 문구
+        private const string PHOTO_LABEL_SHOT = "사진: ";
+        private const string PHOTO_LABEL_DATUM = "   ·   기준점 사진: ";
+        private const string PHOTO_NAME_NONE = "없음";
+
         // '불량만 보기' 필터의 원본(전체) 행. 필터는 이 위에서 추려 ItemsSource 로 적용.
         private List<ReviewMeasurementRow> _allRows = new List<ReviewMeasurementRow>();
 
@@ -254,6 +259,7 @@ namespace ReringProject.UI
             }
             _selectedRow = row;
             _reinspectVm.EvaluateSelection(_currentCycle, row); // Phase 80 D-80-02: 행 선택 시 버튼 상태 갱신
+            ShowPhotoFileNames(row);
 
             if (row.Source != null && row.Source.IsDualImage)
             {
@@ -271,6 +277,58 @@ namespace ReringProject.UI
                 }
                 ApplyFaiOverlays(row);
             }
+        }
+
+        // 고른 행의 원본 사진 파일명 + 그 검사가 쓴 기준점 사진 파일명을 헤더에 한 줄로 보여 준다.
+        //  파일 탐색기에서 같은 이름을 눈으로 찾기 위한 표시이며, 검사 동작에는 영향이 없다.
+        private void ShowPhotoFileNames(ReviewMeasurementRow row)
+        {
+            if (row == null)
+            {
+                txt_photoFileNames.Text = "";
+                return;
+            }
+            string szShotName = "";
+            if (row.Source != null && row.Source.IsDualImage)
+            {
+                szShotName = BuildDualPhotoNames(row.Source);
+            }
+            else
+            {
+                string szPath = ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai);
+                if (!string.IsNullOrEmpty(szPath))
+                {
+                    szShotName = Path.GetFileName(szPath);
+                }
+            }
+            if (string.IsNullOrEmpty(szShotName))
+            {
+                szShotName = PHOTO_NAME_NONE;
+            }
+            string szDatumNames = ReviewerReinspectService.DescribeDatumPhotoNames(_currentCycle, row.OwnerShot);
+            txt_photoFileNames.Text = PHOTO_LABEL_SHOT + szShotName + PHOTO_LABEL_DATUM + szDatumNames;
+        }
+
+        private static string BuildDualPhotoNames(MeasurementResultDto meas)
+        {
+            string szNames = "";
+            if (!string.IsNullOrEmpty(meas.HorizontalImagePath))
+            {
+                szNames = Path.GetFileName(meas.HorizontalImagePath);
+            }
+            if (!string.IsNullOrEmpty(meas.VerticalImagePath))
+            {
+                string szVertical = Path.GetFileName(meas.VerticalImagePath);
+                if (string.IsNullOrEmpty(szNames))
+                {
+                    szNames = szVertical;
+                }
+                else
+                {
+                    szNames = szNames + ", " + szVertical;
+                }
+            }
+            return szNames;
         }
 
         // DualImage 가로축/세로축 이미지 전환. horizontal=true → 가로축, false → 세로축.

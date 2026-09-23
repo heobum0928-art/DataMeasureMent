@@ -46,12 +46,17 @@ namespace ReringProject.UI
         // Phase 78 NGA-03: 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
         private string _loadedDateFolder;
 
+        // 기간·자재번호로 조회한 검사 폴더들 — 조회로 열었으면 누적 엑셀도 이 목록만 저장한다(null = 날짜 폴더 모드).
+        private List<string> _queriedFolders;
+
         // Phase 80 D-80-17: 버튼 활성·이유 계산은 전부 VM 이 한다 — 이 code-behind 는 배선만.
         private readonly ReviewerReinspectViewModel _reinspectVm = ReviewerReinspectViewModel.Instance;
 
         public ReviewerWindow()
         {
             InitializeComponent();
+            dp_queryFrom.SelectedDate = DateTime.Today;
+            dp_queryTo.SelectedDate = DateTime.Today;
             panel_reinspect.DataContext = _reinspectVm;
             _reinspectVm.AlertPresenter = ShowReinspectAlert; // Phase 80 D-80-09/17: 알림 문구는 VM 이 준다
             _reinspectVm.EvaluateSelection(null, null); // 싱글턴 VM 재사용 — 창을 다시 열 때 이전 선택 상태가 남지 않게
@@ -75,12 +80,36 @@ namespace ReringProject.UI
             }
         }
 
+        // 기간·자재번호 조회 — 조건은 ReviewerCycleQuery 가 해석·검색하고, 여기서는 목록에 채우기만 한다.
+        private void Button_Query_Click(object sender, RoutedEventArgs e)
+        {
+            DateTime dtFrom;
+            DateTime dtTo;
+            int nMaterial;
+            string szError;
+            bool bOk = ReviewerCycleQuery.TryBuildQuery(dp_queryFrom.SelectedDate, txt_queryFromTime.Text,
+                dp_queryTo.SelectedDate, txt_queryToTime.Text, txt_queryMaterial.Text,
+                out dtFrom, out dtTo, out nMaterial, out szError);
+            if (!bOk)
+            {
+                lbl_queryResult.Text = szError;
+                return;
+            }
+            List<string> lstFolders = ReviewerCycleQuery.FindCycleFolders(SystemHandler.Handle.Setting.ResultSavePath, dtFrom, dtTo, nMaterial);
+            _loadedDateFolder = null;
+            _queriedFolders = lstFolders;
+            LoadCycleItems(lstFolders);
+            lbl_queryResult.Text = ReviewerCycleQuery.BuildResultText(lstFolders.Count, nMaterial);
+        }
+
         // 날짜 폴더 스캔: cycle.json 존재하는 하위 폴더만 수집
         private void LoadCycleFolders(string dateFolderPath)
         {
             try
             {
                 _loadedDateFolder = dateFolderPath;
+                _queriedFolders = null;
+                lbl_queryResult.Text = "";
 
                 // Directory.Exists 가드 → 없는 폴더 → 빈 목록, 크래시 없음
                 if (string.IsNullOrEmpty(dateFolderPath) || !Directory.Exists(dateFolderPath))
@@ -120,6 +149,43 @@ namespace ReringProject.UI
                 try
                 {
                     Logging.PrintErrLog((int)ELogType.Error, "[Reviewer] LoadCycleFolders: " + ex.Message);
+                }
+                catch { }
+            }
+        }
+
+        // 조회로 고른 검사 폴더들을 좌측 목록에 채운다(최신 순으로 이미 정렬됨).
+        private void LoadCycleItems(List<string> lstFolders)
+        {
+            try
+            {
+                NgCauseHistory history = new NgCauseHistory();
+                List<CycleListItem> items = new List<CycleListItem>();
+                foreach (string szDir in lstFolders)
+                {
+                    CycleResultDto dto = CycleResultSerializer.Load(Path.Combine(szDir, "cycle.json"));
+                    history.AddCycle(dto);
+                    string szDisplay = ReviewerListLabelBuilder.Build(dto);
+                    if (string.IsNullOrEmpty(szDisplay))
+                    {
+                        szDisplay = Path.GetFileName(szDir);
+                    }
+                    CycleListItem item = new CycleListItem();
+                    item.FolderPath = szDir;
+                    item.DisplayText = szDisplay;
+                    item.IsNg = ReviewerListLabelBuilder.IsFailTick(dto);
+                    item.IsIntermediate = ReviewerListLabelBuilder.IsIntermediateTick(dto);
+                    items.Add(item);
+                }
+                _allCycleItems = items;
+                _ngCauseHistory = history;
+                ApplyCycleListFilter();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    Logging.PrintErrLog((int)ELogType.Error, "[Reviewer] LoadCycleItems: " + ex.Message);
                 }
                 catch { }
             }
@@ -220,7 +286,6 @@ namespace ReringProject.UI
             else
                 visible = _allRows;
             visible = ApplyPassOnly(visible);
-            visible = ApplySearchText(visible);
             dataGrid_measurements.ItemsSource = visible;
 
             // 첫 불량 행 자동 선택 → SelectionChanged 가 해당 FAI 이미지/overlay 로 포커스 (행 생성 후 지연 실행)
@@ -268,51 +333,6 @@ namespace ReringProject.UI
                 chk_failOnly.IsChecked = false; // 두 필터가 겹치면 남는 행이 없다 — 마지막에 누른 쪽만 켠다.
                 return;                          // 체크 해제가 ChkFailOnly_Changed 로 이어져 다시 그린다.
             }
-            ApplyRowFilter();
-        }
-
-        // 찾기 입력이 있으면 측정명·FAI·Shot 이름에 그 글자가 든 행만 남긴다(대소문자 무시).
-        private List<ReviewMeasurementRow> ApplySearchText(List<ReviewMeasurementRow> lstRows)
-        {
-            if (txt_rowSearch == null)
-            {
-                return lstRows;
-            }
-            string szKeyword = txt_rowSearch.Text;
-            if (string.IsNullOrEmpty(szKeyword))
-            {
-                return lstRows;
-            }
-            szKeyword = szKeyword.Trim();
-            if (szKeyword.Length == 0)
-            {
-                return lstRows;
-            }
-            List<ReviewMeasurementRow> lstHit = new List<ReviewMeasurementRow>();
-            foreach (ReviewMeasurementRow row in lstRows)
-            {
-                bool bHitMeas = ContainsKeyword(row.MeasurementName, szKeyword);
-                bool bHitFai = ContainsKeyword(row.FAIName, szKeyword);
-                bool bHitShot = ContainsKeyword(row.ShotName, szKeyword);
-                if (bHitMeas || bHitFai || bHitShot)
-                {
-                    lstHit.Add(row);
-                }
-            }
-            return lstHit;
-        }
-
-        private static bool ContainsKeyword(string szText, string szKeyword)
-        {
-            if (string.IsNullOrEmpty(szText))
-            {
-                return false;
-            }
-            return szText.IndexOf(szKeyword, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        private void TxtRowSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
-        {
             ApplyRowFilter();
         }
 
@@ -756,7 +776,15 @@ namespace ReringProject.UI
         {
             string szOutputPath = NgAccumulationExportService.BuildOutputPath(SystemHandler.Handle.Setting.ResultSavePath);
             EAccumExportScope scope = ResolveAccumScope();
-            NgAccumExportOutcome outcome = NgAccumulationExportService.AppendDateFolder(_loadedDateFolder, szOutputPath, scope);
+            NgAccumExportOutcome outcome;
+            if (_queriedFolders != null)
+            {
+                outcome = NgAccumulationExportService.AppendCycleFolders(_queriedFolders, szOutputPath, scope);
+            }
+            else
+            {
+                outcome = NgAccumulationExportService.AppendDateFolder(_loadedDateFolder, szOutputPath, scope);
+            }
             CustomMessageBox.Show(NgAccumulationExportService.MESSAGE_TITLE, outcome.Message, outcome.Icon);
         }
 

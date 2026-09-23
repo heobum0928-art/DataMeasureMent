@@ -431,7 +431,68 @@ namespace ReringProject.Export
 
             int nUnreadable;
             List<LoadedCycle> lstCycles = LoadDateFolderCycles(szDateFolderPath, out nUnreadable);
+            return AppendLoadedCycles(lstCycles, nUnreadable, szOutputPath, scope);
+        }
 
+        /// <summary>
+        /// 리뷰어 기간·자재 조회로 고른 검사 폴더들만 누적한다(날짜 여러 날에 걸쳐도 된다).
+        /// </summary>
+        public static NgAccumExportOutcome AppendCycleFolders(List<string> lstCycleFolders, string szOutputPath, EAccumExportScope scope)
+        {
+            try
+            {
+                if (lstCycleFolders == null || lstCycleFolders.Count == 0)
+                {
+                    return BuildOutcome(ENgAccumExportStatus.NoCycles, 0, 0, 0, 0, szOutputPath);
+                }
+                if (string.IsNullOrEmpty(szOutputPath))
+                {
+                    return BuildOutcome(ENgAccumExportStatus.Failed, 0, 0, 0, 0, szOutputPath);
+                }
+                int nUnreadable;
+                List<LoadedCycle> lstCycles = LoadCycleFolderList(lstCycleFolders, out nUnreadable);
+                return AppendLoadedCycles(lstCycles, nUnreadable, szOutputPath, scope);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex.Message);
+                return BuildOutcome(ENgAccumExportStatus.Failed, 0, 0, 0, 0, szOutputPath);
+            }
+        }
+
+        private static List<LoadedCycle> LoadCycleFolderList(List<string> lstCycleFolders, out int nUnreadable)
+        {
+            nUnreadable = 0;
+            List<LoadedCycle> lstResult = new List<LoadedCycle>();
+            foreach (string szDir in lstCycleFolders)
+            {
+                if (string.IsNullOrEmpty(szDir))
+                {
+                    continue;
+                }
+                string szJsonPath = Path.Combine(szDir, CYCLE_JSON_NAME);
+                if (!File.Exists(szJsonPath))
+                {
+                    continue;
+                }
+                CycleResultDto dto = CycleResultSerializer.Load(szJsonPath);
+                if (dto == null)
+                {
+                    nUnreadable++;
+                    continue;
+                }
+                LoadedCycle loaded = new LoadedCycle();
+                loaded.Dto = dto;
+                loaded.FolderPath = szDir;
+                lstResult.Add(loaded);
+            }
+            lstResult.Sort(CompareLoadedCycle);
+            return lstResult;
+        }
+
+        // 날짜 폴더·조회 목록 공통 — 읽어 둔 사이클에서 대상 행을 만들어 파일에 쌓는다.
+        private static NgAccumExportOutcome AppendLoadedCycles(List<LoadedCycle> lstCycles, int nUnreadable, string szOutputPath, EAccumExportScope scope)
+        {
             bool bNoCycles = lstCycles.Count == 0 && nUnreadable == 0;
             if (bNoCycles)
             {

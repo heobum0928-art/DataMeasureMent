@@ -390,4 +390,251 @@ namespace ReringProject.UI
             return lstResult;
         }
     }
+    /// <summary>
+    /// 리뷰어 기간·자재번호 조회 — 결과 저장 폴더(날짜 yyyyMMdd 폴더 아래 HHmmssfff_cycle 폴더)에서
+    /// 기간 안의 검사 폴더만 고른다. 시각은 폴더 이름으로 먼저 거르고, 자재번호는 cycle.json 을 읽어 거른다.
+    /// </summary>
+    public static class ReviewerCycleQuery
+    {
+        /// <summary>자재번호를 비워 두면 전체.</summary>
+        public const int MATERIAL_ANY = -1;
+
+        private const string CYCLE_JSON_NAME = "cycle.json";
+        private const string DATE_FOLDER_FORMAT = "yyyyMMdd";
+        private const string CYCLE_FOLDER_SUFFIX = "_cycle";
+        private const int TIME_PART_LENGTH = 9; // HHmmssfff
+
+        private const string MSG_NO_DATE = "시작·끝 날짜를 고르세요.";
+        private const string MSG_BAD_TIME = "시각은 시:분 으로 입력하세요 (예: 09:30).";
+        private const string MSG_BAD_MATERIAL = "자재번호는 숫자로 입력하세요 (비우면 전체).";
+        private const char TIME_SEPARATOR = ':';
+        private const int MAX_HOUR = 23;
+        private const int MAX_MINUTE = 59;
+        private const int END_SECOND = 59;
+        private const int END_MILLISECOND = 999;
+
+        /// <summary>
+        /// 화면 입력(날짜·시:분·자재번호)을 조회 조건으로 바꾼다. 잘못된 입력이면 false 와 한 줄 안내.
+        /// 끝 시각은 그 분의 59.999초까지 포함한다.
+        /// </summary>
+        public static bool TryBuildQuery(DateTime? dtFromDate, string szFromTime, DateTime? dtToDate, string szToTime, string szMaterial,
+            out DateTime dtFrom, out DateTime dtTo, out int nMaterial, out string szError)
+        {
+            dtFrom = DateTime.MinValue;
+            dtTo = DateTime.MinValue;
+            nMaterial = MATERIAL_ANY;
+            szError = "";
+            bool bNoDate = !dtFromDate.HasValue || !dtToDate.HasValue;
+            if (bNoDate)
+            {
+                szError = MSG_NO_DATE;
+                return false;
+            }
+            int nFromHour;
+            int nFromMinute;
+            int nToHour;
+            int nToMinute;
+            bool bFromOk = TryParseHourMinute(szFromTime, out nFromHour, out nFromMinute);
+            bool bToOk = TryParseHourMinute(szToTime, out nToHour, out nToMinute);
+            if (!bFromOk || !bToOk)
+            {
+                szError = MSG_BAD_TIME;
+                return false;
+            }
+            string szMaterialTrim = "";
+            if (szMaterial != null)
+            {
+                szMaterialTrim = szMaterial.Trim();
+            }
+            if (szMaterialTrim.Length > 0)
+            {
+                int nParsed;
+                if (!int.TryParse(szMaterialTrim, out nParsed))
+                {
+                    szError = MSG_BAD_MATERIAL;
+                    return false;
+                }
+                nMaterial = nParsed;
+            }
+            DateTime dtFromDay = dtFromDate.Value.Date;
+            DateTime dtToDay = dtToDate.Value.Date;
+            dtFrom = new DateTime(dtFromDay.Year, dtFromDay.Month, dtFromDay.Day, nFromHour, nFromMinute, 0);
+            dtTo = new DateTime(dtToDay.Year, dtToDay.Month, dtToDay.Day, nToHour, nToMinute, END_SECOND, END_MILLISECOND);
+            return true;
+        }
+
+        /// <summary>조회 결과 한 줄 — 예: "자재 2 · 검사 34건" / "검사 0건 — 기간이나 자재번호를 확인하세요".</summary>
+        public static string BuildResultText(int nCount, int nMaterial)
+        {
+            string szPrefix = "";
+            if (nMaterial != MATERIAL_ANY)
+            {
+                szPrefix = "자재 " + nMaterial + " · ";
+            }
+            if (nCount == 0)
+            {
+                return szPrefix + "검사 0건 — 기간이나 자재번호를 확인하세요";
+            }
+            return szPrefix + "검사 " + nCount + "건";
+        }
+
+        private static bool TryParseHourMinute(string szText, out int nHour, out int nMinute)
+        {
+            nHour = 0;
+            nMinute = 0;
+            if (string.IsNullOrEmpty(szText))
+            {
+                return false;
+            }
+            string[] arrParts = szText.Trim().Split(TIME_SEPARATOR);
+            if (arrParts.Length != 2)
+            {
+                return false;
+            }
+            bool bHour = int.TryParse(arrParts[0], out nHour);
+            bool bMinute = int.TryParse(arrParts[1], out nMinute);
+            if (!bHour || !bMinute)
+            {
+                return false;
+            }
+            bool bHourOutOfRange = nHour < 0 || nHour > MAX_HOUR;
+            bool bMinuteOutOfRange = nMinute < 0 || nMinute > MAX_MINUTE;
+            if (bHourOutOfRange || bMinuteOutOfRange)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>기간 안의 검사 폴더 경로를 최신 순으로 돌려준다. 자재번호가 MATERIAL_ANY 가 아니면 그 자재만.</summary>
+        public static List<string> FindCycleFolders(string szResultRoot, DateTime dtFrom, DateTime dtTo, int nMaterial)
+        {
+            List<string> lstResult = new List<string>();
+            if (string.IsNullOrEmpty(szResultRoot))
+            {
+                return lstResult;
+            }
+            if (!Directory.Exists(szResultRoot))
+            {
+                return lstResult;
+            }
+            if (dtTo < dtFrom)
+            {
+                DateTime dtSwap = dtFrom;
+                dtFrom = dtTo;
+                dtTo = dtSwap;
+            }
+            for (DateTime dtDay = dtFrom.Date; dtDay <= dtTo.Date; dtDay = dtDay.AddDays(1))
+            {
+                string szDayFolder = Path.Combine(szResultRoot, dtDay.ToString(DATE_FOLDER_FORMAT));
+                if (!Directory.Exists(szDayFolder))
+                {
+                    continue;
+                }
+                AddDayFolder(szDayFolder, dtDay, dtFrom, dtTo, nMaterial, lstResult);
+            }
+            lstResult.Sort(StringComparer.Ordinal);
+            lstResult.Reverse();
+            return lstResult;
+        }
+
+        private static void AddDayFolder(string szDayFolder, DateTime dtDay, DateTime dtFrom, DateTime dtTo, int nMaterial, List<string> lstResult)
+        {
+            string[] arrDirs;
+            try
+            {
+                arrDirs = Directory.GetDirectories(szDayFolder);
+            }
+            catch
+            {
+                return;
+            }
+            foreach (string szDir in arrDirs)
+            {
+                string szJson = Path.Combine(szDir, CYCLE_JSON_NAME);
+                if (!File.Exists(szJson))
+                {
+                    continue;
+                }
+                DateTime dtTick;
+                bool bHasTime = TryParseFolderTime(szDir, dtDay, out dtTick);
+                if (bHasTime)
+                {
+                    bool bOutOfRange = dtTick < dtFrom || dtTick > dtTo;
+                    if (bOutOfRange)
+                    {
+                        continue;
+                    }
+                }
+                if (nMaterial != MATERIAL_ANY)
+                {
+                    bool bSameMaterial = IsSameMaterial(szJson, nMaterial);
+                    if (!bSameMaterial)
+                    {
+                        continue;
+                    }
+                }
+                lstResult.Add(szDir);
+            }
+        }
+
+        // 폴더 이름 HHmmssfff_cycle 에서 시각을 읽는다. 형식이 다르면 false(기간 거르기 없이 포함).
+        private static bool TryParseFolderTime(string szDir, DateTime dtDay, out DateTime dtTick)
+        {
+            dtTick = dtDay;
+            string szName = Path.GetFileName(szDir);
+            if (string.IsNullOrEmpty(szName))
+            {
+                return false;
+            }
+            if (!szName.EndsWith(CYCLE_FOLDER_SUFFIX, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            if (szName.Length < TIME_PART_LENGTH)
+            {
+                return false;
+            }
+            string szTime = szName.Substring(0, TIME_PART_LENGTH);
+            int nHour = 0;
+            int nMinute = 0;
+            int nSecond = 0;
+            int nMillisecond = 0;
+            bool bHour = int.TryParse(szTime.Substring(0, 2), out nHour);
+            bool bMinute = int.TryParse(szTime.Substring(2, 2), out nMinute);
+            bool bSecond = int.TryParse(szTime.Substring(4, 2), out nSecond);
+            bool bMillisecond = int.TryParse(szTime.Substring(6, 3), out nMillisecond);
+            bool bAllParsed = bHour && bMinute && bSecond && bMillisecond;
+            if (!bAllParsed)
+            {
+                return false;
+            }
+            try
+            {
+                dtTick = new DateTime(dtDay.Year, dtDay.Month, dtDay.Day, nHour, nMinute, nSecond, nMillisecond);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool IsSameMaterial(string szJson, int nMaterial)
+        {
+            try
+            {
+                CycleResultDto dto = CycleResultSerializer.Load(szJson);
+                if (dto == null)
+                {
+                    return false;
+                }
+                return dto.IndexNumber == nMaterial;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
 }

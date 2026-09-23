@@ -219,6 +219,8 @@ namespace ReringProject.UI
                 visible = _allRows.Where(r => r.JudgeText == "NG" || r.JudgeText == "DETECT FAIL" || r.JudgeText == "NO IMAGE" || r.JudgeText == ReviewMeasurementRow.JUDGE_MEASURE_FAIL).ToList(); //260616 hbk NO_IMAGE 불량 포함
             else
                 visible = _allRows;
+            visible = ApplyPassOnly(visible);
+            visible = ApplySearchText(visible);
             dataGrid_measurements.ItemsSource = visible;
 
             // 첫 불량 행 자동 선택 → SelectionChanged 가 해당 FAI 이미지/overlay 로 포커스 (행 생성 후 지연 실행)
@@ -235,8 +237,93 @@ namespace ReringProject.UI
             }
         }
 
+        // '양품만 보기' 가 켜져 있으면 판정 OK 행만 남긴다.
+        private List<ReviewMeasurementRow> ApplyPassOnly(List<ReviewMeasurementRow> lstRows)
+        {
+            if (chk_passOnly == null)
+            {
+                return lstRows;
+            }
+            bool bPassOnly = chk_passOnly.IsChecked == true;
+            if (!bPassOnly)
+            {
+                return lstRows;
+            }
+            List<ReviewMeasurementRow> lstHit = new List<ReviewMeasurementRow>();
+            foreach (ReviewMeasurementRow row in lstRows)
+            {
+                if (row.JudgeText == "OK")
+                {
+                    lstHit.Add(row);
+                }
+            }
+            return lstHit;
+        }
+
+        private void ChkPassOnly_Changed(object sender, RoutedEventArgs e)
+        {
+            bool bPassOnly = chk_passOnly.IsChecked == true;
+            if (bPassOnly && chk_failOnly.IsChecked == true)
+            {
+                chk_failOnly.IsChecked = false; // 두 필터가 겹치면 남는 행이 없다 — 마지막에 누른 쪽만 켠다.
+                return;                          // 체크 해제가 ChkFailOnly_Changed 로 이어져 다시 그린다.
+            }
+            ApplyRowFilter();
+        }
+
+        // 찾기 입력이 있으면 측정명·FAI·Shot 이름에 그 글자가 든 행만 남긴다(대소문자 무시).
+        private List<ReviewMeasurementRow> ApplySearchText(List<ReviewMeasurementRow> lstRows)
+        {
+            if (txt_rowSearch == null)
+            {
+                return lstRows;
+            }
+            string szKeyword = txt_rowSearch.Text;
+            if (string.IsNullOrEmpty(szKeyword))
+            {
+                return lstRows;
+            }
+            szKeyword = szKeyword.Trim();
+            if (szKeyword.Length == 0)
+            {
+                return lstRows;
+            }
+            List<ReviewMeasurementRow> lstHit = new List<ReviewMeasurementRow>();
+            foreach (ReviewMeasurementRow row in lstRows)
+            {
+                bool bHitMeas = ContainsKeyword(row.MeasurementName, szKeyword);
+                bool bHitFai = ContainsKeyword(row.FAIName, szKeyword);
+                bool bHitShot = ContainsKeyword(row.ShotName, szKeyword);
+                if (bHitMeas || bHitFai || bHitShot)
+                {
+                    lstHit.Add(row);
+                }
+            }
+            return lstHit;
+        }
+
+        private static bool ContainsKeyword(string szText, string szKeyword)
+        {
+            if (string.IsNullOrEmpty(szText))
+            {
+                return false;
+            }
+            return szText.IndexOf(szKeyword, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void TxtRowSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            ApplyRowFilter();
+        }
+
         private void ChkFailOnly_Changed(object sender, RoutedEventArgs e)
         {
+            bool bFailOnly = chk_failOnly.IsChecked == true;
+            if (bFailOnly && chk_passOnly != null && chk_passOnly.IsChecked == true)
+            {
+                chk_passOnly.IsChecked = false; // 두 필터가 겹치면 남는 행이 없다 — 마지막에 누른 쪽만 켠다.
+                return;                          // 체크 해제가 ChkPassOnly_Changed 로 이어져 다시 그린다.
+            }
             ApplyCycleListFilter();
             ApplyRowFilter();
         }
@@ -668,8 +755,28 @@ namespace ReringProject.UI
         private void Button_NgAccumExport_Click(object sender, RoutedEventArgs e)
         {
             string szOutputPath = NgAccumulationExportService.BuildOutputPath(SystemHandler.Handle.Setting.ResultSavePath);
-            NgAccumExportOutcome outcome = NgAccumulationExportService.AppendDateFolder(_loadedDateFolder, szOutputPath);
+            EAccumExportScope scope = ResolveAccumScope();
+            NgAccumExportOutcome outcome = NgAccumulationExportService.AppendDateFolder(_loadedDateFolder, szOutputPath, scope);
             CustomMessageBox.Show(NgAccumulationExportService.MESSAGE_TITLE, outcome.Message, outcome.Icon);
+        }
+
+        // 드롭다운에서 고른 저장 대상 — 0 NG 만, 1 OK 만, 2 전체.
+        private EAccumExportScope ResolveAccumScope()
+        {
+            if (cmb_accumScope == null)
+            {
+                return EAccumExportScope.NgOnly;
+            }
+            int nIndex = cmb_accumScope.SelectedIndex;
+            switch (nIndex)
+            {
+                case 1:
+                    return EAccumExportScope.OkOnly;
+                case 2:
+                    return EAccumExportScope.All;
+                default:
+                    return EAccumExportScope.NgOnly;
+            }
         }
 
         // Align 정합 조회 창 열기. 이 화면의 자재번호 입력란 값을 초기값으로 복사해 넘긴다

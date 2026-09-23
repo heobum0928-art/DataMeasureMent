@@ -38,11 +38,18 @@
                 <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
                         Click="Button_LoadFolder_Click"
                         Padding="8,4" HorizontalAlignment="Stretch"/>
-                <!-- Phase 78 NGA-03: NG 만 한 엑셀 파일에 누적 (D-78-02) -->
-                <Button x:Name="btn_ngAccumExport" Content="NG 누적 엑셀 저장"
+                <!-- Phase 78 NGA-03: 한 엑셀 파일에 누적 (D-78-02). 저장 대상은 아래 드롭다운으로 고른다. -->
+                <ComboBox x:Name="cmb_accumScope" SelectedIndex="0"
+                          FontSize="11" Padding="4,2" Margin="0,4,0,0" HorizontalAlignment="Stretch"
+                          ToolTip="엑셀에 누적할 대상 — NG 는 'NG 누적' 시트, OK 는 'OK 누적' 시트로 나눠 쌓입니다">
+                    <ComboBoxItem Content="NG 만 저장"/>
+                    <ComboBoxItem Content="OK 만 저장"/>
+                    <ComboBoxItem Content="전체 저장 (NG + OK)"/>
+                </ComboBox>
+                <Button x:Name="btn_ngAccumExport" Content="누적 엑셀 저장"
                         Click="Button_NgAccumExport_Click"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"
-                        ToolTip="열어 둔 날짜 폴더의 NG 를 NG_분석_누적.xlsx 한 파일에 추가 (이미 들어간 항목은 건너뜀)"/>
+                        ToolTip="열어 둔 날짜 폴더의 측정을 NG_분석_누적.xlsx 한 파일에 추가 (이미 들어간 항목은 건너뜀)"/>
                 <!-- 260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 실행 UI -->
                 <Separator Margin="0,6,0,6"/>
                 <TextBlock Text="자재번호 (비우면 미지정)"
@@ -142,6 +149,17 @@
                 <CheckBox x:Name="chk_failOnly" DockPanel.Dock="Right" Content="불량만 보기"
                           VerticalAlignment="Center" FontSize="11" Foreground="#334155"
                           Checked="ChkFailOnly_Changed" Unchecked="ChkFailOnly_Changed"/>
+                <!-- 양품만 보기 — '불량만 보기' 와 동시에 켜면 아무것도 남지 않으므로 서로 끈다. -->
+                <CheckBox x:Name="chk_passOnly" DockPanel.Dock="Right" Content="양품만 보기"
+                          VerticalAlignment="Center" FontSize="11" Foreground="#334155" Margin="0,0,10,0"
+                          Checked="ChkPassOnly_Changed" Unchecked="ChkPassOnly_Changed"/>
+                <!-- 측정명·FAI·Shot 이름으로 찾기 — 입력한 글자가 들어간 행만 보여 준다. -->
+                <TextBox x:Name="txt_rowSearch" DockPanel.Dock="Right" Width="150"
+                         VerticalAlignment="Center" FontSize="11" Padding="4,1" Margin="0,0,10,0"
+                         TextChanged="TxtRowSearch_TextChanged"
+                         ToolTip="측정명·FAI·Shot 이름으로 찾기 (예: C13)"/>
+                <TextBlock DockPanel.Dock="Right" Text="찾기:" VerticalAlignment="Center"
+                           FontSize="11" Foreground="#334155" Margin="0,0,4,0"/>
             </DockPanel>
         </Border>
 

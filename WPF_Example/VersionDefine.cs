@@ -715,10 +715,18 @@ namespace ReringProject
                  "z 사진은 기록 파일마다 자기 z 한 장만 들어 있으므로, 고른 기록에 없으면 같은 자재의 앞 기록까지 묶어서 찾는다(기준점 사진 찾기와 같은 방식). " +
                  "'이 사진으로 파라미터 수정' 으로 불러오면 메인 캔버스도 그 측정이 쓴 z 사진을 띄워, 리뷰어에서 보던 사진 그대로 파라미터를 고칠 수 있다(레시피의 사진 경로는 바꾸지 않으며, RUN 은 지금처럼 z 후보 전체로 다시 고른다)."
     )]
+    [Version(
+        Number = "1.7.54.0",
+        Date = "2026-09-23",
+        Change = "결과 리뷰어의 누적 엑셀 저장에 대상 선택을 넣었다 — 왼쪽 드롭다운에서 'NG 만 / OK 만 / 전체' 를 고르고 저장하면 한 파일(NG_분석_누적.xlsx) 안에서 NG 는 'NG 누적' 시트, OK 는 'OK 누적' 시트로 나뉘어 쌓인다. " +
+                 "이미 들어간 항목을 건너뛰는 규칙은 시트마다 따로 본다. OK 행은 원인 분석 칸을 비운 채 값만 쌓이고, 측정값이 없는 행은 저장하지 않는다. " +
+                 "측정 결과 표에 찾기 입력란을 추가했다 — 측정명·FAI·Shot 이름에 입력한 글자가 든 행만 보여 준다(대소문자 무시). " +
+                 "'양품만 보기' 체크도 추가해 OK 행만 볼 수 있으며, '불량만 보기' 와는 서로 배타로 동작한다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.53.0";
-        public const string BUILD_DATE = "2026-09-21";
+        public const string VERSION = "1.7.54.0";
+        public const string BUILD_DATE = "2026-09-23";
     }
 }

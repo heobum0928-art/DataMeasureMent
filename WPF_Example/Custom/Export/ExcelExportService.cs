@@ -243,6 +243,14 @@ namespace ReringProject.Export
         }
     }
 
+    /// <summary>누적 엑셀에 담을 대상 — 사용자가 리뷰어에서 고른다.</summary>
+    public enum EAccumExportScope
+    {
+        NgOnly,
+        OkOnly,
+        All
+    }
+
     /// <summary>NG 누적 엑셀 저장 1회 실행 결과 상태. 메시지·아이콘은 NgAccumulationExportService 가 이미 조립한다.</summary>
     public enum ENgAccumExportStatus
     {
@@ -282,7 +290,10 @@ namespace ReringProject.Export
     {
         public const string OUTPUT_FILE_NAME = "NG_분석_누적.xlsx";
         public const string SHEET_NAME = "NG 누적";
-        public const string MESSAGE_TITLE = "NG 누적 엑셀";
+
+        /// <summary>OK 측정을 쌓는 시트 — 같은 파일 안에서 NG 와 나눠 쌓는다.</summary>
+        public const string SHEET_NAME_OK = "OK 누적";
+        public const string MESSAGE_TITLE = "누적 엑셀";
 
         private const string TEMP_FILE_SUFFIX = "_저장중.xlsx";
         private const string CYCLE_JSON_NAME = "cycle.json";
@@ -320,11 +331,11 @@ namespace ReringProject.Export
 
         private const string MSG_NO_FOLDER = "먼저 '날짜 폴더 열기' 로 날짜 폴더를 여세요.";
         private const string MSG_NO_CYCLES = "이 폴더에는 검사 결과(cycle.json)가 없습니다. 날짜 폴더(예: 20260916)를 여세요.";
-        private const string MSG_NO_NG = "이 날짜 폴더에는 NG 가 없습니다 (추가 0건).";
-        private const string MSG_NOTHING_NEW_FORMAT = "새로 추가할 NG 가 없습니다 — 이미 들어 있는 {0}건은 건너뛰었습니다.";
-        private const string MSG_ADDED_FORMAT = "NG {0}건을 추가했습니다 (이미 있던 {1}건 건너뜀).";
-        private const string MSG_FILE_LOCKED = "NG 누적 엑셀 파일이 열려 있어 저장하지 못했습니다. 엑셀을 닫고 다시 누르세요.";
-        private const string MSG_FAILED = "NG 누적 엑셀 저장에 실패했습니다 (Error 로그 확인).";
+        private const string MSG_NO_NG = "이 날짜 폴더에는 저장할 측정이 없습니다 (추가 0건).";
+        private const string MSG_NOTHING_NEW_FORMAT = "새로 추가할 측정이 없습니다 — 이미 들어 있는 {0}건은 건너뛰었습니다.";
+        private const string MSG_ADDED_FORMAT = "{0}건을 추가했습니다 (이미 있던 {1}건 건너뜀).";
+        private const string MSG_FILE_LOCKED = "누적 엑셀 파일이 열려 있어 저장하지 못했습니다. 엑셀을 닫고 다시 누르세요.";
+        private const string MSG_FAILED = "누적 엑셀 저장에 실패했습니다 (Error 로그 확인).";
         private const string MSG_UNREADABLE_FORMAT = "읽지 못한 검사 결과 {0}건 — 저장 중이었거나 손상된 파일입니다. 잠시 후 다시 누르면 추가됩니다.";
         private const string MSG_LARGE_FILE_FORMAT = "파일이 커졌습니다({0}행). 파일 이름을 바꿔 보관하면 다음부터 새 파일로 시작합니다.";
 
@@ -345,6 +356,9 @@ namespace ReringProject.Export
         // xlsx 한 행에 들어갈 값(규격 표 20열)과 중복 판정용 키.
         private class NgRowData
         {
+            /// <summary>true = NG 행("NG 누적" 시트), false = OK 행("OK 누적" 시트).</summary>
+            public bool IsNg = true;
+
             public DateTime InspectionTime;
             public string Kind;
             public string Recipe;
@@ -385,9 +399,15 @@ namespace ReringProject.Export
         /// </summary>
         public static NgAccumExportOutcome AppendDateFolder(string szDateFolderPath, string szOutputPath)
         {
+            return AppendDateFolder(szDateFolderPath, szOutputPath, EAccumExportScope.NgOnly);
+        }
+
+        /// <summary>저장 대상(NG만·OK만·전체)을 골라 누적한다. 전체면 NG 는 "NG 누적", OK 는 "OK 누적" 시트로 나눠 쌓인다.</summary>
+        public static NgAccumExportOutcome AppendDateFolder(string szDateFolderPath, string szOutputPath, EAccumExportScope scope)
+        {
             try
             {
-                return AppendDateFolderInternal(szDateFolderPath, szOutputPath);
+                return AppendDateFolderInternal(szDateFolderPath, szOutputPath, scope);
             }
             catch (Exception ex)
             {
@@ -396,7 +416,7 @@ namespace ReringProject.Export
             }
         }
 
-        private static NgAccumExportOutcome AppendDateFolderInternal(string szDateFolderPath, string szOutputPath)
+        private static NgAccumExportOutcome AppendDateFolderInternal(string szDateFolderPath, string szOutputPath, EAccumExportScope scope)
         {
             bool bFolderMissing = string.IsNullOrEmpty(szDateFolderPath) || !Directory.Exists(szDateFolderPath);
             if (bFolderMissing)
@@ -424,7 +444,7 @@ namespace ReringProject.Export
                 history.AddCycle(lstCycles[i].Dto);
             }
 
-            List<NgRowData> lstRows = BuildNgRows(lstCycles, history);
+            List<NgRowData> lstRows = BuildNgRows(lstCycles, history, scope);
             if (lstRows.Count == 0)
             {
                 return BuildOutcome(ENgAccumExportStatus.NoNg, 0, 0, nUnreadable, 0, szOutputPath);
@@ -490,8 +510,9 @@ namespace ReringProject.Export
             return string.CompareOrdinal(a.FolderPath, b.FolderPath);
         }
 
-        // 사이클·Shot·FAI·측정 순서대로 IsNgMeasurement 인 것만 Analyze 해서 행 데이터로 만든다.
-        private static List<NgRowData> BuildNgRows(List<LoadedCycle> lstCycles, NgCauseHistory history)
+        // 사이클·Shot·FAI·측정 순서대로 저장 대상(scope)에 해당하는 것만 행 데이터로 만든다.
+        //  NG 는 기존대로 원인 분석까지 하고, OK 는 원인 칸을 비운 채 값만 쌓는다(분석 대상이 아니다).
+        private static List<NgRowData> BuildNgRows(List<LoadedCycle> lstCycles, NgCauseHistory history, EAccumExportScope scope)
         {
             List<NgRowData> lstRows = new List<NgRowData>();
 
@@ -526,13 +547,38 @@ namespace ReringProject.Export
                             }
 
                             bool bIsNg = NgCauseAnalyzer.IsNgMeasurement(m);
-                            if (!bIsNg)
+                            bool bIsOk = !bIsNg && m.LastHasResult;
+                            bool bWantNg = scope == EAccumExportScope.NgOnly || scope == EAccumExportScope.All;
+                            bool bWantOk = scope == EAccumExportScope.OkOnly || scope == EAccumExportScope.All;
+                            bool bTake;
+                            if (bIsNg)
+                            {
+                                bTake = bWantNg;
+                            }
+                            else if (bIsOk)
+                            {
+                                bTake = bWantOk;
+                            }
+                            else
+                            {
+                                bTake = false; // 측정값 자체가 없는 행(미측정)은 누적하지 않는다.
+                            }
+                            if (!bTake)
                             {
                                 continue;
                             }
 
-                            NgCauseResult cause = NgCauseAnalyzer.Analyze(dto, shot, fai, m, history);
+                            NgCauseResult cause;
+                            if (bIsNg)
+                            {
+                                cause = NgCauseAnalyzer.Analyze(dto, shot, fai, m, history);
+                            }
+                            else
+                            {
+                                cause = NgCauseResult.Empty();
+                            }
                             NgRowData row = BuildRowData(dto, loaded.FolderPath, shot, fai, m, cause);
+                            row.IsNg = bIsNg;
                             lstRows.Add(row);
                         }
                     }
@@ -778,43 +824,35 @@ namespace ReringProject.Export
 
             using (XLWorkbook wb = OpenOrCreateWorkbook(bFileExists, szOutputPath))
             {
-                IXLWorksheet ws;
-                bool bHasSheet = wb.Worksheets.TryGetWorksheet(SHEET_NAME, out ws);
-                bool bNewSheet = !bHasSheet;
-                if (bNewSheet)
-                {
-                    ws = wb.Worksheets.Add(SHEET_NAME);
-                    WriteHeader(ws);
-                }
-
-                HashSet<string> setExistingKeys = ReadExistingKeys(ws);
-                int nRow = ResolveNextRow(ws);
-
+                // NG 행과 OK 행을 각자 시트에 쌓는다 — 시트마다 중복 판정·다음 행을 따로 본다.
+                List<NgRowData> lstNg = new List<NgRowData>();
+                List<NgRowData> lstOk = new List<NgRowData>();
                 for (int i = 0; i < lstRows.Count; i++)
                 {
-                    NgRowData row = lstRows[i];
-                    bool bDuplicate = setExistingKeys.Contains(row.DupKey);
-                    if (bDuplicate)
+                    if (lstRows[i].IsNg)
                     {
-                        continue;
+                        lstNg.Add(lstRows[i]);
                     }
-
-                    WriteRowCells(ws, nRow, row);
-                    setExistingKeys.Add(row.DupKey);
-                    nAdded++;
-                    nRow++;
+                    else
+                    {
+                        lstOk.Add(lstRows[i]);
+                    }
                 }
 
+                int nAddedNg = 0;
+                int nTotalNg = 0;
+                AppendRowsToSheet(wb, SHEET_NAME, lstNg, out nAddedNg, out nTotalNg);
+                int nAddedOk = 0;
+                int nTotalOk = 0;
+                AppendRowsToSheet(wb, SHEET_NAME_OK, lstOk, out nAddedOk, out nTotalOk);
+
+                nAdded = nAddedNg + nAddedOk;
                 nSkippedDuplicate = lstRows.Count - nAdded;
-                nTotalDataRows = (nRow - 1) - HEADER_ROW;
+                nTotalDataRows = nTotalNg + nTotalOk;
 
                 bHasNewRows = nAdded > 0;
                 if (bHasNewRows)
                 {
-                    if (bNewSheet)
-                    {
-                        ws.Columns().AdjustToContents();
-                    }
                     wb.SaveAs(szTempPath);
                 }
             }
@@ -849,6 +887,56 @@ namespace ReringProject.Export
             }
 
             return BuildOutcome(ENgAccumExportStatus.Added, nAdded, nSkippedDuplicate, nUnreadable, nTotalDataRows, szOutputPath);
+        }
+
+        // 시트 하나에 행을 쌓는다 — 없으면 머리글과 함께 만들고, 이미 있는 키는 건너뛴다.
+        private static void AppendRowsToSheet(XLWorkbook wb, string szSheetName, List<NgRowData> lstRows, out int nAdded, out int nTotalDataRows)
+        {
+            nAdded = 0;
+            nTotalDataRows = 0;
+            if (lstRows.Count == 0)
+            {
+                IXLWorksheet wsExisting;
+                bool bFound = wb.Worksheets.TryGetWorksheet(szSheetName, out wsExisting);
+                if (bFound)
+                {
+                    nTotalDataRows = (ResolveNextRow(wsExisting) - 1) - HEADER_ROW;
+                }
+                return;
+            }
+
+            IXLWorksheet ws;
+            bool bHasSheet = wb.Worksheets.TryGetWorksheet(szSheetName, out ws);
+            bool bNewSheet = !bHasSheet;
+            if (bNewSheet)
+            {
+                ws = wb.Worksheets.Add(szSheetName);
+                WriteHeader(ws);
+            }
+
+            HashSet<string> setExistingKeys = ReadExistingKeys(ws);
+            int nRow = ResolveNextRow(ws);
+
+            for (int i = 0; i < lstRows.Count; i++)
+            {
+                NgRowData row = lstRows[i];
+                bool bDuplicate = setExistingKeys.Contains(row.DupKey);
+                if (bDuplicate)
+                {
+                    continue;
+                }
+
+                WriteRowCells(ws, nRow, row);
+                setExistingKeys.Add(row.DupKey);
+                nAdded++;
+                nRow++;
+            }
+
+            nTotalDataRows = (nRow - 1) - HEADER_ROW;
+            if (bNewSheet && nAdded > 0)
+            {
+                ws.Columns().AdjustToContents();
+            }
         }
 
         private static string BuildTempPath(string szOutputPath)

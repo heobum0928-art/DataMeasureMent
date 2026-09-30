@@ -61,7 +61,7 @@ namespace ReringProject.UI
 
         public string MeasuredValueText { get { if (HasResult) return MeasuredValue.ToString("F3"); return "—"; } }
 
-        //260915 hbk 범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸( ⑥).
+        //260915 hbk 범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸.
         public string SelectedZText
         {
             get
@@ -70,7 +70,7 @@ namespace ReringProject.UI
             }
         }
 
-        //260918 hbk LSR-04: 사용 기준 표시 — 국부 / 국부실패→전역 / 옵션 꺼짐 빈칸
+        //260918 hbk 사용 기준 표시 — 국부 / 국부실패→전역 / 옵션 꺼짐 빈칸
         public string RefSourceText
         {
             get

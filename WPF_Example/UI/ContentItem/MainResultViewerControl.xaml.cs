@@ -694,7 +694,7 @@ namespace ReringProject.UI
         public bool IsCenterCrossVisible { get { return _centerCrossVisible; } }
 
         private bool _datumOverlayVisible = true;
-        //260619 hbk #2 패턴 ROI 토글 게이트 (기본 ON, _datumOverlayVisible 미러)
+        //260619 hbk 패턴 ROI 토글 게이트 (기본 ON, _datumOverlayVisible 미러)
         private bool _patternRoiOverlayVisible = true;
 
         // FAI CircleDiameter Strip preview state (Edit 모드 = FAI 노드 선택 시).
@@ -744,7 +744,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        //260619 hbk #2 패턴 ROI 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        //260619 hbk 패턴 ROI 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
         public void SetPatternRoiOverlayVisible(bool visible)
         {
             _patternRoiOverlayVisible = visible;
@@ -786,7 +786,7 @@ namespace ReringProject.UI
             SetResultRoiOverlays(measRects, datumRects, null);
         }
 
-        /// <summary>: datumRects 각 박스에 붙일 라벨을 함께 지정한다(개수가 달라도 안전).</summary>
+        /// <summary>datumRects 각 박스에 붙일 라벨을 함께 지정한다(개수가 달라도 안전).</summary>
         public void SetResultRoiOverlays(List<ResultRoiBox> measRects, List<double[]> datumRects, List<string> datumLabels)
         {
             if (measRects == null) _resultRoiOverlays = new List<ResultRoiBox>();
@@ -1159,7 +1159,7 @@ namespace ReringProject.UI
                 measOverlays = _inspectionOverlays.Concat(BuildTransientOverlays()).ToList();
             else
                 measOverlays = new List<EdgeInspectionOverlay>();
-            //260619 hbk #2: 보정(green) ROI 박스 활성 시 보정전 측정 ROI(_rois) 미표시(중복 제거).
+            //260619 hbk 보정(green) ROI 박스 활성 시 보정전 측정 ROI(_rois) 미표시(중복 제거).
             //  비-align(보정 transform 없음) → _resultRoiOverlays 비어 기존대로 _rois 표시(회귀 0).
             //  단, Edit 모드에서는 편집 대상인 원본(raw) ROI(노란 영역 + 코너 핸들)를 항상 보여야 한다 — 보정 박스는
             //  결과 보기용이라 Edit 중엔 raw 를 숨기면 핸들만 떠 편집 영역이 안 보이는 문제가 있었다(사용자 확인).
@@ -1231,14 +1231,14 @@ namespace ReringProject.UI
                 _displayService.RenderAlignContourXld(ViewerHost.HalconWindow, _alignContourXld, "green", 2);
             }
 
-            //260619 hbk #2 패턴 매칭 ROI (cyan, datum orange / 측정 green / datum 기준선 slate blue 와 구분). 패턴 토글 게이트.
+            //260619 hbk 패턴 매칭 ROI (cyan, datum orange / 측정 green / datum 기준선 slate blue 와 구분). 패턴 토글 게이트.
             if (_patternRoiOverlayVisible && _resultDatumOverlays != null && _resultDatumOverlays.Count > 0)
             {
                 var patternRects = new List<double[]>();
                 foreach (DatumConfig d in _resultDatumOverlays)
                 {
                     if (d == null) continue;
-                    //260622 hbk #1 패턴 ROI 위치 보정 표시 — CurrentTransform 유효 시 center 변환 + phi 회전 가산
+                    //260622 hbk 패턴 ROI 위치 보정 표시 — CurrentTransform 유효 시 center 변환 + phi 회전 가산
                     //  (datum 검색 ROI/측정 ROI 와 동일 규약: AffineTransPoint2d + Atan2(-t[1],t[0])). 무효 시 공칭 폴백(회귀 0).
                     //  length 는 이미 disp 규약(Length1=halfW 열)이라 변환 불필요(center+phi 만 보정).
                     HTuple pt = d.CurrentTransform;

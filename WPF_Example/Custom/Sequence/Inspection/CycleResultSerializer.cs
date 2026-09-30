@@ -89,7 +89,7 @@ namespace ReringProject.Sequence
                     // GetLatestImagePath() = SimulImagePath — 측정 소스 이미지 (리뷰어 재로드용)
                     // SaveResultImage SaveFailImage 게이트에 의존하지 않음
                 };
-                bool bZRangeEnabled = shot.IsZRangeEnabled(); //260917 hbk NGA-07: 검사 당시 Z 범위 기록 — 리뷰어 R8 은 현재 레시피가 아니라 이 값을 쓴다
+                bool bZRangeEnabled = shot.IsZRangeEnabled(); //260917 hbk 검사 당시 Z 범위 기록 — 리뷰어 R8 은 현재 레시피가 아니라 이 값을 쓴다
                 if (bZRangeEnabled)
                 {
                     shotDto.ZRangeStartIndex = shot.ZIndex;
@@ -139,7 +139,7 @@ namespace ReringProject.Sequence
                             LastErrorMessage = meas.LastErrorMessage  // MEASURE_FAIL 원본 에러(절단됨)
                         };
                         measDto.SelectedZIndex = meas.LastSelectedZIndex;
-                        measDto.RefSource = meas.LastRefSource; //260918 hbk LSR-04: 사용 기준(옵션 꺼짐 = null)
+                        measDto.RefSource = meas.LastRefSource; //260918 hbk 사용 기준(옵션 꺼짐 = null)
                         if (meas.LastZCandidateScores != null)
                         {
                             measDto.ZCandidateScores = new List<ZCandidateScoreDto>(meas.LastZCandidateScores);
@@ -173,10 +173,10 @@ namespace ReringProject.Sequence
             return dto;
         }
 
-        //260917 hbk NGA-07: 비유한수(NaN/Infinity) 진단 값을 cycle.json 에 그대로 쓰지 않기 위한 대체값
+        //260917 hbk 비유한수(NaN/Infinity) 진단 값을 cycle.json 에 그대로 쓰지 않기 위한 대체값
         private const double NON_FINITE_REPLACEMENT = 0.0;
 
-        //260917 hbk NGA-07: NaN·무한대는 NON_FINITE_REPLACEMENT 로 치환해 반환한다(기록만, 판정 무관)
+        //260917 hbk NaN·무한대는 NON_FINITE_REPLACEMENT 로 치환해 반환한다(기록만, 판정 무관)
         private static double ToFiniteOrZero(double dValue)
         {
             bool bNonFinite = double.IsNaN(dValue) || double.IsInfinity(dValue);

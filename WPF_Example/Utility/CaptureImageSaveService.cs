@@ -365,7 +365,7 @@ namespace ReringProject.Utility {
         //  결과: {prefix}_{시퀀스}_{FAI}[_{측정점}][_{OK|NG}]_{HHmmssfff}.jpg  (segment 빈 경우 생략)
         /// <summary>
         /// FAI별 캡쳐 이미지 파일명 생성. prefix = "origin" 또는 "capture".
-        /// 각 segment 는 Path.GetInvalidFileNameChars 로 sanitize ( path traversal 차단).
+        /// 각 segment 는 Path.GetInvalidFileNameChars 로 sanitize (path traversal 차단).
         /// </summary>
         public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts) {
             string seq = SanitizeFilePart(sequence, "SEQ"); //260612 hbk traversal 차단
@@ -500,7 +500,7 @@ namespace ReringProject.Utility {
             return text;
         }
 
-        //260612 hbk 완성 파일명 전체에 대한 2차 방어 . SanitizeFilePart 와 동일 치환 로직.
+        //260612 hbk 완성 파일명 전체에 대한 2차 방어. SanitizeFilePart 와 동일 치환 로직.
         private static string SanitizeFileName(string name) {
             if (string.IsNullOrWhiteSpace(name)) {
                 return "capture_unknown.jpg";

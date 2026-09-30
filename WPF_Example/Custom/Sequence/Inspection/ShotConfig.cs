@@ -193,14 +193,14 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260915 hbk 범위 기능 꺼짐 표식(옛 레시피의 키 부재 로드값과 동일 —).
+        //260915 hbk 범위 기능 꺼짐 표식(옛 레시피의 키 부재 로드값과 동일).
         public const int Z_RANGE_OFF = 0;
         //260915 hbk 기준점(ZIndex) 0 번은 범위 시작으로 쓸 수 없다(Datum 폴백 index 와 충돌).
         public const int MIN_Z_RANGE_BASE_INDEX = 1;
-        //260915 hbk SIDE 사진 1장 약 127~152MB — z 개수 상한( 메모리 가드).
+        //260915 hbk SIDE 사진 1장 약 127~152MB — z 개수 상한(메모리 가드).
         public const int MAX_Z_RANGE_COUNT = 10;
 
-        //260915 hbk ①⑧: 범위 = ZIndex ~ ZIndexEnd(둘 다 포함), 기준 Z = ZIndex.
+        //260915 hbk 범위 = ZIndex ~ ZIndexEnd(둘 다 포함), 기준 Z = ZIndex.
         //  시작 번호 칸은 만들지 않는다 — 기존 ZIndex 를 그대로 범위 시작으로 쓴다.
         //  ParamBase reflection 자동 직렬화 — INI 키 = "ZIndexEnd". 키 부재(옛 레시피) → 0 로드 = 범위 꺼짐.
         private int _zIndexEnd = Z_RANGE_OFF;
@@ -230,12 +230,12 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        //260915 hbk ②: 저장 사이클 재검사 중에만 RepeatRunService 가 채우는 z→사진 경로다.
+        //260915 hbk 저장 사이클 재검사 중에만 RepeatRunService 가 채우는 z→사진 경로다.
         //  null 이면 재검사가 아니라는 뜻이다(오프라인 폴더 규약을 그대로 따른다). 필드다 —
         //  런타임 전용 값이라 ParamBase 리플렉션 직렬화(INI)·PropertyGrid 붙여넣기 대상이 아니다.
         public Dictionary<int, string> RerunZRangeImagePaths = null;
 
-        //260915 hbk ①⑤: ZIndexEnd 가 0(꺼짐)이 아닌데 IsZRangeEnabled 가 false 면 오설정
+        //260915 hbk ZIndexEnd 가 0(꺼짐)이 아닌데 IsZRangeEnabled 가 false 면 오설정
         //  ZIndex 미설정/역순/상한 초과 중 하나로 조용히 꺼진 상태다. 런타임 tick 경고(Action_FAIMeasurement)
         //  와 편집 즉시 경고(WarnZIndexEndChanged) 가 공유한다.
         public bool IsZRangeMisconfigured() {
@@ -244,7 +244,7 @@ namespace ReringProject.Sequence {
             return bEndSet && bDisabled;
         }
 
-        //260915 hbk ①⑤: 오설정 이유를 한국어 한 줄로. 가드 순서가 원인 우선순위다 — ZIndex 미설정이
+        //260915 hbk 오설정 이유를 한국어 한 줄로. 가드 순서가 원인 우선순위다 — ZIndex 미설정이
         //  가장 근본적인 원인이라 먼저 확인한다. 겹침(다른 Shot·기준점)은 BuildZRangeConflictText 가 담당한다.
         public string BuildZRangeMisconfigText() {
             if (ZIndexEnd == Z_RANGE_OFF) { return string.Empty; }
@@ -664,7 +664,7 @@ namespace ReringProject.Sequence {
         }
 
         /// <summary>
-        /// Part B: 배치 사이클 완료 후 메모리 정리로 _image 가 비워진 뒤에도 화면 재현이 가능한지
+        /// 배치 사이클 완료 후 메모리 정리로 _image 가 비워진 뒤에도 화면 재현이 가능한지
         /// 판단하기 위한 디스크 폴백 경로 조회. FAIList 의 각 FAI가 보유한 원본 캡쳐 파일
         /// (FAIConfig.LastOriginImageFileName — CaptureImageSaveService 가 매 검사마다 overlay 없이 저장하는 원본,
         /// Action_FAIMeasurement.QueueFaiCapture 가 기록) 중 실제 존재하는 첫 경로를 반환한다.

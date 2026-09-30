@@ -62,7 +62,7 @@ namespace ReringProject.UI
         /// </summary>
         public List<ZRangeImageRecordDto> ZRangeImages { get; set; } = new List<ZRangeImageRecordDto>();
 
-        /// <summary> NGA-07: 이 시퀀스 Datum 진단 값. 기록 전용, 옛 cycle.json 은 빈 목록.</summary>
+        /// <summary>이 시퀀스 Datum 진단 값. 기록 전용, 옛 cycle.json 은 빈 목록.</summary>
         public List<DatumDiagnosticDto> DatumDiagnostics { get; set; } = new List<DatumDiagnosticDto>();
 
         // 측정 데이터 — Shot > FAI > Measurement 계층
@@ -93,7 +93,7 @@ namespace ReringProject.UI
         public string Path { get; set; }
     }
 
-    /// <summary>Z 범위 Shot 에서 이 측정의 후보 z 하나를 실제로 측정한 결과( NGA-07). 평가 순서대로 기록.</summary>
+    /// <summary>Z 범위 Shot 에서 이 측정의 후보 z 하나를 실제로 측정한 결과. 평가 순서대로 기록.</summary>
     public class ZCandidateScoreDto
     {
         public int ZIndex { get; set; }
@@ -104,7 +104,7 @@ namespace ReringProject.UI
     }
 
     /// <summary>
-    /// tick 저장 시점의 기준점 진단 값(기록 전용, 판정 무관 —). IsDetectedThisTick=false 면 이전 tick 에서
+    /// tick 저장 시점의 기준점 진단 값(기록 전용, 판정 무관). IsDetectedThisTick=false 면 이전 tick 에서
     /// 검출된 값.
     /// </summary>
     public class DatumDiagnosticDto
@@ -153,7 +153,7 @@ namespace ReringProject.UI
         /// </summary>
         public string ResultImagePath { get; set; }
 
-        /// <summary> NGA-07: 범위 꺼짐·옛 cycle.json = -1.</summary>
+        /// <summary>범위 꺼짐·옛 cycle.json = -1.</summary>
         public const int Z_RANGE_NONE = -1;
 
         /// <summary>검사 당시 Shot 의 Z 범위 시작. R8 판정은 현재 레시피가 아니라 이 값을 쓴다.</summary>
@@ -222,13 +222,13 @@ namespace ReringProject.UI
         /// <summary>세로축 티칭 이미지 경로 (DualImage).</summary>
         public string VerticalImagePath { get; set; }
 
-        /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호. -1 = 범위 미적용·옛 JSON( ⑥).</summary>
+        /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호. -1 = 범위 미적용·옛 JSON.</summary>
         public int SelectedZIndex { get; set; } = MeasurementBase.SELECTED_Z_NONE;
 
-        /// <summary> NGA-07: 후보 z 별 선명도, 평가 순서대로. 범위 미적용·옛 JSON = 빈 목록.</summary>
+        /// <summary>후보 z 별 선명도, 평가 순서대로. 범위 미적용·옛 JSON = 빈 목록.</summary>
         public List<ZCandidateScoreDto> ZCandidateScores { get; set; } = new List<ZCandidateScoreDto>();
 
-        /// <summary> LSR-04: 사용 기준 코드 — "Local" = 핀 옆 띠(국부), "LocalFallback" = 국부 실패로 전역 전환, null = 옵션 꺼짐(전역, 기존과 같음)·옛 JSON.</summary>
+        /// <summary>사용 기준 코드 — "Local" = 핀 옆 띠(국부), "LocalFallback" = 국부 실패로 전역 전환, null = 옵션 꺼짐(전역, 기존과 같음)·옛 JSON.</summary>
         public string RefSource { get; set; }
     }
 
@@ -292,7 +292,7 @@ namespace ReringProject.UI
             }
         }
 
-        /// <summary>이 측정 항목이 이 tick 에서 다뤄졌는지( FillTickSummary 규칙과 동일).</summary>
+        /// <summary>이 측정 항목이 이 tick 에서 다뤄졌는지(FillTickSummary 규칙과 동일).</summary>
         private static bool IsHandled(MeasurementResultDto m, out bool bNg)
         {
             bool bHasResult = m.LastHasResult;
@@ -922,7 +922,7 @@ namespace ReringProject.UI
         public const string R4_ACTION_ZINDEX_TEXT = "PLC z 번호와 레시피 Z 설정을 확인하세요";
         public const string R4_ACTION_CROSS_Z_TEXT = "PLC 자동 검사로 다시 확인하세요 (수동 실행은 두 장짜리 측정을 못 합니다)";
 
-        //260917 hbk NGA-01: R9 공차 경계 흔들림
+        //260917 hbk R9 공차 경계 흔들림
         public const double R9_BOUNDARY_RATIO = 0.10;
         public const double PERCENT_SCALE = 100.0;
         public const string PERCENT_FORMAT = "F0";
@@ -932,7 +932,7 @@ namespace ReringProject.UI
         public const string R9_DIR_BELOW_TEXT = "아래로";
         public const string R9_ACTION_TEXT = "같은 자재로 반복 검사를 해서 값이 흔들리는지 확인하세요";
 
-        //260917 hbk NGA-01: R8 초점 범위 끝
+        //260917 hbk R8 초점 범위 끝
         public const int MIN_VALID_Z_INDEX = 1;
         public const string R8_CAUSE_TEXT = "초점 범위가 부족할 수 있습니다";
         public const string R8_EVIDENCE_FORMAT = "가장 선명한 사진이 범위 끝 {0} 에서 나옴 {1} · {2}";
@@ -947,13 +947,13 @@ namespace ReringProject.UI
         public const string R8_NO_SCORES_TEXT = "후보별 선명도 기록 없음(이 기능 이전 데이터)";
         public const string R8_ACTION_TEXT = "PLC 에 Z 범위를 끝 쪽으로 더 넓혀 달라고 요청하세요";
 
-        //260917 hbk NGA-01: R7 한 곳만 벗어남
+        //260917 hbk R7 한 곳만 벗어남
         public const int R7_LONE_NG_COUNT = 1;
         public const string R7_CAUSE_TEXT = "이 위치만 벗어났습니다 (실제 불량이나 이물 가능성)";
         public const string R7_EVIDENCE_FORMAT = "이번 검사 NG 는 이 측정 1개뿐 · 측정 {0} · 허용 {1} ~ {2}";
         public const string R7_ACTION_TEXT = "사진에서 이 위치를 보고 실물(이물·찍힘)을 확인하세요";
 
-        //260917 hbk NGA-01: 함께 의심 라벨
+        //260917 hbk 함께 의심 라벨
         public const string LABEL_R5 = "기준점 흔들림";
         public const string LABEL_R6 = "보정값/티칭 치우침";
         public const string LABEL_R7 = "한 곳만 벗어남";
@@ -961,7 +961,7 @@ namespace ReringProject.UI
         public const string LABEL_R9 = "공차 경계 흔들림";
         public const string SUSPECT_SEPARATOR = ", ";
 
-        //260917 hbk NGA-01: R5 기준점 흔들림
+        //260917 hbk R5 기준점 흔들림
         public const int R5_NEIGHBORS_EACH_SIDE = 2;
         public const int R5_MIN_NEIGHBORS = 2;
         public const int R5_MIN_SHARED_COUNT = 2;
@@ -1204,7 +1204,7 @@ namespace ReringProject.UI
             return hit;
         }
 
-        /// <summary>R8 범위 끝: shot 기록값 우선, 없으면 자동 tick 의 cycle.ZIndex 로 대체(현재 레시피 참조 없음 — PR-4).</summary>
+        /// <summary>R8 범위 끝: shot 기록값 우선, 없으면 자동 tick 의 cycle.ZIndex 로 대체(현재 레시피 참조 없음).</summary>
         private static int ResolveZRangeEnd(CycleResultDto cycle, ShotResultDto shot, MeasurementResultDto m, out bool bRecorded)
         {
             bool bShotRangeRecorded = shot != null && shot.ZRangeEndIndex >= MIN_VALID_Z_INDEX;

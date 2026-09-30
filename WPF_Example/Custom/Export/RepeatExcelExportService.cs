@@ -15,14 +15,14 @@ namespace ReringProject.Export
     /// 반복 측정 결과(List&lt;CycleResultDto&gt;)를 2-시트 xlsx 로 export 한다.
     /// 시트1 "반복도 통계": Shot/FAI/측정명별 N/Mean/StdDev/Range/Cpk/OK/NG/DETECT_FAIL.
     /// 시트2 "알고리즘 통계": TypeName → 카테고리 집계 (N/성공률/Mean/StdDev).
-    /// 예외는 전부 try/catch → false + Logging ( 패턴 동일).
+    /// 예외는 전부 try/catch → false + Logging (패턴 동일).
     /// </summary>
     public static class RepeatExcelExportService
     {
         private const string DETAIL_SHEET_NAME = "회차별 상세";
         private const int DETAIL_CAPTURE_IMAGE_COLUMN = 12;   // 회차(1) 가 앞에 붙어 단일 cycle 포맷보다 1 밀림
 
-        // cycle 수에 비례해 늘리되 상한을 둔다. UI 스레드 동기 호출이므로 무한정 블로킹은 금지 (E1L-05).
+        //260805 hbk cycle 수에 비례해 늘리되 상한을 둔다. UI 스레드 동기 호출이므로 무한정 블로킹은 금지.
         private const int BATCH_CAPTURE_WAIT_PER_CYCLE_MS = 1000;
         private const int BATCH_CAPTURE_WAIT_BUDGET_MIN_MS = 5000;
         private const int BATCH_CAPTURE_WAIT_BUDGET_MAX_MS = 15000;
@@ -333,7 +333,7 @@ namespace ReringProject.Export
             ws.Cell(nRow, 6).Value = m.TolerancePlus;
             ws.Cell(nRow, 7).Value = m.ToleranceMinus;
 
-            //260805 hbk 측정값: 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 .
+            //260805 hbk 측정값: 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다.
             if (m.LastHasResult)
             {
                 ws.Cell(nRow, 8).Value = m.LastMeasuredValue;

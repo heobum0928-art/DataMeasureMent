@@ -230,7 +230,7 @@ namespace ReringProject.Device {
                 //       ("Requested operation not supported"). 해상도/tap 기하는 반드시 DCF 로 설정해야 한다.
                 //       DCF 준비 전까지는 M_DEFAULT 로 열어 카메라 현재 설정 그대로 grab 한다.
 
-                //260609 hbk 4. Mono8 grab 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용 —)
+                //260609 hbk 4. Mono8 grab 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용)
                 //    버퍼 크기는 하드코딩 대신 디지타이저 실제값(MdigInquire)으로 잡는다.
                 //    하드코딩 시 SIMUL_MODE 시뮬 디지타이저에 144MB non-paged(M_GRAB) 요구 →
                 //    MbufAlloc2d Allocation error 발생. MdigProcess C# 예제 L62-66 패턴.
@@ -424,7 +424,7 @@ namespace ReringProject.Device {
 
         /// <summary>
         /// MIL 버퍼에 pitch padding이 존재할 때 행 단위로 복사하여 연속 HImage를 생성한다.
-        /// pitch > width 인 경우에만 호출. (: 128MP 대용량 row-copy)
+        /// pitch > width 인 경우에만 호출. ( 128MP 대용량 row-copy)
         /// </summary>
         private HImage CreateImageFromPaddedBuffer(IntPtr src, int width, int height, int pitchByte) {
             byte[] packed = new byte[width * height];

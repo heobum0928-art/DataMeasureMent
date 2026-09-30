@@ -187,7 +187,7 @@ namespace ReringProject.UI {
             }
         }
 
-        /// <summary>Displays the shot image associated with the selected FAIConfig. Per .
+        /// <summary>Displays the shot image associated with the selected FAIConfig. Per.
         /// FAIConfig itself does not store an image; the parent ShotConfig holds it.</summary>
         public void DisplayFAIImage(FAIConfig fai) {
             if (fai == null) {
@@ -248,7 +248,7 @@ namespace ReringProject.UI {
                     if (img != null) img.Dispose();
                 }
             } else {
-                //260806 hbk Part B: 배치 사이클 종료 후 메모리 정리(InspectionListView.CleanupBatchImageMemoryAfterCycle)로
+                //260806 hbk 배치 사이클 종료 후 메모리 정리(InspectionListView.CleanupBatchImageMemoryAfterCycle)로
                 //  shot._image 가 비워졌을 수 있다 — FAI 원본 캡쳐 파일(overlay 미포함, RenderStoredOverlaysForFai 가
                 //  overlay 는 별도로 그림)로 재로드를 시도한 뒤에도 없으면 기존과 동일하게 "NO Image" 표시.
                 string fallbackPath = null;
@@ -547,7 +547,7 @@ namespace ReringProject.UI {
                 Column2 = pCol + pLen2,
                 IsTaught = true
             });
-            //260918 hbk LSR-01: 국부 기준 ROI(핀 옆 띠) — 티칭됐을 때만 두 번째 ROI 로 보여 준다(RoiId 끝 _LocalRef)
+            //260918 hbk 국부 기준 ROI(핀 옆 띠) — 티칭됐을 때만 두 번째 ROI 로 보여 준다(RoiId 끝 _LocalRef)
             if (etld != null) {
                 bool bLocalRefTaught = etld.LocalRef_Length1 > 0 && etld.LocalRef_Length2 > 0;
                 if (bLocalRefTaught) {
@@ -720,7 +720,7 @@ namespace ReringProject.UI {
                     if (m == null || string.IsNullOrEmpty(m.DatumRef) || !xforms.TryGetValue(m.DatumRef, out t)) continue;
                     double rPhi = System.Math.Atan2(-t[1].D, t[0].D); // 측정 rectangle2 회전각과 동일 규약 (TryFitLine)
                     foreach (var roi in BuildPointRoiDefinitions(m, fai.FAIName)) {
-                        //260622 hbk #2 — HALCON disp_rectangle2 규약: length1=열(가로/X) 반장축, length2=행(세로/Y) 반장축.
+                        //260622 hbk HALCON disp_rectangle2 규약: length1=열(가로/X) 반장축, length2=행(세로/Y) 반장축.
                         double l1 = (roi.Column2 - roi.Column1) / 2.0; // length1 = 열(가로/X) 반장축
                         double l2 = (roi.Row2 - roi.Row1) / 2.0;       // length2 = 행(세로/Y) 반장축
                         if (l1 <= 0 || l2 <= 0) continue;
@@ -901,7 +901,7 @@ namespace ReringProject.UI {
                         if (roiId == f.FAIName + "_" + measName + "_Line") { fai = f; meas = m; subKey = "Line"; return true; }
                         continue;
                     }
-                    //260918 hbk LSR-01: EdgeToLineDistance 의 국부 기준 ROI 는 subKey LocalRef 로 해석한다
+                    //260918 hbk EdgeToLineDistance 의 국부 기준 ROI 는 subKey LocalRef 로 해석한다
                     bool bIsLocalRefRoi = m is EdgeToLineDistanceMeasurement && roiId == f.FAIName + "_" + measName + "_" + EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
                     if (bIsLocalRefRoi) {
                         fai = f;
@@ -937,7 +937,7 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row += deltaRow; dual.LineROI_Col += deltaCol; }
                 return;
             }
-            //260918 hbk LSR-01: 국부 기준 ROI 이동 — Point ROI 는 아래 기존 줄이 그대로 처리한다
+            //260918 hbk 국부 기준 ROI 이동 — Point ROI 는 아래 기존 줄이 그대로 처리한다
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bMoveLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bMoveLocalRef) {
@@ -978,7 +978,7 @@ namespace ReringProject.UI {
                 if (subKey == "Line") { row = dual.LineROI_Row; col = dual.LineROI_Col; return true; }
                 return false;
             }
-            //260918 hbk LSR-01: 국부 기준 ROI 중심 읽기(Edit 모드 드래그 역보정용)
+            //260918 hbk 국부 기준 ROI 중심 읽기(Edit 모드 드래그 역보정용)
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bCenterLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bCenterLocalRef) {
@@ -1034,7 +1034,7 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row = cRow; dual.LineROI_Col = cCol; dual.LineROI_Length1 = halfR; dual.LineROI_Length2 = halfC; }
                 return;
             }
-            //260918 hbk LSR-01: 국부 기준 ROI 크기·위치 쓰기
+            //260918 hbk 국부 기준 ROI 크기·위치 쓰기
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bResizeLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bResizeLocalRef) {
@@ -1076,7 +1076,7 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row = 0; dual.LineROI_Col = 0; dual.LineROI_Length1 = 0; dual.LineROI_Length2 = 0; }
                 return;
             }
-            //260918 hbk LSR-01: 국부 기준 ROI 삭제(0 리셋) — 옵션 체크는 그대로라 다음 검사에서 '미티칭' 으로 전역 전환된다
+            //260918 hbk 국부 기준 ROI 삭제(0 리셋) — 옵션 체크는 그대로라 다음 검사에서 '미티칭' 으로 전역 전환된다
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bClearLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bClearLocalRef) {
@@ -1138,7 +1138,7 @@ namespace ReringProject.UI {
                 r = dual.LineROI_Row; c = dual.LineROI_Col; TransformPointInPlace(T, ref r, ref c); dual.LineROI_Row = r; dual.LineROI_Col = c; dual.LineROI_Phi = dual.LineROI_Phi + rot;
                 return;
             }
-            //260918 hbk LSR-01: 마스터 재앵커 때 티칭된 국부 기준 ROI 도 같이 옮긴다 — 미티칭(0) 값은 그대로 둬 옛 레시피 값이 바뀌지 않게 한다. return 하지 않고 아래 기존 줄이 Point ROI 를 옮긴다
+            //260918 hbk 마스터 재앵커 때 티칭된 국부 기준 ROI 도 같이 옮긴다 — 미티칭(0) 값은 그대로 둬 옛 레시피 값이 바뀌지 않게 한다. return 하지 않고 아래 기존 줄이 Point ROI 를 옮긴다
             var etldLocalRef = m as EdgeToLineDistanceMeasurement;
             if (etldLocalRef != null) {
                 bool bLocalRefTaught = etldLocalRef.LocalRef_Length1 > 0 && etldLocalRef.LocalRef_Length2 > 0;
@@ -3268,7 +3268,7 @@ namespace ReringProject.UI {
             halconViewer.SetDatumOverlayVisible(chk_overlayDatum.IsChecked == true);
         }
 
-        //260619 hbk #2 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
+        //260619 hbk 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
         private void Chk_overlayPattern_Changed(object sender, RoutedEventArgs e) {
             if (halconViewer == null) return;
             halconViewer.SetPatternRoiOverlayVisible(chk_overlayPattern.IsChecked == true);
@@ -3521,7 +3521,7 @@ namespace ReringProject.UI {
         }
 
         //260910 hbk 체커보드 산출 mm/px 를 레시피 전체 shot 의 PixelResolution 에 일괄 반영
-        //  확인 모달 후에만 + SaveRecipe 로 영속화( — existingFile 보존 가드). plan 02 ApplyRequested 핸들러.
+        //  확인 모달 후에만 + SaveRecipe 로 영속화(existingFile 보존 가드). ApplyRequested 핸들러.
         //  이 장비는 물리 카메라가 1대라 시퀀스 구분이 배율값에 의미가 없으므로 활성 시퀀스 필터 없이
         //  전체 shot 에 한 번에 적용한다.
         private void ApplyCheckerboardCalibration(CalibrationResult result) {
@@ -4252,17 +4252,17 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260619 hbk #1 패턴2 미설정 경고+override ( — 하드 블록 아님, 회전 정밀도 안전장치).
-            //  단일 패턴 폴백 경로(TryComposeAlign InspectionSequence.cs:490-514) 는 그대로 — 패턴2 없으면 단일 패턴 θ 사용 .
+            //260619 hbk 패턴2 미설정 경고+override (하드 블록 아님, 회전 정밀도 안전장치).
+            //  단일 패턴 폴백 경로(TryComposeAlign InspectionSequence.cs:490-514) 는 그대로 — 패턴2 없으면 단일 패턴 θ 사용.
             if (datum.PatternRoi2_Length1 <= 0.0 || datum.PatternRoi2_Length2 <= 0.0) {
                 MessageBoxResult confirm = CustomMessageBox.ShowConfirmation(
                     "패턴 2 미설정",
                     "패턴 2 를 그리지 않았습니다. 단일 패턴은 회전(tilt) 보정 정밀도가 낮습니다.\n\n그래도 단일 패턴으로 모델을 생성하시겠습니까?\n([취소] 후 [패턴 2] 버튼으로 반대 대각 끝에 패턴을 추가 권장)",
                     MessageBoxButton.OKCancel);
                 if (confirm != MessageBoxResult.OK) {
-                    return; //260619 hbk #1 사용자가 취소 → 모델 생성 중단 (하드 블록 아님 — 단순 중단)
+                    return; //260619 hbk 사용자가 취소 → 모델 생성 중단 (하드 블록 아님 — 단순 중단)
                 }
-                //260619 hbk #1 OK → 단일 패턴으로 진행 (override)
+                //260619 hbk OK → 단일 패턴으로 진행 (override)
             }
 
             //260618 hbk 런타임 load 와 동일 키 — 직접 경로 도출 금지, 헬퍼만 사용
@@ -4634,7 +4634,7 @@ namespace ReringProject.UI {
                 // 성공: TryFindDatum 이 DetectedOrigin* + LastFindSucceeded write-back → SetDatumOverlay → RenderDatumFindResult chain
                 // Test Find 보정 ROI 박스 이동 표시 — 보정(align) datum 은 결과 경로와 동일하게
                 //  ShowResultDatumOverlays 호출 → CurrentTransform 으로 보정된 검색 ROI 박스(orange) 가 부품 따라 이동 + 검출 십자.
-                //  공칭 박스 중복 방지 위해 _datumConfig 클리어( '보정전 박스 제거' 정책 일관). 비-align 은 기존 SetDatumOverlay 유지.
+                //  공칭 박스 중복 방지 위해 _datumConfig 클리어('보정전 박스 제거' 정책 일관). 비-align 은 기존 SetDatumOverlay 유지.
                 if (datum.IsPatternAlignEnabled) {
                     halconViewer.ClearDatumOverlay();
                     ShowResultDatumOverlays(new List<DatumConfig> { datum });

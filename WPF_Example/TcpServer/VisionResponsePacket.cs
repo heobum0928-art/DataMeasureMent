@@ -33,7 +33,7 @@ namespace ReringProject.Network {
         TECHING = 4,        // 05.20 Insert
     }
 
-    //260623 hbk 멀티샷 사이클 판정 결과 . enum 신설 범위 = 이 1개만.
+    //260623 hbk 멀티샷 사이클 판정 결과. enum 신설 범위 = 이 1개만.
     //  Buffer = 중간 Index 진행 중(NG 포함 가능) / Pass = 마지막 Index 전체 OK / Fail = 마지막 Index NG 있음 or Datum 실패.
     //  라이프사이클 상태는 멤버 bool(m_bCycleHasNG 등)로 표현 — A-2(멤버 상태) 결정과 일관. CycleState 라이프사이클 enum 미도입.
     public enum ECycleResult : int {
@@ -303,7 +303,7 @@ namespace ReringProject.Network {
         }
 
         //260622 hbk cycle 종합 판정 → P/F/B 매핑. IsBuffer 최우선(진행 중), OK=P, 그 외=F.
-        // 판정 '결정' 로직은 . 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
+        // 판정 '결정' 로직은. 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
         // HasHardwareError 를 IsBuffer 보다도 먼저 확인 — 카메라
         //  하드웨어 grab 실패는 "측정을 아예 못 했다"는 뜻이라 진행 중(B)이든 완료(P/F)든 사이클 상태와
         //  무관하게 무조건 E 로 나가야 한다(제어팀 확정 스펙, 엑셀 63행). 이 필드는 두 신호가 OR 로 합쳐진
@@ -436,7 +436,7 @@ namespace ReringProject.Network {
         // $PREP_ACK 직렬화 → $PREP_ACK:site,Type,z_index,OK|FAIL@ (구분자 3개).
         //  Type 은 요청 echo. 규격 위반 요청이라 Type 을 못 읽었으면 빈 필드를 그대로 내보낸다 —
         //  임의 기본값("0"=TOP)을 채우면 제어가 "우리가 안 보낸 Type 을 받았다"고 오해한다.
-        //  IsOk 의미( 확정): FAIL = 조명 세팅 실패 또는 요청 규격 위반. 검사 항목 유무는 반영하지 않는다.
+        //  IsOk 의미(확정): FAIL = 조명 세팅 실패 또는 요청 규격 위반. 검사 항목 유무는 반영하지 않는다.
         private static string BuildPrepAckMessage(PrepAckPacket packet)
         {
             string szMsg = "";

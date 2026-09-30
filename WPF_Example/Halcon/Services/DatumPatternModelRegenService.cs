@@ -17,7 +17,7 @@ namespace ReringProject.Halcon.Services
         /// <summary>
         /// 이 Datum 의 브러시 마스크가 붙을 모델 파일 경로. 패턴 2 가 설정돼 있으면 2개.
         /// 경로 조립을 직접 하지 않고 기존 단일 소스(ResolveDatumModelPath/2)만 쓴다 —
-        /// 폴더 규약이 갈리면 모델을 조용히 못 찾는 사고가 난다( 전례).
+        /// 폴더 규약이 갈리면 모델을 조용히 못 찾는 사고가 난다(전례).
         /// </summary>
         public static IList<string> GetModelPathsForMask(DatumConfig datum)
         {

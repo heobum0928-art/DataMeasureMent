@@ -591,7 +591,7 @@ namespace ReringProject.Export
 
                             PadRowTo(row, nCol);
 
-                            //260818 hbk 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 .
+                            //260818 hbk 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다.
                             if (m.LastHasResult)
                             {
                                 row.Values.Add(m.LastMeasuredValue);

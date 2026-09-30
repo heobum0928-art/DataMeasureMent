@@ -38,17 +38,17 @@ namespace ReringProject.UI
         /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸.</summary>
         public string SelectedZText { get; set; }
 
-        /// <summary>사용 기준 표시( LSR-04) — 국부 / 국부실패→전역, 옵션 꺼짐·옛 cycle.json 은 빈칸.</summary>
+        /// <summary>사용 기준 표시 — 국부 / 국부실패→전역, 옵션 꺼짐·옛 cycle.json 은 빈칸.</summary>
         public string RefSourceText { get; set; }
 
-        /// <summary>NG 원인 규칙 판정 결과( NGA-01). 3인자 생성자로 만든 행은 기본값(Empty).</summary>
+        /// <summary>NG 원인 규칙 판정 결과. 3인자 생성자로 만든 행은 기본값(Empty).</summary>
         public NgCauseResult Cause { get; set; } = NgCauseResult.Empty();
 
-        /// <summary>NG 원인 패널에 바인딩되는 표시 문자열 — NgCauseAnalyzer.BuildPanelText 결과( NGA-02).</summary>
+        /// <summary>NG 원인 패널에 바인딩되는 표시 문자열 — NgCauseAnalyzer.BuildPanelText 결과.</summary>
         public string CausePanelText { get; set; } = "";
 
         /// <summary>
-        /// LastSkipReason == "DATUM_FAIL" → "DETECT FAIL" ( datum 검출 실패 표기).
+        /// LastSkipReason == "DATUM_FAIL" → "DETECT FAIL" (datum 검출 실패 표기).
         /// LastHasResult ? (LastJudgement ? "OK" : "NG") : "—"
         /// </summary>
         public string JudgeText { get; set; }
@@ -135,7 +135,7 @@ namespace ReringProject.UI
             }
         }
 
-        /// <summary> NGA-01: cycle/history 를 받아 NG 원인 판정까지 채우는 생성자 — 리뷰어 배선 전용.</summary>
+        /// <summary>cycle/history 를 받아 NG 원인 판정까지 채우는 생성자 — 리뷰어 배선 전용.</summary>
         public ReviewMeasurementRow(ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m, CycleResultDto cycle, NgCauseHistory history) : this(shot, fai, m)
         {
             Cause = NgCauseAnalyzer.Analyze(cycle, shot, fai, m, history);
@@ -144,7 +144,7 @@ namespace ReringProject.UI
     }
 
     /// <summary>
-    /// 리뷰어가 띄울 사진 경로 — 그 검사의 실제 촬영 원본 우선, . 순수 로직 + 파일 존재 확인만 한다.
+    /// 리뷰어가 띄울 사진 경로 — 그 검사의 실제 촬영 원본 우선,. 순수 로직 + 파일 존재 확인만 한다.
     /// </summary>
     public static class ReviewerImagePathResolver
     {

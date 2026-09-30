@@ -126,7 +126,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string TeachingImagePath { get; set; } = "";
 
-        //260619 hbk #6 leveling 제거 — IsLevelingReference 프로퍼티 폐기 (ALIGN 대체). 옛 INI stale 키는 ParamBase.Load 가 무시
+        //260619 hbk leveling 제거 — IsLevelingReference 프로퍼티 폐기 (ALIGN 대체). 옛 INI stale 키는 ParamBase.Load 가 무시
 
         //260618 hbk 패턴매칭 위치보정 활성 — 기본 false → off 회귀 0
         [Category("Datum|PatternAlign")]
@@ -1087,7 +1087,7 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore]
         public double AlignThetaDeg { get; set; }
 
-        //260917 hbk NGA-07: 1번(주) 패턴 매칭 결과 — cycle.json 진단 기록 전용(판정 무관). TryComposeAlign 이 매칭 전 0 으로 지우고 성공 직후 기록한다.
+        //260917 hbk 1번(주) 패턴 매칭 결과 — cycle.json 진단 기록 전용(판정 무관). TryComposeAlign 이 매칭 전 0 으로 지우고 성공 직후 기록한다.
         //  프로퍼티가 아닌 필드라 INI·붙여넣기·PropertyGrid 에 나오지 않고, JsonIgnore 로 레시피 JSON 에서도 빠진다.
         public const double ALIGN_MATCH_NONE = 0.0;
         [Newtonsoft.Json.JsonIgnore]
@@ -1241,7 +1241,7 @@ namespace ReringProject.Sequence {
                 Vertical_Length2 = Line1_Length2;
             }
 
-            //260618 hbk 매칭 파라미터 sentinel 0 → 기본값 복원 ( 멱등 폴백)
+            //260618 hbk 매칭 파라미터 sentinel 0 → 기본값 복원 (멱등 폴백)
             // IsPatternAlignEnabled 는 bool — INI 키 미존재 시 자동 false. 별도 폴백 불필요.
             // PatternEngine null 가드 (INI 키 미존재 시 ParamBase string case 가 null 반환 가능)
             if (PatternEngine == null) PatternEngine = "Shape";
@@ -1273,7 +1273,7 @@ namespace ReringProject.Sequence {
             var alg = AlgorithmTypeEnum;
             var sourceNames = new System.Collections.Generic.HashSet<string> {
                 nameof(AlgorithmTypeList),
-                //260618 hbk PatternEngineList 를 sourceNames 화이트리스트에 강제 포함 ( ItemsSource fallback 가드)
+                //260618 hbk PatternEngineList 를 sourceNames 화이트리스트에 강제 포함 (ItemsSource fallback 가드)
                 nameof(PatternEngineList),
                 nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
                 nameof(Circle_EdgeSelectionList), nameof(Circle_RadialDirectionList),

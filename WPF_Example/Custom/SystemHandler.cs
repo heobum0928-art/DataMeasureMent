@@ -263,7 +263,7 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260722 hbk →: 기준점(Datum) 판별 매직넘버 상수화 . Datum 검출(EStep.DatumPhase)은
+        //260722 hbk →: 기준점(Datum) 판별 매직넘버 상수화. Datum 검출(EStep.DatumPhase)은
         //  독립 Shot이 아니라 모든 Action 실행 안에 내장되어 매번 재수행되는 phase다. Plan 12(기준점 낭비 제거)
         //  부터 기준점도 더 이상 무조건 StartAll 하지 않는다 — InspectionSequence.FindDatumIndexTriggerActionIndices()
         //  가 고른 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행한다(DatumConfigs 가 비어있거나
@@ -431,8 +431,8 @@ namespace ReringProject {
             }
             //260810 hbk bottom-empty-zindex-tcp-delay: 진짜 "매칭 0건"(크로스-Z Datum 전용도 아님) — 기존엔
             //  여기서 StartAll 로 이 시퀀스 전체(다른 모든 z 의 shot)를 재실행했다. 이는 InspectionSequence.
-            //  WarnIfEmptyScope 주석( BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
-            //  모순되는 별도 레이어( 실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
+            //  WarnIfEmptyScope 주석(BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
+            //  모순되는 별도 레이어(실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
             //  3/22 는 원래부터 BOTTOM 소유 shot 이 0개인 정상 구성)에서 7,485ms 응답 지연을 유발했다 —
             //  StartAll 로 실행된 다른 z 의 shot 은 AggregateIndexFais(nZIndex=이번  의 z_index) 필터에 절대
             //  포함되지 않으므로(별개 z), 응답 내용은 Action 미실행 시와 100% 동일(B, FAIResults 0건) — 즉
@@ -463,9 +463,9 @@ namespace ReringProject {
         }
 
         //260626 hbk $ALIGN_TEST 처리 — stub(IsPass=true echo) → 실측 grab+Run+pose 채움.
-        //  BOTTOM: AlignFace→슬롯→grab→Matcher.Run→FillAlignPose(OffsetX/OffsetY/Theta)+IsPass=Found .
+        //  BOTTOM: AlignFace→슬롯→grab→Matcher.Run→FillAlignPose(OffsetX/OffsetY/Theta)+IsPass=Found.
         //  TRAY: grab/Run 미수행 — 기존 echo ack 동작 유지 (회귀 0).
-        //  AlignFace 범위 외(음수/6이상): IsPass=false 안전 거부+로그 .
+        //  AlignFace 범위 외(음수/6이상): IsPass=false 안전 거부+로그.
         private AlignResultPacket ProcessAlignTest(AlignTestPacket packet) //260626 hbk 실측 경로 배선
         {
             AlignResultPacket resultPacket = new AlignResultPacket();
@@ -557,7 +557,7 @@ namespace ReringProject {
                     {
                         Logging.PrintLog((int)ELogType.Error,
                             "[ALIGN_TEST] Bottom slot={0} 검출 실패(Found=false) — NG 반환", (int)slot);
-                        FillAlignPoseZero(pResult); //260626 hbk 검출 실패 시 pose=0 (: 잘못된 보정값 미전송)
+                        FillAlignPoseZero(pResult); //260626 hbk 검출 실패 시 pose=0 (잘못된 보정값 미전송)
                         return false;
                     }
 
@@ -906,7 +906,7 @@ namespace ReringProject {
             }
         }
 
-        //260827 hbk 이미지 없이 실패한 Align(미티칭/카메라 미연결)도 기록은 남긴다 — .
+        //260827 hbk 이미지 없이 실패한 Align(미티칭/카메라 미연결)도 기록은 남긴다 —.
         private void RecordAlignFailureOnly(EEthernetVisionMode mode, EBottomAlignSlot slot,
                                             int nMaterialNo, string szReason)
         {
@@ -1303,12 +1303,12 @@ namespace ReringProject {
             return ackPacket;
         }
 
-        //260807 hbk (D-LH7-01): $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
+        //260807 hbk $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
         //  왜 필요한가: $PREP 이 저장한 시퀀스별 z_index 는 다음 $PREP 이 올 때까지 계속 남는데 되돌릴 수단이 앱 재시작뿐이라,
         //  실측 중 상태가 꼬이면 복구가 불가능했다. 그 복구 수단이 이 명령이다.
         //  Site 필드는 ACK 에 echo 만 한다 — 라우팅에 쓰지 않는다. site 로 Top/Bottom 을 구분하는 것이 불가능한 것은
         //  이미 확인된 설계 제약이며, $RESET 은 대상을 가리지 않고 "이 PC 의 InspectionSequence 전부"를 리셋한다
-        //  ( 이후 $PREP 은 Type 으로 대상 1개를 정하지만, $RESET 은 전체 클린 슬레이트가 목적이라 그대로 둔다).
+        //  (이후 $PREP 은 Type 으로 대상 1개를 정하지만, $RESET 은 전체 클린 슬레이트가 목적이라 그대로 둔다).
         //  IsOk 의미: true = 모든 대상 시퀀스가 실제로 리셋됨 / false = 하나 이상이 실행 중이라 건너뜀(또는 대상 0개).
         //  실패여도 ACK 는 반드시 보낸다 — 무응답은 PLC 를 ACK 무한 대기(라인 정지)시킨다.
         private ResetAckPacket ProcessReset(ResetPacket packet)

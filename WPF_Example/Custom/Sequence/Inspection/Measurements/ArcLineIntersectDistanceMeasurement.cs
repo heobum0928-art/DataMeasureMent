@@ -242,7 +242,7 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            //260716 hbk ALI-01 측정 재정의(사용자 확정): ① 좌·우 두 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum)의
+            //260716 hbk 측정 재정의(사용자 확정): ① 좌·우 두 교점을 잇는 직선(L_cross)과 datum 기준선(L_datum)의
             //  교차점 P를 intersection_ll(=TryIntersectLines)로 구하고, ② P와 선택된 교점의 거리를 최종 측정값으로 한다(오른쪽=+).
             //  (기존: 측정축=교점2 col, 수직축=두 교점 Row 평균 → 좌 교점이 사실상 무의미.)
             //  IntersectionPointSelection(Far/Close) 재활성 — Close=좌 교점(int1), Far/기본/미설정=우 교점(int2, INI 하위호환).

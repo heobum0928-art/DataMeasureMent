@@ -25,7 +25,7 @@ namespace ReringProject {
         /// <summary>
         /// EthernetVisionMode 읽어 Tray/Bottom 탭 Visibility 게이트.
         /// Loaded(RegisterCustomUI) + 설정창 닫힌 후 호출.
-        /// 전 로직 try-catch — 예외 시 Logging 만, UI 무중단 .
+        /// 전 로직 try-catch — 예외 시 Logging 만, UI 무중단.
         /// </summary>
         public void RefreshEthernetVisionTabs()
         {

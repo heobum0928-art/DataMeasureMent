@@ -27,7 +27,7 @@ namespace ReringProject.Network {
         Unknown = 999
     }
 
-    //260622 hbk PC 역할 . SystemSetting.PcRole 값과 일치 (1=PC1, 2=PC2).
+    //260622 hbk PC 역할. SystemSetting.PcRole 값과 일치 (1=PC1, 2=PC2).
     public enum EPcRole : int {
         PC1_TopBottom = 1,
         PC2_Side = 2,
@@ -37,7 +37,7 @@ namespace ReringProject.Network {
     /// 통신 프로토콜의 zone, site, type 등의 정보를 시스템의 sequence, action, light 이름 등으로 치환하기 위한 map을 구성합니다.
     /// </summary>
     public partial class ResourceMap {
-        //260622 hbk v1.0/v2.6 분기 — UseProtocolV1 플래그로 결정 .
+        //260622 hbk v1.0/v2.6 분기 — UseProtocolV1 플래그로 결정.
         public void Initialize()
         {
             bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
@@ -74,7 +74,7 @@ namespace ReringProject.Network {
             Add(EResource.Action, ESite.Bottom, ETestType.Inspection, SequenceHandler.ACT_INSPECT);
         }
 
-        //260622 hbk v1.0 2-PC 매핑 . Site1=ESite.Top 슬롯, Site2=ESite.Side 슬롯.
+        //260622 hbk v1.0 2-PC 매핑. Site1=ESite.Top 슬롯, Site2=ESite.Side 슬롯.
         //  PcRole 로 슬롯이 가리키는 실제 자원(TOP/BOTTOM vs SIDE/SIDE)을 결정. framework ESite 키 재사용(시그니처 호환).
         private void InitializeV1()
         {
@@ -259,7 +259,7 @@ namespace ReringProject.Network {
                     break;
                 case VisionRequestType.Test:
                     TestPacket testPacket = packet.AsTest();
-                    //260622 hbk Calibration 체크 — bool 변수화 ( 조건 변수화).
+                    //260622 hbk Calibration 체크 — bool 변수화 (조건 변수화).
                     bool bIsCalibration = (ETestType)testPacket.TestType == ETestType.Calibration;
                     if (bIsCalibration)
                     {

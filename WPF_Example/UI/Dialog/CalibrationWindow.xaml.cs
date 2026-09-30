@@ -14,19 +14,19 @@ namespace ReringProject.UI
     public partial class CalibrationWindow : Window
     {
         private readonly CheckerboardCalibrationService _calibService = new CheckerboardCalibrationService();
-        private CalibrationResult _lastResult;                 // [적용]이 소비 (plan 03)
+        private CalibrationResult _lastResult;                 // [적용]이 소비
         private static string _lastCellMm = "1.0";             //260623 hbk 직전값 (앱 수명 내 기억, INI 비의존)
         //260623 hbk ROI(reduce_domain) 검출 영역 — null=전체. _roiDrawing=드래그 진행 중(검출 시 확정)
         private RoiDefinition _calibRoi;
         private bool _roiDrawing;
 
-        //260623 hbk caller(MainView)가 카메라 grab 델리게이트 주입 → grab 후 imagePath 반환 ( 라이브)
+        //260623 hbk caller(MainView)가 카메라 grab 델리게이트 주입 → grab 후 imagePath 반환 (라이브)
         public Func<string> ImageGrabber { get; set; }
 
-        // 외부 노출 (plan 03 launch wiring 이 참조)
+        // 외부 노출 (MainView 실행 배선이 참조)
         public CalibrationResult LastResult { get { return _lastResult; } }
 
-        //260623 hbk [적용] 위임 이벤트 — plan 03 이 MainView 에서 구독해 반영+저장 ( 게이트)
+        //260623 hbk [적용] 위임 이벤트 — MainView 가 구독해 반영+저장 (게이트)
         public event Action<CalibrationResult> ApplyRequested;
 
         public CalibrationWindow()
@@ -251,10 +251,10 @@ namespace ReringProject.UI
             CalibrationViewer.SetInspectionOverlays(new List<EdgeInspectionOverlay> { overlay });
         }
 
-        // (d) 적용 — 본 plan 은 위임만. 반영/저장 wiring 은 plan 03 (ApplyRequested 구독)
+        // (d) 적용 — 여기서는 위임만 한다. 반영/저장은 MainView 가 처리 (ApplyRequested 구독)
         private void ApplyButton_Click(object sender, RoutedEventArgs e)
         {
-            //260623 hbk 저장 wiring 은 plan 03 (ApplyRequested 이벤트로 위임)
+            //260623 hbk 저장은 MainView 가 처리 (ApplyRequested 이벤트로 위임)
             if (_lastResult != null && ApplyRequested != null)
             {
                 ApplyRequested(_lastResult);

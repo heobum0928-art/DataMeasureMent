@@ -123,11 +123,11 @@ namespace ReringProject.Sequence
         private const int MIN_SELECTED_Z_INDEX = 1;
         public double LastFitScore;
         public int LastSelectedZIndex = SELECTED_Z_NONE;
-        //260917 hbk NGA-07: Z 후보별 선명도 — cycle.json 기록 전용. 필드라 INI·붙여넣기 제외, JsonIgnore 로 레시피 JSON 제외
+        //260917 hbk Z 후보별 선명도 — cycle.json 기록 전용. 필드라 INI·붙여넣기 제외, JsonIgnore 로 레시피 JSON 제외
         [Newtonsoft.Json.JsonIgnore]
         public List<ReringProject.UI.ZCandidateScoreDto> LastZCandidateScores;
 
-        //260918 hbk LSR-04: 이 측정이 어느 기준선으로 값을 냈는지. null = 옵션 꺼짐(기존 전역, 표시 빈칸). 필드라 INI·붙여넣기 제외
+        //260918 hbk 이 측정이 어느 기준선으로 값을 냈는지. null = 옵션 꺼짐(기존 전역, 표시 빈칸). 필드라 INI·붙여넣기 제외
         public const string REF_SOURCE_LOCAL = "Local";
         public const string REF_SOURCE_FALLBACK = "LocalFallback";
         [Newtonsoft.Json.JsonIgnore]
@@ -199,18 +199,18 @@ namespace ReringProject.Sequence
             LastErrorMessage = null; // 이전 사이클 잔재 방지
             LastFitScore = 0.0; //260915 hbk 이전 사이클 선택 점수 잔재 방지
             LastSelectedZIndex = SELECTED_Z_NONE; //260915 hbk 이전 사이클 선택 Z 잔재 방지
-            LastZCandidateScores = null; //260917 hbk NGA-07: 이전 사이클 후보 점수 잔재 방지
-            LastRefSource = null; //260918 hbk LSR-04: 이전 사이클 사용 기준 잔재 방지
+            LastZCandidateScores = null; //260917 hbk 이전 사이클 후보 점수 잔재 방지
+            LastRefSource = null; //260918 hbk 이전 사이클 사용 기준 잔재 방지
         }
 
-        //260915 hbk ②: 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.
+        //260915 hbk 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.
         //  기본값 false — 미지원 타입은 범위 켠 Shot 이어도 기존 단일 사진 경로를 탄다.
         public virtual bool SupportsEdgeStrengthScore()
         {
             return false;
         }
 
-        //260915 hbk ⑥: 결과 화면·CSV 의 "선택 Z" 표시·저장·로드 단일 규칙 — 여기 한 곳만 고치면 전부 맞는다.
+        //260915 hbk 결과 화면·CSV 의 "선택 Z" 표시·저장·로드 단일 규칙 — 여기 한 곳만 고치면 전부 맞는다.
         public static string FormatSelectedZ(int nZIndex)
         {
             if (nZIndex < MIN_SELECTED_Z_INDEX) { return string.Empty; }
@@ -229,7 +229,7 @@ namespace ReringProject.Sequence
             return nZIndex;
         }
 
-        //260918 hbk LSR-04: 사용 기준 표시·저장·로드 단일 규칙 — 결과 그리드·리뷰어·CSV 가 여기 한 곳만 쓴다. 옵션 꺼짐(null) = 빈칸(기존 전역 표시 불변)
+        //260918 hbk 사용 기준 표시·저장·로드 단일 규칙 — 결과 그리드·리뷰어·CSV 가 여기 한 곳만 쓴다. 옵션 꺼짐(null) = 빈칸(기존 전역 표시 불변)
         public const string REF_SOURCE_LOCAL_TEXT = "국부";
         public const string REF_SOURCE_FALLBACK_TEXT = "국부실패→전역";
 

@@ -47,11 +47,11 @@ namespace ReringProject.Halcon.Algorithms
         //  null/빈 HTuple 이면 무보정(기존 동작). 검출 자체(line-fit/DetectedOrigin/angle)는 그대로 → nominal 불변.
         public HTuple AlignPreTransform { get; set; } = null;
 
-        //260805 hbk D-F3W-03 (S1): strip 1개 처리 결과. per-strip 로그 대신 ROI 단위로 집계해
+        //260805 hbk strip 1개 처리 결과. per-strip 로그 대신 ROI 단위로 집계해
         //  Trace 로그 스팸(사이클당 40~240줄)을 요약 1줄로 줄인다.
         private enum EStripOutcome { Ok, NoEdge, Failed }
 
-        //260805 hbk D-F3W-03 (S2): 같은 ROI 안에서 strip 예외 메시지를 첫 1건만 남기기 위한 가드.
+        //260805 hbk 같은 ROI 안에서 strip 예외 메시지를 첫 1건만 남기기 위한 가드.
         //  실패 개수는 요약줄의 failed 카운트가 담당하므로 같은 메시지를 20번 찍을 이유가 없다.
         //  인스턴스 필드가 안전한 근거: DatumFindingService 는 매 검출마다 new 로 생성되고(스레드 공유 없음),
         //  static 으로 만들면 시퀀스 3개(Top/Side/Bottom)가 서로의 가드를 덮어써 다른 ROI 의 첫 예외가 사라진다.
@@ -634,7 +634,7 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        //260619 hbk #6 leveling 제거 — TryGetLevelingAngle 양 오버로드(4-arg/6-arg) 폐기 (ALIGN 위치/tilt 보정으로 대체)
+        //260619 hbk leveling 제거 — TryGetLevelingAngle 양 오버로드(4-arg/6-arg) 폐기 (ALIGN 위치/tilt 보정으로 대체)
 
         //260619 hbk TryGetAlignLineAngle 제거 — 직선 ROI 각도 경로 폐기(2-패턴 baseline 각도로 대체).
 
@@ -854,7 +854,7 @@ namespace ReringProject.Halcon.Algorithms
 
         //260911 hbk 원점 X 산출 — 티칭 원점(RefOriginRow/Col)을 AlignPreTransform(패턴매칭 보정, TryComposeAlign 이
         //  이미 주입)으로 옮긴 열을 원점 X 로 쓴다. TryFindCircleTwoHorizontal(:259-272) 의 ROI 중심 이동과 같은 규약.
-        //  transform 이 없거나 변환이 실패하면 원본 좌표로 조용히 되돌아가지 않고 실패한다(PR-2 — 매칭 없는 OK 금지).
+        //  transform 이 없거나 변환이 실패하면 원본 좌표로 조용히 되돌아가지 않고 실패한다(매칭 없는 OK 금지).
         private bool TryMapTaughtOriginColumn(DatumConfig config, out double dOriginCol, out string error)
         {
             dOriginCol = 0.0;
@@ -897,7 +897,7 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        //260911 hbk 세로 ROI 라인 검출기를 호출하지 않는다 — 실패 시 세로 검출로 되돌아가는 폴백도 없다(PR-4).
+        //260911 hbk 세로 ROI 라인 검출기를 호출하지 않는다 — 실패 시 세로 검출로 되돌아가는 폴백도 없다.
         //  가로 A/B 결합선 검출 + FitLineContourXld 는 기존 TryFindVerticalTwoHorizontalDualImage(:659-716,737) 와 동일하다.
         private bool TryFindDualImageHorizontalOnly(HImage imageHorizontal, DatumConfig config, out HTuple transform, out string error)
         {
@@ -1145,7 +1145,7 @@ namespace ReringProject.Halcon.Algorithms
         //  imageHorizontal: 가로축 이미지 (Horizontal_A + Horizontal_B ROI 티칭 대상)
         //  imageVertical:   세로축 이미지 (Vertical ROI 티칭 대상)
         //  algorithm != VerticalTwoHorizontalDualImage 일 때는 error 반환 (잘못된 오버로드 호출 가드).
-        //  기존 단일-이미지 TryTeachDatum 시그니처는 unchanged — 1-image algorithm 3종 회귀 0 .
+        //  기존 단일-이미지 TryTeachDatum 시그니처는 unchanged — 1-image algorithm 3종 회귀 0.
         public bool TryTeachDatum(HImage imageHorizontal, HImage imageVertical, DatumConfig config, out string error)
         {
             error = null;
@@ -1360,7 +1360,7 @@ namespace ReringProject.Halcon.Algorithms
                 config.CircleCenter_Row      = centerRow;
                 config.CircleCenter_Col      = centerCol;
                 config.CircleDetected_Radius = radius;
-                //260611 hbk 05 D-VIZ-03 carry-over closure: raw 점 직접 반환 (이전엔 빈 HTuple)
+                //260611 hbk 05 carry-over closure: raw 점 직접 반환 (이전엔 빈 HTuple)
                 config.Circle_DetectedEdgeRows = circleEdgeRows;
                 config.Circle_DetectedEdgeCols = circleEdgeCols;
 
@@ -1931,7 +1931,7 @@ namespace ReringProject.Halcon.Algorithms
             if (trimCount < 0) trimCount = 0;
             if (erosion < 0) erosion = 0; // 신규 260723: 음수 sentinel 방어 → 침식 비활성 취급 (마스크 크기 음수 불가)
 
-            //260619 hbk #4 DualImage align — Vertical ROI 도 가로축 transform 소비(TryExtractEdgePoints:1783 미러).
+            //260619 hbk DualImage align — Vertical ROI 도 가로축 transform 소비(TryExtractEdgePoints:1783 미러).
             //  현재 TryFindLine 은 AlignPreTransform 미소비라 DualImage 세로 ROI 가 보정 누락 → 이식. alignRot=0(비-align) 이면 기존 축정렬 동작과 정확히 동일(회귀 0).
             double alignRot = 0.0;
             if (AlignPreTransform != null && AlignPreTransform.Length > 0)
@@ -1948,7 +1948,7 @@ namespace ReringProject.Halcon.Algorithms
                 catch { /* 변환 실패 시 원본 ROI 좌표/회전 유지 */ }
             }
 
-            //260619 hbk #4 bounding box: alignRot 회전 반영 enlarged AABB. alignRot=0 → halfW=length1, halfH=length2 (기존 축정렬 정확 복원).
+            //260619 hbk bounding box: alignRot 회전 반영 enlarged AABB. alignRot=0 → halfW=length1, halfH=length2 (기존 축정렬 정확 복원).
             double cosT     = Math.Cos(alignRot);
             double sinT     = Math.Sin(alignRot);
             double halfW    = Math.Abs(roiLength1 * cosT) + Math.Abs(roiLength2 * sinT);
@@ -2073,7 +2073,7 @@ namespace ReringProject.Halcon.Algorithms
 
             try
             {
-                //260805 hbk D-F3W-03 (S1/S2): strip 결과 집계 + ROI 진입 시 예외 dedup 가드 리셋.
+                //260805 hbk strip 결과 집계 + ROI 진입 시 예외 dedup 가드 리셋.
                 int nOkStrips = 0;
                 int nNoEdgeStrips = 0;
                 int nFailedStrips = 0;
@@ -2092,7 +2092,7 @@ namespace ReringProject.Halcon.Algorithms
                             direction, selection,
                             ref allRows, ref allCols,
                             roiLabel,
-                            alignRot); //260619 hbk #4 DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
+                            alignRot); //260619 hbk DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
                         if (stripResult == EStripOutcome.Ok) { nOkStrips++; }
                         else if (stripResult == EStripOutcome.NoEdge) { nNoEdgeStrips++; }
                         else { nFailedStrips++; }
@@ -2111,7 +2111,7 @@ namespace ReringProject.Halcon.Algorithms
                             direction, selection,
                             ref allRows, ref allCols,
                             roiLabel,
-                            alignRot); //260619 hbk #4 DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
+                            alignRot); //260619 hbk DualImage align — strip θ회전 전달 (TryExtractEdgePoints 미러)
                         if (stripResult == EStripOutcome.Ok) { nOkStrips++; }
                         else if (stripResult == EStripOutcome.NoEdge) { nNoEdgeStrips++; }
                         else { nFailedStrips++; }
@@ -2341,7 +2341,7 @@ namespace ReringProject.Halcon.Algorithms
 
             try
             {
-                //260805 hbk D-F3W-03 (S1/S2): strip 결과 집계 + ROI 진입 시 예외 dedup 가드 리셋.
+                //260805 hbk strip 결과 집계 + ROI 진입 시 예외 dedup 가드 리셋.
                 int nOkStrips = 0;
                 int nNoEdgeStrips = 0;
                 int nFailedStrips = 0;
@@ -2435,7 +2435,7 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        //260724 hbk direction(+alignRot) → measurePhi 공유 헬퍼 .
+        //260724 hbk direction(+alignRot) → measurePhi 공유 헬퍼.
         //  방향성 침식(erosion) 마스크 각도도 strip 스캔과 동일 각도가 필요해져 AppendEdgePointsFromStrip 의
         //  기존 인라인 계산을 추출 — 산식은 100% 동일(순수 리팩터, 동작 변경 없음). 분기 시 measurePhi 불일치 →
         //  strip 스캔 방향과 erosion 마스크 방향이 어긋나는 회귀가 생기므로 반드시 이 헬퍼 하나만 사용한다.
@@ -2508,7 +2508,7 @@ namespace ReringProject.Halcon.Algorithms
             }
             catch (Exception ex)
             {
-                //260805 hbk D-F3W-03 (S2): 같은 ROI 안에서 첫 예외 1건만 로그, 나머지는 요약줄의
+                //260805 hbk 같은 ROI 안에서 첫 예외 1건만 로그, 나머지는 요약줄의
                 //  failed 카운트로만 집계(per-strip swallow 정책 자체는 그대로 유지).
                 if (!_bStripErrorLoggedThisRoi)
                 {

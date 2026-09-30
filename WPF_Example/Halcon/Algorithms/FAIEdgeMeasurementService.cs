@@ -67,7 +67,7 @@ namespace ReringProject.Halcon.Algorithms
                         roiPhi = fai.ROI_Phi + rotAngle;
 
                         //260622 hbk (a): 회전각 확증 로그 — baseline θ(InspectionSequence [ALIGN] thetaDeg)와
-                        //  이 ROI 적용각(rotAngle)이 90° 어긋남 없이 일치하는지 시 확인. 측정값 무변경 — 진단 전용.
+                        //  이 ROI 적용각(rotAngle)이 90° 어긋남 없이 일치하는지 실기에서 확인. 측정값 무변경 — 진단 전용.
                         //  (rotAngle 은 try 내부 지역변수 — 이 로그는 try 블록 안에서만 유효)
                         try
                         {
@@ -128,7 +128,7 @@ namespace ReringProject.Halcon.Algorithms
                 // (b): HALCON gen_measure_rectangle2 규약 명시 — length1 = phi(roiPhi) 방향 반장축
                 //  length2 = phi 수직 방향 반장축. 티칭 시 드래그한 bbox 의 X절반→Length1·Y절반→Length2 매핑(ROI_Phi=0 기준,
                 //  HalconViewer_*RectCompleted)과 일치. analytic 회전은 phi 만 가산하고 length1/length2 는 보존(강체회전 정상).
-                //  ※ length1/length2 swap 금지 — swap 시 장축/단축 뒤바뀌어 회귀 .
+                //  ※ length1/length2 swap 금지 — swap 시 장축/단축 뒤바뀌어 회귀.
                 double sinPhi = Math.Sin(roiPhi);
                 double cosPhi = Math.Cos(roiPhi);
                 double dRow = Math.Abs(fai.ROI_Length1 * cosPhi) + Math.Abs(fai.ROI_Length2 * sinPhi);

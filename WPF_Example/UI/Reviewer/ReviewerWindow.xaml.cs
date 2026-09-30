@@ -13,7 +13,7 @@ namespace ReringProject.UI
 {
     /// <summary>
     /// 결과 리뷰어 비모달 Window. Ookii 폴더 다이얼로그로 날짜 폴더를 선택 → cycle 목록 표시 →
-    /// cycle 선택 시 cycle.json 역직렬화 → 이미지 + overlay 재렌더 + 측정표 표시 .
+    /// cycle 선택 시 cycle.json 역직렬화 → 이미지 + overlay 재렌더 + 측정표 표시.
     /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show() 로 열림.
     /// null/손상 cycle.json → CycleResultSerializer.Load 가 null 반환 → DisplayCycle(null) → 빈 상태.
     /// ResultImagePath → File.Exists 가드 후 LoadImage 호출.
@@ -40,10 +40,10 @@ namespace ReringProject.UI
         // 좌측 cycle 목록의 원본(전체) 항목. '불량만 보기' 필터는 이 위에서 추려 ItemsSource 로 적용.
         private List<CycleListItem> _allCycleItems = new List<CycleListItem>();
 
-        //260917 hbk NGA-01: 날짜 폴더 cycle.json 이력 — 추세 원인 규칙(R6) 입력.
+        //260917 hbk 날짜 폴더 cycle.json 이력 — 추세 원인 규칙(R6) 입력.
         private NgCauseHistory _ngCauseHistory = new NgCauseHistory();
 
-        //260917 hbk NGA-03: 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
+        //260917 hbk 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
         private string _loadedDateFolder;
 
         // 기간·자재번호로 조회한 검사 폴더들 — 조회로 열었으면 누적 엑셀도 이 목록만 저장한다(null = 날짜 폴더 모드).
@@ -258,7 +258,7 @@ namespace ReringProject.UI
             //260918 hbk 함께 처리 1: 화면에 띄운 사진을 낸 Shot 의 선만 그린다 — 전 Shot 선을 한 사진에 겹쳐
             //  그리던 문제. 순서: LoadImage → SetInspectionOverlays
             ShotResultDto ownerShot;
-            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle, out ownerShot); //260918 hbk NGA-06: 실제 촬영 원본 우선
+            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle, out ownerShot); //260918 hbk 실제 촬영 원본 우선
             if (!string.IsNullOrEmpty(szCycleImagePath))
             {
                 halconViewer.LoadImage(szCycleImagePath);
@@ -407,7 +407,7 @@ namespace ReringProject.UI
                     return szPath;
                 }
             }
-            return ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); //260921 hbk NGA-06
+            return ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai);
         }
 
         // 고른 행의 원본 사진 파일명 + 그 검사가 쓴 기준점 사진 파일명을 헤더에 한 줄로 보여 준다.
@@ -771,7 +771,7 @@ namespace ReringProject.UI
             }
         }
 
-        //260917 hbk NGA-03: 연 날짜 폴더의 NG 를 누적 엑셀에 추가 — 판단·문구는 서비스가 만든다
+        //260917 hbk 연 날짜 폴더의 NG 를 누적 엑셀에 추가 — 판단·문구는 서비스가 만든다
         private void Button_NgAccumExport_Click(object sender, RoutedEventArgs e)
         {
             string szOutputPath = NgAccumulationExportService.BuildOutputPath(SystemHandler.Handle.Setting.ResultSavePath);

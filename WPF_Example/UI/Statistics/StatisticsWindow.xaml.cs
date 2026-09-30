@@ -79,13 +79,13 @@ namespace ReringProject.UI
         /// <summary>벗어난 양 칸 헤더 정렬용 숫자 키(R4). 범위 안/판정불가 = 0.</summary>
         public double OutOfRangeAmount { get; set; }
 
-        /// <summary>: 재검사 표 전용 — 같은 키의 원래(재검사 전) 평균 표시. 비교 불가면 "-".</summary>
+        /// <summary>재검사 표 전용 — 같은 키의 원래(재검사 전) 평균 표시. 비교 불가면 "-".</summary>
         public string OriginalMeanText { get; set; }
 
-        /// <summary>: 재검사 평균 − 원래 평균 표시. 비교 불가면 "-".</summary>
+        /// <summary>재검사 평균 − 원래 평균 표시. 비교 불가면 "-".</summary>
         public string DeltaText { get; set; }
 
-        /// <summary>: 변화 칸 헤더 정렬용 숫자 키 — 변화 크기(절댓값) 순 정렬.</summary>
+        /// <summary>변화 칸 헤더 정렬용 숫자 키 — 변화 크기(절댓값) 순 정렬.</summary>
         public double DeltaSortValue { get; set; }
     }
 
@@ -982,7 +982,7 @@ namespace ReringProject.UI
     }
 
     /// <summary>
-    /// 양산 이력 통계 분석 비모달 Window . MeasurementHistoryCsvLoader.Query 를 소비하여
+    /// 양산 이력 통계 분석 비모달 Window. MeasurementHistoryCsvLoader.Query 를 소비하여
     /// 기간·레시피별 통계 테이블 + 행 선택 시 히스토그램/추이 차트(WPF Canvas 직접 렌더, ~)를 표시한다.
     /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show 로 열림 (ReviewerWindow 미러).
     /// </summary>
@@ -1019,7 +1019,7 @@ namespace ReringProject.UI
             DoQuery(szRecipe);
         }
 
-        /// <summary>: "저장 사진으로 재검사" 버튼 — 배선만, 계산은 VM.TryStartRerun.</summary>
+        /// <summary>"저장 사진으로 재검사" 버튼 — 배선만, 계산은 VM.TryStartRerun.</summary>
         private void Btn_Rerun_Click(object sender, RoutedEventArgs e)
         {
             string szRecipeFilter = GetSelectedRecipeFilter();
@@ -1043,7 +1043,7 @@ namespace ReringProject.UI
             DoQuery(GetSelectedRecipeFilter());
         }
 
-        /// <summary>: 재검사 종료(VM.RerunViewReady) 시 표/차트/버튼을 재검사 결과로 갱신한다.</summary>
+        /// <summary>재검사 종료(VM.RerunViewReady) 시 표/차트/버튼을 재검사 결과로 갱신한다.</summary>
         private void ApplyRerunView()
         {
             m_lastResult = m_rerunVm.RerunResult;

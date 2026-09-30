@@ -8,7 +8,7 @@ using ReringProject.Utility;
 namespace ReringProject {
 
     /// <summary>
-    /// 이더넷 정렬 카메라 독립 싱글턴 핸들러 .
+    /// 이더넷 정렬 카메라 독립 싱글턴 핸들러.
     /// EthernetAlignCamera 인스턴스를 소유하며 모드 게이트 + 지연 연결로 초기화.
     /// 기존 Grabber(DeviceHandler/HikCamera) 무수정.
     /// </summary>

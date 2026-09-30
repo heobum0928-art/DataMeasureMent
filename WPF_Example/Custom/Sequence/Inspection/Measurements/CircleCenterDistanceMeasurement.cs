@@ -30,7 +30,7 @@ namespace ReringProject.Sequence
         public string EdgePolarity { get; set; } = "DarkToLight";
 
         // Datum 원 알고리즘 (polar sampling) 사용: Inward/Outward 방사 방향.
-        //  CircleDiameterMeasurement REQ-28-01 패턴 동일. 신규 타입 → INI 하위호환 불필요, 기본값 "Inward".
+        //  CircleDiameterMeasurement 패턴 동일. 신규 타입 → INI 하위호환 불필요, 기본값 "Inward".
         [ItemsSourceProperty(nameof(Circle_RadialDirectionList))]
         public string Circle_RadialDirection { get; set; } = "Inward";
 
@@ -102,7 +102,7 @@ namespace ReringProject.Sequence
             double foundRow, foundCol, foundRadius;
 
             // Circle_RadialDirection 빈값=legacy fit / Inward,Outward=Datum polar sampling 분기
-            //  CircleDiameterMeasurement REQ-28-02 패턴 동일.
+            //  CircleDiameterMeasurement 패턴 동일.
             if (string.IsNullOrEmpty(Circle_RadialDirection))
             {
                 // legacy fit 경로 (EdgePolarity 사용)

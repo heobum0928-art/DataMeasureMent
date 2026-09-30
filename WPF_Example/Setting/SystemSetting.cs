@@ -137,7 +137,7 @@ namespace ReringProject.Setting {
         public string DisplayConfigFilePath { get; set; } = @"D:\Data\DisplayConfig.ini";
 
 
-        //260622 hbk v1.0 프로토콜 활성화 플래그 ( v2.6/v1.0 공존). 기본 false → 구 INI 0 로드돼도 v2.6 유지.
+        //260622 hbk v1.0 프로토콜 활성화 플래그 (v2.6/v1.0 공존). 기본 false → 구 INI 0 로드돼도 v2.6 유지.
         [Category("Connection|Protocol")]
         public bool UseProtocolV1 { get; set; } = false;
 
@@ -151,7 +151,7 @@ namespace ReringProject.Setting {
         [Category("Connection|Protocol")]
         public bool EnableCrossZDatumImmediateFail { get; set; } = true;
 
-        //260622 hbk PC 역할 ( 빌드 상수 대신 설정 지정). 1=PC1(TOP/BOTTOM), 2=PC2(SIDE_1/SIDE_2).
+        //260622 hbk PC 역할 (빌드 상수 대신 설정 지정). 1=PC1(TOP/BOTTOM), 2=PC2(SIDE_1/SIDE_2).
         [Category("Connection|Server")]
         public int PcRole { get; set; } = 1;
 

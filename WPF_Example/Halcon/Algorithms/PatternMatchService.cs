@@ -13,7 +13,7 @@ namespace ReringProject.Halcon.Algorithms
     /// HALCON Shape/NCC 패턴매칭을 사용하여 모델 생성·저장·로드·검색영역 제한 find,
     /// ref/cur pose로부터 rigid transform(hom_mat2d)을 산출하는 서비스.
     /// 통합단계(Action_FAIMeasurement DatumPhase 확장)가 호출하는 매칭 엔진.
-    //260619 hbk #6 leveling 제거 — 폐기된 TryGetLevelingAngle 참조 제거 (θ는 ALIGN 2-패턴 baseline 각도가 담당)
+    //260619 hbk leveling 제거 — 폐기된 TryGetLevelingAngle 참조 제거 (θ는 ALIGN 2-패턴 baseline 각도가 담당)
     /// coarse x,y + θ는 ALIGN(패턴매칭 rigid transform)이 담당.
     /// </summary>
     public class PatternMatchService
@@ -24,7 +24,7 @@ namespace ReringProject.Halcon.Algorithms
         // NCC 모델 파일 확장자 (HALCON write_ncc_model)
         public const string EXTENSION_NCC_MODEL = ".ncm";
 
-        //260618 hbk 기본 다운샘플 비율 . 1/2 해상도에서 coarse 매칭.
+        //260618 hbk 기본 다운샘플 비율. 1/2 해상도에서 coarse 매칭.
         // 152MP 등 고해상도 tact 대응. 호출부가 파라미터로 오버라이드 가능.
         public const double DEFAULT_DOWNSAMPLE_FACTOR = 2.0;
 

@@ -862,7 +862,7 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// Rect ROI 1개에서 Canny 에지 → UnionAdjacentContours → ShapeTransXld("rectangle2") 파이프라인으로
         /// 가장 면적이 큰 사각형 XLD의 중심/각도/장단축 길이를 산출한다 (E2/E3/E9/E10 공통 컨투어 알고리즘).
-        /// 사각형 0개 검출 시 예외 throw 없이 error 세팅 후 false 반환 .
+        /// 사각형 0개 검출 시 예외 throw 없이 error 세팅 후 false 반환.
         /// </summary>
         public bool TryFindLargestContourRect(
             HImage image,
@@ -1005,7 +1005,7 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// 두 직선의 교점을 구한다 (ArcLineIntersect 호출용). 평행/근접/중첩 시 false (측정값 '—').
         /// 기존 static IntersectLines 의 isOverlapping.I==1 / IsInfinity / IsNaN 가드를 그대로 유지하고
-        /// 호출 이름만 명확히 한 래퍼 메서드 .
+        /// 호출 이름만 명확히 한 래퍼 메서드.
         /// </summary>
         public static bool TryIntersectLines(
             double row1a, double col1a, double row1b, double col1b,
@@ -1255,7 +1255,7 @@ namespace ReringProject.Halcon.Algorithms
     }
 
     //260915 hbk TryFitLine 의 opt-in 점수 수집기. strip 마다 관측된 최대 |amp| 를 모아
-    //  Σ(strip 최대 |amp|) ÷ strip 수(에지 없는 strip = 0)를 계산한다 — 재계산 없이 채택된 z 를 고르는 데만 쓴다(PR-2).
+    //  Σ(strip 최대 |amp|) ÷ strip 수(에지 없는 strip = 0)를 계산한다 — 재계산 없이 채택된 z 를 고르는 데만 쓴다.
     public class EdgeStrengthScore
     {
         private readonly List<double> _lstStripMaxAbsAmp = new List<double>();

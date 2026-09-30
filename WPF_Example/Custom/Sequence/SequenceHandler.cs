@@ -276,7 +276,7 @@ namespace ReringProject.Sequence {
         /// <summary>
         /// RecipeManager의 Shot 목록 기반으로 시퀀스의 Action을 재구축한다.
         /// </summary>
-        //260527 hbk 시퀀스 소유 Shot 만 필터링 (D-A1 OwnerSequenceName)
+        //260527 hbk 시퀀스 소유 Shot 만 필터링 (OwnerSequenceName)
         // 필터링 후 ShotConfig.ZIndex 오름차순 안정 정렬(동일 ZIndex 는 기존 append 순서 그대로 유지) 추가
         //  SequenceBase.StartSubset 이 min-max 연속구간만 실행하므로, 같은 z_index Shot 들이 Actions[] 에서 항상 연속 블록이어야
         //  크로스-Z 부분실행이 안전하다. List<T>.Sort/Array.Sort 는 불안정 정렬이라 동일 ZIndex 내 순서가 보존 안 됨
@@ -351,7 +351,7 @@ namespace ReringProject.Sequence {
             RecipeManager.Load(loadFile);
             IsDynamicFAIMode = true;
 
-            //260527 hbk hotfix ( Part D): Top/Side/Bottom 모두 RebuildInspectionActions 호출
+            //260527 hbk hotfix (Part D): Top/Side/Bottom 모두 RebuildInspectionActions 호출
             //  이전 = Top 만 호출 → Side/Bottom Shot 이 INI 로드 후 seq.ActionCount=0 → 트리(InspectionListViewModel.CreateSequenceNode)에 안 보임
             //  RebuildInspectionActions 자체가 OwnerSequenceName 으로 필터링하므로 시퀀스별로 자기 소유 Shot 만 attach
             RebuildInspectionActions(ESequence.Top);

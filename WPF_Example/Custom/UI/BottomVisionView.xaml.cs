@@ -24,8 +24,8 @@ namespace ReringProject.Custom.UI {
     /// Bottom 비전 뷰 코드비하인드. /59/60 서비스(EthernetVisionHandler.Camera/Matcher/PickerCal)에 위임하는
     /// thin facade. Tray 와 동일 Grab/Live/Stop + 2-ROI Teach + Run 에 Bottom 전용 추가:
     /// (1) 검사 결과 ThetaDeg 표시(HasTheta=true), (2) 피커센터 캘 패널(PickerCal.Reset/TryAddStep/TryComputePickerCenter).
-    /// HALCON 뷰어를 소유하지 않고 외부 주입 공유 MainResultViewerControl 을 사용 .
-    /// 전 서비스 호출 try-catch — 예외 시 상태 라벨 갱신만, throw 금지 .
+    /// HALCON 뷰어를 소유하지 않고 외부 주입 공유 MainResultViewerControl 을 사용.
+    /// 전 서비스 호출 try-catch — 예외 시 상태 라벨 갱신만, throw 금지.
     /// </summary>
     public partial class BottomVisionView : UserControl {
 
@@ -247,7 +247,7 @@ namespace ReringProject.Custom.UI {
             item2DSide2.Tag = EBottomAlignSlot.Slot2DSide2;
             cmb_slot.Items.Add(item2DSide2);
 
-            //260626 hbk 초기 선택 없음 — 작업자가 명시 선택해야 티칭 가능 ( 가드 대비)
+            //260626 hbk 초기 선택 없음 — 작업자가 명시 선택해야 티칭 가능 (가드 대비)
             cmb_slot.SelectedIndex = -1;
         }
 
@@ -339,7 +339,7 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
-                ApplyCoaxLight(); //260626 hbk grab 직전 동축 자동 적용( Teach=Run=Grab 동일 조명)
+                ApplyCoaxLight(); //260626 hbk grab 직전 동축 자동 적용(Teach=Run=Grab 동일 조명)
                 HImage img = EthernetVisionHandler.Handle.Camera.Grab();
                 if (img == null) {
                     lbl_status.Text = "취득 실패 (폴백 없음)";
@@ -378,7 +378,7 @@ namespace ReringProject.Custom.UI {
                     btn_live.IsEnabled = false;
                     // 직전 Grab 이 걸어둔 소등 예약이 Live 도중에 터져 조명을 꺼버리는 것을 막는다.
                     CancelCoaxAutoOffTimer();
-                    //260902 hbk Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다( 연장).
+                    //260902 hbk Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(연장).
                     ApplyCoaxLight();
                     StartLiveTimer();
                 }
@@ -775,7 +775,7 @@ namespace ReringProject.Custom.UI {
                     lbl_teachStatus.Text = "티칭 취소 — 값 변경을 진행하지 않았습니다";
                     return;
                 }
-                ApplyCoaxLight(); //260626 hbk 티칭 직전 동축 자동 적용( 티칭=런타임 조명 일치)
+                ApplyCoaxLight(); //260626 hbk 티칭 직전 동축 자동 적용(티칭=런타임 조명 일치)
                 string error;
                 double dScore1, dScore2;   //260812 hbk 티칭이 이미 계산한 스코어 수신(등급 표시용)
                 // 슬롯 오버로드 호출 — Plan 01 신규 오버로드(_selectedSlot 명시)
@@ -783,7 +783,7 @@ namespace ReringProject.Custom.UI {
                     _viewer.CurrentImage,
                     r1, c1, phi1, l1_1, l1_2,
                     r2, c2, phi2, l2_1, l2_2,
-                    VIEW_MODE, _selectedSlot, //260626 hbk 선택 슬롯 전달 ( 슬롯 오버로드)
+                    VIEW_MODE, _selectedSlot, //260626 hbk 선택 슬롯 전달 (슬롯 오버로드)
                     out dScore1, out dScore2,
                     out error);
 
@@ -857,7 +857,7 @@ namespace ReringProject.Custom.UI {
 
         //260827 hbk 슬롯을 고르지 않으면 티칭/브러시가 아무 데도 저장되지 않는다.
         //  경고 문구만 띄우면 계속 헛돌게 되므로 컨트롤 자체를 잠근다.
-        //  Bottom 은 이후 면 6개가 각각 독립 모델이라 "어느 면의 모델인지" 없이는 저장 대상이 없다.
+        //  Bottom 은 면 6개가 각각 독립 모델이라 "어느 면의 모델인지" 없이는 저장 대상이 없다.
         private void UpdateSlotGate() {
             bool bSlotChosen = (_selectedSlot != EBottomAlignSlot.None);
             try {
@@ -1377,7 +1377,7 @@ namespace ReringProject.Custom.UI {
         ///   datumRects(보정 ROI orange) → _datumOverlayVisible = [ROI 표시] 체크박스
         ///   _inspectionOverlays(에지 XLD contour 선) → _measurementOverlayVisible = [에지 표시] 체크박스
         /// F1: 검출 십자 제거(에지를 contour 선으로 대체).
-        /// 예외 시 throw 없이 결과 텍스트만 유지 .
+        /// 예외 시 throw 없이 결과 텍스트만 유지.
         /// </summary>
         private void ApplyAlignVisualization(AlignResult res) {
             if (_viewer == null) {
@@ -2259,7 +2259,7 @@ namespace ReringProject.Custom.UI {
         /// <summary>
         /// 현재 인덱스 이미지를 뷰어에 로드하고 상태 라벨을 갱신한다.
         /// _viewer.LoadImage(path) 호출 → CurrentImage 갱신 → 기존 Teach/Run/Cal 핸들러 자동 사용.
-        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만 .
+        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만.
         /// </summary>
         private void LoadCurrentLoaderImage() {
             if (_viewer == null) {

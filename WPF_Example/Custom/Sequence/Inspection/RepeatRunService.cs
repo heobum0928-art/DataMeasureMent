@@ -225,8 +225,8 @@ namespace ReringProject.Sequence
             }
         }
 
-        //260911 hbk (0): 순수 이동 리팩터 — HandleFinish 의 "소유 shot 종합판정 → BuildDto"
-        //  구간을 그대로 추출한다(로직/로그 문구 무변경, N5C-04 주석 함께 이동).
+        //260911 hbk 순수 이동 리팩터 — HandleFinish 의 "소유 shot 종합판정 → BuildDto"
+        //  구간을 그대로 추출한다(로직/로그 문구 무변경, 주석 함께 이동).
         //  HandleSavedCycleFinish 도 동일 로직을 재사용한다.
         private CycleResultDto BuildRunCycleDto(InspectionRecipeManager recipeManager, InspectionSequence seqRef, int nIndexNumber)
         {
@@ -234,7 +234,7 @@ namespace ReringProject.Sequence
             //  .Name 접근에서 _seq 를 두 번 읽어, 그 사이 다른 스레드(Stop())가 _seq=null 로 바꾸면
             //  seqName 이 null 로 빠지고 — IsShotOwnedBySequence 계약상 null 은 "전체 매칭" 이라 이번
             //  필터가 그 좁은 창에서 조용히 무력화될 위험이 있었다(TOCTOU). 로컬 1회 읽기로 차단.
-            // N5C-04: 이 반복검사를 실제로 돌린 시퀀스 이름. 아래 종합판정 스코프와
+            // 이 반복검사를 실제로 돌린 시퀀스 이름. 아래 종합판정 스코프와
             //  BuildDto 의 shot 스코프가 같은 기준을 쓰도록 한 곳에서만 산출한다.
             string seqName;
             if (seqRef != null)
@@ -254,7 +254,7 @@ namespace ReringProject.Sequence
             int nMatchedFaiCount = 0;
             foreach (var shot in recipeManager.Shots)
             {
-                //260805 hbk N5C-04: 이 시퀀스 소유 shot 만 종합판정에 포함.
+                //260805 hbk 이 시퀀스 소유 shot 만 종합판정에 포함.
                 bool bOwnedByThisSeq = InspectionSequence.IsShotOwnedBySequence(shot, seqName);
                 if (!bOwnedByThisSeq)
                 {
@@ -441,7 +441,7 @@ namespace ReringProject.Sequence
         private string _szSavedCycleStopReason;
         private volatile bool _bSavedCycleEnded;
 
-        //260911 hbk (3): 재검사 시작 시점의 경로/설정 스냅샷 — 모든 종료 경로에서 이 값으로 되돌린다.
+        //260911 hbk 재검사 시작 시점의 경로/설정 스냅샷 — 모든 종료 경로에서 이 값으로 되돌린다.
         //  Dictionary 키를 객체 참조로 둔다(같은 이름의 Shot/측정이 있어도 정확히 그 인스턴스만 되돌리기 위함).
         private sealed class SavedCycleOverrideSnapshot
         {
@@ -520,7 +520,7 @@ namespace ReringProject.Sequence
             }
             foreach (var shot in snap.OwnedShots)
             {
-                shot.RerunZRangeImagePaths = null; //260915 hbk ②: 부품마다 원복 후 재주입, 최종 종료 시 해제
+                shot.RerunZRangeImagePaths = null; //260915 hbk 부품마다 원복 후 재주입, 최종 종료 시 해제
             }
         }
 
@@ -774,7 +774,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        //260915 hbk ②: 부품(part)의 ZRangePhotoPaths 에서 이 Shot 몫만 새 사전으로 복사한다 — 항상
+        //260915 hbk 부품(part)의 ZRangePhotoPaths 에서 이 Shot 몫만 새 사전으로 복사한다 — 항상
         //  새 인스턴스를 반환해 스냅샷 사전과 공유되지 않게 한다.
         private static Dictionary<int, string> BuildRerunZRangeMap(SavedCycleRerunPart part, string szShotName)
         {
@@ -1588,7 +1588,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        //260915 hbk ②: 저장된 cycle.json 의 ZRangeImages 를 Shot 별 z→경로 사전으로 모은다(첫 기록
+        //260915 hbk 저장된 cycle.json 의 ZRangeImages 를 Shot 별 z→경로 사전으로 모은다(첫 기록
         //  우선, FillPartDatumPhotos 와 동일 원칙).
         private static void FillPartZRangePhotos(SavedCycleRerunPart part)
         {

@@ -378,7 +378,7 @@ namespace ReringProject.Network {
 
         //method
         public TcpServer() {
-            //260622 hbk v1.0 활성 시 ServerPortV1(7701), 아니면 기존 ServerPort(2505). .
+            //260622 hbk v1.0 활성 시 ServerPortV1(7701), 아니면 기존 ServerPort(2505).
             // base 생성자에서 mListener.Start() 가 즉시 호출되므로 포트 결정은 여기서 수행해야 한다.
             bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
             if (bUseV1)

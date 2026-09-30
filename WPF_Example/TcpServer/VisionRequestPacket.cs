@@ -276,7 +276,7 @@ namespace ReringProject.Network {
 
                     break;
                 case CMD_RECV_TEST: //test
-                    //260622 hbk v2.6/v1.0 분기 . UseProtocolV1=true → 유연 V1 파서, false → 레거시 V2.6 파서.
+                    //260622 hbk v2.6/v1.0 분기. UseProtocolV1=true → 유연 V1 파서, false → 레거시 V2.6 파서.
                     packet = new TestPacket();
                     TestPacket testPacket = packet.AsTest();
 
@@ -328,7 +328,7 @@ namespace ReringProject.Network {
             return packet;
         }
 
-        //260622 hbk v2.6 레거시 TEST 파서 — 기존 고정 인덱스 로직 그대로 보존 .
+        //260622 hbk v2.6 레거시 TEST 파서 — 기존 고정 인덱스 로직 그대로 보존.
         // 기존 CMD_RECV_TEST 블록(lines 259-288)의 로직을 byte-identical 추출.
         private static bool TryParseTestFieldsV26(string[] dataList, TestPacket testPacket)
         {
@@ -347,7 +347,7 @@ namespace ReringProject.Network {
         }
 
         //260622 hbk v1.0 유연 TEST 파서. 고정 매직 인덱스 의존 탈피 — 필드 누락 시 sentinel 폴백.
-        //  향후 필드 추가/순서 변경 시 이 메서드(+상수)만 수정. .
+        //  향후 필드 추가/순서 변경 시 이 메서드(+상수)만 수정..
         // 준수: 헝가리언 + if/else + 조건 bool 변수화 + 30줄 한도(자재번호 헬퍼 분리).
         // z_index=$PREP 분리: $TEST에서 z_index 필드 제거. TestID는 SystemHandler가 _lastPrepZIndex로 주입.
         private static bool TryParseTestFieldsV1(string[] dataList, TestPacket testPacket)

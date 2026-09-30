@@ -13,7 +13,7 @@ namespace ReringProject.Sequence
     //260616 hbk 트리에서 선택된 SHOT 인덱스 집합을 1사이클 일괄 실행하고 결과를 누적한다.
     /// RepeatRunService 와 동일한 Start → OnFinish → HandleFinish → 누적 패턴.
     /// 차이: N회 반복 대신 선택 SHOT 1사이클. SaveAsync 미호출 (InspectionSequence.HandleManualCyclePersist 위임 — 중복 저장 방지).
-    /// 누적/Export 경로는 (Gage R&R) 가 재사용 가능하도록 RepeatRunService 패턴 정합 .
+    /// 누적/Export 경로는 반복 측정(Gage R&R)에서 재사용할 수 있도록 RepeatRunService 패턴 정합.
     /// </summary>
     public class BatchRunService
     {

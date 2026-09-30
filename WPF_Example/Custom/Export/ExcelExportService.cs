@@ -284,7 +284,7 @@ namespace ReringProject.Export
     /// <summary>
     /// 리뷰어가 연 날짜 폴더의 NG 측정만 한 xlsx 파일(NG_분석_누적.xlsx, 시트 "NG 누적")에 중복 없이 계속 누적한다.
     /// 원인·근거·확인할 일·함께 의심·원인 코드는 화면 패널과 같은 NgCauseAnalyzer.Analyze 결과를 그대로 쓴다.
-    /// 이 클래스는 이 날짜 폴더의 cycle.json·사진을 읽기만 한다 — 쓰기는 출력 xlsx(와 같은 폴더 임시 xlsx) 뿐이다(PR-5).
+    /// 이 클래스는 이 날짜 폴더의 cycle.json·사진을 읽기만 한다 — 쓰기는 출력 xlsx(와 같은 폴더 임시 xlsx) 뿐이다.
     /// </summary>
     public static class NgAccumulationExportService
     {
@@ -1007,7 +1007,7 @@ namespace ReringProject.Export
             return Path.Combine(szDirectory, szFileNameNoExt + TEMP_FILE_SUFFIX);
         }
 
-        // 임시 xlsx 삭제는 이 메서드 안 File.Delete 1곳뿐이다(PR-5).
+        //260917 hbk 임시 xlsx 삭제는 이 메서드 안 File.Delete 1곳뿐이다.
         private static void TryDeleteTempFile(string szTempPath)
         {
             bool bExists = File.Exists(szTempPath);

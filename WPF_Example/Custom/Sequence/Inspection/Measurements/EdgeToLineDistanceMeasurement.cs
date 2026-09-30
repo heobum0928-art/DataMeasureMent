@@ -13,14 +13,14 @@ namespace ReringProject.Sequence
     /// MeasureAxis="X": datum 수직선(y축)까지 거리 — +X 오른쪽 양수. 수직 에지 검출용.
     /// datum 기준선은 교점(DatumOriginRow/Col)을 지나며 각도는 DatumAngleRad(수평선 θ, 수직선 θ+90°).
     /// HALCON projection_pl 로 에지 중점을 기준선에 정사영해 수선의 발을 구하고 거리를 계산한다.
-    /// 결과 단위: mm (pixelResolution 적용). Datum 1개(CTH) 가정 .
+    /// 결과 단위: mm (pixelResolution 적용). Datum 1개(CTH) 가정.
     /// </summary>
     public class EdgeToLineDistanceMeasurement : MeasurementBase,
         IDatumOriginConsumer
     {
         public override string TypeName { get { return "EdgeToLineDistance"; } }
 
-        //260918 hbk LSR-01: 핀 옆 띠 기준(국부 기준선) 옵션 상수
+        //260918 hbk 핀 옆 띠 기준(국부 기준선) 옵션 상수
         public const string LOCAL_REF_LOG_TAG = "[LocalRef] ";
         public const string LOCAL_REF_OVERLAY_ROI_ID = "FAI-RefLine";
         public const string LOCAL_REF_ROI_SUBKEY = "LocalRef";
@@ -85,7 +85,7 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> MeasureAxisList { get { return new List<string> { "Y", "X" }; } }
 
-        //260918 hbk LSR-01/: 핀 옆 띠 기준(국부 기준선) 옵션. 기본값 false(선언 없음) — 옛 레시피와
+        //260918 hbk 핀 옆 띠 기준(국부 기준선) 옵션. 기본값 false(선언 없음) — 옛 레시피와
         //  옵션 꺼진 측정은 이 옵션이 생기기 전과 완전히 동일하게 동작한다.
         [Category("Local Ref|Option")]
         [DisplayName("국부 기준 사용 (핀 옆 띠)")]
@@ -144,13 +144,13 @@ namespace ReringProject.Sequence
         [Newtonsoft.Json.JsonIgnore]
         public double DatumDetectedCircleCol { get; set; }
 
-        //260918 hbk LSR-02: 기준점 검출 때 구해 둔 국부 기준선 — Action_FAIMeasurement 가 측정 직전 주입(필드라 INI·붙여넣기 제외)
+        //260918 hbk 기준점 검출 때 구해 둔 국부 기준선 — Action_FAIMeasurement 가 측정 직전 주입(필드라 INI·붙여넣기 제외)
         [Newtonsoft.Json.JsonIgnore]
         public LocalRefLineResult InjectedLocalRef;
 
         public EdgeToLineDistanceMeasurement(object owner) : base(owner) { }
 
-        //260915 hbk ②: 이 측정은 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
+        //260915 hbk 이 측정은 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
         public override bool SupportsEdgeStrengthScore()
         {
             return true;
@@ -169,7 +169,7 @@ namespace ReringProject.Sequence
             // 실패 경로용 초기값 (성공 경로는 아래에서 채움)
             overlays = new List<EdgeInspectionOverlay>();
             LastFitScore = 0.0; //260915 hbk 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
-            //260918 hbk LSR-02/LSR-03: 국부 기준선 사용 여부를 입구에서 한 번 정한다 — 실패 return 보다 먼저라 Z 후보마다 같은 값
+            //260918 hbk 국부 기준선 사용 여부를 입구에서 한 번 정한다 — 실패 return 보다 먼저라 Z 후보마다 같은 값
             bool bUseLocalRef = IsInjectedLocalRefUsable();
             LastRefSource = ResolveRefSourceCode(bUseLocalRef);
 
@@ -242,7 +242,7 @@ namespace ReringProject.Sequence
                 {
                     if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; }
                 }
-                //260918 hbk LSR-02 ( b): 위치만 국부 기준선 중점, 각도는 전역 그대로
+                //260918 hbk (b): 위치만 국부 기준선 중점, 각도는 전역 그대로
                 double dAxisOriginRow = DatumOriginRow;
                 double dAxisOriginCol = DatumOriginCol;
                 if (bUseLocalRef)
@@ -454,7 +454,7 @@ namespace ReringProject.Sequence
             return true;
         }
 
-        //260918 hbk LSR-02/LSR-03: 옵션 켬 + 주입값 있음 + 그 주입값이 성공(Found)한 결과일 때만 국부 기준을 쓴다.
+        //260918 hbk 옵션 켬 + 주입값 있음 + 그 주입값이 성공(Found)한 결과일 때만 국부 기준을 쓴다.
         private bool IsInjectedLocalRefUsable()
         {
             if (!IsLocalRefEnabled)
@@ -473,7 +473,7 @@ namespace ReringProject.Sequence
             return bDatumOriginInjected;
         }
 
-        //260918 hbk LSR-04: 이번 실행이 어느 기준선으로 값을 냈는지 코드로 남긴다. 옵션 꺼짐이면 null(표시 빈칸, 기존과 동일).
+        //260918 hbk 이번 실행이 어느 기준선으로 값을 냈는지 코드로 남긴다. 옵션 꺼짐이면 null(표시 빈칸, 기존과 동일).
         private string ResolveRefSourceCode(bool bUseLocalRef)
         {
             if (!IsLocalRefEnabled)
@@ -608,7 +608,7 @@ namespace ReringProject.Sequence
             return string.Join(SETTINGS_KEY_SEPARATOR, lstParts);
         }
 
-        //260918 hbk LSR-01 하위호환: 옛 레시피엔 Local Ref 키가 없다 — 기본값이 0/false 가 아닌 7개만 키 없을 때 선언 기본값으로 되돌린다
+        //260918 hbk 하위호환: 옛 레시피엔 Local Ref 키가 없다 — 기본값이 0/false 가 아닌 7개만 키 없을 때 선언 기본값으로 되돌린다
         public override bool Load(IniFile loadFile, string groupName)
         {
             bool bResult = base.Load(loadFile, groupName);
@@ -655,7 +655,7 @@ namespace ReringProject.Sequence
         }
     }
 
-    //260918 hbk LSR-02: 기준점 검출 1번에 대한 국부 기준선 결과 — 만든 뒤 고치지 않는다.
+    //260918 hbk 기준점 검출 1번에 대한 국부 기준선 결과 — 만든 뒤 고치지 않는다.
     public class LocalRefLineResult
     {
         public string DatumName { get; set; }

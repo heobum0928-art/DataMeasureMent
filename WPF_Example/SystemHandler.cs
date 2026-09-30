@@ -70,7 +70,7 @@ namespace ReringProject {
         public bool IsInitializeFail { get; private set; } = false;
         // Indicates resources have been released.
         public bool IsReleased { get; private set; } = false;
-        //260615 hbk 레시피 비동기 로드 완료 신호 — ProcessTest guard 참조용 (D-B)
+        //260615 hbk 레시피 비동기 로드 완료 신호 — ProcessTest guard 참조용
         private volatile bool _isRecipeReady = false;
         public bool IsRecipeReady { get { return _isRecipeReady; } set { _isRecipeReady = value; } }
 
@@ -191,7 +191,7 @@ namespace ReringProject {
             ApplyHighResolutionTimer(); //260814 hbk top-release-2x-slower 조사 — HALCON SetSystem 보다 먼저, 최대한 이른 시점에
 
 
-            //260806 hbk Part A: HALCON 자체 캐시(mimalloc, HALCON 24.11 Windows 기본 할당자)가 해제된
+            //260806 hbk HALCON 자체 캐시(mimalloc, HALCON 24.11 Windows 기본 할당자)가 해제된
             //  메모리를 OS에 즉시 반환하지 않고 계속 쌓아두는 문제의 공식 완화책(memory_management 챕터,
             //  "Handling Suspected Memory Leaks in HALCON" 권장 3줄, 앱 시작 시 1회). 캐시 정책만 바꿀 뿐
             //  기능/정확성에는 영향 없다. Devices/Sequences 등 이후의 모든 Halcon 이미지 처리에 적용되도록
@@ -239,8 +239,8 @@ namespace ReringProject {
                 }
             }
 
-            Stopwatch sw = Stopwatch.StartNew(); //260528 hbk #11
-            long prev = 0; //260528 hbk #11 — 직전 단계 누적 시각 (delta 계산용)
+            Stopwatch sw = Stopwatch.StartNew();
+            long prev = 0; //260528 hbk 직전 단계 누적 시각 (delta 계산용)
 
             // 1) Light controller open
             // Site bring-up may wire controllers in one at a time; each controller already
@@ -249,14 +249,14 @@ namespace ReringProject {
             if (Lights.Initialize() == false) {
                 Logging.PrintLog((int)ELogType.LightController, "One or more light controllers failed to open at startup.");
             }
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 1 Lights.Initialize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 1 Lights.Initialize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             // 2) Sequence handler
             //    Owns recipe loading and main runtime states.
             Sequences = SequenceHandler.Handle;
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 2 SequenceHandler: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 2 SequenceHandler: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             // 3) TCP server
             //    External command/monitoring interface.
@@ -268,8 +268,8 @@ namespace ReringProject {
             CaptureImageSaver = new CaptureImageSaveService();
             AlignVerifyRetention.Cleanup();   // 보관 상한 초과분 정리 — 실패해도 초기화를 막지 않는다(내부 try/catch)
             CaptureImageSaver.Start();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             // 4) System main loop thread
             //    Runs SystemProcess -> MainRun() in a tight loop.
@@ -277,8 +277,8 @@ namespace ReringProject {
             mSystemThread.Priority = ThreadPriority.Highest;
             mSystemThread.Name = "SystemProcess";
             mSystemThread.Start();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 4 SystemThread.Start: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 4 SystemThread.Start: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             // 5) Login manager — background preload (측정 임계 경로 외부)
             // 동기 Load 제거 → 백그라운드 프리로드로 교체 (Step 5 delta 808ms → ~0)
@@ -293,26 +293,26 @@ namespace ReringProject {
 
             //260510 hbk channel #1 — OnRecipeChanged subscriber 등록 (Sequences 가 살아있고 ExecOnCreate 가 끝난 뒤 wire)
             WireBufferLifecycle();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 6 ExecOnCreate+WireBuffer: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 6 ExecOnCreate+WireBuffer: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             // 7) Collect recipe list
             //    Scans configured recipe directories.
             Recipes.CollectRecipe();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 7 CollectRecipe: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 7 CollectRecipe: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             //260615 hbk [STARTUP] READY — recipe ready + SystemThread alive + Sequences 구성 완료
-            //  = 첫 $TEST 수용 가능 시점 . Before/After 30% 비교의 단일 기준 지표 .
+            //  = 첫 $TEST 수용 가능 시점. Before/After 30% 비교의 단일 기준 지표.
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP] READY: {0} ms", sw.ElapsedMilliseconds);
 
             // 8) Localization resource
             //    Provides runtime language switching.
             Localize = App.Current.Resources["DR"] as LocalizationResource;
             //Localize.LanguageChanged += LanguageChanged;
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 8 Localize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 8 Localize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
 
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Total Initialize: {0} ms", sw.ElapsedMilliseconds); //260528 hbk #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Total Initialize: {0} ms", sw.ElapsedMilliseconds);
             Logging.PrintLog((int)ELogType.Trace, "[SYSTEM] Initialized");
 
             //260623 hbk 이더넷 정렬 카메라 독립 초기화 (실패해도 Grabber/검사 무영향)
@@ -328,7 +328,7 @@ namespace ReringProject {
         }
 
         public bool LoadRecipe(string recipeName) {
-            //260615 hbk [STARTUP-WHITE] (f) — 레시피 로드 시작. Dispatcher.Background 지연 후 실제 실행 시점 계측 (D-D)
+            //260615 hbk [STARTUP-WHITE] (f) — 레시피 로드 시작. Dispatcher.Background 지연 후 실제 실행 시점 계측
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (f) recipe load start: {0} ms", App.StartupWatch.ElapsedMilliseconds);
 
             // Delegate recipe load to sequence handler.
@@ -342,7 +342,7 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Trace, "[RECIPE] Load fail : {0}", recipeName);
             }
 
-            //260615 hbk [STARTUP-WHITE] (g) — 레시피 로드 완료(성공/실패 무관). 창 표시(e)~레시피 완료(g) 구간 = 비동기 지연 확인 (D-D)
+            //260615 hbk [STARTUP-WHITE] (g) — 레시피 로드 완료(성공/실패 무관). 창 표시(e)~레시피 완료(g) 구간 = 비동기 지연 확인
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (g) recipe load done (result={0}): {1} ms", result, App.StartupWatch.ElapsedMilliseconds);
             return result;
         }

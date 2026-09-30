@@ -75,7 +75,7 @@
                 <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
                         Click="Button_LoadFolder_Click"
                         Padding="8,4" HorizontalAlignment="Stretch"/>
-                <!-- 260923 hbk NGA-03: 한 엑셀 파일에 누적 . 저장 대상은 아래 드롭다운으로 고른다. -->
+                <!-- 260923 hbk 한 엑셀 파일에 누적. 저장 대상은 아래 드롭다운으로 고른다. -->
                 <ComboBox x:Name="cmb_accumScope" SelectedIndex="0"
                           FontSize="11" Padding="4,2" Margin="0,4,0,0" HorizontalAlignment="Stretch"
                           ToolTip="엑셀에 누적할 대상 — NG 는 'NG 누적' 시트, OK 는 'OK 누적' 시트로 나눠 쌓입니다">
@@ -207,7 +207,7 @@
         <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="2" Margin="1"/>
 
         <!-- 우측: 측정 결과 DataGrid + NG 원인 패널 -->
-        <!-- 260917 hbk NGA-02: 측정표 아래(Halcon 창과 겹치지 않는 WPF 영역) NG 원인 패널 -->
+        <!-- 260917 hbk 측정표 아래(Halcon 창과 겹치지 않는 WPF 영역) NG 원인 패널 -->
         <Grid Grid.Row="1" Grid.Column="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>

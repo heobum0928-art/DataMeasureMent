@@ -56,7 +56,7 @@ namespace ReringProject.Setting
 
         /// <summary>
         /// TCP AlignFace 정수(0~5) → EBottomAlignSlot 으로 변환한다.
-        /// 0~5 범위 외(음수/6 이상)는 None 반환 → OOB 불가 .
+        /// 0~5 범위 외(음수/6 이상)는 None 반환 → OOB 불가.
         /// 0=Slot3DTop/1=Slot3DBottom/2=Slot2DTop/3=Slot2DBottom/4=Slot2DSide1/5=Slot2DSide2.
         /// </summary>
         public static EBottomAlignSlot FromAlignFace(int alignFace) //260626 hbk TCP AlignFace 0~5 → 슬롯
@@ -92,7 +92,7 @@ namespace ReringProject.Setting
         /// UI 표시용 라벨을 반환한다 (Plan 02 소비).
         /// None → "(단일)".
         /// </summary>
-        public static string ToDisplayLabel(EBottomAlignSlot slot) //260626 hbk UI 라벨 ( 소비)
+        public static string ToDisplayLabel(EBottomAlignSlot slot) //260626 hbk UI 라벨
         {
             if (slot == EBottomAlignSlot.Slot3DTop)
             {

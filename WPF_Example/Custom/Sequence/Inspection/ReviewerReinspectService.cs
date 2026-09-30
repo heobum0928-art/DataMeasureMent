@@ -41,7 +41,7 @@ namespace ReringProject.Sequence
         public FAIConfig LiveFai { get; set; }
         public MeasurementBase LiveMeasurement { get; set; }
 
-        /// <summary>: NG 측정의 기준점 사진 짝이 맞지 않아 Shot 사진만 들어왔다.</summary>
+        /// <summary>NG 측정의 기준점 사진 짝이 맞지 않아 Shot 사진만 들어왔다.</summary>
         public bool IsDatumPhotoMissing { get; set; }
 
         /// <summary>고른 측정이 실제로 쓴 z 사진 경로 — 메인 캔버스에 그 사진을 띄우기 위함. 없으면 빈 문자열.</summary>
@@ -57,16 +57,16 @@ namespace ReringProject.Sequence
         public string ShotName { get; set; }
         public string MeasurementName { get; set; }
 
-        /// <summary>: 불러온 NG Shot 사진이 .jpg/.jpeg 다.</summary>
+        /// <summary>불러온 NG Shot 사진이 .jpg/.jpeg 다.</summary>
         public bool IsJpgPhoto { get; set; }
 
-        /// <summary>: Z 범위 Shot 인데 z 후보 사진이 없어 고른 z 한 장으로만 검사한다.</summary>
+        /// <summary>Z 범위 Shot 인데 z 후보 사진이 없어 고른 z 한 장으로만 검사한다.</summary>
         public bool IsZCandidateMissing { get; set; }
 
-        /// <summary>: 기준점 사진 짝이 안 맞아 지금 기준점 사진을 그대로 쓴다.</summary>
+        /// <summary>기준점 사진 짝이 안 맞아 지금 기준점 사진을 그대로 쓴다.</summary>
         public bool IsDatumPhotoKept { get; set; }
 
-        /// <summary>: 불러오기 직후 자동으로 돌린 기준점 Test Find 결과(기본 NotRun).</summary>
+        /// <summary>불러오기 직후 자동으로 돌린 기준점 Test Find 결과(기본 NotRun).</summary>
         public EReviewerTestFindResult TestFindResult { get; set; }
 
         public ReviewerReinspectState Clone()
@@ -89,7 +89,7 @@ namespace ReringProject.Sequence
     /// 리뷰어에서 고른 NG 사이클의 사진을 메인 화면 레시피 객체(메모리)에 불러오고
     /// 해제/저장/PLC 자동 검사/레시피 변경/프로그램 종료 시 원래 경로·OfflineInspectMode 로 되돌린다.
     /// RepeatRunService.SavedCycleOverrideSnapshot 과 같은 스냅샷/복원 방식을 쓰되, "버튼 한 번 = 부품 하나"
-    /// 라 큐가 아니라 활성 스냅샷 1개만 갖는다(: 원래 값은 처음 것 유지, 대체 시 원복 후 재주입).
+    /// 라 큐가 아니라 활성 스냅샷 1개만 갖는다(원래 값은 처음 것 유지, 대체 시 원복 후 재주입).
     /// UI 스레드(불러오기·저장)와 MainRun 백그라운드 스레드(PLC 해제) 동시 접근을 s_lock 으로 보호한다.
     /// </summary>
     public static class ReviewerReinspectService

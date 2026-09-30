@@ -1,4 +1,4 @@
-//260624 hbk revision — 2-pattern + angle_lx baseline ( '/05'/07')
+//260624 hbk revision — 2-pattern + angle_lx baseline
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -442,7 +442,7 @@ namespace ReringProject {
             if (mode == EEthernetVisionMode.None) {
                 return list;
             }
-            //260827 hbk Bottom 은 이후 항상 슬롯별 모델(Bottom_{token}_1/2.shm)을 쓴다.
+            //260827 hbk Bottom 은 항상 슬롯별 모델(Bottom_{token}_1/2.shm)을 쓴다.
             //  슬롯 미선택(None)이면 BuildShmPath 가 구형 Bottom_1/2.shm 경로를 돌려주는데,
             //  그 모델은 이 화면에서 재티칭할 수 없어(TryTeach 가 슬롯을 요구) 마스크만 남고
             //  모델에는 영원히 반영되지 않는다. 대상이 없다고 보고 빈 목록을 돌려준다.
@@ -749,7 +749,7 @@ namespace ReringProject {
                 }
 
                 //260625 hbk 시각화 필드 채우기(검출 좌표/ROI박스/에지 contour).
-                // 실패해도 result.Found/Offset 등 기존 반환은 유지( 무중단). try-catch 전체 포괄.
+                // 실패해도 result.Found/Offset 등 기존 반환은 유지(무중단). try-catch 전체 포괄.
                 try {
                     // (a) 검출 좌표 대입 (HALCON 호출 없음 — 이미 산출된 값 재사용)
                     result.HasDetection = true;
@@ -936,8 +936,8 @@ namespace ReringProject {
         //260624 hbk 피커센터 기준 강체보정.
         // 부품은 피커센터를 중심으로 dθ 회전하므로, midpoint offset(dRow,dCol) 을 피커센터 기준
         // HomMat2dRotate(dθ, pickerRow, pickerCol) 로 재표현하여 보정 row/col 을 산출.
-        // 피커센터 미캘(0,0) 시 → 입력 offset 그대로 반환(폴백 = 동작).
-        // 부호/회전중심 규약은 피커 컨트롤러 기준 — /통합 확정 (PICKER_ROTATION_SIGN 파라미터화).
+        // 피커센터 미캘(0,0) 시 → 입력 offset 그대로 반환(폴백 = 이전 동작).
+        // 부호/회전중심 규약은 피커 컨트롤러 기준 — 실기 통합 시 확정 (PICKER_ROTATION_SIGN 파라미터화).
         // TODO: PICKER_ROTATION_SIGN 및 회전 적용점 실 피커 기준 확정.
         // 실패 시 입력값 그대로 반환(throw 금지).
         // pickerRow/pickerCol 을 인자로 받도록 변경(기존엔 SystemSetting.Handle.PickerCenterRow/Col
@@ -954,7 +954,7 @@ namespace ReringProject {
             bool bUncalibrated = (Math.Abs(pickerRow) <= SystemSetting.PICKER_CENTER_ZERO_EPS)
                               && (Math.Abs(pickerCol) <= SystemSetting.PICKER_CENTER_ZERO_EPS);
             if (bUncalibrated) {
-                return;   //260624 hbk 폴백: 피커센터 미캘 → midpoint offset 그대로 ( 동작 유지)
+                return;   //260624 hbk 폴백: 피커센터 미캘 → midpoint offset 그대로 (이전 동작 유지)
             }
 
             HTuple homMat = null;

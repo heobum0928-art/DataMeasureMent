@@ -30,7 +30,7 @@ namespace ReringProject.Sequence {
     public class Action_FAIMeasurement : ActionBase {
 
         private enum EStep {
-            //260619 hbk #6 leveling 제거 — EStep.Level 폐기, MoveZ→DatumPhase 직결
+            //260619 hbk leveling 제거 — EStep.Level 폐기, MoveZ→DatumPhase 직결
             Init,
             MoveZ,
             DatumPhase,
@@ -68,7 +68,7 @@ namespace ReringProject.Sequence {
         private const string ZFOCUS_LOG_TAG = "[ZFocus] ";
         private const string ZFOCUS_SCORE_FORMAT = "F2";
         private const double ZFOCUS_FAILED_SCORE = 0.0;
-        //260915 hbk ③: 화면에 노출하지 않는 내부 동점 허용치(%) — 최고 점수 z 와 기준 Z 점수 차가
+        //260915 hbk 화면에 노출하지 않는 내부 동점 허용치(%) — 최고 점수 z 와 기준 Z 점수 차가
         //  이 값 이하(경계 포함)면 기준 Z 를 채택한다.
         private const double Z_FOCUS_TIE_PERCENT = 3.0;
         private const double PERCENT_SCALE = 100.0;
@@ -82,7 +82,7 @@ namespace ReringProject.Sequence {
         private int _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE;
         //260915 hbk 오설정 Shot 이 조용히 꺼지지 않게 — 사이클(RunInit)마다 1회만 로그한다.
         private bool _bZRangeMisconfigLogged = false;
-        //260915 hbk ①: 수동(라이브 RUN·수동 트리거)은 Z 선택을 안 한다는 안내를 사이클(RunInit)마다 1회만 남긴다.
+        //260915 hbk 수동(라이브 RUN·수동 트리거)은 Z 선택을 안 한다는 안내를 사이클(RunInit)마다 1회만 남긴다.
         private bool _bZRangeNoticeLogged = false;
 
         // 측정 실패 에러 원문을 LastErrorMessage 에 남길 때 최대 보관 길이(문자 수). 정보 과다 노출/과도한
@@ -205,7 +205,7 @@ namespace ReringProject.Sequence {
             ReleaseZRangeCandidates(); //260915 hbk 이전 tick 잔여 후보 안전망(정상 흐름에서는 이미 비어 있음)
             _nZRangeDisplayZIndex = MeasurementBase.SELECTED_Z_NONE; //260915 hbk 이전 사이클 표시 z 잔재 방지
             _bZRangeMisconfigLogged = false; //260915 hbk 새 사이클마다 오설정 로그 1회 재허용
-            _bZRangeNoticeLogged = false; //260915 hbk ①: 새 사이클마다 수동 안내 로그 1회 재허용
+            _bZRangeNoticeLogged = false; //260915 hbk 새 사이클마다 수동 안내 로그 1회 재허용
             // Run 사이클 진입 시 image buffer + FAI results dispose
             if (ShotParam != null) ShotParam.ClearAllResults();
             Step = (int)EStep.MoveZ;
@@ -232,7 +232,7 @@ namespace ReringProject.Sequence {
                 System.Threading.Thread.Sleep(ShotParam.DelayMs);
             }
             #endif
-            //260619 hbk #6 leveling 제거 — MoveZ→DatumPhase 직결 (EStep.Level 폐기)
+            //260619 hbk leveling 제거 — MoveZ→DatumPhase 직결 (EStep.Level 폐기)
             Step = (int)EStep.DatumPhase;
         }
 
@@ -255,7 +255,7 @@ namespace ReringProject.Sequence {
             LogSeqStep("DatumPhase", string.Format("기준점 검출 — 등록 Datum {0}개",
                 nDatumRegistered));
             if (parentSeq != null && parentSeq.DatumConfigs.Count > 0) {
-                //260618 hbk 이미지 회전(datumLevelOn/datumLevelAngle) 폐기 ( warp 0회).
+                //260618 hbk 이미지 회전(datumLevelOn/datumLevelAngle) 폐기 (warp 0회).
                 //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 이전 datumLevelOn/datumLevelAngle 지역변수 제거.
                 _bDatumLightsApplied = false;
                 foreach (var datum in parentSeq.DatumConfigs) {
@@ -426,7 +426,7 @@ namespace ReringProject.Sequence {
         //  오프라인 검사이미지 자동채움 게이트로 쓴다. nDatumOk/nDatumFail 카운터에 접근하지 않는 기존
         //  구조는 유지 — 이 반환값은 카운터가 아니라 이번 tick 검출 성공/실패 bool 뿐이다.
         private bool RunDatumDualImageDetection(DatumConfig datum, InspectionSequence parentSeq, HImage imgH, HImage imgV) {
-            //260619 hbk #4 DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
+            //260619 hbk DualImage align 배선 (deferred 게이트 해제, 단일이미지 분기 미러).
             //  enabled → align 단독 경로(imgH 패턴매칭 → 단일 alignRigid 를 imgH/imgV 두 검출에 적용). disabled → 기존 2-image 검출.
             //  패턴 모델은 가로축(imgH/TeachingImagePath) 1세트만 사용 — 세로엔 패턴 없음.
             if (datum.IsPatternAlignEnabled) {
@@ -435,7 +435,7 @@ namespace ReringProject.Sequence {
                 if (!parentSeq.TryComposeAlign(datum, imgH, imgV, modelPath, out alignErr)) {
                     Logging.PrintLog((int)ELogType.Error, LOG_TAG + "Datum '" + datum.DatumName + "' DualImage 패턴매칭 실패 (ALIGN_FAIL, skip): " + alignErr);
                     datum.RuntimeDetectFailed = true;
-                    parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk #5 lenient — NG 강제, abort 안 함
+                    parentSeq.MarkAlignFailed(datum.DatumName); //260619 hbk lenient — NG 강제, abort 안 함
                     return false;
                 }
             } else {
@@ -460,7 +460,7 @@ namespace ReringProject.Sequence {
                 parentSeq.MarkDatumFailed(datum.DatumName);
                 return;
             }
-            //260618 hbk 패턴매칭 위치보정 . 이미지 회전(레벨링 warp) 폐기 ( warp 0회).
+            //260618 hbk 패턴매칭 위치보정. 이미지 회전(레벨링 warp) 폐기 (warp 0회).
             //  enabled → align 단독 경로(검출 미수행, 이중적용 방지). disabled → 기존 검출 경로 유지(off 회귀 0).
             try {
                 //260910 hbk 검출 직전/직후 카운터 차이로 이번 tick 성공 여부를 판정한다.
@@ -522,7 +522,7 @@ namespace ReringProject.Sequence {
                 var swGrabTotal = Stopwatch.StartNew();
                 HImage image = AcquireShotImage();
                 if (image != null) {
-                    //260618 hbk 측정 이미지 회전(레벨링 warp) 폐기 ( warp 0회).
+                    //260618 hbk 측정 이미지 회전(레벨링 warp) 폐기 (warp 0회).
                     //  레벨링 이미지회전 → 패턴매칭 ROI 좌표변환으로 대체. 측정은 보정 전 원본 픽셀에서 수행.
                     ShotParam.SetImage(image); // 측정 소스(데이터 경로) — 표시 설정과 무관하게 항상 설정한다.
                     StoreZRangeCandidateImage(image); //260915 hbk 범위 안 z 면 후보로 누적(꺼짐/범위 밖은 no-op)
@@ -734,7 +734,7 @@ namespace ReringProject.Sequence {
             if (!EvaluateCrossZGate(meas, parentSeq2, acc, out dualMeasForGate, out bHasAnyZIndex)) return;
             HTuple transform = ResolveDatumTransform(parentSeq2, meas.DatumRef); //260702 hbk Extract Method
             InjectDatumOrigin(meas, parentSeq2); //260702 hbk Extract Method
-            InjectLocalRef(meas, parentSeq2); //260918 hbk LSR-02: 기준점 검출 때 구해 둔 국부 기준선 주입(측정당 tick 1번, Z 범위 처리 전)
+            InjectLocalRef(meas, parentSeq2); //260918 hbk 기준점 검출 때 구해 둔 국부 기준선 주입(측정당 tick 1번, Z 범위 처리 전)
             //260915 hbk 범위 Shot 의 지원 측정은 여기서 대기 표시 또는 후보별 실행·선택까지
             //  전부 처리하고 true 를 돌려준다 — 아래 공용 실행 경로(단일 사진)로는 내려가지 않는다.
             if (TryHandleZRangeMeasurement(meas, parentSeq2, bHasAnyZIndex, dualMeasForGate, image, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed))
@@ -969,7 +969,7 @@ namespace ReringProject.Sequence {
                 MarkMeasurementCrossZIncomplete(meas, true, true, parentSeq2);
                 faiAllPass = false;
             }
-            measuredCount++; //260818 hbk 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고( index 게이트가 보장)
+            measuredCount++; //260818 hbk 프로토콜 Z1(비완성 index): 캡처만 — NG 아님, 미보고(index 게이트가 보장)
         }
 
         //260702 hbk Extract Method: Measure per-FAI 저장/표시 마무리(원본 meas 루프 뒤 try/finally, 동치 보장)
@@ -1342,7 +1342,7 @@ namespace ReringProject.Sequence {
         }
 
         // 저장소 키 두 개로부터 클론 취득 공용 로직 — TryTakeCompletedCrossZDatumImages/TryReDetectCrossZDatumFromStore
-        //  가 공유( 동일 로직 2회 이상 반복 금지). 한쪽만 취득 성공 시 누수 방지를 위해 양쪽 모두 Dispose.
+        //  가 공유(동일 로직 2회 이상 반복 금지). 한쪽만 취득 성공 시 누수 방지를 위해 양쪽 모두 Dispose.
         private bool TryTakeCrossZImageClones(string keyA, string keyB, InspectionSequence parentSeq, DualDatumImageResult result) {
             result.Horizontal = parentSeq.TakeCrossZImageCopy(keyA);
             result.Vertical = parentSeq.TakeCrossZImageCopy(keyB);
@@ -1805,7 +1805,7 @@ namespace ReringProject.Sequence {
 
         //260722 hbk DualImage 측정의 ZIndexA/ZIndexB 오설정 판정 — 단일설정/동일값/존재하지 않는
         //  z_index 참조 → true. 호출부가 이미 "둘 중 하나라도 설정됨"을 확인한 뒤에만 호출한다(둘 다 -1 미설정인
-        //  기존 레시피는 이 검사 자체를 타지 않음 —). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
+        //  기존 레시피는 이 검사 자체를 타지 않음). 조용한 폴백(ResolveDatumModelPath 의 Shots[0] 류) 금지.
         // 본문을 IsCrossZIndexPairMisconfigured 로 위임(로직 무변경, 시그니처 무변경).
         private bool IsZIndexMisconfigured(DualImageEdgeDistanceMeasurement dualMeas, InspectionSequence parentSeq2)
         {
@@ -1933,7 +1933,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260918 hbk LSR-02/LSR-03: 기준점 검출 때 사전 계산해 둔 국부 기준선을 측정 직전 주입한다(측정당 tick 1번).
+        //260918 hbk 기준점 검출 때 사전 계산해 둔 국부 기준선을 측정 직전 주입한다(측정당 tick 1번).
         //  주입에 실패하면 전환 원인을 TryResolveLocalRef 가 밝히고, 여기서 원인 로그 1줄만 남긴다.
         private void InjectLocalRef(MeasurementBase meas, InspectionSequence parentSeq2) {
             var etld = meas as EdgeToLineDistanceMeasurement;
@@ -2043,7 +2043,7 @@ namespace ReringProject.Sequence {
             return null;
         }
 
-        //260918 hbk LSR-03/: 국부 기준을 못 쓰는 5가지 원인을 순서대로 가려낸다. 성공하면 etld.InjectedLocalRef
+        //260918 hbk 국부 기준을 못 쓰는 5가지 원인을 순서대로 가려낸다. 성공하면 etld.InjectedLocalRef
         //  에 대입하고 true, 실패하면 szReason 에 원인 문구를 채우고 false — 값은 옵션 꺼짐과 비트 동일하게 흘러간다.
         private bool TryResolveLocalRef(EdgeToLineDistanceMeasurement etld, InspectionSequence parentSeq2, out string szReason) {
             if (string.IsNullOrEmpty(etld.DatumRef)) {
@@ -2141,13 +2141,13 @@ namespace ReringProject.Sequence {
             {
                 if (IsLiveCaptureMode())
                 {
-                    return EZRangeMode.ManualSingle; //260915 hbk ①: 화면 RUN(라이브 빌드) — 1장 측정, 선택 없음
+                    return EZRangeMode.ManualSingle; //260915 hbk 화면 RUN(라이브 빌드) — 1장 측정, 선택 없음
                 }
-                return EZRangeMode.OfflineSelect; //260915 hbk ②: 오프라인/저장 사진 재검사(비프로토콜 + 파일 읽기)
+                return EZRangeMode.OfflineSelect; //260915 hbk 오프라인/저장 사진 재검사(비프로토콜 + 파일 읽기)
             }
             if (parentSeq2.IsManualTriggerCycle())
             {
-                return EZRangeMode.ManualSingle; //260915 hbk ①: 수동 트리거(Sender 없는 $TEST) — 1장 측정, 선택 없음
+                return EZRangeMode.ManualSingle; //260915 hbk 수동 트리거(Sender 없는 $TEST) — 1장 측정, 선택 없음
             }
             int nCurZ = parentSeq2.GetExecutionZIndex();
             if (nCurZ == ShotParam.ZIndexEnd)
@@ -2187,7 +2187,7 @@ namespace ReringProject.Sequence {
                 return; //260915 hbk 범위 밖 z — 저장 금지
             }
             parentSeq.StoreZRangeImage(ShotParam.ShotName, nCurZ, image);
-            SaveZRangeCandidateImageIfEnabled(image, parentSeq, nCurZ); //260915 hbk ③: 저장 체크박스 켜짐 + 라이브 PLC 일 때만 실제 저장
+            SaveZRangeCandidateImageIfEnabled(image, parentSeq, nCurZ); //260915 hbk 저장 체크박스 켜짐 + 라이브 PLC 일 때만 실제 저장
             AutoFillZRangeOfflineImage(image, nCurZ); //260915 hbk ②/ ⑦: AutoFillOfflineImages 켜짐 + 라이브일 때만 z 별 오프라인 사진도 채움
             Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "후보 저장 — " + ShotParam.ShotName + " z=" + nCurZ);
         }
@@ -2281,7 +2281,7 @@ namespace ReringProject.Sequence {
             }
             if (bHasAnyZIndex)
             {
-                return false; //260915 hbk 크로스-Z 측정은 기존 ZIndexA/B 규칙 그대로( ②)
+                return false; //260915 hbk 크로스-Z 측정은 기존 ZIndexA/B 규칙 그대로
             }
             if (mode == EZRangeMode.AutoPending)
             {
@@ -2293,7 +2293,7 @@ namespace ReringProject.Sequence {
                 bool bScoreSupported = dualMeasForGate == null && meas.SupportsEdgeStrengthScore();
                 if (!bScoreSupported)
                 {
-                    //260915 hbk ②: 미지원 타입 — 후보 반복 없이 기준 Z 사진(RunGrab 에서 이미 교체됨)으로 1회 측정.
+                    //260915 hbk 미지원 타입 — 후보 반복 없이 기준 Z 사진(RunGrab 에서 이미 교체됨)으로 1회 측정.
                     ExecuteZRangeBaseImageMeasurement(meas, image, transform, pixRes, acc, overlayAcc, faiOverlays, dctAlgoUsed);
                     return true;
                 }
@@ -2301,10 +2301,10 @@ namespace ReringProject.Sequence {
             }
             if (mode == EZRangeMode.ManualSingle)
             {
-                LogZRangeManualNotice(); //260915 hbk ①: 라이브 수동은 선택 없이 1장으로 측정한다는 안내만 남긴다
+                LogZRangeManualNotice(); //260915 hbk 라이브 수동은 선택 없이 1장으로 측정한다는 안내만 남긴다
                 return false; // 기존 단일 사진 경로 그대로
             }
-            //260915 hbk mode == EZRangeMode.OfflineSelect ( ②) — z 별 저장 사진으로 자동검사와 같은 선택 로직을 태운다.
+            //260915 hbk mode == EZRangeMode.OfflineSelect — z 별 저장 사진으로 자동검사와 같은 선택 로직을 태운다.
             bool bScoreSupportedOffline = dualMeasForGate == null && meas.SupportsEdgeStrengthScore();
             if (bScoreSupportedOffline)
             {
@@ -2330,8 +2330,8 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        //260915 hbk ①: 라이브 수동(RUN·수동 트리거)은 선택 없이 1장으로 측정한다는 안내를 사이클당 1회
-        //  시퀀스 로그와 Algorithm 로그 두 곳에 남긴다 — 화면 코드(MainView.xaml.cs)는 수정하지 않는다(PR-5).
+        //260915 hbk 라이브 수동(RUN·수동 트리거)은 선택 없이 1장으로 측정한다는 안내를 사이클당 1회
+        //  시퀀스 로그와 Algorithm 로그 두 곳에 남긴다 — 화면 코드(MainView.xaml.cs)는 수정하지 않는다.
         private void LogZRangeManualNotice()
         {
             if (_bZRangeNoticeLogged)
@@ -2349,7 +2349,7 @@ namespace ReringProject.Sequence {
         }
 
         //260915 hbk 중간 z tick — 후보 사진을 모으는 중이라 아직 측정 안 함. 크로스-Z 대기
-        //  (MarkMeasurementCrossZIncomplete)와 같은 취지의 대기 표시. 응답은 완성 index 게이트로 빠진다(PR-1).
+        //  (MarkMeasurementCrossZIncomplete)와 같은 취지의 대기 표시. 응답은 완성 index 게이트로 빠진다.
         private void MarkMeasurementZRangePending(MeasurementBase meas, InspectionSequence parentSeq2, ShotMeasureAccumulator acc)
         {
             meas.ClearResult();
@@ -2391,7 +2391,7 @@ namespace ReringProject.Sequence {
             EZRangeMode mode = ResolveZRangeMode(parentSeq2);
             if (mode == EZRangeMode.OfflineSelect)
             {
-                //260915 hbk ②: 오프라인/재검사는 자동 사이클 저장소 대신 z 별 오프라인 사진 파일에서 읽는다.
+                //260915 hbk 오프라인/재검사는 자동 사이클 저장소 대신 z 별 오프라인 사진 파일에서 읽는다.
                 _lstZRangeCandidates = LoadOfflineZRangeCandidates(parentSeq2);
             }
             else
@@ -2401,7 +2401,7 @@ namespace ReringProject.Sequence {
             LogZRangeMissingCandidatesIfAny(lstIndices);
         }
 
-        //260915 hbk ②: 오프라인·재검사 모드 전용 후보 로더 — z 별 오프라인 사진 파일을 읽어 후보 목록을
+        //260915 hbk 오프라인·재검사 모드 전용 후보 로더 — z 별 오프라인 사진 파일을 읽어 후보 목록을
         //  만든다. 반환된 사진은 기존 ReleaseZRangeCandidates 가 Dispose 한다(_lstZRangeCandidates 소유).
         private List<KeyValuePair<int, HImage>> LoadOfflineZRangeCandidates(InspectionSequence parentSeq2)
         {
@@ -2455,7 +2455,7 @@ namespace ReringProject.Sequence {
             return szPath;
         }
 
-        //260915 hbk ②: 후보 목록에서 z 가 같은 첫 사진을 찾는다(소유권 이동 없음 — ReleaseZRangeCandidates
+        //260915 hbk 후보 목록에서 z 가 같은 첫 사진을 찾는다(소유권 이동 없음 — ReleaseZRangeCandidates
         //  가 Dispose 한다).
         private HImage FindZRangeCandidateImage(int nZIndex)
         {
@@ -2552,12 +2552,12 @@ namespace ReringProject.Sequence {
             LogZFocusSelection(meas, lstResults, chosen, swMeasureExec);
             RecordMeasurementResult(meas, false, chosen.Ok, chosen.Value, chosen.Error, chosen.Overlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
             meas.LastSelectedZIndex = chosen.ZIndex; // RecordMeasurementResult 실패 분기의 ClearResult 뒤라 여기서 다시 남긴다
-            ApplySelectedZLabel(chosen.Overlays, chosen.ZIndex); //260915 hbk ⑥: 오버레이 강조 라벨에 선택 Z 반영
-            meas.LastZCandidateScores = BuildZCandidateScoreList(lstResults); //260917 hbk NGA-07: 이미 평가한 후보 결과를 복사만 한다(재계산 없음)
+            ApplySelectedZLabel(chosen.Overlays, chosen.ZIndex); //260915 hbk 오버레이 강조 라벨에 선택 Z 반영
+            meas.LastZCandidateScores = BuildZCandidateScoreList(lstResults); //260917 hbk 이미 평가한 후보 결과를 복사만 한다(재계산 없음)
             return true;
         }
 
-        //260915 hbk ②: 에지 강도 선택 미지원 타입 — 기준 Z 사진(image, RunGrab/ApplyZRangeBaseImageForDisplay
+        //260915 hbk 에지 강도 선택 미지원 타입 — 기준 Z 사진(image, RunGrab/ApplyZRangeBaseImageForDisplay
         //  가 이미 교체) 으로 공용 실행 경로를 1회만 태운다. 후보 반복·재선택 없음.
         private void ExecuteZRangeBaseImageMeasurement(MeasurementBase meas, HImage image, HTuple transform, double pixRes,
                                                         ShotMeasureAccumulator acc, List<EdgeInspectionOverlay> overlayAcc,
@@ -2570,7 +2570,7 @@ namespace ReringProject.Sequence {
             bool ok = TryExecuteMeasurement(meas, image, transform, pixRes, out resultValue, out measError, out measOverlays);
             RecordMeasurementResult(meas, false, ok, resultValue, measError, measOverlays, overlayAcc, faiOverlays, dctAlgoUsed, swMeasureExec, acc);
             meas.LastSelectedZIndex = _nZRangeDisplayZIndex;
-            ApplySelectedZLabel(measOverlays, _nZRangeDisplayZIndex); //260915 hbk ⑥: 오버레이 강조 라벨에 선택 Z 반영
+            ApplySelectedZLabel(measOverlays, _nZRangeDisplayZIndex); //260915 hbk 오버레이 강조 라벨에 선택 Z 반영
             string measName = GetMeasurementDisplayName(meas);
             string szShotName = "";
             if (ShotParam != null)
@@ -2580,7 +2580,7 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Algorithm, ZFOCUS_LOG_TAG + "기준 Z 사진 사용 — " + szShotName + " · " + measName + " type=" + meas.TypeName + " z=" + _nZRangeDisplayZIndex + " (에지 강도 선택 미지원 타입)");
         }
 
-        //260915 hbk ⑥: 선택된 Z 를 오버레이 강조 라벨에 반영한다 — 결과 화면·cycle.json 오버레이에
+        //260915 hbk 선택된 Z 를 오버레이 강조 라벨에 반영한다 — 결과 화면·cycle.json 오버레이에
         //  그대로 나타난다(EdgeInspectionOverlay.SelectedZLabel 표시 자리).
         private static void ApplySelectedZLabel(List<EdgeInspectionOverlay> lstOverlays, int nZIndex)
         {
@@ -2715,7 +2715,7 @@ namespace ReringProject.Sequence {
             return lstResults;
         }
 
-        //260917 hbk NGA-07: RunZFocusCandidates 가 만든 후보 결과를 cycle.json 기록용 DTO 목록으로 복사만 한다
+        //260917 hbk RunZFocusCandidates 가 만든 후보 결과를 cycle.json 기록용 DTO 목록으로 복사만 한다
         //  (재계산 없음). 평가 순서 그대로 유지 — 정렬·중복 제거 없음.
         private static List<ReringProject.UI.ZCandidateScoreDto> BuildZCandidateScoreList(List<ZFocusRunResult> lstResults)
         {
@@ -2740,7 +2740,7 @@ namespace ReringProject.Sequence {
             return lstScores;
         }
 
-        //260915 hbk PR-2: 성공한 결과 중 점수가 엄격히 더 높을 때만 교체한다 — 동점이면 먼저(작은 z)
+        //260915 hbk 성공한 결과 중 점수가 엄격히 더 높을 때만 교체한다 — 동점이면 먼저(작은 z)
         //  평가된 후보를 유지한다(엄격한 초과 비교, 반올림 없이 double 원값 비교). 성공이 하나도 없으면 목록
         //  첫 결과(가장 작은 z, 보통 기준 Z)를 그대로 반환해 그 실패가 기록되게 한다 — PASS 로 비워 두지 않는다.
         private ZFocusRunResult PickZFocusResult(List<ZFocusRunResult> lstResults)
@@ -2789,7 +2789,7 @@ namespace ReringProject.Sequence {
             return null;
         }
 
-        //260915 hbk ③: 최고 점수(best)와 기준 Z 결과(baseResult) 중 무엇을 채택할지 — 가드 절만으로
+        //260915 hbk 최고 점수(best)와 기준 Z 결과(baseResult) 중 무엇을 채택할지 — 가드 절만으로
         //  판정한다. 기준 Z 가 채택되면 기준 Z 자신의 Value/Error/Overlays 를 그대로 반환한다(재계산 없음).
         //  경계 포함(이하), 반올림 없음.
         private ZFocusRunResult ApplyBaseZTieRule(ZFocusRunResult best, ZFocusRunResult baseResult)

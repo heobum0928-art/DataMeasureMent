@@ -634,7 +634,7 @@ namespace ReringProject.UI {
             _batchService.StartBatch(inspSeq, indices);
         }
 
-        //260616 hbk 일괄 검사 1사이클 완료 → 누적 + Export 버튼 활성 ( append, 수동 Export)
+        //260616 hbk 일괄 검사 1사이클 완료 → 누적 + Export 버튼 활성 (append, 수동 Export)
         private void OnBatchComplete(List<CycleResultDto> cycles) {
             Dispatcher.Invoke(new Action(delegate {
                 if (cycles != null) {
@@ -646,7 +646,7 @@ namespace ReringProject.UI {
                 if (_inspectionVm != null && _batchShots != null) {
                     _inspectionVm.ShowMeasurementsForShots(_batchShots);
                 }
-                //260806 hbk Part B: 배치 사이클이 완전히 끝나는 유일한 시점(이 콜백, 사이클당 1회)
+                //260806 hbk 배치 사이클이 완전히 끝나는 유일한 시점(이 콜백, 사이클당 1회)
                 //  현재 화면에 표시 중인 노드를 제외한 나머지 SHOT의 대용량 이미지 캐시를 즉시 해제한다.
                 CleanupBatchImageMemoryAfterCycle(_batchShots);
             }));
@@ -810,7 +810,7 @@ namespace ReringProject.UI {
             }
         }
 
-        //260806 hbk Part B: 현재 트리에서 선택된 노드(SelectedParam)가 속한 ShotConfig를 역추적한다.
+        //260806 hbk 현재 트리에서 선택된 노드(SelectedParam)가 속한 ShotConfig를 역추적한다.
         //  MainView.GetCurrentShotContext()와 동일 목적이나 그 메서드는 private이라 직접 참조할 수 없어
         //  _batchShots 스코프 내에서 자체 해석한다(측정 노드는 이 배치에 속한 SHOT 안에서만 검색하면 충분).
         private ShotConfig ResolveCurrentlyDisplayedShot() {
@@ -829,7 +829,7 @@ namespace ReringProject.UI {
             return null;
         }
 
-        //260616 hbk 누적분 수동 엑셀 Export ( 포맷 재사용)
+        //260616 hbk 누적분 수동 엑셀 Export (포맷 재사용)
         private void Btn_batchExport_Click(object sender, RoutedEventArgs e) {
             if (_batchAccumulated == null || _batchAccumulated.Count == 0) {
                 CustomMessageBox.Show("일괄 Export", "먼저 일괄 검사를 실행하세요.", MessageBoxImage.Warning);
@@ -1598,7 +1598,7 @@ namespace ReringProject.UI {
             //  (a) DeviceName이 비어 있어 DeviceHandler.GrabHalconImage(this[param.DeviceName])가 실패("Device Not Opened").
             //  (b) Parent가 null이라 CameraSlaveParam.SequenceName도 null이 되어, MainView.GrabAndDisplay의
             //      Sequences[param.SequenceName] 조회가 실패해 ApplyShotLightsDirect 자체가 호출되지 않음
-            //      ( 이전에는 ApplyShotLightsInternal 이 shot 자신의 필드 + static LightHandler.Handle 만
+            //      (이전에는 ApplyShotLightsInternal 이 shot 자신의 필드 + static LightHandler.Handle 만
             //      써서 어떤 InspectionSequence 인스턴스로 호출하든 결과가 같았다. 지금은 아니다 — 자기 소유
             //      채널 집합(CollectOwnedChannelScope) 안에서만 조명을 건드리므로, 반드시 그 shot 의
             //      OwnerSequenceName 과 같은 인스턴스로 호출해야 조명이 실제로 켜진다).

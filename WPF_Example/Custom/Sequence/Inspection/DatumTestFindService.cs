@@ -9,7 +9,7 @@ namespace ReringProject.Sequence
     /// <summary>
     /// 사진 출처 선택 대화상자(AskTestImageSource) 없이 기준점의 티칭 사진
     /// 파일(TeachingImagePath[_Vertical])로 런타임과 같은 기준점 찾기를 돌리는 공용 헬퍼. 비패턴
-    /// 기준점도 TryRunSingleDatum 으로 시퀀스 기준점 캐시·국부 기준선을 채운다 .
+    /// 기준점도 TryRunSingleDatum 으로 시퀀스 기준점 캐시·국부 기준선을 채운다.
     /// 기존 Test Find 버튼(BtnTestFindDatum_Click)과 그 사진 출처 선택 메서드는 이 서비스와 무관하게
     /// 한 줄도 바뀌지 않는다 — 이 서비스는 대화상자 없는 별도 경로다.
     /// </summary>

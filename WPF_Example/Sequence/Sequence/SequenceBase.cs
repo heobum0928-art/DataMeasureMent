@@ -483,7 +483,7 @@ namespace ReringProject.Sequence {
             return StartCore(0, Actions.Length - 1, packet);
         }
 
-        //260616 hbk 선택 Action(SHOT) 인덱스 집합으로 부분 실행 ( SHOT 다중 선택, StartAll 변형)
+        //260616 hbk 선택 Action(SHOT) 인덱스 집합으로 부분 실행 (SHOT 다중 선택, StartAll 변형)
         public bool StartSubset(int[] actionIndices, TestPacket packet) {
             if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
             if (Actions == null || Actions.Length == 0) return false;

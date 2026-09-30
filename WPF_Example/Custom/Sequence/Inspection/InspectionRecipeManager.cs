@@ -93,7 +93,7 @@ namespace ReringProject.Sequence {
             if (displayName == null) displayName = "";
             saveFile[sectionPrefix]["DisplayName"] = displayName;
             saveFile[sectionPrefix]["DatumCount"] = seq.DatumConfigs.Count;
-            //260619 hbk #6 leveling 제거 — LevelingEnabled save 키 폐기 (ALIGN 대체)
+            //260619 hbk leveling 제거 — LevelingEnabled save 키 폐기 (ALIGN 대체)
             for (int d = 0; d < seq.DatumConfigs.Count; d++) {
                 string datumSection = $"{sectionPrefix}_DATUM_{d}";
                 seq.DatumConfigs[d].Save(saveFile, datumSection);
@@ -108,7 +108,7 @@ namespace ReringProject.Sequence {
                 // 보존할 기존 데이터 없음 (신규 레시피 등) — 빈값
                 saveFile[sectionPrefix]["DisplayName"] = "";
                 saveFile[sectionPrefix]["DatumCount"] = 0;
-                //260619 hbk #6 leveling 제거 — 신규 레시피 보존 분기 LevelingEnabled 키 폐기 (ALIGN 대체)
+                //260619 hbk leveling 제거 — 신규 레시피 보존 분기 LevelingEnabled 키 폐기 (ALIGN 대체)
                 return;
             }
             saveFile[sectionPrefix] = existingFile[sectionPrefix];
@@ -133,7 +133,7 @@ namespace ReringProject.Sequence {
             string displayName = loadFile[sectionPrefix]["DisplayName"].ToString();
             if (displayName == null) displayName = "";
             seq.DisplayName = displayName;
-            //260619 hbk #6 leveling 제거 — LevelingEnabled load 키 폐기 (ALIGN 대체). 옛 INI stale 키는 더 이상 read 안 함 → 로드 크래시 0
+            //260619 hbk leveling 제거 — LevelingEnabled load 키 폐기 (ALIGN 대체). 옛 INI stale 키는 더 이상 read 안 함 → 로드 크래시 0
             int datumCount = loadFile[sectionPrefix]["DatumCount"].ToInt();
             if (datumCount < 0) datumCount = 0;
             for (int d = 0; d < datumCount; d++) {
@@ -289,7 +289,7 @@ namespace ReringProject.Sequence {
             LoadFixtureForSequence(loadFile, ESequence.Side3, "FIXTURE_SIDE_3");
             LoadFixtureForSequence(loadFile, ESequence.Side4, "FIXTURE_SIDE_4");
 
-            //260826 hbk 구 포맷( 이전) 감지 — 마이그레이션 누락 시 SIDE Datum 이 통째로 안 보이는 것처럼 되므로 반드시 알린다.
+            //260826 hbk 구 포맷(SIDE 4지그 분리 이전) 감지 — 마이그레이션 누락 시 SIDE Datum 이 통째로 안 보이는 것처럼 되므로 반드시 알린다.
             bool bHasLegacySideFixture = loadFile.ContainsSection("FIXTURE_SIDE");
             if (bHasLegacySideFixture) {
                 Logging.PrintLog((int)ELogType.Error,
@@ -366,7 +366,7 @@ namespace ReringProject.Sequence {
         }
 
         public bool HasNewFormatData(IniFile iniFile) {
-            //260611 hbk [FORMAT] Version=6 이어야 신규 포맷. 그 외( SHOTS-only 포함)는 신규로 인정하지 않음.
+            //260611 hbk [FORMAT] Version=6 이어야 신규 포맷. 그 외(SHOTS-only 포함)는 신규로 인정하지 않음.
             return DetectFormatVersion(iniFile) == ERecipeFormatVersion.Phase6;
         }
 

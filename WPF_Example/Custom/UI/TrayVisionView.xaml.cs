@@ -23,8 +23,8 @@ namespace ReringProject.Custom.UI {
 
     /// <summary>
     /// Tray 비전 뷰 코드비하인드. /59 서비스(EthernetVisionHandler.Camera/Matcher)에 위임하는
-    /// thin facade. HALCON 뷰어를 소유하지 않고 외부 주입 공유 MainResultViewerControl 을 사용 .
-    /// 전 서비스 호출 try-catch — 예외 시 상태 라벨 갱신만, throw 금지 .
+    /// thin facade. HALCON 뷰어를 소유하지 않고 외부 주입 공유 MainResultViewerControl 을 사용.
+    /// 전 서비스 호출 try-catch — 예외 시 상태 라벨 갱신만, throw 금지.
     /// </summary>
     public partial class TrayVisionView : UserControl {
 
@@ -177,7 +177,7 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
-                ApplyCoaxLight(); //260626 hbk grab 직전 동축 자동 적용( Teach=Run=Grab 동일 조명)
+                ApplyCoaxLight(); //260626 hbk grab 직전 동축 자동 적용(Teach=Run=Grab 동일 조명)
                 HImage img = EthernetVisionHandler.Handle.Camera.Grab();
                 if (img == null) {
                     lbl_status.Text = "취득 실패 (폴백 없음)";
@@ -217,7 +217,7 @@ namespace ReringProject.Custom.UI {
                     btn_live.IsEnabled = false;
                     // 직전 Grab 이 걸어둔 소등 예약이 Live 도중에 터져 조명을 꺼버리는 것을 막는다.
                     CancelCoaxAutoOffTimer();
-                    //260902 hbk Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다( 연장).
+                    //260902 hbk Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(연장).
                     ApplyCoaxLight();
                     StartLiveTimer();
                     MarkViewerImageFromCamera("Live (카메라)");
@@ -606,7 +606,7 @@ namespace ReringProject.Custom.UI {
                 double r2, c2, phi2, l2_1, l2_2;
                 RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
 
-                ApplyCoaxLight(); //260626 hbk 티칭 직전 동축 자동 적용( 티칭=런타임 조명 일치)
+                ApplyCoaxLight(); //260626 hbk 티칭 직전 동축 자동 적용(티칭=런타임 조명 일치)
                 string error;
                 double dScore1, dScore2;   //260812 hbk 티칭이 이미 계산한 스코어 수신(등급 표시용)
                 if (ApplyTeachParams(true) == false) {   //260827 hbk 값이 바뀌었으면 확인
@@ -1169,7 +1169,7 @@ namespace ReringProject.Custom.UI {
         ///   datumRects(보정 ROI orange) → _datumOverlayVisible = [ROI 표시] 체크박스
         ///   _inspectionOverlays(에지 XLD contour 선) → _measurementOverlayVisible = [에지 표시] 체크박스
         /// F1: 검출 십자 제거(에지를 contour 선으로 대체).
-        /// 예외 시 throw 없이 결과 텍스트만 유지 .
+        /// 예외 시 throw 없이 결과 텍스트만 유지.
         /// </summary>
         private void ApplyAlignVisualization(AlignResult res) {
             if (_viewer == null) {
@@ -1229,14 +1229,14 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        //260903 hbk ─── 피커센터 캘 핸들러 ( — Bottom 이식, Tray 전용 회전중심) ──────
+        //260903 hbk ─── 피커센터 캘 핸들러 (Bottom 이식, Tray 전용 회전중심) ──────
         //  EthernetVisionHandler.Handle.PickerCal 은 Bottom/Tray 공용 단일 인스턴스다.
         //  모델 경로도 {Recipe}\ETHERNET_ALIGN\picker_cal.shm 로 모드 무관 고정이지만, 이 PC 는
         //  EthernetVisionModeValue 가 하나뿐이라 Bottom/Tray 동시 사용이 없어 충돌하지 않는다.
         //  모드별로 인스턴스/모델을 분리하는 구조 변경은 하지 않는다(불필요한 구조 변경 금지).
 
         // 캘 스텝당 피커 회전각(검사용 각도범위와 별개). 360/각도 = 필요 스텝 수.
-        //  SystemSetting.PickerCalStepAngleDeg 는 Bottom 과 공용 설정이다( 범위 밖 — 새로 안 늘림).
+        //  SystemSetting.PickerCalStepAngleDeg 는 Bottom 과 공용 설정이다(범위 밖 — 새로 안 늘림).
         private void CalStepAngleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             try {
                 ComboBoxItem item = cmb_calStepAngle.SelectedItem as ComboBoxItem;
@@ -2130,7 +2130,7 @@ namespace ReringProject.Custom.UI {
         /// <summary>
         /// 현재 인덱스 이미지를 뷰어에 로드하고 상태 라벨을 갱신한다.
         /// _viewer.LoadImage(path) 호출 → CurrentImage 갱신 → 기존 Teach/Run 핸들러 자동 사용.
-        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만 .
+        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만.
         /// </summary>
         private void LoadCurrentLoaderImage() {
             if (_viewer == null) {

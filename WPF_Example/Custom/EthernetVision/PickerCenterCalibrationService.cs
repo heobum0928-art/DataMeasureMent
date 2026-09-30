@@ -1,4 +1,4 @@
-//260624 hbk picker center calibration ( corrected)
+//260624 hbk picker center calibration
 // 재작성 — ShapeModel 기반(find_shape_model) + 시각화 XLD 출력.
 //  에지 감지(EdgesSubPix+FitCircleContourXld 지그원) 제거.
 //  검출 흐름: TryTeachModel(1회) → TryLoadModel → TryAddStep×N → TryComputePickerCenter.
@@ -17,7 +17,7 @@ namespace ReringProject {
     /// 각 스텝에서 find_shape_model 로 지그 중심 검출 → 편심원의 중심 = 피커 실제 회전중심.
     /// (정정): 스텝별 중심 = find_shape_model RowCheck/ColumnCheck (에지 피팅 제거).
     /// fit_circle_contour_xld: gen_contour_polygon_xld(누적 중심) → 편심원 피팅 → 피커센터.
-    /// 외부( UI / TCP $ALIGN_CALIB)가 스텝마다 TryAddStep 호출.
+    /// 외부(UI / TCP $ALIGN_CALIB)가 스텝마다 TryAddStep 호출.
     /// 전 메서드 try-catch → false (Grabber 무영향).
     /// </summary>
     public class PickerCenterCalibrationService {

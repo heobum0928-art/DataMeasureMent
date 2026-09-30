@@ -88,7 +88,7 @@ namespace ReringProject.Sequence
 
         public EdgeToLineAngleMeasurement(object owner) : base(owner) { }
 
-        //260915 hbk ②: 이 측정도 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
+        //260915 hbk 이 측정도 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
         public override bool SupportsEdgeStrengthScore()
         {
             return true;

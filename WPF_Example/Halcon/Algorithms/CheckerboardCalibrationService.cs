@@ -11,7 +11,7 @@ namespace ReringProject.Halcon.Algorithms
     /// ④ 중앙↔외곽 간격 편차%를 계산하는 순수 알고리즘 서비스.
     /// 모든 Halcon 호출은 try { ... } catch { return false; } 패턴 (프로젝트 컨벤션).
     /// 순수 수학 연산은 static 메서드로 제공한다.
-    /// 풀 카메라 캘리브(HALCON 전용 점판) 미사용( LOCK), undistort 미구현( LOCK).
+    /// 풀 카메라 캘리브(HALCON 전용 점판) 미사용(LOCK), undistort 미구현(LOCK).
     /// </summary>
     public class CheckerboardCalibrationService
     {
@@ -155,12 +155,12 @@ namespace ReringProject.Halcon.Algorithms
             double glarePct = saturatedRatio * 100.0;
             bool glareWarn = saturatedRatio > GlareAreaWarnRatio;
 
-            //260623 hbk mm/px 산출 ( 단일 평균 + X/Y 리포트)
+            //260623 hbk mm/px 산출 (단일 평균 + X/Y 리포트)
             double mmPerPixel = knownMmPerCell / medGap;
             double mmPerPixelX = knownMmPerCell / medGapX;
             double mmPerPixelY = knownMmPerCell / medGapY;
 
-            //260623 hbk 중앙↔외곽 편차% ( 왜곡 게이트)
+            //260623 hbk 중앙↔외곽 편차% (왜곡 게이트)
             double centerMean, outerMean;
             double devPct = ComputeCenterOuterDeviationPct(gapsX, gapsY, image, out centerMean, out outerMean);
 
@@ -357,7 +357,7 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
-        /// 중앙↔외곽 간격 편차% ( 게이트). 각 간격 중점의 이미지 중심으로부터 거리로 중앙/외곽 그룹 분리.
+        /// 중앙↔외곽 간격 편차% (게이트). 각 간격 중점의 이미지 중심으로부터 거리로 중앙/외곽 그룹 분리.
         /// r ≤ 반대각선×0.33 → 중앙부, r ≥ 반대각선×0.66 → 외곽부. 한쪽 비면 0% (가드).
         /// </summary>
         //260623 hbk 중앙↔외곽 편차% 산출
@@ -575,7 +575,7 @@ namespace ReringProject.Halcon.Algorithms
 
     /// <summary>
     /// 캘리브 산출 결과 구조체 — 다음 wave 의 CalibrationWindow 가 소비하는 계약.
-    /// MmPerPixel 만 PixelResolution 에 적용( 단일 평균), X/Y 는 리포트 참고값.
+    /// MmPerPixel 만 PixelResolution 에 적용(단일 평균), X/Y 는 리포트 참고값.
     /// </summary>
     //260623 hbk 캘리브 결과 계약 클래스
     public class CalibrationResult
@@ -585,7 +585,7 @@ namespace ReringProject.Halcon.Algorithms
         public double MmPerPixelY { get; set; }         // 리포트 참고값
         public double MeanSpacingPx { get; set; }       // 평균(가로·세로) 격자 간격(px)
         public double CenterOuterDeviationPct { get; set; } //260623 hbk 중앙↔외곽 간격 편차%
-        public bool IsDistortionWarn { get; set; }      //260623 hbk 편차% 임계 초과 경고 ( 게이트)
+        public bool IsDistortionWarn { get; set; }      //260623 hbk 편차% 임계 초과 경고 (게이트)
         public int CornerCount { get; set; }            // 검출된 코너 수
         //260623 hbk 코너 오버레이 가시화 + 왜곡 상세 리포트용 신규 멤버
         public double[] CornerRows { get; set; }        // 검출 코너 row 좌표 전체 (length == CornerCount)

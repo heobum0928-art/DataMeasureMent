@@ -207,10 +207,10 @@
     <Reference Include="halcondotnet">
       <HintPath>C:\Program Files\MVTec\HALCON-24.11-Progress-Steady\bin\dotnet35\halcondotnet.dll</HintPath>
     </Reference>
-    <!-- 260602 hbk Phase 41 — Matrox MIL Lite 10.0 .NET binding (CXP grab) -->
+    <!-- 260602 hbk Matrox MIL Lite 10.0 .NET binding (CXP grab) -->
     <Reference Include="Matrox.MatroxImagingLibrary">
       <HintPath>C:\Program Files\Matrox Imaging\MIL\MIL.NET\Matrox.MatroxImagingLibrary.dll</HintPath>
-      <!-- 260603 hbk Phase 41 hotfix CO-41-01 — Private=True: 관리 어셈블리를 출력 폴더로 복사(실 HW grab 빌드에서 런타임 로드). 네이티브 MIL 런타임은 MIL 설치 PATH 로 해석. -->
+      <!-- 260603 hbk Private=True: 관리 어셈블리를 출력 폴더로 복사(실 HW grab 빌드에서 런타임 로드). 네이티브 MIL 런타임은 MIL 설치 PATH 로 해석. -->
       <Private>True</Private>
     </Reference>
   </ItemGroup>
@@ -264,22 +264,22 @@
     <Compile Include="Custom\Export\ChartImageCapture.cs" />
     <Compile Include="Custom\Export\CpkReportExportService.cs" />
     <Compile Include="Custom\Export\ExcelExportSmokeTest.cs" />
-    <!--260601 hbk Phase 40 OUT-02 ClosedXML smoke test-->
+    <!--260601 hbk ClosedXML smoke test-->
     <Compile Include="Custom\Export\ExcelExportService.cs" />
     <Compile Include="Custom\Export\RepeatExcelExportService.cs" />
-    <!--260609 hbk Phase 40 OUT-02 ClosedXML xlsx export-->
+    <!--260609 hbk ClosedXML xlsx export-->
     <Compile Include="Custom\Sequence\Inspection\CycleResultSerializer.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementHistoryCsvWriter.cs" />
-    <!--260707 hbk STAT-01 양산 이력 통계 CSV writer-->
+    <!--260707 hbk 양산 이력 통계 CSV writer-->
     <Compile Include="Custom\Sequence\Inspection\MeasurementHistoryCsvLoader.cs" />
-    <!--260707 hbk STAT-01 양산 이력 통계 CSV loader(조회/집계)-->
+    <!--260707 hbk 양산 이력 통계 CSV loader(조회/집계)-->
     <Compile Include="Custom\Sequence\Inspection\RepeatMeasurementStats.cs" />
     <Compile Include="Custom\Sequence\Inspection\RepeatRunService.cs" />
     <Compile Include="Custom\Sequence\Inspection\ReviewerReinspectService.cs" />
     <Compile Include="Custom\Sequence\Inspection\DatumTestFindService.cs" />
     <Compile Include="Custom\Sequence\Inspection\LocalRefTestFindService.cs" />
     <Compile Include="Custom\Sequence\Inspection\BatchRunService.cs" />
-    <!--260601 hbk Phase 40 OUT-01/OUT-02-->
+    
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
     <Compile Include="Custom\Sequence\Inspection\SkipReason.cs" />
@@ -294,25 +294,25 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\IDatumOriginConsumer.cs" />
-    <!--260519 hbk Phase 31 D-03-->
+    
     <Compile Include="Custom\Sequence\Inspection\Measurements\CircleCenterDistanceMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-01 E8-->
+    <!--260519 hbk E8-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineAngleMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-05-->
+    
     <Compile Include="Custom\Sequence\Inspection\Measurements\ArcEdgeDistanceMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-08-->
+    
     <Compile Include="Custom\Sequence\Inspection\Measurements\ArcLineIntersectDistanceMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-01 I9/I10-->
+    <!--260519 hbk I9/I10-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundAngleMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-11 E2-->
+    <!--260519 hbk E2-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterCDistanceMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-11 E9-->
+    <!--260519 hbk E9-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundCenterBDistanceMeasurement.cs" />
-    <!--260519 hbk Phase 31 D-11 E10-->
+    <!--260519 hbk E10-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundShortAxisDistanceMeasurement.cs" />
-    <!--260523 hbk Phase 32 — E3 단축 환원-->
+    <!--260523 hbk E3 단축 환원-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\DualImageEdgeDistanceMeasurement.cs" />
-    <!--260530 hbk Phase 39.2 D-G1 — Bottom E5 DualImage FAI-->
+    <!--260530 hbk Bottom E5 DualImage FAI-->
     <Compile Include="Custom\SystemSetting.cs" />
     <Compile Include="Custom\UserData\GlobalUserData.cs" />
     <Compile Include="Device\Camera\Basler\BaslerCamera.cs" />
@@ -411,7 +411,7 @@
       <DependentUpon>ProcessMonitorWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs">
-      <!--260601 hbk Phase 40 OUT-01-->
+      
       <DependentUpon>ReviewerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Reviewer\AlignVerifyViewModel.cs" />
@@ -421,7 +421,7 @@
     </Compile>
     <Compile Include="UI\Statistics\ChartRenderService.cs" />
     <Compile Include="UI\Statistics\StatisticsWindow.xaml.cs">
-      <!--260707 hbk STAT-01-->
+      
       <DependentUpon>StatisticsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
@@ -437,9 +437,9 @@
     <Compile Include="UI\ViewModel\FAINodeViewModel.cs" />
     <Compile Include="UI\ViewModel\MeasurementResultRow.cs" />
     <Compile Include="UI\ViewModel\CycleResultDto.cs" />
-    <!--260601 hbk Phase 40 OUT-01/OUT-02-->
+    
     <Compile Include="UI\ViewModel\ReviewMeasurementRow.cs" />
-    <!--260601 hbk Phase 40 OUT-01-->
+    
     <Compile Include="UI\ViewModel\InspectionViewModel.cs" />
     <Compile Include="UI\Theme\OutlinedTextBlock.cs" />
     <Compile Include="UI\ViewModel\Attributes.cs" />
@@ -560,7 +560,7 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Reviewer\ReviewerWindow.xaml">
-      <!--260601 hbk Phase 40 OUT-01-->
+      
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -569,7 +569,7 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Statistics\StatisticsWindow.xaml">
-      <!--260707 hbk STAT-01-->
+      
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -735,7 +735,7 @@
   <ItemGroup>
     <Resource Include="Resource\saveas.png" />
     <Resource Include="Resource\splash.png" />
-    <!--260615 hbk Phase 43.1: 흰 화면 마스킹 스플래시 (D-04)-->
+    <!--260615 hbk 흰 화면 마스킹 스플래시-->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resource\light.png" />

@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="결과 리뷰어" Height="900" Width="1500"
         WindowStartupLocation="CenterOwner">
-    <!--260601 hbk Phase 40 OUT-01 D-08/D-09 — 결과 리뷰어 비모달 별도 Window-->
+    <!--260601 hbk 결과 리뷰어 비모달 별도 Window-->
     <Grid>
         <!-- Row0 = 중앙/우측 헤더(라벨 한 줄) 전용. 좌측 패널은 RowSpan=2 로 두 행을 관통한다 —
              예전엔 좌측 버튼 스택(8개)이 Row0 에 있어서 Auto 높이가 그 스택에 맞춰졌고,
@@ -16,7 +16,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <!--260601 hbk Phase 40 CO-40-02 UAT — GridSplitter 로 3 패널 가로 크기 조절 가능. 측정표 잘림 해소.-->
+        <!--260601 hbk GridSplitter 로 3 패널 가로 크기 조절 가능. 측정표 잘림 해소.-->
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" MinWidth="120"/>
             <ColumnDefinition Width="5"/>
@@ -27,7 +27,7 @@
 
         <!-- 좌측 패널: 버튼 스택(Auto) + cycle 목록(*) 을 한 Border 안에서 세로 분할.
              Row0~1 을 RowSpan 으로 관통해 Row0 의 Auto 높이 계산에서 빠진다(헤더 여백 축소의 핵심). -->
-        <!--260609 hbk Phase 40 OUT-02 D-10 — 날짜 폴더 열기 + 엑셀 export 버튼 (cycle 선택 시 활성)-->
+        <!--260609 hbk 날짜 폴더 열기 + 엑셀 export 버튼 (cycle 선택 시 활성)-->
         <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0" Background="#F0F4F8" Padding="4,3">
           <Grid>
             <Grid.RowDefinitions>
@@ -75,7 +75,7 @@
                 <Button x:Name="btn_loadFolder" Content="날짜 폴더 열기"
                         Click="Button_LoadFolder_Click"
                         Padding="8,4" HorizontalAlignment="Stretch"/>
-                <!-- Phase 78 NGA-03: 한 엑셀 파일에 누적 (D-78-02). 저장 대상은 아래 드롭다운으로 고른다. -->
+                <!-- 260923 hbk NGA-03: 한 엑셀 파일에 누적 . 저장 대상은 아래 드롭다운으로 고른다. -->
                 <ComboBox x:Name="cmb_accumScope" SelectedIndex="0"
                           FontSize="11" Padding="4,2" Margin="0,4,0,0" HorizontalAlignment="Stretch"
                           ToolTip="엑셀에 누적할 대상 — NG 는 'NG 누적' 시트, OK 는 'OK 누적' 시트로 나눠 쌓입니다">
@@ -87,7 +87,7 @@
                         Click="Button_NgAccumExport_Click"
                         Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch"
                         ToolTip="열어 둔 날짜 폴더의 측정을 NG_분석_누적.xlsx 한 파일에 추가 (이미 들어간 항목은 건너뜀)"/>
-                <!-- 260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 실행 UI -->
+                <!-- 260612 hbk 반복도 실행 UI -->
                 <Separator Margin="0,6,0,6"/>
                 <TextBlock Text="자재번호 (비우면 미지정)"
                            FontSize="11" Foreground="#334155"
@@ -149,7 +149,7 @@
         </Border>
 
         <!-- 중앙 헤더 — 좌: 라벨 / 우: DualImage 가로축·세로축 토글 (헤더에 배치하여 Halcon 창 airspace 회피) -->
-        <!--260601 hbk Phase 40 CO-40-04 UAT — HWindowControlWPF(네이티브 HWND)는 WPF 오버레이를 가린다.
+        <!--260601 hbk HWindowControlWPF(네이티브 HWND)는 WPF 오버레이를 가린다.
             기존 이미지 위 오버레이 버튼이 airspace 로 안 보이던 결함 → 헤더(Row0)로 이동. 조건부 표시는 유지.-->
         <Border Grid.Row="0" Grid.Column="2" BorderBrush="Gray" BorderThickness="0,0,1,1" Background="#F0F4F8" Padding="6,1">
             <DockPanel LastChildFill="False">
@@ -178,7 +178,7 @@
         </Border>
 
         <!-- 우측 헤더 — 좌: 라벨 / 우: '불량만 보기' 필터 체크박스 -->
-        <!--260601 hbk Phase 40 CO-40-05 UAT(hotfix3) — 불량(NG/DETECT FAIL) 행만 추려 보는 필터.-->
+        <!--260601 hbk (hotfix3) — 불량(NG/DETECT FAIL) 행만 추려 보는 필터.-->
         <Border Grid.Row="0" Grid.Column="4" BorderBrush="Gray" BorderThickness="0,0,0,1" Background="#F0F4F8" Padding="6,1">
             <DockPanel LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" Text="측정 결과 (행 클릭 = 해당 측정만 보기)"
@@ -193,21 +193,21 @@
             </DockPanel>
         </Border>
 
-        <!--260601 hbk Phase 40 CO-40-02 — 좌/중 분할 드래그 핸들-->
+        <!--260601 hbk 좌/중 분할 드래그 핸들-->
         <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                       Width="5" Background="#C0C8D0" ShowsPreview="True"/>
-        <!--260601 hbk Phase 40 CO-40-02 — 중/우 분할 드래그 핸들 (측정표 가로 폭 조절)-->
+        <!--260601 hbk 중/우 분할 드래그 핸들 (측정표 가로 폭 조절)-->
         <GridSplitter Grid.Row="0" Grid.RowSpan="2" Grid.Column="3"
                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                       Width="5" Background="#C0C8D0" ShowsPreview="True"/>
 
         <!-- 중앙: HalconViewerControl 인스턴스 (독립, 라이브 MainView halconViewer 재사용 금지 — RESEARCH Anti-Pattern) -->
-        <!--260601 hbk Phase 40 CO-40-04 — DualImage 토글은 헤더(Row0)로 이동 (HWindowControlWPF airspace 회피). 이 셀에는 오버레이 두지 않음.-->
+        <!--260601 hbk DualImage 토글은 헤더(Row0)로 이동 (HWindowControlWPF airspace 회피). 이 셀에는 오버레이 두지 않음.-->
         <viewers:HalconViewerControl x:Name="halconViewer" Grid.Row="1" Grid.Column="2" Margin="1"/>
 
         <!-- 우측: 측정 결과 DataGrid + NG 원인 패널 -->
-        <!-- Phase 78 NGA-02: 측정표 아래(Halcon 창과 겹치지 않는 WPF 영역) NG 원인 패널 -->
+        <!-- 260917 hbk NGA-02: 측정표 아래(Halcon 창과 겹치지 않는 WPF 영역) NG 원인 패널 -->
         <Grid Grid.Row="1" Grid.Column="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -240,7 +240,7 @@
                     <Setter Property="BorderThickness" Value="0"/>
                 </Style>
             </DataGrid.CellStyle>
-            <!--260601 hbk Phase 40 CO-40-05 UAT — 불량 위치 식별: 판정별 행 배경색 (NG=빨강 / DETECT FAIL=주황 / OK=연녹).
+            <!--260601 hbk 불량 위치 식별: 판정별 행 배경색 (NG=빨강 / DETECT FAIL=주황 / OK=연녹).
                 IsSelected 트리거는 DataTrigger 뒤에 두어 우선 적용 — 자동/수동 선택 행을 행 색상 위에 굵게+파란 테두리로 강조.-->
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
@@ -284,7 +284,7 @@
                 <TextBlock x:Name="txt_ngCausePanel" FontSize="12" TextWrapping="Wrap" Foreground="#334155"
                            Text="{Binding SelectedItem.CausePanelText, ElementName=dataGrid_measurements, FallbackValue='NG 행을 누르면 추정 원인이 여기에 보입니다', TargetNullValue='NG 행을 누르면 추정 원인이 여기에 보입니다'}"/>
 
-                <!--Phase 80 D-80-01/02: 원인 설명 바로 아래, 큰 버튼 1개 + 비활성 이유 1줄. 더블클릭·우클릭 메뉴 없음.-->
+                <!--260918 hbk 원인 설명 바로 아래, 큰 버튼 1개 + 비활성 이유 1줄. 더블클릭·우클릭 메뉴 없음.-->
                 <Grid x:Name="panel_reinspect" Margin="0,8,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>

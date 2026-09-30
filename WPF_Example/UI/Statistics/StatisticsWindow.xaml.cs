@@ -1,4 +1,4 @@
-﻿//260707 hbk STAT-01: 양산 이력 통계 분석 UI — 조회/테이블/차트(WPF Canvas 직접 렌더) code-behind
+﻿//260707 hbk 양산 이력 통계 분석 UI — 조회/테이블/차트(WPF Canvas 직접 렌더) code-behind
 // ChartDirector(유료·워터마크) 제거 → 히스토그램/추이 차트를 WPF Canvas 도형으로 재구현
 using System;
 using System.Collections.Generic;
@@ -982,7 +982,7 @@ namespace ReringProject.UI
     }
 
     /// <summary>
-    /// 양산 이력 통계 분석 비모달 Window (STAT-01). MeasurementHistoryCsvLoader.Query 를 소비하여
+    /// 양산 이력 통계 분석 비모달 Window . MeasurementHistoryCsvLoader.Query 를 소비하여
     /// 기간·레시피별 통계 테이블 + 행 선택 시 히스토그램/추이 차트(WPF Canvas 직접 렌더, ~)를 표시한다.
     /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show 로 열림 (ReviewerWindow 미러).
     /// </summary>

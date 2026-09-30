@@ -68,7 +68,7 @@
                 <RowDefinition Height="1*"></RowDefinition>
             </Grid.RowDefinitions>
             
-            <!-- 260624 hbk Phase 61: MainView → [검사] TabItem 재부모화 + [Tray 비전]/[Bottom 비전] 신규 탭 (AV-07) -->
+            <!-- 260624 hbk MainView → [검사] TabItem 재부모화 + [Tray 비전]/[Bottom 비전] 신규 탭 -->
             <TabControl x:Name="tabMain" Grid.Column="0" Grid.Row="0">
                 <TabItem x:Name="tabInspection" Header="검사">
                     <ui:MainView x:Name="mainView"/>

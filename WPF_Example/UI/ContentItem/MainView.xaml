@@ -7,7 +7,7 @@
              xmlns:seq="clr-namespace:ReringProject.Sequence"
              mc:Ignorable="d" Loaded="MainView_Loaded" d:DesignWidth="1200" d:DesignHeight="800">
     <UserControl.Resources>
-        <!-- Phase 2: Shared ToggleButton style for ROI toolbar buttons (D-09, D-10, UI-SPEC toolbar) -->
+        <!-- 260408 hbk Shared ToggleButton style for ROI toolbar buttons (toolbar) -->
         <Style x:Key="RoiToggleButtonStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#FFAAAAAA"/>
@@ -50,7 +50,7 @@
             </Setter>
         </Style>
 
-        <!--260527 hbk Phase 34.1 CO-34.1-04 hotfix — 가로축 토글 전용 스타일 (활성 시 Material Blue 700 #1976D2).
+        <!--260527 hbk 가로축 토글 전용 스타일 (활성 시 Material Blue 700 #1976D2).
              RoiToggleButtonStyle 의 generic blue (#2563EB) 와 시각적으로 거의 동일해 사용자가 활성 축 구분 어려움 → 축 색상 강제.-->
         <Style x:Key="SwapHorizontalToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource RoiToggleButtonStyle}">
             <Setter Property="Template">
@@ -64,7 +64,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1976D2"/> <!--260527 hbk Phase 34.1 D-34.1-14 — 가로축 Blue 700-->
+                                <Setter TargetName="border" Property="Background" Value="#1976D2"/> <!--260527 hbk 가로축 Blue 700-->
                                 <Setter Property="Foreground" Value="White"/>
                                 <Setter TargetName="border" Property="BorderBrush" Value="#0D47A1"/>
                             </Trigger>
@@ -90,7 +90,7 @@
             </Setter>
         </Style>
 
-        <!--260527 hbk Phase 34.1 CO-34.1-04 hotfix — 세로축 토글 전용 스타일 (활성 시 Material Orange 800 #F57C00).-->
+        <!--260527 hbk 세로축 토글 전용 스타일 (활성 시 Material Orange 800 #F57C00).-->
         <Style x:Key="SwapVerticalToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource RoiToggleButtonStyle}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -103,7 +103,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#F57C00"/> <!--260527 hbk Phase 34.1 D-34.1-14 — 세로축 Orange 800-->
+                                <Setter TargetName="border" Property="Background" Value="#F57C00"/> <!--260527 hbk 세로축 Orange 800-->
                                 <Setter Property="Foreground" Value="White"/>
                                 <Setter TargetName="border" Property="BorderBrush" Value="#E65100"/>
                             </Trigger>
@@ -131,7 +131,7 @@
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- //260408 hbk 툴바 Row 분리 (HWindowControlWPF airspace 문제) -->
+            <RowDefinition Height="Auto"/> <!-- 260408 hbk 툴바 Row 분리 (HWindowControlWPF airspace 문제) -->
             <RowDefinition Height="6*"/>
             <RowDefinition Height="5"/>
             <RowDefinition Height="4*"/>
@@ -139,19 +139,19 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Phase 2 Canvas Toolbar — Row 분리 (HWindowControlWPF는 Win32 호스팅이라 ZIndex 오버레이 불가) -->
-        <!--Phase 74: Height="36" → MinHeight="36". 고정 높이면 브러시 패널이 들어갈 Row 1 이 0px 가 되어
+        <!-- 260408 hbk Canvas Toolbar — Row 분리 (HWindowControlWPF는 Win32 호스팅이라 ZIndex 오버레이 불가) -->
+        <!--260827 hbk Height="36" → MinHeight="36". 고정 높이면 브러시 패널이 들어갈 Row 1 이 0px 가 되어
              패널이 안 보이거나 아래 HALCON 창(Grid.Row=1)을 침범한다(airspace 재발).
              루트 Grid 의 Row 0 이 Height="Auto" 라 패널이 펼쳐진 만큼만 늘어나고, 접히면 다시 36px 로 돌아온다.-->
         <Border x:Name="canvasToolbar" Grid.Row="0" Background="#111827"
                 Padding="8,4" MinHeight="36">
             <Grid>
-                <!--Phase 74: 툴바 아래 줄에 브러시 패널을 붙이기 위한 Row 추가.
+                <!--260827 hbk 툴바 아래 줄에 브러시 패널을 붙이기 위한 Row 추가.
                      기존 자식들은 Grid.Row 속성이 없어 전부 Row 0 에 그대로 남는다(재배치 0).-->
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <!--Phase 80 D-80-12: 리뷰어 사진 사용 중 상태 줄 전용 Row.-->
+                    <!--260918 hbk 리뷰어 사진 사용 중 상태 줄 전용 Row.-->
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <!--Quick 260902-oys: Col0 을 * 로 전환 — WrapPanel 이 유한 폭으로 measure 되어야 실제로 줄바꿈이 일어난다.
@@ -168,7 +168,7 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
-                    <!--260601 hbk Phase 40.1 #4 — Polygon ROI 생성 진입점 숨김 (RoiShape.Polygon enum + 렌더 분기 보존, 데이터 호환)-->
+                    <!--260601 hbk Polygon ROI 생성 진입점 숨김 (RoiShape.Polygon enum + 렌더 분기 보존, 데이터 호환)-->
                     <ToggleButton x:Name="btn_polygonRoi" Content="Polygon ROI"
                         Click="PolygonRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
@@ -176,7 +176,7 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
-                    <!--260423 hbk Phase 11 D-15 Circle ROI 드로잉 토글-->
+                    <!--260423 hbk Circle ROI 드로잉 토글-->
                     <ToggleButton x:Name="btn_circleRoi" Content="Circle ROI"
                         Click="CircleRoiButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
@@ -184,7 +184,7 @@
                         MinWidth="80" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
-                    <!--260424 hbk Phase 12 D-01 — Datum 티칭 토글 (TwoLineIntersect / CircleTwoHorizontal / VerticalTwoHorizontal 3-way 상태머신 진입)-->
+                    <!--260424 hbk Datum 티칭 토글 (TwoLineIntersect / CircleTwoHorizontal / VerticalTwoHorizontal 3-way 상태머신 진입)-->
                     <ToggleButton x:Name="btn_teachDatum" Content="Teach Datum"
                         Click="TeachDatumButton_Click"
                         Style="{StaticResource RoiToggleButtonStyle}"
@@ -192,7 +192,7 @@
                         MinWidth="100" Height="28" Padding="12,4"
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"/>
 
-                    <!--260618 hbk Phase 54 ALIGN-01 패턴 ROI 그리기 전용 모드 (D-08)-->
+                    <!--260618 hbk 패턴 ROI 그리기 전용 모드-->
                     <Button x:Name="btn_drawPatternRoi" Content="패턴 1"
                         Click="DrawPatternRoiButton_Click"
                         IsEnabled="False"
@@ -214,8 +214,8 @@
                         </Button.Template>
                     </Button>
 
-                    <!--260619 hbk Phase 57 #1 패턴2 버튼을 패턴1 옆으로 이동 (나란히 배치, D-07)
-                         260619 hbk Phase 55 ALIGN-02 패턴 2 ROI 그리기 (직선 ROI 폐기, 슬롯 재사용)-->
+                    <!--260619 hbk 패턴2 버튼을 패턴1 옆으로 이동 (나란히 배치)
+                         패턴 2 ROI 그리기 (직선 ROI 폐기, 슬롯 재사용)-->
                     <Button x:Name="btn_drawPatternRoi2" Content="패턴 2"
                         Click="DrawPatternRoi2Button_Click"
                         IsEnabled="False"
@@ -237,7 +237,7 @@
                         </Button.Template>
                     </Button>
 
-                    <!--260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09)-->
+                    <!--260618 hbk 패턴 모델 생성/저장 + ref pose 기록-->
                     <Button x:Name="btn_createPatternModel" Content="패턴 모델 생성"
                         Click="CreatePatternModelButton_Click"
                         IsEnabled="False"
@@ -259,7 +259,7 @@
                         </Button.Template>
                     </Button>
 
-                    <!--Phase 74: 브러시 마스킹 패널 열기/닫기. 패널 자체는 HALCON 창 밖(툴바 아래 줄)에 있다.
+                    <!--260902 hbk 브러시 마스킹 패널 열기/닫기. 패널 자체는 HALCON 창 밖(툴바 아래 줄)에 있다.
                          검사(측정) 화면 진입점 숨김 — 정렬 비전(Bottom/Tray) 브러시 UI 는 계속 사용, 핸들러/패널/배선은 보존.-->
                     <ToggleButton x:Name="btn_brushMask" Content="브러시"
                         Click="BrushMaskToggleButton_Click"
@@ -269,8 +269,8 @@
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
                         ToolTip="패턴 모델에서 제외할 영역을 브러시로 칠합니다. 칠하기를 마치면 모델이 자동으로 다시 만들어집니다."/>
 
-                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.
-                         260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapHorizontalToggleStyle 로 교체 (활성 시 #1976D2 Blue 700).-->
+                    <!--260527 hbk DualImage 변형 수동 swap 토글 (가로축/세로축). Visibility 는 code-behind 의 OnDatumSelectionChanged / AlgorithmTypeChanged 에서 제어.
+                         Style 을 SwapHorizontalToggleStyle 로 교체 (활성 시 #1976D2 Blue 700).-->
                     <ToggleButton x:Name="btn_swapHorizontal" Content="👁 가로"
                         Click="BtnSwapHorizontal_Click"
                         Style="{StaticResource SwapHorizontalToggleStyle}"
@@ -279,8 +279,8 @@
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
                         ToolTip="가로축 이미지로 전환 (HorizontalA + HorizontalB ROI 표시)"/>
 
-                    <!--260527 hbk Phase 34.1 D-34.1-02/09 — DualImage 변형 수동 swap 토글 (세로축).
-                         260527 hbk Phase 34.1 CO-34.1-04 hotfix — Style 을 SwapVerticalToggleStyle 로 교체 (활성 시 #F57C00 Orange 800).-->
+                    <!--260527 hbk DualImage 변형 수동 swap 토글 (세로축).
+                         Style 을 SwapVerticalToggleStyle 로 교체 (활성 시 #F57C00 Orange 800).-->
                     <ToggleButton x:Name="btn_swapVertical" Content="👁 세로"
                         Click="BtnSwapVertical_Click"
                         Style="{StaticResource SwapVerticalToggleStyle}"
@@ -289,7 +289,7 @@
                         FontSize="13" FontWeight="SemiBold" Margin="0,0,4,0"
                         ToolTip="세로축 이미지로 전환 (Vertical ROI 표시)"/>
 
-                    <!--260424 hbk Phase 13 D-05 — 런타임 TryFindDatum 테스트 버튼 (Datum teach 완료 후 활성화)-->
+                    <!--260424 hbk 런타임 TryFindDatum 테스트 버튼 (Datum teach 완료 후 활성화)-->
                     <Button x:Name="btn_testFindDatum" Content="Test Find"
                         Click="BtnTestFindDatum_Click"
                         IsEnabled="True"
@@ -310,7 +310,7 @@
                         </Button.Template>
                     </Button>
 
-                    <!--Phase 80 D-80-15/D-80-00: 기준 ROI(Local Ref) 티칭 시 기준점 가로 사진(z1) 위에서 띠 에지 선을 바로 확인.-->
+                    <!--260918 hbk 기준 ROI(Local Ref) 티칭 시 기준점 가로 사진(z1) 위에서 띠 에지 선을 바로 확인.-->
                     <Button x:Name="btn_testFindLocalRef" Content="기준 ROI 시험 찾기"
                         Click="BtnTestFindLocalRef_Click"
                         MinWidth="80" Height="28" Padding="12,4"
@@ -391,7 +391,7 @@
                         </Button.Template>
                     </Button>
 
-                    <!--260819 hbk quick-260819-n4d: 거리측정 — 기존 Calibrate(2점+실측입력->재보정)와 별도, 이미 있는 PixelResolution 으로 즉시 mm 거리 표시(read-only).-->
+                    <!--260819 hbk 거리측정 — 기존 Calibrate(2점+실측입력->재보정)와 별도, 이미 있는 PixelResolution 으로 즉시 mm 거리 표시(read-only).-->
                     <Button x:Name="btn_measureDistance" Content="거리측정"
                         Click="MeasureDistanceButton_Click"
                         MinWidth="80" Height="28" Padding="12,4" Margin="4,0,0,0"
@@ -410,7 +410,7 @@
                         </Button.Template>
                     </Button>
 
-                    <!--260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 진입점 (기존 2점 Calibrate 와 별도, D-04 별도 Window).-->
+                    <!--260623 hbk 체커보드 픽셀 캘리브 창 진입점 (기존 2점 Calibrate 와 별도, 별도 Window).-->
                     <Button x:Name="btn_checkerboardCalibrate" Content="체커보드 캘리브"
                         Click="OpenCheckerboardCalibrationButton_Click"
                         MinWidth="80" Height="28" Padding="12,4" Margin="4,0,0,0"
@@ -429,7 +429,7 @@
                         </Button.Template>
                     </Button>
 
-                    <!--260601 hbk Phase 40.1 #2 — overlay On/Off 토글 (기본 ON). 측정 overlay / Datum 라인 독립.-->
+                    <!--260601 hbk overlay On/Off 토글 (기본 ON). 측정 overlay / Datum 라인 독립.-->
                     <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,4"/>
                     <CheckBox x:Name="chk_overlayMeasure" Content="측정 overlay"
                         IsChecked="True"
@@ -439,21 +439,21 @@
                         IsChecked="True"
                         Checked="Chk_overlayDatum_Changed" Unchecked="Chk_overlayDatum_Changed"
                         Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
-                    <!--260619 hbk Phase 57 #2 패턴 매칭 ROI 표시/숨김 토글 (기본 ON, chk_overlayDatum 미러)-->
+                    <!--260619 hbk 패턴 매칭 ROI 표시/숨김 토글 (기본 ON, chk_overlayDatum 미러)-->
                     <CheckBox x:Name="chk_overlayPattern" Content="패턴 ROI"
                         IsChecked="True"
                         Checked="Chk_overlayPattern_Changed" Unchecked="Chk_overlayPattern_Changed"
                         Foreground="White" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="12"/>
                 </WrapPanel>
-                <!-- Phase 2: Drawing mode hint + point count (툴바 내 배치) -->
+                <!-- 260408 hbk Drawing mode hint + point count (툴바 내 배치) -->
                 <Label x:Name="label_drawHint" Grid.Column="1" Visibility="Collapsed"
                        HorizontalAlignment="Center" VerticalContentAlignment="Center"
                        FontSize="13" Foreground="#FFAAAAAA"/>
-                <!--260503 hbk Phase 17 D-15 — label_pointCount 보존 (Polygon 모드 code-behind 5 사이트 참조 — Rule 3 회귀 방지). 기본 Collapsed.-->
+                <!--260503 hbk label_pointCount 보존 (Polygon 모드 code-behind 5 사이트 참조 — Rule 3 회귀 방지). 기본 Collapsed.-->
                 <Label x:Name="label_pointCount" Grid.Column="2" Visibility="Collapsed"
                        HorizontalAlignment="Right" VerticalContentAlignment="Center"
                        FontSize="13" Foreground="#FFAAAAAA" Margin="0,0,8,0"/>
-                <!--260503 hbk Phase 17 D-15 — Hover 좌표 + 밝기 (X / Y / Gray). Column 2 공유 — label_pointCount 가 Collapsed 일 때만 가시 (Polygon 모드 진입 시 자동 숨김 처리는 별도 wiring 불필요 — label_pointCount Visible 시 같은 Column 영역 우선).-->
+                <!--260503 hbk Hover 좌표 + 밝기 (X / Y / Gray). Column 2 공유 — label_pointCount 가 Collapsed 일 때만 가시 (Polygon 모드 진입 시 자동 숨김 처리는 별도 wiring 불필요 — label_pointCount Visible 시 같은 Column 영역 우선).-->
                 <StackPanel x:Name="panel_hoverInfo" Grid.Column="2" Orientation="Horizontal"
                             HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
                     <TextBlock x:Name="txt_hoverX" Text="X: N/A" FontSize="13" Foreground="#FFAAAAAA"
@@ -467,20 +467,20 @@
                     <TextBlock x:Name="txt_hoverG" Text="Gray: N/A" FontSize="13" Foreground="#FFAAAAAA"
                                VerticalAlignment="Center"/>
                 </StackPanel>
-                <!--260424 hbk Phase 13 D-07 — 런타임 TryFindDatum 결과 label (성공 LimeGreen / 실패 Red)-->
+                <!--260424 hbk 런타임 TryFindDatum 결과 label (성공 LimeGreen / 실패 Red)-->
                 <Label x:Name="label_testFindResult" Grid.Column="1" Visibility="Collapsed"
                        HorizontalAlignment="Center" VerticalContentAlignment="Center"
                        FontSize="13" Foreground="#FFAAAAAA"/>
 
-                <!--Phase 74: 브러시 패널. HALCON 창(Grid.Row=1) 밖이라 airspace 안전.
+                <!--260827 hbk 브러시 패널. HALCON 창(Grid.Row=1) 밖이라 airspace 안전.
                      기본 숨김 — [브러시] 토글로만 연다.-->
                 <dmv:PatternBrushPanel x:Name="brushPanel"
                                        Grid.Row="1" Grid.ColumnSpan="3"
                                        Visibility="Collapsed"
                                        Margin="0,6,0,0"/>
 
-                <!--Phase 80 D-80-12: 리뷰어 사진 사용 중 상태 줄 — 기본 숨김, IsActive 일 때만 표시.
-                     DataContext 는 code-behind 에서 ReviewerReinspectViewModel.Instance 로 지정한다(D-80-17).-->
+                <!--260918 hbk 리뷰어 사진 사용 중 상태 줄 — 기본 숨김, IsActive 일 때만 표시.
+                     DataContext 는 code-behind 에서 ReviewerReinspectViewModel.Instance 로 지정한다.-->
                 <Border x:Name="panel_reviewerReinspect" Grid.Row="2" Grid.ColumnSpan="3"
                         Margin="0,6,0,0" Padding="10,4" CornerRadius="4"
                         Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="1">
@@ -517,7 +517,7 @@
                    IsHitTestVisible="False"/>
 
 
-            <!--260527 hbk Phase 34.1 D-34.1-03/14 — 현재 표시 이미지 배지 (캔버스 우상단, DualImage 변형일 때만 Visible).
+            <!--260527 hbk 현재 표시 이미지 배지 (캔버스 우상단, DualImage 변형일 때만 Visible).
                  색상/텍스트는 code-behind UpdateImageSourceBadge(EImageSource) 에서 setting.
                  가로축 = #1976D2 Material Blue 700 / 세로축 = #F57C00 Material Orange 800 / 14px / 마진 우상단 12px.-->
             <Border x:Name="border_imageSourceBadge"
@@ -530,8 +530,8 @@
                            FontSize="14" FontWeight="SemiBold"/>
             </Border>
 
-            <!--260528 hbk Phase 36 D-36-06 — DualImage 검출 각도 PASS/FAIL 색상 배지 (PropertyGrid 외부 별도 라벨, 캔버스 우상단).
-                 가드 4파일 변경 0 정합. D-36-06 갱신 (2026-05-28) — 옵션 C (외부 Border) 채택.
+            <!--260528 hbk DualImage 검출 각도 PASS/FAIL 색상 배지 (PropertyGrid 외부 별도 라벨, 캔버스 우상단).
+                 가드 4파일 변경 0 정합. 갱신 (2026-05-28) — 옵션 C (외부 Border) 채택.
                  AngleValidationStatus transient 필드 바인딩 → Trigger 로 색상/텍스트 분기. None=숨김 / Pass=green "검증 OK" / Fail=red "검증 NG".
                  DataContext = 현재 선택된 DatumConfig (halconViewer 또는 InspectionListView SelectedItem chain). -->
             <Border x:Name="border_angleValidationBadge"
@@ -545,12 +545,12 @@
                 <Border.Style>
                     <Style TargetType="Border">
                         <Style.Triggers>
-                            <!--260528 hbk Phase 36 D-36-06 — Pass: 연두 배경 + "각도 검증 OK"-->
+                            <!--260528 hbk Pass: 연두 배경 + "각도 검증 OK"-->
                             <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Pass}">
                                 <Setter Property="Background" Value="#43A047"/>
                                 <Setter Property="Visibility" Value="Visible"/>
                             </DataTrigger>
-                            <!--260528 hbk Phase 36 D-36-06 — Fail: 연빨 배경 + "각도 검증 NG"-->
+                            <!--260528 hbk Fail: 연빨 배경 + "각도 검증 NG"-->
                             <DataTrigger Binding="{Binding AngleValidationStatus}" Value="{x:Static seq:EAngleValidationStatus.Fail}">
                                 <Setter Property="Background" Value="#E53935"/>
                                 <Setter Property="Visibility" Value="Visible"/>
@@ -580,14 +580,14 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <!--260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 행 추가-->
+                        <!--260519 hbk 이미지 출처 레이블 행 추가-->
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <!--260425 hbk Phase 13 D-VIZ-06 — Datum reference 좌표 텍스트 라벨 (Datum 노드 선택/티칭 성공/ROI 이동 시 갱신)-->
+                    <!--260425 hbk Datum reference 좌표 텍스트 라벨 (Datum 노드 선택/티칭 성공/ROI 이동 시 갱신)-->
                     <Label x:Name="label_datumRefCoords" Grid.Row="0" Grid.Column="0" Visibility="Collapsed"
                            FontSize="13" Foreground="#FFCBD5E0"
                            HorizontalContentAlignment="Left" HorizontalAlignment="Left"
@@ -596,7 +596,7 @@
                            FontSize="16" Foreground="LightGray"
                            HorizontalContentAlignment="Right" HorizontalAlignment="Right"
                            Content="X:0.0, Y:0.0, G:-"/>
-                    <!--260519 hbk Phase 31 CO-23.1-01 — 이미지 출처 레이블 (티칭/검사 이미지 경로 표시)-->
+                    <!--260519 hbk 이미지 출처 레이블 (티칭/검사 이미지 경로 표시)-->
                     <TextBlock x:Name="txt_imageSourceLabel" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                Visibility="Collapsed"
                                FontSize="11" Foreground="#FF88A0C0"
@@ -635,7 +635,7 @@
                     <Setter Property="Padding" Value="4,2"/>
                 </Style>
             </DataGrid.CellStyle>
-            <!-- Per D-06/D-11: OK/NG color coding -->
+            <!-- 260407 hbk Per: OK/NG color coding -->
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Setter Property="Background" Value="#FF2D2D2D"/>
@@ -662,7 +662,7 @@
                     </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
-            <!--260417 hbk Phase 6 Plan 04: Measurement 단위 컬럼 (FAI/Measurement/Type/DatumRef/공차/측정값/판정)-->
+            <!--260417 hbk Measurement 단위 컬럼 (FAI/Measurement/Type/DatumRef/공차/측정값/판정)-->
             <DataGrid.Columns>
                 <DataGridTextColumn Header="FAI" Binding="{Binding FAIName}" Width="*"/>
                 <DataGridTextColumn Header="Type" Binding="{Binding TypeName}" Width="Auto"/>

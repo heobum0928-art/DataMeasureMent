@@ -28,7 +28,7 @@ namespace ReringProject {
         Login,
         ProcessMonitor,
         Reviewer,   //260612 hbk 결과 리뷰어 비모달 창
-        Statistics,   //260707 hbk STAT-01 — 양산 이력 통계분석 비모달 창
+        Statistics,   //260707 hbk 양산 이력 통계분석 비모달 창
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ namespace ReringProject {
         private Window mModalWindow;
         private ProcessMonitorWindow mProcMonitorWindow;
         private UI.ReviewerWindow mReviewerWindow;
-        private UI.StatisticsWindow mStatisticsWindow;   //260707 hbk STAT-01 — 비모달 재사용 멤버
+        private UI.StatisticsWindow mStatisticsWindow;   //260707 hbk 비모달 재사용 멤버
         private DispatcherTimer mTimer = new DispatcherTimer();
 
 
@@ -428,7 +428,7 @@ namespace ReringProject {
                     mReviewerWindow.Owner = this;
                     mReviewerWindow.Show();   //260601 hbk 비모달 — 라이브 MainView 와 동시 사용 가능
                     break;
-                case EPageType.Statistics:   //260707 hbk STAT-01 — 비모달 Show (라이브 MainView 방해 안 함)
+                case EPageType.Statistics:   //260707 hbk 비모달 Show (라이브 MainView 방해 안 함)
                     if (mStatisticsWindow != null && mStatisticsWindow.IsLoaded) {
                         mStatisticsWindow.Show();
                         return;

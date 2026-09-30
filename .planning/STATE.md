@@ -71,7 +71,7 @@ Phase 73 은 plan-checker 5라운드 만에 blocker 0 이 나왔다. 그중 2건
 
 상세: `73-HUMAN-UAT.md`, `73-RECIPE-RESTORE.md`, `73-REVIEW.md`
 Plan: 7 of 7
-Last activity: 2026-09-21
+Last activity: 2026-09-30 - Completed quick task 260930-i5v: 인계 대비 주석 정리
 
 **72-06 완료 (2026-08-18):** `1Cav 세부치수_Cpk` 통계 시트 구현 (`affd046`, `3bd6943`). 빌드 PASS(에러 0, 경고 12줄 baseline). `ExportCpkReport` 가 이제 **시트 2장 고정**(RAW DATA(1) + 1Cav 세부치수_Cpk)으로 저장한다 — `Worksheets.Add` 2회, D-04 준수. Cp/UCPK/LCPK/Cpk + USL/LSL 명시 컬럼 + NG>Cpk경고(1.33)>OK 3단계 판정 + 상단 OK/NG/NG목록 요약. StdDev==0 → `∞` 텍스트, `stat.N == 0` 항목은 통계 9칸 전부 `-`. ⚠ E열(Datum 유형)/Q열(#1 Target Std Dev)은 시스템 미보유라 **항상 `-`** (양식 유지용, 72-07 UAT 확인 항목). ⚠ `ExportCpkReport` 는 **여전히 호출자가 없다** — UI Export 버튼 연결은 72-07 소관. 72-07 이 시트를 더 추가하면 D-04 위반이므로 차트/이미지는 기존 2장 안에 배치할 것.
 
@@ -595,6 +595,7 @@ Recent decisions affecting current work:
 
 | ID | Date | Description | Commits | Status |
 |----|------|-------------|---------|--------|
+| 260930-i5v | 2026-09-30 | **인계 대비 주석 정리 (기능 영향 0).** 주석에서 Phase/Plan 번호·결정 코드·quick id·.planning 참조 제거, 머리를 `//YYMMDD hbk` 서명으로 통일(원래 날짜 유지, 없으면 git blame 작성일). XAML·csproj 주석, 로그 태그([Phase70]→[SEQ] 등), 구 레시피 팝업, Obsolete·버전 이력 문구도 정리. 인계용 저장소 뽑기 스크립트 `scripts/export_handover.sh`(.planning/.claude/CLAUDE.md 제외, 커밋 1개) 추가. 정리 전 기준 태그 `before-comment-cleanup`. | 31c03426, 5527de6e, 63497f4e, 6fdb0585, d2958701, c80a8acd, 014e73f8 | 빌드 PASS(error 0, 경고 20줄 동일) · IL 문자열/RVA/줄번호 가린 비교 차이 0 · BAML 바이트 동일 · 인계본 시험 추출 PASS |
 | 260915-k5g | 2026-09-15 | **결과 리뷰어 단순화 (Phase 77 후속 UX, 사용자: "초등학생도 이해되게").** 좌측 목록 기본 = 결과 줄만(기준점·Z 범위 대기 tick 숨김), "중간 단계도 보기" 체크 시 회색 `기준점`/`대기`. 결과 줄 판정 바로 뒤 `사용 z3`(여러 개면 `사용 z3·z4`). 우측 표 열 제목 `선택Z`→`사용 Z`. 표시만 변경(검사·PLC·cycle.json/CSV 무변경). 참고: 기존 문구 끝 `· 종합 OK`(tick NG 인데 종합 OK)는 이번 범위 밖. | a80b8eb8, 7b4da178, f6b00b95, 126398f3 | 빌드 PASS(Debug) · 하드룰 0 · 실데이터 5일 라벨 비교 PASS · 버전 1.7.48.0 · **배포·실기 확인 대기** |
 | fast-260914-teach-coax | 2026-09-14 | **티칭 저장이 슬롯 JSON 동축 조명값을 지우던 버그 (gsd-fast).** `TrySaveRefPose` 가 새 `AlignRefPose` 로 저장 → `CoaxEnabled/CoaxLevel` false/0 초기화. 16:52 3D_Top 재티칭 후 `$ALIGN_TEST:BOTTOM,1,0,0` 이 `ALIGN_COAX Set On : False` 로 촬영 → find[1] 실패 NG(17:18:31). 저장 전 기존 JSON 동축값을 옮겨 담음. 별건: PLC 가 면 2(2D_TOP)·3(2D_BOTTOM) 요청 시 미티칭 NG(조명 적용 전 반환) — 해당 면 티칭 필요. BOTTOM_THETA_SIGN=-1.0 은 cd286920 로 커밋 후 origin/main(Tray PC) 병합 — VersionDefine 1.7.46 로 기록. | 394cd101 | 빌드 PASS(Release x64, D:Data 배포 17:38) · 하드룰(추가줄) 0 · 3D_Top JSON 은 17:21 UI 로 true/255 복구됨 · **실기 조명 PASS**(17:40 `$ALIGN_TEST` 3D_Top: Set On True/255 → run OK score 0.996, 사용자 확인) · 1.7.46.0 Release 배포(17:50) 후 실기: 3D_Top 자동검사 조명 PASS · BOTTOM_THETA_SIGN -1 부호 PASS(사용자 확인) · 재티칭 후 JSON Coax 유지 PASS(사용자 확인 · 17:53:57 2D_TOP 새 exe 티칭 → .shm 2개 + JSON Engine=Shape, CoaxEnabled=true 유지, 17:54:08 밝기 206 저장) |
 | 260914-ivt | 2026-09-14 | **통계 창 기간을 날짜+시:분으로.** 행 단위 검사일시 필터(기본 00:00~23:59 = 기존과 동일), 같은 기간을 저장 사진 재검사(cycle.json InspectionTime)·CPK export(파일명 시각 포함)에 적용, 결과 없음 항목 보라 표시·기록(틱) 칸·요약 "결과 없음 R(기록 없음 X)". 부품 수는 CSV 로 신뢰성 있게 못 세서 미도입. | 25da3d94, 8268db30, f923c7e5 | 코드 PASS · 하드룰 PASS · 빌드 PASS · 로더 실데이터 대조 PASS · **실기 UAT 대기** |

@@ -72,7 +72,7 @@ namespace ReringProject {
             }
             catch (Exception ex)
             {
-                Logging.PrintLog((int)ELogType.Error, "[Phase 61] RefreshEthernetVisionTabs 오류: " + ex.Message);
+                Logging.PrintLog((int)ELogType.Error, "[ALIGN] RefreshEthernetVisionTabs 오류: " + ex.Message);
             }
         }
 

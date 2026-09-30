@@ -58,7 +58,7 @@ namespace ReringProject
         Date = "2026-07-16",
         Change = "리스크 점검(코드 전수 스캔 후 재검증)에서 확인된 '조용한 오검' 계열 결함 8건 수정 — 전부 로컬 가드/로그 추가 수준의 저위험 변경. " +
                  "① DatumRef 참조 불일치(오타/개명/삭제)가 IsDatumFailed 게이트를 우회해 identity(무보정)로 조용히 측정되던 결함 — DatumPhase 는 실존 DatumConfigs 만 순회하므로 없는 이름은 검출 시도조차 안 돼 _failedDatums 에 들어가지 않았다. InspectionSequence.IsDatumRefUnresolvable 신설 + Measure 루프 게이트 추가로 NG 승격(SkipReason.DATUM_REF_MISSING 신설). " +
-                 "② 미교시(IsConfigured=false) Datum 이 identity pass-through(D-08 설계)로 '성공' 처리되며 로그·DETECT FAIL 배지 어디에도 안 드러나던 결함 — pass-through 자체는 유지(회귀 0)하되 런타임 사용 시 Error 로그 + RuntimeDetectFailed 로 노출. " +
+                 "② 미교시(IsConfigured=false) Datum 이 identity pass-through(설계상)로 '성공' 처리되며 로그·DETECT FAIL 배지 어디에도 안 드러나던 결함 — pass-through 자체는 유지(회귀 0)하되 런타임 사용 시 Error 로그 + RuntimeDetectFailed 로 노출. " +
                  "③ 조명 채널명 미매핑(light.ini 재배선 오타/누락) 시 완전 무로그 무동작이던 결함 — TryFindChannel 실패 및 그룹 empty(RebindChannels 가 이름 못 찾은 아이템 제거) 케이스에 경고 로그 추가. 특히 group.Count==0 인데 '성공' 로그+true 를 반환하던 기만적 경로를 false+경고로 교정(반환값 사용 호출부 0건 확인, 회귀 없음). " +
                  "④ Re-anchor 커밋이 검색 ROI 만 이전하고 기준 pose(RefOrigin/RefAngleRad/RefMatch*)는 옛 마스터 값으로 두어, 재티칭 생략 시 런타임 Find 델타가 다시 T 를 산출해 이전이 2회 적용(≈2T)되던 결함 — TransformDatumOwnRois 에서 Ref* 도 동일 T 로 이전(각도 단위 deg/rad 사용처 확인 후 각각 적용). " +
                  "⑤ 레시피 복사 시 <ImageSavePath>\\OfflineInspect\\<구레시피명>\\ 이 박힌 절대경로가 그대로 남아 신규 레시피가 구 물건 이미지로 조용히 검사되던 결함 — RecipeFiles.Copy 후 해당 규약 경로만 초기화(사용자 수동 지정 외부 경로는 보존). " +
@@ -616,7 +616,7 @@ namespace ReringProject
                  "자동 사이클과 수동 Test Find 가 같은 규칙이고, 패턴 transform 이나 티칭 원점이 없으면 Datum 찾기가 실패한다(매칭 없는 OK 없음). " +
                  "옵션 ON Datum 은 결과 화면·Test Find·Datum 선택 화면·저장 캡처에서 세로선, 세로 에지점, 세로 기준선, 원점 십자 세로 팔을 그리지 않는다. " +
                  "옵션 OFF(기본, 키 없는 옛 레시피 포함)와 TOP/BOTTOM 은 기존 동작 그대로이며 기존 코드 줄 삭제 0. " +
-                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. (D-76-01 ~ D-76-07) " +
+                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. " +
                  "(SIDE PC 에서 1.7.41.0 으로 만들었으나 Tray PC 의 1.7.41~1.7.45 와 번호가 겹쳐 병합 시 1.7.46.0 으로 옮김.) " +
 
                  "Bottom Align 동축 조명 : 티칭 저장이 슬롯 JSON 의 동축 조명값(CoaxEnabled/CoaxLevel)을 꺼짐/0 으로 덮어써서, " +
@@ -696,7 +696,7 @@ namespace ReringProject
                  "수동 RUN 에서 기준 ROI(Local Ref)를 고치면 Test Find 를 따로 누르지 않아도 기준점 가로 사진에서 국부 기준선을 다시 구해 쓴다(PLC 자동 검사 사이클은 그대로 동작한다). " +
                  "메인 툴바에 '기준 ROI 시험 찾기' 버튼을 추가했다 — 누르면 기준점 가로 사진(z1) 위에 기준 ROI 상자와 찾아낸 띠 에지 선(주황색)을 바로 보여준다. " +
                  "리뷰어의 사이클 전체 보기에서 다른 Shot 의 선이 사진 한 장에 함께 겹쳐 그려지던 문제도 고쳤다. " +
-                 "(UAT 후속) '기준 ROI 시험 찾기' 결과 문구는 트리에서 다른 노드를 고르면 사라지며, 실패 안내 문구를 짧게 줄여 툴바 버튼 줄이 밀리지 않게 했다."
+                 "'기준 ROI 시험 찾기' 결과 문구는 트리에서 다른 노드를 고르면 사라지며, 실패 안내 문구를 짧게 줄여 툴바 버튼 줄이 밀리지 않게 했다."
     )]
     [Version(
         Number = "1.7.52.0",

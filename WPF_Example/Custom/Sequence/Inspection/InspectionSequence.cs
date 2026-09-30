@@ -252,7 +252,7 @@ namespace ReringProject.Sequence {
             bool bEmptyScope = nMatchedFaiCount == 0;
             if (bEmptyScope)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase70] " + Name + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SEQ] " + Name + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
                 responsePacket.Result = EVisionResultType.NotExist;
             }
             else if (anyDatumSkip) responsePacket.Result = EVisionResultType.NotExist; // 'N' (TestResultPacket.GetResultString 가 자동 매핑)
@@ -296,7 +296,7 @@ namespace ReringProject.Sequence {
             }
             catch (Exception ex)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SEQ] cycle 직렬화 실패(무시): " + ex.Message); } catch { }
             }
 
             ResponseQueue.Enqueue(responsePacket);
@@ -324,7 +324,7 @@ namespace ReringProject.Sequence {
             }
             catch (Exception ex)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] 수동 cycle 직렬화 실패(무시): " + ex.Message); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SEQ] 수동 cycle 직렬화 실패(무시): " + ex.Message); } catch { }
             }
         }
 
@@ -768,7 +768,7 @@ namespace ReringProject.Sequence {
             bool bEmptyScope = nMatchedFaiCount == 0;
             if (bEmptyScope)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase70] " + Name + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SEQ] " + Name + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
                 return EVisionResultType.NotExist;
             }
             if (anyDatumSkip) return EVisionResultType.NotExist; // 검출실패 최우선

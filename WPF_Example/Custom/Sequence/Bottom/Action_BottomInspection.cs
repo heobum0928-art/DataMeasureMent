@@ -316,7 +316,7 @@ namespace ReringProject.Sequence {
     }
 
     //260526 hbk Action_FAIMeasurement 로 마이그레이션됨
-    [System.Obsolete("Phase 33 — Action_FAIMeasurement 로 마이그레이션됨", false)]
+    [System.Obsolete("Action_FAIMeasurement 로 마이그레이션됨", false)]
     public class BottomInspectionAction : ActionBase {
         private readonly RoiLineIntersectionAlgorithm _algorithm = new RoiLineIntersectionAlgorithm();
         private BottomInspectionContext pMyContext;

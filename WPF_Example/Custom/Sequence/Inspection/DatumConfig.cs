@@ -1246,7 +1246,7 @@ namespace ReringProject.Sequence {
             // PatternEngine null 가드 (INI 키 미존재 시 ParamBase string case 가 null 반환 가능)
             if (PatternEngine == null) PatternEngine = "Shape";
             // sentinel 0 → SIMUL 튜닝 기본값 복원 (의미값이 이미 있으면 미변경 — 멱등성 보장)
-            if (PatternMinScore <= 0.0) PatternMinScore = 0.6;           // SIMUL 튜닝 기본 (Claude's Discretion)
+            if (PatternMinScore <= 0.0) PatternMinScore = 0.6;           // SIMUL 튜닝 기본
             if (PatternAngleExtentDeg <= 0.0) PatternAngleExtentDeg = 10.0; //260618 hbk coarse x,y 전용 → 작은 angle range
             if (FindAngleExtentDeg <= 0.0) FindAngleExtentDeg = 3.0; //260807 hbk 런타임 Find 는 ±3° 로 충분 (넓으면 false match)
             if (PatternSearchMarginPx <= 0.0) PatternSearchMarginPx = 100.0; //260618 hbk template ROI ± margin

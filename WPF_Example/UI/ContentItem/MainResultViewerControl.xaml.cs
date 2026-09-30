@@ -865,7 +865,7 @@ namespace ReringProject.UI
             }
         }
 
-        #region 브러시 마스킹 공개 API (Phase 74)
+        #region 브러시 마스킹 공개 API
 
         /// <summary>칠하기 1획이 끝난 시점(마우스 놓기)에 1회 발생 — 자동 재생성 트리거.</summary>
         public event EventHandler BrushStrokeCompleted;

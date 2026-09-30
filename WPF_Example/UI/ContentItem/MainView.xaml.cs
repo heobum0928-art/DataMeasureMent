@@ -2106,7 +2106,7 @@ namespace ReringProject.UI {
             //  향후 Vertical/Horizontal Edit 핸들 노출 시 여기에 write-back 구현 후 return 제거.
             else if (e.Shape == RoiShape.Rect) {
                 Logging.PrintLog((int)ELogType.Trace,
-                    "Datum Rect resize ignored (Phase 14 scope): id=" + e.RoiId);
+                    "Datum Rect resize ignored: id=" + e.RoiId);
                 return;
             }
 

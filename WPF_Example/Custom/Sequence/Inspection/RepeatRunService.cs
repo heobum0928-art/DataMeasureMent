@@ -278,7 +278,7 @@ namespace ReringProject.Sequence
             EVisionResultType resultType;
             if (bEmptyScope)
             {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase70] RepeatRunService " + seqName + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SEQ] RepeatRunService " + seqName + " 소유 shot/FAI 0건 — 종합판정 스킵 위험, NotExist 로 폴백"); } catch { }
                 resultType = EVisionResultType.NotExist;
             }
             else if (anySkip)

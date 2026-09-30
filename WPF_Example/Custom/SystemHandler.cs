@@ -1497,7 +1497,7 @@ namespace ReringProject {
             Lights.OnError += OnLightHandlerError;
         }
 
-        //260510 hbk channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호 — Claude's Discretion)
+        //260510 hbk channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호)
         internal void UnwireBufferLifecycle() {
             //260510 hbk 멱등 — 미등록 상태에서도 안전 (delegate -= null 무동작)
             Sequences.OnRecipeChanged -= OnRecipeChanged_FlushBuffers;

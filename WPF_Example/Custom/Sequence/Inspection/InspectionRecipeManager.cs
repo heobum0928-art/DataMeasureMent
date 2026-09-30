@@ -203,7 +203,7 @@ namespace ReringProject.Sequence {
             if (bHasLegacySideFixture) {
                 PreserveFixtureFromExisting(saveFile, existingFile, "FIXTURE_SIDE");
                 Logging.PrintLog((int)ELogType.Error,
-                    "[RECIPE] 구 [FIXTURE_SIDE] 섹션을 그대로 보존해 저장했다 — Phase 73 마이그레이션 미적용 상태. 마이그레이션 후에는 이 로그가 사라진다.");
+                    "[RECIPE] 구 [FIXTURE_SIDE] 섹션을 그대로 보존해 저장했다 — SIDE 4지그 분리 이전 형식이다. 변환 후에는 이 로그가 사라진다.");
             }
 
             SaveFixtureForSequence(saveFile, ESequence.Bottom, "FIXTURE_BOTTOM", existingFile);
@@ -293,7 +293,7 @@ namespace ReringProject.Sequence {
             bool bHasLegacySideFixture = loadFile.ContainsSection("FIXTURE_SIDE");
             if (bHasLegacySideFixture) {
                 Logging.PrintLog((int)ELogType.Error,
-                    "[RECIPE] 구 포맷 [FIXTURE_SIDE] 섹션이 남아 있다 — Phase 73 마이그레이션(scripts/migrate_phase73_recipe.py) 미적용. SIDE Datum 은 SIDE_1~4 로 로드되지 않으며, 저장 시 원본 섹션을 그대로 보존한다.");
+                    "[RECIPE] 구 포맷 [FIXTURE_SIDE] 섹션이 남아 있다 — SIDE 4지그 분리 이전 형식이다. SIDE Datum 은 SIDE_1~4 로 로드되지 않으며, 저장 시 원본 섹션을 그대로 보존한다.");
             }
 
             LoadFixtureForSequence(loadFile, ESequence.Bottom, "FIXTURE_BOTTOM");

@@ -279,7 +279,6 @@
     <Compile Include="Custom\Sequence\Inspection\DatumTestFindService.cs" />
     <Compile Include="Custom\Sequence\Inspection\LocalRefTestFindService.cs" />
     <Compile Include="Custom\Sequence\Inspection\BatchRunService.cs" />
-    
     <Compile Include="Custom\Sequence\Inspection\InspectionMasterParam.cs" />
     <Compile Include="Custom\Sequence\Inspection\MeasurementBase.cs" />
     <Compile Include="Custom\Sequence\Inspection\SkipReason.cs" />
@@ -294,13 +293,10 @@
     <Compile Include="Custom\Sequence\Inspection\Measurements\LineToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineDistanceMeasurement.cs" />
     <Compile Include="Custom\Sequence\Inspection\IDatumOriginConsumer.cs" />
-    
     <Compile Include="Custom\Sequence\Inspection\Measurements\CircleCenterDistanceMeasurement.cs" />
     <!--260519 hbk E8-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\EdgeToLineAngleMeasurement.cs" />
-    
     <Compile Include="Custom\Sequence\Inspection\Measurements\ArcEdgeDistanceMeasurement.cs" />
-    
     <Compile Include="Custom\Sequence\Inspection\Measurements\ArcLineIntersectDistanceMeasurement.cs" />
     <!--260519 hbk I9/I10-->
     <Compile Include="Custom\Sequence\Inspection\Measurements\CompoundAngleMeasurement.cs" />
@@ -411,7 +407,6 @@
       <DependentUpon>ProcessMonitorWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Reviewer\ReviewerWindow.xaml.cs">
-      
       <DependentUpon>ReviewerWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Reviewer\AlignVerifyViewModel.cs" />
@@ -421,7 +416,6 @@
     </Compile>
     <Compile Include="UI\Statistics\ChartRenderService.cs" />
     <Compile Include="UI\Statistics\StatisticsWindow.xaml.cs">
-      
       <DependentUpon>StatisticsWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="UI\Recipe\OpenRecipeWindow.xaml.cs">
@@ -437,9 +431,7 @@
     <Compile Include="UI\ViewModel\FAINodeViewModel.cs" />
     <Compile Include="UI\ViewModel\MeasurementResultRow.cs" />
     <Compile Include="UI\ViewModel\CycleResultDto.cs" />
-    
     <Compile Include="UI\ViewModel\ReviewMeasurementRow.cs" />
-    
     <Compile Include="UI\ViewModel\InspectionViewModel.cs" />
     <Compile Include="UI\Theme\OutlinedTextBlock.cs" />
     <Compile Include="UI\ViewModel\Attributes.cs" />
@@ -560,7 +552,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Reviewer\ReviewerWindow.xaml">
-      
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -569,7 +560,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="UI\Statistics\StatisticsWindow.xaml">
-      
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

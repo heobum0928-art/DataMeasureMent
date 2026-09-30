@@ -41,7 +41,7 @@ namespace ReringProject.Sequence {
 
         public ECameraPropertyType GetPropertyType() {
             if (Name == null) {
-                // 260723 hbk: Name 미설정(named 생성자를 거치지 않고 만들어진) PropertyItem을
+                //260723 hbk Name 미설정(named 생성자를 거치지 않고 만들어진) PropertyItem을
                 //  enum 기본값(Exposure=0)으로 조용히 오인식하던 지점 — "Exposure 편집 시 0으로 즉시 리버트"
                 //  버그 조사 중 발견. 실제 트리거(예: PropertyGrid 배열 편집기가 내부적으로 파라미터 없는
                 //  생성자로 새 PropertyItem을 만드는 경우)는 static 분석만으로 확정할 수 없어, 최소한
@@ -121,7 +121,7 @@ namespace ReringProject.Sequence {
                 return _DeviceName;
             }
             set {
-                // 260723 hbk: PropertyGrid 재바인딩/새로고침 등으로 setter가 같은 값으로 재호출되면 PasteFromCamera가
+                //260723 hbk PropertyGrid 재바인딩/새로고침 등으로 setter가 같은 값으로 재호출되면 PasteFromCamera가
                 //  다시 실행되어, 사용자가 방금 편집한 Exposure/Gain 값을 카메라 실측값으로 덮어써버리는 문제가 있었다.
                 //  실제로 값이 바뀔 때만 PasteFromCamera(라이브 재조회)를 수행하도록 가드(CameraSlaveParam 동일 패턴).
                 if (value == _DeviceName) return;
@@ -151,7 +151,7 @@ namespace ReringProject.Sequence {
             pDev = SystemHandler.Handle.Devices;
             pLight = SystemHandler.Handle.Lights;
 
-            // 260723 hbk: Gamma는 이 라인 카메라(CXP/MIL)에 feature 자체가 없어(MIL error 6501) Shot/Datum의
+            //260723 hbk Gamma는 이 라인 카메라(CXP/MIL)에 feature 자체가 없어(MIL error 6501) Shot/Datum의
             //  Device 탭 Name/Value 표에서 항목 자체를 제외한다 — 편집 가능한 죽은 항목으로 UI에 남지 않도록.
             this.PropertyNameList = Enum.GetNames(typeof(ECameraPropertyType))
                 .Where(n => n != nameof(ECameraPropertyType.Gamma)).ToArray();
@@ -177,7 +177,7 @@ namespace ReringProject.Sequence {
         
         private PropertyItem SearchProperty(ECameraPropertyType type) {
             for(int i = 0; i< PropertyArray.Length; i++) {
-                // 260723 hbk: Name==null인 손상된 항목은 GetPropertyType()이 Exposure로 폴백되어
+                //260723 hbk Name==null인 손상된 항목은 GetPropertyType이 Exposure로 폴백되어
                 //  진짜 Exposure 슬롯인 것처럼 매칭되어버린다 — Exposure 전용 리버트 버그의 유력 원인이라
                 //  여기서 먼저 걸러낸다(진짜 Exposure 슬롯은 항상 Name="Exposure"로 생성됨).
                 if (PropertyArray[i].Name == null) continue;

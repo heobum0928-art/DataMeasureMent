@@ -1,8 +1,7 @@
-//260618 hbk Phase 54 ALIGN-01
-// PatternMatchService: HALCON Shape/NCC 패턴매칭 + rigid transform 산출 서비스.
-// D-01: per-Datum 엔진 선택형 (Shape/NCC). D-01b: coarse x,y 전용, 정밀 θ는 line-fit.
-// D-05: 보정 전 원본 grab 이미지 입력. D-06: reduce_domain 검색영역 제한.
-// D-06a: 다운샘플 coarse 매칭 → x,y 스케일 복원. D-09: ref pose 기반 변위.
+//260618 hbk PatternMatchService: HALCON Shape/NCC 패턴매칭 + rigid transform 산출 서비스.
+// per-Datum 엔진 선택형 (Shape/NCC).: coarse x,y 전용, 정밀 θ는 line-fit.
+// 보정 전 원본 grab 이미지 입력.: reduce_domain 검색영역 제한.
+// 다운샘플 coarse 매칭 → x,y 스케일 복원.: ref pose 기반 변위.
 // 전 메서드: try/catch(return false) + HObject/HImage dispose 규약 준수.
 using System;
 using System.Collections.Generic;
@@ -13,8 +12,8 @@ namespace ReringProject.Halcon.Algorithms
     /// <summary>
     /// HALCON Shape/NCC 패턴매칭을 사용하여 모델 생성·저장·로드·검색영역 제한 find,
     /// ref/cur pose로부터 rigid transform(hom_mat2d)을 산출하는 서비스.
-    /// Wave 2 통합단계(Action_FAIMeasurement DatumPhase 확장)가 호출하는 매칭 엔진.
-    //260619 hbk Phase 57 #6 leveling 제거 — 폐기된 TryGetLevelingAngle 참조 제거 (θ는 ALIGN 2-패턴 baseline 각도가 담당)
+    /// 통합단계(Action_FAIMeasurement DatumPhase 확장)가 호출하는 매칭 엔진.
+    //260619 hbk #6 leveling 제거 — 폐기된 TryGetLevelingAngle 참조 제거 (θ는 ALIGN 2-패턴 baseline 각도가 담당)
     /// coarse x,y + θ는 ALIGN(패턴매칭 rigid transform)이 담당.
     /// </summary>
     public class PatternMatchService
@@ -25,7 +24,7 @@ namespace ReringProject.Halcon.Algorithms
         // NCC 모델 파일 확장자 (HALCON write_ncc_model)
         public const string EXTENSION_NCC_MODEL = ".ncm";
 
-        // 기본 다운샘플 비율 (D-06a). 1/2 해상도에서 coarse 매칭.
+        //260618 hbk 기본 다운샘플 비율 . 1/2 해상도에서 coarse 매칭.
         // 152MP 등 고해상도 tact 대응. 호출부가 파라미터로 오버라이드 가능.
         public const double DEFAULT_DOWNSAMPLE_FACTOR = 2.0;
 
@@ -122,8 +121,8 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// template ROI(Rect2)로 reduce_domain 한 영역에서 모델 생성 후 engine 별 파일 저장.
         /// engine "NCC" → create_ncc_model/write_ncc_model, 그 외 → create_shape_model/write_shape_model.
-        /// angleExtentDeg = 0 → angle off (작은 range, D-01b). modelPath = 호출부 전달(GetPatternModelFilePath 결과).
-        /// SystemSetting.UsePatternBrushMask 가 true 이고 modelPath 옆에 마스크 파일이 있으면 ROI 에서 마스크를 뺀다(D-74-03).
+        /// angleExtentDeg = 0 → angle off (작은 range). modelPath = 호출부 전달(GetPatternModelFilePath 결과).
+        /// SystemSetting.UsePatternBrushMask 가 true 이고 modelPath 옆에 마스크 파일이 있으면 ROI 에서 마스크를 뺀다.
         /// </summary>
         /// <param name="templateImage">티칭 이미지</param>
         /// <param name="roiRow">template ROI 중심 row</param>
@@ -160,19 +159,19 @@ namespace ReringProject.Halcon.Algorithms
 
             HObject rect = null;
             HObject reducedImage = null;
-            HObject maskRegion = null;   // 브러시 마스크(D-74-02). 옵션 OFF 면 끝까지 null 이다.
+            HObject maskRegion = null;   //260827 hbk 브러시 마스크. 옵션 OFF 면 끝까지 null 이다.
             HTuple modelId = null;
 
             try
             {
-                // angleExtentDeg → rad 변환. 0 → extent 0 (각도 off, D-01b)
+                //260618 hbk angleExtentDeg → rad 변환. 0 → extent 0 (각도 off)
                 double angleExtentRad = angleExtentDeg * Math.PI / 180.0;
                 double angleStartRad = -angleExtentRad / 2.0;
 
                 // Step 1: template ROI 생성 → reduce_domain
                 HOperatorSet.GenRectangle2(out rect, roiRow, roiCol, roiPhi, roiLen1, roiLen2);
 
-                // 브러시 마스크 적용(D-74-02/03). TryLoadMask 는 옵션 OFF 또는 마스크 파일 없음이면 false 를
+                //260827 hbk 브러시 마스크 적용. TryLoadMask 는 옵션 OFF 또는 마스크 파일 없음이면 false 를
                 //  돌려주므로, 이 분기에 들어가지 않으면 아래 ReduceDomain 은 기존과 완전히 동일한 rect 를 받는다(회귀 0).
                 bool bMaskLoaded = ReringProject.Halcon.Services.PatternMaskService.TryLoadMask(modelPath, out maskRegion);
                 if (bMaskLoaded == true && maskRegion != null)
@@ -269,7 +268,7 @@ namespace ReringProject.Halcon.Algorithms
         }
 
         /// <summary>
-        /// 방금 생성한 모델로 templateImage 자체에서 find → ref pose 반환(D-09).
+        /// 방금 생성한 모델로 templateImage 자체에서 find → ref pose 반환.
         /// 티칭 시 1회 호출. 런타임과 동일 연산이라 부호/좌표계 일관성 보장.
         /// </summary>
         /// <param name="templateImage">티칭 이미지</param>
@@ -311,7 +310,7 @@ namespace ReringProject.Halcon.Algorithms
 
             HTuple modelId = null;
 
-            // quick-260807: Find 각도 검색범위 = ±angleExtentDeg. 선택적 파라미터인 이유 =
+            //260807 hbk Find 각도 검색범위 = ±angleExtentDeg. 선택적 파라미터인 이유 =
             //  Align(AlignShapeMatchService) 호출부가 인자를 생략해도 기존 전방위(±180°) 검색을 그대로 유지해야 하기 때문.
             double findAngleExtentRad = angleExtentDeg * Math.PI / 180.0;
 
@@ -404,18 +403,18 @@ namespace ReringProject.Halcon.Algorithms
 
         /// <summary>
         /// 모델 로드 후 검색영역(template ROI ± marginPx)으로 reduce_domain, 다운샘플에서 coarse find → x,y 획득 후 스케일 복원.
-        /// minScore 미달 → false (호출부가 MarkDatumFailed, D-10). angle은 거칠어 측정에 쓰지 않음(정밀 θ는 line-fit, D-01b) — out으로 반환만.
+        /// minScore 미달 → false (호출부가 MarkDatumFailed). angle은 거칠어 측정에 쓰지 않음(정밀 θ는 line-fit) — out으로 반환만.
         /// </summary>
-        /// <param name="runtimeImage">보정 전 원본 grab 이미지(D-05)</param>
+        /// <param name="runtimeImage">보정 전 원본 grab 이미지</param>
         /// <param name="engine">"NCC" 또는 "Shape"</param>
         /// <param name="modelPath">모델 파일 경로</param>
         /// <param name="roiRow">template ROI 중심 row</param>
         /// <param name="roiCol">template ROI 중심 col</param>
         /// <param name="roiLen1">template ROI half-length1(px)</param>
         /// <param name="roiLen2">template ROI half-length2(px)</param>
-        /// <param name="marginPx">검색영역 확장 margin(px, D-06)</param>
+        /// <param name="marginPx">검색영역 확장 margin(px)</param>
         /// <param name="minScore">최소 매칭 점수</param>
-        /// <param name="downsampleFactor">다운샘플 비율(D-06a). 1이하=원본. 기본 DEFAULT_DOWNSAMPLE_FACTOR=2.0</param>
+        /// <param name="downsampleFactor">다운샘플 비율. 1이하=원본. 기본 DEFAULT_DOWNSAMPLE_FACTOR=2.0</param>
         /// <param name="curRow">검출된 매칭 row (출력)</param>
         /// <param name="curCol">검출된 매칭 col (출력)</param>
         /// <param name="curAngleDeg">검출된 매칭 각도(deg, 거침 — 측정 미사용, 출력)</param>
@@ -462,7 +461,7 @@ namespace ReringProject.Halcon.Algorithms
             {
                 bool isNcc = string.Equals(engine, "NCC", StringComparison.OrdinalIgnoreCase);
 
-                //260618 hbk Phase 54 ALIGN-01 (CO-54-04): 검색영역 = ROI 중심 ± (len + margin) 으로 제한.
+                //260618 hbk 검색영역 = ROI 중심 ± (len + margin) 으로 제한.
                 //  전체 이미지 검색은 반복 feature 부품에서 false match(엉뚱한 instance) 유발 → margin 으로 catch 범위 한정.
                 //  margin 은 "예상 최대 이동량 + 여유" 로 사용자 튜닝(PatternSearchMarginPx). 너무 크면 false match, 작으면 no match.
                 HTuple imgW, imgH;
@@ -476,7 +475,7 @@ namespace ReringProject.Halcon.Algorithms
                 HOperatorSet.GenRectangle1(out searchRect, sr1, sc1, sr2, sc2);
                 HOperatorSet.ReduceDomain(runtimeImage, searchRect, out reducedImage);
 
-                // 다운샘플 처리 (D-06a): downsampleFactor>1 이면 zoom_image_factor(1/factor)로 축소
+                //260618 hbk 다운샘플 처리: downsampleFactor>1 이면 zoom_image_factor(1/factor)로 축소
                 HObject findTarget = null;
                 double scale = 1.0;
                 bool usedZoom = false;
@@ -496,7 +495,7 @@ namespace ReringProject.Halcon.Algorithms
                 // 모델 로드 및 find
                 HTuple rawRow, rawCol, rawAngle, rawScore;
 
-                // quick-260807: ±angleExtentDeg → rad
+                //260807 hbk ±angleExtentDeg → rad
                 double findAngleExtentRad = angleExtentDeg * Math.PI / 180.0;
 
                 if (isNcc)
@@ -574,7 +573,7 @@ namespace ReringProject.Halcon.Algorithms
                 if (scaledImage != null) { try { scaledImage.Dispose(); } catch { } }
                 // modelId 는 더 이상 여기서 Clear 하지 않는다 — 캐시(GetOrLoadModel)가 소유권을 가지며,
                 // 재티칭(TryCreateModel -> InvalidateCache) 시점에만 Clear 된다. 매 호출마다 read+clear를
-                // 반복하던 것이 이번 캐싱 작업(quick-260805-ojq)의 근본 수정 대상이었다.
+                // 반복하던 것이 이번 캐싱 작업의 근본 수정 대상이었다.
             }
         }
 

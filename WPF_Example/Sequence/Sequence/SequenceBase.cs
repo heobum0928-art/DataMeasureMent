@@ -275,7 +275,7 @@ namespace ReringProject.Sequence {
                 IsDoneBegin = false;
 
                 Context.CopyFrom(actionContext);
-                if (OnActionChanged != null) { //260612 hbk Wave5
+                if (OnActionChanged != null) {
                     OnActionChanged.Invoke(actionContext);
                 }
 
@@ -287,7 +287,7 @@ namespace ReringProject.Sequence {
                 IsDoneBegin = false;
 
                 Context.CopyFrom(actionContext);
-                if (OnActionChanged != null) { //260612 hbk Wave5
+                if (OnActionChanged != null) {
                     OnActionChanged.Invoke(actionContext);
                 }
 
@@ -302,7 +302,7 @@ namespace ReringProject.Sequence {
         }
 
         private void MainExecute() {
-            LogThreadMemoryCacheState(); //260814 hbk quick-260814-kx5: 이 스레드가 HALCON을 처음 쓰기 전, 스레드 진입 시 1회만
+            LogThreadMemoryCacheState(); //260814 hbk 이 스레드가 HALCON을 처음 쓰기 전, 스레드 진입 시 1회만
 
             while(IsTerminated == false) {
                 if (bCreated == false) {
@@ -325,11 +325,11 @@ namespace ReringProject.Sequence {
                             break;
                     }
                 }
-                catch (Exception ex) { //260517 hbk 예외 캐치 → Error() 호출로 OnError 이벤트 보장 (잠금 미해제 방지)
+                catch (Exception ex) { //260517 hbk 예외 캐치 → Error 호출로 OnError 이벤트 보장 (잠금 미해제 방지)
                     Logging.PrintErrLog((int)ELogType.Error,
                         string.Format("[MainExecute] Unhandled exception in sequence '{0}': {1}", Name, ex.Message));
                     IsDoneBegin = false;
-                    try { Error(); } catch { } //260517 hbk Error() 내 2차 예외도 무시 (로그 스레드 재진입 방지)
+                    try { Error(); } catch { } //260517 hbk Error 내 2차 예외도 무시 (로그 스레드 재진입 방지)
                 }
                 //260814 hbk TEMP 계측(top-release-2x-slower): 이미 있던 Sleep(5) 의 "실제" 소요를 잰다.
                 //  타이머 해상도가 1ms 로 살아있으면 5~6ms, 기본값(15.6ms)으로 회수됐으면 15~16ms 가 나온다 —
@@ -344,7 +344,7 @@ namespace ReringProject.Sequence {
         //260814 hbk TEMP 계측(top-release-2x-slower): 직전 루프의 Sleep(5) 실측 소요(ms). FaiTiming 로그에 같이 찍는다.
         public double LastSleepMs { get; private set; }
 
-        //260814 hbk quick-260814-kx5: 스레드 전용(tsp_) 재적용은 제거함 — 오늘 하루 종일 inherited 값이 항상
+        //260814 hbk 스레드 전용(tsp_) 재적용은 제거함 — 오늘 하루 종일 inherited 값이 항상
         //  이미 "idle"로 확인돼(SystemHandler.Initialize() 전역 설정이 이 스레드 생성보다 먼저 실행되므로
         //  정상 상속됨), 재적용이 실제로 뭔가를 바꾼 적이 한 번도 없었다 — 불필요한 방어코드였음이 로그로
         //  증명됨. 이 스레드의 HALCON 캐시 상태를 확인하는 진단 로그만 남긴다.
@@ -448,7 +448,7 @@ namespace ReringProject.Sequence {
             //  이로써 Dispatcher 큐에 SetManualToolsEnabled(false) [잠금] 이 먼저 등록되고,
             //  이후 완료 이벤트(OnFinish/OnStop/OnError)의 SetManualToolsEnabled(true) [해제]가
             //  항상 뒤에 처리되어 잠금 순서가 보장된다 (race condition 차단).
-            if (OnStart != null) { //260612 hbk Wave5
+            if (OnStart != null) {
                 OnStart.Invoke(Context);
             }
             Command = ESequenceCommmand.Start; //260517 hbk OnStart 발화 이후 Command 설정 (순서 보장)
@@ -474,7 +474,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260409 hbk Phase 5: 모든 Action 순차 실행 (D-01)
+        //260409 hbk 모든 Action 순차 실행
         public bool StartAll(TestPacket packet) {
             if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
             if (Actions == null || Actions.Length == 0) return false;
@@ -483,7 +483,7 @@ namespace ReringProject.Sequence {
             return StartCore(0, Actions.Length - 1, packet);
         }
 
-        //260616 hbk Phase 51: 선택 Action(SHOT) 인덱스 집합으로 부분 실행 (D-01 SHOT 다중 선택, StartAll 변형)
+        //260616 hbk 선택 Action(SHOT) 인덱스 집합으로 부분 실행 ( SHOT 다중 선택, StartAll 변형)
         public bool StartSubset(int[] actionIndices, TestPacket packet) {
             if (State != EContextState.Idle) return false; // 빠른 사전 컷(원자 점유는 StartCore 에서)
             if (Actions == null || Actions.Length == 0) return false;
@@ -504,7 +504,7 @@ namespace ReringProject.Sequence {
         //  AddResponse()(InspectionSequence.BuildScopedResponse/AggregateIndexFais)가 nZIndex 로 shot 을
         //  필터링해 응답을 조립하므로, 무관한 다른 z 의 shot 을 실행해도(구 StartAll 폴백) 이 응답 내용에는
         //  아무 영향이 없기 때문이다(0-매칭 응답은 Action 실행 여부와 무관하게 항상 동일) — 상세 근거는
-        //  Custom/SystemHandler.StartV1Scoped 호출부 주석과 .planning/debug/bottom-empty-zindex-tcp-delay.md 참고.
+        //  Custom/SystemHandler.StartV1Scoped 호출부 주석과 참고.
         //  StartCore 와 동일한 _startLock 원자 점유 계약을 따르되(Idle 아니면 실패), Command=Start 로 워커
         //  스레드(MainExecute)에 넘기지 않고 이 스레드(TCP 처리 스레드, MainRun)에서 곧바로 Finish() 를 호출해
         //  완료 처리한다 — 실행할 Action 이 아예 없으므로 워커 스레드 개입이 불필요하다.
@@ -542,7 +542,7 @@ namespace ReringProject.Sequence {
             Command = ESequenceCommmand.Stop;
             if(RequestPacket != null) AddResponse();
 
-            if (OnStop != null) { //260612 hbk Wave5
+            if (OnStop != null) {
                 OnStop.Invoke(Context);
             }
             return true;
@@ -553,7 +553,7 @@ namespace ReringProject.Sequence {
         //  Error()/Finish() 의 OnError/OnFinish?.Invoke() 까지 도달 못함 → MainWindow.SetManualToolsEnabled(true) 미호출 → 잠금 영구화.
         //  격리 원칙: 이미지 저장 실패가 시퀀스 완료 이벤트 발화를 막아서는 안 됨.
         protected void SaveResultImage(string actionName) {
-            try { //260520 hbk
+            try {
                 if (SystemHandler.Handle.Setting.SaveFailImage == false) {
                     Context.ResultImageFileName = null;
                     return;
@@ -583,11 +583,11 @@ namespace ReringProject.Sequence {
                     }, snapshot);
                     return;
                 }
-            } //260520 hbk
-            catch (Exception ex) { //260520 hbk — CopyImage 등 동기 예외 격리 (OnError/OnFinish 발화 보장)
-                try { Logging.PrintErrLog((int)ELogType.Error, "[SaveResultImage] Sync exception swallowed (lock-release path protected): " + ex.Message); } catch { } //260520 hbk
-                Context.ResultImageFileName = null; //260520 hbk
-                return; //260520 hbk
+            }
+            catch (Exception ex) { //260520 hbk CopyImage 등 동기 예외 격리 (OnError/OnFinish 발화 보장)
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SaveResultImage] Sync exception swallowed (lock-release path protected): " + ex.Message); } catch { }
+                Context.ResultImageFileName = null;
+                return;
             }
         }
 
@@ -603,7 +603,7 @@ namespace ReringProject.Sequence {
             if (RequestPacket != null) AddResponse();
 
             SaveResultImage(CurActionName);
-            if (OnError != null) { //260612 hbk Wave5
+            if (OnError != null) {
                 OnError.Invoke(Context);
             }
 
@@ -623,7 +623,7 @@ namespace ReringProject.Sequence {
                 SaveResultImage(CurActionName);
             }
 
-            if (OnFinish != null) { //260612 hbk Wave5
+            if (OnFinish != null) {
                 OnFinish.Invoke(Context);
             }
             return true;
@@ -637,7 +637,7 @@ namespace ReringProject.Sequence {
                 Context.Timer.Restart();
             }
             Command = ESequenceCommmand.Pause;
-            if (OnPaused != null) { //260612 hbk Wave5
+            if (OnPaused != null) {
                 OnPaused.Invoke(Context);
             }
             return true;
@@ -651,7 +651,7 @@ namespace ReringProject.Sequence {
                 Context.Timer.Restart();
             }
             Command = ESequenceCommmand.Resume;
-            if (OnResume != null) { //260612 hbk Wave5
+            if (OnResume != null) {
                 OnResume.Invoke(Context);
             }
             return true;

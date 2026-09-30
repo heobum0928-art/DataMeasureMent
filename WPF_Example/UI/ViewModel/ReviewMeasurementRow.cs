@@ -17,7 +17,7 @@ namespace ReringProject.UI
         /// <summary>SkipReason.MEASURE_FAIL 일 때의 JudgeText 라벨. ExcelExportService/ReviewerListLabelBuilder 가 재사용한다.</summary>
         public const string JUDGE_MEASURE_FAIL = "측정실패";
 
-        /// <summary>SkipReason.Z_RANGE_PENDING 일 때의 JudgeText 라벨 — 중간 z tick 대기 표시(Phase 77 SZF-04).</summary>
+        /// <summary>SkipReason.Z_RANGE_PENDING 일 때의 JudgeText 라벨 — 중간 z tick 대기 표시.</summary>
         public const string JUDGE_Z_RANGE_PENDING = "Z 범위 대기";
 
         public string ShotName { get; set; }
@@ -32,23 +32,23 @@ namespace ReringProject.UI
 
         public double ToleranceMinus { get; set; }
 
-        /// <summary>LastHasResult ? LastMeasuredValue.ToString("F4") : "—" — 0.0 도 정상값으로 표시 (CO-23-01)</summary>
+        /// <summary>LastHasResult ? LastMeasuredValue.ToString("F4"): "—" — 0.0 도 정상값으로 표시 </summary>
         public string ResultDisplay { get; set; }
 
-        /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸(Phase 77 SZF-04).</summary>
+        /// <summary>범위 Shot 에서 이 측정이 채택한 z 번호 표시("z5"), 범위 미적용이면 빈칸.</summary>
         public string SelectedZText { get; set; }
 
-        /// <summary>사용 기준 표시(Phase 79 LSR-04) — 국부 / 국부실패→전역, 옵션 꺼짐·옛 cycle.json 은 빈칸.</summary>
+        /// <summary>사용 기준 표시( LSR-04) — 국부 / 국부실패→전역, 옵션 꺼짐·옛 cycle.json 은 빈칸.</summary>
         public string RefSourceText { get; set; }
 
-        /// <summary>NG 원인 규칙 판정 결과(Phase 78 NGA-01). 3인자 생성자로 만든 행은 기본값(Empty).</summary>
+        /// <summary>NG 원인 규칙 판정 결과( NGA-01). 3인자 생성자로 만든 행은 기본값(Empty).</summary>
         public NgCauseResult Cause { get; set; } = NgCauseResult.Empty();
 
-        /// <summary>NG 원인 패널에 바인딩되는 표시 문자열 — NgCauseAnalyzer.BuildPanelText 결과(Phase 78 NGA-02).</summary>
+        /// <summary>NG 원인 패널에 바인딩되는 표시 문자열 — NgCauseAnalyzer.BuildPanelText 결과( NGA-02).</summary>
         public string CausePanelText { get; set; } = "";
 
         /// <summary>
-        /// LastSkipReason == "DATUM_FAIL" → "DETECT FAIL" (Phase 39 WF-01 datum 검출 실패 표기).
+        /// LastSkipReason == "DATUM_FAIL" → "DETECT FAIL" ( datum 검출 실패 표기).
         /// LastHasResult ? (LastJudgement ? "OK" : "NG") : "—"
         /// </summary>
         public string JudgeText { get; set; }
@@ -109,11 +109,11 @@ namespace ReringProject.UI
             {
                 JudgeText = "DETECT FAIL";
             }
-            else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨 //260710 hbk 상수화
+            else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨/ 상수화
             {
                 JudgeText = "NO IMAGE";
             }
-            else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 비프로토콜 실행 크로스-Z 미측정 — 일반 대기 표시와 반드시 구분
+            else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk 비프로토콜 실행 크로스-Z 미측정 — 일반 대기 표시와 반드시 구분
             {
                 JudgeText = "CROSS-Z INCOMPLETE";
             }
@@ -135,7 +135,7 @@ namespace ReringProject.UI
             }
         }
 
-        /// <summary>Phase 78 NGA-01: cycle/history 를 받아 NG 원인 판정까지 채우는 생성자 — 리뷰어 배선 전용.</summary>
+        /// <summary> NGA-01: cycle/history 를 받아 NG 원인 판정까지 채우는 생성자 — 리뷰어 배선 전용.</summary>
         public ReviewMeasurementRow(ShotResultDto shot, FaiResultDto fai, MeasurementResultDto m, CycleResultDto cycle, NgCauseHistory history) : this(shot, fai, m)
         {
             Cause = NgCauseAnalyzer.Analyze(cycle, shot, fai, m, history);
@@ -144,7 +144,7 @@ namespace ReringProject.UI
     }
 
     /// <summary>
-    /// 리뷰어가 띄울 사진 경로 — 그 검사의 실제 촬영 원본 우선, D-78-07. 순수 로직 + 파일 존재 확인만 한다.
+    /// 리뷰어가 띄울 사진 경로 — 그 검사의 실제 촬영 원본 우선, . 순수 로직 + 파일 존재 확인만 한다.
     /// </summary>
     public static class ReviewerImagePathResolver
     {
@@ -336,7 +336,7 @@ namespace ReringProject.UI
             return null;
         }
 
-        /// <summary>Phase 80 함께 처리 1: 사이클 전체 보기가 띄울 사진 + 그 사진을 낸 Shot 을 함께 돌려준다
+        /// <summary> 함께 처리 1: 사이클 전체 보기가 띄울 사진 + 그 사진을 낸 Shot 을 함께 돌려준다
         /// (기존 오버로드와 같은 규칙) — 오버레이 겹침 버그 수정에 쓴다. 못 찾으면 ownerShot=null, 반환 null.</summary>
         public static string ResolveCycleImagePath(CycleResultDto cycle, out ShotResultDto ownerShot)
         {
@@ -371,7 +371,7 @@ namespace ReringProject.UI
             return null;
         }
 
-        /// <summary>Phase 80 함께 처리 1: 이 Shot 의 FAI 선만 모은다 — 다른 Shot 선이 한 사진에 섞이지 않게.</summary>
+        /// <summary> 함께 처리 1: 이 Shot 의 FAI 선만 모은다 — 다른 Shot 선이 한 사진에 섞이지 않게.</summary>
         public static List<EdgeInspectionOverlay> CollectShotOverlays(ShotResultDto shot)
         {
             List<EdgeInspectionOverlay> lstResult = new List<EdgeInspectionOverlay>();

@@ -9,7 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using HalconDotNet;
 using Microsoft.Win32;
-using ReringProject.Halcon.Algorithms; //260623 hbk Phase 53: CalibrationResult 참조
+using ReringProject.Halcon.Algorithms; //260623 hbk CalibrationResult 참조
 using ReringProject.Halcon.Models;
 using ReringProject.Halcon.Services;
 using ReringProject.Define;
@@ -22,7 +22,7 @@ namespace ReringProject.UI {
 
     public partial class MainView : UserControl {
         private const string ViewerMemoryImageLabel = "(memory)";
-        //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
+        //260623 hbk CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
         private const int MaxPolygonPoints = 20;
         private const int MinPolygonPoints = 3;
         private const double MinCalibrationPixelDistance = 1.0;
@@ -43,7 +43,7 @@ namespace ReringProject.UI {
             set { _drawScale = value; }
         }
 
-        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2, DistanceMeasure } //260618 hbk Phase 54 ALIGN-01 / 260619 Phase 55 ALIGN-02 (PatternRoi2, AlignLineRoi 제거) / 260819 hbk quick-260819-n4d (DistanceMeasure 추가)
+        private enum ECanvasMode { None, RectRoi, PolygonRoi, CircleRoi, TeachDatum, Calibration, PatternRoi, PatternRoi2, DistanceMeasure } //260618 hbk (PatternRoi2, AlignLineRoi 제거) / (DistanceMeasure 추가)
         private ECanvasMode _canvasMode = ECanvasMode.None;
         private FAIConfig _editingFai;
         private MeasurementBase _editingCircleMeasurement;
@@ -82,8 +82,8 @@ namespace ReringProject.UI {
 
         public MainView() {
             InitializeComponent();
-            panel_reviewerReinspect.DataContext = ReviewerReinspectViewModel.Instance; // Phase 80 D-80-12/17
-            ReviewerReinspectViewModel.Instance.Released += ForgetDisplayedShotImage; // Phase 80 D-80-05
+            panel_reviewerReinspect.DataContext = ReviewerReinspectViewModel.Instance;
+            ReviewerReinspectViewModel.Instance.Released += ForgetDisplayedShotImage;
             halconViewer.PointerInfoChanged += HalconViewer_PointerInfoChanged;
             halconViewer.RoiMoveCompleted += HalconViewer_RoiMoveCompleted;
             halconViewer.RoiDeleteRequested += HalconViewer_RoiDeleteRequested;
@@ -102,7 +102,7 @@ namespace ReringProject.UI {
             Unloaded += MainView_Unloaded;
         }
 
-        // Phase 80 D-80-11/17: 원래 사진 경로·OfflineInspectMode 복원 로직은 서비스에 있다 — 배선만.
+        //260918 hbk 원래 사진 경로·OfflineInspectMode 복원 로직은 서비스에 있다 — 배선만.
         private void BtnReviewerRelease_Click(object sender, RoutedEventArgs e) {
             ReviewerReinspectViewModel.Instance.ReleaseByUser();
         }
@@ -124,7 +124,7 @@ namespace ReringProject.UI {
             UpdatePointerLabel(0, 0, null);
             PreviewKeyDown += MainView_PreviewKeyDown;
 
-            // Phase 74 브러시 마스킹 배선. 훅 2개만 채우면 저장/재생성/상태문구는 ViewModel 이 처리한다.
+            //260827 hbk 브러시 마스킹 배선. 훅 2개만 채우면 저장/재생성/상태문구는 ViewModel 이 처리한다.
             if (brushPanel != null) {
                 brushPanel.ViewModel.ModelPathsProvider = () => ReringProject.Halcon.Services.DatumPatternModelRegenService.GetModelPathsForMask(_brushTargetDatum);
                 brushPanel.ViewModel.ModelRegenerator = RegenerateDatumPatternSilent;
@@ -187,7 +187,7 @@ namespace ReringProject.UI {
             }
         }
 
-        /// <summary>Displays the shot image associated with the selected FAIConfig. Per D-12.
+        /// <summary>Displays the shot image associated with the selected FAIConfig. Per .
         /// FAIConfig itself does not store an image; the parent ShotConfig holds it.</summary>
         public void DisplayFAIImage(FAIConfig fai) {
             if (fai == null) {
@@ -206,7 +206,7 @@ namespace ReringProject.UI {
         //  다른 Shot 으로 전환할 때는 기존처럼 전체 보기로 리셋되는 게 맞다(사용자 확인) — 그 경우만 재로드한다.
         private ShotConfig _lastDisplayedImageShot;
 
-        // Phase 80 D-80-05: 리뷰어 사진을 불러오거나 해제한 뒤 같은 Shot 을 다시 눌러도 새 사진을 다시 읽게 한다.
+        //260918 hbk 리뷰어 사진을 불러오거나 해제한 뒤 같은 Shot 을 다시 눌러도 새 사진을 다시 읽게 한다.
         // 리뷰어에서 고른 측정이 실제로 쓴 z 사진을 캔버스에 띄운다(레시피 경로는 바꾸지 않는다).
         //  다음에 Shot 노드를 다시 고르면 평소대로 Shot 버퍼 사진으로 돌아간다.
         public void ShowReviewerSelectedPhoto(string szPath) {
@@ -248,7 +248,7 @@ namespace ReringProject.UI {
                     if (img != null) img.Dispose();
                 }
             } else {
-                // quick-260806-dsn Part B: 배치 사이클 종료 후 메모리 정리(InspectionListView.CleanupBatchImageMemoryAfterCycle)로
+                //260806 hbk Part B: 배치 사이클 종료 후 메모리 정리(InspectionListView.CleanupBatchImageMemoryAfterCycle)로
                 //  shot._image 가 비워졌을 수 있다 — FAI 원본 캡쳐 파일(overlay 미포함, RenderStoredOverlaysForFai 가
                 //  overlay 는 별도로 그림)로 재로드를 시도한 뒤에도 없으면 기존과 동일하게 "NO Image" 표시.
                 string fallbackPath = null;
@@ -547,7 +547,7 @@ namespace ReringProject.UI {
                 Column2 = pCol + pLen2,
                 IsTaught = true
             });
-            // Phase 79 LSR-01: 국부 기준 ROI(핀 옆 띠) — 티칭됐을 때만 두 번째 ROI 로 보여 준다(RoiId 끝 _LocalRef)
+            //260918 hbk LSR-01: 국부 기준 ROI(핀 옆 띠) — 티칭됐을 때만 두 번째 ROI 로 보여 준다(RoiId 끝 _LocalRef)
             if (etld != null) {
                 bool bLocalRefTaught = etld.LocalRef_Length1 > 0 && etld.LocalRef_Length2 > 0;
                 if (bLocalRefTaught) {
@@ -670,9 +670,9 @@ namespace ReringProject.UI {
             roi.Column2 = tc.D + halfC;
         }
 
-        //260619 hbk Phase 56 Wave 2 — 결과 화면용 보정(회전) ROI 박스 빌드 (표시 전용).
+        //260619 hbk 결과 화면용 보정(회전) ROI 박스 빌드 (표시 전용).
         //  Point ROI center 를 datum CurrentTransform 으로 변환 + rPhi=Atan2(-T[1],T[0]).
-        //260622 hbk Phase 57.1 #2 — length 는 HALCON disp_rectangle2 규약(length1=열/가로 반장축, length2=행/세로 반장축)
+        // #2 — length 는 HALCON disp_rectangle2 규약(length1=열/가로 반장축, length2=행/세로 반장축)
         //  을 따른다(=정상 렌더되는 cyan 패턴 ROI 와 동일 규약). 측정 자체는 FAIEdgeMeasurementService 가
         //  SmallestRectangle2+measurePhi 로 별도 수행하여 정상이며, 표시 박스만 length1/length2 가 반대였음(90° 회전 결함).
         //  BuildPointRoiDefinitions 가 새 객체 생성 → 티칭/편집 좌표 불변, 편집 채널(UpdateDisplayState)·핸들러 미접촉.
@@ -720,7 +720,7 @@ namespace ReringProject.UI {
                     if (m == null || string.IsNullOrEmpty(m.DatumRef) || !xforms.TryGetValue(m.DatumRef, out t)) continue;
                     double rPhi = System.Math.Atan2(-t[1].D, t[0].D); // 측정 rectangle2 회전각과 동일 규약 (TryFitLine)
                     foreach (var roi in BuildPointRoiDefinitions(m, fai.FAIName)) {
-                        //260622 hbk Phase 57.1 #2 — HALCON disp_rectangle2 규약: length1=열(가로/X) 반장축, length2=행(세로/Y) 반장축.
+                        //260622 hbk #2 — HALCON disp_rectangle2 규약: length1=열(가로/X) 반장축, length2=행(세로/Y) 반장축.
                         double l1 = (roi.Column2 - roi.Column1) / 2.0; // length1 = 열(가로/X) 반장축
                         double l2 = (roi.Row2 - roi.Row1) / 2.0;       // length2 = 행(세로/Y) 반장축
                         if (l1 <= 0 || l2 <= 0) continue;
@@ -736,7 +736,7 @@ namespace ReringProject.UI {
             return rects;
         }
 
-        //260619 hbk Phase 56 Wave 2 — 결과 화면용 보정(회전) Datum 검색 ROI 빌드 (표시 전용, orange).
+        //260619 hbk 결과 화면용 보정(회전) Datum 검색 ROI 빌드 (표시 전용, orange).
         //  각 datum 의 검색 ROI(원/수평/수직/Line)를 datum.CurrentTransform(=측정과 동일 alignRigid)으로 변환.
         //  rect={row,col,phi,L1,L2}, 원={row,col,radius}. RenderDatumOverlay(티칭좌표 렌더)와 분리 → 편집 무접촉.
         private List<double[]> BuildCorrectedDatumRoiOverlays(List<DatumConfig> datums) {
@@ -901,7 +901,7 @@ namespace ReringProject.UI {
                         if (roiId == f.FAIName + "_" + measName + "_Line") { fai = f; meas = m; subKey = "Line"; return true; }
                         continue;
                     }
-                    // Phase 79 LSR-01: EdgeToLineDistance 의 국부 기준 ROI 는 subKey LocalRef 로 해석한다
+                    //260918 hbk LSR-01: EdgeToLineDistance 의 국부 기준 ROI 는 subKey LocalRef 로 해석한다
                     bool bIsLocalRefRoi = m is EdgeToLineDistanceMeasurement && roiId == f.FAIName + "_" + measName + "_" + EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
                     if (bIsLocalRefRoi) {
                         fai = f;
@@ -937,7 +937,7 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row += deltaRow; dual.LineROI_Col += deltaCol; }
                 return;
             }
-            // Phase 79 LSR-01: 국부 기준 ROI 이동 — Point ROI 는 아래 기존 줄이 그대로 처리한다
+            //260918 hbk LSR-01: 국부 기준 ROI 이동 — Point ROI 는 아래 기존 줄이 그대로 처리한다
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bMoveLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bMoveLocalRef) {
@@ -978,7 +978,7 @@ namespace ReringProject.UI {
                 if (subKey == "Line") { row = dual.LineROI_Row; col = dual.LineROI_Col; return true; }
                 return false;
             }
-            // Phase 79 LSR-01: 국부 기준 ROI 중심 읽기(Edit 모드 드래그 역보정용)
+            //260918 hbk LSR-01: 국부 기준 ROI 중심 읽기(Edit 모드 드래그 역보정용)
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bCenterLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bCenterLocalRef) {
@@ -1034,7 +1034,7 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row = cRow; dual.LineROI_Col = cCol; dual.LineROI_Length1 = halfR; dual.LineROI_Length2 = halfC; }
                 return;
             }
-            // Phase 79 LSR-01: 국부 기준 ROI 크기·위치 쓰기
+            //260918 hbk LSR-01: 국부 기준 ROI 크기·위치 쓰기
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bResizeLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bResizeLocalRef) {
@@ -1076,7 +1076,7 @@ namespace ReringProject.UI {
                 else if (subKey == "Line") { dual.LineROI_Row = 0; dual.LineROI_Col = 0; dual.LineROI_Length1 = 0; dual.LineROI_Length2 = 0; }
                 return;
             }
-            // Phase 79 LSR-01: 국부 기준 ROI 삭제(0 리셋) — 옵션 체크는 그대로라 다음 검사에서 '미티칭' 으로 전역 전환된다
+            //260918 hbk LSR-01: 국부 기준 ROI 삭제(0 리셋) — 옵션 체크는 그대로라 다음 검사에서 '미티칭' 으로 전역 전환된다
             var etldLocalRef = meas as EdgeToLineDistanceMeasurement;
             bool bClearLocalRef = etldLocalRef != null && subKey == EdgeToLineDistanceMeasurement.LOCAL_REF_ROI_SUBKEY;
             if (bClearLocalRef) {
@@ -1138,7 +1138,7 @@ namespace ReringProject.UI {
                 r = dual.LineROI_Row; c = dual.LineROI_Col; TransformPointInPlace(T, ref r, ref c); dual.LineROI_Row = r; dual.LineROI_Col = c; dual.LineROI_Phi = dual.LineROI_Phi + rot;
                 return;
             }
-            // Phase 79 LSR-01: 마스터 재앵커 때 티칭된 국부 기준 ROI 도 같이 옮긴다 — 미티칭(0) 값은 그대로 둬 옛 레시피 값이 바뀌지 않게 한다. return 하지 않고 아래 기존 줄이 Point ROI 를 옮긴다
+            //260918 hbk LSR-01: 마스터 재앵커 때 티칭된 국부 기준 ROI 도 같이 옮긴다 — 미티칭(0) 값은 그대로 둬 옛 레시피 값이 바뀌지 않게 한다. return 하지 않고 아래 기존 줄이 Point ROI 를 옮긴다
             var etldLocalRef = m as EdgeToLineDistanceMeasurement;
             if (etldLocalRef != null) {
                 bool bLocalRefTaught = etldLocalRef.LocalRef_Length1 > 0 && etldLocalRef.LocalRef_Length2 > 0;
@@ -1293,8 +1293,8 @@ namespace ReringProject.UI {
         // Keep public methods called by MainWindow and InspectionListView
 
         public void AddCustomControl(string name, UserControl control) {
-            // TabControl no longer present — custom views are not shown in Phase 1 UI.
-            // Phase 2 will provide a dedicated panel for custom views.
+            //260403 hbk TabControl no longer present — custom views are not shown in UI.
+            // will provide a dedicated panel for custom views.
             if (control is IMainView mainView) {
                 CustomViewList.Add(mainView);
                 if (ContextList != null) {
@@ -1311,7 +1311,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // quick-260813-jnh: grab 역할 식별자 산출. Datum 노드 grab 이면 그 Datum 의 미러를 직접 쓰고,
+        //260813 hbk grab 역할 식별자 산출. Datum 노드 grab 이면 그 Datum 의 미러를 직접 쓰고
         //  Shot 노드 grab 이면 Shot→DatumRef 역추적으로 소유 Datum 의 미러를 따라간다. 티칭에서 저장한
         //  검사이미지를 OfflineInspectMode 검사가 그대로 로드하므로, 여기서 방향이 어긋나면 오프라인 결과가
         //  실기와 달라진다 — 그래서 Shot 경로도 생산과 같은 규칙을 쓴다.
@@ -1342,7 +1342,7 @@ namespace ReringProject.UI {
                     // ShotConfig 는 LightGroupName/LightLevel 이 세팅된 적이 없어 ApplyLight(param) 이 사실상 무동작이었다
                     // (조명이 실제로 켜지지 않은 채 grab 됨). Ring/Bar/Back/Ring7/Coax 채널별 값(Light 탭)을 실제로 반영한다.
                     if (param is ShotConfig shotForGrab) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; //260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
                     }
                     else {
@@ -1417,11 +1417,11 @@ namespace ReringProject.UI {
                 HImage grabbedHalconImage = null;
                 lock (mDrawInterlock) {
                     if (datum != null) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; //260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyDatumLights(datum);
                     }
                     else if (param is ShotConfig shotForGrab) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; //260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
                     }
                     else {
@@ -1483,7 +1483,7 @@ namespace ReringProject.UI {
             if (displayParam == null || pathSinkParam == null || string.IsNullOrEmpty(savePath)) return;
             if (!pSeq.IsIdle || GrabTask != null) return;
 
-            // 260723 hbk: DualImage datum(가로/세로 두 이미지 필요)은 두 캡처가 동일 savePath 를 써서 서로
+            //260723 hbk DualImage datum(가로/세로 두 이미지 필요)은 두 캡처가 동일 savePath 를 써서 서로
             //  덮어쓰던 문제 — _currentImageSource(가로/세로 토글) 기준으로 파일명에 _horizontal/_vertical 을
             //  붙여 두 파일을 분리한다. 일반 datum/Shot(1이미지)은 기존 파일명 그대로(회귀 0).
             ShotConfig dualShotForSave = displayParam as ShotConfig;
@@ -1511,15 +1511,15 @@ namespace ReringProject.UI {
                 //     저장/표시는 전부 락 해제 후 수행한다(어떤 UI 대기도 락을 쥐지 않음).
                 HImage grabbedHalconImage = null;
                 HImage imageToSave = null;
-                // 260716 hbk 검사Grab tact 지연 실측용 — 조명대기+grab 구간, 저장(WriteImage) 구간을 분리 계측해 Trace 로그에 남긴다.
+                //260716 hbk 검사Grab tact 지연 실측용 — 조명대기+grab 구간, 저장(WriteImage) 구간을 분리 계측해 Trace 로그에 남긴다.
                 var swLightGrab = System.Diagnostics.Stopwatch.StartNew();
                 lock (mDrawInterlock) {
                     if (datum != null) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; //260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyDatumLights(datum);
                     }
                     else if (param is ShotConfig shotForGrab) {
-                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; // 260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
+                        InspectionSequence lightSeq = SystemHandler.Handle.Sequences[param.SequenceName] as InspectionSequence; //260723 hbk Side-only(PC2) 롤에서 Top 시퀀스 미생성 → 항상 Top 조회 시 null이라 조명 무동작이던 결함 수정. 실제 grab 대상 시퀀스로 조회.
                         if (lightSeq != null) lightSeq.ApplyShotLightsDirect(shotForGrab);
                     }
                     else {
@@ -1538,7 +1538,7 @@ namespace ReringProject.UI {
                 // ---- 락 해제됨: 이 지점부터는 어떤 대기도 mDrawInterlock 을 쥐지 않는다 ----
 
                 // grab 이미지를 노드 저장경로에 bmp(무압축)로 기록(검사 시 로드 대상). 실패해도 표시는 시도. (느린 디스크 I/O = 락 밖)
-                //  260716 hbk PNG(DEFLATE 압축)는 CXP 13376x9528(~1.27억 픽셀) 원본에서 압축 자체가 tact 병목이 되어 bmp 로 전환.
+                //  PNG(DEFLATE 압축)는 CXP 13376x9528(~1.27억 픽셀) 원본에서 압축 자체가 tact 병목이 되어 bmp 로 전환.
                 //  검사이미지는 라이브 grab 대체용이라 손실압축(jpg) 불가 — bmp 는 무손실 유지하며 압축 비용만 제거.
                 bool saved = false;
                 string saveErr = null;
@@ -2330,18 +2330,18 @@ namespace ReringProject.UI {
             else                _lastResultDatums = datums;
             if (datums == null || datums.Count == 0) {
                 halconViewer.ClearResultDatumOverlays();
-                halconViewer.ClearResultRoiOverlays(); //260619 hbk Phase 56 Wave 2 — 보정 ROI 박스도 클리어
+                halconViewer.ClearResultRoiOverlays(); //260619 hbk 보정 ROI 박스도 클리어
                 return;
             }
             foreach (DatumConfig d in datums) {
-                //260619 hbk Phase 56 — 검사-시점 정렬(보정) 검출 좌표가 살아있으면(LastFindSucceeded) 재티칭 skip.
+                //260619 hbk 검사-시점 정렬(보정) 검출 좌표가 살아있으면(LastFindSucceeded) 재티칭 skip.
                 //  재티칭(TryRestoreDatumGeometry→TryTeachDatum on 티칭이미지)은 DetectedOrigin/RefAngle 을 reference(무틸트) 로
                 //  덮어써 → 결과화면 datum 이 안 기울어 보이던 원인. 검출 좌표 없을 때(레시피 로드 직후 휘발 0)만 reference 복원.
                 if (d != null && !d.LastFindSucceeded)
                     TryRestoreDatumGeometry(d); // 휘발 좌표 복원 (렌더는 아래 일괄 호출)
             }
             halconViewer.SetResultDatumOverlays(datums);
-            //260619 hbk Phase 56 Wave 2 — datum CurrentTransform 으로 측정 ROI(green) + Datum 검색 ROI(orange) 회전 표시 (표시 전용 채널).
+            //260619 hbk datum CurrentTransform 으로 측정 ROI(green) + Datum 검색 ROI(orange) 회전 표시 (표시 전용 채널).
             halconViewer.SetResultRoiOverlays(BuildCorrectedResultRoiOverlays(datums), BuildCorrectedDatumRoiOverlays(datums));
         }
 
@@ -2619,7 +2619,7 @@ namespace ReringProject.UI {
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalB", datum.Horizontal_B_Row, datum.Horizontal_B_Col, datum.Horizontal_B_Length1, datum.Horizontal_B_Length2));
                     break;
                 // VerticalTwoHorizontalDualImage: 모든 ROI 항상 표시 (축별 subset 토글은 ROI 위치 파악/삭제/이동 시 사용성 저해).
-                //  좌표계 불일치 (가로 이미지 위에 Vertical ROI misalign 가능) 는 SIMUL 의사 페어 한계로 CO-34.1-01 종결.
+                //  좌표계 불일치 (가로 이미지 위에 Vertical ROI misalign 가능) 는 SIMUL 의사 페어 한계로 종결.
                 case EDatumAlgorithm.VerticalTwoHorizontalDualImage:
                     if (datum.Horizontal_A_Length1 > 0 && datum.Horizontal_A_Length2 > 0)
                         list.Add(BuildDatumRectCandidate("Datum.HorizontalA", datum.Horizontal_A_Row, datum.Horizontal_A_Col, datum.Horizontal_A_Length1, datum.Horizontal_A_Length2));
@@ -2631,7 +2631,7 @@ namespace ReringProject.UI {
             }
             halconViewer.SetDatumRoiCandidates(list);
 
-            // Phase 74: 브러시 마스킹 대상 갱신 + 그 Datum 의 마스크를 화면에 다시 올린다.
+            //260827 hbk 브러시 마스킹 대상 갱신 + 그 Datum 의 마스크를 화면에 다시 올린다.
             _brushTargetDatum = datum;
             if (brushPanel != null) { brushPanel.ViewModel.ReloadMaskFromDisk(); }
         }
@@ -2796,11 +2796,11 @@ namespace ReringProject.UI {
             // Datum 티칭 핸들러 unsubscribe (Double-subscribe 방지)
             halconViewer.RectDrawingCompleted   -= HalconViewer_DatumRectCompleted;
             halconViewer.CircleDrawingCompleted -= HalconViewer_DatumCircleCompleted;
-            // 패턴 ROI 핸들러 unsubscribe (260618 hbk Phase 54 ALIGN-01)
+            //260618 hbk 패턴 ROI 핸들러 unsubscribe
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRectCompleted;
-            //260619 hbk Phase 55 ALIGN-02 패턴 2 핸들러 unsubscribe
+            //260619 hbk 패턴 2 핸들러 unsubscribe
             halconViewer.RectDrawingCompleted   -= HalconViewer_PatternRect2Completed;
-            // 거리측정 핸들러 unsubscribe (quick-260819-n4d)
+            //260819 hbk 거리측정 핸들러 unsubscribe
             halconViewer.ImageLeftClicked -= HalconViewer_MeasureMouseDown;
 
             _canvasMode = ECanvasMode.None;
@@ -2825,7 +2825,7 @@ namespace ReringProject.UI {
             btn_calibrate.Content = "Calibrate";
             _calibrationPoints.Clear();
 
-            // Distance measure cleanup (quick-260819-n4d) -- 오버레이는 위 Calibration cleanup 의 ClearCalibrationOverlay() 가 공용 처리하므로 여기서 재호출하지 않는다
+            //260819 hbk Distance measure cleanup -- 오버레이는 위 Calibration cleanup 의 ClearCalibrationOverlay 가 공용 처리하므로 여기서 재호출하지 않는다
             btn_measureDistance.Content = "거리측정";
             _measurePoints.Clear();
         }
@@ -2981,7 +2981,7 @@ namespace ReringProject.UI {
 
             var roi = halconViewer.CommitActiveRectangle();
             if (roi != null) {
-                // Convert RoiDefinition bounding box back to center+half-lengths (per D-05: phi=0 for new ROI)
+                //260408 hbk Convert RoiDefinition bounding box back to center+half-lengths (per: phi=0 for new ROI)
                 double centerRow = (roi.Row1 + roi.Row2) / 2.0;
                 double centerCol = (roi.Column1 + roi.Column2) / 2.0;
                 double halfHeight = (roi.Row2 - roi.Row1) / 2.0;
@@ -3268,7 +3268,7 @@ namespace ReringProject.UI {
             halconViewer.SetDatumOverlayVisible(chk_overlayDatum.IsChecked == true);
         }
 
-        //260619 hbk Phase 57 #2 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
+        //260619 hbk #2 패턴 ROI 토글 핸들러 (Chk_overlayDatum_Changed 미러)
         private void Chk_overlayPattern_Changed(object sender, RoutedEventArgs e) {
             if (halconViewer == null) return;
             halconViewer.SetPatternRoiOverlayVisible(chk_overlayPattern.IsChecked == true);
@@ -3317,7 +3317,7 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260819 hbk quick-fix(260819-click2): mm 를 입력하기 전에 무엇을 쟀는지 눈으로 확인할 수 있도록
+            //260819 hbk (260819-click2): mm 를 입력하기 전에 무엇을 쟀는지 눈으로 확인할 수 있도록
             //  잰 두 점을 직각삼각형 + 픽셀 성분값으로 창 안에 먼저 그린다(모달 대화상자 뒤에서도 보인다).
             var calibPoints = new List<System.Windows.Point>(_calibrationPoints);
             halconViewer.SetCalibrationOverlay(calibPoints,
@@ -3325,7 +3325,7 @@ namespace ReringProject.UI {
                 string.Format("가로 {0:F1}px", Math.Abs(dx)),
                 string.Format("세로 {0:F1}px", Math.Abs(dy)));
 
-            //260820 hbk quick-fix: 입력을 확정(OK)하기 전에도 경고가 보이도록, 사후 다이얼로그뿐 아니라
+            //260820 hbk 입력을 확정(OK)하기 전에도 경고가 보이도록, 사후 다이얼로그뿐 아니라
             //  입력창 프롬프트 문구 자체에 미리 안내한다(체커보드 캘리브 확인창의 "[경고]" 표기와 동일 스타일).
             // NOTE: class name typo in original code: TextInputBoxWinidow (not Window)
             var dlg = new TextInputBoxWinidow(
@@ -3351,7 +3351,7 @@ namespace ReringProject.UI {
                     appliedHLabel = string.Format("가로 {0:F3}mm", Math.Abs(dx) * mmPerPixel);
                     appliedVLabel = string.Format("세로 {0:F3}mm", Math.Abs(dy) * mmPerPixel);
 
-                    //260820 hbk quick-fix: ApplyCalibrationResult 는 메모리 반영만 하고 레시피 파일 저장은 안 한다
+                    //260820 hbk ApplyCalibrationResult 는 메모리 반영만 하고 레시피 파일 저장은 안 한다
                     //  (체커보드 캘리브와 달리 SaveRecipe 호출 없음) — 저장 안 하면 재시작 시 조용히 예전 값으로
                     //  되돌아갈 수 있어 경고 다이얼로그로 명시 안내.
                     CustomMessageBox.Show("캘리브레이션 적용", string.Format(
@@ -3367,7 +3367,7 @@ namespace ReringProject.UI {
 
             ExitCanvasMode();
 
-            //260819 hbk quick-fix(260819-click2): 적용 확인 문구를 캔버스 위 label_message 가 아니라 툴바에 띄운다.
+            //260819 hbk (260819-click2): 적용 확인 문구를 캔버스 위 label_message 가 아니라 툴바에 띄운다.
             //  HALCON 뷰어는 Win32 창(HWND)이라 그 위의 WPF Label 은 airspace 로 항상 가려져 화면에 안 보인다
             //  (사용자 실기 보고: "이 다음 이벤트 없음"). 툴바는 창 바깥이라 정상 표시된다.
             //  ExitCanvasMode 가 label_drawHint 를 Collapsed 로 되돌리므로 반드시 그 뒤에 설정해야 한다.
@@ -3380,7 +3380,7 @@ namespace ReringProject.UI {
             }
         }
 
-        /// <summary>Applies mm/pixel calibration to the current camera's CameraSlaveParam and all FAIs (per D-12).</summary>
+        /// <summary>Applies mm/pixel calibration to the current camera's CameraSlaveParam and all FAIs (per).</summary>
         private void ApplyCalibrationResult(double mmPerPixel) {
             var selectedRow = dataGrid_faiResults.SelectedItem as MeasurementResultRow;
             FAIConfig anchorFai;
@@ -3404,12 +3404,12 @@ namespace ReringProject.UI {
             }
         }
 
-        //quick-260819-n4d: 거리측정 -- 기존 Calibrate(2점+실측입력->mm/px 재계산.저장)와 완전히 별개 도구.
+        //260819 hbk 거리측정 -- 기존 Calibrate(2점+실측입력->mm/px 재계산.저장)와 완전히 별개 도구.
         //  이미 설정되어 있는 PixelResolution(보정계수 포함 GetEffectivePixelResolution)으로 두 클릭 사이의
         //  실제 거리(mm)를 즉시 계산해 보여주기만 한다 -- 아무 것도 저장.변경하지 않는다(read-only).
         private void MeasureDistanceButton_Click(object sender, RoutedEventArgs e) {
             ExitCanvasMode();
-            //260819 hbk quick-fix: Edit 모드가 켜져 있으면 기존 ROI 위 클릭이 "ROI 이동"으로 가로채져
+            //260819 hbk Edit 모드가 켜져 있으면 기존 ROI 위 클릭이 "ROI 이동"으로 가로채져
             //  ImageLeftClicked 가 아예 안 뜬다(Pick Point 1 에서 멈추는 원인) — 이 모드에선 강제로 꺼둔다.
             halconViewer.IsEditMode = false;
             _canvasMode = ECanvasMode.DistanceMeasure;
@@ -3439,7 +3439,7 @@ namespace ReringProject.UI {
             }
         }
 
-        //quick-260819-n4d: 두 클릭 사이 픽셀거리 -> 선택 FAI 의 Shot.GetEffectivePixelResolution() 으로 mm 환산해
+        //260819 hbk 두 클릭 사이 픽셀거리 -> 선택 FAI 의 Shot.GetEffectivePixelResolution 으로 mm 환산해
         //  HALCON 창 안 직각삼각형(빗변/가로변/세로변) + 툴바에 표시. FAI 미선택/Shot 해석 불가 시 픽셀-only 로
         //  조용히 폴백(크래시 금지). 아무 것도 저장하지 않는다 -- PixelResolution 쓰기 없음(Calibrate 와의 핵심 차이).
         private void FinishDistanceMeasure() {
@@ -3470,7 +3470,7 @@ namespace ReringProject.UI {
             string hLabel;
             string vLabel;
             if (shot == null) {
-                //260820 hbk quick-fix: 어떻게 하면 mm 환산되는지 사용자가 바로 알 수 있도록 안내 문구 구체화.
+                //260820 hbk 어떻게 하면 mm 환산되는지 사용자가 바로 알 수 있도록 안내 문구 구체화.
                 resultText = string.Format("{0:F1}px (mm 환산하려면 아래 목록에서 FAI 항목을 먼저 선택하세요)", pixelDistance);
                 hLabel = string.Format("가로 {0:F1}px", Math.Abs(dx));
                 vLabel = string.Format("세로 {0:F1}px", Math.Abs(dy));
@@ -3481,13 +3481,13 @@ namespace ReringProject.UI {
                 double dxMm = dx * pixelResolution;
                 double dyMm = dy * pixelResolution;
 
-                //260820 hbk quick-fix: 가로/세로 성분도 총거리와 동일하게 mm+px 를 같이 표기한다(기존엔 mm 만).
+                //260820 hbk 가로/세로 성분도 총거리와 동일하게 mm+px 를 같이 표기한다(기존엔 mm 만).
                 resultText = string.Format("{0:F3}mm ({1:F1}px)", totalMm, pixelDistance);
                 hLabel = string.Format("가로 {0:F3}mm ({1:F1}px)", Math.Abs(dxMm), Math.Abs(dx));
                 vLabel = string.Format("세로 {0:F3}mm ({1:F1}px)", Math.Abs(dyMm), Math.Abs(dy));
             }
 
-            //260819 hbk quick-fix(260819-click2): 결과를 캔버스 위 label_message 가 아니라 툴바의 label_drawHint 에 띄운다.
+            //260819 hbk (260819-click2): 결과를 캔버스 위 label_message 가 아니라 툴바의 label_drawHint 에 띄운다.
             //  HALCON 뷰어는 Win32 창(HWND)이라 그 위에 얹은 WPF 요소는 airspace 때문에 Visible 이어도 항상 창 뒤로
             //  가려져 화면에 안 보인다 -- 실기 로그로 label_message 가 Visible+내용 설정까지 정상 도달함을 확인했으나
             //  사용자 눈에는 끝까지 안 보였다. 툴바는 창 바깥이라 정상 표시된다.
@@ -3503,8 +3503,8 @@ namespace ReringProject.UI {
             halconViewer.SetCalibrationOverlay(shownPoints, resultText, hLabel, vLabel);
         }
 
-        // Phase 53: 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).
-        //  체커보드 캘리브(D-03)는 이제 레시피 전체 shot 에 일괄 반영하므로 이 메서드는 적용 범위를
+        //260910 hbk 캘리브 적용 대상 활성 시퀀스 결정 (선택 FAI owner → 없으면 SEQ_TOP 폴백).
+        //  체커보드 캘리브는 이제 레시피 전체 shot 에 일괄 반영하므로 이 메서드는 적용 범위를
         //  더 이상 결정하지 않는다. 남은 용도는 라이브 촬상(GrabCalibrationImage) 카메라 선택뿐이다.
         private string ResolveActiveSequenceForCalibration() {
             FAIConfig fai;
@@ -3520,8 +3520,8 @@ namespace ReringProject.UI {
             return SequenceHandler.SEQ_TOP;
         }
 
-        // Phase 53: 체커보드 산출 mm/px 를 레시피 전체 shot 의 PixelResolution 에 일괄 반영(D-03)
-        //  + 확인 모달(D-06) 후에만 + SaveRecipe 로 영속화(Pitfall 4 — existingFile 보존 가드). plan 02 ApplyRequested 핸들러.
+        //260910 hbk 체커보드 산출 mm/px 를 레시피 전체 shot 의 PixelResolution 에 일괄 반영
+        //  확인 모달 후에만 + SaveRecipe 로 영속화( — existingFile 보존 가드). plan 02 ApplyRequested 핸들러.
         //  이 장비는 물리 카메라가 1대라 시퀀스 구분이 배율값에 의미가 없으므로 활성 시퀀스 필터 없이
         //  전체 shot 에 한 번에 적용한다.
         private void ApplyCheckerboardCalibration(CalibrationResult result) {
@@ -3540,7 +3540,7 @@ namespace ReringProject.UI {
                 "되돌리기 어려운 덮어쓰기입니다. 적용하시겠습니까?",
                 mmPerPixel, warnLine);
 
-            // D-06 확인 게이트 — 되돌리기 어려운 설정 덮어쓰기라 사용자 확인 필수.
+            //260623 hbk 확인 게이트 — 되돌리기 어려운 설정 덮어쓰기라 사용자 확인 필수.
             MessageBoxResult confirm = CustomMessageBox.ShowConfirmation("캘리브레이션 적용", msg, MessageBoxButton.OKCancel);
             if (confirm != MessageBoxResult.OK) return;
 
@@ -3557,7 +3557,7 @@ namespace ReringProject.UI {
                 ShotConfig shot = recipeManager.Shots[i];
                 if (shot == null) continue;
 
-                shot.PixelResolution = mmPerPixel;                       // Phase 42 단일소스 (측정 소비처)
+                shot.PixelResolution = mmPerPixel;                       //260623 hbk 단일소스 (측정 소비처)
                 foreach (FAIConfig fai in shot.FAIList) {
                     fai.PixelResolutionX = mmPerPixel;                   // INI 호환 보존 (기존 정책)
                     fai.PixelResolutionY = mmPerPixel;
@@ -3572,17 +3572,17 @@ namespace ReringProject.UI {
             CustomMessageBox.Show("캘리브레이션", string.Format("전체 {0}개 SHOT 에 적용 + 저장 완료 (1 px = {1:F8} mm)", applied, mmPerPixel));
         }
 
-        //260623 hbk Phase 53: 체커보드 캘리브 버튼 → 창 진입 (XAML btn_checkerboardCalibrate).
+        //260623 hbk 체커보드 캘리브 버튼 → 창 진입 (XAML btn_checkerboardCalibrate).
         private void OpenCheckerboardCalibrationButton_Click(object sender, RoutedEventArgs e) {
             OpenCheckerboardCalibrationWindow();
         }
 
-        //260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 진입 (MainWindow 메뉴/툴에서 호출하도록 public 노출).
+        //260623 hbk 체커보드 픽셀 캘리브 창 진입 (MainWindow 메뉴/툴에서 호출하도록 public 노출).
         //  TeachingWindow launch 패턴(Action_TopInspection.OpenTeachingButton_Click) 차용 — ImageGrabber 주입 + ApplyRequested 구독.
         public void OpenCheckerboardCalibrationWindow() {
             var window = new CalibrationWindow { Owner = Window.GetWindow(this) };
             window.ImageGrabber = GrabCalibrationImage;              // 라이브 grab 델리게이트 (실HW). SIMUL 은 창에서 버튼 비활성.
-            window.ApplyRequested += ApplyCheckerboardCalibration;   // [적용] → Task 1 반영+저장 (D-03/D-06)
+            window.ApplyRequested += ApplyCheckerboardCalibration;   //260623 hbk [적용] → 반영+저장
             try {
                 window.ShowDialog();
             }
@@ -3591,7 +3591,7 @@ namespace ReringProject.UI {
             }
         }
 
-        //260623 hbk Phase 53: 라이브 정지 프레임 1장 grab → 임시 png 경로 반환 (Action_TopInspection.GrabTeachingImage 패턴 차용).
+        //260623 hbk 라이브 정지 프레임 1장 grab → 임시 png 경로 반환 (Action_TopInspection.GrabTeachingImage 패턴 차용).
         //  활성 시퀀스 첫 shot 의 카메라 param 으로 단일 GrabHalconImage. SIMUL 은 창에서 [라이브 촬상] 비활성이라 호출되지 않음.
         //  실패 시 null 반환 (창이 "라이브 촬상 실패" 안내). throw 금지.
         private string GrabCalibrationImage() {
@@ -3633,7 +3633,7 @@ namespace ReringProject.UI {
                 }
                 if (camShot == null) return null;
 
-                // 260811 hbk quick-debug(bottom-align-live-view-stutter) 계측: 이 메서드 전체가 UI 스레드
+                //260811 hbk quick-debug(bottom-align-live-view-stutter) 계측: 이 메서드 전체가 UI 스레드
                 //  동기 실행(Task.Run 없음, GrabImageButton_Click 이 직접 호출)이라 grab/저장 구간별 실측이
                 //  버벅임 원인 검증에 필요 — 검사Grab tact 로깅(1359행 대)과 동일 패턴 재사용.
                 var swGrab = System.Diagnostics.Stopwatch.StartNew();
@@ -3641,7 +3641,7 @@ namespace ReringProject.UI {
                 swGrab.Stop();
                 if (grabbed == null) return null;
 
-                //260623 hbk Phase 53 WR-02: SaveTempImage 는 grabbed 를 borrow 만 하므로 직접 Dispose (누수 방지)
+                //260623 hbk SaveTempImage 는 grabbed 를 borrow 만 하므로 직접 Dispose (누수 방지)
                 try {
                     var swSave = System.Diagnostics.Stopwatch.StartNew();
                     string path = HalconTeachingHelper.SaveTempImage("Calibration_" + activeSeq, grabbed);
@@ -3985,7 +3985,7 @@ namespace ReringProject.UI {
 
                     if (error == null) {
                         ok = svc.TryTeachDatum(imgH, imgV, _editingDatum, out error);
-                        //260622 hbk Phase 57.1 — DualImage 재티칭 성공 시 RefMatch 동기화 (패턴=가로축 imgH, dispose 전).
+                        //260622 hbk DualImage 재티칭 성공 시 RefMatch 동기화 (패턴=가로축 imgH, dispose 전).
                         if (ok) { RefreshPatternRefPoseAfterTeach(_editingDatum, imgH); }
                     }
                 } finally {
@@ -3994,7 +3994,7 @@ namespace ReringProject.UI {
                 }
             } else {
                 ok = svc.TryTeachDatum(img, _editingDatum, out error); // 단일-이미지 오버로드
-                //260622 hbk Phase 57.1 — 단일-이미지 재티칭 성공 시 RefMatch 동기화 (같은 티칭 이미지로 재앵커).
+                //260622 hbk 단일-이미지 재티칭 성공 시 RefMatch 동기화 (같은 티칭 이미지로 재앵커).
                 if (ok) { RefreshPatternRefPoseAfterTeach(_editingDatum, img); }
             }
 
@@ -4021,7 +4021,7 @@ namespace ReringProject.UI {
             halconViewer.IsTeachDatumMode = false;
         }
 
-        //260622 hbk Phase 57.1 — 재티칭 시 패턴 기준(RefMatch) 동기화. align ON + 패턴 모델 존재 시 같은 티칭 이미지에서
+        //260622 hbk 재티칭 시 패턴 기준(RefMatch) 동기화. align ON + 패턴 모델 존재 시 같은 티칭 이미지에서
         //  TryFindRefPose 재실행해 RefMatch(2-패턴이면 RefMatch2) 갱신 → Test Find alignRigid≈identity → Find=Teach.
         //  실패/모델 없음 → 기존 RefMatch 유지(teach 성공은 유지, silent).
         private void RefreshPatternRefPoseAfterTeach(DatumConfig datum, HImage patternImage) {
@@ -4029,9 +4029,9 @@ namespace ReringProject.UI {
             if (!datum.IsPatternAlignEnabled) return;
             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
             if (string.IsNullOrEmpty(modelPath) || !System.IO.File.Exists(modelPath)) return;
-            //260728 hbk quick-fix(260728-l2r): ref pose 검색도 TryComposeAlign 라이브 매칭과 동일 조건이 되도록 sentinel 0 방지
+            //260728 hbk ref pose 검색도 TryComposeAlign 라이브 매칭과 동일 조건이 되도록 sentinel 0 방지
             datum.EnsurePerRoiDefaults();
-            //260728 hbk quick-fix(260728-l2r): 패턴1 ROI 미확보 시 범위제한 검색이 좌상단 구석 박스로 무너지므로 갱신 시도 없이 기존 RefMatch 보존
+            //260728 hbk 패턴1 ROI 미확보 시 범위제한 검색이 좌상단 구석 박스로 무너지므로 갱신 시도 없이 기존 RefMatch 보존
             if (datum.PatternRoi_Length1 <= 0.0 || datum.PatternRoi_Length2 <= 0.0) return;
             var svc = new ReringProject.Halcon.Algorithms.PatternMatchService();
             double rr, rc, ra, rs;
@@ -4043,7 +4043,7 @@ namespace ReringProject.UI {
                 datum.RefMatchRow = rr;
                 datum.RefMatchCol = rc;
                 datum.RefMatchAngleDeg = ra;
-                //260728 hbk quick-diag(260728-mxj): ref-refresh 시점 실제 사용 modelPath + 이미지 크기 (Test Find 시점과 육안 대조용)
+                //260728 hbk quick-diag: ref-refresh 시점 실제 사용 modelPath + 이미지 크기 (Test Find 시점과 육안 대조용)
                 HTuple diagImgW, diagImgH;
                 patternImage.GetImageSize(out diagImgW, out diagImgH);
                 Logging.PrintLog((int)ELogType.Algorithm, "[ALIGN-DIAG-REF] p1 modelPath=" + modelPath + " imgWH=" + diagImgW.ToString() + "x" + diagImgH.ToString());
@@ -4058,7 +4058,7 @@ namespace ReringProject.UI {
                                     out rr2, out rc2, out ra2, out rs2, out refErr2, datum.FindAngleExtentDeg)) {
                         datum.RefMatch2Row = rr2;
                         datum.RefMatch2Col = rc2;
-                        //260728 hbk quick-diag(260728-mxj): ref-refresh 시점 패턴2 실제 사용 modelPath2
+                        //260728 hbk quick-diag: ref-refresh 시점 패턴2 실제 사용 modelPath2
                         Logging.PrintLog((int)ELogType.Algorithm, "[ALIGN-DIAG-REF] p2 modelPath2=" + modelPath2 + " imgWH=" + diagImgW.ToString() + "x" + diagImgH.ToString());
                     }
                 }
@@ -4077,17 +4077,17 @@ namespace ReringProject.UI {
             halconViewer.IsTeachDatumMode = false;
         }
 
-        //260618 hbk Phase 54 ALIGN-01 패턴 ROI 전용 그리기 모드 진입 (D-08) — TeachDatumButton_Click 진입 패턴 미러
+        //260618 hbk 패턴 ROI 전용 그리기 모드 진입 — TeachDatumButton_Click 진입 패턴 미러
         private void DrawPatternRoiButton_Click(object sender, RoutedEventArgs e) {
             DatumConfig datum;
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
             if (datum == null) {
-                //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
+                //260622 hbk (b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
                 CustomMessageBox.Show("패턴 ROI 그리기", "Datum 티칭 존을 먼저 선택하세요.");
                 return;
             }
-            //260622 hbk Phase 57.1 패턴 버튼 무심코 클릭 방지 — Datum 노드라도 진행 확인(OK/Cancel)
+            //260622 hbk 패턴 버튼 무심코 클릭 방지 — Datum 노드라도 진행 확인(OK/Cancel)
             if (CustomMessageBox.ShowConfirmation("패턴 1 ROI 그리기",
                     "패턴 1 ROI 를 새로 그리시겠습니까?\n(기존 패턴 1 영역이 있으면 새로 그린 영역으로 대체됩니다.)",
                     MessageBoxButton.OKCancel) != MessageBoxResult.OK) {
@@ -4103,7 +4103,7 @@ namespace ReringProject.UI {
             halconViewer.StartRectangleDrawing();
         }
 
-        //260618 hbk Phase 54 ALIGN-01 패턴 ROI write-back (D-08) — HalconViewer_DatumRectCompleted 패턴 미러
+        //260618 hbk 패턴 ROI write-back — HalconViewer_DatumRectCompleted 패턴 미러
         private void HalconViewer_PatternRectCompleted(object sender, EventArgs e) {
             halconViewer.RectDrawingCompleted -= HalconViewer_PatternRectCompleted;
             var roi = halconViewer.CommitActiveRectangle();
@@ -4133,17 +4133,17 @@ namespace ReringProject.UI {
             _editingDatum = null;
         }
 
-        //260619 hbk Phase 55 ALIGN-02 패턴 2 ROI 그리기 — DrawPatternRoiButton_Click 미러 (점2 = baseline 각도용)
+        //260619 hbk 패턴 2 ROI 그리기 — DrawPatternRoiButton_Click 미러 (점2 = baseline 각도용)
         private void DrawPatternRoi2Button_Click(object sender, RoutedEventArgs e) {
             DatumConfig datum;
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
             if (datum == null) {
-                //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
+                //260622 hbk (b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
                 CustomMessageBox.Show("패턴 2 ROI 그리기", "Datum 티칭 존을 먼저 선택하세요.");
                 return;
             }
-            //260622 hbk Phase 57.1 패턴 버튼 무심코 클릭 방지 — Datum 노드라도 진행 확인(OK/Cancel)
+            //260622 hbk 패턴 버튼 무심코 클릭 방지 — Datum 노드라도 진행 확인(OK/Cancel)
             if (CustomMessageBox.ShowConfirmation("패턴 2 ROI 그리기",
                     "패턴 2 ROI 를 새로 그리시겠습니까?\n(기존 패턴 2 영역이 있으면 새로 그린 영역으로 대체됩니다.)",
                     MessageBoxButton.OKCancel) != MessageBoxResult.OK) {
@@ -4159,7 +4159,7 @@ namespace ReringProject.UI {
             halconViewer.StartRectangleDrawing();
         }
 
-        //260619 hbk Phase 55 ALIGN-02 패턴 2 ROI write-back — HalconViewer_PatternRectCompleted 미러
+        //260619 hbk 패턴 2 ROI write-back — HalconViewer_PatternRectCompleted 미러
         private void HalconViewer_PatternRect2Completed(object sender, EventArgs e) {
             halconViewer.RectDrawingCompleted -= HalconViewer_PatternRect2Completed;
             var roi = halconViewer.CommitActiveRectangle();
@@ -4186,9 +4186,9 @@ namespace ReringProject.UI {
             _editingDatum = null;
         }
 
-        //260619 hbk Phase 55 ALIGN-02: 직선 ROI 그리기/write-back 핸들러(DrawAlignLineRoiButton_Click + HalconViewer_AlignLineRectCompleted) 제거 — [패턴 2] 버튼으로 대체.
+        //260619 hbk 직선 ROI 그리기/write-back 핸들러(DrawAlignLineRoiButton_Click + HalconViewer_AlignLineRectCompleted) 제거 — [패턴 2] 버튼으로 대체.
 
-        // Phase 74: 브러시 패널 열기/닫기. 패널은 HALCON 창 밖(툴바 아래 줄)이라 airspace 영향이 없다.
+        //260827 hbk 브러시 패널 열기/닫기. 패널은 HALCON 창 밖(툴바 아래 줄)이라 airspace 영향이 없다.
         private void BrushMaskToggleButton_Click(object sender, RoutedEventArgs e) {
             if (brushPanel == null) {
                 return;
@@ -4207,7 +4207,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // Phase 74 D-74-04: 칠하기가 끝나면 ViewModel 이 이 훅을 부른다. 성공=null, 실패=오류 문자열.
+        //260827 hbk 칠하기가 끝나면 ViewModel 이 이 훅을 부른다. 성공=null, 실패=오류 문자열.
         //  계산은 DatumPatternModelRegenService 가 한다 — 이 메서드는 호출 + 화면 갱신만.
         private string RegenerateDatumPatternSilent() {
             string szError = ReringProject.Halcon.Services.DatumPatternModelRegenService.RegenerateSilent(
@@ -4221,7 +4221,7 @@ namespace ReringProject.UI {
             return szError;
         }
 
-        //260618 hbk Phase 54 ALIGN-01 패턴 모델 생성/저장 + ref pose 기록 (D-08/D-09) — InvokeTryTeachDatum 패턴 미러
+        //260618 hbk 패턴 모델 생성/저장 + ref pose 기록 — InvokeTryTeachDatum 패턴 미러
         private void CreatePatternModelButton_Click(object sender, RoutedEventArgs e) {
             InvokeCreatePatternModel();
         }
@@ -4231,12 +4231,12 @@ namespace ReringProject.UI {
             if (mParentWindow != null && mParentWindow.inspectionList != null) datum = mParentWindow.inspectionList.SelectedParam as DatumConfig;
             else                                                               datum = null;
             if (datum == null) {
-                //260622 hbk Phase 57.1 D-04(b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
+                //260622 hbk (b): 비-Datum 클릭 가드 메시지 통일 (CustomMessageBox 알림 후 early-return).
                 CustomMessageBox.Show("모델 생성 실패", "Datum 티칭 존을 먼저 선택하세요.", MessageBoxImage.Error, true, false);
                 return;
             }
 
-            //260618 hbk Phase 54 ALIGN-01 hotfix: 모델 생성 전 기본값 보장. sentinel 0 이면 PatternAngleExtentDeg 가 0
+            //260618 hbk 모델 생성 전 기본값 보장. sentinel 0 이면 PatternAngleExtentDeg 가 0
             //  → create_shape_model AngleExtent=0 → 0° 전용 모델 → 1° 회전 매칭 실패. EnsurePerRoiDefaults 가 10°/0.6/100px 복원.
             datum.EnsurePerRoiDefaults();
 
@@ -4252,20 +4252,20 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260619 hbk Phase 57 #1 패턴2 미설정 경고+override (D-06 — 하드 블록 아님, 회전 정밀도 안전장치).
-            //  단일 패턴 폴백 경로(TryComposeAlign InspectionSequence.cs:490-514) 는 그대로 — 패턴2 없으면 단일 패턴 θ 사용 (D-08).
+            //260619 hbk #1 패턴2 미설정 경고+override ( — 하드 블록 아님, 회전 정밀도 안전장치).
+            //  단일 패턴 폴백 경로(TryComposeAlign InspectionSequence.cs:490-514) 는 그대로 — 패턴2 없으면 단일 패턴 θ 사용 .
             if (datum.PatternRoi2_Length1 <= 0.0 || datum.PatternRoi2_Length2 <= 0.0) {
                 MessageBoxResult confirm = CustomMessageBox.ShowConfirmation(
                     "패턴 2 미설정",
                     "패턴 2 를 그리지 않았습니다. 단일 패턴은 회전(tilt) 보정 정밀도가 낮습니다.\n\n그래도 단일 패턴으로 모델을 생성하시겠습니까?\n([취소] 후 [패턴 2] 버튼으로 반대 대각 끝에 패턴을 추가 권장)",
                     MessageBoxButton.OKCancel);
                 if (confirm != MessageBoxResult.OK) {
-                    return; //260619 hbk Phase 57 #1 사용자가 취소 → 모델 생성 중단 (하드 블록 아님 — 단순 중단)
+                    return; //260619 hbk #1 사용자가 취소 → 모델 생성 중단 (하드 블록 아님 — 단순 중단)
                 }
-                //260619 hbk Phase 57 #1 OK → 단일 패턴으로 진행 (override)
+                //260619 hbk #1 OK → 단일 패턴으로 진행 (override)
             }
 
-            // 54-04 런타임 load 와 동일 키 (D-07) — 직접 경로 도출 금지, 헬퍼만 사용
+            //260618 hbk 런타임 load 와 동일 키 — 직접 경로 도출 금지, 헬퍼만 사용
             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
             if (string.IsNullOrEmpty(modelPath)) {
                 CustomMessageBox.Show("모델 생성 실패", "모델 경로 도출 실패 (레시피/Shot 확인).", MessageBoxImage.Error, true, false);
@@ -4280,7 +4280,7 @@ namespace ReringProject.UI {
                 datum.PatternEngine, datum.PatternAngleExtentDeg, modelPath, out error);
 
             if (ok) {
-                // D-09: 티칭 이미지에서 1회 find → ref pose 기록 (런타임과 동일 연산 → 부호 일관성)
+                //260618 hbk 티칭 이미지에서 1회 find → ref pose 기록 (런타임과 동일 연산 → 부호 일관성)
                 double rr, rc, ra, rs;
                 string refError;
                 if (svc.TryFindPose(img, datum.PatternEngine, modelPath,
@@ -4290,7 +4290,7 @@ namespace ReringProject.UI {
                     datum.RefMatchRow     = rr;
                     datum.RefMatchCol     = rc;
                     datum.RefMatchAngleDeg = ra;
-                    //260619 hbk Phase 55 ALIGN-02 — 패턴 2 설정 시 모델2 생성 + RefMatch2(위치) 기록. 미설정 시 단일 패턴(x,y+단일각) 동작.
+                    //260619 hbk 패턴 2 설정 시 모델2 생성 + RefMatch2(위치) 기록. 미설정 시 단일 패턴(x,y+단일각) 동작.
                     //  런타임 θ = 두 RefMatch 중심 baseline 각 − 두 cur 중심 baseline 각. 패턴2 자체 회전각 미사용.
                     string alignMsg;
                     if (datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0) {
@@ -4308,7 +4308,7 @@ namespace ReringProject.UI {
                                     out rr2, out rc2, out ra2, out rs2, out refErr2, datum.FindAngleExtentDeg)) {
                                 datum.RefMatch2Row = rr2;
                                 datum.RefMatch2Col = rc2;
-                                //quick-260812: 이미 계산된 rs2 재사용 — 새 검색 호출 없음
+                                //260812 hbk 이미 계산된 rs2 재사용 — 새 검색 호출 없음
                                 ETeachGrade grade2 = TeachDiagnostics.ClassifyScore(rs2, datum.PatternMinScore);
                                 alignMsg = "\n" + TeachDiagnostics.ToStatusLine(grade2, "패턴 2 모델 생성 + RefMatch2 기록 (score " + rs2.ToString("F3") + ") — 2-패턴 baseline 회전보정 활성");
                             } else {
@@ -4325,7 +4325,7 @@ namespace ReringProject.UI {
                     if (mParentWindow != null && mParentWindow.inspectionList != null) mParentWindow.inspectionList.RefreshParamEditor();
                     //260710 hbk desync 차단: 모델 생성 성공 시 Recipe Save 확인 모달. Yes → 즉시 저장(.shm↔RefMatch 함께 영속화).
                     //  No/닫기 → 오늘과 동일(경고만). 저장 실패해도 티칭 상태(메모리 RefMatch) 유지.
-                    //quick-260812: 이미 계산된 rs 재사용 — 새 검색 호출 없음. 최소점수 기본값 복원은 이 메서드 상단이 이미 처리
+                    // 이미 계산된 rs 재사용 — 새 검색 호출 없음. 최소점수 기본값 복원은 이 메서드 상단이 이미 처리
                     ETeachGrade grade1 = TeachDiagnostics.ClassifyScore(rs, datum.PatternMinScore);
                     MessageBoxResult saveChoice = CustomMessageBox.ShowConfirmation(
                         "모델 생성 완료",
@@ -4358,9 +4358,9 @@ namespace ReringProject.UI {
             }
         }
 
-        //260622 hbk Phase 57.1 Test Find 패턴 보정 연결 — TryComposeAlign 호출용 임의 활성 InspectionSequence 인스턴스 획득
+        //260622 hbk Test Find 패턴 보정 연결 — TryComposeAlign 호출용 임의 활성 InspectionSequence 인스턴스 획득
         //  TryComposeAlign 은 sequence 실행 상태 무관(인자로 입력, _datumTransforms 만 transient) → 어느 인스턴스든 가능.
-        //260729 hbk quick(260729-e7v): 이제 datum 범위 조회의 1차 경로가 아니라 **폴백 전용**이다.
+        // quick: 이제 datum 범위 조회의 1차 경로가 아니라 **폴백 전용**이다.
         //  datum 이 딸린 시퀀스를 써야 하는 호출은 반드시 GetInspectionSequenceForDatum(datum) 을 쓴다.
         private ReringProject.Sequence.InspectionSequence GetAnyInspectionSequence() {
             if (pSeq == null) return null;
@@ -4372,7 +4372,7 @@ namespace ReringProject.UI {
             return null;
         }
 
-        //260729 hbk quick(260729-e7v): datum 범위 호출은 그 datum 을 **실제로 소유한** 시퀀스 인스턴스로 해야 한다.
+        //260729 hbk quick: datum 범위 호출은 그 datum 을 **실제로 소유한** 시퀀스 인스턴스로 해야 한다.
         //  임의 인스턴스(GetAnyInspectionSequence, 사실상 항상 TOP)를 넘기면, 인스턴스 정체성에 의존하는 로직이
         //  조용히 남의 시퀀스 데이터를 집는다 — 이 버그 계열로 하루에 두 번 당했다(260728-n7b 패턴2 모델경로, 260728-l2r ref pose baseline).
         //  DatumConfig.OwnerName 은 생성 경로가 InspectionSequence.AddDatum() → new DatumConfig(this) 단 하나라 소유 시퀀스명("TOP"/"SIDE"/"BOTTOM")으로 신뢰 가능.
@@ -4498,7 +4498,7 @@ namespace ReringProject.UI {
             if (datum != null) HighlightSelectedRoi(datum);
         }
 
-        // Phase 80 D-80-15/D-80-17: '기준 ROI 시험 찾기' 버튼 배선 — 판단·사진 로드·기준점 찾기·선 만들기·
+        //260918 hbk '기준 ROI 시험 찾기' 버튼 배선 — 판단·사진 로드·기준점 찾기·선 만들기
         //  문구는 LocalRefTestFindService(서비스)에 있다. 이 메서드는 선택된 파라미터를 넘기고 결과를 넘기는 배선뿐.
         private void BtnTestFindLocalRef_Click(object sender, RoutedEventArgs e) {
             ParamBase selected;
@@ -4508,7 +4508,7 @@ namespace ReringProject.UI {
             ShowLocalRefTestFindOutcome(selected, outcome);
         }
 
-        // Phase 80 D-80-00: 새 대화상자를 만들지 않는다 — 캔버스 표시(사진·기준 ROI 상자·주황 국부 기준선)와
+        //260918 hbk 새 대화상자를 만들지 않는다 — 캔버스 표시(사진·기준 ROI 상자·주황 국부 기준선)와
         //  기존 결과 라벨(label_testFindResult) 한 줄만 갱신한다. 계산·파일 판단은 이 메서드에 넣지 않는다.
         private void ShowLocalRefTestFindOutcome(ParamBase selected, LocalRefTestFindOutcome outcome) {
             bool bHasImage = !string.IsNullOrEmpty(outcome.ImagePath);
@@ -4529,7 +4529,7 @@ namespace ReringProject.UI {
             label_testFindResult.Visibility = Visibility.Visible;
         }
 
-        // Phase 80 UAT: 트리에서 다른 노드를 고르면 시험 찾기 결과 문구를 지운다(InspectionListView 배선).
+        //260921 hbk 트리에서 다른 노드를 고르면 시험 찾기 결과 문구를 지운다(InspectionListView 배선).
         public void ClearLocalRefTestFindMessage() {
             if (label_testFindResult == null) {
                 return;
@@ -4583,7 +4583,7 @@ namespace ReringProject.UI {
                         catch (Exception exV) { error = "세로축 이미지 로드 실패: " + exV.Message; ok = false; }
                     }
                     if (error == null) {
-                        //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 런타임과 동일 TryComposeAlign(가로/세로), 아니면 기존 검출
+                        //260622 hbk 패턴 보정 연결 — align-enabled 면 런타임과 동일 TryComposeAlign(가로/세로), 아니면 기존 검출
                         if (datum.IsPatternAlignEnabled) {
                             ReringProject.Sequence.InspectionSequence seq = GetInspectionSequenceForDatum(datum);
                             string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
@@ -4610,7 +4610,7 @@ namespace ReringProject.UI {
             else {
                 HImage testImage = AskTestImageSource();
                 if (testImage == null) return;
-                //260622 hbk Phase 57.1 패턴 보정 연결 — align-enabled 면 TryComposeAlign(단일), 아니면 기존 검출
+                //260622 hbk 패턴 보정 연결 — align-enabled 면 TryComposeAlign(단일), 아니면 기존 검출
                 if (datum.IsPatternAlignEnabled) {
                     ReringProject.Sequence.InspectionSequence seq = GetInspectionSequenceForDatum(datum);
                     string modelPath = ReringProject.Sequence.InspectionSequence.ResolveDatumModelPath(datum, datum.OwnerName);
@@ -4632,9 +4632,9 @@ namespace ReringProject.UI {
             label_testFindResult.Visibility = Visibility.Collapsed;
             if (ok) {
                 // 성공: TryFindDatum 이 DetectedOrigin* + LastFindSucceeded write-back → SetDatumOverlay → RenderDatumFindResult chain
-                //260622 hbk Phase 57.1 Test Find 보정 ROI 박스 이동 표시 — 보정(align) datum 은 결과 경로와 동일하게
+                // Test Find 보정 ROI 박스 이동 표시 — 보정(align) datum 은 결과 경로와 동일하게
                 //  ShowResultDatumOverlays 호출 → CurrentTransform 으로 보정된 검색 ROI 박스(orange) 가 부품 따라 이동 + 검출 십자.
-                //  공칭 박스 중복 방지 위해 _datumConfig 클리어(Phase 56 '보정전 박스 제거' 정책 일관). 비-align 은 기존 SetDatumOverlay 유지(회귀 0).
+                //  공칭 박스 중복 방지 위해 _datumConfig 클리어( '보정전 박스 제거' 정책 일관). 비-align 은 기존 SetDatumOverlay 유지.
                 if (datum.IsPatternAlignEnabled) {
                     halconViewer.ClearDatumOverlay();
                     ShowResultDatumOverlays(new List<DatumConfig> { datum });

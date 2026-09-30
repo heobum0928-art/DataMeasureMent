@@ -7,17 +7,17 @@ using ReringProject.Utility;   // Logging
 namespace ReringProject.Halcon.Algorithms
 {
     /// <summary>
-    /// Phase 6 Multi-Algorithm 측정 클래스들이 공용으로 사용하는 Halcon 빌딩 블록.
+    /// Multi-Algorithm 측정 클래스들이 공용으로 사용하는 Halcon 빌딩 블록.
     /// 모든 Halcon 호출은 try { ... } catch { return false; } 패턴 (프로젝트 컨벤션).
     /// 순수 수학 연산은 static 메서드로 제공한다.
     /// </summary>
     public class VisionAlgorithmService
     {
-        // Phase 77 SZF-03/D-77-02: opt-in 점수 수집기. 설정하면 TryFitLine 이 strip 별 최대 |amp| 를
+        //260915 hbk opt-in 점수 수집기. 설정하면 TryFitLine 이 strip 별 최대 |amp| 를
         //  모은다 — null(기본값)이면 기존 15개 호출부와 동일하게 아무 계산·로그도 하지 않는다.
         public EdgeStrengthScore EdgeScore { get; set; } = null;
 
-        // Phase 77: 직전 AppendStrip 호출에서 관측한 strip 최대 |amp| — strip 루프가 TryFitLine 본문에서
+        //260915 hbk 직전 AppendStrip 호출에서 관측한 strip 최대 |amp| — strip 루프가 TryFitLine 본문에서
         //  직접 돌기 때문에(AppendStrip 은 strip 하나만 처리) 반환값 계약(EStripResult)을 바꾸지 않고
         //  이 필드로 값만 옆으로 흘려보낸다. 에지 없음/실패 strip 은 NO_EDGE_STRIP_AMP(0.0) 그대로 둔다.
         private double _dLastStripMaxAbsAmp = NO_EDGE_STRIP_AMP;
@@ -123,7 +123,7 @@ namespace ReringProject.Halcon.Algorithms
                 // 모두 이 매핑으로 쓰고 읽으므로, 탐색 사각형도 동일해야 한다. 반대로 두면 중심은 같고
                 // 가로·세로만 뒤바뀐 사각형을 탐색하게 된다.
                 // 주의: FAIEdgeMeasurementService 의 FAI ROI 규약(ROI_Length1 = phi 방향 반장축,
-                // HALCON gen_measure_rectangle2 규약, CONTEXT.md D-02 LOCKED)과는 축이 반대다.
+                // HALCON gen_measure_rectangle2 규약, 과는 축이 반대다.
                 // 두 규약을 혼동하지 말 것.
                 double halfH = roiLength1;
                 double halfW = roiLength2;
@@ -138,7 +138,7 @@ namespace ReringProject.Halcon.Algorithms
                 int stripCount = 20;
                 if (sampleCount > 0) stripCount = sampleCount;
                 if (stripCount < 1) stripCount = 1;
-                if (EdgeScore != null) { EdgeScore.Reset(stripCount); } // Phase 77: 분모 = strip 수(에지 없는 strip 도 포함, D-77-05)
+                if (EdgeScore != null) { EdgeScore.Reset(stripCount); } //260915 hbk 분모 = strip 수(에지 없는 strip 도 포함)
 
                 HTuple allRows = new HTuple();
                 HTuple allCols = new HTuple();
@@ -170,7 +170,7 @@ namespace ReringProject.Halcon.Algorithms
                         EStripResult sr = AppendStrip(image, r1, left, r2, right, imageWidth, imageHeight,
                             Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel, bPickStrongest,
                             ref allRows, ref allCols);
-                        if (EdgeScore != null) { EdgeScore.AddStrip(_dLastStripMaxAbsAmp); } // Phase 77: strip 최대 |amp| 누적
+                        if (EdgeScore != null) { EdgeScore.AddStrip(_dLastStripMaxAbsAmp); } //260915 hbk strip 최대 |amp| 누적
                         if (sr == EStripResult.Ok)
                         {
                             okStrips++;
@@ -194,7 +194,7 @@ namespace ReringProject.Halcon.Algorithms
                         EStripResult sr = AppendStrip(image, top, c1, bottom, c2, imageWidth, imageHeight,
                             Math.Max(0.4, sigma), Math.Max(1, threshold), pol, measurePhi, measureSel, bPickStrongest,
                             ref allRows, ref allCols);
-                        if (EdgeScore != null) { EdgeScore.AddStrip(_dLastStripMaxAbsAmp); } // Phase 77: strip 최대 |amp| 누적
+                        if (EdgeScore != null) { EdgeScore.AddStrip(_dLastStripMaxAbsAmp); } //260915 hbk strip 최대 |amp| 누적
                         if (sr == EStripResult.Ok)
                         {
                             okStrips++;
@@ -210,7 +210,7 @@ namespace ReringProject.Halcon.Algorithms
                     }
                 }
 
-                //260622 hbk Phase 57.1 trim 통일 — 공유 헬퍼로 단일 소스화 (위치축 정렬 + 양끝 각 %(0~49) 절사)
+                //260622 hbk trim 통일 — 공유 헬퍼로 단일 소스화 (위치축 정렬 + 양끝 각 %(0~49) 절사)
                 SortAndTrimPercent(ref allRows, ref allCols, scanHorizontal, trimCount);
                 int edgeCount = allRows.TupleLength();
 
@@ -219,7 +219,7 @@ namespace ReringProject.Halcon.Algorithms
                     string.Format("[FitLine] strips ok {0}/{1} (noEdge {2}, failed {3}) -> {4} edge points",
                         okStrips, stripCount, noEdgeStrips, failedStrips, edgeCount));
 
-                // Phase 77 SZF-03: 점수 수집기가 켜져 있을 때만 strip 별 |amp| 상세를 로그로 남긴다(T-77-05).
+                //260915 hbk 점수 수집기가 켜져 있을 때만 strip 별 |amp| 상세를 로그로 남긴다.
                 if (EdgeScore != null)
                 {
                     Logging.PrintLog((int)ELogType.Algorithm,
@@ -280,7 +280,7 @@ namespace ReringProject.Halcon.Algorithms
             }
         }
 
-        //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼(단일 소스)
+        //260622 hbk trim 통일 — 정렬+% 절사 공유 헬퍼(단일 소스)
         // 에지점 (rows,cols) 을 위치축으로 정렬 후 양끝 각 trimPercent%(0~49) 절사. scanHorizontal=true→row, false→col 기준.
         //  trimPercent<=0 또는 점<4 → 무변경. 절사 후 남는 점<2 면 절사 skip(원본 유지). 점 순서는 FitLineContourXld 결과 무관 — 정렬은 절사 대상 선정용.
         public static void SortAndTrimPercent(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimPercent)
@@ -337,7 +337,7 @@ namespace ReringProject.Halcon.Algorithms
             return nBest;
         }
 
-        // Phase 77 D-77-05: strip 안 가장 강한 에지 1개의 |amp| — FindStrongestEdgeIndex 와 같은 기준(세기만 비교).
+        //260915 hbk strip 안 가장 강한 에지 1개의 |amp| — FindStrongestEdgeIndex 와 같은 기준(세기만 비교).
         //  에지가 하나도 없으면 NO_EDGE_STRIP_AMP(0.0).
         private static double ComputeStripMaxAbsAmp(HTuple amplitudes)
         {
@@ -354,7 +354,7 @@ namespace ReringProject.Halcon.Algorithms
             double measurePhi, string selection, bool bPickStrongest,
             ref HTuple allRows, ref HTuple allCols)
         {
-            _dLastStripMaxAbsAmp = NO_EDGE_STRIP_AMP; // Phase 77: NoEdge/Failed 는 이 값(0) 그대로 유지
+            _dLastStripMaxAbsAmp = NO_EDGE_STRIP_AMP; //260915 hbk NoEdge/Failed 는 이 값(0) 그대로 유지
             HObject stripRegion = null;
             HTuple measureHandle = null;
             try
@@ -387,12 +387,12 @@ namespace ReringProject.Halcon.Algorithms
                     }
                     HOperatorSet.TupleConcat(allRows, edgeRows[nStrongest], out allRows);
                     HOperatorSet.TupleConcat(allCols, edgeCols[nStrongest], out allCols);
-                    _dLastStripMaxAbsAmp = ComputeStripMaxAbsAmp(amp); // Phase 77: 채택된 에지의 |amp| 그대로
+                    _dLastStripMaxAbsAmp = ComputeStripMaxAbsAmp(amp); //260915 hbk 채택된 에지의 |amp| 그대로
                     return EStripResult.Ok;
                 }
                 HOperatorSet.TupleConcat(allRows, edgeRows, out allRows);
                 HOperatorSet.TupleConcat(allCols, edgeCols, out allCols);
-                _dLastStripMaxAbsAmp = ComputeStripMaxAbsAmp(amp); // Phase 77: strip 내 |amp| 최대값
+                _dLastStripMaxAbsAmp = ComputeStripMaxAbsAmp(amp); //260915 hbk strip 내 |amp| 최대값
                 return EStripResult.Ok;
             }
             catch
@@ -832,7 +832,7 @@ namespace ReringProject.Halcon.Algorithms
                 }
                 else
                 {
-                    signedPx = drr * (-dirC) + dcc * dirR; // +Y 위쪽 양수 (EdgeToLineDistance:214, D-02)
+                    signedPx = drr * (-dirC) + dcc * dirR; //260626 hbk Y 위쪽 양수 (EdgeToLineDistance:214)
                 }
                 return signedPx * pixelResolution;
             }
@@ -862,7 +862,7 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// Rect ROI 1개에서 Canny 에지 → UnionAdjacentContours → ShapeTransXld("rectangle2") 파이프라인으로
         /// 가장 면적이 큰 사각형 XLD의 중심/각도/장단축 길이를 산출한다 (E2/E3/E9/E10 공통 컨투어 알고리즘).
-        /// 사각형 0개 검출 시 예외 throw 없이 error 세팅 후 false 반환 (CONTEXT.md 미해결#4).
+        /// 사각형 0개 검출 시 예외 throw 없이 error 세팅 후 false 반환 .
         /// </summary>
         public bool TryFindLargestContourRect(
             HImage image,
@@ -911,7 +911,7 @@ namespace ReringProject.Halcon.Algorithms
                 // Phi 방향은 열(가로)이므로 넘길 때 뒤집는다. 강체 회전이므로 cPhi != 0 에서도 유지된다.
                 // 혼동 금지: 같은 파일의 TryFindCircleByPolarSampling(반경 기반, 티칭 필드 미사용),
                 // PatternMatchService(Datum PatternRoi_*), FAIEdgeMeasurementService(FAI ROI_*,
-                // CONTEXT.md D-02 LOCKED)는 HALCON 규약을 그대로 쓰는 별개 경로다. 이 뒤집기를 옮기지 말 것.
+                // 등은 HALCON 규약을 그대로 쓰는 별개 경로다. 이 뒤집기를 옮기지 말 것.
                 double dGenLen1 = roiLength2; // HALCON Length1 = Phi 방향 반장축 -> 열(가로) 반폭
                 double dGenLen2 = roiLength1; // HALCON Length2 = Phi 수직 방향 반장축 -> 행(세로) 반폭
                 HOperatorSet.GenRectangle2(out rect, cRow, cCol, cPhi, dGenLen1, dGenLen2);
@@ -1005,7 +1005,7 @@ namespace ReringProject.Halcon.Algorithms
         /// <summary>
         /// 두 직선의 교점을 구한다 (ArcLineIntersect 호출용). 평행/근접/중첩 시 false (측정값 '—').
         /// 기존 static IntersectLines 의 isOverlapping.I==1 / IsInfinity / IsNaN 가드를 그대로 유지하고
-        /// 호출 이름만 명확히 한 래퍼 메서드 (CONTEXT.md 미해결#3).
+        /// 호출 이름만 명확히 한 래퍼 메서드 .
         /// </summary>
         public static bool TryIntersectLines(
             double row1a, double col1a, double row1b, double col1b,
@@ -1254,7 +1254,7 @@ namespace ReringProject.Halcon.Algorithms
         }
     }
 
-    // Phase 77 SZF-03/D-77-05: TryFitLine 의 opt-in 점수 수집기. strip 마다 관측된 최대 |amp| 를 모아
+    //260915 hbk TryFitLine 의 opt-in 점수 수집기. strip 마다 관측된 최대 |amp| 를 모아
     //  Σ(strip 최대 |amp|) ÷ strip 수(에지 없는 strip = 0)를 계산한다 — 재계산 없이 채택된 z 를 고르는 데만 쓴다(PR-2).
     public class EdgeStrengthScore
     {

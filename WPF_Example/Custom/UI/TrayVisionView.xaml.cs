@@ -1,4 +1,4 @@
-//260624 hbk Phase 61: TrayVisionView 코드비하인드 — Tray 비전 thin facade (AV-08)
+//260624 hbk TrayVisionView 코드비하인드 — Tray 비전 thin facade
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,15 +16,15 @@ using ReringProject.Sequence;
 using ReringProject.Setting;
 using ReringProject.UI;
 using ReringProject.Utility;             //260824 hbk 픽셀 캘리브레이션: Logging
-using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
+using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //260812 hbk 표시 전용 헬퍼(별칭 = 이름충돌 회피)
 using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
 namespace ReringProject.Custom.UI {
 
     /// <summary>
-    /// Tray 비전 뷰 코드비하인드. Phase 58/59 서비스(EthernetVisionHandler.Camera/Matcher)에 위임하는
-    /// thin facade. HALCON 뷰어를 소유하지 않고 외부 주입 공유 MainResultViewerControl 을 사용 (D-03).
-    /// 전 서비스 호출 try-catch — 예외 시 상태 라벨 갱신만, throw 금지 (D-05).
+    /// Tray 비전 뷰 코드비하인드. /59 서비스(EthernetVisionHandler.Camera/Matcher)에 위임하는
+    /// thin facade. HALCON 뷰어를 소유하지 않고 외부 주입 공유 MainResultViewerControl 을 사용 .
+    /// 전 서비스 호출 try-catch — 예외 시 상태 라벨 갱신만, throw 금지 .
     /// </summary>
     public partial class TrayVisionView : UserControl {
 
@@ -34,7 +34,7 @@ namespace ReringProject.Custom.UI {
         // 최소 ROI 크기 임계 (px) — 너무 작은 ROI 는 티칭 불가
         private const double MIN_ROI_HALF_LENGTH = 1.0;
 
-        //260625 hbk Phase 61.1 오프라인 이미지 로더 상태
+        //260625 hbk 오프라인 이미지 로더 상태
         private const string LOADER_IMAGE_EXTS = ".bmp;.png;.jpg;.jpeg;.tif;.tiff";  // 지원 확장자
         private List<string> _loadedImagePaths = new List<string>();
         private int _loadedImageIndex = -1;   // -1 = 미로드
@@ -55,14 +55,14 @@ namespace ReringProject.Custom.UI {
         private const string SAVE_IMAGE_FORMAT = "bmp";
         private static string _lastSaveFolder = null;   // 저장 마지막 폴더 기억 (static — 탭 전환에도 유지)
 
-        // D-03: 외부 주입 공유 뷰어 (소유하지 않음 — MainWindow 가 관리)
+        //260624 hbk 외부 주입 공유 뷰어 (소유하지 않음 — MainWindow 가 관리)
         private MainResultViewerControl _viewer;
 
         //260807 hbk Live 모드 뷰어 주기 갱신 타이머 — 카메라 최대 4.5fps 라 200ms(5fps) 폴링으로 충분.
         //  재트리거(Grab) 없이 PeekLastImage()로 최근 스트리밍 프레임만 읽어와 뷰어에 반영.
         private DispatcherTimer _liveTimer;
 
-        // quick-260902-fwj — Grab 버튼(수동 촬영) 전용 동축 자동 소등 타이머. 1회성 — Tick 에서
+        //260902 hbk Grab 버튼(수동 촬영) 전용 동축 자동 소등 타이머. 1회성 — Tick 에서
         //  즉시 자기 자신을 정지한다. 자동 검사 사이클/티칭 경로와는 무관하다.
         private DispatcherTimer _coaxAutoOffTimer;
 
@@ -73,7 +73,7 @@ namespace ReringProject.Custom.UI {
         // 현재 ROI 드로잉 진행 중인 슬롯 인덱스 (1 또는 2, 0=미진행)
         private int _drawingSlot;
 
-        //260626 hbk WR-02: 동축 UI 로드 중 이벤트 연쇄 저장 차단 플래그. true 이면 CoaxSlider_ValueChanged/CoaxCheckBox_Changed 즉시 return.
+        //260626 hbk 동축 UI 로드 중 이벤트 연쇄 저장 차단 플래그. true 이면 CoaxSlider_ValueChanged/CoaxCheckBox_Changed 즉시 return.
         private bool _isLoadingCoax = false;
 
         //260824 hbk 픽셀 캘리브레이션(거리 캘리브 — 2점 클릭 + 실측 mm 입력). 최소 픽셀 거리는
@@ -82,12 +82,12 @@ namespace ReringProject.Custom.UI {
         private readonly List<System.Windows.Point> _calibrationPoints = new List<System.Windows.Point>();
         private bool _isCalibratingDistance = false;   // ROI 드로잉과 클릭 핸들러 충돌 방지 가드
 
-        // quick-260903-dpy — 피커센터 캘 (Bottom AV-05 이식). 편심원 피팅 원형도 최소 점수(0~1).
+        //260903 hbk 피커센터 캘 (Bottom 이식). 편심원 피팅 원형도 최소 점수(0~1).
         //  Bottom 의 FIT_SCORE_MIN 과 동일 값 — 등급 표시 전용, 판정 로직에는 쓰이지 않는다.
         private const double FIT_SCORE_MIN = 0.80;
 
         // 캘 검색 ROI(사각형 드로잉으로 수거). EthernetVisionHandler.Handle.PickerCal 이 Bottom/Tray
-        //  공용 단일 인스턴스라(Task 4) 검색 ROI 좌표도 SystemSetting.CalibSearchRow1/Col1/Row2/Col2
+        //  공용 단일 인스턴스라 검색 ROI 좌표도 SystemSetting.CalibSearchRow1/Col1/Row2/Col2
         //  공용 값을 그대로 쓴다 — PC 당 EthernetVisionModeValue 가 하나라 동시 사용 충돌이 없다.
         private RoiDefinition _calRoiRect = null;
         private bool _calRoiSet = false;
@@ -98,7 +98,7 @@ namespace ReringProject.Custom.UI {
             Loaded += TrayVisionView_Loaded;
         }
 
-        // ─── 공유 뷰어 계약 (Plan 61-03 이 소비) ────────────────────────────────
+        //260624 hbk ─── 공유 뷰어 계약 ────────────────────────────────
 
         /// <summary>
         /// 외부(MainWindow)가 공유 MainResultViewerControl 을 주입한다.
@@ -106,53 +106,53 @@ namespace ReringProject.Custom.UI {
         /// viewer 가 이전 부모에 부착되어 있을 경우 detach 는 MainWindow 책임.
         /// </summary>
         public void AttachSharedViewer(MainResultViewerControl viewer) {
-            //260624 hbk Phase 61 — D-03 공유 뷰어 주입
+            //260624 hbk 공유 뷰어 주입
             if (viewer == null) {
                 return;
             }
             _viewer = viewer;
             ViewerHostBorder.Child = viewer;
 
-            // Phase 74 브러시 마스킹 배선. Tray 는 슬롯이 없어 항상 None 경로를 쓴다.
+            //260827 hbk 브러시 마스킹 배선. Tray 는 슬롯이 없어 항상 None 경로를 쓴다.
             if (brushPanel != null) {
                 brushPanel.ViewModel.ModelPathsProvider = () => EthernetVisionHandler.Handle.Matcher.GetModelPathsForMask(VIEW_MODE, EBottomAlignSlot.None);
                 brushPanel.ViewModel.ModelRegenerator = RegenerateTeachSilent;
                 brushPanel.ViewModel.Attach(viewer);
                 brushPanel.ViewModel.ReloadMaskFromDisk();
             }
-            // Phase 74: 드래그 종료 즉시 ROI 를 확정하기 위한 구독(중복 방지: -= 후 +=)
+            //260827 hbk 드래그 종료 즉시 ROI 를 확정하기 위한 구독(중복 방지: -= 후 +=)
             _viewer.RectDrawingCompleted -= OnTeachRectDrawn;
             _viewer.RectDrawingCompleted += OnTeachRectDrawn;
-            // quick-260903-dpy — 캘 ROI 사각형 드로잉 완료 구독(중복 방지: -= 후 +=).
+            //260903 hbk 캘 ROI 사각형 드로잉 완료 구독(중복 방지: -= 후 +=).
             //  OnTeachRectDrawn 과 같은 이벤트를 같이 구독한다 — 각자 자기 게이트(_drawingSlot / _isCalRoiDrawing)
             //  로 자기 몫이 아니면 조용히 반환하므로 서로 간섭하지 않는다.
             _viewer.RectDrawingCompleted -= OnCalRectDrawn;
             _viewer.RectDrawingCompleted += OnCalRectDrawn;
-            ShowTeachRoiOverlays(); // Phase 74: 뷰어 주입 시 기존 ROI 표시 복원
-            _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true); // Phase 74
-            // Phase 74: 좌표/밝기 구독(중복 방지: -= 후 +=)
+            ShowTeachRoiOverlays(); //260827 hbk 뷰어 주입 시 기존 ROI 표시 복원
+            _viewer.SetCenterCrossVisible(chk_showCenterCross.IsChecked == true);
+            //260827 hbk 좌표/밝기 구독(중복 방지: -= 후 +=)
             _viewer.PointerInfoChanged -= OnViewerPointerInfoChanged;
             _viewer.PointerInfoChanged += OnViewerPointerInfoChanged;
-            _viewer.SetPointerHudVisible(true);   // Phase 74: 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
+            _viewer.SetPointerHudVisible(true);   //260827 hbk 좌표/밝기를 이미지 위에도 표시(WPF 라벨은 스크롤에 가린다)
             UpdateViewerSourceLabel(); // 어느 화면인지 + 지금 사진의 출처(파일명/카메라)를 이미지 위에 표시
-            LoadCalStepAngleToUi(); // quick-260903-dpy — 저장된 캘 스텝 각도 반영(Bottom 과 공용 설정)
-            UpdateCalButtonState(); // quick-260903-dpy — 뷰어 재주입 시에도 캘 버튼 활성 상태를 최신으로 갱신
+            LoadCalStepAngleToUi(); //260903 hbk 저장된 캘 스텝 각도 반영(Bottom 과 공용 설정)
+            UpdateCalButtonState(); //260903 hbk 뷰어 재주입 시에도 캘 버튼 활성 상태를 최신으로 갱신
         }
 
         // ─── 라이프사이클 ─────────────────────────────────────────────────────────
 
         private void TrayVisionView_Loaded(object sender, RoutedEventArgs e) {
             RefreshStatus();
-            LoadTrayCoaxToUi(); //260626 hbk Phase 66 — Tray 동축값 복원(창 진입 시 Tray.json에서 CoaxEnabled/CoaxLevel 복원)
-            LoadTeachParamsToUi(EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None)); // Phase 74
-            UpdateCalButtonState(); // quick-260903-dpy — 피커센터 캘 버튼 초기 활성/비활성 + 진행 단계 라벨 반영
+            LoadTrayCoaxToUi(); //260626 hbk Tray 동축값 복원(창 진입 시 Tray.json에서 CoaxEnabled/CoaxLevel 복원)
+            LoadTeachParamsToUi(EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None));
+            UpdateCalButtonState(); //260903 hbk 피커센터 캘 버튼 초기 활성/비활성 + 진행 단계 라벨 반영
         }
 
         // ─── 카메라 핸들러 ────────────────────────────────────────────────────────
 
         private void GrabButton_Click(object sender, RoutedEventArgs e) {
 #if SIMUL_MODE
-            //260625 hbk Phase 61.1 F3 — SIMUL 모드: Grab = 파일 선택 다이얼로그 로드 (카메라 미사용)
+            //260625 hbk SIMUL 모드: Grab = 파일 선택 다이얼로그 로드 (카메라 미사용)
             try {
                 Ookii.Dialogs.Wpf.VistaOpenFileDialog dlg = new Ookii.Dialogs.Wpf.VistaOpenFileDialog();
                 dlg.Filter = "이미지 파일|*.bmp;*.png;*.jpg;*.jpeg;*.tif;*.tiff|모든 파일|*.*";
@@ -170,14 +170,14 @@ namespace ReringProject.Custom.UI {
                 lbl_status.Text = "로드 오류: " + ex.Message;
             }
 #else
-            //260624 hbk Phase 61 — Camera null 가드
+            //260624 hbk Camera null 가드
             if (EthernetVisionHandler.Handle.Camera == null) {
                 lbl_status.Text = "미연결";
                 return;
             }
 
             try {
-                ApplyCoaxLight(); //260626 hbk Phase 66 — grab 직전 동축 자동 적용(D-07 Teach=Run=Grab 동일 조명)
+                ApplyCoaxLight(); //260626 hbk grab 직전 동축 자동 적용( Teach=Run=Grab 동일 조명)
                 HImage img = EthernetVisionHandler.Handle.Camera.Grab();
                 if (img == null) {
                     lbl_status.Text = "취득 실패 (폴백 없음)";
@@ -217,7 +217,7 @@ namespace ReringProject.Custom.UI {
                     btn_live.IsEnabled = false;
                     // 직전 Grab 이 걸어둔 소등 예약이 Live 도중에 터져 조명을 꺼버리는 것을 막는다.
                     CancelCoaxAutoOffTimer();
-                    // Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다(D-07 연장).
+                    //260902 hbk Live 화면도 Grab 과 같은 조명이어야 티칭/검사와 눈으로 비교가 된다( 연장).
                     ApplyCoaxLight();
                     StartLiveTimer();
                     MarkViewerImageFromCamera("Live (카메라)");
@@ -256,7 +256,7 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        /// <summary>260807 hbk Live 타이머 시작 — 이미 도는 중이면 재사용(중복 타이머 방지).</summary>
+        /// <summary> Live 타이머 시작 — 이미 도는 중이면 재사용(중복 타이머 방지).</summary>
         private void StartLiveTimer() {
             if (_liveTimer != null) {
                 return;
@@ -266,7 +266,7 @@ namespace ReringProject.Custom.UI {
             _liveTimer.Start();
         }
 
-        /// <summary>260807 hbk Live 타이머 정지 — Stop 클릭 또는 뷰 전환/언로드 시 반드시 호출.</summary>
+        /// <summary> Live 타이머 정지 — Stop 클릭 또는 뷰 전환/언로드 시 반드시 호출.</summary>
         private void StopLiveTimer() {
             if (_liveTimer == null) {
                 return;
@@ -276,7 +276,7 @@ namespace ReringProject.Custom.UI {
             _liveTimer = null;
         }
 
-        /// <summary>260807 hbk 재트리거 없이 최근 스트리밍 프레임만 읽어와 뷰어에 반영.</summary>
+        /// <summary> 재트리거 없이 최근 스트리밍 프레임만 읽어와 뷰어에 반영.</summary>
         private void LiveTimer_Tick(object sender, EventArgs e) {
             if (EthernetVisionHandler.Handle.Camera == null || _viewer == null) {
                 return;
@@ -511,7 +511,7 @@ namespace ReringProject.Custom.UI {
         // ─── 티칭 핸들러 ─────────────────────────────────────────────────────────
 
         private void DrawRoi1Button_Click(object sender, RoutedEventArgs e) {
-            //260624 hbk Phase 61 — ROI 1 그리기 시작: 직전 슬롯1 내용 초기화 후 StartRectangleDrawing
+            //260624 hbk ROI 1 그리기 시작: 직전 슬롯1 내용 초기화 후 StartRectangleDrawing
             if (_viewer == null) {
                 lbl_status.Text = "뷰어 미연결";
                 return;
@@ -527,7 +527,7 @@ namespace ReringProject.Custom.UI {
 
             _roi1 = null;
             _drawingSlot = 1;
-            _isCalRoiDrawing = false;   // quick-260903-dpy — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
+            _isCalRoiDrawing = false;   //260903 hbk 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
             try {
                 _viewer.StartRectangleDrawing();
                 lbl_status.Text = "ROI 1 드래그 후 ROI 2 버튼을 클릭하세요";
@@ -538,7 +538,7 @@ namespace ReringProject.Custom.UI {
         }
 
         private void DrawRoi2Button_Click(object sender, RoutedEventArgs e) {
-            //260624 hbk Phase 61 — ROI 2 그리기: 슬롯 1 확정(CommitActiveRectangle) 후 슬롯 2 시작
+            //260624 hbk ROI 2 그리기: 슬롯 1 확정(CommitActiveRectangle) 후 슬롯 2 시작
             if (_viewer == null) {
                 lbl_status.Text = "뷰어 미연결";
                 return;
@@ -560,12 +560,12 @@ namespace ReringProject.Custom.UI {
                     if (committed1 != null) {
                         _roi1 = committed1;
                     }
-                    ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 ROI 가 보이게 유지
+                    ShowTeachRoiOverlays(); //260827 hbk 확정 후에도 ROI 가 보이게 유지
                 }
 
                 _roi2 = null;
                 _drawingSlot = 2;
-                _isCalRoiDrawing = false;   // quick-260903-dpy — 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
+                _isCalRoiDrawing = false;   //260903 hbk 티칭 ROI 드로잉 시작 시 캘 ROI 플래그 해제
                 _viewer.StartRectangleDrawing();
                 lbl_status.Text = "ROI 2 드래그 후 티칭 저장을 클릭하세요";
             }
@@ -575,7 +575,7 @@ namespace ReringProject.Custom.UI {
         }
 
         private void TeachButton_Click(object sender, RoutedEventArgs e) {
-            //260624 hbk Phase 61 — 2-ROI 확정 + TryTeach 호출
+            //260624 hbk 2-ROI 확정 + TryTeach 호출
             if (_viewer == null || _viewer.CurrentImage == null) {
                 lbl_status.Text = "이미지 없음 — Grab 먼저";
                 return;
@@ -588,7 +588,7 @@ namespace ReringProject.Custom.UI {
                     if (committed2 != null) {
                         _roi2 = committed2;
                     }
-                    ShowTeachRoiOverlays(); // Phase 74: 확정 후에도 ROI 가 보이게 유지
+                    ShowTeachRoiOverlays(); //260827 hbk 확정 후에도 ROI 가 보이게 유지
                 }
 
                 // 두 ROI 모두 유효한지 검증
@@ -606,10 +606,10 @@ namespace ReringProject.Custom.UI {
                 double r2, c2, phi2, l2_1, l2_2;
                 RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
 
-                ApplyCoaxLight(); //260626 hbk Phase 66 — 티칭 직전 동축 자동 적용(D-07 티칭=런타임 조명 일치)
+                ApplyCoaxLight(); //260626 hbk 티칭 직전 동축 자동 적용( 티칭=런타임 조명 일치)
                 string error;
-                double dScore1, dScore2;   //quick-260812: 티칭이 이미 계산한 스코어 수신(등급 표시용)
-                if (ApplyTeachParams(true) == false) {   // Phase 74: 값이 바뀌었으면 확인
+                double dScore1, dScore2;   //260812 hbk 티칭이 이미 계산한 스코어 수신(등급 표시용)
+                if (ApplyTeachParams(true) == false) {   //260827 hbk 값이 바뀌었으면 확인
                     lbl_teachStatus.Text = "티칭 취소 — 값 변경을 진행하지 않았습니다";
                     return;
                 }
@@ -623,7 +623,7 @@ namespace ReringProject.Custom.UI {
 
                 if (bOk) {
                     bool bHas = EthernetVisionHandler.Handle.Matcher.HasTemplate(VIEW_MODE);
-                    //quick-260812: 두 패턴 중 낮은 쪽 = 보수적 지표(런타임 검사와 같은 규칙)
+                    //260812 hbk 두 패턴 중 낮은 쪽 = 보수적 지표(런타임 검사와 같은 규칙)
                     double dMinScore = Math.Min(dScore1, dScore2);
                     ETeachGrade teachGrade = TeachDiag.ClassifyScore(dMinScore, AlignShapeMatchService.TeachMinScore);
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(teachGrade, "티칭 OK (HasTemplate=" + bHas + ", score " + dMinScore.ToString("F3") + ")");
@@ -631,7 +631,7 @@ namespace ReringProject.Custom.UI {
                     if (brushPanel != null) {
                         brushPanel.ViewModel.ReloadMaskFromDisk();
                     }
-                    ShowTeachedContour(); // Phase 74: 티칭 직후에도 모델 외곽선(녹색) 표시
+                    ShowTeachedContour(); //260827 hbk 티칭 직후에도 모델 외곽선(녹색) 표시
                 }
                 else {
                     lbl_teachStatus.Text = TeachDiag.ToStatusLine(ETeachGrade.Bad, "티칭 실패: " + TeachDiag.ToKoreanMessage(error));
@@ -645,14 +645,14 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        // 마스크가 바뀌었을 때 모달 없이 같은 ROI 로 다시 티칭한다(D-74-04).
+        //260827 hbk 마스크가 바뀌었을 때 모달 없이 같은 ROI 로 다시 티칭한다.
         //  성공하면 null, 실패하면 오류 문자열을 돌려준다(ViewModel 계약).
 
-        // Phase 74: 티칭 ROI(1/2)를 뷰어에 계속 보이게 한다.
+        //260827 hbk 티칭 ROI(1/2)를 뷰어에 계속 보이게 한다.
         //  CommitActiveRectangle 은 확정과 동시에 draft 를 지우므로, 그대로 두면 그린 직후 ROI 가 사라진다.
         //  브러시로 "이 ROI 안의 어느 부분을 뺄지" 칠하려면 경계가 보여야 한다 — 안 보이면 눈 감고 칠하는 셈이다.
         //  detection 결과 오버레이와 같은 채널(orange)을 쓰므로 [검사] 를 돌리면 그 결과로 교체된다(의도된 동작).
-        // Phase 74: 드래그를 마치는 즉시 티칭 ROI 를 확정한다.
+        // 드래그를 마치는 즉시 티칭 ROI 를 확정한다.
         //  예전에는 다음 버튼을 누를 때까지 draft(빨간 사각형)로 남아 "그렸는데 주황색이 안 나온다" 가 됐다.
         private void OnTeachRectDrawn(object sender, EventArgs e) {
             if (_viewer == null) {
@@ -683,9 +683,9 @@ namespace ReringProject.Custom.UI {
         }
 
 
-        // Phase 74: 티칭 파라미터(각도범위/최소 Score) 입력을 서비스에 적용한다.
+        //260827 hbk 티칭 파라미터(각도범위/최소 Score) 입력을 서비스에 적용한다.
         //  비어 있거나 숫자가 아니면 0 → 서비스가 기본값(각도 Bottom 45/Tray 10, 스코어 0.5)을 쓴다.
-        // Phase 74: 티칭 파라미터(각도범위/최소 Score)를 서비스에 적용한다.
+        // 티칭 파라미터(각도범위/최소 Score)를 서비스에 적용한다.
         //  bAskOnChange=true 면 저장값과 다를 때 확인을 받는다(티칭은 모델을 다시 만드는 작업이라
         //  실수로 바꾸면 되돌리기 어렵다). 브러시 자동 재생성 경로는 모달 금지라 false 로 부른다.
         //  반환 false = 사용자가 취소.
@@ -777,7 +777,7 @@ namespace ReringProject.Custom.UI {
         }
 
 
-        // Phase 74: 이미지 중심 십자선 토글. 라이브/정지 화면 모두에서 가운데 위치를 눈으로 잡는 용도.
+        //260827 hbk 이미지 중심 십자선 토글. 라이브/정지 화면 모두에서 가운데 위치를 눈으로 잡는 용도.
         private void ShowCenterCrossCheckBox_Changed(object sender, RoutedEventArgs e) {
             if (_viewer == null) {
                 return;
@@ -787,7 +787,7 @@ namespace ReringProject.Custom.UI {
         }
 
 
-        // Phase 74: 마우스 위치의 이미지 좌표와 밝기(Gray) 표시. 뷰어의 기존 PointerInfoChanged 를 그대로 쓴다.
+        //260827 hbk 마우스 위치의 이미지 좌표와 밝기(Gray) 표시. 뷰어의 기존 PointerInfoChanged 를 그대로 쓴다.
         private void OnViewerPointerInfoChanged(object sender, MainViewerPointerChangedEventArgs e) {
             if (lbl_hoverInfo == null) {
                 return;
@@ -807,7 +807,7 @@ namespace ReringProject.Custom.UI {
         }
 
 
-        // Phase 74: 거리 재기. 캘리브레이션 값은 건드리지 않고 두 점 사이 거리만 보여준다.
+        //260827 hbk 거리 재기. 캘리브레이션 값은 건드리지 않고 두 점 사이 거리만 보여준다.
         //  캘리브와 같은 2점 클릭 방식이라 조작이 익숙하고, 오버레이도 같은 삼각형 표시를 쓴다.
         private bool _isMeasuringDistance;
         private readonly List<System.Windows.Point> _measurePoints = new List<System.Windows.Point>();
@@ -890,7 +890,7 @@ namespace ReringProject.Custom.UI {
                 List<string> labels = new List<string>();
                 AddTeachRoiRect(rects, labels, _roi1, "ROI 1");
                 AddTeachRoiRect(rects, labels, _roi2, "ROI 2");
-                // quick-260903-dpy — 캘리브레이션 검색 ROI 도 확정 후 사라지지 않도록 같이 표시한다
+                //260903 hbk 캘리브레이션 검색 ROI 도 확정 후 사라지지 않도록 같이 표시한다
                 //  (Bottom 의 동일 관용구). SetResultRoiOverlays 는 매번 전체를 덮어쓰므로 별도 메서드로
                 //  분리하면 서로 지워버린다 — 반드시 이 한 메서드 안에서 같이 그린다.
                 if (_calRoiSet == true) {
@@ -934,7 +934,7 @@ namespace ReringProject.Custom.UI {
             double r2, c2, phi2, l2_1, l2_2;
             RectToTeachParams(_roi2, out r2, out c2, out phi2, out l2_1, out l2_2);
 
-            ApplyTeachParams(false);   // Phase 74: 브러시 경로는 모달 금지 — 확인 없이 현재 값 사용
+            ApplyTeachParams(false);   //260827 hbk 브러시 경로는 모달 금지 — 확인 없이 현재 값 사용
 
             string szError;
             double dScore1, dScore2;
@@ -946,13 +946,13 @@ namespace ReringProject.Custom.UI {
                 out dScore1, out dScore2,
                 out szError);
             if (bOk == true) {
-                ShowTeachedContour(); // Phase 74: 마스크 반영 결과를 녹색 외곽선으로 즉시 보여준다
+                ShowTeachedContour(); //260827 hbk 마스크 반영 결과를 녹색 외곽선으로 즉시 보여준다
                 return null;
             }
             return szError;
         }
 
-        // Phase 74: 티칭된 모델의 외곽선을 녹색으로 표시한다.
+        //260827 hbk 티칭된 모델의 외곽선을 녹색으로 표시한다.
         //  예전에는 [검사] 를 돌려야만 녹색이 보여서, 브러시로 뺀 영역이 실제로 모델에서
         //  빠졌는지 티칭 직후에 확인할 방법이 없었다.
         private void ShowTeachedContour() {
@@ -976,13 +976,13 @@ namespace ReringProject.Custom.UI {
         // ─── 검사 핸들러 ─────────────────────────────────────────────────────────
 
         private void RunButton_Click(object sender, RoutedEventArgs e) {
-            //260624 hbk Phase 61 — Matcher.Run 호출 → AlignResult X/Y Offset + Score 표시 (Tray: Theta 없음)
+            //260624 hbk Matcher.Run 호출 → AlignResult X/Y Offset + Score 표시 (Tray: Theta 없음)
             if (_viewer == null || _viewer.CurrentImage == null) {
                 lbl_status.Text = "이미지 없음 — Grab 먼저";
                 return;
             }
 
-            // Phase 74: 검사 전에 브러시 작업을 끝낸다 — 마스크 자국이 검사 결과(녹색) 위를 덮지 않게.
+            //260827 hbk 검사 전에 브러시 작업을 끝낸다 — 마스크 자국이 검사 결과(녹색) 위를 덮지 않게.
             if (brushPanel != null) {
                 brushPanel.ViewModel.IsBrushActive = false;
                 brushPanel.ViewModel.IsEraseMode = false;
@@ -1007,18 +1007,18 @@ namespace ReringProject.Custom.UI {
 
             try {
                 lbl_status.Text = "검사중";
-                ApplyCoaxLight(); //260626 hbk Phase 66 — 검사 직전 동축 자동 적용(D-07)
+                ApplyCoaxLight(); //260626 hbk 검사 직전 동축 자동 적용
                 AlignResult res = EthernetVisionHandler.Handle.Matcher.Run(_viewer.CurrentImage, VIEW_MODE);
 
                 if (res.Found) {
                     lbl_result.Text = FormatAlignResult(res);
-                    ApplyAlignVisualization(res);          //260625 hbk Phase 61.1 검출 시각화
+                    ApplyAlignVisualization(res);          //260625 hbk 검출 시각화
                 }
                 else {
                     lbl_result.Text = "검출 실패";
-                    ClearAlignVisualization();             //260625 hbk Phase 61.1 이전 오버레이 제거
+                    ClearAlignVisualization();             //260625 hbk 이전 오버레이 제거
                 }
-                // D-75-01 보강: 화면 [검사] 도 ① 기록을 남긴다.
+                //260827 hbk 화면 [검사] 도 ① 기록을 남긴다.
                 //  PLC 가 없는 셋업 기간에도 잔여 산포가 쌓여야 임계값을 정할 수 있다.
                 //  자재번호는 -1(수동). 검출 성공=OK / 실패=NG 로만 적는다 —
                 //  공차 P/F 는 PLC 사이클의 판단이라 여기서 흉내내지 않는다.
@@ -1036,7 +1036,7 @@ namespace ReringProject.Custom.UI {
         // ─── 체크박스 토글 핸들러 ─────────────────────────────────────────────────
 
         private void ShowRoiCheckBox_Changed(object sender, RoutedEventArgs e) {
-            //260625 hbk Phase 61.1 보정 ROI(orange) = datumRects 채널 = _datumOverlayVisible 게이트
+            //260625 hbk 보정 ROI(orange) = datumRects 채널 = _datumOverlayVisible 게이트
             if (_viewer == null) {
                 return;
             }
@@ -1050,7 +1050,7 @@ namespace ReringProject.Custom.UI {
         }
 
         private void ShowEdgeCheckBox_Changed(object sender, RoutedEventArgs e) {
-            //260625 hbk Phase 61.1 에지(_inspectionOverlays) = _measurementOverlayVisible 게이트
+            //260625 hbk 에지(_inspectionOverlays) = _measurementOverlayVisible 게이트
             if (_viewer == null) {
                 return;
             }
@@ -1063,14 +1063,14 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        // ─── 동축 조명 핸들러 (260626 hbk Phase 66 D-04/D-05/D-07) ─────────────
+        //260626 hbk ─── 동축 조명 핸들러 ─────────────
 
         /// <summary>
         /// 현재 UI 동축값(chk_coaxEnabled + sld_coaxLevel)을 LIGHT_ALIGN_COAX 에 적용.
         /// Enabled=true: SetOnOff(true)+SetLevel. Enabled=false: SetOnOff(false)만.
-        /// 예외 시 lbl_status 갱신만 — throw 금지(T-66-UI-01).
+        /// 예외 시 lbl_status 갱신만 — throw 금지.
         /// </summary>
-        private void ApplyCoaxLight() //260626 hbk Phase 66 D-06/D-07 — 현재 UI 동축값을 LIGHT_ALIGN_COAX 에 적용
+        private void ApplyCoaxLight() //260626 hbk 현재 UI 동축값을 LIGHT_ALIGN_COAX 에 적용
         {
             try
             {
@@ -1092,18 +1092,18 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        //260626 hbk Phase 66 D-07 — 동축 체크박스 변경: 즉시 조명 적용 + Tray JSON 저장(수동 override)
+        //260626 hbk 동축 체크박스 변경: 즉시 조명 적용 + Tray JSON 저장(수동 override)
         private void CoaxCheckBox_Changed(object sender, RoutedEventArgs e)
         {
-            if (_isLoadingCoax) return;   //260626 hbk WR-02: 로드 중 연쇄 저장 차단
+            if (_isLoadingCoax) return;   //260626 hbk 로드 중 연쇄 저장 차단
             ApplyCoaxLight();        //260626 hbk 즉시 반영
             SaveTrayCoaxToJson();    //260626 hbk Tray JSON 갱신
         }
 
-        //260626 hbk Phase 66 D-07 — 동축 슬라이더 변경: 라벨 갱신 + 즉시 적용 + Tray JSON 저장
+        //260626 hbk 동축 슬라이더 변경: 라벨 갱신 + 즉시 적용 + Tray JSON 저장
         private void CoaxSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_isLoadingCoax) return;   //260626 hbk WR-02: 로드 중 연쇄 저장 차단
+            if (_isLoadingCoax) return;   //260626 hbk 로드 중 연쇄 저장 차단
             int nLevel = (int)e.NewValue;   //260626 hbk 새 밝기
             if (lbl_coaxLevel != null)
             {
@@ -1113,7 +1113,7 @@ namespace ReringProject.Custom.UI {
             SaveTrayCoaxToJson();
         }
 
-        //260626 hbk Phase 66 D-05 — Tray 단일 동축값을 Tray.json 에 저장(slot=None = Tray 단일 경로, BuildJsonPath(Tray,None)=Tray.json).
+        //260626 hbk Tray 단일 동축값을 Tray.json 에 저장(slot=None = Tray 단일 경로, BuildJsonPath(Tray,None)=Tray.json).
         private void SaveTrayCoaxToJson()
         {
             try
@@ -1124,7 +1124,7 @@ namespace ReringProject.Custom.UI {
                 bool bOk = EthernetVisionHandler.Handle.Matcher.TrySaveCoax(VIEW_MODE, EBottomAlignSlot.None, bEnabled, nLevel, out error);   //260626 hbk Tray 단일 — slot None
                 if (!bOk)
                 {
-                    lbl_status.Text = "동축 저장 실패: " + error;   //260626 hbk
+                    lbl_status.Text = "동축 저장 실패: " + error;
                 }
             }
             catch (Exception ex)
@@ -1133,10 +1133,10 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        //260626 hbk Phase 66 D-05 — Tray.json 동축값을 UI 에 복원. null(파일 없음/미티칭) → off/0.
+        //260626 hbk Tray.json 동축값을 UI 에 복원. null(파일 없음/미티칭) → off/0.
         private void LoadTrayCoaxToUi()
         {
-            _isLoadingCoax = true;   //260626 hbk WR-02: UI 값 설정 중 이벤트 연쇄 저장 차단 시작
+            _isLoadingCoax = true;   //260626 hbk UI 값 설정 중 이벤트 연쇄 저장 차단 시작
             try
             {
                 AlignRefPose refPose = EthernetVisionHandler.Handle.Matcher.GetSlotRefPose(VIEW_MODE, EBottomAlignSlot.None);   //260626 hbk Tray 단일 로드
@@ -1157,19 +1157,19 @@ namespace ReringProject.Custom.UI {
             }
             finally
             {
-                _isLoadingCoax = false;   //260626 hbk WR-02: 예외 발생 여부 무관하게 플래그 복원
+                _isLoadingCoax = false;   //260626 hbk 예외 발생 여부 무관하게 플래그 복원
             }
         }
 
-        // ─── 시각화 헬퍼 (260625 hbk Phase 61.1) ────────────────────────────────
+        //260625 hbk ─── 시각화 헬퍼 ────────────────────────────────
 
         /// <summary>
         /// Run 성공 시 보정 ROI 박스 + 에지 contour 를 MainResultViewerControl 에 전달.
         /// MainResultViewerControl.Render() 게이트 매핑:
         ///   datumRects(보정 ROI orange) → _datumOverlayVisible = [ROI 표시] 체크박스
         ///   _inspectionOverlays(에지 XLD contour 선) → _measurementOverlayVisible = [에지 표시] 체크박스
-        ///260625 hbk Phase 61.1 — F1: 검출 십자 제거(에지를 contour 선으로 대체).
-        /// 예외 시 throw 없이 결과 텍스트만 유지 (T-61.1-05 완화).
+        /// F1: 검출 십자 제거(에지를 contour 선으로 대체).
+        /// 예외 시 throw 없이 결과 텍스트만 유지 .
         /// </summary>
         private void ApplyAlignVisualization(AlignResult res) {
             if (_viewer == null) {
@@ -1180,7 +1180,7 @@ namespace ReringProject.Custom.UI {
                 return;
             }
 
-            //260625 hbk Phase 61.1 — F1: 검출 십자(SetDatumFindResultOverlay) 제거. 에지는 XLD contour 선으로만 표시.
+            //260625 hbk F1: 검출 십자(SetDatumFindResultOverlay) 제거. 에지는 XLD contour 선으로만 표시.
 
             try {
                 // 1) 보정 ROI 박스: datumRects 채널(orange) — measRects=null 로 green 채널 미사용
@@ -1188,7 +1188,7 @@ namespace ReringProject.Custom.UI {
                 if (datumRects == null) {
                     datumRects = new List<double[]>();
                 }
-                // Phase 74: 검출 박스에도 이름표를 붙인다. 박스만 있으면 어느 패턴인지 알 수 없고,
+                //260827 hbk 검출 박스에도 이름표를 붙인다. 박스만 있으면 어느 패턴인지 알 수 없고
                 //  라벨 없이 교체하면 티칭 때 보이던 "ROI 1/ROI 2" 가 검사 후 사라진 것처럼 보인다.
                 List<string> datumLabels = new List<string>();
                 for (int i = 0; i < datumRects.Count; i++) {
@@ -1201,7 +1201,7 @@ namespace ReringProject.Custom.UI {
             }
 
             try {
-                //260625 hbk Phase 61.1 F4 — 에지 = 검출 XLD object 직접 disp (대각선 버그 해소).
+                //260625 hbk 에지 = 검출 XLD object 직접 disp (대각선 버그 해소).
                 //  점 polyline(BuildEdgeOverlays) 폐기. SetAlignContourXld 소유권 이전 → 뷰어가 dispose.
                 _viewer.SetAlignContourXld(res.DetectedContourXld);
                 res.DetectedContourXld = null;   // 소유권 이전 완료 — 중복 dispose 방지
@@ -1213,7 +1213,7 @@ namespace ReringProject.Custom.UI {
 
         /// <summary>
         /// Run 실패(검출 없음) 또는 뷰 전환 시 이전 오버레이 제거.
-        ///260625 hbk Phase 61.1 F4 — 에지는 SetAlignContourXld(null) 로 정리(XLD 채널).
+        /// 에지는 SetAlignContourXld(null) 로 정리(XLD 채널).
         /// </summary>
         private void ClearAlignVisualization() {
             if (_viewer == null) {
@@ -1229,14 +1229,14 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        // ─── 피커센터 캘 핸들러 (quick-260903-dpy — Bottom AV-05 이식, Tray 전용 회전중심) ──────
-        //  EthernetVisionHandler.Handle.PickerCal 은 Bottom/Tray 공용 단일 인스턴스다(Task 4).
+        //260903 hbk ─── 피커센터 캘 핸들러 ( — Bottom 이식, Tray 전용 회전중심) ──────
+        //  EthernetVisionHandler.Handle.PickerCal 은 Bottom/Tray 공용 단일 인스턴스다.
         //  모델 경로도 {Recipe}\ETHERNET_ALIGN\picker_cal.shm 로 모드 무관 고정이지만, 이 PC 는
         //  EthernetVisionModeValue 가 하나뿐이라 Bottom/Tray 동시 사용이 없어 충돌하지 않는다.
         //  모드별로 인스턴스/모델을 분리하는 구조 변경은 하지 않는다(불필요한 구조 변경 금지).
 
         // 캘 스텝당 피커 회전각(검사용 각도범위와 별개). 360/각도 = 필요 스텝 수.
-        //  SystemSetting.PickerCalStepAngleDeg 는 Bottom 과 공용 설정이다(Task 1 범위 밖 — 새로 안 늘림).
+        //  SystemSetting.PickerCalStepAngleDeg 는 Bottom 과 공용 설정이다( 범위 밖 — 새로 안 늘림).
         private void CalStepAngleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             try {
                 ComboBoxItem item = cmb_calStepAngle.SelectedItem as ComboBoxItem;
@@ -1357,7 +1357,7 @@ namespace ReringProject.Custom.UI {
             }
         }
 
-        // quick-260903-dpy — 수동 반복(자재를 손으로 놓고 찍기) 중 한 번만 잘못돼도 [초기화]로
+        //260903 hbk 수동 반복(자재를 손으로 놓고 찍기) 중 한 번만 잘못돼도 [초기화]로
         //  전부 다시 하지 않도록, 누적의 마지막 1개만 제거한다. Reset() 과 달리 확인 다이얼로그를
         //  두지 않는다 — 이 동작 자체가 "방금 실수를 되돌리는" 되돌리기 동작이라 나머지 스텝은 그대로 유지된다.
         private void CalRemoveLastStepButton_Click(object sender, RoutedEventArgs e) {
@@ -1402,7 +1402,7 @@ namespace ReringProject.Custom.UI {
         }
 
         /// <summary>
-        /// quick-260903-dpy — 사용자 결정: Tray 는 카메라 그랩을 우선한다(Bottom 의 TryResolveCalSourceImage
+        /// 사용자 결정: Tray 는 카메라 그랩을 우선한다(Bottom 의 TryResolveCalSourceImage
         /// 와 반대 순서). Bottom 은 뷰어에 파일 이미지가 열려 있으면 카메라를 아예 안 찍고 그 파일을
         /// 그대로 쓴다 — [폴더 열기]로 예전 사진을 열어둔 채 [Cal 모델 티칭]/[스텝 추가]를 누르면
         /// 경고 없이 낡은 사진으로 캘이 잡히는 결함이 있다(코드리뷰 지적, 미수정). Tray 에 그 결함을
@@ -1722,7 +1722,7 @@ namespace ReringProject.Custom.UI {
 
             // PickerCenterCalibrationService.TryComputePickerCenter(수정 금지 대상)는 내부적으로
             //  SystemSetting.Handle.PickerCenterRow/Col(Bottom 값)에도 같은 결과를 대입한다 —
-            //  Bottom/Tray 가 PickerCal 공용 인스턴스를 쓰기 때문(Task 4). Tray 화면에서 계산했다고
+            //  Bottom/Tray 가 PickerCal 공용 인스턴스를 쓰기 때문. Tray 화면에서 계산했다고
             //  Bottom 의 설정값이 (저장은 안 되더라도) 런타임에서 바뀌어 있는 상태로 남는 것은
             //  이 작업 범위 밖의 부수효과이므로, 호출 전후로 Bottom 값을 그대로 복원해 무효화한다.
             //  Tray 자신의 결과는 아래 out r/c 로 별도로 받아 TrayPickerCenterRow/Col 에 저장한다.
@@ -1737,7 +1737,7 @@ namespace ReringProject.Custom.UI {
                     out r, out c, out rad, out dRmsPx, out dMaxPx, out error);
 
                 if (bOk) {
-                    // quick-260903-dpy — 잔차(RMS/최대)는 이 값을 믿어도 되는지 판단하는 유일한 근거라
+                    //260903 hbk 잔차(RMS/최대)는 이 값을 믿어도 되는지 판단하는 유일한 근거라
                     //  중심좌표/반경과 함께 lbl_pickerCenter 에 항상 노출한다.
                     string szFitQuality = BuildFitQualityText(dRmsPx, dMaxPx);
                     lbl_pickerCenter.Text = BuildPickerCenterText(r, c, rad) + "  |  " + szFitQuality;
@@ -1837,7 +1837,7 @@ namespace ReringProject.Custom.UI {
                 dRmsUm, dRmsPx, dMaxUm, dMaxPx);
         }
 
-        // quick-260903-dpy — 피커센터 캘 버튼(②③④ + 마지막 취소) 활성/비활성을 한 곳에서 일괄
+        //260903 hbk 피커센터 캘 버튼(②③④ + 마지막 취소) 활성/비활성을 한 곳에서 일괄
         //  갱신한다. 잘못된 순서를 에러 메시지로 사후 통보하는 대신 애초에 못 누르게 막는 것이 목적.
         //  szDetail 이 있으면 방금 수행한 동작의 결과 문구 뒤에 현재 진행 단계 배너를 이어 붙인다.
         private void UpdateCalButtonState() {
@@ -2052,7 +2052,7 @@ namespace ReringProject.Custom.UI {
         // ─── 오프라인 이미지 로더 핸들러 ─────────────────────────────────────────
 
         private void OpenFolderButton_Click(object sender, RoutedEventArgs e) {
-            //260625 hbk Phase 61.1 폴더 열기 → 이미지 목록 로드 → 인덱스 0 표시
+            //260625 hbk 폴더 열기 → 이미지 목록 로드 → 인덱스 0 표시
             try {
                 var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
                 dlg.Multiselect = false;
@@ -2096,7 +2096,7 @@ namespace ReringProject.Custom.UI {
         }
 
         private void PrevImageButton_Click(object sender, RoutedEventArgs e) {
-            //260625 hbk Phase 61.1 이전 이미지로 인덱스 이동
+            //260625 hbk 이전 이미지로 인덱스 이동
             if (_loadedImagePaths.Count == 0) {
                 lbl_loaderStatus.Text = "폴더 먼저 열기";
                 return;
@@ -2112,7 +2112,7 @@ namespace ReringProject.Custom.UI {
         }
 
         private void NextImageButton_Click(object sender, RoutedEventArgs e) {
-            //260625 hbk Phase 61.1 다음 이미지로 인덱스 이동
+            //260625 hbk 다음 이미지로 인덱스 이동
             if (_loadedImagePaths.Count == 0) {
                 lbl_loaderStatus.Text = "폴더 먼저 열기";
                 return;
@@ -2130,7 +2130,7 @@ namespace ReringProject.Custom.UI {
         /// <summary>
         /// 현재 인덱스 이미지를 뷰어에 로드하고 상태 라벨을 갱신한다.
         /// _viewer.LoadImage(path) 호출 → CurrentImage 갱신 → 기존 Teach/Run 핸들러 자동 사용.
-        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만 (T-61.1-03 완화).
+        /// 파일 I/O 실패 시 throw 없이 lbl_loaderStatus 갱신만 .
         /// </summary>
         private void LoadCurrentLoaderImage() {
             if (_viewer == null) {

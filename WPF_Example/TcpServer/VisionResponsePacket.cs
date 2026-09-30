@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ReringProject.Define;
 using ReringProject.Sequence;
-using ReringProject.Setting; //260622 hbk Phase 48
+using ReringProject.Setting;
 
 namespace ReringProject.Network {
     public enum EVisionResponseType {
@@ -16,11 +16,11 @@ namespace ReringProject.Network {
         Test,
         GrabStatus,
 
-        AlignResult,   //260624 hbk Phase 63 AV-09: Align 결과 응답 ($ALIGN_RESULT)
-        AlignCalib,    //260624 hbk Phase 63 AV-09: Align 캘리브 ack 응답 ($ALIGN_CALIB)
-        PrepAck,       //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답
+        AlignResult,   //260624 hbk Align 결과 응답 ($ALIGN_RESULT)
+        AlignCalib,    //260624 hbk Align 캘리브 ack 응답 ($ALIGN_CALIB)
+        PrepAck,       //260625 hbk $PREP_ACK 응답
         Alive,         //260625 hbk v3.0: $ALIVE heartbeat 응답
-        ResetAck,      //260807 hbk quick-260807-lh7: $RESET_ACK 응답
+        ResetAck,      //260807 hbk $RESET_ACK 응답
 
         Unknown = 999
     }
@@ -33,7 +33,7 @@ namespace ReringProject.Network {
         TECHING = 4,        // 05.20 Insert
     }
 
-    //260623 hbk Phase 49 PROTO-05: 멀티샷 사이클 판정 결과 (D-07). enum 신설 범위 = 이 1개만.
+    //260623 hbk 멀티샷 사이클 판정 결과 . enum 신설 범위 = 이 1개만.
     //  Buffer = 중간 Index 진행 중(NG 포함 가능) / Pass = 마지막 Index 전체 OK / Fail = 마지막 Index NG 있음 or Datum 실패.
     //  라이프사이클 상태는 멤버 bool(m_bCycleHasNG 등)로 표현 — A-2(멤버 상태) 결정과 일관. CycleState 라이프사이클 enum 미도입.
     public enum ECycleResult : int {
@@ -56,31 +56,31 @@ namespace ReringProject.Network {
         public const string CMD_SEND_LIGHT = "LIGHT";
         public const string CMD_SEND_TEST = "RESULT";
         public const string CMD_SEND_GRAB_STATUS = "GRAB_STATUS";
-        public const string CMD_SEND_ALIGN_RESULT = "ALIGN_RESULT";   //260624 hbk Phase 63 AV-09: Align 결과 송신 커맨드
-        public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Phase 63 AV-09: Align 캘리브 ack 송신 커맨드
-        public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 송신 커맨드
+        public const string CMD_SEND_ALIGN_RESULT = "ALIGN_RESULT";   //260624 hbk Align 결과 송신 커맨드
+        public const string CMD_SEND_ALIGN_CALIB = "ALIGN_CALIB";     //260624 hbk Align 캘리브 ack 송신 커맨드
+        public const string CMD_SEND_PREP_ACK = "PREP_ACK";           //260625 hbk $PREP_ACK 송신 커맨드
         public const string CMD_SEND_ALIVE = "ALIVE";                  //260625 hbk v3.0: $ALIVE heartbeat 송신 커맨드
         public const string CMD_SEND_RESET_ACK = "RESET";              //260820 hbk 응답 커맨드명을 RESET_ACK → RESET 으로 변경(제어팀 요청, 실제 페이로드 포맷($RESET:site,OK|FAIL@)은 무변경)
 
         public const string RESULT_OK = "OK";
         public const string RESULT_NG = "NG";
-        public const int ALIGN_CALIB_NG_STEP_NO = 97;   //260810 hbk quick-260810-olh: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 N값(제어팀 요청)
-        public const string ALIGN_CALIB_NG_CMD = "4";   //260811 hbk plc-spec-260811-alignment: ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 CMD값(제어팀 확정 스펙, 엑셀 R179행)
+        public const int ALIGN_CALIB_NG_STEP_NO = 97;   //260810 hbk ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 N값(제어팀 요청)
+        public const string ALIGN_CALIB_NG_CMD = "4";   //260811 hbk ALIGN_CALIB 실패(NG) 시 명령 종류 무관 고정 CMD값(제어팀 확정 스펙, 엑셀 R179행)
 
         public const string TEST_RESULT_PASS = "P";
         public const string TEST_RESULT_FAIL = "F";
         public const string TEST_RESULT_NOTEXIST = "N";
         public const string TEST_RESULT_ANGLE_FAIL = "A";           //12.21
         public const string TEST_RESULT_TEACHING = "T";             //05.20 Insert
-        public const string TEST_RESULT_ERROR = "E";       //260811 hbk plc-spec-260811-alignment: 카메라/조명 하드웨어 에러 전용(측정은 됐으나 공차 불합격=F 와 구분, 엑셀 63행)
+        public const string TEST_RESULT_ERROR = "E";       //260811 hbk 카메라/조명 하드웨어 에러 전용(측정은 됐으나 공차 불합격=F 와 구분, 엑셀 63행)
 
         public const string SITE_STATUS_READY = "READY";
         public const string SITE_STATUS_BUSY = "BUSY";
         public const string SITE_STATUS_ERROR = "ERROR";
 
-        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 3단 구분자 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@).
+        //260622 hbk v1.0 RESULT 3단 구분자 ($RESULT:site;P|F|B;count;id=val=OK|NG,...@).
         public const char MSG_RESULT_HEADER_SEP = ';';   // 헤더 구분자 (site/판정/count 사이)
-        public const char MSG_RESULT_ITEM_SEP   = ',';   //260807 hbk quick-260807-omy v-next $RESULT 항목목록 폐기로 현재 미사용 (선언은 유지)
+        public const char MSG_RESULT_ITEM_SEP   = ',';   //260807 hbk v-next $RESULT 항목목록 폐기로 현재 미사용 (선언은 유지)
         public const char MSG_RESULT_INNER_SEP  = '=';   // 항목 내부 구분자 (id=val=judge)
         public const string TEST_RESULT_BUFFER  = "B";   // cycle 진행 중(Buffer) 판정
         
@@ -186,7 +186,7 @@ namespace ReringProject.Network {
                 case EVisionResponseType.Test:
                     TestResultPacket testPacket = packet.AsTestResult();
 
-                    // 260622 hbk Phase 48 PROTO-02: v1.0 분기 — 3단 구분자 RESULT. v2.6 면 기존 누적 블록 보존(회귀 0).
+                    //260622 hbk v1.0 분기 — 3단 구분자 RESULT. v2.6 면 기존 누적 블록 보존.
                     bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
                     if (bUseV1)
                     {
@@ -226,8 +226,8 @@ namespace ReringProject.Network {
                         }
                     }
                     // ⚠ 커플링 결함: 와이어 site 정수를 내부 ESequence enum 값과 직접 비교한다.
-                    //  Phase 73 은 ESequence.Bottom=3 을 유지하므로 동작 회귀는 없으나, enum 번호를 재배치하면
-                    //  이 비교가 조용히 깨진다. v2.6 경로 전용이라 이번 phase 에서는 동작을 바꾸지 않는다.
+                    //  현재 ESequence.Bottom=3 을 유지하므로 동작 문제는 없으나, enum 번호를 재배치하면
+                    //  이 비교가 조용히 깨진다. v2.6 경로 전용이라 동작은 바꾸지 않았다.
                     else if ((testPacket.InspectionType == (int)ETestType.Inspection) && testPacket.Site == (int)ESequence.Bottom)
                     {
                         for (int i = 0; i < 10; i++)
@@ -264,19 +264,19 @@ namespace ReringProject.Network {
 
                     break;
                 case EVisionResponseType.AlignResult:
-                    msg += BuildAlignResultMessage(packet.AsAlignResult());   //260624 hbk Phase 63
+                    msg += BuildAlignResultMessage(packet.AsAlignResult());
                     break;
                 case EVisionResponseType.AlignCalib:
-                    msg += BuildAlignCalibMessage(packet.AsAlignCalib());     //260624 hbk Phase 63
+                    msg += BuildAlignCalibMessage(packet.AsAlignCalib());
                     break;
                 case EVisionResponseType.PrepAck:
-                    msg += BuildPrepAckMessage(packet.AsPrepAck()); //260625 hbk Phase 64 LIGHT-01
+                    msg += BuildPrepAckMessage(packet.AsPrepAck());
                     break;
                 case EVisionResponseType.Alive:
                     msg += BuildAliveMessage(packet.AsAlive()); //260625 hbk v3.0
                     break;
                 case EVisionResponseType.ResetAck:
-                    msg += BuildResetAckMessage(packet.AsResetAck()); //260807 hbk quick-260807-lh7
+                    msg += BuildResetAckMessage(packet.AsResetAck());
                     break;
                 case EVisionResponseType.Unknown:
                     return null;
@@ -284,11 +284,11 @@ namespace ReringProject.Network {
             return msg;
         }
 
-        // 260622 hbk Phase 48 PROTO-02: v1.0 RESULT 직렬화.
-        //260807 hbk quick-260807-omy v-next: $RESULT:site;Type;P|F|B@ (STX/ETX 는 TcpServer 부착).
+        //260622 hbk v1.0 RESULT 직렬화.
+        // v-next: $RESULT:site;Type;P|F|B@ (STX/ETX 는 TcpServer 부착).
         //  count/개별 FAI 항목목록은 v-next 에서 와이어에서만 제거되었으며, 내부 FAICount/FAIResults 는 그대로 살아있다(UI·엑셀export 계속 소비).
         //  Datum 샷(FAICount=0)일 때 옛 형식이 만들던 trailing ';' 도 함께 사라진다.
-        //260624 hbk Phase 63 PROTO-Type: site 뒤 ;Type; echo 삽입 (Type 빈값이면 ;; 자리 보존).
+        // PROTO-Type: site 뒤 ;Type; echo 삽입 (Type 빈값이면; 자리 보존).
         private static string BuildResultMessageV1(TestResultPacket testPacket)
         {
             string szMsg = "";
@@ -296,15 +296,15 @@ namespace ReringProject.Network {
             szMsg += VisionServer.MSG_CMD_SEPERATOR;      // ':'
             szMsg += testPacket.Site.ToString();
             szMsg += MSG_RESULT_HEADER_SEP;               // ';'
-            szMsg += testPacket.Type;                     //260624 hbk Phase 63 Type echo (빈값이면 빈 토큰)
-            szMsg += MSG_RESULT_HEADER_SEP;               // ';'  //260624 hbk Phase 63
+            szMsg += testPacket.Type;                     //260624 hbk Type echo (빈값이면 빈 토큰)
+            szMsg += MSG_RESULT_HEADER_SEP;
             szMsg += MapCycleJudgement(testPacket);       // P|F|B
             return szMsg;
         }
 
-        // 260622 hbk Phase 48 PROTO-02: cycle 종합 판정 → P/F/B 매핑. IsBuffer 최우선(진행 중), OK=P, 그 외=F.
-        // 판정 '결정' 로직은 Phase 49. 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
-        //260811 hbk plc-spec-260811-alignment: HasHardwareError 를 IsBuffer 보다도 먼저 확인 — 카메라
+        //260622 hbk cycle 종합 판정 → P/F/B 매핑. IsBuffer 최우선(진행 중), OK=P, 그 외=F.
+        // 판정 '결정' 로직은 . 여기선 이미 확정된 Result/IsBuffer 를 문자로 변환만.
+        // HasHardwareError 를 IsBuffer 보다도 먼저 확인 — 카메라
         //  하드웨어 grab 실패는 "측정을 아예 못 했다"는 뜻이라 진행 중(B)이든 완료(P/F)든 사이클 상태와
         //  무관하게 무조건 E 로 나가야 한다(제어팀 확정 스펙, 엑셀 63행). 이 필드는 두 신호가 OR 로 합쳐진
         //  결과다 — (1) 카메라: Action_FAIMeasurement 의 실기 grab 실패 감지(EStep.Grab/GrabOrLoadDatumImage),
@@ -382,17 +382,17 @@ namespace ReringProject.Network {
                 }
                 szItems += item.ItemName;                   // OffsetX / OffsetY / Theta
                 szItems += MSG_RESULT_INNER_SEP;            // '='
-                szItems += item.Value.ToString("+0.000;-0.000;+0.000");    // val //260810 hbk quick-260810-cgl: 고정폭 파싱 위해 양수/0 도 '+' 부호 고정 (펨텍 PLC팀 요청)
+                szItems += item.Value.ToString("+0.000;-0.000;+0.000");    //260810 hbk val/: 고정폭 파싱 위해 양수/0 도 '+' 부호 고정 (펨텍 PLC팀 요청)
             }
             return szItems;
         }
 
-        //260810 hbk quick-260810-olh: 제어팀 요청 — N(현재 스텝 번호) 필드를 명령 종류(START/STEP/END/ABORT) 무관하게
+        //260810 hbk 제어팀 요청 — N(현재 스텝 번호) 필드를 명령 종류(START/STEP/END/ABORT) 무관하게
         //  항상 출력한다. 성공 시 의미는 ProcessAlignCalib 가 세팅한 packet.StepNo 그대로(START=0/STEP=1~36/END=99/
         //  ABORT=98), 실패(NG) 시엔 명령 종류 무관하게 항상 ALIGN_CALIB_NG_STEP_NO(97) — 이 실패 sentinel 결정을
         //  여기 한 곳으로 중앙화해 ProcessAlignCalib 의 여러 실패 반환 지점(5곳)이 개별로 StepNo=97 을 챙길 필요가
-        //  없도록 한다(빠뜨림 방지, 근거: .planning/quick/260810-olh-align-calib-stepno-all-commands/).
-        //260811 hbk plc-spec-260811-alignment: 제어팀 확정 스펙(엑셀 R179행) — CMD 필드도 N 값과 동일 원칙으로
+        //  없도록 한다(빠뜨림 방지).
+        // 제어팀 확정 스펙(엑셀 R179행) — CMD 필드도 N 값과 동일 원칙으로
         //  실패(NG) 시엔 수신 명령 종류(0~3) 무관하게 항상 ALIGN_CALIB_NG_CMD("4") 고정. 성공 시엔 기존대로
         //  packet.CmdStr echo 유지(회귀 0). CMD/N 두 값 모두 이 한 곳(bIsPass 분기)에서만 결정한다.
         private static string BuildAlignCalibMessage(AlignCalibResultPacket packet)
@@ -436,7 +436,7 @@ namespace ReringProject.Network {
         // $PREP_ACK 직렬화 → $PREP_ACK:site,Type,z_index,OK|FAIL@ (구분자 3개).
         //  Type 은 요청 echo. 규격 위반 요청이라 Type 을 못 읽었으면 빈 필드를 그대로 내보낸다 —
         //  임의 기본값("0"=TOP)을 채우면 제어가 "우리가 안 보낸 Type 을 받았다"고 오해한다.
-        //  IsOk 의미(D-73-08 확정): FAIL = 조명 세팅 실패 또는 요청 규격 위반. 검사 항목 유무는 반영하지 않는다.
+        //  IsOk 의미( 확정): FAIL = 조명 세팅 실패 또는 요청 규격 위반. 검사 항목 유무는 반영하지 않는다.
         private static string BuildPrepAckMessage(PrepAckPacket packet)
         {
             string szMsg = "";
@@ -465,8 +465,8 @@ namespace ReringProject.Network {
             return szMsg;
         }
 
-        //260807 hbk quick-260807-lh7: $RESET 응답 직렬화 → $RESET:site,OK|FAIL@ (STX/ETX 는 TcpServer 부착).
-        //  260820 hbk 커맨드명 RESET_ACK → RESET 변경(제어팀 요청) — CMD_SEND_RESET_ACK 상수 값만 바뀌었을 뿐 이 메서드 로직은 무변경.
+        //260807 hbk $RESET 응답 직렬화 → $RESET:site,OK|FAIL@ (STX/ETX 는 TcpServer 부착).
+        //  커맨드명 RESET_ACK → RESET 변경(제어팀 요청) — CMD_SEND_RESET_ACK 상수 값만 바뀌었을 뿐 이 메서드 로직은 무변경.
         //  PREP_ACK 와 동일 스타일이되 z_index 필드가 없어 구분자가 1개 적다. site 는 요청 echo.
         //  IsOk=false 는 "리셋을 못 했다"(예: 시퀀스가 검사 실행 중이라 건너뜀)는 뜻 — 통신 실패가 아니다.
         private static string BuildResetAckMessage(ResetAckPacket packet)
@@ -521,19 +521,17 @@ namespace ReringProject.Network {
             return this as GrabStatusResultPacket;
         }
 
-        //260624 hbk Phase 63 AV-09: Align 응답 다운캐스트 헬퍼 (As* 패턴).
+        //260624 hbk Align 응답 다운캐스트 헬퍼 (As* 패턴).
         public AlignResultPacket AsAlignResult() {
             if (ResponseType != EVisionResponseType.AlignResult) return null;
             return this as AlignResultPacket;
         }
 
-        //260624 hbk Phase 63 AV-09
         public AlignCalibResultPacket AsAlignCalib() {
             if (ResponseType != EVisionResponseType.AlignCalib) return null;
             return this as AlignCalibResultPacket;
         }
 
-        //260625 hbk Phase 64 LIGHT-01
         public PrepAckPacket AsPrepAck() {
             if (ResponseType != EVisionResponseType.PrepAck) return null;
             return this as PrepAckPacket;
@@ -545,7 +543,6 @@ namespace ReringProject.Network {
             return this as AliveResponsePacket;
         }
 
-        //260807 hbk quick-260807-lh7
         public ResetAckPacket AsResetAck() {
             if (ResponseType != EVisionResponseType.ResetAck) return null;
             return this as ResetAckPacket;
@@ -649,7 +646,7 @@ namespace ReringProject.Network {
 
     public class TestResultPacket : VisionResponsePacket {
         public int InspectionType { get; set; }
-        public string Type { get; set; } = "";   //260624 hbk Phase 63 PROTO-Type: 검사 대상 echo (TOP/BOTTOM/SIDE_1~4)
+        public string Type { get; set; } = "";   //260624 hbk PROTO-Type: 검사 대상 echo (TOP/BOTTOM/SIDE_1~4)
         public EVisionResultType Result { get; set; }
         public double Angle { get; set; }
         public double X { get; set; }
@@ -660,10 +657,10 @@ namespace ReringProject.Network {
         public int FAICount => FAIResults.Count;
         public bool IsDynamicFAI { get; set; } = false;
 
-        // 260622 hbk Phase 48 PROTO-02: v1.0 B(Buffer) 상태 플래그. 직렬화가 P/F 보다 우선 평가. 판정 엔진(Phase 49)이 set.
+        //260622 hbk v1.0 B(Buffer) 상태 플래그. 직렬화가 P/F 보다 우선 평가. 판정 엔진이 set.
         public bool IsBuffer { get; set; } = false;
 
-        // 260811 hbk plc-spec-260811-alignment: 카메라 하드웨어 grab 실패 플래그. 직렬화가 IsBuffer 보다도
+        //260811 hbk 카메라 하드웨어 grab 실패 플래그. 직렬화가 IsBuffer 보다도
         //  우선 평가되어 'E' 로 나간다(MapCycleJudgement). InspectionSequence 가 사이클 스코프로 set —
         //  공차 불합격(NG/F)과는 별개로, "측정 자체가 불가능했다"는 뜻이라 무조건 최우선.
         public bool HasHardwareError { get; set; } = false;
@@ -725,16 +722,16 @@ namespace ReringProject.Network {
         }
     }
 
-    //260624 hbk Phase 63 AV-09: Align 결과 항목 (OffsetX/Y/Theta 공용). id=val=judge 직렬화.
+    //260624 hbk Align 결과 항목 (OffsetX/Y/Theta 공용). id=val=judge 직렬화.
     public class AlignResultItem {
         public string ItemName { get; set; } = "";   // OffsetX / OffsetY / Theta
         public double Value { get; set; }
         public bool IsPass { get; set; } = true;
     }
 
-    //260624 hbk Phase 63 AV-09: $ALIGN_RESULT 응답 패킷. 가변 Items 로 Tray(2)/Bottom(3) 모두 수용.
-    //260625 hbk v3.0: MaterialNo 추가 — 자재번호 echo.
-    //260626 hbk v3.0: AlignFace int 0~5 echo (6지그) — 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2. TRAY=-1.
+    //260624 hbk $ALIGN_RESULT 응답 패킷. 가변 Items 로 Tray(2)/Bottom(3) 모두 수용.
+    // v3.0: MaterialNo 추가 — 자재번호 echo.
+    // v3.0: AlignFace int 0~5 echo (6지그) — 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2. TRAY=-1.
     public class AlignResultPacket : VisionResponsePacket {
         public string AlignTarget { get; set; } = "";   // TRAY / BOTTOM
         public int    MaterialNo  { get; set; } = -1;   //260625 hbk v3.0: 자재번호 echo
@@ -746,9 +743,9 @@ namespace ReringProject.Network {
         }
     }
 
-    //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 캘리브 ack 응답 패킷.
-    //260624 hbk Phase 63: AlignCalibResultPacket 으로 개명 — 수신측 AlignCalibPacket(VisionRequestPacket 파생)과 동명 충돌 회피
-    //260625 hbk v3.0: CmdStr/StepNo 추가. AlignTarget=BOTTOM 고정.
+    //260624 hbk $ALIGN_CALIB 캘리브 ack 응답 패킷.
+    // AlignCalibResultPacket 으로 개명 — 수신측 AlignCalibPacket(VisionRequestPacket 파생)과 동명 충돌 회피
+    // v3.0: CmdStr/StepNo 추가. AlignTarget=BOTTOM 고정.
     public class AlignCalibResultPacket : VisionResponsePacket {
         public string AlignTarget { get; set; } = "";
         public string CmdStr      { get; set; } = "";   //260625 hbk v3.0: START/STEP/END/ABORT echo
@@ -765,8 +762,8 @@ namespace ReringProject.Network {
         }
     }
 
-    //260625 hbk Phase 64 LIGHT-01: $PREP_ACK 응답 패킷.
-    // Phase 73: Type echo 추가 → IsOk=true 면 $PREP_ACK:site,Type,z_index,OK@ / false 면 ...,FAIL@
+    //260625 hbk $PREP_ACK 응답 패킷.
+    // Type echo 추가 → IsOk=true 면 $PREP_ACK:site,Type,z_index,OK@ / false 면 ...,FAIL@
     public class PrepAckPacket : VisionResponsePacket {
         public int ZIndex { get; set; }
         public bool IsOk { get; set; }
@@ -778,7 +775,7 @@ namespace ReringProject.Network {
         }
     }
 
-    //260807 hbk quick-260807-lh7: $RESET_ACK 응답 패킷. IsOk=true → $RESET_ACK:site,OK@ / false → $RESET_ACK:site,FAIL@
+    //260807 hbk $RESET_ACK 응답 패킷. IsOk=true → $RESET_ACK:site,OK@ / false → $RESET_ACK:site,FAIL@
     //  site 는 베이스 VisionResponsePacket.Site 사용(요청 echo 전용).
     public class ResetAckPacket : VisionResponsePacket {
         public bool IsOk { get; set; }

@@ -23,7 +23,7 @@ namespace ReringProject.Device {
     }
     public partial class HikCamera : VirtualCamera, IDisposable {
 
-        // 260724 hbk 임시 진단 — Logging.PrintLog 는 비동기(큐+백그라운드 스레드)라 네이티브 크래시가
+        //260724 hbk 임시 진단 — Logging.PrintLog 는 비동기(큐+백그라운드 스레드)라 네이티브 크래시가
         //  로그 스레드보다 먼저 프로세스를 죽이면 큐에 쌓인 메시지가 파일에 안 써진 채 유실된다.
         //  크래시 직전 상황을 확실히 남기기 위해 동기(즉시 flush) 방식으로 별도 파일에 기록.
         private static void SyncDiag(string msg) {
@@ -401,7 +401,7 @@ namespace ReringProject.Device {
                 Logging.PrintLog((int)ELogType.Camera, "[ERROR] {0} Open Fail. ({1})", Info.Identifier, e.Message);
                 return false;
             }
-            // 260724 hbk 버그 수정: base(VirtualCamera).IsOpen 이 한 번도 true 로 세팅되지 않아
+            //260724 hbk 버그 수정: base(VirtualCamera).IsOpen 이 한 번도 true 로 세팅되지 않아
             //  (Basler/MilCamera 는 세팅함) IsOpen 을 확인하는 모든 호출부(EthernetAlignCamera.Grab 등)가
             //  Open 성공 후에도 항상 false 로 봐서 실제 Grab 을 시도조차 못 하고 폴백으로 빠졌다.
             IsOpen = true;
@@ -416,7 +416,7 @@ namespace ReringProject.Device {
                     CameraHandle.DestroyHandle();
                 }
             }
-            IsOpen = false;   // 260724 hbk Open() 의 IsOpen=true 와 짝 — Close 후에는 반드시 false 로 복원
+            IsOpen = false;   //260724 hbk Open 의 IsOpen=true 와 짝 — Close 후에는 반드시 false 로 복원
         }
 
         public override bool ExecuteSoftwareTrigger() {
@@ -446,7 +446,7 @@ namespace ReringProject.Device {
             {
                 Interlocked.Increment(ref imageCount);
 
-                // 260724 hbk 임시 진단 — 대형 센서 카메라에서 GenImage1 직후 크래시 원인 추적.
+                //260724 hbk 임시 진단 — 대형 센서 카메라에서 GenImage1 직후 크래시 원인 추적.
                 //  GenImage1 은 nWidth*nHeight 바이트를 pData 에서 그대로 읽는다 — 실제 페이로드(nFrameLen)와
                 //  다르면(스트라이드/픽셀포맷 불일치) 버퍼 밖을 읽어 네이티브 크래시가 날 수 있다. GenImage1 호출
                 //  전에 로그를 남겨 크래시가 나도 원인 파악 가능하게 함.
@@ -491,7 +491,7 @@ namespace ReringProject.Device {
             }
         }
 
-        // 260724 hbk 버그 수정: GrabHalconImage(bool)의 `return GrabHalconImage();`가
+        //260724 hbk 버그 수정: GrabHalconImage(bool)의 `return GrabHalconImage;`가
         //  파라미터 없는 override 대신 자기 자신(bool 오버로드, 기본값 false)을 반복 호출해
         //  무한 재귀 → StackOverflowException (디버거로 실제 확인, 관리 코드 try/catch로는 못 잡힘 —
         //  오늘 하루 "크래시는 나는데 예외도 로그도 없다"의 정체). 두 오버로드가 공유하는 실제 로직을
@@ -640,7 +640,7 @@ namespace ReringProject.Device {
 
             if (CaptureMode == ECaptureModeType.Streaming) return true;
 
-            // 260724 hbk 버그 수정: SetSoftwareTriggerMode()는 재설정 전 StopStream()을 먼저 불러
+            //260724 hbk 버그 수정: SetSoftwareTriggerMode는 재설정 전 StopStream을 먼저 불러
             // 이전 grabbing 상태를 정리하는데, StartStream()엔 이 방어 로직이 빠져있었다 —
             // Grab()을 한 번이라도 실행한 뒤(CaptureMode=Trigger, native StartGrabbing 이미 활성) Live()를
             // 누르면 StartGrabbing() 이 "이미 그랩 중" 에러를 내며 실패, Live 버튼이 계속 실패로 보였다.

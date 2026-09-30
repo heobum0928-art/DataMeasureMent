@@ -37,7 +37,7 @@ namespace ReringProject.Setting {
         private string SettingJsonFile { get; set; } = AppDomain.CurrentDomain.BaseDirectory + @"Setting.json";
 
         //server
-        //260623 hbk Phase 49: v2.6 레거시 포트 — UI 숨김(혼란 방지). v1.0 전환 완료로 ServerPortV1 만 노출.
+        // v2.6 레거시 포트 — UI 숨김(혼란 방지). v1.0 전환 완료로 ServerPortV1 만 노출.
         //  INI 직렬화는 유지(v2.6 폴백 시 값 보존). UseProtocolV1=false 일 때만 사용되는 포트.
         [Browsable(false)]
         [Category("Connection|Server")]
@@ -53,7 +53,7 @@ namespace ReringProject.Setting {
         public string CurrentRecipeName { get; set; } = "A";
 
         //calibration
-        //260723 hbk: bin 폴더 기본값 → D:\Data 하위로 통합(Recipe/Light와 동일 정책). bin은 재빌드/재배포 시
+        // bin 폴더 기본값 → D:\Data 하위로 통합(Recipe/Light와 동일 정책). bin은 재빌드/재배포 시
         //  지워질 수 있는 산출물 폴더라 영속 데이터를 두면 안 된다 — PC 역할(Top/Bottom/Side) 공통, 역할별 분기 없음.
         [Category("Path|Calibration")]
         [DirectoryPath]
@@ -106,11 +106,11 @@ namespace ReringProject.Setting {
 
         public int LogDeleteDay { get; set; } = 30;
 
-        //data statistics                                              //260707 hbk STAT-01 D-01: 양산 이력 통계 CSV 저장 경로
-        [Category("Path|Statistics")]                                   //260707 hbk STAT-01 D-01: 자체 그룹(뒤 MapData 가 리셋 → 그룹 누출 0)
-        [DirectoryPath]                                                 //260707 hbk STAT-01 D-01
-        [AutoUpdateText]                                                //260707 hbk STAT-01 D-01
-        public string StatisticsSavePath { get; set; } = @"D:\Data\Statistics";   //260707 hbk STAT-01 D-01
+        //260707 hbk data statistics/ STAT-01: 양산 이력 통계 CSV 저장 경로
+        [Category("Path|Statistics")]                                   //260707 hbk STAT-01: 자체 그룹(뒤 MapData 가 리셋 → 그룹 누출 0)
+        [DirectoryPath]                                                 //260707 hbk STAT-01
+        [AutoUpdateText]                                                //260707 hbk STAT-01
+        public string StatisticsSavePath { get; set; } = @"D:\Data\Statistics";   //260707 hbk STAT-01
 
         //data path
         [Category("Path|MapData")]
@@ -121,7 +121,7 @@ namespace ReringProject.Setting {
         [AutoUpdateText]
         public string MapDataSavePath { get; set; } = @"D:\Data\Save";
 
-        //260723 hbk: account.db/카메라 .cfg/DisplayConfig.ini — 이전엔 AppDomain.BaseDirectory(bin 폴더)에
+        //260723 hbk account.db/카메라 .cfg/DisplayConfig.ini — 이전엔 AppDomain.BaseDirectory(bin 폴더)에
         //  하드코딩되어 있어 재배포 시 유실되던 파일 3종. 위 Path|* 그룹들과 동일하게 D:\Data 하위로 통합.
         [Category("Path|Account")]
         [AutoUpdateText]
@@ -137,14 +137,13 @@ namespace ReringProject.Setting {
         public string DisplayConfigFilePath { get; set; } = @"D:\Data\DisplayConfig.ini";
 
 
-        //260622 hbk Phase 48
-        // PROTO-01: v1.0 프로토콜 활성화 플래그 (D-06 v2.6/v1.0 공존). 기본 false → 구 INI 0 로드돼도 v2.6 유지.
+        //260622 hbk v1.0 프로토콜 활성화 플래그 ( v2.6/v1.0 공존). 기본 false → 구 INI 0 로드돼도 v2.6 유지.
         [Category("Connection|Protocol")]
         public bool UseProtocolV1 { get; set; } = false;
 
-        //260722 hbk Phase 68 GAP-3(68-10, 지침 #7 체크포인트 결정: enable-after-agreement) 크로스-Z Datum(2위치,
+        //260722 hbk (체크포인트 결정: enable-after-agreement) 크로스-Z Datum(2위치
         // 완성 index>=1) 실패 시 완성 index 에서 즉시 F 를 보낼지 게이팅. 기본 true(ON) — 제어팀(PLC) 합의 근거:
-        // Vision-Protocol-v1.0.md 판정(P/F/B) 표의 F 행 "PLC 동작" 열은 index 조건 없이 "NG 처리"로 단일 규정되어
+        // 표의 F 행 "PLC 동작" 열은 index 조건 없이 "NG 처리"로 단일 규정되어
         // 있다. PLC 는 B(다음 index 호출) vs P/F(해당 부품 종료, 다음 부품 진행)만 분기하며 index 번호로 분기하지
         // 않으므로, 완성 index 가 0 이 아닌 z(예: Side 2위치 Datum 의 z=1)에서 F 가 나가도 동일하게 처리된다.
         // "Datum(Index 0) 실패 시 즉시" 문구는 지금까지 Datum 이 항상 index 0 에서 완성됐던 관측 사실을 서술한
@@ -152,13 +151,11 @@ namespace ReringProject.Setting {
         [Category("Connection|Protocol")]
         public bool EnableCrossZDatumImmediateFail { get; set; } = true;
 
-        //260622 hbk Phase 48
-        // PROTO-01: PC 역할 (D-03 빌드 상수 대신 설정 지정). 1=PC1(TOP/BOTTOM), 2=PC2(SIDE_1/SIDE_2).
+        //260622 hbk PC 역할 ( 빌드 상수 대신 설정 지정). 1=PC1(TOP/BOTTOM), 2=PC2(SIDE_1/SIDE_2).
         [Category("Connection|Server")]
         public int PcRole { get; set; } = 1;
 
-        //260622 hbk Phase 48
-        // PROTO-01: v1.0 전용 포트 (엑셀 규격 7701). ServerPort(2505) 는 v2.6 호환 유지 — v1.0 포트는 별도 속성으로 분리.
+        //260622 hbk v1.0 전용 포트 (엑셀 규격 7701). ServerPort(2505) 는 v2.6 호환 유지 — v1.0 포트는 별도 속성으로 분리.
         [Category("Connection|Server")]
         public int ServerPortV1 { get; set; } = 7701;
 
@@ -193,8 +190,7 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool OfflineInspectMode { get; set; } = false;
 
-        //260810 hbk quick-260810-egx
-        // 자동검사(TCP $PREP/$TEST) 사이클 동안 화면 실시간 표시를 끄는 모드(tact 우선).
+        //260810 hbk 자동검사(TCP $PREP/$TEST) 사이클 동안 화면 실시간 표시를 끄는 모드(tact 우선).
         //  ON 이면 표시 목적의 127MP 이미지 복사 2회/Shot(Action 사본 + SequenceContext clone) 과
         //  UI 뷰어 로드를 자동검사 중에만 생략한다. 수동 RUN / 티칭 / 일괄검사는 이 설정과 무관하게 항상 표시된다.
         //  주의: 저장되는 capture/original 이미지는 이 설정과 무관하게 OK/NG 전부 기존 그대로 저장된다(저장 경로 무변경).
@@ -202,28 +198,28 @@ namespace ReringProject.Setting {
         [Category("System|Enviroment")]
         public bool DisableViewerDuringAutoInspect { get; set; } = false;
 
-        // Phase 74 — 패턴 모델(.shm/.ncm) 생성 시 브러시 마스크를 적용할지 여부(D-74-02/03).
+        //260827 hbk 패턴 모델(.shm/.ncm) 생성 시 브러시 마스크를 적용할지 여부.
         //  기본 false = 기존 경로 그대로(회귀 0). false 인 동안에는 마스크 파일이 디스크에 남아 있어도
         //  PatternMaskService.TryLoadMask 가 파일 존재 여부를 보지도 않고 즉시 false 를 돌려준다.
         //  INI 키 누락 시 Load 의 ToBool 기본값이 false 라 기존 설치본은 자동으로 기존 동작을 유지한다.
         [Category("System|Enviroment")]
         public bool UsePatternBrushMask { get; set; } = false;
 
-        // quick-260909-mr4 — 자동 검사 한 사이클이 촬영한 이미지를 각 Shot/Datum 노드의 오프라인
+        //260910 hbk 자동 검사 한 사이클이 촬영한 이미지를 각 Shot/Datum 노드의 오프라인
         //  검사이미지 경로(OfflineInspect)에도 함께 저장한다. 평소 생산 중에는 끄고, 티칭을 새로
         //  갱신하거나 [검사Grab] 수작업을 대체하고 싶을 때만 켜는 용도다.
         //  INI 키 누락 시 Load 의 ToBool 기본값이 false 라 기존 설치본은 자동으로 꺼진 상태를 유지한다.
         [Category("System|Enviroment")]
         public bool AutoFillOfflineImages { get; set; } = false;
 
-        // Phase 77 D-77-06 ③/D-77-07 ④ — 자동 검사 중 Z 범위 Shot 의 후보 z 사진을 전부 원본(origin) 폴더에
+        //260915 hbk ③/ ④ — 자동 검사 중 Z 범위 Shot 의 후보 z 사진을 전부 원본(origin) 폴더에
         //  저장하고 cycle.json 에 기록해 사무실 재검사로 선택 로직(동점 규칙 등)을 검증하는 용도다.
         //  SIDE 한 장 약 127MB(bmp) 곱하기 z 개수가 사이클마다 쌓이므로 평소 생산 중에는 반드시 끈다.
         //  INI 키 누락 시 Load 의 ToBool 기본값이 false 라 기존 설치본은 자동으로 꺼진 상태를 유지한다.
         [Category("System|Enviroment")]
         public bool SaveZRangeCandidateImages { get; set; } = false;
 
-        // 260820 hbk 원본(origin) 캡쳐 이미지 저장 포맷 선택 — CaptureImageSaveService.SaveWorker 가 참조.
+        //260820 hbk 원본(origin) 캡쳐 이미지 저장 포맷 선택 — CaptureImageSaveService.SaveWorker 가 참조.
         //  capture(오버레이 렌더) 이미지는 이 설정과 무관하게 기존대로 JPEG 고정(범위 밖, 사용자 확정).
         [Category("System|Enviroment")]
         [ItemsSourceProperty("OriginImageFormatList")]
@@ -392,13 +388,11 @@ namespace ReringProject.Setting {
                     Logging.PrintErrLog((int)ELogType.Error, e.Message);
                 }
             }
-            //260622 hbk Phase 48
-            // PROTO-01: INI 로드 후 Custom partial 가드 호출 — PcRole 등 기본값≠0 항목 복원.
+            //260622 hbk INI 로드 후 Custom partial 가드 호출 — PcRole 등 기본값≠0 항목 복원.
             AfterLoad();
         }
 
-        //260622 hbk Phase 48
-        // PROTO-01: Load 후처리 partial 후크 — Custom/SystemSetting.cs 에서 구현.
+        //260622 hbk Load 후처리 partial 후크 — Custom/SystemSetting.cs 에서 구현.
         partial void AfterLoad();
 
         public void Save() {

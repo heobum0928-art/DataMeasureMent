@@ -9,7 +9,7 @@ using ReringProject.Utility;
 
 namespace ReringProject.Sequence
 {
-    // Phase 80 D-80-02: 리뷰어 행이 불러오기를 막는 사유. CanApply 는 None 일 때만 true 가 된다
+    //260918 hbk 리뷰어 행이 불러오기를 막는 사유. CanApply 는 None 일 때만 true 가 된다
     // (SequenceBusy·SavedCycleRerunActive 는 예외 — 버튼은 그대로 두고 이유만 보여준다, VM 이 처리).
     public enum EReviewerRowBlock
     {
@@ -23,7 +23,7 @@ namespace ReringProject.Sequence
         SavedCycleRerunActive
     }
 
-    // Phase 80 D-80-06: LoadForRow 가 돌린 자동 Test Find 결과.
+    //260918 hbk LoadForRow 가 돌린 자동 Test Find 결과.
     public enum EReviewerTestFindResult
     {
         NotRun,
@@ -31,7 +31,7 @@ namespace ReringProject.Sequence
         Failed
     }
 
-    // Phase 80: LoadForRow 결과. 실패 시 Live* 는 전부 비어 있다.
+    //260918 hbk LoadForRow 결과. 실패 시 Live* 는 전부 비어 있다.
     public class ReviewerReinspectLoadResult
     {
         public bool IsLoaded { get; set; }
@@ -41,14 +41,14 @@ namespace ReringProject.Sequence
         public FAIConfig LiveFai { get; set; }
         public MeasurementBase LiveMeasurement { get; set; }
 
-        /// <summary>Phase 80 D-80-09/19: NG 측정의 기준점 사진 짝이 맞지 않아 Shot 사진만 들어왔다.</summary>
+        /// <summary>: NG 측정의 기준점 사진 짝이 맞지 않아 Shot 사진만 들어왔다.</summary>
         public bool IsDatumPhotoMissing { get; set; }
 
         /// <summary>고른 측정이 실제로 쓴 z 사진 경로 — 메인 캔버스에 그 사진을 띄우기 위함. 없으면 빈 문자열.</summary>
         public string SelectedZPhotoPath { get; set; } = "";
     }
 
-    // Phase 80 D-80-12: 메인 화면 상태 줄이 표시할 값. VM 이 문자열로 조립한다.
+    //260918 hbk 메인 화면 상태 줄이 표시할 값. VM 이 문자열로 조립한다.
     public class ReviewerReinspectState
     {
         public bool IsActive { get; set; }
@@ -57,16 +57,16 @@ namespace ReringProject.Sequence
         public string ShotName { get; set; }
         public string MeasurementName { get; set; }
 
-        /// <summary>Phase 80 D-80-14: 불러온 NG Shot 사진이 .jpg/.jpeg 다.</summary>
+        /// <summary>: 불러온 NG Shot 사진이 .jpg/.jpeg 다.</summary>
         public bool IsJpgPhoto { get; set; }
 
-        /// <summary>Phase 80 D-80-08: Z 범위 Shot 인데 z 후보 사진이 없어 고른 z 한 장으로만 검사한다.</summary>
+        /// <summary>: Z 범위 Shot 인데 z 후보 사진이 없어 고른 z 한 장으로만 검사한다.</summary>
         public bool IsZCandidateMissing { get; set; }
 
-        /// <summary>Phase 80 D-80-09/19: 기준점 사진 짝이 안 맞아 지금 기준점 사진을 그대로 쓴다.</summary>
+        /// <summary>: 기준점 사진 짝이 안 맞아 지금 기준점 사진을 그대로 쓴다.</summary>
         public bool IsDatumPhotoKept { get; set; }
 
-        /// <summary>Phase 80 D-80-06: 불러오기 직후 자동으로 돌린 기준점 Test Find 결과(기본 NotRun).</summary>
+        /// <summary>: 불러오기 직후 자동으로 돌린 기준점 Test Find 결과(기본 NotRun).</summary>
         public EReviewerTestFindResult TestFindResult { get; set; }
 
         public ReviewerReinspectState Clone()
@@ -86,10 +86,10 @@ namespace ReringProject.Sequence
     }
 
     /// <summary>
-    /// Phase 80: 리뷰어에서 고른 NG 사이클의 사진을 메인 화면 레시피 객체(메모리)에 불러오고,
+    /// 리뷰어에서 고른 NG 사이클의 사진을 메인 화면 레시피 객체(메모리)에 불러오고
     /// 해제/저장/PLC 자동 검사/레시피 변경/프로그램 종료 시 원래 경로·OfflineInspectMode 로 되돌린다.
     /// RepeatRunService.SavedCycleOverrideSnapshot 과 같은 스냅샷/복원 방식을 쓰되, "버튼 한 번 = 부품 하나"
-    /// 라 큐가 아니라 활성 스냅샷 1개만 갖는다(D-80-11: 원래 값은 처음 것 유지, 대체 시 원복 후 재주입).
+    /// 라 큐가 아니라 활성 스냅샷 1개만 갖는다(: 원래 값은 처음 것 유지, 대체 시 원복 후 재주입).
     /// UI 스레드(불러오기·저장)와 MainRun 백그라운드 스레드(PLC 해제) 동시 접근을 s_lock 으로 보호한다.
     /// </summary>
     public static class ReviewerReinspectService
@@ -101,11 +101,11 @@ namespace ReringProject.Sequence
         public const string RELEASE_REASON_SHUTDOWN = "프로그램 종료";
         private const string LOG_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-        // Phase 80 D-80-14: 불러온 사진 확장자 판정용.
+        //260918 hbk 불러온 사진 확장자 판정용.
         private const string JPG_EXTENSION = ".jpg";
         private const string JPEG_EXTENSION = ".jpeg";
 
-        // Phase 80: RepeatRunService.SavedCycleOverrideSnapshot(:442-453)과 같은 사전 5개 구성.
+        //260918 hbk RepeatRunService.SavedCycleOverrideSnapshot(:442-453)과 같은 사전 5개 구성.
         private sealed class ReviewerOverrideSnapshot
         {
             public readonly Dictionary<ShotConfig, string> ShotSimulImagePaths = new Dictionary<ShotConfig, string>();
@@ -125,11 +125,11 @@ namespace ReringProject.Sequence
         private static ReviewerReinspectState s_state;
         private static readonly List<ShotConfig> s_lstBufferedShots = new List<ShotConfig>();
 
-        // Phase 80 D-80-09/19: 이번 불러오기가 기준점 사진을 실제로 적용했는지(완전할 때만) — 저장 뒤
+        //260918 hbk 이번 불러오기가 기준점 사진을 실제로 적용했는지(완전할 때만) — 저장 뒤
         //  재적용(RunWithOriginalPaths)도 이 값을 따른다.
         private static bool s_bDatumPhotosApplied;
 
-        // Phase 80 함께 처리 1: 이번 불러오기가 LastOverlays 를 복사해 넣은 FAI 들 — [해제]/다음 불러오기에서 비운다.
+        //260918 hbk 함께 처리 1: 이번 불러오기가 LastOverlays 를 복사해 넣은 FAI 들 — [해제]/다음 불러오기에서 비운다.
         private static readonly List<FAIConfig> s_lstOverlayFais = new List<FAIConfig>();
 
         public static event Action StateChanged;
@@ -175,7 +175,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80 D-80-02/17: 버튼 활성 여부 판단 — VM.EvaluateSelection 이 호출한다.
+        //260918 hbk 버튼 활성 여부 판단 — VM.EvaluateSelection 이 호출한다.
         public static EReviewerRowBlock CheckRow(CycleResultDto cycle, ShotResultDto shotDto, FaiResultDto faiDto, out string szDetail)
         {
             szDetail = "";
@@ -432,7 +432,7 @@ namespace ReringProject.Sequence
             return null;
         }
 
-        // Phase 80: RepeatRunService.cs:805-813 과 같은 규칙 — 이름이 비면 TypeName 을 키로 쓴다.
+        //260918 hbk RepeatRunService.cs:805-813 과 같은 규칙 — 이름이 비면 TypeName 을 키로 쓴다.
         private static string BuildMeasurementKey(string szName, string szTypeName)
         {
             if (string.IsNullOrEmpty(szName))
@@ -459,7 +459,7 @@ namespace ReringProject.Sequence
             return null;
         }
 
-        // Phase 80 D-80-03/07/11/12/13: 고른 사이클의 사진을 메인 레시피 객체에 넣는다. UI 스레드 전용
+        //260918 hbk 고른 사이클의 사진을 메인 레시피 객체에 넣는다. UI 스레드 전용
         // (버튼 클릭 → VM.ApplySelection 이 부른다).
         public static ReviewerReinspectLoadResult LoadForRow(CycleResultDto cycle, ShotResultDto shotDto, FaiResultDto faiDto, MeasurementResultDto measDto)
         {
@@ -510,7 +510,7 @@ namespace ReringProject.Sequence
             InspectionRecipeManager recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
             SavedCycleRerunPart part = SavedCycleRerunPlanner.BuildPartForSingleCycle(cycle, seq, recipeManager);
 
-            // Phase 80 D-80-09/19: NG 측정이 쓰는 기준점의 사진 짝이 완전할 때만 기준점 사진을 적용한다.
+            //260918 hbk NG 측정이 쓰는 기준점의 사진 짝이 완전할 때만 기준점 사진을 적용한다.
             string szNgDatumRef;
             if (liveMeas != null)
             {
@@ -563,7 +563,7 @@ namespace ReringProject.Sequence
 
                 seq.ClearDatumTransforms();
 
-                // Phase 80 D-80-07: 사진이 들어온 소유 Shot 마다 화면 버퍼(전부, NG Shot 만이 아니다).
+                //260918 hbk 사진이 들어온 소유 Shot 마다 화면 버퍼(전부, NG Shot 만이 아니다).
                 ClearReviewerBuffers();
                 foreach (ShotConfig ownedShot in s_snapshot.OwnedShots)
                 {
@@ -574,7 +574,7 @@ namespace ReringProject.Sequence
                     }
                 }
 
-                // Phase 80 함께 처리 1: 사진이 들어온 소유 Shot 마다 그 사진을 찍은 tick 의 FAI 선을 복사.
+                //260918 hbk 함께 처리 1: 사진이 들어온 소유 Shot 마다 그 사진을 찍은 tick 의 FAI 선을 복사.
                 ClearReviewerOverlays();
                 ApplyReviewerOverlays(part, shotDto);
 
@@ -605,7 +605,7 @@ namespace ReringProject.Sequence
                 newState.IsDatumPhotoKept = bNeedsDatum && !bDatumComplete;
                 s_state = newState;
 
-                // Phase 80 D-80-06: 기준점 사진이 완전할 때만 — 경로·버퍼·선이 다 채워진 뒤 대화상자 없이
+                //260918 hbk 기준점 사진이 완전할 때만 — 경로·버퍼·선이 다 채워진 뒤 대화상자 없이
                 //  한 번 돈다. 이 서비스는 시퀀스를 시작하지 않는다 — RUN 은 사용자가 직접 누른다.
                 bool bRunTestFind = bNeedsDatum && bDatumComplete;
                 s_state.TestFindResult = RunAutoTestFind(seq, szNgDatumRef, bRunTestFind);
@@ -662,7 +662,7 @@ namespace ReringProject.Sequence
             return result;
         }
 
-        // Phase 80 D-80-06/D-80-09: 기준점 사진이 없으면(bEligible=false) 자동 Test Find 를 하지 않는다.
+        //260918 hbk 기준점 사진이 없으면(bEligible=false) 자동 Test Find 를 하지 않는다.
         //  대상 기준점을 찾아 DatumTestFindService(대화상자 없음)로 돌리고, 다음 수동 RUN 이 재사용하도록
         //  bHoldForManualRun=true 로 넘긴다. 이 메서드는 시퀀스를 시작하지 않는다 — RUN 은 사용자가 직접.
         private static EReviewerTestFindResult RunAutoTestFind(InspectionSequence seq, string szDatumRef, bool bEligible)
@@ -697,7 +697,7 @@ namespace ReringProject.Sequence
             return EReviewerTestFindResult.Failed;
         }
 
-        // Phase 80: RepeatRunService.BuildOverrideSnapshot(:455-491) 와 같은 필드·같은 순서.
+        //260918 hbk RepeatRunService.BuildOverrideSnapshot(:455-491) 와 같은 필드·같은 순서.
         private static ReviewerOverrideSnapshot BuildSnapshot(InspectionSequence seq, InspectionRecipeManager recipeManager)
         {
             ReviewerOverrideSnapshot snap = new ReviewerOverrideSnapshot();
@@ -736,7 +736,7 @@ namespace ReringProject.Sequence
             return snap;
         }
 
-        // Phase 80: RepeatRunService.RestoreOverridePathsOnly(:495-521) 와 같은 필드·같은 순서,
+        //260918 hbk RepeatRunService.RestoreOverridePathsOnly(:495-521) 와 같은 필드·같은 순서
         // 끝에 소유 Shot 의 RerunZRangeImagePaths = null.
         private static void RestorePathsOnly(ReviewerOverrideSnapshot snap)
         {
@@ -766,7 +766,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80 D-80-07/08/09: 부품의 Shot 사진을 소유 Shot 에 적용하고, 모든 소유 Shot 의 Z 후보 사전을
+        //260918 hbk 부품의 Shot 사진을 소유 Shot 에 적용하고, 모든 소유 Shot 의 Z 후보 사전을
         // 새로 채운다(비어 있어도 1장 폴백으로 동작). 기준점 사진은 완전할 때만(s_bDatumPhotosApplied),
         // 두 장짜리 측정 사진은 있는 것만 적용한다. 적용된 Shot 사진 수를 반환한다(로그용). 저장 뒤 재적용
         // (RunWithOriginalPaths)도 이 메서드를 그대로 호출하므로 같은 기준점 규칙을 따른다.
@@ -792,7 +792,7 @@ namespace ReringProject.Sequence
             return nApplied;
         }
 
-        // Phase 80 D-80-07/09/19: 이 기준점의 사진 짝이 완전할 때만(RepeatRunService.ApplySavedCyclePart 와
+        //260918 hbk 이 기준점의 사진 짝이 완전할 때만(RepeatRunService.ApplySavedCyclePart 와
         // 같은 역할 키·같은 대상) 기준점 사진을 적용한다. 완전하지 않은 기준점은 하나도 바꾸지 않는다.
         private static void ApplyDatumPhotos(SavedCycleRerunPart part, InspectionSequence seq)
         {
@@ -826,7 +826,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80: RepeatRunService.ApplySavedCyclePart(:749-764)/FindOwnedDualMeasurement(:784-822) 와
+        //260918 hbk RepeatRunService.ApplySavedCyclePart(:749-764)/FindOwnedDualMeasurement(:784-822) 와
         // 같은 규칙 — 있는 경로만 적용한다.
         private static void ApplyDualPhotos(SavedCycleRerunPart part)
         {
@@ -848,7 +848,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80: RepeatRunService.FindOwnedDualMeasurement(:784-822) 와 같은 규칙 — 이름이 비면 TypeName 을 키로 쓴다.
+        //260918 hbk RepeatRunService.FindOwnedDualMeasurement(:784-822) 와 같은 규칙 — 이름이 비면 TypeName 을 키로 쓴다.
         private static DualImageEdgeDistanceMeasurement FindOwnedDualMeasurement(string szShotName, string szFaiName, string szMeasKey)
         {
             foreach (var shot in s_snapshot.OwnedShots)
@@ -889,7 +889,7 @@ namespace ReringProject.Sequence
             return null;
         }
 
-        // Phase 80: 소유 Shot 의 SimulImagePath 가 스냅샷(불러오기 전 원래) 값과 달라졌는지 — 화면 버퍼·선
+        //260918 hbk 소유 Shot 의 SimulImagePath 가 스냅샷(불러오기 전 원래) 값과 달라졌는지 — 화면 버퍼·선
         // 복사가 공유하는 "사진이 들어온 Shot" 판정.
         private static bool HasShotPhotoChanged(ShotConfig shot)
         {
@@ -902,7 +902,7 @@ namespace ReringProject.Sequence
             return !string.Equals(shot.SimulImagePath, szSnapshotPath, StringComparison.Ordinal);
         }
 
-        // Phase 80 D-80-14: 확장자가 .jpg/.jpeg 면 true(팝업 없음, 상태 줄 안내만).
+        //260918 hbk 확장자가 .jpg/.jpeg 면 true(팝업 없음, 상태 줄 안내만).
         private static bool IsJpgPath(string szPath)
         {
             if (string.IsNullOrEmpty(szPath))
@@ -915,7 +915,7 @@ namespace ReringProject.Sequence
             return bJpg || bJpeg;
         }
 
-        // Phase 80 D-80-08: 이 Shot 이 부품에서 가진 Z 후보 사진 수(0 = 후보 없음, 고른 z 한 장으로 폴백).
+        //260918 hbk 이 Shot 이 부품에서 가진 Z 후보 사진 수(0 = 후보 없음, 고른 z 한 장으로 폴백).
         private static int CountZCandidates(SavedCycleRerunPart part, string szShotName)
         {
             Dictionary<int, string> dicShot;
@@ -927,7 +927,7 @@ namespace ReringProject.Sequence
             return dicShot.Count;
         }
 
-        // Phase 80 함께 처리 1: 사진이 들어온 소유 Shot 마다 그 사진을 찍은 tick 의 FAI 선을 메모리 FAI 에
+        //260918 hbk 함께 처리 1: 사진이 들어온 소유 Shot 마다 그 사진을 찍은 tick 의 FAI 선을 메모리 FAI 에
         // 복사한다 — 메인 화면에서 그 Shot/측정을 누르면 리뷰어에서 본 사진과 선이 보인다.
         private static void ApplyReviewerOverlays(SavedCycleRerunPart part, ShotResultDto shotDto)
         {
@@ -992,7 +992,7 @@ namespace ReringProject.Sequence
             return null;
         }
 
-        // Phase 80: 부품의 tick 들에서 이 Shot 이름 + 이 사진 경로(OriginImageFileName)를 낸 첫 ShotResultDto —
+        //260918 hbk 부품의 tick 들에서 이 Shot 이름 + 이 사진 경로(OriginImageFileName)를 낸 첫 ShotResultDto
         // NG Shot 이 아닌 다른 Shot(같은 자재의 다른 tick 사진)의 원천을 찾는다.
         private static ShotResultDto FindSourceShotDto(SavedCycleRerunPart part, string szShotName, string szImagePath)
         {
@@ -1046,7 +1046,7 @@ namespace ReringProject.Sequence
             return false;
         }
 
-        // Phase 80 함께 처리 1: 이전 불러오기에서 복사한 FAI 들의 LastOverlays 를 새 빈 List 로 비운다
+        //260918 hbk 함께 처리 1: 이전 불러오기에서 복사한 FAI 들의 LastOverlays 를 새 빈 List 로 비운다
         // (사용자 [해제] 전용 — 다른 해제 경로는 목록만 비우고 곧 새 검사가 선을 다시 채운다).
         private static void ClearReviewerOverlays()
         {
@@ -1057,7 +1057,7 @@ namespace ReringProject.Sequence
             s_lstOverlayFais.Clear();
         }
 
-        // Phase 80: RepeatRunService.BuildRerunZRangeMap(:769-782) 와 같은 규칙 — 항상 새 사전을 반환한다.
+        //260918 hbk RepeatRunService.BuildRerunZRangeMap(:769-782) 와 같은 규칙 — 항상 새 사전을 반환한다.
         private static Dictionary<int, string> BuildZRangeMap(SavedCycleRerunPart part, string szShotName)
         {
             Dictionary<int, string> dicResult = new Dictionary<int, string>();
@@ -1073,7 +1073,7 @@ namespace ReringProject.Sequence
             return dicResult;
         }
 
-        // Phase 80 D-80-07: 메인 캔버스가 Shot 버퍼(_image)를 먼저 보기 때문에, 새 경로를 즉시 HImage 로
+        //260918 hbk 메인 캔버스가 Shot 버퍼(_image)를 먼저 보기 때문에, 새 경로를 즉시 HImage 로
         // 읽어 넣는다. 여러 Shot 을 이어서 채우므로 여기서는 버퍼를 비우지 않는다(호출자가 한 번만 비운다).
         private static void LoadShotBuffer(ShotConfig liveShot)
         {
@@ -1111,7 +1111,7 @@ namespace ReringProject.Sequence
             s_lstBufferedShots.Clear();
         }
 
-        // Phase 80 D-80-11: 원래 경로로 되돌리는 4경로 공용 진입점 — [해제]/PLC 자동 검사/레시피 변경/프로그램 종료.
+        //260918 hbk 원래 경로로 되돌리는 4경로 공용 진입점 — [해제]/PLC 자동 검사/레시피 변경/프로그램 종료.
         public static void Release(string szReason)
         {
             ReleaseCore(szReason, false);
@@ -1174,7 +1174,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80 D-80-10: 저장하는 순간만 원래 사진 경로로 되돌리고, 저장 뒤(예외여도) 불러온 경로를 다시 넣는다.
+        //260918 hbk 저장하는 순간만 원래 사진 경로로 되돌리고, 저장 뒤(예외여도) 불러온 경로를 다시 넣는다.
         public static bool RunWithOriginalPaths(Func<bool> fnSave)
         {
             if (fnSave == null)
@@ -1205,7 +1205,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80 D-80-11: OnRecipeChanged 는 새 레시피를 읽은 뒤 발화하므로 옛 Shot 객체의 경로 복원은
+        //260918 hbk OnRecipeChanged 는 새 레시피를 읽은 뒤 발화하므로 옛 Shot 객체의 경로 복원은
         // 무해하고, 꼭 필요한 것은 상태 해제와 OfflineInspectMode 복원이다.
         public static void HandleRecipeChanged(object sender, RecipeChangedEventArgs args)
         {

@@ -45,7 +45,7 @@ namespace ReringProject.Sequence {
         // Fixture DisplayName — 사용자 편집 가능
         public string DisplayName { get; set; } = "";
 
-        //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled 토글 폐기 (ALIGN 대체, D-12/D-13)
+        //260619 hbk #6 leveling 제거 — LevelingEnabled 토글 폐기 (ALIGN 대체)
 
         // Multi-Datum — Fixture 레벨 Datum 소유
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -54,12 +54,12 @@ namespace ReringProject.Sequence {
         // 이번 런의 시작 시각(UTC). Datum 검출 스탬프와 비교해 "이번 사이클에 실제로 검출된 것" 만 기록한다.
         private DateTime _dtCycleStartUtc = DateTime.MinValue;
 
-        // quick-260911-fia Task 1: 이번 tick 에서 새로 촬영·저장된 기준점 사진 기록. 매 tick 시작(OnStart)에
+        //260911 hbk 이번 tick 에서 새로 촬영·저장된 기준점 사진 기록. 매 tick 시작(OnStart)에
         //  비워지고, BuildDto 직후 스냅샷을 cycle.json 의 DatumImages 에 붙인다 — 캐시 재사용 tick 은 빈 목록.
         private readonly object _tickDatumImageLock = new object();
         private readonly List<DatumImageRecordDto> _tickDatumImages = new List<DatumImageRecordDto>();
 
-        // Phase 77 D-77-06 ③: 이번 tick 에서 저장된 Z 범위 후보 사진 기록 — _tickDatumImageLock 을 그대로 재사용한다.
+        //260915 hbk ③: 이번 tick 에서 저장된 Z 범위 후보 사진 기록 — _tickDatumImageLock 을 그대로 재사용한다.
         private readonly List<ZRangeImageRecordDto> _tickZRangeImages = new List<ZRangeImageRecordDto>();
 
         // 런타임 transform 캐시
@@ -68,28 +68,28 @@ namespace ReringProject.Sequence {
         // datum 검출 실패 datum 이름 집합 (per-FAI gate 신호). _datumTransforms 와 동일 lifecycle.
         private readonly HashSet<string> _failedDatums = new HashSet<string>();
 
-        //260722 hbk Phase 68 D-02/D-02a: 크로스-Z 측정 이미지 저장소 — 계산값이 아니라 캡처 이미지(HImage) 보관.
+        //260722 hbk 크로스-Z 측정 이미지 저장소 — 계산값이 아니라 캡처 이미지(HImage) 보관.
         //  키 = Action_FAIMeasurement.BuildCrossZMeasurementKey(Shot명+측정식별자)+역할(A/B) 접미사. 소유 클론 계약
         //  (ShotConfig._image/SetImage/GetImage 패턴 미러) — Store 는 CopyImage 저장, Take 는 CopyImage 반환(호출부
-        //  소유, finally Dispose 책임). z_index=0 수신 시 ResetCycleState() 에서 Dispose+Clear(D-03, 누수 0).
+        //  소유, finally Dispose 책임). z_index=0 수신 시 ResetCycleState 에서 Dispose+Clear(누수 0).
         private readonly object _crossZImageLock = new object();
         private readonly Dictionary<string, HImage> m_dicCrossZImages = new Dictionary<string, HImage>();
 
-        // Phase 77 SZF-02: Z 범위 Shot 후보 이미지 저장소 — 크로스-Z 저장소와 키 체계가 달라 별도 사전으로
+        //260915 hbk Z 범위 Shot 후보 이미지 저장소 — 크로스-Z 저장소와 키 체계가 달라 별도 사전으로
         //  둔다(섞지 않는다). 락은 _crossZImageLock 을 재사용한다(같은 사이클 안에서 함께 지켜지는 자원).
         private readonly Dictionary<string, HImage> m_dicZRangeImages = new Dictionary<string, HImage>();
         private const string ZRANGE_KEY_SEPARATOR = "|z";
 
-        //260618 hbk Phase 54 ALIGN-01 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 (D-10).
+        //260618 hbk 패턴매칭(align) 실패 datum set — 검출 실패(_failedDatums)와 구분하여 측정 게이트가 LastSkipReason=ALIGN_FAIL 표기 .
         private readonly HashSet<string> _alignFailedDatums = new HashSet<string>();
 
-        // Phase 79 LSR-02: 국부 기준선 사이클 저장소 — _datumTransforms 와 같은 수명(ClearDatumTransforms 에서 함께 비움),
+        //260918 hbk LSR-02: 국부 기준선 사이클 저장소 — _datumTransforms 와 같은 수명(ClearDatumTransforms 에서 함께 비움)
         //  _datumStateLock 으로 보호, 키 = 측정 객체 참조
         private readonly Dictionary<MeasurementBase, LocalRefLineResult> _localRefLines = new Dictionary<MeasurementBase, LocalRefLineResult>();
 
-        // Phase 80 함께 처리 2: 잡아 둔 기준점 변환이 지금의 티칭 사진 파일(TeachingImagePath[_Vertical])에서
+        //260918 hbk 함께 처리 2: 잡아 둔 기준점 변환이 지금의 티칭 사진 파일(TeachingImagePath[_Vertical])에서
         //  나온 것인지 기록 — 다른 사진(화면 사진·고른 파일)에서 나온 변환에 티칭 사진의 국부 기준선을
-        //  섞으면 "국부" 로 표시되는 조용한 오측정이 된다(D-79-04). _datumStateLock 으로 보호, 키 = DatumName.
+        //  섞으면 "국부" 로 표시되는 조용한 오측정이 된다. _datumStateLock 으로 보호, 키 = DatumName.
         private sealed class TeachingPhotoProvenance {
             public HTuple Transform; // 시퀀스 캐시(_datumTransforms)에 있는 그 참조 그대로 — 복사·Dispose 하지 않는다
             public string HorizontalPath;
@@ -109,27 +109,27 @@ namespace ReringProject.Sequence {
         //  TryExecuteIfIdle 이 세운 것과 동일한 원칙). 인스턴스 필드라 Top/Side/Bottom 시퀀스끼리는 서로 간섭 없음.
         private readonly object _datumStateLock = new object();
 
-        //260623 hbk Phase 49 PROTO-03/05 (D-02): 멀티샷 사이클 누적 상태 — 신규 클래스 미도입, _failedDatums 와 동일 lifecycle 멤버.
-        //  ClearDatumTransforms() 와 별도로 기준점 index 수신 시 ResetCycleState() 로 리셋(D-08).
-        //  49-02 가 AddResponseV1Cycle 에서 read 연결 → CS0414(미사용) 해소, #pragma 제거함.
-        //  quick-260904-iwm: 시퀀스마다 다른 기준점 z_index 를 가질 수 있게 되면서 고정 0 상수를 폐기했다 —
+        //260623 hbk 멀티샷 사이클 누적 상태 — 신규 클래스 미도입, _failedDatums 와 동일 lifecycle 멤버.
+        //  ClearDatumTransforms 와 별도로 기준점 index 수신 시 ResetCycleState 로 리셋.
+        //  AddResponseV1Cycle 에서 읽도록 연결해 CS0414(미사용) 경고와 #pragma 를 없앴다.
+        //  시퀀스마다 다른 기준점 z_index 를 가질 수 있게 되면서 고정 0 상수를 폐기했다
         //  이후 모든 "기준점인가" 판정은 GetDatumZIndex()(Datum 속성창 지정값 -> 소유 Shot 최솟값 -> 0 순으로
         //  파생되는 이 시퀀스의 실효 기준점)를 소비한다.
-        private const int CROSS_Z_UNSET = -1;        //260722 hbk Phase 68 D-09: ZIndexA/B 미설정 sentinel (매직넘버 상수화)
-        // quick-260904-iwm: 시퀀스별 기준점(Datum) z_index 설정화 — 두 개념을 분리한다.
+        private const int CROSS_Z_UNSET = -1;        //260722 hbk ZIndexA/B 미설정 sentinel (매직넘버 상수화)
+        //260904 hbk 시퀀스별 기준점(Datum) z_index 설정화 — 두 개념을 분리한다.
         //  MIN_VALID_Z_INDEX: 유효한 가장 작은 z. 지정값 유효성 판정과 "소유 Shot 없음" 폴백 둘 다 쓴다.
         private const int MIN_VALID_Z_INDEX = 0;
         // UNSET_CYCLE_Z_INDEX: "이번 tick 의 요청 패킷 자체가 없음"(수동 RUN/일괄검사) 을 뜻하는 값이며, 이 시퀀스의
         //  기준점(GetDatumZIndex())과는 다른 개념이다. 값은 우연히 0 으로 같지만, 진짜 프로토콜 z=0 과 "프로토콜
         //  자체가 없음"의 구분은 IsProtocolDrivenCycle() 이 별도로 담당한다 — 여기서 값을 바꾸면 안 된다.
         private const int UNSET_CYCLE_Z_INDEX = 0;
-        private bool m_bCycleHasNG = false;          // 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F (D-02)
-        private bool m_bCycleDatumFailed = false;    // Index 0 Datum 검출 실패 → 즉시 F 마킹 (D-04/D-05)
-        //260811 hbk plc-spec-260811-alignment: 사이클 중 실기 카메라 grab 실패 1건이라도 발견 → 모든 응답
+        private bool m_bCycleHasNG = false;          //260623 hbk 사이클 중 NG 1건이라도 발견 → 마지막 Index 종합 F
+        private bool m_bCycleDatumFailed = false;    //260623 hbk Index 0 Datum 검출 실패 → 즉시 F 마킹
+        //260811 hbk 사이클 중 실기 카메라 grab 실패 1건이라도 발견 → 모든 응답
         //  (B/P/F 무관) E 로 강제(제어팀 확정 스펙, 엑셀 63행). Action_FAIMeasurement.MarkCycleHardwareError()
         //  가 SIMUL_MODE/OfflineInspectMode 가 아닌 실기 grab 이 null 반환했을 때만 세팅한다 — 공차 불합격
         //  (m_bCycleHasNG)과는 완전히 별개 신호. ResetCycleState 에서 사이클 시작마다 초기화.
-        //260811 hbk plc-spec-260811-alignment(조명): MarkCycleHardwareError() 는 이제 두 종류의 스레드에서
+        // (조명): MarkCycleHardwareError 는 이제 두 종류의 스레드에서
         //  호출된다 — (1) 카메라 경로: 이 시퀀스 자신의 워커 스레드(Action_FAIMeasurement, 기존과 동일),
         //  (2) 조명 경로(신규): LightHandler.Execute() 의 전용 백그라운드 스레드(Custom/SystemHandler.cs
         //  OnLightHandlerError 훅을 거쳐 호출). 단일-스레드 전제가 깨졌으므로 volatile 로 승격 — 이 필드는
@@ -137,19 +137,19 @@ namespace ReringProject.Sequence {
         //  시퀀스의 소유 스레드에서만 실행됨)라 volatile 만으로 충분하다(lock 불필요, 다른 사이클 플래그들과
         //  달리 조명 스레드 쪽 쓰기는 읽기와 진짜로 경합할 수 있어 가시성 보장이 필요).
         private volatile bool m_bCycleHasHardwareError = false;
-        //260722 hbk Phase 68 GAP-3(68-10, 지침 #6): 한 사이클에 즉시-F 가 최대 1회만 나가도록 하는 latch.
+        //260722 hbk 한 사이클에 즉시-F 가 최대 1회만 나가도록 하는 latch.
         //  z=0 즉시-F 분기(BuildDatumShotResponse)와 완성 index 재평가(TryApplyCrossZDatumImmediateFail) 양쪽
-        //  모두 세팅 — 어느 한쪽만 세팅하면 한 사이클에 F 가 2번 나가는 중복-F blocking 회귀 발생(T-68-11).
-        //  ResetCycleState(z=0 리셋)에서 초기화되어 다음 부품으로 누수되지 않는다(T-68-13).
+        //  모두 세팅 — 어느 한쪽만 세팅하면 한 사이클에 F 가 2번 나가는 중복-F blocking 회귀 발생.
+        //  ResetCycleState(z=0 리셋)에서 초기화되어 다음 부품으로 누수되지 않는다.
         private bool m_bImmediateFailSent = false;
         private int m_nCurrentZIndex = 0;            // 이번 $TEST z_index (RequestPacket.TestID 파싱 결과)
-        private int m_nLastZIndex = 0;               // 레시피 Shot z_index 최댓값 = 마지막 Index (D-03, ComputeLastZIndex 산출)
+        private int m_nLastZIndex = 0;               //260623 hbk 레시피 Shot z_index 최댓값 = 마지막 Index (ComputeLastZIndex 산출)
 
-        // 260805 quick-260805-f3w D-F3W-02-REV: 검사 사이클 1회당 Flow 로그 1줄용 tact 측정.
+        //260805 hbk D-F3W-02-REV: 검사 사이클 1회당 Flow 로그 1줄용 tact 측정.
         private readonly System.Diagnostics.Stopwatch _flowStopwatch = new System.Diagnostics.Stopwatch();
         private bool _bFlowCycleLogged = false;   // 종료 이벤트 중복 발화 시 두 줄 나가는 것 방지
 
-        //260619 hbk Phase 57 #6 leveling 제거 — 레벨링 각도 캐시 멤버/메서드 폐기 (ALIGN 대체, D-12/D-13)
+        //260619 hbk #6 leveling 제거 — 레벨링 각도 캐시 멤버/메서드 폐기 (ALIGN 대체)
 
         public InspectionSequence(ESequence seqID, string name, int algIndex, string defaultCamera, string defaultLight) : base(seqID, name) {
             pDevs = SystemHandler.Handle.Devices;
@@ -166,14 +166,14 @@ namespace ReringProject.Sequence {
             // 런 시작 시 이 시퀀스 shot 의 모든 측정 결과 초기화 (안 돈 측정 stale 방지).
             //  OnStart 는 단일 Start(int) + StartAll 모두에서 발화 → 단일/전체 모두 런 시작에 일괄 초기화.
             OnStart += HandleRunStartResetResults;
-            // 260805 quick-260805-f3w D-F3W-02-REV: 검사 사이클 1회당 Flow 로그 1줄 배선.
+            //260805 hbk D-F3W-02-REV: 검사 사이클 1회당 Flow 로그 1줄 배선.
             //  시작(OnStart)은 시계만 리셋 — 출력 없음(압축 결정). 종료는 OnFinish/OnStop/OnError 셋 다 구독하고
             //  핸들러 안의 _bFlowCycleLogged 가드로 중복 발화 시 두 줄 나가는 것을 막는다.
             OnStart += HandleFlowLogCycleBegin;
             OnFinish += HandleFlowLogCycleEnd;
             OnStop += HandleFlowLogCycleEnd;
             OnError += HandleFlowLogCycleEnd;
-            // 260807 hbk quick-260807-wr1 (Phase71 WR-01 리뷰수정): 정상종료(OnFinish)는 AddResponse→BuildScopedResponse
+            //260807 hbk ( 리뷰수정): 정상종료(OnFinish)는 AddResponse→BuildScopedResponse
             //  의 TryTurnOffLightsOnCycleEnd 훅이 이미 커버하므로 여기서는 OnStop/OnError 만 구독 — 중간 index 에서
             //  중단되면 IsBuffer=true 로 남아 그 훅이 못 끄는 경로를 무조건 소등으로 메운다($PREP Op=0 폐기로 대체 경로 없음).
             OnStop += HandleAbnormalCycleLightOff;
@@ -188,7 +188,7 @@ namespace ReringProject.Sequence {
         protected override void AddResponse() {
             if (RequestPacket == null) return;
 
-            //260623 hbk Phase 49 PROTO-03/04/05: v1.0 활성 시에만 z_index 사이클 엔진 적용. v2.6 면 기존 전체-Shot 경로(아래)로 폴백(회귀 0).
+            //260623 hbk v1.0 활성 시에만 z_index 사이클 엔진 적용. v2.6 면 기존 전체-Shot 경로(아래)로 폴백.
             bool bUseV1Cycle = SystemHandler.Handle.Setting.UseProtocolV1;
             if (bUseV1Cycle)
             {
@@ -202,7 +202,7 @@ namespace ReringProject.Sequence {
             // 종합 판정: 3-state hierarchy
             bool anyDatumSkip = false; // fai.WasDatumSkipped 1건이라도 있으면 true → cycle=NotExist
             bool allPass = true;
-            //260805 hbk Phase 70 WR-01: 소유권 필터가 0건을 매칭하면 아래 초기값(anyDatumSkip=false/allPass=true)이
+            //260805 hbk 소유권 필터가 0건을 매칭하면 아래 초기값(anyDatumSkip=false/allPass=true)이
             //  그대로 남아 "측정 0건인데 OK/P" 를 PLC 로 조용히 송신한다 — 이 카운터로 그 빈 스코프를 잡는다.
             int nMatchedFaiCount = 0;
             var responsePacket = new TestResultPacket {
@@ -210,11 +210,11 @@ namespace ReringProject.Sequence {
                 Site = RequestPacket.Site,
                 InspectionType = RequestPacket.TestType,
                 IsDynamicFAI = true,
-                Type = RequestPacket.Type,   //260624 hbk Phase 63 PROTO-Type: 수신 Type echo
+                Type = RequestPacket.Type,   //260624 hbk PROTO-Type: 수신 Type echo
             };
 
             foreach (var shot in recipeManager.Shots) {
-                //260805 hbk Phase 70 D-02-3: 이 시퀀스 소유 shot 만 집계/전송. 전역 순회는 타 시퀀스의
+                //260805 hbk 이 시퀀스 소유 shot 만 집계/전송. 전역 순회는 타 시퀀스의
                 //  미측정 FAI 로 cycle 판정(anyDatumSkip/allPass)과 FAIResults 를 동시에 오염시킨다.
                 //  v2.6 wire 포맷 무변경 — FAIResults 는 원래 가변 길이(count 필드로 전달)다.
                 bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
@@ -248,7 +248,7 @@ namespace ReringProject.Sequence {
                 }
             }
 
-            // cycle 계층 판정: 검출실패 > NG > OK. 단, 매칭 0건(WR-01)이면 무조건 NotExist 로 폴백.
+            //260805 hbk cycle 계층 판정: 검출실패 > NG > OK. 단, 매칭 0건이면 무조건 NotExist 로 폴백.
             bool bEmptyScope = nMatchedFaiCount == 0;
             if (bEmptyScope)
             {
@@ -265,7 +265,7 @@ namespace ReringProject.Sequence {
             //  직렬화 예외가 TCP 응답(ResponseQueue.Enqueue)을 차단하지 않도록 try/catch 격리.
             try
             {
-                //260622 hbk Phase 48 PROTO-01: 자재번호 추출 (RequestPacket = 이번 TCP TEST 패킷). null 이면 -1 폴백.
+                //260622 hbk 자재번호 추출 (RequestPacket = 이번 TCP TEST 패킷). null 이면 -1 폴백.
                 int nIndexNumber = -1;
                 bool bHasRequest = RequestPacket != null;
                 if (bHasRequest)
@@ -285,7 +285,7 @@ namespace ReringProject.Sequence {
                     System.DateTime.Now,
                     SystemHandler.Handle.Setting.CurrentRecipeName,
                     Name,           // 이 시퀀스 소유 shot 만 cycle 에 포함
-                    nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파
+                    nIndexNumber,   //260622 hbk 자재번호 전파
                     IsProtocolDrivenCycle(),   //260820 hbk 자동/수동 구분 — 판정 단일 소스
                     nCycleZIndex);
                 cycleDto.DatumImages = TakeTickDatumImagesSnapshot();
@@ -328,7 +328,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // D-75-02: ② 안착 위치를 "기록만" 한다. 판정/응답/cycle.json 에 일절 관여하지 않는다.
+        //260827 hbk ② 안착 위치를 "기록만" 한다. 판정/응답/cycle.json 에 일절 관여하지 않는다.
         //  DetectedOrigin* 는 이미 매 사이클 계산되고 버려지던 값이다 — 읽어서 저장만 한다.
         //  실패해도 throw 하지 않는다(검사 스레드 보호).
         private void RecordSeatingEvidence(int nIndexNumber) {
@@ -458,7 +458,7 @@ namespace ReringProject.Sequence {
         private void HandleRunStartResetResults(SequenceContext context) {
             try {
                 _dtCycleStartUtc = DateTime.UtcNow;   // 기록 전용 — 판정/초기화 로직에 관여하지 않는다
-                ClearTickDatumImages();   // quick-260911-fia: 매 tick 시작마다 비움 — 기준점을 다시 안 찍은 tick 은 빈 목록
+                ClearTickDatumImages();   //260911 hbk 매 tick 시작마다 비움 — 기준점을 다시 안 찍은 tick 은 빈 목록
                 if (Actions == null) return;
                 foreach (var act in Actions) {
                     var faiAct = act as Action_FAIMeasurement;
@@ -477,8 +477,8 @@ namespace ReringProject.Sequence {
                     }
                 }
 
-                //260724 hbk quick-fix: 수동(RUN 단일 Start(int)/RepeatRunService/BatchRunService) 경로는
-                //  packet==null → GetExecutionZIndex() 가 항상 0 을 반환한다(D-08 안전 폴백). 크로스-Z Datum
+                //260724 hbk 수동(RUN 단일 Start(int)/RepeatRunService/BatchRunService) 경로는
+                //  packet==null → GetExecutionZIndex 가 항상 0 을 반환한다( 안전 폴백). 크로스-Z Datum
                 //  판정(TryGrabOrLoadCrossZDatumImages)은 nCurZ 가 datum.ZIndexA/B 어느 쪽과도 안 맞으면
                 //  "!bRelevant" 분기로 빠지는데, 그 분기는 저장소(m_dicCrossZImages)에 role A/B 가 이미 모두
                 //  있으면 그걸 재사용(TryReDetectCrossZDatumFromStore)한다 — 수동 경로는 이 저장소를 지금까지
@@ -488,8 +488,8 @@ namespace ReringProject.Sequence {
                 //  호출해 매 사이클 시작마다 이미 클린 슬레이트라 재현되지 않았다. 여기서는 수동 경로에서만
                 //  (RequestPacket==null, 즉 !IsProtocolDrivenCycle()) 동일하게 클린 슬레이트를 적용한다 —
                 //  프로토콜 z=1..N 사이클(RequestPacket!=null)은 절대 건드리지 않으므로, z=1 에서 저장된 role A
-                //  가 z=2 도착 전에 지워지는 FIX-0 류 회귀는 발생하지 않는다(사이클 내 크로스-Z 공유 보존).
-                // quick-260904-iwm: 기준점 z_index 는 이제 시퀀스마다 다를 수 있다(예: Bottom=11) — 상수 0 비교를
+                //  가 z=2 도착 전에 지워지는 류 회귀는 발생하지 않는다(사이클 내 크로스-Z 공유 보존).
+                // 기준점 z_index 는 이제 시퀀스마다 다를 수 있다(예: Bottom=11) — 상수 0 비교를
                 //  이 시퀀스의 실효 기준점(GetDatumZIndex())과의 비교로 치환한다. 프로토콜에서 GetExecutionZIndex()
                 //  는 $PREP 가 넣어준 실제 버퍼 번호를 돌려주므로, 그 값이 이 시퀀스의 기준점과 같을 때가 곧
                 //  "구간 시작 = 새 부품"이다. 나머지 번호는 같은 사이클의 연속 tick 이므로 Clear 하면 안 된다 —
@@ -498,7 +498,7 @@ namespace ReringProject.Sequence {
                 bool bIsAtSequenceDatumIndex = GetExecutionZIndex() == GetDatumZIndex();
                 if (!IsProtocolDrivenCycle()) {
                     BeginCrossZImageCycle();
-                    //260807 hbk quick-260807: Datum transform 캐시(_datumTransforms/_failedDatums)도 이 지점을
+                    //260807 hbk Datum transform 캐시(_datumTransforms/_failedDatums)도 이 지점을
                     //  "새 사이클 시작"의 단일 소스로 삼는다 — Action_FAIMeasurement.EStep.DatumPhase 가 더 이상
                     //  매 진입마다 무조건 비우지 않고 비-크로스-Z Datum 을 캐시 재사용으로 skip 하게 됐으므로,
                     //  수동 RUN(단일 Start(int)/StartAll/RepeatRunService/BatchRunService, RequestPacket==null)
@@ -512,7 +512,7 @@ namespace ReringProject.Sequence {
                         ClearDatumTransforms();
                     }
                 } else if (bIsAtSequenceDatumIndex) {
-                    //260807 hbk quick-260807-fix2: 프로토콜(z=0 $TEST) 사이클의 "새 사이클 시작" Clear 지점.
+                    //260807 hbk 프로토콜(z=0 $TEST) 사이클의 "새 사이클 시작" Clear 지점.
                     //  이전 시도는 SystemHandler.StartV1Scoped 에서 State==Idle 사전 체크 후 Clear 하는 방식이었는데,
                     //  체크와 StartSubset/StartAll 호출 사이에 이전 사이클 시퀀스 스레드가 State 를 Idle 로 독립적으로
                     //  바꿔버릴 수 있는 TOCTOU 레이스였다(리뷰로 확증). 이 OnStart 핸들러는 StartCore 의 _startLock
@@ -532,7 +532,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // quick-260911-fia Task 1: 자동 검사 기준점 사진 기록. Action_FAIMeasurement 가 실기 grab 후 사진을
+        //260911 hbk 자동 검사 기준점 사진 기록. Action_FAIMeasurement 가 실기 grab 후 사진을
         //  큐잉에 성공했을 때만 호출한다(호출부 가드 — IsLiveCaptureMode && IsProtocolDrivenCycle).
         public void RecordTickDatumImage(string szDatumName, string szRole, string szPath) {
             bool bInvalid = string.IsNullOrEmpty(szDatumName) || string.IsNullOrEmpty(szPath);
@@ -561,7 +561,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 77 D-77-06 ③: Action_FAIMeasurement.SaveZRangeCandidateImageIfEnabled 가 저장 성공 시 호출한다.
+        //260915 hbk ③: Action_FAIMeasurement.SaveZRangeCandidateImageIfEnabled 가 저장 성공 시 호출한다.
         public void RecordTickZRangeImage(string szShotName, int nZIndex, string szPath) {
             bool bInvalid = string.IsNullOrEmpty(szShotName) || string.IsNullOrEmpty(szPath);
             if (bInvalid) {
@@ -582,7 +582,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 78 NGA-07: tick 저장 시점 DatumConfigs 스냅샷을 진단 DTO 목록으로 복사만 한다(재검출 없음).
+        //260917 hbk NGA-07: tick 저장 시점 DatumConfigs 스냅샷을 진단 DTO 목록으로 복사만 한다(재검출 없음).
         //  검사 스레드 보호 — 예외를 절대 밖으로 던지지 않는다(HandleFlowLogCycleEnd 와 동일 격리 규약).
         private List<DatumDiagnosticDto> BuildTickDatumDiagnosticsSnapshot() {
             var lst = new List<DatumDiagnosticDto>();
@@ -608,7 +608,7 @@ namespace ReringProject.Sequence {
             return lst;
         }
 
-        // 260805 quick-260805-f3w D-F3W-02-REV: 사이클 시작 — 시계만 리셋한다. 여기서는 아무것도 출력하지 않는다
+        //260805 hbk D-F3W-02-REV: 사이클 시작 — 시계만 리셋한다. 여기서는 아무것도 출력하지 않는다
         //  (사이클 시작 줄은 압축 결정으로 제외됨. Flow 로그는 사이클당 딱 1줄, 종료 시에만 나간다).
         private void HandleFlowLogCycleBegin(SequenceContext context) {
             try {
@@ -618,7 +618,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // 260805 quick-260805-f3w D-F3W-02-REV: 사이클 종료(OnFinish/OnStop/OnError 공통 구독) — Flow 요약 1줄.
+        //260805 hbk D-F3W-02-REV: 사이클 종료(OnFinish/OnStop/OnError 공통 구독) — Flow 요약 1줄.
         //  이 핸들러는 어떤 경우에도 예외를 밖으로 던지면 안 된다(SequenceBase 이벤트 발화 실패 시 잠금 영구화 위험).
         private void HandleFlowLogCycleEnd(SequenceContext context) {
             try {
@@ -638,10 +638,10 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // 260807 hbk quick-260807-wr1 (Phase71 WR-01 리뷰수정): Error()/Stop() 중단은 AddResponse 를 거쳐도
+        //260807 hbk ( 리뷰수정): Error/Stop 중단은 AddResponse 를 거쳐도
         //  마지막 index 가 아니면 IsBuffer=true 로 남아 TryTurnOffLightsOnCycleEnd 게이트를 못 지난다 — $PREP Op=0
         //  폐기로 이제 다른 소등 경로가 없어 조명이 계속 켜진 채로 남는다. OnStop/OnError 는 IsBuffer 판정과 무관하게
-        //  항상 발화하므로 여기서 무조건 이 시퀀스 채널만 소등(TurnOffOwnShotLights, CR-01 스코핑 재사용)한다.
+        //  항상 발화하므로 여기서 무조건 이 시퀀스 채널만 소등(TurnOffOwnShotLights, 스코핑 재사용)한다.
         //  HandleFlowLogCycleEnd 와 동일 원칙 — 예외를 절대 밖으로 던지지 않는다(SequenceBase 이벤트 발화 실패 시
         //  잠금 영구화 위험, SaveResultImage 와 동일 격리 규약).
         // 수동 RUN(트리 선택 → RUN, 프로토콜 패킷 없음)은 자동 사이클과 달리 P/F 응답 경로를 타지 않아 조명이 켜진 채
@@ -705,7 +705,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260805 hbk Phase 70 D-02: 종합판정용 shot 소유권 판정 단일 진입점.
+        //260805 hbk 종합판정용 shot 소유권 판정 단일 진입점.
         //  이 시퀀스(szSeqName)가 소유한 shot 인지만 판단한다. 판정 로직/계층은 건드리지 않는다.
         //  빈 OwnerSequenceName 은 TOP 폴백 — SequenceHandler.RebuildInspectionActions(L255) /
         //  CycleResultSerializer.BuildDto(L66) 와 동일 정책. 이 폴백이 없으면 UI 로 갓 추가된
@@ -741,7 +741,7 @@ namespace ReringProject.Sequence {
         private EVisionResultType ComputeOverallResult(InspectionRecipeManager recipeManager) {
             bool anyDatumSkip = false;
             bool allPass = true;
-            //260805 hbk Phase 70 WR-01: 소유권 필터가 0건을 매칭하면(레시피 미구성/전환 중 순간 등)
+            //260805 hbk 소유권 필터가 0건을 매칭하면(레시피 미구성/전환 중 순간 등)
             //  아래 anyDatumSkip=false/allPass=true 초기값이 그대로 남아 "측정 0건인데 OK" 를 조용히
             //  반환한다 — 이 카운터로 그 빈 스코프를 잡아 NotExist 로 폴백한다. 매칭 1건 이상이면
             //  기존 계층(anyDatumSkip > NG > OK) 그대로, 이 가드는 0건 케이스만 닫는다.
@@ -750,7 +750,7 @@ namespace ReringProject.Sequence {
             {
                 foreach (var shot in recipeManager.Shots)
                 {
-                    //260805 hbk Phase 70 D-02-1: 이 시퀀스 소유 shot 만 집계. 단독 RUN 시 이번에 돌지도 않은
+                    //260805 hbk 이 시퀀스 소유 shot 만 집계. 단독 RUN 시 이번에 돌지도 않은
                     //  타 시퀀스 shot(IsPass 기본값 false)이 섞여 잘못된 NG/NotExist 가 나오던 버그 수정.
                     bool bOwnedByThisSeq = IsShotOwnedBySequence(shot, Name);
                     if (!bOwnedByThisSeq)
@@ -776,7 +776,7 @@ namespace ReringProject.Sequence {
             return EVisionResultType.OK;
         }
 
-        // quick-260904-iwm: 이 시퀀스가 소유한 Shot 의 ZIndex 최솟값/최댓값. GetDatumZIndex() 의 "자동" 폴백
+        //260904 hbk 이 시퀀스가 소유한 Shot 의 ZIndex 최솟값/최댓값. GetDatumZIndex 의 "자동" 폴백
         //  (Datum 속성창에서 기준점을 지정하지 않았을 때)과, DatumConfig.WarnDatumZIndexChanged() 의 경고 문구용
         //  범위 표시 둘 다 이 메서드를 쓴다. 크로스-Z 완성 index(MaxCrossZCompletionZIndex)는 "마지막 Index"
         //  개념이지 "기준점(구간 시작 번호)" 개념과 무관하므로 여기에 절대 섞지 않는다.
@@ -841,7 +841,7 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        // quick-260904-iwm: 이 시퀀스의 "기준점(Datum 촬영) = 새 사이클 시작" 실효 z_index. 판정 우선순위:
+        //260904 hbk 이 시퀀스의 "기준점(Datum 촬영) = 새 사이클 시작" 실효 z_index. 판정 우선순위:
         //  1순위 — 소유 DatumConfigs 중 사용자가 직접 지정한 값(>=MIN_VALID_Z_INDEX)들의 최솟값. 0 도 정당한
         //          지정값이다. 한 시퀀스에 서로 다른 값을 지정한 Datum 이 여럿이면 최솟값을 쓴다(그 상황 자체는
         //          DatumConfig.WarnDatumZIndexChanged 의 경고가 사용자에게 알린다).
@@ -893,14 +893,14 @@ namespace ReringProject.Sequence {
             return MIN_VALID_Z_INDEX;
         }
 
-        //260623 hbk Phase 49 PROTO-03 (D-03): 레시피 Shot 들의 z_index 최댓값 = "마지막 Index".
-        //  별도 설정/플래그 불필요 — 레시피 단일 진실원. PLC Index Table = 레시피 Shot 구성 일치 전제(D-03 코드 주석 고정).
+        //260623 hbk 레시피 Shot 들의 z_index 최댓값 = "마지막 Index".
+        //  별도 설정/플래그 불필요 — 레시피 단일 진실원. PLC Index Table = 레시피 Shot 구성 일치 전제( 코드 주석 고정).
         //  이 시퀀스 소유 Shot 만 대상(Name == OwnerSequenceName) — Top/Bottom/Side 병렬 간섭 차단.
-        //260722 hbk Phase 68 CROSS-2(68-GAP-ANALYSIS.md 교차이슈): 소유 shot.ZIndex 최댓값만으로는 크로스-Z 완성
+        // 소유 shot.ZIndex 최댓값만으로는 크로스-Z 완성
         //  index(GetMeasurementCompletionZIndex/GetDatumCompletionZIndex)가 그 최댓값을 넘는 경우를 놓친다 — 넘으면
-        //  "마지막 Index"를 조기 오판정해 한 사이클에 P/F 가 2회 송신될 위험(T-68-10). 소유 shot.ZIndex 최댓값 산출 뒤
+        //  "마지막 Index"를 조기 오판정해 한 사이클에 P/F 가 2회 송신될 위험. 소유 shot.ZIndex 최댓값 산출 뒤
         //  MaxCrossZCompletionZIndex 로 크로스-Z 완성 index 까지 반영해 최종 max 를 반환한다. 크로스-Z 미설정 레시피는
-        //  MaxCrossZCompletionZIndex==0(또는 이하) → 기존 max(shot.ZIndex)와 동치(D-07 회귀 0).
+        //  MaxCrossZCompletionZIndex==0(또는 이하) → 기존 max(shot.ZIndex)와 동치.
         private int ComputeLastZIndex(InspectionRecipeManager recipeManager)
         {
             int nMax = 0;
@@ -928,14 +928,14 @@ namespace ReringProject.Sequence {
                 }
             }
             nMax = System.Math.Max(nMax, MaxCrossZCompletionZIndex(recipeManager));
-            nMax = System.Math.Max(nMax, MaxZRangeCompletionZIndex(recipeManager)); // Phase 77 SZF-02: ZIndexEnd 가 최댓값이면 마지막 Index 오판정 방지
+            nMax = System.Math.Max(nMax, MaxZRangeCompletionZIndex(recipeManager)); //260915 hbk ZIndexEnd 가 최댓값이면 마지막 Index 오판정 방지
             return nMax;
         }
 
-        //260722 hbk Phase 68 CROSS-2 (D-09): ComputeLastZIndex 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스 소유 Shot 의
+        //260722 hbk ComputeLastZIndex 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스 소유 Shot 의
         //  크로스-Z 측정 완성 index(MaxShotCrossZMeasurementCompletionZIndex) 최댓값과, 이 시퀀스 DatumConfigs 의
         //  크로스-Z Datum 완성 index(GetDatumCompletionZIndex) 최댓값 중 더 큰 값을 반환한다. 크로스-Z 가 전혀 없으면
-        //  두 최댓값 모두 0 → 반환 0(D-07: ComputeLastZIndex 의 Math.Max(nMax, 0) 이 기존값을 그대로 보존).
+        //  두 최댓값 모두 0 → 반환 0(: ComputeLastZIndex 의 Math.Max(nMax, 0) 이 기존값을 그대로 보존).
         private int MaxCrossZCompletionZIndex(InspectionRecipeManager recipeManager)
         {
             int nMax = 0;
@@ -959,10 +959,10 @@ namespace ReringProject.Sequence {
             return nMax;
         }
 
-        //260722 hbk Phase 68 CROSS-2 (D-09): MaxCrossZCompletionZIndex 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스
+        //260722 hbk MaxCrossZCompletionZIndex 의 sub-헬퍼(함수 30줄 가드) — 이 시퀀스
         //  소유(OwnerSequenceName==Name) shot 이 소유한 DualImageEdgeDistanceMeasurement 중 크로스-Z(ZIndexA/B 둘 다
         //  설정)인 것들의 완성 index(GetMeasurementCompletionZIndex, ShotHasCrossZMeasurementCompletingAt 와 동일
-        //  bIsCrossZ 게이트) 최댓값. 미소유 shot/비-크로스-Z 측정은 0 기여(D-07 회귀 가드).
+        //  bIsCrossZ 게이트) 최댓값. 미소유 shot/비-크로스-Z 측정은 0 기여( 회귀 가드).
         private int MaxShotCrossZMeasurementCompletionZIndex(ShotConfig shot)
         {
             int nMax = 0;
@@ -998,10 +998,10 @@ namespace ReringProject.Sequence {
             return nMax;
         }
 
-        //260625 hbk Phase 64 LIGHT-01 (D-12): z_index + OwnerSequenceName 기반 ShotConfig 조회.
+        //260625 hbk z_index + OwnerSequenceName 기반 ShotConfig 조회.
         //  이 시퀀스 소유 Shot 중 첫 번째 매칭을 반환. 없으면 null.
         //  ComputeLastZIndex 의 순회 패턴 동일 — foreach + OwnerSequenceName + ZIndex 이중 조건.
-        //260729 hbk quick-fix(260729-hwb): 1패스(own-ZIndex 정확일치)가 실패하면 2패스로 DoesShotOwnCrossZIndex
+        // 1패스(own-ZIndex 정확일치)가 실패하면 2패스로 DoesShotOwnCrossZIndex
         //  (FindActionIndicesByZIndex 와 동일 헬퍼)를 재사용해 크로스-Z 소유 Shot 을 찾는다. $TEST 라우팅
         //  (FindActionIndicesByZIndex)은 이미 크로스-Z 를 인지하는데 $PREP 조명 리졸버만 몰라서, 크로스-Z 짝의
         //  한쪽 z 가 조명 단계에서 차단되던 결함(T-HWB-03)을 닫는다. own-ZIndex 정확일치가 있으면 반환값은
@@ -1035,7 +1035,7 @@ namespace ReringProject.Sequence {
                     return shot;
                 }
             }
-            //260729 hbk quick-fix(260729-hwb): 2패스 — 크로스-Z 폴백. own-ZIndex 정확일치가 없을 때만 실행.
+            //260729 hbk 2패스 — 크로스-Z 폴백. own-ZIndex 정확일치가 없을 때만 실행.
             foreach (var shot in recipeManager.Shots)
             {
                 bool bIsNull = shot == null;
@@ -1057,7 +1057,7 @@ namespace ReringProject.Sequence {
                     return shot;
                 }
             }
-            // Phase 77 D-77-07 ①: 3패스 — Z 범위 폴백. 1·2패스가 먼저 매칭되면 이 패스는 실행되지 않는다
+            //260915 hbk ①: 3패스 — Z 범위 폴백. 1·2패스가 먼저 매칭되면 이 패스는 실행되지 않는다
             //  (기존 매칭 결과 불변). $PREP 조명이 범위 z 에서도 그 범위를 소유한 Shot 의 조명으로 켜지게 한다.
             foreach (var shot in recipeManager.Shots)
             {
@@ -1083,8 +1083,8 @@ namespace ReringProject.Sequence {
             return null;
         }
 
-        //260722 hbk Phase 68 D-01/D-05: shot이 소유한 FAIList의 DualImageEdgeDistanceMeasurement 중 하나라도
-        //  ZIndexA 또는 ZIndexB == nZIndex 이면 true. FindActionIndicesByZIndex 의 크로스-Z 매칭 sub-헬퍼(D-09: 함수 분리).
+        //260722 hbk shot이 소유한 FAIList의 DualImageEdgeDistanceMeasurement 중 하나라도
+        //  ZIndexA 또는 ZIndexB == nZIndex 이면 true. FindActionIndicesByZIndex 의 크로스-Z 매칭 sub-헬퍼(: 함수 분리).
         //  -1(미설정) sentinel은 어떤 실제 z_index(실행 시 항상 >=1)와도 매칭되지 않아 자연 배제됨 — 별도 가드 불필요.
         private bool DoesShotOwnCrossZIndex(ShotConfig shot, int nZIndex)
         {
@@ -1120,9 +1120,9 @@ namespace ReringProject.Sequence {
             return false;
         }
 
-        // Phase 77 SZF-01/SZF-02/SZF-05: 이 z 가 shot 의 켜진 Z 범위(ZIndex~ZIndexEnd)에 속하는가의 단일 소스.
+        //260915 hbk 이 z 가 shot 의 켜진 Z 범위(ZIndex~ZIndexEnd)에 속하는가의 단일 소스.
         //  가드 순서가 중요하다 — IsZRangeEnabled() 가 false 인 순간(옛 레시피 포함) 항상 false 로 끝나 회귀 0.
-        //  겹침 제외(다른 Shot/Datum 이 쓰는 z 배제) 가드는 77-02 가 이 마지막 return 앞에 추가한다.
+        //  겹침 제외(다른 Shot/Datum 이 쓰는 z 배제) 가드는 이 마지막 return 앞에 둔다.
         public bool DoesShotOwnZRangeIndex(ShotConfig shot, int nZIndex)
         {
             if (shot == null)
@@ -1152,12 +1152,12 @@ namespace ReringProject.Sequence {
             }
             if (IsZIndexReservedOutsideZRange(shot, nZIndex))
             {
-                return false; // 다른 Shot·Datum·다른 범위 Shot 이 쓰는 z — 이 Shot 후보에서 제외(T-77-07, D-77-07 ⑤)
+                return false; //260915 hbk 다른 Shot·Datum·다른 범위 Shot 이 쓰는 z — 이 Shot 후보에서 제외( ⑤)
             }
             return true;
         }
 
-        // Phase 77 T-77-07/D-77-07 ⑤: DoesShotOwnZRangeIndex 를 부르지 않는 원시 범위 포함 판정(재귀 방지용
+        //260915 hbk ⑤: DoesShotOwnZRangeIndex 를 부르지 않는 원시 범위 포함 판정(재귀 방지용
         //  sub-헬퍼). IsZIndexReservedOutsideZRange 가 다른 Shot 의 범위 겹침을 검사할 때만 쓴다.
         private static bool IsZIndexInsideRawZRange(ShotConfig shot, int nZIndex)
         {
@@ -1174,7 +1174,7 @@ namespace ReringProject.Sequence {
             return bAtOrAfterStart && bAtOrBeforeEnd;
         }
 
-        // Phase 77 T-77-07/D-77-07 ⑤: 이 z 가 rangeShot 이 아닌 다른 Shot·Datum·다른 범위 Shot 이 이미 쓰는
+        //260915 hbk ⑤: 이 z 가 rangeShot 이 아닌 다른 Shot·Datum·다른 범위 Shot 이 이미 쓰는
         //  번호인가 — 겹치면 rangeShot 의 후보에서 제외해야 한다(다른 조명·높이로 찍힌 사진이 섞이지 않게).
         //  PropertyGrid 편집 경로(ShotConfig.WarnZIndexEndChanged)에서도 불리므로 RecipeManager 접근을
         //  TryGetOwnedShotZIndexRange 와 동일하게 단계별 null 가드한다.
@@ -1233,7 +1233,7 @@ namespace ReringProject.Sequence {
             return false;
         }
 
-        // Phase 77 D-77-07 ⑤: shot 의 범위(ZIndex+1~ZIndexEnd) 중 다른 Shot·기준점이 이미 쓰는 z 목록을
+        //260915 hbk ⑤: shot 의 범위(ZIndex+1~ZIndexEnd) 중 다른 Shot·기준점이 이미 쓰는 z 목록을
         //  한국어 한 줄로 만든다 — ShotConfig.WarnZIndexEndChanged(편집 즉시 경고) 와
         //  Action_FAIMeasurement.LogZRangeMisconfigIfNeeded(런타임 tick 경고) 가 공유한다.
         public string BuildZRangeConflictText(ShotConfig shot)
@@ -1267,7 +1267,7 @@ namespace ReringProject.Sequence {
             return "Z 범위 안의 " + szConflictList + " 은 다른 Shot·기준점이 쓰는 번호라 후보에서 빠집니다.";
         }
 
-        // Phase 77 SZF-02: shot 의 범위(ZIndex~ZIndexEnd) 중 이 shot 이 실제로 소유하는 z 를 오름차순으로 나열.
+        //260915 hbk shot 의 범위(ZIndex~ZIndexEnd) 중 이 shot 이 실제로 소유하는 z 를 오름차순으로 나열.
         //  꺼진 Shot 은 빈 목록 — 후보 로드(EnsureZRangeCandidatesLoaded)가 이 목록으로 저장소를 조회한다.
         public List<int> BuildZRangeCandidateIndices(ShotConfig shot)
         {
@@ -1291,7 +1291,7 @@ namespace ReringProject.Sequence {
             return lstIndices;
         }
 
-        // Phase 77 SZF-02: "이 z 가 어느 범위 Shot 의 후보 촬영에 쓰이는가" — WarnIfEmptyScope 가 중간 z 를
+        //260915 hbk "이 z 가 어느 범위 Shot 의 후보 촬영에 쓰이는가" — WarnIfEmptyScope 가 중간 z 를
         //  결과 0건 경고 대상에서 제외하는 데 쓴다(IsZIndexUsedByCrossZMeasurement 와 같은 역할, 다른 소스).
         private bool IsZIndexUsedByZRangeCapture(int nZIndex)
         {
@@ -1312,7 +1312,7 @@ namespace ReringProject.Sequence {
             return false;
         }
 
-        // Phase 77 SZF-02: shot 의 범위가 이 z 에서 완성되는가(ZIndexEnd 와 같은가) — AggregateIndexFais 의
+        //260915 hbk shot 의 범위가 이 z 에서 완성되는가(ZIndexEnd 와 같은가) — AggregateIndexFais 의
         //  bCrossZCompletesHere 와 대칭 역할.
         private bool ShotHasZRangeCompletingAt(ShotConfig shot, int nZIndex)
         {
@@ -1327,7 +1327,7 @@ namespace ReringProject.Sequence {
             return shot.ZIndexEnd == nZIndex;
         }
 
-        // Phase 77 SZF-02: 이 시퀀스 소유이고 켜진 범위 Shot 의 ZIndexEnd 최댓값(없으면 0) — ComputeLastZIndex 가
+        //260915 hbk 이 시퀀스 소유이고 켜진 범위 Shot 의 ZIndexEnd 최댓값(없으면 0) — ComputeLastZIndex 가
         //  "마지막 Index" 산출에 반영해 ZIndexEnd 가 shot.ZIndex 최댓값을 넘는 경우 조기 오판정을 막는다.
         private int MaxZRangeCompletionZIndex(InspectionRecipeManager recipeManager)
         {
@@ -1358,12 +1358,12 @@ namespace ReringProject.Sequence {
             return nMax;
         }
 
-        //260722 hbk Phase 68 D-01/D-01b: z_index → Actions[] 인덱스 다중매칭 헬퍼 (ShotConfig.ZIndex + owned ZIndexA/ZIndexB aware).
+        //260722 hbk z_index → Actions[] 인덱스 다중매칭 헬퍼 (ShotConfig.ZIndex + owned ZIndexA/ZIndexB aware).
         //  사용자 확정 설계: 크로스-Z 측정의 owning Shot은 별도 Shot으로 쪼개지 않고, own-ZIndex 위치뿐 아니라 자신이 소유한
         //  DualImageEdgeDistanceMeasurement의 ZIndexA/ZIndexB 위치에서도 실행되어야 한다 — 그래서 한 Shot이 여러 z_index에
         //  다중 매칭될 수 있다(반환 List<int>). FindShotByZIndex(단일매칭, ShotConfig 반환)와 달리 Actions[] 인덱스를 반환해야
         //  SequenceBase.StartSubset(int[], TestPacket)에 그대로 전달 가능하다.
-        //  public: Custom/SystemHandler.ProcessTest(Task 3, 다른 클래스)가 직접 호출해야 하므로 ApplyShotLights/TurnOffShotLights와
+        //  public: Custom/SystemHandler.ProcessTest(다른 클래스)가 직접 호출해야 하므로 ApplyShotLights/TurnOffShotLights와
         //  동일하게 public 노출(같은 파일의 기존 cross-class 호출 컨벤션 — private로는 다른 클래스에서 호출 불가, 컴파일 불가).
         public List<int> FindActionIndicesByZIndex(int nZIndex)
         {
@@ -1395,7 +1395,7 @@ namespace ReringProject.Sequence {
                 bool bOwnZIndexMatch = shot.ZIndex == nZIndex;
                 bool bCrossZMatch = DoesShotOwnCrossZIndex(shot, nZIndex);
                 bool bMatch = bOwnZIndexMatch || bCrossZMatch;
-                bool bZRangeMatch = DoesShotOwnZRangeIndex(shot, nZIndex); // Phase 77 SZF-02
+                bool bZRangeMatch = DoesShotOwnZRangeIndex(shot, nZIndex);
                 if (bZRangeMatch)
                 {
                     bMatch = true;
@@ -1408,10 +1408,10 @@ namespace ReringProject.Sequence {
             return matchedIndices;
         }
 
-        //260625 hbk Phase 64 LIGHT-01 (D-10/D-12): $PREP 수신 → z_index Shot 조회 → 조명 세팅.
+        //260625 hbk $PREP 수신 → z_index Shot 조회 → 조명 세팅.
         //  ProcessPrep() 이 호출하는 public 진입점.
-        //  CoaxLight_* 는 ALIGN_COAX 그룹으로 매핑 (D-11: INI 키 이름 보존, 그룹명만 변경).
-        //  반환값 = 조명 세팅 성공 여부($PREP_ACK 의 OK/FAIL). D-73-08: 검사 항목 유무는 반영하지 않는다 —
+        //  CoaxLight_* 는 ALIGN_COAX 그룹으로 매핑 (: INI 키 이름 보존, 그룹명만 변경).
+        //  반환값 = 조명 세팅 성공 여부($PREP_ACK 의 OK/FAIL).: 검사 항목 유무는 반영하지 않는다
         //  Shot 이 없는 z(기준점 전용 z, 아직 항목을 안 넣은 빈 z)는 켤 대상이 없을 뿐이므로 OK 다.
         //  (과거 SIDE z=1/4/8/13 이 전부 PREP_ACK FAIL 로 나가던 회귀를 되돌리지 않기 위한 계약.)
         // 수동 지그용 "기준점 유지": Test Find 가 성공하면 그 결과(TryComposeAlign 이 캐시에 저장)를 다음 수동 RUN 들이
@@ -1422,7 +1422,7 @@ namespace ReringProject.Sequence {
 
         public void HoldManualDatum(string szDatumName) {
             _bManualDatumHeld = true;
-            RecordHeldDatumProvenance(szDatumName); // Phase 80 함께 처리 2: 두 장짜리는 티칭 사진 파일 출처로 기록, 1장은 출처 모름으로 지움
+            RecordHeldDatumProvenance(szDatumName); //260918 hbk 함께 처리 2: 두 장짜리는 티칭 사진 파일 출처로 기록, 1장은 출처 모름으로 지움
             Logging.PrintLog((int)ELogType.Trace, "[SEQ] {0} 기준점 '{1}' Test Find 성공 — 다음 수동 RUN 부터 이 기준점을 재사용(새 Test Find/부품 교체 시 갱신)", Name, szDatumName);
         }
 
@@ -1455,11 +1455,11 @@ namespace ReringProject.Sequence {
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BACK, false);
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_ALIGN_COAX, false);
             LightHandler.Handle.SetOnOff(LightHandler.LIGHT_BAR, false);
-            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Phase 66: Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
+            LightHandler.Handle.SetOnOff(LightHandler.LIGHT_RING7, false);   //260626 hbk Ring7 소등 정합 — 점등(ApplyShotLightsInternal)/소등 대칭
         }
 
         // 지금 검사 중(비-Idle)인 다른 InspectionSequence 가 쓰는 조명 채널을 모은다.
-        //  Phase 73 이 SIDE 를 4개로 쪼개면서 SIDE_1~4 가 LIGHT_BAR_1~4 라는 같은 물리 채널을 공유한다 —
+        //  SIDE 를 4개로 쪼개면서 SIDE_1~4 가 LIGHT_BAR_1~4 라는 같은 물리 채널을 공유한다
         //  "자기 채널만 끈다"는 스코핑만으로는 형제 지그의 조명을 끄는 것을 막지 못한다.
         //  제어 공정은 지그를 순차 진행하지만 그 순서를 코드가 강제하지는 않으므로 여기서 막는다.
         private HashSet<string> CollectBusySiblingChannels()
@@ -1491,12 +1491,12 @@ namespace ReringProject.Sequence {
             return busyChannels;
         }
 
-        //260807 hbk quick-260807-cr1 (Phase71 CR-01 리뷰수정): LightHandler 는 PC1 에서 TOP/BOTTOM 두
+        //260807 hbk ( 리뷰수정): LightHandler 는 PC1 에서 TOP/BOTTOM 두
         //  InspectionSequence 가 공유하는 process-wide 싱글턴이다. 한 시퀀스가 "내 사이클 끝"만 보고
         //  TurnOffShotLights()(전 채널 소등)를 부르면, 아직 사이클 중인 형제 시퀀스가 쓰는 채널까지 함께
         //  꺼진다 — TryTurnOffLightsOnCycleEnd 는 이제 이 메서드를 호출한다. TurnOffShotLights() 자체는
         //  무수정 보존(TurnOffPrepLights() 등 '전체 강제 소등' 호출자가 남아있음, CONTEXT 결정 유지).
-        //  Phase 73: 위 주석이 "현재 레시피 구조에서는 발생하지 않음" 이라고 적어 둔 조건 — 같은 물리 채널을 두
+        //  위 주석이 "현재 레시피 구조에서는 발생하지 않음" 이라고 적어 둔 조건 — 같은 물리 채널을 두
         //  시퀀스가 동시에 쓰는 구성 — 을 SIDE_1~4 분리가 정확히 만든다. 그래서 이제 CollectBusySiblingChannels()
         //  로 비-Idle 형제 시퀀스의 채널을 소등 대상에서 뺀다(스코핑만으로는 못 막던 구멍을 닫은 것).
         // 수동 Grab/검사Grab(MainView) 이 촬영을 마친 직후 부르는 공개 진입점 — 촬영용으로 켠 이 시퀀스의 조명만 끈다.
@@ -1610,7 +1610,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260806 hbk Phase 71: 사이클이 P/F 로 확정되는 순간(IsBuffer==false) 전 조명 소등.
+        //260806 hbk 사이클이 P/F 로 확정되는 순간(IsBuffer==false) 전 조명 소등.
         //  $PREP Op=0(PLC 의 명시적 OFF 요청) 폐기 대체 — 사이클 종료 시점을 아는 주체는 PLC 가 아니라 판정을 내리는 비전이다.
         //  IsBuffer==true(중간 index B 응답)면 다음 z_index 촬영이 남아있으므로 끄지 않는다.
         //  소등해도 다음 촬영은 안전하다: 모든 $TEST 앞에 $PREP 가 선행하고 ApplyShotLightsInternal 이 전 채널을 선언적으로 재적용한다.
@@ -1629,13 +1629,13 @@ namespace ReringProject.Sequence {
             {
                 return;
             }
-            TurnOffOwnShotLights();   //260807 hbk Phase71 CR-01: 전 채널 소등(TurnOffShotLights) 대신 이 시퀀스 채널만 소등 — 형제 시퀀스 간섭 차단
+            TurnOffOwnShotLights();   //260807 hbk 전 채널 소등(TurnOffShotLights) 대신 이 시퀀스 채널만 소등 — 형제 시퀀스 간섭 차단
             Logging.PrintLog((int)ELogType.LightController,
                 "[CycleLightOff] Seq={0}, path={1}, z={2}, result={3}", Name, szPath, nZIndex, packet.Result);
         }
 
-        //260625 hbk Phase 64 LIGHT-01 (D-10): ShotConfig 조명 → LightHandler 적용.
-        //  Ring → RING_CH1~6 채널별 개별 적용 / Bar → BAR_1~4 채널별 개별 적용 (quick-260713-nse: 그룹→채널 개별 전환)
+        //260625 hbk ShotConfig 조명 → LightHandler 적용.
+        //  Ring → RING_CH1~6 채널별 개별 적용 / Bar → BAR_1~4 채널별 개별 적용 (: 그룹→채널 개별 전환)
         //  Back → BACK 그룹 / Coax → ALIGN_COAX 그룹 / Ring7 → RING7 그룹 (1채널이라 그룹 API 그대로 유지)
         //  Enabled=true: SetOnOff(true) 먼저, 이후 SetLevel (ApplyLight 순서 동일).
         //  Enabled=false: SetOnOff(false) 만 호출.
@@ -1657,7 +1657,7 @@ namespace ReringProject.Sequence {
             bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_2, shot.SideLight_Enabled_2, shot.SideLight_Brightness_2) && bAllOk;
             bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_3, shot.SideLight_Enabled_3, shot.SideLight_Brightness_3) && bAllOk;
             bAllOk = ApplyChannelLight(ownedScope, LightHandler.LIGHT_BAR_4, shot.SideLight_Enabled_4, shot.SideLight_Brightness_4) && bAllOk;
-            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_RING7, shot.Ring7Light_Enabled, shot.Ring7Light_Brightness) && bAllOk;   //260626 hbk Phase 66 D-02: Ring7Light → LIGHT_RING7 매핑
+            bAllOk = ApplyGroupLight(ownedScope, LightHandler.LIGHT_RING7, shot.Ring7Light_Enabled, shot.Ring7Light_Brightness) && bAllOk;   //260626 hbk Ring7Light → LIGHT_RING7 매핑
             if (!bAllOk)
             {
                 Logging.PrintLog((int)ELogType.Error,
@@ -1764,30 +1764,30 @@ namespace ReringProject.Sequence {
             return LightHandler.Handle.SetOnOff(groupName, false);
         }
 
-        //260623 hbk Phase 49 PROTO-05 (D-08): Index 0(Datum 샷) 수신 = 사이클 시작 → 누적 상태 클린 슬레이트.
+        //260623 hbk Index 0(Datum 샷) 수신 = 사이클 시작 → 누적 상태 클린 슬레이트.
         //  비정상 종료(중단 F) 후에도 다음 사이클 시작이 항상 깨끗 — 마지막 Index 후 리셋(누락 위험) 미채택.
-        //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소 clear 는 여기서 더 이상 호출하지 않는다 —
+        // 크로스-Z 저장소 clear 는 여기서 더 이상 호출하지 않는다
         //  BeginCrossZImageCycle()(z=0 $TEST 수신 즉시, Action 실행 전)으로 이동됨. 이 메서드는 z=0 응답 생성
         //  시점(HandleDatumIndexResponse, 모든 z=0 Action 실행이 끝난 뒤)에 호출되므로, 여기서 크로스-Z를 clear하면
         //  같은 z=0 tick에서 방금 StoreCrossZImage로 저장한 role A 이미지가 z=1 도착 전에 지워져 크로스-Z Datum
-        //  검출이 구조적으로 불가능해진다(FIX-0 버그). m_bCycleHasNG/m_bCycleDatumFailed 는 응답 생성 시점에만
+        //  검출이 구조적으로 불가능해진다( 버그). m_bCycleHasNG/m_bCycleDatumFailed 는 응답 생성 시점에만
         //  write 되므로(ClassifyMeasurement/DetectDatumFailure) 여기 리셋은 그대로 안전하다.
         private void ResetCycleState()
         {
             m_bCycleHasNG = false;
             m_bCycleDatumFailed = false;
-            m_bCycleHasHardwareError = false;   //260811 hbk plc-spec-260811-alignment: 사이클 시작마다 초기화 — 다음 부품으로 누수 방지.
-            m_bImmediateFailSent = false;   //260722 hbk Phase 68 GAP-3(68-10, T-68-13): latch 도 사이클 시작에 초기화 — 다음 부품으로 누수 방지.
-            // quick-260904-iwm: 이 두 0 은 기준점이 아니라 다음 tick 에 즉시 덮어써지는 중립값이다. $RESET 경로에서도
+            m_bCycleHasHardwareError = false;   //260811 hbk 사이클 시작마다 초기화 — 다음 부품으로 누수 방지.
+            m_bImmediateFailSent = false;   //260722 hbk latch 도 사이클 시작에 초기화 — 다음 부품으로 누수 방지.
+            //260904 hbk 이 두 0 은 기준점이 아니라 다음 tick 에 즉시 덮어써지는 중립값이다. $RESET 경로에서도
             //  이 시퀀스의 기준점(GetDatumZIndex())으로 세팅할 이유가 없다 — 값은 그대로 0(UNSET_CYCLE_Z_INDEX) 유지.
             m_nCurrentZIndex = UNSET_CYCLE_Z_INDEX;
             m_nLastZIndex = UNSET_CYCLE_Z_INDEX;     // 호출 후 반드시 m_nLastZIndex = ComputeLastZIndex(recipeManager) 재산출 필요 — 호출부 의무
         }
 
-        //260811 hbk plc-spec-260811-alignment: Action_FAIMeasurement(다른 클래스)가 실기 카메라 grab 실패를
+        //260811 hbk Action_FAIMeasurement(다른 클래스)가 실기 카메라 grab 실패를
         //  감지했을 때 호출하는 공개 진입점. 같은 시퀀스 스레드에서만 호출되므로(Action 은 이 시퀀스 소유
         //  스레드 안에서 실행) 별도 락 불필요 — m_bCycleHasNG 등 기존 사이클 플래그와 동일한 스레드 안전성 전제.
-        //260811 hbk plc-spec-260811-alignment(조명): Custom/SystemHandler.OnLightHandlerError(다른 클래스, 다른
+        // (조명): Custom/SystemHandler.OnLightHandlerError(다른 클래스, 다른
         //  스레드 — LightHandler.Execute() 백그라운드 스레드)도 이 진입점을 재사용한다. 단순 bool 대입(단방향
         //  래치, volatile)이라 이 두 번째 호출자 추가에 락 도입 불필요 — 필드 선언부 주석 참고. 타이밍 레이스
         //  주의: 이 시퀀스가 State==Running 이 아닐 때(사이클이 이미 끝나 응답을 보낸 뒤) 호출되면 플래그만
@@ -1798,7 +1798,7 @@ namespace ReringProject.Sequence {
             m_bCycleHasHardwareError = true;
         }
 
-        //260722 hbk Phase 68 D-02a: 기존 키에 이미지가 있으면 Dispose 후 image.CopyImage() 를 저장(소유 클론,
+        //260722 hbk 기존 키에 이미지가 있으면 Dispose 후 image.CopyImage 를 저장(소유 클론
         //  ShotConfig.SetImage 계약 미러). public: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 에서
         //  직접 호출 — FindActionIndicesByZIndex 와 동일 cross-class 노출 컨벤션(Plan 02 선례).
         public void StoreCrossZImage(string szKey, HImage image)
@@ -1827,7 +1827,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 D-02a: 저장된 이미지의 CopyImage() 를 반환한다(호출부 소유, finally Dispose 책임 —
+        //260722 hbk 저장된 이미지의 CopyImage 를 반환한다(호출부 소유, finally Dispose 책임
         //  ShotConfig.GetImage 계약 미러). 키 없음/이미지 없음 → null.
         public HImage TakeCrossZImageCopy(string szKey)
         {
@@ -1849,7 +1849,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 D-02a: 크로스-Z 저장소에 해당 키의 이미지가 존재하는지 여부(완성 tick 판정에 사용).
+        //260722 hbk 크로스-Z 저장소에 해당 키의 이미지가 존재하는지 여부(완성 tick 판정에 사용).
         public bool HasCrossZImage(string szKey)
         {
             bool bHasKey = !string.IsNullOrEmpty(szKey);
@@ -1865,13 +1865,13 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 77 SZF-02/O-4: Z 범위 후보 저장소 키(Shot명|z번호) — 크로스-Z 키 체계와 다르므로 전용 헬퍼.
+        //260915 hbk Z 범위 후보 저장소 키(Shot명|z번호) — 크로스-Z 키 체계와 다르므로 전용 헬퍼.
         private static string BuildZRangeImageKey(string szShotName, int nZIndex)
         {
             return szShotName + ZRANGE_KEY_SEPARATOR + nZIndex;
         }
 
-        // Phase 77 SZF-02: StoreCrossZImage 와 같은 소유 규약(기존 값 Dispose 후 CopyImage 저장) — z_range 전용 사전.
+        //260915 hbk StoreCrossZImage 와 같은 소유 규약(기존 값 Dispose 후 CopyImage 저장) — z_range 전용 사전.
         public void StoreZRangeImage(string szShotName, int nZIndex, HImage image)
         {
             bool bHasShotName = !string.IsNullOrEmpty(szShotName);
@@ -1899,7 +1899,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 77 SZF-02: 저장된 후보 이미지의 CopyImage() 반환(호출부 소유, finally Dispose 책임).
+        //260915 hbk 저장된 후보 이미지의 CopyImage 반환(호출부 소유, finally Dispose 책임).
         public HImage TakeZRangeImageCopy(string szShotName, int nZIndex)
         {
             bool bHasShotName = !string.IsNullOrEmpty(szShotName);
@@ -1921,7 +1921,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 77 SZF-02: 완성 tick 판정(후보 존재 여부)에 사용.
+        //260915 hbk 완성 tick 판정(후보 존재 여부)에 사용.
         public bool HasZRangeImage(string szShotName, int nZIndex)
         {
             bool bHasShotName = !string.IsNullOrEmpty(szShotName);
@@ -1938,7 +1938,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 77 SZF-02/O-5: lstZIndices 순서대로 저장소에서 키를 찾아 사전에서 제거하고 이미지 소유권을 그대로
+        //260915 hbk lstZIndices 순서대로 저장소에서 키를 찾아 사전에서 제거하고 이미지 소유권을 그대로
         //  넘긴다(추가 복사 없음 — 호출자가 목록 소비 후 각 항목 Dispose 책임). null 이미지 항목은 건너뛴다.
         public List<KeyValuePair<int, HImage>> TakeZRangeImages(string szShotName, List<int> lstZIndices)
         {
@@ -1969,7 +1969,7 @@ namespace ReringProject.Sequence {
             return lstResult;
         }
 
-        // Phase 77 SZF-02/T-77-01: 사이클 시작(BeginCrossZImageCycle)·배치 정리·$RESET 에서 호출되는 전용 리셋 —
+        //260915 hbk 사이클 시작(BeginCrossZImageCycle)·배치 정리·$RESET 에서 호출되는 전용 리셋
         //  전 엔트리 Dispose 후 Clear. m_dicCrossZImages 와 같은 락(_crossZImageLock)을 재사용한다.
         private void ClearZRangeImages()
         {
@@ -1987,8 +1987,8 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 D-03: 사이클 시작(z=0, BeginCrossZImageCycle) 전용 리셋 — 전 엔트리 Dispose 후 Clear.
-        //  Z2 미도달(PLC 중단/스킵)해도 다음 부품의 z=0 도착 시 자동 정리되어 누수 없음(T-68-05 mitigation).
+        //260722 hbk 사이클 시작(z=0, BeginCrossZImageCycle) 전용 리셋 — 전 엔트리 Dispose 후 Clear.
+        //  Z2 미도달(PLC 중단/스킵)해도 다음 부품의 z=0 도착 시 자동 정리되어 누수 없음.
         private void ClearCrossZImages()
         {
             lock (_crossZImageLock)
@@ -2005,7 +2005,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소의 유일한 clear 진입점 — z=0 $TEST 수신
+        //260722 hbk 크로스-Z 저장소의 유일한 clear 진입점 — z=0 $TEST 수신
         //  즉시(그 tick의 Action 실행 시작 전, Custom/SystemHandler.StartV1Scoped z=0 분기)에 1회 호출된다.
         //  왜 여기서(응답 생성 시점 아님): z=0 DatumPhase 가 role A 를 저장하기 전에 저장소를 클린 슬레이트로
         //  만들어야 하고, 그렇게 저장된 role A 는 z=0 응답 시점의 ResetCycleState() 에 더 이상 영향받지 않고
@@ -2014,21 +2014,21 @@ namespace ReringProject.Sequence {
         public void BeginCrossZImageCycle()
         {
             ClearCrossZImages();
-            ClearZRangeImages(); // Phase 77 T-77-01: 사이클 시작 시 이전 부품의 z 범위 후보 잔재 제거
+            ClearZRangeImages(); //260915 hbk 사이클 시작 시 이전 부품의 z 범위 후보 잔재 제거
         }
 
-        // quick-260806-dsn Part B: 배치 사이클 "완료" 후 메모리 정리 전용 진입점. ClearCrossZImages 를 그대로
+        //260806 hbk Part B: 배치 사이클 "완료" 후 메모리 정리 전용 진입점. ClearCrossZImages 를 그대로
         //  재사용하지만, BeginCrossZImageCycle(다음 z=0 $TEST 수신 시 프로토콜 계약상 "유일한 진입점" — 위 주석
         //  참고)과는 호출 시점이 전혀 다르다(이번 사이클 완료 직후, UI 레벨 정리) — 그 주석이 가리키는 프로토콜
         //  계약을 깨지 않도록 이름을 분리해 별도 진입점으로 노출한다.
         public void ClearCrossZImagesAfterBatchCycle()
         {
             ClearCrossZImages();
-            ClearZRangeImages(); // Phase 77 T-77-01
+            ClearZRangeImages();
         }
 
-        //260807 hbk quick-260807-lh7: $RESET 수신 시 이 시퀀스의 사이클 누적 상태를 클린 슬레이트로 되돌리는 진입점.
-        //  260810 hbk reset-datum-clear-race 수정: 더 이상 "호출부가 State==Idle 을 먼저 확인" 하는 계약에 의존하지
+        //260807 hbk $RESET 수신 시 이 시퀀스의 사이클 누적 상태를 클린 슬레이트로 되돌리는 진입점.
+        //  reset-datum-clear-race 수정: 더 이상 "호출부가 State==Idle 을 먼저 확인" 하는 계약에 의존하지
         //  않는다(그 계약이 실제로는 락 없는 TOCTOU 였음 — 사전 체크와 이 메서드 호출 사이에 StartCore 가 끼어들면
         //  실행 중인 시퀀스 스레드와 락 없는 _datumTransforms 등을 동시에 건드릴 수 있었다). 이제 private 으로 감추고,
         //  아래 TryResetCycleStateForProtocolReset() 하나만 공개 진입점으로 노출 — SequenceBase.TryExecuteIfIdle 이
@@ -2037,7 +2037,7 @@ namespace ReringProject.Sequence {
         {
             ResetCycleState();        // 판정 래치(NG/Datum실패/즉시-F) + z_index 캐시 초기화
             ClearCrossZImages();      // 크로스-Z 이미지 저장소 Dispose+Clear (_crossZImageLock 내부 처리)
-            ClearZRangeImages();      // Phase 77 T-77-01: z 범위 후보 저장소 Dispose+Clear
+            ClearZRangeImages();      //260915 hbk z 범위 후보 저장소 Dispose+Clear
             ClearDatumTransforms();   // Datum transform 캐시 + 검출/align 실패 집합 + RuntimeDetectFailed 플래그
         }
 
@@ -2054,7 +2054,7 @@ namespace ReringProject.Sequence {
             return TryExecuteIfIdle(ResetCycleStateForProtocolReset);
         }
 
-        //260722 hbk Phase 68 D-02a: Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST
+        //260722 hbk Action_FAIMeasurement(다른 클래스)가 크로스-Z 캡처 tick 판정 시 현재 $TEST
         //  z_index 를 조회해야 하므로 ParseCurrentZIndex(private) 를 public 래퍼로 노출. RequestPacket 은
         //  SequenceBase.StartCore 에서 Run() 진입 전에 이미 세팅되므로 실행 시점에도 정확한 값을 반환한다.
         public int GetExecutionZIndex()
@@ -2062,11 +2062,11 @@ namespace ReringProject.Sequence {
             return ParseCurrentZIndex();
         }
 
-        //260722 hbk Phase 68 REGR-1(68-GAP-ANALYSIS.md): "이번 실행이 PLC/$TEST 프로토콜 사이클인가"의 단일
+        //260722 hbk "이번 실행이 PLC/$TEST 프로토콜 사이클인가"의 단일
         //  진실원 — SequenceBase.RequestPacket(protected 세터, 이 서브클래스에서 직접 읽기 가능)이 null 이 아니면
         //  프로토콜 구동. 수동(UI) RUN(SequenceBase.Start(EAction) → StartCore(.., null))과 RepeatRunService
         //  배치런(StartAll(null)) 은 항상 packet==null 이라 여기서 false — GetExecutionZIndex()==0 과는
-        //  구분되는 별도 신호가 필요한 이유: ParseCurrentZIndex 는 packet==null 일 때도 0 을 반환해(D-08 안전
+        //  구분되는 별도 신호가 필요한 이유: ParseCurrentZIndex 는 packet==null 일 때도 0 을 반환해( 안전
         //  폴백) 진짜 프로토콜 z=0 과 "프로토콜 자체가 없음"을 구별하지 못한다.
         public bool IsProtocolDrivenCycle()
         {
@@ -2074,9 +2074,9 @@ namespace ReringProject.Sequence {
             return bHasRequestPacket;
         }
 
-        // Phase 77 D-77-06/P-10: 수동 트리거(호스트 TCP 클라이언트 없이 눌린 $TEST)는 RequestPacket.Sender 가
+        //260915 hbk 수동 트리거(호스트 TCP 클라이언트 없이 눌린 $TEST)는 RequestPacket.Sender 가
         //  비어 있다(Custom/SystemHandler.cs 수동 트리거 조립부). 자동 PLC 사이클과 구분해 범위 Shot 이
-        //  선택 없이 기존 단일 사진 경로를 타게 한다(라이브 수동은 이 plan 에서 미지원 — 77-04 가 다룬다).
+        //  선택 없이 기존 단일 사진 경로를 타게 한다(라이브 수동은 아직 미지원).
         public bool IsManualTriggerCycle()
         {
             if (RequestPacket == null)
@@ -2093,10 +2093,10 @@ namespace ReringProject.Sequence {
             return "[수동]";
         }
 
-        //260722 hbk Phase 68 GAP-1/GAP-2 (68-GAP-ANALYSIS.md, D-09): "이 z_index 가 크로스-Z Datum 에 쓰이는가"의
+        //260722 hbk "이 z_index 가 크로스-Z Datum 에 쓰이는가"의
         //  단일 소스 헬퍼 — DatumConfigs 순회하여 ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 set 에 모은다.
-        //  BuildDeclaredZIndexSet(GAP-1 유니버스)과 IsDatumOnlyExecutionIndex(GAP-2 실행스코프)가 이 하나를 공유 —
-        //  유사 순회 헬퍼 난립 방지(지침 #4).
+        //  BuildDeclaredZIndexSet( 유니버스)과 IsDatumOnlyExecutionIndex( 실행스코프)가 이 하나를 공유
+        //  유사 순회 헬퍼 난립 방지.
         private HashSet<int> BuildCrossZDatumIndexSet()
         {
             var crossZSet = new HashSet<int>();
@@ -2121,7 +2121,7 @@ namespace ReringProject.Sequence {
             return crossZSet;
         }
 
-        //260722 hbk Phase 68 GAP-1/GAP-2 (D-09): BuildCrossZDatumIndexSet 의 membership 질의 wrapper.
+        //260722 hbk BuildCrossZDatumIndexSet 의 membership 질의 wrapper.
         private bool IsZIndexUsedByCrossZDatum(int nZIndex)
         {
             return BuildCrossZDatumIndexSet().Contains(nZIndex);
@@ -2165,7 +2165,7 @@ namespace ReringProject.Sequence {
             return BuildCrossZMeasurementIndexSet().Contains(nZIndex);
         }
 
-        //260722 hbk Phase 68 GAP-1 (D-09): 한 FAI 의 Measurements 중 DualImageEdgeDistanceMeasurement 의
+        //260722 hbk 한 FAI 의 Measurements 중 DualImageEdgeDistanceMeasurement 의
         //  ZIndexA/ZIndexB(CROSS_Z_UNSET 아닌 것만) 를 declaredSet 에 추가. BuildDeclaredZIndexSet 의 sub-헬퍼(함수 30줄 가드).
         private void AddFaiDeclaredZIndices(FAIConfig fai, HashSet<int> declaredSet)
         {
@@ -2195,7 +2195,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 GAP-1 (D-09): 이 시퀀스 소유 Shot 1개의 own ZIndex + 소유 측정 ZIndexA/B 를
+        //260722 hbk 이 시퀀스 소유 Shot 1개의 own ZIndex + 소유 측정 ZIndexA/B 를
         //  declaredSet 에 추가. BuildDeclaredZIndexSet 의 sub-헬퍼(함수 30줄 가드).
         private void AddShotDeclaredZIndices(ShotConfig shot, HashSet<int> declaredSet)
         {
@@ -2210,7 +2210,7 @@ namespace ReringProject.Sequence {
                 return;
             }
             declaredSet.Add(shot.ZIndex);
-            // Phase 77 T-77-07: 범위 z 도 "레시피에 존재하는 z" 로 선언 유니버스에 포함 — 안 그러면 다른 시퀀스의
+            //260915 hbk 범위 z 도 "레시피에 존재하는 z" 로 선언 유니버스에 포함 — 안 그러면 다른 시퀀스의
             //  범위 Shot 이 쓰는 z 가 크로스-Z 오설정(존재하지 않는 z_index 참조)으로 오탐된다.
             List<int> lstZRangeIndices = BuildZRangeCandidateIndices(shot);
             foreach (int nZ in lstZRangeIndices)
@@ -2223,11 +2223,11 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 GAP-1(68-GAP-ANALYSIS.md 우선순위 1): "선언된 z_index 유니버스" — 이 시퀀스 소유
+        //260722 hbk "선언된 z_index 유니버스" — 이 시퀀스 소유
         //  Shot own ZIndex + 그 Shot 이 소유한 측정 ZIndexA/B + Datum ZIndexA/B(BuildCrossZDatumIndexSet) 합집합.
-        //  ★ 위험 규칙 미포함(지침 #3): "완성 index(max(ZIndexA,ZIndexB))가 최대 shot.ZIndex 초과 시 오설정" 규칙은
+        //  ★ 위험 규칙 미포함: "완성 index(max(ZIndexA,ZIndexB))가 최대 shot.ZIndex 초과 시 오설정" 규칙은
         //  Plan 03 BLOCKER(완성 index는 shot.ZIndex와 독립)를 다시 깨뜨리므로 절대 추가하지 않는다 — 여기선 순수 membership 만.
-        //  D-07: 전 add 는 != CROSS_Z_UNSET 게이트 하에서만 — ZIndexA/B 미설정 기존 레시피는 유니버스=Shot own ZIndex 집합으로 회귀 0.
+        //  전 add 는 != CROSS_Z_UNSET 게이트 하에서만 — ZIndexA/B 미설정 기존 레시피는 유니버스=Shot own ZIndex 집합으로 회귀 0.
         private HashSet<int> BuildDeclaredZIndexSet()
         {
             var declaredSet = new HashSet<int>();
@@ -2244,7 +2244,7 @@ namespace ReringProject.Sequence {
             return declaredSet;
         }
 
-        //260722 hbk Phase 68 GAP-1: Action_FAIMeasurement(다른 클래스)가 크로스-Z 오설정(존재하지 않는 z_index
+        //260722 hbk Action_FAIMeasurement(다른 클래스)가 크로스-Z 오설정(존재하지 않는 z_index
         //  참조) 판정에 사용 — FindShotByZIndex(shot.ZIndex 단독) 위임을 제거하고 BuildDeclaredZIndexSet(선언 유니버스)
         //  membership 으로 재작성. Side(z=1, Datum ZIndexB=1) / SHOT_E5(own ZIndex=0, 측정 ZIndexA=1) 모두 이 유니버스에 포함된다.
         public bool DoesZIndexExistInRecipe(int nZIndex)
@@ -2252,12 +2252,12 @@ namespace ReringProject.Sequence {
             return BuildDeclaredZIndexSet().Contains(nZIndex);
         }
 
-        //260722 hbk Phase 68 GAP-2(68-GAP-ANALYSIS.md 우선순위 2): 오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1) 도착 시,
+        //260722 hbk 오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1) 도착 시
         //  실행 스코프(FindActionIndicesByZIndex)가 매칭 0건이라도 StartAll 폴백 대신 datum-only 최소 실행으로 라우팅해야 함을 판정.
-        //  ★ 필수 가드(지침 #5): nZIndex==이 시퀀스의 기준점(GetDatumZIndex()) 이면 최상단에서 무조건 false —
-        //  D-01a(기준점 StartAll 전량 실행)가 datum-only 오판정으로 무너지는 것을 방지. 그 다음: 크로스-Z Datum
+        //  ★ 필수 가드: nZIndex==이 시퀀스의 기준점(GetDatumZIndex) 이면 최상단에서 무조건 false
+        //  (기준점 StartAll 전량 실행)가 datum-only 오판정으로 무너지는 것을 방지. 그 다음: 크로스-Z Datum
         //  이 쓰는 index 이면서 동시에 일반 실행 매칭(own ZIndex/측정 ZIndexA/B)이 없는 경우만 true.
-        //  quick-260904-iwm: 기준점이 0 이 아닌 시퀀스(예: Bottom=11)에서는 수동 RUN(요청 없음, GetExecutionZIndex()
+        //  기준점이 0 이 아닌 시퀀스(예: Bottom=11)에서는 수동 RUN(요청 없음, GetExecutionZIndex
         //  가 0 을 반환)의 0 이 이 최상단 가드를 통과할 수 있다. 그래도 안전한 이유: 그 다음 조건이
         //  IsZIndexUsedByCrossZDatum(0) 인데, 구간 배정상 그런 시퀀스의 크로스-Z Datum 이 ZIndexA/B=0 을 선언하는
         //  일은 없으므로 false 로 빠진다. 여기에 IsProtocolDrivenCycle() 가드를 추가하면 안 된다 — 이 함수는
@@ -2275,10 +2275,10 @@ namespace ReringProject.Sequence {
             return bUsedByCrossZDatum && !bHasRegularExec;
         }
 
-        //260722 hbk Phase 68 GAP-2: datum-only index(IsDatumOnlyExecutionIndex==true) 에서 DatumPhase 만 트리거할
+        //260722 hbk datum-only index(IsDatumOnlyExecutionIndex==true) 에서 DatumPhase 만 트리거할
         //  최소 Action 인덱스 목록 — DatumConfigs 중 ZIndexA/B==nZIndex 인 datum 의 SourceShotName 을 Actions[] 에서 역추적.
         //  SourceShotName 미해결 datum 은 이 시퀀스 소유 첫 Action(가장 작은 owned index)을 트리거로 add(로그 명시) — DatumPhase 는
-        //  실행된 Action 하나에서 DatumConfigs 전체를 재검출하므로 '데이터' 오귀속(D-05 안티패턴)이 아니라 트리거용 Action 선택일 뿐이다.
+        //  실행된 Action 하나에서 DatumConfigs 전체를 재검출하므로 '데이터' 오귀속( 안티패턴)이 아니라 트리거용 Action 선택일 뿐이다.
         public List<int> FindDatumOnlyActionIndices(int nZIndex)
         {
             var triggerIndices = new HashSet<int>();
@@ -2298,7 +2298,7 @@ namespace ReringProject.Sequence {
             return new List<int>(triggerIndices);
         }
 
-        //260722 hbk Phase 68 GAP-2: FindDatumOnlyActionIndices 의 sub-헬퍼(함수 30줄 가드) — 단일 datum 의 트리거 Action 인덱스 해석.
+        //260722 hbk FindDatumOnlyActionIndices 의 sub-헬퍼(함수 30줄 가드) — 단일 datum 의 트리거 Action 인덱스 해석.
         private void AddDatumTriggerActionIndex(DatumConfig datum, HashSet<int> triggerIndices)
         {
             int nFirstOwnedIndex;
@@ -2312,7 +2312,7 @@ namespace ReringProject.Sequence {
             AddFallbackTriggerWithLog(datum, nFirstOwnedIndex, triggerIndices);
         }
 
-        //260722 hbk Phase 68 GAP-2: AddDatumTriggerActionIndex 의 sub-헬퍼(함수 30줄 가드) — Actions[] 순회하여
+        //260722 hbk AddDatumTriggerActionIndex 의 sub-헬퍼(함수 30줄 가드) — Actions[] 순회하여
         //  SourceShotName 매칭 인덱스를 찾는다. 매칭 없으면 -1 반환하되, 이 시퀀스 소유 첫 Action index 는 out 으로 남긴다(폴백용).
         private int FindOwnedActionIndexForSourceShot(DatumConfig datum, out int nFirstOwnedIndex)
         {
@@ -2343,8 +2343,8 @@ namespace ReringProject.Sequence {
             return -1;
         }
 
-        //260722 hbk Phase 68 GAP-2: AddDatumTriggerActionIndex 의 sub-헬퍼(함수 30줄 가드) — SourceShotName 미해결 시
-        //  이 시퀀스 소유 첫 Action 을 트리거로 add 하고 로그로 명시(D-05 조용한 Shots[0] 안티패턴과 구분).
+        //260722 hbk AddDatumTriggerActionIndex 의 sub-헬퍼(함수 30줄 가드) — SourceShotName 미해결 시
+        //  이 시퀀스 소유 첫 Action 을 트리거로 add 하고 로그로 명시( 조용한 Shots[0] 안티패턴과 구분).
         private void AddFallbackTriggerWithLog(DatumConfig datum, int nFirstOwnedIndex, HashSet<int> triggerIndices)
         {
             bool bHasFallback = nFirstOwnedIndex != -1;
@@ -2362,13 +2362,13 @@ namespace ReringProject.Sequence {
             triggerIndices.Add(nFirstOwnedIndex);
         }
 
-        //260722 Phase 68(68-12, 68-GAP-ANALYSIS.md 후속): 기준점 index(Datum) 자신에서 이 시퀀스의 대표 Datum
+        //260722 hbk (: 기준점 index(Datum) 자신에서 이 시퀀스의 대표 Datum
         //  트리거 Action(들)을 해석 — FindDatumOnlyActionIndices(크로스-Z 전용, 기준점 아닌 index)와 달리
         //  ZIndexA/ZIndexB 필터를 두지 않는다. 일반(비-크로스-Z) Datum 은 ZIndexA/B 개념 자체가 없어(-1/-1) 그
         //  필터로는 절대 매칭되지 않지만, 기준점 index 가 곧 그 Datum 의 검출 시점이라는 사실만으로 대표 Action
         //  이 필요하기 때문이다.
-        //  AddDatumTriggerActionIndex(SourceShotName 역추적 + 미해결시 로그폴백)를 그대로 재사용해 로직 중복을 피한다(D-09).
-        //  quick-260904-iwm: 이전 이름의 "Zero" 는 z=0 전용이 아니라 "기준점 index 의 대표 트리거"라는 의미가
+        //  AddDatumTriggerActionIndex(SourceShotName 역추적 + 미해결시 로그폴백)를 그대로 재사용해 로직 중복을 피한다.
+        //  이전 이름의 "Zero" 는 z=0 전용이 아니라 "기준점 index 의 대표 트리거"라는 의미가
         //  정확해 메서드 이름을 정정했다(동작 변경 없음).
         public List<int> FindDatumIndexTriggerActionIndices()
         {
@@ -2390,14 +2390,14 @@ namespace ReringProject.Sequence {
             return new List<int>(triggerIndices);
         }
 
-        //260722 Phase 68(68-12): 기준점 index 대표 트리거 실행 후 이 Action 의 Grab/Measure 를 건너뛸지
+        //260722 hbk 기준점 index 대표 트리거 실행 후 이 Action 의 Grab/Measure 를 건너뛸지
         //  판정하는 단일 진입점 — 기존 IsDatumOnlyExecutionIndex(크로스-Z 전용 경로, 무변경)와 신규 기준점
         //  대표트리거 경로를 OR 결합한다. IsDatumOnlyExecutionIndex 를 직접 수정하지 않는 이유: 그 술어의
         //  계약("크로스-Z Datum 만 쓰고 일반 실행 매칭 없음")은 일반(비-크로스-Z) Datum 에는 애초에 성립하지
-        //  않는 개념이며, IsZIndexUsedByCrossZDatum 은 WarnIfEmptyScope/GAP-1 BuildDeclaredZIndexSet 도
-        //  소비하므로 억지로 의미를 넓히면 그 소비처들의 의미까지 오염시킬 위험이 있다(68-12-PLAN.md
+        //  않는 개념이며, IsZIndexUsedByCrossZDatum 은 WarnIfEmptyScope/ BuildDeclaredZIndexSet 도
+        //  소비하므로 억지로 의미를 넓히면 그 소비처들의 의미까지 오염시킬 위험이 있다
         //  investigation_findings) — 그래서 이 메서드가 병행 경로로 OR 만 담당한다.
-        //260722 Phase 68 REGR-1(68-GAP-ANALYSIS.md): 기준점 대표트리거 스킵(FindDatumIndexTriggerActionIndices
+        // 기준점 대표트리거 스킵(FindDatumIndexTriggerActionIndices
         //  경로)은 IsProtocolDrivenCycle()==true 일 때만 적용한다 — 프로토콜 $TEST(기준점) 는 이 Shot 의 진짜
         //  측정이 나중 z_index 에 다시 트리거되므로 이번 기준점 측정을 건너뛰어도 안전하지만, 수동(UI) RUN 과
         //  RepeatRunService 배치런은 packet==null 이라 GetExecutionZIndex()==UNSET_CYCLE_Z_INDEX(0) 으로 동일하게
@@ -2427,9 +2427,9 @@ namespace ReringProject.Sequence {
             return FindDatumIndexTriggerActionIndices().Count > 0;
         }
 
-        //260623 hbk Phase 49 PROTO-03 (D-08): RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.
-        //  파싱 실패/미수신/음수 → UNSET_CYCLE_Z_INDEX(0) 으로 안전 정규화 (T-49-03 mitigation).
-        //  quick-260904-iwm: 이 0 은 기준점이 아니라 "요청 패킷 없음"(수동 RUN/일괄검사) 을 뜻한다. 이 값을
+        //260623 hbk RequestPacket.TestID(=z_index 문자열, "-1"=미수신)를 정수 파싱.
+        //  파싱 실패/미수신/음수 → UNSET_CYCLE_Z_INDEX(0) 으로 안전 정규화 .
+        //  이 0 은 기준점이 아니라 "요청 패킷 없음"(수동 RUN/일괄검사) 을 뜻한다. 이 값을
         //  기준점 값(예 11)으로 정규화하면 Action_FAIMeasurement 의 크로스-Z 역할 판정(nCurZ==datum.ZIndexA)이
         //  수동 RUN 에서 갑자기 role A 캡처로 매칭되는 회귀가 생긴다 — 그래서 값은 그대로 두고 동작을 바꾸지
         //  않는다. 진짜 프로토콜 z=0 과 "프로토콜 자체가 없음"의 구분은 IsProtocolDrivenCycle() 이 담당한다.
@@ -2457,7 +2457,7 @@ namespace ReringProject.Sequence {
             return nZ;
         }
 
-        //260623 hbk Phase 49 PROTO-04 (D-04/D-06): Index 0(Datum 샷) 응답 생성.
+        //260623 hbk Index 0(Datum 샷) 응답 생성.
         //  정상 → 빈 응답 RESULT:site;B;0; (IsBuffer=true, FAIResults 비움). 실패 → 즉시 F (UseProtocolV1 분기에서만).
         //  m_bCycleDatumFailed = 호출 전 DetectDatumFailure() 로 설정됨 (HandleDatumIndexResponse).
         private TestResultPacket BuildDatumShotResponse()
@@ -2468,18 +2468,18 @@ namespace ReringProject.Sequence {
                 Site = RequestPacket.Site,
                 InspectionType = RequestPacket.TestType,
                 IsDynamicFAI = true,
-                Type = RequestPacket.Type,   //260624 hbk Phase 63 PROTO-Type: 수신 Type echo
-                HasHardwareError = m_bCycleHasHardwareError,   //260811 hbk plc-spec-260811-alignment: 카메라 하드웨어 에러 → E 최우선(MapCycleJudgement)
+                Type = RequestPacket.Type,   //260624 hbk PROTO-Type: 수신 Type echo
+                HasHardwareError = m_bCycleHasHardwareError,   //260811 hbk 카메라 하드웨어 에러 → E 최우선(MapCycleJudgement)
             };
             bool bUseV1 = SystemHandler.Handle.Setting.UseProtocolV1;
             bool bDatumFailed = m_bCycleDatumFailed;
             bool bImmediateFail = bUseV1 && bDatumFailed;
             if (bImmediateFail)
             {
-                // 즉시 F — 후속 Index skip 은 핸들러 주도(D-05). IsBuffer=false + Result=NG → 직렬화 'F'.
+                //260623 hbk 즉시 F — 후속 Index skip 은 핸들러 주도. IsBuffer=false + Result=NG → 직렬화 'F'.
                 packet.IsBuffer = false;
                 packet.Result = EVisionResultType.NG;
-                m_bImmediateFailSent = true;   //260722 hbk Phase 68 GAP-3(68-10, 지침 #6/T-68-11): z=0 즉시-F 도 latch 세팅 —
+                m_bImmediateFailSent = true;   //260722 hbk z=0 즉시-F 도 latch 세팅
                                                 //  완성 index 재평가(TryApplyCrossZDatumImmediateFail)가 중복 F 를 또 보내지 않도록.
                 return packet;
             }
@@ -2489,7 +2489,7 @@ namespace ReringProject.Sequence {
             return packet;
         }
 
-        //260623 hbk Phase 49 PROTO-04: 이 시퀀스 소유 Datum 중 검출 실패(IsDatumFailed)가 1건이라도 있으면 true.
+        //260623 hbk 이 시퀀스 소유 Datum 중 검출 실패(IsDatumFailed)가 1건이라도 있으면 true.
         //  Action_FAIMeasurement.DatumPhase 가 MarkDatumFailed → _failedDatums 에 누적. 빈/누락 datum 은 skip.
         private bool DetectDatumFailure()
         {
@@ -2510,10 +2510,10 @@ namespace ReringProject.Sequence {
             return bAnyFailed;
         }
 
-        //260623 hbk Phase 49 PROTO-03/04/05: v1.0 z_index 멀티샷 사이클 판정 엔진 진입점.
-        //  Index 0 = 사이클 시작(리셋 D-08) + Datum 빈응답/즉시F(D-04/D-06) → HandleDatumIndexResponse() 위임(본문 30줄 유지).
-        //  중간 Index = 해당 z_index Shot 집계(D-01) + NG 누적(D-02) + B(IsBuffer=true).
-        //  마지막 Index(z_index 최댓값 D-03) = 집계 + m_bCycleHasNG 반영 종합 P/F.
+        //260623 hbk v1.0 z_index 멀티샷 사이클 판정 엔진 진입점.
+        //  Index 0 = 사이클 시작(리셋) + Datum 빈응답/즉시F → HandleDatumIndexResponse 위임(본문 30줄 유지).
+        //  중간 Index = 해당 z_index Shot 집계 + NG 누적 + B(IsBuffer=true).
+        //  마지막 Index(z_index 최댓값) = 집계 + m_bCycleHasNG 반영 종합 P/F.
         private void AddResponseV1Cycle()
         {
             var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
@@ -2521,18 +2521,18 @@ namespace ReringProject.Sequence {
             bool bIsDatumShot = m_nCurrentZIndex == GetDatumZIndex();
             if (bIsDatumShot)
             {
-                HandleDatumIndexResponse(recipeManager);   // D-08 리셋 + 재산출 + Datum 응답 + 영속화 (ComputeLastZIndex 1회)
+                HandleDatumIndexResponse(recipeManager);   //260623 hbk 리셋 + 재산출 + Datum 응답 + 영속화 (ComputeLastZIndex 1회)
                 return;
             }
             // 측정 Index (중간 / 마지막 / 범위 밖) — m_nLastZIndex 는 이 경로에서 1회만 산출(이중 호출 제거, BLOCKER 2-a).
             m_nLastZIndex = ComputeLastZIndex(recipeManager);
 
-            // M13: $PREP_ACK 이 더 이상 "해당 z 없음"을 걸러주지 않으므로(D-73-08 FAIL=조명 전용),
+            //260826 hbk M13: $PREP_ACK 이 더 이상 "해당 z 없음"을 걸러주지 않으므로( FAIL=조명 전용)
             //  자기 범위 밖 z 가 여기까지 들어온다. 그때 최종 P/F 를 내면 측정 0건으로 P 가 나갈 수 있다.
             //  범위 밖은 판정을 미루고(B) 로그만 남긴다.
             //  m_nLastZIndex == 0 (이 시퀀스에 측정 Shot 이 없는 레시피)은 범위 밖으로 취급하지 않는다 —
-            //  그 경우는 기존 WR-01 가드(마지막 Index 매칭 0건이면 F 강제)가 false-PASS 를 막아야 한다.
-            //  quick-260904-iwm: 이 0 은 기준점이 아니라 "이 시퀀스 소유 Shot 이 0건"이라는 별개의 센티널이다
+            //  그 경우는 기존 가드(마지막 Index 매칭 0건이면 F 강제)가 false-PASS 를 막아야 한다.
+            //  이 0 은 기준점이 아니라 "이 시퀀스 소유 Shot 이 0건"이라는 별개의 센티널이다
             //  (ComputeLastZIndex 는 소유 Shot 이 0건이면 0 을 반환 — 기준점이 11 이어도 Bottom 은 최댓값 40 이라
             //  >0 이 성립하므로 이 비교는 손대지 않는다).
             bool bHasMeasurementShots = m_nLastZIndex > 0;
@@ -2552,23 +2552,23 @@ namespace ReringProject.Sequence {
             PersistAndEnqueueV1(recipeManager, packet);
         }
 
-        //260623 hbk Phase 49 PROTO-04/05 (D-08): Index 0(Datum 샷) 처리 — 사이클 리셋 + Datum 검출 감지 + 응답 + 영속화.
+        //260623 hbk Index 0(Datum 샷) 처리 — 사이클 리셋 + Datum 검출 감지 + 응답 + 영속화.
         //  ResetCycleState() 가 m_nLastZIndex=0 으로 덮으므로 직후 단 1회 재산출(BLOCKER 2-a, 측정 경로는 자체 산출).
-        //  quick-260904-iwm: GetDatumZIndex() 를 지역변수 nDatumZ 로 한 번만 받아 두 번 계산하지 않는다.
+        //  GetDatumZIndex 를 지역변수 nDatumZ 로 한 번만 받아 두 번 계산하지 않는다.
         private void HandleDatumIndexResponse(InspectionRecipeManager recipeManager)
         {
-            ResetCycleState();                                  // D-08: 사이클 시작 = 클린 슬레이트
+            ResetCycleState();                                  //260623 hbk 사이클 시작 = 클린 슬레이트
             int nDatumZ = GetDatumZIndex();
             m_nCurrentZIndex = nDatumZ;
             m_nLastZIndex = ComputeLastZIndex(recipeManager);   // 리셋 직후 재산출(호출부 의무, ResetCycleState 주석)
-            m_bCycleDatumFailed = DetectDatumFailure();         // D-04: Datum 검출 실패 감지
+            m_bCycleDatumFailed = DetectDatumFailure();         //260623 hbk Datum 검출 실패 감지
             TestResultPacket datumPacket = BuildDatumShotResponse();
-            TryTurnOffLightsOnCycleEnd(datumPacket, "datum-index", nDatumZ);   //260806 Phase 71: 기준점 즉시-F 는 BuildScopedResponse 를 안 거치는 별도 종료 경로 — 두 번째 훅 필수(nZIndex 인자는 로그 전용, quick-260904-iwm)
+            TryTurnOffLightsOnCycleEnd(datumPacket, "datum-index", nDatumZ);   //260806 hbk 기준점 즉시-F 는 BuildScopedResponse 를 안 거치는 별도 종료 경로 — 두 번째 훅 필수(nZIndex 인자는 로그 전용)
             PersistAndEnqueueV1(recipeManager, datumPacket);
         }
 
-        //260623 hbk Phase 49 PROTO-03 (D-01/D-02/D-03): Index-scoped 집계 + B/P/F 응답 조립.
-        //  이 시퀀스 소유 AND shot.ZIndex == nZIndex 인 Shot 의 FAI 만 집계(전체 재검사 금지 D-01).
+        //260623 hbk Index-scoped 집계 + B/P/F 응답 조립.
+        //  이 시퀀스 소유 AND shot.ZIndex == nZIndex 인 Shot 의 FAI 만 집계(전체 재검사 금지).
         //  중간 Index → B(IsBuffer=true, NG 있어도 B). 마지막 Index → 종합 P/F(m_bCycleHasNG||Datum실패).
         //  불변식: NG 발견돼도 마지막 Index 까지 측정 진행(측정은 Action_FAIMeasurement, 여기는 집계만). 종료 판정은 마지막에서만.
         private TestResultPacket BuildScopedResponse(InspectionRecipeManager recipeManager, int nZIndex, bool bIsLastIndex)
@@ -2579,21 +2579,21 @@ namespace ReringProject.Sequence {
                 Site = RequestPacket.Site,
                 InspectionType = RequestPacket.TestType,
                 IsDynamicFAI = true,
-                Type = RequestPacket.Type,   //260624 hbk Phase 63 PROTO-Type: 수신 Type echo
-                HasHardwareError = m_bCycleHasHardwareError,   //260811 hbk plc-spec-260811-alignment: 카메라 하드웨어 에러 → E 최우선(MapCycleJudgement)
+                Type = RequestPacket.Type,   //260624 hbk PROTO-Type: 수신 Type echo
+                HasHardwareError = m_bCycleHasHardwareError,   //260811 hbk 카메라 하드웨어 에러 → E 최우선(MapCycleJudgement)
             };
             int nMatchedShots = AggregateIndexFais(recipeManager, nZIndex, packet);
             WarnIfEmptyScope(packet, nMatchedShots, nZIndex);   // BLOCKER 1: ZIndex 매칭 0건 경고(조용한 빈 B 금지)
-            ApplyCycleJudgement(packet, bIsLastIndex, nMatchedShots);   // B vs 종합 P/F (D-03/불변식), WR-01: 매칭 0건 전달
-            TryApplyCrossZDatumImmediateFail(packet, nZIndex);   //260722 hbk Phase 68 GAP-3(68-10): 완성 index 크로스-Z Datum 실패 재평가(게이팅, 기본 OFF no-op)
-            TryTurnOffLightsOnCycleEnd(packet, "scoped", nZIndex);   //260806 hbk Phase 71: 위 두 판정이 모두 끝난 뒤 IsBuffer==false 단일 게이트로 소등(개별 함수 수정 없이 누락 방지)
+            ApplyCycleJudgement(packet, bIsLastIndex, nMatchedShots);   //260623 hbk B vs 종합 P/F (불변식),: 매칭 0건 전달
+            TryApplyCrossZDatumImmediateFail(packet, nZIndex);   //260722 hbk 완성 index 크로스-Z Datum 실패 재평가(게이팅, 기본 OFF no-op)
+            TryTurnOffLightsOnCycleEnd(packet, "scoped", nZIndex);   //260806 hbk 위 두 판정이 모두 끝난 뒤 IsBuffer==false 단일 게이트로 소등(개별 함수 수정 없이 누락 방지)
             pMyContext.ResultInfo = packet.Result;
             return packet;
         }
 
-        //260722 hbk Phase 68 Task4(BLOCKER): 측정 완성 응답 index 산출 — 크로스-Z 측정(ZIndexA/B 둘 다 설정)은
+        //260722 hbk (BLOCKER): 측정 완성 응답 index 산출 — 크로스-Z 측정(ZIndexA/B 둘 다 설정)은
         //  max(ZIndexA,ZIndexB)(Action_FAIMeasurement.TryExecuteCrossZMeasurement 완성 index 정의와 동일),
-        //  그 외(기존 non-cross-Z)는 shot.ZIndex(기존 own-index 의미 그대로 보존 — D-07 회귀 0).
+        //  그 외(기존 non-cross-Z)는 shot.ZIndex(기존 own-index 의미 그대로 보존 —).
         private int GetMeasurementCompletionZIndex(MeasurementBase meas, ShotConfig shot)
         {
             var dualMeas = meas as DualImageEdgeDistanceMeasurement;
@@ -2602,7 +2602,7 @@ namespace ReringProject.Sequence {
             {
                 return System.Math.Max(dualMeas.ZIndexA, dualMeas.ZIndexB);
             }
-            bool bZRangeShot = shot.IsZRangeEnabled(); // Phase 77 SZF-02: 범위 Shot 은 ZIndexEnd 에서 완성
+            bool bZRangeShot = shot.IsZRangeEnabled(); //260915 hbk 범위 Shot 은 ZIndexEnd 에서 완성
             if (bZRangeShot)
             {
                 return shot.ZIndexEnd;
@@ -2610,11 +2610,11 @@ namespace ReringProject.Sequence {
             return shot.ZIndex;
         }
 
-        //260722 hbk Phase 68 CROSS-2 (68-GAP-ANALYSIS.md 교차이슈, D-09): Datum 완성 index 단일 소스 —
+        //260722 hbk Datum 완성 index 단일 소스
         //  GetMeasurementCompletionZIndex(측정)와 대칭. 크로스-Z Datum(ZIndexA/B 둘 다 설정)만 완성 index 개념이
         //  있음 → max(ZIndexA,ZIndexB) 반환. 비-크로스-Z Datum(ZIndexA 또는 ZIndexB 미설정, 기존 정적 이미지 경로)은
-        //  완성 index 개념 자체가 없음 → CROSS_Z_UNSET 반환(D-07 게이트, 호출부가 != CROSS_Z_UNSET 으로 필터링).
-        //  MaxCrossZCompletionZIndex(이 파일, CROSS-2)와 GAP-3(68-10, Datum 완성 index 즉시-F 재평가)의 단일 소스.
+        //  완성 index 개념 자체가 없음 → CROSS_Z_UNSET 반환( 게이트, 호출부가 != CROSS_Z_UNSET 으로 필터링).
+        //  MaxCrossZCompletionZIndex(이 파일)와 (Datum 완성 index 즉시-F 재평가)의 단일 소스.
         private int GetDatumCompletionZIndex(DatumConfig datum)
         {
             bool bIsCrossZ = datum != null && datum.ZIndexA != CROSS_Z_UNSET && datum.ZIndexB != CROSS_Z_UNSET;
@@ -2625,13 +2625,12 @@ namespace ReringProject.Sequence {
             return CROSS_Z_UNSET;
         }
 
-        //260722 hbk Phase 68 GAP-3(68-10, 지침 #6/#7, 68-GAP-ANALYSIS.md): 완성 index(GetDatumCompletionZIndex,
+        //260722 hbk (: 완성 index(GetDatumCompletionZIndex
         //  Side 는 z=1) 응답 생성 시점에 크로스-Z Datum 실패를 재평가 — z=0 에서만 산출되던 m_bCycleDatumFailed 가
-        //  크로스-Z Datum(실제 검출은 완성 index 에서 일어남)엔 "즉시 F" 계약을 이행 못 하던 GAP-3 근본원인 수정.
-        //  게이팅(T-68-12): EnableCrossZDatumImmediateFail(체크포인트 결정 enable-after-agreement, 기본 true) —
-        //  Vision-Protocol-v1.0.md 판정표 F 행 "PLC 동작"은 index 무관 "NG 처리" 단일 규정(PLC 는 B vs P/F 만
+        //  크로스-Z Datum(실제 검출은 완성 index 에서 일어남)엔 "즉시 F" 계약을 이행 못 하던 근본원인 수정.
+        //  게이팅: EnableCrossZDatumImmediateFail(체크포인트 결정 enable-after-agreement, 기본 true)
         //  분기, index 로 분기하지 않음) → z>=1 F 도 index 0 과 동일하게 처리되어 제어팀 합의 근거로 ON 확정.
-        //  latch(T-68-11): m_bImmediateFailSent 이미 세팅(z=0 즉시-F 분기에서)이면 재평가 없이 즉시 return —
+        //  latch: m_bImmediateFailSent 이미 세팅(z=0 즉시-F 분기에서)이면 재평가 없이 즉시 return
         //  한 사이클 최대 1회 F 만 나가도록 보장(중복-F 방지).
         private void TryApplyCrossZDatumImmediateFail(TestResultPacket packet, int nZIndex)
         {
@@ -2666,7 +2665,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260722 hbk Phase 68 Task4(BLOCKER): shot 이 소유한 측정 중 크로스-Z 이고 완성 index==nZIndex 인 것이
+        //260722 hbk (BLOCKER): shot 이 소유한 측정 중 크로스-Z 이고 완성 index==nZIndex 인 것이
         //  하나라도 있으면 true. AggregateIndexFais 의 in-scope 조건을 shot.ZIndex 우연값과 무관하게 확장해,
         //  크로스-Z 측정의 owning Shot 이 완성 index 응답 집계에 반드시 포함되도록 한다(BLOCKER 핵심 — inclusion).
         private bool ShotHasCrossZMeasurementCompletingAt(ShotConfig shot, int nZIndex)
@@ -2701,8 +2700,8 @@ namespace ReringProject.Sequence {
             return false;
         }
 
-        //260623 hbk Phase 49 (D-01): nZIndex 매칭 Shot 의 FAI 만 packet.FAIResults 에 집계. 매칭 Shot 수 반환.
-        //260722 hbk Phase 68 Task4(BLOCKER): in-scope 조건에 bCrossZCompletesHere 추가 — 크로스-Z 측정의 owning
+        //260623 hbk nZIndex 매칭 Shot 의 FAI 만 packet.FAIResults 에 집계. 매칭 Shot 수 반환.
+        // (BLOCKER): in-scope 조건에 bCrossZCompletesHere 추가 — 크로스-Z 측정의 owning
         //  Shot 은 자신의 own-ZIndex 와 다른 완성 index 응답에도 포함되어야 한다(shot.ZIndex 우연값 무관, 코드레벨 보장).
         private int AggregateIndexFais(InspectionRecipeManager recipeManager, int nZIndex, TestResultPacket packet)
         {
@@ -2723,7 +2722,7 @@ namespace ReringProject.Sequence {
                 bool bZMatch = shot.ZIndex == nZIndex;
                 bool bCrossZCompletesHere = ShotHasCrossZMeasurementCompletingAt(shot, nZIndex);
                 bool bInScope = bOwnedByThisSeq && (bZMatch || bCrossZCompletesHere);
-                bool bZRangeCompletesHere = bOwnedByThisSeq && ShotHasZRangeCompletingAt(shot, nZIndex); // Phase 77 SZF-02
+                bool bZRangeCompletesHere = bOwnedByThisSeq && ShotHasZRangeCompletingAt(shot, nZIndex);
                 if (bZRangeCompletesHere)
                 {
                     bInScope = true;
@@ -2742,7 +2741,7 @@ namespace ReringProject.Sequence {
         }
 
         //260629 hbk FAI 단위 1항목 → 측정 단위 N항목 전환. P2 등 다측정 불량값 은폐 제거 (ETI-RESULT-PER-MEASUREMENT).
-        //260722 hbk Phase 68 Task4(BLOCKER): shot/nZIndex 추가 — 측정별 GetMeasurementCompletionZIndex 게이트로
+        // (BLOCKER): shot/nZIndex 추가 — 측정별 GetMeasurementCompletionZIndex 게이트로
         //  완성 index 에서만 담기고(exclusion) 비완성 index 에서는 own-index 로 in-scope 여도 제외된다.
         private void AddFaiResult(TestResultPacket packet, FAIConfig fai, ShotConfig shot, int nZIndex)
         {
@@ -2764,7 +2763,7 @@ namespace ReringProject.Sequence {
                 {
                     continue;
                 }
-                bool bReportHere = GetMeasurementCompletionZIndex(meas, shot) == nZIndex; //260722 hbk Phase 68 Task4: 완성 index 게이트
+                bool bReportHere = GetMeasurementCompletionZIndex(meas, shot) == nZIndex; //260722 hbk 완성 index 게이트
                 if (!bReportHere)
                 {
                     continue;
@@ -2784,11 +2783,11 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260629 hbk 측정 단위 3-state 분류 — datum/align-skip('N')·측정 NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P'). //260710 hbk 죽은 FAI 단위 분류 메서드 제거로 문구 정리
+        //260629 hbk 측정 단위 3-state 분류 — datum/align-skip('N')·측정 NG('F')는 m_bCycleHasNG 누적. 그 외 OK('P')./ 죽은 FAI 단위 분류 메서드 제거로 문구 정리
         private EVisionResultType ClassifyMeasurement(MeasurementBase meas)
         {
             string szSkip = meas.LastSkipReason; //260629 hbk 측정 단위 skip 사유
-            bool bDatumSkipped = (szSkip == SkipReason.DATUM_FAIL) || (szSkip == SkipReason.ALIGN_FAIL); //260629 hbk datum/align 검출 실패 skip = 'N' //260710 hbk 상수화
+            bool bDatumSkipped = (szSkip == SkipReason.DATUM_FAIL) || (szSkip == SkipReason.ALIGN_FAIL); //260629 hbk datum/align 검출 실패 skip = 'N'/ 상수화
             if (bDatumSkipped)
             {
                 m_bCycleHasNG = true; //260629 hbk 검출 실패도 사이클 NG 누적
@@ -2803,12 +2802,12 @@ namespace ReringProject.Sequence {
             return EVisionResultType.OK; //260629 hbk 정상 측정
         }
 
-        //260623 hbk Phase 49 BLOCKER 1 (D-01 정합): ZIndex 매칭 0건(빈 결과 + 매칭 Shot 0)이면 PrintErrLog 경고.
+        //260623 hbk BLOCKER 1 ( 정합): ZIndex 매칭 0건(빈 결과 + 매칭 Shot 0)이면 PrintErrLog 경고.
         //  레시피 ZIndex 미설정(전부 0) + 측정 Index 수신 = 운용 오류. 폴백(전체 재검사) 금지 — 경고만.
-        //  WR-01 fix: 중간 Index 면 빈 B 유지, 마지막 Index 면 ApplyCycleJudgement 가 F 강제(false-PASS 차단).
-        //260722 hbk Phase 68 GAP-2(f): datum-only index(예: Side z=1, 오직 크로스-Z Datum 만 씀)는 측정 항목이
+        //  중간 Index 면 빈 B 유지, 마지막 Index 면 ApplyCycleJudgement 가 F 강제(false-PASS 차단).
+        // (f): datum-only index(예: Side z=1, 오직 크로스-Z Datum 만 씀)는 측정 항목이
         //  적법하게 0건(완성 index 아님)이므로 이 억제 없이는 매 사이클 스퓨리어스 Error 로그가 발생한다.
-        //260723 hbk "사진 두 장 합쳐서 재는 측정"도 사진 한 장만 찍은 시점엔 같은 이유로 결과 0건이
+        // "사진 두 장 합쳐서 재는 측정"도 사진 한 장만 찍은 시점엔 같은 이유로 결과 0건이
         //  정상이다 — 위 기준점(Datum) 케이스만 봐주던 걸 이 측정 케이스까지 넓혔다.
         private void WarnIfEmptyScope(TestResultPacket packet, int nMatchedShots, int nZIndex)
         {
@@ -2819,7 +2818,7 @@ namespace ReringProject.Sequence {
             {
                 return;
             }
-            bool bZRangeCaptureIndex = IsZIndexUsedByZRangeCapture(nZIndex); // Phase 77 SZF-02: 중간 z 는 결과 0건이 정상
+            bool bZRangeCaptureIndex = IsZIndexUsedByZRangeCapture(nZIndex); //260915 hbk 중간 z 는 결과 0건이 정상
             if (bZRangeCaptureIndex)
             {
                 return;
@@ -2838,8 +2837,8 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260623 hbk Phase 49 (D-03/불변식): 중간 Index → B(IsBuffer=true). 마지막 Index → 종합 P/F(IsBuffer=false).
-        //260623 hbk Phase 49 WR-01 fix: 마지막 Index 인데 매칭 Shot 0건이면 P 금지 → F 강제(fail-safe).
+        //260623 hbk (불변식): 중간 Index → B(IsBuffer=true). 마지막 Index → 종합 P/F(IsBuffer=false).
+        // 마지막 Index 인데 매칭 Shot 0건이면 P 금지 → F 강제(fail-safe).
         //  ZIndex 미설정 레시피서 측정 Index(z>=1) 수신 시 ComputeLastZIndex=0 → 1>=0 으로 마지막 오인 → 매칭 0건 → 종합 P 송신(검사 0건 합격 통보) silent false-PASS 차단.
         private void ApplyCycleJudgement(TestResultPacket packet, bool bIsLastIndex, int nMatchedShots)
         {
@@ -2852,7 +2851,7 @@ namespace ReringProject.Sequence {
             }
             // 마지막 Index — 사이클 누적 NG/Datum실패 반영 종합 P/F.
             packet.IsBuffer = false;
-            bool bEmptyLastScope = nMatchedShots == 0;   // WR-01: 마지막 Index 매칭 0건 = false-PASS 위험 → F 강제
+            bool bEmptyLastScope = nMatchedShots == 0;   //260623 hbk 마지막 Index 매칭 0건 = false-PASS 위험 → F 강제
             bool bCycleFail = m_bCycleHasNG || m_bCycleDatumFailed || bEmptyLastScope;
             if (bCycleFail)
             {
@@ -2864,7 +2863,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260623 hbk Phase 49: v1.0 경로 영속화+Enqueue — 기존 v2.6 try/catch CycleResultSerializer 블록 동일 이식.
+        //260623 hbk v1.0 경로 영속화+Enqueue — 기존 v2.6 try/catch CycleResultSerializer 블록 동일 이식.
         //  매 Index 스냅샷 저장(마지막 Index 가 덮음) — 직렬화 예외 격리로 Enqueue 차단 방지(기존 패턴 보존).
         private void PersistAndEnqueueV1(InspectionRecipeManager recipeManager, TestResultPacket packet)
         {
@@ -2946,7 +2945,7 @@ namespace ReringProject.Sequence {
             if (string.IsNullOrEmpty(name)) datumName = $"Datum_{DatumConfigs.Count + 1}";
             else datumName = name;
             var datum = new DatumConfig(this);
-            // quick-260806-nrm: 세터를 쓰면 초기값 "Datum_1" → 지정이름 변경이 개명으로 오인돼 1번 Datum 의 모델 파일을 옮겨간다.
+            //260806 hbk 세터를 쓰면 초기값 "Datum_1" → 지정이름 변경이 개명으로 오인돼 1번 Datum 의 모델 파일을 옮겨간다.
             datum.InitializeDatumName(datumName);
             DatumConfigs.Add(datum);
             return datum;
@@ -2958,10 +2957,10 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        //260710 hbk 죽은 코드 제거: 미사용 Datum phase 실행 오버로드 2종(1-image/2-image) 호출부 0건 확인 후 삭제 (quick 260710-di7)
+        //260710 hbk 죽은 코드 제거: 미사용 Datum phase 실행 오버로드 2종(1-image/2-image) 호출부 0건 확인 후 삭제
 
         // DatumPhase loop 시작 전 1회 호출 (per-datum 누적 전 초기화)
-        //260810 hbk reset-datum-clear-race Round2: 3개 컬렉션 Clear 를 _datumStateLock 으로 감쌌다 — 호출부가
+        // reset-datum-clear-race Round2: 3개 컬렉션 Clear 를 _datumStateLock 으로 감쌌다 — 호출부가
         //  $RESET(TryExecuteIfIdle/_startLock 안), OnStart 훅(HandleRunStartResetResults, _startLock 밖), 어느
         //  쪽이든 이 메서드 안에서는 TryComposeAlign/TryRunSingleDatum/UI Test-Find 와 안전하게 상호 배타적이다.
         public void ClearDatumTransforms() {
@@ -2969,20 +2968,20 @@ namespace ReringProject.Sequence {
             lock (_datumStateLock) {
                 _datumTransforms.Clear();
                 _failedDatums.Clear(); // _datumTransforms 와 동일 lifecycle
-                //260618 hbk Phase 54 ALIGN-01 align 실패 set 도 동일 lifecycle 리셋 (D-10)
+                //260618 hbk align 실패 set 도 동일 lifecycle 리셋
                 _alignFailedDatums.Clear();
-                _localRefLines.Clear(); // Phase 79 LSR-05: 이전 사이클 국부 기준선 재사용 방지
-                _teachingPhotoProvenance.Clear(); // Phase 80 함께 처리 2: 잡아 둔 기준점의 사진 출처 기록도 같이 비운다
+                _localRefLines.Clear(); //260918 hbk LSR-05: 이전 사이클 국부 기준선 재사용 방지
+                _teachingPhotoProvenance.Clear(); //260918 hbk 함께 처리 2: 잡아 둔 기준점의 사진 출처 기록도 같이 비운다
             }
             // RuntimeDetectFailed 는 DatumConfig 소유 필드(공유 컬렉션 아님 — _datumStateLock 범위 밖, 기존과 동일 시점).
             foreach (var d in DatumConfigs)
             {
                 if (d != null) d.RuntimeDetectFailed = false;
             }
-            //260619 hbk Phase 57 #6 leveling 제거 — ResetLeveling() 호출 폐기 (ALIGN 대체, D-12/D-13)
+            //260619 hbk #6 leveling 제거 — ResetLeveling 호출 폐기 (ALIGN 대체)
         }
 
-        // Phase 80 함께 처리 2: 이름으로 DatumConfig 조회 — InjectDatumOrigin(:1897-1903) 과 같은 규칙.
+        //260918 hbk 함께 처리 2: 이름으로 DatumConfig 조회 — InjectDatumOrigin(:1897-1903) 과 같은 규칙.
         private DatumConfig FindDatumConfigByName(string szDatumName) {
             if (string.IsNullOrEmpty(szDatumName)) { return null; }
             if (DatumConfigs == null) { return null; }
@@ -2992,7 +2991,7 @@ namespace ReringProject.Sequence {
             return null;
         }
 
-        // Phase 80 함께 처리 2: 지금 캐시된 변환이 티칭 사진 파일(TeachingImagePath[_Vertical])에서 나온
+        //260918 hbk 함께 처리 2: 지금 캐시된 변환이 티칭 사진 파일(TeachingImagePath[_Vertical])에서 나온
         //  것으로 기록한다. 기록할 수 없는 상태(datum 없음·캐시 없음)면 지운다(무효화).
         private void RecordTeachingPhotoProvenance(string szDatumName) {
             if (string.IsNullOrEmpty(szDatumName)) { return; }
@@ -3013,7 +3012,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 80 함께 처리 2: 출처 기록을 지운다(1장 Test Find 처럼 출처를 모를 때, ClearDatumTransforms 등).
+        //260918 hbk 함께 처리 2: 출처 기록을 지운다(1장 Test Find 처럼 출처를 모를 때, ClearDatumTransforms 등).
         private void ForgetTeachingPhotoProvenance(string szDatumName) {
             if (string.IsNullOrEmpty(szDatumName)) { return; }
             lock (_datumStateLock) {
@@ -3021,7 +3020,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 80 함께 처리 2: HoldManualDatum(기존 Test Find 성공 뒤 호출)의 출처 판단 — 두 장짜리 기준점은
+        //260918 hbk 함께 처리 2: HoldManualDatum(기존 Test Find 성공 뒤 호출)의 출처 판단 — 두 장짜리 기준점은
         //  기존 Test Find 버튼이 TeachingImagePath·TeachingImagePath_Vertical 을 디스크에서 직접 읽고 없으면
         //  중단하므로(MainView.xaml.cs:4501-4511) 출처가 확인된다. 1장 기준점은 화면 사진 또는 고른 파일일
         //  수 있어(:4545-4547) 출처를 모른다 — 기록을 지운다.
@@ -3035,15 +3034,15 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 80 함께 처리 2: DatumTestFindService 가 TeachingImagePath 파일(두 장짜리면 +세로)로 기준점을
-        //  찾은 직후 부른다(Task 2) — 1장·2장 모두 출처가 확인된 경로다.
+        //260918 hbk 함께 처리 2: DatumTestFindService 가 TeachingImagePath 파일(두 장짜리면 +세로)로 기준점을
+        //  찾은 직후 부른다 — 1장·2장 모두 출처가 확인된 경로다.
         public void MarkDatumFoundFromTeachingPhotos(string szDatumName) {
             RecordTeachingPhotoProvenance(szDatumName);
         }
 
-        // Phase 80 함께 처리 2: 지금 캐시의 변환이 기록한 그 객체이고(캐시가 다른 경로로 다시 쓰이면 새
-        //  HTuple 이라 달라진다) 티칭 사진 경로가 기록 때와 같을 때만 true. 확인되지 않으면 Task 1 의
-        //  다시 구하기를 하지 않는다(D-79-04 조용히 틀리지 않기).
+        //260918 hbk 함께 처리 2: 지금 캐시의 변환이 기록한 그 객체이고(캐시가 다른 경로로 다시 쓰이면 새
+        //  HTuple 이라 달라진다) 티칭 사진 경로가 기록 때와 같을 때만 true. 확인되지 않으면
+        //  다시 구하기를 하지 않는다(조용히 틀리지 않도록).
         public bool IsDatumTransformFromTeachingPhotos(string szDatumName) {
             if (string.IsNullOrEmpty(szDatumName)) { return false; }
             DatumConfig datum = FindDatumConfigByName(szDatumName);
@@ -3067,7 +3066,7 @@ namespace ReringProject.Sequence {
 
         // 검출 실패 datum 기록. Action_FAIMeasurement.EStep.DatumPhase 실패 분기에서 호출.
         //  _failedDatums 단일 set 에 idempotent add.
-        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(아래 MarkAlignFailed 가 재진입 호출).
+        // reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(아래 MarkAlignFailed 가 재진입 호출).
         public void MarkDatumFailed(string datumName)
         {
             if (string.IsNullOrEmpty(datumName)) return;
@@ -3078,7 +3077,7 @@ namespace ReringProject.Sequence {
 
         // per-FAI gate 조회. Measurement.DatumRef 가 실패 datum 이름과 일치하면 true.
         //  빈 DatumRef = 무보정 의도이므로 게이트 무관 (false 반환 — TryGetDatumTransform identity fallback 경로로 진행).
-        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_failedDatums 읽기).
+        // reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_failedDatums 읽기).
         public bool IsDatumFailed(string datumRef)
         {
             if (string.IsNullOrEmpty(datumRef)) return false;
@@ -3103,7 +3102,7 @@ namespace ReringProject.Sequence {
             return true; // 이름은 지정됐는데 대응 DatumConfig 없음
         }
 
-        // quick-260813-jnh: Shot 검사이미지 grab 의 미러 방향 해석. 미러 플래그는 DatumConfig 에만 있고 ShotConfig 에는
+        //260813 hbk Shot 검사이미지 grab 의 미러 방향 해석. 미러 플래그는 DatumConfig 에만 있고 ShotConfig 에는
         //  없으므로, 이 Shot 의 측정들이 참조하는 DatumRef 로 소유 Datum 을 역추적한다(레시피에 실재하는 유일한 연결고리 —
         //  '+1 규칙' 같은 새 규약을 발명하지 않는다). 한 물리 포즈를 Datum 검출용 Shot 과 측정용 Shot 이 나눠 쓰는 구조라,
         //  Datum 만 미러하고 Shot 을 안 하면 미러된 좌표계로 안 뒤집힌 이미지를 측정하게 되어 전 항목이 어긋난다.
@@ -3286,9 +3285,9 @@ namespace ReringProject.Sequence {
             Logging.PrintLog((int)ELogType.Trace, "[DatumRename] 시퀀스 '" + Name + "' 옛 이름='" + szOldName + "' → 새 이름='" + szNewName + "' 갱신 " + nUpdated + "건");
         }
 
-        //260618 hbk Phase 54 ALIGN-01 패턴매칭 실패 datum 기록 (D-10 lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
+        //260618 hbk 패턴매칭 실패 datum 기록 ( lenient — 측정 NG(ALIGN_FAIL) 강제, abort 안 함).
         //  _failedDatums 에도 add 하여 기존 IsDatumFailed 게이트가 NG 를 강제하도록 한다.
-        //260810 hbk reset-datum-clear-race Round2: 두 Add 를 _datumStateLock 하나의 임계구역으로 묶는다(원자성) —
+        // reset-datum-clear-race Round2: 두 Add 를 _datumStateLock 하나의 임계구역으로 묶는다(원자성)
         //  MarkDatumFailed 내부에서 같은 락을 재획득하지만 C# lock(Monitor)은 동일 스레드 재진입을 지원해 안전.
         public void MarkAlignFailed(string datumName)
         {
@@ -3299,8 +3298,8 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260618 hbk Phase 54 ALIGN-01 align 실패 datum 여부 조회 — 게이트가 ALIGN_FAIL vs DATUM_FAIL 표기 구분에 사용 (D-10).
-        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_alignFailedDatums 읽기).
+        //260618 hbk align 실패 datum 여부 조회 — 게이트가 ALIGN_FAIL vs DATUM_FAIL 표기 구분에 사용 .
+        // reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_alignFailedDatums 읽기).
         public bool IsAlignFailed(string datumRef)
         {
             if (string.IsNullOrEmpty(datumRef)) return false;
@@ -3309,16 +3308,16 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260807 hbk quick-260807: per-datum 성공 시 그 datum 1건에 한해 스테일 실패 신호를 제거한다.
+        //260807 hbk per-datum 성공 시 그 datum 1건에 한해 스테일 실패 신호를 제거한다.
         //  배경: ClearDatumTransforms() 가 매 Shot 마다(Action_FAIMeasurement.EStep.DatumPhase 진입 시) 무조건
-        //  전체를 비우던 구동작이 사이클 시작 1회로 옮겨졌다(260807 quick-260807, HasCachedDatumTransform 스킵과 짝).
+        //  전체를 비우던 구동작이 사이클 시작 1회로 옮겨졌다(260807, HasCachedDatumTransform 스킵과 짝).
         //  그 결과 Z1 에서 검출 실패(MarkDatumFailed/MarkAlignFailed → _failedDatums 추가, RuntimeDetectFailed=true)했던
         //  datum 이 Z2 에서 재시도해 성공해도(_datumTransforms 갱신) _failedDatums/RuntimeDetectFailed 잔여값이 그대로
         //  남아 IsDatumFailed 게이트가 계속 true 를 반환 — Z2 이후 그 datum 참조 측정 전부가 강제 NG 되는 회귀가
         //  생긴다. 검출/align 성공 지점(TryRunSingleDatum, TryComposeAlign)에서 그 datum 하나만 구
         //  ClearDatumTransforms() 가 하던 일의 부분집합(실패 신호 제거)을 재현해 막는다 — 사이클 전체 리셋은 아님,
         //  다른 datum 의 _failedDatums/RuntimeDetectFailed 는 그대로 둔다.
-        //260810 hbk reset-datum-clear-race Round2: 두 Remove 를 _datumStateLock 으로 감쌈 — TryComposeAlign/
+        // reset-datum-clear-race Round2: 두 Remove 를 _datumStateLock 으로 감쌈 — TryComposeAlign
         //  TryRunSingleDatum(둘 다 워커/UI 스레드에서 호출 가능) 이 호출하는 지점.
         private void ClearStaleDatumFailure(DatumConfig datum)
         {
@@ -3332,8 +3331,8 @@ namespace ReringProject.Sequence {
         }
 
         // 패턴 모델(.shm/.ncm) 저장 폴더 이름 정규화.
-        //  Phase 73 이 SIDE 를 SIDE_1~4 로 쪼갰지만 모델 파일은 기존 FAI_1\SIDE\ 폴더에 그대로 둔다
-        //  (Datum 파일명이 DatumName 기준이라 4개가 서로 겹치지 않는다 → 재티칭 비용 0, D-73-03).
+        //  SIDE 를 SIDE_1~4 로 쪼갰지만 모델 파일은 기존 FAI_1\SIDE\ 폴더에 그대로 둔다
+        //  (Datum 파일명이 DatumName 기준이라 4개가 서로 겹치지 않는다 → 재티칭 비용 0).
         //  이 정규화가 없으면 OwnerSequenceName="SIDE_1" 이 FAI_1\SIDE_1\ 를 가리켜 기존 모델을 못 찾고
         //  전 항목이 조용히 실패한다(예외 없음, 로그 없음).
         //  저장/로드가 같은 함수를 통과하므로 이 한 곳만 바꾸면 대칭이 유지된다.
@@ -3352,7 +3351,7 @@ namespace ReringProject.Sequence {
             return szSeqName;
         }
 
-        //260618 hbk Phase 54 ALIGN-01 datum 모델 경로 단일 소스 (D-07) — 54-04(런타임 load)·54-05(티칭 save) 공유.
+        //260618 hbk datum 모델 경로 단일 소스 — (런타임 load)· (티칭 save) 공유.
         //  키 도출 로직 단일화 → 경로 불일치 구조적 차단. SourceShotName → ShotConfig.OwnerSequenceName 역추적 (InspectionListView.ResolveDatumCameraParam 선례).
         public static string ResolveDatumModelPath(DatumConfig datum)
         {
@@ -3379,7 +3378,7 @@ namespace ReringProject.Sequence {
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
-        //260723 hbk quick-fix: ResolveDatumCameraParam 동일 결함 클래스 수정 — 호출부가 이미 아는 소유 시퀀스명
+        //260723 hbk ResolveDatumCameraParam 동일 결함 클래스 수정 — 호출부가 이미 아는 소유 시퀀스명
         //  (예: parentSeq.Name)을 받아, SourceShotName 미매칭 시 전역 shots[0] 대신 "같은 시퀀스 소유 shot"으로
         //  스코프를 좁혀 ZIndex 최솟값으로 폴백한다(InspectionListView.ResolveDatumCameraParam 선례).
         //  기존 1-arg 오버로드는 무변경 유지(다른 호출부 회귀 0) — owner 시퀀스명을 아는 호출부만 이 오버로드 사용.
@@ -3427,7 +3426,7 @@ namespace ReringProject.Sequence {
             return szModelPath;
         }
 
-        //260619 hbk Phase 55 ALIGN-02 패턴2 모델 경로 — ResolveDatumModelPath 미러, propertyName 에 "_2" 접미사 → 별도 .shm.
+        //260619 hbk 패턴2 모델 경로 — ResolveDatumModelPath 미러, propertyName 에 "_2" 접미사 → 별도 .shm.
         //  (working ResolveDatumModelPath 무변경: 경로불일치=ALIGN_FAIL 위험이라 리팩토링보다 복제 선택, 안전 우선.)
         public static string ResolveDatumModelPath2(DatumConfig datum)
         {
@@ -3452,7 +3451,7 @@ namespace ReringProject.Sequence {
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
-        //260723 hbk quick-fix: ResolveDatumModelPath(datum, ownerSeqName) 미러 — propertyName "_2" 접미사만 상이.
+        //260723 hbk ResolveDatumModelPath(datum, ownerSeqName) 미러 — propertyName "_2" 접미사만 상이.
         //  (기존 2-arg 원칙과 동일하게 복제 선택 — working 1-arg 무변경 유지, 안전 우선.)
         public static string ResolveDatumModelPath2(DatumConfig datum, string ownerSeqName)
         {
@@ -3495,32 +3494,32 @@ namespace ReringProject.Sequence {
             return SystemHandler.Handle.Recipes.GetPatternModelFilePath(recipeName, seqName, actName, propertyName, datum.PatternEngine);
         }
 
-        //260618 hbk Phase 54 ALIGN-01 패턴매칭 보정 합성 (D-02 ①②③④).
-        //  refImage = 보정 전 원본 grab 이미지(D-05). modelPath = 호출부가 ResolveDatumModelPath 로 산출 전달.
+        //260618 hbk 패턴매칭 보정 합성 ( ①②③④).
+        //  refImage = 보정 전 원본 grab 이미지. modelPath = 호출부가 ResolveDatumModelPath 로 산출 전달.
         //  ① 원본 매칭 → curRow,curCol  ② (curRow-RefMatchRow,curCol-RefMatchCol) 이동 line-fit θ  ③ rigid  ④ _datumTransforms 합성.
         //  합성 순서: HomMat2dCompose(alignRigid, existing) = "기존 검출 transform 을 먼저 적용 후 align 보정" (right-to-left 적용 규약).
-        //   ※TryComposeAlign 은 DatumPhase 에서 TryRunSingleDatum(검출) 호출 없이 align 단독 경로로 호출됨(Task 2 ②) → 통상 existing 없음 → alignRigid 단독 저장. existing 존재 시(혼용)만 1회 합성 — align 1회 적용 보장(W4).
-        //  실패(매칭 score 미달/모델 로드 실패/rigid 실패) → false (호출부가 MarkAlignFailed, lenient D-10). _datumTransforms 미변경.
+        //   ※TryComposeAlign 은 DatumPhase 에서 TryRunSingleDatum(검출) 호출 없이 align 단독 경로로 호출됨( ②) → 통상 existing 없음 → alignRigid 단독 저장. existing 존재 시(혼용)만 1회 합성 — align 1회 적용 보장(W4).
+        //  실패(매칭 score 미달/모델 로드 실패/rigid 실패) → false (호출부가 MarkAlignFailed, lenient). _datumTransforms 미변경.
         public bool TryComposeAlign(DatumConfig datum, HImage refImage, string modelPath, out string error)
         {
-            //260619 hbk Phase 57 #4 DualImage align — 기존 단일이미지 호출처 무변경 보장 위해 5-arg 오버로드에 위임(refImageVertical=null).
+            //260619 hbk #4 DualImage align — 기존 단일이미지 호출처 무변경 보장 위해 5-arg 오버로드에 위임(refImageVertical=null).
             return TryComposeAlign(datum, refImage, null, modelPath, out error);
         }
 
-        //260619 hbk Phase 57 #4 DualImage align — 세로축 이미지(refImageVertical) 를 받는 5-arg 오버로드.
-        //  refImageVertical != null + DualImage datum 이면 ④단계가 2-image TryFindDatum 으로 분기하여 가로/세로 ROI 에 동일 alignRigid 적용(D-01).
-        //  패턴 매칭(① TryFindPose)은 가로축(refImage) 에서만 수행 — 세로엔 패턴 모델 없음(D-04).
+        //260619 hbk #4 DualImage align — 세로축 이미지(refImageVertical) 를 받는 5-arg 오버로드.
+        //  refImageVertical != null + DualImage datum 이면 ④단계가 2-image TryFindDatum 으로 분기하여 가로/세로 ROI 에 동일 alignRigid 적용.
+        //  패턴 매칭(① TryFindPose)은 가로축(refImage) 에서만 수행 — 세로엔 패턴 모델 없음.
         public bool TryComposeAlign(DatumConfig datum, HImage refImage, HImage refImageVertical, string modelPath, out string error)
         {
             error = null;
             if (datum == null) { error = "datum null"; return false; }
             if (refImage == null) { error = "refImage null"; return false; }
-            //260618 hbk Phase 54 ALIGN-01 hotfix: align-enabled Datum 은 검출 경로(EnsurePerRoiDefaults 호출처)를 건너뛰므로
+            //260618 hbk align-enabled Datum 은 검출 경로(EnsurePerRoiDefaults 호출처)를 건너뛰므로
             //  여기서 명시 호출하지 않으면 PatternSearchMarginPx/PatternMinScore 가 sentinel 0 → 검색영역 ROI 에 밀착 + minScore 0
             //  → 회전/이동으로 패턴이 이동하면 매칭 실패(ALIGN_FAIL). 멱등 폴백이므로 매 호출 안전.
             datum.EnsurePerRoiDefaults();
             var svc = new PatternMatchService();
-            // Phase 78 NGA-07: 매칭 실패 시 이전 값 잔재 방지
+            //260917 hbk NGA-07: 매칭 실패 시 이전 값 잔재 방지
             datum.LastAlignMatchScore = DatumConfig.ALIGN_MATCH_NONE;
             datum.LastAlignMatchRow = DatumConfig.ALIGN_MATCH_NONE;
             datum.LastAlignMatchCol = DatumConfig.ALIGN_MATCH_NONE;
@@ -3529,7 +3528,7 @@ namespace ReringProject.Sequence {
             // ① 매칭 (보정 전 원본) → x,y
             if (!svc.TryFindPose(refImage, datum.PatternEngine, modelPath,
                     datum.PatternRoi_Row, datum.PatternRoi_Col, datum.PatternRoi_Length1, datum.PatternRoi_Length2,
-                    //260618 hbk Phase 54 ALIGN-01 hotfix(CO-54-02): downsample 비활성(1.0). shape/ncc 모델은 스케일 불변이 아니라
+                    //260618 hbk downsample 비활성(1.0). shape/ncc 모델은 스케일 불변이 아니라
                     //  검색 이미지를 0.5배로 줄이면 패턴이 50% 크기 → find_shape_model "no match"(티칭 score 1.0 인데 런타임 0건).
                     //  속도 다운샘플은 모델 자체 피라미드(NumLevels)가 담당 — 검색 이미지 물리 축소는 금지.
                     datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
@@ -3537,17 +3536,17 @@ namespace ReringProject.Sequence {
             {
                 return false; // ALIGN_FAIL — 호출부 MarkAlignFailed
             }
-            // Phase 78 NGA-07: 1번 패턴 매칭 결과 기록만 — 아래 보정 계산은 그대로
+            //260917 hbk NGA-07: 1번 패턴 매칭 결과 기록만 — 아래 보정 계산은 그대로
             datum.LastAlignMatchScore = curScore;
             datum.LastAlignMatchRow = curRow;
             datum.LastAlignMatchCol = curCol;
             datum.LastAlignMatchAngleDeg = curAngleDeg;
             // ② tilt(θ): 패턴 매칭 각도 사용. find_shape_model 이 부품 회전을 직접·강건하게 반환하고 부호도 일관.
-            //   (직선 ROI θ 는 atan2 규약이라 패턴과 부호가 반대 + 멀리 있어 자주 실패 → 미사용. CO-54-04)
+            //   (직선 ROI θ 는 atan2 규약이라 패턴과 부호가 반대 + 멀리 있어 자주 실패 → 미사용.)
             double dRow = curRow - datum.RefMatchRow;
             double dCol = curCol - datum.RefMatchCol;
             double thetaRad = (curAngleDeg - datum.RefMatchAngleDeg) * System.Math.PI / 180.0;
-            // ②-2 Phase 55 ALIGN-02 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
+            //260619 hbk ②-2 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
             //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
             bool bPattern2Configured = datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0;
@@ -3558,7 +3557,7 @@ namespace ReringProject.Sequence {
             }
             if (bPattern2Configured)
             {
-                //260728 hbk quick-fix(260728-n7b): Name(=실행 중 인스턴스명) 대신 datum.OwnerName 사용 — Test Find 호출부는 GetAnyInspectionSequence() 로 임의 인스턴스(항상 TOP)를 골라 호출하므로 Name 기준이면 datum 소속과 무관한 폴더의 .shm 을 읽는다.
+                //260728 hbk Name(=실행 중 인스턴스명) 대신 datum.OwnerName 사용 — Test Find 호출부는 GetAnyInspectionSequence 로 임의 인스턴스(항상 TOP)를 골라 호출하므로 Name 기준이면 datum 소속과 무관한 폴더의 .shm 을 읽는다.
                 //  패턴1 및 기준값 저장측(MainView.RefreshPatternRefPoseAfterTeach)이 이미 datum.OwnerName 기준이라 여기도 통일한다. (260723 취지 — 전역 Shots[0] 폴백 결함 제거 — 는 유지)
                 string modelPath2 = ResolveDatumModelPath2(datum, datum.OwnerName);
                 double cur2Row, cur2Col, cur2AngleDeg, cur2Score; string err2;
@@ -3601,14 +3600,14 @@ namespace ReringProject.Sequence {
                 error = exr.Message;
                 return false;
             }
-            // ④ 보정 transform(T)을 datum 검출 ROI 에 적용하여 datum 을 검출(생성)한다 (사용자 설계, CO-54-04).
+            //260618 hbk ④ 보정 transform(T)을 datum 검출 ROI 에 적용하여 datum 을 검출(생성)한다 (사용자 설계).
             //  T(rotate θ+translate x,y)로 검출 ROI(Circle/Horizontal/Line)가 틀어진 부품의 실제 datum 에지를 덮음
             //  → 진짜 DetectedOrigin/angle + datum transform 생성. 측정은 이 datum transform 을 사용 → nominal 불변.
             var detectSvc = new DatumFindingService();
-            detectSvc.AlignPreTransform = alignRigid; // 단일 인스턴스 1회 set → 두 이미지 검출(Vertical=TryFindLine, Horizontal=TryExtractEdgePoints) 모두 적용 (Task 1 으로 TryFindLine 도 소비)
+            detectSvc.AlignPreTransform = alignRigid; //260619 hbk 단일 인스턴스 1회 set → 두 이미지 검출(Vertical=TryFindLine, Horizontal=TryExtractEdgePoints) 모두 적용
             HTuple datumTransform;
             string detErr;
-            //260619 hbk Phase 57 #4 DualImage align — DualImage datum 이면 2-image 오버로드로 분기(가로/세로 ROI 동일 transform, D-01). 그 외엔 기존 1-image.
+            //260619 hbk #4 DualImage align — DualImage datum 이면 2-image 오버로드로 분기(가로/세로 ROI 동일 transform). 그 외엔 기존 1-image.
             bool detectOk;
             if (datum.AlgorithmTypeEnum == EDatumAlgorithm.VerticalTwoHorizontalDualImage && refImageVertical != null)
             {
@@ -3626,26 +3625,26 @@ namespace ReringProject.Sequence {
             datum.CurrentTransform = datumTransform;
             string datumKey = datum.DatumName;
             if (datumKey == null) datumKey = "";
-            //260807 hbk quick-260807: 이번 Z 에서 align 성공 — 이전 Z 에서 남았을 수 있는 이 datum 의 스테일
+            //260807 hbk 이번 Z 에서 align 성공 — 이전 Z 에서 남았을 수 있는 이 datum 의 스테일
             //  실패 신호(_failedDatums/_alignFailedDatums, RuntimeDetectFailed) 제거. 상세 사유는 ClearStaleDatumFailure 주석 참고.
             ClearStaleDatumFailure(datum);
             datum.RuntimeDetectFailed = false;
-            //260619 hbk Phase 54 ALIGN-01 — 측정 transform 을 검출-datum 대신 패턴 pose(alignRigid)로 전환(단일 패턴 검증 단계).
-            //  검출-datum transform 은 tilt 서 패턴(정답) 대비 ~130px 어긋남(먼 측정 ROI lever-arm) → EDGE_FAIL "—"(quick 260618-o2m [ALIGN-CHK] 확인).
+            //260619 hbk 측정 transform 을 검출-datum 대신 패턴 pose(alignRigid)로 전환(단일 패턴 검증 단계).
+            //  검출-datum transform 은 tilt 서 패턴(정답) 대비 ~130px 어긋남(먼 측정 ROI lever-arm) → EDGE_FAIL "—"( [ALIGN-CHK] 확인).
             //  패턴 pose 는 부품 회전/이동을 강건히 반영 → 먼 측정점 ROI 정상 위치. datum 검출 origin(DetectedOrigin*)은 거리 기준으로 계속 사용(nominal 보존).
-            //  2-패턴 baseline(양 대각 끝 ROI 2개 → 두 점 각도) 정밀화는 후속 phase. 직선 ROI(AlignLineRoi) 각도 경로는 폐기 확정(CO-54-04).
-            //260810 hbk reset-datum-clear-race Round2: 이 Dictionary 대입만 _datumStateLock 으로 감싼다 — 이 지점
+            //  2-패턴 baseline(양 대각 끝 ROI 2개 → 두 점 각도) 정밀화는 후속 phase. 직선 ROI(AlignLineRoi) 각도 경로는 폐기 확정.
+            // reset-datum-clear-race Round2: 이 Dictionary 대입만 _datumStateLock 으로 감싼다 — 이 지점
             //  위의 HALCON 패턴매칭/검출(수십~수백ms)은 절대 락 안에 넣지 않는다(TryComposeAlign 은 "실행상태 무관"
             //  호출 가능해야 하므로 락 보유 시간을 최소화해 $RESET/워커스레드/다른 Test-Find 호출을 오래 막지 않음).
             lock (_datumStateLock) {
                 _datumTransforms[datumKey] = alignRigid; // 측정 ROI 위치 = 패턴 pose (검출-datum 130px 오차 회피)
             }
-            //260619 hbk Phase 56 Wave 2 — 보정 ROI 표시도 측정과 동일 transform(alignRigid) 사용해야 일치.
+            //260619 hbk 보정 ROI 표시도 측정과 동일 transform(alignRigid) 사용해야 일치.
             //  line 542 는 검출-datum transform(datumTransform)을 CurrentTransform 에 넣지만, 측정은 alignRigid 사용(먼 ROI 130px 오차 회피).
             //  CurrentTransform 소비처 = 보정 ROI 표시 전용(MainView)뿐 → alignRigid 로 덮어써 측정과 박스 위치 일치시킴.
             datum.CurrentTransform = alignRigid;
             datum.LastFindSucceeded = true;
-            // Phase 79 LSR-02: 기준점을 찾은 바로 이 사진에서 국부 기준선을 1번 구해 둔다(검출 결과·반환값 불변)
+            //260918 hbk LSR-02: 기준점을 찾은 바로 이 사진에서 국부 기준선을 1번 구해 둔다(검출 결과·반환값 불변)
             ComputeLocalRefLinesForDatum(datum, refImage, alignRigid);
             return true;
         }
@@ -3666,7 +3665,7 @@ namespace ReringProject.Sequence {
                 ok = service.TryFindDatum(imageH, datum, out transform, out datumError);
             }
             if (!ok) { datum.LastFindSucceeded = false; error = datumError; return false; }
-            //260807 hbk quick-260807: 이번 Z 에서 검출 성공 — 이전 Z 에서 남았을 수 있는 이 datum 의 스테일
+            //260807 hbk 이번 Z 에서 검출 성공 — 이전 Z 에서 남았을 수 있는 이 datum 의 스테일
             //  실패 신호(_failedDatums/_alignFailedDatums, RuntimeDetectFailed) 제거. 상세 사유는 ClearStaleDatumFailure 주석 참고.
             //  주의: 바로 아래 "미교시(IsConfigured=false)" 분기가 이번 호출 결과로 RuntimeDetectFailed 를 다시
             //  true 로 세팅할 수 있는데, 그건 "이전 Z 잔여값"이 아니라 "이번 Z 의 실제 판정"이므로 여기서 먼저
@@ -3674,7 +3673,7 @@ namespace ReringProject.Sequence {
             ClearStaleDatumFailure(datum);
             datum.RuntimeDetectFailed = false;
             //260716 hbk 미교시 Datum 런타임 사용 감지 — DatumFindingService.TryFindDatum 은 IsConfigured=false 면
-            //  identity 를 세팅한 채 true 를 반환한다(D-08 pass-through: FAI ROI 사전 배치 편의를 위한 의도된 설계).
+            //  identity 를 세팅한 채 true 를 반환한다( pass-through: FAI ROI 사전 배치 편의를 위한 의도된 설계).
             //  문제는 그 결과가 '검출 성공'과 완전히 동일하게 취급돼(로그 없음, DETECT FAIL 배지 조건도 IsConfigured=true 를
             //  요구해 절대 안 뜸) 교시를 깜빡한 Datum 이 영구히 '무보정 측정'으로 조용히 퇴화한다는 것. pass-through 자체는
             //  유지하되(회귀 0), 런타임 검사에서 실제로 쓰이면 로그 + RuntimeDetectFailed(티칭 무관 라벨 신호)로 드러낸다.
@@ -3694,13 +3693,13 @@ namespace ReringProject.Sequence {
             lock (_datumStateLock) {
                 _datumTransforms[datumKey] = transform; // 누적 저장
             }
-            // Phase 79 LSR-02: 기준점을 찾은 바로 이 사진에서 국부 기준선을 1번 구해 둔다(검출 결과·반환값 불변)
+            //260918 hbk LSR-02: 기준점을 찾은 바로 이 사진에서 국부 기준선을 1번 구해 둔다(검출 결과·반환값 불변)
             ComputeLocalRefLinesForDatum(datum, imageH, transform);
             return true;
         }
 
         // DatumRef → transform 조회
-        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_datumTransforms 읽기 — TryGetValue 를
+        // reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_datumTransforms 읽기 — TryGetValue 를
         //  Clear()/indexer-set 과 동시에 실행하면 잘못된 값/예외 위험이 있었다).
         public bool TryGetDatumTransform(string datumRef, out HTuple transform) {
             if (string.IsNullOrEmpty(datumRef)) {
@@ -3712,11 +3711,11 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260807 hbk quick-260807: Action_FAIMeasurement.EStep.DatumPhase 의 비-크로스-Z 재검출 skip 판단 전용 조회.
+        //260807 hbk Action_FAIMeasurement.EStep.DatumPhase 의 비-크로스-Z 재검출 skip 판단 전용 조회.
         //  TryGetDatumTransform 은 datumRef 가 비어있으면 "무보정 허용" 의미로 identity+true 를 돌려주는데(위 메서드),
         //  그 의미와 "이 이름의 Datum 이 이번 사이클에 실제로 검출 성공해 캐시됐는가"는 서로 다르다 — 섞어 쓰면 이름
         //  없는(빈 문자열) Datum 이 항상 "이미 성공"으로 오판될 수 있어 전용 helper 로 분리한다.
-        //260810 hbk reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_datumTransforms 읽기).
+        // reset-datum-clear-race Round2: _datumStateLock 으로 감쌈(_datumTransforms 읽기).
         public bool HasCachedDatumTransform(string datumName) {
             if (string.IsNullOrEmpty(datumName)) return false;
             lock (_datumStateLock) {
@@ -3724,7 +3723,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 79 LSR-02: DatumRef → 국부 기준선 결과 조회 (Action_FAIMeasurement 가 측정 직전 주입할 때 사용).
+        //260918 hbk LSR-02: DatumRef → 국부 기준선 결과 조회 (Action_FAIMeasurement 가 측정 직전 주입할 때 사용).
         public bool TryGetLocalRefLine(MeasurementBase meas, out LocalRefLineResult result) {
             result = null;
             if (meas == null) { return false; }
@@ -3733,9 +3732,9 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 79 LSR-02/D-79-09: 기준점 검출 성공 직후(이미지가 살아있는 그 순간) 이 Datum 을 참조하며
+        //260918 hbk LSR-02/: 기준점 검출 성공 직후(이미지가 살아있는 그 순간) 이 Datum 을 참조하며
         //  옵션을 켠 EdgeToLineDistance 측정 전부의 국부 기준선을 1번씩 계산해 사이클 저장소에 둔다.
-        //  실패해도(예외 포함) 검출 결과·반환값은 절대 바꾸지 않는다(D-79-08) — 호출부는 이 메서드를
+        //  실패해도(예외 포함) 검출 결과·반환값은 절대 바꾸지 않는다 — 호출부는 이 메서드를
         //  return true 바로 앞에서만 부른다.
         private void ComputeLocalRefLinesForDatum(DatumConfig datum, HImage imgHorizontal, HTuple transform) {
             bool bNoDatumName = datum == null || string.IsNullOrEmpty(datum.DatumName);
@@ -3772,7 +3771,7 @@ namespace ReringProject.Sequence {
             if (SystemHandler.Handle.Sequences.RecipeManager == null) { return lstResult; }
             List<ShotConfig> lstShots = SystemHandler.Handle.Sequences.RecipeManager.Shots;
             if (lstShots == null) { return lstResult; }
-            // Phase 79 WR-03: PropertyGrid 로 다른 Shot 레시피를 동시에 편집해도 "Collection was modified"
+            //260918 hbk PropertyGrid 로 다른 Shot 레시피를 동시에 편집해도 "Collection was modified"
             //  예외가 나지 않도록, 순회 직전에 스냅샷을 떠서 그 스냅샷만 읽는다(수집 대상은 그대로).
             ShotConfig[] arrShotsSnapshot = lstShots.ToArray();
             foreach (var shot in arrShotsSnapshot) {
@@ -3809,7 +3808,7 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        // Phase 79 LSR-05: 같은 기준점을 다시 검출하면 그 기준점 항목을 먼저 지운 뒤 새로 쓴다(스테일 방지).
+        //260918 hbk LSR-05: 같은 기준점을 다시 검출하면 그 기준점 항목을 먼저 지운 뒤 새로 쓴다(스테일 방지).
         private void RemoveLocalRefLinesOfDatum(string szDatumName) {
             lock (_datumStateLock) {
                 List<MeasurementBase> lstKeysToRemove = new List<MeasurementBase>();
@@ -3831,7 +3830,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 80 함께 처리 2: 수동 RUN 에서 기준 ROI 를 고친 뒤 다시 구한 국부 기준선을 저장소에 바꿔
+        //260918 hbk 함께 처리 2: 수동 RUN 에서 기준 ROI 를 고친 뒤 다시 구한 국부 기준선을 저장소에 바꿔
         //  넣는다 — 다음 RUN 은 설정 키가 같아 사진을 다시 읽지 않는다.
         public void StoreRecomputedLocalRefLine(EdgeToLineDistanceMeasurement etld, LocalRefLineResult result) {
             bool bMissing = etld == null || result == null;
@@ -3858,6 +3857,6 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260619 hbk Phase 57 #6 leveling 제거 — TryComputeLevelingAngle 메서드 폐기 (ALIGN 위치/tilt 보정으로 대체, D-12/D-13)
+        //260619 hbk #6 leveling 제거 — TryComputeLevelingAngle 메서드 폐기 (ALIGN 위치/tilt 보정으로 대체)
     }
 }

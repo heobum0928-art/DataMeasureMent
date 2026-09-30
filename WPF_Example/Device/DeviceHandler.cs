@@ -215,13 +215,13 @@ namespace ReringProject.Device {
                     }
                     break;
                     case ECameraType.MIL: {
-                        // Phase 41 — CXP 카메라 MIL grab. enumerate 없음, Open() 으로 판별.
+                        //260612 hbk CXP 카메라 MIL grab. enumerate 없음, Open 으로 판별.
 #if SIMUL_MODE
-                        // Phase 41 hotfix CO-41-01 — SIMUL_MODE 는 MIL SDK/보드 불필요.
+                        //260612 hbk SIMUL_MODE 는 MIL SDK/보드 불필요.
                         // MilCamera 미생성 → Matrox.MatroxImagingLibrary 런타임 미로드(FileNotFound 방지) → VirtualCamera 파일 grab 폴백.
                         AddVirtualCamera(id);
 #else
-                        // Phase 41 — 물리 CXP 보드는 PC당 1대. 이미 연 MIL 카메라가 있으면 재사용(역할 이름만 추가 등록).
+                        //260612 hbk 물리 CXP 보드는 PC당 1대. 이미 연 MIL 카메라가 있으면 재사용(역할 이름만 추가 등록).
                         //  RapixoCXP 는 MsysAlloc 을 보드당 1회만 허용 → 2번 열면 "Too many systems have already been allocated".
                         //  144MB grab 버퍼 중복 할당도 방지. Top/Bottom 두 시퀀스가 같은 인스턴스를 공유(같은 보드가 시점만 달리 grab).
                         MilCamera sharedMil = Devices.Values.FirstOrDefault(c => c.CamType == ECameraType.MIL) as MilCamera;
@@ -243,7 +243,7 @@ namespace ReringProject.Device {
                             Devices.Add(id.Identifier, newCam);
                             registeredMil = newCam;
                         }
-                        // quick-260813-jnh: 이 역할의 미러 3조합을 _roleInfoMap 에만 추가 등록한다.
+                        //260813 hbk 이 역할의 미러 3조합을 _roleInfoMap 에만 추가 등록한다.
                         //  Devices 딕셔너리에는 절대 넣지 않는다 — ShotConfig.DeviceName 이 INI 에 영속 저장되는 값이고,
                         //  CameraParam.DeviceNameList 가 Devices 로 UI 드롭다운을 만들기 때문(가짜 장치 노출 금지).
                         foreach (DeviceInfo mirrorInfo in BuildMirrorRoleInfos(id)) {
@@ -309,7 +309,7 @@ namespace ReringProject.Device {
             vCam.Open(id.Width, id.Height);
 #if SIMUL_MODE
             //260317 offline auto-run test image
-            //260818 hbk D 드라이브 없는 PC 대응 — 경로를 SystemSetting(INI) 로 설정화(RestoreDataPathDefaults 가 기존 배포와 동일한 D:\1.bmp 기본값 보장)
+            // D 드라이브 없는 PC 대응 — 경로를 SystemSetting(INI) 로 설정화(RestoreDataPathDefaults 가 기존 배포와 동일한 D:\1.bmp 기본값 보장)
             //  주의: 여기서 SystemHandler.Handle 을 쓰면 안 됨 — 이 코드 자체가 SystemHandler 생성자
             //  (Devices.Initialize() 호출) 안에서 실행되므로 SystemHandler.Handle 은 아직 null 이라
             //  NullReferenceException 이 난다(순환 초기화). SystemSetting.Handle 은 SystemHandler 생성자보다
@@ -353,7 +353,7 @@ namespace ReringProject.Device {
             return GrabHalconImage(param, param.DeviceName);   // 기존과 완전히 동일한 동작
         }
 
-        // quick-260813-jnh: 카메라 조회(param.DeviceName)와 grab 역할 해석(requestIdentifier)을 분리한다.
+        //260813 hbk 카메라 조회(param.DeviceName)와 grab 역할 해석(requestIdentifier)을 분리한다.
         //  SIMUL 의 VirtualCamera 는 requestIdentifier 를 무시하므로(VirtualCamera.cs:460-462) 시뮬 회귀 위험 0.
         public HImage GrabHalconImage(ICameraParam param, string requestIdentifier) {
             VirtualCamera cam = this[param.DeviceName];        // ← 조회는 계속 base 이름으로

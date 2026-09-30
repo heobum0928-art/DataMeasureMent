@@ -119,7 +119,7 @@ namespace ReringProject.Halcon.Services
 
             CleanupTempImages(directory, 20);
 
-            // 260811 hbk quick-debug(bottom-align-live-view-stutter): PNG(DEFLATE 압축) 저장이 CXP
+            //260811 hbk quick-debug(bottom-align-live-view-stutter): PNG(DEFLATE 압축) 저장이 CXP
             //  13376x9528(~1.27억 픽셀, mono ~127MB) 원본에서 저장+재로드(디코드) 양쪽 모두의 병목이 되어
             //  bmp(무압축, 무손실 유지)로 전환. 동일 클래스 문제를 이미 해결한 선례: VersionDefine.cs
             //  1.6.2.0 "검사Grab tact 개선"(MainView.xaml.cs GrabSaveAndDisplay, 저장 실측 ~320ms).
@@ -139,7 +139,7 @@ namespace ReringProject.Halcon.Services
         {
             try
             {
-                // 260811 hbk quick-debug(bottom-align-live-view-stutter): 확장자를 "*.png" 로 하드코딩하면
+                //260811 hbk quick-debug(bottom-align-live-view-stutter): 확장자를 "*.png" 로 하드코딩하면
                 //  위 SaveTempImage 가 bmp 로 전환된 뒤 새로 생성되는 파일이 전혀 정리 대상에 안 잡혀 무제한
                 //  누적됨(디스크 소진) — 이 디렉토리(DatumMeasurementViewer/<key>)는 이 메서드 전용 임시
                 //  캐시라 다른 파일 타입이 섞일 일이 없으므로 확장자 무관하게 전부 대상으로 넓힘(레거시 *.png

@@ -21,8 +21,8 @@ namespace ReringProject {
     public sealed partial class SystemHandler {
 
         // Application display name.
-        //260608 hbk 타이틀 리브랜딩: "DDA Vision Inspector" → "Measurement Vision"
-        //260608 hbk MenuBar 로고(OutlinedTextBlock)가 좁은 폭에서 단어 중간 줄바꿈 → "Measurement"/"Vision" 2줄로 명시 개행
+        // 타이틀 리브랜딩: "DDA Vision Inspector" → "Measurement Vision"
+        // MenuBar 로고(OutlinedTextBlock)가 좁은 폭에서 단어 중간 줄바꿈 → "Measurement"/"Vision" 2줄로 명시 개행
         public static string ProjectName { get; } = "Measurement\nVision";
 
         // Singleton access point.
@@ -55,8 +55,8 @@ namespace ReringProject {
         //260317 raw image save worker for inspection flow
         public RawImageSaveService RawImageSaver { get; private set; }
 
-        //260610 hbk Phase 40.2 — FAI별 캡쳐 이미지 비동기 저장 서비스 (RawImageSaver 와 동일 라이프사이클).
-        public CaptureImageSaveService CaptureImageSaver { get; private set; } //260610 hbk Phase 40.2
+        //260610 hbk FAI별 캡쳐 이미지 비동기 저장 서비스 (RawImageSaver 와 동일 라이프사이클).
+        public CaptureImageSaveService CaptureImageSaver { get; private set; }
 
         // Localization resource (UI strings).
         public LocalizationResource Localize { get; set; }
@@ -70,7 +70,7 @@ namespace ReringProject {
         public bool IsInitializeFail { get; private set; } = false;
         // Indicates resources have been released.
         public bool IsReleased { get; private set; } = false;
-        //260615 hbk Phase 43.2: 레시피 비동기 로드 완료 신호 — ProcessTest guard 참조용 (D-B)
+        //260615 hbk 레시피 비동기 로드 완료 신호 — ProcessTest guard 참조용 (D-B)
         private volatile bool _isRecipeReady = false;
         public bool IsRecipeReady { get { return _isRecipeReady; } set { _isRecipeReady = value; } }
 
@@ -191,13 +191,13 @@ namespace ReringProject {
             ApplyHighResolutionTimer(); //260814 hbk top-release-2x-slower 조사 — HALCON SetSystem 보다 먼저, 최대한 이른 시점에
 
 
-            // quick-260806-dsn Part A: HALCON 자체 캐시(mimalloc, HALCON 24.11 Windows 기본 할당자)가 해제된
+            //260806 hbk Part A: HALCON 자체 캐시(mimalloc, HALCON 24.11 Windows 기본 할당자)가 해제된
             //  메모리를 OS에 즉시 반환하지 않고 계속 쌓아두는 문제의 공식 완화책(memory_management 챕터,
             //  "Handling Suspected Memory Leaks in HALCON" 권장 3줄, 앱 시작 시 1회). 캐시 정책만 바꿀 뿐
             //  기능/정확성에는 영향 없다. Devices/Sequences 등 이후의 모든 Halcon 이미지 처리에 적용되도록
             //  이 메서드의 첫 실행문으로 둔다. 실패해도(캐시 힌트 실패일 뿐) 앱 시작을 막지 않는다.
             try {
-                // quick-260806-dsn3: 위 3줄(캐시 idle)로도 메모리가 안 돌아오는 경우를 위한 같은 챕터의 다음 단계 —
+                //260806 hbk 위 3줄(캐시 idle)로도 메모리가 안 돌아오는 경우를 위한 같은 챕터의 다음 단계
                 //  HALCON 내부 힙 할당자를 Windows 기본값 mimalloc 에서 Win32 기본 힙(system)으로 전환한다.
                 //  문서 원문: "mimalloc tends to cache memory more aggressively than the Win32 default heap
                 //  allocator ... set_system('memory_allocator', 'system')". 격리 하네스 실측에서 121MB HImage를
@@ -207,10 +207,9 @@ namespace ReringProject {
 
                 HOperatorSet.SetSystem("memory_allocator", "system");
                 HOperatorSet.SetSystem("global_mem_cache", "idle");
-                //260814 hbk quick-260814-kx5 REVERTED: measure_pos 콜드스타트 완화를 위해 'idle'→'aggregate'로
+                //260814 hbk REVERTED: measure_pos 콜드스타트 완화를 위해 'idle'→'aggregate'로
                 //  바꿔 시도했으나(HALCON Memory Management §2.3 근거), 실기 테스트 결과 오히려 더 느려져서
                 //  원래 값('idle')으로 되돌림. SequenceBase.ReinforceThreadMemoryCache()도 'idle'로 맞춰뒀다.
-                //  top-release-2x-slower.md 근본원인은 여전히 미확정.
                 HOperatorSet.SetSystem("temporary_mem_cache", "idle");
                 HOperatorSet.SetSystem("image_cache_capacity", 0);
             }
@@ -218,7 +217,7 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[STARTUP] HALCON SetSystem memory cache config failed: {0}", ex.Message);
             }
 
-            // quick-260807-lbu: OfflineInspectMode 는 레시피가 아니라 SystemSetting(시스템 전역·영속)이라
+            //260807 hbk OfflineInspectMode 는 레시피가 아니라 SystemSetting(시스템 전역·영속)이라
             //  한 번 켜두면 앱을 껐다 켜도 켜진 채로 시작한다. 그 상태에서는 실물 촬영 없이 저장 이미지로
             //  검사가 돌아가는데(Action_FAIMeasurement 의 EStep.Grab / GrabOrLoadDatumImage), UI RUN 버튼과 달리
             //  TCP $TEST 경로에는 확인 팝업이 없어 핸들러/PLC 쪽에서 알아챌 방법이 전혀 없다 — 실제 사고 발생.
@@ -240,8 +239,8 @@ namespace ReringProject {
                 }
             }
 
-            Stopwatch sw = Stopwatch.StartNew(); //260528 hbk Phase 38 #11
-            long prev = 0; //260528 hbk Phase 38 #11 — 직전 단계 누적 시각 (delta 계산용)
+            Stopwatch sw = Stopwatch.StartNew(); //260528 hbk #11
+            long prev = 0; //260528 hbk #11 — 직전 단계 누적 시각 (delta 계산용)
 
             // 1) Light controller open
             // Site bring-up may wire controllers in one at a time; each controller already
@@ -250,14 +249,14 @@ namespace ReringProject {
             if (Lights.Initialize() == false) {
                 Logging.PrintLog((int)ELogType.LightController, "One or more light controllers failed to open at startup.");
             }
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 1 Lights.Initialize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 1 Lights.Initialize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk #11
 
             // 2) Sequence handler
             //    Owns recipe loading and main runtime states.
             Sequences = SequenceHandler.Handle;
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 2 SequenceHandler: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 2 SequenceHandler: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk #11
 
             // 3) TCP server
             //    External command/monitoring interface.
@@ -266,11 +265,11 @@ namespace ReringProject {
             //260317 raw image save worker for inspection flow
             RawImageSaver = new RawImageSaveService();
             RawImageSaver.Start();
-            CaptureImageSaver = new CaptureImageSaveService(); //260610 hbk Phase 40.2
+            CaptureImageSaver = new CaptureImageSaveService();
             AlignVerifyRetention.Cleanup();   // 보관 상한 초과분 정리 — 실패해도 초기화를 막지 않는다(내부 try/catch)
-            CaptureImageSaver.Start(); //260610 hbk Phase 40.2
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            CaptureImageSaver.Start();
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 3 VisionServer+RawImageSaver: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk #11
 
             // 4) System main loop thread
             //    Runs SystemProcess -> MainRun() in a tight loop.
@@ -278,46 +277,46 @@ namespace ReringProject {
             mSystemThread.Priority = ThreadPriority.Highest;
             mSystemThread.Name = "SystemProcess";
             mSystemThread.Start();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 4 SystemThread.Start: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 4 SystemThread.Start: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk #11
 
             // 5) Login manager — background preload (측정 임계 경로 외부)
-            //260615 hbk Phase 43: D-03 — 동기 Load() 제거 → 백그라운드 프리로드로 교체 (Step 5 delta 808ms → ~0)
-            Login = LoginManager.Handle;           // Handle getter(인스턴스 취득)만 — 생성자에서 Load() 제거됨(Task 1)
-            LoginManager.Handle.Preload();         //260615 hbk Phase 43: 백그라운드 Thread 기동 (내부 IsAlive+_isPreloaded guard)
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 5 LoginManager preload started: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260615 hbk Phase 43
-            prev = sw.ElapsedMilliseconds; //260615 hbk Phase 43
+            // 동기 Load 제거 → 백그라운드 프리로드로 교체 (Step 5 delta 808ms → ~0)
+            Login = LoginManager.Handle;           //260615 hbk Handle getter(인스턴스 취득)만 — 생성자에서 Load 제거됨
+            LoginManager.Handle.Preload();         //260615 hbk 백그라운드 Thread 기동 (내부 IsAlive+_isPreloaded guard)
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 5 LoginManager preload started: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev);
+            prev = sw.ElapsedMilliseconds;
 
             // 6) Hook sequence creation callbacks
             //    Typically sets up per-sequence resources.
             Sequences.ExecOnCreate();
 
-            //260510 hbk Phase 21: BUF-02 channel #1 — OnRecipeChanged subscriber 등록 (Sequences 가 살아있고 ExecOnCreate 가 끝난 뒤 wire)
+            //260510 hbk channel #1 — OnRecipeChanged subscriber 등록 (Sequences 가 살아있고 ExecOnCreate 가 끝난 뒤 wire)
             WireBufferLifecycle();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 6 ExecOnCreate+WireBuffer: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 6 ExecOnCreate+WireBuffer: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk #11
 
             // 7) Collect recipe list
             //    Scans configured recipe directories.
             Recipes.CollectRecipe();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 7 CollectRecipe: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
-            prev = sw.ElapsedMilliseconds; //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 7 CollectRecipe: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
+            prev = sw.ElapsedMilliseconds; //260528 hbk #11
 
-            //260615 hbk Phase 43: [STARTUP] READY — recipe ready + SystemThread alive + Sequences 구성 완료
-            //  = 첫 $TEST 수용 가능 시점 (D-01). Before/After 30% 비교의 단일 기준 지표 (D-02).
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] READY: {0} ms", sw.ElapsedMilliseconds); //260615 hbk Phase 43
+            //260615 hbk [STARTUP] READY — recipe ready + SystemThread alive + Sequences 구성 완료
+            //  = 첫 $TEST 수용 가능 시점 . Before/After 30% 비교의 단일 기준 지표 .
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] READY: {0} ms", sw.ElapsedMilliseconds);
 
             // 8) Localization resource
             //    Provides runtime language switching.
             Localize = App.Current.Resources["DR"] as LocalizationResource;
             //Localize.LanguageChanged += LanguageChanged;
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 8 Localize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Step 8 Localize: {0} ms (cumulative), delta {1} ms", sw.ElapsedMilliseconds, sw.ElapsedMilliseconds - prev); //260528 hbk #11
 
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Total Initialize: {0} ms", sw.ElapsedMilliseconds); //260528 hbk Phase 38 #11
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP] Total Initialize: {0} ms", sw.ElapsedMilliseconds); //260528 hbk #11
             Logging.PrintLog((int)ELogType.Trace, "[SYSTEM] Initialized");
 
-            //260623 hbk Phase 58 — AV-02: 이더넷 정렬 카메라 독립 초기화 (실패해도 Grabber/검사 무영향)
-            // 260623 hbk Phase 58 review-fix IN-02: Belt-and-suspenders 의도적 이중 가드.
+            //260623 hbk 이더넷 정렬 카메라 독립 초기화 (실패해도 Grabber/검사 무영향)
+            // review-fix: Belt-and-suspenders 의도적 이중 가드.
             // EthernetVisionHandler.Initialize() 는 내부 전체 try-catch 로 완전히 보호되어 절대 throw 하지 않음.
             // 이 외부 catch 는 방어적 레이어로만 존재하며 실제로 발동되지 않음.
             try {
@@ -329,7 +328,7 @@ namespace ReringProject {
         }
 
         public bool LoadRecipe(string recipeName) {
-            //260615 hbk Phase 43.2: [STARTUP-WHITE] (f) — 레시피 로드 시작. Dispatcher.Background 지연 후 실제 실행 시점 계측 (D-D)
+            //260615 hbk [STARTUP-WHITE] (f) — 레시피 로드 시작. Dispatcher.Background 지연 후 실제 실행 시점 계측 (D-D)
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (f) recipe load start: {0} ms", App.StartupWatch.ElapsedMilliseconds);
 
             // Delegate recipe load to sequence handler.
@@ -343,7 +342,7 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Trace, "[RECIPE] Load fail : {0}", recipeName);
             }
 
-            //260615 hbk Phase 43.2: [STARTUP-WHITE] (g) — 레시피 로드 완료(성공/실패 무관). 창 표시(e)~레시피 완료(g) 구간 = 비동기 지연 확인 (D-D)
+            //260615 hbk [STARTUP-WHITE] (g) — 레시피 로드 완료(성공/실패 무관). 창 표시(e)~레시피 완료(g) 구간 = 비동기 지연 확인 (D-D)
             Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (g) recipe load done (result={0}): {1} ms", result, App.StartupWatch.ElapsedMilliseconds);
             return result;
         }
@@ -356,7 +355,7 @@ namespace ReringProject {
             // Release device resources.
             Devices.Dispose();
 
-            //quick-260810-e1t: 이더넷 정렬 카메라(Bottom/Tray)는 Devices(Grabber)와 별도 핸들러라 여기서
+            //260810 hbk 이더넷 정렬 카메라(Bottom/Tray)는 Devices(Grabber)와 별도 핸들러라 여기서
             // 명시적으로 닫아야 한다 — 안 그러면 프로세스 종료 후에도 카메라 연결이 안 끊긴다.
             // EthernetVisionHandler.Release() 는 내부 전체 try-catch 로 보호되어 절대 throw 하지 않는다
             // (Initialize() 와 동일 패턴, SystemHandler.Initialize() 234~243행 전례). 이 외부 catch 는
@@ -368,9 +367,9 @@ namespace ReringProject {
                 Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Release failed: {0}", ex.Message);
             }
 
-            //260510 hbk Phase 21: BUF-02 channel #1 — subscriber 해제 (Sequences 가 살아있는 동안 unwire)
+            //260510 hbk channel #1 — subscriber 해제 (Sequences 가 살아있는 동안 unwire)
             UnwireBufferLifecycle();
-            //260510 hbk Phase 21: BUF-02 channel #3 (app shutdown buffer flush — Sequences.Dispose 가 ClearShots 를 호출하지 않으므로 명시 dispose)
+            //260510 hbk channel #3 (app shutdown buffer flush — Sequences.Dispose 가 ClearShots 를 호출하지 않으므로 명시 dispose)
             Sequences.RecipeManager.ClearShots();
             // Release sequences.
             Sequences.Dispose();
@@ -378,8 +377,8 @@ namespace ReringProject {
             //260317 raw image save worker for inspection flow
             RawImageSaver?.Dispose();
             RawImageSaver = null;
-            CaptureImageSaver?.Dispose(); //260610 hbk Phase 40.2
-            CaptureImageSaver = null; //260610 hbk Phase 40.2
+            CaptureImageSaver?.Dispose();
+            CaptureImageSaver = null;
 
             // Stop TCP server.
             Server.Dispose();

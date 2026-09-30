@@ -18,9 +18,9 @@ namespace ReringProject.Halcon.Display
         // 측정 이름 라벨 offset(px) — 선 중점 기준. 선과 글자가 겹치지 않을 만큼만 띄운다.
         private const double LABEL_ROW_OFFSET = 18.0;
         private const double LABEL_COL_OFFSET = 6.0;
-        private const string LABEL_TEXT_SEPARATOR = " "; // 측정 이름 라벨 뒤 선택 Z 라벨 이어 쓰기 구분자(Phase 77 SZF-04)
+        private const string LABEL_TEXT_SEPARATOR = " "; //260915 hbk 측정 이름 라벨 뒤 선택 Z 라벨 이어 쓰기 구분자
 
-        // Phase 79 D-79-07: 국부 기준선(FAI-RefLine) 색·두께 — 거리선(청록)·에지선(녹/적)·그 밖의 선(파랑)과 구분한다
+        //260918 hbk 국부 기준선(FAI-RefLine) 색·두께 — 거리선(청록)·에지선(녹/적)·그 밖의 선(파랑)과 구분한다
         private const string LOCAL_REF_LINE_COLOR = "orange";
         private const int LOCAL_REF_LINE_WIDTH = 2;
 
@@ -227,7 +227,7 @@ namespace ReringProject.Halcon.Display
                         }
                         continue;
                     }
-                    //260623 hbk: 캘리브 검출 코너 일괄 가시화 (cyan 작은 +). FAI-EdgeRaw 패턴 미러 — 라인/큰X skip 위해 continue.
+                    //260623 hbk 캘리브 검출 코너 일괄 가시화 (cyan 작은 +). FAI-EdgeRaw 패턴 미러 — 라인/큰X skip 위해 continue.
                     //  "cyan" 표준 색상명 (비표준명은 SetColor 예외 swallow → 미표시 위험).
                     //  반드시 "FAI-Edge" StartsWith 분기보다 먼저 평가 — 형제 위치라 안전.
                     else if (string.Equals(overlay.RoiId, "Calib-Corners", StringComparison.OrdinalIgnoreCase))
@@ -244,8 +244,8 @@ namespace ReringProject.Halcon.Display
                                     rCols = rCols.TupleConcat(p.Column);
                                 }
                                 HOperatorSet.SetColor(window, "cyan");
-                                HOperatorSet.SetLineWidth(window, 2);                 //260623 hbk: 가독성 위해 1→2
-                                HOperatorSet.DispCross(window, rRows, rCols, 15.0, 0.0);   //260623 hbk: 십자 크기 6→15px (육안 확인)
+                                HOperatorSet.SetLineWidth(window, 2);                 //260623 hbk 가독성 위해 1→2
+                                HOperatorSet.DispCross(window, rRows, rCols, 15.0, 0.0);   //260623 hbk 십자 크기 6→15px (육안 확인)
                             }
                             catch
                             {
@@ -254,7 +254,7 @@ namespace ReringProject.Halcon.Display
                         }
                         continue;
                     }
-                    //260625 hbk Phase 61.1 F4 — AlignEdge polyline 분기 제거: 검출 에지는 RenderAlignContourXld(XLD DispObj)로 대체.
+                    //260625 hbk AlignEdge polyline 분기 제거: 검출 에지는 RenderAlignContourXld(XLD DispObj)로 대체.
                     //  점→DispLine 연결 방식은 패턴1 끝점→패턴2 시작점이 대각선으로 이어지는 버그가 있어 폐기.
                     // X 마커 색 분리용: FAI-Edge* 라인은 녹/적(OK/NG), X 는 white 로 구분.
                     bool isFaiEdgeLine = false;
@@ -280,7 +280,7 @@ namespace ReringProject.Halcon.Display
                     }
                     else if (string.Equals(overlay.RoiId, EdgeToLineDistanceMeasurement.LOCAL_REF_OVERLAY_ROI_ID, StringComparison.OrdinalIgnoreCase))
                     {
-                        // Phase 79 D-79-07: 국부 기준선 — 국부를 쓴 측정에만 생긴다
+                        //260918 hbk 국부 기준선 — 국부를 쓴 측정에만 생긴다
                         window.SetColor(LOCAL_REF_LINE_COLOR);
                         window.SetLineWidth(LOCAL_REF_LINE_WIDTH);
                     }
@@ -335,7 +335,7 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        // Phase 74: 화면 좌상단 고정 정보 라벨(예: "면 슬롯: 3D_Bottom").
+        //260827 hbk 화면 좌상단 고정 정보 라벨(예: "면 슬롯: 3D_Bottom").
         //  "window" 좌표라 팬/줌과 무관하게 항상 같은 자리에 붙는다. 메시지 줄(노랑) 아래에 그린다.
         public void RenderInfoLabel(HWindow window, string text, int messageLineCount)
         {
@@ -350,7 +350,7 @@ namespace ReringProject.Halcon.Display
         }
 
         // Circle 드래그 미리보기 (rubber-band, 빨강)
-        // Phase 74: 이미지 중심을 가로지르는 전체 십자선. 라이브/정지 화면에서 가운데 위치를 눈으로 잡는 용도.
+        // 이미지 중심을 가로지르는 전체 십자선. 라이브/정지 화면에서 가운데 위치를 눈으로 잡는 용도.
         //  HALCON 창 "안"에 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.
         //  중심에 작은 사각형을 함께 그려 교차점이 선에 묻히지 않게 한다.
         public void RenderCenterCross(HWindow window, double imageWidth, double imageHeight, string color, int lineWidth)
@@ -405,10 +405,10 @@ namespace ReringProject.Halcon.Display
         public void RenderDatumFindResult(HWindow window, DatumConfig datum)
         {
             if (window == null || datum == null) return;
-            //260619 hbk Phase 56 — LastFindSucceeded OR 유효 DetectedOrigin 이면 렌더. 결과화면 datum 은 검사시 검출좌표는 유효한데
+            //260619 hbk LastFindSucceeded OR 유효 DetectedOrigin 이면 렌더. 결과화면 datum 은 검사시 검출좌표는 유효한데
             //  LastFind 플래그가 false 인 경우 있음(복원/재티칭 경로 게이트) → 좌표 유효성으로 게이트 완화. (0,0)=휘발/미검출만 skip.
             if (!datum.LastFindSucceeded && datum.DetectedOriginRow == 0.0 && datum.DetectedOriginCol == 0.0) return;
-            // 세로선 끄기 Datum 은 세로 요소를 그리지 않는다 — DetectedRefAngle2 값에 기대면 각도 0 에서도 선이 그려진다(76-02).
+            //260911 hbk 세로선 끄기 Datum 은 세로 요소를 그리지 않는다 — DetectedRefAngle2 값에 기대면 각도 0 에서도 선이 그려진다.
             bool bDrawVertical = !datum.IsHorizontalOnlyActive();
             try
             {
@@ -449,10 +449,10 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.DispLine(window, endRow, endCol,
                     endRow + headLn * System.Math.Sin(a2), endCol + headLn * System.Math.Cos(a2));
 
-                //260619 hbk Phase 56 — datum 기준선 slate blue 굵게(측정 ROI cyan/라임과 구분). 방향규약 = EdgeToLineDistance 측정축과 동일.
+                //260619 hbk datum 기준선 slate blue 굵게(측정 ROI cyan/라임과 구분). 방향규약 = EdgeToLineDistance 측정축과 동일.
                 //  길이 = 이미지 전체(세로 0~높이, 가로 0~너비) 걸치도록(사용자 요청 2026-06-19): 고정 길이 + DispLine 창밖 자동클립.
-                //260619 hbk Phase 57 #3 datum 색상 slate blue 통일 (magenta→slate blue recolor, 길이/좌표 무변경 D-10)
-                //260702 hbk 확대(줌인) 시 라인 소실 버그 수정 — GetPart(현재 화면에 보이는 부분)로 길이를 구하면
+                // #3 datum 색상 slate blue 통일 (magenta→slate blue recolor, 길이/좌표 무변경)
+                // 확대(줌인) 시 라인 소실 버그 수정 — GetPart(현재 화면에 보이는 부분)로 길이를 구하면
                 //  줌인해서 파트가 작아질수록 길이도 같이 줄어들어 원점이 화면 밖일 때 선이 안 닿아 사라졌다.
                 //  DrawExtendedLine 과 동일하게 뷰포트 크기와 무관한 고정 길이(현 이미지 대각선 17750 초과) 사용으로 통일.
                 HOperatorSet.SetColor(window, "slate blue");
@@ -463,7 +463,7 @@ namespace ReringProject.Halcon.Display
                 HOperatorSet.DispLine(window,
                     datum.DetectedOriginRow - datumLineHalf * hSin, datum.DetectedOriginCol - datumLineHalf * hCos,
                     datum.DetectedOriginRow + datumLineHalf * hSin, datum.DetectedOriginCol + datumLineHalf * hCos);
-                //260619 hbk Phase 56 — 수직 기준선: CTH(원검출 datum)는 교점(DetectedOrigin)↔원중심(DetectedCircle) 잇는 직선 → 교점·원중심 둘 다 확실히 통과(사용자 요구).
+                //260619 hbk 수직 기준선: CTH(원검출 datum)는 교점(DetectedOrigin)↔원중심(DetectedCircle) 잇는 직선 → 교점·원중심 둘 다 확실히 통과(사용자 요구).
                 //  그 외 datum 은 검출 수직 기준각(DetectedRefAngle2) 방향. 둘 다 교점 피벗·이미지 전체 길이. ※'RefAngle+90°+원중심피벗' 은 교점 빗나가 회귀 → 금지.
                 if (bDrawVertical)
                 {
@@ -614,7 +614,7 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        //260619 hbk Phase 56 Wave 2 — 결과 화면 보정(회전) ROI 박스 표시 전용 렌더. 편집 채널(_rois)과 무관 → 드래그/write-back 없음.
+        //260619 hbk 결과 화면 보정(회전) ROI 박스 표시 전용 렌더. 편집 채널(_rois)과 무관 → 드래그/write-back 없음.
         //  측정과 100% 동일하게 HALCON rectangle2 로 그림(코너 수동계산 시 회전 규약 어긋나 반대로 보이던 문제 제거).
         //  rect 인자 = {row, col, phi, length1, length2} (TryFitLine 의 gen_measure_rectangle2 와 동일 순서/규약).
         public void RenderResultRoiBoxes(HWindow window, IList<double[]> rects, string color, int lineWidth)
@@ -625,7 +625,7 @@ namespace ReringProject.Halcon.Display
         // ROI 라벨을 박스 위쪽 바깥에 띄우는 간격(px). 박스 선과 글자가 겹치지 않게 한다.
         private const double RoiLabelOffsetPx = 20.0;
 
-        // Phase 74: 라벨(ROI 1 / ROI 2 / 캘 ROI)을 박스 좌측 상단 바깥에 함께 그리는 오버로드.
+        //260827 hbk 라벨(ROI 1 / ROI 2 / 캘 ROI)을 박스 좌측 상단 바깥에 함께 그리는 오버로드.
         //  labels 가 null 이거나 짧으면 그 박스는 라벨 없이 기존과 동일하게 그린다(회귀 0).
         //  라벨은 HALCON 창 "안"에 그린다 — 창 위에 얹은 WPF 요소는 HWND airspace 로 가려진다.
         public void RenderResultRoiBoxes(HWindow window, IList<double[]> rects, string color, int lineWidth, IList<string> labels)
@@ -731,7 +731,7 @@ namespace ReringProject.Halcon.Display
             catch { /* suppress display errors */ }
         }
 
-        //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 직접 표시 (점 변환 없이 window.DispObj).
+        //260625 hbk Align 검출 에지 XLD 직접 표시 (점 변환 없이 window.DispObj).
         //  AlignShapeMatchService 가 두 패턴 contour 를 검출 pose 로 이동+concat 한 단일 HObject 를 그대로 그림.
         //  점→DispLine 방식(패턴간 대각선 연결 버그) 대체. null 가드 + try-catch (display 에러 swallow 관습 유지).
         public void RenderAlignContourXld(HWindow window, HObject xld, string color, int lineWidth)
@@ -831,7 +831,7 @@ namespace ReringProject.Halcon.Display
         }
 
         /// <summary>Renders calibration crosshairs and connecting line.</summary>
-        //260819 hbk quick-fix(260819-click2): 라벨 3종 추가 — 측정 결과를 HALCON 창 "안에" 직각삼각형으로 그린다.
+        //260819 hbk (260819-click2): 라벨 3종 추가 — 측정 결과를 HALCON 창 "안에" 직각삼각형으로 그린다.
         //  캔버스 위에 얹은 WPF Label 은 HWND airspace 로 항상 가려져 안 보이므로(실기 확인),
         //  숫자는 창 내부에 직접 렌더해야 사용자 눈에 들어온다.
         //  빗변=두 점 직선거리, 가로변/세로변=성분 — 어느 값이 어디에 해당하는지 눈으로 바로 알 수 있게 한다.
@@ -903,7 +903,7 @@ namespace ReringProject.Halcon.Display
             }
         }
 
-        /// <summary>Draws edge search direction arrow at ROI center (per D-02). White, 2px line + arrowhead.</summary>
+        /// <summary>Draws edge search direction arrow at ROI center (per). White, 2px line + arrowhead.</summary>
         private static void DrawDirectionArrow(HWindow window, RoiDefinition roi)
         {
             double centerRow = (roi.Row1 + roi.Row2) / 2.0;
@@ -1302,7 +1302,7 @@ namespace ReringProject.Halcon.Display
         //  블록 안 그리기 순서가 곧 화면 겹침 순서다 — 한 줄이라도 앞뒤로 옮기면 위에 와야 할 것이 가려진다.
         private void RenderDatumDetectedOverlay(HWindow window, DatumConfig datum)
         {
-            // 세로선 끄기 Datum 은 라이브 선택 화면에서도 세로 검출선·세로 에지점을 그리지 않는다(76-02, D-76-06).
+            //260911 hbk 세로선 끄기 Datum 은 라이브 선택 화면에서도 세로 검출선·세로 에지점을 그리지 않는다.
             bool bDrawVertical = !datum.IsHorizontalOnlyActive();
             // 검출 라인 2개 + 교점 오버레이 (TryTeachDatum 성공 시에만, 기존 cyan/blue/magenta 팔레트는 건드리지 않음)
             if (datum.LastTeachSucceeded)

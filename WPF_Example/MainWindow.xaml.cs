@@ -27,8 +27,8 @@ namespace ReringProject {
         Connect,
         Login,
         ProcessMonitor,
-        Reviewer,   // Phase 40 OUT-01 D-08 — 결과 리뷰어 비모달 창
-        Statistics,   //260707 hbk STAT-01 D-09 — 양산 이력 통계분석 비모달 창
+        Reviewer,   //260612 hbk 결과 리뷰어 비모달 창
+        Statistics,   //260707 hbk STAT-01 — 양산 이력 통계분석 비모달 창
     }
 
     /// <summary>
@@ -69,26 +69,26 @@ namespace ReringProject {
         private Window mModalWindow;
         private ProcessMonitorWindow mProcMonitorWindow;
         private UI.ReviewerWindow mReviewerWindow;
-        private UI.StatisticsWindow mStatisticsWindow;   //260707 hbk STAT-01 D-08 — 비모달 재사용 멤버
+        private UI.StatisticsWindow mStatisticsWindow;   //260707 hbk STAT-01 — 비모달 재사용 멤버
         private DispatcherTimer mTimer = new DispatcherTimer();
 
 
 
         public MainWindow() {
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (b) MainWindow ctor entry: {0} ms", App.StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (b) MainWindow ctor entry: {0} ms", App.StartupWatch.ElapsedMilliseconds);
             //initialize
             mSystemHandler = SystemHandler.Handle;
             mSystemHandler.Initialize();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (c) after Initialize: {0} ms", App.StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (c) after Initialize: {0} ms", App.StartupWatch.ElapsedMilliseconds);
 
             //update ui
             InitializeComponent();
-            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (d) after InitializeComponent: {0} ms", App.StartupWatch.ElapsedMilliseconds); //260615 hbk Phase 43.1
+            Logging.PrintLog((int)ELogType.Trace, "[STARTUP-WHITE] (d) after InitializeComponent: {0} ms", App.StartupWatch.ElapsedMilliseconds);
             //ComboLanguage.ItemsSource = Enum.GetValues(typeof(ELanguageType)).Cast<ELanguageType>();
 
             mSystemHandler.Sequences.OnRecipeChanged += this.OnLoadRecipe;
-            ReviewerReinspectViewModel.Instance.MainNavigator = OnReviewerPhotosLoaded; // Phase 80 D-80-04
-            mSystemHandler.Sequences.OnRecipeChanged += ReviewerReinspectService.HandleRecipeChanged; // Phase 80 D-80-11
+            ReviewerReinspectViewModel.Instance.MainNavigator = OnReviewerPhotosLoaded;
+            mSystemHandler.Sequences.OnRecipeChanged += ReviewerReinspectService.HandleRecipeChanged;
 
             mSystemHandler.Login.OnLoginStateChanged += this.OnLoginChanged;
 
@@ -159,7 +159,7 @@ namespace ReringProject {
             }));
         }
 
-        //260810 hbk quick-260810-egx: 자동검사(TCP $PREP/$TEST) 사이클 동안 화면 실시간 표시를 끌지 판단.
+        //260810 hbk 자동검사(TCP $PREP/$TEST) 사이클 동안 화면 실시간 표시를 끌지 판단.
         //  설정 DisableViewerDuringAutoInspect 가 ON 이고, 해당 시퀀스가 프로토콜 구동 사이클일 때만 true.
         //  수동 RUN / 티칭 / 일괄검사(RepeatRun/BatchRun)는 RequestPacket==null → IsProtocolDrivenCycle()==false → 항상 표시 유지.
         //  Setting null 또는 캐스팅 실패 시 false(=표시 유지) 로 폴백한다.
@@ -180,7 +180,7 @@ namespace ReringProject {
         //  수정: 모두 BeginInvoke 내부에서 순서대로 실행 — 잠금 해제 → 결과 표시 순서 보장.
         private void OnSequenceError(SequenceContext context) {
             Logging.PrintLog((int)ELogType.Result, context.ToString());
-            //260810 hbk quick-260810-egx: 시퀀스 스레드에서 판정 캡처(람다 안에서 재계산 금지).
+            //260810 hbk 시퀀스 스레드에서 판정 캡처(람다 안에서 재계산 금지).
             //  Display 호출만 게이트한다 — SetManualToolsEnabled(true)/상태바/로그는 무조건 실행(잠금 영구화 사고 방지).
             bool bSkipViewer = ShouldSkipViewerUpdate(context.Source);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
@@ -191,7 +191,7 @@ namespace ReringProject {
         }
 
         private void OnActionChanged(ActionContext context) {
-            //260810 hbk quick-260810-egx: ActionContext.Source 는 ActionBase → Param.Parent 로 소유 시퀀스를 얻는다.
+            //260810 hbk ActionContext.Source 는 ActionBase → Param.Parent 로 소유 시퀀스를 얻는다.
             //  skip 이면 검사 중 결과행 실시간 갱신만 중단된다(상태바/로그는 그대로).
             SequenceBase ownerSeq = null;
             if (context.Source != null && context.Source.Param != null) ownerSeq = context.Source.Param.Parent;
@@ -217,7 +217,7 @@ namespace ReringProject {
             Logging.PrintLog((int)ELogType.Result, "Sequence {0} Final Result: {1} ({2}ms)",
                 context.Source.Name, context.ResultString, context.Timer.ElapsedMilliseconds);
             Logging.PrintLog((int)ELogType.Result, context.ToString());
-            //260810 hbk quick-260810-egx: 시퀀스 스레드에서 판정 캡처(람다 안에서 재계산 금지).
+            //260810 hbk 시퀀스 스레드에서 판정 캡처(람다 안에서 재계산 금지).
             //  Display 호출만 게이트 — SetManualToolsEnabled(true)/상태바/로그는 무조건 실행.
             bool bSkipViewer = ShouldSkipViewerUpdate(context.Source);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal, new Action(() => {
@@ -281,7 +281,7 @@ namespace ReringProject {
             menuBar.UpdateLoginID(mSystemHandler.Login.LoginID);
         }
 
-        //260615 hbk Phase 43.2: OnLoadRecipe — Dispatcher.BeginInvoke 래핑 (D-A 비동기 방식 대비 스레드 안전)
+        //260615 hbk OnLoadRecipe — Dispatcher.BeginInvoke 래핑 (D-A 비동기 방식 대비 스레드 안전)
         //  Dispatcher.BeginInvoke(Background) 방식은 UI 스레드 실행이라 현재 래핑 불필요하나,
         //  향후 별도 Thread 방식 전환 시 이 핸들러가 비 UI 스레드에서 호출될 수 있으므로 방어적 래핑.
         //  inspectionList.OnLoadRecipe → ViewModel.RebuildTree() → UI 컨트롤 접근 → UI 스레드 필요.
@@ -291,7 +291,7 @@ namespace ReringProject {
             }));
         }
 
-        // Phase 80 D-80-04: 리뷰어에서 불러온 뒤 메인 화면을 앞으로 — 리뷰어 최소화·트리 선택은 80-04
+        //260918 hbk 리뷰어에서 불러온 뒤 메인 화면을 앞으로 — 리뷰어 최소화·트리 선택은
         private void OnReviewerPhotosLoaded(ReviewerReinspectLoadResult result) {
             if (mReviewerWindow != null) { mReviewerWindow.WindowState = WindowState.Minimized; }
             Activate();
@@ -310,7 +310,7 @@ namespace ReringProject {
                 CustomMessageBox.Show("Error", SystemHandler.Handle.Localize["System Is Running"], MessageBoxImage.Error);
                 return;
             }
-            // quick-260911-fia Task 3 BLOCKER 수정: 저장 사진 재검사 중(부품 사이 Idle 포함)에는 레시피
+            //260911 hbk BLOCKER 수정: 저장 사진 재검사 중(부품 사이 Idle 포함)에는 레시피
             //  저장을 막는다 — 재검사가 메모리에서만 바꾼 임시 경로가 레시피 파일로 새는 것을 방지(T-FIA-01).
             if(RepeatRunService.IsSavedCycleRerunActive) {
                 CustomMessageBox.Show("저장 불가", "저장 사진 재검사 중에는 레시피를 저장할 수 없습니다. 재검사가 끝나거나 중단된 뒤 저장하세요.", MessageBoxImage.Warning);
@@ -327,7 +327,7 @@ namespace ReringProject {
                     MessageBoxImage.Error);
                 return;
             }
-            // Phase 80 D-80-10: 리뷰어 사진을 쓰는 중이면 저장하는 순간만 원래 사진 경로로 — 파라미터는 저장된다
+            //260918 hbk 리뷰어 사진을 쓰는 중이면 저장하는 순간만 원래 사진 경로로 — 파라미터는 저장된다
             bool bSaved = ReviewerReinspectService.RunWithOriginalPaths(() => mSystemHandler.Sequences.SaveRecipe(name, ERecipeFileType.Ini));
             if(!bSaved) {
                 CustomMessageBox.Show("Error", SystemHandler.Handle.Localize["fail to save recipe"], MessageBoxImage.Error);
@@ -403,7 +403,7 @@ namespace ReringProject {
                     mModalWindow = new SettingWindow();
                     mModalWindow.Owner = this;
                     mModalWindow.ShowDialog();
-                    RefreshEthernetVisionTabs(); //260624 hbk Phase 61: 설정창 종료 후 EthernetVisionMode 탭 재게이트
+                    RefreshEthernetVisionTabs(); //260624 hbk 설정창 종료 후 EthernetVisionMode 탭 재게이트
                     break;
                 case EPageType.ProcessMonitor:
                     if(mProcMonitorWindow != null) {
@@ -416,9 +416,9 @@ namespace ReringProject {
                     mProcMonitorWindow.Owner = this;
                     mProcMonitorWindow.Show();
                     break;
-                case EPageType.Reviewer:   // Phase 40 OUT-01 D-08 — 비모달 Show() (ShowDialog 아님, 라이브 검사 방해 안 함)
+                case EPageType.Reviewer:   //260612 hbk 비모달 Show (ShowDialog 아님, 라이브 검사 방해 안 함)
                     if (mReviewerWindow != null && mReviewerWindow.IsLoaded) {
-                        // Phase 80 D-80-04: 불러오기로 최소화된 리뷰어를 메뉴로 다시 열면 복원 후 앞으로.
+                        //260918 hbk 불러오기로 최소화된 리뷰어를 메뉴로 다시 열면 복원 후 앞으로.
                         if (mReviewerWindow.WindowState == WindowState.Minimized) { mReviewerWindow.WindowState = WindowState.Normal; }
                         mReviewerWindow.Show();
                         mReviewerWindow.Activate();
@@ -426,9 +426,9 @@ namespace ReringProject {
                     }
                     mReviewerWindow = new UI.ReviewerWindow();
                     mReviewerWindow.Owner = this;
-                    mReviewerWindow.Show();   // 비모달 — 라이브 MainView 와 동시 사용 가능 (D-08)
+                    mReviewerWindow.Show();   //260601 hbk 비모달 — 라이브 MainView 와 동시 사용 가능
                     break;
-                case EPageType.Statistics:   //260707 hbk STAT-01 D-08/D-09 — 비모달 Show() (라이브 MainView 방해 안 함)
+                case EPageType.Statistics:   //260707 hbk STAT-01 — 비모달 Show (라이브 MainView 방해 안 함)
                     if (mStatisticsWindow != null && mStatisticsWindow.IsLoaded) {
                         mStatisticsWindow.Show();
                         return;
@@ -447,17 +447,17 @@ namespace ReringProject {
             //register custom ui
             RegisterCustomUI();
 
-            //260615 hbk Phase 43.2: 레시피 로드를 ContentRendered(첫 paint) 이후 Dispatcher.Background 로 후퇴 (D-A)
+            //260615 hbk 레시피 로드를 ContentRendered(첫 paint) 이후 Dispatcher.Background 로 후퇴 (D-A)
             //  기존 동기 LoadRecipe(14787ms 블로킹) 제거 → ContentRendered(~6726ms) 후 실행으로 체감 시간 단축
             this.ContentRendered += Window_ContentRendered_LoadRecipe;
 
             IsEditable = false;
         }
 
-        //260615 hbk Phase 43.2: ContentRendered(첫 paint) 이후 레시피를 Background 우선순위로 로드 (D-A/D-B/D-D)
+        //260615 hbk ContentRendered(첫 paint) 이후 레시피를 Background 우선순위로 로드 (D-A/D-B/D-D)
         //  App.xaml.cs ContentRendered 핸들러(스플래시 close)와 동일 이벤트 — 순서는 구독 순으로 App 먼저, 여기서 나중.
         //  Dispatcher.BeginInvoke(Background): UI 스레드에서 실행하되 렌더링 유휴 시점으로 지연.
-        //  LoadPhase6Format 내 CustomMessageBox.Show 가 존재하므로 별도 Thread 사용 불가 (PATTERNS.md 결론).
+        //  LoadPhase6Format 내 CustomMessageBox.Show 가 존재하므로 별도 Thread 사용 불가 .
         private void Window_ContentRendered_LoadRecipe(object sender, EventArgs e) {
             this.ContentRendered -= Window_ContentRendered_LoadRecipe; // 1회 실행 후 구독 해제
             if (mSystemHandler.Setting.CurrentRecipeName == null) {
@@ -466,7 +466,7 @@ namespace ReringProject {
             }
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => {
                 mSystemHandler.LoadRecipe(mSystemHandler.Setting.CurrentRecipeName);
-                mSystemHandler.IsRecipeReady = true; //260615 hbk Phase 43.2: 로드 완료(성공/실패 무관) → TCP guard 해제 (D-B)
+                mSystemHandler.IsRecipeReady = true; //260615 hbk 로드 완료(성공/실패 무관) → TCP guard 해제 (D-B)
             }));
         }
 
@@ -485,10 +485,10 @@ namespace ReringProject {
                 mSystemHandler.Sequences[i].OnFinish -= OnSequenceFinish;
                 mSystemHandler.Sequences[i].OnActionChanged -= OnActionChanged;
             }
-            // quick-260911-fia Task 3 BLOCKER 수정: Release()(Setting.Save 포함)보다 반드시 먼저 호출 —
+            //260911 hbk BLOCKER 수정: Release(Setting.Save 포함)보다 반드시 먼저 호출
             //  활성 저장 사진 재검사가 있으면 강제로 끝내 OfflineInspectMode/경로를 원복한 뒤 저장한다.
             RepeatRunService.RestoreActiveSavedCycleOverridesForShutdown();
-            // Phase 80 D-80-11/13: Release() 안의 Setting.Save 가 켜 둔 OfflineInspectMode 를 영속화하지 않도록 반드시 그 앞에서 되돌린다.
+            //260918 hbk Release 안의 Setting.Save 가 켜 둔 OfflineInspectMode 를 영속화하지 않도록 반드시 그 앞에서 되돌린다.
             ReviewerReinspectService.Release(ReviewerReinspectService.RELEASE_REASON_SHUTDOWN);
             mSystemHandler.Release();
         }

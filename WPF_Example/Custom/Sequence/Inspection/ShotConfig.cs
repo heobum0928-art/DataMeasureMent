@@ -10,7 +10,7 @@ namespace ReringProject.Sequence {
     public class ShotConfig : CameraSlaveParam, IOfflineImageParam
     {
 
-        // 260723 hbk: 실제 Z축 제어는 외부 PLC/핸들러가 전담(이 앱은 z_index 트리거만 받아 그 순간 캡처)이라
+        //260723 hbk 실제 Z축 제어는 외부 PLC/핸들러가 전담(이 앱은 z_index 트리거만 받아 그 순간 캡처)이라
         //  이 값이 실제 물리 위치와 일치함을 이 앱이 보장 못 함 — PropertyGrid에서 숨김(INI 키/직렬화는 보존).
         //  DualImage datum의 ZIndexA/B(2개 캡처 인덱스)에 대응하는 물리 position 개념은 별도로 추가하지 않기로 결정(260723).
         [Browsable(false)]
@@ -173,12 +173,12 @@ namespace ReringProject.Sequence {
         [Category("Shot|Identity")]
         public string OwnerSequenceName { get; set; } = "";
 
-        //260623 hbk Phase 49 PROTO-03/05 (D-01): 이 Shot 이 속한 $TEST z_index. 0=Datum 샷, 1+=측정 Index.
-        //  AddResponse(49-02) 가 RequestPacket z_index 와 비교하여 해당 Index Shot 만 판정 집계(Index-scoped, D-01).
+        //260623 hbk 이 Shot 이 속한 $TEST z_index. 0=Datum 샷, 1+=측정 Index.
+        //  AddResponse 가 RequestPacket z_index 와 비교하여 해당 Index Shot 만 판정 집계(Index-scoped).
         //  ParamBase reflection 자동 직렬화 — INI 키 = "ZIndex". 기존 레시피엔 키 부재 → 0 로드(=Datum/Idx0 폴백, 하위 호환).
         //  ※ 엣지케이스: ZIndex 미설정 레시피(전 Shot=0)는 Index 0 만 매칭됨 → 측정 Index(1+) 수신 시 BuildScopedResponse 매칭 0건.
-        //     이 경우 49-02 BuildScopedResponse 가 빈 B 응답 + PrintErrLog 경고를 남김(조용한 빈 B 금지). 운용 시 레시피 ZIndex 설정 필요.
-        //  ※ INI 호환 위해 PascalCase 프로퍼티명 유지(ParamBase 키=프로퍼티명) — 헝가리언 예외(직렬화 필드, D-10 적용범위 밖).
+        //     이 경우 BuildScopedResponse 가 빈 B 응답 + PrintErrLog 경고를 남김(조용한 빈 B 금지). 운용 시 레시피 ZIndex 설정 필요.
+        //  ※ INI 호환 위해 PascalCase 프로퍼티명 유지(ParamBase 키=프로퍼티명) — 헝가리언 예외(직렬화 필드, 적용범위 밖).
         private int _zIndex = 0;
         public int ZIndex {
             get { return _zIndex; }
@@ -186,21 +186,21 @@ namespace ReringProject.Sequence {
                 if (_zIndex == value) { return; }
                 _zIndex = value;
                 RaisePropertyChanged(nameof(ZIndex));
-                // Phase 77 D-77-08: 범위가 켜진 Shot 은 ZIndex 가 범위 시작이라 바꾸면 범위도 바뀐다 — 같은 다이얼로그로 알린다.
+                //260915 hbk 범위가 켜진 Shot 은 ZIndex 가 범위 시작이라 바꾸면 범위도 바뀐다 — 같은 다이얼로그로 알린다.
                 if (ZIndexEnd != Z_RANGE_OFF) {
                     WarnZIndexEndChanged();
                 }
             }
         }
 
-        // Phase 77 SZF-01: 범위 기능 꺼짐 표식(옛 레시피의 키 부재 로드값과 동일 — 회귀 0).
+        //260915 hbk 범위 기능 꺼짐 표식(옛 레시피의 키 부재 로드값과 동일 —).
         public const int Z_RANGE_OFF = 0;
-        // Phase 77 SZF-01: 기준점(ZIndex) 0 번은 범위 시작으로 쓸 수 없다(Datum 폴백 index 와 충돌).
+        //260915 hbk 기준점(ZIndex) 0 번은 범위 시작으로 쓸 수 없다(Datum 폴백 index 와 충돌).
         public const int MIN_Z_RANGE_BASE_INDEX = 1;
-        // Phase 77 SZF-01: SIDE 사진 1장 약 127~152MB — z 개수 상한(O-5 메모리 가드).
+        //260915 hbk SIDE 사진 1장 약 127~152MB — z 개수 상한( 메모리 가드).
         public const int MAX_Z_RANGE_COUNT = 10;
 
-        // Phase 77 D-77-07 ①⑧: 범위 = ZIndex ~ ZIndexEnd(둘 다 포함), 기준 Z = ZIndex.
+        //260915 hbk ①⑧: 범위 = ZIndex ~ ZIndexEnd(둘 다 포함), 기준 Z = ZIndex.
         //  시작 번호 칸은 만들지 않는다 — 기존 ZIndex 를 그대로 범위 시작으로 쓴다.
         //  ParamBase reflection 자동 직렬화 — INI 키 = "ZIndexEnd". 키 부재(옛 레시피) → 0 로드 = 범위 꺼짐.
         private int _zIndexEnd = Z_RANGE_OFF;
@@ -217,7 +217,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // Phase 77 SZF-01/SZF-05: 범위 기능이 켜져 있는지 판정하는 단일 진입점 — 이 값이 false 면
+        //260915 hbk 범위 기능이 켜져 있는지 판정하는 단일 진입점 — 이 값이 false 면
         //  범위 관련 새 분기(저장·대기·선택·완성 index·마지막 index)가 전부 미도달이라 기존 동작과 같다.
         //  프로퍼티가 아니라 메서드다 — ParamBase 리플렉션은 공개 프로퍼티를 전부 INI 에 쓰므로
         //  bool 프로퍼티로 만들면 존재하지도 않는 파생 키가 레시피에 저장된다.
@@ -230,12 +230,12 @@ namespace ReringProject.Sequence {
             return true;
         }
 
-        // Phase 77 D-77-06 ②: 저장 사이클 재검사 중에만 RepeatRunService 가 채우는 z→사진 경로다.
+        //260915 hbk ②: 저장 사이클 재검사 중에만 RepeatRunService 가 채우는 z→사진 경로다.
         //  null 이면 재검사가 아니라는 뜻이다(오프라인 폴더 규약을 그대로 따른다). 필드다 —
         //  런타임 전용 값이라 ParamBase 리플렉션 직렬화(INI)·PropertyGrid 붙여넣기 대상이 아니다.
         public Dictionary<int, string> RerunZRangeImagePaths = null;
 
-        // Phase 77 D-77-07 ①⑤: ZIndexEnd 가 0(꺼짐)이 아닌데 IsZRangeEnabled() 가 false 면 오설정 —
+        //260915 hbk ①⑤: ZIndexEnd 가 0(꺼짐)이 아닌데 IsZRangeEnabled 가 false 면 오설정
         //  ZIndex 미설정/역순/상한 초과 중 하나로 조용히 꺼진 상태다. 런타임 tick 경고(Action_FAIMeasurement)
         //  와 편집 즉시 경고(WarnZIndexEndChanged) 가 공유한다.
         public bool IsZRangeMisconfigured() {
@@ -244,7 +244,7 @@ namespace ReringProject.Sequence {
             return bEndSet && bDisabled;
         }
 
-        // Phase 77 D-77-07 ①⑤: 오설정 이유를 한국어 한 줄로. 가드 순서가 원인 우선순위다 — ZIndex 미설정이
+        //260915 hbk ①⑤: 오설정 이유를 한국어 한 줄로. 가드 순서가 원인 우선순위다 — ZIndex 미설정이
         //  가장 근본적인 원인이라 먼저 확인한다. 겹침(다른 Shot·기준점)은 BuildZRangeConflictText 가 담당한다.
         public string BuildZRangeMisconfigText() {
             if (ZIndexEnd == Z_RANGE_OFF) { return string.Empty; }
@@ -261,14 +261,14 @@ namespace ReringProject.Sequence {
             return string.Empty;
         }
 
-        // quick-260813 선례(DatumConfig.WarnDatumZIndexChanged)와 동일한 관용구 — INI 로드·붙여넣기(리플렉션
+        //260915 hbk 선례(DatumConfig.WarnDatumZIndexChanged)와 동일한 관용구 — INI 로드·붙여넣기(리플렉션
         //  SetValue)에서는 경고를 억제한다(_suppressUserEditWarning). 저장은 절대 막지 않는다.
         private bool _suppressUserEditWarning;
 
         private const string Z_RANGE_DIALOG_TITLE = "Z 범위 확인";
         private const string Z_RANGE_SINGLE_IMAGE_HINT = "\n한 장만 쓰려면 Z 범위 끝을 0 으로 두세요.";
 
-        // Phase 77 D-77-07 ①⑤ + D-77-08: Z 범위 끝(또는 범위가 켜진 Shot 의 ZIndex)을 사용자가 PropertyGrid 에서
+        //260915 hbk ①⑤ +: Z 범위 끝(또는 범위가 켜진 Shot 의 ZIndex)을 사용자가 PropertyGrid 에서
         //  직접 바꾸면 항상 다이얼로그로 알린다 — 꺼짐·정상 범위는 정보, 오입력·겹침은 경고 + 한 장 안내.
         private void WarnZIndexEndChanged() {
             if (_suppressUserEditWarning) { return; }
@@ -297,14 +297,14 @@ namespace ReringProject.Sequence {
                 System.Windows.MessageBoxImage.Information, true, false);
         }
 
-        // Phase 77 D-77-08: 정상 범위 알림 — 몇 장을 어느 번호로 찍어야 하는지 운영자가 바로 알게 한다.
+        //260915 hbk 정상 범위 알림 — 몇 장을 어느 번호로 찍어야 하는지 운영자가 바로 알게 한다.
         private string BuildZRangeOnText() {
             int nZCount = ZIndexEnd - ZIndex + 1;
             return "Z 범위 z" + ZIndex + "~z" + ZIndexEnd + " (" + nZCount + "장) — 측정마다 가장 선명한 Z 를 자동으로 고릅니다.\n"
                 + "PLC 가 " + ZIndex + "~" + ZIndexEnd + " 번호로 차례로 촬영해야 동작합니다.";
         }
 
-        // Phase 77 D-77-08: 꺼짐 알림 — 기본값 0 으로 되돌리면 예전처럼 한 장으로 측정한다.
+        //260915 hbk 꺼짐 알림 — 기본값 0 으로 되돌리면 예전처럼 한 장으로 측정한다.
         private string BuildZRangeOffText() {
             return "Z 범위 꺼짐 — ZIndex(" + ZIndex + ") 사진 1장으로 측정합니다.";
         }
@@ -402,11 +402,11 @@ namespace ReringProject.Sequence {
             }
         }
 
-        [Browsable(false)]   //260626 hbk Phase 66 D-03: 검사 PropertyGrid 에서 동축 숨김. INI 키/매핑 코드는 보존(하위호환). 동축 제어는 Align 창(Plan 03).
+        [Browsable(false)]   //260626 hbk 검사 PropertyGrid 에서 동축 숨김. INI 키/매핑 코드는 보존(하위호환). 동축 제어는 Align 창.
         [Category("Light|Coax")]
         public bool CoaxLight_Enabled { get; set; }
         private int _coaxLightBrightness;
-        [Browsable(false)]   //260626 hbk Phase 66 IN-01: CoaxLight_Brightness 도 PropertyGrid 에서 숨김(동축 2필드 모두 숨김). INI 키 보존(하위호환).
+        [Browsable(false)]   //260626 hbk CoaxLight_Brightness 도 PropertyGrid 에서 숨김(동축 2필드 모두 숨김). INI 키 보존(하위호환).
         [Slidable(0, 255)]
         public int CoaxLight_Brightness {
             get { return _coaxLightBrightness; }
@@ -471,7 +471,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        [Category("Light|Ring7")]   //260626 hbk Phase 66 D-01: Ring7 조명 추가(자유 조합) — Ring/Back/Bar/Ring7 4종
+        [Category("Light|Ring7")]   //260626 hbk Ring7 조명 추가(자유 조합) — Ring/Back/Bar/Ring7 4종
         public bool Ring7Light_Enabled { get; set; }   //260626 hbk Ring7 ON/OFF
         private int _ring7LightBrightness;
         [Slidable(0, 255)]
@@ -510,7 +510,7 @@ namespace ReringProject.Sequence {
         //  CameraSlaveParam.Load(CorrectionFactor 복원) 선례를 그대로 따라, 신규 키 부재 시에만 구 통합 필드 값을 채널 전체로 브로드캐스트한다.
         //  신규 키가 이미 있으면(채널별 저장된 레시피) 아무것도 하지 않는다 — ParamBase 가 채널별로 정확히 로드했기 때문.
         public override bool Load(IniFile loadFile, string groupName) {
-            _suppressUserEditWarning = true; // Phase 77: INI 로드는 사용자 편집이 아니다 — 경고 억제
+            _suppressUserEditWarning = true; //260915 hbk INI 로드는 사용자 편집이 아니다 — 경고 억제
             bool result = base.Load(loadFile, groupName);
             _suppressUserEditWarning = false;
 
@@ -553,12 +553,12 @@ namespace ReringProject.Sequence {
         //  ShotName/_image는 제외; FAIList는 CopyTo가 복사하지만 바로 아래 ClearFAIs로 비운다.
         public override bool CopyTo(ParamBase param) {
             ShotConfig target = param as ShotConfig;
-            // 260723 hbk: DeviceName 도 복사 누락(신규 Shot 생성 후 Copy/Paste로 채우려 해도 안 채워지던 버그).
+            //260723 hbk DeviceName 도 복사 누락(신규 Shot 생성 후 Copy/Paste로 채우려 해도 안 채워지던 버그).
             //  base.CopyTo(PropertyArray/Exposure·Gain·Gamma 값 복사)보다 먼저 설정한다 — DeviceName setter 가
             //  PasteFromCamera 를 트리거해 카메라 실측값으로 PropertyArray 를 되읽어오므로, 순서가 바뀌면
             //  아래에서 복사한 Exposure/Gain 값이 그 실측값에 덮여 사라진다.
             if (target != null) target.DeviceName = DeviceName;
-            if (target != null) target._suppressUserEditWarning = true; // Phase 77: 붙여넣기는 사용자 편집이 아니다 — 경고 억제
+            if (target != null) target._suppressUserEditWarning = true; //260915 hbk 붙여넣기는 사용자 편집이 아니다 — 경고 억제
             bool result = base.CopyTo(param);
             if (target != null) target._suppressUserEditWarning = false;
             if (target == null) return result;
@@ -647,7 +647,7 @@ namespace ReringProject.Sequence {
 
         /// <summary>
         /// 내부 buffer 의 HImage 수명을 종료한다 (Dispose 후 null 로 재설정).
-        /// BUF-02 lifetime 계약상 다음 3개 채널에서 호출되어야 한다:
+        /// lifetime 계약상 다음 3개 채널에서 호출되어야 한다:
         ///   (1) 레시피 변경 — Custom/SystemHandler.cs OnRecipeChanged subscriber 가
         ///       InspectionRecipeManager.ClearShots() 를 호출하여 모든 Shot 에 전파.
         ///   (2) 시퀀스 리셋 — Action_FAIMeasurement.cs EStep.Init 에서
@@ -664,7 +664,7 @@ namespace ReringProject.Sequence {
         }
 
         /// <summary>
-        /// quick-260806-dsn Part B: 배치 사이클 완료 후 메모리 정리로 _image 가 비워진 뒤에도 화면 재현이 가능한지
+        /// Part B: 배치 사이클 완료 후 메모리 정리로 _image 가 비워진 뒤에도 화면 재현이 가능한지
         /// 판단하기 위한 디스크 폴백 경로 조회. FAIList 의 각 FAI가 보유한 원본 캡쳐 파일
         /// (FAIConfig.LastOriginImageFileName — CaptureImageSaveService 가 매 검사마다 overlay 없이 저장하는 원본,
         /// Action_FAIMeasurement.QueueFaiCapture 가 기록) 중 실제 존재하는 첫 경로를 반환한다.
@@ -713,7 +713,7 @@ namespace ReringProject.Sequence {
 
         /// <summary>
         /// Shot 의 모든 결과를 초기화한다 — image buffer Dispose + 각 FAI 결과 clear.
-        /// BUF-02 lifetime 계약상 sequence reset 트리거 — Action_FAIMeasurement.cs
+        /// lifetime 계약상 sequence reset 트리거 — Action_FAIMeasurement.cs
         /// EStep.Init 단계 (Run 사이클 진입 시 매번) 에서 호출된다.
         /// </summary>
         public void ClearAllResults() {

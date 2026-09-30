@@ -28,7 +28,7 @@ namespace ReringProject.Sequence
         public int EdgeThreshold { get; set; } = 10;
         public double Sigma { get; set; } = 1.0;
         public int EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
@@ -116,7 +116,7 @@ namespace ReringProject.Sequence
             double pRow = (pr1 + pr2) / 2.0;
             double pCol = (pc1 + pc2) / 2.0;
 
-            // D-04 공용 헬퍼 호출: 수집 에지점(collectedEdgePoints) 각각 → datum 기준선 투영 거리, per-point 평균(fOk 게이트).
+            //260722 hbk 공용 헬퍼 호출: 수집 에지점(collectedEdgePoints) 각각 → datum 기준선 투영 거리, per-point 평균(fOk 게이트).
             // X축 측정은 2차(수직) 기준선, Y축은 1차(수평) 기준선.
             // foot 반환 오버로드로 전환. HomMat2dInvert+AffineTransPoint2d 제거
             //   (IDatumOriginConsumer 가 이미 datum 원점 image 좌표 주입 → 행렬 역변환 불필요).

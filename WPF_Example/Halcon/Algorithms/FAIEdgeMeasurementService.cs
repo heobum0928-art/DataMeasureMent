@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using HalconDotNet;
 using ReringProject.Halcon.Models;
 using ReringProject.Sequence;
-//260622 hbk Phase 57.1 D-02(a): 회전각 확증 Trace 로그용 — Logging(Utility)/ELogType(Setting)
+//260622 hbk (a): 회전각 확증 Trace 로그용 — Logging(Utility)/ELogType(Setting)
 using ReringProject.Utility;
 using ReringProject.Setting;
 
@@ -52,7 +52,7 @@ namespace ReringProject.Halcon.Algorithms
                 double roiPhi = fai.ROI_Phi;
 
                 // Datum hom_mat2d 변환을 ROI 에 적용 (analytic — 영역 rasterize/smallest_rectangle2 의 phi 90° 모호성 회피).
-                //260618 hbk Phase 54 ALIGN-01: ROI 중심점을 transform 으로 이동 + 회전각을 phi 에 가산.
+                // ROI 중심점을 transform 으로 이동 + 회전각을 phi 에 가산.
                 //  transform = align rigid(rotate(θ)+translate(x,y)). 영역 변환과 결과 동일하되 스캔 방향(phi) 정확.
                 if (transform != null && transform.Length > 0)
                 {
@@ -66,8 +66,8 @@ namespace ReringProject.Halcon.Algorithms
                         double rotAngle = Math.Atan2(transform[3].D, transform[0].D);
                         roiPhi = fai.ROI_Phi + rotAngle;
 
-                        //260622 hbk Phase 57.1 D-02(a): 회전각 확증 로그 — baseline θ(InspectionSequence [ALIGN] thetaDeg)와
-                        //  이 ROI 적용각(rotAngle)이 90° 어긋남 없이 일치하는지 UAT 시 확인. 측정값 무변경 — 진단 전용.
+                        //260622 hbk (a): 회전각 확증 로그 — baseline θ(InspectionSequence [ALIGN] thetaDeg)와
+                        //  이 ROI 적용각(rotAngle)이 90° 어긋남 없이 일치하는지 시 확인. 측정값 무변경 — 진단 전용.
                         //  (rotAngle 은 try 내부 지역변수 — 이 로그는 try 블록 안에서만 유효)
                         try
                         {
@@ -125,10 +125,10 @@ namespace ReringProject.Halcon.Algorithms
                 else polarity = "positive";
 
                 // ROI 바운딩 박스 (Rectangle2 -> AABB)
-                //260622 hbk Phase 57.1 D-02(b): HALCON gen_measure_rectangle2 규약 명시 — length1 = phi(roiPhi) 방향 반장축,
+                // (b): HALCON gen_measure_rectangle2 규약 명시 — length1 = phi(roiPhi) 방향 반장축
                 //  length2 = phi 수직 방향 반장축. 티칭 시 드래그한 bbox 의 X절반→Length1·Y절반→Length2 매핑(ROI_Phi=0 기준,
                 //  HalconViewer_*RectCompleted)과 일치. analytic 회전은 phi 만 가산하고 length1/length2 는 보존(강체회전 정상).
-                //  ※ length1/length2 swap 금지 — swap 시 장축/단축 뒤바뀌어 회귀(CONTEXT.md D-02 LOCKED).
+                //  ※ length1/length2 swap 금지 — swap 시 장축/단축 뒤바뀌어 회귀 .
                 double sinPhi = Math.Sin(roiPhi);
                 double cosPhi = Math.Cos(roiPhi);
                 double dRow = Math.Abs(fai.ROI_Length1 * cosPhi) + Math.Abs(fai.ROI_Length2 * sinPhi);
@@ -565,7 +565,7 @@ namespace ReringProject.Halcon.Algorithms
             return overlays;
         }
 
-        //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 위임(개수 → 양끝 각 %)
+        //260622 hbk trim 통일 — 정렬+% 절사 공유 헬퍼 위임(개수 → 양끝 각 %)
         /// <summary>
         /// 극값 에지 포인트를 제거한다. trimCount 는 양끝 각 백분율(%) 로 해석된다(VisionAlgorithmService.SortAndTrimPercent).
         /// scanHorizontal이면 row 기준, 아니면 column 기준으로 정렬 후 양 끝 trimCount% 제거.

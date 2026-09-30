@@ -21,7 +21,7 @@ namespace ReringProject.UI {
 
         public TextInputBoxWinidow(string message, string initialText) {
             InitializeComponent();
-            label_title.Text = message; // 260702 hbk: Label→TextBlock 교체(잘림 버그 수정)로 Content→Text
+            label_title.Text = message; //260702 hbk Label→TextBlock 교체(잘림 버그 수정)로 Content→Text
             textBox_text.Text = initialText;
         }
 

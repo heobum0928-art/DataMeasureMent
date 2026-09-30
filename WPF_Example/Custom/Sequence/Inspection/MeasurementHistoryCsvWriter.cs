@@ -12,8 +12,8 @@ namespace ReringProject.Sequence
 {
     /// <summary>
     /// 검사 완료 결과(CycleResultDto)를 일자별 CSV(StatisticsSavePath\yyyyMMdd.csv)에 누적 append 한다.
-    /// 측정 항목당 1행. RFC4180 따옴표 이스케이프 + static lock(D-05) + 신규 파일 헤더 자동 생성.
-    /// 실패는 호출부(CycleResultSerializer.SaveAsync)의 독립 try/catch 로 격리되어 검사/TCP 무영향(D-04).
+    /// 측정 항목당 1행. RFC4180 따옴표 이스케이프 + static lock + 신규 파일 헤더 자동 생성.
+    /// 실패는 호출부(CycleResultSerializer.SaveAsync)의 독립 try/catch 로 격리되어 검사/TCP 무영향.
     /// </summary>
     public static class MeasurementHistoryCsvWriter
     {
@@ -21,8 +21,8 @@ namespace ReringProject.Sequence
         //260820 hbk 검사구분(자동/수동) 컬럼은 반드시 맨 뒤에 추가한다 — MeasurementHistoryCsvLoader 가 고정
         //  컬럼 인덱스(COL_TIME=0 ~ COL_OVERALL=13)로 읽고 "fields.Count < COLUMN_COUNT(14)" 로만 가드하므로,
         //  뒤에 붙이면 기존 14컬럼 파일도 그대로 읽히고 앞 컬럼 위치도 안 바뀐다(하위호환).
-        // Phase 77 SZF-04: 선택Z 는 검사구분 뒤 맨 끝(인덱스 15)에만 붙는다 — 로더는 COL_SELECTED_Z(15) 옵션 열로 읽는다.
-        // Phase 79 LSR-04: 사용기준 은 선택Z 뒤 맨 끝(인덱스 16)에만 붙는다 — 로더는 COL_REF_SOURCE(16) 옵션 열로 읽는다
+        // 선택Z 는 검사구분 뒤 맨 끝(인덱스 15)에만 붙는다 — 로더는 COL_SELECTED_Z(15) 옵션 열로 읽는다.
+        // LSR-04: 사용기준 은 선택Z 뒤 맨 끝(인덱스 16)에만 붙는다 — 로더는 COL_REF_SOURCE(16) 옵션 열로 읽는다
         private const string CSV_HEADER = "검사일시,RecipeName,IndexNumber,ShotName,FAIName,MeasurementName,TypeName,NominalValue,TolerancePlus,ToleranceMinus,MeasuredValue,Judgement,HasResult,OverallCycleResult,검사구분,선택Z,사용기준";
 
         //260820 hbk 검사구분 표기값 — 사람이 엑셀에서 바로 읽고 필터할 수 있게 한글 고정 문자열.
@@ -30,7 +30,7 @@ namespace ReringProject.Sequence
         private const string RUNMODE_MANUAL = "수동";
         private const string NUM_FORMAT = "F4";
 
-        private static readonly object s_lock = new object();   //260707 hbk STAT-01 D-05: 복수 InspectionSequence append 경합 방지
+        private static readonly object s_lock = new object();   //260707 hbk STAT-01: 복수 InspectionSequence append 경합 방지
 
         /// <summary>
         /// dto 를 Shot→FAI→Measurement 로 평탄화하여 측정 항목당 1행을 StatisticsSavePath\yyyyMMdd.csv 에 append 한다.
@@ -42,18 +42,18 @@ namespace ReringProject.Sequence
                 if (dto == null) { return; }                              //260707 hbk STAT-01
                 if (dto.Shots == null) { return; }                        //260707 hbk STAT-01
 
-                string szDir = SystemHandler.Handle.Setting.StatisticsSavePath;   //260707 hbk STAT-01 D-01
+                string szDir = SystemHandler.Handle.Setting.StatisticsSavePath;   //260707 hbk STAT-01
                 if (string.IsNullOrEmpty(szDir)) { return; }
 
-                string szPath = Path.Combine(szDir, dto.InspectionTime.ToString("yyyyMMdd") + CSV_EXT);   //260707 hbk STAT-01 D-02: 일자별 1파일
-                string szOverall = MapOverall(dto.OverallJudgement);       //260707 hbk STAT-01 D-03
+                string szPath = Path.Combine(szDir, dto.InspectionTime.ToString("yyyyMMdd") + CSV_EXT);   //260707 hbk STAT-01: 일자별 1파일
+                string szOverall = MapOverall(dto.OverallJudgement);       //260707 hbk STAT-01
 
                 var sb = new StringBuilder();
                 AppendMeasurementLines(sb, dto, szOverall);
 
                 if (sb.Length == 0) { return; }                           //260707 hbk STAT-01 측정 0건이면 파일 생성 불필요
 
-                lock (s_lock)                                             //260707 hbk STAT-01 D-05
+                lock (s_lock)                                             //260707 hbk STAT-01
                 {
                     Directory.CreateDirectory(szDir);                     //260707 hbk 존재해도 무해
                     bool bNewFile = !File.Exists(szPath);                 //260707 hbk 신규 파일 → 헤더 1행
@@ -64,7 +64,7 @@ namespace ReringProject.Sequence
                     File.AppendAllText(szPath, sb.ToString(), Encoding.UTF8);
                 }
             }
-            catch (Exception ex)   //260707 hbk STAT-01 D-04: 방어적 이중 격리 — 검사/TCP 무영향
+            catch (Exception ex)   //260707 hbk STAT-01: 방어적 이중 격리 — 검사/TCP 무영향
             {
                 try { Logging.PrintErrLog((int)ELogType.Error, "[MeasurementHistoryCsvWriter] Append failed: " + ex.Message); } catch { }
             }
@@ -114,8 +114,8 @@ namespace ReringProject.Sequence
                 Esc(szOverall),
                 MapRunMode(dto)   //260820 hbk 검사구분(자동/수동) — 맨 뒤 컬럼(하위호환)
             };
-            fields.Add(MapSelectedZ(meas));   // Phase 77 SZF-04: 선택Z — 검사구분 뒤 맨 끝
-            fields.Add(MapRefSource(meas));   // Phase 79 LSR-04: 사용기준 — 선택Z 뒤 맨 끝
+            fields.Add(MapSelectedZ(meas));   //260915 hbk 선택Z — 검사구분 뒤 맨 끝
+            fields.Add(MapRefSource(meas));   //260918 hbk LSR-04: 사용기준 — 선택Z 뒤 맨 끝
 
             return string.Join(",", fields);
         }
@@ -130,14 +130,14 @@ namespace ReringProject.Sequence
             return RUNMODE_MANUAL;
         }
 
-        // Phase 77 SZF-04: 선택Z 표기 — 형식은 MeasurementBase.FormatSelectedZ 단일 소스, 여기서 규칙을 복제하지 않는다.
+        //260915 hbk 선택Z 표기 — 형식은 MeasurementBase.FormatSelectedZ 단일 소스, 여기서 규칙을 복제하지 않는다.
         private static string MapSelectedZ(MeasurementResultDto meas)
         {
             if (meas == null) { return string.Empty; }
             return MeasurementBase.FormatSelectedZ(meas.SelectedZIndex);
         }
 
-        // Phase 79 LSR-04: 사용기준 표기 — 형식은 MeasurementBase.FormatRefSource 단일 소스, 여기서 규칙을 복제하지 않는다.
+        //260918 hbk LSR-04: 사용기준 표기 — 형식은 MeasurementBase.FormatRefSource 단일 소스, 여기서 규칙을 복제하지 않는다.
         private static string MapRefSource(MeasurementResultDto meas)
         {
             if (meas == null) { return string.Empty; }
@@ -147,25 +147,25 @@ namespace ReringProject.Sequence
         /// <summary>RepeatMeasurementStats.AddSample 정책과 일치하는 측정 판정 문자열 매핑.</summary>
         private static string MapJudgement(MeasurementResultDto meas)
         {
-            if (meas.LastSkipReason == SkipReason.DATUM_FAIL) { return SkipReason.DATUM_FAIL; }   //260707 hbk STAT-01 //260710 hbk 상수화
-            if (meas.LastSkipReason == SkipReason.NO_IMAGE) { return SkipReason.NO_IMAGE; }       //260707 hbk STAT-01 //260710 hbk 상수화
+            if (meas.LastSkipReason == SkipReason.DATUM_FAIL) { return SkipReason.DATUM_FAIL; }   //260707 hbk STAT-01/ 상수화
+            if (meas.LastSkipReason == SkipReason.NO_IMAGE) { return SkipReason.NO_IMAGE; }       //260707 hbk STAT-01/ 상수화
             if (meas.LastHasResult == false) { return "NO_RESULT"; }            //260707 hbk 미측정(값 없음) — 로더가 통계서 제외
             if (meas.LastJudgement) { return "OK"; }
             return "NG";
         }
 
-        /// <summary>dto.OverallJudgement("OK"/"NG"/"DETECT_FAIL") → D-03 의 P|F|N 매핑.</summary>
+        /// <summary>dto.OverallJudgement("OK"/"NG"/"DETECT_FAIL") → 통신 판정 P|F|N 매핑.</summary>
         private static string MapOverall(string szOverallJudgement)
         {
-            if (szOverallJudgement == "OK") { return "P"; }   //260707 hbk STAT-01 D-03
-            if (szOverallJudgement == "NG") { return "F"; }   //260707 hbk STAT-01 D-03
+            if (szOverallJudgement == "OK") { return "P"; }   //260707 hbk STAT-01
+            if (szOverallJudgement == "NG") { return "F"; }   //260707 hbk STAT-01
             return "N";   // DETECT_FAIL 또는 기타
         }
 
         /// <summary>RFC4180 따옴표 이스케이프. 콤마/따옴표/개행 포함 시 전체를 큰따옴표로 감싸고 내부 따옴표를 이중화한다.</summary>
         private static string Esc(string szValue)
         {
-            if (szValue == null) { szValue = ""; }   //260707 hbk STAT-01 D-03
+            if (szValue == null) { szValue = ""; }   //260707 hbk STAT-01
 
             bool bNeedQuote = szValue.IndexOf(',') >= 0 || szValue.IndexOf('"') >= 0 || szValue.IndexOf('\r') >= 0 || szValue.IndexOf('\n') >= 0;
             if (bNeedQuote)

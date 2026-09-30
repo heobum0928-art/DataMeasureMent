@@ -1,5 +1,5 @@
 ﻿//260707 hbk STAT-01: 양산 이력 통계 분석 UI — 조회/테이블/차트(WPF Canvas 직접 렌더) code-behind
-//260707 hbk quick-260707-fdx ChartDirector(유료·워터마크) 제거 → 히스토그램/추이 차트를 WPF Canvas 도형으로 재구현
+// ChartDirector(유료·워터마크) 제거 → 히스토그램/추이 차트를 WPF Canvas 도형으로 재구현
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,7 +14,7 @@ using ReringProject.Utility;
 
 namespace ReringProject.UI
 {
-    /// <summary>통계 행 상태 4단계. 정수값이 그대로 "나쁜 순" 정렬 순위(작을수록 나쁨, Task 1 R1/R3).
+    /// <summary>통계 행 상태 4단계. 정수값이 그대로 "나쁜 순" 정렬 순위(작을수록 나쁨, R1/R3).
     /// NoResult = 기간 안 측정값 0건 — 결과 없음은 불량 다음으로 나쁘다(데이터 누락 신호).</summary>
     public enum EStatLevel
     {
@@ -79,13 +79,13 @@ namespace ReringProject.UI
         /// <summary>벗어난 양 칸 헤더 정렬용 숫자 키(R4). 범위 안/판정불가 = 0.</summary>
         public double OutOfRangeAmount { get; set; }
 
-        /// <summary>quick-260911-fia Task 4: 재검사 표 전용 — 같은 키의 원래(재검사 전) 평균 표시. 비교 불가면 "-".</summary>
+        /// <summary>: 재검사 표 전용 — 같은 키의 원래(재검사 전) 평균 표시. 비교 불가면 "-".</summary>
         public string OriginalMeanText { get; set; }
 
-        /// <summary>quick-260911-fia Task 4: 재검사 평균 − 원래 평균 표시. 비교 불가면 "-".</summary>
+        /// <summary>: 재검사 평균 − 원래 평균 표시. 비교 불가면 "-".</summary>
         public string DeltaText { get; set; }
 
-        /// <summary>quick-260911-fia Task 4: 변화 칸 헤더 정렬용 숫자 키 — 변화 크기(절댓값) 순 정렬.</summary>
+        /// <summary>: 변화 칸 헤더 정렬용 숫자 키 — 변화 크기(절댓값) 순 정렬.</summary>
         public double DeltaSortValue { get; set; }
     }
 
@@ -415,7 +415,7 @@ namespace ReringProject.UI
         private const double NO_ORIGINAL_SORT = -1.0;
 
         /// <summary>
-        /// quick-260911-fia Task 4: rows(재검사 결과) 에 같은 키의 원래(재검사 전) 통계를 매칭해
+        /// rows(재검사 결과) 에 같은 키의 원래(재검사 전) 통계를 매칭해
         /// OriginalMeanText/DeltaText/DeltaSortValue 를 채운다. 비교 불가(원래 통계 없음/표본 0)면 "-".
         /// </summary>
         public static void FillRerunComparison(List<StatRow> rows, Dictionary<string, MeasurementStat> originalStats)
@@ -576,7 +576,7 @@ namespace ReringProject.UI
     }
 
     /// <summary>
-    /// quick-260911-fia Task 4: "저장 사진으로 재검사" 화면 상태/흐름을 담당하는 ViewModel.
+    /// "저장 사진으로 재검사" 화면 상태/흐름을 담당하는 ViewModel.
     /// StatisticsWindow code-behind 는 배선만 하고, 계산 로직(계획 조회/통계 집계/원래 평균 비교)은
     /// 이 클래스와 StatRowPresenter/SavedCycleRerunPlanner/RepeatMeasurementStats 에 둔다.
     /// </summary>
@@ -983,8 +983,8 @@ namespace ReringProject.UI
 
     /// <summary>
     /// 양산 이력 통계 분석 비모달 Window (STAT-01). MeasurementHistoryCsvLoader.Query 를 소비하여
-    /// 기간·레시피별 통계 테이블(D-06) + 행 선택 시 히스토그램/추이 차트(WPF Canvas 직접 렌더, D-12~D-14)를 표시한다.
-    /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show() 로 열림 (D-08, ReviewerWindow 미러).
+    /// 기간·레시피별 통계 테이블 + 행 선택 시 히스토그램/추이 차트(WPF Canvas 직접 렌더, ~)를 표시한다.
+    /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show 로 열림 (ReviewerWindow 미러).
     /// </summary>
     public partial class StatisticsWindow : Window
     {
@@ -993,7 +993,7 @@ namespace ReringProject.UI
 
         private StatisticsQueryResult m_lastResult;    //260707 hbk 마지막 조회 결과(Series 조회용 보관)
 
-        // quick-260911-fia Task 4: "저장 사진으로 재검사" 화면 상태 — 계산 로직은 전부 VM 에 있다.
+        //260911 hbk "저장 사진으로 재검사" 화면 상태 — 계산 로직은 전부 VM 에 있다.
         private readonly StatisticsRerunViewModel m_rerunVm = new StatisticsRerunViewModel();
 
         // 조회 기간(날짜+시:분) 선택 상태 — 계산 로직은 전부 VM 에 있다.
@@ -1019,7 +1019,7 @@ namespace ReringProject.UI
             DoQuery(szRecipe);
         }
 
-        /// <summary>quick-260911-fia Task 4: "저장 사진으로 재검사" 버튼 — 배선만, 계산은 VM.TryStartRerun.</summary>
+        /// <summary>: "저장 사진으로 재검사" 버튼 — 배선만, 계산은 VM.TryStartRerun.</summary>
         private void Btn_Rerun_Click(object sender, RoutedEventArgs e)
         {
             string szRecipeFilter = GetSelectedRecipeFilter();
@@ -1043,7 +1043,7 @@ namespace ReringProject.UI
             DoQuery(GetSelectedRecipeFilter());
         }
 
-        /// <summary>quick-260911-fia Task 4: 재검사 종료(VM.RerunViewReady) 시 표/차트/버튼을 재검사 결과로 갱신한다.</summary>
+        /// <summary>: 재검사 종료(VM.RerunViewReady) 시 표/차트/버튼을 재검사 결과로 갱신한다.</summary>
         private void ApplyRerunView()
         {
             m_lastResult = m_rerunVm.RerunResult;
@@ -1139,7 +1139,7 @@ namespace ReringProject.UI
                 StatisticsTimeRange range = m_periodVm.BuildRange();
                 string szRecipeFilter = GetSelectedRecipeFilter();
 
-                // quick-260911-fia Task 4: 지금 보고 있는 쪽(재검사 결과면 재검사 사이클 목록) 기준 export.
+                //260911 hbk 지금 보고 있는 쪽(재검사 결과면 재검사 사이클 목록) 기준 export.
                 List<CycleResultDto> cycles = m_rerunVm.GetCyclesForExport(range, szRecipeFilter);
                 if (cycles == null || cycles.Count == 0)
                 {
@@ -1218,19 +1218,19 @@ namespace ReringProject.UI
             }
         }
 
-        /// <summary>DataGrid 행 선택 시 해당 측정키(Series)의 히스토그램/추이 차트를 갱신한다(D-12).</summary>
+        /// <summary>DataGrid 행 선택 시 해당 측정키(Series)의 히스토그램/추이 차트를 갱신한다.</summary>
         private void Grid_Stats_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             RenderCurrentSelection();
         }
 
-        /// <summary>260707 hbk quick-260707-fdx Canvas 크기 변경(창 리사이즈) 시 현재 선택 행 기준으로 다시 렌더한다. 선택 없으면 아무것도 안 함.</summary>
+        /// <summary> Canvas 크기 변경(창 리사이즈) 시 현재 선택 행 기준으로 다시 렌더한다. 선택 없으면 아무것도 안 함.</summary>
         private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             RenderCurrentSelection();
         }
 
-        /// <summary>260707 hbk quick-260707-fdx 현재 grid_Stats 선택 행의 Series 값으로 두 차트를 렌더한다(SelectionChanged/SizeChanged 공용).</summary>
+        /// <summary> 현재 grid_Stats 선택 행의 Series 값으로 두 차트를 렌더한다(SelectionChanged/SizeChanged 공용).</summary>
         private void RenderCurrentSelection()
         {
             StatRow row = grid_Stats.SelectedItem as StatRow;

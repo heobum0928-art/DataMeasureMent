@@ -15,7 +15,7 @@ namespace ReringProject.Setting {
     //project 별 설정 항목 추가.
     public partial class SystemSetting {
         // INI 직렬화용 int 백킹 프로퍼티 (SystemSetting.Save/Load switch(type) 가 Int32 지원)
-        // enum 은 switch(type) 에 case 없으므로 D-12 AlgorithmType string 선례와 동일 패턴 적용
+        // enum 은 switch(type) 에 case 없으므로 AlgorithmType string 선례와 동일 패턴 적용
         [Category("System|Camera")]
         public int CameraRoleValue { get; set; } = 0;   // 0 = TopBottom (기본값)
 
@@ -26,13 +26,11 @@ namespace ReringProject.Setting {
             set { CameraRoleValue = (int)value; }
         }
 
-        //260622 hbk Phase 48
-        // PROTO-01: PcRole 기본값(1) 이 구 INI 에 키 부재 시 0 으로 로드되는 문제 방어
-        // (reference_parambase_missing_key_zeroes_default.md — Int32 case 에서 0 덮어씀).
+        //260622 hbk PcRole 기본값(1) 이 구 INI 에 키 부재 시 0 으로 로드되는 문제 방어
         // AfterLoad() = Load() 완료 직후 호출되는 partial 메서드 구현부.
-        private const int PC_ROLE_DEFAULT = 1; //260622 hbk Phase 48
-        private const double ETHERNET_PIXEL_RESOLUTION_DEFAULT = 8.652; //260623 hbk Phase 58
-        //260630 hbk Phase 60 사각형 ROI 전환: 미설정 시 전 이미지 커버 기본값 (row2/col2)
+        private const int PC_ROLE_DEFAULT = 1;
+        private const double ETHERNET_PIXEL_RESOLUTION_DEFAULT = 8.652;
+        //260630 hbk 사각형 ROI 전환: 미설정 시 전 이미지 커버 기본값 (row2/col2)
         private const double CALIB_SEARCH_MAX_DEFAULT = 99999.0;
 
         // 피커센터 캘 스텝당 회전각(deg) 기본값. 360/각도 = 필요 스텝 수(10도 → 36스텝).
@@ -46,18 +44,18 @@ namespace ReringProject.Setting {
         private const int ALIGN_VERIFY_KEEP_DAYS_DEFAULT = 180;
         private const int ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT = 30;
         private const string ALIGN_VERIFY_SAVE_PATH_DEFAULT = @"D:\Data\AlignVerify";
-        // WR-03 fix //260624 hbk: 피커센터 미캘 판정 임계 — AlignShapeMatchService.PICKER_CENTER_ZERO_EPS 와 동일.
+        //260624 hbk 피커센터 미캘 판정 임계 — AlignShapeMatchService.PICKER_CENTER_ZERO_EPS 와 동일.
         // 두 판정 기준을 단일 소스로 통일. AlignShapeMatchService 는 이 public const 를 참조.
-        public const double PICKER_CENTER_ZERO_EPS = 1e-6; //260624 hbk Phase 60
+        public const double PICKER_CENTER_ZERO_EPS = 1e-6;
 
-        // quick-260902-fwj — 얼라인 화면 수동 Grab 뒤 동축을 자동으로 끄기까지의 대기 시간(ms).
+        //260902 hbk 얼라인 화면 수동 Grab 뒤 동축을 자동으로 끄기까지의 대기 시간(ms).
         //  0 이하로 두면 자동 소등을 하지 않는다(기존 동작 유지).
         private const int ALIGN_COAX_AUTO_OFF_MS_DEFAULT = 3000;
 
         // D 드라이브가 없는 PC(예: 노트북)에 배포할 때 이 두 값만 INI 로 다른 드라이브를 가리키게 할 수 있도록
         // 설정화. 이전에는 DeviceHandler.SimulatedImagePath / EthernetAlignCamera.ALIGN_FALLBACK_IMAGE_PATH 가
         // 각각 D:\1.bmp, D:\align_test.bmp 로 코드에 고정돼 있어 INI 로 바꿀 방법이 없었다.
-        // 260818 hbk [Category("...")] 를 이 파일의 using System.ComponentModel; 때문에 System.ComponentModel.CategoryAttribute
+        // [Category("...")] 를 이 파일의 using System.ComponentModel; 때문에 System.ComponentModel.CategoryAttribute
         //  로 잘못 쓰면 안 됨 — base SystemSetting.Load()/Save() 는 PropertyTools.DataAnnotations.CategoryAttribute 만 인식해서
         //  그룹이 항상 [Default]로 새는 실사용 버그로 확인됨(이 파일의 CameraRoleValue/ETHERNET_VISION 항목들도 원래 이 문제가
         //  있었음 — 여기선 새 프로퍼티 2개만 완전정규화로 고치고, 기존 항목은 이번 범위 밖이라 손대지 않는다).
@@ -125,10 +123,10 @@ namespace ReringProject.Setting {
         partial void AfterLoad()
         {
             RestorePcRoleDefault();
-            RestoreEthernetVisionDefault(); //260623 hbk Phase 58
-            RestorePickerCenterDefault(); //260624 hbk Phase 60
-            RestoreCalibSearchDefault(); //260630 hbk Phase 60 (Row2/Col2 기본값 복원)
-            RestoreDataPathDefaults(); //260723 hbk: 신규 경로 프로퍼티 3종 — 기존 배포 INI엔 키가 없어 문자열 case가 null로 로드하는 문제 방어
+            RestoreEthernetVisionDefault();
+            RestorePickerCenterDefault();
+            RestoreCalibSearchDefault(); //260630 hbk (Row2/Col2 기본값 복원)
+            RestoreDataPathDefaults(); //260723 hbk 신규 경로 프로퍼티 3종 — 기존 배포 INI엔 키가 없어 문자열 case가 null로 로드하는 문제 방어
             RestoreAlignVerifyDefaults();
         }
 
@@ -164,7 +162,7 @@ namespace ReringProject.Setting {
             // 임계값 2종은 0 = 미설정이 곧 올바른 초기값이므로 복원하지 않는다.
         }
 
-        //260723 hbk: AccountDbFilePath/CameraConfigPath/DisplayConfigFilePath 는 이번에 새로 추가된 프로퍼티라
+        //260723 hbk AccountDbFilePath/CameraConfigPath/DisplayConfigFilePath 는 이번에 새로 추가된 프로퍼티라
         //  기존에 이미 돌아가던 모든 PC의 Setting.ini 에는 이 키가 없다. reflection Load 의 "String" case 는
         //  키 부재 시 null 을 그대로 SetValue 해버려(PcRole 의 int 0 폴백과 동일한 계열 문제, 문자열판)
         //  C# 기본값이 null 로 덮어써진다 — 방치하면 이번 배포에서 ACCOUNT_FILE 등이 null 이 되는 회귀 발생.
@@ -194,9 +192,8 @@ namespace ReringProject.Setting {
             }
         }
 
-        // 260622 hbk Phase 48
-        // PROTO-01: PcRole==0(구 INI 누락 로드) 이면 PC1 기본값(=1) 으로 복원.
-        // D-00 준수: 헝가리언(bPcRoleMissing), if/else, 매직넘버 금지(PC_ROLE_DEFAULT).
+        //260622 hbk PcRole==0(구 INI 누락 로드) 이면 PC1 기본값(=1) 으로 복원.
+        // 준수: 헝가리언(bPcRoleMissing), if/else, 매직넘버 금지(PC_ROLE_DEFAULT).
         private void RestorePcRoleDefault()
         {
             bool bPcRoleMissing = PcRole == 0;
@@ -206,8 +203,7 @@ namespace ReringProject.Setting {
             }
         }
 
-        //260623 hbk Phase 58
-        // AV-01: 구 INI 에 [ETHERNET_VISION] PixelResolution 키 부재 시 0 으로 로드되는 문제 방어 → 8.652 복원.
+        //260623 hbk 구 INI 에 [ETHERNET_VISION] PixelResolution 키 부재 시 0 으로 로드되는 문제 방어 → 8.652 복원.
         private void RestoreEthernetVisionDefault()
         {
             bool bPixelResolutionMissing = EthernetPixelResolution <= 0.0;
@@ -217,7 +213,7 @@ namespace ReringProject.Setting {
             }
         }
 
-        //260630 hbk Phase 60 사각형 ROI 전환: 구 INI 에 CalibSearchRow2/Col2 키 부재 시 0 으로 로드 → 99999 로 복원 (전 이미지 커버).
+        //260630 hbk 사각형 ROI 전환: 구 INI 에 CalibSearchRow2/Col2 키 부재 시 0 으로 로드 → 99999 로 복원 (전 이미지 커버).
         private void RestoreCalibSearchDefault()
         {
             bool bRow2Missing = CalibSearchRow2 <= 0.0;
@@ -232,11 +228,11 @@ namespace ReringProject.Setting {
             }
         }
 
-        //260624 hbk Phase 60 — D-04: 피커센터 기본값 0 = 미캘 상태(정상값). reflection Load 가
+        //260624 hbk 피커센터 기본값 0 = 미캘 상태(정상값). reflection Load 가
         // 누락 키를 0 으로 로드하는 것이 곧 올바른 미캘 의미이므로 복원 불필요.
-        // WR-03 fix //260624 hbk: == 0.0 → PICKER_CENTER_ZERO_EPS 임계 비교로 통일
+        // == 0.0 → PICKER_CENTER_ZERO_EPS 임계 비교로 통일
         //   (AlignShapeMatchService 와 동일 기준 — INI 라운드트립 부동소수 오차 허용).
-        // IN-02 fix //260624 hbk: 빈 if 블록 제거 — 복원 불필요 이유를 메서드 주석으로 명시.
+        // 빈 if 블록 제거 — 복원 불필요 이유를 메서드 주석으로 명시.
         // PickerCenterRow/Col 기본값 0 = 미캘 상태(정상 초기값).
         // 향후 비-0 머신 기본값 도입 시 이 메서드에서 복원 로직 추가.
         private void RestorePickerCenterDefault()
@@ -245,7 +241,7 @@ namespace ReringProject.Setting {
             // (0,0 이 올바른 미캘 초기값이므로 별도 복원 없음.)
         }
 
-        //260623 hbk Phase 58 — AV-01: [ETHERNET_VISION] INI section
+        //260623 hbk [ETHERNET_VISION] INI section
         [Category("ETHERNET_VISION")]
         public int EthernetVisionModeValue { get; set; } = 0;   // 0 = None
 
@@ -256,23 +252,23 @@ namespace ReringProject.Setting {
         }
 
         [Category("ETHERNET_VISION")]
-        public string EthernetCameraIp { get; set; } = "192.168.1.100"; //260623 hbk Phase 58
+        public string EthernetCameraIp { get; set; } = "192.168.1.100";
 
         [Category("ETHERNET_VISION")]
-        //260623 hbk Phase 58: EthernetExposure 적용은 Phase 59/61 카메라 런타임 배선 시 (SetFloatValue ExposureTime) — 현재는 config 저장만
-        public double EthernetExposure { get; set; } = 10000.0; //260623 hbk Phase 58
+        //260623 hbk EthernetExposure 적용은 /61 카메라 런타임 배선 시 (SetFloatValue ExposureTime) — 현재는 config 저장만
+        public double EthernetExposure { get; set; } = 10000.0;
 
         [Category("ETHERNET_VISION")]
-        public double EthernetPixelResolution { get; set; } = 8.652; //260623 hbk Phase 58
+        public double EthernetPixelResolution { get; set; } = 8.652;
 
-        //260624 hbk Phase 60 — D-04: AV-05 피커 회전중심 (머신 단위 HW 캘 결과, 레시피 아님). 0 = 미캘.
+        //260624 hbk 피커 회전중심 (머신 단위 HW 캘 결과, 레시피 아님). 0 = 미캘.
         [Category("ETHERNET_VISION")]
         public double PickerCenterRow { get; set; } = 0.0;
 
         [Category("ETHERNET_VISION")]
         public double PickerCenterCol { get; set; } = 0.0;
 
-        // quick-260903-dpy — Tray 전용 피커 회전중심. Bottom 의 PickerCenterRow/Col 과 완전히 같은
+        //260903 hbk Tray 전용 피커 회전중심. Bottom 의 PickerCenterRow/Col 과 완전히 같은
         //  관용구(같은 머신 단위 HW 캘 결과, 레시피 아님)라 나란히 둔다. 0 = 미캘이 곧 올바른 초기값이므로
         //  reflection Load 가 구 INI 의 누락 키를 0 으로 덮어써도 문제가 되지 않는다 — 위 PickerCenterRow/Col 이
         //  같은 이유로 AfterLoad() 복원 가드가 없는 것과 동일하다. 새 복원 로직을 추가하지 않는다.
@@ -282,7 +278,7 @@ namespace ReringProject.Setting {
         [Category("ETHERNET_VISION")]
         public double TrayPickerCenterCol { get; set; } = 0.0;
 
-        //260630 hbk Phase 60 사각형 ROI 전환: 피커캘 STEP 검색 ROI(사각형). TCP $ALIGN_CALIB:BOTTOM,STEP@ 수신 시 Grab→TryAddStep 에 전달.
+        //260630 hbk 사각형 ROI 전환: 피커캘 STEP 검색 ROI(사각형). TCP $ALIGN_CALIB:BOTTOM,STEP@ 수신 시 Grab→TryAddStep 에 전달.
         // 기본값 Row1=0/Col1=0/Row2=99999/Col2=99999 → 전 이미지 커버 (HALCON GenRectangle1 이 이미지 도메인 내부로 클립).
         [Category("ETHERNET_VISION")]
         public double CalibSearchRow1 { get; set; } = 0.0;
@@ -296,7 +292,7 @@ namespace ReringProject.Setting {
         [Category("ETHERNET_VISION")]
         public double CalibSearchCol2 { get; set; } = 99999.0;
 
-        // quick-260902-fwj — AlignCoaxAutoOffMs: 얼라인 화면 Grab 버튼(수동 촬영) 전용 설정이다.
+        //260902 hbk AlignCoaxAutoOffMs: 얼라인 화면 Grab 버튼(수동 촬영) 전용 설정이다.
         //  이 시간(ms) 이 지나면 동축 조명을 자동으로 끈다. 0 이하면 자동 소등을 하지 않는다.
         //  자동 검사 사이클/티칭 경로의 조명 동작과는 무관하다(그쪽은 손대지 않음).
         //  기존 Setting.ini 에는 이 키가 없어 처음에는 0(자동 소등 꺼짐)으로 로드된다 —

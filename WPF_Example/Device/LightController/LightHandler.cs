@@ -54,7 +54,7 @@ namespace ReringProject.Device {
 
         public static LightHandler Handle { get; } = new LightHandler();
 
-        public const int CHANNEL_LIMIT = 8; //260625 hbk Phase 64 LIGHT-01: 1 controller 당 채널 갯수 (JPF-1208 8CH 대응)
+        public const int CHANNEL_LIMIT = 8; //260625 hbk 1 controller 당 채널 갯수 (JPF-1208 8CH 대응)
         public const int FAIL_LIMIT = 3;
 
         public const int TIMEOUT_READ = 2000;
@@ -67,7 +67,7 @@ namespace ReringProject.Device {
         private LightCommandData[,] CmdTable;
         private int[] FailControllerTable;
 
-        // 260808 hbk 조명 Apply 성능개선: SetOnOff/SetLevel 스킵 최적화용 "실제 쓰기 성공 확인" 플래그.
+        //260808 hbk 조명 Apply 성능개선: SetOnOff/SetLevel 스킵 최적화용 "실제 쓰기 성공 확인" 플래그.
         //  Channels[].On/.Level (VirtualLightController) 자체는 스킵 판단 기준으로 신뢰할 수 없다 —
         //  JPFLightController.WriteOnOff/WriteLevel 은 실제 시리얼 전송 성공 여부와 무관하게 "쓰기 시도" 시점에
         //  먼저 그 필드를 target 값으로 갱신해버린다(전송이 예외로 실패해도 필드는 이미 target). 그 필드만 보고
@@ -90,7 +90,7 @@ namespace ReringProject.Device {
         private const int COMMAND_INTERVAL_MIN_MS = 2;
         private const int PENDING_WRITE_TIMEOUT_MS = 500;
 
-        // 260808 hbk Round3 BUG B/C 수정: CmdTable/StateConfirmed/LevelConfirmed 전체를 감싸는 단일 락.
+        //260808 hbk Round3 BUG B/C 수정: CmdTable/StateConfirmed/LevelConfirmed 전체를 감싸는 단일 락.
         //  호출 빈도가 낮아(그룹당 채널 수 개, 조명 Apply 시점) 셀별 락보다 단순함 우선(ShotConfig._imageLock,
         //  Logging.lockObject 와 동일 관례). 절대 이 락을 잡은 채로 실제 시리얼 I/O(Controllers[i].WriteOnOff/
         //  WriteLevel, 수 ms 블로킹)를 호출하지 않는다 — ProcessLightSet 이 MainRun 스레드(1ms 폴링, 다른 TCP
@@ -116,7 +116,7 @@ namespace ReringProject.Device {
                 }
             }
             FailControllerTable = new int[Controllers.Count];
-            //260808 hbk: bool[,]/bool[] 기본값이 이미 false 라 별도 루프 초기화 불필요.
+            //260808 hbk bool[,]/bool[] 기본값이 이미 false 라 별도 루프 초기화 불필요.
             StateConfirmed = new bool[Controllers.Count, CHANNEL_LIMIT];
             LevelConfirmed = new bool[Controllers.Count, CHANNEL_LIMIT];
             WasOpenTable = new bool[Controllers.Count];
@@ -128,7 +128,7 @@ namespace ReringProject.Device {
             Load();
             bool openResult;
 #if SIMUL_MODE
-            //260820 hbk quick-fix: 하드웨어가 아예 없는 SIMUL 전용 PC(테스트용 노트북 등)에서 앱이 "기동중"에서
+            //260820 hbk 하드웨어가 아예 없는 SIMUL 전용 PC(테스트용 노트북 등)에서 앱이 "기동중"에서
             //  멈추던 문제 — OpenAll()이 실제 시리얼 포트(SerialPort.Open)를 열려고 시도하는데, 존재하지 않거나
             //  응답 없는 COM 포트에서 이 호출이 오래 걸리거나 막힐 수 있다(재현 확인: 조명 컨트롤러 미연결 노트북).
             //  SIMUL_MODE 빌드는 실제 조명 하드웨어를 켤 일이 없으므로 물리 연결 시도 자체를 건너뛴다 — 컨트롤러는
@@ -290,7 +290,7 @@ namespace ReringProject.Device {
         public bool SetChannelOnOff(string channelName, bool onOff) {
             int index, channel;
             if (!TryFindChannel(channelName, out index, out channel)) {
-                //260716 hbk 무음 실패 경로 로그화 — 이름 미매핑(재배선 오타/누락) 시 조명이 안 켜져도 로그가 전혀 없었고,
+                //260716 hbk 무음 실패 경로 로그화 — 이름 미매핑(재배선 오타/누락) 시 조명이 안 켜져도 로그가 전혀 없었고
                 //  호출부(InspectionSequence.ApplyChannelLight)도 반환값을 버려 추적이 불가능했다.
                 Logging.PrintLog((int)ELogType.Error, "[Light] 채널명 '{0}' 을 찾을 수 없음 — SetOnOff 무동작. light.ini ChannelNames 오타/누락 확인", channelName);
                 return false;
@@ -389,7 +389,7 @@ namespace ReringProject.Device {
             //260808 hbk 조명 Apply 성능개선: target 이 이미 "성공 확인된"(StateConfirmed) 마지막 상태와 같으면
             //  큐잉 자체를 생략 — Execute() 폴링 지연 + Thread.Sleep(2)x2 + 실 시리얼 전송 비용을 절감한다.
             //  StateConfirmed 가 false 인 채널(최초 1회, 컨트롤러 재연결 직후)은 절대 스킵하지 않는다.
-            //260808 hbk 추가 가드(리뷰 3건 공통 지적, BUG A/B/C):
+            // 추가 가드(리뷰 3건 공통 지적, BUG A/B/C):
             //  1) Controllers[index].IsOpen 이 false 면 스킵하지 않는다 — 닫힌 채로 호출이 들어오면 재오픈 시
             //     Execute() 가 자동으로 집어갈 수 있게 정상적으로 큐잉시켜야 한다(스킵하면 재오픈 후에도 영영
             //     반영 안 됨. WasOpenTable 리셋은 "재오픈 이후" 호출만 커버, 닫힌 동안의 호출은 못 구제한다).
@@ -399,7 +399,7 @@ namespace ReringProject.Device {
             //     최신 상태를 보는 게 아니라 "아직 반영 안 된 과거" 를 보고 판단하게 된다. IsWriteValue 는 On/Off
             //     전용 스킵에서도 함께 확인한다 — JPF 캐스케이드가 State 쓰기 뒤에 강제 Level 쓰기를 체이닝하므로,
             //     어느 쪽이 걸려 있어도 "이 채널은 아직 안정 상태가 아니다"로 취급.
-            //260808 hbk Round3(BUG B/C 수정, CLOSED): 아래 check-and-set 전체를 _cmdLock 으로 감싸 원자화했다.
+            // Round3(BUG B/C 수정, CLOSED): 아래 check-and-set 전체를 _cmdLock 으로 감싸 원자화했다.
             //  BUG B(TOCTOU): 이전엔 "확인 읽기"와 "IsWriteState=true; WriteState=on;" 두 문장 쓰기 사이에 다른
             //  스레드(ProcessLightSet↔InspectionSequence 자체 스레드, 또는 LightHandlerWindow 수동 토글)가 끼어들
             //  수 있었다 — 이제 이 블록 전체가 하나의 임계구역이라 더 이상 끼어들 수 없다.
@@ -490,13 +490,13 @@ namespace ReringProject.Device {
             if (index >= Controllers.Count) return;
             //260808 hbk 조명 Apply 성능개선: target 이 이미 "성공 확인된"(LevelConfirmed) 마지막 상태와 같으면
             //  큐잉 자체를 생략 (근거/잔존위험은 StateConfirmed 필드 선언부 주석 및 SetOnOff 참고).
-            //260808 hbk 추가 가드(리뷰 3건 공통 지적, BUG A/B/C) — SetOnOff 와 동일 근거:
+            // 추가 가드(리뷰 3건 공통 지적, BUG A/B/C) — SetOnOff 와 동일 근거:
             //  컨트롤러가 닫혀 있으면(Controllers[index].IsOpen==false) 스킵하지 않고 정상 큐잉해 재오픈 후
             //  Execute() 가 집어가게 한다. 그리고 이 채널에 IsWriteState/IsWriteValue 대기 중 쓰기가 이미 있으면
             //  (다른 호출이 큐잉해두고 Execute() 가 아직 못 비운 상태) 스킵하지 않는다 — LevelConfirmed/필드는
             //  그 대기 중 쓰기가 아직 반영 전인 과거 값이라, 순차 TOCTOU 나 ProcessLightSet↔InspectionSequence
             //  동시 호출에서 최종 의도가 조용히 유실되는 것을 막는다. 자세한 근거는 SetOnOff 주석 참고.
-            //260808 hbk Round3(BUG B/C 수정, CLOSED): SetOnOff 와 동일하게 check-and-set 전체를 _cmdLock 으로
+            // Round3(BUG B/C 수정, CLOSED): SetOnOff 와 동일하게 check-and-set 전체를 _cmdLock 으로
             //  감싸 원자화했다 — TOCTOU(BUG B)와 I/O 진행 중 쓰기 유실(BUG C) 모두 SetOnOff 주석의 근거 그대로
             //  닫힌다. 자세한 근거는 SetOnOff 주석 참고.
             //  SystemSetting.LightSkipUnchangedCommands 가 false(기본)면 생략하지 않는다 — SetOnOff 주석 참고.
@@ -680,12 +680,12 @@ namespace ReringProject.Device {
                 for(int i = 0; i < Controllers.Count; i++) {
                     bool isOpenNow = Controllers[i].IsOpen;
                     if (isOpenNow && !WasOpenTable[i]) {
-                        //260808 hbk: 컨트롤러가 새로 Open 됨(최초 Initialize, 또는 LightHandlerWindow/LightControllerView 의
+                        //260808 hbk 컨트롤러가 새로 Open 됨(최초 Initialize, 또는 LightHandlerWindow/LightControllerView 의
                         //  수동 재연결) — 재연결 전 Confirmed 상태는 이전 세션 하드웨어를 반영한 것이라 무효다. JPF 는
                         //  Open() 자체가 전 채널을 물리적으로 리셋하므로(#Oa1&→레벨150→레벨0, JPFLightController.cs:36-40)
                         //  초기화하지 않으면 재연결 직후 우연히 같은 target 이 들어왔을 때 실제 명령 없이 스킵되는
                         //  회귀가 생긴다.
-                        //260808 hbk Round3: StateConfirmed/LevelConfirmed 는 _cmdLock 이 지키는 상태이므로
+                        // Round3: StateConfirmed/LevelConfirmed 는 _cmdLock 이 지키는 상태이므로
                         //  일관되게 락 하에 초기화한다.
                         lock (_cmdLock) {
                             for (int j = 0; j < CHANNEL_LIMIT; j++) {
@@ -766,7 +766,7 @@ namespace ReringProject.Device {
                                     CmdTable[i, j].IsWriteValue = true;
                                     if (CmdTable[i, j].WriteState == targetState) {
                                         CmdTable[i, j].IsWriteState = false;
-                                        StateConfirmed[i, j] = true; //260808 hbk: 실제 쓰기 성공 시점에만 확인 플래그 세팅(스킵 최적화용)
+                                        StateConfirmed[i, j] = true; //260808 hbk 실제 쓰기 성공 시점에만 확인 플래그 세팅(스킵 최적화용)
                                     }
                                 }
                                 //write에 성공하면 이후에 1회 read한다.
@@ -800,7 +800,7 @@ namespace ReringProject.Device {
                                 lock (_cmdLock) {
                                     if (CmdTable[i, j].WriteValue == targetValue) {
                                         CmdTable[i, j].IsWriteValue = false;
-                                        LevelConfirmed[i, j] = true; //260808 hbk: 실제 쓰기 성공 시점에만 확인 플래그 세팅(스킵 최적화용)
+                                        LevelConfirmed[i, j] = true; //260808 hbk 실제 쓰기 성공 시점에만 확인 플래그 세팅(스킵 최적화용)
                                     }
                                 }
 

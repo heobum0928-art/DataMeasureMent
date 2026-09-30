@@ -1,5 +1,5 @@
-//260624 hbk Phase 60 — AV-05 picker center calibration (D-01/D-02 corrected/D-03)
-//260630 hbk Phase 60 재작성 — ShapeModel 기반(find_shape_model) + 시각화 XLD 출력.
+//260624 hbk picker center calibration ( corrected)
+// 재작성 — ShapeModel 기반(find_shape_model) + 시각화 XLD 출력.
 //  에지 감지(EdgesSubPix+FitCircleContourXld 지그원) 제거.
 //  검출 흐름: TryTeachModel(1회) → TryLoadModel → TryAddStep×N → TryComputePickerCenter.
 using System;
@@ -12,20 +12,20 @@ using ReringProject.Utility;
 namespace ReringProject {
 
     /// <summary>
-    /// D-01: 피커 센터 캘리브레이션 — 상태형 누적 서비스.
+    /// 피커 센터 캘리브레이션 — 상태형 누적 서비스.
     /// 피커가 전용 Cal 지그(원)를 픽업한 채 10°×36스텝 회전 →
     /// 각 스텝에서 find_shape_model 로 지그 중심 검출 → 편심원의 중심 = 피커 실제 회전중심.
-    /// D-02(정정): 스텝별 중심 = find_shape_model RowCheck/ColumnCheck (에지 피팅 제거).
+    /// (정정): 스텝별 중심 = find_shape_model RowCheck/ColumnCheck (에지 피팅 제거).
     /// fit_circle_contour_xld: gen_contour_polygon_xld(누적 중심) → 편심원 피팅 → 피커센터.
-    /// 외부(Phase 61 UI / TCP $ALIGN_CALIB)가 스텝마다 TryAddStep 호출.
-    /// 전 메서드 try-catch → false (D-06, Grabber 무영향).
+    /// 외부( UI / TCP $ALIGN_CALIB)가 스텝마다 TryAddStep 호출.
+    /// 전 메서드 try-catch → false (Grabber 무영향).
     /// </summary>
     public class PickerCenterCalibrationService {
 
-        // D-03: 편심원 피팅 최소 누적 점 수.
+        //260630 hbk 편심원 피팅 최소 누적 점 수.
         private const int MIN_STEPS = 6;
 
-        // D-03: 반경 정상 범위 가드(px).
+        //260630 hbk 반경 정상 범위 가드(px).
         private const double MIN_RADIUS_PX = 1.0;
         private const double MAX_RADIUS_PX = 100000.0;
 
@@ -67,7 +67,7 @@ namespace ReringProject {
         }
 
         /// <summary>
-        /// quick-260903-dpy — 편심원 피팅에 필요한 최소 누적 스텝 수(읽기 전용).
+        /// 편심원 피팅에 필요한 최소 누적 스텝 수(읽기 전용).
         /// UI 가 [피커센터 계산] 버튼 활성화 조건을 판단할 때 MIN_STEPS 를 새로 하드코딩하지
         /// 않도록 노출한다. 알고리즘/판정 로직은 변경하지 않는다.
         /// </summary>
@@ -76,7 +76,7 @@ namespace ReringProject {
         }
 
         /// <summary>
-        /// quick-260812: 등급 산정용 최소 스코어(읽기 전용).
+        /// 등급 산정용 최소 스코어(읽기 전용).
         /// quick-mc1 — 값의 출처가 하드코딩 상수에서 SystemSetting.Handle.PickerCalFindMinScore 로
         /// 바뀌었다. 임계값이 바뀌면 등급 기준도 같이 따라가야 일관성이 유지되므로 그대로 반영한다.
         /// </summary>
@@ -86,7 +86,7 @@ namespace ReringProject {
 
         // ─── 초기화/정리 ────────────────────────────────────────────────────────
 
-        // D-01: 누적 초기화. 모델은 유지(재로드 불필요). 시각화 XLD 클리어.
+        //260630 hbk 누적 초기화. 모델은 유지(재로드 불필요). 시각화 XLD 클리어.
         public void Reset() {
             _rows.Clear();
             _cols.Clear();
@@ -100,7 +100,7 @@ namespace ReringProject {
         }
 
         /// <summary>
-        /// quick-260903-dpy — 수동 반복(자재를 손으로 놓고 찍기)중 마지막 스텝 1개만 취소한다.
+        /// 수동 반복(자재를 손으로 놓고 찍기)중 마지막 스텝 1개만 취소한다.
         /// 10회 안팎을 손으로 반복하다 한 번 잘못 찍혀도 Reset() 으로 전부 되돌리지 않고 이어서
         /// 계속할 수 있게 한다. 누적이 비어 있으면 false. 원 피팅 알고리즘/기존 메서드 시그니처는
         /// 손대지 않는다 — _rows/_cols 마지막 원소만 제거한다.
@@ -163,7 +163,7 @@ namespace ReringProject {
                     Directory.CreateDirectory(folder);
                 }
 
-                HOperatorSet.GenRectangle1(out roiRegion, roiRow1, roiCol1, roiRow2, roiCol2); //260630 hbk — 원형→사각형 ROI 전환
+                HOperatorSet.GenRectangle1(out roiRegion, roiRow1, roiCol1, roiRow2, roiCol2); //260630 hbk 원형→사각형 ROI 전환
                 HOperatorSet.ReduceDomain(img, roiRegion, out imgReduced);
 
                 // 360° 전 회전 대응 모델 생성.
@@ -252,7 +252,7 @@ namespace ReringProject {
         public bool TryAddStep(HImage img,
             double roiRow1, double roiCol1, double roiRow2, double roiCol2,
             out double foundRow, out double foundCol,
-            out double dScore,   //quick-260812: 이미 계산된 검색 점수 노출(추가 HALCON 호출 0)
+            out double dScore,   //260812 hbk 이미 계산된 검색 점수 노출(추가 HALCON 호출 0)
             out string error) {
             foundRow = 0.0;
             foundCol = 0.0;
@@ -275,7 +275,7 @@ namespace ReringProject {
             HTuple  angleCheck = null;
             HTuple  score      = null;
             try {
-                HOperatorSet.GenRectangle1(out roiRegion, roiRow1, roiCol1, roiRow2, roiCol2); //260630 hbk — 원형→사각형 ROI 전환
+                HOperatorSet.GenRectangle1(out roiRegion, roiRow1, roiCol1, roiRow2, roiCol2); //260630 hbk 원형→사각형 ROI 전환
                 HOperatorSet.ReduceDomain(img, roiRegion, out imgReduced);
 
                 HOperatorSet.FindShapeModel(
@@ -303,7 +303,7 @@ namespace ReringProject {
                 _cols.Add(dCol);
                 foundRow = dRow;
                 foundCol = dCol;
-                dScore   = score[0].D;   //quick-260812: finally 의 Dispose 전에 값만 복사
+                dScore   = score[0].D;   //260812 hbk finally 의 Dispose 전에 값만 복사
 
                 AppendCrossToViz(dRow, dCol);
 
@@ -446,7 +446,7 @@ namespace ReringProject {
                 ComputeFitResiduals(fittedRow, fittedCol, fittedRad, out dResidualRmsPx, out dResidualMaxPx);
 
                 // 피커센터 설정 (Save는 UI 확인 후 호출자 책임).
-                SystemSetting.Handle.PickerCenterRow = fittedRow; //260630 hbk — Save 분리: UI 확인 후 저장
+                SystemSetting.Handle.PickerCenterRow = fittedRow; //260630 hbk Save 분리: UI 확인 후 저장
                 SystemSetting.Handle.PickerCenterCol = fittedCol;
 
                 row    = fittedRow;

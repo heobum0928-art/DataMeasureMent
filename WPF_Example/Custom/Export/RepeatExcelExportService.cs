@@ -1,4 +1,4 @@
-//260612 hbk Phase 41.1 OUT-03/OUT-04 반복도+알고리즘 통계 xlsx export
+//260612 hbk 반복도+알고리즘 통계 xlsx export
 using ClosedXML.Excel;
 using ReringProject.Sequence;
 using ReringProject.Setting;
@@ -13,9 +13,9 @@ namespace ReringProject.Export
 {
     /// <summary>
     /// 반복 측정 결과(List&lt;CycleResultDto&gt;)를 2-시트 xlsx 로 export 한다.
-    /// 시트1 "반복도 통계" (OUT-03): Shot/FAI/측정명별 N/Mean/StdDev/Range/Cpk/OK/NG/DETECT_FAIL.
-    /// 시트2 "알고리즘 통계" (OUT-04): TypeName → 카테고리 집계 (N/성공률/Mean/StdDev).
-    /// 예외는 전부 try/catch → false + Logging (T-40-12 패턴 동일).
+    /// 시트1 "반복도 통계": Shot/FAI/측정명별 N/Mean/StdDev/Range/Cpk/OK/NG/DETECT_FAIL.
+    /// 시트2 "알고리즘 통계": TypeName → 카테고리 집계 (N/성공률/Mean/StdDev).
+    /// 예외는 전부 try/catch → false + Logging ( 패턴 동일).
     /// </summary>
     public static class RepeatExcelExportService
     {
@@ -72,7 +72,7 @@ namespace ReringProject.Export
 
                 using (var wb = new XLWorkbook())
                 {
-                    // === 시트1: 반복도 통계 (OUT-03) ===
+                    //260612 hbk === 시트1: 반복도 통계 ===
                     var ws1 = wb.Worksheets.Add("반복도 통계");
 
                     ws1.Cell(1, 1).Value = "모델명";
@@ -82,7 +82,7 @@ namespace ReringProject.Export
                     ws1.Cell(3, 1).Value = "반복횟수";
                     ws1.Cell(3, 2).Value = cycles.Count;
 
-                    //260616 hbk Phase 51 UAT: CPK/StdDev/Range 제거, Mean→측정값, Nominal→Spec, 편차(측정값-Spec) 추가
+                    //260616 hbk CPK/StdDev/Range 제거, Mean→측정값, Nominal→Spec, 편차(측정값-Spec) 추가
                     string[] h1 = { "Shot", "FAI", "측정명", "N", "측정값", "Spec", "편차",
                                     "Tol+", "Tol-", "OK수", "NG수", "DETECT_FAIL수" };
                     for (int i = 0; i < h1.Length; i++)
@@ -111,7 +111,7 @@ namespace ReringProject.Export
 
                     ws1.Columns().AdjustToContents();
 
-                    // === 시트2: 알고리즘 통계 (OUT-04) ===
+                    //260612 hbk === 시트2: 알고리즘 통계 ===
                     var ws2 = wb.Worksheets.Add("알고리즘 통계");
 
                     var algoMap = new Dictionary<string, AlgoAggData>();
@@ -333,7 +333,7 @@ namespace ReringProject.Export
             ws.Cell(nRow, 6).Value = m.TolerancePlus;
             ws.Cell(nRow, 7).Value = m.ToleranceMinus;
 
-            // 측정값: 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 (CO-23-01).
+            //260805 hbk 측정값: 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 .
             if (m.LastHasResult)
             {
                 ws.Cell(nRow, 8).Value = m.LastMeasuredValue;

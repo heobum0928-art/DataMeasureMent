@@ -58,7 +58,7 @@ namespace ReringProject.Sequence {
         public double Angle { get; set; }
 
         public TopInspectionParam(object owner, int algIndex, int modelIndex) : base(owner) {
-            if (owner is ActionBase ownerAction) { //260612 hbk Wave5
+            if (owner is ActionBase ownerAction) {
                 _jobName = ownerAction.Name;
             } else {
                 _jobName = "TopInspection";
@@ -79,8 +79,8 @@ namespace ReringProject.Sequence {
         public TeachingJob TeachingJob {
             get {
                 if (_teachingJob == null) {
-                    TeachingJob loaded = HalconTeachingHelper.LoadJob(TeachingFilePath); //260612 hbk Wave5
-                    if (loaded == null) { //260612 hbk Wave5
+                    TeachingJob loaded = HalconTeachingHelper.LoadJob(TeachingFilePath);
+                    if (loaded == null) {
                         _teachingJob = HalconTeachingHelper.CreateDefaultJob(_jobName, ROI);
                     } else {
                         _teachingJob = loaded;
@@ -90,14 +90,14 @@ namespace ReringProject.Sequence {
             }
         }
         public IEnumerable<RoiDefinition> GetViewerRois() {
-            if (TeachingJob == null || TeachingJob.Rois == null) return Enumerable.Empty<RoiDefinition>(); //260612 hbk Wave5
+            if (TeachingJob == null || TeachingJob.Rois == null) return Enumerable.Empty<RoiDefinition>();
             return TeachingJob.Rois;
         }
 
         public override bool Load(IniFile loadFile, string group) {
             var result = base.Load(loadFile, group);
-            TeachingJob loadedJob = HalconTeachingHelper.LoadJob(TeachingFilePath); //260612 hbk Wave5
-            if (loadedJob == null) { //260612 hbk Wave5
+            TeachingJob loadedJob = HalconTeachingHelper.LoadJob(TeachingFilePath);
+            if (loadedJob == null) {
                 _teachingJob = HalconTeachingHelper.CreateDefaultJob(_jobName, ROI);
             } else {
                 _teachingJob = loadedJob;
@@ -114,10 +114,10 @@ namespace ReringProject.Sequence {
         }
 
         public override void PutImage(HImage image) {
-            if (_latestHalconImage != null) { //260612 hbk Wave5
+            if (_latestHalconImage != null) {
                 _latestHalconImage.Dispose();
             }
-            if (image == null) { //260612 hbk Wave5
+            if (image == null) {
                 _latestHalconImage = null;
             } else {
                 _latestHalconImage = image.CopyImage();
@@ -140,7 +140,7 @@ namespace ReringProject.Sequence {
         }
 
         public void SetLatestImagePath(string imagePath) {
-            if (_latestHalconImage != null) { //260612 hbk Wave5
+            if (_latestHalconImage != null) {
                 _latestHalconImage.Dispose();
             }
             _latestHalconImage = null;
@@ -156,8 +156,8 @@ namespace ReringProject.Sequence {
             return GetLatestImagePath();
         }
         private void OpenTeachingButton_Click(object sender, RoutedEventArgs e) {
-            System.Windows.Window mainWindow = null; //260612 hbk Wave5
-            if (Application.Current != null) { //260612 hbk Wave5
+            System.Windows.Window mainWindow = null;
+            if (Application.Current != null) {
                 mainWindow = Application.Current.MainWindow;
             }
             var window = new TeachingWindow { Owner = mainWindow };
@@ -168,8 +168,8 @@ namespace ReringProject.Sequence {
             else if (_teachingJob != null && !string.IsNullOrWhiteSpace(_teachingJob.ImagePath) && File.Exists(_teachingJob.ImagePath)) {
                 window.LoadImage(_teachingJob.ImagePath);
             }
-            TeachingJob clonedOrDefault = HalconTeachingHelper.CloneJob(TeachingJob); //260612 hbk Wave5
-            if (clonedOrDefault == null) { //260612 hbk Wave5
+            TeachingJob clonedOrDefault = HalconTeachingHelper.CloneJob(TeachingJob);
+            if (clonedOrDefault == null) {
                 clonedOrDefault = HalconTeachingHelper.CreateDefaultJob(_jobName, ROI);
             }
             window.SetTeaching(clonedOrDefault);
@@ -214,8 +214,8 @@ namespace ReringProject.Sequence {
         }
 
         private void SyncTeachingBounds() {
-            IEnumerable<RoiDefinition> roisForBounds = null; //260612 hbk Wave5
-            if (_teachingJob != null) { //260612 hbk Wave5
+            IEnumerable<RoiDefinition> roisForBounds = null;
+            if (_teachingJob != null) {
                 roisForBounds = _teachingJob.Rois;
             }
             var bounds = HalconTeachingHelper.BuildBounds(roisForBounds);
@@ -226,8 +226,8 @@ namespace ReringProject.Sequence {
         }
     }
 
-    //260526 hbk Phase 33 — Action_FAIMeasurement 로 마이그레이션됨 (D-05)
-    //260818 hbk RegisterActions() 에서 Top 뿐 아니라 Side 시퀀스 등록에도 이 클래스가 그대로 재사용되고 있어(별도
+    //260526 hbk Action_FAIMeasurement 로 마이그레이션됨
+    // RegisterActions 에서 Top 뿐 아니라 Side 시퀀스 등록에도 이 클래스가 그대로 재사용되고 있어(별도
     //  SideInspectionAction 클래스 없음), "Top"만 쓰는 것처럼 보이는 이름이 오해를 불러 TopSideInspectionAction 으로 개명.
     //  순수 이름 변경 — 로직/시그니처/동작 무변경(기존 기능 영향 0).
     [System.Obsolete("Phase 33 — Action_FAIMeasurement 로 마이그레이션됨", false)]
@@ -270,10 +270,10 @@ namespace ReringProject.Sequence {
             try {
                 QueueRawImageSave(image);                                               // 내부 CopyImage → 저장 완료 후 Dispose
                 pMyParam.PutImage(image);                                               // 내부 CopyImage → 다음 PutImage 시 Dispose
-                if (pMyContext.ResultHalconImage != null) { //260612 hbk Wave5
+                if (pMyContext.ResultHalconImage != null) {
                     pMyContext.ResultHalconImage.Dispose();
                 }
-                if (image == null) { //260612 hbk Wave5
+                if (image == null) {
                     pMyContext.ResultHalconImage = null;
                 } else {
                     pMyContext.ResultHalconImage = image.CopyImage(); // 내부 CopyImage → 다음 Run 시 Dispose
@@ -290,19 +290,19 @@ namespace ReringProject.Sequence {
                 }
 
                 RoiLineInspectionResult result;
-                IEnumerable<RoiDefinition> teachingRois = null; //260612 hbk Wave5
-                if (pMyParam.TeachingJob != null) { //260612 hbk Wave5
+                IEnumerable<RoiDefinition> teachingRois = null;
+                if (pMyParam.TeachingJob != null) {
                     teachingRois = pMyParam.TeachingJob.Rois;
                 }
-                bool isSuccess; //260612 hbk Wave5
-                if (image != null) { //260612 hbk Wave5
+                bool isSuccess;
+                if (image != null) {
                     isSuccess = _algorithm.TryRun(image, teachingRois, out result);
                 } else {
                     isSuccess = _algorithm.TryRun(imagePath, teachingRois, out result);
                 }
                 if (!isSuccess || !result.HasIntersection) {
-                    bool hasRois = pMyParam.TeachingJob != null && pMyParam.TeachingJob.Rois != null && pMyParam.TeachingJob.Rois.Any(); //260612 hbk Wave5
-                    if (hasRois) { //260612 hbk Wave5
+                    bool hasRois = pMyParam.TeachingJob != null && pMyParam.TeachingJob.Rois != null && pMyParam.TeachingJob.Rois.Any();
+                    if (hasRois) {
                         pMyContext.InspectResult = EVisionResultType.NG;
                     } else {
                         pMyContext.InspectResult = EVisionResultType.TECHING;
@@ -332,7 +332,7 @@ namespace ReringProject.Sequence {
                 return Context;
             }
             finally {
-                if (image != null) { //260612 hbk Wave5 — 원본 해제 - 모든 return/예외 경로에서 보장
+                if (image != null) { //260612 hbk 원본 해제 - 모든 return/예외 경로에서 보장
                     image.Dispose();
                 }
             }
@@ -343,16 +343,16 @@ namespace ReringProject.Sequence {
                 return;
             }
 
-            TestPacket requestPacket = null; //260612 hbk Wave5
-            if (pMyParam.Parent != null) { //260612 hbk Wave5
+            TestPacket requestPacket = null;
+            if (pMyParam.Parent != null) {
                 requestPacket = pMyParam.Parent.RequestPacket;
             }
-            string testId = null; //260612 hbk Wave5
-            if (requestPacket != null) { //260612 hbk Wave5
+            string testId = null;
+            if (requestPacket != null) {
                 testId = requestPacket.TestID;
             }
-            string targetCode = null; //260612 hbk Wave5
-            if (pMyParam.Parent != null) { //260612 hbk Wave5
+            string targetCode = null;
+            if (pMyParam.Parent != null) {
                 targetCode = pMyParam.Parent.TargetID;
             }
             SystemHandler.Handle.RawImageSaver.Enqueue(new RawImageSaveRequest {

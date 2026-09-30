@@ -92,12 +92,12 @@ namespace ReringProject.Utility {
             return saveFile;
         }
 
-        //260618 hbk Phase 54 ALIGN-01 패턴 모델 경로 이름 기반 재계산 (D-07/D-07a/D-07b) — 절대경로 저장 안 함
+        //260618 hbk 패턴 모델 경로 이름 기반 재계산 — 절대경로 저장 안 함
         /// <summary>
         /// HALCON shape/ncc 패턴 모델 파일 경로를 이름 기반으로 재계산한다.
         /// engine = "NCC" → .ncm, 그 외(Shape) → .shm.
         /// 레시피 폴더(RecipeSavePath/recipe/seq/act) 하위 저장이므로 Copy/Delete 시 자동 동반된다.
-        /// DatumConfig 에 절대경로를 저장하지 않는다(D-07).
+        /// DatumConfig 에 절대경로를 저장하지 않는다.
         /// </summary>
         public string GetPatternModelFilePath(string recipeName, string seqName, string actName, string propertyName, string engine)
         {
@@ -167,7 +167,7 @@ namespace ReringProject.Utility {
             return true;
         }
 
-        // quick-260909-mr4 — 오프라인 검사이미지 경로 규약(폴더/확장자/접두사/접미사). 수동 [검사Grab]
+        //260910 hbk 오프라인 검사이미지 경로 규약(폴더/확장자/접두사/접미사). 수동 [검사Grab]
         //  (InspectionListView)과 자동채움(Action_FAIMeasurement)이 이 상수를 공유한다 — 규약이 두 벌
         //  존재하면 자동채움이 오프라인 검사가 읽지 않는 곳에 파일을 쓸 수 있으므로 반드시 한 곳에서만 정의한다.
         public const string OFFLINE_FOLDER = "OfflineInspect";
@@ -179,7 +179,7 @@ namespace ReringProject.Utility {
         public const string OFFLINE_SUFFIX_HORIZONTAL = "_horizontal";
         public const string OFFLINE_SUFFIX_VERTICAL = "_vertical";
 
-        // Phase 77 D-77-06 ②: Z 범위 Shot 의 z 별 오프라인 사진 접미사 — shot_Shot이름_z번호.bmp.
+        //260915 hbk ②: Z 범위 Shot 의 z 별 오프라인 사진 접미사 — shot_Shot이름_z번호.bmp.
         //  자동채움(Action_FAIMeasurement.AutoFillZRangeOfflineImage)과 오프라인 검사(ResolveOfflineZRangeImagePath)
         //  가 이 상수를 공유한다.
         public const string OFFLINE_SUFFIX_Z = "_z";

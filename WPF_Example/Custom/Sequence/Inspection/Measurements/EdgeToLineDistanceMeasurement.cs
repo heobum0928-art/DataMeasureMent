@@ -9,18 +9,18 @@ namespace ReringProject.Sequence
 {
     /// <summary>
     /// Point ROI 에서 에지 라인을 피팅해 중점을 추출하고, datum 기준선까지의 거리(mm)를 리턴한다.
-    /// MeasureAxis="Y": datum 수평선(x축)까지 수직거리 — +Y 위쪽 양수(D-02). 수평 에지 검출용.
+    /// MeasureAxis="Y": datum 수평선(x축)까지 수직거리 — +Y 위쪽 양수. 수평 에지 검출용.
     /// MeasureAxis="X": datum 수직선(y축)까지 거리 — +X 오른쪽 양수. 수직 에지 검출용.
     /// datum 기준선은 교점(DatumOriginRow/Col)을 지나며 각도는 DatumAngleRad(수평선 θ, 수직선 θ+90°).
     /// HALCON projection_pl 로 에지 중점을 기준선에 정사영해 수선의 발을 구하고 거리를 계산한다.
-    /// 결과 단위: mm (pixelResolution 적용). Datum 1개(CTH) 가정 (D-01).
+    /// 결과 단위: mm (pixelResolution 적용). Datum 1개(CTH) 가정 .
     /// </summary>
     public class EdgeToLineDistanceMeasurement : MeasurementBase,
         IDatumOriginConsumer
     {
         public override string TypeName { get { return "EdgeToLineDistance"; } }
 
-        // Phase 79 LSR-01: 핀 옆 띠 기준(국부 기준선) 옵션 상수
+        //260918 hbk LSR-01: 핀 옆 띠 기준(국부 기준선) 옵션 상수
         public const string LOCAL_REF_LOG_TAG = "[LocalRef] ";
         public const string LOCAL_REF_OVERLAY_ROI_ID = "FAI-RefLine";
         public const string LOCAL_REF_ROI_SUBKEY = "LocalRef";
@@ -54,7 +54,7 @@ namespace ReringProject.Sequence
         public int EdgeThreshold { get; set; } = 10;
         public double Sigma { get; set; } = 1.0;
         public int EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
@@ -76,7 +76,7 @@ namespace ReringProject.Sequence
         public List<string> EdgeSelectionList { get { return EdgeOptionLists.MeasureSelections; } }
 
         // 측정 거리 축 선택: datum 어느 기준선까지의 거리를 잴지.
-        //  "Y" = datum 수평선(x축)까지 수직거리 (+Y 위쪽 양수, D-02) — 수평 에지 측정용.
+        //  "Y" = datum 수평선(x축)까지 수직거리 (+Y 위쪽 양수) — 수평 에지 측정용.
         //  "X" = datum 수직선(y축)까지 거리 (+X 오른쪽 양수) — 수직 에지 측정용.
         [Category("Edge")]
         [System.ComponentModel.Description("측정 거리 축 — Y: datum 수평선까지, X: datum 수직선까지")]
@@ -85,7 +85,7 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> MeasureAxisList { get { return new List<string> { "Y", "X" }; } }
 
-        // Phase 79 LSR-01/D-79-03/D-79-04: 핀 옆 띠 기준(국부 기준선) 옵션. 기본값 false(선언 없음) — 옛 레시피와
+        //260918 hbk LSR-01/: 핀 옆 띠 기준(국부 기준선) 옵션. 기본값 false(선언 없음) — 옛 레시피와
         //  옵션 꺼진 측정은 이 옵션이 생기기 전과 완전히 동일하게 동작한다.
         [Category("Local Ref|Option")]
         [DisplayName("국부 기준 사용 (핀 옆 띠)")]
@@ -144,13 +144,13 @@ namespace ReringProject.Sequence
         [Newtonsoft.Json.JsonIgnore]
         public double DatumDetectedCircleCol { get; set; }
 
-        // Phase 79 LSR-02: 기준점 검출 때 구해 둔 국부 기준선 — Action_FAIMeasurement 가 측정 직전 주입(필드라 INI·붙여넣기 제외)
+        //260918 hbk LSR-02: 기준점 검출 때 구해 둔 국부 기준선 — Action_FAIMeasurement 가 측정 직전 주입(필드라 INI·붙여넣기 제외)
         [Newtonsoft.Json.JsonIgnore]
         public LocalRefLineResult InjectedLocalRef;
 
         public EdgeToLineDistanceMeasurement(object owner) : base(owner) { }
 
-        // Phase 77 SZF-03/D-77-07 ②: 이 측정은 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
+        //260915 hbk ②: 이 측정은 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
         public override bool SupportsEdgeStrengthScore()
         {
             return true;
@@ -168,12 +168,12 @@ namespace ReringProject.Sequence
             error = null;
             // 실패 경로용 초기값 (성공 경로는 아래에서 채움)
             overlays = new List<EdgeInspectionOverlay>();
-            LastFitScore = 0.0; // Phase 77: 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
-            // Phase 79 LSR-02/LSR-03: 국부 기준선 사용 여부를 입구에서 한 번 정한다 — 실패 return 보다 먼저라 Z 후보마다 같은 값
+            LastFitScore = 0.0; //260915 hbk 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
+            //260918 hbk LSR-02/LSR-03: 국부 기준선 사용 여부를 입구에서 한 번 정한다 — 실패 return 보다 먼저라 Z 후보마다 같은 값
             bool bUseLocalRef = IsInjectedLocalRefUsable();
             LastRefSource = ResolveRefSourceCode(bUseLocalRef);
 
-            // D-11 Datum 찾기 실패 가드 (upstream gating 은 보조 이중 안전망)
+            //260611 hbk Datum 찾기 실패 가드 (upstream gating 은 보조 이중 안전망)
             if (datumTransform == null || datumTransform.Length == 0)
             {
                 error = "Datum not found";
@@ -181,7 +181,7 @@ namespace ReringProject.Sequence
             }
 
             var svc = new VisionAlgorithmService();
-            var edgeScore = new EdgeStrengthScore(); // Phase 77 SZF-03: 에지 강도 점수 수집(opt-in)
+            var edgeScore = new EdgeStrengthScore(); //260915 hbk 에지 강도 점수 수집(opt-in)
             svc.EdgeScore = edgeScore;
             double pr1, pc1, pr2, pc2;
             List<System.ValueTuple<double, double>> collectedEdgePoints = new List<System.ValueTuple<double, double>>();
@@ -197,12 +197,12 @@ namespace ReringProject.Sequence
             {
                 return false;
             }
-            LastFitScore = edgeScore.Average; // Phase 77: Z 선택에 쓰는 점수(재계산 없이 채택된 결과에 남긴다)
+            LastFitScore = edgeScore.Average; //260915 hbk Z 선택에 쓰는 점수(재계산 없이 채택된 결과에 남긴다)
             double pRow = (pr1 + pr2) / 2.0; // 폴백(수집점 없음/전투영실패)·레거시경로용 중점
             double pCol = (pc1 + pc2) / 2.0;
 
             // 측정값 = 에지 중점에서 datum 기준선에 내린 수선의 길이 (HALCON projection_pl).
-            //  MeasureAxis="Y": datum 수평선(x축, 각도 θ)까지 수직거리 — D-02 +Y 위쪽 양수.
+            //  MeasureAxis="Y": datum 수평선(x축, 각도 θ)까지 수직거리 — +Y 위쪽 양수.
             //  MeasureAxis="X": datum 수직선(y축, 각도 θ+90°)까지 거리 — +X 오른쪽 양수.
             //  datum 기준선은 교점(DatumOriginRow/Col)을 지나고 각도는 DatumAngleRad(=DatumConfig.DetectedRefAngle,
             //  수평 결합선 Atan2(Δrow,Δcol)). 단순 row 차분은 datum 회전 시 수직거리와 불일치 → projection_pl 정사영 사용.
@@ -242,7 +242,7 @@ namespace ReringProject.Sequence
                 {
                     if (cosT < 0.0) { sinT = -sinT; cosT = -cosT; }
                 }
-                // Phase 79 LSR-02 (O-79-02 b): 위치만 국부 기준선 중점, 각도는 전역 그대로
+                //260918 hbk LSR-02 ( b): 위치만 국부 기준선 중점, 각도는 전역 그대로
                 double dAxisOriginRow = DatumOriginRow;
                 double dAxisOriginCol = DatumOriginCol;
                 if (bUseLocalRef)
@@ -300,7 +300,7 @@ namespace ReringProject.Sequence
                                 signedPtPx = (er - fr) * sinT + (ec - fc) * cosT;
                             }
                         }
-                        else // +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
+                        else //260722 hbk Y 위쪽 양수: datum x축 up-normal (-cosθ,sinθ) 성분
                         {
                             signedPtPx = (er - fr) * (-cosT) + (ec - fc) * sinT;
                         }
@@ -352,7 +352,7 @@ namespace ReringProject.Sequence
                             signedPx = (pRow - footRow) * sinT + (pCol - footCol) * cosT;
                         }
                     }
-                    else // +Y 위쪽 양수(D-02): datum x축 up-normal (-cosθ,sinθ) 성분
+                    else //260722 hbk Y 위쪽 양수: datum x축 up-normal (-cosθ,sinθ) 성분
                     {
                         signedPx = (pRow - footRow) * (-cosT) + (pCol - footCol) * sinT;
                     }
@@ -362,7 +362,7 @@ namespace ReringProject.Sequence
             else // 레거시/무보정 폴백: AffineTransPoint2d (DatumRef 빈 문자열 또는 구버전 호출 경로)
             {
                 // per-point 평균 미적용 이유: AffineTransPoint2d 는 선형 사상 → per-point 평균 == 중점(pRow/pCol) 변환이 수학적으로 동일.
-                // Datum-relative Y 좌표 추출 + D-02 부호 반전 (image row → +Y 위쪽 양수)
+                // Datum-relative Y 좌표 추출 + 부호 반전 (image row → +Y 위쪽 양수)
                 double datumRow = pRow;
                 try
                 {
@@ -374,10 +374,10 @@ namespace ReringProject.Sequence
                 {
                     // transform 실패 시 image-row 좌표 사용 (TryFitLine 패턴 일관성)
                 }
-                resultValue = -datumRow * pixelResolution; // D-02 +Y 부호 (위쪽 양수)
+                resultValue = -datumRow * pixelResolution; //260611 hbk Y 부호 (위쪽 양수)
             }
 
-            // UAT 시각 검증(측정값 vs SOP 도면 정확도)을 위해 검출 에지/거리선을 캔버스에 표시.
+            //260611 hbk 시각 검증(측정값 vs SOP 도면 정확도)을 위해 검출 에지/거리선을 캔버스에 표시.
 
             // 1) 검출 에지 라인 overlay (FAIEdgeMeasurementService.BuildOverlaysSingle 패턴)
             overlays.Add(new EdgeInspectionOverlay
@@ -438,7 +438,7 @@ namespace ReringProject.Sequence
                 });
             }
 
-            // Phase 79 D-79-07: 국부 기준선(띠 에지) 표시 — 국부를 쓴 측정만
+            //260918 hbk 국부 기준선(띠 에지) 표시 — 국부를 쓴 측정만
             if (bUseLocalRef)
             {
                 overlays.Add(new EdgeInspectionOverlay
@@ -454,7 +454,7 @@ namespace ReringProject.Sequence
             return true;
         }
 
-        // Phase 79 LSR-02/LSR-03: 옵션 켬 + 주입값 있음 + 그 주입값이 성공(Found)한 결과일 때만 국부 기준을 쓴다.
+        //260918 hbk LSR-02/LSR-03: 옵션 켬 + 주입값 있음 + 그 주입값이 성공(Found)한 결과일 때만 국부 기준을 쓴다.
         private bool IsInjectedLocalRefUsable()
         {
             if (!IsLocalRefEnabled)
@@ -473,7 +473,7 @@ namespace ReringProject.Sequence
             return bDatumOriginInjected;
         }
 
-        // Phase 79 LSR-04: 이번 실행이 어느 기준선으로 값을 냈는지 코드로 남긴다. 옵션 꺼짐이면 null(표시 빈칸, 기존과 동일).
+        //260918 hbk LSR-04: 이번 실행이 어느 기준선으로 값을 냈는지 코드로 남긴다. 옵션 꺼짐이면 null(표시 빈칸, 기존과 동일).
         private string ResolveRefSourceCode(bool bUseLocalRef)
         {
             if (!IsLocalRefEnabled)
@@ -608,7 +608,7 @@ namespace ReringProject.Sequence
             return string.Join(SETTINGS_KEY_SEPARATOR, lstParts);
         }
 
-        // Phase 79 LSR-01 하위호환: 옛 레시피엔 Local Ref 키가 없다 — 기본값이 0/false 가 아닌 7개만 키 없을 때 선언 기본값으로 되돌린다
+        //260918 hbk LSR-01 하위호환: 옛 레시피엔 Local Ref 키가 없다 — 기본값이 0/false 가 아닌 7개만 키 없을 때 선언 기본값으로 되돌린다
         public override bool Load(IniFile loadFile, string groupName)
         {
             bool bResult = base.Load(loadFile, groupName);
@@ -655,7 +655,7 @@ namespace ReringProject.Sequence
         }
     }
 
-    // Phase 79 LSR-02: 기준점 검출 1번에 대한 국부 기준선 결과 — 만든 뒤 고치지 않는다.
+    //260918 hbk LSR-02: 기준점 검출 1번에 대한 국부 기준선 결과 — 만든 뒤 고치지 않는다.
     public class LocalRefLineResult
     {
         public string DatumName { get; set; }

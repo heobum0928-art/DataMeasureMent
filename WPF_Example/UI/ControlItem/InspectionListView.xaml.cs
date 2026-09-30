@@ -33,13 +33,13 @@ namespace ReringProject.UI {
         // 라이브 미러 재적용을 위해 현재 PropertyChanged 를 구독 중인 Datum. 선택이 바뀌면 반드시 해제한다.
         private DatumConfig _liveMirrorWatchedDatum = null;
 
-        //260616 hbk Phase 51 BATCH-01: 일괄 검사 누적 결과 + 서비스 인스턴스 (UI 소유, static 금지)
+        //260616 hbk 일괄 검사 누적 결과 + 서비스 인스턴스 (UI 소유, static 금지)
         private List<CycleResultDto> _batchAccumulated = new List<CycleResultDto>();
         private BatchRunService _batchService;
-        //260617 hbk Quick 260617-cq2: 일괄 검사 완료 시 결과 그리드에 펼쳐 표시할 체크 SHOT 목록
+        //260617 hbk Quick: 일괄 검사 완료 시 결과 그리드에 펼쳐 표시할 체크 SHOT 목록
         private List<ShotConfig> _batchShots;
 
-        // quick-260806-dsn-2: 사이클 종료 시점에 저장 큐가 아직 파일을 다 쓰지 못해 즉시 정리를 skip한 SHOT의
+        //260806 hbk 사이클 종료 시점에 저장 큐가 아직 파일을 다 쓰지 못해 즉시 정리를 skip한 SHOT의
         //  재시도 대기열. DispatcherTimer(UI 스레드)가 이 목록을 몇 초 간격으로 재확인한다.
         private List<ShotConfig> _pendingImageCleanup = new List<ShotConfig>();
         // SHOT별 재시도 횟수 — 저장이 영구 실패(디스크 오류 등)해도 무한 재시도하지 않도록 상한 판단에 사용.
@@ -61,7 +61,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // 260724 hbk PropertyTools.Wpf DataGrid Enter키 커밋 버그 우회.
+        //260724 hbk PropertyTools.Wpf DataGrid Enter키 커밋 버그 우회.
         //  실제 참조 DLL은 libs\PropertyTools.Wpf.dll(csproj Reference HintPath, v1.0.0.0) — packages\PropertyTools.Wpf.3.1.0
         //  는 packages.config에 남아있는 미사용 NuGet 복원본이며 빌드에 쓰이지 않으므로 재검증 시 이 v1.0.0.0 DLL을 봐야 함.
         //  라이브 디버깅(Value getter/setter 동시 breakpoint)으로 재현 확인 + 위 실제 참조 DLL을 ildasm 역어셈블해
@@ -240,7 +240,7 @@ namespace ReringProject.UI {
                     datum.DetectedFitRMSE   = 0;
                     datum.DetectedAngleDeg  = 0;
                     // Step 4: ROI 보존 — 명시적 액션 없음 (DatumConfig ROI 필드 미수정)
-                    // Step 5: 자동 재검출 없음 — Phase 16 D-13/D-14 보존 (TryTriggerDatumAutoReteach 호출 없음)
+                    // Step 5: 자동 재검출 없음 — 보존 (TryTriggerDatumAutoReteach 호출 없음)
                     // Step 6: 캔버스 시각화 갱신 (RenderDatumOverlay 가 LastTeachSucceeded=false 분기에서 검출 도형 미렌더)
                     if (mParentWindow != null && mParentWindow.mainView != null && mParentWindow.mainView.halconViewer != null) {
                         mParentWindow.mainView.halconViewer.SetDatumOverlay(datum, true, mParentWindow.mainView.IsDatumTeachActive);
@@ -382,8 +382,8 @@ namespace ReringProject.UI {
         private void Btn_start_Click(object sender, RoutedEventArgs e) {
             if (treeListBox_sequence.SelectedIndex < 0) return;
             if (!(treeListBox_sequence.SelectedItem is NodeViewModel node)) return;
-            // Phase 80: 측정·FAI 노드를 고른 채 RUN 을 누르면 그 측정이 속한 Shot 을 실행한다 — 리뷰어에서
-            //  불러와 파라미터를 고친 뒤 RUN 한 번(D-80-05/06)
+            //260918 hbk 측정·FAI 노드를 고른 채 RUN 을 누르면 그 측정이 속한 Shot 을 실행한다 — 리뷰어에서
+            //  불러와 파라미터를 고친 뒤 RUN 한 번
             node = ResolveRunNodeForSelection(node);
 
             // Sequence/Shot/Action 외 노드는 실행 불가
@@ -401,7 +401,7 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260805 hbk Phase 69 D-01/D-03: 전역 IsIdle 이 아니라 "이 시퀀스 + 실제 같은 물리 카메라를 쓰는 시퀀스" 만 본다.
+            //260805 hbk 전역 IsIdle 이 아니라 "이 시퀀스 + 실제 같은 물리 카메라를 쓰는 시퀀스" 만 본다.
             //  다른 물리 카메라를 쓰는 시퀀스가 돌고 있어도 이 시퀀스는 독립 실행 가능(전역 IsIdle 이 막던 결함).
             string sBlockingSeqName;
             if (SystemHandler.Handle.Sequences.TryGetBlockingSequence(seqID, out sBlockingSeqName)) {
@@ -425,7 +425,7 @@ namespace ReringProject.UI {
             //  수동 지그 셋업 후 끄는 걸 잊고 실물 라인에서 RUN 하면, 카메라 앞에 실제 부품이 있어도 과거 저장 이미지로
             //  조용히 측정되어 PASS/FAIL 이 실물과 무관하게 나온다(화면·로그 어디에도 표시 없음). 저장 이미지가 없으면
             //  NG+로그로 드러나지만, 있으면 정상 사이클과 구분 불가 — 그래서 트리거 시점에 명시적으로 확인한다.
-            // Phase 80 D-80-00: 리뷰어 사진 사용 중에는 리뷰어가 켠 오프라인 모드이고 상태 줄이 보여 주므로 확인창을 띄우지 않는다
+            // 리뷰어 사진 사용 중에는 리뷰어가 켠 오프라인 모드이고 상태 줄이 보여 주므로 확인창을 띄우지 않는다
             bool bAskOfflineConfirm = SystemHandler.Handle.Setting.OfflineInspectMode && !ReviewerReinspectService.IsActive;
             if (bAskOfflineConfirm) {
                 MessageBoxResult offlineAnswer = CustomMessageBox.ShowConfirmation(
@@ -450,7 +450,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // Phase 80 D-80-05/06: 측정·FAI 노드를 고른 채 RUN 을 누르면 그 노드가 속한 부모 Shot(Action) 노드를
+        //260918 hbk 측정·FAI 노드를 고른 채 RUN 을 누르면 그 노드가 속한 부모 Shot(Action) 노드를
         //  대신 실행 대상으로 쓴다. Sequence·Shot(Action)·Datum 노드는 그대로 반환 — 동작 불변.
         private static NodeViewModel ResolveRunNodeForSelection(NodeViewModel node) {
             if (node == null) { return null; }
@@ -471,7 +471,7 @@ namespace ReringProject.UI {
             // Shot 노드 (Action 타입 + ShotConfig Param): 살아있는 Actions[] 를 ShotParam 참조 동일성으로 스캔
             if (node.NodeType == ENodeType.Action && node.Param is ShotConfig shotCfg) {
                 var seqHandler = SystemHandler.Handle.Sequences;
-                //260729 hbk quick-260729-jq5: Shot 삭제(Btn_RemoveFAI_Click)와 순서변경(InspectionListViewModel.MoveNode/
+                //260729 hbk Shot 삭제(Btn_RemoveFAI_Click)와 순서변경(InspectionListViewModel.MoveNode
                 //  SwapParamCollection)이 RebuildInspectionActions 를 호출하지 않아 RecipeManager.Shots 순번과
                 //  SequenceBase.Actions[] 가 어긋나고, 그 결과 서수 기반 매핑이 엉뚱한 Shot 을 실행/측정한 확인된 결함
                 //  (실기 재현: SHOT_E1-4 선택 → SHOT_B1-4 실행)이 있었다. 그래서 순번이 아니라 살아있는 Actions[] 의
@@ -483,7 +483,7 @@ namespace ReringProject.UI {
                 }
 
                 // 매핑 실패 (UI에서 Shot 추가 후 RebuildInspectionActions 미호출) → 지연 동기화 후 재스캔
-                //260805 hbk Phase 69 D-01: rebuild 는 이 시퀀스의 Actions[] 만 재생성한다(SequenceHandler.RebuildInspectionActions).
+                // rebuild 는 이 시퀀스의 Actions[] 만 재생성한다(SequenceHandler.RebuildInspectionActions).
                 //  다른 시퀀스가 돌고 있는지는 무관 — 대상 시퀀스만 Idle 이면 안전하다.
                 if (seqHandler.GetSequenceState(seq.ID) == EContextState.Idle) {
                     seqHandler.EnableDynamicFAIMode();
@@ -518,7 +518,7 @@ namespace ReringProject.UI {
             return false;
         }
 
-        //260729 hbk quick-260729-jq5: 살아있는 SequenceBase.Actions[] 를 직접 훑어 동일 ShotConfig 객체 참조를 찾는다.
+        //260729 hbk 살아있는 SequenceBase.Actions[] 를 직접 훑어 동일 ShotConfig 객체 참조를 찾는다.
         //  RecipeManager.Shots 순번(서수)에 의존하지 않으므로 Shot 삭제/순서변경으로 Actions[] 가 낡은 상태여도
         //  엉뚱한 Shot 을 가리키지 않는다 — 못 찾으면 -1 만 반환하고 서수 폴백은 두지 않는다.
         //  미러링 대상: InspectionSequence.FindActionIndicesByZIndex (InspectionSequence.cs L496-520)
@@ -532,7 +532,7 @@ namespace ReringProject.UI {
             return -1;
         }
 
-        //260729 hbk quick-260729-jq5: 체크된 각 Shot 을 ResolveActionIndexByShot 으로 해석해 (shot, idx) 쌍으로 반환.
+        //260729 hbk 체크된 각 Shot 을 ResolveActionIndexByShot 으로 해석해 (shot, idx) 쌍으로 반환.
         //  못 찾은 Shot 도 idx=-1 로 포함시켜 호출부가 rebuild 필요 여부를 판단할 수 있게 한다.
         private List<Tuple<ShotConfig, int>> ResolveBatchShotIndices(SequenceBase seq, List<ShotConfig> shots) {
             var result = new List<Tuple<ShotConfig, int>>();
@@ -543,7 +543,7 @@ namespace ReringProject.UI {
             return result;
         }
 
-        //260616 hbk Phase 51: 트리에서 체크된 SHOT 노드 수집 (재귀)
+        //260616 hbk 트리에서 체크된 SHOT 노드 수집 (재귀)
         private void CollectCheckedShots(NodeViewModel node, List<NodeViewModel> acc) {
             if (node == null) return;
             if (node.IsChecked && node.IsCheckboxVisible) {
@@ -554,7 +554,7 @@ namespace ReringProject.UI {
             }
         }
 
-        //260616 hbk Phase 51 BATCH-01: 선택 SHOT 일괄 검사 (D-01/D-02/D-03)
+        //260616 hbk 선택 SHOT 일괄 검사
         private void Btn_batchRun_Click(object sender, RoutedEventArgs e) {
             var root = treeListBox_sequence.Items.Count > 0 ? treeListBox_sequence.Items[0] as NodeViewModel : null;
             var checkedShots = new List<NodeViewModel>();
@@ -567,7 +567,7 @@ namespace ReringProject.UI {
                 return;
             }
 
-            // D-02: 모든 체크 SHOT 이 동일 시퀀스 소속이어야 함 (Top끼리 / Bottom끼리)
+            //260616 hbk 모든 체크 SHOT 이 동일 시퀀스 소속이어야 함 (Top끼리 / Bottom끼리)
             ESequence seqID = checkedShots[0].SequenceID;
             foreach (NodeViewModel n in checkedShots) {
                 if (n.SequenceID != seqID) {
@@ -594,7 +594,7 @@ namespace ReringProject.UI {
                 return;
             }
 
-            //260729 hbk quick-260729-jq5: Shots 서수가 아니라 Actions[] 인덱스를 전달한다.
+            //260729 hbk Shots 서수가 아니라 Actions[] 인덱스를 전달한다.
             //  StartSubset 이 min-max 연속구간을 실행하므로 오름차순 정렬이 필수이고, _batchShots 는 indices 와
             //  정렬 정합을 유지해야 한다(같은 (idx, shot) 쌍을 함께 정렬).
             var checkedTargetShots = new List<ShotConfig>();
@@ -605,7 +605,7 @@ namespace ReringProject.UI {
             }
 
             var resolvedPairs = ResolveBatchShotIndices(inspSeq, checkedTargetShots);
-            //260805 hbk Phase 69 D-01: (B)와 같은 이유 — 대상 시퀀스만 Idle 이면 rebuild 안전.
+            //260805 hbk (B)와 같은 이유 — 대상 시퀀스만 Idle 이면 rebuild 안전.
             if (resolvedPairs.Any(p => p.Item2 < 0)
                 && SystemHandler.Handle.Sequences.GetSequenceState(seqID) == EContextState.Idle) {
                 // 딱 한 번만 rebuild — Shot 마다 반복 호출하면 Actions[] 를 통째로 재생성해 낭비/DoS
@@ -628,34 +628,34 @@ namespace ReringProject.UI {
                 return;
             }
 
-            _batchShots = batchShots; //260617 hbk Quick 260617-cq2: 완료 핸들러에서 그리드 표시에 사용
+            _batchShots = batchShots; //260617 hbk Quick: 완료 핸들러에서 그리드 표시에 사용
             _batchService = new BatchRunService();
             _batchService.OnBatchComplete += OnBatchComplete;
             _batchService.StartBatch(inspSeq, indices);
         }
 
-        //260616 hbk Phase 51 BATCH-01: 일괄 검사 1사이클 완료 → 누적 + Export 버튼 활성 (D-04 append, D-05 수동 Export)
+        //260616 hbk 일괄 검사 1사이클 완료 → 누적 + Export 버튼 활성 ( append, 수동 Export)
         private void OnBatchComplete(List<CycleResultDto> cycles) {
             Dispatcher.Invoke(new Action(delegate {
                 if (cycles != null) {
                     _batchAccumulated.AddRange(cycles);
                 }
                 btn_batchExport.IsEnabled = (_batchAccumulated.Count > 0);
-                //260617 hbk Quick 260617-cq2: 검사한 체크 SHOT 전체 측정 결과를 그리드에 펼쳐 표시.
+                //260617 hbk Quick: 검사한 체크 SHOT 전체 측정 결과를 그리드에 펼쳐 표시.
                 //  행이 live 측정 객체를 감싸므로 LastMeasuredValue/판정이 즉시 반영됨.
                 if (_inspectionVm != null && _batchShots != null) {
                     _inspectionVm.ShowMeasurementsForShots(_batchShots);
                 }
-                // quick-260806-dsn Part B: 배치 사이클이 완전히 끝나는 유일한 시점(이 콜백, 사이클당 1회) —
+                //260806 hbk Part B: 배치 사이클이 완전히 끝나는 유일한 시점(이 콜백, 사이클당 1회)
                 //  현재 화면에 표시 중인 노드를 제외한 나머지 SHOT의 대용량 이미지 캐시를 즉시 해제한다.
                 CleanupBatchImageMemoryAfterCycle(_batchShots);
             }));
         }
 
-        // quick-260806-dsn Part B / quick-260806-dsn-2: 사이클 완료 후 메모리 정리. 현재 트리 선택
+        //260806 hbk Part B /: 사이클 완료 후 메모리 정리. 현재 트리 선택
         //  (SelectedParam)이 가리키는 SHOT은 제외하고, 폴백 파일이 이미 존재하는 SHOT은 즉시 정리한다(배치
         //  앞쪽 SHOT — 무변경, 기존과 동일하게 동작). 폴백이 아직 없는 SHOT(배치 뒤쪽 — 저장 큐가 못 따라간
-        //  것뿐)은 여기서 버리지 않고 재시도 대기열로 넘긴다(quick-260806-dsn-2, 확정 원인 수정).
+        //  것뿐)은 여기서 버리지 않고 재시도 대기열로 넘긴다(확정 원인 수정).
         //  크로스-Z 저장소는 파일 폴백 대상이 아니므로(재현 판단 불필요) 이 시점에 곧바로 정리한다.
         //  단일 RUN(Btn_start_Click)이나 사이클 도중에는 이 메서드가 호출되지 않는다(OnBatchComplete 전용 경로).
         //  동시 접근 안전성: 이 시점에 사이클을 실행한 시퀀스 스레드는 이 델리게이트가 반환할 때까지
@@ -673,7 +673,7 @@ namespace ReringProject.UI {
 
                 string fallbackPath = shot.ResolveFallbackImagePath();
                 if (string.IsNullOrEmpty(fallbackPath)) {
-                    // quick-260806-dsn-2: 폴백이 아직 없다 — 저장 큐가 이 SHOT의 파일을 못 따라간 것뿐이므로
+                    //260806 hbk 폴백이 아직 없다 — 저장 큐가 이 SHOT의 파일을 못 따라간 것뿐이므로
                     //  버리지 않고 재시도 대기열에 넣는다(이미 있으면 중복 추가하지 않는다).
                     if (!_pendingImageCleanup.Contains(shot)) {
                         _pendingImageCleanup.Add(shot);
@@ -681,7 +681,7 @@ namespace ReringProject.UI {
                     continue;
                 }
 
-                // quick-260806-dsn-2: 지난 사이클부터 재시도 대기 중이던 SHOT이 이번엔 즉시 성공한 경우를 대비해
+                //260806 hbk 지난 사이클부터 재시도 대기 중이던 SHOT이 이번엔 즉시 성공한 경우를 대비해
                 //  대기열/재시도 카운트에서도 제거한다(다음 타이머 틱에서 같은 SHOT을 중복 처리하지 않도록 — 새
                 //  배치 사이클이 이전 사이클의 대기열 항목과 같은 SHOT 객체를 재사용하는 경우의 상호작용 대비).
                 _pendingImageCleanup.Remove(shot);
@@ -701,7 +701,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // quick-260806-dsn-2: 즉시 정리 경로와 재시도 경로가 공유하는 단일 SHOT 정리 로직.
+        //260806 hbk 즉시 정리 경로와 재시도 경로가 공유하는 단일 SHOT 정리 로직.
         //  기존 534c742 커밋의 로직을 그대로 옮긴 것 — 동작 변경 없음, 중복 구현 방지 목적으로만 분리.
         //
         // 260811 odo 잔여 리스크 마커(코드 동작 변경 없음, 주석만):
@@ -737,7 +737,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // quick-260806-dsn-2: 대기열에 재시도 대상이 처음 생겼을 때만 타이머 인스턴스를 만든다(지연 생성).
+        //260806 hbk 대기열에 재시도 대상이 처음 생겼을 때만 타이머 인스턴스를 만든다(지연 생성).
         private void EnsurePendingImageCleanupTimer() {
             if (_pendingImageCleanupTimer != null) return;
             _pendingImageCleanupTimer = new DispatcherTimer();
@@ -745,7 +745,7 @@ namespace ReringProject.UI {
             _pendingImageCleanupTimer.Tick += PendingImageCleanupTimer_Tick;
         }
 
-        // quick-260806-dsn-2: 재시도 루프 본체. DispatcherTimer는 WPF Dispatcher 큐를 통해 항상 UI 스레드에서만
+        //260806 hbk 재시도 루프 본체. DispatcherTimer는 WPF Dispatcher 큐를 통해 항상 UI 스레드에서만
         //  Tick 이 실행되도록 보장되므로(공식 WPF 설계), CleanupBatchImageMemoryAfterCycle(역시 UI 스레드,
         //  Dispatcher.Invoke 콜백)과 동일 스레드 친화적이라 이 메서드와 그 메서드 사이에는 별도 락이 불필요하다.
         //  단, "새 배치 사이클이 이 SHOT을 실제로 재실행 중"인 레이스만은 남는다 — 재실행 중인 SHOT의 시퀀스는
@@ -810,7 +810,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // quick-260806-dsn Part B: 현재 트리에서 선택된 노드(SelectedParam)가 속한 ShotConfig를 역추적한다.
+        //260806 hbk Part B: 현재 트리에서 선택된 노드(SelectedParam)가 속한 ShotConfig를 역추적한다.
         //  MainView.GetCurrentShotContext()와 동일 목적이나 그 메서드는 private이라 직접 참조할 수 없어
         //  _batchShots 스코프 내에서 자체 해석한다(측정 노드는 이 배치에 속한 SHOT 안에서만 검색하면 충분).
         private ShotConfig ResolveCurrentlyDisplayedShot() {
@@ -829,7 +829,7 @@ namespace ReringProject.UI {
             return null;
         }
 
-        //260616 hbk Phase 51 BATCH-01: 누적분 수동 엑셀 Export (D-05/D-06 Phase 40 포맷 재사용)
+        //260616 hbk 누적분 수동 엑셀 Export ( 포맷 재사용)
         private void Btn_batchExport_Click(object sender, RoutedEventArgs e) {
             if (_batchAccumulated == null || _batchAccumulated.Count == 0) {
                 CustomMessageBox.Show("일괄 Export", "먼저 일괄 검사를 실행하세요.", MessageBoxImage.Warning);
@@ -871,7 +871,7 @@ namespace ReringProject.UI {
             }
         }
 
-        // Phase 80 D-80-05: 리뷰어에서 불러온 NG 측정 노드를 선택해 속성창에 파라미터를 보인다.
+        //260918 hbk 리뷰어에서 불러온 NG 측정 노드를 선택해 속성창에 파라미터를 보인다.
         //  측정을 못 찾으면 FAI, 그다음 Shot 순으로 다시 찾는다.
         public void SelectShotAndMeasurement(ShotConfig liveShot, FAIConfig liveFai, MeasurementBase liveMeasurement) {
             NodeViewModel root = ViewModel.RootModel;
@@ -887,7 +887,7 @@ namespace ReringProject.UI {
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => SelectNodeDeferred(found)));
         }
 
-        // Phase 80 D-80-05: 트리 컨테이너 생성 중 동기 선택 크래시(:880-885 경고)를 피하려 Dispatcher
+        //260918 hbk 트리 컨테이너 생성 중 동기 선택 크래시(:880-885 경고)를 피하려 Dispatcher
         //  Background 로 미룬 뒤 실행한다. 같은 노드여도 선택을 풀었다 다시 걸어 새 사진·선으로 다시 그린다.
         private void SelectNodeDeferred(NodeViewModel node) {
             NodeViewModel prev = treeListBox_sequence.SelectedItem as NodeViewModel;
@@ -896,7 +896,7 @@ namespace ReringProject.UI {
             treeListBox_sequence.ScrollIntoView(node);
         }
 
-        // Phase 80 D-80-05: NodeViewModel.Param(Node.ParamData) 참조 동일성으로 대상 노드를 찾는다.
+        //260918 hbk NodeViewModel.Param(Node.ParamData) 참조 동일성으로 대상 노드를 찾는다.
         private NodeViewModel FindNodeByParam(NodeViewModel node, object target) {
             if (node == null || target == null) { return null; }
             if (ReferenceEquals(node.Param, target)) { return node; }
@@ -918,8 +918,8 @@ namespace ReringProject.UI {
             if (mParentWindow != null && mParentWindow.mainView != null) {
                 mParentWindow.mainView.btn_circleRoi.IsEnabled = false;
                 mParentWindow.mainView.btn_teachDatum.IsEnabled = false;
-                //260618 hbk Phase 54 ALIGN-01 패턴 ROI/모델 생성 버튼 초기화 비활성
-                //260622 hbk Phase 57.1 D-04(a): 패턴 3버튼 진입 시 무조건 비활성화 → Datum 분기에서만 재활성. 비-Datum 노드 = 비활성 유지.
+                //260618 hbk 패턴 ROI/모델 생성 버튼 초기화 비활성
+                // (a): 패턴 3버튼 진입 시 무조건 비활성화 → Datum 분기에서만 재활성. 비-Datum 노드 = 비활성 유지.
                 mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = false;
                 mParentWindow.mainView.btn_createPatternModel.IsEnabled = false;
                 mParentWindow.mainView.btn_drawPatternRoi2.IsEnabled = false;
@@ -928,7 +928,7 @@ namespace ReringProject.UI {
 
             // e.Source 게이트 대신 sender 기준 게이트 사용:
             // TreeListBox 내부 inner item이 발생시킨 bubble 이벤트에서 e.Source가 inner element가 되어 게이트 실패 → 함수 전체 skip되는 문제 방지.
-            // force rebind(D-09)가 XAML 바인딩을 끊은 이후 이 핸들러가 skip되면 PropertyGrid가 stale 상태로 남는다.
+            // force rebind가 XAML 바인딩을 끊은 이후 이 핸들러가 skip되면 PropertyGrid가 stale 상태로 남는다.
             // sender는 항상 XAML에 핸들러를 등록한 본인 컨트롤(treeListBox_sequence) → 비대칭 회피.
             if (!(sender is TreeListBox list)) return;
             if (!ReferenceEquals(sender, treeListBox_sequence)) return;
@@ -947,7 +947,7 @@ namespace ReringProject.UI {
                     mParentWindow.mainView.halconViewer.ClearDatumOverlay();
                     mParentWindow.mainView.halconViewer.ClearDatumRoiCandidates();
                     mParentWindow.mainView.halconViewer.ClearResultDatumOverlays();
-                    // Phase 80 UAT: 기준 ROI 시험 찾기 결과 문구는 다른 노드를 고르면 지운다(UI 단순, D-80-00).
+                    //260921 hbk 기준 ROI 시험 찾기 결과 문구는 다른 노드를 고르면 지운다(UI 단순).
                     mParentWindow.mainView.ClearLocalRefTestFindMessage();
 
                     //param
@@ -984,7 +984,7 @@ namespace ReringProject.UI {
                             // 티칭 이미지 로드 후 휘발 검출 좌표 복원(재티칭) → 검출 라인 렌더
                             mParentWindow.mainView.RestoreDatumOverlayFromTeach(datumCfg);
 
-                            //260622 hbk Phase 57.1 D-03/D-01: Datum 노드 단독 선택 시에도 _resultDatumOverlays 를 채워 cyan 패턴 ROI 렌더 게이트 충족.
+                            //260622 hbk Datum 노드 단독 선택 시에도 _resultDatumOverlays 를 채워 cyan 패턴 ROI 렌더 게이트 충족.
                             //  Measurement/FAI/Action 분기와 동일 경로(ShowResultDatumOverlays) — 단일-원소 List. SetDatumOverlay(편집 채널)와 무관(공존).
                             List<DatumConfig> datumOverlayList = new List<DatumConfig> { datumCfg };
                             mParentWindow.mainView.ShowResultDatumOverlays(datumOverlayList);
@@ -1005,7 +1005,7 @@ namespace ReringProject.UI {
                         }
                         if (mParentWindow != null && mParentWindow.mainView != null) {
                             mParentWindow.mainView.btn_teachDatum.IsEnabled = true;
-                            //260618 hbk Phase 54 ALIGN-01 패턴 ROI/모델 생성 버튼 활성화 (btn_teachDatum 게이팅 동일)
+                            //260618 hbk 패턴 ROI/모델 생성 버튼 활성화 (btn_teachDatum 게이팅 동일)
                             mParentWindow.mainView.btn_drawPatternRoi.IsEnabled = true;
                             mParentWindow.mainView.btn_createPatternModel.IsEnabled = true;
                             mParentWindow.mainView.btn_drawPatternRoi2.IsEnabled = true;
@@ -1029,7 +1029,7 @@ namespace ReringProject.UI {
                             mParentWindow.mainView.btn_rectRoi.IsEnabled = isRectRoiType;
                         // PropertyGrid handled by SetParam (MeasurementBase : ParamBase)
                         // Datum force rebind 후 binding 손상 → Measurement 전환 시 PropertyGrid stale.
-                        // Datum 패턴(D-09)과 동일하게 null→new 강제 재할당.
+                        // Datum 패턴과 동일하게 null→new 강제 재할당.
                         if (ParamEditor != null && itemParam != null) {
                             _isRebinding = true;
                             try {
@@ -1287,7 +1287,7 @@ namespace ReringProject.UI {
         }
 
         // 오프라인 검사이미지 저장 경로: <ImageSavePath>\OfflineInspect\<recipe>\<baseName>.bmp.
-        //  quick-260909-mr4 — 경로 규약(폴더/확장자/접두사)을 RecipeFiles.BuildOfflineImagePath 로 위임한다.
+        //  경로 규약(폴더/확장자/접두사)을 RecipeFiles.BuildOfflineImagePath 로 위임한다.
         //  자동채움(Action_FAIMeasurement)과 이 함수가 같은 계산을 공유해야 두 경로가 어긋나지 않는다.
         //  폴더 생성은 여기서 하지 않는다 — MainView 의 저장 구간이 저장 직전에 이미 폴더를 만든다
         //  (GrabSaveAndDisplay 호출 경로, `if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);`).
@@ -1315,18 +1315,18 @@ namespace ReringProject.UI {
 
             ICameraParam camParam = SelectedParam as ICameraParam;
             mParentWindow.mainView.LoadAndDisplay(camParam);
-            //260616 hbk Phase 51 UAT: SHOT Load 후 SimulImagePath 자동속성 write-back은 INPC 미발동 → PropertyGrid 강제 재바인딩 (Datum 분기와 동일 처리)
+            //260616 hbk SHOT Load 후 SimulImagePath 자동속성 write-back은 INPC 미발동 → PropertyGrid 강제 재바인딩 (Datum 분기와 동일 처리)
             RefreshParamEditor();
         }
 
-        //260630 hbk — 전체 Shot SimulImagePath 폴더 일괄 설정 (마지막 폴더 기억)
+        //260630 hbk 전체 Shot SimulImagePath 폴더 일괄 설정 (마지막 폴더 기억)
         private static string _lastSimulImageFolder = null;
         private static readonly HashSet<string> SimulFolderImageExts = new HashSet<string>(
             new[] { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff" },
             StringComparer.OrdinalIgnoreCase);
 
         private void button_simFolder_Click(object sender, RoutedEventArgs e) {
-            //260630 hbk — 폴더 선택 → 알파벳 정렬 이미지 → Shot 순서대로 SimulImagePath 할당
+            //260630 hbk 폴더 선택 → 알파벳 정렬 이미지 → Shot 순서대로 SimulImagePath 할당
             try {
                 var dlg = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
                 dlg.Multiselect = false;
@@ -1381,7 +1381,7 @@ namespace ReringProject.UI {
                 ShotConfig matched = shots.FirstOrDefault(s => s.ShotName == datum.SourceShotName);
                 if (matched != null) return matched;
             }
-            // 260723 hbk: SourceShotName 미설정 시 "이 datum이 속한 시퀀스의 첫 Shot"으로 폴백해야 하는데
+            //260723 hbk SourceShotName 미설정 시 "이 datum이 속한 시퀀스의 첫 Shot"으로 폴백해야 하는데
             //  (DatumConfig.cs:32 comment 원래 의도) shots[0]은 전역 Shots 리스트의 첫 항목이라 다른 시퀀스
             //  (예: TOP)의 Shot이 잡혀 잘못된 카메라로 grab되는 결함이 있었다(Side datum grab이 CAM_TOP을
             //  조회해 Device Not Opened 나던 원인). RebuildInspectionActions(SequenceHandler.cs)와 동일한
@@ -1501,7 +1501,7 @@ namespace ReringProject.UI {
                     return;
                 }
 
-                // Sequence 노드 선택 시: Shot 또는 Datum 추가 선택 (D-25)
+                //260417 hbk Sequence 노드 선택 시: Shot 또는 Datum 추가 선택
                 if (selectedNode.NodeType == ENodeType.Sequence) {
                     MessageBoxResult choice = CustomMessageBox.ShowConfirmation(
                         "추가 항목 선택",
@@ -1594,11 +1594,11 @@ namespace ReringProject.UI {
             string ownerSeqName = SequenceHandler.ResolveSequenceName(seqNode.SequenceID);
             ShotConfig shot = seqHandler.RecipeManager.AddShot(shotName, ownerSeqName);
 
-            // 260724 hbk: 신규 Shot은 재시작 전까지 Grab/조명이 안 되는데, 원인은 서로 독립된 두 필드다 —
+            //260724 hbk 신규 Shot은 재시작 전까지 Grab/조명이 안 되는데, 원인은 서로 독립된 두 필드다
             //  (a) DeviceName이 비어 있어 DeviceHandler.GrabHalconImage(this[param.DeviceName])가 실패("Device Not Opened").
             //  (b) Parent가 null이라 CameraSlaveParam.SequenceName도 null이 되어, MainView.GrabAndDisplay의
             //      Sequences[param.SequenceName] 조회가 실패해 ApplyShotLightsDirect 자체가 호출되지 않음
-            //      (Phase 73 이전에는 ApplyShotLightsInternal 이 shot 자신의 필드 + static LightHandler.Handle 만
+            //      ( 이전에는 ApplyShotLightsInternal 이 shot 자신의 필드 + static LightHandler.Handle 만
             //      써서 어떤 InspectionSequence 인스턴스로 호출하든 결과가 같았다. 지금은 아니다 — 자기 소유
             //      채널 집합(CollectOwnedChannelScope) 안에서만 조명을 건드리므로, 반드시 그 shot 의
             //      OwnerSequenceName 과 같은 인스턴스로 호출해야 조명이 실제로 켜진다).
@@ -1622,7 +1622,7 @@ namespace ReringProject.UI {
             //  복사; ShotName/_image는 제외; FAIList는 CopyTo가 복사하지만 바로 아래 ClearFAIs로 비운다). sibling이
             //  없으면(해당 시퀀스의 첫 Shot) 아무것도 하지 않는다 — DeviceName은 위에서 이미 채워졌으므로 이 경우에도
             //  Grab은 정상 동작한다.
-            //  주의: DeviceName 복사는 ShotConfig.CopyTo의 260723 hbk 수정(base.CopyTo보다 먼저 DeviceName부터 설정)에
+            //  주의: DeviceName 복사는 ShotConfig.CopyTo의 수정(base.CopyTo보다 먼저 DeviceName부터 설정)에
             //  의존한다 — 그 수정이 별도로 되돌려지면 이 sibling-copy가 DeviceName만 다시 안 채우게 되지만(조명/노광
             //  등 나머지 필드는 영향 없음), 위 Parent/DeviceName 기본값 설정 블록이 있으므로 Grab 자체는 그래도 정상 동작한다.
             ShotConfig siblingShot = seqHandler.RecipeManager.Shots
@@ -1746,7 +1746,7 @@ namespace ReringProject.UI {
                 NodeViewModel actionNode = selectedNode.Parent;
                 if (actionNode == null || !(actionNode.Param is ShotConfig shot)) return;
 
-                // Per D-10: confirmation dialog
+                //260407 hbk Per: confirmation dialog
                 MessageBoxResult result = CustomMessageBox.ShowConfirmation(
                     "FAI 삭제",
                     string.Format("FAI \"{0}\"을(를) 삭제합니다. 계속하시겠습니까?", fai.FAIName),

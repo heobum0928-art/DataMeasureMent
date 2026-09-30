@@ -140,7 +140,7 @@ namespace ReringProject.Sequence
                 }
             }
 
-            // D-04 공용 헬퍼 호출: 원중심 → datum 기준선 투영 거리.
+            //260611 hbk 공용 헬퍼 호출: 원중심 → datum 기준선 투영 거리.
             // foot 반환 오버로드: overlay(거리선/교점) 표시용.
             double footRow, footCol;
             bool footOk;

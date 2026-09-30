@@ -1,4 +1,4 @@
-//260612 hbk Phase 41.1 OUT-03 50회 반복 실행 서비스
+//260612 hbk 50회 반복 실행 서비스
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,7 +25,7 @@ namespace ReringProject.Sequence
         /// <summary>자재번호 미지정 sentinel. CycleResultDto.IndexNumber 기본값과 동일.</summary>
         public const int MATERIAL_NOT_SET = -1;
 
-        /// <summary>Phase 80 D-80-11 보강: 리뷰어 사진 사용 중에는 저장 사진 재검사를 시작할 수 없다.</summary>
+        /// <summary> 보강: 리뷰어 사진 사용 중에는 저장 사진 재검사를 시작할 수 없다.</summary>
         public const string ERROR_REVIEWER_PHOTOS_ACTIVE = "리뷰어 사진 사용 중에는 저장 사진 재검사를 시작할 수 없습니다 — 메인 화면 상태 줄의 [해제] 를 누른 뒤 다시 시작하세요";
 
         /// <summary>모든 반복이 완료되면 발화. arg = 누적된 CycleResultDto 전체 목록.</summary>
@@ -49,10 +49,10 @@ namespace ReringProject.Sequence
         private EventSequenceStateChanged _onFinishHandler;
         private readonly object _lock = new object();
 
-        //260615 hbk Quick 260615-dx7 이미지 폴더 순회 모드. null = 기존 고정 이미지 반복 모드.
+        //260615 hbk Quick 이미지 폴더 순회 모드. null = 기존 고정 이미지 반복 모드.
         private List<string> _imagePaths;
 
-        // quick-260911-fia Task 3 WARNING 수정: "이 시퀀스를 점유한 반복 실행" 정적 표시 — 이미지 폴더
+        //260911 hbk WARNING 수정: "이 시퀀스를 점유한 반복 실행" 정적 표시 — 이미지 폴더
         //  반복검사(StartFromImages)와 저장 사진 재검사(StartFromSavedCycles)가 서로 다른 RepeatRunService
         //  인스턴스로 동시에 같은 시퀀스를 돌리는 것을 막는다(사진 경로가 서로 덮어쓰며 섞이는 것 방지).
         //  키는 시퀀스 이름(정적, 인스턴스 참조 아님) — 인스턴스별 _bHoldsOccupancy 가 "이 인스턴스가 실제로
@@ -120,7 +120,7 @@ namespace ReringProject.Sequence
             TriggerNext();
         }
 
-        //260615 hbk Quick 260615-dx7
+        //260615 hbk Quick
         /// <summary>
         /// 이미지 폴더 순회 모드로 반복 검사를 시작한다. imagePaths 길이만큼 사이클을 돌리며,
         /// 매 사이클 StartAll 직전에 활성 시퀀스의 모든 Shot SimulImagePath 를 imagePaths[CompletedCount] 로 교체한다.
@@ -143,7 +143,7 @@ namespace ReringProject.Sequence
                 return;
             }
 
-            // quick-260911-fia Task 3 WARNING 수정: 다른 반복 실행(저장 사진 재검사 등)이 이미 이 시퀀스를
+            //260911 hbk WARNING 수정: 다른 반복 실행(저장 사진 재검사 등)이 이미 이 시퀀스를
             //  점유했으면 거부 — 사진 경로가 서로 덮어쓰며 섞이는 것을 막는다.
             string szOccupancyError;
             if (!TryAcquireSequenceOccupancy(seq, out szOccupancyError))
@@ -174,7 +174,7 @@ namespace ReringProject.Sequence
                 _seq.OnFinish -= _onFinishHandler;
             }
 
-            // quick-260911-fia Task 3 WARNING 수정: 이 인스턴스가 실제로 점유를 획득했을 때만 해제한다
+            //260911 hbk WARNING 수정: 이 인스턴스가 실제로 점유를 획득했을 때만 해제한다
             //  (점유하지 않은 인스턴스의 Stop() 이 다른 인스턴스의 점유를 실수로 풀지 않도록).
             if (_bHoldsOccupancy)
             {
@@ -185,10 +185,10 @@ namespace ReringProject.Sequence
             IsRunning = false;
             _onFinishHandler = null;
             _seq = null;
-            _imagePaths = null; //260615 hbk Quick 260615-dx7
+            _imagePaths = null; //260615 hbk Quick
         }
 
-        //260615 hbk Quick 260615-dx7
+        //260615 hbk Quick
         /// <summary>
         /// 폴더 순회 모드에서 현재 사이클(CompletedCount 인덱스)의 이미지를 활성 시퀀스의 모든 Shot 에 적용한다.
         /// _imagePaths == null (고정 모드) 이면 무동작 — 기존 동작 보존.
@@ -225,16 +225,16 @@ namespace ReringProject.Sequence
             }
         }
 
-        // quick-260911-fia Task 3(0): 순수 이동 리팩터 — HandleFinish 의 "소유 shot 종합판정 → BuildDto"
-        //  구간을 그대로 추출한다(로직/로그 문구 무변경, WR-01/WR-02/N5C-04 주석 함께 이동).
-        //  HandleSavedCycleFinish(Task 3b) 도 동일 로직을 재사용한다.
+        //260911 hbk (0): 순수 이동 리팩터 — HandleFinish 의 "소유 shot 종합판정 → BuildDto"
+        //  구간을 그대로 추출한다(로직/로그 문구 무변경, N5C-04 주석 함께 이동).
+        //  HandleSavedCycleFinish 도 동일 로직을 재사용한다.
         private CycleResultDto BuildRunCycleDto(InspectionRecipeManager recipeManager, InspectionSequence seqRef, int nIndexNumber)
         {
-            //260805 hbk Phase 70 WR-02: _seq 를 한 번만 읽어 로컬에 고정한다. 기존에는 null 체크와
+            //260805 hbk _seq 를 한 번만 읽어 로컬에 고정한다. 기존에는 null 체크와
             //  .Name 접근에서 _seq 를 두 번 읽어, 그 사이 다른 스레드(Stop())가 _seq=null 로 바꾸면
             //  seqName 이 null 로 빠지고 — IsShotOwnedBySequence 계약상 null 은 "전체 매칭" 이라 이번
-            //  Phase 70 필터가 그 좁은 창에서 조용히 무력화될 위험이 있었다(TOCTOU). 로컬 1회 읽기로 차단.
-            //260805 hbk Phase 70 N5C-04: 이 반복검사를 실제로 돌린 시퀀스 이름. 아래 종합판정 스코프와
+            //  필터가 그 좁은 창에서 조용히 무력화될 위험이 있었다(TOCTOU). 로컬 1회 읽기로 차단.
+            // N5C-04: 이 반복검사를 실제로 돌린 시퀀스 이름. 아래 종합판정 스코프와
             //  BuildDto 의 shot 스코프가 같은 기준을 쓰도록 한 곳에서만 산출한다.
             string seqName;
             if (seqRef != null)
@@ -249,12 +249,12 @@ namespace ReringProject.Sequence
             // ComputeOverallResult 는 InspectionSequence private — recipeManager 직접 순회하여 EVisionResultType 산출
             bool anySkip = false;
             bool allPass = true;
-            //260805 hbk Phase 70 WR-01: 소유권 필터가 0건을 매칭하면 아래 초기값(anySkip=false/allPass=true)이
+            //260805 hbk 소유권 필터가 0건을 매칭하면 아래 초기값(anySkip=false/allPass=true)이
             //  그대로 남아 "측정 0건인데 OK" 를 조용히 반환한다 — 이 카운터로 그 빈 스코프를 잡는다.
             int nMatchedFaiCount = 0;
             foreach (var shot in recipeManager.Shots)
             {
-                //260805 hbk Phase 70 N5C-04: 이 시퀀스 소유 shot 만 종합판정에 포함.
+                //260805 hbk N5C-04: 이 시퀀스 소유 shot 만 종합판정에 포함.
                 bool bOwnedByThisSeq = InspectionSequence.IsShotOwnedBySequence(shot, seqName);
                 if (!bOwnedByThisSeq)
                 {
@@ -370,7 +370,7 @@ namespace ReringProject.Sequence
 
                         if (_seq.State == EContextState.Idle)
                         {
-                            ApplyCurrentImage(); //260615 hbk Quick 260615-dx7 — 폴더 모드: 현재 사이클 이미지 적용
+                            ApplyCurrentImage(); //260615 hbk Quick — 폴더 모드: 현재 사이클 이미지 적용
                             _seq.StartAll(null);
                         }
                         else
@@ -386,7 +386,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // ==================== quick-260911-fia Task 3: 저장 사진으로 재검사 ====================
+        //260911 hbk ====================: 저장 사진으로 재검사 ====================
         //  기존 Start/StartFromImages(고정 반복/이미지 폴더 반복)와 완전히 별개인 새 실행 모드.
         //  부품마다 SavedCycleRerunPlanner 가 만든 경로로 레시피를 메모리에서만 바꿔 StartAll(null) 로 돌리고,
         //  모든 종료 경로(완료/사용자 중단/시퀀스 중단·오류/UI 스레드 예외/PLC 자동 검사 개입)에서 반드시
@@ -441,7 +441,7 @@ namespace ReringProject.Sequence
         private string _szSavedCycleStopReason;
         private volatile bool _bSavedCycleEnded;
 
-        // quick-260911-fia Task 3(3): 재검사 시작 시점의 경로/설정 스냅샷 — 모든 종료 경로에서 이 값으로 되돌린다.
+        //260911 hbk (3): 재검사 시작 시점의 경로/설정 스냅샷 — 모든 종료 경로에서 이 값으로 되돌린다.
         //  Dictionary 키를 객체 참조로 둔다(같은 이름의 Shot/측정이 있어도 정확히 그 인스턴스만 되돌리기 위함).
         private sealed class SavedCycleOverrideSnapshot
         {
@@ -520,7 +520,7 @@ namespace ReringProject.Sequence
             }
             foreach (var shot in snap.OwnedShots)
             {
-                shot.RerunZRangeImagePaths = null; // Phase 77 D-77-06 ②: 부품마다 원복 후 재주입, 최종 종료 시 해제
+                shot.RerunZRangeImagePaths = null; //260915 hbk ②: 부품마다 원복 후 재주입, 최종 종료 시 해제
             }
         }
 
@@ -536,7 +536,7 @@ namespace ReringProject.Sequence
                 szError = "이미 반복 실행 중입니다";
                 return false;
             }
-            // Phase 80: 리뷰어 경로 스냅샷과 재검사 스냅샷이 겹치면 해제 뒤 리뷰어 경로가 되살아난다
+            //260918 hbk 리뷰어 경로 스냅샷과 재검사 스냅샷이 겹치면 해제 뒤 리뷰어 경로가 되살아난다
             if (ReviewerReinspectService.IsActive)
             {
                 szError = ERROR_REVIEWER_PHOTOS_ACTIVE;
@@ -574,7 +574,7 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            // quick-260911-fia Task 3 WARNING 수정: 기존 이미지 폴더 반복검사와 상호 배제.
+            //260911 hbk WARNING 수정: 기존 이미지 폴더 반복검사와 상호 배제.
             string szOccupancyError;
             if (!TryAcquireSequenceOccupancy(seq, out szOccupancyError))
             {
@@ -730,7 +730,7 @@ namespace ReringProject.Sequence
 
             foreach (var shot in _savedCycleSnapshot.OwnedShots)
             {
-                shot.RerunZRangeImagePaths = BuildRerunZRangeMap(part, shot.ShotName); // Phase 77 D-77-06 ②/M-3
+                shot.RerunZRangeImagePaths = BuildRerunZRangeMap(part, shot.ShotName); //260915 hbk ②/M-3
             }
 
             foreach (var datum in _savedCycleSeq.DatumConfigs)
@@ -774,7 +774,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 77 D-77-06 ②: 부품(part)의 ZRangePhotoPaths 에서 이 Shot 몫만 새 사전으로 복사한다 — 항상
+        //260915 hbk ②: 부품(part)의 ZRangePhotoPaths 에서 이 Shot 몫만 새 사전으로 복사한다 — 항상
         //  새 인스턴스를 반환해 스냅샷 사전과 공유되지 않게 한다.
         private static Dictionary<int, string> BuildRerunZRangeMap(SavedCycleRerunPart part, string szShotName)
         {
@@ -1096,7 +1096,7 @@ namespace ReringProject.Sequence
         }
     }
 
-    // quick-260911-fia Task 2: 크로스-Z 두 장짜리 측정 1건의 가로/세로 사진 경로(부품 단위).
+    //260911 hbk 크로스-Z 두 장짜리 측정 1건의 가로/세로 사진 경로(부품 단위).
     public class SavedCycleDualPhoto
     {
         public string ShotName { get; set; }
@@ -1106,7 +1106,7 @@ namespace ReringProject.Sequence
         public string VerticalPath { get; set; }
     }
 
-    // quick-260911-fia Task 2: 저장 사이클 재검사 계획의 부품(Part) 1건 — 기준점 tick 부터 다음 기준점 tick
+    //260911 hbk 저장 사이클 재검사 계획의 부품(Part) 1건 — 기준점 tick 부터 다음 기준점 tick
     //  전까지의 모든 tick 을 묶고, 그 부품을 재현하는 데 필요한 사진 경로(기준점/Shot/두 장짜리)를 담는다.
     public class SavedCycleRerunPart
     {
@@ -1123,13 +1123,13 @@ namespace ReringProject.Sequence
         public List<SavedCycleDualPhoto> DualPhotos { get; set; } = new List<SavedCycleDualPhoto>();
 
         /// <summary>
-        /// Phase 77 D-77-06 ②: 키 = ShotName, 값 = z → 후보 사진 절대경로. 비어 있어도 부품은 제외하지
+        /// ②: 키 = ShotName, 값 = z → 후보 사진 절대경로. 비어 있어도 부품은 제외하지
         /// 않는다 — 1장 폴백으로 돈다.
         /// </summary>
         public Dictionary<string, Dictionary<int, string>> ZRangePhotoPaths { get; set; } = new Dictionary<string, Dictionary<int, string>>();
     }
 
-    // quick-260911-fia Task 2: 저장 사이클(cycle.json) 을 읽어 만든 부품 단위 재검사 계획.
+    //260911 hbk 저장 사이클(cycle.json) 을 읽어 만든 부품 단위 재검사 계획.
     public class SavedCycleRerunPlan
     {
         public string SequenceName { get; set; }
@@ -1186,7 +1186,7 @@ namespace ReringProject.Sequence
         private const string CYCLE_JSON_FILE_NAME = "cycle.json";
         private const int DUAL_CROSS_Z_UNCONFIGURED = -1;
 
-        // Phase 80 D-80-07: 자정을 넘긴 자재를 위해 고른 사이클 날짜의 전날 폴더까지 본다.
+        //260918 hbk 자정을 넘긴 자재를 위해 고른 사이클 날짜의 전날 폴더까지 본다.
         private const int PREVIOUS_DAY_OFFSET = -1;
 
         /// <summary>DatumPhotoPaths/필요 역할 목록 공용 키. 예: "기준점A|H".</summary>
@@ -1218,7 +1218,7 @@ namespace ReringProject.Sequence
                 FillPartDatumPhotos(part);
                 FillPartShotPhotos(part);
                 FillPartDualPhotos(part, seq, recipeManager);
-                FillPartZRangePhotos(part); // Phase 77 D-77-06 ②
+                FillPartZRangePhotos(part);
             }
 
             HashSet<string> setExpectedShots = new HashSet<string>();
@@ -1254,9 +1254,9 @@ namespace ReringProject.Sequence
             return plan;
         }
 
-        // Phase 80 D-80-07/09: 리뷰어가 고른 사이클 하나가 속한 부품 전체(같은 자재)를 돌려준다.
+        //260918 hbk 리뷰어가 고른 사이클 하나가 속한 부품 전체(같은 자재)를 돌려준다.
         //  ValidatePart 를 타지 않으므로 기준점 사진이 없어도 부품은 돌아온다 — 없음 판단은
-        //  ReviewerReinspectService 가 한다(D-80-07/09). 같은 자재 묶기(D-80-07): 고른 사이클 날짜와
+        //  ReviewerReinspectService 가 한다. 같은 자재 묶기: 고른 사이클 날짜와
         //  전날 폴더까지 자동tick 을 모아 GroupIntoParts(반복검사와 같은 규칙)로 나눈 뒤, 고른 사이클이
         //  속한 부품만 골라 쓴다. PLC 자동tick 이 아니면(수동 RUN 기록) 부품 개념이 없으므로 고른
         //  사이클만으로 만든 부품을 그대로 쓴다.
@@ -1303,7 +1303,7 @@ namespace ReringProject.Sequence
             return target;
         }
 
-        // Phase 80 D-80-07: 부품 목록에서 이 사이클 키(NgCauseHistory.ResolveCycleKey)를 가진 tick 이
+        //260918 hbk 부품 목록에서 이 사이클 키(NgCauseHistory.ResolveCycleKey)를 가진 tick 이
         //  속한 첫 부품을 찾는다. 못 찾으면 null(기준점 tick 없이 시작된 사이클 등).
         private static SavedCycleRerunPart FindPartContainingCycle(List<SavedCycleRerunPart> lstParts, string szCycleKey)
         {
@@ -1331,7 +1331,7 @@ namespace ReringProject.Sequence
             return false;
         }
 
-        // Phase 80 D-80-07: 고른 사이클의 사진(selectedOnly)을 부품(target)에 먼저 넣어 Fill* 의
+        //260918 hbk 고른 사이클의 사진(selectedOnly)을 부품(target)에 먼저 넣어 Fill* 의
         //  "첫 기록 우선" 규칙으로 고른 사이클 사진이 이기게 한다(리뷰어에서 본 사진과 같게).
         private static void SeedSelectedTickPhotos(SavedCycleRerunPart target, SavedCycleRerunPart selectedOnly)
         {
@@ -1350,7 +1350,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 80: 리뷰어 부품 조회 결과를 Trace 로그로 남긴다 — UI 스레드에서 두 날짜 폴더의 cycle.json
+        //260918 hbk 리뷰어 부품 조회 결과를 Trace 로그로 남긴다 — UI 스레드에서 두 날짜 폴더의 cycle.json
         //  을 읽으므로 걸린 시간(ms)도 함께 남긴다.
         private static void LogSingleCyclePart(InspectionSequence seq, SavedCycleRerunPart part, string szKind, long nElapsedMs)
         {
@@ -1364,7 +1364,7 @@ namespace ReringProject.Sequence
             catch { }
         }
 
-        // Phase 80 D-80-19: 이 기준점에 필요한 사진(단일/H/V 중 이 기준점이 실제로 요구하는 역할만)이
+        //260918 hbk 이 기준점에 필요한 사진(단일/H/V 중 이 기준점이 실제로 요구하는 역할만)이
         //  하나라도 없거나 파일이 없으면 false — 짝이 반만 맞는 상태로 재검사하지 않는다(RepeatRunService
         //  ApplySavedCyclePart 의 기준점 부분과 같은 역할 키를 쓴다). 요구 키가 없는 기준점(두 장짜리
         //  정적)은 지금 티칭 사진을 그대로 쓰므로 true.
@@ -1420,7 +1420,7 @@ namespace ReringProject.Sequence
             return null;
         }
 
-        // Phase 80: 고른 사이클 tick 1개만으로 부품을 만든다(같은 자재 묶기는 80-03 Task 1).
+        //260918 hbk 고른 사이클 tick 1개만으로 부품을 만든다(같은 자재 묶기는).
         private static SavedCycleRerunPart BuildSelectedTickPart(CycleResultDto selectedCycle)
         {
             SavedCycleRerunPart part = new SavedCycleRerunPart();
@@ -1551,7 +1551,7 @@ namespace ReringProject.Sequence
         {
             bool bHasResult = meas.LastHasResult;
             bool bHasReason = !string.IsNullOrEmpty(meas.LastSkipReason) && meas.LastSkipReason != SkipReason.CROSS_Z_INCOMPLETE;
-            if (meas.LastSkipReason == SkipReason.Z_RANGE_PENDING) { bHasReason = false; } // Phase 77: 중간 z 대기도 CROSS_Z_INCOMPLETE 와 같이 처리됨에서 제외
+            if (meas.LastSkipReason == SkipReason.Z_RANGE_PENDING) { bHasReason = false; } //260915 hbk 중간 z 대기도 CROSS_Z_INCOMPLETE 와 같이 처리됨에서 제외
             return bHasResult || bHasReason;
         }
 
@@ -1588,7 +1588,7 @@ namespace ReringProject.Sequence
             }
         }
 
-        // Phase 77 D-77-06 ②: 저장된 cycle.json 의 ZRangeImages 를 Shot 별 z→경로 사전으로 모은다(첫 기록
+        //260915 hbk ②: 저장된 cycle.json 의 ZRangeImages 를 Shot 별 z→경로 사전으로 모은다(첫 기록
         //  우선, FillPartDatumPhotos 와 동일 원칙).
         private static void FillPartZRangePhotos(SavedCycleRerunPart part)
         {

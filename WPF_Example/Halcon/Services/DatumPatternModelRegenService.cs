@@ -17,7 +17,7 @@ namespace ReringProject.Halcon.Services
         /// <summary>
         /// 이 Datum 의 브러시 마스크가 붙을 모델 파일 경로. 패턴 2 가 설정돼 있으면 2개.
         /// 경로 조립을 직접 하지 않고 기존 단일 소스(ResolveDatumModelPath/2)만 쓴다 —
-        /// 폴더 규약이 갈리면 모델을 조용히 못 찾는 사고가 난다(Phase 73 전례).
+        /// 폴더 규약이 갈리면 모델을 조용히 못 찾는 사고가 난다( 전례).
         /// </summary>
         public static IList<string> GetModelPathsForMask(DatumConfig datum)
         {
@@ -46,7 +46,7 @@ namespace ReringProject.Halcon.Services
         }
 
         /// <summary>
-        /// 모달 없이 패턴 1(+ 패턴 2) 모델을 다시 만들고 RefMatch 를 재기록한다(D-74-04).
+        /// 모달 없이 패턴 1(+ 패턴 2) 모델을 다시 만들고 RefMatch 를 재기록한다.
         /// MainView.InvokeCreatePatternModel 의 계산 흐름을 그대로 따르되 CustomMessageBox 와
         /// Recipe Save 확인만 제거한 것이다. 성공하면 null, 실패하면 사람이 읽을 오류 문자열을 돌려준다.
         /// ※ .shm 은 즉시 디스크에 쓰이지만 RefMatch 는 메모리 값이라 사용자가 Recipe Save 를 해야 영속된다.

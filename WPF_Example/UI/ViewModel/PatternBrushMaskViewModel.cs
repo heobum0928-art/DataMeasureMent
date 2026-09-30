@@ -238,7 +238,7 @@ namespace ReringProject.UI
             SaveAndRegenerate();
         }
 
-        // 칠하기 1획이 끝난 시점에만 호출된다. 파일 쓰기 + 모델 재생성이라 자국마다 하면 안 된다(D-74-04).
+        //260827 hbk 칠하기 1획이 끝난 시점에만 호출된다. 파일 쓰기 + 모델 재생성이라 자국마다 하면 안 된다.
         private void SaveAndRegenerate()
         {
             if (_viewer == null)
@@ -301,7 +301,7 @@ namespace ReringProject.UI
                 return;
             }
 
-            // 마스크와 모델이 항상 일치하도록 즉시 재생성한다(D-74-04). 저장이 먼저여야 한다 —
+            //260827 hbk 마스크와 모델이 항상 일치하도록 즉시 재생성한다. 저장이 먼저여야 한다
             //  TryCreateModel 이 디스크의 마스크 파일을 읽기 때문이다.
             if (ModelRegenerator == null)
             {

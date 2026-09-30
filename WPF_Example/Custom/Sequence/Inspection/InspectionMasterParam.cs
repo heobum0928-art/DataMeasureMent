@@ -31,6 +31,6 @@ namespace ReringProject.Sequence {
             }
         }
 
-        //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled PropertyGrid 프로퍼티 폐기 (ALIGN 대체, D-12/D-13)
+        //260619 hbk #6 leveling 제거 — LevelingEnabled PropertyGrid 프로퍼티 폐기 (ALIGN 대체)
     }
 }

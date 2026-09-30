@@ -106,7 +106,7 @@ namespace ReringProject.Utility {
         public string DirectoryOverride { get; set; }
         /// <summary>
         /// 저장 포맷 강제 지정("bmp"/"jpeg" 등). 비어 있으면 기존 규칙(origin=OriginImageFormat 설정,
-        /// capture=jpeg 고정) 그대로 적용한다. quick-260909-mr4 — 오프라인 검사이미지 자동채움은
+        /// capture=jpeg 고정) 그대로 적용한다. — 오프라인 검사이미지 자동채움은
         /// OriginImageFormat 설정과 무관하게 항상 bmp(무압축)여야 하므로 요청 단위로 오버라이드한다.
         /// </summary>
         public string FormatOverride { get; set; }
@@ -124,7 +124,7 @@ namespace ReringProject.Utility {
     // RawImageSaveService 패턴 복제 비동기 캡쳐 저장 워커.
     public sealed class CaptureImageSaveService : IDisposable {
         private readonly ConcurrentQueue<CaptureImageSaveRequest> _queue = new ConcurrentQueue<CaptureImageSaveRequest>();
-        // 260810 hbk quick-debug(capture-render-per-fai-slow) round2: 워커가 1개뿐이면 소비(저장/렌더,
+        //260810 hbk quick-debug(capture-render-per-fai-slow) round2: 워커가 1개뿐이면 소비(저장/렌더
         //  건당 ~220-500ms) 속도가 생산(측정) 속도를 못 따라가 MAX_QUEUE_DEPTH 가 한 번 포화된 뒤 다시
         //  안 비워진다 — 실기 로그(captureEnqueue=)로 확정됨. 검사 스레드가 WaitForQueueSpace() 에서
         //  저장 워커 속도에 강제 동기화되던 것이 tact 지연의 실제 원인이었다(round1 의 렌더 1건 비용
@@ -221,7 +221,7 @@ namespace ReringProject.Utility {
             try {
                 _signal.Set();
             } catch (ObjectDisposedException) {
-                // 260810 hbk quick-debug(capture-render-per-fai-slow) round4 fix: 이 Enqueue 가 서비스
+                //260810 hbk quick-debug(capture-render-per-fai-slow) round4 fix: 이 Enqueue 가 서비스
                 //  Dispose() 완료 시점과 겹치면 _signal 이 이미 Dispose 되어 Set() 이 예외를 던질 수 있다.
                 //  이 요청은 이미 위에서 _queue 에 들어갔지만, 그 시점에 모든 워커가 이미 종료된 상태라면
                 //  아무도 dequeue 하지 않는 미아가 되어 request.Shared 의 ref(호출부가 미리 AddRef 해둔
@@ -326,19 +326,19 @@ namespace ReringProject.Utility {
                 string fileName = SanitizeFileName(request.FileName); // 완성 파일명 2차 방어
                 string filePath = Path.Combine(baseDirectory, fileName);
 
-                // 260810 hbk quick-debug(capture-render-per-fai-slow) round5 계측: WriteImage(JPEG 인코딩+
+                //260810 hbk quick-debug(capture-render-per-fai-slow) round5 계측: WriteImage(JPEG 인코딩
                 //  디스크 쓰기)만 별도로 시간을 잰다. 지금까지 [CaptureRender] 는 렌더(HWindow dump)까지만
                 //  계측했고 그 다음 단계(디스크 쓰기)는 완전한 계측 공백이었다 — worker=2 증설이 실기에서
                 //  거의 효과가 없었던 이유가 렌더가 아니라 디스크 쓰기 병목일 가능성을 확인하기 위함
                 //  (디스크 I/O 는 워커 수를 늘려도 물리 디스크 대역폭에 막히면 그대로 병목일 수 있다).
-                // 260820 hbk 원본(origin, IsCapture==false)만 Setting.OriginImageFormat(JPG/BMP) 따름 —
+                // 원본(origin, IsCapture==false)만 Setting.OriginImageFormat(JPG/BMP) 따름
                 //  capture(오버레이 렌더)는 파일명(ResolveExtension)과 짝을 맞춰 기존 JPEG 고정 유지.
                 string szFormat = "jpeg";
                 bool bIsOriginWrite = !request.IsCapture;
                 if (bIsOriginWrite && string.Equals(SystemSetting.Handle.OriginImageFormat, "BMP", StringComparison.OrdinalIgnoreCase)) {
                     szFormat = "bmp";
                 }
-                // quick-260909-mr4 — 요청 단위 포맷 오버라이드. 비어 있으면 위 기존 규칙을 그대로 쓴다(회귀 0).
+                //260910 hbk 요청 단위 포맷 오버라이드. 비어 있으면 위 기존 규칙을 그대로 쓴다.
                 bool bHasFormatOverride = !string.IsNullOrEmpty(request.FormatOverride);
                 if (bHasFormatOverride) {
                     szFormat = request.FormatOverride;
@@ -365,10 +365,10 @@ namespace ReringProject.Utility {
         //  결과: {prefix}_{시퀀스}_{FAI}[_{측정점}][_{OK|NG}]_{HHmmssfff}.jpg  (segment 빈 경우 생략)
         /// <summary>
         /// FAI별 캡쳐 이미지 파일명 생성. prefix = "origin" 또는 "capture".
-        /// 각 segment 는 Path.GetInvalidFileNameChars() 로 sanitize (T-40.2-01 path traversal 차단).
+        /// 각 segment 는 Path.GetInvalidFileNameChars 로 sanitize ( path traversal 차단).
         /// </summary>
         public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts) {
-            string seq = SanitizeFilePart(sequence, "SEQ"); // T-40.2-01 traversal 차단
+            string seq = SanitizeFilePart(sequence, "SEQ"); //260612 hbk traversal 차단
             string fai = SanitizeFilePart(faiName, "FAI");
             string seg = SanitizeFilePart(measurePointSegment, ""); // 빈 segment 허용
             string judge = SanitizeFilePart(judgement, ""); // OK/NG (빈값 허용)
@@ -379,7 +379,7 @@ namespace ReringProject.Utility {
             return name + "_" + time + ResolveExtension(prefix);
         }
 
-        // 260820 hbk 원본(origin) 이미지만 Setting.OriginImageFormat(JPG/BMP)을 따른다 — capture(오버레이
+        //260820 hbk 원본(origin) 이미지만 Setting.OriginImageFormat(JPG/BMP)을 따른다 — capture(오버레이
         //  렌더)는 사용자 확정 범위 밖이라 기존 JPEG 고정 그대로 유지.
         private static string ResolveExtension(string prefix) {
             bool bIsOrigin = prefix == "origin";
@@ -388,7 +388,7 @@ namespace ReringProject.Utility {
             return bIsBmp ? ".bmp" : ".jpg";
         }
 
-        /// <summary>기준점(Datum) 사진 파일명 prefix. Task 1: 자동 사이클 기준점 사진 저장.</summary>
+        /// <summary>기준점(Datum) 사진 파일명 prefix.: 자동 사이클 기준점 사진 저장.</summary>
         public const string DATUM_PREFIX = "datum";
 
         /// <summary>
@@ -416,7 +416,7 @@ namespace ReringProject.Utility {
             return ".jpg";
         }
 
-        /// <summary>Z 범위 후보 z 사진 파일명 prefix. Phase 77 D-77-06 ③: 저장 체크박스가 켜졌을 때만 쓰인다.</summary>
+        /// <summary>Z 범위 후보 z 사진 파일명 prefix. ③: 저장 체크박스가 켜졌을 때만 쓰인다.</summary>
         public const string ZRANGE_CANDIDATE_PREFIX = "shotz";
 
         // Z 범위 후보 파일명 안에서 z 번호 구간을 구분하는 세그먼트 — BuildZRangeCandidateFileName 전용.
@@ -434,12 +434,12 @@ namespace ReringProject.Utility {
             return name + "_" + time + ResolveOriginImageExtension();
         }
 
-        // 260622 hbk Phase 48 PROTO-01: 자재번호 포함 파일명 오버로드.
+        //260622 hbk 자재번호 포함 파일명 오버로드.
         //  nIndexNumber >= 0 이면 _M{번호} 를 FAI 뒤(seg 앞)에 삽입, -1 이면 생략.
         //  결과: prefix_seq_fai[_M{자재번호}][_seg][_judge]_time.jpg
-        //  자재번호는 int(Plan 01 에서 비정수→-1 정규화) → traversal 문자 불가 (T-48-10 mitigate).
+        //  자재번호는 int(수신 시 비정수는 -1 로 정규화) → 경로 조작 문자가 들어올 수 없다.
         //  기존 6-인자 BuildFileName 보존 (다른 호출부 호환, 회귀 0).
-        private const int FILENAME_NO_MATERIAL = -1; //260622 hbk Phase 48 PROTO-01: 자재번호 미수신 sentinel (-1). 매직넘버 금지(D-00).
+        private const int FILENAME_NO_MATERIAL = -1; //260622 hbk 자재번호 미수신 sentinel (-1). 매직넘버 금지.
         public static string BuildFileName(string prefix, string sequence, string faiName, string measurePointSegment, string judgement, DateTime ts, int nIndexNumber) {
             string seq   = SanitizeFilePart(sequence, "SEQ");
             string fai   = SanitizeFilePart(faiName, "FAI");
@@ -500,7 +500,7 @@ namespace ReringProject.Utility {
             return text;
         }
 
-        // 완성 파일명 전체에 대한 2차 방어 (T-40.2-01). SanitizeFilePart 와 동일 치환 로직.
+        //260612 hbk 완성 파일명 전체에 대한 2차 방어 . SanitizeFilePart 와 동일 치환 로직.
         private static string SanitizeFileName(string name) {
             if (string.IsNullOrWhiteSpace(name)) {
                 return "capture_unknown.jpg";

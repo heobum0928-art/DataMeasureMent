@@ -50,7 +50,7 @@ namespace ReringProject.Sequence {
 
         /// <summary>
         /// 모든 Shot 의 image buffer 를 Dispose 하고 Shot 리스트를 비운다.
-        /// BUF-02 lifetime 계약상 다음 채널에서 호출되어야 한다:
+        /// lifetime 계약상 다음 채널에서 호출되어야 한다:
         ///   (1) 레시피 변경 — Custom/SystemHandler.cs 의 OnRecipeChanged subscriber 가 호출.
         ///   (2) 앱 종료 — SystemHandler.Release() 에서 Sequences.Dispose() 직전 호출.
         /// LoadPhase6Format() 도 INI 재로드 직전에 호출하므로 (1) subscriber 와 중복될 수
@@ -93,7 +93,7 @@ namespace ReringProject.Sequence {
             if (displayName == null) displayName = "";
             saveFile[sectionPrefix]["DisplayName"] = displayName;
             saveFile[sectionPrefix]["DatumCount"] = seq.DatumConfigs.Count;
-            //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled save 키 폐기 (ALIGN 대체, D-12/D-13)
+            //260619 hbk #6 leveling 제거 — LevelingEnabled save 키 폐기 (ALIGN 대체)
             for (int d = 0; d < seq.DatumConfigs.Count; d++) {
                 string datumSection = $"{sectionPrefix}_DATUM_{d}";
                 seq.DatumConfigs[d].Save(saveFile, datumSection);
@@ -108,7 +108,7 @@ namespace ReringProject.Sequence {
                 // 보존할 기존 데이터 없음 (신규 레시피 등) — 빈값
                 saveFile[sectionPrefix]["DisplayName"] = "";
                 saveFile[sectionPrefix]["DatumCount"] = 0;
-                //260619 hbk Phase 57 #6 leveling 제거 — 신규 레시피 보존 분기 LevelingEnabled 키 폐기 (ALIGN 대체, D-12/D-13)
+                //260619 hbk #6 leveling 제거 — 신규 레시피 보존 분기 LevelingEnabled 키 폐기 (ALIGN 대체)
                 return;
             }
             saveFile[sectionPrefix] = existingFile[sectionPrefix];
@@ -133,7 +133,7 @@ namespace ReringProject.Sequence {
             string displayName = loadFile[sectionPrefix]["DisplayName"].ToString();
             if (displayName == null) displayName = "";
             seq.DisplayName = displayName;
-            //260619 hbk Phase 57 #6 leveling 제거 — LevelingEnabled load 키 폐기 (ALIGN 대체). 옛 INI stale 키는 더 이상 read 안 함 → 로드 크래시 0 (D-14)
+            //260619 hbk #6 leveling 제거 — LevelingEnabled load 키 폐기 (ALIGN 대체). 옛 INI stale 키는 더 이상 read 안 함 → 로드 크래시 0
             int datumCount = loadFile[sectionPrefix]["DatumCount"].ToInt();
             if (datumCount < 0) datumCount = 0;
             for (int d = 0; d < datumCount; d++) {
@@ -289,7 +289,7 @@ namespace ReringProject.Sequence {
             LoadFixtureForSequence(loadFile, ESequence.Side3, "FIXTURE_SIDE_3");
             LoadFixtureForSequence(loadFile, ESequence.Side4, "FIXTURE_SIDE_4");
 
-            // 구 포맷(Phase 73 이전) 감지 — 마이그레이션 누락 시 SIDE Datum 이 통째로 안 보이는 것처럼 되므로 반드시 알린다.
+            //260826 hbk 구 포맷( 이전) 감지 — 마이그레이션 누락 시 SIDE Datum 이 통째로 안 보이는 것처럼 되므로 반드시 알린다.
             bool bHasLegacySideFixture = loadFile.ContainsSection("FIXTURE_SIDE");
             if (bHasLegacySideFixture) {
                 Logging.PrintLog((int)ELogType.Error,
@@ -366,11 +366,11 @@ namespace ReringProject.Sequence {
         }
 
         public bool HasNewFormatData(IniFile iniFile) {
-            // [FORMAT] Version=6 이어야 신규 포맷. 그 외(Phase5 SHOTS-only 포함)는 신규로 인정하지 않음.
+            //260611 hbk [FORMAT] Version=6 이어야 신규 포맷. 그 외( SHOTS-only 포함)는 신규로 인정하지 않음.
             return DetectFormatVersion(iniFile) == ERecipeFormatVersion.Phase6;
         }
 
-        // 260723 hbk 한 촬영 자리(Shot) 안에 있는 측정들이 z_index 짝을 서로 다르게 쓰면 안 된다.
+        //260723 hbk 한 촬영 자리(Shot) 안에 있는 측정들이 z_index 짝을 서로 다르게 쓰면 안 된다.
         //  크로스-Z 측정(사진 두 장 합쳐 재는 측정)이 있는 자리는 그 자리 전체가 여러 시점에 다시
         //  찍히는데, 짝이 다른 측정이 섞여 있으면 그 측정이 남의 촬영 시점에 덩달아 불필요하게
         //  다시 재진다(2026-07-23 실측으로 확인 — E5_P1이 E5_P2의 촬영 시점에도 같이 보고됨).
@@ -387,7 +387,7 @@ namespace ReringProject.Sequence {
             return violatingShotNames;
         }
 
-        // 260723 hbk 위 함수의 실제 판정 로직 — Shot 하나 안의 측정들 짝을 전부 모아서, 서로 다른
+        //260723 hbk 위 함수의 실제 판정 로직 — Shot 하나 안의 측정들 짝을 전부 모아서, 서로 다른
         //  짝이 2가지 이상이면 위반으로 본다(크로스-Z 아닌 보통 측정은 짝을 -1,-1 로 취급).
         private bool ShotHasInconsistentCrossZPairs(ShotConfig shot) {
             if (shot == null) return false;

@@ -96,7 +96,7 @@ namespace ReringProject.Export
 
         /// <summary>
         /// nMaxRawColumns 로 RAW DATA 시트 열 수를 제한한 CPK 리포트 export.
-        /// Cpk 통계 시트 숫자는 제한 없이 cycles 전체로 계산한다(D-2) — 표시만 줄이고 숫자는 안 버린다.
+        /// Cpk 통계 시트 숫자는 제한 없이 cycles 전체로 계산한다 — 표시만 줄이고 숫자는 안 버린다.
         /// </summary>
         public static bool ExportCpkReport(List<CycleResultDto> cycles, string recipeName, string outputPath, int nMaxRawColumns)
         {
@@ -185,7 +185,7 @@ namespace ReringProject.Export
             ws.Cell(3, 2).Value = columns.Count;
             if (nTotalCycleCount > columns.Count)
             {
-                // 잘린 사실을 리포트 안에 남긴다 — Cpk 숫자는 전체 기준이라 열 수와 안 맞아 보일 수 있다(D-2).
+                //260819 hbk 잘린 사실을 리포트 안에 남긴다 — Cpk 숫자는 전체 기준이라 열 수와 안 맞아 보일 수 있다.
                 ws.Cell(3, 3).Value = "전체 " + nTotalCycleCount + "회 중 최근 " + columns.Count + "회만 표시 (Cpk 통계는 전체 기준)";
             }
 
@@ -489,7 +489,7 @@ namespace ReringProject.Export
 
         /// <summary>
         /// cycle 목록을 자재번호 오름차순(같은 자재 내에서는 입력 순서)으로 정렬해 샘플 열을 만든다.
-        /// 열 1개 = cycle 1개(검사 1회차)다 — D-03 의 100회+ 반복을 표현하려면 회차가 열 축이어야 한다.
+        /// 열 1개 = cycle 1개(검사 1회차)다 — 100회 이상 반복을 표현하려면 회차가 열 축이어야 한다.
         /// 자재번호는 열을 묶는 라벨(4행)이며, 정렬 덕분에 같은 자재 회차들이 인접 구간으로 모인다.
         /// </summary>
         private static List<SampleColumn> BuildSampleColumns(List<CycleResultDto> cycles)
@@ -591,7 +591,7 @@ namespace ReringProject.Export
 
                             PadRowTo(row, nCol);
 
-                            // 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 (CO-23-01).
+                            //260818 hbk 0.0 도 정상 결과이므로 값이 아니라 LastHasResult 로 판별한다 .
                             if (m.LastHasResult)
                             {
                                 row.Values.Add(m.LastMeasuredValue);

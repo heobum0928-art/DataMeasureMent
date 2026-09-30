@@ -73,11 +73,11 @@ namespace ReringProject.Sequence {
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
-        // Calibration: INI 호환 잔존 저장용. 소비 없음 — Shot 단일소스(D-01). PropertyGrid 숨김. //260615 hbk Phase 42 D-04/D-05
+        //260615 hbk Calibration: INI 호환 잔존 저장용. 소비 없음 — Shot 단일소스. PropertyGrid 숨김.
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public double PixelResolutionX { get; set; } = 1.0;  // mm/pixel — INI 키 보존(D-07)
+        public double PixelResolutionX { get; set; } = 1.0;  //260615 hbk mm/pixel — INI 키 보존
         [PropertyTools.DataAnnotations.Browsable(false)]
-        public double PixelResolutionY { get; set; } = 1.0;  // mm/pixel — INI 키 보존(D-07)
+        public double PixelResolutionY { get; set; } = 1.0;  //260615 hbk mm/pixel — INI 키 보존
 
         // Polygon ROI — INI 저장용으로 "x1,y1;x2,y2;x3,y3" 문자열로 직렬화
         [Category("ROI")]
@@ -174,10 +174,10 @@ namespace ReringProject.Sequence {
 
         /// <summary>
         /// Converts FAIConfig Rectangle2 params (center+half-lengths+phi) to RoiDefinition bounding box.
-        /// NOTE on D-05 compatibility: ROI_Phi exists in legacy INI data from Rectangle2 era.
+        /// NOTE on compatibility: ROI_Phi exists in legacy INI data from Rectangle2 era.
         /// ToRoiDefinition() uses sin/cos of ROI_Phi for backward compatibility with existing INI files.
         /// New ROI input via the Rect ROI button (Plan 02) always sets ROI_Phi=0.0 (Rectangle1 only),
-        /// so D-05 "Rectangle2는 사용하지 않는다" is honored for all new user input.
+        /// so "Rectangle2는 사용하지 않는다" is honored for all new user input.
         /// </summary>
         public RoiDefinition ToRoiDefinition()
         {

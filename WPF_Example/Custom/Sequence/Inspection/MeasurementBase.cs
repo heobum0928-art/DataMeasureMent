@@ -35,7 +35,7 @@ namespace ReringProject.Sequence
         // 측정별 보정계수 — 비전측정값을 현미경 공칭에 트루업하는 곱셈 계수. per-Shot CorrectionFactor(전역 캘리브 간극)
         //  위에 한 겹 더 얹는 피처별 잔차 보정. 기본 1.0 = 무보정. 각도 측정 타입은 AppliesCorrectionFactor=false 로 미적용.
         //  ※ 반복성이 확보된 측정에만, 여러 부품 비전↔현미경 상관으로 뽑은 값을 넣을 것(1개로 뽑거나 산포 은폐 금지).
-        //  260723 hbk: 260715 에 Shot 계수 단일 레이어 방침으로 PropertyGrid 숨김 처리했었으나, "같은 조명/이미지인데
+        //  260715 에 Shot 계수 단일 레이어 방침으로 PropertyGrid 숨김 처리했었으나, "같은 조명/이미지인데
         //   항목만 안 맞을 때 샷을 쪼개면 grab 이 늘어 택 증가" 문제로 방침 전환 — MeasCorrectionEnabled(opt-in, 기본 false)
         //   토글로 노출 복원. ON 일 때만 적용(EvaluateJudgement 참조).
         [Category("Measurement|Tolerance")]
@@ -58,7 +58,7 @@ namespace ReringProject.Sequence
         // 각도 보정값 — 비전측정 각도를 현미경/CMM 공칭에 트루업하는 고정 오프셋(도, 덧셈). MeasCorrectionFactor(곱셈, 길이용)의
         //  각도 버전. 기본 0.0 = 무보정. AngleCorrectionEnabled ON 일 때만 적용(EvaluateJudgement 참조).
         //  ※ 반복성이 확보된 측정에만, 여러 부품 비전↔현미경 상관으로 뽑은 값을 넣을 것(1개 샘플로 뽑거나 산포 은폐 금지).
-        //  260724 hbk: MeasCorrectionFactor(기본 1.0)/DualImageEdgeDistanceMeasurement.ZIndexA·B(기본 -1)와 달리
+        //  MeasCorrectionFactor(기본 1.0)/DualImageEdgeDistanceMeasurement.ZIndexA·B(기본 -1)와 달리
         //   Load() 복원 override 불필요 — 이 두 필드는 신설이라 구 레시피에 키가 아예 없고, ParamBase.Load의
         //   "Double"/"Boolean" 케이스는 키 부재 시 IniValue.Default(Value==null) → ToDouble()/ToBool() 인자없는
         //   기본값(0/false)으로 폴백한다. 이는 선언 기본값(0.0/false)과 완전히 동일해 진짜 no-op이다. 향후 이 파일을
@@ -81,13 +81,13 @@ namespace ReringProject.Sequence
         [System.ComponentModel.Description("하한 공차. 부호 무관하게 입력 (절대값 적용). 비대칭 공차 지원.")]
         public double ToleranceMinus { get; set; }
 
-        //260616 hbk Phase 51 UAT: 절대값 판정/표시. 켜면 측정값을 |값|으로 처리 — 부호(방향)만 다른 경우 NG 오판 방지.
+        //260616 hbk 절대값 판정/표시. 켜면 측정값을 |값|으로 처리 — 부호(방향)만 다른 경우 NG 오판 방지.
         //  예) 측정 -24, Nominal 24 → |-24|=24 로 판정·표시되어 OK. 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
         [Category("Measurement|Tolerance")]
         [System.ComponentModel.Description("절대값 판정. 켜면 측정값의 부호를 무시하고 |값|으로 판정·표시한다 (방향만 반대인 경우 NG 오판 방지).")]
         public bool UseAbsoluteValue { get; set; } = false;
 
-        //260616 hbk Phase 51 UAT: 부호 반전. 켜면 측정값 부호를 뒤집어(-value) 판정·표시 — signed 거리에서 정상 쪽을 +로 읽음.
+        //260616 hbk 부호 반전. 켜면 측정값 부호를 뒤집어(-value) 판정·표시 — signed 거리에서 정상 쪽을 +로 읽음.
         //  절대값과 달리 반대쪽 오검출은 -로 남아 NG 로 잡힘(불량 은폐 안 함). 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
         [Category("Measurement|Tolerance")]
         [System.ComponentModel.Description("부호 반전. 켜면 측정값의 부호를 뒤집어(-value) 판정·표시한다. signed 거리에서 정상 쪽을 양수로 읽되 반대쪽 오검출은 음수로 남아 NG로 잡힌다.")]
@@ -115,7 +115,7 @@ namespace ReringProject.Sequence
         //  CopyPublicPropertiesTo 도 프로퍼티 기반이라 _copyExclude 수정이 불필요하다.
         public string LastErrorMessage;
 
-        // Phase 77 SZF-03: Z 범위 선택에 쓰인 에지 강도 점수(EdgeStrengthScore.Average)와 채택된 z 번호.
+        //260915 hbk Z 범위 선택에 쓰인 에지 강도 점수(EdgeStrengthScore.Average)와 채택된 z 번호.
         //  LastErrorMessage 와 같은 이유로 필드로 선언 — ParamBase.Save/Load 는 프로퍼티만 순회하므로
         //  필드는 INI 레시피에 쓰이지 않고 CopyPublicPropertiesTo(붙여넣기)도 건드리지 않는다.
         public const int SELECTED_Z_NONE = -1;
@@ -123,11 +123,11 @@ namespace ReringProject.Sequence
         private const int MIN_SELECTED_Z_INDEX = 1;
         public double LastFitScore;
         public int LastSelectedZIndex = SELECTED_Z_NONE;
-        // Phase 78 NGA-07: Z 후보별 선명도 — cycle.json 기록 전용. 필드라 INI·붙여넣기 제외, JsonIgnore 로 레시피 JSON 제외
+        //260917 hbk NGA-07: Z 후보별 선명도 — cycle.json 기록 전용. 필드라 INI·붙여넣기 제외, JsonIgnore 로 레시피 JSON 제외
         [Newtonsoft.Json.JsonIgnore]
         public List<ReringProject.UI.ZCandidateScoreDto> LastZCandidateScores;
 
-        // Phase 79 LSR-04: 이 측정이 어느 기준선으로 값을 냈는지. null = 옵션 꺼짐(기존 전역, 표시 빈칸). 필드라 INI·붙여넣기 제외
+        //260918 hbk LSR-04: 이 측정이 어느 기준선으로 값을 냈는지. null = 옵션 꺼짐(기존 전역, 표시 빈칸). 필드라 INI·붙여넣기 제외
         public const string REF_SOURCE_LOCAL = "Local";
         public const string REF_SOURCE_FALLBACK = "LocalFallback";
         [Newtonsoft.Json.JsonIgnore]
@@ -163,7 +163,7 @@ namespace ReringProject.Sequence
             {
                 value = value * MeasCorrectionFactor;
             }
-            // 260724 hbk: 각도 보정(고정 오프셋, 덧셈) — 각도 타입만(AppliesAngleCorrection override). 위 곱셈 보정과 같은
+            //260724 hbk 각도 보정(고정 오프셋, 덧셈) — 각도 타입만(AppliesAngleCorrection override). 위 곱셈 보정과 같은
             //  지점(부호/절대값 이전)에 적용해 대칭 유지 — 비전 알고리즘 고유의 계통 오차를 트루업하는 것이지 recipe
             //  작성자의 부호/표시 규약이 아니므로, 그 규약(InvertSign/UseAbsoluteValue)보다 먼저 적용되어야 의미가 맞다.
             //  주의: InvertSign 을 함께 켠 각도 측정에서는 (raw+offset) 전체가 반전되는 순서(반전 후 값에 오프셋을
@@ -175,7 +175,7 @@ namespace ReringProject.Sequence
             {
                 value = value + AngleCorrectionDeg;
             }
-            //260616 hbk Phase 51 UAT: 부호 보정 — 반전(-value) 후 절대값(|value|) 순. signed 거리/방향 규약 맞춤. LastMeasuredValue 도 보정값으로 기록(표시/Export 일관).
+            //260616 hbk 부호 보정 — 반전(-value) 후 절대값(|value|) 순. signed 거리/방향 규약 맞춤. LastMeasuredValue 도 보정값으로 기록(표시/Export 일관).
             if (InvertSign) value = -value;
             if (UseAbsoluteValue) value = System.Math.Abs(value);
             LastMeasuredValue = value;
@@ -197,20 +197,20 @@ namespace ReringProject.Sequence
             LastHasResult = false; // 미측정 상태 복원
             LastSkipReason = null; // datum-skip subtype 리셋
             LastErrorMessage = null; // 이전 사이클 잔재 방지
-            LastFitScore = 0.0; // Phase 77: 이전 사이클 선택 점수 잔재 방지
-            LastSelectedZIndex = SELECTED_Z_NONE; // Phase 77: 이전 사이클 선택 Z 잔재 방지
-            LastZCandidateScores = null; // Phase 78 NGA-07: 이전 사이클 후보 점수 잔재 방지
-            LastRefSource = null; // Phase 79 LSR-04: 이전 사이클 사용 기준 잔재 방지
+            LastFitScore = 0.0; //260915 hbk 이전 사이클 선택 점수 잔재 방지
+            LastSelectedZIndex = SELECTED_Z_NONE; //260915 hbk 이전 사이클 선택 Z 잔재 방지
+            LastZCandidateScores = null; //260917 hbk NGA-07: 이전 사이클 후보 점수 잔재 방지
+            LastRefSource = null; //260918 hbk LSR-04: 이전 사이클 사용 기준 잔재 방지
         }
 
-        // Phase 77 SZF-03/D-77-07 ②: 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.
+        //260915 hbk ②: 에지 강도 점수로 Z 를 고를 수 있는 측정만 override 해서 true 를 반환한다.
         //  기본값 false — 미지원 타입은 범위 켠 Shot 이어도 기존 단일 사진 경로를 탄다.
         public virtual bool SupportsEdgeStrengthScore()
         {
             return false;
         }
 
-        // Phase 77 D-77-07 ⑥: 결과 화면·CSV 의 "선택 Z" 표시·저장·로드 단일 규칙 — 여기 한 곳만 고치면 전부 맞는다.
+        //260915 hbk ⑥: 결과 화면·CSV 의 "선택 Z" 표시·저장·로드 단일 규칙 — 여기 한 곳만 고치면 전부 맞는다.
         public static string FormatSelectedZ(int nZIndex)
         {
             if (nZIndex < MIN_SELECTED_Z_INDEX) { return string.Empty; }
@@ -229,7 +229,7 @@ namespace ReringProject.Sequence
             return nZIndex;
         }
 
-        // Phase 79 LSR-04: 사용 기준 표시·저장·로드 단일 규칙 — 결과 그리드·리뷰어·CSV 가 여기 한 곳만 쓴다. 옵션 꺼짐(null) = 빈칸(기존 전역 표시 불변, D-79-04)
+        //260918 hbk LSR-04: 사용 기준 표시·저장·로드 단일 규칙 — 결과 그리드·리뷰어·CSV 가 여기 한 곳만 쓴다. 옵션 꺼짐(null) = 빈칸(기존 전역 표시 불변)
         public const string REF_SOURCE_LOCAL_TEXT = "국부";
         public const string REF_SOURCE_FALLBACK_TEXT = "국부실패→전역";
 
@@ -260,7 +260,7 @@ namespace ReringProject.Sequence
             {
                 MeasCorrectionFactor = 1.0;
             }
-            // 260723 hbk 하위호환: MeasCorrectionEnabled 는 260723 신설이라 구 레시피엔 키가 없다. 키 부재 시
+            //260723 hbk 하위호환: MeasCorrectionEnabled 는 260723 신설이라 구 레시피엔 키가 없다. 키 부재 시
             //  ParamBase reflection 이 false(안전 기본값)로 남기지만, 이미 MeasCorrectionFactor 가 1이 아닌 값으로
             //  저장돼 있던 구 레시피(예: FAI_1 의 B2_P1=0.994, B3_P2=0.89)는 이 토글 신설 전엔 무조건 적용되고
             //  있었으므로, 키 부재 + 비1.0 값이면 Enabled=true 로 자동 복원해 기존 보정 동작을 그대로 유지한다.

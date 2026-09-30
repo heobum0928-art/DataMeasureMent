@@ -37,7 +37,7 @@ namespace ReringProject.Sequence
         public double Sigma { get; set; } = 1.0;
         [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeTrimCount { get; set; } = 10;
@@ -54,7 +54,7 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
-        //260616 hbk Phase 51 UAT: 보각(180-θ) 사용. Datum 기준선 반대방향 기준 각도로 보고.
+        //260616 hbk 보각(180-θ) 사용. Datum 기준선 반대방향 기준 각도로 보고.
         //  예) 이미지 0°기준 시계방향 138° → 우측 180°기준 반시계 42° = 180-138.
         //  raw 가 [0,180] 이므로 보각도 [0,180]. 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
         [Category("Angle")]
@@ -142,7 +142,7 @@ namespace ReringProject.Sequence
                 centerRow, centerCol, DatumDetectedCircleRow, DatumDetectedCircleCol,
                 daR1, daC1, daR2, daC2);
 
-            //260616 hbk Phase 51 UAT: 보각 옵션 — 기준 방향 반대로 각도 보고 (180-θ). raw [0,180] → 보각도 [0,180]. overlay 는 raw 기하 유지.
+            //260616 hbk 보각 옵션 — 기준 방향 반대로 각도 보고 (180-θ). raw [0,180] → 보각도 [0,180]. overlay 는 raw 기하 유지.
             if (UseSupplementaryAngle)
             {
                 resultValue = 180.0 - resultValue;

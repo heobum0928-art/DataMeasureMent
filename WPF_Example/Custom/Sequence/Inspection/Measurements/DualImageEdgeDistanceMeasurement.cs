@@ -27,7 +27,7 @@ namespace ReringProject.Sequence
         [DisplayName("세로축 티칭 이미지")]
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
-        //260729 hbk quick-kpy: PropertyGrid 표시만 숨김. System.ComponentModel.Browsable/JsonIgnore 는 절대 추가 금지 — 검사Grab 이 채우고 런타임 측정이 읽는 값이라 INI 저장이 반드시 유지되어야 함.
+        //260729 hbk PropertyGrid 표시만 숨김. System.ComponentModel.Browsable/JsonIgnore 는 절대 추가 금지 — 검사Grab 이 채우고 런타임 측정이 읽는 값이라 INI 저장이 반드시 유지되어야 함.
         [PropertyTools.DataAnnotations.Browsable(false)]
         public string TeachingImagePath_Vertical { get; set; } = "";
 
@@ -37,7 +37,7 @@ namespace ReringProject.Sequence
         [DisplayName("가로축 티칭 이미지")]
         [InputFilePath(DeviceHandler.EXTENSION_IMAGE, DeviceHandler.FILTER_IMAGE)]
         [AutoUpdateText]
-        //260729 hbk quick-kpy: 위와 동일 (PropertyGrid 표시만 숨김)
+        //260729 hbk 위와 동일 (PropertyGrid 표시만 숨김)
         [PropertyTools.DataAnnotations.Browsable(false)]
         public string TeachingImagePath_Horizontal { get; set; } = "";
 
@@ -65,7 +65,7 @@ namespace ReringProject.Sequence
         public int PointROI_EdgeThreshold { get; set; } = 10;
         public double PointROI_Sigma { get; set; } = 1.0;
         public int PointROI_EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Point Edge Trim (%)")]
         public int PointROI_EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
@@ -87,7 +87,7 @@ namespace ReringProject.Sequence
         public int LineROI_EdgeThreshold { get; set; } = 10;
         public double LineROI_Sigma { get; set; } = 1.0;
         public int LineROI_EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Line Edge Trim (%)")]
         public int LineROI_EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
@@ -146,9 +146,9 @@ namespace ReringProject.Sequence
 
         public DualImageEdgeDistanceMeasurement(object owner) : base(owner) { }
 
-        // 하위호환(D-07): ParamBase.Load 는 INI 누락 Int32 키를 0 으로 덮어쓴다(MeasCorrectionFactor 와 동일 함정).
+        //260722 hbk 하위호환: ParamBase.Load 는 INI 누락 Int32 키를 0 으로 덮어쓴다(MeasCorrectionFactor 와 동일 함정).
         //  구 레시피엔 ZIndexA/ZIndexB 키가 없어 0 으로 로드되면 "z_index=0 명시"로 오인되어 크로스-Z 실행 스코프/캡처가
-        //  오작동한다(T-68-03). 키 부재 시에만 -1(미설정) 복원한다 — base.Load 가 MeasCorrectionFactor 복원까지 위임 처리.
+        //  오작동한다. 키 부재 시에만 -1(미설정) 복원한다 — base.Load 가 MeasCorrectionFactor 복원까지 위임 처리.
         public override bool Load(IniFile loadFile, string groupName)
         {
             bool result = base.Load(loadFile, groupName);

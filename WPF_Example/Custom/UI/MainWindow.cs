@@ -1,4 +1,4 @@
-//260624 hbk Phase 61: RegisterCustomUI — 탭 Visibility 게이트 + 공유 뷰어 attach (AV-07/AV-08)
+//260624 hbk RegisterCustomUI — 탭 Visibility 게이트 + 공유 뷰어 attach
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,7 +9,7 @@ using ReringProject.Utility;
 namespace ReringProject {
     public partial class MainWindow
     {
-        // D-03: 단일 공유 MainResultViewerControl — align 뷰 전용 (MainView 내부 뷰어와 무관)
+        //260624 hbk 단일 공유 MainResultViewerControl — align 뷰 전용 (MainView 내부 뷰어와 무관)
         private MainResultViewerControl _alignViewer;
 
         /// <summary>
@@ -17,19 +17,19 @@ namespace ReringProject {
         /// </summary>
         public void RegisterCustomUI()
         {
-            //260624 hbk Phase 61 — 공유 뷰어 한 번만 생성
+            //260624 hbk 공유 뷰어 한 번만 생성
             _alignViewer = new MainResultViewerControl();
             RefreshEthernetVisionTabs();
         }
 
         /// <summary>
         /// EthernetVisionMode 읽어 Tray/Bottom 탭 Visibility 게이트.
-        /// Loaded(RegisterCustomUI) + 설정창 닫힌 후 호출(D-04).
-        /// 전 로직 try-catch — 예외 시 Logging 만, UI 무중단 (T-61-05).
+        /// Loaded(RegisterCustomUI) + 설정창 닫힌 후 호출.
+        /// 전 로직 try-catch — 예외 시 Logging 만, UI 무중단 .
         /// </summary>
         public void RefreshEthernetVisionTabs()
         {
-            //260624 hbk Phase 61 — 탭 게이트 + 공유 뷰어 attach
+            //260624 hbk 탭 게이트 + 공유 뷰어 attach
             try
             {
                 EEthernetVisionMode mode = SystemSetting.Handle.EthernetVisionMode;
@@ -78,11 +78,11 @@ namespace ReringProject {
 
         /// <summary>
         /// _alignViewer 가 현재 부착된 Border 에서 detach.
-        /// WPF 단일 부모 제약 — 재부모화 전에 반드시 호출(T-61-05).
+        /// WPF 단일 부모 제약 — 재부모화 전에 반드시 호출.
         /// </summary>
         private void DetachAlignViewer()
         {
-            //260624 hbk Phase 61 — 뷰어 이전 부모 해제
+            //260624 hbk 뷰어 이전 부모 해제
             if (_alignViewer == null)
             {
                 return;

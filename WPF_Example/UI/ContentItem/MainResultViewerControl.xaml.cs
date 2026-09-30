@@ -80,7 +80,7 @@ namespace ReringProject.UI
 
         private const int HalconLeftButton = 1;
         private const int HalconRightButton = 4;
-        //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
+        //260623 hbk CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
         private const double MinViewPartSize = 20.0;
         private const double PanMarginScale = 0.75;
         private const int PolygonMinVertices = 3;
@@ -151,7 +151,7 @@ namespace ReringProject.UI
         private string _polygonColor = "blue";
 
         private IList<Point> _calibrationPoints;
-        //260819 hbk quick-fix(260819-click2): 두 점 옆에 같이 그릴 결과 문구(빗변/가로변/세로변). null 이면 점/선만.
+        //260819 hbk (260819-click2): 두 점 옆에 같이 그릴 결과 문구(빗변/가로변/세로변). null 이면 점/선만.
         private string _calibrationLabel;
         private string _calibrationHLabel;
         private string _calibrationVLabel;
@@ -260,7 +260,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        /// <summary>Updates display with ROI highlight support (per D-01, D-03).</summary>
+        /// <summary>Updates display with ROI highlight support (per).</summary>
         public void UpdateDisplayState(IEnumerable<RoiDefinition> rois, string selectedRoiId,
             IEnumerable<EdgeInspectionOverlay> overlays, IEnumerable<string> messages)
         {
@@ -622,12 +622,12 @@ namespace ReringProject.UI
         // 측정/Shot/FAI 노드 선택 시 표시할 "결과용" datum 리스트.
         // 단일 _datumConfig(Datum 노드 편집 경로)와 분리 — 한 시퀀스 여러 datum 동시 표시 가능.
         private List<DatumConfig> _resultDatumOverlays = new List<DatumConfig>();
-        //260619 hbk Phase 56 Wave 2 — 보정(회전) ROI 박스 표시 전용 채널 (편집 _rois 와 분리 → 드래그/write-back 없음).
+        //260619 hbk 보정(회전) ROI 박스 표시 전용 채널 (편집 _rois 와 분리 → 드래그/write-back 없음).
         //  각 항목 = {row, col, phi, length1, length2} (측정 rectangle2 인자와 동일).
         private List<ResultRoiBox> _resultRoiOverlays = new List<ResultRoiBox>();
-        //260619 hbk Phase 56 Wave 2 — 보정 Datum 검색 ROI(원/수평) 표시 전용 (측정 ROI 와 색 구분). 항목 = {row,col,phi,l1,l2} 또는 {row,col,radius}.
+        //260619 hbk 보정 Datum 검색 ROI(원/수평) 표시 전용 (측정 ROI 와 색 구분). 항목 = {row,col,phi,l1,l2} 또는 {row,col,radius}.
         private List<double[]> _resultDatumRoiOverlays = new List<double[]>();
-        // Phase 74: 위 박스와 1:1 대응하는 라벨(ROI 1 / ROI 2 / 캘 ROI). 비어 있으면 라벨 없이 그린다.
+        //260827 hbk 위 박스와 1:1 대응하는 라벨(ROI 1 / ROI 2 / 캘 ROI). 비어 있으면 라벨 없이 그린다.
         private List<string> _resultDatumRoiLabels = new List<string>();
         private bool _datumSelected;
         // Datum CTH Edit 모드 트리거. btn_teachDatum.IsChecked 기반 호출자가 SetDatumOverlay 인자로 전달.
@@ -636,10 +636,10 @@ namespace ReringProject.UI
         // 측정 overlay 토글 게이트 (기본 ON)
         private bool _measurementOverlayVisible = true;
         // Datum 라인 토글 게이트 (기본 ON)
-        // Phase 74: 화면 좌상단 고정 정보 라벨(예: 선택된 면 슬롯). 비어 있으면 표시하지 않는다.
+        // 화면 좌상단 고정 정보 라벨(예: 선택된 면 슬롯). 비어 있으면 표시하지 않는다.
         private string _infoLabel = "";
 
-        // Phase 74: 마우스 좌표/밝기를 HALCON 창 안에 직접 표시할지. WPF 라벨은 좌측 패널 스크롤에 가려진다.
+        //260827 hbk 마우스 좌표/밝기를 HALCON 창 안에 직접 표시할지. WPF 라벨은 좌측 패널 스크롤에 가려진다.
         private bool _pointerHudVisible;
 
         /// <summary>마우스 좌표/밝기(X/Y/Gray)를 이미지 위에 표시할지.</summary>
@@ -681,7 +681,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        // Phase 74: 이미지 중심 십자선(라이브/정지 화면에서 가운데 위치 확인용). 기본 꺼짐.
+        //260827 hbk 이미지 중심 십자선(라이브/정지 화면에서 가운데 위치 확인용). 기본 꺼짐.
         private bool _centerCrossVisible;
 
         /// <summary>이미지 중심을 가로지르는 십자선 표시 토글.</summary>
@@ -694,7 +694,7 @@ namespace ReringProject.UI
         public bool IsCenterCrossVisible { get { return _centerCrossVisible; } }
 
         private bool _datumOverlayVisible = true;
-        //260619 hbk Phase 57 #2 패턴 ROI 토글 게이트 (기본 ON, _datumOverlayVisible 미러)
+        //260619 hbk #2 패턴 ROI 토글 게이트 (기본 ON, _datumOverlayVisible 미러)
         private bool _patternRoiOverlayVisible = true;
 
         // FAI CircleDiameter Strip preview state (Edit 모드 = FAI 노드 선택 시).
@@ -708,7 +708,7 @@ namespace ReringProject.UI
         // teach 경로 (_datumConfig + _datumSelected) 와 독립 — 동시 표시 허용 (주황 십자 + 빨간 교점 십자 공존).
         private DatumConfig _datumFindResultOverlay;
 
-        //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 보관 (소유권=이 컨트롤. 교체/clear/Dispose 시 dispose).
+        //260625 hbk Align 검출 에지 XLD 보관 (소유권=이 컨트롤. 교체/clear/Dispose 시 dispose).
         //  _measurementOverlayVisible(에지 토글) 게이트로 RenderNow 에서 window.DispObj. 이미지 재로드 시에도 재렌더.
         private HObject _alignContourXld;
 
@@ -744,7 +744,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        //260619 hbk Phase 57 #2 패턴 ROI 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
+        //260619 hbk #2 패턴 ROI 가시성 토글 (MainView 체크박스에서 호출). 즉시 재렌더.
         public void SetPatternRoiOverlayVisible(bool visible)
         {
             _patternRoiOverlayVisible = visible;
@@ -775,7 +775,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        //260619 hbk Phase 56 Wave 2 — 결과용 보정(회전) ROI 박스 오버레이 설정/제거 (표시 전용, 편집 무관).
+        //260619 hbk 결과용 보정(회전) ROI 박스 오버레이 설정/제거 (표시 전용, 편집 무관).
         /// <summary>
         /// 라벨 없이 박스만 지정한다.
         /// ⚠ 이전에 설정된 라벨은 반드시 함께 지운다 — 남겨두면 개수가 다른 새 박스에
@@ -786,7 +786,7 @@ namespace ReringProject.UI
             SetResultRoiOverlays(measRects, datumRects, null);
         }
 
-        /// <summary>Phase 74: datumRects 각 박스에 붙일 라벨을 함께 지정한다(개수가 달라도 안전).</summary>
+        /// <summary>: datumRects 각 박스에 붙일 라벨을 함께 지정한다(개수가 달라도 안전).</summary>
         public void SetResultRoiOverlays(List<ResultRoiBox> measRects, List<double[]> datumRects, List<string> datumLabels)
         {
             if (measRects == null) _resultRoiOverlays = new List<ResultRoiBox>();
@@ -843,7 +843,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 설정 (소유권 이전). 이전 보관 XLD dispose 후 교체.
+        //260625 hbk Align 검출 에지 XLD 설정 (소유권 이전). 이전 보관 XLD dispose 후 교체.
         //  xld=null 이면 clear. 즉시 재렌더. _measurementOverlayVisible(에지 토글) 게이트는 RenderNow 에서 적용.
         public void SetAlignContourXld(HObject xld)
         {
@@ -855,7 +855,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        //260625 hbk Phase 61.1 F4 — 보관 Align XLD dispose (교체/clear/Dispose 공용). throw 금지.
+        //260625 hbk 보관 Align XLD dispose (교체/clear/Dispose 공용). throw 금지.
         private void DisposeAlignContourXld()
         {
             if (_alignContourXld != null)
@@ -867,7 +867,7 @@ namespace ReringProject.UI
 
         #region 브러시 마스킹 공개 API (Phase 74)
 
-        /// <summary>칠하기 1획이 끝난 시점(마우스 놓기)에 1회 발생 — D-74-04 자동 재생성 트리거.</summary>
+        /// <summary>칠하기 1획이 끝난 시점(마우스 놓기)에 1회 발생 — 자동 재생성 트리거.</summary>
         public event EventHandler BrushStrokeCompleted;
 
         public void StartBrushMasking()
@@ -1089,7 +1089,7 @@ namespace ReringProject.UI
             SetCalibrationOverlay(points, null, null, null);
         }
 
-        //260819 hbk quick-fix(260819-click2): 라벨 오버로드 — 측정 결과를 HALCON 창 안에 직각삼각형으로 같이 그린다.
+        //260819 hbk (260819-click2): 라벨 오버로드 — 측정 결과를 HALCON 창 안에 직각삼각형으로 같이 그린다.
         //  캔버스 위 WPF Label 은 HWND airspace 로 가려져 안 보이므로 창 내부 렌더가 유일하게 확실한 표시 경로다.
         public void SetCalibrationOverlay(IList<Point> points, string labelText, string hLabel, string vLabel)
         {
@@ -1120,7 +1120,7 @@ namespace ReringProject.UI
         public void Dispose()
         {
             DisposeImage();
-            DisposeAlignContourXld();   //260625 hbk Phase 61.1 F4 — 보관 Align XLD 누수 방지
+            DisposeAlignContourXld();   //260625 hbk 보관 Align XLD 누수 방지
             DisposeBrushMaskRegion();
         }
 
@@ -1159,7 +1159,7 @@ namespace ReringProject.UI
                 measOverlays = _inspectionOverlays.Concat(BuildTransientOverlays()).ToList();
             else
                 measOverlays = new List<EdgeInspectionOverlay>();
-            //260619 hbk Phase 56 — UAT #2: 보정(green) ROI 박스 활성 시 보정전 측정 ROI(_rois) 미표시(중복 제거).
+            //260619 hbk #2: 보정(green) ROI 박스 활성 시 보정전 측정 ROI(_rois) 미표시(중복 제거).
             //  비-align(보정 transform 없음) → _resultRoiOverlays 비어 기존대로 _rois 표시(회귀 0).
             //  단, Edit 모드에서는 편집 대상인 원본(raw) ROI(노란 영역 + 코너 핸들)를 항상 보여야 한다 — 보정 박스는
             //  결과 보기용이라 Edit 중엔 raw 를 숨기면 핸들만 떠 편집 영역이 안 보이는 문제가 있었다(사용자 확인).
@@ -1194,7 +1194,7 @@ namespace ReringProject.UI
             }
 
             // 측정/Shot/FAI 노드 선택 시 그 시퀀스 datum 기준선도 함께 표시 (토글 게이트 공용).
-            //260619 hbk Phase 56 — UAT #2: 보정(orange) datum 검색 ROI 활성 시 보정전 검색 ROI 박스 미표시.
+            // #2: 보정(orange) datum 검색 ROI 활성 시 보정전 검색 ROI 박스 미표시.
             //  보정 시 RenderDatumFindResult(검출 origin 십자 + magenta 기준선)만 → 기준선 유지/보정전 박스 제거.
             //  비-align → 기존 RenderDatumOverlay(검색 ROI + 기준선) 그대로(회귀 0).
             if (_datumOverlayVisible && _resultDatumOverlays != null)
@@ -1210,20 +1210,20 @@ namespace ReringProject.UI
                 }
             }
 
-            //260619 hbk Phase 56 Wave 2 — 보정(회전) 측정 ROI 박스 (표시 전용, green). 측정 overlay 토글 게이트.
+            //260619 hbk 보정(회전) 측정 ROI 박스 (표시 전용, green). 측정 overlay 토글 게이트.
             //  Edit 모드에서는 원본(raw) ROI 를 편집하므로 보정 박스를 그리지 않는다(위 roisForRender 억제 해제와 대칭).
             if (!_isEditMode && _measurementOverlayVisible && _resultRoiOverlays != null && _resultRoiOverlays.Count > 0)
             {
                 // 선택된 측정(리스트박스/트리 선택 → _selectedRoiId)은 파란색 + 이름 라벨(주황, 큰 폰트, 박스 위), 나머지는 green.
                 _displayService.RenderResultMeasurementBoxes(ViewerHost.HalconWindow, _resultRoiOverlays, _selectedRoiId);
             }
-            //260619 hbk Phase 56 Wave 2 — 보정(회전) Datum 검색 ROI (orange, 측정 green 과 구분). datum 토글 게이트.
+            //260619 hbk 보정(회전) Datum 검색 ROI (orange, 측정 green 과 구분). datum 토글 게이트.
             if (_datumOverlayVisible && _resultDatumRoiOverlays != null && _resultDatumRoiOverlays.Count > 0)
             {
                 _displayService.RenderResultRoiBoxes(ViewerHost.HalconWindow, _resultDatumRoiOverlays, "orange", 2, _resultDatumRoiLabels);
             }
 
-            //260625 hbk Phase 61.1 F4 — Align 검출 에지 XLD 직접 표시 (녹색, 에지 토글 게이트).
+            //260625 hbk Align 검출 에지 XLD 직접 표시 (녹색, 에지 토글 게이트).
             //  점→DispLine polyline(대각선 버그) 대체. 이미지 재로드 등 재렌더 시에도 보관 XLD 다시 disp.
             //  기존 FAI 검사(MainView) 는 _alignContourXld=null → 분기 미진입 → 회귀 0.
             if (_measurementOverlayVisible && _alignContourXld != null)
@@ -1231,14 +1231,14 @@ namespace ReringProject.UI
                 _displayService.RenderAlignContourXld(ViewerHost.HalconWindow, _alignContourXld, "green", 2);
             }
 
-            //260619 hbk Phase 57 #2 패턴 매칭 ROI (cyan, datum orange / 측정 green / datum 기준선 slate blue 와 구분). 패턴 토글 게이트.
+            //260619 hbk #2 패턴 매칭 ROI (cyan, datum orange / 측정 green / datum 기준선 slate blue 와 구분). 패턴 토글 게이트.
             if (_patternRoiOverlayVisible && _resultDatumOverlays != null && _resultDatumOverlays.Count > 0)
             {
                 var patternRects = new List<double[]>();
                 foreach (DatumConfig d in _resultDatumOverlays)
                 {
                     if (d == null) continue;
-                    //260622 hbk Phase 57.1 #1 패턴 ROI 위치 보정 표시 — CurrentTransform 유효 시 center 변환 + phi 회전 가산
+                    //260622 hbk #1 패턴 ROI 위치 보정 표시 — CurrentTransform 유효 시 center 변환 + phi 회전 가산
                     //  (datum 검색 ROI/측정 ROI 와 동일 규약: AffineTransPoint2d + Atan2(-t[1],t[0])). 무효 시 공칭 폴백(회귀 0).
                     //  length 는 이미 disp 규약(Length1=halfW 열)이라 변환 불필요(center+phi 만 보정).
                     HTuple pt = d.CurrentTransform;
@@ -1291,10 +1291,10 @@ namespace ReringProject.UI
                 _displayService.RenderCircleDraft(ViewerHost.HalconWindow, _circleDraftCenter.Y, _circleDraftCenter.X, _circleDraftRadius);
             }
 
-            // Phase 74: 좌상단 정보 라벨(면 슬롯 등). 메시지 줄 아래에 붙인다.
+            //260827 hbk 좌상단 정보 라벨(면 슬롯 등). 메시지 줄 아래에 붙인다.
             _displayService.RenderInfoLabel(ViewerHost.HalconWindow, _infoLabel, _displayMessages.Count);
 
-            // Phase 74: 마우스 좌표/밝기. 정보 라벨 바로 아래 줄에 붙인다.
+            //260827 hbk 마우스 좌표/밝기. 정보 라벨 바로 아래 줄에 붙인다.
             if (_pointerHudVisible)
             {
                 int nHudLine = _displayMessages.Count;
@@ -1302,7 +1302,7 @@ namespace ReringProject.UI
                 _displayService.RenderInfoLabel(ViewerHost.HalconWindow, BuildPointerHudText(), nHudLine);
             }
 
-            // Phase 74: 중심 십자선. 다른 오버레이 위에 오도록 마지막 근처에서 그린다.
+            //260827 hbk 중심 십자선. 다른 오버레이 위에 오도록 마지막 근처에서 그린다.
             if (_centerCrossVisible)
             {
                 _displayService.RenderCenterCross(ViewerHost.HalconWindow, _imageWidth, _imageHeight, "cyan", 1);
@@ -1709,7 +1709,7 @@ namespace ReringProject.UI
                 _isBrushStroking = false;
                 _hasBrushLastPoint = false;
                 Render();
-                // D-74-04: 자국 하나마다가 아니라 '칠하기가 끝난 시점'에 딱 1회만 알린다.
+                //260827 hbk 자국 하나마다가 아니라 '칠하기가 끝난 시점'에 딱 1회만 알린다.
                 //  호출부(ViewModel)가 이 시점에 마스크를 저장하고 모델을 재생성한다.
                 var brushStrokeCompletedHandler = BrushStrokeCompleted;
                 if (brushStrokeCompletedHandler != null) { brushStrokeCompletedHandler(this, EventArgs.Empty); }
@@ -2068,7 +2068,7 @@ namespace ReringProject.UI
 
         private void PublishPointerInfo()
         {
-            // Phase 74: 좌표/밝기를 이미지 위에 그리는 중이면 포인터가 움직일 때마다 다시 그린다.
+            //260827 hbk 좌표/밝기를 이미지 위에 그리는 중이면 포인터가 움직일 때마다 다시 그린다.
             //  Render() 는 _renderPending 으로 스로틀되므로 이동마다 불러도 안전하다.
             if (_pointerHudVisible)
             {

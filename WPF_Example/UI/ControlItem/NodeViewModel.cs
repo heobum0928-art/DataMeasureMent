@@ -140,7 +140,7 @@ namespace ReringProject.UI {
             }
         }
 
-        //260616 hbk Phase 51: SHOT 다중 선택용 체크박스 상태 (일괄 검사 대상)
+        //260616 hbk SHOT 다중 선택용 체크박스 상태 (일괄 검사 대상)
         private bool isChecked;
 
         public bool IsChecked {
@@ -154,7 +154,7 @@ namespace ReringProject.UI {
             }
         }
 
-        //260616 hbk Phase 51: SHOT 노드(Action + ShotConfig param)만 체크박스 노출
+        //260616 hbk SHOT 노드(Action + ShotConfig param)만 체크박스 노출
         public bool IsCheckboxVisible {
             get {
                 return NodeType == ENodeType.Action && Param is ShotConfig;

@@ -1,4 +1,3 @@
-//260623 hbk Phase 58
 using System;
 using HalconDotNet;
 using ReringProject.Device;
@@ -9,9 +8,9 @@ using ReringProject.Utility;
 namespace ReringProject {
 
     /// <summary>
-    /// 이더넷 정렬 카메라 독립 싱글턴 핸들러 (D-03).
-    /// EthernetAlignCamera 인스턴스를 소유하며 모드 게이트 + 지연 연결(D-04)로 초기화.
-    /// Phase 58 AV-02 — 기존 Grabber(DeviceHandler/HikCamera) 무수정.
+    /// 이더넷 정렬 카메라 독립 싱글턴 핸들러 .
+    /// EthernetAlignCamera 인스턴스를 소유하며 모드 게이트 + 지연 연결로 초기화.
+    /// 기존 Grabber(DeviceHandler/HikCamera) 무수정.
     /// </summary>
     public sealed class EthernetVisionHandler {
         public static EthernetVisionHandler Handle { get; } = new EthernetVisionHandler();
@@ -19,24 +18,24 @@ namespace ReringProject {
         /// <summary>이더넷 정렬 카메라 인스턴스. Mode==None 이면 null 유지.</summary>
         public EthernetAlignCamera Camera { get; private set; }
 
-        //260624 hbk Phase 59 — D-02: Shape matching align 서비스 (handler 소유, stateless). Mode 무관 항상 생성.
+        //260624 hbk Shape matching align 서비스 (handler 소유, stateless). Mode 무관 항상 생성.
         public AlignShapeMatchService Matcher { get; private set; }
 
-        //260624 hbk Phase 60 — D-01: 피커센터 캘 서비스 (handler 소유, stateful). Mode 무관 항상 생성.
+        //260624 hbk 피커센터 캘 서비스 (handler 소유, stateful). Mode 무관 항상 생성.
         public PickerCenterCalibrationService PickerCal { get; private set; }
 
         /// <summary>Connect 성공 시 true. Mode==None 또는 연결 실패 시 false.</summary>
         public bool IsInitialized { get; private set; } = false;
 
-        //260630 hbk — TCP ALIGN_CALIB STEP 완료 시 UI 뷰어 갱신 콜백.
+        //260630 hbk TCP ALIGN_CALIB STEP 완료 시 UI 뷰어 갱신 콜백.
         // (Grab 이미지, vizXld). BottomVisionView.AttachSharedViewer 에서 등록.
         public Action<HImage, HObject> OnCalibStepViewer { get; set; }
 
-        //260630 hbk — TCP ALIGN_CALIB END 완료 시 UI 갱신 콜백.
+        //260630 hbk TCP ALIGN_CALIB END 완료 시 UI 갱신 콜백.
         // (row, col, rad, vizXld). 라벨 + 뷰어 피팅원 표시. BottomVisionView.AttachSharedViewer 에서 등록.
         public Action<double, double, double, HObject> OnCalibEndViewer { get; set; }
 
-        //quick-260812: TCP ALIGN_CALIB 실패를 화면에도 알리는 콜백(문구 1개).
+        //260812 hbk TCP ALIGN_CALIB 실패를 화면에도 알리는 콜백(문구 1개).
         // 지금까지 자동경로 실패는 로그 파일에만 남아 운영자가 알 방법이 없었다.
         // BottomVisionView.AttachSharedViewer 에서 등록. UI 스레드 마샬링은 호출 측 책임(형제 콜백과 동일).
         public Action<string> OnCalibError { get; set; }
@@ -44,18 +43,18 @@ namespace ReringProject {
         private EthernetVisionHandler() {
         }
 
-        // D-04: 모드 게이트 + 지연 연결. None 이면 연결 시도조차 안 함. Tray/Bottom 이면 INI IP 로 연결.
+        //260623 hbk 모드 게이트 + 지연 연결. None 이면 연결 시도조차 안 함. Tray/Bottom 이면 INI IP 로 연결.
         // 실패해도 throw 금지 — try-catch 로 격리, Grabber 무영향.
         public void Initialize() {
-            //quick-260807-htd: 예외 경로에서도 같은 알람을 띄우려면 모드/설정값이 try 밖에 살아 있어야 한다.
+            //260807 hbk 예외 경로에서도 같은 알람을 띄우려면 모드/설정값이 try 밖에 살아 있어야 한다.
             bool bModeOn = false;
             string camIp = null;
             // 알람 문구를 Tray/Bottom 으로 가르려면 모드도 예외 경로까지 살아 있어야 한다(위와 같은 이유).
             EEthernetVisionMode activeMode = EEthernetVisionMode.None;
             try {
-                //260624 hbk Phase 59 — D-02: Matcher 는 stateless → 모드/연결 결과 무관하게 항상 생성
+                //260624 hbk Matcher 는 stateless → 모드/연결 결과 무관하게 항상 생성
                 Matcher = new AlignShapeMatchService();
-                //260624 hbk Phase 60 — D-01: PickerCal stateful → 모드/연결 결과 무관 항상 생성
+                //260624 hbk PickerCal stateful → 모드/연결 결과 무관 항상 생성
                 PickerCal = new PickerCenterCalibrationService();
 
                 activeMode = SystemSetting.Handle.EthernetVisionMode;
@@ -82,23 +81,23 @@ namespace ReringProject {
             }
             catch (Exception ex) {
                 IsInitialized = false;
-                //260624 hbk Phase 59 — 예외 경로에서도 Matcher null 방지
+                //260624 hbk 예외 경로에서도 Matcher null 방지
                 if (Matcher == null) {
                     Matcher = new AlignShapeMatchService();
                 }
-                //260624 hbk Phase 60 — 예외 경로에서도 PickerCal null 방지
+                //260624 hbk 예외 경로에서도 PickerCal null 방지
                 if (PickerCal == null) {
                     PickerCal = new PickerCenterCalibrationService();
                 }
                 Logging.PrintLog((int)ELogType.Error, "[ETHERNET] EthernetVisionHandler.Initialize error: {0}", ex.Message);
-                //quick-260807-htd: 모드가 켜져 있었는데 예외로 죽은 것 = 사용자 입장에선 똑같은 "연결 실패"다.
+                //260807 hbk 모드가 켜져 있었는데 예외로 죽은 것 = 사용자 입장에선 똑같은 "연결 실패"다.
                 if (bModeOn) {
                     ShowConnectFailAlarm(activeMode, camIp, ex.Message);
                 }
             }
         }
 
-        //quick-260810-e1t: 프로그램 종료 시 이 카메라 연결을 끊는 진입점이 지금까지 없었다
+        //260810 hbk 프로그램 종료 시 이 카메라 연결을 끊는 진입점이 지금까지 없었다
         // (EthernetAlignCamera.Close() 를 호출하는 곳이 코드 전체에 단 한 곳도 없었음) → 앱이 꺼져도
         // 카메라 연결이 안 끊긴 채 남는 문제. Camera 는 Mode==None 이면 null 이므로 반드시 가드.
         // 절대 throw 하지 않는다 — Initialize() 와 동일한 방어적 컨벤션(SystemHandler.Release() 가
@@ -115,7 +114,7 @@ namespace ReringProject {
             }
         }
 
-        //quick-260807-htd: 연결 실패가 로그에만 남아 사용자가 몰랐다 → 기존 카메라 실패 알림과 같은 수단으로 통일.
+        //260807 hbk 연결 실패가 로그에만 남아 사용자가 몰랐다 → 기존 카메라 실패 알림과 같은 수단으로 통일.
         // 스레드 마샬링을 여기서 하지 않는 이유: CustomMessageBox.Show 가 내부에서 이미
         // App.Current.Dispatcher.BeginInvoke 로 넘기므로 호출 스레드 무관하게 안전하다(이중 마샬링 금지).
         // isAutoClosing=false : 기본 7초 자동닫힘을 끈다. 알람은 사용자가 직접 닫아야 한다.

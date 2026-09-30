@@ -70,13 +70,13 @@ namespace ReringProject.Network {
             Ascii,
             Utf8,
         }
-        //260623 hbk Phase 49 CO-48-01 (D-09): static → instance. 다중 인스턴스 전역 인코딩 오염 시한폭탄 제거.
-        //  현재 인스턴스 1개라 동작 변화 0 — 구조만 안전화. (Header/Trailer static 은 CO-48-01 범위 밖, 기록만.)
+        //260623 hbk static → instance. 다중 인스턴스 전역 인코딩 오염 시한폭탄 제거.
+        //  현재 인스턴스 1개라 동작 변화 0 — 구조만 안전화. (Header/Trailer static 은 범위 밖, 기록만.)
         private MessageEncodingType EncodingType { get; set; } = MessageEncodingType.Default;
 
-        // 260622 hbk Phase 48 PROTO-01: 파생 클래스(VisionServer)가 v1.0 UTF-8 인코딩을 설정하는 진입점.
+        //260622 hbk 파생 클래스(VisionServer)가 v1.0 UTF-8 인코딩을 설정하는 진입점.
         // EncodingType 캡슐화 유지 — setter 직접 노출 대신 동사+목적어 헬퍼 메서드.
-        //260623 hbk Phase 49 CO-48-01 (D-09): static 제거. 파생 클래스(VisionServer) 생성자가 instance 컨텍스트에서 호출.
+        // static 제거. 파생 클래스(VisionServer) 생성자가 instance 컨텍스트에서 호출.
         protected void ApplyEncoding(MessageEncodingType eEncoding)
         {
             EncodingType = eEncoding;
@@ -187,7 +187,7 @@ namespace ReringProject.Network {
 
             private byte[] ConvertMessage(string msg) {
                 try {
-                    //260623 hbk Phase 49 CO-48-01 (D-09): EncodingType instance 화 — 부모 인스턴스(Parent) 경유 접근.
+                    //260623 hbk EncodingType instance 화 — 부모 인스턴스(Parent) 경유 접근.
                     switch (Parent.EncodingType) {
                         case MessageEncodingType.Ascii:
                             return Encoding.ASCII.GetBytes(msg);
@@ -207,7 +207,7 @@ namespace ReringProject.Network {
 
             private string ConvertMessage(byte [] msg) {
                 try {
-                    //260623 hbk Phase 49 CO-48-01 (D-09): EncodingType instance 화 — 부모 인스턴스(Parent) 경유 접근.
+                    //260623 hbk EncodingType instance 화 — 부모 인스턴스(Parent) 경유 접근.
                     switch (Parent.EncodingType) {
                         case MessageEncodingType.Ascii:
                             return Encoding.ASCII.GetString(msg);
@@ -298,7 +298,7 @@ namespace ReringProject.Network {
 
                         if (recvByte == Trailer) {
                             //convert
-                            //260702 hbk List<byte>는 실제 받은 바이트만 담기 때문에 고정 배열의 남는 0 패딩이 없음 → Trim('\0') 불필요
+                            // List<byte>는 실제 받은 바이트만 담기 때문에 고정 배열의 남는 0 패딩이 없음 → Trim('\0') 불필요
                             byte[] recvBytes = mRecvBuffer.ToArray();
                             string msg = ConvertMessage(recvBytes);
                             if (msg == null) {
@@ -378,7 +378,7 @@ namespace ReringProject.Network {
 
         //method
         public TcpServer() {
-            // 260622 hbk Phase 48 PROTO-01: v1.0 활성 시 ServerPortV1(7701), 아니면 기존 ServerPort(2505). D-04/D-06.
+            //260622 hbk v1.0 활성 시 ServerPortV1(7701), 아니면 기존 ServerPort(2505). .
             // base 생성자에서 mListener.Start() 가 즉시 호출되므로 포트 결정은 여기서 수행해야 한다.
             bool bUseV1 = SystemSetting.Handle.UseProtocolV1;
             if (bUseV1)

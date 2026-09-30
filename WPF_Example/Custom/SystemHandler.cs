@@ -1,5 +1,5 @@
 ﻿using HalconDotNet; //260626 hbk HImage 참조 (RunBottomAlign 로컬 변수)
-using ReringProject.Device; //260626 hbk Phase 66 D-06 — LightHandler.LIGHT_ALIGN_COAX 참조 (ApplyCoaxLightForSlot)
+using ReringProject.Device; //260626 hbk LightHandler.LIGHT_ALIGN_COAX 참조 (ApplyCoaxLightForSlot)
 using ReringProject.Setting;
 using ReringProject.Network;
 using ReringProject.Utility;
@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using ReringProject.Sequence;
 using System.Diagnostics;
-using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //quick-260812: 표시 전용 헬퍼(별칭 = 이름충돌 회피)
+using TeachDiag   = ReringProject.Halcon.Algorithms.TeachDiagnostics;   //260812 hbk 표시 전용 헬퍼(별칭 = 이름충돌 회피)
 using ETeachGrade = ReringProject.Halcon.Algorithms.ETeachGrade;
 
 namespace ReringProject {
@@ -42,7 +42,7 @@ namespace ReringProject {
         }
 
         // 해당 시퀀스의 마지막 $PREP z_index. $PREP 없이 $TEST 가 오면 그 시퀀스의 기준점(GetDatumZIndex())
-        // 으로 보수적 폴백한다 — quick-260904-iwm: 시퀀스마다 기준점이 다를 수 있어(예: Bottom=11) 더 이상
+        // 으로 보수적 폴백한다 —: 시퀀스마다 기준점이 다를 수 있어(예: Bottom=11) 더 이상
         // 고정 0 으로 폴백하지 않는다.
         private int GetPrepZIndex(string szSeqName)
         {
@@ -60,7 +60,7 @@ namespace ReringProject {
                     return nStored;
                 }
             }
-            // quick-260904-iwm: ResolveDatumZIndex 는 시퀀스/레시피를 조회하므로 _prepZIndexLock 밖에서 호출한다
+            //260904 hbk ResolveDatumZIndex 는 시퀀스/레시피를 조회하므로 _prepZIndexLock 밖에서 호출한다
             // (기존 락 범위 원칙 — 락 안에서 시퀀스/레시피를 만지지 않는다).
             int nFallbackDatumZ = ResolveDatumZIndex(szSeqName);
             Logging.PrintLog((int)ELogType.Error,
@@ -116,7 +116,7 @@ namespace ReringProject {
                         break;
                     case VisionRequestType.Test:
                         if (Setting.AutoLogoutWhenRecvTest && Login.IsLogin) { Login.LogOut(); }
-                        // Phase 80 D-80-11: PLC 자동 검사가 리뷰어 사진·오프라인 모드를 쓰지 않도록 ProcessTest 전에 먼저 되돌린다.
+                        //260918 hbk PLC 자동 검사가 리뷰어 사진·오프라인 모드를 쓰지 않도록 ProcessTest 전에 먼저 되돌린다.
                         ReviewerReinspectService.Release(ReviewerReinspectService.RELEASE_REASON_PLC_TEST);
                         // 네트워크(PLC)로 들어온 $TEST 만 해당 — 화면의 수동 사이클 트리거는 ProcessTest 를 직접 불러 여기를 안 거친다.
                         ForceOfflineInspectModeOffForAutoTest();
@@ -128,19 +128,19 @@ namespace ReringProject {
                         }
                         break;
 
-                    case VisionRequestType.AlignTest:                                  //260624 hbk Phase 63 AV-09
+                    case VisionRequestType.AlignTest:
                         responsePacket = ProcessAlignTest(packet.AsAlignTest());
                         break;
-                    case VisionRequestType.AlignCalib:                                 //260624 hbk Phase 63 AV-09
+                    case VisionRequestType.AlignCalib:
                         responsePacket = ProcessAlignCalib(packet.AsAlignCalib());
                         break;
-                    case VisionRequestType.Prep:                                   //260625 hbk Phase 64 LIGHT-01
+                    case VisionRequestType.Prep:
                         responsePacket = ProcessPrep(packet.AsPrep());
                         break;
                     case VisionRequestType.Alive:                                  //260625 hbk v3.0
                         responsePacket = ProcessAlive(packet.AsAlive());
                         break;
-                    case VisionRequestType.Reset:                                  //260807 hbk quick-260807-lh7
+                    case VisionRequestType.Reset:
                         responsePacket = ProcessReset(packet.AsReset());
                         break;
                     case VisionRequestType.Unknown:
@@ -263,20 +263,20 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260722 Phase 68 D-01a→68-12: 기준점(Datum) 판별 매직넘버 상수화 (D-09). Datum 검출(EStep.DatumPhase)은
+        //260722 hbk →: 기준점(Datum) 판별 매직넘버 상수화 . Datum 검출(EStep.DatumPhase)은
         //  독립 Shot이 아니라 모든 Action 실행 안에 내장되어 매번 재수행되는 phase다. Plan 12(기준점 낭비 제거)
         //  부터 기준점도 더 이상 무조건 StartAll 하지 않는다 — InspectionSequence.FindDatumIndexTriggerActionIndices()
         //  가 고른 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행한다(DatumConfigs 가 비어있거나
         //  대표 트리거가 하나도 해석 안 되면 그때만 StartAll 로 폴백). 대표 Action(들)도 DatumPhase 종료 후
-        //  Grab/Measure 를 건너뛴다(Action_FAIMeasurement.ShouldSkipMeasurementAfterDatumPhase) — 68-10 Task2가
+        //  Grab/Measure 를 건너뛴다(Action_FAIMeasurement.ShouldSkipMeasurementAfterDatumPhase) — 앞서
         //  stale 주석을 새 동작에 맞게 다시 쓴 선례와 동일 패턴으로 이 주석도 갱신한다.
-        // quick-260904-iwm: 시퀀스마다 기준점 z_index 가 다를 수 있게 되면서(예: Bottom=11) 상수 이름을
+        // 시퀀스마다 기준점 z_index 가 다를 수 있게 되면서(예: Bottom=11) 상수 이름을
         //  NO_SEQUENCE_DATUM_Z_INDEX 로 바꾸고 뜻도 "시퀀스를 해석할 수 없을 때의 폴백 기준점"으로 좁혔다 —
         //  정상 경로의 기준점 판정은 이제 이 상수가 아니라 ResolveDatumZIndex()/InspectionSequence.GetDatumZIndex()
         //  가 돌려주는 그 시퀀스의 실효 기준점을 쓴다.
         private const int NO_SEQUENCE_DATUM_Z_INDEX = 0;
 
-        // quick-260904-iwm: 대상 시퀀스의 실효 기준점(GetDatumZIndex()) 조회 헬퍼 — InspectionSequence 캐스트
+        //260904 hbk 대상 시퀀스의 실효 기준점(GetDatumZIndex) 조회 헬퍼 — InspectionSequence 캐스트
         // 실패(시퀀스 미해석) 시에만 NO_SEQUENCE_DATUM_Z_INDEX 로 폴백한다. GetPrepZIndex/StartV1Scoped 양쪽이
         // 이 헬퍼로 통일해 "기준점 판정 로직은 한 곳"을 유지한다.
         private int ResolveDatumZIndex(string szSeqName)
@@ -313,11 +313,11 @@ namespace ReringProject {
             }
         }
 
-        //260409 hbk Phase 5: IsDynamicFAIMode 분기 (D-03)
-        //260615 hbk Phase 43.2: IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
-        //260626 hbk z_index=$PREP 분리: $TEST z_index 필드 제거 → 대상 시퀀스의 $PREP z_index 주입(_lastPrepZIndexBySeq).
-        //260722 hbk Phase 68 D-01/D-01a/D-01b: v1.0 실행(grab) 레벨 z_index 스코프 필터링 배선(StartV1Scoped 위임) —
-        //  Phase 49 D-01이 응답 집계 레벨(AggregateIndexFais)에서만 구현되고 실행 레벨에서는 갭이던 것을 닫는다.
+        //260409 hbk IsDynamicFAIMode 분기
+        // IsRecipeReady guard — 레시피 비동기 로드 완료 전 TEST 수신 시 NG 거부 (D-C)
+        // z_index=$PREP 분리: $TEST z_index 필드 제거 → 대상 시퀀스의 $PREP z_index 주입(_lastPrepZIndexBySeq).
+        // v1.0 실행(grab) 레벨 z_index 스코프 필터링 배선(StartV1Scoped 위임)
+        //  응답 집계 레벨(AggregateIndexFais)에서만 되던 z_index 필터를 실행 레벨까지 넓힌다.
         private bool ProcessTest(TestPacket packet) {
             if (!IsRecipeReady) {
                 Logging.PrintLog((int)ELogType.Error, "[RECIPE] TEST rejected — recipe not yet loaded (IsRecipeReady=false)");
@@ -330,27 +330,27 @@ namespace ReringProject {
                 string seqName = packet.Identifier;
                 SequenceBase seq = Sequences[seqName];
                 if (seq == null) return false;
-                return StartV1Scoped(seq, packet, nPrepZIndex); //260722 hbk Phase 68 D-01/D-01a: z=0 StartAll / z>=1 StartSubset(+폴백)
+                return StartV1Scoped(seq, packet, nPrepZIndex); //260722 hbk z=0 StartAll / z>=1 StartSubset(+폴백)
             }
             return Sequences.Start(packet);
         }
 
-        //260722 hbk Phase 68 D-01/D-01a/D-01b: v1.0(UseProtocolV1+IsDynamicFAIMode) $TEST 실행 스코프 배선.
+        //260722 hbk v1.0(UseProtocolV1+IsDynamicFAIMode) $TEST 실행 스코프 배선.
         //  대상 시퀀스의 $PREP z_index(_lastPrepZIndexBySeq 조회 결과 = 파라미터 nPrepZIndex)가 이번 $TEST 의
         //  z_index 단일 소스(packet.TestID 는 방금 이 값으로 대입됐을 뿐 재파싱 안 함).
-        //  z_index==0(Datum) → StartAll(D-01a, 회귀 0). z_index>=1 → InspectionSequence.FindActionIndicesByZIndex 로
-        //  매핑 Shot(own-ZIndex + 크로스-Z ZIndexA/ZIndexB owning Shot, D-01) 만 StartSubset 실행.
-        //  StartSubset 은 매칭 인덱스의 min-max 연속구간만 실행(D-01b, SequenceHandler.RebuildInspectionActions 의
+        //  z_index==0(Datum) → StartAll. z_index>=1 → InspectionSequence.FindActionIndicesByZIndex 로
+        //  매핑 Shot(own-ZIndex + 크로스-Z ZIndexA/ZIndexB owning Shot) 만 StartSubset 실행.
+        //  StartSubset 은 매칭 인덱스의 min-max 연속구간만 실행(SequenceHandler.RebuildInspectionActions 의
         //  ZIndex 안정 정렬이 same-ZIndex Shot 인접을 보장) — 스파스 크로스-Z 매칭으로 min-max 구간이 확장되어 그 사이
-        //  무관 Shot 이 재실행될 가능성은 Plan 05 UAT 시나리오 1의 명시적 PASS/FAIL 게이트로 검증한다(T-68-01 mitigation).
+        //  무관 Shot 이 재실행될 가능성은 시나리오 1의 명시적 PASS/FAIL 게이트로 검증한다.
         //  매칭 0건(레시피 ZIndex 미설정 등 운용 오류 또는 의도적으로 shot 이 없는 빈 z_index) → 조용한 무시 금지,
-        //  로그는 남기되 Action 은 실행하지 않고 즉시 빈 응답으로 응답한다(StartEmptyScope, 260810 hbk
+        //  로그는 남기되 Action 은 실행하지 않고 즉시 빈 응답으로 응답한다(StartEmptyScope
         //  bottom-empty-zindex-tcp-delay 수정 — 기존 StartAll 폴백은 이 시퀀스의 무관한 다른 z 의 shot 을 전부
         //  재실행했을 뿐 응답 내용에는 전혀 기여하지 않으면서 실기 재현 7,485ms 응답 지연을 유발했다. 상세 근거는
         //  StartEmptyScope 호출부 주석 참고).
         private bool StartV1Scoped(SequenceBase seq, TestPacket packet, int nPrepZIndex)
         {
-            // quick-260904-iwm: 캐스트를 함수 최상단으로 hoist — 기준점 판정(nDatumZ)과 아래 일반 실행 스코프
+            //260904 hbk 캐스트를 함수 최상단으로 hoist — 기준점 판정(nDatumZ)과 아래 일반 실행 스코프
             // 판정이 모두 같은 InspectionSequence 참조를 공유한다. 캐스트 실패(방어적, 실제로는 도달하지 않음)면
             // NO_SEQUENCE_DATUM_Z_INDEX 로 폴백해 종전과 동일하게 동작한다.
             InspectionSequence inspSeq = seq as InspectionSequence; // dynamic-FAI 런타임 타입은 항상 InspectionSequence
@@ -367,7 +367,7 @@ namespace ReringProject {
             bool bIsDatumZIndex = nPrepZIndex == nDatumZ;
             if (bIsDatumZIndex)
             {
-                //260722 hbk Phase 68 FIX-0(68-GAP-ANALYSIS.md): 크로스-Z 저장소 리셋을 z=0 응답 생성 시점
+                //260722 hbk 크로스-Z 저장소 리셋을 z=0 응답 생성 시점
                 //  (InspectionSequence.ResetCycleState, 모든 z=0 Action 실행이 끝난 뒤)에서 여기 z=0 $TEST
                 //  수신 즉시(StartAll=z=0 Action 실행 시작 전)로 이동한다 — role A 이미지가 같은 z=0 tick의
                 //  응답 단계에서 지워지지 않고 z=1 도착까지 살아남게 하기 위함. 캐스트 실패(방어적, 미도달)면
@@ -377,7 +377,7 @@ namespace ReringProject {
                     return seq.StartAll(packet); // 방어적 폴백 — 실제로는 도달하지 않음(IsDynamicFAIMode 경로는 항상 InspectionSequence)
                 }
                 inspSeq.BeginCrossZImageCycle();
-                //260807 hbk quick-260807-fix2: Datum transform 캐시(_datumTransforms/_failedDatums) Clear 를
+                //260807 hbk Datum transform 캐시(_datumTransforms/_failedDatums) Clear 를
                 //  여기서 직접 호출하던 이전 시도(State==Idle 사전 체크 후 Clear)는 TOCTOU 레이스였다 — 이 체크와
                 //  StartSubset/StartAll 호출 사이에 "이전 사이클" 시퀀스 스레드가 (SequenceBase.MainExecute 5ms
                 //  polling 으로) State 를 Finish/Error→Idle 로 독립적으로 바꿔버릴 수 있어, "State!=Idle 이라 Clear
@@ -390,13 +390,13 @@ namespace ReringProject {
                 //  물러났고(그렇지 않았다면 State!=Idle 이라 이번 StartCore 자체가 실패해 OnStart 가 아예 발화되지
                 //  않는다) 다음 사이클 스레드는 아직 첫 Action 도 시작 전이라 두 컬렉션을 아무도 건드릴 수 없다 —
                 //  Idle 사전-체크가 필요 없는, 진짜 락-프리 안전 지점.
-                //260722 hbk Phase 68(68-12, GAP-3 z=0 낭비 제거): z=0 이 더 이상 무조건 StartAll 전량 실행하지
+                // (z=0 낭비 제거): z=0 이 더 이상 무조건 StartAll 전량 실행하지
                 //  않는다 — 이 시퀀스의 대표 Datum 트리거 Action(들)만 StartSubset 으로 실행하고, 다른 측정 Shot
                 //  의 Grab/Measure 는 EStep.DatumPhase 종료부(ShouldSkipMeasurementAfterDatumPhase)에서 스킵된다.
                 //  DatumConfigs 가 비어있거나(엣지 케이스) 대표 트리거가 하나도 해석 안 되면 정상적으로 가능한
                 //  레시피 구성(운영 오류 아님)이므로 StartAll 로 안전 폴백한다.
-                //  quick-260812: 진단 로그 제거 — 정상 폴백 경로라 운영자에게 알릴 내용이 없다.
-                // quick-260904-iwm: 대표 트리거 조회 메서드 이름 정정(기준점 index 의미로), inspDatumSeq 는
+                //  진단 로그 제거 — 정상 폴백 경로라 운영자에게 알릴 내용이 없다.
+                // 대표 트리거 조회 메서드 이름 정정(기준점 index 의미로), inspDatumSeq 는
                 // 위에서 hoist 한 inspSeq 를 재사용.
                 List<int> datumTriggerIndices = inspSeq.FindDatumIndexTriggerActionIndices();
                 bool bHasDatumTrigger = datumTriggerIndices != null && datumTriggerIndices.Count > 0;
@@ -416,7 +416,7 @@ namespace ReringProject {
             {
                 return seq.StartSubset(matchedIndices.ToArray(), packet);
             }
-            //260722 hbk Phase 68 GAP-2(68-GAP-ANALYSIS.md 우선순위 2): 빈-매칭이 전부 운용 오류인 것은 아니다 —
+            //260722 hbk 빈-매칭이 전부 운용 오류인 것은 아니다
             //  오직 크로스-Z Datum 만 쓰는 z_index(예: Side z=1)는 own ZIndex/측정 ZIndexA/B 매칭이 없는 게 정상이다.
             //  StartAll 폴백(무관 Shot 전체 재-grab + 매 사이클 Error 로그) 대신 datum-only 최소 Action 만 실행한다.
             bool bDatumOnly = inspSeq.IsDatumOnlyExecutionIndex(nPrepZIndex);
@@ -431,13 +431,13 @@ namespace ReringProject {
             }
             //260810 hbk bottom-empty-zindex-tcp-delay: 진짜 "매칭 0건"(크로스-Z Datum 전용도 아님) — 기존엔
             //  여기서 StartAll 로 이 시퀀스 전체(다른 모든 z 의 shot)를 재실행했다. 이는 InspectionSequence.
-            //  WarnIfEmptyScope 주석(Phase 49 BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
-            //  모순되는 별도 레이어(Phase 68 실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
+            //  WarnIfEmptyScope 주석( BLOCKER 1)의 "폴백(전체 재검사) 금지 — 경고만" 결정과 정면
+            //  모순되는 별도 레이어( 실행 스코프)의 안전장치였고, 실기 재현(BOTTOM z=3, main.ini 상
             //  3/22 는 원래부터 BOTTOM 소유 shot 이 0개인 정상 구성)에서 7,485ms 응답 지연을 유발했다 —
             //  StartAll 로 실행된 다른 z 의 shot 은 AggregateIndexFais(nZIndex=이번  의 z_index) 필터에 절대
             //  포함되지 않으므로(별개 z), 응답 내용은 Action 미실행 시와 100% 동일(B, FAIResults 0건) — 즉
             //  StartAll 은 응답 정확성에 전혀 기여하지 않고 지연만 유발했다(근본원인 확정,
-            //  .planning/debug/bottom-empty-zindex-tcp-delay.md). StartEmptyScope 는 Action 실행 없이
+            //  ). StartEmptyScope 는 Action 실행 없이
             //  BuildScopedResponse/WarnIfEmptyScope(그대로 경고 로그 유지)만 거쳐 즉시 응답한다(회귀 0 설계 —
             //  응답 산출 로직은 1바이트도 변경하지 않음, 달라지는 것은 오직 "그 사이 무관한 shot 을 재실행하지
             //  않는다"는 점 뿐이다).
@@ -454,7 +454,7 @@ namespace ReringProject {
             resultPacket.Target = sendPacket.Sender;
             resultPacket.Site = sendPacket.Site;
             resultPacket.InspectionType = sendPacket.TestType;
-            resultPacket.Type = sendPacket.Type;   //260820 hbk quick-fix: 이 폴백 경로가 Type echo 를 빼먹어서
+            resultPacket.Type = sendPacket.Type;   //260820 hbk 이 폴백 경로가 Type echo 를 빼먹어서
                                                     //  v1.0 $RESULT 의 Type 필드가 빈 값으로 나가던 버그 수정
                                                     //  (실측: SIDE 마지막 z_index 응답에서 $RESULT:site;;F@ 확인).
             resultPacket.Result = EVisionResultType.NG;
@@ -462,11 +462,11 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260626 hbk Phase 65 Plan 03 AV-08: $ALIGN_TEST 처리 — stub(IsPass=true echo) → 실측 grab+Run+pose 채움.
-        //  BOTTOM: AlignFace→슬롯→grab→Matcher.Run→FillAlignPose(OffsetX/OffsetY/Theta)+IsPass=Found (D-06/D-07).
+        //260626 hbk $ALIGN_TEST 처리 — stub(IsPass=true echo) → 실측 grab+Run+pose 채움.
+        //  BOTTOM: AlignFace→슬롯→grab→Matcher.Run→FillAlignPose(OffsetX/OffsetY/Theta)+IsPass=Found .
         //  TRAY: grab/Run 미수행 — 기존 echo ack 동작 유지 (회귀 0).
-        //  AlignFace 범위 외(음수/6이상): IsPass=false 안전 거부+로그 (T-65-01).
-        private AlignResultPacket ProcessAlignTest(AlignTestPacket packet) //260626 hbk 실측 경로 배선 (Phase 65 P03)
+        //  AlignFace 범위 외(음수/6이상): IsPass=false 안전 거부+로그 .
+        private AlignResultPacket ProcessAlignTest(AlignTestPacket packet) //260626 hbk 실측 경로 배선
         {
             AlignResultPacket resultPacket = new AlignResultPacket();
             if (packet == null)
@@ -475,8 +475,8 @@ namespace ReringProject {
             }
             resultPacket.Target      = packet.Sender;
             resultPacket.AlignTarget = packet.AlignTarget;
-            resultPacket.MaterialNo  = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo (무변경)
-            resultPacket.AlignFace   = packet.AlignFace;   //260626 hbk v3.0: 지그 면 인덱스 echo (무변경)
+            resultPacket.MaterialNo  = packet.MaterialNo;  //260625 hbk v3.0: 자재번호 echo
+            resultPacket.AlignFace   = packet.AlignFace;   //260626 hbk v3.0: 지그 면 인덱스 echo
 
             bool bIsBottom = packet.AlignTarget == "BOTTOM"; //260626 hbk BOTTOM 전용 슬롯 라우팅
             if (!bIsBottom)
@@ -487,15 +487,15 @@ namespace ReringProject {
                 return resultPacket;
             }
 
-            //260626 hbk BOTTOM: AlignFace → 슬롯 매핑 (범위 외 → None → NG 안전 거부, T-65-01)
+            //260626 hbk BOTTOM: AlignFace → 슬롯 매핑 (범위 외 → None → NG 안전 거부)
             EBottomAlignSlot slot = EBottomAlignSlotMap.FromAlignFace(packet.AlignFace);
             bool bSlotValid = (slot != EBottomAlignSlot.None);
             if (!bSlotValid)
             {
                 Logging.PrintLog((int)ELogType.Error,
                     "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~5)", packet.AlignFace);
-                FillAlignPoseZero(resultPacket); //260626 hbk WR-01: PLC 필드 수 일관성 — pose=0 채움 후 NG 반환
-                resultPacket.IsPass = false; //260626 hbk NG 안전 거부 (T-65-01)
+                FillAlignPoseZero(resultPacket); //260626 hbk PLC 필드 수 일관성 — pose=0 채움 후 NG 반환
+                resultPacket.IsPass = false; //260626 hbk NG 안전 거부
                 return resultPacket;
             }
 
@@ -505,9 +505,9 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260626 hbk Phase 65 P03: BOTTOM 슬롯별 grab+Matcher.Run+pose 채움 헬퍼.
-        //  미티칭/미연결/grab실패/검출실패 → IsPass=false + 로그. throw 금지 (TCP 스레드 크래시 방지, T-65-06).
-        //  HImage/DetectedContourXld 반드시 Dispose (HALCON 핸들 누수 방지, Phase 61.1 WR-01/02 선례).
+        //260626 hbk BOTTOM 슬롯별 grab+Matcher.Run+pose 채움 헬퍼.
+        //  미티칭/미연결/grab실패/검출실패 → IsPass=false + 로그. throw 금지 (TCP 스레드 크래시 방지).
+        //  HImage/DetectedContourXld 반드시 Dispose (HALCON 핸들 누수 방지, 선례).
         private bool RunBottomAlign(EBottomAlignSlot slot, AlignResultPacket pResult) //260626 hbk 슬롯 grab→Run→pose 위임
         {
             try
@@ -539,9 +539,9 @@ namespace ReringProject {
                 bool bAlignPass = false;
                 try
                 {
-                    //260626 hbk Phase 66 D-06/D-07 — grab 직전 해당 슬롯 동축값 자동 적용(티칭=런타임 조명 일치)
+                    //260626 hbk grab 직전 해당 슬롯 동축값 자동 적용(티칭=런타임 조명 일치)
                     ApplyCoaxLightForSlot(slot);
-                    //260626 hbk EthernetAlignCamera.Grab() — IsOpen 이면 라이브 grab, 아니면 폴백(D-05, SIMUL 지원)
+                    //260626 hbk EthernetAlignCamera.Grab — IsOpen 이면 라이브 grab, 아니면 폴백(SIMUL 지원)
                     img = EthernetVisionHandler.Handle.Camera.Grab();
                     if (img == null)
                     {
@@ -557,11 +557,11 @@ namespace ReringProject {
                     {
                         Logging.PrintLog((int)ELogType.Error,
                             "[ALIGN_TEST] Bottom slot={0} 검출 실패(Found=false) — NG 반환", (int)slot);
-                        FillAlignPoseZero(pResult); //260626 hbk 검출 실패 시 pose=0 (T-65-05: 잘못된 보정값 미전송)
+                        FillAlignPoseZero(pResult); //260626 hbk 검출 실패 시 pose=0 (: 잘못된 보정값 미전송)
                         return false;
                     }
 
-                    //260626 hbk 검출 성공 — pose Items 채움 (D-07)
+                    //260626 hbk 검출 성공 — pose Items 채움
                     FillAlignPose(pResult, res);
                     Logging.PrintLog((int)ELogType.Trace,
                         "[ALIGN_TEST] Bottom slot={0} PASS off=({1:0.000},{2:0.000}) theta={3:0.000}",
@@ -579,7 +579,7 @@ namespace ReringProject {
                         img.Dispose();
                         img = null;
                     }
-                    //260626 hbk DetectedContourXld Dispose — TCP 경로에서 미사용, 누수 방지 (Phase 61.1 WR-01)
+                    //260626 hbk DetectedContourXld Dispose — TCP 경로에서 미사용, 누수 방지
                     if (res != null && res.DetectedContourXld != null)
                     {
                         res.DetectedContourXld.Dispose();
@@ -590,10 +590,10 @@ namespace ReringProject {
             }
             catch (Exception ex)
             {
-                //260626 hbk 예외 → throw 금지, false 반환 (TCP 스레드 크래시 방지, T-65-06)
+                //260626 hbk 예외 → throw 금지, false 반환 (TCP 스레드 크래시 방지)
                 Logging.PrintLog((int)ELogType.Error,
                     "[ALIGN_TEST] RunBottomAlign 예외: {0}", ex.Message);
-                FillAlignPoseZero(pResult); //260626 hbk WR-02: 외부 catch — 빈 Items 응답 방지, pose=0 채움
+                FillAlignPoseZero(pResult); //260626 hbk 외부 catch — 빈 Items 응답 방지, pose=0 채움
                 return false;
             }
         }
@@ -708,8 +708,8 @@ namespace ReringProject {
             }
         }
 
-        //260626 hbk Phase 66 D-06 — 슬롯 JSON 의 CoaxEnabled/CoaxLevel 을 읽어 LIGHT_ALIGN_COAX 적용.
-        //  JSON 없음(미티칭)/null → 동축 off. 예외 → 로그 후 off (throw 금지, TCP 스레드 크래시 방지 T-66-01).
+        //260626 hbk 슬롯 JSON 의 CoaxEnabled/CoaxLevel 을 읽어 LIGHT_ALIGN_COAX 적용.
+        //  JSON 없음(미티칭)/null → 동축 off. 예외 → 로그 후 off (throw 금지, TCP 스레드 크래시 방지).
         private void ApplyCoaxLightForSlot(EBottomAlignSlot slot)
         {
             try
@@ -741,8 +741,8 @@ namespace ReringProject {
             }
         }
 
-        //260626 hbk Phase 65 P03: AlignResultPacket.Items 에 pose(OffsetX/OffsetY/Theta) 채움.
-        //  Items 순서: OffsetX → OffsetY → Theta (BuildAlignItems 직렬화 순서, D-08 v3.0 스펙).
+        //260626 hbk AlignResultPacket.Items 에 pose(OffsetX/OffsetY/Theta) 채움.
+        //  Items 순서: OffsetX → OffsetY → Theta (BuildAlignItems 직렬화 순서, v3.0 스펙).
         private void FillAlignPose(AlignResultPacket pkt, AlignResult res) //260626 hbk 검출 성공 pose 채움
         {
             pkt.Items.Clear();
@@ -762,8 +762,8 @@ namespace ReringProject {
             pkt.Items.Add(itemTheta);
         }
 
-        //260626 hbk Phase 65 P03: 검출 실패/미티칭/grab 실패 시 pose=0 채움.
-        //  PLC 가 형식 일관 수신할 수 있도록 0값 전송 (IsPass=false → PLC 안착 미실행, T-65-05).
+        //260626 hbk 검출 실패/미티칭/grab 실패 시 pose=0 채움.
+        //  PLC 가 형식 일관 수신할 수 있도록 0값 전송 (IsPass=false → PLC 안착 미실행).
         private void FillAlignPoseZero(AlignResultPacket pkt) //260626 hbk NG 시 pose=0 채움 (PLC 형식 일관)
         {
             pkt.Items.Clear();
@@ -783,7 +783,7 @@ namespace ReringProject {
             pkt.Items.Add(itemTheta);
         }
 
-        // D-75-01: 정상/NG 무관 매 Align 마다 ① 재매칭 결과를 기록한다.
+        //260827 hbk 정상/NG 무관 매 Align 마다 ① 재매칭 결과를 기록한다.
         //  분쟁은 나중에 생긴다 — "그 건은 OK 라 안 남겼습니다" 는 방어가 안 된다.
         //  실패해도 throw 하지 않는다(TCP 스레드 크래시 방지). Align 응답에는 일절 영향을 주지 않는다.
         private void RecordAlignVerify(EEthernetVisionMode mode, EBottomAlignSlot slot,
@@ -906,7 +906,7 @@ namespace ReringProject {
             }
         }
 
-        // 이미지 없이 실패한 Align(미티칭/카메라 미연결)도 기록은 남긴다 — D-75-01.
+        //260827 hbk 이미지 없이 실패한 Align(미티칭/카메라 미연결)도 기록은 남긴다 — .
         private void RecordAlignFailureOnly(EEthernetVisionMode mode, EBottomAlignSlot slot,
                                             int nMaterialNo, string szReason)
         {
@@ -1031,7 +1031,7 @@ namespace ReringProject {
             }
         }
 
-        //quick-260812: TCP 자동경로의 캘 실패를 화면에도 알린다. 로그·판정·응답은 그대로 둔다.
+        //260812 hbk TCP 자동경로의 캘 실패를 화면에도 알린다. 로그·판정·응답은 그대로 둔다.
         //  마샬링을 여기(호출 측)에서 하는 이유: 통신 스레드가 라벨을 직접 만지면 안 되고,
         //  기존 뷰어 콜백 2개도 정확히 같은 위치에서 같은 방식으로 넘긴다.
         //  구독자가 없거나(창 미부착) 앱 종료 중이면 조용히 지나간다.
@@ -1060,9 +1060,9 @@ namespace ReringProject {
             }
         }
 
-        //260624 hbk Phase 63 AV-09: $ALIGN_CALIB 처리.
-        //260625 hbk v3.0: CmdStr echo 추가. AlignFace 제거됨.
-        //260630 hbk Phase 60: 스텁 → 실 구현 (START/STEP/END/ABORT 분기 + PickerCal 연결).
+        //260624 hbk $ALIGN_CALIB 처리.
+        // v3.0: CmdStr echo 추가. AlignFace 제거됨.
+        // 스텁 → 실 구현 (START/STEP/END/ABORT 분기 + PickerCal 연결).
         // PLC 캘($ALIGN_CALIB) 명령에는 면 슬롯 필드가 없다. 피커 캘은 Bottom 3D_Top 면 슬롯의 동축 설정(슬롯 JSON)으로 찍는다.
         private const EBottomAlignSlot PICKER_CAL_COAX_SLOT = EBottomAlignSlot.Slot3DTop;
 
@@ -1081,9 +1081,9 @@ namespace ReringProject {
 
             string szCmd = packet.CmdStr;
 
-            int nCmd = 0;                                                    //260807 hbk quick-260807-omy
-            bool bCmdIsNumeric = Int32.TryParse(szCmd, out nCmd);             //260807 hbk quick-260807-omy
-            if (!bCmdIsNumeric)                                               //260807 hbk quick-260807-omy 비숫자 가드 — 코드 비교보다 반드시 먼저 (0=START 오인식 방지)
+            int nCmd = 0;
+            bool bCmdIsNumeric = Int32.TryParse(szCmd, out nCmd);
+            if (!bCmdIsNumeric)                                               //260807 hbk 비숫자 가드 — 코드 비교보다 반드시 먼저 (0=START 오인식 방지)
             {
                 Logging.PrintLog((int)ELogType.Error, "[ALIGN_CALIB] 숫자가 아닌 CmdStr: {0}", szCmd);
                 NotifyAlignCalibError("[자동] 명령 형식 오류: " + szCmd);
@@ -1095,7 +1095,7 @@ namespace ReringProject {
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
 #if SIMUL_MODE
-                //260630 hbk — SIMUL: START 수신 시 이미지 순차 인덱스 리셋
+                //260630 hbk SIMUL: START 수신 시 이미지 순차 인덱스 리셋
                 if (EthernetVisionHandler.Handle.Camera != null) {
                     EthernetVisionHandler.Handle.Camera.ResetSimulIndex();
                 }
@@ -1110,7 +1110,7 @@ namespace ReringProject {
                     NotifyAlignCalibError("[자동] START 모델 로드 실패: " + loadErr);
                 }
                 resultPacket.IsPass = true;
-                resultPacket.StepNo = 0;    //260810 hbk quick-260810-olh: N=0 고정(제어팀 요청, START 의미)
+                resultPacket.StepNo = 0;    //260810 hbk N=0 고정(제어팀 요청, START 의미)
                 Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] START — 누적 초기화, model={0}", bLoaded);
                 return resultPacket;
             }
@@ -1132,7 +1132,7 @@ namespace ReringProject {
                     // 수동 캘·$ALIGN_TEST 와 같은 동축 조명으로 찍는다 — 조명 명령 없이 찍으면 어두운 사진으로 검출이 실패한다.
                     ApplyCoaxLightForSlot(PICKER_CAL_COAX_SLOT);
                     LightHandler.Handle.WaitForLightsSettled();
-                    // 260724 hbk 임시 진단 — 동기 파일 기록으로 크래시 직전 상황 확실히 남김
+                    //260724 hbk 임시 진단 — 동기 파일 기록으로 크래시 직전 상황 확실히 남김
                     try { System.IO.File.AppendAllText(@"D:\Data\Camera\crash_diag.log",
                         string.Format("{0} [ALIGN_CALIB] STEP: Camera.Grab() 호출 직전\r\n", DateTime.Now.ToString("HH:mm:ss.fff"))); } catch { }
                     img = EthernetVisionHandler.Handle.Camera.Grab();
@@ -1146,14 +1146,14 @@ namespace ReringProject {
                         return resultPacket;
                     }
 
-                    //260630 hbk — 사각형 ROI 전환: Row/Col/Radius→Row1/Col1/Row2/Col2
+                    //260630 hbk 사각형 ROI 전환: Row/Col/Radius→Row1/Col1/Row2/Col2
                     double dSearchRow1 = SystemSetting.Handle.CalibSearchRow1;
                     double dSearchCol1 = SystemSetting.Handle.CalibSearchCol1;
                     double dSearchRow2 = SystemSetting.Handle.CalibSearchRow2;
                     double dSearchCol2 = SystemSetting.Handle.CalibSearchCol2;
 
                     double dFoundRow, dFoundCol;
-                    double dScore;   //quick-260812: 이미 계산된 검색 점수 수신(등급 로그용)
+                    double dScore;   //260812 hbk 이미 계산된 검색 점수 수신(등급 로그용)
                     string error;
                     bool bOk = EthernetVisionHandler.Handle.PickerCal.TryAddStep(
                         img, dSearchRow1, dSearchCol1, dSearchRow2, dSearchCol2,
@@ -1163,7 +1163,7 @@ namespace ReringProject {
                     {
                         resultPacket.StepNo = EthernetVisionHandler.Handle.PickerCal.StepCount;
                         resultPacket.IsPass = true;
-                        //260630 hbk — TCP 경로: Grab 이미지 + vizXld 를 뷰어에 표시
+                        //260630 hbk TCP 경로: Grab 이미지 + vizXld 를 뷰어에 표시
                         var viewerCb = EthernetVisionHandler.Handle.OnCalibStepViewer;
                         if (viewerCb != null)
                         {
@@ -1171,7 +1171,7 @@ namespace ReringProject {
                             HImage imgRef = img; // finally 전에 캡처
                             System.Windows.Application.Current.Dispatcher.Invoke(() => viewerCb(imgRef, vizXld));
                         }
-                        //quick-260812: 이번 Quick 은 로그까지. 화면 노출은 Quick #3(TCP 자동경로) 범위.
+                        //260812 hbk 이번 Quick 은 로그까지. 화면 노출은 Quick #3(TCP 자동경로) 범위.
                         ETeachGrade calGrade = TeachDiag.ClassifyScore(dScore, PickerCenterCalibrationService.FindMinScore);
                         Logging.PrintLog((int)ELogType.Trace,
                             "[ALIGN_CALIB] STEP {0} OK score={1:F3} grade={2}", resultPacket.StepNo, dScore, calGrade);
@@ -1205,8 +1205,8 @@ namespace ReringProject {
                 if (bOk)
                 {
                     resultPacket.IsPass = true;
-                    resultPacket.StepNo = 99;    //260810 hbk quick-260810-olh: N=99 고정(제어팀 요청, END=완료 의미)
-                    //260630 hbk — END 성공: 피커센터 즉시 저장 (비정상 종료 시 손실 방지)
+                    resultPacket.StepNo = 99;    //260810 hbk N=99 고정(제어팀 요청, END=완료 의미)
+                    //260630 hbk END 성공: 피커센터 즉시 저장 (비정상 종료 시 손실 방지)
                     SystemSetting.Handle.Save();
                     var endCb = EthernetVisionHandler.Handle.OnCalibEndViewer;
                     if (endCb != null)
@@ -1232,7 +1232,7 @@ namespace ReringProject {
             {
                 EthernetVisionHandler.Handle.PickerCal.Reset();
                 resultPacket.IsPass = true;
-                resultPacket.StepNo = 98;    //260810 hbk quick-260810-olh: N=98 고정(제어팀 요청, ABORT=취소 의미)
+                resultPacket.StepNo = 98;    //260810 hbk N=98 고정(제어팀 요청, ABORT=취소 의미)
                 Logging.PrintLog((int)ELogType.Trace, "[ALIGN_CALIB] ABORT — 누적 초기화");
                 return resultPacket;
             }
@@ -1255,11 +1255,11 @@ namespace ReringProject {
             return resultPacket;
         }
 
-        //260625 hbk Phase 64 LIGHT-01 (D-12): $PREP 처리.
-        //260806 hbk Phase 71: Op 필드 폐기 — $PREP 는 항상 "이 z_index 조명 점등" 단일 의미.
-        //  소등은 PLC 요청이 아니라 사이클 P/F 확정 시 InspectionSequence 가 자동 수행(71-02, TryTurnOffLightsOnCycleEnd).
+        //260625 hbk $PREP 처리.
+        // Op 필드 폐기 — $PREP 는 항상 "이 z_index 조명 점등" 단일 의미.
+        //  소등은 PLC 요청이 아니라 사이클 P/F 확정 시 InspectionSequence 가 자동 수행(TryTurnOffLightsOnCycleEnd).
         //  HW 트리거 전환 대비: 조명 점등이 $PREP(준비 단계)에 통합 → $TEST(트리거)는 조명 무관.
-        //  Phase 73: Site 필드는 ACK echo 전용이고, 실제 라우팅은 Type 이 정한다(ResourceMap.SetIdentifier 가
+        //  Site 필드는 ACK echo 전용이고, 실제 라우팅은 Type 이 정한다(ResourceMap.SetIdentifier 가
         //  packet.Identifier 에 대상 시퀀스 이름을 채워 준다). 더 이상 "이 PC 소속 InspectionSequence 전부"가 아니다.
         private PrepAckPacket ProcessPrep(PrepPacket packet)
         {
@@ -1303,12 +1303,12 @@ namespace ReringProject {
             return ackPacket;
         }
 
-        //260807 hbk quick-260807-lh7 (D-LH7-01): $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
+        //260807 hbk (D-LH7-01): $RESET 처리 — "검사 상태 클린 슬레이트 + ACK".
         //  왜 필요한가: $PREP 이 저장한 시퀀스별 z_index 는 다음 $PREP 이 올 때까지 계속 남는데 되돌릴 수단이 앱 재시작뿐이라,
         //  실측 중 상태가 꼬이면 복구가 불가능했다. 그 복구 수단이 이 명령이다.
         //  Site 필드는 ACK 에 echo 만 한다 — 라우팅에 쓰지 않는다. site 로 Top/Bottom 을 구분하는 것이 불가능한 것은
         //  이미 확인된 설계 제약이며, $RESET 은 대상을 가리지 않고 "이 PC 의 InspectionSequence 전부"를 리셋한다
-        //  (Phase 73 이후 $PREP 은 Type 으로 대상 1개를 정하지만, $RESET 은 전체 클린 슬레이트가 목적이라 그대로 둔다).
+        //  ( 이후 $PREP 은 Type 으로 대상 1개를 정하지만, $RESET 은 전체 클린 슬레이트가 목적이라 그대로 둔다).
         //  IsOk 의미: true = 모든 대상 시퀀스가 실제로 리셋됨 / false = 하나 이상이 실행 중이라 건너뜀(또는 대상 0개).
         //  실패여도 ACK 는 반드시 보낸다 — 무응답은 PLC 를 ACK 무한 대기(라인 정지)시킨다.
         private ResetAckPacket ProcessReset(ResetPacket packet)
@@ -1384,8 +1384,8 @@ namespace ReringProject {
 
         // $PREP 대상 시퀀스 1개에만 조명을 적용한다.
         //  이전 구현은 전 시퀀스를 순회하며 마지막이 이기는 구조라, z 값이 대상을 암시한다는 전제 위에
-        //  서 있었다 — Phase 73 이 그 전제를 깬다(지그마다 z 가 0 부터 시작).
-        //  반환값 의미(D-73-08): true = 조명 세팅 성공 / false = 조명 세팅 실패.
+        //  서 있었다 — SIDE 지그 분리가 그 전제를 깬다(지그마다 z 가 0 부터 시작).
+        //  반환값 의미: true = 조명 세팅 성공 / false = 조명 세팅 실패.
         //  ⚠ "이 z 에 Shot 이 있는가"는 더 이상 판정하지 않는다. Shot 이 없는 z(기준점 전용 z, 아직 항목을
         //  안 넣은 빈 z)는 조명을 건드릴 대상이 없을 뿐이며 정상이므로 true 다.
         private bool ApplyPrepToSequence(string szSeqName, int nZIndex)
@@ -1418,8 +1418,8 @@ namespace ReringProject {
         }
 
         //260626 hbk v3.0: 전 InspectionSequence 소등 헬퍼(하나라도 있으면 true).
-        //260806 hbk Phase 71: $PREP Op 폐기로 현재 호출자 없음 — CONTEXT locked decision 에 따라 삭제하지 않고 유지한다.
-        //  소등 주체가 "PLC 의 명시 요청" → "사이클 P/F 확정 시 자동"(InspectionSequence.TryTurnOffLightsOnCycleEnd, 71-02)으로 이동했을 뿐이며,
+        // $PREP Op 폐기로 현재 호출자 없음 — CONTEXT locked decision 에 따라 삭제하지 않고 유지한다.
+        //  소등 주체가 "PLC 의 명시 요청" → "사이클 P/F 확정 시 자동"(InspectionSequence.TryTurnOffLightsOnCycleEnd)으로 이동했을 뿐이며
         //  향후 "PC 단위 전 시퀀스 강제 소등"(예: 비상정지/레시피 전환)이 필요해지면 이 헬퍼를 그대로 재사용한다.
         private bool TurnOffPrepLights()
         {
@@ -1440,8 +1440,8 @@ namespace ReringProject {
             return bAnyOff;
         }
 
-        //260807 hbk quick-260807-lh7: Sequences 순회 → InspectionSequence 만 골라 클린 슬레이트 리셋.
-        //  260810 hbk reset-datum-clear-race 수정: 이전엔 여기서 State==Idle 을 락 없이 미리 읽고, 그 결과를 근거로
+        //260807 hbk Sequences 순회 → InspectionSequence 만 골라 클린 슬레이트 리셋.
+        //  reset-datum-clear-race 수정: 이전엔 여기서 State==Idle 을 락 없이 미리 읽고, 그 결과를 근거로
         //  (같은 원자성 없이) ResetCycleStateForProtocolReset() 을 나중에 호출했다 — 그 사이 SequenceBase.StartCore
         //  가 끼어들어 Idle→Running 원자 점유에 성공하면, 이 스레드는 이미 지난 "Idle" 판단을 근거로 그대로 Clear 를
         //  실행해 실행 중인 시퀀스 스레드와 락 없는 _datumTransforms 등을 동시에 건드릴 수 있었다(TOCTOU, 크래시/
@@ -1484,12 +1484,12 @@ namespace ReringProject {
             return bAllReset;
         }
 
-        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change buffer flush wire-up (D-02 / D-03)
+        //260510 hbk channel #1 — recipe change buffer flush wire-up
         private void WireBufferLifecycle() {
-            //260510 hbk Phase 21: OnRecipeChanged subscriber 등록 — Sequences 가 SequenceHandler.Handle 로 초기화된 후 호출되어야 함
+            //260510 hbk OnRecipeChanged subscriber 등록 — Sequences 가 SequenceHandler.Handle 로 초기화된 후 호출되어야 함
             Sequences.OnRecipeChanged += OnRecipeChanged_FlushBuffers;
 
-            //260811 hbk plc-spec-260811-alignment(조명): 이 메서드가 SystemHandler.Initialize() Step 6(root,
+            //260811 hbk (조명): 이 메서드가 SystemHandler.Initialize Step 6(root
             //  READ-ONLY)에서 호출되는 유일한 Custom-측 wiring 지점이라 재사용한다 — Lights(Step 1)/Sequences
             //  (Step 2) 둘 다 이 시점엔 이미 준비돼 있다. 이름은 "BufferLifecycle" 이지만 "기동 시 1회 wiring"
             //  이라는 본질은 동일해 새 이름의 별도 메서드를 추가하고 root 에서 호출부를 새로 추가하는 것보다
@@ -1497,25 +1497,25 @@ namespace ReringProject {
             Lights.OnError += OnLightHandlerError;
         }
 
-        //260510 hbk Phase 21: BUF-02 channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호 — D-04 Claude's Discretion)
+        //260510 hbk channel #1 — Release 시점 unsubscribe (subscriber lifecycle 보호 — Claude's Discretion)
         internal void UnwireBufferLifecycle() {
-            //260510 hbk Phase 21: 멱등 — 미등록 상태에서도 안전 (delegate -= null 무동작)
+            //260510 hbk 멱등 — 미등록 상태에서도 안전 (delegate -= null 무동작)
             Sequences.OnRecipeChanged -= OnRecipeChanged_FlushBuffers;
 
-            //260811 hbk plc-spec-260811-alignment(조명): WireBufferLifecycle 과 대칭 — root Release()(READ-ONLY)가
+            //260811 hbk (조명): WireBufferLifecycle 과 대칭 — root Release(READ-ONLY)가
             //  이미 이 메서드를 호출하므로 동일한 지점에서 해제한다.
             Lights.OnError -= OnLightHandlerError;
         }
 
-        //260510 hbk Phase 21: BUF-02 channel #1 — recipe change 훅 (wire/unwire lifecycle 유지용)
+        //260510 hbk channel #1 — recipe change 훅 (wire/unwire lifecycle 유지용)
         private void OnRecipeChanged_FlushBuffers(object sender, RecipeChangedEventArgs args) {
-            //260511 hbk Phase 21 hotfix: ClearShots() 제거 — LoadRecipe 완료 후 OnRecipeChanged 발화 시
+            //260511 hbk ClearShots 제거 — LoadRecipe 완료 후 OnRecipeChanged 발화 시
             //  이 훅이 방금 로드된 Shots 컬렉션을 전부 삭제하는 silent data-loss 유발.
             //  LoadPhase6Format 내부에서 Shots 재구성을 직접 수행하므로 여기서 ClearShots 호출 불필요.
             //  app shutdown 시 buffer dispose 는 Release() 의 channel #3 (SystemHandler.cs:176) 이 담당.
         }
 
-        //260811 hbk plc-spec-260811-alignment(조명 하드웨어 에러 → E, 카메라 절반 커밋 6697fc4 의 나머지 절반):
+        //260811 hbk (조명 하드웨어 에러 → E, 카메라 절반 커밋 6697fc4 의 나머지 절반):
         //  LightHandler.OnError 핸들러. LightHandler.Execute() 전용 백그라운드 스레드(1ms 폴링)에서, 컨트롤러/
         //  채널 단위 Read/Write 가 FAIL_LIMIT(3) 회 연속 실패했을 때 발화된다 — 이 메서드 자체가 그 스레드에서
         //  실행된다(SystemHandler/MainRun 스레드 아님).

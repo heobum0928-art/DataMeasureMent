@@ -7,9 +7,9 @@ using ReringProject.Utility;
 namespace ReringProject.Sequence
 {
     /// <summary>
-    /// Phase 80 D-80-06/D-80-15: 사진 출처 선택 대화상자(AskTestImageSource) 없이 기준점의 티칭 사진
+    /// 사진 출처 선택 대화상자(AskTestImageSource) 없이 기준점의 티칭 사진
     /// 파일(TeachingImagePath[_Vertical])로 런타임과 같은 기준점 찾기를 돌리는 공용 헬퍼. 비패턴
-    /// 기준점도 TryRunSingleDatum 으로 시퀀스 기준점 캐시·국부 기준선을 채운다(RESEARCH.md Pattern 3).
+    /// 기준점도 TryRunSingleDatum 으로 시퀀스 기준점 캐시·국부 기준선을 채운다 .
     /// 기존 Test Find 버튼(BtnTestFindDatum_Click)과 그 사진 출처 선택 메서드는 이 서비스와 무관하게
     /// 한 줄도 바뀌지 않는다 — 이 서비스는 대화상자 없는 별도 경로다.
     /// </summary>
@@ -116,8 +116,8 @@ namespace ReringProject.Sequence
             }
             if (bOk)
             {
-                // 1장·2장 모두 TeachingImagePath 파일로 찾았으므로 출처를 확인된 것으로 기록한다(Task 1 의
-                //  다시 구하기 조건). HoldManualDatum 이 1장 기준점의 기록을 지우므로 반드시 그 뒤에 부른다.
+                //260918 hbk 1장·2장 모두 TeachingImagePath 파일로 찾았으므로 출처를 확인된 것으로 기록한다(다시
+                //  구하기 조건). HoldManualDatum 이 1장 기준점의 기록을 지우므로 반드시 그 뒤에 부른다.
                 seq.MarkDatumFoundFromTeachingPhotos(datum.DatumName);
             }
 

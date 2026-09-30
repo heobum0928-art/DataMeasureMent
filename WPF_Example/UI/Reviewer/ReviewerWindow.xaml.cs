@@ -13,16 +13,16 @@ namespace ReringProject.UI
 {
     /// <summary>
     /// 결과 리뷰어 비모달 Window. Ookii 폴더 다이얼로그로 날짜 폴더를 선택 → cycle 목록 표시 →
-    /// cycle 선택 시 cycle.json 역직렬화 → 이미지 + overlay 재렌더 + 측정표 표시 (OUT-01 D-08/D-09).
+    /// cycle 선택 시 cycle.json 역직렬화 → 이미지 + overlay 재렌더 + 측정표 표시 .
     /// 라이브 MainView 방해 없는 비모달 별도 Window — ShowDialog 가 아닌 Show() 로 열림.
-    /// T-40-08: null/손상 cycle.json → CycleResultSerializer.Load 가 null 반환 → DisplayCycle(null) → 빈 상태.
-    /// T-40-09: ResultImagePath → File.Exists 가드 후 LoadImage 호출.
+    /// null/손상 cycle.json → CycleResultSerializer.Load 가 null 반환 → DisplayCycle(null) → 빈 상태.
+    /// ResultImagePath → File.Exists 가드 후 LoadImage 호출.
     /// </summary>
     public partial class ReviewerWindow : Window
     {
         private CycleResultDto _currentCycle;
 
-        //260612 hbk Phase 41.1 OUT-03 반복도 실행 서비스 (UI 레이어 소유 인스턴스)
+        //260612 hbk 반복도 실행 서비스 (UI 레이어 소유 인스턴스)
         private RepeatRunService _repeatService;
         private List<CycleResultDto> _repeatCycles;
 
@@ -40,16 +40,16 @@ namespace ReringProject.UI
         // 좌측 cycle 목록의 원본(전체) 항목. '불량만 보기' 필터는 이 위에서 추려 ItemsSource 로 적용.
         private List<CycleListItem> _allCycleItems = new List<CycleListItem>();
 
-        // Phase 78 NGA-01: 날짜 폴더 cycle.json 이력 — 추세 원인 규칙(R6) 입력.
+        //260917 hbk NGA-01: 날짜 폴더 cycle.json 이력 — 추세 원인 규칙(R6) 입력.
         private NgCauseHistory _ngCauseHistory = new NgCauseHistory();
 
-        // Phase 78 NGA-03: 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
+        //260917 hbk NGA-03: 리뷰어가 마지막으로 연 날짜 폴더 — NG 누적 엑셀 대상.
         private string _loadedDateFolder;
 
         // 기간·자재번호로 조회한 검사 폴더들 — 조회로 열었으면 누적 엑셀도 이 목록만 저장한다(null = 날짜 폴더 모드).
         private List<string> _queriedFolders;
 
-        // Phase 80 D-80-17: 버튼 활성·이유 계산은 전부 VM 이 한다 — 이 code-behind 는 배선만.
+        //260918 hbk 버튼 활성·이유 계산은 전부 VM 이 한다 — 이 code-behind 는 배선만.
         private readonly ReviewerReinspectViewModel _reinspectVm = ReviewerReinspectViewModel.Instance;
 
         public ReviewerWindow()
@@ -58,11 +58,11 @@ namespace ReringProject.UI
             dp_queryFrom.SelectedDate = DateTime.Today;
             dp_queryTo.SelectedDate = DateTime.Today;
             panel_reinspect.DataContext = _reinspectVm;
-            _reinspectVm.AlertPresenter = ShowReinspectAlert; // Phase 80 D-80-09/17: 알림 문구는 VM 이 준다
+            _reinspectVm.AlertPresenter = ShowReinspectAlert; //260918 hbk 알림 문구는 VM 이 준다
             _reinspectVm.EvaluateSelection(null, null); // 싱글턴 VM 재사용 — 창을 다시 열 때 이전 선택 상태가 남지 않게
         }
 
-        // Phase 80 D-80-09: 기준점 사진 없음 알림 — 이 phase 의 유일한 새 대화상자(D-80-00).
+        //260918 hbk 기준점 사진 없음 알림 — 이 phase 의 유일한 새 대화상자.
         private void ShowReinspectAlert(string szTitle, string szMessage)
         {
             CustomMessageBox.Show(szTitle, szMessage, MessageBoxImage.Warning);
@@ -222,7 +222,7 @@ namespace ReringProject.UI
             panel_dualToggle.Visibility = Visibility.Collapsed;
             _selectedRow = null;
             halconViewer.SetHighlightMeasurementName(null);   // 전체 보기 = 특정 측정 강조 해제
-            _reinspectVm.EvaluateSelection(cycle, null); // Phase 80 D-80-02: 새 cycle 표시 시 버튼 상태 갱신
+            _reinspectVm.EvaluateSelection(cycle, null); //260918 hbk 새 cycle 표시 시 버튼 상태 갱신
 
             if (cycle == null || cycle.Shots == null)
             {
@@ -255,10 +255,10 @@ namespace ReringProject.UI
             // 필터 원본 보관, ItemsSource 는 ApplyRowFilter 가 설정
             _allRows = rows;
 
-            // Phase 80 함께 처리 1: 화면에 띄운 사진을 낸 Shot 의 선만 그린다 — 전 Shot 선을 한 사진에 겹쳐
+            //260918 hbk 함께 처리 1: 화면에 띄운 사진을 낸 Shot 의 선만 그린다 — 전 Shot 선을 한 사진에 겹쳐
             //  그리던 문제. 순서: LoadImage → SetInspectionOverlays
             ShotResultDto ownerShot;
-            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle, out ownerShot); // Phase 78 NGA-06: 실제 촬영 원본 우선
+            string szCycleImagePath = ReviewerImagePathResolver.ResolveCycleImagePath(cycle, out ownerShot); //260918 hbk NGA-06: 실제 촬영 원본 우선
             if (!string.IsNullOrEmpty(szCycleImagePath))
             {
                 halconViewer.LoadImage(szCycleImagePath);
@@ -365,7 +365,7 @@ namespace ReringProject.UI
                 return;
             }
             _selectedRow = row;
-            _reinspectVm.EvaluateSelection(_currentCycle, row); // Phase 80 D-80-02: 행 선택 시 버튼 상태 갱신
+            _reinspectVm.EvaluateSelection(_currentCycle, row); //260918 hbk 행 선택 시 버튼 상태 갱신
             ShowPhotoFileNames(row);
 
             if (row.Source != null && row.Source.IsDualImage)
@@ -407,7 +407,7 @@ namespace ReringProject.UI
                     return szPath;
                 }
             }
-            return ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); // Phase 78 NGA-06
+            return ReviewerImagePathResolver.ResolveRowImagePath(row.OwnerShot, row.OwnerFai); //260921 hbk NGA-06
         }
 
         // 고른 행의 원본 사진 파일명 + 그 검사가 쓴 기준점 사진 파일명을 헤더에 한 줄로 보여 준다.
@@ -535,11 +535,11 @@ namespace ReringProject.UI
 
         private void Button_ApplyRowToMain_Click(object sender, RoutedEventArgs e)
         {
-            // Phase 80 D-80-01/03: 확인창 없이 바로 불러온다 — 로직은 VM·서비스
+            //260918 hbk 확인창 없이 바로 불러온다 — 로직은 VM·서비스
             _reinspectVm.ApplySelection(_currentCycle, _selectedRow);
         }
 
-        //260615 hbk Quick 260615-dx7 이미지 폴더 반복 검사 버튼 핸들러 (고정 50회 → 폴더 N장 순회)
+        //260615 hbk Quick 이미지 폴더 반복 검사 버튼 핸들러 (고정 50회 → 폴더 N장 순회)
         // 지원 이미지 확장자
         private static readonly string[] RepeatImageExtensions =
             { ".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff" };
@@ -583,7 +583,7 @@ namespace ReringProject.UI
                 return;
             }
 
-            //260818 Phase 72 D-05: 자재번호는 정수만 허용 — 시트명/파일명으로 흘러가는 자유 텍스트 차단.
+            //260818 hbk 자재번호는 정수만 허용 — 시트명/파일명으로 흘러가는 자유 텍스트 차단.
             int nMaterialIndex = RepeatRunService.MATERIAL_NOT_SET;
             string szMaterial = txt_materialIndex.Text;
             if (!string.IsNullOrWhiteSpace(szMaterial))
@@ -617,7 +617,7 @@ namespace ReringProject.UI
                 return;
             }
 
-            //260818 Phase 72 D-05: 누적 체크 시 이전 실행 결과를 보존해야 자재 2종 열 분리를 검증할 수 있다.
+            //260818 hbk 누적 체크 시 이전 실행 결과를 보존해야 자재 2종 열 분리를 검증할 수 있다.
             bool bAccumulate = chk_repeatAccumulate.IsChecked == true;
             if (!bAccumulate)
             {
@@ -675,7 +675,7 @@ namespace ReringProject.UI
             _repeatService.StartFromImages(activeSeq, imagePaths);
         }
 
-        //260612 hbk Phase 41.1 OUT-03/OUT-04 반복도 엑셀 export 핸들러
+        //260612 hbk 반복도 엑셀 export 핸들러
         private void Button_RepeatExport_Click(object sender, RoutedEventArgs e)
         {
             if (_repeatCycles == null || _repeatCycles.Count == 0)
@@ -771,7 +771,7 @@ namespace ReringProject.UI
             }
         }
 
-        // Phase 78 NGA-03: 연 날짜 폴더의 NG 를 누적 엑셀에 추가 — 판단·문구는 서비스가 만든다
+        //260917 hbk NGA-03: 연 날짜 폴더의 NG 를 누적 엑셀에 추가 — 판단·문구는 서비스가 만든다
         private void Button_NgAccumExport_Click(object sender, RoutedEventArgs e)
         {
             string szOutputPath = NgAccumulationExportService.BuildOutputPath(SystemHandler.Handle.Setting.ResultSavePath);

@@ -66,7 +66,7 @@ namespace ReringProject.Sequence {
             return bIsSideJig;
         }
 
-        //260805 hbk Phase 69 D-01: RUN 게이트를 "전역 IsIdle" 에서 "시퀀스 단위 + 물리 카메라 공유 시에만 상호배타" 로 좁힌다.
+        //260805 hbk RUN 게이트를 "전역 IsIdle" 에서 "시퀀스 단위 + 물리 카메라 공유 시에만 상호배타" 로 좁힌다.
         //  기존 StateAll/IsIdle 은 등록된 시퀀스 중 하나라도 non-Idle 이면 전체를 non-Idle 로 본다 → TOP 이 도는 중
         //  놀고 있는 BOTTOM 도 RUN 이 막혔다(간헐적 "RUN 미동작"의 실제 원인).
         //  단, 실 HW TopBottom 역할에서는 CAM_TOP/CAM_BOTTOM 이 같은 MilCamera 인스턴스를 공유하고
@@ -85,13 +85,13 @@ namespace ReringProject.Sequence {
             if (sBlockingSeqName == null) {
                 return false;
             }
-            //260805 hbk Phase 69: 차단 사실을 남겨야 "왜 안 눌렸는지" 사후 추적이 된다(사용자 클릭 빈도라 로그 폭주 없음).
+            //260805 hbk 차단 사실을 남겨야 "왜 안 눌렸는지" 사후 추적이 된다(사용자 클릭 빈도라 로그 폭주 없음).
             Logging.PrintLog((int)ELogType.Trace, "[검사 시작 차단] {0} 시작 못 함 — {1}이(가) 이미 검사 중",
                 ResolveSequenceName(eTargetSeqId), sBlockingSeqName);
             return true;
         }
 
-        //260805 hbk Phase 69 D-01: 차단 원인 시퀀스 이름을 찾는다. 실행 가능하면 null.
+        //260805 hbk 차단 원인 시퀀스 이름을 찾는다. 실행 가능하면 null.
         private string FindBlockingSequenceName(ESequence eTargetSeqId) {
             SequenceBase seqTarget = this[eTargetSeqId];
             if (seqTarget == null) {
@@ -125,7 +125,7 @@ namespace ReringProject.Sequence {
             return null;
         }
 
-        //260805 hbk Phase 69 D-01: 두 시퀀스가 같은 물리 카메라 객체를 쓰는지 참조 동일성으로 판정한다.
+        //260805 hbk 두 시퀀스가 같은 물리 카메라 객체를 쓰는지 참조 동일성으로 판정한다.
         //  해석 불가(이름 공백/미등록/DeviceHandler null)는 "공유한다"로 간주 — 안전한 쪽(fail-closed)으로만 틀리게 한다.
         private bool SharesCameraDevice(SequenceBase seqA, SequenceBase seqB) {
             List<VirtualCamera> listCamA = new List<VirtualCamera>();
@@ -148,7 +148,7 @@ namespace ReringProject.Sequence {
             return false;
         }
 
-        //260805 hbk Phase 69 D-01: 시퀀스가 grab 에 쓰는 카메라 객체를 모은다.
+        //260805 hbk 시퀀스가 grab 에 쓰는 카메라 객체를 모은다.
         //  마스터 파라미터(CameraMasterParam.DeviceName) + 각 Action 의 ICameraParam.DeviceName 을 모두 본다 —
         //  자식 Action 이 마스터와 다른 DeviceName 을 가질 수 있기 때문(SequenceBase.cs L109-110 상속은 빈 값일 때만).
         //  하나라도 해석 실패하면 false 를 돌려 호출부가 fail-closed 로 처리하게 한다.
@@ -200,12 +200,12 @@ namespace ReringProject.Sequence {
         }
 
         private void RegisterSequences() {
-            //260409 hbk Phase 5: 동적 FAI 모드용 InspectionSequence (D-07)
-            //260526 hbk Phase 33 — Side/Bottom 도 InspectionSequence 마이그레이션 (D-01)
-            //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스만 등록(SIMUL 전체). 비활성 시퀀스 미생성 → 카메라 미등록 OnCreate Error 차단.
+            //260409 hbk 동적 FAI 모드용 InspectionSequence
+            // Side/Bottom 도 InspectionSequence 마이그레이션
+            // 역할 활성 시퀀스만 등록(SIMUL 전체). 비활성 시퀀스 미생성 → 카메라 미등록 OnCreate Error 차단.
             var seqs = new List<SequenceBase>();
             if (IsSequenceActive(ESequence.Top))
-                seqs.Add(new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_RING)); //260625 hbk Phase 64 LIGHT-01
+                seqs.Add(new InspectionSequence(ESequence.Top, SEQ_TOP, Top_Alg_Index, DeviceHandler.CAMERA_TOP, LightHandler.LIGHT_RING));
             //SIDE 지그 4개는 같은 카메라/조명 그룹을 공유하되 시퀀스로는 독립이다(지그별 z 와 개별 P/F).
             if (IsSequenceActive(ESequence.Side1))
                 seqs.Add(new InspectionSequence(ESequence.Side1, SEQ_SIDE_1, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR));
@@ -216,13 +216,13 @@ namespace ReringProject.Sequence {
             if (IsSequenceActive(ESequence.Side4))
                 seqs.Add(new InspectionSequence(ESequence.Side4, SEQ_SIDE_4, Side_Alg_Index, DeviceHandler.CAMERA_SIDE, LightHandler.LIGHT_BAR));
             if (IsSequenceActive(ESequence.Bottom))
-                seqs.Add(new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BACK)); //260625 hbk Phase 64 LIGHT-01
+                seqs.Add(new InspectionSequence(ESequence.Bottom, SEQ_BOTTOM, Bottom_Alg_Index, DeviceHandler.CAMERA_BOTTOM, LightHandler.LIGHT_BACK));
             SequenceBuilder.RegisterSequence(seqs.ToArray());
         }
 
         private void RegisterActions() {
-            //260526 hbk Phase 33 — Side/Bottom placeholder; RebuildInspectionActions(Side|Bottom) 가 동적 FAI 모드 진입 시 Action_FAIMeasurement 로 교체
-            //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스의 Action 만 등록(InitializeSequences 의 AddAction 과 1:1 대응).
+            //260526 hbk Side/Bottom placeholder; RebuildInspectionActions(Side|Bottom) 가 동적 FAI 모드 진입 시 Action_FAIMeasurement 로 교체
+            // 역할 활성 시퀀스의 Action 만 등록(InitializeSequences 의 AddAction 과 1:1 대응).
             var acts = new List<ActionBase>();
             if (IsSequenceActive(ESequence.Top))
                 acts.Add(new TopSideInspectionAction(EAction.Top_Inspection, ACT_INSPECT, Top_Alg_Index, Inspection_Model_Index));
@@ -240,7 +240,7 @@ namespace ReringProject.Sequence {
         }
 
         private void InitializeSequences() {
-            //260604 hbk Phase 41 CO-41-02 — 역할 활성 시퀀스만 생성/등록(SIMUL 전체). 비활성은 Sequences dict 미포함 → ExecOnCreate 대상 제외.
+            //260604 hbk 역할 활성 시퀀스만 생성/등록(SIMUL 전체). 비활성은 Sequences dict 미포함 → ExecOnCreate 대상 제외.
             if (IsSequenceActive(ESequence.Top)) {
                 SequenceBuilder seqTop = SequenceBuilder.CreateSequence(ESequence.Top);
                 seqTop.AddAction(EAction.Top_Inspection);
@@ -276,12 +276,12 @@ namespace ReringProject.Sequence {
         /// <summary>
         /// RecipeManager의 Shot 목록 기반으로 시퀀스의 Action을 재구축한다.
         /// </summary>
-        //260527 hbk Phase 35 — CO-33-06: 시퀀스 소유 Shot 만 필터링 (D-A1 OwnerSequenceName)
-        //260722 hbk Phase 68 D-01b: 필터링 후 ShotConfig.ZIndex 오름차순 안정 정렬(동일 ZIndex 는 기존 append 순서 그대로 유지) 추가 —
+        //260527 hbk 시퀀스 소유 Shot 만 필터링 (D-A1 OwnerSequenceName)
+        // 필터링 후 ShotConfig.ZIndex 오름차순 안정 정렬(동일 ZIndex 는 기존 append 순서 그대로 유지) 추가
         //  SequenceBase.StartSubset 이 min-max 연속구간만 실행하므로, 같은 z_index Shot 들이 Actions[] 에서 항상 연속 블록이어야
-        //  크로스-Z(D-01) 부분실행이 안전하다. List<T>.Sort/Array.Sort 는 불안정 정렬이라 동일 ZIndex 내 순서가 보존 안 됨 —
+        //  크로스-Z 부분실행이 안전하다. List<T>.Sort/Array.Sort 는 불안정 정렬이라 동일 ZIndex 내 순서가 보존 안 됨
         //  안정 정렬이 보장되는 LINQ OrderBy 만 사용한다.
-        //260729 hbk quick-260729-jq5: 과거 InspectionListView 가 이 정렬 순서에 서수로 결합돼 있었으나(엉뚱한 Shot 실행
+        // 과거 InspectionListView 가 이 정렬 순서에 서수로 결합돼 있었으나(엉뚱한 Shot 실행
         //  결함) 이제 Actions[] 의 ShotParam 참조 동일성으로 조회한다 — UI 측 동시 수정 의무 해소.
         public void RebuildInspectionActions(ESequence seqId) {
             SequenceBase seq = this[seqId];
@@ -292,10 +292,10 @@ namespace ReringProject.Sequence {
                 masterParam.ClearChildren();
             }
 
-            //260527 hbk Phase 35 — CO-33-06: 시퀀스 매칭 키 (TOP/SIDE/BOTTOM)
+            //260527 hbk 시퀀스 매칭 키 (TOP/SIDE/BOTTOM)
             string targetSeqName = ResolveSequenceName(seqId);
 
-            //260722 hbk Phase 68 D-01b: 이 시퀀스 소유 Shot 만 먼저 필터링(OwnerSequenceName 매칭, 빈값은 Top 폴백 — ApplyShotDefaults 가 보장)
+            //260722 hbk 이 시퀀스 소유 Shot 만 먼저 필터링(OwnerSequenceName 매칭, 빈값은 Top 폴백 — ApplyShotDefaults 가 보장)
             var ownedShots = new List<ShotConfig>();
             for (int i = 0; i < RecipeManager.ShotCount; i++) {
                 ShotConfig shot = RecipeManager.Shots[i];
@@ -303,11 +303,11 @@ namespace ReringProject.Sequence {
                 if (shotOwner != targetSeqName) continue;
                 ownedShots.Add(shot);
             }
-            //260722 hbk Phase 68 D-01b: ZIndex 오름차순 안정 정렬 — 동일 ZIndex Shot 은 위 필터링 순서(원래 append 순서) 그대로 유지(OrderBy 안정성 보장)
+            //260722 hbk ZIndex 오름차순 안정 정렬 — 동일 ZIndex Shot 은 위 필터링 순서(원래 append 순서) 그대로 유지(OrderBy 안정성 보장)
             List<ShotConfig> sortedShots = ownedShots.OrderBy(shot => shot.ZIndex).ToList();
 
             // Shot별로 Action_FAIMeasurement 생성 (정렬된 순서 그대로 EAction.FAI_Base + N 부여)
-            //260527 hbk Phase 35 — CO-33-06: actionIdx 별도 사용 — 시퀀스별 로컬 0/1/2 인덱스로 EAction.FAI_Base + N 부여
+            // actionIdx 별도 사용 — 시퀀스별 로컬 0/1/2 인덱스로 EAction.FAI_Base + N 부여
             var actions = new List<ActionBase>();
             int actionIdx = 0;
             foreach (ShotConfig shot in sortedShots) {
@@ -351,7 +351,7 @@ namespace ReringProject.Sequence {
             RecipeManager.Load(loadFile);
             IsDynamicFAIMode = true;
 
-            //260527 hbk Phase 35 — CO-33-06 hotfix (Plan 35-02 Part D): Top/Side/Bottom 모두 RebuildInspectionActions 호출
+            //260527 hbk hotfix ( Part D): Top/Side/Bottom 모두 RebuildInspectionActions 호출
             //  이전 = Top 만 호출 → Side/Bottom Shot 이 INI 로드 후 seq.ActionCount=0 → 트리(InspectionListViewModel.CreateSequenceNode)에 안 보임
             //  RebuildInspectionActions 자체가 OwnerSequenceName 으로 필터링하므로 시퀀스별로 자기 소유 Shot 만 attach
             RebuildInspectionActions(ESequence.Top);

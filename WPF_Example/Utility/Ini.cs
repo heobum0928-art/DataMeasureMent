@@ -1,4 +1,4 @@
-﻿//260623 hbk: CONVENTIONS 적용 — IniValue 좌표 파서 지역변수/매직넘버 const화. 공개 API·직렬화 동작 불변.
+﻿//260623 hbk CONVENTIONS 적용 — IniValue 좌표 파서 지역변수/매직넘버 const화. 공개 API·직렬화 동작 불변.
 using ReringProject.UI;
 using System;
 using System.Collections.Generic;

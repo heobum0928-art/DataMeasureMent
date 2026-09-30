@@ -366,7 +366,7 @@ namespace ReringProject.Sequence {
                 string name = prop.Name;
                 string type = prop.PropertyType.Name;
 
-                //260615 hbk Phase 43.2: setter 없는 읽기전용(계산) 프로퍼티 건너뛰기 — 레시피 로드 11s 병목 제거.
+                //260615 hbk setter 없는 읽기전용(계산) 프로퍼티 건너뛰기 — 레시피 로드 11s 병목 제거.
                 //  기존: 읽기전용 프로퍼티에도 prop.SetValue 호출 → ArgumentException → catch → PrintErrLog 동기 파일 I/O.
                 //  레시피 1회 로드당 약 4948회 예외+파일쓰기 발생. CanWrite 가드로 동작 변화 0 (어차피 SetValue 실패하던 값).
                 //  PropertyItem[]/ModelFinderViewModel 은 getter 로 객체를 받아 내부를 변경하므로 예외 처리.
@@ -482,7 +482,7 @@ namespace ReringProject.Sequence {
                     ActionBase action = Owner as ActionBase;
                     return action.ID.ToString();
                 }
-                return Owner.ToString(); //260407 hbk Owner가 ActionBase가 아닌 경우 Owner.ToString() 반환
+                return Owner.ToString(); //260407 hbk Owner가 ActionBase가 아닌 경우 Owner.ToString 반환
             }
             return GetType().Name; //260407 hbk Owner가 null인 경우 클래스명 반환 (NullRef 방지)
         }

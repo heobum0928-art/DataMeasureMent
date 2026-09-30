@@ -40,7 +40,7 @@ namespace ReringProject.Device {
 #endif
 
         public MilCamera(DisplayConfig config, DeviceInfo info) : base(config, info, ECameraType.MIL) {
-            Properties = new MilCameraProperty(this); //260723 hbk: Exposure/Gain/Gamma 실 HW 제어 시도(GenICam feature 경유)
+            Properties = new MilCameraProperty(this); //260723 hbk Exposure/Gain/Gamma 실 HW 제어 시도(GenICam feature 경유)
             Properties.Width  = info.Width;
             Properties.Height = info.Height;
             RegisterRoleInfo(info);
@@ -50,14 +50,14 @@ namespace ReringProject.Device {
             Dispose();
         }
 
-        //260723 hbk: MilCameraProperty 전용 진입점 — GenICam feature 값 읽기/쓰기 시도.
+        //260723 hbk MilCameraProperty 전용 진입점 — GenICam feature 값 읽기/쓰기 시도.
         //  Width/Height/PixelFormat 은 이 장비에서 MdigControlFeature 쓰기가 "Requested operation not supported"로
         //  실패한 이력이 있다(Open() 상단 NOTE). ExposureTime/Gain/Gamma 는 GenICam SFNC 표준 analog control 노드라
         //  지원 여부가 다를 수 있음 — 실기 검증 필요.
         //  주의(1차 구현 버그 수정): MdigControlFeature/MdigInquireFeature 는 MdigGrab 과 마찬가지로 실패해도
         //  예외를 던지지 않고 MIL 내부 에러 상태만 세운다 — try/catch 만으로는 실패를 못 잡아 "성공"으로 오판했었다
         //  (GrabFromBuffer() 의 MappGetError 체크와 동일 패턴 필요). 호출 직후 MappGetError 로 명시 확인한다.
-        // 260723 hbk: 에러 코드만으로는 원인을 알 수 없어(6501/6504 등은 MIL 매뉴얼 없이는 해독 불가) M_MESSAGE 로
+        // 에러 코드만으로는 원인을 알 수 없어(6501/6504 등은 MIL 매뉴얼 없이는 해독 불가) M_MESSAGE 로
         //  사람이 읽을 수 있는 문자열도 같이 가져온다. M_ERROR_MESSAGE_SIZE(320) 버퍼 사용.
         public void RegisterRoleInfo(DeviceInfo roleInfo) {
             if (roleInfo == null) {
@@ -136,7 +136,7 @@ namespace ReringProject.Device {
             }
         }
 
-        // 260723 hbk: 실기 로그 확인 결과 ExposureTime/Gain 은 "Invalid parameter error"(6504)로 Gamma의
+        //260723 hbk 실기 로그 확인 결과 ExposureTime/Gain 은 "Invalid parameter error"(6504)로 Gamma의
         //  "Feature Access Error"(6501, feature 자체가 없음)와 다르게 실패했다 — feature 자체는 있는데 값 쓰기가
         //  거부된다는 뜻. GenICam 카메라 다수가 ExposureAuto/GainAuto=Continuous(자동) 상태면 수동 쓰기를 막는
         //  표준 동작이 있어, 값 쓰기 전에 대응 Auto feature 를 Off 로 먼저 시도한다(best-effort — 이 feature가
@@ -150,7 +150,7 @@ namespace ReringProject.Device {
             catch { }
         }
 
-        // 260723 hbk: ExposureAuto/GainAuto Off 시도 후에도 "Invalid parameter error" 재현 — 원인 특정을 위해
+        //260723 hbk ExposureAuto/GainAuto Off 시도 후에도 "Invalid parameter error" 재현 — 원인 특정을 위해
         //  실패 시 해당 feature 의 Min/Max/AccessMode 를 조회해 로그에 남긴다(값 범위 밖인지, 애초에 Read-Only인지 구분).
         //  진단 전용 — 조회 자체가 실패해도 무시(원본 에러 로그가 이미 남아있으므로).
         private string GetFeatureDiagnostics(string featureName) {
@@ -202,10 +202,9 @@ namespace ReringProject.Device {
 
                 // MIL 기본 에러 핸들러는 에러 발생 시 OS 모달(Yes/No/Cancel "MIL Error Message")을 직접 띄워
                 // 이 앱의 UI 스레드를 막아버린다. 팝업은 끄고, 대신 MdigGrab 뒤에서 MappGetError 로 직접 체크한다
-                // (41-RESEARCH.md Anti-Pattern 참고 — 무시가 아니라 에러 출력 경로만 앱 쪽으로 옮기는 것).
                 MIL.MappControl(MilApplication, MIL.M_ERROR, MIL.M_PRINT_DISABLE);
 
-                // 2. System 할당 — SIMUL_MODE 에서는 M_SYSTEM_HOST 사용 (Pitfall 1)
+                //260602 hbk 2. System 할당 — SIMUL_MODE 에서는 M_SYSTEM_HOST 사용
 #if SIMUL_MODE
                 MIL.MsysAlloc(MIL.M_DEFAULT, MIL.M_SYSTEM_HOST,
                               MIL.M_DEFAULT, MIL.M_DEFAULT, ref MilSystem);
@@ -231,7 +230,7 @@ namespace ReringProject.Device {
                 //       ("Requested operation not supported"). 해상도/tap 기하는 반드시 DCF 로 설정해야 한다.
                 //       DCF 준비 전까지는 M_DEFAULT 로 열어 카메라 현재 설정 그대로 grab 한다.
 
-                // 4. Mono8 grab 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용 — Pitfall 5)
+                //260609 hbk 4. Mono8 grab 버퍼 1회 할당 (Open 시 단일 할당, GrabHalconImage 에서 재사용 —)
                 //    버퍼 크기는 하드코딩 대신 디지타이저 실제값(MdigInquire)으로 잡는다.
                 //    하드코딩 시 SIMUL_MODE 시뮬 디지타이저에 144MB non-paged(M_GRAB) 요구 →
                 //    MbufAlloc2d Allocation error 발생. MdigProcess C# 예제 L62-66 패턴.
@@ -271,7 +270,7 @@ namespace ReringProject.Device {
         }
 
         public override void Close() {
-            // MIL 역순 해제: Buffer → Digitizer → System → Application (Pitfall 6)
+            //260602 hbk MIL 역순 해제: Buffer → Digitizer → System → Application
             if (MilBuffer     != MIL.M_NULL) { MIL.MbufFree(MilBuffer);       MilBuffer     = MIL.M_NULL; }
             if (MilDigitizer  != MIL.M_NULL) { MIL.MdigFree(MilDigitizer);    MilDigitizer  = MIL.M_NULL; }
             if (MilSystem     != MIL.M_NULL) { MIL.MsysFree(MilSystem);       MilSystem     = MIL.M_NULL; }
@@ -285,12 +284,12 @@ namespace ReringProject.Device {
 
         public override HImage GrabHalconImage(string requestIdentifier) {
 #if SIMUL_MODE
-            // D-11: SIMUL_MODE 에서는 base 파일 grab 경로(LastHalconImage) 로 폴백
+            //260602 hbk SIMUL_MODE 에서는 base 파일 grab 경로(LastHalconImage) 로 폴백
             return LastHalconImage;
 #else
             // 라이브 스트리밍 중에는 라이브 스레드가 MilBuffer 를 점유한다.
             // 여기서 또 MdigGrab 하면 같은 버퍼를 동시에 건드려 충돌하므로 grab 하지 않는다.
-            //260716 hbk 반환값을 LastHalconImage(마지막 라이브 프레임) → null 로 변경. 계약을 Hik/Basler 와 통일한다.
+            // 반환값을 LastHalconImage(마지막 라이브 프레임) → null 로 변경. 계약을 Hik/Basler 와 통일한다.
             //  기존 결함: MIL 만 stale 프레임을 non-null 로 돌려줘 '검사 grab 성공'으로 위장됐다. 이 사이클용으로 새로
             //  트리거된 프레임이 아니라 백그라운드 LiveLoop 의 마지막 프레임이므로 부품 위치/타이밍과 동기화되지 않은
             //  이미지로 PASS/NG 가 나올 수 있었다(조용한 오검). Hik(HikCamera.cs)/Basler(BaslerCamera.cs)는 동일 상황에서
@@ -363,7 +362,7 @@ namespace ReringProject.Device {
             int width  = (int)bufW;
             int height = (int)bufH;
 
-            // host 포인터 / 한 행의 바이트 수(pitch) 획득 (MbufPointerAccess 예제 패턴, Pitfall 2)
+            //260609 hbk host 포인터 / 한 행의 바이트 수(pitch) 획득 (MbufPointerAccess 예제 패턴)
             MIL_INT hostPtr   = MIL.M_NULL;
             MIL_INT pitchByte = MIL.M_NULL;
             MIL.MbufControl(MilBuffer, MIL.M_LOCK, MIL.M_DEFAULT);
@@ -376,7 +375,7 @@ namespace ReringProject.Device {
                 return null;
             }
 
-            IntPtr ptr = new IntPtr((long)hostPtr); // Pitfall 3: 명시적 변환
+            IntPtr ptr = new IntPtr((long)hostPtr); //260609 hbk 명시적 변환
             HImage sourceImage = null;
             if (pitchByte == width) {
                 // 행 padding 이 없는 경우 — 포인터로 wrap 한 뒤 독립 복사본으로 분리한다.
@@ -425,7 +424,7 @@ namespace ReringProject.Device {
 
         /// <summary>
         /// MIL 버퍼에 pitch padding이 존재할 때 행 단위로 복사하여 연속 HImage를 생성한다.
-        /// pitch > width 인 경우에만 호출. (Pitfall 4: 128MP 대용량 row-copy)
+        /// pitch > width 인 경우에만 호출. (: 128MP 대용량 row-copy)
         /// </summary>
         private HImage CreateImageFromPaddedBuffer(IntPtr src, int width, int height, int pitchByte) {
             byte[] packed = new byte[width * height];

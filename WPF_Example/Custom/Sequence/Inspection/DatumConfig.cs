@@ -16,15 +16,15 @@ namespace ReringProject.Sequence {
         // INotifyPropertyChanged 발화로 트리 헤더 즉시 갱신 (PropertyGrid 편집 → Tree)
         private string _datumName = "Datum_1";
 
-        // quick-260806-nrm: 모델 파일 리네임을 '사용자의 PropertyGrid 개명' 에서만 발동시키기 위한 억제 플래그.
+        //260806 hbk 모델 파일 리네임을 '사용자의 PropertyGrid 개명' 에서만 발동시키기 위한 억제 플래그.
         //  INI 로드/신규추가 경로도 리플렉션·대입으로 이 세터를 때리는데, 거기서 리네임이 돌면
         //  초기값 "Datum_1" 기준 경로를 옮겨버려 멀쩡한 1번 Datum 의 모델을 훔쳐간다.
         //  단일 인스턴스 안에서 UI 스레드로만 켜고 끄므로 별도 동기화는 두지 않는다.
-        //  quick-260909-ktj: 이제 모델 파일 이동과 측정 DatumRef 전파(UpdateMeasurementDatumRefsAfterRename)
+        //  이제 모델 파일 이동과 측정 DatumRef 전파(UpdateMeasurementDatumRefsAfterRename)
         //  두 효과를 함께 게이트한다 — 둘 다 "사용자가 진짜로 개명했다" 는 같은 전제에 의존한다.
         private bool _suppressModelRename;
 
-        // quick-260806-nrm: 이름이 바뀌면 패턴 모델 파일(.shm/.ncm, _2 페어 포함)도 새 이름 경로로 따라 옮긴다.
+        //260806 hbk 이름이 바뀌면 패턴 모델 파일(.shm/.ncm, _2 페어 포함)도 새 이름 경로로 따라 옮긴다.
         //  모델 경로는 저장되지 않고 DatumName 에서 매번 재계산되므로(ResolveDatumModelPath), 이름만 바꾸면
         //  디스크 파일은 옛 이름에 남아 ReadShapeModel 이 조용히 실패 → MarkAlignFailed(모달 없음) → 전항목 Fail 이 된다.
         //  2026-07-10 티칭감사 carry-over #1(모델파일 고아) 해소.
@@ -49,7 +49,7 @@ namespace ReringProject.Sequence {
                     string newPath2 = TryResolveModelPathQuiet(true);
                     MoveModelFileIfPresent(oldPath1, newPath1, oldName, value);
                     MoveModelFileIfPresent(oldPath2, newPath2, oldName, value);
-                    // quick-260909-ktj: 모델 파일 이동과 같은 조건(shouldRename)으로 측정 DatumRef 도 함께 전파한다.
+                    //260909 hbk 모델 파일 이동과 같은 조건(shouldRename)으로 측정 DatumRef 도 함께 전파한다.
                     //  Owner 가 InspectionSequence 가 아니면(레시피 미로드/독립 생성) 조용히 생략 — 모델 파일 이동은
                     //  이미 위에서 끝났으므로 영향 없다.
                     InspectionSequence ownerSeq = Owner as InspectionSequence;
@@ -61,7 +61,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // quick-260806-nrm: 신규 Datum 생성 시 초기 이름 주입 전용(AddDatum). 세터를 우회해 리네임을 발동시키지 않는다.
+        //260806 hbk 신규 Datum 생성 시 초기 이름 주입 전용(AddDatum). 세터를 우회해 리네임을 발동시키지 않는다.
         //  새 객체의 초기값 "Datum_1" 에서 지정 이름으로 바뀌는 것뿐인데, 그걸 개명으로 오인하면
         //  실제 1번 Datum 이 티칭해 둔 모델 파일을 빼앗아 간다.
         public void InitializeDatumName(string name) {
@@ -69,11 +69,11 @@ namespace ReringProject.Sequence {
             RaisePropertyChanged(nameof(DatumName));
         }
 
-        // quick-260806-nrm: 경로 계산은 SystemHandler 싱글턴(레시피명/Shots)에 의존한다. 앱 초기화 이전이나
+        //260806 hbk 경로 계산은 SystemHandler 싱글턴(레시피명/Shots)에 의존한다. 앱 초기화 이전이나
         //  레시피 미로드 시점에 불리면 NullReference 가 날 수 있으므로 삼키고 null 을 돌려준다 — 리네임만 포기하고
         //  이름 변경 자체는 그대로 성립시킨다.
         //  오버로드는 반드시 (datum, OwnerName) 2-arg 를 쓴다. 1-arg 는 SourceShotName 미매칭 시 전역 Shots[0] 로
-        //  폴백해 티칭이 실제로 쓴 폴더와 다른 경로를 만든다(260723 quick-fix 가 고친 결함).
+        //  폴백해 티칭이 실제로 쓴 폴더와 다른 경로를 만든다(260723 수정).
         private string TryResolveModelPathQuiet(bool isSecondPattern) {
             try {
                 if (isSecondPattern) return InspectionSequence.ResolveDatumModelPath2(this, OwnerName);
@@ -84,7 +84,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // quick-260806-nrm: 옛 경로 파일이 있으면 새 경로로 옮긴다. 판정표:
+        //260806 hbk 옛 경로 파일이 있으면 새 경로로 옮긴다. 판정표:
         //   경로 계산 실패(null/빈값) → skip
         //   옛 == 새             → skip (엔진/폴더가 같고 이름만 대소문자 차이 등)
         //   옛 파일 없음          → 조용히 skip. 티칭 전 Datum 의 정상 케이스라 오류가 아니다.
@@ -126,14 +126,14 @@ namespace ReringProject.Sequence {
         [Category("Datum|ImageSource")]
         public string TeachingImagePath { get; set; } = "";
 
-        //260619 hbk Phase 57 #6 leveling 제거 — IsLevelingReference 프로퍼티 폐기 (ALIGN 대체, D-12/D-13). 옛 INI stale 키는 ParamBase.Load 가 무시 (D-14)
+        //260619 hbk #6 leveling 제거 — IsLevelingReference 프로퍼티 폐기 (ALIGN 대체). 옛 INI stale 키는 ParamBase.Load 가 무시
 
-        //260618 hbk Phase 54 ALIGN-01 패턴매칭 위치보정 활성 (D-11) — 기본 false → off 회귀 0
+        //260618 hbk 패턴매칭 위치보정 활성 — 기본 false → off 회귀 0
         [Category("Datum|PatternAlign")]
         [System.ComponentModel.Description("패턴매칭 위치보정 활성. 켜면 매칭(x,y)+line-fit(θ) 보정을 수행한다. 기본 off — 기존 레시피 byte-identical 보장.")]
         public bool IsPatternAlignEnabled { get; set; } = false;
 
-        //260618 hbk Phase 54 ALIGN-01 매칭 엔진 선택자 (D-01) — AlgorithmType 드롭다운 미러
+        //260618 hbk 매칭 엔진 선택자 — AlgorithmType 드롭다운 미러
         [Category("Datum|PatternAlign")]
         [System.ComponentModel.Description("패턴매칭 엔진 선택. Shape=회전/클러터 강, NCC=defocus 강. 포커싱 불량 부위 Datum = NCC 권장.")]
         [ItemsSourceProperty(nameof(PatternEngineList))]
@@ -146,7 +146,7 @@ namespace ReringProject.Sequence {
             get { return new List<string> { "Shape", "NCC" }; }
         }
 
-        //260618 hbk Phase 54 ALIGN-01 ref pose (D-09) — 티칭 시 find 결과 1회 기록. 런타임 pose − ref pose = 변위.
+        //260618 hbk ref pose — 티칭 시 find 결과 1회 기록. 런타임 pose − ref pose = 변위.
         [Category("Datum|PatternAlign")]
         public double RefMatchRow { get; set; } = 0.0;
         [Category("Datum|PatternAlign")]
@@ -154,7 +154,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|PatternAlign")]
         public double RefMatchAngleDeg { get; set; } = 0.0;
 
-        //260618 hbk Phase 54 ALIGN-01 매칭 파라미터 (D-06/D-06a) — sentinel 0 → EnsurePerRoiDefaults 기본값 복원
+        //260618 hbk 매칭 파라미터 — sentinel 0 → EnsurePerRoiDefaults 기본값 복원
         [Category("Datum|PatternAlign")]
         [System.ComponentModel.Description("패턴매칭 최소 스코어 (0~1). sentinel 0 → EnsurePerRoiDefaults 에서 0.6 복원.")]
         public double PatternMinScore { get; set; } = 0.0;
@@ -168,7 +168,7 @@ namespace ReringProject.Sequence {
         [System.ComponentModel.Description("검색 영역 = template ROI ± margin (픽셀). sentinel 0 → 100px 복원.")]
         public double PatternSearchMarginPx { get; set; } = 0.0;
 
-        //260618 hbk Phase 54 ALIGN-01 패턴 템플릿 ROI (D-08) — Line1_* ROI 패턴 미러. PatternRoi_Phi 는 radian 원본, PhiDeg wrapper 노출.
+        //260618 hbk 패턴 템플릿 ROI — Line1_* ROI 패턴 미러. PatternRoi_Phi 는 radian 원본, PhiDeg wrapper 노출.
         [Category("Datum|PatternAlign")]
         public double PatternRoi_Row { get; set; } = 0.0;
         [Category("Datum|PatternAlign")]
@@ -188,13 +188,13 @@ namespace ReringProject.Sequence {
         [Category("Datum|PatternAlign")]
         public double PatternRoi_Length2 { get; set; } = 0.0;
 
-        //260619 hbk Phase 55 ALIGN-02 2-패턴 baseline — 점2 ref pose(위치만 사용, 각도는 두 점 baseline 으로 산출).
+        //260619 hbk 2-패턴 baseline — 점2 ref pose(위치만 사용, 각도는 두 점 baseline 으로 산출).
         //  PatternRoi2 미설정(Length=0)이면 단일 패턴 폴백(하위호환, 회귀 0). 매칭 파라미터(Engine/MinScore/AngleExtent/SearchMargin)는 점1 공유.
         [Category("Datum|PatternAlign")]
         public double RefMatch2Row { get; set; } = 0.0;
         [Category("Datum|PatternAlign")]
         public double RefMatch2Col { get; set; } = 0.0;
-        //260619 hbk Phase 55 ALIGN-02 패턴2 템플릿 ROI (점2). 양 대각 끝(점1 대비 멀리) 권장 — baseline 길수록 각도 정밀.
+        //260619 hbk 패턴2 템플릿 ROI (점2). 양 대각 끝(점1 대비 멀리) 권장 — baseline 길수록 각도 정밀.
         [Category("Datum|PatternAlign")]
         public double PatternRoi2_Row { get; set; } = 0.0;
         [Category("Datum|PatternAlign")]
@@ -212,7 +212,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|PatternAlign")]
         public double PatternRoi2_Length2 { get; set; } = 0.0;
 
-        //260619 hbk Phase 55 ALIGN-02: 직선 ROI(AlignLineRoi_*/AlignLineRefAngleDeg) 폐기 — 2-패턴 baseline 각도로 대체. 구 INI 키는 ParamBase 가 무시(무해).
+        //260619 hbk 직선 ROI(AlignLineRoi_*/AlignLineRefAngleDeg) 폐기 — 2-패턴 baseline 각도로 대체. 구 INI 키는 ParamBase 가 무시(무해).
 
         // 가로축 이미지(TeachingImagePath) 와 분리된 세로축 이미지 경로.
         //  algorithm == VerticalTwoHorizontalDualImage 일 때만 의미가 있으며, 그 외 algorithm 에서는 INI 에 보존되지만 미사용 (ICustomTypeDescriptor 가 hide).
@@ -231,7 +231,7 @@ namespace ReringProject.Sequence {
         [System.ComponentModel.Description("LineROI 라이브 캡처 z_index. -1=미설정(기존 정적 이미지 경로 사용)")]
         public int ZIndexB { get; set; } = -1;
 
-        // quick-260904-iwm: 시퀀스별 "기준점(Datum 촬영) = 새 사이클 시작" Z 번호. -1(자동)이면 이 시퀀스가
+        //260904 hbk 시퀀스별 "기준점(Datum 촬영) = 새 사이클 시작" Z 번호. -1(자동)이면 이 시퀀스가
         //  소유한 Shot 의 ZIndex 최솟값을 런타임에 자동으로 쓴다(InspectionSequence.GetDatumZIndex 참고). 사용자가
         //  직접 넣은 값이 있으면 그 값이 최우선이다. public 인 이유: InspectionSequence 가 같은 sentinel 로
         //  "지정/자동" 을 판정해야 하며 값 복제를 금지하기 때문.
@@ -260,7 +260,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // quick-260904-iwm: DatumZIndex 를 사용자가 직접 바꿨는데 이 시퀀스가 쓰는 Shot 시작 번호와 다르면
+        //260904 hbk DatumZIndex 를 사용자가 직접 바꿨는데 이 시퀀스가 쓰는 Shot 시작 번호와 다르면
         //  알린다. INI 로드/붙여넣기(리플렉션 SetValue)에서는 조용히 지나간다(_suppressUserEditWarning, Mirror
         //  와 동일 관용구). 저장은 절대 막지 않는다 — 반환값을 쓰지 않는다.
         private void WarnDatumZIndexChanged() {
@@ -292,14 +292,14 @@ namespace ReringProject.Sequence {
                 System.Windows.MessageBoxImage.Warning, true, false);
         }
 
-        // quick-260813: 경고를 '사용자의 PropertyGrid 편집' 에서만 띄우기 위한 억제 플래그.
+        //260813 hbk 경고를 '사용자의 PropertyGrid 편집' 에서만 띄우기 위한 억제 플래그.
         //  ParamBase.Load(INI 리플렉션 SetValue)와 CopyPublicPropertiesTo(붙여넣기)가 사용자 편집 대상
         //  세터(Mirror / 기준점 Z 번호)를 같은 방식으로 때리므로, 가드가 없으면 레시피 로드/붙여넣기마다
         //  경고창이 뜬다. 위 _suppressModelRename 과 동일한 패턴이며, 단일 인스턴스 안에서 UI 스레드로만
         //  켜고 끄므로 별도 동기화는 두지 않는다.
         private bool _suppressUserEditWarning;
 
-        // quick-260813: 카메라 하드웨어 촬영 방향(좌우/상하 뒤집기) 설정. 여기서는 값만 보관하고 실제 뒤집기는
+        //260813 hbk 카메라 하드웨어 촬영 방향(좌우/상하 뒤집기) 설정. 여기서는 값만 보관하고 실제 뒤집기는
         //  하지 않는다 — MIL grab 배선은 후속 별도 작업이며, 앱 시작 시 1회 적용될 예정이다.
         //  INI 키 미존재 시 ParamBase.Load 의 Boolean case 가 false 를 넣는데 C# 초기값과 같으므로
         //  ZIndexA/ZIndexB 같은 Load 오버라이드 폴백이 필요 없다.
@@ -331,7 +331,7 @@ namespace ReringProject.Sequence {
             }
         }
 
-        // quick-260813: 이 값은 '카메라가 찍어오는 사진 자체' 를 바꾸므로 이 Datum 하나가 아니라 같은 카메라를 쓰는
+        //260813 hbk 이 값은 '카메라가 찍어오는 사진 자체' 를 바꾸므로 이 Datum 하나가 아니라 같은 카메라를 쓰는
         //  다른 측정까지 영향을 받는다. 초보 작업자가 무심코 켰다가 원인 모를 전항목 틀어짐을 겪지 않도록 알린다.
         //  메시지박스 호출은 내부에서 Dispatcher.BeginInvoke 로 넘어가므로 세터를 블로킹하지 않는다
         //  (PropertyGrid 쓰기가 끝난 뒤 창이 뜬다 — 재진입 없음). 이중 마샬링 금지.
@@ -426,7 +426,7 @@ namespace ReringProject.Sequence {
         [Category("Datum|Algorithm")]
         public double AngleTolerance { get; set; } = 0.0;
 
-        // Datum 별 세로선 끄기 옵션 (VerticalTwoHorizontalDualImage 전용). 기본 꺼짐 — INI 키 부재 시 false(D-76-01).
+        //260911 hbk Datum 별 세로선 끄기 옵션 (VerticalTwoHorizontalDualImage 전용). 기본 꺼짐 — INI 키 부재 시 false.
         [Category("Datum|Algorithm")]
         [System.ComponentModel.Description("세로선 끄기 (VerticalTwoHorizontalDualImage 전용). 켜면 세로 이미지(ZIndexB)는 그대로 촬영·저장하지만 세로선 검출은 하지 않고, 가로 결합선과 패턴매칭만으로 기준점을 만든다 — 원점 X = 패턴매칭으로 옮긴 티칭 원점 열, 원점 Y·각도 = 가로 결합선. 패턴 정렬(IsPatternAlignEnabled)이 켜져 있어야 하며 꺼져 있으면 Datum 찾기가 실패한다. 세로 기준각이 없으므로 이 Datum 을 참조하는 X축(MeasureAxis=X) 측정에는 쓰지 않는다. 티칭은 지금처럼 세로선이 필요하다. 기본 꺼짐.")]
         public bool IsVerticalLineDisabled { get; set; } = false;
@@ -474,15 +474,15 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Line1_EdgeDirectionList))]
         public string Line1_EdgeDirection   { get; set; } = "";
         public int    Line1_EdgeSampleCount { get; set; } = 0;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int    Line1_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line1_EdgePolarityList))]
         public string Line1_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Line1_EdgeSelectionList))]
         public string Line1_EdgeSelection   { get; set; } = "";
-        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0). erosion>0 일 때만 ROI(+strip 여유) 도메인에 적용.
-        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피). erosion>0 일 때만 ROI(+strip 여유) 도메인에 적용.
+        //  등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
         [Category("Datum|Line1 (TLI) Edge")]
         [DisplayName("Erosion (px)")]
         [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
@@ -518,15 +518,15 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Vertical_EdgeDirectionList))]
         public string Vertical_EdgeDirection   { get; set; } = "";
         public int    Vertical_EdgeSampleCount { get; set; } = 0;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int    Vertical_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Vertical_EdgePolarityList))]
         public string Vertical_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Vertical_EdgeSelectionList))]
         public string Vertical_EdgeSelection   { get; set; } = "";
-        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
-        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피).
+        //  등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
         [Category("Datum|Vertical (VTH) Edge")]
         [DisplayName("Erosion (px)")]
         [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
@@ -564,15 +564,15 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Line2_EdgeDirectionList))]
         public string Line2_EdgeDirection   { get; set; } = "";
         public int    Line2_EdgeSampleCount { get; set; } = 0;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int    Line2_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Line2_EdgePolarityList))]
         public string Line2_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Line2_EdgeSelectionList))]
         public string Line2_EdgeSelection   { get; set; } = "";
-        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
-        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피).
+        //  등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
         [Category("Datum|Line2 (TLI) Edge")]
         [DisplayName("Erosion (px)")]
         [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
@@ -616,7 +616,7 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Circle_EdgeDirectionList))]
         public string Circle_EdgeDirection   { get; set; } = "";
         public int    Circle_EdgeSampleCount { get; set; } = 0;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int    Circle_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Circle_EdgePolarityList))]
@@ -663,15 +663,15 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeDirectionList))]
         public string Horizontal_A_EdgeDirection   { get; set; } = "";
         public int    Horizontal_A_EdgeSampleCount { get; set; } = 0;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int    Horizontal_A_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_A_EdgePolarityList))]
         public string Horizontal_A_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Horizontal_A_EdgeSelectionList))]
         public string Horizontal_A_EdgeSelection   { get; set; } = "";
-        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
-        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피).
+        //  등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
         [Category("Datum|Horizontal_A (CTH/VTH) Edge")]
         [DisplayName("Erosion (px)")]
         [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
@@ -709,15 +709,15 @@ namespace ReringProject.Sequence {
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeDirectionList))]
         public string Horizontal_B_EdgeDirection   { get; set; } = "";
         public int    Horizontal_B_EdgeSampleCount { get; set; } = 0;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int    Horizontal_B_EdgeTrimCount   { get; set; } = 0;
         [ItemsSourceProperty(nameof(Horizontal_B_EdgePolarityList))]
         public string Horizontal_B_EdgePolarity    { get; set; } = "";
         [ItemsSourceProperty(nameof(Horizontal_B_EdgeSelectionList))]
         public string Horizontal_B_EdgeSelection   { get; set; } = "";
-        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피 회귀 0).
-        //  260724 hbk: 등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
+        //260723 hbk 그레이스케일 침식 노이즈 억제 전처리. 0=비활성(기본, 기존 레시피).
+        //  등방(N×N) → 방향성(gray_erosion, 라인 방향 회전 SE) 전환 — 에지 자체는 블러하지 않고 라인방향 노이즈만 억제.
         [Category("Datum|Horizontal_B (CTH/VTH) Edge")]
         [DisplayName("Erosion (px)")]
         [System.ComponentModel.Description("ROI 내 그레이스케일 노이즈 억제 마스크 크기(픽셀). 0 = 비활성(기본, 기존 동작과 완전히 동일). 1 이상이면 에지 방향(측정 스캔 방향의 수직)으로만 긴 회전 마스크를 적용해, 에지에 수직인 노이즈/스펙클만 억제하고 에지 자체는 블러하지 않는다.")]
@@ -1087,7 +1087,7 @@ namespace ReringProject.Sequence {
         [Newtonsoft.Json.JsonIgnore]
         public double AlignThetaDeg { get; set; }
 
-        // Phase 78 NGA-07: 1번(주) 패턴 매칭 결과 — cycle.json 진단 기록 전용(판정 무관). TryComposeAlign 이 매칭 전 0 으로 지우고 성공 직후 기록한다.
+        //260917 hbk NGA-07: 1번(주) 패턴 매칭 결과 — cycle.json 진단 기록 전용(판정 무관). TryComposeAlign 이 매칭 전 0 으로 지우고 성공 직후 기록한다.
         //  프로퍼티가 아닌 필드라 INI·붙여넣기·PropertyGrid 에 나오지 않고, JsonIgnore 로 레시피 JSON 에서도 빠진다.
         public const double ALIGN_MATCH_NONE = 0.0;
         [Newtonsoft.Json.JsonIgnore]
@@ -1241,15 +1241,15 @@ namespace ReringProject.Sequence {
                 Vertical_Length2 = Line1_Length2;
             }
 
-            //260618 hbk Phase 54 ALIGN-01 매칭 파라미터 sentinel 0 → 기본값 복원 (D-11 멱등 폴백)
-            // IsPatternAlignEnabled 는 bool — INI 키 미존재 시 자동 false(D-11). 별도 폴백 불필요.
+            //260618 hbk 매칭 파라미터 sentinel 0 → 기본값 복원 ( 멱등 폴백)
+            // IsPatternAlignEnabled 는 bool — INI 키 미존재 시 자동 false. 별도 폴백 불필요.
             // PatternEngine null 가드 (INI 키 미존재 시 ParamBase string case 가 null 반환 가능)
             if (PatternEngine == null) PatternEngine = "Shape";
             // sentinel 0 → SIMUL 튜닝 기본값 복원 (의미값이 이미 있으면 미변경 — 멱등성 보장)
             if (PatternMinScore <= 0.0) PatternMinScore = 0.6;           // SIMUL 튜닝 기본 (Claude's Discretion)
-            if (PatternAngleExtentDeg <= 0.0) PatternAngleExtentDeg = 10.0; // coarse x,y 전용 → 작은 angle range (D-01b)
-            if (FindAngleExtentDeg <= 0.0) FindAngleExtentDeg = 3.0; // quick-260807: 런타임 Find 는 ±3° 로 충분 (넓으면 false match)
-            if (PatternSearchMarginPx <= 0.0) PatternSearchMarginPx = 100.0; // template ROI ± margin (D-06)
+            if (PatternAngleExtentDeg <= 0.0) PatternAngleExtentDeg = 10.0; //260618 hbk coarse x,y 전용 → 작은 angle range
+            if (FindAngleExtentDeg <= 0.0) FindAngleExtentDeg = 3.0; //260807 hbk 런타임 Find 는 ±3° 로 충분 (넓으면 false match)
+            if (PatternSearchMarginPx <= 0.0) PatternSearchMarginPx = 100.0; //260618 hbk template ROI ± margin
 
             //260723 hbk NOTE: Line1_Erosion/Line2_Erosion/Vertical_Erosion/Horizontal_A_Erosion/Horizontal_B_Erosion 는
             //  의도적으로 위 sentinel-fallback 블록에 포함하지 않는다. Sigma/EdgeThreshold 와 달리 0 은 여기서
@@ -1273,7 +1273,7 @@ namespace ReringProject.Sequence {
             var alg = AlgorithmTypeEnum;
             var sourceNames = new System.Collections.Generic.HashSet<string> {
                 nameof(AlgorithmTypeList),
-                //260618 hbk Phase 54 ALIGN-01 PatternEngineList 를 sourceNames 화이트리스트에 강제 포함 (CO-01 ItemsSource fallback 가드)
+                //260618 hbk PatternEngineList 를 sourceNames 화이트리스트에 강제 포함 ( ItemsSource fallback 가드)
                 nameof(PatternEngineList),
                 nameof(Circle_EdgeDirectionList), nameof(Circle_EdgePolarityList),
                 nameof(Circle_EdgeSelectionList), nameof(Circle_RadialDirectionList),
@@ -1310,7 +1310,7 @@ namespace ReringProject.Sequence {
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
                     if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
-                    if (name == nameof(IsVerticalLineDisabled)) { return true; } // DualImage 전용 옵션 hide (D-76-01)
+                    if (name == nameof(IsVerticalLineDisabled)) { return true; } //260911 hbk DualImage 전용 옵션 hide
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
                     if (name.StartsWith("Horizontal_A_") || name.StartsWith("Horizontal_B_")) return true;
@@ -1319,7 +1319,7 @@ namespace ReringProject.Sequence {
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
                     if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
-                    if (name == nameof(IsVerticalLineDisabled)) { return true; } // DualImage 전용 옵션 hide (D-76-01)
+                    if (name == nameof(IsVerticalLineDisabled)) { return true; } //260911 hbk DualImage 전용 옵션 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Vertical_")) return true;
@@ -1329,7 +1329,7 @@ namespace ReringProject.Sequence {
                     if (name == "TeachingImagePath_Vertical") return true; // DualImage 전용 필드 hide
                     if (name == "ZIndexA" || name == "ZIndexB") return true; // DualImage 전용 필드 hide (PROTO-Z-CROSS)
                     if (name == "ExpectedAngleDeg" || name == "AngleTolerance") return true; // DualImage 전용 필드 hide
-                    if (name == nameof(IsVerticalLineDisabled)) { return true; } // DualImage 전용 옵션 hide (D-76-01)
+                    if (name == nameof(IsVerticalLineDisabled)) { return true; } //260911 hbk DualImage 전용 옵션 hide
                     if (name.StartsWith("Line1_") || name.StartsWith("Line1Detected_")) return true;
                     if (name.StartsWith("Line2_") || name.StartsWith("Line2Detected_")) return true;
                     if (name.StartsWith("Circle_") || name.StartsWith("CircleROI_") || name.StartsWith("CircleCenter_") || name.StartsWith("CircleDetected_")) return true;
@@ -1346,19 +1346,19 @@ namespace ReringProject.Sequence {
         public DatumConfig(object owner) : base(owner) {
         }
 
-        // 하위호환(D-07): ParamBase.Load 는 INI 누락 Int32 키를 0 으로 덮어쓴다. 구 레시피엔 ZIndexA/ZIndexB 키가 없어
-        //  0 으로 로드되면 "z_index=0 명시"로 오인되어 크로스-Z 실행 스코프/캡처가 오작동한다(T-68-03).
+        //260722 hbk 하위호환: ParamBase.Load 는 INI 누락 Int32 키를 0 으로 덮어쓴다. 구 레시피엔 ZIndexA/ZIndexB 키가 없어
+        //  0 으로 로드되면 "z_index=0 명시"로 오인되어 크로스-Z 실행 스코프/캡처가 오작동한다.
         //  EnsurePerRoiDefaults() 는 find-time 훅이라 로드 시점 0/미설정 구분이 불가해 이 Load override 를 신설한다
         //  (MeasurementBase.Load/CameraSlaveParam.Load 의 ContainsKey 가드와 동일 패턴).
-        //  quick-260904-iwm: DatumZIndex 도 같은 사유로 가드가 필요하다 — 0 이 "z=0 을 기준점으로 명시 지정"이라는
+        //  DatumZIndex 도 같은 사유로 가드가 필요하다 — 0 이 "z=0 을 기준점으로 명시 지정"이라는
         //  유효값이라 자동(-1)과 반드시 구별해야 한다. 구 레시피가 전부 0 으로 로드되면 Bottom 같은 시퀀스가
         //  영영 사이클을 시작하지 못한다.
         public override bool Load(IniFile loadFile, string groupName) {
-            // quick-260806-nrm: base.Load 는 리플렉션 SetValue 로 DatumName 세터를 때린다(초기값 "Datum_1" → 저장된 이름).
+            //260806 hbk base.Load 는 리플렉션 SetValue 로 DatumName 세터를 때린다(초기값 "Datum_1" → 저장된 이름).
             //  이 구간에서 리네임이 돌면 다른 Datum 의 모델 파일을 옮겨버리므로 반드시 끈다.
             bool result;
             _suppressModelRename = true;
-            _suppressUserEditWarning = true; // quick-260813/260904-iwm: 리플렉션 SetValue 가 Mirror/DatumZIndex 세터를 때려 경고창이 뜨는 것을 막는다
+            _suppressUserEditWarning = true; //260904 hbk 리플렉션 SetValue 가 Mirror/DatumZIndex 세터를 때려 경고창이 뜨는 것을 막는다
             try {
                 result = base.Load(loadFile, groupName);
             }
@@ -1375,7 +1375,7 @@ namespace ReringProject.Sequence {
             }
             if (!sec.ContainsKey("ZIndexA")) ZIndexA = -1;
             if (!sec.ContainsKey("ZIndexB")) ZIndexB = -1;
-            // quick-260904-iwm: DatumZIndex 도 0 이 유효 지정값이므로 키 부재 시 -1(자동)로 강제한다. 이 대입은
+            //260904 hbk DatumZIndex 도 0 이 유효 지정값이므로 키 부재 시 -1(자동)로 강제한다. 이 대입은
             //  세터를 타지만 값이 AUTO_DATUM_Z_INDEX 라 WarnDatumZIndexChanged 의 두 번째 가드에서 즉시 빠져나온다
             //  — 로드 중 경고창은 뜨지 않는다.
             bool bDatumZIndexKeyMissing = !sec.ContainsKey("DatumZIndex");
@@ -1420,7 +1420,7 @@ namespace ReringProject.Sequence {
             DatumConfig target = param as DatumConfig;
             if (target == null) return false;
             base.CopyTo(param);
-            // quick-260813/260904-iwm: 붙여넣기는 리플렉션으로 target 세터를 때린다. 사용자의 직접 편집이 아니므로 경고를 끈다.
+            //260904 hbk 붙여넣기는 리플렉션으로 target 세터를 때린다. 사용자의 직접 편집이 아니므로 경고를 끈다.
             target._suppressUserEditWarning = true;
             try {
                 CopyPublicPropertiesTo(target, _copyExclude);

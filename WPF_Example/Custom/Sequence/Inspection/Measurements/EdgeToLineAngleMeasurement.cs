@@ -32,7 +32,7 @@ namespace ReringProject.Sequence
         public int EdgeThreshold { get; set; } = 10;
         public double Sigma { get; set; } = 1.0;
         public int EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
@@ -43,7 +43,7 @@ namespace ReringProject.Sequence
         [ItemsSourceProperty(nameof(EdgeSelectionList))]
         public string EdgeSelection { get; set; } = "All";
 
-        //260616 hbk Phase 51 UAT: 보각(180-θ) 사용. Datum 기준선 반대방향 기준 각도로 보고.
+        //260616 hbk 보각(180-θ) 사용. Datum 기준선 반대방향 기준 각도로 보고.
         //  예) 이미지 0°기준 시계방향 138° → 우측 180°기준 반시계 42° = 180-138.
         //  raw 가 [0,180] 이므로 보각도 [0,180]. 기본 false = 기존 동작(회귀 0, INI 미존재 시 폴백 false).
         [Category("Angle")]
@@ -88,7 +88,7 @@ namespace ReringProject.Sequence
 
         public EdgeToLineAngleMeasurement(object owner) : base(owner) { }
 
-        // Phase 77 SZF-03/D-77-07 ②: 이 측정도 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
+        //260915 hbk ②: 이 측정도 에지 강도 점수로 Z 를 고를 수 있는 지원 타입이다.
         public override bool SupportsEdgeStrengthScore()
         {
             return true;
@@ -105,10 +105,10 @@ namespace ReringProject.Sequence
             resultValue = 0;
             error = null;
             overlays = new List<EdgeInspectionOverlay>();
-            LastFitScore = 0.0; // Phase 77: 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
+            LastFitScore = 0.0; //260915 hbk 모든 실패 경로에서 이전 사이클 점수가 남지 않게 먼저 0으로
 
             var svc = new VisionAlgorithmService();
-            var edgeScore = new EdgeStrengthScore(); // Phase 77 SZF-03: 에지 강도 점수 수집(opt-in)
+            var edgeScore = new EdgeStrengthScore(); //260915 hbk 에지 강도 점수 수집(opt-in)
             svc.EdgeScore = edgeScore;
             double pr1, pc1, pr2, pc2;
             // strip-loop 누적 raw 에지점 수집용 (overlay 가시화)
@@ -126,7 +126,7 @@ namespace ReringProject.Sequence
             {
                 return false;
             }
-            LastFitScore = edgeScore.Average; // Phase 77: Z 선택에 쓰는 점수(재계산 없이 채택된 결과에 남긴다)
+            LastFitScore = edgeScore.Average; //260915 hbk Z 선택에 쓰는 점수(재계산 없이 채택된 결과에 남긴다)
 
             // Datum A 기준선: 교점 통과, 방향 = DatumAngleRad (1차 수평 기준선).
             // overlay 가 이미지 끝까지 그리도록 halfLength = 이미지 대각선
@@ -149,7 +149,7 @@ namespace ReringProject.Sequence
                 pr1, pc1, pr2, pc2,
                 daR1, daC1, daR2, daC2);
 
-            //260616 hbk Phase 51 UAT: 보각 옵션 — 기준 방향 반대로 각도 보고 (180-θ). raw [0,180] → 보각도 [0,180]. overlay 는 raw 기하 유지.
+            //260616 hbk 보각 옵션 — 기준 방향 반대로 각도 보고 (180-θ). raw [0,180] → 보각도 [0,180]. overlay 는 raw 기하 유지.
             if (UseSupplementaryAngle)
             {
                 resultValue = 180.0 - resultValue;

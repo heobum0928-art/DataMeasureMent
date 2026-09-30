@@ -107,7 +107,7 @@ namespace ReringProject.UI {
         }
 
         // 통계분석 비모달 창 열기
-        private void Button_Statistics_Click(object sender, RoutedEventArgs e) {   //260707 hbk STAT-01 D-09
+        private void Button_Statistics_Click(object sender, RoutedEventArgs e) {   //260707 hbk STAT-01
             mParentWindow.PopupView(EPageType.Statistics);
         }
     }

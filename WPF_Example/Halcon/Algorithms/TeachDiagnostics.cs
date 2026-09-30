@@ -1,4 +1,4 @@
-//quick-260812: 티칭 실패/품질 진단 표시 헬퍼. 순수 표시(문자열/색) 레이어 —
+//260812 hbk 티칭 실패/품질 진단 표시 헬퍼. 순수 표시(문자열/색) 레이어
 // 이 파일에는 판정도 HALCON 호출도 없다. 어떤 메서드도 pass/fail 을 만들거나 바꾸지 않는다.
 using System;
 using System.Collections.Generic;

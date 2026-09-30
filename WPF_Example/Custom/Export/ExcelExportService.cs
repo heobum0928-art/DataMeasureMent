@@ -213,11 +213,11 @@ namespace ReringProject.Export
             {
                 return "DETECT FAIL";
             }
-            else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨 //260710 hbk 상수화
+            else if (m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE 라벨/ 상수화
             {
                 return "NO IMAGE";
             }
-            else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk quick-fix(260729-e9q): 크로스-Z 미측정 라벨 (ReviewMeasurementRow 로직 일치)
+            else if (m.LastSkipReason == SkipReason.CROSS_Z_INCOMPLETE) //260729 hbk 크로스-Z 미측정 라벨 (ReviewMeasurementRow 로직 일치)
             {
                 return "CROSS-Z INCOMPLETE";
             }
@@ -282,8 +282,8 @@ namespace ReringProject.Export
     }
 
     /// <summary>
-    /// 리뷰어가 연 날짜 폴더의 NG 측정만 한 xlsx 파일(NG_분석_누적.xlsx, 시트 "NG 누적")에 중복 없이 계속 누적한다(D-78-02).
-    /// 원인·근거·확인할 일·함께 의심·원인 코드는 화면 패널과 같은 NgCauseAnalyzer.Analyze 결과를 그대로 쓴다(D-78-04).
+    /// 리뷰어가 연 날짜 폴더의 NG 측정만 한 xlsx 파일(NG_분석_누적.xlsx, 시트 "NG 누적")에 중복 없이 계속 누적한다.
+    /// 원인·근거·확인할 일·함께 의심·원인 코드는 화면 패널과 같은 NgCauseAnalyzer.Analyze 결과를 그대로 쓴다.
     /// 이 클래스는 이 날짜 폴더의 cycle.json·사진을 읽기만 한다 — 쓰기는 출력 xlsx(와 같은 폴더 임시 xlsx) 뿐이다(PR-5).
     /// </summary>
     public static class NgAccumulationExportService

@@ -38,7 +38,7 @@ namespace ReringProject.Sequence
             DateTime when,
             string recipeName,
             string ownerSequenceName = null,
-            int nIndexNumber = -1,   //260622 hbk Phase 48 PROTO-01: 자재번호 전파 (기본 -1 미수신)
+            int nIndexNumber = -1,   //260622 hbk 자재번호 전파 (기본 -1 미수신)
             bool bIsProtocolDriven = false,   //260820 hbk 자동(PLC $TEST)/수동(화면 RUN·일괄·반복) 구분. 기본 false=수동
             int nZIndex = -1)   // 이 tick 의 z 번호. 기본 -1 = 없음/수동(호출부 4곳 무수정 컴파일 보장)
         {
@@ -49,7 +49,7 @@ namespace ReringProject.Sequence
                 InspectionTime = when,
                 RecipeName = recipeNameStr,
                 OverallJudgement = MapJudgement(cycleResult),
-                IndexNumber = nIndexNumber,   //260622 hbk Phase 48 PROTO-01: 자재번호 dto 대입
+                IndexNumber = nIndexNumber,   //260622 hbk 자재번호 dto 대입
                 IsProtocolDriven = bIsProtocolDriven,   //260820 hbk 자동/수동 dto 대입
                 ZIndex = nZIndex
                 // CycleFolderPath 는 SaveAsync 에서 계산 후 설정
@@ -89,7 +89,7 @@ namespace ReringProject.Sequence
                     // GetLatestImagePath() = SimulImagePath — 측정 소스 이미지 (리뷰어 재로드용)
                     // SaveResultImage SaveFailImage 게이트에 의존하지 않음
                 };
-                bool bZRangeEnabled = shot.IsZRangeEnabled(); // Phase 78 NGA-07: 검사 당시 Z 범위 기록 — 리뷰어 R8 은 현재 레시피가 아니라 이 값을 쓴다
+                bool bZRangeEnabled = shot.IsZRangeEnabled(); //260917 hbk NGA-07: 검사 당시 Z 범위 기록 — 리뷰어 R8 은 현재 레시피가 아니라 이 값을 쓴다
                 if (bZRangeEnabled)
                 {
                     shotDto.ZRangeStartIndex = shot.ZIndex;
@@ -139,7 +139,7 @@ namespace ReringProject.Sequence
                             LastErrorMessage = meas.LastErrorMessage  // MEASURE_FAIL 원본 에러(절단됨)
                         };
                         measDto.SelectedZIndex = meas.LastSelectedZIndex;
-                        measDto.RefSource = meas.LastRefSource; // Phase 79 LSR-04: 사용 기준(옵션 꺼짐 = null)
+                        measDto.RefSource = meas.LastRefSource; //260918 hbk LSR-04: 사용 기준(옵션 꺼짐 = null)
                         if (meas.LastZCandidateScores != null)
                         {
                             measDto.ZCandidateScores = new List<ZCandidateScoreDto>(meas.LastZCandidateScores);
@@ -173,10 +173,10 @@ namespace ReringProject.Sequence
             return dto;
         }
 
-        // Phase 78 NGA-07: 비유한수(NaN/Infinity) 진단 값을 cycle.json 에 그대로 쓰지 않기 위한 대체값
+        //260917 hbk NGA-07: 비유한수(NaN/Infinity) 진단 값을 cycle.json 에 그대로 쓰지 않기 위한 대체값
         private const double NON_FINITE_REPLACEMENT = 0.0;
 
-        // Phase 78 NGA-07: NaN·무한대는 NON_FINITE_REPLACEMENT 로 치환해 반환한다(기록만, 판정 무관)
+        //260917 hbk NGA-07: NaN·무한대는 NON_FINITE_REPLACEMENT 로 치환해 반환한다(기록만, 판정 무관)
         private static double ToFiniteOrZero(double dValue)
         {
             bool bNonFinite = double.IsNaN(dValue) || double.IsInfinity(dValue);
@@ -188,7 +188,7 @@ namespace ReringProject.Sequence
         }
 
         /// <summary>
-        /// tick 저장 시점 Datum 진단 스냅샷, 기록 전용(D-78-08). IsDetectedThisTick=false 면 이전 tick 값이다.
+        /// tick 저장 시점 Datum 진단 스냅샷, 기록 전용. IsDetectedThisTick=false 면 이전 tick 값이다.
         /// </summary>
         public static DatumDiagnosticDto BuildDatumDiagnostic(DatumConfig datum, DateTime dtTickStartUtc)
         {
@@ -324,11 +324,11 @@ namespace ReringProject.Sequence
                     catch { }
                 }
 
-                try   //260707 hbk STAT-01 D-04: CSV 이력 append — JSON 성공/실패와 독립(검사/TCP 무영향). v2.6/v1.0/수동 3경로 자동 커버.
+                try   //260707 hbk STAT-01: CSV 이력 append — JSON 성공/실패와 독립(검사/TCP 무영향). v2.6/v1.0/수동 3경로 자동 커버.
                 {
                     MeasurementHistoryCsvWriter.Append(dto);
                 }
-                catch (Exception exCsv)   //260707 hbk STAT-01 D-04
+                catch (Exception exCsv)   //260707 hbk STAT-01
                 {
                     try { Logging.PrintErrLog((int)ELogType.Error, "[CycleResultSerializer] CSV history append failed: " + exCsv.Message); } catch { }
                 }

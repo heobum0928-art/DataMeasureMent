@@ -528,7 +528,7 @@ namespace ReringProject.Sequence {
                     ClearDatumTransforms();
                 }
             } catch (Exception ex) {
-                try { Logging.PrintErrLog((int)ELogType.Error, "[Phase40] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
+                try { Logging.PrintErrLog((int)ELogType.Error, "[SEQ] run-start 결과 초기화 실패(무시): " + ex.Message); } catch { }
             }
         }
 

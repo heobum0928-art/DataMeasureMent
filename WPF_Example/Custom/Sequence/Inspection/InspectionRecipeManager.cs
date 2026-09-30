@@ -256,7 +256,7 @@ namespace ReringProject.Sequence {
             if (version != ERecipeFormatVersion.Phase6) {
                 CustomMessageBox.Show(
                     "Legacy Recipe",
-                    "이 레시피는 이전 포맷(Phase 1~5)입니다.\n새 Phase 6 레시피로 작성하세요.",
+                    "이 레시피는 이전 형식입니다.\n새 형식 레시피로 다시 작성하세요.",
                     MessageBoxImage.Information);
                 Logging.PrintLog((int)ELogType.Trace, $"[InspectionRecipeManager] Legacy recipe rejected (version={version})");
                 return false;

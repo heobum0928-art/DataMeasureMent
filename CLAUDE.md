@@ -152,7 +152,10 @@ WPF 기반 산업용 비전 검사 시스템. Halcon 이미지 처리를 사용�
 
 **5) 주석 · 자원 해제**
 
-- **날짜 주석(`//YYMMDD hbk`) 신규 금지** (2026-06-11 정책 전환). 비자명한 "왜" 만 최소한으로
+- **주석 머리는 `//YYMMDD hbk 내용`** (2026-09-30 재전환, 날짜 = 작성일). XAML 은 `<!--YYMMDD hbk 내용-->`
+  - 여러 줄 주석은 첫 줄에만 서명, 이어지는 줄은 `//  내용`. `///` 문서 주석에는 서명을 붙이지 않는다
+  - 내용은 비자명한 "왜" 만 최소한으로
+- **작업기록 흔적 금지** — 주석·로그 문자열·팝업 문구 어디에도 `Phase NN`, `Plan NN`, 결정 코드(`D-01`, `CO-33-06`, `T-65-01` 등), `quick-YYMMDD-xxx`, `.planning` 경로, `UAT`, `*-PLAN.md` 를 넣지 않는다. 로그 태그는 `[SEQ]` `[ALIGN]` `[RECIPE]` 처럼 기능 이름으로
 - **`HImage` / `HObject` / `HTuple` 은 반드시 Dispose** (`finally` 에서 `try { x.Dispose(); } catch { }`)
 
 검증용 grep (신규/수정 파일에 대해 전부 `0` 이어야 한다):
@@ -161,8 +164,10 @@ grep -cE '\?[^\?]*:' FILE   # 삼항
 grep -cF '??' FILE          # null 병합
 grep -cF '?.' FILE          # null 조건
 grep -cE 'switch.*=>' FILE  # switch 식
-grep -cF 'hbk' FILE         # 날짜 주석
+grep -cE 'Phase ?[0-9]|quick-[0-9]{6}|\bD-[0-9]{2}\b|CO-[0-9]|\.planning' FILE  # 작업기록 흔적
 ```
+
+인계용 저장소는 `scripts/export_handover.sh <출력폴더>` 로 뽑는다(`.planning/`·`.claude/`·이 파일 제외, 커밋 1개). 내부 저장소의 `.planning/`·커밋 기록은 지우지 않는다.
 
 ### 기타 포맷
 - No `.editorconfig` or `.prettierrc` detected; formatting is inconsistent between modules
@@ -199,7 +204,7 @@ grep -cF 'hbk' FILE         # 날짜 주석
 - Business logic that maps hardware protocol to software concepts (TCP packet fields, zone/site mapping)
 - Non-obvious algorithm parameters (why sigma=1.0, why trimCount is applied, etc.)
 - Thread-safety intent (e.g., `// Thread-safe image buffer`)
-- Stubs that must be replaced: `// Phase 8: Halcon edge measurement will be implemented here`
+- Stubs that must be replaced: `//260930 hbk TODO: Halcon edge measurement 구현 예정`
 - Used on public utility methods in `Logging.cs` and `VirtualCamera.cs`
 - Required on new public-facing service/utility methods
 - Not required on UI event handlers or override lifecycle methods

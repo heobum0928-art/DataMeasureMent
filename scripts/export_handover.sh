@@ -46,6 +46,8 @@ szVersion="$(grep -o 'VERSION = "[^"]*"' "$OUT_DIR/WPF_Example/VersionDefine.cs"
 szVersion="${szVersion:-unknown}"
 
 git -C "$OUT_DIR" init -q
+# packages/ 아래 경로가 길어 Windows 260자 제한에 걸리는 파일이 있다
+git -C "$OUT_DIR" config core.longpaths true
 git -C "$OUT_DIR" add -A
 git -C "$OUT_DIR" commit -q -m "DataMeasurement ${szVersion}"
 

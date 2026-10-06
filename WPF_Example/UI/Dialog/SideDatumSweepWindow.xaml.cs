@@ -28,7 +28,14 @@ namespace ReringProject.UI
             InitializeComponent();
             txtHStart.Text = SideDatumTrainCapture.HorizontalStartZ.ToString();
             txtHEnd.Text = SideDatumTrainCapture.HorizontalEndZ.ToString();
-            txtV.Text = SideDatumTrainCapture.VerticalZ.ToString();
+            if (SideDatumTrainCapture.VerticalZ == SideDatumTrainCapture.NO_VERTICAL)
+            {
+                txtV.Text = "";
+            }
+            else
+            {
+                txtV.Text = SideDatumTrainCapture.VerticalZ.ToString();
+            }
             btnMode.IsChecked = SideDatumTrainCapture.IsActive;
             BuildRows();
             txtFolder.Text = "저장 폴더: " + SideDatumTrainCapture.SAVE_ROOT;
@@ -76,12 +83,25 @@ namespace ReringProject.UI
             int nV;
             bool bStartOk = int.TryParse(txtHStart.Text.Trim(), out nHStart);
             bool bEndOk = int.TryParse(txtHEnd.Text.Trim(), out nHEnd);
-            bool bVOk = int.TryParse(txtV.Text.Trim(), out nV);
-            bool bParsed = bStartOk && bEndOk && bVOk;
+            bool bParsed = bStartOk && bEndOk;
             if (!bParsed)
             {
-                szError = "z 번호는 숫자로 넣어 주세요.";
+                szError = "가로 z 번호는 숫자로 넣어 주세요.";
                 return false;
+            }
+            string szV = txtV.Text.Trim();
+            if (string.IsNullOrEmpty(szV))
+            {
+                nV = SideDatumTrainCapture.NO_VERTICAL;   // 비우면 세로 없음
+            }
+            else
+            {
+                bool bVOk = int.TryParse(szV, out nV);
+                if (!bVOk)
+                {
+                    szError = "세로 z 는 숫자로 넣거나 비워 두세요.";
+                    return false;
+                }
             }
             bool bRangeOk = nHStart >= 0 && nHEnd >= nHStart;
             if (!bRangeOk)
@@ -89,7 +109,7 @@ namespace ReringProject.UI
                 szError = "가로 z 범위가 올바르지 않습니다 (시작 ≤ 끝).";
                 return false;
             }
-            bool bOverlap = nV >= nHStart && nV <= nHEnd;
+            bool bOverlap = nV != SideDatumTrainCapture.NO_VERTICAL && nV >= nHStart && nV <= nHEnd;
             if (bOverlap)
             {
                 szError = "세로 z 가 가로 범위와 겹칩니다.";
@@ -112,8 +132,13 @@ namespace ReringProject.UI
                 btnMode.Content = "■ 수집 모드 켜짐 — 누르면 끔";
                 btnMode.Background = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
                 btnMode.Foreground = Brushes.White;
-                txtLast.Text = string.Format("Side 지그로 z{0}~{1} 이 오면 가로, z{2} 가 오면 세로 사진을 저장합니다. 그 외 z 는 평소 검사.",
-                    SideDatumTrainCapture.HorizontalStartZ, SideDatumTrainCapture.HorizontalEndZ, SideDatumTrainCapture.VerticalZ);
+                string szVertical = "세로는 찍지 않습니다";
+                if (SideDatumTrainCapture.VerticalZ != SideDatumTrainCapture.NO_VERTICAL)
+                {
+                    szVertical = "z" + SideDatumTrainCapture.VerticalZ + " 가 오면 세로 사진을 저장합니다";
+                }
+                txtLast.Text = string.Format("Side 지그로 z{0}~{1} 이 오면 Datum 가로 사진을 저장합니다. {2}. 그 외 z 는 평소 검사.",
+                    SideDatumTrainCapture.HorizontalStartZ, SideDatumTrainCapture.HorizontalEndZ, szVertical);
             }
             else
             {

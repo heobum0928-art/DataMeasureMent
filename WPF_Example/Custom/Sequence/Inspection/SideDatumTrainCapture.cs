@@ -39,8 +39,10 @@ namespace ReringProject.Sequence
         //261006 hbk 화면에서 켜고 끈다. 창을 닫으면 꺼진다.
         public static volatile bool IsActive = false;
         public static int HorizontalStartZ = 1;
-        public static int HorizontalEndZ = 11;
-        public static int VerticalZ = 12;
+        public static int HorizontalEndZ = 12;
+        //261006 hbk 세로는 찍지 않는 것이 기본(NO_VERTICAL). 화면 칸을 비우면 세로 없음.
+        public const int NO_VERTICAL = -1;
+        public static int VerticalZ = NO_VERTICAL;
 
         /// <summary>저장할 때마다 (Datum 이름, 가로 장수, 세로 장수, z, 자재번호) 로 알린다. 통신 스레드에서 불린다.</summary>
         public static event Action<string, int, int, int, int> Saved;
@@ -61,7 +63,8 @@ namespace ReringProject.Sequence
             {
                 return ESweepRole.Horizontal;
             }
-            if (nZ == VerticalZ)
+            bool bVertical = VerticalZ != NO_VERTICAL && nZ == VerticalZ;
+            if (bVertical)
             {
                 return ESweepRole.Vertical;
             }

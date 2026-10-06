@@ -1,17 +1,34 @@
 <Window x:Class="ReringProject.UI.SideDatumSweepWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="학습 촬영 — Side Datum" Width="520" Height="300"
+        Title="학습 촬영 — Side Datum" Width="620" Height="380"
         WindowStartupLocation="CenterOwner" Topmost="True" ResizeMode="CanResizeWithGrip">
-    <!--261006 hbk Side Datum 초점 학습 사진 수집 현황(임시 도구). 보기 전용.-->
+    <!--261006 hbk Side Datum 초점 학습 사진 수집(임시 도구). 창을 닫으면 수집 모드가 꺼진다.-->
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <StackPanel x:Name="panelRows" Grid.Row="0"/>
-        <TextBlock x:Name="txtLast" Grid.Row="1" FontSize="14" Foreground="#1565C0" TextWrapping="Wrap" Margin="0,12,0,0"/>
-        <TextBlock x:Name="txtFolder" Grid.Row="2" FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"/>
+
+        <ToggleButton x:Name="btnMode" Grid.Row="0" Height="44" FontSize="18" FontWeight="Bold"
+                      Checked="BtnMode_Changed" Unchecked="BtnMode_Changed"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
+            <TextBlock Text="가로 z" FontSize="16" VerticalAlignment="Center"/>
+            <TextBox x:Name="txtHStart" Width="50" FontSize="16" Margin="8,0,0,0" TextAlignment="Center"/>
+            <TextBlock Text="~" FontSize="16" VerticalAlignment="Center" Margin="6,0,6,0"/>
+            <TextBox x:Name="txtHEnd" Width="50" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="세로 z" FontSize="16" VerticalAlignment="Center" Margin="28,0,0,0"/>
+            <TextBox x:Name="txtV" Width="50" FontSize="16" Margin="8,0,0,0" TextAlignment="Center"/>
+        </StackPanel>
+
+        <Separator Grid.Row="2" Margin="0,12,0,8"/>
+        <StackPanel x:Name="panelRows" Grid.Row="3"/>
+        <TextBlock x:Name="txtLast" Grid.Row="4" FontSize="14" Foreground="#1565C0" TextWrapping="Wrap" Margin="0,10,0,0"/>
+        <TextBlock x:Name="txtFolder" Grid.Row="5" FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"/>
     </Grid>
 </Window>

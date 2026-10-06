@@ -1292,14 +1292,6 @@ namespace ReringProject.Sequence {
                 szArchiveRole = ReringProject.UI.DatumImageRecordDto.ROLE_VERTICAL;
             }
             ArchiveDatumImageForCycle(datum, parentSeq, capturedImage, szArchiveRole);
-            if (bIsRoleA) {
-                //261006 hbk Side Datum 초점 학습 사진 수집(임시 도구) — 가로 사진만
-                int nMaterialNo = -1;
-                if (parentSeq.RequestPacket != null) {
-                    nMaterialNo = parentSeq.RequestPacket.IndexNumber;
-                }
-                SideDatumTrainCapture.SaveHorizontal(datum, capturedImage, nMaterialNo);
-            }
             SafeDisposeImage(capturedImage); // Store 가 CopyImage 로 소유 클론 저장 — 원본은 여기서 즉시 해제
             return true;
         }

@@ -326,6 +326,11 @@ namespace ReringProject {
             string szTargetSeqName = packet.Identifier;
             int nPrepZIndex = GetPrepZIndex(szTargetSeqName);
             packet.TestID = nPrepZIndex.ToString(); //260626 hbk $PREP z_index 주입
+            //261006 hbk Side Datum 학습 사진 수집 모드(임시 도구) — 가로챘으면 검사 없이 사진 저장 + 응답까지 끝난다
+            InspectionSequence sweepSeq = Sequences[szTargetSeqName] as InspectionSequence;
+            if (SideDatumTrainCapture.TryHandleTest(sweepSeq, packet, nPrepZIndex)) {
+                return true;
+            }
             if (Sequences.IsDynamicFAIMode) {
                 string seqName = packet.Identifier;
                 SequenceBase seq = Sequences[seqName];
@@ -1294,6 +1299,12 @@ namespace ReringProject {
             }
 
             StorePrepZIndex(szSeqName, packet.ZIndex);
+            //261006 hbk 학습 사진 수집 모드(임시 도구) — 조명은 $TEST 촬영 직전에 Datum 조명으로 켜므로 여기선 OK 만 회신
+            if (SideDatumTrainCapture.ShouldIntercept(szSeqName, packet.ZIndex)) {
+                ackPacket.IsOk = true;
+                Logging.PrintLog((int)ELogType.Trace, "[SWEEP] PREP seq={0} z={1} — 수집 모드, 조명 보류", szSeqName, packet.ZIndex);
+                return ackPacket;
+            }
             bool bApplied = ApplyPrepToSequence(szSeqName, packet.ZIndex);
             ackPacket.IsOk = bApplied;
 

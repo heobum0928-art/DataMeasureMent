@@ -1,61 +1,197 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using HalconDotNet;
+using ReringProject.Device;
+using ReringProject.Network;
 using ReringProject.Setting;
 using ReringProject.Utility;
 
 namespace ReringProject.Sequence
 {
     //261006 hbk Side Datum 초점 학습 사진 수집(임시 도구).
-    //  자동 검사 중 Datum 가로 사진(크로스-Z role A)이 찍힐 때마다 가로 ROI A/B 주변만 잘라
-    //  들어온 순서대로 번호를 붙여 저장한다. 몇 번·어느 높이로 찍을지는 PLC 가 정한다.
+    //  수집 모드가 켜져 있으면 Side 지그로 들어온 z 번호를 "높이 단계"로 해석한다.
+    //    가로 범위 z → Datum 가로 사진 촬영 후 가로 ROI A/B 주변만 잘라 저장
+    //    세로 z      → Datum 세로 사진 촬영 후 세로 ROI 주변만 잘라 저장
+    //  그 외 z 나 모드 꺼짐이면 평소 검사 그대로. Z 높이 값은 PLC 가 정하고, 비전은 받은 z 로 이름만 붙인다.
     //  원본 한 장이 약 127MB 라 통째 저장 대신 ROI 주변만 남긴다.
     public static class SideDatumTrainCapture
     {
         public const string SAVE_ROOT = @"D:\Data\AI_Train\SideDatum";
 
-        //261006 hbk 화면 표시용 — 한 번 놓을 때 PLC 가 찍는 높이 수
-        public const int Z_STEP_COUNT = 12;
+        public enum ESweepRole
+        {
+            None,
+            Horizontal,
+            Vertical,
+        }
 
         //261006 hbk 재안착마다 위치가 조금씩 달라지므로 ROI 바깥으로 넉넉히 잘라 둔다
         private const int CROP_MARGIN_PX = 400;
         private const string ROI_INFO_FILE = "rois.txt";
-        private const string FILE_PATTERN_A = "*_A.bmp";
+        private const string PATTERN_HORIZONTAL = "*_A.bmp";
+        private const string PATTERN_VERTICAL = "*_V.bmp";
 
         private static readonly object _saveLock = new object();
 
-        /// <summary>저장할 때마다 (Datum 이름, 총 장수, 자재번호) 로 알린다. 촬영 스레드에서 불린다.</summary>
-        public static event Action<string, int, int> Saved;
+        //261006 hbk 화면에서 켜고 끈다. 창을 닫으면 꺼진다.
+        public static volatile bool IsActive = false;
+        public static int HorizontalStartZ = 1;
+        public static int HorizontalEndZ = 11;
+        public static int VerticalZ = 12;
 
-        /// <summary>Datum 가로 사진에서 ROI A/B 주변을 잘라 저장한다. 사진은 호출자가 해제한다. 실패해도 검사는 계속된다.</summary>
-        public static void SaveHorizontal(DatumConfig datum, HImage hImage, int nMaterialNo)
+        /// <summary>저장할 때마다 (Datum 이름, 가로 장수, 세로 장수, z, 자재번호) 로 알린다. 통신 스레드에서 불린다.</summary>
+        public static event Action<string, int, int, int, int> Saved;
+
+        public static bool IsSideSequence(string szSeqName)
         {
-            if (datum == null || hImage == null)
+            bool bIsSide = szSeqName == SequenceHandler.SEQ_SIDE_1
+                || szSeqName == SequenceHandler.SEQ_SIDE_2
+                || szSeqName == SequenceHandler.SEQ_SIDE_3
+                || szSeqName == SequenceHandler.SEQ_SIDE_4;
+            return bIsSide;
+        }
+
+        public static ESweepRole MapZ(int nZ)
+        {
+            bool bHorizontal = nZ >= HorizontalStartZ && nZ <= HorizontalEndZ;
+            if (bHorizontal)
             {
+                return ESweepRole.Horizontal;
+            }
+            if (nZ == VerticalZ)
+            {
+                return ESweepRole.Vertical;
+            }
+            return ESweepRole.None;
+        }
+
+        /// <summary>수집 모드에서 이 시퀀스·z 를 가로챌지. true 면 $PREP 조명은 건드리지 않는다(촬영 직전에 Datum 조명을 켠다).</summary>
+        public static bool ShouldIntercept(string szSeqName, int nZ)
+        {
+            if (!IsActive)
+            {
+                return false;
+            }
+            if (!IsSideSequence(szSeqName))
+            {
+                return false;
+            }
+            return MapZ(nZ) != ESweepRole.None;
+        }
+
+        /// <summary>
+        /// 수집 모드에서 $TEST 를 처리한다. 가로챘으면 true(사진 저장 + PLC 응답까지 끝냄), 아니면 false(평소 검사로 진행).
+        /// </summary>
+        public static bool TryHandleTest(InspectionSequence seq, TestPacket packet, int nZ)
+        {
+            if (seq == null || packet == null)
+            {
+                return false;
+            }
+            if (!ShouldIntercept(seq.Name, nZ))
+            {
+                return false;
+            }
+            if (seq.State != EContextState.Idle)
+            {
+                return false;   // 평소 경로와 같은 거부 처리로 넘긴다
+            }
+
+            ESweepRole role = MapZ(nZ);
+            int nMaterialNo = packet.IndexNumber;
+            CaptureAndSave(seq, role, nZ, nMaterialNo);
+
+            // 검사 Action 없이 바로 끝내고 평소 형식의 응답을 보낸다 — PLC 가 다음 z 로 넘어가게
+            seq.StartEmptyScope(packet);
+            return true;
+        }
+
+        private static void CaptureAndSave(InspectionSequence seq, ESweepRole role, int nZ, int nMaterialNo)
+        {
+            if (seq.DatumConfigs.Count == 0)
+            {
+                Logging.PrintErrLog((int)ELogType.Error, "[SWEEP] " + seq.Name + " 에 Datum 이 없음");
                 return;
             }
-            bool bHasHorizontalRoi = datum.Horizontal_A_Length1 > 0 && datum.Horizontal_B_Length1 > 0;
-            if (!bHasHorizontalRoi)
+            DatumConfig datum = seq.DatumConfigs[0];
+            ShotConfig shot = SystemHandler.Handle.Sequences.RecipeManager.Shots
+                .Where(s => s.OwnerSequenceName == seq.Name)
+                .OrderBy(s => s.ZIndex)
+                .FirstOrDefault();
+            if (shot == null)
             {
+                Logging.PrintErrLog((int)ELogType.Error, "[SWEEP] " + seq.Name + " 에 촬영용 Shot 이 없음");
                 return;
             }
 
-            int nCount;
+            HImage hImage = null;
             try
             {
-                lock (_saveLock)
+                seq.ApplyDatumLights(datum);
+                LightHandler.Handle.WaitForLightsSettled();
+                hImage = GrabDatumImage(shot, datum, role);
+                seq.TurnOffLightsAfterManualGrab();
+
+                if (hImage == null)
                 {
-                    int nWidth;
-                    int nHeight;
-                    hImage.GetImageSize(out nWidth, out nHeight);
+                    Logging.PrintErrLog((int)ELogType.Error, "[SWEEP] " + datum.DatumName + " z" + nZ + " 촬영 실패");
+                    return;
+                }
+                Save(datum, hImage, role, nZ, nMaterialNo);
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintErrLog((int)ELogType.Error, "[SWEEP] " + datum.DatumName + " z" + nZ + " 처리 실패: " + ex.Message);
+            }
+            finally
+            {
+                if (hImage != null)
+                {
+                    try { hImage.Dispose(); } catch { }
+                }
+            }
+        }
 
-                    string szDir = Path.Combine(SAVE_ROOT, datum.DatumName);
-                    Directory.CreateDirectory(szDir);
-                    nCount = CountSaved(szDir) + 1;
-                    string szBase = string.Format("{0:0000}_M{1}", nCount, nMaterialNo);
+        private static HImage GrabDatumImage(ShotConfig shot, DatumConfig datum, ESweepRole role)
+        {
+#if SIMUL_MODE
+            // 카메라 없는 PC: 티칭 사진으로 대신한다(흐름 확인용)
+            string szPath = datum.TeachingImagePath;
+            if (role == ESweepRole.Vertical)
+            {
+                szPath = datum.TeachingImagePath_Vertical;
+            }
+            if (string.IsNullOrEmpty(szPath) || !File.Exists(szPath))
+            {
+                return null;
+            }
+            return new HImage(szPath);
+#else
+            string szRoleId = DeviceHandler.BuildGrabRoleIdentifier(shot.DeviceName, datum.MirrorX, datum.MirrorY);
+            return SystemHandler.Handle.Devices.GrabHalconImage(shot, szRoleId);
+#endif
+        }
 
+        private static void Save(DatumConfig datum, HImage hImage, ESweepRole role, int nZ, int nMaterialNo)
+        {
+            int nHorizontalCount;
+            int nVerticalCount;
+            lock (_saveLock)
+            {
+                int nWidth;
+                int nHeight;
+                hImage.GetImageSize(out nWidth, out nHeight);
+
+                string szDir = Path.Combine(SAVE_ROOT, datum.DatumName);
+                Directory.CreateDirectory(szDir);
+
+                if (role == ESweepRole.Horizontal)
+                {
+                    int nNo = CountInDir(szDir, PATTERN_HORIZONTAL) + 1;
+                    string szBase = string.Format("{0:0000}_z{1:00}_M{2}", nNo, nZ, nMaterialNo);
                     int[] arrCropA = SaveOneCrop(hImage, nWidth, nHeight,
                         datum.Horizontal_A_Row, datum.Horizontal_A_Col,
                         datum.Horizontal_A_Length1, datum.Horizontal_A_Length2,
@@ -64,45 +200,53 @@ namespace ReringProject.Sequence
                         datum.Horizontal_B_Row, datum.Horizontal_B_Col,
                         datum.Horizontal_B_Length1, datum.Horizontal_B_Length2,
                         Path.Combine(szDir, szBase + "_B.bmp"));
-
                     WriteRoiInfo(Path.Combine(szDir, ROI_INFO_FILE), datum, nWidth, nHeight, arrCropA, arrCropB);
                 }
-                Logging.PrintLog((int)ELogType.Trace, "[SWEEP] " + datum.DatumName + " #" + nCount + " 저장 (자재 " + nMaterialNo + ")");
-            }
-            catch (Exception ex)
-            {
-                Logging.PrintErrLog((int)ELogType.Error, "[SWEEP] " + datum.DatumName + " 저장 실패: " + ex.Message);
-                return;
-            }
+                else
+                {
+                    int nNo = CountInDir(szDir, PATTERN_VERTICAL) + 1;
+                    string szBase = string.Format("{0:0000}_z{1:00}_M{2}", nNo, nZ, nMaterialNo);
+                    SaveOneCrop(hImage, nWidth, nHeight,
+                        datum.Vertical_Row, datum.Vertical_Col,
+                        datum.Vertical_Length1, datum.Vertical_Length2,
+                        Path.Combine(szDir, szBase + "_V.bmp"));
+                }
 
-            Action<string, int, int> handler = Saved;
+                nHorizontalCount = CountInDir(szDir, PATTERN_HORIZONTAL);
+                nVerticalCount = CountInDir(szDir, PATTERN_VERTICAL);
+            }
+            Logging.PrintLog((int)ELogType.Trace, "[SWEEP] " + datum.DatumName + " z" + nZ + " 저장 (가로 "
+                + nHorizontalCount + " / 세로 " + nVerticalCount + ", 자재 " + nMaterialNo + ")");
+
+            Action<string, int, int, int, int> handler = Saved;
             if (handler != null)
             {
                 try
                 {
-                    handler(datum.DatumName, nCount, nMaterialNo);
+                    handler(datum.DatumName, nHorizontalCount, nVerticalCount, nZ, nMaterialNo);
                 }
                 catch
                 {
-                    // 표시 창 오류가 검사를 막지 않게 한다
+                    // 표시 창 오류가 통신을 막지 않게 한다
                 }
             }
         }
 
-        /// <summary>Datum 폴더에 지금까지 저장된 장수.</summary>
-        public static int CountSaved(string szDatumName)
+        /// <summary>Datum 폴더에 저장된 (가로, 세로) 장수.</summary>
+        public static void CountSaved(string szDatumName, out int nHorizontal, out int nVertical)
         {
             string szDir = Path.Combine(SAVE_ROOT, szDatumName);
-            return CountSavedInDir(szDir);
+            nHorizontal = CountInDir(szDir, PATTERN_HORIZONTAL);
+            nVertical = CountInDir(szDir, PATTERN_VERTICAL);
         }
 
-        private static int CountSavedInDir(string szDir)
+        private static int CountInDir(string szDir, string szPattern)
         {
             if (!Directory.Exists(szDir))
             {
                 return 0;
             }
-            return Directory.GetFiles(szDir, FILE_PATTERN_A).Length;
+            return Directory.GetFiles(szDir, szPattern).Length;
         }
 
         // 반환: { row1, col1, row2, col2 } (원본 이미지 좌표)

@@ -36,7 +36,6 @@ namespace ReringProject.UI
             {
                 txtV.Text = SideDatumTrainCapture.VerticalZ.ToString();
             }
-            btnMode.IsChecked = SideDatumTrainCapture.IsActive;
             BuildRows();
             txtFolder.Text = "저장 폴더: " + SideDatumTrainCapture.SAVE_ROOT;
             SideDatumTrainCapture.Saved += OnSaved;
@@ -51,22 +50,20 @@ namespace ReringProject.UI
             SideDatumTrainCapture.IsActive = false;   // 창을 닫으면 평소 검사로 돌아간다
         }
 
-        private void BtnMode_Changed(object sender, RoutedEventArgs e)
+        //261006 hbk ToggleButton 은 눌린 상태 템플릿이 배경색을 덮어 켜짐 표시(빨강)가 안 보여 일반 Button 으로 바꿨다.
+        private void BtnMode_Click(object sender, RoutedEventArgs e)
         {
             if (_bLoading)
             {
                 return;
             }
-            bool bTurnOn = btnMode.IsChecked == true;
+            bool bTurnOn = !SideDatumTrainCapture.IsActive;
             if (bTurnOn)
             {
                 string szError;
                 bool bValid = TryApplyZSettings(out szError);
                 if (!bValid)
                 {
-                    _bLoading = true;
-                    btnMode.IsChecked = false;
-                    _bLoading = false;
                     txtLast.Text = szError;
                     return;
                 }

@@ -86,6 +86,22 @@ namespace ReringProject.Sequence
         }
 
         /// <summary>
+        /// 수집 중인 z 의 응답 글자. 마지막 가로 z(HorizontalEndZ)면 P, 그 전은 B. 수집 대상이 아니면 false.
+        /// </summary>
+        //261006 hbk PLC 는 P/F 를 받으면 사이클을 끝낸다 — 평소 판정(지그 원래 마지막 z 에서 F)을 쓰면 z12 전에 끝나 버린다.
+        public static bool TryGetSweepJudgement(string szSeqName, int nZ, out bool bIsLast)
+        {
+            bIsLast = false;
+            bool bIntercepted = ShouldIntercept(szSeqName, nZ);
+            if (!bIntercepted)
+            {
+                return false;
+            }
+            bIsLast = nZ >= HorizontalEndZ;
+            return true;
+        }
+
+        /// <summary>
         /// 수집 모드에서 $TEST 를 처리한다. 가로챘으면 true(사진 저장 + PLC 응답까지 끝냄), 아니면 false(평소 검사로 진행).
         /// </summary>
         public static bool TryHandleTest(InspectionSequence seq, TestPacket packet, int nZ)

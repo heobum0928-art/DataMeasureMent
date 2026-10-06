@@ -2518,6 +2518,14 @@ namespace ReringProject.Sequence {
         {
             var recipeManager = SystemHandler.Handle.Sequences.RecipeManager;
             m_nCurrentZIndex = ParseCurrentZIndex();
+            bool bSweepIsLast;
+            bool bIsSweep = SideDatumTrainCapture.TryGetSweepJudgement(Name, m_nCurrentZIndex, out bSweepIsLast);
+            if (bIsSweep)
+            {
+                TestResultPacket sweepPacket = BuildScopedResponse(recipeManager, m_nCurrentZIndex, bSweepIsLast);
+                PersistAndEnqueueV1(recipeManager, sweepPacket);
+                return;
+            }
             bool bIsDatumShot = m_nCurrentZIndex == GetDatumZIndex();
             if (bIsDatumShot)
             {
@@ -2842,6 +2850,14 @@ namespace ReringProject.Sequence {
         //  ZIndex 미설정 레시피서 측정 Index(z>=1) 수신 시 ComputeLastZIndex=0 → 1>=0 으로 마지막 오인 → 매칭 0건 → 종합 P 송신(검사 0건 합격 통보) silent false-PASS 차단.
         private void ApplyCycleJudgement(TestResultPacket packet, bool bIsLastIndex, int nMatchedShots)
         {
+            bool bSweepIsLast;
+            bool bIsSweep = SideDatumTrainCapture.TryGetSweepJudgement(Name, m_nCurrentZIndex, out bSweepIsLast);
+            if (bIsSweep)
+            {
+                packet.IsBuffer = !bSweepIsLast;
+                packet.Result = EVisionResultType.OK;   // 'B' 또는 마지막 z 에서 'P'
+                return;
+            }
             if (!bIsLastIndex)
             {
                 // 중간 Index — NG 있어도 B (종료 판정은 마지막 Index 에서만).

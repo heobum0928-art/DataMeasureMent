@@ -610,6 +610,10 @@
     <Compile Include="Halcon\Services\TeachingStorageService.cs" />
     <Compile Include="Halcon\Services\PatternMaskService.cs" />
     <Compile Include="Halcon\Services\DatumPatternModelRegenService.cs" />
+    <Compile Include="Custom\Sequence\Inspection\SideDatumTrainCapture.cs" />
+    <Compile Include="UI\Dialog\SideDatumSweepWindow.xaml.cs">
+      <DependentUpon>SideDatumSweepWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="UI\Dialog\CalibrationWindow.xaml.cs">
       <DependentUpon>CalibrationWindow.xaml</DependentUpon>
     </Compile>
@@ -619,6 +623,10 @@
     <Compile Include="UI\ContentItem\HalconViewerControl.xaml.cs">
       <DependentUpon>HalconViewerControl.xaml</DependentUpon>
     </Compile>
+    <Page Include="UI\Dialog\SideDatumSweepWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="UI\Dialog\CalibrationWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

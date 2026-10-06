@@ -93,8 +93,20 @@ namespace ReringProject.UI {
             mParentWindow.PopupView(EPageType.Login);
         }
 
-        private void Button_CI_Click(object sender, RoutedEventArgs e) {
+        //261006 hbk 로고 클릭 → Side Datum 학습 촬영 현황 창(임시 도구). 한 개만 띄운다.
+        private SideDatumSweepWindow _sweepWindow;
 
+        private void Button_CI_Click(object sender, RoutedEventArgs e) {
+            if (_sweepWindow != null) {
+                _sweepWindow.Activate();
+                return;
+            }
+            _sweepWindow = new SideDatumSweepWindow();
+            if (mParentWindow != null) {
+                _sweepWindow.Owner = mParentWindow;
+            }
+            _sweepWindow.Closed += (s, a) => { _sweepWindow = null; };
+            _sweepWindow.Show();
         }
 
         private void Label_status_Click(object sender, RoutedEventArgs e) {

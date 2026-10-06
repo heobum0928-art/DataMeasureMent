@@ -1,0 +1,17 @@
+<Window x:Class="ReringProject.UI.SideDatumSweepWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="학습 촬영 — Side Datum" Width="520" Height="300"
+        WindowStartupLocation="CenterOwner" Topmost="True" ResizeMode="CanResizeWithGrip">
+    <!--261006 hbk Side Datum 초점 학습 사진 수집 현황(임시 도구). 보기 전용.-->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel x:Name="panelRows" Grid.Row="0"/>
+        <TextBlock x:Name="txtLast" Grid.Row="1" FontSize="14" Foreground="#1565C0" TextWrapping="Wrap" Margin="0,12,0,0"/>
+        <TextBlock x:Name="txtFolder" Grid.Row="2" FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"/>
+    </Grid>
+</Window>

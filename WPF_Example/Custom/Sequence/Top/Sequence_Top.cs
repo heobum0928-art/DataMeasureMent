@@ -38,7 +38,7 @@ namespace ReringProject.Sequence {
         }
     }
 
-    [System.Obsolete("Phase 33 — InspectionSequence/Action_FAIMeasurement 로 마이그레이션됨", false)]
+    [System.Obsolete("InspectionSequence/Action_FAIMeasurement 로 마이그레이션됨", false)]
     public class TopSequence : SequenceBase {
         private readonly DeviceHandler pDevs;
         private readonly TopSequenceContext pMyContext;

@@ -10,9 +10,9 @@
              
              d:DesignHeight="800" d:DesignWidth="400" MinWidth="200" Loaded="ListView_Loaded">
     <UserControl.Resources>
-        <!-- 260616 hbk Phase 51: SHOT 체크박스 가시성 (IsCheckboxVisible bool → Visibility) -->
+        <!-- 260616 hbk SHOT 체크박스 가시성 (IsCheckboxVisible bool → Visibility) -->
         <BooleanToVisibilityConverter x:Key="boolToVis"/>
-        <!-- 260530 hbk Phase 39.2 D-G4 hotfix — Geometry resources + converter moved to App.xaml (Application.Resources scope).
+        <!-- 260530 hbk Geometry resources + converter moved to App.xaml (Application.Resources scope).
              Reason: IconKeyToGeometryConverter reads Application.Current.Resources only; UserControl.Resources scope did not match → icons rendered as null. -->
         <Style TargetType="Button" x:Key="disalbedStyle">
             <Setter Property="Background" Value="Transparent"></Setter>
@@ -44,7 +44,7 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <!-- 260530 hbk Phase 39.2 D-G4 — NodeType + Measurement TypeName 별 Geometry icon (was Image / ImageSource PNG) -->
+        <!-- 260530 hbk NodeType + Measurement TypeName 별 Geometry icon (was Image / ImageSource PNG) -->
         <DataTemplate DataType="{x:Type local:NodeViewModel}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -52,13 +52,13 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <!-- 260530 hbk Phase 39.2 D-G4: Image PNG → Path Geometry (Material Icons inline path data). Fill = TextElement foreground (theme 호환). -->
+                <!-- 260530 hbk Image PNG → Path Geometry (Material Icons inline path data). Fill = TextElement foreground (theme 호환). -->
                 <Path Grid.Column="0" Width="24" Height="24" Margin="0 0 4 0"
                       Stretch="Uniform"
                       Fill="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource Self}}"
                       Data="{Binding IconKey, Converter={StaticResource iconKeyToGeometry}}"/>
                 <propToolsWpf:EditableTextBlock Grid.Column="1" Text="{Binding Name}" IsEditing="{Binding IsEditing}"/>
-                <!-- 260616 hbk Phase 51: SHOT 다중 선택 체크박스 (SHOT 노드만 노출) -->
+                <!-- 260616 hbk SHOT 다중 선택 체크박스 (SHOT 노드만 노출) -->
                 <CheckBox Grid.Column="2" VerticalAlignment="Center" Margin="4 0 4 0"
                           IsChecked="{Binding IsChecked, Mode=TwoWay}"
                           Visibility="{Binding IsCheckboxVisible, Converter={StaticResource boolToVis}}"/>
@@ -153,7 +153,7 @@
 
             <!-- Recipe Name -->
             <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" ClipToBounds="True">
-                <!-- 260616 hbk Phase 51 BATCH-01: 일괄검사/Export 버튼 추가로 3열 → 5열 확장 -->
+                <!-- 260616 hbk 일괄검사/Export 버튼 추가로 3열 → 5열 확장 -->
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"></ColumnDefinition>  <!-- RecipeName -->
                     <ColumnDefinition Width="Auto"></ColumnDefinition>  <!-- btn_start (RUN) -->
@@ -172,11 +172,11 @@
                         <TextBlock Text="RUN" VerticalAlignment="Center"></TextBlock>
                     </StackPanel>
                 </Button>
-                <!-- 260616 hbk Phase 51 BATCH-01: 선택 SHOT 일괄 검사 -->
+                <!-- 260616 hbk 선택 SHOT 일괄 검사 -->
                 <Button x:Name="btn_batchRun" Grid.Column="2" Grid.Row="0" Margin="2,2,2,2" FontSize="16" Padding="4,0" Click="Btn_batchRun_Click">
                     <TextBlock Text="일괄검사" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                 </Button>
-                <!-- 260616 hbk Phase 51 BATCH-01: 누적분 수동 엑셀 Export (D-05) -->
+                <!-- 260616 hbk 누적분 수동 엑셀 Export -->
                 <Button x:Name="btn_batchExport" Grid.Column="3" Grid.Row="0" Margin="2,2,2,2" FontSize="16" Padding="4,0" IsEnabled="False" Click="Btn_batchExport_Click">
                     <TextBlock Text="일괄Export" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
                 </Button>
@@ -284,7 +284,7 @@
                                 <TextBlock Text="Edit" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <!-- 260530 hbk Phase 39.2 D-G3 hotfix CO-39.2-03-01 — 사용자 ▲▼ 이동 (ParamBase 컬렉션 동시 swap) -->
+                        <!-- 260530 hbk hotfix .2-03-01 — 사용자 ▲▼ 이동 (ParamBase 컬렉션 동시 swap) -->
                         <Button x:Name="button_moveUp" Click="Btn_MoveUp_Click" Style="{StaticResource disalbedStyle}" ToolTip="선택 노드를 위로 이동 (ParamBase 순서 보존)">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock Text="▲" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,0"/>

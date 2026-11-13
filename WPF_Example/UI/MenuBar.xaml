@@ -164,7 +164,7 @@
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition></ColumnDefinition>
-                        <!--260707 hbk STAT-01 D-09 — 통계분석 버튼용 5번째 컬럼 추가-->
+                        <!--260707 hbk 통계분석 버튼용 5번째 컬럼 추가-->
                         <ColumnDefinition></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
@@ -204,7 +204,7 @@
                         </StackPanel>
                     </Button>
                     <!-- 결과 리뷰어 -->
-                    <!--260601 hbk Phase 40 OUT-01 D-08/D-09 — 결과 리뷰어 비모달 버튼 (IsEditable 무관, 항상 활성)-->
+                    <!--260601 hbk 결과 리뷰어 비모달 버튼 (IsEditable 무관, 항상 활성)-->
                     <Button x:Name="Button_Reviewer" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center" Click="Button_Reviewer_Click" Style="{StaticResource disalbedStyle}">
                         <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">
@@ -213,7 +213,7 @@
                         </StackPanel>
                     </Button>
                     <!-- 통계분석 -->
-                    <!--260707 hbk STAT-01 D-09 — 양산 이력 통계 비모달 버튼(항상 활성)-->
+                    <!--260707 hbk 양산 이력 통계 비모달 버튼(항상 활성)-->
                     <Button x:Name="Button_Statistics" Grid.Column="4" Grid.Row="1" HorizontalContentAlignment="Center"
                 VerticalContentAlignment="Center" Click="Button_Statistics_Click" Style="{StaticResource disalbedStyle}">
                         <StackPanel Orientation="Vertical" Width="Auto" Height="Auto">

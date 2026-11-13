@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ReringProject.Device {
     /// <summary>
     /// 시스템에서 사용되는 조명 장치를 설정합니다.
-    /// Phase 64 LIGHT-01: JPF-1208 2대, 13채널 구성.
+    /// JPF-1208 2대, 13채널 구성.
     /// </summary>
     public sealed partial class LightHandler {
         //260807 hbk Controller A(COM2) — Ring CH1~CH6 + 면조명(Back) + 링조명2(Ring7), 8채널
@@ -27,16 +27,16 @@ namespace ReringProject.Device {
         public const string LIGHT_BAR_4 = "BAR_4";
         public const string LIGHT_ALIGN_COAX = "ALIGN_COAX"; //Align 동축 조명
 
-        //260625 hbk Phase 64 LIGHT-01: 그룹 이름 상수 (ApplyShotLights 소비)
+        //260625 hbk 그룹 이름 상수 (ApplyShotLights 소비)
         public const string LIGHT_RING = "RING";   // RING_CH1~CH6 통합 그룹
         public const string LIGHT_BAR  = "BAR";    // BAR_1~BAR_4 통합 그룹
 
         /// <summary>
         /// 사용되는 조명 컨트롤러 및 조명 그룹 (제어 단위) 을 설정합니다.
-        /// 260807 hbk 실배선표 반영: Controller A (Index=0, COM2) Ring CH1~CH6 + Back + Ring7 = 8채널
+        /// 실배선표 반영: Controller A (Index=0, COM2) Ring CH1~CH6 + Back + Ring7 = 8채널
         ///  Controller B (Index=1, COM3) Bar×4 + AlignCoax = 5채널. COM 포트/보드레이트는 light.ini 에서 설정.
-        /// D-08: Ring 6채널은 RING 통합 그룹으로 동시 제어
-        /// D-09: LightGroup 5종 — RING/BACK/BAR/RING7/ALIGN_COAX
+        /// Ring 6채널은 RING 통합 그룹으로 동시 제어
+        /// LightGroup 5종 — RING/BACK/BAR/RING7/ALIGN_COAX
         /// </summary>
         public void RegisterLightController() {
             //260807 hbk Controller A(COM2) — Ring CH1~CH6 + 면조명(Back) + 링조명2(Ring7)
@@ -52,7 +52,7 @@ namespace ReringProject.Device {
                     LIGHT_BAR_1, LIGHT_BAR_2, LIGHT_BAR_3,
                     LIGHT_BAR_4, LIGHT_ALIGN_COAX));
 
-            //260625 hbk Phase 64 LIGHT-01: LightGroup 5종 등록
+            //260625 hbk LightGroup 5종 등록
             // RING: Ring CH1~CH6 6채널 통합 — ShotConfig.RingLight_* 소비
             Groups.Add(new LightGroup(LIGHT_RING).AddChannel(
                 LIGHT_RING_CH1, LIGHT_RING_CH2, LIGHT_RING_CH3,

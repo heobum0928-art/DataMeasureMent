@@ -27,7 +27,7 @@ namespace ReringProject.Sequence
         [ItemsSourceProperty(nameof(EdgeSelectionList))]
         public string EdgeSelection { get; set; } = "Both";
         public int EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         public int EdgeTrimCount { get; set; } = 10;
         [ItemsSourceProperty(nameof(EdgePolarityList))]
@@ -40,7 +40,7 @@ namespace ReringProject.Sequence
         [PropertyTools.DataAnnotations.Browsable(false)]
         public List<string> EdgePolarityList { get { return EdgeOptionLists.FAIPolarities; } }
 
-        // INI 호환 잔존 저장용 — D-06 재배선 후 TryExecute 에서 소비 안 함. //260615 hbk Phase 42 D-05
+        //260615 hbk INI 호환 잔존 저장용 — 재배선 후 TryExecute 에서 소비 안 함.
         [PropertyTools.DataAnnotations.Browsable(false)]
         public double PixelResolutionX { get; set; } = 1.0;
         [PropertyTools.DataAnnotations.Browsable(false)]
@@ -74,8 +74,8 @@ namespace ReringProject.Sequence
                 return false;
             }
 
-            //260615 hbk Phase 42 D-06 — PixelResolution 은 shot 단일소스(파라미터 경유). self 필드 소비 제거
-            //260619 hbk per-shot 보정계수 적용 — 이 타입만 전달 pixelResolution 무시·ownerShot 재도출하므로 여기서도 GetEffectivePixelResolution() 호출(Action_FAIMeasurement 와 동일 단일소스).
+            //260615 hbk PixelResolution 은 shot 단일소스(파라미터 경유). self 필드 소비 제거
+            // per-shot 보정계수 적용 — 이 타입만 전달 pixelResolution 무시·ownerShot 재도출하므로 여기서도 GetEffectivePixelResolution 호출(Action_FAIMeasurement 와 동일 단일소스).
             var ownerShot = ownerFai.Owner as ShotConfig;
             double resolvedPixelRes = (ownerShot != null) ? ownerShot.GetEffectivePixelResolution() : pixelResolution;
 
@@ -95,8 +95,8 @@ namespace ReringProject.Sequence
                 EdgeSampleCount = EdgeSampleCount,
                 EdgeTrimCount = EdgeTrimCount,
                 EdgePolarity = EdgePolarity,
-                PixelResolutionX = resolvedPixelRes, //260615 hbk Phase 42 D-06
-                PixelResolutionY = resolvedPixelRes, //260615 hbk Phase 42 D-06
+                PixelResolutionX = resolvedPixelRes,
+                PixelResolutionY = resolvedPixelRes,
                 FAIName = MeasurementName
             };
 

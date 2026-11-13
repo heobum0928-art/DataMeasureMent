@@ -9,7 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading; //260615 hbk Phase 43: D-03 백그라운드 프리로드 Thread 사용
+using System.Threading; //260615 hbk 백그라운드 프리로드 Thread 사용
 
 namespace ReringProject.Login {
     public enum EAccountGrade {
@@ -85,8 +85,8 @@ namespace ReringProject.Login {
         private readonly string ACCOUNT_FILE;
         private static string PASSWORD = "1Alg!Young!Min22"; //16자 이상
         private static readonly string KEY = PASSWORD.Substring(0, 128 / 8); //8bit단위로 나눔
-        private readonly Thread _preloadThread;          //260615 hbk Phase 43: D-03 백그라운드 프리로드 워커
-        private volatile bool _isPreloaded;              //260615 hbk Phase 43: D-04 Load() 완료 ready 신호
+        private readonly Thread _preloadThread;          //260615 hbk 백그라운드 프리로드 워커
+        private volatile bool _isPreloaded;              //260615 hbk Load 완료 ready 신호
 
         public static LoginManager Handle { get; } = new LoginManager();
 
@@ -99,8 +99,8 @@ namespace ReringProject.Login {
         public event LoginStateChanged OnLoginStateChanged;
 
         private LoginManager() {
-            ACCOUNT_FILE = SystemSetting.Handle.AccountDbFilePath; //260723 hbk: bin 폴더(재배포 시 유실) → D:\Data 통합
-            //260615 hbk Phase 43: D-03 — 생성자 동기 Load() 제거 → Preload() 백그라운드 이동 (기동 임계경로 외부)
+            ACCOUNT_FILE = SystemSetting.Handle.AccountDbFilePath; //260723 hbk bin 폴더(재배포 시 유실) → D:\Data 통합
+            //260615 hbk 생성자 동기 Load 제거 → Preload 백그라운드 이동 (기동 임계경로 외부)
             _preloadThread = new Thread(PreloadWorker) {
                 IsBackground = true,
                 Name = "LoginManagerPreload",
@@ -167,41 +167,41 @@ namespace ReringProject.Login {
             return false;
         }
 
-        //260615 hbk Phase 43: D-03 — Initialize() Step 5 에서 1회 호출. IsAlive+_isPreloaded 이중 guard 로 재기동 방지.
+        //260615 hbk Initialize Step 5 에서 1회 호출. IsAlive+_isPreloaded 이중 guard 로 재기동 방지.
         public void Preload() {
             if (!_isPreloaded && !_preloadThread.IsAlive) {
                 try {
                     _preloadThread.Start();
                 }
                 catch (ThreadStateException) {
-                    //260615 hbk Phase 43 CR-fix: WR-01 — 비원자 guard 사이 동시 2회 호출 시 중복 Start 방어 (이미 기동됨)
+                    //260615 hbk CR-fix: — 비원자 guard 사이 동시 2회 호출 시 중복 Start 방어 (이미 기동됨)
                 }
             }
         }
 
         private void PreloadWorker() {
-            //260615 hbk Phase 43: Load() 본문 무수정 — 백그라운드 thread 에서 호출만 함
+            //260615 hbk Load 본문 무수정 — 백그라운드 thread 에서 호출만 함
             try {
                 Load();
             }
             catch (Exception ex) {
-                //260615 hbk Phase 43 CR-fix: CR-01 — 백그라운드 thread 미처리 예외 = 프로세스 강제종료 방지. account.db 손상(Crypto/Json) 흡수.
+                //260615 hbk CR-fix: — 백그라운드 thread 미처리 예외 = 프로세스 강제종료 방지. account.db 손상(Crypto/Json) 흡수.
                 Logging.PrintErrLog((int)ELogType.Error, "[LOGIN] Preload failed (account.db 손상 가능): " + ex.ToString());
-                //260615 hbk Phase 43 CR-fix: 손상 시 AccountList 비어 영구 lockout → 기본 admin 보장 (Load() 파일없음 분기와 동일 의미)
+                //260615 hbk CR-fix: 손상 시 AccountList 비어 영구 lockout → 기본 admin 보장 (Load 파일없음 분기와 동일 의미)
                 if (CountOf(EAccountGrade.Admin) == 0) {
                     AccountList.Add(new AccountInfo(DEFAULT_ADMIN_ID, EAccountGrade.Admin, DEFAULT_ADMIN_PASSWORD));
                 }
             }
             finally {
-                _isPreloaded = true; //260615 hbk Phase 43 CR-fix: 예외 여부와 무관하게 완료 신호 — EnsureLoaded 폴백 무한대기/재throw 차단
+                _isPreloaded = true; //260615 hbk CR-fix: 예외 여부와 무관하게 완료 신호 — EnsureLoaded 폴백 무한대기/재throw 차단
             }
-            Logging.PrintLog((int)ELogType.Trace, "[LOGIN] Preload complete: {0} accounts", AccountList.Count); //260615 hbk Phase 43
+            Logging.PrintLog((int)ELogType.Trace, "[LOGIN] Preload complete: {0} accounts", AccountList.Count);
         }
 
-        //260615 hbk Phase 43: D-04/D-10 — 로그인 UI 가 호출. 완료면 즉시 반환(대기 0), 미완이면 Join 으로 half-loaded AccountList race 차단.
+        //260615 hbk 로그인 UI 가 호출. 완료면 즉시 반환(대기 0), 미완이면 Join 으로 half-loaded AccountList race 차단.
         public void EnsureLoaded() {
             if (_isPreloaded) {
-                System.Threading.Thread.MemoryBarrier(); //260615 hbk Phase 43 CR-fix: WR-02 — volatile read 후 non-volatile AccountList 가시성 펜스
+                System.Threading.Thread.MemoryBarrier(); //260615 hbk CR-fix: — volatile read 후 non-volatile AccountList 가시성 펜스
                 return;
             }
             if (_preloadThread.IsAlive) {

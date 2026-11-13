@@ -40,7 +40,7 @@ namespace ReringProject.Sequence {
 
         public List<EdgeInspectionOverlay> InspectionOverlays { get; set; } = new List<EdgeInspectionOverlay>();
 
-        public List<string> DisplayMessages { get; set; } = new List<string>(); //260409 hbk
+        public List<string> DisplayMessages { get; set; } = new List<string>();
 
         public EContextState State { get; set; }
 
@@ -58,13 +58,13 @@ namespace ReringProject.Sequence {
             State = EContextState.Idle;
             Result = EContextResult.None;
             CurrentStep = 0;
-            if (ResultHalconImage != null) { //260612 hbk Wave5
+            if (ResultHalconImage != null) {
                 ResultHalconImage.Dispose();
             }
             ResultHalconImage = null;
             ResultImagePath = null;
             InspectionOverlays.Clear();
-            DisplayMessages.Clear(); //260409 hbk
+            DisplayMessages.Clear();
         }
 
         public string GetStateString => Enum.GetName(typeof(EContextState), State);
@@ -73,7 +73,7 @@ namespace ReringProject.Sequence {
 
         public void CopyFrom(SequenceContext seqContext) {
             if (seqContext == null) return;
-            if (ResultHalconImage != null) { //260612 hbk Wave5
+            if (ResultHalconImage != null) {
                 ResultHalconImage.Dispose();
             }
             // 260811 odo: seqContext.ResultHalconImage 원시 필드가 제거됐으므로 소유권 API(CloneResultImage)
@@ -81,15 +81,15 @@ namespace ReringProject.Sequence {
             //  ActionContext 자기 필드(이 클래스) 처리는 범위 밖이라 무변경(이전 것 Dispose 후 대입).
             ResultHalconImage = seqContext.CloneResultImage();
             ResultImagePath = seqContext.ResultImagePath;
-            if (seqContext.InspectionOverlays == null) { //260612 hbk Wave5
+            if (seqContext.InspectionOverlays == null) {
                 InspectionOverlays = new List<EdgeInspectionOverlay>();
             } else {
                 InspectionOverlays = seqContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
             }
-            if (seqContext.DisplayMessages == null) { //260612 hbk Wave5
+            if (seqContext.DisplayMessages == null) {
                 DisplayMessages = new List<string>();
             } else {
-                DisplayMessages = new List<string>(seqContext.DisplayMessages); //260409 hbk
+                DisplayMessages = new List<string>(seqContext.DisplayMessages);
             }
         }
     }
@@ -157,7 +157,7 @@ namespace ReringProject.Sequence {
 
         public List<EdgeInspectionOverlay> InspectionOverlays { get; set; } = new List<EdgeInspectionOverlay>();
 
-        public List<string> DisplayMessages { get; set; } = new List<string>(); //260409 hbk
+        public List<string> DisplayMessages { get; set; } = new List<string>();
 
         public string TargetCode { get; set; }
 
@@ -211,7 +211,7 @@ namespace ReringProject.Sequence {
             SetResultImageOwned(null); // 260811 odo: 원자적 소유권 API 경유(주 해제자) — 이전 값은 O(1) Release, 실제 Dispose 는 마지막 참조자가 수행
             ResultImagePath = null;
             InspectionOverlays.Clear();
-            DisplayMessages.Clear(); //260409 hbk
+            DisplayMessages.Clear();
 
             Timer.Restart();
             State = EContextState.Idle;
@@ -224,15 +224,15 @@ namespace ReringProject.Sequence {
             //  이전은 SetResultImageOwned 가 O(1) Interlocked.Exchange + 이전 값 Release 로 처리(부차 해제자).
             SetResultImageOwned(HalconImageBridge.Clone(actionContext.ResultHalconImage));
             ResultImagePath = actionContext.ResultImagePath;
-            if (actionContext.InspectionOverlays == null) { //260612 hbk Wave5
+            if (actionContext.InspectionOverlays == null) {
                 InspectionOverlays = new List<EdgeInspectionOverlay>();
             } else {
                 InspectionOverlays = actionContext.InspectionOverlays.Select(overlay => overlay.Clone()).ToList();
             }
-            if (actionContext.DisplayMessages == null) { //260612 hbk Wave5
+            if (actionContext.DisplayMessages == null) {
                 DisplayMessages = new List<string>();
             } else {
-                DisplayMessages = new List<string>(actionContext.DisplayMessages); //260409 hbk
+                DisplayMessages = new List<string>(actionContext.DisplayMessages);
             }
         }
     }

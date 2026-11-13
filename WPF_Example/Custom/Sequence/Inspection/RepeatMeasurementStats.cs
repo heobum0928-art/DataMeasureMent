@@ -1,4 +1,4 @@
-//260612 hbk Phase 41.1 OUT-03 반복도 통계 계산
+//260612 hbk 반복도 통계 계산
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +40,7 @@ namespace ReringProject.Sequence
 
     /// <summary>
     /// 복수 CycleResultDto 샘플을 누적하여 MeasurementKey 별 통계(Mean/StdDev/Range/Cpk)를 계산한다.
-    /// OUT-03 반복도 통계 xlsx 의 데이터 계층. AddSample() → ComputeAll() 순서로 호출한다.
+    /// 반복도 통계 xlsx 의 데이터 계층. AddSample → ComputeAll 순서로 호출한다.
     /// </summary>
     public class RepeatMeasurementStats
     {
@@ -60,8 +60,8 @@ namespace ReringProject.Sequence
             public double LastTolMinus;
         }
 
-        //260819 hbk quick-260819-dvf: 표준편차 "0" 판정 임계값. == 0.0 직접 비교 금지
-        //  (SystemSetting.PICKER_CENTER_ZERO_EPS 의 WR-03 fix 와 같은 계열 조치).
+        //260819 hbk 표준편차 "0" 판정 임계값. == 0.0 직접 비교 금지
+        //  (SystemSetting.PICKER_CENTER_ZERO_EPS 의 fix 와 같은 계열 조치).
         //  왜 필요한가: 동일 이미지를 반복검사하면 측정값이 수학적으로는 전부 같지만
         //  Math.Sqrt(sumSq/(n-1)) 부동소수점 결과는 정확히 0 이 아니라 3.077e-15 가 된다(실측).
         //  == 0 가드는 이를 통과시켜 아래 /(6*stddev) 가 극소값으로 나눠지고
@@ -128,7 +128,7 @@ namespace ReringProject.Sequence
                         d.LastTolPlus = m.TolerancePlus;
                         d.LastTolMinus = m.ToleranceMinus;
 
-                        if (m.LastSkipReason == SkipReason.DATUM_FAIL || m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE DetectFail 취급 //260710 hbk 상수화
+                        if (m.LastSkipReason == SkipReason.DATUM_FAIL || m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE DetectFail 취급/ 상수화
                         {
                             d.DetectFailCount++;
                         }
@@ -205,7 +205,7 @@ namespace ReringProject.Sequence
                     // Cpk = min((USL-mean)/(3*sigma), (mean-LSL)/(3*sigma))
                     double usl = d.LastNominal + d.LastTolPlus;
                     double lsl = d.LastNominal - Math.Abs(d.LastTolMinus);
-                    if (stddev < STDDEV_ZERO_EPS)   //260819 hbk quick-260819-dvf: == 0 → 임계 비교(선언부 주석에 근거)
+                    if (stddev < STDDEV_ZERO_EPS)   //260819 hbk == 0 → 임계 비교(선언부 주석에 근거)
                     {
                         cp = double.PositiveInfinity;
                         ucpk = double.PositiveInfinity;

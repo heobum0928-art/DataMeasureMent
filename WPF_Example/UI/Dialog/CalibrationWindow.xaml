@@ -9,7 +9,7 @@
         Height="860"
         Width="1400"
         WindowStartupLocation="CenterOwner">
-    <!--260623 hbk Phase 53: 체커보드 픽셀 캘리브 창 (TeachingWindow 패턴 차용)-->
+    <!--260623 hbk 체커보드 픽셀 캘리브 창 (TeachingWindow 패턴 차용)-->
     <Window.Resources>
         <Style x:Key="CalibrationActionButtonStyle" TargetType="Button">
             <Setter Property="Margin" Value="0,0,8,8"/>

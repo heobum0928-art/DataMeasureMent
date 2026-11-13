@@ -15,7 +15,7 @@ namespace ReringProject.UI
     /// </summary>
     public static class ChartRenderService
     {
-        private const int BIN_COUNT = 20;             // D-14 히스토그램 bin 수(잠금 결정)
+        private const int BIN_COUNT = 20;             //260818 hbk 히스토그램 bin 수(잠금 결정)
         private const int MAX_X_LABELS = 5;           // 히스토그램/추이 x축 최대 표시 라벨 수(겹침 방지)
         private const double MERGE_PX = 12.0;         // 픽셀 거리 12px 미만이면 라벨 병합
 
@@ -27,7 +27,7 @@ namespace ReringProject.UI
         private static readonly SolidColorBrush m_brushAxis = MakeFrozenBrush(0x94, 0xA3, 0xB8);
         private static readonly SolidColorBrush m_brushText = MakeFrozenBrush(0x33, 0x33, 0x33);
 
-        /// <summary>도수 분포 히스토그램(Rectangle 막대) + USL/LSL 수직선을 지정 Canvas 에 직접 렌더(D-14).</summary>
+        /// <summary>도수 분포 히스토그램(Rectangle 막대) + USL/LSL 수직선을 지정 Canvas 에 직접 렌더.</summary>
         public static void RenderHistogram(Canvas canvas, double dW, double dH, List<double> values, double dUsl, double dLsl)
         {
             canvas.Children.Clear();
@@ -149,7 +149,7 @@ namespace ReringProject.UI
             }
         }
 
-        /// <summary>샘플 인덱스(1..N) 기준 추이 Polyline + 평균/USL/LSL 수평선을 지정 Canvas 에 직접 렌더(D-13).</summary>
+        /// <summary>샘플 인덱스(1..N) 기준 추이 Polyline + 평균/USL/LSL 수평선을 지정 Canvas 에 직접 렌더.</summary>
         public static void RenderTrend(Canvas canvas, double dW, double dH, List<double> values, double dMean, double dUsl, double dLsl)
         {
             canvas.Children.Clear();

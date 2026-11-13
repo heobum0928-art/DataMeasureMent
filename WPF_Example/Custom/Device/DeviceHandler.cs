@@ -25,7 +25,7 @@ namespace ReringProject.Device {
         public const int HEIGHT_BOTTOM = 2048;
 
 
-        //260602 hbk Phase 41 — CXP ViewWorks 128MP 해상도 (실물 도착 후 MdigInquire M_SIZE_X/Y 로 확정, RESEARCH Open Q3)
+        //260602 hbk CXP ViewWorks 128MP 해상도 (실물 도착 후 MdigInquire M_SIZE_X/Y 로 확정, RESEARCH Open Q3)
         public const int WIDTH_CXP  = 16544;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
         public const int HEIGHT_CXP = 9200;   // TBD: 실측 후 교정 (VNP-604MX 기준 추정값)
 
@@ -82,8 +82,8 @@ namespace ReringProject.Device {
         public const string FILTER_MODEL = "mmf Files(*.mmf)|*.mmf";
         public const string EXTENSION_MODEL = ".mmf";
 
-        //260618 hbk Phase 54 ALIGN-01 HALCON shape/ncc 모델 확장자 (D-07b) — 기존 .mmf(MIL) 미재사용
-        //260709 hbk 병합 충돌(--theirs 파일 전체 덮어쓰기)로 유실되어 복원
+        //260618 hbk HALCON shape/ncc 모델 확장자 — 기존 .mmf(MIL) 미재사용
+        // 병합 충돌(--theirs 파일 전체 덮어쓰기)로 유실되어 복원
         public const string EXTENSION_SHAPE_MODEL = ".shm";
         public const string EXTENSION_NCC_MODEL = ".ncm";
 
@@ -94,24 +94,24 @@ namespace ReringProject.Device {
         /// 함수는 시스템 초기화 시점에 호출됩니다.
         /// </summary>
         private void RegisterRequiredDevices() {
-            //260602 hbk Phase 41 — D-03 PC별 CXP 1대 + 역할(시퀀스) 설정. HIK 3대 고정 → 역할 분기.
-            //260609 hbk Phase 41 — SIMUL/실 HW 통일: 항상 CameraRole 기반 등록(#if 분기 제거).
+            //260602 hbk PC별 CXP 1대 + 역할(시퀀스) 설정. HIK 3대 고정 → 역할 분기.
+            // SIMUL/실 HW 통일: 항상 CameraRole 기반 등록(#if 분기 제거).
             //  시뮬도 실 동작을 그대로 재현(카메라 수·역할·코드 경로 동일). 다른 역할 테스트는 CameraRole 설정 변경 후 재시작.
-            //  SequenceHandler.IsSequenceActive 와 정책이 1:1 동기화되어야 함(미등록 카메라 시퀀스 미생성 → OnCreate Error 차단, CO-41-02).
+            //  SequenceHandler.IsSequenceActive 와 정책이 1:1 동기화되어야 함(미등록 카메라 시퀀스 미생성 → OnCreate Error 차단).
             ECameraRole role = SystemSetting.Handle.CameraRole;
 
             if (role == ECameraRole.TopBottom) {
-                // PC1: CXP 카메라 1대 — Top + Bottom 시퀀스 담당 (D-02)
+                //260608 hbk PC1: CXP 카메라 1대 — Top + Bottom 시퀀스 담당
                 RegisterCxpCamera(CAMERA_TOP, REVERSE_X_TOP, REVERSE_Y_TOP, ROTATE_TOP);
                 RegisterCxpCamera(CAMERA_BOTTOM, REVERSE_X_BOTTOM, REVERSE_Y_BOTTOM, ROTATE_BOTTOM);
             }
             else { // ECameraRole.Side — PC2
-                // PC2: CXP 카메라 1대 — Side 시퀀스 담당 (D-02)
+                //260608 hbk PC2: CXP 카메라 1대 — Side 시퀀스 담당
                 RegisterCxpCamera(CAMERA_SIDE, REVERSE_X_SIDE, REVERSE_Y_SIDE, ROTATE_SIDE);
             }
         }
 
-        //260604 hbk Phase 41 CO-41-02 — CXP 카메라 1대 등록 헬퍼(역할/SIMUL 분기 공통). Gray8 + Software trigger + CXP 해상도 고정.
+        //260604 hbk CXP 카메라 1대 등록 헬퍼(역할/SIMUL 분기 공통). Gray8 + Software trigger + CXP 해상도 고정.
         private void RegisterCxpCamera(string cameraName, bool reverseX, bool reverseY, ERotateAngleType rotate) {
             SetRequiredDevice(
                 ECameraType.MIL,
@@ -125,7 +125,7 @@ namespace ReringProject.Device {
                 rotate);
         }
 
-        // quick-260813-jnh: 미러 조합은 (X,Y) 불리언 2개 = 최대 4가지뿐이라, 레시피를 스캔하지 않고 앱 시작 시
+        //260813 hbk 미러 조합은 (X,Y) 불리언 2개 = 최대 4가지뿐이라, 레시피를 스캔하지 않고 앱 시작 시
         //  4가지 역할을 전부 정적 등록해 둔다. 레시피 로드 타이밍(카메라 초기화보다 한참 뒤)과 _roleInfoMap 의
         //  stale 역할 문제를 동시에 회피하는 유일한 저위험 설계.
         public const string MIRROR_ROLE_SUFFIX_X  = "#MX";

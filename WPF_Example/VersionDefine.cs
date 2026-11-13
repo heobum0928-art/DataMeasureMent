@@ -1,4 +1,4 @@
-//260710 hbk 버전 관리 단일 소스. AssemblyVersion/AssemblyFileVersion/RecipeFileHelper.GetVersion() 이
+//260710 hbk 버전 관리 단일 소스. AssemblyVersion/AssemblyFileVersion/RecipeFileHelper.GetVersion 이
 //모두 이 파일의 VersionDefine.VERSION 상수 하나만 참조하도록 일원화한다.
 //버전을 올릴 때는 VERSION/BUILD_DATE 를 수정하고, 그 위에 [Version] 항목을 새로 하나 더 쌓는다(기존 항목은 지우지 않음).
 using System;
@@ -58,7 +58,7 @@ namespace ReringProject
         Date = "2026-07-16",
         Change = "리스크 점검(코드 전수 스캔 후 재검증)에서 확인된 '조용한 오검' 계열 결함 8건 수정 — 전부 로컬 가드/로그 추가 수준의 저위험 변경. " +
                  "① DatumRef 참조 불일치(오타/개명/삭제)가 IsDatumFailed 게이트를 우회해 identity(무보정)로 조용히 측정되던 결함 — DatumPhase 는 실존 DatumConfigs 만 순회하므로 없는 이름은 검출 시도조차 안 돼 _failedDatums 에 들어가지 않았다. InspectionSequence.IsDatumRefUnresolvable 신설 + Measure 루프 게이트 추가로 NG 승격(SkipReason.DATUM_REF_MISSING 신설). " +
-                 "② 미교시(IsConfigured=false) Datum 이 identity pass-through(D-08 설계)로 '성공' 처리되며 로그·DETECT FAIL 배지 어디에도 안 드러나던 결함 — pass-through 자체는 유지(회귀 0)하되 런타임 사용 시 Error 로그 + RuntimeDetectFailed 로 노출. " +
+                 "② 미교시(IsConfigured=false) Datum 이 identity pass-through(설계상)로 '성공' 처리되며 로그·DETECT FAIL 배지 어디에도 안 드러나던 결함 — pass-through 자체는 유지(회귀 0)하되 런타임 사용 시 Error 로그 + RuntimeDetectFailed 로 노출. " +
                  "③ 조명 채널명 미매핑(light.ini 재배선 오타/누락) 시 완전 무로그 무동작이던 결함 — TryFindChannel 실패 및 그룹 empty(RebindChannels 가 이름 못 찾은 아이템 제거) 케이스에 경고 로그 추가. 특히 group.Count==0 인데 '성공' 로그+true 를 반환하던 기만적 경로를 false+경고로 교정(반환값 사용 호출부 0건 확인, 회귀 없음). " +
                  "④ Re-anchor 커밋이 검색 ROI 만 이전하고 기준 pose(RefOrigin/RefAngleRad/RefMatch*)는 옛 마스터 값으로 두어, 재티칭 생략 시 런타임 Find 델타가 다시 T 를 산출해 이전이 2회 적용(≈2T)되던 결함 — TransformDatumOwnRois 에서 Ref* 도 동일 T 로 이전(각도 단위 deg/rad 사용처 확인 후 각각 적용). " +
                  "⑤ 레시피 복사 시 <ImageSavePath>\\OfflineInspect\\<구레시피명>\\ 이 박힌 절대경로가 그대로 남아 신규 레시피가 구 물건 이미지로 조용히 검사되던 결함 — RecipeFiles.Copy 후 해당 규약 경로만 초기화(사용자 수동 지정 외부 경로는 보존). " +
@@ -616,7 +616,7 @@ namespace ReringProject
                  "자동 사이클과 수동 Test Find 가 같은 규칙이고, 패턴 transform 이나 티칭 원점이 없으면 Datum 찾기가 실패한다(매칭 없는 OK 없음). " +
                  "옵션 ON Datum 은 결과 화면·Test Find·Datum 선택 화면·저장 캡처에서 세로선, 세로 에지점, 세로 기준선, 원점 십자 세로 팔을 그리지 않는다. " +
                  "옵션 OFF(기본, 키 없는 옛 레시피 포함)와 TOP/BOTTOM 은 기존 동작 그대로이며 기존 코드 줄 삭제 0. " +
-                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. (D-76-01 ~ D-76-07) " +
+                 "티칭은 지금처럼 세로선이 필요하다. 옵션 ON Datum 을 참조하는 X축 측정은 쓰지 않는다. " +
                  "(SIDE PC 에서 1.7.41.0 으로 만들었으나 Tray PC 의 1.7.41~1.7.45 와 번호가 겹쳐 병합 시 1.7.46.0 으로 옮김.) " +
 
                  "Bottom Align 동축 조명 : 티칭 저장이 슬롯 JSON 의 동축 조명값(CoaxEnabled/CoaxLevel)을 꺼짐/0 으로 덮어써서, " +
@@ -696,7 +696,7 @@ namespace ReringProject
                  "수동 RUN 에서 기준 ROI(Local Ref)를 고치면 Test Find 를 따로 누르지 않아도 기준점 가로 사진에서 국부 기준선을 다시 구해 쓴다(PLC 자동 검사 사이클은 그대로 동작한다). " +
                  "메인 툴바에 '기준 ROI 시험 찾기' 버튼을 추가했다 — 누르면 기준점 가로 사진(z1) 위에 기준 ROI 상자와 찾아낸 띠 에지 선(주황색)을 바로 보여준다. " +
                  "리뷰어의 사이클 전체 보기에서 다른 Shot 의 선이 사진 한 장에 함께 겹쳐 그려지던 문제도 고쳤다. " +
-                 "(UAT 후속) '기준 ROI 시험 찾기' 결과 문구는 트리에서 다른 노드를 고르면 사라지며, 실패 안내 문구를 짧게 줄여 툴바 버튼 줄이 밀리지 않게 했다."
+                 "'기준 ROI 시험 찾기' 결과 문구는 트리에서 다른 노드를 고르면 사라지며, 실패 안내 문구를 짧게 줄여 툴바 버튼 줄이 밀리지 않게 했다."
     )]
     [Version(
         Number = "1.7.52.0",
@@ -723,10 +723,18 @@ namespace ReringProject
                  "리뷰어 왼쪽 위에 기간·자재번호 조회를 추가했다 — 시작·끝 날짜와 시:분, 자재번호(비우면 전체)를 넣고 '조회' 를 누르면 날짜 폴더를 고르지 않고도 그 기간(여러 날 가능)의 검사만 목록에 뜨고, 이때 누적 엑셀 저장도 조회된 검사만 저장한다. 기존 '날짜 폴더 열기' 는 그대로 쓸 수 있다. " +
                  "'양품만 보기' 체크도 추가해 OK 행만 볼 수 있으며, '불량만 보기' 와는 서로 배타로 동작한다."
     )]
+    [Version(
+        Number = "1.7.55.0",
+        Date = "2026-11-13",
+        Change = "체커보드 픽셀 캘리브레이션 창의 '격자 한 칸 실제 크기(mm)' 를 Setting.ini 에 저장한다(설정 Path|Calibration 의 CalibCellSizeMm). " +
+                 "예전에는 앱을 켜 둔 동안만 기억해서 껐다 켜면 1.0 으로 돌아갔고, 지난번에 넣은 값이 어디에도 남지 않아 다시 캘리브레이션할 때 지그 규격을 찾아야 했다. " +
+                 "기본값은 현장 지그(Edmund Optics 12198, 30mm SQ Chrome on Opal)의 칸 크기 0.4mm 이고, 검출에 성공할 때마다 넣은 값이 저장되어 다음에 창을 열면 그대로 뜬다. " +
+                 "저장 사실은 Trace 로그에 '[캘리브] 체커보드 칸 크기 N mm 저장' 으로 남는다. 검사 화면·Tray·Bottom 캘리브레이션 창이 같은 값을 쓴다(같은 지그). 계산 방식은 바뀌지 않았다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.54.0";
-        public const string BUILD_DATE = "2026-09-23";
+        public const string VERSION = "1.7.55.0";
+        public const string BUILD_DATE = "2026-11-13";
     }
 }

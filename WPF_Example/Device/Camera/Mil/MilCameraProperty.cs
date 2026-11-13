@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 
 namespace ReringProject.Device {
-    // 260723 hbk: MIL(CXP, Top/Side/Bottom 공용) 카메라 Exposure/Gain/Gamma 실 HW 제어 시도.
+    //260723 hbk MIL(CXP, Top/Side/Bottom 공용) 카메라 Exposure/Gain/Gamma 실 HW 제어 시도.
     //  Basler/HikCameraProperty 와 동일 패턴(PropertyItem 어노테이션 → base 생성자 reflection 이 Values 에 자동 등록).
     //  실제 하드웨어 연동은 MilCamera.TryReadFeature/TryWriteFeature(GenICam feature, MdigControlFeature/
     //  MdigInquireFeature 경유)를 통한다. Width/Height/PixelFormat 은 이 장비에서 같은 API가
@@ -31,7 +31,7 @@ namespace ReringProject.Device {
             }
         }
 
-        [Browsable(false)]   //260723 hbk: 이 카메라(CXP/MIL)는 Gamma feature 자체가 없음(MIL error 6501 Feature Access Error, 실기 확인) — Basler/HikCameraProperty와 동일하게 PropertyGrid에서 숨김.
+        [Browsable(false)]   //260723 hbk 이 카메라(CXP/MIL)는 Gamma feature 자체가 없음(MIL error 6501 Feature Access Error, 실기 확인) — Basler/HikCameraProperty와 동일하게 PropertyGrid에서 숨김.
         [PropertyItem(ECameraPropertyType.Gamma)]
         [Slidable(DeviceHandler.MIN_GAMMA, DeviceHandler.MAX_GAMMA, TickFrequency = DeviceHandler.TICK_GAMMA)]
         [FormatString("0.00")]

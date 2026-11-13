@@ -22,7 +22,7 @@ namespace ReringProject.UI
         private const int HalconRightButton = 4;
         private const int PointerGrayThrottleMs = 40;
         private const int PanRenderThrottleMs = 16;
-        //260623 hbk: CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
+        //260623 hbk CONVENTIONS §5 — 매직넘버 const화 (값 동일, 동작 불변)
         private const double MinDraftRoiSize = 20.0;
         private const double DraftDefaultHalfSize = 60.0;
         private const double CornerHitThreshold = 10.0;
@@ -115,7 +115,7 @@ namespace ReringProject.UI
 
         public bool EnableRoiSelection { get; set; } = true;
 
-        // CO-33-02 hotfix: 이전 HImage 로드 후 캐시 hit 무효화 (CurrentImagePath="" 일 때 다른 path 와 잘못된 비교 차단)
+        //260612 hbk 이전 HImage 로드 후 캐시 hit 무효화 (CurrentImagePath="" 일 때 다른 path 와 잘못된 비교 차단)
         public void LoadImage(string imagePath)
         {
             bool cacheHit = HasImage
@@ -143,7 +143,7 @@ namespace ReringProject.UI
             Render();
         }
 
-        // CO-33-02 hotfix: HImage 오버로드도 sourceContext 보존하여 캐시 일관성 확보 (default 인자 → 기존 호출 site 무수정 호환)
+        //260612 hbk HImage 오버로드도 sourceContext 보존하여 캐시 일관성 확보 (default 인자 → 기존 호출 site 무수정 호환)
         public void LoadImage(HImage image, string sourceContext = null)
         {
             DisposeImage();
@@ -634,7 +634,7 @@ namespace ReringProject.UI
 
             CurrentImage.Dispose();
             CurrentImage = null;
-            // CO-33-02 hotfix: null 대신 "" 사용 (정규화 정책: null=초기화 전, ""=HImage 로드/Dispose 후, non-empty=path)
+            //260612 hbk null 대신 "" 사용 (정규화 정책: null=초기화 전, ""=HImage 로드/Dispose 후, non-empty=path)
             CurrentImagePath = "";
             UpdateImageMetadata();
         }

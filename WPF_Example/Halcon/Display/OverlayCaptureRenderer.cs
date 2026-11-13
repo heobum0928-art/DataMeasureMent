@@ -11,7 +11,7 @@ namespace ReringProject.Halcon.Display
 {
     // FAI 마다 오버레이가 입혀진 캡쳐 HImage 를 생성하는 렌더러. UI HWND 없이 시퀀스/저장 워커 스레드에서
     //  직접 호출 가능.
-    // 260810 hbk quick-debug(capture-render-per-fai-slow) round7: HWindow(disp_obj+DumpWindowImage) 기반
+    // quick-debug(capture-render-per-fai-slow) round7: HWindow(disp_obj+DumpWindowImage) 기반
     //  구현을 완전히 폐기했다. 창을 재사용해도(round1) 매 FAI 마다 127MP 전체를 그리고(disp_obj) 다시
     //  통째로 읽어오는(DumpWindowImage) 왕복 자체가 실제 비용이었다(실기 300-660ms/FAI, 파일 용량(3MB)과
     //  무관 — 스크래치 벤치마크로 확정). 대신 R/G/B 채널로 분해해 각 채널에 overpaint_region(리전 크기만큼만
@@ -165,7 +165,7 @@ namespace ReringProject.Halcon.Display
 
         // 색상 규칙은 HalconDisplayService.Render 의 FAI 오버레이 색상과 일치: FAI-Edge*(녹/적),
         // FAI-DistLine(청록), FAI-EdgeRaw(노랑 점), 그 외(파랑). FAI-Edge* 검출점 X 마커는 magenta.
-        // quick-260812-fq4: 캡쳐 오버레이가 얇아 잘 안 보인다는 요청 → 두께 3종을 비율 유지한 채 일괄 1.5배.
+        // 캡쳐 오버레이가 얇아 잘 안 보인다는 요청 → 두께 3종을 비율 유지한 채 일괄 1.5배.
         //  4.65 는 임의값이 아니라 3.1×1.5 다. 길이 상수(MarkerHalfSize/CrossHalf)는 두께가 아니므로 무변경.
         private const double LineThicknessRadius = 3.0; // 에지/마커 리전 두께(dilation 반경)
         private const double DistLineThicknessRadius = 4.65; // 측정 거리선(cyan) 두께(사용자 요청, 2.6→3.1→4.65)
@@ -330,7 +330,7 @@ namespace ReringProject.Halcon.Display
                 }
                 if (d.HasOrigin)
                 {
-                    if (d.HideOriginVerticalArm) // 세로선 끄기 Datum — 원점 십자의 가로 팔만(76-02, D-76-06)
+                    if (d.HideOriginVerticalArm) //260911 hbk 세로선 끄기 Datum — 원점 십자의 가로 팔만
                     {
                         DrawLineAsRegion(r, g, b,
                             d.OriginRow, d.OriginCol - DatumOriginCrossHalf,

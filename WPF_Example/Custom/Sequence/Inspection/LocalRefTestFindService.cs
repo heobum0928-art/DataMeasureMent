@@ -6,7 +6,7 @@ using ReringProject.Utility;
 
 namespace ReringProject.Sequence
 {
-    // Phase 80 D-80-15: '기준 ROI 시험 찾기' 버튼 1개의 결과 — 화면 표시(사진·상자·주황 선)와 결과 문구.
+    //260918 hbk '기준 ROI 시험 찾기' 버튼 1개의 결과 — 화면 표시(사진·상자·주황 선)와 결과 문구.
     public class LocalRefTestFindOutcome
     {
         public bool Ok { get; set; }
@@ -17,10 +17,10 @@ namespace ReringProject.Sequence
     }
 
     /// <summary>
-    /// Phase 80 D-80-15: 기준 ROI(Local Ref) 티칭 시 기준점 가로 사진(z1) 위에서 띠 에지 선을 바로 확인한다.
-    /// D-79-05 와 같은 사진(그 측정 기준점의 가로 사진)·같은 찾기 로직(런타임 기준점 찾기가 계산하는
+    /// 기준 ROI(Local Ref) 티칭 시 기준점 가로 사진(z1) 위에서 띠 에지 선을 바로 확인한다.
+    /// 런타임과 같은 사진(그 측정 기준점의 가로 사진)·같은 찾기 로직(런타임 기준점 찾기가 계산하는
     /// ComputeLocalRefLinesForDatum 경로, DatumTestFindService 를 통해)을 쓴다. 새 대화상자는 만들지 않는다
-    /// (D-80-00) — 결과 한 줄은 MainView 의 기존 결과 라벨에 표시된다.
+    /// 결과 한 줄은 MainView 의 기존 결과 라벨에 표시된다.
     /// </summary>
     public static class LocalRefTestFindService
     {
@@ -72,7 +72,7 @@ namespace ReringProject.Sequence
                 return outcome;
             }
 
-            // 여기부터는 실패해도 사진·상자를 보여 준다 — 사용자가 상자를 옮길 수 있게(D-80-15).
+            //260918 hbk 여기부터는 실패해도 사진·상자를 보여 준다 — 사용자가 상자를 옮길 수 있게.
             outcome.ImagePath = datum.TeachingImagePath;
             outcome.Datum = datum;
 

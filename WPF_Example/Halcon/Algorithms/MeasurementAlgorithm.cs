@@ -255,7 +255,7 @@ namespace ReringProject.Halcon.Algorithms
             return true;
         }
 
-        //260622 hbk Phase 57.1 trim 통일 — 정렬+% 절사 공유 헬퍼 위임(개수 → 양끝 각 %). trimCount = 양끝 각 백분율(%).
+        //260622 hbk trim 통일 — 정렬+% 절사 공유 헬퍼 위임(개수 → 양끝 각 %). trimCount = 양끝 각 백분율(%).
         private static void TrimExtremePoints(ref HTuple rows, ref HTuple cols, bool scanHorizontal, int trimCount)
         {
             VisionAlgorithmService.SortAndTrimPercent(ref rows, ref cols, scanHorizontal, trimCount);

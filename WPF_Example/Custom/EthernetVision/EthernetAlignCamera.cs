@@ -1,4 +1,3 @@
-//260623 hbk Phase 58
 using HalconDotNet;
 using ReringProject.Setting;
 using ReringProject.Utility;
@@ -10,19 +9,19 @@ namespace ReringProject.Device {
     /// <summary>
     /// Hikvision GigE 정렬 카메라 독립 래퍼 (DeviceHandler 등록 없음).
     /// HikCamera 를 composition 으로 보유하며 Connect/Grab/Live/Stop/Close 만 노출.
-    /// Phase 58 AV-02 — 기존 Grabber 카메라 경로 무수정.
+    /// 기존 Grabber 카메라 경로 무수정.
     /// </summary>
     public class EthernetAlignCamera {
 
         private const int DEFAULT_WIDTH = 5120;     // MV-CH250-90GM 플레이스홀더 (Open 후 실 해상도로 덮어씀)
         private const int DEFAULT_HEIGHT = 5120;
-        // D-04 SIMUL/실패 폴백. 260818 hbk D 드라이브 없는 PC 대응 — SystemSetting.AlignFallbackImagePath(INI) 로 설정화(기본값은 여전히 D:\align_test.bmp).
+        //260818 hbk SIMUL/실패 폴백. D 드라이브 없는 PC 대응 — SystemSetting.AlignFallbackImagePath(INI) 로 설정화(기본값은 여전히 D:\align_test.bmp).
         private static readonly string[] IMAGE_EXTENSIONS = { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff" };
 
         private HikCamera _hikCamera = null;    // composed instance (HikCamera 미수정, DeviceHandler 미등록)
         private string _cameraIp = null;
 
-        //260630 hbk — SIMUL 캘 테스트: 폴더 순차 이미지. null=폴백 단일이미지 모드.
+        //260630 hbk SIMUL 캘 테스트: 폴더 순차 이미지. null=폴백 단일이미지 모드.
         private string[] _simulImagePaths = null;
         private int _simulImageIndex = 0;
 
@@ -71,12 +70,12 @@ namespace ReringProject.Device {
             try {
                 _cameraIp = ip;
 
-                // 260623 hbk Phase 58 review-fix WR-01/IN-01:
+                //260623 hbk review-fix:
                 // HikCamera.EnumerateDevice 는 공유 정적 DeviceList 를 Clear() 후 재빌드.
                 // Grabber 카메라 열거와 충돌 방지를 위해 장치 확인을 HikCamera 인스턴스 생성 전에 수행.
                 // 또한 SystemHandler 는 Grabber 카메라(DeviceHandler) 초기화 이후 마지막에 이 Connect 를
                 // 호출하므로, Grabber 열거가 끝난 뒤에 실행됨 — 동시 열거 금지.
-                // 260724 hbk 버그 수정: EnumerateDevice(string) 의 인자는 장치 "타입" 필터("USB"/"GIGE" 부분
+                // 버그 수정: EnumerateDevice(string) 의 인자는 장치 "타입" 필터("USB"/"GIGE" 부분
                 //  문자열 매치)이지 IP/이름 매처가 아니다(DeviceHandler.cs:90 의 무인자 호출이 정상 사용례).
                 //  여기서 실제 IP/카메라이름 문자열을 그대로 넘기면 "USB"/"GIGE" 어느 쪽도 안 걸려 필터가 0이 되고,
                 //  실제 카메라가 연결되어 있어도 EnumDevices 가 0건을 반환했다(실기 재현: 종일 "no device found").
@@ -87,7 +86,7 @@ namespace ReringProject.Device {
                     Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] Connect: no device found for {0}", ip);
                     return false;
                 }
-                // 260724 hbk 임시 진단 로그 — 실제 검색된 장치 목록(이름/IP) 확인용. 원인 확정 후 제거 검토.
+                //260724 hbk 임시 진단 로그 — 실제 검색된 장치 목록(이름/IP) 확인용. 원인 확정 후 제거 검토.
                 for (int di = 0; di < deviceCount; di++) {
                     Logging.PrintLog((int)ELogType.Camera, "[ETHERNET] found[{0}]: name={1} ip={2} friendly={3}",
                         di, HikCamera.GetDeviceUserDefinedName(di), HikCamera.GetDeviceIpAddress(di), HikCamera.GetDeviceFriendlyName(di));
@@ -121,7 +120,7 @@ namespace ReringProject.Device {
         /// 반환된 HImage 는 호출자가 Dispose() 책임.
         /// </summary>
         /// <returns>취득 이미지(HImage). 폴백도 실패하면 null.</returns>
-        // 260724 hbk 임시 진단 — Logging.PrintLog 는 비동기라 크래시 직전 메시지가 유실될 수 있어 동기 기록.
+        //260724 hbk 임시 진단 — Logging.PrintLog 는 비동기라 크래시 직전 메시지가 유실될 수 있어 동기 기록.
         private static void SyncDiag(string msg) {
             try {
                 System.IO.File.AppendAllText(@"D:\Data\Camera\crash_diag.log",
@@ -152,7 +151,7 @@ namespace ReringProject.Device {
 
         /// <summary>
         /// 연속 스트리밍(라이브) 시작.
-        /// Phase 61 에서 뷰어에 표시 예정.
+        /// 화면 뷰어 표시는 UI 쪽에서 연결한다.
         /// </summary>
         /// <returns>스트림 시작 성공 여부</returns>
         public bool Live() {
@@ -213,13 +212,13 @@ namespace ReringProject.Device {
         /// 반환된 HImage 는 호출자가 Dispose() 책임.
         /// </summary>
         private HImage LoadFallbackImage() {
-            // 260623 hbk Phase 58 review-fix WR-02:
+            //260623 hbk review-fix:
             // loaded 를 try 외부에 선언하여 CountChannels() 등 HALCON 연산이 예외를 던질 경우
             // finally 블록에서 반드시 Dispose — 성공 경로(null 로 세팅)는 no-op.
             HImage loaded = null;
             try {
-                // 260630 hbk — SIMUL 캘: 폴더 등록 시 순차 이미지 반환. 마지막 도달 시 마지막 이미지 반복.
-                // 260818 hbk SystemHandler.Handle 대신 SystemSetting.Handle 직접 참조 — DeviceHandler.AddVirtualCamera 에서
+                //260630 hbk SIMUL 캘: 폴더 등록 시 순차 이미지 반환. 마지막 도달 시 마지막 이미지 반복.
+                // SystemHandler.Handle 대신 SystemSetting.Handle 직접 참조 — DeviceHandler.AddVirtualCamera 에서
                 //  겪은 것과 같은 순환 초기화 NullReferenceException 을 원천 차단(SystemSetting.Handle 은 SystemHandler
                 //  생성자보다 먼저 완전히 만들어짐).
                 string imagePath = SystemSetting.Handle.AlignFallbackImagePath;

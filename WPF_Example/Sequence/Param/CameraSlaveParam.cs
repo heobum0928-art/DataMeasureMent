@@ -22,10 +22,10 @@ namespace ReringProject.Sequence {
         [Category("General|AOI")]
         public double PixelToUM_Offset { get; set; }
         [System.ComponentModel.Description("mm/pixel calibration factor for this camera")]
-        public double PixelResolution { get; set; } = 1.0;  //260408 hbk mm/pixel (per D-12)
-        //260619 hbk per-shot 측정 보정계수 — 비전측정↔현미경공칭 ~0.5% 캘리브 간극 보정 layer. PixelResolution(고정) 위 런타임 곱. 기본 1.0=무보정(회귀0). ParamBase INI 자동 직렬화, 키 미존재 시 1.0 폴백.
+        public double PixelResolution { get; set; } = 1.0;  //260408 hbk mm/pixel (per)
+        //260619 hbk per-shot 측정 보정계수 — 비전측정↔현미경공칭 ~0.5% 캘리브 간극 보정 layer. PixelResolution(고정) 위 런타임 곱. 기본 1.0=무보정. ParamBase INI 자동 직렬화, 키 미존재 시 1.0 폴백.
         [System.ComponentModel.Description("Per-shot measurement correction factor (multiplies PixelResolution). 1.0 = no correction.")]
-        public double CorrectionFactor { get; set; } = 1.0;  //260619 hbk
+        public double CorrectionFactor { get; set; } = 1.0;
 
         public double MotorXPos { get; set; }
         public double MotorYPos { get; set; }
@@ -62,7 +62,7 @@ namespace ReringProject.Sequence {
             }
             set {
                 if (value == null) return;
-                // 260723 hbk: PropertyGrid 재바인딩/새로고침 등으로 setter가 같은 값으로 재호출되면 PasteFromCamera가
+                //260723 hbk PropertyGrid 재바인딩/새로고침 등으로 setter가 같은 값으로 재호출되면 PasteFromCamera가
                 //  다시 실행되어, 사용자가 방금 편집한 Exposure/Gain 값을 카메라 실측값으로 덮어써버리는 문제가 있었다.
                 //  실제로 값이 바뀔 때만 PasteFromCamera(라이브 재조회)를 수행하도록 가드.
                 if (value == _DeviceName) return;
@@ -91,7 +91,7 @@ namespace ReringProject.Sequence {
             pDev = SystemHandler.Handle.Devices;
             pLight = SystemHandler.Handle.Lights;
 
-            // 260723 hbk: Gamma는 이 라인 카메라(CXP/MIL)에 feature 자체가 없어(MIL error 6501) Shot의
+            //260723 hbk Gamma는 이 라인 카메라(CXP/MIL)에 feature 자체가 없어(MIL error 6501) Shot의
             //  Device 탭 Name/Value 표에서 항목 자체를 제외한다 — 편집 가능한 죽은 항목으로 UI에 남지 않도록.
             this.PropertyNameList = Enum.GetNames(typeof(ECameraPropertyType))
                 .Where(n => n != nameof(ECameraPropertyType.Gamma)).ToArray();
@@ -106,7 +106,7 @@ namespace ReringProject.Sequence {
             return mm;
         }
 
-        //260619 hbk per-shot 보정계수 적용된 유효 분해능 = PixelResolution × CorrectionFactor. 측정 mm 소비 단일소스(Action_FAIMeasurement :265 + EdgePairDistance :74 양 경로 호출). 메서드 = INI 직렬화 안 됨 → PixelResolution 저장값 불변 보존.
+        //260619 hbk per-shot 보정계수 적용된 유효 분해능 = PixelResolution × CorrectionFactor. 측정 mm 소비 단일소스(Action_FAIMeasurement:265 + EdgePairDistance:74 양 경로 호출). 메서드 = INI 직렬화 안 됨 → PixelResolution 저장값 불변 보존.
         public double GetEffectivePixelResolution() {
             //260619 hbk CorrectionFactor ≤0(미설정 0 로드 잔재 or 오입력)은 무보정 1.0 으로 안전 처리 — 측정값 0/음수화 방지. >2% 이탈은 가드레일이 별도 경고.
             double factor = (CorrectionFactor > 0.0) ? CorrectionFactor : 1.0;
@@ -116,7 +116,7 @@ namespace ReringProject.Sequence {
 
         private PropertyItem SearchProperty(ECameraPropertyType type) {
             for(int i = 0; i< PropertyArray.Length; i++) {
-                // 260723 hbk: Name==null인 손상된 항목은 GetPropertyType()이 Exposure로 폴백되어
+                //260723 hbk Name==null인 손상된 항목은 GetPropertyType이 Exposure로 폴백되어
                 //  진짜 Exposure 슬롯인 것처럼 매칭되어버린다 — Exposure 전용 리버트 버그의 유력 원인이라
                 //  여기서 먼저 걸러낸다(진짜 Exposure 슬롯은 항상 Name="Exposure"로 생성됨).
                 if (PropertyArray[i].Name == null) continue;
@@ -142,7 +142,7 @@ namespace ReringProject.Sequence {
         public string SequenceName {
             get {
                 if (Parent == null) return null; //260407 hbk 동적 생성 Param은 Parent가 null일 수 있으므로 null 안전 접근
-                return Parent.Name; //260612 hbk Wave5
+                return Parent.Name;
             }
         }
 
@@ -187,7 +187,7 @@ namespace ReringProject.Sequence {
         
         public override bool Load(IniFile loadFile, string groupName) {
             bool result = base.Load(loadFile, groupName);
-            //260619 hbk CorrectionFactor 하위호환 복원 — ParamBase.Load 는 Double 프로퍼티마다 INI 를 읽어 누락 키를 ToDouble()=0 으로 덮어쓴다.
+            //260619 hbk CorrectionFactor 하위호환 복원 — ParamBase.Load 는 Double 프로퍼티마다 INI 를 읽어 누락 키를 ToDouble=0 으로 덮어쓴다.
             //  구 레시피엔 CorrectionFactor 키가 없어 0 으로 로드 → GetEffectivePixelResolution=PixelResolution×0=0 → 전 측정값 0(회귀).
             //  키 부재 시에만 기본 1.0(무보정) 복원. 키 존재(사용자 설정값)면 그대로 둠.
             IniSection sec;

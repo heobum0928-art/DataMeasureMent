@@ -7,12 +7,12 @@ using ReringProject.Utility;
 namespace ReringProject.Halcon.Services
 {
     /// <summary>
-    /// 패턴 모델(.shm/.ncm) 생성 시 제외할 영역(브러시 마스크)의 저장/로드 담당(D-74-02).
+    /// 패턴 모델(.shm/.ncm) 생성 시 제외할 영역(브러시 마스크)의 저장/로드 담당.
     ///
     /// 마스크 경로는 <b>호출부가 이미 정규 헬퍼로 산출해 넘긴 modelPath 문자열에서만 파생</b>한다.
     /// 폴더 규약을 새로 만들지 않기 때문에 Datum(RecipeFiles.GetPatternModelFilePath) 이든
     /// Align(AlignShapeMatchService.BuildShmPath) 이든 무조건 모델과 같은 폴더에 떨어진다.
-    /// Phase 73 에서 폴더 규약이 갈려 .shm 을 조용히 못 찾을 뻔한 사고가 있었다.
+    /// 예전에 폴더 규약이 갈려 .shm 을 조용히 못 찾을 뻔한 사고가 있었다.
     ///
     /// ResolveMaskPath / TryLoadMask 는 <b>디렉터리를 절대 만들지 않는다.</b>
     /// Directory.CreateDirectory 는 TrySaveMask 안에서만 허용한다.
@@ -142,7 +142,7 @@ namespace ReringProject.Halcon.Services
             try
             {
                 // 여기서만 CreateDirectory 를 허용한다. 이 폴더는 모델 경로 헬퍼가 이미 만든 '모델 폴더'이며
-                //  새 규약 폴더를 만드는 것이 아니다(Phase 73 의 조용한 모델 미탐지 사고 재발 방지).
+                //  새 규약 폴더를 만드는 것이 아니다(조용한 모델 미탐지 사고 재발 방지).
                 string szDir = Path.GetDirectoryName(szMaskPath);
                 if (Directory.Exists(szDir) == false)
                 {

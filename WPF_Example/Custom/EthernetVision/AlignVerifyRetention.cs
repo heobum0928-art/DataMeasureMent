@@ -22,7 +22,7 @@ namespace ReringProject {
         private const string IMAGE_DATE_FORMAT = "yyMMdd";
         private const string CSV_SEARCH_PATTERN = "*.csv";
 
-        /// <summary>NG 증거 이미지 저장 폴더. 75-03 이 이 헬퍼로 저장 경로를 만든다.</summary>
+        /// <summary>NG 증거 이미지 저장 폴더. 저장 경로는 이 헬퍼로 만든다.</summary>
         public static string BuildAlignImageDirectory(DateTime ts) {
             return Path.Combine(SystemHandler.Handle.Setting.ResultSavePath,
                                 ALIGN_IMAGE_ROOT_FOLDER, ts.ToString(IMAGE_DATE_FORMAT));

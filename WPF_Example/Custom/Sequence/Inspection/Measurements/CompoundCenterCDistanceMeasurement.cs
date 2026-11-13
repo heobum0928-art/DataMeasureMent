@@ -34,7 +34,7 @@ namespace ReringProject.Sequence
         public double Sigma { get; set; } = 1.0;
         [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeSampleCount { get; set; } = 20;
-        //260622 hbk Phase 57.1: trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
+        //260622 hbk trim 의미가 양끝 각 %(비율)로 변경 → 라벨만 % 표기 (프로퍼티명/INI 키 보존)
         [DisplayName("Edge Trim (%)")]
         [PropertyTools.DataAnnotations.Browsable(false)]
         public int EdgeTrimCount { get; set; } = 10;

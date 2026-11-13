@@ -19,7 +19,7 @@ namespace ReringProject.Device {
         Virtual,
         Basler,
         HIK,
-        MIL,   //260602 hbk Phase 41 — CXP 카메라 MIL Lite 10.0
+        MIL,   //260602 hbk CXP 카메라 MIL Lite 10.0
     }
 
     public enum ECaptureModeType {
@@ -205,7 +205,7 @@ namespace ReringProject.Device {
 
             SelectedImageFile = selectedImageFile;
             if (!String.IsNullOrEmpty(SelectedImageFile)) {
-                if (BackgroundImage != null) { //260612 hbk Wave5
+                if (BackgroundImage != null) {
                     BackgroundImage.Dispose();
                 }
                 BackgroundImage = LoadBackgroundImage(SelectedImageFile);
@@ -248,7 +248,7 @@ namespace ReringProject.Device {
             get {
                 lock (Interlock) {
                     HImage image = GetCurrentImageNoLock();
-                    if (image == null) return null; //260612 hbk Wave5
+                    if (image == null) return null;
                     return image.CopyImage();
                 }
             }
@@ -338,15 +338,15 @@ namespace ReringProject.Device {
             try {
                 using (HImage grabbedImage = LastHalconImage) {
                     if (grabbedImage == null) return false;
-                    string rawExt = Path.GetExtension(fileName); //260612 hbk Wave5
-                    string extension; //260612 hbk Wave5
-                    if (rawExt == null) { //260612 hbk Wave5
+                    string rawExt = Path.GetExtension(fileName);
+                    string extension;
+                    if (rawExt == null) {
                         extension = null;
                     } else {
                         extension = rawExt.TrimStart('.').ToLowerInvariant();
                     }
-                    string format; //260612 hbk Wave5
-                    if (extension == "jpg" || extension == "jpeg") { //260612 hbk Wave5
+                    string format;
+                    if (extension == "jpg" || extension == "jpeg") {
                         format = "jpeg";
                     } else if (extension == "tif" || extension == "tiff") {
                         format = "tiff";
@@ -537,7 +537,7 @@ namespace ReringProject.Device {
         public virtual BitmapSource GetPreviewBitmapSource() {
             lock (Interlock) {
                 HImage image = GetCurrentImageNoLock();
-                if (image == null) return null; //260612 hbk Wave5
+                if (image == null) return null;
                 return CreateBitmapSource(image);
             }
         }

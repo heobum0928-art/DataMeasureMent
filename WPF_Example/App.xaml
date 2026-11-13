@@ -8,7 +8,7 @@
     <Application.Resources>
         <prop:LocalizationResource x:Key="DR"></prop:LocalizationResource>
 
-        <!-- 260530 hbk Phase 39.2 D-G4 hotfix — Geometry resources + converter (moved from InspectionListView.xaml UserControl.Resources)
+        <!-- 260530 hbk Geometry resources + converter (moved from InspectionListView.xaml UserControl.Resources)
              Reason: IconKeyToGeometryConverter reads Application.Current.Resources directly; UserControl.Resources scope did not match → all icons rendered as null.
              Fix:    Move to Application.Resources so global lookup chain matches. -->
         <ui:IconKeyToGeometryConverter x:Key="iconKeyToGeometry"/>

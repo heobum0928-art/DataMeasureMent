@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" d:DesignWidth="360">
-    <!--Phase 74: 이 패널은 HALCON 창 "밖"(호스트의 WPF 컨트롤 패널)에 놓인다.
+    <!--260827 hbk 이 패널은 HALCON 창 "밖"(호스트의 WPF 컨트롤 패널)에 놓인다.
          브러시 자국·미리보기는 뷰어가 HALCON 창 안에 직접 그리므로 여기에는 그림 요소를 두지 않는다.-->
     <GroupBox Header="브러시 마스킹 (모델 제외 영역)">
         <StackPanel Margin="8">

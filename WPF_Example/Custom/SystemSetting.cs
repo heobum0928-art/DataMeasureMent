@@ -42,6 +42,9 @@ namespace ReringProject.Setting {
         // quick-mc1 — 피커센터 캘 find_shape_model 최소 Score 기본값(기존 하드코딩 값과 동일).
         private const double PICKER_CAL_FIND_MIN_SCORE_DEFAULT = 0.5;
 
+        // 체커보드 격자 한 칸 크기(mm) 기본값 — 현장 지그 Edmund Optics 12198(30mm SQ Chrome on Opal)의 칸 크기.
+        private const double CALIB_CELL_SIZE_MM_DEFAULT = 0.4;
+
         // Align 정합 검증 보관 상한 기본값. 매직넘버 금지.
         private const int ALIGN_VERIFY_KEEP_DAYS_DEFAULT = 180;
         private const int ALIGN_VERIFY_IMAGE_KEEP_DAYS_DEFAULT = 30;
@@ -110,6 +113,12 @@ namespace ReringProject.Setting {
         [PropertyTools.DataAnnotations.Category("Path|AlignVerify")]
         public double PickerCalFindMinScore { get; set; } = PICKER_CAL_FIND_MIN_SCORE_DEFAULT;
 
+        // 체커보드 픽셀 캘리브레이션 창의 "격자 한 칸 실제 크기(mm)". 예전에는 앱을 켜 둔 동안만 기억해서
+        //  껐다 켜면 매번 다시 입력해야 했다. 검출에 성공하면 이 값에 저장되고 다음에 창을 열 때 그대로 뜬다.
+        //  지그를 바꾸면 창에서 새 값을 넣고 한 번 검출하면 갱신된다.
+        [PropertyTools.DataAnnotations.Category("Path|Calibration")]
+        public double CalibCellSizeMm { get; set; } = CALIB_CELL_SIZE_MM_DEFAULT;
+
         /// <summary>360/스텝각 = 한 바퀴에 필요한 스텝 수. 값이 이상하면 기본값 기준으로 돌려준다.</summary>
         [PropertyTools.DataAnnotations.Browsable(false)]
         public int PickerCalRequiredSteps {
@@ -130,6 +139,19 @@ namespace ReringProject.Setting {
             RestoreCalibSearchDefault(); //260630 hbk Phase 60 (Row2/Col2 기본값 복원)
             RestoreDataPathDefaults(); //260723 hbk: 신규 경로 프로퍼티 3종 — 기존 배포 INI엔 키가 없어 문자열 case가 null로 로드하는 문제 방어
             RestoreAlignVerifyDefaults();
+            RestoreCalibCellSizeDefault();
+        }
+
+        // 신규 프로퍼티라 기존 PC 의 Setting.ini 에는 이 키가 없다. reflection Load 의 "Double" case 는
+        //  키 부재 시 0.0 을 그대로 덮어써 C# 기본값이 날아간다(Int32/String 과 같은 계열 문제).
+        //  칸 크기는 0 이하가 될 수 없으므로 그때는 기본값으로 되돌린다.
+        private void RestoreCalibCellSizeDefault()
+        {
+            bool bCellSizeInvalid = CalibCellSizeMm <= 0.0;
+            if (bCellSizeInvalid)
+            {
+                CalibCellSizeMm = CALIB_CELL_SIZE_MM_DEFAULT;
+            }
         }
 
         // 신규 프로퍼티라 기존 배포 PC 의 Setting.ini 에는 이 키가 없다.

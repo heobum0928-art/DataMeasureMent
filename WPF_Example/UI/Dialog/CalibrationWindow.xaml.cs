@@ -15,7 +15,6 @@ namespace ReringProject.UI
     {
         private readonly CheckerboardCalibrationService _calibService = new CheckerboardCalibrationService();
         private CalibrationResult _lastResult;                 // [적용]이 소비 (plan 03)
-        private static string _lastCellMm = "1.0";             // D-01 직전값 (앱 수명 내 기억, INI 비의존)
         //260623 hbk: ROI(reduce_domain) 검출 영역 — null=전체. _roiDrawing=드래그 진행 중(검출 시 확정)
         private RoiDefinition _calibRoi;
         private bool _roiDrawing;
@@ -32,7 +31,8 @@ namespace ReringProject.UI
         public CalibrationWindow()
         {
             InitializeComponent();
-            txt_cellMm.Text = _lastCellMm;
+            // 칸 크기는 Setting.ini(CalibCellSizeMm)에 저장된 마지막 값으로 연다 — 앱을 껐다 켜도 유지된다.
+            txt_cellMm.Text = SystemSetting.Handle.CalibCellSizeMm.ToString(CultureInfo.InvariantCulture);
             txt_sigma.Text = CheckerboardCalibrationService.DefaultSaddleSigma.ToString(CultureInfo.InvariantCulture);
             txt_threshold.Text = CheckerboardCalibrationService.DefaultSaddleThreshold.ToString(CultureInfo.InvariantCulture);
             txt_warnPct.Text = CheckerboardCalibrationService.DistortionWarnThresholdPct.ToString(CultureInfo.InvariantCulture);
@@ -42,6 +42,22 @@ namespace ReringProject.UI
 #endif
             //260623 hbk Phase 53 WR-01: 창 종료 시 뷰어 HImage 해제 (TeachingWindow 패턴) — 누수 방지
             Closed += CalibrationWindow_Closed;
+        }
+
+        // 검출에 성공한 칸 크기를 Setting.ini 에 저장한다. 저장이 실패해도(파일 잠김 등) 검출 결과 표시는 막지 않는다.
+        private void SaveCellSizeSetting(double dCellMm)
+        {
+            try
+            {
+                SystemSetting.Handle.CalibCellSizeMm = dCellMm;
+                SystemSetting.Handle.Save();
+                Logging.PrintLog((int)ELogType.Trace,
+                    string.Format(CultureInfo.InvariantCulture, "[캘리브] 체커보드 칸 크기 {0} mm 저장", dCellMm));
+            }
+            catch (Exception ex)
+            {
+                Logging.PrintLog((int)ELogType.Error, "[캘리브] 칸 크기 저장 실패: " + ex.Message);
+            }
         }
 
         //260623 hbk Phase 53 WR-01: HalconViewerControl 네이티브 핸들 해제
@@ -190,7 +206,7 @@ namespace ReringProject.UI
             }
 
             _lastResult = result;
-            _lastCellMm = txt_cellMm.Text;   // D-01 직전값 갱신
+            SaveCellSizeSetting(mm);
             //260623 hbk: 중앙/외곽 평균(px) + X/Y 축별 편차% + 종합 편차% + 구조 점검 + 난반사(포화) 보강 리포트
             txt_report.Text = string.Format(CultureInfo.InvariantCulture,
                 "1 px = {0:F8} mm (X {1:F8} / Y {2:F8})\n평균 간격 {3:F2} px · 코너 {4}개{5}\n중앙부 {6:F2} px ↔ 외곽부 {7:F2} px\n편차 종합 {8:F2}% (X {9:F2}% / Y {10:F2}%)\n구조 점검: {11} (규칙성 변동 {12:F1}%)\n난반사/과노출: 포화 {13:F2}%",

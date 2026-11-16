@@ -2921,7 +2921,7 @@ namespace ReringProject.Sequence {
             return m.LastSkipReason != SkipReason.Z_RANGE_PENDING;
         }
 
-        private void LogCycleResultSummary(EVisionResultType result, int nIndexNumber)
+        private void LogCycleResultSummary(CycleResultDto lastTickDto, EVisionResultType result, int nIndexNumber)
         {
             try
             {
@@ -2933,6 +2933,8 @@ namespace ReringProject.Sequence {
                 {
                     CountOneMeasurement(m, ref nTotal, ref nOk, lstNg, lstFail);
                 }
+                //261116 hbk 사이클 끝까지 값도 실패 사유도 없는 측정 = 아예 안 잰 것. 빠뜨리지 않고 "측정 안 됨" 으로 센다.
+                AddNeverMeasured(lastTickDto, ref nTotal, lstFail);
 
                 string szVerdict;
                 if (result == EVisionResultType.OK)
@@ -2949,14 +2951,17 @@ namespace ReringProject.Sequence {
                 {
                     sb.Append(" · 자재 ").Append(nIndexNumber);
                 }
-                sb.Append(" · 측정 ").Append(nTotal).Append("개 · OK ").Append(nOk).Append(" · NG ").Append(lstNg.Count);
+                //261116 hbk NG(값은 나왔는데 공차 밖) 와 측정 안 됨(값 자체가 없음) 을 나눠 적는다 — 고칠 곳이 다르다.
+                sb.Append(" · 측정 ").Append(nTotal).Append("개 · OK ").Append(nOk)
+                  .Append(" · NG(공차 밖) ").Append(lstNg.Count)
+                  .Append(" · 측정 안 됨 ").Append(lstFail.Count);
                 if (lstNg.Count > 0)
                 {
-                    sb.Append(" (").Append(JoinFirstNames(lstNg)).Append(")");
+                    sb.Append(" ｜ NG: ").Append(JoinFirstNames(lstNg));
                 }
                 if (lstFail.Count > 0)
                 {
-                    sb.Append(" · 측정실패 ").Append(lstFail.Count).Append(" (").Append(JoinFirstNames(lstFail)).Append(")");
+                    sb.Append(" ｜ 측정 안 됨: ").Append(JoinFirstNames(lstFail));
                 }
                 if (m_bCycleDatumFailed)
                 {
@@ -2993,7 +2998,70 @@ namespace ReringProject.Sequence {
             if (bHasSkipReason)
             {
                 nTotal++;
-                lstFail.Add(m.MeasurementName);
+                lstFail.Add(m.MeasurementName + "(" + DescribeSkipReason(m.LastSkipReason) + ")");
+            }
+        }
+
+        // 마지막 tick 기록에는 이 시퀀스의 모든 측정 이름이 들어 있다 — 모은 결과에 없는 것을 "결과 없음" 으로 더한다.
+        private void AddNeverMeasured(CycleResultDto lastTickDto, ref int nTotal, List<string> lstFail)
+        {
+            if (lastTickDto == null || lastTickDto.Shots == null)
+            {
+                return;
+            }
+            foreach (ShotResultDto shot in lastTickDto.Shots)
+            {
+                if (shot == null || shot.FAIs == null)
+                {
+                    continue;
+                }
+                foreach (FaiResultDto fai in shot.FAIs)
+                {
+                    if (fai == null || fai.Measurements == null)
+                    {
+                        continue;
+                    }
+                    foreach (MeasurementResultDto m in fai.Measurements)
+                    {
+                        if (m == null)
+                        {
+                            continue;
+                        }
+                        string szKey = shot.ShotName + "/" + m.MeasurementName;
+                        if (m_dicCycleSummary.ContainsKey(szKey))
+                        {
+                            continue;
+                        }
+                        nTotal++;
+                        lstFail.Add(m.MeasurementName + "(" + SKIP_TEXT_NO_RESULT + ")");
+                    }
+                }
+            }
+        }
+
+        private const string SKIP_TEXT_NO_RESULT = "결과 없음";
+
+        // 실패 사유 코드를 작업자가 읽는 짧은 말로 바꾼다.
+        private static string DescribeSkipReason(string szReason)
+        {
+            switch (szReason)
+            {
+                case SkipReason.MEASURE_FAIL:
+                    return "에지 못 찾음";
+                case SkipReason.DATUM_FAIL:
+                    return "기준점 실패";
+                case SkipReason.ALIGN_FAIL:
+                    return "패턴 못 찾음";
+                case SkipReason.NO_IMAGE:
+                    return "사진 없음";
+                case SkipReason.DATUM_REF_MISSING:
+                    return "기준점 이름 없음";
+                case SkipReason.ZINDEX_MISCONFIGURED:
+                    return "z 설정 오류";
+                case SkipReason.CROSS_Z_INCOMPLETE:
+                    return "z 사진 부족";
+                default:
+                    return szReason;
             }
         }
 
@@ -3043,7 +3111,7 @@ namespace ReringProject.Sequence {
                 if (bLastIndexOfCycle)
                 {
                     RecordSeatingEvidence(nIndexNumber);
-                    LogCycleResultSummary(packet.Result, nIndexNumber);
+                    LogCycleResultSummary(cycleDto, packet.Result, nIndexNumber);
                 }
             }
             catch (Exception ex)

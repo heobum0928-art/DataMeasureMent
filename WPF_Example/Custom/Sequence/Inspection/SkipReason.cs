@@ -19,5 +19,27 @@ namespace ReringProject.Sequence
         //260915 hbk Z 범위 Shot 의 중간 z tick — 후보 사진을 모으는 중이라 아직 측정 안 함
         //  고장 아님, PASS 아님. ZIndexEnd tick 에서 한 번 평가된다.
         public const string Z_RANGE_PENDING = "Z_RANGE_PENDING";
+
+        /// <summary>값이 안 나온 "측정 안 됨" 사유인지 — Z 범위 대기(아직 안 잰 중간 z)와 빈 값은 아니다.</summary>
+        public static bool IsMeasurementFailure(string szReason)
+        {
+            if (string.IsNullOrEmpty(szReason))
+            {
+                return false;
+            }
+            switch (szReason)
+            {
+                case DATUM_FAIL:
+                case ALIGN_FAIL:
+                case NO_IMAGE:
+                case DATUM_REF_MISSING:
+                case ZINDEX_MISCONFIGURED:
+                case CROSS_Z_INCOMPLETE:
+                case MEASURE_FAIL:
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 }

@@ -228,7 +228,9 @@ namespace ReringProject.UI
                 return EStatLevel.Bad;
             }
 
-            if (s.N == 0)
+            //261116 hbk 한 번이라도 측정이 안 된 회차가 있으면 보라 — 일부만 빠져도 눈에 띄게.
+            bool bHasMissing = s.N == 0 || s.DetectFailCount > 0;
+            if (bHasMissing)
             {
                 return EStatLevel.NoResult;
             }
@@ -390,7 +392,7 @@ namespace ReringProject.UI
 
             int nTotal = nBad + nNoResult + nWarning + nNormal;
 
-            string szNoResultPart = "결과 없음 " + nNoResult;
+            string szNoResultPart = "측정 안 됨 " + nNoResult;
             if (nNoRecord > 0)
             {
                 szNoResultPart = szNoResultPart + "(기록 없음 " + nNoRecord + ")";

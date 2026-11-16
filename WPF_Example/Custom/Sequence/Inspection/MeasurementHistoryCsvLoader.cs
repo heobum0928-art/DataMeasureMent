@@ -395,6 +395,12 @@ namespace ReringProject.Sequence
                 meas.LastSkipReason = null;
                 meas.LastHasResult = false;
             }
+            else if (SkipReason.IsMeasurementFailure(szJudge))
+            {
+                //261116 hbk 에지 못 찾음·패턴 못 찾음 등 — 값 없음 + 실패 사유. NG 로 읽으면 안 된다.
+                meas.LastSkipReason = szJudge;
+                meas.LastHasResult = false;
+            }
             else if (szJudge == "OK")
             {
                 meas.LastSkipReason = null;

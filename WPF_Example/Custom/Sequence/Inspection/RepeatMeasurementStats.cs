@@ -128,7 +128,8 @@ namespace ReringProject.Sequence
                         d.LastTolPlus = m.TolerancePlus;
                         d.LastTolMinus = m.ToleranceMinus;
 
-                        if (m.LastSkipReason == SkipReason.DATUM_FAIL || m.LastSkipReason == SkipReason.NO_IMAGE) //260616 hbk NO_IMAGE DetectFail 취급/ 상수화
+                        //261116 hbk 기준점 실패·사진 없음뿐 아니라 에지 못 찾음 등 모든 "측정 안 됨" 을 센다.
+                        if (SkipReason.IsMeasurementFailure(m.LastSkipReason))
                         {
                             d.DetectFailCount++;
                         }

@@ -149,6 +149,9 @@ namespace ReringProject.Sequence
         {
             if (meas.LastSkipReason == SkipReason.DATUM_FAIL) { return SkipReason.DATUM_FAIL; }   //260707 hbk 상수화
             if (meas.LastSkipReason == SkipReason.NO_IMAGE) { return SkipReason.NO_IMAGE; }       //260707 hbk 상수화
+            //261116 hbk 에지 못 찾음 등 실패 사유도 그대로 남긴다 — 통계에서 "측정 안 됨" 으로 셀 수 있게.
+            //  Z 범위 대기(아직 안 잰 중간 z)는 실패가 아니므로 기존처럼 NO_RESULT.
+            if (SkipReason.IsMeasurementFailure(meas.LastSkipReason)) { return meas.LastSkipReason; }
             if (meas.LastHasResult == false) { return "NO_RESULT"; }            //260707 hbk 미측정(값 없음) — 로더가 통계서 제외
             if (meas.LastJudgement) { return "OK"; }
             return "NG";

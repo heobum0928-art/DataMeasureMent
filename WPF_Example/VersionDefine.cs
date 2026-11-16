@@ -738,10 +738,17 @@ namespace ReringProject
                  "z 마다 그 z 에서 잰 측정만 기록되므로, 사이클 동안 측정별 마지막 결과를 모아 두었다가 마지막 z 에서 요약한다. " +
                  "Z 범위 사진만 모으는 중간 z 는 단계 로그가 '판정 NG · 알고리즘: 없음' 대신 '이번 z 는 측정 없음 (Z 범위 사진 모으는 중)' 으로 찍혀 실제 NG 와 헷갈리지 않는다."
     )]
+    [Version(
+        Number = "1.7.57.0",
+        Date = "2026-11-16",
+        Change = "양산 이력 통계분석에서 측정이 빠진 회차가 바로 보이게 했다 — 예전 '검출실패' 칸을 '측정 안 됨' 으로 바꾸고 기준점 실패·사진 없음뿐 아니라 에지 못 찾음·패턴 못 찾음·z 설정 오류 등 값이 안 나온 모든 경우를 센다. " +
+                 "이 숫자가 0 이 아니면 10번 중 1번만 빠져도 그 줄이 보라색이 되고 '문제 항목만 보기' 에 들어간다(예전에는 전부 빠졌을 때만 보라색이었고 일부 누락은 N 숫자만 줄었다). " +
+                 "이를 위해 측정 이력 CSV 의 판정 칸에 실패 사유(MEASURE_FAIL 등)를 그대로 남긴다. 이전 CSV 의 에지 못 찾음 기록은 사유 없이 남아 있어 새로 찍은 검사부터 센다. Z 범위 대기(아직 안 잰 중간 z)는 실패로 세지 않는다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.56.0";
+        public const string VERSION = "1.7.57.0";
         public const string BUILD_DATE = "2026-11-16";
     }
 }

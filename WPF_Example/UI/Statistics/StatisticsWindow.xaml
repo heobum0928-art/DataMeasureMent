@@ -47,14 +47,14 @@
                             Padding="14,4" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <CheckBox x:Name="chk_ProblemOnly" Content="문제 항목만 보기 (불량·결과 없음·주의)"
+                    <CheckBox x:Name="chk_ProblemOnly" Content="문제 항목만 보기 (불량·측정 안 됨·주의)"
                               Checked="Chk_ProblemOnly_Changed" Unchecked="Chk_ProblemOnly_Changed"
                               VerticalAlignment="Center" FontSize="13"/>
                     <TextBlock x:Name="txt_Summary" Margin="24,0,0,0" FontSize="13" FontWeight="SemiBold"
                                Foreground="#334155" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                    <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 보라 = 결과 없음(기간 안 측정값 0건) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
+                    <TextBlock Text="빨강 = 불량(NG 발생 또는 Cpk 1.0 미만) · 보라 = 측정 안 된 회차 있음(일부만 빠져도 보라) · 노랑 = 주의(Cpk 1.0 ~ 1.33)"
                                FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
                     <!-- 집계 범위 안내: 화면 RUN/일괄/반복(수동) 검사는 통계에서 제외된다(CSV 에는 기록은 남음) -->
                     <TextBlock Text="※ PLC 자동 검사만 집계 (수동 RUN·일괄·반복 검사 제외)"
@@ -148,10 +148,10 @@
                 <DataGridTextColumn Header="Cpk"        Binding="{Binding CpkText}" SortMemberPath="CpkSortValue" Width="65"/>
                 <DataGridTextColumn Header="OK"         Binding="{Binding OkCount}"         Width="45"/>
                 <DataGridTextColumn Header="NG"         Binding="{Binding NgCount}"         Width="45"/>
-                <DataGridTextColumn Header="검출실패"   Binding="{Binding DetectFailCount}" Width="65">
+                <DataGridTextColumn Header="측정 안 됨" Binding="{Binding DetectFailCount}" Width="70">
                     <DataGridTextColumn.HeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="ToolTip" Value="기준점 검출 실패(DATUM_FAIL) + 사진 없음(NO_IMAGE) 줄 수. 측정 알고리즘 실패는 CSV 에 따로 남지 않아 여기에 포함되지 않음"/>
+                            <Setter Property="ToolTip" Value="값이 안 나온 횟수 — 에지 못 찾음·패턴 못 찾음·기준점 실패·사진 없음 등. 0 이 아니면 줄이 보라색"/>
                         </Style>
                     </DataGridTextColumn.HeaderStyle>
                 </DataGridTextColumn>

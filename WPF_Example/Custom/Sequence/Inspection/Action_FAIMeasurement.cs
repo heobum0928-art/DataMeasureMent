@@ -636,9 +636,16 @@ namespace ReringProject.Sequence {
             string szAlgoSummary;
             if (sbAlgo.Length > 0) szAlgoSummary = sbAlgo.ToString();
             else szAlgoSummary = "없음";
-            LogSeqStep("Measure", string.Format("완료 — 측정 {0}개 (공차이탈 {1}개), 판정 {2} ({3:F2}초) │ 알고리즘: {4}",
-                measuredCount, nMeasNg, szMeasureVerdict, swMeasureTotal.Elapsed.TotalSeconds,
-                szAlgoSummary));
+            //261116 hbk 이번 z 에서 실제로 잰 측정이 없으면(Z 범위 사진만 모으는 중) 판정 NG 로 보이지 않게 따로 적는다.
+            bool bNothingMeasured = sbAlgo.Length == 0 && nMeasNg == 0;
+            if (bNothingMeasured) {
+                LogSeqStep("Measure", string.Format("완료 — 이번 z 는 측정 없음 (Z 범위 사진 모으는 중) ({0:F2}초)",
+                    swMeasureTotal.Elapsed.TotalSeconds));
+            } else {
+                LogSeqStep("Measure", string.Format("완료 — 측정 {0}개 (공차이탈 {1}개), 판정 {2} ({3:F2}초) │ 알고리즘: {4}",
+                    measuredCount, nMeasNg, szMeasureVerdict, swMeasureTotal.Elapsed.TotalSeconds,
+                    szAlgoSummary));
+            }
             Step = (int)EStep.End;
         }
 

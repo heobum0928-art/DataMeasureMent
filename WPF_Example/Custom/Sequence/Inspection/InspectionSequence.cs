@@ -1774,6 +1774,7 @@ namespace ReringProject.Sequence {
         //  write 되므로(ClassifyMeasurement/DetectDatumFailure) 여기 리셋은 그대로 안전하다.
         private void ResetCycleState()
         {
+            m_dicCycleSummary.Clear();   //261116 hbk 사이클 요약은 기준점 tick 마다 새로 모은다.
             m_bCycleHasNG = false;
             m_bCycleDatumFailed = false;
             m_bCycleHasHardwareError = false;   //260811 hbk 사이클 시작마다 초기화 — 다음 부품으로 누수 방지.
@@ -2863,6 +2864,149 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //261116 hbk 자동 검사 한 사이클이 끝나면 초보자도 바로 읽을 수 있게 결과를 한 줄로 남긴다.
+        //  z 마다 찍히는 단계 로그는 그대로 두고, 맨 끝에 "끝났다 / 몇 개 중 몇 개 NG / 어느 측정" 만 모은다.
+        private const string CYCLE_SUMMARY_TAG = "[검사결과] ";
+        private const int CYCLE_SUMMARY_MAX_NAMES = 5;
+
+        //261116 hbk z 마다 그 z 에서 잰 측정만 기록에 들어오므로, 사이클 동안 측정별 마지막 결과를 모아 둔다.
+        //  키 = Shot이름/측정이름. 기준점 tick(ResetCycleState)에서 비운다.
+        private readonly Dictionary<string, MeasurementResultDto> m_dicCycleSummary = new Dictionary<string, MeasurementResultDto>();
+
+        private void MergeTickIntoCycleSummary(CycleResultDto cycleDto)
+        {
+            if (cycleDto == null || cycleDto.Shots == null)
+            {
+                return;
+            }
+            foreach (ShotResultDto shot in cycleDto.Shots)
+            {
+                if (shot == null || shot.FAIs == null)
+                {
+                    continue;
+                }
+                foreach (FaiResultDto fai in shot.FAIs)
+                {
+                    if (fai == null || fai.Measurements == null)
+                    {
+                        continue;
+                    }
+                    foreach (MeasurementResultDto m in fai.Measurements)
+                    {
+                        if (!IsFinalMeasurementResult(m))
+                        {
+                            continue;
+                        }
+                        m_dicCycleSummary[shot.ShotName + "/" + m.MeasurementName] = m;
+                    }
+                }
+            }
+        }
+
+        // 값이 나왔거나 실제 실패 사유가 있는 측정만 — Z 범위 대기·아직 안 잰 측정은 빼고 모은다.
+        private static bool IsFinalMeasurementResult(MeasurementResultDto m)
+        {
+            if (m == null)
+            {
+                return false;
+            }
+            if (m.LastHasResult)
+            {
+                return true;
+            }
+            if (string.IsNullOrEmpty(m.LastSkipReason))
+            {
+                return false;
+            }
+            return m.LastSkipReason != SkipReason.Z_RANGE_PENDING;
+        }
+
+        private void LogCycleResultSummary(EVisionResultType result, int nIndexNumber)
+        {
+            try
+            {
+                int nTotal = 0;
+                int nOk = 0;
+                List<string> lstNg = new List<string>();
+                List<string> lstFail = new List<string>();
+                foreach (MeasurementResultDto m in m_dicCycleSummary.Values)
+                {
+                    CountOneMeasurement(m, ref nTotal, ref nOk, lstNg, lstFail);
+                }
+
+                string szVerdict;
+                if (result == EVisionResultType.OK)
+                {
+                    szVerdict = "합격";
+                }
+                else
+                {
+                    szVerdict = "불합격";
+                }
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                sb.Append(CYCLE_SUMMARY_TAG).Append(Name).Append(" 자동 검사 끝 — ").Append(szVerdict);
+                if (nIndexNumber >= 0)
+                {
+                    sb.Append(" · 자재 ").Append(nIndexNumber);
+                }
+                sb.Append(" · 측정 ").Append(nTotal).Append("개 · OK ").Append(nOk).Append(" · NG ").Append(lstNg.Count);
+                if (lstNg.Count > 0)
+                {
+                    sb.Append(" (").Append(JoinFirstNames(lstNg)).Append(")");
+                }
+                if (lstFail.Count > 0)
+                {
+                    sb.Append(" · 측정실패 ").Append(lstFail.Count).Append(" (").Append(JoinFirstNames(lstFail)).Append(")");
+                }
+                if (m_bCycleDatumFailed)
+                {
+                    sb.Append(" · 기준점 찾기 실패");
+                }
+                Logging.PrintLog((int)ELogType.Trace, sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, CYCLE_SUMMARY_TAG + "요약 만들기 실패(무시): " + ex.Message); } catch { }
+            }
+        }
+
+        private static void CountOneMeasurement(MeasurementResultDto m, ref int nTotal, ref int nOk, List<string> lstNg, List<string> lstFail)
+        {
+            if (m == null)
+            {
+                return;
+            }
+            if (m.LastHasResult)
+            {
+                nTotal++;
+                if (m.LastJudgement)
+                {
+                    nOk++;
+                }
+                else
+                {
+                    lstNg.Add(m.MeasurementName);
+                }
+                return;
+            }
+            bool bHasSkipReason = !string.IsNullOrEmpty(m.LastSkipReason);
+            if (bHasSkipReason)
+            {
+                nTotal++;
+                lstFail.Add(m.MeasurementName);
+            }
+        }
+
+        private static string JoinFirstNames(List<string> lstNames)
+        {
+            if (lstNames.Count <= CYCLE_SUMMARY_MAX_NAMES)
+            {
+                return string.Join(", ", lstNames.ToArray());
+            }
+            List<string> lstHead = lstNames.GetRange(0, CYCLE_SUMMARY_MAX_NAMES);
+            return string.Join(", ", lstHead.ToArray()) + " 외 " + (lstNames.Count - CYCLE_SUMMARY_MAX_NAMES) + "개";
+        }
+
         //260623 hbk v1.0 경로 영속화+Enqueue — 기존 v2.6 try/catch CycleResultSerializer 블록 동일 이식.
         //  매 Index 스냅샷 저장(마지막 Index 가 덮음) — 직렬화 예외 격리로 Enqueue 차단 방지(기존 패턴 보존).
         private void PersistAndEnqueueV1(InspectionRecipeManager recipeManager, TestResultPacket packet)
@@ -2894,10 +3038,12 @@ namespace ReringProject.Sequence {
                 cycleDto.DatumDiagnostics = BuildTickDatumDiagnosticsSnapshot();
                 CycleResultSerializer.SaveAsync(cycleDto);
                 // z_index 마다 호출되는 경로다. 마지막에 한 번만 기록해야 사이클당 1세트가 된다.
+                MergeTickIntoCycleSummary(cycleDto);
                 bool bLastIndexOfCycle = !packet.IsBuffer;
                 if (bLastIndexOfCycle)
                 {
                     RecordSeatingEvidence(nIndexNumber);
+                    LogCycleResultSummary(packet.Result, nIndexNumber);
                 }
             }
             catch (Exception ex)

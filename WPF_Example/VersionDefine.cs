@@ -731,10 +731,17 @@ namespace ReringProject
                  "기본값은 현장 지그(Edmund Optics 12198, 30mm SQ Chrome on Opal)의 칸 크기 0.4mm 이고, 검출에 성공할 때마다 넣은 값이 저장되어 다음에 창을 열면 그대로 뜬다. " +
                  "저장 사실은 Trace 로그에 '[캘리브] 체커보드 칸 크기 N mm 저장' 으로 남는다. 검사 화면·Tray·Bottom 캘리브레이션 창이 같은 값을 쓴다(같은 지그). 계산 방식은 바뀌지 않았다."
     )]
+    [Version(
+        Number = "1.7.56.0",
+        Date = "2026-11-16",
+        Change = "자동 검사 한 사이클(기준점 z 부터 마지막 z 까지)이 끝나면 Trace 로그에 결과 한 줄을 남긴다 — 예: [검사결과] SIDE_1 자동 검사 끝 — 불합격 · 자재 1 · 측정 9개 · OK 8 · NG 1 (F9_P3). 측정실패와 기준점 찾기 실패도 같은 줄에 붙는다. " +
+                 "z 마다 그 z 에서 잰 측정만 기록되므로, 사이클 동안 측정별 마지막 결과를 모아 두었다가 마지막 z 에서 요약한다. " +
+                 "Z 범위 사진만 모으는 중간 z 는 단계 로그가 '판정 NG · 알고리즘: 없음' 대신 '이번 z 는 측정 없음 (Z 범위 사진 모으는 중)' 으로 찍혀 실제 NG 와 헷갈리지 않는다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.55.0";
-        public const string BUILD_DATE = "2026-11-13";
+        public const string VERSION = "1.7.56.0";
+        public const string BUILD_DATE = "2026-11-16";
     }
 }

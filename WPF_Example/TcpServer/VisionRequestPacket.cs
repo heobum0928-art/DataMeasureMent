@@ -397,7 +397,7 @@ namespace ReringProject.Network {
 
         //260626 hbk v3.0: ALIGN_TEST 수신 파서.
         //  dataList[0]=AlignTarget(TRAY/BOTTOM), [1]=MaterialNo(int), [2]=모드(skip).
-        //  BOTTOM이면 [3]=AlignFace(int: 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2). TRAY는 AlignFace 없음.
+        //  BOTTOM이면 [3]=AlignFace(int: 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2/6=TOP_FLIP/7=BOTTOM_FLIP). TRAY는 AlignFace 없음.
         private static bool TryParseAlignTestFields(string[] dataList, AlignTestPacket alignPacket)
         {
             bool bHasBase = dataList != null && dataList.Length >= 2;
@@ -417,7 +417,7 @@ namespace ReringProject.Network {
                 bool bHasFace = dataList.Length >= 4;
                 if (!bHasFace) { return false; }
                 int nAlignFace = -1;
-                Int32.TryParse(dataList[3], out nAlignFace); //260626 hbk 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2
+                Int32.TryParse(dataList[3], out nAlignFace); //260626 hbk 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2/6=TOP_FLIP/7=BOTTOM_FLIP
                 alignPacket.AlignFace = nAlignFace;
             }
             return true;
@@ -620,11 +620,11 @@ namespace ReringProject.Network {
 
     //260624 hbk $ALIGN_TEST 수신 패킷.
     // v3.0: MaterialNo 추가([1]=자재번호). AlignFace 는 BOTTOM 전용([3]).
-    // v3.0: AlignFace int 0~5 (6지그) — 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2. TRAY=비사용(-1).
+    // v3.0: AlignFace int 0~7 — 0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2/6=TOP_FLIP/7=BOTTOM_FLIP. TRAY=비사용(-1).
     public class AlignTestPacket : VisionRequestPacket {
         public string AlignTarget { get; set; } = "";   //260624 hbk 라우팅 대상(TRAY/BOTTOM)
         public int    MaterialNo  { get; set; } = -1;   //260625 hbk v3.0: 자재번호 echo용
-        public int    AlignFace   { get; set; } = -1;   //260626 hbk BOTTOM 전용: 지그 면 인덱스(0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2). TRAY=-1
+        public int    AlignFace   { get; set; } = -1;   //260626 hbk BOTTOM 전용: 지그 면 인덱스(0=G1_TOP/1=G1_BOT/2=G2_TOP/3=G2_BOT/4=G2_SIDE1/5=G2_SIDE2/6=TOP_FLIP/7=BOTTOM_FLIP). TRAY=-1
 
         public AlignTestPacket() : base(VisionRequestType.AlignTest) {
         }

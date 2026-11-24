@@ -759,10 +759,17 @@ namespace ReringProject
                  "이미 1.7.55.0 ~ 1.7.57.0 을 켠 PC 는 파일에서 값이 이미 지워졌으므로 이 수정으로 되살아나지 않는다 — 앱을 끄고 Setting.ini.bak_* 백업이나 " +
                  "현장 기록에서 위 값을 직접 되돌리거나, 픽셀 캘리브레이션·피커센터 캘을 다시 해야 한다(TOP/BOTTOM PC 는 2026-11-24 에 되돌림: TrayAlign, 11.7252607661067, 피커센터 2485.33/2677.72, 검색 ROI 1501/1322/3454/4008)."
     )]
+    [Version(
+        Number = "1.7.59.0",
+        Date = "2026-11-24",
+        Change = "Bottom 얼라인 면 슬롯을 6개 → 8개로 늘렸다 — 'Top_Flip', 'Bottom_Flip' 추가. " +
+                 "PLC 가 $ALIGN_TEST 의 AlignFace 를 6 으로 보내면 Top_Flip, 7 이면 Bottom_Flip 모델로 얼라인한다(0~5 는 그대로). " +
+                 "모델 파일은 Bottom_Top_Flip_1/2.shm, Bottom_Bottom_Flip_1/2.shm 로 따로 저장되므로 기존 6면 티칭에는 영향 없음. 새 두 면은 Bottom 비전 화면에서 각각 티칭해야 쓸 수 있다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.58.0";
+        public const string VERSION = "1.7.59.0";
         public const string BUILD_DATE = "2026-11-24";
     }
 }

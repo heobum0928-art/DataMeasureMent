@@ -465,7 +465,7 @@ namespace ReringProject {
         //260626 hbk $ALIGN_TEST 처리 — stub(IsPass=true echo) → 실측 grab+Run+pose 채움.
         //  BOTTOM: AlignFace→슬롯→grab→Matcher.Run→FillAlignPose(OffsetX/OffsetY/Theta)+IsPass=Found.
         //  TRAY: grab/Run 미수행 — 기존 echo ack 동작 유지 (회귀 0).
-        //  AlignFace 범위 외(음수/6이상): IsPass=false 안전 거부+로그.
+        //  AlignFace 범위 외(음수/8이상): IsPass=false 안전 거부+로그.
         private AlignResultPacket ProcessAlignTest(AlignTestPacket packet) //260626 hbk 실측 경로 배선
         {
             AlignResultPacket resultPacket = new AlignResultPacket();
@@ -493,7 +493,7 @@ namespace ReringProject {
             if (!bSlotValid)
             {
                 Logging.PrintLog((int)ELogType.Error,
-                    "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~5)", packet.AlignFace);
+                    "[ALIGN_TEST] AlignFace 범위 외 거부: {0} (유효범위 0~7)", packet.AlignFace);
                 FillAlignPoseZero(resultPacket); //260626 hbk PLC 필드 수 일관성 — pose=0 채움 후 NG 반환
                 resultPacket.IsPass = false; //260626 hbk NG 안전 거부
                 return resultPacket;

@@ -209,8 +209,8 @@ namespace ReringProject.Custom.UI {
         }
 
         /// <summary>
-        /// 면 슬롯 ComboBox 에 6개 슬롯을 그룹 라벨과 함께 채운다.
-        /// 3D 그룹 2개 먼저, 2D 그룹 4개 순서. Tag 에 EBottomAlignSlot enum 보관.
+        /// 면 슬롯 ComboBox 에 8개 슬롯을 그룹 라벨과 함께 채운다.
+        /// 3D 그룹 2개, 2D 그룹 4개, Flip 2개 순서. Tag 에 EBottomAlignSlot enum 보관.
         /// 초기 선택 없음 — 작업자가 명시적으로 선택해야 티칭 가능.
         /// </summary>
         private void PopulateSlotComboBox() //260626 hbk ComboBox 6슬롯 채우기
@@ -246,6 +246,17 @@ namespace ReringProject.Custom.UI {
             item2DSide2.Content = "[2D] 2D_SIDE_2"; //260626 hbk 2D 그룹 네 번째 슬롯
             item2DSide2.Tag = EBottomAlignSlot.Slot2DSide2;
             cmb_slot.Items.Add(item2DSide2);
+
+            //261124 hbk 뒤집은 면 2슬롯 (AlignFace 6, 7)
+            ComboBoxItem itemTopFlip = new ComboBoxItem();
+            itemTopFlip.Content = "[Flip] Top_Flip";
+            itemTopFlip.Tag = EBottomAlignSlot.SlotTopFlip;
+            cmb_slot.Items.Add(itemTopFlip);
+
+            ComboBoxItem itemBottomFlip = new ComboBoxItem();
+            itemBottomFlip.Content = "[Flip] Bottom_Flip";
+            itemBottomFlip.Tag = EBottomAlignSlot.SlotBottomFlip;
+            cmb_slot.Items.Add(itemBottomFlip);
 
             //260626 hbk 초기 선택 없음 — 작업자가 명시 선택해야 티칭 가능 (가드 대비)
             cmb_slot.SelectedIndex = -1;

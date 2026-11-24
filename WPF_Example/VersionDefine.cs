@@ -745,10 +745,24 @@ namespace ReringProject
                  "이 숫자가 0 이 아니면 10번 중 1번만 빠져도 그 줄이 보라색이 되고 '문제 항목만 보기' 에 들어간다(예전에는 전부 빠졌을 때만 보라색이었고 일부 누락은 N 숫자만 줄었다). " +
                  "이를 위해 측정 이력 CSV 의 판정 칸에 실패 사유(MEASURE_FAIL 등)를 그대로 남긴다. 이전 CSV 의 에지 못 찾음 기록은 사유 없이 남아 있어 새로 찍은 검사부터 센다. Z 범위 대기(아직 안 잰 중간 z)는 실패로 세지 않는다."
     )]
+    [Version(
+        Number = "1.7.58.0",
+        Date = "2026-11-24",
+        Change = "[긴급 수정] 1.7.55.0 ~ 1.7.57.0 을 처음 켜면 Setting.ini 의 얼라인 카메라 설정이 기본값으로 덮어써지던 문제를 고쳤다. " +
+                 "날아간 값 : EthernetCameraIp(카메라 이름 → 빈칸), EthernetPixelResolution(Tray/Bottom 얼라인 픽셀 분해능 → 8.652), " +
+                 "PickerCenterRow/Col·TrayPickerCenterRow/Col(피커센터 → 0), CalibSearchRow1/Col1/Row2/Col2(피커캘 검색 ROI → 0/0/99999/99999), " +
+                 "EthernetVisionModeValue(얼라인 모드 → 0 이 되어 Tray/Bottom 탭이 사라질 수 있음). 레시피(검사 카메라 픽셀 분해능·보정계수·티칭)는 영향 없음. " +
+                 "원인 : 설정 파일은 항목을 묶음으로 나눠 저장하는데, 얼라인 항목들은 묶음 이름표가 인식되지 않아 바로 앞 항목의 묶음을 따라간다. " +
+                 "1.7.55.0 에서 그 앞에 '체커보드 칸 크기' 항목을 넣으면서 따라가는 묶음이 [Path|AlignVerify] → [Path|Calibration] 으로 바뀌었고, " +
+                 "새 빌드를 처음 켤 때 새 묶음에서 값을 못 찾아 기본값으로 채운 뒤 그대로 저장했다. " +
+                 "수정 : 설정을 읽을 때 원래 묶음에 키가 없으면 파일의 다른 묶음까지 찾아 읽는다. 아직 1.7.55.0 이후를 켜지 않은 PC 는 이 버전으로 바로 올리면 값이 그대로 유지된다. " +
+                 "이미 1.7.55.0 ~ 1.7.57.0 을 켠 PC 는 파일에서 값이 이미 지워졌으므로 이 수정으로 되살아나지 않는다 — 앱을 끄고 Setting.ini.bak_* 백업이나 " +
+                 "현장 기록에서 위 값을 직접 되돌리거나, 픽셀 캘리브레이션·피커센터 캘을 다시 해야 한다(TOP/BOTTOM PC 는 2026-11-24 에 되돌림: TrayAlign, 11.7252607661067, 피커센터 2485.33/2677.72, 검색 ROI 1501/1322/3454/4008)."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.57.0";
-        public const string BUILD_DATE = "2026-11-16";
+        public const string VERSION = "1.7.58.0";
+        public const string BUILD_DATE = "2026-11-24";
     }
 }

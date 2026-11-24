@@ -311,6 +311,24 @@ namespace ReringProject.Setting {
             return finalPath;
         }
         
+        //261124 hbk 키를 원래 묶음(group)에서 먼저 찾고, 없으면 파일의 다른 묶음 전체에서 찾는다.
+        //  묶음 이름표가 인식되지 않는 항목은 바로 앞 항목의 묶음을 따라 저장되므로, 앞에 항목 하나만 끼워 넣어도
+        //  뒤 항목들이 저장되는 묶음이 바뀐다. 그때 옛 파일에서 값을 못 찾아 기본값으로 채운 뒤 그대로 저장해
+        //  Tray 분해능·피커센터·카메라 이름이 날아간 사고가 있었다.
+        private static IniValue FindIniValue(IniFile loadFile, string group, string name) {
+            IniSection section;
+            bool bHasGroup = loadFile.TryGetSection(group, out section);
+            if (bHasGroup && section.ContainsKey(name)) {
+                return section[name];
+            }
+            foreach (KeyValuePair<string, IniSection> pair in loadFile) {
+                if (pair.Value.ContainsKey(name)) {
+                    return pair.Value[name];
+                }
+            }
+            return IniValue.Default;
+        }
+
         public void Load() {
             IniFile loadFile = new IniFile();
             if (File.Exists(SettingIniFile)) {
@@ -342,34 +360,34 @@ namespace ReringProject.Setting {
                         case "Int32":
                             // 키가 없으면 IniValue.Default(Value == null) 라 ToInt() 기본값 0 이 코드 기본값을 덮어쓴다 — 현재 값을 폴백으로 넘겨 방지한다.
                             int nCodeDefault = (int)prop.GetValue(this);
-                            int iValue = loadFile[group][name].ToInt(nCodeDefault);
+                            int iValue = FindIniValue(loadFile, group, name).ToInt(nCodeDefault);
                             prop.SetValue(this, iValue);
                             break;
                         case "Double":
-                            double dValue = loadFile[group][name].ToDouble();
+                            double dValue = FindIniValue(loadFile, group, name).ToDouble();
                             prop.SetValue(this, dValue);
                             break;
                         case "String":
-                            string sValue = loadFile[group][name].ToString();
+                            string sValue = FindIniValue(loadFile, group, name).ToString();
                             if(isDirectory) {
                                 if (Directory.Exists(sValue) == false) Directory.CreateDirectory(sValue);
                             }
                             prop.SetValue(this, sValue);
                             break;
                         case "Boolean":
-                            bool bValue = loadFile[group][name].ToBool();
+                            bool bValue = FindIniValue(loadFile, group, name).ToBool();
                             prop.SetValue(this, bValue);
                             break;
                         case "Rect":
-                            System.Windows.Rect rectVal = loadFile[group][name].ToRect();
+                            System.Windows.Rect rectVal = FindIniValue(loadFile, group, name).ToRect();
                             prop.SetValue(this, rectVal);
                             break;
                         case "Line":
-                            Line lineVal = loadFile[group][name].ToLine();
+                            Line lineVal = FindIniValue(loadFile, group, name).ToLine();
                             prop.SetValue(this, lineVal);
                             break;
                         case "Circle":
-                            Circle circleVal = loadFile[group][name].ToCircle();
+                            Circle circleVal = FindIniValue(loadFile, group, name).ToCircle();
                             prop.SetValue(this, circleVal);
                             break;
                         case "PropertyItem[]":

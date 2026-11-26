@@ -769,13 +769,24 @@ namespace ReringProject
     [Version(
         Number = "1.7.60.0",
         Date = "2026-11-26",
+        Change = "자재가 바뀔 때마다 Bottom 기준점 찾기가 'Circle: insufficient polar samples (0)' / 'Horizontal_B no edges' 로 실패하던 문제를 고쳤다(재티칭 불필요). " +
+                 "원인 : 패턴 보정의 패턴1·패턴2 ROI 가 부품 가장자리의 똑같은 톱니 두 개를 담고 있는데, 톱니가 약 515px 간격으로 반복돼 패턴2 가 한 칸 옆 톱니에 맞는 일이 있었다. " +
+                 "그러면 두 패턴으로 잰 회전각이 크게 틀어져(실측: 실제 +0.90° 를 -0.43° 로 계산) 멀리 있는 원·가로선 B 검색 위치가 200px 가까이 어긋났다. " +
+                 "수정 : 패턴1~패턴2 거리가 티칭 때와 100px 넘게 다르면(부품은 한 덩어리라 정상이면 거의 같다) 패턴2 를 잘못 맞은 것으로 보고 버리고, 패턴1 이 직접 잰 각도로 보정한다. 패턴2 가 제대로 맞으면 동작은 예전과 같다. " +
+                 "버릴 때는 Algorithm 로그에 '[ALIGN2] … 패턴2 를 … 에서 찾았지만 패턴1 과의 거리가 티칭 때와 NNpx 달라 … 버림' 이 남는다. " +
+                 "진단 기록 추가 : 기준점 보정 때마다 Algorithm 로그 '[ALIGN]' 줄에 패턴1·2 를 찾은 위치와 점수, 이동량, 회전각, 원 검색 중심(티칭 위치 → 보정 위치)을 남긴다. " +
+                 "근본적으로는 패턴2 ROI 를 반복되지 않는 모양(예: 오른쪽 끝 계단 모서리)으로 다시 잡는 것이 좋다."
+    )]
+    [Version(
+        Number = "1.7.61.0",
+        Date = "2026-11-26",
         Change = "자동 검사에서 두 높이 사진을 합쳐 쓰는 기준점(예: SIDE Datum_2, z21·z22)을 Shot 마다 다시 찾던 문제 수정. " +
                  "두 장을 찍는 높이에서만 새로 찾고, 그 뒤 Shot 은 같은 부품 동안 찾은 결과를 재사용한다(SIDE 사이클당 약 65초 단축). 수동 RUN 동작은 그대로."
     )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.60.0";
+        public const string VERSION = "1.7.61.0";
         public const string BUILD_DATE = "2026-11-26";
     }
 }

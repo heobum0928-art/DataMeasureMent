@@ -3720,6 +3720,89 @@ namespace ReringProject.Sequence {
             return TryComposeAlign(datum, refImage, null, modelPath, out error);
         }
 
+        //261126 hbk 부품은 한 덩어리라 패턴1~패턴2 사이 거리는 티칭 때와 같아야 한다. 패턴 ROI 가 가장자리의 반복 톱니를
+        //  담고 있으면 패턴2 가 한 칸 옆 톱니(약 515px)에 맞기도 하는데, 그러면 두 점으로 잰 회전각이 크게 틀어져 멀리 있는
+        //  원·가로선 검색 위치가 수백 px 어긋난다(실측: 거리 411px 차이, 회전 +0.90° 를 -0.43° 로 계산). 이 허용치를 넘으면
+        //  패턴2 를 버리고 패턴1 이 직접 잰 각도로 보정한다. 정상 매칭은 매칭 오차 수 px 수준이라 걸리지 않는다.
+        private const double PATTERN2_MAX_DISTANCE_DIFF_PX = 100.0;
+
+        private bool IsPattern2DistanceConsistent(DatumConfig datum, double dPat1Row, double dPat1Col, double dPat2Row, double dPat2Col, double dPat2Score)
+        {
+            double dRefDr = datum.RefMatch2Row - datum.RefMatchRow;
+            double dRefDc = datum.RefMatch2Col - datum.RefMatchCol;
+            double dCurDr = dPat2Row - dPat1Row;
+            double dCurDc = dPat2Col - dPat1Col;
+            double dRefLen = System.Math.Sqrt(dRefDr * dRefDr + dRefDc * dRefDc);
+            double dCurLen = System.Math.Sqrt(dCurDr * dCurDr + dCurDc * dCurDc);
+            double dDiffPx = System.Math.Abs(dCurLen - dRefLen);
+            bool bConsistent = dDiffPx <= PATTERN2_MAX_DISTANCE_DIFF_PX;
+            if (!bConsistent)
+            {
+                string szDatumName = "";
+                if (datum.DatumName != null)
+                {
+                    szDatumName = datum.DatumName;
+                }
+                Logging.PrintLog((int)ELogType.Algorithm, string.Format(
+                    "[ALIGN2]{0} {1} 패턴2 를 ({2:F1}, {3:F1}) 점수 {4:F3} 에서 찾았지만 패턴1 과의 거리가 티칭 때와 {5:F1}px 달라(허용 {6:F0}px) 다른 자리에 잘못 맞은 것으로 보고 버림 → 패턴1 각도로 보정",
+                    GetCycleModeTag(), szDatumName, dPat2Row, dPat2Col, dPat2Score, dDiffPx, PATTERN2_MAX_DISTANCE_DIFF_PX));
+            }
+            return bConsistent;
+        }
+
+        //261126 hbk 패턴 보정이 기준점 검색 위치를 어디로 옮겼는지 남긴다 — 자재가 바뀔 때 원·가로선을 엉뚱한 곳에서
+        //  찾아 실패하던 원인(패턴을 다른 자리에 맞춘 것인지, 회전 보정 방향인지)을 로그만으로 가리기 위한 진단 기록.
+        //  원 검색 중심은 "이동+회전(실제 적용)" 과 "이동만" 두 가지로 적어, 실제 구멍 위치와 어느 쪽이 맞는지 비교할 수 있게 한다.
+        private void LogAlignDiagnostics(DatumConfig datum, double dPat1Row, double dPat1Col, double dPat1AngleDeg, double dPat1Score,
+            double dPat2Row, double dPat2Col, double dPat2Score, double dRow, double dCol, double dThetaRad, HTuple hvAlignRigid)
+        {
+            HTuple hvCircRow = null;
+            HTuple hvCircCol = null;
+            try
+            {
+                string szDatumName = "";
+                if (datum.DatumName != null)
+                {
+                    szDatumName = datum.DatumName;
+                }
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                sb.Append("[ALIGN]").Append(GetCycleModeTag()).Append(" ").Append(szDatumName);
+                sb.AppendFormat(" 패턴1 찾음 ({0:F1}, {1:F1}) 각 {2:F3}° 점수 {3:F3} / 기준 ({4:F1}, {5:F1})",
+                    dPat1Row, dPat1Col, dPat1AngleDeg, dPat1Score, datum.RefMatchRow, datum.RefMatchCol);
+                bool bHasPattern2 = !double.IsNaN(dPat2Row);
+                if (bHasPattern2)
+                {
+                    sb.AppendFormat(" · 패턴2 찾음 ({0:F1}, {1:F1}) 점수 {2:F3} / 기준 ({3:F1}, {4:F1})",
+                        dPat2Row, dPat2Col, dPat2Score, datum.RefMatch2Row, datum.RefMatch2Col);
+                }
+                else
+                {
+                    sb.Append(" · 패턴2 없음");
+                }
+                sb.AppendFormat(" · 이동 행 {0:+0.0;-0.0;0.0} 열 {1:+0.0;-0.0;0.0} · 회전 {2:+0.000;-0.000;0.000}°",
+                    dRow, dCol, dThetaRad * 180.0 / System.Math.PI);
+
+                bool bHasCircle = datum.CircleROI_Radius > 0.0;
+                if (bHasCircle)
+                {
+                    HOperatorSet.AffineTransPoint2d(hvAlignRigid, datum.CircleROI_Row, datum.CircleROI_Col, out hvCircRow, out hvCircCol);
+                    sb.AppendFormat(" · 원 검색 중심 티칭 ({0:F1}, {1:F1}) → 보정 ({2:F1}, {3:F1}) [이동만이면 ({4:F1}, {5:F1})]",
+                        datum.CircleROI_Row, datum.CircleROI_Col, hvCircRow.D, hvCircCol.D,
+                        datum.CircleROI_Row + dRow, datum.CircleROI_Col + dCol);
+                }
+                Logging.PrintLog((int)ELogType.Algorithm, sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                try { Logging.PrintErrLog((int)ELogType.Error, "[ALIGN] 진단 기록 실패(무시): " + ex.Message); } catch { }
+            }
+            finally
+            {
+                if (hvCircRow != null) { try { hvCircRow.Dispose(); } catch { } }
+                if (hvCircCol != null) { try { hvCircCol.Dispose(); } catch { } }
+            }
+        }
+
         //260619 hbk DualImage align — 세로축 이미지(refImageVertical) 를 받는 5-arg 오버로드.
         //  refImageVertical != null + DualImage datum 이면 ④단계가 2-image TryFindDatum 으로 분기하여 가로/세로 ROI 에 동일 alignRigid 적용.
         //  패턴 매칭(① TryFindPose)은 가로축(refImage) 에서만 수행 — 세로엔 패턴 모델 없음.
@@ -3763,6 +3846,10 @@ namespace ReringProject.Sequence {
             //260619 hbk ②-2 — 패턴2 설정 시 θ 를 "두 점 baseline 각" 으로 교체(단일 패턴 각도 정밀도 한계 보완).
             //  각 패턴 자체 회전각 미사용 — 두 매칭 중심점만 사용. baseline 각 = atan2(-dRow, dCol) (CCW-visual, hom_mat2d_rotate 규약 일치). 부호 SIMUL 검증.
             //  점2 미설정(Length=0) 또는 매칭 실패 → 단일 패턴 θ 유지(폴백) + 경고.
+            //261126 hbk 진단 로그 전용 — 패턴 2 를 찾은 위치. 못 찾거나 설정이 없으면 NaN 으로 남는다.
+            double dPat2Row = double.NaN;
+            double dPat2Col = double.NaN;
+            double dPat2Score = double.NaN;
             bool bPattern2Configured = datum.PatternRoi2_Length1 > 0.0 && datum.PatternRoi2_Length2 > 0.0;
             if (!bPattern2Configured)
             {
@@ -3778,11 +3865,15 @@ namespace ReringProject.Sequence {
                 if (svc.TryFindPose(refImage, datum.PatternEngine, modelPath2,
                         datum.PatternRoi2_Row, datum.PatternRoi2_Col, datum.PatternRoi2_Length1, datum.PatternRoi2_Length2,
                         datum.PatternSearchMarginPx, datum.PatternMinScore, /*downsampleFactor*/ 1.0,
-                        out cur2Row, out cur2Col, out cur2AngleDeg, out cur2Score, out err2, datum.FindAngleExtentDeg))
+                        out cur2Row, out cur2Col, out cur2AngleDeg, out cur2Score, out err2, datum.FindAngleExtentDeg)
+                    && IsPattern2DistanceConsistent(datum, curRow, curCol, cur2Row, cur2Col, cur2Score))
                 {
                     double refBaseline = System.Math.Atan2(-(datum.RefMatch2Row - datum.RefMatchRow), datum.RefMatch2Col - datum.RefMatchCol);
                     double curBaseline = System.Math.Atan2(-(cur2Row - curRow), cur2Col - curCol);
                     thetaRad = curBaseline - refBaseline;
+                    dPat2Row = cur2Row;
+                    dPat2Col = cur2Col;
+                    dPat2Score = cur2Score;
                     datum.Align2Status = EDatumAlign2Status.Applied;
                     datum.Align2Score = cur2Score;
                     // 성공도 남긴다 — 종전에는 실패만 기록해서 "2-패턴이 실제로 켜져 돌고 있는지" 를 로그로 확인할 수 없었다.
@@ -3814,6 +3905,7 @@ namespace ReringProject.Sequence {
                 error = exr.Message;
                 return false;
             }
+            LogAlignDiagnostics(datum, curRow, curCol, curAngleDeg, curScore, dPat2Row, dPat2Col, dPat2Score, dRow, dCol, thetaRad, alignRigid);
             //260618 hbk ④ 보정 transform(T)을 datum 검출 ROI 에 적용하여 datum 을 검출(생성)한다 (사용자 설계).
             //  T(rotate θ+translate x,y)로 검출 ROI(Circle/Horizontal/Line)가 틀어진 부품의 실제 datum 에지를 덮음
             //  → 진짜 DetectedOrigin/angle + datum transform 생성. 측정은 이 datum transform 을 사용 → nominal 불변.

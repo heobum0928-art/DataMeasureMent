@@ -766,10 +766,21 @@ namespace ReringProject
                  "PLC 가 $ALIGN_TEST 의 AlignFace 를 6 으로 보내면 Top_Flip, 7 이면 Bottom_Flip 모델로 얼라인한다(0~5 는 그대로). " +
                  "모델 파일은 Bottom_Top_Flip_1/2.shm, Bottom_Bottom_Flip_1/2.shm 로 따로 저장되므로 기존 6면 티칭에는 영향 없음. 새 두 면은 Bottom 비전 화면에서 각각 티칭해야 쓸 수 있다."
     )]
+    [Version(
+        Number = "1.7.60.0",
+        Date = "2026-11-26",
+        Change = "자재가 바뀔 때마다 Bottom 기준점 찾기가 'Circle: insufficient polar samples (0)' / 'Horizontal_B no edges' 로 실패하던 문제를 고쳤다(재티칭 불필요). " +
+                 "원인 : 패턴 보정의 패턴1·패턴2 ROI 가 부품 가장자리의 똑같은 톱니 두 개를 담고 있는데, 톱니가 약 515px 간격으로 반복돼 패턴2 가 한 칸 옆 톱니에 맞는 일이 있었다. " +
+                 "그러면 두 패턴으로 잰 회전각이 크게 틀어져(실측: 실제 +0.90° 를 -0.43° 로 계산) 멀리 있는 원·가로선 B 검색 위치가 200px 가까이 어긋났다. " +
+                 "수정 : 패턴1~패턴2 거리가 티칭 때와 100px 넘게 다르면(부품은 한 덩어리라 정상이면 거의 같다) 패턴2 를 잘못 맞은 것으로 보고 버리고, 패턴1 이 직접 잰 각도로 보정한다. 패턴2 가 제대로 맞으면 동작은 예전과 같다. " +
+                 "버릴 때는 Algorithm 로그에 '[ALIGN2] … 패턴2 를 … 에서 찾았지만 패턴1 과의 거리가 티칭 때와 NNpx 달라 … 버림' 이 남는다. " +
+                 "진단 기록 추가 : 기준점 보정 때마다 Algorithm 로그 '[ALIGN]' 줄에 패턴1·2 를 찾은 위치와 점수, 이동량, 회전각, 원 검색 중심(티칭 위치 → 보정 위치)을 남긴다. " +
+                 "근본적으로는 패턴2 ROI 를 반복되지 않는 모양(예: 오른쪽 끝 계단 모서리)으로 다시 잡는 것이 좋다."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.59.0";
-        public const string BUILD_DATE = "2026-11-24";
+        public const string VERSION = "1.7.60.0";
+        public const string BUILD_DATE = "2026-11-26";
     }
 }

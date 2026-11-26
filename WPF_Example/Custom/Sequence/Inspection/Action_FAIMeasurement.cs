@@ -329,6 +329,18 @@ namespace ReringProject.Sequence {
                 nDatumCached++; //260818 hbk [SEQ] 요약: 이번 사이클 이미 검출됨 → 재검출 생략
                 return; // 이번 사이클 기 검출 성공 — skip
             }
+            if (bTakesCrossZPath) {
+                //261126 hbk 크로스-Z 는 두 장(ZIndexA/B)이 다 찍힌 뒤엔 입력이 그대로라 이후 Shot 마다 다시 찾을 필요가 없다
+                //  (실측 SIDE NCC 회당 7.4초 × z 10개). 사진을 찍는 z 에서는 이전 부품 결과가 남지 않게 지우고 새로 찾는다.
+                int nCurZIndex = parentSeq.GetExecutionZIndex();
+                bool bIsCaptureZ = nCurZIndex == datum.ZIndexA || nCurZIndex == datum.ZIndexB;
+                if (bIsCaptureZ) {
+                    parentSeq.ForgetDatumTransform(datum.DatumName);
+                } else if (parentSeq.HasCachedDatumTransform(datum.DatumName)) {
+                    nDatumCached++;
+                    return; // 두 장 다 모인 뒤 이번 사이클 기 검출 성공 — skip
+                }
+            }
             // Datum 전용 조명(SourceShotName 상속과 무관) 을 grab 직전에 켠다. 이 grab 이 끝나면
             //  루프 종료 후 ApplyShotLights 로 되돌려야 EStep.Grab 의 측정 grab 이 Shot 조명 아래서 이뤄진다.
             parentSeq.ApplyDatumLights(datum);

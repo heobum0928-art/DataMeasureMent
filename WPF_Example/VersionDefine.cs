@@ -766,10 +766,16 @@ namespace ReringProject
                  "PLC 가 $ALIGN_TEST 의 AlignFace 를 6 으로 보내면 Top_Flip, 7 이면 Bottom_Flip 모델로 얼라인한다(0~5 는 그대로). " +
                  "모델 파일은 Bottom_Top_Flip_1/2.shm, Bottom_Bottom_Flip_1/2.shm 로 따로 저장되므로 기존 6면 티칭에는 영향 없음. 새 두 면은 Bottom 비전 화면에서 각각 티칭해야 쓸 수 있다."
     )]
+    [Version(
+        Number = "1.7.60.0",
+        Date = "2026-11-26",
+        Change = "자동 검사에서 두 높이 사진을 합쳐 쓰는 기준점(예: SIDE Datum_2, z21·z22)을 Shot 마다 다시 찾던 문제 수정. " +
+                 "두 장을 찍는 높이에서만 새로 찾고, 그 뒤 Shot 은 같은 부품 동안 찾은 결과를 재사용한다(SIDE 사이클당 약 65초 단축). 수동 RUN 동작은 그대로."
+    )]
     public static class VersionDefine
     {
         //260710 hbk AssemblyVersion 어트리뷰트 인자는 컴파일 타임 상수여야 하므로 반드시 const (static readonly 사용 시 CS0182)
-        public const string VERSION = "1.7.59.0";
-        public const string BUILD_DATE = "2026-11-24";
+        public const string VERSION = "1.7.60.0";
+        public const string BUILD_DATE = "2026-11-26";
     }
 }

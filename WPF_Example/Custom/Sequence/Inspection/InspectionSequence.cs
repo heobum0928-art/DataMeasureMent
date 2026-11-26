@@ -3937,6 +3937,16 @@ namespace ReringProject.Sequence {
             }
         }
 
+        //261126 hbk 크로스-Z Datum 1건의 캐시만 지운다 — 사진을 새로 찍는 z 에서 이전 부품 결과가 재사용되지 않게.
+        public void ForgetDatumTransform(string datumName) {
+            if (string.IsNullOrEmpty(datumName)) {
+                return;
+            }
+            lock (_datumStateLock) {
+                _datumTransforms.Remove(datumName);
+            }
+        }
+
         //260918 hbk DatumRef → 국부 기준선 결과 조회 (Action_FAIMeasurement 가 측정 직전 주입할 때 사용).
         public bool TryGetLocalRefLine(MeasurementBase meas, out LocalRefLineResult result) {
             result = null;
